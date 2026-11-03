@@ -162,8 +162,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             new HashSet<QuilvianSystemBackend.Enums.UserType>
             {
                 QuilvianSystemBackend.Enums.UserType.Employee,
-                QuilvianSystemBackend.Enums.UserType.PermanentDoctor,
-                QuilvianSystemBackend.Enums.UserType.GuestDoctor
+                QuilvianSystemBackend.Enums.UserType.PermanentDoctor
             };
     }
 
@@ -214,5 +213,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public const string Verify = "Verify";
         public const string Reject = "Reject";
         public const string End = "End";
+    }
+
+    /// <summary>Status siklus sinkronisasi kartu penjamin pasien (FIN-STATE-1.11 V.2, BE-FIN-130).</summary>
+    public static class EmployeeBenefitCardSyncStatuses
+    {
+        public const string Synced = "SYNCED";
+        public const string WaitingPatient = "WAITING_PATIENT";
+        public const string OnHold = "ON_HOLD";
+        public const string FailedRetryable = "FAILED_RETRYABLE";
+        public const string Revoked = "REVOKED";
+        public const string NotStarted = "NOT_STARTED";
+
+        public static readonly string[] All = { Synced, WaitingPatient, OnHold, FailedRetryable, Revoked, NotStarted };
+    }
+
+    /// <summary>Pemicu proses sinkronisasi kartu pasien (FIN-INTEGRATION-1.11 V.2).</summary>
+    public static class EmployeeBenefitCardSyncTriggerSources
+    {
+        public const string Activation = "ACTIVATION";
+        public const string Scheduler = "SCHEDULER";
+        public const string ManualResync = "MANUAL_RESYNC";
     }
 }

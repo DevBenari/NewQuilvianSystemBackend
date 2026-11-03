@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
@@ -45,13 +46,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly PatientPayerCardImageService _cardImageService;
         private readonly RegistrationEmployeeBenefitLookupService _employeeBenefitLookup;
         private readonly IPatientWorkforceIdentityResolver? _workforceResolver;
+        private readonly EmployeeBenefitEligibilityService _eligibilityService;
 
         public PatientCompanyGuarantorController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             PatientPayerCardImageService cardImageService,
             RegistrationEmployeeBenefitLookupService? employeeBenefitLookup = null,
-            IPatientWorkforceIdentityResolver? workforceResolver = null)
+            IPatientWorkforceIdentityResolver? workforceResolver = null,
+            EmployeeBenefitEligibilityService? eligibilityService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -60,6 +63,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ?? new RegistrationEmployeeBenefitLookupService(
                     dbContext, new EmployeeBenefitEligibilityService(dbContext), loggerService);
             _workforceResolver = workforceResolver;
+            _eligibilityService = eligibilityService
+                ?? new EmployeeBenefitEligibilityService(dbContext);
         }
 
         [HttpGet("filters/metadata")]
@@ -259,9 +264,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     .Where(x => x != Guid.Empty)
             );
 
-            var items = entities
-                .Select(x => MapResponse(x, actorNames))
-                .ToList();
+            var today = AppDateTimeHelper.OperationalDate();
+            var items = new List<PatientCompanyGuarantorResponse>(entities.Count);
+            foreach (var entity in entities)
+            {
+                EmployeeBenefitStatusResponse? benefitStatus = null;
+                if (entity.CompanyGuarantor?.IsEmployeeBenefitGuarantor == true)
+                {
+                    try
+                    {
+                        var statusResult = await _eligibilityService.DescribeBenefitStateAsync(
+                            entity.BenefitOwnerWorkforceProfileId,
+                            entity.EmployeeId,
+                            entity.FamilyMemberId,
+                            today,
+                            HttpContext.RequestAborted);
+
+                        benefitStatus = new EmployeeBenefitStatusResponse
+                        {
+                            State = statusResult.State,
+                            Label = statusResult.Label,
+                            EnrollmentNumber = statusResult.EnrollmentNumber,
+                            PlanName = statusResult.PlanName,
+                            EffectiveStartDate = statusResult.EffectiveStartDate,
+                            EffectiveEndDate = statusResult.EffectiveEndDate,
+                            Message = statusResult.Message
+                        };
+                    }
+                    catch (Exception)
+                    {
+                        benefitStatus = new EmployeeBenefitStatusResponse
+                        {
+                            State = EmployeeBenefitStatusStates.HrUnavailable,
+                            Label = EmployeeBenefitStatusLabels.HrUnavailable,
+                            Message = "Data HR belum dapat dibaca. Coba lagi beberapa saat lagi."
+                        };
+                    }
+                }
+
+                items.Add(MapResponse(entity, actorNames, benefitStatus));
+            }
 
             var result = new ResponsePatientCompanyGuarantorPagedResult
             {
@@ -425,7 +467,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 entity.UpdateBy
             });
 
-            var data = MapDetailResponse(entity, actorNames);
+            EmployeeBenefitStatusResponse? benefitStatus = null;
+            if (entity.CompanyGuarantor?.IsEmployeeBenefitGuarantor == true)
+            {
+                try
+                {
+                    var today = AppDateTimeHelper.OperationalDate();
+                    var statusResult = await _eligibilityService.DescribeBenefitStateAsync(
+                        entity.BenefitOwnerWorkforceProfileId,
+                        entity.EmployeeId,
+                        entity.FamilyMemberId,
+                        today,
+                        HttpContext.RequestAborted);
+
+                    benefitStatus = new EmployeeBenefitStatusResponse
+                    {
+                        State = statusResult.State,
+                        Label = statusResult.Label,
+                        EnrollmentNumber = statusResult.EnrollmentNumber,
+                        PlanName = statusResult.PlanName,
+                        EffectiveStartDate = statusResult.EffectiveStartDate,
+                        EffectiveEndDate = statusResult.EffectiveEndDate,
+                        Message = statusResult.Message
+                    };
+                }
+                catch (Exception)
+                {
+                    benefitStatus = new EmployeeBenefitStatusResponse
+                    {
+                        State = EmployeeBenefitStatusStates.HrUnavailable,
+                        Label = EmployeeBenefitStatusLabels.HrUnavailable,
+                        Message = "Data HR belum dapat dibaca. Coba lagi beberapa saat lagi."
+                    };
+                }
+            }
+
+            var data = MapDetailResponse(entity, actorNames, benefitStatus);
 
             NormalizeActorInfo(data);
 
@@ -1681,7 +1758,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         private static PatientCompanyGuarantorResponse MapResponse(
             MstPatientCompanyGuarantor entity,
-            IReadOnlyDictionary<Guid, string?> actorNames)
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            EmployeeBenefitStatusResponse? benefitStatus = null)
         {
             return new PatientCompanyGuarantorResponse
             {
@@ -1720,6 +1798,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 GuaranteeDocumentPath = entity.GuaranteeDocumentPath,
                 CardImagePath = entity.CardImagePath,
                 IsActive = entity.IsActive,
+                IsEmployeeBenefitGuarantor = entity.CompanyGuarantor?.IsEmployeeBenefitGuarantor ?? false,
+                EmployeeBenefitStatus = benefitStatus,
                 EmployeeId = entity.EmployeeId,
                 BenefitOwnerWorkforceProfileId = entity.BenefitOwnerWorkforceProfileId,
                 BenefitOwnerType = entity.BenefitOwnerType,
@@ -1736,7 +1816,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         private static PatientCompanyGuarantorDetailResponse MapDetailResponse(
             MstPatientCompanyGuarantor entity,
-            IReadOnlyDictionary<Guid, string?> actorNames)
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            EmployeeBenefitStatusResponse? benefitStatus = null)
         {
             var response = new PatientCompanyGuarantorDetailResponse
             {
@@ -1777,6 +1858,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 CardImagePath = entity.CardImagePath,
                 Notes = entity.Notes,
                 IsActive = entity.IsActive,
+                IsEmployeeBenefitGuarantor = entity.CompanyGuarantor?.IsEmployeeBenefitGuarantor ?? false,
+                EmployeeBenefitStatus = benefitStatus,
                 EmployeeId = entity.EmployeeId,
                 BenefitOwnerWorkforceProfileId = entity.BenefitOwnerWorkforceProfileId,
                 BenefitOwnerType = entity.BenefitOwnerType,

@@ -1,30 +1,37 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
+using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
 
 /// <summary>
-/// BE-FIN-110 (Revisi 21, EPIC FIN-04, FIN-DEC-214..217).
-/// Menjalankan pemotongan cicilan piutang RS di dalam mesin payroll run HR:
-/// 1. Membaca jadwal angsuran (TrxPayrollVariableInput dari adapter BE-FIN-094) per pegawai.
-/// 2. Menegakkan urutan prioritas: potongan wajib (pajak, BPJS) dan potongan berjalan dipotong lebih dulu (AC 2, FIN-DEC-216).
-/// 3. Menerapkan batas persentase gaji bersih (MaxNetSalaryPercentage pada MstDeductionType kategori Loan, FIN-DEC-217).
-/// 4. Memotong sebagian bila terutang melebihi batas (AC 1).
-/// 5. Menghasilkan TrxPayrollEmployeeComponent pada slip/run pegawai.
-/// 6. Mengirimkan hasil potongan secara otomatis ke Finance dengan menyertakan PayrollRunId.
-/// 7. Aman dari kiriman ulang ganda (idempoten, AC 3).
-/// 8. Menolak hasil mesin untuk periode sebelum peralihan (AC 4, FIN-VAL-288).
+/// Pemotongan cicilan piutang RS di dalam payroll run HRD (BE-FIN-110, kontrak direvisi mengikuti keputusan Finance-HRD).
+///
+/// Dua langkah yang sengaja dipisah:
+/// 1. <see cref="CalculateRunAsync"/>: dipanggil saat HRD MENGHITUNG run. Membaca jadwal angsuran dari input variabel, menegakkan
+///    urutan prioritas (pajak dan iuran wajib, potongan lain yang berjalan) dan batas persen gaji bersih, lalu menyimpan potongan
+///    RENCANA pada komponen slip. TIDAK menyentuh Finance: saldo piutang belum berubah.
+/// 2. <see cref="ConfirmRunAsync"/>: dipanggil HANYA saat run DISAHKAN. Mengirim hasil potongan yang sudah final ke Finance
+///    (ApplyResultCoreAsync, idempoten per angsuran dan periode) sehingga saldo piutang berkurang setelah hasilnya terkonfirmasi.
+///
+/// Tidak ada eksekusi manual per pegawai untuk proses normal. Koreksi sesudah run disahkan lewat pembalikan Finance
+/// (ApplyCorrectionCoreAsync) dengan approval dan jejak audit, bukan menjalankan ulang potongan.
+/// Kedua method berjalan di dalam transaksi pemanggil (PayrollRunService); keduanya tidak membuka transaksi sendiri.
 /// </summary>
 public sealed class PayrollInstallmentDeductionService
 {
     private const string LogCategory = "Corporate.HumanResource.PayrollManagement.InstallmentDeduction";
     private const string InstallmentSourceType = "FinanceReceivableInstallment";
+    private const string ComponentSourceType = "VariableInput";
+    private const string ComponentCode = "FINANCE_INSTALLMENT_DEDUCTION";
+    private const string InputDraft = "Draft";
+    private const string InputApplied = "Applied";
+
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceReceivablePayrollSyncService _syncService;
@@ -39,289 +46,262 @@ public sealed class PayrollInstallmentDeductionService
         _syncService = syncService;
     }
 
-    /// <summary>
-    /// Mengeksekusi potongan cicilan piutang RS untuk seluruh pegawai pada satu payroll run.
-    /// </summary>
-    public async Task<PayrollRunInstallmentDeductionSummaryResponse> ProcessRunInstallmentDeductionsAsync(
-        Guid payrollRunId, Guid actorUserId, CancellationToken cancellationToken)
+    /// <summary>Potongan rencana yang disimpan pada komponen slip (CalculationDetailJson) dan dikonfirmasi saat run disahkan.</summary>
+    private sealed record PlannedDeduction(
+        Guid InstallmentId, string DeductionPeriod, decimal DueAmount, decimal AvailableNetSalary, decimal MaxAllowed,
+        decimal DeductedAmount, string Status);
+
+    // ------------------------------------------------------------------------------------
+    // 1. HITUNG (tanpa Finance)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PayrollRunInstallmentDeductionSummaryResponse> CalculateRunAsync(
+        TrxPayrollRun run, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var run = await _dbContext.TrxPayrollRuns
-            .Include(r => r.PayrollPeriod)
-            .SingleOrDefaultAsync(r => r.Id == payrollRunId && !r.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException($"PayrollRun dengan Id {payrollRunId} tidak ditemukan.");
-
-        EnsureRunAcceptsDeduction(run);
-
-        // Seluruh pegawai yang punya angsuran harus sudah memiliki gaji bruto terhitung SEBELUM satu pun hasil dikirim ke Finance.
-        // Tanpa ini, pemrosesan berhenti di tengah run (hasil pegawai sebelumnya sudah tercatat di Finance, sisanya belum).
-        var notComputed = await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
-            .Where(e => e.PayrollRunId == payrollRunId && !e.IsDelete
-                && e.VariableInputs.Any(v => v.SourceType == InstallmentSourceType && !v.IsDelete)
-                && e.GrossPay <= 0m
-                && (e.BaseSalary + e.TotalRecurringEarning + e.TotalVariableEarning) <= 0m)
-            .Select(e => e.EmployeeNameSnapshot)
-            .Take(5)
-            .ToListAsync(cancellationToken);
-        if (notComputed.Count > 0)
-            throw new PayrollResultValidationException(GrossPayNotComputedMessage(string.Join(", ", notComputed)));
-
-        var employeeIds = await _dbContext.TrxPayrollRunEmployees
-            .Where(e => e.PayrollRunId == payrollRunId && !e.IsDelete)
-            .Select(e => e.Id)
+        var employees = await _dbContext.TrxPayrollRunEmployees
+            .Include(x => x.Components)
+            .Include(x => x.VariableInputs)
+            .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
             .ToListAsync(cancellationToken);
 
-        var summary = new PayrollRunInstallmentDeductionSummaryResponse
-        {
-            PayrollRunId = run.Id,
-            RunNumber = run.RunNumber,
-            PeriodCode = run.PayrollPeriod?.PayrollPeriodCode ?? string.Empty,
-            TotalEmployeesProcessed = employeeIds.Count
-        };
+        var summary = NewSummary(run, employees.Count);
 
-        foreach (var employeeId in employeeIds)
+        var cutover = await _dbContext.MstPayrollDeductionCutovers.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken);
+
+        var deductionType = await _dbContext.MstDeductionTypes.AsNoTracking()
+            .FirstOrDefaultAsync(x => !x.IsDelete && x.IsActive
+                && (x.DeductionCategory == "Loan" || x.DeductionTypeCode == "LOAN_HOSPITAL_AR" || x.DeductionTypeName.Contains("Piutang RS")), cancellationToken);
+
+        foreach (var employee in employees)
         {
-            var empResult = await ProcessEmployeeInstallmentDeductionAsync(employeeId, actorUserId, cancellationToken);
-            if (empResult.Status != "NONE")
+            var input = employee.VariableInputs
+                .FirstOrDefault(x => x.SourceType == InstallmentSourceType && !x.IsDelete && x.SourceId.HasValue);
+            if (input is null) continue;
+
+            var installment = await _dbContext.FinReceivableInstallments.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == input.SourceId!.Value && !x.IsDelete, cancellationToken);
+            if (installment is null)
             {
-                summary.TotalInstallmentsProcessed++;
-                summary.TotalDueAmount += empResult.DueAmount;
-                summary.TotalDeductedAmount += empResult.DeductedAmount;
-
-                if (empResult.Status == PayrollResultStatuses.Berhasil)
-                    summary.TotalSuccessCount++;
-                else if (empResult.Status == PayrollResultStatuses.Sebagian)
-                    summary.TotalPartialCount++;
-                else if (empResult.Status == PayrollResultStatuses.Gagal)
-                    summary.TotalFailedCount++;
-
-                summary.Items.Add(empResult);
+                summary.Blockers.Add($"{employee.EmployeeNameSnapshot}: angsuran Finance {input.SourceId} tidak ditemukan.");
+                continue;
             }
+
+            // Periode sebelum peralihan tetap memakai pencatatan manual Finance: tidak boleh diproses mesin payroll.
+            if (cutover is not null && string.CompareOrdinal(installment.DeductionPeriod, cutover.AutomaticFromPeriod) < 0)
+            {
+                summary.Blockers.Add($"{employee.EmployeeNameSnapshot}: periode {installment.DeductionPeriod} masih memakai pencatatan manual.");
+                continue;
+            }
+
+            // Gaji bruto belum dihitung: batas potong Rp0 hanya karena DATA belum ada. Tidak dicatat sebagai GAGAL (itu menandai
+            // angsuran tertunggak di Finance); pengajuan run diblokir sampai data gaji lengkap.
+            var grossPay = employee.GrossPay > 0m
+                ? employee.GrossPay
+                : employee.BaseSalary + employee.TotalRecurringEarning + employee.TotalVariableEarning;
+            if (grossPay <= 0m)
+            {
+                summary.Blockers.Add($"{employee.EmployeeNameSnapshot}: gaji bruto belum terhitung sehingga potongan cicilan tidak dapat direncanakan.");
+                continue;
+            }
+
+            var statutoryDeductions = employee.TotalTax + employee.TotalEmployeeInsuranceContribution;
+            var otherPriorDeductions = employee.Components
+                .Where(c => !c.IsDelete
+                    && c.ComponentTypeSnapshot == "Deduction"
+                    && c.ComponentCodeSnapshot != ComponentCode
+                    && c.ComponentCodeSnapshot != "LOAN_HOSPITAL_AR")
+                .Sum(c => c.Amount);
+
+            var availableNetSalary = Math.Max(0m, grossPay - statutoryDeductions - otherPriorDeductions);
+
+            // Batas persen gaji bersih dari master jenis potongan (default 50% bila belum diset), plus batas nominal bila ada.
+            var maxAllowed = availableNetSalary * ((deductionType?.MaxNetSalaryPercentage ?? 50m) / 100m);
+            if (deductionType?.MaximumAmount is > 0m)
+                maxAllowed = Math.Min(maxAllowed, deductionType.MaximumAmount.Value);
+            maxAllowed = Math.Max(0m, Math.Min(maxAllowed, availableNetSalary));
+
+            var dueAmount = input.Amount;
+            decimal deducted;
+            string status;
+            if (dueAmount <= maxAllowed) { deducted = dueAmount; status = PayrollResultStatuses.Berhasil; }
+            else if (maxAllowed > 0m) { deducted = maxAllowed; status = PayrollResultStatuses.Sebagian; }
+            else { deducted = 0m; status = PayrollResultStatuses.Gagal; }
+
+            var planned = new PlannedDeduction(installment.Id, installment.DeductionPeriod, dueAmount, availableNetSalary, maxAllowed, deducted, status);
+            var detailJson = JsonSerializer.Serialize(planned);
+
+            var component = employee.Components
+                .FirstOrDefault(c => !c.IsDelete && c.SourceType == ComponentSourceType && c.SourceId == input.Id);
+            if (component is not null)
+            {
+                component.Amount = deducted;
+                component.CalculationDetailJson = detailJson;
+                component.UpdateDateTime = DateTime.UtcNow;
+                component.UpdateBy = actorUserId;
+            }
+            else
+            {
+                _dbContext.TrxPayrollEmployeeComponents.Add(new TrxPayrollEmployeeComponent
+                {
+                    PayrollRunEmployeeId = employee.Id,
+                    PayrollComponentId = input.PayrollComponentId,
+                    SourceType = ComponentSourceType,
+                    SourceId = input.Id,
+                    ComponentCodeSnapshot = ComponentCode,
+                    ComponentNameSnapshot = "Potongan Cicilan Piutang RS",
+                    ComponentTypeSnapshot = "Deduction",
+                    CalculationMethodSnapshot = "BalanceBased",
+                    CurrencyCode = employee.CurrencyCode,
+                    Amount = deducted,
+                    IsDisplayedOnPayslip = true,
+                    CalculationDetailJson = detailJson,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                });
+            }
+
+            employee.TotalDeduction = statutoryDeductions + otherPriorDeductions + deducted;
+            employee.NetPay = grossPay - employee.TotalDeduction;
+            employee.UpdateDateTime = DateTime.UtcNow;
+            employee.UpdateBy = actorUserId;
+
+            AddItem(summary, employee, planned);
         }
 
-        await _loggerService.AuditAsync(LogCategory, "RunDeductions.Completed",
-            $"Pemotongan cicilan run {run.RunNumber} selesai: {summary.TotalInstallmentsProcessed} angsuran diproses, total terpotong Rp {summary.TotalDeductedAmount:N2}.",
+        return summary;
+    }
+
+    // ------------------------------------------------------------------------------------
+    // 2. KONFIRMASI ke Finance (hanya saat run disahkan)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PayrollRunInstallmentDeductionSummaryResponse> ConfirmRunAsync(
+        TrxPayrollRun run, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var employees = await _dbContext.TrxPayrollRunEmployees
+            .Include(x => x.Components)
+            .Include(x => x.VariableInputs)
+            .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var summary = NewSummary(run, employees.Count);
+
+        foreach (var employee in employees.OrderBy(x => x.Id))
+        {
+            var input = employee.VariableInputs
+                .FirstOrDefault(x => x.SourceType == InstallmentSourceType && !x.IsDelete && x.SourceId.HasValue);
+            if (input is null) continue;
+
+            var component = employee.Components
+                .FirstOrDefault(c => !c.IsDelete && c.SourceType == ComponentSourceType && c.SourceId == input.Id);
+            var planned = ReadPlanned(component);
+            if (planned is null)
+                throw new PayrollResultValidationException(
+                    $"Potongan cicilan {employee.EmployeeNameSnapshot} belum dihitung. Hitung ulang payroll run sebelum mengesahkan.");
+
+            // Kunci yang sama dengan penerima hasil Finance (ProcessResultAsync), supaya jalur otomatis dan batch manual tidak
+            // memproses angsuran yang sama bersamaan.
+            if (_dbContext.Database.IsRelational())
+            {
+                await _dbContext.Database.ExecuteSqlRawAsync(
+                    "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                    [$"FIN_INSTALLMENT_PAYROLL_RESULT_{planned.InstallmentId:N}"], cancellationToken);
+            }
+
+            var financeResult = await _syncService.ApplyResultCoreAsync(new PayrollResultRequest
+            {
+                InstallmentId = planned.InstallmentId,
+                PayrollPeriodId = run.PayrollPeriodId,
+                Status = planned.Status,
+                DeductedAmount = planned.DeductedAmount,
+                ExecutionTimestamp = DateTimeOffset.UtcNow,
+                PayrollRunId = run.Id,
+                Notes = $"Potongan payroll run {run.RunNumber} disahkan ({planned.Status})"
+            }, actorUserId, cancellationToken);
+
+            input.InputStatus = InputApplied;
+            input.UpdateDateTime = DateTime.UtcNow;
+            input.UpdateBy = actorUserId;
+
+            AddItem(summary, employee, planned, financeResult.IsIdempotentReplay);
+        }
+
+        await _loggerService.AuditAsync(LogCategory, "RunDeductions.Confirmed",
+            $"Hasil potongan cicilan run {run.RunNumber} dikonfirmasi ke Finance: {summary.TotalInstallmentsProcessed} angsuran, total terpotong Rp {summary.TotalDeductedAmount:N2}.",
             new { run.Id, summary.TotalInstallmentsProcessed, summary.TotalDeductedAmount, ActorUserId = actorUserId });
 
         return summary;
     }
 
-    /// <summary>
-    /// Mengeksekusi potongan cicilan piutang RS untuk satu baris pegawai di payroll run (AC 1, AC 2, AC 3, AC 4).
-    /// </summary>
-    public async Task<PayrollEmployeeInstallmentDeductionResponse> ProcessEmployeeInstallmentDeductionAsync(
-        Guid payrollRunEmployeeId, Guid actorUserId, CancellationToken cancellationToken)
+    // ------------------------------------------------------------------------------------
+    // Pembantu
+    // ------------------------------------------------------------------------------------
+
+    private static PlannedDeduction? ReadPlanned(TrxPayrollEmployeeComponent? component)
     {
-        var runEmployee = await _dbContext.TrxPayrollRunEmployees
-            .Include(x => x.PayrollRun)
-                .ThenInclude(r => r!.PayrollPeriod)
-            .Include(x => x.Components)
-            .Include(x => x.VariableInputs)
-            .SingleOrDefaultAsync(x => x.Id == payrollRunEmployeeId && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException($"PayrollRunEmployee dengan Id {payrollRunEmployeeId} tidak ditemukan.");
+        if (component is null || string.IsNullOrWhiteSpace(component.CalculationDetailJson)) return null;
+        try { return JsonSerializer.Deserialize<PlannedDeduction>(component.CalculationDetailJson); }
+        catch (JsonException) { return null; }
+    }
 
-        var variableInput = runEmployee.VariableInputs
-            .FirstOrDefault(x => x.SourceType == InstallmentSourceType && !x.IsDelete);
+    /// <summary>Baris potongan cicilan pada slip untuk tampilan HRD: rencana dari hitung terakhir, dan apakah sudah dikonfirmasi ke Finance.</summary>
+    public static PayrollRunInstallmentLineResponse? ReadLine(TrxPayrollRunEmployee employee)
+    {
+        var input = employee.VariableInputs
+            .FirstOrDefault(x => x.SourceType == InstallmentSourceType && !x.IsDelete && x.SourceId.HasValue);
+        if (input is null) return null;
 
-        if (variableInput is null || !variableInput.SourceId.HasValue)
+        var component = employee.Components
+            .FirstOrDefault(c => !c.IsDelete && c.SourceType == ComponentSourceType && c.SourceId == input.Id);
+        var planned = ReadPlanned(component);
+        return new PayrollRunInstallmentLineResponse
         {
-            return new PayrollEmployeeInstallmentDeductionResponse
-            {
-                PayrollRunEmployeeId = runEmployee.Id,
-                PayrollRunId = runEmployee.PayrollRunId,
-                EmployeeId = runEmployee.EmployeeId ?? Guid.Empty,
-                EmployeeName = runEmployee.EmployeeNameSnapshot,
-                EmployeeNumber = runEmployee.EmployeeNumberSnapshot ?? string.Empty,
-                Status = "NONE",
-                Message = "Tidak ada input variabel cicilan piutang RS untuk pegawai ini."
-            };
-        }
-
-        // Run yang terkunci/dibatalkan tidak boleh lagi mengubah potongan, dan hasil ke Finance tidak boleh dikirim darinya.
-        EnsureRunAcceptsDeduction(runEmployee.PayrollRun);
-
-        var installment = await _dbContext.FinReceivableInstallments
-            .SingleOrDefaultAsync(x => x.Id == variableInput.SourceId.Value && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException($"Angsuran Finance dengan Id {variableInput.SourceId.Value} tidak ditemukan.");
-
-        // AC 4 & FIN-VAL-288: Validasi masa peralihan (cutover)
-        var cutover = await _dbContext.MstPayrollDeductionCutovers.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken);
-        if (cutover is not null && string.CompareOrdinal(installment.DeductionPeriod, cutover.AutomaticFromPeriod) < 0)
-        {
-            throw new PayrollResultValidationException($"Periode {installment.DeductionPeriod} masih memakai pencatatan manual.");
-        }
-
-        // AC 2 & FIN-DEC-216: Potongan wajib (pajak, BPJS) dan potongan non-loan berjalan dipotong lebih dulu.
-        var grossPay = runEmployee.GrossPay > 0
-            ? runEmployee.GrossPay
-            : (runEmployee.BaseSalary + runEmployee.TotalRecurringEarning + runEmployee.TotalVariableEarning);
-
-        // Gaji bruto belum dihitung (mis. baris run dibuat adapter jadwal Finance dan mesin payroll belum mengisinya): batas potong
-        // = Rp0 hanya karena DATA belum ada. Mencatatnya sebagai GAGAL akan menandai angsuran TERTUNGGAK, melimpahkan sisanya ke
-        // periode berikutnya, dan mengunci periode itu (idempotensi) padahal tidak ada potongan yang pernah dicoba. Ditolak
-        // sebelum hasil apa pun dikirim ke Finance.
-        if (grossPay <= 0m)
-            throw new PayrollResultValidationException(GrossPayNotComputedMessage(runEmployee.EmployeeNameSnapshot));
-
-        var statutoryDeductions = runEmployee.TotalTax + runEmployee.TotalEmployeeInsuranceContribution;
-
-        var otherPriorDeductions = runEmployee.Components
-            .Where(c => !c.IsDelete
-                && c.ComponentTypeSnapshot == "Deduction"
-                && c.ComponentCodeSnapshot != "FINANCE_INSTALLMENT_DEDUCTION"
-                && c.ComponentCodeSnapshot != "LOAN_HOSPITAL_AR")
-            .Sum(c => c.Amount);
-
-        // Gaji bersih sebelum potongan cicilan piutang RS
-        var availableNetSalary = Math.Max(0m, grossPay - statutoryDeductions - otherPriorDeductions);
-
-        // FIN-DEC-217: Batas persentase dari gaji bersih yang diatur di master jenis potongan (MstDeductionType).
-        var deductionType = await _dbContext.MstDeductionTypes.AsNoTracking()
-            .FirstOrDefaultAsync(x => !x.IsDelete && x.IsActive
-                && (x.DeductionCategory == "Loan" || x.DeductionTypeCode == "LOAN_HOSPITAL_AR" || x.DeductionTypeName.Contains("Piutang RS")), cancellationToken);
-
-        decimal maxAllowedByPercentage;
-        if (deductionType?.MaxNetSalaryPercentage.HasValue == true)
-        {
-            maxAllowedByPercentage = availableNetSalary * (deductionType.MaxNetSalaryPercentage.Value / 100m);
-        }
-        else
-        {
-            // Default batas wajar jika belum diset: 50% dari gaji bersih
-            maxAllowedByPercentage = availableNetSalary * 0.5m;
-        }
-
-        var maxAllowedLimit = maxAllowedByPercentage;
-        if (deductionType?.MaximumAmount.HasValue == true && deductionType.MaximumAmount.Value > 0)
-        {
-            maxAllowedLimit = Math.Min(maxAllowedLimit, deductionType.MaximumAmount.Value);
-        }
-
-        maxAllowedLimit = Math.Min(maxAllowedLimit, availableNetSalary);
-        maxAllowedLimit = Math.Max(0m, maxAllowedLimit);
-
-        // AC 1: Nominal terutang (ScheduledAmount + CarriedOverAmount)
-        var dueAmount = variableInput.Amount;
-        decimal deductedAmount;
-        string status;
-
-        if (dueAmount <= maxAllowedLimit)
-        {
-            deductedAmount = dueAmount;
-            status = PayrollResultStatuses.Berhasil;
-        }
-        else if (maxAllowedLimit > 0)
-        {
-            deductedAmount = maxAllowedLimit;
-            status = PayrollResultStatuses.Sebagian;
-        }
-        else
-        {
-            deductedAmount = 0m;
-            status = PayrollResultStatuses.Gagal;
-        }
-
-        // Catat/perbarui TrxPayrollEmployeeComponent pada slip/run karyawan
-        var existingComponent = runEmployee.Components
-            .FirstOrDefault(c => !c.IsDelete && c.SourceType == "VariableInput" && c.SourceId == variableInput.Id);
-
-        if (existingComponent is not null)
-        {
-            existingComponent.Amount = deductedAmount;
-            existingComponent.UpdateDateTime = DateTime.UtcNow;
-            existingComponent.UpdateBy = actorUserId;
-        }
-        else
-        {
-            var newComponent = new TrxPayrollEmployeeComponent
-            {
-                PayrollRunEmployeeId = runEmployee.Id,
-                PayrollComponentId = variableInput.PayrollComponentId,
-                SourceType = "VariableInput",
-                SourceId = variableInput.Id,
-                ComponentCodeSnapshot = "FINANCE_INSTALLMENT_DEDUCTION",
-                ComponentNameSnapshot = "Potongan Cicilan Piutang RS",
-                ComponentTypeSnapshot = "Deduction",
-                CalculationMethodSnapshot = "BalanceBased",
-                CurrencyCode = runEmployee.CurrencyCode,
-                Amount = deductedAmount,
-                IsDisplayedOnPayslip = true,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
-            _dbContext.TrxPayrollEmployeeComponents.Add(newComponent);
-        }
-
-        variableInput.InputStatus = "Applied";
-        variableInput.UpdateDateTime = DateTime.UtcNow;
-        variableInput.UpdateBy = actorUserId;
-
-        // Perbarui total potongan dan gaji bersih pegawai
-        runEmployee.TotalDeduction = statutoryDeductions + otherPriorDeductions + deductedAmount;
-        runEmployee.NetPay = grossPay - runEmployee.TotalDeduction;
-        runEmployee.UpdateDateTime = DateTime.UtcNow;
-        runEmployee.UpdateBy = actorUserId;
-
-        // Kirim hasil pemotongan ke Finance via ApplyResultCoreAsync (membawa PayrollRunId)
-        var financeResult = await _syncService.ApplyResultCoreAsync(new PayrollResultRequest
-        {
-            InstallmentId = installment.Id,
-            PayrollPeriodId = runEmployee.PayrollRun?.PayrollPeriodId ?? installment.LastPayrollPeriodId ?? Guid.Empty,
-            Status = status,
-            DeductedAmount = deductedAmount,
-            ExecutionTimestamp = DateTimeOffset.UtcNow,
-            PayrollRunId = runEmployee.PayrollRunId,
-            Notes = $"Potongan otomatis mesin payroll HR run {runEmployee.PayrollRun?.RunNumber} ({status})"
-        }, actorUserId, cancellationToken);
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await _loggerService.AuditAsync(LogCategory, "InstallmentDeduction.Executed",
-            $"Potongan cicilan dieksekusi: Employee={runEmployee.EmployeeNameSnapshot}, Terutang=Rp {dueAmount:N2}, Terpotong=Rp {deductedAmount:N2}, Status={status}.",
-            new { runEmployee.Id, InstallmentId = installment.Id, Status = status, DeductedAmount = deductedAmount, ActorUserId = actorUserId });
-
-        return new PayrollEmployeeInstallmentDeductionResponse
-        {
-            PayrollRunEmployeeId = runEmployee.Id,
-            PayrollRunId = runEmployee.PayrollRunId,
-            EmployeeId = runEmployee.EmployeeId ?? Guid.Empty,
-            EmployeeName = runEmployee.EmployeeNameSnapshot,
-            EmployeeNumber = runEmployee.EmployeeNumberSnapshot ?? string.Empty,
-            InstallmentId = installment.Id,
-            DeductionPeriod = installment.DeductionPeriod,
-            DueAmount = dueAmount,
-            AvailableNetSalary = availableNetSalary,
-            MaxAllowedDeduction = maxAllowedLimit,
-            DeductedAmount = deductedAmount,
-            RemainingUnpaidAmount = dueAmount - deductedAmount,
-            Status = status,
-            IsIdempotentReplay = financeResult.IsIdempotentReplay,
-            Message = financeResult.IsIdempotentReplay
-                ? "Hasil potongan untuk periode ini sudah tercatat sebelumnya (idempoten)."
-                : $"Potongan cicilan {status} sebesar Rp {deductedAmount:N2} berhasil dieksekusi."
+            InstallmentId = input.SourceId!.Value,
+            DueAmount = planned?.DueAmount ?? input.Amount,
+            DeductionPeriod = planned?.DeductionPeriod,
+            MaxAllowedDeduction = planned?.MaxAllowed,
+            PlannedDeduction = planned?.DeductedAmount,
+            PlannedStatus = planned?.Status,
+            IsCalculated = planned is not null,
+            IsConfirmedToFinance = string.Equals(input.InputStatus, InputApplied, StringComparison.OrdinalIgnoreCase)
         };
     }
 
-    private static string GrossPayNotComputedMessage(string employees) =>
-        $"Gaji bruto belum dihitung pada payroll run untuk: {employees}. Potongan cicilan tidak dapat dieksekusi sebelum gaji dihitung; " +
-        "hasil GAGAL tidak dicatat karena tidak menggambarkan kegagalan pemotongan yang sebenarnya.";
-
-    /// <summary>
-    /// Run yang terkunci atau sudah dibatalkan/dibalik tidak menerima eksekusi potongan. Titik realisasi di antara DRAFT dan
-    /// APPROVED/PAID belum ditetapkan sebagai keputusan bisnis, jadi status lain sengaja tidak dibatasi di sini.
-    /// </summary>
-    private static void EnsureRunAcceptsDeduction(TrxPayrollRun? run)
+    private static PayrollRunInstallmentDeductionSummaryResponse NewSummary(TrxPayrollRun run, int employeeCount) => new()
     {
-        if (run is null) return;
+        PayrollRunId = run.Id,
+        RunNumber = run.RunNumber,
+        PeriodCode = run.PayrollPeriod?.PayrollPeriodCode ?? string.Empty,
+        TotalEmployeesProcessed = employeeCount
+    };
 
-        if (run.IsLocked)
-            throw new PayrollResultValidationException(
-                $"Payroll run {run.RunNumber} terkunci sehingga potongan cicilan tidak dapat dieksekusi.");
+    private static void AddItem(
+        PayrollRunInstallmentDeductionSummaryResponse summary, TrxPayrollRunEmployee employee, PlannedDeduction planned, bool replay = false)
+    {
+        summary.TotalInstallmentsProcessed++;
+        summary.TotalDueAmount += planned.DueAmount;
+        summary.TotalDeductedAmount += planned.DeductedAmount;
+        if (planned.Status == PayrollResultStatuses.Berhasil) summary.TotalSuccessCount++;
+        else if (planned.Status == PayrollResultStatuses.Sebagian) summary.TotalPartialCount++;
+        else if (planned.Status == PayrollResultStatuses.Gagal) summary.TotalFailedCount++;
 
-        if (string.Equals(run.RunStatus, "Cancelled", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(run.RunStatus, "Reversed", StringComparison.OrdinalIgnoreCase))
-            throw new PayrollResultValidationException(
-                $"Payroll run {run.RunNumber} berstatus {run.RunStatus} sehingga potongan cicilan tidak dapat dieksekusi.");
+        summary.Items.Add(new PayrollEmployeeInstallmentDeductionResponse
+        {
+            PayrollRunEmployeeId = employee.Id,
+            PayrollRunId = employee.PayrollRunId,
+            EmployeeId = employee.EmployeeId ?? Guid.Empty,
+            EmployeeName = employee.EmployeeNameSnapshot,
+            EmployeeNumber = employee.EmployeeNumberSnapshot ?? string.Empty,
+            InstallmentId = planned.InstallmentId,
+            DeductionPeriod = planned.DeductionPeriod,
+            DueAmount = planned.DueAmount,
+            AvailableNetSalary = planned.AvailableNetSalary,
+            MaxAllowedDeduction = planned.MaxAllowed,
+            DeductedAmount = planned.DeductedAmount,
+            RemainingUnpaidAmount = planned.DueAmount - planned.DeductedAmount,
+            Status = planned.Status,
+            IsIdempotentReplay = replay
+        });
     }
 }
-

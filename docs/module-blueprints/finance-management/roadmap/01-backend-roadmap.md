@@ -1964,7 +1964,7 @@ flowchart LR
     BE114["BE-FIN-114 ✅<br/>Inti pencatatan hasil dipisah; penjaga jalur"]
     BE117["BE-FIN-117 ✅<br/>Batch hasil potongan: unggah sampai sahkan"]
     BE118["BE-FIN-118 ✅<br/>Koreksi berselisih"]
-    BE119["BE-FIN-119 ⛔<br/>Isian nama pemberi persetujuan"]
+    BE119["BE-FIN-119 ✅<br/>Isian nama pemberi persetujuan"]
     BE115 --> BE114
     M095 --> BE114
     G02 --> BE114
@@ -1990,7 +1990,7 @@ Nomor gelombang menyambung gelombang `REV-19` (`BE-FIN-103`, `105` = 1; `104`, `
 | 2 | `BE-FIN-115` ✅ (`GATE-02` ✅ `FIN-DEC-225`; `BE-FIN-095` ✅) | `BE-FIN-114` ✅ |
 | 4 | ✅ siap / selesai | `BE-FIN-117` |
 | 5 | ✅ siap / selesai | `BE-FIN-118` |
-| 4 | `BE-FIN-107` | `BE-FIN-119` |
+| 4 | `BE-FIN-107` ✅ | `BE-FIN-119` ✅ |
 
 `BE-FIN-110` (dirumuskan ulang) tetap tercantum sekali, pada tabel gelombang `REV-19`.
 
@@ -2013,9 +2013,9 @@ Nomor gelombang menyambung gelombang `REV-19` (`BE-FIN-103`, `105` = 1; `104`, `
 | ✅ `BE-FIN-114` | Jalur manual dan jalur mesin memakai satu inti pencatatan hasil, dan jalur yang salah ditolak | `FIN-DEC-215`, `222`; `FR-FIN-256`, `260`; `FIN-DES-105` | `FIN-INTEGRATION-1.10` `S.5`; `FIN-API-1.11` `S.3`; `FIN-VAL-1.13` `FIN-VAL-287`, `288` | `FinanceReceivablePayrollSyncService.ProcessResultAsync`, `FinanceReceivablesPayrollController` | Pisahkan `ApplyResultCoreAsync` (tanpa transaksi sendiri); `ProcessResultAsync` tetap membungkusnya; tolak panggilan HTTP tanpa `PayrollRunId`; tolak hasil mesin untuk periode sebelum peralihan; koreksi teks kontrak `PayrollRunId` opsional | `BE-FIN-115` ✅, `BE-FIN-095` ✅, `{GATE-02}` ✅ | 1. Perilaku endpoint dengan `PayrollRunId` tidak berubah (pengulangan aman, pelimpahan sama). 2. Tanpa `PayrollRunId`: `422`. 3. Peralihan `2027-01`, hasil mesin Desember 2026: `422`. 4. Inti dapat dipanggil dua kali dalam satu transaksi luar tanpa membuka transaksi bersarang | QBE preflight; review diff; verifikasi kontrak; verifikasi proses bisnis | Pemilik Finance | Preflight selesai; kontrak cocok; laporan tracked. ✅ **SELESAI (Diverifikasi penuh oleh pengguna).** Dokumen, build, dan integritas telah diverifikasi.|
 | ✅ `BE-FIN-117` | Hasil potongan per periode masuk lewat unggah berkas, divalidasi, diajukan dengan bukti, dan disahkan orang lain secara atomik | `FIN-DEC-220`, `221`; `FR-FIN-254`..`256`; `FIN-DES-106` | `FIN-INTEGRATION-1.10` `S.2`; `FIN-API-1.11` `S.1`; `FIN-STATE-1.10` `S.1`; `FIN-VAL-1.13` `FIN-VAL-272`..`284`, `286`; `FIN-PERM-1.12` | `FinTransactionProof` + `FinanceTransactionProofService` (jenis `LAPORAN-PENGGAJIAN`), pola impor berbasis NIP (`FinanceReceivableMigrationService`), number-series Finance | `FinPayrollDeductionBatch`, `FinPayrollDeductionBatchItem` (model, configuration, migration `AddFinancePayrollDeductionBatch` — pecahan migration 5); service unggah, validasi, ajukan, sahkan (kunci berurutan, satu transaksi), tolak, batal; controller; hak akses `FinancePayrollDeductionBatch` | `BE-FIN-114`, `BE-FIN-115`, `BE-FIN-116` | 1. Berkas benar tiga baris: semua `VALID`. 2. Baris Ani dihapus: tidak dapat diajukan (`FIN-VAL-278`). 3. Total kontrol beda: ditolak. 4. Pengaju mengesahkan: `403`. 5. Satu baris gagal saat pengesahan: tidak ada saldo berubah. 6. Budi terpotong Rp 1.500.000 dari Rp 3.000.000: sisa Rp 1.500.000 muncul di jadwal Oktober. 7. Batch reguler kedua untuk periode sama: `409`. 8. Periode ≥ peralihan: `422` | QBE preflight; review diff; verifikasi kontrak; verifikasi proses bisnis | Pemilik Finance. **Risiko:** pengesahan atomik pada banyak angsuran; urutan kunci wajib | Preflight; file migration siap; laporan tracked. ✅ **SEBAGIAN, 13 Oktober 2026.** Model batch & item, konfigurasi EF Core, DbSets, migration `AddFinancePayrollDeductionBatch`, exceptions, service batch dengan transaksi atomik `Serializable` dan maker-checker, controller lengkap 11 endpoint berhak akses resmi, dan DTOs selesai di source. `dotnet build` **NOT RUN** oleh agent (instruksi pemilik). AC 1–8 terpenuhi di source. Bukti: [laporan BE-FIN-117](../task/report/backend/BE-FIN-117.md) |
 | ✅ `BE-FIN-118` | Hasil yang sudah disahkan dapat dikoreksi pejabat dengan alasan, termasuk pembalikan | `FIN-DEC-222`; `FR-FIN-257`; `FIN-DES-107` | `FIN-INTEGRATION-1.10` `S.3`; `FIN-VAL-1.13` `FIN-VAL-285` | `BE-FIN-117`, `FinanceSubledgerMovementService` | `ApplyCorrectionCoreAsync`; batch `KOREKSI`; mutasi `PEMBALIKAN-POTONGAN-GAJI`; penyesuaian `CarriedOverAmount` angsuran berikutnya; hak `ApproveCorrection` | `BE-FIN-117` | 1. Tercatat Rp 1.500.000, benar Rp 1.200.000: pembalikan Rp 300.000; tunggakan Oktober Rp 1.800.000. 2. Oktober sudah menerima hasil: ditolak `422`. 3. Penyelia tanpa `ApproveCorrection`: `403` | QBE preflight; review diff; verifikasi proses bisnis | Pemilik Finance | Preflight; laporan tracked. ✅ **SEBAGIAN, 13 Oktober 2026.** Inti `ApplyCorrectionCoreAsync`, mutasi `PEMBALIKAN-POTONGAN-GAJI`, penyesuaian tunggakan terbawa periode berikutnya, batas penerimaan hasil periode berikutnya (`FIN-VAL-285`), otorisasi hak akses `ApproveCorrection`, dan pengesahan batch koreksi atomik selesai di source. `dotnet build` **NOT RUN** oleh agent (instruksi pemilik). AC 1–3 terpenuhi di source. Bukti: [laporan BE-FIN-118](../task/report/backend/BE-FIN-118.md) |
-| ⛔ `BE-FIN-119` | Utang atas nama pegawai untuk pasien bukan pegawai selalu mencatat siapa yang menyetujui | `FIN-DEC-218`; `FR-FIN-259` | `FIN-INTEGRATION-1.10` `S.6`; `FIN-API-1.11` `S.4`; `FIN-VAL-1.13` `FIN-VAL-289` | `BE-FIN-107` (`FinalizeInvoiceRequest`, `EmployeeBenefitSplitResponse`), `BilArHandoff` | Kolom `DeferredConsentGivenBy` dan `CK_BilArHandoff_Consent` (migration 6); field permintaan; `RequiresConsent` pada pratinjau | `BE-FIN-107` | 1. Anak berobat, utang Rp 400.000, nama kosong: `422`. 2. Pegawai sendiri, nama kosong: diterima. 3. Nama tidak masuk log | QBE preflight; review diff; verifikasi kontrak | Pemilik Billing | Preflight; file migration siap; laporan tracked |
-
-**`BE-FIN-110` dirumuskan ulang** pada tabel task `REV-19` (baris aslinya diganti, bukan digandakan).
+| ✅ `BE-FIN-119` | Utang atas nama pegawai untuk pasien bukan pegawai selalu mencatat siapa yang menyetujui | `FIN-DEC-218`; `FR-FIN-259` | `FIN-INTEGRATION-1.10` `S.6`; `FIN-API-1.11` `S.4`; `FIN-VAL-1.13` `FIN-VAL-289` | `BE-FIN-107` (`FinalizeInvoiceRequest`, `EmployeeBenefitSplitResponse`), `BilArHandoff` | Kolom `DeferredConsentGivenBy` dan `CK_BilArHandoff_Consent` (migration 6); field permintaan; `RequiresConsent` pada pratinjau | `BE-FIN-107` ✅ | 1. Anak berobat, utang Rp 400.000, nama kosong: `422`. 2. Pegawai sendiri, nama kosong: diterima. 3. Nama tidak masuk log | QBE preflight; review diff; verifikasi kontrak | Pemilik Billing | Preflight; file migration siap; laporan tracked. ✅ **SELESAI (Diverifikasi penuh oleh pengguna).** Validasi `BillingEmployeeBenefitSplitService` (`FIN-VAL-289`), check constraint database `CK_BilArHandoff_Consent` (`BilArHandoffConfiguration`), field permintaan `EmployeeReceivableConsentGivenBy`, respons `RequiresConsent`, pemetaan serah terima `BilArHandoff.DeferredConsentGivenBy`, dan perlindungan privasi PII pada `BillingFinalizationService.AuditFinalizationAsync` selesai di source. AC 1–3 terpenuhi di source. Bukti: [laporan BE-FIN-119](../task/report/backend/BE-FIN-119.md) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `BE-FIN-110` dirumuskan ulang pada tabel task `REV-19` (baris aslinya diganti, bukan digandakan).
 
 ## Traceability REV-21
 
@@ -2026,7 +2026,7 @@ Nomor gelombang menyambung gelombang `REV-19` (`BE-FIN-103`, `105` = 1; `104`, `
 | `FR-FIN-256`, `260`, `FIN-DES-105` | `BE-FIN-114` ✅ | `FIN-INTEGRATION-1.10` `S.5` | `O.4.2`, `O.4.4` |
 | `FR-FIN-257`, `FIN-DEC-222` | `BE-FIN-118` ✅, `FE-FIN-050` | `FIN-INTEGRATION-1.10` `S.3` | `O.3.1`..`O.3.3` |
 | `FR-FIN-258`, `FIN-DEC-222` | `BE-FIN-115` ✅, `FE-FIN-051` ✅ | `FIN-INTEGRATION-1.10` `S.4` | `O.4.1`, `O.4.3` |
-| `FR-FIN-259`, `FIN-DEC-218` | `BE-FIN-119`, `FE-FIN-047` | `FIN-INTEGRATION-1.10` `S.6` | `O.5.1`, `O.5.2` |
+| `FR-FIN-259`, `FIN-DEC-218` | `BE-FIN-119` ✅, `FE-FIN-047` | `FIN-INTEGRATION-1.10` `S.6` | `O.5.1`, `O.5.2` |
 | `FIN-DEC-214`, `216`, `217` | `BE-FIN-110` ✅ | `FIN-INTEGRATION-1.8` `P.2`, `P.3` | `BE-FIN-110` butir 1-4 |
 
 **Gap traceability.** Tidak ada requirement Revisi 20 tanpa task. `GATE-03` (mesin payroll) tidak punya task di roadmap ini secara sengaja: pemiliknya blueprint HR.
@@ -2209,3 +2209,154 @@ sehingga tabel di atas adalah satu-satunya tempat bukti `REV-22`.
 | Task action lifecycle yang kurang selain daftar dan pembatalan invoice (penutupan PO, update GR/TF, pembatalan lalu penyusunan ulang invoice pada Tukar Faktur yang sama) | Menunggu keputusan aturan status yang disahkan. Daftar sudah `BE-FIN-122`; pembatalan invoice sudah `BE-FIN-126` |
 | Task identitas sumber BLM dan integrasi otomatis | Dokumen proses bisnis menempatkannya sebagai tahap lanjutan |
 | Task pengujian otomatis tersendiri | Kebijakan backend; test pada `BE-FIN-120`/`121` adalah pengecualian atas persetujuan pemilik. `BE-FIN-122`..`126` tidak disertai test |
+
+
+---
+
+# AMENDMENT ROADMAP REV-23 — Benefit RS: Ajukan Benefit, Persetujuan yang Mengaktifkan, Sinkronisasi Penjamin Pasien (Blueprint Revisi 22)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-23
+blueprint_revision: 22          # status approved 2026-11-03 (blueprint-manifest.md approval_revision_22)
+roadmap_status: approved untuk dikerjakan (BE-FIN-133 dikerjakan sesuai otorisasi pemilik)
+contract_versions: [FIN-API-1.12, FIN-STATE-1.11, FIN-VAL-1.14, FIN-INTEGRATION-1.11, FIN-PERM-1.13, FIN-TEST-1.15, FIN-MVP-1.16]
+decisions: [FIN-DEC-231..257]
+design: [FIN-DES-109..126]
+requirements: [FR-FIN-261..271]
+source_sha_backend: ba312826 (branch Yasmina)
+source_sha_frontend: fa7eb8d7 (branch yasmina)
+task_range_backend: BE-FIN-128..BE-FIN-141
+tanggal: 3 November 2026
+catatan_penomoran: >
+  "REV-22" pada roadmap ini adalah revisi ROADMAP (26 Oktober, Finance AP). Revisi BLUEPRINT 22 (3 November) direncanakan
+  di REV-23 ini. Keduanya tidak berhubungan.
+```
+
+**Legenda tanda status.** ✅ terbukti; 🟡 source ada, kriteria belum terbukti penuh; ⛔ prasyarat berupa keputusan atau
+gerbang belum terpenuhi; tanpa tanda = belum disentuh.
+
+## Grafik Urutan Dependency
+
+```text
+BE-FIN-128 🟡
+
+BE-FIN-129 🟡
+
+BE-FIN-131 🟡 ─> BE-FIN-132 🟡
+
+BE-FIN-130 🟡 ─┬─> BE-FIN-137 🟡
+              │
+              └───────────────────┐
+                                  │
+{FIN-OQ-121} ─> BE-FIN-133 🟡 ───┴──┬─> BE-FIN-135 🟡 ─┬─> BE-FIN-136 🟡
+                                       │               │
+BE-FIN-134 🟡 ───────────────────────────┘               ├─> BE-FIN-138
+                                                       │
+                                                       ├─> BE-FIN-139
+                                                       │
+                                                       ├─> BE-FIN-140
+                                                       │
+                                                       └─> BE-FIN-141
+```
+
+`{FIN-OQ-121}` = konfirmasi pemilik registry bahwa `PatEmployeeBenefitCardSync` di `Areas/HealthServices/PatientManagement/MasterData/` tercakup baris `Pat` (`QBE-MOD-002`).
+
+**Pemeriksaan konsistensi.** Grafik memuat **11** pasangan prasyarat→task, sama dengan jumlah entri kolom `Dependency` pada tabel task di bawah
+(`BE-FIN-132`: 1; `BE-FIN-133`: 1; `BE-FIN-135`: 3; `BE-FIN-136`, `BE-FIN-138`..`141`: 1 masing-masing → 5; `BE-FIN-137`: 1 → total 11, termasuk satu node gerbang).
+Setiap task muncul tepat satu kali. Bebas siklus.
+
+## Tabel Gelombang Eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | — | `BE-FIN-128` 🟡, `BE-FIN-129` 🟡, `BE-FIN-130` 🟡, `BE-FIN-131` 🟡, `BE-FIN-134` 🟡 |
+| 1 | FIN-OQ-121 terkonfirmasi | `BE-FIN-133` 🟡 |
+| 2 | `BE-FIN-131` 🟡 | `BE-FIN-132` 🟡 |
+| 2 | `BE-FIN-130` 🟡 | `BE-FIN-137` 🟡 |
+| 2 | `BE-FIN-130` 🟡, `BE-FIN-133` 🟡, `BE-FIN-134` 🟡 | `BE-FIN-135` 🟡 |
+| 3 | `BE-FIN-135` 🟡 | `BE-FIN-136` 🟡, `BE-FIN-138`, `BE-FIN-139`, `BE-FIN-140`, `BE-FIN-141` |
+
+Gelombang 1–2 membentuk rilis `MVP-17` (ditambah `BE-FIN-137` yang dapat ikut `MVP-17` atau dirilis bersama `MVP-18`; lihat kartu).
+
+## Backend Governance Preflight
+
+Setiap handoff ke `build-module-backend` **wajib** menyelesaikan QBE preflight dan kesesuaian engineering **pada waktu eksekusi** dari
+`AGENTS.md` backend dan `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` + `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`: Area/Module, applicability
+(`NEW CODE` / `TOUCHED LEGACY`), QBE rule ID, branch `Yasmina`, dan keadaan working tree. Working tree backend saat roadmap ini ditulis memuat
+perubahan source milik pekerjaan lain (Payroll, `Program.cs`, `FinanceReceivablePayrollSyncService.cs`); builder **wajib** memeriksanya ulang
+dan tidak menyentuhnya. Roadmap ini tidak menggantikan preflight itu.
+
+**Bukti verifikasi backend** (mengikuti `rules/backend/TEST_POLICY.md`): QBE preflight/conformance, review diff dan scope, `dotnet restore` +
+`dotnet build` project aplikasi, verifikasi kontrak API terhadap `contracts/api-contract.md` V, verifikasi proses bisnis dengan contoh berangka
+jalur normal dan tidak normal, serta verifikasi runtime bila tersedia. **Tidak ada** task penulisan test otomatis. `dotnet build` dijalankan
+**hanya atas instruksi eksplisit pemilik** (preferensi pemilik tercatat: build tidak dijalankan otomatis); sampai itu dilakukan, task paling jauh
+berstatus 🟡. Migration dibuat dan dijalankan hanya dengan wewenang terpisah dari pemilik.
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 🟡 `BE-FIN-128` | Hanya karyawan dan dokter tetap yang dapat menjadi penerima Benefit RS; dokter tamu ditolak di pencarian, enrollment, kelayakan, dan pemakaian plafon | `FR-FIN-264`; `FIN-DEC-240`, `247`, `254`; `FIN-DES-123` | `FIN-VAL-1.14` `FIN-VAL-293`; `FIN-API-1.12` V.4 | `WorkforceBenefitOwnerResolver`, `WorkforceBenefitOwnerPolicy` | Resolver menolak `GuestDoctor` dengan `OWNER_TYPE_NOT_ALLOWED`; `AllowedUserTypes` = `Employee`, `PermanentDoctor` dan benar-benar dipakai; `SearchWorkforceAsync` menyaring jenis SDM dan `IsCancel`, dan tidak lagi mengisi `WorkforceProfileId` dengan ID peran | — | (1) Profil `GuestDoctor` → `OWNER_TYPE_NOT_ALLOWED`; (2) pencarian tidak menampilkan dokter tamu dan SDM batal; (3) dokter tetap tanpa `EmployeeId` tetap diterima; (4) SDM tanpa profil workforce tidak tampil di pencarian | Preflight; diff; build atas instruksi pemilik; penelusuran proses dengan contoh "Dr. Budi tamu" dan "dr. Andi tetap"; pemilik boleh meminta menjalankan `WorkforceBenefitOwnerAcceptanceTests` baris 150 dan 240 yang sudah ada | Sedang: resolver dipakai Registrasi, Billing, Finance AR. **Syarat rilis `R-1`**: pemilik HR membersihkan data dokter tamu lebih dulu (`FIN-DEC-254`). Pemilik: HR | AC 1–4 terbukti; build lulus; laporan task mencantumkan `R-1` |
+| 🟡 `BE-FIN-129` | Petugas HR menekan Ajukan Benefit dan enrollment langsung berstatus Diajukan dalam satu operasi | `FR-FIN-261`; `FIN-DEC-243`; `FIN-DES-109` | `FIN-API-1.12` V.1 `POST /submit`; `FIN-STATE-1.11` V.1; `FIN-VAL-290` | `CreateAsync` (kunci, cek duplikat, alokasi nomor), `NumberSeriesAllocator` | `CreateAndSubmitAsync` di `EmployeeBenefitEnrollmentService`; action `SubmitNew` (`[AccessPermission("EmployeeBenefitEnrollment", "Create")]`); `SubmittedAt`/`SubmittedByUserId` diisi di transaksi yang sama; audit `Enrollment.SubmittedNew` | — | (1) Respons 201 dengan `enrollmentStatus = Submitted`; (2) isian tidak sah → 422, nol baris; (3) klik ganda → satu baris, kedua 409; (4) `POST /`, `PUT`, `POST /{id}/submit` lama tidak berubah | Preflight; diff; build atas instruksi; verifikasi kontrak `POST /submit`; contoh Rendy | Rendah. Pemilik: HR | AC 1–4; build lulus |
+| 🟡 `BE-FIN-130` | HRD menekan Setujui dan benefit langsung Aktif bila tanggal mulai sudah tiba; bila belum, Disetujui. Aktifkan manual tidak bisa mendahului tanggal | `FR-FIN-262`, `FR-FIN-263` (bagian manual); `FIN-DEC-233`, `234`, `235`; `FIN-DES-110`, `113` | `FIN-API-1.12` V.1 approve/activate; `FIN-STATE-1.11` V.1; `FIN-VAL-291`, `292`; `FIN-INTEGRATION-1.11` V.2 | `TransitionAsync`, lambda aktivasi yang ada | Ekstraksi `ApplyActivationAsync`; `ApproveAsync` mengaktifkan di transaksi yang sama bila tanggal mulai (WIB) ≤ hari ini; `ActivateAsync` menolak tanggal depan; `AvailableActionsFor` hanya menyertakan `Activate` bila tanggal tiba; antarmuka `IEmployeeBenefitPatientCardSync` + implementasi **no-op** terdaftar di DI, dipanggil sesudah commit dalam `try/catch`; respons memuat `patientCardSync` (`NOT_STARTED` selama no-op) | — | (1) Setujui tanggal tiba → `Active`, saldo awal = plafon plan; (2) gagal syarat → 422, tetap `Submitted`, `ApprovedAt` kosong; (3) tanggal depan → `Approved`; (4) Aktifkan sebelum tanggal → 422; (5) Setujui/Aktifkan ulang → 400, saldo tidak berubah; (6) pengaju boleh menyetujui sendiri | Preflight; diff; build atas instruksi; verifikasi proses berangka (plafon Rp10.000.000 → `RemainingAmount` 10.000.000, `UsedAmount` 0); konkurensi dua Setujui dibuktikan lewat penelusuran kunci advisory | Sedang: mengubah perilaku endpoint yang dipakai FE. Pemilik: HR | AC 1–6; build lulus |
+| 🟡 `BE-FIN-131` | Pesan "benefit belum dapat dipakai" menyebut keadaan sebenarnya dalam Bahasa Indonesia | `FR-FIN-269` (bagian BE); `FIN-DEC-245`; `FIN-DES-124` | `FIN-VAL-298`, tabel V.3 | `DescribeMissingServiceEnrollmentAsync`, `PeriodMismatchMessage` | Pesan per keadaan: Draft, Submitted, Approved-belum-mulai, Active-belum-mulai, Active-berakhir. Kode alasan tetap | — | (1) Lima keadaan menghasilkan lima pesan tabel V.3; (2) kode alasan tidak berubah; (3) tidak ada nama status Inggris pada pesan | Preflight; diff; build atas instruksi; contoh per keadaan | Rendah. Pemilik: Registrasi | AC 1–3; build lulus |
+| 🟡 `BE-FIN-132` | Tab Penjamin Perusahaan menerima status benefit hidup dari HR untuk kartu internal | `FR-FIN-270`; `FIN-DEC-242`; `FIN-DES-119` | `FIN-API-1.12` V.2; `FIN-INTEGRATION-1.11` V.4 | `EmployeeBenefitEligibilityService`, `MapResponse` | Method `DescribeBenefitStateAsync`; field `isEmployeeBenefitGuarantor` dan `employeeBenefitStatus` pada daftar dan detail kartu (aditif); fail-closed `HR_UNAVAILABLE` | `BE-FIN-131` | (1) Kartu aktif → `ACTIVE`; belum mulai → `NOT_YET_EFFECTIVE`; berakhir → `ENDED`; HR gagal → `HR_UNAVAILABLE`, tidak pernah tampak aktif; (2) kartu non-internal → `employeeBenefitStatus = null`; (3) field lama tidak berubah | Preflight; diff; build atas instruksi; verifikasi kontrak; contoh kartu Rendy 2 November | Sedang: satu baca HR per kartu internal per halaman. Pemilik: Patient Management | AC 1–3; build lulus |
+| 🟡 `BE-FIN-133` | Catatan hasil sinkronisasi tersedia sebagai tabel | `FIN-DEC-239`, `253`; `FIN-DES-112`, `116` | Kamus data bagian 12 | Pola `PatNewbornBirthSequence`, `RowVersion` enrollment | Model `PatEmployeeBenefitCardSync`, configuration (`Repositories/Configurations/HealthServices/PatientManagement/`), `DbSet`, konstanta status dan alasan; berkas migration `AddPatEmployeeBenefitCardSync` **hanya** dengan wewenang migration terpisah | `FIN-OQ-121` (gerbang registry) | (1) Kolom, unique, index, FK `Restrict`, dan check constraint sama dengan kamus data 12.4; (2) tidak ada perubahan tabel lain | Preflight (`QBE-MOD-002`/`003` lolos setelah konfirmasi registry); diff; build atas instruksi; pembandingan configuration dengan DDL dokumentasi | Sedang. Pemilik: Patient Management + pemilik registry | Registry terkonfirmasi; AC 1–2; build lulus; migration tercatat `NOT RUN` |
+| 🟡 `BE-FIN-134` | Logika kartu internal dapat dipakai lebih dari satu pemanggil tanpa disalin | `FIN-DES-114` | `FIN-API-1.12` V.2 (`internal-benefit-card` tidak berubah) | Method privat `FindInternalBenefitCompanyAsync`, `ProvisionInternalBenefitCompanyAsync`, bagian `EnsureInternalBenefitCard` | `InternalBenefitCardService` (find/provision penjamin internal, kartu internal aktif pasien, `CreateSelfCardAsync` lewat `ResolveCardLinkAsync`); controller memanggilnya; perilaku endpoint sama persis | — | (1) `POST /internal-benefit-card` menghasilkan respons dan pesan yang sama untuk kasus: kartu sudah ada, keluarga, penjamin nonaktif, kontrak lewat, tidak layak, berhasil; (2) akses `DbContext` langsung lain di controller tidak dirapikan | Preflight (`TOUCHED LEGACY`); diff menunjukkan pemindahan tanpa perubahan perilaku; build atas instruksi | Sedang: refactor controller legacy. Pemilik: Patient Management | AC 1–2; build lulus |
+| 🟡 `BE-FIN-135` | Sesudah benefit aktif, kartu "Benefit Karyawan RS" terpasang sendiri ke pasien yang terbukti sama, atau sistem menyatakan mengapa belum | `FR-FIN-265`; `FIN-DEC-236`, `237`, `244`, `250`, `251`; `FIN-DES-113`, `115`, `116` | `FIN-INTEGRATION-1.11` V.2; `FIN-STATE-1.11` V.2; arsitektur V.8, V.9 | `InternalBenefitCardService`, `WorkforceBenefitOwnerResolver`, `EmployeeBenefitEligibilityService` | `EmployeeBenefitCardSyncService` menggantikan no-op: pencocokan V.8 (KTP/NIK, NIK angka saja, tanggal lahir, kanonik, tepat satu), aturan kartu yang ada, pembuatan kartu, `LastEligibilityReferenceNumber`, catatan lima status, kunci per enrollment dan per pasien, `GetSummariesAsync` | `BE-FIN-130`, `BE-FIN-133`, `BE-FIN-134` | (1) Satu pasien cocok → satu kartu `SYNCED`; ulang → tidak ganda; (2) Gilang (tanggal lahir beda) → tidak ada kartu; (3) jenis "SIM" → `WAITING_PATIENT`; (4) kartu pemilik lain → `ON_HOLD`, primary lain tidak berubah; (5) HR gagal → aktivasi tetap sah, `FAILED_RETRYABLE`; (6) nol pasien baru dibuat; (7) nol mutasi plafon, invoice, piutang | Preflight; diff; build atas instruksi; verifikasi proses dengan delapan kasus V.8 berangka; konkurensi lewat penelusuran kunci | **Tinggi**: integritas identitas dan plafon. **Syarat rilis `R-2`** (format NIK). Pemilik: Registrasi + HR | AC 1–7; build lulus |
+| 🟡 `BE-FIN-136` | Pekerjaan sinkronisasi tidak hilang walau server mati; kartu yang dicabut tidak kembali; batas pemasangan massal dijaga | `FR-FIN-265`, `FR-FIN-268`; `FIN-DEC-253`; `FIN-DES-113`, `117`, `125` | `FIN-INTEGRATION-1.11` V.3 | Pola `FinanceEmployeeBenefitArIntakeSchedulerHostedService` | `EmployeeBenefitCardSyncSchedulerHostedService` + options (`Enabled=false`, `ActivationCutoffUtc` wajib, jeda ulang); langkah rekonsiliasi 1–4; ringkasan putaran di log; registrasi di blok hosted service | `BE-FIN-135` 🟡 | (1) `Enabled` tanpa batas → tidak memproses, peringatan; (2) enrollment sebelum batas tidak disentuh; (3) `FAILED_RETRYABLE` jatuh tempo diulang; (4) kartu dinonaktifkan petugas → `REVOKED`, tidak dipasang ulang; (5) `ON_HOLD` tidak diproses | Preflight; diff; build atas instruksi; penelusuran putaran dengan contoh waktu | Sedang. **Syarat rilis `R-4`**. Pemilik: Registrasi | AC 1–5 terpenuhi di source; `dotnet build` **NOT RUN** atas instruksi pemilik; laporan tracked: [laporan BE-FIN-136](../task/report/backend/BE-FIN-136.md) |
+| 🟡 `BE-FIN-137` | Benefit yang disetujui untuk tanggal depan menjadi Aktif sendiri pada tanggal mulainya | `FR-FIN-263`; `FIN-DEC-235`; `FIN-DES-111`; `FIN-OQ-127` (usulan dalam desain yang disetujui) | `FIN-STATE-1.11` V.1 | `ApplyActivationAsync` dari `BE-FIN-130`; pola penjadwal Finance | `EmployeeBenefitActivationSchedulerHostedService` + options (`Enabled=false`, `SystemActorUserId`); `ActivateDueAsync`; periode lewat → dilewati dan dicatat; memanggil antarmuka sinkronisasi sesudah commit | `BE-FIN-130` 🟡 | (1) `Approved` tanggal tiba → `Active` oleh akun layanan; (2) periode lewat → tetap `Approved`, log `ActivationSkipped`; (3) bersamaan dengan Aktifkan manual → satu aktivasi; (4) gagal syarat → tetap `Approved`, diulang | Preflight; diff; build atas instruksi; penelusuran dengan contoh Dr. Andi 28 Okt → 1 Nov | Sedang. **Syarat rilis `R-4`**. Pemilik: HR. Catatan rilis: dapat dirilis di `MVP-17` (sinkronisasi masih no-op) atau ditahan ke `MVP-18` sesuai pilihan pemilik saat rilis | AC 1–4 terpenuhi di source; `dotnet build` **NOT RUN** atas instruksi pemilik; laporan tracked: [laporan BE-FIN-137](../task/report/backend/BE-FIN-137.md) |
+| `BE-FIN-138` | HRD melihat status kartu pasien pada daftar dan detail enrollment dan dapat menekan Sinkronkan ulang | `FR-FIN-266`; `FIN-DEC-246`, `255`; `FIN-DES-121` | `FIN-API-1.12` V.1 (`POST /{id}/patient-card-sync`, field baru); `FIN-PERM-1.13` V.2; `FIN-VAL-294` | `GetSummariesAsync` | `PatientCardSyncSummaryResponse`; field dan filter `patientCardSyncStatus`; action `SyncPatientCard` (`[AccessPermission("EmployeeBenefitEnrollment", "SyncPatientCard")]`); `availableActions` | `BE-FIN-135` | (1) Daftar memuat status per baris dalam satu kueri per halaman; (2) Sinkronkan ulang pada `Active` → hasil terbaru; pada selain `Active` → 400; (3) tanpa izin → 403; (4) respons tanpa data pasien | Preflight; diff; build atas instruksi; verifikasi kontrak | Rendah. Pemilik: HR | AC 1–4; build lulus |
+| `BE-FIN-139` | Petugas Registrasi melihat daftar kasus "menunggu pasien" dan "ditahan" tanpa melihat data pasien | `FR-FIN-267`; `FIN-DEC-255`; `FIN-DES-120` | `FIN-API-1.12` V.3; `FIN-PERM-1.13` V.2; `FIN-VAL-299` | Pola daftar berpaging (`PagedResult`) | `EmployeeBenefitCardSyncController` (Tag `Health Services / Patient Management / Master Data / Employee Benefit Card Sync`), `GET /`, `GET /summary`, `[AccessPermission("EmployeeBenefitCardSync", "Read")]`, DTO | `BE-FIN-135` | (1) Bawaan status `WAITING_PATIENT,ON_HOLD`; (2) status tidak dikenal → 400; (3) tanpa izin → 403; (4) tidak ada field pasien pada respons | Preflight; diff; build atas instruksi; verifikasi kontrak | Rendah. Pemilik: Registrasi | AC 1–4; build lulus |
+| `BE-FIN-140` | Kartu yang dipasang otomatis tidak bisa dipakai bila identitas pasien berubah sesudahnya | `FR-FIN-271`; `FIN-DEC-256`, `257`; `FIN-DES-122`, `126` | `FIN-API-1.12` V.4; `FIN-VAL-295`; `FIN-INTEGRATION-1.11` V.5 | `ValidateCardForServiceAsync`, `LoadValidPatientCompanyGuarantorAsync`, `EncounterPaymentSourceService` | Overload dengan `patientId` dan `patientCompanyGuarantorId`; cek ulang untuk kartu `SYNCED`; jalur loket **400** dengan pesan; jalur ganti penanggung **422** `PATIENT_IDENTITY_MISMATCH` | `BE-FIN-135` | (1) NIK pasien diubah → loket 400, kasir 422; (2) kartu manual dan lama tidak dicek ulang; (3) kunjungan warisan tidak terdampak; (4) pendaftaran tetap bisa sebagai Pasien Umum | Preflight (`TOUCHED LEGACY` pada controller); diff; build atas instruksi; penelusuran jalur loket, kasir, transfer rawat inap | Sedang: menyentuh validasi kunjungan. Pemilik: Registrasi | AC 1–4; build lulus |
+| `BE-FIN-141` | Benefit yang dibatalkan membuat kartu yang tercatat tidak aktif, tanpa menghapus riwayat | `FR-FIN-268`; `FIN-DEC-242`; `FIN-DES-118`; `FIN-GAP-014` | `FIN-STATE-1.11` V.2, V.3; `FIN-INTEGRATION-1.11` V.2 | `CancelAsync` | `CancelAsync` memanggil `OnEnrollmentCancelledAsync` sesudah commit; implementasi menonaktifkan kartu tercatat (`IsActive = false`, `IsPrimary = false`); catatan belum berhasil berhenti diproses | `BE-FIN-135` | (1) Batal → kartu nonaktif, tidak terhapus; (2) snapshot kunjungan lama utuh; (3) penjamin lain dan asuransi tidak berubah; (4) galat penonaktifan tidak membatalkan pembatalan | Preflight; diff; build atas instruksi; penelusuran proses | Rendah. Pemilik: HR + Registrasi | AC 1–4; build lulus |
+
+## Kartu Task (ringkas berkas)
+
+| Task | Berkas yang diharapkan berubah (`Baru` / `Diperbarui`) |
+|---|---|
+| 🟡 `BE-FIN-128` | `…/BenefitManagement/Services/WorkforceBenefitOwnerResolver.cs`, `…/Services/EmployeeBenefitEligibilityService.cs`, `…/Constants/HrBenefitConstants.cs`. **Status 🟡 (3 November 2026):** source selesai, tiga berkas berubah; `dotnet build` **NOT RUN** atas instruksi pemilik ("tanpa build dotnet manual"); kriteria 1–4 terpenuhi menurut penelusuran kode, belum terbukti runtime; DoD "build lulus" belum terpenuhi; rilis menunggu syarat `R-1` (pembersihan data dokter tamu oleh HR). Laporan: [`task/report/backend/BE-FIN-128.md`](../task/report/backend/BE-FIN-128.md) |
+| 🟡 `BE-FIN-129` | `…/Services/EmployeeBenefitEnrollmentService.cs`, `…/Controllers/EmployeeBenefitEnrollmentController.cs`. **Status 🟡 (3 November 2026):** source selesai, dua berkas berubah; `dotnet build` **NOT RUN** atas instruksi pemilik; kriteria 1–4 terpenuhi menurut penelusuran kode, belum terbukti runtime; DoD "build lulus" belum terpenuhi. Laporan: [`task/report/backend/BE-FIN-129.md`](../task/report/backend/BE-FIN-129.md) |
+| 🟡 `BE-FIN-130` | `…/Services/EmployeeBenefitEnrollmentService.cs`, `…/DTOs/EmployeeBenefitEnrollmentDtos.cs`, `…/Services/IEmployeeBenefitPatientCardSync.cs` (Baru), `…/Services/NoOpEmployeeBenefitPatientCardSync.cs` (Baru), `Program.cs`. **Status 🟡 (3 November 2026):** source selesai, berkas berubah dan baru dibuat; `dotnet build` **NOT RUN** atas instruksi pemilik ("tanpa build dotnet manual"); kriteria 1–6 terpenuhi menurut penelusuran kode, belum terbukti runtime; DoD "build lulus" belum terpenuhi. Laporan: [`task/report/backend/BE-FIN-130.md`](../task/report/backend/BE-FIN-130.md) |
+| 🟡 `BE-FIN-131` | `…/Services/EmployeeBenefitEligibilityService.cs`. **Status 🟡 (3 November 2026):** source selesai; `dotnet build` **NOT RUN** atas instruksi pemilik ("tanpa build dotnet manual"); kriteria 1–3 terpenuhi menurut penelusuran kode, belum terbukti runtime. Laporan: [`task/report/backend/BE-FIN-131.md`](../task/report/backend/BE-FIN-131.md) |
+| 🟡 `BE-FIN-132` | `…/Services/EmployeeBenefitEligibilityService.cs`, `…/PatientManagement/MasterData/Controllers/PatientCompanyGuarantorController.cs`, `…/DTOs/PatientCompanyGuarantorDtos.cs`. **Status 🟡 (3 November 2026):** source selesai; `dotnet build` **NOT RUN** atas instruksi pemilik ("tanpa build dotnet manual"); kriteria 1–3 terpenuhi menurut penelusuran kode, belum terbukti runtime. Laporan: [`task/report/backend/BE-FIN-132.md`](../task/report/backend/BE-FIN-132.md) |
+| 🟡 `BE-FIN-133` | `…/PatientManagement/MasterData/Models/PatEmployeeBenefitCardSync.cs` (Baru), `…/Enums/EmployeeBenefitCardSyncConstants.cs` (Baru), `Repositories/Configurations/HealthServices/PatientManagement/PatEmployeeBenefitCardSyncConfiguration.cs` (Baru), `Repositories/ApplicationDbContext.cs`, migration (dengan wewenang terpisah). **Status 🟡 (3 November 2026):** source selesai (model, konstanta, configuration, DbSet); `dotnet build` **NOT RUN** atas instruksi pemilik ("tanpa build dotnet manual"); migration tercatat **NOT RUN** (menunggu wewenang terpisah); kriteria 1–2 terpenuhi. Laporan: [`task/report/backend/BE-FIN-133.md`](../task/report/backend/BE-FIN-133.md) |
+| 🟡 `BE-FIN-134` | `…/PatientManagement/MasterData/Services/InternalBenefitCardService.cs` (Baru), `…/Controllers/PatientCompanyGuarantorController.cs`, `Program.cs`. **Status 🟡 (3 November 2026):** source selesai, berkas baru dibuat dan controller direfaktor; `dotnet build` **NOT RUN** atas instruksi pemilik ("tanpa build dotnet manual"); kriteria 1–2 terpenuhi menurut penelusuran kode, belum terbukti runtime; DoD "build lulus" belum terpenuhi. Laporan: [`task/report/backend/BE-FIN-134.md`](../task/report/backend/BE-FIN-134.md) |
+| 🟡 `BE-FIN-135` | `…/PatientManagement/MasterData/Services/EmployeeBenefitCardSyncService.cs` (Baru), `Program.cs` (ganti registrasi no-op). **Status 🟡 (3 November 2026):** source selesai; `dotnet build` **NOT RUN** atas instruksi pemilik ("tanpa build dotnet manual"); kriteria 1–7 terpenuhi menurut penelusuran kode, belum terbukti runtime; rilis menunggu syarat `R-2`. Laporan: [`task/report/backend/BE-FIN-135.md`](../task/report/backend/BE-FIN-135.md) |
+| 🟡 `BE-FIN-136` | `…/Services/EmployeeBenefitCardSyncSchedulerHostedService.cs` (Baru), `…/Services/EmployeeBenefitCardSyncSchedulerOptions.cs` (Baru), `…/Services/EmployeeBenefitCardSyncReconciliationResult.cs` (Baru), `…/Services/EmployeeBenefitCardSyncService.cs` (Diperbarui), `Program.cs`, `appsettings.json`. **Status 🟡 (3 November 2026):** source selesai; `dotnet build` **NOT RUN** atas instruksi pemilik; kriteria 1–5 terpenuhi menurut penelusuran kode, belum terbukti runtime; rilis menunggu syarat `R-4`. Laporan: [`task/report/backend/BE-FIN-136.md`](../task/report/backend/BE-FIN-136.md) |
+| 🟡 `BE-FIN-137` | `…/BenefitManagement/Services/EmployeeBenefitActivationSchedulerHostedService.cs` (Baru), `…/Services/EmployeeBenefitActivationSchedulerOptions.cs` (Baru), `…/Services/EmployeeBenefitEnrollmentService.cs` (Diperbarui), `Program.cs`, `appsettings.json`. **Status 🟡 (3 November 2026):** source selesai; `dotnet build` **NOT RUN** atas instruksi pemilik; kriteria 1–4 terpenuhi menurut penelusuran kode, belum terbukti runtime; rilis menunggu syarat `R-4`. Laporan: [`task/report/backend/BE-FIN-137.md`](../task/report/backend/BE-FIN-137.md) |
+| `BE-FIN-138` | `…/Services/EmployeeBenefitEnrollmentService.cs`, `…/Controllers/EmployeeBenefitEnrollmentController.cs`, `…/DTOs/EmployeeBenefitEnrollmentDtos.cs` |
+| `BE-FIN-139` | `…/PatientManagement/MasterData/Controllers/EmployeeBenefitCardSyncController.cs` (Baru), `…/DTOs/EmployeeBenefitCardSyncDtos.cs` (Baru), `EmployeeBenefitCardSyncService.cs` |
+| `BE-FIN-140` | `…/RegistrationManagement/Services/RegistrationEmployeeBenefitLookupService.cs`, `…/Controllers/PatientEncounterController.cs`, `…/Services/EncounterPaymentSourceService.cs` |
+| `BE-FIN-141` | `…/Services/EmployeeBenefitEnrollmentService.cs`, `EmployeeBenefitCardSyncService.cs` |
+
+## Traceability REV-23
+
+| Requirement | Decision | Desain | Kontrak | Task backend | Task frontend | Bukti | Status |
+|---|---|---|---|---|---|---|---|
+| `FR-FIN-261` | `FIN-DEC-243` | `FIN-DES-109` | `FIN-API-1.12` V.1; `FIN-VAL-290` | 🟡 `BE-FIN-129` | `FE-FIN-056` | Testing V.1.1–V.1.3, V.1.5; [laporan](../task/report/backend/BE-FIN-129.md) | 🟡 source selesai, build NOT RUN |
+| `FR-FIN-262` | `FIN-DEC-233`, `234` | `FIN-DES-110` | `FIN-STATE-1.11` V.1; `FIN-VAL-292` | 🟡 `BE-FIN-130` | `FE-FIN-057` | V.2.1, V.2.2, V.2.4–V.2.6; [laporan](../task/report/backend/BE-FIN-130.md) | 🟡 source selesai, build NOT RUN |
+| `FR-FIN-263` | `FIN-DEC-235` | `FIN-DES-110`, `111` | `FIN-VAL-291` | 🟡 `BE-FIN-130`, 🟡 `BE-FIN-137` | `FE-FIN-057` | V.2.3, V.2.7–V.2.9; [laporan](../task/report/backend/BE-FIN-130.md), [laporan](../task/report/backend/BE-FIN-137.md) | 🟡 source selesai, build NOT RUN |
+| `FR-FIN-264` | `FIN-DEC-240`, `254` | `FIN-DES-123` | `FIN-VAL-293` | 🟡 `BE-FIN-128` | — (pemilih FE sudah server-side) | V.1.4, V.4.11; [laporan](../task/report/backend/BE-FIN-128.md) | 🟡 source selesai, build NOT RUN; rilis menunggu `R-1` |
+| `FR-FIN-265` | `FIN-DEC-236`, `237`, `244`, `250`, `251` | `FIN-DES-112..116`, `125` | `FIN-INTEGRATION-1.11` V.2–V.3 | 🟡 `BE-FIN-133`, 🟡 `BE-FIN-134`, 🟡 `BE-FIN-135`, 🟡 `BE-FIN-136` | — | V.3.1–V.3.10, V.3.13, V.3.14, V.3.17, V.3.18 | 🟡 sebagian (`BE-FIN-133..136` 🟡); rilis menunggu `R-2`, `R-4` |
+| `FR-FIN-266` | `FIN-DEC-246`, `255` | `FIN-DES-121` | `FIN-API-1.12` V.1; `FIN-VAL-294` | `BE-FIN-138` | `FE-FIN-060` | V.3.16 | Siap dikerjakan (prasyarat `BE-FIN-135` 🟡) |
+| `FR-FIN-267` | `FIN-DEC-255` | `FIN-DES-120` | `FIN-API-1.12` V.3; `FIN-VAL-299` | `BE-FIN-139` | `FE-FIN-061` | V.3.15 | Siap dikerjakan (prasyarat `BE-FIN-135` 🟡) |
+| `FR-FIN-268` | `FIN-DEC-242`, `253` | `FIN-DES-117`, `118` | `FIN-STATE-1.11` V.2, V.3 | 🟡 `BE-FIN-136`, `BE-FIN-141` | — | V.3.11, V.3.12 | 🟡 sebagian (`BE-FIN-136` 🟡) |
+| `FR-FIN-269` | `FIN-DEC-245`, `248` | `FIN-DES-124` | `FIN-VAL-296..298` | 🟡 `BE-FIN-131` | `FE-FIN-058` | V.4.1–V.4.5, V.4.9, V.4.10; [laporan](../task/report/backend/BE-FIN-131.md) | 🟡 source selesai, build NOT RUN |
+| `FR-FIN-270` | `FIN-DEC-242` | `FIN-DES-119` | `FIN-API-1.12` V.2 | 🟡 `BE-FIN-132` | `FE-FIN-059` | V.4.6; [laporan](../task/report/backend/BE-FIN-132.md) | 🟡 source selesai, build NOT RUN |
+| `FR-FIN-271` | `FIN-DEC-256`, `257` | `FIN-DES-122`, `126` | `FIN-VAL-295` | `BE-FIN-140` | — (pesan tampil lewat penanganan galat yang ada) | V.4.7, V.4.8 | Siap dikerjakan (prasyarat `BE-FIN-135` 🟡) |
+
+**Gap traceability.** Tidak ada requirement tanpa task. Bukti backend dipetakan ke bukti verifikasi, bukan test otomatis (`TEST_POLICY.md`).
+Butir testing V yang berjenis "Integration/xUnit" dibaca sebagai **skenario verifikasi proses** untuk backend; test otomatis hanya ditulis bila
+pemilik memintanya secara eksplisit pada task aktif.
+
+## Yang Sengaja TIDAK Dibuat
+
+| Hal | Alasan |
+|---|---|
+| Task penulisan test otomatis backend dan proyek test baru | `TEST_POLICY.md` |
+| Task backfill kartu untuk enrollment `Active` sebelum `ActivationCutoffUtc` | `FIN-DES-125`; larangan perubahan data pasien massal |
+| Kartu keluarga otomatis, `FIN-OQ-128`, `FIN-OQ-129` | `POST-MVP` |
+| Perapian akses `DbContext` langsung di `PatientCompanyGuarantorController` dan `PatientEncounterController` | Di luar scope; task tersendiri dengan persetujuan arsitek backend |
+| Penyelarasan teks kontrak lama `FIN-VAL-271` dan uji `N.2.2` | Sudah dinyatakan superseded di kontrak bagian V; tidak perlu task kode |

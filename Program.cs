@@ -421,6 +421,7 @@ try
     builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
     // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run HR.
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
+    builder.Services.AddScoped<PayrollRunService>();
     // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya di HR.
     builder.Services.AddScoped<PayrollRestitutionService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
@@ -571,6 +572,7 @@ try
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<RegistrationEmployeeBenefitLookupService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.InternalBenefitCardService>();
     builder.Services.AddScoped<IPatientWorkforceIdentityResolver, PatientWorkforceIdentityResolver>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>();
@@ -1057,6 +1059,10 @@ try
     // Resolver pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap); dipakai Enrollment,
     // Eligibility, Registrasi, Billing, dan Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.WorkforceBenefitOwnerResolver>();
+    // BE-FIN-135 (FIN-INTEGRATION-1.11 V.2, FIN-DES-113): implementasi penuh sinkronisasi kartu penjamin pasien otomatis.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IEmployeeBenefitPatientCardSync>(sp =>
+        sp.GetRequiredService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>());
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
@@ -1363,6 +1369,20 @@ try
         builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
         builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
+
+        // BE-FIN-136 (FIN-INTEGRATION-1.11 V.3, FIN-DES-113, FIN-DES-117, FIN-DES-125):
+        // Penjadwal rekonsiliasi sinkronisasi kartu penjamin internal pasien (Benefit Karyawan RS).
+        // Dibangun MATI secara bawaan: Enabled = false. Memerlukan ActivationCutoffUtc bila dinyalakan.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerOptions>(
+            builder.Configuration.GetSection("PatientManagement:EmployeeBenefitCardSyncScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerHostedService>();
+
+        // BE-FIN-137 (FIN-STATE-1.11 V.1, FIN-DEC-235, FIN-DES-111, FIN-OQ-127):
+        // Penjadwal aktivasi otomatis benefit pegawai berstatus Approved yang tanggal mulai berlakunya sudah tiba.
+        // Dibangun MATI secara bawaan: Enabled = false.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerOptions>(
+            builder.Configuration.GetSection("HumanResource:EmployeeBenefitActivationScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerHostedService>();
     }
 
     builder.Services.AddAuthorization(options =>

@@ -119,6 +119,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             Run(async () => StatusCode(StatusCodes.Status201Created, ApiResponse<EmployeeBenefitEnrollmentResponse>.Ok(
                 await _service.CreateAsync(request, CurrentUserId(), cancellationToken), "Enrollment benefit berhasil dibuat.")));
 
+        /// <summary>
+        /// Ajukan Benefit (BE-FIN-129, FIN-DEC-243): membuat enrollment langsung berstatus Submitted dalam satu transaksi.
+        /// Dijaga izin <c>EmployeeBenefitEnrollment : Create</c> (satu atribut izin per method; FIN-DES-109). Endpoint
+        /// <c>POST /</c> (Draft) dan <c>POST /{id}/submit</c> tetap melayani Draft historis.
+        /// </summary>
+        [HttpPost("submit")]
+        [AccessAction("Create", "Create Employee Benefit Enrollment", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("EmployeeBenefitEnrollment", "Create")]
+        [ProducesResponseType(typeof(ApiResponse<EmployeeBenefitEnrollmentResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public Task<IActionResult> SubmitNew([FromBody] CreateEmployeeBenefitEnrollmentRequest request, CancellationToken cancellationToken) =>
+            Run(async () => StatusCode(StatusCodes.Status201Created, ApiResponse<EmployeeBenefitEnrollmentResponse>.Ok(
+                await _service.CreateAndSubmitAsync(request, CurrentUserId(), cancellationToken), "Enrollment benefit berhasil diajukan.")));
+
         [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update Employee Benefit Enrollment", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("EmployeeBenefitEnrollment", "Update")]
@@ -141,15 +156,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         [AccessAction("Approve", "Approve Employee Benefit Enrollment", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("EmployeeBenefitEnrollment", "Approve")]
         [ProducesResponseType(typeof(ApiResponse<EmployeeBenefitEnrollmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         public Task<IActionResult> Approve(Guid id, [FromBody] EnrollmentTransitionRequest request, CancellationToken cancellationToken) =>
-            Run(async () => Ok(ApiResponse<EmployeeBenefitEnrollmentResponse>.Ok(
-                await _service.ApproveAsync(id, request, CurrentUserId(), cancellationToken), "Enrollment benefit disetujui.")));
+            Run(async () =>
+            {
+                var result = await _service.ApproveAsync(id, request, CurrentUserId(), cancellationToken);
+                var message = result.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
+                    ? "Enrollment benefit disetujui dan diaktifkan."
+                    : "Enrollment benefit disetujui.";
+                return Ok(ApiResponse<EmployeeBenefitEnrollmentResponse>.Ok(result, message));
+            });
 
         [HttpPost("{id:guid}/activate")]
         [AccessAction("Activate", "Activate Employee Benefit Enrollment", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("EmployeeBenefitEnrollment", "Activate")]
         [ProducesResponseType(typeof(ApiResponse<EmployeeBenefitEnrollmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         public Task<IActionResult> Activate(Guid id, [FromBody] EnrollmentTransitionRequest request, CancellationToken cancellationToken) =>
             Run(async () => Ok(ApiResponse<EmployeeBenefitEnrollmentResponse>.Ok(

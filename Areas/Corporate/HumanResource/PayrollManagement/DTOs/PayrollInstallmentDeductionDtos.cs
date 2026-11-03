@@ -38,5 +38,8 @@ public sealed class PayrollRunInstallmentDeductionSummaryResponse
     public int TotalPartialCount { get; set; }
     public int TotalFailedCount { get; set; }
     public List<PayrollEmployeeInstallmentDeductionResponse> Items { get; set; } = new();
+
+    /// <summary>Pegawai yang potongannya tidak dapat dihitung karena data belum lengkap (mis. gaji bruto belum terhitung). Memblokir pengajuan run.</summary>
+    public List<string> Blockers { get; set; } = new();
 }
 

@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
+using System.Globalization;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services
 {
@@ -63,9 +64,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             if (covering.Count == 0)
             {
                 // Kode alasan tetap ENROLLMENT_NOT_ACTIVE (kontrak pemanggil tidak berubah); hanya pesannya yang
-                // dibuat spesifik agar petugas tahu benefit apa yang ada dan mengapa tidak terbaca.
+                // dibuat spesifik agar petugas tahu benefit apa yang ada dan mengapa tidak terbaca (FIN-VAL-298, FIN-DES-124).
                 var message = enrollments.Count > 0
-                    ? PeriodMismatchMessage(enrollments.Select(x => x.BenefitPlanName))
+                    ? PeriodMismatchMessage(enrollments.Select(x => (x.Enrollment, x.BenefitPlanName)), serviceDay)
                     : await DescribeMissingServiceEnrollmentAsync(employee.WorkforceProfileId, cancellationToken);
                 return new BenefitEligibilityResult
                 {
@@ -230,23 +231,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             var today = ToOperationalDayUtc(AppDateTimeHelper.OperationalDate());
 
             var employeeRows = await (from e in _dbContext.MstEmployees.AsNoTracking()
-                                      join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on e.WorkforceProfileId equals p.Id into pGroup
-                                      from p in pGroup.DefaultIfEmpty()
+                                      join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on e.WorkforceProfileId equals p.Id
                                       join dept in _dbContext.MstDepartments.AsNoTracking() on e.PrimaryDepartmentId equals dept.Id into deptGroup
                                       from dept in deptGroup.DefaultIfEmpty()
                                       join et in _dbContext.MstEmploymentTypes.AsNoTracking() on e.EmploymentTypeId equals et.Id into etGroup
                                       from et in etGroup.DefaultIfEmpty()
-                                      where !e.IsDelete && e.IsActive && (!e.ResignDate.HasValue || e.ResignDate > today)
-                                            && (p == null || (!p.IsDelete && p.IsActive))
+                                      where !e.IsDelete && !e.IsCancel && e.IsActive && (!e.ResignDate.HasValue || e.ResignDate > today)
+                                            && !p.IsDelete && !p.IsCancel && p.IsActive
+                                            && p.UserType == UserType.Employee
                                             && (((e.EmployeeNumber ?? string.Empty).ToLower().Contains(term))
                                                 || ((e.IdentityNumber ?? string.Empty).ToLower().Contains(term))
                                                 || ((e.FullName ?? string.Empty).ToLower().Contains(term)))
                                       orderby e.FullName, e.EmployeeNumber
                                       select new WorkforceSearchRow
                                       {
-                                          WorkforceProfileId = (p != null && p.Id != Guid.Empty)
-                                              ? p.Id
-                                              : (e.WorkforceProfileId != Guid.Empty ? e.WorkforceProfileId : e.Id),
+                                          WorkforceProfileId = p.Id,
                                           OwnerType = WorkforceBenefitOwnerTypes.Employee,
                                           EmployeeId = e.Id,
                                           Number = e.EmployeeNumber ?? string.Empty,
@@ -259,23 +258,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                                      .ToListAsync(cancellationToken);
 
             var doctorRows = await (from d in _dbContext.MstDoctors.AsNoTracking()
-                                    join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on d.WorkforceProfileId equals p.Id into pGroup
-                                    from p in pGroup.DefaultIfEmpty()
+                                    join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on d.WorkforceProfileId equals p.Id
                                     join dept in _dbContext.MstDepartments.AsNoTracking() on d.PrimaryDepartmentId equals (Guid?)dept.Id into deptGroup
                                     from dept in deptGroup.DefaultIfEmpty()
                                     join et in _dbContext.MstEmploymentTypes.AsNoTracking() on d.EmploymentTypeId equals et.Id into etGroup
                                     from et in etGroup.DefaultIfEmpty()
-                                    where !d.IsDelete && d.IsActive && (!d.ResignDate.HasValue || d.ResignDate > today)
-                                          && (p == null || (!p.IsDelete && p.IsActive))
+                                    where !d.IsDelete && !d.IsCancel && d.IsActive && (!d.ResignDate.HasValue || d.ResignDate > today)
+                                          && !p.IsDelete && !p.IsCancel && p.IsActive
+                                          && p.UserType == UserType.PermanentDoctor
                                           && (((d.DoctorNumber ?? string.Empty).ToLower().Contains(term))
                                               || ((d.IdentityNumber ?? string.Empty).ToLower().Contains(term))
                                               || ((d.FullName ?? string.Empty).ToLower().Contains(term)))
                                     orderby d.FullName, d.DoctorNumber
                                     select new WorkforceSearchRow
                                     {
-                                        WorkforceProfileId = (p != null && p.Id != Guid.Empty)
-                                            ? p.Id
-                                            : (d.WorkforceProfileId != Guid.Empty ? d.WorkforceProfileId : d.Id),
+                                        WorkforceProfileId = p.Id,
                                         OwnerType = WorkforceBenefitOwnerTypes.Doctor,
                                         DoctorId = d.Id,
                                         Number = d.DoctorNumber ?? string.Empty,
@@ -423,6 +420,308 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             }).ToList();
         }
 
+        /// <summary>
+        /// Status benefit hidup untuk tab Penjamin Perusahaan (FIN-DES-119, FIN-INTEGRATION-1.11 V.4).
+        /// Membaca keadaan terkini dari HR secara read-through:
+        /// - ACTIVE: benefit aktif dan tanggal operasional berada dalam masa berlaku.
+        /// - NOT_YET_EFFECTIVE: benefit aktif/disetujui namun tanggal mulai di masa depan.
+        /// - ENDED: benefit aktif namun masa berlakunya sudah berakhir.
+        /// - NOT_ACTIVE: pengajuan berstatus Draft atau Submitted.
+        /// - NOT_ELIGIBLE: pemilik resign / tidak aktif, bukan SDM yang berhak, atau tanggungan tidak eligible.
+        /// - NOT_LINKED: kartu tidak memiliki tautan profil SDM HR.
+        /// - HR_UNAVAILABLE: kegagalan pembacaan HR (fail-closed, tidak pernah tampak aktif).
+        /// </summary>
+        public async Task<EmployeeBenefitStatusResult> DescribeBenefitStateAsync(
+            Guid? workforceProfileId,
+            Guid? employeeId,
+            Guid? familyMemberId,
+            DateTime? asOfDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var todayUtc = ToOperationalDayUtc(asOfDate ?? AppDateTimeHelper.OperationalDate());
+
+                // 1. Periksa apakah kartu memiliki tautan SDM
+                var targetProfileId = workforceProfileId.GetValueOrDefault();
+                var targetEmployeeId = employeeId.GetValueOrDefault();
+
+                if (targetProfileId == Guid.Empty && targetEmployeeId == Guid.Empty)
+                {
+                    return new EmployeeBenefitStatusResult
+                    {
+                        State = "NOT_LINKED",
+                        Label = "Belum tertaut",
+                        Message = "Kartu penjamin internal belum tertaut ke data profil SDM di HR."
+                    };
+                }
+
+                // 2. Resolve pemilik benefit di HR (karyawan / dokter tetap)
+                var resolution = await _ownerResolver.ResolveRequestAsync(
+                    targetProfileId == Guid.Empty ? null : targetProfileId,
+                    targetEmployeeId == Guid.Empty ? null : targetEmployeeId,
+                    cancellationToken);
+
+                if (!resolution.IsResolved)
+                {
+                    return new EmployeeBenefitStatusResult
+                    {
+                        State = "NOT_ELIGIBLE",
+                        Label = "Tidak layak",
+                        Message = resolution.Message ?? MessageFor(resolution.ReasonCode ?? BenefitEligibilityReasonCodes.OwnerNotFound)
+                    };
+                }
+
+                var owner = resolution.Owner!;
+
+                // 3. Jika anggota keluarga, periksa data keluarga di HR
+                WfpFamilyMember? member = null;
+                if (familyMemberId.HasValue && familyMemberId.Value != Guid.Empty)
+                {
+                    member = await _dbContext.WfpFamilyMembers.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == familyMemberId.Value && !x.IsDelete && x.WorkforceProfileId == owner.WorkforceProfileId, cancellationToken);
+
+                    if (member is null)
+                    {
+                        return new EmployeeBenefitStatusResult
+                        {
+                            State = "NOT_ELIGIBLE",
+                            Label = "Tidak layak",
+                            Message = MessageFor(BenefitEligibilityReasonCodes.FamilyMemberNotFound)
+                        };
+                    }
+
+                    if (!member.IsActive)
+                    {
+                        return new EmployeeBenefitStatusResult
+                        {
+                            State = "NOT_ELIGIBLE",
+                            Label = "Tidak layak",
+                            Message = MessageFor(BenefitEligibilityReasonCodes.FamilyMemberInactive)
+                        };
+                    }
+                }
+
+                // 4. Cari enrollment layanan RS terbuka (Medical, non-klaim)
+                var enrollments = await (from e in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
+                                         join plan in _dbContext.MstBenefitPlans.AsNoTracking() on e.BenefitPlanId equals plan.Id
+                                         join type in _dbContext.MstBenefitTypes.AsNoTracking() on plan.BenefitTypeId equals type.Id
+                                         where !e.IsDelete
+                                               && e.WorkforceProfileId == owner.WorkforceProfileId
+                                               && type.BenefitCategory == BenefitServiceCategories.Medical
+                                               && !type.IsClaimBased
+                                         orderby e.CreatedDate descending
+                                         select new
+                                         {
+                                             e.Id,
+                                             e.EnrollmentNumber,
+                                             e.EnrollmentStatus,
+                                             e.EffectiveStartDate,
+                                             e.EffectiveEndDate,
+                                             plan.BenefitPlanName
+                                         })
+                                        .ToListAsync(cancellationToken);
+
+                // A. Jika ada enrollment Active
+                var activeList = enrollments
+                    .Where(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active)
+                    .ToList();
+
+                if (activeList.Count > 0)
+                {
+                    var active = activeList[0];
+
+                    // Periksa apakah masa berlaku mencakup tanggal acuan
+                    if (Covers(active.EffectiveStartDate, active.EffectiveEndDate, todayUtc))
+                    {
+                        // Jika anggota keluarga, verifikasi status tanggungan pada enrollment ini
+                        if (member is not null)
+                        {
+                            var dep = await _dbContext.TrxEmployeeBenefitDependents.AsNoTracking()
+                                .FirstOrDefaultAsync(x => !x.IsDelete
+                                                          && x.EmployeeBenefitEnrollmentId == active.Id
+                                                          && x.FamilyMemberId == member.Id,
+                                                     cancellationToken);
+
+                            if (dep is null || dep.DependentStatus != EmployeeBenefitDependentStatuses.Verified || !dep.IsActive || !dep.IsEligible || !dep.IsCovered)
+                            {
+                                return new EmployeeBenefitStatusResult
+                                {
+                                    State = "NOT_ELIGIBLE",
+                                    Label = "Tidak layak",
+                                    EnrollmentNumber = active.EnrollmentNumber,
+                                    PlanName = active.BenefitPlanName,
+                                    EffectiveStartDate = active.EffectiveStartDate,
+                                    EffectiveEndDate = active.EffectiveEndDate,
+                                    Message = "Tanggungan keluarga belum terverifikasi atau tidak ditanggung benefit pegawai."
+                                };
+                            }
+
+                            if (!Covers(dep.EffectiveStartDate, dep.EffectiveEndDate, todayUtc))
+                            {
+                                if (dep.EffectiveStartDate.HasValue && todayUtc < dep.EffectiveStartDate.Value)
+                                {
+                                    return new EmployeeBenefitStatusResult
+                                    {
+                                        State = "NOT_YET_EFFECTIVE",
+                                        Label = "Belum berlaku",
+                                        EnrollmentNumber = active.EnrollmentNumber,
+                                        PlanName = active.BenefitPlanName,
+                                        EffectiveStartDate = dep.EffectiveStartDate,
+                                        EffectiveEndDate = dep.EffectiveEndDate,
+                                        Message = $"Benefit tanggungan baru berlaku mulai {FormatDateId(dep.EffectiveStartDate.Value)}."
+                                    };
+                                }
+
+                                return new EmployeeBenefitStatusResult
+                                {
+                                    State = "ENDED",
+                                    Label = "Kedaluwarsa",
+                                    EnrollmentNumber = active.EnrollmentNumber,
+                                    PlanName = active.BenefitPlanName,
+                                    EffectiveStartDate = dep.EffectiveStartDate,
+                                    EffectiveEndDate = dep.EffectiveEndDate,
+                                    Message = dep.EffectiveEndDate.HasValue
+                                        ? $"Masa berlaku benefit tanggungan berakhir {FormatDateId(dep.EffectiveEndDate.Value)}."
+                                        : "Masa berlaku benefit tanggungan sudah berakhir."
+                                };
+                            }
+                        }
+
+                        // Pegawai/dokter sendiri aktif dan mencakup hari ini
+                        return new EmployeeBenefitStatusResult
+                        {
+                            State = "ACTIVE",
+                            Label = "Aktif",
+                            EnrollmentNumber = active.EnrollmentNumber,
+                            PlanName = active.BenefitPlanName,
+                            EffectiveStartDate = active.EffectiveStartDate,
+                            EffectiveEndDate = active.EffectiveEndDate,
+                            Message = $"Benefit {active.BenefitPlanName} aktif."
+                        };
+                    }
+
+                    // Belum mulai (tanggal mulai di masa depan)
+                    if (active.EffectiveStartDate.HasValue && todayUtc < active.EffectiveStartDate.Value)
+                    {
+                        return new EmployeeBenefitStatusResult
+                        {
+                            State = "NOT_YET_EFFECTIVE",
+                            Label = "Belum berlaku",
+                            EnrollmentNumber = active.EnrollmentNumber,
+                            PlanName = active.BenefitPlanName,
+                            EffectiveStartDate = active.EffectiveStartDate,
+                            EffectiveEndDate = active.EffectiveEndDate,
+                            Message = $"Benefit {active.BenefitPlanName} baru berlaku mulai {FormatDateId(active.EffectiveStartDate.Value)}."
+                        };
+                    }
+
+                    // Sudah berakhir (tanggal akhir di masa lalu)
+                    if (active.EffectiveEndDate.HasValue && todayUtc > active.EffectiveEndDate.Value)
+                    {
+                        return new EmployeeBenefitStatusResult
+                        {
+                            State = "ENDED",
+                            Label = "Kedaluwarsa",
+                            EnrollmentNumber = active.EnrollmentNumber,
+                            PlanName = active.BenefitPlanName,
+                            EffectiveStartDate = active.EffectiveStartDate,
+                            EffectiveEndDate = active.EffectiveEndDate,
+                            Message = $"Masa berlaku benefit {active.BenefitPlanName} berakhir {FormatDateId(active.EffectiveEndDate.Value)}."
+                        };
+                    }
+
+                    return new EmployeeBenefitStatusResult
+                    {
+                        State = "NOT_ELIGIBLE",
+                        Label = "Tidak layak",
+                        EnrollmentNumber = active.EnrollmentNumber,
+                        PlanName = active.BenefitPlanName,
+                        EffectiveStartDate = active.EffectiveStartDate,
+                        EffectiveEndDate = active.EffectiveEndDate,
+                        Message = $"Masa berlaku benefit {active.BenefitPlanName} tidak mencakup tanggal saat ini."
+                    };
+                }
+
+                // B. Jika tidak ada Active, periksa apakah ada Approved / Submitted / Draft
+                var approved = enrollments.FirstOrDefault(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Approved);
+                if (approved is not null)
+                {
+                    if (approved.EffectiveStartDate.HasValue && todayUtc < approved.EffectiveStartDate.Value)
+                    {
+                        return new EmployeeBenefitStatusResult
+                        {
+                            State = "NOT_YET_EFFECTIVE",
+                            Label = "Belum berlaku",
+                            EnrollmentNumber = approved.EnrollmentNumber,
+                            PlanName = approved.BenefitPlanName,
+                            EffectiveStartDate = approved.EffectiveStartDate,
+                            EffectiveEndDate = approved.EffectiveEndDate,
+                            Message = $"Benefit {approved.EnrollmentNumber} sudah disetujui dan baru berlaku mulai {FormatDateId(approved.EffectiveStartDate.Value)}."
+                        };
+                    }
+
+                    return new EmployeeBenefitStatusResult
+                    {
+                        State = "NOT_ACTIVE",
+                        Label = "Belum aktif",
+                        EnrollmentNumber = approved.EnrollmentNumber,
+                        PlanName = approved.BenefitPlanName,
+                        EffectiveStartDate = approved.EffectiveStartDate,
+                        EffectiveEndDate = approved.EffectiveEndDate,
+                        Message = $"Benefit {approved.EnrollmentNumber} sudah disetujui dan menunggu pengaktifan HR."
+                    };
+                }
+
+                var submitted = enrollments.FirstOrDefault(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Submitted);
+                if (submitted is not null)
+                {
+                    return new EmployeeBenefitStatusResult
+                    {
+                        State = "NOT_ACTIVE",
+                        Label = "Belum aktif",
+                        EnrollmentNumber = submitted.EnrollmentNumber,
+                        PlanName = submitted.BenefitPlanName,
+                        EffectiveStartDate = submitted.EffectiveStartDate,
+                        EffectiveEndDate = submitted.EffectiveEndDate,
+                        Message = $"Pengajuan benefit {submitted.EnrollmentNumber} sedang menunggu persetujuan HRD."
+                    };
+                }
+
+                var draft = enrollments.FirstOrDefault(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Draft);
+                if (draft is not null)
+                {
+                    return new EmployeeBenefitStatusResult
+                    {
+                        State = "NOT_ACTIVE",
+                        Label = "Belum aktif",
+                        EnrollmentNumber = draft.EnrollmentNumber,
+                        PlanName = draft.BenefitPlanName,
+                        EffectiveStartDate = draft.EffectiveStartDate,
+                        EffectiveEndDate = draft.EffectiveEndDate,
+                        Message = $"Pengajuan benefit {draft.EnrollmentNumber} belum diajukan ke HRD."
+                    };
+                }
+
+                // C. Tidak ada enrollment layanan RS
+                return new EmployeeBenefitStatusResult
+                {
+                    State = "NOT_ELIGIBLE",
+                    Label = "Tidak layak",
+                    Message = "Pegawai belum memiliki benefit layanan RS di HR."
+                };
+            }
+            catch (Exception)
+            {
+                return new EmployeeBenefitStatusResult
+                {
+                    State = "HR_UNAVAILABLE",
+                    Label = "Tidak dapat dibaca",
+                    Message = "Data HR belum dapat dibaca. Coba lagi beberapa saat lagi."
+                };
+            }
+        }
+
         /// <summary>Enrollment layanan RS berstatus Active, bukan berbasis klaim; masa berlaku dinilai pemanggil.</summary>
         private IQueryable<TrxEmployeeBenefitEnrollment> ActiveMedicalEnrollments() =>
             from e in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
@@ -476,13 +775,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         private const string GeneralFallbackHint = "Daftarkan sebagai Pasien Umum atau hubungi HR.";
 
-        private static string PeriodMismatchMessage(IEnumerable<string> planNames) =>
-            $"Benefit layanan RS ({string.Join(", ", planNames.Distinct())}) sudah aktif, tetapi masa berlakunya tidak mencakup tanggal layanan. {GeneralFallbackHint}";
+        private static readonly CultureInfo IndonesianCulture = new("id-ID");
+
+        private static string FormatDateId(DateTime date) => date.ToString("d MMMM yyyy", IndonesianCulture);
+
+        private static string PeriodMismatchMessage(
+            IEnumerable<(TrxEmployeeBenefitEnrollment Enrollment, string BenefitPlanName)> enrollments,
+            DateTime serviceDay)
+        {
+            var list = enrollments.ToList();
+            if (list.Count == 0)
+                return MessageFor(BenefitEligibilityReasonCodes.EnrollmentNotActive);
+
+            // Active, belum tanggal mulai (EffectiveStartDate > serviceDay)
+            var notYetEffective = list.FirstOrDefault(x =>
+                x.Enrollment.EffectiveStartDate.HasValue && serviceDay < x.Enrollment.EffectiveStartDate.Value);
+            if (notYetEffective.Enrollment is not null)
+            {
+                var startStr = FormatDateId(notYetEffective.Enrollment.EffectiveStartDate.Value);
+                return $"Benefit {notYetEffective.BenefitPlanName} baru berlaku mulai {startStr}.";
+            }
+
+            // Active, sudah berakhir (EffectiveEndDate < serviceDay)
+            var ended = list.FirstOrDefault(x =>
+                x.Enrollment.EffectiveEndDate.HasValue && serviceDay > x.Enrollment.EffectiveEndDate.Value);
+            if (ended.Enrollment is not null)
+            {
+                var endStr = FormatDateId(ended.Enrollment.EffectiveEndDate.Value);
+                return $"Masa berlaku benefit {ended.BenefitPlanName} berakhir {endStr}.";
+            }
+
+            var planNames = string.Join(", ", list.Select(x => x.BenefitPlanName).Distinct());
+            return $"Benefit layanan RS ({planNames}) masa berlakunya tidak mencakup tanggal layanan.";
+        }
 
         /// <summary>
         /// Tidak ada enrollment Active yang dibaca sebagai benefit layanan RS (kategori Medical, tidak berbasis klaim).
         /// Cari tahu alasan paling mungkin dari enrollment pemilik yang masih terbuka agar pesannya menunjuk penyebab nyata:
-        /// jenis benefit bukan layanan RS, atau enrollment belum diaktifkan.
+        /// jenis benefit bukan layanan RS, atau enrollment belum diaktifkan (Draft, Submitted, Approved).
+        /// Mengikuti FIN-VAL-298 dan tabel V.3 (FIN-DES-124).
         /// </summary>
         private async Task<string> DescribeMissingServiceEnrollmentAsync(Guid workforceProfileId, CancellationToken cancellationToken)
         {
@@ -492,16 +823,55 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                               where !e.IsDelete
                                     && e.WorkforceProfileId == workforceProfileId
                                     && EmployeeBenefitEnrollmentStatuses.Open.Contains(e.EnrollmentStatus)
+                              orderby e.CreatedDate descending
                               select new
                               {
                                   e.EnrollmentNumber,
                                   e.EnrollmentStatus,
+                                  e.EffectiveStartDate,
+                                  e.EffectiveEndDate,
                                   plan.BenefitPlanName,
                                   type.BenefitCategory,
                                   type.IsClaimBased
                               })
                              .ToListAsync(cancellationToken);
 
+            // 1. Prioritaskan pengajuan benefit layanan RS (Medical & bukan klaim) yang masih berstatus Draft / Submitted / Approved
+            var hospitalServicePending = open
+                .Where(x => x.BenefitCategory == BenefitServiceCategories.Medical && !x.IsClaimBased)
+                .OrderByDescending(x => x.EnrollmentStatus switch
+                {
+                    EmployeeBenefitEnrollmentStatuses.Approved => 3,
+                    EmployeeBenefitEnrollmentStatuses.Submitted => 2,
+                    EmployeeBenefitEnrollmentStatuses.Draft => 1,
+                    _ => 0
+                })
+                .FirstOrDefault();
+
+            if (hospitalServicePending is not null)
+            {
+                if (hospitalServicePending.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Draft)
+                {
+                    return $"Pengajuan benefit {hospitalServicePending.EnrollmentNumber} belum diajukan ke HRD.";
+                }
+
+                if (hospitalServicePending.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Submitted)
+                {
+                    return $"Pengajuan benefit {hospitalServicePending.EnrollmentNumber} sedang menunggu persetujuan HRD.";
+                }
+
+                if (hospitalServicePending.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Approved)
+                {
+                    var startStr = hospitalServicePending.EffectiveStartDate.HasValue
+                        ? FormatDateId(hospitalServicePending.EffectiveStartDate.Value)
+                        : string.Empty;
+                    return !string.IsNullOrEmpty(startStr)
+                        ? $"Benefit {hospitalServicePending.EnrollmentNumber} sudah disetujui dan baru berlaku mulai {startStr}."
+                        : $"Benefit {hospitalServicePending.EnrollmentNumber} sudah disetujui.";
+                }
+            }
+
+            // 2. Jika ada benefit aktif tetapi bukan layanan RS (misalnya jenis benefit berbasis klaim atau kategori non-Medical)
             var activeNotService = open.FirstOrDefault(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active);
             if (activeNotService is not null)
             {
@@ -512,10 +882,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                        "HR perlu mengatur Jenis Benefit menjadi kategori Medical dan tidak berbasis klaim. " + GeneralFallbackHint;
             }
 
-            var pending = open.FirstOrDefault();
-            if (pending is not null)
-                return $"Enrollment benefit {pending.EnrollmentNumber} ({pending.BenefitPlanName}) masih berstatus {pending.EnrollmentStatus} dan belum diaktifkan HR. {GeneralFallbackHint}";
+            // 3. Jika ada pengajuan lain yang bukan layanan RS namun berstatus Draft/Submitted/Approved
+            var otherPending = open.FirstOrDefault(x => x.EnrollmentStatus != EmployeeBenefitEnrollmentStatuses.Active);
+            if (otherPending is not null)
+            {
+                if (otherPending.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Draft)
+                {
+                    return $"Pengajuan benefit {otherPending.EnrollmentNumber} belum diajukan ke HRD.";
+                }
 
+                if (otherPending.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Submitted)
+                {
+                    return $"Pengajuan benefit {otherPending.EnrollmentNumber} sedang menunggu persetujuan HRD.";
+                }
+
+                if (otherPending.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Approved)
+                {
+                    var startStr = otherPending.EffectiveStartDate.HasValue
+                        ? FormatDateId(otherPending.EffectiveStartDate.Value)
+                        : string.Empty;
+                    return !string.IsNullOrEmpty(startStr)
+                        ? $"Benefit {otherPending.EnrollmentNumber} sudah disetujui dan baru berlaku mulai {startStr}."
+                        : $"Benefit {otherPending.EnrollmentNumber} sudah disetujui.";
+                }
+            }
+
+            // 4. Fallback jika tidak ada enrollment sama sekali
             return MessageFor(BenefitEligibilityReasonCodes.EnrollmentNotActive);
         }
 

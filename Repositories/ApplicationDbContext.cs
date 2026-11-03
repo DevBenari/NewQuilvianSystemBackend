@@ -610,6 +610,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
         public DbSet<MstCompanyGuarantorReimbursementRoute> MstCompanyGuarantorReimbursementRoutes { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
+        public DbSet<PatEmployeeBenefitCardSync> PatEmployeeBenefitCardSyncs { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
