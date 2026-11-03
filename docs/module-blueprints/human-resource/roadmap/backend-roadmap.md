@@ -213,7 +213,7 @@ BE-HRD-005 ✅ [B1] ─> BE-HRD-029 ✅
 ### Grafik B5 — `S-D1` `MVP-8`: angka beban, standar kebutuhan tenaga, dan gap langsung
 
 ```text
-BE-HRD-017 [B4] ─> BE-HRD-034 ─┬──┬─> BE-HRD-035 ─┬─> BE-HRD-036
+BE-HRD-017 [B4] ─> BE-HRD-034 ✅ ─┬──┬─> BE-HRD-035 ✅ ─┬─> BE-HRD-036
                                │  │               │
 BE-HRD-029 [B4] ───────────────┘  │               └──┬──┬─> BE-HRD-037
                                   │                  │  │
@@ -441,7 +441,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-032` | `S-D1` · `MVP-7` | Buku formasi berversi: satu-satunya penulis formasi dan API baca | | `BE-HRD-017` |
 | `BE-HRD-033` | `S-D1` · `MVP-7` | Batch formasi awal sampai `T10` melahirkan formasi versi 1 | | `BE-HRD-030`, `BE-HRD-032` |
 | `BE-HRD-034` | `S-D1` · `MVP-8` | Isian angka beban manual | | `BE-HRD-017` |
-| `BE-HRD-035` | `S-D1` · `MVP-8` | Standar kebutuhan tenaga, rekomendasi, dan pengesahan `T9` | | `BE-HRD-029`, `BE-HRD-030`, `BE-HRD-034` |
+| `BE-HRD-035` | `S-D1` · `MVP-8` | Standar kebutuhan tenaga, rekomendasi, dan pengesahan `T9` | ✅ Selesai (2026-11-03) | `BE-HRD-029`, `BE-HRD-030`, `BE-HRD-034` |
 | `BE-HRD-036` | `S-D1` · `MVP-8` | Scheduler perencanaan dan aktivasi standar pada tanggal berlaku | | `BE-HRD-035` |
 | `BE-HRD-037` | `S-D1` · `MVP-8` | Gap tenaga langsung per unit × jabatan | | `BE-HRD-031`, `BE-HRD-032`, `BE-HRD-035` |
 | `BE-HRD-038` | `S-D1` · `MVP-9` | Estimasi biaya dari gaji tengah grade dan penyamaran biaya | | `BE-HRD-017` |
@@ -945,7 +945,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-035` — Standar kebutuhan tenaga, angka rekomendasi, dan pengesahan `T9`
 * **Slice / MVP**: `S-D1` / `MVP-8`
-* **Status**: Belum dikerjakan.
+* **Status**: Selesai ✅ (03 November 2026). Laporan: `docs/module-blueprints/human-resource/task/report/backend/BE-HRD-035.md`.
 * **Outcome**: HR Admin atau Kepala Unit menyusun standar kebutuhan tenaga per unit sebagai versi bertanggal berlaku, melihat angka rekomendasi beserta rincian hitungnya, lalu mengajukannya. Setelah HR Manager dan Direktur yang membawahi unit menyetujui, standar berlaku pada tanggalnya. Penjadwalan dapat membaca standar yang berlaku untuk satu unit pada satu tanggal.
 * **Requirement/decision**: `HRD-DEC-058` (`WFP_OWNS_STANDARD`, `SCHEDULING_READS_STANDARD`), `HRD-DEC-060`, `HRD-DEC-064` (`T9`), `HRD-DEC-072`; `FR-HRD-092` s.d. `FR-HRD-095`, `FR-HRD-097`; `VR-WFP-01` s.d. `VR-WFP-07`; `AT-HRD-D1-02`, `AT-HRD-D1-02b`, `AT-HRD-D1-19`; `UAT-29`, `UAT-30`; `INT-HR-13`.
 * **Kontrak**: API v7 bagian 13 grup `Staffing Standard`; State Transition v7 bagian 11.1; Backend Architecture rev 3 bagian 16.9 (rumus).

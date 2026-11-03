@@ -1005,6 +1005,17 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchDecisionApplier>();
 
+    // BE-HRD-034: Isian Angka Beban Manual
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingWorkloadService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingWorkloadService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingWorkloadService>();
+
+    // BE-HRD-035: Standar Kebutuhan Tenaga, Angka Rekomendasi, dan Pengesahan T9
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingRecommendationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingRecommendationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingRecommendationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingStandardService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardDecisionApplier>();
+
     builder.Services.AddScoped<ScheduleChangeService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();

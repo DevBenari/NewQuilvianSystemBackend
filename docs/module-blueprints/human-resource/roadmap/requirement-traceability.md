@@ -34,7 +34,7 @@ contract_versions_s_d2: "v8 — API bagian 14, State bagian 12, Validation bagia
 | --- | --- | --- | --- | --- | --- | :---: |
 | `IN-01` | Master Data HR (Organisasi, Jabatan, Shift, Cuti, Payroll, KPI, dsb.) | `HRD-DEC-003`, `HRD-DEC-016` | API §MasterData, Validation §Mst | `BE-HRD-002` ✅ | `FE-HRD-021` ✅ | ✅ Frontend 62 halaman aktif; BE 65 controller aktif |
 | `IN-02` | Profil & Administrasi Kepegawaian Lintas-Pegawai (Workforce Core) | `HRD-DEC-012`, `HRD-DEC-019` | API §WorkforceCore | `BE-HRD-003` ✅ | `FE-HRD-002` ✅ | ✅ BE controller aktif; FE 6 rute daftar lintas-pegawai aktif ([Laporan FE](../task/report/frontend/FE-HRD-002.md)) |
-| `IN-03` | Perencanaan Tenaga Kerja (Workforce Planning) | `HRD-DEC-058` s.d. `HRD-DEC-072`; desain `S-D1` approved Pengguna 3 November 2026 | API v7 §13, State v7 §11, Validation v7 §12, Permission v7 §11, Integration v7 §11, Data v7 §8 | `BE-HRD-017` ✅, `BE-HRD-029` ✅, `BE-HRD-030` ✅, `BE-HRD-031` ✅, `BE-HRD-032` ✅, `BE-HRD-033` ✅, `BE-HRD-034` s.d. `BE-HRD-051` (`BE-HRD-045`, `BE-HRD-049`, `BE-HRD-050`, `BE-HRD-051` ⛔) | `FE-HRD-029` s.d. `FE-HRD-043` | Fondasi data BE-HRD-017 selesai; penelusuran Direktur BE-HRD-029 selesai; integrasi workflow BE-HRD-030 selesai; pengaturan rumah sakit BE-HRD-031 selesai; buku formasi berversi BE-HRD-032 selesai; batch formasi awal BE-HRD-033 selesai. Rincian per requirement pada bagian 1a |
+| `IN-03` | Perencanaan Tenaga Kerja (Workforce Planning) | `HRD-DEC-058` s.d. `HRD-DEC-072`; desain `S-D1` approved Pengguna 3 November 2026 | API v7 §13, State v7 §11, Validation v7 §12, Permission v7 §11, Integration v7 §11, Data v7 §8 | `BE-HRD-017` ✅, `BE-HRD-029` ✅, `BE-HRD-030` ✅, `BE-HRD-031` ✅, `BE-HRD-032` ✅, `BE-HRD-033` ✅, `BE-HRD-034` s.d. `BE-HRD-051` (`BE-HRD-045`, `BE-HRD-049`, `BE-HRD-050`, `BE-HRD-051` ⛔) | `FE-HRD-029` s.d. `FE-HRD-043` | Fondasi data BE-HRD-017 selesai; penelusuran Direktur BE-HRD-029 selesai; integrasi workflow BE-HRD-030 selesai; pengaturan rumah sakit BE-HRD-031 selesai; buku formasi berversi BE-HRD-032 selesai; batch formasi awal BE-HRD-033 selesai; isian angka beban manual BE-HRD-034 selesai. Rincian per requirement pada bagian 1a |
 | `IN-04` | Rekrutmen, Seleksi Pelamar, dan Hiring | `HRD-DEC-073` s.d. `HRD-DEC-080`; desain `S-D2` approved Pengguna 3 November 2026 | API v8 §14, State v8 §12, Validation v8 §13, Permission v8 §12, Integration v8 §12, Data v8 §9 | `BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062` | `FE-HRD-044` s.d. `FE-HRD-057` | Fondasi skema & 12 model Hrd siap; endpoint Swagger 9 grup siap; 14 task FE siap dikerjakan. Rincian per requirement pada bagian 1b |
 | `IN-05` | Onboarding, Evaluasi Probation, dan Exit Clearance Karyawan | `HRD-DEC-003`, `HRD-DEC-019` | API §Lifecycle, State §Separation | `BE-HRD-014` ✅ | `FE-HRD-017` ✅ | ✅ BE controller exit clearance & gerbang kliring Finance aktif; FE aktif ([Laporan FE](../task/report/frontend/FE-HRD-017.md)) |
 | `IN-06` | Penjadwalan Shift Kerja 24/7, On-Call, dan Tukar Shift | `HRD-DEC-006`, `HRD-DEC-026` | API §Scheduling, Validation §Roster | `BE-HRD-009` ✅ | `FE-HRD-012` ✅ | ✅ BE engine roster 24/7 aktif; FE matriks visual & aksi publish/lock aktif ([Laporan FE](../task/report/frontend/FE-HRD-012.md)) |
@@ -80,12 +80,12 @@ diperbarui build skill saat task selesai.
 
 | FR | Perilaku | Desain | Task backend | Task frontend | Bukti yang diharapkan | Status |
 | --- | --- | --- | --- | --- | --- | :---: |
-| `FR-HRD-092` | Standar per unit berversi, satu versi berlaku per tanggal | BE §16.4.1; State §11.1 | `BE-HRD-035`, `BE-HRD-036` | `FE-HRD-033`, `FE-HRD-034` | `AT-HRD-D1-04`, `UAT-29` | |
-| `FR-HRD-093` | Tiga metode; Analisis Beban Kerja ditolak | BE §16.4.1; `VR-WFP-02` | `BE-HRD-035` | `FE-HRD-034` | `AT-HRD-D1-02b` | |
-| `FR-HRD-094` | Rekomendasi beserta rincian (ICU → 32) | BE §16.9 | `BE-HRD-035` | `FE-HRD-034` | `AT-HRD-D1-02`, `UAT-29` | |
-| `FR-HRD-095` | Standar hanya dipakai setelah `T9` | State §11.1 | `BE-HRD-035`, `BE-HRD-036`, `BE-HRD-037` | `FE-HRD-034` | `AT-HRD-D1-03`, `AT-HRD-D1-04` | |
-| `FR-HRD-096` | Angka beban beserta sumber; isian ganda ditolak | BE §16.4.2; `VR-WFP-08`, `VR-WFP-09` | `BE-HRD-034` | `FE-HRD-032` | Acceptance criteria `BE-HRD-034` — **tanpa baris `AT-HRD-D1`** | |
-| `FR-HRD-097` | Penjadwalan membaca standar berlaku | `INT-HR-13` | `BE-HRD-035` | — | `AT-HRD-D1-19` | |
+| `FR-HRD-092` | Standar per unit berversi, satu versi berlaku per tanggal | BE §16.4.1; State §11.1 | `BE-HRD-035` ✅, `BE-HRD-036` | `FE-HRD-033`, `FE-HRD-034` | `AT-HRD-D1-04`, `UAT-29` | BE-035 selesai |
+| `FR-HRD-093` | Tiga metode; Analisis Beban Kerja ditolak | BE §16.4.1; `VR-WFP-02` | `BE-HRD-035` ✅ | `FE-HRD-034` | `AT-HRD-D1-02b` | BE selesai |
+| `FR-HRD-094` | Rekomendasi beserta rincian (ICU → 32) | BE §16.9 | `BE-HRD-035` ✅ | `FE-HRD-034` | `AT-HRD-D1-02`, `UAT-29` | BE selesai |
+| `FR-HRD-095` | Standar hanya dipakai setelah `T9` | State §11.1 | `BE-HRD-035` ✅, `BE-HRD-036`, `BE-HRD-037` | `FE-HRD-034` | `AT-HRD-D1-03`, `AT-HRD-D1-04` | BE-035 selesai |
+| `FR-HRD-096` | Angka beban beserta sumber; isian ganda ditolak | BE §16.4.2; `VR-WFP-08`, `VR-WFP-09` | `BE-HRD-034` ✅ | `FE-HRD-032` | Acceptance criteria `BE-HRD-034` — **tanpa baris `AT-HRD-D1`** | BE selesai |
+| `FR-HRD-097` | Penjadwalan membaca standar berlaku | `INT-HR-13` | `BE-HRD-035` ✅ | — | `AT-HRD-D1-19` | BE selesai |
 | `FR-HRD-098` | Formasi tidak dapat diubah; method tulis `405` | BE §16.4.3; `VR-WFP-10` | `BE-HRD-032` | `FE-HRD-030` | `AT-HRD-D1-06` | |
 | `FR-HRD-099` | Setiap versi menyimpan dokumen sumber, penyetuju, waktu | BE §16.4.3 | `BE-HRD-032`, `BE-HRD-033`, `BE-HRD-041`, `BE-HRD-044`, `BE-HRD-047` | `FE-HRD-030` | `AT-HRD-D1-17` | |
 | `FR-HRD-100` | Versi terakhir berlaku sampai digantikan | `FORMATION_CARRIES_FORWARD` | `BE-HRD-032` | `FE-HRD-030` | `AT-HRD-D1-07` | |
@@ -127,9 +127,9 @@ diperbarui build skill saat task selesai.
 | Acceptance test | Task |
 | --- | --- |
 | `AT-HRD-D1-01`, `AT-HRD-D1-01b` | **Tidak ada task** — migration pembersihan kandidat tidak dijadwalkan pada `S-D1` (`02-backend-architecture.md` bagian 16.7) |
-| `AT-HRD-D1-02`, `AT-HRD-D1-02b` | `BE-HRD-035`, `FE-HRD-034` |
-| `AT-HRD-D1-03` | `BE-HRD-035`, `BE-HRD-037` |
-| `AT-HRD-D1-04` | `BE-HRD-035`, `BE-HRD-036`, `BE-HRD-051` |
+| `AT-HRD-D1-02`, `AT-HRD-D1-02b` | `BE-HRD-035` ✅, `FE-HRD-034` |
+| `AT-HRD-D1-03` | `BE-HRD-035` ✅, `BE-HRD-037` |
+| `AT-HRD-D1-04` | `BE-HRD-035` ✅, `BE-HRD-036`, `BE-HRD-051` |
 | `AT-HRD-D1-05` | `BE-HRD-037` |
 | `AT-HRD-D1-05b` | `BE-HRD-037`, `FE-HRD-035`, `FE-HRD-043` |
 | `AT-HRD-D1-06` | `BE-HRD-032`, `FE-HRD-030`, `FE-HRD-043` |
@@ -145,7 +145,7 @@ diperbarui build skill saat task selesai.
 | `AT-HRD-D1-16b` | `BE-HRD-048`, `FE-HRD-040` |
 | `AT-HRD-D1-17` | `BE-HRD-033`, `FE-HRD-031`, `BE-HRD-051` |
 | `AT-HRD-D1-18` | `BE-HRD-044`, `BE-HRD-045` ⛔, `FE-HRD-038`, `BE-HRD-051` |
-| `AT-HRD-D1-19` | `BE-HRD-035`, `BE-HRD-051` |
+| `AT-HRD-D1-19` | `BE-HRD-035` ✅, `BE-HRD-051` |
 | `AT-HRD-D1-20` | `BE-HRD-029`, `BE-HRD-051` |
 | `AT-HRD-D1-21` | `BE-HRD-046`, `BE-HRD-049` ⛔, `FE-HRD-042`, `BE-HRD-051` |
 | `AT-HRD-D1-22` | `FE-HRD-029`, `FE-HRD-043` |
