@@ -1,24 +1,13 @@
 {
-  "releaseName": "Quilvian 0.28.0 - Enterprise Platform Enhancement",
-  "description": "Release 0.28.0 enhances Administrator Management, Medical Record Management, Pharmacy Management, Registration Management capabilities. Includes improvements across Pharmacy Workflow. Includes 3 database migration update(s).",
-  "backendVersion": "0.28.0",
+  "description": "Release 0.28.1 enhances  capabilities.",
+  "backendVersion": "0.28.1",
   "releaseMetadata": {
-    "migrations": [
-      "20261102090000_AddRegAdmissionTicket.cs",
-      "20261102140000_MakeQueueDisplayDeviceClusterOptional.cs",
-      "20261103050001_AddOpticalManagement.cs"
-    ],
+    "modules": [],
+    "features": [],
+    "generatedAt": "2026-11-04T08:10:31",
+    "migrationCount": 0,
     "generatedBy": "Quilvian Release Generator",
-    "modules": [
-      "Administrator Management",
-      "Medical Record Management",
-      "Pharmacy Management",
-      "Registration Management"
-    ],
-    "migrationCount": 3,
-    "features": [
-      "Pharmacy Workflow"
-    ],
-    "generatedAt": "2026-11-04T06:38:10"
-  }
+    "migrations": []
+  },
+  "releaseName": "Quilvian 0.28.1 Maintenance Release"
 }
