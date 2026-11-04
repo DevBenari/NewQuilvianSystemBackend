@@ -12,14 +12,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     public class HrdEmploymentLifecycleWorkflowIntegrationService : IHrdEmploymentLifecycleWorkflowIntegrationService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly ResignationLifecycleHandoffService _resignationHandoffService;
         private readonly ILogger<HrdEmploymentLifecycleWorkflowIntegrationService> _logger;
 
         public HrdEmploymentLifecycleWorkflowIntegrationService(
             ApplicationDbContext dbContext,
+            ResignationLifecycleHandoffService resignationHandoffService,
             ILogger<HrdEmploymentLifecycleWorkflowIntegrationService> logger)
         {
-            _dbContext = dbContext;
-            _logger = logger;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _resignationHandoffService = resignationHandoffService ?? throw new ArgumentNullException(nameof(resignationHandoffService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<Guid?> StartProbationAssessmentWorkflowAsync(
@@ -115,13 +118,83 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         {
             // 1. T15 - ProbationAssessment
             var assessment = await _dbContext.HrdProbationAssessments
+                .Include(a => a.Probation)
                 .FirstOrDefaultAsync(a => a.WorkflowInstanceId == workflowInstanceId && !a.IsDelete, cancellationToken);
             if (assessment != null)
             {
-                assessment.AssessmentStatus = isApproved ? ProbationAssessmentStatus.Approved : ProbationAssessmentStatus.Rejected;
-                assessment.DecidedByUserId = deciderUserId;
-                assessment.DecidedAt = DateTime.UtcNow;
-                assessment.DecisionNote = decisionNote;
+                var probation = assessment.Probation;
+                if (isApproved)
+                {
+                    // VR-ONB-58: Persetujuan sesudah tanggal akhir ditolak
+                    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                    if (probation != null && today > probation.EndDate)
+                    {
+                        _logger.LogWarning("VR-ONB-58: Persetujuan penilaian masa percobaan dilarang karena tanggal akhir ({EndDate}) telah terlampaui.", probation.EndDate);
+                        return false;
+                    }
+
+                    assessment.AssessmentStatus = ProbationAssessmentStatus.Approved;
+                    assessment.DecidedByUserId = deciderUserId;
+                    assessment.DecidedAt = DateTime.UtcNow;
+                    assessment.DecisionNote = decisionNote;
+                    assessment.UpdateDateTime = DateTime.UtcNow;
+                    assessment.UpdateBy = deciderUserId;
+
+                    if (probation != null)
+                    {
+                        if (assessment.Result == ProbationResult.Pass)
+                        {
+                            probation.ProbationStatus = ProbationStatus.Passed;
+                            probation.ClosedAt = DateTime.UtcNow;
+                            probation.ClosedByUserId = deciderUserId;
+                            probation.RowVersion = Guid.NewGuid();
+                            probation.UpdateDateTime = DateTime.UtcNow;
+                            probation.UpdateBy = deciderUserId;
+                        }
+                        else if (assessment.Result == ProbationResult.Fail)
+                        {
+                            probation.ProbationStatus = ProbationStatus.Failed;
+                            probation.ClosedAt = DateTime.UtcNow;
+                            probation.ClosedByUserId = deciderUserId;
+                            probation.RowVersion = Guid.NewGuid();
+                            probation.UpdateDateTime = DateTime.UtcNow;
+                            probation.UpdateBy = deciderUserId;
+
+                            var handoff = await _resignationHandoffService.HandoffLifecycleSeparationAsync(
+                                probation.WorkforceProfileId,
+                                null,
+                                "ProbationFailed",
+                                probation.EndDate,
+                                assessment.ReasonText,
+                                decisionNote,
+                                deciderUserId,
+                                cancellationToken);
+
+                            if (handoff.Success && handoff.Data != null)
+                            {
+                                probation.EmployeeSeparationId = handoff.Data.EmployeeSeparationId;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    assessment.AssessmentStatus = ProbationAssessmentStatus.Rejected;
+                    assessment.DecidedByUserId = deciderUserId;
+                    assessment.DecidedAt = DateTime.UtcNow;
+                    assessment.DecisionNote = decisionNote;
+                    assessment.UpdateDateTime = DateTime.UtcNow;
+                    assessment.UpdateBy = deciderUserId;
+
+                    if (probation != null)
+                    {
+                        probation.ProbationStatus = ProbationStatus.Running;
+                        probation.RowVersion = Guid.NewGuid();
+                        probation.UpdateDateTime = DateTime.UtcNow;
+                        probation.UpdateBy = deciderUserId;
+                    }
+                }
+
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 return true;
             }

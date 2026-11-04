@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 8
+roadmap_revision: 10
 status: ACTIVE
 status_synced_at: "2026-11-03 — tanda status task lama disalin apa adanya dari revision 2; tidak ada task yang naik atau turun status pada revision ini"
-planning_updated_at: "2026-11-04 — Slice S-B4 Penjadwalan, Roster, dan On-Call (sub-modul 06) dipecah menjadi 17 task (BE-HRD-087 s.d. BE-HRD-103) per gelombang MVP-18 s.d. MVP-20 & Verifikasi; grafik B20 s.d. B23 ditambahkan; sebelumnya Slice S-C4-ONB Onboarding dan Kontrak Kerja (sub-modul 05) dipecah menjadi 24 task (BE-HRD-063 s.d. BE-HRD-086) per gelombang MVP-14 s.d. MVP-17 & Verifikasi; termasuk amandemen tawaran S-D2 (BE-HRD-064, HRD-DEC-095); grafik B13 s.d. B19 ditambahkan"
+planning_updated_at: "2026-11-04 — Slice S-B2 Administrasi Cuti & Izin Pegawai Rumah Sakit (sub-modul 08) dipecah menjadi 14 task (BE-HRD-117 s.d. BE-HRD-130) per gelombang MVP-24 s.d. MVP-26 & Verifikasi; grafik B28 s.d. B31 ditambahkan; sebelumnya Slice S-B1 (BE-HRD-104 s.d. BE-HRD-116), Slice S-B4 (BE-HRD-087 s.d. BE-HRD-103) dan S-C4-ONB (BE-HRD-063 s.d. BE-HRD-086)"
 generated_at: "2026-10-26"
 owners:
   - "Technical Owner — HR Module Lead"
@@ -19,8 +19,10 @@ approved_by:
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D2 yang menjadi dasar task BE-HRD-018 dan BE-HRD-052 s.d. BE-HRD-062"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-C4-ONB beserta lima pilihan desain (HRD-DEC-096) yang menjadi dasar task BE-HRD-063 s.d. BE-HRD-086; jawaban: \"setujui semua ya dan kerjakan\""
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B4 Penjadwalan, Roster, dan On-Call (HRD-DEC-097 s.d. HRD-DEC-103) yang menjadi dasar task BE-HRD-087 s.d. BE-HRD-103"
-blueprint_manifest_revision: 18
-decision_revision: 17
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B1 Presensi dan Kehadiran (HRD-DEC-104 s.d. HRD-DEC-109) yang menjadi dasar task BE-HRD-104 s.d. BE-HRD-116"
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B2 Cuti & Izin Pegawai Rumah Sakit (HRD-DEC-110 s.d. HRD-DEC-115) yang menjadi dasar task BE-HRD-117 s.d. BE-HRD-130"
+blueprint_manifest_revision: 24
+decision_revision: 22
 decision_ids_s_d1: "HRD-DEC-058 s.d. HRD-DEC-072"
 source_commits:
   backend: "26066c76e69b021f68b63b31bde2258cd9d1bb74 (branch MHamzah) — HEAD saat desain dan roadmap S-D1 ditulis"
@@ -78,6 +80,41 @@ contract_versions_s_c4_onb:
   - "Permission Audit Matrix v9 bagian 13 — task S-C4-ONB"
   - "Integration Contract v9 bagian 13 — task S-C4-ONB"
   - "Data Dictionary v9 bagian 10 — task S-C4-ONB"
+decision_ids_s_b4: "HRD-DEC-097 s.d. HRD-DEC-103, HRD-ASM-05 s.d. HRD-ASM-14"
+source_commits_s_b4:
+  backend: "8b17b75a (branch MHamzah)"
+  frontend: "44990b3d3 (branch HamzahV2)"
+contract_versions_s_b4:
+  - "API Contract v10 bagian 16 — task S-B4"
+  - "State Transition Matrix v10 bagian 14 — task S-B4"
+  - "Validation Matrix v10 bagian 15 — task S-B4"
+  - "Permission Audit Matrix v10 bagian 14 — task S-B4"
+  - "Integration Contract v10 bagian 7 — task S-B4"
+  - "Data Dictionary v10 bagian 11 — task S-B4"
+decision_ids_s_b1: "HRD-DEC-104 s.d. HRD-DEC-109, HRD-ASM-15 s.d. HRD-ASM-18"
+source_commits_s_b1:
+  backend: "8b17b75a (branch MHamzah)"
+  frontend: "44990b3d3 (branch HamzahV2)"
+contract_versions_s_b1:
+  - "API Contract v11 bagian 17 — task S-B1"
+  - "State Transition Matrix v11 bagian 15 — task S-B1"
+  - "Validation Matrix v11 bagian 16 — task S-B1"
+  - "Permission Audit Matrix v11 bagian 15 — task S-B1"
+  - "Integration Contract v11 bagian 8 — task S-B1"
+  - "Data Dictionary v11 bagian 12 — task S-B1"
+locked_input_hashes_s_b1:
+  00-interview-decisions.md: 8972054d6371bde428768ed5669705f4838b6d90dd6159e4cdee8b52ab885329
+  02-backend-architecture.md: 59140431578fa4847879b3dcad099023c536c069dcd3d94d86a8b3323e17e7cd
+  03-frontend-architecture.md: eab15742f2edaf59df97aa44c5c219ee078f3aa6a8a7ea246f8fbb5b897268a5
+  04-prd-to-mvp.md: 26a7d73977fc1b67a26762dab1fcedacc49d0aa86eb60ef2b076ead7f679a571
+  data/data-dictionary.md: cd31c544d4971febdf78496ff17d61eaaa9e58abf46193b9772850a867a749bc
+  contracts/api-contract.md: 89ec7e37bec170294328ee4dae25dc580eb9c4fd4c1dc8c8c39edc616946e0b5
+  contracts/state-transition-matrix.md: c5e5e72544f2eaad65894f71afc2b0732809aff36ba9c2ccedafe93ee8b813c6
+  contracts/validation-matrix.md: a661b1c00c7bbce5adabad1d0d72caf8f09278d93d8e9e43c373dd906ce63c2d
+  contracts/integration-contract.md: 57ba7822fb8eae6e6fb66048b8c6b781f948cc0f8376682ca33ef9360026bf65
+  contracts/permission-audit-matrix.md: e950dad0bdb548d7afd57b5b4a51ef8a542907fd187d119d1e2e9189555e37b4
+  testing/acceptance-test-matrix.md: b126b68b4dae9c39697b0653a59dc2000682689a864e54cd5c026155122b6c35
+  flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
 locked_input_hashes_s_c4_onb:
   00-interview-decisions.md: 9a14b83f32089a561a868b27dfeb8a7d3f846b00ab99d9c1b9fe17e9ac6dada8
   02-backend-architecture.md: c3483c6ea6a53e81ab8b83553303ce3176bd4a3cd10261eb4d63a427cb7003df
@@ -96,6 +133,24 @@ locked_input_hashes_s_c4_onb:
   flowcharts/siklus-kontrak.md: 11a3cae04a379e9295a8682a183a7633b0dfcb568156f4824c8eb6b8cdd9e6b9
   flowcharts/batch-data-awal-kontrak.md: 24e97a41134d7c21b8f729008ca50e287f2e3acbf51479c84c82d0777ec77b5b
 ```
+
+**Apa yang berubah pada revision 9.**
+
+1. **Tiga belas task backend `S-B1` baru**, `BE-HRD-104` s.d. `BE-HRD-116`, sesudah desain sub-modul 07
+   (Presensi dan Kehadiran) disetujui pengguna pada 4 November 2026 (`HRD-DEC-104` s.d. `HRD-DEC-109`):
+   fondasi skema & migrasi EF Core, service kebijakan parameter presensi, engine pemrosesan shift malam
+   lintas hari, audit trail biometrik mentah, izin pulang cepat non-deductible, surat dinas luar OnDuty,
+   koreksi presensi on-behalf kuasa HR, listener event mutasi jadwal roster, guard penutupan periode,
+   buka kembali darurat HR Manager & rollback payroll, serta verifikasi build dan QBE slice.
+2. **Grafik B24 s.d. B27 ditambahkan** beserta tabel gelombang eksekusi `S-B1` yang sepenuhnya bebas siklus.
+3. **Register status task backend diperbarui** melengkapi entri task `S-B4` (`BE-HRD-087` s.d. `BE-HRD-103`)
+   dan mendaftarkan seluruh 13 task `S-B1` (`BE-HRD-104` s.d. `BE-HRD-116`).
+
+**Apa yang berubah pada revision 8.**
+
+1. **Tujuh belas task backend `S-B4`**, `BE-HRD-087` s.d. `BE-HRD-103`, sesudah desain sub-modul 06
+   (Penjadwalan, Roster, dan On-Call) disetujui pengguna pada 4 November 2026 (`HRD-DEC-097` s.d. `HRD-DEC-103`).
+2. **Grafik B20 s.d. B23 ditambahkan** beserta tabel gelombang eksekusi `S-B4`.
 
 **Apa yang berubah pada revision 7.**
 
@@ -190,6 +245,10 @@ S-D2 MVP-13 ─> S-C4-ONB MVP-14 ─┬─> S-C4-ONB MVP-15 ─┐
                                 ├─> S-C4-ONB MVP-16 ─┴──┐
                                 │                       │
                                 └─> S-C4-ONB MVP-17 ────┴─> S-C4-ONB Verifikasi ⛔
+
+S-C4-ONB Verifikasi ─> S-B4 MVP-18 ─> S-B4 MVP-19 ─> S-B4 MVP-20 ─> S-B4 Verifikasi
+
+S-B4 Verifikasi ─> S-B1 MVP-21 ─> S-B1 MVP-22 ─> S-B1 MVP-23 ─> S-B1 Verifikasi
 ```
 
 Slice `S-C1`, `S-C6`, `S-D4`, dan `S-D5` tidak menunggu slice lain. Penahannya adalah
@@ -374,7 +433,7 @@ BE-HRD-028 ✅ [B1] ─> BE-HRD-066
 
 BE-HRD-057 [B10] ─> BE-HRD-064
 
-BE-HRD-014 ✅ [B1] ─> BE-HRD-078
+BE-HRD-014 ✅ [B1] ─> BE-HRD-078 ✅
 ```
 
 ### Grafik B14 — `S-C4-ONB` `MVP-14`/`MVP-15`: service dasar penempatan, persetujuan, masa percobaan, dan pendampingan
@@ -434,9 +493,9 @@ BE-HRD-068 [B14] ──┐
                    │
 BE-HRD-072 [B15] ──┴──┐
                       │
-BE-HRD-078 [B13] ─────┴─> BE-HRD-080
+BE-HRD-078 [B13] ─────┴─> BE-HRD-080 ✅
 
-BE-HRD-068 [B14] ─┬─> BE-HRD-081
+BE-HRD-068 [B14] ─┬─> BE-HRD-081 ✅
                   │
 BE-HRD-072 [B15] ─┘
 
@@ -444,13 +503,13 @@ BE-HRD-065 [B13] ──┐
                    │
 BE-HRD-068 [B14] ──┴──┐
                       │
-BE-HRD-069 [B13] ─────┴─> BE-HRD-082
+BE-HRD-069 [B13] ─────┴─> BE-HRD-082 ✅
 ```
 
 ### Grafik B18 — `S-C4-ONB` `MVP-16`/`MVP-17`: scheduler, masa percobaan `T15`, kesiapan, dan Perlu Tindakan
 
 ```text
-BE-HRD-075 [B16] ─┬─> BE-HRD-083 ──┐
+BE-HRD-075 [B16] ─┬─> BE-HRD-083 ✅ ──┐
                   │                │
 BE-HRD-080 [B17] ─┘                │
                                    │
@@ -458,7 +517,7 @@ BE-HRD-068 [B14] ──────────────────┴──
                                       │
 BE-HRD-071 [B14] ─────────────────────┴──┐
                                          │
-BE-HRD-078 [B13] ────────────────────────┴─> BE-HRD-079
+BE-HRD-078 [B13] ────────────────────────┴─> BE-HRD-079 ✅
 
 BE-HRD-071 [B14] ──┐
                    │
@@ -466,7 +525,7 @@ BE-HRD-074 [B15] ──┴──┐
                       │
 BE-HRD-080 [B17] ─────┴──┐
                          │
-BE-HRD-082 [B17] ────────┴─> BE-HRD-084
+BE-HRD-082 [B17] ────────┴─> BE-HRD-084 ✅
 ```
 
 ### Grafik B19 — `S-C4-ONB`: data runtime dev dan verifikasi ujung-ke-ujung
@@ -672,15 +731,59 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-075` | `S-C4-ONB` · `MVP-15` | Checklist, hadir hari pertama, dan butir otomatis | ✅ Selesai (2026-11-04) | `BE-HRD-073`, `BE-HRD-074` |
 | `BE-HRD-076` | `S-C4-ONB` · `MVP-15` | Siap kerja dan batal bergabung | ✅ Selesai (2026-11-04) | `BE-HRD-067`, `BE-HRD-075` |
 | `BE-HRD-077` | `S-C4-ONB` · `MVP-15` | Permintaan akun dan akses kerja | ✅ Selesai (2026-11-04) | `BE-HRD-074` |
-| `BE-HRD-078` | `S-C4-ONB` · `MVP-16` | Serah terima pemisahan `ContractNonRenewal`/`ProbationFailed` ke 20 |  | `BE-HRD-014` ✅ |
-| `BE-HRD-079` | `S-C4-ONB` · `MVP-17` | Penilaian masa percobaan `T15` dan lulus otomatis |  | `BE-HRD-068`, `BE-HRD-071`, `BE-HRD-078`, `BE-HRD-083` |
-| `BE-HRD-080` | `S-C4-ONB` · `MVP-16` | Keputusan kontrak `T16` dan batas 5 tahun PKWT |  | `BE-HRD-068`, `BE-HRD-072`, `BE-HRD-078` |
-| `BE-HRD-081` | `S-C4-ONB` · `MVP-16` | Koreksi kontrak `T17` |  | `BE-HRD-068`, `BE-HRD-072` |
-| `BE-HRD-082` | `S-C4-ONB` · `MVP-16` | Batch data awal kontrak `T18` dan scan susulan |  | `BE-HRD-065`, `BE-HRD-068`, `BE-HRD-069` |
-| `BE-HRD-083` | `S-C4-ONB` · `MVP-16` | Scheduler harian siklus kontrak dan butir otomatis |  | `BE-HRD-075`, `BE-HRD-080` |
-| `BE-HRD-084` | `S-C4-ONB` · `MVP-16` | Kesiapan dijadwalkan (`INT-HR-31`) dan daftar Perlu Tindakan |  | `BE-HRD-071`, `BE-HRD-074`, `BE-HRD-080`, `BE-HRD-082` |
+| `BE-HRD-078` | `S-C4-ONB` · `MVP-16` | Serah terima pemisahan `ContractNonRenewal`/`ProbationFailed` ke 20 | ✅ Selesai (2026-11-04) | `BE-HRD-014` ✅ |
+| `BE-HRD-079` | `S-C4-ONB` · `MVP-17` | Penilaian masa percobaan `T15` dan lulus otomatis |  | `BE-HRD-068` ✅, `BE-HRD-071` ✅, `BE-HRD-078` ✅, `BE-HRD-083` ✅ |
+| `BE-HRD-080` | `S-C4-ONB` · `MVP-16` | Keputusan kontrak `T16` dan batas 5 tahun PKWT | ✅ Selesai (2026-11-04) | `BE-HRD-068` ✅, `BE-HRD-072` ✅, `BE-HRD-078` ✅ |
+| `BE-HRD-081` | `S-C4-ONB` · `MVP-16` | Koreksi kontrak `T17` | ✅ Selesai (2026-11-04) | `BE-HRD-068` ✅, `BE-HRD-072` ✅ |
+| `BE-HRD-082` | `S-C4-ONB` · `MVP-16` | Batch data awal kontrak `T18` dan scan susulan | ✅ Selesai (2026-11-04) | `BE-HRD-065` ✅, `BE-HRD-068` ✅, `BE-HRD-069` ✅ |
+| `BE-HRD-083` | `S-C4-ONB` · `MVP-16` | Scheduler harian siklus kontrak dan butir otomatis | ✅ Selesai (2026-11-04) | `BE-HRD-075` ✅, `BE-HRD-080` ✅ |
+| `BE-HRD-084` | `S-C4-ONB` · `MVP-16` | Kesiapan dijadwalkan (`INT-HR-31`) dan daftar Perlu Tindakan | ✅ Selesai (2026-11-04) | `BE-HRD-071` ✅, `BE-HRD-074` ✅, `BE-HRD-080` ✅, `BE-HRD-082` ✅ |
 | `BE-HRD-085` | `S-C4-ONB` · Verifikasi | Data runtime dev `S-C4-ONB`: master, template, definisi `T15` s.d. `T18`, number series | ⛔ | `BE-HRD-068`, `BE-HRD-070`, `{HRD-DEC-032 ⛔}` |
 | `BE-HRD-086` | `S-C4-ONB` · Verifikasi | Verifikasi ujung-ke-ujung `S-C4-ONB` terhadap `AT-HRD-ONB` dan `UAT-ONB` | ⛔ | `BE-HRD-076`, `BE-HRD-077`, `BE-HRD-081`, `BE-HRD-083`, `BE-HRD-084`, `BE-HRD-085` |
+| `BE-HRD-087` | `S-B4` · `MVP-18` | Fondasi skema database dan migrasi EF Core Slice `S-B4` |  | — |
+| `BE-HRD-088` | `S-B4` · `MVP-18` | Service & controller parameter kebijakan penjadwalan HR |  | `BE-HRD-087` |
+| `BE-HRD-089` | `S-B4` · `MVP-18` | Mesin validasi keselamatan jadwal dinas RS (`B1` s.d. `B7`) |  | `BE-HRD-087`, `BE-HRD-088` |
+| `BE-HRD-090` | `S-B4` · `MVP-18` | Integrasi validator eksternal (`VR-SCH-08` s.d. `10`, `INT-HR-31`) |  | `BE-HRD-087`, `BE-HRD-088` |
+| `BE-HRD-091` | `S-B4` · `MVP-18` | Validasi kepatuhan rasio tenaga dan kualifikasi klinis |  | `BE-HRD-087` |
+| `BE-HRD-092` | `S-B4` · `MVP-18` | Pengisian otomatis staf eligible unit & status pendampingan |  | `BE-HRD-087`, `BE-HRD-091` |
+| `BE-HRD-093` | `S-B4` · `MVP-18` | Service salin jadwal periode lalu & terapkan pola shift massal |  | `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-092` |
+| `BE-HRD-094` | `S-B4` · `MVP-18` | Service & controller penerbitan roster mandiri Kepala Unit |  | `BE-HRD-093` |
+| `BE-HRD-095` | `S-B4` · `MVP-19` | Service penggantian shift langsung (Override) & audit trail |  | `BE-HRD-089`, `BE-HRD-093` |
+| `BE-HRD-096` | `S-B4` · `MVP-19` | Controller & endpoint Ganti Petugas Langsung |  | `BE-HRD-095` |
+| `BE-HRD-097` | `S-B4` · `MVP-19` | Service koreksi mundur jadwal (<= 3 hari) & event absensi |  | `BE-HRD-088`, `BE-HRD-095` |
+| `BE-HRD-098` | `S-B4` · `MVP-19` | Service & endpoint penutupan periode roster oleh HRD Payroll |  | `BE-HRD-094` |
+| `BE-HRD-099` | `S-B4` · `MVP-20` | Penyelarasan status siaga aktif (`Active`) untuk Lab |  | `BE-HRD-087` |
+| `BE-HRD-100` | `S-B4` · `MVP-20` | Service pencatatan pemanggilan cito (Call-In) & SLA respon |  | `BE-HRD-099` |
+| `BE-HRD-101` | `S-B4` · `MVP-20` | Integrasi handoff kompensasi siaga ke Payroll dan Lembur |  | `BE-HRD-100` |
+| `BE-HRD-102` | `S-B4` · `MVP-20` | Controller & endpoint lengkap On-Call |  | `BE-HRD-100`, `BE-HRD-101` |
+| `BE-HRD-103` | `S-B4` · Verifikasi | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, build S-B4 |  | `BE-HRD-094`, `BE-HRD-096`, `BE-HRD-097`, `BE-HRD-098`, `BE-HRD-102` |
+| `BE-HRD-104` | `S-B1` · `MVP-21` | Fondasi skema database, migrasi EF Core, audit trail presensi |  | `BE-HRD-006` ✅ |
+| `BE-HRD-105` | `S-B1` · `MVP-21` | Service parameter kebijakan presensi RS (10m, cut-off, audit) |  | `BE-HRD-104` |
+| `BE-HRD-106` | `S-B1` · `MVP-21` | Engine pemrosesan absensi harian & shift malam lintas hari |  | `BE-HRD-105` |
+| `BE-HRD-107` | `S-B1` · `MVP-21` | Service & controller audit log mesin biometrik mentah |  | `BE-HRD-104` |
+| `BE-HRD-108` | `S-B1` · `MVP-22` | Service permohonan izin pulang cepat non-deductible & waiver |  | `BE-HRD-105` |
+| `BE-HRD-109` | `S-B1` · `MVP-22` | Service surat penugasan dinas luar RS & status OnDuty |  | `BE-HRD-105` |
+| `BE-HRD-110` | `S-B1` · `MVP-22` | Service jalur khusus koreksi presensi kuasa HR (on-behalf) |  | `BE-HRD-106` |
+| `BE-HRD-111` | `S-B1` · `MVP-22` | Controller & endpoint lengkap perizinan dan koreksi presensi |  | `BE-HRD-108`, `BE-HRD-109`, `BE-HRD-110` |
+| `BE-HRD-112` | `S-B1` · `MVP-22` | Event listener rekalkulasi absensi akibat mutasi jadwal roster |  | `BE-HRD-106`, `BE-HRD-097` |
+| `BE-HRD-113` | `S-B1` · `MVP-23` | Guard validasi pra-tutup periode absensi & konversi Incomplete |  | `BE-HRD-106`, `BE-HRD-110` |
+| `BE-HRD-114` | `S-B1` · `MVP-23` | Service buka kembali darurat HR Manager & rollback payroll |  | `BE-HRD-113` |
+| `BE-HRD-115` | `S-B1` · `MVP-23` | Controller & endpoint siklus periode dan serah terima payroll |  | `BE-HRD-113`, `BE-HRD-114` |
+| `BE-HRD-116` | `S-B1` · Verifikasi | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, build S-B1 |  | `BE-HRD-107`, `BE-HRD-111`, `BE-HRD-112`, `BE-HRD-115` |
+| `BE-HRD-117` | `S-B2` · `MVP-24` | Fondasi skema database, migrasi EF Core, entitas mutasi saldo & recall |  | `BE-HRD-007` ✅ |
+| `BE-HRD-118` | `S-B2` · `MVP-24` | Service buku besar saldo atomik & akrual hak tahunan 12 hari |  | `BE-HRD-117` |
+| `BE-HRD-119` | `S-B2` · `MVP-24` | Scheduler carry-forward max 6 hari & eksekusi kedaluwarsa 30 Juni |  | `BE-HRD-118` |
+| `BE-HRD-120` | `S-B2` · `MVP-24` | Controller & DTO mutasi saldo ledger dan kuota carry-forward |  | `BE-HRD-118`, `BE-HRD-119` |
+| `BE-HRD-121` | `S-B2` · `MVP-25` | Engine evaluasi ketersediaan staf unit 24/7 (Safe Staffing Coverage Guard) |  | `BE-HRD-118`, `BE-HRD-087` |
+| `BE-HRD-122` | `S-B2` · `MVP-25` | Service pengajuan cuti mandiri ESS, kalkulasi half-day 0.5 hari & saldo |  | `BE-HRD-118` |
+| `BE-HRD-123` | `S-B2` · `MVP-25` | Alur cuti sakit & verifikasi berkas dokter ber-SIP privasi medis K3RS |  | `BE-HRD-118` |
+| `BE-HRD-124` | `S-B2` · `MVP-25` | Kotak masuk approval atasan & aksi Approve with Mitigation berindikator kuota |  | `BE-HRD-121`, `BE-HRD-122`, `BE-HRD-123` |
+| `BE-HRD-125` | `S-B2` · `MVP-25` | Pembatalan pre-leave sebelum hari-H dan pemulihan saldo 100% otomatis |  | `BE-HRD-122` |
+| `BE-HRD-126` | `S-B2` · `MVP-26` | Workflow pemanggilan cuti darurat (Leave Recall) & otorisasi HR Manager |  | `BE-HRD-124` |
+| `BE-HRD-127` | `S-B2` · `MVP-26` | Eksekusi restore saldo sisa recall & event pemulihan jadwal Roster 06 |  | `BE-HRD-126` |
+| `BE-HRD-128` | `S-B2` · `MVP-26` | Penutupan celah /reverse HTTP 409 & penyesuaian saldo resmi audit HR |  | `BE-HRD-124` |
+| `BE-HRD-129` | `S-B2` · `MVP-26` | Rekonsiliasi retrospektif cuti pending saat cut-off payroll & snapshot handoff |  | `BE-HRD-124` |
+| `BE-HRD-130` | `S-B2` · Verifikasi | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, build Slice S-B2 |  | `BE-HRD-120`, `BE-HRD-125`, `BE-HRD-127`, `BE-HRD-128`, `BE-HRD-129` |
 
 ---
 
@@ -738,6 +841,119 @@ BE-HRD-098 [B22] ──┘  │
                       │
 BE-HRD-102 ───────────┘
 ```
+
+### Grafik B24 — `S-B1` `MVP-21`: Fondasi data, kebijakan parameter presensi, dan engine pemrosesan shift malam
+
+```text
+BE-HRD-006 ✅ [B2] ─> BE-HRD-104 ─┬─> BE-HRD-105 ─> BE-HRD-106
+                                  │
+                                  └─> BE-HRD-107
+```
+
+### Grafik B25 — `S-B1` `MVP-22`: Perizinan pulang cepat, dinas luar, koreksi on-behalf, dan integrasi roster
+
+```text
+BE-HRD-105 [B24] ─┬─> BE-HRD-108 ──┐
+                  │                │
+                  └─> BE-HRD-109 ──┼─> BE-HRD-111
+                                   │
+BE-HRD-106 [B24] ───> BE-HRD-110 ──┘
+
+BE-HRD-106 [B24] ─┬─> BE-HRD-112
+                  │
+BE-HRD-097 [B22] ─┘
+```
+
+### Grafik B26 — `S-B1` `MVP-23`: Penutupan periode aman, guard koreksi pending, buka kembali darurat & payroll
+
+```text
+BE-HRD-106 [B24] ──┬─> BE-HRD-113 ─┬─> BE-HRD-114 ─┬─> BE-HRD-115
+                   │               │               │
+BE-HRD-110 [B25] ──┘               └───────────────┘
+```
+
+### Grafik B27 — `S-B1` Verifikasi: Verifikasi build, kontrak, dan QBE slice `S-B1`
+
+```text
+BE-HRD-107 [B24] ──┐
+                   │
+BE-HRD-111 [B25] ──┼─> BE-HRD-116
+                   │
+BE-HRD-112 [B25] ──┤
+                   │
+BE-HRD-115 [B26] ──┘
+```
+
+### Grafik B28 — `S-B2` `MVP-24`: Fondasi database, buku besar mutasi saldo, akrual 12 hari & carry-forward
+
+```text
+BE-HRD-007 ✅ [B2] ─> BE-HRD-117 ─> BE-HRD-118 ─┬─> BE-HRD-119 ──┐
+                                                │                 ├─> BE-HRD-120
+                                                └─────────────────┘
+```
+
+### Grafik B29 — `S-B2` `MVP-25`: Pengajuan ESS half-day, evaluasi safe staffing coverage warning & cuti sakit K3RS
+
+```text
+BE-HRD-118 [B28] ─┬─> BE-HRD-121 ──┐
+                  │                │
+BE-HRD-087 [B22] ─┘                │
+                                   ├─> BE-HRD-124
+BE-HRD-118 [B28] ───> BE-HRD-122 ──┤   │
+                  │                │   │
+                  └─> BE-HRD-123 ──┘   │
+                                       │
+BE-HRD-122 [B29] ───> BE-HRD-125       │
+```
+
+### Grafik B30 — `S-B2` `MVP-26`: Leave recall darurat, pemulihan saldo otomatis, penutupan celah /reverse & rekonsiliasi payroll
+
+```text
+BE-HRD-124 [B29] ─┬─> BE-HRD-126 ─> BE-HRD-127
+                  │
+                  ├─> BE-HRD-128
+                  │
+                  └─> BE-HRD-129
+```
+
+### Grafik B31 — `S-B2` Verifikasi: Verifikasi build, kontrak, dan QBE slice `S-B2`
+
+```text
+BE-HRD-120 [B28] ──┐
+                   │
+BE-HRD-125 [B29] ──┼─> BE-HRD-130
+                   │
+BE-HRD-127 [B30] ──┤
+                   │
+BE-HRD-128 [B30] ──┤
+                   │
+BE-HRD-129 [B30] ──┘
+```
+
+#### Tabel Gelombang Eksekusi `S-B2`
+
+| Gelombang | Task yang dapat dimulai bersamaan | Yang menunggu gelombang ini |
+| :---: | --- | --- |
+| **1** | `BE-HRD-117` (fondasi skema database, migrasi EF Core S-B2) | `BE-HRD-118` |
+| **2** | `BE-HRD-118` (service buku besar mutasi saldo & akrual hak 12 hari) | `BE-HRD-119`, `BE-HRD-120`, `BE-HRD-121`, `BE-HRD-122`, `BE-HRD-123` |
+| **3** | `BE-HRD-119` (scheduler carry-forward 6 hari & kedaluwarsa 30 Juni), `BE-HRD-121` (engine Safe Staffing Coverage Guard), `BE-HRD-122` (pengajuan ESS & half-day 0.5 hari), `BE-HRD-123` (cuti sakit & privasi dokter K3RS) | `BE-HRD-120`, `BE-HRD-124`, `BE-HRD-125` |
+| **4** | `BE-HRD-120` (controller & DTO saldo ledger), `BE-HRD-125` (pembatalan pre-leave pulih 100%), `BE-HRD-124` (approval atasan berindikator kuota & mitigasi) | `BE-HRD-126`, `BE-HRD-128`, `BE-HRD-129`, `BE-HRD-130` |
+| **5** | `BE-HRD-126` (workflow leave recall darurat), `BE-HRD-128` (guard penutupan celah /reverse HTTP 409 & HR adjustment), `BE-HRD-129` (rekonsiliasi retrospektif cut-off payroll) | `BE-HRD-127`, `BE-HRD-130` |
+| **6** | `BE-HRD-127` (eksekusi restore saldo recall & event pemulihan jadwal Roster 06) | `BE-HRD-130` |
+| **7** | `BE-HRD-130` (verifikasi akhir ujung-ke-ujung arsitektur QBE, kontrak, dan build S-B2) | Selesai dan siap integrasi frontend |
+
+#### Tabel Gelombang Eksekusi `S-B1`
+
+| Gelombang | Task yang dapat dimulai bersamaan | Yang menunggu gelombang ini |
+| :---: | --- | --- |
+| **1** | `BE-HRD-104` (fondasi skema & migrasi EF Core S-B1) | `BE-HRD-105`, `BE-HRD-107` |
+| **2** | `BE-HRD-105` (service kebijakan parameter presensi), `BE-HRD-107` (audit log mesin biometrik mentah) | `BE-HRD-106`, `BE-HRD-108`, `BE-HRD-109` |
+| **3** | `BE-HRD-106` (engine pemrosesan shift malam & absensi), `BE-HRD-108` (izin pulang cepat), `BE-HRD-109` (surat dinas luar OnDuty) | `BE-HRD-110`, `BE-HRD-112`, `BE-HRD-113` |
+| **4** | `BE-HRD-110` (koreksi presensi on-behalf kuasa HR), `BE-HRD-112` (consumer event mutasi jadwal roster) | `BE-HRD-111`, `BE-HRD-113` |
+| **5** | `BE-HRD-111` (controller & endpoint perizinan presensi), `BE-HRD-113` (guard pra-tutup periode absensi) | `BE-HRD-114`, `BE-HRD-115`, `BE-HRD-116` |
+| **6** | `BE-HRD-114` (service buka kembali darurat HR Manager & rollback payroll) | `BE-HRD-115` |
+| **7** | `BE-HRD-115` (controller & endpoint siklus periode absensi) | `BE-HRD-116` |
+| **8** | `BE-HRD-116` (verifikasi akhir ujung-ke-ujung arsitektur QBE, kontrak, dan build S-B1) | Selesai dan siap integrasi frontend |
 
 #### Tabel Gelombang Eksekusi `S-B4`
 
@@ -1837,12 +2053,12 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 | `BE-HRD-075` | `MVP-15` | Checklist, hadir hari pertama, dan butir otomatis | ✅ Selesai (2026-11-04) |
 | `BE-HRD-076` | `MVP-15` | Siap kerja dan batal bergabung | ✅ Selesai (2026-11-04) |
 | `BE-HRD-077` | `MVP-15` | Permintaan akun dan akses kerja | ✅ Selesai (2026-11-04) |
-| `BE-HRD-078` | `MVP-16` | Serah terima pemisahan ke sub-modul 20 |
-| `BE-HRD-080` | `MVP-16` | Keputusan kontrak `T16` |
-| `BE-HRD-081` | `MVP-16` | Koreksi kontrak `T17` |
-| `BE-HRD-082` | `MVP-16` | Batch data awal kontrak `T18` |
-| `BE-HRD-083` | `MVP-16` | Scheduler harian siklus kontrak |
-| `BE-HRD-084` | `MVP-16` | Kesiapan dijadwalkan dan daftar Perlu Tindakan |
+| `BE-HRD-078` | `MVP-16` | Serah terima pemisahan ke sub-modul 20 | ✅ Selesai (2026-11-04) |
+| `BE-HRD-080` | `MVP-16` | Keputusan kontrak `T16` | ✅ Selesai (2026-11-04) |
+| `BE-HRD-081` | `MVP-16` | Koreksi kontrak `T17` | ✅ Selesai (2026-11-04) |
+| `BE-HRD-082` | `MVP-16` | Batch data awal kontrak `T18` | ✅ Selesai (2026-11-04) |
+| `BE-HRD-083` | `MVP-16` | Scheduler harian siklus kontrak | ✅ Selesai (2026-11-04) |
+| `BE-HRD-084` | `MVP-16` | Kesiapan dijadwalkan dan daftar Perlu Tindakan | ✅ Selesai (2026-11-04) |
 | `BE-HRD-079` | `MVP-17` | Penilaian masa percobaan `T15` dan lulus otomatis |
 | `BE-HRD-085` | Verifikasi | Data runtime dev `S-C4-ONB` |
 | `BE-HRD-086` | Verifikasi | Verifikasi ujung-ke-ujung `S-C4-ONB` |
@@ -2109,7 +2325,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-078` — Serah terima pemisahan ke sub-modul 20
 * **Slice / MVP**: `S-C4-ONB` / `MVP-16`
-* **Status**: Belum dikerjakan. Prasyarat `BE-HRD-014` ✅ — **boleh dikerjakan sekarang**.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Sub-modul 20 dapat menerima pemisahan berjenis `ContractNonRenewal` dan `ProbationFailed` lalu membuka exit clearance seperti jalur pengunduran diri.
 * **Requirement/decision**: `HRD-DEC-082`; `HRD-TF-054`; `FR-ONB-034`, `FR-ONB-052`; `INT-HR-29`.
 * **Kontrak**: Integration `v9` bagian 13 (`INT-HR-29`); `02-backend-architecture.md` 18.4.10.
@@ -2126,7 +2342,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-079` — Penilaian masa percobaan `T15` dan lulus otomatis
 * **Slice / MVP**: `S-C4-ONB` / `MVP-17`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-068`, `BE-HRD-071`, `BE-HRD-078`, `BE-HRD-083`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Atasan mengajukan Lulus atau Tidak Lulus, HRD memutuskan lewat kotak masuk, Tidak Lulus diserahkan ke 20, dan masa percobaan tanpa keputusan lulus otomatis.
 * **Requirement/decision**: `HRD-DEC-085` butir 4–9, `HRD-DEC-081`, `HRD-DEC-082`; `FR-ONB-032` s.d. `FR-ONB-034`; `VR-ONB-38`, `VR-ONB-55` s.d. `VR-ONB-59`; `AT-HRD-ONB-11` s.d. `AT-HRD-ONB-14`.
 * **Kontrak**: API `v9` bagian 15.4; State Transition bagian 13.4, 13.5.
@@ -2145,7 +2361,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-080` — Keputusan kontrak `T16`
 * **Slice / MVP**: `S-C4-ONB` / `MVP-16`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-068`, `BE-HRD-072`, `BE-HRD-078`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Atasan memilih Perpanjang, Angkat jadi Pegawai Tetap, atau Tidak Diperpanjang; HRD memutuskan; sistem menyusun kontrak lanjutan atau menyerahkan ke 20.
 * **Requirement/decision**: `HRD-DEC-089` butir 2–7, 10, `HRD-DEC-082`; `FR-ONB-051`, `FR-ONB-052`; `VR-ONB-35` s.d. `VR-ONB-40`; `AT-HRD-ONB-15`, `AT-HRD-ONB-29` s.d. `AT-HRD-ONB-31`.
 * **Kontrak**: API `v9` bagian 15.3 (`GET /{id}/fixed-term-check`, keputusan: ajukan, detail, ubah, tarik, catat pemberitahuan); State Transition bagian 13.6.
@@ -2163,7 +2379,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-081` — Koreksi kontrak `T17`
 * **Slice / MVP**: `S-C4-ONB` / `MVP-16`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-068`, `BE-HRD-072`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Kontrak bertanda tangan yang salah diperbaiki lewat persetujuan petugas HRD lain, dengan nilai dan scan lama tetap tersimpan.
 * **Requirement/decision**: `HRD-DEC-089` butir 11, `HRD-DEC-031`; `FR-ONB-054`; `VR-ONB-41` s.d. `VR-ONB-44`; `AT-HRD-ONB-33`, `AT-HRD-ONB-34`.
 * **Kontrak**: API `v9` bagian 15.3 (koreksi: ajukan, detail, ubah, tarik); State Transition bagian 13.6.
@@ -2180,7 +2396,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-082` — Batch data awal kontrak `T18`
 * **Slice / MVP**: `S-C4-ONB` / `MVP-16`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-065`, `BE-HRD-068`, `BE-HRD-069`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: HRD mengisi kontrak pegawai lama dalam satu batch, petugas HRD lain menyetujui sekali, dan scan kontrak lama boleh menyusul.
 * **Requirement/decision**: `HRD-DEC-090` butir 1–9; `FR-ONB-060` s.d. `FR-ONB-062`; `VR-ONB-45`, `VR-ONB-65` s.d. `VR-ONB-70`; `AT-HRD-ONB-35`, `AT-HRD-ONB-36`.
 * **Kontrak**: API `v9` bagian 15.6 dan `POST .../employment-contracts/{id}/document` pada bagian 15.3; State Transition bagian 13.8.
@@ -2198,7 +2414,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-083` — Scheduler harian siklus kontrak
 * **Slice / MVP**: `S-C4-ONB` / `MVP-16`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-075`, `BE-HRD-080`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Setiap hari sistem memindahkan kontrak berjalan pada tanggal mulai lanjutan, mengakhiri kontrak tidak diperpanjang, menandai kontrak tanpa keputusan, dan memeriksa ulang butir otomatis kasus berjalan.
 * **Requirement/decision**: `HRD-DEC-089` butir 9–10, `HRD-DEC-086` butir 4; `FR-ONB-053`; `NFR-ONB-004`, `NFR-ONB-006`; `AT-HRD-ONB-30`, `AT-HRD-ONB-32`.
 * **Kontrak**: State Transition `v9` bagian 13.3; `02-backend-architecture.md` 18.9.4.
@@ -2215,7 +2431,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-084` — Kesiapan dijadwalkan dan daftar Perlu Tindakan
 * **Slice / MVP**: `S-C4-ONB` / `MVP-16`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-071`, `BE-HRD-074`, `BE-HRD-080`, `BE-HRD-082`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Penjadwalan 06 dapat bertanya "boleh dijadwalkan pada tanggal ini?", dan setiap peran melihat daftar Perlu Tindakan beserta hitungannya.
 * **Requirement/decision**: `HRD-DEC-087` butir 4 dan 7, `HRD-DEC-088` butir 3, `HRD-DEC-089` butir 1, 8, 9, `HRD-DEC-090` butir 8, `HRD-DEC-096` butir 3; `FR-ONB-022`, `FR-ONB-041`, `FR-ONB-043`, `FR-ONB-050`; `VR-ONB-46`, `VR-ONB-47`; `INT-HR-31`; `AT-HRD-ONB-24`, `AT-HRD-ONB-32`.
 * **Kontrak**: API `v9` bagian 15.8 dan 15.10; `02-backend-architecture.md` 18.9.5, 18.9.7.
@@ -2546,5 +2762,472 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
   2. Seluruh 20 kasus uji penerimaan `AT-HRD-SCH` terpenuhi.
   3. Konformansi QBE lolos tanpa pelanggaran arsitektur baru.
 * **Bukti verifikasi**: Laporan uji pre-deploy backend; log build.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Laporan verifikasi tracked tersedia, seluruh gerbang lulus.
+
+
+## Rincian Task Slice `S-B1` — Presensi dan Kehadiran (`BE-HRD-104` s.d. `BE-HRD-116`)
+
+### ⏳ `BE-HRD-104` — Fondasi skema database, migrasi EF Core, dan audit trail presensi Slice `S-B1`
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: ⏳ Menunggu `BE-HRD-006` [B2]
+* **Outcome**: Menghasilkan tabel `HrdAttendanceSetting`, `HrdEarlyLeavePermission`, `HrdOfficialDutyRequest`, `HrdAttendancePeriodReopenLog` dengan migration EF Core teruji, indeks performa, dan relasi integritas data referensial.
+* **Requirement/decision**: `HRD-DEC-104` s.d. `HRD-DEC-109`, `02-backend-architecture.md` Bagian 20, `data/data-dictionary.md` Bagian 12.
+* **Kontrak**: Data Dictionary `v11` 12.1 s.d. 12.4.
+* **Reuse**: `AppDbContext.cs`, `HrdBaseEntity`.
+* **Cakupan**: Pembuatan 4 file entity model di `Models/Entities/Hrd/`, konfigurasi Fluent API di `AppDbContext.cs`, migration EF Core `AddAttendanceSliceB1Core`.
+* **Dependency**: `BE-HRD-006` [B2]
+* **Acceptance criteria**:
+  1. Migration EF Core berhasil di-generate dan divalidasi skema DDL-nya.
+  2. Indeks unik dan foreign key ke `WorkforceProfile` dan `HrdAttendanceDaily` terkonfigurasi.
+  3. Kolom audit (`CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt`) terpasang di seluruh tabel baru.
+* **Bukti verifikasi**: Skrip migration EF Core, review DDL Postgres, `dotnet build`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Migration siap dieksekusi ke database dev, model terdaftar di DbContext.
+
+### ⏳ `BE-HRD-105` — Service parameter kebijakan presensi rumah sakit (`AttendanceSettingService`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: ⏳ Menunggu `BE-HRD-104`
+* **Outcome**: Service dan endpoint manajemen konfigurasi presensi rumah sakit: toleransi keterlambatan 10 menit (`HRD-DEC-105`), batas cut-off shift malam lintas hari (`HRD-DEC-104`), batas auto-convert `IncompletePunch` ke `Absent` saat tutup periode (`HRD-DEC-106`).
+* **Requirement/decision**: `HRD-DEC-105`, `HRD-DEC-106`, `02-backend-architecture.md` 20.9.1.
+* **Kontrak**: API Contract `v11` tag `[Tags("HR Attendance - Settings")]`, `VR-ATT-17` s.d. `VR-ATT-20`.
+* **Reuse**: `MstAttendanceSetting`, repository pattern.
+* **Cakupan**: `AttendanceSettingService.cs`, DTOs, validasi rentang toleransi menit.
+* **Dependency**: `BE-HRD-104`
+* **Acceptance criteria**:
+  1. Setting toleransi keterlambatan default 10 menit dapat dibaca dan diperbarui peran HR Manager.
+  2. Validasi menolak angka negatif atau nilai di luar batas kewajaran (`VR-ATT-17`).
+  3. Konfigurasi tersimpan menjadi acuan perhitungan absensi harian secara global.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-05`, `AT-HRD-ATT-19`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Service beroperasi stabil dan teruji validasinya.
+
+### ⏳ `BE-HRD-106` — Engine pemrosesan absensi harian & normalisasi shift malam lintas hari (`AttendanceDailyProcessingService`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: ⏳ Menunggu `BE-HRD-105`
+* **Outcome**: Mesin pemrosesan log mentah ke status harian: mengunci shift malam pada tanggal mulai (`ShiftDate = Hari H`, `HRD-DEC-104`), menerapkan toleransi 10 menit (lewat batas dihitung dari jam mulai resmi, `HRD-DEC-105`), dan menandai 1 punch sebagai `IncompletePunch` (`HRD-DEC-106`).
+* **Requirement/decision**: `HRD-DEC-104`, `HRD-DEC-105`, `HRD-DEC-106`, `02-backend-architecture.md` 20.9.2.
+* **Kontrak**: Validation Matrix `v11` `VR-ATT-01` s.d. `VR-ATT-04`, State Transition `v11` 15.1.
+* **Reuse**: `AttendanceDailyProcessingService.cs`, `TrxAttendanceDaily`.
+* **Cakupan**: Refaktor metode `ProcessDailyAttendanceAsync`, kalkulasi `LateMinutes`, `EarlyLeaveMinutes`, dan penentuan status harian.
+* **Dependency**: `BE-HRD-105`
+* **Acceptance criteria**:
+  1. Tap masuk jam 21:00 hari H dan tap keluar 07:00 hari H+1 dikunci sebagai absensi shift hari H (`HRD-DEC-104`).
+  2. Keterlambatan <= 10 menit berstatus `Present` (`LateMinutes = 0`); keterlambatan 11 menit berstatus `Late` (`LateMinutes = 11`) (`HRD-DEC-105`).
+  3. Hanya ada tap masuk tanpa tap keluar diberi status sementara `IncompletePunch` (`HRD-DEC-106`).
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-01`, `AT-HRD-ATT-02`, `AT-HRD-ATT-03`, `AT-HRD-ATT-04`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Engine pemrosesan presensi harian akurat memenuhi seluruh invariant medis 24/7.
+
+### ⏳ `BE-HRD-107` — Service & controller audit log mesin biometrik mentah immutable (`RawAttendanceLogService`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: ⏳ Menunggu `BE-HRD-104`
+* **Outcome**: Endpoint baca saja untuk memantau rekaman log mentah mesin absensi (fingerprint, face recognition, RFID) yang bersifat kekal (*immutable*), bebas manipulasi, untuk keperluan audit dan investigasi selisih data.
+* **Requirement/decision**: `HRD-DEC-104`, `02-backend-architecture.md` 20.9.3.
+* **Kontrak**: API Contract `v11` tag `[Tags("HR Attendance - Raw Logs")]`.
+* **Reuse**: `TrxRawAttendanceLog.cs`.
+* **Cakupan**: `RawAttendanceLogController.cs`, `RawAttendanceLogService.GetLogsByPeriodAsync`.
+* **Dependency**: `BE-HRD-104`
+* **Acceptance criteria**:
+  1. Endpoint GET mengembalikan daftar tap mentah lengkap dengan DeviceId, PunchTime, dan VerificationType.
+  2. Tidak ada endpoint POST/PUT/DELETE publik yang mengizinkan pengubahan log mentah mesin.
+  3. Filter per pegawai, per mesin, dan per rentang tanggal bekerja cepat dan ber-pagination.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-06`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Log mentah dapat dibaca transparan, integritas data mesin terlindungi.
+
+### ⏳ `BE-HRD-108` — Service permohonan izin pulang cepat non-deductible & waiver keterlambatan (`EarlyLeavePermissionService`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: ⏳ Menunggu `BE-HRD-105`
+* **Outcome**: Pengelolaan perizinan pulang cepat administratif non-potong-cuti: pencatatan jam izin keluar, verifikasi approval atasan, perekaman jam kerja riil dari mesin, dan aktivasi waiver penalti presensi jika disetujui.
+* **Requirement/decision**: `HRD-DEC-107`, `HRD-Q-47`, `02-backend-architecture.md` 20.9.4.
+* **Kontrak**: State Transition Matrix `v11` 15.2, Validation Matrix `v11` `VR-ATT-07` s.d. `VR-ATT-10`.
+* **Reuse**: `HrdEarlyLeavePermission`, `WorkflowService`.
+* **Cakupan**: `EarlyLeavePermissionService.cs`, integrasi alur persetujuan atasan langsung.
+* **Dependency**: `BE-HRD-105`
+* **Acceptance criteria**:
+  1. Pengajuan izin pulang cepat tidak mengurangi kuota hak cuti tahunan pegawai (`Non-Deductible`, menutup `HRD-Q-47`).
+  2. Jam kerja riil tetap dihitung berdasarkan waktu tap aktual di mesin biometrik.
+  3. Izin berstatus `Approved` mengaktifkan flag `IsWaived = true` pada rekaman presensi harian.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-07`, `AT-HRD-ATT-08`, `AT-HRD-ATT-09`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Alur perizinan pulang cepat terpisah tegas dari kuota cuti.
+
+### ⏳ `BE-HRD-109` — Service surat penugasan dinas luar rumah sakit & pengakuan status OnDuty (`OfficialDutyRequestService`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: ⏳ Menunggu `BE-HRD-105`
+* **Outcome**: Pengelolaan surat tugas dinas luar (sopir/perawat ambulans rujukan, kurir spesimen lab, workshop/seminar, home care) yang otomatis mengesahkan status kehadiran harian menjadi `OnDuty` di sistem.
+* **Requirement/decision**: `HRD-DEC-109`, `02-backend-architecture.md` 20.9.5.
+* **Kontrak**: API Contract `v11` tag `[Tags("HR Attendance - Official Duty")]`, `VR-ATT-11` s.d. `VR-ATT-13`.
+* **Reuse**: `HrdOfficialDutyRequest`, integrasi workflow.
+* **Cakupan**: `OfficialDutyRequestService.cs`, method verifikasi surat tugas dan auto-update presensi.
+* **Dependency**: `BE-HRD-105`
+* **Acceptance criteria**:
+  1. Surat penugasan dinas luar wajib mencantumkan nomor surat tugas, tujuan, dan uraian tugas.
+  2. Pengajuan yang telah disetujui atasan otomatis mengubah status presensi harian menjadi `OnDuty`.
+  3. Staf berstatus `OnDuty` tidak dianggap mangkir (*Absent*) meskipun tidak melakukan tap di mesin RS.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-10`, `AT-HRD-ATT-11`, `AT-HRD-ATT-12`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Status OnDuty sah berbasis surat tugas dan terhubung ke jadwal dinas.
+
+### ⏳ `BE-HRD-110` — Service jalur khusus koreksi presensi atas nama pegawai (`AttendanceCorrectionOnBehalfService`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: ⏳ Menunggu `BE-HRD-106`
+* **Outcome**: Tim HR Admin dapat mengajukan koreksi presensi atas nama pegawai yang terkendala ESS/sakit: wajib mencatat initiator HR, pegawai yang diwakili, alasan mendesak, bukti fisik, dan memicu notifikasi transparansi ke ESS pegawai.
+* **Requirement/decision**: `HRD-DEC-028`, `HRD-DEC-106`, `02-backend-architecture.md` 20.9.6.
+* **Kontrak**: Validation Matrix `v11` `VR-ATT-05`, `VR-ATT-06`, `VR-ATT-14`.
+* **Reuse**: `AttendanceCorrectionService.cs`, `TrxAttendanceCorrection`.
+* **Cakupan**: `AttendanceCorrectionService.CreateOnBehalfAsync`, audit log initiator.
+* **Dependency**: `BE-HRD-106`
+* **Acceptance criteria**:
+  1. Pembuatan koreksi on-behalf mencatat `InitiatorUserId`, `WorkforceProfileId`, `Reason`, dan `EvidenceUrl`.
+  2. Koreksi on-behalf tetap melewati workflow persetujuan atasan atau HR Manager sesuai aturan.
+  3. Pegawai yang diwakili menerima notifikasi pemberitahuan adanya koreksi atas nama dirinya.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-13`, `AT-HRD-ATT-14`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Jalur koreksi on-behalf transparan, berjejak audit, dan mematuhi tata kelola.
+
+### ⏳ `BE-HRD-111` — Controller & endpoint lengkap perizinan dan koreksi presensi (`AttendanceTransactionControllers`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: ⏳ Menunggu `BE-HRD-108`, `BE-HRD-109`, `BE-HRD-110`
+* **Outcome**: Penerbitan endpoint Swagger lengkap untuk izin pulang cepat, dinas luar, dan koreksi on-behalf dengan otorisasi berbasis klaim izin (`Permission`).
+* **Requirement/decision**: `HRD-DEC-107`, `HRD-DEC-109`, `HRD-DEC-028`, API Contract `v11` 17.2.
+* **Kontrak**: API Contract `v11` 17.2 (butir 4, 5, 6, 7).
+* **Reuse**: `EarlyLeavePermissionController.cs`, `OfficialDutyRequestController.cs`.
+* **Cakupan**: Controller endpoints, input binding, validasi payload, error handling HTTP 422/409.
+* **Dependency**: `BE-HRD-108`, `BE-HRD-109`, `BE-HRD-110`
+* **Acceptance criteria**:
+  1. Endpoint POST pengajuan izin pulang cepat dan dinas luar tervalidasi skemanya.
+  2. Endpoint POST koreksi on-behalf hanya dapat diakses peran dengan hak `HrdAttendance.Correction.OnBehalf`.
+  3. Dokumentasi Swagger lengkap dengan tag terstandarisasi.
+* **Bukti verifikasi**: Endpoint API testing; pemeriksaan otorisasi role/permission.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Seluruh endpoint transaksi presensi aktif dan terproteksi otorisasi.
+
+### ⏳ `BE-HRD-112` — Event listener rekalkulasi absensi akibat koreksi mundur jadwal roster (`AttendanceRetroactiveShiftConsumer`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: ⏳ Menunggu `BE-HRD-106`, `BE-HRD-097` [B22]
+* **Outcome**: Implementasi consumer `RetroactiveShiftCorrectedEvent` dari modul Penjadwalan (06): saat jadwal dinas mundur (<= 3 hari) dikoreksi oleh Kepala Unit, absensi harian pegawai pada tanggal tersebut otomatis dikalkulasi ulang terhadap jam shift baru.
+* **Requirement/decision**: `HRD-DEC-102`, `INT-HR-41`, `02-backend-architecture.md` 20.9.7.
+* **Kontrak**: Integration Contract `v11` `INT-HR-41`.
+* **Reuse**: MediatR notification handler atau MassTransit consumer.
+* **Cakupan**: `AttendanceRetroactiveShiftConsumer.cs`, pemanggilan ulang `ProcessDailyAttendanceAsync`.
+* **Dependency**: `BE-HRD-106`, `BE-HRD-097` [B22]
+* **Acceptance criteria**:
+  1. Event `RetroactiveShiftCorrectedEvent` diterima dengan payload EmployeeId, ShiftDate, dan NewShiftId.
+  2. Status presensi hari terkait dikalkulasi ulang membandingkan log tap aktual dengan shift baru.
+  3. Catatan audit `AttendanceDaily` mendokumentasikan pemrosesan ulang terpicu dari mutasi roster.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-15`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Integrasi event-driven antara jadwal roster dan presensi bekerja mulus.
+
+### ⏳ `BE-HRD-113` — Guard validasi pra-tutup periode absensi & konversi IncompletePunch (`AttendancePeriodClosingGuard`)
+* **Slice / MVP**: `S-B1` / `MVP-23`
+* **Status**: ⏳ Menunggu `BE-HRD-106`, `BE-HRD-110`
+* **Outcome**: Penjaga keamanan penutupan periode bulanan: menolak tutup periode jika masih ada koreksi/izin pending (HTTP 409, `VR-ATT-15`), dan secara otomatis mengonversi `IncompletePunch` yang belum dikoreksi menjadi `Absent` (`HRD-DEC-106`, `VR-ATT-16`).
+* **Requirement/decision**: `HRD-DEC-106`, `HRD-DEC-108`, `02-backend-architecture.md` 20.9.8.
+* **Kontrak**: Validation Matrix `v11` `VR-ATT-15`, `VR-ATT-16`, State Transition `v11` 15.3.
+* **Reuse**: `AttendancePeriodService.cs`, `TrxAttendancePeriod`.
+* **Cakupan**: `AttendancePeriodClosingGuard.cs`, metode `ValidatePreClosingConditionsAsync`.
+* **Dependency**: `BE-HRD-106`, `BE-HRD-110`
+* **Acceptance criteria**:
+  1. Penutupan periode ditolak jika terdapat pengajuan koreksi presensi berstatus `Pending` (`VR-ATT-15`).
+  2. Seluruh status `IncompletePunch` yang tersisa otomatis diubah menjadi `Absent` dengan flag `SystemAutoConverted` (`VR-ATT-16`).
+  3. Periode berhasil berubah status menjadi `Closed` dan terkunci dari mutasi biasa.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-16`, `AT-HRD-ATT-17`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Penutupan periode ter-guard sempurna bebas dari data menggantung.
+
+### ⏳ `BE-HRD-114` — Service buka kembali periode darurat HR Manager & rollback serah terima payroll (`AttendancePeriodReopenService`)
+* **Slice / MVP**: `S-B1` / `MVP-23`
+* **Status**: ⏳ Menunggu `BE-HRD-113`
+* **Outcome**: Prosedur darurat pembukaan kembali (*Reopen*) periode yang sudah ditutup: dibatasi hanya untuk peran HR Manager, mencatat alasan wajib dan audit trail, serta otomatis membatalkan (*rollback*) serah terima data ke payroll jika sudah diserahkan (`HRD-DEC-108`).
+* **Requirement/decision**: `HRD-DEC-108`, `INT-HR-43`, `02-backend-architecture.md` 20.9.9.
+* **Kontrak**: API Contract `v11` `/periods/{id}/reopen`, State Transition `v11` 15.3.
+* **Reuse**: `HrdAttendancePeriodReopenLog`, integrasi Payroll Handoff.
+* **Cakupan**: `AttendancePeriodReopenService.cs`, validasi peran, logging log reopen, rollback status handoff.
+* **Dependency**: `BE-HRD-113`
+* **Acceptance criteria**:
+  1. Buka kembali periode oleh selain peran HR Manager ditolak (HTTP 403).
+  2. Alasan buka kembali wajib diisi minimal 15 karakter dan terekam di tabel log audit.
+  3. Jika handoff payroll sudah terbit, status handoff di-rollback ke `ReopenedPendingResync`.
+* **Bukti verifikasi**: Test case `AT-HRD-ATT-18`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Mekanisme reopen darurat aman dan menjaga konsistensi keuangan payroll.
+
+### ⏳ `BE-HRD-115` — Controller & endpoint manajemen siklus periode dan serah terima payroll (`AttendancePeriodController`)
+* **Slice / MVP**: `S-B1` / `MVP-23`
+* **Status**: ⏳ Menunggu `BE-HRD-113`, `BE-HRD-114`
+* **Outcome**: Endpoint Swagger untuk monitoring periode, penutupan periode ber-guard, pembukaan kembali darurat, dan serah terima rekap jam kerja riil ke modul Payroll (10).
+* **Requirement/decision**: `HRD-DEC-108`, API Contract `v11` tag `[Tags("HR Attendance - Period Management")]`.
+* **Kontrak**: API Contract `v11` 17.2 (butir 8, 9, 10, 11).
+* **Reuse**: `AttendancePeriodController.cs`.
+* **Cakupan**: Controller methods: `ClosePeriod`, `ReopenPeriod`, `HandoffPayroll`, DTOs.
+* **Dependency**: `BE-HRD-113`, `BE-HRD-114`
+* **Acceptance criteria**:
+  1. Endpoint `/close` mengembalikan konfirmasi penutupan dan ringkasan konversi alfa.
+  2. Endpoint `/reopen` menerima payload alasan dan memvalidasi wewenang HR Manager.
+  3. Endpoint `/handoff-payroll` mengagregasi total jam kerja riil, jam lembur, dan potongan keterlambatan.
+* **Bukti verifikasi**: API contract test, skenario siklus tutup-buka-serah terima periode.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Endpoint siklus periode lengkap teruji dan terdokumentasi.
+
+### ⏳ `BE-HRD-116` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, dan build Slice `S-B1`
+* **Slice / MVP**: `S-B1` / Verifikasi
+* **Status**: ⏳ Menunggu `BE-HRD-107`, `BE-HRD-111`, `BE-HRD-112`, `BE-HRD-115`
+* **Outcome**: Seluruh source code backend slice `S-B1` terverifikasi lolos kompilasi .NET, lulus uji konformansi QBE, mematuhi kontrak API `v11`, dan memenuhi kriteria `AT-HRD-ATT-01` s.d. `AT-HRD-ATT-20`.
+* **Requirement/decision**: `04-prd-to-mvp.md` bagian 25.5 (DoD `S-B1`), `testing/acceptance-test-matrix.md` bagian 19.
+* **Kontrak**: Seluruh kontrak `v11` bagian `S-B1`.
+* **Reuse**: Seluruh service dan controller presensi.
+* **Cakupan**: `dotnet build`, skrip kepatuhan arsitektur QBE, audit regression endpoint existing.
+* **Dependency**: `BE-HRD-107`, `BE-HRD-111`, `BE-HRD-112`, `BE-HRD-115`
+* **Acceptance criteria**:
+  1. `dotnet build` solusi backend sukses 0 error.
+  2. Skrip konformansi QBE lolos tanpa pelanggaran penamaan atau arsitektur baru.
+  3. Seluruh 20 kasus uji penerimaan `AT-HRD-ATT` terpenuhi.
+* **Bukti verifikasi**: Laporan audit pre-deploy backend, log build bersih.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Laporan verifikasi tracked tersedia, seluruh gerbang lulus.
+
+
+---
+
+## Rincian Task Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit (`BE-HRD-117` s.d. `BE-HRD-130`)
+
+### ⏳ `BE-HRD-117` — Fondasi skema database, migrasi EF Core, dan entitas mutasi saldo & recall Slice `S-B2`
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: ⏳ Menunggu `BE-HRD-007` [B2]
+* **Outcome**: Menghasilkan tabel `TrxLeaveBalanceLedger`, `TrxLeaveRecallRequest`, penambahan kolom dokumen audit pada `TrxLeaveAdjustment`, dan perluasan kolom coverage warning serta privasi dokter pada `WfpLeaveRequest` dengan migration EF Core teruji dan indeks performa.
+* **Requirement/decision**: `HRD-DEC-110` s.d. `HRD-DEC-115`, `02-backend-architecture.md` Bagian 21, `data/data-dictionary.md` Bagian 13.
+* **Kontrak**: Data Dictionary `v12` 13.1 s.d. 13.6.
+* **Reuse**: `AppDbContext.cs`, `IdentityModel`.
+* **Cakupan**: Pembuatan file model entitas di `Areas/Corporate/HumanResource/LeaveManagement/Models/`, konfigurasi Fluent API di `AppDbContext.cs`, dan migration EF Core `AddLeaveLedgerCoverageWarningAndRecallExtensions`.
+* **Dependency**: `BE-HRD-007` [B2]
+* **Acceptance criteria**:
+  1. Migration EF Core berhasil di-generate dan divalidasi skema DDL-nya.
+  2. Indeks unik dan foreign key ke `MstWorkforceProfile`, `MstLeaveType`, dan `WfpLeaveRequest` terkonfigurasi rapi.
+  3. Kolom audit standar IdentityModel terpasang di seluruh tabel baru.
+* **Bukti verifikasi**: Skrip migration EF Core, review DDL Postgres, `dotnet build`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Migration siap dieksekusi ke database dev, model terdaftar di DbContext.
+
+### ⏳ `BE-HRD-118` — Service buku besar mutasi saldo atomik & akrual hak tahunan 12 hari (`LeaveBalanceLedgerService`)
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: ⏳ Menunggu `BE-HRD-117`
+* **Outcome**: Service buku besar mutasi saldo (`LeaveBalanceLedgerService`) yang mengelola perhitungan saldo aktif, validasi kecukupan saldo cuti (*available balance calculation*), pembukuan transaksi kredit hak tahunan 12 hari (`Entitlement`), dan pencatatan debit cuti disetujui (`Taken`).
+* **Requirement/decision**: `HRD-DEC-110`, `02-backend-architecture.md` 21.8 (`LEV-B1`).
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-01`, State Transition `v12` 16.1.
+* **Reuse**: `LeaveBalanceController.cs`, `MstLeaveType`.
+* **Cakupan**: `LeaveBalanceLedgerService.cs`, implementasi antarmuka `ILeaveBalanceLedgerService`, posting mutasi atomik.
+* **Dependency**: `BE-HRD-117`
+* **Acceptance criteria**:
+  1. Alokasi awal tahun membukukan mutasi kredit `Entitlement` +12.0 hari pada `TrxLeaveBalanceLedger`.
+  2. Perhitungan saldo aktif mempertimbangkan saldo tahun berjalan, saldo carry-forward aktif, dan kuota terpesan (*reserved*).
+  3. Permintaan debit cuti yang melebihi saldo aktif ditolak otomatis (`VR-LEV-01`).
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-01`, `AT-HRD-LEV-02`, `AT-HRD-LEV-06`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Service beroperasi stabil dan mutasi saldo terbukti konsisten di ledger.
+
+### ⏳ `BE-HRD-119` — Scheduler akhir tahun carry-forward max 6 hari & eksekusi kedaluwarsa 30 Juni (`LeaveCarryForwardProcessorService`)
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: ⏳ Menunggu `BE-HRD-118`
+* **Outcome**: Runner scheduler otomatis untuk membatasi carry-forward sisa cuti akhir tahun (31 Des) maksimal 6 hari kerja dan menghanguskan sisanya, serta scheduler tengah tahun (30 Jun) untuk mengeksekusi hangus sisa kuota bawaan yang belum digunakan.
+* **Requirement/decision**: `HRD-DEC-110`, `02-backend-architecture.md` 21.8 (`LEV-B8`, `LEV-W2`).
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-12`, `VR-LEV-13`.
+* **Reuse**: `LeaveCarryForwardProcessorService.cs`, `LeaveCarryForwardSchedulerHostedService.cs`.
+* **Cakupan**: Refaktor logika pembatasan max 6 hari, posting transaksi `Forfeiture`, dan posting transaksi `CarryForwardForfeiture` per 30 Juni.
+* **Dependency**: `BE-HRD-118`
+* **Acceptance criteria**:
+  1. Scheduler 31 Des membatasi saldo bawaan max 6 hari kerja dan membukukan transaksi `Forfeiture` untuk kelebihannya (`LEV-B8`).
+  2. Tanggal kedaluwarsa saldo bawaan disetel tepat 30 Juni pukul 23:59:59 WIB.
+  3. Scheduler 30 Jun menghanguskan seluruh sisa kuota carry-forward yang belum terpakai (`LEV-W2`).
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-03`, `AT-HRD-LEV-04`, `UAT-LEV-01`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Runner scheduler teruji dengan simulasi tanggal sistem dan membukukan mutasi ledger dengan benar.
+
+### ⏳ `BE-HRD-120` — Controller & DTO mutasi saldo ledger dan kuota carry-forward (`LeaveBalanceLedgerController`)
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: ⏳ Menunggu `BE-HRD-118`, `BE-HRD-119`
+* **Outcome**: Endpoint RESTful Swagger untuk query saldo mandiri ESS, rincian kuota carry-forward aktif, riwayat transaksi buku besar mutasi pegawai, dan monitoring agregat saldo RS bagi HR Admin.
+* **Requirement/decision**: `HRD-DEC-110`, API Contract `v12` tag `[Tags("HR Leave - Balances & Ledgers")]`.
+* **Kontrak**: API Contract `v12` 18.1.
+* **Reuse**: `LeaveBalanceController.cs`, DTOs.
+* **Cakupan**: `LeaveBalanceLedgerController.cs`, `LeaveBalanceSummaryDto`, `LeaveBalanceLedgerDto`, `CarryForwardRunResultDto`.
+* **Dependency**: `BE-HRD-118`, `BE-HRD-119`
+* **Acceptance criteria**:
+  1. Endpoint `GET /leave/balances/my` mengembalikan saldo aktif, saldo bawaan, dan peringatan kedaluwarsa 30 Juni.
+  2. Endpoint `GET /leave/balances/ledger` mendukung pagination dan filter tahun kalender.
+  3. Endpoint `POST /leave/balances/carry-forward/run` memfasilitasi eksekusi manual berotorisasi HR Admin.
+* **Bukti verifikasi**: API contract test, verifikasi payload respons DTO.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Endpoint aktif di Swagger dan terlindungi atribut `[AccessPermission]`.
+
+### ⏳ `BE-HRD-121` — Engine evaluasi ketersediaan staf unit 24/7 (`SafeStaffingCoverageGuard`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: ⏳ Menunggu `BE-HRD-118`, `BE-HRD-087` [B22]
+* **Outcome**: Service guard ketersediaan staf klinis (`SafeStaffingCoverageGuard`) yang menghubungkan pengajuan cuti ke jadwal dinas Roster Terbit di Sub-Modul 06 (`INT-HR-45`), menghitung rasio aman ketenagaan, dan memicu flag peringatan kuota (*Coverage Warning*).
+* **Requirement/decision**: `HRD-DEC-111`, `02-backend-architecture.md` 21.8 (`LEV-W1`), Integration Contract `v12` 9.2.1 (`INT-HR-45`).
+* **Kontrak**: Integration Contract `v12` 9.2.1, `VR-LEV-21`.
+* **Reuse**: `ISafeStaffingQueryService`, `TrxShiftAssignment`.
+* **Cakupan**: `SafeStaffingCoverageGuard.cs`, metode `EvaluateCoverageAsync`, penghitungan sisa staf bertugas vs kuota minimal unit.
+* **Dependency**: `BE-HRD-118`, `BE-HRD-087` [B22]
+* **Acceptance criteria**:
+  1. Service menghitung jumlah staf bertugas pada tanggal dan shift yang beririsan dengan permohonan cuti.
+  2. Jika sisa staf bertugas < standar minimal unit, mengembalikan flag `IsWarningTriggered = true` beserta pesan detail advisory.
+  3. Mendukung prinsip *fail-open with audit warning* bila service roster offline.
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-09`, `UAT-LEV-02`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Guard evaluasi kuota staf beroperasi presisi dan terintegrasi ke alur workflow pengajuan.
+
+### ⏳ `BE-HRD-122` — Service pengajuan cuti mandiri ESS, kalkulasi half-day 0.5 hari & validasi saldo (`LeaveRequestWorkflowLifecycleService`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: ⏳ Menunggu `BE-HRD-118`
+* **Outcome**: Service alur kerja pengajuan cuti mandiri ESS: validasi saldo aktif, perhitungan hari kerja efektif, opsi cuti setengah hari (0.5 hari), deteksi tabrakan dinas shift (`LEV-B2`), dan pemesanan kuota saldo (*balance reservation*).
+* **Requirement/decision**: `HRD-DEC-110`, `HRD-ASM-20`, `02-backend-architecture.md` 21.8 (`LEV-B1`, `LEV-B2`, `LEV-W6`).
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-01` s.d. `VR-LEV-05`, `VR-LEV-11`.
+* **Reuse**: `LeaveRequestWorkflowLifecycleService.cs`, `WfpLeaveRequest`.
+* **Cakupan**: Implementasi metode `SubmitLeaveRequestAsync`, validasi half-day sesi pagi/siang, penentuan status `WaitingApproval`.
+* **Dependency**: `BE-HRD-118`
+* **Acceptance criteria**:
+  1. Pengajuan cuti setengah hari memotong kuota tepat 0.5 hari kerja dan menolak jenis cuti selain tahunan (`VR-LEV-05`).
+  2. Tabrakan dengan jadwal shift aktif terbit menolak submit cuti (`LEV-B2`).
+  3. Pengajuan berturut-turut > 12 hari kerja ditolak sistem tanpa izin khusus Direktur RS (`VR-LEV-11`).
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-05`, `AT-HRD-LEV-07`, `AT-HRD-LEV-08`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Workflow submit cuti mandiri stabil, validasi model teruji, saldo terpesan rapi.
+
+### ⏳ `BE-HRD-123` — Alur cuti sakit & verifikasi berkas dokter ber-SIP privasi medis K3RS (`MedicalCertificateVerificationService`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: ⏳ Menunggu `BE-HRD-118`
+* **Outcome**: Penanganan izin sakit mandiri 1 hari vs cuti sakit $\ge 2$ hari yang wajib mengunggah surat dokter ber-SIP, serta implementasi lapisan pengamanan kerahasiaan data medis K3RS (masking diagnosa ICD-10 dari atasan langsung).
+* **Requirement/decision**: `HRD-DEC-112`, `02-backend-architecture.md` 21.8 (`LEV-B3`, `LEV-W3`).
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-06`, `VR-LEV-08`, `VR-LEV-09`.
+* **Reuse**: `TrxLeaveRequestAttachment`, storage service.
+* **Cakupan**: `MedicalCertificateVerificationService.cs`, validasi upload berkas PDF/JPG, metadata SIP dokter, masking payload DTO atasan.
+* **Dependency**: `BE-HRD-118`
+* **Acceptance criteria**:
+  1. Cuti sakit 1 hari kerja dapat disubmit dengan surat pernyataan mandiri.
+  2. Cuti sakit $\ge 2$ hari kerja menolak submit tanpa unggahan berkas surat dokter ber-SIP (`LEV-B3`).
+  3. Endpoint approval atasan langsung menyamarkan diagnosa medis staf; hanya K3RS yang memiliki hak baca asli (`VR-LEV-09`).
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-12`, `AT-HRD-LEV-13`, `AT-HRD-LEV-14`, `UAT-LEV-03`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Alur verifikasi surat sakit beroperasi sesuai standar kerahasiaan medis staf RS.
+
+### ⏳ `BE-HRD-124` — Kotak masuk approval atasan & aksi Approve with Mitigation berindikator kuota (`LeaveApprovalService`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: ⏳ Menunggu `BE-HRD-121`, `BE-HRD-122`, `BE-HRD-123`
+* **Outcome**: Endpoint persetujuan cuti atasan langsung: menampilkan banner peringatan kuota staf, memfasilitasi aksi *Approve with Mitigation* dengan catatan wajib perawat pengganti, aksi minta revisi (*NeedRevision*), atau penolakan operasional.
+* **Requirement/decision**: `HRD-DEC-111`, API Contract `v12` tag `[Tags("HR Leave - Approvals & Coverage")]`.
+* **Kontrak**: API Contract `v12` 18.1, `VR-LEV-21`.
+* **Reuse**: `LeaveRequestWorkflowController.cs`, `LeaveApprovalResultDto`.
+* **Cakupan**: `LeaveRequestWorkflowController.cs`, aksi `Approve`, `Reject`, `Revise`, pencatatan audit trail mitigasi.
+* **Dependency**: `BE-HRD-121`, `BE-HRD-122`, `BE-HRD-123`
+* **Acceptance criteria**:
+  1. Approval Inbox menyajikan rincian permohonan beserta indikator *Coverage Warning* dari guard.
+  2. Aksi *Approve with Mitigation* mewajibkan input catatan staf pengganti; menolak submit jika kosong (`VR-LEV-21`).
+  3. Cuti disetujui memposting transaksi debit `Taken` pada buku besar dan memperbarui presensi/roster ke `OnLeave`.
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-10`, `AT-HRD-LEV-11`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Endpoint approval atasan berfungsi sempurna dan jejak audit mitigasi terekam lengkap.
+
+### ⏳ `BE-HRD-125` — Pembatalan pre-leave sebelum hari-H dan pemulihan saldo 100% otomatis (`LeaveCancellationService`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: ⏳ Menunggu `BE-HRD-122`
+* **Outcome**: Fasilitas pembatalan mandiri atas cuti yang sudah disetujui sebelum tanggal mulai berjalan (*Pre-Leave Cancellation* per `HRD-ASM-21`), yang secara otomatis membatalkan reservasi jadwal dan memulihkan saldo cuti 100% ke buku besar.
+* **Requirement/decision**: `HRD-ASM-21`, `02-backend-architecture.md` 21.8 (`LEV-W4`).
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-17`, State Transition `v12` 16.1.
+* **Reuse**: `LeaveCancellationService.cs`, `TrxLeaveCancellationRequest`.
+* **Cakupan**: Endpoint `POST /requests/{id}/cancel`, validasi `Today < StartDate`, posting mutasi kredit `CancellationRestore`.
+* **Dependency**: `BE-HRD-122`
+* **Acceptance criteria**:
+  1. Pembatalan mandiri sebelum hari pelaksanaan mengembalikan saldo 100% ke ledger pegawai (`CancellationRestore`).
+  2. Pembatalan yang diajukan setelah tanggal cuti mulai berjalan ditolak sistem (`VR-LEV-17`).
+  3. Status penugasan shift di Roster 06 dipulihkan menjadi aktif bertugas.
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-15`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Pembatalan pre-leave aman dari manipulasi dan saldo pulih seketika.
+
+### ⏳ `BE-HRD-126` — Workflow pemanggilan cuti darurat (Leave Recall) & otorisasi HR Manager (`LeaveRecallWorkflowService`)
+* **Slice / MVP**: `S-B2` / `MVP-26`
+* **Status**: ⏳ Menunggu `BE-HRD-124`
+* **Outcome**: Workflow resmi penanganan situasi darurat rumah sakit: inisiasi tiket pemanggilan kembali staf yang sedang cuti aktif oleh Kepala Ruangan dan verifikasi otorisasi persetujuan tunggal oleh HR Manager (menutup celah `HRD-Q-36`).
+* **Requirement/decision**: `HRD-DEC-113`, `02-backend-architecture.md` 21.8 (`LEV-B5`).
+* **Kontrak**: State Transition `v12` 16.2, `VR-LEV-14`, `VR-LEV-15`.
+* **Reuse**: `TrxLeaveRecall.cs`, `LeaveRecallController.cs`.
+* **Cakupan**: `LeaveRecallWorkflowService.cs`, metode `InitiateRecallAsync`, `ApproveRecallAsync`, `RejectRecallAsync`.
+* **Dependency**: `BE-HRD-124`
+* **Acceptance criteria**:
+  1. Inisiasi recall hanya dapat diajukan untuk permohonan cuti yang statusnya sedang `Active` (`VR-LEV-14`).
+  2. Tiket recall berstatus `RequestedByHeadUnit` masuk ke kotak masuk persetujuan HR Manager.
+  3. Otorisasi persetujuan recall hanya dapat dieksekusi oleh peran HR Manager (`LEV-B5`).
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-16`, `UAT-LEV-04`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Alur recall berjenjang terverifikasi aman dan sesuai kewenangan klinis/manajerial RS.
+
+### ⏳ `BE-HRD-127` — Eksekusi restore saldo sisa recall & event pemulihan jadwal Roster 06 (`LeaveRecallExecutionService`)
+* **Slice / MVP**: `S-B2` / `MVP-26`
+* **Status**: ⏳ Menunggu `BE-HRD-126`
+* **Outcome**: Eksekusi sistem otomatis saat recall disetujui HR Manager: kalkulasi sisa hari cuti yang belum dijalankan, posting kredit `RecallRestore` ke ledger, dan penerbitan domain event `LeaveRecallExecutedEvent` ke Roster 06 (`INT-HR-46`).
+* **Requirement/decision**: `HRD-DEC-113`, `02-backend-architecture.md` 21.8 (`LEV-W4`), Integration Contract `v12` 9.2.2.
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-16`, Integration Contract `v12` 9.2.2 (`INT-HR-46`).
+* **Reuse**: `LeaveExecutionBalanceService.cs`, event publisher.
+* **Cakupan**: Perhitungan `RestoredDays`, pemanggilan `LeaveBalanceLedgerService.PostTransactionAsync`, pengiriman event integrasi.
+* **Dependency**: `BE-HRD-126`
+* **Acceptance criteria**:
+  1. Sisa hari cuti dihitung akurat (`RestoredDays = EndDate - EffectiveRecallDate + 1`) dan divalidasi positif (`VR-LEV-16`).
+  2. Ledger pegawai menerima kredit mutasi `RecallRestore` sebesar sisa hari yang batal dinikmati.
+  3. Modul Roster 06 menerima event dan memulihkan shift pegawai menjadi aktif (`Scheduled`) tanpa penalti absensi.
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-17`, `AT-HRD-LEV-18`, `UAT-LEV-04`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Pemulihan saldo dan sinkronisasi shift terbukti konsisten end-to-end.
+
+### ⏳ `BE-HRD-128` — Penutupan celah /reverse HTTP 409 & penyesuaian saldo resmi audit HR (`LeaveExecutionImmutabilityGuard`)
+* **Slice / MVP**: `S-B2` / `MVP-26`
+* **Status**: ⏳ Menunggu `BE-HRD-124`
+* **Outcome**: Refaktor pengamanan status pada `LeaveExecutionProcessorService.ReverseAsync`: menolak keras pembalikan cuti `Completed` atau periode `PayrollClosed` dengan HTTP 409 Conflict (menutup celah audit `HRD-Q-35` per `HRD-DEC-115`), serta menyediakan jalur koreksi resmi via `LeaveAdjustmentController` berdokumen audit.
+* **Requirement/decision**: `HRD-DEC-115`, `02-backend-architecture.md` 21.8 (`LEV-B4`, `LEV-B6`).
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-18`, `VR-LEV-19`, `VR-LEV-20`.
+* **Reuse**: `LeaveExecutionProcessorService.cs`, `LeaveAdjustmentController.cs`.
+* **Cakupan**: Refaktor guard `ReverseAsync`, pembuatan endpoint penyesuaian saldo resmi dengan input wajib `AuditDocumentNumber`.
+* **Dependency**: `BE-HRD-124`
+* **Acceptance criteria**:
+  1. Pemanggilan `POST /{id}/reverse` pada cuti berstatus `Completed` atau `PayrollClosed` mengembalikan HTTP 409 Conflict (`LEV-B4`).
+  2. Upaya pembalikan ilegal dicatat dalam audit trail keamanan `LEAVE_REVERSE_ATTEMPT_BLOCKED`.
+  3. Penyesuaian saldo manual hanya dapat dilakukan oleh HR Manager dengan menyertakan nomor SK/dokumen audit resmi (`VR-LEV-18`).
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-20`, `UAT-LEV-05`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Celah audit keamanan `/reverse` tertutup total, integritas rekonsiliasi terjaga mutlak.
+
+### ⏳ `BE-HRD-129` — Rekonsiliasi retrospektif cuti pending saat cut-off payroll & snapshot handoff (`LeavePayrollReconciliationService`)
+* **Slice / MVP**: `S-B2` / `MVP-26`
+* **Status**: ⏳ Menunggu `BE-HRD-124`
+* **Outcome**: Service rekonsiliasi akhir periode cuti: mengunci permohonan cuti selesai dalam snapshot bulanan, membiarkan cuti pending tanpa memotong gaji pegawai, dan menyalurkan penyesuaian retrospektif pada payroll bulan berikutnya setelah cuti disetujui (`HRD-DEC-114`).
+* **Requirement/decision**: `HRD-DEC-114`, `02-backend-architecture.md` 21.8 (`LEV-W5`), Integration Contract `v12` 9.2.4 (`INT-HR-48`).
+* **Kontrak**: Integration Contract `v12` 9.2.4, API Contract `v12` tag `[Tags("HR Leave - Reconciliations & Close")]`.
+* **Reuse**: `LeaveFinalReconciliationService.cs`, `LeavePayrollIntegrationService.cs`.
+* **Cakupan**: Endpoint `GET /reconciliations/pending`, `POST /reconciliations/close-period`, penandaan `IsPendingPayrollReconciliation`.
+* **Dependency**: `BE-HRD-124`
+* **Acceptance criteria**:
+  1. Cuti pending saat cut-off ditandai retrospektif dan tidak memotong gaji pegawai pada periode berjalan.
+  2. Saat cuti pending disetujui pasca-cut-off, sistem mengantrekan rekonsiliasi saldo & gaji ke periode payroll berikutnya (`LEV-W5`).
+  3. Penutupan periode cuti mengunci status seluruh cuti selesai (`IsPayrollClosed = true`).
+* **Bukti verifikasi**: Test case `AT-HRD-LEV-19`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Logika rekonsiliasi retrospektif teruji dan siap serah terima snapshot ke Payroll (10).
+
+### ⏳ `BE-HRD-130` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, dan build Slice `S-B2`
+* **Slice / MVP**: `S-B2` / Verifikasi
+* **Status**: ⏳ Menunggu `BE-HRD-120`, `BE-HRD-125`, `BE-HRD-127`, `BE-HRD-128`, `BE-HRD-129`
+* **Outcome**: Seluruh source code backend slice `S-B2` terverifikasi lolos kompilasi .NET, lulus uji konformansi QBE, mematuhi kontrak API `v12`, dan memenuhi kriteria `AT-HRD-LEV-01` s.d. `AT-HRD-LEV-20`.
+* **Requirement/decision**: `04-prd-to-mvp.md` bagian 26.5 (DoD `S-B2`), `testing/acceptance-test-matrix.md` bagian 20.
+* **Kontrak**: Seluruh kontrak `v12` bagian `S-B2`.
+* **Reuse**: Seluruh service dan controller cuti dan perizinan.
+* **Cakupan**: `dotnet build`, skrip kepatuhan arsitektur QBE, audit regression controller cuti existing.
+* **Dependency**: `BE-HRD-120`, `BE-HRD-125`, `BE-HRD-127`, `BE-HRD-128`, `BE-HRD-129`
+* **Acceptance criteria**:
+  1. `dotnet build` solusi backend sukses 0 error.
+  2. Skrip konformansi QBE lolos tanpa pelanggaran penamaan atau arsitektur baru.
+  3. Seluruh 20 kasus uji penerimaan `AT-HRD-LEV` terpenuhi.
+* **Bukti verifikasi**: Laporan audit pre-deploy backend, log build bersih.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Laporan verifikasi tracked tersedia, seluruh gerbang lulus.

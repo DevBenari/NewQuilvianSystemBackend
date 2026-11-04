@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 8
+roadmap_revision: 10
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡 (acceptance criteria belum terbukti, menunggu FIX-HRD-002-09); FE-HRD-022, FE-HRD-024, FE-HRD-025 dikerjakan ulang dan tetap ✅. Sebelumnya: tanda FE-HRD-011, FE-HRD-015, FE-HRD-016, FE-HRD-018 diselaraskan ke 🟡 mengikuti register"
-planning_updated_at: "2026-11-04 — Slice S-B4 Penjadwalan, Roster, dan On-Call (sub-modul 06) dipecah menjadi 13 task (FE-HRD-075 s.d. FE-HRD-087) untuk 6 layar FE-HRD-138 s.d. FE-HRD-143 per gelombang MVP-18 s.d. MVP-20 & Verifikasi; grafik F18 s.d. F21 ditambahkan; sebelumnya Slice S-C4-ONB Onboarding dan Kontrak Kerja (sub-modul 05) dipecah menjadi 17 task (FE-HRD-058 s.d. FE-HRD-074) untuk 15 layar FE-HRD-123 s.d. FE-HRD-137 per gelombang MVP-14 s.d. MVP-17 & Verifikasi; termasuk amandemen layar tawaran S-D2 (FE-HRD-072); grafik F13 s.d. F17 ditambahkan"
+planning_updated_at: "2026-11-04 — Slice S-B2 Administrasi Cuti & Izin Pegawai Rumah Sakit (sub-modul 08) dipecah menjadi 14 task (FE-HRD-102 s.d. FE-HRD-115) untuk 6 layar FE-HRD-150 s.d. FE-HRD-155 per gelombang MVP-24 s.d. MVP-26 & Verifikasi; grafik F26 s.d. F29 ditambahkan; sebelumnya Slice S-B1 (FE-HRD-088 s.d. FE-HRD-101), Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087) dan Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074)"
 generated_at: "2026-10-26"
 owners:
   - "Frontend Technical Owner — HR UI Lead"
@@ -19,7 +19,9 @@ approved_by:
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D2 yang menjadi dasar task FE-HRD-044 s.d. FE-HRD-057"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-C4-ONB beserta lima pilihan desain (HRD-DEC-096) yang menjadi dasar task FE-HRD-058 s.d. FE-HRD-074"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B4 Penjadwalan, Roster, dan On-Call (HRD-DEC-097 s.d. HRD-DEC-103) yang menjadi dasar task FE-HRD-075 s.d. FE-HRD-087"
-blueprint_manifest_revision: 18
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B1 Presensi dan Kehadiran (HRD-DEC-104 s.d. HRD-DEC-109) yang menjadi dasar task FE-HRD-088 s.d. FE-HRD-101"
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B2 Cuti & Izin Pegawai Rumah Sakit (HRD-DEC-110 s.d. HRD-DEC-115) yang menjadi dasar task FE-HRD-102 s.d. FE-HRD-115"
+blueprint_manifest_revision: 24
 decision_ids_s_d1: "HRD-DEC-058 s.d. HRD-DEC-072"
 source_commits:
   backend: "26066c76e69b021f68b63b31bde2258cd9d1bb74 (branch MHamzah)"
@@ -63,6 +65,33 @@ contract_versions_s_c4_onb:
   - "Frontend Architecture rev 5 bagian 14 — task S-C4-ONB"
   - "Permission Audit Matrix v9 bagian 13 — task S-C4-ONB"
   - "Validation Matrix v9 bagian 14 — pesan yang ditampilkan layar S-C4-ONB"
+decision_ids_s_b4: "HRD-DEC-097 s.d. HRD-DEC-103, HRD-ASM-05 s.d. HRD-ASM-14"
+source_commits_s_b4: "BE 8b17b75a (MHamzah), FE 44990b3d3 (HamzahV2)"
+contract_versions_s_b4:
+  - "API Contract v10 bagian 16 — task S-B4"
+  - "Frontend Architecture rev 5 bagian 15 — task S-B4"
+  - "Permission Audit Matrix v10 bagian 14 — task S-B4"
+  - "Validation Matrix v10 bagian 15 — pesan yang ditampilkan layar S-B4"
+decision_ids_s_b1: "HRD-DEC-104 s.d. HRD-DEC-109, HRD-ASM-15 s.d. HRD-ASM-18"
+source_commits_s_b1: "BE 8b17b75a (MHamzah), FE 44990b3d3 (HamzahV2)"
+contract_versions_s_b1:
+  - "API Contract v11 bagian 17 — task S-B1"
+  - "Frontend Architecture rev 6 bagian 16 — task S-B1"
+  - "Permission Audit Matrix v11 bagian 15 — task S-B1"
+  - "Validation Matrix v11 bagian 16 — pesan yang ditampilkan layar S-B1"
+locked_input_hashes_s_b1:
+  00-interview-decisions.md: 8972054d6371bde428768ed5669705f4838b6d90dd6159e4cdee8b52ab885329
+  02-backend-architecture.md: 59140431578fa4847879b3dcad099023c536c069dcd3d94d86a8b3323e17e7cd
+  03-frontend-architecture.md: eab15742f2edaf59df97aa44c5c219ee078f3aa6a8a7ea246f8fbb5b897268a5
+  04-prd-to-mvp.md: 26a7d73977fc1b67a26762dab1fcedacc49d0aa86eb60ef2b076ead7f679a571
+  data/data-dictionary.md: cd31c544d4971febdf78496ff17d61eaaa9e58abf46193b9772850a867a749bc
+  contracts/api-contract.md: 89ec7e37bec170294328ee4dae25dc580eb9c4fd4c1dc8c8c39edc616946e0b5
+  contracts/state-transition-matrix.md: c5e5e72544f2eaad65894f71afc2b0732809aff36ba9c2ccedafe93ee8b813c6
+  contracts/validation-matrix.md: a661b1c00c7bbce5adabad1d0d72caf8f09278d93d8e9e43c373dd906ce63c2d
+  contracts/integration-contract.md: 57ba7822fb8eae6e6fb66048b8c6b781f948cc0f8376682ca33ef9360026bf65
+  contracts/permission-audit-matrix.md: e950dad0bdb548d7afd57b5b4a51ef8a542907fd187d119d1e2e9189555e37b4
+  testing/acceptance-test-matrix.md: b126b68b4dae9c39697b0653a59dc2000682689a864e54cd5c026155122b6c35
+  flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
 locked_input_hashes_s_c4_onb:
   00-interview-decisions.md: 9a14b83f32089a561a868b27dfeb8a7d3f846b00ab99d9c1b9fe17e9ac6dada8
   02-backend-architecture.md: c3483c6ea6a53e81ab8b83553303ce3176bd4a3cd10261eb4d63a427cb7003df
@@ -81,6 +110,20 @@ locked_input_hashes_s_c4_onb:
   flowcharts/siklus-kontrak.md: 11a3cae04a379e9295a8682a183a7633b0dfcb568156f4824c8eb6b8cdd9e6b9
   flowcharts/batch-data-awal-kontrak.md: 24e97a41134d7c21b8f729008ca50e287f2e3acbf51479c84c82d0777ec77b5b
 ```
+
+**Apa yang berubah pada revision 9.**
+
+1. **Empat belas task frontend `S-B1` baru**, `FE-HRD-088` s.d. `FE-HRD-101`, untuk 6 layar `FE-HRD-144` s.d.
+   `FE-HRD-149` pada `03-frontend-architecture.md` bagian 16.
+2. **Grafik F22 s.d. F25 ditambahkan** beserta tabel gelombang eksekusi frontend `S-B1` bebas siklus.
+3. **Penyelarasan portal ESS presensi (`FE-HRD-100`)**, form izin pulang cepat mandiri, dan integrasi
+   peringatan `IncompletePunch` (1 punch permohonan koreksi).
+
+**Apa yang berubah pada revision 8.**
+
+1. **Tiga belas task frontend `S-B4`**, `FE-HRD-075` s.d. `FE-HRD-087`, untuk 6 layar `FE-HRD-138` s.d.
+   `FE-HRD-143` pada `03-frontend-architecture.md` bagian 15.
+2. **Grafik F18 s.d. F21 ditambahkan** beserta tabel gelombang eksekusi frontend `S-B4`.
 
 **Apa yang berubah pada revision 6.**
 
@@ -156,6 +199,10 @@ S-D2 MVP-13 ─> S-C4-ONB MVP-14 ─┬─> S-C4-ONB MVP-15 ─┐
                                 ├─> S-C4-ONB MVP-16 ─┴──┐
                                 │                       │
                                 └─> S-C4-ONB MVP-17 ────┴─> S-C4-ONB Verifikasi
+
+S-C4-ONB Verifikasi ─> S-B4 MVP-18 ─> S-B4 MVP-19 ─> S-B4 MVP-20 ─> S-B4 Verifikasi
+
+S-B4 Verifikasi ─> S-B1 MVP-21 ─> S-B1 MVP-22 ─> S-B1 MVP-23 ─> S-B1 Verifikasi
 ```
 
 `S-B1` s.d. `S-B5` 🟡, `S-C2` s.d. `S-C5` 🟡, dan `S-D3` ✅ tidak menunggu slice frontend lain;
@@ -585,6 +632,47 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-072` | `S-D2` · amandemen `MVP-14` | Jenis dan lama kontrak pada layar tawaran (`HRD-DEC-095`) | | `FE-HRD-053`, `BE-HRD-064` [BE] | — |
 | `FE-HRD-073` | `S-C4-ONB` · `MVP-17` | Empat jenis tugas `T15` s.d. `T18` di Kotak Masuk | | `FE-HRD-064`, `FE-HRD-065`, `FE-HRD-067`, `BE-HRD-068` [BE] | — |
 | `FE-HRD-074` | `S-C4-ONB` · Verifikasi | Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-C4-ONB` | | `FE-HRD-059`, `FE-HRD-062`, `FE-HRD-066`, `FE-HRD-068`, `FE-HRD-069`, `FE-HRD-070`, `FE-HRD-071`, `FE-HRD-072`, `FE-HRD-073` | — |
+| `FE-HRD-075` | `S-B4` · `MVP-18` | Fondasi service client API dan Redux slice roster & on-call |  | `BE-HRD-094` [BE] | — |
+| `FE-HRD-076` | `S-B4` · `MVP-18` | Komponen bilah kendali periode roster dan pemilih unit |  | `FE-HRD-075` | — |
+| `FE-HRD-077` | `S-B4` · `MVP-18` | Layar kisi roster jadwal unit (`FE-HRD-138`) |  | `FE-HRD-076` | — |
+| `FE-HRD-078` | `S-B4` · `MVP-18` | Modal editor penugasan shift individual & pendampingan |  | `FE-HRD-077` | — |
+| `FE-HRD-079` | `S-B4` · `MVP-18` | Panel validasi kepatuhan keselamatan (B1-B7 dan W1-W7) |  | `FE-HRD-077` | — |
+| `FE-HRD-080` | `S-B4` · `MVP-18` | Modal dialog penerbitan roster mandiri kepala unit |  | `FE-HRD-079`, `BE-HRD-091` [BE] | — |
+| `FE-HRD-081` | `S-B4` · `MVP-19` | Modal mutasi shift dan penunjukan ganti petugas langsung |  | `FE-HRD-077`, `BE-HRD-095` [BE] | — |
+| `FE-HRD-082` | `S-B4` · `MVP-19` | Penanda visual koreksi mundur dan dialog pembatasan 3 hari |  | `FE-HRD-077`, `BE-HRD-096` [BE] | — |
+| `FE-HRD-083` | `S-B4` · `MVP-20` | Layar jadwal dan status siaga on-call (`FE-HRD-140`) |  | `FE-HRD-075`, `BE-HRD-098` [BE] | — |
+| `FE-HRD-084` | `S-B4` · `MVP-20` | Modal pencatatan pemanggilan (*call-in*) dan SLA respon |  | `FE-HRD-083`, `BE-HRD-099` [BE] | — |
+| `FE-HRD-085` | `S-B4` · `MVP-20` | Layar pengaturan parameter waktu kerja HRD (`FE-HRD-143`) |  | `FE-HRD-075`, `BE-HRD-101` [BE] | — |
+| `FE-HRD-086` | `S-B4` · `MVP-20` | Penyelarasan portal ESS jadwal kerja dan siaga pegawai |  | `FE-HRD-075`, `BE-HRD-090` [BE] | — |
+| `FE-HRD-087` | `S-B4` · Verifikasi | Verifikasi menu, hak akses peran, dan keterjangkauan layar S-B4 |  | `FE-HRD-077`, `FE-HRD-083`, `FE-HRD-085` | — |
+| `FE-HRD-088` | `S-B1` · `MVP-21` | Service Client API Presensi, Perizinan, dan Pengaturan HR |  | `BE-HRD-111` [BE] | — |
+| `FE-HRD-089` | `S-B1` · `MVP-21` | State management Redux presensi harian, pengecualian, dan koreksi |  | `FE-HRD-088` | — |
+| `FE-HRD-090` | `S-B1` · `MVP-21` | Layar `FE-HRD-144` — Monitoring Presensi Harian Staf Unit |  | `FE-HRD-089`, `BE-HRD-106` [BE] | — |
+| `FE-HRD-091` | `S-B1` · `MVP-21` | Drawer Riwayat Log Biometrik Mentah (*Immutable Raw Log Viewer*) |  | `FE-HRD-090`, `BE-HRD-107` [BE] | — |
+| `FE-HRD-092` | `S-B1` · `MVP-23` | Layar `FE-HRD-148` — Penutupan Periode Kehadiran & Sinkronisasi Payroll |  | `FE-HRD-089`, `BE-HRD-115` [BE] | — |
+| `FE-HRD-093` | `S-B1` · `MVP-23` | Dialog Guard Penutupan Periode (Blokir Koreksi Pending & Peringatan 1 Tap) |  | `FE-HRD-092`, `BE-HRD-113` [BE] | — |
+| `FE-HRD-094` | `S-B1` · `MVP-23` | Modal Buka Kembali Periode Darurat (Reopen Period) HR Manager & Payroll Rollback |  | `FE-HRD-092`, `BE-HRD-114` [BE] | — |
+| `FE-HRD-095` | `S-B1` · `MVP-22` | Layar `FE-HRD-145` — Manajemen & Persetujuan Koreksi Kehadiran |  | `FE-HRD-089`, `BE-HRD-110` [BE] | — |
+| `FE-HRD-096` | `S-B1` · `MVP-22` | Modal Kuasa HR Koreksi Presensi On-Behalf (Jejak Inisiator & Bukti Wajib) |  | `FE-HRD-095`, `BE-HRD-110` [BE] | — |
+| `FE-HRD-097` | `S-B1` · `MVP-22` | Layar `FE-HRD-146` — Permohonan & Persetujuan Izin Pulang Cepat Non-Deductible |  | `FE-HRD-089`, `BE-HRD-108` [BE] | — |
+| `FE-HRD-098` | `S-B1` · `MVP-22` | Layar `FE-HRD-147` — Surat Tugas Dinas Luar & Home Care (GPS & Foto Kunjungan) |  | `FE-HRD-089`, `BE-HRD-109` [BE] | — |
+| `FE-HRD-099` | `S-B1` · `MVP-21` | Layar `FE-HRD-149` — Pengaturan Kebijakan Presensi HR (Toleransi & Batas Hari) |  | `FE-HRD-088`, `BE-HRD-105` [BE] | — |
+| `FE-HRD-100` | `S-B1` · `MVP-22` | Penyelarasan Portal ESS untuk Absensi & Perizinan Presensi |  | `FE-HRD-088`, `FE-HRD-006` [F3] | — |
+| `FE-HRD-101` | `S-B1` · Verifikasi | Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar S-B1 |  | `FE-HRD-091`, `FE-HRD-093`, `FE-HRD-094`, `FE-HRD-096`, `FE-HRD-097`, `FE-HRD-098`, `FE-HRD-099`, `FE-HRD-100` | — |
+| `FE-HRD-102` | `S-B2` · `MVP-24` | API service client, tipe TypeScript & Redux slice cuti |  | `FE-HRD-007` ✅, `BE-HRD-120` [BE] | — |
+| `FE-HRD-103` | `S-B2` · `MVP-24` | Komponen metrik kartu saldo & progress bar pemakaian cuti tahunan |  | `FE-HRD-102` | — |
+| `FE-HRD-104` | `S-B2` · `MVP-24` | Layar `FE-HRD-150` — Dasbor Kuota & Saldo Cuti ESS & drawer ledger |  | `FE-HRD-102`, `FE-HRD-103`, `BE-HRD-120` [BE] | — |
+| `FE-HRD-105` | `S-B2` · `MVP-24` | Layar `FE-HRD-153` — Manajemen Alokasi Saldo, Carry-Forward & Runner HR |  | `FE-HRD-102`, `BE-HRD-120` [BE] | — |
+| `FE-HRD-106` | `S-B2` · `MVP-24` | Modal penyesuaian saldo resmi HR berdokumen audit (`LeaveBalanceAdjustmentModal`) |  | `FE-HRD-105`, `BE-HRD-128` [BE] | — |
+| `FE-HRD-107` | `S-B2` · `MVP-25` | Komponen kalender cuti, pemilih sesi half-day 0.5 hari & validasi saldo |  | `FE-HRD-102` | — |
+| `FE-HRD-108` | `S-B2` · `MVP-25` | Modal unggah surat sakit dokter ber-SIP & masking privasi medis K3RS |  | `FE-HRD-102`, `BE-HRD-123` [BE] | — |
+| `FE-HRD-109` | `S-B2` · `MVP-25` | Layar `FE-HRD-151` — Formulir Pengajuan Cuti Mandiri & Cuti Sakit ESS |  | `FE-HRD-107`, `FE-HRD-108`, `BE-HRD-122` [BE] | — |
+| `FE-HRD-110` | `S-B2` · `MVP-25` | Komponen banner peringatan kuota pelayanan (Safe Staffing Coverage Warning) |  | `FE-HRD-102`, `BE-HRD-121` [BE] | — |
+| `FE-HRD-111` | `S-B2` · `MVP-25` | Layar `FE-HRD-152` — Kotak Masuk Approval Atasan & Aksi Approve with Mitigation |  | `FE-HRD-110`, `BE-HRD-124` [BE] | — |
+| `FE-HRD-112` | `S-B2` · `MVP-26` | Layar `FE-HRD-154` — Inisiasi & Pemantauan Pemanggilan Darurat (Leave Recall) |  | `FE-HRD-102`, `BE-HRD-126` [BE] | — |
+| `FE-HRD-113` | `S-B2` · `MVP-26` | Kotak masuk approval Leave Recall HR Manager & restore saldo sisa |  | `FE-HRD-112`, `BE-HRD-127` [BE] | — |
+| `FE-HRD-114` | `S-B2` · `MVP-26` | Layar `FE-HRD-155` — Rekonsiliasi Akhir Cuti, Tabel Retrospektif & Payroll Close |  | `FE-HRD-102`, `BE-HRD-129` [BE] | — |
+| `FE-HRD-115` | `S-B2` · Verifikasi | Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice S-B2 |  | `FE-HRD-104`, `FE-HRD-106`, `FE-HRD-109`, `FE-HRD-111`, `FE-HRD-113`, `FE-HRD-114` | — |
 
 ---
 
@@ -640,6 +728,149 @@ FE-HRD-085 [F21] ──┘  │
                       │
 FE-HRD-086 [F21] ─────┘
 ```
+
+### Grafik F22 — `S-B1` `MVP-21`: Client API, state Redux, dasbor presensi, drawer biometrik, dan setelan
+
+```text
+BE-HRD-111 [BE] ─┬─> FE-HRD-088 ─> FE-HRD-089 ─┬─> FE-HRD-090 ──┬─> FE-HRD-091
+                 │                             │                │
+BE-HRD-115 [BE] ─┘                             └────────────────┘
+                                               │
+                               BE-HRD-106 [BE] ┘
+                               BE-HRD-107 [BE] ──────────────────┘
+
+BE-HRD-105 [BE] ─┬─> FE-HRD-099
+                 │
+FE-HRD-088 [F22] ┘
+```
+
+### Grafik F23 — `S-B1` `MVP-22`: Koreksi on-behalf, perizinan pulang cepat, dinas luar, dan penyelarasan ESS
+
+```text
+FE-HRD-089 [F22] ─┬─> FE-HRD-095 ─> FE-HRD-096
+                  │
+BE-HRD-110 [BE] ──┘
+
+FE-HRD-089 [F22] ─┬─> FE-HRD-097
+                  │
+BE-HRD-108 [BE] ──┘
+
+FE-HRD-089 [F22] ─┬─> FE-HRD-098
+                  │
+BE-HRD-109 [BE] ──┘
+
+FE-HRD-088 [F22] ─┬─> FE-HRD-100
+                  │
+FE-HRD-006 ✅ [F3] ┘
+```
+
+### Grafik F24 — `S-B1` `MVP-23`: Penutupan periode, guard koreksi pending, dan buka kembali darurat
+
+```text
+FE-HRD-089 [F22] ─┬─> FE-HRD-092 ─┬───────────────┬─> FE-HRD-093
+                  │               │               │
+BE-HRD-115 [BE] ──┘               │ BE-HRD-113 [BE] ┘
+                                  │
+                                  └───────────────┬─> FE-HRD-094
+                                                  │
+                                  BE-HRD-114 [BE] ┘
+```
+
+### Grafik F25 — `S-B1` Verifikasi: Verifikasi keterjangkauan menu, hak akses peran, dan linter layar `S-B1`
+
+```text
+FE-HRD-091 [F22] ──┐
+                   │
+FE-HRD-093 [F24] ──┤
+                   │
+FE-HRD-094 [F24] ──┤
+                   │
+FE-HRD-096 [F23] ──┼─> FE-HRD-101
+                   │
+FE-HRD-097 [F23] ──┤
+                   │
+FE-HRD-098 [F23] ──┤
+                   │
+FE-HRD-099 [F22] ──┤
+                   │
+FE-HRD-100 [F23] ──┘
+```
+
+#### Tabel Gelombang Eksekusi Frontend `S-B1`
+
+| Gelombang | Task yang dapat dimulai bersamaan | Yang menunggu gelombang ini |
+| :---: | --- | --- |
+| **1** | `FE-HRD-088` (client API presensi), `FE-HRD-099` (layar setelan HR), `FE-HRD-100` (penyelarasan portal ESS) | `FE-HRD-089` |
+| **2** | `FE-HRD-089` (Redux slice presensi) | `FE-HRD-090`, `FE-HRD-092`, `FE-HRD-095`, `FE-HRD-097`, `FE-HRD-098` |
+| **3** | `FE-HRD-090` (layar dasbor presensi), `FE-HRD-092` (layar rekapitulasi periode), `FE-HRD-095` (layar koreksi presensi), `FE-HRD-097` (layar izin pulang cepat), `FE-HRD-098` (layar surat dinas luar) | `FE-HRD-091`, `FE-HRD-093`, `FE-HRD-094`, `FE-HRD-096` |
+| **4** | `FE-HRD-091` (drawer biometrik mentah), `FE-HRD-093` (dialog guard tutup periode), `FE-HRD-094` (modal buka kembali darurat HR Manager), `FE-HRD-096` (modal koreksi kuasa HR) | `FE-HRD-101` (verifikasi seluruh layar S-B1) |
+| **5** | `FE-HRD-101` (verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar S-B1) | Selesai dan siap UAT modul |
+
+### Grafik F26 — `S-B2` `MVP-24`: Client API, dasbor kuota saldo ESS, buku besar ledger, dan manajemen carry-forward HR
+
+```text
+BE-HRD-120 [BE] ─┬─> FE-HRD-102 ─┬─> FE-HRD-103 ─> FE-HRD-104
+FE-HRD-007 ✅ [F3] ┘               │
+                                 └─> FE-HRD-105 ─┬─> FE-HRD-106
+                                                 │
+                                 BE-HRD-128 [BE] ┘
+```
+
+### Grafik F27 — `S-B2` `MVP-25`: Formulir cuti half-day, upload surat dokter privasi K3RS & approval banner coverage warning
+
+```text
+FE-HRD-102 [F26] ─┬─> FE-HRD-107 ──┐
+                  │                │
+BE-HRD-122 [BE] ──┘                │
+                                   ├─> FE-HRD-109
+FE-HRD-102 [F26] ─┬─> FE-HRD-108 ──┤
+                  │                │
+BE-HRD-123 [BE] ──┘                │
+                                   │
+FE-HRD-102 [F26] ─┬─> FE-HRD-110 ──┼─> FE-HRD-111
+                  │                │
+BE-HRD-121 [BE] ──┘                │
+                                   │
+BE-HRD-124 [BE] ───────────────────┘
+```
+
+### Grafik F28 — `S-B2` `MVP-26`: Layar inisiasi & persetujuan recall darurat serta rekonsiliasi akhir penutupan cuti
+
+```text
+FE-HRD-102 [F26] ─┬─> FE-HRD-112 ──┬─> FE-HRD-113
+                  │                │
+BE-HRD-126 [BE] ──┘                │ BE-HRD-127 [BE] ┘
+
+FE-HRD-102 [F26] ─┬─> FE-HRD-114
+                  │
+BE-HRD-129 [BE] ──┘
+```
+
+### Grafik F29 — `S-B2` Verifikasi: Verifikasi keterjangkauan menu navigasi, modal drawer, dan linter layar `S-B2`
+
+```text
+FE-HRD-104 [F26] ──┐
+                   │
+FE-HRD-106 [F26] ──┤
+                   │
+FE-HRD-109 [F27] ──┼─> FE-HRD-115
+                   │
+FE-HRD-111 [F27] ──┤
+                   │
+FE-HRD-113 [F28] ──┤
+                   │
+FE-HRD-114 [F28] ──┘
+```
+
+#### Tabel Gelombang Eksekusi Frontend `S-B2`
+
+| Gelombang | Task yang dapat dimulai bersamaan | Yang menunggu gelombang ini |
+| :---: | --- | --- |
+| **1** | `FE-HRD-102` (client API cuti & Redux slice) | `FE-HRD-103`, `FE-HRD-105`, `FE-HRD-107`, `FE-HRD-108`, `FE-HRD-110`, `FE-HRD-112`, `FE-HRD-114` |
+| **2** | `FE-HRD-103` (komponen kartu metrik saldo), `FE-HRD-105` (layar alokasi carry-forward HR), `FE-HRD-107` (komponen pemilih kalender & half-day), `FE-HRD-108` (modal surat dokter K3RS), `FE-HRD-110` (banner Safe Staffing Coverage Warning), `FE-HRD-112` (layar monitoring recall cuti), `FE-HRD-114` (layar rekonsiliasi akhir payroll) | `FE-HRD-104`, `FE-HRD-106`, `FE-HRD-109`, `FE-HRD-111`, `FE-HRD-113` |
+| **3** | `FE-HRD-104` (layar dasbor kuota saldo ESS `FE-HRD-150` & drawer ledger), `FE-HRD-106` (modal penyesuaian saldo HR), `FE-HRD-109` (layar formulir cuti ESS `FE-HRD-151`), `FE-HRD-111` (layar Approval Inbox atasan `FE-HRD-152`), `FE-HRD-113` (kotak masuk approval recall HR Manager) | `FE-HRD-115` (verifikasi seluruh layar S-B2) |
+| **4** | `FE-HRD-115` (verifikasi menu navigasi, hak akses peran, dan linter layar S-B2) | Selesai dan siap UAT modul |
+
 
 #### Tabel Gelombang Eksekusi Frontend `S-B4`
 
@@ -2113,3 +2344,510 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 * **Bukti verifikasi**: Tangkapan layar sidebar per peran; laporan hasil lint & build.
 * **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA.
 * **Definition of Done**: Seluruh layar teruji, tidak ada broken link atau crash JS.
+
+
+### `FE-HRD-088` — Service Client API Presensi, Perizinan, dan Pengaturan HR (`attendance-service.js`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: Menunggu `BE-HRD-111` [BE], `BE-HRD-115` [BE].
+* **Outcome**: Service client Axios untuk konsumsi API presensi: pemantauan harian, perizinan pulang cepat, surat dinas luar, koreksi on-behalf, penutupan periode, dan parameter sistem.
+* **Requirement/decision**: API Contract `v11` Bagian 17.
+* **Kontrak**: API Contract `v11` 17.2.
+* **Kewenangan UI**: Struktur modul helper client adalah `DEV_DISCRETION`.
+* **Reuse**: Axios client base, error interceptor.
+* **Cakupan**: `src/lib/services/hr/attendance-service.js`, `early-leave-service.js`, `official-duty-service.js`.
+* **Dependency**: `BE-HRD-111` [BE], `BE-HRD-115` [BE]
+* **Acceptance criteria**:
+  1. Seluruh fungsi API terdefinisi sesuai spesifikasi endpoint backend.
+  2. Serialisasi parameter filter tanggal, unit kerja, dan pagination akurat.
+* **Bukti verifikasi**: Integration test client service.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Helper service teruji dan siap diinjeksi ke komponen UI.
+
+### `FE-HRD-089` — Redux Slice State Management Presensi Harian & Periode (`attendanceSlice.js`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: Menunggu `FE-HRD-088`.
+* **Outcome**: State management Redux untuk sinkronisasi data presensi harian, status filter periode, cache data perizinan, dan status penutupan.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 16.2.
+* **Kontrak**: Frontend Architecture `v11` 16.2.
+* **Kewenangan UI**: Redux action & selector structure adalah `DEV_DISCRETION`.
+* **Reuse**: Redux Toolkit `createSlice`.
+* **Cakupan**: `src/lib/redux/slices/hr/attendanceSlice.js`.
+* **Dependency**: `FE-HRD-088`
+* **Acceptance criteria**:
+  1. Reducer menangani aksi fetch presensi harian, update filter, dan status periode.
+  2. Selektor menyediakan data tersaring untuk komponen presentasional.
+* **Bukti verifikasi**: Unit test Redux slice reducer.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: State Redux terintegrasi ke store utama tanpa kebocoran state.
+
+### `FE-HRD-090` — Layar Dasbor Administrasi & Monitoring Presensi Harian (`FE-HRD-144` `/hr/attendance`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: Menunggu `FE-HRD-089`, `BE-HRD-106` [BE].
+* **Outcome**: Halaman dasbor monitoring presensi harian staf RS: ringkasan kartu statistik (Hadir Tepat Waktu, Terlambat, Izin Pulang Cepat, Dinas Luar, Incomplete Punch, Alfa), tabel rekap harian, dan tombol navigasi audit.
+* **Requirement/decision**: `HRD-DEC-104`, `HRD-DEC-105`, `HRD-DEC-106`, `03-frontend-architecture.md` 16.3.1.
+* **Kontrak**: API Contract `v11` `/daily`, State Transition `v11` 15.1.
+* **Kewenangan UI**: Tata letak grid kartu ringkasan dan pewarnaan badge adalah `DEV_DISCRETION`.
+* **Reuse**: `SummaryCards`, `DataTable`, `StatusBadge`, `BaseDatePicker`.
+* **Cakupan**: `src/app/hr/attendance/page.jsx`, `attendance-daily-view.jsx`.
+* **Dependency**: `FE-HRD-089`, `BE-HRD-106` [BE]
+* **Acceptance criteria**:
+  1. Status `IncompletePunch` tampil dengan badge kuning peringatan `[1 Punch - Perlu Koreksi]` (`HRD-DEC-106`).
+  2. Shift malam lintas hari menampilkan tanggal dinas hari H dan jam keluar hari H+1 dengan jelas (`HRD-DEC-104`).
+  3. Keterlambatan > 10 menit menampilkan durasi menit merah dan jam masuk tebal (`HRD-DEC-105`).
+* **Bukti verifikasi**: UAT visual dasbor presensi harian.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Dasbor informatif, responsif, dan terhubung real-time ke data harian.
+
+### `FE-HRD-091` — Komponen Drawer Riwayat Log Mesin Biometrik Mentah (`RawPunchAuditDrawer.jsx`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: Menunggu `FE-HRD-090`, `BE-HRD-107` [BE].
+* **Outcome**: Drawer samping baca saja yang membedah rekaman log mentah mesin absensi per pegawai: waktu tap detik presisi, ID mesin, metode verifikasi, tanpa kontrol pengeditan.
+* **Requirement/decision**: `HRD-DEC-104`, `03-frontend-architecture.md` 16.3.1.
+* **Kontrak**: API Contract `v11` `/raw-logs`.
+* **Kewenangan UI**: Format timeline vs tabel di dalam drawer adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseDrawer`, `BaseBadge`, `TimelineView`.
+* **Cakupan**: `src/components/view/hr/attendance/RawPunchAuditDrawer.jsx`.
+* **Dependency**: `FE-HRD-090`, `BE-HRD-107` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan seluruh tap mentah pegawai pada rentang tanggal terpilih.
+  2. Menegaskan label `[DATA MENTAH MESIN - IMMUTABLE]` untuk kepastian hukum audit.
+* **Bukti verifikasi**: UAT inspeksi jejak log biometrik mesin.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Drawer audit berfungsi cepat, informatif, dan aman.
+
+### `FE-HRD-092` — Layar Rekapitulasi & Penutupan Periode Absensi (`FE-HRD-145` `/hr/attendance/periods`)
+* **Slice / MVP**: `S-B1` / `MVP-23`
+* **Status**: Menunggu `FE-HRD-089`, `BE-HRD-115` [BE].
+* **Outcome**: Layar monitoring periode bulanan absensi HR: rekap total jam kerja riil, total jam dinas luar, total potongan keterlambatan, status periode (`Open`, `Closed`), dan aksi tutup periode.
+* **Requirement/decision**: `HRD-DEC-108`, `03-frontend-architecture.md` 16.3.2.
+* **Kontrak**: API Contract `v11` `/periods`, State Transition `v11` 15.3.
+* **Kewenangan UI**: Desain banner periode terkunci adalah `DEV_DISCRETION`.
+* **Reuse**: `DataTable`, `StatusBadge`, `InformationAlert`.
+* **Cakupan**: `src/app/hr/attendance/periods/page.jsx`.
+* **Dependency**: `FE-HRD-089`, `BE-HRD-115` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan daftar periode dengan total staf dan persentase kepatuhan kehadiran.
+  2. Tombol Tutup Periode memicu dialog verifikasi kelayakan.
+  3. Periode berstatus `Closed` menampilkan banner penguncian abu-abu dan menonaktifkan aksi ubah.
+* **Bukti verifikasi**: UAT penutupan periode bulanan.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar rekapitulasi periode berfungsi presisi dan sinkron dengan payroll.
+
+### `FE-HRD-093` — Komponen Dialog Guard Penutupan Periode & Peringatan Koreksi Pending (`PeriodClosingGuardModal.jsx`)
+* **Slice / MVP**: `S-B1` / `MVP-23`
+* **Status**: Menunggu `FE-HRD-092`, `BE-HRD-113` [BE].
+* **Outcome**: Modal konfirmasi penutupan periode dengan guard ketat: jika ada koreksi pending, tombol ditolak dan memunculkan daftar pengajuan yang memblokir (`VR-ATT-15`); jika bersih, menampilkan peringatan konversi `IncompletePunch` ke `Absent`.
+* **Requirement/decision**: `HRD-DEC-106`, `HRD-DEC-108`, `03-frontend-architecture.md` 16.3.2.
+* **Kontrak**: Validation Matrix `v11` `VR-ATT-15`, `VR-ATT-16`.
+* **Kewenangan UI**: Tata letak tabel daftar blocking di dalam modal adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseModal`, `BaseButton`, `InformationAlert`.
+* **Cakupan**: `src/components/view/hr/attendance/PeriodClosingGuardModal.jsx`.
+* **Dependency**: `FE-HRD-092`, `BE-HRD-113` [BE]
+* **Acceptance criteria**:
+  1. Menolak aksi tutup dan menyajikan tautan ke koreksi pending bila data belum bersih (`VR-ATT-15`).
+  2. Menampilkan ringkasan jumlah `IncompletePunch` yang akan otomatis menjadi `Absent` (`VR-ATT-16`).
+* **Bukti verifikasi**: UAT validasi penolakan penutupan saat ada permohonan pending.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Guard dialog mencegah penutupan prematur.
+
+### `FE-HRD-094` — Komponen Modal Buka Kembali Periode Darurat HR Manager (`PeriodEmergencyReopenModal.jsx`)
+* **Slice / MVP**: `S-B1` / `MVP-23`
+* **Status**: Menunggu `FE-HRD-092`, `BE-HRD-114` [BE].
+* **Outcome**: Modal khusus peran HR Manager untuk membuka kembali periode tertutup: input alasan pembukaan wajib (min 15 karakter) dan peringatan keras potensi *rollback* data serah terima penggajian.
+* **Requirement/decision**: `HRD-DEC-108`, `03-frontend-architecture.md` 16.3.2.
+* **Kontrak**: API Contract `v11` `/reopen`.
+* **Kewenangan UI**: Visualisasi dialog konfirmasi tingkat bahaya (*High Risk Alert*) adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseModal`, `BaseTextArea`, `InformationAlert` (varian danger).
+* **Cakupan**: `src/components/view/hr/attendance/PeriodEmergencyReopenModal.jsx`.
+* **Dependency**: `FE-HRD-092`, `BE-HRD-114` [BE]
+* **Acceptance criteria**:
+  1. Hanya muncul untuk pengguna dengan peran HR Manager (`HrdAttendance.Period.Reopen`).
+  2. Validasi mencegah submit bila isian alasan kosong atau kurang dari 15 karakter.
+  3. Menampilkan peringatan tegas bahwa pembukaan memicu rollback serah terima payroll (`HRD-DEC-108`).
+* **Bukti verifikasi**: UAT skenario buka kembali periode darurat.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Modal darurat terpasang dengan pengamanan ganda.
+
+### `FE-HRD-095` — Layar Monitoring & Koreksi Presensi On-Behalf HR (`FE-HRD-146` `/hr/attendance/corrections`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: Menunggu `FE-HRD-089`, `BE-HRD-110` [BE].
+* **Outcome**: Layar bagi tim HR untuk memantau seluruh permohonan koreksi absensi yang diajukan mandiri via ESS maupun yang diajukan on-behalf oleh HR, lengkap dengan saringan status dan penanda initiator.
+* **Requirement/decision**: `HRD-DEC-028`, `03-frontend-architecture.md` 16.3.3.
+* **Kontrak**: API Contract `v11` `/corrections`.
+* **Kewenangan UI**: Saringan status dan filter jenis pengajuan adalah `DEV_DISCRETION`.
+* **Reuse**: `DataTable`, `DataFilter`, `StatusBadge`.
+* **Cakupan**: `src/app/hr/attendance/corrections/page.jsx`.
+* **Dependency**: `FE-HRD-089`, `BE-HRD-110` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan kolom Nomor Koreksi, Nama Pegawai, Tanggal Presensi, Jam Koreksi, Initiator (ESS vs HR Kuasa), dan Status.
+  2. Tombol `+ Koreksi Kuasa HR` tersedia untuk peran yang berwenang.
+* **Bukti verifikasi**: UAT daftar koreksi presensi.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar koreksi komprehensif membedakan jalur mandiri vs jalur kuasa HR.
+
+### `FE-HRD-096` — Komponen Modal Aksi Koreksi Presensi Kuasa HR (`OnBehalfCorrectionModal.jsx`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: Menunggu `FE-HRD-095`.
+* **Outcome**: Modal form pengajuan koreksi presensi atas nama pegawai: pemilih staf, pemilih tanggal presensi, input jam masuk/keluar baru, input alasan wajib, dan kontrol upload surat pernyataan/bukti kendala ESS.
+* **Requirement/decision**: `HRD-DEC-028`, `03-frontend-architecture.md` 16.3.3.
+* **Kontrak**: Validation Matrix `v11` `VR-ATT-05`, `VR-ATT-06`.
+* **Kewenangan UI**: Layout grouping form adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseModal`, `FilterSelect`, `BaseDatePicker`, `FileUpload`.
+* **Cakupan**: `src/components/view/hr/attendance/OnBehalfCorrectionModal.jsx`.
+* **Dependency**: `FE-HRD-095`
+* **Acceptance criteria**:
+  1. Form memvalidasi pengisian alasan dan pemilihan berkas bukti pendukung.
+  2. Pengiriman form mencatat ID HR yang login sebagai initiator.
+  3. Berhasil memicu notifikasi transparansi ke akun ESS pegawai yang bersangkutan.
+* **Bukti verifikasi**: UAT pembuatan koreksi on-behalf oleh HR.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Form koreksi kuasa HR beroperasi aman dan bebas kendala multipart.
+
+### `FE-HRD-097` — Layar Pengelolaan Izin Pulang Cepat Non-Deductible (`FE-HRD-147` `/hr/attendance/early-leave`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: Menunggu `FE-HRD-089`, `BE-HRD-108` [BE].
+* **Outcome**: Layar monitoring perizinan pulang cepat staf: daftar pengajuan, jam rencana keluar, jam aktual mesin, status persetujuan, dan status waiver dispensasi keterlambatan/kehadiran.
+* **Requirement/decision**: `HRD-DEC-107`, `HRD-Q-47`, `03-frontend-architecture.md` 16.3.4.
+* **Kontrak**: API Contract `v11` `/early-leave`.
+* **Kewenangan UI**: Layout kartu metrik dan tabel adalah `DEV_DISCRETION`.
+* **Reuse**: `DataTable`, `StatusBadge`, `BaseCard`.
+* **Cakupan**: `src/app/hr/attendance/early-leave/page.jsx`.
+* **Dependency**: `FE-HRD-089`, `BE-HRD-108` [BE]
+* **Acceptance criteria**:
+  1. Menegaskan label `[TIDAK MEMOTONG CUTI]` pada header atau keterangan informasi (`HRD-DEC-107`).
+  2. Menampilkan perbandingan jam izin diajukan vs jam tap aktual mesin.
+  3. Tombol detail membuka riwayat persetujuan atasan langsung.
+* **Bukti verifikasi**: UAT monitoring izin pulang cepat.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar izin pulang cepat mematuhi aturan non-deductible.
+
+### `FE-HRD-098` — Layar Pengelolaan Surat Penugasan Dinas Luar Rumah Sakit (`FE-HRD-148` `/hr/attendance/official-duty`)
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: Menunggu `FE-HRD-089`, `BE-HRD-109` [BE].
+* **Outcome**: Layar pencatatan dan monitoring surat dinas luar medis/non-medis: daftar surat penugasan ambulans rujukan, kurir lab cito, workshop/diklat, home care, serta status verifikasi atasan.
+* **Requirement/decision**: `HRD-DEC-109`, `03-frontend-architecture.md` 16.3.5.
+* **Kontrak**: API Contract `v11` `/official-duty`.
+* **Kewenangan UI**: Desain filter kategori penugasan dinas luar adalah `DEV_DISCRETION`.
+* **Reuse**: `DataTable`, `StatusBadge`, `BaseButton`.
+* **Cakupan**: `src/app/hr/attendance/official-duty/page.jsx`.
+* **Dependency**: `FE-HRD-089`, `BE-HRD-109` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan nomor surat tugas resmi, tujuan, dan jam penugasan (`HRD-DEC-109`).
+  2. Menyediakan tombol cetak/unduh surat tugas dinas luar bertanda tangan.
+  3. Status yang disetujui menampilkan badge hijau `[OnDuty Disetujui]`.
+* **Bukti verifikasi**: UAT alur administrasi surat tugas dinas luar.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar surat dinas luar terhubung dengan pengesahan status OnDuty.
+
+### `FE-HRD-099` — Layar Pengaturan Parameter Presensi & Toleransi Waktu HR (`FE-HRD-149` `/hr/attendance/settings`)
+* **Slice / MVP**: `S-B1` / `MVP-21`
+* **Status**: Menunggu `FE-HRD-088`, `BE-HRD-105` [BE].
+* **Outcome**: Layar admin HR untuk mengonfigurasi parameter sistem: toleransi keterlambatan (10 menit), cut-off pemrosesan shift malam, dan batas auto-convert `IncompletePunch`.
+* **Requirement/decision**: `HRD-DEC-105`, `HRD-DEC-106`, `03-frontend-architecture.md` 16.1.
+* **Kontrak**: API Contract `v11` tag `[Tags("HR Attendance - Settings")]`.
+* **Kewenangan UI**: Tata letak grouping form parameter adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseForm`, `NumberInput`, `Switch`, `BaseCard`.
+* **Cakupan**: `src/app/hr/attendance/settings/page.jsx`.
+* **Dependency**: `FE-HRD-088`, `BE-HRD-105` [BE]
+* **Acceptance criteria**:
+  1. Nilai toleransi dapat diubah dalam rentang 0–30 menit dengan validasi client (`VR-ATT-17`).
+  2. Hanya dapat diakses pengguna dengan peran HR Manager atau Admin Sistem.
+  3. Simpan perubahan menampilkan pesan konfirmasi dan tersimpan di server.
+* **Bukti verifikasi**: UAT penyesuaian parameter toleransi absensi.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar pengaturan berfungsi stabil dan terproteksi hak akses.
+
+### `FE-HRD-100` — Penyelarasan Portal Layanan Mandiri Karyawan ESS untuk Absensi & Perizinan Presensi
+* **Slice / MVP**: `S-B1` / `MVP-22`
+* **Status**: Menunggu `FE-HRD-088`, `FE-HRD-006` [F3].
+* **Outcome**: Pembaruan layar ESS presensi pegawai (`/self-services/human-resource/attendance`): notifikasi pengingat bila terjadi `IncompletePunch`, form permohonan izin pulang cepat mandiri, dan form klaim surat dinas luar.
+* **Requirement/decision**: `HRD-DEC-106`, `HRD-DEC-107`, `HRD-DEC-109`, `03-frontend-architecture.md` 16.4.
+* **Kontrak**: API Contract `v11` `/self-services/attendance/**`.
+* **Kewenangan UI**: Tampilan widget alert incomplete punch di ESS adalah `DEV_DISCRETION`.
+* **Reuse**: `InformationAlert`, `BaseModal`, `BaseForm`.
+* **Cakupan**: `src/app/self-services/human-resource/attendance/page.jsx`.
+* **Dependency**: `FE-HRD-088`, `FE-HRD-006` [F3]
+* **Acceptance criteria**:
+  1. Jika ada hari dengan status `IncompletePunch`, tampil banner kuning dengan tombol `Ajukan Koreksi Sekarang` (`HRD-DEC-106`).
+  2. Pegawai dapat mengajukan izin pulang cepat atau mengunggah surat tugas dinas luar langsung dari ESS.
+* **Bukti verifikasi**: UAT pengalaman staf pada portal mandiri ESS presensi.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Portal ESS terintegrasi dengan alur perizinan dan peringatan presensi baru.
+
+### `FE-HRD-101` — Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar `S-B1`
+* **Slice / MVP**: `S-B1` / Verifikasi
+* **Status**: Menunggu `FE-HRD-091`, `FE-HRD-093`, `FE-HRD-094`, `FE-HRD-096`, `FE-HRD-097`, `FE-HRD-098`, `FE-HRD-099`, `FE-HRD-100`.
+* **Outcome**: Seluruh 6 layar baru `S-B1` (`FE-HRD-144` s.d. `FE-HRD-149`) dan ekstensi ESS terverifikasi terjangkau dari sidebar menu `Presensi & Kehadiran`, hak akses peran teruji (Staff vs HR Admin vs HR Manager), dan lolos uji linter CI/CD.
+* **Requirement/decision**: `03-frontend-architecture.md` 16.2, 16.5; `04-prd-to-mvp.md` 25.5.
+* **Kontrak**: Seluruh kontrak `v11` bagian `S-B1`.
+* **Kewenangan UI**: Tidak ada keputusan produk baru.
+* **Reuse**: Pola verifikasi `FE-HRD-087`.
+* **Cakupan**: Audit sidebar menu, uji loading/empty/error state, `npm run lint:errors`, `npm run build`.
+* **Dependency**: `FE-HRD-091`, `FE-HRD-093`, `FE-HRD-094`, `FE-HRD-096`, `FE-HRD-097`, `FE-HRD-098`, `FE-HRD-099`, `FE-HRD-100`
+* **Acceptance criteria**:
+  1. Butir menu Presensi tampil terstruktur di sidebar sesuai hak akses.
+  2. HR Admin dapat mengakses dasbor, koreksi kuasa, dan izin pulang cepat.
+  3. Tombol buka kembali periode hanya tampil untuk peran HR Manager.
+  4. `npm run lint:errors` dan `npm run build` sukses 0 error.
+* **Bukti verifikasi**: Tangkapan layar navigasi sidebar per peran, laporan lint/build.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA.
+* **Definition of Done**: Seluruh layar teruji, bebas deadlink dan bebas crash JavaScript.
+
+
+---
+
+## Rincian Task Slice `S-B2` — Layar Cuti & Izin Pegawai Rumah Sakit (`FE-HRD-102` s.d. `FE-HRD-115`)
+
+### `FE-HRD-102` — Service Client API Cuti, Perizinan, dan Redux State Management (`leave-service.js`, `leaveSlice.js`)
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: Menunggu `BE-HRD-120` [BE], `FE-HRD-007` ✅ [F3].
+* **Outcome**: Modul komunikasi API Axios terpusat dan state management Redux Toolkit untuk kuota saldo, mutasi buku besar, pengajuan cuti ESS, approval berindikator kuota, recall darurat, dan rekonsiliasi payroll.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 17; API Contract `v12` Bagian 18.
+* **Kontrak**: API Contract `v12` seluruh tag `[Tags("HR Leave - ...")]`.
+* **Kewenangan UI**: Struktur internal Redux store adalah `DEV_DISCRETION`.
+* **Reuse**: `apiClient.js`, konfigurasi Redux store HRD.
+* **Cakupan**: `src/lib/services/hr/leave-service.js`, `src/lib/store/slices/hr/leave-slice.js`.
+* **Dependency**: `BE-HRD-120` [BE], `FE-HRD-007` ✅ [F3]
+* **Acceptance criteria**:
+  1. Service membungkus seluruh endpoint API cuti, perizinan, recall, dan penutupan periode.
+  2. Redux slice mengelola state saldo aktif, daftar mutasi ledger, dan daftar approval in-flight.
+  3. Penanganan error terstandarisasi menangani HTTP 400 (saldo kurang), HTTP 409 (jadwal bentrok / immutability reverse).
+* **Bukti verifikasi**: Unit test service API / integrasi Redux thunk.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Service client siap dikonsumsi oleh seluruh komponen dan layar cuti.
+
+### `FE-HRD-103` — Komponen Metrik Kartu Saldo & Progress Bar Pemakaian Cuti Tahunan (`LeaveBalanceMetricCards`)
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: Menunggu `FE-HRD-102`.
+* **Outcome**: Komponen reusable untuk menampilkan ringkasan hak cuti tahunan berjalan (12 hari), saldo aktif dapat dipakai, kuota carry-forward (disertai lencana peringatan kedaluwarsa 30 Juni per `HRD-DEC-110`), dan bar visualisasi persentase pemakaian.
+* **Requirement/decision**: `HRD-DEC-110`, `03-frontend-architecture.md` 17.2.1.
+* **Kontrak**: API Contract `v12` `LeaveBalanceSummaryDto`.
+* **Kewenangan UI**: Tata letak grid kartu dan palet warna progress bar adalah `DEV_DISCRETION`.
+* **Reuse**: `Card`, `Badge`, `Progress` dari base component Quilvian.
+* **Cakupan**: `src/components/features/hr/leave/LeaveBalanceMetricCards.jsx`.
+* **Dependency**: `FE-HRD-102`
+* **Acceptance criteria**:
+  1. Kartu menampilkan kuota hak berjalan (12 hari), saldo aktif, dan saldo terpakai.
+  2. Jika ada sisa saldo carry-forward, muncul lencana kuning: *"Kedaluwarsa 30 Juni"* (`HRD-DEC-110`).
+  3. Komponen reaktif terhadap perubahan saldo pasca submit cuti atau pembatalan.
+* **Bukti verifikasi**: Storybook/UI isolated testing, verifikasi responsivitas mobile & desktop.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Komponen visual saldo beroperasi rapi dan akurat menyajikan data ledger.
+
+### `FE-HRD-104` — Layar `FE-HRD-150` — Dasbor Kuota & Saldo Cuti Pegawai ESS (`/hr/leave/my-balance`) & Drawer Buku Besar
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: Menunggu `FE-HRD-102`, `FE-HRD-103`, `BE-HRD-120` [BE].
+* **Outcome**: Layar portal mandiri karyawan (ESS) untuk melihat saldo cuti pribadi, countdown kedaluwarsa kuota bawaan 30 Juni, tombol cepat ajukan cuti baru, serta tabel drawer riwayat mutasi buku besar (`TrxLeaveBalanceLedger`).
+* **Requirement/decision**: `HRD-DEC-110`, `03-frontend-architecture.md` 17.1, 17.2.1.
+* **Kontrak**: API Contract `v12` `GET /leave/balances/my`, `GET /leave/balances/ledger`.
+* **Kewenangan UI**: Gaya tampilan drawer mutasi adalah `DEV_DISCRETION`.
+* **Reuse**: `LeaveBalanceMetricCards`, `BaseTable`, `BaseDrawer`, `BaseButton`.
+* **Cakupan**: `src/app/hr/leave/my-balance/page.jsx`, `src/components/features/hr/leave/LeaveLedgerDrawer.jsx`.
+* **Dependency**: `FE-HRD-102`, `FE-HRD-103`, `BE-HRD-120` [BE]
+* **Acceptance criteria**:
+  1. Pegawai dapat melihat transparansi saldo cuti aktif dan riwayat mutasi kredit/debit.
+  2. Drawer menampilkan jenis transaksi (`Entitlement`, `CarryForward`, `Taken`, `CancellationRestore`, `RecallRestore`, `Forfeiture`).
+  3. Tombol `Ajukan Cuti Baru` mengarahkan ke formulir pengajuan `/hr/leave/request`.
+* **Bukti verifikasi**: UAT mandiri pegawai pada layar `/hr/leave/my-balance`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar berfungsi responsif, data mutasi ledger tersaji transparan.
+
+### `FE-HRD-105` — Layar `FE-HRD-153` — Manajemen Alokasi Saldo, Carry-Forward & Runner Kedaluwarsa HR (`/hr/leave/balances-admin`)
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-120` [BE].
+* **Outcome**: Layar administrasi HR untuk memantau saldo seluruh staf rumah sakit per unit kerja, widget pemantauan sisa carry-forward menjelang 30 Juni, dan tombol manual eksekusi runner pemotongan kedaluwarsa carry-forward.
+* **Requirement/decision**: `HRD-DEC-110`, `03-frontend-architecture.md` 17.2.4.
+* **Kontrak**: API Contract `v12` `GET /leave/balances/admin`, `POST /leave/balances/carry-forward/run`.
+* **Kewenangan UI**: Tata letak tabel pemantauan agregat adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseTable`, `BaseBadge`, `BasePagination`, `SearchBar`.
+* **Cakupan**: `src/app/hr/leave/balances-admin/page.jsx`.
+* **Dependency**: `FE-HRD-102`, `BE-HRD-120` [BE]
+* **Acceptance criteria**:
+  1. Filter unit kerja dan pencarian staf berfungsi cepat dengan pagination server-side.
+  2. Menampilkan kolom hak berjalan, saldo bawaan, saldo terpakai, dan sisa aktif per pegawai.
+  3. Tombol eksekusi runner carry-forward menampilkan modal konfirmasi sebelum eksekusi massal.
+* **Bukti verifikasi**: UAT peran HR Leave Administrator pada layar `/hr/leave/balances-admin`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar terpasang atribut proteksi permission `[AccessPermission("LeaveBalance", "Manage")]`.
+
+### `FE-HRD-106` — Modal Penyesuaian Saldo Resmi HR Berdokumen Audit (`LeaveBalanceAdjustmentModal`)
+* **Slice / MVP**: `S-B2` / `MVP-24`
+* **Status**: Menunggu `FE-HRD-105`, `BE-HRD-128` [BE].
+* **Outcome**: Dialog modal khusus HR Manager untuk menyesuaikan saldo cuti staf secara resmi pasca penutupan periode payroll (`HRD-DEC-115`), mewajibkan input nomor dokumen SK/audit dan alasan operasional tertulis.
+* **Requirement/decision**: `HRD-DEC-115`, `03-frontend-architecture.md` 17.3, Validation Matrix `v12` `VR-LEV-18`.
+* **Kontrak**: API Contract `v12` `POST /leave/balances/adjustment`.
+* **Kewenangan UI**: Bentuk modal dialog adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseModal`, `BaseInput`, `BaseSelect`, `BaseButton`.
+* **Cakupan**: `src/components/features/hr/leave/LeaveBalanceAdjustmentModal.jsx`.
+* **Dependency**: `FE-HRD-105`, `BE-HRD-128` [BE]
+* **Acceptance criteria**:
+  1. Input nomor dokumen audit dan alasan wajib diisi (tombol submit disable bila kosong).
+  2. Memilih arah penyesuaian: Penambahan (+) atau Pengurangan (-) hari kerja.
+  3. Sukses submit memicu refresh data saldo pada layar admin dan mencatat jejak audit trail.
+* **Bukti verifikasi**: UAT penyesuaian saldo resmi HR dengan simulasi dokumen audit.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Modal terhubung aman ke backend dengan validasi ketat dokumen audit.
+
+### `FE-HRD-107` — Komponen Kalender Cuti, Pemilih Sesi Half-Day 0.5 Hari & Validasi Saldo (`LeaveDateRangePicker`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: Menunggu `FE-HRD-102`.
+* **Outcome**: Komponen pemilih rentang tanggal cuti pintar yang otomatis mendeteksi hari libur nasional / lepas jaga, menyediakan toggle opsi Cuti Setengah Hari (*Half-Day Leave* 0.5 hari sesi Pagi atau Siang/Sore per `HRD-ASM-20`), dan memvalidasi kecukupan saldo secara real-time.
+* **Requirement/decision**: `HRD-ASM-20`, `03-frontend-architecture.md` 17.2.2.
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-03` s.d. `VR-LEV-05`.
+* **Kewenangan UI**: Desain widget kalender interaktif adalah `DEV_DISCRETION`.
+* **Reuse**: `DateRangePicker`, `SegmentedControl`, `Badge` Quilvian.
+* **Cakupan**: `src/components/features/hr/leave/LeaveDateRangePicker.jsx`.
+* **Dependency**: `FE-HRD-102`
+* **Acceptance criteria**:
+  1. Toggle cuti setengah hari hanya aktif bila jenis cuti yang dipilih adalah Cuti Tahunan (`VR-LEV-05`).
+  2. Memilih half-day otomatis mengunci durasi permohonan tepat 0.5 hari kerja (`VR-LEV-04`).
+  3. Menampilkan indikator visual peringatan merah bila durasi hari melebihi sisa saldo aktif pegawai.
+* **Bukti verifikasi**: Unit test komponen pemilih tanggal dan kalkulasi hari efektif.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Komponen teruji stabil dan memvalidasi batas kuota secara presisi.
+
+### `FE-HRD-108` — Modal Unggah Surat Sakit Dokter Ber-SIP & Masking Privasi Medis K3RS (`MedicalCertificateUploadModal`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-123` [BE].
+* **Outcome**: Komponen unggah berkas pindaian PDF/JPG Surat Keterangan Sakit dokter resmi ber-SIP untuk cuti sakit $\ge 2$ hari (`HRD-DEC-112`), dilengkapi input nama faskes dan nomor SIP, serta teks jaminan privasi medis staf K3RS.
+* **Requirement/decision**: `HRD-DEC-112`, `03-frontend-architecture.md` 17.2.2, 17.3.
+* **Kontrak**: Validation Matrix `v12` `VR-LEV-06` s.d. `VR-LEV-08`.
+* **Kewenangan UI**: Zona dropzone unggah berkas adalah `DEV_DISCRETION`.
+* **Reuse**: `FileUpload`, `InformationAlert`, `BaseModal`.
+* **Cakupan**: `src/components/features/hr/leave/MedicalCertificateUploadModal.jsx`.
+* **Dependency**: `FE-HRD-102`, `BE-HRD-123` [BE]
+* **Acceptance criteria**:
+  1. Pengajuan sakit $\ge 2$ hari wajib mengunggah berkas dokter resmi ber-SIP sah (`VR-LEV-06`).
+  2. Input nama faskes penerbit dan nomor SIP dokter divalidasi tidak boleh kosong (`VR-LEV-08`).
+  3. Menampilkan banner informasi kepatuhan privasi: *"Diagnosa medis Anda dilindungi privasi K3RS dan tidak ditampilkan ke atasan langsung"*.
+* **Bukti verifikasi**: UAT alur unggah berkas surat sakit dan validasi ekstensi/ukuran file.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Berkas terunggah aman ke storage backend dan metadata SIP tervalidasi.
+
+### `FE-HRD-109` — Layar `FE-HRD-151` — Formulir Pengajuan Cuti Mandiri & Cuti Sakit ESS (`/hr/leave/request`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: Menunggu `FE-HRD-107`, `FE-HRD-108`, `BE-HRD-122` [BE].
+* **Outcome**: Layar formulir lengkap pengajuan cuti tahunan, cuti setengah hari (0.5 hari), izin alasan penting, cuti bersama, dan cuti sakit bagi seluruh staf rumah sakit melalui portal mandiri ESS.
+* **Requirement/decision**: `HRD-DEC-110`, `HRD-DEC-112`, `HRD-ASM-19`, `HRD-ASM-20`, `03-frontend-architecture.md` 17.2.2.
+* **Kontrak**: API Contract `v12` `POST /leave/requests`.
+* **Kewenangan UI**: Tata letak form dua kolom adalah `DEV_DISCRETION`.
+* **Reuse**: `LeaveDateRangePicker`, `MedicalCertificateUploadModal`, `BaseForm`, `BaseButton`.
+* **Cakupan**: `src/app/hr/leave/request/page.jsx`.
+* **Dependency**: `FE-HRD-107`, `FE-HRD-108`, `BE-HRD-122` [BE]
+* **Acceptance criteria**:
+  1. Pegawai dapat memilih jenis cuti, rentang tanggal, nomor kontak darurat, dan alasan cuti.
+  2. Cuti setengah hari 0.5 hari terintegrasi mulus dengan pemilih sesi pagi/siang.
+  3. Cuti sakit $\ge 2$ hari otomatis memicu pembukaan form upload surat dokter ber-SIP.
+  4. Submit sukses menampilkan notifikasi keberhasilan dan mengarahkan ke dasbor riwayat.
+* **Bukti verifikasi**: UAT pengajuan mandiri ESS untuk cuti tahunan, half-day, dan cuti sakit.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Formulir pengajuan cuti siap pakai di lingkungan staging dan produksi.
+
+### `FE-HRD-110` — Komponen Banner Peringatan Kuota Pelayanan Staf (`SafeStaffingCoverageWarningBanner`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-121` [BE].
+* **Outcome**: Komponen banner peringatan ketersediaan staf (*Safe Staffing Coverage Warning*) yang muncul pada kotak masuk approval atasan bila cuti yang diajukan menyebabkan jumlah perawat/staf dinas berada di bawah rasio minimal aman RS (`HRD-DEC-111`).
+* **Requirement/decision**: `HRD-DEC-111`, `03-frontend-architecture.md` 17.2.3, 17.3.
+* **Kontrak**: API Contract `v12` `LeaveApprovalInboxItemDto.HasStaffingCoverageWarning`.
+* **Kewenangan UI**: Warna banner oranye/merah dan tata letak advisory adalah `DEV_DISCRETION`.
+* **Reuse**: `Alert`, `Badge`, `BaseModal` Quilvian.
+* **Cakupan**: `src/components/features/hr/leave/SafeStaffingCoverageWarningBanner.jsx`.
+* **Dependency**: `FE-HRD-102`, `BE-HRD-121` [BE]
+* **Acceptance criteria**:
+  1. Jika kuota dinas aman, tampil lencana hijau: *"Ketersediaan staf dinas shift memenuhi standar aman"*.
+  2. Jika kuota dinas kritis, tampil banner peringatan kuota layanan lengkap dengan rincian perawat dinas tersisa vs kuota minimal unit (`HRD-DEC-111`).
+  3. Menyediakan tombol pintas simulasi untuk melihat daftar perawat yang berdinas pada shift tersebut.
+* **Bukti verifikasi**: UI testing peringatan kuota pada berbagai kondisi rasio ketenagaan.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Banner kuota tampil reaktif membantu atasan menjaga keselamatan pasien.
+
+### `FE-HRD-111` — Layar `FE-HRD-152` — Kotak Masuk Approval Atasan & Aksi Approve with Mitigation (`/hr/leave/approval-inbox`)
+* **Slice / MVP**: `S-B2` / `MVP-25`
+* **Status**: Menunggu `FE-HRD-110`, `BE-HRD-124` [BE].
+* **Outcome**: Layar kotak masuk persetujuan cuti bawahan bagi Kepala Ruangan/Instalasi: evaluasi kuota staf, pratinjau surat sakit berprivasi medis K3RS (diagnosa disamarkan), aksi Approve, aksi *Approve with Mitigation* (catatan perawat pengganti), revisi, dan penolakan operasional.
+* **Requirement/decision**: `HRD-DEC-111`, `HRD-DEC-112`, `03-frontend-architecture.md` 17.2.3.
+* **Kontrak**: API Contract `v12` tag `[Tags("HR Leave - Approvals & Coverage")]`.
+* **Kewenangan UI**: Tata letak kartu permohonan pada inbox adalah `DEV_DISCRETION`.
+* **Reuse**: `SafeStaffingCoverageWarningBanner`, `BaseTable`, `BaseModal`, `StatusBadge`.
+* **Cakupan**: `src/app/hr/leave/approval-inbox/page.jsx`.
+* **Dependency**: `FE-HRD-110`, `BE-HRD-124` [BE]
+* **Acceptance criteria**:
+  1. Atasan dapat melihat daftar permohonan cuti staf unit dengan filter status dan tanggal.
+  2. Pada permohonan kritis, tombol `Approve with Mitigation` aktif dan mewajibkan atasan mencatat nama staf pengganti sebelum submit (`HRD-DEC-111`).
+  3. Berkas surat sakit bawahan menampilkan masa istirahat dan SIP dokter dengan diagnosa klinis disamarkan (*Masked: Terlindungi Privasi Medis* per `HRD-DEC-112`).
+* **Bukti verifikasi**: UAT Kepala Ruangan saat menyetujui cuti aman dan cuti berkondisi kuota kritis.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Kotak masuk approval berfungsi sempurna, mitigasi kuota tercatat rapi.
+
+### `FE-HRD-112` — Layar `FE-HRD-154` — Inisiasi & Pemantauan Pemanggilan Darurat (Leave Recall) (`/hr/leave/recalls`)
+* **Slice / MVP**: `S-B2` / `MVP-26`
+* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-126` [BE].
+* **Outcome**: Layar monitoring staf yang sedang menjalani cuti aktif dan dialog modal inisiasi pemanggilan dinas darurat (*Leave Recall*) oleh Kepala Ruangan saat terjadi KLB, bencana alam, atau lonjakan pasien kritis ICU (`HRD-DEC-113`).
+* **Requirement/decision**: `HRD-DEC-113`, `03-frontend-architecture.md` 17.2.5, 17.3.
+* **Kontrak**: API Contract `v12` tag `[Tags("HR Leave - Recall Management")]`.
+* **Kewenangan UI**: Tampilan kartu pemantauan staf cuti adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseTable`, `BaseModal`, `BaseBadge`, `BaseInput`.
+* **Cakupan**: `src/app/hr/leave/recalls/page.jsx`, `src/components/features/hr/leave/LeaveRecallInitiationModal.jsx`.
+* **Dependency**: `FE-HRD-102`, `BE-HRD-126` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan daftar staf yang sedang cuti aktif beserta tanggal mulai-selesai dan nomor kontak darurat.
+  2. Modal inisiasi recall menghitung otomatis estimasi hari cuti yang batal dinikmati berdasarkan tanggal efektif kembali dinas.
+  3. Kategori darurat (KLB, Bencana, Pasien Kritis) dan alasan tertulis wajib diisi sebelum usulan recall disubmit.
+* **Bukti verifikasi**: UAT inisiasi recall darurat oleh Kepala Ruangan.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Usulan recall darurat tersubmit rapi masuk ke antrean HR Manager.
+
+### `FE-HRD-113` — Kotak Masuk Approval Leave Recall HR Manager & Restore Saldo Sisa (`LeaveRecallApprovalInbox`)
+* **Slice / MVP**: `S-B2` / `MVP-26`
+* **Status**: Menunggu `FE-HRD-112`, `BE-HRD-127` [BE].
+* **Outcome**: Layar antrean persetujuan resmi pemanggilan dinas darurat khusus untuk HR Manager (`HRD-DEC-113`, `HRD-Q-36`): meninjau justifikasi darurat, menyetujui pemanggilan yang otomatis memicu restore saldo sisa ke ledger, atau menolak usulan recall.
+* **Requirement/decision**: `HRD-DEC-113`, `03-frontend-architecture.md` 17.2.5.
+* **Kontrak**: API Contract `v12` `POST /leave/recalls/{id}/approve`, `POST /leave/recalls/{id}/reject`.
+* **Kewenangan UI**: Tata letak panel review darurat adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseModal`, `InformationAlert`, `StatusBadge`, `BaseButton`.
+* **Cakupan**: `src/components/features/hr/leave/LeaveRecallApprovalInbox.jsx`.
+* **Dependency**: `FE-HRD-112`, `BE-HRD-127` [BE]
+* **Acceptance criteria**:
+  1. Hanya peran HR Manager yang dapat melihat dan mengeksekusi tombol `Setujui Pemanggilan & Pulihkan Saldo` (`LEV-B5`).
+  2. Persetujuan recall menampilkan dialog konfirmasi pemulihan jumlah hari sisa ke saldo ledger staf.
+  3. Eksekusi sukses memperbarui status tiket recall menjadi `Executed` dan memicu notifikasi pemulihan tugas ke staf.
+* **Bukti verifikasi**: UAT persetujuan recall oleh HR Manager dan verifikasi penambahan saldo pulih.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Otorisasi tunggal HR Manager pada alur recall terbukti efektif dan aman.
+
+### `FE-HRD-114` — Layar `FE-HRD-155` — Rekonsiliasi Akhir Cuti, Tabel Retrospektif & Payroll Close (`/hr/leave/reconciliations`)
+* **Slice / MVP**: `S-B2` / `MVP-26`
+* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-129` [BE].
+* **Outcome**: Dasbor rekonsiliasi akhir cuti bulanan bagi HR Payroll Officer: memantau cuti pending saat cut-off yang akan direkonsiliasi retrospektif bulan depan (`HRD-DEC-114`), tombol penguncian periode cuti (*Payroll Close*), dan penonaktifan pembatalan bebas (immutabilitas status Completed per `HRD-DEC-115`).
+* **Requirement/decision**: `HRD-DEC-114`, `HRD-DEC-115`, `03-frontend-architecture.md` 17.2.6.
+* **Kontrak**: API Contract `v12` tag `[Tags("HR Leave - Reconciliations & Close")]`.
+* **Kewenangan UI**: Tata letak tabel rekonsiliasi retrospektif adalah `DEV_DISCRETION`.
+* **Reuse**: `BaseTable`, `BaseBadge`, `BaseModal`, `InformationAlert`.
+* **Cakupan**: `src/app/hr/leave/reconciliations/page.jsx`.
+* **Dependency**: `FE-HRD-102`, `BE-HRD-129` [BE]
+* **Acceptance criteria**:
+  1. Tabel cuti pending menampilkan label retrospektif (tidak memotong gaji periode berjalan).
+  2. Tabel penyesuaian retrospektif menampilkan daftar cuti periode lampau yang baru disetujui untuk diserahkan ke payroll bulan ini.
+  3. Tombol `Tutup & Kunci Periode Cuti` mengunci seluruh transaksi menjadi read-only dan menonaktifkan tombol pembatalan biasa (`HRD-DEC-115`).
+* **Bukti verifikasi**: UAT penutupan periode cuti dan verifikasi immutabilitas pasca-close.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar rekonsiliasi bulanan beroperasi akurat dan siap integrasi ke Payroll (10).
+
+### `FE-HRD-115` — Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice `S-B2`
+* **Slice / MVP**: `S-B2` / Verifikasi
+* **Status**: Menunggu `FE-HRD-104`, `FE-HRD-106`, `FE-HRD-109`, `FE-HRD-111`, `FE-HRD-113`, `FE-HRD-114`.
+* **Outcome**: Seluruh 6 layar baru `S-B2` (`FE-HRD-150` s.d. `FE-HRD-155`) dan modal dialog pendukung terverifikasi terjangkau dari sidebar menu `Cuti & Perizinan`, hak akses peran teruji (Staf ESS vs Atasan Unit vs HR Manager), dan lolos uji linter CI/CD.
+* **Requirement/decision**: `03-frontend-architecture.md` 17.1, 17.2; `04-prd-to-mvp.md` 26.5 (DoD `S-B2`).
+* **Kontrak**: Seluruh kontrak `v12` bagian `S-B2`.
+* **Kewenangan UI**: Tidak ada keputusan produk baru.
+* **Reuse**: Pola verifikasi `FE-HRD-101`.
+* **Cakupan**: Audit sidebar menu, uji loading/empty/error state, `npm run lint:errors`, `npm run build`.
+* **Dependency**: `FE-HRD-104`, `FE-HRD-106`, `FE-HRD-109`, `FE-HRD-111`, `FE-HRD-113`, `FE-HRD-114`
+* **Acceptance criteria**:
+  1. Butir menu Cuti & Perizinan tampil terstruktur di sidebar sesuai hak akses peran.
+  2. Staf umum hanya dapat mengakses dasbor saldo mandiri dan formulir pengajuan cuti ESS.
+  3. Kotak masuk approval hanya tampil bagi Kepala Ruangan/Unit; aksi recall HR Manager hanya tampil bagi peran HR Manager.
+  4. `npm run lint:errors` dan `npm run build` sukses 0 error.
+* **Bukti verifikasi**: Tangkapan layar navigasi sidebar per peran, laporan lint/build bersih.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA.
+* **Definition of Done**: Seluruh layar teruji, bebas deadlink, dan bebas crash JavaScript.

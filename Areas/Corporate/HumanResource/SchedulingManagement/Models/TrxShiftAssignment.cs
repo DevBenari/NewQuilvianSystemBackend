@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organizatio
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Models;
 using QuilvianSystemBackend.Models;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -76,6 +77,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [MaxLength(1000)]
         public string? OverrideReason { get; set; }
 
+        public Guid? OriginalEmployeeId { get; set; }
+
+        /// <summary>
+        /// Apakah staf berstatus Didampingi (preceptorship klinis belum mandiri). HRD-DEC-087, HRD-DEC-100.
+        /// </summary>
+        public bool IsAccompanied { get; set; } = false;
+
+        /// <summary>
+        /// Pegawai pendamping / preceptor yang bertugas bersama staf didampingi.
+        /// </summary>
+        public Guid? PreceptorEmployeeId { get; set; }
+
         [MaxLength(500)]
         public string? Notes { get; set; }
 
@@ -94,5 +107,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public WfpScheduleChangeRequest? ScheduleChangeRequest { get; set; }
         public WfpShiftSwapRequest? ShiftSwapRequest { get; set; }
         public ApplicationUser? ValidatedByUser { get; set; }
+        public MstWorkforceProfile? OriginalEmployee { get; set; }
+        public MstWorkforceProfile? PreceptorEmployee { get; set; }
     }
 }

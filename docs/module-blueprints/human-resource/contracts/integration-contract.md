@@ -570,3 +570,71 @@ sama; sambungan berupa pemanggilan service, bukan HTTP, kecuali disebut lain.
 | `INT-HR-42` | Sub-Modul 06 (`S-B4` Penjadwalan) | Sinkron (Service Read) | Inbound | Pembacaan penugasan shift roster aktif (`TrxShiftAssignment`) per tanggal & staf oleh mesin `ScheduleResolver`. |
 | `INT-HR-43` | Sub-Modul 06 (`S-B4` Penjadwalan) | Asinkron (Internal Event) | Inbound | Menerima sinyal rekalkulasi dari koreksi mundur roster (`INT-HR-38`) dan memicu hitung ulang jam kerja harian. |
 | `INT-HR-44` | Sub-Modul 10 (`S-B5` Payroll) | Sinkron (REST/Command) | Outbound | Penyerahan rekapitulasi kehadiran final via `AttendancePayrollHandoff.Execute` dan eksekusi `Rollback` bila periode dibuka kembali. |
+
+
+---
+
+## 9. Bagian `S-B2` — Kontrak Integrasi Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini mendokumentasikan batas integrasi teknis, kontrak antarmuka (*interface contract*), dan protokol pertukaran data untuk **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit** dengan modul-modul terkait.
+
+### 9.1 Ringkasan Titik Integrasi Slice `S-B2`
+
+| ID Integrasi | Modul Sumber | Modul Sasaran | Protokol / Pola | Sifat | Deskripsi Singkat |
+| --- | --- | --- | :---: | :---: | --- |
+| `INT-HR-45` | `LeaveManagement` (08) | `SchedulingManagement` (06) | In-Process Service Call | Sinkron | Query ketersediaan tenaga unit (*Safe Staffing Coverage*) untuk mendeteksi ancaman kekurangan perawat shift (`HRD-DEC-111`). |
+| `INT-HR-46` | `LeaveManagement` (08) | `SchedulingManagement` (06) | Domain Event / Service Call | Asinkron | Pemulihan status jadwal shift pegawai menjadi aktif (*Scheduled*) setelah leave recall darurat disetujui HR Manager (`HRD-DEC-113`). |
+| `INT-HR-47` | `LeaveManagement` (08) | `AttendanceManagement` (07) | In-Process Query Contract | Sinkron | Resolusi status presensi harian staf cuti menjadi `OnLeave` agar tidak terhitung mangkir atau lupa tap (`HRD-DEC-104`). |
+| `INT-HR-48` | `LeaveManagement` (08) | `PayrollManagement` (10) | Batch Snapshot Handoff | Terjadwal | Ekspor rekonsiliasi retrospektif cuti pending yang baru disetujui pasca-cut-off payroll bulan lalu (`HRD-DEC-114`). |
+
+### 9.2 Rincian Spesifikasi Integrasi
+
+#### 9.2.1 `INT-HR-45`: Evaluasi Kuota Tenaga Unit 24/7 (Safe Staffing Coverage Warning)
+* **Konteks:** Menjaga rasio keselamatan pasien (*patient safety*) saat staf klinis mengajukan cuti.
+* **Kontrak Antarmuka:**
+  ```csharp
+  public interface ISafeStaffingQueryService
+  {
+      Task<StaffingCoverageEvaluationResult> EvaluateCoverageAsync(
+          Guid unitId, 
+          DateOnly targetDate, 
+          Guid? shiftId, 
+          CancellationToken cancellationToken = default);
+  }
+
+  public record StaffingCoverageEvaluationResult(
+      bool IsWarningTriggered,
+      int MinimumRequiredStaff,
+      int ScheduledStaffCount,
+      int RemainingStaffIfApproved,
+      string ShiftName,
+      string UnitName,
+      string AdvisoryMessage
+  );
+  ```
+* **Penanganan Kegagalan (Fallback):** Jika service penjadwalan gagal diakses, sistem menggunakan prinsip *fail-open with audit warning*: permohonan cuti tetap diteruskan ke kotak masuk atasan disertai catatan audit: *"Evaluasi kuota jadwal tidak dapat diverifikasi secara otomatis; mohon verifikasi jadwal manual"*.
+
+#### 9.2.2 `INT-HR-46`: Pemulihan Jadwal Shift Pasca Leave Recall
+* **Konteks:** Mengembalikan kesiapan kerja perawat/dokter yang dipanggil dinas darurat RS.
+* **Payload Event:**
+  ```json
+  {
+    "eventId": "EVT-RECALL-RESTORE-20261113-001",
+    "eventType": "LeaveRecallExecutedEvent",
+    "workforceProfileId": "e3b0c442-98fc-1c14-9af3-4c5678901234",
+    "effectiveRecallDate": "2026-11-13",
+    "restoredDays": 2.0,
+    "leaveRequestId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "executedByHrManagerId": "c4d5e6f7-a8b9-0123-cdef-456789012345",
+    "timestamp": "2026-11-12T14:30:00Z"
+  }
+  ```
+* **Tindakan Target:** Modul 06 menerima event ini dan memperbarui entitas `TrxShiftAssignment` pada rentang `effectiveRecallDate` ke depan dari status `OnLeave` menjadi `Scheduled` aktif.
+
+#### 9.2.3 `INT-HR-47`: Resolusi Presensi Harian Staf Cuti
+* **Konteks:** Mengintegrasikan permohonan cuti disetujui ke jadwal kehadiran presensi harian modul 07.
+* **Kontrak Antarmuka:** `IHrdLeaveReadService.IsWorkforceOnApprovedLeaveAsync(workforceId, targetDate)`. Jika mengembalikan `true`, maka `HrdAttendanceDaily` otomatis diberi status `OnLeave` dengan pengecualian absensi dibebaskan (*Waived*).
+
+#### 9.2.4 `INT-HR-48`: Serah Terima Rekonsiliasi Retrospektif ke Payroll
+* **Konteks:** Menjaga hak penghasilan staf dan akurasi keuangan RS atas cuti yang disetujui terlambat pasca closing payroll.
+* **Kontrak Data:** Objek snapshot `LeavePayrollReconciliationBatchDto` berisi daftar cuti bulan lampau yang disetujui setelah cut-off, jumlah hari pemotongan/tunjangan yang disesuaikan, dan nomor dokumen rujukan.

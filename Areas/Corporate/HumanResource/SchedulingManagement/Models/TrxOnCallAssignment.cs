@@ -1,6 +1,8 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Models;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -22,6 +24,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [Required]
         public Guid OnCallTypeId { get; set; }
 
+        public Guid? UnitId { get; set; }
         public Guid? ShiftId { get; set; }
         public DateTime StartAt { get; set; }
         public DateTime EndAt { get; set; }
@@ -36,7 +39,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string AssignmentStatus { get; set; } = "Scheduled";
         // Scheduled, Confirmed, Activated, Completed, Cancelled
 
-        public int? ExpectedResponseMinutes { get; set; }
+        public int? ExpectedResponseMinutes { get; set; } = 30;
+        public bool IsCalledIn { get; set; } = false;
+        public DateTime? CallInTime { get; set; }
+        public DateTime? ArrivalTime { get; set; }
+        public int? ResponseMinutes { get; set; }
+        public bool? IsSlaMet { get; set; }
+        public Guid? CalledByUnitId { get; set; }
+
+        [MaxLength(500)]
+        public string? CallNotes { get; set; }
+
         public DateTime? ConfirmedAt { get; set; }
         public DateTime? ActivatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
@@ -51,5 +64,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstOnCallType? OnCallType { get; set; }
         public MstShift? Shift { get; set; }
+        public MstOrganizationUnit? Unit { get; set; }
+        public MstOrganizationUnit? CalledByUnit { get; set; }
     }
 }

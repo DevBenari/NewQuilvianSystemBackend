@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 8
+roadmap_revision: 10
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
-planning_updated_at: "2026-11-04 — jejak S-B4 Penjadwalan, Roster, dan On-Call ditambahkan (bagian 1d): BE-HRD-087 s.d. BE-HRD-103, FE-HRD-075 s.d. FE-HRD-087; sebelumnya S-C4-ONB (bagian 1c)"
+planning_updated_at: "2026-11-04 — jejak S-B2 Administrasi Cuti & Izin Pegawai Rumah Sakit ditambahkan (bagian 1f): BE-HRD-117 s.d. BE-HRD-130, FE-HRD-102 s.d. FE-HRD-115; sebelumnya S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
 generated_at: "2026-10-26"
 owners:
   - "Module Lead & Quality Assurance"
@@ -20,6 +20,8 @@ contract_versions_s_d1: "v7 — API bagian 13, State bagian 11, Validation bagia
 contract_versions_s_d2: "v8 — API bagian 14, State bagian 12, Validation bagian 13, Permission bagian 12, Integration bagian 12, Data Dictionary bagian 9"
 contract_versions_s_c4_onb: "v9 — API bagian 15, State bagian 13, Validation bagian 14, Permission bagian 13, Integration bagian 13, Data Dictionary bagian 10"
 contract_versions_s_b4: "v10 — API bagian 16, State bagian 14, Validation bagian 15, Permission bagian 14, Integration bagian 7, Data Dictionary bagian 11, Acceptance Test bagian 18"
+contract_versions_s_b1: "v11 — API bagian 17, State bagian 15, Validation bagian 16, Permission bagian 15, Integration bagian 8, Data Dictionary bagian 12, Acceptance Test bagian 19"
+contract_versions_s_b2: "v12 — API bagian 18, State bagian 16, Validation bagian 17, Permission bagian 16, Integration bagian 9, Data Dictionary bagian 13, Acceptance Test bagian 20"
 ```
 
 **Arti tanda status bukti:**
@@ -40,8 +42,8 @@ contract_versions_s_b4: "v10 — API bagian 16, State bagian 14, Validation bagi
 | `IN-04` | Rekrutmen, Seleksi Pelamar, dan Hiring | `HRD-DEC-073` s.d. `HRD-DEC-080`; desain `S-D2` approved Pengguna 3 November 2026 | API v8 §14, State v8 §12, Validation v8 §13, Permission v8 §12, Integration v8 §12, Data v8 §9 | `BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062` | `FE-HRD-044` s.d. `FE-HRD-057` | Fondasi skema & 12 model Hrd siap; endpoint Swagger 9 grup siap; 14 task FE siap dikerjakan. Rincian per requirement pada bagian 1b |
 | `IN-05` | Onboarding, Evaluasi Probation, dan Exit Clearance Karyawan | `HRD-DEC-003`, `HRD-DEC-019` | API §Lifecycle, State §Separation | `BE-HRD-014` ✅ | `FE-HRD-017` ✅ | ✅ BE controller exit clearance & gerbang kliring Finance aktif; FE aktif ([Laporan FE](../task/report/frontend/FE-HRD-017.md)) |
 | `IN-06` | Penjadwalan Shift Kerja 24/7, On-Call, dan Tukar Shift (Slice `S-B4`) | `HRD-DEC-006`, `HRD-DEC-026`, `HRD-DEC-097` s.d. `HRD-DEC-103`, `HRD-ASM-05` s.d. `HRD-ASM-14` | API v10 §16, State v10 §14, Validation v10 §15, Permission v10 §14, Integration v10 §7, Data v10 §11, Test v10 §18 | `BE-HRD-009` ✅, `BE-HRD-087` s.d. `BE-HRD-103` | `FE-HRD-012` ✅, `FE-HRD-075` s.d. `FE-HRD-087` | BE engine roster awal selesai; 17 task BE & 13 task FE baru direncanakan (MVP-18 s.d. MVP-20 & Verifikasi) menyerap validasi B1–B7/W1–W7, penerbitan mandiri, override langsung efektif, toleransi mundur 3 hari, dan keselamatan kontrak Lab. Rincian per requirement pada bagian 1d |
-| `IN-07` | Presensi Harian, Penutupan Periode, dan Koreksi Kehadiran | `HRD-DEC-028`, `HRD-DEC-029` | API §Attendance, State §Period | `BE-HRD-006` ✅ | `FE-HRD-009` ✅ | ✅ BE 72 endpoint & guard closed period aktif; FE monitoring & modal on-behalf aktif ([Laporan FE](../task/report/frontend/FE-HRD-009.md)) |
-| `IN-08` | Administrasi Cuti, Kuota, dan Penyesuaian Saldo Tahunan | `HRD-DEC-007`, `HRD-Q-06` | API §Leave, State §LeaveRequest | `BE-HRD-007` ✅ | `FE-HRD-010` ✅ | ✅ BE penyesuaian saldo berdokumen aktif; FE dasbor saldo & modal alokasi aktif ([Laporan FE](../task/report/frontend/FE-HRD-010.md)) |
+| `IN-07` | Presensi Harian, Penutupan Periode, dan Koreksi Kehadiran (Slice `S-B1`) | `HRD-DEC-028`, `HRD-DEC-029`, `HRD-DEC-104` s.d. `HRD-DEC-109`, `HRD-ASM-15` s.d. `HRD-ASM-18` | API v11 §17, State v11 §15, Validation v11 §16, Permission v11 §15, Integration v11 §8, Data v11 §12, Test v11 §19 | `BE-HRD-006` ✅, `BE-HRD-104` s.d. `BE-HRD-116` | `FE-HRD-009` ✅, `FE-HRD-088` s.d. `FE-HRD-101` | BE controller & guard lama aktif; 13 task BE & 14 task FE baru direncanakan (MVP-21 s.d. MVP-23 & Verifikasi) menyerap normalisasi shift malam, toleransi 10m, auto-convert incomplete punch, izin pulang cepat non-deductible, buka kembali darurat HR Manager ber-rollback payroll, dan dinas luar OnDuty. Rincian per requirement pada bagian 1e |
+| `IN-08` | Administrasi Cuti, Izin Staf RS, Saldo Ledger & Recall (Slice `S-B2`) | `HRD-DEC-110` s.d. `HRD-DEC-115`, `HRD-ASM-19` s.d. `HRD-ASM-22`; desain `S-B2` approved Pengguna 4 November 2026 | API v12 §18, State v12 §16, Validation v12 §17, Permission v12 §16, Integration v12 §9, Data v12 §13, Acceptance Test v12 §20 | `BE-HRD-007` ✅, `BE-HRD-117` s.d. `BE-HRD-130` | `FE-HRD-010` ✅, `FE-HRD-102` s.d. `FE-HRD-115` | V1 operasional aktif. Target S-B2 direncanakan 14 task BE dan 14 task FE: buku besar mutasi saldo (`TrxLeaveBalanceLedger`), carry-forward max 6 hari s.d. 30 Juni, evaluasi Safe Staffing Coverage Warning, cuti sakit wajib dokter ber-SIP dengan privasi K3RS, leave recall darurat berotorisasi HR Manager dengan restore saldo, penutupan celah /reverse HTTP 409, dan rekonsiliasi retrospektif payroll. Rincian per requirement pada bagian 1f |
 | `IN-09` | Administrasi Lembur, Verifikasi SPKL, dan Kompensasi | `HRD-DEC-007`, `HRD-Q-06` | API §Overtime, Validation §Ot | `BE-HRD-008` ✅ | `FE-HRD-011` ✅ | ✅ BE verifikasi jam lembur aktif; FE rekonsiliasi rencana vs mesin absensi aktif ([Laporan FE](../task/report/frontend/FE-HRD-011.md)) |
 | `IN-10` | Perhitungan Payroll HR, Komponen Gaji, Angsuran, dan Restitusi | `HRD-DEC-009`, `HRD-Q-10` | API §Payroll, Integration §Finance | `BE-HRD-010` ✅ | `FE-HRD-013` ✅ | ✅ BE kalkulasi payroll & restitusi aktif; FE monitoring dual-tab restitusi & cicilan aktif ([Laporan FE](../task/report/frontend/FE-HRD-013.md)) |
 | `IN-11` | Kredensial Medis, SPK/RKK Dokter, dan Kewenangan Klinis | `HRD-DEC-005`, `HRD-Q-08` | — (Menunggu Komite Medik) | `BE-HRD-011` ⛔ | `FE-HRD-014` ⛔ | ⛔ Terblokir persetujuan Komite Medik `HRD-DEC-005` |
@@ -499,3 +501,127 @@ akan diperbarui oleh build skill saat task selesai.
 ketiadaan test unit atau integration backend untuk task `S-C4-ONB` **bukan** gap. Bukti backend adalah
 QBE preflight, review diff, `dotnet build`, verifikasi kontrak API, dan verifikasi proses bisnis pada
 baris di atas. Untuk frontend, test unit baru opsional (`rules/frontend/test-policy.md`).
+
+
+---
+
+## 1e. Jejak `S-B1` Presensi dan Kehadiran (sub-modul 07) — requirement ke task dan bukti
+
+Ditambahkan pada revision 9, 4 November 2026, sesudah desain `S-B1` disetujui pengguna. Seluruh
+baris di bawah **belum punya bukti implementasi**: task-nya baru direncanakan. Kolom status
+akan diperbarui oleh build skill saat task selesai.
+
+| Field | Nilai |
+| --- | --- |
+| Approval desain | Pengguna, pemilik teknis dan produk (`HRD-DEC-015`), 4 November 2026, beserta jawaban interview `HRD-DEC-104` s.d. `HRD-DEC-109` dan asumsi `HRD-ASM-15` s.d. `HRD-ASM-18` — `02-backend-architecture.md` bagian 20, `03-frontend-architecture.md` bagian 16, kontrak `v11`, `04-prd-to-mvp.md` bagian 25, `data/data-dictionary.md` bagian 12, `testing/acceptance-test-matrix.md` bagian 19, empat flowchart `flowcharts/presensi-dan-kehadiran.md` |
+| Keputusan | `HRD-DEC-104` s.d. `HRD-DEC-109`, `HRD-ASM-15` s.d. `HRD-ASM-18` (decision log revision `21`, bagian 37) |
+| Kontrak | API `v11` bagian 17; State Transition `v11` bagian 15; Validation `v11` bagian 16; Permission `v11` bagian 15; Integration `v11` bagian 8; Data Dictionary `v11` bagian 12; Acceptance Test `v11` bagian 19 |
+| Manifest | revision `21`; hash masukan terkunci pada metadata kedua roadmap |
+| Source SHA | BE `8b17b75a` (branch `MHamzah`), FE `44990b3d3` (branch `HamzahV2`) |
+| Task | Backend `BE-HRD-104` s.d. `BE-HRD-116` (13 task); frontend `FE-HRD-088` s.d. `FE-HRD-101` (14 task) |
+
+### Functional requirement
+
+| FR | Perilaku Bisnis | Desain & Kontrak | Task Backend | Task Frontend | Bukti yang Diharapkan | Status |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `FR-ATT-01` | Perekaman tap biometrik mentah immutable tanpa modifikasi | BE §20.4.1; API §17.1; `HRD-DEC-104` | `BE-HRD-107` | `FE-HRD-091` | `AT-HRD-ATT-06` | |
+| `FR-ATT-02` | Normalisasi shift malam lintas hari ke tanggal mulai shift (Hari H) | BE §20.4.2; `VR-ATT-01`; `HRD-DEC-104` | `BE-HRD-106` | `FE-HRD-090` | `AT-HRD-ATT-01`, `UAT-ATT-01` | |
+| `FR-ATT-03` | Log tap mentah tetap menyimpan timestamp fisik riil | BE §20.4.2; `HRD-DEC-104` | `BE-HRD-107` | `FE-HRD-091` | `AT-HRD-ATT-06` | |
+| `FR-ATT-04` | Toleransi keterlambatan 10 menit berstatus Hadir Tepat Waktu | BE §20.4.3; `VR-ATT-02`; `HRD-DEC-105` | `BE-HRD-105`, `BE-HRD-106` | `FE-HRD-090`, `FE-HRD-099` | `AT-HRD-ATT-02`, `UAT-ATT-02` | |
+| `FR-ATT-05` | Keterlambatan lewat 10 menit dihitung penuh dari jam mulai resmi | BE §20.4.3; `VR-ATT-03`; `HRD-DEC-105` | `BE-HRD-106` | `FE-HRD-090` | `AT-HRD-ATT-03` | |
+| `FR-ATT-06` | Hanya 1 tap diberi status sementara IncompletePunch | BE §20.4.4; State §15.1; `HRD-DEC-106` | `BE-HRD-106` | `FE-HRD-090`, `FE-HRD-100` | `AT-HRD-ATT-04` | |
+| `FR-ATT-07` | Pengingat ESS otomatis pada pegawai dengan IncompletePunch | BE §20.4.4; Integration §8.1; `HRD-DEC-106` | `BE-HRD-106` | `FE-HRD-100` | `AT-HRD-ATT-04` | |
+| `FR-ATT-08` | Auto-convert IncompletePunch ke Absent saat tutup periode | BE §20.4.4; `VR-ATT-16`; `HRD-DEC-106` | `BE-HRD-113` | `FE-HRD-092`, `FE-HRD-093` | `AT-HRD-ATT-17`, `UAT-ATT-03` | |
+| `FR-ATT-09` | Pengajuan izin pulang cepat non-deductible (tidak memotong cuti) | BE §20.4.5; State §15.2; `HRD-DEC-107` | `BE-HRD-108`, `BE-HRD-111` | `FE-HRD-097`, `FE-HRD-100` | `AT-HRD-ATT-07`, `UAT-ATT-04` | |
+| `FR-ATT-10` | Jam kerja riil izin pulang cepat dihitung dari tap aktual mesin | BE §20.4.5; `VR-ATT-08`; `HRD-DEC-107` | `BE-HRD-108` | `FE-HRD-097` | `AT-HRD-ATT-08` | |
+| `FR-ATT-11` | Persetujuan atasan mengaktifkan waiver dispensasi presensi | BE §20.4.5; `VR-ATT-10`; `HRD-DEC-107` | `BE-HRD-108` | `FE-HRD-097` | `AT-HRD-ATT-09` | |
+| `FR-ATT-12` | Pengajuan surat tugas dinas luar RS (ambulans, kurir lab, workshop) | BE §20.4.6; API §17.4; `HRD-DEC-109` | `BE-HRD-109`, `BE-HRD-111` | `FE-HRD-098`, `FE-HRD-100` | `AT-HRD-ATT-10` | |
+| `FR-ATT-13` | Status OnDuty otomatis disahkan pasca-approval atasan | BE §20.4.6; `VR-ATT-12`; `HRD-DEC-109` | `BE-HRD-109` | `FE-HRD-098` | `AT-HRD-ATT-11`, `UAT-ATT-05` | |
+| `FR-ATT-14` | Staf OnDuty tidak dianggap mangkir (Absent) | BE §20.4.6; `VR-ATT-13`; `HRD-DEC-109` | `BE-HRD-109` | `FE-HRD-098` | `AT-HRD-ATT-12` | |
+| `FR-ATT-15` | Penutupan periode ditolak jika ada koreksi presensi pending | BE §20.4.7; `VR-ATT-15`; `HRD-DEC-108` | `BE-HRD-113` | `FE-HRD-092`, `FE-HRD-093` | `AT-HRD-ATT-16` | |
+| `FR-ATT-16` | Pembukaan kembali periode (reopen) dibatasi khusus HR Manager | BE §20.4.7; API §17.7; `HRD-DEC-108` | `BE-HRD-114`, `BE-HRD-115` | `FE-HRD-092`, `FE-HRD-094` | `AT-HRD-ATT-18` | |
+| `FR-ATT-17` | Reopen periode otomatis memicu rollback serah terima payroll | BE §20.4.7; Integration §8.3; `HRD-DEC-108` | `BE-HRD-114` | `FE-HRD-094` | `AT-HRD-ATT-18` | |
+| `FR-ATT-18` | Koreksi presensi on-behalf kuasa HR saat staf terkendala ESS | BE §20.4.8; `VR-ATT-05`; `HRD-DEC-028` | `BE-HRD-110`, `BE-HRD-111` | `FE-HRD-095`, `FE-HRD-096` | `AT-HRD-ATT-13` | |
+| `FR-ATT-19` | Pencatatan initiator HR dan bukti kendala pada koreksi on-behalf | BE §20.4.8; `VR-ATT-06`; `HRD-DEC-028` | `BE-HRD-110` | `FE-HRD-096` | `AT-HRD-ATT-14` | |
+| `FR-ATT-20` | Notifikasi transparansi otomatis ke ESS pegawai yang diwakili | BE §20.4.8; Integration §8.1; `HRD-DEC-028` | `BE-HRD-110` | `FE-HRD-096`, `FE-HRD-100` | `AT-HRD-ATT-14` | |
+| `FR-ATT-21` | Integrasi rekalkulasi absensi otomatis akibat koreksi mundur roster | BE §20.4.9; Integration §8.2 (`INT-HR-41`) | `BE-HRD-112` | `FE-HRD-090` | `AT-HRD-ATT-15` | |
+| `FR-ATT-22` | Konfigurasi parameter toleransi dan cut-off presensi RS | BE §20.4.10; API §17.8; `VR-ATT-17`..`20` | `BE-HRD-105` | `FE-HRD-099` | `AT-HRD-ATT-19` | |
+| `FR-ATT-23` | Serah terima data rekapitulasi jam kerja riil ke modul Payroll | BE §20.4.11; Integration §8.4 (`INT-HR-44`) | `BE-HRD-115` | `FE-HRD-092` | `AT-HRD-ATT-20` | |
+
+### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-ATT-01` s.d. `AT-HRD-ATT-03` | `BE-HRD-105`, `BE-HRD-106`, `FE-HRD-090`, `FE-HRD-099` | Normalisasi shift malam lintas hari dan perhitungan toleransi keterlambatan 10 menit |
+| `AT-HRD-ATT-04` s.d. `AT-HRD-ATT-06` | `BE-HRD-106`, `BE-HRD-107`, `FE-HRD-090`, `FE-HRD-091`, `FE-HRD-100` | Status IncompletePunch, pengingat ESS, dan audit trail log biometrik mentah immutable |
+| `AT-HRD-ATT-07` s.d. `AT-HRD-ATT-09` | `BE-HRD-108`, `BE-HRD-111`, `FE-HRD-097`, `FE-HRD-100` | Izin pulang cepat non-deductible, pencatatan jam kerja riil, dan penegakan waiver dispensasi |
+| `AT-HRD-ATT-10` s.d. `AT-HRD-ATT-12` | `BE-HRD-109`, `BE-HRD-111`, `FE-HRD-098`, `FE-HRD-100` | Surat dinas luar RS (ambulans, kurir lab, workshop) dan pengesahan status OnDuty |
+| `AT-HRD-ATT-13`, `AT-HRD-ATT-14` | `BE-HRD-110`, `BE-HRD-111`, `FE-HRD-095`, `FE-HRD-096` | Jalur koreksi presensi kuasa HR on-behalf, jejak initiator, dan notifikasi transparansi ESS |
+| `AT-HRD-ATT-15` | `BE-HRD-112`, `FE-HRD-090` | Event listener rekalkulasi otomatis absensi akibat mutasi jadwal roster mundur (INT-HR-41) |
+| `AT-HRD-ATT-16` s.d. `AT-HRD-ATT-18` | `BE-HRD-113`, `BE-HRD-114`, `BE-HRD-115`, `FE-HRD-092`, `FE-HRD-093`, `FE-HRD-094` | Guard tutup periode (blokir koreksi pending), auto-convert incomplete punch, reopen darurat HR Manager & rollback payroll |
+| `AT-HRD-ATT-19`, `AT-HRD-ATT-20` | `BE-HRD-105`, `BE-HRD-115`, `FE-HRD-092`, `FE-HRD-099` | Pengaturan parameter toleransi presensi RS dan serah terima agregasi jam riil ke Payroll |
+| `UAT-ATT-01` s.d. `UAT-ATT-05` | `BE-HRD-116`, `FE-HRD-101` | Validasi bisnis ujung-ke-ujung alur presensi, shift malam, perizinan, dan penutupan periode |
+
+### Gap keterkaitan requirement ke bukti verifikasi
+
+| Gap | Status | Catatan / Pemilik |
+| --- | :---: | --- |
+| Keterkaitan requirement ke bukti verifikasi S-B1 | **LENGKAP** (0 Gap) | Seluruh 23 functional requirement (`FR-ATT-01` s.d. `FR-ATT-23`) memiliki pemetaan task backend (`BE-HRD-104`..`116`), task frontend (`FE-HRD-088`..`101`), serta bukti verifikasi uji penerimaan (`AT-HRD-ATT-01`..`20`, `UAT-ATT-01`..`05`). |
+
+**Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah. Bukti verifikasi backend yang dipetakan adalah QBE preflight/conformance, review diff, `dotnet restore`/`dotnet build`, verifikasi kontrak API, dan verifikasi proses bisnis. Ketiadaan unit test backend **bukan** coverage gap.
+
+
+---
+
+### 1f. Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08)
+
+#### Functional requirement
+
+| FR | Perilaku Bisnis | Desain & Kontrak | Task Backend | Task Frontend | Bukti yang Diharapkan | Status |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `FR-LEV-01` | Alokasi hak cuti tahunan 12 hari kerja per tahun kalender (prorata pegawai baru) | BE §21.8; `HRD-DEC-110` | `BE-HRD-118` | `FE-HRD-103`, `FE-HRD-104` | `AT-HRD-LEV-01`, `UAT-LEV-01` | |
+| `FR-LEV-02` | Pembukuan mutasi saldo kredit/debit atomik pada `TrxLeaveBalanceLedger` | BE §21.2; Data §13.1; `HRD-DEC-110` | `BE-HRD-117`, `BE-HRD-118` | `FE-HRD-104` | `AT-HRD-LEV-02` | |
+| `FR-LEV-03` | Pemindahan sisa saldo cuti akhir tahun (31 Des) maksimal 6 hari kerja | BE §21.8; `VR-LEV-12`; `HRD-DEC-110` | `BE-HRD-119` | `FE-HRD-105` | `AT-HRD-LEV-03`, `UAT-LEV-01` | |
+| `FR-LEV-04` | Penghangusan otomatis sisa cuti akhir tahun di atas 6 hari kerja (`Forfeiture`) | BE §21.8; `LEV-B8`; `HRD-DEC-110` | `BE-HRD-119` | `FE-HRD-105` | `AT-HRD-LEV-03` | |
+| `FR-LEV-05` | Penghangusan sisa saldo carry-forward yang belum terpakai per 30 Juni | BE §21.8; `LEV-W2`; `HRD-DEC-110` | `BE-HRD-119`, `BE-HRD-120` | `FE-HRD-105` | `AT-HRD-LEV-04`, `UAT-LEV-01` | |
+| `FR-LEV-06` | Pengajuan cuti tahunan mandiri via ESS dengan penghitungan hari efektif | BE §21.8; API §18.1; `HRD-DEC-110` | `BE-HRD-122` | `FE-HRD-109` | `AT-HRD-LEV-05` | |
+| `FR-LEV-07` | Opsi cuti setengah hari (half-day 0.5 hari kerja) sesi pagi/siang | BE §21.8; `VR-LEV-04`..`05`; `HRD-ASM-20` | `BE-HRD-122` | `FE-HRD-107`, `FE-HRD-109` | `AT-HRD-LEV-07`, `AT-HRD-LEV-08` | |
+| `FR-LEV-08` | Penolakan submit permohonan cuti bila saldo aktif tidak mencukupi | BE §21.8; `VR-LEV-01`; `LEV-B1` | `BE-HRD-118`, `BE-HRD-122` | `FE-HRD-107`, `FE-HRD-109` | `AT-HRD-LEV-06` | |
+| `FR-LEV-09` | Evaluasi ketersediaan staf unit 24/7 & notifikasi Safe Staffing Coverage Warning | BE §21.8; Integration §9.2.1 (`INT-HR-45`); `HRD-DEC-111` | `BE-HRD-121` | `FE-HRD-110`, `FE-HRD-111` | `AT-HRD-LEV-09`, `UAT-LEV-02` | |
+| `FR-LEV-10` | Persetujuan Approve with Mitigation atasan dengan input catatan staf pengganti | BE §21.8; `VR-LEV-21`; `HRD-DEC-111` | `BE-HRD-124` | `FE-HRD-111` | `AT-HRD-LEV-10`, `AT-HRD-LEV-11` | |
+| `FR-LEV-11` | Pembatalan pre-leave mandiri sebelum hari-H memulihkan saldo 100% | BE §21.8; `VR-LEV-17`; `HRD-ASM-21` | `BE-HRD-125` | `FE-HRD-104` | `AT-HRD-LEV-15` | |
+| `FR-LEV-12` | Izin sakit mandiri 1 hari kerja melalui ESS dengan surat pernyataan diri | BE §21.8; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-109` | `AT-HRD-LEV-12` | |
+| `FR-LEV-13` | Cuti sakit $\ge 2$ hari kerja wajib unggah surat keterangan dokter ber-SIP | BE §21.8; `VR-LEV-06`; `LEV-B3`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108`, `FE-HRD-109` | `AT-HRD-LEV-13`, `UAT-LEV-03` | |
+| `FR-LEV-14` | Validasi metadata surat sakit (faskes, nomor SIP dokter, rentang istirahat) | BE §21.8; `VR-LEV-08`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108` | `AT-HRD-LEV-13` | |
+| `FR-LEV-15` | Masking diagnosa medis (ICD-10) dari atasan langsung demi privasi K3RS | BE §21.8; `VR-LEV-09`; `LEV-W3`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108`, `FE-HRD-111` | `AT-HRD-LEV-14`, `UAT-LEV-03` | |
+| `FR-LEV-16` | Inisiasi Leave Recall darurat RS oleh Kepala Ruangan pada cuti Active | BE §21.8; `VR-LEV-14`; `HRD-DEC-113` | `BE-HRD-126` | `FE-HRD-112` | `AT-HRD-LEV-16`, `UAT-LEV-04` | |
+| `FR-LEV-17` | Otorisasi persetujuan Leave Recall tunggal oleh HR Manager | BE §21.8; `VR-LEV-15`; `LEV-B5`; `HRD-DEC-113` | `BE-HRD-126` | `FE-HRD-113` | `AT-HRD-LEV-17` | |
+| `FR-LEV-18` | Eksekusi otomatis restore sisa hari cuti ke saldo ledger (`RecallRestore`) | BE §21.8; `VR-LEV-16`; `LEV-W4`; `HRD-DEC-113` | `BE-HRD-127` | `FE-HRD-113` | `AT-HRD-LEV-17`, `UAT-LEV-04` | |
+| `FR-LEV-19` | Penerbitan event pemulihan jadwal shift aktif di Roster 06 pasca-recall | BE §21.8; Integration §9.2.2 (`INT-HR-46`); `HRD-DEC-113` | `BE-HRD-127` | `FE-HRD-113` | `AT-HRD-LEV-18` | |
+| `FR-LEV-20` | Pencatatan riwayat recall darurat lengkap pada audit trail kepatuhan RS | BE §21.8; Permission §16.2; `HRD-DEC-113` | `BE-HRD-126`, `BE-HRD-127` | `FE-HRD-112`, `FE-HRD-113` | `AT-HRD-LEV-17` | |
+| `FR-LEV-21` | Cuti pending saat cut-off payroll tidak memotong gaji pegawai bulan berjalan | BE §21.8; `LEV-W5`; `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | |
+| `FR-LEV-22` | Penandaan IsPendingPayrollReconciliation untuk rekonsiliasi bulan berikutnya | BE §21.8; `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | |
+| `FR-LEV-23` | Penguncian immutabilitas cuti Completed / PayrollClosed menolak /reverse (HTTP 409) | BE §21.8; `VR-LEV-19`..`20`; `LEV-B4`; `HRD-DEC-115` | `BE-HRD-128` | `FE-HRD-114` | `AT-HRD-LEV-20`, `UAT-LEV-05` | |
+| `FR-LEV-24` | Penyesuaian saldo resmi HR via TrxLeaveAdjustment wajib nomor dokumen audit | BE §21.8; `VR-LEV-18`; `LEV-B6`; `HRD-DEC-115` | `BE-HRD-128` | `FE-HRD-106` | `AT-HRD-LEV-20`, `UAT-LEV-05` | |
+| `FR-LEV-25` | Penutupan periode cuti menghasilkan snapshot terkunci untuk serah terima payroll | BE §21.8; Integration §9.2.4 (`INT-HR-48`); `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | |
+
+#### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-LEV-01` s.d. `AT-HRD-LEV-04` | `BE-HRD-117`..`120`, `FE-HRD-102`..`105` | Pembentukan hak 12 hari, mutasi atomik ledger, carry-forward max 6 hari & scheduler kedaluwarsa 30 Juni |
+| `AT-HRD-LEV-05` s.d. `AT-HRD-LEV-08` | `BE-HRD-118`, `BE-HRD-122`, `FE-HRD-104`, `FE-HRD-107`, `FE-HRD-109` | Pengajuan cuti mandiri ESS, kalkulasi saldo, dan opsi cuti setengah hari (half-day 0.5 hari) |
+| `AT-HRD-LEV-09` s.d. `AT-HRD-LEV-11` | `BE-HRD-121`, `BE-HRD-124`, `FE-HRD-110`, `FE-HRD-111` | Safe Staffing Coverage Warning, Approval Inbox atasan, dan aksi Approve with Mitigation |
+| `AT-HRD-LEV-12` s.d. `AT-HRD-LEV-14` | `BE-HRD-123`, `FE-HRD-108`, `FE-HRD-109`, `FE-HRD-111` | Cuti sakit 1 hari vs $\ge 2$ hari wajib surat dokter ber-SIP dan masking diagnosa privasi K3RS |
+| `AT-HRD-LEV-15` | `BE-HRD-125`, `FE-HRD-104` | Pembatalan pre-leave sebelum hari-H dan pemulihan saldo 100% otomatis |
+| `AT-HRD-LEV-16` s.d. `AT-HRD-LEV-18` | `BE-HRD-126`, `BE-HRD-127`, `FE-HRD-112`, `FE-HRD-113` | Inisiasi recall darurat Kepala Unit, otorisasi HR Manager, pemulihan saldo & shift Roster 06 |
+| `AT-HRD-LEV-19`, `AT-HRD-LEV-20` | `BE-HRD-128`, `BE-HRD-129`, `FE-HRD-106`, `FE-HRD-114` | Rekonsiliasi retrospektif cut-off payroll, penutupan celah /reverse HTTP 409 & HR adjustment audit |
+| `UAT-LEV-01` s.d. `UAT-LEV-05` | `BE-HRD-130`, `FE-HRD-115` | Validasi bisnis ujung-ke-ujung alur cuti, saldo ledger, carry-forward, mitigasi kuota, recall, dan audit immutabilitas |
+
+#### Gap keterkaitan requirement ke bukti verifikasi
+
+| Gap | Status | Catatan / Pemilik |
+| --- | :---: | --- |
+| Keterkaitan requirement ke bukti verifikasi S-B2 | **LENGKAP** (0 Gap) | Seluruh 25 functional requirement (`FR-LEV-01` s.d. `FR-LEV-25`) memiliki pemetaan task backend (`BE-HRD-117`..`130`), task frontend (`FE-HRD-102`..`115`), serta bukti verifikasi uji penerimaan (`AT-HRD-LEV-01`..`20`, `UAT-LEV-01`..`05`). |
+
+**Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah. Bukti verifikasi backend yang dipetakan adalah QBE preflight/conformance, review diff, `dotnet restore`/`dotnet build`, verifikasi kontrak API, dan verifikasi proses bisnis. Ketiadaan unit test backend **bukan** coverage gap.

@@ -3028,3 +3028,185 @@ CREATE TABLE IF NOT EXISTS hrd_official_duty_requests (
 CREATE INDEX IF NOT EXISTS idx_early_leave_daily ON hrd_early_leave_permissions(attendance_daily_id);
 CREATE INDEX IF NOT EXISTS idx_official_duty_workforce_date ON hrd_official_duty_requests(workforce_profile_id, start_at, end_at);
 ```
+
+
+---
+
+## 13. Bagian `S-B2` — Kamus Data Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini mendokumentasikan spesifikasi struktur data persistensi untuk **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit**, mencakup entitas buku besar saldo atomik `TrxLeaveBalanceLedger`, transaksi pemanggilan dinas darurat `TrxLeaveRecallRequest`, penyesuaian saldo audit `TrxLeaveAdjustment`, serta perluasan kolom `WfpLeaveRequest`.
+
+### 13.1 Tabel Entitas Baru: `TrxLeaveBalanceLedger` (Tabel `trx_leave_balance_ledgers`)
+* **Modul Pemilik:** `LeaveManagement` (Sub-Modul 08)
+* **Status:** Baru (`NEW`)
+* **Kegunaan:** Mencatat setiap peristiwa mutasi saldo cuti secara atomik, transparan, dan tidak dapat dimanipulasi tanpa jejak audit rujukan (`HRD-DEC-110`).
+
+| Nama Kolom | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | :---: | --- | :---: |
+| `id` | `UUID` | Ya | `gen_random_uuid()` | Primary Key unik baris mutasi | Tidak |
+| `workforce_profile_id` | `UUID` | Ya | — | FK ke `mst_workforce_profiles.id` (pegawai pemilik saldo) | Ya |
+| `leave_type_id` | `UUID` | Ya | — | FK ke `mst_leave_types.id` (jenis cuti, misal Cuti Tahunan) | Tidak |
+| `period_year` | `INT` | Ya | — | Tahun kalender hak cuti (misal 2026) | Tidak |
+| `transaction_type` | `VARCHAR(50)` | Ya | — | Jenis transaksi: `Entitlement`, `CarryForward`, `Taken`, `CancellationRestore`, `RecallRestore`, `Forfeiture`, `Adjustment` | Tidak |
+| `amount_days` | `DECIMAL(4,1)` | Ya | — | Nominal hari mutasi (+ untuk penambahan, - untuk pemotongan, misal 0.5, 1.0, 12.0) | Tidak |
+| `balance_before` | `DECIMAL(4,1)` | Ya | — | Saldo sebelum transaksi dibukukan | Tidak |
+| `balance_after` | `DECIMAL(4,1)` | Ya | — | Saldo sesudah transaksi dibukukan | Tidak |
+| `transaction_date` | `TIMESTAMPTZ` | Ya | `CURRENT_TIMESTAMP` | Waktu mutasi terjadi secara nyata | Tidak |
+| `reference_request_id` | `UUID` | Tidak | `NULL` | FK ke `wfp_leave_requests.id` (bila mutasi berasal dari permohonan/pembatalan cuti) | Tidak |
+| `reference_recall_id` | `UUID` | Tidak | `NULL` | FK ke `trx_leave_recall_requests.id` (bila mutasi berasal dari pemulihan recall) | Tidak |
+| `reference_adjustment_id` | `UUID` | Tidak | `NULL` | FK ke `trx_leave_adjustments.id` (bila mutasi berasal dari penyesuaian HR) | Tidak |
+| `expiry_date` | `TIMESTAMPTZ` | Tidak | `NULL` | Batas kedaluwarsa saldo (khusus carry-forward: 30 Juni tahun berjalan per `HRD-DEC-110`) | Tidak |
+| `is_forfeited` | `BOOLEAN` | Ya | `false` | Penanda apakah saldo ini telah hangus akibat kedaluwarsa | Tidak |
+| `notes` | `VARCHAR(500)` | Tidak | `NULL` | Keterangan pelengkap mutasi transaksi | Tidak |
+
+### 13.2 Tabel Entitas Baru: `TrxLeaveRecallRequest` (Tabel `trx_leave_recall_requests`)
+* **Modul Pemilik:** `LeaveManagement` (Sub-Modul 08)
+* **Status:** Baru (`NEW`)
+* **Kegunaan:** Mengakomodasi prosedur pemanggilan kembali pegawai cuti saat darurat rumah sakit dengan otorisasi HR Manager dan pemulihan saldo otomatis (`HRD-DEC-113`).
+
+| Nama Kolom | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | :---: | --- | :---: |
+| `id` | `UUID` | Ya | `gen_random_uuid()` | Primary Key permohonan recall | Tidak |
+| `recall_number` | `VARCHAR(100)` | Ya | — | Nomor unik surat pemanggilan dinas darurat | Tidak |
+| `leave_request_id` | `UUID` | Ya | — | FK ke `wfp_leave_requests.id` (permohonan cuti aktif yang dipanggil) | Tidak |
+| `workforce_profile_id` | `UUID` | Ya | — | FK ke `mst_workforce_profiles.id` (pegawai yang dipanggil kembali) | Ya |
+| `effective_recall_date` | `DATE` | Ya | — | Tanggal efektif pegawai wajib mulai bertugas kembali | Tidak |
+| `restored_days` | `DECIMAL(4,1)` | Ya | — | Jumlah hari cuti yang belum dinikmati dan dipulihkan ke saldo pegawai | Tidak |
+| `emergency_category` | `VARCHAR(50)` | Ya | — | Kategori darurat: `DisasterMascualty`, `EpidemicOutbreak`, `CriticalSurgeIcu`, `Other` | Tidak |
+| `recall_reason` | `TEXT` | Ya | — | Alasan urgensi pemanggilan kembali oleh Kepala Unit | Tidak |
+| `status` | `VARCHAR(50)` | Ya | `'RequestedByHeadUnit'` | Status alur: `RequestedByHeadUnit`, `ApprovedByHrManager`, `Executed`, `Rejected` | Tidak |
+| `requested_by_head_unit_id` | `UUID` | Ya | — | FK ke `mst_workforce_profiles.id` (Kepala Ruangan penginisiasi) | Tidak |
+| `requested_at` | `TIMESTAMPTZ` | Ya | `CURRENT_TIMESTAMP` | Waktu pengajuan recall diajukan | Tidak |
+| `approved_by_hr_manager_id` | `UUID` | Tidak | `NULL` | FK ke `mst_workforce_profiles.id` (HR Manager yang menyetujui) | Tidak |
+| `approved_at` | `TIMESTAMPTZ` | Tidak | `NULL` | Waktu persetujuan recall diberikan | Tidak |
+| `rejection_reason` | `VARCHAR(500)` | Tidak | `NULL` | Alasan penolakan jika recall ditolak HR Manager | Tidak |
+
+### 13.3 Tabel Entitas Baru: `TrxLeaveAdjustment` (Tabel `trx_leave_adjustments`)
+* **Modul Pemilik:** `LeaveManagement` (Sub-Modul 08)
+* **Status:** Diperbarui (`EXTEND`)
+* **Kegunaan:** Satu-satunya jalur resmi koreksi saldo cuti historis pasca-tutup periode payroll dengan kewajiban nomor dokumen audit (`HRD-DEC-115`).
+
+| Nama Kolom | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | :---: | --- | :---: |
+| `id` | `UUID` | Ya | `gen_random_uuid()` | Primary Key transaksi penyesuaian | Tidak |
+| `adjustment_number` | `VARCHAR(100)` | Ya | — | Nomor unik transaksi penyesuaian HR | Tidak |
+| `workforce_profile_id` | `UUID` | Ya | — | FK ke `mst_workforce_profiles.id` (pegawai yang disesuaikan saldonya) | Ya |
+| `leave_type_id` | `UUID` | Ya | — | FK ke `mst_leave_types.id` (jenis cuti yang disesuaikan) | Tidak |
+| `adjustment_days` | `DECIMAL(4,1)` | Ya | — | Besaran hari penyesuaian | Tidak |
+| `direction` | `VARCHAR(20)` | Ya | — | Arah penyesuaian: `Increase` (+), `Decrease` (-) | Tidak |
+| `audit_document_number` | `VARCHAR(100)` | Ya | — | Nomor dokumen audit resmi/SK Direksi (wajib per `HRD-DEC-115`) | Tidak |
+| `reason` | `VARCHAR(500)` | Ya | — | Penjelasan audit mengapa penyesuaian dilakukan | Tidak |
+| `adjusted_by_hr_manager_id` | `UUID` | Ya | — | FK ke `mst_workforce_profiles.id` (HR Manager pelaksana) | Tidak |
+| `adjusted_at` | `TIMESTAMPTZ` | Ya | `CURRENT_TIMESTAMP` | Waktu eksekusi penyesuaian saldo | Tidak |
+
+### 13.4 Perubahan Tabel Eksisting: `WfpLeaveRequest` (Tabel `wfp_leave_requests`)
+* **Status:** Diperbarui (`EXTEND`)
+* **Kolom Tambahan:**
+  * `has_staffing_coverage_warning` (`BOOLEAN`, default `false`, flag jika cuti melanggar kuota minimal shift `HRD-DEC-111`).
+  * `coverage_warning_details` (`TEXT`, nullable, rincian unit, tanggal, shift, dan kuota yang terancam).
+  * `coverage_mitigation_notes` (`VARCHAR(500)`, nullable, catatan mitigasi perawat pengganti oleh Kepala Ruangan).
+  * `is_doctor_note_verified` (`BOOLEAN`, default `false`, verifikasi keabsahan surat dokter K3RS `HRD-DEC-112`).
+  * `doctor_note_faskes_name` (`VARCHAR(255)`, nullable, nama faskes/RS/klinik penerbit surat sakit).
+  * `doctor_sip_number` (`VARCHAR(100)`, nullable, nomor Surat Izin Praktik dokter pemeriksa).
+  * `is_pending_payroll_reconciliation` (`BOOLEAN`, default `false`, penanda cuti disetujui pasca cut-off payroll `HRD-DEC-114`).
+  * `is_payroll_closed` (`BOOLEAN`, default `false`, pengunci mutlak immutabilitas cuti `HRD-DEC-115`).
+
+### 13.5 Tabel Master Eksisting: `MstLeaveType` (Tabel `mst_leave_types`)
+* **Status:** Sudah Ada (`REUSE`)
+* **Kolom Kunci:** `id`, `type_code`, `type_name`, `is_deductible`, `default_quota_days`, `allow_carry_forward`, `max_carry_forward_days`, `require_medical_certificate`, `medical_certificate_min_days`, `is_active`.
+
+### 13.6 Skrip DDL PostgreSQL (Slice `S-B2`)
+
+```sql
+-- 1. Tabel Buku Besar Saldo Cuti (Balance Ledger)
+CREATE TABLE IF NOT EXISTS trx_leave_balance_ledgers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workforce_profile_id UUID NOT NULL,
+    leave_type_id UUID NOT NULL,
+    period_year INT NOT NULL,
+    transaction_type VARCHAR(50) NOT NULL,
+    amount_days DECIMAL(4,1) NOT NULL,
+    balance_before DECIMAL(4,1) NOT NULL,
+    balance_after DECIMAL(4,1) NOT NULL,
+    transaction_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reference_request_id UUID,
+    reference_recall_id UUID,
+    reference_adjustment_id UUID,
+    expiry_date TIMESTAMPTZ,
+    is_forfeited BOOLEAN NOT NULL DEFAULT false,
+    notes VARCHAR(500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_ledger_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_ledger_leave_type FOREIGN KEY (leave_type_id) REFERENCES mst_leave_types(id)
+);
+
+-- 2. Tabel Pemanggilan Cuti Darurat Rumah Sakit (Leave Recall)
+CREATE TABLE IF NOT EXISTS trx_leave_recall_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    recall_number VARCHAR(100) NOT NULL UNIQUE,
+    leave_request_id UUID NOT NULL,
+    workforce_profile_id UUID NOT NULL,
+    effective_recall_date DATE NOT NULL,
+    restored_days DECIMAL(4,1) NOT NULL,
+    emergency_category VARCHAR(50) NOT NULL,
+    recall_reason TEXT NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'RequestedByHeadUnit',
+    requested_by_head_unit_id UUID NOT NULL,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    approved_by_hr_manager_id UUID,
+    approved_at TIMESTAMPTZ,
+    rejection_reason VARCHAR(500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_recall_leave_request FOREIGN KEY (leave_request_id) REFERENCES wfp_leave_requests(id),
+    CONSTRAINT fk_recall_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_recall_requester FOREIGN KEY (requested_by_head_unit_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_recall_approver FOREIGN KEY (approved_by_hr_manager_id) REFERENCES mst_workforce_profiles(id)
+);
+
+-- 3. Tabel Penyesuaian Saldo Resmi HR (Leave Adjustment)
+CREATE TABLE IF NOT EXISTS trx_leave_adjustments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    adjustment_number VARCHAR(100) NOT NULL UNIQUE,
+    workforce_profile_id UUID NOT NULL,
+    leave_type_id UUID NOT NULL,
+    adjustment_days DECIMAL(4,1) NOT NULL,
+    direction VARCHAR(20) NOT NULL,
+    audit_document_number VARCHAR(100) NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+    adjusted_by_hr_manager_id UUID NOT NULL,
+    adjusted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_adjustment_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_adjustment_leave_type FOREIGN KEY (leave_type_id) REFERENCES mst_leave_types(id),
+    CONSTRAINT fk_adjustment_approver FOREIGN KEY (adjusted_by_hr_manager_id) REFERENCES mst_workforce_profiles(id)
+);
+
+-- 4. Kolom Tambahan pada Tabel wfp_leave_requests
+ALTER TABLE wfp_leave_requests 
+ADD COLUMN IF NOT EXISTS has_staffing_coverage_warning BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS coverage_warning_details TEXT,
+ADD COLUMN IF NOT EXISTS coverage_mitigation_notes VARCHAR(500),
+ADD COLUMN IF NOT EXISTS is_doctor_note_verified BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS doctor_note_faskes_name VARCHAR(255),
+ADD COLUMN IF NOT EXISTS doctor_sip_number VARCHAR(100),
+ADD COLUMN IF NOT EXISTS is_pending_payroll_reconciliation BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS is_payroll_closed BOOLEAN NOT NULL DEFAULT false;
+
+-- 5. Indeks Kinerja Modul Cuti
+CREATE INDEX IF NOT EXISTS idx_leave_ledger_workforce_year ON trx_leave_balance_ledgers(workforce_profile_id, leave_type_id, period_year);
+CREATE INDEX IF NOT EXISTS idx_leave_ledger_expiry ON trx_leave_balance_ledgers(expiry_date, is_forfeited);
+CREATE INDEX IF NOT EXISTS idx_leave_recall_leave_request ON trx_leave_recall_requests(leave_request_id);
+CREATE INDEX IF NOT EXISTS idx_leave_request_dates ON wfp_leave_requests(workforce_profile_id, start_date, end_date, status);
+```

@@ -1137,6 +1137,21 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdOnboardingAccessService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingAccessService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingAccessService>();
 
+    // BE-HRD-082: Batch Data Awal Kontrak T18
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdInitialContractBatchService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdInitialContractBatchService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdInitialContractBatchService>();
+
+    // BE-HRD-083: Scheduler Harian Siklus Kontrak dan Butir Otomatis
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentLifecycleSchedulerService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSchedulerService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSchedulerService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSchedulerHostedService>();
+
+    // BE-HRD-084: Kesiapan Penjadwalan & Lifecycle Worklist
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentReadinessReadService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentReadinessReadService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentReadinessReadService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdLifecycleWorklistService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleWorklistService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleWorklistService>();
+
     builder.Services.AddScoped<ScheduleChangeService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();

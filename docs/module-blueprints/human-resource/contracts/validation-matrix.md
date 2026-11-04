@@ -808,3 +808,35 @@ Peringatan pada kelompok ini memunculkan indikator kuning. Roster tetap dapat te
 | `VR-ATT-18` | `RawLogIngestion` | Tap ganda berturut-turut dalam 3 menit diabaikan sebagai duplikasi mesin | Hanya log pertama yang diproses oleh schedule resolver | Sukses Sistem |
 | `VR-ATT-19` | `AttendanceSetting` | Nilai toleransi keterlambatan minimal 0 menit dan maksimal 60 menit | "Nilai toleransi keterlambatan harus berada pada rentang 0 s.d. 60 menit." | `400 Bad Request` |
 | `VR-ATT-20` | `OfficialDutyRequest` | Penugasan dinas luar tidak boleh bertabrakan dengan cuti sehari penuh yang disetujui| "Staf sedang memiliki jadwal cuti yang telah disetujui pada tanggal tersebut." | `409 Conflict` |
+
+
+---
+
+## 17. Bagian `S-B2` — Matriks Validasi Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Matriks validasi ini mengunci seluruh aturan integritas data, validasi model, aturan bisnis rumah sakit, dan kode respon HTTP untuk **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit**.
+
+| Kode Aturan | Kategori | Kondisi yang Diperiksa | Respon / Kode HTTP | Pesan Kesalahan Baku | Rujukan Keputusan |
+| --- | --- | --- | :---: | --- | --- |
+| `VR-LEV-01` | Integritas Saldo | `DurationDays > CurrentAvailableBalance` pada cuti jenis *deductible* | `400 Bad Request` | "Saldo cuti Anda tidak mencukupi untuk durasi yang diajukan." | `LEV-B1`, `HRD-DEC-110` |
+| `VR-LEV-02` | Master Data | `LeaveTypeId` tidak ditemukan atau `IsActive = false` | `400 Bad Request` | "Jenis cuti atau perizinan tidak valid atau telah dinonaktifkan." | Master Data |
+| `VR-LEV-03` | Validasi Tanggal | `EndDate < StartDate` | `400 Bad Request` | "Tanggal selesai cuti tidak boleh lebih awal dari tanggal mulai." | Standar Validasi |
+| `VR-LEV-04` | Cuti Setengah Hari | `IsHalfDay = true` tetapi `DurationDays != 0.5` | `400 Bad Request` | "Durasi cuti setengah hari wajib tepat 0.5 hari kerja." | `HRD-ASM-20` |
+| `VR-LEV-05` | Cuti Setengah Hari | `IsHalfDay = true` dan jenis cuti bukan Cuti Tahunan | `400 Bad Request` | "Fasilitas cuti setengah hari hanya berlaku untuk jenis Cuti Tahunan." | `HRD-ASM-20` |
+| `VR-LEV-06` | Cuti Sakit & Surat Dokter | Cuti sakit $\ge 2$ hari kerja tanpa mengunggah berkas surat dokter | `400 Bad Request` | "Cuti sakit 2 hari kerja atau lebih wajib melampirkan berkas Surat Keterangan Sakit resmi dokter." | `HRD-DEC-112`, `LEV-B3` |
+| `VR-LEV-07` | Validasi Lampiran | Format berkas bukan PDF, JPG, atau PNG, atau ukuran berkas > 5MB | `400 Bad Request` | "Format berkas tidak didukung atau ukuran melebihi batas maksimal 5MB." | Standar Media |
+| `VR-LEV-08` | Metadata Surat Sakit | Cuti sakit $\ge 2$ hari tanpa nama dokter pemeriksa atau nomor SIP dokter | `400 Bad Request` | "Nama faskes penerbit dan nomor Surat Izin Praktik (SIP) dokter pemeriksa wajib diisi." | `HRD-DEC-112` |
+| `VR-LEV-09` | Privasi Medis K3RS | Diagnosa ICD-10 diakses oleh aktor selain Tim K3RS / HR Medis | `403 Forbidden` | "Akses ditolak: Diagnosa medis pegawai dilindungi undang-undang kerahasiaan medis." | `HRD-DEC-112`, `LEV-W3` |
+| `VR-LEV-10` | Penjadwalan Roster | Tanggal cuti beririsan dengan shift aktif terbit tanpa koordinasi pengganti | `409 Conflict` | "Anda telah terdaftar dinas shift pada roster terbit. Koordinasikan ganti petugas sebelum mengajukan cuti." | `LEV-B2`, `S-B4` |
+| `VR-LEV-11` | Batas Kuota Berurutan | Pengajuan cuti tahunan berturut-turut > 12 hari kerja tanpa dispensasi Direktur RS | `400 Bad Request` | "Pengajuan cuti tahunan berturut-turut melebihi batas maksimal 12 hari kerja." | `HRD-ASM-22`, `LEV-B7` |
+| `VR-LEV-12` | Kebijakan Carry-Forward | Pemindahan saldo sisa akhir tahun > 6 hari kerja | `200 OK` (Truncated) | Saldo sisa dipotong maksimal 6 hari; kelebihan saldo otomatis dialokasikan ke mutasi `Forfeiture`. | `HRD-DEC-110`, `LEV-B8` |
+| `VR-LEV-13` | Kedaluwarsa Saldo | Sisa saldo carry-forward digunakan setelah tanggal 30 Juni | `400 Bad Request` | "Saldo cuti bawaan tahun sebelumnya telah kedaluwarsa per 30 Juni." | `HRD-DEC-110`, `LEV-W2` |
+| `VR-LEV-14` | Status Pemanggilan Cuti | Inisiasi *Leave Recall* pada permohonan yang statusnya bukan `Active` | `400 Bad Request` | "Pemanggilan dinas darurat hanya dapat dilakukan pada pegawai yang sedang menjalani cuti aktif." | `HRD-DEC-113` |
+| `VR-LEV-15` | Wewenang Recall | Aktor penyetuju pemanggilan cuti bukan bertindak sebagai HR Manager | `403 Forbidden` | "Hanya HR Manager yang memiliki wewenang menyetujui pemanggilan cuti darurat rumah sakit." | `HRD-DEC-113`, `LEV-B5` |
+| `VR-LEV-16` | Nilai Hari Pemulihan Recall | `RestoredDays <= 0` atau melebihi sisa durasi hari cuti riil | `400 Bad Request` | "Jumlah hari pemulihan cuti tidak valid." | `HRD-DEC-113` |
+| `VR-LEV-17` | Pembatalan Pre-Leave | Pembatalan mandiri diajukan setelah tanggal mulai cuti tiba (`Today >= StartDate`) | `400 Bad Request` | "Pembatalan mandiri hanya dapat diajukan sebelum tanggal pelaksanaan cuti dimulai." | `HRD-ASM-21` |
+| `VR-LEV-18` | Penyesuaian Saldo Audit | `AuditDocumentNumber` atau `Reason` kosong pada permintaan `POST /adjustments` | `400 Bad Request` | "Nomor dokumen audit resmi dan alasan tertulis wajib diisi untuk penyesuaian saldo." | `HRD-DEC-115`, `LEV-B6` |
+| `VR-LEV-19` | Immutabilitas Cuti Selesai | Pemanggilan endpoint `POST /{id}/reverse` pada cuti berstatus `Completed` | `409 Conflict` | "Operasi ditolak: Permohonan cuti telah selesai dan berstatus immutable. Pembalikan langsung dilarang." | `HRD-DEC-115`, `LEV-B4` |
+| `VR-LEV-20` | Penguncian Payroll Closed | Operasi modifikasi data cuti pada periode yang telah berstatus `PayrollClosed` | `409 Conflict` | "Periode penggajian telah ditutup. Data transaksi cuti terkunci mutlak." | `HRD-DEC-114`, `HRD-DEC-115` |
+| `VR-LEV-21` | Safe Staffing Mitigation | Aksi *Approve with Mitigation* dilakukan tanpa mengisi catatan rencana pengganti | `400 Bad Request` | "Catatan mitigasi penugasan staf pengganti wajib diisi saat menyetujui cuti berperingatan kuota." | `HRD-DEC-111` |
+| `VR-LEV-22` | Kontak Darurat | Nomor telepon kontak darurat tidak valid atau kosong | `400 Bad Request` | "Nomor telepon kontak darurat yang dapat dihubungi selama cuti wajib diisi." | Standar K3RS |

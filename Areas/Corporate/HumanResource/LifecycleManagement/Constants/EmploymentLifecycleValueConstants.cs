@@ -25,6 +25,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
         // Nilai Status Kontrak pada WfpContractHistory
         public const string ContractStatusDraft = "Draft";
+        public const string ContractStatusSigned = "Signed";
         public const string ContractStatusActive = "Active";
         public const string ContractStatusCompleted = "Completed";
         public const string ContractStatusEnded = "Ended";

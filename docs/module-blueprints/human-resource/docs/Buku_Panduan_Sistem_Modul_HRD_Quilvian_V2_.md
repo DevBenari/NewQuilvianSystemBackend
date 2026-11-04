@@ -115,8 +115,8 @@ Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yan
 | **04** | **Recruitment & Hiring** | [x] Selesai Dirancang (✅) | [x] Sebagian Di-build (🟡) | [ ] Baru Di-plan (📋) | Blueprint Selesai, Siap Build |
 | **05** | **Onboarding, Contract & Employment Lifecycle** | [x] Selesai Dirancang (✅) | [x] Selesai Di-build (✅) | [ ] Baru Di-plan (📋) | Blueprint & BE Selesai, FE Siap Build |
 | **06** | **Scheduling, Roster & On-Call** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan (📋) | [ ] Baru Di-plan (📋) | Blueprint Selesai, BE/FE Siap Build |
-| 07 | Attendance Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 08 | Leave & Permission Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| **07** | **Attendance Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
+| **08** | **Leave & Permission Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
 | 09 | Overtime Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 10 | Payroll Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 11 | Restitution & Deduction Integration | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
@@ -682,9 +682,9 @@ Jadwal malam ICU membutuhkan minimal kombinasi kompetensi tertentu. Sistem tidak
 **Status source:** `TERSEDIA KUAT — CONTRACT & PROCESS HARDENING`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — 72 endpoint, guard closed period, hitung absensi harian (`BE-HRD-006`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor absensi, monitoring presensi harian, koreksi kehadiran on-behalf (`FE-HRD-009`).
+- [x] **Module Blueprint:** Selesai Dirancang & Disetujui (✅) — Normalisasi shift malam lintas hari ke Hari H (`HRD-DEC-104`), toleransi keterlambatan 10 menit (`HRD-DEC-105`), auto-convert `IncompletePunch` ke `Absent` saat tutup periode (`HRD-DEC-106`), izin pulang cepat non-deductible (`HRD-DEC-107`, menutup `HRD-Q-47`), penutupan periode aman & buka kembali darurat HR Manager ber-rollback payroll (`HRD-DEC-108`), penugasan dinas luar `OnDuty` (`HRD-DEC-109`), serta jalur koreksi on-behalf kuasa HR (`02-backend-architecture.md` §20, `03-frontend-architecture.md` §16, Kontrak `v11`).
+- [ ] **Backend:** Baru Di-Plan / Belum Di-Build (📋) — Core V1 operasional ada (`BE-HRD-006`); rencana ekstensi V2 selesai direncanakan (13 task: `BE-HRD-104` s.d. `BE-HRD-116`), spesifikasi kontrak API & validasi siap, kode program V2 belum dieksekusi/di-build.
+- [ ] **Frontend:** Baru Di-Plan / Belum Di-Build (📋) — Dasbor V1 operasional ada (`FE-HRD-009`); rencana ekstensi V2 selesai direncanakan (14 task: `FE-HRD-088` s.d. `FE-HRD-101` untuk 6 layar `FE-HRD-144` s.d. `FE-HRD-149`), UI component siap dibangun, kode program V2 belum dieksekusi/di-build.
 
 ## Penjelasan untuk developer
 
@@ -771,9 +771,9 @@ Perawat dinas malam tap masuk 20:55 dan tap pulang 07:10. Sistem harus mengaitka
 **Status source:** `TERSEDIA KUAT — REUSE + HARDEN`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — Saldo cuti tahunan, pengajuan izin, approval berjenjang (`BE-HRD-007`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor kuota cuti ESS, formulir pengajuan cuti, approval atasan (`FE-HRD-010`).
+- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice `S-B2` Kontrak V12 disetujui (4 November 2026).
+- [ ] **Backend:** Baru Di-plan V2 (📋) — 14 task (`BE-HRD-117` s.d. `BE-HRD-130`) pada roadmap revisi 10.
+- [ ] **Frontend:** Baru Di-plan V2 (📋) — 14 task (`FE-HRD-102` s.d. `FE-HRD-115`) pada roadmap revisi 10.
 
 ## Penjelasan untuk developer
 

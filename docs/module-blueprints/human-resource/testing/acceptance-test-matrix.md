@@ -510,3 +510,33 @@ test; bukti berupa uji API terhadap database dev dan pemeriksaan isi tabel.
 | `AT-HRD-ATT-18` | Verifikasi GPS & foto dinas luar | Tap mobile di lokasi rujukan | Koordinat GPS dan foto selfie tersimpan pada lampiran tugas | `HRD-DEC-109` |
 | `AT-HRD-ATT-19` | Penolakan tutup periode bila ada koreksi pending | Close period saat ada koreksi pending | Ditutup ditolak (HTTP 409) dengan daftar pending | `HRD-DEC-108` |
 | `AT-HRD-ATT-20` | Buka kembali periode darurat rollback payroll | HR Manager mengeksekusi Reopen | Status Reopened dan serah terima payroll otomatis di-rollback | `HRD-DEC-108` |
+
+
+---
+
+## 20. Bagian `S-B2` — Matriks Uji Penerimaan Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Matriks uji penerimaan (*Acceptance Test Matrix*) ini mengunci 20 skenario pengujian komprehensif berbasis bukti untuk memvalidasi pemenuhan kebutuhan fungsional dan teknis **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit**.
+
+| Kode Uji | Skenario Pengujian | Masukan Uji (Input) | Hasil yang Diharapkan (Expected Result) | Status Kesiapan | Rujukan Aturan / Keputusan |
+| --- | --- | --- | --- | :---: | --- |
+| `AT-HRD-LEV-01` | Alokasi hak cuti tahunan 12 hari | Pegawai aktif per 1 Januari | Ledger mencatat mutasi `Entitlement` sejumlah +12.0 hari | Siap Uji | `FR-LEV-01`, `HRD-DEC-110` |
+| `AT-HRD-LEV-02` | Pencatatan mutasi atomik buku besar | Transaksi pengajuan cuti disetujui | Record baru tersimpan di `TrxLeaveBalanceLedger` dengan rujukan ID permohonan | Siap Uji | `FR-LEV-02`, `HRD-DEC-110` |
+| `AT-HRD-LEV-03` | Pemotongan saldo carry-forward akhir tahun max 6 hari | Sisa cuti tahun lalu 9 hari | 6 hari dipindahkan ke tahun baru (`CarryForward`), 3 hari dicatat hangus (`Forfeiture`) | Siap Uji | `FR-LEV-03`, `LEV-B8` |
+| `AT-HRD-LEV-04` | Scheduler kedaluwarsa 30 Juni | Sisa saldo carry-forward 2 hari per 30 Juni 23:59:59 | Mutasi `CarryForwardForfeiture` -2.0 hari dibukukan; per 1 Juli saldo bawaan 0 | Siap Uji | `FR-LEV-05`, `LEV-W2` |
+| `AT-HRD-LEV-05` | Pengajuan cuti mandiri ESS saldo mencukupi | Pengajuan cuti tahunan 3 hari, saldo 10 hari | Status permohonan menjadi `WaitingApproval`; saldo terpesan 3 hari | Siap Uji | `FR-LEV-06` |
+| `AT-HRD-LEV-06` | Penolakan cuti melebihi saldo | Pengajuan cuti 5 hari, saldo tersedia 2 hari | HTTP 400 Bad Request: "Saldo cuti Anda tidak mencukupi" | Siap Uji | `FR-LEV-08`, `LEV-B1` |
+| `AT-HRD-LEV-07` | Cuti setengah hari (half-day 0.5 hari) | Cuti tahunan opsi Half-Day sesi Pagi | Durasi tepat 0.5 hari kerja; ledger mendebit 0.5 hari | Siap Uji | `FR-LEV-07`, `HRD-ASM-20` |
+| `AT-HRD-LEV-08` | Penolakan half-day pada cuti non-tahunan | Pengajuan cuti melahirkan opsi half-day | HTTP 400 Bad Request: fasilitas hanya untuk Cuti Tahunan | Siap Uji | `VR-LEV-05` |
+| `AT-HRD-LEV-09` | Deteksi Safe Staffing Coverage Warning | Pengajuan cuti perawat menyebabkan sisa dinas 3 orang (min 4) | Approval Inbox atasan memunculkan banner peringatan kuota layanan | Siap Uji | `FR-LEV-09`, `HRD-DEC-111` |
+| `AT-HRD-LEV-10` | Persetujuan Approve with Mitigation | Atasan memilih mitigasi dan mengisi nama perawat pengganti | Cuti disetujui; audit mencatat catatan mitigasi operasional | Siap Uji | `FR-LEV-10`, `HRD-DEC-111` |
+| `AT-HRD-LEV-11` | Penolakan Approve with Mitigation tanpa catatan | Atasan submit mitigasi tanpa mengisi catatan | HTTP 400 Bad Request: catatan mitigasi wajib diisi | Siap Uji | `VR-LEV-21` |
+| `AT-HRD-LEV-12` | Izin sakit mandiri 1 hari | Pengajuan izin sakit durasi 1 hari kerja | Permohonan tersimpan tanpa memblokir ketiadaan surat dokter | Siap Uji | `FR-LEV-12`, `HRD-DEC-112` |
+| `AT-HRD-LEV-13` | Penolakan cuti sakit $\ge 2$ hari tanpa surat dokter | Pengajuan cuti sakit 2 hari tanpa lampiran berkas | HTTP 400 Bad Request: wajib melampirkan berkas surat dokter | Siap Uji | `FR-LEV-13`, `LEV-B3` |
+| `AT-HRD-LEV-14` | Masking privasi medis staf K3RS | Atasan langsung membuka rincian surat sakit bawahan | Diagnosa ICD-10 dimaskir; hanya durasi dan validitas faskes/SIP yang tampil | Siap Uji | `FR-LEV-15`, `LEV-W3` |
+| `AT-HRD-LEV-15` | Pembatalan pre-leave pulih 100% | Cuti disetujui dibatalkan sebelum tanggal mulai | Status menjadi `Cancelled`; mutasi kredit `CancellationRestore` +100% dibukukan | Siap Uji | `FR-LEV-11`, `HRD-ASM-21` |
+| `AT-HRD-LEV-16` | Inisiasi Leave Recall darurat oleh Kepala Ruangan | Cuti berstatus `Active`; terjadi KLB darurat | Tiket recall diterbitkan berstatus `RequestedByHeadUnit` | Siap Uji | `FR-LEV-16`, `HRD-DEC-113` |
+| `AT-HRD-LEV-17` | Persetujuan Leave Recall oleh HR Manager | HR Manager approve recall dengan sisa 2 hari cuti | Ledger mencatat kredit `RecallRestore` +2.0 hari; cuti menjadi `Recalled` | Siap Uji | `FR-LEV-18`, `LEV-W4` |
+| `AT-HRD-LEV-18` | Pemulihan jadwal shift pasca-recall | Modul 06 menerima event `LeaveRecallExecutedEvent` | Shift penugasan di Roster 06 berubah aktif (`Scheduled`) tanpa penalti | Siap Uji | `FR-LEV-19`, `INT-HR-46` |
+| `AT-HRD-LEV-19` | Rekonsiliasi retrospektif cuti pending payroll | Cuti disetujui setelah tanggal cut-off payroll | Flag `IsPendingPayrollReconciliation = true`; diserahkan ke payroll bulan depan | Siap Uji | `FR-LEV-22`, `HRD-DEC-114` |
+| `AT-HRD-LEV-20` | Guard penolakan pembalikan cuti Completed (/reverse) | Pemanggilan `POST /{id}/reverse` pada cuti status Completed | HTTP 409 Conflict: immutabilitas cuti selesai (menutup celah `HRD-Q-35`) | Siap Uji | `FR-LEV-23`, `HRD-DEC-115` |

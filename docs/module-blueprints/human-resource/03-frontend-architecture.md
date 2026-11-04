@@ -1915,3 +1915,103 @@ Bagian ini mendokumentasikan spesifikasi antarmuka pengguna frontend untuk **Sli
 * **`RawAttendanceLogDrawer`:** Menampilkan seluruh riwayat mentah tap biometrik pegawai pada hari tersebut (jam tepat, ID mesin, metode biometrik, status sinkronisasi) untuk pembuktian saat audit internal.
 * **`AttendanceCorrectionModal`:** Formulir pengajuan koreksi presensi mandiri dan *on-behalf* dengan penanganan upload lampiran.
 * **`ReopenPeriodConfirmModal`:** Modal konfirmasi buka kembali periode yang mewajibkan input alasan tertulis dan menampilkan status serah terima payroll yang akan di-*rollback*.
+
+
+---
+
+## 17. Bagian `S-B2` — Layar Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini mendokumentasikan spesifikasi antarmuka pengguna frontend untuk **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit**, mencakup 6 layar terpadu (`FE-HRD-150` s.d. `FE-HRD-155`), visualisasi buku besar mutasi saldo cuti, formulir pengajuan cuti ESS dengan opsi setengah hari (half-day 0.5 hari), kotak masuk approval atasan berindikator *Safe Staffing Coverage Warning*, alur verifikasi surat sakit ber-SIP dokter dengan perlindungan privasi medis staf K3RS, serta modal inisiasi dan persetujuan *Leave Recall* darurat rumah sakit.
+
+### 17.1 Peta Butir Menu Navigasi Sidebar Modul Cuti & Izin
+
+| Kode Layar | Butir Menu Sidebar | Induk Menu | Route URL | Hak Akses Utama | Peran Pengguna |
+| --- | --- | --- | --- | --- | --- |
+| `FE-HRD-150` | Saldo & Kuota Cuti Saya | Cuti & Perizinan | `/hr/leave/my-balance` | `[AccessPermission("LeaveBalance", "ViewSelf")]` | Seluruh Pegawai RS (ESS) |
+| `FE-HRD-151` | Pengajuan Cuti & Izin | Cuti & Perizinan | `/hr/leave/request` | `[AccessPermission("LeaveRequest", "Create")]` | Seluruh Pegawai RS (ESS) |
+| `FE-HRD-152` | Persetujuan Cuti & Kuota Staf | Cuti & Perizinan | `/hr/leave/approval-inbox` | `[AccessPermission("LeaveApproval", "View")]` | Kepala Ruangan, Kepala Instalasi, Manajer |
+| `FE-HRD-153` | Alokasi Saldo & Carry-Forward | Cuti & Perizinan | `/hr/leave/balances-admin` | `[AccessPermission("LeaveBalance", "Manage")]` | HR Leave Officer, HR Admin |
+| `FE-HRD-154` | Pemanggilan Darurat (Leave Recall) | Cuti & Perizinan | `/hr/leave/recalls` | `[AccessPermission("LeaveRecall", "View")]` | Kepala Ruangan, HR Manager, Direktur Pelayanan |
+| `FE-HRD-155` | Rekonsiliasi Akhir & Tutup Cuti | Cuti & Perizinan | `/hr/leave/reconciliations` | `[AccessPermission("LeaveReconciliation", "View")]` | HR Leave Officer, HR Payroll Officer, HR Manager |
+
+### 17.2 Skema Fitur & Tata Letak Layar
+
+#### 17.2.1 Layar `FE-HRD-150` — Dasbor Kuota & Saldo Cuti Pegawai ESS (`/hr/leave/my-balance`)
+* **Tujuan:** Memberikan transparansi mutlak kepada setiap pegawai mengenai sisa saldo cuti aktif, rincian hak cuti tahunan berjalan (12 hari), saldo bawaan tahun lalu (*carry-forward* max 6 hari beserta countdown kedaluwarsa 30 Juni per `HRD-DEC-110`), serta riwayat mutasi buku besar (*balance ledger*).
+* **Wilayah Layar:**
+  1. *Kartu Ringkasan Saldo (Metric Cards):*
+     * Total Hak Cuti Tahun Berjalan (12 Hari).
+     * Saldo Aktif Dapat Dipakai (*Available Balance*).
+     * Sisa Kuota Carry-Forward (disertai lencana kuning peringatan: *"Kedaluwarsa 30 Juni"*).
+     * Total Hari Cuti Terpakai Tahun Ini.
+  2. *Bagan Jejak Pemakaian (Usage Progress Bar):* Menampilkan persentase hak cuti yang telah diambil versus sisa waktu tahun kalender.
+  3. *Tabel Riwayat Mutasi Buku Besar (Leave Balance Ledger):* Tanggal Transaksi, Jenis Transaksi (`Entitlement`, `CarryForward`, `Taken`, `CancellationRestore`, `RecallRestore`, `Forfeiture`), Jumlah Hari (+/-), Saldo Sesudah, Nomor Rujukan Dokumen, dan Keterangan.
+  4. *Tombol Aksi:* Tombol **Ajukan Cuti Baru** (mengarahkan ke `FE-HRD-151`).
+
+#### 17.2.2 Layar `FE-HRD-151` — Formulir Pengajuan Cuti & Cuti Sakit ESS (`/hr/leave/request`)
+* **Tujuan:** Formulir mandiri staf untuk mengajukan cuti tahunan, cuti sakit, izin alasan penting, atau cuti bersama, dengan kalkulasi hari otomatis, opsi setengah hari (0.5 hari per `HRD-ASM-20`), dan gerbang unggah berkas surat dokter ber-SIP (`HRD-DEC-112`).
+* **Wilayah Layar:**
+  1. *Pilihan Jenis Cuti:* Dropdown master jenis cuti (Tahunan, Sakit, Bersama, Melahirkan, Ibadah, Izin Khusus). Menampilkan kuota tersisa saat jenis cuti dipilih.
+  2. *Pemilih Rentang Tanggal & Mode Durasi:* Kalender tanggal mulai dan selesai. Toggle opsi **Cuti Setengah Hari (Half-Day)** dengan pilihan sesi: Pagi atau Siang/Sore (otomatis bernilai 0.5 hari kerja).
+  3. *Deteksi Hari Libur & Shift Roster:* Sistem otomatis menampilkan ringkasan hari kerja efektif (tidak menghitung hari libur resmi atau hari lepas jaga staf).
+  4. *Alasan & Kontak Darurat:* Input alasan cuti, nomor telepon darurat yang dapat dihubungi saat cuti, dan nama kontak darurat.
+  5. *Zona Unggah Surat Keterangan Dokter (Khusus Cuti Sakit):*
+     * Jika durasi sakit = 1 hari: opsional unggah surat pernyataan mandiri.
+     * Jika durasi sakit $\ge 2$ hari: **wajib unggah berkas Surat Dokter resmi**. Input nama dokter pemeriksa, nomor SIP, dan nama faskes penerbit. Dilengkapi teks penjaminan: *"Diagnosa medis Anda dilindungi privasi K3RS dan tidak ditampilkan ke atasan langsung"* (`HRD-DEC-112`).
+  6. *Tombol Submit & Konfirmasi:* Validasi instan saldo mencukupi sebelum submit (`LEV-B1`).
+
+#### 17.2.3 Layar `FE-HRD-152` — Kotak Masuk Persetujuan Cuti Atasan & Safe Staffing Coverage (`/hr/leave/approval-inbox`)
+* **Tujuan:** Kotak masuk bagi Kepala Ruangan/Instalasi untuk meninjau permohonan cuti bawahan, dengan fitur unggulan **Banner Peringatan Kuota Pelayanan (*Safe Staffing Coverage Warning*)** per `HRD-DEC-111`.
+* **Wilayah Layar:**
+  1. *Daftar Permohonan Menunggu:* Nama Pemohon, Jabatan/Unit, Jenis Cuti, Rentang Tanggal, Durasi Hari, Tanggal Submit, dan Indikator Status Kuota Unit.
+  2. *Panel Evaluasi Ketersediaan Tenaga (Coverage Warning Banner):*
+     * Jika permohonan aman: Ditampilkan lencana hijau: *"Ketersediaan tenaga shift memenuhi standar keselamatan"* (misal 5 dari min 4 perawat bertugas).
+     * Jika permohonan kritis: Ditampilkan banner peringatan oranye/merah: *"PERINGATAN KUOTA LAYANAN: Persetujuan cuti ini menyebabkan jumlah perawat dinas pada 12 Nov Shift Pagi tersisa 3 orang (ambang batas minimal: 4 orang)"*.
+  3. *Tampilan Detail Berkas Cuti Sakit (Masked Privacy):* Menampilkan durasi anjuran dokter, nama faskes/dokter, status verifikasi berkas, dengan diagnosa medis disamarkan (ikon gembok privasi).
+  4. *Tombol Tindakan Atasan:*
+     * **Setujui (Approve):** Aktif jika kuota staf aman.
+     * **Setujui dengan Mitigasi (Approve with Mitigation):** Aktif saat banner kuota muncul; mewajibkan atasan mencatat rencana penugasan staf pengganti atau koordinasi rotasi sebelum submit.
+     * **Minta Revisi Tanggal (Need Revision):** Mengembalikan form ke staf untuk penyesuaian tanggal.
+     * **Tolak Permohonan (Reject):** Mewajibkan input alasan penolakan operasional.
+
+#### 17.2.4 Layar `FE-HRD-153` — Manajemen Saldo, Alokasi & Carry-Forward HR (`/hr/leave/balances-admin`)
+* **Tujuan:** Layar bagi HR Leave Administrator untuk memantau saldo seluruh pegawai rumah sakit, menjalankan scheduler alokasi awal tahun (12 hari), eksekusi batasan carry-forward (max 6 hari), eksekusi hangus saldo per 30 Juni, dan melakukan penyesuaian saldo resmi (`HRD-DEC-110`, `HRD-DEC-115`).
+* **Wilayah Layar:**
+  1. *Filter & Pencarian:* Filter unit kerja, profesi staf, filter saldo hampir kedaluwarsa, dan pencarian nama/NIP.
+  2. *Tabel Saldo Agregat Seluruh Staf:* NIP, Nama, Unit, Hak Dasar 2026, Saldo Bawaan 2025, Total Terpakai, Sisa Saldo Aktif, Sisa Bawaan Hangus, dan Status Keaktifan.
+  3. *Panel Tata Kelola Carry-Forward (Tengah Tahun):*
+     * Widget pemantauan: Jumlah staf dengan sisa cuti bawaan 2025 yang belum terpakai per mendekati 30 Juni.
+     * Tombol Aksi Batch: **Jalankan Eksekusi Hangus Saldo Carry-Forward (Forfeiture Runner)** untuk memposting pemotongan otomatis sisa bawaan.
+  4. *Tombol Penyesuaian Saldo Resmi (HR Adjustment):* Membuka modal audit penyesuaian saldo dengan kewajiban input nomor surat keputusan/audit HR.
+
+#### 17.2.5 Layar `FE-HRD-154` — Inisiasi & Persetujuan Pemanggilan Darurat (Leave Recall) (`/hr/leave/recalls`)
+* **Tujuan:** Mengelola alur pemanggilan kembali pegawai yang sedang cuti saat situasi darurat rumah sakit (KLB, bencana alam, lonjakan pasien kritis) dan pemulihan saldo otomatis (`HRD-DEC-113`).
+* **Wilayah Layar:**
+  1. *Tabel Pemantauan Staf Sedang Cuti:* Menampilkan seluruh perawat/dokter yang saat ini berada dalam masa cuti aktif beserta tanggal mulai-selesai dan kontak darurat.
+  2. *Modal Inisiasi Recall (Bagi Kepala Unit):*
+     * Pilihan staf yang sedang cuti.
+     * Tanggal efektif harus kembali dinas.
+     * Kategori darurat (KLB Penyakit Menular, Bencana Alam/Korban Massal, Lonjakan Pasien IGD/ICU Cito).
+     * Penjelasan alasan darurat pemanggilan.
+     * Estimasi hari cuti yang batal dinikmati dan akan dipulihkan ke saldo pegawai.
+  3. *Kotak Masuk Persetujuan HR Manager:*
+     * HR Manager meninjau urgensi pemanggilan darurat.
+     * Tombol **Setujui Pemanggilan & Pulihkan Saldo**: Otomatis menerbitkan SK tugas kembali, memulihkan saldo cuti pada buku besar (`RecallRestore`), dan mengubah status jadwal shift staf di Roster 06 menjadi aktif bertugas.
+     * Tombol **Tolak Usulan Pemanggilan**: Menolak recall jika situasi dinilai masih dapat ditangani staf yang ada.
+
+#### 17.2.6 Layar `FE-HRD-155` — Rekonsiliasi Akhir Cuti & Penutupan Periode Payroll (`/hr/leave/reconciliations`)
+* **Tujuan:** Memastikan seluruh transaksi cuti terverifikasi rapi sebelum cut-off payroll bulanan, mengunci mutlak cuti `Completed` dari pembatalan bebas (menutup celah `/reverse` per `HRD-DEC-115`), dan menangani rekonsiliasi retrospektif cuti pending (`HRD-DEC-114`).
+* **Wilayah Layar:**
+  1. *Status Kesiapan Payroll:* Periode Penggajian (misal November 2026), Tanggal Cut-Off, dan Status Penutupan Cuti (`Open` / `Reconciled` / `PayrollClosed`).
+  2. *Tabel Cuti Menggantung (Pending Cut-Off):* Daftar pengajuan cuti yang belum disetujui atasan saat tanggal cut-off. Sistem menampilkan label: *"Akan direkonsiliasi retrospektif pada payroll bulan berikutnya pasca-approval"*.
+  3. *Tabel Rekonsiliasi Retrospektif Periode Lalu:* Menampilkan daftar cuti bulan lalu yang baru disetujui setelah cut-off, yang nilai penyesuaian potongannya otomatis diserahkan ke batch payroll bulan ini.
+  4. *Tombol Aksi Utama:*
+     * Tombol **Tutup & Kunci Periode Cuti**: Mengunci mutlak seluruh permohonan yang telah selesai menjadi *read-only/immutable* (menonaktifkan tombol pembatalan biasa).
+     * Tombol **Serahkan Data ke Modul Payroll**: Mengirimkan snapshot absensi dan cuti terverifikasi ke Sub-Modul 10.
+
+### 17.3 Komponen Modal & Drawer Pendukung
+
+* **`SafeStaffingCoverageBannerModal`:** Menampilkan detail simulasi rasio ketenagaan shift unit bila cuti disetujui (daftar perawat yang dinas pada jam tersebut, jumlah pasien yang dirawat, dan selisih kuota minimal).
+* **`MedicalCertificateUploadModal`:** Formulir upload berkas PDF/JPG surat keterangan dokter resmi berstempel dan ber-SIP, dengan pratinjau dokumen terbatas hak akses.
+* **`LeaveRecallInitiationModal`:** Modal darurat pemanggilan staf cuti dengan kalkulasi otomatis pemulihan sisa hari cuti (*restored days calculation*).
+* **`LeaveBalanceAdjustmentModal`:** Modal khusus HR Manager untuk menambah/mengurangi saldo cuti staf secara resmi dengan input nomor dokumen audit dan alasan operasional tertulis.

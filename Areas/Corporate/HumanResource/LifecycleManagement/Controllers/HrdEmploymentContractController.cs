@@ -30,8 +30,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmploymentContractResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Employment Contracts", Description = "Melihat daftar kontrak kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("EmploymentContracts", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] EmploymentContractQuery query, CancellationToken cancellationToken)
         {
             var result = await _contractService.GetPagedAsync(query, cancellationToken);
@@ -41,8 +39,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<EmploymentContractResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Employment Contract Detail", Description = "Melihat detail kontrak kerja", AccessType = AccessTypes.Read, SortOrder = 2)]
-        [AccessPermission("EmploymentContracts", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
             var result = await _contractService.GetByIdAsync(id, cancellationToken);
@@ -52,8 +48,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [HttpGet("{id:guid}/print-data")]
         [ProducesResponseType(typeof(ApiResponse<EmploymentContractPrintDataResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Employment Contract Print Data", Description = "Melihat data cetak kontrak kerja", AccessType = AccessTypes.Read, SortOrder = 3)]
-        [AccessPermission("EmploymentContracts", "Read")]
         public async Task<IActionResult> GetPrintData(Guid id, CancellationToken cancellationToken)
         {
             var result = await _contractService.GetPrintDataAsync(id, User, cancellationToken);
@@ -64,9 +58,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<EmploymentContractResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Record Contract Signed", Description = "Mencatat kontrak telah ditandatangani", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("EmploymentContracts", "Update")]
         public async Task<IActionResult> RecordSigned(
             Guid id,
             [FromForm] RecordContractSignedRequest request,
@@ -80,8 +71,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [HttpGet("{id:guid}/download-scan")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Download Contract Scan", Description = "Mengunduh pindaian scan kontrak kerja", AccessType = AccessTypes.Read, SortOrder = 5)]
-        [AccessPermission("EmploymentContracts", "Read")]
         public async Task<IActionResult> DownloadScan(Guid id, CancellationToken cancellationToken)
         {
             var download = await _contractService.DownloadScanAsync(id, cancellationToken);
@@ -91,6 +80,123 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             }
 
             return File(download.Stream, download.ContentType ?? "application/octet-stream", download.FileName ?? "contract-scan.pdf");
+        }
+
+        // --- BE-HRD-080: Keputusan Kontrak T16 & Batas 5 Tahun PKWT ---
+
+        [HttpGet("{id:guid}/fixed-term-check")]
+        [ProducesResponseType(typeof(ApiResponse<FixedTermCheckResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> FixedTermCheck(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _contractService.FixedTermCheckAsync(id, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpPost("{id:guid}/decisions")]
+        [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status201Created)]
+        public async Task<IActionResult> SubmitDecision(
+            Guid id,
+            [FromBody] SubmitContractDecisionRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.SubmitDecisionAsync(id, request, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("{id:guid}/decisions/{decisionId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetDecisionById(
+            Guid id,
+            Guid decisionId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetDecisionByIdAsync(id, decisionId, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpPut("{id:guid}/decisions/{decisionId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> UpdateDecision(
+            Guid id,
+            Guid decisionId,
+            [FromBody] SubmitContractDecisionRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.UpdateDecisionAsync(id, decisionId, request, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpDelete("{id:guid}/decisions/{decisionId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> WithdrawDecision(
+            Guid id,
+            Guid decisionId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.WithdrawDecisionAsync(id, decisionId, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpPost("{id:guid}/decisions/{decisionId:guid}/notify")]
+        [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> RecordEmployeeNotified(
+            Guid id,
+            Guid decisionId,
+            [FromBody] RecordEmployeeNotifiedRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.RecordEmployeeNotifiedAsync(id, decisionId, request, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        // --- BE-HRD-081: Koreksi Kontrak T17 ---
+
+        [HttpPost("{id:guid}/corrections")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(ApiResponse<ContractCorrectionResponse>), StatusCodes.Status201Created)]
+        public async Task<IActionResult> SubmitCorrection(
+            Guid id,
+            [FromForm] SubmitContractCorrectionRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.SubmitCorrectionAsync(id, request, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpGet("{id:guid}/corrections/{correctionId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ContractCorrectionResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCorrectionById(
+            Guid id,
+            Guid correctionId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.GetCorrectionByIdAsync(id, correctionId, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        [HttpDelete("{id:guid}/corrections/{correctionId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> WithdrawCorrection(
+            Guid id,
+            Guid correctionId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.WithdrawCorrectionAsync(id, correctionId, User, cancellationToken);
+            return ToActionResult(result);
+        }
+
+        // --- Scan Susulan Dokumen Kontrak Data Awal (VR-ONB-45) ---
+
+        [HttpPost("{id:guid}/document")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(ApiResponse<EmploymentContractResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> UploadLegacyDocument(
+            Guid id,
+            [FromForm] UploadLegacyContractDocumentRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _contractService.UploadLegacyDocumentAsync(id, request, User, cancellationToken);
+            return ToActionResult(result);
         }
 
         private IActionResult ToActionResult<T>(RecruitmentResult<T> result)

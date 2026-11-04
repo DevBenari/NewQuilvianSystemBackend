@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `21` — **Revision `21` (bagian 37) adalah Pass Wawancara 7: Sub-modul 07 Attendance Management (Presensi & Kehadiran Staf Rumah Sakit, Slice `S-B1`), dibuka 4 November 2026: penegasan batas scope presensi rumah sakit 24/7, pertanyaan `HRD-Q-107` s.d. `HRD-Q-112`, keputusan `HRD-DEC-104` (shift malam lintas hari dikunci pada tanggal masuk shift).** **Revision `20` (bagian 36) adalah Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), dibuka 4 November 2026: audit HEAD BE `38e892b0` / FE `44990b3d3`, temuan `HRD-TF-050` s.d. `HRD-TF-057`, pertanyaan `HRD-Q-99` s.d. `HRD-Q-105`, keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` — seluruh 7 keputusan inti `approved` oleh pengguna dan ditutup 4 November 2026; `HRD-Q-106` (cek regulasi PP 35/2021) terbuka untuk HRD dan tidak memblokir desain. Siap untuk `design-business-module`.** **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `22` — **Revision `22` (bagian 38) adalah Pass Wawancara 8: Sub-modul 08 Leave & Permission Management (Administrasi Cuti & Izin Pegawai Rumah Sakit, Slice `S-B2`), dibuka 4 November 2026: penegasan batas scope cuti rumah sakit, pertanyaan `HRD-Q-113` s.d. `HRD-Q-118`, keputusan `HRD-DEC-110` s.d. `HRD-DEC-115` (hak cuti 12 hari & carry-forward 6 hari hingga 30 Juni, safe staffing coverage warning, cuti sakit & privasi dokter, alur recall darurat & pemulihan saldo, rekonsiliasi retrospektif payroll, dan penutupan celah /reverse `HRD-Q-35`).** **Revision `21` (bagian 37) adalah Pass Wawancara 7: Sub-modul 07 Attendance Management (Presensi & Kehadiran Staf Rumah Sakit, Slice `S-B1`), dibuka 4 November 2026: penegasan batas scope presensi rumah sakit 24/7, pertanyaan `HRD-Q-107` s.d. `HRD-Q-112`, keputusan `HRD-DEC-104` (shift malam lintas hari dikunci pada tanggal masuk shift).** **Revision `20` (bagian 36) adalah Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), dibuka 4 November 2026: audit HEAD BE `38e892b0` / FE `44990b3d3`, temuan `HRD-TF-050` s.d. `HRD-TF-057`, pertanyaan `HRD-Q-99` s.d. `HRD-Q-105`, keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` — seluruh 7 keputusan inti `approved` oleh pengguna dan ditutup 4 November 2026; `HRD-Q-106` (cek regulasi PP 35/2021) terbuka untuk HRD dan tidak memblokir desain. Siap untuk `design-business-module`.** **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -6459,3 +6459,118 @@ Dibuka 4 November 2026 untuk mengunci seluruh aturan bisnis operasional presensi
 | `HRD-ASM-16` | Parameter `AttendanceGracePeriodMinutes` memiliki nilai bawaan (default) 10 menit pada konfigurasi `HrdAttendanceSetting` / `HrdSchedulingSetting` | Angka toleransi wajar antrean mesin fingerprint di RS umum swasta | Bila RS menginginkan toleransi 15 menit, HR Admin tinggal mengubah setelan tanpa ubah kode |
 | `HRD-ASM-17` | Periode presensi kehadiran berjalan bulanan dan cut-off penutupan disinkronkan dengan tanggal cut-off payroll (misal tanggal 25 atau akhir bulan) | Menjamin seluruh data jam kerja, lembur, dan absensi terekonsiliasi rapi sebelum payroll dihitung | Periode cut-off dapat diatur fleksibel per batch penutupan |
 | `HRD-ASM-18` | Bukti fisik lampiran surat tugas atau koreksi presensi (foto/dokumen) disimpan menggunakan layanan lampiran dokumen terpusat (`HrdLifecycleAttachmentService` / Storage Service) | Memenuhi standar audit akreditasi KARS tanpa membebani tabel database operasional | Bila storage eksternal belum siap, bukti disimpan di sistem file lokal berproteksi |
+
+
+---
+
+## 38. Pass Wawancara 8 — Sub-Modul 08 Leave & Permission Management (Administrasi Cuti & Izin Pegawai Rumah Sakit — Slice `S-B2`)
+
+Dibuka 4 November 2026 sesudah perencanaan delivery Sub-Modul 07 (`S-B1`) disetujui pengguna. Fokus pass ini adalah penguncian aturan bisnis hak cuti, pembentukan saldo buku besar (*balance ledger*), mitigasi risiko kekosongan tenaga medis unit 24/7 (*safe staffing coverage warning*), prosedur perizinan sakit dan perlindungan privasi medis staf, pemanggilan kembali dinas darurat (*leave recall*), penanganan cuti menggantung saat cut-off payroll, serta penutupan celah audit pembalikan status cuti lampau (`HRD-Q-35`).
+
+### 38.1 Batasan Ruang Lingkup (Scope Boundary)
+
+> **Batas Scope:** Mengelola hak dan saldo cuti pegawai berbasis buku besar (*balance ledger*), permohonan cuti dan izin mandiri (ESS), validasi kecukupan tenaga pelayanan unit 24/7 (*coverage warning*), persetujuan berjenjang atasan, pemotongan dan pengembalian saldo otomatis, alur pembatalan (*cancellation*) dan pemanggilan darurat (*recall*), serta rekonsiliasi akhir sebelum penyerahan data bersih ke modul Payroll.
+
+| Di Dalam Scope (In-Scope) | Di Luar Scope (Out-of-Scope) |
+| :--- | :--- |
+| 1. Master jenis cuti dan izin (Tahunan, Melahirkan, Ibadah, Cuti Bersama, Khusus/Menikah/Duka Cita, Sakit). | 1. Izin Pulang Cepat jam kerja (*Early Leave Permission*) — milik Sub-modul 07 Attendance (`HRD-DEC-107`, *non-deductible*). |
+| 2. Pembentukan hak (*entitlement*) dan akrual saldo cuti berbasis buku besar transaksi (*ledger*). | 2. Surat tugas penugasan dinas luar rumah sakit (*Official Duty*) — milik Sub-modul 07 Attendance (`HRD-DEC-109`). |
+| 3. Formulir pengajuan cuti mandiri pegawai via ESS (rentang tanggal, setengah hari/half-day, berkas lampiran). | 3. Pengaturan lembur SPKL dan insentif panggil siaga (*call-out fee*) — milik Sub-modul 09 Overtime. |
+| 4. Alur persetujuan atasan dengan indikator peringatan kuota ketersediaan staf (*Safe Staffing Coverage Warning*). | 4. Perhitungan nominal rupiah gaji pokok, denda, atau tunjangan kompensasi cuti — milik Sub-modul 10 Payroll. |
+| 5. Integrasi pemotongan dan penyelesaian saldo pada jadwal dinas (`S-B4`) dan presensi harian (`S-B1`). | 5. Penataan jadwal shift pengganti untuk perawat yang sedang cuti — milik Sub-modul 06 Scheduling (`S-B4` Ganti Petugas). |
+| 6. Alur pembatalan cuti disetujui (*Leave Cancellation*) dan pemulihan saldo otomatis (*CancellationRestore*). | 6. Rekam medis lengkap / diagnosa riil penyakit staf pada surat sakit — milik Sub-modul 18 K3RS (kerahasiaan medis staf). |
+| 7. Prosedur pemanggilan kembali pegawai saat darurat RS (*Leave Recall*) dan pemulihan sisa hari cuti. | |
+| 8. Rekonsiliasi akhir cuti dan penguncian periode (*Period Close*) sebelum cut-off penggajian bulanan. | |
+
+---
+
+### 38.2 Keputusan Bisnis yang Disetujui
+
+#### `HRD-DEC-110` — Pembentukan Saldo Hak Cuti Tahunan (12 Hari) & Kebijakan Carry-Forward Maksimal 6 Hari hingga 30 Juni
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-113`; menutup bagian cuti tahunan dari `HRD-Q-06` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 4 November 2026 |
+| Evidence | PP 35/2021; `Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` Bagian 08 |
+| Ringkasan | Hak cuti tahunan diberikan sejumlah **12 hari kerja per tahun kalender** (dihitung prorata bagi pegawai baru pada tahun pertama dinas). Pada akhir tahun (31 Desember), sisa saldo cuti tahun berjalan dapat dibawa (*carry-forward*) ke tahun berikutnya **maksimal 6 hari kerja**, dengan batas kedaluwarsa pemakaian hingga **30 Juni tahun berikutnya**. Setelah tanggal 30 Juni, seluruh sisa cuti bawaan yang belum terpakai otomatis hangus (*forfeited*). Seluruh mutasi saldo dicatat secara transparan dalam buku besar transaksi (*balance ledger*). |
+| Implikasi Arsitektur | 1. Mutasi saldo dicatat via `TrxLeaveBalanceLedger` dengan jenis transaksi: `Entitlement`, `CarryForward`, `Forfeiture`.<br>2. Scheduler otomatis akhir tahun (31 Des): menghitung sisa saldo, membatasi max 6 hari carry-forward, dan mencatat sisa hangus.<br>3. Scheduler otomatis tengah tahun (30 Jun): memeriksa sisa kuota carry-forward dan memposting transaksi `Forfeited` bila tidak digunakan.<br>4. Mencegah penumpukan utang cuti jangka panjang yang membebani rotasi tenaga medis di unit 24/7. |
+
+#### `HRD-DEC-111` — Perlindungan Ketersediaan Tenaga Pelayanan Unit 24/7 (*Safe Staffing Coverage Warning*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-114` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 4 November 2026 |
+| Evidence | KMK 1596/2024 (Standar Akreditasi RS); `Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` Bagian 08 |
+| Ringkasan | Saat staf klinis (perawat, bidan, radiografer, analis) mengajukan cuti, sistem memvalidasi ketersediaan staf (*staffing coverage*) unit pada tanggal yang diajukan terhadap standar rasio ketenagaan. Bila permohonan tersebut menyebabkan jumlah staf yang bertugas berada di bawah batas aman pelayanan, sistem memunculkan **Peringatan Kuota Layanan (*Coverage Warning*)** pada kotak masuk persetujuan (*Approval Inbox*) Kepala Unit beserta rincian jumlah staf dinas. Kepala Unit tetap diberi hak menyetujui (*Approve with Mitigation*) jika telah mengatur staf pengganti/roster cadangan, atau meminta revisi (*NeedRevision*) demi keselamatan pasien (*patient safety*). |
+| Implikasi Arsitektur | 1. Integrasi query baca ke jadwal dinas `S-B4` (`INT-HR-36` / `INT-HR-45`).<br>2. Peringatan bersifat *informational / advisory* pada UI persetujuan, tidak memblokir keras form pengajuan pegawai di ESS.<br>3. Audit trail persetujuan mencatat flag `ApprovedWithCoverageWarning = true` dan catatan mitigasi operasional Kepala Unit.<br>4. Melindungi kesinambungan pelayanan rawat inap/IGD tanpa menghilangkan diskresi klinis Kepala Ruangan. |
+
+#### `HRD-DEC-112` — Tata Kelola Cuti Sakit & Verifikasi Surat Keterangan Sakit Dokter (Privasi Medis Staf)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-115`; menutup bagian cuti sakit dari `HRD-Q-06` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 4 November 2026 |
+| Evidence | UU Kesehatan 17/2023; PP 35/2021; `Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` Bagian 08 |
+| Ringkasan | Izin sakit 1 hari kerja dapat dilaporkan mandiri melalui ESS dengan melampirkan surat pernyataan mandiri; namun cuti sakit **2 hari kerja berturut-turut atau lebih wajib mengunggah berkas Surat Keterangan Sakit resmi dokter** berizin (SIP) dan berstempel faskes sah. Dokumen surat sakit hanya memuat lama anjuran istirahat dan identitas dokter pemeriksa, **tanpa mewajibkan diagnosa penyakit klinis staf ditampilkan kepada atasan langsung** (menjaga privasi staf & kepatuhan K3RS). |
+| Implikasi Arsitektur | 1. Validasi `VR-LEV-06`: Cuti sakit >= 2 hari menolak submit permohonan tanpa unggah berkas surat dokter.<br>2. Atasan langsung pada kotak masuk persetujuan hanya melihat status verifikasi lampiran (`Verified`), tanggal mulai-selesai istirahat, dan nama faskes/dokter pemeriksa, bukan kode ICD-10 atau diagnosa medis detail.<br>3. Verifikasi keabsahan dokumen medis dilakukan oleh Tim HR Admin / K3RS.<br>4. Memenuhi standar perlindungan data pribadi medis pasien/staf (UU PDP 27/2022). |
+
+#### `HRD-DEC-113` — Alur Pemanggilan Kembali Dinas Darurat (*Leave Recall*) & Pemulihan Hak Saldo Otomatis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-116`, `HRD-Q-36` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 4 November 2026 |
+| Evidence | `flows/03-leave.md` Bagian 8 & 9.1; `Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` Bagian 08 |
+| Ringkasan | Pemanggilan kembali pegawai yang sedang menjalani cuti (*Leave Recall*) saat situasi darurat rumah sakit (KLB, bencana alam, lonjakan pasien kritis) hanya dapat diinisiasi oleh Kepala Unit dan wajib memperoleh **persetujuan administratif HR Manager** di sistem. Begitu permohonan disetujui, sistem secara otomatis mengembalikan (*restore*) sisa hari cuti yang belum dijalani kembali ke saldo hak cuti pegawai pada buku besar (*balance ledger*), serta memperbarui status jadwal dinas di Sub-modul 06 menjadi siap bertugas (*Scheduled*) tanpa penalti presensi. |
+| Implikasi Arsitektur | 1. Workflow recall berjenjang: `RequestedByHeadUnit` -> `ApprovedByHrManager` -> `Executed`.<br>2. Transaksi buku besar otomatis: memposting transaksi `RecallRestore` dengan nominal hari cuti yang batal dinikmati.<br>3. Integrasi event ke Penjadwalan 06 (`INT-HR-46`) untuk memulihkan penugasan shift kerja staf.<br>4. Menutup `HRD-Q-36`: Menegaskan `ApprovedByHrManager` adalah gerbang eksekusi sah alur recall. |
+
+#### `HRD-DEC-114` — Penanganan Permohonan Cuti Menggantung saat Cut-off Payroll (Rekonsiliasi Retrospektif)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-117` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 4 November 2026 |
+| Evidence | `flows/03-leave.md` Bagian 5 & 10; `Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` Bagian 08 |
+| Ringkasan | Permohonan cuti yang masih berstatus `WaitingApproval` saat penutupan periode payroll bulanan **tidak memotong hak gaji pegawai** pada periode berjalan (status kehadiran sementara ditandai dalam peninjauan). Jika permohonan tersebut baru disetujui setelah tanggal cut-off payroll, sistem melakukan **penyesuaian rekonsiliasi retrospektif (*retrospective balance & attendance adjustment*)** pada periode penggajian bulan berikutnya secara transparan. |
+| Implikasi Arsitektur | 1. Penutupan periode cuti menghasilkan snapshot final yang terkunci (*read-only*) bagi modul Payroll.<br>2. Cuti yang disetujui pasca-cut-off ditandai flag `PendingPayrollReconciliation = true`.<br>3. Handoff payroll bulan berikutnya otomatis menyertakan rekonsiliasi penyesuaian atas cuti lampau yang disetujui terlambat.<br>4. Melindungi penghasilan pegawai agar tidak terpotong sepihak akibat keterlambatan respon approval atasan. |
+
+#### `HRD-DEC-115` — Penguncian Immutabilitas Cuti Selesai & Penutupan Celah /reverse (`HRD-Q-35`)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-118`, `HRD-Q-35` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 4 November 2026 |
+| Evidence | `flows/03-leave.md` Bagian 9.1 (`HRD-Q-35`); `00-interview-decisions.md` Bagian 20 |
+| Ringkasan | Seluruh permohonan cuti yang telah selesai dijalani (*status: Completed*) dan telah ditutup dalam periode rekonsiliasi payroll **dikunci mutlak (*Immutable*)** dan dilarang dibalik melalui endpoint pembatalan biasa `POST /{leaveRequestId}/reverse` (menutup temuan audit celah keamanan `HRD-Q-35`). Jika terdapat kekeliruan data cuti historis masa lampau, koreksi saldo **hanya boleh dilakukan melalui transaksi penyesuaian saldo resmi (*Leave Balance Adjustment*) oleh HR Manager** dengan kewajiban mencantumkan nomor dokumen audit dan alasan tertulis. |
+| Implikasi Arsitektur | 1. Penambahan guard status pada `LeaveExecutionProcessorService.ReverseAsync`: menolak jika `Status == Completed` atau periode payroll telah `Closed` (HTTP 409 Conflict).<br>2. Menghilangkan risiko manipulasi data historis absensi dan menjaga konsistensi keuangan penggajian.<br>3. Satu-satunya jalur koreksi saldo adalah melalui `LeaveAdjustmentController` berotorisasi HR Manager dengan audit trail lengkap. |
+
+---
+
+### 38.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-19` | Cuti bersama pemerintah otomatis mengurangi saldo cuti tahunan pegawai, kecuali ditentukan lain oleh SK Direksi RS | Standar aturan ketenagakerjaan dan SKB 3 Menteri | Pengurangan otomatis dapat dimatikan pada konfigurasi jenis cuti bersama bila RS menganggapnya libur tambahan |
+| `HRD-ASM-20` | Cuti setengah hari (*Half-Day Leave*) bernilai pemotongan 0.5 hari kerja pada buku besar (*ledger*) dan hanya berlaku untuk jenis Cuti Tahunan | Lazim di rumah sakit untuk staf shift administratif | Bila jenis cuti lain diizinkan setengah hari, validasi model tinggal diperluas |
+| `HRD-ASM-21` | Pembatalan cuti sebelum tanggal mulai berjalan (*Pre-Leave Cancellation*) dapat diajukan mandiri oleh pegawai dan disetujui atasan langsung, mengembalikan saldo 100% | Prosedur wajar pembatalan rencana cuti staf sebelum terlaksana | Saldo dipulihkan otomatis ke ledger tanpa perlu intervensi HRD |
+| `HRD-ASM-22` | Batas maksimal pengajuan cuti tahunan berurutan tanpa persetujuan khusus Direktur RS adalah 12 hari kerja berturut-turut untuk menjaga stabilitas dinas unit | Menjaga rotasi tenaga dan ketersediaan tenaga medis rawat inap | Cuti panjang > 12 hari memerlukan eskalasi persetujuan ke Direksi RS |

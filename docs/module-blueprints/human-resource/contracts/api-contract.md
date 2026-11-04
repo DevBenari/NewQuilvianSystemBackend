@@ -1921,3 +1921,60 @@ kontrak sebelum kontrak pertama ditandatangani.
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: |
 | `GET` | `/api/v1/corporate/human-resource/attendance/settings` | Mengambil konfigurasi aktif presensi RS | `[AccessPermission("AttendanceSetting", "View")]` | None | `AttendanceSettingDto` | `200`, `401`, `403` |
 | `PUT` | `/api/v1/corporate/human-resource/attendance/settings` | Memperbarui parameter toleransi keterlambatan/koreksi | `[AccessPermission("AttendanceSetting", "Manage")]` | Body: `UpdateAttendanceSettingCommand` | `AttendanceSettingDto` | `200`, `400`, `401`, `403` |
+
+
+---
+
+## 18. Bagian `S-B2` — Kontrak API Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+### 18.1 Spesifikasi Endpoint RESTful Bergaya Swagger
+
+#### `[Tags("HR Leave - Balances & Ledgers")]`
+*Kelompok endpoint untuk informasi hak cuti tahunan (12 hari), saldo carry-forward (max 6 hari s.d. 30 Juni), riwayat buku besar mutasi, dan penyesuaian saldo resmi HR.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/leave/balances/my` | Mengambil rincian saldo cuti mandiri ESS pegawai (hak 12 hari & carry-forward) | `[AccessPermission("LeaveBalance", "ViewSelf")]` | None | `LeaveBalanceSummaryDto` | `200`, `401` |
+| `GET` | `/api/v1/corporate/human-resource/leave/balances/ledger` | Query riwayat mutasi buku besar saldo cuti (*balance ledger*) | `[AccessPermission("LeaveBalance", "ViewSelf")]` | Query: `year`, `leaveTypeId`, `page`, `pageSize` | `PagedResult<LeaveBalanceLedgerDto>` | `200`, `401`, `403` |
+| `GET` | `/api/v1/corporate/human-resource/leave/balances/admin` | Monitoring saldo cuti seluruh pegawai rumah sakit oleh HR | `[AccessPermission("LeaveBalance", "Manage")]` | Query: `unitId`, `year`, `search`, `page`, `pageSize` | `PagedResult<EmployeeLeaveBalanceAdminDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/leave/balances/carry-forward/run` | Memicu eksekusi scheduler carry-forward (31 Des) atau kedaluwarsa (30 Jun) | `[AccessPermission("LeaveBalance", "Manage")]` | Body: `{ executionType: "YearEndCarryForward" \| "MidYearForfeiture" }` | `CarryForwardRunResultDto` | `200`, `400`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/leave/balances/adjustment` | Penyesuaian saldo resmi HR berdokumen audit (`HRD-DEC-115`) | `[AccessPermission("LeaveAdjustment", "Execute")]` | Body: `CreateLeaveAdjustmentCommand` | `LeaveAdjustmentResultDto` | `201`, `400`, `401`, `403` |
+
+#### `[Tags("HR Leave - Requests & ESS")]`
+*Kelompok endpoint pengajuan cuti mandiri ESS, kalkulasi hari kerja efektif, opsi cuti setengah hari (0.5 hari), dan pembatalan sebelum cuti.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/leave/requests/my` | Daftar permohonan cuti aktif dan historis pegawai | `[AccessPermission("LeaveRequest", "ViewSelf")]` | Query: `status`, `year`, `page`, `pageSize` | `PagedResult<LeaveRequestSummaryDto>` | `200`, `401` |
+| `GET` | `/api/v1/corporate/human-resource/leave/requests/{id}` | Detail permohonan cuti, status verifikasi surat sakit, dan timeline | `[AccessPermission("LeaveRequest", "View")]` | Path: `id` (GUID) | `LeaveRequestDetailDto` | `200`, `401`, `403`, `404` |
+| `POST` | `/api/v1/corporate/human-resource/leave/requests` | Mengajukan permohonan cuti (mendukung half-day 0.5 hari & upload surat dokter) | `[AccessPermission("LeaveRequest", "Create")]` | Body: `CreateLeaveRequestCommand` | `LeaveRequestResultDto` | `201`, `400`, `401`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/leave/requests/{id}/cancel` | Pembatalan cuti disetujui sebelum hari-H (*Pre-Leave Cancel* pulih 100%) | `[AccessPermission("LeaveRequest", "CancelSelf")]` | Body: `{ reason: string }` | `LeaveRequestResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+#### `[Tags("HR Leave - Approvals & Coverage")]`
+*Kelompok endpoint kotak masuk persetujuan atasan dengan kalkulasi peringatan kuota pelayanan (Safe Staffing Coverage Warning).*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/leave/approvals/inbox` | Daftar permohonan bawahan disertai status *Coverage Warning* | `[AccessPermission("LeaveApproval", "View")]` | Query: `unitId`, `status`, `page`, `pageSize` | `PagedResult<LeaveApprovalInboxItemDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/leave/approvals/{id}/approve` | Menyetujui cuti (atau menyetujui dengan mitigasi jika kuota warning) | `[AccessPermission("LeaveApproval", "Approve")]` | Body: `ApproveLeaveRequestCommand` `{ mitigationNotes? }` | `LeaveApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/leave/approvals/{id}/reject` | Menolak permohonan cuti bawahan dengan alasan operasional | `[AccessPermission("LeaveApproval", "Approve")]` | Body: `{ rejectionReason: string }` | `LeaveApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/leave/approvals/{id}/revise` | Meminta revisi tanggal permohonan cuti kepada pemohon | `[AccessPermission("LeaveApproval", "Approve")]` | Body: `{ revisionNotes: string }` | `LeaveApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+#### `[Tags("HR Leave - Recall Management")]`
+*Kelompok endpoint pemanggilan kembali cuti darurat (Leave Recall) saat situasi genting rumah sakit.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/leave/recalls` | Monitoring daftar kasus pemanggilan darurat pegawai cuti | `[AccessPermission("LeaveRecall", "View")]` | Query: `unitId`, `status`, `year` | `PagedResult<LeaveRecallDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/leave/recalls` | Inisiasi pemanggilan darurat oleh Kepala Ruangan / Kepala Unit | `[AccessPermission("LeaveRecall", "Create")]` | Body: `InitiateLeaveRecallCommand` | `LeaveRecallDto` | `201`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/leave/recalls/{id}/approve` | Persetujuan resmi recall oleh HR Manager & pemulihan saldo otomatis | `[AccessPermission("LeaveRecall", "Approve")]` | Body: `{ notes? }` | `LeaveRecallExecutionResultDto` | `200`, `400`, `401`, `403`, `404`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/leave/recalls/{id}/reject` | Menolak usulan pemanggilan darurat oleh HR Manager | `[AccessPermission("LeaveRecall", "Approve")]` | Body: `{ reason: string }` | `LeaveRecallDto` | `200`, `400`, `401`, `403`, `404`, `409` |
+
+#### `[Tags("HR Leave - Reconciliations & Close")]`
+*Kelompok endpoint penutupan periode cuti sebelum payroll dan pengamanan immutabilitas status Completed.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/leave/reconciliations/pending` | Daftar cuti pending yang akan direkonsiliasi retrospektif | `[AccessPermission("LeaveReconciliation", "View")]` | Query: `periodYear`, `periodMonth` | `List<PendingLeavePayrollDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/leave/reconciliations/close-period` | Mengunci periode cuti bulanan dan serahkan snapshot ke Payroll | `[AccessPermission("LeaveReconciliation", "Close")]` | Body: `{ periodYear: int, periodMonth: int }` | `CloseLeavePeriodResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/leave/execution/{id}/reverse` | Percobaan pembalikan cuti — **Ditolak HTTP 409 bila status Completed / PayrollClosed** (`HRD-DEC-115`) | `[AccessPermission("LeaveExecution", "Reverse")]` | Body: `{ reason: string }` | `LeaveExecutionResultDto` | `400`, `401`, `403`, `409 Conflict` |

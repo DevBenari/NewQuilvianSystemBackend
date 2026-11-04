@@ -2278,3 +2278,149 @@ Tidak ada epic `OPEN DECISION` pada gelombang mana pun.
 | `HRD-DEC-107` | `EPIC HRD-37`, `FR-ATT-14`, `FR-ATT-15`, UAT-ATT-04, DoD butir 7 (Izin pulang cepat non-deductible) |
 | `HRD-DEC-108` | `EPIC HRD-38`, `FR-ATT-19` s.d. `FR-ATT-23`, UAT-ATT-05, DoD butir 9 & 10 (Period close guard & reopen rollback) |
 | `HRD-DEC-109` | `EPIC HRD-37`, `FR-ATT-17`, `FR-ATT-18`, DoD butir 8 (Presensi dinas luar ambulans/home care OnDuty) |
+
+
+---
+
+## 26. Bagian `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini menetapkan kontrak produk dan batasan rilis pertama (*MVP scope*) untuk **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit**, menyerap keputusan interview `HRD-DEC-110` s.d. `HRD-DEC-115` serta asumsi `HRD-ASM-19` s.d. `HRD-ASM-22`.
+
+### 26.1 Batas Lingkup Rilis Pertama (MVP) Cuti & Izin
+
+* **Titik Mulai (Starting Boundary):** Master data jenis cuti aktif (`MstLeaveType`), pembentukan saldo hak cuti tahunan berjalan sejumlah **12 hari kerja per tahun kalender** (atau prorata pegawai baru), dan transfer saldo sisa akhir tahun (*carry-forward*) **maksimal 6 hari kerja dengan batas kedaluwarsa 30 Juni** melalui pencatatan buku besar mutasi saldo (`TrxLeaveBalanceLedger`).
+* **Titik Akhir (Ending Boundary):** Pengajuan cuti mandiri ESS disetujui atasan langsung dengan evaluasi kuota pelayanan (*Safe Staffing Coverage Warning*), integrasi pengosongan shift ke Roster 06 (`S-B4`), verifikasi surat sakit dokter ber-SIP berprivasi medis K3RS, mekanisme pemanggilan dinas darurat (*Leave Recall*) yang memulihkan saldo otomatis, rekonsiliasi retrospektif saat cut-off payroll, serta penguncian status *Completed* yang menutup celah audit `/reverse` (`HRD-DEC-115`).
+
+### 26.2 Pemetaan Kemampuan As-Is ke To-Be
+
+| Domain Kemampuan | Kondisi As-Is (Kode Lama) | Target To-Be (Slice `S-B2`) | Disposisi |
+| --- | --- | --- | :---: |
+| Buku Besar Mutasi Saldo | Saldo disimpan sebagai total akumulasi agregat tanpa rincian mutasi atomik | Pembukuan mutasi saldo kredit/debit via `TrxLeaveBalanceLedger` dengan audit rujukan | `MISSING / NEW` |
+| Batasan Carry-Forward | Belum ada pemotongan otomatis batas 6 hari dan belum ada scheduler kedaluwarsa 30 Juni | Kuota sisa bawaan dibatasi max 6 hari dan otomatis hangus per 30 Juni (`HRD-DEC-110`) | `MISSING / NEW` |
+| Validasi Kuota Layanan Unit | Pengajuan cuti tidak membaca jadwal dinas shift unit 24/7 di modul 06 | Notifikasi *Safe Staffing Coverage Warning* pada Approval Inbox Kepala Unit (`HRD-DEC-111`) | `MISSING / NEW` |
+| Verifikasi Surat Sakit & Privasi | Surat sakit diunggah bebas dan diagnosa klinis dapat terbaca atasan | Sakit $\ge 2$ hari wajib surat dokter ber-SIP; diagnosa medis dimaskir demi privasi K3RS (`HRD-DEC-112`) | `EXTEND` |
+| Alur Recall Darurat | Endpoint recall ada namun tanpa alur persetujuan HR Manager yang terkunci | Inisiasi Kepala Ruangan wajib disetujui HR Manager, saldo sisa pulih otomatis (`HRD-DEC-113`) | `EXTEND` |
+| Rekonsiliasi Payroll Retrospektif | Cuti pending memotong gaji atau memicu inkonsistensi closing payroll | Cuti pending tidak memotong gaji; rekonsiliasi dilakukan retrospektif bulan depan (`HRD-DEC-114`) | `MISSING / NEW` |
+| Penguncian Cuti Selesai | Endpoint `/reverse` terbuka tanpa guard status (`HRD-Q-35`) | Guard status HTTP 409 menolak pembalikan cuti `Completed`; koreksi via HR Adjustment (`HRD-DEC-115`) | `REPAIR` |
+
+### 26.3 Rincian Epic & Kebutuhan Fungsional (Functional Requirements)
+
+#### `EPIC HRD-39`: Manajemen Saldo Cuti Tahunan, Carry-Forward & Buku Besar Mutasi Saldo
+- `FR-LEV-01`: Pegawai berhak atas kuota cuti tahunan sejumlah 12 hari kerja per tahun kalender yang dihitung prorata bagi pegawai baru (`HRD-DEC-110`). `[EXISTING / REUSE]`
+- `FR-LEV-02`: Sistem mencatat setiap penambahan, pengurangan, dan pembatalan saldo dalam buku besar transaksi `TrxLeaveBalanceLedger` (`HRD-DEC-110`). `[MISSING / NEW]`
+- `FR-LEV-03`: Scheduler akhir tahun (31 Desember) otomatis memindahkan sisa cuti berjalan ke saldo bawaan tahun berikutnya maksimal 6 hari kerja (`HRD-DEC-110`). `[MISSING / NEW]`
+- `FR-LEV-04`: Sisa saldo cuti di atas 6 hari kerja pada akhir tahun otomatis dihanguskan dengan transaksi `Forfeiture` (`HRD-DEC-110`). `[MISSING / NEW]`
+- `FR-LEV-05`: Scheduler tengah tahun (30 Juni pukul 23:59:59 WIB) otomatis menghanguskan sisa kuota saldo carry-forward yang belum digunakan (`HRD-DEC-110`). `[MISSING / NEW]`
+
+#### `EPIC HRD-40`: Pengajuan Cuti ESS, Validasi Kuota Layanan (*Safe Staffing Coverage Warning*) & Persetujuan Atasan
+- `FR-LEV-06`: Pegawai dapat mengajukan permohonan cuti tahunan secara mandiri melalui portal ESS dengan memilih rentang tanggal kerja efektif (`HRD-DEC-110`). `[EXISTING / REUSE]`
+- `FR-LEV-07`: Pegawai dapat memilih opsi cuti setengah hari (*Half-Day Leave*) dengan pemotongan saldo tepat 0.5 hari kerja pada sesi Pagi atau Siang/Sore (`HRD-ASM-20`). `[MISSING / NEW]`
+- `FR-LEV-08`: Sistem otomatis menolak submit permohonan cuti bila kuota saldo aktif pegawai tidak mencukupi durasi yang diajukan (`LEV-B1`). `[EXISTING / REUSE]`
+- `FR-LEV-09`: Saat permohonan cuti diajukan, sistem mengevaluasi ketersediaan tenaga unit pada jadwal dinas `S-B4`; bila jumlah staf bertugas berada di bawah rasio minimal aman, sistem memunculkan banner *Safe Staffing Coverage Warning* pada Approval Inbox Kepala Ruangan (`HRD-DEC-111`). `[MISSING / NEW]`
+- `FR-LEV-10`: Kepala Ruangan dapat menyetujui permohonan cuti berindikator kuota kritis dengan memilih aksi *Approve with Mitigation* serta mencatat mitigasi perawat pengganti (`HRD-DEC-111`). `[MISSING / NEW]`
+- `FR-LEV-11`: Pegawai dapat membatalkan permohonan cuti yang telah disetujui sebelum tanggal mulai berjalan (*Pre-Leave Cancellation*), yang secara otomatis memulihkan saldo 100% ke buku besar (`HRD-ASM-21`). `[EXISTING / REUSE]`
+
+#### `EPIC HRD-41`: Tata Kelola Cuti Sakit, Verifikasi Surat Keterangan Dokter Ber-SIP & Perlindungan Privasi Medis Staf
+- `FR-LEV-12`: Pegawai yang mengalami sakit dapat mengajukan izin sakit mandiri 1 hari kerja melalui ESS dengan melampirkan surat pernyataan diri (`HRD-DEC-112`). `[EXISTING / REUSE]`
+- `FR-LEV-13`: Pengajuan cuti sakit 2 hari kerja berturut-turut atau lebih wajib mengunggah berkas pindaian Surat Keterangan Sakit resmi dokter ber-SIP sah (`HRD-DEC-112`). `[MISSING / NEW]`
+- `FR-LEV-14`: Sistem memvalidasi kelengkapan metadata surat dokter (nama dokter pemeriksa, nomor SIP, nama faskes penerbit, tanggal mulai dan selesai istirahat) sebelum form dapat disubmit (`HRD-DEC-112`). `[MISSING / NEW]`
+- `FR-LEV-15`: Diagnosa klinis penyakit pegawai dimaskir dari atasan langsung; atasan hanya melihat status keabsahan surat dokter dan durasi istirahat demi kepatuhan privasi K3RS (`HRD-DEC-112`). `[MISSING / NEW]`
+
+#### `EPIC HRD-42`: Penanganan Situasi Darurat Rumah Sakit (*Leave Recall*) & Pemulihan Hak Cuti Otomatis
+- `FR-LEV-16`: Kepala Ruangan atau Kepala Instalasi dapat menginisiasi pemanggilan kembali pegawai yang sedang cuti aktif (*Leave Recall*) saat terjadi kondisi darurat RS (KLB, bencana, lonjakan pasien kritis) (`HRD-DEC-113`). `[EXTEND]`
+- `FR-LEV-17`: Permohonan leave recall wajib memperoleh persetujuan administratif resmi dari HR Manager di sistem sebelum dapat dieksekusi (`HRD-DEC-113`, menutup `HRD-Q-36`). `[MISSING / NEW]`
+- `FR-LEV-18`: Saat persetujuan recall diberikan oleh HR Manager, sistem secara otomatis menghitung sisa hari cuti yang belum dijalankan dan memulihkannya ke saldo pegawai dengan transaksi `RecallRestore` pada buku besar (`HRD-DEC-113`). `[MISSING / NEW]`
+- `FR-LEV-19`: Eksekusi recall secara otomatis mengirimkan event pemulihan jadwal shift pegawai ke Roster 06 (`INT-HR-46`) agar siap dijadwalkan kembali tanpa penalti absensi (`HRD-DEC-113`). `[MISSING / NEW]`
+- `FR-LEV-20`: Seluruh riwayat pemanggilan dinas darurat terdokumentasi dalam jejak audit kepatuhan ketenagakerjaan rumah sakit (`HRD-DEC-113`). `[MISSING / NEW]`
+
+#### `EPIC HRD-43`: Rekonsiliasi Akhir Cuti Penggajian Retrospektif, Immutabilitas Cuti Selesai & Penutupan Celah `/reverse`
+- `FR-LEV-21`: Permohonan cuti yang masih menggantung (*WaitingApproval*) pada tanggal cut-off payroll tidak memotong hak gaji pegawai pada bulan berjalan (`HRD-DEC-114`). `[MISSING / NEW]`
+- `FR-LEV-22`: Permohonan cuti yang baru disetujui setelah tanggal cut-off payroll otomatis ditandai `IsPendingPayrollReconciliation = true` untuk diperhitungkan penyesuaiannya secara retrospektif pada payroll bulan berikutnya (`HRD-DEC-114`). `[MISSING / NEW]`
+- `FR-LEV-23`: Seluruh permohonan cuti yang telah selesai dijalani (*status: Completed*) dan telah ditutup dalam periode payroll berstatus *Immutable* dan ditolak keras bila dipanggil via endpoint `/reverse` (HTTP 409 Conflict per `HRD-DEC-115` menutup `HRD-Q-35`). `[REPAIR]`
+- `FR-LEV-24`: Koreksi kesalahan data cuti historis masa lampau hanya dapat dilakukan oleh HR Manager melalui transaksi penyesuaian saldo resmi `TrxLeaveAdjustment` dengan kewajiban mengisi nomor dokumen audit dan alasan tertulis (`HRD-DEC-115`). `[EXTEND]`
+- `FR-LEV-25`: Penutupan periode rekonsiliasi cuti bulanan menghasilkan potret snapshot terkunci (*read-only*) untuk diserahkan ke Sub-Modul 10 Payroll (`HRD-DEC-114`). `[MISSING / NEW]`
+
+### 26.4 Skenario UAT Slice `S-B2`
+
+#### Skenario UAT-LEV-01: Alokasi Saldo 12 Hari, Carry-Forward Max 6 Hari & Kedaluwarsa 30 Juni (Jalur Berhasil)
+- **Aktor:** Budi (Staf Administrasi) dan HR Leave Scheduler.
+- **Langkah:**
+  1. Pada 1 Januari 2026, Budi memiliki sisa cuti tahun 2025 sebanyak 8 hari.
+  2. Scheduler akhir tahun berjalan: sistem membatasi saldo bawaan (*carry-forward*) maksimal 6 hari kerja, dan mencatat sisa 2 hari sebagai `Forfeiture` (Hangus) di `TrxLeaveBalanceLedger`. Budi juga menerima hak baru 2026 sebanyak 12 hari (Total saldo dapat dipakai = 18 hari).
+  3. Hingga tanggal 30 Juni 2026, Budi hanya menggunakan 4 hari dari kuota carry-forward (tersisa 2 hari bawaan belum terpakai).
+  4. Pada 30 Juni 2026 pukul 23:59:59 WIB, scheduler tengah tahun berjalan.
+- **Hasil yang Diharapkan:** Sistem otomatis menghanguskan 2 hari saldo bawaan yang tersisa (`CarryForwardForfeiture`). Saldo Budi per 1 Juli 2026 kembali murni sebesar sisa hak tahun 2026 (12 hari).
+
+#### Skenario UAT-LEV-02: Pengajuan Cuti ESS dengan Safe Staffing Coverage Warning (Jalur Peringatan & Mitigasi)
+- **Aktor:** Suster Siti (Perawat Rawat Inap) dan Ibu Ratna (Kepala Ruangan).
+- **Langkah:**
+  1. Siti mengajukan cuti tahunan tanggal 15–16 November 2026 melalui ESS.
+  2. Roster terbit unit menunjukkan bahwa pada shift pagi 15 November, ada 4 perawat bertugas (standar minimal aman: 4 perawat). Jika Siti cuti, staf bertugas tersisa 3 orang.
+  3. Sistem memunculkan banner oranye pada Approval Inbox Ibu Ratna: *"Coverage Warning: Tenaga dinas tersisa 3 orang (di bawah kuota minimal 4 orang)"*.
+  4. Ibu Ratna berkoordinasi dengan perawat cadangan (Suster Maya) untuk bertukar shift, lalu menekan tombol **Approve with Mitigation** dan mengisi catatan: *"Disetujui, digantikan Suster Maya pada shift pagi 15 Nov"*.
+- **Hasil yang Diharapkan:** Permohonan cuti Siti berstatus `Approved`. Audit trail mencatat persetujuan dengan status mitigasi ketersediaan staf lengkap beserta nama perawat pengganti.
+
+#### Skenario UAT-LEV-03: Pengajuan Cuti Sakit $\ge 2$ Hari & Perlindungan Privasi Medis K3RS (Jalur Privasi Medis)
+- **Aktor:** Anton (Radiografer), Pak Heru (Koordinator Penunjang Medis), dan dr. Linda (Dokter K3RS).
+- **Langkah:**
+  1. Anton sakit demam berdarah dan mengajukan cuti sakit 3 hari (10–12 November) via ESS.
+  2. Sistem mewajibkan Anton mengunggah berkas Surat Keterangan Sakit dokter resmi berstempel RS dan nomor SIP dokter.
+  3. Pak Heru (atasan langsung) membuka kotak masuk approval: Pak Heru hanya dapat melihat durasi istirahat 3 hari, nama Klinik Sehat, dan SIP dokter penerbit, sementara diagnosa medis disamarkan (*Masked: Terlindungi Privasi Medis*). Pak Heru menyetujui izin istirahat Anton.
+  4. dr. Linda (Tim K3RS / HR Admin Medis) membuka layar verifikasi kesehatan kerja dan dapat meninjau berkas medis asli untuk tindak lanjut K3RS.
+- **Hasil yang Diharapkan:** Cuti sakit Anton sah disetujui, hak saldo cuti tahunan Anton tidak berkurang (karena jenis cuti sakit non-deductible), dan kerahasiaan diagnosa penyakit terlindungi dari atasan langsung.
+
+#### Skenario UAT-LEV-04: Pemanggilan Cuti Darurat (Leave Recall) & Pemulihan Saldo Otomatis (Jalur Darurat RS)
+- **Aktor:** Suster Dewi (Perawat ICU), Pak Joko (Kepala Ruangan ICU), dan Ibu Susan (HR Manager).
+- **Langkah:**
+  1. Dewi sedang menjalani cuti tahunan selama 5 hari kerja (10–14 November). Saldo cuti Dewi telah terpotong 5 hari.
+  2. Pada tanggal 12 November terjadi bencana kecelakaan massal, ICU membutuhkan tambahan perawat mahir ventilator segera.
+  3. Pak Joko menginisiasi **Leave Recall** di sistem untuk memanggil Dewi kembali bertugas mulai tanggal 13 November (sisa cuti 2 hari batal dinikmati).
+  4. Permohonan recall masuk ke persetujuan Ibu Susan (HR Manager). Ibu Susan menyetujui recall darurat tersebut.
+- **Hasil yang Diharapkan:** Sistem otomatis menerbitkan SK recall, memposting transaksi kredit `RecallRestore` sebesar +2 hari ke `TrxLeaveBalanceLedger` Dewi, dan jadwal dinas Dewi di Roster 06 tanggal 13–14 November berubah menjadi dinas aktif (*Scheduled*) tanpa penalti keterlambatan atau mangkir.
+
+#### Skenario UAT-LEV-05: Penguncian Immutabilitas Cuti Selesai & Penutupan Celah `/reverse` (Jalur Integritas Audit)
+- **Aktor:** Doni (HR Officer) dan Pak Tono (HR Manager).
+- **Langkah:**
+  1. Permohonan cuti Ahmad pada bulan Oktober telah berstatus `Completed` dan periode payroll Oktober telah berstatus `Closed`.
+  2. Doni mencoba mengirimkan request HTTP `POST /api/v1/corporate/human-resource/leave/execution/ahm-01/reverse` untuk membatalkan cuti Ahmad yang sudah lampau.
+  3. Sistem menolak pemanggilan tersebut dengan kode respon `409 Conflict`: *"Operasi ditolak: Permohonan cuti telah Completed dan terkunci dalam periode penutupan payroll. Pembatalan bebas dilarang (HRD-DEC-115)"*.
+  4. Setelah diverifikasi ada audit rekam medis resmi, Pak Tono (HR Manager) membuka `LeaveAdjustmentController`, menginput nomor SK Audit `AUD-2026-HR-089`, dan menyesuaikan saldo Ahmad melalui jalur audit resmi.
+- **Hasil yang Diharapkan:** Celah bypass pembatalan cuti lampau berhasil diblokir total, konsistensi penggajian terjaga, dan setiap penyesuaian memiliki bukti nomor dokumen audit yang valid.
+
+### 26.5 Definition of Done (DoD) Slice `S-B2`
+
+| No | Kriteria Selesai (DoD) | Bukti Pengujian |
+| :---: | --- | --- |
+| 1 | Seluruh transaksi penambahan, pemakaian, pembatalan, dan recall saldo cuti dicatat pada `TrxLeaveBalanceLedger` | UAT-LEV-01 & verifikasi tabel ledger database |
+| 2 | Scheduler akhir tahun membatasi carry-forward maksimal 6 hari kerja dan menghanguskan sisanya | UAT-LEV-01 & unit test runner carry-forward |
+| 3 | Scheduler tengah tahun (30 Juni) otomatis menghanguskan saldo bawaan carry-forward yang belum terpakai | UAT-LEV-01 & verifikasi saldo per 1 Juli |
+| 4 | Pengajuan cuti staf klinis memicu evaluasi kuota ketersediaan staf (*Safe Staffing Coverage Warning*) ke Roster 06 | UAT-LEV-02 & verifikasi payload warning approval |
+| 5 | Kepala Ruangan dapat menyetujui cuti kritis dengan aksi *Approve with Mitigation* dan catatan staf pengganti | UAT-LEV-02 & verifikasi audit trail persetujuan |
+| 6 | Pengajuan cuti sakit $\ge 2$ hari menolak submit tanpa unggah surat keterangan dokter ber-SIP | UAT-LEV-03 & pengujian form validasi |
+| 7 | Diagnosa medis surat sakit dimaskir dari atasan langsung dan hanya dapat diakses oleh K3RS / HR Medis | UAT-LEV-03 & verifikasi otorisasi API dokumen |
+| 8 | Leave recall darurat wajib melalui persetujuan HR Manager dan otomatis memulihkan saldo sisa ke ledger | UAT-LEV-04 & verifikasi posting transaksi recall restore |
+| 9 | Permohonan cuti pending saat cut-off payroll direkonsiliasi secara retrospektif pada payroll berikutnya | Verifikasi snapshot data rekonsiliasi payroll |
+| 10 | Endpoint `/reverse` mengembalikan HTTP 409 Conflict bila cuti telah berstatus Completed / Payroll Closed | UAT-LEV-05 & integration test guard reverse |
+
+### 26.6 Urutan Pengiriman Gelombang MVP
+
+| Gelombang | Cakupan Kemampuan | Epic Terkait | Prasyarat |
+| --- | --- | --- | --- |
+| `MVP-24` | Buku besar saldo cuti `TrxLeaveBalanceLedger`, pembentukan hak 12 hari, aturan carry-forward 6 hari, dan scheduler kedaluwarsa 30 Juni | `EPIC HRD-39` | Sub-Modul 07 (`MVP-21`–`MVP-23`) selesai |
+| `MVP-25` | Formulir pengajuan cuti ESS (half-day 0.5 hari), evaluasi kuota *Safe Staffing Coverage Warning*, approval atasan, dan alur cuti sakit privasi dokter K3RS | `EPIC HRD-40`, `EPIC HRD-41` | `MVP-24` selesai & Sub-Modul 06 terintegrasi |
+| `MVP-26` | Prosedur *Leave Recall* darurat (Kepala Unit & HR Manager), pemulihan saldo otomatis, rekonsiliasi retrospektif payroll, dan penutupan celah `/reverse` | `EPIC HRD-42`, `EPIC HRD-43` | `MVP-25` selesai |
+
+### 26.7 Traceability Keputusan ke PRD
+
+| Keputusan / Asumsi | Epic & Kriteria DoD |
+| --- | --- |
+| `HRD-DEC-110` | `EPIC HRD-39`, `FR-LEV-01` s.d. `FR-LEV-05`, UAT-LEV-01, DoD butir 1, 2, 3 (Saldo 12 hari & carry-forward 6 hari s.d. 30 Juni) |
+| `HRD-DEC-111` | `EPIC HRD-40`, `FR-LEV-09`, `FR-LEV-10`, UAT-LEV-02, DoD butir 4, 5 (Safe Staffing Coverage Warning) |
+| `HRD-DEC-112` | `EPIC HRD-41`, `FR-LEV-12` s.d. `FR-LEV-15`, UAT-LEV-03, DoD butir 6, 7 (Cuti sakit $\ge 2$ hari surat dokter & privasi medis) |
+| `HRD-DEC-113` | `EPIC HRD-42`, `FR-LEV-16` s.d. `FR-LEV-20`, UAT-LEV-04, DoD butir 8 (Leave recall darurat & pemulihan saldo otomatis) |
+| `HRD-DEC-114` | `EPIC HRD-43`, `FR-LEV-21`, `FR-LEV-22`, `FR-LEV-25`, DoD butir 9 (Rekonsiliasi retrospektif payroll) |
+| `HRD-DEC-115` (`HRD-Q-35`) | `EPIC HRD-43`, `FR-LEV-23`, `FR-LEV-24`, UAT-LEV-05, DoD butir 10 (Penguncian immutabilitas cuti selesai & blokir /reverse) |
+| `HRD-ASM-19` | `FR-LEV-06` (Cuti bersama mengurangi hak tahunan) |
+| `HRD-ASM-20` | `EPIC HRD-40`, `FR-LEV-07` (Cuti setengah hari half-day 0.5 hari kerja) |
+| `HRD-ASM-21` | `EPIC HRD-40`, `FR-LEV-11` (Pre-leave cancellation pemulihan saldo 100%) |
+| `HRD-ASM-22` | Batasan validasi durasi berurutan max 12 hari kerja |

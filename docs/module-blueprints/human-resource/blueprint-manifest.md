@@ -6,44 +6,45 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 21
+revision: 24
 status: DRAFT
 design_readiness: PARTIAL
-current_phase: HRD-PH-SLICE-B1-DESIGNED
+current_phase: HRD-PH-SLICE-B2-PLANNED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-11-04T04:46:11Z
-last_verified_at: 2026-11-04T04:46:11Z
+updated_at: 2026-11-04T09:22:00Z
+last_verified_at: 2026-11-04T09:22:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
 backend_source_sha_current: 8b17b75a
 frontend_source_sha: 44990b3d3
 frontend_source_sha_previous: cfa82fbb3
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: f4555a7993f475d5d6df3293955b0a6f3b319158c6a522d0fdcbb8f004d0f3cd
-decision_revision: 21
+input_revision_hash: f42200afe660ff026e49c278e48bde4fe3e7259fbff7c0c5091b6d8cabf052da
+decision_revision: 22
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.3
 capability_map_hash: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-contract_versions: v11
-contract_status_s_b1: draft
+contract_versions: v12
+contract_status_s_b1: approved
+contract_status_s_b2: approved
 contract_status_s_b4: approved
 contract_status_s_d1: approved
 contract_status_s_d2: approved
 contract_status_s_c4_onb: approved
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: 8972054d6371bde428768ed5669705f4838b6d90dd6159e4cdee8b52ab885329
+  00-interview-decisions.md: f42200afe660ff026e49c278e48bde4fe3e7259fbff7c0c5091b6d8cabf052da
   01-existing-capability-map.md: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-  02-backend-architecture.md: 59140431578fa4847879b3dcad099023c536c069dcd3d94d86a8b3323e17e7cd
-  03-frontend-architecture.md: eab15742f2edaf59df97aa44c5c219ee078f3aa6a8a7ea246f8fbb5b897268a5
-  04-prd-to-mvp.md: 26a7d73977fc1b67a26762dab1fcedacc49d0aa86eb60ef2b076ead7f679a571
-  data/data-dictionary.md: cd31c544d4971febdf78496ff17d61eaaa9e58abf46193b9772850a867a749bc
-  contracts/api-contract.md: 89ec7e37bec170294328ee4dae25dc580eb9c4fd4c1dc8c8c39edc616946e0b5
-  contracts/state-transition-matrix.md: c5e5e72544f2eaad65894f71afc2b0732809aff36ba9c2ccedafe93ee8b813c6
-  contracts/validation-matrix.md: a661b1c00c7bbce5adabad1d0d72caf8f09278d93d8e9e43c373dd906ce63c2d
-  contracts/integration-contract.md: 57ba7822fb8eae6e6fb66048b8c6b781f948cc0f8376682ca33ef9360026bf65
-  contracts/permission-audit-matrix.md: e950dad0bdb548d7afd57b5b4a51ef8a542907fd187d119d1e2e9189555e37b4
-  testing/acceptance-test-matrix.md: b126b68b4dae9c39697b0653a59dc2000682689a864e54cd5c026155122b6c35
+  02-backend-architecture.md: 90f7a1c4b7940d74468422e143ec1ee2387488c1fa14046f566c0e8aa2164d07
+  03-frontend-architecture.md: dd55750adf5db851778534214ea524c02b6a9468275995823d9178ca055f3f4d
+  04-prd-to-mvp.md: 618865d0f5915a0ffcaf4fd5c77c491b0d4e5ae6d261de203063b15f9181066b
+  data/data-dictionary.md: 414bacc7ef62380b1b262fbaa0524ff8959f5ad690ddc7411a2c0f4c7193e363
+  contracts/api-contract.md: 505526695fc138c61b38b244c7f81f97207bb69507d3915387fbc29002f818d0
+  contracts/state-transition-matrix.md: 95dd8587ca874addc32d71c39f3cb8f41e120466ceea3ca6f57ba8fefd59c1ce
+  contracts/validation-matrix.md: 5173e5a6b265fa142da46ab0f0e0f873c9e9bb4308c5373fa09bddb49027a1a6
+  contracts/integration-contract.md: b8aa74bf300f7dc358d533f5d0d9b00256c630ebb336c3d4a8ad5dd529a1670d
+  contracts/permission-audit-matrix.md: 9c6eb8dc009d97baa997f2ab95f4656ef8ef397e2c7c238e64d29c6022b630da
+  testing/acceptance-test-matrix.md: 86562d239cac833f21e18d5b36b38a28e5d4ee171adbeeb43e35f0ec23b033a1
   flowcharts/00-alur-utama.md: 9a2af6abf27b896179af26191ed8ad255505385e3b5839ed12014e4023f33af3
   flowcharts/penjadwalan-kerja.md: 7c9a0560d62261f1a938192e7bbdd5b4dd4ccb7f89a025e5c7bdf6e1ed3d01ef
   flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
@@ -53,6 +54,7 @@ artifact_hashes:
   flowcharts/pendampingan-klinis.md: bb00b4389f24c73ac039ae0714a8b409cf6d697aa4c94ea9a6177be8438d8f4c
   flowcharts/siklus-kontrak.md: 11a3cae04a379e9295a8682a183a7633b0dfcb568156f4824c8eb6b8cdd9e6b9
   flowcharts/batch-data-awal-kontrak.md: 24e97a41134d7c21b8f729008ca50e287f2e3acbf51479c84c82d0777ec77b5b
+  flowcharts/cuti-dan-perizinan.md: 7147237195cc71f5c310739bb7560e6db65c3fc2ee8d73b929ec41d88425e87e
 active_dependency_ids:
   - HRD-DEP-001
   - HRD-DEP-002
@@ -61,8 +63,50 @@ active_dependency_ids:
   - HRD-DEP-005
   - HRD-DEP-006
   - HRD-DEP-007
-active_roadmap_revision: 8
+active_roadmap_revision: 10
 approvals:
+  - scope: S-B2
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-04
+    owner_answer: "Opsi A untuk HRD-DEC-110 s.d. HRD-DEC-115; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 21
+      - 03-frontend-architecture.md bagian 17
+      - 04-prd-to-mvp.md bagian 26
+      - data/data-dictionary.md bagian 13
+      - contracts/* bagian S-B2 (kontrak v12)
+      - testing/acceptance-test-matrix.md bagian 20
+      - flowcharts/cuti-dan-perizinan.md
+      - roadmap/* revisi 10 (BE-HRD-117 s.d. BE-HRD-130, FE-HRD-102 s.d. FE-HRD-115)
+    not_covered: "bagian slice lain; rekam medis staf milik K3RS Sub-modul 18"
+  - scope: S-B1
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-04
+    owner_answer: "Opsi A untuk HRD-DEC-104 s.d. HRD-DEC-109; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 20
+      - 03-frontend-architecture.md bagian 16
+      - 04-prd-to-mvp.md bagian 25
+      - data/data-dictionary.md bagian 12
+      - contracts/* bagian S-B1 (kontrak v11)
+      - testing/acceptance-test-matrix.md bagian 19
+      - flowcharts/presensi-dan-kehadiran.md
+      - roadmap/* revisi 9 (BE-HRD-104 s.d. BE-HRD-116, FE-HRD-088 s.d. FE-HRD-101)
+    not_covered: "bagian slice lain; HRD-DEC-005 dan HRD-DEC-010 milik Komite Medik dan K3RS"
+  - scope: S-B1
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-04
+    owner_answer: "Opsi A untuk HRD-DEC-104 s.d. HRD-DEC-109; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 20
+      - 03-frontend-architecture.md bagian 16
+      - 04-prd-to-mvp.md bagian 25
+      - data/data-dictionary.md bagian 12
+      - contracts/* bagian S-B1 (kontrak v11)
+      - testing/acceptance-test-matrix.md bagian 19
+      - flowcharts/presensi-dan-kehadiran.md
+      - roadmap/* revisi 9 (BE-HRD-104 s.d. BE-HRD-116, FE-HRD-088 s.d. FE-HRD-101)
+    not_covered: "bagian slice lain; HRD-DEC-005 dan HRD-DEC-010 milik Komite Medik dan K3RS"
   - scope: S-B4
     approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
     approved_at: 2026-11-04

@@ -518,13 +518,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             var profileId = order.WorkforceProfileId;
             var effectiveDate = order.EffectiveDate.Date;
 
+            var activeOrg = await _dbContext.WfpOrganizationAssignments
+                .Where(x => x.WorkforceProfileId == profileId && x.IsPrimary && x.IsActive && !x.IsDelete)
+                .FirstOrDefaultAsync(ct);
+
+            var activePos = await _dbContext.WfpPositionAssignments
+                .Where(x => x.WorkforceProfileId == profileId && x.IsPrimary && x.IsActive && !x.IsDelete)
+                .FirstOrDefaultAsync(ct);
+
             // 1. Organization Assignment
             if (order.TargetOrganizationUnitId.HasValue || order.TargetDepartmentId.HasValue)
             {
-                var activeOrg = await _dbContext.WfpOrganizationAssignments
-                    .Where(x => x.WorkforceProfileId == profileId && x.IsPrimary && x.IsActive && !x.IsDelete)
-                    .FirstOrDefaultAsync(ct);
-
                 if (activeOrg != null)
                 {
                     activeOrg.EffectiveEndDate = effectiveDate.AddDays(-1);
@@ -555,10 +559,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             // 2. Position Assignment
             if (order.TargetPositionId.HasValue)
             {
-                var activePos = await _dbContext.WfpPositionAssignments
-                    .Where(x => x.WorkforceProfileId == profileId && x.IsPrimary && x.IsActive && !x.IsDelete)
-                    .FirstOrDefaultAsync(ct);
-
                 if (activePos != null)
                 {
                     activePos.EffectiveEndDate = effectiveDate.AddDays(-1);
@@ -650,6 +650,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     CreateDateTime = DateTime.UtcNow
                 };
                 _dbContext.WfpSalaryAssignments.Add(newSalary);
+            }
+
+            // 5. Employment History (Pencatatan riwayat transisi dari SK - ISSUE 06)
+            var existingHistory = await _dbContext.WfpEmploymentHistories
+                .FirstOrDefaultAsync(x => x.ReferenceType == "PersonnelActionOrder" && x.ReferenceId == order.Id && !x.IsDelete, ct);
+
+            if (existingHistory == null)
+            {
+                var history = new WfpEmploymentHistory
+                {
+                    Id = Guid.NewGuid(),
+                    WorkforceProfileId = profileId,
+                    HistoryType = order.ActionCategory ?? "StatusChange",
+                    OldPositionId = activePos?.PositionId,
+                    NewPositionId = order.TargetPositionId ?? activePos?.PositionId,
+                    OldDepartmentId = activeOrg?.DepartmentId,
+                    NewDepartmentId = order.TargetDepartmentId ?? activeOrg?.DepartmentId,
+                    OldOrganizationUnitId = activeOrg?.OrganizationUnitId,
+                    NewOrganizationUnitId = order.TargetOrganizationUnitId ?? activeOrg?.OrganizationUnitId,
+                    EffectiveDate = effectiveDate,
+                    Reason = order.ReasonText,
+                    ReferenceType = "PersonnelActionOrder",
+                    ReferenceId = order.Id,
+                    ApprovedByUserId = order.ApprovedByUserId ?? userId,
+                    ApprovedAt = order.ApprovedAt ?? DateTime.UtcNow,
+                    IsActive = true,
+                    CreateBy = userId,
+                    CreateDateTime = DateTime.UtcNow
+                };
+                _dbContext.WfpEmploymentHistories.Add(history);
             }
         }
 

@@ -913,3 +913,47 @@ Payload logger hanya memuat `EntityId`, controller, action, dan status. Kolom be
 | `OfficialDutyRequest.Approved` | AUDIT | OfficialDutyId, ApproverWorkforceId, StartAt, EndAt, DutyCategory. |
 | `AttendancePeriod.Closed` | CRITICAL | PeriodId, ClosedByWorkforceId, ClosedAt, TotalPresent, TotalLate, TotalAbsent. |
 | `AttendancePeriod.Reopened` | **SECURITY CRITICAL** | PeriodId, ReopenedByWorkforceId, ReopenReason (wajib), RolledBackPayrollRunId, Timestamp. |
+
+
+---
+
+## 16. Bagian `S-B2` — Matriks Hak Akses dan Audit Trail Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini mendokumentasikan spesifikasi hak akses berbasis peran (*Role-Based Access Control*) dan konfigurasi pencatatan jejak audit (*Audit Trail Events*) untuk **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit**.
+
+### 16.1 Matriks Hak Akses (Permission Matrix)
+
+| Resource | Action | String Permission Persis | Peran Pengguna yang Berhak | Keterangan & Batas Operasional |
+| --- | --- | --- | --- | --- |
+| `LeaveBalance` | `ViewSelf` | `[AccessPermission("LeaveBalance", "ViewSelf")]` | Seluruh Pegawai RS | Melihat saldo cuti pribadi dan mutasi ledger mandiri |
+| `LeaveBalance` | `Manage` | `[AccessPermission("LeaveBalance", "Manage")]` | HR Leave Officer, HR Admin | Melihat saldo seluruh staf RS dan menjalankan runner kuota carry-forward |
+| `LeaveRequest` | `ViewSelf` | `[AccessPermission("LeaveRequest", "ViewSelf")]` | Seluruh Pegawai RS | Melihat riwayat pengajuan cuti pribadi |
+| `LeaveRequest` | `View` | `[AccessPermission("LeaveRequest", "View")]` | Kepala Ruangan, HR Officer, Manajer | Melihat rincian permohonan cuti bawahan atau staf unit |
+| `LeaveRequest` | `Create` | `[AccessPermission("LeaveRequest", "Create")]` | Seluruh Pegawai RS | Mengajukan cuti mandiri, half-day, dan cuti sakit |
+| `LeaveRequest` | `CancelSelf` | `[AccessPermission("LeaveRequest", "CancelSelf")]` | Seluruh Pegawai RS | Membatalkan permohonan cuti sebelum hari pelaksanaan |
+| `LeaveApproval` | `View` | `[AccessPermission("LeaveApproval", "View")]` | Kepala Ruangan, Kepala Instalasi, Manajer | Mengakses kotak masuk persetujuan cuti bawahan berindikator kuota |
+| `LeaveApproval` | `Approve` | `[AccessPermission("LeaveApproval", "Approve")]` | Kepala Ruangan, Kepala Instalasi, Manajer | Menyetujui, menyetujui dengan mitigasi, atau menolak cuti bawahan |
+| `LeaveRecall` | `View` | `[AccessPermission("LeaveRecall", "View")]` | Kepala Ruangan, HR Manager, Direktur Pelayanan | Melihat daftar kasus pemanggilan darurat staf cuti |
+| `LeaveRecall` | `Create` | `[AccessPermission("LeaveRecall", "Create")]` | Kepala Ruangan, Kepala Instalasi | Menginisiasi pemanggilan staf cuti saat darurat RS (`HRD-DEC-113`) |
+| `LeaveRecall` | `Approve` | `[AccessPermission("LeaveRecall", "Approve")]` | HR Manager | Otorisasi tunggal persetujuan pemanggilan darurat & restore saldo |
+| `LeaveAdjustment` | `Execute` | `[AccessPermission("LeaveAdjustment", "Execute")]` | HR Manager | Melakukan koreksi saldo resmi berdokumen audit (`HRD-DEC-115`) |
+| `LeaveReconciliation`| `View` | `[AccessPermission("LeaveReconciliation", "View")]` | HR Leave Officer, HR Payroll Officer | Melihat kesiapan data cuti bulanan dan cuti pending |
+| `LeaveReconciliation`| `Close`| `[AccessPermission("LeaveReconciliation", "Close")]`| HR Payroll Officer, HR Manager | Mengunci periode cuti dan menyerahkan snapshot ke Payroll |
+| `MedicalCertificate` | `ViewConfidential` | `[AccessPermission("MedicalCertificate", "ViewConfidential")]` | Dokter Pemeriksa K3RS, HR Medis | Mengakses diagnosa penyakit staf dan berkas rekam medis K3RS (`HRD-DEC-112`) |
+| `LeaveExecution` | `Reverse` | `[AccessPermission("LeaveExecution", "Reverse")]` | System Admin (Guarded) | **DITOLAK OTOMATIS** jika status `Completed` / `PayrollClosed` (`HRD-DEC-115`) |
+
+### 16.2 Matriks Jejak Audit Trail (Audit Trail Events)
+
+| Kode Event Audit | Tingkat Kepentingan | Data yang Dicatat | Pemicu Peristiwa |
+| --- | :---: | --- | --- |
+| `LEAVE_REQUEST_SUBMITTED` | `INFO` | `WorkforceId`, `LeaveTypeId`, `StartDate`, `EndDate`, `DurationDays`, `IsHalfDay` | Pegawai submit permohonan cuti ESS |
+| `LEAVE_REQUEST_APPROVED` | `INFO` | `LeaveRequestId`, `ApprovedByWorkforceId`, `HasStaffingWarning = false` | Atasan menyetujui cuti berkuota aman |
+| `LEAVE_REQUEST_APPROVED_WITH_MITIGATION` | `WARNING` | `LeaveRequestId`, `ApprovedByWorkforceId`, `CoverageWarningDetails`, `MitigationNotes` | Atasan menyetujui cuti dengan mitigasi kuota staf kritis |
+| `LEAVE_REQUEST_REJECTED` | `INFO` | `LeaveRequestId`, `RejectedByWorkforceId`, `RejectionReason` | Atasan menolak permohonan cuti |
+| `LEAVE_PRE_CANCELLED` | `INFO` | `LeaveRequestId`, `WorkforceId`, `RestoredDays`, `LedgerTransactionId` | Pembatalan mandiri sebelum hari-H memulihkan saldo 100% |
+| `LEAVE_RECALL_INITIATED` | `WARNING` | `LeaveRequestId`, `RequestedByHeadUnitId`, `EmergencyCategory`, `EffectiveRecallDate` | Inisiasi recall darurat oleh Kepala Unit |
+| `LEAVE_RECALL_APPROVED` | `CRITICAL` | `LeaveRecallId`, `ApprovedByHrManagerId`, `RestoredDays`, `LedgerTransactionId` | Persetujuan resmi recall darurat oleh HR Manager |
+| `LEAVE_BALANCE_FORFEITED` | `WARNING` | `WorkforceProfileId`, `LeaveTypeId`, `ForfeitedDays`, `Reason: CarryForwardExpiry` | Scheduler menghanguskan sisa bawaan per 30 Juni |
+| `LEAVE_BALANCE_ADJUSTED` | `CRITICAL` | `WorkforceProfileId`, `AdjustmentDays`, `AuditDocumentNumber`, `AdjustedByHrManagerId` | Eksekusi penyesuaian saldo resmi HR pasca-payroll |
+| `LEAVE_PERIOD_CLOSED` | `INFO` | `PeriodYear`, `PeriodMonth`, `ClosedByWorkforceId`, `TotalApprovedRequests` | Penutupan periode cuti bulanan |
+| `LEAVE_REVERSE_ATTEMPT_BLOCKED` | `SECURITY` | `LeaveRequestId`, `CallerUserId`, `AttemptedAction: /reverse`, `Reason: CompletedImmutable` | Percobaan pembalikan bebas yang digagalkan guard |

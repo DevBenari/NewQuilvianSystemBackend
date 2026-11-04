@@ -4016,3 +4016,271 @@ classDiagram
 * **Tabel Perangkat Keras / Driver Fingerprint:** Sistem tidak menyimpan data firmware/driver mesin fisik. Komunikasi data dilakukan via file log/REST API Ingestion standard.
 * **Tabel Potongan Denda Keterlambatan Finansial:** Logika pemotongan uang makan atau denda nominal rupiah adalah wewenang penuh Sub-Modul 10 (Payroll) dan Sub-Modul 09 (Overtime), bukan dihitung di modul presensi.
 * **Approval Berjenjang Khusus On-Behalf:** Koreksi yang diajukan HR atas nama pegawai tidak membuat alur persetujuan baru; persetujuan tetap mengikuti atasan langsung pegawai yang bersangkutan per `HRD-DEC-028`.
+
+
+---
+
+## 21. Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini merancang arsitektur backend target untuk **Slice `S-B2` — Administrasi Cuti & Izin Pegawai Rumah Sakit**, menyerap keputusan interview `HRD-DEC-023` (koreksi terkontrol), `HRD-DEC-024` (pemanggilan kembali), `HRD-DEC-110` (hak cuti 12 hari & carry-forward max 6 hari s.d. 30 Juni), `HRD-DEC-111` (safe staffing coverage warning), `HRD-DEC-112` (cuti sakit & privasi dokter), `HRD-DEC-113` (leave recall darurat & pemulihan saldo), `HRD-DEC-114` (rekonsiliasi retrospektif payroll), `HRD-DEC-115` (penguncian immutabilitas /reverse HRD-Q-35), serta asumsi rekayasa `HRD-ASM-19` s.d. `HRD-ASM-22`.
+
+### 21.1 Tabel Kepemilikan Data (Data Ownership Matrix)
+
+| Kelompok Data | Modul Pemilik | Dipakai di `S-B2`? | Dibuat Ulang? | Keterangan & Entitas |
+| --- | --- | :---: | :---: | --- |
+| Buku Besar Mutasi Saldo Cuti | `LeaveManagement` | Ya | **Baru (NEW)** | `TrxLeaveBalanceLedger` — mencatat mutasi saldo atomik (`Entitlement`, `CarryForward`, `Taken`, `CancellationRestore`, `RecallRestore`, `Forfeiture`, `Adjustment`). |
+| Pemanggilan Kembali Cuti Darurat | `LeaveManagement` | Ya | **Baru (NEW)** | `TrxLeaveRecallRequest` — inisiasi Kepala Ruangan saat KLB/bencana, verifikasi HR Manager, pemulihan saldo otomatis (`HRD-DEC-113`). |
+| Penyesuaian Saldo Audit HR | `LeaveManagement` | Ya | Tidak (REUSE/EXTEND) | `TrxLeaveAdjustment` — satu-satunya pintu koreksi saldo historis resmi pasca-tutup periode payroll (`HRD-DEC-115`). |
+| Permohonan Cuti & Izin | `LeaveManagement` | Ya | Tidak (EXTEND) | `WfpLeaveRequest` / `TrxLeaveRequest` — ditambahkan indikator peringatan kuota shift (`CoverageWarning`), flag privasi surat dokter K3RS, dan flag immutabilitas payroll. |
+| Master Jenis Cuti & Izin | `LeaveManagement` | Ya | Tidak (REUSE) | `MstLeaveType` — master jenis cuti (Tahunan, Sakit, Melahirkan, Ibadah, Cuti Bersama, Alasan Penting) beserta aturan pemotongan saldo. |
+| Lampiran Dokumen Surat Sakit | `LeaveManagement` | Ya | Tidak (EXTEND) | `TrxLeaveRequestAttachment` — berkas surat dokter ber-SIP resmi dengan hak akses terbatas (masking diagnosa K3RS per `HRD-DEC-112`). |
+| Roster & Jadwal Shift Staf | `SchedulingManagement` (`S-B4`) | Ya | Tidak (READ ONLY) | `TrxShiftAssignment`, `TrxRosterPeriod` — query evaluasi rasio ketersediaan staf (*Safe Staffing Coverage* `HRD-DEC-111`). |
+| Rekonsiliasi & Integrasi Payroll | `PayrollManagement` (`S-B5`) | Ya | Tidak (INTEGRASI) | `TrxLeavePayrollHandoff` — sinkronisasi penyesuaian retrospektif cuti pending yang disetujui terlambat (`HRD-DEC-114`). |
+
+### 21.2 Diagram Kelas Bounded Context Leave Management (Mermaid)
+
+```mermaid
+classDiagram
+    direction TB
+
+    class TrxLeaveBalanceLedger {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +Guid LeaveTypeId
+        +int PeriodYear
+        +string TransactionType
+        +decimal AmountDays
+        +decimal BalanceBefore
+        +decimal BalanceAfter
+        +DateTime TransactionDate
+        +Guid? ReferenceRequestId
+        +Guid? ReferenceRecallId
+        +Guid? ReferenceAdjustmentId
+        +DateTime? ExpiryDate
+        +bool IsForfeited
+        +string Notes
+    }
+
+    class WfpLeaveRequest {
+        +Guid Id
+        +string RequestNumber
+        +Guid WorkforceProfileId
+        +Guid LeaveTypeId
+        +DateOnly StartDate
+        +DateOnly EndDate
+        +decimal DurationDays
+        +bool IsHalfDay
+        +string HalfDayType
+        +string Reason
+        +string EmergencyContactPhone
+        +string EmergencyContactName
+        +LeaveRequestStatus Status
+        +bool HasStaffingCoverageWarning
+        +string CoverageWarningDetails
+        +string CoverageMitigationNotes
+        +bool IsDoctorNoteVerified
+        +string DoctorNoteFaskesName
+        +string DoctorSipNumber
+        +bool IsPendingPayrollReconciliation
+        +bool IsPayrollClosed
+        +Guid? ApprovedByWorkforceId
+        +DateTime? ApprovedAt
+    }
+
+    class TrxLeaveRecallRequest {
+        +Guid Id
+        +string RecallNumber
+        +Guid LeaveRequestId
+        +Guid WorkforceProfileId
+        +DateTime EffectiveRecallDate
+        +decimal RestoredDays
+        +string EmergencyCategory
+        +string RecallReason
+        +LeaveRecallStatus Status
+        +Guid RequestedByHeadUnitId
+        +DateTime RequestedAt
+        +Guid? ApprovedByHrManagerId
+        +DateTime? ApprovedAt
+        +string RejectionReason
+    }
+
+    class TrxLeaveAdjustment {
+        +Guid Id
+        +string AdjustmentNumber
+        +Guid WorkforceProfileId
+        +Guid LeaveTypeId
+        +decimal AdjustmentDays
+        +string Direction
+        +string AuditDocumentNumber
+        +string Reason
+        +Guid AdjustedByHrManagerId
+        +DateTime AdjustedAt
+    }
+
+    class MstLeaveType {
+        +Guid Id
+        +string TypeCode
+        +string TypeName
+        +bool IsDeductible
+        +decimal DefaultQuotaDays
+        +bool AllowCarryForward
+        +decimal MaxCarryForwardDays
+        +bool RequireMedicalCertificate
+        +int MedicalCertificateMinDays
+        +bool IsActive
+    }
+
+    class TrxLeaveRequestAttachment {
+        +Guid Id
+        +Guid LeaveRequestId
+        +string FileType
+        +string FilePath
+        +string OriginalFileName
+        +bool IsMedicalCertificate
+        +bool IsConfidentialMedical
+        +DateTime UploadedAt
+    }
+
+    WfpLeaveRequest "1" --> "*" TrxLeaveBalanceLedger : updates_balance
+    WfpLeaveRequest "1" --> "*" TrxLeaveRequestAttachment : contains
+    WfpLeaveRequest "1" --> "0..1" TrxLeaveRecallRequest : recalled_by
+    TrxLeaveAdjustment "1" --> "1" TrxLeaveBalanceLedger : creates_audit_ledger
+    MstLeaveType "1" --> "*" WfpLeaveRequest : classifies
+    MstLeaveType "1" --> "*" TrxLeaveBalanceLedger : defines
+```
+
+### 21.3 Rincian Class, Service, dan Tanggung Jawab
+
+| Nama Komponen | Tipe | Lokasi File | Status | Fungsi Utama |
+| --- | :---: | --- | :---: | --- |
+| `TrxLeaveBalanceLedger` | Model | `Areas/Corporate/HumanResource/LeaveManagement/Models/` | Baru | Entitas buku besar (*balance ledger*) untuk pencatatan mutasi kredit/debit saldo cuti secara atomik (`HRD-DEC-110`). |
+| `TrxLeaveRecallRequest` | Model | `Areas/Corporate/HumanResource/LeaveManagement/Models/` | Baru | Entitas pemanggilan kembali cuti darurat berjenjang (Kepala Unit -> HR Manager) dan pemulihan saldo otomatis (`HRD-DEC-113`). |
+| `WfpLeaveRequest` | Model | `Areas/Corporate/HumanResource/LeaveManagement/Models/` | Diperbarui | Ditambahkan kolom coverage warning, catatan mitigasi, metadata verifikasi surat dokter, dan penanda kunci payroll (`HRD-DEC-111`, `HRD-DEC-115`). |
+| `TrxLeaveAdjustment` | Model | `Areas/Corporate/HumanResource/LeaveManagement/Models/` | Diperbarui | Entitas penyesuaian saldo resmi dengan kewajiban nomor dokumen audit (`HRD-DEC-115`). |
+| `LeaveBalanceLedgerService` | Service | `Areas/Corporate/HumanResource/LeaveManagement/Services/` | Baru | Menghitung sisa saldo aktif, memvalidasi kecukupan saldo cuti, memposting transaksi akrual 12 hari, dan mengeksekusi hangus carry-forward pasca 30 Juni (`HRD-DEC-110`). |
+| `SafeStaffingCoverageGuard` | Service | `Areas/Corporate/HumanResource/LeaveManagement/Services/` | Baru | Memeriksa ketersediaan tenaga unit 24/7 ke jadwal dinas `S-B4`, menghasilkan indikator peringatan kuota (*Coverage Warning*) pada Approval Inbox (`HRD-DEC-111`). |
+| `MedicalCertificateVerificationService` | Service | `Areas/Corporate/HumanResource/LeaveManagement/Services/` | Baru | Memvalidasi keabsahan surat keterangan sakit dokter ber-SIP (>= 2 hari) dan mengelola hak akses masking privasi diagnosa medis pegawai (`HRD-DEC-112`). |
+| `LeaveRecallWorkflowService` | Service | `Areas/Corporate/HumanResource/LeaveManagement/Services/` | Baru | Mengatur alur pemanggilan dinas darurat, otorisasi HR Manager, posting `RecallRestore` pada ledger, dan pemulihan jadwal di Roster 06 (`HRD-DEC-113`). |
+| `LeavePayrollReconciliationService` | Service | `Areas/Corporate/HumanResource/LeaveManagement/Services/` | Baru | Menangani cuti pending saat cut-off payroll, menyusun snapshot rekonsiliasi retrospektif bulan berikutnya, dan mengunci cuti `Completed` dari /reverse (`HRD-DEC-114`, `HRD-DEC-115`). |
+| `LeaveExecutionProcessorService` | Service | `Areas/Corporate/HumanResource/LeaveManagement/Services/` | Diperbarui | Refaktor guard keamanan: menolak `/reverse` jika status `Completed` atau periode payroll telah `Closed` (menutup celah `HRD-Q-35`). |
+| `LeaveBalanceLedgerController` | Controller | `Areas/Corporate/HumanResource/LeaveManagement/Controllers/` | Baru | Endpoint RESTful saldo real-time, riwayat buku besar pegawai, dan penjadwalan carry-forward. |
+| `LeaveRequestWorkflowController` | Controller | `Areas/Corporate/HumanResource/LeaveManagement/Controllers/` | Diperbarui | Endpoint pengajuan mandiri ESS (half-day 0.5 hari), persetujuan atasan dengan indikator coverage warning, dan pre-leave cancellation. |
+| `LeaveRecallController` | Controller | `Areas/Corporate/HumanResource/LeaveManagement/Controllers/` | Diperbarui | Endpoint inisiasi recall oleh Kepala Unit dan persetujuan eksekusi oleh HR Manager. |
+| `LeaveAdjustmentController` | Controller | `Areas/Corporate/HumanResource/LeaveManagement/Controllers/` | Diperbarui | Endpoint penyesuaian saldo resmi HR berdokumen audit resmi. |
+| `LeaveFinalReconciliationController` | Controller | `Areas/Corporate/HumanResource/LeaveManagement/Controllers/` | Diperbarui | Endpoint penutupan periode cuti payroll dan handoff rekonsiliasi retrospektif. |
+
+### 21.4 Arsitektur Folder Backend
+
+```text
+NewQuilvianSystemBackend/Areas/Corporate/HumanResource/LeaveManagement/
+├── Constants/
+│   ├── LeaveBalanceTransactionTypeConstants.cs     [Baru - Tipe Entitlement, CarryForward, dll]
+│   ├── LeaveRecallValueConstants.cs                [Baru - Status workflow recall]
+│   ├── LeaveStaffingCoverageWarningConstants.cs    [Baru - Ambang batas rasio aman]
+│   └── LeaveValueConstants.cs                      [Sudah ada]
+├── Controllers/
+│   ├── LeaveAdjustmentController.cs                [Diperbarui - Wajib nomor dokumen audit]
+│   ├── LeaveBalanceLedgerController.cs             [Baru - Endpoint buku besar mutasi saldo]
+│   ├── LeaveCalendarController.cs                  [Sudah ada]
+│   ├── LeaveCarryForwardController.cs              [Diperbarui - Batas 6 hari & cut-off 30 Juni]
+│   ├── LeaveExecutionController.cs                 [Diperbarui - Guard reverse immutability 409]
+│   ├── LeaveFinalReconciliationController.cs       [Diperbarui - Rekonsiliasi retrospektif payroll]
+│   ├── LeaveRecallController.cs                    [Diperbarui - Alur recall Kepala Unit & HR]
+│   └── LeaveRequestWorkflowController.cs           [Diperbarui - Coverage warning & privasi sakit]
+├── DTOs/
+│   ├── LeaveAdjustmentDtos.cs                      [Diperbarui]
+│   ├── LeaveBalanceLedgerDtos.cs                   [Baru - DTO riwayat mutasi saldo ledger]
+│   ├── LeaveRecallDtos.cs                          [Baru - DTO inisiasi & persetujuan recall]
+│   ├── LeaveReconciliationDtos.cs                  [Baru - DTO snapshot payroll retrospektif]
+│   ├── LeaveRequestApprovalWithCoverageDto.cs      [Baru - DTO payload approval berindikator kuota]
+│   └── LeaveRequestDtos.cs                         [Diperbarui - Field half-day & medical check]
+├── Models/
+│   ├── MstLeaveType.cs                             [Sudah ada - Master jenis cuti]
+│   ├── TrxLeaveAdjustment.cs                       [Diperbarui - Dokumen audit nomor]
+│   ├── TrxLeaveBalanceLedger.cs                    [Baru - Entitas ledger mutasi saldo]
+│   ├── TrxLeaveRecallRequest.cs                    [Baru - Entitas permohonan recall darurat]
+│   ├── TrxLeaveRequestAttachment.cs                [Diperbarui - Penanda surat sakit K3RS]
+│   └── WfpLeaveRequest.cs                          [Diperbarui - Field coverage warning & payroll lock]
+└── Services/
+    ├── LeaveAdjustmentService.cs                   [Diperbarui - Posting audit ledger]
+    ├── LeaveBalanceLedgerService.cs                [Baru - Kalkulasi saldo & carry-forward]
+    ├── LeaveExecutionBalanceService.cs             [Diperbarui - Penyesuaian pemulihan saldo]
+    ├── LeaveExecutionProcessorService.cs           [Diperbarui - Guard status reverse HTTP 409]
+    ├── LeaveFinalReconciliationService.cs          [Diperbarui - Logika retrospektif payroll]
+    ├── LeavePayrollIntegrationService.cs           [Diperbarui - Serah terima snapshot]
+    ├── LeaveRecallWorkflowService.cs               [Baru - Mesin workflow pemanggilan dinas]
+    ├── LeaveRequestWorkflowLifecycleService.cs     [Diperbarui - Notifikasi & approval flow]
+    ├── MedicalCertificateVerificationService.cs    [Baru - Masking diagnosa medis K3RS]
+    └── SafeStaffingCoverageGuard.cs                [Baru - Engine validasi ketersediaan staf]
+```
+
+### 21.5 Status Model dan Dampak Migration
+
+| Model | Status | Kolom yang Ditambah / Diubah | Dampak Migration |
+| --- | :---: | --- | --- |
+| `TrxLeaveBalanceLedger` | `Baru` | Seluruh kolom: `Id`, `WorkforceProfileId`, `LeaveTypeId`, `PeriodYear`, `TransactionType`, `AmountDays`, `BalanceBefore`, `BalanceAfter`, `TransactionDate`, `ReferenceRequestId`, `ReferenceRecallId`, `ReferenceAdjustmentId`, `ExpiryDate`, `IsForfeited`, `Notes`, kolom audit | Migration create table `trx_leave_balance_ledgers` |
+| `TrxLeaveRecallRequest` | `Baru` | Seluruh kolom: `Id`, `RecallNumber`, `LeaveRequestId`, `WorkforceProfileId`, `EffectiveRecallDate`, `RestoredDays`, `EmergencyCategory`, `RecallReason`, `Status`, `RequestedByHeadUnitId`, `RequestedAt`, `ApprovedByHrManagerId`, `ApprovedAt`, `RejectionReason`, kolom audit | Migration create table `trx_leave_recall_requests` |
+| `WfpLeaveRequest` | `Diperbarui` | Tambah kolom: `HasStaffingCoverageWarning` (bool default false), `CoverageWarningDetails` (text null), `CoverageMitigationNotes` (varchar 500 null), `IsDoctorNoteVerified` (bool default false), `DoctorNoteFaskesName` (varchar 255 null), `DoctorSipNumber` (varchar 100 null), `IsPendingPayrollReconciliation` (bool default false), `IsPayrollClosed` (bool default false) | Migration add columns ke `wfp_leave_requests` |
+| `TrxLeaveAdjustment` | `Diperbarui` | Tambah kolom: `AuditDocumentNumber` (varchar 100 not null), `AdjustedByHrManagerId` (uuid not null) | Migration add columns ke `trx_leave_adjustments` |
+| `TrxLeaveRequestAttachment` | `Diperbarui` | Tambah kolom: `IsMedicalCertificate` (bool default false), `IsConfidentialMedical` (bool default true) | Migration add columns ke `trx_leave_request_attachments` |
+
+### 21.6 Rencana Migration EF Core
+
+1. **Nama Migration:** `AddLeaveLedgerCoverageWarningAndRecallExtensions`
+2. **Perubahan Skema:**
+   * Pembuatan tabel `trx_leave_balance_ledgers` dengan foreign key ke `mst_workforce_profiles` dan `mst_leave_types`.
+   * Pembuatan tabel `trx_leave_recall_requests` dengan foreign key ke `wfp_leave_requests` dan `mst_workforce_profiles`.
+   * Penambahan kolom toleransi coverage warning dan privasi surat sakit pada `wfp_leave_requests`.
+   * Penambahan kolom nomor dokumen audit pada `trx_leave_adjustments`.
+3. **Sifat Migration:** Bersifat *non-breaking* / *additive only*. Seluruh kolom baru bersifat nullable atau memiliki nilai bawaan.
+4. **Data Seeder:** Memastikan master data `MstLeaveType` terisi dengan konfigurasi hak dasar RS (Tahunan 12 hari, Sakit, Bersama, Melahirkan).
+
+### 21.7 Rencana Data Master Awal
+
+| Tabel | Kebutuhan Baris Awal | Contoh Isi Awal |
+| --- | --- | --- |
+| `MstLeaveType` | Minimal 6 jenis cuti/izin standar RS | (1) `CUTI-TAHUNAN` — Cuti Tahunan (12 hari, deduct = true, max carry-forward 6 hari, expire 30 Juni)<br>(2) `CUTI-SAKIT` — Cuti Sakit (deduct = false, min surat dokter = 2 hari)<br>(3) `CUTI-BERSAMA` — Cuti Bersama Pemerintah (deduct = true per `HRD-ASM-19`)<br>(4) `CUTI-MELAHIRKAN` — Cuti Melahirkan (90 hari, deduct = false)<br>(5) `CUTI-IBADAH` — Cuti Ibadah Keagamaan / Haji / Umroh (deduct = false, lampiran wajib)<br>(6) `IZIN-PENTING` — Izin Alasan Penting / Menikah / Berduka (deduct = false, 2–3 hari) |
+
+### 21.8 Hitungan dan Aturan Bisnis Inti Backend (`LEV-B1` s.d. `LEV-B8` & `LEV-W1` s.d. `LEV-W6`)
+
+#### Aturan Pemblokir / Penolakan (Blocking Rules)
+* **`LEV-B1` — Saldo Tidak Mencukupi untuk Cuti Potong Saldo:** Pengajuan cuti jenis potong saldo (*deductible*) ditolak otomatis bila `DurationDays > CurrentAvailableBalance`.
+* **`LEV-B2` — Tabrakan dengan Jadwal Shift Aktif Terbit Tanpa Pengganti / Pembatalan:** Pengajuan cuti ditolak jika pada rentang tanggal tersebut pegawai telah terdaftar dinas shift pada Roster Terbit (`S-B4`) dan belum diajukan permohonan penggantian tugas dinas.
+* **`LEV-B3` — Kewajiban Surat Dokter Sakit $\ge 2$ Hari (`HRD-DEC-112`):** Pengajuan cuti sakit 2 hari kerja berturut-turut atau lebih ditolak tanpa unggah berkas Surat Keterangan Sakit resmi dokter.
+* **`LEV-B4` — Penguncian Immutabilitas Cuti Selesai / Payroll Closed (`HRD-DEC-115`):** Pemanggilan endpoint pembatalan biasa `POST /{leaveRequestId}/reverse` ditolak dengan kode `409 Conflict` bila permohonan cuti telah berstatus `Completed` atau telah dikunci dalam periode penutupan payroll (`IsPayrollClosed = true`). Menutup celah `HRD-Q-35`.
+* **`LEV-B5` — Otorisasi Persetujuan Recall Darurat (`HRD-DEC-113`):** Eksekusi pemanggilan kembali dinas darurat (*Leave Recall*) ditolak dengan kode `403 Forbidden` bila aktor yang menyetujui bukan HR Manager (`HRD-DEC-024` / `HRD-Q-36`).
+* **`LEV-B6` — Penolakan Koreksi Saldo Tanpa Dokumen Audit (`HRD-DEC-115`):** Permintaan `POST /adjustments` ditolak dengan kode `400 Bad Request` bila nomor dokumen audit (*AuditDocumentNumber*) atau alasan tertulis tidak diisi.
+* **`LEV-B7` — Batas Maksimal Cuti Berurutan 12 Hari (`HRD-ASM-22`):** Pengajuan cuti tahunan berturut-turut > 12 hari kerja ditolak oleh sistem, kecuali disertai otorisasi dispensasi khusus Direktur RS.
+* **`LEV-B8` — Batas Maksimal Carry-Forward 6 Hari (`HRD-DEC-110`):** Scheduler akhir tahun membatasi pemindahan sisa saldo cuti maksimal 6 hari kerja; sisa kuota di atas 6 hari otomatis dicatat sebagai transaksi `Forfeiture` (Hangus).
+
+#### Aturan Peringatan & Evaluasi Logika (Warning / Logical Evaluation Rules)
+* **`LEV-W1` — Peringatan Kuota Pelayanan Staf Unit (*Safe Staffing Coverage Warning* `HRD-DEC-111`):** Jika permohonan cuti staf klinis menyebabkan jumlah perawat/staf aktif pada shift tertentu berada di bawah ambang batas minimal unit, kotak masuk approval Kepala Unit memunculkan banner peringatan kuota layanan. Kepala Unit dapat menyetujui dengan memilih opsi `Approve with Mitigation` serta mencatat nama perawat pengganti.
+* **`LEV-W2` — Batas Kedaluwarsa Saldo Carry-Forward 30 Juni (`HRD-DEC-110`):** Seluruh sisa saldo cuti bawaan tahun sebelumnya yang belum digunakan hingga pukul 23:59:59 WIB tanggal 30 Juni otomatis dihanguskan oleh scheduler dan dibukukan dengan transaksi `CarryForwardForfeiture`.
+* **`LEV-W3` — Masking Privasi Diagnosa Medis K3RS (`HRD-DEC-112`):** Atasan langsung hanya dapat melihat durasi istirahat, nama faskes, dan nomor SIP dokter. Diagnosa ICD-10 dan berkas rekam medis klinis dimaskir dari atasan langsung dan hanya dapat diakses oleh Dokter Pemeriksa K3RS / HR Admin Medis.
+* **`LEV-W4` — Pemulihan Saldo Otomatis Pasca Recall Disetujui (`HRD-DEC-113`):** Persetujuan leave recall oleh HR Manager secara otomatis memposting transaksi kredit `RecallRestore` pada buku besar saldo cuti sebesar sisa hari cuti yang belum dijalankan, dan mengirimkan event pemulihan shift ke Sub-Modul 06 (`INT-HR-46`).
+* **`LEV-W5` — Rekonsiliasi Retrospektif Cuti Menggantung saat Cut-Off Payroll (`HRD-DEC-114`):** Permohonan cuti yang masih berstatus `WaitingApproval` saat cut-off payroll tidak memotong gaji pegawai; jika baru disetujui pasca-cut-off, sistem otomatis menandai `IsPendingPayrollReconciliation = true` untuk diperhitungkan pada payroll periode berikutnya.
+* **`LEV-W6` — Cuti Setengah Hari 0.5 Hari Kerja (`HRD-ASM-20`):** Cuti setengah hari mendebit buku besar sebesar tepat 0.5 hari kerja dan mengharuskan staf memilih sesi (Pagi atau Siang/Sore).
+
+### 21.9 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-B2`
+
+| Fitur / Komponen | Alasan | Penanganan selama MVP |
+| --- | --- | --- |
+| Konversi Sisa Cuti Menjadi Uang Tunai (*Leave Encashment*) | Kebijakan RS melarang uangkan cuti tahunan demi kesehatan mental staf dan keselamatan pasien | Sisa cuti hangus per 30 Juni (`HRD-DEC-110`) |
+| Pengajuan Cuti Utang (*Negative Leave Balance*) | Menghindari risiko piutang hari kerja saat pegawai resign mendadak | Pengajuan cuti melebihi saldo ditolak keras oleh `LEV-B1` |
+| Akses Diagnosa Medis Karyawan oleh Atasan Langsung | Melanggar kerahasiaan medis pasien/staf (UU PDP 27/2022 & K3RS per `HRD-DEC-112`) | Hanya durasi istirahat dan status verifikasi surat dokter yang ditampilkan |
+| Endpoint Pembatalan Terbuka `/reverse` Tanpa Guard | Merupakan celah keamanan audit (`HRD-Q-35`) yang ditutup oleh `HRD-DEC-115` | Cuti selesai hanya dapat dikoreksi melalui `LeaveAdjustmentController` berdokumen audit |
+
+### 21.10 Traceability Keputusan ke Arsitektur Backend
+
+| Keputusan / Asumsi | Bagian Desain Backend |
+| --- | --- |
+| `HRD-DEC-110` | 21.1, 21.2 (`TrxLeaveBalanceLedger`), 21.3 (`LeaveBalanceLedgerService`), 21.7, 21.8 (`LEV-B8`, `LEV-W2`) |
+| `HRD-DEC-111` | 21.1, 21.2 (`WfpLeaveRequest`), 21.3 (`SafeStaffingCoverageGuard`), 21.8 (`LEV-W1`) |
+| `HRD-DEC-112` | 21.1, 21.2 (`TrxLeaveRequestAttachment`), 21.3 (`MedicalCertificateVerificationService`), 21.8 (`LEV-B3`, `LEV-W3`) |
+| `HRD-DEC-113` | 21.1, 21.2 (`TrxLeaveRecallRequest`), 21.3 (`LeaveRecallWorkflowService`), 21.8 (`LEV-B5`, `LEV-W4`) |
+| `HRD-DEC-114` | 21.1, 21.3 (`LeavePayrollReconciliationService`), 21.8 (`LEV-W5`) |
+| `HRD-DEC-115` (`HRD-Q-35`) | 21.1, 21.3 (`LeaveExecutionProcessorService`), 21.8 (`LEV-B4`, `LEV-B6`), 21.9 |
+| `HRD-ASM-19` | 21.7 (`MstLeaveType.CUTI-BERSAMA` deductible) |
+| `HRD-ASM-20` | 21.2 (`WfpLeaveRequest.IsHalfDay`), 21.8 (`LEV-W6`) |
+| `HRD-ASM-21` | 21.3 (`LeaveRequestWorkflowController` pre-leave cancel restore 100%) |
+| `HRD-ASM-22` | 21.8 (`LEV-B7` batas maksimal 12 hari berurutan) |

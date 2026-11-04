@@ -1405,3 +1405,44 @@ Menutup bug kontrak Lab `HRD-TF-053` dan `LAB-DEC-111` (`HRD-DEC-103`).
 | `Open` | HR Officer mengeksekusi tutup buku bulanan | `Closed` | HR Attendance Officer | Wajib tidak ada koreksi pending (`HRD-DEC-108`); sisa 1 tap jadi Absent |
 | `Closed` | HR Manager membuka kembali periode darurat | `Reopened` | HR Manager / Kadiv HR | Wajib alasan audit; memicu rollback serah terima payroll bila sudah Executed |
 | `Reopened` | HR Officer menutup kembali pasca-koreksi darurat | `Closed` | HR Attendance Officer | Data terkunci kembali dan siap diserahterimakan ulang ke payroll |
+
+
+---
+
+## 16. Bagian `S-B2` — Matriks Transisi Status Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, dan larangan transisi ilegal untuk entitas **Cuti & Izin Pegawai Rumah Sakit**, mencakup siklus permohonan cuti, siklus pemanggilan darurat (*Leave Recall*), dan penutupan periode payroll.
+
+### 16.1 Matriks Transisi Status Permohonan Cuti (`LeaveRequestStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Terhadap Saldo / Ledger |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | `WaitingApproval` | `SubmitRequest` | Pegawai (ESS) | Saldo mencukupi (`LEV-B1`), shift di roster tidak bentrok (`LEV-B2`), surat dokter valid jika $\ge 2$ hari (`LEV-B3`) | Memesan kuota saldo (*reserved*) pada ledger |
+| `WaitingApproval` | `Approved` | `ApproveRequest` | Atasan Langsung | Disetujui atasan; jika ada warning kuota, wajib mengisi catatan mitigasi (`HRD-DEC-111`) | Mengonversi kuota terpesan menjadi debit pemotongan tetap (`Taken`) |
+| `WaitingApproval` | `Rejected` | `RejectRequest` | Atasan Langsung | Atasan menolak dengan alasan operasional yang sah | Melepaskan kuota saldo yang terpesan (saldo utuh) |
+| `WaitingApproval` | `NeedRevision` | `RequestRevision` | Atasan Langsung | Atasan meminta pegawai menyesuaikan tanggal permohonan | Kuota tetap terpesan sementara sampai pegawai merespon |
+| `WaitingApproval` | `Cancelled` | `CancelRequest` | Pegawai (ESS) | Pegawai membatalkan permohonan yang belum sempat diproses atasan | Melepaskan kuota saldo terpesan (saldo utuh) |
+| `NeedRevision` | `WaitingApproval` | `ResubmitRequest` | Pegawai (ESS) | Pegawai memperbaiki tanggal dan mengirim ulang | Menyesuaikan perhitungan hari kerja efektif |
+| `NeedRevision` | `Cancelled` | `CancelRequest` | Pegawai (ESS) | Pegawai membatalkan pengajuan daripada merevisi | Melepaskan kuota saldo terpesan |
+| `Approved` | `Active` | `StartLeave` | Sistem (Scheduler) | Tanggal mulai cuti telah tiba (pukul 00:00:00 WIB) | Status dinas di presensi harian otomatis ditandai `OnLeave` |
+| `Approved` | `Cancelled` | `PreLeaveCancel` | Pegawai (ESS) & Atasan | Permohonan dibatalkan sebelum tanggal mulai berjalan (`HRD-ASM-21`) | Memposting mutasi kredit `CancellationRestore` (+100% hari cuti) |
+| `Active` | `Completed` | `CompleteLeave` | Sistem (Scheduler) | Tanggal selesai cuti telah berakhir | Memvalidasi kepulangan staf; cuti siap direkonsiliasi payroll |
+| `Active` | `Recalled` | `ExecuteRecall` | HR Manager | Pemanggilan dinas darurat RS disetujui (`HRD-DEC-113`) | Memposting mutasi kredit `RecallRestore` (+sisa hari cuti batal dinikmati) |
+| `Completed` | **ILLEGAL** (`Reversed`) | `ReverseLeave` via `/reverse` | Siapapun | **DITOLAK KERAS (HTTP 409 Conflict)** per `HRD-DEC-115` menutup celah `HRD-Q-35` | Tidak ada perubahan; pembalikan langsung dilarang |
+| `Completed` | `Completed` | `AdjustBalance` via Adjustment | HR Manager | Koreksi historis resmi dengan nomor SK audit audit trail (`HRD-DEC-115`) | Memposting penyesuaian resmi pada `TrxLeaveAdjustment` |
+
+### 16.2 Matriks Transisi Status Pemanggilan Kembali Darurat (`LeaveRecallStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| — | `RequestedByHeadUnit` | `InitiateRecall` | Kepala Ruangan | Cuti berstatus `Active`; kondisi darurat KLB/bencana/ICU (`HRD-DEC-113`) | Menerbitkan nomor tiket usulan recall |
+| `RequestedByHeadUnit` | `ApprovedByHrManager` | `ApproveRecall` | HR Manager | Verifikasi kelayakan darurat oleh HR Manager (`HRD-DEC-024` / `HRD-Q-36`) | Tiket disetujui, siap dieksekusi sistem |
+| `RequestedByHeadUnit` | `Rejected` | `RejectRecall` | HR Manager | Ditolak HR jika darurat dapat ditangani sumber daya lain | Tiket ditutup; pegawai melanjutkan cuti normal |
+| `ApprovedByHrManager` | `Executed` | `ExecuteRestore` | Sistem | Transaksi atomik restore saldo dan update roster | 1. Posting `RecallRestore` pada ledger.<br>2. Status shift di Roster 06 berubah aktif.<br>3. Status cuti induk menjadi `Recalled`. |
+
+### 16.3 Matriks Transisi Status Rekonsiliasi Akhir Cuti (`LeaveReconciliationStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Open` | `Reconciled` | `RunReconciliation` | HR Leave Officer | Evaluasi seluruh cuti bulan berjalan; cuti pending ditandai retrospektif | Mengunci seluruh cuti yang selesai dalam periode tersebut |
+| `Reconciled` | `PayrollClosed` | `CloseLeavePeriod` | HR Payroll Officer | Serah terima data ke payroll tuntas; periode penggajian dikunci | Mengunci mutlak seluruh permohonan (`IsPayrollClosed = true`) |
