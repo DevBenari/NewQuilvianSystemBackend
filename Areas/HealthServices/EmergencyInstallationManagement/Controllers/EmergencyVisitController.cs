@@ -91,11 +91,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 TotalVisit = await query.CountAsync(cancellationToken),
                 ActiveVisit = await query.CountAsync(x => x.VisitStatus != EmergencyVisitStatus.Completed && x.VisitStatus != EmergencyVisitStatus.Cancelled, cancellationToken),
-                ArrivedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Arrived, cancellationToken),
+                ArrivedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Arrived || x.VisitStatus == EmergencyVisitStatus.WaitingForTriage, cancellationToken),
                 TriagedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Triaged, cancellationToken),
                 InTreatmentVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.InTreatment, cancellationToken),
                 UnderObservationVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.UnderObservation, cancellationToken),
                 AwaitingDispositionVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.AwaitingDisposition, cancellationToken),
+                DisposedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Disposed, cancellationToken),
                 CompletedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Completed, cancellationToken),
                 CancelledVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Cancelled, cancellationToken)
             };

@@ -405,6 +405,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public int InTreatmentVisit { get; set; }
         public int UnderObservationVisit { get; set; }
         public int AwaitingDispositionVisit { get; set; }
+        public int DisposedVisit { get; set; }
         public int CompletedVisit { get; set; }
         public int CancelledVisit { get; set; }
     }

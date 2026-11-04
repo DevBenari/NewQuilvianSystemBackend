@@ -11,15 +11,15 @@
 | Trace | `FR-NV-010`–`016`, `021`, `030`, `031`; `NV-DEC-007`, `013`, `014`, `017`; `NV-FE-002`–`004`; `03-frontend-architecture.md` skema `FE-NVW-04` |
 | Contract version | `0.1.1` — `approved`; bagian `/board` sama dengan `0.1.0` |
 | Wewenang UI | Warna, ikon, ritme kedip, dan durasi per halaman `DEV_DISCRETION` (`NV-FE-003`, `004`). Keterbacaan ±3 m (`NV-FE-002`) dinilai Rizki di TV |
-| Dependency | `BE-NV-005` 🟡 (bagian yang dipakai layar sudah terbukti), `FE-NV-003` ✅ |
+| Dependency | `BE-NV-005` ✅, `FE-NV-003` ✅ |
 | Klasifikasi | `STANDARD` — layar baru di route milik Nurse View, tanpa menyentuh berkas bersama |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `RizkiV2`) |
 | Model | Claude Opus 5.5 |
 | Commit frontend | Versi awal di-commit Rizki sebagai `61b5e3f35`; perbaikan tata letak, penyambungan view ke route, dan penghapusan kerangka `FE-NV-003` di `2e510a555` |
 | Commit backend yang dijadikan rujukan | `6489c32c` |
-| Tanggal | 2026-11-02 sampai 2026-11-03 |
-| Status | 🟡 **SEBAGIAN 3 November 2026** — uji layar 8/8 `PASS` (44 cek; L5, L6, L8 memakai jawaban `/board` tiruan), L9 perubahan data `PASS`, uji TV N1–N9 `PASS` dengan papan sungguhan, `npx eslint` 0 error 0 warning. Belum: keterbacaan ±3 m di TV sungguhan (Rizki); ikon J dan I baru terlihat dengan jawaban tiruan, karena datanya belum bisa dibuat (`BE-NV-005` §6). Verifikasi developer, bukan UAT |
+| Tanggal | 2026-11-02 sampai 2026-11-04 |
+| Status | ✅ **SELESAI 4 November 2026** — uji layar 8/8 `PASS` (44 cek; L5, L6, L8 memakai jawaban `/board` tiruan), L9 perubahan data `PASS`, uji TV N1–N9 `PASS` dengan papan sungguhan, `npx eslint` 0 error 0 warning. Sejak 4 November 2026 ikon J dan I beserta "Bed tidak sesuai isolasi" terbukti dengan data nyata, dan bed dari kamar tanpa kunci denah ikut tampil (AC011, AC013, AC021 `PASS`). Keterbacaan ±3 m dinilai Rizki di TV `NVW-000003` pada 4 November 2026: **terbaca**, sehingga ukuran huruf tidak diubah. Perkiraan ukur (baris kecil 7–9,5 mm di TV 43–55 inci, pedoman nyaman ±14 mm pada 3 m; §6) tetap dicatat sebagai data pendukung. Verifikasi developer, bukan UAT. Riwayat: 🟡 SEBAGIAN 3 November 2026 karena keterbacaan belum dinilai di TV |
 
 ---
 
@@ -154,6 +154,16 @@ diubah.
 | T1–T2 akun manusia membuka papan | SuperAdmin dan LOKET dialihkan ke `/login` | `PASS` | `tolak-2026-11-03T02-43-22-993Z` |
 | Uji TV `FE-NV-003` N1–N9 diulang dengan hook papan | 9/9 `PASS` (67 cek): `/board` berkala, putus jaringan, nonaktif ke login 59 detik, Atur Ulang Login, akun manusia | `PASS` | `uji-nv-003-20261102/tv-2026-11-03T02-01-15-524Z` |
 
+**Uji tambahan 4 November 2026, data nyata.** Sesudah versi Morse disahkan dan isolasi G disetel DPJP (`BE-NV-005` §5):
+
+| Skenario | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| AC011 ikon J | Kartu 325-A (Morse 65) menampilkan ikon J; kartu 325-B (Morse 30) tanpa ikon J. 7 cek | `PASS` | `uji-nv-005-ac011-20261104/tanda-2026-11-04T02-19-35-152Z/AC011.json`, `AC011-kartu-325-A.png`, `AC011-kartu-325-B.png` |
+| AC013 ikon I | Kartu 326-C menampilkan ikon I dan "Bed tidak sesuai isolasi"; tanpa galat halaman. 5 cek | `PASS` | `AC013.json`, `AC013-kartu-326-C.png` |
+| AC021 kamar tanpa kunci denah | Kartu `UJI-021` (kamar lantai 3 tanpa `FloorPlanRoomKey`) tampil di bangsal Rawat Inap; data uji dinonaktifkan sesudahnya. 5 cek | `PASS` | `uji-nv-005-ac021-20261104/kamar-2026-11-04T02-43-14-861Z/AC021.json`, PNG |
+| Perkiraan keterbacaan ±3 m | Diukur dari CSS di 1920×1080 lalu dikonversi ke milimeter. Tinggi huruf besar di TV 43 / 50 / 55 inci: judul lantai 17,4 / 20,2 / 22,2 mm; kode bed 10,9 / 12,7 / 14,0; EWS dan nama bangsal 9,4 / 11,0 / 12,0; samaran 8,9 / 10,4 / 11,4; PJ dan nilai TTV 7,4 / 8,6 / 9,5; "Diukur … lalu" 6,9 / 8,1 / 8,9. Pedoman nyaman (16 menit busur) pada 3 m ±14 mm; ambang minimum terbaca ±6 mm | Data pendukung, bukan putusan | `uji-nv-005-ac021-20261104/keterbacaan-*/keterbacaan.json`, `papan-1920x1080.png` |
+| Penilaian keterbacaan ±3 m di TV `NVW-000003` | Rizki menilai baris kecil kartu (PJ, nilai TTV, "Diukur … lalu") terbaca dari ±3 m. Ukuran huruf tidak diubah | `PASS` — penilaian Rizki di TV, bukan pengukuran skrip | Jawaban Rizki, 4 Nov |
+
 Bukti berada di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-005-20261103/`, kecuali yang disebut lain.
 Hook berubah sesudah uji N1–N9 hanya pada pembagian halaman; logika sesi, muat ulang, dan logout sama.
 
@@ -180,7 +190,7 @@ sungguhan.
 (`BE-NV-005` §3.4). L5, L6, dan L8 memakai jawaban `/board` tiruan karena keadaannya belum bisa dibuat di DB dev.
 Semua uji berjalan di Edge headless, bukan di TV.
 
-`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-11-03; 8/8 layar, L9, T1–T2, dan N1–N9 PASS.`
+`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-11-03; 8/8 layar, L9, T1–T2, dan N1–N9 PASS. Keterbacaan ±3 m dinilai Rizki di TV 2026-11-04: terbaca.`
 
 `AUTOMATED TEST: SKIPPED (opsional) — ketentuan proyek.`
 
@@ -202,18 +212,18 @@ sama; DoD kartu tidak memintanya).
 | `NV-AC-007` TTV dibatalkan | Terpenuhi | L9 |
 | `NV-AC-008` "Belum ada PJ" | Terpenuhi | L2 |
 | `NV-AC-010` "Dibersihkan", "Dipesan — pasien akan datang" | Terpenuhi | L2 |
-| `NV-AC-011` ikon J | Tampilan terbukti dengan jawaban tiruan; data nyata belum ada (`BE-NV-005` §6) | L5 |
+| `NV-AC-011` ikon J | Terpenuhi, data nyata (4 Nov): ikon J hanya di 325-A (Morse 65), tidak di 325-B (Morse 30) | L5, AC011 |
 | `NV-AC-012` ikon A tanpa nama zat | Terpenuhi | L1, L3 |
-| `NV-AC-013` ikon I dan "Bed tidak sesuai isolasi" | Tampilan terbukti dengan jawaban tiruan; data nyata belum ada (`BE-NV-005` §6) | L5 |
+| `NV-AC-013` ikon I dan "Bed tidak sesuai isolasi" | Terpenuhi, data nyata (4 Nov): kartu 326-C (G, butuh isolasi di bed biasa) | L5, AC013 |
 | `NV-AC-014` pindah lantai ≤ 60 detik | Terpenuhi: perpindahan terbukti lewat HTTP (`BE-NV-005` B6), dan perubahan data tampil di TV dalam 57 detik (L9). Uji dua TV sekaligus belum dilakukan | B6, L9 |
 | `NV-AC-020` kartu berubah ≤ 60 detik | Terpenuhi dengan TTV disimpan dan dibatalkan; pemulangan pasien tidak dicoba | L9 |
-| `NV-AC-021` kamar tanpa `FloorPlanRoomKey` | Tidak bisa diuji, tidak ada datanya (`BE-NV-005` §6) | — |
-| `UAT-04` | Terverifikasi developer sebagian: samaran dan A terbukti, J hanya dengan jawaban tiruan. UAT belum dijalankan | L1, L5 |
+| `NV-AC-021` kamar tanpa `FloorPlanRoomKey` | Terpenuhi, data nyata (4 Nov): kartu `UJI-021` tampil | AC021 |
+| `UAT-04` | Terverifikasi developer: samaran, A, dan J terbukti dengan data nyata (4 Nov). UAT belum dijalankan | L1, AC011 |
 | `UAT-09` | Terverifikasi developer dengan perubahan TTV, bukan pemulangan. UAT belum dijalankan | L9 |
 | `UAT-10` | Terverifikasi developer dengan memutus `/board`, bukan mencabut jaringan TV. UAT belum dijalankan | L4 |
-| Keterbacaan ±3 m (`NV-FE-002`) | **Belum** — menunggu penilaian Rizki di TV | — |
+| Keterbacaan ±3 m (`NV-FE-002`) | Terpenuhi — Rizki menilai terbaca dari ±3 m di TV `NVW-000003` (4 Nov). Ukuran huruf tidak diubah | §6 penilaian keterbacaan |
 | DoD — lint lulus | Terpenuhi | §6 |
-| DoD — rekaman di layar besar termasuk putus jaringan | Sebagian: tangkapan layar 1920×1080 dan 1366×768 dari browser headless, termasuk putus jaringan; belum di TV sungguhan | §6 |
+| DoD — rekaman di layar besar termasuk putus jaringan | Terpenuhi: tangkapan layar 1920×1080 dan 1366×768 dari browser headless, termasuk putus jaringan (L4). Di TV sungguhan papan dinilai langsung oleh Rizki (4 Nov), tanpa rekaman | §6 |
 
 ---
 
@@ -223,9 +233,9 @@ sama; DoD kartu tidak memintanya).
 | --- | --- |
 | Peringatan | `npm run build` `NOT RUN` |
 | Masalah yang diketahui | Indikator dev Next.js ("N" di pojok kiri bawah) ikut tampil di tangkapan layar karena dev server; tidak ada di build produksi |
-| Kondisi uji `G-06` | `FloorCode` terisi untuk semua kamar aktif. Versi instrumen risiko jatuh belum `Approved`, sehingga ikon J belum bisa muncul dengan data asli. `OrganizationUnitId` bangsal untuk roster baru diperiksa di `BE-NV-006` |
-| Dependency backend | `BE-NV-005` 🟡 |
+| Kondisi uji `G-06` | `FloorCode` terisi untuk semua kamar aktif. Versi instrumen risiko jatuh Morse `Approved` di DB dev sejak 4 Nov, sehingga ikon J kini muncul dengan data asli. `OrganizationUnitId` bangsal untuk roster baru diperiksa di `BE-NV-006` |
+| Dependency backend | `BE-NV-005` ✅ |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Sekitar pukul 09.37 dev server menjawab `500` pada `/login` dan `/nurse-view-display`, karena `use-emergency-registration.js` (IGD, bukan berkas task ini) sedang disunting pihak lain. Berkas itu pulih sendiri pukul 09.38, sebelum L9 dijalankan, dan tidak disentuh |
-| Status Git | Versi awal di `61b5e3f35`; sisanya (7 berkas diubah, 3 dihapus) di `2e510a555`, satu commit dengan perubahan IGD dan `FE-NV-006` |
-| Langkah berikutnya | Penilaian keterbacaan oleh Rizki; lalu `FE-NV-006` dan `FE-NV-007` |
+| Status Git | Versi awal di `61b5e3f35`; sisanya (7 berkas diubah, 3 dihapus) di `2e510a555`, satu commit dengan perubahan IGD dan `FE-NV-006`. Pembaruan status 4 Nov pada laporan ini belum di-commit |
+| Langkah berikutnya | Commit laporan oleh Rizki. Tidak ada pekerjaan tersisa untuk task ini |

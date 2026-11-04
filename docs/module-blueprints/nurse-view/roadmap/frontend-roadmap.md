@@ -29,18 +29,18 @@ flowchart LR
         BENV002["✅ BE-NV-002<br/>API admin perangkat display"]:::luar
         BENV003["✅ BE-NV-003<br/>Login dan runtime akun perangkat"]:::luar
         BENV004["✅ BE-NV-004<br/>API interval ukur ulang TTV"]:::luar
-        BENV005["🟡 BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::luar
+        BENV005["✅ BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::luar
         BENV006["🟡 BE-NV-006<br/>Header perawat jaga dari roster"]:::luar
-        BENV007["BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::luar
+        BENV007["✅ BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::luar
     end
 
     FENV001["✅ FE-NV-001<br/>Daftar perangkat dan menu"]:::selesai
     FENV002["✅ FE-NV-002<br/>Form perangkat dan aksi login"]:::selesai
     FENV003["✅ FE-NV-003<br/>Login TV dialihkan ke papan"]:::selesai
     FENV004["✅ FE-NV-004<br/>Layar interval TTV dan menu"]:::selesai
-    FENV005["🟡 FE-NV-005<br/>Papan lantai tampil di TV"]:::sebagian
+    FENV005["✅ FE-NV-005<br/>Papan lantai tampil di TV"]:::selesai
     FENV006["🟡 FE-NV-006<br/>Header perawat jaga tampil"]:::sebagian
-    FENV007["FE-NV-007<br/>Papan bereaksi pada sinyal"]:::belum
+    FENV007["✅ FE-NV-007<br/>Papan bereaksi pada sinyal"]:::selesai
 
     BENV002 --> FENV001
     BENV002 --> FENV002
@@ -76,9 +76,9 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | ✅ `FE-NV-002` | Form perangkat dan aksi login | `FR-NV-001`–`004`; `NV-DEC-022` | api §1 | Pola form `queue-display-devices/[slug]` | Layar `FE-NVW-02` | `BE-NV-002`, `FE-NV-001` | Kartu | lint + uji layar | Kata sandi tersimpan di state/log / Rizki | Kartu |
 | ✅ `FE-NV-003` | Login TV dialihkan ke papan | `FR-NV-018`; `NV-DEC-009`, `030` | api §3 `/current` | Pola `queue-display` di `use-base-login.jsx`, `proxy.js` | Berkas bersama FE + kerangka route `/nurse-view-display` | `BE-NV-003` | Kartu, termasuk regresi | lint + login empat akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
 | ✅ `FE-NV-004` | Layar interval TTV dan menu | `FR-NV-020`–`022`; `NV-DEC-010` | api §2 | Komponen form/tabel yang ada | Layar `FE-NVW-03`, butir menu "Interval TTV Nurse View" | `BE-NV-004` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
-| 🟡 `FE-NV-005` | Papan lantai tampil di TV | `FR-NV-010`–`016`, `021`, `030`, `031`; `NV-DEC-007`, `013`, `014`, `017` | api §3 `/board` | Pola layar `queue-display-screen-view`, hook refresh, pendengar `offline` | Layar `FE-NVW-04` tanpa header roster dan tanpa realtime | `BE-NV-005`, `FE-NV-003` | Kartu | lint + uji di TV/peramban layar penuh | Keterbacaan ±3 m / Rizki | Kartu |
+| ✅ `FE-NV-005` | Papan lantai tampil di TV | `FR-NV-010`–`016`, `021`, `030`, `031`; `NV-DEC-007`, `013`, `014`, `017` | api §3 `/board` | Pola layar `queue-display-screen-view`, hook refresh, pendengar `offline` | Layar `FE-NVW-04` tanpa header roster dan tanpa realtime | `BE-NV-005`, `FE-NV-003` | Kartu | lint + uji di TV/peramban layar penuh | Keterbacaan ±3 m / Rizki | Kartu |
 | 🟡 `FE-NV-006` | Header perawat jaga tampil | `FR-NV-017`; `NV-DEC-021` | api §3 `Wards[]` | — | Header per bangsal di `FE-NVW-04` | `BE-NV-006`, `FE-NV-005` | Kartu | lint + uji layar | — / Rizki | Kartu |
-| `FE-NV-007` | Papan bereaksi pada sinyal | `FR-NV-032`; `NV-DEC-023` | api §4 | `queue-realtime-client.js` / `signalrHubClient.jsx` | Join grup lantai, muat ulang saat event | `BE-NV-007`, `FE-NV-005` | Kartu | lint + simpan TTV sambil mengamati TV | — / Rizki | Kartu |
+| ✅ `FE-NV-007` | Papan bereaksi pada sinyal | `FR-NV-032`; `NV-DEC-023` | api §4 | `queue-realtime-client.js` / `signalrHubClient.jsx` | Join grup lantai, muat ulang saat event | `BE-NV-007`, `FE-NV-005` | Kartu | lint + simpan TTV sambil mengamati TV | — / Rizki | Kartu |
 
 ## Kartu task
 
@@ -125,11 +125,11 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | Acceptance criteria | `NV-AC-004`; `VAL-NV-09`–`13`; `UAT-07`, `UAT-08`; status "Belum dikonfigurasi" saat kosong |
 | DoD | AC terpetakan; lint lulus; tangkapan layar kosong dan terisi; laporan `FE-NV-004.md` |
 
-### 🟡 FE-NV-005 — Papan lantai tampil di TV
+### ✅ FE-NV-005 — Papan lantai tampil di TV
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 SEBAGIAN — 3 November 2026. View papan, kartu, hook muat ulang, dan pita data basi terpetakan ke source; `npx eslint` 7 berkas `0 errors`, 0 warning; grep anti-regresi 0; UI GATE PASS (2 REUSE, sisanya COMPOSE dengan token). Uji layar 8/8 `PASS` (44 cek; L5, L6, L8 memakai jawaban `/board` tiruan); perubahan data tampil di TV dalam 57 detik tanpa muat ulang halaman (L9); uji TV N1–N9 `PASS` dengan papan sungguhan. Belum: keterbacaan ±3 m di TV sungguhan (Rizki); ikon J dan I baru terlihat dengan jawaban tiruan karena datanya belum ada (`BE-NV-005`). `npm run build` `NOT RUN` (dev server aktif). Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-005.md`](../task/report/frontend/FE-NV-005.md) |
+| Status | ✅ SELESAI — 4 November 2026. View papan, kartu, hook muat ulang, dan pita data basi terpetakan ke source; `npx eslint` 7 berkas `0 errors`, 0 warning; grep anti-regresi 0; UI GATE PASS (2 REUSE, sisanya COMPOSE dengan token). Uji layar 8/8 `PASS` (44 cek; L5, L6, L8 memakai jawaban `/board` tiruan); perubahan data tampil di TV dalam 57 detik tanpa muat ulang halaman (L9); uji TV N1–N9 `PASS` dengan papan sungguhan. 4 Nov: ikon J dan I beserta "Bed tidak sesuai isolasi", serta bed dari kamar tanpa kunci denah, terbukti dengan data nyata (AC011, AC013, AC021 `PASS`). Keterbacaan ±3 m dinilai Rizki di TV `NVW-000003` (4 Nov): terbaca, ukuran huruf tidak diubah; perkiraan ukur baris kecil 7–9,5 mm di TV 43–55 inci dicatat sebagai data pendukung. `npm run build` `NOT RUN` (dev server aktif). Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Riwayat: 🟡 SEBAGIAN 3 November 2026 karena keterbacaan belum dinilai di TV. Laporan: [`FE-NV-005.md`](../task/report/frontend/FE-NV-005.md) |
 | Outcome | TV menampilkan papan lantai: grid per bangsal, kartu kritis di atas, ganti halaman otomatis, muat ulang 60 detik, pita data basi |
 | Cakupan | View papan di `/nurse-view-display`: kepala (lantai, jam, jam data), kelompok bangsal, kartu terisi dan kosong, ikon J/A/I, tanda "Bed tidak sesuai isolasi", "Belum ada PJ", "Belum ada TTV", lewat jadwal. Tanpa suara. Papan hanya di memori, tidak disimpan ke storage. Header roster menyusul di `FE-NV-006` |
 | Acceptance criteria | `NV-AC-001`–`008`, `010`–`014`, `020`, `021`; `UAT-04`, `UAT-09`, `UAT-10`; keterbacaan ±3 m (`NV-FE-002`) |
@@ -146,10 +146,11 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | Acceptance criteria | `NV-AC-009`, `017` |
 | DoD | AC terpetakan; lint lulus; tangkapan layar kedua keadaan; laporan `FE-NV-006.md` |
 
-### FE-NV-007 — Papan bereaksi pada sinyal
+### ✅ FE-NV-007 — Papan bereaksi pada sinyal
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 4 November 2026. Join `JoinNurseViewFloor` saat tersambung dan saat sambung ulang, muat ulang dari event `NurseViewBoardChanged` dengan batas 1×/5 detik, dan muat ulang 60 detik sebagai cadangan terpetakan ke source (`use-nurse-view-floor-board.jsx`; penambahan di `queue-realtime-client.js`). `npx eslint` 0 error 0 warning; Prettier lulus untuk berkas Nurse View. Uji layar 6/6 `PASS` (31 cek): TTV Kritis → muat ulang 0,01 detik sebelum jawaban simpan tiba, data kritis 0,19 detik, kartu 325-B "Kritis" di kelompok kritis teratas tanpa bunyi (`NV-AC-019`, `NV-AC-003`); dua muat ulang berjarak 5,02 detik untuk tiga sinyal; sambung ulang 0,08 detik dengan join ulang; TV hanya memanggil `JoinNurseViewFloor` (`NV-AC-022` sisi klien). Rekaman video berjam tersimpan. Regresi `FE-NV-005` 7/8: L2-E gagal karena pemesanan bed uji kedaluwarsa (data, bukan diff ini). `npm run build` `NOT RUN`. Verifikasi developer, bukan UAT. Laporan: [`FE-NV-007.md`](../task/report/frontend/FE-NV-007.md) |
 | Outcome | Kartu berubah beberapa detik sesudah TTV disimpan, tanpa menunggu muat ulang 60 detik |
 | Cakupan | Join `JoinNurseViewFloor` sesudah tersambung, termasuk saat sambung ulang; event `NurseViewBoardChanged` → muat ulang (dibatasi 1×/5 detik); muat ulang 60 detik tetap berjalan sebagai cadangan |
 | Acceptance criteria | `NV-AC-003`, `019`, `022` dari sisi klien |

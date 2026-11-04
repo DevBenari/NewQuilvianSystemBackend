@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `d936447e` (branch `rizkiG`); source di-commit Rizki sebagai `6489c32c` |
 | Tanggal | 2026-11-02 sampai 2026-11-03 |
-| Status | 🟡 **SEBAGIAN 3 November 2026** — QBE Strict `PASS` (5 berkas), build Rizki lulus (3 Nov 08.50), uji papan 8/8 `PASS` (51 cek), penolakan akun manusia 2/2 `PASS`, nol kebocoran identitas. Belum terbukti dengan data nyata: `NV-AC-011` (instrumen risiko jatuh belum disahkan) dan `NV-AC-013` (isolasi hanya bisa disetel DPJP berizin). `NV-AC-021` tidak bisa diuji karena tidak ada datanya di DB dev. Verifikasi developer, bukan UAT |
+| Status | ✅ **SELESAI 4 November 2026** — QBE Strict `PASS` (5 berkas), build Rizki lulus (3 Nov 08.50), uji papan 8/8 `PASS` (51 cek), penolakan akun manusia 2/2 `PASS`, nol kebocoran identitas. 4 Nov: `NV-AC-011`, `NV-AC-013`, dan `NV-AC-021` terbukti dengan data nyata (AC011, AC013, AC021 `PASS`, 17 cek), sesudah Morse disahkan dan isolasi disetel DPJP atas persetujuan Hamzah, serta kamar uji tanpa kunci denah dibuat lalu dinonaktifkan lagi. `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT |
 
 ---
 
@@ -146,6 +146,11 @@ itu hanya baca.
 | L9 perubahan data | TTV baru tiba di TV dalam 57 detik dan pembatalannya dalam 60 detik, tanpa memuat ulang halaman | `PASS` | `segar-2026-11-03T02-38-35-982Z` |
 | Uji TV `BE-NV-003` diulang dengan papan sungguhan | N1–N9 `PASS` (67 cek); perangkat dinonaktifkan tetap ditolak `VAL-NV-15` | `PASS` | `uji-nv-003-20261102/tv-2026-11-03T02-01-15-524Z` |
 | Pencarian kredensial pada 42 JSON bukti | Nol sandi, nol token | `PASS` | Pencarian pola dan nilai env |
+| Persiapan `NV-AC-011`, 4 Nov, lewat aplikasi atas persetujuan Hamzah | Izin `ClinicalInstrumentConfiguration` Read + Update diberikan sementara ke role Keperawatan / Perawat Rawat Inap (20 → 22 izin, izin lama utuh). Akun PERAWAT_RUANGAN mengosongkan dua penanda tinjauan Morse (`200`), SuperAdmin mengesahkan (`200`, `VersionStatus` 2, pengesah ≠ pengubah). Izin dicabut lagi, policy sama persis dengan salinan awal (20). Isi 15 butir Morse sama dengan seeder (0 perbedaan). Pengkajian A dan B diselesaikan akun PERAWAT: A skor 65 `HighRisk`, B skor 30 `MediumRisk` | `PASS` | `uji-nv-005-ac011-20261104/morse-*/langkah.json`, `banding-seeder.txt`, `selesai-*.json` |
+| Persiapan `NV-AC-013`, 4 Nov, lewat aplikasi atas persetujuan Hamzah | Izin `InpatientEpisode : SetIsolation` diberikan sementara ke role Medis / Dokter Umum (236 → 237). Akun DOKTER, DPJP aktif episode G, menandai G butuh isolasi (`200`). Izin dicabut lagi, policy sama persis dengan salinan awal (236) | `PASS` | `uji-nv-005-ac013-20261104/isolasi-*/langkah.json` |
+| AC011 tanda risiko jatuh, data nyata | `/board`: 325-A `hasHighFallRisk = true`, 325-B `false`; layar: ikon J hanya di 325-A. 7 cek | `PASS` | `uji-nv-005-ac011-20261104/tanda-2026-11-04T02-19-35-152Z/AC011.json`, PNG |
+| AC013 isolasi tidak sesuai, data nyata | `/board`: 326-C `requiresIsolation` dan `isolationMismatch` `true` (bed biasa); layar: ikon I dan "Bed tidak sesuai isolasi". 5 cek | `PASS` | `AC013.json`, `AC013-kartu-326-C.png` |
+| AC021 kamar tanpa kunci denah, data nyata | Lewat master Kamar dan Bed (SuperAdmin): kamar "Uji NV-AC-021" lantai 3, `FloorPlanRoomKey` kosong, tidak untuk admisi, dengan bed `UJI-021` tidak bisa dipesan. `/board` lantai 3 memuat `UJI-021` di bangsal Rawat Inap ("Tidak tersedia", karena kamar tidak untuk admisi); kartunya tampil di layar. Sesudah uji, bed dan kamar dinonaktifkan (`200`). 5 cek | `PASS` | `uji-nv-005-ac021-20261104/kamar-2026-11-04T02-43-14-861Z/AC021.json`, PNG |
 
 Seluruh bukti berada di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-005-20261103/`, kecuali yang
 disebut lain. Jawaban `/board` lengkap disimpan sebagai `board-lantai-3.json` dan `board-lantai-2.json`.
@@ -174,13 +179,13 @@ milik Rizki).
 | `NV-AC-007` TTV dibatalkan | Terpenuhi | B5, L9 |
 | `NV-AC-008` tanpa PJ | Terpenuhi | B2 (C, G) |
 | `NV-AC-010` dibersihkan dan dipesan | Terpenuhi | B2 (E), B6 |
-| `NV-AC-011` hanya Morse tinggi bertanda | **Belum terbukti dengan data nyata.** Pengkajian A (skor 65, `HighRisk`) dan B (skor 30) hanya bisa tersimpan `InProgress`, karena penyelesaian ditolak `422` `INSTRUMENT_NOT_APPROVED`. Service hanya membaca pengkajian `Completed`, sehingga keduanya benar tanpa tanda, tetapi kasus positifnya belum terlihat | Source; `klinis-uji.mjs` |
+| `NV-AC-011` hanya Morse tinggi bertanda | Terpenuhi, data nyata (4 Nov): pengkajian A skor 65 dan B skor 30 `Completed`; hanya 325-A bertanda risiko jatuh. Pada 3 Nov penyelesaian masih ditolak `422` `INSTRUMENT_NOT_APPROVED` | AC011 |
 | `NV-AC-012` alergi tanpa nama zat | Terpenuhi | B1, B2 |
-| `NV-AC-013` isolasi tidak sesuai | **Belum terbukti dengan data nyata.** Isolasi sesudah rawat hanya bisa disetel DPJP dengan izin `InpatientEpisode:SetIsolation`, sedangkan akun DOKTER dev tidak punya izin itu (`403`). Bed isolasi lantai 3 (316-A, 317-A) berada di kelas VIP dengan `IsForInpatient = false`, sehingga tidak bisa dipakai admisi. Logika `RequiresIsolation != IsIsolationBed` terpetakan ke source dan sesuai `NV-DEC-020` (dua arah) | Source |
+| `NV-AC-013` isolasi tidak sesuai | Terpenuhi, data nyata (4 Nov), arah "butuh isolasi di bed biasa": G di 326-C bertanda isolasi dan "Bed tidak sesuai isolasi". Arah sebaliknya (pasien tanpa isolasi di bed isolasi) belum bisa dicoba karena bed isolasi lantai 3 (316-A, 317-A) berkelas `IsForInpatient = false`; logikanya terpetakan ke source (`NV-DEC-020`) | AC013; source |
 | `NV-AC-014` pindah lantai | Terpenuhi lewat HTTP; jeda paling lama 60 detik di layar dibuktikan `FE-NV-005` | B6, L9 |
 | `NV-AC-015` lantai lain ditolak | Terpenuhi: lantai tidak bisa dipilih, dan akun manusia ditolak | B7, T1–T2 |
-| `NV-AC-021` kamar tanpa `FloorPlanRoomKey` tetap tampil | **Tidak bisa diuji.** Semua kamar aktif di DB dev punya `FloorPlanRoomKey`. Terpetakan ke source: query kamar hanya menyaring `FloorCode` | Source; SELECT per lantai |
-| `UAT-04` | Terverifikasi developer sebagian: samaran dan tanda alergi terbukti, tanda risiko jatuh belum (sama dengan `NV-AC-011`). UAT belum dijalankan | B2 |
+| `NV-AC-021` kamar tanpa `FloorPlanRoomKey` tetap tampil | Terpenuhi, data nyata (4 Nov): bed `UJI-021` dari kamar lantai 3 tanpa kunci denah tampil di papan lantai 3. Pada 3 Nov belum bisa diuji karena semua kamar aktif punya kunci denah | AC021 |
+| `UAT-04` | Terverifikasi developer: samaran, tanda alergi, dan tanda risiko jatuh terbukti (4 Nov). UAT belum dijalankan | B2, AC011 |
 | `UAT-05` | Terverifikasi developer; UAT belum dijalankan | B1 |
 | `UAT-06` | Terverifikasi developer; UAT belum dijalankan | T1–T2 |
 | `NFR-001` jumlah query tetap | Terpetakan ke source: tujuh query di service ini, ditambah query interval dan `ProjectBatchAsync`, tanpa query di dalam perulangan per bed. Jumlah query tidak diukur dari log SQL | Source |
@@ -203,11 +208,11 @@ applicability `NEW CODE`; `Program.cs` = `TOUCHED LEGACY` (satu baris registrasi
 | Hal | Isi |
 | --- | --- |
 | Status migration/database | Tanpa migration |
-| Data uji di DB dev | Episode A (325-A), B (325-B), C (325-C), D (dipindah ke 420-A lantai 4; 326-A menunggu dibersihkan), E (reservasi 326-B), F (Draft, butuh isolasi), G (326-C). PJ = pegawai yang tertaut akun PERAWAT. TTV uji, dua di antaranya dibatalkan. Alergi "ZatUjiNurseView". Dua pengkajian risiko jatuh `InProgress`. Perangkat baru `NVW-000004` "TV Uji Lantai 2". Riwayat interval berujukan `UJI-DEV-NV-005` (sekarang kosong lagi). Sandi `NVW-000001`, `NVW-000003`, `NVW-000004`, `KSK-RSMMC-00009`, `QDD-RSMMC-00003` sudah direset dan hanya pernah ada di memori skrip |
+| Data uji di DB dev | Episode A (325-A), B (325-B), C (325-C), D (dipindah ke 420-A lantai 4; 326-A menunggu dibersihkan), E (reservasi 326-B), F (Draft, butuh isolasi), G (326-C). PJ = pegawai yang tertaut akun PERAWAT. TTV uji, dua di antaranya dibatalkan. Alergi "ZatUjiNurseView". Dua pengkajian risiko jatuh, sejak 4 Nov `Completed` (A 65, B 30). **Sejak 4 Nov:** versi Morse `FALL_RISK_ADULT` v1 `Approved` (berlaku untuk semua pengguna DB dev bersama, atas persetujuan Hamzah); episode G butuh isolasi; izin sementara kedua role sudah dicabut; kamar "Uji NV-AC-021" dan bed `UJI-021` dibuat lalu dinonaktifkan. Perangkat baru `NVW-000004` "TV Uji Lantai 2". Riwayat interval berujukan `UJI-DEV-NV-005` (sekarang kosong lagi). Sandi `NVW-000001`, `NVW-000003`, `NVW-000004`, `KSK-RSMMC-00009`, `QDD-RSMMC-00003` sudah direset dan hanya pernah ada di memori skrip |
 | Peringatan | `NOT RUN`: `authorization-verifier`. Jumlah warning build belum dinyatakan Rizki |
 | Masalah yang diketahui | (1) Urutan API memakai `BedCode` internal; perlu diganti `BedName` pada perubahan backend berikutnya. Tampilan TV tidak terdampak. (2) `RosterAvailable` selalu `false` sampai `BE-NV-006` |
 | Masalah data master | Kamar VIP lantai 3 (34 bed, termasuk bed isolasi 316-A dan 317-A) memakai kelas dengan `IsForInpatient = false`, sehingga tidak bisa dipakai admisi. Data ini di luar Nurse View; perlu disampaikan ke pemilik master data |
-| Risiko tersisa | Tanda risiko jatuh dan tanda isolasi belum pernah terlihat dengan data asli. Tanda risiko jatuh bergantung pada prasyarat go-live `G-06` (versi instrumen `Approved`) |
+| Risiko tersisa | Tanda risiko jatuh di produksi tetap bergantung pada prasyarat go-live `G-06` (versi instrumen `Approved`); di DB dev sudah dipenuhi 4 Nov |
 | Perubahan sampingan | `NONE` |
 | Status Git | Source ada di commit `6489c32c`; laporan ini dan status roadmap di `7771096f` |
-| Langkah berikutnya | Keputusan Rizki untuk `NV-AC-011` dan `NV-AC-013`; lalu `BE-NV-006` dan `BE-NV-007` |
+| Langkah berikutnya | Tidak ada untuk task ini; UAT oleh tim UAT |
