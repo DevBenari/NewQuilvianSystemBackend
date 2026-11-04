@@ -556,6 +556,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             ServiceUnitType.OperatingRoom => "Kamar Operasi",
             ServiceUnitType.DeliveryRoom => "Kamar Bersalin",
             ServiceUnitType.Hemodialysis => "Hemodialisa",
+            ServiceUnitType.Optical => "Optik",
             ServiceUnitType.Other => "Lainnya",
             _ => "Tidak diketahui"
         };
