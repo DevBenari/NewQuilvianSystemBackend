@@ -2160,6 +2160,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             ClinicalDocumentKind.TransferHandover => "Serah Terima Pindah Ruang",
             ClinicalDocumentKind.PeriodicObservationSummary => "Ringkasan Pencatatan Berkala",
             ClinicalDocumentKind.PathologyAnatomyResult => "Hasil Patologi Anatomi",
+            ClinicalDocumentKind.OpticalRefraction => "Pemeriksaan Refraksi",
+            ClinicalDocumentKind.OpticalPrescription => "Resep Optik",
             _ => jenis.ToString()
         };
 
