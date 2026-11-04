@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using System.Globalization;
@@ -510,7 +512,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                                                && e.WorkforceProfileId == owner.WorkforceProfileId
                                                && type.BenefitCategory == BenefitServiceCategories.Medical
                                                && !type.IsClaimBased
-                                         orderby e.CreatedDate descending
+                                         orderby e.CreateDateTime descending
                                          select new
                                          {
                                              e.Id,
@@ -823,7 +825,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                               where !e.IsDelete
                                     && e.WorkforceProfileId == workforceProfileId
                                     && EmployeeBenefitEnrollmentStatuses.Open.Contains(e.EnrollmentStatus)
-                              orderby e.CreatedDate descending
+                              orderby e.CreateDateTime descending
                               select new
                               {
                                   e.EnrollmentNumber,
