@@ -1840,3 +1840,78 @@ data tiruan yang mengikuti bentuk response kontrak.
 | `HRD-DEC-101` | `FE-HRD-139` (Modal Ganti Petugas langsung, alasan wajib, status `Published` terjaga) |
 | `HRD-DEC-102` | `FE-HRD-137` (Batas edit mundur 3 hari; banner dan disable total saat status `Closed`) |
 | `HRD-DEC-103` | `FE-HRD-140`, `FE-HRD-141` (Kalender siaga, modal call-in, badge status SLA respon) |
+
+
+---
+
+## 16. Bagian `S-B1` — Layar Administrasi Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+Bagian ini mendokumentasikan spesifikasi antarmuka pengguna frontend untuk **Slice `S-B1` — Administrasi Kehadiran dan Presensi Staf Rumah Sakit 24/7**, mencakup 6 layar terpadu (`FE-HRD-144` s.d. `FE-HRD-149`), komponen drawer log biometrik mentah, modal pengajuan koreksi presensi on-behalf, modal izin pulang cepat, modal penugasan dinas luar GPS, serta layar tata kelola penutupan periode.
+
+### 16.1 Peta Butir Menu Navigasi Sidebar Modul Kehadiran
+
+| Kode Layar | Butir Menu Sidebar | Induk Menu | Route URL | Hak Akses Utama | Peran Pengguna |
+| --- | --- | --- | --- | --- | --- |
+| `FE-HRD-144` | Monitoring Presensi | Presensi & Kehadiran | `/hr/attendance/monitoring` | `[AccessPermission("AttendanceDaily", "View")]` | HR Officer, Kepala Ruangan, Manager |
+| `FE-HRD-145` | Koreksi Kehadiran | Presensi & Kehadiran | `/hr/attendance/corrections` | `[AccessPermission("AttendanceCorrection", "View")]` | HR Officer, Kepala Unit, Pegawai |
+| `FE-HRD-146` | Izin Pulang Cepat | Presensi & Kehadiran | `/hr/attendance/early-leave` | `[AccessPermission("EarlyLeavePermission", "View")]` | HR Officer, Atasan Langsung, Pegawai |
+| `FE-HRD-147` | Dinas Luar & Home Care | Presensi & Kehadiran | `/hr/attendance/official-duty` | `[AccessPermission("OfficialDuty", "View")]` | HR Officer, Koordinator Pelayanan, Pegawai |
+| `FE-HRD-148` | Periode & Tutup Buku | Presensi & Kehadiran | `/hr/attendance/periods` | `[AccessPermission("AttendancePeriod", "View")]` | HR Attendance Officer, HR Manager |
+| `FE-HRD-149` | Pengaturan Kebijakan Presensi | Presensi & Kehadiran | `/hr/attendance/settings` | `[AccessPermission("AttendanceSetting", "Manage")]` | HR Administrator |
+
+### 16.2 Skema Fitur & Tata Letak Layar
+
+#### 16.2.1 Layar `FE-HRD-144` — Monitoring Presensi Harian Staf Unit (`/hr/attendance/monitoring`)
+* **Tujuan:** Menampilkan matriks status kehadiran harian seluruh staf rumah sakit per tanggal dan per unit (rawat inap, IGD, ICU, farmasi, penunjang), mendeteksi otomatis keterlambatan, shift malam lintas hari (`HRD-DEC-104`), absensi tidak lengkap 1 tap (`HRD-DEC-106`), dan status dinas luar (`HRD-DEC-109`).
+* **Wilayah Layar:**
+  1. *Filter & Pencarian:* Pemilihan tanggal operasional, filter unit/instalasi, filter profesi klinis, dan pencarian nama/NIP staf.
+  2. *Kartu Ringkasan Harian:* Total Staf Terjadwal, Hadir Tepat Waktu (`Present`), Terlambat (`Late`), Pulang Cepat (`EarlyLeave`), Lupa Tap (`IncompletePunch`), Mangkir (`Absent`), dan Dinas Luar (`OnDuty`).
+  3. *Tabel Presensi Harian:* Kolom Nama Staf, Unit, Shift Roster Resmi, Jam Masuk Roster, Jam Tap Masuk Aktual, Jam Tap Keluar Aktual, Jam Kerja Efektif, Menit Terlambat, Badge Status Kehadiran, dan Kolom Aksi.
+  4. *Tombol Aksi per Baris:* Buka Drawer Detail Log Biometrik, dan Aksi Cepat Buat Koreksi On-Behalf (khusus HR Admin).
+
+#### 16.2.2 Layar `FE-HRD-145` — Manajemen & Persetujuan Koreksi Kehadiran (`/hr/attendance/corrections`)
+* **Tujuan:** Mengelola daftar permohonan koreksi presensi yang diajukan secara mandiri oleh pegawai maupun diajukan oleh HR atas nama pegawai (*on-behalf* per `HRD-DEC-028`).
+* **Wilayah Layar:**
+  1. *Tabs Status Koreksi:* Menunggu Persetujuan (`Pending Approval`), Disetujui (`Approved`), Ditolak (`Rejected`), dan Diterapkan (`Applied`).
+  2. *Tabel Pengajuan:* Tanggal Pengajuan, Nama Pegawai, Tanggal Shift yang Dikoreksi, Tipe Koreksi (Lupa Tap Masuk / Lupa Tap Pulang / Jam Salah), Jam Usulan Baru, Pemohon (Pegawai vs HR On-Behalf), Alasan Koreksi, Tautan Bukti Surat/Foto, dan Kolom Status.
+  3. *Tombol Tindakan:* Tombol **Setujui** (*Approve*) dan **Tolak** (*Reject*) bagi atasan langsung pegawai; Tombol **Terapkan Koreksi** (*Apply*) bagi HR Officer untuk memicu hitung ulang jam kerja harian.
+  4. *Modal Kuasa HR On-Behalf:* Form khusus bagi HR Admin untuk mengoreksi absensi pegawai yang terkendala akses ESS dengan input wajib: pilihan pegawai, tanggal shift, jam koreksi, alasan tertulis, dan unggah berkas bukti.
+
+#### 16.2.3 Layar `FE-HRD-146` — Permohonan & Persetujuan Izin Pulang Cepat (`/hr/attendance/early-leave`)
+* **Tujuan:** Mengelola izin pulang cepat administratif yang bersifat *non-deductible* (tidak memotong kuota saldo cuti tahunan per `HRD-DEC-107`).
+* **Wilayah Layar:**
+  1. *Form Pengajuan Izin:* Pemilihan tanggal shift dinas, jam rencana keluar lebih awal (`RequestedEarlyLeaveAt`), kategori alasan mendesak (Keluarga Darurat, Sakit Mendadak di Tempat Kerja, Penugasan Dinas Khusus), dan catatan penjelasan.
+  2. *Daftar Persetujuan Kepala Ruangan:* Memverifikasi kelayakan izin darurat dan memastikan ada perawat pengganti di shift tersebut sebelum menyetujui.
+  3. *Riwayat Izin Pulang Cepat:* Rekapitulasi frekuensi staf mengambil izin pulang cepat dalam 1 tahun sebagai bahan evaluasi kedisiplinan dan pembinaan pegawai.
+
+#### 16.2.4 Layar `FE-HRD-147` — Surat Tugas Dinas Luar & Home Care (`/hr/attendance/official-duty`)
+* **Tujuan:** Mengakomodasi penugasan staf di luar rumah sakit (ambulans rujukan, kurir sampel lab, workshop akreditasi RS, home care per `HRD-DEC-109`).
+* **Wilayah Layar:**
+  1. *Form Surat Tugas:* Nomor surat tugas, kategori dinas luar, lokasi tujuan, tanggal & jam dinas, serta daftar staf yang ditugaskan.
+  2. *Peta & Bukti Kunjungan:* Menampilkan koordinat GPS lokasi pelaksanaan tugas luar dan tangkapan foto bukti kegiatan (bila staf tap melalui mobile ESS).
+  3. *Tabel Rekapitulasi:* Memastikan seluruh staf yang bertugas luar terdata otomatis hadir dengan status `OnDuty` dan jam kerjanya diakui penuh untuk perhitungan payroll.
+
+#### 16.2.5 Layar `FE-HRD-148` — Penutupan Periode Kehadiran & Sinkronisasi Payroll (`/hr/attendance/periods`)
+* **Tujuan:** Dasbor bulanan bagi HR Attendance Officer dan HR Manager untuk melakukan verifikasi pra-penutupan (*pre-close validation*), mengunci periode presensi (*Period Close*), dan buka kembali darurat (*Controlled Reopen* per `HRD-DEC-108`).
+* **Wilayah Layar:**
+  1. *Status Periode:* Kode Periode (misal `ATT-2026-11`), Rentang Tanggal (26 Okt s.d. 25 Nov), dan Status Periode (`Open`, `Closed`, `Reopened`).
+  2. *Pemeriksaan Pra-Penutupan (Pre-Close Guard):* Widget verifikasi otomatis yang menampilkan:
+     * Jumlah koreksi presensi yang masih menggantung (*Pending Approval*) — **Wajib 0 untuk bisa menutup periode**.
+     * Jumlah absensi 1 tap (*IncompletePunch*) — Ditampilkan peringatan bahwa saat tombol tutup ditekan, sisa incomplete punch otomatis berubah menjadi `Absent` (Mangkir).
+  3. *Tombol Aksi Utama:*
+     * Tombol **Tutup Periode Kehadiran**: Mengunci seluruh data presensi menjadi *read-only*.
+     * Tombol **Buka Kembali Periode Darurat (Reopen)**: Hanya aktif untuk peran HR Manager; memunculkan modal alasan audit dan peringatan pembatalan (*rollback*) batch payroll jika serah terima sudah berjalan.
+     * Tombol **Serah Terima Payroll (Execute Handoff)**: Mengirimkan rekapitulasi kehadiran final ke Sub-Modul 10 (Payroll).
+
+#### 16.2.6 Layar `FE-HRD-149` — Pengaturan Kebijakan Presensi HR (`/hr/attendance/settings`)
+* **Tujuan:** Layar konfigurasi parameter waktu kerja presensi rumah sakit per `HRD-DEC-105`.
+* **Wilayah Layar:**
+  1. *Form Toleransi:* Input toleransi keterlambatan (*Grace Period Minutes*, default 10 menit), toggle aturan hitung penuh keterlambatan bila lewat toleransi.
+  2. *Form Batasan Koreksi:* Batas maksimal hari koreksi tanggal mundur (*MaxBackdatedCorrectionDays*, default 3 hari), toggle kewajiban melampirkan berkas bukti pada koreksi on-behalf.
+  3. *Tombol Simpan Pengaturan:* Memperbarui konfigurasi terpusat pada backend.
+
+### 16.3 Komponen Modal & Drawer Pendukung
+
+* **`RawAttendanceLogDrawer`:** Menampilkan seluruh riwayat mentah tap biometrik pegawai pada hari tersebut (jam tepat, ID mesin, metode biometrik, status sinkronisasi) untuk pembuktian saat audit internal.
+* **`AttendanceCorrectionModal`:** Formulir pengajuan koreksi presensi mandiri dan *on-behalf* dengan penanganan upload lampiran.
+* **`ReopenPeriodConfirmModal`:** Modal konfirmasi buka kembali periode yang mewajibkan input alasan tertulis dan menampilkan status serah terima payroll yang akan di-*rollback*.

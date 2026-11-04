@@ -1190,10 +1190,14 @@ Seluruh transisi status pada bagian ini diturunkan langsung dari `00-interview-d
 
 ### 12.6 Transisi Ilegal yang Ditolak Keras (*Fail-Closed Invariants*)
 
-1. **`ILLEGAL_CLINICAL_SCREENING_PASS`**: Mengubah status lamaran posisi klinis ke `ASSESSMENT` tanpa nomor STR yang sah atau dengan tanggal STR kadaluwarsa $ightarrow$ **Ditolak Keras (422 Unprocessable)**.
-2. **`ILLEGAL_OVERRIDE_CLINICAL_VETO`**: Mengubah status pelamar ke `OFFER_STAGE` bila formulir evaluasi Kepala Unit berisi rekomendasi `NOT_RECOMMENDED` $ightarrow$ **Ditolak Keras (403 Forbidden - Veto Mutlak Pasien Safety)**.
-3. **`ILLEGAL_OFFER_WITHOUT_DIRUT`**: Mengirim surat penawaran dengan nilai gaji di atas plafon grade tanpa persetujuan Direktur Utama $ightarrow$ **Ditolak Keras (403 Forbidden)**.
-4. **`ILLEGAL_FINAL_HIRE_WITHOUT_FIT_MCU`**: Melakukan serah terima onboarding sebelum status kelaikan MCU dari tim dokter K3RS bernilai `FIT` $ightarrow$ **Ditolak Keras (422 Unprocessable)**.
+1. **`ILLEGAL_CLINICAL_SCREENING_PASS`**: Mengubah status lamaran posisi klinis ke `ASSESSMENT` tanpa nomor STR yang sah atau dengan tanggal STR kadaluwarsa $
+ightarrow$ **Ditolak Keras (422 Unprocessable)**.
+2. **`ILLEGAL_OVERRIDE_CLINICAL_VETO`**: Mengubah status pelamar ke `OFFER_STAGE` bila formulir evaluasi Kepala Unit berisi rekomendasi `NOT_RECOMMENDED` $
+ightarrow$ **Ditolak Keras (403 Forbidden - Veto Mutlak Pasien Safety)**.
+3. **`ILLEGAL_OFFER_WITHOUT_DIRUT`**: Mengirim surat penawaran dengan nilai gaji di atas plafon grade tanpa persetujuan Direktur Utama $
+ightarrow$ **Ditolak Keras (403 Forbidden)**.
+4. **`ILLEGAL_FINAL_HIRE_WITHOUT_FIT_MCU`**: Melakukan serah terima onboarding sebelum status kelaikan MCU dari tim dokter K3RS bernilai `FIT` $
+ightarrow$ **Ditolak Keras (422 Unprocessable)**.
 
 
 ---
@@ -1314,3 +1318,90 @@ flowchart. Kolom "Bila dilanggar" menyebut kode dan aturan validasi.
 | `PENDING_ONBOARDING` | Nyatakan Siap Kerja | `ACTIVE` | Petugas HRD | `VR-ONB-11`, `VR-ONB-12` | `422` |
 | `PENDING_ONBOARDING` | Batal Bergabung | `CANCELLED_JOIN` | Petugas HRD | `VR-ONB-13` | `422` |
 | `PENDING_ONBOARDING` | Diubah lewat form master pegawai | — | — | — | `409` `VR-ONB-33` |
+
+
+---
+
+## 14. Matriks Transisi Status Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+
+### 14.1 Status Periode Roster — `TrxRosterPeriod.Status`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Roster Periode | `Draft` | Kepala Unit / HR Scheduling | Unit bertipe shift bergiliran (`HRD-DEC-097`) | `422` bila unit jam kantor |
+| `Draft` | Periksa Jadwal | `Validation` | Kepala Unit | Minimal 1 shift terisi | `400` bila kotak kosong semua |
+| `Draft`, `Validation` | Terbitkan Roster | `Published` | Kepala Unit | Validasi ulang lolos: `BlockingConflictCount == 0` dan seluruh `WarningCount` terisi alasan (`HRD-DEC-098`) | `422` ditolak jika ada `B1`–`B7` atau ada `W` tanpa alasan |
+| `Published` | Tambah/Ganti Shift | `Published` | Kepala Unit | Validasi pengganti lolos `B1`–`B7` dan alasan wajib (`HRD-DEC-101`) | Status **MUST NOT** turun ke `Draft` (`HRD-TF-052` b); ditolak bila `B` |
+| `Published` | Tutup Periode (*Close*) | `Closed` | Tim Payroll HRD | Periode berstatus `Published` dan tanggal akhir telah terlewati (`HRD-DEC-102`) | `422` bila status masih `Draft` (`HRD-TF-052` d) |
+| `Draft` | Tutup Periode | — | — | Dilarang keras menutup periode yang belum terbit | `400` status `Draft` tidak boleh ditutup |
+| `Closed` | Koreksi / Tambah Shift | — | — | Periode berstatus terkunci mutlak (*read-only*) | `403` / `409` periode terkunci mutlak |
+
+### 14.2 Status Penugasan Shift — `TrxShiftAssignment.Status`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | Roster Diterbitkan | `Published` | Sistem (otomatis saat terbit) | Periode roster menjadi `Published` | — |
+| `Published` | Ganti Petugas Mendadak | `Published` | Kepala Unit | Staf pengganti lolos validasi `B1`–`B7`, alasan terisi; set `IsManualOverride = true` | `422` bila pengganti cuti/bentrok |
+| `Published` | Hapus / Bebastugas Shift | `Cancelled` | Kepala Unit | Alasan penghapusan shift wajib | `400` bila tanpa alasan |
+| `Published` | Jam Shift Berakhir | `Completed` | Sistem (otomatis modul 07) | Waktu shift selesai dan tap kehadiran terverifikasi | — |
+
+### 14.3 Status Penugasan Siaga (On-Call) — `TrxOnCallAssignment.Status`
+
+Menutup bug kontrak Lab `HRD-TF-053` dan `LAB-DEC-111` (`HRD-DEC-103`).
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Jadwal Siaga | `Scheduled` | Kepala Unit (staf) / Pelayanan Medis (dokter) | Jam mulai < jam selesai; staf tidak cuti dan tidak bentrok | `422` bila jam tidak valid |
+| `Scheduled` | Konfirmasi Siaga | `Confirmed` | Dokter / Staf Siaga | Mengonfirmasi kesiapan siaga dari akun | — |
+| `Scheduled`, `Confirmed` | Jam Siaga Dimulai | `Active` | Sistem (otomatis berbasis waktu) | Waktu sekarang berada dalam rentang `StartTime` s.d. `EndTime` | — |
+| `Active` | Pemanggilan Cito (*Call-In*) | `Active` | Unit Pemanggil (Lab/IGD/OK) | Status **tetap `Active`** agar dibaca `LabConfirmingDoctorResolver`; atribut call-in dicatat | `400` bila jam panggilan tidak valid |
+| `Active` | Jam Siaga Berakhir | `Completed` | Sistem (otomatis berbasis waktu) | Waktu sekarang melewati `EndTime` | — |
+| `Scheduled`, `Confirmed` | Batalkan Penugasan | `Cancelled` | Kepala Unit / Pelayanan Medis | Alasan pembatalan siaga wajib | `400` bila tanpa alasan |
+
+### 14.4 Status Penggantian Shift — `TrxShiftReplacement.Status`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Konfirmasi Ganti Petugas | `Applied` | Kepala Unit | Staf pengganti lolos evaluasi `B1`–`B7` (`HRD-DEC-101`) | Langsung aktif; `422` bila bentrok |
+| `Applied` | Pembatalan Penggantian | `Reverted` | Kepala Unit | Dibuat transaksi pemulihan baru ke staf asal (`HRD-ASM-12`) | Jejak audit mutasi tetap utuh |
+
+
+---
+
+## 15. Bagian `S-B1` — Matriks Transisi Status Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+### 15.1 Siklus Hidup Kehadiran Harian (`AttendanceDailyStatus`)
+
+| Status Awal | Aksi / Peristiwa | Status Akhir | Aktor / Pemicu | Kondisi & Validasi |
+| --- | --- | --- | --- | --- |
+| `Scheduled` | Tap masuk tepat waktu (<= toleransi) & tap pulang valid | `Present` | Sistem (Schedule Resolver) | Seluruh tap biometrik valid dan jam kerja terpenuhi (`HRD-DEC-105`) |
+| `Scheduled` | Tap masuk melebihi batas toleransi keterlambatan | `Late` | Sistem (Schedule Resolver) | `ActualCheckIn > ScheduledStart + GracePeriod` (`HRD-DEC-105`) |
+| `Scheduled` | Hanya ada 1 tap tunggal (masuk saja / pulang saja) | `IncompletePunch` | Sistem (Schedule Resolver) | Status sementara; memicu notifikasi pengingat ke ESS (`HRD-DEC-106`) |
+| `IncompletePunch`| Permohonan koreksi presensi disetujui atasan | `Present` | Atasan Langsung / HR | Jam masuk/pulang riil tervalidasi dan jam kerja sah dihitung |
+| `IncompletePunch`| Periode presensi ditutup tanpa ada koreksi | `Absent` | Sistem (Period Close Guard) | Otomatis mangkir tanpa jam kerja terhitung (`HRD-DEC-106`) |
+| `Scheduled` | Tidak ada tap masuk maupun pulang sama sekali | `Absent` | Sistem (Schedule Resolver) | Pegawai tidak hadir tanpa surat izin yang sah |
+| `Scheduled` | Surat tugas dinas luar disetujui atasan | `OnDuty` | Atasan Langsung | Penugasan ambulans, kurir lab, workshop, atau home care (`HRD-DEC-109`) |
+
+### 15.2 Siklus Hidup Izin Pulang Cepat (`EarlyLeavePermissionStatus`)
+
+| Status Awal | Aksi / Peristiwa | Status Akhir | Aktor / Pemicu | Kondisi & Validasi |
+| --- | --- | --- | --- | --- |
+| — | Pegawai mengisi formulir izin pulang darurat | `Draft` | Pegawai pemohon | Alasan mendesak dan rencana jam keluar terisi |
+| `Draft` | Pegawai menekan Kirim Permohonan | `Submitted` | Pegawai pemohon | Masuk ke antrean persetujuan atasan langsung |
+| `Submitted` | Atasan langsung menyetujui izin | `Approved` | Atasan Langsung | Pengecualian pulang cepat berstatus `Waived` tanpa potong cuti (`HRD-DEC-107`) |
+| `Submitted` | Atasan langsung menolak izin | `Rejected` | Atasan Langsung | Wajib mengisi alasan penolakan; pegawai wajib dinas penuh |
+
+### 15.3 Siklus Hidup Periode Presensi Bulanan (`AttendancePeriodStatus`)
+
+| Status Awal | Aksi / Peristiwa | Status Akhir | Aktor / Pemicu | Kondisi & Validasi |
+| --- | --- | --- | --- | --- |
+| `Open` | HR Officer mengeksekusi tutup buku bulanan | `Closed` | HR Attendance Officer | Wajib tidak ada koreksi pending (`HRD-DEC-108`); sisa 1 tap jadi Absent |
+| `Closed` | HR Manager membuka kembali periode darurat | `Reopened` | HR Manager / Kadiv HR | Wajib alasan audit; memicu rollback serah terima payroll bila sudah Executed |
+| `Reopened` | HR Officer menutup kembali pasca-koreksi darurat | `Closed` | HR Attendance Officer | Data terkunci kembali dan siap diserahterimakan ulang ke payroll |

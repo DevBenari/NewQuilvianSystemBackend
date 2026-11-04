@@ -15,8 +15,8 @@
 | Frontend Evidence | `DevBenari/QuilvianSystemFrontendDev` branch `HamzahV2` |
 | Backend Evidence | `DevBenari/NewQuilvianSystemBackend` branch `MHamzah` |
 | Dokumen Awal | `Penjelasan_Sistem_dan_Sub_Modul_HRD_Rumah_Sakit.md` |
-| Edisi | 29 Oktober 2026 — diperluas dengan praktik rumah sakit, benchmark publik, flowchart, pengaruh bisnis, dan referensi regulasi terkini |
-| Status | Business & Implementation Reference |
+| Edisi | 4 November 2026 — dimutakhirkan dengan 3 Status Implementasi (Module Blueprint, Backend, Frontend) untuk Sub-Modul 01 s.d. 06 serta tabel status kesiapan implementasi seluruh 22 sub-modul |
+| Status | Business & Implementation Reference — Active Alignment |
 
 > **Tujuan buku ini:** developer harus memahami **mengapa** sebuah fitur HRD diperlukan, **siapa** yang menjalankan proses, **kapan** proses dimulai, **apa keputusan bisnisnya**, **data apa yang berubah**, **modul apa yang terdampak**, dan **apa risiko bila implementasi salah**.
 
@@ -39,6 +39,7 @@ Setiap sub-modul mempunyai bagian:
 9. **Benchmark rumah sakit / referensi praktik publik**.
 10. **Regulasi/standar relevan**.
 11. **Status source Quilvian** — existing/partial/extend/new.
+12. **3 Status Implementasi** — status pengerjaan pada Module Blueprint, Backend, dan Frontend.
 
 ## 1.1 Arti “benchmark rumah sakit” pada buku ini
 
@@ -102,12 +103,47 @@ flowchart LR
     B --> V[22 HR Service]
 ```
 
+## 3.1 Ringkasan 3 Status Implementasi 22 Sub-Modul HRD
+
+Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yang mencakup status perencanaan arsitektur modul (**Module Blueprint**), implementasi API dan logika bisnis (**Backend**), serta antarmuka pengguna (**Frontend**):
+
+| No | Sub-Modul HRD | Module Blueprint | Backend | Frontend | Status Keseluruhan |
+| :---: | :--- | :---: | :---: | :---: | :--- |
+| **01** | **Master Data HR** | [x] Selesai Dirancang (✅) | [x] Selesai Di-build (✅) | [x] Selesai Di-build (✅) | Lengkap & Aktif di Produksi |
+| **02** | **Workforce Core & Employee 360** | [x] Selesai Dirancang (✅) | [x] Selesai Di-build (✅) | [x] Selesai Di-build (✅) | Lengkap & Aktif di Produksi |
+| **03** | **Workforce Planning & Staffing** | [x] Selesai Dirancang (✅) | [x] Sebagian Di-build (🟡) | [ ] Baru Di-plan (📋) | Blueprint Selesai, BE Sebagian |
+| **04** | **Recruitment & Hiring** | [x] Selesai Dirancang (✅) | [x] Sebagian Di-build (🟡) | [ ] Baru Di-plan (📋) | Blueprint Selesai, Siap Build |
+| **05** | **Onboarding, Contract & Employment Lifecycle** | [x] Selesai Dirancang (✅) | [x] Selesai Di-build (✅) | [ ] Baru Di-plan (📋) | Blueprint & BE Selesai, FE Siap Build |
+| **06** | **Scheduling, Roster & On-Call** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan (📋) | [ ] Baru Di-plan (📋) | Blueprint Selesai, BE/FE Siap Build |
+| 07 | Attendance Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 08 | Leave & Permission Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 09 | Overtime Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 10 | Payroll Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 11 | Restitution & Deduction Integration | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 12 | Benefit Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 13 | Business Travel & Expense | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | Prioritas Rendah |
+| 14 | Credentialing, License & Clinical Privilege | [ ] Menunggu Komite Medik | [ ] Terblokir Komite Medik | [ ] Terblokir Komite Medik | Terblokir Persetujuan Klinis |
+| 15 | OPPE, FPPE & Recredentialing | [ ] Menunggu Komite Medik | [ ] Belum dikerjakan | [ ] Belum dikerjakan | Tahap Lanjutan |
+| 16 | Learning, Training & Competency | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 17 | Performance Management & Clinical Career | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 18 | Occupational Health & Staff Safety | [ ] Menunggu K3RS | [ ] Terblokir Kebijakan K3RS | [ ] Terblokir Kebijakan K3RS | Terblokir Privasi Medis |
+| 19 | Employee Relation & Discipline | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 20 | Separation, Exit Clearance & Offboarding | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 21 | Employee Self-Service & Unified Approval | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| 22 | HR Service & Employee Document Service | [ ] Menunggu Audit Data | [ ] Terblokir Skema Destruktif | [ ] Belum dikerjakan | Terblokir Keputusan Skema |
+
+
 ---
 
 # 01. Master Data HR
 
 **Domain source Quilvian:** `MasterData`  
 **Status source:** `TERSEDIA — REUSE + HARDEN`
+
+### 3 Status Implementasi
+- [x] **Module Blueprint:** Sudah dikerjakan (✅) — Kamus data terpusat, master organisasi, profesi klinis, spesialisasi, shift, cuti, komponen payroll (`02-backend-architecture.md` §2, `data/data-dictionary.md`).
+- [x] **Backend:** Sudah dikerjakan (✅) — 65 controller master data aktif, seeder default data rumah sakit, rute API canonical kebab-case (`BE-HRD-002`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — 62 halaman antarmuka master data aktif terhubung API (`FE-HRD-021`).
 
 ## Penjelasan untuk developer
 
@@ -191,6 +227,11 @@ Rumah sakit membuka Cath Lab baru. HR tidak cukup hanya membuat teks “Cath Lab
 **Domain source Quilvian:** `WorkforceCore`  
 **Status source:** `TERSEDIA — REUSE + HARDEN`
 
+### 3 Status Implementasi
+- [x] **Module Blueprint:** Sudah dikerjakan (✅) — Buku induk kepegawaian, SK mutasi/rotasi/demosi, profil 360, permohonan mandiri & kuasa HR (`02-backend-architecture.md` §3–§5).
+- [x] **Backend:** Sudah dikerjakan (✅) — Controller kepegawaian aktif, SK mutasi pegawai, dual-view 360 HR vs Manager, batch 55 staf awal (`BE-HRD-003`, `BE-HRD-023`..`028`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Layar direktori staf, Employee 360 view, modul permohonan mandiri & form kuasa HR on-behalf (`FE-HRD-002`, `FE-HRD-022`..`028`).
+
 ## Penjelasan untuk developer
 
 Workforce Core adalah **buku induk tenaga kerja**. Satu orang harus mempunyai satu identitas workforce yang menjadi penghubung seluruh histori kepegawaian. Employee 360 berarti HR dapat melihat kondisi tenaga kerja secara utuh tanpa mencari data di banyak aplikasi.
@@ -270,6 +311,11 @@ Perawat Rina dipindahkan dari Rawat Inap ke ICU dan naik jabatan menjadi Ketua T
 
 **Domain source Quilvian:** `WorkforcePlanning`  
 **Status source:** `PARTIAL — EXTEND_EXISTING`
+
+### 3 Status Implementasi
+- [x] **Module Blueprint:** Selesai Dirancang & Disetujui (✅) — Slice `S-D1`, standar ABK/WISN, buku formasi berversi, pengajuan penambahan formasi, formasi per unit (`02-backend-architecture.md` §16, `03-frontend-architecture.md` §12, Kontrak `v7`).
+- [x] **Backend:** Sebagian Selesai Di-Build (🟡) — Fondasi data formasi, controller standar kebutuhan tenaga, batch formasi awal, workflow pengajuan formasi selesai di-build (`BE-HRD-017`, `BE-HRD-029` s.d. `BE-HRD-034`); sisa task terencana.
+- [ ] **Frontend:** Baru Di-Plan / Sebagian (📋) — Layar kalkulator beban kerja WISN/ABK, dasbor formasi per unit (`FE-HRD-029` s.d. `FE-HRD-043`) siap dibangun.
 
 ## Penjelasan untuk developer
 
@@ -353,6 +399,11 @@ ICU membuka enam bed tambahan. Sistem tidak langsung menyimpulkan “butuh enam 
 
 **Domain source Quilvian:** `RecruitmentManagement`  
 **Status source:** `PARTIAL — EXTEND_EXISTING`
+
+### 3 Status Implementasi
+- [x] **Module Blueprint:** Selesai Dirancang & Disetujui (✅) — Slice `S-D2`, lowongan berbasis formasi kosong, pipeline seleksi kandidat, MCU, interview klinis, offering letter (`02-backend-architecture.md` §17, `03-frontend-architecture.md` §13, Kontrak `v8`).
+- [x] **Backend:** Sebagian Selesai Di-Build (🟡) — 12 model `Hrd` fondasi data selesai (`BE-HRD-018`); endpoint controller `BE-HRD-052` s.d. `BE-HRD-062` siap di-build.
+- [ ] **Frontend:** Baru Di-Plan / Belum Di-Build (📋) — 14 task frontend (`FE-HRD-044` s.d. `FE-HRD-057`) siap di-build.
 
 ## Penjelasan untuk developer
 
@@ -442,6 +493,11 @@ RS membutuhkan perawat IGD. Kandidat harus sesuai pendidikan, mempunyai STR akti
 
 **Domain source Quilvian:** `LifecycleManagement / WorkforceCore`  
 **Status source:** `PARTIAL — EXTEND_EXISTING`
+
+### 3 Status Implementasi
+- [x] **Module Blueprint:** Selesai Dirancang & Disetujui (✅) — Slice `S-C4-ONB`, kasus onboarding 3 lapis, masa percobaan & evaluasi kelulusan, pendampingan klinis ICU/IGD, siklus kontrak PKWT/PKWTT/Mitra (`02-backend-architecture.md` §18, `03-frontend-architecture.md` §14, Kontrak `v9`).
+- [x] **Backend:** Selesai Di-Build (✅) — Controller onboarding case, template tugas unit/klinis/korporat, siklus kontrak kerja, pembentukan akun sistem, dan migration EF Core sudah dibuat (`BE-HRD-063` s.d. `BE-HRD-086`).
+- [ ] **Frontend:** Baru Di-Plan / Belum Di-Build (📋) — 17 task frontend (`FE-HRD-058` s.d. `FE-HRD-074` untuk 15 layar `FE-HRD-123` s.d. `FE-HRD-137`) siap di-build.
 
 ## Penjelasan untuk developer
 
@@ -534,6 +590,11 @@ Perawat baru dengan kontrak PKWT mengikuti orientasi rumah sakit dan preceptorsh
 **Domain source Quilvian:** `SchedulingManagement`  
 **Status source:** `PARTIAL END-TO-END — REUSE + HARDEN`
 
+### 3 Status Implementasi
+- [x] **Module Blueprint:** Selesai Dirancang & Disetujui (✅) — Roster 24/7 unit, validasi keselamatan `B1`–`B7` & peringatan beralasan `W1`–`W7`, terbit mandiri Kepala Ruangan, override langsung efektif, koreksi mundur 3 hari, tata kelola siaga on-call & SLA menit (`02-backend-architecture.md` §19, `03-frontend-architecture.md` §15, Kontrak `v10`).
+- [ ] **Backend:** Baru Di-Plan / Belum Di-Build (📋) — Roadmap selesai direncanakan (17 task: `BE-HRD-087` s.d. `BE-HRD-103`), spesifikasi kontrak API & validasi siap, kode program belum dieksekusi/di-build.
+- [ ] **Frontend:** Baru Di-Plan / Belum Di-Build (📋) — Roadmap selesai direncanakan (13 task: `FE-HRD-075` s.d. `FE-HRD-087` untuk 6 layar `FE-HRD-138` s.d. `FE-HRD-143`), UI component siap dibangun, kode program belum dieksekusi/di-build.
+
 ## Penjelasan untuk developer
 
 Scheduling mengubah workforce yang tersedia menjadi orang yang benar-benar hadir pada waktu yang dibutuhkan layanan. Rumah sakit tidak boleh hanya membuat kalender kerja; roster harus memperhatikan unit, profesi, kompetensi, credential, cuti, fatigue/rest, on-call coverage dan kebutuhan skill mix.
@@ -620,6 +681,11 @@ Jadwal malam ICU membutuhkan minimal kombinasi kompetensi tertentu. Sistem tidak
 **Domain source Quilvian:** `AttendanceManagement`  
 **Status source:** `TERSEDIA KUAT — CONTRACT & PROCESS HARDENING`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — 72 endpoint, guard closed period, hitung absensi harian (`BE-HRD-006`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor absensi, monitoring presensi harian, koreksi kehadiran on-behalf (`FE-HRD-009`).
+
 ## Penjelasan untuk developer
 
 Attendance adalah bukti kehadiran aktual dan hasil interpretasi terhadap jadwal. Raw log dari mesin, mobile atau input lain tidak sama dengan attendance daily. Sistem perlu mencocokkan log dengan roster, menangani shift lintas hari, keterlambatan, pulang cepat, missing punch, dinas luar, dan correction.
@@ -704,6 +770,11 @@ Perawat dinas malam tap masuk 20:55 dan tap pulang 07:10. Sistem harus mengaitka
 **Domain source Quilvian:** `LeaveManagement`  
 **Status source:** `TERSEDIA KUAT — REUSE + HARDEN`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Saldo cuti tahunan, pengajuan izin, approval berjenjang (`BE-HRD-007`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor kuota cuti ESS, formulir pengajuan cuti, approval atasan (`FE-HRD-010`).
+
 ## Penjelasan untuk developer
 
 Leave Management mengelola **hak, saldo, permohonan dan dampaknya ke jadwal pelayanan**. Pada rumah sakit, approval cuti tidak boleh hanya melihat “saldo cukup”; unit harus tetap mampu menjaga coverage. Karena itu leave berhubungan erat dengan roster dan manager approval.
@@ -787,6 +858,11 @@ Dua perawat ICU mengajukan cuti pada minggu yang sama. Keduanya punya saldo. Sis
 **Domain source Quilvian:** `OvertimeManagement`  
 **Status source:** `TERSEDIA KUAT — REUSE + HARDEN`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Pengesahan SPKL, verifikasi jam lembur, pembatasan lembur harian/mingguan (`BE-HRD-008`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Pengajuan lembur mandiri, rekonsiliasi SPKL vs mesin absensi (`FE-HRD-011`).
+
 ## Penjelasan untuk developer
 
 Overtime memastikan pekerjaan tambahan dilakukan secara sah, terkontrol dan dapat dibuktikan. Rumah sakit membutuhkan dua pola besar: lembur terencana dan lembur tidak terencana/darurat klinis. Dalam situasi cito, patient safety lebih dulu; administrasi dapat dilakukan sebagai post-claim tetapi tetap membutuhkan evidence dan approval.
@@ -867,6 +943,11 @@ Tim operasi masih menangani kasus cito saat jadwal dinas selesai. Mereka tidak p
 
 **Domain source Quilvian:** `PayrollManagement`  
 **Status source:** `PARTIAL — PERLU END-TO-END COMPLETION`
+
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Kalkulasi payroll, komponen tunjangan/potongan, handoff Finance (`BE-HRD-010`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor monitoring payroll, slip gaji digital (`FE-HRD-013`).
 
 ## Penjelasan untuk developer
 
@@ -959,6 +1040,11 @@ Perawat menerima gaji pokok, tunjangan profesi, night-shift allowance dan overti
 **Domain source Quilvian:** `PayrollManagement / Finance Integration`  
 **Status source:** `TERSEDIA CORE — HARDEN INTEGRATION`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Restitusi biaya rawat inap staf, angsuran cicilan pinjaman (`BE-HRD-010`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor dual-tab pemantauan cicilan & restitusi (`FE-HRD-013`).
+
 ## Penjelasan untuk developer
 
 Sub-modul ini menangani koreksi/penambahan/pengurangan yang tidak seharusnya disisipkan sebagai edit manual pada payroll final. Contohnya penggantian biaya tertentu, restitusi salah potong, atau cicilan kewajiban pegawai kepada rumah sakit.
@@ -1037,6 +1123,11 @@ Pegawai mempunyai cicilan piutang rumah sakit Rp500.000 per bulan. Finance adala
 
 **Domain source Quilvian:** `BenefitManagement`  
 **Status source:** `TERSEDIA CORE — EXTEND CLAIM/INTEGRATION`
+
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Pendaftaran benefit BPJS Ketenagakerjaan & Kesehatan, plafon benefit (`BE-HRD-019`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Layar kepesertaan asuransi & tanggungan keluarga (`FE-HRD-020`).
 
 ## Penjelasan untuk developer
 
@@ -1122,6 +1213,11 @@ Anak pegawai berobat di rumah sakit tempat orang tuanya bekerja. Registration me
 **Domain source Quilvian:** `BusinessTravelManagement / ExpenseManagement`  
 **Status source:** `PARTIAL — PERSISTENCE FOUNDATION`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Ditunda (DEFERRED) — Bukan prioritas operasional inti V2.
+- [ ] **Backend:** Ditunda (DEFERRED) (`BE-HRD-021`).
+- [ ] **Frontend:** Ditunda (DEFERRED).
+
 ## Penjelasan untuk developer
 
 Perjalanan dinas rumah sakit dapat terkait pelatihan, pendampingan cabang, akreditasi, seminar, tugas klinis atau manajemen. Sistem perlu memisahkan **approval tugas**, **uang muka**, **pengeluaran aktual**, **evidence kuitansi**, dan **settlement**. Expense tanpa trip juga dapat ada untuk biaya yang memang menjadi hak/reimbursement.
@@ -1200,6 +1296,11 @@ Tim akreditasi dikirim ke pelatihan luar kota. Sebelum berangkat ada surat tugas
 
 **Domain source Quilvian:** `CredentialingManagement`  
 **Status source:** `PARTIAL — MODEL KUAT, WORKFLOW PERLU DITUTUP`
+
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Menunggu persetujuan tata kelola Komite Medik (`HRD-DEC-005`).
+- [ ] **Backend:** Terblokir wewenang Komite Medik (`BE-HRD-011` ⛔).
+- [ ] **Frontend:** Terblokir wewenang Komite Medik (`FE-HRD-014` ⛔).
 
 ## Penjelasan untuk developer
 
@@ -1293,6 +1394,11 @@ Dokter spesialis mendapatkan SIP aktif tetapi meminta privilege prosedur interve
 **Domain source Quilvian:** `CredentialingManagement + Performance/Quality Integration`  
 **Status source:** `NEW + EXTEND_EXISTING — P0`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Menunggu persetujuan tata kelola Komite Keperawatan & Medik.
+- [ ] **Backend:** Belum dikerjakan (Tahap lanjutan pasca-kredensial).
+- [ ] **Frontend:** Belum dikerjakan.
+
 ## Penjelasan untuk developer
 
 Credentialing tidak berhenti ketika SPK/RKK terbit. Rumah sakit harus terus mengevaluasi mutu praktik profesional. **OPPE** adalah evaluasi berkelanjutan menggunakan data praktik; **FPPE** adalah evaluasi terfokus ketika ada trigger tertentu atau saat privilege baru memerlukan pengawasan. Hasilnya menjadi input rekredensial dan keputusan privilege.
@@ -1377,6 +1483,11 @@ Dokter bedah mempunyai OPPE stabil selama dua tahun, tetapi tahun ketiga terdapa
 
 **Domain source Quilvian:** `LearningAndDevelopment`  
 **Status source:** `PARTIAL — EXTEND_EXISTING`
+
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Diklat RS, sertifikasi kompetensi, pencatatan masa berlaku STR/SIP (`BE-HRD-012`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor diklat & sertifikat, monitoring masa berlaku sertifikasi (`FE-HRD-015`).
 
 ## Penjelasan untuk developer
 
@@ -1467,6 +1578,11 @@ Perawat ICU wajib mempunyai kompetensi ventilator, BHD/BHL dan infection prevent
 **Domain source Quilvian:** `PerformanceManagement`  
 **Status source:** `PARTIAL — EXTEND_EXISTING`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — KPI individu & unit, evaluasi kinerja berkala (`BE-HRD-013`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Lembar penilaian kinerja, review berkala atasan (`FE-HRD-016`).
+
 ## Penjelasan untuk developer
 
 Performance Management menilai pencapaian tujuan kerja pegawai. Siklusnya biasanya mencakup goal/KPI, check-in, self assessment, manager assessment, calibration, final review dan improvement plan. Untuk tenaga klinis, performance umum tetap berbeda dari OPPE.
@@ -1551,6 +1667,11 @@ Perawat mempunyai KPI kehadiran dan service quality yang baik, tetapi belum meme
 
 **Domain source Quilvian:** `OccupationalHealthManagement`  
 **Status source:** `PARTIAL — MODEL KUAT, OPERASIONALISASI DIPERLUKAN`
+
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Menunggu kebijakan perlindungan privasi data medis K3RS (`HRD-DEC-010`).
+- [ ] **Backend:** Terblokir privasi data medis staf K3RS (`BE-HRD-016` ⛔).
+- [ ] **Frontend:** Terblokir privasi data medis staf K3RS (`FE-HRD-019` ⛔).
 
 ## Penjelasan untuk developer
 
@@ -1640,6 +1761,11 @@ Perawat tertusuk jarum setelah tindakan. Sistem membuat exposure episode, mencat
 **Domain source Quilvian:** `EmployeeRelationManagement`  
 **Status source:** `PARTIAL — EXTEND_EXISTING`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Pencatatan sanksi disiplin, SP 1/2/3, investigasi kasus (`BE-HRD-015`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor kasus hubungan industrial & modal sanksi SP (`FE-HRD-018`).
+
 ## Penjelasan untuk developer
 
 Employee Relations mengelola hubungan kerja, grievance, investigasi, pelanggaran, keputusan disiplin dan recognition. Pada rumah sakit, domain ini harus berhati-hati karena insiden keselamatan pasien tidak boleh otomatis diterjemahkan menjadi kesalahan individu. Diperlukan mekanisme investigasi dan **just culture** untuk membedakan human error, system issue, at-risk behavior dan misconduct.
@@ -1724,6 +1850,11 @@ Terjadi medication incident. Quality melakukan incident analysis. Jika akar masa
 
 **Domain source Quilvian:** `LifecycleManagement / ExitClearance`  
 **Status source:** `TERSEDIA CORE — EXTEND FULL LIFECYCLE`
+
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Exit interview, serah terima aset, gerbang kliring Finance (`BE-HRD-014`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Formulir exit clearance bertingkat antar-departemen (`FE-HRD-017`).
 
 ## Penjelasan untuk developer
 
@@ -1816,6 +1947,11 @@ Dokter resign efektif akhir bulan. Sebelum inactive, Finance harus menyelesaikan
 **Domain source Quilvian:** `SelfServices + WorkflowManagement`  
 **Status source:** `TERSEDIA CORE — NAVIGATION & CONTRACT HARDENING`
 
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Backend:** Sudah dikerjakan (✅) — Portal layanan mandiri & integrasi Unified Approval Inbox (`BE-HRD-004`, `BE-HRD-005`).
+- [x] **Frontend:** Sudah dikerjakan (✅) — Portal ESS lengkap & kotak masuk persetujuan terpadu atasan (`FE-HRD-003`..`008`).
+
 ## Penjelasan untuk developer
 
 Employee Self-Service (ESS) adalah pintu pegawai untuk mengakses hak dan kewajibannya tanpa bergantung pada petugas HR. Unified Approval Inbox adalah pintu atasan untuk memproses berbagai request lintas HR dalam satu tempat. Tujuannya bukan sekadar kenyamanan UI, tetapi membuat **workflow, SLA, delegation, reason dan audit** konsisten.
@@ -1898,6 +2034,11 @@ Perawat mengajukan tukar shift. Request tidak dikirim ke nama manager yang di-ha
 
 **Domain source Quilvian:** `HrServiceManagement`  
 **Status source:** `PARTIAL — PERSISTENCE FOUNDATION`
+
+### 3 Status Implementasi
+- [ ] **Module Blueprint:** Menunggu audit penyesuaian skema database (`HRD-Q-05`).
+- [ ] **Backend:** Terblokir keputusan skema destruktif (`BE-HRD-020` ⛔).
+- [ ] **Frontend:** Belum dikerjakan.
 
 ## Penjelasan untuk developer
 

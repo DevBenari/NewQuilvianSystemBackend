@@ -1086,6 +1086,57 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IHiringHandoffService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
 
+    // Slice S-C4-ONB: Onboarding & Manajemen Siklus Kontrak Pegawai (MVP-14)
+    // BE-HRD-065: Sinkronisasi 5 Isian Kepegawaian & Penulisan Kontrak Satu Pintu
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IEmployeeEmploymentRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpContractHistoryWriteService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
+
+    // BE-HRD-066: Pembuatan Akun Pengguna Pegawai Tersentral
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IEmployeeUserAccountService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.EmployeeUserAccountService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.EmployeeUserAccountService>();
+
+    // BE-HRD-067: Penempatan & Gaji Awal Pegawai Baru
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpNewHireAssignmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpNewHireAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpNewHireAssignmentService>();
+
+    // BE-HRD-068: Integrasi Alur Persetujuan Modul 09 T15-T18
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentLifecycleWorkflowIntegrationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowIntegrationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowIntegrationService>();
+
+    // BE-HRD-069: Number Series, Attachment & Pengaturan Siklus Kepegawaian
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdNumberSeriesService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdNumberSeriesService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdNumberSeriesService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdLifecycleAttachmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleAttachmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleAttachmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentLifecycleSettingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSettingService>();
+
+    // BE-HRD-070: Template Onboarding Tiga Lapis
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdOnboardingTemplateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingTemplateService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingTemplateService>();
+
+    // BE-HRD-071: Masa Percobaan dari Jenis Kontrak
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdProbationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdProbationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdProbationService>();
+
+    // BE-HRD-072: Kontrak Pertama Draf, Cetak, dan Tanda Tangan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentContractService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentContractService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentContractService>();
+
+    // BE-HRD-074: Kasus Onboarding dari Serah Terima
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdOnboardingCaseService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingCaseService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingCaseService>();
+
+    // BE-HRD-073: Pendampingan Klinis
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdClinicalPreceptorshipService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdClinicalPreceptorshipService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdClinicalPreceptorshipService>();
+
+    // BE-HRD-077: Permintaan Akun dan Akses Kerja
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdOnboardingAccessService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingAccessService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingAccessService>();
+
     builder.Services.AddScoped<ScheduleChangeService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();

@@ -1,115 +1,170 @@
-# Penjadwalan Kerja
+# Penjadwalan Kerja, Roster, dan On-Call
 
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Jenis | Flowchart proses |
-| Slice | `S-B4` penjadwalan kerja |
-| Status | `draft` |
-| Kesiapan | `READY FOR DESIGN` |
+| Jenis | Flowchart proses bisnis |
+| Slice | `S-B4` — Penjadwalan, Roster, dan On-Call |
+| Status | `draft` — Sesuai keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` |
+| Tanggal | 2026-11-04 |
 
 ---
 
-## 1. Apa yang dijawab berkas ini
-
-Bagaimana jadwal kerja satu unit disusun untuk satu periode, diperiksa terhadap bentrok, lalu
-diterbitkan sehingga pegawai dapat melihatnya.
-
-**Kenyataan yang harus dibaca lebih dulu.** Tabel untuk roster, shift harian, penggantian, tenaga
-darurat, dan siaga **sudah ada lengkap** di basis data. Yang belum ada adalah **perilakunya** —
-tidak ada satu pun jalur yang menjalankan penjadwalan operasional hari ini. Untuk rumah sakit
-yang berjalan 24 jam, ini adalah celah terbesar di seluruh modul HR.
-
-Karena itu diagram di bawah adalah **rancangan target**, bukan gambaran keadaan sekarang.
-
-## 2. Diagram
+## 1. Alur 1: Penyusunan & Penerbitan Roster Bulanan Unit (`HRD-DEC-097`, `HRD-DEC-098`, `HRD-DEC-099`, `HRD-DEC-100`)
 
 ```mermaid
 flowchart TD
-    subgraph manajer[Manajer unit]
-        A([Periode berikutnya perlu dijadwalkan]) --> B[Buka periode roster]
-        B --> C{Kebutuhan tenaga<br/>per hari sudah ada?}
-        C -- Belum --> C1[/Ditolak, kebutuhan tenaga<br/>belum ditetapkan/]
-        C1 --> D[Tetapkan kebutuhan tenaga harian]
-        D --> B
-        C -- Sudah --> E[(Draft)]
-        E --> F[Tempatkan pegawai ke shift]
+    subgraph Kepala_Unit["Kepala Unit / Kepala Ruangan"]
+        A1["Mulai: Buka Roster Unit"] --> A2["Buat Draft Roster Bulan Baru"]
+        A2 --> A3{"Pilih Metode Pengisian"}
+        A3 -- "Salin Periode Lalu" --> A4["Pilih Periode Sumber (Bulan Lalu)"]
+        A3 -- "Terapkan Pola Shift" --> A5["Pilih Pola Shift (misal P-S-M-L-L)"]
+        A3 -- "Manual Grid" --> A6["Isi Sel Shift Per Staf & Tanggal"]
+        A4 --> A7["Matriks Shift Terisi"]
+        A5 --> A7
+        A6 --> A7
+        A7 --> A8["Klik: Periksa Jadwal"]
+        A9{"Hasil Evaluasi"} -- "Ada Masalah Memblokir (B1-B7)" --> A10["Perbaiki Jadwal di Kisi (Wajib Lolos)"]
+        A10 --> A8
+        A9 -- "Ada Peringatan (W1-W7)" --> A11["Pilih Alasan Wajib per Peringatan di Drawer"]
+        A11 --> A12["Tombol Terbitkan Aktif"]
+        A9 -- "Bersih (Tanpa Masalah)" --> A12
+        A12 --> A13["Klik: Terbitkan Roster"]
     end
 
-    subgraph sistem[Sistem]
-        F --> G[Periksa bentrok]
-        G --> H{Ada bentrok<br/>yang menghalangi?}
-        H -- Ya --> I[/Ditampilkan daftar bentrok:<br/>shift ganda, cuti, pelatihan,<br/>istirahat minimum, batas jam kerja,<br/>lisensi, tenaga minimum, bauran keahlian/]
-        H -- Tidak --> J[(Validated)]
+    subgraph Sistem_Backend["Sistem Backend & Mesin Validasi"]
+        A2 --> S1["Auto-populate Staf Eligible dari WorkforceCore (Hanya Pegawai Siap Kerja)"]
+        S1 --> A3
+        A8 --> S2["Evaluasi Aturan B1-B7 & W1-W7"]
+        S2 --> A9
+        A13 --> S3["Validasi Ulang Otomatis Sebelum Terbit"]
+        S3 -- "Lolos" --> S4["Ubah Status Periode ke 'Published'"]
+        S4 --> S5["Kirim Notifikasi ke Pegawai & Kepala Bidang (FYI)"]
     end
 
-    subgraph penyelesaian[Manajer unit]
-        I --> K{Cara<br/>menyelesaikan}
-        K -- Ganti orang --> F
-        K -- Tetapkan manual<br/>dengan alasan tercatat --> L[Isi alasan penetapan manual]
-        L --> J
-        K -- Tunda --> M[(Draft)]
-        M --> F
+    subgraph Konsumen_Lain["Modul Lain (Kehadiran & Modul Klinis)"]
+        S4 --> K1["Modul Kehadiran (07): Membaca Jadwal Terbit untuk Referensi Absen"]
+        S4 --> K2["Nurse View: Menampilkan Perawat Jaga Ruangan"]
     end
-
-    subgraph penerbitan[Manajer unit dan penyetuju]
-        J --> N[Ajukan penerbitan]
-        N --> O{Perlu persetujuan<br/>di unit ini?}
-        O -- Ya --> P[Penyetuju memutuskan]
-        P -- Tolak --> M
-        P -- Setujui --> Q[Terbitkan]
-        O -- Tidak --> Q
-        Q --> R[(Published)]
-    end
-
-    subgraph pegawai[Pegawai]
-        R --> S[Lihat jadwal sendiri]
-        S --> T{Perlu diubah<br/>atau ditukar?}
-        T -- Ya --> U([Lanjut ke ubah jadwal atau tukar shift])
-        T -- Tidak --> V[(Confirmed)]
-    end
-
-    V --> W([Jadwal berlaku dan dipakai pengolahan kehadiran])
 ```
 
-## 3. Tabel langkah
+### Tabel Langkah Proses 1: Penyusunan & Penerbitan Roster
 
-| Langkah | Pelaku | Masukan yang dibutuhkan | Keluaran | Bila gagal |
-| --- | --- | --- | --- | --- |
-| Buka periode roster | Manajer unit | Rentang tanggal; unit; kebijakan roster dan istirahat minimum | Periode roster berstatus `Draft` | Ditolak bila kebutuhan tenaga harian belum ditetapkan. Manajer menetapkannya lebih dulu |
-| Tetapkan kebutuhan tenaga harian | Manajer unit | Jumlah dan bauran keahlian yang dibutuhkan per shift | Kebutuhan tenaga tersimpan | Tidak terbentuk bila master shift dan keahlian belum terisi. HR melengkapi master lebih dulu |
-| Tempatkan pegawai ke shift | Manajer unit | Daftar pegawai unit; shift yang tersedia | Penempatan shift berstatus `Draft` | Penempatan tidak tersimpan. Manajer memilih pegawai atau shift lain |
-| Periksa bentrok | Sistem | Seluruh penempatan pada periode itu | Penempatan berstatus `Validated`, atau daftar bentrok | Bentrok yang menghalangi ditampilkan. Manajer menyelesaikannya atau menetapkan manual dengan alasan |
-| Tetapkan manual dengan alasan | Manajer unit | Alasan yang wajib diisi | Penempatan `Validated` meski ada bentrok yang tercatat | Ditolak bila alasan kosong. Manajer mengisinya |
-| Ajukan penerbitan | Manajer unit | Seluruh penempatan sudah `Validated` | Pengajuan penerbitan | Ditolak bila masih ada penempatan yang belum lolos pemeriksaan |
-| Putuskan penerbitan | Penyetuju | Roster yang diajukan | Roster disetujui atau dikembalikan | Bila dikembalikan, roster kembali `Draft`. Manajer memperbaikinya |
-| Terbitkan | Manajer unit | Roster yang sudah disetujui | Penempatan berstatus `Published` | Penerbitan gagal. Manajer mengulang setelah penyebabnya diperbaiki |
-| Lihat jadwal sendiri | Pegawai | Jadwal yang sudah `Published` | Pegawai mengetahui jadwalnya | Jadwal belum terbit. Pegawai menghubungi manajernya |
+| No | Pelaku | Tindakan / Langkah | Masukan | Keluaran | Bila Gagal / Terjadi Masalah |
+| :---: | --- | --- | --- | --- | --- |
+| 1 | Kepala Unit | Membuat draft periode roster unit | Unit kerja dan bulan target | Draft roster berstatus `Draft`, staf terisi otomatis | Ditolak bila unit bukan unit kerja bergiliran (`HRD-DEC-097`) |
+| 2 | Kepala Unit | Memilih metode pengisian cepat | Pilihan salin periode atau terapkan pola | Ratusan sel shift terisi otomatis dalam hitungan detik | Kepala unit dapat mengedit sel individual bila ada pengecualian |
+| 3 | Kepala Unit | Menekan **Periksa Jadwal** | Matriks shift draft | Daftar error memblokir (`B1`–`B7`) dan peringatan (`W1`–`W7`) | Error memblokir (merah) wajib diperbaiki di kisi tabel |
+| 4 | Kepala Unit | Memilih alasan peringatan | Dropdown alasan di drawer | Seluruh peringatan memiliki alasan terkonfirmasi | Tombol Terbitkan tetap terkunci bila ada alasan belum dipilih |
+| 5 | Kepala Unit | Menekan **Terbitkan Roster** | Konfirmasi penerbitan | Status periode berubah menjadi `Published` | Sistem validasi ulang otomatis; ditolak bila ada bentrok baru |
+| 6 | Sistem | Mengirimkan notifikasi | Event `RosterPublishedEvent` | Notifikasi in-app ke staf dinas dan Kepala Bidang | Notifikasi di-retry otomatis via queue |
 
-## 4. Jalur pengecualian yang paling sering ditemui
+---
 
-| Keadaan | Apa yang petugas lakukan |
-| --- | --- |
-| Pegawai dijadwalkan pada hari ia sedang cuti | Bentrok cuti ditampilkan. Manajer mengganti orangnya |
-| Jarak antar shift kurang dari istirahat minimum | Bentrok istirahat minimum ditampilkan. Manajer menggeser shift atau mengganti orang |
-| Tenaga di bawah jumlah minimum unit | Bentrok tenaga minimum ditampilkan. Manajer menambah orang, atau mengajukan tenaga darurat |
-| Lisensi profesi pegawai tidak memenuhi syarat shift | Bentrok lisensi ditampilkan. **Manajer MUST NOT menetapkan manual untuk melewatinya** — lihat batas di bawah |
-| Jadwal harus diubah setelah terbit | Lewat permohonan ubah jadwal, bukan dengan menyunting jadwal terbit; lihat [`ubah-jadwal-dan-tukar-shift.md`](./ubah-jadwal-dan-tukar-shift.md) |
+## 2. Alur 2: Penggantian Petugas Darurat & Koreksi Mundur (`HRD-DEC-101`, `HRD-DEC-102`)
 
-## 5. Batas yang tidak boleh dilanggar
+```mermaid
+flowchart TD
+    subgraph Kepala_Unit["Kepala Unit"]
+        B1["Kondisi Darurat: Staf Sakit / Halangan Hari H"] --> B2["Buka Roster 'Published'"]
+        B2 --> B3["Pilih Kotak Shift Staf Asal"]
+        B3 --> B4["Klik: Ganti Petugas"]
+        B4 --> B5["Pilih Staf Pengganti & Kategori Alasan"]
+        B5 --> B6["Klik: Konfirmasi Penggantian"]
+        
+        C1["Koreksi Tanggal Mundur (Shift Lalu)"] --> C2{"Cek Selisih Hari"}
+        C2 -- "<= 3 Hari Kalender" --> C3["Pilih Alasan Koreksi Mundur & Simpan"]
+        C2 -- "> 3 Hari Kalender" --> C4["Form Terkunci: Wajib Lewat HRD"]
+    end
 
-| Larangan | Sebabnya |
-| --- | --- |
-| Jadwal kerja yang sudah berlaku surut **MUST NOT** disunting langsung | Kehadiran pada periode yang sudah diproses akan dihitung ulang dengan jadwal yang berbeda — `HRD-DEC-027` |
-| Bentrok lisensi dan kewenangan klinis **MUST NOT** dilewati dengan penetapan manual | Batas kewenangan klinis milik Komite Medik, bukan manajer unit. `S-C1` `BLOCKED` — `HRD-Q-08` |
-| Jadwal kerja **MUST NOT** dijadikan sumber kebenaran jadwal praktik dokter untuk pendaftaran pasien | `HRD-DEC-006` memisahkan keduanya. Jadwal praktik milik Health Services |
-| Skema baru **MUST NOT** dibuat sebelum tabel roster yang sudah ada diaudit satu per satu | `HRD-DEC-026`. `HRD-Q-05` wajib terjawab lebih dulu bila perubahan yang merusak data diperlukan |
+    subgraph Sistem_Backend["Sistem Backend"]
+        B6 --> SB1["Validasi Staf Pengganti (B1-B7)"]
+        SB1 -- "Lolos" --> SB2["Simpan TrxShiftReplacement (Applied)"]
+        SB2 --> SB3["Update Shift: IsManualOverride = true (Status Tetap Published)"]
+        SB3 --> SB4["Kirim Notifikasi Instan (Pegawai Asal, Pengganti, Kepala Bidang)"]
+        
+        C3 --> SC1["Simpan Perubahan Shift"]
+        SC1 --> SC2["Picu Event Rekalkulasi Absensi di Modul Kehadiran (07)"]
+    end
 
-## 6. Traceability
+    subgraph Pegawai_Pengganti["Pegawai Pengganti"]
+        SB4 --> P1["Menerima Jadwal Tugas Pengganti"]
+        P1 --> P2["Datang ke RS & Absen Tap-in Tanpa Kendala"]
+    end
+```
 
-| Aturan | Decision | Kontrak | Acceptance test |
-| --- | --- | --- | --- |
-| Arah `EXTEND` untuk roster dan shift harian | `HRD-DEC-026` | `../contracts/state-transition-matrix.md` §4.4 | `AT-HRD-B4-01` |
-| Larangan menyunting jadwal berlaku surut | `HRD-DEC-027` | `../contracts/validation-matrix.md` | `AT-HRD-B4-02` |
-| Pemisahan jadwal kerja dan jadwal praktik | `HRD-DEC-006` | `../contracts/integration-contract.md` | `AT-HRD-B4-03` |
-| Bentrok lisensi tidak boleh dilewati | `S-C1` `BLOCKED`, `HRD-Q-08` | `../data/data-dictionary.md` §2.6 | **Belum dapat diuji.** `BLOCKED` |
+### Tabel Langkah Proses 2: Penggantian Staf & Koreksi Mundur
+
+| No | Pelaku | Tindakan | Masukan | Keluaran | Bila Gagal |
+| :---: | --- | --- | --- | --- | --- |
+| 1 | Kepala Unit | Membuka modal Ganti Petugas pada shift terbit | Klik sel shift staf yang berhalangan | Form penunjukan staf pengganti | Ditolak bila periode sudah `Closed` |
+| 2 | Kepala Unit | Memilih staf pengganti dan alasan | Nama staf pengganti & kategori alasan | Form terisi | Ditolak bila pengganti sedang cuti atau bentrok (`B1`–`B7`) |
+| 3 | Sistem | Menerapkan penggantian langsung | Data mutasi penggantian | Status shift terbarui seketika (`IsManualOverride = true`), status roster tetap `Published` | Tidak perlu menunggu persetujuan Kepala Bidang (`HRD-DEC-101`) |
+| 4 | Kepala Unit | Melakukan koreksi mundur jadwal | Tanggal dinas <= 3 hari lalu & alasan | Jadwal historis terkoreksi | Ditolak bila tanggal shift > 3 hari ke belakang (`HRD-DEC-102`) |
+| 5 | Sistem | Menjalankan rekalkulasi absensi | Event koreksi mundur | Modul Kehadiran (07) menghitung ulang status hadir/mangkir | Rekalkulasi berjalan otomatis di latar belakang |
+
+---
+
+## 3. Alur 3: Tata Kelola Siaga (On-Call), Pemanggilan Cito & Integrasi Lab/Payroll (`HRD-DEC-103`, `LAB-DEC-111`)
+
+```mermaid
+flowchart TD
+    subgraph Penyusun_Siaga["Penyusun Siaga"]
+        D1["Kepala Unit: Susun Siaga Staf Penunjang Cito"] --> D3["Jadwal Siaga Terbit (Scheduled)"]
+        D2["Pelayanan Medis / KSM: Susun Siaga Dokter Spesialis"] --> D3
+        D3 --> D4["Jam Siaga Aktif: Status Berubah ke 'Active'"]
+    end
+
+    subgraph Unit_Klinis["Unit Pemanggil (Lab / IGD / OK)"]
+        E1["Ditemukan Pasien Darurat / Hasil Tes Lab Kritis"] --> E2["Buka Daftar Tenaga Siaga Aktif"]
+        E2 --> E3["Sistem Lab Menemukan Dokter Siaga (Status: Active)"]
+        E3 --> E4["Klik: Panggil Siaga (Mencatat Waktu Panggil)"]
+        E5["Dokter / Staf Tiba di Rumah Sakit"] --> E6["Input Waktu Kedatangan Staf"]
+    end
+
+    subgraph Mesin_SLA_Payroll["Sistem Backend & Integrasi"]
+        E6 --> M1["Hitung ResponseMinutes = ArrivalTime - CallInTime"]
+        M1 --> M2{"Evaluasi Terhadap ExpectedResponseMinutes"}
+        M2 -- "<= Target SLA" --> M3["Set IsSlaMet = true (Memenuhi SLA)"]
+        M2 -- "> Target SLA" --> M4["Set IsSlaMet = false (Melebihi SLA)"]
+        M3 --> M5["Simpan ke TrxOnCallAssignment (Status Tetap Active Selama Periode)"]
+        M4 --> M5
+        M5 --> M6["Handoff ke Modul 09 (Lembur) & 10 (Payroll) untuk Insentif Tugas Panggil Cito"]
+        D4 --> M7["Handoff Jam Standby ke Modul 10 untuk Tunjangan Siaga"]
+    end
+```
+
+### Tabel Langkah Proses 3: Siaga & Pemanggilan Cito
+
+| No | Pelaku | Tindakan | Masukan | Keluaran | Bila Gagal |
+| :---: | --- | --- | --- | --- | --- |
+| 1 | Penyusun Siaga | Membuat jadwal siaga dokter/staf | Periode tanggal, jam mulai, jam selesai, tipe siaga | Penugasan siaga `Scheduled` | Jam mulai wajib sebelum jam selesai |
+| 2 | Sistem | Mengaktifkan periode siaga | Jam sekarang mencapai jam mulai | Status siaga menjadi `Active` | Status terbaca oleh `LabConfirmingDoctorResolver` |
+| 3 | Analis Lab / Perawat | Mencatat pemanggilan darurat cito | Klik tombol Panggil Siaga | Waktu telepon panggil tercatat (`CallInTime`) | Dokter menerima notifikasi panggilan cito |
+| 4 | Analis Lab / Perawat | Mencatat kedatangan dokter/staf di RS | Input waktu tiba fisik staf | Waktu tiba tercatat (`ArrivalTime`) | Waktu kedatangan tidak boleh mendahului waktu panggil |
+| 5 | Sistem | Mengevaluasi SLA respon menit | `ResponseMinutes` vs `ExpectedResponseMinutes` | Indikator kepatuhan SLA mutu rumah sakit tercatat | Status terekam untuk laporan akreditasi Kemenkes |
+| 6 | Sistem | Menghubungkan ke kompensasi | Rekap standby & transaksi call-in | Data masuk ke modul Payroll (10) dan Lembur (09) | Hak jasa medis dibayarkan transparan |
+
+---
+
+## 4. Alur 4: Penutupan Periode Roster oleh Payroll (`HRD-DEC-102`)
+
+```mermaid
+flowchart TD
+    subgraph Tim_Payroll["Tim Payroll HRD"]
+        F1["Proses Cut-off Penggajian Bulanan"] --> F2["Buka Daftar Roster Unit Bulan Berjalan"]
+        F2 --> F3["Klik: Tutup Periode (Close)"]
+    end
+
+    subgraph Sistem["Sistem Penjadwalan 06"]
+        F3 --> SF1{"Cek Status Roster"}
+        SF1 -- "Masih Draft" --> SF2["Tolak: Periode Belum Terbit (HTTP 422)"]
+        SF1 -- "Published" --> SF3["Ubah Status ke 'Closed' & Catat ClosedAt, ClosedByUserId"]
+        SF3 --> SF4["Kunci Mutlak Seluruh Jadwal (Read-Only)"]
+    end
+
+    subgraph Pasca_Tutup["Operasional Pasca-Tutup"]
+        SF4 --> P1["Seluruh Percobaan Edit Ditolak (HTTP 403)"]
+        P1 --> P2["Penyesuaian Selisih Diselesaikan via Rapel Payroll di Periode Berjalan"]
+    end
+```

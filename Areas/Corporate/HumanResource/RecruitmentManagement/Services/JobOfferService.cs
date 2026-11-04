@@ -331,13 +331,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             }
 
             // Aturan Bisnis VR-REC-15, HRD-DEC-079: Penawaran hanya dapat dikirim jika telah disetujui penuh oleh seluruh penyetuju
-            if (offer.Status != JobOfferStatus.ApprovedByDirector)
+            if (offer.Status != JobOfferStatus.Approved)
             {
                 return RecruitmentResult<JobOfferResponse>.Unprocessable(
-                    $"Penawaran kerja belum dapat dikirimkan kepada kandidat karena status saat ini adalah '{offer.Status}'. Surat penawaran wajib disetujui penuh oleh Direktur Rumah Sakit sebelum pengiriman (VR-REC-15).");
+                    $"Penawaran kerja belum dapat dikirimkan kepada kandidat karena status saat ini adalah '{offer.Status}'. Surat penawaran wajib disetujui penuh sebelum pengiriman (VR-REC-15).");
             }
 
-            offer.Status = JobOfferStatus.SentToCandidate;
+            offer.Status = JobOfferStatus.SentConditional;
             if (request.ExpiryDate.HasValue && request.ExpiryDate.Value > DateTime.UtcNow)
             {
                 offer.ExpiryDate = request.ExpiryDate.Value;
@@ -349,7 +349,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             // Perbarui stage pada lamaran
             if (offer.Application != null)
             {
-                offer.Application.CurrentStage = "OFFERING";
+                offer.Application.CurrentStage = ApplicationStage.Offering;
                 offer.Application.StageStatus = "OFFER_SENT";
                 offer.Application.UpdateDateTime = DateTime.UtcNow;
                 offer.Application.UpdateBy = userId;
@@ -359,7 +359,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return await GetByIdAsync(offer.Id, cancellationToken);
         }
 
-        public async Task<RecruitmentResult<JobOfferResponse>> RecordCandidateResponseAsync(
+        public async Task<RecruitmentResult<JobOfferResponse>> CandidateRespondAsync(
             Guid id,
             CandidateOfferResponseRequest request,
             ClaimsPrincipal user,
@@ -376,10 +376,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobOfferResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
             }
 
-            if (offer.Status != JobOfferStatus.SentToCandidate)
+            if (offer.Status != JobOfferStatus.SentConditional && offer.Status != JobOfferStatus.FinalOfferSent && offer.Status != JobOfferStatus.Approved)
             {
                 return RecruitmentResult<JobOfferResponse>.Unprocessable(
-                    $"Respons kandidat hanya dapat dicatat saat penawaran berstatus 'SentToCandidate'. Status saat ini: '{offer.Status}'.");
+                    $"Respons kandidat hanya dapat dicatat saat penawaran berstatus terkirim atau disetujui. Status saat ini: '{offer.Status}'.");
             }
 
             if (DateTime.UtcNow > offer.ExpiryDate)
@@ -393,12 +393,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobOfferResponse>.Unprocessable("Masa berlaku surat penawaran telah kedaluwarsa (Expired). Respons kandidat tidak dapat diterima.");
             }
 
-            if (request.ResponseStatus == JobOfferStatus.ConditionalAccepted)
+            if (request.ResponseStatus == JobOfferStatus.ConditionalAccepted || request.ResponseStatus == JobOfferStatus.FinalAccepted)
             {
-                offer.Status = JobOfferStatus.ConditionalAccepted;
+                offer.Status = request.ResponseStatus;
                 if (offer.Application != null)
                 {
-                    offer.Application.CurrentStage = "MEDICAL_CHECK";
+                    offer.Application.CurrentStage = request.ResponseStatus == JobOfferStatus.ConditionalAccepted
+                        ? ApplicationStage.MedicalCheckup
+                        : ApplicationStage.Handoff;
                     offer.Application.StageStatus = "OFFER_ACCEPTED";
                     offer.Application.UpdateDateTime = DateTime.UtcNow;
                     offer.Application.UpdateBy = userId;
@@ -406,7 +408,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             }
             else if (request.ResponseStatus == JobOfferStatus.ConditionalRejected || request.ResponseStatus == JobOfferStatus.FinalRejected)
             {
-                offer.Status = JobOfferStatus.ConditionalRejected;
+                offer.Status = request.ResponseStatus;
                 if (offer.Application != null)
                 {
                     offer.Application.StageStatus = "OFFER_DECLINED";
@@ -416,7 +418,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             }
             else
             {
-                return RecruitmentResult<JobOfferResponse>.BadRequest("Nilai status respons tidak valid. Gunakan ConditionalAccepted atau ConditionalRejected.");
+                return RecruitmentResult<JobOfferResponse>.Fail("Nilai status respons tidak valid. Gunakan ConditionalAccepted atau FinalAccepted / Rejected.", 400);
             }
 
             offer.CandidateResponseDate = DateTime.UtcNow;

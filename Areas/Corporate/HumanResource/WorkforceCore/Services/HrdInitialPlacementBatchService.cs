@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
@@ -21,11 +22,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
         {
             var today = DateTime.UtcNow.Date;
 
-            // Fetch active primary organization assignments (the 55 baseline employees)
+            // Fetch active primary organization assignments (the baseline employees)
             var orgAssignments = await _dbContext.WfpOrganizationAssignments
                 .Include(x => x.WorkforceProfile)
+                    .ThenInclude(p => p.PrimaryPosition)
                 .Include(x => x.OrganizationUnit)
                 .Include(x => x.Department)
+                .Include(x => x.Position)
                 .AsNoTracking()
                 .Where(x => x.IsPrimary && x.IsActive && !x.IsDelete &&
                             x.EffectiveStartDate <= today &&
@@ -39,13 +42,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             {
                 if (org.WorkforceProfile == null) continue;
 
-                // Check if already has an active position assignment
+                // Check if already has an active primary position assignment
                 var hasPosition = await _dbContext.WfpPositionAssignments
                     .AsNoTracking()
                     .AnyAsync(x => x.WorkforceProfileId == org.WorkforceProfileId &&
                                    x.IsPrimary && x.IsActive && !x.IsDelete &&
-                                   x.EffectiveStartDate <= today &&
                                    (x.EffectiveEndDate == null || x.EffectiveEndDate >= today), ct);
+
+                // Resolve prefilled position if available from org assignment or profile
+                Guid? positionId = null;
+                string? positionName = null;
+
+                if (org.PositionId != Guid.Empty)
+                {
+                    positionId = org.PositionId;
+                    positionName = org.Position?.PositionName;
+                }
+                else if (org.WorkforceProfile.PrimaryPositionId.HasValue && org.WorkforceProfile.PrimaryPositionId.Value != Guid.Empty)
+                {
+                    positionId = org.WorkforceProfile.PrimaryPositionId.Value;
+                    positionName = org.WorkforceProfile.PrimaryPosition?.PositionName;
+                }
+
+                bool isValid = true;
+                string? validationMessage = null;
+
+                if (hasPosition)
+                {
+                    isValid = false;
+                    validationMessage = "Sudah memiliki jabatan aktif. Tidak dapat diproses melalui batch inisialisasi awal.";
+                }
+                else if (!positionId.HasValue || positionId.Value == Guid.Empty)
+                {
+                    isValid = false;
+                    validationMessage = "Jabatan belum ditentukan pada data baseline organisasi.";
+                }
 
                 // Default suggested effective date: join date or today
                 var effectiveDate = org.EffectiveStartDate != default ? org.EffectiveStartDate : today;
@@ -60,14 +91,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     OrganizationUnitName = org.OrganizationUnit?.UnitName,
                     DepartmentId = org.DepartmentId,
                     DepartmentName = org.Department?.DepartmentName,
-                    PositionId = null,
-                    PositionName = null,
+                    PositionId = positionId,
+                    PositionName = positionName,
                     ManagerWorkforceProfileId = null,
                     ManagerName = null,
                     BaseSalary = null,
                     EffectiveStartDate = effectiveDate,
-                    IsValid = !hasPosition,
-                    ValidationMessage = hasPosition ? "Sudah memiliki jabatan aktif." : null
+                    IsValid = isValid,
+                    ValidationMessage = validationMessage
                 });
             }
 
@@ -76,13 +107,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
         public async Task<BatchValidationResultResponse> ValidateRowsAsync(List<CreateInitialBatchRowDto> rows, CancellationToken ct = default)
         {
+            if (rows == null || rows.Count == 0)
+            {
+                return new BatchValidationResultResponse
+                {
+                    IsAllValid = false,
+                    TotalCount = 0,
+                    ValidCount = 0,
+                    InvalidCount = 0,
+                    ValidationErrors = new List<string> { "Baris data batch penempatan awal tidak boleh kosong." },
+                    RowResults = new List<RowValidationItemResponse>()
+                };
+            }
+
             var errors = new List<string>();
+            var rowResults = new List<RowValidationItemResponse>();
             var validCount = 0;
             var invalidCount = 0;
+            var today = DateTime.UtcNow.Date;
+
+            // Detect duplicates within the submitted batch
+            var profileGroupCounts = rows
+                .GroupBy(x => x.WorkforceProfileId)
+                .ToDictionary(g => g.Key, g => g.Count());
 
             var profileIds = rows.Select(x => x.WorkforceProfileId).Distinct().ToList();
-            var positionIds = rows.Select(x => x.PositionId).Distinct().ToList();
-            var managerIds = rows.Where(x => x.ManagerWorkforceProfileId.HasValue).Select(x => x.ManagerWorkforceProfileId!.Value).Distinct().ToList();
+            var positionIds = rows.Select(x => x.PositionId).Where(id => id != Guid.Empty).Distinct().ToList();
+            var managerIds = rows.Where(x => x.ManagerWorkforceProfileId.HasValue && x.ManagerWorkforceProfileId.Value != Guid.Empty)
+                .Select(x => x.ManagerWorkforceProfileId!.Value).Distinct().ToList();
+            var deptIds = rows.Select(x => x.DepartmentId).Where(id => id != Guid.Empty).Distinct().ToList();
+            var orgUnitIds = rows.Select(x => x.OrganizationUnitId).Where(id => id != Guid.Empty).Distinct().ToList();
 
             var activeProfiles = await _dbContext.MstWorkforceProfiles
                 .AsNoTracking()
@@ -90,53 +144,127 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 .ToDictionaryAsync(x => x.Id, ct);
 
             var activePositions = await _dbContext.MstPositions
+                .Include(p => p.Department)
                 .AsNoTracking()
-                .Where(x => positionIds.Contains(x.Id) && !x.IsDelete)
+                .Where(x => positionIds.Contains(x.Id) && !x.IsDelete && x.IsActive)
                 .ToDictionaryAsync(x => x.Id, ct);
 
             var activeManagers = await _dbContext.MstWorkforceProfiles
                 .AsNoTracking()
-                .Where(x => managerIds.Contains(x.Id) && !x.IsDelete)
+                .Where(x => managerIds.Contains(x.Id) && !x.IsDelete && x.IsActive)
                 .ToDictionaryAsync(x => x.Id, ct);
+
+            var activeDepartments = await _dbContext.MstDepartments
+                .AsNoTracking()
+                .Where(x => deptIds.Contains(x.Id) && !x.IsDelete && x.IsActive)
+                .ToDictionaryAsync(x => x.Id, ct);
+
+            var activeOrgUnits = await _dbContext.MstOrganizationUnits
+                .AsNoTracking()
+                .Where(x => orgUnitIds.Contains(x.Id) && !x.IsDelete && x.IsActive)
+                .ToDictionaryAsync(x => x.Id, ct);
+
+            // Check existing active primary position assignments (prevent illegal overwrite)
+            var existingPositionProfileIds = await _dbContext.WfpPositionAssignments
+                .AsNoTracking()
+                .Where(x => profileIds.Contains(x.WorkforceProfileId) &&
+                            x.IsPrimary && x.IsActive && !x.IsDelete &&
+                            (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+                .Select(x => x.WorkforceProfileId)
+                .Distinct()
+                .ToListAsync(ct);
+            var existingPositionSet = existingPositionProfileIds.ToHashSet();
 
             for (int i = 0; i < rows.Count; i++)
             {
                 var row = rows[i];
                 var rowNum = i + 1;
-                var rowValid = true;
+                var rowErrors = new List<string>();
 
+                // 1. Duplicate check in batch
+                if (profileGroupCounts.TryGetValue(row.WorkforceProfileId, out var count) && count > 1)
+                {
+                    rowErrors.Add("Pegawai tercantum lebih dari satu kali dalam batch yang sama.");
+                }
+
+                // 2. Profile existence & active check
                 if (!activeProfiles.TryGetValue(row.WorkforceProfileId, out var profile))
                 {
-                    errors.Add($"Baris {rowNum}: Pegawai dengan ID {row.WorkforceProfileId} tidak ditemukan.");
-                    rowValid = false;
+                    rowErrors.Add($"Pegawai dengan ID {row.WorkforceProfileId} tidak ditemukan atau sudah dihapus.");
                 }
-
-                if (!activePositions.ContainsKey(row.PositionId))
+                else if (!profile.IsActive)
                 {
-                    errors.Add($"Baris {rowNum}: Jabatan dengan ID {row.PositionId} tidak ditemukan.");
-                    rowValid = false;
+                    rowErrors.Add($"Pegawai {profile.DisplayName} dalam status non-aktif.");
                 }
 
-                if (row.ManagerWorkforceProfileId.HasValue)
+                // 3. Conflict with existing placement check
+                if (existingPositionSet.Contains(row.WorkforceProfileId))
+                {
+                    rowErrors.Add("Pegawai sudah memiliki penempatan jabatan primer aktif di sistem.");
+                }
+
+                // 4. Position validation & department consistency
+                if (row.PositionId == Guid.Empty)
+                {
+                    rowErrors.Add("Jabatan wajib dipilih.");
+                }
+                else if (!activePositions.TryGetValue(row.PositionId, out var position))
+                {
+                    rowErrors.Add($"Jabatan dengan ID {row.PositionId} tidak ditemukan atau tidak aktif.");
+                }
+                else
+                {
+                    if (row.DepartmentId != Guid.Empty && position.DepartmentId != Guid.Empty && position.DepartmentId != row.DepartmentId)
+                    {
+                        rowErrors.Add($"Jabatan '{position.PositionName}' tidak sesuai dengan departemen yang dipilih.");
+                    }
+                }
+
+                // 5. Department validation
+                if (row.DepartmentId != Guid.Empty && !activeDepartments.ContainsKey(row.DepartmentId))
+                {
+                    rowErrors.Add($"Departemen dengan ID {row.DepartmentId} tidak ditemukan atau tidak aktif.");
+                }
+
+                // 6. Organization unit validation
+                if (row.OrganizationUnitId != Guid.Empty && !activeOrgUnits.ContainsKey(row.OrganizationUnitId))
+                {
+                    rowErrors.Add($"Unit organisasi dengan ID {row.OrganizationUnitId} tidak ditemukan atau tidak aktif.");
+                }
+                else if (row.OrganizationUnitId != Guid.Empty &&
+                         activeOrgUnits.TryGetValue(row.OrganizationUnitId, out var orgUnit) &&
+                         orgUnit.DepartmentId.HasValue && orgUnit.DepartmentId.Value != Guid.Empty &&
+                         row.DepartmentId != Guid.Empty && orgUnit.DepartmentId.Value != row.DepartmentId)
+                {
+                    rowErrors.Add("Departemen tidak selaras dengan unit organisasi yang dipilih.");
+                }
+
+                // 7. Manager validation
+                if (row.ManagerWorkforceProfileId.HasValue && row.ManagerWorkforceProfileId.Value != Guid.Empty)
                 {
                     if (row.ManagerWorkforceProfileId.Value == row.WorkforceProfileId)
                     {
-                        errors.Add($"Baris {rowNum}: Pegawai tidak dapat menjadi atasan bagi dirinya sendiri.");
-                        rowValid = false;
+                        rowErrors.Add("Pegawai tidak dapat menjadi atasan bagi dirinya sendiri.");
                     }
                     else if (!activeManagers.ContainsKey(row.ManagerWorkforceProfileId.Value))
                     {
-                        errors.Add($"Baris {rowNum}: Atasan dengan ID {row.ManagerWorkforceProfileId.Value} tidak ditemukan.");
-                        rowValid = false;
+                        rowErrors.Add($"Atasan langsung dengan ID {row.ManagerWorkforceProfileId.Value} tidak ditemukan atau tidak aktif.");
                     }
                 }
 
+                // 8. Effective date validation
                 if (row.EffectiveStartDate == default)
                 {
-                    errors.Add($"Baris {rowNum}: Tanggal mulai berlaku wajib diisi.");
-                    rowValid = false;
+                    rowErrors.Add("Tanggal mulai berlaku penempatan wajib diisi.");
                 }
 
+                // 9. Base salary validation (if provided)
+                if (row.BaseSalary.HasValue && row.BaseSalary.Value < 0)
+                {
+                    rowErrors.Add("Besaran gaji pokok tidak boleh bernilai negatif.");
+                }
+
+                var rowValid = rowErrors.Count == 0;
                 if (rowValid)
                 {
                     validCount++;
@@ -144,7 +272,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 else
                 {
                     invalidCount++;
+                    foreach (var err in rowErrors)
+                    {
+                        errors.Add($"Baris {rowNum}: {err}");
+                    }
                 }
+
+                rowResults.Add(new RowValidationItemResponse
+                {
+                    RowIndex = i,
+                    WorkforceProfileId = row.WorkforceProfileId,
+                    IsValid = rowValid,
+                    ErrorMessage = rowValid ? null : string.Join("; ", rowErrors)
+                });
             }
 
             return new BatchValidationResultResponse
@@ -153,7 +293,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 TotalCount = rows.Count,
                 ValidCount = validCount,
                 InvalidCount = invalidCount,
-                ValidationErrors = errors
+                ValidationErrors = errors,
+                RowResults = rowResults
             };
         }
 
@@ -187,18 +328,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 CreateDateTime = DateTime.UtcNow
             };
 
-            var profileIds = request.Rows.Select(x => x.WorkforceProfileId).Distinct().ToList();
-            var profiles = await _dbContext.MstWorkforceProfiles
-                .AsNoTracking()
-                .Where(x => profileIds.Contains(x.Id))
-                .ToDictionaryAsync(x => x.Id, ct);
-
-            foreach (var rowDto in request.Rows)
+            for (int i = 0; i < request.Rows.Count; i++)
             {
-                var isRowValid = profiles.ContainsKey(rowDto.WorkforceProfileId) &&
-                                 rowDto.PositionId != Guid.Empty &&
-                                 rowDto.EffectiveStartDate != default &&
-                                 (!rowDto.ManagerWorkforceProfileId.HasValue || rowDto.ManagerWorkforceProfileId.Value != rowDto.WorkforceProfileId);
+                var rowDto = request.Rows[i];
+                var rowVal = validation.RowResults.FirstOrDefault(r => r.RowIndex == i);
+                var isRowValid = rowVal?.IsValid ?? false;
+                var valMsg = rowVal?.ErrorMessage;
 
                 var rowEntity = new HrdInitialPlacementBatchRow
                 {
@@ -212,7 +347,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     BaseSalary = rowDto.BaseSalary,
                     EffectiveStartDate = rowDto.EffectiveStartDate,
                     IsValid = isRowValid,
-                    ValidationMessage = isRowValid ? null : "Data baris belum memenuhi validasi integritas",
+                    ValidationMessage = valMsg,
                     CreateBy = userId,
                     CreateDateTime = DateTime.UtcNow
                 };
@@ -318,6 +453,53 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             };
         }
 
+        public async Task<InitialBatchDetailResponse?> ValidateBatchByIdAsync(Guid id, CancellationToken ct = default)
+        {
+            var batch = await _dbContext.HrdInitialPlacementBatches
+                .Include(x => x.Rows)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
+
+            if (batch == null) return null;
+
+            if (batch.BatchStatus == "Executed")
+            {
+                throw new InvalidOperationException("Batch penempatan awal ini sudah dieksekusi sebelumnya dan tidak dapat divalidasi ulang.");
+            }
+
+            var rowsDto = batch.Rows.Select(r => new CreateInitialBatchRowDto
+            {
+                WorkforceProfileId = r.WorkforceProfileId,
+                OrganizationUnitId = r.OrganizationUnitId ?? Guid.Empty,
+                DepartmentId = r.DepartmentId ?? Guid.Empty,
+                PositionId = r.PositionId ?? Guid.Empty,
+                ManagerWorkforceProfileId = r.ManagerWorkforceProfileId,
+                SalaryGradeId = r.SalaryGradeId,
+                BaseSalary = r.BaseSalary,
+                EffectiveStartDate = r.EffectiveStartDate
+            }).ToList();
+
+            var validation = await ValidateRowsAsync(rowsDto, ct);
+            var now = DateTime.UtcNow;
+
+            for (int i = 0; i < batch.Rows.Count; i++)
+            {
+                var row = batch.Rows.ElementAt(i);
+                var rowVal = validation.RowResults.FirstOrDefault(r => r.RowIndex == i);
+                row.IsValid = rowVal?.IsValid ?? false;
+                row.ValidationMessage = rowVal?.ErrorMessage;
+                row.UpdateDateTime = now;
+            }
+
+            batch.TotalRows = batch.Rows.Count;
+            batch.ValidatedRows = validation.ValidCount;
+            batch.FailedRows = validation.InvalidCount;
+            batch.BatchStatus = validation.IsAllValid ? "Validated" : "Draft";
+            batch.UpdateDateTime = now;
+
+            await _dbContext.SaveChangesAsync(ct);
+            return await GetBatchByIdAsync(id, ct);
+        }
+
         public async Task<InitialBatchDetailResponse> ExecuteBatchAsync(Guid id, Guid userId, CancellationToken ct = default)
         {
             var batch = await _dbContext.HrdInitialPlacementBatches
@@ -334,74 +516,109 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 throw new InvalidOperationException("Batch penempatan awal ini sudah dieksekusi sebelumnya.");
             }
 
-            // Look up a default salary structure & grade if salary is specified but IDs missing
-            var defaultSalaryStructure = await _dbContext.MstSalaryStructures
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, ct);
+            if (batch.BatchStatus != "Validated")
+            {
+                throw new InvalidOperationException($"Batch dengan status '{batch.BatchStatus}' tidak dapat dieksekusi. Hanya batch berstatus 'Validated' yang dapat dieksekusi.");
+            }
 
-            var defaultSalaryGrade = await _dbContext.MstSalaryGrades
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, ct);
+            if (batch.Rows == null || batch.Rows.Count == 0)
+            {
+                throw new InvalidOperationException("Batch penempatan awal tidak memiliki baris data untuk dieksekusi.");
+            }
+
+            if (batch.FailedRows > 0 || batch.Rows.Any(r => !r.IsValid))
+            {
+                throw new InvalidOperationException($"Batch memuat {batch.FailedRows} baris tidak valid. Seluruh baris harus berstatus valid sebelum eksekusi.");
+            }
+
+            // Re-validate against live master data right before transaction
+            var rowsDto = batch.Rows.Select(r => new CreateInitialBatchRowDto
+            {
+                WorkforceProfileId = r.WorkforceProfileId,
+                OrganizationUnitId = r.OrganizationUnitId ?? Guid.Empty,
+                DepartmentId = r.DepartmentId ?? Guid.Empty,
+                PositionId = r.PositionId ?? Guid.Empty,
+                ManagerWorkforceProfileId = r.ManagerWorkforceProfileId,
+                SalaryGradeId = r.SalaryGradeId,
+                BaseSalary = r.BaseSalary,
+                EffectiveStartDate = r.EffectiveStartDate
+            }).ToList();
+
+            var revalidation = await ValidateRowsAsync(rowsDto, ct);
+            if (!revalidation.IsAllValid)
+            {
+                throw new InvalidOperationException($"Validasi integritas pra-eksekusi gagal: {string.Join("; ", revalidation.ValidationErrors.Take(3))}");
+            }
 
             using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
             try
             {
                 var now = DateTime.UtcNow;
 
+                var profileIds = batch.Rows.Select(r => r.WorkforceProfileId).Distinct().ToList();
+                var profiles = await _dbContext.MstWorkforceProfiles
+                    .Where(p => profileIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, ct);
+
+                // Default salary structure if salary assignments are processed
+                var defaultSalaryStructure = await _dbContext.MstSalaryStructures
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, ct);
+
                 foreach (var row in batch.Rows)
                 {
-                    // 1. Process Position Assignment
-                    if (row.PositionId.HasValue && row.PositionId.Value != Guid.Empty)
+                    if (!row.PositionId.HasValue || row.PositionId.Value == Guid.Empty)
                     {
-                        var existingPrimaryPos = await _dbContext.WfpPositionAssignments
-                            .Where(x => x.WorkforceProfileId == row.WorkforceProfileId &&
-                                        x.IsPrimary && x.IsActive && !x.IsDelete)
-                            .ToListAsync(ct);
-
-                        foreach (var p in existingPrimaryPos)
-                        {
-                            p.IsPrimary = false;
-                            p.EffectiveEndDate = row.EffectiveStartDate.AddDays(-1);
-                            p.UpdateDateTime = now;
-                            p.UpdateBy = userId;
-                        }
-
-                        var newPos = new WfpPositionAssignment
-                        {
-                            WorkforceProfileId = row.WorkforceProfileId,
-                            PositionId = row.PositionId.Value,
-                            DepartmentId = row.DepartmentId,
-                            OrganizationUnitId = row.OrganizationUnitId,
-                            AssignmentType = "Substantive",
-                            EffectiveStartDate = row.EffectiveStartDate,
-                            IsPrimary = true,
-                            IsActive = true,
-                            ApprovedByUserId = userId,
-                            ApprovedAt = now,
-                            CreateBy = userId,
-                            CreateDateTime = now
-                        };
-
-                        _dbContext.WfpPositionAssignments.Add(newPos);
+                        throw new InvalidOperationException($"Baris pegawai {row.WorkforceProfileId} tidak memiliki jabatan yang valid.");
                     }
 
-                    // 2. Process Manager Assignment
-                    if (row.ManagerWorkforceProfileId.HasValue && row.ManagerWorkforceProfileId.Value != Guid.Empty &&
+                    // Strict protection: do not overwrite if employee already has active primary position
+                    var hasExistingActivePosition = await _dbContext.WfpPositionAssignments
+                        .AnyAsync(x => x.WorkforceProfileId == row.WorkforceProfileId &&
+                                       x.IsPrimary && x.IsActive && !x.IsDelete &&
+                                       (x.EffectiveEndDate == null || x.EffectiveEndDate >= now.Date), ct);
+
+                    if (hasExistingActivePosition)
+                    {
+                        var employeeLabel = profiles.TryGetValue(row.WorkforceProfileId, out var p) ? p.DisplayName : row.WorkforceProfileId.ToString();
+                        throw new InvalidOperationException($"Pegawai '{employeeLabel}' sudah memiliki penempatan jabatan primer aktif di sistem. Eksekusi dibatalkan untuk mencegah penimpaan tidak sah.");
+                    }
+
+                    // 1. Position Assignment (Substantive)
+                    var newPos = new WfpPositionAssignment
+                    {
+                        WorkforceProfileId = row.WorkforceProfileId,
+                        PositionId = row.PositionId.Value,
+                        DepartmentId = row.DepartmentId,
+                        OrganizationUnitId = row.OrganizationUnitId,
+                        AssignmentType = "Substantive",
+                        EffectiveStartDate = row.EffectiveStartDate,
+                        IsPrimary = true,
+                        IsActive = true,
+                        ApprovedByUserId = userId,
+                        ApprovedAt = now,
+                        CreateBy = userId,
+                        CreateDateTime = now
+                    };
+                    _dbContext.WfpPositionAssignments.Add(newPos);
+
+                    // Update primary position & department on profile
+                    if (profiles.TryGetValue(row.WorkforceProfileId, out var profile))
+                    {
+                        profile.PrimaryPositionId = row.PositionId.Value;
+                        if (row.DepartmentId.HasValue && row.DepartmentId.Value != Guid.Empty)
+                        {
+                            profile.PrimaryDepartmentId = row.DepartmentId.Value;
+                        }
+                        profile.UpdateDateTime = now;
+                        profile.UpdateBy = userId;
+                    }
+
+                    // 2. Manager Assignment (only if specified and valid)
+                    if (row.ManagerWorkforceProfileId.HasValue &&
+                        row.ManagerWorkforceProfileId.Value != Guid.Empty &&
                         row.ManagerWorkforceProfileId.Value != row.WorkforceProfileId)
                     {
-                        var existingPrimaryMgr = await _dbContext.WfpManagerAssignments
-                            .Where(x => x.WorkforceProfileId == row.WorkforceProfileId &&
-                                        x.IsPrimaryManager && x.IsActive && !x.IsDelete)
-                            .ToListAsync(ct);
-
-                        foreach (var m in existingPrimaryMgr)
-                        {
-                            m.IsPrimaryManager = false;
-                            m.EffectiveEndDate = row.EffectiveStartDate.AddDays(-1);
-                            m.UpdateDateTime = now;
-                            m.UpdateBy = userId;
-                        }
-
                         var newMgr = new WfpManagerAssignment
                         {
                             WorkforceProfileId = row.WorkforceProfileId,
@@ -418,47 +635,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                             CreateBy = userId,
                             CreateDateTime = now
                         };
-
                         _dbContext.WfpManagerAssignments.Add(newMgr);
                     }
 
-                    // 3. Process Salary Assignment (if specified)
+                    // 3. Salary Assignment (only if valid salary specified)
                     if (row.BaseSalary.HasValue && row.BaseSalary.Value > 0 &&
-                        (row.SalaryGradeId.HasValue || defaultSalaryGrade != null) &&
+                        row.SalaryGradeId.HasValue && row.SalaryGradeId.Value != Guid.Empty &&
                         defaultSalaryStructure != null)
                     {
-                        var targetGradeId = row.SalaryGradeId ?? defaultSalaryGrade!.Id;
+                        var salaryGrade = await _dbContext.MstSalaryGrades
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(x => x.Id == row.SalaryGradeId.Value && x.IsActive && !x.IsDelete, ct);
 
-                        var existingPrimarySalary = await _dbContext.WfpSalaryAssignments
-                            .Where(x => x.WorkforceProfileId == row.WorkforceProfileId &&
-                                        x.IsPrimary && x.IsActive && !x.IsDelete)
-                            .ToListAsync(ct);
-
-                        foreach (var s in existingPrimarySalary)
+                        if (salaryGrade != null)
                         {
-                            s.IsPrimary = false;
-                            s.EffectiveEndDate = row.EffectiveStartDate.AddDays(-1);
-                            s.UpdateDateTime = now;
-                            s.UpdateBy = userId;
+                            var newSalary = new WfpSalaryAssignment
+                            {
+                                WorkforceProfileId = row.WorkforceProfileId,
+                                SalaryStructureId = defaultSalaryStructure.Id,
+                                SalaryGradeId = salaryGrade.Id,
+                                BaseSalary = row.BaseSalary.Value,
+                                CurrencyCode = "IDR",
+                                PaymentFrequency = "Monthly",
+                                EffectiveStartDate = row.EffectiveStartDate,
+                                IsPrimary = true,
+                                IsConfidential = true,
+                                IsActive = true,
+                                CreateBy = userId,
+                                CreateDateTime = now
+                            };
+                            _dbContext.WfpSalaryAssignments.Add(newSalary);
                         }
-
-                        var newSalary = new WfpSalaryAssignment
-                        {
-                            WorkforceProfileId = row.WorkforceProfileId,
-                            SalaryStructureId = defaultSalaryStructure.Id,
-                            SalaryGradeId = targetGradeId,
-                            BaseSalary = row.BaseSalary.Value,
-                            CurrencyCode = "IDR",
-                            PaymentFrequency = "Monthly",
-                            EffectiveStartDate = row.EffectiveStartDate,
-                            IsPrimary = true,
-                            IsConfidential = true,
-                            IsActive = true,
-                            CreateBy = userId,
-                            CreateDateTime = now
-                        };
-
-                        _dbContext.WfpSalaryAssignments.Add(newSalary);
                     }
 
                     row.IsValid = true;
@@ -470,7 +677,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 batch.BatchStatus = "Executed";
                 batch.ApprovedByUserId = userId;
                 batch.ApprovedAt = now;
-                batch.ExecutionSummary = $"Sukses menerapkan penempatan awal untuk {batch.Rows.Count} pegawai.";
+                batch.ExecutionSummary = $"Sukses menerapkan penempatan awal untuk {batch.Rows.Count} pegawai baseline.";
                 batch.UpdateDateTime = now;
                 batch.UpdateBy = userId;
 

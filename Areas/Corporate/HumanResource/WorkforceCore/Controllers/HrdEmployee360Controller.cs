@@ -41,14 +41,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
         [AccessPermission("HrdEmployee360", "Read")]
-        public async Task<IActionResult> GetEmployee360(Guid workforceProfileId, CancellationToken ct)
+        public async Task<IActionResult> GetEmployee360(Guid workforceProfileId, [FromQuery] DateTime? asOfDate, CancellationToken ct)
         {
             if (!TryGetCurrentUserId(out var callerUserId))
             {
                 return Unauthorized(ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Pengguna tidak terautentikasi."));
             }
 
-            var result = await _service.GetEmployee360Async(workforceProfileId, User, callerUserId, ct);
+            var result = await _service.GetEmployee360Async(workforceProfileId, User, callerUserId, asOfDate, ct);
 
             if (result.IsForbidden)
             {

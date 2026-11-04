@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
@@ -18,10 +19,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     public class HiringHandoffService : IHiringHandoffService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IHrdOnboardingCaseService? _onboardingCaseService;
 
-        public HiringHandoffService(ApplicationDbContext dbContext)
+        public HiringHandoffService(
+            ApplicationDbContext dbContext,
+            IHrdOnboardingCaseService? onboardingCaseService = null)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            _onboardingCaseService = onboardingCaseService;
         }
 
         private static Guid GetUserId(ClaimsPrincipal user)
@@ -254,6 +259,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             offer.UpdateBy = userId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Integrasi INT-HR-25 / BE-HRD-074: Pembentukan kasus onboarding otomatis dari serah terima
+            if (_onboardingCaseService != null)
+            {
+                var caseResult = await _onboardingCaseService.CreateFromHandoffAsync(handoff.Id, userId, cancellationToken);
+                if (!caseResult.IsSuccess)
+                {
+                    // Catat pesan peringatan jika pembentukan kasus mengalami hambatan
+                    handoff.Notes = $"{handoff.Notes} | Catatan Onboarding: {caseResult.ErrorMessage}";
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+
             return await GetByIdAsync(handoff.Id, cancellationToken);
         }
 

@@ -35,7 +35,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [MaxLength(2000)]
         public string? ReasonText { get; set; }
 
-        public ContractDecisionStatus DecisionStatus { get; set; } = ContractDecisionStatus.Draft;
+        public ContractDecisionStatus DecisionStatus { get; set; } = ContractDecisionStatus.Submitted;
 
         [Required]
         public Guid SubmittedByUserId { get; set; }

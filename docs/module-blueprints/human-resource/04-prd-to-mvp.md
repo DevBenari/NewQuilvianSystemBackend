@@ -2143,3 +2143,138 @@ Tidak ada epic `OPEN DECISION` pada gelombang mana pun.
 | `HRD-DEC-101` | `EPIC HRD-31`, `FR-SCH-12` s.d. `FR-SCH-15`, UAT-SCH-03, DoD butir 5 |
 | `HRD-DEC-102` | `EPIC HRD-32`, `FR-SCH-16` s.d. `FR-SCH-18`, UAT-SCH-05, DoD butir 6 & 7 |
 | `HRD-DEC-103` | `EPIC HRD-33`, `FR-SCH-19` s.d. `FR-SCH-23`, UAT-SCH-04, DoD butir 8, 9, 10 |
+
+
+---
+
+## 25. Bagian `S-B1` — Administrasi Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v11` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `21`, bagian 37 (`HRD-DEC-104` s.d. `HRD-DEC-109`) |
+| Tanggal | 2026-11-04 |
+| Target rilis | Gelombang `MVP-21` s.d. `MVP-23` |
+
+### 25.1 Batas Slice `S-B1`
+
+- **Titik Mulai:** Mesin biometrik (fingerprint/face recognition) atau mobile ESS mengirimkan rekaman mentah kehadiran (*raw attendance log*), sistem menyimpannya secara *immutable*, lalu mesin pencocok jadwal (*Schedule Resolver*) memetakan log tersebut ke penugasan shift roster aktif pada Sub-Modul 06 (`S-B4`).
+- **Titik Selesai:** Seluruh kehadiran harian terklasifikasi statusnya (`Present`, `Late`, `EarlyLeave`, `IncompletePunch`, `Absent`, `OnDuty`); koreksi presensi mandiri maupun kuasa HR *on-behalf* terselesaikan; izin pulang cepat dan surat tugas dinas luar tervalidasi; dan periode presensi ditutup secara bersih (`Closed`) oleh HRD sebelum diserahterimakan ke modul Payroll (10).
+
+### 25.2 Pemilihan Kemampuan MVP
+
+| ID Kemampuan | Deskripsi Kemampuan | Status di MVP | Dasar Keputusan |
+| --- | --- | --- | --- |
+| `HRD-CAP-10.1` | Penyerapan log presensi biometrik mentah yang *immutable* | `MUST HAVE` | `flows/02-attendance.md`, `ATT-B1` |
+| `HRD-CAP-10.2` | Pengaitan otomatis shift malam lintas hari (*overnight shift*) ke tanggal shift masuk | `MUST HAVE` | `HRD-DEC-104` |
+| `HRD-CAP-10.3` | Konfigurasi toleransi keterlambatan (*grace period*, default 10 menit) dan hitung penuh bila lewat | `MUST HAVE` | `HRD-DEC-105` |
+| `HRD-CAP-10.4` | Penanganan lupa tap 1 punch (*IncompletePunch*) dan konversi otomatis menjadi mangkir saat tutup periode | `MUST HAVE` | `HRD-DEC-106` |
+| `HRD-CAP-10.5` | Koreksi presensi mandiri ESS dan kuasa HR (*on-behalf*) dengan bukti lampiran | `MUST HAVE` | `HRD-DEC-028` |
+| `HRD-CAP-10.6` | Izin pulang cepat administratif resmi (*Early Leave Permission*) *non-deductible* | `MUST HAVE` | `HRD-DEC-029`, `HRD-DEC-107` |
+| `HRD-CAP-10.7` | Presensi penugasan dinas luar rumah sakit (*Official Duty*) ambulans/home care/pelatihan | `MUST HAVE` | `HRD-DEC-109` |
+| `HRD-CAP-10.8` | Penutupan periode bulanan dengan guard penolakan bila ada koreksi pending | `MUST HAVE` | `HRD-DEC-108` |
+| `HRD-CAP-10.9` | Buka kembali darurat (*Controlled Reopen*) hanya oleh HR Manager & rollback serah terima payroll | `MUST HAVE` | `HRD-DEC-108` |
+| `HRD-CAP-10.10` | Integrasi pengenalan wajah biometrik berbasis kecerdasan buatan langsung di kamera CCTV RS | `DEFERRED` | Bukan prioritas MVP (Cukup mesin biometrik standar) |
+
+### 25.3 Epic dan Functional Requirement
+
+#### `EPIC HRD-34`: Penyerapan Log Mentah, Schedule Resolver & Shift Malam Lintas Hari
+- `FR-ATT-01`: Sistem menerima rekaman mentah log presensi dari berbagai sumber biometrik dan menyimpannya secara *immutable* di `HrdAttendanceRawLog`. `[EXISTING + HARDEN]`
+- `FR-ATT-02`: Mesin pencocok jadwal (*Schedule Resolver*) secara otomatis memetakan tap masuk dan tap keluar ke penugasan shift pada roster kerja aktif (`S-B4`). `[EXTEND]`
+- `FR-ATT-03`: Untuk shift malam yang melintasi tengah malam (misal 21.00 s.d. 07.00), sistem mengunci seluruh sesi kehadiran pada tanggal dimulainya shift (`HRD-DEC-104`). `[EXTEND]`
+- `FR-ATT-04`: Sistem mendeteksi tap ganda berurutan (*duplicate punch*) dalam rentang 3 menit dan hanya mencatat satu log valid pertama. `[HARDEN]`
+- `FR-ATT-05`: Sistem menyediakan drawer audit log mentah untuk menelusuri jam riil dan ID perangkat biometrik staf. `[MISSING / NEW]`
+
+#### `EPIC HRD-35`: Deteksi Keterlambatan, Toleransi Menit & Penanganan Lupa Tap
+- `FR-ATT-06`: Sistem menyediakan setelan toleransi keterlambatan (*grace period*, default 10 menit) yang dapat diubah HR Admin (`HRD-DEC-105`). `[MISSING / NEW]`
+- `FR-ATT-07`: Kedatangan di dalam batas toleransi menghasilkan status `Present` dan 0 menit terlambat; kedatangan melewati batas toleransi menghasilkan status `Late` dan dihitung penuh dari jam mulai shift resmi. `[EXTEND]`
+- `FR-ATT-08`: Catatan presensi yang hanya memiliki 1 tap diberi status sementara `IncompletePunch` dan jam kerja harian belum dihitung (`HRD-DEC-106`). `[MISSING / NEW]`
+- `FR-ATT-09`: Sistem mengirimkan notifikasi pengingat ke ESS pegawai dan atasan langsung untuk mengajukan koreksi presensi atas catatan yang tidak lengkap. `[MISSING / NEW]`
+
+#### `EPIC HRD-36`: Tata Kelola Koreksi Presensi Mandiri & Kuasa HR On-Behalf
+- `FR-ATT-10`: Pegawai dapat mengajukan koreksi presensi (lupa tap masuk/pulang) via ESS dengan menyertakan alasan dan bukti pendukung. `[EXISTING]`
+- `FR-ATT-11`: HR Admin dapat mengajukan koreksi presensi atas nama pegawai (*on-behalf* per `HRD-DEC-028`) bila pegawai terkendala akses ESS, dengan wewenang persetujuan tetap di atasan langsung pegawai. `[MISSING / NEW]`
+- `FR-ATT-12`: Koreksi presensi yang disetujui otomatis memicu rekalkulasi status kehadiran harian menjadi `Present` dan menghitung jam kerja sah. `[EXTEND]`
+- `FR-ATT-13`: Pengajuan koreksi dibatasi maksimal 3 hari mundur (`HRD-DEC-105`) dan ditolak bila menyentuh periode yang sudah ditutup (`ATT-B2`). `[HARDEN]`
+
+#### `EPIC HRD-37`: Izin Pulang Cepat Non-Deductible & Dinas Luar Official Duty
+- `FR-ATT-14`: Pegawai dapat mengajukan Izin Pulang Cepat administratif (*Early Leave Permission*) dengan alasan darurat keluarga atau dinas mendadak (`HRD-DEC-107`). `[MISSING / NEW]`
+- `FR-ATT-15`: Izin pulang cepat yang disetujui atasan menandai pengecualian pulang cepat sebagai `Waived/Approved` tanpa sanksi disiplin dan **tidak memotong kuota saldo cuti tahunan**. `[MISSING / NEW]`
+- `FR-ATT-16`: Jam kerja riil pada izin pulang cepat dihitung hingga waktu tap keluar nyata di mesin absensi. `[MISSING / NEW]`
+- `FR-ATT-17`: Pegawai atau atasan dapat mengajukan Surat Tugas Dinas Luar (*Official Duty Request*) untuk ambulans rujukan, kurir lab, workshop akreditasi RS, atau kunjungan home care (`HRD-DEC-109`). `[MISSING / NEW]`
+- `FR-ATT-18`: Permohonan dinas luar yang disetujui mencatat status kehadiran hari itu sebagai `OnDuty` dan jam kerja diakui penuh untuk payroll, dengan opsi perekaman GPS dan foto mobile. `[MISSING / NEW]`
+
+#### `EPIC HRD-38`: Penutupan Periode Kehadiran, Guard Koreksi & Buka Kembali Darurat
+- `FR-ATT-19`: HR Attendance Officer dapat menutup periode presensi bulanan (*Close Attendance Period*) untuk mengunci seluruh transaksi menjadi *read-only* (`HRD-DEC-108`). `[EXTEND]`
+- `FR-ATT-20`: Sistem secara otomatis menolak aksi penutupan periode bila masih ada permohonan koreksi presensi yang berstatus `Pending Approval`. `[MISSING / NEW]`
+- `FR-ATT-21`: Saat penutupan periode berhasil dieksekusi, sistem secara otomatis mengonversi sisa catatan `IncompletePunch` yang belum dikoreksi menjadi `Absent` (Mangkir) tanpa jam kerja (`HRD-DEC-106`). `[MISSING / NEW]`
+- `FR-ATT-22`: Buka kembali periode tertutup (*Controlled Reopen*) hanya dapat dieksekusi oleh level HR Manager dengan mengisi alasan audit tertulis wajib. `[EXTEND]`
+- `FR-ATT-23`: Aksi reopen periode secara otomatis memicu pembatalan (*rollback*) batch serah terima payroll (`AttendancePayrollHandoff.Rollback`) bila serah terima ke payroll sudah berstatus `Executed`. `[MISSING / NEW]`
+
+### 25.4 Skenario UAT Slice `S-B1`
+
+#### Skenario UAT-ATT-01: Pencatatan Shift Malam Lintas Hari (Jalur Berhasil)
+- **Aktor:** Suster Ani (Perawat IGD).
+- **Langkah:** Ani memiliki jadwal Shift Malam 10 November (21.00 s.d. 07.00 WIB). Ani tap masuk di mesin biometrik IGD tanggal 10 Nov pukul 20.50 WIB, dan tap keluar tanggal 11 Nov pukul 07.15 WIB.
+- **Hasil yang Diharapkan:** Sistem mengaitkan kedua log ke satu record kehadiran tanggal 10 November. Status kehadiran berstatus `Present`, jam kerja efektif tercatat 10 jam, menit terlambat 0 menit, dan Ani tidak tercatat mangkir di tanggal 10 maupun dinas ganda di tanggal 11.
+
+#### Skenario UAT-ATT-02: Evaluasi Toleransi Keterlambatan Grace Period (Jalur Berhasil)
+- **Aktor:** Budi (Staf Administrasi) dan Dewi (Perawat ICU).
+- **Langkah:** Jam masuk shift 07.00 WIB, toleransi disetel 10 menit. Budi tap masuk pukul 07.08 WIB. Dewi tap masuk pukul 07.14 WIB.
+- **Hasil yang Diharapkan:** Budi tercatat berstatus `Present` dengan `LateMinutes = 0`. Dewi tercatat berstatus `Late` dengan `LateMinutes = 14 menit` (dihitung penuh dari 07.00 WIB).
+
+#### Skenario UAT-ATT-03: Penanganan Lupa Tap dan Konversi Otomatis saat Cut-Off (Jalur Gagal / Disiplin)
+- **Aktor:** Tono (Staf Rekam Medis).
+- **Langkah:** Tono hanya tap masuk pukul 08.00 WIB tanggal 15 November dan lupa tap keluar saat pulang. Sistem menandai status hari itu sebagai `IncompletePunch` dan mengirimkan pengingat ke ESS Tono. Tono tidak mengajukan koreksi hingga tanggal 25 November saat penutupan periode bulanan dilakukan HRD.
+- **Hasil yang Diharapkan:** Saat HR Officer mengeksekusi penutupan periode, record kehadiran Tono pada tanggal 15 November otomatis bergeser statusnya menjadi `Absent` (Mangkir) dan tidak ada jam kerja yang dibayarkan.
+
+#### Skenario UAT-ATT-04: Izin Pulang Cepat Non-Deductible (Jalur Berhasil)
+- **Aktor:** Suster Rina (Perawat Bangsal).
+- **Langkah:** Rina berdinas shift pagi (07.00–14.00). Pada pukul 11.00, anak Rina mengalami demam tinggi dan harus dibawa ke dokter. Rina mengajukan Izin Pulang Cepat di ESS dengan rencana keluar pukul 11.30. Kepala Ruangan menyetujui izin. Rina tap keluar di mesin pukul 11.32.
+- **Hasil yang Diharapkan:** Sistem mencatat jam kerja efektif Rina 4 jam 32 menit. Pengecualian pulang cepat berstatus `Waived/Approved`. Kuota saldo cuti tahunan Rina tetap utuh (tidak berkurang 1 menit pun).
+
+#### Skenario UAT-ATT-05: Penutupan Periode Ditolak Bila Ada Koreksi Pending & Reopen Payroll Rollback (Jalur Gagal & Rollback)
+- **Aktor:** Sari (HR Officer) dan Pak Dodi (HR Manager).
+- **Langkah:** 
+  1. Sari mencoba menutup periode presensi November, namun ada 2 permohonan koreksi staf ICU yang masih berstatus `Pending Approval` Kepala Ruangan.
+  2. Sistem menolak penutupan periode dengan pesan: *"Penutupan periode ditolak: masih terdapat 2 permohonan koreksi berstatus pending."*
+  3. Setelah Kepala Ruangan memproses kedua koreksi, Sari berhasil menutup periode, dan melakukan serah terima payroll (`Executed`).
+  4. Keesokan harinya ditemukan kesalahan data darurat. Pak Dodi (HR Manager) membuka kembali periode dengan menekan tombol **Reopen Period** dan menginput alasan audit.
+- **Hasil yang Diharapkan:** Sistem mengizinkan pembukaan kembali periode, status periode menjadi `Reopened`, dan sistem secara otomatis mengeksekusi *rollback* pada batch serah terima payroll terkait.
+
+### 25.5 Definition of Done (DoD) Slice `S-B1`
+
+| No | Kriteria Selesai (DoD) | Bukti Pengujian |
+| :---: | --- | --- |
+| 1 | Raw log presensi biometrik tersimpan secara *immutable* dan tidak dapat diubah/dihapus | UAT immutability & audit database |
+| 2 | Sesi shift malam lintas hari dikaitkan penuh ke tanggal shift dimulai | UAT-ATT-01 & verifikasi query daily |
+| 3 | Toleransi keterlambatan 10 menit berfungsi dan menghitung penuh bila lewat | UAT-ATT-02 & unit test kalkulasi |
+| 4 | Catatan presensi 1 tap berstatus `IncompletePunch` dan memicu notifikasi pengingat | Verifikasi status daily & modul ESS |
+| 5 | Sisa incomplete punch otomatis terkonversi menjadi `Absent` saat cut-off periode | UAT-ATT-03 & verifikasi post-close |
+| 6 | Koreksi presensi on-behalf oleh HR tersimpan dengan jejak audit dan persetujuan atasan | UAT koreksi on-behalf & audit trail |
+| 7 | Izin pulang cepat administratif tidak memotong kuota saldo cuti tahunan | UAT-ATT-04 & verifikasi saldo cuti 08 |
+| 8 | Surat tugas dinas luar ambulans/home care tercatat berstatus `OnDuty` | UAT official duty & verifikasi payroll |
+| 9 | Penutupan periode presensi menolak bila masih ada koreksi berstatus pending | UAT-ATT-05 & pengujian guard penutupan |
+| 10 | Buka kembali periode (reopen) hanya untuk HR Manager dan memicu rollback serah terima payroll | UAT-ATT-05 & verifikasi rollback payroll |
+
+### 25.6 Urutan Pengiriman Gelombang MVP
+
+| Gelombang | Cakupan Kemampuan | Epic Terkait | Prasyarat |
+| --- | --- | --- | --- |
+| `MVP-21` | Penyerapan log biometrik mentah, schedule resolver shift malam lintas hari, toleransi keterlambatan grace period, dan penanganan lupa tap | `EPIC HRD-34`, `EPIC HRD-35` | Sub-Modul 06 (`MVP-18` & `MVP-19`) selesai |
+| `MVP-22` | Tata kelola koreksi presensi mandiri & on-behalf, perizinan pulang cepat non-deductible, dan penugasan dinas luar official duty | `EPIC HRD-36`, `EPIC HRD-37` | `MVP-21` selesai |
+| `MVP-23` | Penutupan periode bulanan, guard penolakan koreksi pending, buka kembali darurat (reopen), dan integrasi serah terima payroll | `EPIC HRD-38` | `MVP-22` selesai |
+
+### 25.7 Traceability Keputusan ke PRD
+
+| Keputusan | Epic & Kriteria DoD |
+| --- | --- |
+| `HRD-DEC-028` | `EPIC HRD-36`, `FR-ATT-11`, DoD butir 6 (Koreksi kehadiran on-behalf HR) |
+| `HRD-DEC-029` | `EPIC HRD-37`, `FR-ATT-14`, `FR-ATT-16` (Tiga peran waktu izin pulang cepat) |
+| `HRD-DEC-104` | `EPIC HRD-34`, `FR-ATT-03`, UAT-ATT-01, DoD butir 2 (Shift malam dikunci pada tanggal masuk) |
+| `HRD-DEC-105` | `EPIC HRD-35`, `FR-ATT-06`, `FR-ATT-07`, UAT-ATT-02, DoD butir 3 (Toleransi keterlambatan grace period) |
+| `HRD-DEC-106` | `EPIC HRD-35`, `FR-ATT-08`, `FR-ATT-09`, `FR-ATT-21`, UAT-ATT-03, DoD butir 4 & 5 (Penanganan 1 tap incomplete punch) |
+| `HRD-DEC-107` | `EPIC HRD-37`, `FR-ATT-14`, `FR-ATT-15`, UAT-ATT-04, DoD butir 7 (Izin pulang cepat non-deductible) |
+| `HRD-DEC-108` | `EPIC HRD-38`, `FR-ATT-19` s.d. `FR-ATT-23`, UAT-ATT-05, DoD butir 9 & 10 (Period close guard & reopen rollback) |
+| `HRD-DEC-109` | `EPIC HRD-37`, `FR-ATT-17`, `FR-ATT-18`, DoD butir 8 (Presensi dinas luar ambulans/home care OnDuty) |

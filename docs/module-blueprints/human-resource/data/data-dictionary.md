@@ -2889,3 +2889,142 @@ CREATE INDEX "IX_TrxShiftAssignment_DateUnit" ON public."TrxShiftAssignment" ("S
 | `HRD-DEC-101` | `TrxShiftAssignment.IsManualOverride`, `OverrideReason`, `TrxShiftReplacement` (seluruh kolom) |
 | `HRD-DEC-102` | `HrdSchedulingSetting.RetroactiveCorrectionWindowDays`, `TrxRosterPeriod.ClosedByUserId`, `ClosedAt` |
 | `HRD-DEC-103` | `TrxOnCallAssignment` (`ExpectedResponseMinutes`, `IsCalledIn`, `CallInTime`, `ArrivalTime`, `ResponseMinutes`, `IsSlaMet`) |
+
+
+---
+
+## 12. Bagian `S-B1` — Kamus Data Administrasi Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+Bagian ini mendefinisikan kamus data untuk entitas baru dan perubahan skema pada **Slice `S-B1` — Administrasi Kehadiran dan Presensi Staf Rumah Sakit 24/7**.
+
+### 12.1 Entitas Baru: `HrdEarlyLeavePermission` (Tabel `hrd_early_leave_permissions`)
+* **Status:** Baru (`NEW`).
+* **Fungsi:** Menyimpan dokumen permohonan izin pulang cepat administratif yang bersifat *non-deductible* (tidak memotong kuota saldo cuti tahunan per `HRD-DEC-107`).
+
+| Nama Kolom | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `id` | `UUID` | Ya | `gen_random_uuid()` | Primary Key unik permohonan izin pulang cepat | Tidak |
+| `attendance_daily_id` | `UUID` | Ya | — | FK ke `hrd_attendance_dailies.id` (sesi kehadiran yang diizinkan) | Tidak |
+| `workforce_profile_id` | `UUID` | Ya | — | FK ke `mst_workforce_profiles.id` (pegawai yang mengajukan) | Tidak |
+| `requested_early_leave_at` | `TIMESTAMPTZ` | Ya | — | Waktu rencana keluar lebih awal yang diajukan pegawai | Tidak |
+| `reason` | `VARCHAR(500)` | Ya | — | Alasan tertulis darurat keluarga atau dinas mendadak | Tidak |
+| `status` | `VARCHAR(50)` | Ya | `'Draft'` | Status izin: `Draft`, `Submitted`, `Approved`, `Rejected`, `Waived` | Tidak |
+| `approved_by_workforce_id` | `UUID` | Tidak | `NULL` | FK ke `mst_workforce_profiles.id` (atasan langsung penyetuju) | Tidak |
+| `approved_at` | `TIMESTAMPTZ` | Tidak | `NULL` | Waktu persetujuan atasan langsung diberikan | Tidak |
+| `rejection_reason` | `VARCHAR(500)` | Tidak | `NULL` | Catatan alasan penolakan jika izin ditolak | Tidak |
+| `is_deductible` | `BOOLEAN` | Ya | `false` | Menegaskan izin tidak memotong kuota saldo cuti (`HRD-DEC-107`) | Tidak |
+
+### 12.2 Entitas Baru: `HrdOfficialDutyRequest` (Tabel `hrd_official_duty_requests`)
+* **Status:** Baru (`NEW`).
+* **Fungsi:** Menyimpan data penugasan staf berdinas di luar area fisik gedung rumah sakit (ambulans rujukan, kurir lab/BBLK, pelatihan wajib RS, home care per `HRD-DEC-109`).
+
+| Nama Kolom | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `id` | `UUID` | Ya | `gen_random_uuid()` | Primary Key unik surat tugas dinas luar | Tidak |
+| `workforce_profile_id` | `UUID` | Ya | — | FK ke `mst_workforce_profiles.id` (staf yang ditugaskan) | Tidak |
+| `duty_category` | `VARCHAR(50)` | Ya | — | Kategori: `AmbulanceReferral`, `LabCourier`, `TrainingSeminar`, `HomeCare` | Tidak |
+| `assignment_order_number` | `VARCHAR(100)` | Ya | — | Nomor surat tugas / nomor referensi perintah dinas | Tidak |
+| `start_at` | `TIMESTAMPTZ` | Ya | — | Waktu mulai dinas luar | Tidak |
+| `end_at` | `TIMESTAMPTZ` | Ya | — | Waktu berakhir dinas luar (`end_at > start_at`) | Tidak |
+| `destination` | `VARCHAR(255)` | Ya | — | Lokasi/instansi tujuan pelaksanaan dinas luar | Tidak |
+| `purpose` | `TEXT` | Ya | — | Uraian tugas/tindakan medis/pelatihan yang dilaksanakan | Tidak |
+| `latitude` | `DECIMAL(10,8)` | Tidak | `NULL` | Koordinat latitude lokasi tugas saat tap mobile | Ya |
+| `longitude` | `DECIMAL(11,8)` | Tidak | `NULL` | Koordinat longitude lokasi tugas saat tap mobile | Ya |
+| `attachment_url` | `VARCHAR(500)` | Tidak | `NULL` | Tautan foto selfie/bukti pelaksanaan tugas di lokasi | Tidak |
+| `status` | `VARCHAR(50)` | Ya | `'Draft'` | Status tugas: `Draft`, `Submitted`, `Approved`, `Rejected`, `Completed` | Tidak |
+| `approved_by_workforce_id` | `UUID` | Tidak | `NULL` | FK ke `mst_workforce_profiles.id` (atasan langsung pemberi tugas) | Tidak |
+| `approved_at` | `TIMESTAMPTZ` | Tidak | `NULL` | Waktu persetujuan surat tugas | Tidak |
+
+### 12.3 Entitas Baru: `HrdAttendanceSetting` (Tabel `hrd_attendance_settings`)
+* **Status:** Baru (`NEW`).
+* **Fungsi:** Menyimpan konfigurasi parameter waktu kerja presensi dan kebijakan penutupan periode per `HRD-DEC-105` dan `HRD-DEC-108`.
+
+| Nama Kolom | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `id` | `UUID` | Ya | `gen_random_uuid()` | Primary Key konfigurasi presensi | Tidak |
+| `hospital_code` | `VARCHAR(50)` | Ya | `'RSMMC'` | Kode rumah sakit / unit bisnis | Tidak |
+| `grace_period_minutes` | `INT` | Ya | `10` | Toleransi keterlambatan tanpa denda/late (default 10 menit) | Tidak |
+| `max_backdated_correction_days`| `INT` | Ya | `3` | Batas hari toleransi koreksi tanggal mundur (default 3 hari) | Tidak |
+| `require_attachment_for_correction`| `BOOLEAN` | Ya | `true` | Kewajiban melampirkan berkas bukti saat koreksi | Tidak |
+| `auto_convert_incomplete_to_absent`| `BOOLEAN` | Ya | `true` | Konversi otomatis sisa 1 tap menjadi Absent saat tutup periode | Tidak |
+| `is_active` | `BOOLEAN` | Ya | `true` | Penanda konfigurasi aktif yang berlaku | Tidak |
+
+### 12.4 Perubahan Tabel Eksisting: `HrdAttendanceDaily` (Tabel `hrd_attendance_dailies`)
+* **Status:** Diperbarui (`EXTEND`).
+* **Kolom Tambahan:**
+  * `early_leave_permission_id` (`UUID`, nullable, FK ke `hrd_early_leave_permissions.id`).
+  * `official_duty_request_id` (`UUID`, nullable, FK ke `hrd_official_duty_requests.id`).
+  * `incomplete_punch_reason` (`VARCHAR(500)`, nullable, keterangan jika terjadi 1 tap).
+  * Penambahan nilai enum status: `IncompletePunch`, `OnDuty`.
+
+### 12.5 Skrip DDL PostgreSQL (Slice `S-B1`)
+
+```sql
+-- 1. Tabel Konfigurasi Presensi Rumah Sakit
+CREATE TABLE IF NOT EXISTS hrd_attendance_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hospital_code VARCHAR(50) NOT NULL UNIQUE,
+    grace_period_minutes INT NOT NULL DEFAULT 10,
+    max_backdated_correction_days INT NOT NULL DEFAULT 3,
+    require_attachment_for_correction BOOLEAN NOT NULL DEFAULT true,
+    auto_convert_incomplete_to_absent BOOLEAN NOT NULL DEFAULT true,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false
+);
+
+-- 2. Tabel Izin Pulang Cepat Non-Deductible
+CREATE TABLE IF NOT EXISTS hrd_early_leave_permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    attendance_daily_id UUID NOT NULL,
+    workforce_profile_id UUID NOT NULL,
+    requested_early_leave_at TIMESTAMPTZ NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Draft',
+    approved_by_workforce_id UUID,
+    approved_at TIMESTAMPTZ,
+    rejection_reason VARCHAR(500),
+    is_deductible BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_early_leave_daily FOREIGN KEY (attendance_daily_id) REFERENCES hrd_attendance_dailies(id),
+    CONSTRAINT fk_early_leave_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_early_leave_approver FOREIGN KEY (approved_by_workforce_id) REFERENCES mst_workforce_profiles(id)
+);
+
+-- 3. Tabel Surat Tugas Dinas Luar / Ambulans / Home Care
+CREATE TABLE IF NOT EXISTS hrd_official_duty_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workforce_profile_id UUID NOT NULL,
+    duty_category VARCHAR(50) NOT NULL,
+    assignment_order_number VARCHAR(100) NOT NULL,
+    start_at TIMESTAMPTZ NOT NULL,
+    end_at TIMESTAMPTZ NOT NULL,
+    destination VARCHAR(255) NOT NULL,
+    purpose TEXT NOT NULL,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    attachment_url VARCHAR(500),
+    status VARCHAR(50) NOT NULL DEFAULT 'Draft',
+    approved_by_workforce_id UUID,
+    approved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_official_duty_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_official_duty_approver FOREIGN KEY (approved_by_workforce_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT chk_official_duty_time CHECK (end_at > start_at)
+);
+
+-- 4. Indeks Kinerja Presensi
+CREATE INDEX IF NOT EXISTS idx_early_leave_daily ON hrd_early_leave_permissions(attendance_daily_id);
+CREATE INDEX IF NOT EXISTS idx_official_duty_workforce_date ON hrd_official_duty_requests(workforce_profile_id, start_at, end_at);
+```

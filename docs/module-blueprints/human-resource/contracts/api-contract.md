@@ -1599,3 +1599,325 @@ kontrak sebelum kontrak pertama ditandatangani.
 | `405` | Tindakan memang tidak tersedia | Memperpanjang masa percobaan |
 | `409` | Bertabrakan dengan data lain atau versi usang | Keputusan kontrak kedua untuk kontrak yang sama; riwayat kontrak 02 diubah langsung |
 | `422` | Ditolak aturan bisnis | Siap kerja saat masih ada butir wajib; perpanjangan melewati 5 tahun |
+
+
+---
+
+## 16. Slice `S-B4` — Penjadwalan, Roster, dan On-Call, sub-modul 06 (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+
+### 16.1 Ringkasan endpoint `S-B4`
+
+| Tag grup | Method | Path | Status implementasi | Kegunaan utama |
+| --- | :---: | --- | :---: | --- |
+| `[Tags("HR Scheduling - Roster Period")]` | `GET` | `/api/corporate/human-resource/scheduling/roster-periods` | `Tersedia` | Mendapatkan daftar periode roster unit |
+| `[Tags("HR Scheduling - Roster Period")]` | `POST` | `/api/corporate/human-resource/scheduling/roster-periods` | `Tersedia (diperbarui)` | Membuat draft periode roster baru per unit & auto populate staf |
+| `[Tags("HR Scheduling - Roster Period")]` | `POST` | `/api/corporate/human-resource/scheduling/roster-periods/{id}/copy-previous` | `Rencana (belum tersedia)` | Menyalin seluruh jadwal shift dari periode bulan sebelumnya (`HRD-DEC-098`) |
+| `[Tags("HR Scheduling - Roster Period")]` | `POST` | `/api/corporate/human-resource/scheduling/roster-periods/{id}/apply-pattern` | `Rencana (belum tersedia)` | Menerapkan pola shift berulang ke pegawai / kelompok |
+| `[Tags("HR Scheduling - Roster Period")]` | `POST` | `/api/corporate/human-resource/scheduling/roster-periods/{id}/validate` | `Tersedia (diperbarui)` | Memvalidasi jadwal: evaluasi `B1`–`B7` dan `W1`–`W7` |
+| `[Tags("HR Scheduling - Roster Period")]` | `POST` | `/api/corporate/human-resource/scheduling/roster-periods/{id}/publish` | `Tersedia (diperbarui)` | Menerbitkan roster bulanan dengan validasi ulang otomatis (`HRD-DEC-098`) |
+| `[Tags("HR Scheduling - Roster Period")]` | `POST` | `/api/corporate/human-resource/scheduling/roster-periods/{id}/close` | `Tersedia (diperbarui)` | Mengunci mutlak periode roster oleh HRD Payroll (`HRD-DEC-102`) |
+| `[Tags("HR Scheduling - Shift Assignment & Replacement")]` | `POST` | `/api/corporate/human-resource/scheduling/shift-assignments/{id}/replace` | `Tersedia (diperbarui)` | Eksekusi Ganti Petugas langsung pasca-terbit dengan alasan wajib (`HRD-DEC-101`) |
+| `[Tags("HR Scheduling - Shift Assignment & Replacement")]` | `PUT` | `/api/corporate/human-resource/scheduling/shift-assignments/{id}/retroactive-correct` | `Rencana (belum tersedia)` | Koreksi mundur jadwal maksimal 3 hari ke belakang (`HRD-DEC-102`) |
+| `[Tags("HR Scheduling - On-Call Management")]` | `GET` | `/api/corporate/human-resource/scheduling/on-call-assignments` | `Tersedia` | Daftar penugasan siaga dokter & staf |
+| `[Tags("HR Scheduling - On-Call Management")]` | `POST` | `/api/corporate/human-resource/scheduling/on-call-assignments` | `Tersedia` | Membuat penugasan siaga baru |
+| `[Tags("HR Scheduling - On-Call Management")]` | `POST` | `/api/corporate/human-resource/scheduling/on-call-assignments/{id}/call-in` | `Rencana (belum tersedia)` | Mencatat pemanggilan darurat cito (*call-in*) & waktu tiba SLA (`HRD-DEC-103`) |
+| `[Tags("HR Scheduling - Settings")]` | `GET` | `/api/corporate/human-resource/scheduling/settings` | `Rencana (belum tersedia)` | Membaca konfigurasi aturan waktu kerja korporat |
+| `[Tags("HR Scheduling - Settings")]` | `PUT` | `/api/corporate/human-resource/scheduling/settings` | `Rencana (belum tersedia)` | Memperbarui parameter aturan jeda 11 jam, toleransi 3 hari, dll. |
+
+---
+
+### 16.2 Spesifikasi Detail Endpoint
+
+#### `[Tags("HR Scheduling - Roster Period")]`
+
+##### 1. Salin Periode Lalu
+- **Path:** `POST /api/corporate/human-resource/scheduling/roster-periods/{id}/copy-previous`
+- **Deskripsi:** Menyalin seluruh matriks shift dari periode roster bulan sebelumnya ke periode target draft.
+- **Hak Akses:** `[AccessPermission("HrdScheduling", "Create")]`
+- **Request Body:**
+  ```json
+  {
+    "sourceRosterPeriodId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+  ```
+- **Response 200 OK:**
+  ```json
+  {
+    "success": true,
+    "copiedAssignmentsCount": 504,
+    "message": "Berhasil menyalin 504 jadwal dinas dari periode Januari 2027"
+  }
+  ```
+
+##### 2. Validasi Jadwal Roster
+- **Path:** `POST /api/corporate/human-resource/scheduling/roster-periods/{id}/validate`
+- **Deskripsi:** Mengevaluasi seluruh penugasan terhadap aturan memblokir (`B1`–`B7`) dan peringatan (`W1`–`W7`).
+- **Hak Akses:** `[AccessPermission("HrdScheduling", "Read")]`
+- **Response 200 OK:**
+  ```json
+  {
+    "rosterPeriodId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "isPublishable": false,
+    "blockingConflicts": [
+      {
+        "code": "B1",
+        "employeeId": "d3b07384-d113-40bf-9c74-2977508ffb8c",
+        "employeeName": "Budi Santoso",
+        "shiftDate": "2027-02-08",
+        "message": "Budi dijadwalkan dua shift yang bertabrakan pada 8 Februari 2027"
+      },
+      {
+        "code": "B7",
+        "employeeId": "e2c07384-d113-40bf-9c74-2977508ffb8d",
+        "employeeName": "Rina Wulandari",
+        "shiftDate": "2027-02-18",
+        "message": "Rina berstatus Didampingi dan tidak boleh berdinas pada shift tanpa perawat Mandiri"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "W1",
+        "employeeId": "a1b07384-d113-40bf-9c74-2977508ffb8a",
+        "employeeName": "Tono Haryanto",
+        "shiftDate": "2027-02-06",
+        "message": "Jeda istirahat Tono antara Siang 5 Feb dan Pagi 6 Feb hanya 10 jam (setelan: 11 jam)",
+        "selectedReason": "Permintaan Pegawai"
+      },
+      {
+        "code": "W6",
+        "shiftDate": "2027-02-10",
+        "shiftCode": "Malam",
+        "message": "Jumlah perawat pada Shift Malam 10 Feb hanya 2 orang (target kuota: 3 orang)",
+        "selectedReason": null
+      }
+    ]
+  }
+  ```
+
+##### 3. Terbitkan Roster Bulanan
+- **Path:** `POST /api/corporate/human-resource/scheduling/roster-periods/{id}/publish`
+- **Deskripsi:** Menerbitkan roster secara mandiri oleh Kepala Unit setelah validasi ulang otomatis lolos (`HRD-DEC-098`).
+- **Hak Akses:** `[AccessPermission("HrdScheduling", "Publish")]`
+- **Request Body:**
+  ```json
+  {
+    "warningReasons": [
+      {
+        "warningCode": "W1",
+        "employeeId": "a1b07384-d113-40bf-9c74-2977508ffb8a",
+        "shiftDate": "2027-02-06",
+        "reasonCategory": "Permintaan Pegawai",
+        "notes": "Tono mengajukan dinas maju untuk keperluan keluarga"
+      },
+      {
+        "warningCode": "W6",
+        "shiftDate": "2027-02-10",
+        "shiftCode": "Malam",
+        "reasonCategory": "Kekurangan Tenaga",
+        "notes": "BOR ICU diperkirakan < 40%"
+      }
+    ]
+  }
+  ```
+- **Response 200 OK:**
+  ```json
+  {
+    "rosterPeriodId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "status": "Published",
+    "publishedAt": "2027-01-25T09:30:00Z",
+    "publishedBy": "Sari (Kepala Ruangan ICU)",
+    "message": "Roster ICU Februari 2027 berhasil diterbitkan."
+  }
+  ```
+- **Response 422 Unprocessable Entity:** Dikembalikan jika masih ada pelanggaran `B1`–`B7` atau masih ada peringatan `W` yang belum memiliki alasan.
+
+##### 4. Kunci / Tutup Periode Roster
+- **Path:** `POST /api/corporate/human-resource/scheduling/roster-periods/{id}/close`
+- **Deskripsi:** Menutup periode roster secara mutlak oleh tim Payroll saat cut-off penggajian (`HRD-DEC-102`).
+- **Hak Akses:** `[AccessPermission("HrdScheduling", "Close")]`
+- **Response 200 OK:** Status berubah menjadi `Closed`, seluruh jadwal terkunci *read-only*.
+
+---
+
+#### `[Tags("HR Scheduling - Shift Assignment & Replacement")]`
+
+##### 5. Ganti Petugas Langsung Pasca-Terbit
+- **Path:** `POST /api/corporate/human-resource/scheduling/shift-assignments/{id}/replace`
+- **Deskripsi:** Kepala Unit menunjuk pengganti darurat pada shift terbit dengan alasan wajib, langsung efektif (`HRD-DEC-101`).
+- **Hak Akses:** `[AccessPermission("HrdScheduling", "Update")]`
+- **Request Body:**
+  ```json
+  {
+    "replacementEmployeeId": "a1b07384-d113-40bf-9c74-2977508ffb8a",
+    "reasonCategory": "Sakit Mendadak",
+    "notes": "Budi sakit demam tinggi 2 jam sebelum dinas malam"
+  }
+  ```
+- **Response 200 OK:**
+  ```json
+  {
+    "shiftAssignmentId": "8f3b7384-d113-40bf-9c74-2977508ffb8f",
+    "rosterPeriodStatus": "Published",
+    "isManualOverride": true,
+    "assignedToEmployeeId": "a1b07384-d113-40bf-9c74-2977508ffb8a",
+    "assignedToEmployeeName": "Tono Haryanto",
+    "originalEmployeeId": "d3b07384-d113-40bf-9c74-2977508ffb8c",
+    "originalEmployeeName": "Budi Santoso",
+    "effectiveImmediately": true,
+    "notificationsDispatched": ["Budi Santoso", "Tono Haryanto", "Pak Dodi (Kepala Bidang)"]
+  }
+  ```
+
+##### 6. Koreksi Mundur Jadwal
+- **Path:** `PUT /api/corporate/human-resource/scheduling/shift-assignments/{id}/retroactive-correct`
+- **Deskripsi:** Mengoreksi jadwal tanggal yang sudah lewat maksimal 3 hari ke belakang (`HRD-DEC-102`).
+- **Hak Akses:** `[AccessPermission("HrdScheduling", "Update")]`
+- **Request Body:**
+  ```json
+  {
+    "newShiftId": "4c2b7384-d113-40bf-9c74-2977508ffb8e",
+    "reasonCategory": "Koreksi Administratif Terlambat",
+    "notes": "Lupa input penggantian dinas tanggal 10 Feb"
+  }
+  ```
+- **Response 200 OK:**
+  ```json
+  {
+    "shiftAssignmentId": "8f3b7384-d113-40bf-9c74-2977508ffb8f",
+    "isRetroactive": true,
+    "daysBack": 2,
+    "attendanceReevaluationTriggered": true,
+    "message": "Jadwal berhasil dikoreksi dan evaluasi ulang absensi telah dijalankan."
+  }
+  ```
+
+---
+
+#### `[Tags("HR Scheduling - On-Call Management")]`
+
+##### 7. Pencatatan Pemanggilan Siaga (*Call-In*) & Evaluasi SLA
+- **Path:** `POST /api/corporate/human-resource/scheduling/on-call-assignments/{id}/call-in`
+- **Deskripsi:** Mencatat pemanggilan darurat cito dokter/staf siaga aktif dan waktu kedatangannya (`HRD-DEC-103`).
+- **Hak Akses:** `[AccessPermission("HrdOnCall", "Update")]`
+- **Request Body:**
+  ```json
+  {
+    "callInTime": "2027-02-16T02:00:00Z",
+    "arrivalTime": "2027-02-16T02:25:00Z",
+    "calledByUnitId": "7e1b7384-d113-40bf-9c74-2977508ffb8b",
+    "callNotes": "Konfirmasi hasil kritis tes darah troponin I"
+  }
+  ```
+- **Response 200 OK:**
+  ```json
+  {
+    "onCallAssignmentId": "5a2b7384-d113-40bf-9c74-2977508ffb85",
+    "employeeName": "dr. Dodi, Sp.PK",
+    "status": "Active",
+    "expectedResponseMinutes": 30,
+    "actualResponseMinutes": 25,
+    "isSlaMet": true,
+    "overtimeHandoffDispatched": true,
+    "payrollAllowanceCalculated": true,
+    "message": "Pemanggilan berhasil dicatat. Respons 25 menit (Memenuhi SLA 30 menit)."
+  }
+  ```
+
+---
+
+#### `[Tags("HR Scheduling - Settings")]`
+
+##### 8. Pengaturan Parameter Waktu Kerja
+- **Path:** `PUT /api/corporate/human-resource/scheduling/settings`
+- **Deskripsi:** HR Admin memperbarui setelan aturan kerja korporat (`HRD-DEC-099`, `HRD-DEC-102`).
+- **Hak Akses:** `[AccessPermission("HrdSchedulingSetting", "Manage")]`
+- **Request Body:**
+  ```json
+  {
+    "minRestHoursBetweenShifts": 11,
+    "maxConsecutiveWorkDays": 6,
+    "maxConsecutiveNightShifts": 2,
+    "retroactiveCorrectionWindowDays": 3,
+    "restHoursEscalatedToBlock": false
+  }
+  ```
+- **Response 200 OK:**
+  ```json
+  {
+    "success": true,
+    "updatedAt": "2026-11-04T13:50:00Z",
+    "message": "Pengaturan kebijakan penjadwalan berhasil diperbarui."
+  }
+  ```
+
+
+---
+
+## 17. Bagian `S-B1` — Kontrak API Administrasi Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+### 17.1 Spesifikasi Endpoint RESTful Bergaya Swagger
+
+#### `[Tags("HR Attendance - Daily Monitoring")]`
+*Kelompok endpoint untuk pemantauan presensi harian staf rumah sakit, penelusuran log mentah biometrik, dan kalkulasi kehadiran.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/attendance/daily` | Query daftar presensi harian per unit dan tanggal | `[AccessPermission("AttendanceDaily", "View")]` | Query: `date`, `unitId`, `status`, `page`, `pageSize` | `PagedResult<AttendanceDailySummaryDto>` | `200`, `400`, `401`, `403` |
+| `GET` | `/api/v1/corporate/human-resource/attendance/daily/{id}` | Detail rekaman presensi harian dan pengecualian | `[AccessPermission("AttendanceDaily", "View")]` | Path: `id` (GUID) | `AttendanceDailyDetailDto` | `200`, `401`, `403`, `404` |
+| `GET` | `/api/v1/corporate/human-resource/attendance/raw-logs` | Penelusuran riwayat mentah tap biometrik (*immutable drawer*) | `[AccessPermission("AttendanceDaily", "ViewRawLog")]` | Query: `workforceId`, `date` | `List<AttendanceRawLogDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/daily/recalculate` | Memicu hitung ulang kehadiran harian secara massal/manual | `[AccessPermission("AttendanceDaily", "Manage")]` | Body: `{ date, unitId? }` | `BatchRecalculationResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+#### `[Tags("HR Attendance - Corrections")]`
+*Kelompok endpoint untuk pengajuan koreksi presensi mandiri ESS dan kuasa HR on-behalf per `HRD-DEC-028`.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/attendance/corrections` | Daftar permohonan koreksi presensi | `[AccessPermission("AttendanceCorrection", "View")]` | Query: `status`, `unitId`, `page`, `pageSize` | `PagedResult<AttendanceCorrectionDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/corrections` | Mengajukan koreksi presensi (mandiri atau on-behalf) | `[AccessPermission("AttendanceCorrection", "Create")]` | Body: `CreateAttendanceCorrectionCommand` | `AttendanceCorrectionResultDto` | `201`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/corrections/{id}/approve` | Menyetujui koreksi presensi oleh atasan langsung | `[AccessPermission("AttendanceCorrection", "Approve")]` | Body: `{ notes? }` | `AttendanceCorrectionResultDto` | `200`, `400`, `401`, `403`, `404`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/corrections/{id}/reject` | Menolak permohonan koreksi presensi | `[AccessPermission("AttendanceCorrection", "Approve")]` | Body: `{ reason: string }` | `AttendanceCorrectionResultDto` | `200`, `400`, `401`, `403`, `404`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/corrections/{id}/apply` | Menerapkan koreksi dan memicu hitung ulang jam kerja | `[AccessPermission("AttendanceCorrection", "Apply")]` | Path: `id` | `AttendanceDailyDetailDto` | `200`, `401`, `403`, `404`, `409` |
+
+#### `[Tags("HR Attendance - Early Leave Permission")]`
+*Kelompok endpoint perizinan pulang cepat administratif non-deductible per `HRD-DEC-029` dan `HRD-DEC-107`.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/attendance/early-leave` | Daftar permohonan izin pulang cepat | `[AccessPermission("EarlyLeavePermission", "View")]` | Query: `date`, `status`, `unitId` | `List<EarlyLeavePermissionDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/early-leave` | Mengajukan izin pulang cepat darurat keluarga/dinas | `[AccessPermission("EarlyLeavePermission", "Create")]` | Body: `CreateEarlyLeavePermissionCommand` | `EarlyLeavePermissionDto` | `201`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/early-leave/{id}/approve` | Menyetujui izin pulang cepat (menandai Waived) | `[AccessPermission("EarlyLeavePermission", "Approve")]` | Body: `{ notes? }` | `EarlyLeavePermissionDto` | `200`, `401`, `403`, `404`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/early-leave/{id}/reject` | Menolak izin pulang cepat | `[AccessPermission("EarlyLeavePermission", "Approve")]` | Body: `{ reason: string }` | `EarlyLeavePermissionDto` | `200`, `401`, `403`, `404`, `409` |
+
+#### `[Tags("HR Attendance - Official Duty")]`
+*Kelompok endpoint surat tugas dinas luar, ambulans rujukan, kurir lab, dan home care per `HRD-DEC-109`.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/attendance/official-duty` | Daftar penugasan dinas luar rumah sakit | `[AccessPermission("OfficialDuty", "View")]` | Query: `startDate`, `endDate`, `status` | `PagedResult<OfficialDutyDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/official-duty` | Membuat permohonan dinas luar (pre/post-approved) | `[AccessPermission("OfficialDuty", "Create")]` | Body: `CreateOfficialDutyCommand` | `OfficialDutyDto` | `201`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/official-duty/{id}/approve` | Menyetujui surat tugas dinas luar | `[AccessPermission("OfficialDuty", "Approve")]` | Body: `{ notes? }` | `OfficialDutyDto` | `200`, `401`, `403`, `404`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/official-duty/{id}/check-in` | Rekam tap dinas luar via mobile (GPS & foto) | `[AccessPermission("OfficialDuty", "CheckIn")]` | Body: `{ latitude, longitude, photoUrl }` | `OfficialDutyCheckInResultDto` | `200`, `400`, `401`, `403` |
+
+#### `[Tags("HR Attendance - Period Management")]`
+*Kelompok endpoint penutupan periode presensi bulanan dan buka kembali darurat per `HRD-DEC-108`.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/attendance/periods` | Daftar periode presensi kehadiran bulanan | `[AccessPermission("AttendancePeriod", "View")]` | Query: `year`, `status` | `List<AttendancePeriodDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/periods/{id}/close` | Menutup periode kehadiran (guard penolakan pending) | `[AccessPermission("AttendancePeriod", "Close")]` | Path: `id` | `CloseAttendancePeriodResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/attendance/periods/{id}/reopen` | Buka kembali darurat oleh HR Manager & rollback payroll | `[AccessPermission("AttendancePeriod", "Reopen")]` | Body: `{ reason: string }` | `ReopenPeriodResultDto` | `200`, `400`, `401`, `403`, `404`, `409` |
+
+#### `[Tags("HR Attendance - Settings")]`
+*Kelompok endpoint konfigurasi parameter waktu kerja presensi per `HRD-DEC-105`.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/attendance/settings` | Mengambil konfigurasi aktif presensi RS | `[AccessPermission("AttendanceSetting", "View")]` | None | `AttendanceSettingDto` | `200`, `401`, `403` |
+| `PUT` | `/api/v1/corporate/human-resource/attendance/settings` | Memperbarui parameter toleransi keterlambatan/koreksi | `[AccessPermission("AttendanceSetting", "Manage")]` | Body: `UpdateAttendanceSettingCommand` | `AttendanceSettingDto` | `200`, `400`, `401`, `403` |

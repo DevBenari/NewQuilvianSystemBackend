@@ -723,3 +723,88 @@ dirujuk `testing/acceptance-test-matrix.md` bagian 17. Nama orang pada pesan ada
 | `VR-ONB-76` Tandai akses selesai | Menandai akses kerja | Bukan `WorkAccess` berstatus `Requested` | "Permintaan ini tidak sedang menunggu akses kerja." | `422` |
 | `VR-ONB-77` Ulang akun | Mengulang pembuatan akun | Bukan `AccountCreation` berstatus `Failed` | "Akun tidak perlu dibuat ulang." | `422` |
 | `VR-ONB-80` Rentang pengaturan | Mengubah pengaturan | Pengingat kontrak di luar 14–180; eskalasi tidak kurang dari pengingat; pengingat masa percobaan di luar 1–60; tanda terlambat di luar 1–30 hari | "Nilai {pengaturan} harus antara {batas bawah} dan {batas atas} hari." | `400` |
+
+
+---
+
+## 15. Aturan Validasi Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+
+### 15.1 Aturan Pemeriksaan Memblokir (`BLOCKING` / `B1`–`B7`)
+
+Pelanggaran pada kelompok ini menyebabkan tombol **Terbitkan** terkunci (*disabled*) dan permintaan API `Publish` ditolak (HTTP 422).
+
+| Kode Aturan | Berlaku pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode HTTP |
+| --- | --- | --- | --- | :---: |
+| `VR-SCH-01` (`B1`) | Pemeriksaan & Terbit | Staf dijadwalkan dua shift yang jam kerjanya bertabrakan | "{Nama} dijadwalkan dua shift yang bertabrakan pada {Tanggal}." | `422` |
+| `VR-SCH-02` (`B2`) | Pemeriksaan & Terbit | Staf dijadwalkan pada hari cuti sehari penuh yang berstatus disetujui | "{Nama} sedang cuti yang telah disetujui pada {Tanggal}." | `422` |
+| `VR-SCH-03` (`B3`) | Pemeriksaan & Terbit | Staf tidak ditempatkan di unit tersebut pada tanggal shift (misal sudah mutasi) | "{Nama} sudah tidak ditempatkan di unit {Unit} sejak {Tanggal}." | `422` |
+| `VR-SCH-04` (`B4`) | Pemeriksaan & Terbit | Pegawai belum dinyatakan siap kerja oleh HRD (`HRD-DEC-088`) | "{Nama} belum dinyatakan siap kerja oleh HRD." | `422` |
+| `VR-SCH-05` (`B5`) | Pemeriksaan & Terbit | Tanggal shift berada sesudah tanggal akhir kontrak yang belum diputuskan perpanjangannya (`HRD-DEC-089`) | "Kontrak {Nama} berakhir pada {Tanggal} tanpa keputusan perpanjangan." | `422` |
+| `VR-SCH-06` (`B6`) | Pemeriksaan & Terbit | Status kesiapan kerja profil pegawai tidak dapat dibaca dari sistem (`INT-HR-31`) | "Status kesiapan pegawai tidak dapat dibaca. Coba lagi atau hubungi HRD." | `422` |
+| `VR-SCH-07` (`B7`) | Pemeriksaan & Terbit | Staf bertanda Didampingi dijadwalkan pada shift yang tidak memiliki perawat Mandiri (`HRD-DEC-100`) | "{Nama} berstatus Didampingi dan tidak boleh berdinas pada shift tanpa perawat Mandiri." | `422` |
+
+### 15.2 Aturan Pemeriksaan Peringatan Beralasan (`WARNING` / `W1`–`W7`)
+
+Peringatan pada kelompok ini memunculkan indikator kuning. Roster tetap dapat terbit setelah Kepala Unit memilih alasan wajib dari daftar.
+
+| Kode Aturan | Berlaku pada | Kondisi Peringatan | Opsi Alasan Wajib | Pesan Peringatan |
+| --- | --- | --- | --- | --- |
+| `VR-SCH-08` (`W1`) | Pemeriksaan & Terbit | Jeda istirahat antar shift < `MinRestHoursBetweenShifts` (setelan: 11 jam) | `Kekurangan tenaga`, `Permintaan pegawai`, `Lainnya` | "Jeda istirahat {Nama} antara dua shift kurang dari {n} jam." |
+| `VR-SCH-09` (`W2`) | Pemeriksaan & Terbit | Hari kerja berturut-turut tanpa hari libur > `MaxConsecutiveWorkDays` (setelan: 6 hari) | `Kekurangan tenaga`, `Permintaan pegawai`, `Lainnya` | "{Nama} dijadwalkan dinas {n} hari berturut-turut tanpa hari libur." |
+| `VR-SCH-10` (`W3`) | Pemeriksaan & Terbit | Shift malam berturut-turut > `MaxConsecutiveNightShifts` (setelan: 2 malam) | `Kekurangan tenaga`, `Permintaan pegawai`, `Lainnya` | "{Nama} dijadwalkan dinas malam {n} malam berturut-turut." |
+| `VR-SCH-11` (`W4`) | Pemeriksaan & Terbit | Ada pengajuan cuti yang masih berstatus pending pada tanggal shift | `Menunggu keputusan cuti`, `Lainnya` | "Terdapat pengajuan cuti yang belum diputuskan untuk {Nama} pada {Tanggal}." |
+| `VR-SCH-12` (`W5`) | Pemeriksaan & Terbit | STR, SIP, atau kredensial kedaluwarsa pada tanggal shift (`HRD-DEC-005`) | `STR/SIP dalam proses perpanjangan`, `Lainnya` | "Kredensial/STR {Nama} kedaluwarsa pada {Tanggal}." |
+| `VR-SCH-13` (`W6`) | Pemeriksaan & Terbit | Jumlah staf pada shift kurang dari target kuota unit (`HRD-DEC-100`) | `Kekurangan tenaga`, `Volume pasien/BOR rendah`, `Lainnya` | "Jumlah tenaga pada Shift {Shift} {Tanggal} hanya {x} orang (target kuota: {y} orang)." |
+| `VR-SCH-14` (`W7`) | Pemeriksaan & Terbit | Kualifikasi khusus shift (misal PJ Shift/kompetensi ICU) belum terpenuhi | `Disupervisi dokter jaga`, `Kekurangan tenaga mahir`, `Lainnya` | "Komposisi kualifikasi perawat pada Shift {Shift} {Tanggal} belum terpenuhi." |
+
+### 15.3 Aturan Penggantian Shift & Koreksi Mundur
+
+| Kode Aturan | Berlaku pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode HTTP |
+| --- | --- | --- | --- | :---: |
+| `VR-SCH-15` | Ganti Petugas | Kategori alasan kosong saat penggantian shift pasca-terbit | "Kategori alasan penggantian petugas wajib dipilih." | `400` |
+| `VR-SCH-16` | Ganti Petugas | Staf pengganti yang dipilih melanggar aturan `B1`–`B7` | "Staf pengganti tidak dapat ditugaskan: {alasan bentrok/cuti}." | `422` |
+| `VR-SCH-17` | Koreksi Mundur | Tanggal shift yang dikoreksi mundur melebihi 3 hari kalender ke belakang (`today - date > 3`) | "Koreksi mundur jadwal maksimal 3 hari kalender ke belakang. Hubungi HRD untuk koreksi lebih lanjut." | `422` |
+| `VR-SCH-18` | Mutasi Roster | Mencoba menambah, mengubah, atau menghapus shift pada periode berstatus `Closed` | "Periode roster telah ditutup dan terkunci mutlak oleh Payroll. Perubahan tidak diizinkan." | `403` |
+
+### 15.4 Aturan Penugasan Siaga (On-Call)
+
+| Kode Aturan | Berlaku pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode HTTP |
+| --- | --- | --- | --- | :---: |
+| `VR-SCH-19` | Jadwal Siaga | Jam mulai penugasan siaga tidak sebelum jam selesai | "Waktu mulai siaga harus lebih awal daripada waktu selesai." | `400` |
+| `VR-SCH-20` | Jadwal Siaga | Staf sedang berstatus cuti disetujui pada rentang waktu siaga | "Tenaga medis {Nama} sedang cuti pada periode siaga tersebut." | `422` |
+| `VR-SCH-21` | Pencatatan Call-In | Waktu kedatangan dokter lebih awal daripada waktu telepon panggilan dilakukan | "Waktu kedatangan tidak boleh mendahului waktu panggilan." | `400` |
+
+
+---
+
+## 16. Bagian `S-B1` — Matriks Validasi Administrasi Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+| Kode Validasi | Objek / Input | Syarat / Batasan Bisnis | Respons Penolakan / Tindakan Sistem | Kode HTTP |
+| :--- | :--- | :--- | :--- | :---: |
+| `VR-ATT-01` | `HrdAttendanceRawLog` | Rekaman mentah presensi biometrik bersifat *immutable*; dilarang update/delete | Operasi modifikasi log mentah ditolak sistem | `405 Method Not Allowed` |
+| `VR-ATT-02` | `HrdAttendanceDaily` | Dilarang mengubah presensi pada tanggal di dalam periode `Closed` | "Periode presensi telah ditutup dan berstatus terkunci mutlak." | `409 Conflict` |
+| `VR-ATT-03` | `ClosePeriodCommand` | Penutupan periode ditolak bila masih ada koreksi berstatus pending (`HRD-DEC-108`) | "Penutupan periode ditolak: masih terdapat N permohonan koreksi berstatus pending." | `409 Conflict` |
+| `VR-ATT-04` | `ReopenPeriodCommand`| Buka kembali periode hanya oleh HR Manager dan wajib menyertakan alasan audit | "Wewenang buka kembali periode hanya dimiliki oleh HR Manager dan alasan wajib diisi." | `403 Forbidden` / `400 Bad Request` |
+| `VR-ATT-05` | `AttendanceCorrection`| Petugas HR pembuat koreksi on-behalf dilarang menjadi approver (`HRD-DEC-028`) | "Penyetuju koreksi on-behalf harus merupakan atasan langsung pegawai, bukan petugas HR pemohon." | `403 Forbidden` |
+| `VR-ATT-06` | `AttendanceCorrection`| Tanggal shift yang dikoreksi tidak boleh mundur > 3 hari tanpa izin HR Manager | "Batas toleransi koreksi tanggal mundur maksimal 3 hari kalender ke belakang." | `422 Unprocessable Entity` |
+| `VR-ATT-07` | `OfficialDutyRequest` | Rentang waktu penugasan dinas luar wajib valid (`EndAt > StartAt`) | "Waktu selesai penugasan dinas luar harus lebih besar dari waktu mulai." | `400 Bad Request` |
+| `VR-ATT-08` | `ScheduleResolver` | Tap masuk malam dan tap keluar pagi dikunci pada tanggal shift mulai (`HRD-DEC-104`)| Record kehadiran harian dikaitkan penuh ke tanggal shift hari H | Sukses Sistem |
+| `VR-ATT-09` | `CalculationEngine` | Terlambat di dalam grace period = 0 menit; lewat grace period = hitung penuh (`HRD-DEC-105`)| LateMinutes dihitung penuh sejak jam mulai shift resmi bila lewat toleransi | Sukses Sistem |
+| `VR-ATT-10` | `PeriodCloseGuard` | Catatan 1 tap belum dikoreksi otomatis dikonversi menjadi Absent (`HRD-DEC-106`) | Status IncompletePunch bergeser menjadi Absent tanpa jam kerja terhitung | Sukses Sistem |
+| `VR-ATT-11` | `EarlyLeavePermission`| Izin pulang cepat administratif tidak memotong kuota saldo cuti (`HRD-DEC-107`)| Pengecualian pulang cepat berstatus Waived; kuota saldo cuti tahunan tidak berkurang | Sukses Sistem |
+| `VR-ATT-12` | `ReopenPeriodGuard` | Aksi reopen otomatis membatalkan serah terima payroll (`HRD-DEC-108`) | Memicu AttendancePayrollHandoff.Rollback bila status handoff Executed | Sukses Sistem |
+| `VR-ATT-13` | `OfficialDutyRequest` | Dinas luar yang disetujui atasan dihitung jam kerja penuh OnDuty (`HRD-DEC-109`) | Status harian OnDuty, jam kerja setara hadir kerja Present untuk payroll | Sukses Sistem |
+| `VR-ATT-14` | `OfficialDutyCheckIn`| Koordinat GPS dan foto selfie wajib diisi saat tap mobile dinas luar | "Koordinat GPS dan foto bukti pelaksanaan tugas luar wajib disertakan." | `400 Bad Request` |
+| `VR-ATT-15` | `AttendanceCorrection`| Unggah bukti berita acara/lampiran wajib diisi bila policy RS mengaktifkannya | "Lampiran dokumen bukti koreksi presensi wajib diunggah." | `400 Bad Request` |
+| `VR-ATT-16` | `EarlyLeavePermission`| Waktu rencana keluar (`RequestedEarlyLeaveAt`) wajib berada di dalam jam shift aktif | "Waktu izin pulang cepat harus berada di antara jam mulai dan jam selesai shift." | `400 Bad Request` |
+| `VR-ATT-17` | `AttendanceDaily` | Jam kerja efektif tidak boleh bernilai negatif | EffectiveWorkMinutes disetel minimal 0 menit | Sukses Sistem |
+| `VR-ATT-18` | `RawLogIngestion` | Tap ganda berturut-turut dalam 3 menit diabaikan sebagai duplikasi mesin | Hanya log pertama yang diproses oleh schedule resolver | Sukses Sistem |
+| `VR-ATT-19` | `AttendanceSetting` | Nilai toleransi keterlambatan minimal 0 menit dan maksimal 60 menit | "Nilai toleransi keterlambatan harus berada pada rentang 0 s.d. 60 menit." | `400 Bad Request` |
+| `VR-ATT-20` | `OfficialDutyRequest` | Penugasan dinas luar tidak boleh bertabrakan dengan cuti sehari penuh yang disetujui| "Staf sedang memiliki jadwal cuti yang telah disetujui pada tanggal tersebut." | `409 Conflict` |

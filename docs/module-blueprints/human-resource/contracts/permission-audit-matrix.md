@@ -817,3 +817,99 @@ Butir yang dipakai ulang: `WfpSalaryAssignment : ViewAmount` untuk nominal gaji 
 
 Payload logger hanya memuat `EntityId`, controller, action, dan status. Kolom bertanda sensitif pada
 `data/data-dictionary.md` bagian 10.16 **MUST NOT** masuk logger.
+
+
+---
+
+## 14. Matriks Kewenangan dan Audit Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+
+### 14.1 Resource dan Permission String
+
+| Resource | Action | String atribut persis | Digunakan pada tindakan |
+| --- | --- | --- | --- |
+| `HrdScheduling` | `Read` | `[AccessPermission("HrdScheduling", "Read")]` | Melihat kisi kalender roster unit, riwayat mutasi, dan hasil validasi |
+| `HrdScheduling` | `Create` | `[AccessPermission("HrdScheduling", "Create")]` | Membuat draft periode baru, salin periode lalu, terapkan pola shift |
+| `HrdScheduling` | `Update` | `[AccessPermission("HrdScheduling", "Update")]` | Menyusun kotak shift, ganti petugas mendadak, koreksi mundur 3 hari |
+| `HrdScheduling` | `Publish` | `[AccessPermission("HrdScheduling", "Publish")]` | Menerbitkan roster bulanan unit secara mandiri (`HRD-DEC-098`) |
+| `HrdScheduling` | `Close` | `[AccessPermission("HrdScheduling", "Close")]` | Menutup dan mengunci mutlak periode roster saat cut-off payroll (`HRD-DEC-102`) |
+| `HrdOnCall` | `Read` | `[AccessPermission("HrdOnCall", "Read")]` | Melihat jadwal siaga dokter spesialis dan staf penunjang |
+| `HrdOnCall` | `Create` | `[AccessPermission("HrdOnCall", "Create")]` | Membuat penugasan siaga dokter/staf cito |
+| `HrdOnCall` | `Update` | `[AccessPermission("HrdOnCall", "Update")]` | Mengonfirmasi siaga, mencatat pemanggilan (*call-in*) & waktu kedatangan |
+| `HrdSchedulingSetting` | `Manage` | `[AccessPermission("HrdSchedulingSetting", "Manage")]` | Mengonfigurasi parameter jeda 11 jam, toleransi 3 hari, dan eskalasi aturan |
+
+### 14.2 Matriks Peran x Tindakan
+
+| Tindakan | Kepala Unit (Sari) | Kepala Bidang (Pak Dodi) | Pegawai (Budi/Rina) | Unit Pemanggil (Lab/IGD/OK) | HR Scheduling / Payroll |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| Buat draft roster unit | **Boleh** (unit sendiri) | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** (bila kepala unit cuti) |
+| Salin periode & terapkan pola | **Boleh** | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** |
+| Terbitkan roster bulanan | **Boleh** | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** (atas nama unit) |
+| Pantau roster terbit | **Boleh** | **Boleh** (seluruh unit subordinat) | **Boleh** (jadwal sendiri) | **Boleh** (staf terkait) | **Boleh** (seluruh RS) |
+| Ganti Petugas (*Override*) | **Boleh** | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** |
+| Koreksi mundur (<= 3 hari) | **Boleh** | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** |
+| Koreksi mundur (> 3 hari) | Ditolak (403) | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** (verifikasi khusus) |
+| Tutup periode (*Close Lock*) | Ditolak (403) | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** (Payroll Officer) |
+| Susun siaga staf penunjang | **Boleh** | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** |
+| Susun siaga dokter spesialis | Ditolak (403) | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** (Pelayanan Medis/KSM) |
+| Catat pemanggilan siaga cito | **Boleh** | Ditolak (403) | Ditolak (403) | **Boleh** (Analis/Perawat Jaga) | **Boleh** |
+| Ubah parameter kerja HR | Ditolak (403) | Ditolak (403) | Ditolak (403) | Ditolak (403) | **Boleh** (HR Admin) |
+
+### 14.3 Jejak Audit Tahan Lama
+
+| Kejadian | Yang dicatat dalam Audit Trail | Tabel penyimpanan |
+| --- | --- | --- |
+| Penerbitan Roster | User ID penerbit, waktu terbit, total staf, daftar peringatan dan alasan yang dipilih | `TrxRosterPublication` & Custom Logger |
+| Penggantian Shift Mendadak | User ID eksekutor, waktu eksekusi, pegawai asal, pegawai pengganti, kategori alasan, catatan | `TrxShiftReplacement` & Custom Logger |
+| Koreksi Mundur Jadwal | User ID eksekutor, waktu koreksi, tanggal shift mundur yang diubah, selisih hari, alasan koreksi | Custom Logger & event `RetroactiveShiftCorrectedEvent` |
+| Penguncian Periode Roster | User ID HRD Payroll, waktu penutupan, periode ID | `TrxRosterPeriod.ClosedAt`, `ClosedByUserId` |
+| Pemanggilan Siaga Darurat | Unit pemanggil, user ID pemanggil, waktu telepon (*CallInTime*), waktu tiba (*ArrivalTime*), selisih menit, status SLA | `TrxOnCallAssignment` & Custom Logger |
+| Perubahan Parameter Penjadwalan | User ID HR Admin, waktu ubah, nilai parameter lama, nilai parameter baru | `HrdSchedulingSetting` & Custom Logger |
+
+
+---
+
+## 15. Bagian `S-B1` — Matriks Hak Akses dan Audit Trail Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+### 15.1 Matriks Hak Akses Persis (Permission Matrix)
+
+| Resource | Action | String Hak Akses Persis | Peran yang Memiliki | Kegunaan Bisnis |
+| --- | --- | --- | --- | --- |
+| `AttendanceDaily` | `View` | `[AccessPermission("AttendanceDaily", "View")]` | Pegawai, Kepala Unit, HR Officer, Manager | Melihat matriks kehadiran harian staf |
+| `AttendanceDaily` | `ViewRawLog` | `[AccessPermission("AttendanceDaily", "ViewRawLog")]` | HR Officer, Auditor Internal | Membuka drawer riwayat log biometrik mentah |
+| `AttendanceDaily` | `Manage` | `[AccessPermission("AttendanceDaily", "Manage")]` | HR Attendance Officer | Memicu hitung ulang presensi harian |
+| `AttendanceCorrection` | `View` | `[AccessPermission("AttendanceCorrection", "View")]` | Pegawai, Kepala Ruangan, HR Officer | Melihat daftar pengajuan koreksi presensi |
+| `AttendanceCorrection` | `Create` | `[AccessPermission("AttendanceCorrection", "Create")]` | Pegawai (mandiri), HR Admin (on-behalf) | Mengajukan koreksi lupa tap/jam salah |
+| `AttendanceCorrection` | `Approve` | `[AccessPermission("AttendanceCorrection", "Approve")]` | Kepala Ruangan / Atasan Langsung | Menyetujui atau menolak koreksi presensi |
+| `AttendanceCorrection` | `Apply` | `[AccessPermission("AttendanceCorrection", "Apply")]` | HR Attendance Officer | Menerapkan koreksi dan hitung ulang jam kerja |
+| `EarlyLeavePermission` | `View` | `[AccessPermission("EarlyLeavePermission", "View")]` | Pegawai, Kepala Ruangan, HR Officer | Melihat daftar izin pulang cepat |
+| `EarlyLeavePermission` | `Create` | `[AccessPermission("EarlyLeavePermission", "Create")]` | Pegawai | Mengajukan izin pulang darurat administratif |
+| `EarlyLeavePermission` | `Approve` | `[AccessPermission("EarlyLeavePermission", "Approve")]` | Kepala Ruangan / Atasan Langsung | Menyetujui izin pulang cepat (menandai Waived) |
+| `OfficialDuty` | `View` | `[AccessPermission("OfficialDuty", "View")]` | Pegawai, Koordinator Pelayanan, HR | Melihat daftar surat tugas dinas luar |
+| `OfficialDuty` | `Create` | `[AccessPermission("OfficialDuty", "Create")]` | Pegawai, Koordinator Pelayanan, HR | Mengajukan surat tugas ambulans/home care |
+| `OfficialDuty` | `Approve` | `[AccessPermission("OfficialDuty", "Approve")]` | Atasan Langsung / Kepala Bidang | Menyetujui penugasan dinas luar |
+| `OfficialDuty` | `CheckIn` | `[AccessPermission("OfficialDuty", "CheckIn")]` | Pegawai yang ditugaskan | Melakukan tap mobile di lokasi tugas (GPS/foto) |
+| `AttendancePeriod` | `View` | `[AccessPermission("AttendancePeriod", "View")]` | HR Officer, HR Manager, Finance | Melihat daftar dan status periode presensi |
+| `AttendancePeriod` | `Close` | `[AccessPermission("AttendancePeriod", "Close")]` | HR Attendance Officer | Menutup periode dan mengunci transaksi |
+| `AttendancePeriod` | `Reopen` | `[AccessPermission("AttendancePeriod", "Reopen")]` | **HR Manager / Kadiv SDM** | Buka kembali periode darurat & rollback payroll |
+| `AttendanceSetting` | `View` | `[AccessPermission("AttendanceSetting", "View")]` | HR Officer, HR Manager | Melihat konfigurasi toleransi keterlambatan |
+| `AttendanceSetting` | `Manage` | `[AccessPermission("AttendanceSetting", "Manage")]` | HR Administrator | Mengubah nilai parameter toleransi keterlambatan |
+
+### 15.2 Jejak Audit (Audit Trail Events)
+
+| Peristiwa Bisnis | Tingkat Sensitivitas | Data yang Dicatat dalam Audit Trail |
+| --- | :---: | --- |
+| `RawAttendanceLog.Ingested` | INFO | DeviceId, WorkforceProfileId, EventAt, SourceType, IngestedAt. |
+| `AttendanceDaily.Recalculated` | INFO | AttendanceDailyId, OldStatus, NewStatus, EffectiveWorkMinutes, ActorId. |
+| `AttendanceCorrection.Created` | AUDIT | CorrectionId, TargetWorkforceId, IsOnBehalf, InitiatorWorkforceId, Reason, Timestamp. |
+| `AttendanceCorrection.Approved` | AUDIT | CorrectionId, ApproverWorkforceId, ApprovedAt, Notes. |
+| `EarlyLeavePermission.Approved` | AUDIT | PermissionId, ApproverWorkforceId, RequestedEarlyLeaveAt, IsDeductible = false. |
+| `OfficialDutyRequest.Approved` | AUDIT | OfficialDutyId, ApproverWorkforceId, StartAt, EndAt, DutyCategory. |
+| `AttendancePeriod.Closed` | CRITICAL | PeriodId, ClosedByWorkforceId, ClosedAt, TotalPresent, TotalLate, TotalAbsent. |
+| `AttendancePeriod.Reopened` | **SECURITY CRITICAL** | PeriodId, ReopenedByWorkforceId, ReopenReason (wajib), RolledBackPayrollRunId, Timestamp. |

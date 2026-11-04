@@ -9,6 +9,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             Guid workforceProfileId,
             ClaimsPrincipal userPrincipal,
             Guid callerUserId,
+            DateTime? asOfDate = null,
             CancellationToken ct = default);
     }
 

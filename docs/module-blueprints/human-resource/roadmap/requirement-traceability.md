@@ -6,19 +6,20 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 7
+roadmap_revision: 8
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
-planning_updated_at: "2026-11-04 — jejak S-C4-ONB Onboarding dan Kontrak Kerja ditambahkan (bagian 1c): BE-HRD-063 s.d. BE-HRD-086, FE-HRD-058 s.d. FE-HRD-074"
+planning_updated_at: "2026-11-04 — jejak S-B4 Penjadwalan, Roster, dan On-Call ditambahkan (bagian 1d): BE-HRD-087 s.d. BE-HRD-103, FE-HRD-075 s.d. FE-HRD-087; sebelumnya S-C4-ONB (bagian 1c)"
 generated_at: "2026-10-26"
 owners:
   - "Module Lead & Quality Assurance"
 source_commits:
-  backend: "26066c76e69b021f68b63b31bde2258cd9d1bb74 (S-D1); 16f6b2ad28e0e9cbd374354abe240ff3b163ace0 (task lama)"
-  frontend: "66b7e5600e1707e4153ca07981ddef054856c8c9 (S-D1); HamzahV2 (task lama)"
+  backend: "8b17b75a (MHamzah); 26066c76e69b021f68b63b31bde2258cd9d1bb74 (S-D1); 16f6b2ad28e0e9cbd374354abe240ff3b163ace0 (task lama)"
+  frontend: "44990b3d3 (HamzahV2); 66b7e5600e1707e4153ca07981ddef054856c8c9 (S-D1)"
 contract_versions_s_d1: "v7 — API bagian 13, State bagian 11, Validation bagian 12, Permission bagian 11, Integration bagian 11, Data Dictionary bagian 8"
 contract_versions_s_d2: "v8 — API bagian 14, State bagian 12, Validation bagian 13, Permission bagian 12, Integration bagian 12, Data Dictionary bagian 9"
 contract_versions_s_c4_onb: "v9 — API bagian 15, State bagian 13, Validation bagian 14, Permission bagian 13, Integration bagian 13, Data Dictionary bagian 10"
+contract_versions_s_b4: "v10 — API bagian 16, State bagian 14, Validation bagian 15, Permission bagian 14, Integration bagian 7, Data Dictionary bagian 11, Acceptance Test bagian 18"
 ```
 
 **Arti tanda status bukti:**
@@ -38,7 +39,7 @@ contract_versions_s_c4_onb: "v9 — API bagian 15, State bagian 13, Validation b
 | `IN-03` | Perencanaan Tenaga Kerja (Workforce Planning) | `HRD-DEC-058` s.d. `HRD-DEC-072`; desain `S-D1` approved Pengguna 3 November 2026 | API v7 §13, State v7 §11, Validation v7 §12, Permission v7 §11, Integration v7 §11, Data v7 §8 | `BE-HRD-017` ✅, `BE-HRD-029` ✅, `BE-HRD-030` ✅, `BE-HRD-031` ✅, `BE-HRD-032` ✅, `BE-HRD-033` ✅, `BE-HRD-034` s.d. `BE-HRD-051` (`BE-HRD-045`, `BE-HRD-049`, `BE-HRD-050`, `BE-HRD-051` ⛔) | `FE-HRD-029` s.d. `FE-HRD-043` | Fondasi data BE-HRD-017 selesai; penelusuran Direktur BE-HRD-029 selesai; integrasi workflow BE-HRD-030 selesai; pengaturan rumah sakit BE-HRD-031 selesai; buku formasi berversi BE-HRD-032 selesai; batch formasi awal BE-HRD-033 selesai; isian angka beban manual BE-HRD-034 selesai. Rincian per requirement pada bagian 1a |
 | `IN-04` | Rekrutmen, Seleksi Pelamar, dan Hiring | `HRD-DEC-073` s.d. `HRD-DEC-080`; desain `S-D2` approved Pengguna 3 November 2026 | API v8 §14, State v8 §12, Validation v8 §13, Permission v8 §12, Integration v8 §12, Data v8 §9 | `BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062` | `FE-HRD-044` s.d. `FE-HRD-057` | Fondasi skema & 12 model Hrd siap; endpoint Swagger 9 grup siap; 14 task FE siap dikerjakan. Rincian per requirement pada bagian 1b |
 | `IN-05` | Onboarding, Evaluasi Probation, dan Exit Clearance Karyawan | `HRD-DEC-003`, `HRD-DEC-019` | API §Lifecycle, State §Separation | `BE-HRD-014` ✅ | `FE-HRD-017` ✅ | ✅ BE controller exit clearance & gerbang kliring Finance aktif; FE aktif ([Laporan FE](../task/report/frontend/FE-HRD-017.md)) |
-| `IN-06` | Penjadwalan Shift Kerja 24/7, On-Call, dan Tukar Shift | `HRD-DEC-006`, `HRD-DEC-026` | API §Scheduling, Validation §Roster | `BE-HRD-009` ✅ | `FE-HRD-012` ✅ | ✅ BE engine roster 24/7 aktif; FE matriks visual & aksi publish/lock aktif ([Laporan FE](../task/report/frontend/FE-HRD-012.md)) |
+| `IN-06` | Penjadwalan Shift Kerja 24/7, On-Call, dan Tukar Shift (Slice `S-B4`) | `HRD-DEC-006`, `HRD-DEC-026`, `HRD-DEC-097` s.d. `HRD-DEC-103`, `HRD-ASM-05` s.d. `HRD-ASM-14` | API v10 §16, State v10 §14, Validation v10 §15, Permission v10 §14, Integration v10 §7, Data v10 §11, Test v10 §18 | `BE-HRD-009` ✅, `BE-HRD-087` s.d. `BE-HRD-103` | `FE-HRD-012` ✅, `FE-HRD-075` s.d. `FE-HRD-087` | BE engine roster awal selesai; 17 task BE & 13 task FE baru direncanakan (MVP-18 s.d. MVP-20 & Verifikasi) menyerap validasi B1–B7/W1–W7, penerbitan mandiri, override langsung efektif, toleransi mundur 3 hari, dan keselamatan kontrak Lab. Rincian per requirement pada bagian 1d |
 | `IN-07` | Presensi Harian, Penutupan Periode, dan Koreksi Kehadiran | `HRD-DEC-028`, `HRD-DEC-029` | API §Attendance, State §Period | `BE-HRD-006` ✅ | `FE-HRD-009` ✅ | ✅ BE 72 endpoint & guard closed period aktif; FE monitoring & modal on-behalf aktif ([Laporan FE](../task/report/frontend/FE-HRD-009.md)) |
 | `IN-08` | Administrasi Cuti, Kuota, dan Penyesuaian Saldo Tahunan | `HRD-DEC-007`, `HRD-Q-06` | API §Leave, State §LeaveRequest | `BE-HRD-007` ✅ | `FE-HRD-010` ✅ | ✅ BE penyesuaian saldo berdokumen aktif; FE dasbor saldo & modal alokasi aktif ([Laporan FE](../task/report/frontend/FE-HRD-010.md)) |
 | `IN-09` | Administrasi Lembur, Verifikasi SPKL, dan Kompensasi | `HRD-DEC-007`, `HRD-Q-06` | API §Overtime, Validation §Ot | `BE-HRD-008` ✅ | `FE-HRD-011` ✅ | ✅ BE verifikasi jam lembur aktif; FE rekonsiliasi rencana vs mesin absensi aktif ([Laporan FE](../task/report/frontend/FE-HRD-011.md)) |
@@ -150,6 +151,62 @@ diperbarui build skill saat task selesai.
 | `AT-HRD-D1-20` | `BE-HRD-029`, `BE-HRD-051` |
 | `AT-HRD-D1-21` | `BE-HRD-046`, `BE-HRD-049` ⛔, `FE-HRD-042`, `BE-HRD-051` |
 | `AT-HRD-D1-22` | `FE-HRD-029`, `FE-HRD-043` |
+
+## 1d. Jejak `S-B4` Penjadwalan, Roster, dan On-Call (sub-modul 06) — requirement ke task dan bukti
+
+Ditambahkan pada revision 8, 4 November 2026, sesudah desain `S-B4` disetujui pengguna. Seluruh
+baris di bawah **belum punya bukti implementasi**: task-nya baru direncanakan. Kolom status
+akan diperbarui oleh build skill saat task selesai.
+
+| Field | Nilai |
+| --- | --- |
+| Approval desain | Pengguna, pemilik teknis dan produk (`HRD-DEC-015`), 4 November 2026, beserta jawaban interview `HRD-DEC-097` s.d. `HRD-DEC-103` dan asumsi `HRD-ASM-05` s.d. `HRD-ASM-14` — `02-backend-architecture.md` bagian 19, `03-frontend-architecture.md` bagian 15, kontrak `v10`, `04-prd-to-mvp.md` bagian 24, `data/data-dictionary.md` bagian 11, `testing/acceptance-test-matrix.md` bagian 18, empat flowchart `flowcharts/penjadwalan-kerja.md` |
+| Keputusan | `HRD-DEC-097` s.d. `HRD-DEC-103`, `HRD-ASM-05` s.d. `HRD-ASM-14` (decision log revision `20`, bagian 36) |
+| Kontrak | API `v10` bagian 16; State Transition `v10` bagian 14; Validation `v10` bagian 15; Permission `v10` bagian 14; Integration `v10` bagian 7; Data Dictionary `v10` bagian 11; Acceptance Test `v10` bagian 18 |
+| Manifest | revision `19`; hash masukan terkunci pada metadata kedua roadmap |
+| Source SHA | BE `8b17b75a` (branch `MHamzah`), FE `44990b3d3` (branch `HamzahV2`) |
+| Task | Backend `BE-HRD-087` s.d. `BE-HRD-103` (17 task); frontend `FE-HRD-075` s.d. `FE-HRD-087` (13 task) |
+
+### Functional requirement
+
+| FR | Perilaku Bisnis | Desain & Kontrak | Task Backend | Task Frontend | Bukti yang Diharapkan | Status |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `FR-SCH-01` | Daftar staf eligible unit terisi otomatis dari penempatan aktif di WorkforceCore | BE §19.4.1; API §16.1; `VR-SCH-01`; `INT-HR-36` | `BE-HRD-092`, `BE-HRD-094` | `FE-HRD-080`, `FE-HRD-081` | `AT-HRD-SCH-01` | |
+| `FR-SCH-02` | Aksi Salin dari Periode Lalu menduplikasi shift bulan lalu ke draft baru | BE §19.4.2; API §16.2; `VR-SCH-02` | `BE-HRD-093` | `FE-HRD-078`, `FE-HRD-081` | `AT-HRD-SCH-02` | |
+| `FR-SCH-03` | Aksi Terapkan Pola Shift massal (Pagi-Siang-Malam-Libur) per pegawai/grup | BE §19.4.3; API §16.3; `VR-SCH-03` | `BE-HRD-093` | `FE-HRD-078`, `FE-HRD-081` | `AT-HRD-SCH-03` | |
+| `FR-SCH-04` | Kepala Unit menerbitkan roster mandiri tanpa approval sebelum terbit | BE §19.4.4; API §16.4; `HRD-DEC-098` | `BE-HRD-092` | `FE-HRD-081` | `AT-HRD-SCH-04`, `UAT-SCH-01` | |
+| `FR-SCH-05` | Tombol Terbitkan wajib memicu validasi ulang menyeluruh sebelum status berubah Published | BE §19.4.4; API §16.4; `VR-SCH-04` | `BE-HRD-089`, `BE-HRD-092` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-04`, `AT-HRD-SCH-05` | |
+| `FR-SCH-06` | Kepala Bidang otomatis menerima notifikasi terbit dan hak pantau read-only | BE §19.4.5; API §16.5; `HRD-DEC-098` | `BE-HRD-094` | `FE-HRD-082` | `AT-HRD-SCH-06` | |
+| `FR-SCH-07` | Blokir penerbitan B1–B6 (bentrok, cuti disetujui, beda unit, belum siap kerja, kontrak berakhir, status gagal baca) | BE §19.5; API §16.4; `VR-SCH-05` s.d. `VR-SCH-10`; `INT-HR-31` | `BE-HRD-089`, `BE-HRD-090` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-07`, `AT-HRD-SCH-08` | |
+| `FR-SCH-08` | Blokir penerbitan B7 bila staf Didampingi berdinas tanpa perawat Mandiri di ICU/IGD | BE §19.5; API §16.4; `VR-SCH-11`; `INT-HR-37`; `HRD-DEC-100` | `BE-HRD-089`, `BE-HRD-091` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-09`, `UAT-SCH-02` | |
+| `FR-SCH-09` | Peringatan W1–W3 (jeda < 11 jam, kerja > 6 hari, malam > 2) berdasarkan HrdSchedulingSetting | BE §19.3, §19.5; API §16.7; `VR-SCH-12` s.d. `VR-SCH-14` | `BE-HRD-088`, `BE-HRD-089` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-10` | |
+| `FR-SCH-10` | Peringatan W4–W5 (cuti pending & kredensial STR kedaluwarsa) | BE §19.5; API §16.4; `VR-SCH-15`, `VR-SCH-16`; `HRD-DEC-005` | `BE-HRD-089`, `BE-HRD-090` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-11` | |
+| `FR-SCH-11` | Peringatan W6–W7 (kuota tenaga & kualifikasi klinis) dengan pilihan alasan wajib sebelum terbit | BE §19.5; API §16.4; `VR-SCH-17`, `VR-SCH-18`; `HRD-DEC-099` | `BE-HRD-089`, `BE-HRD-091` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-12`, `UAT-SCH-01` | |
+| `FR-SCH-12` | Ganti Petugas pada shift terbit untuk menunjuk staf pengganti dengan alasan wajib | BE §19.6; API §16.6; `VR-SCH-19`; `HRD-DEC-101` | `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-13`, `UAT-SCH-03` | |
+| `FR-SCH-13` | Penggantian shift langsung berstatus efektif di sistem tanpa approval Kepala Bidang | BE §19.6; API §16.6; `HRD-DEC-101` | `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-13` | |
+| `FR-SCH-14` | Penggantian staf wajib lolos validasi keselamatan B1–B7 | BE §19.6; API §16.6; `VR-SCH-05` s.d. `VR-SCH-11` | `BE-HRD-089`, `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-14` | |
+| `FR-SCH-15` | Roster periode tetap Published, terekam audit lengkap, dan memicu notifikasi mutasi | BE §19.6; API §16.6; State §14.2 | `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-13` | |
+| `FR-SCH-16` | Koreksi mundur maksimal 3 hari ke belakang dengan alasan wajib | BE §19.7; API §16.8; `VR-SCH-20`; `HRD-DEC-102` | `BE-HRD-088`, `BE-HRD-097` | `FE-HRD-076`, `FE-HRD-081` | `AT-HRD-SCH-15`, `UAT-SCH-05` | |
+| `FR-SCH-17` | Koreksi mundur otomatis memicu rekalkulasi kehadiran harian (modul 07) | BE §19.7; Integration §7.3 (`INT-HR-38`) | `BE-HRD-097` | `FE-HRD-081` | `AT-HRD-SCH-16` | |
+| `FR-SCH-18` | Penguncian periode Closed saat cut-off payroll mengunci jadwal secara mutlak | BE §19.8; API §16.9; State §14.1; `VR-SCH-21` | `BE-HRD-098` | `FE-HRD-080`, `FE-HRD-081` | `AT-HRD-SCH-17` | |
+| `FR-SCH-19` | Pemisahan wewenang penyusunan siaga staf (Kepala Ruangan) vs spesialis (Yanmed/KSM) | BE §19.9; API §16.10; Permission §14; `HRD-DEC-103` | `BE-HRD-099` | `FE-HRD-083`, `FE-HRD-085` | `AT-HRD-SCH-18` | |
+| `FR-SCH-20` | Status siaga tetap Active saat dipanggil untuk melindungi kontrak LabConfirmingDoctorResolver | BE §19.9; State §14.3; Integration §7.4 (`INT-HR-39`) | `BE-HRD-099`, `BE-HRD-101` | `FE-HRD-085` | `AT-HRD-SCH-18` | |
+| `FR-SCH-21` | Pencatatan pemanggilan (call-in) staf/dokter siaga beserta waktu panggil dan kedatangan | BE §19.10; API §16.11; `VR-SCH-21` | `BE-HRD-100` | `FE-HRD-084`, `FE-HRD-085` | `AT-HRD-SCH-19`, `UAT-SCH-04` | |
+| `FR-SCH-22` | Kalkulasi selisih waktu respon dan kepatuhan terhadap target SLA menit | BE §19.10; API §16.11; `HRD-DEC-103` | `BE-HRD-100` | `FE-HRD-084`, `FE-HRD-085` | `AT-HRD-SCH-19` | |
+| `FR-SCH-23` | Integrasi jam standby on-call ke Payroll dan transaksi panggilan cito ke Lembur & Payroll | BE §19.11; Integration §7.5 (`INT-HR-40`) | `BE-HRD-102` | `FE-HRD-085` | `AT-HRD-SCH-20` | |
+
+### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-SCH-01` s.d. `AT-HRD-SCH-03` | `BE-HRD-092`, `BE-HRD-093`, `BE-HRD-094`, `FE-HRD-078`, `FE-HRD-080`, `FE-HRD-081` | Daftar eligible, salin periode lalu, dan pola shift massal |
+| `AT-HRD-SCH-04` s.d. `AT-HRD-SCH-06` | `BE-HRD-089`, `BE-HRD-092`, `BE-HRD-094`, `FE-HRD-077`, `FE-HRD-081`, `FE-HRD-082` | Penerbitan mandiri, validasi pra-terbit, dan hak pantau read-only Kabid |
+| `AT-HRD-SCH-07` s.d. `AT-HRD-SCH-09` | `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-091`, `FE-HRD-077`, `FE-HRD-081` | Pemblokir fisik & hukum B1–B7 (bentrok, cuti, kesiapan, pendampingan) |
+| `AT-HRD-SCH-10` s.d. `AT-HRD-SCH-12` | `BE-HRD-088`, `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-091`, `FE-HRD-077`, `FE-HRD-081` | Peringatan beralasan W1–W7 (waktu kerja, STR habis, kuota/komposisi) |
+| `AT-HRD-SCH-13` s.d. `AT-HRD-SCH-15` | `BE-HRD-088`, `BE-HRD-089`, `BE-HRD-096`, `BE-HRD-097`, `FE-HRD-076`, `FE-HRD-079`, `FE-HRD-081` | Ganti petugas langsung aktif (override), audit mutasi, dan koreksi mundur 3 hari |
+| `AT-HRD-SCH-16`, `AT-HRD-SCH-17` | `BE-HRD-097`, `BE-HRD-098`, `FE-HRD-080`, `FE-HRD-081` | Pemicu rekalkulasi kehadiran dan penguncian mutlak periode Closed |
+| `AT-HRD-SCH-18` s.d. `AT-HRD-SCH-20` | `BE-HRD-099`, `BE-HRD-100`, `BE-HRD-101`, `BE-HRD-102`, `FE-HRD-083`, `FE-HRD-084`, `FE-HRD-085` | Tata kelola siaga on-call, proteksi kontrak Lab, pencatatan call-in, dan kalkulasi SLA |
+| `UAT-SCH-01` s.d. `UAT-SCH-05` | `BE-HRD-103`, `FE-HRD-087` | Validasi bisnis ujung-ke-ujung alur penjadwalan, roster, dan siaga |
 
 ### Gap keterkaitan requirement ke bukti verifikasi
 
@@ -372,13 +429,69 @@ diperbarui build skill saat task selesai.
 | `AT-HRD-ONB-40` | Privasi gaji pada data cetak | `BE-HRD-072`, `FE-HRD-063` | `amountVisible = false` bagi Kepala Unit; audit pembacaan |
 | `UAT-ONB-01` s.d. `UAT-ONB-20` | Validasi bisnis ujung-ke-ujung | `BE-HRD-086`, `FE-HRD-074` | Laporan uji dev runtime `S-C4-ONB` |
 
+## 1d. Jejak `S-B4` Penjadwalan, Roster, dan On-Call (sub-modul 06) — requirement ke task dan bukti
+
+Ditambahkan pada revision 8, 4 November 2026, sesudah desain `S-B4` disetujui pengguna. Seluruh
+baris di bawah **belum punya bukti implementasi**: task-nya baru direncanakan. Kolom status
+akan diperbarui oleh build skill saat task selesai.
+
+| Field | Nilai |
+| --- | --- |
+| Approval desain | Pengguna, pemilik teknis dan produk (`HRD-DEC-015`), 4 November 2026, beserta jawaban interview `HRD-DEC-097` s.d. `HRD-DEC-103` dan asumsi `HRD-ASM-05` s.d. `HRD-ASM-14` — `02-backend-architecture.md` bagian 19, `03-frontend-architecture.md` bagian 15, kontrak `v10`, `04-prd-to-mvp.md` bagian 24, `data/data-dictionary.md` bagian 11, `testing/acceptance-test-matrix.md` bagian 18, empat flowchart `flowcharts/penjadwalan-kerja.md` |
+| Keputusan | `HRD-DEC-097` s.d. `HRD-DEC-103`, `HRD-ASM-05` s.d. `HRD-ASM-14` (decision log revision `20`, bagian 36) |
+| Kontrak | API `v10` bagian 16; State Transition `v10` bagian 14; Validation `v10` bagian 15; Permission `v10` bagian 14; Integration `v10` bagian 7; Data Dictionary `v10` bagian 11; Acceptance Test `v10` bagian 18 |
+| Manifest | revision `19`; hash masukan terkunci pada metadata kedua roadmap |
+| Source SHA | BE `8b17b75a` (branch `MHamzah`), FE `44990b3d3` (branch `HamzahV2`) |
+| Task | Backend `BE-HRD-087` s.d. `BE-HRD-103` (17 task); frontend `FE-HRD-075` s.d. `FE-HRD-087` (13 task) |
+
+### Functional requirement
+
+| FR | Perilaku Bisnis | Desain & Kontrak | Task Backend | Task Frontend | Bukti yang Diharapkan | Status |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `FR-SCH-01` | Daftar staf eligible unit terisi otomatis dari penempatan aktif di WorkforceCore | BE §19.4.1; API §16.1; `VR-SCH-01`; `INT-HR-36` | `BE-HRD-092`, `BE-HRD-094` | `FE-HRD-080`, `FE-HRD-081` | `AT-HRD-SCH-01` | |
+| `FR-SCH-02` | Aksi Salin dari Periode Lalu menduplikasi shift bulan lalu ke draft baru | BE §19.4.2; API §16.2; `VR-SCH-02` | `BE-HRD-093` | `FE-HRD-078`, `FE-HRD-081` | `AT-HRD-SCH-02` | |
+| `FR-SCH-03` | Aksi Terapkan Pola Shift massal (Pagi-Siang-Malam-Libur) per pegawai/grup | BE §19.4.3; API §16.3; `VR-SCH-03` | `BE-HRD-093` | `FE-HRD-078`, `FE-HRD-081` | `AT-HRD-SCH-03` | |
+| `FR-SCH-04` | Kepala Unit menerbitkan roster mandiri tanpa approval sebelum terbit | BE §19.4.4; API §16.4; `HRD-DEC-098` | `BE-HRD-092` | `FE-HRD-081` | `AT-HRD-SCH-04`, `UAT-SCH-01` | |
+| `FR-SCH-05` | Tombol Terbitkan wajib memicu validasi ulang menyeluruh sebelum status berubah Published | BE §19.4.4; API §16.4; `VR-SCH-04` | `BE-HRD-089`, `BE-HRD-092` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-04`, `AT-HRD-SCH-05` | |
+| `FR-SCH-06` | Kepala Bidang otomatis menerima notifikasi terbit dan hak pantau read-only | BE §19.4.5; API §16.5; `HRD-DEC-098` | `BE-HRD-094` | `FE-HRD-082` | `AT-HRD-SCH-06` | |
+| `FR-SCH-07` | Blokir penerbitan B1–B6 (bentrok, cuti disetujui, beda unit, belum siap kerja, kontrak berakhir, status gagal baca) | BE §19.5; API §16.4; `VR-SCH-05` s.d. `VR-SCH-10`; `INT-HR-31` | `BE-HRD-089`, `BE-HRD-090` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-07`, `AT-HRD-SCH-08` | |
+| `FR-SCH-08` | Blokir penerbitan B7 bila staf Didampingi berdinas tanpa perawat Mandiri di ICU/IGD | BE §19.5; API §16.4; `VR-SCH-11`; `INT-HR-37`; `HRD-DEC-100` | `BE-HRD-089`, `BE-HRD-091` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-09`, `UAT-SCH-02` | |
+| `FR-SCH-09` | Peringatan W1–W3 (jeda < 11 jam, kerja > 6 hari, malam > 2) berdasarkan HrdSchedulingSetting | BE §19.3, §19.5; API §16.7; `VR-SCH-12` s.d. `VR-SCH-14` | `BE-HRD-088`, `BE-HRD-089` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-10` | |
+| `FR-SCH-10` | Peringatan W4–W5 (cuti pending & kredensial STR kedaluwarsa) | BE §19.5; API §16.4; `VR-SCH-15`, `VR-SCH-16`; `HRD-DEC-005` | `BE-HRD-089`, `BE-HRD-090` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-11` | |
+| `FR-SCH-11` | Peringatan W6–W7 (kuota tenaga & kualifikasi klinis) dengan pilihan alasan wajib sebelum terbit | BE §19.5; API §16.4; `VR-SCH-17`, `VR-SCH-18`; `HRD-DEC-099` | `BE-HRD-089`, `BE-HRD-091` | `FE-HRD-077`, `FE-HRD-081` | `AT-HRD-SCH-12`, `UAT-SCH-01` | |
+| `FR-SCH-12` | Ganti Petugas pada shift terbit untuk menunjuk staf pengganti dengan alasan wajib | BE §19.6; API §16.6; `VR-SCH-19`; `HRD-DEC-101` | `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-13`, `UAT-SCH-03` | |
+| `FR-SCH-13` | Penggantian shift langsung berstatus efektif di sistem tanpa approval Kepala Bidang | BE §19.6; API §16.6; `HRD-DEC-101` | `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-13` | |
+| `FR-SCH-14` | Penggantian staf wajib lolos validasi keselamatan B1–B7 | BE §19.6; API §16.6; `VR-SCH-05` s.d. `VR-SCH-11` | `BE-HRD-089`, `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-14` | |
+| `FR-SCH-15` | Roster periode tetap Published, terekam audit lengkap, dan memicu notifikasi mutasi | BE §19.6; API §16.6; State §14.2 | `BE-HRD-096` | `FE-HRD-079`, `FE-HRD-081` | `AT-HRD-SCH-13` | |
+| `FR-SCH-16` | Koreksi mundur maksimal 3 hari ke belakang dengan alasan wajib | BE §19.7; API §16.8; `VR-SCH-20`; `HRD-DEC-102` | `BE-HRD-088`, `BE-HRD-097` | `FE-HRD-076`, `FE-HRD-081` | `AT-HRD-SCH-15`, `UAT-SCH-05` | |
+| `FR-SCH-17` | Koreksi mundur otomatis memicu rekalkulasi kehadiran harian (modul 07) | BE §19.7; Integration §7.3 (`INT-HR-38`) | `BE-HRD-097` | `FE-HRD-081` | `AT-HRD-SCH-16` | |
+| `FR-SCH-18` | Penguncian periode Closed saat cut-off payroll mengunci jadwal secara mutlak | BE §19.8; API §16.9; State §14.1; `VR-SCH-21` | `BE-HRD-098` | `FE-HRD-080`, `FE-HRD-081` | `AT-HRD-SCH-17` | |
+| `FR-SCH-19` | Pemisahan wewenang penyusunan siaga staf (Kepala Ruangan) vs spesialis (Yanmed/KSM) | BE §19.9; API §16.10; Permission §14; `HRD-DEC-103` | `BE-HRD-099` | `FE-HRD-083`, `FE-HRD-085` | `AT-HRD-SCH-18` | |
+| `FR-SCH-20` | Status siaga tetap Active saat dipanggil untuk melindungi kontrak LabConfirmingDoctorResolver | BE §19.9; State §14.3; Integration §7.4 (`INT-HR-39`) | `BE-HRD-099`, `BE-HRD-101` | `FE-HRD-085` | `AT-HRD-SCH-18` | |
+| `FR-SCH-21` | Pencatatan pemanggilan (call-in) staf/dokter siaga beserta waktu panggil dan kedatangan | BE §19.10; API §16.11; `VR-SCH-21` | `BE-HRD-100` | `FE-HRD-084`, `FE-HRD-085` | `AT-HRD-SCH-19`, `UAT-SCH-04` | |
+| `FR-SCH-22` | Kalkulasi selisih waktu respon dan kepatuhan terhadap target SLA menit | BE §19.10; API §16.11; `HRD-DEC-103` | `BE-HRD-100` | `FE-HRD-084`, `FE-HRD-085` | `AT-HRD-SCH-19` | |
+| `FR-SCH-23` | Integrasi jam standby on-call ke Payroll dan transaksi panggilan cito ke Lembur & Payroll | BE §19.11; Integration §7.5 (`INT-HR-40`) | `BE-HRD-102` | `FE-HRD-085` | `AT-HRD-SCH-20` | |
+
+### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-SCH-01` s.d. `AT-HRD-SCH-03` | `BE-HRD-092`, `BE-HRD-093`, `BE-HRD-094`, `FE-HRD-078`, `FE-HRD-080`, `FE-HRD-081` | Daftar eligible, salin periode lalu, dan pola shift massal |
+| `AT-HRD-SCH-04` s.d. `AT-HRD-SCH-06` | `BE-HRD-089`, `BE-HRD-092`, `BE-HRD-094`, `FE-HRD-077`, `FE-HRD-081`, `FE-HRD-082` | Penerbitan mandiri, validasi pra-terbit, dan hak pantau read-only Kabid |
+| `AT-HRD-SCH-07` s.d. `AT-HRD-SCH-09` | `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-091`, `FE-HRD-077`, `FE-HRD-081` | Pemblokir fisik & hukum B1–B7 (bentrok, cuti, kesiapan, pendampingan) |
+| `AT-HRD-SCH-10` s.d. `AT-HRD-SCH-12` | `BE-HRD-088`, `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-091`, `FE-HRD-077`, `FE-HRD-081` | Peringatan beralasan W1–W7 (waktu kerja, STR habis, kuota/komposisi) |
+| `AT-HRD-SCH-13` s.d. `AT-HRD-SCH-15` | `BE-HRD-088`, `BE-HRD-089`, `BE-HRD-096`, `BE-HRD-097`, `FE-HRD-076`, `FE-HRD-079`, `FE-HRD-081` | Ganti petugas langsung aktif (override), audit mutasi, dan koreksi mundur 3 hari |
+| `AT-HRD-SCH-16`, `AT-HRD-SCH-17` | `BE-HRD-097`, `BE-HRD-098`, `FE-HRD-080`, `FE-HRD-081` | Pemicu rekalkulasi kehadiran dan penguncian mutlak periode Closed |
+| `AT-HRD-SCH-18` s.d. `AT-HRD-SCH-20` | `BE-HRD-099`, `BE-HRD-100`, `BE-HRD-101`, `BE-HRD-102`, `FE-HRD-083`, `FE-HRD-084`, `FE-HRD-085` | Tata kelola siaga on-call, proteksi kontrak Lab, pencatatan call-in, dan kalkulasi SLA |
+| `UAT-SCH-01` s.d. `UAT-SCH-05` | `BE-HRD-103`, `FE-HRD-087` | Validasi bisnis ujung-ke-ujung alur penjadwalan, roster, dan siaga |
+
 ### Gap keterkaitan requirement ke bukti verifikasi
 
 | Gap | Apa yang belum ada | Pemilik | Yang tetap bisa jalan |
 | --- | --- | --- | --- |
 | `FR-ONB-043` tanpa baris acceptance test | `testing/acceptance-test-matrix.md` bagian 17 tidak punya baris yang membuktikan peringatan kredensial tampil **dan** tidak menahan siap kerja maupun jadwal. Kriteria tercakup acceptance criteria `BE-HRD-084` butir 2 dan `FE-HRD-060` butir 2, tetapi belum punya ID uji | `design-business-module` — tambah satu baris `AT-HRD-ONB` pada revisi matriks uji berikutnya | Seluruh task |
 | Kategori eskalasi `FR-ONB-050` tanpa baris acceptance test | Pengingat 60 hari terbukti lewat `AT-HRD-ONB-36`; eskalasi 14 hari kepada HR Manager belum punya ID uji | Sama dengan di atas | Seluruh task |
-| Penahan jadwal di Penjadwalan 06 (`INT-HR-31`) | `FR-ONB-022`, `FR-ONB-041`, `FR-ONB-053` dan `AT-HRD-ONB-24`, `AT-HRD-ONB-28`, `AT-HRD-ONB-32` hanya terbukti penuh setelah Penjadwalan memanggil `HrdEmploymentReadinessReadService`. Roadmap ini tidak memuat task Penjadwalan | Desain Penjadwalan `S-B4` | `BE-HRD-084` dibangun dan diuji lewat service |
+| Penahan jadwal di Penjadwalan 06 (`INT-HR-31`) | Ditutup pada perencanaan `S-B4` (roadmap revision 8): `BE-HRD-090` mengintegrasikan pemanggilan `HrdEmploymentReadinessReadService` dan diuji via `AT-HRD-SCH-08` | Desain & Task `S-B4` selesai | `BE-HRD-084` dan `BE-HRD-090` siap diintegrasikan |
 | `HRD-DEC-005` dan `HRD-DEC-010` | Aturan blokir kredensial dan pengesahan tampilan catatan pembatasan kerja | Komite Medik/Keperawatan; K3RS | Peringatan kredensial dan kesimpulan kelaikan tanpa diagnosis |
 | Pemetaan peran `HRD-DEC-032` | Rantai `T15` s.d. `T18` tidak menemukan penyetuju sampai peran dipetakan | Administrator | Seluruh task build; menahan `BE-HRD-085` dan `BE-HRD-086` |
 

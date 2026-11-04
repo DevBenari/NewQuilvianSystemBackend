@@ -445,3 +445,68 @@ test; bukti berupa uji API terhadap database dev dan pemeriksaan isi tabel.
 | `AT-HRD-ONB-38` | Tawaran `S-D2` | **Gagal:** tawaran tanpa jenis kontrak; PKWT tanpa lama | `CONTRACT` | `422` `VR-ONB-50`, `VR-ONB-51` | `HRD-DEC-095` |
 | `AT-HRD-ONB-39` | Riwayat kontrak 02 | **Gagal:** layar lama mencoba menyimpan kontrak | `CONTRACT` | `409` `CONTRACT_MANAGED_BY_LIFECYCLE` dengan pesan terbaca | `VR-ONB-32` |
 | `AT-HRD-ONB-40` | Privasi | **Berhasil:** Kepala Unit membuka data cetak kontrak | `CONTRACT` | `basicSalary = null`, `amountVisible = false`; HR Admin dengan `ViewAmount` melihat nominal dan pembacaannya tercatat | `HRD-DEC-033`, `HRD-DEC-039` |
+
+
+---
+
+## 18. Matriks Pengujian Penerimaan Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+
+### 18.1 Matriks Kasus Uji Penerimaan (`AT-HRD-SCH-01` s.d. `AT-HRD-SCH-20`)
+
+| ID Kasus Uji | Topik | Jalur Uji (Berhasil / Gagal) | Jenis Test | Hasil yang Diharapkan | Referensi Aturan / Keputusan |
+| --- | --- | --- | :---: | --- | --- |
+| `AT-HRD-SCH-01` | Roster | **Berhasil:** Buat draft roster unit shift bergiliran | `CONTRACT` | Periode `Draft` terbentuk, staf unit terisi otomatis dari penempatan aktif | `HRD-DEC-097` |
+| `AT-HRD-SCH-02` | Roster | **Gagal:** Buat roster pada unit jam kantor biasa | `CONTRACT` | `422` unit jam kantor memakai jadwal tetap, bukan roster bulanan | `HRD-DEC-097` |
+| `AT-HRD-SCH-03` | Roster | **Berhasil:** Salin seluruh jadwal dari periode bulan lalu | `CONTRACT` | 500+ kotak shift terduplikasi dalam status draft | `HRD-DEC-098` |
+| `AT-HRD-SCH-04` | Roster | **Berhasil:** Terapkan pola shift berulang ke kelompok staf | `CONTRACT` | Pola shift (misal P-S-M-L-L) terpetakan ke hari-hari periode | `HRD-DEC-098` |
+| `AT-HRD-SCH-05` | Validasi | **Gagal:** Staf dijadwalkan shift bertabrakan jamnya | `CONTRACT` | `422` Pelanggaran `B1` memblokir penerbitan roster | `VR-SCH-01`, `HRD-DEC-099` |
+| `AT-HRD-SCH-06` | Validasi | **Gagal:** Staf dijadwalkan pada hari cuti penuh disetujui | `CONTRACT` | `422` Pelanggaran `B2` memblokir penerbitan roster | `VR-SCH-02`, `HRD-DEC-099` |
+| `AT-HRD-SCH-07` | Validasi | **Gagal:** Staf belum berstatus siap kerja (`HRD-DEC-088`) | `INTEGRATION` | `422` Pelanggaran `B4` menolak penjadwalan pegawai orientasi | `VR-SCH-04`, `INT-HR-40` |
+| `AT-HRD-SCH-08` | Validasi | **Gagal:** Staf dijadwalkan sesudah kontrak berakhir tanpa keputusan | `INTEGRATION` | `422` Pelanggaran `B5` menahan penjadwalan pasca kontrak | `VR-SCH-05`, `HRD-DEC-089` |
+| `AT-HRD-SCH-09` | Validasi | **Gagal:** Status kesiapan profil pegawai gagal dibaca | `INTEGRATION` | `422` Pelanggaran `B6` gagal tertutup sesuai invariant sistem | `VR-SCH-06`, `INT-HR-31` |
+| `AT-HRD-SCH-10` | Validasi | **Gagal:** Staf Didampingi dijadwalkan tanpa perawat Mandiri | `CONTRACT` | `422` Pelanggaran `B7` memblokir jadwal demi patient safety | `VR-SCH-07`, `HRD-DEC-100` |
+| `AT-HRD-SCH-11` | Validasi | **Berhasil:** Staf Didampingi dijadwalkan bersama perawat Mandiri lain saat preceptor libur | `CONTRACT` | Jadwal shift lolos evaluasi keselamatan | `HRD-DEC-100` |
+| `AT-HRD-SCH-12` | Validasi | **Berhasil:** Peringatan jeda < 11 jam (`W1`) dan kuota kurang (`W6`) diterbitkan setelah isi alasan | `CONTRACT` | Status roster berubah `Published`; alasan tersimpan di audit trail | `HRD-DEC-098`, `HRD-DEC-099` |
+| `AT-HRD-SCH-13` | Hak Akses | **Berhasil & Gagal:** Kepala Bidang membuka roster (OK) dan mencoba mengedit (403) | `SECURITY` | Tampilan roster terbuka *read-only*; request edit ditolak `403` | `HRD-DEC-098` |
+| `AT-HRD-SCH-14` | Override | **Berhasil:** Kepala Unit mengeksekusi Ganti Petugas langsung pasca-terbit | `INTEGRATION` | Shift berpindah ke pengganti (`IsManualOverride = true`), status roster tetap `Published` | `HRD-DEC-101` |
+| `AT-HRD-SCH-15` | Override | **Gagal:** Staf pengganti yang dipilih sedang cuti atau bentrok | `CONTRACT` | `422` penunjukan pengganti ditolak sistem | `VR-SCH-16`, `HRD-DEC-101` |
+| `AT-HRD-SCH-16` | Koreksi | **Berhasil:** Koreksi mundur shift 2 hari lalu dengan alasan sah | `INTEGRATION` | Shift tersimpan; event rekalkulasi kehadiran terpicu di modul 07 | `VR-SCH-17`, `HRD-DEC-102` |
+| `AT-HRD-SCH-17` | Koreksi | **Gagal:** Koreksi mundur shift 5 hari lalu oleh Kepala Unit | `CONTRACT` | `422` ditolak melebihi batas toleransi mandiri 3 hari | `VR-SCH-17`, `HRD-DEC-102` |
+| `AT-HRD-SCH-18` | Close Lock | **Berhasil & Gagal:** Payroll menutup periode (Closed); edit pasca-tutup ditolak | `CONTRACT` | Status periode `Closed`; seluruh mutasi shift ditolak `403` | `VR-SCH-18`, `HRD-DEC-102` |
+| `AT-HRD-SCH-19` | On-Call | **Berhasil:** Pemanggilan siaga cito mencatat waktu dan evaluasi SLA | `CONTRACT` | `ResponseMinutes` dihitung, `IsSlaMet = true`, event payroll terkirim | `HRD-DEC-103` |
+| `AT-HRD-SCH-20` | Integrasi Lab | **Berhasil:** Lab resolver tetap membaca dokter siaga aktif saat berstatus dipanggil | `INTEGRATION` | `LabConfirmingDoctorResolver` menemukan dokter dengan status `Active` | `LAB-DEC-111`, `HRD-DEC-103` |
+
+
+---
+
+## 19. Bagian `S-B1` — Matriks Uji Penerimaan Administrasi Kehadiran Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+| ID Uji | Skenario Pengujian | Masukan Uji | Kriteria Penerimaan yang Diharapkan | Keputusan Terkait |
+| --- | --- | --- | --- | :---: |
+| `AT-HRD-ATT-01` | Immutabilitas rekaman mentah biometrik | Permintaan PUT/DELETE ke raw log | Sistem menolak perubahan dan mengembalikan HTTP 405 | `ATT-B1` |
+| `AT-HRD-ATT-02` | Pencegahan tap ganda biometrik | 2 tap dalam selang 60 detik | Hanya tap pertama yang diproses oleh schedule resolver | `VR-ATT-18` |
+| `AT-HRD-ATT-03` | Penelusuran drawer log biometrik mentah | Buka drawer log mentah pegawai | Menampilkan seluruh riwayat tap riil dan ID perangkat | `FR-ATT-05` |
+| `AT-HRD-ATT-04` | Pencocokan shift malam lintas hari | Tap masuk 20.50 (H), tap pulang 07.15 (H+1) | Record kehadiran terkunci pada tanggal H dengan jam kerja 10 jam | `HRD-DEC-104` |
+| `AT-HRD-ATT-05` | Tidak ada mangkir di hari H shift malam | Shift malam 21.00 s.d. 07.00 | Hari H berstatus Present, bukan Absent | `HRD-DEC-104` |
+| `AT-HRD-ATT-06` | Tidak ada dinas ganda di hari H+1 shift malam| Shift malam berakhir 07.00 hari H+1 | Hari H+1 tidak mencatat sesi dinas ganda fiktif | `HRD-DEC-104` |
+| `AT-HRD-ATT-07` | Toleransi keterlambatan di bawah 10 menit | Tap masuk 07.08 pada shift 07.00 | Status Present, LateMinutes = 0 | `HRD-DEC-105` |
+| `AT-HRD-ATT-08` | Keterlambatan di atas toleransi 10 menit | Tap masuk 07.14 pada shift 07.00 | Status Late, LateMinutes = 14 menit penuh | `HRD-DEC-105` |
+| `AT-HRD-ATT-09` | Pengubahan setelan toleransi keterlambatan | Ubah toleransi ke 15 menit | Menit keterlambatan baru dievaluasi sesuai parameter 15 menit | `HRD-DEC-105` |
+| `AT-HRD-ATT-10` | Deteksi lupa tap 1 punch | Hanya tap masuk pukul 07.00 | Status harian IncompletePunch, jam kerja belum dihitung | `HRD-DEC-106` |
+| `AT-HRD-ATT-11` | Notifikasi pengingat absensi tidak lengkap | Daily berstatus IncompletePunch | Notifikasi pengingat terkirim ke ESS pegawai dan atasan | `HRD-DEC-106` |
+| `AT-HRD-ATT-12` | Konversi otomatis saat cut-off periode | IncompletePunch tidak dikoreksi | Saat periode Closed, otomatis berubah menjadi Absent | `HRD-DEC-106` |
+| `AT-HRD-ATT-13` | Koreksi presensi on-behalf oleh HR | HR mengajukan koreksi atas nama staf | Jejak audit on-behalf terekam; persetujuan di atasan langsung | `HRD-DEC-028` |
+| `AT-HRD-ATT-14` | Pembatasan koreksi tanggal mundur > 3 hari | Koreksi shift 5 hari lalu | Ditolak validasi toleransi koreksi tanggal mundur | `VR-ATT-06` |
+| `AT-HRD-ATT-15` | Izin pulang cepat non-deductible | Pulang jam 11.30 pada shift 14.00 | Status Waived; kuota saldo cuti tahunan tetap utuh | `HRD-DEC-107` |
+| `AT-HRD-ATT-16` | Perhitungan jam kerja riil izin pulang cepat | Tap keluar riil pukul 11.32 | Jam kerja efektif dihitung tepat 4 jam 32 menit | `HRD-DEC-107` |
+| `AT-HRD-ATT-17` | Presensi dinas luar ambulans rujukan | Surat tugas rujukan ambulans disetujui | Status kehadiran OnDuty, jam kerja sah diakui penuh | `HRD-DEC-109` |
+| `AT-HRD-ATT-18` | Verifikasi GPS & foto dinas luar | Tap mobile di lokasi rujukan | Koordinat GPS dan foto selfie tersimpan pada lampiran tugas | `HRD-DEC-109` |
+| `AT-HRD-ATT-19` | Penolakan tutup periode bila ada koreksi pending | Close period saat ada koreksi pending | Ditutup ditolak (HTTP 409) dengan daftar pending | `HRD-DEC-108` |
+| `AT-HRD-ATT-20` | Buka kembali periode darurat rollback payroll | HR Manager mengeksekusi Reopen | Status Reopened dan serah terima payroll otomatis di-rollback | `HRD-DEC-108` |

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
@@ -179,6 +180,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             if (employee == null)
                 throw new InvalidOperationException("Data pegawai target tidak ditemukan.");
 
+            await ValidatePlacementCombinationAsync(
+                request.WorkforceProfileId,
+                request.TargetOrganizationUnitId,
+                request.TargetDepartmentId,
+                request.TargetPositionId,
+                request.TargetManagerProfileId,
+                request.EffectiveDate,
+                ct);
+
             var orderNumber = await GenerateOrderNumberAsync(ct);
 
             var order = new HrdPersonnelActionOrder
@@ -220,6 +230,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             if (order.OrderStatus != "Draft")
                 throw new InvalidOperationException($"SK berstatus '{order.OrderStatus}' tidak dapat diubah lagi.");
+
+            await ValidatePlacementCombinationAsync(
+                order.WorkforceProfileId,
+                request.TargetOrganizationUnitId,
+                request.TargetDepartmentId,
+                request.TargetPositionId,
+                request.TargetManagerProfileId,
+                request.EffectiveDate,
+                ct);
 
             order.ActionCategory = request.ActionCategory;
             order.EffectiveDate = request.EffectiveDate.Date;
@@ -378,6 +397,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     throw new InvalidOperationException($"Permohonan mutasi retroaktif ditolak: Tanggal efektif ({order.EffectiveDate:yyyy-MM-dd}) jatuh pada periode absensi yang sudah ditutup ({closedPeriod.PeriodCode}) (HRD-DEC-050).");
                 }
             }
+
+            await ValidatePlacementCombinationAsync(
+                order.WorkforceProfileId,
+                order.TargetOrganizationUnitId,
+                order.TargetDepartmentId,
+                order.TargetPositionId,
+                order.TargetManagerProfileId,
+                order.EffectiveDate,
+                ct);
 
             using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
             try
@@ -644,6 +672,113 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 .Max();
 
             return $"{prefix}{(maxNumber + 1):D4}";
+        }
+
+        private async Task ValidatePlacementCombinationAsync(
+            Guid workforceProfileId,
+            Guid? targetOrgUnitId,
+            Guid? targetDeptId,
+            Guid? targetPositionId,
+            Guid? targetManagerProfileId,
+            DateTime effectiveDate,
+            CancellationToken ct)
+        {
+            if (workforceProfileId == Guid.Empty)
+                throw new ArgumentException("Pegawai target wajib dipilih.");
+
+            var employee = await _dbContext.MstWorkforceProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete, ct);
+            if (employee == null)
+                throw new InvalidOperationException("Data pegawai target tidak ditemukan.");
+
+            // 1. Manager validation: anti self-management & active check
+            if (targetManagerProfileId.HasValue && targetManagerProfileId.Value != Guid.Empty)
+            {
+                if (targetManagerProfileId.Value == workforceProfileId)
+                    throw new InvalidOperationException("Pegawai tidak dapat menjadi atasan bagi dirinya sendiri.");
+
+                var manager = await _dbContext.MstWorkforceProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == targetManagerProfileId.Value && !x.IsDelete, ct);
+                if (manager == null || !manager.IsActive)
+                    throw new InvalidOperationException("Atasan langsung yang dipilih tidak valid atau tidak aktif.");
+            }
+
+            // 2. Organization Unit validation
+            MstOrganizationUnit? orgUnit = null;
+            if (targetOrgUnitId.HasValue && targetOrgUnitId.Value != Guid.Empty)
+            {
+                orgUnit = await _dbContext.MstOrganizationUnits
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == targetOrgUnitId.Value && !x.IsDelete, ct);
+                if (orgUnit == null || !orgUnit.IsActive)
+                    throw new InvalidOperationException("Unit organisasi tujuan tidak ditemukan atau tidak aktif.");
+            }
+
+            // 3. Department validation
+            MstDepartment? dept = null;
+            if (targetDeptId.HasValue && targetDeptId.Value != Guid.Empty)
+            {
+                dept = await _dbContext.MstDepartments
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == targetDeptId.Value && !x.IsDelete, ct);
+                if (dept == null || !dept.IsActive)
+                    throw new InvalidOperationException("Departemen tujuan tidak ditemukan atau tidak aktif.");
+            }
+
+            // 4. Cross validation: Organization Unit vs Department
+            if (orgUnit != null && dept != null)
+            {
+                if (orgUnit.DepartmentId.HasValue && orgUnit.DepartmentId.Value != Guid.Empty && orgUnit.DepartmentId.Value != dept.Id)
+                {
+                    throw new InvalidOperationException($"Unit organisasi '{orgUnit.UnitName}' terikat dengan departemen lain dan tidak sesuai dengan departemen tujuan '{dept.DepartmentName}'.");
+                }
+            }
+
+            // 5. Position validation
+            if (targetPositionId.HasValue && targetPositionId.Value != Guid.Empty)
+            {
+                var position = await _dbContext.MstPositions
+                    .Include(x => x.Department)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == targetPositionId.Value && !x.IsDelete, ct);
+                if (position == null || !position.IsActive)
+                    throw new InvalidOperationException("Jabatan tujuan tidak ditemukan atau tidak aktif.");
+
+                if (targetDeptId.HasValue && targetDeptId.Value != Guid.Empty)
+                {
+                    if (position.DepartmentId != targetDeptId.Value)
+                    {
+                        var posDeptName = position.Department?.DepartmentName ?? "departemen lain";
+                        var targetDeptName = dept?.DepartmentName ?? "departemen tujuan";
+                        throw new InvalidOperationException($"Jabatan yang dipilih ({position.PositionName}) berada di bawah {posDeptName}, tidak sesuai dengan {targetDeptName}.");
+                    }
+                }
+                else if (orgUnit != null && orgUnit.DepartmentId.HasValue && orgUnit.DepartmentId.Value != Guid.Empty)
+                {
+                    if (position.DepartmentId != orgUnit.DepartmentId.Value)
+                    {
+                        var posDeptName = position.Department?.DepartmentName ?? "departemen lain";
+                        throw new InvalidOperationException($"Jabatan yang dipilih ({position.PositionName}) tidak sesuai dengan departemen dari unit organisasi tujuan ({orgUnit.UnitName}).");
+                    }
+                }
+            }
+
+            // 6. Retroactive closed attendance period validation
+            if (effectiveDate.Date < DateTime.UtcNow.Date)
+            {
+                var effectiveDateOnly = DateOnly.FromDateTime(effectiveDate);
+                var closedPeriod = await _dbContext.Set<HrdAttendancePeriod>()
+                    .Where(p => !p.IsDelete && p.PeriodStatus == "Closed")
+                    .Where(p => p.StartDate <= effectiveDateOnly && p.EndDate >= effectiveDateOnly)
+                    .FirstOrDefaultAsync(ct);
+
+                if (closedPeriod != null)
+                {
+                    throw new InvalidOperationException($"Tanggal efektif ({effectiveDate:yyyy-MM-dd}) jatuh pada periode absensi yang sudah ditutup ({closedPeriod.PeriodCode}) (HRD-DEC-050).");
+                }
+            }
         }
 
         private static PersonnelActionOrderDetailResponse MapToDetailResponse(HrdPersonnelActionOrder order)

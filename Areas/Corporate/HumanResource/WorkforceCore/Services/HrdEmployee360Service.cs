@@ -25,6 +25,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             Guid workforceProfileId,
             ClaimsPrincipal userPrincipal,
             Guid callerUserId,
+            DateTime? asOfDate = null,
             CancellationToken ct = default)
         {
             var caller = await _dbContext.Users
@@ -36,7 +37,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 return Employee360ServiceResult.Forbidden("Identitas pengguna tidak valid.");
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = (asOfDate?.Date ?? DateTime.UtcNow.Date);
 
             // Check if caller has HR permission
             var isHr = await _permissionService.HasAccessAsync(userPrincipal, "HrdEmployee360", "ReadFull")
@@ -75,11 +76,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             }
 
             var employee = await _dbContext.MstEmployees
+                .Include(x => x.EmploymentStatus)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete, ct);
 
             var activeOrg = await _dbContext.WfpOrganizationAssignments
                 .Include(x => x.OrganizationUnit)
+                .Include(x => x.Department)
                 .AsNoTracking()
                 .Where(x => x.WorkforceProfileId == workforceProfileId &&
                             x.IsActive &&
@@ -92,6 +95,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             var activePos = await _dbContext.WfpPositionAssignments
                 .Include(x => x.Position)
+                    .ThenInclude(p => p.Department)
+                .Include(x => x.OrganizationUnit)
                 .AsNoTracking()
                 .Where(x => x.WorkforceProfileId == workforceProfileId &&
                             x.IsActive &&
@@ -104,6 +109,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             var activeMgr = await _dbContext.WfpManagerAssignments
                 .Include(x => x.ManagerWorkforceProfile)
+                .Include(x => x.Department)
+                .Include(x => x.ManagerPosition)
                 .AsNoTracking()
                 .Where(x => x.WorkforceProfileId == workforceProfileId &&
                             x.IsActive &&
@@ -218,6 +225,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 })
                 .ToListAsync(ct);
 
+            string? mgrPositionName = activeMgr?.ManagerPosition?.PositionName;
+            string? mgrDepartmentName = activeMgr?.Department?.DepartmentName;
+            if (activeMgr != null && (mgrPositionName == null || mgrDepartmentName == null))
+            {
+                var mgrPos = await _dbContext.WfpPositionAssignments
+                    .Include(p => p.Position)
+                        .ThenInclude(p => p.Department)
+                    .AsNoTracking()
+                    .Where(p => p.WorkforceProfileId == activeMgr.ManagerWorkforceProfileId &&
+                                p.IsActive && !p.IsDelete &&
+                                p.EffectiveStartDate <= today &&
+                                (p.EffectiveEndDate == null || p.EffectiveEndDate >= today))
+                    .OrderByDescending(p => p.IsPrimary)
+                    .ThenByDescending(p => p.EffectiveStartDate)
+                    .FirstOrDefaultAsync(ct);
+
+                mgrPositionName ??= mgrPos?.Position?.PositionName;
+                mgrDepartmentName ??= mgrPos?.Position?.Department?.DepartmentName;
+            }
+
             var response = new Employee360Response
             {
                 WorkforceProfileId = profile.Id,
@@ -231,22 +258,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 ViewMode = isHr ? "HR" : "DirectManager",
                 CurrentEmployment = new CurrentEmploymentInfoDto
                 {
-                    LegalEntityId = activeOrg?.LegalEntityId,
-                    HospitalSiteId = activeOrg?.HospitalSiteId,
-                    OrganizationUnitId = activeOrg?.OrganizationUnitId,
-                    OrganizationUnitName = activeOrg?.OrganizationUnit?.UnitName,
-                    PositionId = activePos?.PositionId,
-                    PositionName = activePos?.Position?.PositionName,
-                    AssignmentType = activeOrg?.AssignmentType,
-                    EffectiveStartDate = activeOrg?.EffectiveStartDate
+                    LegalEntityId = activeOrg?.LegalEntityId ?? activePos?.LegalEntityId,
+                    HospitalSiteId = activeOrg?.HospitalSiteId ?? activePos?.HospitalSiteId,
+                    OrganizationUnitId = activeOrg?.OrganizationUnitId ?? activePos?.OrganizationUnitId,
+                    OrganizationUnitName = activeOrg?.OrganizationUnit?.UnitName ?? activePos?.OrganizationUnit?.UnitName,
+                    DepartmentId = activeOrg?.DepartmentId ?? activePos?.DepartmentId ?? activePos?.Position?.DepartmentId,
+                    DepartmentName = activeOrg?.Department?.DepartmentName ?? activePos?.Position?.Department?.DepartmentName,
+                    PositionId = activePos?.PositionId ?? activeOrg?.PositionId,
+                    PositionName = activePos?.Position?.PositionName ?? activeOrg?.Position?.PositionName,
+                    AssignmentType = activeOrg?.AssignmentType ?? activePos?.AssignmentType,
+                    EffectiveStartDate = activeOrg?.EffectiveStartDate ?? activePos?.EffectiveStartDate,
+                    EmployeeCode = employee?.EmployeeCode ?? profile.ProfileCode,
+                    EmploymentStatusName = employee?.EmploymentStatus?.EmploymentStatusName ?? (profile.IsActive ? "Aktif" : "Nonaktif")
                 },
                 DirectManager = activeMgr?.ManagerWorkforceProfile != null
                     ? new DirectManagerInfoDto
                     {
                         ManagerProfileId = activeMgr.ManagerWorkforceProfile.Id,
                         ManagerName = activeMgr.ManagerWorkforceProfile.DisplayName,
-                        ManagerPositionName = null,
-                        ManagerDepartmentName = null
+                        ManagerPositionName = mgrPositionName,
+                        ManagerDepartmentName = mgrDepartmentName
                     }
                     : null,
                 PersonnelActionOrders = orders,

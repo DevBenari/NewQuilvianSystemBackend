@@ -1,4 +1,4 @@
-﻿# Roadmap Delivery Backend — Modul Human Resource
+# Roadmap Delivery Backend — Modul Human Resource
 
 ## Metadata
 
@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 7
+roadmap_revision: 8
 status: ACTIVE
 status_synced_at: "2026-11-03 — tanda status task lama disalin apa adanya dari revision 2; tidak ada task yang naik atau turun status pada revision ini"
-planning_updated_at: "2026-11-04 — Slice S-C4-ONB Onboarding dan Kontrak Kerja (sub-modul 05) dipecah menjadi 24 task (BE-HRD-063 s.d. BE-HRD-086) per gelombang MVP-14 s.d. MVP-17 & Verifikasi; termasuk amandemen tawaran S-D2 (BE-HRD-064, HRD-DEC-095); grafik B13 s.d. B19 ditambahkan"
+planning_updated_at: "2026-11-04 — Slice S-B4 Penjadwalan, Roster, dan On-Call (sub-modul 06) dipecah menjadi 17 task (BE-HRD-087 s.d. BE-HRD-103) per gelombang MVP-18 s.d. MVP-20 & Verifikasi; grafik B20 s.d. B23 ditambahkan; sebelumnya Slice S-C4-ONB Onboarding dan Kontrak Kerja (sub-modul 05) dipecah menjadi 24 task (BE-HRD-063 s.d. BE-HRD-086) per gelombang MVP-14 s.d. MVP-17 & Verifikasi; termasuk amandemen tawaran S-D2 (BE-HRD-064, HRD-DEC-095); grafik B13 s.d. B19 ditambahkan"
 generated_at: "2026-10-26"
 owners:
   - "Technical Owner — HR Module Lead"
@@ -18,6 +18,7 @@ approved_by:
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D1 yang menjadi dasar task BE-HRD-017 dan BE-HRD-029 s.d. BE-HRD-051"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D2 yang menjadi dasar task BE-HRD-018 dan BE-HRD-052 s.d. BE-HRD-062"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-C4-ONB beserta lima pilihan desain (HRD-DEC-096) yang menjadi dasar task BE-HRD-063 s.d. BE-HRD-086; jawaban: \"setujui semua ya dan kerjakan\""
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B4 Penjadwalan, Roster, dan On-Call (HRD-DEC-097 s.d. HRD-DEC-103) yang menjadi dasar task BE-HRD-087 s.d. BE-HRD-103"
 blueprint_manifest_revision: 18
 decision_revision: 17
 decision_ids_s_d1: "HRD-DEC-058 s.d. HRD-DEC-072"
@@ -656,21 +657,21 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-049` | `S-D1` · `MVP-10` | Kait validasi sebelum persetujuan untuk `VR-WFP-21` dan `VR-WFP-23` | ⛔ | `BE-HRD-041`, `BE-HRD-046`, `{HRD-PLAN-GAP-02 ⛔}` |
 | `BE-HRD-050` | `S-D1` · Verifikasi | Data runtime dev `S-D1`: definisi `T9` s.d. `T13`, jabatan direktur, matriks, gaji tengah grade | ⛔ | `BE-HRD-030`, `{HRD-DEC-032 ⛔}` |
 | `BE-HRD-051` | `S-D1` · Verifikasi | Verifikasi ujung-ke-ujung `S-D1` terhadap `AT-HRD-D1` dan `UAT-29` s.d. `UAT-40` | ⛔ | `BE-HRD-044`, `BE-HRD-047`, `BE-HRD-048`, `BE-HRD-050` |
-| `BE-HRD-063` | `S-C4-ONB` · `MVP-14` | Fondasi data: 12 tabel `Hrd*`, dua master template, 17 enum, migration pembersihan enam kandidat |  | `BE-HRD-018` ✅ |
-| `BE-HRD-064` | `S-D2` · amandemen `MVP-14` | Jenis dan lama kontrak pada tawaran (`HRD-DEC-095`) |  | `BE-HRD-057` |
-| `BE-HRD-065` | `S-C4-ONB` · `MVP-14` | Penulisan kontrak satu pintu; riwayat kontrak 02 `409`; lima isian master pegawai terkunci |  | `BE-HRD-063` |
-| `BE-HRD-066` | `S-C4-ONB` · `MVP-14` | Ekstraksi `EmployeeUserAccountService` tanpa perubahan perilaku |  | `BE-HRD-028` ✅ |
-| `BE-HRD-067` | `S-C4-ONB` · `MVP-14` | Penempatan, gaji awal, dan relasi atasan pegawai baru (`WfpNewHireAssignmentService`) |  | `BE-HRD-063`, `BE-HRD-027` ✅ |
-| `BE-HRD-068` | `S-C4-ONB` · `MVP-14` | Integrasi persetujuan `T15` s.d. `T18` |  | `BE-HRD-063`, `BE-HRD-005` ✅ |
-| `BE-HRD-069` | `S-C4-ONB` · `MVP-14` | Lampiran, number series, dan API pengaturan siklus |  | `BE-HRD-063` |
-| `BE-HRD-070` | `S-C4-ONB` · `MVP-14` | Template onboarding tiga lapis |  | `BE-HRD-063` |
-| `BE-HRD-071` | `S-C4-ONB` · `MVP-14` | Pembentukan masa percobaan dari jenis kontrak |  | `BE-HRD-063`, `BE-HRD-069` |
-| `BE-HRD-072` | `S-C4-ONB` · `MVP-14` | Kontrak pertama: draf dari tawaran, data cetak, tanda tangan |  | `BE-HRD-064`, `BE-HRD-065`, `BE-HRD-067`, `BE-HRD-071` |
-| `BE-HRD-073` | `S-C4-ONB` · `MVP-15` | Pendampingan klinis |  | `BE-HRD-063`, `BE-HRD-069` |
-| `BE-HRD-074` | `S-C4-ONB` · `MVP-14` | Kasus onboarding dari serah terima (`INT-HR-25`) |  | `BE-HRD-061`, `BE-HRD-066`, `BE-HRD-070`, `BE-HRD-072` |
-| `BE-HRD-075` | `S-C4-ONB` · `MVP-15` | Checklist, hadir hari pertama, dan butir otomatis |  | `BE-HRD-073`, `BE-HRD-074` |
-| `BE-HRD-076` | `S-C4-ONB` · `MVP-15` | Siap kerja dan batal bergabung |  | `BE-HRD-067`, `BE-HRD-075` |
-| `BE-HRD-077` | `S-C4-ONB` · `MVP-15` | Permintaan akun dan akses kerja |  | `BE-HRD-074` |
+| `BE-HRD-063` | `S-C4-ONB` · `MVP-14` | Fondasi data: 12 tabel `Hrd*`, dua master template, 17 enum, migration pembersihan enam kandidat | ✅ Selesai (2026-11-04) | `BE-HRD-018` ✅ |
+| `BE-HRD-064` | `S-D2` · amandemen `MVP-14` | Jenis dan lama kontrak pada tawaran (`HRD-DEC-095`) | ✅ Selesai (2026-11-04) | `BE-HRD-057` |
+| `BE-HRD-065` | `S-C4-ONB` · `MVP-14` | Penulisan kontrak satu pintu; riwayat kontrak 02 `409`; lima isian master pegawai terkunci | ✅ Selesai (2026-11-04) | `BE-HRD-063` |
+| `BE-HRD-066` | `S-C4-ONB` · `MVP-14` | Ekstraksi `EmployeeUserAccountService` tanpa perubahan perilaku | ✅ Selesai (2026-11-04) | `BE-HRD-028` ✅ |
+| `BE-HRD-067` | `S-C4-ONB` · `MVP-14` | Penempatan, gaji awal, dan relasi atasan pegawai baru (`WfpNewHireAssignmentService`) | ✅ Selesai (2026-11-04) | `BE-HRD-063`, `BE-HRD-027` ✅ |
+| `BE-HRD-068` | `S-C4-ONB` · `MVP-14` | Integrasi persetujuan `T15` s.d. `T18` | ✅ Selesai (2026-11-04) | `BE-HRD-063`, `BE-HRD-005` ✅ |
+| `BE-HRD-069` | `S-C4-ONB` · `MVP-14` | Lampiran, number series, dan API pengaturan siklus | ✅ Selesai (2026-11-04) | `BE-HRD-063` |
+| `BE-HRD-070` | `S-C4-ONB` · `MVP-14` | Template onboarding tiga lapis | ✅ Selesai (2026-11-04) | `BE-HRD-063` |
+| `BE-HRD-071` | `S-C4-ONB` · `MVP-14` | Pembentukan masa percobaan dari jenis kontrak | ✅ Selesai (2026-11-04) | `BE-HRD-063`, `BE-HRD-069` |
+| `BE-HRD-072` | `S-C4-ONB` · `MVP-14` | Kontrak pertama: draf dari tawaran, data cetak, tanda tangan | ✅ Selesai (2026-11-04) | `BE-HRD-064`, `BE-HRD-065`, `BE-HRD-067`, `BE-HRD-071` |
+| `BE-HRD-073` | `S-C4-ONB` · `MVP-15` | Pendampingan klinis | ✅ Selesai (2026-11-04) | `BE-HRD-063`, `BE-HRD-069` |
+| `BE-HRD-074` | `S-C4-ONB` · `MVP-14` | Kasus onboarding dari serah terima (`INT-HR-25`) | ✅ Selesai (2026-11-04) | `BE-HRD-061`, `BE-HRD-066`, `BE-HRD-070`, `BE-HRD-072` |
+| `BE-HRD-075` | `S-C4-ONB` · `MVP-15` | Checklist, hadir hari pertama, dan butir otomatis | ✅ Selesai (2026-11-04) | `BE-HRD-073`, `BE-HRD-074` |
+| `BE-HRD-076` | `S-C4-ONB` · `MVP-15` | Siap kerja dan batal bergabung | ✅ Selesai (2026-11-04) | `BE-HRD-067`, `BE-HRD-075` |
+| `BE-HRD-077` | `S-C4-ONB` · `MVP-15` | Permintaan akun dan akses kerja | ✅ Selesai (2026-11-04) | `BE-HRD-074` |
 | `BE-HRD-078` | `S-C4-ONB` · `MVP-16` | Serah terima pemisahan `ContractNonRenewal`/`ProbationFailed` ke 20 |  | `BE-HRD-014` ✅ |
 | `BE-HRD-079` | `S-C4-ONB` · `MVP-17` | Penilaian masa percobaan `T15` dan lulus otomatis |  | `BE-HRD-068`, `BE-HRD-071`, `BE-HRD-078`, `BE-HRD-083` |
 | `BE-HRD-080` | `S-C4-ONB` · `MVP-16` | Keputusan kontrak `T16` dan batas 5 tahun PKWT |  | `BE-HRD-068`, `BE-HRD-072`, `BE-HRD-078` |
@@ -684,6 +685,71 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 ---
 
 ## Kartu Detail Task Backend
+
+
+### Grafik B20 — `S-B4` `MVP-18`: Fondasi data, setelan penjadwalan, dan mesin validasi
+
+```text
+BE-HRD-087 ─┬─> BE-HRD-088 ─┬─> BE-HRD-089
+            │               │
+            │               └─> BE-HRD-090
+            │
+            └─> BE-HRD-091 ───> BE-HRD-092
+```
+
+### Grafik B21 — `S-B4` `MVP-18`: Penerbitan roster mandiri unit
+
+```text
+BE-HRD-089 [B20] ──┐
+                   │
+BE-HRD-090 [B20] ──┼─> BE-HRD-093 ─> BE-HRD-094
+                   │
+BE-HRD-092 [B20] ──┘
+```
+
+### Grafik B22 — `S-B4` `MVP-19`: Penggantian shift, koreksi mundur, dan penutupan payroll
+
+```text
+BE-HRD-089 [B20] ──┬─> BE-HRD-095 ─> BE-HRD-096
+                   │
+BE-HRD-093 [B21] ──┘
+
+BE-HRD-088 [B20] ──┬─> BE-HRD-097
+                   │
+BE-HRD-095 ────────┘
+
+BE-HRD-094 [B21] ─> BE-HRD-098
+```
+
+### Grafik B23 — `S-B4` `MVP-20` & Verifikasi: On-Call, SLA, handoff payroll, dan verifikasi
+
+```text
+BE-HRD-087 [B20] ─> BE-HRD-099 ─> BE-HRD-100 ─┬─> BE-HRD-101 ─┬─> BE-HRD-102
+                                               │               │
+                                               └───────────────┘
+
+BE-HRD-094 [B21] ──┐
+                   │
+BE-HRD-096 [B22] ──┼─> BE-HRD-103
+                   │
+BE-HRD-097 [B22] ──┼──┐
+                   │  │
+BE-HRD-098 [B22] ──┘  │
+                      │
+BE-HRD-102 ───────────┘
+```
+
+#### Tabel Gelombang Eksekusi `S-B4`
+
+| Gelombang | Task yang dapat dimulai bersamaan | Yang menunggu gelombang ini |
+| :---: | --- | --- |
+| **1** | `BE-HRD-087` (fondasi skema & migrasi S-B4) | `BE-HRD-088`, `BE-HRD-091`, `BE-HRD-099` |
+| **2** | `BE-HRD-088`, `BE-HRD-091`, `BE-HRD-099` | `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-092`, `BE-HRD-100` |
+| **3** | `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-092`, `BE-HRD-100` | `BE-HRD-093`, `BE-HRD-101` |
+| **4** | `BE-HRD-093`, `BE-HRD-101` | `BE-HRD-094`, `BE-HRD-095`, `BE-HRD-102` |
+| **5** | `BE-HRD-094`, `BE-HRD-095`, `BE-HRD-102` | `BE-HRD-096`, `BE-HRD-097`, `BE-HRD-098` |
+| **6** | `BE-HRD-096`, `BE-HRD-097`, `BE-HRD-098` | `BE-HRD-103` (verifikasi slice S-B4) |
+| **7** | `BE-HRD-103` (verifikasi akhir ujung-ke-ujung S-B4) | Selesai dan siap integrasi frontend |
 
 ### `BE-HRD-001` — Pendaftaran Prefix Operasional `Hrd` dan Workforce `Wfp` pada Registry
 * **Slice**: `S0-A`
@@ -1766,21 +1832,11 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 | Task ID | MVP | Ringkasan |
 | --- | --- | --- |
-| `BE-HRD-063` | `MVP-14` | Fondasi data |
-| `BE-HRD-064` | `MVP-14` | Amandemen tawaran `S-D2`: jenis dan lama kontrak |
-| `BE-HRD-065` | `MVP-14` | Penulisan kontrak satu pintu dan penguncian isian kepegawaian |
-| `BE-HRD-066` | `MVP-14` | Ekstraksi service akun login pegawai |
-| `BE-HRD-067` | `MVP-14` | Penempatan, gaji awal, dan relasi atasan pegawai baru |
-| `BE-HRD-068` | `MVP-14` | Integrasi persetujuan `T15` s.d. `T18` |
-| `BE-HRD-069` | `MVP-14` | Lampiran, number series, dan pengaturan siklus |
-| `BE-HRD-070` | `MVP-14` | Template onboarding tiga lapis |
-| `BE-HRD-071` | `MVP-14` | Pembentukan masa percobaan dari jenis kontrak |
-| `BE-HRD-072` | `MVP-14` | Kontrak pertama: draf, data cetak, tanda tangan |
-| `BE-HRD-074` | `MVP-14` | Kasus onboarding dari serah terima |
-| `BE-HRD-073` | `MVP-15` | Pendampingan klinis |
-| `BE-HRD-075` | `MVP-15` | Checklist, hadir hari pertama, dan butir otomatis |
-| `BE-HRD-076` | `MVP-15` | Siap kerja dan batal bergabung |
-| `BE-HRD-077` | `MVP-15` | Permintaan akun dan akses kerja |
+| `BE-HRD-063` | `MVP-14` | Fondasi data | ✅ Selesai (2026-11-04) | `BE-HRD-064` | `MVP-14` | Amandemen tawaran `S-D2`: jenis dan lama kontrak | ✅ Selesai (2026-11-04) | `BE-HRD-065` | `MVP-14` | Penulisan kontrak satu pintu dan penguncian isian kepegawaian | ✅ Selesai (2026-11-04) | `BE-HRD-066` | `MVP-14` | Ekstraksi service akun login pegawai | ✅ Selesai (2026-11-04) | `BE-HRD-067` | `MVP-14` | Penempatan, gaji awal, dan relasi atasan pegawai baru | ✅ Selesai (2026-11-04) | `BE-HRD-068` | `MVP-14` | Integrasi persetujuan `T15` s.d. `T18` | ✅ Selesai (2026-11-04) | `BE-HRD-069` | `MVP-14` | Lampiran, number series, dan pengaturan siklus | ✅ Selesai (2026-11-04) | `BE-HRD-070` | `MVP-14` | Template onboarding tiga lapis | ✅ Selesai (2026-11-04) | `BE-HRD-071` | `MVP-14` | Pembentukan masa percobaan dari jenis kontrak | ✅ Selesai (2026-11-04) | `BE-HRD-072` | `MVP-14` | Kontrak pertama: draf, data cetak, tanda tangan | ✅ Selesai (2026-11-04) | `BE-HRD-074` | `MVP-14` | Kasus onboarding dari serah terima | ✅ Selesai (2026-11-04) | `BE-HRD-073` | `MVP-15` | Pendampingan klinis |
+| `BE-HRD-073` | `MVP-15` | Pendampingan klinis | ✅ Selesai (2026-11-04) |
+| `BE-HRD-075` | `MVP-15` | Checklist, hadir hari pertama, dan butir otomatis | ✅ Selesai (2026-11-04) |
+| `BE-HRD-076` | `MVP-15` | Siap kerja dan batal bergabung | ✅ Selesai (2026-11-04) |
+| `BE-HRD-077` | `MVP-15` | Permintaan akun dan akses kerja | ✅ Selesai (2026-11-04) |
 | `BE-HRD-078` | `MVP-16` | Serah terima pemisahan ke sub-modul 20 |
 | `BE-HRD-080` | `MVP-16` | Keputusan kontrak `T16` |
 | `BE-HRD-081` | `MVP-16` | Koreksi kontrak `T17` |
@@ -1793,7 +1849,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-063` — Fondasi data `S-C4-ONB`: 12 tabel `Hrd*`, dua master template, enum, dan migration pembersihan kandidat
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Prasyarat `BE-HRD-018` ✅ — **boleh dikerjakan sekarang**.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Skema sub-modul 05 berdiri tanpa menyentuh data mana pun: enam tabel kandidat kosong dibuang, dua master template dibentuk ulang, 12 tabel `Hrd*` dibuat, dan `WfpContractHistory` serta `MstContractType` mendapat kolom baru.
 * **Requirement/decision**: `HRD-DEC-090` butir 10–12, `HRD-DEC-019`, `HRD-DEC-086`; `FR-ONB-063`; `AT-HRD-ONB-37`.
 * **Kontrak**: Data Dictionary `v9` bagian 10; `02-backend-architecture.md` 18.4.12, 18.6, 18.7 (migration 2–4).
@@ -1811,7 +1867,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-064` — Amandemen tawaran `S-D2`: jenis kontrak dan lama kontrak (`HRD-DEC-095`)
 * **Slice / MVP**: `S-D2` (amandemen dari sub-modul 05) / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu BE-HRD-057.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Tawaran kerja memuat jenis dan lama kontrak, ikut disetujui bersama gaji, sehingga draf kontrak pertama dapat menyalinnya tanpa persetujuan ulang.
 * **Requirement/decision**: `HRD-DEC-095`; `FR-ONB-010`; `VR-ONB-50`, `VR-ONB-51`; `INT-HR-35`; `AT-HRD-ONB-38`.
 * **Kontrak**: API `v9` bagian 15.12; Data Dictionary `v9` bagian 10.14; migration 1 pada 18.7.
@@ -1828,7 +1884,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-065` — Penulisan kontrak satu pintu dan penguncian isian kepegawaian
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-063`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Hanya satu jalan menulis kontrak (`WfpContractHistoryWriteService`), lima isian kepegawaian di `MstEmployee` hanya ditulis sebagai salinan, dan jalur tulis lama ditutup dengan pesan yang terbaca.
 * **Requirement/decision**: `HRD-DEC-085` butir 2, `HRD-DEC-096` butir 5; `FR-ONB-015`; `VR-ONB-32`, `VR-ONB-33`, `VR-ONB-34`; `INT-HR-26`, `INT-HR-28`; `AT-HRD-ONB-09`, `AT-HRD-ONB-39`.
 * **Kontrak**: API `v9` bagian 15.11; `02-backend-architecture.md` 18.4.10 (service di modul lain), 18.4.11.
@@ -1845,7 +1901,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-066` — Ekstraksi service akun login pegawai
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Prasyarat `BE-HRD-028` ✅ — **boleh dikerjakan sekarang**.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Logika pembuatan akun yang hari ini tinggal di `EmployeeController` dapat dipanggil service lain, dengan dua metode baru: aktifkan dan nonaktifkan.
 * **Requirement/decision**: `HRD-DEC-088` butir 6–8; `HRD-TF-053`; `INT-HR-28`; `VR-ONB-75`.
 * **Kontrak**: `02-backend-architecture.md` 18.4.10 (`EmployeeUserAccountService`).
@@ -1862,7 +1918,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-067` — Penempatan, gaji awal, dan relasi atasan pegawai baru
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-063`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Sub-modul 02 punya satu service yang membuat penempatan organisasi, jabatan, dan gaji awal dari tawaran yang disetujui, serta relasi atasan saat siap kerja.
 * **Requirement/decision**: `HRD-DEC-096` butir 1–2, `HRD-DEC-031`, `HRD-DEC-049`, `HRD-DEC-084`; `FR-ONB-013`; `INT-HR-27`.
 * **Kontrak**: `02-backend-architecture.md` 18.4.10 (`WfpNewHireAssignmentService`), 18.9.6.
@@ -1880,7 +1936,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-068` — Integrasi persetujuan `T15` s.d. `T18`
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-063`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Empat jenis dokumen sub-modul 05 dapat diajukan ke kotak masuk persetujuan bersama dan keputusannya diteruskan ke service domain.
 * **Requirement/decision**: `HRD-DEC-081`, `HRD-DEC-018`, `HRD-DEC-031`; `INT-HR-30`.
 * **Kontrak**: Integration `v9` bagian 13 (`INT-HR-30`); `02-backend-architecture.md` 18.4.10.
@@ -1897,7 +1953,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-069` — Lampiran, number series, dan pengaturan siklus
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-063`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Service bersama untuk berkas bukti, enam kunci number series, dan API pengaturan siklus per rumah sakit.
 * **Requirement/decision**: `HRD-DEC-085` butir 4, `HRD-DEC-089` butir 1 dan 8; `VR-ONB-09`, `VR-ONB-80`.
 * **Kontrak**: API `v9` bagian 15.9; Data Dictionary bagian 10.13.
@@ -1914,7 +1970,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-070` — Template onboarding tiga lapis
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-063`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: HRD dapat menyusun Template Umum, Template Tambahan Tenaga Klinis, dan Template Tambahan Unit, dengan butir sistem yang terkunci.
 * **Requirement/decision**: `HRD-DEC-086`; `FR-ONB-006`; `VR-ONB-20` s.d. `VR-ONB-25`; `AT-HRD-ONB-19`.
 * **Kontrak**: API `v9` bagian 15.2.
@@ -1931,7 +1987,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-071` — Pembentukan masa percobaan dari jenis kontrak
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-063`, `BE-HRD-069`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Masa percobaan hanya lahir untuk kontrak PKWTT pertama sejak bergabung, tepat 3 bulan, dengan tanggal mulai tampil di daftar Perlu Tindakan.
 * **Requirement/decision**: `HRD-DEC-085` butir 1–3, `HRD-DEC-089` butir 6; `FR-ONB-030`, `FR-ONB-031`; `AT-HRD-ONB-10`, `AT-HRD-ONB-15`.
 * **Kontrak**: State Transition `v9` bagian 13.4; `02-backend-architecture.md` 18.9.3.
@@ -1948,7 +2004,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-072` — Kontrak pertama: draf dari tawaran, data cetak, dan tanda tangan
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-064`, `BE-HRD-065`, `BE-HRD-067`, `BE-HRD-071`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Draf kontrak pertama tersusun dari tawaran tanpa ketik ulang, dapat dicetak dengan gaji yang disembunyikan bagi yang tidak berhak, dan sah setelah scan bertanda tangan diunggah — sekaligus membuat penempatan, gaji awal, salinan kepegawaian, dan masa percobaan dalam satu transaksi.
 * **Requirement/decision**: `HRD-DEC-084`, `HRD-DEC-095`, `HRD-DEC-033`, `HRD-DEC-039`; `FR-ONB-011` s.d. `FR-ONB-014`; `VR-ONB-30`, `VR-ONB-31`; `AT-HRD-ONB-06` s.d. `AT-HRD-ONB-08`, `AT-HRD-ONB-40`.
 * **Kontrak**: API `v9` bagian 15.3 (`GET /`, `GET /{id}`, `GET /{id}/print-data`, `POST /{id}/mark-signed`, `GET /{id}/document`); State Transition bagian 13.3.
@@ -1966,7 +2022,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-073` — Pendampingan klinis
 * **Slice / MVP**: `S-C4-ONB` / `MVP-15`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-063`, `BE-HRD-069`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Kepala Unit dapat menetapkan dan mengganti preceptor serta menyatakan Siap Mandiri dengan lampiran, tanpa persetujuan HRD.
 * **Requirement/decision**: `HRD-DEC-087`; `FR-ONB-040` s.d. `FR-ONB-042`; `VR-ONB-08`, `VR-ONB-60` s.d. `VR-ONB-63`; `AT-HRD-ONB-27`, `AT-HRD-ONB-28`.
 * **Kontrak**: API `v9` bagian 15.5; State Transition bagian 13.7.
@@ -1983,7 +2039,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-074` — Kasus onboarding dari serah terima
 * **Slice / MVP**: `S-C4-ONB` / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-061`, `BE-HRD-066`, `BE-HRD-070`, `BE-HRD-072`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Serah terima rekrutmen membuka kasus onboarding, checklist tiga lapis, draf kontrak, dan permintaan akun dalam satu transaksi; HRD dan Kepala Unit dapat melihat daftar, ringkasan, dan detail kasus.
 * **Requirement/decision**: `HRD-DEC-083` butir 1–4, `HRD-DEC-086` butir 1–2, `HRD-DEC-088` butir 6; `FR-ONB-001`, `FR-ONB-002`; `VR-ONB-01`, `VR-ONB-02`; `INT-HR-25`; `AT-HRD-ONB-01` s.d. `AT-HRD-ONB-03`, `AT-HRD-ONB-16`.
 * **Kontrak**: API `v9` bagian 15.1 (`GET /`, `GET /summary`, `GET /{id}`); Integration bagian 13 (`INT-HR-25`).
@@ -2001,7 +2057,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-075` — Checklist, hadir hari pertama, dan butir otomatis
 * **Slice / MVP**: `S-C4-ONB` / `MVP-15`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-073`, `BE-HRD-074`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: HRD dan Kepala Unit mencentang butir masing-masing dengan bukti, memilih atasan langsung dan preceptor, mencatat hadir hari pertama yang mengaktifkan akun layanan mandiri, dan butir otomatis terisi dari data sistem.
 * **Requirement/decision**: `HRD-DEC-086` butir 3–7, `HRD-DEC-087` butir 2, `HRD-DEC-088` butir 7, `HRD-DEC-096` butir 1 dan 4; `FR-ONB-003`, `FR-ONB-004`; `VR-ONB-03` s.d. `VR-ONB-10`, `VR-ONB-15` s.d. `VR-ONB-17`; `INT-HR-32`; `AT-HRD-ONB-17`, `AT-HRD-ONB-18`, `AT-HRD-ONB-25`.
 * **Kontrak**: API `v9` bagian 15.1 (hadir hari pertama, centang dan batal centang butir HRD dan unit, periksa ulang butir otomatis, alihkan koordinator); State Transition bagian 13.2.
@@ -2019,7 +2075,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-076` — Siap kerja dan batal bergabung
 * **Slice / MVP**: `S-C4-ONB` / `MVP-15`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-067`, `BE-HRD-075`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: HRD menyatakan siap kerja satu kali setelah seluruh butir wajib selesai, atau mencatat batal bergabung sebelum hari pertama, dan seluruh akibatnya terjadi dalam satu transaksi.
 * **Requirement/decision**: `HRD-DEC-083` butir 5–7, `HRD-DEC-088` butir 1–5 dan 8, `HRD-DEC-080`, `HRD-DEC-031`; `FR-ONB-005`, `FR-ONB-020` s.d. `FR-ONB-022`; `VR-ONB-11` s.d. `VR-ONB-14`, `VR-ONB-16`; `AT-HRD-ONB-04`, `AT-HRD-ONB-05`, `AT-HRD-ONB-21` s.d. `AT-HRD-ONB-23`.
 * **Kontrak**: API `v9` bagian 15.1 (`POST /{id}/declare-ready`, `POST /{id}/cancel-join`); State Transition bagian 13.1, 13.9.
@@ -2036,7 +2092,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-077` — Permintaan akun dan akses kerja
 * **Slice / MVP**: `S-C4-ONB` / `MVP-15`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-074`.
+* **Status**: ✅ Selesai (2026-11-04) — Terverifikasi Roslyn Build 0 Error dan Laporan Task Terbit.
 * **Outcome**: Administrator/IT melihat permintaan akses kerja dan menandainya selesai; HRD dapat mengulang pembuatan akun yang gagal.
 * **Requirement/decision**: `HRD-DEC-088` butir 3, 6, 8, `HRD-DEC-032`; `FR-ONB-023`; `VR-ONB-75` s.d. `VR-ONB-77`; `INT-HR-34`; `AT-HRD-ONB-26`.
 * **Kontrak**: API `v9` bagian 15.7.
@@ -2205,3 +2261,290 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Bukti verifikasi**: Laporan uji per baris `AT-HRD-ONB`; `dotnet build`.
 * **Risiko & pemilik**: Penahan jadwal hanya terbukti bila 06 sudah membaca `INT-HR-31`; bila belum, baris itu dicatat belum terbukti. Pemilik: Backend Technical Lead.
 * **Definition of Done**: Seluruh baris backend terbukti atau dicatat penghalangnya; laporan tracked tersedia.
+
+---
+
+## Rincian Task Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`BE-HRD-087` s.d. `BE-HRD-103`)
+
+### ⏳ `BE-HRD-087` — Fondasi skema database dan migrasi EF Core Slice `S-B4`
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Siap dikerjakan (fondasi slice `S-B4`)
+* **Outcome**: Tabel `HrdSchedulingSettings` terbentuk; alter kolom pada `TrxRosterPeriod`, `TrxShiftAssignment`, `TrxShiftReplacement`, dan `TrxOnCallAssignment` selesai tanpa memutus data yang ada; seed parameter awal terpasang.
+* **Requirement/decision**: `HRD-DEC-097`, `HRD-DEC-098`, `HRD-DEC-099`, `HRD-DEC-101`, `HRD-DEC-102`, `HRD-DEC-103`, `02-backend-architecture.md` 19.6 dan 19.7, `data/data-dictionary.md` 11.4.
+* **Kontrak**: `v10` kamus data bagian 11.
+* **Reuse**: Skema database dev `QuilvianNewDevHamzah`.
+* **Cakupan**: EF Core Model Configuration, DbContext DbSet, dan EF Core Migration `AddSchedulingSettingsAndHardenRosterSliceB4`.
+* **Dependency**: Tidak ada
+* **Acceptance criteria**:
+  1. Tabel `HrdSchedulingSettings` berhasil dibuat dengan unique index pada `HospitalSiteId`.
+  2. Kolom baru pada 4 tabel existing berhasil ditambahkan dengan tipe nullable / default value.
+  3. `dotnet ef database update` berhasil dieksekusi tanpa error.
+* **Bukti verifikasi**: Output script SQL migration; query select pada tabel-tabel terkait.
+* **Risiko & pemilik**: Pastikan migrasi bersifat additive tanpa drop kolom. Pemilik: Backend Technical Lead.
+* **Definition of Done**: Migration terbentuk, lolos update db, model lolos compile C#.
+
+### ⏳ `BE-HRD-088` — Service konfigurasi penjadwalan & parameter waktu kerja (`SchedulingSettingService`)
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Menunggu `BE-HRD-087`
+* **Outcome**: Service dan controller untuk membaca dan memperbarui parameter aturan jeda istirahat (default 11 jam), batas hari berurutan, toleransi koreksi mundur (default 3 hari), dan toggle eskalasi ke blocking.
+* **Requirement/decision**: `HRD-DEC-099`, `HRD-DEC-102`, `HRD-ASM-10`, `HRD-ASM-13`, `02-backend-architecture.md` 19.4.2.
+* **Kontrak**: API Contract `v10` bagian 16.2 tag `[Tags("HR Scheduling - Settings")]`.
+* **Reuse**: Entity `HrdSchedulingSetting`.
+* **Cakupan**: `SchedulingSettingService`, `SchedulingSettingController`, DTOs.
+* **Dependency**: `BE-HRD-087`
+* **Acceptance criteria**:
+  1. Endpoint `GET /api/corporate/human-resource/scheduling/settings` mengembalikan setelan aktif.
+  2. Endpoint `PUT /api/corporate/human-resource/scheduling/settings` berhasil memperbarui setelan dan divalidasi rentang nilainya (`VR-SCH-80`).
+* **Bukti verifikasi**: Unit/API response test; log audit trail nilai lama dan baru.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Service dan controller terdaftar di DI, lolos compile, API responsif.
+
+### ⏳ `BE-HRD-089` — Mesin validasi jadwal: evaluasi aturan memblokir `B1`–`B7` (`RosterValidationService`)
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Menunggu `BE-HRD-087`, `BE-HRD-088`
+* **Outcome**: Mesin evaluasi mendeteksi seluruh pelanggaran memblokir (`B1` bentrok jam, `B2` cuti disetujui, `B3` mutasi unit, `B4` belum siap kerja `HRD-DEC-088`, `B5` kontrak berakhir `HRD-DEC-089`, `B6` status gagal dibaca `INT-HR-31`, `B7` staf Didampingi tanpa perawat Mandiri `HRD-DEC-100`).
+* **Requirement/decision**: `HRD-DEC-099`, `HRD-DEC-100`, `INT-HR-31`, `VR-SCH-01` s.d. `VR-SCH-07`, `02-backend-architecture.md` 19.9.1.
+* **Kontrak**: Validation Matrix `v10` 15.1.
+* **Reuse**: Query cuti di `LeaveManagement`, query kesiapan di `LifecycleManagement`.
+* **Cakupan**: `RosterValidationService.ValidateBlockingRulesAsync`.
+* **Dependency**: `BE-HRD-087`, `BE-HRD-088`
+* **Acceptance criteria**:
+  1. Jadwal dengan bentrok jam (`B1`) atau cuti penuh (`B2`) mengembalikan error memblokir.
+  2. Pegawai orientasi didampingi tanpa perawat mandiri di shift yang sama ditolak (`B7`).
+  3. Status kesiapan tidak terbaca otomatis memblokir jadwal (`B6`, gagal tertutup).
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-05` s.d. `AT-HRD-SCH-10`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Seluruh aturan `B1`–`B7` teruji dan mengembalikan kode penolakan yang tepat.
+
+### ⏳ `BE-HRD-090` — Mesin evaluasi peringatan `W1`–`W7` & validasi alasan wajib
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Menunggu `BE-HRD-088`
+* **Outcome**: Mesin evaluasi mendeteksi peringatan kerja (`W1` jeda < 11 jam, `W2` hari kerja > 6 hari, `W3` malam berurutan > 2, `W4` cuti pending, `W5` STR kedaluwarsa, `W6` kuota kurang, `W7` kualifikasi shift), serta memvalidasi ketersediaan alasan konfirmasi.
+* **Requirement/decision**: `HRD-DEC-099`, `HRD-DEC-100`, `VR-SCH-08` s.d. `VR-SCH-14`.
+* **Kontrak**: Validation Matrix `v10` 15.2.
+* **Reuse**: Parameter dari `HrdSchedulingSetting`.
+* **Cakupan**: `RosterValidationService.ValidateWarningRulesAsync`.
+* **Dependency**: `BE-HRD-088`
+* **Acceptance criteria**:
+  1. Peringatan jeda < 11 jam terdeteksi akurat berdasarkan master jam shift.
+  2. Kuota shift di bawah target unit memunculkan peringatan `W6`.
+  3. Peringatan tidak memblokir terbit bila alasan sah telah dipilih.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-11` dan `AT-HRD-SCH-12`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Evaluasi peringatan akurat, alasan wajib divalidasi.
+
+### ⏳ `BE-HRD-091` — Auto-populate staf eligible unit & filter kesiapan kerja (`INT-HR-40`)
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Menunggu `BE-HRD-087`
+* **Outcome**: Saat draft roster dibuat, sistem otomatis mengisi daftar staf dari penempatan aktif unit (`WorkforceCore`) yang berstatus siap kerja (`HRD-DEC-088`), serta menandai staf bertanda `Didampingi` beserta nama preceptornya (`HRD-DEC-087`).
+* **Requirement/decision**: `HRD-DEC-087`, `HRD-DEC-088`, `HRD-DEC-097`, `HRD-DEC-098`, `INT-HR-40`.
+* **Kontrak**: `v10` `02-backend-architecture.md` 19.4.2.
+* **Reuse**: `MstWorkforceProfile`, `HrdClinicalPreceptorship`.
+* **Cakupan**: `RosterPeriodService.PopulateEligibleStaffAsync`.
+* **Dependency**: `BE-HRD-087`
+* **Acceptance criteria**:
+  1. Staf unit terisi otomatis tanpa kepala unit perlu mengetik nama.
+  2. Pegawai `Pending Onboarding` disaring keluar otomatis.
+  3. Flag `IsAccompanied` dan `PreceptorEmployeeId` terisi akurat.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-01`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Query eligible staf cepat (< 500ms untuk 50 staf) dan akurat.
+
+### ⏳ `BE-HRD-092` — Fitur salin periode lalu & terapkan pola shift
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Menunggu `BE-HRD-091`
+* **Outcome**: Kepala unit dapat menduplikasi seluruh matriks shift bulan sebelumnya atau menerapkan template pola shift berulang ke kelompok pegawai.
+* **Requirement/decision**: `HRD-DEC-098`, `04-prd-to-mvp.md` `FR-SCH-02`, `FR-SCH-03`.
+* **Kontrak**: API Contract `v10` tag `[Tags("HR Scheduling - Roster Period")]`.
+* **Reuse**: `MstShiftPattern`, `TrxShiftAssignment`.
+* **Cakupan**: `RosterPeriodService.CopyPreviousPeriodAsync`, `ApplyShiftPatternAsync`.
+* **Dependency**: `BE-HRD-091`
+* **Acceptance criteria**:
+  1. Salin periode menduplikasi seluruh sel shift dengan pemetaan tanggal bulan baru yang tepat.
+  2. Terapkan pola shift mengisi sel shift secara berulang sesuai panjang siklus pola.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-03`, `AT-HRD-SCH-04`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Proses massal berjalan di dalam database transaction, waktu eksekusi < 2 detik.
+
+### ⏳ `BE-HRD-093` — Penerbitan roster mandiri dengan validasi ulang otomatis & notifikasi tembusan
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Menunggu `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-092`
+* **Outcome**: Roster diterbitkan langsung oleh Kepala Unit (`HRD-DEC-098`); tombol Terbitkan otomatis menjalankan validasi ulang; status berubah ke `Published`; notifikasi dikirim ke staf dan Kepala Bidang.
+* **Requirement/decision**: `HRD-DEC-098`, `02-backend-architecture.md` 19.4.2, `HRD-TF-052` (a).
+* **Kontrak**: API Contract `v10` `/roster-periods/{id}/publish`.
+* **Reuse**: `TrxRosterPublication`, notification dispatcher.
+* **Cakupan**: `RosterPeriodService.PublishAsync`.
+* **Dependency**: `BE-HRD-089`, `BE-HRD-090`, `BE-HRD-092`
+* **Acceptance criteria**:
+  1. Permintaan terbit menolak jika ada pelanggaran `B1`–`B7` atau ada `W` tanpa alasan (menutup celah `HRD-TF-052` a).
+  2. Status periode berubah menjadi `Published`, `PublishedAt` dan `PublishedByUserId` tercatat.
+  3. Kepala Bidang menerima tembusan notifikasi terbit dan hak pantau *read-only*.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-12`, `AT-HRD-SCH-13`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Terbit aman konkurensi, jejak audit publikasi tersimpan.
+
+### ⏳ `BE-HRD-094` — Controller & endpoint lengkap Roster Period (`RosterPeriodController`)
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: ⏳ Menunggu `BE-HRD-093`
+* **Outcome**: Seluruh endpoint RESTful untuk siklus hidup roster bulanan terdaftar, divalidasi hak aksesnya, dan beroperasi stabil.
+* **Requirement/decision**: `HRD-DEC-097`, `HRD-DEC-098`, API Contract `v10` 16.2.
+* **Kontrak**: API Contract `v10` tag `[Tags("HR Scheduling - Roster Period")]`.
+* **Reuse**: `RosterPeriodController.cs`.
+* **Cakupan**: Refaktor controller, atribut `[AccessPermission]`, DTO request/response.
+* **Dependency**: `BE-HRD-093`
+* **Acceptance criteria**:
+  1. Seluruh endpoint lolos audit permission: Kepala Unit berhak ubah unitnya; Kepala Bidang hanya read; staf unit lain ditolak (403).
+  2. Kode periode terstandarisasi dan bebas konflik nama.
+* **Bukti verifikasi**: API integration testing; Swagger UI test.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Endpoint bergaya Swagger terpasang, response konsisten.
+
+### ⏳ `BE-HRD-095` — Service penggantian shift langsung (*Override*) & audit trail (`ShiftReplacementService`)
+* **Slice / MVP**: `S-B4` / `MVP-19`
+* **Status**: ⏳ Menunggu `BE-HRD-089`, `BE-HRD-093`
+* **Outcome**: Penggantian staf darurat pasca-terbit dieksekusi langsung oleh Kepala Unit; status periode tetap `Published` (tidak turun ke Draft); staf pengganti divalidasi keamanannya; notifikasi otomatis terkirim.
+* **Requirement/decision**: `HRD-DEC-101`, `HRD-TF-052` (b), `HRD-TF-054`, `02-backend-architecture.md` 19.9.3.
+* **Kontrak**: State Transition Matrix `v10` 14.1 & 14.4.
+* **Reuse**: `TrxShiftReplacement`, `TrxShiftAssignment`.
+* **Cakupan**: `ShiftReplacementService.ExecuteDirectReplacementAsync`.
+* **Dependency**: `BE-HRD-089`, `BE-HRD-093`
+* **Acceptance criteria**:
+  1. Status periode roster tetap `Published` (menutup bug `HRD-TF-052` b).
+  2. Staf pengganti yang bentrok atau cuti ditolak sistem (menutup bug `HRD-TF-054`).
+  3. Shift berpindah langsung ke pengganti (`IsManualOverride = true`), alasan mutasi tercatat wajib.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-14`, `AT-HRD-SCH-15`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Service mutasi shift langsung efektif dan terekam di audit trail.
+
+### ⏳ `BE-HRD-096` — Controller & endpoint Ganti Petugas Langsung (`ShiftReplacementController`)
+* **Slice / MVP**: `S-B4` / `MVP-19`
+* **Status**: ⏳ Menunggu `BE-HRD-095`
+* **Outcome**: Endpoint POST untuk eksekusi penggantian staf darurat pada shift terbit dengan atribut permission yang tepat.
+* **Requirement/decision**: `HRD-DEC-101`, API Contract `v10` tag `[Tags("HR Scheduling - Shift Assignment & Replacement")]`.
+* **Kontrak**: API Contract `v10` 16.2 butir 5.
+* **Reuse**: `ShiftReplacementController.cs`.
+* **Cakupan**: Controller endpoint `POST .../shift-assignments/{id}/replace`.
+* **Dependency**: `BE-HRD-095`
+* **Acceptance criteria**:
+  1. Endpoint menerima `replacementEmployeeId`, `reasonCategory`, dan `notes`.
+  2. Response mengembalikan konfirmasi mutasi dan daftar notifikasi yang dikirim.
+* **Bukti verifikasi**: Endpoint test dengan berbagai variasi alasan.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Endpoint beroperasi stabil, error ditangani bersih.
+
+### ⏳ `BE-HRD-097` — Service koreksi mundur jadwal (<= 3 hari) & event rekalkulasi absensi (`INT-HR-36`)
+* **Slice / MVP**: `S-B4` / `MVP-19`
+* **Status**: ⏳ Menunggu `BE-HRD-088`, `BE-HRD-095`
+* **Outcome**: Kepala unit dapat mengoreksi jadwal tanggal mundur maksimal 3 hari ke belakang; perubahan otomatis memicu event rekalkulasi kehadiran di modul 07; koreksi > 3 hari ditolak sistem.
+* **Requirement/decision**: `HRD-DEC-102`, `HRD-ASM-13`, `INT-HR-36`, `02-backend-architecture.md` 19.9.4.
+* **Kontrak**: Validation Matrix `v10` `VR-SCH-17`.
+* **Reuse**: Event dispatcher, integration bridge ke Kehadiran.
+* **Cakupan**: `ShiftAssignmentService.RetroactiveCorrectionAsync`.
+* **Dependency**: `BE-HRD-088`, `BE-HRD-095`
+* **Acceptance criteria**:
+  1. Koreksi tanggal mundur `today - shiftDate <= 3` berhasil disimpan dengan alasan wajib.
+  2. Event `RetroactiveShiftCorrectedEvent` dipicu untuk modul Kehadiran (07).
+  3. Koreksi `today - shiftDate > 3` ditolak (HTTP 422) bagi peran Kepala Unit.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-16`, `AT-HRD-SCH-17`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Toleransi 3 hari tervalidasi, rekalkulasi absensi terpicu otomatis.
+
+### ⏳ `BE-HRD-098` — Service & endpoint penutupan periode roster oleh HRD Payroll (`Closed` Lock)
+* **Slice / MVP**: `S-B4` / `MVP-19`
+* **Status**: ⏳ Menunggu `BE-HRD-094`
+* **Outcome**: Tim Payroll HRD dapat menutup periode roster saat cut-off penggajian; periode `Draft` ditolak untuk ditutup; periode `Closed` terkunci mutlak (*read-only*).
+* **Requirement/decision**: `HRD-DEC-102`, `HRD-TF-052` (d), `02-backend-architecture.md` 19.9.4.
+* **Kontrak**: State Transition Matrix `v10` 14.1.
+* **Reuse**: `TrxRosterPeriod.ClosedAt`, `ClosedByUserId`.
+* **Cakupan**: `RosterPeriodService.ClosePeriodAsync`, endpoint `POST .../close`.
+* **Dependency**: `BE-HRD-094`
+* **Acceptance criteria**:
+  1. Penutupan periode yang masih berstatus `Draft` ditolak (menutup bug `HRD-TF-052` d).
+  2. Periode `Published` berubah menjadi `Closed`, `ClosedByUserId` dan `ClosedAt` tercatat.
+  3. Seluruh permintaan mutasi/tambah/ubah shift pada periode `Closed` ditolak mutlak (HTTP 403).
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-18`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Status `Closed` mengunci seluruh operasi tulis pada periode terkait.
+
+### ⏳ `BE-HRD-099` — Penyelarasan status siaga aktif (`Active`) untuk kontrak Lab (`LAB-DEC-111`)
+* **Slice / MVP**: `S-B4` / `MVP-20`
+* **Status**: ⏳ Menunggu `BE-HRD-087`
+* **Outcome**: Memperbaiki bug `HRD-TF-053` agar status siaga aktif tetap `Active` (bukan `Activated`) sehingga `LabConfirmingDoctorResolver` tetap menemukan dokter konfirmator hasil kritis lab.
+* **Requirement/decision**: `HRD-DEC-103`, `HRD-TF-053`, `HRD-TF-055` (c), `LAB-DEC-111`.
+* **Kontrak**: State Transition Matrix `v10` 14.3, Integration Contract `INT-HR-37`.
+* **Reuse**: `OnCallAssignmentService.cs`, `TrxOnCallAssignment`.
+* **Cakupan**: Refaktor enum status on-call dan query status resolver.
+* **Dependency**: `BE-HRD-087`
+* **Acceptance criteria**:
+  1. Kosakata status siaga: `Scheduled`, `Confirmed`, `Active`, `Completed`.
+  2. Saat dokter siaga dipanggil, status penugasan tetap `Active`.
+  3. Query `LabConfirmingDoctorResolver` berhasil membaca dokter siaga yang sedang aktif.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-20`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Kontrak integrasi Lab pulih dan tidak rusak saat pemanggilan dokter.
+
+### ⏳ `BE-HRD-100` — Service pencatatan pemanggilan cito (*Call-In*) & evaluasi SLA waktu respon
+* **Slice / MVP**: `S-B4` / `MVP-20`
+* **Status**: ⏳ Menunggu `BE-HRD-099`
+* **Outcome**: Unit klinis dapat mencatat pemanggilan siaga cito; sistem mencatat waktu panggil (*CallInTime*), waktu kedatangan (*ArrivalTime*), menghitung `ResponseMinutes`, dan memvalidasi terhadap `ExpectedResponseMinutes`.
+* **Requirement/decision**: `HRD-DEC-103`, `02-backend-architecture.md` 19.9.5.
+* **Kontrak**: API Contract `v10` `/on-call-assignments/{id}/call-in`.
+* **Reuse**: `TrxOnCallAssignment`, `MstOnCallType`.
+* **Cakupan**: `OnCallAssignmentService.RecordCallInAsync`.
+* **Dependency**: `BE-HRD-099`
+* **Acceptance criteria**:
+  1. Waktu panggilan dan kedatangan dokter tersimpan akurat.
+  2. `ResponseMinutes` dihitung otomatis: `ArrivalTime - CallInTime`.
+  3. `IsSlaMet` bernilai `true` jika `ResponseMinutes <= ExpectedResponseMinutes`.
+* **Bukti verifikasi**: Test case `AT-HRD-SCH-19`.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Perekaman call-in akurat, indikator SLA mutu RS terekam.
+
+### ⏳ `BE-HRD-101` — Integrasi handoff kompensasi siaga & pemanggilan cito ke Payroll dan Lembur (`INT-HR-38`)
+* **Slice / MVP**: `S-B4` / `MVP-20`
+* **Status**: ⏳ Menunggu `BE-HRD-100`
+* **Outcome**: Jam standby siaga diteruskan ke modul Payroll (10) untuk tunjangan siaga; transaksi pemanggilan cito diteruskan ke modul Lembur (09) dan Payroll (10) sebagai hak insentif panggil cito (*call-out fee*).
+* **Requirement/decision**: `HRD-DEC-103`, `INT-HR-38`, `02-backend-architecture.md` 19.9.5.
+* **Kontrak**: Integration Contract `v10` `INT-HR-38`.
+* **Reuse**: Event dispatcher, integration bridge Payroll & Lembur.
+* **Cakupan**: `OnCallCompensationHandoffService`.
+* **Dependency**: `BE-HRD-100`
+* **Acceptance criteria**:
+  1. Rekap jam standby bulanan per dokter/staf dapat ditarik oleh modul Payroll.
+  2. Setiap kejadian call-in terverifikasi menghasilkan tiket tugas panggil cito di modul Lembur/Payroll.
+* **Bukti verifikasi**: Event dispatch test; verifikasi rekap data handoff.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Integrasi data kompensasi terhubung tanpa celah.
+
+### ⏳ `BE-HRD-102` — Controller & endpoint lengkap On-Call (`OnCallAssignmentController`)
+* **Slice / MVP**: `S-B4` / `MVP-20`
+* **Status**: ⏳ Menunggu `BE-HRD-100`, `BE-HRD-101`
+* **Outcome**: Seluruh endpoint penugasan siaga, aktivasi, dan pemanggilan cito terpasang dengan otorisasi yang tepat.
+* **Requirement/decision**: `HRD-DEC-103`, API Contract `v10` tag `[Tags("HR Scheduling - On-Call Management")]`.
+* **Kontrak**: API Contract `v10` 16.2.
+* **Reuse**: `OnCallAssignmentController.cs`.
+* **Cakupan**: Refaktor controller on-call, endpoint call-in, DTOs.
+* **Dependency**: `BE-HRD-100`, `BE-HRD-101`
+* **Acceptance criteria**:
+  1. Endpoint penugasan siaga memvalidasi jam mulai < jam selesai.
+  2. Endpoint call-in dapat diakses oleh unit pemanggil (Lab, IGD, OK).
+* **Bukti verifikasi**: API integration testing.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Endpoint aktif dan terdokumentasi di Swagger.
+
+### ⏳ `BE-HRD-103` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, dan build Slice `S-B4`
+* **Slice / MVP**: `S-B4` / Verifikasi
+* **Status**: ⏳ Menunggu `BE-HRD-094`, `BE-HRD-096`, `BE-HRD-097`, `BE-HRD-098`, `BE-HRD-102`
+* **Outcome**: Seluruh kode backend slice `S-B4` terverifikasi lolos kompilasi .NET, lulus QBE conformance check, dan memenuhi seluruh kriteria penerimaan `AT-HRD-SCH-01` s.d. `AT-HRD-SCH-20`.
+* **Requirement/decision**: `04-prd-to-mvp.md` bagian 24.5 (Definition of Done `S-B4`), `testing/acceptance-test-matrix.md` bagian 18.
+* **Kontrak**: Seluruh kontrak `v10` bagian `S-B4`.
+* **Reuse**: Seluruh service dan controller `S-B4`.
+* **Cakupan**: `dotnet build`, QBE conformance script, verifikasi integrasi.
+* **Dependency**: `BE-HRD-094`, `BE-HRD-096`, `BE-HRD-097`, `BE-HRD-098`, `BE-HRD-102`
+* **Acceptance criteria**:
+  1. `dotnet build` project backend sukses dengan 0 error.
+  2. Seluruh 20 kasus uji penerimaan `AT-HRD-SCH` terpenuhi.
+  3. Konformansi QBE lolos tanpa pelanggaran arsitektur baru.
+* **Bukti verifikasi**: Laporan uji pre-deploy backend; log build.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead.
+* **Definition of Done**: Laporan verifikasi tracked tersedia, seluruh gerbang lulus.

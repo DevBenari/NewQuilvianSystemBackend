@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `5` — revisi `4` menyerap target state Slice `S-A1`; **revisi `5` (3 November 2026) menyerap keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` untuk target state Slice `S-D2` (Rekrutmen & Hiring), menutup blocker HRD-BLK-004 dan HRD-Q-05 dengan EMPTY_TABLE_GUARD, serta merencanakan 12 task backend (BE-HRD-018, BE-HRD-052 s.d. BE-HRD-062) dan 14 task frontend (FE-HRD-044 s.d. FE-HRD-057)** |
+| Roadmap revision | `8` — revisi `5` (3 Nov 2026) menyerap target state Slice `S-D2`; revisi `6` (3 Nov 2026) menyerap target state Slice `S-D1`; revisi `7` (4 Nov 2026) menyerap target state Slice `S-C4-ONB` (Onboarding & Kontrak Kerja); **revisi `8` (4 November 2026) menyerap keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` dan `HRD-ASM-05` s.d. `HRD-ASM-14` untuk target state Slice `S-B4` (Penjadwalan, Roster, dan On-Call), merencanakan 17 task backend (`BE-HRD-087` s.d. `BE-HRD-103`) dan 13 task frontend (`FE-HRD-075` s.d. `FE-HRD-087`) lintas gelombang MVP-18 s.d. MVP-20 & Verifikasi** |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -57,7 +57,7 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | --- | --- | --- |
 | `HRD-PH-001` | `S0-A`, `S0-B` | `READY` |
 | `HRD-PH-002` | `S-A1` s.d. `S-A7` | `READY` |
-| `HRD-PH-003` | `S-B1` s.d. `S-B4` | `READY` |
+| `HRD-PH-003` | `S-B1` s.d. `S-B4` | `READY` — `S-B4` direncanakan pada roadmap revision `8` (4 November 2026): 17 task backend (`BE-HRD-087` s.d. `BE-HRD-103`) dan 13 task frontend (`FE-HRD-075` s.d. `FE-HRD-087`) |
 | `HRD-PH-004` | `S-B5` | `READY` sebagian |
 | `HRD-PH-005` | `S-C1` | `BLOCKED` |
 | `HRD-PH-006` | `S-C6` | `BLOCKED` |
@@ -333,16 +333,16 @@ Lihat `flows/08-early-leave-permission.md`.
 | Aspek | Isi |
 | --- | --- |
 | **Current State** | **`MISSING API` untuk operational roster core**, bukan sekadar "backend tipis". 22 endpoint pada 3 controller melayani hanya 3 dari 11 model (`WfpWorkScheduleAssignment`, `WfpScheduleChangeRequest`, `WfpShiftSwapRequest`). **Delapan model tanpa satu pun controller**: `TrxRosterPeriod`, `TrxRosterAssignment`, `TrxRosterPublication`, `TrxRosterApproval` (seluruh mesin roster), `TrxShiftAssignment` (penugasan shift harian), `TrxShiftReplacement` (penggantian shift), `TrxEmergencyStaffingRequest` (tenaga darurat), `TrxOnCallAssignment` (penugasan siaga aktual) — dibuktikan `PHASE 2B`, `flows/05-work-scheduling.md`. `DefaultWorkScheduleSeeder` mengisi satu jadwal bawaan berkode `SCH-RSMMC-DEFAULT` saat aplikasi start |
-| **Target State** | Penyusunan jadwal per unit dan per periode, penugasan shift, deteksi bentrok, dan riwayat perubahan. **`HRD-DEC-026`, 28 Agustus 2026: untuk rumah sakit 24/7, roster period, roster assignment/publication, daily shift assignment, shift replacement, emergency staffing, dan actual on-call assignment adalah bagian target HR V2 — bukan `DEFERRED`.** Kedelapan entity di atas sudah model+EF+migration; perancangan ulang bebas **tidak berlaku** di sini seperti `S-D1`–`S-D5` |
-| **Backend Impact** | **`EXTEND` terhadap schema existing**, `HRD-DEC-026`. Delapan model tanpa controller mendapat API baru di atas struktur yang sudah ada. **Larangan:** jangan membuat schema baru sebelum audit model existing, dan `HRD-Q-05` wajib terjawab lebih dulu bila perubahan destruktif ternyata diperlukan. Cakupan endpoint per entity ditetapkan saat desain |
-| **Frontend Impact** | Kelompok halaman baru di `src/app/hr/scheduling/**` |
-| **Database Impact** | Kemungkinan penambahan index. Tidak ada tabel baru |
+| **Target State** | Penyusunan jadwal per unit dan per periode, penugasan shift harian, deteksi bentrok fisik/hukum (`B1`–`B7`), peringatan beralasan (`W1`–`W7`), pengaturan kebijakan penjadwalan HR (`HrdSchedulingSetting`), penggantian shift mendadak (*override*) langsung aktif tanpa menurunkan ke Draft (`HRD-DEC-101`), batas toleransi koreksi mundur maksimal 3 hari ke belakang (`HRD-DEC-102`), penguncian mutlak periode `Closed` saat cut-off payroll, serta tata kelola siaga on-call dokter & staf dengan pemantauan SLA respon menit dan integrasi Lab (`LAB-DEC-111` / `INT-HR-39`) dan Payroll (`INT-HR-40`). Telah dirancang pada `02-backend-architecture.md` bagian 19 dan `03-frontend-architecture.md` bagian 15. |
+| **Backend Impact** | **`EXTEND` terhadap 8 model operational roster existing + 1 entity konfigurasi baru `HrdSchedulingSetting`**, `HRD-DEC-026`. 17 task backend direncanakan (`BE-HRD-087` s.d. `BE-HRD-103`): fondasi skema setting & on-call (`BE-HRD-087`), setting controller (`BE-HRD-088`), mesin validasi keselamatan B1–B7 & W1–W7 (`BE-HRD-089`), integrasi kesiapan staf `INT-HR-31` (`BE-HRD-090`), integrasi kualifikasi klinis `INT-HR-37` (`BE-HRD-091`), siklus roster unit (`BE-HRD-092`), salin periode & pola shift massal (`BE-HRD-093`), query matriks roster & pantau manajer (`BE-HRD-094`), penugasan shift harian (`BE-HRD-095`), penggantian shift darurat langsung efektif (`BE-HRD-096`), koreksi mundur 3 hari & pemicu hitung ulang kehadiran `INT-HR-38` (`BE-HRD-097`), penguncian periode closed (`BE-HRD-098`), manajemen on-call (`BE-HRD-099`), pemanggilan call-in & SLA menit (`BE-HRD-100`), integrasi Lab `INT-HR-39` (`BE-HRD-101`), handoff Payroll/Lembur `INT-HR-40` (`BE-HRD-102`), dan verifikasi E2E (`BE-HRD-103`). |
+| **Frontend Impact** | 13 task frontend (`FE-HRD-075` s.d. `FE-HRD-087`) mencakup service client, Redux store, komponen matriks bulanan, drawer validasi B1–B7/W1–W7, modal salin/pola shift, modal ganti petugas, modal call-in & SLA, serta 6 layar: `FE-HRD-138` (Daftar Roster Unit), `FE-HRD-139` (Matriks Penyusunan & Terbit Roster), `FE-HRD-140` (Pantau Roster Bidang), `FE-HRD-141` (Jadwal Siaga On-Call Unit), `FE-HRD-142` (Riwayat Pemanggilan Cito & Respon), dan `FE-HRD-143` (Pengaturan Kebijakan Penjadwalan HR). |
+| **Database Impact** | 1 tabel baru `hrd_scheduling_settings`, 4 kolom baru pada `trx_on_call_assignments` (`is_called_in`, `called_in_at`, `arrived_at`, `response_minutes`), serta penambahan indeks performa untuk pencarian shift dan validasi tumpang tindih waktu. |
 | **Dependency** | `HRD-DEP-002` |
-| **Blocking Decision** | `HRD-DEC-006` sudah memisahkan jadwal kerja dari jadwal praktik. `HRD-Q-09` sudah dijawab `HRD-DEC-013`: jam praktik di luar jadwal kerja menjadi pengecualian yang menunggu keputusan atasan. `HRD-DEC-027`, 28 Agustus 2026: penempatan jadwal current/future oleh HR pada periode editable **tidak** butuh approval tambahan (audit trail wajib); perubahan retroactive atau yang menyentuh periode locked **wajib** controlled correction/approval — jangan membuat approval untuk setiap edit kecil |
-| **QBE Impact** | `NEW CODE` untuk endpoint tambahan pada delapan model yang di-`EXTEND`. Entity baru tidak diharapkan di luar itu; bila ternyata dibutuhkan, `QBE-MOD-002` berlaku dan entity wajib memakai prefix `Hrd` |
-| **Migration Risk** | Rendah untuk penempatan individual. **Perlu audit dependency lebih dulu** untuk delapan model roster/shift-harian/darurat/siaga sebelum `EXTEND` dijalankan, sesuai `HRD-DEC-026` |
-| **Acceptance Criteria** | 1. Bentrok jadwal terdeteksi sebelum disimpan. 2. Perubahan jadwal menyimpan alasan dan riwayat. 3. Jadwal pada periode kehadiran yang sudah tertutup tidak dapat diubah. 4. Jam praktik dokter di luar jadwal kerjanya muncul sebagai pengecualian, bukan lembur otomatis. 5. Penempatan current/future tidak memerlukan approval; perubahan retroactive/periode locked wajib lewat controlled correction |
-| **Release Status** | `READY` untuk penempatan individual (`WfpWorkScheduleAssignment`, sudah `READY TO REUSE`). Roster/shift-harian/penggantian/tenaga-darurat/siaga tetap `READY` untuk dirancang sebagai `EXTEND`, tidak `DEFERRED`, per `HRD-DEC-026` |
+| **Blocking Decision** | `HRD-DEC-006` sudah memisahkan jadwal kerja dari jadwal praktik. `HRD-DEC-098` s.d. `HRD-DEC-103` telah menyelesaikan seluruh aturan penerbitan mandiri, validasi pemblokir vs peringatan, penggantian darurat langsung efektif, toleransi koreksi mundur, dan keselamatan kontrak Lab on-call. Tidak ada blocking decision terbuka. |
+| **QBE Impact** | `NEW CODE` untuk endpoint tambahan pada delapan model yang di-`EXTEND` dan 1 entity `HrdSchedulingSetting`. Prefix `Hrd` dipatuhi per `QBE-MOD-002`. |
+| **Migration Risk** | Rendah — penambahan kolom on-call bersifat nullable, tabel konfigurasi diisi seeder nilai default aman. Tidak ada penghapusan skema atau migrasi destruktif. |
+| **Acceptance Criteria** | 1. Roster unit bergiliran terbit mandiri oleh Kepala Ruangan setelah lolos validasi otomatis `B1`–`B7` dan pengisian alasan `W1`–`W7`. 2. Kepala Bidang menerima notifikasi dan memiliki hak pantau *read-only*. 3. Penggantian petugas pasca-terbit langsung efektif tanpa mengubah status roster menjadi Draft. 4. Koreksi tanggal mundur dibatasi maksimal 3 hari ke belakang dan memicu hitung ulang absensi. 5. Periode `Closed` mengunci jadwal secara mutlak. 6. Status on-call tetap `Active` saat dipanggil untuk menjamin integritas kontrak Lab. |
+| **Release Status** | **`PLANNED`** — Desain disetujui pengguna 4 November 2026 (`HRD-DEC-097` s.d. `HRD-DEC-103`). Direncanakan 17 task backend (`BE-HRD-087` s.d. `BE-HRD-103`) dan 13 task frontend (`FE-HRD-075` s.d. `FE-HRD-087`) pada roadmap revision `8` lintas gelombang `MVP-18` s.d. `MVP-20` & Verifikasi. |
 
 ### `S-B5` — Payroll sisi HR
 
@@ -651,7 +651,8 @@ Contoh supaya batasnya jelas:
 
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
-| `READY` | **20** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-B1` s.d. `S-B4` (4), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1, sejak 3 November 2026) |
+| `READY` | **19** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-B1` s.d. `S-B3` (3), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1) |
+| `PLANNED` | **1** | `S-B4` (1, sejak 4 November 2026 — 17 task BE, 13 task FE pada roadmap revision 8) |
 | `PARTIAL` | 1 | `S-B5` |
 | `BLOCKED` | 4 | `S-C1`, `S-C6`, `S-D3`, `S-D4` |
 | `DEFERRED` | 1 | `S-D5` |

@@ -55,6 +55,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public string? EmployeeGradeName { get; set; }
         public string? AssignmentType { get; set; }
         public DateTime? EffectiveStartDate { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? EmploymentStatusName { get; set; }
     }
 
     public class DirectManagerInfoDto

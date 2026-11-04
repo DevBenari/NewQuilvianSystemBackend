@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [Required]
         public DateOnly ReminderFromDate { get; set; }
 
-        public ProbationStatus ProbationStatus { get; set; } = ProbationStatus.InProgress;
+        public ProbationStatus ProbationStatus { get; set; } = ProbationStatus.Running;
 
         public DateTime? ClosedAt { get; set; }
 

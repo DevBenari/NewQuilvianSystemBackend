@@ -81,5 +81,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public int ValidCount { get; set; }
         public int InvalidCount { get; set; }
         public List<string> ValidationErrors { get; set; } = new();
+        public List<RowValidationItemResponse> RowResults { get; set; } = new();
+    }
+
+    public class RowValidationItemResponse
+    {
+        public int RowIndex { get; set; }
+        public Guid WorkforceProfileId { get; set; }
+        public bool IsValid { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

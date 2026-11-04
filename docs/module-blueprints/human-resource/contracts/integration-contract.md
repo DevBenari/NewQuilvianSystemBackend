@@ -543,3 +543,30 @@ sama; sambungan berupa pemanggilan service, bukan HTTP, kecuali disebut lain.
 | `INT-HR-29` | `ResignationLifecycleHandoffService` ada (`HRD-TF-054`) | Tidak |
 | `INT-HR-31` | Penjadwalan 06 belum dirancang ulang (`S-B4`) | Rilis penahan jadwal menunggu 06 membaca kontrak ini |
 | `INT-HR-34` | Pemetaan peran `MAPPING_REQUIRED` (`HRD-DEC-032`) | Rilis akses kerja |
+
+
+---
+
+## 7. Titik Sambung Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`last_changed_in` `v10`, 4 November 2026)
+
+| ID | Arah integrasi | Deskripsi kontrak | Synchronous / Asynchronous | Perilaku bila pihak lawan gagal | Catatan |
+| --- | --- | --- | --- | --- | --- |
+| `INT-HR-36` | 06 → 07 Kehadiran | `AttendanceScheduleResolverService` membaca `TrxShiftAssignment` berstatus `Published` sebagai jadwal primer pegawai shift. Koreksi mundur jadwal memicu rekalkulasi absensi | Sync (baca) & Async (event rekalkulasi) | Bila service gagal, kehadiran memakai jadwal tetap bawaan; rekalkulasi di-retry via message queue | Menutup `HRD-TF-055` a |
+| `INT-HR-37` | 06 ↔ Health Services (Laboratorium) | `LabConfirmingDoctorResolver` (`LAB-DEC-111`) membaca `TrxOnCallAssignment` berstatus `Active` untuk dokter konfirmator hasil kritis lab. Status `Active` tetap terjaga saat terjadi pemanggilan | Sync (baca) | Dokter konfirmator gagal ditemukan; lab melakukan eskalasi manual ke dokter jaga onsite | Menutup `HRD-TF-053` & `HRD-DEC-103` |
+| `INT-HR-38` | 06 → 09 Lembur & 10 Payroll | Penugasan siaga standby diteruskan ke Payroll untuk tunjangan siaga. Transaksi pemanggilan fisik (*call-in*) diteruskan ke modul Lembur/Payroll sebagai hak insentif panggil cito | Async (event call-in & rekap bulanan) | Transaksi disimpan lokal di 06 dan di-reconcile saat proses cut-off payroll | `HRD-DEC-103` |
+| `INT-HR-39` | 06 → Health Services (Nurse View) | Modul Nurse View membaca roster shift terbit untuk menentukan perawat jaga dan penanggung jawab shift ruangan (`NV-DEC-021`) | Sync (baca) | Tampilan Nurse View fallback ke daftar staf unit tanpa penanda shift aktif | `HRD-TF-055` d |
+| `INT-HR-40` | 06 ← 05 Lifecycle (`INT-HR-31`) | Validasi 06 mengecek profil pegawai: siap kerja (`HRD-DEC-088`), batas kontrak aktif (`HRD-DEC-089`), dan status `Didampingi` (`HRD-DEC-087`, `HRD-DEC-100`) | Sync (baca) | **Gagal tertutup:** bila status profil tidak terbaca, sistem memblokir penjadwalan (`B6`) | Melaksanakan janji `INT-HR-31` |
+
+
+---
+
+## 8. Bagian `S-B1` — Kontrak Integrasi Administrasi Kehadiran Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+### 8.1 Daftar Kontrak Integrasi `INT-HR-41` s.d. `INT-HR-44`
+
+| ID Kontrak | Modul Terkait | Jenis Integrasi | Arah Data | Deskripsi & Titik Sentuh |
+| --- | --- | :---: | :---: | --- |
+| `INT-HR-41` | IT Hardware / Ingestion Service | Asinkron (Event/REST) | Inbound | Penyerapan log mentah biometrik (mesin fingerprint/face/mobile) secara *immutable* ke `HrdAttendanceRawLog`. |
+| `INT-HR-42` | Sub-Modul 06 (`S-B4` Penjadwalan) | Sinkron (Service Read) | Inbound | Pembacaan penugasan shift roster aktif (`TrxShiftAssignment`) per tanggal & staf oleh mesin `ScheduleResolver`. |
+| `INT-HR-43` | Sub-Modul 06 (`S-B4` Penjadwalan) | Asinkron (Internal Event) | Inbound | Menerima sinyal rekalkulasi dari koreksi mundur roster (`INT-HR-38`) dan memicu hitung ulang jam kerja harian. |
+| `INT-HR-44` | Sub-Modul 10 (`S-B5` Payroll) | Sinkron (REST/Command) | Outbound | Penyerahan rekapitulasi kehadiran final via `AttendancePayrollHandoff.Execute` dan eksekusi `Rollback` bila periode dibuka kembali. |

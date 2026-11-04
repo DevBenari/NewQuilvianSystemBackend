@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 7
+roadmap_revision: 8
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡 (acceptance criteria belum terbukti, menunggu FIX-HRD-002-09); FE-HRD-022, FE-HRD-024, FE-HRD-025 dikerjakan ulang dan tetap ✅. Sebelumnya: tanda FE-HRD-011, FE-HRD-015, FE-HRD-016, FE-HRD-018 diselaraskan ke 🟡 mengikuti register"
-planning_updated_at: "2026-11-04 — Slice S-C4-ONB Onboarding dan Kontrak Kerja (sub-modul 05) dipecah menjadi 17 task (FE-HRD-058 s.d. FE-HRD-074) untuk 15 layar FE-HRD-123 s.d. FE-HRD-137 per gelombang MVP-14 s.d. MVP-17 & Verifikasi; termasuk amandemen layar tawaran S-D2 (FE-HRD-072); grafik F13 s.d. F17 ditambahkan"
+planning_updated_at: "2026-11-04 — Slice S-B4 Penjadwalan, Roster, dan On-Call (sub-modul 06) dipecah menjadi 13 task (FE-HRD-075 s.d. FE-HRD-087) untuk 6 layar FE-HRD-138 s.d. FE-HRD-143 per gelombang MVP-18 s.d. MVP-20 & Verifikasi; grafik F18 s.d. F21 ditambahkan; sebelumnya Slice S-C4-ONB Onboarding dan Kontrak Kerja (sub-modul 05) dipecah menjadi 17 task (FE-HRD-058 s.d. FE-HRD-074) untuk 15 layar FE-HRD-123 s.d. FE-HRD-137 per gelombang MVP-14 s.d. MVP-17 & Verifikasi; termasuk amandemen layar tawaran S-D2 (FE-HRD-072); grafik F13 s.d. F17 ditambahkan"
 generated_at: "2026-10-26"
 owners:
   - "Frontend Technical Owner — HR UI Lead"
@@ -18,6 +18,7 @@ approved_by:
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D1 yang menjadi dasar task FE-HRD-029 s.d. FE-HRD-043"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D2 yang menjadi dasar task FE-HRD-044 s.d. FE-HRD-057"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-C4-ONB beserta lima pilihan desain (HRD-DEC-096) yang menjadi dasar task FE-HRD-058 s.d. FE-HRD-074"
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B4 Penjadwalan, Roster, dan On-Call (HRD-DEC-097 s.d. HRD-DEC-103) yang menjadi dasar task FE-HRD-075 s.d. FE-HRD-087"
 blueprint_manifest_revision: 18
 decision_ids_s_d1: "HRD-DEC-058 s.d. HRD-DEC-072"
 source_commits:
@@ -588,6 +589,68 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 ---
 
 ## Kartu Detail Task Frontend
+
+
+### Grafik F18 — `S-B4` `MVP-18`: Service API, state Redux, dan layar kisi roster
+
+```text
+BE-HRD-094 [BE] ─> FE-HRD-075 ─> FE-HRD-076 ─> FE-HRD-077 ─┬─> FE-HRD-078
+                                                             │
+                                                             ├─> FE-HRD-079
+                                                             │
+                                                             ├─> FE-HRD-081
+                                                             │
+                                                             └─> FE-HRD-082
+```
+
+### Grafik F19 — `S-B4` `MVP-18`: Komponen validasi dan penerbitan roster mandiri
+
+```text
+FE-HRD-079 [F18] ──┐
+                   │
+BE-HRD-090 [BE] ───┴─> FE-HRD-080
+```
+
+### Grafik F20 — `S-B4` `MVP-19`: Ganti petugas dan koreksi mundur
+
+```text
+FE-HRD-081 [F18] ──┐
+                   │
+BE-HRD-096 [BE] ───┘
+
+FE-HRD-082 [F18] ──┐
+                   │
+BE-HRD-098 [BE] ───┘
+```
+
+### Grafik F21 — `S-B4` `MVP-20` & Verifikasi: On-Call, pengaturan, dan verifikasi keterjangkauan layar
+
+```text
+BE-HRD-102 [BE] ─> FE-HRD-083 ─> FE-HRD-084 ─> FE-HRD-085
+
+BE-HRD-088 [BE] ─> FE-HRD-086
+
+FE-HRD-080 [F19] ──┐
+                   │
+FE-HRD-081 [F20] ──┼─> FE-HRD-087
+                   │
+FE-HRD-082 [F20] ──┼──┐
+                   │  │
+FE-HRD-085 [F21] ──┘  │
+                      │
+FE-HRD-086 [F21] ─────┘
+```
+
+#### Tabel Gelombang Eksekusi Frontend `S-B4`
+
+| Gelombang | Task yang dapat dimulai bersamaan | Yang menunggu gelombang ini |
+| :---: | --- | --- |
+| **1** | `FE-HRD-075` (client API roster), `FE-HRD-083` (client API on-call), `FE-HRD-086` (layar setelan HR) | `FE-HRD-076`, `FE-HRD-084` |
+| **2** | `FE-HRD-076` (state Redux roster), `FE-HRD-084` (layar kalender siaga) | `FE-HRD-077`, `FE-HRD-085` |
+| **3** | `FE-HRD-077` (layar kisi roster), `FE-HRD-085` (modal call-in SLA) | `FE-HRD-078`, `FE-HRD-079`, `FE-HRD-081`, `FE-HRD-082` |
+| **4** | `FE-HRD-078` (aksi salin/pola), `FE-HRD-079` (drawer validasi & alasan), `FE-HRD-081` (modal ganti petugas), `FE-HRD-082` (koreksi mundur & banner Closed) | `FE-HRD-080` |
+| **5** | `FE-HRD-080` (aksi terbitkan roster mandiri) | `FE-HRD-087` (verifikasi layar S-B4) |
+| **6** | `FE-HRD-087` (verifikasi menu, hak akses & keterjangkauan S-B4) | Selesai dan siap UAT modul |
 
 ### `FE-HRD-001` — Penyelarasan Rute Kebab-Case pada Endpoint Constants Master Data
 * **Slice**: `S0-B`
@@ -1817,3 +1880,236 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 * **Bukti verifikasi**: Tangkapan layar sidebar per peran; `npm run lint:errors`, `npm run build`.
 * **Risiko & pemilik**: Pemetaan peran `MAPPING_REQUIRED` membatasi peran yang dapat diuji. Pemilik: Frontend HR UI Lead bersama QA.
 * **Definition of Done**: Seluruh layar terverifikasi terjangkau; laporan tracked tersedia.
+
+---
+
+## Rincian Task Frontend Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`FE-HRD-075` s.d. `FE-HRD-087`)
+
+### `FE-HRD-075` — Service Client API Roster Penjadwalan (`roster-scheduling-service.js` diperbarui)
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: Menunggu `BE-HRD-094` [BE].
+* **Outcome**: Service client Axios diperbarui untuk seluruh fungsi roster: get period, create, copy previous, apply pattern, validate, publish, quick replace, retroactive correct, dan close.
+* **Requirement/decision**: `03-frontend-architecture.md` 15.1, API Contract `v10` bagian 16.
+* **Kontrak**: API Contract `v10` tag `[Tags("HR Scheduling - Roster Period")]`.
+* **Kewenangan UI**: DEV_DISCRETION pada wrapper error handling Axios.
+* **Reuse**: `src/lib/services/hr/roster-scheduling-service.js`.
+* **Cakupan**: Penambahan method API client, handling token auth & error response standard.
+* **Dependency**: `BE-HRD-094` [BE]
+* **Acceptance criteria**:
+  1. Seluruh endpoint roster terhubung dengan tipe payload yang sesuai kontrak `v10`.
+  2. Error response HTTP 422 dipetakan ke format pesan yang dimengerti komponen UI.
+* **Bukti verifikasi**: API client integration test; TypeScript/JSDoc type checking.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Service client siap dikonsumsi komponen React, lulus lint.
+
+### `FE-HRD-076` — State Management Redux Roster Unit bulanan & cache invalidation
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: Menunggu `FE-HRD-075`.
+* **Outcome**: Redux slice `rosterSchedulingSlice` untuk menyimpan state periode aktif, daftar perawat, matriks shift, status validasi, dan mutasi optimistik.
+* **Requirement/decision**: `03-frontend-architecture.md` 15.4, 15.5.
+* **Kontrak**: `v10` `03-frontend-architecture.md`.
+* **Kewenangan UI**: DEV_DISCRETION struktur slice state.
+* **Reuse**: Redux Toolkit store.
+* **Cakupan**: Action thunk `fetchRosterPeriod`, `validateRoster`, `publishRoster`, `replaceShift`.
+* **Dependency**: `FE-HRD-075`
+* **Acceptance criteria**:
+  1. State merefleksikan perubahan sel jadwal tanpa lag visual (< 50ms).
+  2. Invalidation cache terjadi otomatis saat publish atau ganti petugas berhasil.
+* **Bukti verifikasi**: Redux DevTools profiling.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Redux store terdaftar, thunk async berjalan stabil.
+
+### `FE-HRD-077` — Layar Kisi Roster Bulanan Unit (`FE-HRD-138` `/hr/scheduling/roster`)
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: Menunggu `FE-HRD-076`.
+* **Outcome**: Layar utama kisi kalender roster bulanan unit dengan filter unit & bulan, sel kode shift warna-warni, penanda `Didampingi` (`HRD-DEC-087`, `HRD-DEC-100`), dan status badge periode.
+* **Requirement/decision**: `HRD-DEC-098`, `HRD-DEC-100`, `03-frontend-architecture.md` 15.3.1.
+* **Kontrak**: API Contract `v10` `/roster-periods`.
+* **Kewenangan UI**: Pilihan warna badge shift dan layout density adalah `DEV_DISCRETION`.
+* **Reuse**: `src/app/hr/scheduling/roster/page.jsx`, base table components.
+* **Cakupan**: Refaktor halaman kisi roster, responsive scrolling horizontal tanggal.
+* **Dependency**: `FE-HRD-076`
+* **Acceptance criteria**:
+  1. Grid menampilkan daftar perawat baris demi baris dan tanggal kolom demi kolom.
+  2. Perawat berstatus `Didampingi` menampilkan badge kuning `[Didampingi — Preceptor]`.
+  3. Status periode (`Draft`, `Validation`, `Published`, `Closed`) tampil jelas di header.
+* **Bukti verifikasi**: Visual screen verification; `npm run lint:errors`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar berfungsi responsif, skeleton loading terpasang.
+
+### `FE-HRD-078` — Komponen Aksi Massal: Salin Periode Lalu & Terapkan Pola Shift
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: Menunggu `FE-HRD-077`.
+* **Outcome**: Tombol aksi dan dialog modal untuk menyalin seluruh jadwal dari bulan lalu atau menerapkan pola shift berulang (misal P-S-M-L-L) untuk mempercepat kerja kepala ruangan.
+* **Requirement/decision**: `HRD-DEC-098`, `04-prd-to-mvp.md` `FR-SCH-02`, `FR-SCH-03`.
+* **Kontrak**: API Contract `v10` `/copy-previous` dan `/apply-pattern`.
+* **Kewenangan UI**: DEV_DISCRETION desain modal pilihan pola.
+* **Reuse**: Base modal, dropdown selector.
+* **Cakupan**: Komponen `CopyPreviousPeriodModal.jsx`, `ApplyShiftPatternModal.jsx`.
+* **Dependency**: `FE-HRD-077`
+* **Acceptance criteria**:
+  1. Klik Salin Periode Lalu menampilkan konfirmasi dan mengisi seluruh grid seketika.
+  2. Terapkan pola shift dapat diaplikasikan ke satu perawat atau seluruh perawat sekaligus.
+* **Bukti verifikasi**: UAT simulasi pengisian 500 kotak shift < 2 detik.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Aksi massal berfungsi mulus tanpa refresh halaman penuh.
+
+### `FE-HRD-079` — Komponen Drawer Validasi Jadwal: Blokir `B1`–`B7` & Peringatan `W1`–`W7` dengan Dropdown Alasan
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: Menunggu `FE-HRD-077`, `BE-HRD-090` [BE].
+* **Outcome**: Drawer interaktif menampilkan hasil periksa jadwal: memisahkan error pemblokir (merah) dan peringatan (kuning), serta menyediakan dropdown pemilihan alasan wajib.
+* **Requirement/decision**: `HRD-DEC-099`, `HRD-DEC-100`, `03-frontend-architecture.md` 15.3.2.
+* **Kontrak**: Validation Matrix `v10` 15.1 & 15.2.
+* **Kewenangan UI**: Animasi drawer dan ikon visual adalah `DEV_DISCRETION`.
+* **Reuse**: Base drawer component, BaseSelect.
+* **Cakupan**: Komponen `RosterValidationDrawer.jsx`.
+* **Dependency**: `FE-HRD-077`, `BE-HRD-090` [BE]
+* **Acceptance criteria**:
+  1. Pelanggaran `B1`–`B7` ditampilkan merah dengan tombol navigasi ke sel bermasalah.
+  2. Peringatan `W1`–`W7` menampilkan pilihan alasan wajib (`Kekurangan tenaga`, dll.).
+  3. Mengisi alasan mengubah status peringatan menjadi terkonfirmasi (hijau/centang).
+* **Bukti verifikasi**: UAT skenario jalur blokir dan jalur peringatan beralasan.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Drawer interaktif, validasi form alasan bekerja tepat.
+
+### `FE-HRD-080` — Aksi UI Tombol Terbitkan Roster Mandiri Kepala Unit dengan Validasi Form Alasan
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: Menunggu `FE-HRD-079`.
+* **Outcome**: Tombol **Terbitkan** pada header roster: terkunci jika masih ada error pemblokir atau ada peringatan tanpa alasan; aktif saat validasi lolos; memicu publikasi mandiri (`HRD-DEC-098`).
+* **Requirement/decision**: `HRD-DEC-098`, `03-frontend-architecture.md` 15.3.2.
+* **Kontrak**: API Contract `v10` `/roster-periods/{id}/publish`.
+* **Kewenangan UI**: Indikator disabled button dan modal konfirmasi publish adalah `DEV_DISCRETION`.
+* **Reuse**: BaseButton, toast notification.
+* **Cakupan**: Integrasi tombol publish, payload array `warningReasons`.
+* **Dependency**: `FE-HRD-079`
+* **Acceptance criteria**:
+  1. Tombol Terbitkan disabled selama `blockingConflicts.length > 0` atau alasan belum lengkap.
+  2. Klik Terbitkan mengirim alasan-alasan yang dipilih ke backend dan mengubah badge ke `Published`.
+  3. Toast sukses muncul mengonfirmasi bahwa Kepala Bidang telah diberi tahu.
+* **Bukti verifikasi**: UAT skenario sukses terbit.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Penerbitan mandiri sukses, UI ter-update tanpa reload.
+
+### `FE-HRD-081` — Komponen Modal Ganti Petugas Cepat (*Quick Replacement*) dengan Alasan Wajib
+* **Slice / MVP**: `S-B4` / `MVP-19`
+* **Status**: Menunggu `FE-HRD-077`, `BE-HRD-096` [BE].
+* **Outcome**: Modal popover saat sel shift pada roster terbit diklik: memungkinkan Kepala Unit menunjuk staf pengganti, memilih alasan wajib, dan langsung aktif seketika tanpa approval (`HRD-DEC-101`).
+* **Requirement/decision**: `HRD-DEC-101`, `03-frontend-architecture.md` 15.3.3.
+* **Kontrak**: API Contract `v10` `/shift-assignments/{id}/replace`.
+* **Kewenangan UI**: Desain form popover/modal adalah `DEV_DISCRETION`.
+* **Reuse**: BaseModal, BaseSelect, RadioGroup.
+* **Cakupan**: Komponen `QuickShiftReplacementModal.jsx`.
+* **Dependency**: `FE-HRD-077`, `BE-HRD-096` [BE]
+* **Acceptance criteria**:
+  1. Modal menampilkan nama staf asal dan waktu shift secara otomatis.
+  2. Dropdown pengganti menyaring perawat unit yang memenuhi syarat keselamatan.
+  3. Konfirmasi penggantian langsung memperbarui nama staf di sel jadwal dan status roster tetap `Published`.
+* **Bukti verifikasi**: UAT mutasi shift darurat pasca-terbit.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Penggantian shift langsung efektif secara visual dan data.
+
+### `FE-HRD-082` — Aksi UI Koreksi Mundur Jadwal (<= 3 hari) & Proteksi Periode Terkunci (`Closed` Banner)
+* **Slice / MVP**: `S-B4` / `MVP-19`
+* **Status**: Menunggu `FE-HRD-077`, `BE-HRD-098` [BE].
+* **Outcome**: Kontrol koreksi tanggal mundur dibatasi maks 3 hari kalender ke belakang dengan dialog alasan; bila periode berstatus `Closed`, seluruh sel tabel dikunci (*read-only*) dengan banner informatif.
+* **Requirement/decision**: `HRD-DEC-102`, `03-frontend-architecture.md` 15.3.1.
+* **Kontrak**: API Contract `v10` `/retroactive-correct`, `VR-SCH-17`, `VR-SCH-18`.
+* **Kewenangan UI**: Desain banner penguncian periode adalah `DEV_DISCRETION`.
+* **Reuse**: InformationAlert, Banner lock.
+* **Cakupan**: Handler edit mundur dan render conditional grid terkunci.
+* **Dependency**: `FE-HRD-077`, `BE-HRD-098` [BE]
+* **Acceptance criteria**:
+  1. Sel jadwal tanggal > 3 hari lalu tidak memunculkan opsi edit bagi peran Kepala Unit.
+  2. Periode `Closed` menonaktifkan seluruh tombol aksi (Buat, Salin, Ganti Petugas).
+  3. Banner penguncian abu-abu tampil menjelaskan periode telah ditutup oleh Payroll.
+* **Bukti verifikasi**: UAT skenario edit mundur dan inspeksi layar saat status Closed.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Proteksi UI presisi sesuai aturan bisnis.
+
+### `FE-HRD-083` — Service Client API On-Call & SLA (`on-call-service.js`)
+* **Slice / MVP**: `S-B4` / `MVP-20`
+* **Status**: Menunggu `BE-HRD-102` [BE].
+* **Outcome**: Service client Axios untuk manajemen siaga on-call: fetch jadwal siaga, create on-call, confirm on-call, dan call-in pencatatan waktu darurat.
+* **Requirement/decision**: `HRD-DEC-103`, API Contract `v10` tag `[Tags("HR Scheduling - On-Call Management")]`.
+* **Kontrak**: API Contract `v10` 16.2.
+* **Kewenangan UI**: DEV_DISCRETION struktur helper client.
+* **Reuse**: Axios client base.
+* **Cakupan**: Pembuatan `src/lib/services/hr/on-call-service.js`.
+* **Dependency**: `BE-HRD-102` [BE]
+* **Acceptance criteria**:
+  1. Seluruh endpoint on-call terhubung stabil.
+  2. Response data memuat atribut SLA dan status `Active`.
+* **Bukti verifikasi**: Client integration test.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Service siap dipakai komponen UI on-call.
+
+### `FE-HRD-084` — Layar Kalender Penugasan Siaga (*On-Call Coverage*) (`FE-HRD-141` `/hr/scheduling/on-call`)
+* **Slice / MVP**: `S-B4` / `MVP-20`
+* **Status**: Menunggu `FE-HRD-083`.
+* **Outcome**: Layar kalender dan daftar penugasan siaga dokter spesialis dan staf penunjang cito per unit dan per tanggal, dengan filter profesi dan status badge (`Scheduled`, `Confirmed`, `Active`).
+* **Requirement/decision**: `HRD-DEC-103`, `03-frontend-architecture.md` 15.3.4.
+* **Kontrak**: API Contract `v10` `/on-call-assignments`.
+* **Kewenangan UI**: Pilihan visualisasi kalender vs list view adalah `DEV_DISCRETION`.
+* **Reuse**: Calendar base component, StatusBadge.
+* **Cakupan**: Pembuatan `src/app/hr/scheduling/on-call/page.jsx`.
+* **Dependency**: `FE-HRD-083`
+* **Acceptance criteria**:
+  1. Menampilkan jadwal siaga dokter dan perawat cito secara terpisah.
+  2. Dokter siaga yang sedang aktif menampilkan badge hijau `Active`.
+  3. Menyediakan tombol aksi **Panggil Siaga** untuk unit yang berwenang.
+* **Bukti verifikasi**: Visual screen test; responsivitas tampilan.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Halaman siaga terpasang dan dapat diakses dari menu.
+
+### `FE-HRD-085` — Komponen Modal Panggil Siaga (*Call-In*) & Display Badge Pemenuhan SLA Menit
+* **Slice / MVP**: `S-B4` / `MVP-20`
+* **Status**: Menunggu `FE-HRD-084`.
+* **Outcome**: Modal pemanggilan siaga darurat bagi unit pemanggil (Lab, IGD, OK): input waktu panggil, input waktu kedatangan dokter, dan otomatis menampilkan indikator kepatuhan target SLA respon menit (`MET_SLA` / `OVER_SLA`).
+* **Requirement/decision**: `HRD-DEC-103`, `03-frontend-architecture.md` 15.3.4.
+* **Kontrak**: API Contract `v10` `/on-call-assignments/{id}/call-in`.
+* **Kewenangan UI**: Visualisasi badge SLA dan timer hitung mundur adalah `DEV_DISCRETION`.
+* **Reuse**: BaseModal, DateTimePicker.
+* **Cakupan**: Komponen `OnCallCallInModal.jsx`.
+* **Dependency**: `FE-HRD-084`
+* **Acceptance criteria**:
+  1. Form mencatat waktu panggilan telepon dan waktu tiba dokter.
+  2. Selisih menit dihitung real-time dan dibandingkan dengan target SLA.
+  3. Badge hijau `[MEMENUHI SLA (25 min)]` tampil bila tiba tepat waktu.
+* **Bukti verifikasi**: UAT skenario pemanggilan dokter siaga lab/cito.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Modal berfungsi presisi, kalkulasi SLA akurat.
+
+### `FE-HRD-086` — Layar Pengaturan Kebijakan Penjadwalan HR (`FE-HRD-143` `/hr/scheduling/settings`)
+* **Slice / MVP**: `S-B4` / `MVP-18`
+* **Status**: Menunggu `BE-HRD-088` [BE].
+* **Outcome**: Layar admin HR untuk menyetel angka jeda istirahat minimal (default 11 jam), batas hari kerja berturut-turut, toleransi koreksi mundur (default 3 hari), dan toggle eskalasi aturan ke blocking.
+* **Requirement/decision**: `HRD-DEC-099`, `HRD-DEC-102`, `03-frontend-architecture.md` 15.1.
+* **Kontrak**: API Contract `v10` tag `[Tags("HR Scheduling - Settings")]`.
+* **Kewenangan UI**: Layout grouping form pengaturan adalah `DEV_DISCRETION`.
+* **Reuse**: BaseForm, NumberInput, Switch.
+* **Cakupan**: Pembuatan `src/app/hr/scheduling/settings/page.jsx`.
+* **Dependency**: `BE-HRD-088` [BE]
+* **Acceptance criteria**:
+  1. Admin HR dapat mengubah nilai parameter waktu kerja dengan validasi rentang.
+  2. Perubahan tersimpan dan langsung menjadi acuan mesin validasi roster.
+* **Bukti verifikasi**: UAT update parameter penjadwalan.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar pengaturan berfungsi, hanya dapat dibuka peran admin.
+
+### `FE-HRD-087` — Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar `S-B4`
+* **Slice / MVP**: `S-B4` / Verifikasi
+* **Status**: Menunggu `FE-HRD-080`, `FE-HRD-081`, `FE-HRD-082`, `FE-HRD-085`, `FE-HRD-086`.
+* **Outcome**: Seluruh layar `S-B4` (`FE-HRD-138` s.d. `FE-HRD-143`) terverifikasi terjangkau dari navigasi sidebar, hak akses peran teruji (Kepala Unit vs Kepala Bidang vs Admin), dan lolos uji linter CI/CD.
+* **Requirement/decision**: `03-frontend-architecture.md` 15.2, 15.4; `04-prd-to-mvp.md` 24.5.
+* **Kontrak**: Seluruh kontrak `v10` bagian `S-B4`.
+* **Kewenangan UI**: Tidak ada keputusan baru.
+* **Reuse**: Pola verifikasi `FE-HRD-074`.
+* **Cakupan**: Verifikasi sidebar per peran, uji loading/empty/error state, `npm run lint:errors`, `npm run build`.
+* **Dependency**: `FE-HRD-080`, `FE-HRD-081`, `FE-HRD-082`, `FE-HRD-085`, `FE-HRD-086`
+* **Acceptance criteria**:
+  1. Butir menu Penjadwalan tampil sesuai hak akses masing-masing peran.
+  2. Kepala Bidang memiliki hak pantau *read-only* tanpa tombol ubah yang aktif.
+  3. `npm run lint:errors` dan `npm run build` berhasil dengan 0 error.
+* **Bukti verifikasi**: Tangkapan layar sidebar per peran; laporan hasil lint & build.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA.
+* **Definition of Done**: Seluruh layar teruji, tidak ada broken link atau crash JS.

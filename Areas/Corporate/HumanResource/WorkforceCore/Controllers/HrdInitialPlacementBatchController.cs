@@ -129,6 +129,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return Ok(ApiResponse<InitialBatchDetailResponse>.Ok(result, "Detail batch berhasil diambil."));
         }
 
+        [HttpPost("{id:guid}/validate")]
+        [ProducesResponseType(typeof(ApiResponse<InitialBatchDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Read",
+            "Read Initial Placement Batch",
+            Description = "Memvalidasi ulang integritas seluruh baris batch penempatan awal tersimpan",
+            AccessType = AccessTypes.Read,
+            SortOrder = 6)]
+        [AccessPermission("HrdInitialPlacementBatch", "Read")]
+        public async Task<IActionResult> ValidateBatch(Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var result = await _batchService.ValidateBatchByIdAsync(id, ct);
+                if (result == null)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Batch penempatan awal tidak ditemukan."));
+                }
+                return Ok(ApiResponse<InitialBatchDetailResponse>.Ok(result, "Validasi integritas batch berhasil diperbarui."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
         [HttpPost("{id:guid}/execute")]
         [ProducesResponseType(typeof(ApiResponse<InitialBatchDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

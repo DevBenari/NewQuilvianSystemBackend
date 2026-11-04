@@ -122,6 +122,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public string ApplicationNumber { get; set; } = string.Empty;
         public string CandidateName { get; set; } = string.Empty;
         public string OfferedPositionTitle { get; set; } = string.Empty;
+        public DateOnly ProposedJoinDate { get; set; }
         public Guid? ContractTypeId { get; set; }
         public string? ContractTypeName { get; set; }
         public int? ContractDurationMonths { get; set; }

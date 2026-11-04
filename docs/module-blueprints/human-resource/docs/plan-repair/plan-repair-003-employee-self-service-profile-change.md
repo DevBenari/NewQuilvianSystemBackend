@@ -35,6 +35,7 @@ Rencana perbaikan ini melengkapi kapabilitas Layanan Mandiri Karyawan (`S-A5`), 
 | `FIX-HRD-003-07` | Layar Layanan Mandiri | Pembuatan layar mandiri `employee-profile-changes-self-service-view.jsx` dengan live diff detector, kartu penempatan read-only, tombol tunggal "Simpan dan Ajukan Perubahan Data", dan tab Riwayat Pengajuan Saya | FE | P0 | ✅ SELESAI | `src/app/self-services/human-resource/employee/profile-changes/page.jsx`, test `ESS-004` |
 | `FIX-HRD-003-08` | Layar Verifikasi HRD | Penyempurnaan `employee-profile-changes-view.jsx` dengan modal detail komparasi Nilai Lama vs Baru, unduhan berkas bukti, dan aksi Mulai Verifikasi | FE | P1 | ✅ SELESAI | `src/components/view/hr/workforce-core/employee-profile-changes-view.jsx`, test `ESS-005` |
 | `FIX-HRD-003-09` | Redesain Native Profil Workforce | Menggunakan kembali antarmuka canonical `WorkforceProfileDashboard` secara 100% identik tanpa form sisi kanan, mengaktifkan edit per-menu Profil Workforce secara native (Ringkasan Profil, Alamat, Rekening Bank, Keluarga, dll.), serta menyajikan Modal Tinjauan Usulan Perubahan untuk Approval HRD | FE | P0 | ✅ SELESAI | `employee-profile-changes-self-service-view.jsx`, test `ESS-004` |
+| `FIX-HRD-003-10` | Hak Akses Mandiri Karyawan (Fajar Hidayat) | Penyelarasan controller ESS ke canonical system-only security (menghapus hambatan matriks role `AccessPermission` yang memblokir karyawan biasa dengan HTTP 403 Forbidden) dan mengalihkan frontend ke `EmployeeSelfService.getMyCurrentProfile` | BE + FE | P0 | ✅ SELESAI | `EmployeeProfileChangeSelfServiceController.cs`, `employee-profile-changes-self-service-view.jsx`, live probe 200 OK |
 
 ---
 
@@ -70,6 +71,17 @@ if (typeof FormData !== "undefined" && config?.data instanceof FormData && confi
 }
 ```
 Solusi ini menyelesaikan kendala pada seluruh formulir unggah berkas di frontend, termasuk pengajuan atas nama (`createOnBehalfProfileChange`) dan lampiran bukti mandiri (`uploadMyProfileChangeEvidence`).
+
+### 3.5 Penyelarasan Otorisasi Layanan Mandiri Karyawan (Fajar Hidayat Issue Resolution)
+Karyawan rumah sakit biasa (seperti Fajar Hidayat) mengalami galat akses *"Anda tidak memiliki akses ke menu atau fitur ini"* dan *"Data profil tidak ditemukan"*:
+1. **Penyebab Backend**: Controller `EmployeeProfileChangeSelfServiceController.cs` sebelumnya dilindungi oleh anotasi `[AccessPermission("MyProfileChange", ...)]`. Pada sistem otorisasi RBAC Quilvian, filter `AccessPermissionFilter` memvalidasi kebijakan tabel `SysAccessPolicy` berdasarkan Departemen dan Jabatan. Karena karyawan biasa bukan administrator dan belum dipetakan secara manual ke matriks izin departemen, filter melempar respons `HTTP 403 Forbidden`. Sesuai pola arsitektur portal mandiri Quilvian lainnya (seperti `AttendanceSelfServiceController.cs`), endpoint Layanan Mandiri harus bersifat `VisibleInRoleAccess = false, IsSystemOnly = true`. Proteksi keamanan ditegakkan secara ketat melalui autentikasi JWT `[Authorize]`, token claims (`workforce_profile_id`, `employee_id`, `user_id`), dan pemeriksaan kepemilikan data mandiri (`GetOwnedAsync` dan `ResolveContextAsync`).
+2. **Penyebab Frontend**: Layar sebelumnya menggunakan hook `useMasterDataEmployeeDetail` yang memanggil API Master Data HR Admin korporat (`/api/v1/corporate/human-resource/master-data/employees/{id}`). Pemanggilan ini ditolak karena pengguna biasa tidak memiliki wewenang mengelola master data korporat.
+3. **Solusi yang Diterapkan**:
+   - Menghapus seluruh 14 anotasi `[AccessPermission("MyProfileChange", ...)]` dari `EmployeeProfileChangeSelfServiceController.cs`.
+   - Menetapkan properti `VisibleInRoleAccess = false, IsSystemOnly = true` pada atribut `[AccessController]`.
+   - Menyinkronkan metadata `SysControllerAccess` dan `SysActionAccess` pada basis data.
+   - Mengganti pemanggilan hook korporat pada `employee-profile-changes-self-service-view.jsx` dengan pemanggilan service ESS mandiri `EmployeeSelfService.getMyCurrentProfile()`.
+   - Mengompilasi ulang backend (`dotnet build`) dan menyalakan kembali service backend.
 
 ---
 

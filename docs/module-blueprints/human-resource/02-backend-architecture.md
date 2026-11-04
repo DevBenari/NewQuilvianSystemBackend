@@ -3818,3 +3818,201 @@ Sistem menjalankan evaluasi otomatis:
 | `HRD-DEC-101` | 19.4.1 (`TrxShiftReplacement`), 19.4.2 (`ShiftReplacementService`), 19.9.3 |
 | `HRD-DEC-102` | 19.4.1 (`TrxRosterPeriod.ClosedAt`), 19.4.2, 19.9.4 (Koreksi mundur 3 hari & Close lock) |
 | `HRD-DEC-103` | 19.3.2, 19.4.1 (`TrxOnCallAssignment`), 19.4.2 (`OnCallAssignmentService`), 19.9.5 |
+
+
+---
+
+## 20. Slice `S-B1` — Administrasi Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+Bagian ini merancang arsitektur backend target untuk **Slice `S-B1` — Administrasi Kehadiran dan Presensi Staf Rumah Sakit 24/7**, menyerap keputusan interview `HRD-DEC-028` (koreksi on-behalf), `HRD-DEC-029` (tiga peran waktu & early leave), `HRD-DEC-104` s.d. `HRD-DEC-109`, serta asumsi `HRD-ASM-15` s.d. `HRD-ASM-18`.
+
+### 20.1 Tabel Kepemilikan Data (Data Ownership Matrix)
+
+| Kelompok Data | Modul Pemilik | Dipakai di `S-B1`? | Dibuat Ulang? | Keterangan & Entitas |
+| --- | --- | :---: | :---: | --- |
+| Rekaman Mentah Biometrik | `AttendanceManagement` | Ya | Tidak (REUSE) | `HrdAttendanceRawLog` — *immutable*, mencatat `EventAt`, `DeviceId`, `PunchType`, `SourceType` (Fingerprint/Face/Mobile/API). |
+| Kehadiran Harian Olahan | `AttendanceManagement` | Ya | Tidak (EXTEND) | `HrdAttendanceDaily` — membawa `ShiftDate`, `CheckInAt`, `CheckOutAt`, `EffectiveWorkMinutes`, `LateMinutes`, `EarlyLeaveMinutes`, `Status`. |
+| Pengecualian Kehadiran | `AttendanceManagement` | Ya | Tidak (EXTEND) | `HrdAttendanceException` — mencatat keterlambatan, pulang cepat, lupa tap, atau mangkir. |
+| Koreksi Kehadiran | `AttendanceManagement` | Ya | Tidak (EXTEND) | `HrdAttendanceCorrection` — mendukung pengajuan mandiri ESS dan kuasa HR *on-behalf* (`HRD-DEC-028`). |
+| Izin Pulang Cepat | `AttendanceManagement` | Ya | **Baru (NEW)** | `HrdEarlyLeavePermission` — izin administratif resmi *non-deductible* (`HRD-DEC-107`). |
+| Surat Tugas Dinas Luar | `AttendanceManagement` | Ya | **Baru (NEW)** | `HrdOfficialDutyRequest` — penugasan ambulans rujukan, kurir lab, pelatihan, home care (`HRD-DEC-109`). |
+| Konfigurasi Kebijakan Presensi | `AttendanceManagement` | Ya | **Baru (NEW)** | `HrdAttendanceSetting` — parameter toleransi keterlambatan (`GracePeriod`), toleransi koreksi (`HRD-DEC-105`). |
+| Roster & Shift Harian | `SchedulingManagement` (`S-B4`) | Ya | Tidak (READ ONLY) | `TrxRosterPeriod`, `TrxShiftAssignment` — acuan jadwal resmi untuk pencocokan jam shift. |
+| Master Karyawan & Penempatan | `WorkforceCore` (`S-A1`) | Ya | Tidak (READ ONLY) | `MstWorkforceProfile`, `WfpEmploymentPlacement` — verifikasi keaktifan staf. |
+| Serah Terima Payroll | `PayrollManagement` (`S-B5`) | Ya | Tidak (INTEGRASI) | `TrxAttendancePayrollHandoff` — eksekusi transfer data bersih dan mekanisme *rollback* (`HRD-DEC-108`). |
+
+### 20.2 Diagram Kelas Bounded Context Attendance Management (Mermaid)
+
+```mermaid
+classDiagram
+    direction TB
+
+    class HrdAttendanceRawLog {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +DateTime EventAt
+        +string PunchType
+        +string SourceType
+        +string DeviceId
+        +string RawPayload
+        +bool IsProcessed
+        +DateTime? ProcessedAt
+    }
+
+    class HrdAttendanceDaily {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +DateOnly ShiftDate
+        +Guid? ShiftAssignmentId
+        +DateTime? ScheduledStartAt
+        +DateTime? ScheduledEndAt
+        +DateTime? ActualCheckInAt
+        +DateTime? ActualCheckOutAt
+        +int EffectiveWorkMinutes
+        +int LateMinutes
+        +int EarlyLeaveMinutes
+        +AttendanceDailyStatus Status
+        +bool IsLocked
+        +Guid? AttendancePeriodId
+    }
+
+    class HrdAttendanceException {
+        +Guid Id
+        +Guid AttendanceDailyId
+        +AttendanceExceptionType ExceptionType
+        +int VarianceMinutes
+        +AttendanceExceptionStatus Status
+        +string ResolutionNotes
+        +DateTime? ResolvedAt
+    }
+
+    class HrdAttendanceCorrection {
+        +Guid Id
+        +Guid AttendanceDailyId
+        +Guid RequestedByWorkforceId
+        +Guid TargetWorkforceId
+        +bool IsOnBehalf
+        +DateTime? CorrectedCheckInAt
+        +DateTime? CorrectedCheckOutAt
+        +string Reason
+        +string AttachmentUrl
+        +AttendanceCorrectionStatus Status
+        +Guid? ApprovedByWorkforceId
+        +DateTime? ApprovedAt
+    }
+
+    class HrdEarlyLeavePermission {
+        +Guid Id
+        +Guid AttendanceDailyId
+        +Guid WorkforceProfileId
+        +DateTime RequestedEarlyLeaveAt
+        +string Reason
+        +EarlyLeaveStatus Status
+        +Guid ApprovedByWorkforceId
+        +DateTime? ApprovedAt
+        +bool IsDeductible
+    }
+
+    class HrdOfficialDutyRequest {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +string DutyCategory
+        +string AssignmentOrderNumber
+        +DateTime StartAt
+        +DateTime EndAt
+        +string Destination
+        +string Purpose
+        +decimal? Latitude
+        +decimal? Longitude
+        +string AttachmentUrl
+        +OfficialDutyStatus Status
+        +Guid ApprovedByWorkforceId
+        +DateTime? ApprovedAt
+    }
+
+    class HrdAttendanceSetting {
+        +Guid Id
+        +string HospitalCode
+        +int GracePeriodMinutes
+        +int MaxBackdatedCorrectionDays
+        +bool RequireAttachmentForCorrection
+        +bool AutoConvertIncompleteToAbsent
+        +bool IsActive
+    }
+
+    class TrxAttendancePeriod {
+        +Guid Id
+        +string PeriodCode
+        +DateOnly StartDate
+        +DateOnly EndDate
+        +AttendancePeriodStatus Status
+        +DateTime? ClosedAt
+        +Guid? ClosedByWorkforceId
+        +DateTime? ReopenedAt
+        +Guid? ReopenedByWorkforceId
+        +string ReopenReason
+    }
+
+    HrdAttendanceDaily "1" --> "*" HrdAttendanceException : generates
+    HrdAttendanceDaily "1" --> "0..1" HrdAttendanceCorrection : resolved_by
+    HrdAttendanceDaily "1" --> "0..1" HrdEarlyLeavePermission : authorized_by
+    HrdAttendanceDaily "1" --> "0..1" HrdOfficialDutyRequest : covered_by
+    TrxAttendancePeriod "1" --> "*" HrdAttendanceDaily : groups
+    HrdAttendanceRawLog ..> HrdAttendanceDaily : resolves_into
+```
+
+### 20.3 Rincian Class, Service, dan Tanggung Jawab
+
+| Nama Komponen | Tipe | Lokasi File | Status | Fungsi Utama |
+| --- | :---: | --- | :---: | --- |
+| `HrdEarlyLeavePermission` | Model | `Areas/Corporate/HumanResource/AttendanceManagement/Models/` | Baru | Entitas perizinan pulang cepat administratif non-deductible (`HRD-DEC-107`). |
+| `HrdOfficialDutyRequest` | Model | `Areas/Corporate/HumanResource/AttendanceManagement/Models/` | Baru | Entitas surat tugas dinas luar (ambulans, kurir, pelatihan, home care `HRD-DEC-109`). |
+| `HrdAttendanceSetting` | Model | `Areas/Corporate/HumanResource/AttendanceManagement/Models/` | Baru | Entitas pengaturan toleransi keterlambatan dan kebijakan penutupan periode (`HRD-DEC-105`). |
+| `HrdAttendanceDaily` | Model | `Areas/Corporate/HumanResource/AttendanceManagement/Models/` | Diperbarui | Penambahan kolom relasi `EarlyLeavePermissionId`, `OfficialDutyRequestId`, dan status `IncompletePunch`. |
+| `HrdScheduleResolverService` | Service | `Areas/Corporate/HumanResource/AttendanceManagement/Services/` | Diperbarui | Mesin pencocok log mentah ke shift roster terbit, menangani shift malam lintas hari (`HRD-DEC-104`). |
+| `HrdAttendanceCalculationEngine` | Service | `Areas/Corporate/HumanResource/AttendanceManagement/Services/` | Diperbarui | Perhitungan menit kerja, evaluasi toleransi keterlambatan grace period (`HRD-DEC-105`), deteksi 1 tap (`HRD-DEC-106`). |
+| `HrdAttendanceCorrectionService` | Service | `Areas/Corporate/HumanResource/AttendanceManagement/Services/` | Diperbarui | Pengajuan & persetujuan koreksi mandiri dan kuasa HR on-behalf (`HRD-DEC-028`). |
+| `HrdEarlyLeavePermissionService` | Service | `Areas/Corporate/HumanResource/AttendanceManagement/Services/` | Baru | Pengelolaan izin pulang cepat administratif, approval atasan, dan penandaan waiver pengecualian. |
+| `HrdOfficialDutyService` | Service | `Areas/Corporate/HumanResource/AttendanceManagement/Services/` | Baru | Pengelolaan surat tugas dinas luar, verifikasi koordinat GPS/foto, dan penandaan status `OnDuty`. |
+| `HrdAttendancePeriodService` | Service | `Areas/Corporate/HumanResource/AttendanceManagement/Services/` | Diperbarui | Penutupan periode presensi (guard penolakan bila ada pending `HRD-DEC-108`) dan buka kembali darurat (rollback payroll). |
+| `AttendancePeriodController` | Controller | `Areas/Corporate/HumanResource/AttendanceManagement/Controllers/` | Diperbarui | Endpoint close dan reopen periode terhubung dengan pemeriksaan guard dan rollback payroll. |
+| `EarlyLeavePermissionController` | Controller | `Areas/Corporate/HumanResource/AttendanceManagement/Controllers/` | Baru | Endpoint RESTful untuk pengajuan, approval, dan query izin pulang cepat. |
+| `OfficialDutyController` | Controller | `Areas/Corporate/HumanResource/AttendanceManagement/Controllers/` | Baru | Endpoint RESTful untuk permohonan dinas luar dan approval atasan. |
+| `AttendanceSettingController` | Controller | `Areas/Corporate/HumanResource/AttendanceManagement/Controllers/` | Baru | Endpoint RESTful konfigurasi parameter presensi rumah sakit. |
+
+### 20.4 Aturan Bisnis Inti Backend (`ATT-B1` s.d. `ATT-B7` & `ATT-W1` s.d. `ATT-W6`)
+
+#### Aturan Pemblokir / Penolakan (Blocking Rules)
+* **`ATT-B1` — Immutability Raw Log:** Rekaman mentah presensi (`HrdAttendanceRawLog`) tidak dapat diubah (*update*) atau dihapus (*delete*) melalui endpoint mana pun. Koreksi kesalahan data wajib melalui entitas `HrdAttendanceCorrection`.
+* **`ATT-B2` — Penguncian Periode Closed:** Seluruh operasi tulis (*create*, *update*, *delete*) pada `HrdAttendanceDaily`, koreksi, maupun perizinan yang menyentuh tanggal di dalam periode berstatus `Closed` ditolak dengan kode `409 Conflict`.
+* **`ATT-B3` — Penolakan Tutup Periode Bila Ada Koreksi Pending (`HRD-DEC-108`):** Permintaan `CloseAttendancePeriod` ditolak dengan kode `409 Conflict` bila masih terdapat `HrdAttendanceCorrection` berstatus `Submitted` / `PendingApproval`.
+* **`ATT-B4` — Pembatasan Otorisasi Buka Kembali Periode:** Aksi `ReopenAttendancePeriod` ditolak dengan kode `403 Forbidden` bila aktor tidak memiliki wewenang `AttendancePeriod : Reopen` (khusus HR Manager / Kadiv SDM) atau bila alasan pembukaan kembali kosong.
+* **`ATT-B5` — Anti-Self-Approval Koreksi On-Behalf:** Petugas HR yang mengajukan koreksi presensi atas nama pegawai (`IsOnBehalf = true`) dilarang bertindak sebagai penyetuju (*approver*); persetujuan wajib dilakukan oleh atasan langsung pegawai yang bersangkutan.
+* **`ATT-B6` — Validasi Rentang Jam Dinas Luar:** Permohonan dinas luar ditolak bila `EndAt <= StartAt` atau bila tanggal penugasan telah melewati batas cut-off periode `Closed`.
+* **`ATT-B7` — Penolakan Koreksi Mundur Melewati Batas Toleransi:** Permohonan koreksi presensi ditolak bila tanggal shift yang dikoreksi melebihi `MaxBackdatedCorrectionDays` (default 3 hari kalender ke belakang) tanpa otorisasi khusus HR Manager.
+
+#### Aturan Peringatan & Evaluasi Logika (Warning / Logical Evaluation Rules)
+* **`ATT-W1` — Evaluasi Toleransi Keterlambatan Grace Period (`HRD-DEC-105`):** Kedatangan di dalam batas `GracePeriodMinutes` menghasilkan `LateMinutes = 0` dan `Status = Present`. Kedatangan di atas batas toleransi menghasilkan `LateMinutes = ActualCheckIn - ScheduledStart` dan `Status = Late`.
+* **`ATT-W2` — Shift Malam Lintas Hari (`HRD-DEC-104`):** Log tap masuk malam (hari H) dan log tap keluar pagi (hari H+1) dipasangkan secara utuh ke penugasan shift hari H (`ShiftDate = Hari H`).
+* **`ATT-W3` — Deteksi Lupa Tap & Konversi Otomatis (`HRD-DEC-106`):** Catatan presensi dengan 1 tap tunggal diberi status sementara `IncompletePunch`. Saat periode ditutup, sisa `IncompletePunch` yang belum dikoreksi otomatis dikonversi menjadi `Absent` (Mangkir).
+* **`ATT-W4` — Izin Pulang Cepat Non-Deductible (`HRD-DEC-107`):** Izin pulang cepat yang disetujui atasan menghasilkan penandaan `Waived` pada pengecualian `EarlyLeave`, jam kerja dihitung hingga tap-out aktual, dan tidak memotong kuota cuti tahunan.
+* **`ATT-W5` — Rollback Serah Terima Payroll Saat Reopen (`HRD-DEC-108`):** Pembukaan kembali periode tertutup otomatis mengeksekusi `AttendancePayrollHandoff.Rollback` bila serah terima payroll telah berstatus `Executed`.
+* **`ATT-W6` — Pengakuan Jam Kerja Dinas Luar (`HRD-DEC-109`):** Permohonan dinas luar yang disetujui menghasilkan status `OnDuty` dan jam kerja dihitung penuh setara hadir kerja (`Present`) untuk kalkulasi payroll.
+
+### 20.5 Rencana Migrasi Database EF Core
+
+1. **Nama Migration:** `AddAttendanceOperationalExtensionsAndSettings`
+2. **Perubahan Skema:**
+   * Penambahan tabel baru `hrd_attendance_settings` (konfigurasi toleransi keterlambatan, hari koreksi mundur).
+   * Penambahan tabel baru `hrd_early_leave_permissions` (tabel transaksi izin pulang cepat administratif).
+   * Penambahan tabel baru `hrd_official_duty_requests` (tabel transaksi surat tugas dinas luar, koordinat GPS, foto bukti).
+   * Penambahan kolom nullable pada `hrd_attendance_dailies`: `early_leave_permission_id` (Guid?, FK), `official_duty_request_id` (Guid?, FK), `incomplete_punch_reason` (string, max 500).
+   * Penambahan nilai enum pada `AttendanceDailyStatus`: `IncompletePunch`, `OnDuty`.
+3. **Sifat Migration:** Bersifat *additive* (tanpa downtime, tanpa penghapusan kolom existing).
+4. **Seeder Bawaan:** `DefaultAttendanceSettingSeeder` mengisi 1 baris konfigurasi default RS (`GracePeriodMinutes = 10`, `MaxBackdatedCorrectionDays = 3`, `RequireAttachmentForCorrection = true`, `AutoConvertIncompleteToAbsent = true`).
+
+### 20.6 Yang Sengaja Tidak Dibuat
+
+* **Tabel Perangkat Keras / Driver Fingerprint:** Sistem tidak menyimpan data firmware/driver mesin fisik. Komunikasi data dilakukan via file log/REST API Ingestion standard.
+* **Tabel Potongan Denda Keterlambatan Finansial:** Logika pemotongan uang makan atau denda nominal rupiah adalah wewenang penuh Sub-Modul 10 (Payroll) dan Sub-Modul 09 (Overtime), bukan dihitung di modul presensi.
+* **Approval Berjenjang Khusus On-Behalf:** Koreksi yang diajukan HR atas nama pegawai tidak membuat alur persetujuan baru; persetujuan tetap mengikuti atasan langsung pegawai yang bersangkutan per `HRD-DEC-028`.
