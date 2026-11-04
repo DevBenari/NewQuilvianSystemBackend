@@ -18,6 +18,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
     /// <summary>Hasil penyerahan fakta tagihan pemeriksaan ke producer klinis.</summary>
     public sealed record OptBillingEmission(bool Recorded, string? Code, string? Message);
 
+    /// <summary>Perkiraan harga satu baris pesanan; harga kosong berarti tarif tidak tersedia dan <c>Message</c> berisi sebabnya.</summary>
+    public sealed record OptItemPriceEstimate(Guid ItemId, decimal? UnitPrice, decimal? LineAmount, string? Message);
+
     /// <summary>
     /// Jalur tagihan Optik ke Billing lewat <see cref="ClinicalMilestoneFactProducer"/> (<c>BE-OPT-031</c>, <c>INT-OPT-04</c>,
     /// pola <c>LabOrderService</c>). Optik tidak pernah menyimpan harga; Billing membaca tarif tindakan (<c>BE-OPT-030</c>).
@@ -178,6 +181,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 return OptResult<bool>.Unavailable(OptErrorCodes.BillingUnavailable, OrderBillingUnavailableMessage);
             }
         }
+
+        /// <summary>
+        /// Perkiraan harga per baris pesanan <c>Draft</c> (<c>BE-OPT-054</c>, <c>OPT-DEC-075</c>, <c>076</c>). Masukannya sama persis
+        /// dengan <see cref="CheckItemTariffsAsync"/> yang dipakai Tagihkan (klinik dan kelas kunjungan, waktu pesanan, domain
+        /// <c>Optical</c>, efek <c>OpticalItemCharge</c>), sehingga harga yang tampil sama dengan baris tagihan pada saat itu.
+        /// Hanya membaca; tidak menerbitkan fakta. Barang tanpa tarif ditandai, bukan menggagalkan seluruh pratinjau.
+        /// </summary>
+        public async Task<OptResult<List<OptItemPriceEstimate>>> EstimateItemPricesAsync(OptOrder order, IReadOnlyCollection<OptOrderItem> items, DateTime occurredAt, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var clinicId = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
+                    .Where(x => x.Id == order.EncounterId).Select(x => x.ClinicId).FirstOrDefaultAsync(cancellationToken);
+                var kelas = await _serviceClassResolver.ResolveAsync(order.EncounterId, occurredAt, cancellationToken);
+                var hasil = new List<OptItemPriceEstimate>();
+                foreach (var item in items)
+                {
+                    var tarif = await _tariffResolver.ResolveAsync(new BillingTariffResolutionRequest(
+                        BillingBridgeSourceDomains.Optical, order.Id, item.Id, item.Quantity, clinicId, kelas.Id,
+                        DateTime.SpecifyKind(occurredAt, DateTimeKind.Utc), null, BillingSourceContract.OpticalItemChargeEffectType), cancellationToken);
+                    if (tarif.Kind == BillingTariffResolutionKind.Resolved)
+                    {
+                        hasil.Add(new OptItemPriceEstimate(item.Id, tarif.UnitPrice, tarif.UnitPrice * tarif.Quantity, null));
+                        continue;
+                    }
+                    var pesan = tarif.Code == BillingBridgeCodes.TariffNotFound || tarif.Code == BillingBridgeCodes.TariffAmbiguous
+                        ? await TariffMissingMessageAsync(item, cancellationToken)
+                        : tarif.Message ?? "Barang ini tidak dapat ditagihkan.";
+                    hasil.Add(new OptItemPriceEstimate(item.Id, null, null, pesan));
+                }
+                return OptResult<List<OptItemPriceEstimate>>.Ok(hasil);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return OptResult<List<OptItemPriceEstimate>>.Unavailable(OptErrorCodes.BillingUnavailable, PriceEstimateUnavailableMessage);
+            }
+        }
+
+        public const string PriceEstimateUnavailableMessage =
+            "Perkiraan harga belum dapat dihitung karena layanan tagihan sedang tidak dapat diakses. Silakan coba lagi.";
 
         /// <summary>
         /// Menerbitkan fakta <c>OpticalItemCharge</c> per baris lalu memastikan Billing sudah memasukkannya ke tagihan

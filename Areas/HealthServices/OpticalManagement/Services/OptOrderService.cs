@@ -122,10 +122,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
 
             if (query.NeedsContact == true)
             {
-                var hariPengingat = await _dbContext.OptSettings.AsNoTracking().Where(x => !x.IsDelete)
-                    .OrderBy(x => x.CreateDateTime).Select(x => (int?)x.PickupReminderDays).FirstOrDefaultAsync(cancellationToken) ?? 30;
-                var batas = Now().AddDays(-hariPengingat);
+                var batas = Now().AddDays(-await PickupReminderDaysAsync(cancellationToken));
                 orders = orders.Where(x => x.Status == OptOrderStatus.ReadyForPickup && x.ReadyAt != null && x.ReadyAt <= batas);
+            }
+
+            if (query.HasPendingCancellation == true)
+                orders = orders.Where(x => _dbContext.OptOrderCancellations.Any(c =>
+                    c.OrderId == x.Id && !c.IsDelete && c.Status == OptCancellationStatus.Requested));
+
+            if (query.PastNotCollectedLimit == true)
+            {
+                // Pesanan Siap Diambil sedikit; dinilai di memori dengan fungsi yang sama dengan Tutup Tidak Diambil,
+                // supaya penyaring, tanda baris, dan tombol tutup tidak pernah berbeda pendapat.
+                var batasTutup = await NotCollectedCloseDaysByUnitAsync(cancellationToken);
+                var hariIni = DateOnly.FromDateTime(Today());
+                var calon = await (
+                    from o in orders.Where(x => x.Status == OptOrderStatus.ReadyForPickup)
+                    join e in _dbContext.Set<RegPatientEncounter>().AsNoTracking() on o.EncounterId equals e.Id
+                    select new { o.Id, SiapAt = o.ReadyAt ?? o.UpdateDateTime ?? o.CreateDateTime, e.ServiceUnitId })
+                    .ToListAsync(cancellationToken);
+                var lewat = calon
+                    .Where(x => IsPastNotCollectedLimit(x.SiapAt, NotCollectedCloseDays(batasTutup, x.ServiceUnitId), hariIni))
+                    .Select(x => x.Id).ToList();
+                orders = orders.Where(x => lewat.Contains(x.Id));
             }
 
             if (!string.IsNullOrWhiteSpace(query.Search))
@@ -170,6 +189,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             return order is null
                 ? OptResult<OptOrderPaymentStatusResponse>.NotFound(NotFoundMessage)
                 : await _paymentGate.GetStatusAsync(order, cancellationToken);
+        }
+
+        public const string PricePreviewBilledMessage = "Harga pesanan yang sudah ditagihkan dibaca dari tagihan.";
+
+        /// <summary>
+        /// Perkiraan harga pesanan <c>Draft</c> yang belum ditagihkan (<c>BE-OPT-054</c>, <c>OPT-DEC-075</c>, <c>076</c>). Waktu tarif
+        /// sama dengan yang dipakai Tagihkan (waktu terakhir draf diubah), sehingga angkanya sama dengan baris tagihan bila draf
+        /// ditagihkan tanpa diubah lagi. Hanya membaca: tidak menerbitkan fakta tagihan dan tidak mengubah <c>Version</c>.
+        /// </summary>
+        public async Task<OptResult<OptOrderPricePreviewResponse>> GetPricePreviewAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var order = await _dbContext.OptOrders.AsNoTracking()
+                .Include(x => x.Items.Where(i => i.Status == OptOrderItemStatus.Active && !i.IsDelete))
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            if (order is null)
+                return OptResult<OptOrderPricePreviewResponse>.NotFound(NotFoundMessage);
+            if (order.IsRemake)
+                return OptResult<OptOrderPricePreviewResponse>.Conflict(OptErrorCodes.Val057, RemakeBillMessage);
+            if (order.Status != OptOrderStatus.Draft || order.BilledAt is not null)
+                return OptResult<OptOrderPricePreviewResponse>.Conflict(OptErrorCodes.Val057, PricePreviewBilledMessage);
+
+            var aktif = order.Items.OrderBy(x => x.LineNo).ToList();
+            var perkiraan = await _billing.EstimateItemPricesAsync(order, aktif, order.UpdateDateTime ?? order.CreateDateTime, cancellationToken);
+            if (!perkiraan.IsSuccess)
+                return OptResult<OptOrderPricePreviewResponse>.Unavailable(perkiraan.Code ?? OptErrorCodes.BillingUnavailable, perkiraan.Message ?? OptBillingGateway.PriceEstimateUnavailableMessage);
+
+            var drugIds = aktif.Select(x => x.DrugId).Distinct().ToList();
+            var barang = await _dbContext.Set<MstDrug>().AsNoTracking()
+                .Where(x => drugIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => new { x.DrugCode, x.DrugName }, cancellationToken);
+            var perBaris = perkiraan.Value!.ToDictionary(x => x.ItemId);
+            var lines = aktif.Select(x =>
+            {
+                var p = perBaris[x.Id];
+                return new OptOrderPricePreviewLine
+                {
+                    ItemId = x.Id,
+                    LineNo = x.LineNo,
+                    DrugCode = barang.GetValueOrDefault(x.DrugId)?.DrugCode ?? string.Empty,
+                    DrugName = barang.GetValueOrDefault(x.DrugId)?.DrugName ?? string.Empty,
+                    Quantity = x.Quantity,
+                    UnitPrice = p.UnitPrice,
+                    LineAmount = p.LineAmount,
+                    TariffAvailable = p.UnitPrice is not null,
+                    Message = p.Message,
+                };
+            }).ToList();
+            var semuaAda = lines.All(x => x.TariffAvailable);
+            return OptResult<OptOrderPricePreviewResponse>.Ok(new OptOrderPricePreviewResponse
+            {
+                OrderId = order.Id,
+                OrderNumber = order.OrderNumber,
+                Lines = lines,
+                AllTariffsAvailable = semuaAda,
+                EstimatedTotal = semuaAda ? lines.Sum(x => x.LineAmount ?? 0m) : null,
+            });
         }
 
         // ---------------------------------------------------------------- buat dan ubah
@@ -821,11 +895,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
 
             var unitId = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
                 .Where(x => x.Id == order.EncounterId).Select(x => x.ServiceUnitId).FirstAsync(cancellationToken);
-            var hari = await _dbContext.OptSettings.AsNoTracking().Where(x => x.ServiceUnitId == unitId && !x.IsDelete)
-                .Select(x => (int?)x.NotCollectedCloseDays).FirstOrDefaultAsync(cancellationToken) ?? 90;
-            var siapWib = DateOnly.FromDateTime(OptPractitionerLicenseReader.ToOperationalDate(
-                new DateTimeOffset(DateTime.SpecifyKind(order.ReadyAt ?? order.UpdateDateTime ?? order.CreateDateTime, DateTimeKind.Utc))));
-            if (siapWib.AddDays(hari) > DateOnly.FromDateTime(Today()))
+            var hari = NotCollectedCloseDays(await NotCollectedCloseDaysByUnitAsync(cancellationToken), unitId);
+            if (!IsPastNotCollectedLimit(order.ReadyAt ?? order.UpdateDateTime ?? order.CreateDateTime, hari, DateOnly.FromDateTime(Today())))
                 return OptResult<OptOrderResponse>.Conflict(OptErrorCodes.Val056, $"Pesanan baru bisa ditutup sesudah {hari} hari sejak siap diambil.");
 
             var now = Now();
@@ -1020,29 +1091,90 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             var rows = await (
                 from o in source
                 join e in _dbContext.Set<RegPatientEncounter>().AsNoTracking() on o.EncounterId equals e.Id
-                select new OptOrderListItemResponse
+                select new
                 {
-                    Id = o.Id,
-                    OrderNumber = o.OrderNumber,
-                    EncounterId = o.EncounterId,
-                    EncounterNumber = e.EncounterNumber,
-                    PatientId = o.PatientId,
-                    MedicalRecordNumber = _dbContext.Set<MstPatient>().Where(p => p.Id == o.PatientId).Select(p => p.MedicalRecordNumber).FirstOrDefault() ?? string.Empty,
-                    FullName = _dbContext.Set<MstPatient>().Where(p => p.Id == o.PatientId).Select(p => p.FullName).FirstOrDefault() ?? string.Empty,
-                    OrderKind = o.OrderKind,
-                    Status = o.Status,
-                    ItemCount = o.Items.Count(i => i.Status == OptOrderItemStatus.Active && !i.IsDelete),
-                    EstimatedReadyDate = o.EstimatedReadyDate,
-                    CreatedAt = o.CreateDateTime,
-                    Version = o.Version,
+                    Row = new OptOrderListItemResponse
+                    {
+                        Id = o.Id,
+                        OrderNumber = o.OrderNumber,
+                        EncounterId = o.EncounterId,
+                        EncounterNumber = e.EncounterNumber,
+                        PatientId = o.PatientId,
+                        MedicalRecordNumber = _dbContext.Set<MstPatient>().Where(p => p.Id == o.PatientId).Select(p => p.MedicalRecordNumber).FirstOrDefault() ?? string.Empty,
+                        FullName = _dbContext.Set<MstPatient>().Where(p => p.Id == o.PatientId).Select(p => p.FullName).FirstOrDefault() ?? string.Empty,
+                        OrderKind = o.OrderKind,
+                        Status = o.Status,
+                        ItemCount = o.Items.Count(i => i.Status == OptOrderItemStatus.Active && !i.IsDelete),
+                        EstimatedReadyDate = o.EstimatedReadyDate,
+                        CreatedAt = o.CreateDateTime,
+                        Version = o.Version,
+                    },
+                    o.ReadyAt,
+                    SiapAt = o.ReadyAt ?? o.UpdateDateTime ?? o.CreateDateTime,
+                    e.ServiceUnitId,
                 }).ToListAsync(cancellationToken);
 
-            foreach (var row in rows)
+            foreach (var x in rows)
             {
-                row.OrderKindLabel = OptLabels.OrderKind(row.OrderKind);
-                row.StatusLabel = OptLabels.OrderStatus(row.Status);
+                x.Row.OrderKindLabel = OptLabels.OrderKind(x.Row.OrderKind);
+                x.Row.StatusLabel = OptLabels.OrderStatus(x.Row.Status);
             }
-            return rows;
+            await MarkFlagsAsync(rows.Select(x => new FlagSource(x.Row, x.ReadyAt, x.SiapAt, x.ServiceUnitId)).ToList(), cancellationToken);
+            return rows.Select(x => x.Row).ToList();
+        }
+
+        // ---------------------------------------------------------------- tanda baris (BE-OPT-054)
+
+        private sealed record FlagSource(OptOrderListItemResponse Row, DateTime? ReadyAt, DateTime SiapAt, Guid ServiceUnitId);
+
+        /// <summary>
+        /// Mengisi empat tanda baris dengan aturan yang sama dengan penyaringnya: <c>Overdue</c>, <c>NeedsContact</c>,
+        /// <c>HasPendingCancellation</c>, dan <c>PastNotCollectedLimit</c> (= syarat Tutup Tidak Diambil).
+        /// </summary>
+        private async Task MarkFlagsAsync(IReadOnlyList<FlagSource> rows, CancellationToken cancellationToken)
+        {
+            if (rows.Count == 0)
+                return;
+            var hariIni = DateOnly.FromDateTime(Today());
+            var batasPengingat = Now().AddDays(-await PickupReminderDaysAsync(cancellationToken));
+            var batasTutup = await NotCollectedCloseDaysByUnitAsync(cancellationToken);
+            var ids = rows.Select(x => x.Row.Id).ToList();
+            var menungguBatal = await _dbContext.OptOrderCancellations.AsNoTracking()
+                .Where(c => ids.Contains(c.OrderId) && !c.IsDelete && c.Status == OptCancellationStatus.Requested)
+                .Select(c => c.OrderId).Distinct().ToListAsync(cancellationToken);
+
+            foreach (var x in rows)
+            {
+                var siap = x.Row.Status == OptOrderStatus.ReadyForPickup;
+                x.Row.IsOverdue = x.Row.Status == OptOrderStatus.InFabrication && x.Row.EstimatedReadyDate is { } jadi && jadi < hariIni;
+                x.Row.NeedsContact = siap && x.ReadyAt is { } siapAt && siapAt <= batasPengingat;
+                x.Row.HasPendingCancellation = menungguBatal.Contains(x.Row.Id);
+                x.Row.IsPastNotCollectedLimit = siap && IsPastNotCollectedLimit(x.SiapAt, NotCollectedCloseDays(batasTutup, x.ServiceUnitId), hariIni);
+            }
+        }
+
+        private async Task<int> PickupReminderDaysAsync(CancellationToken cancellationToken) =>
+            await _dbContext.OptSettings.AsNoTracking().Where(x => !x.IsDelete)
+                .OrderBy(x => x.CreateDateTime).Select(x => (int?)x.PickupReminderDays).FirstOrDefaultAsync(cancellationToken) ?? 30;
+
+        private async Task<Dictionary<Guid, int>> NotCollectedCloseDaysByUnitAsync(CancellationToken cancellationToken) =>
+            await _dbContext.OptSettings.AsNoTracking().Where(x => !x.IsDelete)
+                .ToDictionaryAsync(x => x.ServiceUnitId, x => x.NotCollectedCloseDays, cancellationToken);
+
+        public const int DefaultNotCollectedCloseDays = 90;
+
+        private static int NotCollectedCloseDays(IReadOnlyDictionary<Guid, int> byUnit, Guid serviceUnitId) =>
+            byUnit.TryGetValue(serviceUnitId, out var hari) ? hari : DefaultNotCollectedCloseDays;
+
+        /// <summary>
+        /// Satu-satunya aturan "sudah boleh ditutup Tidak Diambil" (<c>OPT-DEC-018</c>): tanggal siap (WIB) ditambah batas hari
+        /// sudah sampai hari ini (WIB). Dipakai Tutup Tidak Diambil, penyaring <c>PastNotCollectedLimit</c>, dan tanda barisnya.
+        /// </summary>
+        internal static bool IsPastNotCollectedLimit(DateTime readyAtUtc, int closeDays, DateOnly todayWib)
+        {
+            var siapWib = DateOnly.FromDateTime(OptPractitionerLicenseReader.ToOperationalDate(
+                new DateTimeOffset(DateTime.SpecifyKind(readyAtUtc, DateTimeKind.Utc))));
+            return siapWib.AddDays(closeDays) <= todayWib;
         }
 
         private async Task<OptOrderResponse> ProjectAsync(OptOrder order, CancellationToken cancellationToken)
@@ -1077,7 +1209,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                     .Select(x => new { x.VersionNo, x.Prescription!.PrescriptionNumber }).FirstOrDefaultAsync(cancellationToken)
                 : null;
 
-            return new OptOrderResponse
+            var unitKunjungan = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
+                .Where(x => x.Id == order.EncounterId).Select(x => x.ServiceUnitId).FirstOrDefaultAsync(cancellationToken);
+
+            var response = new OptOrderResponse
             {
                 Id = order.Id,
                 OrderNumber = order.OrderNumber,
@@ -1144,6 +1279,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                     Reason = x.Reason,
                 }).ToList(),
             };
+            await MarkFlagsAsync(new[] { new FlagSource(response, order.ReadyAt, order.ReadyAt ?? order.UpdateDateTime ?? order.CreateDateTime, unitKunjungan) }, cancellationToken);
+            return response;
         }
 
         private DateTime Now() => _time.GetUtcNow().UtcDateTime;

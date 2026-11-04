@@ -149,6 +149,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.DTOs
         /// <summary>Benar = masih dikerjakan padahal perkiraan jadi sudah lewat (tanggal WIB).</summary>
         public bool? Overdue { get; set; }
 
+        /// <summary>Benar = ada pengajuan batal yang masih menunggu keputusan Kepala Optik.</summary>
+        public bool? HasPendingCancellation { get; set; }
+
+        /// <summary>
+        /// Benar = siap diambil dan sudah boleh ditutup Tidak Diambil: tanggal siap (WIB) ditambah batas tutup unit
+        /// (<c>NotCollectedCloseDays</c>, bawaan 90 hari) sudah sampai hari ini. Aturannya sama dengan Tutup Tidak Diambil.
+        /// </summary>
+        public bool? PastNotCollectedLimit { get; set; }
+
         /// <summary>Mencari nomor pesanan, nomor RM, atau nama pasien.</summary>
         public string? Search { get; set; }
 
@@ -173,6 +182,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.DTOs
         public DateOnly? EstimatedReadyDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public int Version { get; set; }
+
+        /// <summary>Masih dikerjakan padahal perkiraan jadi sudah lewat; aturannya sama dengan penyaring <c>Overdue</c>.</summary>
+        public bool IsOverdue { get; set; }
+
+        /// <summary>Siap diambil melewati batas pengingat; aturannya sama dengan penyaring <c>NeedsContact</c>.</summary>
+        public bool NeedsContact { get; set; }
+
+        /// <summary>Ada pengajuan batal yang menunggu keputusan Kepala Optik.</summary>
+        public bool HasPendingCancellation { get; set; }
+
+        /// <summary>Sudah boleh ditutup Tidak Diambil; aturannya sama dengan penyaring <c>PastNotCollectedLimit</c>.</summary>
+        public bool IsPastNotCollectedLimit { get; set; }
+    }
+
+    /// <summary>
+    /// Perkiraan harga pesanan <c>Draft</c> yang belum ditagihkan (<c>OPT-DEC-075</c>, <c>076</c>). Dihitung dengan penentu tarif
+    /// Billing yang sama dengan saat Tagihkan; tidak menerbitkan tagihan. Harga final tetap mengikuti baris tagihan.
+    /// </summary>
+    public class OptOrderPricePreviewResponse
+    {
+        public Guid OrderId { get; set; }
+        public string OrderNumber { get; set; } = string.Empty;
+        public List<OptOrderPricePreviewLine> Lines { get; set; } = new();
+
+        /// <summary>Jumlah seluruh baris; kosong bila ada barang yang tarifnya belum tersedia.</summary>
+        public decimal? EstimatedTotal { get; set; }
+
+        /// <summary>Benar bila semua barang punya tarif, sehingga pesanan dapat ditagihkan.</summary>
+        public bool AllTariffsAvailable { get; set; }
+    }
+
+    public class OptOrderPricePreviewLine
+    {
+        public Guid ItemId { get; set; }
+        public int LineNo { get; set; }
+        public string DrugCode { get; set; } = string.Empty;
+        public string DrugName { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+
+        /// <summary>Harga satuan dari master tarif; kosong bila tarif belum tersedia.</summary>
+        public decimal? UnitPrice { get; set; }
+
+        /// <summary>Harga satuan dikali jumlah; kosong bila tarif belum tersedia.</summary>
+        public decimal? LineAmount { get; set; }
+
+        public bool TariffAvailable { get; set; }
+
+        /// <summary>Alasan harga tidak tersedia, misalnya tarif barang belum ada.</summary>
+        public string? Message { get; set; }
     }
 
     public class OptOrderItemResponse

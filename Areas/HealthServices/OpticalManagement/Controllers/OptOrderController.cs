@@ -12,7 +12,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Controlle
 {
     /// <summary>
     /// Pesanan Optik — <c>OPT-API-v1</c> grup Opt Order: daftar, detail, status bayar, buat dan ubah draf, simpan &amp; tagihkan,
-    /// batal sebelum pengerjaan (<c>BE-OPT-032</c>), kirim ke pengerjaan dan tandai siap (<c>BE-OPT-034</c>). Serah dan batal
+    /// batal sebelum pengerjaan (<c>BE-OPT-032</c>), kirim ke pengerjaan dan tandai siap (<c>BE-OPT-034</c>), penyaring Kepala Optik
+    /// dan perkiraan harga draf (<c>BE-OPT-054</c>, <c>OPT-API-v1.1</c>). Serah dan batal
     /// sesudah pengerjaan menyusul.
     /// </summary>
     /// <remarks>Kalimat log hanya memuat nomor pesanan dan status. Action sengaja tanpa <c>&lt;summary&gt;</c> XML.</remarks>
@@ -65,6 +66,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Controlle
         [AccessPermission(P.Order.Resource, P.Read)]
         public async Task<IActionResult> GetPaymentStatus(Guid id, CancellationToken cancellationToken = default) =>
             OptHttp.Map(this, await _service.GetPaymentStatusAsync(id, cancellationToken), "Status pembayaran pesanan berhasil diambil.");
+
+        [HttpGet("{id:guid}/price-preview")]
+        [ProducesResponseType(typeof(ApiResponse<OptOrderPricePreviewResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        [AccessAction(P.Read, "Read Opt Order", Description = "Melihat pesanan Optik", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission(P.Order.Resource, P.Read)]
+        public async Task<IActionResult> GetPricePreview(Guid id, CancellationToken cancellationToken = default) =>
+            OptHttp.Map(this, await _service.GetPricePreviewAsync(id, cancellationToken), "Perkiraan harga pesanan berhasil diambil.");
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<OptOrderResponse>), StatusCodes.Status200OK)]

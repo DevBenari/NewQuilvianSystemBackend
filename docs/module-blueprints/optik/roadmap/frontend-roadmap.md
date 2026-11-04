@@ -3,18 +3,18 @@
 | Field | Nilai |
 |---|---|
 | Roadmap ID | `OPT-RM-FE-001` |
-| Revision | `1` |
+| Revision | `2` — dependency `BE-OPT-054` (`OPT-API-v1.1`) untuk `FE-OPT-020`/`021`; screen brief `approved` 2026-11-04 |
 | Status | `approved` (Yoga Aji Pratama, 2026-11-03) |
 | Blueprint | `OPT-BP-001` r1, `approved` sisi Optik (Yoga Aji Pratama, 2026-11-03) |
 | Cakupan | `MVP-0` s.d. `MVP-4` — kebutuhan layar `FE-OPT-N01`..`N15` di `03-frontend-architecture.md` |
 | SHA baseline | FE `b6dd6c304` (branch `YogaV2`), BE `2a5094ca` (branch `yoga`) |
-| Kontrak masukan | `OPT-API-v1`, `OPT-PERM-v1`, `OPT-VAL-v1`, `OPT-STATE-v1` — `approved` sisi Optik, ber-hash di [`blueprint-manifest.md`](../blueprint-manifest.md). **Kerja paralel dengan backend diizinkan hanya untuk lapisan data dan aturan bersama**, karena kontraknya approved dan terkunci hash |
+| Kontrak masukan | `OPT-API-v1`, `OPT-PERM-v1`, `OPT-VAL-v1`, `OPT-STATE-v1` — `approved` sisi Optik, ber-hash di [`blueprint-manifest.md`](../blueprint-manifest.md). **Kerja paralel dengan backend diizinkan hanya untuk lapisan data dan aturan bersama**, karena kontraknya approved dan terkunci hash. Delta `OPT-API-v1.1` (`BE-OPT-054` ✅ 2026-11-04) belum terkunci hash; bentuk respons yang dipakai layar mengikuti [laporan `BE-OPT-054`](../task/report/backend/BE-OPT-054.md) bagian 4 |
 | Masukan desain | `03-frontend-architecture.md` r1, `04-prd-to-mvp.md` bagian 18 (UAT) |
 | Owner | Yoga Aji Pratama |
 
 > **Batas dokumen.**
 > 1. Bukan izin menulis kode. Setiap task dikerjakan lewat `build-module-frontend` dengan approval task eksplisit.
-> 2. **Menu, route, tab/modal, dan tata letak belum ditetapkan.** Semua task layar tertahan `FE-OPT-000` (screen brief, `OPT-FE-001`/`002`). Warna, ikon, dan jarak adalah `DEV_DISCRETION` (`OPT-FE-004`).
+> 2. **Menu, route, tab/modal, dan tata letak ditetapkan di [`05-screen-brief.md`](../05-screen-brief.md)** (`approved`, Yoga Aji Pratama, 2026-11-04). Task layar tidak lagi tertahan `FE-OPT-000`; dependency lain tetap berlaku. Warna, ikon, dan jarak adalah `DEV_DISCRETION` (`OPT-FE-004`).
 > 3. Isian ukur desimal **tidak** memakai `type: "number"` mentah; pakai pola `DECIMAL_FIELD_PROPS`/`parseDecimal` (`OPT-FE-003`).
 > 4. Uji unit: `node --import ./tests/helpers/register.mjs --test tests/unit/`. E2E memakai pola spec API-tiruan standalone dengan output ke scratchpad; predikat cegatan wajib memuat `/v1/`.
 > 5. Folder mengikuti pola modul yang ada: `src/lib/services/health-services/optical-management/`, `src/lib/state/slice/health-services/optical-management/`, `src/lib/constants/health-services/optical-management/`, `src/utils/health-services/optical-management/`, `src/components/view/health-services/optical-management/`. Route final mengikuti screen brief.
@@ -23,13 +23,13 @@
 
 ```text
 FE-OPT-001 (aturan bersama, mandiri)
-FE-OPT-002 (data klinis) ─┐                ⛔FE-OPT-000 {screen brief}
-FE-OPT-003 (data pesanan) ┘                       │
+✅FE-OPT-002 (data klinis) ─┐                ✅FE-OPT-000 {screen brief}
+✅FE-OPT-003 (data pesanan) ┘                       │
                                                   ▼
 FE-OPT-000 + 001 + 002 + BE-OPT-005 ─> FE-OPT-031 (katalog & pengaturan)
 FE-OPT-000 + 002 + BE-OPT-010 ─> FE-OPT-010 (menu + kunjungan) ─┬─> FE-OPT-011 (pemeriksaan, + BE-OPT-011)
                                                                 └─> FE-OPT-012 (resep, + BE-OPT-012)
-FE-OPT-012 + 003 + BE-OPT-032/034 ─> FE-OPT-020 (pesanan) ─> FE-OPT-021 (serah/batal) ─┬─> FE-OPT-022 (penjualan langsung)
+FE-OPT-012 + 003 + BE-OPT-032/034 (+054 pratinjau harga) ─> FE-OPT-020 (pesanan) ─> FE-OPT-021 (serah/batal) ─┬─> FE-OPT-022 (penjualan langsung)
                                                                                     └─> FE-OPT-030 (garansi, + BE-OPT-050)
 FE-OPT-021 + BE-OPT-052 ─> FE-OPT-032 (laporan) ─> FE-OPT-033 (E2E)
 ```
@@ -38,27 +38,28 @@ FE-OPT-021 + BE-OPT-052 ─> FE-OPT-032 (laporan) ─> FE-OPT-033 (E2E)
 
 | Task ID | Outcome | Layar | Dependency | Status |
 |---|---|---|---|---|
-| `FE-OPT-000` ⛔ | Screen brief Optik disetujui: menu, daftar layar, route, pembagian daftar/detail, tab/modal | Semua | Pemilik (`OPT-FE-001`, `002`) | Tertahan — belum disusun |
+| `FE-OPT-000` ✅ | Screen brief Optik disetujui: menu, daftar layar, route, pembagian daftar/detail, tab/modal | Semua | Pemilik (`OPT-FE-001`, `002`) | Selesai 2026-11-04 — [`05-screen-brief.md`](../05-screen-brief.md) `approved` (Yoga Aji Pratama); struktur `OPT-DEC-061`..`075`. Pratinjau harga (`FE-OPT-020`) dan dua penyaring Kepala (`FE-OPT-021`) memakai `BE-OPT-054` ✅ (`OPT-API-v1.1`) |
 | `FE-OPT-001` ✅ | Aturan bersama teruji unit: input desimal bertanda minus, pratinjau transposisi, cermin aturan rentang/kelipatan | — | — | Selesai 2026-11-03 — [laporan](../task/report/frontend/FE-OPT-001.md); belum di-commit. Format rupiah/tanggal WIB dipindah ke `FE-OPT-003` (dipakai bersama status bayar) |
-| `FE-OPT-002` | Lapisan data klinis: service Axios + slice Redux untuk kunjungan, pemeriksaan, resep, metadata | — | Kontrak v1 | Direncanakan |
-| `FE-OPT-003` | Lapisan data pesanan: pesanan, status bayar, keluhan, katalog, pengaturan, laporan, diskon Billing; format rupiah dan tanggal WIB (dipindah dari `FE-OPT-001`) | — | Kontrak v1 | Direncanakan |
-| `FE-OPT-010` ⛔ | Menu Optik + daftar kunjungan + pendaftaran + ringkasan kunjungan | `N01`..`N03` | 000, 002, `BE-OPT-010` | Tertahan 000 |
-| `FE-OPT-011` ⛔ | Form pemeriksaan refraksi + riwayat revisi | `N04`, `N06` | 010, 001, `BE-OPT-011` | Tertahan 000 |
-| `FE-OPT-012` ⛔ | Form resep + salin resep luar + riwayat versi | `N05`, `N06` | 010, 001, `BE-OPT-012` | Tertahan 000 |
-| `FE-OPT-020` ⛔ | Buat pesanan, katalog, tagihkan, ajukan diskon, status bayar, kirim ke pengerjaan | `N07`, `N08` | 012, 003, `BE-OPT-032`, `034` | Tertahan 000 (+ BE `030`/`033`) |
-| `FE-OPT-021` ⛔ | Daftar pesanan, tandai siap, serahkan, ajukan/putuskan batal, tutup tidak diambil | `N09`..`N11` | 020, `BE-OPT-040`, `041` | Tertahan 000 |
-| `FE-OPT-022` ⛔ | Penjualan langsung | `N07` (mode langsung) | 021, `BE-OPT-042` | Tertahan 000 |
-| `FE-OPT-030` ⛔ | Keluhan garansi: catat, periksa ulang, putuskan | `N12` | 021, `BE-OPT-050` | Tertahan 000 |
-| `FE-OPT-031` ⛔ | Katalog/profil barang dan pengaturan (Admin Optik) | `N13`, `N14` | 000, 001, 003, `BE-OPT-005` | Tertahan 000 |
-| `FE-OPT-032` ⛔ | Empat laporan | `N15` | 021, `BE-OPT-052` | Tertahan 000 |
+| `FE-OPT-002` ✅ | Lapisan data klinis: service Axios + slice Redux untuk kunjungan, pemeriksaan, resep, metadata | — | Kontrak v1 | Selesai 2026-11-04 — [laporan](../task/report/frontend/FE-OPT-002.md); 13 uji unit, lint, build `PASS` |
+| `FE-OPT-003` ✅ | Lapisan data pesanan: pesanan, status bayar, keluhan, katalog, pengaturan, laporan, diskon Billing; format rupiah dan tanggal WIB (dipindah dari `FE-OPT-001`) | — | Kontrak v1 + `v1.1` | Selesai 2026-11-04 — [laporan](../task/report/frontend/FE-OPT-003.md); 14 uji unit, lint, build `PASS` |
+| `FE-OPT-010` | Menu Optik + daftar kunjungan + pendaftaran + ringkasan kunjungan | `N01`..`N03` | 000 ✅, 002 ✅, `BE-OPT-010` ✅ | Siap dikerjakan |
+| `FE-OPT-011` | Form pemeriksaan refraksi + riwayat revisi | `N04`, `N06` | 010, 001 ✅, `BE-OPT-011` ✅ | Direncanakan |
+| `FE-OPT-012` | Form resep + salin resep luar + riwayat versi + cetak resep | `N05`, `N06` | 010, 001 ✅, `BE-OPT-012` ✅ | Direncanakan |
+| `FE-OPT-020` | Buat pesanan, katalog, tagihkan, ajukan diskon, status bayar, kirim ke pengerjaan, cetak bukti pesanan | `N07`, `N08` | 012, 003 ✅, `BE-OPT-032` ✅, `034` ✅, `054` ✅ | Direncanakan |
+| `FE-OPT-021` | Daftar pesanan, tandai siap, serahkan, ajukan/putuskan batal, tutup tidak diambil | `N09`..`N11` | 020, `BE-OPT-040` ✅, `041` ✅, `054` ✅ | Direncanakan |
+| `FE-OPT-022` | Penjualan langsung | `N07` (mode langsung) | 021, `BE-OPT-042` ✅ | Direncanakan |
+| `FE-OPT-030` | Keluhan garansi: catat (alur dari pesanan), periksa ulang, putuskan | `N12` | 021, `BE-OPT-050` ✅ | Direncanakan |
+| `FE-OPT-031` | Katalog/profil barang dan pengaturan (Admin Optik) | `N13`, `N14` | 000 ✅, 001 ✅, 003 ✅, `BE-OPT-005` ✅ | Siap dikerjakan |
+| `FE-OPT-032` | Empat laporan (satu halaman, 4 tab) | `N15` | 021, `BE-OPT-052` ✅ | Direncanakan |
 | `FE-OPT-033` | E2E per UAT `UAT-01`..`26` | Semua | 032 | Direncanakan |
 
 ## Rincian Task
 
-### `FE-OPT-000` ⛔ — Screen brief
+### `FE-OPT-000` ✅ — Screen brief
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [`05-screen-brief.md`](../05-screen-brief.md) `approved` oleh Yoga Aji Pratama; keputusan `OPT-DEC-061`..`075` |
 | Outcome | `05-screen-brief.md` disetujui: menu (letak di `menu-items.jsx`, `requiredPermission`), daftar layar, route, daftar/detail, tab/modal, isi kolom daftar |
 | Requirement/decision | `OPT-DEC-026`; `OPT-FE-001`, `002` |
 | Kontrak | `03-frontend-architecture.md` bagian 2 |
@@ -81,10 +82,11 @@ FE-OPT-021 + BE-OPT-052 ─> FE-OPT-032 (laporan) ─> FE-OPT-033 (E2E)
 | Risiko/pemilik | Aturan di layar hanya cermin; backend tetap penentu. Optik |
 | DoD | Uji unit lulus |
 
-### `FE-OPT-002` / `FE-OPT-003` — Lapisan data
+### `FE-OPT-002` ✅ / `FE-OPT-003` ✅ — Lapisan data
 
 | Field | Isi |
 |---|---|
+| Status | `FE-OPT-002` ✅ Selesai 2026-11-04 — [laporan](../task/report/frontend/FE-OPT-002.md). Kunci idempoten hanya di pendaftaran kunjungan (satu-satunya endpoint klinis yang membacanya); aksi lain dijaga `expectedVersion` dan penahan klik ganda. `FE-OPT-003` ✅ Selesai 2026-11-04 — [laporan](../task/report/frontend/FE-OPT-003.md): pesanan (termasuk `v1.1`), keluhan, laporan, katalog, pengaturan; diskon memakai thunk Billing yang ada; format rupiah dan tanggal WIB |
 | Outcome | Service Axios per grup `[Tags]` dan slice Redux; header `Idempotency-Key` per niat aksi; `ExpectedVersion` dikirim; galat `400/403/409/503` dipetakan ke pesan backend |
 | Requirement/decision | `OPT-API-v1`; `03-frontend-architecture.md` bagian 4 |
 | Kontrak | `OPT-API-v1` (hash terkunci) |
@@ -94,7 +96,7 @@ FE-OPT-021 + BE-OPT-052 ─> FE-OPT-032 (laporan) ─> FE-OPT-033 (E2E)
 | Risiko/pemilik | Perubahan kontrak menaikkan versi dan memicu penyesuaian. Optik |
 | DoD | Uji unit lulus |
 
-### `FE-OPT-010`..`032` ⛔ — Layar
+### `FE-OPT-010`..`032` — Layar
 
 Setiap task layar memakai bentuk yang sama:
 

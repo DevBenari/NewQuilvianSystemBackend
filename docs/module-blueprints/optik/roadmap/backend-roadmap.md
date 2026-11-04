@@ -3,12 +3,12 @@
 | Field | Nilai |
 |---|---|
 | Roadmap ID | `OPT-RM-BE-001` |
-| Revision | `2` — persetujuan mitra tercatat (`OPT-DEC-050`..`055`) |
-| Status | `approved` (Yoga Aji Pratama, 2026-11-03); r2 status persetujuan mitra |
+| Revision | `3` — task `BE-OPT-054` (`OPT-API-v1.1`: penyaring Kepala Optik dan pratinjau harga) dari screen brief yang disetujui 2026-11-04; r2 persetujuan mitra tercatat (`OPT-DEC-050`..`055`) |
+| Status | `approved` (Yoga Aji Pratama, 2026-11-03); r2 status persetujuan mitra; r3 `approved` (Yoga Aji Pratama, 2026-11-04) |
 | Blueprint | `OPT-BP-001` r1, `approved` sisi Optik (Yoga Aji Pratama, 2026-11-03) |
 | Cakupan | `MVP-0` s.d. `MVP-4` (`EPIC OPT-00` s.d. `OPT-11`). `POST-MVP` dicatat di bagian akhir |
 | SHA baseline | BE `2a5094ca` (branch `yoga`), FE `b6dd6c304` (branch `YogaV2`) |
-| Kontrak masukan | `OPT-API-v1`, `OPT-STATE-v1`, `OPT-VAL-v1`, `OPT-INT-v1`, `OPT-PERM-v1`, `OPT-PRD-v1` — `approved` sisi Optik 2026-11-03. Hash per berkas di [`blueprint-manifest.md`](../blueprint-manifest.md) bagian *Artifact hashes* |
+| Kontrak masukan | `OPT-API-v1`, `OPT-STATE-v1`, `OPT-VAL-v1`, `OPT-INT-v1`, `OPT-PERM-v1`, `OPT-PRD-v1` — `approved` sisi Optik 2026-11-03. Hash per berkas di [`blueprint-manifest.md`](../blueprint-manifest.md) bagian *Artifact hashes*. Delta tambahan `OPT-API-v1.1` (`OPT-DEC-067`, `075`, `076`, disahkan pemilik 2026-11-04) dirinci di `BE-OPT-054`; `contracts/api-contract.md` terkunci hash, penyegarannya dicatat di decision log bagian 11 |
 | Masukan desain | `00-interview-decisions.md` r4, `02-backend-architecture.md` r1, `erd/data-dictionary.md`, `04-prd-to-mvp.md` bagian 10 dan 20, `testing/acceptance-test-matrix.md` |
 | Owner | Yoga Aji Pratama |
 
@@ -40,6 +40,7 @@ lensa stok Rp 600.000, pemeriksaan Rp 75.000.
 | `MVP-2` | Tarif pemeriksaan dan barang masuk tagihan; pesanan bisa ditagihkan dan dikirim ke pengerjaan dengan uang muka | Tagihan Rp 1.125.000; uang muka Rp 525.000 → pesanan dikirim, resep terkunci, stok −1 |
 | `MVP-3` | Penyerahan, batal, tidak diambil, penjualan langsung; kunjungan tertutup saat pesanan selesai | Ibu Sari melunasi dan menerima kacamata; kunjungan ditutup |
 | `MVP-4` | Garansi dan remake, jasa medis pemeriksa, empat laporan | Keluhan pusing → remake Rp 0 |
+| Penyesuaian layar | Kepala Optik menemukan pengajuan batal dan pesanan lewat batas dari daftar; petugas melihat perkiraan harga sebelum menagih | Draf frame + lensa menampilkan perkiraan Rp 1.050.000 sebelum Tagihkan |
 
 ## Grafik Dependency
 
@@ -57,6 +58,8 @@ BE-OPT-001 {Master Data ✅} ────┘
 ✅BE-OPT-034 ─> ✅BE-OPT-040 ─┬─> ✅BE-OPT-041 ─┬─> ✅BE-OPT-050 ─> ✅BE-OPT-052 ─> ✅BE-OPT-053
                           └─> ✅BE-OPT-042 │
 ✅BE-OPT-051 {Medical Fee ✅} <── BE-OPT-031  └──────────────────────────────> ✅BE-OPT-053
+
+✅BE-OPT-032 + ✅BE-OPT-041 ─> ✅BE-OPT-054 {OPT-API-v1.1} ─> FE-OPT-020 (pratinjau harga), FE-OPT-021 (penyaring Kepala)
 ```
 
 | Gelombang | Task | Boleh mulai setelah |
@@ -66,6 +69,7 @@ BE-OPT-001 {Master Data ✅} ────┘
 | `MVP-2` ✅ | `BE-OPT-030` ✅, `031` ✅, `032` ✅, `033` ✅, `034` ✅ | `MVP-1`; persetujuan Billing ✅ dan Farmasi ✅. `030` dan `033` tidak bergantung task Optik dan boleh dikerjakan lebih awal |
 | `MVP-3` ✅ | `BE-OPT-040` ✅, `041` ✅, `042` ✅ | `BE-OPT-034` |
 | `MVP-4` ✅ | `BE-OPT-050` ✅, `051` ✅, `052` ✅, `053` ✅ | `BE-OPT-041`; persetujuan Medical Fee ✅ |
+| Penyesuaian layar ✅ | `BE-OPT-054` ✅ | `BE-OPT-032` ✅, `041` ✅; screen brief ✅ (2026-11-04); persetujuan task r3. Tanpa kode modul lain |
 
 **Yang tetap bisa berjalan tanpa persetujuan mitra:** begitu `BE-OPT-000` disetujui pemilik
 registry, `BE-OPT-002`, `004`, `005`, `010`, `011`, `012` dapat dikerjakan seluruhnya di dalam
@@ -98,6 +102,7 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | `BE-OPT-051` ✅ | Adapter Medical Fee menarik pemeriksaan Optik (RO dan Sp.M berhak) | OPT-09 | 031 | Medical Fee (✅ `OPT-DEC-055`, Yasmin) | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-051.md) |
 | `BE-OPT-052` ✅ | API empat laporan | OPT-10 | 041, 050 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-052.md) |
 | `BE-OPT-053` ✅ | Uji menyeluruh: privasi log, registri izin, alur penuh di harness | OPT-00..11 | 052 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-053.md) |
+| `BE-OPT-054` ✅ | `OPT-API-v1.1`: dua penyaring + empat tanda baris di daftar pesanan; pratinjau harga pesanan `Draft` | OPT-04, OPT-06 | 032, 041 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-054.md) |
 
 ## Rincian Task
 
@@ -452,6 +457,22 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Verifikasi | Laporan uji |
 | Risiko/pemilik | Optik |
 | DoD | Kriteria terbukti |
+
+### `BE-OPT-054` ✅ — Penyaring Kepala Optik dan pratinjau harga (`OPT-API-v1.1`)
+
+| Field | Isi |
+|---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-054.md). 8 uji baru lulus (total Optik 247); registri izin 45 endpoint; penyaring, tanda, dan Tutup Tidak Diambil memakai satu fungsi batas; uji mutasi batas dan penyaring tertangkap |
+| Outcome | (a) Kepala Optik menemukan pengajuan batal yang menunggu keputusan dan pesanan yang sudah boleh ditutup *Tidak Diambil* langsung dari daftar pesanan, dan setiap baris membawa tandanya. (b) Petugas melihat perkiraan harga per barang dan total pesanan `Draft` sebelum menagih |
+| Requirement/decision | `OPT-DEC-067`, `075`, `076`; `OPT-DEC-018`, `010`; `OPT-OQ-019`; screen brief §5.8, §5.10, §8 |
+| Kontrak | Delta tambahan `OPT-API-v1` → `v1.1`, pemanggil lama tidak terdampak: **(a)** `GET orders/`: `OptOrderListQuery` + `HasPendingCancellation: bool?` (ada pengajuan batal berstatus `Requested`) dan `PastNotCollectedLimit: bool?` (status `ReadyForPickup` dan sudah memenuhi syarat tutup *Tidak Diambil*); `OptOrderListItemResponse` + `HasPendingCancellation`, `IsPastNotCollectedLimit`, `IsOverdue`, `NeedsContact` (`bool`, aturan sama dengan penyaringnya). **(b)** `GET orders/{id}/price-preview` (`OptOrder : Read`) → `OptOrderPricePreviewResponse` { `OrderId`, `OrderNumber`, `Lines[]` { `ItemId`, `LineNo`, `DrugCode`, `DrugName`, `Quantity`, `UnitPrice?`, `LineAmount?`, `TariffAvailable`, `Message?` }, `EstimatedTotal?`, `AllTariffsAvailable` }. Hanya untuk pesanan `Draft` yang belum ditagihkan dan bukan remake; selain itu `409` *"Harga pesanan yang sudah ditagihkan dibaca dari tagihan."* Billing tak terjangkau → `503` |
+| Reuse | (a) Satu sumber aturan batas hari dengan penolakan Tutup Tidak Diambil (`OptOrderService`, `NotCollectedCloseDays`) dan penyaring `Overdue`/`NeedsContact` yang ada; tanggal WIB. (b) Jalur yang sama dengan `OptBillingGateway.CheckItemTariffsAsync`: `InpServiceClassResolver` + `BillingSourceTariffResolver` (domain `Optical`, efek `OpticalItemCharge`) dengan klinik dan kelas kunjungan; baca-saja, tanpa menerbitkan fakta |
+| Cakupan | `OptOrderDtos.cs`, `OptOrderService.cs` (atau service baca baru), `OptBillingGateway.cs` (metode pratinjau), `OptOrderController.cs`; uji di `Tests/QuilvianSystemBackend.OpticalTests/`; registri izin 44 → 45 endpoint (matriks `Be053EndToEndTests` ikut diperbarui). Tanpa migration, tanpa kode modul lain |
+| Dependency | `BE-OPT-032` ✅, `041` ✅; screen brief ✅ |
+| Acceptance criteria | (1) `HasPendingCancellation=true` hanya mengembalikan pesanan dengan pengajuan batal `Requested`; sesudah diputuskan pesanan itu tidak muncul lagi. (2) `PastNotCollectedLimit=true` memuat pesanan siap tepat di hari batas dan menolak sehari sebelumnya, **sama persis** dengan hari pertama Tutup Tidak Diambil diterima. (3) Empat tanda baris konsisten dengan penyaringnya pada data yang sama. (4) `GET orders/` tanpa parameter baru memberi hasil yang sama seperti sebelum task. (5) `OPT-AC-034`: pratinjau frame Rp 450.000 + lensa Rp 600.000 = `EstimatedTotal` Rp 1.050.000 dan sama dengan baris tagihan sesudah Tagihkan pada hari yang sama. (6) Barang tanpa tarif: `TariffAvailable=false` + pesan, `AllTariffsAvailable=false`, `EstimatedTotal` kosong, respons tetap `200`. (7) Pesanan sudah ditagihkan/bukan `Draft` → `409`; remake → `409`; Billing gagal → `503`; tanpa `OptOrder : Read` → `403`. (8) Pratinjau tidak menerbitkan fakta tagihan dan tidak mengubah `Version` pesanan |
+| Verifikasi | Uji harness (rantai Billing `PesananUji`) untuk (1)–(8), termasuk uji batas hari dan uji mutasi pada batas; regresi seluruh `OpticalTests`; QBE checker `-Mode Strict -Path` atas berkas yang disentuh + kontrol negatif |
+| Risiko/pemilik | Perkiraan bisa berbeda dari tagihan bila tarif berubah antara pratinjau dan Tagihkan, sehingga dilabeli *perkiraan*. Batas hari wajib memakai satu fungsi yang sama dengan validasi tutup agar tanda dan tombol tidak bertentangan. Optik |
+| DoD | Kriteria (1)–(8) terbukti; laporan `task/report/backend/BE-OPT-054.md`; traceability dan roadmap diperbarui; penyegaran `contracts/api-contract.md` tercatat untuk pass blueprint |
 
 ## POST-MVP (di luar roadmap ini)
 
