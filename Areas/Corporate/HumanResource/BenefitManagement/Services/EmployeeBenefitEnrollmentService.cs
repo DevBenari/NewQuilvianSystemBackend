@@ -4,6 +4,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Cons
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -59,6 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             EnrollmentStatuses = EmployeeBenefitEnrollmentStatuses.All
                 .Select(x => new EnrollmentFilterOptionResponse { Value = x, Label = x }).ToList(),
             DependentStatuses = EmployeeBenefitDependentStatuses.All
+                .Select(x => new EnrollmentFilterOptionResponse { Value = x, Label = x }).ToList(),
+            PatientCardSyncStatuses = EmployeeBenefitCardSyncStatuses.All
                 .Select(x => new EnrollmentFilterOptionResponse { Value = x, Label = x }).ToList()
         };
 
@@ -94,6 +98,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             if (query.WorkforceProfileId.HasValue) source = source.Where(x => x.e.WorkforceProfileId == query.WorkforceProfileId.Value);
             if (query.BenefitPlanId.HasValue) source = source.Where(x => x.e.BenefitPlanId == query.BenefitPlanId.Value);
             if (!string.IsNullOrWhiteSpace(query.EnrollmentStatus)) source = source.Where(x => x.e.EnrollmentStatus == query.EnrollmentStatus);
+            if (!string.IsNullOrWhiteSpace(query.PatientCardSyncStatus))
+            {
+                var syncStatus = query.PatientCardSyncStatus.Trim();
+                if (string.Equals(syncStatus, EmployeeBenefitCardSyncStatuses.NotStarted, StringComparison.OrdinalIgnoreCase))
+                {
+                    source = source.Where(x => x.e.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
+                        && !_dbContext.PatEmployeeBenefitCardSyncs.Any(s => s.EmployeeBenefitEnrollmentId == x.e.Id && !s.IsDelete));
+                }
+                else
+                {
+                    source = source.Where(x => x.e.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
+                        && _dbContext.PatEmployeeBenefitCardSyncs.Any(s => s.EmployeeBenefitEnrollmentId == x.e.Id && !s.IsDelete && s.SyncStatus == syncStatus));
+                }
+            }
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
                 var keyword = query.Search.Trim().ToLower();
@@ -721,6 +739,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 return Task.CompletedTask;
             }, cancellationToken);
 
+        /// <summary>
+        /// Sinkronkan ulang kartu penjamin pasien secara manual oleh HRD (BE-FIN-138, FIN-DES-121, FIN-DEC-246, FIN-VAL-294).
+        /// Memvalidasi status Active (menolak status selain Active dengan 400 FIN-VAL-294),
+        /// memanggil integrasi Patient Management, mencatat audit trail, dan mengembalikan ringkasan status terbaru tanpa data pasien.
+        /// </summary>
+        public async Task<PatientCardSyncSummaryResponse> ResyncPatientCardAsync(
+            Guid id, Guid actorUserId, CancellationToken cancellationToken)
+        {
+            var enrollment = await _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Enrollment benefit tidak ditemukan.");
+
+            if (enrollment.EnrollmentStatus != EmployeeBenefitEnrollmentStatuses.Active)
+            {
+                throw new EmployeeBenefitTransitionException("Sinkronisasi kartu hanya dapat dijalankan untuk benefit yang sudah aktif.");
+            }
+
+            var result = await _patientCardSync.RequestResyncAsync(enrollment.Id, actorUserId, cancellationToken);
+            await AuditAsync("Enrollment.PatientCardResynced", enrollment.Id, actorUserId, enrollment.EnrollmentStatus);
+            return result;
+        }
+
         // ------------------------------------------------------------------------------------
         // Bantuan
         // ------------------------------------------------------------------------------------
@@ -960,6 +1000,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     actions.Add(EmployeeBenefitActions.Cancel);
                     break;
                 case EmployeeBenefitEnrollmentStatuses.Active:
+                    actions.Add(EmployeeBenefitActions.SyncPatientCard);
                     actions.Add(EmployeeBenefitActions.Cancel);
                     break;
             }

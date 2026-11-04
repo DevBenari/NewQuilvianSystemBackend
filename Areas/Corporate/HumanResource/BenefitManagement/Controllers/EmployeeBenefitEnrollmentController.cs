@@ -192,6 +192,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             Run(async () => Ok(ApiResponse<EmployeeBenefitEnrollmentResponse>.Ok(
                 await _service.CancelAsync(id, request, CurrentUserId(), cancellationToken), "Enrollment benefit dibatalkan.")));
 
+        /// <summary>
+        /// Sinkronkan ulang kartu penjamin pasien (BE-FIN-138, FIN-DES-121, FIN-DEC-246, FIN-VAL-294).
+        /// Hanya dapat dijalankan untuk enrollment yang berstatus Active.
+        /// </summary>
+        [HttpPost("{id:guid}/patient-card-sync")]
+        [AccessAction("SyncPatientCard", "Sync Patient Card", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("EmployeeBenefitEnrollment", "SyncPatientCard")]
+        [ProducesResponseType(typeof(ApiResponse<PatientCardSyncSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public Task<IActionResult> SyncPatientCard(Guid id, CancellationToken cancellationToken) =>
+            Run(async () => Ok(ApiResponse<PatientCardSyncSummaryResponse>.Ok(
+                await _service.ResyncPatientCardAsync(id, CurrentUserId(), cancellationToken), "Sinkronisasi kartu penjamin pasien berhasil dipicu.")));
+
         private async Task<IActionResult> Run(Func<Task<IActionResult>> action)
         {
             try { return await action(); }

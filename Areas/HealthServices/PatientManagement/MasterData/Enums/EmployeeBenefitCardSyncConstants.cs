@@ -10,8 +10,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public const string OnHold = "ON_HOLD";
         public const string FailedRetryable = "FAILED_RETRYABLE";
         public const string Revoked = "REVOKED";
+        public const string NotStarted = "NOT_STARTED";
 
-        public static readonly string[] All = { Synced, WaitingPatient, OnHold, FailedRetryable, Revoked };
+        public static readonly string[] All = { Synced, WaitingPatient, OnHold, FailedRetryable, Revoked, NotStarted };
     }
 
     /// <summary>

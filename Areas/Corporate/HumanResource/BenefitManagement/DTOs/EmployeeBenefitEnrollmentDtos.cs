@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs
 {
@@ -198,6 +199,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         public List<EnrollmentFilterOptionResponse> EnrollmentStatuses { get; set; } = new();
         public List<EnrollmentFilterOptionResponse> DependentStatuses { get; set; } = new();
+        public List<EnrollmentFilterOptionResponse> PatientCardSyncStatuses { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50 };
         public int DefaultPageSize { get; set; } = 10;
     }

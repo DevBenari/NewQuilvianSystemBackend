@@ -1,5 +1,6 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services
 {

@@ -11,10 +11,12 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services
@@ -98,7 +100,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             var now = DateTime.UtcNow;
 
-            if (syncRecord.SyncStatus == EmployeeBenefitCardSyncStatuses.Synced && syncRecord.PatientCompanyGuarantorId.HasValue)
+            // Menonaktifkan kartu penjamin internal terkait bila ada (FIN-DES-118, FIN-DEC-242, AC 1)
+            if (syncRecord.PatientCompanyGuarantorId.HasValue)
             {
                 var card = await _dbContext.Set<MstPatientCompanyGuarantor>()
                     .FirstOrDefaultAsync(x => x.Id == syncRecord.PatientCompanyGuarantorId.Value && !x.IsDelete, cancellationToken);
@@ -110,27 +113,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     card.UpdateDateTime = now;
                     card.UpdateBy = actorUserId;
                 }
+            }
 
-                syncRecord.SyncStatus = EmployeeBenefitCardSyncStatuses.Revoked;
-                syncRecord.RevokedAt = now;
-                syncRecord.ReasonCode = EmployeeBenefitCardSyncReasonCodes.CardRevokedByStaff;
-                syncRecord.NextAttemptAt = null; // stop retry
-                syncRecord.LastTriggerSource = EmployeeBenefitCardSyncTriggerSources.Cancel;
-                syncRecord.LastTriggeredByUserId = actorUserId;
-                syncRecord.RowVersion = Guid.NewGuid();
-                syncRecord.UpdateDateTime = now;
-                syncRecord.UpdateBy = actorUserId;
-            }
-            else
-            {
-                // Bila sebelumnya menunggu atau gagal, bersihkan NextAttemptAt agar tidak diulang oleh penjadwal
-                syncRecord.NextAttemptAt = null;
-                syncRecord.LastTriggerSource = EmployeeBenefitCardSyncTriggerSources.Cancel;
-                syncRecord.LastTriggeredByUserId = actorUserId;
-                syncRecord.RowVersion = Guid.NewGuid();
-                syncRecord.UpdateDateTime = now;
-                syncRecord.UpdateBy = actorUserId;
-            }
+            // Sesuai FIN-STATE-1.11 V.2 (baris 902 & 903) dan FIN-GAP-014:
+            // Bila SYNCED, status catatan tetap SYNCED (riwayat kartu terpasang utuh), kartunya dinonaktifkan.
+            // Bila WAITING_PATIENT, ON_HOLD, atau FAILED_RETRYABLE, status tetap dan NextAttemptAt dikosongkan (berhenti diproses).
+            syncRecord.NextAttemptAt = null; // stop retry
+            syncRecord.LastTriggerSource = EmployeeBenefitCardSyncTriggerSources.Cancel;
+            syncRecord.LastTriggeredByUserId = actorUserId;
+            syncRecord.RowVersion = Guid.NewGuid();
+            syncRecord.UpdateDateTime = now;
+            syncRecord.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -708,7 +701,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 EmployeeNumber = Cut(eligibility.EmployeeNumber ?? owner.StaffNumber, 100) ?? string.Empty,
                 EmployeeName = Cut(eligibility.EmployeeName ?? owner.StaffName, 200),
                 DepartmentName = Cut(owner.OrganizationUnitName, 100),
-                PositionName = Cut(owner.PositionName, 100),
+                PositionName = null,
                 BenefitPlanCode = Cut(eligibility.PlanCode, 100),
                 BenefitPlanName = Cut(eligibility.PlanName, 150),
                 LastEligibilityReferenceNumber = Cut(enrollment.EnrollmentNumber, 100),
@@ -805,7 +798,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     LastTriggerSource = triggerSource,
                     LastTriggeredByUserId = actorUserId,
                     RowVersion = Guid.NewGuid(),
-                    IsActive = true,
                     CreateDateTime = now,
                     CreateBy = actorUserId,
                     IsDelete = false,
@@ -882,5 +874,156 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             EmployeeBenefitCardSyncReasonCodes.CardDeleted => "Kartu penjamin telah dihapus.",
             _ => reasonCode
         };
+
+        /// <summary>
+        /// Mengambil daftar kerja sinkronisasi kartu penjamin internal pasien untuk petugas Registrasi
+        /// (BE-FIN-139, FIN-API-1.12 V.3, FIN-DES-120, FIN-VAL-299).
+        /// Bawaan status bila tidak ditentukan: WAITING_PATIENT,ON_HOLD.
+        /// Menolak status yang tidak dikenal dengan ArgumentException (HTTP 400).
+        /// Tidak menyertakan data pasien (PII) demi privasi medis (AC 4, FIN-DEC-255).
+        /// </summary>
+        public async Task<PagedResult<EmployeeBenefitCardSyncListResponse>> GetWorklistPagedAsync(
+            EmployeeBenefitCardSyncPagedQuery query, CancellationToken cancellationToken)
+        {
+            var rawStatus = string.IsNullOrWhiteSpace(query.Status)
+                ? $"{EmployeeBenefitCardSyncStatuses.WaitingPatient},{EmployeeBenefitCardSyncStatuses.OnHold}"
+                : query.Status;
+
+            var requestedStatuses = rawStatus
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => s.ToUpperInvariant())
+                .Distinct()
+                .ToList();
+
+            var validStatuses = EmployeeBenefitCardSyncStatuses.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var status in requestedStatuses)
+            {
+                if (!validStatuses.Contains(status))
+                {
+                    throw new ArgumentException("Status sinkronisasi tidak dikenal.");
+                }
+            }
+
+            var source = from s in _dbContext.PatEmployeeBenefitCardSyncs.AsNoTracking()
+                         join e in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking() on s.EmployeeBenefitEnrollmentId equals e.Id
+                         join p in _dbContext.MstBenefitPlans.AsNoTracking() on e.BenefitPlanId equals p.Id
+                         join wfp in _dbContext.MstWorkforceProfiles.AsNoTracking() on s.WorkforceProfileId equals wfp.Id into wfpJoin
+                         from wfp in wfpJoin.DefaultIfEmpty()
+                         join emp in _dbContext.MstEmployees.AsNoTracking() on s.WorkforceProfileId equals emp.WorkforceProfileId into empJoin
+                         from emp in empJoin.DefaultIfEmpty()
+                         join doc in _dbContext.MstDoctors.AsNoTracking() on s.WorkforceProfileId equals doc.WorkforceProfileId into docJoin
+                         from doc in docJoin.DefaultIfEmpty()
+                         where !s.IsDelete && !e.IsDelete
+                               && requestedStatuses.Contains(s.SyncStatus)
+                         select new { s, e, p, wfp, emp, doc };
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                source = source.Where(x =>
+                    x.e.EnrollmentNumber.ToLower().Contains(keyword)
+                    || (x.emp != null && (x.emp.EmployeeNumber.ToLower().Contains(keyword) || x.emp.FullName.ToLower().Contains(keyword)))
+                    || (x.doc != null && (x.doc.DoctorNumber.ToLower().Contains(keyword) || x.doc.FullName.ToLower().Contains(keyword))));
+            }
+
+            var pageSize = Math.Clamp(query.PageSize, 1, 50);
+            var pageNumber = Math.Max(query.PageNumber, 1);
+            var total = await source.CountAsync(cancellationToken);
+
+            var rows = await source
+                .OrderByDescending(x => x.s.UpdateDateTime ?? x.s.CreateDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new
+                {
+                    SyncId = x.s.Id,
+                    EnrollmentId = x.e.Id,
+                    x.e.EnrollmentNumber,
+                    x.s.WorkforceProfileId,
+                    UserType = x.wfp != null ? (QuilvianSystemBackend.Enums.UserType?)x.wfp.UserType : null,
+                    EmployeeNumber = x.emp != null ? x.emp.EmployeeNumber : null,
+                    EmployeeName = x.emp != null ? x.emp.FullName : null,
+                    DoctorNumber = x.doc != null ? x.doc.DoctorNumber : null,
+                    DoctorName = x.doc != null ? x.doc.FullName : null,
+                    PlanName = x.p.BenefitPlanName,
+                    Status = x.s.SyncStatus,
+                    x.s.ReasonCode,
+                    x.s.AttemptCount,
+                    x.s.LastAttemptAt,
+                    x.s.NextAttemptAt,
+                    x.s.SyncedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            var items = rows.Select(x =>
+            {
+                var isDoctor = x.UserType == QuilvianSystemBackend.Enums.UserType.PermanentDoctor
+                    || x.UserType == QuilvianSystemBackend.Enums.UserType.GuestDoctor
+                    || (x.DoctorName is not null && x.EmployeeName is null);
+
+                var number = isDoctor ? (x.DoctorNumber ?? x.EmployeeNumber ?? string.Empty) : (x.EmployeeNumber ?? x.DoctorNumber ?? string.Empty);
+                var name = isDoctor ? (x.DoctorName ?? x.EmployeeName ?? string.Empty) : (x.EmployeeName ?? x.DoctorName ?? string.Empty);
+
+                return new EmployeeBenefitCardSyncListResponse
+                {
+                    SyncId = x.SyncId,
+                    EnrollmentId = x.EnrollmentId,
+                    EnrollmentNumber = x.EnrollmentNumber,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    OwnerName = name,
+                    OwnerStaffNumber = number,
+                    OwnerType = isDoctor ? WorkforceBenefitOwnerTypes.Doctor : WorkforceBenefitOwnerTypes.Employee,
+                    PlanName = x.PlanName,
+                    Status = x.Status,
+                    ReasonCode = x.ReasonCode,
+                    ReasonLabel = GetReasonLabel(x.ReasonCode),
+                    AttemptCount = x.AttemptCount,
+                    LastAttemptAt = x.LastAttemptAt,
+                    NextAttemptAt = x.NextAttemptAt,
+                    SyncedAt = x.SyncedAt
+                };
+            }).ToList();
+
+            return new PagedResult<EmployeeBenefitCardSyncListResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = total,
+                TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+                Items = items
+            };
+        }
+
+        /// <summary>
+        /// Mengambil ringkasan jumlah catatan sinkronisasi per status untuk pemantauan Registrasi (BE-FIN-139, FIN-API-1.12 V.3).
+        /// </summary>
+        public async Task<EmployeeBenefitCardSyncSummaryResponse> GetWorklistSummaryAsync(CancellationToken cancellationToken)
+        {
+            var rawCounts = await _dbContext.PatEmployeeBenefitCardSyncs.AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => x.SyncStatus)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync(cancellationToken);
+
+            var countMap = rawCounts.ToDictionary(x => x.Status, x => x.Count, StringComparer.OrdinalIgnoreCase);
+
+            var byStatus = EmployeeBenefitCardSyncStatuses.All
+                .Select(status => new EmployeeBenefitCardSyncStatusCountResponse
+                {
+                    Status = status,
+                    Count = countMap.GetValueOrDefault(status, 0)
+                })
+                .ToList();
+
+            return new EmployeeBenefitCardSyncSummaryResponse
+            {
+                Total = byStatus.Sum(x => x.Count),
+                ByStatus = byStatus
+            };
+        }
     }
 }
