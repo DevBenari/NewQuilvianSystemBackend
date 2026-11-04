@@ -30,7 +30,7 @@ flowchart LR
         BENV003["✅ BE-NV-003<br/>Login dan runtime akun perangkat"]:::luar
         BENV004["✅ BE-NV-004<br/>API interval ukur ulang TTV"]:::luar
         BENV005["✅ BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::luar
-        BENV006["🟡 BE-NV-006<br/>Header perawat jaga dari roster"]:::luar
+        BENV006["✅ BE-NV-006<br/>Header perawat jaga dari roster"]:::luar
         BENV007["✅ BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::luar
     end
 
@@ -39,7 +39,7 @@ flowchart LR
     FENV003["✅ FE-NV-003<br/>Login TV dialihkan ke papan"]:::selesai
     FENV004["✅ FE-NV-004<br/>Layar interval TTV dan menu"]:::selesai
     FENV005["✅ FE-NV-005<br/>Papan lantai tampil di TV"]:::selesai
-    FENV006["🟡 FE-NV-006<br/>Header perawat jaga tampil"]:::sebagian
+    FENV006["✅ FE-NV-006<br/>Header perawat jaga tampil"]:::selesai
     FENV007["✅ FE-NV-007<br/>Papan bereaksi pada sinyal"]:::selesai
 
     BENV002 --> FENV001
@@ -77,7 +77,7 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | ✅ `FE-NV-003` | Login TV dialihkan ke papan | `FR-NV-018`; `NV-DEC-009`, `030` | api §3 `/current` | Pola `queue-display` di `use-base-login.jsx`, `proxy.js` | Berkas bersama FE + kerangka route `/nurse-view-display` | `BE-NV-003` | Kartu, termasuk regresi | lint + login empat akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
 | ✅ `FE-NV-004` | Layar interval TTV dan menu | `FR-NV-020`–`022`; `NV-DEC-010` | api §2 | Komponen form/tabel yang ada | Layar `FE-NVW-03`, butir menu "Interval TTV Nurse View" | `BE-NV-004` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
 | ✅ `FE-NV-005` | Papan lantai tampil di TV | `FR-NV-010`–`016`, `021`, `030`, `031`; `NV-DEC-007`, `013`, `014`, `017` | api §3 `/board` | Pola layar `queue-display-screen-view`, hook refresh, pendengar `offline` | Layar `FE-NVW-04` tanpa header roster dan tanpa realtime | `BE-NV-005`, `FE-NV-003` | Kartu | lint + uji di TV/peramban layar penuh | Keterbacaan ±3 m / Rizki | Kartu |
-| 🟡 `FE-NV-006` | Header perawat jaga tampil | `FR-NV-017`; `NV-DEC-021` | api §3 `Wards[]` | — | Header per bangsal di `FE-NVW-04` | `BE-NV-006`, `FE-NV-005` | Kartu | lint + uji layar | — / Rizki | Kartu |
+| ✅ `FE-NV-006` | Header perawat jaga tampil | `FR-NV-017`; `NV-DEC-021` | api §3 `Wards[]` | — | Header per bangsal di `FE-NVW-04` | `BE-NV-006`, `FE-NV-005` | Kartu | lint + uji layar | — / Rizki | Kartu |
 | ✅ `FE-NV-007` | Papan bereaksi pada sinyal | `FR-NV-032`; `NV-DEC-023` | api §4 | `queue-realtime-client.js` / `signalrHubClient.jsx` | Join grup lantai, muat ulang saat event | `BE-NV-007`, `FE-NV-005` | Kartu | lint + simpan TTV sambil mengamati TV | — / Rizki | Kartu |
 
 ## Kartu task
@@ -136,11 +136,11 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | DEV_DISCRETION | Warna, ikon, ritme kedip, durasi per halaman (`NV-FE-003`, `004`) |
 | DoD | AC terpetakan; lint lulus; rekaman di layar besar termasuk putus jaringan; laporan `FE-NV-005.md` |
 
-### 🟡 FE-NV-006 — Header perawat jaga tampil
+### ✅ FE-NV-006 — Header perawat jaga tampil
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 SEBAGIAN — 3 November 2026. Kepala bangsal (nama bangsal + "Perawat jaga: …" atau "Roster shift ini belum tersedia") terpetakan ke source; `npx eslint` `0 errors`, 0 warning; Prettier lulus; grep anti-regresi 0; UI GATE PASS. Uji layar 4/4 `PASS`: roster kosong (lantai 3) dan bangsal tanpa unit (lantai 2) dengan data nyata; tiga perawat dua shift dan 30 perawat di 1366×768 dengan jawaban `/board` tiruan. Regresi `FE-NV-005` L1–L8 8/8 `PASS`. **Belum: `NV-AC-009` dengan data nyata**, karena roster HR tidak bisa diisi di dev (`BE-NV-006`). `npm run build` `NOT RUN` (dev server aktif). Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-006.md`](../task/report/frontend/FE-NV-006.md) |
+| Status | ✅ SELESAI — 4 November 2026. Kepala bangsal (nama bangsal + "Perawat jaga: …" atau "Roster shift ini belum tersedia") terpetakan ke source; `npx eslint` `0 errors`, 0 warning; Prettier lulus; grep anti-regresi 0; UI GATE PASS. Uji layar 4/4 `PASS`: roster kosong (lantai 3) dan bangsal tanpa unit (lantai 2) dengan data nyata; tiga perawat dua shift dan 30 perawat di 1366×768 dengan jawaban `/board` tiruan. Regresi `FE-NV-005` L1–L8 8/8 `PASS`. 4 Nov: `NV-AC-009` terbukti dengan data nyata — kepala bangsal Rawat Inap di TV `NVW-000003` menampilkan "Perawat jaga: …" dengan tiga perawat roster, tanpa non-perawat (AC009 `PASS`, `BE-NV-006` §5). `npm run build` `NOT RUN` (dev server aktif). Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Riwayat: 🟡 SEBAGIAN 3 November 2026 karena `NV-AC-009` hanya terbukti dengan jawaban tiruan. Laporan: [`FE-NV-006.md`](../task/report/frontend/FE-NV-006.md) |
 | Outcome | Kelompok bangsal menampilkan nama perawat jaga atau "Roster shift ini belum tersedia" |
 | Cakupan | Header per bangsal dari `Wards[].OnDutyNurses`, `RosterAvailable` |
 | Acceptance criteria | `NV-AC-009`, `017` |

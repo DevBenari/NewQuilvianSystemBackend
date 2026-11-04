@@ -237,5 +237,5 @@ sama; DoD kartu tidak memintanya).
 | Dependency backend | `BE-NV-005` ✅ |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Sekitar pukul 09.37 dev server menjawab `500` pada `/login` dan `/nurse-view-display`, karena `use-emergency-registration.js` (IGD, bukan berkas task ini) sedang disunting pihak lain. Berkas itu pulih sendiri pukul 09.38, sebelum L9 dijalankan, dan tidak disentuh |
-| Status Git | Versi awal di `61b5e3f35`; sisanya (7 berkas diubah, 3 dihapus) di `2e510a555`, satu commit dengan perubahan IGD dan `FE-NV-006`. Pembaruan status 4 Nov pada laporan ini belum di-commit |
+| Status Git | Versi awal di `61b5e3f35`; sisanya (7 berkas diubah, 3 dihapus) di `2e510a555`, satu commit dengan perubahan IGD dan `FE-NV-006`. Pembaruan status 4 Nov pada laporan ini di-commit Rizki sebagai `30f1396d` (repo backend) |
 | Langkah berikutnya | Commit laporan oleh Rizki. Tidak ada pekerjaan tersisa untuk task ini |

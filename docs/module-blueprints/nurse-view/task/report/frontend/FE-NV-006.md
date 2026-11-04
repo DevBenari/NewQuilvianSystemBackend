@@ -11,15 +11,15 @@
 | Trace | `FR-NV-017`; `NV-DEC-012`, `021`, `033`; `03-frontend-architecture.md` skema `FE-NVW-04` (wilayah "Kelompok bangsal") |
 | Contract version | `0.1.2` — `approved` (Rizki Gunawan, 2026-11-03, `NV-DEC-033`) |
 | Wewenang UI | Isi dan teks kepala bangsal dikunci skema `FE-NVW-04`. Tata letak, warna, dan pemotongan teks panjang `DEV_DISCRETION` |
-| Dependency | `BE-NV-006` 🟡, `FE-NV-005` 🟡 |
+| Dependency | `BE-NV-006` ✅, `FE-NV-005` ✅ |
 | Klasifikasi | `STANDARD` — tiga berkas milik Nurse View, tanpa berkas bersama |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `RizkiV2`) |
 | Model | Claude Opus 5.5 |
 | Commit frontend | Dikerjakan di atas `61b5e3f35`; source di-commit Rizki sebagai `2e510a555` |
-| Commit backend yang dijadikan rujukan | `6489c32c` + perubahan `BE-NV-006` yang dibuild Rizki 3 Nov 10.53 |
-| Tanggal | 2026-11-03 |
-| Status | 🟡 **SEBAGIAN 3 November 2026** — `npx eslint` 0 error 0 warning, Prettier lulus. Uji kepala bangsal 4/4 `PASS` (S1, S2 data nyata; S3, S4 jawaban tiruan). Regresi layar `FE-NV-005` 8/8 `PASS`. **`NV-AC-009` hanya terbukti dengan jawaban tiruan**, karena roster HR tidak bisa diisi di dev (`BE-NV-006` §5). Verifikasi developer, bukan UAT |
+| Commit backend yang dijadikan rujukan | `6489c32c` + perubahan `BE-NV-006` yang dibuild Rizki 3 Nov 10.53; uji 4 Nov memakai `30f1396d` (perbaikan HR) yang dibuild Rizki 4 Nov 10.39 |
+| Tanggal | 2026-11-03 sampai 2026-11-04 |
+| Status | ✅ **SELESAI 4 November 2026** — `npx eslint` 0 error 0 warning, Prettier lulus. Uji kepala bangsal 4/4 `PASS` (S1, S2 data nyata; S3, S4 jawaban tiruan). Regresi layar `FE-NV-005` 8/8 `PASS`. **`NV-AC-009` terbukti dengan data nyata** (AC009 `PASS`, 4 Nov): kepala bangsal Rawat Inap di TV `NVW-000003` menampilkan "Perawat jaga: …" dengan tiga perawat roster dan label shiftnya, tanpa non-perawat (`BE-NV-006` §5). Verifikasi developer, bukan UAT. Riwayat: 🟡 SEBAGIAN 3 November 2026 karena `NV-AC-009` hanya terbukti dengan jawaban tiruan |
 
 ---
 
@@ -74,7 +74,7 @@ diubah.
 
 | State | Yang dilihat pengguna | Bukti |
 | --- | --- | --- |
-| Roster berisi | "Perawat jaga: Sari, Dewi (Pagi) · Rina (Siang)" | S3 (simulasi) |
+| Roster berisi | "Perawat jaga: Sari, Dewi (Pagi) · Rina (Siang)" | S3 (simulasi); AC009 (data nyata, 4 Nov) |
 | Roster kosong atau bangsal tanpa unit | "Roster shift ini belum tersedia" | S1, S2 |
 | Daftar terlalu panjang | Satu baris, diakhiri elipsis | S4 (simulasi) |
 
@@ -103,12 +103,19 @@ Tidak ada endpoint baru. Layar memakai `Wards[].RosterAvailable` dan `Wards[].On
 
 Bukti berada di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-006-20261103/`, kecuali yang disebut lain.
 
+**Uji tambahan 4 November 2026, data nyata.** Sesudah perbaikan HR (`BE-NV-006` §3.2) dan profesi Perawat diisi lewat
+aplikasi:
+
+| Skenario | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| AC009 kepala bangsal dengan roster nyata | Roster "Uji Nurse View NV-AC-009" `Published`, shift 06.00–23.00 WIB berjalan, berisi tiga perawat (D., R., Y.), satu pegawai tanpa profesi (S.), dan satu non-perawat. `OnDutyNurses` di `/board` tepat ketiga perawat itu, tanpa S. dan non-perawat; di TV `NVW-000003` (1920×1080), kepala "Rawat Inap" memuat "Perawat jaga:" dan ketiga nama. 8 cek. Pengamatan PNG, tidak dicek skrip: kepala tetap satu baris diakhiri "(Uji Nurse View Siang)", dan kartu bed utuh | `PASS` | `uji-nv-006-ac009-20261104/roster-2026-11-04T03-44-59-282Z/AC009.json`, `AC009-kepala-bangsal.png`, `AC009-papan.png` |
+
 **Riwayat.** Putaran `roster-papan-2026-11-03T04-06-12-428Z` S4 `FAIL`. Penyebabnya asumsi skrip: 14 nama ternyata muat
 utuh di 1366×768, sehingga tidak ada elipsis. Tangkapan layarnya menunjukkan semua nama terbaca. Skrip diubah menjadi 30
 nama, dan produk tidak diubah. Putaran `04-07-31` lulus, tetapi sempat berjalan bersamaan dengan regresi `FE-NV-005`
 yang mereset login perangkat yang sama. Karena itu buktinya diganti dengan putaran tunggal `04-13-05`.
 
-`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-11-03; S1–S4 dan regresi L1–L8 PASS.`
+`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-11-03; S1–S4 dan regresi L1–L8 PASS. AC009 data nyata PASS 2026-11-04.`
 
 `AUTOMATED TEST: SKIPPED (opsional) — ketentuan proyek.`
 
@@ -120,10 +127,10 @@ yang mereset login perangkat yang sama. Karena itu buktinya diganti dengan putar
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `NV-AC-009` header menampilkan ketiga perawat jaga | **Tampilan terbukti dengan jawaban tiruan; data nyata belum ada** (`BE-NV-006` §6) | S3 |
+| `NV-AC-009` header menampilkan ketiga perawat jaga | Terpenuhi, data nyata (4 Nov): kepala bangsal Rawat Inap menampilkan ketiga perawat roster, tanpa non-perawat | S3, AC009 |
 | `NV-AC-017` "Roster shift ini belum tersedia", tanpa nama ditebak | Terpenuhi, data nyata: roster kosong (S1) dan bangsal tanpa unit (S2) | S1, S2 |
 | DoD — lint lulus | Terpenuhi | §6 |
-| DoD — tangkapan layar kedua keadaan | Terpenuhi; keadaan berisi memakai jawaban tiruan | `S1`, `S2`, `S3` |
+| DoD — tangkapan layar kedua keadaan | Terpenuhi; keadaan berisi dengan data nyata sejak 4 Nov | `S1`, `S2`, `S3`, `AC009-kepala-bangsal.png` |
 
 ---
 
@@ -133,7 +140,7 @@ yang mereset login perangkat yang sama. Karena itu buktinya diganti dengan putar
 | --- | --- |
 | Peringatan | `npm run build` `NOT RUN` |
 | Masalah yang diketahui | Nama yang terpotong elipsis tidak terbaca di TV. Dengan ukuran huruf sekarang, kira-kira 14 nama masih muat di 1366×768 |
-| Dependency backend | `BE-NV-006` 🟡 |
+| Dependency backend | `BE-NV-006` ✅ |
 | Perubahan sampingan | `NONE`, selain pemecahan satu baris `color-mix` sesuai Prettier |
-| Status Git | Source di `2e510a555`; working tree Nurse View bersih. Laporan ini ada di repo backend dan belum di-commit |
-| Langkah berikutnya | Uji ulang `NV-AC-009` dengan data nyata sesudah temuan HR diperbaiki; lalu `FE-NV-007` |
+| Status Git | Source di `2e510a555`. Laporan versi 3 Nov ada di repo backend `55335caf`; pembaruan 4 Nov belum di-commit |
+| Langkah berikutnya | Commit laporan oleh Rizki. Tidak ada pekerjaan tersisa untuk task ini |
