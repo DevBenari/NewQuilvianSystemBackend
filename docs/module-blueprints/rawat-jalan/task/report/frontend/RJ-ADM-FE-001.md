@@ -90,3 +90,27 @@ Pilihan yang ditawarkan untuk elemen WRAP kiosk: **A. Ikuti pola visual kiosk Ce
 
 - `buildAdmissionQueueDisplayDeviceColumns`: No, Kode Layar, Nama Layar, Tipe Perangkat, Lokasi / Lantai / Ruangan, Panggilan Suara, Terakhir Online (Online/Offline ≤ 5 menit + waktu), Session Device, Dibuat Oleh, Status. Tanpa Klaster, Unit Layanan, Tipe Tata Letak. Tabel Pelayanan tidak berubah.
 - Validasi: belum build/uji browser.
+
+## Revisi 2026-11-04 — pilih loket di kolom Loket / Panggil, urutan Waktu Ambil
+
+- Saringan "Pilih loket" dihapus dari `DataFilter`. Loket dipilih per tiket di kolom **Loket / Panggil** memakai `FilterSelect` (`menuPortal`, `menuPlacement="auto"`), hanya pada tiket yang punya aksi Panggil/Panggil Ulang dan bila petugas berizin `Call`; tiket lain menampilkan nama loket seperti sebelumnya.
+- Nilai loket per baris: pilihan di baris itu → loket yang sudah memegang tiket → loket bawaan perangkat (localStorage, diperbarui oleh pilihan terakhir). Loket tidak aktif diabaikan. Panggil/Panggil Ulang mengirim `counterCode` baris tersebut; pesan peringatan `SELECT_COUNTER` disesuaikan.
+- Kolom Waktu Ambil: tanggal di atas, jam ambil di bawah.
+- Gerbang base component: `FilterSelect` di sel tabel = `REUSE` (prop `menuPortal` sudah ada, pola `billing-data-view`). Tidak ada komponen baru.
+- File: `admission-queue-list-view.jsx`, `admission-queue-table-columns.jsx`, `use-admission-queue-list.jsx`, `admission-queue-constants.js`, `admission-queue.module.css` (komentar).
+- Validasi: `npx eslint` pada file terdampak — 0 error, 3 warning `react-hooks/set-state-in-effect` yang sudah ada sebelumnya. Route `/health-services/registration-management/admission-queues` terkompilasi di `next dev` (HTTP 200).
+- MANUAL TEST: NOT FEASIBLE — kredensial petugas loket tidak tersedia di sesi ini; buka dropdown, panggil dengan loket terpilih, dan perilaku tiket Dipanggil belum diuji di browser.
+- AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai framework test.
+
+## Revisi 2026-11-04 (b) — perbaikan pilihan loket per baris
+
+- Bug: memilih loket di satu tiket ikut mengubah tiket lain, karena pilihan juga menjadi "loket bawaan perangkat" (state + localStorage) yang dipakai baris lain. Loket bawaan perangkat dihapus (`ADMISSION_QUEUE_COUNTER_STORAGE_KEY`, `readStoredCounter`, `storeCounter`); pilihan kini disimpan per `ticketId` saja. Isian otomatis hanya bila tepat satu loket aktif.
+- Penjagaan: dropdown aktif hanya untuk tiket ber-aksi Panggil. Sesudah dipanggil (aksi Panggil Ulang), dropdown tetap tampil berisi loket yang memanggil tetapi disabled; Panggil Ulang selalu memakai `item.counterCode`. Selama permintaan Panggil berjalan semua dropdown disabled (`busyAction`).
+- Validasi: `npx eslint` file terdampak — 0 error, 1 warning lama (`set-state-in-effect` pada `reload()`); route terkompilasi (HTTP 200).
+- MANUAL TEST: NOT FEASIBLE — kredensial petugas loket tidak tersedia di sesi ini.
+
+## Revisi 2026-11-04 (c) — kolom Keterangan
+
+- Kolom Loket / Panggil hanya berisi dropdown loket (atau nama loket untuk tiket selesai); jam panggil tidak lagi ditampilkan.
+- Kolom baru **Keterangan** sesudah Kunjungan: `Dipanggil Nx` dari `callAttemptCount` (termasuk panggil ulang), `-` bila belum pernah dipanggil.
+- Validasi: `npx eslint` folder view admission-queues — bersih; route terkompilasi (HTTP 200). MANUAL TEST: NOT FEASIBLE — kredensial petugas loket tidak tersedia.
