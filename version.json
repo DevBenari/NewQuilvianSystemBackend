@@ -1,27 +1,24 @@
 {
-  "releaseName": "Quilvian 0.27.0 - Enterprise Platform Enhancement",
-  "backendVersion": "0.27.0",
-  "description": "Release 0.27.0 enhances Billing Management, Blood Bank Management, Emergency Management, Inpatient Management, Medical Record Management, Nutrition Management, Operating Room Management, Pharmacy Management, Registration Management capabilities. Includes improvements across Billing Workflow, Pharmacy Workflow, Blood Bank Workflow.",
+  "releaseName": "Quilvian 0.28.0 - Enterprise Platform Enhancement",
+  "description": "Release 0.28.0 enhances Administrator Management, Medical Record Management, Pharmacy Management, Registration Management capabilities. Includes improvements across Pharmacy Workflow. Includes 3 database migration update(s).",
+  "backendVersion": "0.28.0",
   "releaseMetadata": {
+    "migrations": [
+      "20261102090000_AddRegAdmissionTicket.cs",
+      "20261102140000_MakeQueueDisplayDeviceClusterOptional.cs",
+      "20261103050001_AddOpticalManagement.cs"
+    ],
+    "generatedBy": "Quilvian Release Generator",
     "modules": [
-      "Billing Management",
-      "Blood Bank Management",
-      "Emergency Management",
-      "Inpatient Management",
+      "Administrator Management",
       "Medical Record Management",
-      "Nutrition Management",
-      "Operating Room Management",
       "Pharmacy Management",
       "Registration Management"
     ],
-    "migrations": [],
-    "generatedAt": "2026-11-02T07:20:04",
-    "migrationCount": 0,
+    "migrationCount": 3,
     "features": [
-      "Billing Workflow",
-      "Pharmacy Workflow",
-      "Blood Bank Workflow"
+      "Pharmacy Workflow"
     ],
-    "generatedBy": "Quilvian Release Generator"
+    "generatedAt": "2026-11-04T06:38:10"
   }
 }
