@@ -146,7 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 EvaluatorRole = request.EvaluatorRole.Trim(),
                 EvaluationDate = request.EvaluationDate,
                 Score = 0m,
-                Recommendation = EvaluationRecommendation.RecommendedWithCondition,
+                Recommendation = EvaluationRecommendation.Considered,
                 IsClinicalVetoApplied = false,
                 Notes = request.Notes?.Trim(),
                 CreateDateTime = DateTime.UtcNow,

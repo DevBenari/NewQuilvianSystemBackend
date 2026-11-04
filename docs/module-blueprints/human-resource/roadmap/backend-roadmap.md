@@ -618,11 +618,11 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-055` | `S-D2` | API Penapisan Berkas Administrasi & Gerbang Otomatis STR Klinis (`Auto-Reject`) | ✅ | `BE-HRD-054` ✅ |
 | `BE-HRD-056` | `S-D2` | API Evaluasi Wawancara HR & Uji Klinis dengan Penegakan Hak Veto Klinis Mutlak | ✅ | `BE-HRD-055` ✅ |
 | `BE-HRD-057` | `S-D2` | API Penawaran Kerja Bersyarat (*Conditional Job Offer*) & Evaluasi Plafon Skala Upah | ✅ | `BE-HRD-056` ✅, `BE-HRD-002` ✅ |
-| `BE-HRD-058` | `S-D2` | API Rantai Persetujuan Penawaran Bertingkat Standard T13 vs Eskalasi T14 | | `BE-HRD-057`, `BE-HRD-030` |
-| `BE-HRD-059` | `S-D2` | API Pemeriksaan Kesehatan Pra-Kerja (MCU) & Masking Diagnosa Medis K3RS | | `BE-HRD-057` |
-| `BE-HRD-060` | `S-D2` | API Bank Kandidat Cadangan (*Talent Pool*) & Promosi Cepat Fast-Track | | `BE-HRD-056` |
-| `BE-HRD-061` | `S-D2` | API Serah Terima Rekrutmen ke Onboarding Sub-modul 05 & Sinkronisasi Kursi WFP | | `BE-HRD-058`, `BE-HRD-059`, `BE-HRD-052` |
-| `BE-HRD-062` | `S-D2` | Data Runtime Dev & Verifikasi Alur Bisnis Ujung-ke-Ujung S-D2 | | `BE-HRD-060`, `BE-HRD-061` |
+| `BE-HRD-058` | `S-D2` | API Rantai Persetujuan Penawaran Bertingkat Standard T13 vs Eskalasi T14 | ✅ | `BE-HRD-057` ✅, `BE-HRD-030` ✅ |
+| `BE-HRD-059` | `S-D2` | API Pemeriksaan Kesehatan Pra-Kerja (MCU) & Masking Diagnosa Medis K3RS | ✅ | `BE-HRD-057` ✅ |
+| `BE-HRD-060` | `S-D2` | API Bank Kandidat Cadangan (*Talent Pool*) & Promosi Cepat Fast-Track | ✅ | `BE-HRD-056` ✅ |
+| `BE-HRD-061` | `S-D2` | API Serah Terima Rekrutmen ke Onboarding Sub-modul 05 & Sinkronisasi Kursi WFP | ✅ | `BE-HRD-058` ✅, `BE-HRD-059` ✅, `BE-HRD-052` ✅ |
+| `BE-HRD-062` | `S-D2` | Data Runtime Dev & Verifikasi Alur Bisnis Ujung-ke-Ujung S-D2 | ✅ | `BE-HRD-060` ✅, `BE-HRD-061` ✅ |
 | `BE-HRD-019` | `S-D3` | Pendaftaran Benefit Karyawan, Penjaminan Tanggungan, dan Mutasi Saldo | ✅ | `BE-HRD-002` |
 | `BE-HRD-020` | `S-D4` | Layanan Bantuan dan Tiket Kepegawaian (HR Helpdesk) | ⛔ | `{DEC-HRD-004 ⛔}` |
 | `BE-HRD-021` | `S-D5` | Pengajuan Perjalanan Dinas dan Klaim Biaya (Reimbursement) | tanpa tanda | `{DEC-HRD-004 ⛔}` |
@@ -1638,7 +1638,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-058` — API Rantai Persetujuan Penawaran Bertingkat Standard T13 vs Eskalasi T14
 * **Slice / MVP**: `S-D2` / `MVP-13`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-057`.
+* **Status**: Selesai (✅ PASS) — diimplementasikan pada `BE-HRD-058.md`
 * **Outcome**: API untuk pemrosesan langkah-langkah persetujuan penawaran kerja oleh pejabat berwenang: Jalur Standar `T13` (Unit Head & HR Manager) vs Jalur Eskalasi `T14` (Unit Head, HR Manager, Finance Director, dan Direktur Utama) (`HRD-DEC-079`).
 * **Requirement/decision**: `HRD-DEC-079`, `FR-REC-09`, `VR-REC-15`, `VR-REC-16`, `AT-HRD-D2-08`.
 * **Kontrak**: API Contract v8 bagian 14.6 grup `Job Offer Approval`, Validation v8 bagian 13.6, State Transition v8 bagian 12.6.
@@ -1656,7 +1656,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-059` — API Pemeriksaan Kesehatan Pra-Kerja (MCU) & Masking Diagnosa Medis K3RS
 * **Slice / MVP**: `S-D2` / `MVP-13`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-057`.
+* **Status**: Selesai (✅ PASS) — diimplementasikan pada BE-HRD-059.md
 * **Outcome**: API pendaftaran rujukan MCU pra-kerja bagi kandidat yang telah menyetujui conditional offer (`HRD-DEC-078`), pencatatan kelaikan kerja oleh Dokter K3RS (`FIT`, `FIT_WITH_RESTRICTIONS`, `UNFIT`), dan penerapan masking kerahasiaan diagnosa medis rekam kesehatan staf (`HRD-DEC-010`, `HRD-DEC-078`).
 * **Requirement/decision**: `HRD-DEC-078`, `HRD-DEC-010`, `FR-REC-08`, `VR-REC-17`, `AT-HRD-D2-09`, `UAT-REC-05`.
 * **Kontrak**: API Contract v8 bagian 14.7 grup `MCU Clearance`, Validation v8 bagian 13.7, State Transition v8 bagian 12.7.
@@ -1674,7 +1674,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-060` — API Bank Kandidat Cadangan (*Talent Pool*) & Promosi Cepat Fast-Track
 * **Slice / MVP**: `S-D2` / `MVP-13`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-056`.
+* **Status**: Selesai (✅ PASS) — diimplementasikan pada BE-HRD-060.md
 * **Outcome**: API untuk mengelola bank data kandidat cadangan berperingkat yang lulus seluruh seleksi namun tidak terpilih karena keterbatasan kuota kursi (`HRD-DEC-080`), dengan batas retensi 6 bulan, dan fitur promosi cepat (*Fast-Track*) untuk mengisi kursi yang ditinggalkan kandidat utama yang menolak tawaran (*Offer Rejected*) atau tidak hadir (*No-Show*).
 * **Requirement/decision**: `HRD-DEC-080`, `FR-REC-11`, `FR-REC-12`, `VR-REC-18`, `VR-REC-19`, `AT-HRD-D2-10`, `UAT-REC-07`.
 * **Kontrak**: API Contract v8 bagian 14.8 grup `Talent Pool`, Validation v8 bagian 13.8, State Transition v8 bagian 12.8.
@@ -1692,7 +1692,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-061` — API Serah Terima Rekrutmen ke Onboarding Sub-modul 05 & Sinkronisasi Kursi WFP
 * **Slice / MVP**: `S-D2` / `MVP-13`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-058`, `BE-HRD-059`, `BE-HRD-052`.
+* **Status**: Selesai (✅ PASS) — diimplementasikan pada BE-HRD-061.md
 * **Outcome**: API untuk menerbitkan dokumen serah terima (*Hiring Handoff*) bagi kandidat yang telah menandatangani penawaran final (`FINAL_ACCEPTED`) dan berstatus kelaikan kerja `FIT`/`FIT_WITH_RESTRICTIONS`, membentuk draf `WorkforceProfile` berstatus `Pending Onboarding` di Sub-modul 02 (`HRD-DEC-075`), serta menyinkronkan status kursi pada `HeadcountRequest` WFP menjadi `FULFILLED` (`INT-HR-20`, `INT-HR-23`).
 * **Requirement/decision**: `HRD-DEC-075`, `HRD-DEC-078`, `FR-REC-10`, `VR-REC-20`, `AT-HRD-D2-11`, `INT-HR-20`, `INT-HR-23`.
 * **Kontrak**: API Contract v8 bagian 14.9 grup `Hiring Handoff`, Validation v8 bagian 13.9, State Transition v8 bagian 12.9, Integration v8 bagian 12.
@@ -1710,7 +1710,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-062` — Data Runtime Dev & Verifikasi Alur Bisnis Ujung-ke-Ujung S-D2
 * **Slice / MVP**: `S-D2` / Verifikasi
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-060`, `BE-HRD-061`.
+* **Status**: Selesai (✅ PASS) — diverifikasi pada BE-HRD-062.md
 * **Outcome**: Verifikasi alur bisnis rekrutmen rumah sakit ujung-ke-ujung terbukti sukses di database dev: mulai dari penarikan kursi formasi WFP, pembukaan lowongan klinis perawat, pendaftaran kandidat dengan auto-reject STR kedaluwarsa, rehire mantan pegawai, penegakan veto klinis kepala ICU, penerbitan conditional offer, evaluasi eskalasi gaji T14, MCU clearance dengan masking rekam medis, serah terima kandidat siap onboarding, hingga promosi cepat talent pool cadangan.
 * **Requirement/decision**: `AT-HRD-D2-01` s.d. `AT-HRD-D2-12`, `UAT-REC-01` s.d. `UAT-REC-07`, `04-prd-to-mvp.md` bagian 22.5 & 22.6.
 * **Kontrak**: Seluruh kontrak v8 bagian `S-D2`.
@@ -1811,7 +1811,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### `BE-HRD-064` — Amandemen tawaran `S-D2`: jenis kontrak dan lama kontrak (`HRD-DEC-095`)
 * **Slice / MVP**: `S-D2` (amandemen dari sub-modul 05) / `MVP-14`
-* **Status**: Belum dikerjakan. Menunggu `BE-HRD-057`.
+* **Status**: Belum dikerjakan. Menunggu BE-HRD-057.
 * **Outcome**: Tawaran kerja memuat jenis dan lama kontrak, ikut disetujui bersama gaji, sehingga draf kontrak pertama dapat menyalinnya tanpa persetujuan ulang.
 * **Requirement/decision**: `HRD-DEC-095`; `FR-ONB-010`; `VR-ONB-50`, `VR-ONB-51`; `INT-HR-35`; `AT-HRD-ONB-38`.
 * **Kontrak**: API `v9` bagian 15.12; Data Dictionary `v9` bagian 10.14; migration 1 pada 18.7.

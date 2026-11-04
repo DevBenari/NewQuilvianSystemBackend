@@ -1,3 +1,4 @@
+using System;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -28,8 +29,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
         public bool IsProbationApplicable { get; set; } = false;
 
+        public Guid? EmploymentTypeId { get; set; }
+
         public int SortOrder { get; set; } = 0;
 
         public bool IsActive { get; set; } = true;
+
+        public MstEmploymentType? EmploymentType { get; set; }
     }
 }

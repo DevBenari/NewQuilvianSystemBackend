@@ -1707,3 +1707,136 @@ data tiruan yang mengikuti bentuk response kontrak.
 | `HRD-DEC-088` | `FE-HRD-125`, `FE-HRD-136` |
 | `HRD-DEC-089` | `FE-HRD-123`, `FE-HRD-126`, `FE-HRD-127` |
 | `HRD-DEC-090` | `FE-HRD-134`, `FE-HRD-135` |
+
+
+---
+
+## 15. Slice `S-B4` — Penjadwalan, Roster, dan On-Call, sub-modul 06 (revision `6`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| Frontend SHA saat bagian ini ditulis | `44990b3d3` (branch `HamzahV2`) |
+| Backend SHA | `38e892b0` (branch `MHamzah`) |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`, `HRD-ASM-05` s.d. `HRD-ASM-14`) |
+| Perubahan halaman | 1 halaman diperbarui (`/hr/scheduling/roster`), 2 halaman baru (`/hr/scheduling/on-call`, `/hr/scheduling/settings`), 3 modal/drawer komponen interaktif baru |
+
+### 15.1 Kebutuhan layar `S-B4`
+
+| ID Layar | Nama layar | Route URL | Status | Deskripsi |
+| --- | --- | --- | --- | --- |
+| `FE-HRD-137` | Kisi Roster Bulanan Unit | `/hr/scheduling/roster` | `Diperbarui` | Layar kerja utama Kepala Unit untuk menyusun jadwal shift bulanan, salin periode lalu, terapkan pola shift, menampilkan penanda Didampingi, dan status badge |
+| `FE-HRD-138` | Drawer Validasi & Alasan Roster | Komponen Drawer pada `/hr/scheduling/roster` | `Baru` | Menampilkan hasil periksa jadwal: memisahkan error memblokir (`B1`–`B7`) dan peringatan (`W1`–`W7`). Menyediakan dropdown alasan wajib untuk setiap peringatan sebelum tombol Terbitkan aktif |
+| `FE-HRD-139` | Modal Ganti Petugas Cepat | Komponen Modal pada `/hr/scheduling/roster` | `Baru` | Memungkinkan Kepala Unit mengganti petugas shift terbit secara langsung, memilih alasan standar, dan otomatis memvalidasi kelayakan pengganti |
+| `FE-HRD-140` | Manajemen Siaga (*On-Call Coverage*) | `/hr/scheduling/on-call` | `Baru` | Layar visual penugasan siaga dokter spesialis dan staf penunjang cito per unit dan per tanggal |
+| `FE-HRD-141` | Modal Pencatatan Pemanggilan Siaga (*Call-In*) | Komponen Modal pada `/hr/scheduling/on-call` & Layar Unit | `Baru` | Tombol dan form pemanggilan siaga darurat, mencatat waktu panggil, waktu tiba, dan kalkulasi kepatuhan target SLA respon menit |
+| `FE-HRD-142` | Pengaturan Kebijakan Penjadwalan HR | `/hr/scheduling/settings` | `Baru` | Layar admin HR untuk menyetel angka jeda istirahat minimal (default 11 jam), batas hari kerja berturut-turut, toleransi koreksi mundur (default 3 hari), dan toggle eskalasi aturan |
+
+### 15.2 Peta butir menu
+
+| Label menu | Level | Induk menu | Route | Layar target | Permission penutup |
+| --- | --- | --- | --- | --- | --- |
+| Roster Kerja | Level 2 | Penjadwalan & Shift | `/hr/scheduling/roster` | `FE-HRD-137` | `[AccessPermission("HrdScheduling", "Read")]` |
+| Penugasan Siaga (On-Call) | Level 2 | Penjadwalan & Shift | `/hr/scheduling/on-call` | `FE-HRD-140` | `[AccessPermission("HrdOnCall", "Read")]` |
+| Pengaturan Waktu Kerja | Level 2 | Penjadwalan & Shift | `/hr/scheduling/settings` | `FE-HRD-142` | `[AccessPermission("HrdSchedulingSetting", "Manage")]` |
+
+### 15.3 Skema fitur per layar
+
+#### 15.3.1 `FE-HRD-137` — Kisi Roster Bulanan Unit (`/hr/scheduling/roster`)
+
+```text
++----------------------------------------------------------------------------------------------------+
+|  Navigasi: Human Resource > Penjadwalan & Shift > Roster Kerja                                     |
+|  [Filter Unit: ICU v] [Periode: Februari 2027 v] [Status: Published] [Total Staf: 18 Perawat]       |
+|  [+ Buat Roster] [Salin Periode Lalu] [Terapkan Pola]  [Periksa Jadwal] [Terbitkan Roster]          |
++----------------------------------------------------------------------------------------------------+
+| Pegawai            | 01 Kam | 02 Jum | 03 Sab | 04 Min | ... | 14 Sab          | ... | 28 Min        |
++----------------------------------------------------------------------------------------------------+
+| Sari (Kepala Unit) | Pagi   | Pagi   | Libur  | Libur  | ... | Pagi            | ... | Libur         |
+| Budi (Mandiri)     | Siang  | Siang  | Malam  | Lepas  | ... | [Malam (Diganti)| ... | Pagi          |
+| Tono (Mandiri)     | Pagi   | Siang  | Pagi   | Siang  | ... | [Malam (Ganti)] | ... | Siang         |
+| Rina [Didampingi]  | Pagi   | Pagi   | Libur  | Libur  | ... | Siang           | ... | Pagi          |
++----------------------------------------------------------------------------------------------------+
+| Kuota Shift: Pagi  | 3/3 OK | 3/3 OK | 3/3 OK | 3/3 OK | ... | 3/3 OK          | ... | 3/3 OK        |
+| Kuota Shift: Malam | 3/3 OK | 3/3 OK | 2/3 [!] Peringatan: Kekurangan Tenaga | ... | 3/3 OK        |
++----------------------------------------------------------------------------------------------------+
+```
+
+- **Tabel Wilayah Layar:**
+  - **Header & Filter:** Memilih unit kerja dan bulan kalender. Tombol aksi sesuai status periode.
+  - **Grid Jadwal:** Baris berisi pegawai eligible. Kolom tanggal menampilkan kode shift. Klik pada kotak shift terbit memunculkan popover: **Ganti Petugas**, **Koreksi Shift** (jika `today - date <= 3`), atau **Lihat Riwayat Audit**.
+  - **Penanda Khusus:** Badge kuning `[Didampingi — Tono]` pada nama perawat orientasi (`HRD-DEC-087`, `HRD-DEC-100`).
+  - **Kondisi Terkunci:** Bila periode berstatus `Closed`, seluruh sel tabel terkunci (*read-only*) dengan banner informasi: *"Periode telah ditutup oleh Payroll HRD pada 28/02/2027. Jadwal tidak dapat diubah."*
+
+#### 15.3.2 `FE-HRD-138` — Drawer Validasi & Alasan Roster
+
+- **Wilayah Kesalahan Memblokir (Merah):** Daftar pelanggaran `B1`–`B7`. Selama bagian ini terisi, tombol **Terbitkan** terkunci total (*disabled*). Setiap butir memiliki tombol pintas *"Arahkan ke Kotak Jadwal"*.
+- **Wilayah Peringatan (Kuning):** Daftar peringatan `W1`–`W7`. Masing-masing butir memiliki dropdown wajib:
+  - Pilihan alasan: `Kekurangan tenaga`, `Permintaan pegawai`, `Volume pasien/BOR rendah`, atau `Lainnya (wajib catatan)`.
+  - Tombol **Terbitkan** hanya aktif setelah 100% peringatan memiliki alasan terisi.
+
+#### 15.3.3 `FE-HRD-139` — Modal Ganti Petugas Cepat
+
+- **Field Input:**
+  - Pegawai asal (terisi otomatis, *read-only*): Budi.
+  - Tanggal & Shift: 14 Februari 2027, Shift Malam (21.00–07.00).
+  - Pilih Pegawai Pengganti: dropdown hanya menampilkan pegawai unit yang bebas shift dan lolos validasi `B1`–`B7`.
+  - Kategori Alasan: radio button / select (`Sakit Mendadak`, `Izin/Keluarga`, `Lonjakan Pasien`, `Pengurangan Staf`, `Lainnya`).
+  - Catatan tambahan (opsional kecuali bila memilih `Lainnya`).
+- **Aksi:** Tombol **Konfirmasi Penggantian** langsung menyimpan mutasi, status roster tetap `Published`, dan mengirim notifikasi real-time.
+
+#### 15.3.4 `FE-HRD-140` & `FE-HRD-141` — Penugasan Siaga & Modal Call-In
+
+- **Tampilan Kalender Siaga:** Grid penugasan siaga per profesi (Dokter Spesialis & Staf Cito). Menampilkan status badge: `Scheduled` (Biru), `Confirmed` (Kuning), `Active` (Hijau).
+- **Modal Call-In:**
+  - Input waktu panggilan darurat (*CallInTime*).
+  - Input waktu kehadiran dokter (*ArrivalTime*).
+  - Indikator real-time: Target SLA (misal 30 menit) vs Realisasi (25 menit) -> Badge Hijau `[MEMENUHI SLA (25 min)]`.
+
+### 15.4 Aksi per peran
+
+| Peran Pengguna | Hak Akses & Aksi Utama |
+| --- | --- |
+| **Kepala Unit (Sari)** | Membuat periode draft unitnya, menyusun shift, salin periode lalu, validasi jadwal, memilih alasan peringatan, menerbitkan roster, melakukan penggantian petugas langsung (*override*), dan koreksi mundur maksimal 3 hari |
+| **Kepala Bidang (Pak Dodi)** | Melihat (*read-only*) seluruh roster unit di bawah koordinasinya, melihat riwayat peringatan & alasan yang dipilih kepala unit, menerima notifikasi saat roster terbit atau terjadi mutasi shift |
+| **Pegawai (Budi, Rina)** | Melihat jadwal pribadi di halaman profil/layanan mandiri, menerima notifikasi saat jadwal terbit atau saat digantikan/ditugaskan shift pengganti |
+| **Analis Lab / Perawat Unit Pemanggil** | Membaca daftar dokter siaga aktif, menekan tombol **Panggil Siaga (*Call-In*)**, mencatat waktu kedatangan |
+| **Admin HR / Payroll Officer** | Mengelola setelan kebijakan waktu kerja (`FE-HRD-142`), menyusun siaga dokter bersama Komite Medik, dan menutup periode roster (**`Closed`**) saat cut-off payroll |
+
+### 15.5 Penanganan keadaan (*State Handling*)
+
+| Keadaan | Penanganan pada Layar |
+| --- | --- |
+| **Loading** | Skeleton loader pada kisi kalender jadwal; tombol aksi berstatus loading spinner |
+| **Empty** | Layar menyajikan pesan ramah: *"Belum ada jadwal dinas untuk periode ini. Klik 'Buat Roster' atau 'Salin dari Periode Lalu' untuk memulai."* |
+| **Error / Validasi Gagal** | Drawer validasi terbuka otomatis menampilkan rincian error pemblokir dengan penyorotan warna merah pada sel tabel terkait |
+| **Period Closed** | Banner penguncian mutlak berwarna abu-abu; seluruh kontrol pengeditan dinonaktifkan (*disabled*) |
+
+### 15.6 Kewenangan UI dan ruang `DEV_DISCRETION`
+
+- **Terkunci Blueprint (Wajib):** Peta menu, route URL, alur validasi dua tingkat (blokir vs peringatan ber-alasan), status badge, penanda *Didampingi*, pembatasan koreksi mundur 3 hari, dan modal call-in dengan SLA.
+- **`DEV_DISCRETION`:** Pilihan warna badge status, layout density kisi tabel (compact vs comfortable view), animasi transisi drawer, format penanggalan tampilan kalender, dan ikon visual.
+
+### 15.7 Ketergantungan test
+
+- Seluruh komponen form dan grid tabel wajib memiliki `data-testid` terstandarisasi:
+  - `data-testid="roster-grid-table"`
+  - `data-testid="btn-recheck-roster"`
+  - `data-testid="btn-publish-roster"`
+  - `data-testid="btn-quick-replacement"`
+  - `data-testid="drawer-validation-result"`
+  - `data-testid="select-warning-reason"`
+  - `data-testid="badge-accompanied-staff"`
+  - `data-testid="modal-oncall-callin"`
+
+### 15.8 Traceability keputusan ke frontend
+
+| Keputusan | Komponen & Layar Frontend |
+| --- | --- |
+| `HRD-DEC-097` | `FE-HRD-137` (Filter unit bergiliran; tidak ada layar permintaan tenaga darurat) |
+| `HRD-DEC-098` | `FE-HRD-137` (Tombol Terbitkan langsung oleh Kepala Unit; fitur salin & pola; hak pantau Kepala Bidang) |
+| `HRD-DEC-099` | `FE-HRD-138` (Pemisahan error `B1`–`B6` merah vs `W1`–`W5` kuning dengan dropdown alasan) |
+| `HRD-DEC-100` | `FE-HRD-137` (Badge `[Didampingi — Preceptor]`), `FE-HRD-138` (Pemeriksaan `B7`, `W6`, `W7`) |
+| `HRD-DEC-101` | `FE-HRD-139` (Modal Ganti Petugas langsung, alasan wajib, status `Published` terjaga) |
+| `HRD-DEC-102` | `FE-HRD-137` (Batas edit mundur 3 hari; banner dan disable total saat status `Closed`) |
+| `HRD-DEC-103` | `FE-HRD-140`, `FE-HRD-141` (Kalender siaga, modal call-in, badge status SLA respon) |

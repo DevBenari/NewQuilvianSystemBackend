@@ -12,7 +12,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
 
             entity.HasKey(x => x.Id);
 
-
             entity.Property(x => x.ContractTypeCode)
                 .HasMaxLength(50)
                 .IsRequired();
@@ -64,6 +63,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
 
+            entity.HasOne(x => x.EmploymentType)
+                .WithMany()
+                .HasForeignKey(x => x.EmploymentTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.ContractTypeCode)
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
@@ -78,7 +82,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 x.IsActive,
                 x.IsDelete
             });
-
         }
     }
 }

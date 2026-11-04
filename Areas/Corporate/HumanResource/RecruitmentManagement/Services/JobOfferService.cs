@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
@@ -30,6 +31,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 .AsNoTracking()
                 .Include(o => o.Application)
                     .ThenInclude(a => a!.Candidate)
+                .Include(o => o.ContractType)
                 .Where(o => !o.IsDelete);
 
             if (query.Status.HasValue)
@@ -66,6 +68,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                     ApplicationNumber = o.Application != null ? o.Application.ApplicationNumber : string.Empty,
                     CandidateName = o.Application != null && o.Application.Candidate != null ? o.Application.Candidate.FullName : string.Empty,
                     OfferedPositionTitle = o.OfferedPositionTitle,
+                    ContractTypeId = o.ContractTypeId,
+                    ContractTypeName = o.ContractType != null ? o.ContractType.ContractTypeName : string.Empty,
+                    ContractDurationMonths = o.ContractDurationMonths,
                     OfferedBasicSalary = o.OfferedBasicSalary,
                     ApprovalTier = o.ApprovalTier,
                     Status = o.Status,
@@ -95,6 +100,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 .Include(x => x.Application)
                     .ThenInclude(a => a!.Candidate)
                 .Include(x => x.SalaryGrade)
+                .Include(x => x.ContractType)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (o == null)
@@ -142,11 +148,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             // Cek apakah sudah ada offer aktif untuk lamaran ini
             var existingOffer = await _dbContext.HrdJobOffers
                 .FirstOrDefaultAsync(o => o.ApplicationId == request.ApplicationId &&
-                    o.Status != JobOfferStatus.Rejected && o.Status != JobOfferStatus.Expired && !o.IsDelete, cancellationToken);
+                    o.Status != JobOfferStatus.RejectedByApprover &&
+                    o.Status != JobOfferStatus.ConditionalRejected &&
+                    o.Status != JobOfferStatus.FinalRejected &&
+                    o.Status != JobOfferStatus.Revoked &&
+                    o.Status != JobOfferStatus.Expired &&
+                    !o.IsDelete, cancellationToken);
 
             if (existingOffer != null)
             {
                 return RecruitmentResult<JobOfferResponse>.Conflict("Sudah ada penawaran kerja aktif untuk lamaran ini.");
+            }
+
+            // Validasi Kontrak VR-ONB-50 & VR-ONB-51
+            var contractType = await _dbContext.MstContractTypes
+                .FirstOrDefaultAsync(c => c.Id == request.ContractTypeId && !c.IsDelete, cancellationToken);
+
+            if (contractType == null)
+            {
+                return RecruitmentResult<JobOfferResponse>.NotFound("Master Jenis Kontrak (Contract Type) tidak ditemukan (VR-ONB-50).");
+            }
+
+            if (contractType.RequiresEndDate)
+            {
+                if (!request.ContractDurationMonths.HasValue || request.ContractDurationMonths.Value < 1 || request.ContractDurationMonths.Value > 60)
+                {
+                    return RecruitmentResult<JobOfferResponse>.Unprocessable("Tawaran kerja dengan jenis kontrak berkala (PKWT) wajib mengisi lama kontrak antara 1 sampai 60 bulan (VR-ONB-51).");
+                }
+            }
+            else
+            {
+                if (request.ContractDurationMonths.HasValue && request.ContractDurationMonths.Value > 0)
+                {
+                    return RecruitmentResult<JobOfferResponse>.Unprocessable("Tawaran kerja dengan jenis kontrak waktu tidak tertentu (PKWTT) tidak boleh mengisi lama kontrak (VR-ONB-51).");
+                }
             }
 
             // Ambil master skala upah untuk evaluasi plafon gaji
@@ -176,6 +211,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 OfferNumber = offerNumber,
                 ApplicationId = request.ApplicationId,
                 SalaryGradeId = request.SalaryGradeId,
+                ContractTypeId = request.ContractTypeId,
+                ContractDurationMonths = request.ContractDurationMonths,
                 OfferedBasicSalary = request.OfferedBasicSalary,
                 MaximumGradeSalary = maximumSalary,
                 ApprovalTier = approvalTier,
@@ -221,6 +258,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobOfferResponse>.Conflict("Data penawaran kerja telah diperbarui oleh pengguna lain.");
             }
 
+            // Validasi Kontrak VR-ONB-50 & VR-ONB-51
+            var contractType = await _dbContext.MstContractTypes
+                .FirstOrDefaultAsync(c => c.Id == request.ContractTypeId && !c.IsDelete, cancellationToken);
+
+            if (contractType == null)
+            {
+                return RecruitmentResult<JobOfferResponse>.NotFound("Master Jenis Kontrak (Contract Type) tidak ditemukan (VR-ONB-50).");
+            }
+
+            if (contractType.RequiresEndDate)
+            {
+                if (!request.ContractDurationMonths.HasValue || request.ContractDurationMonths.Value < 1 || request.ContractDurationMonths.Value > 60)
+                {
+                    return RecruitmentResult<JobOfferResponse>.Unprocessable("Tawaran kerja dengan jenis kontrak berkala (PKWT) wajib mengisi lama kontrak antara 1 sampai 60 bulan (VR-ONB-51).");
+                }
+            }
+            else
+            {
+                if (request.ContractDurationMonths.HasValue && request.ContractDurationMonths.Value > 0)
+                {
+                    return RecruitmentResult<JobOfferResponse>.Unprocessable("Tawaran kerja dengan jenis kontrak waktu tidak tertentu (PKWTT) tidak boleh mengisi lama kontrak (VR-ONB-51).");
+                }
+            }
+
             var salaryGrade = await _dbContext.MstSalaryGrades
                 .FirstOrDefaultAsync(g => g.Id == request.SalaryGradeId && !g.IsDelete, cancellationToken);
 
@@ -235,6 +296,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 : JobOfferApprovalTier.Tier13Standard;
 
             offer.SalaryGradeId = request.SalaryGradeId;
+            offer.ContractTypeId = request.ContractTypeId;
+            offer.ContractDurationMonths = request.ContractDurationMonths;
             offer.OfferedBasicSalary = request.OfferedBasicSalary;
             offer.MaximumGradeSalary = maximumSalary;
             offer.ApprovalTier = approvalTier;
@@ -258,6 +321,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             var userId = GetUserId(user);
 
             var offer = await _dbContext.HrdJobOffers
+                .Include(o => o.Approvals)
                 .Include(o => o.Application)
                 .FirstOrDefaultAsync(o => o.Id == id && !o.IsDelete, cancellationToken);
 
@@ -266,12 +330,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobOfferResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
             }
 
-            if (offer.Status != JobOfferStatus.Draft && offer.Status != JobOfferStatus.Approved)
+            // Aturan Bisnis VR-REC-15, HRD-DEC-079: Penawaran hanya dapat dikirim jika telah disetujui penuh oleh seluruh penyetuju
+            if (offer.Status != JobOfferStatus.ApprovedByDirector)
             {
-                return RecruitmentResult<JobOfferResponse>.Unprocessable("Penawaran kerja hanya dapat dikirim dari status Draft atau Approved.");
+                return RecruitmentResult<JobOfferResponse>.Unprocessable(
+                    $"Penawaran kerja belum dapat dikirimkan kepada kandidat karena status saat ini adalah '{offer.Status}'. Surat penawaran wajib disetujui penuh oleh Direktur Rumah Sakit sebelum pengiriman (VR-REC-15).");
             }
 
-            offer.Status = JobOfferStatus.SentConditional;
+            offer.Status = JobOfferStatus.SentToCandidate;
             if (request.ExpiryDate.HasValue && request.ExpiryDate.Value > DateTime.UtcNow)
             {
                 offer.ExpiryDate = request.ExpiryDate.Value;
@@ -280,9 +346,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             offer.UpdateDateTime = DateTime.UtcNow;
             offer.UpdateBy = userId;
 
+            // Perbarui stage pada lamaran
             if (offer.Application != null)
             {
-                offer.Application.StageStatus = "ConditionalOfferSent";
+                offer.Application.CurrentStage = "OFFERING";
+                offer.Application.StageStatus = "OFFER_SENT";
                 offer.Application.UpdateDateTime = DateTime.UtcNow;
                 offer.Application.UpdateBy = userId;
             }
@@ -291,7 +359,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
             return await GetByIdAsync(offer.Id, cancellationToken);
         }
 
-        public async Task<RecruitmentResult<JobOfferResponse>> CandidateRespondAsync(
+        public async Task<RecruitmentResult<JobOfferResponse>> RecordCandidateResponseAsync(
             Guid id,
             CandidateOfferResponseRequest request,
             ClaimsPrincipal user,
@@ -308,58 +376,92 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 return RecruitmentResult<JobOfferResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
             }
 
-            if (offer.Status != JobOfferStatus.SentConditional && offer.Status != JobOfferStatus.FinalOfferSent)
+            if (offer.Status != JobOfferStatus.SentToCandidate)
             {
-                return RecruitmentResult<JobOfferResponse>.Unprocessable("Hanya penawaran yang telah terkirim (SentConditional / FinalOfferSent) yang dapat direspons oleh kandidat.");
+                return RecruitmentResult<JobOfferResponse>.Unprocessable(
+                    $"Respons kandidat hanya dapat dicatat saat penawaran berstatus 'SentToCandidate'. Status saat ini: '{offer.Status}'.");
             }
 
             if (DateTime.UtcNow > offer.ExpiryDate)
             {
                 offer.Status = JobOfferStatus.Expired;
-                offer.UpdateDateTime = DateTime.UtcNow;
-                offer.UpdateBy = userId;
-                await _dbContext.SaveChangesAsync(cancellationToken);
-
-                return RecruitmentResult<JobOfferResponse>.Unprocessable("Masa berlaku penawaran kerja telah kedaluwarsa.");
-            }
-
-            if (request.ResponseStatus == JobOfferStatus.ConditionalAccepted || request.ResponseStatus == JobOfferStatus.FinalAccepted)
-            {
-                offer.Status = request.ResponseStatus;
-                offer.CandidateResponseDate = DateTime.UtcNow;
-                offer.CandidateResponseNotes = request.Notes?.Trim();
                 offer.RowVersion = Guid.NewGuid();
                 offer.UpdateDateTime = DateTime.UtcNow;
                 offer.UpdateBy = userId;
 
-                // Kandidat menerima penawaran bersyarat -> melangkah ke tahap pemeriksaan kesehatan (MCU)
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                return RecruitmentResult<JobOfferResponse>.Unprocessable("Masa berlaku surat penawaran telah kedaluwarsa (Expired). Respons kandidat tidak dapat diterima.");
+            }
+
+            if (request.ResponseStatus == JobOfferStatus.ConditionalAccepted)
+            {
+                offer.Status = JobOfferStatus.ConditionalAccepted;
                 if (offer.Application != null)
                 {
-                    offer.Application.CurrentStage = ApplicationStage.MedicalCheckup;
-                    offer.Application.StageStatus = "OfferAcceptedReadyForMcu";
+                    offer.Application.CurrentStage = "MEDICAL_CHECK";
+                    offer.Application.StageStatus = "OFFER_ACCEPTED";
                     offer.Application.UpdateDateTime = DateTime.UtcNow;
                     offer.Application.UpdateBy = userId;
                 }
             }
             else if (request.ResponseStatus == JobOfferStatus.ConditionalRejected || request.ResponseStatus == JobOfferStatus.FinalRejected)
             {
-                offer.Status = request.ResponseStatus;
-                offer.CandidateResponseDate = DateTime.UtcNow;
-                offer.CandidateResponseNotes = request.Notes?.Trim();
-                offer.RowVersion = Guid.NewGuid();
-                offer.UpdateDateTime = DateTime.UtcNow;
-                offer.UpdateBy = userId;
-
+                offer.Status = JobOfferStatus.ConditionalRejected;
                 if (offer.Application != null)
                 {
-                    offer.Application.StageStatus = "OfferRejectedByCandidate";
+                    offer.Application.StageStatus = "OFFER_DECLINED";
                     offer.Application.UpdateDateTime = DateTime.UtcNow;
                     offer.Application.UpdateBy = userId;
                 }
             }
             else
             {
-                return RecruitmentResult<JobOfferResponse>.Unprocessable("Respons kandidat harus berupa ConditionalAccepted/FinalAccepted atau ConditionalRejected/FinalRejected.");
+                return RecruitmentResult<JobOfferResponse>.BadRequest("Nilai status respons tidak valid. Gunakan ConditionalAccepted atau ConditionalRejected.");
+            }
+
+            offer.CandidateResponseDate = DateTime.UtcNow;
+            offer.CandidateResponseNotes = request.Notes;
+            offer.RowVersion = Guid.NewGuid();
+            offer.UpdateDateTime = DateTime.UtcNow;
+            offer.UpdateBy = userId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return await GetByIdAsync(offer.Id, cancellationToken);
+        }
+
+        public async Task<RecruitmentResult<JobOfferResponse>> RevokeAsync(
+            Guid id,
+            string? reason,
+            ClaimsPrincipal user,
+            CancellationToken cancellationToken = default)
+        {
+            var userId = GetUserId(user);
+
+            var offer = await _dbContext.HrdJobOffers
+                .Include(o => o.Application)
+                .FirstOrDefaultAsync(o => o.Id == id && !o.IsDelete, cancellationToken);
+
+            if (offer == null)
+            {
+                return RecruitmentResult<JobOfferResponse>.NotFound("Surat penawaran kerja tidak ditemukan.");
+            }
+
+            if (offer.Status == JobOfferStatus.FinalAccepted || offer.Status == JobOfferStatus.Revoked)
+            {
+                return RecruitmentResult<JobOfferResponse>.Unprocessable($"Penawaran tidak dapat ditarik kembali pada status '{offer.Status}'.");
+            }
+
+            offer.Status = JobOfferStatus.Revoked;
+            offer.CandidateResponseNotes = $"[PENARIKAN RESMI] {reason}";
+            offer.RowVersion = Guid.NewGuid();
+            offer.UpdateDateTime = DateTime.UtcNow;
+            offer.UpdateBy = userId;
+
+            if (offer.Application != null)
+            {
+                offer.Application.StageStatus = "OFFER_REVOKED";
+                offer.Application.UpdateDateTime = DateTime.UtcNow;
+                offer.Application.UpdateBy = userId;
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -380,6 +482,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
                 SalaryGradeId = o.SalaryGradeId,
                 SalaryGradeCode = o.SalaryGrade?.SalaryGradeCode ?? string.Empty,
                 SalaryGradeName = o.SalaryGrade?.SalaryGradeName ?? string.Empty,
+                ContractTypeId = o.ContractTypeId,
+                ContractTypeName = o.ContractType?.ContractTypeName ?? string.Empty,
+                ContractDurationMonths = o.ContractDurationMonths,
                 OfferedBasicSalary = o.OfferedBasicSalary,
                 MaximumGradeSalary = o.MaximumGradeSalary,
                 ApprovalTier = o.ApprovalTier,

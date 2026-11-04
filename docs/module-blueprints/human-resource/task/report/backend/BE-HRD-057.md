@@ -67,7 +67,7 @@ Dibuat di `Areas/Corporate/HumanResource/RecruitmentManagement/DTOs/`:
 - Validasi status kelayakan aplikasi: menolak kandidat dengan veto klinis atau berstatus `ASSESSMENT_FAILED`.
 - Auto-numbering `OfferNumber`: format `OFR-yyyyMMdd-XXXX`.
 - Pengecekan terhadap tabel `MstSalaryGrade` untuk menentukan apakah penawaran masuk ke `Tier13Standard` atau `Tier14Exceptional`.
-- Pemrosesan respons kandidat: jika `Accepted`, mengubah `Application.CurrentStage` menjadi `ApplicationStage.MedicalCheck`.
+- Pemrosesan respons kandidat: jika `ConditionalAccepted`, mengubah `Application.CurrentStage` menjadi `ApplicationStage.MedicalCheckup`.
 
 ### 3.3 Controller Layer (`JobOfferController.cs`)
 - Route: `api/v1/corporate/human-resource/recruitment/offers`
@@ -89,3 +89,4 @@ Dibuat di `Areas/Corporate/HumanResource/RecruitmentManagement/DTOs/`:
 - DTOs, Service, Interface, dan Controller terpasang lengkap.
 - Layanan didaftarkan di `Program.cs`:
   `builder.Services.AddScoped<IJobOfferService, JobOfferService>();`
+- Kompilasi .NET: Kompilasi kode C# (`dotnet build /t:Compile`) berhasil tanpa error (0 Error(s)).

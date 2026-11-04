@@ -83,3 +83,4 @@ Dibuat di `Areas/Corporate/HumanResource/RecruitmentManagement/DTOs/`:
 - DTOs, Service, Interface, dan Controller terpasang lengkap.
 - Layanan didaftarkan di `Program.cs`:
   `builder.Services.AddScoped<ICandidateEvaluationService, CandidateEvaluationService>();`
+- Kompilasi .NET: Kompilasi kode C# (`dotnet build /t:Compile`) berhasil tanpa error (0 Error(s)).

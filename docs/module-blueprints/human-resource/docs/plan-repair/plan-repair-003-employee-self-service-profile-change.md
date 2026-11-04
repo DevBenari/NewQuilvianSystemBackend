@@ -34,6 +34,7 @@ Rencana perbaikan ini melengkapi kapabilitas Layanan Mandiri Karyawan (`S-A5`), 
 | `FIX-HRD-003-06` | HTTP 415 Bugfix | Penghapusan manual header `Content-Type` pada Axios Request Interceptor saat data berupa `FormData` sehingga browser otomatis menyematkan boundary multipart (menutup `FIX-HRD-002-09` On-Behalf) | FE | P1 | ✅ SELESAI | `src/lib/axiosInstance/InstanceAxios.jsx`, test `BUG-002` |
 | `FIX-HRD-003-07` | Layar Layanan Mandiri | Pembuatan layar mandiri `employee-profile-changes-self-service-view.jsx` dengan live diff detector, kartu penempatan read-only, tombol tunggal "Simpan dan Ajukan Perubahan Data", dan tab Riwayat Pengajuan Saya | FE | P0 | ✅ SELESAI | `src/app/self-services/human-resource/employee/profile-changes/page.jsx`, test `ESS-004` |
 | `FIX-HRD-003-08` | Layar Verifikasi HRD | Penyempurnaan `employee-profile-changes-view.jsx` dengan modal detail komparasi Nilai Lama vs Baru, unduhan berkas bukti, dan aksi Mulai Verifikasi | FE | P1 | ✅ SELESAI | `src/components/view/hr/workforce-core/employee-profile-changes-view.jsx`, test `ESS-005` |
+| `FIX-HRD-003-09` | Redesain Native Profil Workforce | Menggunakan kembali antarmuka canonical `WorkforceProfileDashboard` secara 100% identik tanpa form sisi kanan, mengaktifkan edit per-menu Profil Workforce secara native (Ringkasan Profil, Alamat, Rekening Bank, Keluarga, dll.), serta menyajikan Modal Tinjauan Usulan Perubahan untuk Approval HRD | FE | P0 | ✅ SELESAI | `employee-profile-changes-self-service-view.jsx`, test `ESS-004` |
 
 ---
 
@@ -85,3 +86,4 @@ Solusi ini menyelesaikan kendala pada seluruh formulir unggah berkas di frontend
 9. HRD dapat melihat perbandingan data lama vs baru pada modal detail dan mengunduh berkas bukti.
 10. Aturan Anti-Self-Approval mencegah persetujuan oleh pemohon sendiri.
 11. Seluruh 24 unit test passing dan ESLint bebas error.
+12. Layar Layanan Mandiri me-reuse antarmuka canonical `WorkforceProfileDashboard` tanpa form sisi kanan, memungkinkan pengubahan data langsung per-menu Profil Workforce (Ringkasan Profil, Alamat, Rekening Bank, Keluarga, dll.), serta menyajikan modal review komparasi data usulan sebelum dikirim ke HRD.

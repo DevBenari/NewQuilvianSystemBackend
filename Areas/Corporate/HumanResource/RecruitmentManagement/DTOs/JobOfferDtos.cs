@@ -12,6 +12,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         [Required(ErrorMessage = "SalaryGradeId wajib diisi.")]
         public Guid SalaryGradeId { get; set; }
 
+        [Required(ErrorMessage = "ContractTypeId wajib diisi (VR-ONB-50).")]
+        public Guid ContractTypeId { get; set; }
+
+        [Range(1, 60, ErrorMessage = "ContractDurationMonths harus antara 1 sampai 60 bulan (VR-ONB-51).")]
+        public int? ContractDurationMonths { get; set; }
+
         [Range(1, 1000000000, ErrorMessage = "OfferedBasicSalary harus bernilai positif.")]
         public decimal OfferedBasicSalary { get; set; }
 
@@ -31,6 +37,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     {
         [Required(ErrorMessage = "SalaryGradeId wajib diisi.")]
         public Guid SalaryGradeId { get; set; }
+
+        [Required(ErrorMessage = "ContractTypeId wajib diisi (VR-ONB-50).")]
+        public Guid ContractTypeId { get; set; }
+
+        [Range(1, 60, ErrorMessage = "ContractDurationMonths harus antara 1 sampai 60 bulan (VR-ONB-51).")]
+        public int? ContractDurationMonths { get; set; }
 
         [Range(1, 1000000000, ErrorMessage = "OfferedBasicSalary harus bernilai positif.")]
         public decimal OfferedBasicSalary { get; set; }
@@ -79,6 +91,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public Guid SalaryGradeId { get; set; }
         public string SalaryGradeCode { get; set; } = string.Empty;
         public string SalaryGradeName { get; set; } = string.Empty;
+        public Guid? ContractTypeId { get; set; }
+        public string? ContractTypeName { get; set; }
+        public int? ContractDurationMonths { get; set; }
+        public DateOnly? ContractEndDate => (ContractDurationMonths.HasValue && ContractDurationMonths.Value > 0)
+            ? ProposedJoinDate.AddMonths(ContractDurationMonths.Value).AddDays(-1)
+            : null;
         public decimal OfferedBasicSalary { get; set; }
         public decimal MaximumGradeSalary { get; set; }
         public JobOfferApprovalTier ApprovalTier { get; set; }
@@ -104,6 +122,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         public string ApplicationNumber { get; set; } = string.Empty;
         public string CandidateName { get; set; } = string.Empty;
         public string OfferedPositionTitle { get; set; } = string.Empty;
+        public Guid? ContractTypeId { get; set; }
+        public string? ContractTypeName { get; set; }
+        public int? ContractDurationMonths { get; set; }
+        public DateOnly? ContractEndDate => (ContractDurationMonths.HasValue && ContractDurationMonths.Value > 0)
+            ? ProposedJoinDate.AddMonths(ContractDurationMonths.Value).AddDays(-1)
+            : null;
         public decimal OfferedBasicSalary { get; set; }
         public JobOfferApprovalTier ApprovalTier { get; set; }
         public string ApprovalTierName => ApprovalTier.ToString();

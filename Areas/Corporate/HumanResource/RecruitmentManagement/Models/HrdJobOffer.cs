@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models
@@ -45,11 +46,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         [MaxLength(500)]
         public string? CandidateResponseNotes { get; set; }
 
+        public Guid? ContractTypeId { get; set; }
+
+        public int? ContractDurationMonths { get; set; }
+
         [ConcurrencyCheck]
         public Guid RowVersion { get; set; } = Guid.NewGuid();
 
         public HrdCandidateApplication? Application { get; set; }
         public MstSalaryGrade? SalaryGrade { get; set; }
+        public MstContractType? ContractType { get; set; }
         public ICollection<HrdJobOfferApproval> Approvals { get; set; } = new List<HrdJobOfferApproval>();
         public HrdPreEmploymentMedicalCheck? MedicalCheck { get; set; }
         public HrdCandidateHiringHandoff? HiringHandoff { get; set; }

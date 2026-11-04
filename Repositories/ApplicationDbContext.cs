@@ -307,21 +307,27 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - RECRUITMENT MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - LIFECYCLE MANAGEMENT
-        public DbSet<WfpOnboardingChecklist> WfpOnboardingChecklists { get; set; }
-        public DbSet<WfpOnboardingTask> WfpOnboardingTasks { get; set; }
         public DbSet<WfpOffboardingChecklist> WfpOffboardingChecklists { get; set; }
         public DbSet<WfpOffboardingTask> WfpOffboardingTasks { get; set; }
         public DbSet<MstOnboardingTemplate> MstOnboardingTemplates { get; set; }
         public DbSet<MstOnboardingTemplateTask> MstOnboardingTemplateTasks { get; set; }
         public DbSet<MstOffboardingTemplate> MstOffboardingTemplates { get; set; }
         public DbSet<MstOffboardingTemplateTask> MstOffboardingTemplateTasks { get; set; }
-        public DbSet<TrxEmployeeOnboarding> TrxEmployeeOnboardings { get; set; }
-        public DbSet<TrxEmployeeOnboardingTask> TrxEmployeeOnboardingTasks { get; set; }
-        public DbSet<TrxProbationReview> TrxProbationReviews { get; set; }
+        public DbSet<HrdOnboardingCase> HrdOnboardingCases { get; set; }
+        public DbSet<HrdOnboardingCaseItem> HrdOnboardingCaseItems { get; set; }
+        public DbSet<HrdOnboardingAccessRequest> HrdOnboardingAccessRequests { get; set; }
+        public DbSet<HrdContractDecision> HrdContractDecisions { get; set; }
+        public DbSet<HrdContractCorrection> HrdContractCorrections { get; set; }
+        public DbSet<HrdInitialContractBatch> HrdInitialContractBatches { get; set; }
+        public DbSet<HrdInitialContractBatchRow> HrdInitialContractBatchRows { get; set; }
+        public DbSet<HrdProbation> HrdProbations { get; set; }
+        public DbSet<HrdProbationAssessment> HrdProbationAssessments { get; set; }
+        public DbSet<HrdClinicalPreceptorship> HrdClinicalPreceptorships { get; set; }
+        public DbSet<HrdClinicalPreceptorshipPreceptor> HrdClinicalPreceptorshipPreceptors { get; set; }
+        public DbSet<HrdEmploymentLifecycleSetting> HrdEmploymentLifecycleSettings { get; set; }
         public DbSet<TrxEmployeeSeparation> TrxEmployeeSeparations { get; set; }
         public DbSet<TrxResignationRequest> TrxResignationRequests { get; set; }
         public DbSet<TrxRetirement> TrxRetirements { get; set; }
-        public DbSet<TrxContractNonRenewal> TrxContractNonRenewals { get; set; }
         public DbSet<TrxTermination> TrxTerminations { get; set; }
         public DbSet<TrxExitClearance> TrxExitClearances { get; set; }
         public DbSet<TrxAssetReturn> TrxAssetReturns { get; set; }

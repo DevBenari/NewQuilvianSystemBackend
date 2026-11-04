@@ -2683,3 +2683,209 @@ ALTER TABLE public."MstContractType" ADD "EmploymentTypeId" uuid REFERENCES publ
 ALTER TABLE public."HrdJobOffer" ADD "ContractTypeId" uuid REFERENCES public."MstContractType" ("Id") ON DELETE RESTRICT,
     ADD "ContractDurationMonths" integer;
 ```
+
+
+---
+
+## 11. Slice `S-B4` — Penjadwalan, Roster, dan On-Call, sub-modul 06 (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+
+### 11.1 Ringkasan status tabel `S-B4`
+
+| Nama tabel | Schema | Status | Modul pemilik | Tanggung jawab |
+| --- | --- | --- | --- | --- |
+| `HrdSchedulingSetting` | `public` | `Baru` | HumanResource (06) | Parameter korporat penjadwalan & batas toleransi |
+| `TrxRosterPeriod` | `public` | `Diperbarui` | HumanResource (06) | Periode roster unit bulanan |
+| `TrxShiftAssignment` | `public` | `Diperbarui` | HumanResource (06) | Penugasan shift harian per pegawai |
+| `TrxShiftReplacement` | `public` | `Diperbarui` | HumanResource (06) | Penggantian shift darurat langsung |
+| `TrxOnCallAssignment` | `public` | `Diperbarui` | HumanResource (06) | Penugasan siaga & pemanggilan cito |
+| `TrxRosterAssignment` | `public` | `Sudah ada` | HumanResource (06) | Daftar staf eligible per periode roster |
+| `MstShift` | `public` | `Sudah ada` | HumanResource (01) | Definisi jam shift |
+| `MstShiftPattern` | `public` | `Sudah ada` | HumanResource (01) | Pola shift berulang |
+| `MstOnCallType` | `public` | `Sudah ada` | HumanResource (01) | Jenis siaga & target SLA |
+
+### 11.2 Tabel `Baru` — seluruh kolom
+
+#### 11.2.1 `HrdSchedulingSetting`
+Menyimpan parameter konfigurasi aturan waktu kerja rumah sakit (`HRD-DEC-099`, `HRD-DEC-102`).
+
+| Nama kolom | Tipe | Wajib | Nilai bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `Id` | `uuid` | Ya | `gen_random_uuid()` | PK | Tidak |
+| `HospitalSiteId` | `uuid` | Ya | — | FK ke HospitalSite, unique constraint | Tidak |
+| `MinRestHoursBetweenShifts` | `integer` | Ya | `11` | Jeda istirahat minimal antar shift (jam) (`W1`) | Tidak |
+| `MaxConsecutiveWorkDays` | `integer` | Ya | `6` | Batas hari kerja berturut-turut tanpa libur (`W2`) | Tidak |
+| `MaxConsecutiveNightShifts` | `integer` | Ya | `2` | Batas shift malam berurutan maksimal (`W3`) | Tidak |
+| `RetroactiveCorrectionWindowDays` | `integer` | Ya | `3` | Batas maksimal hari koreksi mundur mandiri unit (`HRD-DEC-102`) | Tidak |
+| `RestHoursEscalatedToBlock` | `boolean` | Ya | `false` | True jika aturan jeda dinaikkan menjadi memblokir (`B`) | Tidak |
+| `ConsecutiveDaysEscalatedToBlock` | `boolean` | Ya | `false` | True jika aturan hari berurutan dinaikkan memblokir | Tidak |
+| `NightShiftsEscalatedToBlock` | `boolean` | Ya | `false` | True jika aturan malam berurutan dinaikkan memblokir | Tidak |
+| `RowVersion` | `uuid` | Ya | `gen_random_uuid()` | Optimistic concurrency token | Tidak |
+| *(Kolom IdentityModel)* | — | — | — | 10 kolom audit standar (`CreatedBy`, `CreatedAt`, dll.) | Tidak |
+
+### 11.3 Tabel `Diperbarui` — seluruh kolom
+
+#### 11.3.1 `TrxRosterPeriod`
+
+| Nama kolom | Tipe | Wajib | Nilai bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `Id` | `uuid` | Ya | `gen_random_uuid()` | PK | Tidak |
+| `PeriodCode` | `varchar(50)` | Ya | — | Kode unik periode (format `RST-YYYYMM-UNITCODE`), aman konkurensi | Tidak |
+| `PeriodName` | `varchar(150)` | Ya | — | Nama deskriptif periode (misal "Roster ICU Februari 2027") | Tidak |
+| `UnitId` | `uuid` | Ya | — | FK ke Master Organization/Unit kerja | Tidak |
+| `StartDate` | `date` | Ya | — | Tanggal awal periode (biasanya tanggal 1) | Tidak |
+| `EndDate` | `date` | Ya | — | Tanggal akhir periode (tanggal terakhir bulan) | Tidak |
+| `Status` | `varchar(30)` | Ya | `'Draft'` | Kosakata: `Draft`, `Validation`, `Published`, `Closed` | Tidak |
+| `TotalStaffCount` | `integer` | Ya | `0` | Jumlah staf yang dijadwalkan | Tidak |
+| `BlockingConflictCount` | `integer` | Ya | `0` | Jumlah pelanggaran memblokir (`B1`–`B7`) | Tidak |
+| `WarningCount` | `integer` | Ya | `0` | Jumlah peringatan terdeteksi (`W1`–`W7`) | Tidak |
+| `IsRecheckPassed` | `boolean` | Ya | `false` | Status lolos pemeriksaan ulang sebelum terbit (`HRD-DEC-098`) | Tidak |
+| `PublishedByUserId` | `varchar(450)` | Tidak | `null` | User ID Kepala Unit yang menerbitkan | Tidak |
+| `PublishedAt` | `timestamptz` | Tidak | `null` | Waktu penerbitan roster | Tidak |
+| `ClosedByUserId` | `varchar(450)` | Tidak | `null` | User ID HRD Payroll yang menutup periode (`HRD-DEC-102`) | Tidak |
+| `ClosedAt` | `timestamptz` | Tidak | `null` | Waktu penguncian mutlak periode | Tidak |
+| *(Kolom IdentityModel)* | — | — | — | 10 kolom audit standar | Tidak |
+
+#### 11.3.2 `TrxShiftAssignment`
+
+| Nama kolom | Tipe | Wajib | Nilai bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `Id` | `uuid` | Ya | `gen_random_uuid()` | PK | Tidak |
+| `RosterPeriodId` | `uuid` | Ya | — | FK ke `TrxRosterPeriod` (ON DELETE CASCADE) | Tidak |
+| `EmployeeId` | `uuid` | Ya | — | FK ke `MstWorkforceProfile` | Tidak |
+| `ShiftDate` | `date` | Ya | — | Tanggal dinas shift | Tidak |
+| `ShiftId` | `uuid` | Ya | — | FK ke `MstShift` | Tidak |
+| `ShiftCode` | `varchar(30)` | Ya | — | Kode shift (P, S, M, L) | Tidak |
+| `StartTime` | `time` | Ya | — | Jam mulai shift | Tidak |
+| `EndTime` | `time` | Ya | — | Jam selesai shift | Tidak |
+| `Status` | `varchar(30)` | Ya | `'Scheduled'` | Kosakata: `Draft`, `Scheduled`, `Published`, `Completed`, `Cancelled` | Tidak |
+| `IsManualOverride` | `boolean` | Ya | `false` | True bila shift ini hasil Ganti Petugas / penyesuaian | Tidak |
+| `OverrideReason` | `varchar(500)` | Tidak | `null` | Alasan pergantian staf wajib terisi jika override (`HRD-DEC-101`) | Tidak |
+| `OriginalEmployeeId` | `uuid` | Tidak | `null` | FK ke pegawai asal yang digantikan bila mutasi | Tidak |
+| `IsAccompanied` | `boolean` | Ya | `false` | True bila staf berstatus Didampingi (`HRD-DEC-087`, `HRD-DEC-100`) | Tidak |
+| `PreceptorEmployeeId` | `uuid` | Tidak | `null` | FK ke pegawai preceptor pendamping | Tidak |
+| `Notes` | `varchar(500)` | Tidak | `null` | Catatan penugasan | Tidak |
+| *(Kolom IdentityModel)* | — | — | — | 10 kolom audit standar | Tidak |
+
+#### 11.3.3 `TrxShiftReplacement`
+
+| Nama kolom | Tipe | Wajib | Nilai bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `Id` | `uuid` | Ya | `gen_random_uuid()` | PK | Tidak |
+| `ShiftAssignmentId` | `uuid` | Ya | — | FK ke `TrxShiftAssignment` | Tidak |
+| `RosterPeriodId` | `uuid` | Ya | — | FK ke `TrxRosterPeriod` | Tidak |
+| `OriginalEmployeeId` | `uuid` | Ya | — | FK ke staf yang berhalangan hadir | Tidak |
+| `ReplacementEmployeeId` | `uuid` | Ya | — | FK ke staf pengganti yang ditugaskan | Tidak |
+| `ShiftDate` | `date` | Ya | — | Tanggal dinas penggantian | Tidak |
+| `ShiftId` | `uuid` | Ya | — | FK ke `MstShift` | Tidak |
+| `ReasonCategory` | `varchar(100)` | Ya | — | Kategori alasan: `Sakit Mendadak`, `Izin/Keluarga`, `Lonjakan Pasien`, dll. | Tidak |
+| `Notes` | `varchar(500)` | Tidak | `null` | Catatan detail alasan penggantian | Tidak |
+| `Status` | `varchar(30)` | Ya | `'Applied'` | Status mutasi (`Applied`, `Reverted`) | Tidak |
+| `ExecutedByUserId` | `varchar(450)` | Ya | — | User ID Kepala Unit yang mengeksekusi langsung | Tidak |
+| `ExecutedAt` | `timestamptz` | Ya | `now()` | Waktu mutasi dieksekusi | Tidak |
+| *(Kolom IdentityModel)* | — | — | — | 10 kolom audit standar | Tidak |
+
+#### 11.3.4 `TrxOnCallAssignment`
+
+| Nama kolom | Tipe | Wajib | Nilai bawaan | Keterangan & Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `Id` | `uuid` | Ya | `gen_random_uuid()` | PK | Tidak |
+| `EmployeeId` | `uuid` | Ya | — | FK ke `MstWorkforceProfile` (Dokter / Staf) | Tidak |
+| `EmployeeName` | `varchar(200)` | Ya | — | Nama tenaga medis siaga | Tidak |
+| `ProfessionGroup` | `varchar(50)` | Ya | — | Dokter Spesialis / Perawat / Penunjang Medis | Tidak |
+| `UnitId` | `uuid` | Ya | — | FK ke Unit kerja cakupan siaga | Tidak |
+| `OnCallTypeId` | `uuid` | Ya | — | FK ke `MstOnCallType` | Tidak |
+| `OnCallTypeCode` | `varchar(50)` | Ya | — | Kode jenis siaga | Tidak |
+| `StartTime` | `timestamptz` | Ya | — | Waktu mulai periode siaga standby | Tidak |
+| `EndTime` | `timestamptz` | Ya | — | Waktu selesai periode siaga standby | Tidak |
+| `Status` | `varchar(30)` | Ya | `'Scheduled'` | Kosakata: `Scheduled`, `Confirmed`, `Active`, `Completed` (`HRD-DEC-103`) | Tidak |
+| `ExpectedResponseMinutes` | `integer` | Ya | `30` | Target SLA waktu respon (menit) dari master tipe siaga | Tidak |
+| `IsCalledIn` | `boolean` | Ya | `false` | True bila terjadi pemanggilan cito darurat | Tidak |
+| `CallInTime` | `timestamptz` | Tidak | `null` | Waktu panggilan cito dilakukan | Tidak |
+| `ArrivalTime` | `timestamptz` | Tidak | `null` | Waktu dokter/staf tiba di rumah sakit | Tidak |
+| `ResponseMinutes` | `integer` | Tidak | `null` | Selisih menit antara CallInTime dan ArrivalTime | Tidak |
+| `IsSlaMet` | `boolean` | Tidak | `null` | True bila ResponseMinutes <= ExpectedResponseMinutes | Tidak |
+| `CalledByUnitId` | `uuid` | Tidak | `null` | FK ke Unit yang memanggil (IGD, ICU, Lab, OK) | Tidak |
+| `CallNotes` | `varchar(500)` | Tidak | `null` | Catatan indikasi medis / kasus pemanggilan | Tidak |
+| *(Kolom IdentityModel)* | — | — | — | 10 kolom audit standar | Tidak |
+
+### 11.4 Skema DDL tabel `S-B4`
+
+```sql
+-- 1. Tabel Konfigurasi Penjadwalan
+CREATE TABLE public."HrdSchedulingSettings" (
+    "Id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "HospitalSiteId" uuid NOT NULL,
+    "MinRestHoursBetweenShifts" integer NOT NULL DEFAULT 11,
+    "MaxConsecutiveWorkDays" integer NOT NULL DEFAULT 6,
+    "MaxConsecutiveNightShifts" integer NOT NULL DEFAULT 2,
+    "RetroactiveCorrectionWindowDays" integer NOT NULL DEFAULT 3,
+    "RestHoursEscalatedToBlock" boolean NOT NULL DEFAULT false,
+    "ConsecutiveDaysEscalatedToBlock" boolean NOT NULL DEFAULT false,
+    "NightShiftsEscalatedToBlock" boolean NOT NULL DEFAULT false,
+    "RowVersion" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "CreatedBy" varchar(450) NOT NULL,
+    "CreatedAt" timestamptz NOT NULL DEFAULT now(),
+    "UpdatedBy" varchar(450),
+    "UpdatedAt" timestamptz,
+    "IsDelete" boolean NOT NULL DEFAULT false,
+    "DeletedBy" varchar(450),
+    "DeletedAt" timestamptz,
+    CONSTRAINT "PK_HrdSchedulingSettings" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_HrdSchedulingSettings_HospitalSiteId" ON public."HrdSchedulingSettings" ("HospitalSiteId") WHERE "IsDelete" = false;
+
+-- 2. Alter Table Penambahan Kolom pada TrxRosterPeriod
+ALTER TABLE public."TrxRosterPeriod" 
+    ADD COLUMN IF NOT EXISTS "IsRecheckPassed" boolean NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS "PublishedByUserId" varchar(450),
+    ADD COLUMN IF NOT EXISTS "PublishedAt" timestamptz,
+    ADD COLUMN IF NOT EXISTS "ClosedByUserId" varchar(450),
+    ADD COLUMN IF NOT EXISTS "ClosedAt" timestamptz;
+
+-- 3. Alter Table Penambahan Kolom pada TrxShiftAssignment
+ALTER TABLE public."TrxShiftAssignment" 
+    ADD COLUMN IF NOT EXISTS "IsManualOverride" boolean NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS "OverrideReason" varchar(500),
+    ADD COLUMN IF NOT EXISTS "OriginalEmployeeId" uuid REFERENCES public."MstWorkforceProfile" ("Id") ON DELETE RESTRICT,
+    ADD COLUMN IF NOT EXISTS "IsAccompanied" boolean NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS "PreceptorEmployeeId" uuid REFERENCES public."MstWorkforceProfile" ("Id") ON DELETE RESTRICT;
+
+-- 4. Alter Table Penambahan Kolom pada TrxShiftReplacement
+ALTER TABLE public."TrxShiftReplacement" 
+    ADD COLUMN IF NOT EXISTS "ReasonCategory" varchar(100) NOT NULL DEFAULT 'Sakit Mendadak',
+    ADD COLUMN IF NOT EXISTS "Notes" varchar(500),
+    ADD COLUMN IF NOT EXISTS "ExecutedByUserId" varchar(450) NOT NULL DEFAULT 'SYSTEM',
+    ADD COLUMN IF NOT EXISTS "ExecutedAt" timestamptz NOT NULL DEFAULT now();
+
+-- 5. Alter Table Penambahan Kolom pada TrxOnCallAssignment
+ALTER TABLE public."TrxOnCallAssignment" 
+    ADD COLUMN IF NOT EXISTS "ExpectedResponseMinutes" integer NOT NULL DEFAULT 30,
+    ADD COLUMN IF NOT EXISTS "IsCalledIn" boolean NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS "CallInTime" timestamptz,
+    ADD COLUMN IF NOT EXISTS "ArrivalTime" timestamptz,
+    ADD COLUMN IF NOT EXISTS "ResponseMinutes" integer,
+    ADD COLUMN IF NOT EXISTS "IsSlaMet" boolean,
+    ADD COLUMN IF NOT EXISTS "CalledByUnitId" uuid,
+    ADD COLUMN IF NOT EXISTS "CallNotes" varchar(500);
+
+CREATE INDEX "IX_TrxOnCallAssignment_ActiveStatus" ON public."TrxOnCallAssignment" ("UnitId", "Status", "StartTime", "EndTime") WHERE "IsDelete" = false;
+CREATE INDEX "IX_TrxShiftAssignment_DateUnit" ON public."TrxShiftAssignment" ("ShiftDate", "Status") WHERE "IsDelete" = false;
+```
+
+### 11.5 Traceability keputusan ke Kamus Data
+
+| Keputusan | Tabel & Kolom yang Menampung |
+| --- | --- |
+| `HRD-DEC-098` | `TrxRosterPeriod.PublishedByUserId`, `PublishedAt`, `IsRecheckPassed` |
+| `HRD-DEC-099` | `HrdSchedulingSetting` (seluruh kolom konfigurasi aturan jeda dan hari berurutan) |
+| `HRD-DEC-100` | `TrxShiftAssignment.IsAccompanied`, `PreceptorEmployeeId` |
+| `HRD-DEC-101` | `TrxShiftAssignment.IsManualOverride`, `OverrideReason`, `TrxShiftReplacement` (seluruh kolom) |
+| `HRD-DEC-102` | `HrdSchedulingSetting.RetroactiveCorrectionWindowDays`, `TrxRosterPeriod.ClosedByUserId`, `ClosedAt` |
+| `HRD-DEC-103` | `TrxOnCallAssignment` (`ExpectedResponseMinutes`, `IsCalledIn`, `CallInTime`, `ArrivalTime`, `ResponseMinutes`, `IsSlaMet`) |

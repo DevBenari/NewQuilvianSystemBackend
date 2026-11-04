@@ -3481,3 +3481,340 @@ task: `dotnet build`, pemeriksaan QBE, dan uji API terhadap database dev mengiku
 | `HRD-DEC-088` | 18.4.9, 18.4.10 (`HrdOnboardingAccessService`), 18.9.6 |
 | `HRD-DEC-089` | 18.4.7, 18.9.2, 18.9.4, 18.9.5, 18.9.7 |
 | `HRD-DEC-090` | 18.4.8, 18.7 |
+
+
+---
+
+## 19. Slice `S-B4` — Penjadwalan, Roster, dan On-Call, sub-modul 06 (revision `6`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| Backend SHA saat bagian ini ditulis | `38e892b0` (branch `MHamzah`) |
+| Frontend SHA | `44990b3d3` (branch `HamzahV2`) |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`, `HRD-ASM-05` s.d. `HRD-ASM-14`, fakta `HRD-TF-050` s.d. `HRD-TF-057`) |
+| `input_revision` — capability map | `01-existing-capability-map.md` revision `1.3`. Baris `HRD-CAP-09` (`SchedulingManagement`) **diperbarui penuh** oleh pass ini |
+| Kesiapan requirement | Mengikuti preseden modul HR: gerbang requirement diwajibkan untuk clinical slice; sub-modul 06 beroperasi di atas penanda siap kerja, preceptor, dan kualifikasi yang sudah disepakati di sub-modul 05 (`HRD-DEC-087`, `HRD-DEC-088`) dan master shift |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak membuat bounded context klinis atau billing pasien baru; menggunakan titik integrasi read-only ke Lab (`LAB-DEC-111`), Kehadiran (07), Lembur (09), dan Payroll (10) |
+| Label slice | `S-B4` — Penjadwalan, Roster, dan On-Call |
+| Kompatibilitas | 1 tabel baru (`HrdSchedulingSetting`); 4 tabel `Diperbarui` (`TrxRosterPeriod`, `TrxShiftAssignment`, `TrxShiftReplacement`, `TrxOnCallAssignment`); 2 tabel master awal diisi (`MstShiftPattern`, `MstOnCallType`); 2 tabel ditunda (`TrxEmergencyStaffingRequest`, `TrxRosterApproval` — `HRD-DEC-097`, `HRD-DEC-098`) |
+
+Prinsip yang mengikat seluruh bagian ini:
+1. `UNIT_HEAD_COMPOSES_AND_PUBLISHES`: Kepala unit menyusun dan menerbitkan roster unitnya sendiri tanpa persetujuan berjenjang sebelum terbit (`HRD-DEC-098`).
+2. `FAIL_SAFE_SAFETY`: Blokir hanya hal yang mustahil secara fisik atau melanggar hukum/kebijakan sah (`B1`–`B7`), sisanya peringatan dengan konfirmasi alasan tertulis (`W1`–`W7`) (`HRD-DEC-099`, `HRD-DEC-100`).
+3. `OVERRIDE_PRESERVES_PUBLISHED`: Perubahan setelah terbit tidak boleh menurunkan status periode ke `Draft`; perubahan dicatat dengan audit trail lengkap dan notifikasi otomatis (`HRD-DEC-101`).
+4. `MUTABLE_WINDOW_3_DAYS`: Koreksi mundur mandiri dibatasi 3 hari kalender ke belakang; penutupan periode oleh HRD Payroll mengunci jadwal secara mutlak (`Closed`) (`HRD-DEC-102`).
+5. `LAB_CONTRACT_PRESERVED`: Status siaga aktif diselaraskan dengan kontrak `LAB-DEC-111` agar dokter konfirmator lab hasil kritis tidak hilang saat dipanggil (`HRD-DEC-103`).
+
+### 19.1 Bounded context dan ownership
+
+| ID | Bounded context | Aggregate root | Tanggung jawab utama | Pemilik modul |
+| --- | --- | --- | --- | --- |
+| `BC-SCH-01` | Roster Period & Planning | `TrxRosterPeriod` | Periode roster per unit, daftar penugasan staf, validasi bentrok, cuti, siap kerja, kuota minimal, dan penerbitan roster | Corporate HR (Sub-modul 06) |
+| `BC-SCH-02` | Shift Assignment & Override | `TrxShiftAssignment` | Penugasan shift harian per pegawai, penggantian shift mendadak (`TrxShiftReplacement`), riwayat perubahan, dan koreksi mundur | Corporate HR (Sub-modul 06) |
+| `BC-SCH-03` | On-Call & Emergency Activation | `TrxOnCallAssignment` | Penugasan siaga dokter dan staf penunjang, pencatatan pemanggilan (*call-in*), pemenuhan SLA waktu respon, dan integrasi Lab/Payroll | Corporate HR (Sub-modul 06) & Pelayanan Medis |
+| `BC-SCH-04` | Scheduling Governance & Rules | `HrdSchedulingSetting` | Setelan jeda istirahat minimal, batas hari kerja berturut-turut, toleransi koreksi mundur, dan eskalasi aturan peringatan | Corporate HR (Sub-modul 06 / HR Admin) |
+
+### 19.2 Tabel kepemilikan data `S-B4`
+
+| Tabel | Bounded context | Status | Modul pemilik | Dipakai S-B4 | Catatan kepemilikan |
+| --- | --- | --- | --- | --- | --- |
+| `TrxRosterPeriod` | `BC-SCH-01` | `Diperbarui` | HumanResource (06) | Ya | Tambah kolom tracking publish & closed, perbaiki status vocabulary |
+| `TrxRosterAssignment` | `BC-SCH-01` | `Sudah ada` | HumanResource (06) | Ya | Pemetaan staf eligible ke periode roster unit |
+| `TrxShiftAssignment` | `BC-SCH-02` | `Diperbarui` | HumanResource (06) | Ya | Tambah flag didampingi, preceptor, override reason, original employee |
+| `TrxShiftReplacement` | `BC-SCH-02` | `Diperbarui` | HumanResource (06) | Ya | Penggantian shift darurat dengan validasi B1-B7 dan alasan wajib |
+| `TrxOnCallAssignment` | `BC-SCH-03` | `Diperbarui` | HumanResource (06) | Ya | Status diselaraskan dengan Lab, tambah tracking call-in dan SLA |
+| `HrdSchedulingSetting` | `BC-SCH-04` | `Baru` | HumanResource (06) | Ya | Menyimpan batas istirahat 11 jam, hari berturut-turut, toleransi 3 hari |
+| `TrxRosterPublication` | `BC-SCH-01` | `Sudah ada` | HumanResource (06) | Ya | Jejak audit penerbitan roster bulanan |
+| `TrxRosterApproval` | `BC-SCH-01` | `Sudah ada` | HumanResource (06) | **Ditunda** | Ditunda pada rilis pertama sesuai `HRD-DEC-098`, schema tetap ada |
+| `TrxEmergencyStaffingRequest` | `BC-SCH-01` | `Sudah ada` | HumanResource (06) | **Ditunda** | Ditunda pada rilis pertama sesuai `HRD-DEC-097`, schema tetap ada |
+| `MstShift` | Master Data | `Sudah ada` | HumanResource (01) | Ya (Read-only) | Master definisi jam shift (Pagi, Siang, Malam, Lepas Jaga) |
+| `MstShiftPattern` | Master Data | `Sudah ada` | HumanResource (01) | Ya (Read-only) | Pola shift berulang (misal P-S-M-L-L) untuk percepatan penyusunan |
+| `MstOnCallType` | Master Data | `Sudah ada` | HumanResource (01) | Ya (Read-only) | Jenis siaga dan target SLA respon menit (Cito Bedah, Lab Hasil Kritis) |
+| `MstWorkforceProfile` | WorkforceCore | `Sudah ada` | HumanResource (02) | Ya (Read-only) | Profil pegawai, status keaktifan, dan status kesiapan kerja |
+| `HrdClinicalPreceptorship` | Lifecycle | `Sudah ada` | HumanResource (05) | Ya (Read-only) | Penanda status Didampingi dan nama preceptor (`HRD-DEC-087`) |
+
+### 19.3 Class diagram
+
+#### 19.3.1 Roster Period dan Shift Assignment (`BC-SCH-01`, `BC-SCH-02`)
+
+```mermaid
+classDiagram
+    class TrxRosterPeriod {
+        +Guid Id
+        +string PeriodCode
+        +string PeriodName
+        +Guid UnitId
+        +DateTime StartDate
+        +DateTime EndDate
+        +string Status
+        +int TotalStaffCount
+        +int BlockingConflictCount
+        +int WarningCount
+        +bool IsRecheckPassed
+        +string PublishedByUserId
+        +DateTime? PublishedAt
+        +string ClosedByUserId
+        +DateTime? ClosedAt
+    }
+
+    class TrxRosterAssignment {
+        +Guid Id
+        +Guid RosterPeriodId
+        +Guid EmployeeId
+        +string PositionTitle
+        +bool IsAccompanied
+        +Guid? PreceptorEmployeeId
+    }
+
+    class TrxShiftAssignment {
+        +Guid Id
+        +Guid RosterPeriodId
+        +Guid EmployeeId
+        +DateTime ShiftDate
+        +Guid ShiftId
+        +string ShiftCode
+        +TimeSpan StartTime
+        +TimeSpan EndTime
+        +string Status
+        +bool IsManualOverride
+        +string OverrideReason
+        +Guid? OriginalEmployeeId
+        +bool IsAccompanied
+        +Guid? PreceptorEmployeeId
+        +string Notes
+    }
+
+    class TrxShiftReplacement {
+        +Guid Id
+        +Guid ShiftAssignmentId
+        +Guid RosterPeriodId
+        +Guid OriginalEmployeeId
+        +Guid ReplacementEmployeeId
+        +DateTime ShiftDate
+        +Guid ShiftId
+        +string ReasonCategory
+        +string Notes
+        +string Status
+        +string ExecutedByUserId
+        +DateTime ExecutedAt
+    }
+
+    class HrdSchedulingSetting {
+        +Guid Id
+        +int MinRestHoursBetweenShifts
+        +int MaxConsecutiveWorkDays
+        +int MaxConsecutiveNightShifts
+        +int RetroactiveCorrectionWindowDays
+        +bool RestHoursEscalatedToBlock
+        +bool ConsecutiveDaysEscalatedToBlock
+        +bool NightShiftsEscalatedToBlock
+        +string UpdatedByUserId
+        +DateTime UpdatedAt
+    }
+
+    TrxRosterPeriod "1" --o "*" TrxRosterAssignment : has eligible
+    TrxRosterPeriod "1" --o "*" TrxShiftAssignment : schedules daily
+    TrxShiftAssignment "1" --o "*" TrxShiftReplacement : replaced by
+    TrxRosterPeriod ..> HrdSchedulingSetting : validated against
+```
+
+#### 19.3.2 On-Call, Call-in, dan Integrasi Lab (`BC-SCH-03`)
+
+```mermaid
+classDiagram
+    class TrxOnCallAssignment {
+        +Guid Id
+        +Guid EmployeeId
+        +string EmployeeName
+        +string ProfessionGroup
+        +Guid UnitId
+        +Guid OnCallTypeId
+        +string OnCallTypeCode
+        +DateTime StartTime
+        +DateTime EndTime
+        +string Status
+        +int ExpectedResponseMinutes
+        +bool IsCalledIn
+        +DateTime? CallInTime
+        +DateTime? ArrivalTime
+        +int? ResponseMinutes
+        +bool? IsSlaMet
+        +string CalledByUnitId
+        +string CallNotes
+    }
+
+    class MstOnCallType {
+        +Guid Id
+        +string TypeCode
+        +string TypeName
+        +int DefaultResponseMinutes
+        +bool IsCitoEmergency
+        +bool IsActive
+    }
+
+    class LabConfirmingDoctorResolver {
+        <<external HealthServices>>
+        +ResolveConfirmingDoctorAsync(unitId, timestamp)
+    }
+
+    TrxOnCallAssignment --> MstOnCallType : categorized by
+    LabConfirmingDoctorResolver ..> TrxOnCallAssignment : reads Active status
+```
+
+### 19.4 Penjelasan setiap class
+
+#### 19.4.1 Model
+
+| Class | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `TrxRosterPeriod` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxRosterPeriod.cs` | Entity aggregate root untuk periode roster bulanan per unit. Ditambahkan kolom tracking `PublishedByUserId`, `PublishedAt`, `ClosedByUserId`, `ClosedAt`, dan normalisasi status (`Draft`, `Validation`, `Published`, `Closed`) |
+| `TrxShiftAssignment` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxShiftAssignment.cs` | Entity penugasan shift individual per hari. Ditambahkan kolom `IsManualOverride`, `OverrideReason`, `OriginalEmployeeId`, `IsAccompanied`, `PreceptorEmployeeId` |
+| `TrxShiftReplacement` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxShiftReplacement.cs` | Entity mutasi penggantian staf pada shift terbit (`HRD-DEC-101`). Menyimpan pegawai asal, pengganti, alasan, dan waktu eksekusi langsung |
+| `TrxOnCallAssignment` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxOnCallAssignment.cs` | Entity penugasan siaga (*on-call*). Ditambahkan field pemanggilan: `IsCalledIn`, `CallInTime`, `ArrivalTime`, `ResponseMinutes`, `ExpectedResponseMinutes`, `IsSlaMet`, `CalledByUnitId`, dan penyelarasan status `Active` (`HRD-DEC-103`) |
+| `HrdSchedulingSetting` | `Baru` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/HrdSchedulingSetting.cs` | Entity konfigurasi parameter penjadwalan korporat: jeda istirahat (default 11 jam), batas hari berurutan, toleransi koreksi mundur (default 3 hari), dan toggle eskalasi ke blocking |
+| `TrxEmergencyStaffingRequest` | `Sudah ada` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxEmergencyStaffingRequest.cs` | Dipertahankan dalam skema EF Core tetapi ditandai **Ditunda pada rilis pertama** (`HRD-DEC-097`) |
+| `TrxRosterApproval` | `Sudah ada` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxRosterApproval.cs` | Dipertahankan dalam skema EF Core tetapi ditandai **Ditunda pada rilis pertama** (`HRD-DEC-098`) |
+
+#### 19.4.2 Service
+
+| Service | Status | Lokasi file | Fungsi utama |
+| --- | --- | --- | --- |
+| `RosterPeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/RosterPeriodService.cs` | Mengelola siklus hidup roster: buat periode (kode unik aman konkurensi), populate staf eligible unit otomatis, salin periode lalu, terapkan pola shift, validasi komprehensif (`B1`–`B7` dan `W1`–`W7`), penerbitan dengan validasi ulang otomatis (`HRD-DEC-098`), serta penutupan periode mutlak oleh HRD (`HRD-DEC-102`) |
+| `ShiftReplacementService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/ShiftReplacementService.cs` | Mengeksekusi **Ganti Petugas** langsung pada roster terbit tanpa merusak status `Published` (`HRD-DEC-101`), memvalidasi pengganti terhadap aturan keselamatan, dan mengirim event notifikasi |
+| `OnCallAssignmentService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/OnCallAssignmentService.cs` | Mengelola jadwal siaga dokter & staf, mencatat pemanggilan (*call-in*), mengukur pemenuhan SLA respon menit, menyelaraskan status `Active` dengan Lab resolver (`HRD-DEC-103`), dan meneruskan data kompensasi ke Payroll |
+| `SchedulingSettingService` | `Baru` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/SchedulingSettingService.cs` | Membaca dan memperbarui parameter aturan kerja korporat (`HrdSchedulingSetting`), menghapus hardcode angka 11 jam |
+
+#### 19.4.3 Controller
+
+| Controller | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `RosterPeriodController` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Controllers/RosterPeriodController.cs` | Endpoint CRUD periode roster, validasi, terbitkan, tutup periode, salin periode, dan terapkan pola |
+| `ShiftReplacementController` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Controllers/ShiftReplacementController.cs` | Endpoint eksekusi penggantian shift langsung dan riwayat mutasi shift |
+| `OnCallAssignmentController` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Controllers/OnCallAssignmentController.cs` | Endpoint jadwal siaga, aktivasi siaga, pencatatan pemanggilan (*call-in*), dan pencatatan kedatangan dokter |
+| `SchedulingSettingController` | `Baru` | `Areas/Corporate/HumanResource/SchedulingManagement/Controllers/SchedulingSettingController.cs` | Endpoint konfigurasi kebijakan waktu kerja dan aturan validasi jadwal oleh HR Admin |
+
+### 19.5 Arsitektur folder backend
+
+```text
+NewQuilvianSystemBackend/Areas/Corporate/HumanResource/SchedulingManagement/
+├── Constants/
+│   ├── SchedulingRequestValueConstants.cs          [Sudah ada]
+│   └── SchedulingValidationRuleCodes.cs            [Baru - Kode B1-B7 dan W1-W7]
+├── Controllers/
+│   ├── OnCallAssignmentController.cs               [Diperbarui - Endpoint Call-in & SLA]
+│   ├── RosterPeriodController.cs                   [Diperbarui - Recheck publish & Close lock]
+│   ├── ScheduleChangeController.cs                 [Sudah ada]
+│   ├── SchedulingSettingController.cs              [Baru - Pengaturan waktu kerja HRD]
+│   ├── ShiftReplacementController.cs               [Diperbarui - Ganti petugas langsung]
+│   ├── ShiftSwapController.cs                      [Sudah ada]
+│   └── WfpWorkScheduleAssignmentController.cs       [Sudah ada]
+├── DTOs/
+│   ├── OnCallSchedulingDtos.cs                     [Diperbarui - DTO CallInRequest & SLA]
+│   ├── RosterSchedulingDtos.cs                     [Diperbarui - DTO ValidationResult & Reason]
+│   ├── SchedulingSettingDtos.cs                    [Baru - DTO Get/Update Setting]
+│   └── ShiftReplacementDtos.cs                     [Diperbarui - DTO ExecuteReplacement]
+├── Models/
+│   ├── HrdSchedulingSetting.cs                     [Baru - Model setelan penjadwalan]
+│   ├── TrxEmergencyStaffingRequest.cs              [Sudah ada - Ditunda rilis pertama]
+│   ├── TrxOnCallAssignment.cs                      [Diperbarui - Field CallIn & SLA]
+│   ├── TrxRosterApproval.cs                        [Sudah ada - Ditunda rilis pertama]
+│   ├── TrxRosterAssignment.cs                      [Sudah ada]
+│   ├── TrxRosterPeriod.cs                          [Diperbarui - Field publish & closed]
+│   ├── TrxRosterPublication.cs                     [Sudah ada]
+│   ├── TrxShiftAssignment.cs                       [Diperbarui - Field override & preceptor]
+│   └── TrxShiftReplacement.cs                      [Diperbarui - Field eksekusi & alasan]
+└── Services/
+    ├── OnCallAssignmentService.cs                  [Diperbarui - Status kontrak Lab & SLA]
+    ├── RosterPeriodService.cs                      [Diperbarui - Validasi B1-B7/W1-W7]
+    ├── SchedulingSettingService.cs                 [Baru - Service baca/tulis setelan]
+    └── ShiftReplacementService.cs                  [Diperbarui - Eksekusi override langsung]
+```
+
+### 19.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang ditambah / diubah | Dampak migration |
+| --- | --- | --- | --- |
+| `HrdSchedulingSetting` | `Baru` | Seluruh kolom: `Id`, `MinRestHoursBetweenShifts`, `MaxConsecutiveWorkDays`, `MaxConsecutiveNightShifts`, `RetroactiveCorrectionWindowDays`, `RestHoursEscalatedToBlock`, `ConsecutiveDaysEscalatedToBlock`, `NightShiftsEscalatedToBlock`, kolom audit | Migration create table `HrdSchedulingSettings` |
+| `TrxRosterPeriod` | `Diperbarui` | Tambah kolom: `PublishedByUserId` (nvarchar 450 null), `PublishedAt` (datetime null), `ClosedByUserId` (nvarchar 450 null), `ClosedAt` (datetime null), `IsRecheckPassed` (bool default false) | Migration add columns ke `TrxRosterPeriods` |
+| `TrxShiftAssignment` | `Diperbarui` | Tambah kolom: `IsManualOverride` (bool default false), `OverrideReason` (nvarchar 500 null), `OriginalEmployeeId` (guid null FK), `IsAccompanied` (bool default false), `PreceptorEmployeeId` (guid null FK) | Migration add columns ke `TrxShiftAssignments` |
+| `TrxShiftReplacement` | `Diperbarui` | Tambah kolom: `ReasonCategory` (nvarchar 100 not null), `Notes` (nvarchar 500 null), `ExecutedByUserId` (nvarchar 450 not null), `ExecutedAt` (datetime not null) | Migration add columns ke `TrxShiftReplacements` |
+| `TrxOnCallAssignment` | `Diperbarui` | Tambah kolom: `ExpectedResponseMinutes` (int default 30), `IsCalledIn` (bool default false), `CallInTime` (datetime null), `ArrivalTime` (datetime null), `ResponseMinutes` (int null), `IsSlaMet` (bool null), `CalledByUnitId` (guid null), `CallNotes` (nvarchar 500 null) | Migration add columns ke `TrxOnCallAssignments` |
+
+### 19.7 Rencana migration
+
+1. **Nama Migration:** `AddSchedulingSettingsAndHardenRosterSliceB4`
+2. **Sifat Migration:** Non-breaking / additive only. Seluruh penambahan kolom bersifat `nullable` atau memiliki nilai bawaan (*default value*), sehingga tidak mengganggu data dev yang sudah ada.
+3. **Seed Data:** Menambahkan 1 baris default `HrdSchedulingSetting` (jeda minimal 11 jam, hari berturut-turut 6 hari, toleransi mundur 3 hari).
+
+### 19.8 Rencana data master awal
+
+| Tabel | Kebutuhan baris awal | Contoh isi awal |
+| --- | --- | --- |
+| `HrdSchedulingSetting` | 1 baris korporat | `MinRestHoursBetweenShifts = 11`, `MaxConsecutiveWorkDays = 6`, `MaxConsecutiveNightShifts = 2`, `RetroactiveCorrectionWindowDays = 3` |
+| `MstOnCallType` | Minimal 3 jenis siaga RS | (1) `ONCALL-CITO` — Siaga Cito Tindakan Medis Darurat (SLA 30 menit, Cito = true)<br>(2) `ONCALL-LAB` — Siaga Konfirmasi Hasil Kritis Laboratorium (SLA 30 menit, Cito = true)<br>(3) `ONCALL-SPES` — Siaga Konsultasi Spesialis Standby (SLA 60 menit, Cito = false) |
+| `MstShiftPattern` | Minimal 2 pola shift lazim | (1) `POLA-3SHIFT-A` — Pagi, Siang, Malam, Libur, Libur<br>(2) `POLA-ICU-B` — Siang, Malam, Lepas Jaga, Libur, Pagi |
+
+### 19.9 Hitungan dan aturan bisnis yang dirancang
+
+#### 19.9.1 Validasi Pemeriksaan Per Pegawai (`HRD-DEC-099`)
+Sistem menjalankan evaluasi otomatis:
+- **Pemeriksaan Memblokir (`BLOCKING` / `B1`–`B6`):**
+  - `B1`: Tabrakan jam dua shift pada hari/rentang yang sama.
+  - `B2`: Pegawai memiliki cuti sehari penuh yang berstatus disetujui (`B2`).
+  - `B3`: Pegawai tidak memiliki penempatan aktif di unit tersebut pada tanggal shift.
+  - `B4`: Pegawai belum dinyatakan siap kerja oleh HRD (`HRD-DEC-088`).
+  - `B5`: Tanggal shift berada sesudah tanggal akhir kontrak kerja yang belum diputuskan perpanjangannya (`HRD-DEC-089`).
+  - `B6`: Status kesiapan kerja tidak dapat dibaca dari sistem (`INT-HR-31`, gagal tertutup).
+- **Pemeriksaan Peringatan dengan Alasan (`WARNING` / `W1`–`W5`):**
+  - `W1`: Jeda istirahat antar shift < `MinRestHoursBetweenShifts` (default 11 jam).
+  - `W2`: Hari kerja berturut-turut tanpa hari libur > `MaxConsecutiveWorkDays` (default 6 hari).
+  - `W3`: Shift malam berturut-turut > `MaxConsecutiveNightShifts` (default 2 malam).
+  - `W4`: Terdapat pengajuan cuti yang masih berstatus pending pada tanggal shift.
+  - `W5`: STR, SIP, atau kredensial kedaluwarsa pada tanggal shift (`HRD-DEC-005`).
+
+#### 19.9.2 Validasi Kelayakan Shift & Skill Mix (`HRD-DEC-100`)
+- `B7` (`BLOCKING`): Pegawai bertanda **Didampingi** (`HRD-DEC-087`) dijadwalkan pada shift yang tidak memiliki satupun perawat berstatus **Mandiri**. Ditolak demi keselamatan pasien.
+- `W6` (`WARNING`): Jumlah tenaga pada shift kurang dari kuota target unit. Wajib memilih alasan (`Kekurangan tenaga`, `Volume pasien/BOR rendah`, atau `Lainnya`).
+- `W7` (`WARNING`): Kebutuhan kualifikasi khusus shift (misal: perawat penanggung jawab / sertifikasi ICU) tidak terpenuhi. Wajib memilih alasan konfirmasi.
+
+#### 19.9.3 Penggantian Shift & Mutasi Setelah Terbit (`HRD-DEC-101`)
+- Kepala unit dapat langsung menunjuk pengganti (*Ganti Petugas*) pada roster terbit.
+- Perubahan langsung efektif (*directly effective*) tanpa approval Kepala Bidang.
+- Pengganti wajib lolos validasi `B1`–`B7`.
+- Alasan perubahan wajib dicatat (`Sakit Mendadak`, `Izin/Keluarga`, `Lonjakan Pasien`, `Lainnya`).
+- Status roster tetap **`Published`** dan tidak pernah turun ke `Draft`.
+- Notifikasi otomatis dikirim ke pegawai diganti, pengganti, dan Kepala Bidang (*FYI*).
+
+#### 19.9.4 Koreksi Mundur & Penguncian Mutlak (`HRD-DEC-102`)
+- Koreksi mundur tanggal yang sudah lewat diizinkan mandiri bagi Kepala Unit maksimal **3 hari kalender ke belakang** (`today - shift_date <= 3`).
+- Koreksi mundur otomatis memicu rekalkulasi kehadiran harian di modul 07.
+- Koreksi > 3 hari ke belakang terkunci bagi Kepala Unit dan memerlukan bantuan verifikasi HRD.
+- Roster periode ditutup (**`Closed`**) oleh HRD/Payroll Officer saat cut-off penggajian.
+- Periode berstatus `Closed` berstatus **terkunci mutlak (*read-only*)** tanpa pengecualian.
+
+#### 19.9.5 Siklus Status Siaga & Penyelarasan Kontrak Lab (`HRD-DEC-103`)
+- Kosakata status siaga: `Scheduled` → `Confirmed` → `Active` → `Completed`.
+- Memperbaiki bug `HRD-TF-053`: saat siaga dipanggil (*call-in*), status penugasan tetap **`Active`** (bukan `Activated`), sehingga `LabConfirmingDoctorResolver` (`LAB-DEC-111`) tetap mengenali dokter siaga sebagai konfirmator sah hasil kritis laboratorium.
+- Pemanggilan mencatat `CallInTime`, `ArrivalTime`, selisih waktu `ResponseMinutes`, dan memvalidasi `IsSlaMet = (ResponseMinutes <= ExpectedResponseMinutes)`.
+- Jam standby otomatis diintegrasikan ke tunjangan siaga Payroll (10), dan pemanggilan fisik otomatis menjadi tiket tugas panggil cito di modul Lembur (09) dan Payroll (10).
+
+### 19.10 Yang sengaja tidak dibuat pada rilis pertama `S-B4`
+
+| Fitur / Komponen | Alasan | Penanganan selama MVP |
+| --- | --- | --- |
+| `TrxEmergencyStaffingRequest` | `HRD-DEC-097` — Kebutuhan darurat ditutup langsung oleh Kepala Unit | Kepala Unit menggunakan fitur **Ganti Petugas** atau rencana lembur modul 09 |
+| `TrxRosterApproval` | `HRD-DEC-098` — Tidak ada persetujuan sebelum terbit | Kepala Unit menerbitkan langsung; Kepala Bidang menerima tembusan notifikasi dan hak pantau |
+| Setelan aturan kerja berbeda per masing-masing unit | `HRD-ASM-10` — Satu kebijakan korporat rumah sakit untuk kesederhanaan rilis pertama | Menggunakan nilai default korporat pada `HrdSchedulingSetting` |
+
+### 19.11 Traceability keputusan
+
+| Keputusan | Bab / Bagian Arsitektur Backend |
+| --- | --- |
+| `HRD-DEC-097` | 19.1, 19.2, 19.10 (`TrxEmergencyStaffingRequest` ditunda) |
+| `HRD-DEC-098` | 19.1, 19.4.2 (`RosterPeriodService.PublishAsync`), 19.10 (`TrxRosterApproval` ditunda) |
+| `HRD-DEC-099` | 19.4.1 (`HrdSchedulingSetting`), 19.4.2, 19.9.1 (Pemeriksaan `B1`–`B6` dan `W1`–`W5`) |
+| `HRD-DEC-100` | 19.4.1 (`TrxShiftAssignment.IsAccompanied`), 19.9.2 (Pemeriksaan `B7`, `W6`, `W7`) |
+| `HRD-DEC-101` | 19.4.1 (`TrxShiftReplacement`), 19.4.2 (`ShiftReplacementService`), 19.9.3 |
+| `HRD-DEC-102` | 19.4.1 (`TrxRosterPeriod.ClosedAt`), 19.4.2, 19.9.4 (Koreksi mundur 3 hari & Close lock) |
+| `HRD-DEC-103` | 19.3.2, 19.4.1 (`TrxOnCallAssignment`), 19.4.2 (`OnCallAssignmentService`), 19.9.5 |

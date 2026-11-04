@@ -2013,3 +2013,133 @@ Tidak ada epic `OPEN DECISION` pada gelombang mana pun.
 | Aturan blokir kewenangan klinis | Komite Medik/Keperawatan (`HRD-DEC-005`) | Tetap peringatan | Tidak |
 | Pengesahan tampilan catatan pembatasan kerja | K3RS (`HRD-DEC-010`) | Butir itu tertahan saat rilis | Tidak |
 | Penjadwalan 06 membaca kesiapan (`INT-HR-31`) | Desain 06 (`S-B4`) | Penahan jadwal belum bekerja walau datanya sudah ada | Tidak untuk development 05 |
+
+
+---
+
+## 24. Bagian `S-B4` — Penjadwalan, Roster, dan On-Call, sub-modul 06 (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+| Target rilis | Gelombang `MVP-18` s.d. `MVP-20` |
+
+### 24.1 Batas Slice `S-B4`
+
+- **Titik Mulai:** Kepala Ruangan membuka modul Penjadwalan untuk unit yang bekerja bergiliran (misal ICU, IGD, Bangsal), sistem otomatis menarik daftar staf yang berstatus siap kerja (`HRD-DEC-088`), atau staf siaga on-call yang aktif.
+- **Titik Selesai:** Roster terbit tanpa masalah pemblokir, siap dibaca oleh modul Kehadiran (07) dan modul klinis; penyesuaian shift pasca-terbit terekam dalam riwayat mutasi; siaga on-call terukur pemenuhan SLA-nya serta terhubung ke modul Payroll (10); dan periode roster terkunci mutlak (`Closed`) oleh HRD saat cut-off payroll.
+
+### 24.2 Pemilihan kemampuan MVP
+
+| ID Kemampuan | Deskripsi Kemampuan | Status di MVP | Dasar Keputusan |
+| --- | --- | --- | --- |
+| `HRD-CAP-09.1` | Penyusunan roster unit dengan template pola shift dan salin periode lalu | `MUST HAVE` | `HRD-DEC-098` |
+| `HRD-CAP-09.2` | Penerbitan roster mandiri oleh Kepala Unit dengan validasi otomatis ulang | `MUST HAVE` | `HRD-DEC-098` |
+| `HRD-CAP-09.3` | Mesin validasi keselamatan: blokir `B1`–`B7` & peringatan beralasan `W1`–`W7` | `MUST HAVE` | `HRD-DEC-099`, `HRD-DEC-100` |
+| `HRD-CAP-09.4` | Hak pantau dan notifikasi terbit/mutasi roster bagi Kepala Bidang (*read-only*) | `MUST HAVE` | `HRD-DEC-098`, `HRD-DEC-101` |
+| `HRD-CAP-09.5` | Penggantian petugas mendadak (*override*) langsung aktif tanpa menurunkan ke Draft | `MUST HAVE` | `HRD-DEC-101` |
+| `HRD-CAP-09.6` | Koreksi tanggal mundur maksimal 3 hari ke belakang dengan pemicu hitung ulang absensi | `MUST HAVE` | `HRD-DEC-102` |
+| `HRD-CAP-09.7` | Penutupan periode roster oleh HRD Payroll yang mengunci jadwal secara mutlak | `MUST HAVE` | `HRD-DEC-102` |
+| `HRD-CAP-09.8` | Manajemen siaga dokter/staf, pemanggilan (*call-in*), SLA respon menit, integrasi Lab/Payroll | `MUST HAVE` | `HRD-DEC-103`, `LAB-DEC-111` |
+| `HRD-CAP-09.9` | Permintaan staf darurat antar-unit (*Emergency Staffing Request*) | `DEFERRED` | `HRD-DEC-097` (Ditunda rilis pertama) |
+| `HRD-CAP-09.10` | Persetujuan berjenjang sebelum roster terbit (*TrxRosterApproval*) | `DEFERRED` | `HRD-DEC-098` (Ditunda rilis pertama) |
+
+### 24.3 Epic dan Functional Requirement
+
+#### `EPIC HRD-29`: Penyusunan & Penerbitan Roster Bulanan Unit
+- `FR-SCH-01`: Sistem otomatis mengisi daftar perawat/staf eligible unit pada draft roster bulan baru dari penempatan aktif di WorkforceCore. `[EXISTING + HARDEN]`
+- `FR-SCH-02`: Sistem menyediakan aksi **Salin dari Periode Lalu** untuk menduplikasi seluruh shift bulan sebelumnya ke periode baru. `[MISSING / NEW]`
+- `FR-SCH-03`: Sistem menyediakan aksi **Terapkan Pola Shift** (misal Pagi-Siang-Malam-Libur) per pegawai atau kelompok. `[MISSING / NEW]`
+- `FR-SCH-04`: Kepala Unit dapat menerbitkan roster unitnya sendiri tanpa persetujuan sebelum terbit (`HRD-DEC-098`). `[EXTEND]`
+- `FR-SCH-05`: Tombol **Terbitkan** secara wajib memicu validasi ulang menyeluruh sebelum mengubah status ke `Published`. `[MISSING / NEW]`
+- `FR-SCH-06`: Kepala Bidang / Manajer Pelayanan otomatis menerima notifikasi terbit dan memiliki hak pantau *read-only* atas roster unit terkait. `[MISSING / NEW]`
+
+#### `EPIC HRD-30`: Mesin Validasi Keselamatan Jadwal
+- `FR-SCH-07`: Sistem memblokir penerbitan roster bila ditemukan pelanggaran `B1`–`B6` (bentrok jam, cuti penuh disetujui, beda unit, belum siap kerja `HRD-DEC-088`, kontrak berakhir tanpa keputusan `HRD-DEC-089`, status kesiapan gagal dibaca `INT-HR-31`). `[EXTEND]`
+- `FR-SCH-08`: Sistem memblokir penerbitan (`B7`) bila staf bertanda **Didampingi** dijadwalkan pada shift tanpa perawat Mandiri (`HRD-DEC-100`). `[MISSING / NEW]`
+- `FR-SCH-09`: Sistem memunculkan peringatan kuning untuk `W1`–`W3` (jeda < 11 jam, hari kerja > 6 hari, malam berurutan > 2) berdasarkan setelan korporat `HrdSchedulingSetting`. `[EXTEND]`
+- `FR-SCH-10`: Sistem memunculkan peringatan kuning untuk `W4`–`W5` (cuti pending, kredensial kedaluwarsa `HRD-DEC-005`). `[EXTEND]`
+- `FR-SCH-11`: Sistem memunculkan peringatan kuning untuk `W6` (kurang kuota tenaga) dan `W7` (komposisi kualifikasi shift belum terpenuhi), serta mewajibkan Kepala Unit memilih alasan sebelum tombol Terbitkan aktif. `[MISSING / NEW]`
+
+#### `EPIC HRD-31`: Penggantian Shift Mendadak & Mutasi Pasca-Terbit
+- `FR-SCH-12`: Kepala Unit dapat menekan **Ganti Petugas** pada shift terbit untuk menunjuk staf pengganti dengan alasan wajib (`HRD-DEC-101`). `[EXTEND]`
+- `FR-SCH-13`: Penggantian shift langsung berstatus efektif di sistem tanpa approval Kepala Bidang sehingga staf pengganti langsung dapat absen tap-in. `[EXTEND]`
+- `FR-SCH-14`: Penggantian staf wajib divalidasi terhadap `B1`–`B7` (pengganti yang cuti/bentrok ditolak). `[MISSING / NEW]`
+- `FR-SCH-15`: Status roster periode tetap `Published` (tidak turun ke Draft), dengan jejak audit lengkap dan notifikasi otomatis ke pegawai asal, pengganti, dan atasan. `[MISSING / NEW]`
+
+#### `EPIC HRD-32`: Koreksi Mundur & Penguncian Periode Roster
+- `FR-SCH-16`: Kepala Unit dapat melakukan koreksi mundur tanggal yang sudah lewat maksimal 3 hari kalender ke belakang dengan alasan wajib (`HRD-DEC-102`). `[MISSING / NEW]`
+- `FR-SCH-17`: Koreksi mundur otomatis memicu rekalkulasi status kehadiran harian pada modul Kehadiran (07). `[MISSING / NEW]`
+- `FR-SCH-18`: Petugas HRD/Payroll dapat menutup periode roster (**`Closed`**) saat cut-off payroll, yang mengunci seluruh kotak jadwal secara mutlak (*read-only*). `[EXTEND]`
+
+#### `EPIC HRD-33`: Tata Kelola Siaga (On-Call), SLA Respon, dan Integrasi Lintas Modul
+- `FR-SCH-19`: Pemisahan wewenang: jadwal siaga staf disusun Kepala Unit; siaga dokter spesialis disusun Pelayanan Medis / KSM (`HRD-DEC-103`). `[MISSING / NEW]`
+- `FR-SCH-20`: Status siaga aktif menggunakan kosakata `Active` (bukan `Activated`) agar kontrak resolver dokter konfirmator Lab (`LAB-DEC-111`) tidak rusak. `[EXTEND]`
+- `FR-SCH-21`: Unit yang membutuhkan penanganan cito dapat mencatat pemanggilan (*call-in*) dokter/staf siaga beserta waktu panggil dan waktu kedatangan. `[MISSING / NEW]`
+- `FR-SCH-22`: Sistem menghitung selisih waktu respon dan membandingkannya dengan target SLA menit (`ExpectedResponseMinutes`) untuk indikator mutu akreditasi RS. `[MISSING / NEW]`
+- `FR-SCH-23`: Jam standby siaga otomatis terhubung ke modul Payroll (10), dan transaksi pemanggilan fisik otomatis diteruskan ke modul Lembur (09) dan Payroll (10). `[MISSING / NEW]`
+
+### 24.4 Skenario UAT Utama
+
+#### Skenario UAT-SCH-01: Penerbitan Roster Mandiri dengan Peringatan Beralasan (Jalur Berhasil)
+- **Aktor:** Sari (Kepala Ruangan ICU).
+- **Langkah:** Sari membuka draft Roster Februari 2027, menekan **Periksa Jadwal**. Sistem mendeteksi tidak ada error memblokir (`B1`–`B7`), namun mendeteksi `W1` (jeda Tono 10 jam) dan `W6` (Shift Malam 10 Feb kurang 1 perawat). Sari memilih alasan `Permintaan Pegawai` untuk Tono dan `Kekurangan Tenaga` untuk shift malam. Tombol **Terbitkan** menyala. Sari menekan **Terbitkan**.
+- **Hasil yang Diharapkan:** Status periode berubah menjadi `Published`. Pak Dodi (Kepala Bidang) menerima notifikasi dan dapat membuka roster ICU untuk melihat tanda peringatan beserta alasan yang dipilih Sari. Roster siap dibaca modul Kehadiran.
+
+#### Skenario UAT-SCH-02: Pencegahan Penugasan Pegawai Didampingi Sendirian (Jalur Gagal / Blokir)
+- **Aktor:** Sari (Kepala Ruangan ICU).
+- **Langkah:** Sari menjadwalkan Rina (perawat bertanda `Didampingi`) pada Shift Malam 18 Februari hanya bersama Susi (yang juga bertanda `Didampingi`), tanpa perawat Mandiri. Sari menekan **Periksa Jadwal**.
+- **Hasil yang Diharapkan:** Sistem memblokir penerbitan (`B7`): *"Rina berstatus Didampingi dan tidak boleh berdinas pada shift tanpa perawat Mandiri."* Tombol Terbitkan terkunci (*disabled*). Roster tidak dapat terbit sampai Sari menukar jadwal perawat Mandiri ke shift tersebut.
+
+#### Skenario UAT-SCH-03: Penggantian Petugas Darurat Pasca-Terbit (Jalur Berhasil)
+- **Aktor:** Sari (Kepala Ruangan ICU).
+- **Langkah:** Pada 14 Februari pukul 19.30 (sebelum shift malam dimulai), Budi sakit mendadak. Sari membuka roster ICU `Published`, menekan **Ganti Petugas** pada Budi, memilih Tono, dan memilih alasan `Sakit Mendadak`.
+- **Hasil yang Diharapkan:** Sistem memvalidasi Tono lolos keselamatan. Perubahan tersimpan seketika. Status roster tetap `Published`. Notifikasi otomatis terkirim ke ponsel Budi, Tono, dan tembusan ke Pak Dodi. Tono tiba pukul 20.45 dan langsung dapat absen tap-in tanpa status anomali.
+
+#### Skenario UAT-SCH-04: Pemanggilan Dokter Siaga & Integrasi Hasil Kritis Lab (Jalur Berhasil)
+- **Aktor:** Analis Laboratorium & dr. Dodi, Sp.PK.
+- **Langkah:** Pukul 02.00 dini hari ditemukan hasil tes kritis di Lab. Analis membuka resolver dokter konfirmator Lab. Sistem Lab mendeteksi dr. Dodi dengan status siaga `Active`. Analis menekan **Panggil Siaga**. dr. Dodi tiba di Lab pukul 02.25. Analis menginput kedatangan dr. Dodi.
+- **Hasil yang Diharapkan:** Sistem mencatat waktu respon 25 menit (memenuhi target SLA 30 menit). Transaksi pemanggilan otomatis tercatat di modul Payroll untuk klaim tugas panggil cito.
+
+#### Skenario UAT-SCH-05: Penguncian Mutlak Periode Roster (Jalur Gagal Edit)
+- **Aktor:** Tim Payroll HRD & Sari.
+- **Langkah:** Tanggal 28 Februari, tim Payroll menekan **Tutup Periode**. Status Roster Februari berubah menjadi `Closed`. Pada tanggal 2 Maret, Sari mencoba mengedit kotak shift Februari.
+- **Hasil yang Diharapkan:** Sistem menolak tindakan (HTTP 403) dan antarmuka menampilkan pesan bahwa periode telah ditutup mutlak oleh Payroll. Penyesuaian gaji diarahkan melalui rapel periode berjalan.
+
+### 24.5 Definition of Done (DoD) Slice `S-B4`
+
+| No | Kriteria Selesai (DoD) | Bukti Pengujian |
+| :---: | --- | --- |
+| 1 | Roster unit bergiliran dapat dibuat otomatis dari penempatan aktif di WorkforceCore | Lulus pengujian query staf eligible |
+| 2 | Fitur Salin Periode Lalu dan Terapkan Pola Shift berfungsi mengisi jadwal massal | Pengujian salin 500+ kotak jadwal < 2 detik |
+| 3 | Mesin validasi menolak penerbitan saat ada pelanggaran `B1`–`B7` | Unit test & UAT skenario jalur blokir |
+| 4 | Peringatan `W1`–`W7` wajib mengisi alasan sebelum tombol Terbitkan aktif | UAT validasi form alasan peringatan |
+| 5 | Ganti petugas langsung efektif tanpa approval dan status roster tetap `Published` | UAT mutasi shift & verifikasi absensi tap-in |
+| 6 | Koreksi mundur dibatasi maksimal 3 hari ke belakang dan memicu hitung ulang absensi | UAT backdated edit & audit modul 07 |
+| 7 | Periode `Closed` mengunci seluruh mutasi shift secara mutlak | UAT pengujian edit pada periode Closed ditolak |
+| 8 | Status siaga `Active` terbaca stabil oleh `LabConfirmingDoctorResolver` saat dipanggil | Integrasi test dengan sub-modul Lab |
+| 9 | Pemanggilan siaga menghitung waktu respon dan kepatuhan target SLA menit | UAT perekaman call-in dan kalkulasi SLA |
+| 10 | Tunjangan siaga dan pemanggilan cito terhubung ke modul Payroll dan Lembur | Verifikasi data handoff ke modul 09 & 10 |
+
+### 24.6 Urutan pengiriman gelombang MVP
+
+| Gelombang | Cakupan Kemampuan | Epic Terkait | Prasyarat |
+| --- | --- | --- | --- |
+| `MVP-18` | Mesin validasi keselamatan (`B1`–`B7` & `W1`–`W7`), pengaturan parameter kerja `HrdSchedulingSetting`, penyusunan dan penerbitan roster mandiri | `EPIC HRD-29`, `EPIC HRD-30` | Sub-modul 05 (`MVP-15` & `MVP-16`) selesai |
+| `MVP-19` | Penggantian shift pasca-terbit (*override*), riwayat mutasi, koreksi mundur 3 hari, dan penguncian mutlak periode `Closed` | `EPIC HRD-31`, `EPIC HRD-32` | `MVP-18` selesai |
+| `MVP-20` | Tata kelola penugasan siaga (on-call), pencatatan pemanggilan cito, evaluasi SLA respon menit, integrasi Lab (`LAB-DEC-111`), dan handoff Payroll | `EPIC HRD-33` | `MVP-18` selesai |
+
+### 24.7 Traceability keputusan ke PRD
+
+| Keputusan | Epic & Kriteria DoD |
+| --- | --- |
+| `HRD-DEC-097` | 24.2, `FR-SCH-01` (Roster khusus shift bergiliran; darurat via ganti petugas) |
+| `HRD-DEC-098` | `EPIC HRD-29`, `FR-SCH-04`, `FR-SCH-05`, `FR-SCH-06`, UAT-SCH-01, DoD butir 2 & 4 |
+| `HRD-DEC-099` | `EPIC HRD-30`, `FR-SCH-07`, `FR-SCH-09`, `FR-SCH-10`, DoD butir 3 |
+| `HRD-DEC-100` | `EPIC HRD-30`, `FR-SCH-08`, `FR-SCH-11`, UAT-SCH-02, DoD butir 3 |
+| `HRD-DEC-101` | `EPIC HRD-31`, `FR-SCH-12` s.d. `FR-SCH-15`, UAT-SCH-03, DoD butir 5 |
+| `HRD-DEC-102` | `EPIC HRD-32`, `FR-SCH-16` s.d. `FR-SCH-18`, UAT-SCH-05, DoD butir 6 & 7 |
+| `HRD-DEC-103` | `EPIC HRD-33`, `FR-SCH-19` s.d. `FR-SCH-23`, UAT-SCH-04, DoD butir 8, 9, 10 |

@@ -42,6 +42,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasForeignKey(x => x.SalaryGradeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.ContractType)
+                .WithMany()
+                .HasForeignKey(x => x.ContractTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(x => x.Approvals)
                 .WithOne(a => a.Offer)
                 .HasForeignKey(a => a.OfferId)

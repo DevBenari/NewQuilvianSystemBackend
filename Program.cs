@@ -1076,6 +1076,16 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobOfferService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferService>();
 
+    // Slice S-D2: Rekrutmen & Hiring (RecruitmentManagement) - MVP-13
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobOfferApprovalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferApprovalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferApprovalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IMcuClearanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.McuClearanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.McuClearanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ITalentPoolService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.TalentPoolService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.TalentPoolService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IHiringHandoffService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
+
     builder.Services.AddScoped<ScheduleChangeService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();

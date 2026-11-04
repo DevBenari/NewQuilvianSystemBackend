@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `19` — **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `20` — **Revision `20` (bagian 36) adalah Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), dibuka 4 November 2026: audit HEAD BE `38e892b0` / FE `44990b3d3`, temuan `HRD-TF-050` s.d. `HRD-TF-057`, pertanyaan `HRD-Q-99` s.d. `HRD-Q-105`, keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` — seluruh 7 keputusan inti `approved` oleh pengguna dan ditutup 4 November 2026; `HRD-Q-106` (cek regulasi PP 35/2021) terbuka untuk HRD dan tidak memblokir desain. Siap untuk `design-business-module`.** **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -1593,6 +1593,10 @@ Flow 08 ditulis ulang mengikuti temuan ini — lihat bagian 23.9.
 | `HRD-DEC-026` | Decision | **Untuk rumah sakit 24/7, kapabilitas berikut adalah bagian target HR V2, bukan `DEFERRED`:** roster period; roster assignment/publication; daily shift assignment; shift replacement; emergency staffing; actual on-call assignment. Current state = `MISSING API` (dikonfirmasi `PHASE 2B`: 8 dari 11 model `SchedulingManagement` tanpa controller). **Target implementation classification = `EXTEND` terhadap schema existing** (`TrxRosterPeriod`, `TrxRosterAssignment`, `TrxRosterPublication`, `TrxRosterApproval`, `TrxShiftAssignment`, `TrxShiftReplacement`, `TrxEmergencyStaffingRequest`, `TrxOnCallAssignment` sudah model+EF+migration). **Larangan:** jangan membuat schema baru sebelum audit model existing, dan `HRD-Q-05` wajib terjawab lebih dulu bila perubahan destruktif diperlukan | Pengguna | `approved` | Pengguna, 28 Agustus 2026 | `HRD-Q-37`; `flows/05-work-scheduling.md` |
 
 **Menutup `HRD-Q-37`.**
+
+> **Catatan susulan, 4 November 2026.** Butir *emergency staffing* (permintaan tenaga darurat)
+> diamandemen oleh `HRD-DEC-097` (bagian 36.7): tidak dibuat pada rilis pertama sub-modul 06.
+> Butir lain pada keputusan ini tetap berlaku tanpa perubahan.
 
 #### `HRD-DEC-027` — Work schedule assignment approval: rule-based, menutup `HRD-Q-38`
 
@@ -5854,3 +5858,490 @@ Wawancara keputusan kebutuhan: implementasi Employee Self-Service Profile Change
 2. Perubahan data yang mencakup lebih dari satu kelompok field (misal: Kontak + Alamat + Identitas) secara otomatis dikirim sebagai kategori `Multiple` dalam satu transaksi ID permohonan.
 3. Ini mencegah kegagalan validasi `hasOpenRequest` yang melarang pembuatan permohonan baru saat masih ada permohonan aktif untuk profil yang sama.
 4. Rute frontend ditempatkan pada path standar Layanan Mandiri: `/self-services/human-resource/employee/profile-changes`, didaftarkan pada `menu-items.jsx`, dan ditautkan pada menu cepat profil pengguna `user-profile-sidebar.jsx`.
+
+## 36. Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), 4 November 2026
+
+| Field | Isi |
+| --- | --- |
+| Mode | **Amendment pass**. Keputusan `approved` sebelumnya tidak ditimpa; pass ini hanya menambah |
+| Pemicu | Pengguna meminta bab **06. Scheduling, Roster & On-Call** pada Buku Panduan dijadikan bahan wawancara keputusan, setelah sub-modul 05 selesai direncanakan (roadmap revision 7) |
+| Acuan bisnis | `docs/Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` bab 06, baris 532–615 |
+| Prinsip wawancara | Skill `grill-me` 1.22.0: sederhana, profesional, sesuai rumah sakit umum swasta sekelas RS MMC, dan tidak merepotkan pengguna. Prinsip `HRD-DEC-081` (satu pengaju, satu pemutus; checklist lebih dulu daripada layar baru) dipakai juga di sini |
+| Backend | `NewQuilvianSystemBackend`, branch `MHamzah`, HEAD `38e892b0`. Working tree punya perubahan belum di-commit pada `RecruitmentManagement/Services/**` — tidak menyentuh `SchedulingManagement` |
+| Frontend | `QuilvianSystemFrontendDev`, branch `HamzahV2`, HEAD `44990b3d3`. Perubahan belum di-commit hanya pada layanan mandiri perubahan data profil — tidak menyentuh penjadwalan |
+| Database | `QuilvianNewDevHamzah`, dibaca **read-only** lewat `psycopg2`, 4 November 2026 |
+| Capability map | `01-existing-capability-map.md` mencatat `HRD-CAP-09` pada SHA `ecdc135` (3 controller, 22 endpoint), dan `flows/05-work-scheduling.md` ditulis pada `16b8b71` ("8 dari 11 model tanpa controller"). Keduanya **sudah basi**: `BE-HRD-009` (27 Oktober 2026) menambah controller roster, siaga, dan penggantian shift. Fakta pada bagian 36.2 diperiksa langsung pada HEAD di atas |
+| Owner keputusan | Pengguna sebagai pemilik teknis dan produk (`HRD-DEC-015`) |
+
+**Batas pass ini:** dokumentasi dan wawancara saja. Tidak ada source aplikasi, migration,
+database, seed, maupun frontend yang diubah.
+
+### 36.1 Kenapa pass ini dibuka
+
+Slice `S-B4` berstatus `READY FOR DESIGN`. Task `BE-HRD-009` sudah membangun mesin roster yang
+tipis, tetapi aturan bisnisnya belum pernah diputuskan: siapa menyusun roster, apa yang diperiksa
+sebelum terbit, bagaimana jadwal diubah setelah terbit, dan bagaimana siaga dicatat.
+
+Sub-modul 05 juga meninggalkan tiga janji yang harus ditepati 06:
+
+1. pegawai `Pending Onboarding` tidak boleh dijadwalkan (`HRD-DEC-088`, `AC-ONB-12`);
+2. jadwal sesudah kontrak berakhir tanpa keputusan ditahan (`HRD-DEC-089`, `AC-ONB-15`);
+3. aturan penjadwalan berpasangan untuk pegawai bertanda **Didampingi** ditetapkan 06
+   (`HRD-DEC-087` butir 4).
+
+**Contoh kekosongan yang harus ditutup.** Sari, Kepala Ruangan ICU, akan menyusun jadwal dinas
+Februari 2027 untuk 18 perawat. Hari ini sistem tidak dapat menjawab:
+
+1. apakah jadwal Sari perlu disetujui seseorang sebelum diumumkan;
+2. apakah sistem menolak bila Sari menjadwalkan Rina yang sedang cuti 10–12 Februari;
+3. berapa perawat minimal pada shift malam ICU, dan apa yang terjadi bila kurang;
+4. bila Budi sakit mendadak pada 14 Februari malam, siapa yang mencatat penggantinya;
+5. bagaimana dr. Dodi, dokter siaga yang dipanggil pukul 02.00, tercatat dan dibayar.
+
+### 36.2 Fakta hasil audit
+
+| ID | Type | Temuan | Bukti | Klasifikasi |
+| --- | --- | --- | --- | --- |
+| `HRD-TF-050` | Fact | Domain `SchedulingManagement` kini punya **6 controller korporat**: `RosterPeriodController` (8 endpoint: ringkasan, daftar, detail, buat periode, tambah penugasan, validasi, terbitkan, tutup), `OnCallAssignmentController` (3: daftar, buat, aktifkan), `ShiftReplacementController` (3: daftar, buat, setujui), `ScheduleChangeController`, `ShiftSwapController`, dan `WfpWorkScheduleAssignmentController`. Layanan mandiri ubah jadwal dan tukar shift ada di `Areas/SelfServices/HumanResource/Controllers/`. **Tidak ada** endpoint untuk `TrxEmergencyStaffingRequest`, `TrxRosterApproval`, dan `TrxRosterPublication`. Frontend punya satu halaman `src/app/hr/scheduling/roster/page.jsx` dengan `roster-scheduling-service.js` | BE `SchedulingManagement/Controllers/**` @ `38e892b0`; FE `src/app/hr/scheduling/**`, `src/lib/services/hr/roster-scheduling-service.js` @ `44990b3d3`; `roadmap/backend-roadmap.md` `BE-HRD-009` | `REUSE + HARDEN`. Mengoreksi `HRD-CAP-09` dan `flows/05-work-scheduling.md` bagian 1 dan 11 |
+| `HRD-TF-051` | Fact | Pemeriksaan roster hanya dua: **jadwal tumpang tindih** dan **jeda istirahat kurang dari 11 jam**. Keduanya memblokir. Angka 11 jam tertanam di kode dan komentarnya menyebut "regulasi Kemenkes / ketenagakerjaan" tanpa rujukan. Tidak ada pemeriksaan cuti, siap kerja, penahan kontrak, kompetensi, kredensial, kebutuhan minimal per shift, libur mingguan, maupun malam berturut-turut — pencarian `Leave`, `Readiness`, `Competen`, `Credential` pada `SchedulingManagement/Services/**` tidak menemukan apa pun. **Contoh dampak dengan master shift dev:** dinas Siang 14.00–21.00 lalu Pagi 07.00 keesokan harinya berjeda 10 jam, sehingga ditolak | `RosterPeriodService.cs` baris 416–533, angka 11 jam pada baris 440 @ `38e892b0` | Bahan `HRD-Q-101`. Isi peraturan tentang jeda antarshift **perlu dicek** (UU 13/2003 jo. UU 6/2023, PP 35/2021) |
+| `HRD-TF-052` | Conflict | Penjaga status roster lemah. (a) **Terbitkan** hanya menolak bila `BlockingConflictCount > 0` dan validasi belum lolos, sehingga periode yang belum pernah divalidasi (hitungan masih 0) dapat langsung terbit. (b) **Tambah penugasan** masih diterima pada periode `Published` dan diam-diam mengembalikan statusnya ke `Draft`, tanpa catatan perubahan. Buku panduan meminta sebaliknya: jadwal terbit tidak boleh diubah tanpa jejak. (c) Hasil validasi ditulis `Validated`, padahal kosakata model `RosterStatus` memakai `Validation`. (d) **Tutup** tidak memeriksa status; periode `Draft` pun dapat ditutup. (e) Kode periode dibangkitkan dari jumlah baris, sehingga dua petugas yang membuat periode bersamaan dapat memperoleh kode yang sama | `RosterPeriodService.cs` baris 218, 286–378, 514, 559, 607–627 @ `38e892b0` | Bahan `HRD-Q-100` dan `HRD-Q-103` |
+| `HRD-TF-053` | Conflict | **Siaga yang diaktifkan hilang dari daftar lab.** `OnCallAssignmentService.ActivateAsync` menulis status `Activated`, sedangkan `LabConfirmingDoctorResolver` (Health Services, `LAB-DEC-111`) hanya membaca `Scheduled`, `Confirmed`, dan `Active`. Akibatnya dokter siaga yang sudah dipanggil tidak lagi muncul sebagai Dokter Konfirmator hasil kritis. Selain itu pembuatan siaga tidak memeriksa jam selesai sesudah jam mulai, tumpang tindih, maupun cuti; `ExpectedResponseMinutes` tidak pernah diisi; dan `MstOnCallType` berisi 0 baris di dev | `OnCallAssignmentService.cs` baris 181; `HealthServices/LaboratoryManagement/Services/LabConfirmingDoctorResolver.cs` baris 128–140 @ `38e892b0` | Bahan `HRD-Q-105`. Kosakata status siaga adalah kontrak lintas modul |
+| `HRD-TF-054` | Fact | Penggantian shift dibuat berstatus `Draft`, lalu **Setujui** langsung menjadikannya `Applied` dan memindahkan baris `TrxShiftAssignment` kepada pengganti (`IsManualOverride = true`). Tidak ada pemeriksaan bahwa pengganti bebas jadwal, tidak cuti, dan cukup istirahat; tidak ada pemeriksaan bahwa "pegawai asal" memang pemilik shift itu; dan pembuat boleh menyetujui penggantiannya sendiri | `ShiftReplacementService.cs` baris 178–196 @ `38e892b0` | Bahan `HRD-Q-103` |
+| `HRD-TF-055` | Fact | **Roster sudah menjadi sumber data modul lain.** (a) Kehadiran: `AttendanceScheduleResolverService` membaca `TrxShiftAssignment` berstatus `Published`, `Confirmed`, atau `Completed` sebagai jadwal utama, di atas jadwal kerja tetap. (b) `AuthController` membaca baris yang sama untuk konteks jadwal saat absen. (c) Lab membaca `TrxOnCallAssignment` untuk Dokter Konfirmator (`LAB-DEC-111`). (d) Nurse View membaca roster untuk kepala "perawat jaga" (`NV-DEC-021`). (e) Rawat inap **sengaja tidak** memakai roster karena sistem belum punya konsep shift perawat (`RWI-DEC-100`). Artinya nama status roster dan siaga tidak boleh diubah sepihak oleh 06 | `AttendanceScheduleResolverService.cs` baris 196–309, 678–679; `Controllers/AuthController.cs` baris 1278–1300; `InpatientClinicalContextService.cs` baris 1236–1240; `nurse-view/00-interview-decisions.md` `NV-DEC-021` @ `38e892b0` | Titik sentuh. Desain wajib menjaga kosakata yang dibaca konsumen |
+| `HRD-TF-056` | Fact | Isi database dev: `TrxRosterPeriod`, `TrxRosterAssignment`, `TrxShiftAssignment`, `TrxOnCallAssignment`, `TrxShiftReplacement`, `TrxEmergencyStaffingRequest`, `TrxRosterApproval`, `TrxRosterPublication` **seluruhnya 0 baris**. `WfpScheduleChangeRequest` dan `WfpShiftSwapRequest` 0. `MstShift` 4 baris: Pagi 07.00–14.00, Siang 14.00–21.00, Malam 21.00–07.00, dan Libur/Lepas Jaga. `MstWorkSchedule` 2, `MstShiftPattern` 0, `MstOnCallType` 0, `WfpWorkScheduleAssignment` 1, `MstWorkforceProfile` 55. Bukti ini hanya berlaku untuk database dev | Query hitung baris read-only, 4 November 2026 | Tidak ada data roster lama yang harus dipindahkan di dev |
+| `HRD-TF-057` | Fact | Tukar shift dan ubah jadwal sudah bekerja di atas `TrxShiftAssignment`: penerapan tukar shift memindahkan kedua baris sekaligus dan menandainya `AssignmentSource = "ShiftSwap"`. Rantai persetujuannya sudah disetujui sebagai T4 dan T5 (`HRD-DEC-034`, bagian 27.2) | `ShiftSwapService.cs` baris 194–752 @ `38e892b0`; bagian 23.1 | Tidak ditanyakan ulang |
+
+### 36.3 Batas scope — disetujui lewat `HRD-DEC-097`
+
+**Kalimat batas scope:** sub-modul ini mengatur bagaimana tenaga yang sudah siap kerja ditempatkan
+pada shift dan siaga per unit per periode — disusun, diperiksa, diterbitkan, diubah dengan jejak,
+sampai periodenya dikunci — sehingga kehadiran, lembur, tunjangan, dan modul klinis membaca satu
+jadwal yang sah.
+
+**Di dalam scope:**
+
+1. Periode roster per unit, termasuk siapa yang wajib memakai roster dan siapa yang cukup memakai
+   jadwal kerja tetap.
+2. Penyusunan roster: shift harian per pegawai, dengan bantuan **salin dari periode lalu** dan
+   **terapkan pola shift** agar kepala unit tidak mengisi ratusan kotak satu per satu.
+3. Pemeriksaan sebelum terbit, per pegawai (bentrok, cuti, siap kerja, penahan kontrak, jeda
+   istirahat, libur mingguan) dan per shift (jumlah minimal, kompetensi, pegawai Didampingi).
+4. Penerbitan roster, beserta tampilan jadwal untuk pegawai dan untuk unit.
+5. Perubahan setelah terbit oleh kepala unit — pengganti, tambah shift, hapus shift — dengan alasan
+   dan riwayat.
+6. Koreksi jadwal pada tanggal yang sudah lewat, dan penguncian periode.
+7. Siaga (*on-call*): penugasan, pemanggilan, dan waktu respon, termasuk siaga dokter yang dibaca
+   lab.
+8. Penempatan jadwal kerja tetap bagi pegawai jam kantor (`WfpWorkScheduleAssignment`) — sudah
+   ada, dipakai ulang.
+9. Titik baca untuk modul lain: kehadiran, lembur, payroll, lab, dan Nurse View.
+
+**Di luar scope — untuk modul lain:**
+
+| Kebutuhan | Pemilik | Titik sentuh dengan sub-modul ini |
+| --- | --- | --- |
+| Tukar shift dan ubah jadwal yang diajukan pegawai | `S-A4` layanan mandiri; rantai T4/T5 `HRD-DEC-034` | 06 menyediakan jadwal terbit sebagai bahan. Pemeriksaan 06 dipakai ulang saat tukar shift diterapkan |
+| Jadwal praktik dokter poliklinik | Health Services (`HRD-DEC-006`) | Tidak disentuh. Siaga dokter bukan jadwal praktik |
+| Absen, keterlambatan, jam kerja aktual | 07 Kehadiran | 07 membaca jadwal terbit (`HRD-TF-055`) |
+| Pengajuan, realisasi, dan verifikasi lembur | 09 Lembur | Jam kerja saat siaga dipanggil diklasifikasikan lewat 09, tidak otomatis lembur (`HRD-DEC-013`, `HRD-DEC-025`) |
+| Pengajuan dan persetujuan cuti | 08 Cuti | 06 membaca cuti yang sudah disetujui |
+| Status siap kerja, Didampingi, penahan kontrak | 05 (`INT-HR-31`) | 06 membaca, dan gagal tertutup bila tidak terbaca |
+| Kompetensi dan sertifikat pelatihan | 16 (`S-C2`) | 06 membaca status berlaku atau tidak |
+| Kredensial dan kewenangan klinis | 14 — `BLOCKED` | Peringatan, bukan blokir (`HRD-DEC-005`, `draft`) |
+| Tunjangan shift, tunjangan siaga, pembayarannya | 10 Payroll; master kebijakan tunjangan siaga di 01 | 10 membaca jadwal terbit dan siaga yang tercatat |
+| Isi master shift, pola shift, jenis siaga, kalender kerja | 01 Master Data HR | 06 memakai; nilainya diisi lewat 01 |
+| Kotak masuk persetujuan | 21 | Persetujuan 06, bila ada, masuk kotak masuk yang sama |
+| Permintaan tenaga darurat lintas unit (`TrxEmergencyStaffingRequest`) | **Tidak dibuat pada rilis pertama** (`HRD-DEC-097`) | Kebutuhan mendadak ditutup lewat **Ganti Petugas** dan rencana lembur. Model `TrxEmergencyStaffingRequest` tetap ada dan tidak dihapus |
+
+### 36.4 Bentuk blueprint
+
+Bentuk blueprint **tetap `SINGLE`** sesuai `HRD-DEC-003` (`approved`). Pass ini mengisi slice
+`S-B4` dan tidak membuka sub-blueprint baru. `shape_decided_by: USER` lewat keputusan lama,
+sehingga tidak ditanyakan ulang.
+
+### 36.5 Keputusan lama yang tetap mengikat dan tidak ditanyakan ulang
+
+| Keputusan | Isi singkat | Pengaruh pada pass ini |
+| --- | --- | --- |
+| `HRD-DEC-003` | Satu blueprint utuh | Bentuk tidak ditanyakan ulang |
+| `HRD-DEC-005` | Kredensial kedaluwarsa memberi peringatan, tidak memblokir (`draft`, menunggu Komite Medik) | Batas jawaban `HRD-Q-101` dan `HRD-Q-102` |
+| `HRD-DEC-006` | Jadwal kerja HR terpisah dari jadwal praktik dokter | Siaga dokter dicatat di 06, jadwal praktik tidak |
+| `HRD-DEC-013`, `HRD-DEC-025` | Kerja di luar jadwal menjadi pengecualian yang diputuskan atasan, tidak otomatis lembur | Jam kerja saat siaga dipanggil mengikuti aturan ini |
+| `HRD-DEC-019` | `Mst` untuk master, `Hrd` untuk entity operasional baru, `Trx` di-ratchet saat disentuh | Berlaku saat desain menyentuh delapan entity roster |
+| `HRD-DEC-026` | Roster, shift harian, penggantian, tenaga darurat, dan siaga adalah target V2 (`EXTEND`); jangan membuat schema baru sebelum audit model existing | Model existing dipakai lebih dulu. **Butir tenaga darurat diamandemen `HRD-DEC-097`:** ditunda dari rilis pertama 06 |
+| `HRD-DEC-027` | Penempatan jadwal saat ini dan ke depan pada periode terbuka tidak perlu persetujuan, jejak audit wajib; perubahan mundur atau pada periode terkunci wajib lewat koreksi terkendali | Batas jawaban `HRD-Q-100`, `HRD-Q-103`, `HRD-Q-104` |
+| `HRD-DEC-030` | Pengingat dan eskalasi persetujuan; setuju/tolak otomatis bawaan mati | Berlaku bila ada persetujuan di 06 |
+| `HRD-DEC-031` | Penyetuju **MUST** berbeda dari pembuat | Berlaku untuk koreksi yang butuh persetujuan |
+| `HRD-DEC-034` T4, T5 | Rantai tukar shift dan ubah jadwal | Tidak dibahas ulang |
+| `HRD-DEC-087` | Pegawai Didampingi boleh dijadwalkan; aturan berpasangan ditetapkan 06 | Bahan `HRD-Q-102` |
+| `HRD-DEC-088` | Pegawai `Pending Onboarding` tidak boleh dijadwalkan | Pemeriksaan wajib, tidak ditanyakan |
+| `HRD-DEC-089` | Jadwal sesudah kontrak berakhir tanpa keputusan ditahan | Pemeriksaan wajib, tidak ditanyakan |
+| `INT-HR-31` | 06 **MUST** menolak menjadwalkan bila status kesiapan tidak dapat dibaca (gagal tertutup) | Pemeriksaan wajib, tidak ditanyakan |
+| `LAB-DEC-111`, `NV-DEC-021` | Lab dan Nurse View membaca siaga dan roster HR | Kosakata status adalah kontrak lintas modul (`HRD-TF-055`) |
+
+### 36.6 Pertanyaan terbuka pass ini
+
+Pertanyaan diajukan satu per satu, dengan latar belakang, contoh rumah sakit, dan alur tiap
+pilihan. Nilai kebijakan seperti "jeda minimal 8 jam" atau "ICU malam minimal 3 perawat" **bukan**
+pertanyaan pass ini: sistem menyediakan tempat menyetelnya, nilainya ditetapkan pemilik kebijakan
+rumah sakit.
+
+| ID | Pertanyaan | Putaran | Owner | Memblokir | Status |
+| --- | --- | --- | --- | --- | --- |
+| `HRD-Q-99` | Batas scope sub-modul 06, termasuk siapa yang wajib memakai roster dan apakah permintaan tenaga darurat dibuat sebagai proses sendiri | 1 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-097` |
+| `HRD-Q-100` | Penyusunan dan penerbitan roster: siapa menyusun, lama periode, perlu tidaknya persetujuan sebelum terbit, dan bantuan penyusunan | 2 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-098` |
+| `HRD-Q-101` | Pemeriksaan per pegawai: mana yang memblokir dan mana yang cukup peringatan | 3 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-099` |
+| `HRD-Q-102` | Kecukupan tenaga per shift, kompetensi, dan aturan berpasangan pegawai Didampingi | 4 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-100` |
+| `HRD-Q-103` | Perubahan setelah terbit: pengganti mendadak, tambah atau hapus shift, pemberitahuan | 5 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-101` |
+| `HRD-Q-104` | Koreksi jadwal tanggal yang sudah lewat dan penguncian periode | 6 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-102` |
+| `HRD-Q-105` | Siaga: penugasan, pemanggilan, waktu respon, dan siapa menyusun siaga dokter | 7 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-103` |
+| `HRD-Q-106` | Hasil cek peraturan waktu kerja bagi tenaga shift rumah sakit — jeda antarshift, batas jam kerja dan lembur per hari dan per minggu, libur mingguan — beserta angka awal setelan dan aturan mana yang harus dinaikkan menjadi blokir (`HRD-DEC-099` butir 4). Lahir dari `HRD-Q-101` | HRD / pemilik kebijakan (`HRD-Q-01`) | Tidak memblokir `DESIGN`; **wajib terjawab sebelum dipakai di rumah sakit** | `open` |
+
+Daftar ini dapat bertambah bila jawaban pengguna memunculkan pertanyaan turunan.
+
+### 36.7 Keputusan yang lahir pada pass ini
+
+#### `HRD-DEC-097` — Batas scope sub-modul 06; roster hanya untuk unit bergiliran; tenaga darurat lintas unit tidak dibuat pada rilis pertama
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-99` |
+| Mengamandemen | `HRD-DEC-026`, **khusus** butir *emergency staffing*. Butir lain `HRD-DEC-026` tetap `approved` tanpa perubahan |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 06 baris 543–567; `HRD-TF-050`, `HRD-TF-055`, `HRD-TF-056` |
+
+**Isi keputusan:**
+
+1. `SCOPE_06_LOCKED`: Daftar di dalam dan di luar scope pada bagian 36.3 berlaku.
+2. `ROSTER_ONLY_FOR_SHIFT_UNITS`: Roster bulanan hanya dipakai unit yang ditandai **bekerja
+   bergiliran**, misalnya rawat inap, IGD, ICU, kamar operasi, laboratorium, radiologi, dan farmasi
+   24 jam. HRD yang menandai unit itu. Tempat penandanya diputuskan saat desain.
+3. `FIXED_SCHEDULE_FOR_OFFICE_UNITS`: Pegawai unit jam kantor memakai jadwal kerja tetap
+   (`WfpWorkScheduleAssignment`) yang sudah ada, tanpa roster bulanan.
+4. `ROSTER_FIRST_THEN_FIXED`: Urutan baca kehadiran tetap seperti source sekarang: roster terbit
+   lebih dulu, lalu jadwal kerja tetap (`HRD-TF-055` a).
+5. `NO_EMERGENCY_STAFFING_PROCESS_R1`: Proses permintaan tenaga darurat lintas unit
+   (`TrxEmergencyStaffingRequest`) tidak dibuat pada rilis pertama. Kekurangan mendadak ditutup
+   kepala unit lewat **Ganti Petugas** (`HRD-Q-103`) atau lewat rencana lembur di 09. Model datanya
+   tetap ada dan tidak dihapus, sehingga proses ini dapat ditambahkan kemudian.
+
+**Contoh.** Sari, Kepala Ruangan ICU, menyusun roster Februari 2027 untuk 18 perawat. Dodi, Kepala
+Bagian Keuangan, tidak menyusun roster apa pun; keenam stafnya tetap memakai jadwal Senin–Jumat
+08.00–16.00, dan absen mereka dibaca dari jadwal itu. Pada 14 Februari malam Budi sakit. Sari
+mencatat Tono sebagai pengganti lewat **Ganti Petugas**. Bila tidak ada perawat ICU yang dapat
+menggantikan, Sari mengajukan lembur. Sari tidak mengajukan permintaan ke Manajer Pelayanan.
+
+**Uji keputusan:** (a) pegawai unit jam kantor tetap tercatat jadwalnya di kehadiran tanpa satu pun
+roster; (b) tidak ada layar atau endpoint permintaan tenaga darurat pada rilis pertama 06.
+
+#### `HRD-DEC-098` — Kepala unit menyusun dan menerbitkan roster bulanan sendiri; Kepala Bidang cukup diberi tahu
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-100` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A, termasuk asumsi `HRD-ASM-05` s.d. `HRD-ASM-08` yang disebut bersama opsi itu |
+| Bukti pemicu | Buku panduan bab 06 baris 545–567; `HRD-DEC-027`; `HRD-TF-052` (a) |
+
+**Isi keputusan:**
+
+1. `UNIT_HEAD_COMPOSES_AND_PUBLISHES`: Kepala unit bergiliran menyusun dan menerbitkan roster
+   unitnya sendiri. Tidak ada langkah persetujuan sebelum terbit, sejalan dengan `HRD-DEC-027`.
+2. `AUTO_STAFF_LIST`: Saat roster dibuat, daftar pegawai terisi otomatis dari penempatan unit yang
+   berlaku pada periode itu (milik 02). Kepala unit tidak mengetik nama.
+3. `COPY_AND_PATTERN`: Sistem menyediakan **Salin dari Periode Lalu** dan **Terapkan Pola**
+   (pola shift dari master 01). Hasil salinan dan pola tetap melewati pemeriksaan yang sama.
+4. `RECHECK_ON_PUBLISH`: **Terbitkan** selalu menjalankan pemeriksaan ulang. Tidak ada jalan
+   menerbitkan roster tanpa pemeriksaan. Ini menutup `HRD-TF-052` (a).
+5. `DRAFT_FREELY_EDITABLE`: Selama belum terbit, roster boleh diubah tanpa alasan. Setelah terbit,
+   perubahan mengikuti `HRD-Q-103`.
+6. `HEAD_OF_DIVISION_INFORMED`: Kepala Bidang atau Manajer Pelayanan yang membawahi unit itu
+   menerima pemberitahuan saat roster terbit, dan dapat melihat roster seluruh unit di bawahnya
+   tanpa bisa mengubahnya. Ini menggantikan tanda "mengetahui" pada jadwal dinas kertas.
+7. `PUBLISH_AUDITED`: Sistem mencatat siapa yang menerbitkan dan kapan.
+
+**Contoh.** Sari menekan **Buat Roster Februari 2027**. Sistem menampilkan 18 perawat ICU. Sari
+menekan **Salin dari Januari**, mengubah 30 dari 504 kotak, lalu menekan **Periksa** dan
+**Terbitkan**. Pak Dodi, Kepala Bidang Keperawatan, menerima pemberitahuan "Roster ICU Februari
+2027 terbit" dan dapat membukanya, tetapi tidak dapat mengubah isinya.
+
+**Uji keputusan:** (a) roster yang belum pernah diperiksa tetap diperiksa saat **Terbitkan** ditekan,
+dan ditolak bila ada masalah yang memblokir; (b) roster terbit tanpa langkah persetujuan; (c) Kepala
+Bidang dapat membuka roster unit di bawahnya, tetapi permintaan ubah darinya ditolak (kode 403).
+
+#### `HRD-DEC-099` — Pemeriksaan per pegawai: blokir hanya yang mustahil atau melanggar keputusan; sisanya peringatan dengan alasan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-101`; membuka `HRD-Q-106` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 06 baris 546 dan 598; bab 2 baris 70–71; `HRD-TF-051`; `HRD-DEC-005`, `HRD-DEC-088`, `HRD-DEC-089`, `INT-HR-31` |
+
+**Isi keputusan:**
+
+1. `BLOCKING_CHECKS`: Roster **tidak dapat terbit** selama masih ada salah satu masalah berikut:
+
+   | Kode | Masalah | Contoh pesan untuk kepala unit |
+   | --- | --- | --- |
+   | `B1` | Dua shift pegawai yang sama bertabrakan jamnya | "Budi dijadwalkan dua shift yang bertabrakan pada 8 Februari 2027" |
+   | `B2` | Pegawai dijadwalkan pada hari cuti sehari penuh yang sudah disetujui | "Rina sedang cuti 10–12 Februari 2027" |
+   | `B3` | Pegawai tidak ditempatkan di unit itu pada tanggal shift, misalnya sudah mutasi | "Dodi sudah ditempatkan di Bangsal Anak sejak 15 Februari 2027" |
+   | `B4` | Pegawai belum siap kerja (`HRD-DEC-088`) | "Ani belum dinyatakan siap kerja" |
+   | `B5` | Kontrak berakhir tanpa keputusan (`HRD-DEC-089`) | "Kontrak Budi berakhir 31 Januari 2027 tanpa keputusan" |
+   | `B6` | Status kesiapan tidak dapat dibaca (`INT-HR-31`, gagal tertutup) | "Status kesiapan pegawai tidak dapat dibaca. Coba lagi atau hubungi HRD" |
+
+2. `WARNING_WITH_REASON`: Masalah berikut memberi **peringatan**. Roster tetap dapat terbit setelah
+   kepala unit memilih alasan dari daftar (`Kekurangan tenaga`, `Permintaan pegawai`, atau
+   `Lainnya`, yang wajib disertai catatan):
+
+   | Kode | Masalah |
+   | --- | --- |
+   | `W1` | Jeda istirahat antara dua shift kurang dari setelan |
+   | `W2` | Hari kerja berturut-turut tanpa libur melebihi setelan |
+   | `W3` | Shift malam berturut-turut melebihi setelan |
+   | `W4` | Ada pengajuan cuti yang belum diputuskan pada tanggal itu |
+   | `W5` | STR, SIP, atau kredensial kedaluwarsa pada tanggal shift (`HRD-DEC-005`) |
+
+3. `NO_HARDCODED_RULE`: Angka 11 jam yang tertanam di kode (`HRD-TF-051`) dihapus dan diganti
+   setelan. Angka setelan ditetapkan HRD.
+4. `SEVERITY_RAISABLE_NOT_LOWERABLE`: HRD dapat menaikkan `W1`, `W2`, atau `W3` menjadi blokir lewat
+   setelan, tanpa mengubah program, bila hasil cek peraturan (`HRD-Q-106`) mewajibkannya. `B1`
+   s.d. `B6` **MUST NOT** diturunkan menjadi peringatan.
+5. `WARNING_VISIBLE_TO_HEAD`: Peringatan beserta alasannya tetap tampil pada roster terbit dan
+   terlihat oleh Kepala Bidang (`HRD-DEC-098` butir 6).
+6. `SAME_CHECKS_EVERYWHERE`: Pemeriksaan yang sama dijalankan setiap kali jadwal berubah: saat
+   roster terbit, saat **Ganti Petugas** (`HRD-Q-103`), dan saat tukar shift atau ubah jadwal
+   diterapkan (T4/T5).
+
+**Contoh.** Sari menekan **Periksa** pada roster ICU Februari 2027. Sistem menolak dua hal: Budi
+punya dua shift bertabrakan pada 8 Februari (`B1`), dan Rina dijadwalkan Pagi 11 Februari padahal
+cutinya 10–12 Februari sudah disetujui (`B2`). Sistem juga memberi dua peringatan: jeda Tono 10 jam
+antara Siang 5 Februari dan Pagi 6 Februari (`W1`, setelan misalnya 11 jam), serta STR Ani yang
+habis 20 Februari (`W5`). Sari memindahkan shift Budi dan Rina, lalu memilih alasan `Permintaan
+pegawai` untuk Tono dan `Lainnya — STR sedang diperpanjang` untuk Ani. Roster terbit. Pak Dodi
+melihat dua tanda peringatan itu beserta alasannya.
+
+**Uji keputusan:** (a) roster dengan `B1` atau `B2` ditolak saat diterbitkan; (b) roster dengan `W1`
+dapat terbit setelah alasan dipilih, dan ditolak bila alasan belum dipilih; (c) setelah HRD
+menaikkan `W1` menjadi blokir, roster yang sama ditolak; (d) Siang 14.00–21.00 lalu Pagi 07.00 tidak
+lagi diblokir bila setelan jeda tidak dinaikkan menjadi blokir.
+
+#### `HRD-DEC-100` — Kelayakan per shift: pegawai Didampingi wajib didampingi perawat mandiri (blokir); kuota dan kualifikasi shift peringatan dengan alasan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-102` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 06 baris 539, 546, 563, 585; `HRD-DEC-087` butir 4; `HRD-TF-051` |
+
+**Isi keputusan:**
+
+1. `ACCOMPANIED_STAFF_RULE`: Pegawai klinis bertanda **Didampingi** (`HRD-DEC-087`) diprioritaskan
+   dijadwalkan pada shift dan unit yang sama dengan preceptor utamanya.
+2. `SENIOR_BACKUP_ALLOWED`: Bila preceptor utama tidak berada di shift tersebut (libur, cuti, atau
+   beda shift), pegawai Didampingi **boleh** berdinas asalkan terdapat sekurang-kurangnya satu
+   perawat lain di shift dan unit yang sama yang berstatus **Mandiri** (bukan sesama pegawai Didampingi).
+3. `ACCOMPANIED_WITHOUT_INDEPENDENT_BLOCKED`: Sistem **memblokir terbit (`B7`)** bila pegawai
+   Didampingi dijadwalkan pada shift yang tidak memiliki perawat Mandiri sama sekali. Ini prinsip
+   keselamatan pasien (*patient safety*) mutlak.
+4. `SHIFT_HEADCOUNT_WARNING`: Bila jumlah perawat pada suatu shift kurang dari target kuota minimal
+   unit, sistem memunculkan **peringatan (`W6`)**. Kepala unit wajib memilih alasan (`Kekurangan tenaga`,
+   `Volume pasien/BOR rendah`, atau `Lainnya` dengan catatan). Roster tetap dapat terbit agar layanan
+   tidak lumpuh di saat krisis staf.
+5. `SKILL_MIX_WARNING`: Kebutuhan kualifikasi/kompetensi khusus per shift (misal: penanggung jawab
+   shift/kompetensi ICU) memberikan **peringatan (`W7`)** bila tidak terpenuhi, dengan memilih alasan,
+   sambil menunggu sub-modul kompetensi (16) siap sepenuhnya.
+6. `VISIBLE_TO_HEAD`: Peringatan kuota dan kompetensi beserta alasannya tampil pada lembar roster
+   terbit dan dapat dilihat oleh Kepala Bidang (`HRD-DEC-098` butir 6).
+
+**Contoh.** Pada roster ICU Februari 2027:
+- Shift Malam 10 Februari hanya diisi 2 perawat (kuota minimal 3). Sistem memunculkan peringatan `W6`.
+  Sari memilih alasan `Kekurangan tenaga`.
+- Shift Siang 12 Februari tidak memiliki perawat bersertifikasi ICU mahir. Sistem memunculkan peringatan `W7`.
+  Sari memilih alasan `Lainnya — disupervisi dokter jaga`.
+- Shift Pagi 15 Februari: Rina (Didampingi) dijadwalkan bersama Budi (Mandiri), sedangkan Tono (preceptor Rina)
+  libur. Jadwal ini lolos karena ada perawat Mandiri di shift itu.
+- Shift Malam 18 Februari: Rina dijadwalkan hanya bersama Susi (yang juga berstatus Didampingi), tanpa ada
+  perawat Mandiri. Sistem memblokir penerbitan roster (`B7`). Sari harus menukar jadwal perawat Mandiri
+  ke shift tersebut sebelum roster dapat terbit.
+
+**Uji keputusan:** (a) roster yang memuat pegawai Didampingi tanpa perawat Mandiri pada shift yang sama
+ditolak saat diterbitkan (`B7`); (b) pegawai Didampingi dapat dinas bersama perawat Mandiri lain saat
+preceptor utamanya berhalangan; (c) roster dengan jumlah staf di bawah kuota minimal shift dapat terbit
+setelah kepala unit memilih alasan (`W6`); (d) roster dengan kuota kurang ditolak bila alasan belum dipilih.
+
+#### `HRD-DEC-101` — Perubahan jadwal setelah terbit: Kepala Unit mengeksekusi langsung dengan alasan wajib; validasi keamanan tetap berlaku; notifikasi otomatis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-103` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 06 baris 547, 566, 597; `HRD-TF-052` (b), `HRD-TF-054`; `HRD-DEC-027`, `HRD-DEC-097` |
+
+**Isi keputusan:**
+
+1. `UNIT_HEAD_EXECUTES_OVERRIDE`: Kepala Unit berwenang melakukan perubahan langsung pada shift yang
+   sudah terbit (**Ganti Petugas** / *Replacement*, tambah shift penugasan, atau hapus shift). Petugas
+   HR Scheduling memiliki wewenang yang sama bila Kepala Unit berhalangan (`HRD-ASM-07`).
+2. `DIRECT_EFFECTIVE_NO_APPROVAL`: Perubahan setelah terbit berlaku **langsung efektif** tanpa
+   memerlukan persetujuan Kepala Bidang sebelum jam kerja dimulai, demi kelancaran operasional 24/7 dan
+   menghindari keterlambatan absensi petugas pengganti.
+3. `MANDATORY_REASON`: Setiap perubahan shift wajib menyertakan alasan dari daftar standar (`Sakit Mendadak`,
+   `Izin/Keluarga`, `Lonjakan Pasien`, `Pengurangan Beban Layanan`, atau `Lainnya` dengan catatan wajib).
+4. `SAFETY_VALIDATION_MANDATORY`: Petugas pengganti atau pegawai yang ditambahkan ke shift **wajib**
+   lolos validasi keselamatan yang sama (`B1`–`B7` memblokir perubahan; `W1`–`W7` memunculkan peringatan
+   dengan konfirmasi alasan). Penggantian yang menyebabkan bentrok atau menugaskan pegawai yang sedang cuti
+   ditolak sistem. Menutup celah `HRD-TF-054`.
+5. `ROSTER_STATUS_PRESERVED`: Periode roster tetap berstatus **`Published`** dan **MUST NOT** diturunkan
+   menjadi `Draft` (`HRD-TF-052` b diperbaiki). Perubahan dicatat sebagai mutasi/penyesuaian dengan riwayat
+   perubahan audit lengkap (*audit trail*: pembuat, waktu, pegawai asal, pengganti, alasan).
+6. `AUTOMATIC_NOTIFICATIONS`: Sistem secara otomatis mengirimkan pemberitahuan in-app/push kepada:
+   (a) pegawai asal yang digantikan, (b) pegawai pengganti/baru yang ditugaskan, dan (c) Kepala
+   Bidang/Manajer Pelayanan sebagai laporan pengawasan (*FYI*).
+
+**Contoh.** Pada 14 Februari pukul 19.30, Budi sakit mendadak menjelang shift malam. Sari membuka roster ICU
+Februari 2027 yang berstatus `Published`, memilih shift Budi, menekan **Ganti Petugas**, memilih Tono, dan
+memilih alasan `Sakit Mendadak`. Sistem memvalidasi Tono: tidak ada shift bertabrakan, tidak cuti, jeda
+istirahat cukup. Perubahan langsung tersimpan. Status roster tetap `Published`. Tono dan Budi menerima
+notifikasi di ponselnya, dan Pak Dodi (Kepala Bidang) menerima notifikasi tembusan "Penggantian shift malam
+ICU 14 Feb: Budi digantikan Tono oleh Sari (Alasan: Sakit Mendadak)". Pukul 20.45, Tono tiba di ICU dan
+melakukan absensi tap-in tanpa kendala.
+
+**Uji keputusan:** (a) roster tetap berstatus `Published` setelah penambahan atau penggantian shift;
+(b) penunjukan pengganti yang sedang cuti atau jadwalnya bertabrakan ditolak sistem; (c) penggantian shift
+langsung mengubah hak absensi pengganti tanpa menunggu persetujuan Kepala Bidang; (d) notifikasi terkirim
+kepada pegawai asal, pengganti, dan atasan.
+
+#### `HRD-DEC-102` — Koreksi mundur jadwal maksimal 3 hari ke belakang; penutupan periode oleh HRD Payroll mengunci jadwal secara mutlak
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-104` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 06 baris 547, 567; `HRD-TF-052` (d); `HRD-DEC-027`, `HRD-DEC-101` |
+
+**Isi keputusan:**
+
+1. `RETROACTIVE_WINDOW_3_DAYS`: Selama periode roster masih berstatus `Published`, Kepala Unit (atau HR
+   Scheduling) berwenang melakukan koreksi mundur (*backdated correction*) pada shift yang sudah lewat
+   **maksimal 3 hari kalender ke belakang** dari hari ini (hari H - 3 hari).
+2. `RETROACTIVE_MANDATORY_REASON`: Koreksi mundur wajib menyertakan alasan dari daftar standar (`Koreksi
+   Administratif Terlambat`, `Darurat Lapangan / Penanganan Pasien`, atau `Lainnya` dengan catatan wajib).
+3. `ATTENDANCE_REEVALUATION_TRIGGERED`: Setiap kali jadwal tanggal mundur dikoreksi, sistem secara otomatis
+   memicu perhitungan ulang (*re-evaluation*) pada modul Kehadiran (07) untuk tanggal dan pegawai terkait,
+   sehingga status mangkir/hadir/lembur terkoreksi otomatis dan akurat.
+4. `BEYOND_3_DAYS_LOCKED_FOR_UNIT`: Koreksi jadwal yang melebihi 3 hari ke belakang tidak dapat diubah
+   langsung oleh Kepala Unit di layar roster. Koreksi tersebut harus diajukan melalui mekanisme penyesuaian
+   khusus dengan persetujuan/eksekusi oleh HRD.
+5. `PERIOD_CLOSE_BY_HRD_PAYROLL`: Penutupan periode roster (**`Closed`**) dilakukan oleh petugas HRD /
+   Payroll Officer saat proses penutupan buku kehadiran dan penggajian bulanan (*payroll cut-off*). Sistem
+   menolak penutupan periode yang masih berstatus `Draft` (`HRD-TF-052` d diperbaiki; penutupan hanya sah
+   untuk periode yang sudah `Published`).
+6. `CLOSED_PERIOD_ABSOLUTE_LOCK`: Periode roster yang berstatus `Closed` menjadi **terkunci mutlak
+   (*read-only*)**. Seluruh tombol tambah, ubah, ganti petugas, dan hapus dinonaktifkan.
+7. `FINANCIAL_ADJUSTMENT_POST_CLOSE`: Bila ditemukan selisih atau kekeliruan jadwal pada periode yang sudah
+   `Closed`, tidak boleh dilakukan perubahan pada jadwal historis. Penyelesaian finansial dilakukan
+   melalui penyesuaian/rapel pada modul Payroll (10) di periode penggajian berjalan.
+
+**Contoh.** Pada 12 Februari, Sari menyadari bahwa pada 10 Februari malam (2 hari lalu) yang dinas sebenarnya
+Ani menggantikan Susi. Sari membuka jadwal 10 Februari, memilih Ganti Petugas, memilih Ani, dan mengisi alasan
+`Koreksi Administratif Terlambat`. Perubahan berhasil karena masih dalam jendela 3 hari. Modul Kehadiran
+langsung menghitung ulang tanggal 10 Februari: status Susi diperbarui menjadi Libur, dan Ani diakui hadir
+sesuai jadwal dinas malam. Pada 20 Februari, Sari ingin mengubah jadwal 5 Februari (15 hari lalu); sistem
+menolak dan menampilkan pesan bahwa koreksi melebihi batas 3 hari harus melalui HRD. Pada 28 Februari, tim
+Payroll HRD memproses penggajian dan menekan **Tutup Periode**. Status roster Februari 2027 berubah menjadi
+`Closed`, dan seluruh kisi jadwal Februari terkunci mutlak (*read-only*).
+
+**Uji keputusan:** (a) koreksi mundur 1–3 hari ke belakang berhasil disimpan dan memicu evaluasi ulang
+kehadiran di modul 07; (b) koreksi mundur >3 hari ke belakang ditolak bagi peran Kepala Unit; (c) penutupan
+periode ditolak bila periode masih berstatus `Draft`; (d) periode berstatus `Closed` menolak seluruh
+mutasi/perubahan shift (kode 403 / UI terkunci).
+
+#### `HRD-DEC-103` — Tata kelola siaga (on-call): pemisahan wewenang penyusun, penyelarasan status kontrak Lab, pencatatan SLA pemanggilan, dan integrasi kompensasi
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-105` |
+| Mengoreksi | `HRD-TF-053` (status konflik Lab) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 06 baris 541, 548, 596; `HRD-TF-053`, `HRD-TF-055` (c); `HRD-DEC-006`, `HRD-DEC-013`, `HRD-DEC-025`, `LAB-DEC-111` |
+
+**Isi keputusan:**
+
+1. `SPLIT_ONCALL_AUTHORITY`: Jadwal siaga disusun berdasarkan kelompok profesi:
+   (a) Siaga perawat / tenaga penunjang (misal: perawat bedah cito kamar operasi, teknisi laboratorium
+   on-call) disusun oleh Kepala Unit terkait di layar penjadwalan.
+   (b) Siaga dokter spesialis (misal: Dokter Bedah On-Call, Dokter Anestesi On-Call, Dokter Patologi
+   Klinik untuk konfirmasi hasil kritis lab) disusun oleh Bagian Pelayanan Medis / Komite Medik /
+   Sekretariat KSM (atau HR Scheduling).
+2. `LAB_CONTRACT_STATUS_ALIGNMENT`: Kosakata status `TrxOnCallAssignment` diselaraskan agar kontrak
+   integrasi dengan modul Laboratorium (`LAB-DEC-111`) tidak rusak (`HRD-TF-053` tuntas):
+   - Status penugasan siaga yang sah adalah: `Scheduled` (Terjadwal) -> `Confirmed` (Dikonfirmasi staf/dokter)
+     -> `Active` (Periode siaga sedang berlangsung aktif) -> `Completed` (Periode siaga selesai).
+   - Nilai status `Activated` pada backend dihapus/digantikan: saat terjadi panggilan (*call-in*), status
+     penugasan tetap `Active` sehingga fungsi `LabConfirmingDoctorResolver` tetap menemukan dokter siaga
+     tersebut sebagai Dokter Konfirmator yang sah, sementara detail pemanggilan dicatat pada kolom khusus
+     (`CallInTime`, `ArrivalTime`, `ResponseMinutes`).
+3. `CALL_IN_RECORDING_AND_SLA`: Unit yang membutuhkan penanganan cito/darurat (IGD, ICU, Kamar Operasi, Lab)
+   mencatat pemanggilan di sistem:
+   - Sistem mencatat waktu panggilan (`CallInTime`), waktu kedatangan/respons staf (`ArrivalTime`), dan
+     menghitung selisih waktu respon (`ResponseMinutes`).
+   - Sistem membandingkan waktu respon dengan target SLA (`ExpectedResponseMinutes`, misal default 30 menit).
+     Kepatuhan SLA dicatat sebagai indikator mutu respon darurat rumah sakit untuk akreditasi Kemenkes.
+4. `COMPENSATION_INTEGRATION_09_10`:
+   - Jam standby selama periode siaga otomatis diteruskan ke modul Payroll (10) untuk penghitungan tunjangan
+     siaga (*standby allowance*).
+   - Setiap transaksi pemanggilan fisik (*call-in*) otomatis diteruskan ke modul Lembur (09) dan Payroll (10)
+     sebagai penugasan tugas panggil cito (*call-out fee* / lembur panggilan), sehingga dokter/staf dibayar
+     sesuai kehadiran fisiknya tanpa perlu membuat jadwal dinas darurat baru di tengah malam.
+
+**Contoh.** Bagian Pelayanan Medis menerbitkan jadwal siaga dokter Februari 2027: dr. Dodi, Sp.PK bertugas
+siaga konfirmasi hasil lab pada 16 Februari pukul 20.00–08.00. Pada 16 Februari pukul 02.00, analis Lab menemukan
+hasil tes kritis. Analis membuka daftar dokter konfirmator Lab; sistem Lab menemukan dr. Dodi karena status
+siaganya `Active`. Analis menekan **Panggil Siaga**. Target SLA adalah 30 menit. dr. Dodi merespons dan tiba
+di Lab pukul 02.25. Analis mencatat kedatangan dr. Dodi. Sistem mencatat `ResponseMinutes = 25` menit (status:
+`MET_SLA`). Modul Payroll (10) mencatat dr. Dodi berhak atas tunjangan standby 12 jam, ditambah insentif
+pemanggilan cito atas kehadiran fisik pukul 02.25.
+
+**Uji keputusan:** (a) `LabConfirmingDoctorResolver` berhasil membaca dokter siaga yang sedang aktif bahkan
+saat sedang dalam status dipanggil; (b) pembuatan siaga memvalidasi jam mulai < jam selesai dan tidak bentrok;
+(c) waktu respon dihitung otomatis dan membandingkan terhadap target SLA; (d) pemanggilan siaga otomatis
+terhubung ke perhitungan tunjangan payroll (10) dan lembur (09).
+
+### 36.8 Asumsi pass ini
+
+Butir berikut ditetapkan tanpa ditanyakan karena lazim di rumah sakit umum swasta sekelas RS MMC.
+Pengguna dapat mengoreksinya kapan saja.
+
+| ID | Asumsi | Dasar | Kalau salah, dampaknya |
+| --- | --- | --- | --- |
+| `HRD-ASM-05` | Satu periode roster = satu bulan kalender per unit | Jadwal dinas bulanan lazim di rumah sakit acuan | Murah diubah: model sudah menyimpan tanggal mulai dan selesai, bukan bulan |
+| `HRD-ASM-06` | Sistem mengingatkan kepala unit bila roster bulan depan belum terbit menjelang akhir bulan. Jumlah harinya setelan rumah sakit | Praktik umum: jadwal diumumkan sebelum bulan berjalan | Tanpa pengingat, perawat bisa tidak tahu jadwalnya pada tanggal 1 |
+| `HRD-ASM-07` | Petugas HRD bagian penjadwalan boleh menyusun dan menerbitkan roster atas nama unit, misalnya saat kepala unit cuti panjang | Aktor "HR Scheduling" pada buku panduan bab 06 | Bila tidak boleh, roster unit tertahan selama kepala unit berhalangan |
+| `HRD-ASM-08` | `TrxRosterApproval` tidak dipakai pada rilis pertama; modelnya tetap ada | Turunan `HRD-DEC-098` | Bila kelak dibutuhkan persetujuan, model tinggal dipakai |
+| `HRD-ASM-09` | Cuti per jam atau izin yang hanya bersinggungan dengan sebagian shift memberi peringatan, bukan blokir. Yang memblokir hanya cuti sehari penuh yang sudah disetujui (`B2`) | Pegawai tetap bekerja pada sisa shift | Bila salah, kepala unit harus memecah shift secara manual |
+| `HRD-ASM-10` | Setelan `W1`–`W3` berlaku untuk seluruh rumah sakit. Setelan berbeda per unit tidak dibuat pada rilis pertama | Prinsip sederhana; satu kebijakan waktu kerja per rumah sakit | Bila ICU butuh batas berbeda, setelan per unit ditambahkan kemudian |
+| `HRD-ASM-11` | Kuota minimal per shift per unit disetel pada master unit/jadwal. Bila belum disetel, sistem menganggap tidak ada batas minimal (kuota = 0) sehingga tidak memunculkan peringatan palsu | Menghindari peringatan palsu saat setup unit baru | Bila salah, kuota wajib diisi saat konfigurasi unit |
+| `HRD-ASM-12` | Pembatalan penggantian shift (misal pegawai asal ternyata sembuh sebelum jam shift dimulai) diperlakukan sebagai pergantian baru yang mengembalikan penugasan ke pegawai asal, dengan alasan tercatat | Menjaga satu alur pergantian yang konsisten tanpa fitur 'undo' tersembunyi | Riwayat audit tetap utuh |
+| `HRD-ASM-13` | Batas toleransi koreksi mundur dihitung berdasarkan tanggal kalender (hari H - tanggal shift <= 3 hari). Angka 3 hari adalah setelan rumah sakit (default = 3) yang dapat disesuaikan HRD bila kebijakan internal menetapkan lain | Fleksibilitas konfigurasi tanpa ubah kode | Bila rumah sakit menginginkan toleransi 2 hari, HRD tinggal mengubah setelan |
+| `HRD-ASM-14` | Target waktu respon siaga (ExpectedResponseMinutes) disetel per tipe siaga pada MstOnCallType (default: 30 menit untuk siaga cito, 60 menit untuk siaga umum). Bila tipe belum disetel, default sistem adalah 30 menit | Memastikan selalu ada nilai target SLA yang dapat diukur | Bila salah, target SLA diatur per unit |
