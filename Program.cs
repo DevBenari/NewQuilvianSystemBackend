@@ -1000,8 +1000,19 @@ try
     // BE-OPT-010. Kunjungan Optik lewat EncounterIntakeService (Registrasi tetap pemilik kunjungan).
     builder.Services.AddScoped<OptVisitService>();
     builder.Services.AddScoped<OptPractitionerGuard>();
+    // BE-OPT-031: tarif pemeriksaan refraksi sekali saat final lewat ClinicalMilestoneFactProducer.
+    builder.Services.AddScoped<OptBillingGateway>();
     builder.Services.AddScoped<OptRefractionExamService>();
     builder.Services.AddScoped<OptPrescriptionService>();
+    // BE-OPT-033: potong/kembali stok pesanan Optik lewat DrugStockService (jenis dokumen OpticalOrder, OPT-DEC-054/060).
+    builder.Services.AddScoped<OptStockGateway>();
+    // BE-OPT-032: pesanan Optik (draf, tagihkan per barang, batal awal) dan pembaca status bayar dari Billing.
+    builder.Services.AddScoped<OptOrderPaymentGate>();
+    builder.Services.AddScoped<OptOrderService>();
+    // BE-OPT-050: keluhan garansi dan remake tanpa tagihan.
+    builder.Services.AddScoped<OptWarrantyClaimService>();
+    // BE-OPT-052: empat laporan Optik (baca-saja).
+    builder.Services.AddScoped<OptReportService>();
     // BE-OPT-013: pembaca Rekam Medis Optik (pemeriksaan refraksi + resep), persetujuan pemilik OPT-APR-007. Tanpa kriteria kelengkapan.
     builder.Services.AddScoped<IMedicalRecordDocumentSource, OptMedicalRecordDocumentSource>();
 

@@ -81,6 +81,13 @@ public static class DrugStockSourceDocumentTypes
     public const string PrescriptionReturn = "PrescriptionReturn";
     public const string StockOpname = "StockOpname";
     public const string ManualAdjustment = "ManualAdjustment";
+
+    /// <summary>
+    /// Pesanan Optik (<c>BE-OPT-033</c>, <c>INT-OPT-07</c>; disetujui Farmasi <c>OPT-DEC-054</c>). <c>SourceDocumentId</c> =
+    /// pesanan. Barang keluar saat dikerjakan atau diserahkan; kembali sebagai Stok Masuk batch yang sama saat pesanan
+    /// batal (<c>OPT-DEC-060</c>).
+    /// </summary>
+    public const string OpticalOrder = "OpticalOrder";
 }
 
 /// <summary>

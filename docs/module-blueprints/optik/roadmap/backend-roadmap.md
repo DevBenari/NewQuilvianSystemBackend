@@ -47,25 +47,25 @@ lensa stok Rp 600.000, pemeriksaan Rp 75.000.
 ✅BE-OPT-000 {Registry Opt} ─> ✅BE-OPT-002 ─┬─> BE-OPT-004 ─┬─> BE-OPT-005
                                           │               └─> ✅BE-OPT-010 ─> ✅BE-OPT-011 ─> ✅BE-OPT-012
 BE-OPT-001 {Master Data ✅} ────┘
-BE-OPT-003 {Registrasi ✅} ─────────────> (melengkapi BE-OPT-010)
+✅BE-OPT-003 {Registrasi ✅} ───────────> (melengkapi BE-OPT-010)
 ✅BE-OPT-013 {Rekam Medis ✅} <── ✅BE-OPT-012
 
-BE-OPT-030 {Billing ✅} ─┬─> BE-OPT-031 <── BE-OPT-011
-                                      └─> BE-OPT-032 <── BE-OPT-012 ─┐
-BE-OPT-033 {Farmasi ✅} ───────────────> BE-OPT-034 <┘
+✅BE-OPT-030 {Billing ✅} ─┬─> ✅BE-OPT-031 <── BE-OPT-011
+                                      └─> ✅BE-OPT-032 <── BE-OPT-012 ─┐
+✅BE-OPT-033 {Farmasi ✅} ─────────────> ✅BE-OPT-034 <┘
 
-BE-OPT-034 ─> BE-OPT-040 ─┬─> BE-OPT-041 ─┬─> BE-OPT-050 ─> BE-OPT-052 ─> BE-OPT-053
-                          └─> BE-OPT-042   │
-BE-OPT-051 {Medical Fee ✅} <── BE-OPT-031  └──────────────────────────────> BE-OPT-053
+✅BE-OPT-034 ─> ✅BE-OPT-040 ─┬─> ✅BE-OPT-041 ─┬─> ✅BE-OPT-050 ─> ✅BE-OPT-052 ─> ✅BE-OPT-053
+                          └─> ✅BE-OPT-042 │
+✅BE-OPT-051 {Medical Fee ✅} <── BE-OPT-031  └──────────────────────────────> ✅BE-OPT-053
 ```
 
 | Gelombang | Task | Boleh mulai setelah |
 |---|---|---|
 | `MVP-0` ✅ | `BE-OPT-000` ✅, `001` ✅, `002` ✅, `004` ✅, `005` ✅ | Registry `Opt` ✅; persetujuan Master Data/Farmasi ✅ (`OPT-EVD-002`) |
-| `MVP-1` | `BE-OPT-003`, `010`, `011`, `012`, `013` | `MVP-0`; persetujuan Registrasi ✅ dan Rekam Medis ✅; konfirmasi isian visus (`n1`) untuk `011` |
-| `MVP-2` | `BE-OPT-030`, `031`, `032`, `033`, `034` | `MVP-1`; persetujuan Billing ✅ dan Farmasi ✅. `030` dan `033` tidak bergantung task Optik dan boleh dikerjakan lebih awal |
-| `MVP-3` | `BE-OPT-040`, `041`, `042` | `BE-OPT-034` |
-| `MVP-4` | `BE-OPT-050`, `051`, `052`, `053` | `BE-OPT-041`; persetujuan Medical Fee ✅ |
+| `MVP-1` ✅ | `BE-OPT-003` ✅, `010` ✅, `011` ✅, `012` ✅, `013` ✅ | `MVP-0`; persetujuan Registrasi ✅ dan Rekam Medis ✅; konfirmasi isian visus (`n1`) untuk `011` |
+| `MVP-2` ✅ | `BE-OPT-030` ✅, `031` ✅, `032` ✅, `033` ✅, `034` ✅ | `MVP-1`; persetujuan Billing ✅ dan Farmasi ✅. `030` dan `033` tidak bergantung task Optik dan boleh dikerjakan lebih awal |
+| `MVP-3` ✅ | `BE-OPT-040` ✅, `041` ✅, `042` ✅ | `BE-OPT-034` |
+| `MVP-4` ✅ | `BE-OPT-050` ✅, `051` ✅, `052` ✅, `053` ✅ | `BE-OPT-041`; persetujuan Medical Fee ✅ |
 
 **Yang tetap bisa berjalan tanpa persetujuan mitra:** begitu `BE-OPT-000` disetujui pemilik
 registry, `BE-OPT-002`, `004`, `005`, `010`, `011`, `012` dapat dikerjakan seluruhnya di dalam
@@ -79,25 +79,25 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | `BE-OPT-000` ✅ | Baris registry `Opt` / `OpticalManagement` | OPT-00 | — | Pemilik registry | Selesai 2026-11-03 — persetujuan Muhammad Hamzah, disampaikan Yoga Aji Pratama; checker QBE dengan kontrol negatif (`OPT-EVD-001`) |
 | `BE-OPT-001` ✅ | `ServiceUnitType.Optical = 11` | OPT-00 | — | Master Data (✅ `OPT-DEC-053`, Muhammad Hamzah) | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-001.md); seeder unit `SU-OPT-001` berjalan saat startup berikutnya |
 | `BE-OPT-002` ✅ | 12 model `Opt*` + configuration + DbSet + migration `AddOpticalManagement` + enum + konstanta izin | OPT-00 | 000 | Optik | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-002.md); migration `20261103050001_AddOpticalManagement` **belum diterapkan** |
-| `BE-OPT-003` | `RegPatientEncounter.ReferralSourceEncounterId` + migration + `EncounterIntakeService` menerima rujukan | OPT-01 | — | Registrasi (✅ `OPT-DEC-052`, Muhammad Hamzah) | Direncanakan |
+| `BE-OPT-003` ✅ | `RegPatientEncounter.ReferralSourceEncounterId` + migration + `EncounterIntakeService` menerima rujukan | OPT-01 | — | Registrasi (✅ `OPT-DEC-052`, Muhammad Hamzah) | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-003.md); migration `20261104020212_AddEncounterReferralSource` **belum diterapkan** |
 | `BE-OPT-004` ✅ | `OptNumberService`, `OptPractitionerLicenseReader`, `OptReferenceDataSeeder` | OPT-00 | 002 | Optik | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-004.md); `OPT-OQ-017` ditutup `OPT-DEC-056` (SIP dan STR wajib) |
 | `BE-OPT-005` ✅ | API data referensi: metadata, katalog barang + stok, profil barang, pengaturan + riwayat | OPT-11 | 002, 004 | Optik | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-005.md) |
 | `BE-OPT-010` ✅ | API kunjungan Optik: daftarkan lewat `EncounterIntakeService`, daftar, ringkasan | OPT-01 | 004 (+001 untuk data unit) | Optik | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-010.md) |
 | `BE-OPT-011` ✅ | API pemeriksaan refraksi: mulai, isi, final, revisi, batal (tanpa penerbitan tagihan) | OPT-02 | 010 | Optik | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-011.md) |
 | `BE-OPT-012` ✅ | API resep: buat, salin luar + transposisi, revisi, kunci, berlaku, opsi | OPT-03 | 011 | Optik | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-012.md) |
 | `BE-OPT-013` ✅ | `OptMedicalRecordDocumentSource` + dua nilai `ClinicalDocumentKind` **ditegakkan** + pendaftaran keutuhan RM per versi | OPT-09 | 011, 012 | Rekam Medis (✅ `OPT-DEC-050`, Yoga Aji Pratama) | Selesai 2026-11-03 — [laporan](../task/report/backend/BE-OPT-013.md) |
-| `BE-OPT-030` | Billing: sumber `Optical`, kebijakan `OPTICAL` (menahan finalisasi; void selama belum final), `ResolveOpticalAsync` | OPT-08 | — | Billing (✅ `OPT-DEC-051`, Yasmina) | Direncanakan |
-| `BE-OPT-031` | `OptBillingGateway` + tarif pemeriksaan sekali saat final | OPT-02, 08 | 011, 030 | Optik | Direncanakan |
-| `BE-OPT-032` | Pesanan: draft, ubah, tagihkan per item, batal sebelum pengerjaan, status bayar + aturan sementara | OPT-04 | 012, 030, 031 | Optik | Direncanakan |
-| `BE-OPT-033` | `DrugStockSourceDocumentTypes.OpticalOrder` + `OptStockGateway` | OPT-04 | 002 | Farmasi (✅ `OPT-DEC-054`, Ikbal) | Direncanakan — bagian stok kembali menunggu `OPT-OQ-015` |
-| `BE-OPT-034` | Kirim ke pengerjaan (gerbang uang muka, kunci resep, potong stok) + tandai siap | OPT-04 | 032, 033 | Optik | Direncanakan |
-| `BE-OPT-040` | Penyerahan: lunas, identitas, snapshot garansi, pemicu finalisasi tagihan | OPT-06 | 034 | Optik | Direncanakan |
-| `BE-OPT-041` | Ajukan/putuskan batal sesudah pengerjaan, tutup tidak diambil, serah susulan | OPT-06 | 034, 040 | Optik | Direncanakan |
-| `BE-OPT-042` | Penjualan langsung + syarat resep lensa kontak | OPT-05 | 040 | Optik | Direncanakan |
-| `BE-OPT-050` | Keluhan garansi + remake tanpa tagihan | OPT-07 | 041, 010 | Optik | Direncanakan |
-| `BE-OPT-051` | Adapter Medical Fee menarik pemeriksaan Optik (RO dan Sp.M berhak) | OPT-09 | 031 | Medical Fee (✅ `OPT-DEC-055`, Yasmin) | Direncanakan |
-| `BE-OPT-052` | API empat laporan | OPT-10 | 041, 050 | Optik | Direncanakan |
-| `BE-OPT-053` | Uji menyeluruh: privasi log, registri izin, alur penuh di harness | OPT-00..11 | 052 | Optik | Direncanakan |
+| `BE-OPT-030` ✅ | Billing: sumber `Optical`, kebijakan `OPTICAL` (menahan finalisasi; void selama belum final), `ResolveOpticalAsync` | OPT-08 | — | Billing (✅ `OPT-DEC-051`, Yasmina) | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-030.md); 4 berkas Billing (jembatan ikut disentuh), tanpa migration |
+| `BE-OPT-031` ✅ | `OptBillingGateway` + tarif pemeriksaan sekali saat final | OPT-02, 08 | 011, 030 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-031.md); butuh konfigurasi `OpticalManagement:Billing:RefractionExamProcedureCode` |
+| `BE-OPT-032` ✅ | Pesanan: draft, ubah, tagihkan per item, batal sebelum pengerjaan, status bayar + aturan sementara | OPT-04 | 012, 030, 031 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-032.md); hanya pesanan berpengerjaan (penjualan langsung di `042`) |
+| `BE-OPT-033` ✅ | `DrugStockSourceDocumentTypes.OpticalOrder` + `OptStockGateway` | OPT-04 | 002 | Farmasi (✅ `OPT-DEC-054`, Ikbal) | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-033.md); kembali = Stok Masuk batch sama (`OPT-DEC-060`, konfirmasi Ikbal belum tercatat) |
+| `BE-OPT-034` ✅ | Kirim ke pengerjaan (gerbang uang muka, kunci resep, potong stok) + tandai siap | OPT-04 | 032, 033 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-034.md) |
+| `BE-OPT-040` ✅ | Penyerahan: lunas, identitas, snapshot garansi, pemicu finalisasi tagihan | OPT-06 | 034 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-040.md) |
+| `BE-OPT-041` ✅ | Ajukan/putuskan batal sesudah pengerjaan, tutup tidak diambil, serah susulan | OPT-06 | 034, 040 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-041.md) |
+| `BE-OPT-042` ✅ | Penjualan langsung + syarat resep lensa kontak | OPT-05 | 040 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-042.md) |
+| `BE-OPT-050` ✅ | Keluhan garansi + remake tanpa tagihan | OPT-07 | 041, 010 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-050.md) |
+| `BE-OPT-051` ✅ | Adapter Medical Fee menarik pemeriksaan Optik (RO dan Sp.M berhak) | OPT-09 | 031 | Medical Fee (✅ `OPT-DEC-055`, Yasmin) | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-051.md) |
+| `BE-OPT-052` ✅ | API empat laporan | OPT-10 | 041, 050 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-052.md) |
+| `BE-OPT-053` ✅ | Uji menyeluruh: privasi log, registri izin, alur penuh di harness | OPT-00..11 | 052 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-053.md) |
 
 ## Rincian Task
 
@@ -149,10 +149,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Migration belum diterapkan ke DB mana pun sampai ada izin. Optik |
 | DoD | Kriteria 1–4 terbukti; laporan task |
 
-### `BE-OPT-003` — Rujukan kunjungan asal
+### `BE-OPT-003` ✅ — Rujukan kunjungan asal
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-003.md). 7 uji baru lulus (total 129). Migration `20261104020212_AddEncounterReferralSource` dibuat, **belum diterapkan**. Rujukan bertaut tidak mewajibkan `IsReferral` dan hanya diterima di jalur penunjang (`Outpatient`) |
 | Outcome | Kolom `ReferralSourceEncounterId` + migration `AddEncounterReferralSource`; `EncounterIntakeRequest` dan `EncounterIntakeService` menerima dan memvalidasi rujukan |
 | Requirement/decision | `FR-OPT-011`; `OPT-DEC-037`, `039` |
 | Kontrak | `OPT-INT-v1` `INT-OPT-01`, `INT-OPT-10` |
@@ -260,10 +261,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Pemilik Rekam Medis |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-030` — Perluasan Billing
+### `BE-OPT-030` ✅ — Perluasan Billing
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-030.md). 26 uji baru lulus (total 155), termasuk rantai fakta → folio → jembatan → item invoice. Cakupan bertambah satu berkas: `BillingClinicalChargeBridgeService` (pemetaan sumber, identitas butir, status dari `RuleSnapshot.milestone`). Kontrak producer untuk `031`/`032`: status barang dikirim di `RuleSnapshot.milestone` (`ORDERED`/`IN_WORK`/`READY`/`HANDED_OVER`/`NOT_COLLECTED`), pemeriksaan `ExamFinalized` |
 | Outcome | Konstanta `Optical`/`OpticalExamCharge`/`OpticalItemCharge`; kebijakan `OPTICAL` di `BillingChargeSourceAdapter` (status `ORDERED`/`IN_WORK`/`READY` belum selesai; void normal dari `ORDERED`); `ResolveOpticalAsync` |
 | Requirement/decision | `FR-OPT-080`, `081`; `OPT-DEC-028`, `029`, `042`, `043` |
 | Kontrak | `OPT-INT-v1` `INT-OPT-02`, `04`, `05` |
@@ -275,10 +277,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Finalisasi otomatis tagihan modul lain. Pemilik Billing |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-031` — Tarif pemeriksaan
+### `BE-OPT-031` ✅ — Tarif pemeriksaan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-031.md). 7 uji baru lulus (total 173) dengan rantai Billing sungguhan. Tindakan "Pemeriksaan Refraksi" dicari dari kode konfigurasi `OpticalManagement:Billing:RefractionExamProcedureCode` (belum diisi di `appsettings`); tanpa kode, final tetap jalan dan tarif tertunda sampai revisi berikutnya |
 | Outcome | `OptBillingGateway`; final menerbitkan satu fakta `OpticalExamCharge` sesudah commit; `BillingFactEmittedAt` |
 | Requirement/decision | `FR-OPT-021`; `OPT-DEC-042`, `047` |
 | Kontrak | `OPT-INT-v1` `INT-OPT-04` |
@@ -290,10 +293,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Tagih ganda. Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-032` — Pesanan: draft, tagihkan, batal awal, status bayar
+### `BE-OPT-032` ✅ — Pesanan: draft, tagihkan, batal awal, status bayar
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-032.md). 7 endpoint; 15 uji baru lulus (total 188) dengan rantai Billing sungguhan. `OPT-AC-005`/`019`/`027` dibuktikan pada angka `OptOrderPaymentGate`; penegakannya saat kirim ke pengerjaan ada di `034`. Bagian pasien per pesanan dari rincian kalkulasi Billing, terbayar per tagihan (aturan sementara) |
 | Outcome | `POST/PUT orders`, `bill`, `cancel`, `payment-status`; `OptOrderPaymentGate` dengan aturan sementara |
 | Requirement/decision | `FR-OPT-040`, `041`, `043`, `080`; `OPT-DEC-008`, `009`, `028`, `029`, `034`, `035`, `044` |
 | Kontrak | `OPT-STATE-v1` bagian 3, `OPT-VAL-v1` bagian 4 |
@@ -305,10 +309,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Angka terbayar per tagihan sampai `OPT-APR-003`. Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-033` — Jenis dokumen stok Optik
+### `BE-OPT-033` ✅ — Jenis dokumen stok Optik
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-033.md). 11 uji baru lulus (total 166). `OPT-OQ-015` ditutup `OPT-DEC-060` (Stok Masuk batch yang sama; dipilih Yoga Aji Pratama, konfirmasi Ikbal belum tercatat). Gateway tidak membuka transaksi; `034` membungkusnya |
 | Outcome | `DrugStockSourceDocumentTypes.OpticalOrder`; `OptStockGateway` (kunci tetap per pesanan per item) |
 | Requirement/decision | `OPT-DEC-004`, `019`, `038` |
 | Kontrak | `OPT-INT-v1` `INT-OPT-07` |
@@ -320,10 +325,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Pemilik Farmasi |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-034` — Kirim ke pengerjaan dan tandai siap
+### `BE-OPT-034` ✅ — Kirim ke pengerjaan dan tandai siap
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-034.md). 2 endpoint; 10 uji baru lulus (total 198). Potong stok, kunci resep, dan status dalam satu transaksi; tagihan direvisi `IN_WORK`/`READY` sesudah commit. Pengiriman serentak oleh dua petugas bergantung pada token `Version` dan belum diuji serentak |
 | Outcome | `send-to-work` (uang muka, tujuan, kunci resep, potong stok dalam satu transaksi), `mark-ready` |
 | Requirement/decision | `FR-OPT-040`, `042`, `043`; `OPT-DEC-007`, `013`, `019` |
 | Kontrak | `OPT-STATE-v1` bagian 3 |
@@ -335,10 +341,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Atomicity. Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-040` — Penyerahan
+### `BE-OPT-040` ✅ — Penyerahan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-040.md). 1 endpoint; 6 uji baru lulus (total 204). Lunas dibaca per tagihan kunjungan (aturan sementara). Pesanan terakhir terminal + lunas → Billing memfinalisasi dan kunjungan `Completed`. Pemicu yang sama dipakai `041` saat batal/tidak diambil |
 | Outcome | `hand-over` (lunas, identitas, wakil, *fitting*, snapshot garansi), lalu pemicu finalisasi tagihan bila pesanan terakhir |
 | Requirement/decision | `FR-OPT-060`, `081`; `OPT-DEC-041`, `043`, `048` |
 | Kontrak | `OPT-STATE-v1`, `OPT-INT-v1` `INT-OPT-02` |
@@ -350,10 +357,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-041` — Batal sesudah pengerjaan dan tidak diambil
+### `BE-OPT-041` ✅ — Batal sesudah pengerjaan dan tidak diambil
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-041.md). 3 endpoint; 7 uji baru lulus (total 211). Baris tagihan pesanan yang berakhir tanpa diserahkan dibawa ke `NOT_COLLECTED` dulu, karena adjustment kredit Billing tidak mengubah status baris dan baris `IN_WORK`/`READY` akan menahan finalisasi selamanya |
 | Outcome | Pengajuan + keputusan batal (stok kembali, batal baris), tutup tidak diambil, serah susulan |
 | Requirement/decision | `FR-OPT-061`, `062`; `OPT-DEC-010`, `018`, `038`, `049` |
 | Kontrak | `OPT-STATE-v1`, `OPT-VAL-v1` `053`..`056` |
@@ -365,10 +373,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Cara void vs adjustment ditetapkan Billing. Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-042` — Penjualan langsung
+### `BE-OPT-042` ✅ — Penjualan langsung
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-042.md). Tanpa endpoint baru (memakai `POST /orders`, `bill`, `hand-over`, `cancel`); 5 uji baru lulus (total 216). Lensa kacamata tidak dijual langsung; resep hanya wajib untuk lensa kontak |
 | Outcome | Pesanan `DirectSale`: tagihkan → lunas → serahkan, stok dipotong saat diserahkan, lensa kontak wajib resep |
 | Requirement/decision | `FR-OPT-050`; `OPT-DEC-020`, `046` |
 | Kontrak | `OPT-STATE-v1` bagian 3 |
@@ -380,10 +389,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-050` — Garansi dan remake
+### `BE-OPT-050` ✅ — Garansi dan remake
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-050.md). 5 endpoint; 9 uji baru lulus (total 225). Remake memakai jalur kirim/siap/serah pesanan yang sama tanpa fakta tagihan. Tambahan atas kontrak: `PrescriptionVersionId?` pada keputusan untuk resep baru hasil pemeriksaan ulang |
 | Outcome | Grup `Opt Warranty Claim`; remake `IsRemake` tanpa fakta tagihan |
 | Requirement/decision | `FR-OPT-070`, `071`; `OPT-DEC-015`, `041`, `043` |
 | Kontrak | `OPT-STATE-v1` bagian 4, `OPT-VAL-v1` bagian 5 |
@@ -395,10 +405,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-051` — Jasa medis
+### `BE-OPT-051` ✅ — Jasa medis
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-051.md). 5 uji baru lulus (total 230). Sp.M dibayar sebagai `Doctor`, RO sebagai `Workforce`. Perbandingan tanggal tagihan pada kueri lama adapter diganti ke `DateTimeOffset` (makna sama) agar dapat diuji |
 | Outcome | `MedicalFeeServiceSourceAdapter` menarik pemeriksaan Optik final |
 | Requirement/decision | `FR-OPT-091`; `OPT-DEC-042` |
 | Kontrak | `OPT-INT-v1` `INT-OPT-08` |
@@ -410,10 +421,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Pemilik Medical Fee |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-052` — Laporan
+### `BE-OPT-052` ✅ — Laporan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-052.md). 4 endpoint; 7 uji baru lulus (total 237). Penjualan = baris tagihan `OPTICAL` aktif (bruto, sebelum diskon/adjustment tagihan); cara bayar mengikuti tiga nilai kunjungan (Tunai/Asuransi/Penjamin Perusahaan) |
 | Outcome | Empat laporan `Opt Report` |
 | Requirement/decision | `FR-OPT-100`; `OPT-DEC-025` |
 | Kontrak | `OPT-API-v1` |
@@ -425,10 +437,11 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Optik |
 | DoD | Kriteria terbukti |
 
-### `BE-OPT-053` — Uji menyeluruh
+### `BE-OPT-053` ✅ — Uji menyeluruh
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-053.md). 44 endpoint sama persis dengan matriks izin; E2E penuh lewat controller lulus; log tanpa kolom Sensitif. Total 239 uji Optik; regresi Kamar Operasi 142 dan Rekam Medis 225 lulus. **Seluruh roadmap backend Optik `MVP-0`..`MVP-4` selesai** |
 | Outcome | Bukti tidak ada kolom sensitif di logger; seluruh endpoint terdaftar di registri izin dengan ejaan konstanta; alur penuh di harness |
 | Requirement/decision | `NFR-001`..`007`; `OPT-PERM-v1` |
 | Kontrak | Seluruh kontrak v1 |

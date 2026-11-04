@@ -31,8 +31,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
     /// dengan kunci modul lain.
     /// </para>
     /// <para>
-    /// <b>Rujukan bertaut belum tersedia.</b> <c>ReferralSourceEncounterId</c> ditolak sampai <c>BE-OPT-003</c> menambah
-    /// kolom tujuannya; dokter dan instansi perujuk sudah diteruskan ke Registrasi.
+    /// <b>Rujukan bertaut (<c>BE-OPT-003</c>, <c>OPT-DEC-037</c>).</b> <c>ReferralSourceEncounterId</c> diteruskan ke
+    /// Registrasi, yang memvalidasi bahwa kunjungan asal milik pasien yang sama. Daftar dan ringkasan menampilkan nomor
+    /// kunjungan asal beserta dokternya (<c>OPT-AC-023</c>).
     /// </para>
     /// </remarks>
     public class OptVisitService
@@ -71,10 +72,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             if (request.PatientId is not { } patientId || patientId == Guid.Empty)
                 return OptResult<OptVisitListItemResponse>.Invalid(OptErrorCodes.InvalidRequest, "Pilih pasien.");
 
-            if (request.ReferralSourceEncounterId.HasValue)
-                return OptResult<OptVisitListItemResponse>.Invalid(OptErrorCodes.InvalidRequest,
-                    "Tautan ke kunjungan Poli Mata asal belum tersedia. Kosongkan isian itu; dokter perujuk tetap dapat diisi.");
-
             var unitId = await FindOpticalUnitIdAsync(activeOnly: true, cancellationToken);
             if (unitId is null)
                 return OptResult<OptVisitListItemResponse>.Conflict(OptErrorCodes.OpticalUnitMissing,
@@ -94,6 +91,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 ReferralNumber = request.ReferralNumber,
                 ReferralInstitutionId = request.ReferralInstitutionId,
                 ReferralDoctorId = request.ReferralDoctorId,
+                ReferralSourceEncounterId = request.ReferralSourceEncounterId,
                 Notes = request.Notes,
             };
 
@@ -263,6 +261,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                     MedicalRecordNumber = _dbContext.Set<MstPatient>().Where(p => p.Id == x.PatientId).Select(p => p.MedicalRecordNumber).FirstOrDefault() ?? string.Empty,
                     FullName = _dbContext.Set<MstPatient>().Where(p => p.Id == x.PatientId).Select(p => p.FullName).FirstOrDefault() ?? string.Empty,
                     IsReferral = x.IsReferral,
+                    ReferralSourceEncounterId = x.ReferralSourceEncounterId,
+                    ReferralSourceEncounterNumber = x.ReferralSourceEncounter != null ? x.ReferralSourceEncounter.EncounterNumber : null,
+                    ReferralSourceDoctorName = x.ReferralSourceEncounter != null && x.ReferralSourceEncounter.Doctor != null
+                        ? x.ReferralSourceEncounter.Doctor.FullName
+                        : null,
                     ExamCount = _dbContext.OptRefractionExams.Count(e => e.EncounterId == x.Id && !e.IsDelete && e.Status != OptRefractionExamStatus.Cancelled),
                     PrescriptionCount = _dbContext.OptPrescriptions.Count(r => r.EncounterId == x.Id && !r.IsDelete),
                     OpenOrderCount = _dbContext.OptOrders.Count(o => o.EncounterId == x.Id && !o.IsDelete && !StatusPesananTerminal.Contains(o.Status)),

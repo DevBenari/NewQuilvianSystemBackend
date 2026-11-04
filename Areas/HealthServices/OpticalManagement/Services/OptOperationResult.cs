@@ -59,6 +59,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
         public const string ConcurrencyConflict = "OPT-CONCURRENCY";
 
         public const string OpticalUnitMissing = "OPT-UNIT-MISSING";
+
+        // BE-OPT-033: jalur stok ke Farmasi.
+        public const string OpticalDepotMissing = "OPT-DEPOT-MISSING";
+        public const string StockRejected = "OPT-STOCK-REJECTED";
+        public const string StockUnavailable = "OPT-STOCK-UNAVAILABLE";
+        public const string StockForbidden = "OPT-STOCK-FORBIDDEN";
         public const string RegistrationRejected = "OPT-REG-REJECTED";
         public const string RegistrationForbidden = "OPT-REG-FORBIDDEN";
         public const string RegistrationConflict = "OPT-REG-CONFLICT";
@@ -99,6 +105,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
         public const string Val032 = "OPT-VAL-032";
         public const string Val033 = "OPT-VAL-033";
         public const string Val034 = "OPT-VAL-034";
+
+        // BE-OPT-032: pesanan (OPT-VAL-v1 bagian 4).
+        public const string Val040 = "OPT-VAL-040";
+        public const string Val041 = "OPT-VAL-041";
+        public const string Val042 = "OPT-VAL-042";
+        public const string Val043 = "OPT-VAL-043";
+        public const string Val044 = "OPT-VAL-044";
+        public const string Val045 = "OPT-VAL-045";
+        // BE-OPT-034: kirim ke pengerjaan.
+        public const string Val046 = "OPT-VAL-046";
+        public const string Val047 = "OPT-VAL-047";
+        public const string Val048 = "OPT-VAL-048";
+        // BE-OPT-040: penyerahan.
+        public const string Val050 = "OPT-VAL-050";
+        public const string Val051 = "OPT-VAL-051";
+        public const string Val052 = "OPT-VAL-052";
+        // BE-OPT-041: batal sesudah pengerjaan dan tidak diambil.
+        public const string Val054 = "OPT-VAL-054";
+        public const string Val055 = "OPT-VAL-055";
+        public const string Val056 = "OPT-VAL-056";
+        // BE-OPT-050: keluhan garansi.
+        public const string Val060 = "OPT-VAL-060";
+        public const string Val061 = "OPT-VAL-061";
+        public const string Val062 = "OPT-VAL-062";
+        public const string Val063 = "OPT-VAL-063";
+        public const string Val064 = "OPT-VAL-064";
+        public const string Val053 = "OPT-VAL-053";
+        public const string Val057 = "OPT-VAL-057";
+        public const string Val058 = "OPT-VAL-058";
+
+        /// <summary>Billing tidak menjawab saat menagihkan atau membaca status bayar pesanan (<c>503</c>).</summary>
+        public const string BillingUnavailable = "OPT-BIL-UNAVAILABLE";
+
+        /// <summary>Stok depo Optik kurang saat kirim/serah (<c>OPT-VAL-049</c>, <c>409</c>).</summary>
+        public const string Val049 = "OPT-VAL-049";
 
         public const string Val070 = "OPT-VAL-070";
         public const string Val071 = "OPT-VAL-071";

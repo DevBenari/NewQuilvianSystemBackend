@@ -68,6 +68,17 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
             // BE-BKC-FIX-017 / K-04: pemakaian obat/BMHP tanpa resep, ditagih saat dicatat. Retur
             // mengurangi baris lewat jalur retur (versi lebih baru), bukan void normal.
             ["CONSUMABLE"] = Policy(["USED"], [], []),
+            // BE-OPT-030 / OPT-APR-012 (OPT-DEC-051, Yasmina): pemeriksaan Optik COMPLETED sekali; barang pesanan
+            // berjalan ORDERED → IN_WORK → READY → HANDED_OVER/NOT_COLLECTED lewat revisi fakta yang sama.
+            // Di sini "belum selesai" sengaja berbeda dari "boleh void normal": barang yang sedang
+            // dikerjakan atau siap diambil menahan finalisasi (OrdersIncomplete), supaya pasien yang melunasi di
+            // awal tidak membuat kunjungan tertutup sebelum kacamatanya diserahkan (OPT-DEC-043). Void normal tetap
+            // hanya dari ORDERED; sesudah pengerjaan, pembatalan menjadi adjustment kredit.
+            ["OPTICAL"] = Policy(
+                ["ORDERED", "IN_WORK", "READY", "HANDED_OVER", "NOT_COLLECTED", "COMPLETED"],
+                ["ORDERED"],
+                ["CANCELLED", "VOIDED"],
+                pendingStatuses: ["ORDERED", "IN_WORK", "READY"]),
             // Biaya bebas yang diketik langsung oleh kasir pada Menu Pembayaran (BKC-DEC-047):
             // nama/harga bebas, tanpa gerbang approval, tapi tetap boleh dibatalkan kasir sendiri
             // sebelum invoice final - beda dari domain producer klinis di atas yang begitu
@@ -164,7 +175,7 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
         if (string.Equals(item.SourceDomain, "PHARMACY", StringComparison.Ordinal)
             && string.Equals(item.SourceStatus, "PRESCRIBED", StringComparison.Ordinal))
             return true;
-        return !policy.NormalVoidFromStatuses.Contains(item.SourceStatus);
+        return !(policy.PendingStatuses ?? policy.NormalVoidFromStatuses).Contains(item.SourceStatus);
     }
 
     /// <summary>
@@ -204,11 +215,13 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
         string[] billableStatuses,
         string[] normalVoidFromStatuses,
         string[] voidStatuses,
-        bool completeOnEntry = false) => new(
+        bool completeOnEntry = false,
+        string[]? pendingStatuses = null) => new(
             Set(billableStatuses),
             Set(normalVoidFromStatuses),
             Set(voidStatuses),
-            completeOnEntry);
+            completeOnEntry,
+            pendingStatuses is null ? null : Set(pendingStatuses));
 
     private static IReadOnlySet<string> Set(params string[] values) =>
         new HashSet<string>(values, StringComparer.OrdinalIgnoreCase);
@@ -217,5 +230,7 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
         IReadOnlySet<string> BillableStatuses,
         IReadOnlySet<string> NormalVoidFromStatuses,
         IReadOnlySet<string> VoidStatuses,
-        bool CompleteOnEntry);
+        bool CompleteOnEntry,
+        // Status yang menahan finalisasi. Kosong = sama dengan NormalVoidFromStatuses (aturan semua sumber lama).
+        IReadOnlySet<string>? PendingStatuses);
 }

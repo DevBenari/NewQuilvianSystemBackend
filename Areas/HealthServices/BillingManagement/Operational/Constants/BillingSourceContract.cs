@@ -99,6 +99,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         /// <summary>Nilai <c>RuleSnapshot.milestone</c> fakta pemakaian nonresep yang dicatat.</summary>
         public const string DrugUsageMilestoneRecorded = "DrugUsageRecorded";
 
+        /// <summary>
+        /// Sumber Optik, terdaftar sejak <c>BE-OPT-030</c> atas <c>OPT-APR-001</c>, <c>011</c>, <c>012</c>
+        /// (disetujui Yasmina, <c>OPT-DEC-051</c>). Dua jenis fakta (<c>INT-OPT-04</c>):
+        /// <list type="bullet">
+        /// <item><see cref="OpticalExamChargeEffectType"/> — satu per pemeriksaan refraksi yang final;
+        /// <c>SourceAggregateId</c> = pemeriksaan, <c>SourceItemId</c> = tindakan "Pemeriksaan Refraksi".</item>
+        /// <item><see cref="OpticalItemChargeEffectType"/> — satu per baris barang pesanan;
+        /// <c>SourceAggregateId</c> = pesanan, <c>SourceItemId</c> = baris. Statusnya berjalan lewat revisi
+        /// fakta yang sama: <c>ORDERED</c> → <c>IN_WORK</c> → <c>READY</c> → <c>HANDED_OVER</c>/<c>NOT_COLLECTED</c>.</item>
+        /// </list>
+        /// Status sumber dibawa pada <c>RuleSnapshot.milestone</c> (lihat <see cref="OpticalItemMilestones"/>).
+        /// </summary>
+        public const string OpticalSourceContext = "Optical";
+        public const string OpticalExamChargeEffectType = "OpticalExamCharge";
+        public const string OpticalItemChargeEffectType = "OpticalItemCharge";
+
+        /// <summary><c>RuleSnapshot.milestone</c> fakta pemeriksaan Optik yang final (<c>INT-OPT-04</c>).</summary>
+        public const string OpticalMilestoneExamFinalized = "ExamFinalized";
+
+        /// <summary>
+        /// Nilai <c>RuleSnapshot.milestone</c> yang sah untuk fakta barang Optik; nilainya sekaligus status sumber
+        /// item invoice. Nilai lain ditolak ke antrean rekonsiliasi, bukan ditebak.
+        /// </summary>
+        public static readonly IReadOnlyList<string> OpticalItemMilestones =
+            new[] { "ORDERED", "IN_WORK", "READY", "HANDED_OVER", "NOT_COLLECTED" };
+
         private static readonly IReadOnlyDictionary<string, string[]> AllowedEffectTypes =
             new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
@@ -111,7 +137,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 [ConsultationSourceContext] = new[] { ConsultationChargeEffectType },
                 [EquipmentUsageSourceContext] = new[] { EquipmentUsageChargeEffectType },
                 [OperatingRoomSourceContext] = new[] { OperatingRoomChargeEffectType },
-                [DrugUsageSourceContext] = new[] { DrugUsageChargeEffectType }
+                [DrugUsageSourceContext] = new[] { DrugUsageChargeEffectType },
+                [OpticalSourceContext] = new[] { OpticalExamChargeEffectType, OpticalItemChargeEffectType }
             };
 
         public static bool IsKnownSourceContext(string? sourceContext)

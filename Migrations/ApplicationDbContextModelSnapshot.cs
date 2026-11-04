@@ -110382,6 +110382,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<Guid?>("ReferralSourceEncounterId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("RegisteredAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -110454,6 +110457,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ReferralInstitutionId")
                         .HasFilter("\"ReferralInstitutionId\" IS NOT NULL");
+
+                    b.HasIndex("ReferralSourceEncounterId");
 
                     b.HasIndex("RegisteredByUserId");
 
@@ -139550,6 +139555,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ReferralInstitutionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "ReferralSourceEncounter")
+                        .WithMany()
+                        .HasForeignKey("ReferralSourceEncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RegisteredByUser")
                         .WithMany()
                         .HasForeignKey("RegisteredByUserId")
@@ -139597,6 +139607,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ReferralDoctor");
 
                     b.Navigation("ReferralInstitution");
+
+                    b.Navigation("ReferralSourceEncounter");
 
                     b.Navigation("RegisteredByUser");
 
