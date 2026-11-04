@@ -8,7 +8,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid DisplayDeviceId { get; set; }
         public string DisplayCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
-        public Guid NurseStationClusterId { get; set; }
+        public Guid? NurseStationClusterId { get; set; }
         public string NurseStationClusterName { get; set; } = string.Empty;
         public Guid? ServiceUnitId { get; set; }
         public string? ServiceUnitName { get; set; }
@@ -21,6 +21,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool ShowClinicName { get; set; }
         public QueueDisplayAudienceMode QueueAudienceMode { get; set; }
         public int RefreshIntervalSeconds { get; set; }
+        /// <summary>Layar runtime memakai ini untuk mengalihkan layout Admisi ke /queue-display/admission.</summary>
+        public QueueDisplayLayoutType LayoutType { get; set; }
         public DateTime ServerDateTime { get; set; }
     }
 

@@ -66,6 +66,25 @@ Bila ada di antara 10 catatan itu yang sudah dibatalkan, hasil percobaan akan me
 `jumlahDitandaiDibatalkan` lebih dari nol, dan `jumlahTerkunciTanpaTandaTangan` kurang dari 10.
 **Itu benar, bukan kekeliruan.** Periksa saja agar tidak menimbulkan pertanyaan.
 
+## 0b. Hasil penjalanan di devYoga — 2 November 2026
+
+Dijalankan atas persetujuan pemilik modul (Yoga Aji Pratama), memakai **kode service aslinya**
+(`MedicalRecordBackfillService`) lewat program kecil di luar aplikasi, terhadap `QuilvianNewDevYoga`.
+
+| Langkah | Hasil |
+|---|---|
+| 1. Penelaahan | 10 CPPT, 10 belum terdaftar, 10 akan terkunci tanpa tanda tangan, nol draf, nol dibatalkan, nol tanpa penulis, nol tanpa kunjungan. Rentang 9 Juli – 26 Agustus 2026 |
+| 2. Pemberitahuan unit rekam medis | **Tidak dijalankan** — ke-10 catatan adalah data pengembangan. Keputusan pemilik modul: pemberitahuan menjadi syarat pemasangan produksi |
+| 3. Percobaan | `jumlahDiproses` 10, `jumlahTerkunciTanpaTandaTangan` 10, lainnya nol. Koneksi dipaksa `default_transaction_read_only=on`, sehingga penulisan apa pun akan ditolak database |
+| 4. Penjalanan sungguhan | Satu potongan (`batchSize` 500): 10 diproses, `masihAdaSisa` salah, 0,24 detik. Pelaksana tercatat akun `superadmin` (`0ba84a1a-2559-49ba-a320-10fb1f399d70`) |
+| 5. Penelaahan ulang | `belumTerdaftar` **0**, `sudahTerdaftar` 10. Diperiksa lagi lewat kueri baca-saja terpisah: 10 baris `MrcClinicalDocumentIntegrity` jenis CPPT, status `LockedUnsigned` (3), pemicu `BackfillEncounterClosed` (3) |
+
+**Akibat yang perlu diketahui:** ke-10 CPPT itu kini terkunci. Penyuntingan lewat `PUT` CPPT
+dijawab `400`; pembetulan dilakukan lewat addendum. Bila ingin dimundurkan, pakai bagian 4.
+
+**Produksi belum.** Seluruh langkah 1–5 wajib diulang di produksi saat modul dipasang di sana,
+termasuk pemberitahuan unit rekam medis.
+
 ---
 
 ## 1. Apa yang dikerjakan pengisian ini
@@ -182,13 +201,17 @@ yaitu catatan yang memang tidak dapat didaftarkan.
 
 ## 4. Cara mundur bila hasilnya keliru
 
+> **Nama tabel dikoreksi 2 November 2026.** Tabel keutuhan di-rename menjadi
+> `MrcClinicalDocumentIntegrity` sejak 31 Agustus 2026 (`RM-DEC-029`). SQL versi lama menunjuk
+> `TrxClinicalDocumentIntegrity` dan akan gagal karena tabel itu sudah tidak ada.
+
 Pengisian ini **hanya menambah baris** pada tabel keutuhan. Ia tidak mengubah satu pun catatan
 klinis. Karena itu pembatalannya sederhana dan tidak menyentuh data pasien:
 
 ```sql
 -- Menghapus baris keutuhan yang dibuat pengisian data lama.
 -- Catatan klinisnya sendiri TIDAK tersentuh sama sekali.
-DELETE FROM public."TrxClinicalDocumentIntegrity"
+DELETE FROM public."MrcClinicalDocumentIntegrity"
 WHERE "LockTrigger" = 3          -- BackfillEncounterClosed
    OR ("CreateBy" = '<user-id-pelaksana>' AND "SignedAt" IS NULL);
 ```
@@ -200,7 +223,7 @@ sebelum pengisian dijalankan.
 atau dikoreksi setelah pengisian. Periksa lebih dulu:
 
 ```sql
-SELECT COUNT(*) FROM public."TrxClinicalDocumentIntegrity"
+SELECT COUNT(*) FROM public."MrcClinicalDocumentIntegrity"
 WHERE "SignedAt" IS NOT NULL OR "AddendumCount" > 0;
 ```
 

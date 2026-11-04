@@ -22,6 +22,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly ILogger<EmergencyDispositionService> _logger;
         private readonly IServiceProvider? _serviceProvider;
 
+        // BE-27 / RM-DEC-067: penguncian catatan dan pencatatan tutup klinis pada jalur
+        // penutupan cadangan disposisi rawat inap.
+        private readonly QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.ClinicalDocumentIntegrityService? _integrityService;
+
         // BE-IGD-041: aturan pesanan yang menahan penutupan dimiliki EmergencyDepartureService.
         // Keduanya sudah terdaftar Scoped di DI dan EmergencyDepartureService tidak bergantung
         // balik ke service ini, sehingga penyuntikan ini tidak membentuk lingkaran maupun
@@ -32,7 +36,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             PatientAllergyQueryService patientAllergyQueryService,
             EncounterInsuranceService encounterInsuranceService,
             ILogger<EmergencyDispositionService> logger,
-            IServiceProvider? serviceProvider = null)
+            IServiceProvider? serviceProvider = null,
+            QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.ClinicalDocumentIntegrityService? integrityService = null)
         {
             _dbContext = dbContext;
             _departureService = departureService;
@@ -40,6 +45,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _encounterInsuranceService = encounterInsuranceService;
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _integrityService = integrityService;
         }
 
         public async Task<string?> ValidateRequestAsync(

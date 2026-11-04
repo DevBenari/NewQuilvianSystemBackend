@@ -48,6 +48,7 @@ public sealed class BenefitSettlementQuery
     public string? AccountingPeriodCode { get; set; }
     public Guid? DebtorReferenceId { get; set; }
     public string? Status { get; set; }
+    public string? Search { get; set; }
     public string SortBy { get; set; } = "accountingPeriodCode";
     public string SortDirection { get; set; } = "desc";
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
@@ -86,6 +87,11 @@ public class BenefitSettlementResponse
     public decimal TotalAmount { get; set; }
     public int ItemCount { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string ApprovalStatus { get; set; } = "MENUNGGU_PERSETUJUAN";
+    public string? ApprovedByName { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public string? ApprovalNotes { get; set; }
+    public string? RejectionReason { get; set; }
     public string? PostedByName { get; set; }
     public DateTimeOffset? PostedAt { get; set; }
     public string? CancelReason { get; set; }

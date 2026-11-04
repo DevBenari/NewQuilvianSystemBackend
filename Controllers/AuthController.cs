@@ -1907,16 +1907,25 @@ namespace QuilvianSystemBackend.Controllers
             var query = new List<string>
             {
                 $"queueDisplayDeviceId={Uri.EscapeDataString(device.Id.ToString())}",
-                $"displayCode={Uri.EscapeDataString(device.DisplayCode)}",
-                $"nurseStationClusterId={Uri.EscapeDataString(device.NurseStationClusterId.ToString())}"
+                $"displayCode={Uri.EscapeDataString(device.DisplayCode)}"
             };
+
+            if (device.NurseStationClusterId.HasValue)
+            {
+                query.Add($"nurseStationClusterId={Uri.EscapeDataString(device.NurseStationClusterId.Value.ToString())}");
+            }
 
             if (device.ServiceUnitId.HasValue && device.ServiceUnitId.Value != Guid.Empty)
             {
                 query.Add($"serviceUnitId={Uri.EscapeDataString(device.ServiceUnitId.Value.ToString())}");
             }
 
-            return "/queue-display?" + string.Join("&", query);
+            // Layout Admisi Rawat Jalan langsung membuka display antrean admisi.
+            var basePath = device.LayoutType == QueueDisplayLayoutType.AdmissionBoard
+                ? "/queue-display/admission"
+                : "/queue-display";
+
+            return basePath + "?" + string.Join("&", query);
         }
 
         private static double CalculateDistanceMeters(

@@ -17,6 +17,9 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
+
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 
 /// <summary>
@@ -47,15 +50,18 @@ public sealed class FinanceBenefitSettlementService
     private readonly ApplicationDbContext _dbContext;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
     private readonly EmployeeBenefitBalanceService? _balanceService;
+    private readonly NumberSeriesAllocator? _numberSeriesAllocator;
 
     public FinanceBenefitSettlementService(
         ApplicationDbContext dbContext,
         FinanceSubledgerMovementService subledgerMovementService,
-        EmployeeBenefitBalanceService? balanceService = null)
+        EmployeeBenefitBalanceService? balanceService = null,
+        NumberSeriesAllocator? numberSeriesAllocator = null)
     {
         _dbContext = dbContext;
         _subledgerMovementService = subledgerMovementService;
         _balanceService = balanceService;
+        _numberSeriesAllocator = numberSeriesAllocator;
     }
 
     // ------------------------------------------------------------------------------------
@@ -143,9 +149,10 @@ public sealed class FinanceBenefitSettlementService
             }
 
             var now = DateTimeOffset.UtcNow;
+            var settlementNumber = await GenerateSettlementNumberAsync(periodCode, actorUserId, cancellationToken);
             var settlement = new FinBenefitSettlement
             {
-                SettlementNumber = GenerateSettlementNumber(),
+                SettlementNumber = settlementNumber,
                 AccountingPeriodCode = periodCode,
                 DebtorReferenceId = debtorReferenceId.Value,
                 TotalAmount = items.Sum(x => x.Amount),
@@ -215,6 +222,22 @@ public sealed class FinanceBenefitSettlementService
                     $"Pelunasan berstatus {settlement.Status} tidak dapat diterbitkan. Hanya DRAF yang dapat diterbitkan.");
             if (settlement.RowVersion != request.RowVersion)
                 throw new BenefitSettlementConflictException("Data pelunasan sudah berubah sejak terakhir dibaca. Muat ulang sebelum mencoba lagi.");
+
+            // Gerbang Persetujuan HRD: Finance DILARANG menerbitkan penutupan benefit tanpa persetujuan resmi dari HRD.
+            var approvalMeta = HrdBenefitSettlementApprovalService.ParseApprovalMetadata(
+                settlement.Notes, settlement.CancelReason, settlement.Status, settlement.UpdateBy, settlement.UpdateDateTime);
+
+            if (approvalMeta.Status != HrdBenefitSettlementApprovalService.StatusApproved)
+            {
+                if (approvalMeta.Status == HrdBenefitSettlementApprovalService.StatusRejected)
+                {
+                    throw new BenefitSettlementValidationException(
+                        $"Dokumen penutupan benefit telah DITOLAK oleh HRD dengan alasan: '{approvalMeta.RejectionReason ?? settlement.CancelReason}'. Dokumen tidak dapat diterbitkan.");
+                }
+
+                throw new BenefitSettlementValidationException(
+                    "Dokumen penutupan benefit belum disetujui oleh HRD. Penerbitan pelunasan internal dan pemotongan plafon hanya dapat dilakukan setelah dokumen memperoleh persetujuan resmi dari HRD.");
+            }
 
             if (settlement.Items.Count == 0)
                 throw new BenefitSettlementValidationException(
@@ -445,12 +468,18 @@ public sealed class FinanceBenefitSettlementService
         if (!string.IsNullOrWhiteSpace(request.AccountingPeriodCode)) query = query.Where(x => x.AccountingPeriodCode == request.AccountingPeriodCode);
         if (request.DebtorReferenceId.HasValue) query = query.Where(x => x.DebtorReferenceId == request.DebtorReferenceId.Value);
         if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim();
+            query = query.Where(x => EF.Functions.ILike(x.SettlementNumber, $"%{search}%"));
+        }
 
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
         query = request.SortBy.Trim().ToLowerInvariant() switch
         {
             "status" => descending ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
             "settlementnumber" => descending ? query.OrderByDescending(x => x.SettlementNumber) : query.OrderBy(x => x.SettlementNumber),
+            "createdatetime" => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
             _ => descending ? query.OrderByDescending(x => x.AccountingPeriodCode) : query.OrderBy(x => x.AccountingPeriodCode)
         };
 
@@ -714,6 +743,9 @@ public sealed class FinanceBenefitSettlementService
             .GroupBy(x => x.ReceivableId)
             .ToDictionary(g => g.Key, g => g.First());
 
+        var approvalMeta = HrdBenefitSettlementApprovalService.ParseApprovalMetadata(
+            settlement.Notes, settlement.CancelReason, settlement.Status, settlement.UpdateBy, settlement.UpdateDateTime);
+
         return new BenefitSettlementDetailResponse
         {
             Id = settlement.Id,
@@ -724,6 +756,11 @@ public sealed class FinanceBenefitSettlementService
             TotalAmount = settlement.TotalAmount,
             ItemCount = settlement.ItemCount,
             Status = settlement.Status,
+            ApprovalStatus = approvalMeta.Status,
+            ApprovedByName = approvalMeta.ApproverUserId.HasValue ? names.GetValueOrDefault(approvalMeta.ApproverUserId.Value) : null,
+            ApprovedAt = approvalMeta.ActionDate,
+            ApprovalNotes = approvalMeta.Notes,
+            RejectionReason = approvalMeta.RejectionReason,
             PostedByName = settlement.PostedBy.HasValue ? names.GetValueOrDefault(settlement.PostedBy.Value) : null,
             PostedAt = settlement.PostedAt,
             CancelReason = settlement.CancelReason,
@@ -756,23 +793,34 @@ public sealed class FinanceBenefitSettlementService
     }
 
     private static BenefitSettlementListResponse MapList(
-        FinBenefitSettlement x, Dictionary<Guid, string?> userNames, Dictionary<Guid, string?> debtorNames) => new()
+        FinBenefitSettlement x, Dictionary<Guid, string?> userNames, Dictionary<Guid, string?> debtorNames)
     {
-        Id = x.Id,
-        SettlementNumber = x.SettlementNumber,
-        AccountingPeriodCode = x.AccountingPeriodCode,
-        DebtorReferenceId = x.DebtorReferenceId,
-        DebtorName = debtorNames.GetValueOrDefault(x.DebtorReferenceId),
-        TotalAmount = x.TotalAmount,
-        ItemCount = x.ItemCount,
-        Status = x.Status,
-        PostedByName = x.PostedBy.HasValue ? userNames.GetValueOrDefault(x.PostedBy.Value) : null,
-        PostedAt = x.PostedAt,
-        CancelReason = x.CancelReason,
-        AccountingEventId = x.AccountingEventId,
-        Notes = x.Notes,
-        RowVersion = x.RowVersion
-    };
+        var approvalMeta = HrdBenefitSettlementApprovalService.ParseApprovalMetadata(
+            x.Notes, x.CancelReason, x.Status, x.UpdateBy, x.UpdateDateTime);
+
+        return new BenefitSettlementListResponse
+        {
+            Id = x.Id,
+            SettlementNumber = x.SettlementNumber,
+            AccountingPeriodCode = x.AccountingPeriodCode,
+            DebtorReferenceId = x.DebtorReferenceId,
+            DebtorName = debtorNames.GetValueOrDefault(x.DebtorReferenceId),
+            TotalAmount = x.TotalAmount,
+            ItemCount = x.ItemCount,
+            Status = x.Status,
+            ApprovalStatus = approvalMeta.Status,
+            ApprovedByName = approvalMeta.ApproverUserId.HasValue ? userNames.GetValueOrDefault(approvalMeta.ApproverUserId.Value) : null,
+            ApprovedAt = approvalMeta.ActionDate,
+            ApprovalNotes = approvalMeta.Notes,
+            RejectionReason = approvalMeta.RejectionReason,
+            PostedByName = x.PostedBy.HasValue ? userNames.GetValueOrDefault(x.PostedBy.Value) : null,
+            PostedAt = x.PostedAt,
+            CancelReason = x.CancelReason,
+            AccountingEventId = x.AccountingEventId,
+            Notes = x.Notes,
+            RowVersion = x.RowVersion
+        };
+    }
 
     private async Task<(string? Kind, Guid? Id)> ResolveBenefitPersonAsync(FinReceivable receivable, CancellationToken cancellationToken)
     {
@@ -859,11 +907,57 @@ public sealed class FinanceBenefitSettlementService
         return (null, null);
     }
 
-    private static string GenerateSettlementNumber()
+    private async Task<string> GenerateSettlementNumberAsync(
+        string periodCode,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
     {
-        var candidate = $"PLB-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
+        if (_numberSeriesAllocator == null)
+        {
+            throw new InvalidOperationException("NumberSeriesAllocator tidak terdaftar dalam kontainer layanan untuk mengalokasikan nomor dokumen penutupan benefit.");
+        }
+
+        // Tanggal bisnis resmi rumah sakit menurut zona waktu WIB (Asia/Jakarta)
+        var businessToday = FinanceBusinessDate.Today();
+        var year = businessToday.Year;
+        var month = businessToday.Month;
+
+        var allocationRequest = new NumberAllocationRequest(
+            SequenceKey: "FIN_BENEFIT_SETTLEMENT",
+            Prefix: "PLB",
+            ResetPolicy: NumberSeriesResetPolicies.Never,
+            SequenceDigits: 4,
+            ActorUserId: actorUserId,
+            Instant: DateTimeOffset.UtcNow);
+
+        var allocated = await _numberSeriesAllocator.AllocateAsync(allocationRequest, cancellationToken);
+        var sequencePart = allocated.Split('-').Last();
+        if (!long.TryParse(sequencePart, out var sequenceNumber))
+        {
+            throw new InvalidOperationException($"Format nomor yang dialokasikan oleh NumberSeriesAllocator tidak valid: '{allocated}'.");
+        }
+
+        var monthRoman = ToRomanMonth(month);
+        var candidate = $"{sequenceNumber:D4}/PLB/RSMMC/{monthRoman}/{year}";
         return candidate.Length <= 50 ? candidate : candidate[..50];
     }
+
+    public static string ToRomanMonth(int month) => month switch
+    {
+        1 => "I",
+        2 => "II",
+        3 => "III",
+        4 => "IV",
+        5 => "V",
+        6 => "VI",
+        7 => "VII",
+        8 => "VIII",
+        9 => "IX",
+        10 => "X",
+        11 => "XI",
+        12 => "XII",
+        _ => throw new ArgumentOutOfRangeException(nameof(month), "Bulan harus antara 1 dan 12.")
+    };
 
     private async Task<IDbContextTransaction?> BeginTransactionAsync(CancellationToken cancellationToken)
     {

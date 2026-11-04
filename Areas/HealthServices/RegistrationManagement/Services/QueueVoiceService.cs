@@ -491,6 +491,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return NormalizeVoiceText(announcementText) ?? defaultTemplate;
         }
 
+        /// <summary>
+        /// Kalimat panggilan antrean admisi. <c>A-015</c> + <c>Loket 1</c> menjadi
+        /// "Antrean Admisi nomor A lima belas, silakan menuju loket satu, terima kasih."
+        /// </summary>
+        public string BuildAdmissionCallText(string displayNumber, string? counterName)
+        {
+            const string defaultTemplate = "Antrean Admisi nomor {queueCode}, silakan menuju loket {counterName}, terima kasih.";
+
+            var template = GetSetting("AdmissionCallTemplate", defaultTemplate);
+            var announcementText = template
+                .Replace("{queueCode}", BuildAdmissionVoiceNumber(displayNumber), StringComparison.OrdinalIgnoreCase)
+                .Replace("{counterName}", BuildAdmissionVoiceCounter(counterName), StringComparison.OrdinalIgnoreCase);
+
+            return NormalizeVoiceText(announcementText) ?? announcementText;
+        }
+
+        /// <summary><c>A-015</c> dibaca "A lima belas"; huruf dieja, angka dibaca sebagai bilangan.</summary>
+        private static string BuildAdmissionVoiceNumber(string displayNumber)
+        {
+            var cleanNumber = CleanVoiceText(displayNumber) ?? string.Empty;
+            var match = Regex.Match(cleanNumber, @"^([a-zA-Z]*)[\s-]*(\d{1,6})$");
+
+            if (!match.Success || !int.TryParse(match.Groups[2].Value, out var number))
+                return NormalizeMedicalTerm(cleanNumber) ?? cleanNumber;
+
+            var prefix = SpeakLetters(match.Groups[1].Value);
+            var spokenNumber = NumberToIndonesianWords(number);
+            return string.IsNullOrWhiteSpace(prefix) ? spokenNumber : $"{prefix} {spokenNumber}";
+        }
+
+        /// <summary><c>Loket 1</c> / <c>LOKET-1</c> menjadi "satu" karena kata "loket" sudah ada di template.</summary>
+        private static string BuildAdmissionVoiceCounter(string? counterName)
+        {
+            var text = CleanVoiceText(counterName) ?? string.Empty;
+            text = Regex.Replace(text, @"[-_]+", " ");
+            text = Regex.Replace(text, @"^\s*loket\b", string.Empty, RegexOptions.IgnoreCase).Trim();
+            text = Regex.Replace(text, @"\d{1,6}", x => NumberToIndonesianWords(int.Parse(x.Value, CultureInfo.InvariantCulture)));
+
+            return NormalizeMedicalTerm(text) ?? "admisi";
+        }
+
         private static string RemoveIdentitySentences(string template)
         {
             var sentences = template

@@ -109,6 +109,53 @@ namespace QuilvianSystemBackend.Hubs
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, QueueRealtimeService.PriorityReservationBoardGroupName);
         }
 
+        /// <summary>
+        /// Group Daftar Antrean Admisi (rawat-jalan Cetak Antrean Admisi v1.1 bagian 8.2). Hak akses
+        /// ditentukan butir <c>AdmissionQueue : Read</c> di layar Akses Role. Akun layar display ditolak.
+        /// </summary>
+        public async Task JoinAdmissionQueueBoard()
+        {
+            RejectQueueDisplayDeviceAccount();
+
+            if (Context.User == null ||
+                !await _accessPermissionService.HasAccessAsync(Context.User, "AdmissionQueue", "Read"))
+            {
+                throw new HubException("Anda tidak memiliki akses ke daftar antrean admisi.");
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueBoardGroupName);
+        }
+
+        public async Task LeaveAdmissionQueueBoard()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueBoardGroupName);
+        }
+
+        /// <summary>
+        /// Group display antrean admisi (bagian 8.5). Payload hanya nomor admisi dan loket, sehingga
+        /// terbuka bagi akun perangkat display maupun pengguna yang berhak membaca antrean admisi.
+        /// </summary>
+        public async Task JoinAdmissionQueueDisplay()
+        {
+            var user = Context.User;
+            var isDisplayDevice =
+                user?.HasClaim("is_queue_display_account", "true") == true ||
+                user?.HasClaim("profile_type", "QueueDisplayDevice") == true;
+
+            if (!isDisplayDevice &&
+                (user == null || !await _accessPermissionService.HasAccessAsync(user, "AdmissionQueue", "Read")))
+            {
+                throw new HubException("Anda tidak memiliki akses ke display antrean admisi.");
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueDisplayGroupName);
+        }
+
+        public async Task LeaveAdmissionQueueDisplay()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueDisplayGroupName);
+        }
+
         private const string DisplayAccountRejectedMessage =
             "Akun layar display memakai JoinQueueDisplayCluster, bukan group ruang kerja perawat atau dokter.";
 
