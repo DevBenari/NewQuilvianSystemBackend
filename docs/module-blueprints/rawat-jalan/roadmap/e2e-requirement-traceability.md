@@ -74,3 +74,12 @@
 Revisi rujukan Zoom 13 Okt 2026 (`RJ-REF-REV-001`..`005`) **bukan** scope roadmap ini dan tidak mengubah
 status task di sini. Definisi, status, dan bukti ada pada
 [registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8.
+
+## Catatan silang — Amandemen Cetak Antrean Admisi v1.1 (2 Nov 2026)
+
+| Blueprint | Task | Bukti | Status |
+| --- | --- | --- | --- |
+| T01–T05 (bagian 3–12) | `RJ-ADM-BE-001` | [laporan](../task/report/backend/RJ-ADM-BE-001.md) | 🟡 source + migration ditulis; build/uji belum |
+| T02–T06 (bagian 8, 9, 13) | `RJ-ADM-FE-001` | [laporan](../task/report/frontend/RJ-ADM-FE-001.md) | 🟡 source ditulis; lint/build/uji browser belum |
+
+Definisi task dan gerbang: [admission-ticket-roadmap.md](admission-ticket-roadmap.md).

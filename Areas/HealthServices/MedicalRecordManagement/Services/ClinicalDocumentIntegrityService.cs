@@ -94,6 +94,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// <see cref="EnsureMutableAsync"/> meloloskan setiap perubahan dan catatan tidak pernah
         /// benar-benar terkunci. Perubahan pada berkas milik Rekam Medis ini diizinkan pemilik
         /// modul Hemodialisa, Muhammad Hamzah, pada sesi 22 September 2026.
+        ///
+        /// `BE-OPT-013` (`OPT-BP-001`, `OPT-DEC-050`) menambahkan pemeriksaan refraksi dan resep
+        /// Optik. Setiap versinya didaftarkan sebagai dokumen tersendiri, sehingga revisi Optik
+        /// tidak pernah menyunting dokumen yang sudah tertanda tangan. Disetujui pemilik Rekam
+        /// Medis, Yoga Aji Pratama, pada 3 November 2026 (`OPT-APR-007`, `RM-DEC-027`).
         /// </summary>
         private static readonly HashSet<ClinicalDocumentKind> JenisYangDitegakkan =
         [
@@ -101,7 +106,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             ClinicalDocumentKind.Consultation,
             ClinicalDocumentKind.Assessment,
             ClinicalDocumentKind.Procedure,
-            ClinicalDocumentKind.HemodialysisSession
+            ClinicalDocumentKind.HemodialysisSession,
+            ClinicalDocumentKind.OpticalRefraction,
+            ClinicalDocumentKind.OpticalPrescription
         ];
 
         /// <summary>

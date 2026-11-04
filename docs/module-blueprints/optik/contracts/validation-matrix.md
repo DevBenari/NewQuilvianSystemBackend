@@ -1,0 +1,97 @@
+# Optik — Matriks Validasi
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `OPT-VAL-v1` — status `approved` (sisi Optik) |
+| Owner | Yoga Aji Pratama |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-11-03 |
+| `input_revision` | `00-interview-decisions.md` r4; `02-backend-architecture.md` r1 |
+
+Kode memakai pola `OPT-VAL-nnn` dan dikirim sebagai kode `ApiResponse.Fail`. Pesan ditampilkan
+apa adanya ke pengguna.
+
+## 1. Izin dan kewenangan
+
+| Kode | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | HTTP |
+| --- | --- | --- | --- | --- | --- |
+| `OPT-VAL-001` | Hanya RO/Sp.M membuat/merevisi pemeriksaan dan resep | Pemeriksaan, resep | Akun tidak tertaut pegawai berprofesi RO/Sp.M | "Anda tidak berwenang membuat resep atau pemeriksaan refraksi." | `403` |
+| `OPT-VAL-002` | Izin praktik berlaku pada tanggal WIB | Pemeriksaan, resep, pemeriksaan ulang | Tidak ada STR/SIP aktif, terverifikasi, tidak dicabut dengan `ExpiredDate.Date ≥` tanggal WIB hari ini. **Contoh:** SIP berakhir 31-10-2026, ditolak pada 03-11-2026 | "SIP Anda tidak berlaku sejak 31-10-2026." | `403` |
+| `OPT-VAL-003` | Data HR tidak terbaca | Sama | Pembaca izin gagal | "Data izin praktik sedang tidak dapat diperiksa. Coba lagi beberapa saat." | `503` |
+| `OPT-VAL-004` | Lewat rentang hanya Sp.M | Resep | Ada nilai di luar rentang dan pelaku bukan Sp.M | "SPH di luar rentang −20,00..+20,00; hanya Sp.M yang dapat mengonfirmasi." | `403` |
+| `OPT-VAL-005` | Alasan lewat rentang | Resep | Sp.M melewati rentang tanpa `RangeOverrideReason` | "Tuliskan alasan konfirmasi ukuran di luar rentang." | `400` |
+
+## 2. Isian resep (`OPT-DEC-045`, `046`)
+
+| Kode | Aturan | Kondisi | Pesan | HTTP |
+| --- | --- | --- | --- | --- |
+| `OPT-VAL-010` | SPH | Di luar −20,00..+20,00 atau bukan kelipatan 0,25 (contoh −1,30) | "SPH harus kelipatan 0,25 antara −20,00 dan +20,00." | `400` |
+| `OPT-VAL-011` | CYL | > 0, < −6,00, atau bukan kelipatan 0,25 | "CYL harus notasi minus, kelipatan 0,25, antara −6,00 dan 0,00." | `400` |
+| `OPT-VAL-012` | AXIS wajib | CYL ≠ 0 dan AXIS kosong | "AXIS wajib diisi bila ada silinder." | `400` |
+| `OPT-VAL-013` | AXIS rentang | AXIS < 0 atau > 180, atau CYL = 0 tetapi AXIS terisi | "AXIS harus 0–180 dan hanya diisi bila ada silinder." | `400` |
+| `OPT-VAL-014` | ADD | Di luar +0,75..+3,50 atau bukan kelipatan 0,25 | "ADD harus kelipatan 0,25 antara +0,75 dan +3,50." | `400` |
+| `OPT-VAL-015` | PD | Di luar 50..80 mm | "PD harus antara 50 dan 80 mm." | `400` |
+| `OPT-VAL-016` | Resep plus disalin | Resep luar bernotasi plus | Tidak ditolak: sistem mentransposisi. **Contoh:** +1,00 / +0,50 × 90 → +1,50 / −0,50 × 180; teks asli disimpan | — |
+| `OPT-VAL-017` | Lensa kontak lengkap | Resep lensa kontak tanpa power, BC, DIA, atau merk/jenis per mata yang dipakai | "Resep lensa kontak wajib berisi power, BC, DIA, dan merk/jenis." | `400` |
+| `OPT-VAL-018` | BC/DIA | Di luar rentang `OptSetting` (bawaan BC 7,50–9,50, DIA 13,00–15,00) | "BC harus antara 7,50 dan 9,50." | `400` |
+| `OPT-VAL-019` | Resep luar | `ExternalAuthorName`, `ExternalFacilityName`, atau `IssuedDate` kosong | "Lengkapi penulis, asal fasilitas, dan tanggal resep luar." | `400` |
+| `OPT-VAL-020` | Tanggal resep | `IssuedDate` di masa depan | "Tanggal resep tidak boleh melewati hari ini." | `400` |
+| `OPT-VAL-021` | Alasan revisi | Versi ≥ 2 tanpa `RevisionReason` | "Tuliskan alasan revisi." | `400` |
+| `OPT-VAL-022` | Resep terkunci | Revisi saat `LockedAt` terisi | "Resep terkunci karena lensa sudah dipesan." | `409` |
+| `OPT-VAL-023` | Resep kedaluwarsa | Dipakai pesanan baru saat `ValidUntil` < hari ini (WIB) | "Resep berusia lebih dari 12 bulan, lakukan pemeriksaan ulang." | `409` |
+
+## 3. Pemeriksaan (`OPT-DEC-042`, `047`)
+
+| Kode | Aturan | Kondisi | Pesan | HTTP |
+| --- | --- | --- | --- | --- |
+| `OPT-VAL-030` | Kunjungan terbuka | Kunjungan sudah ditutup/batal | "Kunjungan sudah ditutup. Daftarkan kunjungan baru." | `409` |
+| `OPT-VAL-031` | Isian minimum final | Tidak ada visus jauh untuk kedua mata | "Isi visus jauh mata kanan dan kiri sebelum menyimpan final." | `400` |
+| `OPT-VAL-032` | Final sekali | Final ulang | "Pemeriksaan sudah final. Gunakan revisi bila ada koreksi." | `409` |
+| `OPT-VAL-033` | Batal final | Batalkan pemeriksaan `Final` | "Pemeriksaan final tidak dapat dibatalkan; gunakan revisi." | `409` |
+| `OPT-VAL-034` | Format visus | Bukan notasi Snellen `n/n` | "Visus ditulis seperti 6/12." | `400` |
+
+## 4. Pesanan
+
+| Kode | Aturan | Kondisi | Pesan | HTTP |
+| --- | --- | --- | --- | --- |
+| `OPT-VAL-040` | Barang Optik | `DrugId` tanpa `OptItemProfile` aktif | "Barang ini belum terdaftar sebagai barang Optik." | `400` |
+| `OPT-VAL-041` | Resep untuk berukuran | Pesanan berpengerjaan tanpa versi resep | "Pilih resep untuk pesanan kacamata." | `400` |
+| `OPT-VAL-042` | Resep lensa kontak | Item kategori lensa kontak tanpa resep lensa kontak berlaku (`OPT-DEC-046`) | "Lensa kontak wajib memakai resep lensa kontak yang masih berlaku." | `409` |
+| `OPT-VAL-043` | Jenis lensa | Lensa kacamata tanpa `LensSupply` | "Tentukan lensa stok atau custom." | `400` |
+| `OPT-VAL-044` | Jumlah | `Quantity` ≤ 0 | "Jumlah harus lebih dari 0." | `400` |
+| `OPT-VAL-045` | Tarif ada | Billing menolak fakta karena tarif tidak ditemukan | "Tarif barang FRM-A-HTM-52 belum ada. Hubungi bagian tarif." | `400` |
+| `OPT-VAL-046` | Minimum uang muka | Terbayar < `DownPaymentMinPercentSnapshot` × bagian pasien. **Contoh:** bagian pasien Rp 1.050.000, minimum 50% = Rp 525.000, terbayar Rp 500.000 | "Uang muka belum memenuhi minimum Rp 525.000." | `409` |
+| `OPT-VAL-047` | Aturan sementara satu pesanan | Ada pesanan berpengerjaan lain di kunjungan yang sama yang belum lunas (`OPT-DEC-035`) | "Lunasi pesanan OPT-ORD-… dulu atau daftarkan kunjungan baru." | `409` |
+| `OPT-VAL-048` | Tujuan pengerjaan | `WorkshopType` kosong, atau `ExternalLab` tanpa supplier, atau `EstimatedReadyDate` < hari ini | "Lengkapi tujuan pengerjaan dan perkiraan jadi." | `400` |
+| `OPT-VAL-049` | Stok cukup | Stok tersedia depo Optik < kebutuhan saat kirim/serah | "Stok frame FRM-A-HTM-52 di depo Optik tidak cukup." | `409` |
+| `OPT-VAL-050` | Lunas | Serahkan saat bagian pasien belum lunas | "Tagihan belum lunas. Sisa Rp 525.000." | `409` |
+| `OPT-VAL-051` | Identitas | `HandoverIdentityVerified = false` | "Cocokkan identitas pasien sebelum menyerahkan." | `400` |
+| `OPT-VAL-052` | Wakil | Pengambil bukan pasien tetapi nama/hubungan kosong | "Isi nama dan hubungan pengambil." | `400` |
+| `OPT-VAL-053` | Alasan batal | Alasan kosong | "Tuliskan alasan pembatalan." | `400` |
+| `OPT-VAL-054` | Tanda potong | Pengajuan batal sesudah pengerjaan tanpa `IsLensCut` untuk lensa stok | "Tandai apakah lensa stok sudah dipotong." | `400` |
+| `OPT-VAL-055` | Satu pengajuan | Pengajuan batal kedua saat yang pertama `Requested` | "Masih ada pengajuan batal yang menunggu keputusan." | `409` |
+| `OPT-VAL-056` | Batas tidak diambil | Tutup sebelum `ReadyAt` + `NotCollectedCloseDays` | "Pesanan baru bisa ditutup sesudah 90 hari sejak siap diambil." | `409` |
+| `OPT-VAL-057` | Status tidak sah | Transisi di luar `state-transition-matrix.md` | "Tindakan ini tidak berlaku untuk pesanan berstatus …" | `409` |
+| `OPT-VAL-058` | Concurrency | `ExpectedVersion` ≠ `Version` | "Pesanan sudah diubah petugas lain. Muat ulang halaman." | `409` |
+
+## 5. Keluhan garansi
+
+| Kode | Aturan | Kondisi | Pesan | HTTP |
+| --- | --- | --- | --- | --- |
+| `OPT-VAL-060` | Pesanan diserahkan | Pesanan asal belum `HandedOver` | "Keluhan hanya untuk kacamata yang sudah diserahkan." | `409` |
+| `OPT-VAL-061` | Kunjungan baru | `EncounterId` = kunjungan pesanan asal, atau milik pasien lain | "Daftarkan kunjungan keluhan baru untuk pasien ini." | `400` |
+| `OPT-VAL-062` | Dalam garansi | Setujui remake saat `IsWithinWarranty = false`. **Contoh:** diserahkan 05-11-2026, keluhan ukuran 06-12-2026 (31 hari) | "Keluhan di luar masa garansi. Proses sebagai pesanan berbayar." | `409` |
+| `OPT-VAL-063` | Wajib diperiksa | Putuskan sebelum `Examined` | "Keluhan harus diperiksa ulang oleh RO/Sp.M lebih dulu." | `409` |
+| `OPT-VAL-064` | Satu remake | Remake kedua untuk keluhan yang sama | "Keluhan ini sudah menghasilkan remake." | `409` |
+
+## 6. Pengaturan
+
+| Kode | Aturan | Kondisi | Pesan | HTTP |
+| --- | --- | --- | --- | --- |
+| `OPT-VAL-070` | Persentase uang muka | < 0 atau > 100 | "Persentase uang muka harus 0–100." | `400` |
+| `OPT-VAL-071` | Hari pengingat dan tutup | Pengingat < 1, atau batas tutup ≤ pengingat | "Batas tutup harus lebih lama dari batas pengingat." | `400` |
+| `OPT-VAL-072` | Usia resep | < 1 atau > 60 bulan | "Usia resep harus 1–60 bulan." | `400` |
+| `OPT-VAL-073` | Rentang BC/DIA | Min ≥ Max | "Nilai minimum harus lebih kecil dari maksimum." | `400` |
+
+## 7. Jejak keputusan
+
+`OPT-DEC-005`, `007`, `009`, `012`, `015`, `017`, `022`, `023`, `035`, `038`, `040`, `041`, `042`, `044`..`049`.

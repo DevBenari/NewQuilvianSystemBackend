@@ -59,6 +59,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
@@ -537,6 +539,17 @@ try
             $"{OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple}.")
         .ValidateOnStart();
 
+    // rawat-jalan Cetak Antrean Admisi v1.1 — tiket antrean admisi anonim dari kiosk, Daftar
+    // Antrean Admisi, dan display admisi. Nomor admisi dari NumberSeriesAllocator (QBE-CODE-006).
+    builder.Services.AddOptions<AdmissionQueueOptions>()
+        .Bind(builder.Configuration.GetSection(AdmissionQueueOptions.SectionName))
+        .Validate(
+            options => options.IsValid(),
+            $"{AdmissionQueueOptions.SectionName}: kode dan awalan kelompok aktif wajib unik, awalan 1-5 huruf, " +
+            "dan kode loket aktif wajib unik.")
+        .ValidateOnStart();
+    builder.Services.AddScoped<AdmissionTicketService>();
+
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
 
@@ -910,6 +923,10 @@ try
     // untuk kode DRG-RSMMC yang atomik dan durabel.
     builder.Services.AddScoped<DrugRegistrationService>();
 
+    // Kode display antrian QDD-RSMMC dialokasikan service ini lewat NumberSeriesAllocator,
+    // bukan oleh QueueDisplayDeviceController (QBE-CODE-002/006).
+    builder.Services.AddScoped<QueueDisplayDeviceCodeService>();
+
     // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
@@ -973,6 +990,20 @@ try
     builder.Services.AddScoped<HmdUnitReadinessService>();
     builder.Services.AddScoped<HmdResourceService>();
     builder.Services.AddScoped<HmdCompetencyGateService>();
+
+    // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
+    // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).
+    builder.Services.AddScoped<OptNumberService>();
+    builder.Services.AddScoped<OptPractitionerLicenseReader>();
+    // BE-OPT-005. Data referensi Optik: metadata, katalog + stok depo Optik, profil barang, pengaturan.
+    builder.Services.AddScoped<OptReferenceDataService>();
+    // BE-OPT-010. Kunjungan Optik lewat EncounterIntakeService (Registrasi tetap pemilik kunjungan).
+    builder.Services.AddScoped<OptVisitService>();
+    builder.Services.AddScoped<OptPractitionerGuard>();
+    builder.Services.AddScoped<OptRefractionExamService>();
+    builder.Services.AddScoped<OptPrescriptionService>();
+    // BE-OPT-013: pembaca Rekam Medis Optik (pemeriksaan refraksi + resep), persetujuan pemilik OPT-APR-007. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, OptMedicalRecordDocumentSource>();
 
     // MCU-BP-001, BE-MCU-004. Nomor order MCU-RSMMC- dan nomor impor MCU-IMP- lewat
     // NumberSeriesAllocator (QBE-CODE-006), bukan MAX + 1 seperti Lab/Rad.
@@ -1762,6 +1793,64 @@ try
             result.Skipped);
     }
 
+    static async Task SeedPharmacyOpeningStockAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("PharmacyOpeningStockSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder stok Farmasi Rawat Jalan membutuhkan akun SuperAdmin.");
+        }
+
+        var result = await PharmacyOpeningStockSeeder.SeedAsync(
+            dbContext,
+            environment.EnvironmentName,
+            systemUserId,
+            ct: cancellationToken);
+
+        if (result.RefusedReason is not null)
+        {
+            logger.LogWarning("[PharmacyOpeningStock] {Reason}", result.RefusedReason);
+            return;
+        }
+
+        if (result.UnknownDrugCodes.Count > 0 || result.ExpiryConflicts.Count > 0)
+        {
+            logger.LogWarning(
+                "[PharmacyOpeningStock] Dilewati: {Unknown} kode obat tidak dikenal, {Conflict} batch berbeda kedaluwarsa.",
+                result.UnknownDrugCodes.Count,
+                result.ExpiryConflicts.Count);
+        }
+
+        logger.LogInformation(
+            "Seeder stok Farmasi Rawat Jalan selesai. Saldo baru {Balances}, batch baru {Batches}, " +
+            "kartu stok {Mutations}, dilewati {Skipped}, tautan Rawat Jalan {Linked}.",
+            result.BalancesCreated,
+            result.BatchesCreated,
+            result.MutationsCreated,
+            result.Skipped,
+            result.LinkedServiceUnit);
+    }
+
     static async Task SeedOperatingRoomDemoAsync(
         IServiceProvider services,
         IHostEnvironment environment,
@@ -2239,6 +2328,11 @@ try
         // diubah admin tidak ditimpa.
         await RunStartupSeederAsync("McuReferenceDataSeeder", () => McuReferenceDataSeeder.SeedAsync(app.Services));
 
+        // OPT-BP-001, BE-OPT-001/004. Satu unit layanan Optik (ServiceUnitType.Optical, SU-OPT-001) dan satu
+        // OptSetting bawaan. Idempoten; nilai yang sudah diubah admin tidak disentuh. Bila migration
+        // AddOpticalManagement belum diterapkan, pengaturan dilewati dengan peringatan (startup tidak mati).
+        await RunStartupSeederAsync("OptReferenceDataSeeder", () => OptReferenceDataSeeder.SeedAsync(app.Services));
+
         // RM-BP-001, BE-37. Sebelas profil dokumen wajib awal (A4.8) — bukan SOP rumah sakit
         // (RM-DEC-047). Idempoten; profil yang sudah diubah petugas rekam medis tidak ditimpa.
         await RunStartupSeederAsync("MedicalRecordCompletenessProfileSeeder",
@@ -2352,6 +2446,18 @@ try
             await RunStartupSeederAsync(
                 "DrugStorageLocationSeeder",
                 () => SeedDrugStorageLocationsAsync(app.Services));
+        }
+
+        // Sesudah DrugStorageLocationSeeder karena saldonya ditempatkan di GDG-023 (RJ-DOC-DEC-091).
+        var runPharmacyOpeningStockSeed =
+            builder.Configuration.GetValue<bool>(
+                "Seeders:RunPharmacyOpeningStockSeed");
+
+        if (runPharmacyOpeningStockSeed)
+        {
+            await RunStartupSeederAsync(
+                "PharmacyOpeningStockSeeder",
+                () => SeedPharmacyOpeningStockAsync(app.Services, app.Environment));
         }
 
         // Seed Awal Saja
