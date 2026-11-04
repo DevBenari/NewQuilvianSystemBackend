@@ -16,5 +16,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
 
         public static WorkforcePlanningResult<T> Fail(int statusCode, string message) =>
             new() { Success = false, StatusCode = statusCode, Message = message };
+
+        public static WorkforcePlanningResult<T> Fail(string message, int statusCode = 400) =>
+            new() { Success = false, StatusCode = statusCode, Message = message };
     }
 }

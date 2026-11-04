@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstEmployee? Employee { get; set; }
         public MstOnboardingTemplate? OnboardingTemplate { get; set; }
-        public TrxCandidateHiring? CandidateHiring { get; set; }
+        public HrdCandidateHiringHandoff? CandidateHiring { get; set; }
         public ApplicationUser? CoordinatorUser { get; set; }
         public MstWorkforceProfile? ManagerWorkforceProfile { get; set; }
         public ICollection<WfpOnboardingTask> Tasks { get; set; } = new List<WfpOnboardingTask>();

@@ -5,7 +5,7 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `18` — 3 November 2026: desain dan delivery roadmap `S-D2` **disetujui** Pengguna dan dipecah menjadi task (`BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062`, `FE-HRD-044` s.d. `FE-HRD-057`), bagian 7.5. Revision `17`: delivery roadmap `S-D1`. |
+| Revision | `19` — 4 November 2026: implementasi penuh Employee Self-Service Profile Change (FE-HRD-026 / S-A5 / HRD-DEC-091..094), navigasi Layanan Mandiri -> Kelola Data Saya, Anti-Self-Approval guard, dan penutupan issue universal HTTP 415 FormData pada InstanceAxios (menutup FIX-HRD-002-09). Revision 18: desain S-D2. |
 | Module status | `PARTIAL` |
 | Current phase | `HRD-PH-SLICE-A1-COMPLETE` — Seluruh task backend Slice S-A1 (`BE-HRD-023` s.d. `BE-HRD-028`) dan task frontend Slice S-A1 (`FE-HRD-022` s.d. `FE-HRD-028`) telah selesai diimplementasikan penuh end-to-end lengkap dengan model, konfigurasi, migrasi EF Core, domain services, web API controllers, antarmuka Next.js App Router, guard penguncian form master data, pengujian unit komprehensif, dan laporan tracked task |
 | Last verified at | `2026-11-02` — implementasi penuh end-to-end seluruh task backend (BE-HRD-023..028) dan frontend (FE-HRD-022..028) Slice S-A1 |

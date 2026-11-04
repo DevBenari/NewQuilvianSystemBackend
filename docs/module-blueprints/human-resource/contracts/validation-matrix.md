@@ -613,3 +613,113 @@ Nomor `VR-REC-nn` stabil dan dirujuk `testing/acceptance-test-matrix.md`.
 | `VR-REC-18` Promosi Cepat Talent Pool | Promosi Cadangan | Kursi lowongan terkait masih terisi kandidat lain | "Promosi dari Talent Pool hanya diizinkan bila kursi lowongan kembali terbuka karena kandidat batal." | `409` |
 | `VR-REC-19` Masa Berlaku Talent Pool | Promosi Cadangan | Kandidat cadangan telah berada di Talent Pool > 6 bulan | "Masa aktif kandidat cadangan di Talent Pool telah kadaluwarsa (> 6 bulan). Wajib uji klinis ulang." | `422` |
 | `VR-REC-20` Larangan Swa-Setuju | Persetujuan Offer | Penyetuju penawaran sama dengan pembuat draf | "Penyetuju penawaran kerja wajib berbeda dari pembuat draf penawaran." | `403` |
+
+
+---
+
+## 14. Onboarding dan Kontrak Kerja — `S-C4-ONB` (`last_changed_in` `v9`, 4 November 2026)
+
+Status `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan". Seluruh aturan di bawah **belum ditegakkan di kode**. Nomor `VR-ONB-nn` stabil dan
+dirujuk `testing/acceptance-test-matrix.md` bagian 17. Nama orang pada pesan adalah contoh data samaran.
+
+### 14.1 Kasus onboarding dan checklist
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-01` Satu kasus per serah terima | Serah terima dijalankan | Sudah ada kasus untuk serah terima itu | Tidak ada pesan; kasus yang sudah ada dikembalikan, tidak ada kasus kedua | `200` |
+| `VR-ONB-02` Syarat serah terima | Serah terima dijalankan | Tawaran belum `FinalAccepted`, kelaikan bukan `Fit`/`FitWithRestrictions`, atau profil tidak berstatus `PENDING_ONBOARDING` | "Kandidat belum dapat diserahkan ke onboarding: {syarat yang belum terpenuhi}." | `422` |
+| `VR-ONB-03` Butir HRD | Centang lewat jalur Kepala Unit, atau sebaliknya | `ResponsibleRole` butir berbeda dari jalur yang dipakai | "Butir ini diisi oleh {HRD/Kepala Unit}." | `422` |
+| `VR-ONB-04` Cakupan unit | Kepala Unit membuka atau mencentang | Unit kasus di luar cakupan organisasinya | "Data tidak ditemukan." | `404` |
+| `VR-ONB-05` Bukti wajib | Mencentang butir wajib bukti | Tidak ada berkas | "Unggah bukti untuk butir {nama butir} sebelum menandainya selesai." | `422` |
+| `VR-ONB-06` Butir otomatis | Mencentang butir otomatis | — | "Butir ini terisi otomatis dari sistem dan tidak dapat dicentang manual." | `422` |
+| `VR-ONB-07` Atasan langsung sah | Memilih atasan langsung | Orang terpilih adalah pegawai baru itu sendiri, tidak aktif, atau tidak punya penempatan aktif | "Pilih atasan langsung yang aktif dan bukan pegawai yang bersangkutan." | `422` |
+| `VR-ONB-08` Preceptor sah | Memilih atau mengganti preceptor | Orang terpilih bukan tenaga klinis, tidak aktif, tidak berpenempatan aktif di unit yang sama, sedang didampingi sendiri, atau pegawai baru itu sendiri | "Preceptor harus tenaga klinis aktif di {unit} yang sudah bekerja mandiri." | `422` |
+| `VR-ONB-09` Jenis dan ukuran berkas | Setiap unggahan | Bukan PDF, JPG, atau PNG, atau lebih dari 10 MB | "Berkas harus PDF, JPG, atau PNG dengan ukuran paling besar 10 MB." | `400` |
+| `VR-ONB-10` Batal centang | Membatalkan centang | Kasus bukan `InProgress`; butir otomatis; hadir hari pertama sesudah kontrak ditandatangani | "Centang butir ini tidak dapat dibatalkan: {sebab}." | `422` |
+| `VR-ONB-11` Butir wajib lengkap | Nyatakan Siap Kerja | Masih ada butir wajib `Pending` | "Masih ada {n} butir wajib yang belum selesai: {daftar butir}." | `422` |
+| `VR-ONB-12` Pemisahan peran atasan langsung | Nyatakan Siap Kerja | Petugas yang menyatakan siap kerja sama dengan yang memilih atasan langsung | "Atasan langsung dipilih oleh Anda sendiri. Siap kerja harus dinyatakan petugas HRD lain." | `422` |
+| `VR-ONB-13` Batal bergabung sebelum hadir | Batal Bergabung | Hadir hari pertama sudah tercatat | "Rina sudah tercatat hadir pada {tanggal}. Keluarnya diproses sebagai pengunduran diri." | `422` |
+| `VR-ONB-14` Alasan batal | Batal Bergabung | Alasan belum dipilih atau catatan kosong | "Pilih alasan dan tuliskan catatan batal bergabung." | `400` |
+| `VR-ONB-15` Versi usang | Seluruh perubahan | `rowVersion` berbeda | "Data ini sudah diubah orang lain. Muat ulang lalu ulangi." | `409` |
+| `VR-ONB-16` Kasus tertutup | Perubahan apa pun pada kasus | Kasus `Completed` atau `Cancelled` | "Kasus onboarding ini sudah {selesai/dibatalkan} dan tidak dapat diubah." | `422` |
+| `VR-ONB-17` Hadir tidak sebelum tanggal mulai | Mencatat hadir hari pertama | Tanggal hadir sebelum tanggal mulai rencana atau sesudah hari ini | "Tanggal mulai kerja Rina {tanggal}. Kehadiran hari pertama belum dapat dicatat." | `422` |
+
+### 14.2 Template onboarding
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-20` Satu template aktif per lapis | Mengaktifkan template Umum atau Klinis | Sudah ada template aktif di lapis itu | "Sudah ada Template {Umum/Klinis} yang aktif. Nonaktifkan dulu template itu." | `409` |
+| `VR-ONB-21` Satu template aktif per unit | Mengaktifkan template Unit | Unit itu sudah punya template aktif | "{Unit} sudah punya template aktif." | `409` |
+| `VR-ONB-22` Butir sistem terkunci | Menyimpan template | Butir sistem dihapus, atau jenis, penanggung jawab, maupun tanda wajibnya diubah | "Butir {nama} adalah butir sistem dan tidak dapat dihapus atau diubah jenisnya." | `422` |
+| `VR-ONB-23` Jenis sertifikat | Menyimpan butir otomatis sertifikat | Jenis sertifikat tidak dipilih | "Pilih jenis sertifikat untuk butir otomatis ini." | `400` |
+| `VR-ONB-24` Unit pada lapis | Menyimpan template | Lapis Unit tanpa unit, atau lapis Umum/Klinis dengan unit | "Template Unit wajib memilih unit; template Umum dan Klinis tidak memakai unit." | `400` |
+| `VR-ONB-25` Kode butir unik | Menyimpan template | Kode butir sama muncul dua kali | "Kode butir {kode} sudah dipakai di template ini." | `409` |
+
+### 14.3 Kontrak kerja
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-30` Scan wajib | Tandai Sudah Ditandatangani | Tidak ada berkas | "Unggah scan kontrak yang sudah ditandatangani pegawai dan pejabat rumah sakit." | `422` |
+| `VR-ONB-31` Isi draf terkunci | Mengubah isi draf kontrak | — | Tidak ada endpointnya; layar menampilkan "Ubah lewat revisi tawaran di Rekrutmen." | `405` |
+| `VR-ONB-32` Riwayat kontrak 02 baca saja | Endpoint tulis riwayat kontrak 02 | — | "Kontrak dikelola lewat menu Onboarding & Kontrak." | `409` |
+| `VR-ONB-33` Isian kepegawaian terkunci | Menyimpan master pegawai | Mengubah jenis atau status kepegawaian, tanggal masuk, tanggal akhir kontrak, atau tanggal akhir masa percobaan pegawai yang sudah punya kontrak | "Isian ini mengikuti kontrak kerja dan diubah lewat menu Onboarding & Kontrak." | `409` |
+| `VR-ONB-34` Masa percobaan tidak diisi tangan | Batch, koreksi, atau endpoint mana pun | Request membawa tanggal masa percobaan | "Masa percobaan dihitung sistem dari jenis kontrak dan tidak dapat diisi manual." | `422` |
+| `VR-ONB-35` Keputusan hanya untuk PKWT berjalan | Mengajukan keputusan | Kontrak bukan PKWT, atau bukan `Active`/`LapsedWithoutDecision` | "Keputusan perpanjangan hanya untuk kontrak PKWT yang masih berjalan atau baru berakhir." | `422` |
+| `VR-ONB-36` Batas 5 tahun PKWT | Mengajukan atau menyetujui Perpanjang; koreksi; batch | Total PKWT melewati 5 tahun | "Total PKWT Budi akan menjadi {x} tahun {y} bulan, melebihi batas 5 tahun. Pilih Angkat jadi Pegawai Tetap atau Tidak Diperpanjang." | `422` |
+| `VR-ONB-37` Satu keputusan terbuka | Mengajukan keputusan | Sudah ada keputusan `Submitted`, `Returned`, atau `Approved` untuk kontrak itu | "Kontrak ini sudah punya keputusan yang {sedang diproses/disetujui}." | `409` |
+| `VR-ONB-38` Pengaju sah | Mengajukan keputusan atau penilaian masa percobaan | Pemanggil bukan atasan langsung aktif pegawai dan tidak memegang cakupan unit pegawai | "Data tidak ditemukan." | `404` |
+| `VR-ONB-39` Isian keputusan | Mengajukan keputusan | Perpanjang tanpa lama 1–60 bulan; Tidak Diperpanjang tanpa alasan | "Isi lama perpanjangan 1–60 bulan." / "Tuliskan alasan tidak diperpanjang." | `400` |
+| `VR-ONB-40` Catat pemberitahuan | Mencatat tanggal pemberitahuan | Keputusan bukan Tidak Diperpanjang yang disetujui; tanggal sebelum tanggal persetujuan atau sesudah hari ini | "Tanggal pemberitahuan harus antara tanggal persetujuan dan hari ini." | `422` |
+| `VR-ONB-41` Isian koreksi | Mengajukan koreksi | Alasan kosong atau scan perbaikan tidak ada | "Tuliskan alasan dan unggah scan dokumen perbaikan yang sudah ditandatangani." | `400` |
+| `VR-ONB-42` Jenis kontrak tidak dapat dikoreksi | Mengajukan koreksi jenis kontrak | Kontrak sudah punya masa percobaan atau keputusan yang disetujui | "Jenis kontrak tidak dapat dikoreksi karena sudah ada {masa percobaan/keputusan} yang mengikutinya." | `422` |
+| `VR-ONB-43` Satu koreksi terbuka | Mengajukan koreksi | Sudah ada koreksi `Submitted` atau `Returned` | "Kontrak ini masih punya koreksi yang sedang diproses." | `409` |
+| `VR-ONB-44` Nilai sesudah koreksi sah | Mengajukan dan menerapkan koreksi | PKWT tanpa tanggal berakhir; tanggal mulai sesudah tanggal berakhir; nomor kontrak dipakai kontrak lain pegawai itu; batas 5 tahun | "Isi kontrak sesudah koreksi tidak sah: {sebab}." | `422` |
+| `VR-ONB-45` Scan susulan | Unggah scan kontrak | Kontrak bukan data awal, atau sudah punya scan | "Scan susulan hanya untuk kontrak data awal yang belum punya scan." | `422` |
+| `VR-ONB-46` Penahan jadwal | Penjadwalan 06 menjadwalkan pegawai | Hasil kesiapan `ContractHold` pada tanggal itu | "Kontrak Budi berakhir {tanggal} tanpa kontrak lanjutan yang ditandatangani. Jadwal sesudah tanggal itu belum dapat dibuat." | `422` (dikembalikan 06) |
+| `VR-ONB-47` Belum siap kerja | Penjadwalan 06 menjadwalkan pegawai | Hasil kesiapan `NotReady` | "Rina belum dinyatakan siap kerja." | `422` (dikembalikan 06) |
+
+### 14.4 Tawaran kerja `S-D2` (`HRD-DEC-095`)
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-50` Jenis kontrak wajib | Mengajukan tawaran untuk persetujuan | Jenis kontrak kosong | "Pilih jenis kontrak pada tawaran." | `422` |
+| `VR-ONB-51` Lama kontrak | Menyimpan dan mengajukan tawaran | Jenis kontrak mensyaratkan tanggal berakhir tetapi lama kosong atau di luar 1–60 bulan; atau jenis tanpa tanggal berakhir tetapi lama diisi | "Isi lama kontrak 1–60 bulan untuk {PKWT}." / "Kontrak {PKWTT} tidak memakai lama kontrak." | `422` |
+
+### 14.5 Masa percobaan
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-55` Masih berjalan | Mengajukan atau mengajukan ulang hasil | Status bukan `Running`, atau hari ini sesudah `EndDate` | "Masa percobaan Andi sudah berakhir pada {tanggal}." | `422` |
+| `VR-ONB-56` Satu penilaian terbuka | Mengajukan hasil | Sudah ada penilaian `Submitted` atau `Returned` | "Masih ada penilaian yang sedang diproses." | `409` |
+| `VR-ONB-57` Isian penilaian | Mengajukan hasil | Alasan kosong; atau Tidak Lulus tanpa lampiran | "Tuliskan alasan penilaian." / "Unggah lampiran penilaian untuk hasil Tidak Lulus." | `400` / `422` |
+| `VR-ONB-58` Keputusan tepat waktu | Menyetujui di kotak masuk | Hari ini sesudah `EndDate` | "Masa percobaan sudah lewat; pegawai ditetapkan lulus otomatis." | `422` |
+| `VR-ONB-59` Tanpa perpanjangan | Endpoint perpanjangan | — | Tidak ada endpointnya | `405` |
+
+### 14.6 Pendampingan klinis
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-60` Lampiran siap mandiri | Siap Mandiri | Tidak ada lampiran | "Unggah form penilaian kompetensi atau logbook pendampingan." | `422` |
+| `VR-ONB-61` Hanya saat didampingi | Siap Mandiri | Status bukan `Accompanied` | "Pendampingan belum berjalan atau sudah selesai." | `422` |
+| `VR-ONB-62` Ganti preceptor | Mengganti preceptor | Alasan kosong; atau preceptor tidak sah (`VR-ONB-08`) | "Tuliskan alasan penggantian preceptor." | `400` / `422` |
+| `VR-ONB-63` Cakupan unit | Kepala Unit membuka atau bertindak | Unit di luar cakupan | "Data tidak ditemukan." | `404` |
+
+### 14.7 Batch data awal kontrak
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-65` Sekali per pegawai | Menyimpan atau mengajukan batch | Pegawai sudah ada di batch lain yang belum ditolak/dibatalkan, atau sudah punya kontrak | "Budi sudah masuk batch data awal {nomor}." | `409` per baris |
+| `VR-ONB-66` Isian PKWT | Memeriksa baris | PKWT tanpa tanggal berakhir atau tanpa tanggal PKWT pertama | "Baris {n}: PKWT wajib berisi tanggal berakhir dan tanggal mulai PKWT pertama." | Baris tidak sah |
+| `VR-ONB-67` Batas 5 tahun | Memeriksa baris | Total PKWT melewati 5 tahun | "Baris {n}: total PKWT sudah {x} tahun {y} bulan, melebihi 5 tahun." | Baris tidak sah |
+| `VR-ONB-68` Pegawai sah | Memeriksa baris | Profil tidak aktif, berstatus `PENDING_ONBOARDING`, atau tidak ditemukan | "Baris {n}: pegawai tidak dapat dimasukkan ke data awal: {sebab}." | Baris tidak sah |
+| `VR-ONB-69` Tidak ada baris gagal | Mengajukan batch | `InvalidRows > 0` | "Masih ada {n} baris yang belum valid. Perbaiki semua baris sebelum mengajukan." | `422` |
+| `VR-ONB-70` Nomor dan tanggal | Memeriksa baris | Nomor kontrak kosong; tanggal mulai sesudah tanggal berakhir | "Baris {n}: {sebab}." | Baris tidak sah |
+
+### 14.8 Akun, akses, dan pengaturan
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-ONB-75` Syarat akun | Pembuatan akun otomatis | Email atau tanggal lahir pegawai kosong; email sudah dipakai akun lain | Permintaan berstatus `Failed` dengan pesan, contoh "Email pegawai belum diisi." Kasus tetap terbentuk | — |
+| `VR-ONB-76` Tandai akses selesai | Menandai akses kerja | Bukan `WorkAccess` berstatus `Requested` | "Permintaan ini tidak sedang menunggu akses kerja." | `422` |
+| `VR-ONB-77` Ulang akun | Mengulang pembuatan akun | Bukan `AccountCreation` berstatus `Failed` | "Akun tidak perlu dibuat ulang." | `422` |
+| `VR-ONB-80` Rentang pengaturan | Mengubah pengaturan | Pengingat kontrak di luar 14–180; eskalasi tidak kurang dari pengingat; pengingat masa percobaan di luar 1–60; tanda terlambat di luar 1–30 hari | "Nilai {pengaturan} harus antara {batas bawah} dan {batas atas} hari." | `400` |

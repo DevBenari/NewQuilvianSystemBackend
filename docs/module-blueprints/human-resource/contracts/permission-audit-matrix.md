@@ -750,3 +750,70 @@ Kejadian yang wajib dicatat dalam audit log permanen:
 - Keputusan persetujuan penawaran kerja bertingkat (waktu, akun penyetuju, dan alasan catatan).
 - Input kesimpulan kelaikan fisik MCU oleh tim dokter K3RS.
 - Aksi promosi cepat kandidat cadangan dari Talent Pool.
+
+
+---
+
+## 13. Onboarding dan Kontrak Kerja — `S-C4-ONB` (`last_changed_in` `v9`, 4 November 2026)
+
+Status `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan". Pemetaan endpoint ke butir hak akses ada pada kolom `Hak akses` di `api-contract.md`
+bagian 15 dan **tidak** diulang di sini. Seluruh butir di bawah **Rencana (belum tersedia)**.
+
+### 13.1 Butir hak akses baru
+
+| Resource | Action | Untuk apa | Sumber keputusan |
+| --- | --- | --- | --- |
+| `WorkforceOnboardingCase` | `Read`, `CompleteItem`, `CompleteUnitItem`, `Reassign`, `DeclareReady`, `CancelJoin` | Kasus onboarding dan checklist | `HRD-DEC-083`, `HRD-DEC-086`, `HRD-DEC-088` |
+| `WorkforceOnboardingTemplate` | `Read`, `Create`, `Update` | Tiga lapis template | `HRD-DEC-086` |
+| `WorkforceEmploymentContract` | `Read`, `MarkSigned`, `UploadDocument`, `RequestCorrection` | Kontrak kerja | `HRD-DEC-084`, `HRD-DEC-089`, `HRD-DEC-090` |
+| `WorkforceContractDecision` | `Read`, `Submit`, `RecordNotification` | Keputusan perpanjang / pegawai tetap / tidak diperpanjang | `HRD-DEC-089` |
+| `WorkforceProbation` | `Read`, `Submit` | Masa percobaan | `HRD-DEC-085` |
+| `WorkforcePreceptorship` | `Read`, `Manage` | Pendampingan klinis | `HRD-DEC-087` |
+| `WorkforceInitialContractBatch` | `Read`, `Create`, `Update`, `Submit`, `Cancel` | Batch data awal kontrak | `HRD-DEC-090` |
+| `WorkforceOnboardingAccessRequest` | `Read`, `Complete`, `Retry` | Akun dan akses kerja | `HRD-DEC-088` |
+| `WorkforceLifecycleWorklist` | `Read` | Daftar Perlu Tindakan | `HRD-DEC-085`, `HRD-DEC-089` |
+| `WorkforceLifecycleSetting` | `Read`, `Update` | Pengaturan siklus | `HRD-DEC-085`, `HRD-DEC-089` |
+
+Butir yang dipakai ulang: `WfpSalaryAssignment : ViewAmount` untuk nominal gaji pada data cetak kontrak
+(`HRD-DEC-033`); butir kotak masuk persetujuan yang sudah ada untuk keputusan `T15` s.d. `T18`.
+
+### 13.2 Peta peran ke butir hak akses
+
+| Peran | Butir | Batas tambahan |
+| --- | --- | --- |
+| **HR Admin** (petugas HRD) | Kasus `Read`, `CompleteItem`, `Reassign`, `DeclareReady`, `CancelJoin`; template seluruh action; kontrak `Read`, `MarkSigned`, `UploadDocument`, `RequestCorrection`; keputusan `Read`, `RecordNotification`; masa percobaan `Read`; pendampingan `Read`; batch seluruh action; permintaan akses `Read`, `Retry`; daftar kerja `Read`; pengaturan `Read` | Penyetuju `T15` s.d. `T18` sebagai `SiteHr`, **tidak** atas pengajuannya sendiri |
+| **HR Manager** | Seluruh butir HR Admin; pengaturan `Update` | Melihat kategori eskalasi pada daftar kerja |
+| **Kepala Unit** | Kasus `Read`, `CompleteUnitItem`; kontrak `Read`; keputusan `Read`, `Submit`; masa percobaan `Read`, `Submit`; pendampingan `Read`, `Manage`; daftar kerja `Read` | **Hanya unit dalam cakupan organisasinya**; tanpa `ViewAmount` |
+| **Atasan langsung** (bukan Kepala Unit) | Keputusan `Read`, `Submit`; masa percobaan `Read`, `Submit`; daftar kerja `Read` | Hanya untuk bawahan langsung aktif (`WfpManagerAssignment`), dijaga aturan bisnis 13.3 |
+| **Administrator / IT** | Permintaan akses `Read`, `Complete` | Tidak melihat kasus maupun kontrak. `MAPPING_REQUIRED` |
+| **Auditor** | Seluruh butir `Read` di atas | Tidak boleh memegang action selain `Read` |
+| **Petugas payroll** | **Tidak ada** | Payroll membaca lewat service (`INT-HR-33`) |
+| **Pegawai** (layanan mandiri) | **Tidak ada** pada slice ini | Akun aktif untuk layanan mandiri sejak hadir hari pertama |
+
+### 13.3 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Penjaga di aturan bisnis | Yang dijaganya | Yang **tidak** dijaganya | Risiko bila hilang |
+| --- | --- | --- | --- |
+| Penanggung jawab butir (`ResponsibleRole`) dan jalur endpoint yang terpisah | Kepala Unit tidak mencentang butir HRD, dan sebaliknya | Petugas yang memegang kedua butir sekaligus | Butir orientasi umum dicentang orang yang tidak memberi orientasi |
+| Cakupan unit lewat `OrganizationAuthorizationProjectionService` | Kepala ICU hanya melihat pegawai baru ICU | Penempatan Kepala Unit yang salah (`HRD-TF-021`) | Kepala Unit melihat kontrak unit lain |
+| Atasan langsung aktif (`WfpManagerAssignment`) sebagai pengaju alternatif | Atasan yang bukan Kepala Unit dapat menilai bawahannya | Relasi atasan yang salah input | Orang lain menilai masa percobaan |
+| Pemisahan pemilih atasan langsung dan penyata siap kerja (`VR-ONB-12`) | Relasi atasan tidak lahir dari satu orang | Dua orang yang bersekongkol | Swa-penetapan atasan |
+| `AllowSelfApproval = false` pada `T15` s.d. `T18` | Pengaju tidak memutus pengajuannya | — | Swa-setuju koreksi kontrak atau batch |
+| **Siap Mandiri tidak masuk persetujuan** (`CLINICAL_DECISION_NOT_HRD`) | HRD tidak menganulir penilaian klinis | Kepala Unit yang menyatakan siap mandiri tanpa dasar | Dijaga lampiran wajib (`VR-ONB-60`) dan jejak audit |
+| Penahan jadwal dibaca 06 (`INT-HR-31`) | Pegawai tanpa kontrak bertanda tangan tidak dijadwalkan | Penjadwalan yang dibuat di luar sistem | Risiko hukum PKWT tak tertulis |
+
+### 13.4 Audit
+
+| Kejadian yang wajib meninggalkan jejak tahan lama | Lapisan |
+| --- | --- |
+| Setiap perpindahan status kasus, butir, kontrak, masa percobaan, penilaian, keputusan, koreksi, batch, pendampingan, dan permintaan akses | Custom logger (selain `GET`), ditambah kolom pelaku dan waktu pada tabelnya |
+| Penandatanganan kontrak | `SignedRecordedAt`, `SignedRecordedByUserId`, scan pada `DocumentPath` |
+| Penempatan dan gaji awal dari tawaran | Jejak audit menyimpan nomor tawaran sebagai rujukan persetujuan (`02-backend-architecture.md` 18.9.6) |
+| Koreksi kontrak | Nilai `Before*` dan `After*` beserta scan lama dan baru; tidak pernah dihapus |
+| Pergantian preceptor | Baris `HrdClinicalPreceptorshipPreceptor` |
+| Kontrak hasil batch data awal | `HistoryType = InitialData` beserta nomor batch, pembuat, dan penyetuju (`HRD-DEC-090` butir 9) |
+| Pembacaan nominal gaji pada data cetak | Audit `GET` sensitif `HRD-DEC-039`; nominal **MUST NOT** masuk catatan |
+| Perubahan pengaturan | Custom logger dengan nilai lama dan baru |
+
+Payload logger hanya memuat `EntityId`, controller, action, dan status. Kolom bertanda sensitif pada
+`data/data-dictionary.md` bagian 10.16 **MUST NOT** masuk logger.

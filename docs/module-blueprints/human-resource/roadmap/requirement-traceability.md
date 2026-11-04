@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 6
+roadmap_revision: 7
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
-planning_updated_at: "2026-11-03 — jejak S-D2 Rekrutmen & Hiring ditambahkan (bagian 1b): BE-HRD-018, BE-HRD-052 s.d. BE-HRD-062, FE-HRD-044 s.d. FE-HRD-057"
+planning_updated_at: "2026-11-04 — jejak S-C4-ONB Onboarding dan Kontrak Kerja ditambahkan (bagian 1c): BE-HRD-063 s.d. BE-HRD-086, FE-HRD-058 s.d. FE-HRD-074"
 generated_at: "2026-10-26"
 owners:
   - "Module Lead & Quality Assurance"
@@ -18,6 +18,7 @@ source_commits:
   frontend: "66b7e5600e1707e4153ca07981ddef054856c8c9 (S-D1); HamzahV2 (task lama)"
 contract_versions_s_d1: "v7 — API bagian 13, State bagian 11, Validation bagian 12, Permission bagian 11, Integration bagian 11, Data Dictionary bagian 8"
 contract_versions_s_d2: "v8 — API bagian 14, State bagian 12, Validation bagian 13, Permission bagian 12, Integration bagian 12, Data Dictionary bagian 9"
+contract_versions_s_c4_onb: "v9 — API bagian 15, State bagian 13, Validation bagian 14, Permission bagian 13, Integration bagian 13, Data Dictionary bagian 10"
 ```
 
 **Arti tanda status bukti:**
@@ -57,7 +58,7 @@ contract_versions_s_d2: "v8 — API bagian 14, State bagian 12, Validation bagia
 | `IN-02-SK` | Dokumen SK Kepegawaian & Alur Persetujuan Mutasi/Rotasi/Demosi | `HRD-DEC-048`, `050`, `056`, `057` | API §PersonnelActionOrder, State §Order, Validation §SK | `BE-HRD-023` ✅, `024` ✅, `025` ✅ | `FE-HRD-022` ✅, `023` ✅, `024` ✅ | ✅ Selesai Penuh (BE & FE SK Kepegawaian aktif, Laporan [FE-022](../task/report/frontend/FE-HRD-022.md) s.d. [FE-024](../task/report/frontend/FE-HRD-024.md)) |
 | `IN-02-360` | Profil Terpadu Pegawai (Employee 360) Dual-View HR vs Manager | `HRD-DEC-053`, `FR-HRD-018` | API §Employee360, Validation §360 | `BE-HRD-026` ✅ | `FE-HRD-025` ✅ | ✅ Selesai Penuh (BE & FE Employee 360 Dual-View aktif, Laporan [FE-025](../task/report/frontend/FE-HRD-025.md)) |
 | `IN-02-BATCH` | Inisialisasi Batch Penempatan Awal Staf Eksisting (55 Staf) | `HRD-DEC-054`, `FR-HRD-019` | API §InitialPlacementBatch, Data §Batch | `BE-HRD-027` ✅ | `FE-HRD-026` 🟡 | 🟡 Sebagian (dikoreksi 03-11-2026): BE aktif; layar FE belum tersambung ke kontrak backend — menunggu `FIX-HRD-002-09` ([Laporan FE-026](../task/report/frontend/FE-HRD-026.md)) |
-| `IN-02-OB` | Permohonan Perubahan Profil Mandiri & Kuasa HR (On-Behalf) | `HRD-DEC-047`, `052`, `FR-HRD-017` | API §EmployeeProfileChange, Validation §OnBehalf | `BE-HRD-028` ✅ | `FE-HRD-027` 🟡, `FE-HRD-028` ✅ | 🟡 Sebagian (dikoreksi 03-11-2026): kunci form Master Data aktif; form Kuasa HR belum dapat mengirim (415) — menunggu `FIX-HRD-002-09` ([Laporan FE-027](../task/report/frontend/FE-HRD-027.md), [FE-028](../task/report/frontend/FE-HRD-028.md)) |
+| `IN-02-OB` | Permohonan Perubahan Profil Mandiri & Kuasa HR (On-Behalf) | `HRD-DEC-047`, `052`, `091..094`, `FR-HRD-017` | API §EmployeeProfileChange, Validation §OnBehalf | `BE-HRD-028` ✅ | `FE-HRD-027` ✅, `FE-HRD-028` ✅ | ✅ Lengkap (04-11-2026 via PLAN-REPAIR-HRD-003): Layanan Mandiri selesai penuh (`FE-HRD-26`/`S-A5`), form Kuasa HR bebas 415 via perbaikan multipart `InstanceAxios.jsx` (`FIX-HRD-003-06`), Anti-Self-Approval aktif ([Laporan FIX-003](../docs/plan-repair/plan-repair-003-employee-self-service-profile-change.md)) |
 
 
 ---
@@ -201,7 +202,8 @@ tercatat di bawah adalah requirement yang belum punya jalan pembuktian penuh.
 | `FE-HRD-024` | Form Penerbitan & Detail SK | `HrdPersonnelActionOrderController.cs` | `src/app/hr/workforce-core/personnel-actions/create/**`, `[id]/**` | ✅ Dikerjakan ulang 03-11-2026 (PLAN-REPAIR-HRD-002): build lulus, check-css-usage 0 temuan, screenshot terlampir | [FE-HRD-024.md](../task/report/frontend/FE-HRD-024.md) |
 | `FE-HRD-025` | Antarmuka Employee 360 Dual-View | `HrdEmployee360Controller.cs` | `src/app/hr/workforce-core/employee-360/[id]/**`, service | ✅ Dikerjakan ulang 03-11-2026 (PLAN-REPAIR-HRD-002): build lulus, check-css-usage 0 temuan, screenshot terlampir | [FE-HRD-025.md](../task/report/frontend/FE-HRD-025.md) |
 | `FE-HRD-026` | Layar Batch Penempatan Awal | `HrdInitialPlacementBatchController.cs` | `src/app/hr/workforce-core/initial-batches/**`, service | 🟡 Sebagian — tampilan dibangun ulang 03-11-2026; kontrak backend menunggu FIX-HRD-002-09 | [FE-HRD-026.md](../task/report/frontend/FE-HRD-026.md) |
-| `FE-HRD-027` | Form Permohonan Kuasa HR | `EmployeeProfileChangeController.cs` | `src/app/hr/workforce-core/employee-profile-changes/create-on-behalf/**` | 🟡 Sebagian — tampilan dibangun ulang 03-11-2026; kontrak backend menunggu FIX-HRD-002-09 | [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md) |
+| `FE-HRD-027` | Form Permohonan Kuasa HR | `EmployeeProfileChangeController.cs` | `src/app/hr/workforce-core/employee-profile-changes/create-on-behalf/**` | ✅ Selesai — kendala multipart 415 diselesaikan via perbaikan interceptor InstanceAxios (`FIX-HRD-003-06`) | [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md) |
+| `FE-HRD-026-ESS` | Permohonan Perubahan Data Mandiri (Kelola Data Saya) | `EmployeeProfileChangeSelfServiceController.cs` | `src/app/self-services/human-resource/employee/profile-changes/**` | ✅ Selesai — diimplementasikan penuh (live diff, bukti sensitif, aksi tunggal, riwayat pengajuan) via PLAN-REPAIR-HRD-003 | [PLAN-REPAIR-003](../docs/plan-repair/plan-repair-003-employee-self-service-profile-change.md) |
 | `FE-HRD-028` | Penguncian Form Master Data | `EmployeeController.cs` | `src/components/view/hr/master-data/employees/form/**` | ✅ Lulus Linter & Test Unit | [FE-HRD-028.md](../task/report/frontend/FE-HRD-028.md) |
 
 
@@ -266,3 +268,121 @@ diperbarui build skill saat task selesai.
 | `AT-HRD-D2-11` | Serah terima rekrutmen ke Onboarding Sub-modul 05 | `BE-HRD-061`, `FE-HRD-056` | Draf WorkforceProfile terbentuk berstatus Pending Onboarding |
 | `AT-HRD-D2-12` | Keterjangkauan menu rekrutmen dan RBAC | `FE-HRD-057` | Tangkapan layar sidebar per peran dan npm run build sukses |
 | `UAT-REC-01` s.d. `UAT-REC-07` | Validasi bisnis ujung-ke-ujung proses rekrutmen | `BE-HRD-062`, `FE-HRD-057` | Laporan uji komprehensif dev runtime S-D2 |
+
+
+---
+
+## 1c. Jejak `S-C4-ONB` Onboarding dan Kontrak Kerja (sub-modul 05) — requirement ke task dan bukti
+
+Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetujui pemilik. Seluruh
+baris di bawah **belum punya bukti implementasi**: task-nya baru direncanakan. Kolom status
+diperbarui build skill saat task selesai.
+
+| Field | Nilai |
+| --- | --- |
+| Approval desain | Pengguna, pemilik teknis dan produk (`HRD-DEC-015`), 4 November 2026, beserta lima pilihan desain (`HRD-DEC-096`) — `02-backend-architecture.md` bagian 18, `03-frontend-architecture.md` bagian 14, kontrak `v9`, `04-prd-to-mvp.md` bagian 23, `data/data-dictionary.md` bagian 10, `testing/acceptance-test-matrix.md` bagian 17, lima flowchart `S-C4-ONB` |
+| Keputusan | `HRD-DEC-081` s.d. `HRD-DEC-090`, `HRD-DEC-095`, `HRD-DEC-096` (decision log revision `19`, bagian 34) |
+| Kontrak | API `v9` bagian 15; State Transition `v9` bagian 13; Validation `v9` bagian 14; Permission `v9` bagian 13; Integration `v9` bagian 13; Data Dictionary `v9` bagian 10 |
+| Manifest | revision `18`; hash masukan terkunci pada metadata kedua roadmap (`locked_input_hashes_s_c4_onb`) |
+| Source SHA | BE `8b17b75a` (branch `MHamzah`), FE `44990b3d3` (branch `HamzahV2`) |
+| Task | Backend `BE-HRD-063` s.d. `BE-HRD-086`; frontend `FE-HRD-058` s.d. `FE-HRD-074` |
+
+### Functional requirement
+
+| FR | Perilaku Bisnis | Desain & Kontrak | Task Backend | Task Frontend | Bukti yang Diharapkan | Status |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `FR-ONB-001` | Serah terima membuat tepat satu kasus onboarding | BE §18.4.1; API §15.1; `VR-ONB-01`; `INT-HR-25` | `BE-HRD-074` | `FE-HRD-060` | `AT-HRD-ONB-01`, `AT-HRD-ONB-02`, `AT-HRD-ONB-03` | |
+| `FR-ONB-002` | Checklist tiga lapis sesuai jenis tenaga dan unit | BE §18.4.2, §18.4.3; API §15.1, §15.2 | `BE-HRD-070`, `BE-HRD-074` | `FE-HRD-059`, `FE-HRD-060` | `AT-HRD-ONB-16` | |
+| `FR-ONB-003` | Butir otomatis tidak dicentang tangan; butir wajib bukti menolak tanpa berkas | API §15.1; `VR-ONB-05`, `VR-ONB-06` | `BE-HRD-075` | `FE-HRD-061` | `AT-HRD-ONB-17` | |
+| `FR-ONB-004` | Penanggung jawab butir dan cakupan unit | API §15.1; `VR-ONB-03`, `VR-ONB-04` | `BE-HRD-075` | `FE-HRD-061` | `AT-HRD-ONB-17`, `AT-HRD-ONB-18` | |
+| `FR-ONB-005` | Batal bergabung hanya sebelum hadir hari pertama; kursi kembali terbuka | API §15.1; `VR-ONB-13`, `VR-ONB-14` | `BE-HRD-076` | `FE-HRD-062` | `AT-HRD-ONB-04`, `AT-HRD-ONB-05`, `UAT-ONB-02`, `UAT-ONB-03` | |
+| `FR-ONB-006` | Perubahan template tidak mengubah kasus berjalan | BE §18.4.2 | `BE-HRD-070`, `BE-HRD-074` | `FE-HRD-059` | `AT-HRD-ONB-20` | |
+| `FR-ONB-010` | Tawaran wajib memuat jenis dan lama kontrak | API §15.12; `VR-ONB-50`, `VR-ONB-51`; `INT-HR-35` | `BE-HRD-064` | `FE-HRD-072` | `AT-HRD-ONB-38`, `UAT-ONB-06` | |
+| `FR-ONB-011` | Draf kontrak pertama menyalin isi tawaran | BE §18.9.1; API §15.3 | `BE-HRD-072` | `FE-HRD-063` | `AT-HRD-ONB-01`, `AT-HRD-ONB-07` | |
+| `FR-ONB-012` | Kontrak sah hanya dengan scan bertanda tangan | API §15.3; `VR-ONB-30` | `BE-HRD-072` | `FE-HRD-063` | `AT-HRD-ONB-06`, `UAT-ONB-04` | |
+| `FR-ONB-013` | Penandatanganan membuat penempatan dan gaji awal dalam satu transaksi | BE §18.9.6; `INT-HR-27` | `BE-HRD-067`, `BE-HRD-072` | `FE-HRD-063` | `AT-HRD-ONB-07`, `UAT-ONB-05` | |
+| `FR-ONB-014` | Isi draf kontrak tidak dapat diubah langsung | API §15.3; `VR-ONB-31` | `BE-HRD-072` | `FE-HRD-063` | `AT-HRD-ONB-08` | |
+| `FR-ONB-015` | Endpoint tulis riwayat kontrak 02 menjawab `409` | API §15.11; `VR-ONB-32` | `BE-HRD-065` | `FE-HRD-071` | `AT-HRD-ONB-39` | |
+| `FR-ONB-020` | Siap kerja ditolak bila butir wajib belum selesai atau penyata sama dengan pemilih atasan | API §15.1; `VR-ONB-11`, `VR-ONB-12` | `BE-HRD-076` | `FE-HRD-062` | `AT-HRD-ONB-21`, `AT-HRD-ONB-22`, `UAT-ONB-07` | |
+| `FR-ONB-021` | Siap kerja: status Aktif, relasi atasan, akses kerja diminta | State §13.1, §13.9 | `BE-HRD-067`, `BE-HRD-076` | `FE-HRD-062` | `AT-HRD-ONB-23`, `UAT-ONB-08` | |
+| `FR-ONB-022` | Pegawai `PENDING_ONBOARDING` tidak dapat dijadwalkan | BE §18.9.7; `VR-ONB-47`; `INT-HR-31` | `BE-HRD-084` | — (layar 06) | `AT-HRD-ONB-24` | |
+| `FR-ONB-023` | Akun dibuat saat kasus terbentuk, aktif untuk layanan mandiri sejak hadir | API §15.1, §15.7; `VR-ONB-75` | `BE-HRD-066`, `BE-HRD-074`, `BE-HRD-075`, `BE-HRD-077` | `FE-HRD-068` | `AT-HRD-ONB-25`, `AT-HRD-ONB-26`, `UAT-ONB-09` | |
+| `FR-ONB-024` | Gaji periode pertama sejak tanggal mulai kontrak | BE §18.9.6; `INT-HR-33` | `BE-HRD-067`, `BE-HRD-072` | — | `AT-HRD-ONB-07` (penetapan gaji berlaku sejak tanggal mulai kontrak) | |
+| `FR-ONB-030` | Masa percobaan hanya untuk PKWTT sejak bergabung | BE §18.9.3; State §13.4 | `BE-HRD-071` | `FE-HRD-065` | `AT-HRD-ONB-09`, `AT-HRD-ONB-10`, `AT-HRD-ONB-15`, `UAT-ONB-12` | |
+| `FR-ONB-031` | Masa percobaan tepat 3 bulan tanpa perpanjangan | BE §18.9.3; `VR-ONB-59` | `BE-HRD-071`, `BE-HRD-079` | `FE-HRD-065` | `AT-HRD-ONB-10` | |
+| `FR-ONB-032` | Tidak Lulus wajib lampiran | API §15.4; `VR-ONB-57` | `BE-HRD-079` | `FE-HRD-065` | `AT-HRD-ONB-12`, `UAT-ONB-10` | |
+| `FR-ONB-033` | Lulus otomatis sehari sesudah tanggal akhir | State §13.4 | `BE-HRD-079`, `BE-HRD-083` | `FE-HRD-065` | `AT-HRD-ONB-13`, `UAT-ONB-11` | |
+| `FR-ONB-034` | Tidak Lulus diserahkan ke 20 | `INT-HR-29` | `BE-HRD-078`, `BE-HRD-079` | — | `AT-HRD-ONB-14` | |
+| `FR-ONB-040` | Tenaga klinis tidak siap kerja sebelum preceptor dipilih | BE §18.4.2 (butir sistem) | `BE-HRD-075`, `BE-HRD-076` | `FE-HRD-061` | `AT-HRD-ONB-21` | |
+| `FR-ONB-041` | Pegawai Didampingi tetap dapat dijadwalkan dan berpenanda | BE §18.9.7; `INT-HR-31` | `BE-HRD-084` | — (layar 06) | `AT-HRD-ONB-28` | |
+| `FR-ONB-042` | Siap Mandiri wajib lampiran tanpa persetujuan HRD | API §15.5; `VR-ONB-60`, `VR-ONB-61` | `BE-HRD-073` | `FE-HRD-066` | `AT-HRD-ONB-27`, `AT-HRD-ONB-28`, `UAT-ONB-13`, `UAT-ONB-14` | |
+| `FR-ONB-043` | Peringatan kredensial tampil tetapi tidak menghalangi | BE §18.9.7 | `BE-HRD-074`, `BE-HRD-084` | `FE-HRD-060` | **Gap** — lihat bagian gap | ⛔ |
+| `FR-ONB-050` | Pengingat 60 hari dan eskalasi 14 hari di Perlu Tindakan | BE §18.9.5; API §15.8 | `BE-HRD-084` | `FE-HRD-070` | `AT-HRD-ONB-36` (pengingat); eskalasi **gap** | |
+| `FR-ONB-051` | Perpanjangan melewati 5 tahun ditolak | BE §18.9.2; `VR-ONB-36` | `BE-HRD-080` | `FE-HRD-064` | `AT-HRD-ONB-29`, `UAT-ONB-15` | |
+| `FR-ONB-052` | Tidak Diperpanjang diserahkan ke 20 | `INT-HR-29` | `BE-HRD-078`, `BE-HRD-080` | `FE-HRD-064` | `AT-HRD-ONB-31` | |
+| `FR-ONB-053` | PKWT lewat tanpa lanjutan bertanda tangan menahan jadwal | BE §18.9.4, §18.9.7; `VR-ONB-46` | `BE-HRD-083`, `BE-HRD-084` | — (layar 06) | `AT-HRD-ONB-32`, `UAT-ONB-16` | |
+| `FR-ONB-054` | Koreksi kontrak oleh petugas HRD lain; versi lama tersimpan | API §15.3; `VR-ONB-41` s.d. `VR-ONB-44` | `BE-HRD-081` | `FE-HRD-064` | `AT-HRD-ONB-33`, `AT-HRD-ONB-34`, `UAT-ONB-18` | |
+| `FR-ONB-060` | Batch dengan baris tidak sah tidak dapat diajukan; sekali per pegawai | API §15.6; `VR-ONB-65` s.d. `VR-ONB-70` | `BE-HRD-082` | `FE-HRD-067` | `AT-HRD-ONB-35`, `UAT-ONB-19` | |
+| `FR-ONB-061` | Batch yang disetujui membuat kontrak data awal tanpa masa percobaan | State §13.8 | `BE-HRD-082` | `FE-HRD-067` | `AT-HRD-ONB-36`, `UAT-ONB-20` | |
+| `FR-ONB-062` | Scan kontrak lama boleh menyusul | API §15.3; `VR-ONB-45` | `BE-HRD-082` | `FE-HRD-063` | `AT-HRD-ONB-36` | |
+| `FR-ONB-063` | Migration pembersihan berhenti bila tabel kandidat berisi data | BE §18.7 | `BE-HRD-063` | — | `AT-HRD-ONB-37` | |
+
+### Kebutuhan non-fungsional
+
+| NFR | Kebutuhan | Task Backend | Bukti verifikasi |
+| --- | --- | --- | --- |
+| `NFR-ONB-001` | Transaksi tunggal untuk serah terima, tanda tangan, siap kerja, batal bergabung, penerapan keputusan | `BE-HRD-072`, `BE-HRD-074`, `BE-HRD-076`, `BE-HRD-079`, `BE-HRD-080` | Review diff batas transaksi; `AT-HRD-ONB-03` |
+| `NFR-ONB-002` | Kunci advisory per pegawai | `BE-HRD-072`, `BE-HRD-083` | Review diff |
+| `NFR-ONB-003` | `RowVersion` pada setiap dokumen | `BE-HRD-063` | Review configuration; `VR-ONB-15` lewat uji API |
+| `NFR-ONB-004` | Scheduler idempoten | `BE-HRD-083` | Uji dua kali jalan pada tanggal yang sama |
+| `NFR-ONB-005` | Kolom sensitif tidak masuk logger; berkas lewat endpoint terautentikasi | `BE-HRD-069`, `BE-HRD-072` | Review payload logger; `AT-HRD-ONB-40` |
+| `NFR-ONB-006` | Pergantian hari menurut zona waktu rumah sakit | `BE-HRD-079`, `BE-HRD-083` | Uji `AT-HRD-ONB-13`, `AT-HRD-ONB-32` dengan tanggal uji |
+
+### Keputusan bisnis
+
+| Keputusan | Kebijakan yang Ditegakkan | Task Backend | Task Frontend | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| `HRD-DEC-081` | Satu pengaju, HRD memutuskan; satu langkah persetujuan | `BE-HRD-068` | `FE-HRD-073` | `AT-HRD-ONB-22`, `AT-HRD-ONB-33` |
+| `HRD-DEC-082` | Keputusan kontrak dan masa percobaan di 05; proses keluar di 20 | `BE-HRD-078`, `BE-HRD-079`, `BE-HRD-080` | `FE-HRD-064`, `FE-HRD-065` | `AT-HRD-ONB-14`, `AT-HRD-ONB-31` |
+| `HRD-DEC-083` | Kasus otomatis; batal bergabung tanpa persetujuan | `BE-HRD-074`, `BE-HRD-076` | `FE-HRD-060`, `FE-HRD-062` | `AT-HRD-ONB-01` s.d. `AT-HRD-ONB-05` |
+| `HRD-DEC-084` | Kontrak pertama dari tawaran, sah dengan scan | `BE-HRD-072` | `FE-HRD-063` | `AT-HRD-ONB-06` s.d. `AT-HRD-ONB-08` |
+| `HRD-DEC-085` | Masa percobaan PKWTT 3 bulan, Lulus/Tidak Lulus, lulus otomatis | `BE-HRD-071`, `BE-HRD-079` | `FE-HRD-065`, `FE-HRD-071` | `AT-HRD-ONB-09` s.d. `AT-HRD-ONB-15` |
+| `HRD-DEC-086` | Checklist tiga lapis, tiga jenis butir | `BE-HRD-070`, `BE-HRD-074`, `BE-HRD-075` | `FE-HRD-059`, `FE-HRD-061` | `AT-HRD-ONB-16` s.d. `AT-HRD-ONB-20` |
+| `HRD-DEC-087` | Pendampingan sesudah siap kerja; siap mandiri oleh Kepala Unit; kredensial peringatan | `BE-HRD-073`, `BE-HRD-084` | `FE-HRD-066` | `AT-HRD-ONB-27`, `AT-HRD-ONB-28` |
+| `HRD-DEC-088` | Siap kerja oleh HRD; akun bertahap; gaji sejak mulai kontrak | `BE-HRD-066`, `BE-HRD-076`, `BE-HRD-077` | `FE-HRD-062`, `FE-HRD-068` | `AT-HRD-ONB-21` s.d. `AT-HRD-ONB-26` |
+| `HRD-DEC-089` | Siklus kontrak, batas 5 tahun, penahan jadwal, koreksi | `BE-HRD-080`, `BE-HRD-081`, `BE-HRD-083`, `BE-HRD-084` | `FE-HRD-064`, `FE-HRD-070` | `AT-HRD-ONB-29` s.d. `AT-HRD-ONB-34` |
+| `HRD-DEC-090` | Batch data awal; pengaman tabel kosong | `BE-HRD-063`, `BE-HRD-082` | `FE-HRD-067` | `AT-HRD-ONB-35` s.d. `AT-HRD-ONB-37` |
+| `HRD-DEC-095` | Tawaran memuat jenis dan lama kontrak | `BE-HRD-064` | `FE-HRD-072` | `AT-HRD-ONB-38` |
+| `HRD-DEC-096` | Lima pilihan desain turunan | `BE-HRD-065`, `BE-HRD-067`, `BE-HRD-075`, `BE-HRD-084` | `FE-HRD-070`, `FE-HRD-071` | `AT-HRD-ONB-07`, `AT-HRD-ONB-23`, `AT-HRD-ONB-39` |
+
+### Acceptance test dan skenario UAT
+
+| Ref Uji | Cakupan Skenario | Task Terkait | Dokumen Bukti yang Diharapkan |
+| --- | --- | --- | --- |
+| `AT-HRD-ONB-01` s.d. `AT-HRD-ONB-05` | Kasus otomatis, idempotensi, transaksi, batal bergabung | `BE-HRD-074`, `BE-HRD-076`, `FE-HRD-060`, `FE-HRD-062` | Respons API dan isi tabel kasus, kontrak, serah terima |
+| `AT-HRD-ONB-06` s.d. `AT-HRD-ONB-08` | Kontrak pertama dan tanda tangan | `BE-HRD-072`, `FE-HRD-063` | Kontrak `Active`, penempatan dan gaji awal di dev |
+| `AT-HRD-ONB-09` s.d. `AT-HRD-ONB-15` | Masa percobaan | `BE-HRD-065`, `BE-HRD-071`, `BE-HRD-079`, `BE-HRD-080`, `FE-HRD-065` | Status masa percobaan, pemisahan `ProbationFailed` |
+| `AT-HRD-ONB-16` s.d. `AT-HRD-ONB-20` | Checklist dan template | `BE-HRD-070`, `BE-HRD-074`, `BE-HRD-075`, `FE-HRD-059`, `FE-HRD-061` | Butir per lapis; penolakan `VR-ONB` |
+| `AT-HRD-ONB-21` s.d. `AT-HRD-ONB-26` | Siap kerja, kesiapan jadwal, akun | `BE-HRD-066`, `BE-HRD-076`, `BE-HRD-077`, `BE-HRD-084`, `FE-HRD-062`, `FE-HRD-068` | Status kepegawaian, akun, kesiapan |
+| `AT-HRD-ONB-27`, `AT-HRD-ONB-28` | Pendampingan klinis | `BE-HRD-073`, `FE-HRD-066` | Status pendampingan; kotak masuk HRD kosong |
+| `AT-HRD-ONB-29` s.d. `AT-HRD-ONB-34` | Keputusan, penahan jadwal, koreksi | `BE-HRD-080`, `BE-HRD-081`, `BE-HRD-083`, `BE-HRD-084`, `FE-HRD-064` | Kontrak lanjutan, pemisahan, status `LapsedWithoutDecision` |
+| `AT-HRD-ONB-35` s.d. `AT-HRD-ONB-37` | Batch data awal dan pengaman migration | `BE-HRD-063`, `BE-HRD-082`, `FE-HRD-067` | Kontrak `InitialData`; migration berhenti |
+| `AT-HRD-ONB-38` | Tawaran `S-D2` | `BE-HRD-064`, `FE-HRD-072` | Penolakan `VR-ONB-50`, `VR-ONB-51` |
+| `AT-HRD-ONB-39` | Riwayat kontrak 02 baca saja | `BE-HRD-065`, `FE-HRD-071` | `409` beserta pesan |
+| `AT-HRD-ONB-40` | Privasi gaji pada data cetak | `BE-HRD-072`, `FE-HRD-063` | `amountVisible = false` bagi Kepala Unit; audit pembacaan |
+| `UAT-ONB-01` s.d. `UAT-ONB-20` | Validasi bisnis ujung-ke-ujung | `BE-HRD-086`, `FE-HRD-074` | Laporan uji dev runtime `S-C4-ONB` |
+
+### Gap keterkaitan requirement ke bukti verifikasi
+
+| Gap | Apa yang belum ada | Pemilik | Yang tetap bisa jalan |
+| --- | --- | --- | --- |
+| `FR-ONB-043` tanpa baris acceptance test | `testing/acceptance-test-matrix.md` bagian 17 tidak punya baris yang membuktikan peringatan kredensial tampil **dan** tidak menahan siap kerja maupun jadwal. Kriteria tercakup acceptance criteria `BE-HRD-084` butir 2 dan `FE-HRD-060` butir 2, tetapi belum punya ID uji | `design-business-module` — tambah satu baris `AT-HRD-ONB` pada revisi matriks uji berikutnya | Seluruh task |
+| Kategori eskalasi `FR-ONB-050` tanpa baris acceptance test | Pengingat 60 hari terbukti lewat `AT-HRD-ONB-36`; eskalasi 14 hari kepada HR Manager belum punya ID uji | Sama dengan di atas | Seluruh task |
+| Penahan jadwal di Penjadwalan 06 (`INT-HR-31`) | `FR-ONB-022`, `FR-ONB-041`, `FR-ONB-053` dan `AT-HRD-ONB-24`, `AT-HRD-ONB-28`, `AT-HRD-ONB-32` hanya terbukti penuh setelah Penjadwalan memanggil `HrdEmploymentReadinessReadService`. Roadmap ini tidak memuat task Penjadwalan | Desain Penjadwalan `S-B4` | `BE-HRD-084` dibangun dan diuji lewat service |
+| `HRD-DEC-005` dan `HRD-DEC-010` | Aturan blokir kredensial dan pengesahan tampilan catatan pembatasan kerja | Komite Medik/Keperawatan; K3RS | Peringatan kredensial dan kesimpulan kelaikan tanpa diagnosis |
+| Pemetaan peran `HRD-DEC-032` | Rantai `T15` s.d. `T18` tidak menemukan penyetuju sampai peran dipetakan | Administrator | Seluruh task build; menahan `BE-HRD-085` dan `BE-HRD-086` |
+
+**Yang bukan gap.** Backend tidak memelihara proyek automated test (`rules/backend/TEST_POLICY.md`);
+ketiadaan test unit atau integration backend untuk task `S-C4-ONB` **bukan** gap. Bukti backend adalah
+QBE preflight, review diff, `dotnet build`, verifikasi kontrak API, dan verifikasi proses bisnis pada
+baris di atas. Untuk frontend, test unit baru opsional (`rules/frontend/test-policy.md`).

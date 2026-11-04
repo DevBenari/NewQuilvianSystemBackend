@@ -99,6 +99,12 @@ dengan menyunting salah satunya diam-diam.
 | [`standar-kebutuhan-tenaga.md`](./standar-kebutuhan-tenaga.md) | Standar kebutuhan tenaga dari draf sampai berlaku, dan angka rekomendasi | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
 | [`formasi-dan-rencana-tahunan.md`](./formasi-dan-rencana-tahunan.md) | Batch formasi awal, rencana tahunan, dan addendum | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
 | [`permintaan-headcount.md`](./permintaan-headcount.md) | Permintaan headcount sampai setiap kursi terisi atau dibatalkan | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
+| [`rekrutmen-dan-seleksi.md`](./rekrutmen-dan-seleksi.md) | Requisition sampai serah terima ke onboarding | `S-D2` | `READY FOR DESIGN` — dicatat di daftar ini 4 November 2026 |
+| [`onboarding-dan-siap-kerja.md`](./onboarding-dan-siap-kerja.md) | Serah terima rekrutmen sampai siap kerja atau batal bergabung | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`masa-percobaan.md`](./masa-percobaan.md) | Masa percobaan PKWTT sampai lulus, lulus otomatis, atau tidak lulus | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`pendampingan-klinis.md`](./pendampingan-klinis.md) | Preceptor ditetapkan sampai siap mandiri | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`siklus-kontrak.md`](./siklus-kontrak.md) | Keputusan menjelang akhir PKWT, penahan jadwal, dan koreksi kontrak | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`batch-data-awal-kontrak.md`](./batch-data-awal-kontrak.md) | Kontrak pegawai lama lewat satu batch | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
 
 ### 5.1 Proses yang sengaja TIDAK dibuatkan flowchart
 

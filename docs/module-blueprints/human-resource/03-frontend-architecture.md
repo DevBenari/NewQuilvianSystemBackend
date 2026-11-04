@@ -121,7 +121,7 @@ Seluruhnya di bawah `src/app/self-services/human-resource/employee/**` sesuai `H
 | `FE-HRD-23` | Permohonan Ubah Jadwal | `/self-services/human-resource/employee/schedule-change-requests` | `S-A4` | `MISSING / NEW` |
 | `FE-HRD-24` | Permohonan Tukar Shift | `/self-services/human-resource/employee/shift-swap-requests` | `S-A4` | `MISSING / NEW` |
 | `FE-HRD-25` | Permohonan Koreksi Kehadiran | `/self-services/human-resource/employee/attendance-corrections` | `S-A5` | `MISSING / NEW` |
-| `FE-HRD-26` | Permohonan Perubahan Data Saya | `/self-services/human-resource/employee/profile-changes` | `S-A5` | `MISSING / NEW` |
+| `FE-HRD-26` | Permohonan Perubahan Data Saya (Kelola Data Saya) | `/self-services/human-resource/employee/profile-changes` | `S-A5` | `EXISTING / REUSE` — Diimplementasikan penuh via PLAN-REPAIR-HRD-003 (`HRD-DEC-091..094`) |
 | `FE-HRD-27` | Permohonan Pengunduran Diri | `/self-services/human-resource/employee/resignation-requests` | `S-A5` | `MISSING / NEW` |
 
 ### 2.3 Kelompok C — Kotak masuk persetujuan atasan (`S-A7`)
@@ -1393,3 +1393,317 @@ Sumber Daya Manusia                         <- tingkat 0, sudah ada
 - Seluruh form menggunakan base-form-control tanpa styling inline / warna custom.
 - Penanda hak veto klinis dan validasi plafon grade gaji bersifat mengikat arsitektur.
 - Layout tabel, tab filter status (Draft/Screening/Interview/Offer), dan pagination bersifat `DEV_DISCRETION`.
+
+
+---
+
+## 14. Slice `S-C4-ONB` — Onboarding dan Kontrak Kerja, sub-modul 05 (revision `5`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan" |
+| Frontend SHA | `44990b3d3` (branch `HamzahV2`) |
+| Kontrak yang dikonsumsi | `contracts/api-contract.md` bagian 15 — seluruh endpoint **Rencana (belum tersedia)** |
+| Keadaan hari ini | Tidak ada satu pun route, view, service, maupun butir menu onboarding, kontrak kerja, masa percobaan, atau pendampingan (`HRD-TF-039`). Tab riwayat kontrak di editor workforce mengirim masa percobaan tanpa memeriksa jenis kontrak (`HRD-TF-043`) |
+| Pola layar | Mengikuti halaman HR terdekat: daftar transaksi pola A (bagian 4.1), layar dokumen bertahap seperti SK (bagian 4.2a), dan layar batch seperti batch penempatan awal |
+| Prinsip | `HRD-DEC-081`: satu tombol keputusan per peran, data yang sudah ada tidak diketik ulang, dan tombol yang tidak berhak disembunyikan |
+
+### 14.1 Kebutuhan layar
+
+| ID | Layar | Route | Jalan masuk | Status |
+| --- | --- | --- | --- | --- |
+| `FE-HRD-123` | Perlu Tindakan | `/hr/lifecycle/worklist` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-124` | Daftar Kasus Onboarding | `/hr/lifecycle/onboarding-cases` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-125` | Detail Kasus Onboarding | `/hr/lifecycle/onboarding-cases/[id]` | Layar anak dari `FE-HRD-124`; juga dari `FE-HRD-123` dan dari layar serah terima `FE-HRD-122` | `MISSING / NEW` |
+| `FE-HRD-126` | Daftar Kontrak Kerja | `/hr/lifecycle/employment-contracts` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-127` | Detail Kontrak Kerja | `/hr/lifecycle/employment-contracts/[id]` | Layar anak dari `FE-HRD-126`; juga dari `FE-HRD-123`, `FE-HRD-125`, dan tab riwayat kontrak editor workforce | `MISSING / NEW` |
+| `FE-HRD-128` | Daftar Masa Percobaan | `/hr/lifecycle/probations` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-129` | Detail Masa Percobaan | `/hr/lifecycle/probations/[id]` | Layar anak dari `FE-HRD-128`; juga dari `FE-HRD-123` dan tugas kotak masuk `T15` | `MISSING / NEW` |
+| `FE-HRD-130` | Daftar Pendampingan Klinis | `/hr/lifecycle/clinical-preceptorships` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-131` | Detail Pendampingan Klinis | `/hr/lifecycle/clinical-preceptorships/[id]` | Layar anak dari `FE-HRD-130`; juga dari `FE-HRD-125` | `MISSING / NEW` |
+| `FE-HRD-132` | Daftar Template Onboarding | `/hr/lifecycle/onboarding-templates` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-133` | Penyusun Template Onboarding | `/hr/lifecycle/onboarding-templates/[id]` | Layar anak dari `FE-HRD-132` | `MISSING / NEW` |
+| `FE-HRD-134` | Daftar Batch Data Awal Kontrak | `/hr/lifecycle/initial-contract-batches` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-135` | Detail Batch Data Awal Kontrak | `/hr/lifecycle/initial-contract-batches/[id]` | Layar anak dari `FE-HRD-134`; juga dari tugas kotak masuk `T18` | `MISSING / NEW` |
+| `FE-HRD-136` | Permintaan Akses Pegawai Baru | `/hr/lifecycle/onboarding-access-requests` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-137` | Pengaturan Onboarding dan Kontrak | `/hr/lifecycle/settings` | Butir menu | `MISSING / NEW` |
+
+Persetujuan `T15` s.d. `T18` **tidak** punya layar baru. Tugasnya muncul di Kotak Masuk Persetujuan
+`FE-HRD-30` dan detailnya di `FE-HRD-31`; dokumen dibuka dari tautan tugas itu (`FE-HRD-127`,
+`FE-HRD-129`, `FE-HRD-135`).
+
+### 14.2 Peta butir menu
+
+```text
+Sumber Daya Manusia                         <- tingkat 0, sudah ada, anaknya di field `subMenu`
+└── Onboarding & Kontrak                    <- grup tingkat 1, BARU, anaknya di field `subItems`
+    ├── Perlu Tindakan                      -> /hr/lifecycle/worklist
+    ├── Kasus Onboarding                    -> /hr/lifecycle/onboarding-cases
+    ├── Kontrak Kerja                       -> /hr/lifecycle/employment-contracts
+    ├── Masa Percobaan                      -> /hr/lifecycle/probations
+    ├── Pendampingan Klinis                 -> /hr/lifecycle/clinical-preceptorships
+    ├── Permintaan Akses Pegawai Baru       -> /hr/lifecycle/onboarding-access-requests
+    ├── Template Onboarding                 -> /hr/lifecycle/onboarding-templates
+    ├── Batch Data Awal Kontrak             -> /hr/lifecycle/initial-contract-batches
+    └── Pengaturan                          -> /hr/lifecycle/settings
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Onboarding & Kontrak | 1 | Sumber Daya Manusia | — | — | — | Baru |
+| Perlu Tindakan | 2 | Onboarding & Kontrak | `/hr/lifecycle/worklist` | `FE-HRD-123` | `WorkforceLifecycleWorklist : Read` | Baru |
+| Kasus Onboarding | 2 | Onboarding & Kontrak | `/hr/lifecycle/onboarding-cases` | `FE-HRD-124` | `WorkforceOnboardingCase : Read` | Baru |
+| Kontrak Kerja | 2 | Onboarding & Kontrak | `/hr/lifecycle/employment-contracts` | `FE-HRD-126` | `WorkforceEmploymentContract : Read` | Baru |
+| Masa Percobaan | 2 | Onboarding & Kontrak | `/hr/lifecycle/probations` | `FE-HRD-128` | `WorkforceProbation : Read` | Baru |
+| Pendampingan Klinis | 2 | Onboarding & Kontrak | `/hr/lifecycle/clinical-preceptorships` | `FE-HRD-130` | `WorkforcePreceptorship : Read` | Baru |
+| Permintaan Akses Pegawai Baru | 2 | Onboarding & Kontrak | `/hr/lifecycle/onboarding-access-requests` | `FE-HRD-136` | `WorkforceOnboardingAccessRequest : Read` | Baru |
+| Template Onboarding | 2 | Onboarding & Kontrak | `/hr/lifecycle/onboarding-templates` | `FE-HRD-132` | `WorkforceOnboardingTemplate : Read` | Baru |
+| Batch Data Awal Kontrak | 2 | Onboarding & Kontrak | `/hr/lifecycle/initial-contract-batches` | `FE-HRD-134` | `WorkforceInitialContractBatch : Read` | Baru |
+| Pengaturan | 2 | Onboarding & Kontrak | `/hr/lifecycle/settings` | `FE-HRD-137` | `WorkforceLifecycleSetting : Read` | Baru |
+
+Butir "Exit Clearance Karyawan" yang sudah ada (`menu-items.jsx:687`) **tidak** dipindah; ia milik 20.
+Seluruh nama butir di atas **usulan kerja** — status `OPEN`, `HRD-FE-04`. Urutan dan ikon
+`DEV_DISCRETION`. Pendaftaran grup ini **MUST** menjadi acceptance criteria task layar pertama
+`S-C4-ONB` yang dikerjakan. Penanda jumlah pada "Perlu Tindakan" membaca
+`GET .../worklist/counts`.
+
+### 14.3 Skema fitur per layar
+
+#### 14.3.1 `FE-HRD-123` — Perlu Tindakan
+
+```text
++- Perlu Tindakan --------------------------------------------- FE-HRD-123 -+
+| [Semua] [Kontrak akan berakhir 4] [Eskalasi 1] [Tanpa keputusan 1]       |
+| [Masa percobaan 2] [Kontrak belum ditandatangani 1] [Terlambat mulai 0]  |
+| [Scan data awal 12] [Kontrak belum tercatat 3]          [Unit v]        |
++--------------------------------------------------------------------------+
+| Pegawai | Unit | Kategori | Tenggat | Keterangan             | [Buka]   |
+| Budi    | Farmasi | Kontrak akan berakhir | 31-03-2027 | PKWT, 3 th  |  |
++--------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                  |
+| kosong -> "Tidak ada yang perlu ditindaklanjuti saat ini."               |
+| gagal  -> "Daftar gagal dimuat."                            [Coba lagi]  |
++--------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Penyaring kategori | Kategori beserta jumlah; kategori yang tidak berlaku bagi peran pemanggil tidak tampil | `GET .../worklist/counts` | `WorkforceLifecycleWorklist : Read` | Jumlah tidak tampil bila gagal; daftar tetap dapat dimuat |
+| Tabel | Butir sesuai kategori, cakupan unit, dan peran | `GET .../worklist` | `WorkforceLifecycleWorklist : Read` | Kosong dan gagal seperti gambar |
+| Tombol Buka | Membuka dokumen menurut `targetType`: kasus `FE-HRD-125`, kontrak `FE-HRD-127`, masa percobaan `FE-HRD-129` | — | Butir `Read` layar tujuan | Disembunyikan bila tidak berhak |
+
+#### 14.3.2 `FE-HRD-124`, `FE-HRD-126`, `FE-HRD-128`, `FE-HRD-130`, `FE-HRD-134`, `FE-HRD-136` — layar daftar
+
+Keenamnya berbagi bentuk daftar pola A (bagian 4.1): saringan di atas, tabel, paginasi, dan keempat
+keadaan. Yang berbeda hanya kolom dan saringannya.
+
+| Layar | Saringan | Kolom | Sumber data | Bunyi kosong |
+| --- | --- | --- | --- | --- |
+| `FE-HRD-124` | Status, unit, rentang tanggal mulai, koordinator, cari nama | Nomor kasus, pegawai, unit, jabatan, tanggal mulai, kemajuan "7 dari 10 butir", status | `GET .../onboarding-cases` | "Belum ada kasus onboarding pada saringan ini." |
+| `FE-HRD-126` | Status, jenis kontrak, unit, berakhir dalam N hari, data awal tanpa scan | Pegawai, nomor kontrak, jenis, mulai, berakhir, status, tanda "scan belum ada" | `GET .../employment-contracts` | "Belum ada kontrak pada saringan ini." |
+| `FE-HRD-128` | Status, unit, perlu dinilai | Pegawai, unit, mulai, berakhir, sisa hari, status | `GET .../probations` | "Tidak ada masa percobaan pada saringan ini." |
+| `FE-HRD-130` | Status, unit, preceptor | Pegawai, unit, preceptor, didampingi sejak, status | `GET .../clinical-preceptorships` | "Tidak ada pendampingan pada saringan ini." |
+| `FE-HRD-134` | Status | Nomor batch, jumlah baris, baris gagal, status, diajukan oleh | `GET .../initial-contract-batches` | "Belum ada batch data awal." + tombol Buat batch (`WorkforceInitialContractBatch : Create`) |
+| `FE-HRD-136` | Jenis permintaan, status | Pegawai, unit, jenis, status, pesan gagal, diminta pada | `GET .../onboarding-access-requests` | "Tidak ada permintaan akses yang menunggu." |
+
+Gagal memuat pada keenamnya: "Data gagal dimuat." beserta tombol Coba lagi.
+
+#### 14.3.3 `FE-HRD-125` — Detail Kasus Onboarding
+
+```text
++- Kasus ONB-2027-000015 - Rina, Perawat Pelaksana ICU ---------- FE-HRD-125 -+
+| Onboarding berjalan   mulai 01-02-2027   koordinator Dodi   7 dari 10 butir |
+| ! Kewenangan klinis (SPK/RKK) belum tercatat                                |
+| [Catat Hadir Hari Pertama] [Nyatakan Siap Kerja] [Batal Bergabung] [Alihkan]|
++-------------------------------------------------------------------------------+
+| Checklist                                                                     |
+| Lapis | Butir                        | Oleh        | Tenggat | Status | Aksi  |
+| Umum  | Hadir hari pertama           | HRD         | 01-02   | Selesai|       |
+| Umum  | Kontrak sudah ditandatangani | Sistem      | 01-02   | Belum  | -     |
+| Umum  | Orientasi umum (bukti)       | HRD         | 02-02   | Belum  |[Centang]|
+| Umum  | Atasan langsung              | Kepala Unit | 03-02   | Belum  |[Pilih]|
+| Klinis| BTCLS berlaku                | Sistem      | 01-02   | Selesai|       |
+| Klinis| Preceptor                    | Kepala Unit | 03-02   | Belum  |[Pilih]|
+| ICU   | Orientasi ventilator         | Kepala Unit | 03-02   | Belum  |[Centang]|
++-------------------------------------------------------------------------------+
+| Kontrak pertama: PKWT 01-02-2027 s.d. 31-01-2028  Draf  [Buka kontrak]        |
+| Akun: dibuat, belum aktif   |   Akses kerja: belum diminta                    |
++-------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Nomor, nama, jabatan, unit, status, tanggal mulai, koordinator, kemajuan, peringatan | `GET .../onboarding-cases/{id}` | `WorkforceOnboardingCase : Read` | Gagal → seluruh layar diganti pesan dan tombol coba lagi; di luar cakupan → "Data tidak ditemukan." |
+| Tombol Catat Hadir Hari Pertama | Form tanggal hadir | `POST .../first-day-attendance` | `WorkforceOnboardingCase : CompleteItem` | Tampil hanya bila `availableActions` memuatnya |
+| Tombol Nyatakan Siap Kerja | Konfirmasi dengan ringkasan butir | `POST .../declare-ready` | `WorkforceOnboardingCase : DeclareReady` | Nonaktif dengan keterangan "Masih ada {n} butir wajib" bila belum lengkap |
+| Tombol Batal Bergabung | Form alasan dan catatan | `POST .../cancel-join` | `WorkforceOnboardingCase : CancelJoin` | Tidak tampil sesudah hadir hari pertama |
+| Tombol Alihkan | Pilih petugas HRD | `PUT .../coordinator` | `WorkforceOnboardingCase : Reassign` | — |
+| Checklist | Butir per lapis, urut tenggat | `items[]` pada detail | `WorkforceOnboardingCase : Read` | Kasus tanpa Template Umum menampilkan "Template Umum RS belum ada; hanya butir sistem yang tampil." |
+| Aksi butir HRD | Centang, unggah bukti, batal centang | `POST .../items/{itemId}/complete`, `/undo` | `WorkforceOnboardingCase : CompleteItem` | Butir otomatis tidak punya tombol |
+| Aksi butir unit | Centang, unggah bukti, pilih orang, batal centang | `POST .../unit-items/{itemId}/complete`, `/undo` | `WorkforceOnboardingCase : CompleteUnitItem` | Pilihan orang hanya pegawai aktif di unit itu |
+| Kontrak pertama | Jenis, tanggal, status, tautan | `firstContract` pada detail | `WorkforceEmploymentContract : Read` | — |
+| Akun dan akses | Status kedua permintaan, pesan gagal | `accessRequests[]` pada detail | `WorkforceOnboardingCase : Read` | Pesan gagal tampil apa adanya, misalnya "Email pegawai belum diisi" |
+
+#### 14.3.4 `FE-HRD-127` — Detail Kontrak Kerja
+
+```text
++- Kontrak 045/PKWT/2026 - Budi, Petugas Farmasi ---------------- FE-HRD-127 -+
+| PKWT   01-04-2026 s.d. 31-03-2027   Berjalan   total PKWT 3 tahun           |
+| [Cetak] [Tandai Sudah Ditandatangani] [Ajukan Keputusan] [Ajukan Koreksi]   |
++-------------------------------------------------------------------------------+
+| Rantai kontrak        | 2024 PKWT -> 2025 PKWT -> 2026 PKWT (berjalan)        |
+| Masa percobaan        | Tidak berlaku untuk PKWT                              |
+| Keputusan             | belum ada                                             |
+| Koreksi               | belum ada                                             |
+| Scan                  | 045-PKWT-2026.pdf  [Unduh]                            |
++-------------------------------------------------------------------------------+
+| Ajukan Keputusan: ( ) Perpanjang [12] bulan -> berakhir 31-03-2028            |
+|                   ( ) Angkat jadi Pegawai Tetap                               |
+|                   ( ) Tidak Diperpanjang  alasan [...........]                |
+|                   pratinjau: total PKWT menjadi 4 tahun          [Ajukan]     |
++-------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Nomor, pegawai, jenis, tanggal, status, total PKWT | `GET .../employment-contracts/{id}` | `WorkforceEmploymentContract : Read` | Gagal → pesan dan coba lagi |
+| Tombol Cetak | Draf siap cetak; gaji tampil hanya bila berhak | `GET .../{id}/print-data` | `WorkforceEmploymentContract : Read` (+ `WfpSalaryAssignment : ViewAmount` untuk nominal) | Tanpa hak nominal: baris gaji berbunyi "disembunyikan" |
+| Tombol Tandai Sudah Ditandatangani | Unggah scan dan tanggal tanda tangan | `POST .../{id}/mark-signed` | `WorkforceEmploymentContract : MarkSigned` | Tampil hanya untuk kontrak `Draft` |
+| Tombol Ajukan Keputusan | Form tiga pilihan dengan pratinjau 5 tahun | `GET .../{id}/fixed-term-check`, `POST .../{id}/decisions` | `WorkforceContractDecision : Submit` | Pilihan Perpanjang dinonaktifkan dengan keterangan bila melewati 5 tahun |
+| Tombol Ajukan Koreksi | Form nilai baru, alasan, scan perbaikan | `POST .../{id}/corrections` | `WorkforceEmploymentContract : RequestCorrection` | — |
+| Keputusan dan koreksi | Daftar beserta statusnya; tombol Catat Pemberitahuan untuk Tidak Diperpanjang yang disetujui | Detail kontrak; `POST .../decisions/{id}/notification` | `WorkforceContractDecision : RecordNotification` | Kosong → "belum ada" |
+| Scan | Unduh; unggah susulan untuk data awal | `GET`/`POST .../{id}/document` | `WorkforceEmploymentContract : Read` / `: UploadDocument` | Tanpa scan → "Scan belum diunggah" |
+
+#### 14.3.5 `FE-HRD-129` — Detail Masa Percobaan
+
+```text
++- Masa Percobaan - Andi, Apoteker --------------------------- FE-HRD-129 -+
+| Berjalan   01-02-2027 s.d. 30-04-2027   sisa 14 hari                     |
++--------------------------------------------------------------------------+
+| Hasil: ( ) Lulus   ( ) Tidak Lulus                                       |
+| Alasan [..............................................]                  |
+| Lampiran penilaian [Pilih berkas]  (wajib bila Tidak Lulus)    [Ajukan]  |
++--------------------------------------------------------------------------+
+| Riwayat penilaian: PRB-2027-000003  Lulus  Dikembalikan  "lengkapi..."   |
++--------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Pegawai, status, tanggal, sisa hari | `GET .../probations/{id}` | `WorkforceProbation : Read` | Lulus otomatis tampil "Lulus otomatis pada {tanggal}" |
+| Form hasil | Hasil, alasan, lampiran | `POST .../probations/{id}/assessments` | `WorkforceProbation : Submit` | Form tidak tampil sesudah tanggal akhir atau bila ada penilaian terbuka |
+| Riwayat | Seluruh penilaian dan catatan HRD | Detail | `WorkforceProbation : Read` | Kosong → "Belum ada penilaian." |
+
+#### 14.3.6 `FE-HRD-131` — Detail Pendampingan Klinis
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Pegawai, unit, status, didampingi sejak, preceptor berjalan | `GET .../clinical-preceptorships/{id}` | `WorkforcePreceptorship : Read` | Gagal → pesan dan coba lagi |
+| Tombol Ganti Preceptor | Pilih preceptor dan alasan | `PUT .../{id}/preceptor` | `WorkforcePreceptorship : Manage` | Pilihan hanya tenaga klinis aktif di unit itu |
+| Tombol Siap Mandiri | Tanggal, catatan, lampiran wajib | `POST .../{id}/declare-independent` | `WorkforcePreceptorship : Manage` | Tampil hanya saat Didampingi |
+| Riwayat preceptor | Nama, dari, sampai, alasan | Detail | `WorkforcePreceptorship : Read` | — |
+
+#### 14.3.7 `FE-HRD-133` — Penyusun Template Onboarding
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Kode, nama, lapis (Umum / Tenaga Klinis / Unit), unit bila lapis Unit, target hari, aktif | `GET .../onboarding-templates/{id}` | `WorkforceOnboardingTemplate : Read` | — |
+| Daftar butir | Kode, nama, kelompok, penanggung jawab, jenis butir, sumber otomatis dan jenis sertifikat, wajib, tenggat hari | Detail | `WorkforceOnboardingTemplate : Update` | Butir sistem tampil terkunci dengan label "Butir sistem" |
+| Simpan | Simpan template | `POST`/`PUT .../onboarding-templates` | `: Create` / `: Update` | Pesan dari `VR-ONB-20` s.d. `VR-ONB-25` |
+
+#### 14.3.8 `FE-HRD-135` — Detail Batch Data Awal Kontrak
+
+Mengikuti layar batch penempatan awal (`HRD-DEC-054`): unduh templat, unggah, tabel baris dengan
+kolom hasil pemeriksaan per baris, tombol Ajukan yang nonaktif selama masih ada baris gagal.
+Sumber: `GET .../initial-contract-batches/template`, `POST .../validate`, `POST`/`PUT`, `POST .../submit`.
+Butir hak akses: `WorkforceInitialContractBatch : Read`, `: Create`, `: Update`, `: Submit`, `: Cancel`.
+Kosong → "Belum ada baris. Unduh templat untuk mulai."
+
+#### 14.3.9 `FE-HRD-137` — Pengaturan
+
+Empat isian angka dengan satuan hari dan keterangan bawaannya (60, 14, 14, 3). Sumber
+`GET`/`PUT .../lifecycle-settings`; simpan hanya untuk `WorkforceLifecycleSetting : Update`.
+Pemegang `: Read` saja melihat isian baca saja.
+
+### 14.4 Perubahan pada layar yang sudah ada
+
+| Layar | Perubahan | Dasar |
+| --- | --- | --- |
+| Tab riwayat kontrak pada editor workforce (`src/components/features/workforce/workforce-resource-editor.jsx`) | Menjadi **baca saja**. Tombol tambah, ubah, ubah status, jadikan berjalan, dan hapus dihapus; isian `probationEndDate` dihapus dari form. Satu tautan "Kelola di Kontrak Kerja" membuka `FE-HRD-127` atau `FE-HRD-126` | `VR-ONB-32`, `HRD-DEC-085` butir 2, `HRD-TF-043` |
+| Label "Probation" sebagai jenis kepegawaian dan status pegawai (`workforce-profile-dashboard.jsx:3998-4025`) | Tidak dipakai untuk menandai masa percobaan; profil menampilkan "Masa percobaan s.d. {tanggal}" dari data masa percobaan bila ada | `HRD-DEC-085` butir 2 |
+| Form master pegawai (`employee-grouped-form.config.jsx`) | Isian jenis kepegawaian, status kepegawaian, tanggal masuk, tanggal akhir kontrak, dan tanggal akhir masa percobaan menjadi baca saja untuk pegawai yang sudah punya kontrak, dengan keterangan "Mengikuti kontrak kerja" | `VR-ONB-33` |
+| Form dan layar persetujuan tawaran `S-D2` | Isian jenis kontrak (pilihan) dan lama kontrak (bulan) beserta tanggal berakhir hasil hitung; tampil juga di surat tawaran | `HRD-DEC-095`, `VR-ONB-50`, `VR-ONB-51` |
+| Layar Serah Terima `FE-HRD-122` (`S-D2`) | Sesudah serah terima berhasil, menampilkan tautan ke kasus onboarding yang terbentuk | `HRD-DEC-083` |
+| Kotak Masuk `FE-HRD-30` / `FE-HRD-31` | Empat jenis tugas baru `T15` s.d. `T18` dengan tautan ke dokumennya | `HRD-DEC-081` |
+| Penjadwalan 06 | Menampilkan penanda "Didampingi — {preceptor}" dan pesan penolakan `VR-ONB-46`, `VR-ONB-47` | `HRD-DEC-087`, `HRD-DEC-089` — dikerjakan pada desain 06 |
+
+### 14.5 Aksi per peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md` bagian 13.2, tidak dikarang ulang.
+
+| Peran | Layar yang terlihat | Tombol yang terlihat |
+| --- | --- | --- |
+| HR Admin | Seluruh layar bagian 14.1 kecuali tombol ubah di `FE-HRD-137` | Catat hadir, centang butir HRD, alihkan, siap kerja, batal bergabung, cetak, tandai ditandatangani, ajukan koreksi, catat pemberitahuan, unggah scan susulan, kelola template, kelola batch, ulang akun |
+| HR Manager | Sama dengan HR Admin | Ditambah simpan pengaturan; kategori eskalasi di Perlu Tindakan |
+| Kepala Unit | `FE-HRD-123` s.d. `FE-HRD-131` untuk unitnya | Centang butir unit, pilih atasan langsung dan preceptor, ajukan keputusan kontrak, ajukan hasil masa percobaan, ganti preceptor, siap mandiri |
+| Atasan langsung | `FE-HRD-123`, `FE-HRD-127`, `FE-HRD-129` untuk bawahannya | Ajukan keputusan kontrak, ajukan hasil masa percobaan |
+| Administrator / IT | `FE-HRD-136` | Tandai akses selesai |
+| Auditor | Seluruh layar, baca saja | Tidak ada tombol tulis |
+
+### 14.6 Data dan status yang dikonsumsi
+
+| Layar | Endpoint yang dibaca | Status yang ditampilkan |
+| --- | --- | --- |
+| `FE-HRD-124`, `FE-HRD-125` | `.../onboarding-cases` | Onboarding berjalan, Selesai, Dibatalkan; butir Belum, Selesai |
+| `FE-HRD-126`, `FE-HRD-127` | `.../employment-contracts` | Draf, Berjalan, Selesai, Berakhir, Berakhir tanpa keputusan, Dibatalkan |
+| `FE-HRD-128`, `FE-HRD-129` | `.../probations` | Berjalan, Menunggu keputusan HRD, Lulus, Lulus otomatis, Tidak Lulus |
+| `FE-HRD-130`, `FE-HRD-131` | `.../clinical-preceptorships` | Preceptor ditetapkan, Didampingi, Mandiri, Dibatalkan |
+| `FE-HRD-134`, `FE-HRD-135` | `.../initial-contract-batches` | Draf, Diajukan, Dikembalikan, Ditolak, Diterapkan, Dibatalkan |
+| `FE-HRD-136` | `.../onboarding-access-requests` | Diminta, Selesai, Gagal, Dibatalkan |
+
+Pemetaan nilai enum ke label Indonesia ditempatkan di satu berkas konstanta layar, bukan di tiap
+komponen. Label adalah `DEV_DISCRETION` selama maknanya sama dengan kolom di atas.
+
+### 14.7 Penanganan keadaan
+
+| Keadaan | Penanganan |
+| --- | --- |
+| Memuat | Kerangka baris pada daftar; kerangka bagian pada detail |
+| Kosong | Kalimat bagian 14.3 |
+| Gagal | "Data gagal dimuat." dengan tombol Coba lagi; detail di luar cakupan → "Data tidak ditemukan." |
+| Data basi | Request tulis membawa `rowVersion`; jawaban `409` menampilkan "Data ini sudah diubah orang lain. Muat ulang lalu ulangi." dan memuat ulang |
+| Pengiriman ganda | Tombol aksi nonaktif selama request berjalan; serah terima dan siap kerja aman diulang di backend (`VR-ONB-01`) |
+| Penolakan aturan | Pesan `422` dari `contracts/validation-matrix.md` bagian 14 ditampilkan apa adanya di dekat tombol |
+| Berkas | Pemeriksaan jenis dan ukuran di sisi layar sebelum unggah, sama dengan `VR-ONB-09`; backend tetap memeriksa |
+
+### 14.8 Kewenangan UI dan ruang `DEV_DISCRETION`
+
+| Hal | Keputusan | Sumber |
+| --- | --- | --- |
+| Tombol yang tidak berhak | **Disembunyikan**, bukan ditampilkan lalu ditolak | Template frontend 2.5 |
+| Tombol aksi kasus | Mengikuti `availableActions` dari backend | `AGENTS.md` — backend otoritatif atas aksi |
+| Nominal gaji di cetak kontrak | Hanya bagi pemegang `ViewAmount`; tidak disimpan di Redux maupun penyimpanan peramban | `HRD-DEC-033`, `HRD-DEC-040` |
+| Nama butir menu dan label status | Usulan kerja | `HRD-FE-04` `OPEN` |
+| Tab, modal, drawer, warna, ikon, urutan | `DEV_DISCRETION` | Template frontend 2.1 |
+| Form keputusan kontrak dan hasil masa percobaan sebagai modal atau panel | `DEV_DISCRETION` | — |
+
+### 14.9 Ketergantungan test
+
+Test frontend memakai kerangka uji repository frontend. Yang wajib dibuktikan per layar: keempat
+keadaan, tombol tersembunyi bagi peran yang tidak berhak, penanganan `409`, dan pesan `422`.
+Uji layar bergantung pada endpoint bagian 15 kontrak API; sebelum backend siap, layar diuji dengan
+data tiruan yang mengikuti bentuk response kontrak.
+
+### 14.10 Traceability
+
+| Keputusan | Layar |
+| --- | --- |
+| `HRD-DEC-081` | Seluruh layar: satu tombol keputusan per peran; persetujuan lewat kotak masuk |
+| `HRD-DEC-083` | `FE-HRD-124`, `FE-HRD-125`, perubahan `FE-HRD-122` |
+| `HRD-DEC-084`, `HRD-DEC-095` | `FE-HRD-125`, `FE-HRD-127`, perubahan layar tawaran `S-D2` |
+| `HRD-DEC-085` | `FE-HRD-128`, `FE-HRD-129`, perubahan tab riwayat kontrak dan label "Probation" |
+| `HRD-DEC-086` | `FE-HRD-125`, `FE-HRD-132`, `FE-HRD-133` |
+| `HRD-DEC-087` | `FE-HRD-130`, `FE-HRD-131` |
+| `HRD-DEC-088` | `FE-HRD-125`, `FE-HRD-136` |
+| `HRD-DEC-089` | `FE-HRD-123`, `FE-HRD-126`, `FE-HRD-127` |
+| `HRD-DEC-090` | `FE-HRD-134`, `FE-HRD-135` |

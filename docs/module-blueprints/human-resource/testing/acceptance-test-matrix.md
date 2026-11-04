@@ -394,3 +394,54 @@ Uji integrasi diverifikasi terhadap endpoint API backend `RecruitmentManagement`
 | `AT-HRD-D2-10` | Promosi cepat dari Talent Pool (`HRD-DEC-080`) | **Berhasil:** Kandidat utama menolak offer; recruiter menekan tombol promosi cadangan; offer baru terbit bagi kandidat peringkat 1 | `INTEGRATION`, `UI` | Status kandidat cadangan menjadi `PROMOTED`, offer baru terbuat | `AC-REC-08` |
 | `AT-HRD-D2-11` | Kadaluwarsa retensi Talent Pool (`HRD-DEC-080`) | **Gagal:** Mencoba mempromosikan kandidat yang telah berada di Talent Pool > 6 bulan | `INTEGRATION` | Response `422 Unprocessable` - Status expired | `VR-REC-19` |
 | `AT-HRD-D2-12` | Serah terima onboarding aman (`HRD-DEC-075`) | **Berhasil:** Pelamar lolos MCU `FIT` diserahterimakan; draf `WorkforceProfile` berstatus `Pending Onboarding` terbentuk | `INTEGRATION` | Response `200` dan baris baru di `WfpProfile` | `AC-REC-03` |
+
+
+---
+
+## 17. Onboarding dan Kontrak Kerja — `S-C4-ONB` (`last_changed_in` `v9`, 4 November 2026)
+
+Status `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan". Jenis test mengikuti bagian 0.2 dokumen ini. Backend tidak memelihara proyek automated
+test; bukti berupa uji API terhadap database dev dan pemeriksaan isi tabel.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan | Dasar |
+| --- | --- | --- | --- | --- | --- |
+| `AT-HRD-ONB-01` | Kasus otomatis | **Berhasil:** serah terima Rina dijalankan; kasus, butir tiga lapis, draf kontrak PKWT, dan permintaan akun terbentuk | `INTEGRATION` | Satu baris kasus; butir Umum + Klinis + ICU; kontrak `Draft` 1 Feb 2027 s.d. 31 Jan 2028 | `HRD-DEC-083`, `HRD-DEC-095`, `AC-ONB-01` |
+| `AT-HRD-ONB-02` | Kasus otomatis | **Gagal:** serah terima dijalankan dua kali | `INTEGRATION` | Tetap satu kasus; response kedua mengembalikan kasus yang sama | `VR-ONB-01` |
+| `AT-HRD-ONB-03` | Kasus otomatis | **Gagal:** penyimpanan kasus dipaksa gagal di tengah transaksi | `INTEGRATION` | Serah terima tetap `Generated`; tidak ada kontrak atau butir tersisa | `INT-HR-25` |
+| `AT-HRD-ONB-04` | Batal bergabung | **Berhasil:** Rina tidak datang; HRD menekan Batal Bergabung dengan alasan Tidak hadir | `CONTRACT` | Kasus `Cancelled`; status `CANCELLED_JOIN`; profil nonaktif tidak terhapus; kontrak draf `Cancelled`; kursi requisition terbuka | `AC-ONB-03` |
+| `AT-HRD-ONB-05` | Batal bergabung | **Gagal:** hadir hari pertama sudah dicatat | `CONTRACT` | `422` `VR-ONB-13`; kasus tetap `InProgress` | `AC-ONB-02` |
+| `AT-HRD-ONB-06` | Kontrak pertama | **Gagal:** Tandai Sudah Ditandatangani tanpa scan | `CONTRACT` | `422` `VR-ONB-30` | `AC-ONB-04` |
+| `AT-HRD-ONB-07` | Kontrak pertama | **Berhasil:** scan diunggah | `INTEGRATION` | Kontrak `Active`, `IsCurrent`; penempatan organisasi, jabatan, gaji awal berlaku 1 Feb 2027; `MstEmployee` berisi jenis Kontrak, tanggal masuk, tanggal akhir kontrak; butir otomatis kontrak tercentang | `HRD-DEC-084`, `INT-HR-27` |
+| `AT-HRD-ONB-08` | Kontrak pertama | **Gagal:** isi gaji diubah langsung | `CONTRACT` | Tidak ada endpoint ubah isi (`405`); perubahan hanya lewat revisi tawaran | `AC-ONB-05`, `VR-ONB-31` |
+| `AT-HRD-ONB-09` | Masa percobaan | **Gagal:** tanggal masa percobaan diisi pada kontrak PKWT lewat endpoint riwayat kontrak 02 dan lewat batch | `CONTRACT` | `409` `VR-ONB-32`; `422` `VR-ONB-34` | `AC-ONB-06` |
+| `AT-HRD-ONB-10` | Masa percobaan | **Berhasil:** kontrak PKWTT Andi ditandatangani | `INTEGRATION` | Masa percobaan `Running` 1 Feb s.d. 30 Apr 2027; `ReminderFromDate` 16 Apr 2027 | `HRD-DEC-085` |
+| `AT-HRD-ONB-11` | Masa percobaan | **Berhasil:** atasan mengajukan Lulus, HRD lain menyetujui | `INTEGRATION` | Status `Passed`; penilaian `Approved` | `HRD-DEC-085` |
+| `AT-HRD-ONB-12` | Masa percobaan | **Gagal:** Tidak Lulus tanpa lampiran | `CONTRACT` | `422` `VR-ONB-57` | `AC-ONB-08` |
+| `AT-HRD-ONB-13` | Masa percobaan | **Berhasil:** tidak ada keputusan sampai 30 Apr 2027 | `INTEGRATION` — scheduler | 1 Mei 2027 status `PassedAutomatically`; penilaian terbuka `ClosedOnExpiry`; persetujuan sesudahnya ditolak `VR-ONB-58` | `AC-ONB-07` |
+| `AT-HRD-ONB-14` | Masa percobaan | **Berhasil:** Tidak Lulus disetujui | `INTEGRATION` | Status `Failed`; `TrxEmployeeSeparation` `ProbationFailed` dan exit clearance terbentuk | `HRD-DEC-082`, `INT-HR-29` |
+| `AT-HRD-ONB-15` | Konversi | **Berhasil:** Rina diangkat PKWTT | `INTEGRATION` | Kontrak `Conversion` tanpa masa percobaan | `AC-ONB-16` |
+| `AT-HRD-ONB-16` | Checklist | **Berhasil:** perawat ICU dan petugas keuangan diserahterimakan | `INTEGRATION` | Perawat tiga lapis; petugas keuangan satu lapis | `AC-ONB-09` |
+| `AT-HRD-ONB-17` | Checklist | **Gagal:** butir otomatis dicentang manual; butir wajib bukti tanpa berkas; Kepala Unit mencentang butir HRD | `CONTRACT` | `422` `VR-ONB-06`, `VR-ONB-05`, `VR-ONB-03` | `AC-ONB-10` |
+| `AT-HRD-ONB-18` | Checklist | **Gagal:** Kepala Farmasi membuka kasus pegawai ICU | `CONTRACT` | `404` `VR-ONB-04` | `VR-ONB-04` |
+| `AT-HRD-ONB-19` | Template | **Gagal:** mengaktifkan Template Umum kedua; menghapus butir sistem | `CONTRACT` | `409` `VR-ONB-20`; `422` `VR-ONB-22` | `HRD-DEC-086` |
+| `AT-HRD-ONB-20` | Template | **Berhasil:** template diubah saat kasus berjalan | `INTEGRATION` | Butir kasus yang sudah berjalan tidak berubah | `TEMPLATE_CHANGE_NOT_RETROACTIVE` |
+| `AT-HRD-ONB-21` | Siap kerja | **Gagal:** satu butir wajib belum selesai | `CONTRACT` | `422` `VR-ONB-11` | `AC-ONB-11` |
+| `AT-HRD-ONB-22` | Siap kerja | **Gagal:** petugas yang sama memilih atasan langsung dan menyatakan siap kerja | `CONTRACT` | `422` `VR-ONB-12` | `HRD-DEC-031` |
+| `AT-HRD-ONB-23` | Siap kerja | **Berhasil:** seluruh butir wajib selesai; HRD menyatakan siap kerja | `INTEGRATION` | Status `ACTIVE`; relasi atasan; pendampingan `Accompanied`; permintaan akses kerja `Requested`; kasus `Completed` | `HRD-DEC-088` |
+| `AT-HRD-ONB-24` | Kesiapan jadwal | **Gagal:** pegawai `PENDING_ONBOARDING` dijadwalkan | `INTEGRATION` — bersama 06 | Kesiapan `NotReady`; 06 menolak `VR-ONB-47` | `AC-ONB-12` |
+| `AT-HRD-ONB-25` | Akun | **Berhasil:** hadir hari pertama dicatat | `INTEGRATION` | Akun aktif dengan peran layanan mandiri saja; akses klinis belum ada | `HRD-DEC-088` |
+| `AT-HRD-ONB-26` | Akun | **Gagal:** email pegawai kosong | `INTEGRATION` | Kasus tetap terbentuk; permintaan akun `Failed` dengan pesan; ulang berhasil setelah email diisi | `VR-ONB-75` |
+| `AT-HRD-ONB-27` | Pendampingan | **Gagal:** Siap Mandiri tanpa lampiran | `CONTRACT` | `422` `VR-ONB-60` | `AC-ONB-13` |
+| `AT-HRD-ONB-28` | Pendampingan | **Berhasil:** Siap Mandiri dengan logbook | `CONTRACT` | Status `Independent`; tidak ada tugas di kotak masuk HRD; penanda Didampingi hilang dari kesiapan | `AC-ONB-13` |
+| `AT-HRD-ONB-29` | Keputusan kontrak | **Gagal:** perpanjangan membuat total PKWT 5 tahun 6 bulan | `CONTRACT` | `422` `VR-ONB-36` | `AC-ONB-14` |
+| `AT-HRD-ONB-30` | Keputusan kontrak | **Berhasil:** Perpanjang 12 bulan disetujui, lalu kontrak lanjutan ditandatangani | `INTEGRATION` | Kontrak lanjutan `Active` mulai 1 Feb 2028; pada tanggal itu kontrak lama `Completed` | `HRD-DEC-089` |
+| `AT-HRD-ONB-31` | Keputusan kontrak | **Berhasil:** Tidak Diperpanjang disetujui dan pemberitahuan dicatat | `INTEGRATION` | Pemisahan `ContractNonRenewal` dengan tanggal terakhir = tanggal berakhir kontrak; sesudah tanggal itu kontrak `Ended` | `HRD-DEC-082` |
+| `AT-HRD-ONB-32` | Penahan jadwal | **Berhasil:** PKWT lewat tanpa keputusan | `INTEGRATION` — scheduler dan 06 | Kontrak `LapsedWithoutDecision`; jadwal sesudah tanggal berakhir ditolak `VR-ONB-46`; jadwal sampai tanggal berakhir tetap dapat dibuat | `AC-ONB-15` |
+| `AT-HRD-ONB-33` | Koreksi | **Gagal:** pembuat koreksi menyetujui sendiri | `INTEGRATION` | Ditolak mesin persetujuan | `HRD-DEC-089` |
+| `AT-HRD-ONB-34` | Koreksi | **Berhasil:** tanggal berakhir salah ketik dikoreksi | `INTEGRATION` | Kontrak berisi nilai baru; nilai lama dan scan lama tersimpan pada baris koreksi | `HRD-DEC-089` |
+| `AT-HRD-ONB-35` | Batch data awal | **Gagal:** PKWT tanpa tanggal berakhir; pegawai masuk batch kedua | `CONTRACT` | Baris tidak sah `VR-ONB-66`; `409` `VR-ONB-65` | `AC-ONB-17` |
+| `AT-HRD-ONB-36` | Batch data awal | **Berhasil:** batch disetujui petugas HRD lain | `INTEGRATION` | Kontrak `InitialData` per baris; pengingat kontrak Budi muncul di daftar kerja; tanpa masa percobaan | `HRD-DEC-090` |
+| `AT-HRD-ONB-37` | Pengaman migration | **Gagal:** satu baris uji di `TrxProbationReview` | `MANUAL` — migration | Migration berhenti dan menyebut nama tabel serta jumlah barisnya; tidak ada perubahan | `AC-ONB-18` |
+| `AT-HRD-ONB-38` | Tawaran `S-D2` | **Gagal:** tawaran tanpa jenis kontrak; PKWT tanpa lama | `CONTRACT` | `422` `VR-ONB-50`, `VR-ONB-51` | `HRD-DEC-095` |
+| `AT-HRD-ONB-39` | Riwayat kontrak 02 | **Gagal:** layar lama mencoba menyimpan kontrak | `CONTRACT` | `409` `CONTRACT_MANAGED_BY_LIFECYCLE` dengan pesan terbaca | `VR-ONB-32` |
+| `AT-HRD-ONB-40` | Privasi | **Berhasil:** Kepala Unit membuka data cetak kontrak | `CONTRACT` | `basicSalary = null`, `amountVisible = false`; HR Admin dengan `ViewAmount` melihat nominal dan pembacaannya tercatat | `HRD-DEC-033`, `HRD-DEC-039` |

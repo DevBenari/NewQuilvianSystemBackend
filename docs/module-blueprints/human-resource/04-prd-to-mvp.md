@@ -1662,3 +1662,354 @@ disiagakan dalam Talent Pool untuk promosi cepat jika kandidat utama mundur (`HR
 | `MVP-11` | `EPIC HRD-16`, `EPIC HRD-17` | Fondasi requisition, lowongan, registrasi pelamar, dan gerbang STR klinis |
 | `MVP-12` | `EPIC HRD-18`, `EPIC HRD-19` | Evaluasi wawancara, uji klinis, conditional offer, dan integrasi MCU pra-kerja |
 | `MVP-13` | `EPIC HRD-20`, `EPIC HRD-21` | Persetujuan bertingkat, serah terima onboarding, dan talent pool promosi cepat |
+
+
+---
+
+## 23. Bagian `S-C4-ONB` — Onboarding dan Kontrak Kerja, sub-modul 05 (`last_changed_in` `v9`, 4 November 2026)
+
+Bagian ini menerapkan kedua puluh bagian wajib kontrak PRD → MVP **khusus untuk sub-modul 05**.
+Bagian lain dokumen ini tidak berubah. Aturan yang sama mengikat: bagian ini menurunkan, tidak
+menciptakan. Seluruh entity, status, hak akses, dan endpoint berasal dari `02-backend-architecture.md`
+bagian 18, `03-frontend-architecture.md` bagian 14, `data/data-dictionary.md` bagian 10, `flowcharts/`,
+dan `contracts/` bagian `S-C4-ONB`.
+
+### 23.1 Identitas
+
+| Field | Value |
+| --- | --- |
+| Slice | `S-C4-ONB` — Onboarding dan Kontrak Kerja (bagian sub-modul 05 dari `S-C4`; label usulan kerja) |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan" |
+| Repository target | `NewQuilvianSystemBackend` (backend), `QuilvianSystemFrontendDev` (frontend) |
+| Backend SHA baseline | `8b17b75a` (branch `MHamzah`) |
+| Frontend SHA baseline | `44990b3d3` (branch `HamzahV2`) |
+| Keputusan sumber | `HRD-DEC-081` s.d. `HRD-DEC-090`, `HRD-DEC-095` (decision log revision `19` bagian 34) |
+| Ringkasan cakupan | Serah terima rekrutmen sampai siap kerja, kontrak pertama, masa percobaan PKWTT, pendampingan klinis, siklus kontrak PKWT, dan data awal kontrak pegawai lama |
+
+### 23.2 Ringkasan eksekutif
+
+Rumah sakit dapat menerima pegawai baru sampai siap dinas **tanpa formulir kertas yang tercecer**:
+kontrak tersusun otomatis dari tawaran, checklist orientasi terbentuk sendiri, dan pegawai baru tidak
+mungkin masuk jadwal sebelum kontraknya ditandatangani dan HRD menyatakan siap kerja. Setelah bekerja,
+tidak ada kontrak PKWT yang lewat tanpa keputusan, tidak ada masa percobaan yang melanggar hukum, dan
+setiap keputusan cukup satu langkah persetujuan HRD (`HRD-DEC-081`).
+
+### 23.3 Masalah produk
+
+| Kondisi hari ini | Bukti |
+| --- | --- |
+| Tidak ada satu pun endpoint atau layar onboarding, masa percobaan, maupun kontrak tidak diperpanjang | `HRD-TF-039` |
+| Dua struktur onboarding kembar tanpa pemakai | `HRD-TF-040` |
+| Masa percobaan dapat diisi pada kontrak PKWT, berlawanan dengan PP 35/2021 | `HRD-TF-043` |
+| Riwayat kontrak dapat diketik bebas; 55 pegawai tanpa satu pun kontrak tercatat | `HRD-TF-044` |
+| Status `Pending Onboarding` yang dijanjikan rekrutmen belum ada | `HRD-TF-046` |
+| Tawaran kerja tidak memuat jenis maupun lama kontrak | `HRD-TF-049` |
+
+Yang sudah ada dan dipakai ulang: riwayat kontrak `WfpContractHistory` (02), pembuatan akun di master
+pegawai, mesin persetujuan bersama, penyimpanan berkas, dan exit clearance 20.
+
+### 23.4 Visi produk
+
+1. Kandidat menerima tawaran yang memuat jenis dan lama kontrak.
+2. Serah terima membuka kasus onboarding, draf kontrak, dan permintaan akun sekaligus.
+3. Pegawai hadir, kontrak ditandatangani, penempatan dan gaji berlaku sejak tanggal mulai kontrak.
+4. Checklist tiga lapis selesai; HRD menyatakan siap kerja; pegawai masuk jadwal.
+5. Tenaga klinis didampingi preceptor sampai Kepala Unit menyatakan siap mandiri.
+6. Pegawai PKWTT sejak awal menjalani masa percobaan tiga bulan yang pasti berujung.
+7. Menjelang akhir PKWT, atasan memutuskan perpanjang, pegawai tetap, atau tidak diperpanjang;
+   keputusan terakhir diserahkan ke proses keluar 20.
+
+### 23.5 Batas rilis
+
+**Titik mulai:**
+
+1. Tawaran `S-D2` berstatus final diterima dan kandidat dinyatakan layak MCU.
+2. Pegawai yang sudah bekerja sebelum sub-modul ini dipakai (lewat batch data awal).
+
+**Titik akhir:**
+
+1. Pegawai baru berstatus Aktif dan boleh dijadwalkan, atau kasusnya batal bergabung.
+2. Pendampingan klinis dinyatakan siap mandiri.
+3. Masa percobaan berujung lulus, lulus otomatis, atau tidak lulus yang sudah diserahkan ke 20.
+4. Setiap kontrak PKWT berujung kontrak lanjutan bertanda tangan, atau tidak diperpanjang yang sudah
+   diserahkan ke 20.
+
+### 23.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab di dalam MVP |
+| --- | --- |
+| HR Manager | Serah terima dari rekrutmen (04); pengaturan; melihat eskalasi |
+| Petugas HRD | Koordinator kasus, hadir hari pertama, kontrak, siap kerja, batal bergabung, koreksi, batch, penyetuju `T15` s.d. `T18` |
+| Kepala Unit | Butir unit, atasan langsung, preceptor, keputusan kontrak, hasil masa percobaan, siap mandiri |
+| Atasan langsung | Keputusan kontrak dan hasil masa percobaan bawahannya |
+| Administrator / IT | Memberi peran kerja dan menandai permintaan akses selesai |
+| Pegawai baru | Hadir, menandatangani kontrak, memakai layanan mandiri sejak hari pertama |
+
+### 23.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+| --- | --- | --- |
+| Kasus onboarding otomatis dan checklist tiga lapis | `HRD-CAP-17` | Wajib; tanpa ini pegawai baru tidak punya jalur masuk |
+| Kontrak pertama dari tawaran dan tanda tangan | `HRD-CAP-17`, `HRD-CAP-02` | Wajib; PKWT wajib tertulis |
+| Penempatan dan gaji awal dari tawaran | `HRD-CAP-30`, `HRD-CAP-31` | Wajib; tanpa ini pegawai tidak digaji |
+| Siap kerja dan akun bertahap | `HRD-CAP-17` | Wajib; penentu boleh dijadwalkan |
+| Masa percobaan PKWTT | `HRD-CAP-17` | Wajib; tanpa ini PKWTT tidak punya batas evaluasi yang sah |
+| Pendampingan klinis | `HRD-CAP-17` | Wajib; keselamatan pasien untuk tenaga klinis baru |
+| Keputusan kontrak dan penahan jadwal | `HRD-CAP-17`, `HRD-CAP-36` | Wajib; tanpa ini PKWT lewat tanpa keputusan |
+| Koreksi kontrak | `HRD-CAP-17`, `HRD-CAP-36` | Wajib; satu-satunya jalan memperbaiki kontrak setelah 02 baca saja |
+| Batch data awal kontrak | `HRD-CAP-02` | Wajib; tanpa ini 55 pegawai lama tidak pernah mendapat pengingat |
+| Daftar Perlu Tindakan | `HRD-CAP-17` | Wajib; pengganti notifikasi yang tidak ada (`HRD-TF-052`) |
+
+### 23.8 Kemampuan yang ditunda
+
+| Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Notifikasi surel atau push | `HRD-CAP-17` | Repository tidak punya layanan notifikasi (`HRD-TF-052`); membangunnya adalah kemampuan platform tersendiri | Daftar Perlu Tindakan dengan penanda jumlah di menu |
+| Blokir kerja karena kewenangan klinis | `HRD-CAP-17` | `HRD-DEC-005` menunggu Komite Medik/Keperawatan | Peringatan kredensial pada profil, kasus, dan jadwal |
+| Template per jabatan, site, atau entitas hukum | `HRD-CAP-17` | Ditolak untuk rilis pertama (`HRD-DEC-081` butir 6, `HRD-DEC-086`) | Tiga lapis: Umum, Klinis, Unit |
+| Layar "Kontrak Saya" bagi pegawai | `HRD-CAP-17` | Tidak diminta pada wawancara 05 | Pegawai menerima salinan kontrak bertanda tangan di luar sistem |
+| Pemindahan master template ke folder `MasterData` | — | Utang teknis lokasi; butuh approval pemilik arsitektur backend | Master tetap di `LifecycleManagement/Models` |
+
+### 23.9 Alur bisnis target — `FLOW-HRD-MVP-003`
+
+1. Recruiter menyusun tawaran berisi jenis dan lama kontrak; tawaran disetujui dan diterima.
+2. HR Manager menjalankan serah terima; kasus onboarding, draf kontrak, dan permintaan akun terbentuk.
+3. Pada hari pertama, HRD mencatat hadir; akun layanan mandiri aktif.
+4. Kontrak ditandatangani dan scan-nya diunggah; penempatan dan gaji awal berlaku.
+5. HRD dan Kepala Unit menyelesaikan checklist; Kepala Unit memilih atasan langsung dan preceptor.
+6. HRD menyatakan siap kerja; pegawai Aktif, didampingi, dan masuk jadwal.
+7. Kepala Unit menyatakan siap mandiri.
+8. Untuk PKWTT sejak awal: atasan menilai masa percobaan sebelum hari ke-90; HRD memutuskan.
+9. Untuk PKWT: 60 hari sebelum berakhir, atasan memilih keputusan; HRD memutuskan; kontrak
+   lanjutan ditandatangani atau kasus diserahkan ke 20.
+
+Rincian dan jalur pengecualian: `flowcharts/onboarding-dan-siap-kerja.md`, `masa-percobaan.md`,
+`pendampingan-klinis.md`, `siklus-kontrak.md`, `batch-data-awal-kontrak.md`.
+
+### 23.10 Epic dan functional requirement
+
+#### `EPIC HRD-22` — Kasus onboarding dan checklist
+
+Disposisi backend: `MISSING / NEW` (kasus, butir); `EXTEND` (template).
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-ONB-001` | Serah terima membuat tepat satu kasus. **Contoh:** serah terima Rina dijalankan dua kali; hanya satu kasus `ONB-2027-000015` yang ada |
+| `FR-ONB-002` | Kasus perawat ICU memuat butir Umum, Klinis, dan ICU; kasus petugas keuangan hanya Umum. **Contoh:** Rina 10 butir, Budi 6 butir |
+| `FR-ONB-003` | Butir otomatis tidak dapat dicentang tangan; butir wajib bukti menolak tanpa berkas |
+| `FR-ONB-004` | Kepala Unit hanya mencentang butir unit di unitnya; HRD hanya butir HRD |
+| `FR-ONB-005` | Batal Bergabung hanya sebelum hadir hari pertama, dengan alasan dan catatan; kursi kembali terbuka di 04 |
+| `FR-ONB-006` | Perubahan template tidak mengubah kasus yang sudah berjalan |
+
+#### `EPIC HRD-23` — Kontrak pertama dari tawaran
+
+Disposisi backend: `EXTEND` (`HrdJobOffer`, `WfpContractHistory`); `MISSING / NEW` (service penulisan).
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-ONB-010` | Tawaran tanpa jenis kontrak, atau PKWT tanpa lama 1–60 bulan, tidak dapat diajukan |
+| `FR-ONB-011` | Draf kontrak pertama menyalin jenis, tanggal mulai, dan tanggal berakhir dari tawaran. **Contoh:** PKWT 12 bulan mulai 1 Feb 2027 → berakhir 31 Jan 2028 |
+| `FR-ONB-012` | Kontrak tidak dapat ditandai sudah ditandatangani tanpa scan |
+| `FR-ONB-013` | Penandatanganan membuat penempatan organisasi, jabatan, dan gaji awal sejak tanggal mulai kontrak, dalam satu transaksi |
+| `FR-ONB-014` | Isi draf kontrak tidak dapat diubah langsung; perubahan lewat revisi tawaran |
+| `FR-ONB-015` | Endpoint tulis riwayat kontrak 02 menjawab `409` dengan pesan terbaca |
+
+#### `EPIC HRD-24` — Siap kerja dan akun bertahap
+
+Disposisi backend: `MISSING / NEW`; `EXTEND` (`EmployeeController` diekstrak).
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-ONB-020` | Siap kerja ditolak selama masih ada butir wajib; ditolak bila penyata sama dengan pemilih atasan langsung |
+| `FR-ONB-021` | Siap kerja mengubah status menjadi Aktif, membuat relasi atasan, dan meminta akses kerja |
+| `FR-ONB-022` | Pegawai `PENDING_ONBOARDING` tidak dapat dijadwalkan |
+| `FR-ONB-023` | Akun dibuat saat kasus terbentuk dan aktif sejak hadir hari pertama hanya untuk layanan mandiri |
+| `FR-ONB-024` | Gaji periode pertama dihitung sejak tanggal mulai kontrak. **Contoh:** siap kerja 4 Feb, gaji Februari dari 1 Feb |
+
+#### `EPIC HRD-25` — Masa percobaan PKWTT
+
+Disposisi backend: `MISSING / NEW`.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-ONB-030` | Masa percobaan hanya terbentuk untuk kontrak PKWTT pertama sejak bergabung; tidak untuk PKWT maupun pengangkatan PKWT ke PKWTT |
+| `FR-ONB-031` | Masa percobaan berlaku tepat 3 bulan dan tidak dapat diperpanjang. **Contoh:** 1 Feb → 30 Apr 2027 |
+| `FR-ONB-032` | Tidak Lulus wajib lampiran; Lulus tidak |
+| `FR-ONB-033` | Tanpa hasil disetujui sampai tanggal akhir, pegawai lulus otomatis sehari sesudahnya |
+| `FR-ONB-034` | Tidak Lulus yang disetujui diserahkan ke 20 |
+
+#### `EPIC HRD-26` — Pendampingan klinis
+
+Disposisi backend: `MISSING / NEW`.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-ONB-040` | Tenaga klinis tidak dapat siap kerja sebelum preceptor dipilih |
+| `FR-ONB-041` | Selama didampingi, pegawai tetap dapat dijadwalkan dan jadwal menampilkan penanda Didampingi |
+| `FR-ONB-042` | Siap Mandiri wajib lampiran dan tidak masuk persetujuan HRD |
+| `FR-ONB-043` | Peringatan kewenangan klinis tampil tetapi tidak menghalangi siap kerja maupun jadwal |
+
+#### `EPIC HRD-27` — Siklus kontrak dan penahan jadwal
+
+Disposisi backend: `MISSING / NEW`; `EXTEND` (`ResignationLifecycleHandoffService`).
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-ONB-050` | Kontrak PKWT muncul di Perlu Tindakan 60 hari sebelum berakhir, dan eskalasi tampil bagi HR Manager 14 hari sebelum berakhir |
+| `FR-ONB-051` | Perpanjangan yang membuat total PKWT lebih dari 5 tahun ditolak. **Contoh:** PKWT pertama 1 Apr 2024, perpanjangan sampai 30 Sep 2029 ditolak |
+| `FR-ONB-052` | Tidak Diperpanjang yang disetujui diserahkan ke 20 dengan tanggal terakhir bekerja sama dengan tanggal berakhir kontrak |
+| `FR-ONB-053` | PKWT yang lewat tanpa lanjutan bertanda tangan berstatus Berakhir tanpa keputusan dan jadwal sesudahnya ditahan |
+| `FR-ONB-054` | Koreksi kontrak disetujui petugas HRD lain dan versi lama tersimpan |
+
+#### `EPIC HRD-28` — Batch data awal kontrak dan pembersihan tabel kandidat
+
+Disposisi backend: `MISSING / NEW`; tabel kandidat dibuang.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-ONB-060` | Batch dengan baris tidak sah tidak dapat diajukan; pegawai hanya sekali masuk batch |
+| `FR-ONB-061` | Batch yang disetujui membuat kontrak data awal tanpa masa percobaan, dan pengingat kontrak langsung berlaku |
+| `FR-ONB-062` | Scan kontrak lama boleh menyusul dan tampil di Perlu Tindakan |
+| `FR-ONB-063` | Migration pembersihan enam tabel kandidat berhenti bila salah satunya berisi data |
+
+### 23.11 Model status
+
+| Objek | Status | Invariant utama |
+| --- | --- | --- |
+| Kasus onboarding | `InProgress`, `Completed`, `Cancelled` | Satu per serah terima; batal hanya sebelum hadir |
+| Kontrak | `Draft`, `Active`, `Completed`, `Ended`, `LapsedWithoutDecision`, `Cancelled` | Tepat satu kontrak berjalan per pegawai; sah hanya dengan scan |
+| Masa percobaan | `Running`, `AwaitingDecision`, `Passed`, `PassedAutomatically`, `Failed` | Hanya PKWTT sejak bergabung; selalu berujung |
+| Pendampingan | `PreceptorAssigned`, `Accompanied`, `Independent`, `Cancelled` | Satu preceptor berjalan |
+| Status kepegawaian | `PENDING_ONBOARDING`, `ACTIVE`, `CANCELLED_JOIN` | Hanya `ACTIVE` yang boleh dijadwalkan |
+
+Daftar lengkap perpindahan: `contracts/state-transition-matrix.md` bagian 13.
+
+### 23.12 Sasaran arsitektur
+
+| Dipakai ulang | Diperluas | Baru |
+| --- | --- | --- |
+| Mesin persetujuan, number series, penyimpanan berkas, proyeksi cakupan unit, exit clearance 20 | `WfpContractHistory`, dua master template, `MstContractType`, `HrdJobOffer`, `ResignationLifecycleHandoffService`, `EmployeeController` (ekstraksi akun), `WfpContractHistoryController` (baca saja) | 12 tabel `Hrd*`, 17 service, 9 controller di `LifecycleManagement`; 4 service di 01 dan 02 |
+
+### 23.13 Sasaran kemampuan API
+
+Base URL bersama: `api/v1/corporate/human-resource/lifecycle-management`. Seluruh endpoint
+**Rencana (belum tersedia)**; daftar lengkap pada `contracts/api-contract.md` bagian 15.
+
+| Grup `[Tags]` | Endpoint pokok | Hak akses | Epic |
+| --- | --- | --- | --- |
+| `Corporate / Human Resource / Lifecycle Management / Onboarding Case` | `GET /onboarding-cases`, `GET /{id}`, `POST /{id}/first-day-attendance`, `POST /{id}/items/{itemId}/complete`, `POST /{id}/unit-items/{itemId}/complete`, `POST /{id}/declare-ready`, `POST /{id}/cancel-join` | `WorkforceOnboardingCase : Read`, `: CompleteItem`, `: CompleteUnitItem`, `: DeclareReady`, `: CancelJoin` | `EPIC HRD-22`, `HRD-24` |
+| `Corporate / Human Resource / Lifecycle Management / Onboarding Template` | `GET`, `POST`, `PUT /onboarding-templates` | `WorkforceOnboardingTemplate : Read`, `: Create`, `: Update` | `EPIC HRD-22` |
+| `Corporate / Human Resource / Lifecycle Management / Employment Contract` | `GET /employment-contracts`, `POST /{id}/mark-signed`, `POST /{id}/decisions`, `POST /{id}/corrections`, `POST /decisions/{decisionId}/notification` | `WorkforceEmploymentContract : Read`, `: MarkSigned`, `: RequestCorrection`; `WorkforceContractDecision : Submit`, `: RecordNotification` | `EPIC HRD-23`, `HRD-27` |
+| `Corporate / Human Resource / Lifecycle Management / Probation` | `GET /probations`, `POST /{id}/assessments` | `WorkforceProbation : Read`, `: Submit` | `EPIC HRD-25` |
+| `Corporate / Human Resource / Lifecycle Management / Clinical Preceptorship` | `PUT /{id}/preceptor`, `POST /{id}/declare-independent` | `WorkforcePreceptorship : Manage` | `EPIC HRD-26` |
+| `Corporate / Human Resource / Lifecycle Management / Initial Contract Batch` | `GET /template`, `POST /validate`, `POST`, `POST /{id}/submit` | `WorkforceInitialContractBatch : Read`, `: Create`, `: Submit` | `EPIC HRD-28` |
+| `Corporate / Human Resource / Lifecycle Management / Onboarding Access Request` | `GET`, `POST /{id}/complete`, `POST /{id}/retry` | `WorkforceOnboardingAccessRequest : Read`, `: Complete`, `: Retry` | `EPIC HRD-24` |
+| `Corporate / Human Resource / Lifecycle Management / Lifecycle Worklist` | `GET /worklist`, `GET /worklist/counts` | `WorkforceLifecycleWorklist : Read` | `EPIC HRD-27` |
+| `Corporate / Human Resource / Lifecycle Management / Lifecycle Setting` | `GET`, `PUT /lifecycle-settings` | `WorkforceLifecycleSetting : Read`, `: Update` | `EPIC HRD-27` |
+
+### 23.14 Matriks kewenangan
+
+| Peran | String hak akses |
+| --- | --- |
+| HR Admin | `WorkforceOnboardingCase : Read/CompleteItem/Reassign/DeclareReady/CancelJoin`, `WorkforceOnboardingTemplate : Read/Create/Update`, `WorkforceEmploymentContract : Read/MarkSigned/UploadDocument/RequestCorrection`, `WorkforceContractDecision : Read/RecordNotification`, `WorkforceProbation : Read`, `WorkforcePreceptorship : Read`, `WorkforceInitialContractBatch : Read/Create/Update/Submit/Cancel`, `WorkforceOnboardingAccessRequest : Read/Retry`, `WorkforceLifecycleWorklist : Read`, `WorkforceLifecycleSetting : Read` |
+| HR Manager | HR Admin + `WorkforceLifecycleSetting : Update` |
+| Kepala Unit | `WorkforceOnboardingCase : Read/CompleteUnitItem`, `WorkforceEmploymentContract : Read`, `WorkforceContractDecision : Read/Submit`, `WorkforceProbation : Read/Submit`, `WorkforcePreceptorship : Read/Manage`, `WorkforceLifecycleWorklist : Read` — unit dalam cakupan saja |
+| Administrator / IT | `WorkforceOnboardingAccessRequest : Read/Complete` |
+| Auditor | Seluruh `: Read` |
+
+Sumber: `contracts/permission-audit-matrix.md` bagian 13.
+
+### 23.15 Batas integrasi dan billing
+
+| Yang **MUST NOT** dibuat sendiri oleh sub-modul 05 | Pemilik |
+| --- | --- |
+| Tabel kontrak kedua | 02 (`WfpContractHistory`) |
+| Penempatan dan gaji di luar service 02 | 02 |
+| Peran dan hak akses aplikasi | Administrator |
+| Catatan pemisahan dan exit clearance di luar service 20 | 20 |
+| Perhitungan gaji dan uang kompensasi PKWT | 10 Payroll |
+| Aturan penjadwalan berpasangan | 06 Penjadwalan |
+| Billing pasien | Tidak menyentuh billing sama sekali |
+
+### 23.16 Guardrail regulasi
+
+| Kewajiban | Penerapan |
+| --- | --- |
+| PKWT wajib tertulis (PP 35/2021) | Kontrak sah hanya dengan scan bertanda tangan; penahan jadwal sesudah kontrak berakhir |
+| PKWT tidak boleh mensyaratkan masa percobaan (PP 35/2021) | Masa percobaan hanya dari jenis kontrak yang mengizinkan |
+| Masa percobaan PKWTT paling lama 3 bulan (UU 13/2003 Pasal 60) | Tetap 3 bulan, tanpa perpanjangan, lulus otomatis bila tidak dinilai |
+| Batas jangka waktu PKWT 5 tahun termasuk perpanjangan (PP 35/2021) | Perpanjangan melewati 5 tahun ditolak; batch memeriksa data lama |
+| Uang kompensasi saat PKWT berakhir (PP 35/2021) | 05 menyediakan tanggal dan jenis pemisahan untuk 10 |
+| Kerahasiaan kesehatan (`HRD-DEC-010`) | Hanya kesimpulan kelaikan dan catatan pembatasan tanpa diagnosis |
+| Bukti orientasi untuk akreditasi (KMK 1596/2024) | Butir wajib bukti dan lampiran siap mandiri tersimpan per pegawai |
+
+### 23.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+| --- | --- |
+| `NFR-ONB-001` | Serah terima, penandatanganan kontrak, siap kerja, batal bergabung, dan penerapan keputusan masing-masing satu transaksi; gagal di tengah tidak meninggalkan data setengah jadi |
+| `NFR-ONB-002` | Perubahan kontrak satu pegawai diserialkan kunci advisory per pegawai |
+| `NFR-ONB-003` | Setiap dokumen memakai `RowVersion`; versi usang ditolak `409` |
+| `NFR-ONB-004` | Scheduler harian idempoten: dijalankan dua kali pada hari yang sama tidak mengubah hasil |
+| `NFR-ONB-005` | Kolom sensitif tidak masuk logger; berkas bukti diunduh lewat endpoint terautentikasi |
+| `NFR-ONB-006` | Tanggal memakai zona waktu rumah sakit; "hari sesudah tanggal akhir" dihitung pada pergantian hari setempat |
+
+### 23.18 Skenario UAT
+
+| ID | Epic | Kondisi awal | Langkah | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-ONB-01` | `HRD-22` | Tawaran Rina final diterima, MCU layak | HR Manager menjalankan serah terima | Kasus dengan 10 butir dan draf kontrak PKWT terbentuk |
+| `UAT-ONB-02` | `HRD-22` | Kasus Rina berjalan, belum hadir | Rina tidak datang; HRD menekan Batal Bergabung | Kasus dibatalkan, profil nonaktif, kursi terbuka di rekrutmen |
+| `UAT-ONB-03` | `HRD-22` | Rina sudah tercatat hadir | HRD mencoba Batal Bergabung | Ditolak dengan pesan pengunduran diri |
+| `UAT-ONB-04` | `HRD-23` | Draf kontrak Rina | HRD menandai ditandatangani tanpa scan | Ditolak; kontrak tetap draf |
+| `UAT-ONB-05` | `HRD-23` | Draf kontrak Rina | HRD mengunggah scan dan menandai | Kontrak berjalan; penempatan dan gaji awal sejak 1 Feb 2027 |
+| `UAT-ONB-06` | `HRD-23` | Recruiter menyusun tawaran PKWT | Lama kontrak dikosongkan lalu diajukan | Ditolak |
+| `UAT-ONB-07` | `HRD-24` | Satu butir wajib belum selesai | HRD menekan Nyatakan Siap Kerja | Ditolak dengan daftar butir |
+| `UAT-ONB-08` | `HRD-24` | Seluruh butir wajib selesai | HRD menyatakan siap kerja | Rina Aktif dan dapat dijadwalkan; akses kerja diminta |
+| `UAT-ONB-09` | `HRD-24` | Email Rina kosong | Kasus terbentuk | Permintaan akun gagal dengan pesan; ulang berhasil setelah email diisi |
+| `UAT-ONB-10` | `HRD-25` | Andi PKWTT, masa percobaan berjalan | Kepala Instalasi mengajukan Tidak Lulus tanpa lampiran | Ditolak |
+| `UAT-ONB-11` | `HRD-25` | Masa percobaan Andi tanpa penilaian | Tanggal akhir lewat | Andi lulus otomatis |
+| `UAT-ONB-12` | `HRD-25` | Rina PKWT | Petugas mencoba mengisi tanggal masa percobaan | Ditolak |
+| `UAT-ONB-13` | `HRD-26` | Rina didampingi Tono | Sari menekan Siap Mandiri tanpa logbook | Ditolak |
+| `UAT-ONB-14` | `HRD-26` | Rina didampingi Tono | Sari mengunggah logbook dan menekan Siap Mandiri | Penanda Didampingi hilang tanpa persetujuan HRD |
+| `UAT-ONB-15` | `HRD-27` | Budi PKWT sejak 1 Apr 2024 | Kepala Instalasi mengajukan perpanjangan 30 bulan | Ditolak karena melewati 5 tahun |
+| `UAT-ONB-16` | `HRD-27` | Kontrak Budi berakhir tanpa keputusan | Penyusun jadwal menjadwalkan Budi sesudah tanggal berakhir | Ditolak; jadwal sampai tanggal berakhir tetap dapat dibuat |
+| `UAT-ONB-17` | `HRD-27` | Kontrak Rina akan berakhir | Sari memilih Angkat jadi Pegawai Tetap; Dodi menyetujui; kontrak ditandatangani | Kontrak PKWTT tanpa masa percobaan |
+| `UAT-ONB-18` | `HRD-27` | Koreksi kontrak diajukan Dodi | Dodi mencoba menyetujui sendiri | Ditolak; petugas HRD lain menyetujui |
+| `UAT-ONB-19` | `HRD-28` | Batch berisi PKWT tanpa tanggal berakhir | HRD mengajukan | Ditolak dengan pesan per baris |
+| `UAT-ONB-20` | `HRD-28` | Batch valid | Petugas HRD lain menyetujui | Kontrak data awal terbentuk; pengingat kontrak Budi muncul |
+
+### 23.19 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Satu pegawai baru berjalan dari serah terima sampai siap kerja dan masuk jadwal | `UAT-ONB-01`, `UAT-ONB-05`, `UAT-ONB-08` |
+| Pegawai yang belum siap kerja atau kontraknya berakhir tanpa keputusan tidak dapat dijadwalkan | `UAT-ONB-16`, `AT-HRD-ONB-24`, `AT-HRD-ONB-32` |
+| Tidak ada masa percobaan pada PKWT dan tidak ada masa percobaan tanpa ujung | `UAT-ONB-11`, `UAT-ONB-12` |
+| Total PKWT tidak dapat melewati 5 tahun | `UAT-ONB-15`, `AT-HRD-ONB-29` |
+| Setiap keputusan sub-modul 05 cukup satu langkah persetujuan dan penyetujunya bukan pengaju | `AT-HRD-ONB-22`, `AT-HRD-ONB-33` |
+| Seluruh tabel master dan definisi alur yang dibutuhkan terisi | Rencana data master awal `02-backend-architecture.md` 18.8 |
+| Enam tabel kandidat dibuang dengan pengaman tabel kosong | `AT-HRD-ONB-37` |
+| Endpoint tulis riwayat kontrak 02 menjawab `409` dan tabnya baca saja | `AT-HRD-ONB-39` |
+| Grup menu "Onboarding & Kontrak" terdaftar dan setiap layar terjangkau | `03-frontend-architecture.md` 14.2 |
+
+### 23.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Epic | Syarat mulai |
+| --- | --- | --- | --- |
+| `MVP-14` | Fondasi: migration 1–4, data master, number series, definisi `T15` s.d. `T18`, isian kontrak pada tawaran `S-D2`, service penulisan 01/02, riwayat kontrak 02 baca saja; kasus onboarding dan template | `EPIC HRD-22`, `EPIC HRD-23` | Desain `S-C4-ONB` disetujui; service serah terima `S-D2` (`BE-HRD-061`) tersedia |
+| `MVP-15` | Siap kerja, akun bertahap, pendampingan klinis | `EPIC HRD-24`, `EPIC HRD-26` | `MVP-14` selesai |
+| `MVP-16` | Siklus kontrak, penahan jadwal, koreksi, batch data awal, daftar Perlu Tindakan | `EPIC HRD-27`, `EPIC HRD-28` | `MVP-14` selesai; penahan jadwal aktif setelah 06 membaca `INT-HR-31` |
+| `MVP-17` | Masa percobaan | `EPIC HRD-25` | `MVP-14` selesai |
+| `POST-MVP` | Seluruh kemampuan pada 23.8 | — | Di luar rilis pertama |
+
+Tidak ada epic `OPEN DECISION` pada gelombang mana pun.
+
+| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| --- | --- | --- | :---: |
+| Konfirmasi lima pilihan desain yang diturunkan dari keputusan: (1) butir sistem atasan langsung, (2) penempatan dan gaji awal dari tawaran tanpa SK, (3) pengingat sebagai daftar Perlu Tindakan, (4) sertifikat dibaca dari `WfpCertification`, (5) riwayat kontrak 02 menjadi baca saja | Pengguna, saat approval desain | Bila salah satu ditolak, bagian terkait dirancang ulang | Ya — approval desain |
+| Perubahan tawaran `S-D2` (`HRD-DEC-095`) dimasukkan ke roadmap `S-D2` | `plan-module-delivery` | `EPIC HRD-23` tidak dapat dikerjakan | Ya — untuk `MVP-14` |
+| Pemetaan peran HR Admin, HR Manager, Kepala Unit, Administrator/IT | Administrator (`HRD-DEC-032`) | Rilis tertahan; development tidak | Tidak |
+| Aturan blokir kewenangan klinis | Komite Medik/Keperawatan (`HRD-DEC-005`) | Tetap peringatan | Tidak |
+| Pengesahan tampilan catatan pembatasan kerja | K3RS (`HRD-DEC-010`) | Butir itu tertahan saat rilis | Tidak |
+| Penjadwalan 06 membaca kesiapan (`INT-HR-31`) | Desain 06 (`S-B4`) | Penahan jadwal belum bekerja walau datanya sudah ada | Tidak untuk development 05 |

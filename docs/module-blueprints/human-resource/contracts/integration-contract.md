@@ -510,3 +510,36 @@ mengubah kursi yang sudah `Fulfilled` dan tidak membuat potret bulanan kedua.
 - **Submit Pendaftaran Pelamar**: Idempotent berdasarkan `NationalIdNumber` (NIK KTP). Submit berulang untuk NIK yang sama mengembalikan data kandidat yang sudah terdaftar.
 - **Serah Terima Onboarding**: Idempotent berdasarkan `JobOfferId`. Eksekusi berulang tidak menciptakan ID profil pegawai ganda.
 - **Penanganan Pembatalan Kursi**: Jika kandidat menolak penawaran (*Offer Rejected*) atau batal hadir dinas (*No-Show*), kursi otomatis kembali ke status `In-Progress`, memicu notifikasi promosi cepat bagi kandidat peringkat 1 di `HrdTalentPool` (`HRD-DEC-080`).
+
+
+---
+
+## 13. Onboarding dan Kontrak Kerja — `S-C4-ONB` (`last_changed_in` `v9`, 4 November 2026)
+
+Status `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan". Seluruh sambungan di bawah **belum ada di kode**. Seluruh pihak berada di backend yang
+sama; sambungan berupa pemanggilan service, bukan HTTP, kecuali disebut lain.
+
+| ID | Arah | Isi | Sinkron? | Bila gagal | Idempotency |
+| --- | --- | --- | :---: | --- | --- |
+| `INT-HR-25` | 04 Rekrutmen → 05 | Serah terima `FinalAccepted` membuka kasus onboarding, draf kontrak pertama, dan permintaan akun dalam **satu transaksi** dengan serah terima (`HRD-DEC-083`) | Ya | Seluruhnya batal; serah terima tetap `Generated` dan dapat diulang | Unik `HiringHandoffId`; pengulangan mengembalikan kasus yang sama (`VR-ONB-01`) |
+| `INT-HR-26` | 05 → 02 Workforce Core | Seluruh penulisan baris kontrak lewat `WfpContractHistoryWriteService` | Ya, ikut transaksi pemanggil | Transaksi 05 batal | Kunci advisory per pegawai; nomor kontrak unik per pegawai |
+| `INT-HR-27` | 05 → 02 Workforce Core | Penempatan organisasi, jabatan, dan gaji awal saat kontrak pertama ditandatangani; relasi atasan saat siap kerja, lewat `WfpNewHireAssignmentService` | Ya, ikut transaksi pemanggil | Penandatanganan atau siap kerja batal | Satu penempatan utama per jenis per tanggal (`HRD-DEC-049`) |
+| `INT-HR-28` | 05 → 01 Master Data HR | Salinan jenis dan status kepegawaian, tanggal masuk, tanggal akhir kontrak dan masa percobaan (`EmployeeEmploymentRecordService`); akun login (`EmployeeUserAccountService`) | Ya | Salinan: transaksi 05 batal. **Akun: tidak membatalkan kasus** — permintaan `Failed` dan dapat diulang (`VR-ONB-75`) | Satu akun per profil |
+| `INT-HR-29` | 05 → 20 | Tidak Diperpanjang dan Tidak Lulus menjadi `TrxEmployeeSeparation` (`ContractNonRenewal`, `ProbationFailed`) berstatus disetujui, lalu exit clearance dibuka (`ResignationLifecycleHandoffService.HandoffLifecycleSeparationAsync`) | Ya, ikut transaksi penerapan keputusan | Penerapan keputusan batal; langkah inbox dapat diulang | Satu pemisahan per keputusan (`EmployeeSeparationId` tersimpan) |
+| `INT-HR-30` | 05 ↔ `BC-HR-07` Persetujuan Bersama | `T15` hasil masa percobaan, `T16` keputusan kontrak, `T17` koreksi kontrak, `T18` batch data awal — masing-masing satu langkah `SiteHr`, `AllowSelfApproval = false` | Ya | Langkah tanpa penyetuju ditolak (`UNRESOLVED_STEP_FAILS_CLOSED`) | Satu instance per dokumen |
+| `INT-HR-31` | 06 Penjadwalan → 05 | Kesiapan dijadwalkan per pegawai per tanggal: `Eligible`, `NotReady`, `ContractHold`, ditambah penanda Didampingi dan peringatan kredensial (`HrdEmploymentReadinessReadService`) | Ya, baca | 06 **MUST** menolak menjadwalkan bila kesiapan tidak dapat dibaca (gagal tertutup) | Baca saja |
+| `INT-HR-32` | 05 → `CredentialingManagement` | Baca `WfpCertification` untuk butir sertifikat wajib; baca `WfpClinicalPrivilege` untuk peringatan kredensial | Ya, baca | Butir otomatis tetap `Pending`; peringatan kredensial tampil | Baca saja |
+| `INT-HR-33` | 10 Payroll → 02/05 | Payroll membaca tanggal mulai kontrak (gaji sejak tanggal itu, `HRD-DEC-088` `PAY_FROM_CONTRACT_START`) dan jenis pemisahan `ContractNonRenewal` untuk uang kompensasi PKWT | Ya, baca | Milik 10 | Baca saja |
+| `INT-HR-34` | 05 → Administrator/IT | Permintaan akses kerja `WorkAccess` muncul di layar permintaan akses; IT memberi peran lewat layar peran yang sudah ada lalu menandai selesai | Tidak — kerja manusia | Permintaan tetap `Requested` dan tampil di daftar | Satu permintaan per kasus |
+| `INT-HR-35` | 04 Rekrutmen → 05 | Tawaran memuat jenis dan lama kontrak; draf kontrak pertama menyalinnya (`HRD-DEC-095`) | Ya | Tawaran tanpa jenis kontrak tidak dapat diajukan (`VR-ONB-50`) | — |
+
+**Kesiapan integrasi.**
+
+| Sambungan | Keadaan pihak lawan hari ini | Memblokir |
+| --- | --- | --- |
+| `INT-HR-25`, `INT-HR-35` | Model `S-D2` ada, service serah terima `BE-HRD-061` belum | Implementasi kasus otomatis; desain tidak |
+| `INT-HR-27` | Service penempatan baru; aturan tumpang tindih sudah ada di `HrdInitialPlacementBatchService` | Tidak |
+| `INT-HR-28` (akun) | Logika ada di `EmployeeController` (`HRD-TF-053`), perlu diekstrak | Tidak |
+| `INT-HR-29` | `ResignationLifecycleHandoffService` ada (`HRD-TF-054`) | Tidak |
+| `INT-HR-31` | Penjadwalan 06 belum dirancang ulang (`S-B4`) | Rilis penahan jadwal menunggu 06 membaca kontrak ini |
+| `INT-HR-34` | Pemetaan peran `MAPPING_REQUIRED` (`HRD-DEC-032`) | Rilis akses kerja |

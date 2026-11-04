@@ -797,7 +797,8 @@ Kolom **Status** memakai tiga nilai saja: `Baru`, `Diperbarui`, `Sudah ada`.
 | `WorkforceCoreCrossEmployeeController` | `Diperbarui` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menyediakan 5 endpoint daftar pantau lintas-pegawai (organisasi, jabatan, atasan, riwayat, gaji tanpa nominal) beserta saringan dan pencarian (`HRD-DEC-012`, `HRD-DEC-055`) |
 | `HrdPersonnelActionOrderController` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menangani siklus hidup Dokumen Peristiwa SK: pembuatan draft, unggah scan SK, pengajuan, approval/reject, pengajuan batal, dan eksekusi penempatan (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`) |
 | `Employee360Controller` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menyajikan profil komprehensif pegawai 360 dengan filter otorisasi ketat: tampilan lengkap untuk HR, tampilan terbatas profil kerja untuk Atasan Langsung bawahan aktif hari ini, dan penolakan 403 untuk bukan bawahan (`HRD-DEC-053`) |
-| `EmployeeProfileChangeController` | `Diperbarui` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menangani transaksi permohonan perubahan data sisi HR: daftar permohonan, verifikasi, keputusan, apply, dan endpoint pembuatan pengajuan atas nama pegawai (`HRD-DEC-052`) |
+| `EmployeeProfileChangeController` | `Diperbarui` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menangani transaksi permohonan perubahan data sisi HR: daftar permohonan, verifikasi, keputusan, apply, download bukti, dan endpoint pembuatan pengajuan atas nama pegawai (`HRD-DEC-052`, `HRD-DEC-093`) |
+| `EmployeeProfileChangeSelfServiceController` | `Diperbarui` | `Areas/SelfServices/HumanResource/Controllers/` | Menangani portal Layanan Mandiri (ESS) untuk perubahan data profil: profil berjalan (`current-profile`), ringkasan statistik (`summary`), draf, unggah bukti pendukung (`evidence`), unduh bukti, pembatalan, dan submit ke workflow engine (`HRD-DEC-091`..`094`) |
 | `InitialPlacementBatchController` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menangani unduh template, unggah, validasi baris, pengajuan, dan approval batch data awal penempatan (`HRD-DEC-054`) |
 
 ### 5.4 `HrdAttendanceRawLog`
@@ -2671,3 +2672,812 @@ DROP TABLE IF EXISTS public."TrxJobOffer";
 | `HRD-DEC-078` | Bagian 17.2, 17.3 (`HrdJobOffer.OfferStatus = CONDITIONAL_ACCEPTED` & `HrdPreEmploymentMedicalCheck`) |
 | `HRD-DEC-079` | Bagian 17.2, 17.3 (`HrdJobOffer.IsAboveGradeMax` & `HrdJobOfferApproval.ApprovalTier`) |
 | `HRD-DEC-080` | Bagian 17.2, 17.3 (`HrdTalentPool` dengan status `ACTIVE` & retensi 6 bulan) |
+
+
+---
+
+## 18. Slice `S-C4-ONB` — Onboarding dan Kontrak Kerja, sub-modul 05 (revision `5`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan" |
+| Backend SHA saat bagian ini ditulis | `8b17b75a` (branch `MHamzah`) |
+| Frontend SHA | `44990b3d3` (branch `HamzahV2`) |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `19`, bagian 34 (`HRD-DEC-081` s.d. `HRD-DEC-090`, `HRD-DEC-095`; fakta `HRD-TF-039` s.d. `HRD-TF-055`) |
+| `input_revision` — capability map | `01-existing-capability-map.md` revision `1.3`. Baris `HRD-CAP-17` (`LifecycleManagement`) **basi**; fakta penggantinya diperiksa langsung pada HEAD dan dicatat sebagai `HRD-TF-039` s.d. `HRD-TF-048` |
+| Impact scan | BE `e8d47c77` → `8b17b75a`, FE `cfa82fbb3` → `44990b3d3`: `NO_IMPACT` pada `LifecycleManagement`, `WorkforceCore`, dan `MasterData/Workforce` (decision log bagian 34.9) |
+| Kesiapan requirement | Tidak memakai `requirement-completeness-gate`, mengikuti preseden modul HR (bagian 16): gerbang itu diwajibkan untuk slice klinis. Bagian klinis sub-modul 05 hanya **penanda dan bukti** — keputusan kompetensi tetap pada Kepala Unit (`HRD-DEC-087` `CLINICAL_DECISION_NOT_HRD`) dan aturan blokir kredensial tetap menunggu Komite Medik (`CREDENTIAL_WARNING_ONLY_UNTIL_14`). Tidak ada nilai kebijakan klinis yang diputuskan di sini |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada bounded context klinis, billing pasien, atau master bersama lintas modul yang dirancang ulang |
+| Label slice | `S-C4-ONB` adalah **usulan kerja** untuk bagian sub-modul 05 dari `S-C4`. Bagian exit clearance tetap `S-C4`. Penamaan akhir milik `plan-module-delivery` |
+| Kompatibilitas | 12 tabel baru; 5 tabel `Diperbarui` (2 master template, `WfpContractHistory` hanya penambahan kolom, `MstContractType`, `HrdJobOffer`); 6 tabel kandidat kosong dibuang dengan pengaman tabel kosong. **Satu perubahan perilaku yang memutus:** endpoint tulis riwayat kontrak sub-modul 02 berhenti menerima perubahan (bagian 18.4.11) |
+
+Prinsip yang mengikat seluruh bagian ini adalah `HRD-DEC-081`: satu pengaju, HRD memutuskan dengan
+**Setujui / Minta Revisi / Tolak**, tanpa persetujuan bertingkat; data yang sudah ada diisi otomatis;
+bawaan untuk rumah sakit umum.
+
+### 18.1 Bounded context dan ownership
+
+| ID | Bounded context | Aggregate root | Invariant utama |
+| --- | --- | --- | --- |
+| `BC-HR-12` | Onboarding dan Kontrak Kerja | `HrdOnboardingCase`, `HrdProbation`, `HrdClinicalPreceptorship`, `HrdContractDecision`, `HrdContractCorrection`, `HrdInitialContractBatch` | Satu serah terima tepat satu kasus (`HRD-DEC-083`); kontrak sah hanya dengan scan bertanda tangan (`HRD-DEC-084`); masa percobaan hanya untuk PKWTT sejak bergabung, 3 bulan, lulus otomatis bila tidak dinilai (`HRD-DEC-085`, `HRD-DEC-089` butir 6); butir otomatis tidak dapat dicentang tangan (`HRD-DEC-086`); siap kerja hanya bila seluruh butir wajib selesai (`HRD-DEC-088`); total PKWT tidak melebihi 5 tahun dan tidak ada hasil otomatis atas kontrak (`HRD-DEC-089`); satu pegawai sekali masuk batch data awal (`HRD-DEC-090`) |
+
+**Kenapa enam aggregate, bukan satu.** Keenamnya punya siklus hidup dan pengambil keputusan sendiri:
+kasus onboarding diputus HRD lewat **Nyatakan Siap Kerja**; masa percobaan diputus lewat `T15`;
+pendampingan klinis diputus Kepala Unit tanpa HRD; keputusan kontrak lewat `T16`; koreksi kontrak lewat
+`T17`; batch data awal lewat `T18`. Menggabungkannya membuat satu persetujuan mengunci data yang bukan
+miliknya.
+
+**Kontrak kerja bukan aggregate baru.** Baris kontrak tetap disimpan di `WfpContractHistory` milik
+sub-modul 02 (decision log bagian 31.3: "kontrak dicatat di sini, siklusnya diatur di 05"). Sub-modul 05
+**MUST NOT** membuat tabel kontrak kedua. Penulisannya lewat satu service milik 02,
+`WfpContractHistoryWriteService` (bagian 18.4.10), yang hanya dipanggil service 05.
+
+**Batas transaksi.**
+
+| Kejadian | Yang ditulis dalam satu transaksi | Bila gagal |
+| --- | --- | --- |
+| Serah terima dari 04 dijalankan | Status serah terima → `TransferredToOnboarding`; kasus onboarding beserta seluruh butirnya; draf kontrak pertama; permintaan akun | Seluruhnya batal; serah terima tetap `Generated` dan dapat diulang (`INT-HR-25`) |
+| Kontrak pertama ditandai sudah ditandatangani | Kontrak → `Active`, `IsCurrent`; penempatan organisasi, jabatan, dan penetapan gaji awal (02); jenis kepegawaian, tanggal masuk, tanggal akhir kontrak pada `MstEmployee` (01); masa percobaan bila PKWTT; butir otomatis "kontrak sudah ditandatangani" | Seluruhnya batal; kontrak tetap `Draft`, berkas unggahan dihapus |
+| Siap kerja dinyatakan | Kasus → `Completed`; status kepegawaian → Aktif; relasi atasan (02); pendampingan → `Accompanied`; permintaan akses kerja | Seluruhnya batal; kasus tetap `InProgress` |
+| Batal bergabung | Kasus → `Cancelled`; status kepegawaian → batal bergabung; profil nonaktif; kontrak draf → `Cancelled`; serah terima → `Cancelled`; kursi kembali terbuka di 04; akun dinonaktifkan | Seluruhnya batal; kasus tetap `InProgress` |
+| Keputusan `T15` atau `T16` disetujui | Status keputusan; untuk perpanjang/pegawai tetap: draf kontrak lanjutan; untuk tidak lulus/tidak diperpanjang: catatan pemisahan di 20 | Seluruhnya batal; keputusan tetap `Submitted` dan langkah inbox dapat diulang |
+| Kontrak lanjutan ditandatangani | Kontrak baru → `Active`; bila tanggal mulainya hari ini atau sudah lewat, kontrak lama → `Completed` dan `IsCurrent` berpindah | Seluruhnya batal |
+| Batch data awal disetujui | Satu baris `WfpContractHistory` per baris batch, salinan `MstEmployee`, status batch `Applied` | Seluruhnya batal; batch tetap `Submitted` |
+
+Perubahan kontrak satu pegawai diserialkan dengan
+`pg_advisory_xact_lock(hashtext('HRD_LIFECYCLE_CONTRACT_<workforceProfileId>'))`, mengikuti pola
+`EmployeeBenefitEnrollmentService.cs:726`, sehingga penandatanganan kontrak lanjutan dan pekerjaan
+scheduler harian tidak saling menimpa.
+
+**Concurrency.** Setiap tabel dokumen baru memakai `RowVersion` (`Guid`, `IsConcurrencyToken()`),
+mengikuti `HrdJobOffer`. `WfpContractHistory` mendapat kolom yang sama. Dua petugas yang menyimpan
+dokumen yang sama: penyimpanan kedua ditolak `409` dan diminta memuat ulang.
+
+### 18.2 Tabel kepemilikan data `S-C4-ONB`
+
+| Kelompok data | Modul pemilik | Dipakai `S-C4-ONB` | Dibuat ulang di `S-C4-ONB` |
+| --- | --- | :---: | --- |
+| Kasus onboarding dan butir checklist | HR — `S-C4-ONB` | Ya | **Ya, baru.** `TrxEmployeeOnboarding`, `TrxEmployeeOnboardingTask`, `WfpOnboardingChecklist`, `WfpOnboardingTask` dibuang (bagian 18.10) |
+| Template checklist | HR — `S-C4-ONB` | Ya | **Tidak.** `MstOnboardingTemplate` dan `MstOnboardingTemplateTask` dipakai dan `Diperbarui` |
+| Masa percobaan dan penilaiannya | HR — `S-C4-ONB` | Ya | **Ya, baru.** `TrxProbationReview` dibuang |
+| Pendampingan klinis | HR — `S-C4-ONB` | Ya | **Ya, baru.** Belum ada model kandidat |
+| Keputusan perpanjang / pegawai tetap / tidak diperpanjang | HR — `S-C4-ONB` | Ya | **Ya, baru.** `TrxContractNonRenewal` dibuang |
+| Koreksi kontrak, batch data awal kontrak, permintaan akses, pengaturan | HR — `S-C4-ONB` | Ya | **Ya, baru** |
+| Baris kontrak kerja (riwayat kontrak) | 02 Workforce Core | Ya, tulis lewat service 02 | **Tidak.** `WfpContractHistory` `Diperbarui` (penambahan kolom) |
+| Penempatan organisasi, jabatan, gaji, relasi atasan | 02 Workforce Core (`HRD-DEC-047`, `HRD-DEC-049`) | Ya, tulis lewat service 02 | Tidak |
+| Status kepegawaian, jenis kepegawaian, tanggal masuk, tanggal akhir kontrak dan masa percobaan (`MstEmployee`) | 01 Master Data HR | Ya, tulis lewat service 01 | Tidak (`HRD-TF-055`) |
+| Master jenis kontrak, jenis kepegawaian, status kepegawaian | 01 Master Data HR | Ya, baca | Tidak. `MstContractType` mendapat satu kolom (bagian 18.6) |
+| Serah terima, tawaran, kelaikan MCU, requisition, lowongan | 04 Rekrutmen (`S-D2`) | Ya, baca | Tidak. `HrdJobOffer` mendapat dua kolom (`HRD-DEC-095`) |
+| Sertifikat pelatihan wajib (`WfpCertification`) | `CredentialingManagement` (di source) | Ya, baca | Tidak. Catatan: `HRD-DEC-086` menyebut "sub-modul 16"; di source sertifikat bermasa berlaku tinggal di `CredentialingManagement` (bagian 18.9) |
+| Kewenangan klinis (`WfpClinicalPrivilege`) | 14 — `BLOCKED` | Ya, baca untuk peringatan | Tidak |
+| Catatan pemisahan dan exit clearance | 20 (`TrxEmployeeSeparation`, `TrxExitClearance`) | Ya, tulis lewat service 20 | Tidak (`HRD-TF-054`) |
+| Akun login dan peran | Identity; pembuatan akun pegawai ada di 01 (`HRD-TF-053`) | Ya, lewat service 01 | Tidak. Peran kerja tetap diberikan Administrator (`HRD-DEP-003`) |
+| Instance dan langkah persetujuan | `BC-HR-07` Persetujuan Bersama | Ya | Tidak. Empat jenis rujukan baru didaftarkan |
+| Berkas scan | Shared — `WorkflowFileStorageService` (`HRD-DEP-006`) | Ya | Tidak. HR menyimpan path dan nama berkas saja |
+| Jadwal dinas | 06 Penjadwalan | Tidak | Tidak. 06 membaca kesiapan dari 05 (`INT-HR-31`) |
+
+### 18.3 Class diagram
+
+Dipecah empat agar masing-masing muat satu layar. Field lengkap ada di `data/data-dictionary.md`
+bagian 10.
+
+#### 18.3.1 Kasus onboarding dan template
+
+```mermaid
+classDiagram
+    class MstOnboardingTemplate {
+        +string TemplateCode
+        +OnboardingTemplateLayer TemplateLayer
+        +Guid? OrganizationUnitId
+        +int TargetCompletionDays
+        +bool IsActive
+    }
+    class MstOnboardingTemplateTask {
+        +string TaskCode
+        +OnboardingResponsibleRole ResponsibleRole
+        +OnboardingItemKind ItemKind
+        +OnboardingAutomaticSource? AutomaticSource
+        +string? SystemItemCode
+        +bool IsRequired
+        +int DueDayOffset
+    }
+    class HrdOnboardingCase {
+        +string CaseNumber
+        +Guid HiringHandoffId
+        +Guid WorkforceProfileId
+        +Guid OrganizationUnitId
+        +bool IsClinical
+        +DateOnly PlannedStartDate
+        +OnboardingCaseStatus CaseStatus
+        +DateOnly? FirstDayAttendedOn
+    }
+    class HrdOnboardingCaseItem {
+        +string ItemCode
+        +OnboardingTemplateLayer TemplateLayer
+        +OnboardingResponsibleRole ResponsibleRole
+        +OnboardingItemKind ItemKind
+        +bool IsRequired
+        +OnboardingItemStatus ItemStatus
+        +Guid? SelectedWorkforceProfileId
+    }
+    class HrdOnboardingAccessRequest {
+        +OnboardingAccessRequestType RequestType
+        +OnboardingAccessRequestStatus RequestStatus
+        +Guid? ApplicationUserId
+    }
+    class HrdCandidateHiringHandoff
+    MstOnboardingTemplate "1" --> "1..*" MstOnboardingTemplateTask : memuat
+    HrdCandidateHiringHandoff "1" --> "0..1" HrdOnboardingCase : membuka
+    HrdOnboardingCase "1" --> "1..*" HrdOnboardingCaseItem : memuat
+    MstOnboardingTemplateTask "0..1" ..> "0..*" HrdOnboardingCaseItem : disalin saat kasus dibuat
+    HrdOnboardingCase "1" --> "0..2" HrdOnboardingAccessRequest : meminta akun dan akses
+```
+
+#### 18.3.2 Kontrak kerja dan keputusannya
+
+```mermaid
+classDiagram
+    class WfpContractHistory {
+        +string ContractNumber
+        +Guid? ContractTypeId
+        +string HistoryType
+        +string ContractStatus
+        +DateTime StartDate
+        +DateTime? EndDate
+        +DateTime? FixedTermSeriesStartDate
+        +bool IsCurrent
+        +string? SourceDocumentType
+        +Guid? SourceDocumentId
+    }
+    class HrdContractDecision {
+        +string DecisionNumber
+        +Guid ContractHistoryId
+        +ContractDecisionType DecisionType
+        +int? ExtensionMonths
+        +ContractDecisionStatus DecisionStatus
+        +Guid? FollowUpContractHistoryId
+        +DateOnly? EmployeeNotifiedOn
+    }
+    class HrdContractCorrection {
+        +string CorrectionNumber
+        +Guid ContractHistoryId
+        +DateOnly AfterStartDate
+        +DateOnly? AfterEndDate
+        +ContractCorrectionStatus CorrectionStatus
+    }
+    class HrdInitialContractBatch {
+        +string BatchNumber
+        +InitialContractBatchStatus BatchStatus
+        +int InvalidRows
+    }
+    class HrdInitialContractBatchRow {
+        +Guid WorkforceProfileId
+        +Guid ContractTypeId
+        +DateOnly StartDate
+        +DateOnly? FixedTermSeriesStartDate
+        +bool IsValid
+    }
+    class TrxEmployeeSeparation
+    WfpContractHistory "0..1" --> "0..1" WfpContractHistory : kontrak sebelumnya
+    WfpContractHistory "1" --> "0..*" HrdContractDecision : diputuskan lewat T16
+    HrdContractDecision "0..1" --> "0..1" WfpContractHistory : melahirkan kontrak lanjutan
+    HrdContractDecision "0..1" --> "0..1" TrxEmployeeSeparation : tidak diperpanjang diserahkan ke 20
+    WfpContractHistory "1" --> "0..*" HrdContractCorrection : dikoreksi lewat T17
+    HrdInitialContractBatch "1" --> "1..*" HrdInitialContractBatchRow : memuat
+    HrdInitialContractBatchRow "0..1" --> "0..1" WfpContractHistory : melahirkan kontrak data awal
+```
+
+#### 18.3.3 Masa percobaan dan pendampingan klinis
+
+```mermaid
+classDiagram
+    class HrdProbation {
+        +Guid WorkforceProfileId
+        +Guid ContractHistoryId
+        +DateOnly StartDate
+        +DateOnly EndDate
+        +ProbationStatus ProbationStatus
+    }
+    class HrdProbationAssessment {
+        +string AssessmentNumber
+        +ProbationResult Result
+        +ProbationAssessmentStatus AssessmentStatus
+        +Guid? WorkflowInstanceId
+    }
+    class HrdClinicalPreceptorship {
+        +Guid OnboardingCaseId
+        +Guid WorkforceProfileId
+        +PreceptorshipStatus PreceptorshipStatus
+        +DateOnly? AccompaniedSince
+        +DateOnly? IndependentOn
+    }
+    class HrdClinicalPreceptorshipPreceptor {
+        +Guid PreceptorWorkforceProfileId
+        +DateOnly AssignedFrom
+        +DateOnly? AssignedUntil
+    }
+    class WfpContractHistory
+    class HrdOnboardingCase
+    class TrxEmployeeSeparation
+    WfpContractHistory "1" --> "0..1" HrdProbation : PKWTT pertama
+    HrdProbation "1" --> "0..*" HrdProbationAssessment : dinilai lewat T15
+    HrdProbation "0..1" --> "0..1" TrxEmployeeSeparation : tidak lulus diserahkan ke 20
+    HrdOnboardingCase "1" --> "0..1" HrdClinicalPreceptorship : tenaga klinis
+    HrdClinicalPreceptorship "1" --> "1..*" HrdClinicalPreceptorshipPreceptor : preceptor berganti
+```
+
+#### 18.3.4 Controller, service, dan service pemilik di modul lain
+
+```mermaid
+classDiagram
+    class HrdOnboardingCaseController
+    class HrdEmploymentContractController
+    class HrdProbationController
+    class HrdOnboardingCaseService
+    class HrdEmploymentContractService
+    class HrdContractDecisionService
+    class HrdProbationService
+    class HrdEmploymentLifecycleWorkflowIntegrationService
+    class WfpContractHistoryWriteService
+    class WfpNewHireAssignmentService
+    class EmployeeEmploymentRecordService
+    class EmployeeUserAccountService
+    class ResignationLifecycleHandoffService
+    HrdOnboardingCaseController --> HrdOnboardingCaseService
+    HrdEmploymentContractController --> HrdEmploymentContractService
+    HrdEmploymentContractController --> HrdContractDecisionService
+    HrdProbationController --> HrdProbationService
+    HrdOnboardingCaseService --> HrdEmploymentContractService : draf kontrak pertama
+    HrdOnboardingCaseService --> WfpNewHireAssignmentService : relasi atasan saat siap kerja
+    HrdOnboardingCaseService --> EmployeeUserAccountService : akun
+    HrdEmploymentContractService --> WfpContractHistoryWriteService : satu-satunya penulis kontrak
+    HrdEmploymentContractService --> WfpNewHireAssignmentService : penempatan dan gaji awal
+    HrdEmploymentContractService --> EmployeeEmploymentRecordService : salinan di MstEmployee
+    HrdContractDecisionService --> ResignationLifecycleHandoffService : tidak diperpanjang
+    HrdProbationService --> ResignationLifecycleHandoffService : tidak lulus
+    HrdEmploymentLifecycleWorkflowIntegrationService --> HrdProbationService : keputusan T15
+    HrdEmploymentLifecycleWorkflowIntegrationService --> HrdContractDecisionService : keputusan T16
+```
+
+### 18.4 Penjelasan setiap class
+
+#### 18.4.1 `HrdOnboardingCase`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdOnboardingCase.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Satu perjalanan pegawai baru dari serah terima rekrutmen sampai siap kerja atau batal bergabung. Memegang tanggal mulai rencana, unit dan jabatan tujuan, koordinator HRD, dan tanda hadir hari pertama |
+| Field penting | `CaseNumber`, `HiringHandoffId` (unik), `WorkforceProfileId`, `HospitalSiteId`, `OrganizationUnitId`, `PositionId`, `IsClinical`, `PlannedStartDate`, `CoordinatorUserId`, `CaseStatus`, `FirstDayAttendedOn`, `ReadyForWorkAt`, `ReadyForWorkByUserId`, `CancelReason`, `CancelNote`, `HasGeneralTemplate`, `RowVersion` |
+| Navigation property dan relasi | Milik satu `HrdCandidateHiringHandoff`; punya banyak `HrdOnboardingCaseItem`, nol atau satu `HrdClinicalPreceptorship`, nol sampai dua `HrdOnboardingAccessRequest` |
+| Pemakaian dalam alur bisnis | Dibuat otomatis saat HR Manager menjalankan serah terima di 04 (`HRD-DEC-083`). Dibuka HRD dan Kepala Unit setiap hari sampai pegawai siap kerja |
+| Catatan desain | Unit, jabatan, `IsClinical`, dan tanggal mulai **disalin** dari serah terima saat kasus dibuat agar penyaringan cakupan unit tidak perlu menelusuri rekrutmen. `HasGeneralTemplate = false` bila saat kasus dibuat belum ada Template Umum aktif; kasus tetap terbentuk dengan butir sistem saja dan menampilkan peringatan |
+| Ekuivalen model lama | `TrxEmployeeOnboarding`, `WfpOnboardingChecklist` (dibuang) |
+
+#### 18.4.2 `HrdOnboardingCaseItem`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdOnboardingCaseItem.cs` |
+| Kategori | Transaksi (anak kasus) |
+| Tanggung jawab utama | Satu butir checklist milik satu pegawai, disalin dari template saat kasus dibuat. Menyimpan siapa yang mencentang, kapan, bukti, dan orang yang dipilih untuk butir pemilihan |
+| Field penting | `OnboardingCaseId`, `TemplateLayer`, `SourceTemplateTaskId`, `ItemCode`, `ItemName`, `SystemItemCode`, `ResponsibleRole`, `ItemKind`, `AutomaticSource`, `CertificationTypeId`, `IsRequired`, `DueDayOffset`, `DueDate`, `ItemStatus`, `CompletedAt`, `CompletedByUserId`, `CompletionNote`, `SelectedWorkforceProfileId`, `EvidenceStoragePath`, `EvidenceFileName`, `AutomaticResultNote` |
+| Navigation property dan relasi | Milik `HrdOnboardingCase`; menunjuk butir template asal bila ada; menunjuk profil yang dipilih (atasan langsung atau preceptor) |
+| Pemakaian dalam alur bisnis | Dicentang HRD atau Kepala Unit sesuai `ResponsibleRole`; butir otomatis diisi sistem |
+| Catatan desain | Urutan tampil memakai field semantik `TemplateLayer` lalu `DueDayOffset` lalu `ItemName`, **bukan** `SortOrder` (kontrak rekayasa backend baris 48). Perubahan template tidak mengubah butir yang sudah disalin (`HRD-DEC-086` `TEMPLATE_CHANGE_NOT_RETROACTIVE`) |
+| Ekuivalen model lama | `TrxEmployeeOnboardingTask`, `WfpOnboardingTask` (dibuang) |
+
+**Lima butir sistem** selalu ada pada kasus yang sesuai, tidak dapat dihapus dari template, dan selalu
+wajib:
+
+| `SystemItemCode` | Lapis | Jenis | Penanggung jawab | Selesai bila | Dasar |
+| --- | --- | --- | --- | --- | --- |
+| `FIRST_DAY_ATTENDANCE` | Umum | Manual | HRD | HRD mencatat pegawai hadir pada hari pertama | `HRD-DEC-083` butir 7, `HRD-DEC-088` butir 1 |
+| `CONTRACT_SIGNED` | Umum | Otomatis | Sistem | Kontrak pertama berstatus `Active` | `HRD-DEC-084` butir 5 |
+| `FITNESS_CLEARANCE` | Umum | Otomatis | Sistem | Kesimpulan MCU pada tawaran `Fit` atau `FitWithRestrictions` | `HRD-DEC-078`, `HRD-TF-050` |
+| `DIRECT_SUPERVISOR_ASSIGNED` | Umum | Pemilihan orang | Kepala Unit | Kepala Unit memilih atasan langsung | Bagian 18.9.6 |
+| `PRECEPTOR_ASSIGNED` | Klinis | Pemilihan orang | Kepala Unit | Kepala Unit memilih preceptor | `HRD-DEC-087` butir 2 |
+
+#### 18.4.3 `MstOnboardingTemplate` dan `MstOnboardingTemplateTask`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` — kolom yang dibuang dan ditambah dirinci pada bagian 18.6 |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/MstOnboardingTemplate.cs`, `MstOnboardingTemplateTask.cs` |
+| Kategori | Master |
+| Tanggung jawab utama | Tiga lapis template (`HRD-DEC-086`): tepat satu Template Umum aktif, tepat satu Template Tambahan Tenaga Klinis aktif, dan nol atau satu Template Tambahan Unit aktif per unit |
+| Field penting | Template: `TemplateCode`, `TemplateName`, `TemplateLayer`, `OrganizationUnitId`, `TargetCompletionDays`, `Version`, `IsActive`. Butir: `TaskCode`, `TaskName`, `TaskCategory`, `ResponsibleRole`, `ItemKind`, `AutomaticSource`, `CertificationTypeId`, `SystemItemCode`, `IsRequired`, `DueDayOffset`, `IsActive` |
+| Navigation property dan relasi | Template punya banyak butir; butir otomatis jenis sertifikat menunjuk `MstCertificationType` |
+| Pemakaian dalam alur bisnis | Disusun HRD sekali; dibaca saat kasus onboarding dibuat |
+| Catatan desain | Prefix `Mst` tetap (`HRD-DEC-019`). **Utang teknis lokasi:** master berada di folder `LifecycleManagement/Models`, bukan `MasterData`; pemindahan folder adalah task tersendiri dan **MUST NOT** ikut task slice ini. `Version` naik setiap kali template disimpan, untuk jejak audit |
+| Ekuivalen model lama | Model yang sama, dengan 15 kolom pembeda dan pengaturan yang tidak dipakai dibuang |
+
+#### 18.4.4 `WfpContractHistory`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` — **hanya penambahan kolom**; tidak ada kolom yang dibuang atau berubah tipe |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpContractHistory.cs` (milik 02) |
+| Kategori | Transaksi milik Workforce Core |
+| Tanggung jawab utama | Satu baris per kontrak kerja pegawai. Perpanjangan dirantai lewat `PreviousContractHistoryId` dan `RenewalSequence` |
+| Field penting (baru) | `SourceDocumentType`, `SourceDocumentId`, `FixedTermSeriesStartDate`, `DocumentFileName`, `DocumentContentType`, `SignedRecordedAt`, `SignedRecordedByUserId`, `RowVersion` |
+| Nilai baru pada kolom teks yang sudah ada | `HistoryType`: tambah `InitialData` dan `Conversion`. `ContractStatus`: tambah `Completed` dan `LapsedWithoutDecision`. Nilai lama tetap dikenali saat dibaca |
+| Navigation property dan relasi | Menunjuk profil, jenis kontrak, jenis kepegawaian; punya nol atau satu `HrdProbation`, banyak `HrdContractDecision` dan `HrdContractCorrection` |
+| Pemakaian dalam alur bisnis | Ditulis **hanya** oleh `WfpContractHistoryWriteService`, yang dipanggil service 05 |
+| Catatan desain | Indeks yang sudah ada dipakai apa adanya: nomor kontrak unik per pegawai, dan tepat satu kontrak `IsCurrent` per pegawai (`WfpContractHistoryConfiguration.cs:35-36`). `ProbationEndDate` diisi sistem dari `HrdProbation` dan tidak pernah diisi tangan |
+| Ekuivalen model lama | — |
+
+#### 18.4.5 `HrdProbation` dan `HrdProbationAssessment`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdProbation.cs`, `HrdProbationAssessment.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | `HrdProbation`: satu masa percobaan per kontrak PKWTT pertama pegawai yang bergabung langsung sebagai PKWTT. `HrdProbationAssessment`: satu pengajuan hasil oleh atasan; pengajuan yang ditolak tetap tersimpan, dan atasan dapat membuat pengajuan baru |
+| Field penting | Masa percobaan: `WorkforceProfileId`, `ContractHistoryId` (unik), `StartDate`, `EndDate`, `ReminderFromDate`, `ProbationStatus`, `ClosedAt`, `EmployeeSeparationId`. Penilaian: `AssessmentNumber`, `ProbationId`, `Result`, `ReasonText`, `Evidence*`, `AssessmentStatus`, `WorkflowInstanceId`, `SubmittedByUserId`, `DecidedByUserId`, `DecisionNote` |
+| Navigation property dan relasi | Masa percobaan milik satu kontrak; punya banyak penilaian; bila tidak lulus menunjuk catatan pemisahan di 20 |
+| Pemakaian dalam alur bisnis | Dibuat sistem saat kontrak PKWTT pertama ditandatangani; dinilai atasan lewat `T15` |
+| Catatan desain | Tidak ada kolom skor dan tidak ada tanggal perpanjangan (`HRD-DEC-085` `SIMPLE_RESULT`, `THREE_MONTHS_FIXED`). Paling banyak satu penilaian berstatus `Submitted` atau `Returned` per masa percobaan |
+| Ekuivalen model lama | `TrxProbationReview` (dibuang) |
+
+#### 18.4.6 `HrdClinicalPreceptorship` dan `HrdClinicalPreceptorshipPreceptor`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdClinicalPreceptorship.cs`, `HrdClinicalPreceptorshipPreceptor.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Pendampingan klinis tenaga klinis baru, terpisah dari masa percobaan (`HRD-DEC-087`). Baris preceptor menyimpan siapa mendampingi dari tanggal berapa sampai tanggal berapa, sehingga pergantian preceptor tetap tertelusuri untuk akreditasi |
+| Field penting | `OnboardingCaseId` (unik), `WorkforceProfileId`, `OrganizationUnitId`, `PreceptorshipStatus`, `AccompaniedSince`, `IndependentOn`, `DeclaredByUserId`, `Evidence*`, `AssessmentNote`; preceptor: `PreceptorWorkforceProfileId`, `AssignedFrom`, `AssignedUntil`, `AssignedByUserId`, `ChangeReason` |
+| Navigation property dan relasi | Milik satu kasus onboarding; punya satu atau lebih baris preceptor; tepat satu baris tanpa `AssignedUntil` selama pendampingan berjalan |
+| Pemakaian dalam alur bisnis | Lahir saat butir `PRECEPTOR_ASSIGNED` dicentang; menjadi `Accompanied` saat siap kerja; menjadi `Independent` saat Kepala Unit menekan **Siap Mandiri** |
+| Catatan desain | **Tidak** masuk mesin persetujuan (`CLINICAL_DECISION_NOT_HRD`). HRD hanya membaca |
+| Ekuivalen model lama | — |
+
+#### 18.4.7 `HrdContractDecision` dan `HrdContractCorrection`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdContractDecision.cs`, `HrdContractCorrection.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Keputusan: satu dari tiga pilihan atas kontrak PKWT yang akan berakhir (`HRD-DEC-089` butir 2), diputus lewat `T16`. Koreksi: perbaikan isi kontrak yang sudah ditandatangani lewat `T17`; menyimpan nilai **sebelum** dan **sesudah** beserta scan perbaikan |
+| Field penting | Keputusan: `DecisionNumber`, `ContractHistoryId`, `WorkforceProfileId`, `DecisionType`, `ExtensionMonths`, `ProposedStartDate`, `ProposedEndDate`, `ReasonText`, `DecisionStatus`, `WorkflowInstanceId`, `FollowUpContractHistoryId`, `EmployeeNotifiedOn`, `EmployeeSeparationId`. Koreksi: `CorrectionNumber`, `ContractHistoryId`, `Before*`, `After*`, `ReasonText`, `Evidence*`, `CorrectionStatus`, `WorkflowInstanceId`, `AppliedAt` |
+| Navigation property dan relasi | Keduanya milik satu baris kontrak; keputusan yang disetujui menunjuk kontrak lanjutan atau catatan pemisahan |
+| Pemakaian dalam alur bisnis | Keputusan diajukan atasan langsung atau Kepala Unit dari daftar Perlu Tindakan; koreksi diajukan petugas HRD |
+| Catatan desain | Koreksi memperbarui baris kontrak **di tempat** dan menyimpan versi lama sebagai kolom `Before*` pada baris koreksi (`HRD-DEC-089` `CONTRACT_CORRECTION`: versi lama tetap tersimpan). Pilihan ini menjaga rantai perpanjangan dan hitungan 5 tahun tetap satu jalur |
+| Ekuivalen model lama | `TrxContractNonRenewal` (dibuang) untuk keputusan tidak diperpanjang |
+
+#### 18.4.8 `HrdInitialContractBatch` dan `HrdInitialContractBatchRow`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdInitialContractBatch.cs`, `HrdInitialContractBatchRow.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Data awal kontrak pegawai yang sudah bekerja sebelum sub-modul ini berjalan (`HRD-DEC-090`), disetujui sekali lewat `T18` |
+| Field penting | Batch: `BatchNumber`, `HospitalSiteId`, `BatchStatus`, `TotalRows`, `ValidRows`, `InvalidRows`, `WorkflowInstanceId`, `AppliedAt`. Baris: `WorkforceProfileId`, `ContractTypeId`, `ContractNumber`, `StartDate`, `EndDate`, `FixedTermSeriesStartDate`, `IsValid`, `ValidationMessage`, `CreatedContractHistoryId` |
+| Navigation property dan relasi | Batch punya banyak baris; baris yang diterapkan menunjuk kontrak yang lahir |
+| Pemakaian dalam alur bisnis | Sekali saat sub-modul mulai dipakai; sesekali untuk pegawai yang tertinggal |
+| Catatan desain | Mengikuti pola `HrdInitialPlacementBatch` (`HRD-DEC-054`). Scan kontrak lama boleh menyusul (`SCAN_MAY_FOLLOW_FOR_LEGACY`) |
+| Ekuivalen model lama | — |
+
+#### 18.4.9 `HrdOnboardingAccessRequest` dan `HrdEmploymentLifecycleSetting`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/LifecycleManagement/Models/HrdOnboardingAccessRequest.cs`, `HrdEmploymentLifecycleSetting.cs` |
+| Kategori | Transaksi; pengaturan |
+| Tanggung jawab utama | Permintaan akses: dua baris per kasus — `AccountCreation` (dikerjakan sistem lewat service 01) dan `WorkAccess` (dikerjakan Administrator/IT setelah siap kerja). Pengaturan: empat angka kebijakan per rumah sakit |
+| Field penting | Permintaan: `OnboardingCaseId`, `WorkforceProfileId`, `RequestType`, `RequestStatus`, `ApplicationUserId`, `FailureMessage`, `SelfServiceActivatedAt`, `RequestedAt`, `CompletedAt`, `CompletedByUserId`, `CompletionNote`. Pengaturan: `HospitalSiteId` (unik), `ContractReminderDays`, `ContractEscalationDays`, `ProbationReminderDays`, `LateStartFlagDays` |
+| Navigation property dan relasi | Permintaan milik kasus; pengaturan per site |
+| Pemakaian dalam alur bisnis | Permintaan akun dibuat bersama kasus; akses kerja diminta saat siap kerja; pengaturan diubah HR Manager |
+| Catatan desain | Pemberian peran tetap di layar peran yang sudah ada milik Administrator; sub-modul 05 **MUST NOT** memberi peran sendiri (`HRD-DEP-003`, `HRD-DEC-032`) |
+| Ekuivalen model lama | `TrxAccessRevocation` milik 20 untuk sisi pencabutan — tidak disentuh |
+
+#### 18.4.10 Service
+
+Seluruh service `Baru` sub-modul 05 berada di
+`Areas/Corporate/HumanResource/LifecycleManagement/Services/`, tanpa interface, didaftarkan
+`AddScoped<T>()` di `Program.cs` dekat registrasi HR lain.
+
+| Service | Fungsi utama | Dipanggil oleh | Membuka transaksi |
+| --- | --- | --- | :---: |
+| `HrdOnboardingCaseService` | Membuat kasus dari serah terima (idempoten per `HiringHandoffId`), menggabung tiga lapis template, mencatat hadir hari pertama, mencentang dan membatalkan centang butir, mengalihkan koordinator, menyatakan siap kerja, batal bergabung | `HrdOnboardingCaseController`; service serah terima 04 | Ya, kecuali saat dipanggil 04 — ikut transaksi pemanggil |
+| `HrdOnboardingAutomaticItemService` | Menilai butir otomatis: kontrak sudah ditandatangani, kelaikan MCU, sertifikat pelatihan wajib | Case service, contract service, scheduler | Ikut transaksi pemanggil |
+| `HrdOnboardingTemplateService` | Menyusun tiga lapis template dan menjaga butir sistem | `HrdOnboardingTemplateController` | Ya |
+| `HrdEmploymentContractService` | Menyusun draf kontrak pertama dari tawaran (`HRD-DEC-084`, `HRD-DEC-095`), menandai sudah ditandatangani, menyusun draf kontrak lanjutan, unggah scan kontrak data awal, data cetak, hitungan 5 tahun | Controller kontrak; case service; decision service; batch service | Ya |
+| `HrdContractDecisionService` | Mengajukan, mengubah, menarik keputusan; menerapkan keputusan yang disetujui; mencatat tanggal pemberitahuan | Controller kontrak; integrasi workflow | Ya |
+| `HrdContractCorrectionService` | Mengajukan dan menerapkan koreksi kontrak | Controller kontrak; integrasi workflow | Ya |
+| `HrdProbationService` | Membuat masa percobaan, pengajuan hasil, penerapan keputusan, lulus otomatis | Controller masa percobaan; contract service; integrasi workflow; scheduler | Ya |
+| `HrdClinicalPreceptorshipService` | Membuat pendampingan dari butir preceptor, mengganti preceptor, menyatakan siap mandiri | Controller pendampingan; case service | Ya |
+| `HrdInitialContractBatchService` | Templat, validasi, simpan, ajukan `T18`, terapkan | Controller batch; integrasi workflow | Ya |
+| `HrdOnboardingAccessService` | Membuat akun lewat `EmployeeUserAccountService`, mengaktifkan akun layanan mandiri saat hadir hari pertama, meminta akses kerja, menandai selesai, mengulang yang gagal | Case service; controller permintaan akses | Ikut transaksi pemanggil, kecuali ulang dan tandai selesai |
+| `HrdEmploymentReadinessReadService` | **Kontrak baca untuk sub-modul lain**: boleh dijadwalkan pada tanggal tertentu, penanda Didampingi beserta nama preceptor, peringatan kredensial, penahan jadwal kontrak | 06 Penjadwalan; controller daftar kerja | Tidak |
+| `HrdLifecycleWorklistService` | Menyusun daftar Perlu Tindakan per peran dari kasus, kontrak, dan masa percobaan | `HrdLifecycleWorklistController` | Tidak |
+| `HrdLifecycleAttachmentService` | Memeriksa jenis dan ukuran berkas, lalu menyimpan lewat `WorkflowFileStorageService` | Seluruh service yang menerima scan atau bukti | Tidak |
+| `HrdEmploymentLifecycleWorkflowIntegrationService` | Memulai instance `T15` s.d. `T18`; menerima keputusan akhir dan meneruskannya ke service domain | Service domain; `WorkflowReferenceLifecycleService` | Ya |
+| `HrdEmploymentLifecycleSchedulerService` | Harian: lulus otomatis masa percobaan, perpindahan `IsCurrent` pada tanggal mulai kontrak lanjutan, kontrak tidak diperpanjang → `Ended`, kontrak tanpa keputusan → `LapsedWithoutDecision`, penilaian ulang butir otomatis kasus berjalan | `HrdEmploymentLifecycleSchedulerHostedService` | Ya, per langkah |
+| `HrdEmploymentLifecycleSchedulerHostedService` | Pembungkus `BackgroundService`, didaftarkan `AddHostedService` dekat registrasi scheduler HR lain | Host aplikasi | — |
+| `HrdEmploymentLifecycleSettingService` | Baca dan ubah pengaturan | Controller pengaturan; service lain | Ya |
+
+**Service di modul lain yang `Baru` atau `Diperbarui`:**
+
+| Service | Lokasi | Status | Perubahan |
+| --- | --- | --- | --- |
+| `WfpContractHistoryWriteService` | `Areas/Corporate/HumanResource/WorkforceCore/Services/` | `Baru` | Satu-satunya penulis `WfpContractHistory`: buat draf, tandai ditandatangani, pindahkan `IsCurrent`, akhiri, tandai tanpa keputusan, terapkan koreksi, sisipkan baris data awal. Dipanggil hanya service 05 |
+| `WfpNewHireAssignmentService` | `Areas/Corporate/HumanResource/WorkforceCore/Services/` | `Baru` | Membuat penempatan organisasi, penempatan jabatan, dan penetapan gaji awal saat kontrak pertama ditandatangani, berlaku sejak tanggal mulai kontrak; membuat relasi atasan saat siap kerja. Memakai aturan tumpang tindih `HRD-DEC-049` yang sama dengan `HrdInitialPlacementBatchService` |
+| `EmployeeEmploymentRecordService` | `Areas/Corporate/HumanResource/MasterData/Workforce/Services/` | `Baru` | Menulis `EmploymentStatusId`, `EmploymentTypeId`, `JoinDate`, `ContractEndDate`, `ProbationEndDate` pada `MstEmployee` (atau `MstDoctor` untuk profil dokter) sebagai salinan dari kontrak dan masa percobaan |
+| `EmployeeUserAccountService` | `Areas/Corporate/HumanResource/MasterData/Workforce/Services/` | `Baru` — **ekstraksi tanpa perubahan perilaku** | Logika pembuatan akun yang hari ini ada di `EmployeeController.cs:3555-3660` dipindah ke service agar dapat dipanggil 05. `EmployeeController` memanggil service ini; perilaku endpoint lamanya tidak berubah. Ditambah dua metode: aktifkan dan nonaktifkan akun |
+| `ResignationLifecycleHandoffService` | `Areas/Corporate/HumanResource/LifecycleManagement/Services/` | `Diperbarui` | Metode baru `HandoffLifecycleSeparationAsync` untuk `SeparationType` `ContractNonRenewal` dan `ProbationFailed`: membuat `TrxEmployeeSeparation` berstatus disetujui beserta tanggal terakhir bekerja, lalu membuka exit clearance seperti jalur pengunduran diri. Jalur pengunduran diri tidak berubah |
+| `WorkflowReferenceLifecycleService` | `Areas/Corporate/HumanResource/WorkflowManagement/Services/` | `Diperbarui` | Empat jenis rujukan baru: `WorkforceProbationAssessment` (`T15`), `WorkforceContractDecision` (`T16`), `WorkforceContractCorrection` (`T17`), `WorkforceInitialContractBatch` (`T18`) |
+| Service serah terima rekrutmen (`BE-HRD-061`, `S-D2`) | `Areas/Corporate/HumanResource/RecruitmentManagement/Services/` | `Diperbarui` pada task 05 | Memanggil `HrdOnboardingCaseService.CreateFromHandoffAsync` di dalam transaksi serah terima (`INT-HR-25`) |
+| Service tawaran rekrutmen (`S-D2`) | `.../RecruitmentManagement/Services/` | `Diperbarui` | Validasi jenis dan lama kontrak (`HRD-DEC-095`, `VR-ONB-50`, `VR-ONB-51`) |
+
+**Yang dipakai ulang tanpa perubahan:** mesin persetujuan bersama (`WorkflowService`, termasuk
+penolakan swa-setuju `WorkflowService.cs:534-556` bila langkah didefinisikan
+`AllowSelfApproval = false`); `NumberSeriesAllocator` untuk seluruh nomor dokumen
+(`QBE-CODE-002`, `QBE-CODE-003`) — dipanggil di luar transaksi pemanggil, controller tidak pernah
+membuat nomor; `OrganizationAuthorizationProjectionService` untuk cakupan unit Kepala Unit;
+`WorkflowFileStorageService` untuk berkas.
+
+#### 18.4.11 Controller
+
+Seluruhnya `Baru` kecuali yang disebut, di `Areas/Corporate/HumanResource/LifecycleManagement/Controllers/`,
+memakai `[AccessController]` di kelas dan `[AccessPermission(...)]` di setiap endpoint. Tidak satu pun
+mengakses `ApplicationDbContext` langsung (`QBE-SVC-001`). Route dasar
+`api/v1/corporate/human-resource/lifecycle-management/...`, mengikuti `ExitClearanceController`.
+
+| Controller | Service yang dipakai | Grup Swagger | Endpoint yang diurus |
+| --- | --- | --- | --- |
+| `HrdOnboardingCaseController` | `HrdOnboardingCaseService`, `HrdOnboardingAccessService` | `Corporate / Human Resource / Lifecycle Management / Onboarding Case` | Daftar, ringkasan, detail, hadir hari pertama, centang dan batal centang butir HRD, centang dan batal centang butir unit, alihkan koordinator, siap kerja, batal bergabung |
+| `HrdOnboardingTemplateController` | `HrdOnboardingTemplateService` | `Corporate / Human Resource / Lifecycle Management / Onboarding Template` | Daftar, detail, buat, ubah, aktif/nonaktif |
+| `HrdEmploymentContractController` | `HrdEmploymentContractService`, `HrdContractDecisionService`, `HrdContractCorrectionService` | `Corporate / Human Resource / Lifecycle Management / Employment Contract` | Daftar, detail, data cetak, tandai ditandatangani, unggah scan data awal, keputusan (ajukan, ubah, tarik, catat pemberitahuan), koreksi (ajukan, ubah, tarik) |
+| `HrdProbationController` | `HrdProbationService` | `Corporate / Human Resource / Lifecycle Management / Probation` | Daftar, detail, ajukan hasil, ubah hasil yang dikembalikan, tarik |
+| `HrdClinicalPreceptorshipController` | `HrdClinicalPreceptorshipService` | `Corporate / Human Resource / Lifecycle Management / Clinical Preceptorship` | Daftar, detail, ganti preceptor, siap mandiri |
+| `HrdInitialContractBatchController` | `HrdInitialContractBatchService` | `Corporate / Human Resource / Lifecycle Management / Initial Contract Batch` | Templat, validasi, daftar, detail, buat, ubah, ajukan, batalkan |
+| `HrdOnboardingAccessRequestController` | `HrdOnboardingAccessService` | `Corporate / Human Resource / Lifecycle Management / Onboarding Access Request` | Daftar, tandai selesai, ulang pembuatan akun |
+| `HrdLifecycleWorklistController` | `HrdLifecycleWorklistService` | `Corporate / Human Resource / Lifecycle Management / Lifecycle Worklist` | Daftar Perlu Tindakan dan hitungannya |
+| `HrdEmploymentLifecycleSettingController` | `HrdEmploymentLifecycleSettingService` | `Corporate / Human Resource / Lifecycle Management / Lifecycle Setting` | Baca, ubah |
+| `WfpContractHistoryController` | — | `Corporate / Human Resource / Workforce Core / Contract History` | **`Diperbarui`.** Lima endpoint tulis (`POST`, `PUT`, `PATCH status`, `PATCH current`, `DELETE`) menjawab `409` `CONTRACT_MANAGED_BY_LIFECYCLE` (`VR-ONB-32`). Empat endpoint baca tidak berubah |
+| `EmployeeController` | `EmployeeUserAccountService` (baru) | Tidak berubah | **`Diperbarui`.** Pembuatan akun memanggil service hasil ekstraksi. `PUT` menolak perubahan `EmploymentTypeId`, `EmploymentStatusId`, `JoinDate`, `ContractEndDate`, dan `ProbationEndDate` untuk pegawai yang kontraknya sudah dikelola 05 (`VR-ONB-33`) |
+
+**Perubahan yang memutus — penilaian consumer.** Endpoint tulis riwayat kontrak 02 hari ini dipakai satu
+consumer: tab riwayat kontrak pada `src/components/features/workforce/workforce-resource-editor.jsx`
+(`HRD-TF-043`). Isi tabel 0 baris di dev (`HRD-TF-044`). Tab itu menjadi baca saja dengan tautan ke
+layar Kontrak Kerja (`03-frontend-architecture.md` bagian 14). Endpoint dipertahankan dan menjawab
+`409` beserta pesan, bukan dihapus, agar consumer lama mendapat penjelasan, bukan `404`.
+
+Persetujuan **tidak** punya endpoint di controller domain. Keputusan `T15` s.d. `T18` lewat kotak
+masuk persetujuan yang sudah ada (`HRD-DEC-018`).
+
+#### 18.4.12 DTO, enum, konstanta, dan configuration
+
+| Jenis | Lokasi | Isi |
+| --- | --- | --- |
+| DTO | `Areas/Corporate/HumanResource/LifecycleManagement/DTOs/` | `OnboardingCaseDtos.cs`, `OnboardingTemplateDtos.cs`, `EmploymentContractDtos.cs`, `ContractDecisionDtos.cs`, `ContractCorrectionDtos.cs`, `ProbationDtos.cs`, `ClinicalPreceptorshipDtos.cs`, `InitialContractBatchDtos.cs`, `OnboardingAccessRequestDtos.cs`, `LifecycleWorklistDtos.cs`, `LifecycleSettingDtos.cs`. Bentuk per endpoint pada `contracts/api-contract.md` bagian 15 |
+| Enum | `Areas/Corporate/HumanResource/LifecycleManagement/Enums/` | Tabel di bawah. Disimpan sebagai integer (`HasConversion<int>()`) |
+| Konstanta | `Areas/Corporate/HumanResource/LifecycleManagement/Constants/EmploymentLifecycleValueConstants.cs` | Lima `SystemItemCode`, empat jenis rujukan workflow, enam kunci number series, nilai baru `HistoryType` dan `ContractStatus`, nilai `SourceDocumentType`, kode `SeparationType` baru, nama kunci advisory lock |
+| Configuration | `Repositories/Configurations/Corporate/HumanResource/LifecycleManagement/` | Satu berkas per tabel baru, `Hrd<Nama>Configuration.cs`; dua berkas template yang ada diperbarui. `WfpContractHistoryConfiguration.cs` (WorkforceCore), `MstContractTypeConfiguration` (MasterData), `HrdJobOfferConfiguration.cs` (RecruitmentManagement) diperbarui |
+| DbSet | `Repositories/ApplicationDbContext.cs` | 12 `DbSet` baru, jamak: `HrdOnboardingCases`, `HrdOnboardingCaseItems`, dan seterusnya. Enam `DbSet` kandidat dibuang |
+
+| Enum | Nilai | Bawaan |
+| --- | --- | --- |
+| `OnboardingCaseStatus` | `InProgress=1`, `Completed=2`, `Cancelled=3` | `InProgress` |
+| `OnboardingCancelReason` | `NoShow=1`, `Withdrew=2`, `Other=3` | — wajib dipilih |
+| `OnboardingTemplateLayer` | `General=1`, `Clinical=2`, `Unit=3` | — |
+| `OnboardingResponsibleRole` | `Hrd=1`, `UnitHead=2`, `System=3` | — |
+| `OnboardingItemKind` | `Manual=1`, `EvidenceRequired=2`, `Automatic=3`, `PersonSelection=4` | `Manual` |
+| `OnboardingAutomaticSource` | `ContractSigned=1`, `FitnessClearance=2`, `MandatoryCertification=3` | — |
+| `OnboardingItemStatus` | `Pending=1`, `Completed=2` | `Pending` |
+| `OnboardingAccessRequestType` | `AccountCreation=1`, `WorkAccess=2` | — |
+| `OnboardingAccessRequestStatus` | `Requested=1`, `Completed=2`, `Failed=3`, `Cancelled=4` | `Requested` |
+| `ProbationStatus` | `Running=1`, `AwaitingDecision=2`, `Passed=3`, `PassedAutomatically=4`, `Failed=5` | `Running` |
+| `ProbationResult` | `Pass=1`, `Fail=2` | — wajib dipilih |
+| `ProbationAssessmentStatus` | `Submitted=1`, `Returned=2`, `Rejected=3`, `Approved=4`, `Withdrawn=5`, `ClosedOnExpiry=6` | `Submitted` |
+| `PreceptorshipStatus` | `PreceptorAssigned=1`, `Accompanied=2`, `Independent=3`, `Cancelled=4` | `PreceptorAssigned` |
+| `ContractDecisionType` | `Extend=1`, `ConvertToPermanent=2`, `NotRenew=3` | — wajib dipilih |
+| `ContractDecisionStatus` | `Submitted=1`, `Returned=2`, `Rejected=3`, `Approved=4`, `Withdrawn=5` | `Submitted` |
+| `ContractCorrectionStatus` | `Submitted=1`, `Returned=2`, `Rejected=3`, `Approved=4`, `Withdrawn=5` | `Submitted` |
+| `InitialContractBatchStatus` | `Draft=1`, `Submitted=2`, `Returned=3`, `Rejected=4`, `Applied=5`, `Cancelled=6` | `Draft` |
+
+Kolom teks `WfpContractHistory.ContractStatus` **tetap teks** agar nilai lama tidak berubah tipe;
+nilai yang dipakai 05 adalah `Draft`, `Active`, `Completed`, `Ended`, `LapsedWithoutDecision`,
+`Cancelled`.
+
+### 18.5 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/LifecycleManagement/
+├── Constants/
+│   ├── ResignationValueConstants.cs                    Sudah ada — tidak berubah
+│   └── EmploymentLifecycleValueConstants.cs            Baru
+├── Controllers/
+│   ├── ExitClearanceController.cs                      Sudah ada — tidak berubah
+│   ├── ResignationController.cs                        Sudah ada — tidak berubah
+│   └── Hrd*Controller.cs                               Baru — 9 controller pada 18.4.11
+├── DTOs/                                               Baru — 11 berkas pada 18.4.12 (2 berkas lama tidak berubah)
+├── Enums/                                              Baru — 17 enum pada 18.4.12
+├── Models/
+│   ├── HrdOnboardingCase.cs                            Baru (+ CaseItem)
+│   ├── HrdOnboardingAccessRequest.cs                   Baru
+│   ├── HrdProbation.cs                                 Baru (+ Assessment)
+│   ├── HrdClinicalPreceptorship.cs                     Baru (+ Preceptor)
+│   ├── HrdContractDecision.cs                          Baru
+│   ├── HrdContractCorrection.cs                        Baru
+│   ├── HrdInitialContractBatch.cs                      Baru (+ Row)
+│   ├── HrdEmploymentLifecycleSetting.cs                Baru
+│   ├── MstOnboardingTemplate.cs                        Diperbarui — utang teknis lokasi (master di luar MasterData)
+│   ├── MstOnboardingTemplateTask.cs                    Diperbarui — idem
+│   ├── TrxEmployeeOnboarding.cs                        Dibuang
+│   ├── TrxEmployeeOnboardingTask.cs                    Dibuang
+│   ├── WfpOnboardingChecklist.cs                       Dibuang
+│   ├── WfpOnboardingTask.cs                            Dibuang
+│   ├── TrxProbationReview.cs                           Dibuang
+│   ├── TrxContractNonRenewal.cs                        Dibuang
+│   └── Trx*/Wfp*/Mst* offboarding, pemisahan, exit     Sudah ada — milik 20, tidak disentuh
+└── Services/
+    ├── ExitClearanceService.cs                         Sudah ada — tidak berubah
+    ├── ResignationLifecycleHandoffService.cs           Diperbarui — satu metode baru
+    ├── Resignation*Service.cs                          Sudah ada — tidak berubah
+    └── Hrd*Service.cs                                  Baru — 17 service pada 18.4.10
+
+Areas/Corporate/HumanResource/WorkforceCore/
+├── Controllers/WfpContractHistoryController.cs         Diperbarui — endpoint tulis menjawab 409
+├── Models/WfpContractHistory.cs                        Diperbarui — 8 kolom baru
+└── Services/
+    ├── WfpContractHistoryWriteService.cs               Baru
+    └── WfpNewHireAssignmentService.cs                  Baru
+
+Areas/Corporate/HumanResource/MasterData/Workforce/
+├── Controllers/EmployeeController.cs                   Diperbarui — memanggil service akun; kunci 5 isian
+├── Models/MstContractType.cs                           Diperbarui — 1 kolom baru
+└── Services/
+    ├── EmployeeUserAccountService.cs                   Baru — ekstraksi
+    └── EmployeeEmploymentRecordService.cs              Baru
+
+Areas/Corporate/HumanResource/RecruitmentManagement/Models/HrdJobOffer.cs   Diperbarui — 2 kolom baru (HRD-DEC-095)
+
+Repositories/Configurations/Corporate/HumanResource/LifecycleManagement/
+├── Hrd*Configuration.cs                                Baru — 12 berkas
+├── MstOnboardingTemplateConfiguration.cs               Diperbarui
+├── MstOnboardingTemplateTaskConfiguration.cs           Diperbarui
+└── *Configuration.cs enam kandidat                     Dibuang bersama modelnya
+```
+
+**Utang teknis yang tercatat, tidak dirapikan diam-diam:**
+
+| Penyimpangan | Keadaan | Penanganan |
+| --- | --- | --- |
+| `MstOnboardingTemplate` dan `MstOnboardingTemplateTask` berada di `LifecycleManagement/Models`, bukan `MasterData` | Master yang dipakai slice ini | Pemindahan folder adalah task tersendiri dengan approval pemilik arsitektur backend |
+| Logika pembuatan akun ada di dalam `EmployeeController` (controller mengakses `UserManager` dan context langsung) | Dipakai master pegawai | Hanya diekstrak sebatas yang dibutuhkan 05; perapian controller lainnya **MUST NOT** ikut |
+| `ResignationLifecycleHandoffService.GenerateNumber("SEP")` membuat nomor tanpa number series | Pola lama 20 | Metode baru memakai `NumberSeriesAllocator` untuk nomor pemisahan yang dibuatnya; metode lama tidak disentuh |
+
+### 18.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| 12 tabel `Hrd*` pada 18.4 | `Baru` | Seluruh kolom pada `data/data-dictionary.md` bagian 10 | Membuat tabel; tidak menyentuh data mana pun |
+| `MstOnboardingTemplate` | `Diperbarui` | **Tambah:** `TemplateLayer` (`int`, wajib). **Buang:** `TemplateType`, `LegalEntityId`, `HospitalSiteId`, `DepartmentId`, `PositionId`, `WorkforceTypeId`, `EmployeeCategoryId`, `EmploymentTypeId`, `WorkflowDefinitionId`, `AutoCreateChecklist`, `RequiresProbationReview`, `ProbationReviewAfterDays`, `EffectiveStartDate`, `EffectiveEndDate`, `IsDefault`. **Indeks baru:** satu template aktif per lapis Umum dan Klinis; satu template aktif per unit untuk lapis Unit | Tabel 0 baris (`HRD-TF-047`); pengaman tabel kosong wajib (`HRD-DEC-090` butir 11) |
+| `MstOnboardingTemplateTask` | `Diperbarui` | **Tambah:** `ResponsibleRole`, `ItemKind`, `AutomaticSource`, `CertificationTypeId`, `SystemItemCode`. **Buang:** `ResponsiblePartyType`, `ResponsibleOrganizationUnitId`, `ResponsiblePositionId`, `RequiresDocument`, `RequiresVerification`, `CompletionSource`, `SortOrder`. **Indeks:** unik (`OnboardingTemplateId`, `TaskCode`) | Tabel 0 baris; pengaman tabel kosong wajib |
+| `WfpContractHistory` | `Diperbarui` | **Tambah saja:** `SourceDocumentType` (`varchar(50)`, null), `SourceDocumentId` (`uuid`, null), `FixedTermSeriesStartDate` (`timestamp`, null), `DocumentFileName` (`varchar(250)`, null), `DocumentContentType` (`varchar(150)`, null), `SignedRecordedAt` (`timestamp`, null), `SignedRecordedByUserId` (`uuid`, null), `RowVersion` (`uuid`, wajib, bawaan `gen_random_uuid()`) | Penambahan kolom boleh-null dan satu kolom berbawaan; **aman bagi data yang ada**. Tabel milik 02 ini **tidak** termasuk penutupan `HRD-Q-05` (`HRD-DEC-090` butir 10), sehingga tidak ada kolom yang dibuang |
+| `MstContractType` | `Diperbarui` | **Tambah:** `EmploymentTypeId` (`uuid`, null, FK `MstEmploymentType`, `Restrict`) — jenis kepegawaian yang dipakai kontrak jenis ini | Penambahan kolom boleh-null; aman |
+| `HrdJobOffer` | `Diperbarui` | **Tambah:** `ContractTypeId` (`uuid`, null di database, wajib di aturan service; FK `MstContractType`, `Restrict`), `ContractDurationMonths` (`int`, null) (`HRD-DEC-095`) | Penambahan kolom boleh-null; aman bagi baris uji `S-D2` yang mungkin sudah ada |
+| `MstEmployee`, `MstDoctor` | `Sudah ada` | Tidak ada | Tidak ada; hanya aturan penulisan lima isian yang berubah |
+| `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpSalaryAssignment`, `WfpManagerAssignment` | `Sudah ada` | Tidak ada | Tidak ada |
+| `TrxEmployeeSeparation` | `Sudah ada` | Tidak ada — nilai teks baru `ContractNonRenewal` dan `ProbationFailed` pada `SeparationType` | Tidak ada; bukan *material touch* menurut `HRD-DEC-019` karena kontrak persistence tidak berubah |
+| `MstEmploymentStatus`, `MstEmploymentType`, `MstCertificationType` | `Sudah ada` | Tidak ada; hanya baris data (bagian 18.8) | Tidak ada |
+| `TrxEmployeeOnboarding`, `TrxEmployeeOnboardingTask`, `WfpOnboardingChecklist`, `WfpOnboardingTask`, `TrxProbationReview`, `TrxContractNonRenewal` | Dibuang | Seluruh tabel | Dibuang dengan pengaman tabel kosong (bagian 18.7) |
+
+### 18.7 Rencana migration
+
+**Peringatan:** blueprint tidak memberi wewenang membuat atau menjalankan migration. Rencana ini
+adalah bahan task implementasi.
+
+| Urutan | Migration | Isi | Tanpa downtime? | Pengisian data lama | Langkah mundur |
+| ---: | --- | --- | :---: | --- | --- |
+| 1 | `AddOfferContractTerms` | Dua kolom pada `HrdJobOffer` (`HRD-DEC-095`) | **Ya** — hanya `ADD COLUMN` boleh-null | Tidak ada | `Down()` membuang kedua kolom |
+| 2 | `RetireLifecycleOnboardingCandidateTables` | Membuang enam tabel kandidat: urutan `TrxProbationReview` → `TrxEmployeeOnboardingTask` → `TrxEmployeeOnboarding` → `WfpOnboardingTask` → `WfpOnboardingChecklist` → `TrxContractNonRenewal` | **Ya** — tabel tidak dipakai kode mana pun | Tidak ada; tabel kosong | Hanya lewat migration baru yang membuat ulang tabel; tidak ada data yang hilang karena pengaman |
+| 3 | `ReshapeOnboardingTemplates` | Mengubah dua tabel template sesuai bagian 18.6 | **Ya** | Tidak ada; tabel kosong | `Down()` mengembalikan kolom lama tanpa isi |
+| 4 | `AddEmploymentLifecycleCore` | Membuat 12 tabel `Hrd*`; menambah kolom `WfpContractHistory` dan `MstContractType` | **Ya** — `CREATE TABLE` dan `ADD COLUMN` boleh-null | `RowVersion` pada baris kontrak yang ada diisi bawaan | `Down()` membuang tabel dan kolom baru; aman selama belum ada data, setelah itu mundur hanya lewat migration baru |
+
+**Pengaman tabel kosong (`HRD-DEC-090` butir 11–12).** Migration 2 dan 3 **MUST** membuka setiap
+pembuangan tabel atau kolom dengan blok `DO $$ … IF EXISTS (SELECT 1 FROM public."<tabel>" LIMIT 1)
+THEN RAISE EXCEPTION 'MIGRATION ABORTED: tabel <tabel> berisi % baris', … END IF; $$`, mengikuti
+`Migrations/20260902072756_DropTableMstBillingCategory.cs:36-42`; **MUST NOT** memakai
+`DROP … CASCADE`. Bila pengaman berhenti di lingkungan mana pun, `HRD-DEC-090` butir 10 kembali
+`draft`.
+
+**Urutan terhadap `S-D2`.** Pada HEAD `8b17b75a`, `TrxEmployeeOnboarding` dan
+`WfpOnboardingChecklist` merujuk `TrxCandidateHiring`, yang dibuang pembersihan `S-D2` (bagian
+17.5). Saat bagian ini ditulis, pembersihan itu **sedang dikerjakan di working tree dan belum
+di-commit**: `TrxCandidateHiring` dihapus, navigasi `CandidateHiring` pada kedua model dipindah ke
+`HrdCandidateHiringHandoff`, dan migration `20261104113000_AddRecruitmentManagementCoreAndRetireLegacy`
+ditambahkan. Akibatnya:
+
+1. bila pembersihan `S-D2` itu masuk lebih dulu, migration 2 di atas membuang kedua tabel yang kini
+   merujuk `HrdCandidateHiringHandoff` — urutannya tidak lagi saling mengunci;
+2. bila migration 2 masuk lebih dulu, pembersihan `S-D2` tidak perlu memindahkan rujukan kedua
+   tabel itu lagi;
+3. task implementasi `S-C4-ONB` **MUST** memeriksa ulang keadaan kedua model dan migration
+   tersebut pada HEAD saat task dikerjakan, bukan memakai keadaan bagian ini.
+
+### 18.8 Rencana data master awal
+
+Tanpa isian di bawah, sub-modul 05 tidak dapat dipakai sama sekali.
+
+| Data | Isi minimum | Sumber nilai | Diisi lewat |
+| --- | --- | --- | --- |
+| Jenis kontrak (`MstContractType`, 0 baris hari ini) | `PKWT` — wajib tanggal berakhir, dapat diperpanjang, **tanpa** masa percobaan, jenis kepegawaian "Kontrak"; `PKWTT` — tanpa tanggal berakhir, tidak diperpanjang, **dengan** masa percobaan, jenis kepegawaian "Tetap" | PP 35/2021; UU 13/2003 Pasal 60 | Master jenis kontrak yang sudah ada (`ContractTypeController`) |
+| Jenis kepegawaian (`MstEmploymentType`, 1 baris `Legacy`) | "Kontrak" (`IsContractBased`, wajib tanggal akhir kontrak) dan "Tetap" (`IsPermanent`) | Kebijakan HR | Master yang sudah ada |
+| Status kepegawaian (`MstEmploymentStatus`, 1 baris `Legacy`) | `PENDING_ONBOARDING` — belum aktif bekerja, **tidak** boleh dijadwalkan, layak payroll; `ACTIVE` — aktif, boleh dijadwalkan, layak payroll; `CANCELLED_JOIN` — batal bergabung, tidak boleh dijadwalkan, tidak layak payroll, status akhir | `HRD-DEC-075`, `HRD-DEC-088` | Master yang sudah ada (`EmploymentStatusController`) |
+| Template Umum RS | Satu template aktif berisi butir sistem `FIRST_DAY_ATTENDANCE`, `CONTRACT_SIGNED`, `FITNESS_CLEARANCE`, `DIRECT_SUPERVISOR_ASSIGNED`, ditambah butir rumah sakit — contoh: orientasi umum (wajib bukti daftar hadir), ID card dan seragam, data rekening | SOP orientasi rumah sakit | Layar Template Onboarding |
+| Template Tambahan Tenaga Klinis | Satu template aktif berisi butir sistem `PRECEPTOR_ASSIGNED`, ditambah butir sertifikat wajib — contoh: BLS/BTCLS berlaku | SOP keperawatan dan Komite | Layar Template Onboarding |
+| Jenis sertifikat (`MstCertificationType`, 8 baris di dev) | Jenis yang dipakai butir otomatis sertifikat, misalnya BTCLS dan BLS | Master yang sudah ada | Tidak perlu diisi ulang bila sudah ada |
+| Definisi alur `T15` s.d. `T18` | Empat definisi, masing-masing **satu langkah** berpenyetuju `SiteHr` dan `AllowSelfApproval = false` (`HRD-DEC-081`) | `HRD-DEC-081` | Master definisi workflow yang sudah ada |
+| Number series | Enam kunci: kasus onboarding, kontrak kerja, penilaian masa percobaan, keputusan kontrak, koreksi kontrak, batch data awal kontrak | Konvensi penomoran HR | Konfigurasi number series |
+| Pengaturan siklus | Satu baris per rumah sakit dengan bawaan 60 / 14 / 14 / 3 hari (bagian 18.9.5) | `HRD-DEC-085` butir 4, `HRD-DEC-089` butir 1 dan 8 — **nilai kebijakan, dapat diubah HR Manager** | Layar Pengaturan |
+| Pemetaan peran | HR Admin, HR Manager, Kepala Unit, Administrator/IT ke peran aplikasi | Administrator | `HRD-DEC-032` — `MAPPING_REQUIRED` |
+
+### 18.9 Hitungan dan aturan yang dirancang
+
+#### 18.9.1 Tanggal kontrak
+
+| Hitungan | Rumus | Contoh |
+| --- | --- | --- |
+| Tanggal berakhir kontrak pertama PKWT | tanggal mulai + lama kontrak (bulan) − 1 hari | Mulai 1 Februari 2027, 12 bulan → **31 Januari 2028** |
+| Tanggal mulai kontrak lanjutan | tanggal berakhir kontrak sebelumnya + 1 hari | Berakhir 31 Januari 2028 → mulai **1 Februari 2028** |
+| Tanggal berakhir perpanjangan | tanggal mulai lanjutan + bulan perpanjangan − 1 hari | Mulai 1 Februari 2028, 12 bulan → **31 Januari 2029** |
+
+#### 18.9.2 Batas 5 tahun PKWT
+
+`FixedTermSeriesStartDate` adalah tanggal mulai PKWT pertama dalam satu rangkaian PKWT yang tidak
+terputus. Diisi sistem pada kontrak PKWT pertama (sama dengan tanggal mulainya), diwariskan ke setiap
+perpanjangan, dan diisi dari batch untuk data awal (`HRD-DEC-090` `FIRST_PKWT_DATE_REQUIRED`).
+
+Total PKWT = tanggal berakhir yang diusulkan − `FixedTermSeriesStartDate` + 1 hari. Perpanjangan
+ditolak bila totalnya lebih dari 5 tahun (`VR-ONB-36`).
+
+**Contoh.** Budi: PKWT pertama mulai 1 April 2024. Kontrak berjalan berakhir 31 Maret 2027 (total 3
+tahun). Perpanjangan 24 bulan → berakhir 31 Maret 2029 → total 5 tahun → **diterima**. Perpanjangan
+30 bulan → berakhir 30 September 2029 → total 5 tahun 6 bulan → **ditolak**; pilihan yang tersisa
+Angkat jadi Pegawai Tetap atau Tidak Diperpanjang.
+
+#### 18.9.3 Masa percobaan
+
+| Hitungan | Rumus | Contoh |
+| --- | --- | --- |
+| Berlaku untuk | Kontrak pertama pegawai **dan** jenis kontraknya `IsProbationApplicable = true` **dan** `HistoryType = Initial` | Andi PKWTT sejak bergabung → ada; Rina PKWT → tidak ada; Rina diangkat PKWTT (`HistoryType = Conversion`) → tidak ada |
+| Tanggal akhir | tanggal mulai kontrak + 3 bulan − 1 hari | Mulai 1 Februari 2027 → **30 April 2027** |
+| Muncul di Perlu Tindakan atasan | tanggal akhir − `ProbationReminderDays` | 30 April − 14 hari → **16 April 2027** |
+| Lulus otomatis | Scheduler pada hari sesudah tanggal akhir, bila belum ada hasil yang disetujui | 1 Mei 2027 dini hari → `PassedAutomatically` |
+
+#### 18.9.4 Kontrak tanpa keputusan
+
+Pada hari sesudah tanggal berakhir, scheduler memeriksa setiap kontrak PKWT `Active` yang tanggal
+berakhirnya sudah lewat:
+
+| Keadaan | Hasil |
+| --- | --- |
+| Ada keputusan Tidak Diperpanjang yang disetujui | Kontrak → `Ended` |
+| Ada kontrak lanjutan yang sudah ditandatangani | Kontrak lama → `Completed`; kontrak lanjutan menjadi `IsCurrent` |
+| Selain itu | Kontrak → `LapsedWithoutDecision`; jadwal sesudah tanggal berakhir ditahan (18.9.7) |
+
+#### 18.9.5 Daftar Perlu Tindakan
+
+Pengingat dirancang sebagai **daftar Perlu Tindakan**, bukan pesan terkirim, karena repository tidak
+punya layanan notifikasi (`HRD-TF-052`).
+
+| Butir daftar | Tampil bagi | Muncul sejak | Hilang bila |
+| --- | --- | --- | --- |
+| Kontrak akan berakhir | Atasan langsung, Kepala Unit, HRD | tanggal berakhir − `ContractReminderDays` (bawaan 60) | Ada keputusan disetujui |
+| Kontrak perlu eskalasi | HR Manager | tanggal berakhir − `ContractEscalationDays` (bawaan 14), belum ada keputusan disetujui | Ada keputusan disetujui |
+| Kontrak berakhir tanpa keputusan | HRD, HR Manager | Status `LapsedWithoutDecision` | Kontrak lanjutan ditandatangani atau Tidak Diperpanjang disetujui |
+| Masa percobaan perlu dinilai | Atasan langsung, Kepala Unit | `ReminderFromDate` | Hasil disetujui atau lulus otomatis |
+| Pemberitahuan tidak diperpanjang belum dicatat | HRD | Keputusan Tidak Diperpanjang disetujui | Tanggal pemberitahuan dicatat |
+| Kontrak pertama belum ditandatangani | HRD | Kasus onboarding berjalan, kontrak `Draft` | Kontrak `Active` atau kasus batal |
+| Pegawai baru terlambat mulai | HRD | Hari ini > tanggal mulai rencana + `LateStartFlagDays` (bawaan 3), belum hadir hari pertama | Hadir dicatat atau Batal Bergabung |
+| Scan kontrak data awal belum diunggah | HRD | Kontrak `InitialData` tanpa `DocumentPath` | Scan diunggah |
+| Kontrak belum tercatat | HRD | Pegawai aktif tanpa satu pun baris kontrak | Pegawai masuk batch data awal |
+
+#### 18.9.6 Atasan langsung pegawai baru
+
+Pegawai baru tanpa relasi atasan tidak dapat mengajukan cuti (`T1` memakai `RequesterManager`) dan
+masa percobaannya tidak punya penilai (`HRD-DEC-085` butir 4). Desain menjawab butir yang
+ditinggalkan `HRD-DEC-088` dengan butir sistem `DIRECT_SUPERVISOR_ASSIGNED`:
+
+1. Kepala Unit memilih atasan langsung pada checklist.
+2. Relasi atasan (`WfpManagerAssignment`) dibuat saat HRD menyatakan siap kerja, berlaku sejak tanggal
+   mulai kontrak, dengan pencatat = Kepala Unit dan penyetuju = petugas HRD yang menyatakan siap kerja.
+3. Bila keduanya orang yang sama, siap kerja ditolak (`VR-ONB-12`), sesuai `HRD-DEC-031`.
+
+**Penempatan dan gaji awal** dibuat saat kontrak pertama ditandatangani, dari tawaran yang sudah
+disetujui berjenjang (`HRD-DEC-079`, `HRD-DEC-095`). Rantai tawaran itulah persetujuan
+`HRD-DEC-031` untuk penempatan dan gaji pertama; tidak ada persetujuan kedua (`HRD-DEC-084`
+`NO_SECOND_APPROVAL`). Jejak audit penempatan dan gaji menyimpan nomor tawaran sebagai rujukan
+persetujuannya.
+
+#### 18.9.7 Kesiapan dijadwalkan (`HrdEmploymentReadinessReadService`)
+
+Untuk satu pegawai pada tanggal `D`:
+
+| Urutan | Pemeriksaan | Hasil bila kena |
+| ---: | --- | --- |
+| 1 | Status kepegawaian `IsSchedulable = false` (misalnya `PENDING_ONBOARDING`) | `NotReady` — "belum siap kerja" |
+| 2 | Kontrak berjalan PKWT berakhir sebelum `D`, dan tidak ada kontrak bertanda tangan yang mencakup `D` | `ContractHold` — "kontrak berakhir tanpa kontrak lanjutan" |
+| 3 | Tidak ada satu pun baris kontrak | `Eligible`, dengan penanda "kontrak belum tercatat" (`HRD-DEC-090` butir 8) |
+| 4 | Selain itu | `Eligible` |
+
+Setiap hasil membawa dua penanda informatif: **Didampingi** beserta nama preceptor
+(`HRD-DEC-087` butir 4), dan **peringatan kredensial** bila tenaga klinis belum punya
+`WfpClinicalPrivilege` aktif (`CREDENTIAL_WARNING_ONLY_UNTIL_14`). Kedua penanda **tidak** menahan
+jadwal.
+
+#### 18.9.8 Butir otomatis
+
+| Sumber | Tercentang bila | Diperiksa |
+| --- | --- | --- |
+| `ContractSigned` | Kontrak pertama berstatus `Active` | Saat kontrak ditandai sudah ditandatangani |
+| `FitnessClearance` | Kesimpulan MCU tawaran `Fit` atau `FitWithRestrictions` | Saat kasus dibuat |
+| `MandatoryCertification` | Ada `WfpCertification` milik pegawai dengan jenis yang sama, terverifikasi, dan berlaku sampai sesudah hari ini atau seumur hidup | Saat kasus dibuat, setiap hari oleh scheduler, dan sesaat sebelum siap kerja |
+
+`HRD-DEC-086` menyebut status pelatihan wajib "dibaca dari sub-modul 16". Di source, sertifikat
+bermasa berlaku seperti BLS/BTCLS disimpan `WfpCertification` di `CredentialingManagement`,
+sedangkan `WfpTrainingRecord` (`LearningAndDevelopment`) tidak menyimpan masa berlaku. Desain membaca
+`WfpCertification` karena hanya tabel itu yang dapat menjawab "masih berlaku atau tidak". Maksud
+keputusan — butir terisi dari data sistem, bukan diketik — tidak berubah.
+
+### 18.10 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Memakai ulang `TrxEmployeeOnboarding` atau `WfpOnboardingChecklist` | Dua struktur kembar (`HRD-TF-040`); keduanya merujuk `TrxCandidateHiring` yang sudah digantikan; `WfpOnboardingChecklist` menyimpan hitungan butir sebagai kolom yang dapat basi; `TrxEmployeeOnboarding` membawa `ProbationEndDate` yang menyatukan onboarding dengan masa percobaan |
+| Ratchet `TrxEmployeeOnboarding` → `Hrd*` | Bentuknya berubah terlalu banyak; mengikuti preseden `S-D1` dan `S-D2`, model kandidat kosong dibuang dan entity baru diturunkan dari keputusan |
+| Memakai ulang `TrxProbationReview` | Membawa skor berbobot dan tanggal perpanjangan yang ditolak `HRD-DEC-085` |
+| Memakai ulang `TrxContractNonRenewal` | Hanya mengenal satu dari tiga keputusan kontrak |
+| Tabel kontrak kerja kedua di `LifecycleManagement` | Kontrak sudah dimiliki 02 (`WfpContractHistory`) |
+| Kolom skor penilaian masa percobaan dan tombol perpanjangan masa percobaan | `HRD-DEC-085` `SIMPLE_RESULT`, `THREE_MONTHS_FIXED` |
+| Verifikasi orang kedua per butir checklist | `HRD-DEC-086` `NO_PER_ITEM_VERIFICATION` |
+| Template per jabatan, site, atau entitas hukum | `HRD-DEC-086` `THREE_TEMPLATE_LAYERS`, `HRD-DEC-081` butir 6 |
+| Persetujuan HRD atas **Siap Mandiri** | `HRD-DEC-087` `CLINICAL_DECISION_NOT_HRD` |
+| Blokir kredensial | `HRD-DEC-005` masih `draft`; hanya peringatan |
+| Perpanjangan kontrak otomatis atau pengeluaran pegawai otomatis | `HRD-DEC-089` `NO_AUTOMATIC_OUTCOME` |
+| Layanan notifikasi surel/push | Tidak ada di repository (`HRD-TF-052`); pengingat lewat daftar Perlu Tindakan |
+| Pemberian peran kerja oleh 05 | Wewenang Administrator (`HRD-DEP-003`, `HRD-DEC-032`) |
+| SK pengangkatan untuk pegawai baru | Kontrak bertanda tangan sudah menjadi dokumen sahnya; penempatan pertama disetujui lewat tawaran (18.9.6) |
+| Endpoint persetujuan di controller domain | Persetujuan satu pintu lewat kotak masuk (`HRD-DEC-018`) |
+| Penghitungan uang kompensasi PKWT | Milik 10 Payroll; 05 hanya menyediakan tanggal dan jenis pemisahan |
+| Layar "Kontrak Saya" bagi pegawai | Tidak diminta pada pass ini; dapat diusulkan di `S-A2` s.d. `S-A6` |
+
+### 18.11 Strategi test `S-C4-ONB`
+
+Backend tidak memelihara proyek automated test (`rules/backend/TEST_POLICY.md`). Bukti verifikasi tiap
+task: `dotnet build`, pemeriksaan QBE, dan uji API terhadap database dev mengikuti
+`testing/acceptance-test-matrix.md` bagian 17. Uji yang paling penting dan paling mudah terlewat:
+
+1. serah terima yang dijalankan dua kali tetap menghasilkan satu kasus;
+2. penandatanganan kontrak yang gagal di tengah tidak meninggalkan penempatan atau gaji setengah jadi;
+3. masa percobaan yang lewat tanpa keputusan berubah menjadi lulus otomatis tepat sehari sesudah
+   tanggal akhirnya, dan pengajuan Tidak Lulus yang tertunda tidak dapat disetujui lagi;
+4. kontrak PKWT tanpa keputusan menahan jadwal sesudah tanggal berakhirnya;
+5. pengaman tabel kosong menghentikan migration bila tabel kandidat diisi satu baris uji;
+6. endpoint tulis riwayat kontrak 02 menjawab `409` dengan pesan yang terbaca.
+
+### 18.12 Traceability `S-C4-ONB`
+
+| Keputusan | Dirancang pada |
+| --- | --- |
+| `HRD-DEC-081` | 18.1, 18.4.10 (`T15` s.d. `T18` satu langkah), 18.8 |
+| `HRD-DEC-082` | 18.2, 18.4.10 (`ResignationLifecycleHandoffService`) |
+| `HRD-DEC-083` | 18.1, 18.4.1, 18.4.2 |
+| `HRD-DEC-084`, `HRD-DEC-095` | 18.4.4, 18.4.10 (`HrdEmploymentContractService`), 18.6 (`HrdJobOffer`), 18.9.1, 18.9.6 |
+| `HRD-DEC-085` | 18.4.5, 18.9.3 |
+| `HRD-DEC-086` | 18.4.2, 18.4.3, 18.9.8 |
+| `HRD-DEC-087` | 18.4.6, 18.9.7 |
+| `HRD-DEC-088` | 18.4.9, 18.4.10 (`HrdOnboardingAccessService`), 18.9.6 |
+| `HRD-DEC-089` | 18.4.7, 18.9.2, 18.9.4, 18.9.5, 18.9.7 |
+| `HRD-DEC-090` | 18.4.8, 18.7 |

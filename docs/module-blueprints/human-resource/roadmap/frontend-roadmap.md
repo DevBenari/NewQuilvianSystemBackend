@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 6
+roadmap_revision: 7
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡 (acceptance criteria belum terbukti, menunggu FIX-HRD-002-09); FE-HRD-022, FE-HRD-024, FE-HRD-025 dikerjakan ulang dan tetap ✅. Sebelumnya: tanda FE-HRD-011, FE-HRD-015, FE-HRD-016, FE-HRD-018 diselaraskan ke 🟡 mengikuti register"
-planning_updated_at: "2026-11-03 — Slice S-D2 Rekrutmen & Hiring dipecah menjadi 14 task (FE-HRD-044 s.d. FE-HRD-057) untuk 13 layar FE-HRD-110 s.d. FE-HRD-122 per gelombang MVP-11 s.d. MVP-13 & Verifikasi; grafik urutan dependency S-D2 ditambahkan"
+planning_updated_at: "2026-11-04 — Slice S-C4-ONB Onboarding dan Kontrak Kerja (sub-modul 05) dipecah menjadi 17 task (FE-HRD-058 s.d. FE-HRD-074) untuk 15 layar FE-HRD-123 s.d. FE-HRD-137 per gelombang MVP-14 s.d. MVP-17 & Verifikasi; termasuk amandemen layar tawaran S-D2 (FE-HRD-072); grafik F13 s.d. F17 ditambahkan"
 generated_at: "2026-10-26"
 owners:
   - "Frontend Technical Owner — HR UI Lead"
@@ -17,7 +17,8 @@ approved_by:
   - "User Approved (26 Oktober 2026) — roadmap awal"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D1 yang menjadi dasar task FE-HRD-029 s.d. FE-HRD-043"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D2 yang menjadi dasar task FE-HRD-044 s.d. FE-HRD-057"
-blueprint_manifest_revision: 14
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-C4-ONB beserta lima pilihan desain (HRD-DEC-096) yang menjadi dasar task FE-HRD-058 s.d. FE-HRD-074"
+blueprint_manifest_revision: 18
 decision_ids_s_d1: "HRD-DEC-058 s.d. HRD-DEC-072"
 source_commits:
   backend: "26066c76e69b021f68b63b31bde2258cd9d1bb74 (branch MHamzah)"
@@ -54,6 +55,30 @@ locked_input_hashes_s_d2:
   contracts/permission-audit-matrix.md: d2d3b1cd35785a525ad93fc101cc3a4898288e970cc32efbc9533b1bd72b9ff3
   flowcharts/rekrutmen-dan-seleksi.md: 63a769add4cad6bee23de31bf4f31c3b9ae3f228b517f7b0168a8f34e6ad6849
   testing/acceptance-test-matrix.md: 395c8540be5aa56c48ff3eff63092ee4fbbc3d7e65947682871dc2dc2de422e0
+decision_ids_s_c4_onb: "HRD-DEC-081 s.d. HRD-DEC-090, HRD-DEC-095, HRD-DEC-096"
+source_commits_s_c4_onb: "BE 8b17b75a (MHamzah), FE 44990b3d3 (HamzahV2)"
+contract_versions_s_c4_onb:
+  - "API Contract v9 bagian 15 — task S-C4-ONB"
+  - "Frontend Architecture rev 5 bagian 14 — task S-C4-ONB"
+  - "Permission Audit Matrix v9 bagian 13 — task S-C4-ONB"
+  - "Validation Matrix v9 bagian 14 — pesan yang ditampilkan layar S-C4-ONB"
+locked_input_hashes_s_c4_onb:
+  00-interview-decisions.md: 9a14b83f32089a561a868b27dfeb8a7d3f846b00ab99d9c1b9fe17e9ac6dada8
+  02-backend-architecture.md: c3483c6ea6a53e81ab8b83553303ce3176bd4a3cd10261eb4d63a427cb7003df
+  03-frontend-architecture.md: e3a895ae552d83a4035593378623817f38997b24d686cfda53a97e57d290f6cf
+  04-prd-to-mvp.md: 228a9348f468030a9c2f5bc0b1a5295dac90e40cd1d90c17f8be5424f3ab1879
+  data/data-dictionary.md: 0c1bcd66068f5c01836c0210e2d51466c534a2266ef083382d670cae084cc881
+  contracts/api-contract.md: 4ed75a196f678aeb6cd26cf83d91c4127e8fc81384856323eb2701d29552e538
+  contracts/state-transition-matrix.md: 4881793deab96053c507573283317286c37d629bc062dd99dcff2884dc8f4702
+  contracts/validation-matrix.md: d8ae67b286502729bb9692390f36d9a4ea2454991a3a861fe4605fbb6bc09ee4
+  contracts/integration-contract.md: 651af857432e42162a2acc3eb045b0fc57e065f5200f6a49459c4fe99f4e56f8
+  contracts/permission-audit-matrix.md: 6f3b6b7839b051b8f050c69fa65a67aeb7a97ed50bca7f29d09f727cfdb29589
+  testing/acceptance-test-matrix.md: 76503381c670882adf9794a9269d91ca32bcb0152eeb8c80558edc505289881f
+  flowcharts/onboarding-dan-siap-kerja.md: 89698b8c7fa1e7c4d74bc054871a66f612e0a7b2b71ee081eb9d0c730c74fef6
+  flowcharts/masa-percobaan.md: c92852e0fb57597a53687fa9a930655362e4503057bb2226dd540e275e25279b
+  flowcharts/pendampingan-klinis.md: bb00b4389f24c73ac039ae0714a8b409cf6d697aa4c94ea9a6177be8438d8f4c
+  flowcharts/siklus-kontrak.md: 11a3cae04a379e9295a8682a183a7633b0dfcb568156f4824c8eb6b8cdd9e6b9
+  flowcharts/batch-data-awal-kontrak.md: 24e97a41134d7c21b8f729008ca50e287f2e3acbf51479c84c82d0777ec77b5b
 ```
 
 **Apa yang berubah pada revision 6.**
@@ -101,7 +126,8 @@ locked_input_hashes_s_d2:
 ## Grafik Urutan Dependency
 
 Roadmap frontend HR memuat **43 task**: 28 task lama dan 15 task `S-D1`. Grafiknya dipecah menjadi
-satu ringkasan antar-slice dan sembilan grafik per slice.
+satu ringkasan antar-slice dan sembilan grafik per slice. **Revision 7** menambah 17 task `S-C4-ONB`
+(`FE-HRD-058` s.d. `FE-HRD-074`) pada Grafik F13 s.d. F17.
 
 Cara membaca:
 
@@ -123,6 +149,12 @@ IN-01 ✅ ─┬─> S0-B ✅ ─┬─> S-A1 ✅
           ├─> S-D1 MVP-7 ─> S-D1 MVP-8 ─> S-D1 MVP-9 ─> S-D1 MVP-10
           │
           └─> S-D2 MVP-11 ─> S-D2 MVP-12 ─> S-D2 MVP-13 ─> S-D2 Verifikasi
+
+S-D2 MVP-13 ─> S-C4-ONB MVP-14 ─┬─> S-C4-ONB MVP-15 ─┐
+                                │                    │
+                                ├─> S-C4-ONB MVP-16 ─┴──┐
+                                │                       │
+                                └─> S-C4-ONB MVP-17 ────┴─> S-C4-ONB Verifikasi
 ```
 
 `S-B1` s.d. `S-B5` 🟡, `S-C2` s.d. `S-C5` 🟡, dan `S-D3` ✅ tidak menunggu slice frontend lain;
@@ -313,10 +345,111 @@ FE-HRD-050 [F11] ─────────────────────
 FE-HRD-051 [F11] ────────────────────────────────────────┘
 ```
 
+### Grafik F13 — `S-C4-ONB` `MVP-14`/`MVP-15`: fondasi layanan, template, dan kasus onboarding
+
+```text
+FE-HRD-058 ─┬──────────────────────┬─> FE-HRD-059
+            │                      │
+            │   BE-HRD-070 [BE] ───┘
+            │
+            └──────────────────────┬─> FE-HRD-060 ──┐
+                                   │                │
+                BE-HRD-074 [BE] ───┘                │
+                                                    │
+                BE-HRD-075 [BE] ────────────────────┴─> FE-HRD-061 ──┐
+                                                                     │
+                BE-HRD-076 [BE] ─────────────────────────────────────┴──┐
+                                                                        │
+                FE-HRD-056 [F12] ───────────────────────────────────────┴─> FE-HRD-062
+```
+
+### Grafik F14 — `S-C4-ONB` `MVP-14`/`MVP-16`: kontrak kerja, layar lama, dan amandemen tawaran
+
+```text
+FE-HRD-058 [F13] ─┬─> FE-HRD-063 ─┬──────────────────────┐
+                  │               │                      │
+BE-HRD-072 [BE] ──┘               │   BE-HRD-080 [BE] ───┴──┐
+                                  │                         │
+                                  │   BE-HRD-081 [BE] ──────┴─> FE-HRD-064
+                                  │
+                                  └──────────────────────┬─> FE-HRD-071
+                                                         │
+                                      BE-HRD-065 [BE] ───┘
+
+FE-HRD-053 [F12] ─┬─> FE-HRD-072
+                  │
+BE-HRD-064 [BE] ──┘
+```
+
+### Grafik F15 — `S-C4-ONB`: masa percobaan, pendampingan klinis, dan batch data awal
+
+```text
+FE-HRD-058 [F13] ─┬─> FE-HRD-065
+                  │
+BE-HRD-079 [BE] ──┘
+
+FE-HRD-058 [F13] ─┬─> FE-HRD-066
+                  │
+BE-HRD-073 [BE] ──┘
+
+FE-HRD-058 [F13] ─┬─> FE-HRD-067
+                  │
+BE-HRD-082 [BE] ──┘
+```
+
+### Grafik F16 — `S-C4-ONB`: permintaan akses, pengaturan, dan Perlu Tindakan
+
+```text
+FE-HRD-058 [F13] ─┬─> FE-HRD-068
+                  │
+BE-HRD-077 [BE] ──┘
+
+FE-HRD-058 [F13] ─┬─> FE-HRD-069
+                  │
+BE-HRD-069 [BE] ──┘
+
+FE-HRD-058 [F13] ─┬─> FE-HRD-070
+                  │
+BE-HRD-084 [BE] ──┘
+```
+
+### Grafik F17 — `S-C4-ONB` `MVP-17` & Verifikasi: kotak masuk dan keterjangkauan layar
+
+```text
+FE-HRD-064 [F14] ──┐
+                   │
+FE-HRD-065 [F15] ──┴──┐
+                      │
+FE-HRD-067 [F15] ─────┴──┐
+                         │
+BE-HRD-068 [BE] ─────────┴─> FE-HRD-073 ──┐
+                                          │
+FE-HRD-059 [F13] ─────────────────────────┴──┐
+                                             │
+FE-HRD-062 [F13] ────────────────────────────┴──┐
+                                                │
+FE-HRD-066 [F15] ───────────────────────────────┴──┐
+                                                   │
+FE-HRD-068 [F16] ──────────────────────────────────┴──┐
+                                                      │
+FE-HRD-069 [F16] ─────────────────────────────────────┴──┐
+                                                         │
+FE-HRD-070 [F16] ────────────────────────────────────────┴──┐
+                                                            │
+FE-HRD-071 [F14] ───────────────────────────────────────────┴──┐
+                                                               │
+FE-HRD-072 [F14] ──────────────────────────────────────────────┴─> FE-HRD-074
+```
+
+`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja. `[F12]` s.d. `[F16]` = cermin
+baca-saja task frontend yang tempat aslinya di grafik itu.
+
 
 **Pemeriksaan silang.** Jumlah pasangan prasyarat → task: F1 2, F2 11, F3 15, F4 9, F5 5, F6 6,
 F7 8, F8 12, F9 10, F10 6, F11 11, F12 12 — total **107**. Jumlah entri kolom `Dependency` pada register juga **107** (42
-untuk task lama, 36 untuk task `S-D1`, 29 untuk task `S-D2`). Grafiknya bebas siklus.
+untuk task lama, 36 untuk task `S-D1`, 29 untuk task `S-D2`). Grafiknya bebas siklus. **Revision 7, `S-C4-ONB`:** F13 9, F14 9, F15 6, F16 6,
+F17 13 — **43** pasangan; kolom `Dependency` 17 task `S-C4-ONB` juga **43** entri. Total roadmap kini
+**150** pasangan. Diperiksa dengan skrip: garis lurus, setiap task muncul tepat satu kali, bebas siklus.
 
 ---
 
@@ -344,6 +477,11 @@ Urutan **rilis dan UAT** tetap `MVP-7` → `MVP-8` → `MVP-9` → `MVP-10` (`04
 | **4** | Seluruh layar `FE-HRD-045`, `FE-HRD-047`, `FE-HRD-050`, `FE-HRD-051`, `FE-HRD-053`, `FE-HRD-054`, `FE-HRD-055`, `FE-HRD-056` | `FE-HRD-057` (verifikasi menu, hak akses, dan keterjangkauan layar `S-D2`) |
 | **⛔** | `{DEC-HRD-008}` — Komite Medik | `FE-HRD-014` ⛔ (Layar Kredensial Medis & SPK/RKK) |
 | **⛔** | `{DEC-HRD-010}` — K3RS / MCU Pegawai | `FE-HRD-019` ⛔ (Layar Kesehatan Staf K3RS) |
+| **1** | — dari sisi frontend; kontrak `v9` sudah terkunci | **`FE-HRD-058`** (`S-C4-ONB` `MVP-14`, fondasi layanan) — **boleh dikerjakan sekarang** |
+| **2** | `FE-HRD-058`; backend: `BE-HRD-069`, `BE-HRD-070`, `BE-HRD-072`, `BE-HRD-073`, `BE-HRD-074`, `BE-HRD-077`, `BE-HRD-079`, `BE-HRD-082`, `BE-HRD-084` [BE] | `FE-HRD-059`, `FE-HRD-060`, `FE-HRD-063` (`MVP-14`); `FE-HRD-066`, `FE-HRD-068` (`MVP-15`); `FE-HRD-067`, `FE-HRD-069`, `FE-HRD-070` (`MVP-16`); `FE-HRD-065` (`MVP-17`) |
+| **3** | `FE-HRD-053`, `FE-HRD-060`, `FE-HRD-063`; backend: `BE-HRD-064`, `BE-HRD-065`, `BE-HRD-075`, `BE-HRD-080`, `BE-HRD-081` [BE] | `FE-HRD-071`, `FE-HRD-072` (`MVP-14`); `FE-HRD-061` (`MVP-15`); `FE-HRD-064` (`MVP-16`) |
+| **4** | `FE-HRD-056`, `FE-HRD-061`, `FE-HRD-064`, `FE-HRD-065`, `FE-HRD-067`; backend: `BE-HRD-068`, `BE-HRD-076` [BE] | `FE-HRD-062` (`MVP-15`); `FE-HRD-073` (`MVP-17`) |
+| **5** | `FE-HRD-059`, `FE-HRD-062`, `FE-HRD-066`, `FE-HRD-068`, `FE-HRD-069`, `FE-HRD-070`, `FE-HRD-071`, `FE-HRD-072`, `FE-HRD-073` | `FE-HRD-074` (verifikasi menu dan keterjangkauan `S-C4-ONB`) |
 
 **Task frontend yang ikut tertahan gap backend.** Tidak ada task frontend yang langsung menunggu
 `BE-HRD-045`, `BE-HRD-049`, `BE-HRD-050`, atau `BE-HRD-051` ⛔. Akibatnya pada layar: pesan
@@ -361,6 +499,9 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | Penyusun standar dan rencana sebagai satu layar berbagian atau berlangkah | `DEV_DISCRETION` | Builder memilih dengan rekomendasi pada laporan task |
 | Pemakaian ulang atau komponen baru per elemen | Diputuskan saat eksekusi | Mengikuti `base-component-decision-gate` pada `build-module-frontend` |
 | Formasi tanpa tombol ubah; nilai `null` tampil "data belum tersedia"; biaya selalu berlabel "estimasi" | **Mengikat** — `HRD-DEC-062`, `HRD-DEC-061`, `HRD-DEC-065` | Menjadi acceptance criteria |
+| Nama grup "Onboarding & Kontrak", kesembilan butir menu, dan label status `S-C4-ONB` | `OPEN` — pemilik produk, `HRD-FE-04` | Usulan kerja `03-frontend-architecture.md` 14.2 dan 14.6 dipakai apa adanya |
+| Form keputusan kontrak, hasil masa percobaan, siap mandiri, dan batal bergabung sebagai modal atau panel | `DEV_DISCRETION` | Builder memilih, mengikuti layar HR tetangga |
+| Tombol tidak berhak disembunyikan; aksi kasus mengikuti `availableActions`; nominal gaji hanya bila `amountVisible`; butir sistem terkunci | **Mengikat** — `03-frontend-architecture.md` 14.8, `HRD-DEC-033`, `HRD-DEC-086` | Menjadi acceptance criteria |
 
 ---
 
@@ -394,7 +535,8 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-024` | `S-A1` | Form Penerbitan SK, Upload Pindai Fisik, & Layar Detail Approval SK | ✅ | `FE-HRD-022` ✅ | [FE-HRD-024.md](../task/report/frontend/FE-HRD-024.md) (Diperbarui PLAN-REPAIR-HRD-002) |
 | `FE-HRD-025` | `S-A1` | Antarmuka Profil Terpadu Pegawai (Employee 360) Dual-View Segregation | ✅ | `FE-HRD-002` ✅, `BE-HRD-026` ✅ [BE] | [FE-HRD-025.md](../task/report/frontend/FE-HRD-025.md) (Diperbarui PLAN-REPAIR-HRD-002) |
 | `FE-HRD-026` | `S-A1` | Layar Batch Inisialisasi Penempatan Awal Pegawai (55 Staf Eksisting) | 🟡 | `FE-HRD-002` ✅, `BE-HRD-027` ✅ [BE] | [FE-HRD-026.md](../task/report/frontend/FE-HRD-026.md) (Menunggu FIX-HRD-002-09) |
-| `FE-HRD-027` | `S-A1` | Form Permohonan Perubahan Data Kuasa HR (On-Behalf) Berkas Kuasa | 🟡 | `FE-HRD-002` ✅, `BE-HRD-028` ✅ [BE] | [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md) (Menunggu FIX-HRD-002-09) |
+| `FE-HRD-027` | `S-A1` | Form Permohonan Perubahan Data Kuasa HR (On-Behalf) Berkas Kuasa | ✅ | `FE-HRD-002` ✅, `BE-HRD-028` ✅ [BE] | [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md) (Selesai — multipart 415 tuntas via InstanceAxios FIX-HRD-003-06) |
+| `FE-HRD-026-ESS` | `S-A5` | Layar Layanan Mandiri Kelola Data Saya (Employee Self-Service Profile Change) | ✅ | `FE-HRD-001` ✅, `BE-HRD-028` ✅ [BE] | [PLAN-REPAIR-003](../docs/plan-repair/plan-repair-003-employee-self-service-profile-change.md) |
 | `FE-HRD-028` | `S-A1` | Penguncian Form Master Data Pegawai (Lock Unit & Jabatan Read-Only) | ✅ | `FE-HRD-022` ✅ | [FE-HRD-028.md](../task/report/frontend/FE-HRD-028.md) |
 | `FE-HRD-029` | `S-D1` · `MVP-7` | Fondasi layar `S-D1`: grup menu, konstanta endpoint, util tampilan, dan layar Pengaturan Perencanaan (`FE-HRD-109`) | | `FE-HRD-021` ✅, `BE-HRD-031` [BE] | — |
 | `FE-HRD-030` | `S-D1` · `MVP-7` | Layar Formasi Jabatan baca saja beserta riwayat versi (`FE-HRD-101`) | | `FE-HRD-029`, `BE-HRD-032` [BE] | — |
@@ -425,6 +567,23 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-055` | `S-D2` · `MVP-13` | Layar Bank Kandidat Cadangan (*Talent Pool*) & Fast-Track Promotion (`FE-HRD-121`, `/hr/recruitment/talent-pool`) | | `BE-HRD-060` [BE] | — |
 | `FE-HRD-056` | `S-D2` · `MVP-13` | Layar Serah Terima ke Onboarding (*Hiring Handoff*) (`FE-HRD-122`, `/hr/recruitment/handoffs`) | | `FE-HRD-053`, `FE-HRD-054`, `BE-HRD-061` [BE] | — |
 | `FE-HRD-057` | `S-D2` · Verifikasi | Verifikasi Menu, Hak Akses, dan Keterjangkauan Seluruh Layar Rekrutmen `S-D2` | | `FE-HRD-045`, `FE-HRD-047`, `FE-HRD-050`, `FE-HRD-051`, `FE-HRD-053`, `FE-HRD-054`, `FE-HRD-055`, `FE-HRD-056` | — |
+| `FE-HRD-058` | `S-C4-ONB` · `MVP-14` | Fondasi layanan API dan label status | | — | — |
+| `FE-HRD-059` | `S-C4-ONB` · `MVP-14` | Template Onboarding (`FE-HRD-132`, `FE-HRD-133`) dan grup menu | | `FE-HRD-058`, `BE-HRD-070` [BE] | — |
+| `FE-HRD-060` | `S-C4-ONB` · `MVP-14` | Daftar dan Detail Kasus Onboarding (`FE-HRD-124`, `FE-HRD-125`) | | `FE-HRD-058`, `BE-HRD-074` [BE] | — |
+| `FE-HRD-061` | `S-C4-ONB` · `MVP-15` | Aksi checklist pada Detail Kasus Onboarding | | `FE-HRD-060`, `BE-HRD-075` [BE] | — |
+| `FE-HRD-062` | `S-C4-ONB` · `MVP-15` | Siap kerja, batal bergabung, dan tautan dari layar serah terima | | `FE-HRD-061`, `BE-HRD-076` [BE], `FE-HRD-056` | — |
+| `FE-HRD-063` | `S-C4-ONB` · `MVP-14` | Daftar dan Detail Kontrak Kerja (`FE-HRD-126`, `FE-HRD-127`) | | `FE-HRD-058`, `BE-HRD-072` [BE] | — |
+| `FE-HRD-064` | `S-C4-ONB` · `MVP-16` | Keputusan dan koreksi kontrak | | `FE-HRD-063`, `BE-HRD-080` [BE], `BE-HRD-081` [BE] | — |
+| `FE-HRD-065` | `S-C4-ONB` · `MVP-17` | Masa Percobaan (`FE-HRD-128`, `FE-HRD-129`) | | `FE-HRD-058`, `BE-HRD-079` [BE] | — |
+| `FE-HRD-066` | `S-C4-ONB` · `MVP-15` | Pendampingan Klinis (`FE-HRD-130`, `FE-HRD-131`) | | `FE-HRD-058`, `BE-HRD-073` [BE] | — |
+| `FE-HRD-067` | `S-C4-ONB` · `MVP-16` | Batch Data Awal Kontrak (`FE-HRD-134`, `FE-HRD-135`) | | `FE-HRD-058`, `BE-HRD-082` [BE] | — |
+| `FE-HRD-068` | `S-C4-ONB` · `MVP-15` | Permintaan Akses Pegawai Baru (`FE-HRD-136`) | | `FE-HRD-058`, `BE-HRD-077` [BE] | — |
+| `FE-HRD-069` | `S-C4-ONB` · `MVP-16` | Pengaturan Onboarding dan Kontrak (`FE-HRD-137`) | | `FE-HRD-058`, `BE-HRD-069` [BE] | — |
+| `FE-HRD-070` | `S-C4-ONB` · `MVP-16` | Perlu Tindakan (`FE-HRD-123`) dan penanda jumlah menu | | `FE-HRD-058`, `BE-HRD-084` [BE] | — |
+| `FE-HRD-071` | `S-C4-ONB` · `MVP-14` | Layar lama: tab riwayat kontrak baca saja, label "Probation", master pegawai | | `FE-HRD-063`, `BE-HRD-065` [BE] | — |
+| `FE-HRD-072` | `S-D2` · amandemen `MVP-14` | Jenis dan lama kontrak pada layar tawaran (`HRD-DEC-095`) | | `FE-HRD-053`, `BE-HRD-064` [BE] | — |
+| `FE-HRD-073` | `S-C4-ONB` · `MVP-17` | Empat jenis tugas `T15` s.d. `T18` di Kotak Masuk | | `FE-HRD-064`, `FE-HRD-065`, `FE-HRD-067`, `BE-HRD-068` [BE] | — |
+| `FE-HRD-074` | `S-C4-ONB` · Verifikasi | Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-C4-ONB` | | `FE-HRD-059`, `FE-HRD-062`, `FE-HRD-066`, `FE-HRD-068`, `FE-HRD-069`, `FE-HRD-070`, `FE-HRD-071`, `FE-HRD-072`, `FE-HRD-073` | — |
 
 ---
 
@@ -1310,3 +1469,351 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 * **Bukti verifikasi**: Tangkapan layar navigasi menu per peran; output log `npm run build` sukses.
 * **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA. Risiko integrasi navigasi.
 * **Definition of Done**: Seluruh layar rekrutmen terverifikasi lulus audit; laporan tracked tersedia.
+
+
+---
+
+## Kartu Detail Task Frontend — Slice `S-C4-ONB` Onboarding dan Kontrak Kerja (sub-modul 05)
+
+Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetujui pemilik
+(`HRD-DEC-096`). Sumber desain: `03-frontend-architecture.md` bagian 14; kontrak `v9` bagian
+`S-C4-ONB` (API bagian 15, Validation bagian 14, Permission bagian 13).
+
+**Catatan umum yang berlaku untuk setiap task di bawah:**
+
+- **Bukti verifikasi frontend** mengikuti `rules/frontend/test-policy.md`: `npm run lint:errors`,
+  `npm run build`, `npm run test:unit` untuk suite yang sudah ada, dan verifikasi manual kontrol
+  interaktif. Test unit baru **direkomendasikan** hanya untuk logika murni — pemetaan label status,
+  hitungan tanggal pratinjau, validasi berkas — dan tidak menahan status task.
+- **Kewenangan UI** mengikuti `03-frontend-architecture.md` 14.8: tombol yang tidak berhak
+  disembunyikan; tombol aksi kasus mengikuti `availableActions` dari backend; nama butir menu dan label
+  status usulan kerja (`HRD-FE-04` `OPEN`); tab, modal, drawer, warna, ikon, dan urutan
+  `DEV_DISCRETION`. Pemakaian ulang atau komponen baru diputuskan saat eksekusi lewat
+  `base-component-decision-gate` pada `build-module-frontend`.
+- **Menu.** Grup "Onboarding & Kontrak" didaftarkan pada task layar pertama yang dikerjakan
+  (`FE-HRD-059`); setiap task layar berikutnya menambahkan butir menunya sendiri sebagai acceptance
+  criteria. Berkas yang disunting: `src/utils/menu-sidebar/menu-items.jsx`.
+- **Gaji.** Nominal gaji tidak disimpan di Redux maupun penyimpanan peramban (`HRD-DEC-040`).
+- Pemilik seluruh task: Frontend HR UI Lead; pemilik keputusan produk: Pengguna (`HRD-DEC-015`).
+
+| Task ID | MVP | Ringkasan |
+| --- | --- | --- |
+| `FE-HRD-058` | `MVP-14` | Fondasi layanan API dan label status |
+| `FE-HRD-059` | `MVP-14` | Template Onboarding dan grup menu |
+| `FE-HRD-060` | `MVP-14` | Daftar dan detail Kasus Onboarding |
+| `FE-HRD-063` | `MVP-14` | Daftar dan detail Kontrak Kerja |
+| `FE-HRD-071` | `MVP-14` | Perubahan layar lama: riwayat kontrak, label, master pegawai |
+| `FE-HRD-072` | `MVP-14` | Amandemen layar tawaran `S-D2` |
+| `FE-HRD-061` | `MVP-15` | Aksi checklist pada kasus |
+| `FE-HRD-062` | `MVP-15` | Siap kerja, batal bergabung, dan tautan dari serah terima |
+| `FE-HRD-066` | `MVP-15` | Pendampingan Klinis |
+| `FE-HRD-068` | `MVP-15` | Permintaan Akses Pegawai Baru |
+| `FE-HRD-064` | `MVP-16` | Keputusan dan koreksi kontrak |
+| `FE-HRD-067` | `MVP-16` | Batch Data Awal Kontrak |
+| `FE-HRD-069` | `MVP-16` | Pengaturan Onboarding dan Kontrak |
+| `FE-HRD-070` | `MVP-16` | Perlu Tindakan |
+| `FE-HRD-065` | `MVP-17` | Masa Percobaan |
+| `FE-HRD-073` | `MVP-17` | Empat jenis tugas di Kotak Masuk |
+| `FE-HRD-074` | Verifikasi | Verifikasi menu, hak akses, dan keterjangkauan |
+
+### `FE-HRD-058` — Fondasi layanan API dan label status `S-C4-ONB`
+* **Slice / MVP**: `S-C4-ONB` / `MVP-14`
+* **Status**: Belum dikerjakan. Tanpa prasyarat frontend; kontrak `v9` sudah terkunci — **boleh dikerjakan sekarang**.
+* **Outcome**: Seluruh layar sub-modul 05 memakai satu lapisan layanan API dan satu berkas pemetaan status ke label Indonesia.
+* **Requirement/decision**: `03-frontend-architecture.md` 14.6, 14.7; `HRD-DEC-081`.
+* **Kontrak**: API `v9` bagian 15.1 s.d. 15.9.
+* **Kewenangan UI**: Tidak ada keputusan rupa.
+* **Reuse**: Pola service HR yang sudah ada di `src/lib/services/hr/**` dan `InstanceAxios`.
+* **Cakupan**: Berkas service per grup Swagger bagian 15; konstanta label status dan kategori Perlu Tindakan; penanganan `409` versi usang dan pesan `422` seragam.
+* **Dependency**: —
+* **Acceptance criteria**:
+  1. Setiap endpoint bagian 15.1 s.d. 15.9 punya fungsi service; unggahan memakai `multipart/form-data`.
+  2. Label status pada 14.6 berada di satu berkas konstanta dan tidak diulang di komponen.
+  3. Jawaban `409` memunculkan pesan "Data ini sudah diubah orang lain. Muat ulang lalu ulangi."
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; test unit pemetaan label direkomendasikan.
+* **Risiko & pemilik**: Rendah. Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Lapisan layanan dan konstanta tersedia; laporan tracked tersedia.
+
+### `FE-HRD-059` — Template Onboarding (`FE-HRD-132`, `FE-HRD-133`) dan grup menu
+* **Slice / MVP**: `S-C4-ONB` / `MVP-14`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-070` [BE].
+* **Outcome**: HRD menyusun tiga lapis template dengan butir sistem yang terkunci, dan grup menu "Onboarding & Kontrak" muncul di sidebar.
+* **Requirement/decision**: `HRD-DEC-086`; `03-frontend-architecture.md` 14.2, 14.3.7; `VR-ONB-20` s.d. `VR-ONB-25`.
+* **Kontrak**: API `v9` bagian 15.2.
+* **Kewenangan UI**: Susunan editor butir `DEV_DISCRETION`; butir sistem wajib tampil terkunci berlabel "Butir sistem".
+* **Reuse**: Pola daftar pola A dan form master HR.
+* **Cakupan**: Route `/hr/lifecycle/onboarding-templates` dan `/hr/lifecycle/onboarding-templates/[id]`; grup menu "Onboarding & Kontrak" beserta butir "Template Onboarding".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-070` [BE]
+* **Acceptance criteria**:
+  1. Grup menu terdaftar sebagai tingkat 1 di bawah Sumber Daya Manusia; butir "Template Onboarding" dijaga `WorkforceOnboardingTemplate : Read`.
+  2. Butir sistem tidak dapat dihapus atau diubah jenisnya di layar.
+  3. Pesan `VR-ONB-20` s.d. `VR-ONB-25` dari backend tampil di dekat tombol simpan.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual simpan template tiap lapis.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar template dan grup menu aktif; laporan tracked tersedia.
+
+### `FE-HRD-060` — Daftar dan Detail Kasus Onboarding (`FE-HRD-124`, `FE-HRD-125`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-14`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-074` [BE].
+* **Outcome**: HRD dan Kepala Unit melihat kasus onboarding berjalan, kemajuan checklist, kontrak pertama, status akun, dan peringatan.
+* **Requirement/decision**: `HRD-DEC-083`; `03-frontend-architecture.md` 14.3.2, 14.3.3.
+* **Kontrak**: API `v9` bagian 15.1 (`GET /`, `GET /summary`, `GET /{id}`).
+* **Kewenangan UI**: Susunan kepala dan checklist `DEV_DISCRETION`; isi wilayah mengikuti tabel 14.3.3.
+* **Reuse**: Pola daftar pola A; pola layar dokumen bertahap SK.
+* **Cakupan**: Route `/hr/lifecycle/onboarding-cases` dan `/[id]` (baca saja pada task ini); butir menu "Kasus Onboarding".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-074` [BE]
+* **Acceptance criteria**:
+  1. Keempat keadaan daftar tampil dengan kalimat 14.3.2.
+  2. Detail menampilkan butir per lapis, kontrak pertama, permintaan akun, dan peringatan; kasus tanpa Template Umum menampilkan kalimat 14.3.3.
+  3. Kepala Unit tidak melihat kasus di luar unitnya; detail di luar cakupan menampilkan "Data tidak ditemukan."
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual per peran.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Daftar dan detail kasus aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-061` — Aksi checklist pada Detail Kasus Onboarding
+* **Slice / MVP**: `S-C4-ONB` / `MVP-15`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-060`, `BE-HRD-075` [BE].
+* **Outcome**: HRD dan Kepala Unit mencentang butir masing-masing, mengunggah bukti, memilih atasan langsung dan preceptor, mencatat hadir hari pertama, dan mengalihkan koordinator.
+* **Requirement/decision**: `HRD-DEC-086`, `HRD-DEC-087`, `HRD-DEC-088`; `VR-ONB-03` s.d. `VR-ONB-10`, `VR-ONB-17`.
+* **Kontrak**: API `v9` bagian 15.1 (hadir hari pertama, centang dan batal centang butir HRD dan unit, periksa ulang otomatis, alihkan).
+* **Kewenangan UI**: Bentuk form centang `DEV_DISCRETION`; butir otomatis tidak punya tombol.
+* **Reuse**: Komponen unggah berkas HR yang sudah ada.
+* **Cakupan**: Aksi pada `FE-HRD-125`.
+* **Dependency**: `FE-HRD-060`, `BE-HRD-075` [BE]
+* **Acceptance criteria**:
+  1. Butir HRD hanya dapat dicentang pemegang `WorkforceOnboardingCase : CompleteItem`; butir unit hanya pemegang `: CompleteUnitItem`.
+  2. Butir wajib bukti menolak dicentang sebelum berkas dipilih; jenis dan ukuran berkas diperiksa sebelum unggah (`VR-ONB-09`).
+  3. Pilihan atasan langsung dan preceptor hanya memuat pegawai aktif di unit itu.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual tiap jenis butir.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Seluruh aksi checklist dapat dipakai dari layar; laporan tracked tersedia.
+
+### `FE-HRD-062` — Siap kerja, batal bergabung, dan tautan dari layar serah terima
+* **Slice / MVP**: `S-C4-ONB` / `MVP-15`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-061`, `BE-HRD-076` [BE], `FE-HRD-056`.
+* **Outcome**: HRD menyatakan siap kerja atau mencatat batal bergabung dari detail kasus, dan layar serah terima rekrutmen menautkan kasus yang terbentuk.
+* **Requirement/decision**: `HRD-DEC-083`, `HRD-DEC-088`; `VR-ONB-11` s.d. `VR-ONB-14`.
+* **Kontrak**: API `v9` bagian 15.1 (`declare-ready`, `cancel-join`).
+* **Kewenangan UI**: Konfirmasi sebagai modal atau panel `DEV_DISCRETION`.
+* **Reuse**: Layar serah terima `FE-HRD-122` milik `FE-HRD-056`.
+* **Cakupan**: Dua aksi pada `FE-HRD-125`; tautan "Buka kasus onboarding" pada `FE-HRD-122`.
+* **Dependency**: `FE-HRD-061`, `BE-HRD-076` [BE], `FE-HRD-056`
+* **Acceptance criteria**:
+  1. Nyatakan Siap Kerja nonaktif dengan keterangan "Masih ada {n} butir wajib" bila butir wajib belum lengkap.
+  2. Batal Bergabung tidak tampil sesudah hadir hari pertama tercatat; alasan dan catatan wajib diisi.
+  3. Sesudah serah terima berhasil, layar serah terima menampilkan tautan ke kasus yang terbentuk.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual kedua aksi.
+* **Risiko & pemilik**: Menyentuh layar `S-D2`; perubahan dibatasi satu tautan. Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Kedua titik akhir kasus dapat dijalankan dari layar; laporan tracked tersedia.
+
+### `FE-HRD-063` — Daftar dan Detail Kontrak Kerja (`FE-HRD-126`, `FE-HRD-127`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-14`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-072` [BE].
+* **Outcome**: HRD melihat kontrak dan rantainya, mencetak draf, menandai sudah ditandatangani dengan scan, dan mengunggah scan susulan kontrak data awal.
+* **Requirement/decision**: `HRD-DEC-084`, `HRD-DEC-033`, `HRD-DEC-040`; `VR-ONB-30`, `VR-ONB-31`, `VR-ONB-45`.
+* **Kontrak**: API `v9` bagian 15.3 (daftar, detail, data cetak, tandai ditandatangani, dokumen).
+* **Kewenangan UI**: Bentuk cetak `DEV_DISCRETION`; nominal gaji hanya bila `amountVisible = true`.
+* **Reuse**: Pola cetak dokumen HR yang sudah ada, bila ada.
+* **Cakupan**: Route `/hr/lifecycle/employment-contracts` dan `/[id]`; butir menu "Kontrak Kerja".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-072` [BE]
+* **Acceptance criteria**:
+  1. Tidak ada isian ubah isi kontrak di layar; draf menampilkan "Ubah lewat revisi tawaran di Rekrutmen."
+  2. Tandai Sudah Ditandatangani menolak tanpa berkas.
+  3. Baris gaji pada cetak berbunyi "disembunyikan" bagi yang tidak berhak, dan nominal tidak tersimpan di Redux maupun penyimpanan peramban.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual cetak dengan dua peran.
+* **Risiko & pemilik**: Privasi gaji. Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar kontrak aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-064` — Keputusan dan koreksi kontrak pada Detail Kontrak Kerja
+* **Slice / MVP**: `S-C4-ONB` / `MVP-16`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-063`, `BE-HRD-080` [BE], `BE-HRD-081` [BE].
+* **Outcome**: Atasan mengajukan Perpanjang, Angkat jadi Pegawai Tetap, atau Tidak Diperpanjang dengan pratinjau total PKWT; HRD mencatat tanggal pemberitahuan dan mengajukan koreksi.
+* **Requirement/decision**: `HRD-DEC-089`; `VR-ONB-35` s.d. `VR-ONB-44`.
+* **Kontrak**: API `v9` bagian 15.3 (keputusan, `fixed-term-check`, koreksi).
+* **Kewenangan UI**: Form sebagai panel atau modal `DEV_DISCRETION`.
+* **Reuse**: Komponen unggah berkas.
+* **Cakupan**: Aksi pada `FE-HRD-127`.
+* **Dependency**: `FE-HRD-063`, `BE-HRD-080` [BE], `BE-HRD-081` [BE]
+* **Acceptance criteria**:
+  1. Pilihan Perpanjang menampilkan pratinjau total PKWT dan nonaktif dengan keterangan bila melewati 5 tahun.
+  2. Tidak Diperpanjang wajib alasan; Catat Pemberitahuan hanya tampil untuk Tidak Diperpanjang yang disetujui.
+  3. Koreksi wajib alasan dan scan perbaikan, dan menampilkan nilai sebelum dan sesudah pada detail.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; test unit hitungan pratinjau direkomendasikan; verifikasi manual tiga keputusan.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Keputusan dan koreksi dapat diajukan dari layar; laporan tracked tersedia.
+
+### `FE-HRD-065` — Masa Percobaan (`FE-HRD-128`, `FE-HRD-129`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-17`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-079` [BE].
+* **Outcome**: Atasan mengajukan Lulus atau Tidak Lulus beserta alasan dan lampiran; HRD dan atasan melihat riwayat penilaian dan lulus otomatis.
+* **Requirement/decision**: `HRD-DEC-085`; `VR-ONB-55` s.d. `VR-ONB-59`.
+* **Kontrak**: API `v9` bagian 15.4.
+* **Kewenangan UI**: Susunan form `DEV_DISCRETION`; tidak ada tombol perpanjangan.
+* **Reuse**: Pola daftar pola A.
+* **Cakupan**: Route `/hr/lifecycle/probations` dan `/[id]`; butir menu "Masa Percobaan".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-079` [BE]
+* **Acceptance criteria**:
+  1. Form hasil tidak tampil sesudah tanggal akhir atau saat ada penilaian terbuka.
+  2. Tidak Lulus menolak diajukan tanpa lampiran.
+  3. Lulus otomatis tampil "Lulus otomatis pada {tanggal}".
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar masa percobaan aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-066` — Pendampingan Klinis (`FE-HRD-130`, `FE-HRD-131`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-15`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-073` [BE].
+* **Outcome**: Kepala Unit mengganti preceptor dan menyatakan Siap Mandiri dengan lampiran; HRD membaca riwayat.
+* **Requirement/decision**: `HRD-DEC-087`; `VR-ONB-60` s.d. `VR-ONB-63`.
+* **Kontrak**: API `v9` bagian 15.5.
+* **Kewenangan UI**: Susunan `DEV_DISCRETION`; tidak ada tombol persetujuan HRD.
+* **Reuse**: Pola daftar pola A; komponen unggah berkas.
+* **Cakupan**: Route `/hr/lifecycle/clinical-preceptorships` dan `/[id]`; butir menu "Pendampingan Klinis".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-073` [BE]
+* **Acceptance criteria**:
+  1. Siap Mandiri hanya tampil saat Didampingi dan menolak tanpa lampiran.
+  2. Ganti preceptor wajib alasan; pilihan hanya tenaga klinis aktif di unit itu.
+  3. Riwayat preceptor tampil dengan tanggal dari dan sampai.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar pendampingan aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-067` — Batch Data Awal Kontrak (`FE-HRD-134`, `FE-HRD-135`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-16`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-082` [BE].
+* **Outcome**: HRD mengunduh templat, mengunggah, memperbaiki baris yang gagal, lalu mengajukan batch.
+* **Requirement/decision**: `HRD-DEC-090`; `VR-ONB-65` s.d. `VR-ONB-70`.
+* **Kontrak**: API `v9` bagian 15.6.
+* **Kewenangan UI**: Mengikuti layar batch penempatan awal; detail rupa `DEV_DISCRETION`.
+* **Reuse**: Layar batch penempatan awal `/hr/initial-placement-batch` sebagai pola.
+* **Cakupan**: Route `/hr/lifecycle/initial-contract-batches` dan `/[id]`; butir menu "Batch Data Awal Kontrak".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-082` [BE]
+* **Acceptance criteria**:
+  1. Pesan per baris dari validasi backend tampil di baris yang bersangkutan.
+  2. Tombol Ajukan nonaktif selama masih ada baris gagal.
+  3. Kosong menampilkan "Belum ada baris. Unduh templat untuk mulai."
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual unggah templat contoh.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar batch aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-068` — Permintaan Akses Pegawai Baru (`FE-HRD-136`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-15`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-077` [BE].
+* **Outcome**: Administrator/IT melihat permintaan akses kerja dan menandainya selesai; HRD mengulang pembuatan akun yang gagal.
+* **Requirement/decision**: `HRD-DEC-088`; `VR-ONB-75` s.d. `VR-ONB-77`.
+* **Kontrak**: API `v9` bagian 15.7.
+* **Kewenangan UI**: `DEV_DISCRETION` untuk susunan.
+* **Reuse**: Pola daftar pola A.
+* **Cakupan**: Route `/hr/lifecycle/onboarding-access-requests`; butir menu "Permintaan Akses Pegawai Baru".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-077` [BE]
+* **Acceptance criteria**:
+  1. Tombol Tandai Selesai hanya tampil untuk permintaan akses kerja yang menunggu, bagi pemegang `WorkforceOnboardingAccessRequest : Complete`.
+  2. Pesan gagal pembuatan akun tampil apa adanya, dan tombol Ulangi hanya untuk permintaan akun yang gagal.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar permintaan akses aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-069` — Pengaturan Onboarding dan Kontrak (`FE-HRD-137`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-16`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-069` [BE].
+* **Outcome**: HR Manager mengubah empat angka pengingat; pemegang baca saja melihat isian baca saja.
+* **Requirement/decision**: `HRD-DEC-085` butir 4, `HRD-DEC-089` butir 1 dan 8; `VR-ONB-80`.
+* **Kontrak**: API `v9` bagian 15.9.
+* **Kewenangan UI**: `DEV_DISCRETION`.
+* **Reuse**: Pola pengaturan perencanaan `S-D1`.
+* **Cakupan**: Route `/hr/lifecycle/settings`; butir menu "Pengaturan".
+* **Dependency**: `FE-HRD-058`, `BE-HRD-069` [BE]
+* **Acceptance criteria**:
+  1. Simpan hanya tampil bagi pemegang `WorkforceLifecycleSetting : Update`.
+  2. Rentang nilai diperiksa sebelum simpan dan pesan `VR-ONB-80` dari backend tampil.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar pengaturan aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-070` — Perlu Tindakan (`FE-HRD-123`)
+* **Slice / MVP**: `S-C4-ONB` / `MVP-16`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-058`, `BE-HRD-084` [BE].
+* **Outcome**: Setiap peran melihat apa yang harus ditindaklanjuti hari ini — pengganti pengingat yang tidak ada (`HRD-DEC-096` butir 3).
+* **Requirement/decision**: `HRD-DEC-085`, `HRD-DEC-089`, `HRD-DEC-090`; `03-frontend-architecture.md` 14.3.1.
+* **Kontrak**: API `v9` bagian 15.8.
+* **Kewenangan UI**: Bentuk penyaring kategori `DEV_DISCRETION`.
+* **Reuse**: Pola daftar pola A.
+* **Cakupan**: Route `/hr/lifecycle/worklist`; butir menu "Perlu Tindakan" beserta penanda jumlah.
+* **Dependency**: `FE-HRD-058`, `BE-HRD-084` [BE]
+* **Acceptance criteria**:
+  1. Kategori yang tidak berlaku bagi peran pemanggil tidak tampil.
+  2. Tombol Buka membuka layar sesuai `targetType`.
+  3. Kosong menampilkan "Tidak ada yang perlu ditindaklanjuti saat ini."
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual per peran.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar Perlu Tindakan aktif dan terjangkau dari menu; laporan tracked tersedia.
+
+### `FE-HRD-071` — Perubahan layar lama: tab riwayat kontrak, label "Probation", dan form master pegawai
+* **Slice / MVP**: `S-C4-ONB` / `MVP-14`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-063`, `BE-HRD-065` [BE].
+* **Outcome**: Layar lama tidak lagi dapat mengubah kontrak atau isian kepegawaian yang dikelola sub-modul 05, dan menautkan ke layar Kontrak Kerja.
+* **Requirement/decision**: `HRD-DEC-085` butir 2, `HRD-DEC-096` butir 5; `HRD-TF-043`; `VR-ONB-32`, `VR-ONB-33`.
+* **Kontrak**: API `v9` bagian 15.11.
+* **Kewenangan UI**: Letak tautan `DEV_DISCRETION`.
+* **Reuse**: Komponen yang ada.
+* **Cakupan**: `src/components/features/workforce/workforce-resource-editor.jsx` (tab riwayat kontrak baca saja, isian `probationEndDate` dihapus); `workforce-profile-dashboard.jsx` (label "Probation" tidak dipakai untuk masa percobaan); `employee-grouped-form.config.jsx` (lima isian baca saja untuk pegawai yang punya kontrak).
+* **Dependency**: `FE-HRD-063`, `BE-HRD-065` [BE]
+* **Acceptance criteria**:
+  1. Tab riwayat kontrak tidak punya tombol tambah, ubah, ubah status, jadikan berjalan, maupun hapus, dan menautkan "Kelola di Kontrak Kerja".
+  2. Form master pegawai menampilkan lima isian baca saja berketerangan "Mengikuti kontrak kerja" untuk pegawai yang punya kontrak.
+  3. Profil menampilkan "Masa percobaan s.d. {tanggal}" dari data masa percobaan bila ada.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`, `npm run test:unit` (suite yang ada); verifikasi manual editor workforce.
+* **Risiko & pemilik**: Menyentuh komponen besar yang dipakai banyak layar; perubahan dibatasi tiga titik. Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Ketiga layar lama selaras; laporan tracked tersedia.
+
+### `FE-HRD-072` — Amandemen layar tawaran `S-D2`: jenis dan lama kontrak
+* **Slice / MVP**: `S-D2` (amandemen dari sub-modul 05) / `MVP-14`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-053`, `BE-HRD-064` [BE].
+* **Outcome**: Recruiter memilih jenis kontrak dan lama kontrak saat menyusun tawaran; penyetuju dan surat tawaran menampilkannya beserta tanggal berakhir.
+* **Requirement/decision**: `HRD-DEC-095`; `VR-ONB-50`, `VR-ONB-51`.
+* **Kontrak**: API `v9` bagian 15.12.
+* **Kewenangan UI**: Letak isian `DEV_DISCRETION`.
+* **Reuse**: Form dan detail tawaran `FE-HRD-118`, `FE-HRD-119`.
+* **Cakupan**: Form penyusunan tawaran, layar persetujuan, dan tampilan surat tawaran.
+* **Dependency**: `FE-HRD-053`, `BE-HRD-064` [BE]
+* **Acceptance criteria**:
+  1. Jenis kontrak wajib dipilih; lama kontrak wajib 1–60 bulan untuk jenis yang mensyaratkan tanggal berakhir, dan tersembunyi untuk jenis lainnya.
+  2. Tanggal berakhir hasil hitung tampil pada form, layar persetujuan, dan surat tawaran.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual tawaran PKWT dan PKWTT.
+* **Risiko & pemilik**: Menyentuh layar `S-D2` yang sudah disetujui. Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Isian kontrak tampil di tiga tempat; laporan tracked tersedia.
+
+### `FE-HRD-073` — Empat jenis tugas `T15` s.d. `T18` di Kotak Masuk
+* **Slice / MVP**: `S-C4-ONB` / `MVP-17`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-064`, `FE-HRD-065`, `FE-HRD-067`, `BE-HRD-068` [BE].
+* **Outcome**: Petugas HRD memutus hasil masa percobaan, keputusan kontrak, koreksi kontrak, dan batch data awal dari kotak masuk yang sudah ada, dengan tautan ke dokumennya.
+* **Requirement/decision**: `HRD-DEC-081`, `HRD-DEC-018`.
+* **Kontrak**: Kotak masuk bagian 6 kontrak API; jenis rujukan pada Integration `v9` bagian 13 (`INT-HR-30`).
+* **Kewenangan UI**: Mengikuti kotak masuk `FE-HRD-30`/`FE-HRD-31`.
+* **Reuse**: Kotak masuk persetujuan yang sudah ada.
+* **Cakupan**: Pemetaan empat jenis rujukan ke label dan tautan `FE-HRD-129`, `FE-HRD-127`, `FE-HRD-135`.
+* **Dependency**: `FE-HRD-064`, `FE-HRD-065`, `FE-HRD-067`, `BE-HRD-068` [BE]
+* **Acceptance criteria**:
+  1. Keempat jenis tugas tampil dengan label Indonesia dan tautan ke dokumen yang tepat.
+  2. Pengaju tidak melihat tombol Setujui pada tugas pengajuannya sendiri.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`; verifikasi manual satu tugas per jenis.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Keempat jenis tugas dapat diputus dari kotak masuk; laporan tracked tersedia.
+
+### `FE-HRD-074` — Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-C4-ONB`
+* **Slice / MVP**: `S-C4-ONB` / Verifikasi
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-059`, `FE-HRD-062`, `FE-HRD-066`, `FE-HRD-068`, `FE-HRD-069`, `FE-HRD-070`, `FE-HRD-071`, `FE-HRD-072`, `FE-HRD-073`.
+* **Outcome**: Kelima belas layar `FE-HRD-123` s.d. `FE-HRD-137` terjangkau dari menu atau dari layar induknya, tombol tersembunyi bagi peran yang tidak berhak, dan perubahan layar lama berfungsi.
+* **Requirement/decision**: `03-frontend-architecture.md` 14.1, 14.2, 14.5; `04-prd-to-mvp.md` 23.19.
+* **Kontrak**: Seluruh kontrak `v9` bagian `S-C4-ONB` yang dikonsumsi layar.
+* **Kewenangan UI**: Tidak ada keputusan baru.
+* **Reuse**: Pola verifikasi `FE-HRD-043` dan `FE-HRD-057`.
+* **Cakupan**: Pemeriksaan sidebar per peran, tautan antar layar, dan keempat keadaan tiap layar daftar.
+* **Dependency**: `FE-HRD-059`, `FE-HRD-062`, `FE-HRD-066`, `FE-HRD-068`, `FE-HRD-069`, `FE-HRD-070`, `FE-HRD-071`, `FE-HRD-072`, `FE-HRD-073`
+* **Acceptance criteria**:
+  1. Kesembilan butir menu "Onboarding & Kontrak" tampil sesuai butir hak akses masing-masing peran pada 14.5.
+  2. Setiap layar anak dapat dicapai dari layar induk yang disebut 14.1.
+  3. Tidak ada tombol yang tampil lalu ditolak `403` bagi peran mana pun.
+* **Bukti verifikasi**: Tangkapan layar sidebar per peran; `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemetaan peran `MAPPING_REQUIRED` membatasi peran yang dapat diuji. Pemilik: Frontend HR UI Lead bersama QA.
+* **Definition of Done**: Seluruh layar terverifikasi terjangkau; laporan tracked tersedia.

@@ -1194,3 +1194,123 @@ Seluruh transisi status pada bagian ini diturunkan langsung dari `00-interview-d
 2. **`ILLEGAL_OVERRIDE_CLINICAL_VETO`**: Mengubah status pelamar ke `OFFER_STAGE` bila formulir evaluasi Kepala Unit berisi rekomendasi `NOT_RECOMMENDED` $ightarrow$ **Ditolak Keras (403 Forbidden - Veto Mutlak Pasien Safety)**.
 3. **`ILLEGAL_OFFER_WITHOUT_DIRUT`**: Mengirim surat penawaran dengan nilai gaji di atas plafon grade tanpa persetujuan Direktur Utama $ightarrow$ **Ditolak Keras (403 Forbidden)**.
 4. **`ILLEGAL_FINAL_HIRE_WITHOUT_FIT_MCU`**: Melakukan serah terima onboarding sebelum status kelaikan MCU dari tim dokter K3RS bernilai `FIT` $ightarrow$ **Ditolak Keras (422 Unprocessable)**.
+
+
+---
+
+## 13. Onboarding dan Kontrak Kerja — `S-C4-ONB` (`last_changed_in` `v9`, 4 November 2026)
+
+Status `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan". Seluruh perpindahan di bawah **belum ditegakkan di kode**. Nama status sama persis
+dengan enum pada `02-backend-architecture.md` 18.4.12; nama bisnisnya ditulis di kolom keterangan
+flowchart. Kolom "Bila dilanggar" menyebut kode dan aturan validasi.
+
+### 13.1 Kasus onboarding — `HrdOnboardingCase.CaseStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Serahkan ke Onboarding (di 04) | `InProgress` | HR Manager lewat 04 | Tawaran `FinalAccepted`, kelaikan `Fit`/`FitWithRestrictions`, profil `PENDING_ONBOARDING` | `422` `VR-ONB-02`; serah terima kedua mengembalikan kasus yang sama (`VR-ONB-01`) |
+| `InProgress` | Nyatakan Siap Kerja | `Completed` | Petugas HRD (`DeclareReady`) | Seluruh butir wajib `Completed`; penyetuju berbeda dari pemilih atasan langsung | `422` `VR-ONB-11`, `VR-ONB-12` |
+| `InProgress` | Batal Bergabung | `Cancelled` | Petugas HRD (`CancelJoin`) | `FirstDayAttendedOn` kosong; alasan dan catatan diisi | `422` `VR-ONB-13`; `400` `VR-ONB-14` |
+| `Completed` | apa pun | — | — | — | `422` `VR-ONB-16`: kasus selesai tidak dapat diubah. Keluarnya pegawai lewat pengunduran diri (20) |
+| `Cancelled` | apa pun | — | — | — | `422` `VR-ONB-16`. Pegawai yang kembali melamar melalui rekrutmen ulang (`HRD-DEC-075`) |
+| `InProgress` | Batal Bergabung sesudah hadir hari pertama | — | — | — | `422` `VR-ONB-13` |
+
+### 13.2 Butir checklist — `HrdOnboardingCaseItem.ItemStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Pending` | Centang butir HRD | `Completed` | Petugas HRD | Kasus `InProgress`; `ResponsibleRole = Hrd`; bukti ada bila wajib bukti | `422` `VR-ONB-03`, `VR-ONB-05` |
+| `Pending` | Centang butir unit | `Completed` | Kepala Unit dalam cakupan | Kasus `InProgress`; `ResponsibleRole = UnitHead`; orang terpilih sah untuk butir pemilihan | `404` `VR-ONB-04`; `422` `VR-ONB-07`, `VR-ONB-08` |
+| `Pending` | Pemeriksaan otomatis terpenuhi | `Completed` | Sistem | Sumber otomatis terpenuhi (`02-backend-architecture.md` 18.9.8) | — |
+| `Completed` | Pemeriksaan otomatis tidak lagi terpenuhi (sertifikat kedaluwarsa sebelum siap kerja) | `Pending` | Sistem | Kasus masih `InProgress` | — |
+| `Completed` | Batal centang | `Pending` | Penanggung jawab butir | Kasus `InProgress`; butir bukan otomatis; untuk `FIRST_DAY_ATTENDANCE` hanya selama kontrak pertama `Draft`; untuk `PRECEPTOR_ASSIGNED` pendampingan ikut kembali kosong | `422` `VR-ONB-10` |
+| apa pun | Centang tangan butir otomatis | — | — | — | `422` `VR-ONB-06` |
+
+### 13.3 Kontrak kerja — `WfpContractHistory.ContractStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Kasus onboarding terbentuk | `Draft` (`HistoryType = Initial`) | Sistem | Tawaran memuat jenis dan lama kontrak (`HRD-DEC-095`) | Serah terima batal |
+| — | Keputusan Perpanjang atau Pegawai Tetap disetujui | `Draft` (`Renewal` / `Conversion`) | Sistem | `T16` disetujui | — |
+| — | Batch data awal diterapkan | `Active` (`InitialData`) | Sistem | `T18` disetujui | — |
+| `Draft` | Tandai Sudah Ditandatangani | `Active` | Petugas HRD (`MarkSigned`) | Scan diunggah | `422` `VR-ONB-30` |
+| `Draft` (`Initial`) | Tawaran direvisi di 04 | `Cancelled`; draf baru `Draft` | Sistem | Revisi tawaran disetujui | — |
+| `Draft` (`Initial`) | Batal Bergabung | `Cancelled` | Sistem | `VR-ONB-13` terpenuhi | — |
+| `Active` | Tanggal mulai kontrak lanjutan tiba | `Completed`; lanjutan menjadi `IsCurrent` | Sistem (scheduler) | Kontrak lanjutan `Active` | — |
+| `Active` | Tanggal berakhir lewat, Tidak Diperpanjang disetujui | `Ended` | Sistem (scheduler) | — | — |
+| `Active` | Tanggal berakhir lewat tanpa lanjutan bertanda tangan | `LapsedWithoutDecision` | Sistem (scheduler) | Tidak ada Tidak Diperpanjang yang disetujui | — |
+| `LapsedWithoutDecision` | Kontrak lanjutan ditandatangani | `Completed`; lanjutan `Active` dan `IsCurrent` | Petugas HRD | `T16` disetujui lebih dulu | — |
+| `LapsedWithoutDecision` | Tidak Diperpanjang disetujui | `Ended` | Sistem | — | — |
+| `Active` | Koreksi disetujui | `Active` (isi diperbarui) | Petugas HRD lain lewat `T17` | `VR-ONB-41` s.d. `VR-ONB-44` | — |
+| `Active`, `Draft`, `LapsedWithoutDecision` | Ubah langsung lewat endpoint 02 | — | — | — | `409` `VR-ONB-32` |
+| apa pun | Diperpanjang otomatis atau diakhiri otomatis tanpa keputusan | — | — | — | Tidak ada jalurnya (`NO_AUTOMATIC_OUTCOME`) |
+
+### 13.4 Masa percobaan — `HrdProbation.ProbationStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Kontrak PKWTT pertama ditandatangani | `Running` | Sistem | `IsProbationApplicable`, `HistoryType = Initial` | Tidak dibuat untuk PKWT maupun `Conversion` |
+| `Running` | Ajukan hasil | `AwaitingDecision` | Atasan langsung atau Kepala Unit | Sebelum `EndDate`; tidak ada penilaian terbuka | `422` `VR-ONB-55`; `409` `VR-ONB-56` |
+| `AwaitingDecision` | Minta Revisi atau Tolak di kotak masuk | `Running` | Petugas HRD | — | — |
+| `AwaitingDecision` | Setujui hasil Lulus | `Passed` | Petugas HRD bukan pengaju | Paling lambat `EndDate` | `422` `VR-ONB-58` |
+| `AwaitingDecision` | Setujui hasil Tidak Lulus | `Failed`; serah terima ke 20 | Petugas HRD bukan pengaju | Paling lambat `EndDate` | `422` `VR-ONB-58` |
+| `Running`, `AwaitingDecision` | Hari sesudah `EndDate` tanpa hasil disetujui | `PassedAutomatically` | Sistem | — | — |
+| `Passed`, `PassedAutomatically`, `Failed` | apa pun | — | — | — | `422` |
+| apa pun | Perpanjang masa percobaan | — | — | — | `405` `VR-ONB-59` |
+
+### 13.5 Penilaian masa percobaan — `HrdProbationAssessment.AssessmentStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan | `Submitted` | Atasan langsung atau Kepala Unit | `VR-ONB-55` s.d. `VR-ONB-57` | `400`/`409`/`422` |
+| `Submitted` | Minta Revisi | `Returned` | Petugas HRD | Catatan revisi wajib | `400` |
+| `Returned` | Ubah dan ajukan ulang | `Submitted` | Pengaju | Sebelum `EndDate` | `422` `VR-ONB-55` |
+| `Submitted` | Tolak | `Rejected` | Petugas HRD | Alasan wajib | `400` |
+| `Submitted` | Setujui | `Approved` | Petugas HRD bukan pengaju | Sebelum atau pada `EndDate` | `422` `VR-ONB-58` |
+| `Submitted`, `Returned` | Tarik | `Withdrawn` | Pengaju | — | — |
+| `Submitted`, `Returned` | Masa percobaan lulus otomatis | `ClosedOnExpiry` | Sistem | — | Instance workflow ikut dibatalkan |
+
+### 13.6 Keputusan kontrak dan koreksi kontrak — `ContractDecisionStatus`, `ContractCorrectionStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan keputusan | `Submitted` | Atasan langsung atau Kepala Unit | Kontrak PKWT `Active`/`LapsedWithoutDecision`; tidak ada keputusan terbuka; batas 5 tahun | `422` `VR-ONB-35`, `VR-ONB-36`; `409` `VR-ONB-37` |
+| — | Ajukan koreksi | `Submitted` | Petugas HRD (`RequestCorrection`) | Kontrak `Active`; scan dan alasan; tidak ada koreksi terbuka | `400`/`422` `VR-ONB-41` s.d. `VR-ONB-44`; `409` `VR-ONB-43` |
+| `Submitted` | Minta Revisi | `Returned` | Petugas HRD | — | — |
+| `Returned` | Ubah dan ajukan ulang | `Submitted` | Pengaju | Aturan pengajuan diperiksa ulang | Sama dengan pengajuan |
+| `Submitted` | Tolak | `Rejected` | Petugas HRD | Alasan wajib | — |
+| `Submitted` | Setujui | `Approved` | Petugas HRD bukan pengaju (`AllowSelfApproval = false`) | — | Ditolak mesin persetujuan |
+| `Submitted`, `Returned` | Tarik | `Withdrawn` | Pengaju | — | — |
+| `Approved` | apa pun selain catat pemberitahuan | — | — | — | `422` |
+
+### 13.7 Pendampingan klinis — `HrdClinicalPreceptorship.PreceptorshipStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Butir `PRECEPTOR_ASSIGNED` dicentang | `PreceptorAssigned` | Kepala Unit dalam cakupan | Preceptor sah (`VR-ONB-08`) | `422` |
+| `PreceptorAssigned` | Butir dibatalkan centangnya | dihapus-tandai | Kepala Unit | Kasus `InProgress` | — |
+| `PreceptorAssigned` | Siap kerja dinyatakan | `Accompanied` | Sistem | — | — |
+| `PreceptorAssigned` | Batal bergabung | `Cancelled` | Sistem | — | — |
+| `PreceptorAssigned`, `Accompanied` | Ganti preceptor | tetap | Kepala Unit | Preceptor sah; alasan wajib | `400`/`422` `VR-ONB-62` |
+| `Accompanied` | Siap Mandiri | `Independent` | Kepala Unit | Lampiran wajib | `422` `VR-ONB-60` |
+| `PreceptorAssigned`, `Independent` | Siap Mandiri | — | — | — | `422` `VR-ONB-61` |
+
+### 13.8 Batch data awal kontrak — `HrdInitialContractBatch.BatchStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Simpan | `Draft` | Petugas HRD | — | — |
+| `Draft`, `Returned` | Ajukan | `Submitted` | Petugas HRD | `InvalidRows = 0` | `422` `VR-ONB-69` |
+| `Submitted` | Minta Revisi | `Returned` | Petugas HRD lain | — | — |
+| `Submitted` | Tolak | `Rejected` | Petugas HRD lain | — | — |
+| `Submitted` | Setujui | `Applied` | Petugas HRD lain | Pemeriksaan ulang baris lolos pada saat diterapkan | Ditolak; batch tetap `Submitted` dengan pesan per baris |
+| `Draft`, `Returned` | Batalkan | `Cancelled` | Petugas HRD | — | — |
+
+### 13.9 Status kepegawaian pegawai baru — `MstEmployee.EmploymentStatusId`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Serah terima 04 | `PENDING_ONBOARDING` | Sistem (04) | `HRD-DEC-075` | — |
+| `PENDING_ONBOARDING` | Nyatakan Siap Kerja | `ACTIVE` | Petugas HRD | `VR-ONB-11`, `VR-ONB-12` | `422` |
+| `PENDING_ONBOARDING` | Batal Bergabung | `CANCELLED_JOIN` | Petugas HRD | `VR-ONB-13` | `422` |
+| `PENDING_ONBOARDING` | Diubah lewat form master pegawai | — | — | — | `409` `VR-ONB-33` |

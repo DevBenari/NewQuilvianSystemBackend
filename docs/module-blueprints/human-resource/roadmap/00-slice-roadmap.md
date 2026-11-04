@@ -437,6 +437,20 @@ material touch ada di `00-interview-decisions.md` bagian 16.5.
 Catatan batas: serah terima kredensial untuk tenaga klinis saat onboarding **tidak** dirancang di
 sini.
 
+### `S-C4-ONB` — Onboarding dan Kontrak Kerja (sub-modul 05), dipisah dari `S-C4` pada 4 November 2026
+
+| Aspek | Isi |
+| --- | --- |
+| **Asal** | Bagian onboarding, kontrak, dan masa percobaan dari `S-C4`. Bagian exit clearance tetap `S-C4` (`BE-HRD-014` ✅, `FE-HRD-017` ✅) |
+| **Desain** | `approved` — Pengguna, 4 November 2026 (`HRD-DEC-096`): `02-backend-architecture.md` bagian 18, `03-frontend-architecture.md` bagian 14, kontrak `v9`, `04-prd-to-mvp.md` bagian 23 |
+| **Keputusan** | `HRD-DEC-081` s.d. `HRD-DEC-090`, `HRD-DEC-095`, `HRD-DEC-096` |
+| **Perlakuan model kandidat** | Menggantikan tabel di atas untuk bagian onboarding: `TrxEmployeeOnboarding`, `TrxEmployeeOnboardingTask`, `WfpOnboardingChecklist`, `WfpOnboardingTask`, `TrxProbationReview`, `TrxContractNonRenewal` **dibuang** dengan pengaman tabel kosong dan diganti entity `Hrd*` baru (`HRD-DEC-090`); `MstOnboardingTemplate*` tetap `Mst*` dan `Diperbarui` |
+| **Task** | Backend `BE-HRD-063` s.d. `BE-HRD-086`; frontend `FE-HRD-058` s.d. `FE-HRD-074` (roadmap revision `7`) |
+| **Gelombang rilis** | `MVP-14` s.d. `MVP-17` dan Verifikasi (`04-prd-to-mvp.md` 23.20) |
+| **Dependency** | `S-D2` (`BE-HRD-057`, `BE-HRD-061`, `FE-HRD-053`, `FE-HRD-056`); `HRD-DEP-003` untuk peran kerja; `INT-HR-31` untuk penahan jadwal di Penjadwalan |
+| **Gerbang** | `HRD-DEC-032` (pemetaan peran) menahan `BE-HRD-085` dan `BE-HRD-086` |
+| **Release Status** | `READY` |
+
 ### `S-C5` — Hubungan karyawan dan kedisiplinan
 
 | Aspek | Isi |

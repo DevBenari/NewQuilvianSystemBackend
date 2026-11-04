@@ -5,9 +5,9 @@
 | Blueprint ID | `HRD-BP-001` |
 | Jenis | Flowchart proses bisnis |
 | Slice | `S-A1` Workforce Core & Employee 360 |
-| Status | `draft` |
-| Kesiapan | `READY FOR DESIGN` |
-| Referensi Keputusan | `HRD-DEC-046` s.d. `HRD-DEC-057`, `HRD-DEC-012`, `HRD-DEC-031`, `HRD-DEC-033` |
+| Status | `IMPLEMENTED` — Selesai & Terverifikasi (PLAN-REPAIR-HRD-003) |
+| Kesiapan | `APPROVED / IMPLEMENTED` |
+| Referensi Keputusan | `HRD-DEC-046` s.d. `HRD-DEC-057`, `HRD-DEC-091` s.d. `HRD-DEC-094`, `HRD-DEC-012`, `HRD-DEC-031`, `HRD-DEC-033` |
 
 ---
 
@@ -15,7 +15,7 @@
 
 Berkas ini memodelkan tiga alur operasional utama pada sub-modul Workforce Core & Administrasi Kepegawaian:
 1. **Alur Dokumen Peristiwa Kepegawaian (SK Mutasi, Promosi, Rotasi, Demosi, Penugasan Sementara)**: bagaimana peristiwa kepegawaian dicatat sebagai satu SK utuh, diverifikasi terhadap periode terbuka, disetujui tanpa swa-setuju, dijadwalkan, dieksekusi pada tanggal berlaku, serta aturan pembatalannya.
-2. **Alur Permohonan Perubahan Data Karyawan (Layanan Mandiri & HR Atas Nama)**: bagaimana perubahan data pribadi diproses dengan pemisahan tegas antara data non-sensitif dan data sensitif (rekening bank, NIK, tanggungan), kewajiban berkas bukti, dan pemisahan verifikator.
+2. **Alur Permohonan Perubahan Data Karyawan (Layanan Mandiri & HR Atas Nama)**: bagaimana perubahan data pribadi diproses secara mandiri oleh pegawai melalui rute `/self-services/human-resource/employee/profile-changes` maupun oleh HR atas nama pegawai (`HRD-DEC-052`). Memuat mekanisme *Live Diff Engine* otomatis (multi-kategori `Multiple`), kewajiban berkas bukti resmi untuk data sensitif (NIK, Nama, Tempat/Tgl Lahir, Status Nikah), aksi tunggal *Simpan dan Ajukan*, perlindungan mutlak master data, penegakan ketat *Anti-Self-Approval* (Four-Eyes Principle), persetujuan melalui Workflow Engine resmi, penerapan otomatis (*Apply*), dan pemantauan di *Riwayat Pengajuan Saya* (`HRD-DEC-091` s.d. `HRD-DEC-094`).
 3. **Alur Batch Data Awal Penempatan Kepegawaian**: bagaimana 55 pegawai existing tanpa catatan jabatan/atasan/gaji dilengkapi datanya melalui satu batch tervalidasi yang disetujui sekali.
 
 ---
@@ -89,42 +89,68 @@ flowchart TD
 
 ## 3. Diagram 2 — Permohonan Perubahan Data Karyawan & Pengajuan HR Atas Nama
 
-Merujuk pada `HRD-DEC-052`, `HRD-DEC-055`, dan `AC-WFC-07`.
+Merujuk pada `HRD-DEC-052`, `HRD-DEC-055`, `HRD-DEC-091`, `HRD-DEC-092`, `HRD-DEC-093`, `HRD-DEC-094`, `PLAN-REPAIR-HRD-003`, dan `AC-WFC-07`.
 
 ```mermaid
 flowchart TD
-    subgraph pemohon[Pegawai / HR Atas Nama]
-        A([Kebutuhan Ubah Data Pribadi]) --> B{Siapa yang Mengajukan?}
-        B -- Mandiri Pegawai --> C[Form Layanan Mandiri Pegawai]
-        B -- HR Atas Nama Pegawai --> D[Form HR Atas Nama Pegawai]
-        D --> D1[Isi Identitas Pegawai & Alasan Atas Nama Wajib]
-        C --> E[Pilih Field yang Diubah]
-        D1 --> E
-        E --> F{Field Termasuk Data Sensitif?<br/>Rekening, NIK, NPWP, Tanggungan}
-        F -- Ya Data Sensitif --> G[Wajib Lampirkan Berkas Bukti Resmi]
-        G --> H[(Draft Permohonan)]
-        F -- Tidak Non-Sensitif --> H
-        H --> I[Ajukan Permohonan]
-        I --> J[(Menunggu Verifikasi)]
+    subgraph pemohon_ess[Layanan Mandiri Pegawai - ESS /profile-changes]
+        A([Pegawai Login]) --> B[Buka Menu 'Kelola Data Saya']
+        B --> C[Sistem Muat Snapshot Profil Awal via GET /current-profile]
+        C --> D[Tampilkan Form Profil: Field Penempatan Dikunci Read-only]
+        D --> E[Pegawai Edit Isian Data Pribadi / Kontak / Alamat / Kontak Darurat]
+        E --> F[Live Diff Engine: Hitung Delta Nilai Lama vs Nilai Baru Secara Real-time]
+        F --> G{Ada Field Berubah?}
+        G -- Tidak --> G1[/Tombol Simpan Dinonaktifkan/]
+        G -- Ya --> H{Ada Field Sensitif Berubah?<br/>NIK, Nama, Tempat/Tgl Lahir, Status Nikah}
+        H -- Ya Sensitif --> I[Wajib Unggah Dokumen Bukti Resmi KTP/KK/Surat Nikah]
+        H -- Tidak Sensitif --> J[Lampiran Bukti Opsional]
+        I --> K[Aksi Tunggal: Simpan dan Ajukan Perubahan Data]
+        J --> K
+        K --> L[Sistem Eksekusi Transaksional:<br/>1. POST /profile-changes Draft Kategori Multiple<br/>2. POST /evidence Unggah Bukti Multipart<br/>3. POST /submit Ajukan ke Workflow Engine]
+        L --> M[(Permohonan Submitted - Menunggu Verifikasi)]
+        M --> M1[Pegawai Pantau di Tab 'Riwayat Pengajuan Saya']
+        M1 --> M2{Batalkan Permohonan?}
+        M2 -- Ya Draft/Submitted --> M3[POST /cancel Permohonan Dibatalkan]
+        M3 --> M4([Selesai - Dibatalkan Pemohon])
     end
 
-    subgraph verifikator[Petugas HR Lain / Verifikator]
-        J --> K[Buka Detail Permohonan]
-        K --> L{Verifikator == Pembuat?}
-        L -- Ya --> L1[/Ditolak Sistem 403 - Verifikator Wajib Berbeda/]
-        L1 --> L2[Alihkan ke Petugas HR Lain]
-        L2 --> K
-        L -- Tidak --> M[Periksa Berkas Bukti & Data]
-        M --> N{Keputusan Verifikasi}
-        N -- Bukti Tidak Sesuai --> O[(Perlu Revisi)]
-        O --> E
-        N -- Ditolak --> P[(Ditolak)]
-        P --> P1([Selesai Tanpa Perubahan Data])
-        N -- Sesuai & Valid --> Q[(Disetujui)]
-        Q --> R[Terapkan Perubahan Data]
-        R --> S[(Diterapkan)]
-        S --> T[Perbarui Berkas Profil Pegawai]
-        T --> U([Selesai - Nilai Baru Aktif])
+    subgraph pemohon_hr[Pengajuan Kuasa HR - On-Behalf /create-on-behalf]
+        OB_A([HR Admin Buka Form Kuasa]) --> OB_B[Pilih Pegawai Target & Isi Alasan Kuasa Wajib]
+        OB_B --> OB_C[Pilih Field & Masukkan Nilai Baru + Unggah Dokumen Kuasa]
+        OB_C --> OB_D[POST /on-behalf Multipart Form Data]
+        OB_D --> M
+    end
+
+    subgraph master_protection[Perlindungan Master Data Resmi]
+        M -.-> PROT[Master Data MstEmployee & MstWorkforceProfile TERLINDUNGI<br/>Data Resmi Rumah Sakit TETAP MEMEGANG NILAI LAMA]
+    end
+
+    subgraph verifikator_hrd[Verifikasi & Persetujuan HRD]
+        M --> V1[HRD Buka Daftar Permohonan /employee-profile-changes]
+        V1 --> V2[Klik 'Lihat Rincian' -> Buka Modal Komparasi Nilai]
+        V2 --> V3{Anti-Self-Approval Check:<br/>Verifikator == Pemohon?}
+        V3 -- Ya Swa-Verifikasi --> V3A[/DITOLAK SISTEM 400/403<br/>Tombol Verifikasi & Approval Dinonaktifkan/]
+        V3A --> V3B[Wajib Diverifikasi oleh Petugas HR Lain]
+        V3B --> V1
+        V3 -- Tidak Beda Orang --> V4[Klik 'Mulai Verifikasi HRD' -> Status UnderVerification]
+        V4 --> V5[Periksa Berkas Bukti & Kesesuaian Nilai]
+        V5 --> V6{Keputusan Verifikasi}
+        V6 -- Bukti Tidak Sesuai --> V7[(NeedRevision - Perlu Revisi)]
+        V7 --> D
+        V6 -- Ditolak Resmi --> V8[(Rejected - Ditolak)]
+        V8 --> V9([Selesai - Master Data Tetap Nilai Lama])
+        V6 -- Terverifikasi Sah --> V10[Teruskan ke Approval Workflow Engine Resmi]
+        V10 --> V11[(Approved - Disetujui)]
+    end
+
+    subgraph eksekusi_apply[Eksekusi Otomatis Penerapan Data Master]
+        V11 --> APP1[Integration Service Eksekusi ApplyAsync]
+        APP1 --> APP2{Validasi Old Value Cocok?}
+        APP2 -- Terjadi Konflik Perubahan Lain --> APP3[/Deteksi Konflik 409 - Butuh Penyesuaian/]
+        APP2 -- Valid Cocok --> APP4[Update Transaksional ke MstEmployee & MstWorkforceProfile]
+        APP4 --> APP5[(Status Permohonan Menjadi Applied)]
+        APP5 --> APP6[Karyawan Melihat Data Profil Resmi Terkini pada ESS]
+        APP6 --> APP7([Selesai - Perubahan Sukses Diterapkan])
     end
 ```
 
@@ -132,10 +158,16 @@ flowchart TD
 
 | Langkah | Pelaku | Masukan yang dibutuhkan | Keluaran | Bila gagal / ditolak |
 | --- | --- | --- | --- | --- |
-| Pengajuan Mandiri | Pegawai | Field yang diubah, alasan, berkas bukti jika sensitif | Permohonan `Submitted` | Bukti kosong untuk field sensitif -> tolak simpan |
-| Pengajuan Atas Nama | HR Admin | Pegawai target, alasan atas nama, bukti dokumen | Permohonan `Submitted` (bertanda `IsOnBehalf`) | Alasan atas nama kosong -> tolak 400 |
-| Pemeriksaan Bukti | HR Verifikator | Dokumen bukti vs nilai yang diminta | Evaluasi verifikasi | Verifikator sama dengan pembuat -> tolak 403 (`HRD-DEC-052`) |
-| Penerapan Data | HR Verifikator | Permohonan `Approved` | Status `Applied`, berkas profil terupdate | Data lama tetap berlaku sampai tombol Terapkan berhasil |
+| Pemuatan Profil Mandiri | Pegawai | Akun terautentikasi (tanpa parameter URL bebas) | Snapshot profil awal via `GET /current-profile` | Akun belum terhubung ke Profil Workforce -> Tampilkan `InformationAlert` peringatan |
+| Pengeditan & Live Diff | Pegawai | Isian data pribadi, kontak, alamat, kontak darurat | Perhitungan delta nilai lama vs baru secara real-time | Tidak ada perubahan -> tombol Simpan dinonaktifkan; penempatan kerja terkunci *read-only* (`HRD-DEC-091`) |
+| Unggah Bukti Sensitif | Pegawai | Berkas PDF/JPG/PNG (maks. 5 MB) | Bukti pendukung tersimpan | Berkas kosong untuk field sensitif (NIK, Status Nikah, Nama, Lahir) -> tolak submit (`HRD-DEC-052`) |
+| Simpan dan Ajukan Tunggal | Pegawai | Konfirmasi aksi tunggal | Permohonan terbit (`Draft` -> bukti -> `Submitted`) berkategori `Multiple` | Gagal jaringan/validasi -> tampilkan alert error tanpa mengubah master data |
+| Pengajuan Atas Nama (Kuasa) | HR Admin | Pegawai target, alasan atas nama wajib, berkas kuasa | Permohonan `Submitted` bertanda `IsOnBehalf` via multipart | Alasan kosong -> tolak 400; header multipart ditangani otomatis bebas 415 (`FIX-HRD-003-06`) |
+| Perlindungan Master Data | Sistem | Permohonan berstatus `Submitted` / `UnderVerification` | Master data `MstEmployee` / `WFP` tetap data lama | Master data tidak boleh termutasi sebelum `ApplyAsync` berhasil (`HRD-DEC-092`) |
+| Pemeriksaan Anti-Self-Approval | Sistem | Identitas verifikator vs identitas pemohon | Validasi Four-Eyes | Verifikator sama dengan pemohon -> tolak backend 400 & tombol UI dinonaktifkan (`HRD-DEC-093`) |
+| Mulai Verifikasi | HR Verifikator | Permohonan berstatus `Submitted` | Permohonan berstatus `UnderVerification` | Swa-verifikasi dicegah sistem |
+| Keputusan Workflow | Approver HR | Evaluasi bukti & komparasi nilai | Keputusan `Approved`, `NeedRevision`, atau `Rejected` | Penolakan wajib menyertakan alasan tertulis |
+| Penerapan Data (*Apply*) | Background Service / Applier | Permohonan `Approved` | Status `Applied`, master data resmi terbarui | Nilai lama berubah di master saat permohonan berjalan -> deteksi konflik penimpaan |
 
 ---
 
@@ -200,5 +232,5 @@ flowchart TD
 | Dokumen SK Peristiwa Kepegawaian | `HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057` | `contracts/state-transition-matrix.md` §6.0, `api-contract.md` | `AC-WFC-11`, `AC-WFC-12`, `AC-WFC-13` |
 | Aturan 1 Penempatan Utama & Tumpang Tindih | `HRD-DEC-049` | `contracts/validation-matrix.md` §7.0 | `AC-WFC-04` |
 | Batasan Berlaku Surut ke Periode Terbuka | `HRD-DEC-050` | `contracts/validation-matrix.md` §7.0 | `AC-WFC-05` |
-| Perubahan Data Sensitif & Pengajuan Atas Nama | `HRD-DEC-052` | `contracts/state-transition-matrix.md` §6.1, `validation-matrix.md` | `AC-WFC-07` |
+| Perubahan Data Mandiri (ESS) & Kuasa HR (On-Behalf) | `HRD-DEC-052`, `HRD-DEC-091`, `HRD-DEC-092`, `HRD-DEC-093`, `HRD-DEC-094` | `contracts/state-transition-matrix.md` §6.1, `api-contract.md`, `PLAN-REPAIR-HRD-003` | `AC-WFC-07`, `ESS-001` s.d. `ESS-005` |
 | Batch Data Awal Penempatan Baseline | `HRD-DEC-054` | `contracts/state-transition-matrix.md` §6.4 | `AC-WFC-09` |

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `18` — **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `19` — **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -4919,3 +4919,938 @@ Bentuk blueprint modul HR **tetap `SINGLE`** (`HRD-BP-001`) sesuai keputusan men
 - Seluruh 8 keputusan kritis untuk **Sub-modul 04 Recruitment & Hiring (`S-D2`)** telah **DISETUJUI PENUH (`approved`)**.
 - Blocker `HRD-BLK-004` dan pertanyaan `HRD-Q-05` untuk domain `RecruitmentManagement` resmi **DITUTUP**.
 - Delivery Slice `S-D2` kini berstatus **`READY FOR DESIGN`**.
+
+---
+
+## 34. Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), 4 November 2026
+
+| Field | Isi |
+| --- | --- |
+| Mode | **Amendment pass**. Keputusan `approved` sebelumnya tidak ditimpa; pass ini hanya menambah |
+| Pemicu | Pengguna meminta bab **05. Onboarding, Contract & Employment Lifecycle** pada Buku Panduan dijadikan bahan wawancara keputusan, setelah sub-modul 04 selesai direncanakan |
+| Acuan bisnis | `docs/Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` bab 05, baris 441–528. Bab 20 baris 1723–1765 dipakai hanya sebagai titik sambung |
+| Backend | `NewQuilvianSystemBackend`, branch `MHamzah`, HEAD `8b17b75a`. Working tree punya perubahan belum di-commit pada `WorkforcePlanning/**` dan `Program.cs` — tidak menyentuh `LifecycleManagement` maupun `WorkforceCore` |
+| Frontend | `QuilvianSystemFrontendDev`, branch `HamzahV2`, HEAD `44990b3d3` |
+| Database | `QuilvianNewDevHamzah`, dibaca **read-only** lewat `psycopg2` |
+| Capability map | `01-existing-capability-map.md` mencatat `HRD-CAP-17` pada SHA `ecdc135` (1 controller, 7 endpoint). Angka itu **sudah basi**: HEAD kini punya 2 controller. Fakta `LifecycleManagement` pada bagian 34.2 diperiksa langsung pada HEAD di atas |
+| Owner keputusan | Pengguna sebagai pemilik teknis dan produk (`HRD-DEC-015`) |
+
+**Batas pass ini:** dokumentasi dan wawancara saja. Tidak ada source aplikasi, migration,
+database, seed, maupun frontend yang diubah.
+
+### 34.1 Kenapa pass ini dibuka
+
+Slice `S-C4` berstatus `READY FOR DESIGN` sejak 27 Agustus 2026 dan mencakup dua bab buku
+panduan: 05 (onboarding, kontrak, masa percobaan) dan 20 (keluar kerja). Bagian 20 sudah berjalan
+sebagian lewat `BE-HRD-014` dan `FE-HRD-017` (exit clearance). Bagian 05 belum punya satu pun
+endpoint maupun layar.
+
+Sub-modul 04 kini menyerahkan kandidat yang menerima tawaran sebagai profil `Pending Onboarding`
+(`HRD-DEC-075`). Belum ada aturan tentang apa yang terjadi pada profil itu sesudahnya.
+
+**Contoh kekosongan yang harus ditutup.** Rina, perawat baru ICU, menerima tawaran pada
+10 Januari 2027 dan dijadwalkan masuk 1 Februari 2027. Hari ini sistem tidak dapat menjawab:
+
+1. kontrak apa yang Rina tanda tangani, dan kapan;
+2. apakah Rina punya masa percobaan;
+3. siapa yang mendampingi Rina di ICU sebelum ia boleh dinas sendiri;
+4. kapan Rina boleh masuk jadwal dinas dan mulai digaji;
+5. kapan akun aplikasinya aktif.
+
+### 34.2 Fakta hasil audit
+
+| ID | Type | Temuan | Bukti | Klasifikasi |
+| --- | --- | --- | --- | --- |
+| `HRD-TF-039` | Fact | Domain `LifecycleManagement` berisi **21 model** dan **2 controller**: `ResignationController` dan `ExitClearanceController`. Tidak ada controller, service, maupun DTO untuk onboarding, masa percobaan, kontrak tidak diperpanjang, pensiun, atau PHK. Frontend tidak punya satu pun layar onboarding atau masa percobaan | BE `Areas/Corporate/HumanResource/LifecycleManagement/**` @ `8b17b75a`; FE `src/**` @ `44990b3d3` | `MISSING`. Mengoreksi hitungan `HRD-CAP-17` |
+| `HRD-TF-040` | Fact | Ada **dua struktur onboarding kembar** dengan isi hampir sama: (a) `TrxEmployeeOnboarding` + `TrxEmployeeOnboardingTask`, (b) `WfpOnboardingChecklist` + `WfpOnboardingTask`. Keduanya menyimpan profil, template, koordinator, atasan, tanggal rencana dan aktual, status (bawaan `Draft`), persentase kemajuan, serta butir tugas dengan penanggung jawab, tenggat, bukti dokumen, dan verifikasi. Hanya (a) yang punya `ProbationEndDate` dan rujukan ke penempatan organisasi | `LifecycleManagement/Models/TrxEmployeeOnboarding.cs`, `TrxEmployeeOnboardingTask.cs`, `WfpOnboardingChecklist.cs`, `WfpOnboardingTask.cs` @ `8b17b75a` | Kandidat sesuai `HRD-DEC-004`. Memilih salah satunya adalah keputusan desain, bukan pertanyaan pass ini |
+| `HRD-TF-041` | Fact | Template onboarding sudah dirancang dapat dibedakan per entitas hukum, site, unit, departemen, jabatan, jenis tenaga, kategori pegawai, dan jenis kepegawaian (`MstOnboardingTemplate`), dengan target selesai bawaan 30 hari. Butir template (`MstOnboardingTemplateTask`) punya pihak penanggung jawab (bawaan `HR`), tenggat relatif dalam hari (`DueDayOffset`), tanda wajib, wajib bukti, wajib verifikasi, dan sumber penyelesaian (bawaan `Manual`). Template juga punya `RequiresProbationReview` dengan nilai bawaan **`true`** | `MstOnboardingTemplate.cs`, `MstOnboardingTemplateTask.cs` @ `8b17b75a` | Kandidat. Nilai bawaan `RequiresProbationReview = true` bertentangan dengan buku panduan bila dipakai apa adanya — lihat `HRD-TF-043` |
+| `HRD-TF-042` | Fact | Master sudah punya tanda yang dibutuhkan aturan kontrak dan kesiapan kerja: `MstContractType` (`IsProbationApplicable` bawaan `false`, `IsRenewable`, `RequiresEndDate`, `DefaultDurationMonths`); `MstEmploymentType` (`IsPermanent`, `IsContractBased`, `RequiresContractEndDate`); `MstEmploymentStatus` (`IsActiveEmployment`, `IsSchedulable`, `IsPayrollEligible`, `IsTerminalStatus`). Isi database dev: `MstContractType` **0 baris**; `MstEmploymentType` dan `MstEmploymentStatus` masing-masing 1 baris `Legacy`; `MstWorkerSource` 0 | `MasterData/Workforce/Models/MstContractType.cs`, `MstEmploymentType.cs`, `MstEmploymentStatus.cs` @ `8b17b75a`; query read-only 4 November 2026 | `READY TO REUSE` sebagai mekanisme; nilainya belum ada |
+| `HRD-TF-043` | Conflict | Masa percobaan saat ini dapat diisi pada kontrak apa pun. `WfpContractHistory.ProbationEndDate` (milik 02) adalah isian bebas, dan layar editor workforce mengirim `probationEndDate` tanpa memeriksa jenis kontrak. Label frontend juga memperlakukan "Probation" sebagai **jenis kepegawaian** (kode 3) sekaligus **status pegawai** (kode 3). Buku panduan bab 05 meminta sebaliknya: jenis kontrak yang menentukan ada tidaknya masa percobaan, dan percobaan pada PKWT tidak boleh dibuat | BE `WorkforceCore/Models/WfpContractHistory.cs`; FE `src/components/features/workforce/workforce-resource-editor.jsx` baris 3078–3079 dan 4891–4917; `workforce-profile-dashboard.jsx` baris 3998–4025 @ `44990b3d3` | Bahan `HRD-Q-86` |
+| `HRD-TF-044` | Fact | Riwayat kontrak sudah punya API milik 02: `WfpContractHistoryController`, grup Swagger `Corporate / Human Resource / Workforce Core / Contract History`, 9 endpoint termasuk ubah status dan tandai kontrak berjalan, hak akses `WorkforceContractHistory`. Model merantai perpanjangan lewat `PreviousContractHistoryId` dan `RenewalSequence`. Isi database dev: **0 baris** untuk 55 profil workforce | `WorkforceCore/Controllers/WfpContractHistoryController.cs` baris 18, 28, 54–777 @ `8b17b75a`; query read-only | `READY TO REUSE` untuk penyimpanan. Aturan siklusnya milik 05 (bagian 31.3) |
+| `HRD-TF-045` | Fact | Serah terima dari 04 sudah punya model: `HrdCandidateHiringHandoff` (nomor serah terima, tawaran, kandidat, profil workforce yang boleh kosong, kursi headcount, tanggal, status). Kosakata status di source adalah `Generated`, `TransferredToOnboarding`, `Completed`, `Cancelled`, sedangkan kamus data menulis `PENDING`, `IN_ONBOARDING`, `COMPLETED`. Kontrak API rencana `POST /execute` menerima `scheduledOrientationDate`. Model onboarding lama masih merujuk `TrxCandidateHiring`, yang menurut desain `S-D2` sudah digantikan | `RecruitmentManagement/Models/HrdCandidateHiringHandoff.cs`, `Enums/HandoffStatus.cs` @ `8b17b75a`; `data/data-dictionary.md` baris 2078–2083; `contracts/api-contract.md` bagian 14.9; `02-backend-architecture.md` baris 2615 | Titik sentuh hulu. Selisih kosakata status dicatat untuk desain |
+| `HRD-TF-046` | Fact | Status `Pending Onboarding` yang dijanjikan `HRD-DEC-075` **belum ada** di source maupun master data. Mekanisme terdekat adalah satu baris `MstEmploymentStatus` dengan `IsSchedulable = false` dan `IsPayrollEligible = false` | Pencarian `Pending Onboarding` / `PendingOnboarding` pada BE `**/*.cs` @ `8b17b75a` → 0 berkas; `HRD-TF-042` | Bahan `HRD-Q-91` |
+| `HRD-TF-047` | Fact | Seluruh tabel onboarding, masa percobaan, dan kontrak di database dev kosong: `MstOnboardingTemplate` 0, `MstOnboardingTemplateTask` 0, `TrxEmployeeOnboarding` 0, `TrxEmployeeOnboardingTask` 0, `WfpOnboardingChecklist` 0, `WfpOnboardingTask` 0, `TrxProbationReview` 0, `TrxContractNonRenewal` 0, `WfpContractHistory` 0, `TrxCandidateHiring` 0. `WfpEmploymentHistory` berisi 1 baris. Bukti ini hanya berlaku untuk database dev | Query hitung baris read-only, 4 November 2026 | Bahan `HRD-Q-97` |
+| `HRD-TF-048` | Fact | `TrxProbationReview` sudah memuat penilai, skor kinerja, kompetensi, kehadiran, dan total, hasil (bawaan `Pending`), **tanggal perpanjangan masa percobaan** (`ExtendedProbationEndDate`), serta persetujuan. `TrxContractNonRenewal` memuat tanggal berakhir kontrak, tanggal keputusan, tanggal pemberitahuan, pengakuan pegawai, dan rujukan ke `TrxEmployeeSeparation` milik 20 | `TrxProbationReview.cs`, `TrxContractNonRenewal.cs` @ `8b17b75a` | Kandidat. `ExtendedProbationEndDate` menjadi bahan `HRD-Q-86` |
+
+### 34.3 Batas scope — disetujui lewat `HRD-DEC-082`
+
+**Kalimat batas scope:** sub-modul ini mengatur perjalanan seorang tenaga sejak diserahterimakan
+dari rekrutmen sampai dinyatakan siap bekerja, beserta siklus kontrak kerjanya selama bekerja —
+kontrak pertama, masa percobaan, perpanjangan, perubahan jenis kontrak, dan keputusan tidak
+diperpanjang — sampai diserahkan ke proses keluar kerja.
+
+**Di dalam scope:**
+
+1. Menerima serah terima dari 04 dan membuka kasus onboarding, termasuk pegawai yang batal hadir
+   pada hari pertama.
+2. Kontrak kerja pertama: jenis hubungan kerja (PKWT atau PKWTT), tanggal mulai dan berakhir,
+   serta penandatanganan.
+3. Masa percobaan untuk jenis kontrak yang mengizinkannya: penilaian, hasil, dan persetujuan.
+4. Template checklist onboarding yang dapat diatur per jenis tenaga, unit, dan jabatan.
+5. Pelaksanaan checklist: orientasi umum rumah sakit, orientasi unit, dokumen, status pelatihan
+   wajib, penanggung jawab, bukti, dan verifikasi.
+6. Pendampingan klinis (*preceptorship*), terpisah dari masa percobaan.
+7. Gerbang siap kerja (*ready-for-work*): syaratnya, siapa yang menyatakan, dan dampaknya ke
+   jadwal, gaji, dan akun.
+8. Siklus kontrak selama bekerja: pengingat kontrak berakhir, perpanjangan, perubahan PKWT ke
+   PKWTT, dan keputusan tidak diperpanjang.
+9. Serah terima ke 20 untuk kontrak yang tidak diperpanjang dan pegawai yang tidak lulus masa
+   percobaan.
+
+**Di luar scope — untuk modul lain:**
+
+| Kebutuhan | Pemilik | Titik sentuh dengan sub-modul ini |
+| --- | --- | --- |
+| Seleksi, tawaran kerja, MCU pra-kerja, pembuatan profil `Pending Onboarding` | 04 (`S-D2`) | 05 menerima `HrdCandidateHiringHandoff`. Pegawai yang batal hadir dikembalikan ke 04 untuk promosi talent pool (`HRD-DEC-080`) |
+| Penyimpanan riwayat kontrak; penempatan unit, jabatan, dan atasan; mutasi, promosi, rotasi, demosi, Plt | 02 Workforce Core (`HRD-DEC-047` s.d. `HRD-DEC-049`, bagian 31.3) | 05 menetapkan aturan siklus kontrak, datanya tersimpan di `WfpContractHistory`. Penempatan pertama dibuat lewat aturan 02 |
+| Isi master jenis kontrak, jenis kepegawaian, status kepegawaian, jenis tenaga | 01 Master Data HR | 05 membaca tandanya (`HRD-TF-042`); nilainya diisi lewat 01 |
+| Materi, jadwal, dan pencatatan pelatihan wajib | 16 (`S-C2`) | 05 hanya membaca status lulus atau belum sebagai butir checklist |
+| Kredensial, SPK, RKK | 14 — `BLOCKED` | 05 hanya membaca hasil gerbangnya. Perilaku selama 14 belum ada ditanyakan pada `HRD-Q-90` |
+| Rekam kesehatan dan kelaikan kerja | 18, dan 04 untuk MCU pra-kerja | 05 hanya membaca kesimpulan kelaikan (`HRD-DEC-078`, `HRD-DEC-010`) |
+| Jadwal dinas | 06 | 06 membaca status siap kerja sebelum menjadwalkan |
+| Pembuatan akun, role, permission | Administrator (`HRD-DEP-003`, `OUT-03`) | 05 mengirim permintaan dan menerima kabar selesai |
+| Gaji pertama dan perhitungannya | 10 | 10 membaca tanggal mulai efektif dan status kepegawaian |
+| Pengunduran diri, PHK, pensiun, exit clearance, pencabutan akses | 20 (`BE-HRD-014`, `FE-HRD-017`) | 05 menyerahkan kasus tidak diperpanjang dan tidak lulus masa percobaan |
+| Penilaian kinerja tahunan | 17 (`S-C3`) | Penilaian masa percobaan bukan penilaian kinerja tahunan |
+| Mesin kotak masuk persetujuan | 21 | Persetujuan pada 05 masuk kotak masuk yang sama |
+
+### 34.4 Bentuk blueprint
+
+Bentuk blueprint **tetap `SINGLE`** sesuai `HRD-DEC-003` (`approved`). Pass ini mengisi bagian
+onboarding dan kontrak dari slice `S-C4` dan tidak membuka sub-blueprint baru.
+`shape_decided_by: USER` lewat keputusan lama, sehingga tidak ditanyakan ulang.
+
+Catatan untuk desain: `S-C4` menggabungkan bab 05 dan bab 20, padahal bagian 20 sudah berjalan.
+Apakah bagian 05 dipisah menjadi slice sendiri adalah keputusan `design-business-module` dan
+`plan-module-delivery`, bukan bentuk blueprint.
+
+### 34.5 Keputusan lama yang tetap mengikat dan tidak ditanyakan ulang
+
+| Keputusan | Isi singkat | Pengaruh pada pass ini |
+| --- | --- | --- |
+| `HRD-DEC-003` | Satu blueprint utuh | Bentuk tidak ditanyakan ulang |
+| `HRD-DEC-004` | Domain tanpa controller diturunkan ulang dari proses bisnis; model existing hanya kandidat | Dua struktur onboarding kembar (`HRD-TF-040`) boleh digabung atau dibuang saat desain |
+| `HRD-DEC-005` | Kredensial kedaluwarsa memberi peringatan, tidak memblokir; blokir keras menunggu Komite Medik (`draft`) | Batas jawaban `HRD-Q-90` |
+| `HRD-DEC-010` | HR dan atasan hanya melihat kesimpulan kelayakan kerja, bukan diagnosis (`draft`) | Butir kelaikan pada checklist hanya berisi kesimpulan |
+| `HRD-DEC-019` | `Mst` untuk master, `Hrd` untuk entity operasional baru, `Trx` di-ratchet saat disentuh, `Wfp` tetap | Berlaku per entity seperti tabel `S-C4` pada roadmap |
+| `HRD-DEC-031` | Penyetuju **MUST** berbeda dari pembuat | Berlaku untuk persetujuan kontrak, masa percobaan, dan siap kerja |
+| `HRD-DEC-034` | Rantai persetujuan bawaan per jenis transaksi | Rantai kontrak dan masa percobaan ditanyakan pada pass ini |
+| `HRD-DEC-047`, `HRD-DEC-049` | Penempatan berlaku-efektif milik 02; satu penempatan utama per jenis per tanggal | Penempatan pertama tidak dibuat dengan cara lain |
+| `HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057` | Mutasi, promosi, dan sejenisnya dijalankan sebagai SK di 02 | Tidak dibahas di 05 |
+| `HRD-DEC-051` | Satu nomor identitas = satu profil workforce | Pegawai yang direkrut ulang tidak mendapat profil baru |
+| `HRD-DEC-075` | Profil `Pending Onboarding` dibuat saat tawaran diterima; belum aktif dinas dan belum punya akses klinis | Titik awal sub-modul ini |
+| `HRD-DEC-078` | 05 hanya menerima kesimpulan kelaikan `FIT`, `FIT_WITH_RESTRICTIONS`, `TEMPORARILY_UNFIT`, `PERMANENTLY_UNFIT` | Bahan `HRD-Q-91` |
+| `HRD-DEC-080` | Pegawai tidak hadir hari pertama membuka kembali kursi dan memicu promosi talent pool di 04 | Bahan `HRD-Q-84` |
+
+### 34.6 Pertanyaan terbuka pass ini
+
+Pertanyaan diajukan satu per satu, dengan latar belakang, contoh rumah sakit, dan alur tiap
+pilihan. Status setiap baris diperbarui ketika pengguna menjawab. Nilai kebijakan seperti
+"orientasi unit ICU 14 hari" **bukan** pertanyaan pass ini: sistem hanya menyediakan tempat
+menyetelnya, nilainya diputuskan pemilik kebijakan rumah sakit.
+
+| ID | Pertanyaan | Putaran | Owner | Memblokir | Status |
+| --- | --- | --- | --- | --- | --- |
+| `HRD-Q-82` | Batas scope sub-modul 05, terutama: keputusan "kontrak tidak diperpanjang" dan "tidak lulus masa percobaan" diambil di 05 lalu diserahkan ke 20 | 1 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-082` |
+| `HRD-Q-83` | Kasus onboarding dibuka otomatis saat serah terima 04 dieksekusi, atau dibuka manual oleh HR; siapa koordinatornya; **dan** (digabung dari `HRD-Q-84`) apa yang terjadi bila pegawai batal bergabung sebelum hari pertama | 1 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-083` |
+| `HRD-Q-84` | Pegawai batal hadir atau mundur sebelum hari pertama | 1 | Pengguna | `DESIGN` | `merged` ke `HRD-Q-83` (`HRD-DEC-081`) |
+| `HRD-Q-85` | Kontrak pertama: kapan dibuat dan ditandatangani, siapa menyetujui, dan bolehkah mulai bekerja sebelum kontrak ditandatangani | 2 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-084` |
+| `HRD-Q-86` | Masa percobaan: berlaku untuk siapa, lamanya, siapa menilai, hasil yang mungkin, boleh tidaknya diperpanjang, dan jalur tidak lulus. Bagian dari `HRD-Q-06` | 2 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-085` |
+| `HRD-Q-87` | Checklist onboarding: template dibedakan berdasarkan apa, **dan** (digabung dari `HRD-Q-88`) siapa menandai butir selesai, butir mana yang butuh bukti, dan butir mana yang terisi otomatis | 3 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-086` |
+| `HRD-Q-88` | Pelaksanaan butir checklist | 3 | Pengguna | `DESIGN` | `merged` ke `HRD-Q-87` (`HRD-DEC-081`) |
+| `HRD-Q-89` | Pendampingan klinis: siapa pendampingnya, bagaimana hasilnya dinyatakan, bolehkah pegawai dinas selama masa pendampingan, **dan** (digabung dari `HRD-Q-90`) perlakuan kredensial selama sub-modul 14 masih `BLOCKED` | 4 | Pengguna, lalu Komite Medik untuk bagian kredensial | `DESIGN` | `resolved` — `HRD-DEC-087` (bagian kredensial tetap mengikuti `HRD-DEC-005` yang masih `draft`) |
+| `HRD-Q-90` | Gerbang kredensial selama sub-modul 14 `BLOCKED` | 4 | Pengguna, lalu Komite Medik | `DESIGN` | `merged` ke `HRD-Q-89` (`HRD-DEC-081`) |
+| `HRD-Q-91` | Definisi siap kerja: syarat wajib, siapa yang menyatakan, akibatnya pada status kepegawaian, jadwal dinas, dan gaji, **dan** (digabung dari `HRD-Q-92`) kapan akun aplikasi diminta dan aktif | 5 | Pengguna, Administrator untuk bagian akun | `DESIGN` | `resolved` — `HRD-DEC-088` |
+| `HRD-Q-92` | Akun aplikasi selama onboarding | 5 | Pengguna, Administrator | `DESIGN` | `merged` ke `HRD-Q-91` (`HRD-DEC-081`) |
+| `HRD-Q-93` | Siklus kontrak selama bekerja: pengingat dan keputusan perpanjang atau tidak diperpanjang, **dan** (digabung dari `HRD-Q-94` dan `HRD-Q-95`) perubahan PKWT ke PKWTT, kontrak yang lewat tanggal tanpa keputusan, serta koreksi kontrak yang salah | 6 | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-089` |
+| `HRD-Q-94` | Perubahan PKWT ke PKWTT dan kontrak yang lewat tanggal | 6 | Pengguna | `DESIGN` | `merged` ke `HRD-Q-93` (`HRD-DEC-081`) |
+| `HRD-Q-95` | Koreksi dan pembatalan kontrak | 6 | Pengguna | `DESIGN` | `merged` ke `HRD-Q-93` (`HRD-DEC-081`) |
+| `HRD-Q-96` | Data awal kontrak untuk pegawai yang sudah bekerja (`HRD-TF-044`: 0 kontrak untuk 55 profil), **dan** (digabung dari `HRD-Q-97`) penutupan `HRD-Q-05` untuk tabel onboarding, masa percobaan, dan kontrak tidak diperpanjang (`HRD-TF-047`) | 6 | Pengguna / pemilik database | `DESIGN` | `resolved` — `HRD-DEC-090` |
+| `HRD-Q-97` | Penutupan `HRD-Q-05` untuk tabel 05 | 6 | Pengguna / pemilik database | `DESIGN` | `merged` ke `HRD-Q-96` (`HRD-DEC-081`) |
+
+Setelah penggabungan, pertanyaan yang tersisa tinggal delapan: `HRD-Q-83`, `HRD-Q-85`, `HRD-Q-86`,
+`HRD-Q-87`, `HRD-Q-89`, `HRD-Q-91`, `HRD-Q-93`, dan `HRD-Q-96`. Penggabungan dilakukan karena
+pengguna meminta proses yang sederhana (`HRD-DEC-081`): pertanyaan yang jawabannya saling
+bergantung diputuskan sekaligus. Daftar ini dapat bertambah bila jawaban pengguna memunculkan
+pertanyaan turunan.
+
+### 34.7 Keputusan yang lahir pada pass ini
+
+#### `HRD-DEC-081` — Sub-modul 05 dirancang sederhana: satu pengaju, HRD memutuskan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision — prinsip desain yang mengikat seluruh jawaban pass ini |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — instruksi langsung: "sistem ini yang dibuat simple, bagus dan berlaku pada rumah sakit umum, dan tidak merepotkan dari segi user"; ditegaskan ulang: "buatkan sistem yang sederhana, bagus, profesional dan sesuai kebutuhan rumah sakit pada umumnya" |
+| Bukti pemicu | Flowchart Perubahan Data Karyawan yang dilampirkan pengguna, 4 November 2026: pegawai mengubah data → sistem mendeteksi isian yang berubah → bila sensitif wajib lampirkan bukti → pengajuan dikirim → HRD memeriksa nilai lama dan baru → HRD memilih **Setujui**, **Revisi**, atau **Tolak** → bila disetujui data diperbarui |
+
+**Isi keputusan:**
+
+1. `ONE_SUBMITTER_HRD_DECIDES`: Setiap pengajuan pada sub-modul 05 memakai pola yang sama dengan
+   Perubahan Data Karyawan. Satu pihak mengajukan, lalu HRD memutuskan dengan tiga pilihan:
+   **Setujui**, **Minta Revisi**, atau **Tolak**. Rantai persetujuan bertingkat tidak dipakai,
+   kecuali peraturan atau keputusan lama mewajibkannya.
+2. `MAKER_CHECKER_KEPT`: Bila yang mengajukan adalah petugas HRD sendiri, yang memutuskan adalah
+   petugas HRD lain. Aturan `HRD-DEC-031` (penyetuju berbeda dari pembuat) tetap berlaku.
+3. `CHECKLIST_OVER_SCREENS`: Hal yang cukup dicatat "sudah atau belum, beserta bukti" —
+   orientasi, dokumen, pendampingan klinis — dijadikan butir checklist onboarding, bukan layar
+   atau proses tersendiri.
+4. `AUTOMATE_WHAT_SYSTEM_KNOWS`: Data yang sudah ada di sistem diisi otomatis dan tidak diketik
+   ulang: data pegawai dan tanggal masuk dari rekrutmen (04), status pelatihan wajib (16), dan
+   kesimpulan kelaikan kerja (04/18).
+5. `EVIDENCE_ONLY_WHEN_NEEDED`: Lampiran bukti hanya diwajibkan untuk hal yang punya akibat
+   hukum atau akreditasi, misalnya kontrak bertanda tangan dan hasil masa percobaan. Butir biasa
+   cukup dicentang.
+6. `GENERAL_HOSPITAL_DEFAULT`: Bawaan sistem disesuaikan dengan rumah sakit umum pada umumnya.
+   Fitur khas rumah sakit sangat besar atau rumah sakit pendidikan — penilaian berbobot oleh
+   banyak penilai, template bertingkat per entitas hukum dan site, alur paralel banyak unit —
+   tidak dibuat pada rilis pertama.
+7. `LAW_NOT_TRADED_FOR_SIMPLICITY`: Kesederhanaan tidak boleh melanggar peraturan
+   ketenagakerjaan, standar akreditasi, atau keputusan keamanan dan privasi yang sudah
+   disetujui.
+8. `QUESTIONS_MERGED`: Pertanyaan pass ini yang saling bergantung digabung (bagian 34.6),
+   sehingga wawancara tinggal delapan pertanyaan.
+
+**Contoh penerapan.** Kepala Ruangan ICU, Sari, menilai masa percobaan seorang perawat lalu
+menekan **Ajukan**. Dodi dari HRD membuka pengajuan, melihat nilai dan lampiran, lalu memilih
+**Setujui**. Tidak ada langkah ke Kepala Bidang Keperawatan atau Direktur. Bila Dodi sendiri
+yang membuat pengajuan, yang memutuskan adalah petugas HRD lain, misalnya Kepala HRD.
+
+**Uji keputusan:** tidak ada satu pun alur pada sub-modul 05 yang membutuhkan lebih dari satu
+langkah persetujuan, kecuali alur itu menyebut peraturan atau keputusan lama yang
+mewajibkannya.
+
+#### `HRD-DEC-082` — Batas scope sub-modul 05; keputusan kontrak dan masa percobaan diambil di 05, proses keluar dijalankan di 20
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-82` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — tidak menolak rekomendasi opsi A dan draf scope bagian 34.3, lalu dua kali meminta wawancara dilanjutkan ("oke boleh lanjutkan grill-me"; "lanjutkan … buatkan sistem yang sederhana"). Pengguna dapat mengoreksinya kapan saja; koreksi menjadikan keputusan ini `superseded` |
+| Bukti pemicu | Buku panduan bab 05 baris 446–512 dan bab 20 baris 1736; `HRD-TF-048` |
+
+**Isi keputusan:**
+
+1. `SCOPE_05_LOCKED`: Daftar di dalam dan di luar scope pada bagian 34.3 berlaku.
+2. `CONTRACT_DECISIONS_IN_05`: Seluruh keputusan tentang kontrak — perpanjang, tidak
+   diperpanjang, ubah PKWT ke PKWTT — dan hasil masa percobaan diambil di sub-modul 05.
+3. `SEPARATION_EXECUTED_IN_20`: Bila hasilnya "tidak diperpanjang" atau "tidak lulus masa
+   percobaan", sub-modul 05 menyerahkan kasus ke 20 beserta tanggal terakhir bekerja. Sub-modul
+   20 menjalankan exit clearance seperti biasa dan tidak mengambil ulang keputusan itu.
+
+**Contoh.** Kontrak PKWT Budi, petugas farmasi, berakhir 31 Maret 2027. Kepala Instalasi
+Farmasi mengajukan "tidak diperpanjang" beserta alasannya di 05. HRD memilih **Setujui**
+(`HRD-DEC-081`). Sistem mencatat tanggal pemberitahuan kepada Budi, lalu menyerahkan kasus ke 20
+dengan tanggal terakhir bekerja 31 Maret 2027. Di 20, petugas hanya menjalankan pengembalian aset,
+pencabutan akses, dan gaji terakhir.
+
+#### `HRD-DEC-083` — Kasus onboarding dibuat otomatis saat serah terima; batal bergabung ditandai HRD tanpa persetujuan berjenjang
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-83` dan `HRD-Q-84` (digabung) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | `HRD-DEC-075`, `HRD-DEC-080`, `HRD-DEC-081`; `HRD-TF-045` |
+
+**Isi keputusan:**
+
+1. `AUTO_CASE_ON_HANDOFF`: Saat HR Manager menjalankan **Serahkan ke Onboarding** pada
+   rekrutmen (04), sistem langsung membuat satu kasus onboarding untuk pegawai itu. Satu serah
+   terima menghasilkan tepat satu kasus; menekan tombol dua kali tidak membuat kasus kedua.
+2. `PREFILLED_FROM_HANDOFF`: Kasus terisi otomatis dari data rekrutmen: nama, unit, jabatan,
+   dan tanggal masuk. Checklist diambil dari template yang cocok dengan pegawai itu. Bila tidak
+   ada yang cocok, sistem memakai template umum rumah sakit.
+3. `COORDINATOR_DEFAULTS_TO_EXECUTOR`: Koordinator kasus otomatis petugas HRD yang menjalankan
+   serah terima. HRD dapat mengalihkan koordinator ke petugas HRD lain.
+4. `UNIT_HEAD_SEES_INCOMING_STAFF`: Kepala unit tujuan melihat pegawai baru yang akan masuk ke
+   unitnya beserta tanggal masuknya.
+5. `CANCEL_JOIN_BY_HRD`: Bila pegawai tidak datang atau mundur sebelum mulai bekerja, petugas
+   HRD menekan **Batal Bergabung**, wajib memilih alasan (`Tidak hadir`, `Mengundurkan diri`,
+   atau `Lainnya`) dan menulis catatan. Tindakan ini **tidak** memerlukan persetujuan, karena
+   isinya mencatat fakta, bukan keputusan kebijakan.
+6. `CANCEL_JOIN_EFFECTS`: Setelah **Batal Bergabung**, sistem menutup kasus onboarding,
+   menonaktifkan profil pegawai tanpa menghapusnya, menandai serah terima sebagai batal, dan
+   mengembalikan kursi ke rekrutmen agar kandidat cadangan dapat dipromosikan (`HRD-DEC-080`).
+7. `CANCEL_JOIN_ONLY_BEFORE_FIRST_DAY`: **Batal Bergabung** hanya tersedia selama pegawai
+   belum tercatat hadir pada hari pertama. Setelah tercatat hadir, keluarnya pegawai diproses
+   sebagai pengunduran diri di sub-modul 20.
+
+**Perubahan status kasus onboarding yang lahir dari keputusan ini:**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Serahkan ke Onboarding (di 04) | Onboarding berjalan | HR Manager, lewat 04 | Tawaran final diterima dan kelaikan kerja `FIT` atau `FIT_WITH_RESTRICTIONS` (`HRD-DEC-078`) |
+| Onboarding berjalan | Batal Bergabung | Dibatalkan | Petugas HRD | Pegawai belum tercatat hadir hari pertama; alasan dan catatan wajib diisi |
+| Onboarding berjalan | Dinyatakan siap kerja | Selesai | Ditentukan `HRD-Q-91` | Ditentukan `HRD-Q-91` |
+
+Nama status di atas adalah nama bisnis. Nama kode statusnya ditetapkan saat desain.
+
+**Contoh.** HR Manager menyerahkan Rina, perawat ICU dengan tanggal masuk 1 Februari 2027, ke
+onboarding pada 15 Januari 2027. Kasus Rina langsung terbentuk dengan checklist template perawat,
+dan koordinatornya Dodi. Sari, Kepala Ruangan ICU, melihat Rina pada daftar pegawai yang akan
+masuk. Pada 1 Februari Rina tidak datang dan tidak dapat dihubungi. Pada 3 Februari Dodi menekan
+**Batal Bergabung** dengan alasan `Tidak hadir`. Kasus Rina tertutup, profilnya nonaktif tetapi
+masih bisa ditelusuri, dan kursi perawat ICU kembali terbuka di rekrutmen sehingga Recruiter
+dapat menawarkan kursi itu kepada kandidat cadangan peringkat pertama.
+
+**Diputuskan saat desain, bukan di sini:** cara mencatat "hadir hari pertama" (butir checklist
+atau data kehadiran), batas hari setelah tanggal masuk untuk menandai tidak hadir, dan perilaku
+bila rumah sakit belum punya template umum sama sekali.
+
+#### `HRD-DEC-084` — Kontrak pertama disusun otomatis dari tawaran yang disetujui; sah setelah scan bertanda tangan diunggah
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-85` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | `HRD-DEC-079` (tawaran sudah disetujui berjenjang), `HRD-DEC-081`; `HRD-TF-044`; PP 35/2021 (PKWT wajib tertulis) |
+
+**Isi keputusan:**
+
+1. `CONTRACT_DRAFT_FROM_OFFER`: Begitu kasus onboarding terbentuk, sistem menyiapkan draf
+   kontrak pertama dari tawaran final yang sudah disetujui: jenis kontrak, tanggal mulai,
+   tanggal berakhir (untuk PKWT), jabatan, unit, dan gaji. Petugas HRD tidak mengetik ulang.
+2. `NO_SECOND_APPROVAL`: Kontrak pertama **tidak** melewati persetujuan lagi, karena seluruh
+   isinya sudah disetujui pada tawaran (`HRD-DEC-079`).
+3. `SIGNED_SCAN_REQUIRED`: Kontrak baru sah di sistem setelah petugas HRD mengunggah scan
+   kontrak yang sudah ditandatangani pegawai dan pejabat rumah sakit, lalu menekan
+   **Tandai Sudah Ditandatangani**. Tanpa lampiran, tombol itu tidak dapat dipakai.
+4. `SAVED_AS_CURRENT_CONTRACT`: Kontrak yang sudah ditandatangani tersimpan sebagai kontrak
+   berjalan pada riwayat kontrak pegawai (sub-modul 02, `WfpContractHistory`).
+5. `NO_READY_FOR_WORK_WITHOUT_SIGNED_CONTRACT`: Pegawai **tidak dapat** dinyatakan siap kerja
+   selama kontrak pertamanya belum berstatus sudah ditandatangani. Kontrak ditandatangani paling
+   lambat pada hari pertama.
+6. `CHANGE_THROUGH_OFFER_ONLY`: Bila isi kontrak harus berbeda dari tawaran — misalnya gaji,
+   jabatan, atau jenis kontrak — kontrak tidak diubah langsung. Yang direvisi adalah tawaran di
+   rekrutmen (04), sehingga persetujuan gajinya tetap sah, lalu draf kontrak disusun ulang dari
+   tawaran yang baru.
+
+**Perubahan status kontrak pertama:**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Kasus onboarding terbentuk | Draf | Sistem | Tawaran final disetujui (`HRD-DEC-079`) |
+| Draf | Tandai Sudah Ditandatangani | Berjalan | Petugas HRD | Scan kontrak bertanda tangan diunggah |
+| Draf | Tawaran direvisi di 04 | Draf baru menggantikan draf lama | Sistem | Revisi tawaran disetujui di 04 |
+| Draf | Batal Bergabung (`HRD-DEC-083`) | Dibatalkan | Petugas HRD | Pegawai belum tercatat hadir hari pertama |
+
+**Contoh.** Tawaran Rina disetujui: PKWT 12 bulan, Perawat Pelaksana ICU, gaji pokok
+Rp 5.500.000. Saat kasus onboarding Rina terbentuk pada 15 Januari 2027, sistem menyiapkan draf
+kontrak PKWT 1 Februari 2027 s.d. 31 Januari 2028 dengan gaji pokok Rp 5.500.000. Dodi mencetak
+draf itu. Rina dan Direktur menandatanganinya pada 1 Februari pagi. Dodi mengunggah scan-nya dan
+menekan **Tandai Sudah Ditandatangani**. Kontrak itu kini menjadi kontrak berjalan Rina. Andai
+Rina meminta gaji Rp 6.000.000 setelah draf dicetak, Dodi tidak mengubah angka di kontrak;
+Recruiter merevisi tawaran di rekrutmen, persetujuannya berjalan lagi sesuai `HRD-DEC-079`, lalu
+draf kontrak disusun ulang.
+
+**Uji keputusan:** (a) tombol siap kerja tetap tidak aktif selama kontrak berstatus Draf;
+(b) tombol **Tandai Sudah Ditandatangani** menolak bila belum ada lampiran; (c) tidak ada isian
+gaji yang dapat diubah langsung pada draf kontrak.
+
+#### `HRD-DEC-085` — Masa percobaan hanya untuk PKWTT, tiga bulan, hasil Lulus atau Tidak Lulus, lulus otomatis bila tidak dinilai
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-86`; menutup bagian masa percobaan dari `HRD-Q-06`; menyelesaikan conflict `HRD-TF-043` pada tingkat aturan |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | PP 35/2021 (PKWT tidak boleh mensyaratkan masa percobaan); UU 13/2003 Pasal 60 (masa percobaan PKWTT paling lama 3 bulan); buku panduan bab 05 baris 450, 509–510; `HRD-TF-042`, `HRD-TF-043`, `HRD-TF-048`; `HRD-DEC-081` |
+
+**Isi keputusan:**
+
+1. `PROBATION_BY_CONTRACT_TYPE`: Ada tidaknya masa percobaan ditentukan **hanya** oleh jenis
+   kontrak (`MstContractType.IsProbationApplicable`). Jenis PKWTT bernilai ya; jenis PKWT
+   bernilai tidak. Template onboarding (`RequiresProbationReview`), jenis kepegawaian, dan
+   status pegawai **tidak** menentukan masa percobaan.
+2. `NO_PROBATION_ON_PKWT`: Sistem menolak pengisian tanggal masa percobaan pada kontrak yang
+   jenisnya tidak mengizinkan masa percobaan, termasuk pada layar riwayat kontrak sub-modul 02.
+   Label "Probation" sebagai jenis kepegawaian atau status pegawai (`HRD-TF-043`) tidak dipakai
+   lagi sebagai cara mencatat masa percobaan.
+3. `THREE_MONTHS_FIXED`: Masa percobaan berlaku 3 bulan sejak tanggal mulai kontrak, dibuat
+   otomatis saat kontrak PKWTT pertama ditandatangani. Masa percobaan tidak dapat diperpanjang.
+   *Diperjelas oleh `HRD-DEC-089` butir 6:* "kontrak PKWTT pertama" berarti pegawai yang sejak
+   awal bergabung sebagai PKWTT; pengangkatan dari PKWT ke PKWTT tidak memperoleh masa percobaan.
+4. `REMINDER_TO_SUPERVISOR`: Dua minggu sebelum masa percobaan berakhir, atasan langsung pegawai
+   menerima pengingat untuk menilai.
+5. `SIMPLE_RESULT`: Atasan langsung mengisi hasil **Lulus** atau **Tidak Lulus** beserta alasan
+   singkat. Lampiran penilaian **wajib** bila hasilnya Tidak Lulus, dan tidak wajib bila Lulus.
+   Tidak ada skor berbobot.
+6. `HRD_DECIDES`: Atasan menekan **Ajukan**; petugas HRD memilih **Setujui**, **Minta Revisi**,
+   atau **Tolak** (`HRD-DEC-081`).
+7. `PASS_EFFECT`: Bila Lulus disetujui, masa percobaan selesai dan pegawai berstatus pegawai
+   tetap penuh.
+8. `FAIL_EFFECT`: Bila Tidak Lulus disetujui, kasus diserahkan ke sub-modul 20 dengan tanggal
+   terakhir bekerja paling lambat tanggal akhir masa percobaan (`HRD-DEC-082`).
+9. `AUTO_PASS_ON_EXPIRY`: Bila sampai tanggal akhir masa percobaan belum ada hasil yang
+   disetujui HRD, sistem menetapkan pegawai **lulus otomatis** dan memberi tahu HRD serta atasan.
+   Pengajuan Tidak Lulus yang belum disetujui pada tanggal itu ditutup otomatis dan tidak dapat
+   disetujui lagi.
+
+**Perubahan status masa percobaan:**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Kontrak PKWTT pertama ditandatangani | Berjalan | Sistem | Jenis kontrak mengizinkan masa percobaan |
+| Berjalan | Ajukan hasil | Menunggu keputusan HRD | Atasan langsung | Hasil dan alasan diisi; lampiran wajib bila Tidak Lulus |
+| Menunggu keputusan HRD | Minta Revisi | Berjalan | Petugas HRD | Catatan revisi wajib |
+| Menunggu keputusan HRD | Tolak | Berjalan | Petugas HRD | Alasan penolakan wajib; atasan dapat mengajukan ulang sebelum tanggal akhir |
+| Menunggu keputusan HRD | Setujui hasil Lulus | Lulus | Petugas HRD | Penyetuju bukan pengaju (`HRD-DEC-031`) |
+| Menunggu keputusan HRD | Setujui hasil Tidak Lulus | Tidak Lulus — diserahkan ke 20 | Petugas HRD | Disetujui paling lambat tanggal akhir masa percobaan |
+| Berjalan atau Menunggu keputusan HRD | Tanggal akhir lewat tanpa hasil disetujui | Lulus otomatis | Sistem | — |
+
+**Contoh.** Andi, apoteker, diangkat sebagai pegawai tetap (PKWTT) per 1 Februari 2027. Saat
+kontraknya ditandatangani, sistem membuat masa percobaan 1 Februari s.d. 30 April 2027. Pada
+16 April, Kepala Instalasi Farmasi menerima pengingat. Ia memilih **Lulus** dengan alasan
+"menguasai SOP dispensing dan pelayanan informasi obat", lalu menekan **Ajukan**. Dodi dari HRD
+menekan **Setujui**, dan Andi menjadi pegawai tetap penuh. Andaikan Kepala Instalasi lupa
+menilai sampai 30 April, sistem menetapkan Andi lulus otomatis pada tanggal itu dan memberi tahu
+HRD. Sebaliknya, Rina yang PKWT tidak mendapat masa percobaan sama sekali; bila petugas mencoba
+mengisi tanggal masa percobaan pada kontrak Rina, sistem menolaknya.
+
+**Uji keputusan:** (a) kontrak PKWT ditolak bila diisi tanggal masa percobaan; (b) kontrak
+PKWTT otomatis memperoleh masa percobaan tepat 3 bulan; (c) pengajuan Tidak Lulus tanpa
+lampiran ditolak; (d) masa percobaan tanpa hasil disetujui berubah menjadi Lulus otomatis pada
+tanggal akhirnya; (e) tidak ada tombol perpanjangan masa percobaan.
+
+**Akibat pada model kandidat (untuk desain):** isian skor pada `TrxProbationReview`
+(`PerformanceScore`, `CompetencyScore`, `AttendanceScore`, `OverallScore`) dan
+`ExtendedProbationEndDate` tidak dipakai pada rilis pertama.
+
+#### `HRD-DEC-086` — Checklist onboarding dari template berlapis Umum + Klinis + Unit; tiga jenis butir; tanpa verifikasi per butir
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-87` dan `HRD-Q-88` (digabung) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 05 baris 448, 455–456, 511; `HRD-TF-040`, `HRD-TF-041`; `HRD-DEC-081` |
+
+**Isi keputusan:**
+
+1. `THREE_TEMPLATE_LAYERS`: Template checklist onboarding hanya punya tiga lapis:
+   - **Template Umum RS** — tepat satu yang aktif, berlaku untuk semua pegawai baru;
+   - **Template Tambahan Tenaga Klinis** — tepat satu yang aktif, berlaku untuk pegawai yang
+     jenis tenaganya klinis;
+   - **Template Tambahan Unit** — nol atau satu per unit, hanya dibuat untuk unit yang punya
+     kebutuhan khusus.
+2. `AUTO_MERGE`: Saat kasus onboarding terbentuk (`HRD-DEC-083`), sistem menggabungkan lapis
+   yang berlaku menjadi satu checklist pegawai. Template per jabatan, per site, atau per
+   entitas hukum **tidak** dipakai pada rilis pertama (`HRD-DEC-081` butir 6).
+3. `FIXED_RESPONSIBLE_PARTY`: Setiap butir punya penanggung jawab tetap menurut perannya:
+   **HRD** atau **Kepala Unit tujuan**. Hanya penanggung jawab itu yang dapat mencentang butir.
+4. `THREE_ITEM_KINDS`: Butir terdiri atas tiga jenis:
+   - **Butir biasa** — cukup dicentang **Selesai**;
+   - **Butir wajib bukti** — tidak dapat dicentang sebelum lampiran diunggah;
+   - **Butir otomatis** — tercentang sendiri oleh sistem dan **tidak dapat** dicentang tangan:
+     kontrak sudah ditandatangani (`HRD-DEC-084`), pelatihan wajib lulus (dibaca dari
+     sub-modul 16), dan kesimpulan kelaikan kerja (dibaca dari rekrutmen, `HRD-DEC-078`).
+5. `NO_PER_ITEM_VERIFICATION`: Tidak ada langkah verifikasi orang kedua per butir. Pemeriksaan
+   menyeluruh dilakukan sekali oleh HRD saat menyatakan siap kerja (`HRD-Q-91`).
+6. `PROGRESS_VISIBLE`: Kasus menampilkan kemajuan dalam bentuk jumlah butir selesai dari total
+   butir, misalnya "7 dari 10 butir selesai".
+7. `TEMPLATE_CHANGE_NOT_RETROACTIVE`: Perubahan template hanya berlaku untuk kasus onboarding
+   yang terbentuk sesudah perubahan itu. Checklist pegawai yang sedang berjalan tidak berubah
+   sendiri.
+
+**Contoh.** HRD menyiapkan Template Umum RS (6 butir: hadir hari pertama, orientasi umum RS
+dengan lampiran daftar hadir, ID card dan seragam, data rekening, kontrak ditandatangani
+[otomatis], kelaikan kerja [otomatis]), Template Tambahan Tenaga Klinis (2 butir: pelatihan wajib
+BLS/BTCLS lulus [otomatis dari 16], preceptor ditetapkan — lihat `HRD-DEC-087`), dan Template Tambahan Unit ICU
+(2 butir: orientasi alat ventilator, SOP eskalasi pasien kritis). Rina, perawat ICU, mendapat
+checklist berisi 10 butir. Dodi dari HRD mencentang butir umum, Sari, Kepala Ruangan ICU,
+mencentang butir ICU. Budi, petugas administrasi keuangan, hanya mendapat 6 butir Template Umum.
+Bila bulan Maret materi PPI ditambahkan ke Template Umum, pegawai yang masuk sesudahnya
+mendapat butir baru itu, sedangkan checklist Rina yang sudah berjalan tetap seperti semula.
+
+**Uji keputusan:** (a) perawat ICU memperoleh gabungan tiga lapis, pegawai non-klinis di unit
+tanpa template tambahan hanya memperoleh lapis umum; (b) butir wajib bukti menolak dicentang
+tanpa lampiran; (c) butir otomatis tidak dapat dicentang tangan; (d) Kepala Unit tidak dapat
+mencentang butir milik HRD, dan sebaliknya.
+
+**Akibat pada model kandidat (untuk desain):** kolom pembeda template pada `MstOnboardingTemplate`
+(entitas hukum, site, departemen, jabatan, kategori, jenis kepegawaian) tidak dipakai pada rilis
+pertama; isian `RequiresVerification` per butir tidak dipakai (`NO_PER_ITEM_VERIFICATION`).
+
+#### `HRD-DEC-087` — Pendampingan klinis berjalan sesudah siap kerja dengan penanda "Didampingi"; Kepala Unit menyatakan siap mandiri; kredensial hanya peringatan selama 14 belum jalan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-89` dan `HRD-Q-90` (digabung) |
+| Owner | Pengguna (`HRD-DEC-015`). Bagian kredensial tetap tunduk pada `HRD-DEC-005` (`draft`, menunggu Komite Medik) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 05 baris 450, 457, 478, 498, 510; `HRD-DEC-005`, `HRD-DEC-061`, `HRD-DEC-077`, `HRD-DEC-085`, `HRD-DEC-086` |
+
+**Isi keputusan:**
+
+1. `PRECEPTORSHIP_SEPARATE_FROM_PROBATION`: Pendampingan klinis berlaku untuk tenaga klinis
+   baru apa pun jenis kontraknya, dan tidak ada hubungannya dengan masa percobaan
+   (`HRD-DEC-085`).
+2. `PRECEPTOR_ASSIGNED_BEFORE_READY`: Template Tambahan Tenaga Klinis memuat butir wajib
+   **Preceptor ditetapkan**, diisi Kepala Unit dengan memilih nama preceptor. Butir ini harus
+   selesai sebelum pegawai dinyatakan siap kerja.
+3. `READY_DOES_NOT_WAIT_FOR_PRECEPTORSHIP`: Pendampingan berjalan **sesudah** siap kerja.
+   Pegawai masuk jadwal dan absensi seperti biasa selama didampingi.
+4. `ACCOMPANIED_FLAG`: Selama pendampingan, profil dan jadwal pegawai menampilkan penanda
+   **Didampingi** beserta nama preceptor. Aturan penjadwalan berpasangan ditetapkan sub-modul 06;
+   sub-modul 05 hanya menyediakan penandanya. Pada perencanaan tenaga, pegawai yang masih
+   didampingi terhitung pada lapisan "belum memenuhi kompetensi" (`HRD-DEC-061`).
+5. `UNIT_HEAD_DECLARES_INDEPENDENT`: Kepala Unit menekan **Siap Mandiri** dan wajib
+   melampirkan form penilaian kompetensi atau logbook pendampingan. Penanda **Didampingi**
+   hilang sejak itu. Kepala Unit juga dapat mengganti preceptor selama pendampingan berjalan.
+6. `CLINICAL_DECISION_NOT_HRD`: Pernyataan **Siap Mandiri** **tidak** memerlukan persetujuan HRD,
+   karena menilai kompetensi klinis bukan wewenang HRD (sejalan `HRD-DEC-077`). HRD menerima
+   pemberitahuan. Ini satu-satunya pengecualian dari pola `HRD-DEC-081` pada pass ini, dan
+   alasannya kewenangan klinis.
+7. `CREDENTIAL_WARNING_ONLY_UNTIL_14`: Selama sub-modul 14 belum berjalan, kasus onboarding dan
+   profil tenaga klinis menampilkan peringatan "Kewenangan klinis (SPK/RKK) belum tercatat".
+   Peringatan ini **tidak memblokir** siap kerja maupun penjadwalan, sesuai posisi sementara
+   `HRD-DEC-005`. Setelah sub-modul 14 berjalan, aturan blokir ditetapkan Komite
+   Medik/Keperawatan, bukan oleh keputusan ini.
+
+**Perubahan status pendampingan klinis:**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Butir **Preceptor ditetapkan** dicentang | Preceptor ditetapkan | Kepala Unit | Nama preceptor dipilih |
+| Preceptor ditetapkan | Pegawai dinyatakan siap kerja | Didampingi | Sistem | `HRD-Q-91` |
+| Didampingi | Ganti preceptor | Didampingi | Kepala Unit | Nama preceptor baru dipilih |
+| Didampingi | Siap Mandiri | Mandiri | Kepala Unit | Lampiran penilaian kompetensi atau logbook wajib |
+
+**Contoh.** Sari, Kepala Ruangan ICU, menetapkan Tono sebagai preceptor Rina pada
+1 Februari 2027. Rina dinyatakan siap kerja pada 4 Februari, lalu dijadwalkan dinas pagi dan
+siang bersama Tono; di jadwal ICU nama Rina bertanda **Didampingi — Tono**. Profil Rina juga
+menampilkan peringatan "Kewenangan klinis (SPK/RKK) belum tercatat", tetapi Rina tetap dapat
+dijadwalkan. Pada 15 Maret 2027 Sari menilai Rina sudah mampu mengelola dua pasien ventilator
+secara mandiri, mengunggah logbook pendampingan, dan menekan **Siap Mandiri**. Penanda di jadwal
+hilang dan Dodi dari HRD menerima pemberitahuan tanpa perlu menyetujui.
+
+**Uji keputusan:** (a) pegawai klinis tidak dapat dinyatakan siap kerja sebelum butir
+**Preceptor ditetapkan** selesai; (b) pegawai bertanda **Didampingi** tetap dapat dijadwalkan;
+(c) **Siap Mandiri** menolak tanpa lampiran; (d) **Siap Mandiri** tidak masuk kotak persetujuan
+HRD; (e) peringatan kredensial tidak menghalangi siap kerja selama sub-modul 14 belum berjalan.
+
+#### `HRD-DEC-088` — Siap kerja dinyatakan HRD setelah semua butir wajib selesai; akun dibuka bertahap; gaji sejak tanggal mulai kontrak
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-91` dan `HRD-Q-92` (digabung) |
+| Owner | Pengguna (`HRD-DEC-015`). Cara teknis pengiriman permintaan akun ditetapkan bersama Administrator (`HRD-DEP-003`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | Buku panduan bab 05 baris 458, 476, 479, 503, 512; `HRD-TF-042`, `HRD-TF-046`; `HRD-DEC-075`, `HRD-DEC-078`, `HRD-DEC-084`, `HRD-DEC-086`, `HRD-DEC-087` |
+
+**Isi keputusan:**
+
+1. `READY_GATE_REQUIRED_ITEMS`: Tombol **Nyatakan Siap Kerja** hanya aktif bila **seluruh butir
+   wajib** checklist sudah selesai. Butir wajib selalu mencakup: hadir hari pertama, kontrak
+   sudah ditandatangani (`HRD-DEC-084`), dan kesimpulan kelaikan kerja `FIT` atau
+   `FIT_WITH_RESTRICTIONS` (`HRD-DEC-078`); untuk tenaga klinis juga **Preceptor ditetapkan**
+   (`HRD-DEC-087`). Butir lain wajib atau tidak menurut template.
+2. `HRD_DECLARES_READY`: Petugas HRD memeriksa checklist sekali secara menyeluruh lalu menekan
+   **Nyatakan Siap Kerja**. Siap kerja **tidak** terjadi otomatis.
+3. `READY_EFFECTS`: Setelah dinyatakan siap kerja, sistem mengubah status kepegawaian dari
+   `Pending Onboarding` menjadi **Aktif**, membuat pegawai boleh dijadwalkan (sub-modul 06),
+   menyalakan penanda **Didampingi** bagi tenaga klinis (`HRD-DEC-087`), menutup kasus onboarding
+   sebagai **Selesai**, dan mengirim permintaan pembukaan akses kerja sesuai jabatan, termasuk
+   akses klinis.
+4. `OPTIONAL_ITEMS_MAY_FOLLOW`: Butir yang tidak wajib boleh diselesaikan sesudah siap kerja dan
+   tidak menghalanginya. Butir itu tetap tampil sebagai sisa pekerjaan sampai dicentang.
+5. `RESTRICTION_SHOWN_TO_UNIT_HEAD`: Bila kelaikan kerja `FIT_WITH_RESTRICTIONS`, Kepala Unit
+   melihat catatan pembatasan kerja — tanpa diagnosis (`HRD-DEC-010`, `HRD-DEC-078`) — saat
+   pegawai dinyatakan siap kerja.
+6. `ACCOUNT_REQUESTED_AT_CASE_CREATION`: Permintaan akun aplikasi dikirim otomatis saat kasus
+   onboarding terbentuk (`HRD-DEC-083`).
+7. `SELF_SERVICE_FROM_DAY_ONE`: Akun aktif setelah pegawai tercatat hadir pada hari pertama,
+   dengan **akses layanan mandiri saja**: profil, absensi, slip gaji, dan materi orientasi.
+8. `WORK_ACCESS_AT_READY`: Akses kerja sesuai jabatan, termasuk akses klinis, baru dibuka setelah
+   pegawai dinyatakan siap kerja. Sebelum itu tidak ada akses klinis (`HRD-DEC-075`).
+9. `PAY_FROM_CONTRACT_START`: Gaji dihitung sejak tanggal mulai kontrak, termasuk hari-hari
+   orientasi sebelum siap kerja, bukan sejak tanggal siap kerja.
+
+**Perubahan status kepegawaian:**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Serah terima dari 04 | `Pending Onboarding` | HR Manager, lewat 04 | `HRD-DEC-075` |
+| `Pending Onboarding` | Nyatakan Siap Kerja | Aktif | Petugas HRD | Seluruh butir wajib selesai |
+| `Pending Onboarding` | Batal Bergabung | Nonaktif | Petugas HRD | `HRD-DEC-083` |
+
+**Contoh.** Kasus onboarding Rina terbentuk pada 15 Januari 2027 dan permintaan akunnya langsung
+terkirim. Pada 1 Februari Rina tercatat hadir, kontraknya ditandatangani, dan akunnya aktif
+untuk layanan mandiri; Rina dapat absen dan membuka materi orientasi. Rina mengikuti orientasi
+umum pada 1–2 Februari dan orientasi ICU pada 3 Februari. Pada 4 Februari seluruh butir wajib
+selesai; butir seragam belum, tetapi butir itu tidak wajib. Dodi memeriksa checklist dan menekan
+**Nyatakan Siap Kerja**. Status Rina menjadi Aktif, Sari dapat menjadwalkannya mulai 5 Februari
+dengan penanda **Didampingi — Tono**, dan akses rekam medis ICU Rina dibuka. Gaji Februari Rina
+dihitung sejak 1 Februari.
+
+**Uji keputusan:** (a) tombol **Nyatakan Siap Kerja** tidak aktif selama masih ada butir wajib
+belum selesai; (b) pegawai `Pending Onboarding` ditolak saat dijadwalkan; (c) akun sebelum siap
+kerja tidak punya akses selain layanan mandiri; (d) gaji periode pertama dihitung dari tanggal
+mulai kontrak.
+
+**Dependency yang lahir dari keputusan ini — dicatat, tidak dirancang di sini:**
+
+| Kebutuhan | Pemilik | Keadaan hari ini |
+| --- | --- | --- |
+| Baris status kepegawaian `Pending Onboarding` dan Aktif dengan tanda `IsSchedulable` dan `IsPayrollEligible` yang sesuai | 01 Master Data HR | Hanya 1 baris `Legacy` (`HRD-TF-042`, `HRD-TF-046`) |
+| Pembuatan akun dan pembukaan akses bertahap | Administrator (`HRD-DEP-003`) | Kontrak integrasi belum ada |
+| Penolakan menjadwalkan pegawai yang belum siap kerja | 06 Penjadwalan | Membaca `IsSchedulable`; bentuk bacanya dirancang saat desain |
+
+#### `HRD-DEC-089` — Siklus kontrak: pengingat, tiga keputusan, batas 5 tahun PKWT, penahan jadwal bila kontrak berakhir tanpa keputusan, koreksi lewat persetujuan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-93`, `HRD-Q-94`, dan `HRD-Q-95` (digabung) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | PP 35/2021 (PKWT tertulis, batas jangka waktu 5 tahun termasuk perpanjangan, uang kompensasi saat PKWT berakhir); `HRD-TF-044`, `HRD-TF-048`; `HRD-DEC-031`, `HRD-DEC-081`, `HRD-DEC-082`, `HRD-DEC-084`, `HRD-DEC-085` |
+
+**Isi keputusan:**
+
+1. `EXPIRY_REMINDER`: Atasan langsung dan HRD menerima pengingat sebelum PKWT berakhir. Jarak
+   bawaannya 60 hari dan dapat disetel HRD.
+2. `THREE_CONTRACT_DECISIONS`: Atasan langsung memilih satu dari tiga keputusan lalu menekan
+   **Ajukan**: **Perpanjang** (dengan lama perpanjangan), **Angkat jadi Pegawai Tetap**, atau
+   **Tidak Diperpanjang** (alasan wajib). HRD memilih **Setujui**, **Minta Revisi**, atau
+   **Tolak** (`HRD-DEC-081`).
+3. `PKWT_FIVE_YEAR_CAP`: Sistem menolak perpanjangan yang membuat total masa PKWT pegawai
+   melebihi 5 tahun. Bila batas itu tercapai, pilihan yang tersisa hanya **Angkat jadi Pegawai
+   Tetap** atau **Tidak Diperpanjang**.
+4. `FOLLOW_UP_CONTRACT_DRAFTED`: Bila Perpanjang atau Pegawai Tetap disetujui, sistem menyusun
+   draf kontrak lanjutan yang tersambung ke kontrak sebelumnya. Kontrak lanjutan sah setelah scan
+   bertanda tangan diunggah, sama seperti kontrak pertama (`HRD-DEC-084`).
+5. `NO_PAY_CHANGE_IN_RENEWAL`: Alur ini tidak mengubah gaji. Perubahan gaji tetap lewat jalur
+   penetapan gaji atau SK di sub-modul 02 (`HRD-DEC-031`, `HRD-DEC-048`).
+6. `NO_PROBATION_ON_CONVERSION`: Pengangkatan dari PKWT ke PKWTT **tidak** memperoleh masa
+   percobaan. Ini memperjelas `HRD-DEC-085` butir 3.
+7. `NON_RENEWAL_TO_20`: Bila Tidak Diperpanjang disetujui, tanggal pemberitahuan kepada pegawai
+   dicatat, lalu kasus diserahkan ke sub-modul 20 dengan tanggal terakhir bekerja sama dengan
+   tanggal berakhir kontrak (`HRD-DEC-082`). Uang kompensasi PKWT dihitung di payroll dari
+   tanggal dan keputusan ini.
+8. `ESCALATION_REMINDER`: Bila 14 hari sebelum kontrak berakhir belum ada keputusan yang
+   disetujui, Kepala HRD menerima pengingat tambahan. Pengingat ini **bukan** langkah persetujuan.
+9. `SCHEDULE_HOLD_AFTER_LAPSE`: Bila sampai tanggal berakhir belum ada kontrak lanjutan yang
+   ditandatangani dan belum ada keputusan Tidak Diperpanjang yang disetujui, kontrak berstatus
+   **Berakhir tanpa keputusan**, tampil menonjol pada daftar pantau HRD, dan jadwal dinas pegawai
+   **sesudah** tanggal berakhir **tidak dapat dibuat** sampai kontrak lanjutan ditandatangani.
+10. `NO_AUTOMATIC_OUTCOME`: Sistem tidak pernah memperpanjang kontrak otomatis dan tidak pernah
+    mengeluarkan pegawai otomatis.
+11. `CONTRACT_CORRECTION`: Kontrak yang sudah ditandatangani tetapi isinya salah diperbaiki lewat
+    **Koreksi Kontrak**: petugas HRD mengunggah scan dokumen perbaikan yang sudah ditandatangani
+    dan menulis alasannya, lalu petugas HRD lain menyetujui (`HRD-DEC-031`). Versi lama tetap
+    tersimpan sebagai riwayat dan tidak dihapus.
+
+**Perubahan status kontrak selama bekerja:**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| Berjalan | Pengingat terkirim | Berjalan — menunggu keputusan | Sistem | Tanggal berakhir ≤ 60 hari lagi (bawaan) |
+| Berjalan — menunggu keputusan | Setujui Perpanjang atau Pegawai Tetap | Berjalan; draf kontrak lanjutan dibuat | Petugas HRD | Total PKWT tidak melebihi 5 tahun bila diperpanjang |
+| Draf kontrak lanjutan | Tandai Sudah Ditandatangani | Berjalan (kontrak baru); kontrak lama Selesai | Petugas HRD | Scan bertanda tangan diunggah |
+| Berjalan — menunggu keputusan | Setujui Tidak Diperpanjang | Berakhir — diserahkan ke 20 | Petugas HRD | Alasan dan tanggal pemberitahuan tercatat |
+| Berjalan — menunggu keputusan | Tanggal berakhir lewat | Berakhir tanpa keputusan | Sistem | Belum ada kontrak lanjutan bertanda tangan |
+| Berakhir tanpa keputusan | Kontrak lanjutan ditandatangani | Berjalan (kontrak baru) | Petugas HRD | Keputusan disetujui dan scan diunggah |
+| Berjalan | Setujui Koreksi Kontrak | Berjalan (versi koreksi) | Petugas HRD lain | Scan perbaikan dan alasan wajib |
+
+**Contoh.** Kontrak PKWT Rina berakhir 31 Januari 2028. Pada 2 Desember 2027 Sari dan Dodi
+menerima pengingat. Sari memilih **Angkat jadi Pegawai Tetap** dan menekan **Ajukan**; Dodi
+menekan **Setujui**. Sistem menyusun draf kontrak PKWTT mulai 1 Februari 2028 tanpa masa
+percobaan. Rina dan Direktur menandatanganinya pada 20 Januari 2028 dan Dodi mengunggah scan-nya.
+Sebaliknya, untuk Budi yang kontraknya berakhir 31 Maret 2027, tidak ada yang mengajukan
+keputusan. Pada 17 Maret Kepala HRD menerima pengingat tambahan. Pada 31 Maret kontrak Budi
+menjadi **Berakhir tanpa keputusan**, dan penyusun jadwal farmasi tidak dapat menjadwalkan Budi
+mulai 1 April sampai kontrak lanjutannya ditandatangani. Andaikan Budi sudah 4 tahun 6 bulan
+menjalani PKWT, sistem menolak perpanjangan 12 bulan karena totalnya menjadi 5 tahun 6 bulan.
+
+**Uji keputusan:** (a) perpanjangan yang membuat total PKWT melebihi 5 tahun ditolak;
+(b) pengangkatan PKWT ke PKWTT tidak membuat masa percobaan; (c) jadwal sesudah tanggal berakhir
+ditolak untuk kontrak berstatus **Berakhir tanpa keputusan**; (d) tidak ada kontrak yang
+berubah status menjadi diperpanjang tanpa scan bertanda tangan; (e) koreksi kontrak oleh petugas
+yang sama dengan pembuatnya ditolak.
+
+#### `HRD-DEC-090` — Data awal kontrak pegawai lama lewat satu batch yang disetujui sekali; `HRD-Q-05` ditutup untuk tabel sub-modul 05 dengan pengaman tabel kosong
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-96` dan `HRD-Q-97` (digabung); `HRD-Q-05` **khusus** untuk tabel onboarding, masa percobaan, dan kontrak tidak diperpanjang |
+| Owner | Pengguna (`HRD-DEC-015`) sebagai pemilik teknis dan pemilik database |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A, sekaligus menyatakan tabel sub-modul 05 kosong di semua lingkungan sebagaimana dijelaskan pada pertanyaan |
+| Bukti pemicu | `HRD-TF-044` (0 kontrak untuk 55 profil), `HRD-TF-047` (seluruh tabel 05 di dev 0 baris); pola `HRD-DEC-054`, `HRD-DEC-059`, `HRD-DEC-074`; `HRD-DEC-089` |
+
+**Isi keputusan — data awal kontrak:**
+
+1. `INITIAL_CONTRACT_BATCH`: Kontrak yang sedang berjalan bagi pegawai yang sudah bekerja diisi
+   lewat **batch data awal kontrak**: HRD mengunduh template yang sudah memuat daftar pegawai,
+   mengisi jenis kontrak, nomor, tanggal mulai, dan tanggal berakhir, lalu mengunggahnya.
+2. `FIRST_PKWT_DATE_REQUIRED`: Untuk PKWT, batch wajib memuat tanggal mulai PKWT pertama pegawai
+   itu agar batas 5 tahun (`HRD-DEC-089` butir 3) dapat dihitung.
+3. `BATCH_VALIDATED`: Sistem memeriksa setiap baris — misalnya PKWT tanpa tanggal berakhir, atau
+   total PKWT yang sudah melewati 5 tahun — dan batch yang masih memuat baris salah tidak dapat
+   diajukan.
+4. `BATCH_ONE_APPROVAL`: Satu batch disetujui **sekali** oleh petugas HRD yang bukan pembuatnya
+   (`HRD-DEC-031`), dan persetujuan itu berlaku untuk seluruh barisnya.
+5. `SCAN_MAY_FOLLOW_FOR_LEGACY`: Khusus data awal, scan kontrak lama boleh menyusul. Pegawai yang
+   kontraknya belum punya scan masuk daftar pantau "scan kontrak belum diunggah", tetapi tidak
+   diblokir. Pengecualian ini **tidak** berlaku untuk kontrak baru (`HRD-DEC-084`) maupun kontrak
+   lanjutan (`HRD-DEC-089`).
+6. `NO_RETROACTIVE_ONBOARDING_OR_PROBATION`: Pegawai lama tidak dibuatkan kasus onboarding, dan
+   masa percobaan tidak dibuat mundur.
+7. `ONCE_PER_EMPLOYEE`: Seorang pegawai hanya boleh sekali masuk batch data awal kontrak.
+   Sesudahnya, perubahan kontrak lewat alur biasa (`HRD-DEC-089`).
+8. `UNRECORDED_CONTRACT_FLAGGED_NOT_BLOCKED`: Pegawai yang belum masuk batch ditandai "kontrak
+   belum tercatat" pada daftar pantau HRD, tetapi tetap dapat dijadwalkan. Penahan jadwal
+   `HRD-DEC-089` butir 9 hanya berlaku untuk kontrak yang tercatat.
+9. `INITIAL_BATCH_AUDIT_MARK`: Setiap kontrak hasil batch ditandai "data awal" pada jejak audit,
+   beserta nomor batch, pembuat, penyetuju, dan waktu persetujuan.
+
+**Isi keputusan — penutupan `HRD-Q-05` untuk tabel sub-modul 05:**
+
+10. `LIFECYCLE_TABLES_ASSUMED_EMPTY`: Tabel `MstOnboardingTemplate`, `MstOnboardingTemplateTask`,
+    `TrxEmployeeOnboarding`, `TrxEmployeeOnboardingTask`, `WfpOnboardingChecklist`,
+    `WfpOnboardingTask`, `TrxProbationReview`, `TrxContractNonRenewal`, dan `TrxCandidateHiring`
+    dinyatakan kosong di semua lingkungan. Model datanya boleh diturunkan ulang dari keputusan
+    pass ini (`HRD-DEC-004`). `WfpContractHistory` milik 02 sudah punya API dan **tidak**
+    termasuk penutupan ini; perubahannya mengikuti aturan perubahan tabel berisi data.
+11. `EMPTY_TABLE_GUARD`: Setiap migration yang mengubah struktur, menghapus, atau menata ulang
+    tabel pada butir 10 wajib memeriksa jumlah baris lebih dulu. Bila ditemukan satu baris atau
+    lebih, migration membatalkan transaksinya tanpa mengubah data apa pun dan menyebut nama tabel
+    serta jumlah barisnya.
+12. `GUARD_FAILURE_REOPENS_DECISION`: Bila pengaman itu berhenti di lingkungan mana pun, butir 10
+    kembali `draft` dan skrip pemindahan data harus dirancang lebih dulu.
+
+**Contoh.** Sari dari HRD mengunduh template berisi 55 pegawai. Untuk Budi ia mengisi: PKWT,
+nomor 045/PKWT/2026, 1 April 2026 s.d. 31 Maret 2027, PKWT pertama mulai 1 April 2024. Sistem
+menghitung total PKWT Budi sampai 31 Maret 2027 adalah 3 tahun, masih di bawah batas. Untuk Tono
+ia mengisi PKWTT tanpa tanggal berakhir. Baris lain berbunyi "PKWT tanpa tanggal berakhir", jadi
+batch belum bisa diajukan sampai Sari memperbaikinya. Setelah benar, Dodi menyetujui batch #1
+sekali. Pada 30 Januari 2027 Kepala Instalasi Farmasi langsung menerima pengingat untuk kontrak
+Budi, walaupun scan kontrak Budi masih menyusul.
+
+**Uji keputusan:** (a) batch dengan PKWT tanpa tanggal berakhir tidak dapat diajukan; (b)
+pembuat batch tidak dapat menyetujui batchnya sendiri; (c) pegawai yang sudah masuk batch #1
+ditolak di batch #2; (d) pengingat kontrak muncul untuk kontrak hasil batch; (e) migration atas
+tabel butir 10 berhenti bila tabel berisi satu baris uji.
+
+---
+
+### 34.8 Ringkasan penutupan pass, 4 November 2026
+
+**Keputusan baru, seluruhnya `approved` oleh pengguna:**
+
+| Keputusan | Inti |
+| --- | --- |
+| `HRD-DEC-081` | Prinsip sederhana: satu pengaju, HRD memutuskan Setujui/Minta Revisi/Tolak; tanpa persetujuan bertingkat; bawaan rumah sakit umum |
+| `HRD-DEC-082` | Batas scope 05; keputusan kontrak dan masa percobaan diambil di 05, proses keluar di 20 |
+| `HRD-DEC-083` | Kasus onboarding otomatis saat serah terima; Batal Bergabung oleh HRD sebelum hari pertama |
+| `HRD-DEC-084` | Kontrak pertama dari tawaran yang disetujui; sah setelah scan bertanda tangan |
+| `HRD-DEC-085` | Masa percobaan hanya PKWTT, 3 bulan, Lulus/Tidak Lulus, lulus otomatis bila tidak dinilai |
+| `HRD-DEC-086` | Checklist berlapis Umum + Klinis + Unit; butir biasa, wajib bukti, otomatis |
+| `HRD-DEC-087` | Pendampingan klinis sesudah siap kerja dengan penanda Didampingi; Siap Mandiri oleh Kepala Unit; kredensial hanya peringatan |
+| `HRD-DEC-088` | Siap kerja dinyatakan HRD; akun bertahap; gaji sejak tanggal mulai kontrak |
+| `HRD-DEC-089` | Siklus kontrak: pengingat, tiga keputusan, batas 5 tahun, penahan jadwal, koreksi lewat persetujuan |
+| `HRD-DEC-090` | Batch data awal kontrak; `HRD-Q-05` ditutup untuk tabel 05 dengan pengaman tabel kosong |
+
+**Bentuk blueprint:** tetap `SINGLE` (`HRD-DEC-003`). Tidak ada rumpun sub-modul baru.
+
+**Pertanyaan yang ditutup:** `HRD-Q-82` s.d. `HRD-Q-97` seluruhnya; bagian masa percobaan dari
+`HRD-Q-06`; `HRD-Q-05` untuk tabel 05.
+
+**Masih terbuka dan pemiliknya — tidak memblokir desain administratif 05:**
+
+| Butir | Pemilik | Yang tertahan |
+| --- | --- | --- |
+| `HRD-DEC-005` (`draft`) — aturan blokir kredensial | Komite Medik/Keperawatan | Hanya perilaku sesudah sub-modul 14 berjalan; sampai saat itu berlaku peringatan (`HRD-DEC-087`) |
+| `HRD-DEC-010` (`draft`) — privasi rekam kesehatan | K3RS | Tampilan catatan pembatasan kerja pada siap kerja; rilis produksi butir itu |
+| `HRD-DEP-003` — pembuatan akun dan pembukaan akses bertahap | Administrator | Bentuk integrasi permintaan akun (`HRD-DEC-088`) |
+| Isi master jenis kontrak (PKWT, PKWTT) dan status kepegawaian (`Pending Onboarding`, Aktif) | 01 Master Data HR | Data, bukan desain (`HRD-TF-042`, `HRD-TF-046`) |
+| Bentuk baca status siap kerja dan penahan jadwal kontrak | 06 Penjadwalan | Desain titik sambung |
+| Bentuk baca status pelatihan wajib | 16 Learning & Competency | Desain titik sambung |
+| Perhitungan uang kompensasi PKWT dan gaji sejak tanggal mulai kontrak | 10 Payroll | Desain titik sambung |
+
+**Blocker desain:** tidak ada untuk bagian administratif 05.
+
+**Diserahkan ke `design-business-module`, bukan diputuskan di pass ini:**
+
+1. Memilih salah satu dari dua struktur onboarding kembar (`HRD-TF-040`) dan nama entity barunya
+   menurut `HRD-DEC-019`.
+2. Menyelaraskan kosakata status `HrdCandidateHiringHandoff` antara source dan kamus data
+   (`HRD-TF-045`), serta rujukan model onboarding ke `TrxCandidateHiring` yang sudah digantikan.
+3. Perbaikan conflict `HRD-TF-043` pada layar riwayat kontrak dan label "Probation" milik
+   sub-modul 02, sesuai `HRD-DEC-085` butir 2.
+4. Cara mencatat hadir hari pertama, batas hari penandaan tidak hadir, perilaku tanpa template
+   umum, nilai bawaan pengingat, dan nama kode status.
+5. Apakah bagian 05 dipisah dari `S-C4` menjadi slice sendiri.
+
+**Acceptance criteria yang sudah dapat diuji:**
+
+| ID | Kriteria | Cara menguji | Dasar |
+| --- | --- | --- | --- |
+| `AC-ONB-01` | Serah terima menghasilkan tepat satu kasus onboarding | Jalankan serah terima dua kali untuk kandidat yang sama; hanya satu kasus terbentuk | `HRD-DEC-083` |
+| `AC-ONB-02` | Batal Bergabung hanya sebelum hadir hari pertama | Tandai hadir hari pertama, lalu coba Batal Bergabung; tombol tidak tersedia | `HRD-DEC-083` |
+| `AC-ONB-03` | Batal Bergabung mengembalikan kursi ke rekrutmen | Tekan Batal Bergabung; kursi requisition kembali terbuka dan profil nonaktif tanpa terhapus | `HRD-DEC-083`, `HRD-DEC-080` |
+| `AC-ONB-04` | Kontrak tanpa scan tidak sah | Tekan Tandai Sudah Ditandatangani tanpa lampiran; sistem menolak | `HRD-DEC-084` |
+| `AC-ONB-05` | Gaji pada draf kontrak tidak dapat diubah langsung | Buka draf kontrak; isian gaji terkunci | `HRD-DEC-084` |
+| `AC-ONB-06` | PKWT menolak masa percobaan | Isi tanggal masa percobaan pada kontrak PKWT, termasuk lewat layar riwayat kontrak 02; sistem menolak | `HRD-DEC-085` |
+| `AC-ONB-07` | Masa percobaan tanpa keputusan lulus otomatis | Biarkan masa percobaan PKWTT lewat tanggal akhir tanpa hasil disetujui; status menjadi Lulus otomatis | `HRD-DEC-085` |
+| `AC-ONB-08` | Tidak Lulus wajib lampiran | Ajukan Tidak Lulus tanpa lampiran; sistem menolak | `HRD-DEC-085` |
+| `AC-ONB-09` | Checklist berlapis sesuai jenis tenaga dan unit | Serahkan perawat ICU dan petugas keuangan; perawat mendapat tiga lapis, petugas keuangan satu lapis | `HRD-DEC-086` |
+| `AC-ONB-10` | Butir otomatis tidak dapat dicentang tangan | Coba centang butir "kontrak sudah ditandatangani"; sistem menolak | `HRD-DEC-086` |
+| `AC-ONB-11` | Siap kerja tertahan oleh butir wajib | Biarkan satu butir wajib belum selesai; tombol Nyatakan Siap Kerja tidak aktif | `HRD-DEC-088` |
+| `AC-ONB-12` | Pegawai `Pending Onboarding` tidak dapat dijadwalkan | Jadwalkan pegawai yang belum siap kerja; sistem menolak | `HRD-DEC-088` |
+| `AC-ONB-13` | Siap Mandiri wajib lampiran dan tidak masuk persetujuan HRD | Tekan Siap Mandiri tanpa lampiran (ditolak), lalu dengan lampiran (berhasil tanpa antrean HRD) | `HRD-DEC-087` |
+| `AC-ONB-14` | Batas 5 tahun PKWT | Ajukan perpanjangan yang membuat total PKWT 5 tahun 6 bulan; sistem menolak | `HRD-DEC-089` |
+| `AC-ONB-15` | Penahan jadwal setelah kontrak berakhir tanpa keputusan | Biarkan PKWT lewat tanggal berakhir tanpa keputusan; jadwal sesudah tanggal itu ditolak | `HRD-DEC-089` |
+| `AC-ONB-16` | Konversi PKWT ke PKWTT tanpa masa percobaan | Setujui Angkat jadi Pegawai Tetap dan unggah scan; tidak ada masa percobaan terbentuk | `HRD-DEC-089` |
+| `AC-ONB-17` | Batch data awal kontrak sekali per pegawai | Masukkan pegawai yang sudah ada di batch #1 ke batch #2; sistem menolak | `HRD-DEC-090` |
+| `AC-ONB-18` | Pengaman tabel kosong | Isi satu baris uji pada `TrxProbationReview`; jalankan migration; migration berhenti tanpa mengubah data | `HRD-DEC-090` |
+
+**Di luar scope dan sengaja ditinggalkan:** seluruh daftar "Di luar scope" pada bagian 34.3. Tidak
+ada kebutuhan baru di luar scope yang muncul selama wawancara.
+
+**Batas yang tetap berlaku:** pass ini tidak mengubah source aplikasi, migration, database, seed,
+maupun frontend. Database hanya dibaca.
+
+### 34.9 Temuan susulan saat desain sub-modul 05 — 4 November 2026
+
+Dicatat oleh `design-business-module` sebelum arsitektur ditulis. Impact scan BE `e8d47c77` →
+`8b17b75a` dan FE `cfa82fbb3` → `44990b3d3`: area 05 (`LifecycleManagement`, `WorkforceCore`,
+`MasterData/Workforce`) tidak berubah; yang berubah hanya model `Hrd*` baru di
+`RecruitmentManagement` (`NO_IMPACT` bagi fakta bagian 34.2).
+
+| ID | Type | Temuan | Bukti | Akibat |
+| --- | --- | --- | --- | --- |
+| `HRD-TF-049` | Conflict | **Tawaran kerja `S-D2` tidak memuat jenis kontrak maupun lama kontrak.** `HrdJobOffer` hanya memuat gaji pokok, grade, jabatan (teks), tanggal mulai, dan status; `HrdJobRequisition` juga tidak. Padahal model kandidat lama `TrxJobOffer` dan `TrxCandidateHiring` dulu memuat `ContractTypeId` dan `EmploymentTypeId`. `HRD-DEC-084` butir 1–2 menganggap jenis kontrak dan tanggal berakhir sudah disetujui lewat tawaran | `RecruitmentManagement/Models/HrdJobOffer.cs`, `HrdJobRequisition.cs`, `TrxJobOffer.cs` baris 30–31, `TrxCandidateHiring.cs` baris 42–44 @ `8b17b75a` | Bahan `HRD-Q-98`. Memblokir desain draf kontrak pertama |
+| `HRD-TF-050` | Fact | Kesimpulan MCU di source hanya tiga nilai: `Fit`, `FitWithRestrictions`, `Unfit` (ditambah `Pending`), sedangkan `HRD-DEC-078` menyebut empat (`TEMPORARILY_UNFIT` dan `PERMANENTLY_UNFIT` terpisah) | `RecruitmentManagement/Enums/McuClearanceResult.cs` @ `8b17b75a` | Urusan `S-D2`, bukan 05. Butir kelaikan pada checklist 05 lolos bila `Fit` atau `FitWithRestrictions` — sama pada kedua kosakata |
+| `HRD-TF-051` | Conflict | Kode rantai persetujuan `T13` dipakai untuk dua hal berbeda: pembatalan kursi pada `S-D1` (`HRD-DEC-071`) dan tawaran standar pada `S-D2` (`HRD-DEC-079`, bersama `T14`) | `contracts/state-transition-matrix.md` baris 1100–1105 dan 1175–1176 | Konflik dokumentasi milik `S-D1`/`S-D2`. Sub-modul 05 memakai kode baru `T15` s.d. `T18` agar tidak menambah tabrakan |
+| `HRD-TF-052` | Fact | Repository **tidak punya layanan notifikasi** (surel, push, maupun pesan dalam aplikasi) | Pencarian `class *Notification*Service` pada `Areas/**` dan `Services/**` @ `8b17b75a` → 0 berkas | "Pengingat" pada `HRD-DEC-085`, `HRD-DEC-089` dirancang sebagai **daftar Perlu Tindakan** di layar, bukan pesan terkirim |
+| `HRD-TF-053` | Fact | Pembuatan akun login pegawai sudah ada di HR: `EmployeeController` membuat `ApplicationUser` lewat `UserManager.CreateAsync`, tertaut ke profil workforce dan pegawai, dengan kata sandi awal dan wajib ganti kata sandi | `MasterData/Workforce/Controllers/EmployeeController.cs` baris 3555–3660 @ `8b17b75a` | `HRD-DEC-088` memakai jalur ini (diekstrak menjadi service), bukan membuat jalur baru |
+| `HRD-TF-054` | Fact | Exit clearance sub-modul 20 dibuka dari catatan pemisahan `TrxEmployeeSeparation`, yang hari ini hanya dibuat `ResignationLifecycleHandoffService` untuk pengunduran diri (`SeparationType = "Resignation"`) | `LifecycleManagement/Services/ResignationLifecycleHandoffService.cs` baris 28–69; `ExitClearanceService.cs` baris 235–270 @ `8b17b75a` | Serah terima "tidak diperpanjang" dan "tidak lulus" (`HRD-DEC-082`) memperluas service itu |
+| `HRD-TF-055` | Fact | Status kepegawaian, jenis kepegawaian, tanggal masuk, tanggal akhir masa percobaan, dan tanggal akhir kontrak disimpan pada `MstEmployee` (`EmploymentStatusId`, `EmploymentTypeId`, `JoinDate`, `ProbationEndDate`, `ContractEndDate`), bukan pada `MstWorkforceProfile` | `MasterData/Workforce/Models/MstEmployee.cs` baris 93–119 @ `8b17b75a` | Sub-modul 05 menulis kolom itu sebagai salinan dari kontrak dan masa percobaan; form master tidak lagi mengubahnya untuk pegawai yang kontraknya dikelola 05 |
+
+| ID | Pertanyaan | Owner | Memblokir | Status |
+| --- | --- | --- | --- | --- |
+| `HRD-Q-98` | Dari mana jenis kontrak (PKWT/PKWTT) dan lama kontrak pada draf kontrak pertama berasal, mengingat tawaran `S-D2` tidak memuatnya (`HRD-TF-049`) | Pengguna | `DESIGN` bagian draf kontrak pertama | `resolved` — `HRD-DEC-095` |
+
+#### `HRD-DEC-095` — Surat Penawaran memuat jenis kontrak dan lama kontrak, disetujui bersama gaji
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-98`; menyelesaikan conflict `HRD-TF-049` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A |
+| Bukti pemicu | `HRD-TF-049`; `HRD-DEC-079`, `HRD-DEC-084` |
+| Dampak lintas slice | **Mengubah `S-D2` yang sudah disetujui**: dua isian baru pada tawaran kerja beserta layar penyusunan, persetujuan, dan surat tawarannya. `plan-module-delivery` wajib menambahkan perubahan ini ke roadmap `S-D2` |
+
+**Isi keputusan:**
+
+1. `OFFER_CARRIES_CONTRACT_TERMS`: Setiap tawaran kerja wajib memuat **jenis kontrak** (pilihan
+   dari master jenis kontrak, misalnya PKWT atau PKWTT) dan, untuk jenis kontrak yang
+   mensyaratkan tanggal berakhir, **lama kontrak dalam bulan**.
+2. `TERMS_APPROVED_WITH_SALARY`: Jenis dan lama kontrak tampil pada layar persetujuan dan surat
+   tawaran, dan ikut disetujui pada rantai persetujuan tawaran yang sama dengan gaji
+   (`HRD-DEC-079`). Tidak ada langkah persetujuan baru.
+3. `CONTRACT_DRAFT_UNCHANGED`: `HRD-DEC-084` tetap berlaku utuh. Draf kontrak pertama mengambil
+   jenis kontrak, tanggal mulai, dan tanggal berakhir (tanggal mulai + lama kontrak − 1 hari)
+   dari tawaran, tanpa persetujuan ulang.
+4. `REVISION_THROUGH_OFFER`: Perubahan jenis atau lama kontrak sebelum kontrak ditandatangani
+   dilakukan dengan merevisi tawaran, sama seperti perubahan gaji (`HRD-DEC-084` butir 6).
+
+**Contoh.** Recruiter menyusun tawaran Rina: Perawat Pelaksana ICU, PKWT, 12 bulan, gaji pokok
+Rp 5.500.000, mulai 1 Februari 2027. Kepala Unit dan HR Manager menyetujui tawaran itu. Rina
+menerima tawaran dan tahu sejak awal bahwa ia pegawai kontrak 12 bulan. Saat kasus onboarding
+Rina terbentuk, draf kontraknya otomatis berbunyi PKWT 1 Februari 2027 s.d. 31 Januari 2028.
+
+**Uji keputusan:** (a) tawaran tanpa jenis kontrak tidak dapat diajukan; (b) tawaran PKWT tanpa
+lama kontrak tidak dapat diajukan; (c) draf kontrak pertama memuat jenis dan tanggal berakhir yang
+sama persis dengan tawaran.
+
+#### `HRD-DEC-096` — Approval desain `S-C4-ONB` beserta lima pilihan desain turunan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision — approval desain |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-04 — memilih opsi A "Setujui desain apa adanya, termasuk kelima pilihan desain"; jawaban: "setujui semua ya dan kerjakan" |
+| Mencakup | `02-backend-architecture.md` bagian 18, `03-frontend-architecture.md` bagian 14, `04-prd-to-mvp.md` bagian 23, `data/data-dictionary.md` bagian 10, kelima kontrak bagian `S-C4-ONB` (kontrak `v9`), `testing/acceptance-test-matrix.md` bagian 17, lima flowchart `S-C4-ONB` dan perubahan `00-alur-utama.md` |
+| Tidak mencakup | `HRD-DEC-005` (Komite Medik) dan `HRD-DEC-010` (K3RS) yang tetap `draft`; pemetaan peran `HRD-DEC-032` |
+
+**Lima pilihan desain yang ikut disetujui:**
+
+1. `DIRECT_SUPERVISOR_SYSTEM_ITEM`: atasan langsung pegawai baru dipilih Kepala Unit sebagai butir
+   sistem wajib checklist, lalu relasi atasannya disahkan petugas HRD yang menyatakan siap kerja
+   (`02-backend-architecture.md` 18.9.6).
+2. `INITIAL_PLACEMENT_FROM_OFFER`: penempatan organisasi, jabatan, dan gaji awal dibuat dari tawaran
+   yang sudah disetujui saat kontrak pertama ditandatangani, tanpa SK terpisah.
+3. `REMINDER_AS_WORKLIST`: pengingat diwujudkan sebagai daftar Perlu Tindakan, karena repository tidak
+   punya layanan notifikasi (`HRD-TF-052`).
+4. `CERTIFICATION_FROM_WFP_CERTIFICATION`: butir otomatis sertifikat pelatihan wajib membaca
+   `WfpCertification`.
+5. `CONTRACT_HISTORY_READ_ONLY_IN_02`: endpoint tulis riwayat kontrak sub-modul 02 menjawab `409` dan
+   tabnya menjadi baca saja; seluruh perubahan kontrak lewat sub-modul 05.
+
+
+---
+
+## 35. Keputusan Layanan Mandiri Perubahan Data Profil Karyawan (ESS Profile Change — S-A5 / S-A1)
+
+Wawancara keputusan kebutuhan: implementasi Employee Self-Service Profile Change pada rute `/self-services/human-resource/employee/profile-changes`, reuse tampilan Profil Workforce, bundling perubahan multi-field dalam satu transaksi, perlindungan master data, dan penegakan Anti-Self-Approval.
+
+### 35.1 Ringkasan Keputusan
+
+| ID Keputusan | Topik | Ringkasan Kebijakan | Status | Dampak Arsitektur |
+| :--- | :--- | :--- | :---: | :--- |
+| `HRD-DEC-091` | Alur Mandiri Multi-Field | Karyawan dapat mengedit satu atau banyak field profil pribadi yang diizinkan dalam satu formulir profil tanpa memilih kategori di awal. Sistem menghitung diff secara real-time. | `APPROVED` | FE Diff Engine, BE `Details[i]` bundling |
+| `HRD-DEC-092` | Perlindungan Master Data | Data master kepegawaian resmi (`MstEmployee`, `MstWorkforceProfile`) TIDAK BOLEH berubah sebelum permohonan disetujui melalui Workflow Engine resmi dan diterapkan via `ApplyAsync`. | `APPROVED` | State machine `Draft` -> `Submitted` -> `UnderVerification` -> `Approved` -> `Applied` |
+| `HRD-DEC-093` | Anti-Self-Approval | Pemohon dilarang keras memverifikasi atau menyetujui permohonannya sendiri meskipun memiliki wewenang atau peran HRD/Approver (Prinsip Four-Eyes). Proteksi ditegakkan di Backend dan Frontend. | `APPROVED` | `EmployeeProfileChangeService.cs:StartVerificationAsync`, UI disable verification action |
+| `HRD-DEC-094` | Kategori "Multiple" & Rute | Penambahan kategori `Multiple` (Multi-kategori) pada kontrak backend dan frontend untuk menghindari benturan invariant `hasOpenRequest`. Rute kanonikal: `/self-services/human-resource/employee/profile-changes`. | `APPROVED` | `RequestCategories`, DTO, `menu-items.jsx`, `user-profile-sidebar.jsx` |
+
+#### `HRD-DEC-091` — Alur Pengajuan Mandiri Multi-Field Karyawan Tanpa Pemilihan Kategori Awal
+1. Karyawan yang login dapat membuka menu **Layanan Mandiri → Kelola Data Saya** (`/self-services/human-resource/employee/profile-changes`).
+2. Tampilan mengambil snapshot data awal milik pengguna yang terautentikasi melalui `GET /api/v1/self-services/human-resource/profile-changes/current-profile`. URL tidak menerima parameter ID pegawai bebas.
+3. Karyawan dapat langsung mengubah field pribadi (nama, tempat/tgl lahir, agama, status nikah, nomor telepon, WhatsApp, email, alamat, kontak darurat).
+4. Field struktural dan penempatan kerja (departemen, unit, jabatan, status kepegawaian) dikunci secara permanen sebagai read-only dengan tanda "Wewenang SK Resmi HRD".
+5. Frontend menghitung perbedaan nilai antara snapshot awal dan data saat ini secara real-time:
+   - Jika 0 field berubah: tombol simpan dinonaktifkan.
+   - Jika >= 1 field berubah: daftar komparasi lama vs baru ditampilkan.
+
+#### `HRD-DEC-092` — Perlindungan Mutlak Master Data dan Penerapan Otomatis Pasca-Persetujuan Workflow
+1. Tombol **Simpan dan Ajukan Perubahan Data** hanya membuat transaksi permohonan (`TrxEmployeeProfileChangeRequest` dan `TrxEmployeeProfileChangeDetail`) berstatus `Draft` -> `Submitted`.
+2. Tidak ada operasi mutasi SQL `UPDATE` pada tabel `MstEmployee` atau `MstWorkforceProfile` pada tahap pengajuan.
+3. Penerapan nilai baru ke tabel master kepegawaian hanya dieksekusi secara otomatis oleh background worker / integration service (`EmployeeProfileChangeWorkflowIntegrationService.cs:ApplyAsync`) setelah workflow menghasilkan keputusan `Approved`.
+4. Jika master data berubah selama permohonan berjalan, sistem melakukan validasi kecocokan nilai lama (`oldValue`) sebelum menerapkan perubahan untuk mencegah penimpaan data yang tidak disadari.
+
+#### `HRD-DEC-093` — Penegakan Prinsip Anti-Self-Approval (Four-Eyes Principle)
+1. Sesuai standar tata kelola kepatuhan rumah sakit dan prinsip Four-Eyes (`HRD-DEC-031`): Karyawan yang mengajukan permohonan perubahan data dilarang bertindak sebagai verifikator atau penyetujui atas permohonannya sendiri.
+2. Backend menolak eksekusi `StartVerificationAsync` apabila `verifierUserId == request.SubmittedByUserId` atau `verifierWorkforceProfileId == request.WorkforceProfileId` dengan melempar exception `400 Bad Request` ("Anda tidak diizinkan memverifikasi pengajuan perubahan data milik Anda sendiri.").
+3. Frontend memeriksa identitas pengguna login terhadap data pemohon; jika sama, tombol verifikasi dinonaktifkan dan banner peringatan kepatuhan ditampilkan.
+
+#### `HRD-DEC-094` — Dukungan Kategori Transaksi "Multiple" dan Rute Mandiri
+1. Backend menambahkan kategori `"Multiple"` (`Multi-kategori`) pada daftar `RequestCategories` dan pemetaan label `BuildCategoryLabel`.
+2. Perubahan data yang mencakup lebih dari satu kelompok field (misal: Kontak + Alamat + Identitas) secara otomatis dikirim sebagai kategori `Multiple` dalam satu transaksi ID permohonan.
+3. Ini mencegah kegagalan validasi `hasOpenRequest` yang melarang pembuatan permohonan baru saat masih ada permohonan aktif untuk profil yang sama.
+4. Rute frontend ditempatkan pada path standar Layanan Mandiri: `/self-services/human-resource/employee/profile-changes`, didaftarkan pada `menu-items.jsx`, dan ditautkan pada menu cepat profil pengguna `user-profile-sidebar.jsx`.

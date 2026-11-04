@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
@@ -42,8 +44,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             "Contact",
             "Address",
             "Identity",
-            "EmergencyContact"
+            "EmergencyContact",
+            "Multiple"
         };
+
+        private static readonly HashSet<string> SensitiveFields =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                "IdentityNumber",
+                "IdentityType",
+                "MaritalStatus",
+                "FullName",
+                "BirthPlace",
+                "BirthDate"
+            };
 
         private static readonly string[] VerificationStatuses =
         {
@@ -802,6 +816,14 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                     "Permintaan belum memiliki detail perubahan.");
             }
 
+            var hasSensitiveField = activeDetails.Any(x => SensitiveFields.Contains(x.FieldName));
+            if (hasSensitiveField && string.IsNullOrWhiteSpace(entity.EvidenceFilePath))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Dokumen bukti wajib diunggah untuk perubahan data identitas / data sensitif.");
+            }
+
             var refreshResult = await RefreshAndValidateDetailOldValuesAsync(
                 entity.WorkforceProfileId,
                 activeDetails,
@@ -897,6 +919,13 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
                     StatusCodes.Status409Conflict,
                     "Verifikasi hanya dapat dimulai dari status Submitted.");
+            }
+
+            if (entity.RequestedByUserId == actorUserId || (entity.IsSubmittedOnBehalf && entity.CreateBy == actorUserId))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Pemohon atau staf yang mengajukan permohonan atas nama tidak boleh memulai verifikasi permohonannya sendiri.");
             }
 
             entity.RequestStatus = "UnderVerification";
@@ -1320,6 +1349,333 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>> GetCurrentProfileAsync(
+            Guid workforceProfileId,
+            CancellationToken cancellationToken = default)
+        {
+            var workforce = await _dbContext.Set<MstWorkforceProfile>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete, cancellationToken);
+
+            if (workforce == null)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan.");
+            }
+
+            var employee = await _dbContext.Set<MstEmployee>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete, cancellationToken);
+
+            if (employee == null)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Data karyawan untuk workforce profile ini belum terhubung.");
+            }
+
+            string? countryName = null;
+            string? provinceName = null;
+            string? cityName = null;
+            string? districtName = null;
+            string? postalCodeNumber = null;
+
+            if (employee.CountryId.HasValue && employee.CountryId.Value != Guid.Empty)
+            {
+                countryName = await _dbContext.Set<MstCountry>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.CountryId.Value)
+                    .Select(x => x.CountryName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.ProvinceId.HasValue && employee.ProvinceId.Value != Guid.Empty)
+            {
+                provinceName = await _dbContext.Set<MstProvince>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.ProvinceId.Value)
+                    .Select(x => x.ProvinceName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.CityId.HasValue && employee.CityId.Value != Guid.Empty)
+            {
+                cityName = await _dbContext.Set<MstCity>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.CityId.Value)
+                    .Select(x => x.CityName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.DistrictId.HasValue && employee.DistrictId.Value != Guid.Empty)
+            {
+                districtName = await _dbContext.Set<MstDistrict>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.DistrictId.Value)
+                    .Select(x => x.DistrictName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.PostalCodeId.HasValue && employee.PostalCodeId.Value != Guid.Empty)
+            {
+                postalCodeNumber = await _dbContext.Set<MstPostalCode>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.PostalCodeId.Value)
+                    .Select(x => x.PostalCode)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            string? deptName = null;
+            string? posName = null;
+            string? unitName = null;
+            string? locName = null;
+            string? mgrName = null;
+
+            if (employee.PrimaryDepartmentId != Guid.Empty)
+            {
+                deptName = await _dbContext.Set<MstDepartment>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.PrimaryDepartmentId)
+                    .Select(x => x.DepartmentName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.PrimaryPositionId != Guid.Empty)
+            {
+                posName = await _dbContext.Set<MstPosition>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.PrimaryPositionId)
+                    .Select(x => x.PositionName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var openRequest = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                .AsNoTracking()
+                .Include(x => x.Details.Where(d => !d.IsDelete))
+                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete &&
+                            (x.RequestStatus == "Draft" ||
+                             x.RequestStatus == "Submitted" ||
+                             x.RequestStatus == "UnderVerification" ||
+                             x.RequestStatus == "NeedRevision" ||
+                             x.RequestStatus == "Approved"))
+                .OrderByDescending(x => x.CreateDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var metadata = GetFilterMetadata();
+
+            var response = new EmployeeCurrentProfileResponse
+            {
+                WorkforceProfileId = workforce.Id,
+                WorkforceProfileCode = workforce.ProfileCode,
+                WorkforceDisplayName = workforce.DisplayName,
+                EmployeeId = employee.Id,
+                EmployeeNumber = employee.EmployeeNumber,
+                FullName = employee.FullName,
+                NickName = employee.NickName,
+                BirthPlace = employee.BirthPlace,
+                BirthDate = employee.BirthDate,
+                Gender = employee.Gender.ToString(),
+                Religion = employee.Religion.ToString(),
+                MaritalStatus = employee.MaritalStatus.ToString(),
+                BloodType = employee.BloodType.ToString(),
+                IdentityType = employee.IdentityType,
+                IdentityNumber = employee.IdentityNumber,
+                PhoneNumber = employee.PhoneNumber ?? workforce.PhoneNumber,
+                WhatsAppNumber = employee.WhatsAppNumber ?? workforce.WhatsAppNumber,
+                Email = employee.Email ?? workforce.Email,
+                Address = employee.Address,
+                CountryId = employee.CountryId,
+                CountryName = countryName,
+                ProvinceId = employee.ProvinceId,
+                ProvinceName = provinceName,
+                CityId = employee.CityId,
+                CityName = cityName,
+                DistrictId = employee.DistrictId,
+                DistrictName = districtName,
+                PostalCodeId = employee.PostalCodeId,
+                PostalCodeNumber = postalCodeNumber,
+                EmergencyContactName = employee.EmergencyContactName,
+                EmergencyContactRelation = employee.EmergencyContactRelation,
+                EmergencyContactPhone = employee.EmergencyContactPhone,
+                EmergencyContactAddress = employee.EmergencyContactAddress,
+
+                DepartmentName = deptName,
+                PositionName = posName,
+                OrganizationUnitName = unitName,
+                WorkLocationName = locName,
+                ManagerDisplayName = mgrName,
+
+                HasOpenRequest = openRequest != null,
+                OpenRequestId = openRequest?.Id,
+                OpenRequestNumber = openRequest?.RequestNumber,
+                OpenRequestStatus = openRequest?.RequestStatus,
+                OpenRequestCategory = openRequest?.RequestCategory,
+                OpenRequestReasonText = openRequest?.RequestReasonText,
+                OpenRequestSubmittedAt = openRequest?.SubmittedAt,
+                OpenRequestEvidenceFileName = openRequest?.EvidenceFileName,
+                OpenRequestRevisionReason = openRequest?.Description,
+                OpenRequestDetails = openRequest?.Details?
+                    .Select(d => new EmployeeProfileChangeDetailResponse
+                    {
+                        Id = d.Id,
+                        FieldGroup = d.FieldGroup,
+                        FieldName = d.FieldName,
+                        OldValue = d.OldValue,
+                        NewValue = d.NewValue,
+                        ValueType = d.ValueType,
+                        TargetEntityName = d.TargetEntityName,
+                        TargetEntityId = d.TargetEntityId,
+                        RequiresVerification = d.RequiresVerification,
+                        DetailStatus = d.DetailStatus,
+                        SortOrder = d.SortOrder,
+                        Description = d.Description
+                    }).ToList() ?? new(),
+
+                AllowedFields = metadata.AllowedFields,
+                SensitiveFields = SensitiveFields.ToList(),
+                MaximumEvidenceFileSizeMb = metadata.MaximumEvidenceFileSizeMb,
+                AllowedEvidenceExtensions = metadata.AllowedEvidenceExtensions
+            };
+
+            return EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>.Ok(
+                response,
+                "Data profil karyawan berhasil diambil.");
+        }
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> UploadEvidenceAsync(
+            Guid requestId,
+            IFormFile file,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var validation = ValidateEvidenceFile(file);
+            if (!validation.Success)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    validation.StatusCode,
+                    validation.Message);
+            }
+
+            var entity = await FindRequestForUpdateAsync(requestId, cancellationToken);
+            if (entity == null)
+                return NotFoundResult();
+
+            if (entity.RequestStatus != "Draft" && entity.RequestStatus != "NeedRevision")
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Bukti hanya dapat diunggah pada status Draft atau NeedRevision.");
+            }
+
+            var oldEvidencePath = entity.EvidenceFilePath;
+            var newEvidencePath = await SaveEvidenceFileAsync(
+                entity.WorkforceProfileId,
+                entity.Id,
+                file,
+                cancellationToken);
+
+            entity.EvidenceFilePath = newEvidencePath;
+            entity.EvidenceFileName = file.FileName;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            DeletePhysicalFile(oldEvidencePath);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmployeeProfileChange.UploadEvidence",
+                "Mengunggah berkas bukti perubahan profil.",
+                new { requestId, fileName = file.FileName });
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> DeleteEvidenceAsync(
+            Guid requestId,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await FindRequestForUpdateAsync(requestId, cancellationToken);
+            if (entity == null)
+                return NotFoundResult();
+
+            if (entity.RequestStatus != "Draft" && entity.RequestStatus != "NeedRevision")
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Bukti hanya dapat dihapus pada status Draft atau NeedRevision.");
+            }
+
+            var oldEvidencePath = entity.EvidenceFilePath;
+            entity.EvidenceFilePath = null;
+            entity.EvidenceFileName = null;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            DeletePhysicalFile(oldEvidencePath);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmployeeProfileChange.DeleteEvidence",
+                "Menghapus berkas bukti perubahan profil.",
+                new { requestId });
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>> GetRequestEvidenceFileAsync(
+            Guid requestId,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == requestId && !x.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Permintaan perubahan profil tidak ditemukan.");
+            }
+
+            if (string.IsNullOrWhiteSpace(entity.EvidenceFilePath))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "File bukti pendukung belum diunggah.");
+            }
+
+            var physicalPath = ResolvePhysicalPath(entity.EvidenceFilePath);
+
+            if (!File.Exists(physicalPath))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "File bukti pendukung tidak ditemukan pada storage.");
+            }
+
+            var extension = Path.GetExtension(physicalPath).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+
+            var fileName = string.IsNullOrWhiteSpace(entity.EvidenceFileName)
+                ? Path.GetFileName(physicalPath)
+                : entity.EvidenceFileName;
+
+            return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Ok(
+                new EmployeeProfileChangeEvidenceFileResponse
+                {
+                    PhysicalPath = physicalPath,
+                    FileName = fileName,
+                    ContentType = contentType
+                },
+                "File bukti permohonan berhasil ditemukan.");
         }
 
         public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CancelAsync(
@@ -2536,6 +2892,7 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 "Address" => "Alamat",
                 "Identity" => "Identitas",
                 "EmergencyContact" => "Kontak darurat",
+                "Multiple" => "Multi-kategori",
                 _ => value
             };
         }

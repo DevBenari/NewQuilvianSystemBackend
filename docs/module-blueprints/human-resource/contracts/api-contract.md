@@ -765,7 +765,8 @@ Base URL: `api/v1/corporate/human-resource/employee-profile-changes`
 | `POST` | `/{id:guid}/request-revision` | Meminta pemohon memperbaiki | `EmployeeProfileChange : Update` | `RequestRevisionRequest` | `ApiResponse<ProfileChangeDetailResponse>` | |
 | `POST` | `/{id:guid}/apply` | Menerapkan perubahan ke profil pegawai | `EmployeeProfileChange : Update` | — | `ApiResponse<ProfileChangeDetailResponse>` | |
 | `POST` | `/{id:guid}/workflow/synchronize` | Menyelaraskan status dengan mesin persetujuan | `EmployeeProfileChange : Update` | — | `ApiResponse<ProfileChangeDetailResponse>` | |
-| `POST` | `/on-behalf` | HR mengajukan permohonan atas nama pegawai yang kesulitan akses | `EmployeeProfileChange : CreateOnBehalf` | `CreateProfileChangeOnBehalfRequest` | `ApiResponse<ProfileChangeDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/on-behalf` | HR mengajukan permohonan atas nama pegawai yang kesulitan akses | `EmployeeProfileChange : CreateOnBehalf` | `CreateProfileChangeOnBehalfRequest` | `ApiResponse<ProfileChangeDetailResponse>` | Tersedia (multipart/form-data) |
+| `GET` | `/{id:guid}/evidence/download` | Mengunduh berkas bukti pendukung permohonan | `EmployeeProfileChange : Read` | — | Berkas stream PDF/JPG/PNG | Tersedia (`HRD-DEC-052`) |
 
 ### Corporate / Human Resource / Workforce Core / Personnel Action Order
 
@@ -925,7 +926,27 @@ pernah mencapai persetujuan atasan.
 | `Self Services / Human Resource / Leave Cancellation` | `.../leave/cancellations` | Mengajukan pembatalan cuti | `MyLeaveCancellation : Read`, `: Create`, `: Update`, `: Submit` |
 | `Self Services / Human Resource / Return To Work` | `.../leave/return-to-work` | Mengonfirmasi pemanggilan kembali | `MyReturnToWork : Read`, `: Acknowledge` |
 | `Self Services / Human Resource / Schedule Change` | `.../schedule-change-requests` | Mengajukan perubahan jadwal | `MyScheduleChange : Read`, `: Create`, `: Update`, `: Submit`, `: Cancel`, `: Delete` |
-| `Self Services / Human Resource / Profile Change` | `.../profile-changes` | Mengajukan perubahan data pribadi | `MyProfileChange : Read`, `: Create`, `: Update`, `: Submit`, `: Cancel`, `: Delete` |
+| `Self Services / Human Resource / Profile Change` | `.../profile-changes` | Mengajukan perubahan data pribadi mandiri | `MyProfileChange : Read`, `: Create`, `: Update`, `: Submit`, `: Cancel`, `: Delete` |
+
+### Self Services / Human Resource / Profile Change
+
+Base URL: `api/v1/self-services/human-resource/profile-changes`
+
+Mengelola pengajuan perubahan data pribadi profil mandiri karyawan login (`HRD-DEC-091`..`094`).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/current-profile` | Mengambil snapshot profil lengkap pengguna login | `MyProfileChange : Read` | — | `ApiResponse<EmployeeCurrentProfileResponse>` | Tersedia |
+| `GET` | `/summary` | Ringkasan statistik pengajuan mandiri | `MyProfileChange : Read` | — | `ApiResponse<EmployeeProfileChangeSummaryResponse>` | Tersedia |
+| `GET` | `/` | Daftar riwayat pengajuan mandiri | `MyProfileChange : Read` | Query (paging) | `ApiResponse<PagedResult<EmployeeProfileChangeListItemResponse>>` | Tersedia |
+| `GET` | `/{id:guid}` | Detail satu pengajuan mandiri | `MyProfileChange : Read` | — | `ApiResponse<EmployeeProfileChangeDetailResponse>` | Tersedia |
+| `POST` | `/` | Membuat draf permohonan perubahan profil | `MyProfileChange : Create` | `CreateEmployeeProfileChangeDraftRequest` | `ApiResponse<EmployeeProfileChangeDetailResponse>` | Tersedia |
+| `PUT` | `/{id:guid}` | Memperbarui draf permohonan | `MyProfileChange : Update` | `UpdateEmployeeProfileChangeDraftRequest` | `ApiResponse<EmployeeProfileChangeDetailResponse>` | Tersedia |
+| `POST` | `/{id:guid}/evidence` | Mengunggah berkas bukti pendukung | `MyProfileChange : Update` | Multipart Form Data (`file`, `remarks`) | `ApiResponse<EmployeeProfileChangeEvidenceFileResponse>` | Tersedia (`HRD-DEC-052`) |
+| `GET` | `/{id:guid}/evidence/download` | Mengunduh berkas bukti pendukung | `MyProfileChange : Read` | — | Berkas stream PDF/JPG/PNG | Tersedia |
+| `DELETE` | `/{id:guid}/evidence` | Menghapus berkas bukti draf | `MyProfileChange : Update` | — | `ApiResponse<bool>` | Tersedia |
+| `POST` | `/{id:guid}/submit` | Mengajukan draf ke Workflow Engine | `MyProfileChange : Submit` | `SubmitEmployeeProfileChangeRequest` | `ApiResponse<EmployeeProfileChangeDetailResponse>` | Tersedia |
+| `POST` | `/{id:guid}/cancel` | Membatalkan permohonan mandiri | `MyProfileChange : Cancel` | `CancelEmployeeProfileChangeRequest` | `ApiResponse<EmployeeProfileChangeDetailResponse>` | Tersedia |
 | `Self Services / Human Resource / Resignation` | `.../resignation-requests` | Mengajukan pengunduran diri | `MyResignation : Read`, `: Create`, `: Update`, `: Submit`, `: Cancel`, `: Delete` |
 
 ---
@@ -1341,3 +1362,240 @@ Base path: `/handoffs`
 | Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `POST` | `/execute` | Serah terima kandidat final ke Onboarding | `Recruitment : Execute` | `ExecuteHiringHandoffRequest` (`jobOfferId`, `scheduledOrientationDate`) | `ApiResponse<HiringHandoffResponse>` | **Rencana (belum tersedia)** |
+
+
+---
+
+## 15. Onboarding dan Kontrak Kerja — `S-C4-ONB` (`last_changed_in` `v9`, 4 November 2026)
+
+| Field | Isi |
+| --- | --- |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan" |
+| Sumber desain | `02-backend-architecture.md` bagian 18; decision log bagian 34 |
+| Kompatibilitas | Endpoint baru seluruhnya; **satu perubahan memutus** pada grup `Contract History` 02 (15.11); penambahan isian pada grup tawaran `S-D2` (15.12) |
+
+**Seluruh endpoint pada bagian ini belum ada di kode** dan berlabel **Rencana (belum tersedia)**.
+Pola bagian 0.1 dan kode status bagian 0.3 berlaku. Base URL bersama:
+`api/v1/corporate/human-resource/lifecycle-management`.
+
+Aturan yang berlaku untuk seluruh grup:
+
+| Aturan | Isi |
+| --- | --- |
+| Pembaruan dokumen | Setiap request ubah, ajukan, tarik, tandai, dan nyatakan **MUST** membawa `rowVersion`; versi usang → `409` (`VR-ONB-15`) |
+| Persetujuan | **Tidak ada** endpoint setuju/tolak/minta revisi di bagian ini. Keputusan `T15` s.d. `T18` lewat kotak masuk persetujuan, bagian 6 |
+| Cakupan unit | Kepala Unit hanya melihat dan bertindak atas pegawai di unit dalam cakupan organisasinya; di luar itu `GET` daftar tidak memuatnya dan `GET {id}` menjawab `404` |
+| Berkas | Unggahan memakai `multipart/form-data`; PDF, JPG, atau PNG paling besar 10 MB (`VR-ONB-09`). Unduhan lewat endpoint terautentikasi, bukan path publik |
+| Gaji | Nominal gaji hanya terisi bila pemanggil memegang `WfpSalaryAssignment : ViewAmount`; selain itu `null` dan `amountVisible = false` (`HRD-DEC-033`). Pembacaan nominal dicatat (`HRD-DEC-039`) |
+
+### 15.1 Corporate / Human Resource / Lifecycle Management / Onboarding Case
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/onboarding-cases`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar kasus onboarding | `WorkforceOnboardingCase : Read` | `OnboardingCasePagedQuery` (`hospitalSiteId`, `organizationUnitId`, `caseStatus`, `plannedStartFrom`, `plannedStartTo`, `coordinatorUserId`, `search`) | `ApiResponse<PagedResult<OnboardingCaseListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Hitungan per status, terlambat mulai, dan kontrak belum ditandatangani | `WorkforceOnboardingCase : Read` | `hospitalSiteId` | `ApiResponse<OnboardingCaseSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail kasus: butir, kontrak pertama, akun, pendampingan, peringatan | `WorkforceOnboardingCase : Read` | — | `ApiResponse<OnboardingCaseResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/first-day-attendance` | Mencatat hadir hari pertama; mengaktifkan akun layanan mandiri | `WorkforceOnboardingCase : CompleteItem` | `RecordFirstDayRequest` (`attendedOn`, `rowVersion`) | `ApiResponse<OnboardingCaseResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/first-day-attendance/undo` | Membatalkan catatan hadir yang salah, selama kontrak pertama belum ditandatangani | `WorkforceOnboardingCase : CompleteItem` | `UndoItemRequest` (`reason`, `rowVersion`) | `ApiResponse<OnboardingCaseResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/items/{itemId}/complete` | Menandai butir milik HRD selesai | `WorkforceOnboardingCase : CompleteItem` | `multipart`: `completionNote`, `file` (wajib untuk butir wajib bukti), `rowVersion` | `ApiResponse<OnboardingCaseItemResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/items/{itemId}/undo` | Membatalkan centang butir milik HRD | `WorkforceOnboardingCase : CompleteItem` | `UndoItemRequest` | `ApiResponse<OnboardingCaseItemResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/unit-items/{itemId}/complete` | Menandai butir milik Kepala Unit selesai, termasuk memilih atasan langsung atau preceptor | `WorkforceOnboardingCase : CompleteUnitItem` | `multipart`: `completionNote`, `file`, `selectedWorkforceProfileId` (butir pemilihan orang), `rowVersion` | `ApiResponse<OnboardingCaseItemResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/unit-items/{itemId}/undo` | Membatalkan centang butir milik Kepala Unit | `WorkforceOnboardingCase : CompleteUnitItem` | `UndoItemRequest` | `ApiResponse<OnboardingCaseItemResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/automatic-items/refresh` | Memeriksa ulang butir otomatis sekarang juga | `WorkforceOnboardingCase : CompleteItem` | — | `ApiResponse<OnboardingCaseResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/coordinator` | Mengalihkan koordinator HRD | `WorkforceOnboardingCase : Reassign` | `ReassignCoordinatorRequest` (`coordinatorUserId`, `rowVersion`) | `ApiResponse<OnboardingCaseResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/declare-ready` | Menyatakan siap kerja | `WorkforceOnboardingCase : DeclareReady` | `DeclareReadyRequest` (`rowVersion`) | `ApiResponse<OnboardingCaseResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel-join` | Batal bergabung | `WorkforceOnboardingCase : CancelJoin` | `CancelJoinRequest` (`cancelReason`, `cancelNote`, `rowVersion`) | `ApiResponse<OnboardingCaseResponse>` | **Rencana (belum tersedia)** |
+
+`OnboardingCaseResponse`: `id`, `caseNumber`, `employeeName`, `positionName`, `organizationUnitName`,
+`isClinical`, `plannedStartDate`, `caseStatus`, `coordinator`, `firstDayAttendedOn`,
+`hasGeneralTemplate`, `items[]` (`id`, `itemCode`, `itemName`, `templateLayer`, `responsibleRole`,
+`itemKind`, `isRequired`, `dueDate`, `itemStatus`, `completedAt`, `completedByName`, `selectedPersonName`,
+`hasEvidence`, `automaticResultNote`, `canComplete`, `canUndo`), `requiredRemaining`,
+`firstContract` (`contractHistoryId`, `contractStatus`, `contractTypeName`, `startDate`, `endDate`),
+`accessRequests[]` (`requestType`, `requestStatus`, `failureMessage`), `warnings[]` (contoh
+"Kewenangan klinis (SPK/RKK) belum tercatat"), `availableActions[]`, `rowVersion`.
+
+`availableActions` dihitung backend (`AGENTS.md` bagian Alur Kerja): layar tidak menebak tombol sendiri.
+
+### 15.2 Corporate / Human Resource / Lifecycle Management / Onboarding Template
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/onboarding-templates`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar template per lapis | `WorkforceOnboardingTemplate : Read` | `templateLayer`, `organizationUnitId`, `isActive` | `ApiResponse<List<OnboardingTemplateListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail template beserta butirnya | `WorkforceOnboardingTemplate : Read` | — | `ApiResponse<OnboardingTemplateResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat template; butir sistem lapis itu disisipkan otomatis | `WorkforceOnboardingTemplate : Create` | `UpsertOnboardingTemplateRequest` | `ApiResponse<OnboardingTemplateResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah template dan butirnya | `WorkforceOnboardingTemplate : Update` | `UpsertOnboardingTemplateRequest` | `ApiResponse<OnboardingTemplateResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan | `WorkforceOnboardingTemplate : Update` | `ToggleActiveRequest` (`isActive`, `rowVersion`) | `ApiResponse<OnboardingTemplateResponse>` | **Rencana (belum tersedia)** |
+
+`UpsertOnboardingTemplateRequest`: `templateCode`, `templateName`, `templateLayer`, `organizationUnitId`,
+`targetCompletionDays`, `description`, `tasks[]` (`id`, `taskCode`, `taskName`, `taskCategory`,
+`description`, `responsibleRole`, `itemKind`, `automaticSource`, `certificationTypeId`, `isRequired`,
+`dueDayOffset`), `rowVersion`. Butir sistem dikirim balik apa adanya; perubahan jenis, penanggung jawab,
+atau tanda wajibnya ditolak (`VR-ONB-22`).
+
+### 15.3 Corporate / Human Resource / Lifecycle Management / Employment Contract
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/employment-contracts`
+
+`{id}` adalah `Id` baris `WfpContractHistory`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar kontrak | `WorkforceEmploymentContract : Read` | `EmploymentContractPagedQuery` (`organizationUnitId`, `contractStatus`, `contractTypeId`, `expiringWithinDays`, `historyType`, `missingDocument`, `search`) | `ApiResponse<PagedResult<EmploymentContractListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail kontrak: rantai kontrak, masa percobaan, keputusan, koreksi | `WorkforceEmploymentContract : Read` | — | `ApiResponse<EmploymentContractResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/print-data` | Data cetak draf kontrak, dari tawaran yang disetujui | `WorkforceEmploymentContract : Read` | — | `ApiResponse<EmploymentContractPrintResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/mark-signed` | Menandai kontrak sudah ditandatangani | `WorkforceEmploymentContract : MarkSigned` | `multipart`: `file` (wajib), `signedDate`, `rowVersion` | `ApiResponse<EmploymentContractResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/document` | Mengunggah scan kontrak data awal yang menyusul | `WorkforceEmploymentContract : UploadDocument` | `multipart`: `file`, `rowVersion` | `ApiResponse<EmploymentContractResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/document` | Mengunduh scan kontrak | `WorkforceEmploymentContract : Read` | — | Berkas | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/fixed-term-check` | Pratinjau total PKWT bila diperpanjang sekian bulan | `WorkforceEmploymentContract : Read` | `extensionMonths` | `ApiResponse<FixedTermCheckResponse>` (`totalYears`, `totalMonths`, `allowed`, `maximumExtensionMonths`) | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/decisions` | Mengajukan keputusan Perpanjang, Angkat jadi Pegawai Tetap, atau Tidak Diperpanjang; memulai `T16` | `WorkforceContractDecision : Submit` | `SubmitContractDecisionRequest` (`decisionType`, `extensionMonths`, `reasonText`, `contractRowVersion`) | `ApiResponse<ContractDecisionResponse>` `201` | **Rencana (belum tersedia)** |
+| `GET` | `/decisions/{decisionId}` | Detail keputusan | `WorkforceContractDecision : Read` | — | `ApiResponse<ContractDecisionResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/decisions/{decisionId}` | Mengubah keputusan yang dikembalikan, lalu mengajukan ulang | `WorkforceContractDecision : Submit` | `SubmitContractDecisionRequest` + `rowVersion` | `ApiResponse<ContractDecisionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/decisions/{decisionId}/withdraw` | Menarik keputusan sebelum diputus | `WorkforceContractDecision : Submit` | `WithdrawRequest` (`reason`, `rowVersion`) | `ApiResponse<ContractDecisionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/decisions/{decisionId}/notification` | Mencatat tanggal pemberitahuan Tidak Diperpanjang kepada pegawai | `WorkforceContractDecision : RecordNotification` | `RecordNotificationRequest` (`employeeNotifiedOn`, `rowVersion`) | `ApiResponse<ContractDecisionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/corrections` | Mengajukan koreksi kontrak; memulai `T17` | `WorkforceEmploymentContract : RequestCorrection` | `multipart`: `afterContractNumber`, `afterContractTypeId`, `afterStartDate`, `afterEndDate`, `reasonText`, `file`, `contractRowVersion` | `ApiResponse<ContractCorrectionResponse>` `201` | **Rencana (belum tersedia)** |
+| `GET` | `/corrections/{correctionId}` | Detail koreksi beserta nilai sebelum dan sesudah | `WorkforceEmploymentContract : Read` | — | `ApiResponse<ContractCorrectionResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/corrections/{correctionId}` | Mengubah koreksi yang dikembalikan, lalu mengajukan ulang | `WorkforceEmploymentContract : RequestCorrection` | sama dengan pengajuan + `rowVersion` | `ApiResponse<ContractCorrectionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/corrections/{correctionId}/withdraw` | Menarik koreksi sebelum diputus | `WorkforceEmploymentContract : RequestCorrection` | `WithdrawRequest` | `ApiResponse<ContractCorrectionResponse>` | **Rencana (belum tersedia)** |
+
+**Tidak ada** `PUT` atas isi kontrak. Isi draf kontrak pertama berubah hanya lewat revisi tawaran di
+04 (`HRD-DEC-084` butir 6); isi kontrak yang sudah ditandatangani berubah hanya lewat koreksi `T17`.
+
+`EmploymentContractPrintResponse`: `employeeName`, `positionName`, `organizationUnitName`,
+`contractTypeName`, `contractNumber`, `startDate`, `endDate`, `probationEndDate`, `basicSalary`
+(`null` bila tidak berhak), `amountVisible`, `offerNumber`.
+
+### 15.4 Corporate / Human Resource / Lifecycle Management / Probation
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/probations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar masa percobaan | `WorkforceProbation : Read` | `ProbationPagedQuery` (`organizationUnitId`, `probationStatus`, `dueOnly`, `search`) | `ApiResponse<PagedResult<ProbationListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail masa percobaan beserta seluruh penilaiannya | `WorkforceProbation : Read` | — | `ApiResponse<ProbationResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/assessments` | Mengajukan hasil Lulus atau Tidak Lulus; memulai `T15` | `WorkforceProbation : Submit` | `multipart`: `result`, `reasonText`, `file` (wajib bila `Fail`), `probationRowVersion` | `ApiResponse<ProbationAssessmentResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/assessments/{assessmentId}` | Mengubah penilaian yang dikembalikan, lalu mengajukan ulang | `WorkforceProbation : Submit` | sama dengan pengajuan + `rowVersion` | `ApiResponse<ProbationAssessmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/assessments/{assessmentId}/withdraw` | Menarik penilaian sebelum diputus | `WorkforceProbation : Submit` | `WithdrawRequest` | `ApiResponse<ProbationAssessmentResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/assessments/{assessmentId}/evidence` | Mengunduh lampiran penilaian | `WorkforceProbation : Read` | — | Berkas | **Rencana (belum tersedia)** |
+
+**Tidak ada** endpoint perpanjangan masa percobaan (`VR-ONB-59`).
+
+### 15.5 Corporate / Human Resource / Lifecycle Management / Clinical Preceptorship
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/clinical-preceptorships`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar pendampingan | `WorkforcePreceptorship : Read` | `PreceptorshipPagedQuery` (`organizationUnitId`, `preceptorshipStatus`, `preceptorWorkforceProfileId`) | `ApiResponse<PagedResult<PreceptorshipListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail pendampingan beserta riwayat preceptor | `WorkforcePreceptorship : Read` | — | `ApiResponse<PreceptorshipResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/preceptor` | Mengganti preceptor | `WorkforcePreceptorship : Manage` | `ChangePreceptorRequest` (`preceptorWorkforceProfileId`, `changeReason`, `rowVersion`) | `ApiResponse<PreceptorshipResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/declare-independent` | Menyatakan Siap Mandiri | `WorkforcePreceptorship : Manage` | `multipart`: `independentOn`, `assessmentNote`, `file` (wajib), `rowVersion` | `ApiResponse<PreceptorshipResponse>` | **Rencana (belum tersedia)** |
+
+### 15.6 Corporate / Human Resource / Lifecycle Management / Initial Contract Batch
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/initial-contract-batches`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/template` | Mengunduh templat berisi pegawai aktif yang belum punya kontrak | `WorkforceInitialContractBatch : Read` | `hospitalSiteId` | Berkas `xlsx` | **Rencana (belum tersedia)** |
+| `POST` | `/validate` | Memeriksa baris sebelum disimpan | `WorkforceInitialContractBatch : Read` | `List<InitialContractBatchRowRequest>` | `ApiResponse<List<InitialContractBatchRowValidationResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar batch | `WorkforceInitialContractBatch : Read` | `PagedQuery` | `ApiResponse<PagedResult<InitialContractBatchListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail batch beserta baris dan hasil pemeriksaannya | `WorkforceInitialContractBatch : Read` | — | `ApiResponse<InitialContractBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Menyimpan batch baru | `WorkforceInitialContractBatch : Create` | `UpsertInitialContractBatchRequest` (`hospitalSiteId`, `rows[]`) | `ApiResponse<InitialContractBatchResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah batch `Draft` atau `Returned` | `WorkforceInitialContractBatch : Update` | `UpsertInitialContractBatchRequest` + `rowVersion` | `ApiResponse<InitialContractBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/submit` | Mengajukan ke `T18` | `WorkforceInitialContractBatch : Submit` | `SubmitDocumentRequest` | `ApiResponse<InitialContractBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan batch `Draft` atau `Returned` | `WorkforceInitialContractBatch : Cancel` | `CancelDocumentRequest` | `ApiResponse<InitialContractBatchResponse>` | **Rencana (belum tersedia)** |
+
+`InitialContractBatchRowRequest`: `workforceProfileId`, `contractTypeId`, `contractNumber`, `startDate`,
+`endDate`, `fixedTermSeriesStartDate`.
+
+### 15.7 Corporate / Human Resource / Lifecycle Management / Onboarding Access Request
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/onboarding-access-requests`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar permintaan akun dan akses kerja | `WorkforceOnboardingAccessRequest : Read` | `requestType`, `requestStatus`, `hospitalSiteId` | `ApiResponse<PagedResult<OnboardingAccessRequestResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/complete` | Menandai akses kerja sudah diberikan | `WorkforceOnboardingAccessRequest : Complete` | `CompleteAccessRequest` (`completionNote`) | `ApiResponse<OnboardingAccessRequestResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/retry` | Mengulang pembuatan akun yang gagal | `WorkforceOnboardingAccessRequest : Retry` | — | `ApiResponse<OnboardingAccessRequestResponse>` | **Rencana (belum tersedia)** |
+
+### 15.8 Corporate / Human Resource / Lifecycle Management / Lifecycle Worklist
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/worklist`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar Perlu Tindakan bagi pemanggil, sesuai perannya dan cakupan unitnya | `WorkforceLifecycleWorklist : Read` | `WorklistQuery` (`category`, `organizationUnitId`, `page`, `pageSize`) | `ApiResponse<PagedResult<LifecycleWorklistItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/counts` | Hitungan per kategori, untuk penanda di menu | `WorkforceLifecycleWorklist : Read` | — | `ApiResponse<LifecycleWorklistCountResponse>` | **Rencana (belum tersedia)** |
+
+`category`: `ContractExpiring`, `ContractEscalated`, `ContractLapsed`, `ProbationDue`,
+`NonRenewalNotificationPending`, `FirstContractUnsigned`, `LateStart`, `LegacyContractDocumentMissing`,
+`ContractNotRecorded` (`02-backend-architecture.md` 18.9.5). Setiap butir membawa `targetType` dan
+`targetId` agar layar dapat membuka dokumen yang tepat.
+
+### 15.9 Corporate / Human Resource / Lifecycle Management / Lifecycle Setting
+
+Base URL: `api/v1/corporate/human-resource/lifecycle-management/lifecycle-settings`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Membaca pengaturan satu rumah sakit | `WorkforceLifecycleSetting : Read` | `hospitalSiteId` | `ApiResponse<LifecycleSettingResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/` | Mengubah pengaturan | `WorkforceLifecycleSetting : Update` | `UpdateLifecycleSettingRequest` (`hospitalSiteId`, `contractReminderDays`, `contractEscalationDays`, `probationReminderDays`, `lateStartFlagDays`, `rowVersion`) | `ApiResponse<LifecycleSettingResponse>` | **Rencana (belum tersedia)** |
+
+### 15.10 Kontrak baca internal untuk sub-modul lain
+
+Bukan endpoint HTTP. `HrdEmploymentReadinessReadService` dipanggil langsung oleh service 06 di backend
+yang sama (`INT-HR-31`):
+
+| Metode | Masukan | Keluaran |
+| --- | --- | --- |
+| `GetSchedulingEligibilityAsync` | `workforceProfileIds[]`, `date` | Per pegawai: `eligibility` (`Eligible`, `NotReady`, `ContractHold`), `isAccompanied`, `preceptorName`, `hasCredentialWarning`, `contractNotRecorded`, `reasonText` |
+
+### 15.11 Perubahan pada grup yang sudah ada — Corporate / Human Resource / Workforce Core / Contract History
+
+Base URL: `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/contract-histories`
+
+| Method | Path | Keadaan hari ini | Sesudah `S-C4-ONB` |
+| --- | --- | --- | --- |
+| `GET` | `/filters/metadata`, `/summary`, `/`, `/{id}` | Tersedia | **Tidak berubah** |
+| `POST` | `/` | Tersedia | Menjawab `409` `CONTRACT_MANAGED_BY_LIFECYCLE` (`VR-ONB-32`) |
+| `PUT` | `/{id}` | Tersedia | Menjawab `409` `CONTRACT_MANAGED_BY_LIFECYCLE` |
+| `PATCH` | `/{id}/status` | Tersedia | Menjawab `409` `CONTRACT_MANAGED_BY_LIFECYCLE` |
+| `PATCH` | `/{id}/current` | Tersedia | Menjawab `409` `CONTRACT_MANAGED_BY_LIFECYCLE` |
+| `DELETE` | `/{id}` | Tersedia | Menjawab `409` `CONTRACT_MANAGED_BY_LIFECYCLE` |
+
+Dampak kompatibilitas: **memutus** bagi satu consumer, tab riwayat kontrak editor workforce
+(`HRD-TF-043`). Tab itu diubah menjadi baca saja dengan tautan ke layar Kontrak Kerja.
+
+**Grup master pegawai (`EmployeeController`)** — `PUT` menjawab `409` `EMPLOYMENT_FIELDS_MANAGED_BY_LIFECYCLE`
+bila request mengubah `employmentTypeId`, `employmentStatusId`, `joinDate`, `contractEndDate`, atau
+`probationEndDate` untuk pegawai yang sudah punya baris kontrak (`VR-ONB-33`). Isian lain tidak
+berubah.
+
+### 15.12 Perubahan pada grup `S-D2` — `[Tags("RecruitmentManagement - Offers")]` (`HRD-DEC-095`)
+
+| Method | Path | Perubahan |
+| --- | --- | --- |
+| `POST` | `/` | `CreateJobOfferRequest` mendapat `contractTypeId` (wajib) dan `contractDurationMonths` (wajib bila jenis kontrak mensyaratkan tanggal berakhir) |
+| `GET` | `/`, `/{id}` | Response memuat `contractTypeId`, `contractTypeName`, `contractDurationMonths`, `contractEndDate` (dihitung) |
+| `POST` | `/{id}/approve` | Tidak berubah; penyetuju melihat jenis dan lama kontrak pada detail |
+
+Endpoint revisi tawaran yang sudah dirancang `S-D2` dipakai juga untuk mengubah jenis atau lama
+kontrak sebelum kontrak pertama ditandatangani.
+
+### 15.13 Kode status khusus bagian ini
+
+| Kode | Arti bagi pengguna | Contoh |
+| --- | --- | --- |
+| `200` | Berhasil | Butir dicentang |
+| `201` | Dokumen baru tersimpan | Keputusan kontrak diajukan |
+| `400` | Isian tidak lengkap atau formatnya salah | Alasan batal bergabung kosong; berkas bukan PDF/JPG/PNG |
+| `403` | Tidak punya hak akses untuk tindakan ini | Kepala Unit mencoba menyatakan siap kerja |
+| `404` | Data tidak ditemukan atau di luar cakupan unit | Kepala Farmasi membuka kasus pegawai ICU |
+| `405` | Tindakan memang tidak tersedia | Memperpanjang masa percobaan |
+| `409` | Bertabrakan dengan data lain atau versi usang | Keputusan kontrak kedua untuk kontrak yang sama; riwayat kontrak 02 diubah langsung |
+| `422` | Ditolak aturan bisnis | Siap kerja saat masih ada butir wajib; perpanjangan melewati 5 tahun |

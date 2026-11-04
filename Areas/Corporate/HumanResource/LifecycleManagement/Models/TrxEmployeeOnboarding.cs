@@ -35,7 +35,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public bool IsActive { get; set; } = true;
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstEmployee? Employee { get; set; }
-        public TrxCandidateHiring? CandidateHiring { get; set; }
+        public HrdCandidateHiringHandoff? CandidateHiring { get; set; }
         public MstOnboardingTemplate? OnboardingTemplate { get; set; }
         public WfpOrganizationAssignment? OrganizationAssignment { get; set; }
         public MstWorkforceProfile? ManagerWorkforceProfile { get; set; }

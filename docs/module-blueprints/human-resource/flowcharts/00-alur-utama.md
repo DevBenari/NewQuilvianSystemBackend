@@ -5,7 +5,8 @@
 | Blueprint ID | `HRD-BP-001` |
 | Jenis | Alur pokok modul, ujung ke ujung |
 | Status | `draft` |
-| Slice tercakup | `S0-A`, `S0-B`, `S-A1` s.d. `S-A7`, `S-B1` s.d. `S-B5`, `S-C2` s.d. `S-C5`, `S-E` |
+| Slice tercakup | `S0-A`, `S0-B`, `S-A1` s.d. `S-A7`, `S-B1` s.d. `S-B5`, `S-C2` s.d. `S-C5`, `S-C4-ONB`, `S-E` |
+| Perubahan terakhir | 4 November 2026 — titik awal pegawai bergabung kini lewat onboarding (`S-C4-ONB`, `approved` 4 November 2026) |
 
 ---
 
@@ -22,8 +23,8 @@ HR.**
 ```mermaid
 flowchart TD
     subgraph hr[HR Admin]
-        A([Pegawai bergabung]) --> B[Buat profil pegawai]
-        B --> C[Tetapkan penempatan organisasi dan gaji]
+        A([Kandidat menerima tawaran]) --> B[Jalankan onboarding dan tandatangani kontrak]
+        B --> C[Nyatakan siap kerja]
     end
 
     subgraph atasan[Manajer unit]
@@ -69,8 +70,8 @@ pelaporan — milik Finance, dan bentuk serah terimanya masih terbuka (`HRD-Q-10
 
 | Langkah | Pelaku | Masukan yang dibutuhkan | Keluaran | Bila gagal |
 | --- | --- | --- | --- | --- |
-| Buat profil pegawai | HR Admin | Data diri pegawai, unit, jabatan | Profil pegawai aktif | Profil tidak terbentuk; HR melengkapi isian yang kurang |
-| Tetapkan penempatan dan gaji | HR Admin | Struktur organisasi dan struktur gaji yang sudah terisi | Penempatan dan gaji berlaku | Penempatan ditolak; HR memilih unit atau golongan yang sah |
+| Jalankan onboarding dan tandatangani kontrak | HR Admin | Serah terima dari rekrutmen; tawaran memuat jenis dan lama kontrak; scan kontrak bertanda tangan | Kasus onboarding berjalan; kontrak `Active`; penempatan dan gaji awal berlaku sejak tanggal mulai kontrak | Kontrak tidak sah tanpa scan; HR mengunggahnya, atau meminta revisi tawaran bila isinya harus berubah. Rincian: `onboarding-dan-siap-kerja.md` |
+| Nyatakan siap kerja | HR Admin | Seluruh butir wajib checklist selesai | Pegawai Aktif dan boleh dijadwalkan | Ditolak; HR menyelesaikan butir yang tersisa |
 | Susun roster | Manajer unit | Kebutuhan tenaga per hari, daftar pegawai unit | Roster berstatus draf | Roster tidak dapat disusun; manajer melengkapi kebutuhan tenaga lebih dulu |
 | Terbitkan jadwal kerja | Manajer unit | Roster yang lolos pemeriksaan bentrok | Jadwal berstatus `Published` | Penerbitan ditolak; manajer menyelesaikan bentrok yang menghalangi |
 | Catat kehadiran | Pegawai | Jadwal yang berlaku pada tanggal itu | Rekaman kehadiran tersimpan | Pencatatan ditolak; pegawai menghubungi HR untuk jalur koreksi |
@@ -87,7 +88,8 @@ pelaporan — milik Finance, dan bentuk serah terimanya masih terbuka (`HRD-Q-10
 | --- | --- |
 | Seluruh jalur penolakan dan perbaikan | Berkas proses masing-masing di folder ini |
 | Pelatihan, penilaian kinerja, kedisiplinan, dan pengunduran diri | `kompetensi-dan-pelatihan.md`, `manajemen-kinerja.md`, `hubungan-karyawan-dan-disiplin.md`, `offboarding.md` |
-| Kredensial dan kewenangan klinis | **Tidak digambar di mana pun.** `S-C1` `BLOCKED` |
+| Batal bergabung, masa percobaan, pendampingan klinis, perpanjangan kontrak, dan data awal kontrak | `onboarding-dan-siap-kerja.md`, `masa-percobaan.md`, `pendampingan-klinis.md`, `siklus-kontrak.md`, `batch-data-awal-kontrak.md` (`S-C4-ONB`, `approved`) |
+| Kredensial dan kewenangan klinis | **Tidak digambar di mana pun.** `S-C1` `BLOCKED`. Sub-modul 05 hanya menampilkan peringatannya |
 | Kesehatan kerja staf | **Tidak digambar di mana pun.** `S-C6` `BLOCKED` |
 | Perencanaan tenaga kerja: standar, formasi, rencana tahunan, permintaan headcount | `standar-kebutuhan-tenaga.md`, `formasi-dan-rencana-tahunan.md`, `permintaan-headcount.md`. Sengaja tidak masuk diagram pokok karena siklusnya tahunan dan per kebutuhan, bukan harian; titik sambungnya ke alur pokok adalah penempatan pegawai baru dan pembacaan standar oleh Penjadwalan |
 
@@ -95,6 +97,7 @@ pelaporan — milik Finance, dan bentuk serah terimanya masih terbuka (`HRD-Q-10
 
 | Bagian alur | Decision | Slice | Acceptance test |
 | --- | --- | --- | --- |
+| Onboarding, kontrak pertama, dan siap kerja | `HRD-DEC-083`, `HRD-DEC-084`, `HRD-DEC-088`, `HRD-DEC-095` | `S-C4-ONB` | `AT-HRD-ONB-01`, `AT-HRD-ONB-07`, `AT-HRD-ONB-23` |
 | Profil dan penempatan | `HRD-DEC-012` | `S-A1` | `AT-HRD-A1-01` |
 | Roster dan penerbitan jadwal | `HRD-DEC-026` | `S-B4` | `AT-HRD-B4-01` |
 | Pencatatan dan pengolahan kehadiran | `HRD-DEC-013` | `S-B1` | `AT-HRD-B1-01` |

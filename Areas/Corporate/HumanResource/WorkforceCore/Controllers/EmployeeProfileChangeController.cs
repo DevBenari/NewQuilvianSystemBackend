@@ -317,6 +317,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 enableRangeProcessing: true);
         }
 
+        [HttpGet("{id:guid}/evidence/download")]
+        [AccessAction(
+            "Read",
+            "Read Employee Profile Change Evidence",
+            Description = "Mengunduh berkas bukti pendukung permohonan employee profile change",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1)]
+        [AccessPermission("EmployeeProfileChange", "Read")]
+        public async Task<IActionResult> DownloadRequestEvidence(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _service.GetRequestEvidenceFileAsync(
+                id,
+                cancellationToken);
+
+            if (!result.Success || result.Data == null)
+            {
+                return StatusCode(
+                    result.StatusCode,
+                    ApiResponse<object>.Fail(
+                        result.StatusCode,
+                        result.Message));
+            }
+
+            var file = result.Data;
+            var stream = new FileStream(
+                file.PhysicalPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+            return File(
+                stream,
+                file.ContentType,
+                file.FileName,
+                enableRangeProcessing: true);
+        }
+
         // Endpoint legacy dipertahankan agar route lama tidak menghasilkan 404,
         // tetapi keputusan approval wajib dilakukan dari Workflow Engine/Approval Inbox.
         [HttpPost("{id:guid}/approve")]

@@ -1,5 +1,8 @@
+using System;
+using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 
 namespace QuilvianSystemBackend.Repositories
@@ -51,6 +54,7 @@ namespace QuilvianSystemBackend.Repositories
                 new DbContextOptionsBuilder<ApplicationDbContext>();
 
             optionsBuilder.UseNpgsql(connectionString);
+            optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }

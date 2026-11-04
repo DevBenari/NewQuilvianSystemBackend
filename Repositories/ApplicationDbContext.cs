@@ -292,26 +292,18 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - WORKFORCE PLANNING
 
         #region CORPORATE - HUMAN RESOURCE - RECRUITMENT MANAGEMENT
-        public DbSet<MstRecruitmentSource> MstRecruitmentSources { get; set; }
-        public DbSet<MstRecruitmentStage> MstRecruitmentStages { get; set; }
-        public DbSet<MstCandidateStatus> MstCandidateStatuses { get; set; }
-        public DbSet<MstInterviewTemplate> MstInterviewTemplates { get; set; }
-        public DbSet<MstAssessmentMethod> MstAssessmentMethods { get; set; }
-        public DbSet<TrxJobRequisition> TrxJobRequisitions { get; set; }
-        public DbSet<TrxJobRequisitionApproval> TrxJobRequisitionApprovals { get; set; }
-        public DbSet<TrxJobVacancy> TrxJobVacancies { get; set; }
-        public DbSet<TrxCandidate> TrxCandidates { get; set; }
-        public DbSet<TrxCandidateApplication> TrxCandidateApplications { get; set; }
-        public DbSet<TrxCandidateDocument> TrxCandidateDocuments { get; set; }
-        public DbSet<TrxCandidateScreening> TrxCandidateScreenings { get; set; }
-        public DbSet<TrxCandidateAssessment> TrxCandidateAssessments { get; set; }
-        public DbSet<TrxCandidateInterview> TrxCandidateInterviews { get; set; }
-        public DbSet<TrxInterviewEvaluation> TrxInterviewEvaluations { get; set; }
-        public DbSet<TrxReferenceCheck> TrxReferenceChecks { get; set; }
-        public DbSet<TrxBackgroundCheck> TrxBackgroundChecks { get; set; }
-        public DbSet<TrxPreEmploymentMedicalCheck> TrxPreEmploymentMedicalChecks { get; set; }
-        public DbSet<TrxJobOffer> TrxJobOffers { get; set; }
-        public DbSet<TrxCandidateHiring> TrxCandidateHirings { get; set; }
+        public DbSet<HrdJobRequisition> HrdJobRequisitions { get; set; }
+        public DbSet<HrdJobVacancy> HrdJobVacancies { get; set; }
+        public DbSet<HrdCandidate> HrdCandidates { get; set; }
+        public DbSet<HrdCandidateApplication> HrdCandidateApplications { get; set; }
+        public DbSet<HrdCandidateDocument> HrdCandidateDocuments { get; set; }
+        public DbSet<HrdCandidateScreening> HrdCandidateScreenings { get; set; }
+        public DbSet<HrdCandidateEvaluation> HrdCandidateEvaluations { get; set; }
+        public DbSet<HrdJobOffer> HrdJobOffers { get; set; }
+        public DbSet<HrdJobOfferApproval> HrdJobOfferApprovals { get; set; }
+        public DbSet<HrdPreEmploymentMedicalCheck> HrdPreEmploymentMedicalChecks { get; set; }
+        public DbSet<HrdTalentPool> HrdTalentPools { get; set; }
+        public DbSet<HrdCandidateHiringHandoff> HrdCandidateHiringHandoffs { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - RECRUITMENT MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - LIFECYCLE MANAGEMENT
@@ -1374,6 +1366,12 @@ namespace QuilvianSystemBackend.Repositories
         {
             StampEpisodeVersions();
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+            optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         }
 
         protected override void OnModelCreating(ModelBuilder builder)

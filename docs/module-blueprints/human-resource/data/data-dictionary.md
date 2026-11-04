@@ -2088,3 +2088,598 @@ Konvensi yang berlaku untuk seluruh tabel bagian ini:
 2. **Kompensasi Perorangan**: `OfferedBaseSalary`, `OfferedFixedAllowance` pada `HrdJobOffer`.
 3. **Kesehatan Kerja**: `RestrictionsNotes` pada `HrdPreEmploymentMedicalCheck`. Catatan: diagnosis penyakit detail DILARANG masuk tabel ini dan tetap di modul Occupational Health Sub-modul 18.
 4. **Catatan Evaluasi Personal**: `FeedbackNotes` pada `HrdCandidateEvaluation`.
+
+
+---
+
+## 10. Slice `S-C4-ONB` — Onboarding dan Kontrak Kerja, sub-modul 05 (`last_changed_in` `v9`, 4 November 2026)
+
+| Field | Isi |
+| --- | --- |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan" |
+| Sumber desain | `02-backend-architecture.md` bagian 18; decision log revision `19` bagian 34 |
+| Backend SHA | `8b17b75a` |
+
+Seluruh tabel mewarisi `IdentityModel`; sepuluh kolom auditnya tidak diulang (kepala dokumen ini).
+Penghapusan bersifat penandaan `IsDelete`. Tipe tanggal tanpa jam memakai `DateOnly` (`date`), mengikuti
+`HrdJobOffer.ProposedJoinDate`; kolom `WfpContractHistory` yang sudah ada tetap `DateTime`.
+
+### 10.1 Status dan kepemilikan tabel
+
+| Entity | Status | Owner | Catatan |
+| --- | --- | --- | --- |
+| `HrdOnboardingCase` | Baru | HR — `S-C4-ONB` | Menggantikan `TrxEmployeeOnboarding` dan `WfpOnboardingChecklist` |
+| `HrdOnboardingCaseItem` | Baru | HR — `S-C4-ONB` | Menggantikan `TrxEmployeeOnboardingTask` dan `WfpOnboardingTask` |
+| `MstOnboardingTemplate` | Diperbarui | HR — `S-C4-ONB` | Master; lokasi folder utang teknis |
+| `MstOnboardingTemplateTask` | Diperbarui | HR — `S-C4-ONB` | Master |
+| `HrdOnboardingAccessRequest` | Baru | HR — `S-C4-ONB` | Akun dan akses kerja |
+| `WfpContractHistory` | Diperbarui | 02 Workforce Core | Penambahan kolom saja; ditulis lewat `WfpContractHistoryWriteService` |
+| `HrdContractDecision` | Baru | HR — `S-C4-ONB` | Menggantikan `TrxContractNonRenewal` |
+| `HrdContractCorrection` | Baru | HR — `S-C4-ONB` | — |
+| `HrdInitialContractBatch`, `HrdInitialContractBatchRow` | Baru | HR — `S-C4-ONB` | — |
+| `HrdProbation`, `HrdProbationAssessment` | Baru | HR — `S-C4-ONB` | Menggantikan `TrxProbationReview` |
+| `HrdClinicalPreceptorship`, `HrdClinicalPreceptorshipPreceptor` | Baru | HR — `S-C4-ONB` | — |
+| `HrdEmploymentLifecycleSetting` | Baru | HR — `S-C4-ONB` | Satu baris per rumah sakit |
+| `MstContractType` | Diperbarui | 01 Master Data HR | Satu kolom baru |
+| `HrdJobOffer` | Diperbarui | 04 Rekrutmen `S-D2` | Dua kolom baru (`HRD-DEC-095`) |
+| `MstEmployee`, `MstDoctor` | Sudah ada | 01 Master Data HR | Lima isian ditulis sebagai salinan |
+| `TrxEmployeeSeparation` | Sudah ada | 20 | Dua nilai `SeparationType` baru |
+| `HrdCandidateHiringHandoff`, `HrdPreEmploymentMedicalCheck` | Sudah ada | 04 Rekrutmen `S-D2` | Dibaca |
+| `WfpCertification`, `WfpClinicalPrivilege` | Sudah ada | `CredentialingManagement` | Dibaca |
+| `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpSalaryAssignment`, `WfpManagerAssignment` | Sudah ada | 02 Workforce Core | Ditulis lewat `WfpNewHireAssignmentService` |
+| `TrxEmployeeOnboarding`, `TrxEmployeeOnboardingTask`, `WfpOnboardingChecklist`, `WfpOnboardingTask`, `TrxProbationReview`, `TrxContractNonRenewal` | Dibuang | — | Kosong (`HRD-TF-047`); pengaman tabel kosong |
+
+### 10.2 `HrdOnboardingCase`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `CaseNumber` | `string(30)` | Ya | — | Unik | — | — | Tidak | Dari number series, contoh `ONB-2027-000015` |
+| `HiringHandoffId` | `Guid` | Ya | — | Unik | FK `HrdCandidateHiringHandoff` | `Restrict` | Tidak | Satu serah terima satu kasus (`HRD-DEC-083`) |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index | FK `MstWorkforceProfile` | `Restrict` | Tidak | Pegawai baru |
+| `HospitalSiteId` | `Guid` | Ya | — | Index | FK `MstHospitalSite` | `Restrict` | Tidak | Disalin dari requisition |
+| `OrganizationUnitId` | `Guid` | Ya | — | Index | FK `MstOrganizationUnit` | `Restrict` | Tidak | Unit tujuan; dasar cakupan Kepala Unit |
+| `PositionId` | `Guid` | Ya | — | — | FK `MstPosition` | `Restrict` | Tidak | Jabatan tujuan |
+| `IsClinical` | `bool` | Ya | `false` | — | — | — | Tidak | Dari lowongan; menentukan lapis Klinis |
+| `PlannedStartDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | Dari tawaran `ProposedJoinDate` |
+| `CoordinatorUserId` | `Guid` | Ya | — | Index | FK `ApplicationUser` | `Restrict` | Tidak | Bawaan: petugas yang menjalankan serah terima |
+| `CaseStatus` | `int` (`OnboardingCaseStatus`) | Ya | `InProgress` | Index | — | — | Tidak | — |
+| `FirstDayAttendedOn` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Terisi bersama butir `FIRST_DAY_ATTENDANCE` |
+| `FirstDayRecordedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `ReadyForWorkAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `ReadyForWorkByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Petugas HRD yang menyatakan siap kerja |
+| `CancelReason` | `int?` (`OnboardingCancelReason`) | Tidak | — | — | — | — | Tidak | Wajib saat batal bergabung |
+| `CancelNote` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | Dapat memuat alasan pribadi |
+| `CancelledAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `CancelledByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `HasGeneralTemplate` | `bool` | Ya | `true` | — | — | — | Tidak | `false` bila saat dibuat belum ada Template Umum aktif |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Concurrency token |
+
+### 10.3 `HrdOnboardingCaseItem`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `OnboardingCaseId` | `Guid` | Ya | — | Unik bersama `ItemCode` | FK `HrdOnboardingCase` | `Restrict` | Tidak | — |
+| `TemplateLayer` | `int` (`OnboardingTemplateLayer`) | Ya | — | — | — | — | Tidak | Asal lapis butir |
+| `SourceTemplateTaskId` | `Guid?` | Tidak | — | — | FK `MstOnboardingTemplateTask` | `Restrict` | Tidak | Kosong untuk butir sistem tanpa template |
+| `ItemCode` | `string(50)` | Ya | — | Unik bersama kasus | — | — | Tidak | Disalin dari `TaskCode`, atau `SystemItemCode` |
+| `ItemName` | `string(250)` | Ya | — | — | — | — | Tidak | — |
+| `TaskCategory` | `string(50)?` | Tidak | — | — | — | — | Tidak | Kelompok tampilan, misalnya "Orientasi" |
+| `Description` | `string(1000)?` | Tidak | — | — | — | — | Tidak | — |
+| `SystemItemCode` | `string(40)?` | Tidak | — | Index | — | — | Tidak | Lima kode pada `02-backend-architecture.md` 18.4.2 |
+| `ResponsibleRole` | `int` (`OnboardingResponsibleRole`) | Ya | — | — | — | — | Tidak | `Hrd`, `UnitHead`, `System` |
+| `ItemKind` | `int` (`OnboardingItemKind`) | Ya | `Manual` | — | — | — | Tidak | — |
+| `AutomaticSource` | `int?` (`OnboardingAutomaticSource`) | Tidak | — | — | — | — | Tidak | Wajib bila `ItemKind = Automatic` |
+| `CertificationTypeId` | `Guid?` | Tidak | — | — | FK `MstCertificationType` | `Restrict` | Tidak | Wajib bila sumber `MandatoryCertification` |
+| `IsRequired` | `bool` | Ya | `true` | — | — | — | Tidak | Butir sistem selalu `true` |
+| `DueDayOffset` | `int` | Ya | `0` | — | — | — | Tidak | Hari sesudah tanggal mulai rencana; urutan tampil |
+| `DueDate` | `DateOnly` | Ya | — | — | — | — | Tidak | `PlannedStartDate` + `DueDayOffset` |
+| `ItemStatus` | `int` (`OnboardingItemStatus`) | Ya | `Pending` | — | — | — | Tidak | — |
+| `CompletedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `CompletedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Kosong bila diisi sistem |
+| `CompletionNote` | `string(1000)?` | Tidak | — | — | — | — | Tidak | — |
+| `SelectedWorkforceProfileId` | `Guid?` | Tidak | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Atasan langsung atau preceptor yang dipilih |
+| `EvidenceStoragePath` | `string(500)?` | Tidak | — | — | — | — | Tidak | Path relatif `WorkflowFileStorageService` |
+| `EvidenceFileName` | `string(250)?` | Tidak | — | — | — | — | Tidak | Nama berkas asli |
+| `EvidenceContentType` | `string(150)?` | Tidak | — | — | — | — | Tidak | — |
+| `EvidenceFileSize` | `long?` | Tidak | — | — | — | — | Tidak | Byte |
+| `AutomaticCheckedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Pemeriksaan otomatis terakhir |
+| `AutomaticResultNote` | `string(250)?` | Tidak | — | — | — | — | Tidak | Contoh "BTCLS berlaku s.d. 12-03-2028" |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+### 10.4 `MstOnboardingTemplate` — Diperbarui
+
+Kolom yang **dibuang**: `TemplateType`, `LegalEntityId`, `HospitalSiteId`, `DepartmentId`, `PositionId`,
+`WorkforceTypeId`, `EmployeeCategoryId`, `EmploymentTypeId`, `WorkflowDefinitionId`,
+`AutoCreateChecklist`, `RequiresProbationReview`, `ProbationReviewAfterDays`, `EffectiveStartDate`,
+`EffectiveEndDate`, `IsDefault`. Bentuk akhir:
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Sudah ada |
+| `TemplateCode` | `string(50)` | Ya | — | Unik | — | — | Tidak | Sudah ada |
+| `TemplateName` | `string(200)` | Ya | — | — | — | — | Tidak | Sudah ada |
+| `TemplateLayer` | `int` (`OnboardingTemplateLayer`) | Ya | — | Unik bersyarat | — | — | Tidak | **Baru.** Satu aktif per lapis `General` dan `Clinical` |
+| `OrganizationUnitId` | `Guid?` | Tidak | — | Unik bersyarat | FK `MstOrganizationUnit` | `Restrict` | Tidak | Sudah ada. Wajib bila lapis `Unit`; satu aktif per unit |
+| `TargetCompletionDays` | `int` | Ya | `30` | — | — | — | Tidak | Sudah ada |
+| `Version` | `int` | Ya | `1` | — | — | — | Tidak | Sudah ada; naik setiap disimpan |
+| `Description` | `string(1500)?` | Tidak | — | — | — | — | Tidak | Sudah ada |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Sudah ada |
+
+### 10.5 `MstOnboardingTemplateTask` — Diperbarui
+
+Kolom yang **dibuang**: `ResponsiblePartyType`, `ResponsibleOrganizationUnitId`, `ResponsiblePositionId`,
+`RequiresDocument`, `RequiresVerification`, `CompletionSource`, `SortOrder`. Bentuk akhir:
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Sudah ada |
+| `OnboardingTemplateId` | `Guid` | Ya | — | Unik bersama `TaskCode` | FK `MstOnboardingTemplate` | `Restrict` | Tidak | Sudah ada |
+| `TaskCode` | `string(50)` | Ya | — | Unik bersama template | — | — | Tidak | Sudah ada |
+| `TaskName` | `string(250)` | Ya | — | — | — | — | Tidak | Sudah ada |
+| `TaskCategory` | `string(50)` | Ya | `"General"` | — | — | — | Tidak | Sudah ada; kelompok tampilan |
+| `Description` | `string(1000)?` | Tidak | — | — | — | — | Tidak | Sudah ada |
+| `ResponsibleRole` | `int` (`OnboardingResponsibleRole`) | Ya | `Hrd` | — | — | — | Tidak | **Baru** |
+| `ItemKind` | `int` (`OnboardingItemKind`) | Ya | `Manual` | — | — | — | Tidak | **Baru** |
+| `AutomaticSource` | `int?` | Tidak | — | — | — | — | Tidak | **Baru** |
+| `CertificationTypeId` | `Guid?` | Tidak | — | — | FK `MstCertificationType` | `Restrict` | Tidak | **Baru** |
+| `SystemItemCode` | `string(40)?` | Tidak | — | — | — | — | Tidak | **Baru.** Butir sistem terkunci |
+| `IsRequired` | `bool` | Ya | `true` | — | — | — | Tidak | Sudah ada |
+| `DueDayOffset` | `int` | Ya | `0` | — | — | — | Tidak | Sudah ada; urutan tampil semantik |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Sudah ada |
+
+### 10.6 `HrdOnboardingAccessRequest`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `OnboardingCaseId` | `Guid` | Ya | — | Unik bersama `RequestType` | FK `HrdOnboardingCase` | `Restrict` | Tidak | — |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index | FK `MstWorkforceProfile` | `Restrict` | Tidak | — |
+| `RequestType` | `int` (`OnboardingAccessRequestType`) | Ya | — | Unik bersama kasus | — | — | Tidak | `AccountCreation` atau `WorkAccess` |
+| `RequestStatus` | `int` (`OnboardingAccessRequestStatus`) | Ya | `Requested` | Index | — | — | Tidak | — |
+| `ApplicationUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Akun yang dibuat |
+| `FailureMessage` | `string(500)?` | Tidak | — | — | — | — | Tidak | Contoh "Email pegawai belum diisi" |
+| `SelfServiceActivatedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Akun aktif untuk layanan mandiri |
+| `RequestedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `CompletedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `CompletedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Administrator/IT untuk `WorkAccess` |
+| `CompletionNote` | `string(500)?` | Tidak | — | — | — | — | Tidak | Contoh peran yang diberikan |
+
+### 10.7 `WfpContractHistory` — Diperbarui (penambahan kolom saja)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Sudah ada |
+| `WorkforceProfileId` | `Guid` | Ya | — | Unik bersyarat (`IsCurrent`) | FK `MstWorkforceProfile` | `Restrict` | Tidak | Sudah ada |
+| `PreviousContractHistoryId` | `Guid?` | Tidak | — | — | FK `WfpContractHistory` | `Restrict` | Tidak | Sudah ada; rantai perpanjangan |
+| `ContractTypeId` | `Guid?` | Tidak | — | — | FK `MstContractType` | `Restrict` | Tidak | Sudah ada; **wajib** untuk setiap baris yang ditulis 05 |
+| `EmploymentTypeId` | `Guid?` | Tidak | — | — | FK `MstEmploymentType` | `Restrict` | Tidak | Sudah ada; diisi dari `MstContractType.EmploymentTypeId` |
+| `WorkerSourceId` | `Guid?` | Tidak | — | — | FK `MstWorkerSource` | `Restrict` | Tidak | Sudah ada; tidak diisi 05 |
+| `TerminationReasonId` | `Guid?` | Tidak | — | — | FK | `Restrict` | Tidak | Sudah ada; tidak diisi 05 |
+| `ContractNumber` | `string(100)` | Ya | — | Unik bersama profil | — | — | Tidak | Sudah ada; dari number series atau batch |
+| `HistoryType` | `string(50)` | Ya | `"Initial"` | — | — | — | Tidak | Sudah ada. Nilai 05: `Initial`, `InitialData`, `Renewal`, `Conversion` |
+| `ContractStatus` | `string(50)` | Ya | `"Draft"` | — | — | — | Tidak | Sudah ada. Nilai 05: `Draft`, `Active`, `Completed`, `Ended`, `LapsedWithoutDecision`, `Cancelled` |
+| `StartDate` | `DateTime` | Ya | — | — | — | — | Tidak | Sudah ada |
+| `EndDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Sudah ada; wajib bila jenis kontrak `RequiresEndDate` |
+| `SignedDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Sudah ada; tanggal tanda tangan |
+| `ProbationEndDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Sudah ada; **diisi sistem saja** dari `HrdProbation` |
+| `TerminatedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Sudah ada; tidak diisi 05 |
+| `RenewalSequence` | `int` | Ya | `0` | — | — | — | Tidak | Sudah ada |
+| `IsCurrent` | `bool` | Ya | `false` | Unik bersyarat | — | — | Tidak | Sudah ada; tepat satu per pegawai |
+| `DocumentPath` | `string(500)?` | Tidak | — | — | — | — | Tidak | Sudah ada; scan bertanda tangan |
+| `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | Sudah ada |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Sudah ada |
+| `SourceDocumentType` | `string(50)?` | Tidak | — | Index bersama `SourceDocumentId` | — | — | Tidak | **Baru.** `HiringHandoff`, `ContractDecision`, `InitialContractBatch` |
+| `SourceDocumentId` | `Guid?` | Tidak | — | Index | — | — | Tidak | **Baru.** Tanpa FK karena sumbernya tiga tabel |
+| `FixedTermSeriesStartDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | **Baru.** Awal rangkaian PKWT untuk batas 5 tahun |
+| `DocumentFileName` | `string(250)?` | Tidak | — | — | — | — | Tidak | **Baru** |
+| `DocumentContentType` | `string(150)?` | Tidak | — | — | — | — | Tidak | **Baru** |
+| `SignedRecordedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | **Baru.** Saat HRD menandai sudah ditandatangani |
+| `SignedRecordedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | **Baru** |
+| `RowVersion` | `Guid` | Ya | `gen_random_uuid()` | — | — | — | Tidak | **Baru.** Concurrency token |
+
+### 10.8 `HrdContractDecision`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `DecisionNumber` | `string(30)` | Ya | — | Unik | — | — | Tidak | Number series |
+| `ContractHistoryId` | `Guid` | Ya | — | Unik bersyarat (status terbuka atau disetujui) | FK `WfpContractHistory` | `Restrict` | Tidak | Kontrak yang akan berakhir |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index | FK `MstWorkforceProfile` | `Restrict` | Tidak | — |
+| `DecisionType` | `int` (`ContractDecisionType`) | Ya | — | — | — | — | Tidak | — |
+| `ExtensionMonths` | `int?` | Tidak | — | — | — | — | Tidak | Wajib bila `Extend`; 1–60 |
+| `ProposedStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | Tanggal berakhir lama + 1 hari |
+| `ProposedEndDate` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Terisi bila `Extend` |
+| `ReasonText` | `string(2000)?` | Tidak | — | — | — | — | **Ya** | Wajib bila `NotRenew` |
+| `DecisionStatus` | `int` (`ContractDecisionStatus`) | Ya | `Submitted` | Index | — | — | Tidak | — |
+| `SubmittedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Atasan langsung atau Kepala Unit |
+| `SubmittedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | Index | FK instance workflow | `Restrict` | Tidak | `T16` |
+| `DecidedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `DecidedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `DecisionNote` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | Catatan penyetuju |
+| `FollowUpContractHistoryId` | `Guid?` | Tidak | — | — | FK `WfpContractHistory` | `Restrict` | Tidak | Kontrak lanjutan |
+| `EmployeeNotifiedOn` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Tanggal pemberitahuan tidak diperpanjang |
+| `NotificationRecordedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `EmployeeSeparationId` | `Guid?` | Tidak | — | — | FK `TrxEmployeeSeparation` | `Restrict` | Tidak | Serah terima ke 20 |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+### 10.9 `HrdContractCorrection`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `CorrectionNumber` | `string(30)` | Ya | — | Unik | — | — | Tidak | Number series |
+| `ContractHistoryId` | `Guid` | Ya | — | Unik bersyarat (status terbuka) | FK `WfpContractHistory` | `Restrict` | Tidak | — |
+| `BeforeContractNumber` | `string(100)` | Ya | — | — | — | — | Tidak | Salinan saat diajukan |
+| `BeforeContractTypeId` | `Guid` | Ya | — | — | FK `MstContractType` | `Restrict` | Tidak | — |
+| `BeforeStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `BeforeEndDate` | `DateOnly?` | Tidak | — | — | — | — | Tidak | — |
+| `BeforeDocumentPath` | `string(500)?` | Tidak | — | — | — | — | Tidak | Scan lama tetap tersimpan |
+| `AfterContractNumber` | `string(100)` | Ya | — | — | — | — | Tidak | — |
+| `AfterContractTypeId` | `Guid` | Ya | — | — | FK `MstContractType` | `Restrict` | Tidak | — |
+| `AfterStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `AfterEndDate` | `DateOnly?` | Tidak | — | — | — | — | Tidak | — |
+| `ReasonText` | `string(2000)` | Ya | — | — | — | — | **Ya** | — |
+| `EvidenceStoragePath` | `string(500)` | Ya | — | — | — | — | Tidak | Scan dokumen perbaikan bertanda tangan |
+| `EvidenceFileName` | `string(250)` | Ya | — | — | — | — | Tidak | — |
+| `EvidenceContentType` | `string(150)` | Ya | — | — | — | — | Tidak | — |
+| `CorrectionStatus` | `int` (`ContractCorrectionStatus`) | Ya | `Submitted` | Index | — | — | Tidak | — |
+| `SubmittedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `SubmittedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | Index | FK instance workflow | `Restrict` | Tidak | `T17` |
+| `DecidedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `DecidedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `DecisionNote` | `string(1000)?` | Tidak | — | — | — | — | Tidak | — |
+| `AppliedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+### 10.10 `HrdInitialContractBatch` dan `HrdInitialContractBatchRow`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Batch |
+| `BatchNumber` | `string(30)` | Ya | — | Unik | — | — | Tidak | Number series |
+| `HospitalSiteId` | `Guid` | Ya | — | Index | FK `MstHospitalSite` | `Restrict` | Tidak | — |
+| `BatchStatus` | `int` (`InitialContractBatchStatus`) | Ya | `Draft` | Index | — | — | Tidak | — |
+| `TotalRows`, `ValidRows`, `InvalidRows` | `int` | Ya | `0` | — | — | — | Tidak | Dihitung ulang setiap disimpan |
+| `SubmittedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `SubmittedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | — | FK instance workflow | `Restrict` | Tidak | `T18` |
+| `DecidedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `DecidedAt`, `AppliedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+| Kolom baris | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `BatchId` | `Guid` | Ya | — | Unik bersama `WorkforceProfileId` | FK `HrdInitialContractBatch` | `Restrict` | Tidak | — |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index | FK `MstWorkforceProfile` | `Restrict` | Tidak | — |
+| `ContractTypeId` | `Guid` | Ya | — | — | FK `MstContractType` | `Restrict` | Tidak | — |
+| `ContractNumber` | `string(100)` | Ya | — | — | — | — | Tidak | Nomor pada dokumen lama |
+| `StartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `EndDate` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Wajib untuk PKWT |
+| `FixedTermSeriesStartDate` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Wajib untuk PKWT |
+| `IsValid` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `ValidationMessage` | `string(500)?` | Tidak | — | — | — | — | Tidak | — |
+| `CreatedContractHistoryId` | `Guid?` | Tidak | — | — | FK `WfpContractHistory` | `Restrict` | Tidak | Terisi saat batch diterapkan |
+
+### 10.11 `HrdProbation` dan `HrdProbationAssessment`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Masa percobaan |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index | FK `MstWorkforceProfile` | `Restrict` | Tidak | — |
+| `ContractHistoryId` | `Guid` | Ya | — | Unik | FK `WfpContractHistory` | `Restrict` | Tidak | Kontrak PKWTT pertama |
+| `StartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | Tanggal mulai kontrak |
+| `EndDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | `StartDate` + 3 bulan − 1 hari |
+| `ReminderFromDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | `EndDate` − `ProbationReminderDays` saat dibuat |
+| `ProbationStatus` | `int` (`ProbationStatus`) | Ya | `Running` | Index | — | — | Tidak | — |
+| `ClosedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `ClosedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Kosong bila lulus otomatis |
+| `EmployeeSeparationId` | `Guid?` | Tidak | — | — | FK `TrxEmployeeSeparation` | `Restrict` | Tidak | Bila tidak lulus |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+| Kolom penilaian | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `AssessmentNumber` | `string(30)` | Ya | — | Unik | — | — | Tidak | Number series |
+| `ProbationId` | `Guid` | Ya | — | Index | FK `HrdProbation` | `Restrict` | Tidak | — |
+| `Result` | `int` (`ProbationResult`) | Ya | — | — | — | — | Tidak | `Pass` atau `Fail` |
+| `ReasonText` | `string(2000)` | Ya | — | — | — | — | **Ya** | Penilaian atasan |
+| `EvidenceStoragePath` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib bila `Fail` |
+| `EvidenceFileName` | `string(250)?` | Tidak | — | — | — | — | Tidak | — |
+| `EvidenceContentType` | `string(150)?` | Tidak | — | — | — | — | Tidak | — |
+| `AssessmentStatus` | `int` (`ProbationAssessmentStatus`) | Ya | `Submitted` | Index | — | — | Tidak | — |
+| `SubmittedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `SubmittedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | Index | FK instance workflow | `Restrict` | Tidak | `T15` |
+| `DecidedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `DecidedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `DecisionNote` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+### 10.12 `HrdClinicalPreceptorship` dan `HrdClinicalPreceptorshipPreceptor`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `OnboardingCaseId` | `Guid` | Ya | — | Unik | FK `HrdOnboardingCase` | `Restrict` | Tidak | — |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index | FK `MstWorkforceProfile` | `Restrict` | Tidak | Tenaga klinis yang didampingi |
+| `OrganizationUnitId` | `Guid` | Ya | — | Index | FK `MstOrganizationUnit` | `Restrict` | Tidak | Cakupan Kepala Unit |
+| `PreceptorshipStatus` | `int` (`PreceptorshipStatus`) | Ya | `PreceptorAssigned` | Index | — | — | Tidak | — |
+| `AccompaniedSince` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Tanggal siap kerja |
+| `IndependentOn` | `DateOnly?` | Tidak | — | — | — | — | Tidak | — |
+| `DeclaredByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Kepala Unit |
+| `EvidenceStoragePath` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib saat siap mandiri |
+| `EvidenceFileName` | `string(250)?` | Tidak | — | — | — | — | Tidak | — |
+| `EvidenceContentType` | `string(150)?` | Tidak | — | — | — | — | Tidak | — |
+| `AssessmentNote` | `string(2000)?` | Tidak | — | — | — | — | **Ya** | Catatan kompetensi |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+| Kolom preceptor | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `PreceptorshipId` | `Guid` | Ya | — | Unik bersyarat (`AssignedUntil IS NULL`) | FK `HrdClinicalPreceptorship` | `Restrict` | Tidak | Satu preceptor berjalan |
+| `PreceptorWorkforceProfileId` | `Guid` | Ya | — | Index | FK `MstWorkforceProfile` | `Restrict` | Tidak | — |
+| `AssignedFrom` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `AssignedUntil` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Terisi saat diganti atau siap mandiri |
+| `AssignedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `ChangeReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib saat mengganti |
+
+### 10.13 `HrdEmploymentLifecycleSetting`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `HospitalSiteId` | `Guid` | Ya | — | Unik | FK `MstHospitalSite` | `Restrict` | Tidak | — |
+| `ContractReminderDays` | `int` | Ya | `60` | — | — | — | Tidak | 14–180 |
+| `ContractEscalationDays` | `int` | Ya | `14` | — | — | — | Tidak | 1 sampai kurang dari `ContractReminderDays` |
+| `ProbationReminderDays` | `int` | Ya | `14` | — | — | — | Tidak | 1–60 |
+| `LateStartFlagDays` | `int` | Ya | `3` | — | — | — | Tidak | 1–30 |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+### 10.14 `MstContractType` dan `HrdJobOffer` — Diperbarui
+
+| Kolom `MstContractType` | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Sudah ada |
+| `ContractTypeCode` | `string(50)` | Ya | — | Unik | — | — | Tidak | Sudah ada; `PKWT`, `PKWTT` |
+| `ContractTypeName` | `string(150)` | Ya | — | — | — | — | Tidak | Sudah ada |
+| `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | Sudah ada |
+| `DefaultDurationMonths` | `int?` | Tidak | — | — | — | — | Tidak | Sudah ada; usulan awal pada layar tawaran |
+| `IsRenewable` | `bool` | Ya | `true` | — | — | — | Tidak | Sudah ada |
+| `RequiresEndDate` | `bool` | Ya | `true` | — | — | — | Tidak | Sudah ada; menentukan wajibnya lama kontrak |
+| `IsProbationApplicable` | `bool` | Ya | `false` | — | — | — | Tidak | Sudah ada; **satu-satunya penentu masa percobaan** (`HRD-DEC-085`) |
+| `EmploymentTypeId` | `Guid?` | Tidak | — | — | FK `MstEmploymentType` | `Restrict` | Tidak | **Baru.** Jenis kepegawaian yang dipakai kontrak jenis ini |
+| `SortOrder` | `int` | Ya | `0` | — | — | — | Tidak | Sudah ada; kolom warisan master, tidak disentuh |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Sudah ada |
+
+| Kolom `HrdJobOffer` | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Sudah ada |
+| `OfferNumber` | `string(50)` | Ya | — | Unik | — | — | Tidak | Sudah ada |
+| `ApplicationId` | `Guid` | Ya | — | Index | FK `HrdCandidateApplication` | `Restrict` | Tidak | Sudah ada |
+| `SalaryGradeId` | `Guid` | Ya | — | — | FK `MstSalaryGrade` | `Restrict` | Tidak | Sudah ada |
+| `OfferedBasicSalary` | `decimal` | Ya | — | — | — | — | **Ya** | Sudah ada |
+| `MaximumGradeSalary` | `decimal` | Ya | — | — | — | — | Tidak | Sudah ada; plafon grade |
+| `ApprovalTier` | `int` (`JobOfferApprovalTier`) | Ya | `Tier13Standard` | — | — | — | Tidak | Sudah ada |
+| `OfferedPositionTitle` | `string(150)` | Ya | `""` | — | — | — | Tidak | Sudah ada |
+| `ProposedJoinDate` | `DateOnly` | Ya | — | — | — | — | Tidak | Sudah ada; tanggal mulai kontrak |
+| `OfferDate` | `DateTime` | Ya | `DateTime.UtcNow` | — | — | — | Tidak | Sudah ada |
+| `ExpiryDate` | `DateTime` | Ya | — | — | — | — | Tidak | Sudah ada |
+| `Status` | `int` (`JobOfferStatus`) | Ya | `Draft` | Index | — | — | Tidak | Sudah ada |
+| `CandidateResponseDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Sudah ada |
+| `CandidateResponseNotes` | `string(500)?` | Tidak | — | — | — | — | Tidak | Sudah ada |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Sudah ada |
+| `ContractTypeId` | `Guid?` | Tidak di database, **wajib** di service | — | — | FK `MstContractType` | `Restrict` | Tidak | **Baru** (`HRD-DEC-095`) |
+| `ContractDurationMonths` | `int?` | Tidak | — | — | — | — | Tidak | **Baru.** Wajib 1–60 bila jenis kontrak `RequiresEndDate` |
+
+### 10.15 Tabel `Sudah ada` — kolom kunci yang dipakai
+
+| Tabel | Kolom kunci | Dipakai untuk | File model |
+| --- | --- | --- | --- |
+| `MstEmployee` | `WorkforceProfileId`, `EmploymentTypeId`, `EmploymentStatusId`, `JoinDate`, `ProbationEndDate`, `ContractEndDate`, `Email`, `BirthDate` | Salinan kepegawaian; syarat pembuatan akun | `MasterData/Workforce/Models/MstEmployee.cs` |
+| `MstEmploymentStatus` | `EmploymentStatusCode`, `IsActiveEmployment`, `IsSchedulable`, `IsPayrollEligible`, `IsTerminalStatus` | Tiga status baru (`02-backend-architecture.md` 18.8) | `MasterData/Workforce/Models/MstEmploymentStatus.cs` |
+| `HrdCandidateHiringHandoff` | `Id`, `OfferId`, `WorkforceProfileId`, `Status` | Pembuka kasus | `RecruitmentManagement/Models/HrdCandidateHiringHandoff.cs` |
+| `HrdPreEmploymentMedicalCheck` | `OfferId`, `ClearanceResult` | Butir otomatis kelaikan | `RecruitmentManagement/Models/HrdPreEmploymentMedicalCheck.cs` |
+| `WfpCertification` | `WorkforceProfileId`, `CertificationTypeId`, `IsVerified`, `ExpiredDate`, `IsLifetime` | Butir otomatis sertifikat | `CredentialingManagement/Models/WfpCertification.cs` |
+| `WfpClinicalPrivilege` | `WorkforceProfileId`, status aktif | Peringatan kredensial | `CredentialingManagement/Models/` |
+| `WfpManagerAssignment` | `WorkforceProfileId`, `ManagerWorkforceProfileId`, tanggal berlaku | Relasi atasan saat siap kerja; penentu atasan langsung | `WorkforceCore/Models/WfpManagerAssignment.cs` |
+| `TrxEmployeeSeparation` | `WorkforceProfileId`, `SeparationType`, `SeparationStatus`, `LastWorkingDate` | Serah terima ke 20 | `LifecycleManagement/Models/TrxEmployeeSeparation.cs` |
+| `ApplicationUser` | `WorkforceProfileId`, `EmployeeId`, `IsActive` | Akun bertahap | `Models/ApplicationUser.cs` |
+
+### 10.16 Kolom sensitif `S-C4-ONB`
+
+`CancelNote`, seluruh `ReasonText`, `DecisionNote` pada keputusan kontrak dan penilaian masa
+percobaan, `AssessmentNote` pendampingan, dan `HrdJobOffer.OfferedBasicSalary`. Kolom ini **MUST NOT**
+masuk custom logger. Isi berkas bukti — form penilaian masa percobaan dan logbook pendampingan —
+diperlakukan sama: diunduh lewat endpoint terautentikasi, tidak pernah lewat path publik.
+
+### 10.17 Bentuk DDL
+
+> **Peringatan.** Basis data dibentuk EF Core Migrations. DDL di bawah adalah **dokumentasi bentuk
+> tabel**, bukan skrip yang dijalankan. Kolom audit `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- Bentuk tabel sebagaimana akan dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."HrdOnboardingCase" (
+    "Id" uuid NOT NULL, "CaseNumber" varchar(30) NOT NULL, "HiringHandoffId" uuid NOT NULL,
+    "WorkforceProfileId" uuid NOT NULL, "HospitalSiteId" uuid NOT NULL, "OrganizationUnitId" uuid NOT NULL,
+    "PositionId" uuid NOT NULL, "IsClinical" boolean NOT NULL DEFAULT false, "PlannedStartDate" date NOT NULL,
+    "CoordinatorUserId" uuid NOT NULL, "CaseStatus" integer NOT NULL,
+    "FirstDayAttendedOn" date, "FirstDayRecordedByUserId" uuid, "ReadyForWorkAt" timestamp,
+    "ReadyForWorkByUserId" uuid, "CancelReason" integer, "CancelNote" varchar(1000), -- SENSITIF
+    "CancelledAt" timestamp, "CancelledByUserId" uuid, "HasGeneralTemplate" boolean NOT NULL DEFAULT true,
+    "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdOnboardingCase" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdOnboardingCase_HrdCandidateHiringHandoff_HiringHandoffId"
+        FOREIGN KEY ("HiringHandoffId") REFERENCES public."HrdCandidateHiringHandoff" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_HrdOnboardingCase_MstWorkforceProfile_WorkforceProfileId"
+        FOREIGN KEY ("WorkforceProfileId") REFERENCES public."MstWorkforceProfile" ("Id") ON DELETE RESTRICT
+    -- FK HospitalSiteId, OrganizationUnitId, PositionId, CoordinatorUserId: pola sama, ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdOnboardingCase_CaseNumber" ON public."HrdOnboardingCase" ("CaseNumber");
+CREATE UNIQUE INDEX "IX_HrdOnboardingCase_HiringHandoffId" ON public."HrdOnboardingCase" ("HiringHandoffId") WHERE "IsDelete" = false;
+CREATE INDEX "IX_HrdOnboardingCase_OrganizationUnitId_CaseStatus" ON public."HrdOnboardingCase" ("OrganizationUnitId", "CaseStatus");
+
+CREATE TABLE public."HrdOnboardingCaseItem" (
+    "Id" uuid NOT NULL, "OnboardingCaseId" uuid NOT NULL, "TemplateLayer" integer NOT NULL,
+    "SourceTemplateTaskId" uuid, "ItemCode" varchar(50) NOT NULL, "ItemName" varchar(250) NOT NULL,
+    "TaskCategory" varchar(50), "Description" varchar(1000), "SystemItemCode" varchar(40),
+    "ResponsibleRole" integer NOT NULL, "ItemKind" integer NOT NULL, "AutomaticSource" integer,
+    "CertificationTypeId" uuid, "IsRequired" boolean NOT NULL DEFAULT true, "DueDayOffset" integer NOT NULL DEFAULT 0,
+    "DueDate" date NOT NULL, "ItemStatus" integer NOT NULL, "CompletedAt" timestamp, "CompletedByUserId" uuid,
+    "CompletionNote" varchar(1000), "SelectedWorkforceProfileId" uuid, "EvidenceStoragePath" varchar(500),
+    "EvidenceFileName" varchar(250), "EvidenceContentType" varchar(150), "EvidenceFileSize" bigint,
+    "AutomaticCheckedAt" timestamp, "AutomaticResultNote" varchar(250), "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdOnboardingCaseItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdOnboardingCaseItem_HrdOnboardingCase_OnboardingCaseId"
+        FOREIGN KEY ("OnboardingCaseId") REFERENCES public."HrdOnboardingCase" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdOnboardingCaseItem_OnboardingCaseId_ItemCode" ON public."HrdOnboardingCaseItem" ("OnboardingCaseId", "ItemCode") WHERE "IsDelete" = false;
+
+-- MstOnboardingTemplate dan MstOnboardingTemplateTask: kolom pada 10.4 dan 10.5 dibuang
+-- (dengan pengaman tabel kosong), lalu:
+ALTER TABLE public."MstOnboardingTemplate" ADD "TemplateLayer" integer NOT NULL;
+CREATE UNIQUE INDEX "IX_MstOnboardingTemplate_TemplateLayer_Active" ON public."MstOnboardingTemplate" ("TemplateLayer")
+    WHERE "IsActive" = true AND "IsDelete" = false AND "TemplateLayer" IN (1, 2);
+CREATE UNIQUE INDEX "IX_MstOnboardingTemplate_OrganizationUnitId_Active" ON public."MstOnboardingTemplate" ("OrganizationUnitId")
+    WHERE "IsActive" = true AND "IsDelete" = false AND "TemplateLayer" = 3;
+ALTER TABLE public."MstOnboardingTemplateTask"
+    ADD "ResponsibleRole" integer NOT NULL, ADD "ItemKind" integer NOT NULL, ADD "AutomaticSource" integer,
+    ADD "CertificationTypeId" uuid REFERENCES public."MstCertificationType" ("Id") ON DELETE RESTRICT,
+    ADD "SystemItemCode" varchar(40);
+CREATE UNIQUE INDEX "IX_MstOnboardingTemplateTask_TemplateId_TaskCode" ON public."MstOnboardingTemplateTask" ("OnboardingTemplateId", "TaskCode") WHERE "IsDelete" = false;
+
+CREATE TABLE public."HrdOnboardingAccessRequest" (
+    "Id" uuid NOT NULL, "OnboardingCaseId" uuid NOT NULL, "WorkforceProfileId" uuid NOT NULL,
+    "RequestType" integer NOT NULL, "RequestStatus" integer NOT NULL, "ApplicationUserId" uuid,
+    "FailureMessage" varchar(500), "SelfServiceActivatedAt" timestamp, "RequestedAt" timestamp NOT NULL,
+    "CompletedAt" timestamp, "CompletedByUserId" uuid, "CompletionNote" varchar(500),
+    CONSTRAINT "PK_HrdOnboardingAccessRequest" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdOnboardingAccessRequest_HrdOnboardingCase_OnboardingCaseId"
+        FOREIGN KEY ("OnboardingCaseId") REFERENCES public."HrdOnboardingCase" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdOnboardingAccessRequest_Case_Type" ON public."HrdOnboardingAccessRequest" ("OnboardingCaseId", "RequestType") WHERE "IsDelete" = false;
+
+ALTER TABLE public."WfpContractHistory"
+    ADD "SourceDocumentType" varchar(50), ADD "SourceDocumentId" uuid, ADD "FixedTermSeriesStartDate" timestamp,
+    ADD "DocumentFileName" varchar(250), ADD "DocumentContentType" varchar(150), ADD "SignedRecordedAt" timestamp,
+    ADD "SignedRecordedByUserId" uuid, ADD "RowVersion" uuid NOT NULL DEFAULT gen_random_uuid();
+CREATE INDEX "IX_WfpContractHistory_SourceDocument" ON public."WfpContractHistory" ("SourceDocumentType", "SourceDocumentId");
+
+CREATE TABLE public."HrdContractDecision" (
+    "Id" uuid NOT NULL, "DecisionNumber" varchar(30) NOT NULL, "ContractHistoryId" uuid NOT NULL,
+    "WorkforceProfileId" uuid NOT NULL, "DecisionType" integer NOT NULL, "ExtensionMonths" integer,
+    "ProposedStartDate" date NOT NULL, "ProposedEndDate" date, "ReasonText" varchar(2000), -- SENSITIF
+    "DecisionStatus" integer NOT NULL, "SubmittedByUserId" uuid NOT NULL, "SubmittedAt" timestamp NOT NULL,
+    "WorkflowInstanceId" uuid, "DecidedByUserId" uuid, "DecidedAt" timestamp, "DecisionNote" varchar(1000), -- SENSITIF
+    "FollowUpContractHistoryId" uuid, "EmployeeNotifiedOn" date, "NotificationRecordedByUserId" uuid,
+    "EmployeeSeparationId" uuid, "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdContractDecision" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdContractDecision_WfpContractHistory_ContractHistoryId"
+        FOREIGN KEY ("ContractHistoryId") REFERENCES public."WfpContractHistory" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdContractDecision_DecisionNumber" ON public."HrdContractDecision" ("DecisionNumber");
+CREATE UNIQUE INDEX "IX_HrdContractDecision_ContractHistoryId_Open" ON public."HrdContractDecision" ("ContractHistoryId")
+    WHERE "IsDelete" = false AND "DecisionStatus" IN (1, 2, 4);
+
+CREATE TABLE public."HrdContractCorrection" (
+    "Id" uuid NOT NULL, "CorrectionNumber" varchar(30) NOT NULL, "ContractHistoryId" uuid NOT NULL,
+    "BeforeContractNumber" varchar(100) NOT NULL, "BeforeContractTypeId" uuid NOT NULL, "BeforeStartDate" date NOT NULL,
+    "BeforeEndDate" date, "BeforeDocumentPath" varchar(500), "AfterContractNumber" varchar(100) NOT NULL,
+    "AfterContractTypeId" uuid NOT NULL, "AfterStartDate" date NOT NULL, "AfterEndDate" date,
+    "ReasonText" varchar(2000) NOT NULL, -- SENSITIF
+    "EvidenceStoragePath" varchar(500) NOT NULL, "EvidenceFileName" varchar(250) NOT NULL,
+    "EvidenceContentType" varchar(150) NOT NULL, "CorrectionStatus" integer NOT NULL,
+    "SubmittedByUserId" uuid NOT NULL, "SubmittedAt" timestamp NOT NULL, "WorkflowInstanceId" uuid,
+    "DecidedByUserId" uuid, "DecidedAt" timestamp, "DecisionNote" varchar(1000), "AppliedAt" timestamp,
+    "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdContractCorrection" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdContractCorrection_WfpContractHistory_ContractHistoryId"
+        FOREIGN KEY ("ContractHistoryId") REFERENCES public."WfpContractHistory" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdContractCorrection_ContractHistoryId_Open" ON public."HrdContractCorrection" ("ContractHistoryId")
+    WHERE "IsDelete" = false AND "CorrectionStatus" IN (1, 2);
+
+CREATE TABLE public."HrdInitialContractBatch" (
+    "Id" uuid NOT NULL, "BatchNumber" varchar(30) NOT NULL, "HospitalSiteId" uuid NOT NULL,
+    "BatchStatus" integer NOT NULL, "TotalRows" integer NOT NULL DEFAULT 0, "ValidRows" integer NOT NULL DEFAULT 0,
+    "InvalidRows" integer NOT NULL DEFAULT 0, "SubmittedByUserId" uuid, "SubmittedAt" timestamp,
+    "WorkflowInstanceId" uuid, "DecidedByUserId" uuid, "DecidedAt" timestamp, "AppliedAt" timestamp,
+    "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdInitialContractBatch" PRIMARY KEY ("Id")
+);
+CREATE TABLE public."HrdInitialContractBatchRow" (
+    "Id" uuid NOT NULL, "BatchId" uuid NOT NULL, "WorkforceProfileId" uuid NOT NULL, "ContractTypeId" uuid NOT NULL,
+    "ContractNumber" varchar(100) NOT NULL, "StartDate" date NOT NULL, "EndDate" date,
+    "FixedTermSeriesStartDate" date, "IsValid" boolean NOT NULL DEFAULT false, "ValidationMessage" varchar(500),
+    "CreatedContractHistoryId" uuid,
+    CONSTRAINT "PK_HrdInitialContractBatchRow" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdInitialContractBatchRow_HrdInitialContractBatch_BatchId"
+        FOREIGN KEY ("BatchId") REFERENCES public."HrdInitialContractBatch" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdInitialContractBatchRow_BatchId_WorkforceProfileId" ON public."HrdInitialContractBatchRow" ("BatchId", "WorkforceProfileId") WHERE "IsDelete" = false;
+
+CREATE TABLE public."HrdProbation" (
+    "Id" uuid NOT NULL, "WorkforceProfileId" uuid NOT NULL, "ContractHistoryId" uuid NOT NULL,
+    "StartDate" date NOT NULL, "EndDate" date NOT NULL, "ReminderFromDate" date NOT NULL,
+    "ProbationStatus" integer NOT NULL, "ClosedAt" timestamp, "ClosedByUserId" uuid, "EmployeeSeparationId" uuid,
+    "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdProbation" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdProbation_WfpContractHistory_ContractHistoryId"
+        FOREIGN KEY ("ContractHistoryId") REFERENCES public."WfpContractHistory" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdProbation_ContractHistoryId" ON public."HrdProbation" ("ContractHistoryId") WHERE "IsDelete" = false;
+CREATE INDEX "IX_HrdProbation_Status_EndDate" ON public."HrdProbation" ("ProbationStatus", "EndDate");
+
+CREATE TABLE public."HrdProbationAssessment" (
+    "Id" uuid NOT NULL, "AssessmentNumber" varchar(30) NOT NULL, "ProbationId" uuid NOT NULL,
+    "Result" integer NOT NULL, "ReasonText" varchar(2000) NOT NULL, -- SENSITIF
+    "EvidenceStoragePath" varchar(500), "EvidenceFileName" varchar(250), "EvidenceContentType" varchar(150),
+    "AssessmentStatus" integer NOT NULL, "SubmittedByUserId" uuid NOT NULL, "SubmittedAt" timestamp NOT NULL,
+    "WorkflowInstanceId" uuid, "DecidedByUserId" uuid, "DecidedAt" timestamp, "DecisionNote" varchar(1000), -- SENSITIF
+    "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdProbationAssessment" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdProbationAssessment_HrdProbation_ProbationId"
+        FOREIGN KEY ("ProbationId") REFERENCES public."HrdProbation" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdProbationAssessment_ProbationId_Open" ON public."HrdProbationAssessment" ("ProbationId")
+    WHERE "IsDelete" = false AND "AssessmentStatus" IN (1, 2);
+
+CREATE TABLE public."HrdClinicalPreceptorship" (
+    "Id" uuid NOT NULL, "OnboardingCaseId" uuid NOT NULL, "WorkforceProfileId" uuid NOT NULL,
+    "OrganizationUnitId" uuid NOT NULL, "PreceptorshipStatus" integer NOT NULL, "AccompaniedSince" date,
+    "IndependentOn" date, "DeclaredByUserId" uuid, "EvidenceStoragePath" varchar(500),
+    "EvidenceFileName" varchar(250), "EvidenceContentType" varchar(150), "AssessmentNote" varchar(2000), -- SENSITIF
+    "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdClinicalPreceptorship" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdClinicalPreceptorship_HrdOnboardingCase_OnboardingCaseId"
+        FOREIGN KEY ("OnboardingCaseId") REFERENCES public."HrdOnboardingCase" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdClinicalPreceptorship_OnboardingCaseId" ON public."HrdClinicalPreceptorship" ("OnboardingCaseId") WHERE "IsDelete" = false;
+
+CREATE TABLE public."HrdClinicalPreceptorshipPreceptor" (
+    "Id" uuid NOT NULL, "PreceptorshipId" uuid NOT NULL, "PreceptorWorkforceProfileId" uuid NOT NULL,
+    "AssignedFrom" date NOT NULL, "AssignedUntil" date, "AssignedByUserId" uuid NOT NULL, "ChangeReason" varchar(500),
+    CONSTRAINT "PK_HrdClinicalPreceptorshipPreceptor" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdClinicalPreceptorshipPreceptor_Preceptorship"
+        FOREIGN KEY ("PreceptorshipId") REFERENCES public."HrdClinicalPreceptorship" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdClinicalPreceptorshipPreceptor_Open" ON public."HrdClinicalPreceptorshipPreceptor" ("PreceptorshipId")
+    WHERE "IsDelete" = false AND "AssignedUntil" IS NULL;
+
+CREATE TABLE public."HrdEmploymentLifecycleSetting" (
+    "Id" uuid NOT NULL, "HospitalSiteId" uuid NOT NULL, "ContractReminderDays" integer NOT NULL DEFAULT 60,
+    "ContractEscalationDays" integer NOT NULL DEFAULT 14, "ProbationReminderDays" integer NOT NULL DEFAULT 14,
+    "LateStartFlagDays" integer NOT NULL DEFAULT 3, "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdEmploymentLifecycleSetting" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_HrdEmploymentLifecycleSetting_HospitalSiteId" ON public."HrdEmploymentLifecycleSetting" ("HospitalSiteId") WHERE "IsDelete" = false;
+
+ALTER TABLE public."MstContractType" ADD "EmploymentTypeId" uuid REFERENCES public."MstEmploymentType" ("Id") ON DELETE RESTRICT;
+ALTER TABLE public."HrdJobOffer" ADD "ContractTypeId" uuid REFERENCES public."MstContractType" ("Id") ON DELETE RESTRICT,
+    ADD "ContractDurationMonths" integer;
+```

@@ -304,3 +304,58 @@ flowchart TB
 
 Kotak merah putus-putus berarti belum ada. Perhatikan bahwa yang hilang **hanya jalur
 cross-employee**; jalur employee-centric dan permohonan pegawai sudah lengkap.
+
+
+---
+
+### 1.3 Employee Self-Service — Pengajuan Mandiri Perubahan Data Profil Pegawai (FE-HRD-026 / S-A5 / HRD-DEC-091..094)
+
+Flow ini melayani kebutuhan pembaruan data pribadi dari sudut pandang karyawan sendiri tanpa wewenang administratif penuh:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Karyawan as Pegawai (Login)
+    participant FE as ESS Profil (/self-services/.../profile-changes)
+    participant BE as SelfService ProfileChange Controller
+    participant WF as Workflow Engine
+    actor HRD as Verifikator HRD (Bukan Pemohon)
+    participant Applier as Integration Service (ApplyAsync)
+    participant Master as Master Data (MstEmployee / WFP)
+
+    Karyawan->>FE: Buka menu "Kelola Data Saya"
+    FE->>BE: GET /current-profile
+    BE-->>FE: Kembalikan snapshot profil terkini
+    Karyawan->>FE: Ubah isian data pribadi (misal: No HP & NIK)
+    FE->>FE: Real-time diff engine mendeteksi 2 field berubah (1 sensitif)
+    Note over FE: Meminta berkas bukti KTP karena NIK bersifat sensitif
+    Karyawan->>FE: Unggah scan KTP & klik "Simpan dan Ajukan Perubahan Data"
+    FE->>BE: POST /profile-changes (Draft: Kategori Multiple)
+    FE->>BE: POST /{id}/evidence (Unggah Berkas Bukti)
+    FE->>BE: POST /{id}/submit (Submit ke Workflow)
+    BE->>WF: Daftarkan permohonan ke Workflow Engine
+    Note over Master: Master data RESMI tetap data lama (terlindungi)
+    HRD->>BE: GET /employee-profile-changes/{id}
+    Note over HRD,BE: Anti-Self-Approval: Jika HRD = Pemohon, aksi verifikasi diblokir
+    HRD->>BE: POST /{id}/verify/start (Mulai Verifikasi)
+    HRD->>WF: Setujui permohonan (Approved)
+    WF->>Applier: Trigger permohonan disetujui
+    Applier->>Master: Terapkan perubahan field secara transaksional
+    Applier-->>BE: Ubah status menjadi "Applied"
+    Karyawan->>FE: Buka "Riwayat Pengajuan Saya" -> Status "Applied", Data Resmi Terkini
+```
+
+#### Tahapan Alur Bisnis:
+1. **Trigger Awal**: Pegawai masuk ke sistem menggunakan akun pribadinya dan memilih menu **Layanan Mandiri → Kelola Data Saya** (`/self-services/human-resource/employee/profile-changes`).
+2. **Identifikasi Akun Otomatis**: Backend menurunkan identitas pegawai secara otomatis dari akun login pengguna (`HumanResourceContext`). Sistem menolak manipulasi ID melalui URL.
+3. **Pemuatan Snapshot Awal**: Frontend memuat data awal profil pengguna dan mengunci isian administratif penempatan (Departemen, Unit, Jabatan, Status Kepegawaian) sebagai read-only.
+4. **Deteksi Perbedaan (Diff)**: Setiap perubahan pada field identitas pribadi, kontak, alamat, atau kontak darurat dihitung secara real-time terhadap snapshot awal.
+5. **Kewajiban Bukti Berkas Sensitif**: Bila salah satu field yang diubah tergolong data sensitif (NIK, Jenis Identitas, Status Pernikahan, Nama Lengkap, Tempat/Tanggal Lahir), sistem mewajibkan unggahan dokumen bukti pendukung (PDF/JPG/PNG maks. 5MB) sesuai `HRD-DEC-052`.
+6. **Aksi Tunggal (Simpan dan Ajukan)**: Pegawai menekan tombol tunggal **Simpan dan Ajukan Perubahan Data**. Sistem secara transaksional:
+   - Membuat draf permohonan dengan kategori `Multiple` (atau kategori spesifik jika 1 kelompok) via `POST /api/v1/self-services/human-resource/profile-changes`.
+   - Mengunggah berkas bukti pendukung via `POST /api/v1/self-services/human-resource/profile-changes/{id}/evidence`.
+   - Meneruskan permohonan ke Workflow Engine via `POST /api/v1/self-services/human-resource/profile-changes/{id}/submit`.
+   - Status permohonan menjadi `Submitted` (Menunggu Verifikasi HRD).
+7. **Perlindungan Master Data**: Selama status permohonan berada dalam `Draft`, `Submitted`, atau `UnderVerification`, master data resmi (`MstEmployee` dan `MstWorkforceProfile`) tidak mengalami mutasi nilai sama sekali (`HRD-DEC-092`).
+8. **Verifikasi HRD & Anti-Self-Approval**: Petugas HRD memeriksa permohonan pada `/hr/workforce-core/employee-profile-changes`. Jika pemohon adalah karyawan yang sama dengan verifikator yang sedang login, sistem secara ketat memblokir aksi verifikasi dan persetujuan (Prinsip Four-Eyes / `HRD-DEC-093`).
+9. **Penerapan Nilai (Apply)**: Setelah disetujui oleh pejabat yang berwenang, `EmployeeProfileChangeWorkflowIntegrationService` mengeksekusi `ApplyAsync` untuk memutasi data ke master pegawai secara atomik, dan menandai status akhir sebagai `Applied`.

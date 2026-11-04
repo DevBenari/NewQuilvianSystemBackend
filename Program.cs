@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
@@ -265,6 +266,7 @@ try
         options.UseNpgsql(
             builder.Configuration.GetConnectionString("DefaultConnection")
         );
+        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     });
 
     // Factory konteks, dipakai NumberSeriesAllocator untuk membuka koneksi dan transaksinya
@@ -283,6 +285,7 @@ try
             options.UseNpgsql(
                 builder.Configuration.GetConnectionString("DefaultConnection")
             );
+            options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         },
         lifetime: ServiceLifetime.Scoped);
 
@@ -1016,6 +1019,63 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardDecisionApplier>();
 
+    // BE-HRD-036: Scheduler Perencanaan dan Aktivasi Standar pada Tanggal Berlaku
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningSchedulerService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerService>();
+
+    // BE-HRD-037: Gap Tenaga Langsung per Unit x Jabatan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingGapCalculationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapCalculationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapCalculationService>();
+
+    // BE-HRD-038: Estimasi Biaya dari Gaji Tengah Grade dan Penyamaran Biaya
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningCostService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningCostService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningCostService>();
+
+    // BE-HRD-039: Potret Gap Pengajuan dan API Baca Potret
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingGapSnapshotService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapSnapshotService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapSnapshotService>();
+
+    // BE-HRD-040: Permintaan Headcount: Draf, Kursi, Sisa Kursi, Pengajuan, Tarik Kembali, Koreksi Finance
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdHeadcountRequestService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountRequestService>();
+
+    // BE-HRD-041: Keputusan Akhir T11/T12 Permintaan Headcount
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountRequestDecisionApplier>();
+
+    // BE-HRD-044: Penerap Keputusan T13 Pembatalan Kursi
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountCancellationDecisionApplier>();
+
+    // BE-HRD-047: Penerap Keputusan T10 Rencana Formasi dan Addendum
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdManpowerPlanDecisionApplier>();
+
+    // BE-HRD-042: Antrean Recruiter dan Perubahan Rencana Pemenuhan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdRecruitmentQueueService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdRecruitmentQueueService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdRecruitmentQueueService>();
+
+    // BE-HRD-043: Tautan Pemenuhan Kursi dan Langkah Harian Scheduler Permintaan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdHeadcountFulfilmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountFulfilmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountFulfilmentService>();
+
+    // BE-HRD-046: Rencana Tahunan dan Addendum: Draf, Hitung Ulang, Pengajuan T10, Koreksi Finance
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdManpowerPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdManpowerPlanService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdManpowerPlanService>();
+
+    // Slice S-D2: Rekrutmen & Hiring (RecruitmentManagement) - MVP-11
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobRequisitionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobRequisitionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobRequisitionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobVacancyService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobVacancyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobVacancyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ICandidateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateService>();
+
+    // Slice S-D2: Rekrutmen & Hiring (RecruitmentManagement) - MVP-12
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ICandidateScreeningService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateScreeningService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateScreeningService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ICandidateEvaluationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateEvaluationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateEvaluationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobOfferService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferService>();
+
     builder.Services.AddScoped<ScheduleChangeService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();
@@ -1346,6 +1406,11 @@ try
         builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
         builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
+
+        // BE-HRD-036: Scheduler Perencanaan Tenaga Kerja (Workforce Planning)
+        builder.Services.Configure<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerOptions>(
+            builder.Configuration.GetSection(QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerOptions.SectionName));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerHostedService>();
     }
 
     builder.Services.AddAuthorization(options =>
