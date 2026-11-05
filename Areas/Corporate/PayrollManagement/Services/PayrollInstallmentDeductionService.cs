@@ -1,13 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Text.Json;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 
 /// <summary>
 /// Pemotongan cicilan piutang RS di dalam payroll run HRD (BE-FIN-110, kontrak direvisi mengikuti keputusan Finance-HRD).
@@ -35,15 +37,18 @@ public sealed class PayrollInstallmentDeductionService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceReceivablePayrollSyncService _syncService;
+    private readonly PayrollPolicyOptions _policy;
 
     public PayrollInstallmentDeductionService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
-        FinanceReceivablePayrollSyncService syncService)
+        FinanceReceivablePayrollSyncService syncService,
+        IOptions<PayrollPolicyOptions> policyOptions)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _syncService = syncService;
+        _policy = policyOptions.Value;
     }
 
     /// <summary>Potongan rencana yang disimpan pada komponen slip (CalculationDetailJson) dan dikonfirmasi saat run disahkan.</summary>
@@ -115,8 +120,10 @@ public sealed class PayrollInstallmentDeductionService
 
             var availableNetSalary = Math.Max(0m, grossPay - statutoryDeductions - otherPriorDeductions);
 
-            // Batas persen gaji bersih dari master jenis potongan (default 50% bila belum diset), plus batas nominal bila ada.
-            var maxAllowed = availableNetSalary * ((deductionType?.MaxNetSalaryPercentage ?? 50m) / 100m);
+            // Batas persen gaji bersih dari master jenis potongan. Bila master tidak menentukan, dipakai persentase kebijakan terversi
+            // (Payroll:Policy:InstallmentDefaultMaxNetSalaryPercentage; nilai bawaan 50 = perilaku sebelumnya, NEEDS CONFIRMATION),
+            // bukan angka yang ditanam di kode. Batas nominal master tetap berlaku bila ada.
+            var maxAllowed = availableNetSalary * ((deductionType?.MaxNetSalaryPercentage ?? _policy.InstallmentDefaultMaxNetSalaryPercentage) / 100m);
             if (deductionType?.MaximumAmount is > 0m)
                 maxAllowed = Math.Min(maxAllowed, deductionType.MaximumAmount.Value);
             maxAllowed = Math.Max(0m, Math.Min(maxAllowed, availableNetSalary));
@@ -254,12 +261,22 @@ public sealed class PayrollInstallmentDeductionService
 
         var component = employee.Components
             .FirstOrDefault(c => !c.IsDelete && c.SourceType == ComponentSourceType && c.SourceId == input.Id);
+        return BuildLine(input, component);
+    }
+
+    /// <summary>
+    /// Baris potongan dari satu input angsuran dan komponen rencananya. Dipakai layar run, daftar potongan, dan rekonsiliasi supaya
+    /// ketiganya membaca angka yang sama persis.
+    /// </summary>
+    public static PayrollRunInstallmentLineResponse BuildLine(TrxPayrollVariableInput input, TrxPayrollEmployeeComponent? component)
+    {
         var planned = ReadPlanned(component);
         return new PayrollRunInstallmentLineResponse
         {
             InstallmentId = input.SourceId!.Value,
             DueAmount = planned?.DueAmount ?? input.Amount,
             DeductionPeriod = planned?.DeductionPeriod,
+            AvailableNetSalary = planned?.AvailableNetSalary,
             MaxAllowedDeduction = planned?.MaxAllowed,
             PlannedDeduction = planned?.DeductedAmount,
             PlannedStatus = planned?.Status,

@@ -1,4 +1,4 @@
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
+namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 
 /// <summary>
 /// DTO permintaan restitusi salah potong cicilan piutang RS (BE-FIN-111, FIN-DEC-195).

@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 
 /// <summary>
 /// BE-FIN-111 (Revisi 21, EPIC FIN-04, FIN-DEC-195, FIN-INTEGRATION-1.8 §P.6 butir 3).
@@ -16,10 +17,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 /// 3. Menghubungkan pembalikan dengan TrxPayrollReversal menunjuk FinanceReversalId.
 /// 4. Finance TIDAK mengeluarkan kas manual untuk restitusi ini (AC 2, FIN-DEC-195).
 /// 5. Menjamin sifat idempoten per SourceId/CorrelationId jika event dikirim berulang (AC 3).
+///
+/// Aturan run (agar restitusi tidak mengubah gaji lewat dua jalur dan tidak memecah kepemilikan run):
+/// - Restitusi hanya masuk ke run Regular yang MASIH menerima input (Draft, CollectingInput, Calculated). Tidak pernah membuat run
+///   kedua untuk periode yang sudah punya run Regular aktif; bila run periode tujuan sudah diajukan/disahkan, restitusi pindah ke
+///   periode berikutnya.
+/// - Total gaji TIDAK dimutasi langsung. Komponen restitusi dihitung SEKALI oleh mesin kalkulasi (baris non-mesin); run yang sudah
+///   Calculated dimundurkan ke CollectingInput supaya wajib dihitung ulang sebelum diajukan.
+/// - Run penampung (dibuat bila periode belum punya run) dilengkapi populasinya saat run dihitung.
 /// </summary>
 public sealed class PayrollRestitutionService
 {
     private const string LogCategory = "Corporate.HumanResource.PayrollManagement.Restitution";
+    private const int MaxPeriodHops = 3;
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
 
@@ -78,29 +88,40 @@ public sealed class PayrollRestitutionService
         var employee = await ResolvePersonAsync(request, cancellationToken)
             ?? throw new KeyNotFoundException("Pegawai atau dokter pemilik potongan tidak ditemukan.");
 
-        // Dokter tanpa profil payroll tidak pernah dipotong gajinya, sehingga tidak ada potongan yang dapat
-        // dikembalikan lewat slip. Tidak membuat run, adjustment, atau komponen fiktif; alasan dikembalikan jelas.
-        if (employee.EmployeeId is null && !await HasPayrollProfileAsync(employee.WorkforceProfileId, cancellationToken))
+        // Penerima tanpa profil payroll eligible (termasuk dokter tetap tanpa MstEmployee) tidak pernah dipotong gajinya lewat run,
+        // sehingga tidak ada potongan yang dapat dikembalikan lewat slip. Tidak membuat run, adjustment, baris pegawai, atau
+        // komponen fiktif (juga agar baris tanpa profil tidak menahan seluruh run); alasan dikembalikan jelas.
+        if (!await HasPayrollProfileAsync(employee.WorkforceProfileId, cancellationToken))
         {
             return new PayrollRestitutionResponse
             {
-                EmployeeId = Guid.Empty,
+                EmployeeId = employee.EmployeeId ?? Guid.Empty,
                 WorkforceProfileId = employee.WorkforceProfileId,
                 EmployeeName = employee.Name,
                 EmployeeNumber = employee.Number,
                 Amount = request.Amount,
                 IsIdempotentReplay = false,
                 Status = "TIDAK_ADA_PAYROLL",
-                Message = "SDM ini belum memiliki profil payroll yang dikonfigurasi di HR, sehingga tidak ada potongan gaji yang dikembalikan lewat slip. Selesaikan pengembalian lewat proses refund yang disetujui."
+                Message = "SDM ini belum memiliki profil payroll eligible, sehingga restitusi tidak dapat disematkan pada slip. Selesaikan pengembalian lewat proses refund yang disetujui."
             };
         }
 
-        // Cari periode berikutnya
+        // Cari periode tujuan; bila run Regular periode itu sudah tidak menerima input, pindah ke periode berikutnya (maksimal 3 kali).
         var targetPeriod = await ResolveTargetPeriodAsync(request.TargetPeriodCode, cancellationToken)
-            ?? throw new InvalidOperationException("Periode penggajian berikutnya tidak ditemukan untuk alokasi restitusi.");
+            ?? throw new PayrollRunConflictException("Periode penggajian berikutnya tidak ditemukan untuk alokasi restitusi.");
 
-        // Resolve or create TrxPayrollRun
-        var run = await ResolveOrCreateRunAsync(targetPeriod, request.ActorUserId, cancellationToken);
+        TrxPayrollRun? run = null;
+        for (var hop = 0; hop < MaxPeriodHops && run is null; hop++)
+        {
+            run = await ResolveOrCreateRunAsync(targetPeriod, request.ActorUserId, cancellationToken);
+            if (run is not null) break;
+            var following = await ResolveFollowingPeriodAsync(targetPeriod, cancellationToken);
+            if (following is null) break;
+            targetPeriod = following;
+        }
+        if (run is null)
+            throw new PayrollRunConflictException(
+                "Payroll run periode tujuan sudah tidak menerima penyesuaian dan tidak ada periode berikutnya. Buka periode berikutnya lalu ulangi restitusi.");
 
         // Resolve or create TrxPayrollRunEmployee
         var runEmployee = await ResolveOrCreateRunEmployeeAsync(run, employee, request.ActorUserId, cancellationToken);
@@ -180,18 +201,13 @@ public sealed class PayrollRestitutionService
         };
         _dbContext.TrxPayrollEmployeeComponents.Add(component);
 
-        // Naikkan pendapatan slip pegawai (slip bulan depan A bertambah Rp request.Amount)
-        runEmployee.TotalVariableEarning += request.Amount;
-        runEmployee.GrossPay += request.Amount;
-        runEmployee.NetPay += request.Amount;
-        runEmployee.PaymentAmount += request.Amount;
+        // Penjaga hitung ulang: nominal restitusi sudah menjadi komponen non-mesin yang dihitung SEKALI oleh mesin kalkulasi saat
+        // run dihitung. Total TIDAK dimutasi di sini (itu akan menggandakan nominal pada hitung ulang). Run yang sudah dihitung
+        // dimundurkan ke CollectingInput agar wajib dihitung ulang sebelum dapat diajukan.
+        if (string.Equals(run.RunStatus, PayrollRunStatuses.Calculated, StringComparison.OrdinalIgnoreCase))
+            run.RunStatus = PayrollRunStatuses.CollectingInput;
         runEmployee.UpdateDateTime = DateTime.UtcNow;
         runEmployee.UpdateBy = request.ActorUserId;
-
-        // Naikkan akumulasi run
-        run.TotalEarning += request.Amount;
-        run.TotalGrossPay += request.Amount;
-        run.TotalNetPay += request.Amount;
         run.UpdateDateTime = DateTime.UtcNow;
         run.UpdateBy = request.ActorUserId;
 
@@ -331,18 +347,26 @@ public sealed class PayrollRestitutionService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private async Task<TrxPayrollRun> ResolveOrCreateRunAsync(MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Run Regular aktif yang masih menerima input untuk periode itu; bila periode belum punya run Regular aktif sama sekali, dibuat run
+    /// penampung (Draft) agar kewajiban restitusi tetap tercatat. Mengembalikan null bila run Regular aktifnya sudah tidak menerima input
+    /// (diajukan/disahkan/terkunci) sehingga pemanggil pindah ke periode berikutnya. Tidak pernah membuat run Regular kedua.
+    /// </summary>
+    private async Task<TrxPayrollRun?> ResolveOrCreateRunAsync(MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
     {
         var tracked = _dbContext.ChangeTracker.Entries<TrxPayrollRun>()
             .Select(x => x.Entity)
-            .FirstOrDefault(x => x.PayrollPeriodId == period.Id && x.RunType == "Regular"
-                && (x.RunStatus == "Draft" || x.RunStatus == "CollectingInput") && !x.IsDelete);
+            .FirstOrDefault(x => x.PayrollPeriodId == period.Id && x.RunType == "Regular" && !x.IsDelete
+                && !x.IsLocked && PayrollRunStatuses.AcceptsInputs(x.RunStatus));
         if (tracked is not null) return tracked;
 
-        var existing = await _dbContext.TrxPayrollRuns
-            .FirstOrDefaultAsync(x => !x.IsDelete && x.PayrollPeriodId == period.Id && x.RunType == "Regular"
-                && (x.RunStatus == "Draft" || x.RunStatus == "CollectingInput"), cancellationToken);
-        if (existing is not null) return existing;
+        var activeRegular = await _dbContext.TrxPayrollRuns
+            .Where(x => !x.IsDelete && x.PayrollPeriodId == period.Id && x.RunType == "Regular"
+                && x.RunStatus != PayrollRunStatuses.Cancelled && x.RunStatus != PayrollRunStatuses.Reversed)
+            .OrderByDescending(x => x.CreateDateTime)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (activeRegular is not null)
+            return !activeRegular.IsLocked && PayrollRunStatuses.AcceptsInputs(activeRegular.RunStatus) ? activeRegular : null;
 
         var run = new TrxPayrollRun
         {
@@ -351,16 +375,26 @@ public sealed class PayrollRestitutionService
             HospitalSiteId = period.HospitalSiteId,
             RunNumber = $"PR-{period.FiscalYear}{period.PeriodNumber:D2}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
             RunType = "Regular",
-            RunStatus = "Draft",
+            RunStatus = PayrollRunStatuses.Draft,
             CurrencyCode = "IDR",
             PeriodStartDateSnapshot = period.StartDate,
             PeriodEndDateSnapshot = period.EndDate,
+            AttendanceCutoffDateSnapshot = period.AttendanceCutoffDate,
+            VariableInputCutoffDateSnapshot = period.VariableInputCutoffDate,
+            PaymentDateSnapshot = period.PaymentDate,
+            Notes = "Run penampung restitusi: populasi dilengkapi otomatis saat run dihitung.",
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId
         };
         _dbContext.TrxPayrollRuns.Add(run);
         return run;
     }
+
+    private Task<MstPayrollPeriod?> ResolveFollowingPeriodAsync(MstPayrollPeriod period, CancellationToken cancellationToken) =>
+        _dbContext.MstPayrollPeriods.AsNoTracking()
+            .Where(x => !x.IsDelete && x.PeriodType == "Monthly" && x.StartDate > period.StartDate)
+            .OrderBy(x => x.StartDate)
+            .FirstOrDefaultAsync(cancellationToken);
 
     private async Task<TrxPayrollRunEmployee> ResolveOrCreateRunEmployeeAsync(
         TrxPayrollRun run, PayrollPerson employee, Guid actorUserId, CancellationToken cancellationToken)

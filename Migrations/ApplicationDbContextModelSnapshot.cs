@@ -49016,6 +49016,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PaymentSettlementMethodId");
 
+                    b.HasIndex("PayrollRunEmployeeId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TrxPayrollPayment_LiveInstruction")
+                        .HasFilter("\"IsDelete\" = false AND \"PaymentStatus\" IN ('Scheduled', 'Processing', 'Paid', 'PartiallyReversed')");
+
                     b.HasIndex("FinancePaymentId", "GlHeaderId");
 
                     b.HasIndex("PayrollRunEmployeeId", "PaymentStatus", "IsDelete");
@@ -49574,6 +49579,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("LockedByUserId");
 
+                    b.HasIndex("PayrollPeriodId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TrxPayrollRun_RegularPeriod")
+                        .HasFilter("\"IsDelete\" = false AND \"RunType\" = 'Regular' AND \"RunStatus\" NOT IN ('Cancelled', 'Reversed')");
+
                     b.HasIndex("PostedByUserId");
 
                     b.HasIndex("RunNumber")
@@ -50027,6 +50037,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("PayrollComponentId");
+
+                    b.HasIndex("SourceId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TrxPayrollVariableInput_MedicalFeeClaim")
+                        .HasFilter("\"IsDelete\" = false AND \"SourceType\" = 'MdfServiceFee' AND \"SourceId\" IS NOT NULL AND \"InputStatus\" NOT IN ('Cancelled', 'Rejected')");
 
                     b.HasIndex("SubmittedByUserId");
 

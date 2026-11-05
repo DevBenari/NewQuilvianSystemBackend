@@ -31,7 +31,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
@@ -421,11 +422,23 @@ try
     // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
     builder.Services.AddScoped<FinanceSubledgerMovementService>();
     builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
-    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run HR.
+    // Modul Payroll mandiri (Areas/Corporate/PayrollManagement): parameter kebijakan terversi (NEEDS CONFIRMATION), pola Configure<T>
+    // sama dengan FinanceReceivablePayrollSyncOptions. Nilai bawaan = perilaku sebelum Payroll dipisah dari HRD.
+    builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
+    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
+    builder.Services.AddScoped<PayrollCalculationService>();
     builder.Services.AddScoped<PayrollRunService>();
-    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya di HR.
+    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya.
     builder.Services.AddScoped<PayrollRestitutionService>();
+    // Layanan modul Payroll (PAY-BE-03..10).
+    builder.Services.AddScoped<PayrollHrdImportService>();
+    builder.Services.AddScoped<PayrollCompensationService>();
+    builder.Services.AddScoped<PayrollEmployeeDeductionService>();
+    builder.Services.AddScoped<PayrollPaymentService>();
+    builder.Services.AddScoped<PayrollPayslipService>();
+    builder.Services.AddScoped<PayrollMedicalFeeIntakeService>();
+    builder.Services.AddScoped<PayrollReportService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).

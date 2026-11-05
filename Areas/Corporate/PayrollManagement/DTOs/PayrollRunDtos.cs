@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
+namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 
 public sealed class CreatePayrollRunRequest
 {
@@ -11,11 +11,23 @@ public sealed class CreatePayrollRunRequest
 public sealed class PayrollRunDecisionRequest
 {
     [MaxLength(2000)] public string? Reason { get; set; }
+
+    /// <summary>Token versi run yang dilihat klien (<c>rowVersion</c>). Kosong = tanpa pemeriksaan; berbeda = 409.</summary>
+    [MaxLength(40)] public string? ExpectedRowVersion { get; set; }
+}
+
+/// <summary>Badan opsional untuk aksi run tanpa alasan (hitung, ajukan, sahkan, tutup).</summary>
+public sealed class PayrollRunActionRequest
+{
+    /// <summary>Token versi run yang dilihat klien (<c>rowVersion</c>). Kosong = tanpa pemeriksaan; berbeda = 409.</summary>
+    [MaxLength(40)] public string? ExpectedRowVersion { get; set; }
 }
 
 public sealed class PayrollRunQuery
 {
     public Guid? PayrollPeriodId { get; set; }
+
+    /// <summary>Satu status run, atau beberapa status dipisah koma (mis. <c>Draft,CollectingInput,Calculated</c>).</summary>
     public string? Status { get; set; }
     public string? Search { get; set; }
     public int PageNumber { get; set; } = 1;
@@ -40,6 +52,12 @@ public class PayrollRunListItemResponse
     public DateTime? CalculatedAt { get; set; }
     public DateTime? SubmittedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }
+
+    /// <summary>
+    /// Token konkurensi optimistik turunan (tick waktu pembaruan). Kirim kembali sebagai <c>expectedRowVersion</c> pada aksi run
+    /// agar aksi atas data yang sudah berubah ditolak dengan 409.
+    /// </summary>
+    public string RowVersion { get; set; } = string.Empty;
 }
 
 /// <summary>Potongan cicilan piutang RS pada satu slip: rencana dari hitung terakhir dan status konfirmasi ke Finance.</summary>
@@ -50,6 +68,9 @@ public sealed class PayrollRunInstallmentLineResponse
 
     /// <summary>Nominal sesuai perjanjian angsuran (terjadwal ditambah tunggakan terbawa).</summary>
     public decimal DueAmount { get; set; }
+
+    /// <summary>Gaji bersih yang tersedia untuk cicilan setelah pajak, iuran, dan potongan lain (dasar batas potong).</summary>
+    public decimal? AvailableNetSalary { get; set; }
     public decimal? MaxAllowedDeduction { get; set; }
     public decimal? PlannedDeduction { get; set; }
 
@@ -64,7 +85,7 @@ public sealed class PayrollRunInstallmentLineResponse
     public decimal? FinanceDeductedAmount { get; set; }
 }
 
-public sealed class PayrollRunEmployeeResponse
+public class PayrollRunEmployeeResponse
 {
     public Guid Id { get; set; }
     public Guid WorkforceProfileId { get; set; }
@@ -72,6 +93,10 @@ public sealed class PayrollRunEmployeeResponse
     public string EmployeeName { get; set; } = string.Empty;
     public string EmployeePayrollStatus { get; set; } = string.Empty;
     public decimal BaseSalary { get; set; }
+    public decimal TotalRecurringEarning { get; set; }
+    public decimal TotalVariableEarning { get; set; }
+    public decimal TotalOvertimeAmount { get; set; }
+    public decimal TotalAttendanceAllowance { get; set; }
     public decimal GrossPay { get; set; }
     public decimal TotalTax { get; set; }
     public decimal TotalEmployeeInsuranceContribution { get; set; }
@@ -85,9 +110,86 @@ public sealed class PayrollRunEmployeeResponse
     public bool HasPendingReversal { get; set; }
 }
 
+/// <summary>Satu baris komponen penghasilan/potongan pada slip penerima (gross-to-net yang dapat ditelusuri).</summary>
+public sealed class PayrollRunComponentLineResponse
+{
+    public Guid Id { get; set; }
+    public string ComponentCode { get; set; } = string.Empty;
+    public string ComponentName { get; set; } = string.Empty;
+
+    /// <summary>Earning | Deduction | Tax | Insurance.</summary>
+    public string ComponentType { get; set; } = string.Empty;
+    public string SourceType { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal Amount { get; set; }
+    public bool IsProrated { get; set; }
+    public bool IsManual { get; set; }
+    public string? Formula { get; set; }
+    public int SortOrder { get; set; }
+}
+
+/// <summary>Rincian satu penerima pada run: komponen, agregat kehadiran/lembur, dan identitas pembayaran yang disamarkan.</summary>
+public sealed class PayrollRunEmployeeDetailResponse : PayrollRunEmployeeResponse
+{
+    public int ScheduledWorkMinutes { get; set; }
+    public int ActualWorkMinutes { get; set; }
+    public int LateMinutes { get; set; }
+    public int OvertimeMinutes { get; set; }
+    public decimal PaidLeaveDays { get; set; }
+    public decimal UnpaidLeaveDays { get; set; }
+    public decimal AbsentDays { get; set; }
+    public string? BankName { get; set; }
+
+    /// <summary>Nomor rekening disamarkan (empat digit terakhir). Nomor lengkap tidak dikirim ke layar.</summary>
+    public string? BankAccountMasked { get; set; }
+    public string? TaxStatus { get; set; }
+    public bool IsSnapshotFrozen { get; set; }
+    public List<PayrollRunComponentLineResponse> Components { get; set; } = new();
+}
+
+/// <summary>Ringkasan pembayaran run (instruksi ke Finance dan hasil bank). Hanya terisi setelah handoff.</summary>
+public sealed class PayrollRunPaymentSummaryResponse
+{
+    public int InstructionCount { get; set; }
+    public int ScheduledCount { get; set; }
+    public int PaidCount { get; set; }
+    public int FailedCount { get; set; }
+    public decimal TotalInstructionAmount { get; set; }
+    public decimal TotalPaidAmount { get; set; }
+}
+
+/// <summary>Satu baris riwayat perpindahan status run (jejak audit dari persetujuan dan cap waktu aksi).</summary>
+public sealed class PayrollRunStatusHistoryItemResponse
+{
+    public DateTime OccurredAt { get; set; }
+
+    /// <summary>Submit | Return | Approve | Cancel | ReversalRequest | ReversalApprove | ReversalReject | Close | FinanceHandoff.</summary>
+    public string Action { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public Guid? ActorUserId { get; set; }
+    public string? ActorName { get; set; }
+    public string? Comments { get; set; }
+}
+
 public sealed class PayrollRunDetailResponse : PayrollRunListItemResponse
 {
     public string? Notes { get; set; }
+    public DateTime PeriodStartDate { get; set; }
+    public DateTime PeriodEndDate { get; set; }
+    public DateTime? PaymentDate { get; set; }
+
+    /// <summary>Versi kebijakan yang dipakai hitung terakhir (kosong bila belum dihitung).</summary>
+    public string? PolicyVersion { get; set; }
+
+    /// <summary>
+    /// Aksi yang sedang boleh dijalankan menurut status run (bantuan tampilan, BUKAN pengaman: setiap aksi memeriksa ulang di backend).
+    /// Nilai: Calculate, ImportHrd, Submit, Return, Approve, Cancel, FinanceHandoff, Close, RequestReversal, GeneratePayslips.
+    /// </summary>
+    public List<string> AvailableActions { get; set; } = new();
+
+    /// <summary>Catatan tidak menahan (mis. rekening belum terverifikasi, input Draft tidak dihitung).</summary>
+    public List<string> Warnings { get; set; } = new();
+    public PayrollRunPaymentSummaryResponse? PaymentSummary { get; set; }
 
     /// <summary>Penahan pengajuan: data yang belum lengkap atau tidak valid. Kosong berarti run siap diajukan.</summary>
     public List<string> Blockers { get; set; } = new();
@@ -129,6 +231,28 @@ public sealed class PayrollReversalResponse
     public DateTime? PostedAt { get; set; }
 }
 
+/// <summary>Ringkasan jumlah payroll run per status (baseline standar transaksi). Hanya jumlah, tanpa nominal gaji.</summary>
+public sealed class PayrollRunSummaryResponse
+{
+    public int TotalRuns { get; set; }
+
+    /// <summary>Run yang menunggu tindakan pengguna: Draft, CollectingInput, Calculated, Submitted.</summary>
+    public int AwaitingActionCount { get; set; }
+
+    /// <summary>Run yang sudah di tahap pembayaran: SentToFinance, PartiallyPaid.</summary>
+    public int InPaymentCount { get; set; }
+    public Dictionary<string, int> CountByStatus { get; set; } = new();
+}
+
+/// <summary>Metadata filter daftar payroll run (baseline standar transaksi).</summary>
+public sealed class PayrollRunFilterMetadataResponse
+{
+    public List<string> Statuses { get; set; } = new();
+    public List<string> RunTypes { get; set; } = new();
+    public int DefaultPageSize { get; set; }
+    public List<int> PageSizeOptions { get; set; } = new();
+}
+
 public static class PayrollPeriodProcessStatuses
 {
     /// <summary>Periode sejak peralihan, tetapi HRD belum membuat payroll run. Jadwal angsuran menunggu.</summary>
@@ -148,7 +272,7 @@ public static class PayrollInstallmentProcessStatuses
     public const string Confirmed = "TERKONFIRMASI";
 }
 
-public sealed class PayrollPeriodOptionResponse
+public sealed class PayrollRunPeriodOptionResponse
 {
     public Guid Id { get; set; }
     public string Code { get; set; } = string.Empty;

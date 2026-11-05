@@ -1,34 +1,40 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 using System.Text.Json;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 
 /// <summary>
-/// Siklus minimum payroll run milik HRD: buka (Draft) -> hitung (Calculated) -> ajukan (Submitted) -> sahkan (Approved).
+/// Siklus payroll run milik modul Payroll: buka (Draft) -> impor HRD (CollectingInput) -> hitung (Calculated) -> ajukan (Submitted)
+/// -> sahkan (Approved, terkunci) -> kirim ke Finance (SentToFinance) -> hasil bank (PartiallyPaid/Paid) -> tutup (Closed).
 ///
-/// Prinsip (keputusan Finance-HRD):
-/// - HRD pemilik run dan hasil potongan; Finance pemilik piutang dan jadwal angsuran. Finance tidak membuat run.
+/// Prinsip (keputusan Finance-HRD yang dipertahankan):
+/// - Payroll pemilik run dan hasil potongan; Finance pemilik piutang dan jadwal angsuran. Finance tidak membuat run.
 /// - Saat run dibuka dan dihitung, jadwal angsuran periode itu DITARIK dari Finance (dan hanya periode sejak peralihan).
-/// - Potongan dihitung saat HRD menghitung payroll, tetapi saldo piutang HANYA berkurang saat run DISAHKAN, atomik dalam satu
-///   transaksi serializable: bila satu hasil gagal diterima Finance, pengesahan dibatalkan seluruhnya.
+/// - Potongan dihitung saat payroll dihitung, tetapi saldo piutang HANYA berkurang saat run DISAHKAN, atomik dalam satu
+///   transaksi serializable: bila satu hasil gagal diterima Finance, pengesahan dibatalkan seluruhnya. Titik pengakuan penyelesaian
+///   ini sengaja tidak diubah; apakah seharusnya menunggu konfirmasi pembayaran adalah NEEDS CONFIRMATION (pemilik Finance).
 /// - Run yang sudah disahkan terkunci. Koreksi lewat pembalikan Finance dengan approval, bukan menghitung ulang.
 ///
-/// Perhitungan gaji di sini bersifat MINIMUM: gaji pokok dan tunjangan tetap dari profil payroll aktif (WfpPayroll), pajak dan
-/// iuran pegawai memakai nilai profil. Input variabel lain (lembur, kehadiran, dll.) belum diikutkan; lihat laporan task.
+/// Perhitungan gaji didelegasikan ke <see cref="PayrollCalculationService"/> (gaji pokok dari penetapan gaji disetujui dengan prorata,
+/// tunjangan, lembur, kehadiran, input variabel, pajak/iuran dari tetapan profil). Cicilan piutang dipotong sesudahnya.
 /// </summary>
 public sealed class PayrollRunService
 {
+    // String kategori audit sengaja dipertahankan (bukan namespace) agar riwayat audit payroll run tidak terpecah.
     private const string LogCategory = "Corporate.HumanResource.PayrollManagement.PayrollRun";
     private const string RegularRunType = "Regular";
     private const string EmployeeCalculated = "Calculated";
@@ -40,20 +46,27 @@ public sealed class PayrollRunService
     private readonly LoggerService _loggerService;
     private readonly FinanceReceivablePayrollSyncService _syncService;
     private readonly PayrollInstallmentDeductionService _deductionService;
+    private readonly PayrollCalculationService _calculationService;
+    private readonly PayrollPolicyOptions _policy;
 
     public PayrollRunService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
         FinanceReceivablePayrollSyncService syncService,
-        PayrollInstallmentDeductionService deductionService)
+        PayrollInstallmentDeductionService deductionService,
+        PayrollCalculationService calculationService,
+        IOptions<PayrollPolicyOptions> policyOptions)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _syncService = syncService;
         _deductionService = deductionService;
+        _calculationService = calculationService;
+        _policy = policyOptions.Value;
     }
 
-    private sealed record ValidationSummary(List<string> Blockers, List<string> SyncNotes);
+    /// <summary>Warnings bertipe opsional supaya JSON lama (tanpa Warnings) tetap terbaca.</summary>
+    private sealed record ValidationSummary(List<string> Blockers, List<string> SyncNotes, List<string>? Warnings = null);
 
     // ------------------------------------------------------------------------------------
     // Baca
@@ -66,7 +79,12 @@ public sealed class PayrollRunService
 
         var query = _dbContext.TrxPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod).Where(x => !x.IsDelete);
         if (request.PayrollPeriodId.HasValue) query = query.Where(x => x.PayrollPeriodId == request.PayrollPeriodId.Value);
-        if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.RunStatus == request.Status);
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var statuses = request.Status.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (statuses.Length == 1) query = query.Where(x => x.RunStatus == statuses[0]);
+            else if (statuses.Length > 1) query = query.Where(x => statuses.Contains(x.RunStatus));
+        }
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var term = request.Search.Trim();
@@ -103,10 +121,15 @@ public sealed class PayrollRunService
 
         var detail = MapListItem(run, new PayrollRunDetailResponse());
         detail.Notes = run.Notes;
+        detail.PeriodStartDate = run.PeriodStartDateSnapshot;
+        detail.PeriodEndDate = run.PeriodEndDateSnapshot;
+        detail.PaymentDate = run.PaymentDateSnapshot;
+        detail.PolicyVersion = ReadPolicyVersion(run.PolicySnapshotJson);
 
         var validation = ReadValidation(run.ValidationSummaryJson);
         detail.Blockers = validation.Blockers;
         detail.InstallmentSyncNotes = validation.SyncNotes;
+        detail.Warnings = validation.Warnings ?? new List<string>();
 
         var reversals = await _dbContext.TrxPayrollReversals.AsNoTracking()
             .Where(x => x.PayrollRunId == id && !x.IsDelete)
@@ -133,6 +156,10 @@ public sealed class PayrollRunService
             EmployeeName = e.EmployeeNameSnapshot,
             EmployeePayrollStatus = e.EmployeePayrollStatus,
             BaseSalary = e.BaseSalary,
+            TotalRecurringEarning = e.TotalRecurringEarning,
+            TotalVariableEarning = e.TotalVariableEarning,
+            TotalOvertimeAmount = e.TotalOvertimeAmount,
+            TotalAttendanceAllowance = e.TotalAttendanceAllowance,
             GrossPay = e.GrossPay,
             TotalTax = e.TotalTax,
             TotalEmployeeInsuranceContribution = e.TotalEmployeeInsuranceContribution,
@@ -171,18 +198,118 @@ public sealed class PayrollRunService
         detail.InstallmentCount = lines.Count;
         detail.TotalInstallmentDue = lines.Sum(l => l.DueAmount);
         detail.TotalInstallmentPlanned = lines.Sum(l => l.PlannedDeduction ?? 0m);
+
+        var payments = await _dbContext.TrxPayrollPayments.AsNoTracking()
+            .Where(x => x.PayrollRunId == id && !x.IsDelete)
+            .Select(x => new { x.PaymentStatus, x.PaymentAmount, x.NetPaidAmount })
+            .ToListAsync(cancellationToken);
+        if (payments.Count > 0)
+        {
+            var live = payments.Where(p => PayrollPaymentStatuses.IsLive(p.PaymentStatus)).ToList();
+            detail.PaymentSummary = new PayrollRunPaymentSummaryResponse
+            {
+                InstructionCount = live.Count,
+                ScheduledCount = live.Count(p => p.PaymentStatus == PayrollPaymentStatuses.Scheduled || p.PaymentStatus == PayrollPaymentStatuses.Processing),
+                PaidCount = live.Count(p => p.PaymentStatus == PayrollPaymentStatuses.Paid || p.PaymentStatus == PayrollPaymentStatuses.PartiallyReversed),
+                FailedCount = payments.Count(p => p.PaymentStatus == PayrollPaymentStatuses.Failed),
+                TotalInstructionAmount = live.Sum(p => p.PaymentAmount),
+                TotalPaidAmount = live.Sum(p => p.NetPaidAmount)
+            };
+        }
+
+        detail.AvailableActions = BuildAvailableActions(run, detail);
         return detail;
     }
 
+    /// <summary>
+    /// Aksi yang boleh dijalankan menurut status run. Hanya bantuan tampilan: setiap endpoint aksi memeriksa ulang status dan
+    /// kewenangan di backend. Izin Akses Role per aksi diperiksa terpisah oleh [AccessPermission].
+    /// </summary>
+    private static List<string> BuildAvailableActions(TrxPayrollRun run, PayrollRunDetailResponse detail)
+    {
+        var actions = new List<string>();
+        var status = run.RunStatus;
+        var ready = detail.Blockers.Count == 0 && detail.ErrorEmployeeCount == 0 && detail.TotalEmployeeCount > 0;
+
+        if (!run.IsLocked && PayrollRunStatuses.AcceptsInputs(status))
+        {
+            actions.Add("ImportHrd");
+            actions.Add("Calculate");
+        }
+        if (string.Equals(status, PayrollRunStatuses.Calculated, StringComparison.OrdinalIgnoreCase) && ready) actions.Add("Submit");
+        if (string.Equals(status, PayrollRunStatuses.Submitted, StringComparison.OrdinalIgnoreCase))
+        {
+            actions.Add("Return");
+            if (ready) actions.Add("Approve");
+        }
+        if (!run.IsLocked && !PayrollRunStatuses.IsFinalized(status)
+            && !string.Equals(status, PayrollRunStatuses.Cancelled, StringComparison.OrdinalIgnoreCase)) actions.Add("Cancel");
+        if (PayrollRunStatuses.AllowsFinanceHandoff(status)) actions.Add("FinanceHandoff");
+        if (PayrollRunStatuses.AllowsDeductionReversal(status)) actions.Add("RequestReversal");
+        if (PayrollRunStatuses.AllowsPayslipGeneration(status)) actions.Add("GeneratePayslips");
+        if (string.Equals(status, PayrollRunStatuses.Paid, StringComparison.OrdinalIgnoreCase)) actions.Add("Close");
+        return actions;
+    }
+
+    private static string? ReadPolicyVersion(string? policySnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(policySnapshotJson)) return null;
+        try
+        {
+            using var document = JsonDocument.Parse(policySnapshotJson);
+            return document.RootElement.TryGetProperty("policyVersion", out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Ringkasan jumlah run per status. Hanya jumlah; tidak ada nominal gaji.</summary>
+    public async Task<PayrollRunSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var rows = await _dbContext.TrxPayrollRuns.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .GroupBy(x => x.RunStatus)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        var byStatus = rows.ToDictionary(r => r.Status, r => r.Count);
+        int Count(params string[] statuses) => statuses.Sum(s => byStatus.GetValueOrDefault(s));
+
+        return new PayrollRunSummaryResponse
+        {
+            TotalRuns = rows.Sum(r => r.Count),
+            AwaitingActionCount = Count(PayrollRunStatuses.Draft, PayrollRunStatuses.CollectingInput,
+                PayrollRunStatuses.Calculated, PayrollRunStatuses.Submitted),
+            InPaymentCount = Count(PayrollRunStatuses.SentToFinance, PayrollRunStatuses.PartiallyPaid),
+            CountByStatus = byStatus
+        };
+    }
+
+    public static PayrollRunFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        Statuses = new List<string>
+        {
+            PayrollRunStatuses.Draft, PayrollRunStatuses.CollectingInput, PayrollRunStatuses.Calculated, PayrollRunStatuses.Submitted,
+            PayrollRunStatuses.Approved, PayrollRunStatuses.SentToFinance, PayrollRunStatuses.PartiallyPaid, PayrollRunStatuses.Paid,
+            PayrollRunStatuses.Closed, PayrollRunStatuses.Cancelled, PayrollRunStatuses.Reversed
+        },
+        RunTypes = new List<string> { RegularRunType },
+        DefaultPageSize = 20,
+        PageSizeOptions = new List<int> { 10, 20, 50, 100 }
+    };
+
     /// <summary>Periode bulanan aktif terbaru, untuk memilih periode pada layar Payroll Run.</summary>
-    public async Task<List<PayrollPeriodOptionResponse>> GetPeriodOptionsAsync(CancellationToken cancellationToken)
+    public async Task<List<PayrollRunPeriodOptionResponse>> GetPeriodOptionsAsync(CancellationToken cancellationToken)
     {
         var periods = await _dbContext.MstPayrollPeriods.AsNoTracking()
             .Where(x => !x.IsDelete && x.PeriodType == "Monthly")
             .OrderByDescending(x => x.FiscalYear).ThenByDescending(x => x.PeriodNumber)
             .Take(36)
             .ToListAsync(cancellationToken);
-        return periods.Select(x => new PayrollPeriodOptionResponse
+        return periods.Select(x => new PayrollRunPeriodOptionResponse
         {
             Id = x.Id,
             Code = x.PayrollPeriodCode,
@@ -363,17 +490,16 @@ public sealed class PayrollRunService
             };
             _dbContext.TrxPayrollRuns.Add(run);
 
-            var skippedNoIdentity = await SeedEmployeesAsync(run, period, actorUserId, cancellationToken);
-            run.TotalEmployeeCount = _dbContext.ChangeTracker.Entries<TrxPayrollRunEmployee>()
-                .Count(x => x.State == EntityState.Added && x.Entity.PayrollRunId == run.Id);
+            var seed = await SeedEmployeesAsync(run, period, actorUserId, cancellationToken);
+            run.TotalEmployeeCount = seed.Added;
 
             // Baris run dan pegawai harus tersimpan dulu agar jadwal angsuran dapat ditautkan ke baris pegawai yang sah.
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var sync = await _syncService.SyncScheduledForRunAsync(period, actorUserId, cancellationToken);
             var notes = sync.SkipReasons.Distinct().ToList();
-            if (skippedNoIdentity > 0)
-                notes.Add($"{skippedNoIdentity} profil payroll aktif dilewati karena identitas pegawai/dokter tidak ditemukan.");
+            if (seed.SkippedNoIdentity > 0)
+                notes.Add($"{seed.SkippedNoIdentity} profil payroll aktif dilewati karena identitas pegawai/dokter tidak ditemukan.");
             run.ValidationSummaryJson = JsonSerializer.Serialize(new ValidationSummary(new List<string>(), notes));
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -386,8 +512,15 @@ public sealed class PayrollRunService
         return await GetByIdAsync(runId, cancellationToken);
     }
 
-    /// <summary>Baris pegawai dari profil payroll aktif dan eligible yang berlaku pada periode. Mengembalikan jumlah profil yang dilewati.</summary>
-    private async Task<int> SeedEmployeesAsync(TrxPayrollRun run, MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
+    private sealed record PayrollSeedResult(int Added, int SkippedNoIdentity, int Repaired);
+
+    /// <summary>
+    /// Melengkapi baris pegawai dari profil payroll aktif dan eligible yang berlaku pada periode. Idempoten: pegawai yang sudah ada
+    /// pada run ini TIDAK digandakan (indeks unik run+pegawai juga menjaganya), dan baris yang dibuat jalur lain tanpa profil
+    /// (mis. restitusi) dilengkapi dengan profil payroll aktifnya. Dipanggil saat membuka dan saat menghitung run, sehingga run
+    /// penampung tidak pernah disahkan dengan populasi yang tidak lengkap.
+    /// </summary>
+    private async Task<PayrollSeedResult> SeedEmployeesAsync(TrxPayrollRun run, MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
     {
         var profiles = await _dbContext.WfpPayrolls.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.IsPayrollEligible && x.PayrollStatus == "Active"
@@ -410,14 +543,40 @@ public sealed class PayrollRunService
         var employeeMap = employees.GroupBy(x => x.WorkforceProfileId).ToDictionary(g => g.Key, g => g.First());
         var doctorMap = doctors.GroupBy(x => x.WorkforceProfileId).ToDictionary(g => g.Key, g => g.First());
 
+        var existingRows = await _dbContext.TrxPayrollRunEmployees
+            .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+        var existingByWorkforce = existingRows.GroupBy(x => x.WorkforceProfileId).ToDictionary(g => g.Key, g => g.First());
+
         var skipped = 0;
+        var added = 0;
+        var repaired = 0;
         foreach (var profile in chosen)
         {
+            if (existingByWorkforce.TryGetValue(profile.WorkforceProfileId, out var existingRow))
+            {
+                if (!existingRow.PayrollProfileId.HasValue)
+                {
+                    existingRow.OrganizationAssignmentId = profile.OrganizationAssignmentId;
+                    existingRow.PayrollProfileId = profile.Id;
+                    existingRow.SalaryAssignmentId = profile.SalaryAssignmentId;
+                    existingRow.BankAccountId = profile.BankAccountId;
+                    existingRow.CostCenterId = profile.CostCenterId;
+                    existingRow.SalaryStructureId = profile.SalaryStructureId;
+                    existingRow.SalaryGradeId = profile.SalaryGradeId;
+                    existingRow.UpdateDateTime = DateTime.UtcNow;
+                    existingRow.UpdateBy = actorUserId;
+                    repaired++;
+                }
+                continue;
+            }
+
             Guid? employeeId = null;
             string number, name;
             if (employeeMap.TryGetValue(profile.WorkforceProfileId, out var emp)) { employeeId = emp.Id; number = emp.EmployeeNumber; name = emp.FullName; }
             else if (doctorMap.TryGetValue(profile.WorkforceProfileId, out var doc)) { number = doc.DoctorNumber; name = doc.FullName; }
             else { skipped++; continue; }
+            added++;
 
             _dbContext.TrxPayrollRunEmployees.Add(new TrxPayrollRunEmployee
             {
@@ -439,18 +598,19 @@ public sealed class PayrollRunService
                 CreateBy = actorUserId
             });
         }
-        return skipped;
+        return new PayrollSeedResult(added, skipped, repaired);
     }
 
     // ------------------------------------------------------------------------------------
     // Hitung
     // ------------------------------------------------------------------------------------
 
-    public async Task<PayrollRunDetailResponse> CalculateAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<PayrollRunDetailResponse> CalculateAsync(Guid id, string? expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
     {
         await InTransactionAsync($"HR_PAYROLL_RUN_{id:N}", async () =>
         {
             var run = await LoadRunAsync(id, cancellationToken);
+            PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
             if (run.IsLocked || !PayrollRunStatuses.AcceptsInputs(run.RunStatus))
                 throw new PayrollRunValidationException($"Payroll run {run.RunNumber} berstatus {run.RunStatus} dan tidak dapat dihitung ulang.");
             if (run.PayrollPeriod is null || run.PayrollPeriod.IsLocked)
@@ -458,60 +618,36 @@ public sealed class PayrollRunService
 
             run.CalculationStartedAt = DateTime.UtcNow;
 
+            // Populasi dilengkapi lebih dulu (pegawai baru yang eligible, baris penampung dari restitusi) supaya angsuran dan input
+            // tertaut ke baris pegawai yang sah dan run tidak disahkan dengan populasi yang tidak lengkap.
+            var seed = await SeedEmployeesAsync(run, run.PayrollPeriod, actorUserId, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
             // Jadwal angsuran terbaru (mis. perjanjian baru disetujui setelah run dibuka) ditarik lagi; idempoten.
             var sync = await _syncService.SyncScheduledForRunAsync(run.PayrollPeriod, actorUserId, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var employees = await _dbContext.TrxPayrollRunEmployees
-                .Include(x => x.Components)
-                .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
-                .ToListAsync(cancellationToken);
-
-            var blockers = new List<string>();
-            foreach (var employee in employees)
-            {
-                var profile = employee.PayrollProfileId.HasValue
-                    ? await _dbContext.WfpPayrolls.AsNoTracking()
-                        .FirstOrDefaultAsync(x => x.Id == employee.PayrollProfileId.Value && !x.IsDelete, cancellationToken)
-                    : null;
-
-                if (profile is null || !profile.IsPayrollEligible)
-                {
-                    MarkError(employee, "Profil payroll tidak ditemukan atau tidak eligible.", actorUserId);
-                    blockers.Add($"{employee.EmployeeNameSnapshot}: profil payroll tidak ditemukan atau tidak eligible.");
-                    continue;
-                }
-
-                employee.BaseSalary = profile.BaseSalary;
-                employee.TotalRecurringEarning = profile.TotalAllowance;
-                employee.GrossPay = employee.BaseSalary + employee.TotalRecurringEarning + employee.TotalVariableEarning;
-                employee.TotalTax = profile.TaxAmount;
-                employee.TotalEmployeeInsuranceContribution = profile.InsuranceAmount;
-
-                var otherDeductions = employee.Components
-                    .Where(c => !c.IsDelete && c.ComponentTypeSnapshot == "Deduction"
-                        && c.ComponentCodeSnapshot != InstallmentComponentCode && c.ComponentCodeSnapshot != "LOAN_HOSPITAL_AR")
-                    .Sum(c => c.Amount);
-                employee.TotalDeduction = employee.TotalTax + employee.TotalEmployeeInsuranceContribution + otherDeductions;
-                employee.NetPay = employee.GrossPay - employee.TotalDeduction;
-                employee.UpdateDateTime = DateTime.UtcNow;
-                employee.UpdateBy = actorUserId;
-
-                if (employee.GrossPay <= 0m)
-                {
-                    MarkError(employee, "Gaji bruto nol atau belum dikonfigurasi pada profil payroll.", actorUserId);
-                    blockers.Add($"{employee.EmployeeNameSnapshot}: gaji bruto nol atau belum dikonfigurasi pada profil payroll.");
-                    continue;
-                }
-
-                employee.EmployeePayrollStatus = EmployeeCalculated;
-                employee.ValidationResultJson = null;
-            }
+            // Gross-to-net per penerima (gaji pokok prorata, tunjangan, lembur, kehadiran, input variabel, pajak/iuran).
+            var calculation = await _calculationService.CalculateRunAsync(run, run.PayrollPeriod, actorUserId, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var blockers = new List<string>(calculation.Blockers);
+            var warnings = new List<string>(calculation.Warnings);
+            if (seed.SkippedNoIdentity > 0)
+                warnings.Add($"{seed.SkippedNoIdentity} profil payroll aktif dilewati karena identitas pegawai/dokter tidak ditemukan.");
 
             // Potongan cicilan dihitung setelah gaji bruto dan potongan wajib ada. Belum menyentuh Finance.
             var deductions = await _deductionService.CalculateRunAsync(run, actorUserId, cancellationToken);
             blockers.AddRange(deductions.Blockers);
+
+            var employees = await _dbContext.TrxPayrollRunEmployees
+                .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+            foreach (var employee in employees)
+            {
+                // Jumlah yang akan dibayarkan = gaji bersih setelah cicilan; penerima bermasalah tidak membawa nominal bayar.
+                employee.PaymentAmount = employee.EmployeePayrollStatus == EmployeeCalculated ? employee.NetPay : 0m;
+            }
 
             run.TotalEmployeeCount = employees.Count;
             run.ProcessedEmployeeCount = employees.Count(x => x.EmployeePayrollStatus == EmployeeCalculated);
@@ -521,13 +657,15 @@ public sealed class PayrollRunService
             run.TotalGrossPay = employees.Sum(x => x.GrossPay);
             run.TotalTax = employees.Sum(x => x.TotalTax);
             run.TotalEmployeeContribution = employees.Sum(x => x.TotalEmployeeInsuranceContribution);
+            run.TotalEmployerContribution = employees.Sum(x => x.TotalEmployerInsuranceContribution);
             run.TotalDeduction = employees.Sum(x => x.TotalDeduction);
             run.TotalNetPay = employees.Sum(x => x.NetPay);
             run.RunStatus = PayrollRunStatuses.Calculated;
             run.CalculatedAt = DateTime.UtcNow;
             run.CalculatedByUserId = actorUserId;
-            run.ValidationSummaryJson = JsonSerializer.Serialize(
-                new ValidationSummary(blockers.Distinct().ToList(), sync.SkipReasons.Distinct().ToList()));
+            run.PolicySnapshotJson = _calculationService.BuildPolicySnapshotJson();
+            run.ValidationSummaryJson = JsonSerializer.Serialize(new ValidationSummary(
+                blockers.Distinct().ToList(), sync.SkipReasons.Distinct().ToList(), warnings.Distinct().ToList()));
             run.UpdateDateTime = DateTime.UtcNow;
             run.UpdateBy = actorUserId;
 
@@ -545,11 +683,12 @@ public sealed class PayrollRunService
     // Ajukan, kembalikan, sahkan, batalkan
     // ------------------------------------------------------------------------------------
 
-    public async Task<PayrollRunDetailResponse> SubmitAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<PayrollRunDetailResponse> SubmitAsync(Guid id, string? expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
     {
         await InTransactionAsync($"HR_PAYROLL_RUN_{id:N}", async () =>
         {
             var run = await LoadRunAsync(id, cancellationToken);
+            PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
             if (run.RunStatus != PayrollRunStatuses.Calculated)
                 throw new PayrollRunValidationException($"Hanya payroll run berstatus Calculated yang dapat diajukan (saat ini {run.RunStatus}).");
             EnsureReadyToDecide(run);
@@ -571,13 +710,14 @@ public sealed class PayrollRunService
     }
 
     /// <summary>Mengembalikan run yang diajukan ke tahap hitung (ditolak reviewer). Belum ada efek ke Finance pada tahap ini.</summary>
-    public async Task<PayrollRunDetailResponse> ReturnAsync(Guid id, string? reason, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<PayrollRunDetailResponse> ReturnAsync(Guid id, string? reason, string? expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(reason)) throw new PayrollRunValidationException("Alasan pengembalian wajib diisi.");
 
         await InTransactionAsync($"HR_PAYROLL_RUN_{id:N}", async () =>
         {
             var run = await LoadRunAsync(id, cancellationToken);
+            PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
             if (run.RunStatus != PayrollRunStatuses.Submitted)
                 throw new PayrollRunValidationException($"Hanya payroll run berstatus Submitted yang dapat dikembalikan (saat ini {run.RunStatus}).");
 
@@ -602,14 +742,19 @@ public sealed class PayrollRunService
     /// dikunci bersamaan. Bila satu hasil gagal diterima Finance, seluruh pengesahan dibatalkan. Idempoten: run yang sudah Approved
     /// dikembalikan apa adanya, tanpa mengirim ulang hasil.
     /// </summary>
-    public async Task<PayrollRunDetailResponse> ApproveAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<PayrollRunDetailResponse> ApproveAsync(Guid id, string? expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
     {
         await InTransactionAsync($"HR_PAYROLL_RUN_{id:N}", async () =>
         {
             var run = await LoadRunAsync(id, cancellationToken);
-            if (run.RunStatus == PayrollRunStatuses.Approved) return run.Id;
+            // Idempoten: run yang sudah disahkan (atau sudah melewati pengesahan) dikembalikan apa adanya, tanpa mengirim ulang hasil.
+            if (run.ApprovedAt.HasValue && PayrollRunStatuses.IsFinalized(run.RunStatus)) return run.Id;
+            PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
             if (run.RunStatus != PayrollRunStatuses.Submitted)
                 throw new PayrollRunValidationException($"Hanya payroll run berstatus Submitted yang dapat disahkan (saat ini {run.RunStatus}).");
+            // NEEDS CONFIRMATION (alur approval berjenjang): pemisahan pengaju dan pengesah baru berlaku bila kebijakan menyalakannya.
+            if (_policy.RequireDifferentApprover && run.SubmittedByUserId.HasValue && run.SubmittedByUserId.Value == actorUserId)
+                throw new PayrollForbiddenActionException("Pengaju run tidak boleh mengesahkan run yang sama (kebijakan pemisahan kewenangan).");
             EnsureReadyToDecide(run);
 
             var confirmed = await _deductionService.ConfirmRunAsync(run, actorUserId, cancellationToken);
@@ -619,6 +764,7 @@ public sealed class PayrollRunService
                 .Where(x => x.PayrollRunId == run.Id && !x.IsDelete).ToListAsync(cancellationToken);
             foreach (var employee in employees)
             {
+                employee.PaymentAmount = employee.NetPay;
                 employee.EmployeePayrollStatus = EmployeeFinalized;
                 employee.IsFinalized = true;
                 employee.FinalizedAt = now;
@@ -649,13 +795,14 @@ public sealed class PayrollRunService
     }
 
     /// <summary>Membatalkan run SEBELUM disahkan. Run yang sudah disahkan tidak dibatalkan; koreksinya lewat pembalikan.</summary>
-    public async Task<PayrollRunDetailResponse> CancelAsync(Guid id, string? reason, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<PayrollRunDetailResponse> CancelAsync(Guid id, string? reason, string? expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(reason)) throw new PayrollRunValidationException("Alasan pembatalan wajib diisi.");
 
         await InTransactionAsync($"HR_PAYROLL_RUN_{id:N}", async () =>
         {
             var run = await LoadRunAsync(id, cancellationToken);
+            PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
             if (PayrollRunStatuses.IsFinalized(run.RunStatus) || run.IsLocked)
                 throw new PayrollRunValidationException("Payroll run yang sudah disahkan tidak dapat dibatalkan; gunakan pembalikan dengan approval.");
             if (run.RunStatus == PayrollRunStatuses.Cancelled) return run.Id;
@@ -692,8 +839,8 @@ public sealed class PayrollRunService
         await InTransactionAsync($"HR_PAYROLL_RUN_{runId:N}", async () =>
         {
             var run = await LoadRunAsync(runId, cancellationToken);
-            if (run.RunStatus != PayrollRunStatuses.Approved)
-                throw new PayrollRunValidationException("Pembalikan hanya untuk payroll run yang sudah disahkan. Run yang belum disahkan cukup dikembalikan atau dihitung ulang.");
+            if (!PayrollRunStatuses.AllowsDeductionReversal(run.RunStatus))
+                throw new PayrollRunValidationException("Pembalikan hanya untuk payroll run yang sudah disahkan (belum ditutup atau dibatalkan). Run yang belum disahkan cukup dikembalikan atau dihitung ulang.");
 
             var employee = await _dbContext.TrxPayrollRunEmployees
                 .Include(x => x.Components).Include(x => x.VariableInputs)
@@ -839,6 +986,147 @@ public sealed class PayrollRunService
     }
 
     // ------------------------------------------------------------------------------------
+    // Riwayat status, rincian penerima, dan penutupan
+    // ------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Riwayat perpindahan status run (standar transaksi 5.4): diturunkan dari jejak persetujuan (<c>TrxPayrollApproval</c>) yang
+    /// ditulis setiap aksi. Nama aktor dipetakan dari pengguna terautentikasi; tidak ada data yang diubah.
+    /// </summary>
+    public async Task<List<PayrollRunStatusHistoryItemResponse>> GetStatusHistoryAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var exists = await _dbContext.TrxPayrollRuns.AsNoTracking().AnyAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+        if (!exists) throw new KeyNotFoundException("Payroll run tidak ditemukan.");
+
+        var rows = await _dbContext.TrxPayrollApprovals.AsNoTracking()
+            .Where(x => x.PayrollRunId == id && !x.IsDelete)
+            .OrderBy(x => x.CreateDateTime)
+            .ToListAsync(cancellationToken);
+
+        var actorIds = rows.Where(r => r.ActualActionByUserId.HasValue).Select(r => r.ActualActionByUserId!.Value).Distinct().ToList();
+        var names = actorIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.Users.AsNoTracking()
+                .Where(u => actorIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.DisplayName })
+                .ToDictionaryAsync(u => u.Id, u => u.DisplayName, cancellationToken);
+
+        return rows.Select(r => new PayrollRunStatusHistoryItemResponse
+        {
+            OccurredAt = r.ActionAt ?? r.CreateDateTime,
+            Action = r.ActionType ?? string.Empty,
+            Status = r.ApprovalStatus,
+            ActorUserId = r.ActualActionByUserId,
+            ActorName = r.ActualActionByUserId.HasValue && names.TryGetValue(r.ActualActionByUserId.Value, out var name) ? name : null,
+            Comments = r.Comments
+        }).ToList();
+    }
+
+    /// <summary>Rincian satu penerima: komponen gross-to-net dan agregat kehadiran. Rekening disamarkan; NPWP tidak dikirim.</summary>
+    public async Task<PayrollRunEmployeeDetailResponse> GetEmployeeDetailAsync(Guid runId, Guid runEmployeeId, CancellationToken cancellationToken)
+    {
+        var employee = await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+            .Include(x => x.Components)
+            .Include(x => x.VariableInputs)
+            .SingleOrDefaultAsync(x => x.Id == runEmployeeId && x.PayrollRunId == runId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Pegawai tidak ditemukan pada payroll run ini.");
+
+        var line = PayrollInstallmentDeductionService.ReadLine(employee);
+        var account = employee.BankAccountNumberSnapshot;
+        return new PayrollRunEmployeeDetailResponse
+        {
+            Id = employee.Id,
+            WorkforceProfileId = employee.WorkforceProfileId,
+            EmployeeNumber = employee.EmployeeNumberSnapshot ?? string.Empty,
+            EmployeeName = employee.EmployeeNameSnapshot,
+            EmployeePayrollStatus = employee.EmployeePayrollStatus,
+            BaseSalary = employee.BaseSalary,
+            TotalRecurringEarning = employee.TotalRecurringEarning,
+            TotalVariableEarning = employee.TotalVariableEarning,
+            TotalOvertimeAmount = employee.TotalOvertimeAmount,
+            TotalAttendanceAllowance = employee.TotalAttendanceAllowance,
+            GrossPay = employee.GrossPay,
+            TotalTax = employee.TotalTax,
+            TotalEmployeeInsuranceContribution = employee.TotalEmployeeInsuranceContribution,
+            TotalDeduction = employee.TotalDeduction,
+            NetPay = employee.NetPay,
+            ValidationMessage = employee.ValidationResultJson,
+            Installment = line,
+            ScheduledWorkMinutes = employee.ScheduledWorkMinutes,
+            ActualWorkMinutes = employee.ActualWorkMinutes,
+            LateMinutes = employee.LateMinutes,
+            OvertimeMinutes = employee.OvertimeMinutes,
+            PaidLeaveDays = employee.PaidLeaveDays,
+            UnpaidLeaveDays = employee.UnpaidLeaveDays,
+            AbsentDays = employee.AbsentDays,
+            BankName = employee.BankNameSnapshot,
+            BankAccountMasked = MaskAccount(account),
+            TaxStatus = employee.TaxStatusSnapshot,
+            IsSnapshotFrozen = employee.IsSnapshotFrozen,
+            Components = employee.Components
+                .Where(c => !c.IsDelete)
+                .OrderBy(c => c.SortOrder).ThenBy(c => c.ComponentCodeSnapshot)
+                .Select(c => new PayrollRunComponentLineResponse
+                {
+                    Id = c.Id,
+                    ComponentCode = c.ComponentCodeSnapshot,
+                    ComponentName = c.ComponentNameSnapshot,
+                    ComponentType = c.ComponentTypeSnapshot,
+                    SourceType = c.SourceType,
+                    Quantity = c.Quantity,
+                    Amount = c.Amount,
+                    IsProrated = c.IsProrated,
+                    IsManual = c.IsManual,
+                    Formula = c.FormulaSnapshot,
+                    SortOrder = c.SortOrder
+                }).ToList()
+        };
+    }
+
+    /// <summary>
+    /// Menutup run yang sudah lunas dibayar. Syarat: status Paid dan tidak ada pembalikan yang masih menunggu keputusan.
+    /// Closed tidak menghapus apa pun; ia hanya menandai run selesai sehingga tidak ada aksi pembayaran lagi.
+    /// </summary>
+    public async Task<PayrollRunDetailResponse> CloseAsync(Guid id, string? expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        await InTransactionAsync($"HR_PAYROLL_RUN_{id:N}", async () =>
+        {
+            var run = await LoadRunAsync(id, cancellationToken);
+            if (string.Equals(run.RunStatus, PayrollRunStatuses.Closed, StringComparison.OrdinalIgnoreCase)) return run.Id;
+            PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
+            if (!string.Equals(run.RunStatus, PayrollRunStatuses.Paid, StringComparison.OrdinalIgnoreCase))
+                throw new PayrollInvalidTransitionException($"Hanya payroll run berstatus Paid yang dapat ditutup (saat ini {run.RunStatus}).");
+
+            var pendingReversal = await _dbContext.TrxPayrollReversals.AnyAsync(x => !x.IsDelete
+                && x.PayrollRunId == run.Id && x.ReversalStatus == PayrollReversalStatuses.Requested, cancellationToken);
+            if (pendingReversal)
+                throw new PayrollInvalidTransitionException("Masih ada pembalikan yang menunggu keputusan; selesaikan sebelum menutup run.");
+
+            var now = DateTime.UtcNow;
+            run.RunStatus = PayrollRunStatuses.Closed;
+            run.ClosedAt = now;
+            run.ClosedByUserId = actorUserId;
+            run.UpdateDateTime = now;
+            run.UpdateBy = actorUserId;
+            AddApproval(run, actorUserId, "Close", "Approved", null);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _loggerService.AuditAsync(LogCategory, "PayrollRun.Closed", $"Payroll run {run.RunNumber} ditutup.",
+                new { run.Id, ActorUserId = actorUserId });
+            return run.Id;
+        }, cancellationToken);
+
+        return await GetByIdAsync(id, cancellationToken);
+    }
+
+    private static string? MaskAccount(string? account)
+    {
+        if (string.IsNullOrWhiteSpace(account)) return null;
+        var digits = account.Trim();
+        return digits.Length <= 4 ? new string('*', digits.Length) : new string('*', digits.Length - 4) + digits[^4..];
+    }
+
+    // ------------------------------------------------------------------------------------
     // Pembantu
     // ------------------------------------------------------------------------------------
 
@@ -855,14 +1143,6 @@ public sealed class PayrollRunService
             throw new PayrollRunValidationException($"Payroll run memiliki {blockers.Count} penahan: {string.Join("; ", blockers.Take(3))}.");
         if (run.ErrorEmployeeCount > 0 || run.ProcessedEmployeeCount <= 0)
             throw new PayrollRunValidationException("Payroll run belum siap: masih ada pegawai bermasalah atau belum ada pegawai yang terhitung.");
-    }
-
-    private static void MarkError(TrxPayrollRunEmployee employee, string message, Guid actorUserId)
-    {
-        employee.EmployeePayrollStatus = EmployeeError;
-        employee.ValidationResultJson = message;
-        employee.UpdateDateTime = DateTime.UtcNow;
-        employee.UpdateBy = actorUserId;
     }
 
     private void AddApproval(TrxPayrollRun run, Guid actorUserId, string actionType, string status, string? comments) =>
@@ -904,6 +1184,7 @@ public sealed class PayrollRunService
         target.CalculatedAt = run.CalculatedAt;
         target.SubmittedAt = run.SubmittedAt;
         target.ApprovedAt = run.ApprovedAt;
+        target.RowVersion = PayrollVersionToken.From(run.CreateDateTime, run.UpdateDateTime);
         return target;
     }
 

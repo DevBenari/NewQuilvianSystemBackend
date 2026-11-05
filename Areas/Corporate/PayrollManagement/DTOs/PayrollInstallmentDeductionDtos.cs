@@ -1,4 +1,4 @@
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
+namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 
 /// <summary>
 /// Respons eksekusi pemotongan angsuran piutang RS untuk satu pegawai di dalam payroll run (BE-FIN-110).
