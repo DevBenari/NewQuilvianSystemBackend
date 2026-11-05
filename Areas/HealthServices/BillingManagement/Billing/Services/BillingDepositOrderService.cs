@@ -378,7 +378,7 @@ public sealed class BillingDepositOrderService
                     PaymentId = p.Id,
                     DepositMovementId = p.DepositMovementId,
                     SettlementId = p.SettlementId,
-                    ReceiptNumber = mov?.ReferenceNumber ?? $"RCP-{p.Id.ToString()[..8].ToUpperInvariant()}",
+                    ReceiptNumber = BuildReceiptNumber(p.Id, mov?.ReferenceNumber),
                     PaymentMethodName = method?.PaymentMethodName ?? "Kasir",
                     IsCash = method?.IsCash ?? true,
                     Amount = p.Amount,
@@ -578,7 +578,8 @@ public sealed class BillingDepositOrderService
                 request.IdempotencyKey,
                 actorUserId,
                 cancellationToken,
-                deferAudit: true);
+                deferAudit: true,
+                requireBankTransferDetails: true);
 
             var movementId = settlement.DepositMovementId
                 ?? throw new BillingDepositValidationException("Penerimaan deposit gagal menghasilkan ID mutasi buku besar.");
@@ -752,6 +753,29 @@ public sealed class BillingDepositOrderService
                 .FirstOrDefaultAsync(x => x.Id == movement.PaymentMethodId.Value, cancellationToken);
         }
 
+        // Rekening bank penerima dibaca dari master rekening metode (MstPaymentMethodAccount) lewat
+        // PaymentMethodAccountId pada mutasi, sama seperti pembaca riwayat deposit. Mutasi lama tanpa ID rekening
+        // memakai kolom bank bawaan pada metode transfer sebagai cadangan; rekening tidak pernah ditebak dari nama bank.
+        string? recipientBankName = null;
+        string? recipientAccountNumber = null;
+        string? recipientAccountHolderName = null;
+        if (movement?.PaymentMethodAccountId.HasValue == true)
+        {
+            var receivingAccount = await _dbContext.MstPaymentMethodAccounts.AsNoTracking()
+                .Where(x => x.Id == movement.PaymentMethodAccountId.Value)
+                .Select(x => new { x.BankName, x.AccountNumber, x.AccountHolderName })
+                .FirstOrDefaultAsync(cancellationToken);
+            recipientBankName = receivingAccount?.BankName;
+            recipientAccountNumber = receivingAccount?.AccountNumber;
+            recipientAccountHolderName = receivingAccount?.AccountHolderName;
+        }
+        else if (method?.IsBankTransfer == true)
+        {
+            recipientBankName = method.BankName;
+            recipientAccountNumber = method.BankAccountNumber;
+            recipientAccountHolderName = method.BankAccountName;
+        }
+
         BilCashierShift? shift = null;
         if (movement?.CashierShiftId.HasValue == true)
         {
@@ -764,26 +788,99 @@ public sealed class BillingDepositOrderService
             : null;
         var cashierName = !string.IsNullOrWhiteSpace(cashier?.DisplayName) ? cashier.DisplayName : (cashier?.UserName ?? "Petugas Kasir");
 
-        var receiptNumber = movement?.ReferenceNumber ?? $"RCP-DEP-{payment.Id.ToString()[..8].ToUpperInvariant()}";
+        var receiptNumber = BuildReceiptNumber(payment.Id, movement?.ReferenceNumber);
+
+        // Jumlah Diterima dan Terbilang berasal dari SATU nilai yang sama: nominal pembayaran transaksi ini,
+        // dibulatkan ke 2 desimal sesuai presisi kolom (18,2) dan pembulatan database. Tidak ada pemotongan
+        // diam-diam: sen ikut tampil pada angka maupun terbilang.
+        var receiptAmount = Math.Round(payment.Amount, 2, MidpointRounding.AwayFromZero);
+
+        // Total Tagihan Deposit (nominal order yang diminta; untuk order INITIAL_DEPOSIT ini deposit awal yang diminta
+        // saat admisi) dan terbilangnya berasal dari SATU nilai: RequestedAmount order. Terpisah dari Jumlah Diterima
+        // dan terbilangnya, yang berasal dari nominal pembayaran transaksi ini. RequestedAmount hanya ditulis saat
+        // order dibuat, sehingga cetak ulang kwitansi lama tidak bergeser.
+        var requestedAmount = Math.Round(order.RequestedAmount, 2, MidpointRounding.AwayFromZero);
+
+        // Nilai historis "setelah transaksi ini" (bukan saldo terkini): hanya pembayaran SUCCESS yang dibuat
+        // sampai transaksi ini. Dihitung di memori agar urutan (waktu, lalu Id) tidak bergantung pada
+        // terjemahan SQL; hanya membaca data pembayaran, tidak mengubah saldo, settlement, maupun order.
+        var successfulPayments = await _dbContext.BilDepositOrderPayments.AsNoTracking()
+            .Where(x => x.DepositOrderId == order.Id && !x.IsDelete && x.Status == DepositOrderPaymentStatuses.Success)
+            .Select(x => new { x.Id, x.Amount, x.CreateDateTime })
+            .ToListAsync(cancellationToken);
+
+        var paidAfterPayment = successfulPayments
+            .Where(x => x.Id == payment.Id
+                || x.CreateDateTime < payment.CreateDateTime
+                || (x.CreateDateTime == payment.CreateDateTime && x.Id.CompareTo(payment.Id) < 0))
+            .Sum(x => x.Amount);
+        var outstandingAfterPayment = Math.Max(0m, order.RequestedAmount - paidAfterPayment);
+
+        // Status pada catatan adalah status order SETELAH transaksi ini, bukan status order saat dicetak,
+        // sehingga kwitansi yang sama selalu bertuliskan hal yang sama saat dicetak ulang.
+        var notes = payment.Status == DepositOrderPaymentStatuses.Success
+            ? $"Pembayaran uang muka rawat inap untuk order {order.OrderNumber} ({FormatStatusName(outstandingAfterPayment <= 0m ? DepositOrderStatuses.Paid : DepositOrderStatuses.PartiallyPaid)})."
+            : $"Pembayaran uang muka rawat inap untuk order {order.OrderNumber} (pembayaran ini telah dibalik dan kwitansi tidak berlaku).";
 
         return new DepositReceiptDto
         {
+            PaymentId = payment.Id,
             ReceiptNumber = receiptNumber,
             OrderNumber = order.OrderNumber,
             MedicalRecordNumber = patient?.MedicalRecordNumber ?? "-",
             PatientName = patient?.FullName ?? "-",
             EpisodeNumber = episode?.EpisodeNumber ?? "-",
             EncounterNumber = encounter?.EncounterNumber ?? "-",
-            Amount = payment.Amount,
-            AmountInWords = NumberToWordsIndonesian((long)payment.Amount) + " Rupiah",
+            RequestedAmount = requestedAmount,
+            RequestedAmountInWords = AmountToWordsIndonesian(requestedAmount),
+            OrderType = order.OrderType,
+            OrderTypeName = FormatOrderTypeName(order.OrderType),
+            Amount = receiptAmount,
+            AmountInWords = AmountToWordsIndonesian(receiptAmount),
+            PaidAmountAfterPayment = paidAfterPayment,
+            OutstandingAfterPayment = outstandingAfterPayment,
+            PaymentStatus = payment.Status,
             PaymentMethodName = method?.PaymentMethodName ?? "Tunai (Cash)",
             IsCash = method?.IsCash ?? true,
+            IsBankTransfer = method?.IsBankTransfer ?? false,
+            RecipientBankName = recipientBankName,
+            RecipientAccountNumber = recipientAccountNumber,
+            RecipientAccountHolderName = recipientAccountHolderName,
             ReferenceNumber = movement?.ReferenceNumber,
             PaymentDateTime = movement != null ? movement.OccurredAt : new DateTimeOffset(DateTime.SpecifyKind(payment.CreateDateTime, DateTimeKind.Utc)),
             CashierName = cashierName,
             CashierShiftNumber = shift?.ShiftNumber,
-            Notes = $"Pembayaran uang muka rawat inap untuk order {order.OrderNumber} ({FormatStatusName(order.Status)})."
+            Notes = notes
         };
+    }
+
+    /// <summary>
+    /// Nomor kwitansi satu pembayaran. Satu-satunya sumber untuk kwitansi dan riwayat pembayaran order,
+    /// sehingga keduanya selalu menampilkan nomor yang sama untuk pembayaran yang sama.
+    /// </summary>
+    private static string BuildReceiptNumber(Guid paymentId, string? movementReferenceNumber) =>
+        movementReferenceNumber ?? $"RCP-DEP-{paymentId.ToString()[..8].ToUpperInvariant()}";
+
+    /// <summary>
+    /// Terbilang nominal rupiah termasuk sen. Contoh: 10000000 → "Sepuluh Juta Rupiah";
+    /// 1500000.50 → "Satu Juta Lima Ratus Ribu Rupiah Lima Puluh Sen"; 0.50 → "Lima Puluh Sen".
+    /// Tidak memotong pecahan: bagian sen selalu ikut dibacakan.
+    /// </summary>
+    private static string AmountToWordsIndonesian(decimal amount)
+    {
+        var rounded = Math.Round(amount, 2, MidpointRounding.AwayFromZero);
+        var absolute = Math.Abs(rounded);
+        var rupiah = (long)Math.Truncate(absolute);
+        var sen = (int)Math.Round((absolute - rupiah) * 100m, 0, MidpointRounding.AwayFromZero);
+
+        var parts = new List<string>();
+        if (rupiah > 0 || sen == 0)
+            parts.Add($"{NumberToWordsIndonesian(rupiah)} Rupiah");
+        if (sen > 0)
+            parts.Add($"{NumberToWordsIndonesian(sen)} Sen");
+
+        var words = string.Join(" ", parts);
+        return rounded < 0m ? "Minus " + words : words;
     }
 
     private static string MaskIdentityNumber(string? identityNumber)
