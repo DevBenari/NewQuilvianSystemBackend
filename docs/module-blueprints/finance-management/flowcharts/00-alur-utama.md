@@ -42,3 +42,10 @@ Sampai alur pokok modul digambar, urutan langkah per proses terbaca dari tiga te
 pertama di atas, matriks perpindahan status pada `contracts/state-transition-matrix.md`, dan skenario UAT
 pada `04-prd-to-mvp.md`. Relasi antar entity terbaca dari class diagram pada
 `02-backend-architecture.md`, dan kontrak kolomnya dari `data/data-dictionary.md`.
+
+## Tambahan Revisi 22 (3 November 2026) — Benefit RS
+
+Alur pengajuan, persetujuan, aktivasi, dan sinkronisasi kartu Benefit Karyawan RS ke pasien digambar lengkap beserta
+jalur gagalnya di `04-alur-benefit-rs-pengajuan-sinkronisasi.md`. Jalur normalnya: Staf HR **Ajukan Benefit** → HRD
+**Setujui** → benefit **Aktif** (langsung atau pada tanggal mulai) → sistem **memasang kartu** ke pasien yang terbukti
+sama → petugas Registrasi **memakai kartu** saat pendaftaran kunjungan → kasir membaca plafon HR seperti sekarang.

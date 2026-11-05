@@ -35,6 +35,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.VerifiedByUser).WithMany().HasForeignKey(x => x.VerifiedByUserId).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.InputNumber).IsUnique().HasFilter("\"IsDelete\" = false");
+            entity.HasIndex(x => x.SourceId)
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false AND \"SourceType\" = 'MdfServiceFee' AND \"SourceId\" IS NOT NULL AND \"InputStatus\" NOT IN ('Cancelled', 'Rejected')")
+                .HasDatabaseName("UX_TrxPayrollVariableInput_MedicalFeeClaim");
             entity.HasIndex(x => new { x.PayrollRunEmployeeId, x.PayrollComponentId, x.InputStatus, x.IsDelete });
             entity.HasIndex(x => new { x.SourceType, x.SourceId, x.IsDelete });
         }

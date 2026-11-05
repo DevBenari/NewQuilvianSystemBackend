@@ -389,8 +389,9 @@ public sealed class BillingEmployeeBenefitSplitService
 
         // Validasi persetujuan (FIN-DEC-218, S.4, FIN-VAL-289, Section 7)
         var isSelf = string.Equals(relationshipCode, "SELF", StringComparison.OrdinalIgnoreCase);
-        var requiresConsent = !isSelf && deferredD > 0;
-        if (isFinalizing && requiresConsent && string.IsNullOrWhiteSpace(consentGivenBy))
+        var requiresConsent = !isSelf;
+        var consentRequired = requiresConsent && deferredD > 0;
+        if (isFinalizing && consentRequired && string.IsNullOrWhiteSpace(consentGivenBy))
         {
             throw new BillingFinalizationValidationException(
                 "Nama pemberi persetujuan wajib diisi bila sisa tagihan pasien selain pegawai dijadikan utang pegawai.");

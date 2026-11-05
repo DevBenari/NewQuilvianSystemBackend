@@ -1265,7 +1265,7 @@ public sealed class BillingSettlementService
     // Bersifat best-effort dan sengaja tidak melempar. Uang pasien sudah diterima dan tercatat;
     // membatalkan seluruh permintaan hanya karena invoice belum siap difinalisasi (mis. masih
     // ada order yang belum selesai) akan membuang pembayaran yang sah. Kegagalan dicatat di log
-    // dan invoice tetap bisa difinalisasi manual dari panel finalisasi.
+    // dan invoice tetap bisa difinalisasi manual dari Menu Pembayaran.
     private async Task TryAutoFinalizeInvoiceAsync(
         Guid settlementId,
         Guid actorUserId,

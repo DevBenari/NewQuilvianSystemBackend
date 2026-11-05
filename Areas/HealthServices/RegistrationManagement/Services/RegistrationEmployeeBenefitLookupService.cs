@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -24,6 +25,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private const string LogCategory = "HealthServices.RegistrationManagement.EmployeeBenefitLookup";
 
         public const string CardNotLinkedCode = "CARD_NOT_LINKED";
+        public const string PatientIdentityMismatchCode = "PATIENT_IDENTITY_MISMATCH";
 
         public const string EmployeeRequiredMessage =
             "Penerima benefit (karyawan atau dokter tetap) wajib dipilih dari data HR untuk kartu penjamin internal. " +
@@ -37,6 +39,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public const string CardNotLinkedMessage =
             "Kartu penjamin internal ini belum tertaut ke data pegawai HR. " +
             "Perbarui kartu pasien, atau daftarkan sebagai Pasien Umum.";
+
+        public const string PatientIdentityMismatchMessage =
+            "Identitas pasien tidak lagi sesuai dengan pemilik Benefit Karyawan RS pada kartu ini. " +
+            "Kartu tidak dapat dipakai; daftarkan sebagai Pasien Umum atau minta Registrasi meninjau kartunya.";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly EmployeeBenefitEligibilityService _eligibilityService;
@@ -327,14 +333,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public Task<CardServiceCheckResult> ValidateCardForServiceAsync(
             Guid companyGuarantorId, Guid? employeeId, Guid? familyMemberId, DateTime serviceDate,
             CancellationToken cancellationToken) =>
-            ValidateCardForServiceAsync(companyGuarantorId, null, employeeId, familyMemberId, serviceDate, cancellationToken);
+            ValidateCardForServiceAsync(companyGuarantorId, null, employeeId, familyMemberId, serviceDate, null, null, cancellationToken);
 
         /// <summary>
         /// Versi berbasis WorkforceProfileId (kartu baru memakai BenefitOwnerWorkforceProfileId; kartu lama masih
         /// membawa EmployeeId saja dan diterjemahkan ke Workforce oleh pemeriksaan kelayakan).
         /// </summary>
+        public Task<CardServiceCheckResult> ValidateCardForServiceAsync(
+            Guid companyGuarantorId, Guid? workforceProfileId, Guid? employeeId, Guid? familyMemberId, DateTime serviceDate,
+            CancellationToken cancellationToken) =>
+            ValidateCardForServiceAsync(companyGuarantorId, workforceProfileId, employeeId, familyMemberId, serviceDate, null, null, cancellationToken);
+
+        /// <summary>
+        /// Versi dengan ID pasien dan ID kartu untuk pengecekan ulang identitas saat kunjungan (BE-FIN-140, FIN-DEC-256, FIN-DEC-257,
+        /// FIN-DES-122, FIN-DES-126, FIN-VAL-295, FIN-INTEGRATION-1.11 V.5).
+        /// Pengecekan ulang identitas HANYA dilakukan jika kartu merupakan kartu hasil sinkronisasi otomatis (tercatat SYNCED pada PatEmployeeBenefitCardSync).
+        /// Kartu manual dan kartu lama tanpa catatan SYNCED tidak dicek ulang (AC 2).
+        /// </summary>
         public async Task<CardServiceCheckResult> ValidateCardForServiceAsync(
             Guid companyGuarantorId, Guid? workforceProfileId, Guid? employeeId, Guid? familyMemberId, DateTime serviceDate,
+            Guid? patientId, Guid? patientCompanyGuarantorId,
             CancellationToken cancellationToken)
         {
             if (!await IsInternalGuarantorAsync(companyGuarantorId, cancellationToken))
@@ -346,9 +364,102 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 return CardServiceCheckResult.Invalid(CardNotLinkedCode, CardNotLinkedMessage);
 
             var check = await TryCheckAsync(workforceProfileId, employeeId, familyMemberId, serviceDate, cancellationToken);
-            return check.IsEligible
-                ? CardServiceCheckResult.Valid()
-                : CardServiceCheckResult.Invalid(check.ReasonCode, check.Message ?? string.Empty);
+            if (!check.IsEligible)
+            {
+                return CardServiceCheckResult.Invalid(check.ReasonCode, check.Message ?? string.Empty);
+            }
+
+            // BE-FIN-140, FIN-DEC-256, FIN-DES-122: Cek ulang identitas pasien vs data HR HANYA untuk kartu hasil sinkronisasi otomatis.
+            if (patientCompanyGuarantorId.HasValue && patientCompanyGuarantorId.Value != Guid.Empty)
+            {
+                var isSyncedCard = await _dbContext.PatEmployeeBenefitCardSyncs.AsNoTracking()
+                    .AnyAsync(s => !s.IsDelete
+                                   && s.PatientCompanyGuarantorId == patientCompanyGuarantorId.Value
+                                   && s.SyncStatus == EmployeeBenefitCardSyncStatuses.Synced, cancellationToken);
+
+                if (isSyncedCard)
+                {
+                    var resolvedPatientId = patientId;
+                    if (!resolvedPatientId.HasValue || resolvedPatientId.Value == Guid.Empty)
+                    {
+                        resolvedPatientId = await _dbContext.Set<MstPatientCompanyGuarantor>().AsNoTracking()
+                            .Where(c => c.Id == patientCompanyGuarantorId.Value && !c.IsDelete)
+                            .Select(c => (Guid?)c.PatientId)
+                            .FirstOrDefaultAsync(cancellationToken);
+                    }
+
+                    if (!resolvedPatientId.HasValue || resolvedPatientId.Value == Guid.Empty)
+                    {
+                        return CardServiceCheckResult.Invalid(PatientIdentityMismatchCode, PatientIdentityMismatchMessage);
+                    }
+
+                    var patient = await _dbContext.Set<MstPatient>().AsNoTracking()
+                        .Where(p => p.Id == resolvedPatientId.Value && !p.IsDelete)
+                        .Select(p => new
+                        {
+                            p.Id,
+                            p.IdentityType,
+                            p.IdentityNumber,
+                            p.BirthDate,
+                            p.MergedToPatientId,
+                            p.IsActive
+                        })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (patient == null || !patient.IsActive)
+                    {
+                        return CardServiceCheckResult.Invalid(PatientIdentityMismatchCode, PatientIdentityMismatchMessage);
+                    }
+
+                    var canonicalPatient = patient;
+                    if (patient.MergedToPatientId.HasValue && patient.MergedToPatientId.Value != Guid.Empty)
+                    {
+                        var merged = await _dbContext.Set<MstPatient>().AsNoTracking()
+                            .Where(p => p.Id == patient.MergedToPatientId.Value && !p.IsDelete && p.IsActive)
+                            .Select(p => new
+                            {
+                                p.Id,
+                                p.IdentityType,
+                                p.IdentityNumber,
+                                p.BirthDate,
+                                p.MergedToPatientId,
+                                p.IsActive
+                            })
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (merged == null)
+                        {
+                            return CardServiceCheckResult.Invalid(PatientIdentityMismatchCode, PatientIdentityMismatchMessage);
+                        }
+                        canonicalPatient = merged;
+                    }
+
+                    // V.8 Butir 2: Jenis tanda pengenal wajib KTP atau NIK
+                    if (!IsValidIdentityType(canonicalPatient.IdentityType))
+                    {
+                        return CardServiceCheckResult.Invalid(PatientIdentityMismatchCode, PatientIdentityMismatchMessage);
+                    }
+
+                    // V.8 Butir 3: NIK angka saja pada kedua sisi
+                    var patientNik = NormalizeDigits(canonicalPatient.IdentityNumber);
+                    var targetNik = NormalizeDigits(check.TargetPersonNationalId);
+
+                    if (string.IsNullOrWhiteSpace(patientNik) || string.IsNullOrWhiteSpace(targetNik) ||
+                        !string.Equals(patientNik, targetNik, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return CardServiceCheckResult.Invalid(PatientIdentityMismatchCode, PatientIdentityMismatchMessage);
+                    }
+
+                    // V.8 Butir 4: Tanggal lahir kalender sama persis
+                    if (!canonicalPatient.BirthDate.HasValue || !check.TargetPersonBirthDate.HasValue ||
+                        canonicalPatient.BirthDate.Value.Date != check.TargetPersonBirthDate.Value.Date)
+                    {
+                        return CardServiceCheckResult.Invalid(PatientIdentityMismatchCode, PatientIdentityMismatchMessage);
+                    }
+                }
+            }
+
+            return CardServiceCheckResult.Valid();
         }
 
         // ------------------------------------------------------------------------------------
@@ -400,6 +511,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             if (string.IsNullOrWhiteSpace(nik)) return string.Empty;
             return new string(nik.Where(char.IsLetterOrDigit).ToArray()).Trim();
+        }
+
+        private static string NormalizeDigits(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+            return new string(raw.Where(char.IsDigit).ToArray());
+        }
+
+        private static bool IsValidIdentityType(string? identityType)
+        {
+            if (string.IsNullOrWhiteSpace(identityType)) return false;
+            var norm = identityType.Trim().ToUpperInvariant();
+            return norm is "KTP" or "NIK";
         }
 
         private static bool IsNameMatch(string? name1, string? name2)

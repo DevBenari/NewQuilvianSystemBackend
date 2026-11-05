@@ -111,6 +111,14 @@ public sealed class FinanceReceivableService
                         (p.FullName.ToUpper().Contains(search) || p.MedicalRecordNumber.ToUpper().Contains(search))))
                 .Select(item => item.ReceivableId);
 
+            // Nomor Invoice AR Finance (batch), mis. 0001/OP-KRY/RSMMC/XI/2026 untuk piutang karyawan. Hanya keanggotaan aktif pada
+            // batch yang tidak dibatalkan, sama dengan yang ditampilkan di detail piutang.
+            var matchingReceivableIdsFromBatch = _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                .Where(b => !b.IsDelete && b.IsActiveMembership && b.Batch != null && !b.Batch.IsDelete
+                    && b.Batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled
+                    && b.Batch.BatchNumber.ToUpper().Contains(search))
+                .Select(b => b.ReceivableId);
+
             var matchingCompanyDebtorIds = _dbContext.MstCompanyGuarantors.AsNoTracking()
                 .Where(c => !c.IsDelete && c.CompanyGuarantorName.ToUpper().Contains(search))
                 .Select(c => c.Id);
@@ -123,6 +131,7 @@ public sealed class FinanceReceivableService
                 x.ReceivableNumber.ToUpper().Contains(search) ||
                 (x.InvoiceId.HasValue && matchingInvoiceIds.Contains(x.InvoiceId.Value)) ||
                 matchingReceivableIdsFromPatient.Contains(x.Id) ||
+                matchingReceivableIdsFromBatch.Contains(x.Id) ||
                 (x.DebtorReferenceId.HasValue && (matchingCompanyDebtorIds.Contains(x.DebtorReferenceId.Value) || matchingInsuranceDebtorIds.Contains(x.DebtorReferenceId.Value))) ||
                 (x.BenefitOwnerWorkforceProfileId.HasValue &&
                     (matchingOwnerEmployeeProfileIds.Contains(x.BenefitOwnerWorkforceProfileId.Value) ||
@@ -198,6 +207,22 @@ public sealed class FinanceReceivableService
                 .ToDictionary(p => p.Id, p => (FullName: p.FullName, MedicalRecordNumber: p.MedicalRecordNumber))
             : new Dictionary<Guid, (string FullName, string MedicalRecordNumber)>();
 
+        // Nomor Invoice AR Finance (batch) per piutang pada halaman ini, supaya daftar menampilkan dan mencarinya dengan nomor yang sama.
+        var batchNumberByReceivable = pagedReceivableIds.Count > 0
+            ? (await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                    .Where(b => pagedReceivableIds.Contains(b.ReceivableId) && !b.IsDelete && b.IsActiveMembership
+                        && b.Batch != null && !b.Batch.IsDelete
+                        && b.Batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+                    .Select(b => new { b.ReceivableId, b.Batch!.BatchNumber })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(b => b.ReceivableId)
+                .ToDictionary(g => g.Key, g => g.First().BatchNumber)
+            : new Dictionary<Guid, string>();
+
+        var installmentSummaryByReceivable = await LoadInstallmentSummariesAsync(
+            pagedEntities.Where(x => x.DebtorType == FinReceivableDebtorTypes.EmployeeBenefit).Select(x => x.Id).ToList(),
+            cancellationToken);
+
         var items = pagedEntities.Select(x =>
         {
             var res = Map(x);
@@ -239,6 +264,18 @@ public sealed class FinanceReceivableService
             {
                 res.InvoiceNumber = invNum;
             }
+            if (batchNumberByReceivable.TryGetValue(x.Id, out var batchNumber))
+            {
+                res.BatchInvoiceNumber = batchNumber;
+            }
+            if (installmentSummaryByReceivable.TryGetValue(x.Id, out var installment))
+            {
+                res.InstallmentPlanId = installment.PlanId;
+                res.InstallmentPlanNumber = installment.PlanNumber;
+                res.InstallmentPlanStatus = installment.Status;
+                res.InstallmentPaidAmount = installment.PaidAmount;
+                res.InstallmentArrearsCount = installment.ArrearsCount;
+            }
             return res;
         }).ToList();
 
@@ -247,6 +284,60 @@ public sealed class FinanceReceivableService
             PageNumber = request.PageNumber, PageSize = request.PageSize, TotalData = total,
             TotalPage = (int)Math.Ceiling(total / (double)request.PageSize), Items = items
         };
+    }
+
+    private sealed record InstallmentSummary(Guid PlanId, string PlanNumber, string Status, decimal PaidAmount, int ArrearsCount);
+
+    /// <summary>
+    /// Ringkasan perjanjian angsuran per piutang karyawan untuk daftar (satu query per sumber, tanpa N+1; hanya membaca).
+    /// Perjanjian yang dipilih per piutang: MENUNGGU/DISETUJUI (hanya satu yang aktif per piutang, dijamin indeks unik), lalu
+    /// SELESAI, lalu yang DITOLAK/DIBATALKAN; di dalam tiap kelompok yang terbaru. Realisasi potongan = PaidAmount angsuran
+    /// (hanya yang berhasil terpotong); jadwal bukan pembayaran.
+    /// </summary>
+    private async Task<Dictionary<Guid, InstallmentSummary>> LoadInstallmentSummariesAsync(
+        IReadOnlyCollection<Guid> employeeReceivableIds, CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, InstallmentSummary>();
+        if (employeeReceivableIds.Count == 0) return result;
+
+        var plans = await _dbContext.FinReceivableInstallmentPlans.AsNoTracking()
+            .Where(p => !p.IsDelete && employeeReceivableIds.Contains(p.ReceivableId))
+            .Select(p => new { p.Id, p.ReceivableId, p.PlanNumber, p.Status, p.RequestedAt })
+            .ToListAsync(cancellationToken);
+        if (plans.Count == 0) return result;
+
+        static int Rank(string status) => status switch
+        {
+            FinReceivableInstallmentPlanStatuses.Menunggu => 0,
+            FinReceivableInstallmentPlanStatuses.Disetujui => 0,
+            FinReceivableInstallmentPlanStatuses.Selesai => 1,
+            _ => 2
+        };
+
+        var chosen = plans
+            .GroupBy(p => p.ReceivableId)
+            .Select(g => g.OrderBy(p => Rank(p.Status)).ThenByDescending(p => p.RequestedAt).First())
+            .ToList();
+        var chosenPlanIds = chosen.Select(p => p.Id).ToList();
+
+        var installmentsByPlan = (await _dbContext.FinReceivableInstallments.AsNoTracking()
+                .Where(i => !i.IsDelete && chosenPlanIds.Contains(i.PlanId))
+                .Select(i => new { i.PlanId, i.PaidAmount, i.Status })
+                .ToListAsync(cancellationToken))
+            .ToLookup(i => i.PlanId);
+
+        foreach (var plan in chosen)
+        {
+            var installments = installmentsByPlan[plan.Id].ToList();
+            result[plan.ReceivableId] = new InstallmentSummary(
+                plan.Id,
+                plan.PlanNumber,
+                plan.Status,
+                installments.Sum(i => i.PaidAmount),
+                installments.Count(i => i.Status == FinReceivableInstallmentStatuses.Tertunggak));
+        }
+
+        return result;
     }
 
     public async Task<ReceivableDetailResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -363,22 +454,53 @@ public sealed class FinanceReceivableService
         string? resolvedInvoiceNumber = null;
         string? invoiceServiceType = null;
         DateTimeOffset? invoiceDate = null;
+        Guid? bilInvoiceEncounterId = null;
 
         // Resolve invoice number asal (Billing)
         if (receivable.InvoiceId.HasValue)
         {
             var bilInvoice = await _dbContext.BilInvoices.AsNoTracking()
                 .Where(i => i.Id == receivable.InvoiceId.Value)
-                .Select(i => new { i.InvoiceNumber, i.ServiceType, i.InvoiceDate })
+                .Select(i => new { i.InvoiceNumber, i.ServiceType, i.InvoiceDate, i.EncounterId })
                 .FirstOrDefaultAsync(cancellationToken);
             if (bilInvoice != null)
             {
                 resolvedInvoiceNumber = bilInvoice.InvoiceNumber;
                 invoiceServiceType = bilInvoice.ServiceType;
                 invoiceDate = bilInvoice.InvoiceDate;
+                bilInvoiceEncounterId = bilInvoice.EncounterId;
                 resReceivable.InvoiceNumber = bilInvoice.InvoiceNumber;
             }
         }
+
+        // Resolve encounter numbers from RegPatientEncounters
+        var encounterIds = receivable.Items.Where(x => x.EncounterId.HasValue).Select(x => x.EncounterId!.Value).Distinct().ToList();
+        if (bilInvoiceEncounterId.HasValue && !encounterIds.Contains(bilInvoiceEncounterId.Value))
+        {
+            encounterIds.Add(bilInvoiceEncounterId.Value);
+        }
+
+        var encountersDict = encounterIds.Count > 0
+            ? await _dbContext.RegPatientEncounters.AsNoTracking()
+                .Where(e => !e.IsDelete && encounterIds.Contains(e.Id))
+                .Select(e => new { e.Id, e.EncounterNumber, e.PatientId })
+                .ToDictionaryAsync(e => e.Id, cancellationToken)
+            : new();
+
+        var encounterNumbers = encountersDict.Values
+            .Select(e => e.EncounterNumber)
+            .Where(num => !string.IsNullOrWhiteSpace(num))
+            .Distinct()
+            .ToList();
+
+        string? resolvedEncounterNumber = encounterNumbers.Count switch
+        {
+            0 => null,
+            1 => encounterNumbers[0],
+            _ => string.Join(", ", encounterNumbers)
+        };
+
+        resReceivable.EncounterNumber = resolvedEncounterNumber;
 
         // Resolve batch invoice number (Finance AR Batch)
         var batchNumber = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
@@ -413,6 +535,7 @@ public sealed class FinanceReceivableService
             PatientId = firstPatientId,
             PatientName = resolvedPatientName,
             PatientMedicalRecordNumber = resolvedPatientMrn,
+            EncounterNumber = resolvedEncounterNumber,
             Items = receivable.Items.Select(x =>
             {
                 string? pName = null;
@@ -422,10 +545,16 @@ public sealed class FinanceReceivableService
                     pName = pi.FullName;
                     pMrn = pi.MedicalRecordNumber;
                 }
+                string? itemEncNum = null;
+                if (x.EncounterId.HasValue && encountersDict.TryGetValue(x.EncounterId.Value, out var encInfo))
+                {
+                    itemEncNum = encInfo.EncounterNumber;
+                }
                 return new ReceivableItemResponse
                 {
                     Id = x.Id,
                     EncounterId = x.EncounterId,
+                    EncounterNumber = itemEncNum,
                     InvoiceId = x.InvoiceId,
                     PatientId = x.PatientId,
                     PatientName = pName,
@@ -1115,7 +1244,9 @@ public sealed class FinanceReceivableService
         string movementType = FinReceivableMovementTypes.AlokasiPenerimaan,
         Guid? sourceAllocationId = null,
         string? referenceNumber = null,
-        string? notes = null)
+        string? notes = null,
+        Guid? correlationId = null,
+        Guid? causationId = null)
     {
         var receivable = await _dbContext.FinReceivables
             .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
@@ -1147,8 +1278,8 @@ public sealed class FinanceReceivableService
             balanceBefore: balanceBefore,
             occurredAt: now,
             actorUserId: actorUserId,
-            correlationId: receivable.CorrelationId,
-            causationId: sourceAllocationId ?? receivable.Id,
+            correlationId: correlationId ?? receivable.CorrelationId,
+            causationId: causationId ?? sourceAllocationId ?? receivable.Id,
             sourceAllocationId: sourceAllocationId,
             referenceNumber: referenceNumber,
             notes: notes,
@@ -1170,7 +1301,9 @@ public sealed class FinanceReceivableService
         string movementType = FinReceivableMovementTypes.PembalikanAlokasi,
         Guid? sourceAllocationId = null,
         string? referenceNumber = null,
-        string? notes = null)
+        string? notes = null,
+        Guid? correlationId = null,
+        Guid? causationId = null)
     {
         var receivable = await _dbContext.FinReceivables
             .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
@@ -1198,8 +1331,8 @@ public sealed class FinanceReceivableService
             balanceBefore: balanceBefore,
             occurredAt: now,
             actorUserId: actorUserId,
-            correlationId: receivable.CorrelationId,
-            causationId: sourceAllocationId ?? receivable.Id,
+            correlationId: correlationId ?? receivable.CorrelationId,
+            causationId: causationId ?? sourceAllocationId ?? receivable.Id,
             sourceAllocationId: sourceAllocationId,
             referenceNumber: referenceNumber,
             notes: notes,
@@ -1301,6 +1434,14 @@ public sealed class FinanceReceivableService
 
             if (receivable.Status is FinReceivableStatuses.WrittenOff or FinReceivableStatuses.Cancelled)
                 throw new ReceivableValidationException($"Piutang berstatus {receivable.Status} tidak dapat menerima pembayaran.");
+
+            // Piutang Benefit RS Internal (PAYER internal) adalah porsi biaya rumah sakit sendiri: tidak ada kas/transfer dari pihak luar.
+            // Jalur pembayaran langsung (kas/transfer + bukti) tidak boleh menjadi jalan pintas yang mengurangi saldonya tanpa
+            // Invoice AR; penyelesaiannya diproses Finance dari Detail Invoice AR (penyelesaian internal, atau penerimaan bank aktual).
+            if (receivable.IsInternalBenefit)
+                throw new ReceivableValidationException(
+                    "Piutang Benefit RS Internal tidak dapat dibayar lewat pembayaran langsung kas/transfer. " +
+                    "Proses penyelesaiannya dari Detail Invoice AR Benefit RS Internal.");
 
             if (amount > receivable.OutstandingAmount)
                 throw new ReceivableValidationException($"Nilai pembayaran Rp {amount:N0} melebihi sisa piutang Rp {receivable.OutstandingAmount:N0}.");

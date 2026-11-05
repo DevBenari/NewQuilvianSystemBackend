@@ -30,6 +30,16 @@
       "ApprovedBy": "Yasmin",
       "ApprovalReference": "BE-MDF-005",
       "NoExpiryRationale": "Model persisted aturan tarif sharing ditempatkan di folder MedicalFeeManagement/MasterData mengikuti struktur blueprint MF-BP-001 revisi 1."
+    },
+    {
+      "ExceptionId": "EXP-QBE-MOD-002-PAT-002",
+      "RuleId": "QBE-MOD-002",
+      "Scope": "Areas/HealthServices/PatientManagement/MasterData/Models/PatEmployeeBenefitCardSync.cs",
+      "Reason": "Entity operasional catatan hasil sinkronisasi kartu pasien benefit pegawai (BE-FIN-133, FIN-DES-112) menggunakan prefix Pat sesuai domain PatientManagement namun bertempat di folder legacy MasterData berdampingan dengan PatientController, mengikuti preseden PatNewbornBirthSequence (EXP-QBE-MOD-002-PAT-001).",
+      "Status": "ACTIVE",
+      "ApprovedBy": "Muhammad Hamzah",
+      "ApprovalReference": "FIN-OQ-121",
+      "NoExpiryRationale": "Model persisted catatan sinkronisasi kartu ditempatkan di folder PatientManagement/MasterData mengikuti preseden PatNewbornBirthSequence dan keputusan desain FIN-DES-112 pada blueprint finance-management."
     }
   ]
 }

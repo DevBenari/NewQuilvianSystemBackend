@@ -31,7 +31,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
@@ -413,6 +414,7 @@ try
     // untuk service lain — di luar cakupan BE-FIN-093.
     builder.Services.AddScoped<FinancePatientRefundService>();
     builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    builder.Services.AddScoped<FinanceInstallmentDeductionEvidenceService>();
     // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
     builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
         builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));
@@ -420,10 +422,23 @@ try
     // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
     builder.Services.AddScoped<FinanceSubledgerMovementService>();
     builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
-    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run HR.
+    // Modul Payroll mandiri (Areas/Corporate/PayrollManagement): parameter kebijakan terversi (NEEDS CONFIRMATION), pola Configure<T>
+    // sama dengan FinanceReceivablePayrollSyncOptions. Nilai bawaan = perilaku sebelum Payroll dipisah dari HRD.
+    builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
+    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
-    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya di HR.
+    builder.Services.AddScoped<PayrollCalculationService>();
+    builder.Services.AddScoped<PayrollRunService>();
+    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya.
     builder.Services.AddScoped<PayrollRestitutionService>();
+    // Layanan modul Payroll (PAY-BE-03..10).
+    builder.Services.AddScoped<PayrollHrdImportService>();
+    builder.Services.AddScoped<PayrollCompensationService>();
+    builder.Services.AddScoped<PayrollEmployeeDeductionService>();
+    builder.Services.AddScoped<PayrollPaymentService>();
+    builder.Services.AddScoped<PayrollPayslipService>();
+    builder.Services.AddScoped<PayrollMedicalFeeIntakeService>();
+    builder.Services.AddScoped<PayrollReportService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).
@@ -435,7 +450,8 @@ try
     // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
     builder.Services.AddScoped<FinanceReceivableMigrationService>();
     builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
-    builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    // Penutupan Benefit dihapus; jaring pengaman plafon Benefit RS untuk piutang historis (idempoten, dipakai saat membuat Invoice AR).
+    builder.Services.AddScoped<FinanceBenefitAllowanceConsumptionService>();
     builder.Services.AddScoped<FinanceBillingArReportService>();
     builder.Services.AddScoped<FinanceReceivableAgingReportService>();
     builder.Services.AddScoped<FinanceSettlementService>();
@@ -571,6 +587,7 @@ try
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<RegistrationEmployeeBenefitLookupService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.InternalBenefitCardService>();
     builder.Services.AddScoped<IPatientWorkforceIdentityResolver, PatientWorkforceIdentityResolver>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>();
@@ -1075,6 +1092,10 @@ try
     // Resolver pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap); dipakai Enrollment,
     // Eligibility, Registrasi, Billing, dan Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.WorkforceBenefitOwnerResolver>();
+    // BE-FIN-135 (FIN-INTEGRATION-1.11 V.2, FIN-DES-113): implementasi penuh sinkronisasi kartu penjamin pasien otomatis.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IEmployeeBenefitPatientCardSync>(sp =>
+        sp.GetRequiredService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>());
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
@@ -1082,7 +1103,6 @@ try
     // Laporan HR baca-saja "Piutang Benefit Pegawai" (AR Karyawan dari Billing); nilai finansial tetap milik Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitReceivableReportService>();
     // Persetujuan penutupan benefit RS internal oleh HRD.
-    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.HrdBenefitSettlementApprovalService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
@@ -1382,6 +1402,20 @@ try
         builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
         builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
+
+        // BE-FIN-136 (FIN-INTEGRATION-1.11 V.3, FIN-DES-113, FIN-DES-117, FIN-DES-125):
+        // Penjadwal rekonsiliasi sinkronisasi kartu penjamin internal pasien (Benefit Karyawan RS).
+        // Dibangun MATI secara bawaan: Enabled = false. Memerlukan ActivationCutoffUtc bila dinyalakan.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerOptions>(
+            builder.Configuration.GetSection("PatientManagement:EmployeeBenefitCardSyncScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerHostedService>();
+
+        // BE-FIN-137 (FIN-STATE-1.11 V.1, FIN-DEC-235, FIN-DES-111, FIN-OQ-127):
+        // Penjadwal aktivasi otomatis benefit pegawai berstatus Approved yang tanggal mulai berlakunya sudah tiba.
+        // Dibangun MATI secara bawaan: Enabled = false.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerOptions>(
+            builder.Configuration.GetSection("HumanResource:EmployeeBenefitActivationScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerHostedService>();
     }
 
     builder.Services.AddAuthorization(options =>

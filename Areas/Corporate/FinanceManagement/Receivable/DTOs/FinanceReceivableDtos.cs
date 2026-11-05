@@ -70,6 +70,23 @@ public sealed class ReceivableResponse
     public Guid? PatientId { get; set; }
     public string? PatientName { get; set; }
     public string? PatientMedicalRecordNumber { get; set; }
+    public string? EncounterNumber { get; set; }
+
+    // ---- Perjanjian angsuran (additive). Hanya diisi untuk piutang EMPLOYEE_BENEFIT pada DAFTAR. Tiga hal sengaja terpisah dan
+    // tidak boleh dilebur menjadi satu status: (1) status PIUTANG = Status; (2) status PERJANJIAN angsuran = InstallmentPlanStatus;
+    // (3) realisasi POTONGAN GAJI = InstallmentPaidAmount (hanya yang berhasil terpotong). Perjanjian yang disetujui BUKAN
+    // pembayaran dan tidak mengubah Status piutang menjadi lunas; saldo hanya berkurang oleh potongan yang benar-benar terealisasi.
+
+    /// <summary>Perjanjian terbaru yang relevan: MENUNGGU/DISETUJUI lebih dulu, lalu SELESAI, lalu yang ditolak/dibatalkan.</summary>
+    public Guid? InstallmentPlanId { get; set; }
+    public string? InstallmentPlanNumber { get; set; }
+    public string? InstallmentPlanStatus { get; set; }
+
+    /// <summary>Jumlah potongan gaji yang BERHASIL (PaidAmount seluruh angsuran perjanjian itu). Potongan gagal tidak dihitung.</summary>
+    public decimal InstallmentPaidAmount { get; set; }
+
+    /// <summary>Jumlah angsuran berstatus TERTUNGGAK (potongan gagal, sisanya terbawa).</summary>
+    public int InstallmentArrearsCount { get; set; }
 }
 
 public sealed class ReceivableDocumentsResponse
@@ -103,6 +120,7 @@ public sealed class ReceivableItemResponse
     public Guid? PatientId { get; set; }
     public string? PatientName { get; set; }
     public string? PatientMedicalRecordNumber { get; set; }
+    public string? EncounterNumber { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
 }
@@ -162,6 +180,7 @@ public sealed class ReceivableDetailResponse
     public Guid? PatientId { get; set; }
     public string? PatientName { get; set; }
     public string? PatientMedicalRecordNumber { get; set; }
+    public string? EncounterNumber { get; set; }
     public List<ReceivableItemResponse> Items { get; set; } = new();
     public List<ReceivableDocumentResponse> Documents { get; set; } = new();
     public List<ReceivableAdjustmentResponse> Adjustments { get; set; } = new();

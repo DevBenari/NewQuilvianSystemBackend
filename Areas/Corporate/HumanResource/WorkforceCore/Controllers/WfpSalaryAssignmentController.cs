@@ -20,6 +20,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/workforce-profiles/{workforceProfileId:guid}/salary-assignments")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId:guid}/salary-assignments")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE",
@@ -29,7 +31,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         ControllerName = "WfpSalaryAssignment",
         Description = "Corporate human resource workforce salary assignment",
         SortOrder = 10)]
-    [Tags("Corporate / Human Resource / Workforce Core / Salary Assignment")]
+    [Tags("Corporate / Payroll Management / Salary Assignment")]
     public class WfpSalaryAssignmentController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.WorkforceCore";
