@@ -33,6 +33,8 @@ namespace QuilvianSystemBackend.Constants
         /// <summary>Alias umum policy layar antrean.</summary>
         public const string QueueDisplayRead = "QueueDisplayRead";
 
+        public const string NurseViewDisplayRead = "NurseViewDisplayRead";
+
         /// <summary>
         /// Himpunan policy yang diterima invarian naked endpoint sebagai otorisasi alternatif
         /// yang sah. Endpoint tanpa <c>[AccessPermission]</c> yang memakai salah satu policy ini
@@ -43,7 +45,8 @@ namespace QuilvianSystemBackend.Constants
             {
                 KioskRead,
                 QueueDisplayRuntimeRead,
-                QueueDisplayRead
+                QueueDisplayRead,
+                NurseViewDisplayRead
             };
 
         public static bool IsApprovedAlternativeAuthorization(string? policyName) =>

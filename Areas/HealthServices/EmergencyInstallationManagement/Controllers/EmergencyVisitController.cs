@@ -63,6 +63,90 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _emergencyRealtimeService = emergencyRealtimeService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyVisitFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Visit", Description = "Melihat metadata filter kunjungan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyVisit", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyVisitFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyVisitDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "arrivaldatetime", "emergencyvisitnumber", "patientname", "visitstatus", "registrationstatus" }
+            };
+
+            return Ok(ApiResponse<EmergencyVisitFilterMetadataResponse>.Ok(result, "Metadata filter kunjungan IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyVisitSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Visit", Description = "Melihat ringkasan kunjungan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyVisit", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgVisit>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyVisitSummaryResponse
+            {
+                TotalVisit = await query.CountAsync(cancellationToken),
+                ActiveVisit = await query.CountAsync(x => x.VisitStatus != EmergencyVisitStatus.Completed && x.VisitStatus != EmergencyVisitStatus.Cancelled, cancellationToken),
+                ArrivedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Arrived || x.VisitStatus == EmergencyVisitStatus.WaitingForTriage, cancellationToken),
+                TriagedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Triaged, cancellationToken),
+                InTreatmentVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.InTreatment, cancellationToken),
+                UnderObservationVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.UnderObservation, cancellationToken),
+                AwaitingDispositionVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.AwaitingDisposition, cancellationToken),
+                DisposedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Disposed, cancellationToken),
+                CompletedVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Completed, cancellationToken),
+                CancelledVisit = await query.CountAsync(x => x.VisitStatus == EmergencyVisitStatus.Cancelled, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyVisitSummaryResponse>.Ok(summary, "Ringkasan kunjungan IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyVisitOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Visit Options", Description = "Melihat pilihan kunjungan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyVisit", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] string? search = null,
+            [FromQuery] bool onlyActive = true,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgVisit>().AsNoTracking()
+                .Include(x => x.Patient)
+                .Where(x => !x.IsDelete);
+
+            if (onlyActive)
+            {
+                query = query.Where(x => x.VisitStatus != EmergencyVisitStatus.Completed && x.VisitStatus != EmergencyVisitStatus.Cancelled);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.EmergencyVisitNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
+                    (x.TemporaryPatientAlias != null && x.TemporaryPatientAlias.ToLower().Contains(keyword)));
+            }
+
+            var items = await query.OrderByDescending(x => x.ArrivalDateTime)
+                .Take(100)
+                .Select(x => new EmergencyVisitOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitNumber = x.EmergencyVisitNumber,
+                    PatientName = x.Patient != null ? x.Patient.FullName : (x.TemporaryPatientAlias ?? "-"),
+                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
+                    VisitStatus = x.VisitStatus,
+                    ArrivalDateTime = x.ArrivalDateTime
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyVisitOptionResponse>>.Ok(items, "Pilihan kunjungan IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyVisitResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Visit", Description = "Melihat data kunjungan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

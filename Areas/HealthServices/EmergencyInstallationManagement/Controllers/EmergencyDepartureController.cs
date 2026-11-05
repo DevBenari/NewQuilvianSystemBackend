@@ -42,6 +42,70 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _emergencyVisitService = emergencyVisitService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDepartureFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Departure", Description = "Melihat metadata filter kepergian pasien IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDeparture", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyDepartureFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyDepartureDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "requestedat", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyDepartureFilterMetadataResponse>.Ok(result, "Metadata filter kepergian pasien IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDepartureSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Departure", Description = "Melihat ringkasan kepergian pasien IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDeparture", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _service.Query();
+
+            var summary = new EmergencyDepartureSummaryResponse
+            {
+                TotalDeparture = await query.CountAsync(cancellationToken),
+                PendingDeparture = await query.CountAsync(x => x.PhysicalStatus == EmergencyPhysicalStatus.Prepared, cancellationToken),
+                DepartedCount = await query.CountAsync(x => x.PhysicalStatus == EmergencyPhysicalStatus.Departed, cancellationToken),
+                ArrivedCount = await query.CountAsync(x => x.PhysicalStatus == EmergencyPhysicalStatus.Arrived, cancellationToken),
+                HandoverAcceptedCount = await query.CountAsync(x => x.HandoverStatus == EmergencyHandoverStatus.Accepted, cancellationToken),
+                HandoverRejectedCount = await query.CountAsync(x => x.HandoverStatus == EmergencyHandoverStatus.Rejected, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyDepartureSummaryResponse>.Ok(summary, "Ringkasan kepergian pasien IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyDepartureOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Departure Options", Description = "Melihat pilihan kepergian pasien IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDeparture", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyVisitId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _service.Query();
+
+            if (emergencyVisitId.HasValue && emergencyVisitId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyVisitId == emergencyVisitId.Value);
+
+            var items = await query.OrderByDescending(x => x.RequestedAt)
+                .Take(100)
+                .Select(x => new EmergencyDepartureOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitId = x.EmergencyVisitId,
+                    PhysicalStatus = x.PhysicalStatus,
+                    HandoverStatus = x.HandoverStatus,
+                    RequestedAt = x.RequestedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyDepartureOptionResponse>>.Ok(items, "Pilihan kepergian pasien IGD berhasil diambil."));
+        }
         [HttpGet]
         [AccessAction("Read", "Read Emergency Departure", Description = "Melihat daftar kepergian pasien IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("EmergencyDeparture", "Read")]

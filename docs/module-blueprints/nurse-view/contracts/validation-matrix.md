@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 |---|---|
-| `last_changed_in` | `0.1.0` · status `approved` — Rizki Gunawan, 2026-10-28 (`NV-DEC-028`) |
+| `last_changed_in` | `0.1.1` · status `approved` — Rizki Gunawan, 2026-11-02 (`NV-DEC-031`). Sebelumnya `0.1.0`, 2026-10-28 (`NV-DEC-028`) |
 | Owner | Rizki Gunawan · `approved_by` Rizki Gunawan · `approved_at` 2026-10-28 |
 
 | ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
@@ -22,7 +22,7 @@
 | `VAL-NV-13` | Tanggal pengesahan tidak di masa depan | Ganti interval | `RatifiedOn` > hari ini (jam operasional) | "Tanggal pengesahan tidak boleh melewati hari ini." | `400` |
 | `VAL-NV-14` | Hanya akun perangkat yang boleh membaca papan | Runtime | akun bukan `LoginUserId` perangkat mana pun | "Akun ini bukan akun display Nurse View." | `403` |
 | `VAL-NV-15` | Perangkat nonaktif tidak boleh membaca papan | Runtime, hub | status `Inactive` | "Perangkat display dinonaktifkan. Hubungi IT." | `403` |
-| `VAL-NV-16` | Perangkat nonaktif tidak boleh login | Login | akun perangkat `Inactive` (terkunci) | Pesan login terkunci standar | `401` |
+| `VAL-NV-16` | Perangkat nonaktif tidak boleh login | Login, perpanjangan sesi | akun perangkat `Inactive` (terkunci) | Kata sandi benar: "Perangkat display dinonaktifkan. Hubungi IT." Kata sandi salah: pesan login terkunci standar (`NV-DEC-031`) | `401` |
 
 **Contoh `VAL-NV-11`.** Admin mengetik interval `Critical` = 0 karena mengira "terus-menerus"
 berarti nol. Sistem menolak. Admin memasukkan 15 menit sesuai SK Komite.

@@ -14,7 +14,7 @@ Task blueprint bagian 14 (`T01`–`T06`) dipetakan ke dua vertical slice.
 | Task ID | Blueprint | Ringkasan | Status |
 | --- | --- | --- | --- |
 | `RJ-ADM-BE-001` 🟡 | T01–T05 | Tiket admisi anonim `RegAdmissionTicket` + riwayat, konfigurasi kelompok/loket, penerbitan atomik + idempotency + cetak ulang, Panggil Berikutnya multi-loket, transisi status, display, realtime, penautan tiket ke `POST patient-encounters/admin` dalam transaksi yang sama dengan `RegQueue` existing | 🟡 2026-11-02 — source + migration ditulis; **build, `has-pending-model-changes`, dan uji API belum dijalankan** atas instruksi pemilik. [Laporan](../task/report/backend/RJ-ADM-BE-001.md) |
-| `RJ-ADM-FE-001` 🟡 | T02–T06 | Menu Cetak Antrean di kiosk + tiket thermal 80 mm, Daftar Antrean Admisi, Display Antrean Admisi, mode `?admissionTicketId=` pada Pendaftaran Pasien | 🟡 2026-11-02 — source ditulis; **lint, build, dan uji browser belum dijalankan** atas instruksi pemilik. [Laporan](../task/report/frontend/RJ-ADM-FE-001.md) |
+| `RJ-ADM-FE-001` 🟡 | T02–T06 | Menu Cetak Antrean di kiosk + tiket thermal 80 mm, Daftar Antrean Admisi, Display Antrean Admisi, mode `?admissionTicketId=` pada Pendaftaran Pasien | 🟡 2026-11-02 — source ditulis; **lint, build, dan uji browser belum dijalankan** atas instruksi pemilik. Revisi 2026-11-04 (pilih loket per baris, urutan Waktu Ambil): eslint 0 error, route terkompilasi; uji browser belum. [Laporan](../task/report/frontend/RJ-ADM-FE-001.md) |
 
 ## Grafik urutan dependency
 

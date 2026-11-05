@@ -29,11 +29,11 @@ flowchart LR
 
     BENV001["✅ BE-NV-001<br/>Fondasi registry, model, configuration"]:::selesai
     BENV002["✅ BE-NV-002<br/>API admin perangkat display"]:::selesai
-    BENV003["BE-NV-003<br/>Login dan runtime akun perangkat"]:::belum
-    BENV004["BE-NV-004<br/>API interval ukur ulang TTV"]:::belum
-    BENV005["BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::belum
-    BENV006["BE-NV-006<br/>Header perawat jaga dari roster"]:::belum
-    BENV007["BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::belum
+    BENV003["✅ BE-NV-003<br/>Login dan runtime akun perangkat"]:::selesai
+    BENV004["✅ BE-NV-004<br/>API interval ukur ulang TTV"]:::selesai
+    BENV005["✅ BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::selesai
+    BENV006["✅ BE-NV-006<br/>Header perawat jaga dari roster"]:::selesai
+    BENV007["✅ BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::selesai
 
     BENV001 --> BENV002
     BENV001 --> BENV004
@@ -73,11 +73,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 |---|---|---|---|---|---|---|---|---|---|---|
 | ✅ `BE-NV-001` | Fondasi registry, model, configuration | `NV-DEC-016`, `024`, `029`; `G-01` | `0.1.0` data-dictionary | `IdentityModel`, pola configuration | Registry, 2 model, 1 enum, 2 configuration, 2 DbSet | — | Kartu | QBE preflight; build oleh Rizki; migration diterapkan Rizki | Salah prefix → QBE gagal / Rizki | Kartu |
 | ✅ `BE-NV-002` | API admin perangkat display | `FR-NV-001`–`005`; `NV-DEC-016`, `022` | `0.1.0` api §1 | `NumberSeriesAllocator`, `UserManager`, pola `QueueDisplayDeviceController` (alur saja) | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger oleh Rizki | Kata sandi bocor ke log / Rizki | Kartu |
-| `BE-NV-003` | Login dan runtime akun perangkat | `FR-NV-018`; `NV-DEC-009`, `022`, `030` | `0.1.0` api §3 `/current` | `ResolveQueueDisplayLoginContextAsync`, policy `QueueDisplayRuntimeRead` | `AuthController`, `AuthorizationPolicies`, `Program.cs`, context service, runtime controller | `BE-NV-002` | Kartu, termasuk regresi `NV-AC-023`–`027` | HTTP + login empat jenis akun | **Regresi login seluruh sistem** / Rizki, syarat lead | Kartu |
-| `BE-NV-004` | API interval ukur ulang TTV | `FR-NV-020`–`022`; `NV-DEC-010` | `0.1.0` api §2 | Pola ganti-seluruh `NursingShiftController` | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger | Angka bawaan diselipkan / Rizki | Kartu |
-| `BE-NV-005` | Papan lantai tersusun dan tersamarkan | `FR-NV-010`–`016`, `021`; `NV-DEC-006`–`020`, `025`, `026`, `027` | `0.1.0` api §3 `/board` | `ProjectBatchAsync` (`internal`, disetujui Hamzah), `TrxPatientVitalSign`, instrumen risiko jatuh, `TrxPatientAllergy`, `InpNurseAssignment` | Query service, masking helper, DTO papan, endpoint `/board` | `BE-NV-003`, `BE-NV-004` | Kartu | HTTP dengan akun perangkat + pencarian teks identitas di response | **Kebocoran identitas** / Rizki | Kartu |
-| `BE-NV-006` | Header perawat jaga dari roster | `FR-NV-017`; `NV-DEC-012`, `021`, `027` | `0.1.0` api §3 `Wards[].OnDutyNurses` | `TrxShiftAssignment`, `MapCpptProfessionType` | Query roster di service papan; `MapCpptProfessionType` → `internal static` | `BE-NV-005` | Kartu | HTTP dengan roster kosong dan berisi | Lintas modul keperawatan / Rizki + Hamzah | Kartu |
-| `BE-NV-007` | Sinyal realtime saat TTV disimpan | `FR-NV-032`; `NV-DEC-023`, `026`, `027` | `0.1.0` api §4 | `QueueHub`, pola `InpBedRealtimeService` (best-effort) | `NvwRealtimeService`, `QueueHub.JoinNurseViewFloor`, satu panggilan di `PatientVitalSignController` | `BE-NV-005` | Kartu | Hub + simpan TTV | Lintas modul keperawatan, simpan TTV tidak boleh gagal / Rizki + Hamzah | Kartu |
+| ✅ `BE-NV-003` | Login dan runtime akun perangkat | `FR-NV-018`; `NV-DEC-009`, `022`, `030` | `0.1.0` api §3 `/current` | `ResolveQueueDisplayLoginContextAsync`, policy `QueueDisplayRuntimeRead` | `AuthController`, `AuthorizationPolicies`, `Program.cs`, context service, runtime controller | `BE-NV-002` | Kartu, termasuk regresi `NV-AC-023`–`027` | HTTP + login empat jenis akun | **Regresi login seluruh sistem** / Rizki, syarat lead | Kartu |
+| ✅ `BE-NV-004` | API interval ukur ulang TTV | `FR-NV-020`–`022`; `NV-DEC-010` | `0.1.0` api §2 | Pola ganti-seluruh `NursingShiftController` | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger | Angka bawaan diselipkan / Rizki | Kartu |
+| ✅ `BE-NV-005` | Papan lantai tersusun dan tersamarkan | `FR-NV-010`–`016`, `021`; `NV-DEC-006`–`020`, `025`, `026`, `027` | `0.1.0` api §3 `/board` | `ProjectBatchAsync` (`internal`, disetujui Hamzah), `TrxPatientVitalSign`, instrumen risiko jatuh, `TrxPatientAllergy`, `InpNurseAssignment` | Query service, masking helper, DTO papan, endpoint `/board` | `BE-NV-003`, `BE-NV-004` | Kartu | HTTP dengan akun perangkat + pencarian teks identitas di response | **Kebocoran identitas** / Rizki | Kartu |
+| ✅ `BE-NV-006` | Header perawat jaga dari roster | `FR-NV-017`; `NV-DEC-012`, `021`, `027` | `0.1.0` api §3 `Wards[].OnDutyNurses` | `TrxShiftAssignment`, `MapCpptProfessionType` | Query roster di service papan; `MapCpptProfessionType` → `internal static` | `BE-NV-005` | Kartu | HTTP dengan roster kosong dan berisi | Lintas modul keperawatan / Rizki + Hamzah | Kartu |
+| ✅ `BE-NV-007` | Sinyal realtime saat TTV disimpan | `FR-NV-032`; `NV-DEC-023`, `026`, `027` | `0.1.0` api §4 | `QueueHub`, pola `InpBedRealtimeService` (best-effort) | `NvwRealtimeService`, `QueueHub.JoinNurseViewFloor`, satu panggilan di `PatientVitalSignController` | `BE-NV-005` | Kartu | Hub + simpan TTV | Lintas modul keperawatan, simpan TTV tidak boleh gagal / Rizki + Hamzah | Kartu |
 
 ## Kartu task
 
@@ -105,10 +105,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Verifikasi | HTTP via Swagger oleh Rizki: urutan buat → buat login → atur ulang → nonaktif → atur ulang (aktif kembali); periksa log tanpa kata sandi |
 | DoD | Seluruh AC terpetakan; build Rizki lulus; laporan `BE-NV-002.md` |
 
-### BE-NV-003 — Login dan runtime akun perangkat
+### ✅ BE-NV-003 — Login dan runtime akun perangkat
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 2 November 2026. Resolver login, klaim, policy `NurseViewDisplayRead`, `NvwDeviceContextService`, dan `GET /current` terpetakan ke source; QBE Strict `PASS` (8 berkas, 0 violation, 0 review); build Rizki `PASS` (DLL 15.08, build penuh; jumlah warning belum dinyatakan); regresi perawat, SuperAdmin, LOKET, Kiosk, display antrean, dan 4 login gagal 9/9 sama dengan baseline (125 cek); satu-satunya beda klaim `is_nurse_view_account=false`; uji TV 9/9 `PASS` (67 cek). Delta kontrak `0.1.1` (`NV-DEC-031`). Persiapan admin lewat endpoint karena halaman detail `404` di dev server (lihat `FE-NV-003`). `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-003.md`](../task/report/backend/BE-NV-003.md) |
 | Outcome | TV login memakai akun perangkat dan hanya mendapat akses ke runtime Nurse View; login akun lain tidak berubah |
 | Trace | `FR-NV-018`; `NV-DEC-009`, `022`, `030`; `VAL-NV-14`–`16`; `02-backend-architecture.md` §4.5, §4.10 |
 | Cakupan | (1) `AuthController`: resolver Nurse View dipanggil **sesudah** resolver Kiosk dan display antrean, tanpa mengubah keduanya; klaim `is_nurse_view_account`, `nurse_view_device_id`; akun lain `is_nurse_view_account = false`; perangkat `Inactive` ditolak. (2) `AuthorizationPolicies.NurseViewDisplayRead` + masuk `ApprovedAlternativeAuthorization`. (3) `Program.cs`: satu `AddPolicy`, tanpa jalan pintas SuperAdmin/Administrator. (4) `NvwDeviceContextService` (status per permintaan, `LastOnlineAt` 1×/60 detik). (5) `NvwDisplayRuntimeController` `GET /current` |
@@ -117,10 +118,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Risiko | Syarat lead: login keseluruhan tidak boleh terganggu. Bila satu regresi gagal, task tetap 🟡 dan tidak boleh digabung |
 | DoD | AC terpetakan; regresi lulus dan direkam; laporan `BE-NV-003.md` mencantumkan diff ringkas per berkas bersama |
 
-### BE-NV-004 — API interval ukur ulang TTV
+### ✅ BE-NV-004 — API interval ukur ulang TTV
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 2 November 2026. Service, controller, dan DTO terpetakan ke api §2. QBE Strict `PASS` (5 berkas, lalu 3 berkas perbaikan; 0 violation, 0 review); build Rizki `PASS` (412 warning, 0 error; build kedua DLL 11.43). Uji gabungan no. 1–12 `PASS`; `VAL-NV-09`–`13` terbukti lewat HTTP. No. 13 `FAIL` pada putaran pertama (rujukan pencabutan tidak tersimpan), lalu `PASS` 8/8 pada uji ulang sesudah rujukan ditulis ke pesan log aksi (keputusan Rizki 2 Nov; jejak log tidak permanen). `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-004.md`](../task/report/backend/BE-NV-004.md) |
 | Outcome | Admin memasukkan interval yang disahkan Komite; tanpa interval sistem aman-gagal |
 | Trace | `FR-NV-020`–`022`; `NV-DEC-010`; `G-01`, `G-03`; `VAL-NV-09`–`13` |
 | Cakupan | `NvwVitalSignIntervalService` (`GetActiveAsync`, `ReplaceAsync` dalam satu transaksi: baris lama `IsDelete`, baris baru disisipkan), `NvwVitalSignIntervalController` (`[AccessPermission("NurseViewVitalSignInterval", "Read"/"Update")]`), DTO |
@@ -128,10 +130,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Verifikasi | HTTP: GET kosong → isi 2 tingkat → GET → ganti → baris lama bertanda hapus |
 | DoD | AC terpetakan; build lulus; laporan `BE-NV-004.md` |
 
-### BE-NV-005 — Papan lantai tersusun dan tersamarkan
+### ✅ BE-NV-005 — Papan lantai tersusun dan tersamarkan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 4 November 2026. Service, masking helper, DTO, dan `GET /board` terpetakan ke source; QBE Strict `PASS` (5 berkas, 0 violation, 0 review); build Rizki `PASS` (3 Nov 08.50; jumlah warning belum dinyatakan). Uji papan 8/8 `PASS` (51 cek): nol kebocoran nama lengkap, No. RM, tanggal lahir, ID, alergen, dan DPJP; median 121 ms untuk 66 bed. Akun manusia `403` (2/2). 4 Nov: `NV-AC-011`, `NV-AC-013`, dan `NV-AC-021` terbukti dengan data nyata (AC011, AC013, AC021 `PASS`, 17 cek) sesudah Morse disahkan dan isolasi disetel DPJP atas persetujuan Hamzah, serta kamar uji tanpa kunci denah dibuat lalu dinonaktifkan. `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-005.md`](../task/report/backend/BE-NV-005.md) |
 | Outcome | `GET /board` mengembalikan papan lantai perangkat dengan identitas samaran dan seluruh isi kartu |
 | Trace | `FR-NV-010`–`016`, `021`; `NV-DEC-006`, `007`, `008`, `011`, `013`, `015`, `018`, `019`, `020`, `025`, `026`, `027`; `02-backend-architecture.md` §4.6–§4.7 |
 | Cakupan | `NvwFloorBoardQueryService` (langkah 1–8, 10–11 pada §4.6; langkah 9 roster di `BE-NV-006`), `NvwPatientMasking`, `NvwFloorBoardDtos.cs`, endpoint `GET /board`. `HoldingContext` diabaikan. Kamar cukup `FloorCode` |
@@ -140,10 +143,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Risiko | Kebocoran identitas lewat field baru. Uji pencarian teks wajib ada di laporan |
 | DoD | AC terpetakan; JSON bukti tersimpan; laporan `BE-NV-005.md` |
 
-### BE-NV-006 — Header perawat jaga dari roster
+### ✅ BE-NV-006 — Header perawat jaga dari roster
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 4 November 2026. Query roster di `NvwFloorBoardQueryService` dan `MapCpptProfessionType` → `internal static` terpetakan ke source; delta kontrak `0.1.2` (`NV-DEC-033`: unit dan profesi cadangan dari periode roster dan data pegawai). QBE Strict `PASS` (2 berkas, 0 violation, 0 review); build Rizki `PASS` (DLL 10.53; jumlah warning belum dinyatakan). Uji papan 3/3 `PASS` (16 cek): roster terbit tanpa shift dan bangsal tanpa `OrganizationUnitId` → `RosterAvailable = false` tanpa nama (`NV-AC-017`); papan `BE-NV-005` tidak berubah, urutan kini menurut `BedName`. 4 Nov: `NV-AC-009` terbukti dengan data nyata — roster `Published` berisi tiga perawat, satu pegawai tanpa profesi, dan satu non-perawat → `/board` dan kepala bangsal hanya menampilkan ketiga perawat (AC009 `PASS`, 8 cek). Ini sesudah perbaikan lintas modul HR di `RosterPeriodService` (`ToUtc`, restu Rizki; QBE Strict `PASS` 1 berkas; build Rizki 4 Nov 10.39). Dua temuan lintas modul dicatat tanpa diperbaiki: `PUT employees` `500` untuk pegawai yang proyeksi organisasinya menunjuk penempatan lama (platform), dan konvensi waktu `ScheduleChangeService` (HR). `TLM-NV-001` diperbarui. Konfirmasi Hamzah soal penulis baris diterima 3 November 2026 (`TLM-NV-001` §7). `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Riwayat: 🟡 SEBAGIAN 3 November 2026 karena `NV-AC-009` belum terbukti. Laporan: [`BE-NV-006.md`](../task/report/backend/BE-NV-006.md) |
 | Outcome | Setiap bangsal di papan menampilkan perawat/bidan jaga shift berjalan, atau "Roster shift ini belum tersedia" |
 | Trace | `FR-NV-017`; `NV-DEC-012`, `021`, `027`; `TLM-NV-001` keperawatan permintaan 2 |
 | Cakupan | Langkah 9 §4.6: `TrxShiftAssignment` `Published`, bukan libur, rentang shift memuat sekarang, `OrganizationUnitId` bangsal, profesi Nurse/Midwife. **Lintas modul:** `InpatientClinicalContextService.MapCpptProfessionType` `private static` → `internal static`, tanpa perubahan isi |
@@ -152,10 +156,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Verifikasi | HTTP: roster kosong → `RosterAvailable = false`; roster `Published` 3 perawat + 1 petugas administrasi → hanya 3 perawat tampil |
 | DoD | AC terpetakan; laporan `BE-NV-006.md` dirujuk dari `rawat-inap/keperawatan/docs/task-lintas-modul/` |
 
-### BE-NV-007 — Sinyal realtime saat TTV disimpan
+### ✅ BE-NV-007 — Sinyal realtime saat TTV disimpan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 4 November 2026. `NvwRealtimeService`, `QueueHub.JoinNurseViewFloor`/`LeaveNurseViewFloor`, dan satu panggilan sesudah commit pada `POST`, `PUT`, `PATCH cancel` `PatientVitalSignController` terpetakan ke source. QBE Strict `PASS` (6 berkas, 0 violation, 0 review); build Rizki `PASS` (DLL 3 Nov 16.33; jumlah warning belum dinyatakan). Uji hub 11/11 `PASS` (38 cek): sinyal tanpa identitas tiba di TV lantai 3 sebelum jawaban simpan TTV sampai, TV lantai 2 tidak menerima, `verify` dan TTV IGD tanpa sinyal, akun manusia dan token basi ditolak, akun TV ditolak `JoinInpatientBedSelection` (`NV-AC-022`). "Matikan hub" diganti padanan TV terputus mendadak (H10), karena SignalR satu proses dengan API; jalur galat server terbukti lewat review kode. Perubahan kartu di layar (`NV-AC-019`) dibuktikan `FE-NV-007`. `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-007.md`](../task/report/backend/BE-NV-007.md) |
 | Outcome | TV lantai pasien menerima `NurseViewBoardChanged` beberapa detik sesudah TTV disimpan/dibatalkan |
 | Trace | `FR-NV-032`; `NV-DEC-023`, `026`, `027`; `TLM-NV-001` keperawatan permintaan 1 |
 | Cakupan | `NvwRealtimeService.NotifyVitalSignChangedAsync` (best-effort, payload tanpa identitas). `QueueHub.JoinNurseViewFloor` / `LeaveNurseViewFloor` tanpa parameter. **Lintas modul:** satu panggilan sesudah commit pada `POST`, `PUT`, `PATCH cancel` di `PatientVitalSignController`, hanya bila `InpEpisodeId` terisi |
