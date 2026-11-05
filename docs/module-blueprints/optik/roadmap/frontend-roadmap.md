@@ -26,12 +26,12 @@ FE-OPT-001 (aturan bersama, mandiri)
 ✅FE-OPT-002 (data klinis) ─┐                ✅FE-OPT-000 {screen brief}
 ✅FE-OPT-003 (data pesanan) ┘                       │
                                                   ▼
-FE-OPT-000 + 001 + 002 + BE-OPT-005 ─> FE-OPT-031 (katalog & pengaturan)
-FE-OPT-000 + 002 + BE-OPT-010 ─> FE-OPT-010 (menu + kunjungan) ─┬─> FE-OPT-011 (pemeriksaan, + BE-OPT-011)
-                                                                └─> FE-OPT-012 (resep, + BE-OPT-012)
-FE-OPT-012 + 003 + BE-OPT-032/034 (+054 pratinjau harga) ─> FE-OPT-020 (pesanan) ─> FE-OPT-021 (serah/batal) ─┬─> FE-OPT-022 (penjualan langsung)
-                                                                                    └─> FE-OPT-030 (garansi, + BE-OPT-050)
-FE-OPT-021 + BE-OPT-052 ─> FE-OPT-032 (laporan) ─> FE-OPT-033 (E2E)
+FE-OPT-000 + 001 + 002 + BE-OPT-005 ─> ✅FE-OPT-031 (katalog & pengaturan)
+FE-OPT-000 + 002 + BE-OPT-010 ─> ✅FE-OPT-010 (menu + kunjungan) ─┬─> ✅FE-OPT-011 (pemeriksaan, + BE-OPT-011)
+                                                                └─> ✅FE-OPT-012 (resep, + BE-OPT-012)
+FE-OPT-012 + 003 + BE-OPT-032/034 (+054 pratinjau harga) ─> ✅FE-OPT-020 (pesanan) ─> ✅FE-OPT-021 (serah/batal) ─┬─> ✅FE-OPT-022 (penjualan langsung)
+                                                                                    └─> ✅FE-OPT-030 (garansi, + BE-OPT-050)
+✅FE-OPT-021 + BE-OPT-052 ─> ✅FE-OPT-032 (laporan) ─> ✅FE-OPT-033 (E2E)
 ```
 
 ## Ringkasan Task
@@ -42,16 +42,16 @@ FE-OPT-021 + BE-OPT-052 ─> FE-OPT-032 (laporan) ─> FE-OPT-033 (E2E)
 | `FE-OPT-001` ✅ | Aturan bersama teruji unit: input desimal bertanda minus, pratinjau transposisi, cermin aturan rentang/kelipatan | — | — | Selesai 2026-11-03 — [laporan](../task/report/frontend/FE-OPT-001.md); belum di-commit. Format rupiah/tanggal WIB dipindah ke `FE-OPT-003` (dipakai bersama status bayar) |
 | `FE-OPT-002` ✅ | Lapisan data klinis: service Axios + slice Redux untuk kunjungan, pemeriksaan, resep, metadata | — | Kontrak v1 | Selesai 2026-11-04 — [laporan](../task/report/frontend/FE-OPT-002.md); 13 uji unit, lint, build `PASS` |
 | `FE-OPT-003` ✅ | Lapisan data pesanan: pesanan, status bayar, keluhan, katalog, pengaturan, laporan, diskon Billing; format rupiah dan tanggal WIB (dipindah dari `FE-OPT-001`) | — | Kontrak v1 + `v1.1` | Selesai 2026-11-04 — [laporan](../task/report/frontend/FE-OPT-003.md); 14 uji unit, lint, build `PASS` |
-| `FE-OPT-010` | Menu Optik + daftar kunjungan + pendaftaran + ringkasan kunjungan | `N01`..`N03` | 000 ✅, 002 ✅, `BE-OPT-010` ✅ | Siap dikerjakan |
-| `FE-OPT-011` | Form pemeriksaan refraksi + riwayat revisi | `N04`, `N06` | 010, 001 ✅, `BE-OPT-011` ✅ | Direncanakan |
-| `FE-OPT-012` | Form resep + salin resep luar + riwayat versi + cetak resep | `N05`, `N06` | 010, 001 ✅, `BE-OPT-012` ✅ | Direncanakan |
-| `FE-OPT-020` | Buat pesanan, katalog, tagihkan, ajukan diskon, status bayar, kirim ke pengerjaan, cetak bukti pesanan | `N07`, `N08` | 012, 003 ✅, `BE-OPT-032` ✅, `034` ✅, `054` ✅ | Direncanakan |
-| `FE-OPT-021` | Daftar pesanan, tandai siap, serahkan, ajukan/putuskan batal, tutup tidak diambil | `N09`..`N11` | 020, `BE-OPT-040` ✅, `041` ✅, `054` ✅ | Direncanakan |
-| `FE-OPT-022` | Penjualan langsung | `N07` (mode langsung) | 021, `BE-OPT-042` ✅ | Direncanakan |
-| `FE-OPT-030` | Keluhan garansi: catat (alur dari pesanan), periksa ulang, putuskan | `N12` | 021, `BE-OPT-050` ✅ | Direncanakan |
-| `FE-OPT-031` | Katalog/profil barang dan pengaturan (Admin Optik) | `N13`, `N14` | 000 ✅, 001 ✅, 003 ✅, `BE-OPT-005` ✅ | Siap dikerjakan |
-| `FE-OPT-032` | Empat laporan (satu halaman, 4 tab) | `N15` | 021, `BE-OPT-052` ✅ | Direncanakan |
-| `FE-OPT-033` | E2E per UAT `UAT-01`..`26` | Semua | 032 | Direncanakan |
+| `FE-OPT-010` ✅ | Menu Optik + daftar kunjungan + pendaftaran + ringkasan kunjungan | `N01`..`N03` | 000 ✅, 002 ✅, `BE-OPT-010` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-010.md); 14 uji unit, 22 E2E, lint, build `PASS`; alur daftar–detail diuji dengan backend lokal. Task layar berikutnya menyalakan `OPTICAL_SCREEN_READY` dan menambah butir menunya |
+| `FE-OPT-011` ✅ | Form pemeriksaan refraksi + riwayat revisi | `N04`, `N06` | 010 ✅, 001 ✅, `BE-OPT-011` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-011.md); 19 uji unit, 19 E2E, lint, build `PASS`. Alur tulis asli tertahan: kode profesi `OpticalManagement:Practitioner` kosong dan belum ada akun RO/Sp.M uji |
+| `FE-OPT-012` ✅ | Form resep + salin resep luar + riwayat versi + cetak resep | `N05`, `N06` | 010 ✅, 001 ✅, `BE-OPT-012` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-012.md); 19 uji unit, 20 E2E, lint, build `PASS`. Alur tulis asli tertahan: kode profesi `OpticalManagement:Practitioner` kosong dan belum ada akun RO/Sp.M uji |
+| `FE-OPT-020` ✅ | Buat pesanan, katalog, tagihkan, ajukan diskon, status bayar, kirim ke pengerjaan, cetak bukti pesanan | `N07`, `N08` | 012 ✅, 003 ✅, `BE-OPT-032` ✅, `034` ✅, `054` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-020.md); 15 uji unit, 17 E2E, lint, build `PASS`. Ajukan Diskon mengikuti Billing as-is, tanpa nominal dan tanpa persetujuan (`OPT-APR-004`). Alur tulis asli tertahan data prasyarat |
+| `FE-OPT-021` ✅ | Daftar pesanan, tandai siap, serahkan, ajukan/putuskan batal, tutup tidak diambil | `N09`..`N11` | 020 ✅, `BE-OPT-040` ✅, `041` ✅, `054` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-021.md); 11 uji unit, 15 E2E, lint, build `PASS`. Garansi menampilkan masa dari snapshot, bukan tanggal batas. Alur tulis asli tertahan data prasyarat |
+| `FE-OPT-022` ✅ | Penjualan langsung | `N07` (mode langsung) | 021 ✅, `BE-OPT-042` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-022.md); 5 uji unit, 10 E2E, lint, build `PASS`. Resep lensa kontak pada penjualan langsung tidak terkunci, mengikuti backend. Alur tulis asli tertahan data prasyarat |
+| `FE-OPT-030` ✅ | Keluhan garansi: catat (alur dari pesanan), periksa ulang, putuskan | `N12` | 021 ✅, `BE-OPT-050` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-030.md); 10 uji unit, 15 E2E, lint, build `PASS`. Tautan remake ke pesanan asal belum ada: respons tanpa `ParentOrderId`. Alur tulis asli tertahan data prasyarat dan kode profesi |
+| `FE-OPT-031` ✅ | Katalog/profil barang dan pengaturan (Admin Optik) | `N13`, `N14` | 000 ✅, 001 ✅, 003 ✅, `BE-OPT-005` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-031.md); 11 uji unit, 10 E2E, lint, build `PASS`. Aksi Daftarkan Barang di luar brief menunggu konfirmasi pemilik. devYoga belum punya barang `IsPrescribable = false`, sehingga `UAT-26` belum dapat diuji |
+| `FE-OPT-032` ✅ | Empat laporan (satu halaman, 4 tab) | `N15` | 021 ✅, `BE-OPT-052` ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-032.md); 8 uji unit, 9 E2E, lint, build `PASS`. Laporan berisi data belum dapat dilihat dengan backend asli: devYoga belum punya pesanan dan pemeriksaan |
+| `FE-OPT-033` ✅ | E2E per UAT `UAT-01`..`26` | Semua | 032 ✅ | Selesai 2026-11-05 — [laporan](../task/report/frontend/FE-OPT-033.md); matriks UAT, 9 skenario baru, 146 E2E `PASS` dengan API tiruan. `UAT-19` belum terpenuhi, `UAT-26` belum dapat diuji. Alur ujung-ke-ujung dengan backend dan data asli belum dijalankan |
 
 ## Rincian Task
 
@@ -111,7 +111,7 @@ Setiap task layar memakai bentuk yang sama:
 | Risiko/pemilik | Layar tidak boleh menghitung uang atau status sendiri. Optik |
 | DoD | UAT terkait lulus; tidak ada data sensitif di `console` |
 
-### `FE-OPT-033` — E2E
+### `FE-OPT-033` ✅ — E2E
 
 | Field | Isi |
 |---|---|
