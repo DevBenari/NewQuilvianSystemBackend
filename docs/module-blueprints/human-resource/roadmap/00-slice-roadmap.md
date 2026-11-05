@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `10` — revisi `9` menyerap target state Slice `S-B1`; **revisi `10` (4 November 2026) menyerap keputusan `HRD-DEC-110` s.d. `HRD-DEC-115` dan `HRD-ASM-19` s.d. `HRD-ASM-22` untuk target state Slice `S-B2` (Administrasi Cuti & Izin Pegawai Rumah Sakit), merencanakan 14 task backend (`BE-HRD-117` s.d. `BE-HRD-130`) dan 14 task frontend (`FE-HRD-102` s.d. `FE-HRD-115`) lintas gelombang MVP-24 s.d. MVP-26 & Verifikasi** |
+| Roadmap revision | `11` — revisi `10` menyerap target state Slice `S-B2`; **revisi `11` (5 November 2026) menyerap keputusan `HRD-DEC-116` s.d. `HRD-DEC-121` dan `HRD-ASM-23` s.d. `HRD-ASM-26` untuk target state Slice `S-B3` (Administrasi Lembur Pegawai Rumah Sakit), merencanakan 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) lintas gelombang MVP-27 s.d. MVP-29 & Verifikasi** |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -57,7 +57,7 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | --- | --- | --- |
 | `HRD-PH-001` | `S0-A`, `S0-B` | `READY` |
 | `HRD-PH-002` | `S-A1` s.d. `S-A7` | `READY` |
-| `HRD-PH-003` | `S-B1` s.d. `S-B4` | `PLANNED` — `S-B4` (17 BE, 13 FE rev 8); `S-B1` (13 BE, 14 FE rev 9); `S-B2` direncanakan pada roadmap revision `10` (4 November 2026): 14 task backend (`BE-HRD-117` s.d. `BE-HRD-130`) dan 14 task frontend (`FE-HRD-102` s.d. `FE-HRD-115`) |
+| `HRD-PH-003` | `S-B1` s.d. `S-B4` | `PLANNED` — `S-B4` (17 BE, 13 FE rev 8); `S-B1` (13 BE, 14 FE rev 9); `S-B2` (14 BE, 14 FE rev 10); `S-B3` direncanakan pada roadmap revision `11` (5 November 2026): 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) |
 | `HRD-PH-004` | `S-B5` | `READY` sebagian |
 | `HRD-PH-005` | `S-C1` | `BLOCKED` |
 | `HRD-PH-006` | `S-C6` | `BLOCKED` |
@@ -314,17 +314,17 @@ Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan 
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | 78 endpoint pada 9 controller, mencakup rencana, realisasi, verifikasi, rekonsiliasi, penjadwal penutupan, dan serah terima. Frontend memanggil nol |
-| **Target State** | HR dan atasan dapat merencanakan, memverifikasi, dan merekonsiliasi lembur sebelum diserahkan ke payroll |
-| **Backend Impact** | Diharapkan nihil |
-| **Frontend Impact** | Kelompok halaman baru di `src/app/hr/overtime/**` |
-| **Database Impact** | Tidak ada |
+| **Current State** | 78 endpoint pada 9 controller, mencakup rencana, realisasi, verifikasi, rekonsiliasi, penjadwal penutupan, dan serah terima. Model operasional eksisting meliputi `TrxOvertimePlan`, `TrxOvertimeRealization`, `TrxOvertimeVerification`, `TrxCompensatoryTimeOff`, `TrxOvertimePeriod`, `TrxOvertimeRequestApproval`, dll |
+| **Target State** | Administrasi lembur rumah sakit menyeluruh: pengajuan SPKL terencana H-1 & klaim darurat medis cito pasca-dinas H+1 (`HRD-DEC-116`), pembatasan anti-self-approval mutlak (`HRD-DEC-117`), persetujuan eskalasi Direktur Pelayanan Medik untuk kondisi cito penyelamatan nyawa yang melampaui kuota PP 35/2021 (`HRD-DEC-118`), verifikasi silang mesin biometrik presensi dengan aturan batas minimum 30 menit & kewajiban upload bukti logbook fisik jika selisih > 15 menit (`HRD-DEC-119`), hak cuti pengganti lembur (Compensatory Time-Off / CTO) berlaku 90 hari kalender (`HRD-DEC-120`), serta manajemen penutupan periode cut-off tanggal 20 dengan rekonsiliasi rapel retrospektif ke payroll bulan berikutnya (`HRD-DEC-121`). Telah dirancang pada `02-backend-architecture.md` bagian 22 dan `03-frontend-architecture.md` bagian 18 |
+| **Backend Impact** | **`EXTEND` terhadap model operasional lembur eksisting & penambahan service kebijakan lembur**. 15 task backend direncanakan (`BE-HRD-131` s.d. `BE-HRD-145`): fondasi skema database (`BE-HRD-131`), service kebijakan kuota RS (`BE-HRD-132`), DTO & validasi FluentValidation (`BE-HRD-133`), service SPKL pra-dinas H-1 & penugasan tim (`BE-HRD-134`), service klaim darurat cito H+1 & nomor RM (`BE-HRD-135`), engine kuota PP 35/2021 & deteksi eskalasi (`BE-HRD-136`), workflow approval 2-tahap anti-self-approval (`BE-HRD-137`), otorisasi Direktur Medik darurat cito (`BE-HRD-138`), verifikasi silang presensi biometrik & min-duration rule (`BE-HRD-139`), manajemen discrepancy presensi & bukti fisik (`BE-HRD-140`), service hak libur pengganti CTO 90 hari (`BE-HRD-141`), scheduler hangus CTO kedaluwarsa (`BE-HRD-142`), manajemen periode cut-off tgl 20 & retrospektif (`BE-HRD-143`), serah terima data lembur terkunci ke Payroll (`BE-HRD-144`), dan verifikasi E2E QBE arsitektur (`BE-HRD-145`) |
+| **Frontend Impact** | 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) mencakup API service client Axios, Redux slice, komponen form dual-mode SPKL & cito, drawer investigasi discrepancy biometrik, kotak masuk persetujuan ruangan & Direktur Medik, pemantau tiket saldo CTO 90 hari, tabel rekonsiliasi rapel, serta 6 layar: `FE-HRD-156` (Pengajuan SPKL & Klaim Cito ESS), `FE-HRD-157` (Kotak Masuk Approval Lembur Ruangan), `FE-HRD-158` (Pusat Verifikasi Presensi & Discrepancy HR), `FE-HRD-159-A` (Kotak Masuk Approval Direktur Medik), `FE-HRD-159` (Monitoring Saldo Cuti Pengganti CTO), `FE-HRD-160` (Penutupan Periode Lembur & Payroll Close), dan `FE-HRD-161` (Pengaturan Kebijakan & Kuota Lembur RS) |
+| **Database Impact** | Tabel konfigurasi batas lembur RS `hrd_overtime_settings`, kolom otorisasi khusus eskalasi Direktur Medik, nomor RM dan bukti logbook fisik dinas, kolom status tiket saldo CTO 90 hari, serta indeks performa query lembur per pegawai, unit kerja, dan rentang tanggal cut-off |
 | **Dependency** | `HRD-DEP-002` |
-| **Blocking Decision** | Tarif dan aturan kompensasi adalah `HRD-Q-06` |
-| **QBE Impact** | Frontend saja |
-| **Migration Risk** | Nihil |
-| **Acceptance Criteria** | 1. Lembur yang belum diverifikasi tidak ikut serah terima payroll. 2. Rekonsiliasi menunjukkan selisih antara rencana dan realisasi. 3. Nominal berasal dari backend |
-| **Release Status** | `READY` |
+| **Blocking Decision** | `HRD-DEC-116` s.d. `HRD-DEC-121` telah menyelesaikan seluruh keputusan bisnis: model dual pengajuan, pelarangan self-approval, eskalasi darurat klinis, batas toleransi presensi, kedaluwarsa CTO 90 hari, dan batas cut-off tgl 20. Tidak ada blocking decision terbuka |
+| **QBE Impact** | `NEW CODE` untuk service logic validasi kuota, workflow approval ruangan & Direktur Medik, scheduler hangus CTO, dan handoff payroll; `TOUCHED LEGACY` untuk DDL tabel lembur eksisting |
+| **Migration Risk** | Rendah — skema database memperluas tabel eksisting dengan kolom nullable/default aman dan tabel konfigurasi baru. Tidak ada migrasi destruktif |
+| **Acceptance Criteria** | 1. SPKL pra-dinas diajukan H-1 dan klaim darurat medis cito diajukan H+1 dengan nomor RM pasien. 2. Self-approval diblokir mutlak oleh sistem. 3. Pelampauan kuota PP 35/2021 pada kondisi cito wajib diotorisasi Direktur Medik. 4. Durasi lembur aktual di bawah 30 menit otomatis diakui 0 jam. 5. Saldo tiket CTO hangus otomatis setelah 90 hari kalender. 6. Lembur terverifikasi pasca-cut-off tanggal 20 dirapel retrospektif ke payroll bulan berikutnya |
+| **Release Status** | **`PLANNED`** — Desain disetujui pengguna 5 November 2026 (`HRD-DEC-116` s.d. `HRD-DEC-121`). Direncanakan 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) pada roadmap revision `11` lintas gelombang `MVP-27` s.d. `MVP-29` & Verifikasi |
 
 ### `S-B4` — Penjadwalan kerja
 
@@ -649,8 +649,8 @@ Contoh supaya batasnya jelas:
 
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
-| `READY` | **17** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-B3` (1), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1) |
-| `PLANNED` | **3** | `S-B4` (1, sejak 4 November 2026 — 17 task BE, 13 task FE rev 8), `S-B1` (1, sejak 4 November 2026 — 13 task BE, 14 task FE rev 9), `S-B2` (1, sejak 4 November 2026 — 14 task BE, 14 task FE rev 10) |
+| `READY` | **16** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1) |
+| `PLANNED` | **4** | `S-B4` (1, sejak 4 November 2026 — 17 task BE, 13 task FE rev 8), `S-B1` (1, sejak 4 November 2026 — 13 task BE, 14 task FE rev 9), `S-B2` (1, sejak 4 November 2026 — 14 task BE, 14 task FE rev 10), `S-B3` (1, sejak 5 November 2026 — 15 task BE, 14 task FE rev 11) |
 | `PARTIAL` | 1 | `S-B5` |
 | `BLOCKED` | 4 | `S-C1`, `S-C6`, `S-D3`, `S-D4` |
 | `DEFERRED` | 1 | `S-D5` |

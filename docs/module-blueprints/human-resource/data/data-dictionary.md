@@ -3210,3 +3210,268 @@ CREATE INDEX IF NOT EXISTS idx_leave_ledger_expiry ON trx_leave_balance_ledgers(
 CREATE INDEX IF NOT EXISTS idx_leave_recall_leave_request ON trx_leave_recall_requests(leave_request_id);
 CREATE INDEX IF NOT EXISTS idx_leave_request_dates ON wfp_leave_requests(workforce_profile_id, start_date, end_date, status);
 ```
+
+
+---
+
+## 14. Bagian `S-B3` — Kamus Data Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Kamus data ini mendokumentasikan skema tabel, kolom, tipe data, nullability, indeks, relasi integritas referensial, serta klasifikasi sensitivitas data untuk **Sub-modul 09. Overtime Management (Slice `S-B3`)**. Seluruh tabel mewarisi 10 kolom audit standar (`IdentityModel`).
+
+### 14.1 Ringkasan Entitas & Tabel Database
+
+| Nama Entitas (C# Model) | Nama Tabel (PostgreSQL) | Status | Modul Pemilik | Keterangan & Tujuan Fungsional |
+| :--- | :--- | :---: | :---: | :--- |
+| `TrxOvertimePlan` | `trx_overtime_plans` | Diperbarui | Overtime (09) | SPKL induk pra-dinas terencana H-1 unit kerja |
+| `TrxOvertimePlanDetail` | `trx_overtime_plan_details` | Diperbarui | Overtime (09) | Rincian staf pelaksana dalam satu penugasan lembur kelompok |
+| `TrxOvertimeRealization` | `trx_overtime_realizations` | Diperbarui | Overtime (09) | Realisasi jam lembur aktual & klaim darurat medis cito H+1 |
+| `TrxOvertimeRealizationDetail`| `trx_overtime_realization_details` | Diperbarui | Overtime (09) | Rincian waktu fisik pelaksanaan lembur per tugas |
+| `TrxOvertimeVerification` | `trx_overtime_verifications` | Diperbarui | Overtime (09) | Hasil verifikasi silang mesin presensi & discrepancy logging |
+| `TrxCompensatoryTimeOff` | `trx_compensatory_time_offs` | Diperbarui | Overtime (09) | Hak kuota cuti pengganti (CTO) berkedaluwarsa 90 hari |
+| `TrxOvertimePeriod` | `trx_overtime_periods` | Diperbarui | Overtime (09) | Periode cut-off lembur bulanan pra-payroll |
+| `TrxOvertimeRequestApproval` | `trx_overtime_request_approvals` | Diperbarui | Overtime (09) | Riwayat persetujuan berjenjang & pencegahan self-approval |
+
+---
+
+### 14.2 Spesifikasi Kolom Tabel
+
+#### 1. Tabel `trx_overtime_plans` (SPKL Pra-Dinas Terencana)
+*Tabel induk pencatatan Surat Perintah Kerja Lembur terencana H-1.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | — | Tidak | Identifikator unik berkas SPKL |
+| `plan_number` | `VARCHAR(100)` | Tidak | Unique | — | Tidak | Nomor registrasi SPKL (misal: `SPKL/2026/11/0089`) |
+| `unit_id` | `UUID` | Tidak | Index | Unit Organisasi | Tidak | Unit kerja tempat pekerjaan lembur dilaksanakan |
+| `plan_date` | `DATE` | Tidak | Index | — | Tidak | Tanggal rencana dinas lembur |
+| `estimated_start_time` | `TIME` | Tidak | — | — | Tidak | Estimasi jam mulai dinas lembur |
+| `estimated_end_time` | `TIME` | Tidak | — | — | Tidak | Estimasi jam selesai dinas lembur |
+| `total_planned_minutes`| `INT` | Tidak | — | — | Tidak | Estimasi total durasi lembur terencana (menit) |
+| `task_description` | `TEXT` | Tidak | — | — | Tidak | Uraian tugas operasional pekerjaan lembur |
+| `compensation_type` | `VARCHAR(50)` | Tidak | — | — | Tidak | `FinancialPayout` atau `CompensatoryTimeOff` (`HRD-DEC-118`) |
+| `status` | `VARCHAR(50)` | Tidak | Index | — | Tidak | `Draft`, `WaitingApproval`, `Approved`, `Rejected`, `Cancelled` |
+| `supervisor_approver_id`| `UUID` | Tidak | Index | `mst_workforce_profiles(id)` | Tidak | Kepala Ruangan / atasan penyetuju operasional |
+| `supervisor_approved_at`| `TIMESTAMPTZ` | Ya | — | — | Tidak | Waktu persetujuan Kepala Ruangan |
+| `hr_approver_id` | `UUID` | Ya | Index | `mst_workforce_profiles(id)` | Tidak | HR Officer pemeriksa kepatuhan kuota & anggaran |
+| `hr_approved_at` | `TIMESTAMPTZ` | Ya | — | — | Tidak | Waktu persetujuan administratif HR Officer |
+| `is_emergency_escalation`| `BOOLEAN` | Tidak | — | — | Tidak | True jika membutuhkan otorisasi khusus kuota |
+| `weekly_quota_hours_at_plan`| `DECIMAL(5,2)` | Ya | — | — | Tidak | Snapshot akumulasi jam lembur saat form diajukan |
+
+#### 2. Tabel `trx_overtime_realizations` (Realisasi & Klaim Lembur Darurat Cito)
+*Tabel pencatatan lembur aktual dan pelaporan darurat tindakan cito medis pasca-dinas.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | — | Tidak | Identifikator unik klaim realisasi lembur |
+| `realization_number` | `VARCHAR(100)` | Tidak | Unique | — | Tidak | Nomor registrasi klaim (misal: `OTR/2026/11/0142`) |
+| `overtime_plan_id` | `UUID` | Ya | Index | `trx_overtime_plans(id)` | Tidak | Tautan SPKL terencana (null jika klaim cito darurat) |
+| `workforce_profile_id` | `UUID` | Tidak | Index | `mst_workforce_profiles(id)` | Tidak | Pegawai/nakes yang melaksanakan dinas lembur |
+| `overtime_category` | `VARCHAR(50)` | Tidak | Index | — | Tidak | `Planned` atau `EmergencyCito` (`HRD-DEC-116`) |
+| `work_date` | `DATE` | Tidak | Index | — | Tidak | Tanggal pelaksanaan dinas lembur |
+| `actual_start_time` | `TIME` | Tidak | — | — | Tidak | Jam mulai dinas lembur aktual |
+| `actual_end_time` | `TIME` | Tidak | — | — | Tidak | Jam selesai dinas lembur aktual |
+| `actual_claimed_minutes`| `INT` | Tidak | — | — | Tidak | Total durasi lembur fisik yang diklaim (menit) |
+| `emergency_clinical_reference_no` | `VARCHAR(100)` | Ya | Index | — | **Ya** | Nomor Rekam Medis / Insiden Darurat Cito (`HRD-DEC-116`) |
+| `clinical_action_summary` | `TEXT` | Ya | — | — | **Ya** | Ringkasan tindakan klinis cito medis (dilindungi hak akses) |
+| `compensation_type` | `VARCHAR(50)` | Tidak | — | — | Tidak | `FinancialPayout` atau `CompensatoryTimeOff` |
+| `status` | `VARCHAR(50)` | Tidak | Index | — | Tidak | `Draft`, `WaitingUnitApproval`, `PendingVerification`, `ApprovedForPayroll`, `Rejected` |
+| `is_medical_director_escalation` | `BOOLEAN` | Tidak | — | — | Tidak | True jika melampaui kuota PP 35/2021 (`HRD-DEC-117`) |
+| `medical_director_approved_by` | `UUID` | Ya | Index | `mst_workforce_profiles(id)` | Tidak | Direktur Pelayanan Medik pemberi dispensasi |
+| `is_retrospective_adjustment` | `BOOLEAN` | Tidak | Index | — | Tidak | True jika disetujui terlambat pasca-cutoff (`HRD-DEC-121`) |
+
+#### 3. Tabel `trx_overtime_verifications` (Verifikasi Silang Biometrik & Discrepancy)
+*Tabel pencatatan perbandingan menit presensi biometrik aktual dan mitigasi anomali.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | — | Tidak | Identifikator unik verifikasi presensi lembur |
+| `overtime_realization_id`| `UUID` | Tidak | Unique | `trx_overtime_realizations(id)` | Tidak | Tautan entitas klaim realisasi lembur |
+| `biometric_check_in` | `TIMESTAMPTZ`| Ya | — | Sub-modul 07 Attendance | Tidak | Jam tap masuk aktual di mesin biometrik |
+| `biometric_check_out`| `TIMESTAMPTZ`| Ya | — | Sub-modul 07 Attendance | Tidak | Jam tap keluar aktual di mesin biometrik |
+| `biometric_excess_minutes`| `INT` | Tidak | — | — | Tidak | Total kelebihan waktu fisik tercatat mesin absensi |
+| `verified_payable_minutes`| `INT` | Tidak | — | — | Tidak | Durasi sah akhir dibayarkan berdasar *min-duration rule* |
+| `verification_status` | `VARCHAR(50)` | Tidak | Index | — | Tidak | `AutoVerified`, `FlaggedDiscrepancy`, `ManuallyAdjusted`, `RejectedDiscrepancy` |
+| `discrepancy_reason` | `VARCHAR(255)`| Ya | — | — | Tidak | Kategori selisih (`DurationMismatch`, `MissingBiometric`) |
+| `manual_adjustment_notes`| `TEXT` | Ya | — | — | Tidak | Catatan evaluasi manual HR Admin atas logbook fisik |
+| `verified_by_hr_admin_id`| `UUID` | Ya | Index | `mst_workforce_profiles(id)` | Tidak | HR Admin pemeriksa berkas bukti fisik anomali |
+| `verified_at` | `TIMESTAMPTZ`| Ya | — | — | Tidak | Waktu penyelesaian verifikasi presensi |
+
+#### 4. Tabel `trx_compensatory_time_offs` (Hak Cuti Pengganti / CTO)
+*Tabel saldo kuota hak libur kompensasi lembur dengan masa kedaluwarsa 3 bulan.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | — | Tidak | Identifikator unik tiket saldo CTO |
+| `cto_ticket_number` | `VARCHAR(100)` | Tidak | Unique | — | Tidak | Nomor registrasi CTO (misal: `CTO/2026/11/0034`) |
+| `workforce_profile_id` | `UUID` | Tidak | Index | `mst_workforce_profiles(id)` | Tidak | Pegawai penerima hak cuti pengganti |
+| `overtime_realization_id`| `UUID` | Tidak | Index | `trx_overtime_realizations(id)` | Tidak | Sumber transaksi klaim lembur sah |
+| `granted_hours` | `DECIMAL(5,2)` | Tidak | — | — | Tidak | Total jam kompensasi lembur yang diberikan |
+| `granted_days` | `DECIMAL(4,1)` | Tidak | — | — | Tidak | Konversi hari cuti (1 hari = 8 jam kerja) |
+| `effective_date` | `DATE` | Tidak | — | — | Tidak | Tanggal mulai hak libur dapat digunakan |
+| `expiry_date` | `DATE` | Tidak | Index | — | Tidak | Tanggal kedaluwarsa (H+90 hari / 3 bulan per `HRD-DEC-118`) |
+| `remaining_hours` | `DECIMAL(5,2)` | Tidak | — | — | Tidak | Sisa jam CTO yang belum terpakai |
+| `status` | `VARCHAR(50)` | Tidak | Index | — | Tidak | `Active`, `FullyUsed`, `Expired` |
+| `is_expired` | `BOOLEAN` | Tidak | Index | — | Tidak | True jika sisa jam dihanguskan oleh scheduler |
+
+#### 5. Tabel `trx_overtime_periods` (Periode & Cut-Off Lembur Bulanan)
+*Tabel penutupan cut-off transaksi lembur bulanan pra-payroll.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | — | Tidak | Identifikator unik periode cut-off lembur |
+| `period_year` | `INT` | Tidak | Index | — | Tidak | Tahun periode penggajian (misal: 2026) |
+| `period_month` | `INT` | Tidak | Index | — | Tidak | Bulan periode penggajian (1 s.d. 12) |
+| `cutoff_date` | `DATE` | Tidak | — | — | Tidak | Tanggal batas cut-off bulanan (misal: 20 November 2026) |
+| `period_status` | `VARCHAR(50)` | Tidak | Index | — | Tidak | `Open`, `CutoffLocked`, `Reconciled`, `Closed` (`HRD-DEC-121`) |
+| `total_verified_requests`| `INT` | Tidak | — | — | Tidak | Jumlah total SPKL terverifikasi siap dibayarkan |
+| `total_payable_hours` | `DECIMAL(7,2)` | Tidak | — | — | Tidak | Akumulasi jam lembur yang diserahkan ke payroll |
+| `total_cto_granted_hours`| `DECIMAL(6,2)` | Tidak | — | — | Tidak | Akumulasi jam yang dikonversi menjadi saldo CTO |
+| `is_handoff_executed` | `BOOLEAN` | Tidak | — | — | Tidak | True jika serah terima data ke Payroll 10 telah berhasil |
+| `handoff_executed_at` | `TIMESTAMPTZ`| Ya | — | — | Tidak | Waktu eksekusi serah terima data ke Payroll |
+
+---
+
+### 14.3 DDL PostgreSQL Lengkap untuk Sub-Modul 09
+
+```sql
+-- DDL PostgreSQL Sub-Modul 09 Overtime Management (Slice S-B3)
+
+CREATE TABLE IF NOT EXISTS trx_overtime_plans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_number VARCHAR(100) NOT NULL UNIQUE,
+    unit_id UUID NOT NULL,
+    plan_date DATE NOT NULL,
+    estimated_start_time TIME NOT NULL,
+    estimated_end_time TIME NOT NULL,
+    total_planned_minutes INT NOT NULL,
+    task_description TEXT NOT NULL,
+    compensation_type VARCHAR(50) NOT NULL DEFAULT 'FinancialPayout',
+    status VARCHAR(50) NOT NULL DEFAULT 'Draft',
+    supervisor_approver_id UUID NOT NULL,
+    supervisor_approved_at TIMESTAMPTZ,
+    hr_approver_id UUID,
+    hr_approved_at TIMESTAMPTZ,
+    is_emergency_escalation BOOLEAN NOT NULL DEFAULT false,
+    weekly_quota_hours_at_plan DECIMAL(5,2),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_ot_plan_supervisor FOREIGN KEY (supervisor_approver_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_ot_plan_hr FOREIGN KEY (hr_approver_id) REFERENCES mst_workforce_profiles(id)
+);
+
+CREATE TABLE IF NOT EXISTS trx_overtime_plan_details (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    overtime_plan_id UUID NOT NULL,
+    workforce_profile_id UUID NOT NULL,
+    planned_start_time TIME NOT NULL,
+    planned_end_time TIME NOT NULL,
+    planned_minutes INT NOT NULL,
+    individual_task_notes VARCHAR(255),
+    status VARCHAR(50) NOT NULL DEFAULT 'Planned',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_ot_plan_detail_parent FOREIGN KEY (overtime_plan_id) REFERENCES trx_overtime_plans(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ot_plan_detail_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id)
+);
+
+CREATE TABLE IF NOT EXISTS trx_overtime_realizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    realization_number VARCHAR(100) NOT NULL UNIQUE,
+    overtime_plan_id UUID,
+    workforce_profile_id UUID NOT NULL,
+    overtime_category VARCHAR(50) NOT NULL DEFAULT 'Planned',
+    work_date DATE NOT NULL,
+    actual_start_time TIME NOT NULL,
+    actual_end_time TIME NOT NULL,
+    actual_claimed_minutes INT NOT NULL,
+    emergency_clinical_reference_no VARCHAR(100),
+    clinical_action_summary TEXT,
+    compensation_type VARCHAR(50) NOT NULL DEFAULT 'FinancialPayout',
+    status VARCHAR(50) NOT NULL DEFAULT 'Draft',
+    is_medical_director_escalation BOOLEAN NOT NULL DEFAULT false,
+    medical_director_approved_by UUID,
+    is_retrospective_adjustment BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_ot_realization_plan FOREIGN KEY (overtime_plan_id) REFERENCES trx_overtime_plans(id),
+    CONSTRAINT fk_ot_realization_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_ot_realization_med_dir FOREIGN KEY (medical_director_approved_by) REFERENCES mst_workforce_profiles(id)
+);
+
+CREATE TABLE IF NOT EXISTS trx_overtime_verifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    overtime_realization_id UUID NOT NULL UNIQUE,
+    biometric_check_in TIMESTAMPTZ,
+    biometric_check_out TIMESTAMPTZ,
+    biometric_excess_minutes INT NOT NULL DEFAULT 0,
+    verified_payable_minutes INT NOT NULL DEFAULT 0,
+    verification_status VARCHAR(50) NOT NULL DEFAULT 'AutoVerified',
+    discrepancy_reason VARCHAR(255),
+    manual_adjustment_notes TEXT,
+    verified_by_hr_admin_id UUID,
+    verified_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_ot_verification_realization FOREIGN KEY (overtime_realization_id) REFERENCES trx_overtime_realizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ot_verification_hr_admin FOREIGN KEY (verified_by_hr_admin_id) REFERENCES mst_workforce_profiles(id)
+);
+
+CREATE TABLE IF NOT EXISTS trx_compensatory_time_offs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cto_ticket_number VARCHAR(100) NOT NULL UNIQUE,
+    workforce_profile_id UUID NOT NULL,
+    overtime_realization_id UUID NOT NULL,
+    granted_hours DECIMAL(5,2) NOT NULL,
+    granted_days DECIMAL(4,1) NOT NULL DEFAULT 0,
+    effective_date DATE NOT NULL,
+    expiry_date DATE NOT NULL,
+    remaining_hours DECIMAL(5,2) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Active',
+    is_expired BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT fk_cto_workforce FOREIGN KEY (workforce_profile_id) REFERENCES mst_workforce_profiles(id),
+    CONSTRAINT fk_cto_realization FOREIGN KEY (overtime_realization_id) REFERENCES trx_overtime_realizations(id)
+);
+
+CREATE TABLE IF NOT EXISTS trx_overtime_periods (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    period_year INT NOT NULL,
+    period_month INT NOT NULL,
+    cutoff_date DATE NOT NULL,
+    period_status VARCHAR(50) NOT NULL DEFAULT 'Open',
+    total_verified_requests INT NOT NULL DEFAULT 0,
+    total_payable_hours DECIMAL(7,2) NOT NULL DEFAULT 0,
+    total_cto_granted_hours DECIMAL(6,2) NOT NULL DEFAULT 0,
+    is_handoff_executed BOOLEAN NOT NULL DEFAULT false,
+    handoff_executed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT uq_ot_period_year_month UNIQUE (period_year, period_month)
+);
+
+-- Indeks Kinerja Kueri Overtime Management
+CREATE INDEX IF NOT EXISTS idx_ot_plan_date_unit ON trx_overtime_plans(plan_date, unit_id, status);
+CREATE INDEX IF NOT EXISTS idx_ot_realization_emp_date ON trx_overtime_realizations(workforce_profile_id, work_date, status);
+CREATE INDEX IF NOT EXISTS idx_ot_verification_state ON trx_overtime_verifications(verification_status);
+CREATE INDEX IF NOT EXISTS idx_cto_emp_expiry ON trx_compensatory_time_offs(workforce_profile_id, expiry_date, is_expired);
+CREATE INDEX IF NOT EXISTS idx_ot_period_lookup ON trx_overtime_periods(period_year, period_month, period_status);
+```

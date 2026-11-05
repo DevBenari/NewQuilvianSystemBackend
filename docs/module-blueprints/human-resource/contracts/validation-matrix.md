@@ -840,3 +840,38 @@ Matriks validasi ini mengunci seluruh aturan integritas data, validasi model, at
 | `VR-LEV-20` | Penguncian Payroll Closed | Operasi modifikasi data cuti pada periode yang telah berstatus `PayrollClosed` | `409 Conflict` | "Periode penggajian telah ditutup. Data transaksi cuti terkunci mutlak." | `HRD-DEC-114`, `HRD-DEC-115` |
 | `VR-LEV-21` | Safe Staffing Mitigation | Aksi *Approve with Mitigation* dilakukan tanpa mengisi catatan rencana pengganti | `400 Bad Request` | "Catatan mitigasi penugasan staf pengganti wajib diisi saat menyetujui cuti berperingatan kuota." | `HRD-DEC-111` |
 | `VR-LEV-22` | Kontak Darurat | Nomor telepon kontak darurat tidak valid atau kosong | `400 Bad Request` | "Nomor telepon kontak darurat yang dapat dihubungi selama cuti wajib diisi." | Standar K3RS |
+
+
+---
+
+## 18. Bagian `S-B3` — Matriks Validasi Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Matriks validasi ini mengunci seluruh aturan integritas data, validasi model, aturan bisnis rumah sakit, dan kode respon HTTP untuk **Slice `S-B3` — Administrasi Lembur Pegawai Rumah Sakit**.
+
+| Kode Aturan | Kategori | Kondisi yang Diperiksa | Respon / Kode HTTP | Pesan Kesalahan Baku | Rujukan Keputusan |
+| --- | --- | --- | :---: | --- | --- |
+| `VR-OT-01` | Validasi Pra-Dinas | SPKL kategori `Planned` dengan `PlanStartTime <= CurrentTime` | `400 Bad Request` | "Waktu mulai rencana lembur terencana harus di masa depan." | `HRD-DEC-116`, `OT-B1` |
+| `VR-OT-02` | Darurat Cito | Klaim darurat cito tanpa nomor RM atau uraian tindakan klinis | `400 Bad Request` | "Nomor Rekam Medis / Insiden dan ringkasan tindakan klinis darurat wajib diisi." | `HRD-DEC-116`, `OT-B3` |
+| `VR-OT-03` | Anti-Self-Approval | `ApproverUserId == RequestEmployeeUserId` saat persetujuan SPKL | `403 Forbidden` | "Akses ditolak: Pejabat struktural dilarang menyetujui formulir lemburnya sendiri." | `HRD-DEC-120`, `OT-B5` |
+| `VR-OT-04` | Kuota PP 35/2021 | Lembur reguler dengan akumulasi harian > 4 jam atau mingguan > 18 jam | `400 Bad Request` | "Pengajuan melebihi kuota maksimal lembur (4 jam/hari atau 18 jam/minggu) sesuai regulasi PP 35/2021." | `HRD-DEC-117`, `OT-B4` |
+| `VR-OT-05` | Batas Manajerial | Pegawai `JobLevel >= Manager` memilih kompensasi `FinancialPayout` | `400 Bad Request` | "Pejabat struktural/manajerial tidak berhak atas kompensasi uang lembur finansial (Overtime Exempt)." | `HRD-DEC-118`, `OT-B6` |
+| `VR-OT-06` | Tenggat Pasca-Dinas | Klaim pasca-dinas diserahkan > H+1 hari kerja setelah dinas selesai | `400 Bad Request` | "Batas waktu pelaporan klaim darurat medis pasca-dinas telah kedaluwarsa (maksimal H+1 hari kerja)." | `HRD-DEC-116`, `OT-B2` |
+| `VR-OT-07` | Min-Duration Rule | Perhitungan durasi sah dari `min(claimed_minutes, biometric_minutes)` | `200 OK` (Auto) | Durasi sah dihitung otomatis dari nilai fisik terkecil untuk mencegah lembur fiktif. | `HRD-DEC-119`, `OT-W3` |
+| `VR-OT-08` | Pembulatan Waktu | Pembulatan durasi lembur fisik ke kelipatan 30 menit ke bawah | `200 OK` (Auto) | Durasi dibulatkan ke kelipatan 30 menit terdekat ke bawah (`HRD-ASM-23`). | `HRD-ASM-23`, `OT-B8` |
+| `VR-OT-09` | Ambang Batas Minimal| Durasi kelebihan fisik terverifikasi < 30 menit | `200 OK` (Nol Jam) | Durasi lembur kurang dari 30 menit tidak dihitung kompensasi (0 jam). | `HRD-ASM-23` |
+| `VR-OT-10` | Discrepancy Flagging| Selisih jam SPKL vs mesin presensi > 30 menit atau lupa tap biometrik | `200 OK` (Flagged) | Status klaim ditandai `FlaggedDiscrepancy` dan ditahan dari rekonsiliasi payroll. | `HRD-DEC-119`, `OT-W2` |
+| `VR-OT-11` | Bukti Investigasi | Koreksi manual discrepancy tanpa catatan evaluasi atau nomor dokumen logbook | `400 Bad Request` | "Catatan evaluasi dan nomor dokumen logbook fisik ruangan wajib disertakan pada penyesuaian manual." | `HRD-DEC-119` |
+| `VR-OT-12` | Eskalasi Darurat | Klaim cito melebihi batas kuota disetujui tanpa otorisasi Direktur Medis | `403 Forbidden` | "Klaim lembur darurat yang melebihi kuota PP 35/2021 wajib memperoleh otorisasi Direktur Pelayanan Medik." | `HRD-DEC-117`, `OT-W1` |
+| `VR-OT-13` | Masa Berlaku CTO | Permohonan cuti CTO diajukan setelah melewati 90 hari kalender sejak terbit | `400 Bad Request` | "Hak cuti pengganti (CTO) telah kedaluwarsa (masa berlaku 90 hari kalender telah terlampaui)." | `HRD-DEC-118`, `HRD-ASM-25` |
+| `VR-OT-14` | Non-Cash CTO | Permintaan konversi saldo CTO kedaluwarsa menjadi uang tunai | `400 Bad Request` | "Hak cuti pengganti (CTO) yang hangus tidak dapat dikompensasikan menjadi uang tunai." | `HRD-ASM-25` |
+| `VR-OT-15` | Penutupan Cut-off | SPKL diajukan pada periode lembur yang sedang dalam proses cut-off | `200 OK` (Deferred)| SPKL otomatis dialokasikan ke periode penggajian bulan kalender berikutnya. | `HRD-DEC-121` |
+| `VR-OT-16` | Immutabilitas Kunci | Modifikasi data lembur pada periode berstatus `CutoffLocked` atau `Closed` | `409 Conflict` | "Periode lembur telah dikunci/ditutup. Modifikasi data dilarang mutlak." | `HRD-DEC-121`, `OT-B7` |
+| `VR-OT-17` | Retrospektif Payroll| SPKL pending disetujui setelah tanggal cut-off bulanan | `200 OK` (Retro) | Klaim ditandai `IsRetrospectiveAdjustment = true` dan masuk rapel payroll berikutnya. | `HRD-DEC-121`, `OT-W5` |
+| `VR-OT-18` | Konflik Cuti | Jadwal dinas lembur bertabrakan dengan permohonan cuti sehari penuh yang disetujui| `409 Conflict` | "Pegawai sedang dalam jadwal cuti aktif yang telah disetujui pada tanggal tersebut." | Integritas Sub-modul 08 |
+| `VR-OT-19` | Jam Kerja Reguler | Lembur dijadwalkan tepat di dalam rentang jam shift dinas reguler staf | `409 Conflict` | "Jam dinas lembur tidak boleh bertabrakan dengan jam kerja dinas reguler staf." | Integritas Sub-modul 06 |
+| `VR-OT-20` | Anggota Tim Kosong | SPKL kelompok diajukan tanpa mendaftarkan satupun pegawai pelaksana | `400 Bad Request` | "SPKL kelompok wajib memuat sekurang-kurangnya satu orang pegawai pelaksana." | `HRD-ASM-26` |
+| `VR-OT-21` | Validasi Unit | `UnitId` tidak terdaftar atau dalam status tidak aktif pada master organisasi | `400 Bad Request` | "Unit kerja rumah sakit tidak valid atau telah dinonaktifkan." | Master Data |
+| `VR-OT-22` | Batas Waktu 24 Jam | Total jam lembur terencana melebihi 24 jam dalam satu hari kalender | `400 Bad Request` | "Durasi lembur tidak valid: Melebihi total jam kalender dalam satu hari." | Batas Logika |
+| `VR-OT-23` | Pembatalan Terlambat| Pembatalan SPKL terencana diajukan setelah jam dinas lembur dimulai | `400 Bad Request` | "Pembatalan rencana lembur hanya dapat diajukan sebelum jam pelaksanaan dinas dimulai." | Standar Rencana |
+| `VR-OT-24` | Penolakan Direktur | Eksekusi pembayaran pada klaim cito yang ditolak oleh Direktur Pelayanan Medik | `403 Forbidden` | "Klaim lembur ditolak oleh Direktur Pelayanan Medik dan tidak dapat diproses lebih lanjut." | `HRD-DEC-117` |
+| `VR-OT-25` | Buka Kunci Periode | Pembukaan kembali periode lembur yang telah ditutup tanpa izin Direktur HR | `403 Forbidden` | "Pembukaan kembali (reopen) periode lembur yang ditutup memerlukan otorisasi Direktur HR." | Tata Kelola Audit |

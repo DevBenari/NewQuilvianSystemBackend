@@ -1446,3 +1446,60 @@ Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, 
 | --- | --- | --- | --- | --- | --- |
 | `Open` | `Reconciled` | `RunReconciliation` | HR Leave Officer | Evaluasi seluruh cuti bulan berjalan; cuti pending ditandai retrospektif | Mengunci seluruh cuti yang selesai dalam periode tersebut |
 | `Reconciled` | `PayrollClosed` | `CloseLeavePeriod` | HR Payroll Officer | Serah terima data ke payroll tuntas; periode penggajian dikunci | Mengunci mutlak seluruh permohonan (`IsPayrollClosed = true`) |
+
+
+---
+
+## 17. Bagian `S-B3` — Matriks Transisi Status Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, dan larangan transisi ilegal untuk entitas **Lembur Pegawai Rumah Sakit**, mencakup siklus SPKL rencana, realisasi darurat cito, verifikasi biometrik, saldo CTO, dan periode penggajian.
+
+### 17.1 Matriks Transisi Status SPKL Pra-Dinas (`OvertimePlanStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | `WaitingApproval` | `SubmitPlan` | Staf / Ka. Ruangan | Jam mulai > waktu submit (`OT-B1`); kuota PP 35 aman (`OT-B4`) | Mengirimkan notifikasi ke kotak masuk approver |
+| `WaitingApproval` | `Approved` | `ApprovePlan` | Kepala Ruangan | Memvalidasi kebutuhan riil operasional unit (`HRD-DEC-120`) | Menandai rencana siap dinas (`ApprovedForWork`) |
+| `WaitingApproval` | `Rejected` | `RejectPlan` | Kepala Ruangan | Ditolak dengan alasan operasional sah | Pengajuan dihentikan; notifikasi alasan dikirim ke pemohon |
+| `WaitingApproval` | `Cancelled` | `CancelPlan` | Staf Pemohon | Membatalkan rencana sebelum dinas disetujui | Tiket SPKL ditutup |
+| `Approved` | `Cancelled` | `PreWorkCancel` | Staf / Atasan | Pembatalan lembur sebelum jam mulai dinas tiba | Status dinas dibatalkan; kuota mingguan dipulihkan |
+| `Approved` | `Realized` | `RealizeOvertime` | Pegawai Pelaksana | Pekerjaan dinas selesai; pegawai mengisi realisasi | Membuka rekaman `TrxOvertimeRealization` |
+| `Approved` | **ILLEGAL** (`Modified`) | `EditPlanTime` | Siapapun | **DITOLAK KERAS**; perubahan jam wajib membuat SPKL baru | Integritas rencana terproteksi |
+
+### 17.2 Matriks Transisi Status Klaim Realisasi Lembur (`OvertimeRealizationStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | `WaitingUnitApproval` | `SubmitRealization` | Pegawai Pelaksana | Jika cito medis, wajib nomor RM & <= H+1 kerja (`OT-B2`, `OT-B3`) | Masuk kotak masuk persetujuan Kepala Ruangan |
+| `WaitingUnitApproval` | `WaitingMedicalDirectorEscalation` | `EscalateToDirector` | Sistem | Klaim cito melebihi kuota 4 jam/hari atau 18 jam/minggu | Dialihkan ke kotak masuk Direktur Pelayanan Medik |
+| `WaitingUnitApproval` | `PendingVerification` | `ApproveRealization` | Kepala Ruangan | Tindakan lembur divalidasi sah oleh unit | Masuk antrean verifikasi presensi biometrik Sub-modul 07 |
+| `WaitingMedicalDirectorEscalation` | `PendingVerification` | `ApproveEscalation` | Direktur Medis | Otorisasi dispensasi darurat keselamatan pasien disetujui | Tercatat audit dispensasi; lanjut ke verifikasi biometrik |
+| `WaitingMedicalDirectorEscalation` | `Rejected` | `RejectEscalation` | Direktur Medis | Tindakan darurat dinilai tidak sah / elektif | Klaim ditolak mutlak dari kompensasi |
+| `PendingVerification` | `ApprovedForPayroll` | `CompleteVerification` | Sistem / HR Admin | Tap biometrik cocok (`AutoVerified`) atau manual adjust sah | Jam lembur sah terkunci; siap handoff / posting CTO |
+| `PendingVerification` | `Rejected` | `RejectDiscrepancy` | HR Admin | Bukti fisik absensi dinilai fiktif setelah investigasi | Klaim ditolak dari rekonsiliasi payroll |
+
+### 17.3 Matriks Transisi Status Verifikasi Presensi Biometrik (`OvertimeVerificationStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `PendingVerification` | `AutoVerified` | `RunBiometricCheck` | Engine Sistem | Tap mesin ada & deviasi <= 30 menit dari form SPKL | Menghitung durasi sah berdasar *min-duration rule* |
+| `PendingVerification` | `FlaggedDiscrepancy`| `RunBiometricCheck` | Engine Sistem | Deviasi > 30 menit atau tap mesin tidak ditemukan | Menahan klaim dari payroll; masuk antrean investigasi HR |
+| `FlaggedDiscrepancy` | `ManuallyAdjusted` | `ResolveDiscrepancy`| HR Admin | Bukti logbook fisik ruangan sah terunggah | Memperbarui `VerifiedPayableMinutes` sah berdasar bukti |
+| `FlaggedDiscrepancy` | `RejectedDiscrepancy`| `RejectDiscrepancy`| HR Admin | Pegawai tidak dapat membuktikan kehadiran fisik dinas | Jam lembur bernilai 0 menit; status ditolak |
+
+### 17.4 Matriks Transisi Status Saldo Cuti Pengganti (`CompensatoryTimeOffStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| — | `Active` | `GrantCto` | Sistem | SPKL disetujui dengan pilihan opsi CTO (`HRD-DEC-118`) | Memposting mutasi kredit ke `TrxLeaveBalanceLedger` (08) |
+| `Active` | `PartiallyUsed` | `TakeCtoLeave` | Pegawai & Cuti 08 | Pegawai mengambil cuti jenis CTO sebagian durasi | Mengurangi `RemainingHours` pada tiket CTO |
+| `Active` | `FullyUsed` | `TakeCtoLeave` | Pegawai & Cuti 08 | Seluruh sisa jam CTO telah habis digunakan dinas | Tiket CTO ditandai selesai |
+| `Active` | `Expired` | `ExpireCtoRunner` | Background Scheduler | Tanggal saat ini > `ExpiryDate` (H+90 hari kalender) | Sisa jam hangus mutlak tanpa ganti rugi uang tunai |
+
+### 17.5 Matriks Transisi Status Periode Penggajian Lembur (`OvertimePeriodStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Open` | `CutoffLocked` | `LockCutoff` | HR Payroll / Scheduler| Tanggal cut-off bulanan (tgl 20) tiba (`HRD-DEC-121`) | Mengunci snapshot immutable; klaim pending diberi status retrospektif |
+| `CutoffLocked` | `Reconciled` | `RunReconciliation` | HR Payroll Officer | Seluruh klaim siap bayar & rapel lampau direkapitulasi | Berkas rekap lembur siap serah terima |
+| `Reconciled` | `Closed` | `ExecuteHandoff` | HR Payroll Officer | Serah terima data ke modul 10 Payroll sukses | Status periode ditutup mutlak (`Closed`); dilarang modifikasi |

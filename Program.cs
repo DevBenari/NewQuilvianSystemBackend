@@ -1160,9 +1160,15 @@ try
     builder.Services.AddScoped<ShiftSwapWorkflowIntegrationService>();
 
     // BE-HRD-009: Engine Roster Shift 24/7, Penggantian Shift & Penugasan Siaga On-Call
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ISchedulingSettingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.SchedulingSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.SchedulingSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.IRosterValidationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterValidationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterValidationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterPeriodService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftReplacementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftAssignmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCompensationHandoffService>();
 
     builder.Services.AddScoped<ResignationRequestService>();
     builder.Services.AddScoped<ResignationWorkflowLifecycleService>();

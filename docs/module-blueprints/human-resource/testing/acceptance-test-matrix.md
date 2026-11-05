@@ -540,3 +540,33 @@ Matriks uji penerimaan (*Acceptance Test Matrix*) ini mengunci 20 skenario pengu
 | `AT-HRD-LEV-18` | Pemulihan jadwal shift pasca-recall | Modul 06 menerima event `LeaveRecallExecutedEvent` | Shift penugasan di Roster 06 berubah aktif (`Scheduled`) tanpa penalti | Siap Uji | `FR-LEV-19`, `INT-HR-46` |
 | `AT-HRD-LEV-19` | Rekonsiliasi retrospektif cuti pending payroll | Cuti disetujui setelah tanggal cut-off payroll | Flag `IsPendingPayrollReconciliation = true`; diserahkan ke payroll bulan depan | Siap Uji | `FR-LEV-22`, `HRD-DEC-114` |
 | `AT-HRD-LEV-20` | Guard penolakan pembalikan cuti Completed (/reverse) | Pemanggilan `POST /{id}/reverse` pada cuti status Completed | HTTP 409 Conflict: immutabilitas cuti selesai (menutup celah `HRD-Q-35`) | Siap Uji | `FR-LEV-23`, `HRD-DEC-115` |
+
+
+---
+
+## 21. Bagian `S-B3` — Matriks Uji Penerimaan Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Matriks uji penerimaan (*Acceptance Test Matrix*) ini mengunci 20 skenario pengujian komprehensif berbasis bukti untuk memvalidasi pemenuhan kebutuhan fungsional dan teknis **Slice `S-B3` — Administrasi Lembur Pegawai Rumah Sakit**.
+
+| Kode Uji | Skenario Pengujian | Masukan Uji (Input) | Hasil yang Diharapkan (Expected Result) | Status Kesiapan | Rujukan Aturan / Keputusan |
+| --- | --- | --- | --- | :---: | --- |
+| `AT-HRD-OT-01` | SPKL pra-dinas terencana H-1 masa depan | Form SPKL H-1, jam mulai > waktu submit | Berkas tersimpan berstatus `WaitingApproval` | Siap Uji | `FR-OT-01`, `HRD-DEC-116` |
+| `AT-HRD-OT-02` | Penolakan SPKL terencana masa lampau | Form SPKL terencana dengan jam mulai masa lalu | HTTP 400 Bad Request: "Waktu mulai harus di masa depan" | Siap Uji | `VR-OT-01`, `OT-B1` |
+| `AT-HRD-OT-03` | Klaim darurat cito medis nomor RM valid | Form cito pasca-dinas H+1 dengan no RM `RM-089` | Berkas klaim tersimpan; nomor RM dan tindakan tercatat | Siap Uji | `FR-OT-02`, `FR-OT-03` |
+| `AT-HRD-OT-04` | Penolakan klaim cito tanpa nomor RM | Form cito pasca-dinas tanpa mengisi no RM/insiden | HTTP 400 Bad Request: "Nomor RM / Insiden wajib diisi" | Siap Uji | `VR-OT-02`, `OT-B3` |
+| `AT-HRD-OT-05` | Penolakan klaim cito terlambat > H+1 kerja | Lapor klaim cito hari ke-3 pasca dinas selesai | HTTP 400 Bad Request: "Batas waktu pelaporan kedaluwarsa" | Siap Uji | `FR-OT-05`, `VR-OT-06` |
+| `AT-HRD-OT-06` | Penolakan lembur biasa > 4 jam/hari | Pengajuan lembur terencana durasi 5 jam sehari | HTTP 400 Bad Request: "Melebihi kuota 4 jam/hari PP 35" | Siap Uji | `FR-OT-07`, `HRD-DEC-117` |
+| `AT-HRD-OT-07` | Penolakan lembur biasa > 18 jam/minggu | Pengajuan lembur menyebabkan akumulasi 20 jam | HTTP 400 Bad Request: "Melebihi kuota 18 jam/minggu PP 35" | Siap Uji | `FR-OT-07`, `HRD-DEC-117` |
+| `AT-HRD-OT-08` | Eskalasi cito melebihi kuota ke Direktur Medis | Klaim cito 5 jam resusitasi diajukan | Status dialihkan ke `WaitingMedicalDirectorEscalation` | Siap Uji | `FR-OT-08`, `VR-OT-12` |
+| `AT-HRD-OT-09` | Otorisasi dispensasi khusus Direktur Medis | Direktur Medis menyetujui klaim cito 5 jam | Otorisasi darurat tercatat; klaim lanjut verifikasi presensi | Siap Uji | `FR-OT-10`, `HRD-DEC-117` |
+| `AT-HRD-OT-10` | Pemblokiran persetujuan diri sendiri (*Anti-Self*) | Ka. Ruangan klik approve pada SPKL miliknya sendiri | HTTP 403 Forbidden: "Dilarang menyetujui lembur sendiri" | Siap Uji | `VR-OT-03`, `HRD-DEC-120` |
+| `AT-HRD-OT-11` | Pengalihan approval lembur struktural | Ka. Ruangan submit SPKL lembur pribadinya | Sistem merutekan SPKL ke kotak masuk Kepala Instalasi | Siap Uji | `HRD-DEC-120` |
+| `AT-HRD-OT-12` | Min-Duration Rule SPKL 3 jam vs Tap 2.5 jam | SPKL 180 menit, log tap mesin presensi 150 menit | Durasi sah dihitung tepat 150 menit (2.5 jam) | Siap Uji | `FR-OT-12`, `HRD-DEC-119` |
+| `AT-HRD-OT-13` | Pembulatan kelipatan 30 menit ke bawah | Log mesin presensi kelebihan 140 menit (2 jam 20 mnt)| Durasi sah dibulatkan ke bawah menjadi 120 menit (2 jam) | Siap Uji | `FR-OT-13`, `HRD-ASM-23` |
+| `AT-HRD-OT-14` | Durasi lembur fisik < 30 menit nol jam | Log mesin presensi kelebihan 25 menit | `VerifiedPayableMinutes = 0` (tidak ada kompensasi) | Siap Uji | `VR-OT-09`, `HRD-ASM-23` |
+| `AT-HRD-OT-15` | Deteksi Flagged Discrepancy deviasi > 30 menit | SPKL klaim 3 jam, tap mesin hanya lebih 1 jam | Status ditandai `FlaggedDiscrepancy: DurationMismatch` | Siap Uji | `FR-OT-14`, `VR-OT-10` |
+| `AT-HRD-OT-16` | Penyesuaian manual HR dengan bukti logbook | HR input 120 menit dengan no logbook `LB-ICU-012` | Status berubah `ManuallyAdjusted`; klaim siap rekonsiliasi | Siap Uji | `FR-OT-15`, `VR-OT-11` |
+| `AT-HRD-OT-17` | Kredit mutasi cuti pengganti CTO ke Sub-modul 08 | Klaim opsi CTO disetujui durasi 8 jam | `TrxLeaveBalanceLedger` (08) bertambah +1.0 hari CTO | Siap Uji | `FR-OT-18`, `INT-HR-49` |
+| `AT-HRD-OT-18` | Scheduler kedaluwarsa saldo CTO 90 hari | Saldo CTO belum terpakai per H+91 hari kalender | Status tiket CTO menjadi `Expired`; kuota hangus non-tunai | Siap Uji | `FR-OT-20`, `HRD-ASM-25` |
+| `AT-HRD-OT-19` | Penguncian cut-off bulanan (tgl 20) | HR Payroll kunci periode cut-off 20 November | Status `CutoffLocked`; modifikasi ditolak HTTP 409 | Siap Uji | `FR-OT-21`, `VR-OT-16` |
+| `AT-HRD-OT-20` | Rapel retrospektif SPKL pending di payroll depan | SPKL pending disetujui tgl 23 Nov (pasca cut-off) | Flag `IsRetrospective = true`; masuk slip gaji Desember | Siap Uji | `FR-OT-23`, `HRD-DEC-121` |

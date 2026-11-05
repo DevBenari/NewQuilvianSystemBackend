@@ -4284,3 +4284,369 @@ NewQuilvianSystemBackend/Areas/Corporate/HumanResource/LeaveManagement/
 | `HRD-ASM-20` | 21.2 (`WfpLeaveRequest.IsHalfDay`), 21.8 (`LEV-W6`) |
 | `HRD-ASM-21` | 21.3 (`LeaveRequestWorkflowController` pre-leave cancel restore 100%) |
 | `HRD-ASM-22` | 21.8 (`LEV-B7` batas maksimal 12 hari berurutan) |
+
+
+---
+
+## 22. Bagian `S-B3` — Arsitektur Backend Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Bagian ini mendefinisikan arsitektur backend komprehensif untuk **Sub-modul 09. Overtime Management (Slice `S-B3`)**, menyerap keputusan bisnis `HRD-DEC-116` s.d. `HRD-DEC-121`, asumsi `HRD-ASM-23` s.d. `HRD-ASM-26`, serta memetakan kapabilitas existing `HRD-CAP-08` (9 controller, 78 endpoint di folder `Areas/Corporate/HumanResource/OvertimeManagement`).
+
+### 22.1 Konteks Domain & Kepemilikan Data (`OvertimeManagement`)
+
+| Kelompok Data / Entitas | Modul Pemilik | Dipakai di Sub-Modul 09 | Status Kepemilikan | Keterangan & Batas Tanggung Jawab |
+| :--- | :--- | :---: | :---: | :--- |
+| Profil Pegawai & Penempatan | Workforce Core (01/02) | Ya | Read-Only | Mengambil identitas pegawai, unit kerja, jabatan, dan garis atasan langsung (`ReportingLineResolver`) |
+| Jadwal Roster Dinas Terbit | Scheduling (06) | Ya | Read-Only | Memvalidasi jam kerja reguler pegawai untuk memastikan lembur berada di luar jam dinas reguler |
+| Presensi Biometrik Aktual | Attendance (07) | Ya | Read-Only | Membaca jam tap check-in/check-out aktual mesin presensi untuk verifikasi silang durasi lembur riil |
+| SPKL Pra-Dinas (*Planned OT*) | Overtime (09) | Ya | **Owner (Baru/Diperbarui)** | Entitas `TrxOvertimePlan` & `TrxOvertimePlanDetail` untuk pendaftaran lembur terencana H-1 |
+| Klaim Darurat Cito (*Post-OT*) | Overtime (09) | Ya | **Owner (Baru/Diperbarui)** | Entitas `TrxOvertimeRealization` & `TrxOvertimeRealizationDetail` untuk klaim darurat pasca-dinas H+1 |
+| Verifikasi Silang Biometrik | Overtime (09) | Ya | **Owner (Baru/Diperbarui)** | Entitas `TrxOvertimeVerification` untuk menghitung durasi sah terkecil (*min-duration rule*) dan kelola *discrepancy* |
+| Kompensasi Waktu Libur (CTO) | Overtime (09) | Ya | **Owner (Baru/Diperbarui)** | Entitas `TrxCompensatoryTimeOff` untuk pencatatan hak libur lembur berkedaluwarsa 3 bulan |
+| Saldo Cuti Buku Besar | Leave (08) | Ya | Event / Mutasi | Menerima mutasi kredit saldo `CTO` dari Sub-modul 09 ke entitas `TrxLeaveBalanceLedger` (`INT-HR-49`) |
+| Periode & Cut-off Lembur | Overtime (09) | Ya | **Owner (Baru/Diperbarui)** | Entitas `TrxOvertimePeriod` untuk penguncian data bulanan (*immutable snapshot*) pra-payroll |
+| Persetujuan Workflow Lembur | Overtime (09) | Ya | **Owner (Baru/Diperbarui)** | Entitas `TrxOvertimeRequestApproval` untuk pencatatan persetujuan 2-tahap dan eskalasi Direktur |
+| Penggajian & Transfer Finansial | Payroll (10) | Ya | Serah Terima (Handoff) | Menerima paket data rekonsiliasi lembur siap bayar dan rekonsiliasi retrospektif (`INT-HR-52`) |
+
+---
+
+### 22.2 Diagram Kelas Konseptual & Relasi Entitas (Mermaid `classDiagram`)
+
+```mermaid
+classDiagram
+    direction TB
+
+    class TrxOvertimePlan {
+        +Guid Id
+        +string PlanNumber
+        +Guid UnitId
+        +DateTime PlanDate
+        +TimeSpan EstimatedStartTime
+        +TimeSpan EstimatedEndTime
+        +int TotalPlannedMinutes
+        +string TaskDescription
+        +string CompensationType
+        +string Status
+        +Guid SupervisorApproverId
+        +DateTime? SupervisorApprovedAt
+        +Guid? HrApproverId
+        +DateTime? HrApprovedAt
+        +bool IsEmergencyEscalation
+    }
+
+    class TrxOvertimePlanDetail {
+        +Guid Id
+        +Guid OvertimePlanId
+        +Guid WorkforceProfileId
+        +TimeSpan PlannedStartTime
+        +TimeSpan PlannedEndTime
+        +int PlannedMinutes
+        +string IndividualTaskNotes
+        +string Status
+    }
+
+    class TrxOvertimeRealization {
+        +Guid Id
+        +string RealizationNumber
+        +Guid? OvertimePlanId
+        +Guid WorkforceProfileId
+        +string OvertimeCategory
+        +DateTime WorkDate
+        +TimeSpan ActualStartTime
+        +TimeSpan ActualEndTime
+        +int ActualClaimedMinutes
+        +string EmergencyClinicalReferenceNo
+        +string ClinicalActionSummary
+        +string CompensationType
+        +string Status
+        +bool IsMedicalDirectorEscalation
+        +Guid? MedicalDirectorApprovedBy
+    }
+
+    class TrxOvertimeVerification {
+        +Guid Id
+        +Guid OvertimeRealizationId
+        +DateTime? BiometricCheckIn
+        +DateTime? BiometricCheckOut
+        +int BiometricExcessMinutes
+        +int VerifiedPayableMinutes
+        +string VerificationStatus
+        +string DiscrepancyReason
+        +string ManualAdjustmentNotes
+        +Guid? VerifiedByHrAdminId
+        +DateTime? VerifiedAt
+    }
+
+    class TrxCompensatoryTimeOff {
+        +Guid Id
+        +string CtoTicketNumber
+        +Guid WorkforceProfileId
+        +Guid OvertimeRealizationId
+        +decimal GrantedHours
+        +decimal GrantedDays
+        +DateTime EffectiveDate
+        +DateTime ExpiryDate
+        +decimal RemainingHours
+        +string Status
+        +bool IsExpired
+    }
+
+    class TrxOvertimePeriod {
+        +Guid Id
+        +int PeriodYear
+        +int PeriodMonth
+        +DateTime CutoffDate
+        +string PeriodStatus
+        +int TotalVerifiedRequests
+        +decimal TotalPayableHours
+        +decimal TotalCtoGrantedHours
+        +bool IsHandoffExecuted
+        +DateTime? HandoffExecutedAt
+    }
+
+    class TrxOvertimeRequestApproval {
+        +Guid Id
+        +Guid ReferenceId
+        +string ReferenceType
+        +int ApprovalLevel
+        +string ApproverRole
+        +Guid ApproverWorkforceProfileId
+        +string ApprovalAction
+        +string Notes
+        +DateTime ActionAt
+    }
+
+    TrxOvertimePlan "1" --> "0..*" TrxOvertimePlanDetail : has details
+    TrxOvertimePlan "0..1" --> "0..*" TrxOvertimeRealization : realized by
+    TrxOvertimeRealization "1" --> "1" TrxOvertimeVerification : verified by
+    TrxOvertimeRealization "0..1" --> "0..1" TrxCompensatoryTimeOff : grants CTO
+    TrxOvertimePeriod "1" --> "0..*" TrxOvertimeRealization : aggregates
+    TrxOvertimePlan "1" --> "0..*" TrxOvertimeRequestApproval : audit approvals
+    TrxOvertimeRealization "1" --> "0..*" TrxOvertimeRequestApproval : audit approvals
+```
+
+---
+
+### 22.3 Rincian Komponen Backend (Model, DTO, Service, Controller)
+
+#### 1. Models & Entitas Inti
+* **`TrxOvertimePlan` & `TrxOvertimePlanDetail`:** Menyimpan pengajuan SPKL terencana pra-dinas (H-1) per ruangan dengan dukungan satu pengajuan induk kelompok (*team overtime*) untuk banyak staf (`HRD-ASM-26`).
+* **`TrxOvertimeRealization` & `TrxOvertimeRealizationDetail`:** Menyimpan realisasi lembur pasca-dinas untuk lembur terencana maupun lembur darurat tindakan cito medis H+1 (`HRD-DEC-116`). Memuat nomor rekam medis/insiden dan ringkasan tindakan darurat.
+* **`TrxOvertimeVerification`:** Menyimpan hasil penelusuran silang terhadap rekaman mesin presensi biometrik Sub-modul 07, formula `min(claimed, biometric)`, status *Flagged Discrepancy*, dan catatan investigasi manual HR Admin (`HRD-DEC-119`).
+* **`TrxCompensatoryTimeOff`:** Menyimpan kuota kompensasi hak libur pengganti staf pelaksana dengan pencatatan tanggal kedaluwarsa 3 bulan (90 hari kalender) (`HRD-DEC-118`, `HRD-ASM-25`).
+* **`TrxOvertimePeriod`:** Mengelola penutupan cut-off lembur bulanan, penguncian snapshot immutable, dan registri rekonsiliasi retrospektif ke Payroll (`HRD-DEC-121`).
+* **`TrxOvertimeRequestApproval`:** Jejak riwayat persetujuan bertahap (Tahap 1 Kepala Ruangan, Tahap 2 HR Officer, dan Eskalasi Direktur Medis) serta penjaga *anti-self-approval* (`HRD-DEC-120`).
+
+#### 2. Services & Domain Logic
+* **`OvertimePlanService`:** Mengelola pembuatan, kalkulasi estimasi durasi, dan pengesahan SPKL pra-dinas terencana.
+* **`OvertimeRealizationService`:** Mengelola pelaporan lembur aktual pasca-dinas, validasi tenggat H+1, dan pencatatan nomor rekam medis cito medis.
+* **`OvertimeBiometricVerificationService`:** Melakukan kueri ke Sub-modul 07 (`IAttendanceReadService`), mengevaluasi selisih tap fisik, menjalankan logika nilai terkecil (*Min-Duration Rule*), menerapkan pembulatan kelipatan 30 menit ke bawah (`HRD-ASM-23`), dan menandai anomali *Discrepancy*.
+* **`OvertimeQuotaEnforcementGuard`:** Menjaga kepatuhan kuota lembur PP 35/2021 (maks 4 jam/hari dan 18 jam/minggu). Menolak otomatis pengajuan lembur biasa dan mengalihkan permohonan cito darurat ke alur eskalasi Direktur Pelayanan Medik (`HRD-DEC-117`).
+* **`CompensatoryTimeOffService`:** Menghitung konversi durasi lembur menjadi kuota jam/hari libur pengganti, mengirimkan mutasi kredit ke `TrxLeaveBalanceLedger` Sub-modul 08 (`INT-HR-49`), serta menjalankan scheduler kadaluwarsa 90 hari (`HRD-DEC-118`).
+* **`OvertimePeriodReconciliationService`:** Mengunci snapshot periode lembur pada tanggal cut-off bulanan, menandai SPKL pending sebagai `PendingNextReconciliation`, dan menghitung rapel retrospektif periode lalu (`HRD-DEC-121`).
+* **`OvertimePayrollHandoffService`:** Membentuk paket serah terima data lembur siap bayar yang immutable ke Sub-modul 10 Payroll.
+
+#### 3. Controllers & Endpoints
+* **`OvertimePlanController`:** Endpoint pembuatan, update draf, dan pembatalan SPKL pra-dinas mandiri/tim.
+* **`OvertimeRealizationController`:** Endpoint pelaporan realisasi lembur aktual dan klaim darurat medis cito H+1.
+* **`OvertimeVerificationController`:** Endpoint evaluasi otomatis presensi biometrik, daftar anomali discrepancy, dan penyesuaian manual bukti fisik oleh HR Admin.
+* **`OvertimeCompensatoryLeaveController`:** Endpoint monitoring saldo CTO pegawai, penyesuaian, dan riwayat mutasi libur pengganti.
+* **`OvertimeWorkflowController`:** Endpoint persetujuan bertingkat (Kepala Ruangan, HR Officer, dan Direktur Pelayanan Medik) dilengkapi guard blokir *self-approval*.
+* **`OvertimePeriodController`:** Endpoint manajemen periode cut-off bulanan, penguncian berkas (*lock snapshot*), dan pemantauan status penutupan.
+* **`OvertimeReconciliationController`:** Endpoint rekonsiliasi data lembur pra-payroll dan rekonsiliasi retrospektif SPKL pending periode lampau.
+* **`OvertimePayrollHandoffController`:** Endpoint eksekusi serah terima data lembur ke modul Payroll.
+* **`OvertimeSchedulerController`:** Endpoint background runner untuk sinkronisasi otomatis presensi biometrik dan pembersihan saldo CTO kedaluwarsa.
+
+---
+
+### 22.4 Pohon Folder dan Struktur File
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/Corporate/HumanResource/OvertimeManagement/
+│   ├── Controllers/
+│   │   ├── OvertimePlanController.cs                       [Sudah ada — Diperbarui V2]
+│   │   ├── OvertimeRealizationController.cs                [Sudah ada — Diperbarui V2]
+│   │   ├── OvertimeVerificationController.cs               [Sudah ada — Diperbarui V2]
+│   │   ├── OvertimeCompensatoryLeaveController.cs          [Sudah ada — Diperbarui V2]
+│   │   ├── OvertimeWorkflowController.cs                   [Sudah ada — Diperbarui V2]
+│   │   ├── OvertimePeriodController.cs                     [Sudah ada — Diperbarui V2]
+│   │   ├── OvertimeReconciliationController.cs             [Sudah ada — Diperbarui V2]
+│   │   ├── OvertimePayrollHandoffController.cs             [Sudah ada — Diperbarui V2]
+│   │   └── OvertimeSchedulerController.cs                  [Sudah ada — Diperbarui V2]
+│   ├── Models/
+│   │   ├── TrxOvertimePlan.cs                              [Sudah ada — Diperbarui]
+│   │   ├── TrxOvertimePlanDetail.cs                        [Sudah ada — Diperbarui]
+│   │   ├── TrxOvertimeRealization.cs                       [Sudah ada — Diperbarui]
+│   │   ├── TrxOvertimeRealizationDetail.cs                 [Sudah ada — Diperbarui]
+│   │   ├── TrxOvertimeVerification.cs                      [Sudah ada — Diperbarui]
+│   │   ├── TrxCompensatoryTimeOff.cs                       [Sudah ada — Diperbarui]
+│   │   ├── TrxOvertimePeriod.cs                            [Sudah ada — Diperbarui]
+│   │   ├── TrxOvertimeRequestApproval.cs                   [Sudah ada — Diperbarui]
+│   │   ├── TrxOvertimeRequestDetail.cs                     [Sudah ada — Dipertahankan]
+│   │   ├── TrxOvertimeSchedulerJob.cs                      [Sudah ada — Dipertahankan]
+│   │   └── WfpOvertimeRequest.cs                           [Sudah ada — Dipertahankan]
+│   ├── Services/
+│   │   ├── IOvertimePlanService.cs                         [Baru]
+│   │   ├── OvertimePlanService.cs                          [Baru]
+│   │   ├── IOvertimeRealizationService.cs                  [Baru]
+│   │   ├── OvertimeRealizationService.cs                   [Baru]
+│   │   ├── IOvertimeBiometricVerificationService.cs        [Baru]
+│   │   ├── OvertimeBiometricVerificationService.cs         [Baru]
+│   │   ├── IOvertimeQuotaEnforcementGuard.cs               [Baru]
+│   │   ├── OvertimeQuotaEnforcementGuard.cs                [Baru]
+│   │   ├── ICompensatoryTimeOffService.cs                  [Baru]
+│   │   ├── CompensatoryTimeOffService.cs                   [Baru]
+│   │   ├── IOvertimePeriodReconciliationService.cs         [Baru]
+│   │   ├── OvertimePeriodReconciliationService.cs          [Baru]
+│   │   └── OvertimePayrollHandoffService.cs                [Baru]
+│   └── DTOs/
+│       ├── OvertimePlanDtos.cs                             [Baru]
+│       ├── OvertimeRealizationDtos.cs                      [Baru]
+│       ├── OvertimeVerificationDtos.cs                     [Baru]
+│       ├── CompensatoryTimeOffDtos.cs                      [Baru]
+│       ├── OvertimeApprovalDtos.cs                         [Baru]
+│       └── OvertimeReconciliationDtos.cs                   [Baru]
+```
+
+---
+
+### 22.5 Status Model & Dampak Skema Database
+
+| Nama Entitas / Model | Status | Tabel Database | Dampak Skema & Kolom Kunci Baru |
+| --- | :---: | --- | --- |
+| `TrxOvertimePlan` | Diperbarui | `trx_overtime_plans` | Penambahan kolom: `CompensationType`, `IsEmergencyEscalation`, `WeeklyQuotaHoursAtPlan` |
+| `TrxOvertimePlanDetail` | Diperbarui | `trx_overtime_plan_details` | Penambahan kolom: `IndividualTaskNotes`, `PlannedMinutes` |
+| `TrxOvertimeRealization` | Diperbarui | `trx_overtime_realizations` | Penambahan kolom: `OvertimeCategory` (`Planned`, `EmergencyCito`), `EmergencyClinicalReferenceNo`, `ClinicalActionSummary`, `CompensationType`, `IsMedicalDirectorEscalation`, `MedicalDirectorApprovedBy`, `IsRetrospectiveAdjustment` |
+| `TrxOvertimeVerification` | Diperbarui | `trx_overtime_verifications` | Penambahan kolom: `BiometricCheckIn`, `BiometricCheckOut`, `BiometricExcessMinutes`, `VerifiedPayableMinutes`, `VerificationStatus` (`AutoVerified`, `FlaggedDiscrepancy`, `ManuallyAdjusted`, `RejectedDiscrepancy`), `DiscrepancyReason`, `ManualAdjustmentNotes` |
+| `TrxCompensatoryTimeOff` | Diperbarui | `trx_compensatory_time_offs` | Penambahan kolom: `ExpiryDate` (H+90 hari), `GrantedDays`, `RemainingHours`, `IsExpired` |
+| `TrxOvertimePeriod` | Diperbarui | `trx_overtime_periods` | Penambahan kolom: `CutoffDate`, `PeriodStatus` (`Open`, `CutoffLocked`, `Reconciled`, `Closed`), `TotalCtoGrantedHours`, `IsHandoffExecuted` |
+| `TrxOvertimeRequestApproval` | Diperbarui | `trx_overtime_request_approvals` | Standardisasi approval multi-level dan pencegahan *self-approval* |
+
+---
+
+### 22.6 Rencana Migrasi Database (Postgres DDL)
+
+Migrasi dieksekusi dengan pendekatan aman tanpa mematikan layanan (*Zero-Downtime Migration*):
+
+```sql
+-- Migrasi Skema Sub-Modul 09 Overtime Management (Slice S-B3)
+
+-- 1. Penambahan Kolom pada Tabel trx_overtime_plans
+ALTER TABLE trx_overtime_plans
+ADD COLUMN IF NOT EXISTS compensation_type VARCHAR(50) NOT NULL DEFAULT 'FinancialPayout',
+ADD COLUMN IF NOT EXISTS is_emergency_escalation BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS weekly_quota_hours_at_plan DECIMAL(5,2);
+
+-- 2. Penambahan Kolom pada Tabel trx_overtime_realizations
+ALTER TABLE trx_overtime_realizations
+ADD COLUMN IF NOT EXISTS overtime_category VARCHAR(50) NOT NULL DEFAULT 'Planned',
+ADD COLUMN IF NOT EXISTS emergency_clinical_reference_no VARCHAR(100),
+ADD COLUMN IF NOT EXISTS clinical_action_summary TEXT,
+ADD COLUMN IF NOT EXISTS compensation_type VARCHAR(50) NOT NULL DEFAULT 'FinancialPayout',
+ADD COLUMN IF NOT EXISTS is_medical_director_escalation BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS medical_director_approved_by UUID,
+ADD COLUMN IF NOT EXISTS is_retrospective_adjustment BOOLEAN NOT NULL DEFAULT false,
+ADD CONSTRAINT fk_ot_realization_med_dir FOREIGN KEY (medical_director_approved_by) REFERENCES mst_workforce_profiles(id);
+
+-- 3. Penambahan Kolom pada Tabel trx_overtime_verifications
+ALTER TABLE trx_overtime_verifications
+ADD COLUMN IF NOT EXISTS biometric_check_in TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS biometric_check_out TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS biometric_excess_minutes INT NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS verified_payable_minutes INT NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS verification_status VARCHAR(50) NOT NULL DEFAULT 'AutoVerified',
+ADD COLUMN IF NOT EXISTS discrepancy_reason VARCHAR(255),
+ADD COLUMN IF NOT EXISTS manual_adjustment_notes TEXT,
+ADD COLUMN IF NOT EXISTS verified_by_hr_admin_id UUID,
+ADD CONSTRAINT fk_ot_verification_hr_admin FOREIGN KEY (verified_by_hr_admin_id) REFERENCES mst_workforce_profiles(id);
+
+-- 4. Penambahan Kolom pada Tabel trx_compensatory_time_offs
+ALTER TABLE trx_compensatory_time_offs
+ADD COLUMN IF NOT EXISTS expiry_date DATE,
+ADD COLUMN IF NOT EXISTS granted_days DECIMAL(4,1) NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS remaining_hours DECIMAL(5,2) NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS is_expired BOOLEAN NOT NULL DEFAULT false;
+
+-- 5. Penambahan Kolom pada Tabel trx_overtime_periods
+ALTER TABLE trx_overtime_periods
+ADD COLUMN IF NOT EXISTS cutoff_date DATE,
+ADD COLUMN IF NOT EXISTS period_status VARCHAR(50) NOT NULL DEFAULT 'Open',
+ADD COLUMN IF NOT EXISTS total_cto_granted_hours DECIMAL(6,2) NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS is_handoff_executed BOOLEAN NOT NULL DEFAULT false;
+
+-- 6. Indeks Performa Kueri Lembur Rumah Sakit
+CREATE INDEX IF NOT EXISTS idx_ot_plan_unit_date ON trx_overtime_plans(unit_id, plan_date, status);
+CREATE INDEX IF NOT EXISTS idx_ot_realization_workforce_date ON trx_overtime_realizations(workforce_profile_id, work_date, status);
+CREATE INDEX IF NOT EXISTS idx_ot_realization_category ON trx_overtime_realizations(overtime_category, is_medical_director_escalation);
+CREATE INDEX IF NOT EXISTS idx_ot_verification_status ON trx_overtime_verifications(verification_status);
+CREATE INDEX IF NOT EXISTS idx_cto_workforce_expiry ON trx_compensatory_time_offs(workforce_profile_id, expiry_date, is_expired);
+CREATE INDEX IF NOT EXISTS idx_ot_period_year_month ON trx_overtime_periods(period_year, period_month, period_status);
+```
+
+---
+
+### 22.7 Rencana Data Master & Nilai Default Konfigurasi
+
+Modul memerlukan parameter konfigurasi operasional lembur yang disimpan pada tabel konfigurasi sistem:
+
+| Parameter Konfigurasi | Nilai Default | Keterangan & Rujukan Keputusan |
+| --- | :---: | --- |
+| `Overtime.DailyMaxHoursRegular` | `4` Jam | Batas maksimal jam lembur per hari kerja reguler (`HRD-DEC-117`, PP 35/2021) |
+| `Overtime.WeeklyMaxHoursRegular` | `18` Jam | Batas maksimal akumulasi lembur per minggu kerja (`HRD-DEC-117`, PP 35/2021) |
+| `Overtime.RoundingIntervalMinutes` | `30` Menit | Interval pembulatan durasi lembur ke bawah (`HRD-ASM-23`) |
+| `Overtime.MinimumThresholdMinutes` | `30` Menit | Ambang batas durasi minimal agar lembur diakui (durasi < 30 menit = 0 jam) |
+| `Overtime.CtoValidityDays` | `90` Hari (3 Bulan) | Masa berlaku hak cuti pengganti sebelum otomatis hangus (`HRD-DEC-118`, `HRD-ASM-25`) |
+| `Overtime.MonthlyCutoffDay` | `20` | Tanggal penutupan cut-off transaksi lembur setiap bulan kalender (`HRD-DEC-121`) |
+| `Overtime.BiometricDiscrepancyTolerance` | `30` Menit | Toleransi perbedaan waktu SPKL vs mesin presensi sebelum ditandai anomali (`HRD-DEC-119`) |
+| `Overtime.PostClaimCitoGraceDays` | `1` Hari Kerja (H+1) | Batas maksimal penyerahan klaim darurat medis pasca-dinas (`HRD-DEC-116`) |
+
+---
+
+### 22.8 Logika Bisnis & Validasi Inti (Core Business Rules)
+
+#### Aturan Blokir Mutlak (Blocking Business Rules)
+* **`OT-B1` — Validasi Pra-Dinas Lembur Terencana (`HRD-DEC-116`):** Pengajuan berkategori `Planned` ditolak otomatis bila jam mulai lembur berada di masa lampau (`PlanStartTime <= CurrentTime`).
+* **`OT-B2` — Tenggat Waktu Pelaporan Cito Medis H+1 (`HRD-DEC-116`):** Pengajuan klaim lembur darurat medis pasca-dinas ditolak bila diserahkan melebihi batas waktu H+1 hari kerja (`SubmissionDate > WorkDate + 1 WorkingDay`).
+* **`OT-B3` — Kewajiban Nomor RM / Insiden Klinis Darurat (`HRD-DEC-116`):** Pengajuan lembur darurat cito ditolak bila kolom `EmergencyClinicalReferenceNo` atau `ClinicalActionSummary` kosong.
+* **`OT-B4` — Penegakan Kuota Maksimal Lembur PP 35/2021 (`HRD-DEC-117`):** Pengajuan lembur terencana biasa ditolak keras bila menyebabkan total jam lembur harian > 4 jam atau mingguan > 18 jam.
+* **`OT-B5` — Blokir Persetujuan Diri Sendiri (*Anti-Self-Approval* `HRD-DEC-120`):** Sistem menolak dengan HTTP 403 Forbidden bila aktor yang menekan tombol setujui adalah pegawai yang sama dengan pemohon lembur (`ApproverUserId == RequestEmployeeUserId`).
+* **`OT-B6` — Pengecualian Lembur Finansial Pejabat Struktural (`HRD-DEC-118`):** Pegawai dengan level jabatan Manajer ke atas (`JobLevel >= Manager`) diblokir dari pemilihan kompensasi `FinancialPayout` (*Overtime Exempt*).
+* **`OT-B7` — Penguncian Periode Cut-off Closed (`HRD-DEC-121`):** Penambahan, perubahan, atau pembatalan SPKL pada periode lembur yang telah berstatus `CutoffLocked` atau `Closed` ditolak dengan HTTP 409 Conflict.
+* **`OT-B8` — Batas Minimal Pembulatan 30 Menit (`HRD-ASM-23`):** Durasi klaim lembur fisik kurang dari 30 menit menghasilkan `VerifiedPayableMinutes = 0`.
+
+#### Aturan Peringatan & Evaluasi Logika (Warning / Logical Evaluation Rules)
+* **`OT-W1` — Eskalasi Otorisasi Darurat Direktur Medis (`HRD-DEC-117`):** Klaim cito darurat medis yang melampaui 4 jam/hari atau 18 jam/minggu diizinkan masuk sistem, tetapi dialihkan ke antrean persetujuan Direktur Pelayanan Medik dengan asesmen risiko kelelahan nakes.
+* **`OT-W2` — Anomali Presensi Biometrik (*Discrepancy Flagging* `HRD-DEC-119`):** Jika selisih antara durasi form SPKL dan log fisik mesin presensi > 30 menit atau log mesin presensi tidak ditemukan, sistem memberi penanda `FlaggedDiscrepancy` dan menahan pembayaran hingga HR memverifikasi bukti logbook.
+* **`OT-W3` — Aturan Nilai Terkecil (*Min-Duration Rule* `HRD-DEC-119`):** Sistem secara otomatis mengambil nilai durasi terkecil antara estimasi persetujuan atasan dan kehadiran aktual fisik mesin: `VerifiedMinutes = Math.Min(ClaimedMinutes, BiometricExcessMinutes)`.
+* **`OT-W4` — Otomasi Kredit Saldo Cuti Pengganti CTO (`HRD-DEC-118`):** Klaim dengan opsi CTO yang disetujui otomatis menerbitkan mutasi kredit ke Sub-modul 08 (`TrxLeaveBalanceLedger`) dengan tanggal kedaluwarsa 90 hari kalender.
+* **`OT-W5` — Rekonsiliasi Retrospektif SPKL Menggantung (`HRD-DEC-121`):** SPKL yang masih dalam status investigasi/pending saat cut-off tanggal 20 diberi flag `IsRetrospectiveAdjustment = true` dan otomatis dibayarkan pada payroll bulan depan begitu disetujui.
+* **`OT-W6` — Penugasan Lembur Tim Medis Ruangan (`HRD-ASM-26`):** SPKL induk tim medis mendistribusikan penugasan lembur ke seluruh nakes pelaksana terdaftar, dengan verifikasi biometrik tetap dilakukan per individu.
+
+---
+
+### 22.9 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-B3`
+
+| Fitur / Komponen | Alasan | Penanganan selama MVP |
+| --- | --- | --- |
+| Pembayaran Uang Lembur Langsung via Kas / Petty Cash | Seluruh pembayaran uang lembur wajib melalui slip gaji payroll resmi terpusat | Data diserahterimakan ke Sub-modul 10 Payroll |
+| Pembacaan Langsung Port Mesin Biometrik Fisik di Modul Lembur | Tanggung jawab pembacaan mentah perangkat keras absensi berada pada Sub-modul 07 Attendance | Sub-modul 09 mengonsumsi data olahan presensi via `INT-HR-50` |
+| Uangkan Saldo CTO yang Hangus | Kebijakan RS melarang uangkan hak libur pengganti demi keselamatan kerja staf | Hangus otomatis tanpa uang tunai per 90 hari (`HRD-ASM-25`) |
+| Pengajuan Lembur Harian Tanpa Batas Waktu Kadaluwarsa | Menghindari manipulasi data historis masa lampau yang tidak dapat diverifikasi | Klaim cito darurat dibatasi mutlak H+1 hari kerja (`HRD-DEC-116`) |
+
+---
+
+### 22.10 Traceability Keputusan ke Arsitektur Backend
+
+| Keputusan / Asumsi | Bagian Desain Backend Terkait |
+| --- | --- |
+| `HRD-DEC-116` | 22.1, 22.2 (`TrxOvertimePlan`, `TrxOvertimeRealization`), 22.3 (`OvertimePlanService`, `OvertimeRealizationService`), 22.8 (`OT-B1`, `OT-B2`, `OT-B3`) |
+| `HRD-DEC-117` | 22.1, 22.2 (`TrxOvertimeRealization`), 22.3 (`OvertimeQuotaEnforcementGuard`), 22.7, 22.8 (`OT-B4`, `OT-W1`) |
+| `HRD-DEC-118` | 22.1, 22.2 (`TrxCompensatoryTimeOff`), 22.3 (`CompensatoryTimeOffService`), 22.7, 22.8 (`OT-B6`, `OT-W4`) |
+| `HRD-DEC-119` | 22.1, 22.2 (`TrxOvertimeVerification`), 22.3 (`OvertimeBiometricVerificationService`), 22.8 (`OT-W2`, `OT-W3`) |
+| `HRD-DEC-120` | 22.1, 22.2 (`TrxOvertimeRequestApproval`), 22.3 (`OvertimeWorkflowController`), 22.8 (`OT-B5`) |
+| `HRD-DEC-121` | 22.1, 22.2 (`TrxOvertimePeriod`), 22.3 (`OvertimePeriodReconciliationService`, `OvertimePayrollHandoffService`), 22.8 (`OT-B7`, `OT-W5`) |
+| `HRD-ASM-23` | 22.7 (`Overtime.RoundingIntervalMinutes`), 22.8 (`OT-B8`) |
+| `HRD-ASM-24` | 22.1, 22.3 (`OvertimeRealizationService` integrasi on-call Sub-modul 06) |
+| `HRD-ASM-25` | 22.2, 22.7 (`Overtime.CtoValidityDays` 90 hari), 22.9 |
+| `HRD-ASM-26` | 22.2 (`TrxOvertimePlanDetail`), 22.8 (`OT-W6`) |

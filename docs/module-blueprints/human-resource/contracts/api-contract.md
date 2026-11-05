@@ -1978,3 +1978,84 @@ kontrak sebelum kontrak pertama ditandatangani.
 | `GET` | `/api/v1/corporate/human-resource/leave/reconciliations/pending` | Daftar cuti pending yang akan direkonsiliasi retrospektif | `[AccessPermission("LeaveReconciliation", "View")]` | Query: `periodYear`, `periodMonth` | `List<PendingLeavePayrollDto>` | `200`, `401`, `403` |
 | `POST` | `/api/v1/corporate/human-resource/leave/reconciliations/close-period` | Mengunci periode cuti bulanan dan serahkan snapshot ke Payroll | `[AccessPermission("LeaveReconciliation", "Close")]` | Body: `{ periodYear: int, periodMonth: int }` | `CloseLeavePeriodResultDto` | `200`, `400`, `401`, `403`, `409` |
 | `POST` | `/api/v1/corporate/human-resource/leave/execution/{id}/reverse` | Percobaan pembalikan cuti — **Ditolak HTTP 409 bila status Completed / PayrollClosed** (`HRD-DEC-115`) | `[AccessPermission("LeaveExecution", "Reverse")]` | Body: `{ reason: string }` | `LeaveExecutionResultDto` | `400`, `401`, `403`, `409 Conflict` |
+
+
+---
+
+## 19. Bagian `S-B3` — Kontrak API Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Bagian ini mendefinisikan spesifikasi antarmuka pemrograman aplikasi (API Endpoint Contract) bergaya Swagger untuk **Sub-modul 09. Overtime Management (Slice `S-B3`)**, menyerap kapabilitas backend `HRD-CAP-08` dan keputusan bisnis `HRD-DEC-116` s.d. `HRD-DEC-121`.
+
+### 19.1 Ikhtisar Grup Endpoint Swagger
+
+```csharp
+[Tags("HR Overtime - Plans & ESS Requests")]
+[Tags("HR Overtime - Realizations & Cito Claims")]
+[Tags("HR Overtime - Biometric Verification & Discrepancies")]
+[Tags("HR Overtime - Approvals & Escalations")]
+[Tags("HR Overtime - Compensatory Time Off (CTO)")]
+[Tags("HR Overtime - Periods, Reconciliation & Payroll Handoff")]
+```
+
+---
+
+### 19.2 Spesifikasi Endpoint Detail
+
+#### `[Tags("HR Overtime - Plans & ESS Requests")]`
+*Kelompok endpoint pengajuan dan pengelolaan Surat Perintah Kerja Lembur (SPKL) terencana pra-dinas (H-1).*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/overtime/plans/my` | Daftar pengajuan SPKL terencana staf aktif | `[AccessPermission("OvertimePlan", "ViewSelf")]` | Query: `status`, `year`, `month`, `page`, `pageSize` | `PagedResult<OvertimePlanSummaryDto>` | `200`, `401` |
+| `GET` | `/api/v1/corporate/human-resource/overtime/plans/{id}` | Detail rincian SPKL, daftar nakes pelaksana, dan status persetujuan | `[AccessPermission("OvertimePlan", "View")]` | Path: `id` (GUID) | `OvertimePlanDetailDto` | `200`, `401`, `403`, `404` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/plans` | Mengajukan SPKL pra-dinas terencana (H-1, individu atau kelompok tim) | `[AccessPermission("OvertimePlan", "Create")]` | Body: `CreateOvertimePlanCommand` | `OvertimePlanResultDto` | `201`, `400`, `401`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/plans/{id}/cancel` | Membatalkan rencana SPKL sebelum jam dinas lembur terlaksana | `[AccessPermission("OvertimePlan", "CancelSelf")]` | Body: `{ reason: string }` | `OvertimePlanResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+#### `[Tags("HR Overtime - Realizations & Cito Claims")]`
+*Kelompok endpoint pelaporan jam lembur aktual dan klaim darurat medis cito pasca-dinas (H+1).*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/overtime/realizations/my` | Daftar riwayat klaim realisasi lembur pribadi staf | `[AccessPermission("OvertimeRealization", "ViewSelf")]` | Query: `category`, `status`, `page`, `pageSize` | `PagedResult<OvertimeRealizationSummaryDto>` | `200`, `401` |
+| `GET` | `/api/v1/corporate/human-resource/overtime/realizations/{id}` | Detail klaim lembur aktual, bukti nomor rekam medis cito, dan kalkulasi | `[AccessPermission("OvertimeRealization", "View")]` | Path: `id` (GUID) | `OvertimeRealizationDetailDto` | `200`, `401`, `403`, `404` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/realizations` | Pelaporan realisasi dari SPKL atau klaim mandiri darurat cito medis H+1 | `[AccessPermission("OvertimeRealization", "Create")]` | Body: `SubmitOvertimeRealizationCommand` | `OvertimeRealizationResultDto` | `201`, `400`, `401`, `409` |
+
+#### `[Tags("HR Overtime - Biometric Verification & Discrepancies")]`
+*Kelompok endpoint verifikasi silang jam lembur terhadap mesin absensi biometrik dan penyelesaian anomali.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/overtime/verifications` | Daftar komparasi klaim lembur vs catatan kehadiran biometrik | `[AccessPermission("OvertimeVerification", "View")]` | Query: `date`, `status`, `unitId`, `page`, `pageSize` | `PagedResult<OvertimeVerificationSummaryDto>` | `200`, `401`, `403` |
+| `GET` | `/api/v1/corporate/human-resource/overtime/verifications/discrepancies` | Daftar antrean anomali selisih waktu > 30 menit atau lupa tap mesin | `[AccessPermission("OvertimeVerification", "Manage")]` | Query: `discrepancyType`, `unitId` | `List<OvertimeDiscrepancyItemDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/verifications/{id}/manual-adjust` | Penyesuaian manual durasi sah oleh HR Admin berdasar bukti logbook dinas | `[AccessPermission("OvertimeVerification", "Manage")]` | Body: `AdjustOvertimeVerificationCommand` | `OvertimeVerificationResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/verifications/{id}/reject-discrepancy` | Menolak klaim lembur anomali yang dinilai fiktif / tidak sah | `[AccessPermission("OvertimeVerification", "Manage")]` | Body: `{ rejectionReason: string }` | `OvertimeVerificationResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+#### `[Tags("HR Overtime - Approvals & Escalations")]`
+*Kelompok endpoint persetujuan operasional ruangan, pencegahan self-approval, dan eskalasi Direktur Pelayanan Medik.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/overtime/approvals/inbox` | Kotak masuk persetujuan SPKL bawahan bagi Kepala Ruangan | `[AccessPermission("OvertimeApproval", "View")]` | Query: `status`, `unitId`, `page`, `pageSize` | `PagedResult<OvertimeApprovalInboxItemDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/approvals/{id}/approve` | Menyetujui SPKL staf (Ditolak HTTP 403 bila menyetujui diri sendiri per `VR-OT-03`) | `[AccessPermission("OvertimeApproval", "Approve")]` | Body: `{ notes?: string }` | `OvertimeApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/approvals/{id}/reject` | Menolak SPKL bawahan dengan alasan operasional sah | `[AccessPermission("OvertimeApproval", "Approve")]` | Body: `{ rejectionReason: string }` | `OvertimeApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `GET` | `/api/v1/corporate/human-resource/overtime/approvals/medical-director-inbox` | Kotak masuk eskalasi klaim cito darurat yang melampaui kuota PP 35/2021 | `[AccessPermission("OvertimeApproval", "MedicalDirectorApprove")]` | Query: `urgency`, `page`, `pageSize` | `PagedResult<MedicalDirectorOvertimeEscalationDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/approvals/{id}/medical-director-approve` | Otorisasi khusus Direktur Pelayanan Medik untuk tindakan penyelamatan nyawa | `[AccessPermission("OvertimeApproval", "MedicalDirectorApprove")]` | Body: `ApproveMedicalDirectorEscalationCommand` | `OvertimeApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+#### `[Tags("HR Overtime - Compensatory Time Off (CTO)")]`
+*Kelompok endpoint tata kelola hak libur pengganti (CTO) berkedaluwarsa 3 bulan.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/overtime/compensatory-leave/my` | Saldo tiket libur pengganti staf aktif dan tanggal kedaluwarsanya | `[AccessPermission("OvertimeCompensatoryLeave", "ViewSelf")]` | Query: `status` | `List<CompensatoryTimeOffItemDto>` | `200`, `401` |
+| `GET` | `/api/v1/corporate/human-resource/overtime/compensatory-leave` | Monitoring agregat seluruh tiket libur pengganti staf RS bagi HRD | `[AccessPermission("OvertimeCompensatoryLeave", "Manage")]` | Query: `unitId`, `isExpired`, `page`, `pageSize` | `PagedResult<CompensatoryTimeOffAdminDto>` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/compensatory-leave/expire-runner` | Menjalankan scheduler eksekusi hangus saldo CTO yang telah melewati 90 hari | `[AccessPermission("OvertimeCompensatoryLeave", "Manage")]` | Body: `{ asOfDate?: string }` | `CtoForfeitureExecutionResultDto` | `200`, `401`, `403` |
+
+#### `[Tags("HR Overtime - Periods, Reconciliation & Payroll Handoff")]`
+*Kelompok endpoint cut-off penutupan lembur bulanan, snapshot immutable, dan serah terima ke Payroll.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/overtime/periods/current` | Informasi status periode lembur berjalan dan tanggal batas cut-off | `[AccessPermission("OvertimePeriod", "View")]` | — | `OvertimePeriodStatusDto` | `200`, `401`, `403` |
+| `GET` | `/api/v1/corporate/human-resource/overtime/reconciliations/summary` | Rekapitulasi lembur siap bayar dan daftar rapel retrospektif periode lalu | `[AccessPermission("OvertimePeriod", "Manage")]` | Query: `year`, `month` | `OvertimeReconciliationSummaryDto` | `200`, `401`, `403` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/periods/{id}/lock-cutoff` | Mengunci snapshot transaksi lembur pada cut-off bulanan (tgl 20) | `[AccessPermission("OvertimePeriod", "Manage")]` | Body: `{ cutoffDate: string }` | `LockOvertimePeriodResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/overtime/periods/{id}/handoff-payroll` | Menyerahkan paket data rekonsiliasi lembur terkunci ke Sub-modul 10 Payroll | `[AccessPermission("OvertimePeriod", "HandoffPayroll")]` | Body: `{ targetPayrollBatchId: string }` | `OvertimePayrollHandoffResultDto` | `200`, `400`, `401`, `403`, `409` |

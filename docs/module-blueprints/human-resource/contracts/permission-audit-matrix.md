@@ -957,3 +957,53 @@ Bagian ini mendokumentasikan spesifikasi hak akses berbasis peran (*Role-Based A
 | `LEAVE_BALANCE_ADJUSTED` | `CRITICAL` | `WorkforceProfileId`, `AdjustmentDays`, `AuditDocumentNumber`, `AdjustedByHrManagerId` | Eksekusi penyesuaian saldo resmi HR pasca-payroll |
 | `LEAVE_PERIOD_CLOSED` | `INFO` | `PeriodYear`, `PeriodMonth`, `ClosedByWorkforceId`, `TotalApprovedRequests` | Penutupan periode cuti bulanan |
 | `LEAVE_REVERSE_ATTEMPT_BLOCKED` | `SECURITY` | `LeaveRequestId`, `CallerUserId`, `AttemptedAction: /reverse`, `Reason: CompletedImmutable` | Percobaan pembalikan bebas yang digagalkan guard |
+
+
+---
+
+## 17. Bagian `S-B3` — Matriks Hak Akses & Audit Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Matriks ini mengunci seluruh string penanda hak akses API (`[AccessPermission("Resource", "Action")]`), peran pengguna yang berhak, serta daftar peristiwa audit kepatuhan (*audit trail events*) untuk **Slice `S-B3` — Administrasi Lembur Pegawai Rumah Sakit**.
+
+### 17.1 Matriks Hak Akses (Permissions)
+
+| Resource | Action | String Permission Persis | Peran Pengguna yang Berhak | Keterangan & Batas Operasional |
+| --- | --- | --- | --- | --- |
+| `OvertimePlan` | `ViewSelf` | `[AccessPermission("OvertimePlan", "ViewSelf")]` | Seluruh Pegawai RS | Melihat riwayat pengajuan SPKL terencana pribadi |
+| `OvertimePlan` | `View` | `[AccessPermission("OvertimePlan", "View")]` | Kepala Ruangan, HR Officer, Manajer | Melihat rincian SPKL staf bawahan atau unit kerja |
+| `OvertimePlan` | `Create` | `[AccessPermission("OvertimePlan", "Create")]` | Seluruh Pegawai RS, Ka. Ruangan | Mengajukan SPKL pra-dinas mandiri atau SPKL kelompok tim |
+| `OvertimePlan` | `CancelSelf` | `[AccessPermission("OvertimePlan", "CancelSelf")]` | Seluruh Pegawai RS | Membatalkan rencana SPKL sebelum jam dinas dimulai |
+| `OvertimeRealization`| `ViewSelf` | `[AccessPermission("OvertimeRealization", "ViewSelf")]` | Seluruh Pegawai RS | Melihat daftar klaim realisasi lembur pribadi |
+| `OvertimeRealization`| `View` | `[AccessPermission("OvertimeRealization", "View")]` | Kepala Ruangan, HR Officer | Melihat rincian klaim aktual dan bukti rekam medis |
+| `OvertimeRealization`| `Create` | `[AccessPermission("OvertimeRealization", "Create")]` | Seluruh Pegawai RS | Melaporkan realisasi dinas aktual atau klaim darurat cito H+1 |
+| `OvertimeApproval` | `View` | `[AccessPermission("OvertimeApproval", "View")]` | Kepala Ruangan, Kepala Instalasi | Mengakses kotak masuk persetujuan lembur unit |
+| `OvertimeApproval` | `Approve` | `[AccessPermission("OvertimeApproval", "Approve")]` | Kepala Ruangan, Kepala Instalasi | Menyetujui atau menolak SPKL (Ditolak mutlak jika self-approval) |
+| `OvertimeApproval` | `MedicalDirectorApprove`| `[AccessPermission("OvertimeApproval", "MedicalDirectorApprove")]` | Direktur Pelayanan Medik | Otorisasi eskalasi khusus darurat cito yang melampaui kuota PP 35 |
+| `OvertimeVerification`| `View` | `[AccessPermission("OvertimeVerification", "View")]` | HR Officer, HR Admin | Melihat hasil komparasi klaim vs mesin presensi |
+| `OvertimeVerification`| `Manage` | `[AccessPermission("OvertimeVerification", "Manage")]` | HR Officer, HR Admin | Menyelesaikan anomali discrepancy dan input penyesuaian manual |
+| `OvertimeCompensatoryLeave`| `ViewSelf` | `[AccessPermission("OvertimeCompensatoryLeave", "ViewSelf")]` | Seluruh Pegawai RS | Melihat tiket dan saldo cuti pengganti pribadi |
+| `OvertimeCompensatoryLeave`| `Manage` | `[AccessPermission("OvertimeCompensatoryLeave", "Manage")]` | HR Leave Admin, HR Officer | Monitoring seluruh saldo CTO RS dan menjalankan runner hangus |
+| `OvertimePeriod` | `View` | `[AccessPermission("OvertimePeriod", "View")]` | HR Officer, HR Payroll Officer | Melihat informasi periode berjalan dan tanggal cut-off |
+| `OvertimePeriod` | `Manage` | `[AccessPermission("OvertimePeriod", "Manage")]` | HR Payroll Officer, HR Manager | Mengunci snapshot cut-off bulanan dan rekonsiliasi retrospektif |
+| `OvertimePeriod` | `HandoffPayroll` | `[AccessPermission("OvertimePeriod", "HandoffPayroll")]` | HR Payroll Officer | Mengeksekusi serah terima data lembur siap bayar ke Modul 10 |
+| `OvertimeSetting` | `Manage` | `[AccessPermission("OvertimeSetting", "Manage")]` | HR Director, System Administrator | Mengonfigurasi kuota PP 35/2021, rumus pengali, dan batas waktu |
+
+---
+
+### 17.2 Matriks Jejak Audit Trail (Audit Trail Events)
+
+| Kode Event Audit | Tingkat Kepentingan | Data yang Dicatat | Pemicu Peristiwa |
+| --- | :---: | --- | --- |
+| `OVERTIME_PLAN_CREATED` | `INFO` | `PlanId`, `UnitId`, `PlanDate`, `EstimatedMinutes`, `CompensationType` | Pengajuan SPKL pra-dinas terencana |
+| `OVERTIME_PLAN_APPROVED` | `INFO` | `PlanId`, `ApprovedBySupervisorId`, `WeeklyQuotaHours` | Persetujuan SPKL oleh Kepala Ruangan |
+| `OVERTIME_CITO_CLAIM_SUBMITTED` | `WARNING` | `RealizationId`, `WorkforceId`, `EmergencyClinicalRefNo`, `ClaimedMinutes` | Pelaporan klaim lembur darurat medis cito H+1 |
+| `OVERTIME_MEDICAL_DIRECTOR_ESCALATED`| `CRITICAL` | `RealizationId`, `WorkforceId`, `ExcessHours`, `Reason: QuotaPP35Exceeded` | Klaim cito dialihkan ke Direktur Pelayanan Medik |
+| `OVERTIME_MEDICAL_DIRECTOR_APPROVED` | `CRITICAL` | `RealizationId`, `ApprovedByDirectorId`, `DispensasiHours`, `MitigationNotes`| Persetujuan darurat khusus oleh Direktur Pelayanan Medik |
+| `OVERTIME_BIOMETRIC_AUTO_VERIFIED` | `INFO` | `RealizationId`, `VerifiedPayableMinutes`, `BiometricExcessMinutes` | Verifikasi mesin presensi sukses tanpa selisih |
+| `OVERTIME_DISCREPANCY_FLAGGED` | `WARNING` | `RealizationId`, `DiscrepancyType`, `ClaimedMinutes`, `ActualTapMinutes` | Deteksi anomali selisih waktu > 30 menit / lupa tap |
+| `OVERTIME_DISCREPANCY_MANUALLY_ADJUSTED`| `WARNING`| `RealizationId`, `AdjustedByHrAdminId`, `VerifiedMinutes`, `LogbookDocNo` | Penyelesaian anomali secara manual berdasar logbook fisik |
+| `OVERTIME_CTO_GRANTED` | `INFO` | `WorkforceProfileId`, `GrantedHours`, `GrantedDays`, `ExpiryDate` | Posting mutasi kredit hak cuti pengganti ke Sub-modul 08 |
+| `OVERTIME_CTO_FORFEITED` | `WARNING` | `CtoTicketId`, `WorkforceProfileId`, `ForfeitedHours`, `ExpiryDate` | Scheduler menghanguskan sisa CTO setelah 90 hari kalender |
+| `OVERTIME_PERIOD_CUTOFF_LOCKED` | `INFO` | `PeriodYear`, `PeriodMonth`, `CutoffDate`, `TotalVerifiedRequests` | Penguncian snapshot transaksi lembur bulanan (tgl 20) |
+| `OVERTIME_PAYROLL_HANDOFF_EXECUTED`| `CRITICAL` | `PeriodYear`, `PeriodMonth`, `TargetBatchId`, `TotalPayableHours` | Serah terima resmi data lembur ke modul 10 Payroll |
+| `OVERTIME_SELF_APPROVAL_ATTEMPT_BLOCKED`| `SECURITY`| `PlanId`, `CallerUserId`, `AttemptedAction: Approve`, `Reason: SelfApproval` | Percobaan persetujuan lembur sendiri digagalkan sistem |

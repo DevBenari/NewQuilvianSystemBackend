@@ -859,9 +859,9 @@ Dua perawat ICU mengajukan cuti pada minggu yang sama. Keduanya punya saldo. Sis
 **Status source:** `TERSEDIA KUAT — REUSE + HARDEN`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — Pengesahan SPKL, verifikasi jam lembur, pembatasan lembur harian/mingguan (`BE-HRD-008`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Pengajuan lembur mandiri, rekonsiliasi SPKL vs mesin absensi (`FE-HRD-011`).
+- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice `S-B3` Kontrak V13 disetujui (5 November 2026).
+- [ ] **Backend:** Baru Di-plan V2 (📋) — 15 task (`BE-HRD-131` s.d. `BE-HRD-145`) pada roadmap revisi 11.
+- [ ] **Frontend:** Baru Di-plan V2 (📋) — 14 task (`FE-HRD-116` s.d. `FE-HRD-129`) pada roadmap revisi 11.
 
 ## Penjelasan untuk developer
 

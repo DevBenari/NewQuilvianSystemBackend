@@ -2424,3 +2424,173 @@ Bagian ini menetapkan kontrak produk dan batasan rilis pertama (*MVP scope*) unt
 | `HRD-ASM-20` | `EPIC HRD-40`, `FR-LEV-07` (Cuti setengah hari half-day 0.5 hari kerja) |
 | `HRD-ASM-21` | `EPIC HRD-40`, `FR-LEV-11` (Pre-leave cancellation pemulihan saldo 100%) |
 | `HRD-ASM-22` | Batasan validasi durasi berurutan max 12 hari kerja |
+
+
+---
+
+## 27. Bagian `S-B3` — PRD to MVP Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Dokumen ini mendefinisikan batas rilis pertama (MVP), rincian kebutuhan fungsional (*functional requirements*), skenario uji penerimaan pengguna (*User Acceptance Testing*), *Definition of Done*, dan pentahapan pengiriman untuk **Slice `S-B3` — Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09)**.
+
+### 27.1 Batas MVP Sub-Modul 09 (`S-B3`)
+
+* **Titik Mulai (Start Boundary):** Pegawai atau Kepala Ruangan mengajukan permohonan SPKL terencana pra-dinas (minimal H-1) atau staf medis melaporkan klaim lembur darurat tindakan cito medis pasca-dinas (maksimal H+1 hari kerja) di portal ESS.
+* **Titik Akhir (End Boundary):** Seluruh jam lembur diverifikasi secara otomatis terhadap bukti fisik mesin presensi biometrik Sub-modul 07, hak libur pengganti (CTO) diposting ke buku besar saldo cuti Sub-modul 08, dan berkas lembur bulanan terkunci resmi diserahkan ke Sub-modul 10 Payroll, dengan klaim pending direkonsiliasi secara retrospektif pada periode bulan berikutnya.
+
+---
+
+### 27.2 Kemampuan MUST HAVE (`HRD-CAP-08`)
+
+1. **Dual-Mode SPKL Initiation (`HRD-DEC-116`):** Pengajuan lembur terencana pra-dinas H-1 dan pelaporan pasca-dinas lembur darurat medis cito maksimal H+1 kerja dengan nomor rekam medis wajib.
+2. **Kepatuhan Batas Lembur PP 35/2021 (`HRD-DEC-117`):** Penegakan kuota baku maksimal 4 jam per hari dan 18 jam per minggu (*hard block* lembur biasa), serta alur eskalasi Direktur Pelayanan Medik untuk darurat penyelamatan nyawa pasien.
+3. **Pilihan Kompensasi Fleksibel Finansial vs CTO (`HRD-DEC-118`):** Pembayaran uang lembur berjenjang (1.5x / 2x) atau konversi menjadi hak libur pengganti (*Compensatory Time Off*) berlaku 90 hari, dengan pengecualian lembur manajerial (*exempt*).
+4. **Verifikasi Silang Biometrik & Min-Duration Rule (`HRD-DEC-119`):** Pengakuan durasi lembur berdasar nilai terkecil antara permohonan SPKL dan catatan mesin presensi, dilengkapi penanda *Flagged Discrepancy* dan investigasi manual HR.
+5. **Pemisahan Peran & Anti-Self-Approval (`HRD-DEC-120`):** Alur persetujuan operasional ruangan dan verifikasi administratif HRD, dengan larangan mutlak menyetujui pengajuan lembur sendiri.
+6. **Penutupan Periode & Rekonsiliasi Retrospektif (`HRD-DEC-121`):** Penguncian snapshot lembur pada cut-off bulanan (tgl 20) dan perhitungan penyesuaian retrospektif pada payroll berikutnya untuk klaim yang disetujui terlambat.
+
+---
+
+### 27.3 Kemampuan yang Ditunda (POST-MVP)
+
+1. *Integrasi Mesin Katering Lembur Otomatis:* Pengeluaran voucher makanan lembur digital di kantin RS (ditunda ke rilis lanjutan pasca-payroll stabil).
+2. *Prediksi Lembur Berbasis AI:* Prediksi kebutuhan lembur perawat rawat inap menggunakan machine learning berdasarkan tren sensus pasien (ditunda ke fase Enterprise Hospital Intelligence).
+3. *Mobile Push Notification untuk Approval Lembur Darurat:* Notifikasi instan push mobile app (sementara menggunakan in-app notification dan portal inbox web).
+
+---
+
+### 27.4 Epic & Kebutuhan Fungsional (Functional Requirements)
+
+#### `EPIC HRD-44` — Pengajuan & Penerbitan SPKL Dual-Mode
+* **`FR-OT-01` [EXISTING / EXTEND]:** Sistem menyediakan formulir pengajuan SPKL terencana pra-dinas minimal H-1 sebelum waktu dinas lembur dimulai (`HRD-DEC-116`).
+* **`FR-OT-02` [MISSING / NEW]:** Sistem menyediakan formulir pelaporan klaim darurat medis pasca-dinas cito (bedah OK, resusitasi IGD, ICU) maksimal H+1 hari kerja (`HRD-DEC-116`).
+* **`FR-OT-03` [MISSING / NEW]:** Sistem mewajibkan pengisian Nomor Rekam Medis / Nomor Insiden Darurat dan ringkasan tindakan klinis pada setiap klaim cito darurat (`HRD-DEC-116`).
+* **`FR-OT-04` [EXISTING / EXTEND]:** Sistem mendukung inisiasi SPKL kelompok (*team overtime*) oleh Kepala Ruangan dengan satu pengajuan induk untuk banyak nakes pelaksana (`HRD-ASM-26`).
+* **`FR-OT-05` [MISSING / NEW]:** Sistem menolak secara otomatis klaim pasca-dinas yang diserahkan melebihi batas waktu H+1 hari kerja (`SubmissionDeadlinePassed`).
+
+#### `EPIC HRD-45` — Penegakan Batas Maksimal Lembur PP 35/2021 & Eskalasi Darurat Klinis
+* **`FR-OT-06` [MISSING / NEW]:** Sistem menghitung akumulasi jam lembur harian dan mingguan per staf aktif secara realtime (`HRD-DEC-117`).
+* **`FR-OT-07` [MISSING / NEW]:** Sistem memblokir otomatis (*hard-block*) pengajuan lembur terencana biasa yang menyebabkan jam lembur harian > 4 jam atau mingguan > 18 jam (`HRD-DEC-117`).
+* **`FR-OT-08` [MISSING / NEW]:** Sistem menyediakan alur eskalasi darurat klinis ke Direktur Pelayanan Medik jika klaim cito darurat melampaui batas kuota PP 35/2021 (`HRD-DEC-117`).
+* **`FR-OT-09` [MISSING / NEW]:** Sistem menampilkan indikator risiko kelelahan nakes (*fatigue risk*) pada kotak masuk approval Direktur Pelayanan Medik (`HRD-DEC-117`).
+* **`FR-OT-10` [MISSING / NEW]:** Sistem mencatat audit otorisasi khusus dispensasi darurat yang diterbitkan Direktur Pelayanan Medik.
+
+#### `EPIC HRD-46` — Verifikasi Silang Kehadiran Biometrik & Penanganan Discrepancy
+* **`FR-OT-11` [MISSING / NEW]:** Sistem secara otomatis mencocokkan jam klaim SPKL terhadap log mesin presensi biometrik aktual Sub-modul 07 (`INT-HR-50`).
+* **`FR-OT-12` [MISSING / NEW]:** Sistem menerapkan aturan nilai terkecil (*Min-Duration Rule*): durasi dihitung dari `min(spkl_claimed_minutes, biometric_excess_minutes)` (`HRD-DEC-119`).
+* **`FR-OT-13` [MISSING / NEW]:** Sistem menerapkan pembulatan kelipatan 30 menit ke bawah, dan durasi fisik < 30 menit bernilai 0 jam kompensasi (`HRD-ASM-23`).
+* **`FR-OT-14` [MISSING / NEW]:** Sistem menandai status *Flagged Discrepancy* bila selisih jam klaim vs mesin > 30 menit atau pegawai lupa tap biometrik (`HRD-DEC-119`).
+* **`FR-OT-15` [MISSING / NEW]:** Sistem menyediakan fasilitas investigasi manual HR Admin dengan kewajiban unggah berkas logbook dinas ruangan fisik sebelum klaim anomali disetujui.
+
+#### `EPIC HRD-47` — Tata Kelola Kompensasi: Finansial vs Compensatory Time Off (CTO)
+* **`FR-OT-16` [EXISTING / EXTEND]:** Sistem memungkinkan pegawai memilih bentuk kompensasi: Uang Lembur Finansial atau Cuti Pengganti (CTO) pada saat submit SPKL (`HRD-DEC-118`).
+* **`FR-OT-17` [MISSING / NEW]:** Sistem menghitung pengali uang lembur reguler (1.5x jam pertama, 2x jam kedua dst.) dan tarif khusus hari libur resmi RS (`HRD-DEC-118`).
+* **`FR-OT-18` [MISSING / NEW]:** Sistem mengonversi durasi lembur menjadi kuota CTO dan memposting transaksi mutasi kredit ke `TrxLeaveBalanceLedger` Sub-modul 08 (`INT-HR-49`).
+* **`FR-OT-19` [MISSING / NEW]:** Sistem menetapkan masa kedaluwarsa kuota CTO selama tepat 90 hari kalender sejak tanggal terbit (`HRD-DEC-118`, `HRD-ASM-25`).
+* **`FR-OT-20` [MISSING / NEW]:** Scheduler sistem otomatis menghanguskan sisa kuota CTO yang belum digunakan setelah melewati 90 hari kalender tanpa kompensasi uang tunai.
+
+#### `EPIC HRD-48` — Penutupan Periode Cut-off Bulanan, Rekonsiliasi Retrospektif, & Serah Terima Payroll
+* **`FR-OT-21` [EXISTING / EXTEND]:** Sistem mengunci periode transaksi lembur bulanan pada tanggal cut-off (tgl 20) menjadi *CutoffLocked* (`HRD-DEC-121`).
+* **`FR-OT-22` [MISSING / NEW]:** Sistem menandai seluruh SPKL yang belum selesai diverifikasi saat cut-off sebagai `PendingNextReconciliation` (`HRD-DEC-121`).
+* **`FR-OT-23` [MISSING / NEW]:** Sistem menyusun paket rekonsiliasi retrospektif atas lembur periode lampau yang disetujui terlambat untuk disertakan pada slip gaji periode berjalan (`HRD-DEC-121`).
+* **`FR-OT-24` [EXISTING / EXTEND]:** Sistem membentuk berkas snapshot immutable serah terima data lembur terverifikasi ke Sub-modul 10 Payroll (`INT-HR-52`).
+* **`FR-OT-25` [MISSING / NEW]:** Sistem memblokir mutlak penambahan, perubahan, atau pembatalan SPKL pada periode lembur yang telah terkunci atau ditutup (`Closed`).
+
+---
+
+### 27.5 Skenario UAT (User Acceptance Testing)
+
+#### `UAT-OT-01`: Pengajuan SPKL Pra-Dinas Terencana & Validasi Kuota PP 35/2021
+* **Aktor:** Bidan Siti (Staf Rawat Inap), Ibu Ani (Kepala Ruangan Kebidanan).
+* **Jalur Sukses:**
+  1. Pada tanggal 10 November pukul 10:00 WIB, Bidan Siti mengajukan SPKL pra-dinas untuk tanggal 11 November durasi 3 jam (16:00 - 19:00 WIB) karena ada persiapan akreditasi ruangan.
+  2. Akumulasi jam lembur Siti minggu ini tercatat 6 jam; sistem mengevaluasi total menjadi 9 jam (di bawah batas maksimal 18 jam/minggu). Validasi kuota lulus.
+  3. Pengajuan masuk ke kotak masuk Ibu Ani (Kepala Ruangan). Ibu Ani menyetujui. SPKL berstatus resmi `ApprovedForWork`.
+* **Jalur Gagal (Pelanggaran Kuota PP 35/2021):**
+  1. Pada tanggal 12 November, Siti mengajukan kembali SPKL terencana durasi 5 jam dalam satu hari.
+  2. Sistem menolak dengan pesan kesalahan baku: *"Pengajuan lembur terencana harian melebihi batas maksimal 4 jam per hari sesuai regulasi PP 35/2021."* Form ditolak sistem sebelum tersubmit.
+
+#### `UAT-OT-02`: Pelaporan Klaim Lembur Darurat Medis Cito & Penegakan Batas H+1
+* **Aktor:** dr. Budi (Dokter IGD), dr. Hendra (Direktur Pelayanan Medik).
+* **Jalur Sukses:**
+  1. Pada shift malam 14 November, terjadi kecelakaan bus massal. dr. Budi harus memperpanjang dinas selama 5 jam untuk tindakan resusitasi kritis hingga pukul 03:00 WIB dini hari.
+  2. Pada tanggal 15 November pagi (H+1), dr. Budi menginput klaim lembur pasca-dinas kategori `EmergencyCito` dengan nomor rekam medis bencana `RM-CITO-20261114-089` dan uraian tindakan resusitasi.
+  3. Karena durasi 5 jam melampaui batas harian reguler 4 jam, sistem otomatis mengalihkan klaim ke kotak masuk eskalasi Direktur Pelayanan Medik.
+  4. dr. Hendra meninjau indikator kelelahan, menyetujui klaim darurat medis, dan sistem merekam persetujuan dispensasi darurat.
+* **Jalur Gagal (Klaim Terlambat > H+1 Kerja):**
+  1. Perawat Doni mencoba melaporkan klaim lembur operasi cito tanggal 10 November pada tanggal 14 November (melebihi H+1 kerja).
+  2. Sistem menolak dengan pesan kesalahan baku: *"Batas waktu pelaporan klaim lembur darurat medis pasca-dinas telah berakhir (maksimal H+1 hari kerja)."*
+
+#### `UAT-OT-03`: Verifikasi Silang Biometrik Presensi & Min-Duration Rule
+* **Aktor:** Staf Laboratorium Eko, HR Officer Rina.
+* **Jalur Sukses:**
+  1. Eko mengajukan SPKL 3 jam (17:00 - 20:00 WIB) dan disetujui atasan.
+  2. Berdasarkan data mesin tap biometrik Sub-modul 07, Eko melakukan tap pulang aktual pada pukul 19:40 WIB (kelebihan fisik 2 jam 40 menit).
+  3. Service verifikasi biometrik menerapkan aturan nilai terkecil: `Min(180 menit, 160 menit) = 160 menit`.
+  4. Pembulatan 30 menit ke bawah diterapkan: 160 menit dibulatkan menjadi 150 menit (2 jam 30 menit).
+  5. Sistem mencatat `VerifiedPayableMinutes = 150` dengan status `AutoVerified`.
+* **Jalur Gagal (Anomali Lupa Tap Mesin / Discrepancy):**
+  1. Staf Farmasi Dewi memiliki SPKL disetujui 3 jam, tetapi lupa melakukan tap presensi saat pulang dinas lembur.
+  2. Engine verifikasi mendeteksi ketiadaan tap pulang fisik dan otomatis menandai klaim sebagai `FlaggedDiscrepancy: MissingBiometric`.
+  3. Klaim ditahan dari pembayaran payroll hingga HR Officer Rina menerima bukti fisik logbook dinas farmasi bertanda tangan atasan dan melakukan *Manual Adjustment*.
+
+#### `UAT-OT-04`: Kompensasi Hak Libur Pengganti (CTO) & Siklus Kedaluwarsa 90 Hari
+* **Aktor:** Perawat ICU Maya.
+* **Jalur Sukses:**
+  1. Maya lembur cito ICU selama 8 jam terverifikasi pada 1 November dan memilih kompensasi `CompensatoryTimeOff`.
+  2. Sistem otomatis mengonversi 8 jam lembur menjadi 1 hari libur pengganti (CTO) dan mengirimkan mutasi kredit ke `TrxLeaveBalanceLedger` Sub-modul 08 (`INT-HR-49`).
+  3. Maya melihat tambahan 1 hari saldo CTO di portal ESS dengan tanggal kedaluwarsa tercatat 30 Januari 2027 (H+90 hari kalender).
+* **Jalur Evaluasi Kedaluwarsa (Expired Runner):**
+  1. Hingga tanggal 30 Januari 2027 pukul 23:59:59 WIB, Maya belum menggunakan hak libur CTO tersebut.
+  2. Pada 31 Januari 2027 pukul 00:05 WIB, background scheduler mengeksekusi runner kedaluwarsa; saldo CTO Maya dicatat hangus (*Expired*) tanpa kompensasi uang tunai.
+
+#### `UAT-OT-05`: Penutupan Cut-off Payroll & Rekonsiliasi Retrospektif
+* **Aktor:** HR Payroll Officer Diana.
+* **Jalur Sukses:**
+  1. Pada tanggal 20 November pukul 23:59:59 WIB, Diana menutup periode lembur November 2026. Seluruh SPKL terverifikasi bersih dikunci menjadi snapshot immutable.
+  2. SPKL milik Bidan Ratih yang masih dalam tahap investigasi anomali biometrik otomatis ditandai `PendingNextReconciliation` dan ditahan dari slip gaji November.
+  3. Pada 23 November, bukti logbook Ratih selesai diverifikasi HR Admin dan SPKL disetujui.
+  4. Saat pembentukan batch payroll Desember 2026, sistem secara otomatis menarik SPKL Ratih sebagai rapel rekonsiliasi retrospektif pada slip gaji Desember.
+
+---
+
+### 27.6 Definition of Done (DoD) Slice `S-B3`
+
+| No | Kriteria Selesai (DoD) | Bukti Pengujian |
+| :---: | --- | --- |
+| 1 | SPKL terencana menolak jam mulai di masa lampau dan menolak kuota harian > 4 jam / mingguan > 18 jam | UAT-OT-01 & pengujian form validasi |
+| 2 | Klaim cito pasca-dinas mewajibkan nomor RM klinis dan menolak pelaporan > H+1 hari kerja | UAT-OT-02 & integrasi backend validation |
+| 3 | Klaim cito melebihi kuota PP 35 otomatis dialihkan ke eskalasi Direktur Pelayanan Medik | UAT-OT-02 & verifikasi workflow eskalasi |
+| 4 | Durasi lembur dihitung otomatis berdasar nilai terkecil antara SPKL dan tap mesin presensi biometrik | UAT-OT-03 & pengujian biometric verification service |
+| 5 | Anomali selisih waktu > 30 menit atau lupa tap biometrik ditandai status `FlaggedDiscrepancy` | UAT-OT-03 & verifikasi discrepancy queue |
+| 6 | Penyesuaian manual durasi anomali oleh HR Admin mewajibkan unggah bukti logbook dinas ruangan | UAT-OT-03 & pengujian drawer investigasi HR |
+| 7 | Atasan langsung dilarang keras menyetujui pengajuan lemburnya sendiri (*Anti-Self-Approval*) | Pengujian validasi `VR-OT-03` & hierarki eskalasi |
+| 8 | Kompensasi opsi CTO otomatis memposting mutasi kredit ke buku besar cuti Sub-modul 08 berkedaluwarsa 90 hari | UAT-OT-04 & verifikasi `INT-HR-49` |
+| 9 | Penutupan cut-off bulanan mengunci seluruh SPKL terverifikasi menjadi snapshot *read-only/immutable* | UAT-OT-05 & integration test lock period |
+| 10 | SPKL pending saat cut-off otomatis diperhitungkan sebagai rapel retrospektif pada payroll berikutnya | UAT-OT-05 & verifikasi handoff payload `INT-HR-52` |
+
+---
+
+### 27.7 Urutan Pengiriman Gelombang MVP
+
+| Gelombang | Cakupan Kemampuan | Epic Terkait | Prasyarat |
+| --- | --- | --- | --- |
+| `MVP-27` | Skema database lembur, SPKL pra-dinas terencana H-1, kuota PP 35/2021, dan anti-self-approval | `EPIC HRD-44`, `EPIC HRD-45` | Sub-Modul 08 (`MVP-24`–`MVP-26`) selesai |
+| `MVP-28` | Klaim darurat cito H+1, eskalasi Direktur Medis, verifikasi silang mesin biometrik presensi, dan anomali discrepancy | `EPIC HRD-45`, `EPIC HRD-46` | `MVP-27` selesai & Sub-Modul 07 terintegrasi |
+| `MVP-29` | Konversi saldo libur pengganti CTO (90 hari), penutupan cut-off bulanan, rekonsiliasi retrospektif, dan handoff payroll | `EPIC HRD-47`, `EPIC HRD-48` | `MVP-28` selesai |
+
+---
+
+### 27.8 Traceability Keputusan ke PRD
+
+| Keputusan / Asumsi | Epic & Kriteria DoD Terkait |
+| --- | --- |
+| `HRD-DEC-116` | `EPIC HRD-44`, `FR-OT-01` s.d. `FR-OT-05`, UAT-OT-01, UAT-OT-02, DoD butir 1, 2 |
+| `HRD-DEC-117` | `EPIC HRD-45`, `FR-OT-06` s.d. `FR-OT-10`, UAT-OT-01, UAT-OT-02, DoD butir 1, 3 |
+| `HRD-DEC-118` | `EPIC HRD-47`, `FR-OT-16` s.d. `FR-OT-20`, UAT-OT-04, DoD butir 8 |
+| `HRD-DEC-119` | `EPIC HRD-46`, `FR-OT-11` s.d. `FR-OT-15`, UAT-OT-03, DoD butir 4, 5, 6 |
+| `HRD-DEC-120` | `EPIC HRD-44`, `EPIC HRD-45`, UAT-OT-01, DoD butir 7 |
+| `HRD-DEC-121` | `EPIC HRD-48`, `FR-OT-21` s.d. `FR-OT-25`, UAT-OT-05, DoD butir 9, 10 |
+| `HRD-ASM-23` | `FR-OT-13` (Pembulatan 30 menit ke bawah) |
+| `HRD-ASM-24` | `EPIC HRD-44`, `FR-OT-02` (Aktivasi lembur nakes on-call medis) |
+| `HRD-ASM-25` | `EPIC HRD-47`, `FR-OT-19`, `FR-OT-20` (Kedaluwarsa CTO 90 hari kalender) |
+| `HRD-ASM-26` | `EPIC HRD-44`, `FR-OT-04` (Inisiasi lembur kelompok/tim medis ruangan) |

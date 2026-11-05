@@ -354,6 +354,7 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - SCHEDULING MANAGEMENT
+        public DbSet<HrdSchedulingSetting> HrdSchedulingSettings { get; set; }
         public DbSet<WfpWorkScheduleAssignment> WfpWorkScheduleAssignments { get; set; }
         public DbSet<WfpScheduleChangeRequest> WfpScheduleChangeRequests { get; set; }
         public DbSet<WfpShiftSwapRequest> WfpShiftSwapRequests { get; set; }

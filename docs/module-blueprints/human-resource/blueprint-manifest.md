@@ -6,45 +6,46 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 24
+revision: 27
 status: DRAFT
 design_readiness: PARTIAL
-current_phase: HRD-PH-SLICE-B2-PLANNED
+current_phase: HRD-PH-SLICE-B3-PLANNED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-11-04T09:22:00Z
-last_verified_at: 2026-11-04T09:22:00Z
+updated_at: 2026-11-04T09:40:00Z
+last_verified_at: 2026-11-04T09:40:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
 backend_source_sha_current: 8b17b75a
 frontend_source_sha: 44990b3d3
 frontend_source_sha_previous: cfa82fbb3
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: f42200afe660ff026e49c278e48bde4fe3e7259fbff7c0c5091b6d8cabf052da
-decision_revision: 22
+input_revision_hash: fe21aa8ca8aac54fec7276f22c4bd387af2d24a663d4cd455b4f823bb8586b24
+decision_revision: 23
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.3
 capability_map_hash: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-contract_versions: v12
+contract_versions: v13
 contract_status_s_b1: approved
 contract_status_s_b2: approved
+contract_status_s_b3: approved
 contract_status_s_b4: approved
 contract_status_s_d1: approved
 contract_status_s_d2: approved
 contract_status_s_c4_onb: approved
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: f42200afe660ff026e49c278e48bde4fe3e7259fbff7c0c5091b6d8cabf052da
+  00-interview-decisions.md: fe21aa8ca8aac54fec7276f22c4bd387af2d24a663d4cd455b4f823bb8586b24
   01-existing-capability-map.md: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-  02-backend-architecture.md: 90f7a1c4b7940d74468422e143ec1ee2387488c1fa14046f566c0e8aa2164d07
-  03-frontend-architecture.md: dd55750adf5db851778534214ea524c02b6a9468275995823d9178ca055f3f4d
-  04-prd-to-mvp.md: 618865d0f5915a0ffcaf4fd5c77c491b0d4e5ae6d261de203063b15f9181066b
-  data/data-dictionary.md: 414bacc7ef62380b1b262fbaa0524ff8959f5ad690ddc7411a2c0f4c7193e363
-  contracts/api-contract.md: 505526695fc138c61b38b244c7f81f97207bb69507d3915387fbc29002f818d0
-  contracts/state-transition-matrix.md: 95dd8587ca874addc32d71c39f3cb8f41e120466ceea3ca6f57ba8fefd59c1ce
-  contracts/validation-matrix.md: 5173e5a6b265fa142da46ab0f0e0f873c9e9bb4308c5373fa09bddb49027a1a6
-  contracts/integration-contract.md: b8aa74bf300f7dc358d533f5d0d9b00256c630ebb336c3d4a8ad5dd529a1670d
-  contracts/permission-audit-matrix.md: 9c6eb8dc009d97baa997f2ab95f4656ef8ef397e2c7c238e64d29c6022b630da
-  testing/acceptance-test-matrix.md: 86562d239cac833f21e18d5b36b38a28e5d4ee171adbeeb43e35f0ec23b033a1
+  02-backend-architecture.md: 589393648594450bda8c918985ffd694a0ff932d26f0d48b24e1556bdacbac76
+  03-frontend-architecture.md: 1aca4288fcb0a67170cb6e1da826f47d254cbc9a7ca57176929c0739fbde1733
+  04-prd-to-mvp.md: 6cf75d826030bfa55e9a51f63338482096f6573bee3e47e83a6db222665cd012
+  data/data-dictionary.md: 3b0fa5a79d19ad9fc70034cf9db3263802207fe45ed1350992f3b2fea17f51fb
+  contracts/api-contract.md: 75b7f2403dd2f4866c208fb7fbe13f31e42c072879923a42f3b145b126a20988
+  contracts/state-transition-matrix.md: deae7d13912ed4963171dfa921904d677e55c2623ef5a54b342760216dcf2472
+  contracts/validation-matrix.md: add164c24920ee9e62ac43f9eee013d114f94d38a52394e444ec1f5c178554c4
+  contracts/integration-contract.md: ae2c36c6df6457db3dc931e456e9a35e5a0564f3a83642daea532c41e58ade6d
+  contracts/permission-audit-matrix.md: 0cb3a7577b55abdb44ae9bf4fa38313e7613d80ac0d688a82e1bc433c1d6a7b0
+  testing/acceptance-test-matrix.md: 4c4ab7420cb00feaabd870a038ecd4ab927417c774d5d39ce1d9103e06a3791e
   flowcharts/00-alur-utama.md: 9a2af6abf27b896179af26191ed8ad255505385e3b5839ed12014e4023f33af3
   flowcharts/penjadwalan-kerja.md: 7c9a0560d62261f1a938192e7bbdd5b4dd4ccb7f89a025e5c7bdf6e1ed3d01ef
   flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
@@ -55,6 +56,7 @@ artifact_hashes:
   flowcharts/siklus-kontrak.md: 11a3cae04a379e9295a8682a183a7633b0dfcb568156f4824c8eb6b8cdd9e6b9
   flowcharts/batch-data-awal-kontrak.md: 24e97a41134d7c21b8f729008ca50e287f2e3acbf51479c84c82d0777ec77b5b
   flowcharts/cuti-dan-perizinan.md: 7147237195cc71f5c310739bb7560e6db65c3fc2ee8d73b929ec41d88425e87e
+  flowcharts/administrasi-lembur.md: 4f67e1be5e1f43ada0c6a52040e4c4355235f43a22e1e6aca528f2cec8d15acc
 active_dependency_ids:
   - HRD-DEP-001
   - HRD-DEP-002
@@ -63,8 +65,22 @@ active_dependency_ids:
   - HRD-DEP-005
   - HRD-DEP-006
   - HRD-DEP-007
-active_roadmap_revision: 10
+active_roadmap_revision: 11
 approvals:
+  - scope: S-B3
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-05
+    owner_answer: "Opsi A untuk HRD-DEC-116 s.d. HRD-DEC-121; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 22
+      - 03-frontend-architecture.md bagian 18
+      - 04-prd-to-mvp.md bagian 27
+      - data/data-dictionary.md bagian 14
+      - contracts/* bagian S-B3 (kontrak v13)
+      - testing/acceptance-test-matrix.md bagian 21
+      - flowcharts/administrasi-lembur.md
+      - roadmap/* revisi 11 (BE-HRD-131 s.d. BE-HRD-145, FE-HRD-116 s.d. FE-HRD-129)
+    not_covered: "bagian slice lain; HRD-DEC-005 dan HRD-DEC-010 milik Komite Medik dan K3RS"
   - scope: S-B2
     approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
     approved_at: 2026-11-04
@@ -391,6 +407,9 @@ Kehadirannya bukan penyimpangan struktur, dan ketiadaannya bukan blueprint yang 
 
 | Revision | Tanggal | Isi | Dasar |
 | --- | --- | --- | --- |
+| `27` | 2026-11-05 | **Perencanaan Delivery `S-B3` (Administrasi Lembur Pegawai Rumah Sakit).** `S-B3` dipecah menjadi 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B32 s.d. B35 & F30 s.d. F33). Status `S-B3` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-OT-01` s.d. `FR-OT-25`), 6 keputusan asal (`HRD-DEC-116` s.d. `HRD-DEC-121`), 20 acceptance tests (`AT-HRD-OT-01` s.d. `AT-HRD-OT-20`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1g (0 Gap). `active_roadmap_revision` naik ke `11`. | Approval Pengguna 2026-11-05 |
+| `26` | 2026-11-04 | **Desain `S-B3` Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09) sebagai `draft`.** Menyerap decision log revision `23` bagian 39 — keputusan `HRD-DEC-116` s.d. `HRD-DEC-121` dan asumsi `HRD-ASM-23` s.d. `HRD-ASM-26`. `02-backend-architecture.md` bagian 22 (model `TrxOvertimePlan`, `TrxOvertimeRealization`, `TrxOvertimeVerification`, `TrxCompensatoryTimeOff`, `TrxOvertimePeriod`, service `OvertimeBiometricVerificationService`, guard kuota PP 35/2021, DDL Postgres); `03-frontend-architecture.md` bagian 18 (layar `FE-HRD-156` s.d. `FE-HRD-161`, form dual-mode SPKL H-1 & cito H+1, drawer investigasi discrepancy HR, inbox eskalasi Direktur Medis); `data/data-dictionary.md` bagian 14; kelima kontrak bagian `S-B3` (kontrak `v13`, 6 grup Swagger, 18 permission persis, 13 event audit, 25 aturan validasi `VR-OT`, integrasi `INT-HR-49` s.d. `INT-HR-52`); `testing/acceptance-test-matrix.md` bagian 21 (20 skenario `AT-HRD-OT`); `04-prd-to-mvp.md` bagian 27 (`EPIC HRD-44` s.d. `HRD-48`, gelombang `MVP-27` s.d. `MVP-29`); berkas flowchart baru `flowcharts/administrasi-lembur.md` (4 diagram alur). `contract_versions` naik ke `v13`. Siap untuk persetujuan pengguna. | `HRD-DEC-116` s.d. `HRD-DEC-121` |
+| `25` | 2026-11-04 | **Wawancara & Keputusan Sub-modul 09 Overtime Management (`S-B3`).** Menyerap decision log revision `23` bagian 39 — keputusan `HRD-DEC-116` s.d. `HRD-DEC-121` (seluruhnya `approved` oleh pengguna), asumsi `HRD-ASM-23` s.d. `HRD-ASM-26`, serta penegasan batas scope administrasi lembur rumah sakit. SPKL pra-dinas terencana H-1 & pasca-dinas cito darurat medis H+1, penegakan batas maksimal lembur PP 35/2021 (maks 4 jam/hari & 18 jam/minggu) dengan eskalasi darurat Direktur Pelayanan Medik, opsi kompensasi uang lembur vs saldo Compensatory Time Off (CTO) kedaluwarsa 3 bulan & pengecualian pejabat struktural, validasi min-duration rule terhadap tap presensi biometrik, alur persetujuan 2-tahap dengan anti-self-approval mutlak, serta penguncian snapshot cut-off lembur & rekonsiliasi retrospektif payroll. Siap untuk `design-business-module`. | `HRD-DEC-116` s.d. `HRD-DEC-121` |
 | `1` | 2026-08-27 | Manifest pertama. Menyerap decision log revision `2` dan capability map revision `1.1`. Scaffold fondasi dan roadmap slice | `HRD-DEC-003` s.d. `HRD-DEC-018` |
 | `2` | 2026-08-27 | Amendment Pass 1.1. Menyerap `HRD-DEC-019` kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`. Memperbaiki hitungan slice dan definisi angka 68/67 | `HRD-DEC-019` |
 | `3` | 2026-08-27 | Baseline Impact Gate. Baseline backend berpindah ke `origin/QuilvianIntegrationBackend` dengan hasil `NO_IMPACT`; capability map tetap `CURRENT`. Koreksi kelas QBE `S-C4` per entity, revision decision log, dan jumlah flow | `HRD-Q-16`, `HRD-Q-17` |

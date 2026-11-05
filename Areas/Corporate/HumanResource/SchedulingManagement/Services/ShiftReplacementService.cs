@@ -1,23 +1,32 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services
 {
     public class ShiftReplacementService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHrdEmploymentReadinessReadService _readinessService;
         private readonly ILogger<ShiftReplacementService> _logger;
 
         public ShiftReplacementService(
             ApplicationDbContext context,
+            IHrdEmploymentReadinessReadService readinessService,
             ILogger<ShiftReplacementService> logger)
         {
-            _context = context;
-            _logger = logger;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _readinessService = readinessService ?? throw new ArgumentNullException(nameof(readinessService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<PagedResult<ShiftReplacementResponse>> GetPagedAsync(
@@ -87,6 +96,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         {
             var shiftAssignment = await _context.TrxShiftAssignments
                 .Include(s => s.Shift)
+                .Include(s => s.RosterAssignment)
+                    .ThenInclude(a => a!.RosterPeriod)
                 .FirstOrDefaultAsync(s => s.Id == req.ShiftAssignmentId && s.IsActive, cancellationToken);
 
             if (shiftAssignment == null)
@@ -94,6 +105,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 return SchedulingRequestServiceResult<ShiftReplacementResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     $"Penugasan shift dengan ID '{req.ShiftAssignmentId}' tidak ditemukan.");
+            }
+
+            var period = shiftAssignment.RosterAssignment?.RosterPeriod;
+            if (period != null && (period.IsLocked || period.RosterStatus == "Closed"))
+            {
+                return SchedulingRequestServiceResult<ShiftReplacementResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Periode roster telah ditutup dan dikunci mutlak dari seluruh penggantian shift (HRD-DEC-102).");
             }
 
             var origStaff = await _context.MstWorkforceProfiles
@@ -120,10 +139,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             {
                 Id = Guid.NewGuid(),
                 ShiftAssignmentId = req.ShiftAssignmentId,
+                RosterPeriodId = period?.Id,
                 OriginalWorkforceProfileId = req.OriginalWorkforceProfileId,
                 ReplacementWorkforceProfileId = req.ReplacementWorkforceProfileId,
                 ReplacementType = req.ReplacementType.Trim(),
+                ReasonCategory = req.ReplacementType.Trim(),
                 Reason = req.Reason.Trim(),
+                Notes = req.Reason.Trim(),
                 ReplacementStatus = "Draft",
                 IsActive = true,
                 CreateBy = currentUserId,
@@ -164,6 +186,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             var replacement = await _context.TrxShiftReplacements
                 .Include(r => r.ShiftAssignment)
                     .ThenInclude(s => s!.Shift)
+                .Include(r => r.ShiftAssignment)
+                    .ThenInclude(s => s!.RosterAssignment)
+                        .ThenInclude(a => a!.RosterPeriod)
                 .Include(r => r.OriginalWorkforceProfile)
                 .Include(r => r.ReplacementWorkforceProfile)
                 .FirstOrDefaultAsync(r => r.Id == id && r.IsActive, cancellationToken);
@@ -173,6 +198,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 return SchedulingRequestServiceResult<ShiftReplacementResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     $"Permintaan penggantian shift dengan ID '{id}' tidak ditemukan.");
+            }
+
+            var period = replacement.ShiftAssignment?.RosterAssignment?.RosterPeriod;
+            if (period != null && (period.IsLocked || period.RosterStatus == "Closed"))
+            {
+                return SchedulingRequestServiceResult<ShiftReplacementResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Periode roster telah ditutup dan dikunci mutlak dari seluruh penggantian shift (HRD-DEC-102).");
             }
 
             if (replacement.ReplacementStatus == "Applied" || replacement.ReplacementStatus == "Approved")
@@ -186,11 +219,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             replacement.ApprovedAt = DateTime.UtcNow;
             replacement.ApprovedByUserId = currentUserId;
             replacement.AppliedAt = DateTime.UtcNow;
+            replacement.ExecutedAt = DateTime.UtcNow;
+            replacement.ExecutedByUserId = currentUserId;
             replacement.ApprovalNotes = notes?.Trim();
 
             // Terapkan perubahan ke TrxShiftAssignment
             if (replacement.ShiftAssignment != null)
             {
+                replacement.ShiftAssignment.OriginalEmployeeId ??= replacement.ShiftAssignment.WorkforceProfileId;
                 replacement.ShiftAssignment.WorkforceProfileId = replacement.ReplacementWorkforceProfileId;
                 replacement.ShiftAssignment.AssignmentSource = replacement.ReplacementType;
                 replacement.ShiftAssignment.IsManualOverride = true;
@@ -220,6 +256,275 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             return SchedulingRequestServiceResult<ShiftReplacementResponse>.Ok(
                 response,
                 "Penggantian shift berhasil disetujui dan diterapkan langsung ke jadwal operasional.");
+        }
+
+        /// <summary>
+        /// Ganti Petugas Langsung Pasca-Terbit oleh Kepala Unit (BE-HRD-095, HRD-DEC-101).
+        /// Periode roster tetap Published, pengganti divalidasi keselamatannya, langsung efektif.
+        /// </summary>
+        public async Task<SchedulingRequestServiceResult<DirectShiftReplacementResponse>> ExecuteDirectReplacementAsync(
+            Guid shiftAssignmentId,
+            DirectShiftReplacementRequest req,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var shiftAssignment = await _context.TrxShiftAssignments
+                .Include(s => s.Shift)
+                .Include(s => s.WorkforceProfile)
+                .Include(s => s.RosterAssignment)
+                    .ThenInclude(a => a!.RosterPeriod)
+                .FirstOrDefaultAsync(s => s.Id == shiftAssignmentId && s.IsActive, cancellationToken);
+
+            if (shiftAssignment == null)
+            {
+                return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    $"Penugasan shift dengan ID '{shiftAssignmentId}' tidak ditemukan.");
+            }
+
+            var period = shiftAssignment.RosterAssignment?.RosterPeriod;
+            if (period != null && (period.IsLocked || period.RosterStatus == "Closed"))
+            {
+                return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Periode roster telah ditutup dan dikunci mutlak dari seluruh penggantian shift (HRD-DEC-102).");
+            }
+
+            // Staf pengganti tidak boleh sama dengan staf asal yang sedang ditugaskan
+            if (shiftAssignment.WorkforceProfileId == req.ReplacementEmployeeId)
+            {
+                return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pegawai pengganti tidak boleh sama dengan pegawai yang sedang bertugas.");
+            }
+
+            var replStaff = await _context.MstWorkforceProfiles
+                .FirstOrDefaultAsync(w => w.Id == req.ReplacementEmployeeId && w.IsActive, cancellationToken);
+
+            if (replStaff == null)
+            {
+                return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    $"Pegawai pengganti dengan ID '{req.ReplacementEmployeeId}' tidak ditemukan.");
+            }
+
+            // 1. Evaluasi Keselamatan Pengganti: B1 (Double Shift Conflict) - HRD-TF-054
+            var hasOverlap = await _context.TrxShiftAssignments
+                .AnyAsync(s => s.WorkforceProfileId == req.ReplacementEmployeeId &&
+                               s.ShiftDate == shiftAssignment.ShiftDate &&
+                               !s.IsDayOff &&
+                               s.IsActive &&
+                               s.Id != shiftAssignment.Id &&
+                               s.ScheduledStartAt < shiftAssignment.ScheduledEndAt &&
+                               shiftAssignment.ScheduledStartAt < s.ScheduledEndAt,
+                               cancellationToken);
+
+            if (hasOverlap)
+            {
+                return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Penggantian shift ditolak: Pegawai pengganti ({replStaff.DisplayName}) memiliki jadwal shift lain yang tumpang-tindih pada waktu yang sama (B1: Double Shift Conflict / HRD-TF-054).");
+            }
+
+            // 2. Evaluasi Keselamatan Pengganti: B2 (Cuti Disetujui) - HRD-TF-054
+            var onLeave = await _context.WfpLeaveRequests
+                .AnyAsync(l => l.WorkforceProfileId == req.ReplacementEmployeeId &&
+                               !l.IsDelete &&
+                               l.LeaveRequestStatus == "Approved" &&
+                               l.StartDate <= shiftAssignment.ShiftDate &&
+                               l.EndDate >= shiftAssignment.ShiftDate &&
+                               l.IsActive,
+                               cancellationToken);
+
+            if (onLeave)
+            {
+                return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Penggantian shift ditolak: Pegawai pengganti ({replStaff.DisplayName}) sedang dalam masa cuti yang disetujui pada tanggal tersebut (B2: Leave Conflict / HRD-TF-054).");
+            }
+
+            // 3. Evaluasi Kesiapan Kerja Pengganti: B4 / B5 (INT-HR-31)
+            var readiness = await _readinessService.GetSchedulingEligibilityAsync(req.ReplacementEmployeeId, shiftAssignment.ShiftDate, cancellationToken);
+            if (readiness.Success && readiness.Data != null)
+            {
+                if (readiness.Data.EligibilityStatus == "NotReady")
+                {
+                    return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                        StatusCodes.Status422UnprocessableEntity,
+                        $"Penggantian shift ditolak: Pegawai pengganti ({replStaff.DisplayName}) belum dinyatakan siap kerja oleh HRD (B4: Not Ready / HRD-DEC-088).");
+                }
+
+                if (readiness.Data.EligibilityStatus == "ContractHold")
+                {
+                    return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Fail(
+                        StatusCodes.Status422UnprocessableEntity,
+                        $"Penggantian shift ditolak: Kontrak kerja pegawai pengganti ({replStaff.DisplayName}) telah berakhir tanpa keputusan perpanjangan (B5: Contract Hold / HRD-DEC-089).");
+                }
+            }
+
+            var originalEmployeeId = shiftAssignment.OriginalEmployeeId ?? shiftAssignment.WorkforceProfileId;
+            var originalStaffName = shiftAssignment.WorkforceProfile?.DisplayName ?? "Staf Asal";
+
+            // Terapkan Pergantian Langsung pada Shift (IsManualOverride = true)
+            shiftAssignment.OriginalEmployeeId = originalEmployeeId;
+            shiftAssignment.WorkforceProfileId = req.ReplacementEmployeeId;
+            shiftAssignment.IsManualOverride = true;
+            shiftAssignment.OverrideReason = $"[{req.ReasonCategory}] {req.Notes.Trim()}";
+            shiftAssignment.AssignmentSource = "DirectReplacement";
+
+            // Status periode roster tetap 'Published' (menutup bug HRD-TF-052 b)
+            if (period != null)
+            {
+                period.RosterStatus = "Published";
+                period.IsPublished = true;
+            }
+
+            // Catat Jejak Penggantian pada TrxShiftReplacement
+            var replacementRecord = new TrxShiftReplacement
+            {
+                Id = Guid.NewGuid(),
+                ShiftAssignmentId = shiftAssignment.Id,
+                RosterPeriodId = period?.Id,
+                OriginalWorkforceProfileId = originalEmployeeId,
+                ReplacementWorkforceProfileId = req.ReplacementEmployeeId,
+                ReplacementType = "DirectReplacement",
+                ReasonCategory = req.ReasonCategory.Trim(),
+                Reason = req.Notes.Trim(),
+                Notes = req.Notes.Trim(),
+                ReplacementStatus = "Applied",
+                ExecutedByUserId = currentUserId,
+                ExecutedAt = DateTime.UtcNow,
+                AppliedAt = DateTime.UtcNow,
+                ApprovedAt = DateTime.UtcNow,
+                ApprovedByUserId = currentUserId,
+                CreateBy = currentUserId,
+                CreateDateTime = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            _context.TrxShiftReplacements.Add(replacementRecord);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var notifications = new List<string>
+            {
+                $"Notifikasi mutasi terkirim ke {originalStaffName} (Staf Digantikan).",
+                $"Notifikasi tugas baru terkirim ke {replStaff.DisplayName} (Staf Pengganti).",
+                "Tembusan mutasi darurat terkirim ke Kepala Bidang (FYI)."
+            };
+
+            var response = new DirectShiftReplacementResponse
+            {
+                ShiftAssignmentId = shiftAssignment.Id,
+                RosterPeriodStatus = period?.RosterStatus ?? "Published",
+                IsManualOverride = true,
+                AssignedToEmployeeId = replStaff.Id,
+                AssignedToEmployeeName = replStaff.DisplayName,
+                OriginalEmployeeId = originalEmployeeId,
+                OriginalEmployeeName = originalStaffName,
+                EffectiveImmediately = true,
+                NotificationsDispatched = notifications
+            };
+
+            _logger.LogInformation("Ganti petugas langsung berhasil untuk shift {ShiftId} pada {Date}: {Orig} digantikan oleh {Repl}",
+                shiftAssignment.Id, shiftAssignment.ShiftDate, originalStaffName, replStaff.DisplayName);
+
+            return SchedulingRequestServiceResult<DirectShiftReplacementResponse>.Ok(
+                response,
+                $"Ganti petugas langsung berhasil. Shift dinas resmi dialihkan ke {replStaff.DisplayName}.");
+        }
+
+        /// <summary>
+        /// Koreksi mundur jadwal dinas (<= 3 hari kalender) & rekalkulasi kehadiran (BE-HRD-097, HRD-DEC-102, INT-HR-36).
+        /// </summary>
+        public async Task<SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>> RetroactiveCorrectionAsync(
+            Guid shiftAssignmentId,
+            RetroactiveShiftCorrectionRequest req,
+            Guid currentUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var shiftAssignment = await _context.TrxShiftAssignments
+                .Include(s => s.Shift)
+                .Include(s => s.WorkforceProfile)
+                .Include(s => s.RosterAssignment)
+                    .ThenInclude(a => a!.RosterPeriod)
+                .FirstOrDefaultAsync(s => s.Id == shiftAssignmentId && s.IsActive, cancellationToken);
+
+            if (shiftAssignment == null)
+            {
+                return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    $"Penugasan shift dengan ID '{shiftAssignmentId}' tidak ditemukan.");
+            }
+
+            var period = shiftAssignment.RosterAssignment?.RosterPeriod;
+            if (period != null && (period.IsLocked || period.RosterStatus == "Closed"))
+            {
+                return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Periode roster telah ditutup dan dikunci mutlak dari seluruh koreksi (HRD-DEC-102).");
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var daysBack = today.DayNumber - shiftAssignment.ShiftDate.DayNumber;
+
+            // Toleransi koreksi mundur mandiri Kepala Unit dibatasi maksimal 3 hari kalender ke belakang (VR-SCH-17 / HRD-DEC-102)
+            if (daysBack > 3)
+            {
+                return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Koreksi mundur jadwal pada tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} ({daysBack} hari yang lalu) ditolak. Batas toleransi koreksi mundur mandiri Kepala Unit adalah maksimal 3 hari kalender ke belakang (VR-SCH-17 / HRD-DEC-102). Silakan hubungi Tim HRD.");
+            }
+
+            var newShift = await _context.MstShifts
+                .FirstOrDefaultAsync(s => s.Id == req.NewShiftId && s.IsActive, cancellationToken);
+
+            if (newShift == null)
+            {
+                return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    $"Master shift tujuan dengan ID '{req.NewShiftId}' tidak ditemukan.");
+            }
+
+            var newStart = shiftAssignment.ShiftDate.ToDateTime(newShift.StartTime);
+            var newEnd = newShift.IsOvernight || newShift.EndTime < newShift.StartTime
+                ? shiftAssignment.ShiftDate.AddDays(1).ToDateTime(newShift.EndTime)
+                : shiftAssignment.ShiftDate.ToDateTime(newShift.EndTime);
+
+            var paidMinutes = newShift.PaidWorkMinutes > 0
+                ? newShift.PaidWorkMinutes
+                : (int)(newEnd - newStart).TotalMinutes - newShift.BreakDurationMinutes;
+            if (paidMinutes < 0) paidMinutes = 0;
+
+            shiftAssignment.ShiftId = newShift.Id;
+            shiftAssignment.ScheduledStartAt = newStart;
+            shiftAssignment.ScheduledEndAt = newEnd;
+            shiftAssignment.PlannedWorkMinutes = paidMinutes;
+            shiftAssignment.BreakDurationMinutes = newShift.BreakDurationMinutes;
+            shiftAssignment.IsNightShift = newShift.IsNightShift;
+            shiftAssignment.IsOnCall = newShift.IsOnCall;
+            shiftAssignment.IsDayOff = newShift.IsOffShift;
+            shiftAssignment.IsManualOverride = true;
+            shiftAssignment.OverrideReason = $"[KOREKSI MUNDUR - {req.ReasonCategory.Trim()}] {req.Notes.Trim()}";
+            shiftAssignment.AssignmentSource = "RetroactiveCorrection";
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Memicu sinyal event rekalkulasi kehadiran (INT-HR-36)
+            _logger.LogInformation("Event INT-HR-36: RetroactiveShiftCorrectedEvent dipicu untuk pegawai {WorkforceProfileId} pada tanggal {ShiftDate} ke shift {ShiftName}.",
+                shiftAssignment.WorkforceProfileId, shiftAssignment.ShiftDate, newShift.ShiftName);
+
+            var response = new RetroactiveShiftCorrectionResponse
+            {
+                ShiftAssignmentId = shiftAssignment.Id,
+                IsRetroactive = daysBack > 0,
+                DaysBack = daysBack > 0 ? daysBack : 0,
+                AttendanceReevaluationTriggered = true,
+                Message = $"Jadwal shift tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} berhasil dikoreksi ke '{newShift.ShiftName}' dan evaluasi ulang absensi otomatis dijalankan (INT-HR-36)."
+            };
+
+            return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Ok(
+                response,
+                response.Message);
         }
     }
 }

@@ -2015,3 +2015,88 @@ Bagian ini mendokumentasikan spesifikasi antarmuka pengguna frontend untuk **Sli
 * **`MedicalCertificateUploadModal`:** Formulir upload berkas PDF/JPG surat keterangan dokter resmi berstempel dan ber-SIP, dengan pratinjau dokumen terbatas hak akses.
 * **`LeaveRecallInitiationModal`:** Modal darurat pemanggilan staf cuti dengan kalkulasi otomatis pemulihan sisa hari cuti (*restored days calculation*).
 * **`LeaveBalanceAdjustmentModal`:** Modal khusus HR Manager untuk menambah/mengurangi saldo cuti staf secara resmi dengan input nomor dokumen audit dan alasan operasional tertulis.
+
+
+---
+
+## 18. Bagian `S-B3` — Arsitektur Frontend Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Bagian ini mendefinisikan rancangan arsitektur antarmuka pengguna (UI/UX) untuk **Sub-modul 09. Overtime Management (Slice `S-B3`)**, menggunakan standar Next.js App Router, React Context, Redux Toolkit, Axios Client, dan Design System Quilvian.
+
+### 18.1 Peta Menu & Navigasi Antarmuka
+
+| ID Layar | Judul Layar | Rute Halaman (Next.js) | Tipe Layar | Hak Akses (Permission Guard) | Peran Pengguna Utama |
+| --- | --- | --- | :---: | --- | --- |
+| `FE-HRD-156` | Pengajuan SPKL & Klaim Cito Mandiri | `/hr/self-service/overtime` | Halaman Mandiri (ESS) | `[AccessPermission("OvertimeRequest", "ViewSelf")]` | Seluruh Staf Medis & Non-Medis |
+| `FE-HRD-157` | Kotak Masuk Persetujuan Lembur Ruangan | `/hr/overtime/approvals` | Halaman Approval | `[AccessPermission("OvertimeApproval", "View")]` | Kepala Ruangan, Kepala Instalasi |
+| `FE-HRD-158` | Pusat Verifikasi Presensi & Discrepancy HR | `/hr/overtime/verifications` | Halaman Administrasi HR | `[AccessPermission("OvertimeVerification", "Manage")]` | HR Officer, HR Overtime Admin |
+| `FE-HRD-159` | Monitoring Saldo Cuti Pengganti (CTO) | `/hr/overtime/compensatory-leave` | Halaman Tata Kelola Saldo | `[AccessPermission("OvertimeCompensatoryLeave", "View")]` | Staf RS, HR Leave Admin |
+| `FE-HRD-159-A` | Kotak Masuk Eskalasi Darurat Direktur Medis | `/hr/overtime/medical-director-inbox` | Halaman Approval Eksekutif | `[AccessPermission("OvertimeApproval", "MedicalDirectorApprove")]` | Direktur Pelayanan Medik |
+| `FE-HRD-160` | Penutupan Periode & Rekonsiliasi Payroll | `/hr/overtime/reconciliations` | Halaman Rekonsiliasi Finansial | `[AccessPermission("OvertimePeriod", "Manage")]` | HR Payroll Officer, HR Manager |
+| `FE-HRD-161` | Pengaturan Kebijakan & Kuota Lembur | `/hr/overtime/settings` | Halaman Konfigurasi Master | `[AccessPermission("OvertimeSetting", "Manage")]` | HR Director, System Administrator |
+
+---
+
+### 18.2 Skema Fitur per Layar & Komponen UI
+
+#### 18.2.1 Layar `FE-HRD-156` — Pengajuan SPKL & Klaim Cito Mandiri (`/hr/self-service/overtime`)
+* **Tujuan:** Antarmuka bagi pegawai/nakes untuk mengajukan SPKL pra-dinas terencana (H-1) atau melaporkan klaim darurat medis pasca-dinas cito (H+1) (`HRD-DEC-116`).
+* **Wilayah Layar:**
+  1. *Banner Informasi Kuota Mingguan:* Menampilkan ringkasan jam lembur terpakai minggu ini (misal: "8 dari maksimal 18 jam reguler") berdasar PP 35/2021.
+  2. *Tombol Aksi Utama:*
+     * Tombol **+ Ajukan SPKL Terencana (Pra-Dinas)**: Membuka formulir pengajuan H-1.
+     * Tombol **+ Lapor Lembur Darurat Medis (Pasca-Dinas Cito)**: Membuka formulir pelaporan tindakan cito medis H+1.
+  3. *Tabel Riwayat Permohonan Lembur Pribadi:* Nomor SPKL, Kategori (`Planned` / `EmergencyCito`), Tanggal, Jam Mulai-Selesai, Durasi Klaim, Durasi Terverifikasi Mesin, Opsi Kompensasi (`Uang Lembur` / `CTO`), Status (`Draft`, `WaitingApproval`, `AutoVerified`, `FlaggedDiscrepancy`, `ApprovedForPayroll`), dan Tombol Aksi Detail.
+  4. *Modal Input Dual-Mode SPKL:*
+     * Tab 1: **Lembur Terencana (Pra-Dinas):** Pemilihan tanggal masa depan, estimasi jam dinas, pemilihan bentuk kompensasi (Uang Lembur / CTO), uraian tugas terencana.
+     * Tab 2: **Lembur Darurat Cito (Pasca-Dinas):** Tanggal kerja kemarin/hari ini, jam aktual selesai, input wajib Nomor Rekam Medis Pasien / Nomor Insiden Darurat, serta deskripsi tindakan medis cito (`HRD-DEC-116`).
+
+#### 18.2.2 Layar `FE-HRD-157` — Kotak Masuk Persetujuan Lembur Ruangan (`/hr/overtime/approvals`)
+* **Tujuan:** Layar bagi Kepala Ruangan/Kepala Unit untuk memvalidasi urgensi riil pelayanan lembur staf unitnya dengan perlindungan pemblokiran persetujuan diri sendiri (`HRD-DEC-120`).
+* **Wilayah Layar:**
+  1. *Filter Cepat:* Filter Kategori (`Planned` vs `Cito Darurat`), Filter Status, dan Pencarian Staf.
+  2. *Tabel Antrean Persetujuan:* NIP, Nama Staf, Profesi, Tanggal Lembur, Jam Dinas, Durasi, Kategori Lembur, Nomor Rekam Medis (jika cito), Akumulasi Jam Minggu Ini, dan Opsi Aksi.
+  3. *Panel Perlindungan Anti-Self-Approval:* Jika terdapat pengajuan lembur atas nama diri Kepala Ruangan sendiri, baris ditandai badge *Self-Request* dan tombol persetujuan dinonaktifkan dengan tulisan: *"Pengajuan dialihkan ke Kepala Instalasi / Atasan Hierarkis"* (`HRD-DEC-120`).
+  4. *Aksi Persetujuan:* Tombol **Setujui Lembur**, Tombol **Minta Koreksi Jam**, dan Tombol **Tolak Pengajuan** disertai catatan alasan wajib.
+
+#### 18.2.3 Layar `FE-HRD-158` — Pusat Verifikasi Presensi & Discrepancy HR (`/hr/overtime/verifications`)
+* **Tujuan:** Antarmuka bagi HR Officer untuk meninjau kecocokan data klaim lembur terhadap mesin biometrik presensi harian (07), menerapkan aturan durasi terkecil, dan menyelesaikan anomali *discrepancy* (`HRD-DEC-119`).
+* **Wilayah Layar:**
+  1. *Kartu Metrik Verifikasi:* Total SPKL Disetujui, Terverifikasi Otomatis Biometrik (*AutoVerified*), Anomali Selisih Waktu (*DurationMismatch*), dan Anomali Lupa Tap Biometrik (*MissingBiometric*).
+  2. *Tabel Komparasi Silang Presensi:* NIP, Nama Pegawai, Tanggal, Durasi SPKL (Klaim), Jam Tap Masuk-Keluar Mesin, Durasi Kelebihan Fisik Biometrik, Durasi Sah Dibayar (*Min-Duration*), Status Verifikasi, dan Indikator Discrepancy.
+  3. *Drawer Investigasi Anomali Biometrik:* Menampilkan detail perbandingan menit demi menit antara permohonan staf dan log mentah mesin absensi. Memfasilitasi HR mengunggah lampiran *scan logbook dinas ruangan* fisik dan menentukan durasi sah akhir (*Manual Adjustment*).
+
+#### 18.2.4 Layar `FE-HRD-159` — Monitoring Saldo Cuti Pengganti (CTO) (`/hr/overtime/compensatory-leave`)
+* **Tujuan:** Mengelola hak hari libur pengganti (*Compensatory Time Off*) pegawai pelaksana yang memilih kompensasi non-finansial (`HRD-DEC-118`).
+* **Wilayah Layar:**
+  1. *Widget Ringkasan Saldo CTO:* Total Jam CTO Aktif RS, Total Hari CTO Diterbitkan, Total Jam Hangus (Kedaluwarsa 90 Hari).
+  2. *Tabel Rincian Saldo CTO Staf:* NIP, Nama Pegawai, Unit Kerja, Nomor SPKL Rujukan, Tanggal Terbit, Jam Diberikan, Sisa Jam Aktif, Tanggal Kedaluwarsa (H+90 Hari), dan Status (`Active`, `FullyUsed`, `Expired`).
+  3. *Tombol Eksekusi Scheduler Hangus:* Menampilkan daftar saldo yang telah melewati 90 hari kalender untuk diproses hangus (*Forfeiture Runner*) berdasar `HRD-ASM-25`.
+
+#### 18.2.5 Layar `FE-HRD-159-A` — Kotak Masuk Eskalasi Darurat Direktur Medis (`/hr/overtime/medical-director-inbox`)
+* **Tujuan:** Layar khusus bagi Direktur Pelayanan Medik untuk meninjau dan memberikan otorisasi darurat tingkat tinggi atas klaim cito medis yang melampaui kuota baku PP 35/2021 (`HRD-DEC-117`).
+* **Wilayah Layar:**
+  1. *Peringatan Kelelahan Klinis (Fatigue Risk Indicator):* Menampilkan akumulasi jam dinas nakes selama 7 hari terakhir beserta indeks potensi risiko kelelahan nakes.
+  2. *Detail Kasus Darurat:* Nomor Rekam Medis Pasien, Ringkasan Tindakan Pembedahan / Resusitasi Cito, Jam Lembur yang Melampaui Kuota, dan Catatan Kepala Ruangan.
+  3. *Aksi Direktur:* Tombol **Beri Otorisasi Darurat Penyelamatan Nyawa** (dengan rekomendasi jadwal istirahat pengganti) atau Tombol **Tolak Eskalasi Kuota**.
+
+#### 18.2.6 Layar `FE-HRD-160` — Penutupan Periode & Rekonsiliasi Payroll (`/hr/overtime/reconciliations`)
+* **Tujuan:** Mengunci berkas lembur bulanan pada tanggal cut-off (tgl 20), memilah SPKL siap bayar, mengelola klaim pending untuk rekonsiliasi retrospektif, dan menyerahkan paket data ke Payroll Sub-modul 10 (`HRD-DEC-121`).
+* **Wilayah Layar:**
+  1. *Status Periode:* Periode Berjalan (misal November 2026), Tanggal Cut-Off (20 Nov 2026), Status Kunci (`Open`, `CutoffLocked`, `Closed`).
+  2. *Tabel SPKL Siap Handoff:* Daftar lembur terverifikasi bersih, nominal pengali jam lembur (1.5x / 2x), total jam dibayar, dan total hak CTO yang telah diposting.
+  3. *Tabel SPKL Pending (Retrospektif):* Pengajuan yang masih dalam status investigasi discrepancy saat cut-off tiba. Diberi badge transparan: *"Ditahan sementara; otomatis direkonsiliasi pada payroll Desember 2026 begitu disetujui"*.
+  4. *Tabel Rapel Retrospektif Periode Lalu:* Menampilkan klaim periode Oktober yang baru selesai diverifikasi setelah cut-off lalu, yang otomatis disertakan pada pembayaran gaji bulan ini.
+  5. *Tombol Kunci & Handoff:* Tombol **Kunci Snapshot Periode (Immutable)** dan **Eksekusi Serah Terima ke Payroll**.
+
+#### 18.2.7 Layar `FE-HRD-161` — Pengaturan Kebijakan & Kuota Lembur (`/hr/overtime/settings`)
+* **Tujuan:** Konfigurasi parameter operasional lembur rumah sakit (kuota jam harian/mingguan reguler, rumus pengali tarif, toleransi discrepancy mesin, masa berlaku saldo CTO).
+
+---
+
+### 18.3 Komponen Modal & Drawer Pendukung
+
+* **`OvertimeDualModeFormModal`:** Formulir terpadu yang dapat beralih antara mode *Planned Pre-Overtime* dan *Emergency Cito Post-Claim*.
+* **`BiometricDiscrepancyInvestigationDrawer`:** Drawer sisi kanan untuk meneliti log mentah mesin absensi vs jadwal form lembur staf, dilengkapi form unggah berkas logbook fisik unit.
+* **`MedicalDirectorEscalationModal`:** Modal verifikasi darurat penyelamatan nyawa pasien dengan peringatan kelelahan klinis nakes.
+* **`CtoConversionConfirmationModal`:** Dialog konfirmasi bagi staf saat memilih kompensasi cuti pengganti dengan peringatan masa kedaluwarsa 90 hari kalender.

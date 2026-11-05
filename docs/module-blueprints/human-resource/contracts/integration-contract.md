@@ -638,3 +638,102 @@ Bagian ini mendokumentasikan batas integrasi teknis, kontrak antarmuka (*interfa
 #### 9.2.4 `INT-HR-48`: Serah Terima Rekonsiliasi Retrospektif ke Payroll
 * **Konteks:** Menjaga hak penghasilan staf dan akurasi keuangan RS atas cuti yang disetujui terlambat pasca closing payroll.
 * **Kontrak Data:** Objek snapshot `LeavePayrollReconciliationBatchDto` berisi daftar cuti bulan lampau yang disetujui setelah cut-off, jumlah hari pemotongan/tunjangan yang disesuaikan, dan nomor dokumen rujukan.
+
+
+---
+
+## 10. Bagian `S-B3` — Kontrak Integrasi Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Bagian ini mendefinisikan antarmuka pertukaran data, event domain sinkron/asinkron, struktur payload, serta penanganan kegagalan (*fallback strategy*) untuk **Slice `S-B3` — Administrasi Lembur Pegawai Rumah Sakit**.
+
+### 10.1 Ringkasan Peta Integrasi
+
+| ID Integrasi | Arah Integrasi | Target Modul / Komponen | Protokol / Pola | Frekuensi | Keterangan Fungsional |
+| :--- | :---: | :--- | :---: | :---: | :--- |
+| `INT-HR-49` | Outbound | Sub-modul 08 Leave Management | Domain Event (Asinkron) | Per Event Approval | Kredit saldo cuti pengganti (CTO) ke `TrxLeaveBalanceLedger` |
+| `INT-HR-50` | Inbound | Sub-modul 07 Attendance Management | Direct Service Call (C#) | Realtime saat verifikasi | Kueri log jam tap biometrik aktual mesin absensi |
+| `INT-HR-51` | Inbound | Sub-modul 06 Scheduling Management | Event / Service Query | Realtime saat submit | Validasi jam kerja reguler & aktivasi lembur tugas on-call medis |
+| `INT-HR-52` | Outbound | Sub-modul 10 Payroll Management | Snapshot Transfer (REST/DTO) | Bulanan (Cut-off tgl 20) | Serah terima data lembur terverifikasi & rapel retrospektif |
+
+---
+
+### 10.2 Rincian Kontrak Integrasi
+
+#### 10.2.1 `INT-HR-49`: Kredit Saldo Cuti Pengganti (CTO) ke Buku Besar Cuti (08)
+* **Konteks:** Menyalurkan hak libur pengganti atas lembur yang disetujui opsi CTO ke buku besar saldo cuti pegawai (`HRD-DEC-118`).
+* **Payload Event:**
+  ```json
+  {
+    "eventId": "EVT-CTO-GRANT-20261114-0042",
+    "eventType": "CompensatoryTimeOffGrantedEvent",
+    "workforceProfileId": "e3b0c442-98fc-1c14-9af3-4c5678901234",
+    "overtimeRealizationId": "f7a8b9c0-1234-5678-9abc-def012345678",
+    "leaveTypeCode": "CTO",
+    "grantedHours": 8.0,
+    "grantedDays": 1.0,
+    "effectiveDate": "2026-11-15",
+    "expiryDate": "2027-02-13",
+    "referenceDocNumber": "OTR/2026/11/0142",
+    "timestamp": "2026-11-14T20:45:00Z"
+  }
+  ```
+* **Tindakan Target:** Modul 08 menerima event ini dan memposting mutasi kredit baru pada `TrxLeaveBalanceLedger` bertipe `CompensatoryTimeOffGrant` dengan penanda kedaluwarsa 90 hari kalender.
+
+#### 10.2.2 `INT-HR-50`: Kueri Log Presensi Biometrik Aktual dari Sub-Modul 07
+* **Konteks:** Memverifikasi kesesuaian waktu dinas lembur fisik terhadap mesin absensi (`HRD-DEC-119`).
+* **Kontrak Antarmuka:**
+  ```csharp
+  public interface IAttendanceBiometricQueryService
+  {
+      Task<AttendanceDailyBiometricLogDto> GetBiometricLogForDateAsync(
+          Guid workforceProfileId, 
+          DateTime targetDate, 
+          CancellationToken ct = default
+      );
+  }
+  ```
+* **Struktur Kembalian (`AttendanceDailyBiometricLogDto`):**
+  - `bool HasBiometricTap`: Menandakan apakah ada catatan fisik tap masuk/keluar.
+  - `DateTime? ActualCheckIn`: Jam tap masuk mesin presensi.
+  - `DateTime? ActualCheckOut`: Jam tap keluar mesin presensi.
+  - `int TotalPhysicalExcessMinutes`: Selisih kelebihan waktu kerja di luar shift reguler.
+* **Penanganan Kegagalan (Fallback):** Bila service presensi 07 mengalami downtime, sistem menandai klaim dengan status `PendingBiometricRetry` dan menjadwalkan ulang kueri melalui background scheduler tanpa memblokir input klaim staf.
+
+#### 10.2.3 `INT-HR-51`: Validasi Jadwal Roster & Aktivasi Tugas On-Call Medis
+* **Konteks:** Memastikan lembur tidak bertabrakan dengan shift reguler di modul 06 serta mengotomasi klaim lembur darurat cito bagi dokter/nakes jaga on-call yang dipanggil bertugas aktif ke RS (`HRD-ASM-24`).
+* **Kontrak Data:** Kueri status penugasan shift pada jam pelaksanaan lembur. Jika staf sedang dalam status siaga `OnCallActiveDuty`, sistem secara otomatis mengizinkan pembukaan klaim lembur pasca-dinas cito tanpa memerlukan form SPKL pra-dinas.
+
+#### 10.2.4 `INT-HR-52`: Serah Terima Rekonsiliasi Lembur & Rapel Retrospektif ke Payroll (10)
+* **Konteks:** Menyerahkan paket data lembur bulanan yang telah dikunci snapshot immutable pada cut-off tgl 20 serta rapel retrospektif periode lalu ke modul penggajian (`HRD-DEC-121`).
+* **Kontrak Data Snapshot:**
+  ```json
+  {
+    "periodYear": 2026,
+    "periodMonth": 11,
+    "cutoffDate": "2026-11-20",
+    "totalPayableHours": 1420.5,
+    "totalPayableEmployees": 84,
+    "currentMonthItems": [
+      {
+        "workforceProfileId": "e3b0c442-98fc-1c14-9af3-4c5678901234",
+        "overtimeRealizationId": "f7a8b9c0-1234-5678-9abc-def012345678",
+        "workDate": "2026-11-12",
+        "payableHoursTier1": 1.0,
+        "payableHoursTier2": 2.5,
+        "isHolidayRate": false
+      }
+    ],
+    "retrospectiveAdjustmentItems": [
+      {
+        "workforceProfileId": "b1c2d3e4-5678-90ab-cdef-1234567890ab",
+        "originalPeriodYear": 2026,
+        "originalPeriodMonth": 10,
+        "overtimeRealizationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "payableHoursTier1": 1.0,
+        "payableHoursTier2": 1.5,
+        "adjustmentReason": "Late Approval Discrepancy Resolved"
+      }
+    ]
+  }
+  ```
+* **Penanganan Kegagalan:** Serah terima bersifat atomik dua arah. Jika modul Payroll belum siap menerima, status periode tetap `CutoffLocked` dan proses transfer dapat dicoba ulang tanpa mengubah isi data lembur yang terkunci.
