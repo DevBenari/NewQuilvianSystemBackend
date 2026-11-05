@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 11
+roadmap_revision: 12
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
-planning_updated_at: "2026-11-05 — jejak S-B3 Administrasi Lembur Pegawai Rumah Sakit ditambahkan (bagian 1g): BE-HRD-131 s.d. BE-HRD-145, FE-HRD-116 s.d. FE-HRD-129; sebelumnya S-B2 (bagian 1f), S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
+planning_updated_at: "2026-11-05 — jejak S-B5 Pemrosesan Penggajian Pegawai Rumah Sakit ditambahkan (bagian 1h): BE-HRD-146 s.d. BE-HRD-160, FE-HRD-130 s.d. FE-HRD-143; sebelumnya S-B3 (bagian 1g), S-B2 (bagian 1f), S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
 generated_at: "2026-10-26"
 owners:
   - "Module Lead & Quality Assurance"
@@ -23,6 +23,7 @@ contract_versions_s_b4: "v10 — API bagian 16, State bagian 14, Validation bagi
 contract_versions_s_b1: "v11 — API bagian 17, State bagian 15, Validation bagian 16, Permission bagian 15, Integration bagian 8, Data Dictionary bagian 12, Acceptance Test bagian 19"
 contract_versions_s_b2: "v12 — API bagian 18, State bagian 16, Validation bagian 17, Permission bagian 16, Integration bagian 9, Data Dictionary bagian 13, Acceptance Test bagian 20"
 contract_versions_s_b3: "v13 — API bagian 19, State bagian 17, Validation bagian 18, Permission bagian 17, Integration bagian 10, Data Dictionary bagian 14, Acceptance Test bagian 21"
+contract_versions_s_b5: "v14 — API bagian 20, State bagian 18, Validation bagian 19, Permission bagian 18, Integration bagian 11, Data Dictionary bagian 15, Acceptance Test bagian 22"
 ```
 
 **Arti tanda status bukti:**
@@ -678,5 +679,61 @@ akan diperbarui oleh build skill saat task selesai.
 | Gap | Status | Catatan / Pemilik |
 | --- | :---: | --- |
 | Keterkaitan requirement ke bukti verifikasi S-B3 | **LENGKAP** (0 Gap) | Seluruh 25 functional requirement (`FR-OT-01` s.d. `FR-OT-25`) memiliki pemetaan task backend (`BE-HRD-131`..`145`), task frontend (`FE-HRD-116`..`129`), serta bukti verifikasi uji penerimaan (`AT-HRD-OT-01`..`20`, `UAT-OT-01`..`05`). |
+
+**Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah. Bukti verifikasi backend yang dipetakan adalah QBE preflight/conformance, review diff, `dotnet restore`/`dotnet build`, verifikasi kontrak API, dan verifikasi proses bisnis. Ketiadaan unit test backend **bukan** coverage gap.
+
+
+---
+
+### 1h. Traceability Slice `S-B5` — Pemrosesan Penggajian Pegawai Rumah Sakit (Sub-modul 10, Kontrak v14, 5 November 2026)
+
+Jejak ketertelusuran penuh antara 25 kebutuhan fungsional (`FR-PAY-01` s.d. `FR-PAY-25`), 6 keputusan bisnis (`HRD-DEC-122` s.d. `HRD-DEC-127`), 4 asumsi operasional (`HRD-ASM-27` s.d. `HRD-ASM-30`), 15 task backend (`BE-HRD-146` s.d. `BE-HRD-160`), 14 task frontend (`FE-HRD-130` s.d. `FE-HRD-143`), serta 20 skenario uji penerimaan (`AT-HRD-PAY-01` s.d. `AT-HRD-PAY-20`) dan 5 skenario UAT (`UAT-PAY-01` s.d. `UAT-PAY-05`).
+
+| Requirement ID | Deskripsi Singkat Kebutuhan | Dokumen Rujukan / Aturan | Task BE | Task FE | Bukti Verifikasi / Acceptance Test | Gap |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `FR-PAY-01` | Inisiasi siklus penggajian baru periode aktif pasca cut-off tgl 20 | BE A 23.8; `HRD-DEC-122` | `BE-HRD-149` | `FE-HRD-132`, `FE-HRD-133` | `AT-HRD-PAY-01`, `UAT-PAY-01` | |
+| `FR-PAY-02` | Validasi gerbang prasyarat penguncian waktu kerja Presensi (07), Cuti (08), Lembur (09) | BE A 23.8 (`PAY-B1`); `VR-PAY-02`; `HRD-DEC-122` | `BE-HRD-148` | `FE-HRD-133` | `AT-HRD-PAY-02`, `UAT-PAY-01` | |
+| `FR-PAY-03` | Snapshot beku parameter tarif master gaji & batas plafon saat inisiasi batch | BE A 23.8 (`PAY-W6`); `VR-PAY-03`; `HRD-DEC-122` | `BE-HRD-147`, `BE-HRD-149` | `FE-HRD-133`, `FE-HRD-142` | `AT-HRD-PAY-01` | |
+| `FR-PAY-04` | Perhitungan penghasilan tetap: gaji pokok, tunjangan jabatan, tunjangan profesi & risiko | BE A 23.8 (`PAY-B3`); `VR-PAY-04`; `HRD-DEC-123` | `BE-HRD-150` | `FE-HRD-134` | `AT-HRD-PAY-04`, `UAT-PAY-02` | |
+| `FR-PAY-05` | Penyerapan jam lembur resmi Sub-09 dan formula upah lembur PP 35/2021 | BE A 23.8 (`PAY-B4`); Integration A 11 (`INT-HR-52`); `HRD-DEC-123` | `BE-HRD-151` | `FE-HRD-134` | `AT-HRD-PAY-05`, `UAT-PAY-02` | |
+| `FR-PAY-06` | Penyerapan kehadiran dinas shift malam Sub-07 dan kalkulasi premi shift malam | BE A 23.8; Integration A 8 (`INT-HR-36`); `HRD-DEC-123`, `HRD-ASM-27` | `BE-HRD-151` | `FE-HRD-134` | `AT-HRD-PAY-06`, `UAT-PAY-02` | |
+| `FR-PAY-07` | Kalkulasi iuran BPJS Kesehatan (1% pegawai, 4% RS) berplafon upah resmi | BE A 23.8 (`PAY-W4`); `VR-PAY-08`; `HRD-DEC-123` | `BE-HRD-152` | `FE-HRD-134`, `FE-HRD-142` | `AT-HRD-PAY-07`, `UAT-PAY-02` | |
+| `FR-PAY-08` | Kalkulasi 4 program BPJS Ketenagakerjaan (JKK, JKM, JHT, JP berplafon) | BE A 23.8 (`PAY-W4`); `VR-PAY-09`, `VR-PAY-10`; `HRD-DEC-123` | `BE-HRD-152` | `FE-HRD-134`, `FE-HRD-142` | `AT-HRD-PAY-08`, `UAT-PAY-02` | |
+| `FR-PAY-09` | Pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER A/B/C) PMK 168/2023 | BE A 23.8; Integration A 11.4 (`INT-HR-56`); `HRD-DEC-123`, `HRD-ASM-28` | `BE-HRD-153` | `FE-HRD-134` | `AT-HRD-PAY-09`, `UAT-PAY-02` | |
+| `FR-PAY-10` | Penyerapan potongan angsuran pinjaman koperasi & restitusi Sub-11 | BE A 23.8; Integration A 11.3 (`INT-HR-55`); `HRD-DEC-123` | `BE-HRD-154` | `FE-HRD-134` | `AT-HRD-PAY-10`, `UAT-PAY-02` | |
+| `FR-PAY-11` | Penyerapan penyesuaian retrospektif / rapel selisih lembur periode lampau | BE A 23.8; `HRD-DEC-123` | `BE-HRD-151` | `FE-HRD-134` | `AT-HRD-PAY-11`, `UAT-PAY-02` | |
+| `FR-PAY-12` | Evaluasi variansi deviasi take-home pay >= 20% atau nominal >= Rp 2.000.000 | BE A 23.8 (`PAY-W1`, `PAY-W2`); `VR-PAY-13`; `HRD-DEC-124`, `HRD-ASM-29` | `BE-HRD-155` | `FE-HRD-134`, `FE-HRD-135` | `AT-HRD-PAY-12`, `UAT-PAY-03` | |
+| `FR-PAY-13` | Otomasi pembentukan tiket Variance Alert berstatus PendingJustification | BE A 23.8; `HRD-DEC-124` | `BE-HRD-155` | `FE-HRD-135` | `AT-HRD-PAY-12`, `UAT-PAY-03` | |
+| `FR-PAY-14` | Pengisian justifikasi audit investigasi variansi oleh Officer (min 20 karakter) | BE A 23.8; `VR-PAY-15`; `HRD-DEC-124` | `BE-HRD-156` | `FE-HRD-135` | `AT-HRD-PAY-14`, `UAT-PAY-03` | |
+| `FR-PAY-15` | Pemblokiran submit batch penggajian jika terdapat variansi anomali pending | BE A 23.8 (`PAY-B5`); `VR-PAY-14`; `HRD-DEC-124` | `BE-HRD-156` | `FE-HRD-135` | `AT-HRD-PAY-13`, `UAT-PAY-03` | |
+| `FR-PAY-16` | Otorisasi Tier 1 oleh Payroll Officer mengalihkan status ke WaitingHrReview | BE A 23.8; `VR-PAY-16`; `HRD-DEC-125` | `BE-HRD-157` | `FE-HRD-137`, `FE-HRD-138` | `AT-HRD-PAY-15`, `UAT-PAY-04` | |
+| `FR-PAY-17` | Pemblokiran persetujuan diri sendiri (Anti-Self-Approval) bagi HR Manager | BE A 23.8 (`PAY-B6`); `VR-PAY-17`; `HRD-DEC-125` | `BE-HRD-157` | `FE-HRD-137`, `FE-HRD-138` | `AT-HRD-PAY-16`, `UAT-PAY-04` | |
+| `FR-PAY-18` | Otorisasi Tier 3 oleh Direktur SDM/Keuangan & penguncian batch permanen | BE A 23.8; `VR-PAY-20`; `HRD-DEC-125` | `BE-HRD-157` | `FE-HRD-137`, `FE-HRD-138` | `AT-HRD-PAY-17`, `UAT-PAY-04` | |
+| `FR-PAY-19` | Rekapitulasi eksekutif biaya gaji per unit kerja dan kelompok tenaga medis | FE A 19.2.1; `HRD-DEC-125` | `BE-HRD-157` | `FE-HRD-138` | `AT-HRD-PAY-17`, `UAT-PAY-04` | |
+| `FR-PAY-20` | Pembangkitan paket serah terima Finance berintegritas Checksum SHA-256 | BE A 23.8 (`PAY-B7`); Integration A 11.1 (`INT-HR-53`); `HRD-DEC-126` | `BE-HRD-158` | `FE-HRD-139`, `FE-HRD-140` | `AT-HRD-PAY-18`, `UAT-PAY-05` | |
+| `FR-PAY-21` | Transmisi asinkron paket serah terima ke Modul Finance dengan retry policy | BE A 23.8; Integration A 11.1 (`INT-HR-53`); `HRD-DEC-126` | `BE-HRD-158` | `FE-HRD-139`, `FE-HRD-140` | `AT-HRD-PAY-18`, `UAT-PAY-05` | |
+| `FR-PAY-22` | Penerimaan webhook callback penolakan Finance & rollback status terkendali | BE A 23.8; Integration A 11.2 (`INT-HR-54`); `HRD-DEC-126` | `BE-HRD-159` | `FE-HRD-140` | `AT-HRD-PAY-19`, `UAT-PAY-05` | |
+| `FR-PAY-23` | Otomasi pelepasan slip gaji digital ESS berstatus Released per tgl 25 | BE A 23.8 (`PAY-B8`); `VR-PAY-23`; `HRD-DEC-127` | `BE-HRD-159` | `FE-HRD-141` | `AT-HRD-PAY-20`, `UAT-PAY-05` | |
+| `FR-PAY-24` | Proteksi keamanan slip gaji ESS via PIN 6-digit & lockout 30 menit (3x salah) | BE A 23.8; `VR-PAY-22`; `HRD-DEC-127`, `HRD-ASM-30` | `BE-HRD-159` | `FE-HRD-141` | `AT-HRD-PAY-20`, `UAT-PAY-05` | |
+| `FR-PAY-25` | Unduh berkas PDF slip gaji ber-password terenkripsi dan watermark resmi RS | BE A 23.8; `VR-PAY-24`; `HRD-DEC-127` | `BE-HRD-159` | `FE-HRD-141` | `AT-HRD-PAY-20`, `UAT-PAY-05` | |
+
+#### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-PAY-01` s.d. `AT-HRD-PAY-03` | `BE-HRD-146`..`149`, `FE-HRD-130`..`133` | Inisiasi batch, precondition gate check tgl 20, freeze parameter snapshot, dan penolakan batch duplikat |
+| `AT-HRD-PAY-04` s.d. `AT-HRD-PAY-06` | `BE-HRD-150`, `BE-HRD-151`, `FE-HRD-134` | Kalkulasi gaji pokok, tunjangan fungsional profesi, uang lembur PP 35, dan premi shift malam presensi Sub-07 |
+| `AT-HRD-PAY-07` s.d. `AT-HRD-PAY-11` | `BE-HRD-152`..`154`, `FE-HRD-134` | Plafon BPJS Kesehatan, BPJS Ketenagakerjaan JP, PPh 21 TER PMK 168/2023, potongan pinjaman Sub-11, dan rapel retrospektif |
+| `AT-HRD-PAY-12` s.d. `AT-HRD-PAY-14` | `BE-HRD-155`, `BE-HRD-156`, `FE-HRD-135` | Deteksi anomali variansi >= 20% / Rp 2jt, tiket alert pending, penolakan karakter < 20, dan resolusi justifikasi audit |
+| `AT-HRD-PAY-15` s.d. `AT-HRD-PAY-17` | `BE-HRD-156`, `BE-HRD-157`, `FE-HRD-137`, `FE-HRD-138` | Alur otorisasi 3-jenjang, anti-self-approval HR Manager, otorisasi final Direksi, dan penguncian permanen batch |
+| `AT-HRD-PAY-18`, `AT-HRD-PAY-19` | `BE-HRD-158`, `BE-HRD-159`, `FE-HRD-139`, `FE-HRD-140` | Pembentukan paket handoff Finance ber-checksum SHA-256, callback penolakan Finance & rollback terkendali |
+| `AT-HRD-PAY-20` | `BE-HRD-159`, `FE-HRD-141` | Pelepasan slip gaji digital ESS tgl 25, verifikasi PIN sekunder 6-digit, lockout 30 menit, dan unduh PDF ber-password |
+| `UAT-PAY-01` s.d. `UAT-PAY-05` | `BE-HRD-160`, `FE-HRD-143` | Pengujian bisnis ujung-ke-ujung alur inisiasi, kalkulasi komparasi, investigasi variansi, otorisasi 3-jenjang, dan handoff ESS |
+
+#### Gap keterkaitan requirement ke bukti verifikasi
+
+| Gap | Status | Catatan / Pemilik |
+| --- | :---: | --- |
+| Keterkaitan requirement ke bukti verifikasi S-B5 | **LENGKAP** (0 Gap) | Seluruh 25 functional requirement (`FR-PAY-01` s.d. `FR-PAY-25`) memiliki pemetaan task backend (`BE-HRD-146`..`160`), task frontend (`FE-HRD-130`..`143`), serta bukti verifikasi uji penerimaan (`AT-HRD-PAY-01`..`20`, `UAT-PAY-01`..`05`). |
 
 **Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah. Bukti verifikasi backend yang dipetakan adalah QBE preflight/conformance, review diff, `dotnet restore`/`dotnet build`, verifikasi kontrak API, dan verifikasi proses bisnis. Ketiadaan unit test backend **bukan** coverage gap.

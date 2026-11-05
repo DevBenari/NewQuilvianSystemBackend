@@ -2100,3 +2100,79 @@ Bagian ini mendefinisikan rancangan arsitektur antarmuka pengguna (UI/UX) untuk 
 * **`BiometricDiscrepancyInvestigationDrawer`:** Drawer sisi kanan untuk meneliti log mentah mesin absensi vs jadwal form lembur staf, dilengkapi form unggah berkas logbook fisik unit.
 * **`MedicalDirectorEscalationModal`:** Modal verifikasi darurat penyelamatan nyawa pasien dengan peringatan kelelahan klinis nakes.
 * **`CtoConversionConfirmationModal`:** Dialog konfirmasi bagi staf saat memilih kompensasi cuti pengganti dengan peringatan masa kedaluwarsa 90 hari kalender.
+
+---
+
+## 19. Bagian `S-B5` — Arsitektur Frontend Penggajian Pegawai Rumah Sakit (Sub-modul 10, `last_changed_in` `v14`, 5 November 2026)
+
+Bagian ini mendefinisikan arsitektur antarmuka pengguna (UI/UX) untuk **Sub-modul 10. Payroll Management (Slice `S-B5`)**, menggunakan standar Next.js App Router, React Context, Redux Toolkit, Axios Client, dan Design System Quilvian.
+
+### 19.1 Peta Menu & Navigasi Antarmuka
+
+| ID Layar | Judul Layar | Rute Halaman (Next.js) | Tipe Layar | Hak Akses (Permission Guard) | Peran Pengguna Utama |
+| :--- | :--- | :--- | :---: | :--- | :--- |
+| `FE-HRD-162` | Dasbor Siklus & Pelaksanaan Payroll | `/hr/payroll/runs` | Halaman Penggajian | `[AccessPermission("PayrollRun", "View")]` | Payroll Officer, HR Manager |
+| `FE-HRD-163` | Lembar Kerja Detail Perhitungan & Variansi Gaji | `/hr/payroll/runs/[id]/worksheet` | Lembar Kerja Detail | `[AccessPermission("PayrollCalculation", "Execute")]` | Payroll Officer |
+| `FE-HRD-164` | Kotak Masuk Approval Payroll Berjenjang | `/hr/payroll/approvals` | Halaman Approval SoD | `[AccessPermission("PayrollApproval", "Review")]` | HR Manager, Direktur SDM/Keuangan |
+| `FE-HRD-165` | Dasbor Serah Terima & Rekonsiliasi Finance | `/hr/payroll/finance-handoff` | Halaman Integrasi Handoff | `[AccessPermission("PayrollHandoff", "Dispatch")]` | HR Payroll Officer, Finance Liaison |
+| `FE-HRD-166` | Portal Slip Gaji Mandiri Pegawai ESS | `/hr/self-service/payslips` | Halaman Mandiri (ESS) | `[AccessPermission("SelfServicePayroll", "View")]` | Seluruh Staf Rumah Sakit |
+| `FE-HRD-167` | Pengaturan Kebijakan & Formula Penggajian RS | `/hr/payroll/settings` | Halaman Konfigurasi Master | `[AccessPermission("PayrollSetting", "View")]` | HR Director, System Administrator |
+
+---
+
+### 19.2 Skema Fitur per Layar & Komponen UI
+
+#### 19.2.1 Layar `FE-HRD-162` — Dasbor Siklus & Pelaksanaan Payroll (`/hr/payroll/runs`)
+* **Tujuan:** Pusat kendali siklus penggajian bulanan bagi Petugas Payroll untuk membuka periode, memantau prasyarat penutupan waktu kerja (Presensi, Cuti, Lembur per tgl 20), dan memantau status pemrosesan (`HRD-DEC-122`).
+* **Wilayah Layar:**
+  1. *Banner Prasyarat Waktu Kerja:* Indikator visual status penutupan Sub-modul 07, 08, dan 09. Jika masih ada SPKL lembur atau izin cuti berstatus *Draft/Pending*, tombol *Inisiasi Periode Baru* dinonaktifkan dengan daftar transaksi gantung.
+  2. *Kartu Metrik Periode Berjalan:* Status Siklus (`Draft`, `Calculating`, `UnderReview`, `WaitingFinalApproval`, `HandoffReady`, `Closed`), Total Pegawai Terproses, Estimasi Total Beban Gaji Kotor (*Gross Pay*), dan Total Potongan Pajak PPh 21 TER / BPJS.
+  3. *Tabel Riwayat Periode Penggajian:* Daftar siklus penggajian dengan filter tahun dan status, dilengkapi tombol navigasi ke lembar kerja detail.
+  4. *Tombol Aksi Utama:* Tombol **Inisiasi Siklus Penggajian Baru** (membuka modal pembentukan run) dan **Batalkan Draf Run**.
+
+#### 19.2.2 Layar `FE-HRD-163` — Lembar Kerja Detail Perhitungan & Variansi Gaji (`/hr/payroll/runs/[id]/worksheet`)
+* **Tujuan:** Lembar kerja audit individual pegawai bagi Petugas Payroll untuk mengeksekusi perhitungan, memeriksa rincian pendapatan/potongan, serta menindaklanjuti peringatan deviasi anomali gaji (`HRD-DEC-123`, `HRD-DEC-124`).
+* **Wilayah Layar:**
+  1. *Header Ringkasan Run:* Nomor Referensi Run, Periode Penggajian, Tanggal Cut-off (tgl 20), dan Status Verifikasi.
+  2. *Filter Cepat Variansi:* Tab filter: Seluruh Pegawai, Bertanda Variansi (`VarianceAlert` $\ge 20\%$), Belum Terjustifikasi, dan Normal.
+  3. *Tabel Matriks Gaji Individual:* Kolom NIK, Nama Staf, Unit Kerja, Gaji Pokok, Tunjangan Medis, Lembur Terverifikasi, Premi Shift Malam, Potongan PPh 21 TER, Potongan BPJS, Potongan Pinjaman, Gaji Bersih (*Net Pay*), Persentase Deviasi vs Bulan Lalu, dan Status Variansi.
+  4. *Aksi Baris Pegawai:* Tombol **Rincian Komponen** (membuka modal breakdown formula) dan **Isi Justifikasi Variansi** (membuka drawer justifikasi).
+  5. *Tombol Validasi Gerbang:* Tombol **Kirim untuk Tinjauan Manajer (Submit for Review)** — otomatis terkunci bila masih ada *VarianceAlert* tanpa catatan penjelasan tertulis (`VR-PAY-07`).
+
+#### 19.2.3 Layar `FE-HRD-164` — Kotak Masuk Approval Payroll Berjenjang (`/hr/payroll/approvals`)
+* **Tujuan:** Antarmuka persetujuan berjenjang dengan pemisahan tugas ketat (*3-Tier Segregation of Duties*) bagi HR Manager dan Direktur SDM/Keuangan (`HRD-DEC-125`).
+* **Wilayah Layar:**
+  1. *Indikator Jenjang Otorisasi:* Rantai visual proses: Tahap 1 (Payroll Officer Selesai) $	o$ Tahap 2 (HR Manager Review) $	o$ Tahap 3 (Direktur Final Lock).
+  2. *Panel Audit Sampling Variansi:* Menampilkan daftar ringkas pegawai yang memiliki deviasi gaji $\ge 20\%$ beserta catatan penjelasan yang diisi oleh Petugas Payroll.
+  3. *Rangkuman Komponen Agregat Rumah Sakit:* Rekapitulasi total gaji pokok, total biaya lembur IGD/OK, total insentif shift, dan total potongan pajak per unit pelayanan.
+  4. *Proteksi Anti-Self-Approval:* Sistem menonaktifkan tombol persetujuan bila approver yang login memiliki ID yang sama dengan pembuat/penghitung payroll run.
+  5. *Tombol Aksi Penilai:* Tombol **Setujui Tinjauan (Approve)**, **Minta Revisi (Request Revision)**, atau **Otorisasi Final & Kunci Permanen**.
+
+#### 19.2.4 Layar `FE-HRD-165` — Dasbor Serah Terima & Rekonsiliasi Finance (`/hr/payroll/finance-handoff`)
+* **Tujuan:** Antarmuka handoff resmi ke Departemen Keuangan dan pemantauan status kliring perbankan serta penanganan rollback penolakan (`HRD-DEC-126`).
+* **Wilayah Layar:**
+  1. *Status Serah Terima Berkas:* Status Handoff (`Dispatched`, `AcknowledgedByFinance`, `PaymentConfirmed`, `RejectedByFinance`), Tanggal Penyerahan, dan Kode Checksum SHA-256 Integritas Data.
+  2. *Rekapitulasi Rekening Bank Mitra:* Total nominal yang harus ditransfer per bank mitra RS (misal Bank Mandiri, BCA, BNI).
+  3. *Panel Notifikasi Penolakan Finance (Bila Ditolak):* Kotak peringatan merah menampilkan rincian alasan penolakan tertulis dari Finance dan tombol aksi **Buka Kunci untuk Koreksi (Controlled Rollback)**.
+  4. *Tombol Unduh Berkas Handoff:* Tombol ekspor dokumen serah terima resmi ber-checksum untuk arsip audit gabungan HR dan Finance.
+
+#### 19.2.5 Layar `FE-HRD-166` — Portal Slip Gaji Mandiri Pegawai ESS (`/hr/self-service/payslips`)
+* **Tujuan:** Portal layanan mandiri bagi seluruh pegawai RS untuk mengakses riwayat dan rincian slip gaji bulanan mereka secara aman dan rahasia (`HRD-DEC-127`).
+* **Wilayah Layar:**
+  1. *Filter Riwayat Penggajian:* Pemilih Tahun dan Daftar Kartu Bulan Penggajian dengan status rilis (*Tersedia* atau *Terkunci Sementara*).
+  2. *Dialog Kunci Keamanan PIN Sekunder:* Dialog modal yang mewajibkan input 6-digit PIN rahasia pegawai sebelum lembar rincian gaji dibuka di layar.
+  3. *Lembar Slip Gaji Digital Resmi:* Tampilan terstruktur rincian pendapatan (gaji pokok, tunjangan profesi, lembur, shift malam) dan rincian potongan (PPh 21 TER, BPJS Kes/TK, pinjaman koperasi). Dilengkapi tombol *Toggle Hide/Show Amount* untuk privasi di nurse station.
+  4. *Tombol Unduh PDF Ber-Password:* Tombol untuk mengunduh dokumen slip gaji dalam format PDF ber-watermark resmi rumah sakit dan dilindungi sandi kombinasi NIK/Tgl Lahir.
+
+#### 19.2.6 Layar `FE-HRD-167` — Pengaturan Kebijakan & Formula Penggajian RS (`/hr/payroll/settings`)
+* **Tujuan:** Halaman konfigurasi bagi HR Administrator untuk mengelola parameter operasional siklus penggajian: tanggal cut-off (default tgl 20), tanggal gajian resmi (default tgl 25), ambang variansi peringatan (20% / Rp 2 jt), tarif premi shift malam, dan parameter BPJS (`HRD-ASM-27` s.d. `HRD-ASM-30`).
+
+---
+
+### 19.3 Komponen Modal & Drawer Pendukung
+
+* **`VarianceJustificationDrawer`:** Drawer sisi kanan bagi Petugas Payroll untuk meneliti riwayat komparasi gaji pegawai dan menginput catatan alasan formal atas deviasi variansi $\ge 20\%$.
+* **`PayrollApprovalConfirmationModal`:** Dialog konfirmasi penilai manajerial/direksi yang memuat pernyataan kepatuhan audit dan ringkasan angka total sebelum run dikunci permanen.
+* **`FinanceRejectionFeedbackModal`:** Modal dialog yang menampilkan catatan resmi penolakan dari Departemen Keuangan beserta opsi membuka kunci data untuk perbaikan.
+* **`PayslipPinVerificationModal`:** Modal autentikasi sekunder pada portal ESS dengan antarmuka keypad PIN angka 6-digit dan penanganan penguncian akun jika salah 3 kali.
+* **`PayrollWorksheetBreakdownModal`:** Modal rincian formula per baris pegawai yang menampilkan detail jam lembur asal Sub-09, jam shift malam asal Sub-07, dan tarif TER asal master PTKP.

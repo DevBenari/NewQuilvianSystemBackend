@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
@@ -18,15 +19,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         private readonly ApplicationDbContext _context;
         private readonly IHrdEmploymentReadinessReadService _readinessService;
         private readonly ILogger<ShiftReplacementService> _logger;
+        private readonly IServiceProvider _serviceProvider;
 
         public ShiftReplacementService(
             ApplicationDbContext context,
             IHrdEmploymentReadinessReadService readinessService,
-            ILogger<ShiftReplacementService> logger)
+            ILogger<ShiftReplacementService> logger,
+            IServiceProvider serviceProvider)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _readinessService = readinessService ?? throw new ArgumentNullException(nameof(readinessService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
 
         public async Task<PagedResult<ShiftReplacementResponse>> GetPagedAsync(
@@ -495,6 +499,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 : (int)(newEnd - newStart).TotalMinutes - newShift.BreakDurationMinutes;
             if (paidMinutes < 0) paidMinutes = 0;
 
+            var oldShiftId = shiftAssignment.ShiftId;
             shiftAssignment.ShiftId = newShift.Id;
             shiftAssignment.ScheduledStartAt = newStart;
             shiftAssignment.ScheduledEndAt = newEnd;
@@ -509,9 +514,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Memicu sinyal event rekalkulasi kehadiran (INT-HR-36)
-            _logger.LogInformation("Event INT-HR-36: RetroactiveShiftCorrectedEvent dipicu untuk pegawai {WorkforceProfileId} pada tanggal {ShiftDate} ke shift {ShiftName}.",
+            // Memicu sinyal event rekalkulasi kehadiran (INT-HR-36 / INT-HR-41)
+            _logger.LogInformation("Event INT-HR-36 / INT-HR-41: RetroactiveShiftCorrectedEvent dipicu untuk pegawai {WorkforceProfileId} pada tanggal {ShiftDate} ke shift {ShiftName}.",
                 shiftAssignment.WorkforceProfileId, shiftAssignment.ShiftDate, newShift.ShiftName);
+
+            try
+            {
+                var attendanceConsumer = _serviceProvider.GetService<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceScheduleMutationConsumer>();
+                if (attendanceConsumer != null)
+                {
+                    await attendanceConsumer.ConsumeRetroactiveShiftCorrectionAsync(new QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.RetroactiveShiftCorrectedPayload
+                    {
+                        ShiftAssignmentId = shiftAssignment.Id,
+                        WorkforceProfileId = shiftAssignment.WorkforceProfileId,
+                        ShiftDate = shiftAssignment.ShiftDate,
+                        OldShiftId = oldShiftId,
+                        NewShiftId = newShift.Id,
+                        TriggeredByUserId = currentUserId,
+                        Reason = req.Notes
+                    }, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Gagal memicu rekalkulasi absensi otomatis INT-HR-41 untuk pegawai {WorkforceProfileId}", shiftAssignment.WorkforceProfileId);
+            }
 
             var response = new RetroactiveShiftCorrectionResponse
             {

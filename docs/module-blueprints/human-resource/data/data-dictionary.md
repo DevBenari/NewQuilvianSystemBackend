@@ -3475,3 +3475,158 @@ CREATE INDEX IF NOT EXISTS idx_ot_verification_state ON trx_overtime_verificatio
 CREATE INDEX IF NOT EXISTS idx_cto_emp_expiry ON trx_compensatory_time_offs(workforce_profile_id, expiry_date, is_expired);
 CREATE INDEX IF NOT EXISTS idx_ot_period_lookup ON trx_overtime_periods(period_year, period_month, period_status);
 ```
+
+---
+
+## 15. Bagian `S-B5` — Kamus Data Penggajian Pegawai Rumah Sakit (Sub-modul 10, `last_changed_in` `v14`, 5 November 2026)
+
+Kamus data ini mendokumentasikan skema tabel, kolom, tipe data, nullability, indeks performa, relasi integritas referensial, serta klasifikasi sensitivitas data keuangan untuk **Sub-modul 10. Payroll Management (Slice `S-B5`)**. Seluruh data finansial nominal, potongan pajak, dan PIN sekunder bertanda **Sensitif (Ya)** dan dilarang dicatat pada log umum (*plain-text logger*).
+
+### 15.1 Ringkasan Entitas & Tabel Database
+
+| Nama Entitas (C# Model) | Nama Tabel (PostgreSQL) | Status | Modul Pemilik | Keterangan & Tujuan Fungsional |
+| :--- | :--- | :---: | :---: | :--- |
+| `TrxPayrollRun` | `trx_payroll_runs` | Diperbarui | Payroll (10) | Siklus agregat penggajian bulanan dan status penguncian data |
+| `TrxPayrollItemDetail` | `trx_payroll_item_details` | **Baru** | Payroll (10) | Rincian baris pendapatan tetap/variabel, potongan TER PPh 21, dan BPJS |
+| `TrxPayrollVarianceAlert` | `trx_payroll_variance_alerts` | **Baru** | Payroll (10) | Perekaman anomali lonjakan deviasi gaji $\ge 20\%$ dan justifikasi wajib |
+| `TrxPayrollApproval` | `trx_payroll_approvals` | **Baru** | Payroll (10) | Jejak audit otorisasi bertingkat 3-jenjang (*Segregation of Duties*) |
+| `TrxPayrollHandoffBatch` | `trx_payroll_handoff_batches` | **Baru** | Payroll (10) | Berkas serah terima ke Finance ber-checksum SHA-256 dan protokol rollback |
+| `TrxPayrollPayslip` | `trx_payroll_payslips` | Diperbarui | Payroll (10) | Slip gaji digital pegawai ESS terlindungi PIN 6-digit sekunder |
+| `HrdPayrollSetting` | `hrd_payroll_settings` | **Baru** | Payroll (10) | Konfigurasi cut-off, ambang deviasi, dan tarif regulasi rumah sakit |
+
+---
+
+### 15.2 Spesifikasi Kolom Tabel
+
+#### 1. Tabel `trx_payroll_runs` (Siklus Penggajian Bulanan)
+*Tabel utama aggregate root siklus penggajian bulanan rumah sakit.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | - | Tidak | Identifikator unik siklus payroll run |
+| `run_number` | `VARCHAR(100)` | Tidak | Unique | - | Tidak | Nomor referensi resmi run (misal `PR-202611-001`) |
+| `period_id` | `UUID` | Tidak | Index | - | Tidak | Rujukan ke periode kerja yang digaji |
+| `period_start_date` | `DATE` | Tidak | - | - | Tidak | Tanggal awal rentang dinas penggajian |
+| `period_end_date` | `DATE` | Tidak | - | - | Tidak | Tanggal akhir rentang dinas penggajian |
+| `cutoff_date` | `DATE` | Tidak | Index | - | Tidak | Tanggal batas cut-off data (default tgl 20) |
+| `run_status` | `VARCHAR(50)` | Tidak | Index | - | Tidak | `Draft`, `Calculating`, `Review`, `WaitingHrReview`, `WaitingFinalApproval`, `ApprovedFinal`, `HandoffReady`, `Closed`, `NeedCorrection` |
+| `total_employees` | `INT` | Tidak | - | - | Tidak | Jumlah staf yang diproses gajinya |
+| `total_gross_pay` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Total beban gaji kotor seluruh staf RS |
+| `total_deductions` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Total potongan pajak, BPJS, dan pinjaman |
+| `total_tax_withheld`| `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Akumulasi pemotongan PPh 21 TER |
+| `total_bpjs_employer`| `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Beban iuran BPJS porsi pemberi kerja RS |
+| `total_bpjs_employee`| `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Potongan iuran BPJS porsi staf |
+| `total_net_pay` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Total dana bersih yang diserahkan ke Finance |
+| `is_locked` | `BOOLEAN` | Tidak | Index | - | Tidak | True jika sudah otorisasi final (immutable) |
+| `locked_at` | `TIMESTAMPTZ` | Ya | - | - | Tidak | Waktu penguncian mutlak oleh Direksi |
+| `locked_by_user_id` | `UUID` | Ya | - | `users(id)` | Tidak | Pengguna Direktur yang mengunci run |
+| `checksum_sha256` | `VARCHAR(64)` | Ya | - | - | Tidak | Hash integritas berkas serah terima |
+| `finance_handoff_status`| `VARCHAR(50)`| Tidak | Index | - | Tidak | `PendingHandoff`, `Dispatched`, `AcknowledgedByFinance`, `PaymentConfirmed`, `RejectedByFinance` |
+
+#### 2. Tabel `trx_payroll_item_details` (Rincian Komponen Gaji Atomik)
+*Tabel baris individual transaksi komponen gaji per pegawai.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | - | Tidak | Identifikator unik item komponen |
+| `payroll_run_id` | `UUID` | Tidak | Index | `trx_payroll_runs(id)` | Tidak | Rujukan ke siklus payroll induk |
+| `employee_id` | `UUID` | Tidak | Index | `mst_workforce_profiles(id)` | Tidak | Pegawai penerima komponen |
+| `component_category`| `VARCHAR(50)`| Tidak | Index | - | Tidak | `FixedEarning`, `VariableEarning`, `StatutoryDeduction`, `VoluntaryDeduction` |
+| `component_code` | `VARCHAR(50)` | Tidak | - | - | Tidak | `BASIC`, `POS_ALLOW`, `NIGHT_SHIFT`, `OVERTIME`, `PPH21_TER`, `BPJS_KES`, `BPJS_TK`, `LOAN_DEDUCTION` |
+| `component_name` | `VARCHAR(150)`| Tidak | - | - | Tidak | Nama deskriptif komponen |
+| `amount` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Nilai nominal rupiah komponen gaji |
+| `rate_type` | `VARCHAR(50)` | Tidak | - | - | Tidak | `Fixed`, `Percentage`, `Formula`, `HoursMultiplied` |
+| `multiplier` | `NUMERIC(8,2)` | Tidak | - | - | Tidak | Faktor pengali (misal 1.5x / 2.0x lembur) |
+| `provenance_source_module`| `VARCHAR(50)`| Tidak| - | - | Tidak | Modul sumber asal (`Attendance07`, `Leave08`, `Overtime09`, `Restitution11`, `SalaryConfig`) |
+| `provenance_reference_id`| `VARCHAR(100)`| Ya | - | - | Tidak | Nomor dokumen asal transaksi bukti |
+| `tax_classification`| `VARCHAR(50)`| Tidak | - | - | Tidak | Objek pajak PPh 21 atau bukan |
+| `is_subject_to_bpjs`| `BOOLEAN` | Tidak | - | - | Tidak | Menjadi dasar perhitungan BPJS atau tidak |
+
+#### 3. Tabel `trx_payroll_variance_alerts` (Deteksi Variansi Anomali Gaji)
+*Tabel perekaman deviasi gaji bersih $\ge 20\%$ beserta audit justifikasi formal.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | - | Tidak | Identifikator unik alert variansi |
+| `payroll_run_id` | `UUID` | Tidak | Index | `trx_payroll_runs(id)` | Tidak | Rujukan ke siklus payroll |
+| `employee_id` | `UUID` | Tidak | Index | `mst_workforce_profiles(id)` | Tidak | Pegawai yang terdeteksi anomali gaji |
+| `previous_net_pay` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Nilai gaji bersih periode bulan lalu |
+| `current_net_pay` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Nilai gaji bersih periode bulan ini |
+| `variance_percentage`| `NUMERIC(6,2)`| Tidak | - | - | Tidak | Persentase kenaikan/penurunan gaji |
+| `variance_amount` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Selisih nominal rupiah absolut |
+| `alert_severity` | `VARCHAR(20)` | Tidak | - | - | Tidak | `Warning` (20-49%), `Critical` ($\ge 50\%$) |
+| `justification_reason`| `TEXT` | Ya | - | - | Tidak | Penjelasan tertulis wajib Payroll Officer |
+| `justified_by_user_id`| `UUID` | Ya | - | `users(id)` | Tidak | Petugas yang mengisi justifikasi |
+| `justified_at` | `TIMESTAMPTZ` | Ya | - | - | Tidak | Waktu pengisian justifikasi |
+| `is_resolved` | `BOOLEAN` | Tidak | Index | - | Tidak | True jika justifikasi telah lengkap disetujui |
+
+#### 4. Tabel `trx_payroll_approvals` (Audit Persetujuan 3-Jenjang)
+*Tabel rekaman otorisasi pemisahan tugas (Segregation of Duties) berjenjang.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | - | Tidak | Identifikator unik log persetujuan |
+| `payroll_run_id` | `UUID` | Tidak | Index | `trx_payroll_runs(id)` | Tidak | Rujukan ke siklus penggajian |
+| `approval_tier_level`| `INT` | Tidak | - | - | Tidak | `1` (Officer Review), `2` (Manager Review), `3` (Director Final Authorization) |
+| `tier_role_name` | `VARCHAR(50)` | Tidak | - | - | Tidak | Nama peran penilai |
+| `approver_user_id` | `UUID` | Tidak | Index | `users(id)` | Tidak | ID pengguna yang melakukan aksi peninjauan |
+| `approval_action` | `VARCHAR(50)` | Tidak | - | - | Tidak | `Submitted`, `Approved`, `Rejected`, `RequestedRevision` |
+| `notes` | `TEXT` | Ya | - | - | Tidak | Catatan evaluasi penilai |
+| `action_at` | `TIMESTAMPTZ` | Tidak | - | - | Tidak | Waktu penandaan persetujuan |
+| `ip_address` | `VARCHAR(50)` | Ya | - | - | Tidak | Alamat IP jaringan penilai |
+
+#### 5. Tabel `trx_payroll_handoff_batches` (Berkas Serah Terima Finance & Rollback)
+*Tabel serah terima berkas final ke Keuangan dan penanganan penolakan.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | - | Tidak | Identifikator unik berkas serah terima |
+| `payroll_run_id` | `UUID` | Tidak | Unique | `trx_payroll_runs(id)` | Tidak | Rujukan 1-to-1 ke siklus payroll |
+| `batch_reference_number`| `VARCHAR(100)`| Tidak | Unique | - | Tidak | Nomor batch pengiriman ke Finance |
+| `handoff_status` | `VARCHAR(50)` | Tidak | Index | - | Tidak | `Dispatched`, `AcknowledgedByFinance`, `RejectedByFinance`, `PaymentConfirmed` |
+| `bank_disbursement_payload_json`| `JSONB`| Tidak | - | - | **Ya** | Rincian data transfer bank pegawai terenkripsi |
+| `integrity_checksum`| `VARCHAR(64)` | Tidak | - | - | Tidak | Checksum SHA-256 untuk verifikasi data anti-tamper |
+| `dispatched_at` | `TIMESTAMPTZ` | Tidak | - | - | Tidak | Waktu penyerahan berkas ke Finance |
+| `dispatched_by_user_id`| `UUID` | Tidak | - | `users(id)` | Tidak | Petugas HR pengirim berkas |
+| `finance_acknowledged_at`| `TIMESTAMPTZ`| Ya | - | - | Tidak | Waktu Finance menerima paket |
+| `finance_rejection_reason`| `TEXT` | Ya | - | - | Tidak | Catatan tertulis kendala perbankan dari Finance |
+| `finance_rejection_at`| `TIMESTAMPTZ`| Ya | - | - | Tidak | Waktu Finance melakukan penolakan batch |
+| `payment_confirmed_at`| `TIMESTAMPTZ`| Ya | - | - | Tidak | Waktu konfirmasi transfer bank sukses |
+
+#### 6. Tabel `trx_payroll_payslips` (Slip Gaji Mandiri ESS Ber-PIN)
+*Tabel data rincian slip gaji digital pegawai mandiri.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | - | Tidak | Identifikator unik slip gaji |
+| `payroll_run_id` | `UUID` | Tidak | Index | `trx_payroll_runs(id)` | Tidak | Rujukan ke run siklus payroll |
+| `employee_id` | `UUID` | Tidak | Index | `mst_workforce_profiles(id)` | Tidak | Pemilik slip gaji |
+| `payslip_number` | `VARCHAR(100)`| Tidak | Unique | - | Tidak | Nomor resmi slip gaji digital |
+| `gross_amount` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Total pendapatan kotor pegawai |
+| `total_deductions` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Total potongan pajak dan BPJS |
+| `net_amount` | `NUMERIC(18,2)`| Tidak | - | - | **Ya** | Uang bersih yang diterima di rekening |
+| `payslip_status` | `VARCHAR(50)` | Tidak | - | - | Tidak | `Draft`, `Published`, `Archived` |
+| `is_released_to_ess`| `BOOLEAN` | Tidak | Index | - | Tidak | True jika sudah dapat diakses di portal ESS |
+| `released_at` | `TIMESTAMPTZ` | Ya | - | - | Tidak | Waktu rilis resmi ke portal ESS |
+| `secondary_pin_hash`| `VARCHAR(255)`| Ya | - | - | **Ya** | Hash sandi PIN 6-digit pegawai |
+| `failed_pin_attempt_count`| `INT` | Tidak | - | - | Tidak | Penghitung kesalahan input PIN (maks 3 kali) |
+| `pin_locked_until` | `TIMESTAMPTZ` | Ya | - | - | Tidak | Batas waktu pembekuan akses jika salah PIN |
+
+#### 7. Tabel `hrd_payroll_settings` (Konfigurasi Parameter Penggajian RS)
+*Tabel pengaturan operasional parameter penggajian rumah sakit.*
+
+| Nama Kolom | Tipe Data | Nullable | Index / Unique | FK / Rujukan | Sensitif | Keterangan & Aturan |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `id` | `UUID` | Tidak | PK | - | Tidak | Identifikator unik setting |
+| `setting_key` | `VARCHAR(100)`| Tidak | Unique | - | Tidak | Kunci konfigurasi sistem |
+| `monthly_cutoff_day`| `INT` | Tidak | - | - | Tidak | Tanggal batas cut-off bulanan (default tgl 20) |
+| `official_disbursement_day`| `INT` | Tidak | - | - | Tidak | Tanggal transfer gaji resmi (default tgl 25) |
+| `variance_threshold_percent`| `NUMERIC(5,2)`| Tidak | - | - | Tidak | Persentase deviasi variansi alert (default 20.00%) |
+| `variance_threshold_nominal`| `NUMERIC(18,2)`| Tidak | - | - | Tidak | Ambang deviasi nominal alert (default Rp 2.000.000) |
+| `bpjs_health_employer_rate`| `NUMERIC(5,4)`| Tidak | - | - | Tidak | Tarif BPJS Kes beban RS (default 0.0400) |
+| `bpjs_health_employee_rate`| `NUMERIC(5,4)`| Tidak | - | - | Tidak | Tarif BPJS Kes beban staf (default 0.0100) |
+| `bpjs_tk_jht_employer_rate`| `NUMERIC(5,4)`| Tidak | - | - | Tidak | Tarif JHT beban RS (default 0.0370) |
+| `bpjs_tk_jht_employee_rate`| `NUMERIC(5,4)`| Tidak | - | - | Tidak | Tarif JHT beban staf (default 0.0200) |
+| `bpjs_tk_jp_cap_amount`| `NUMERIC(18,2)`| Tidak | - | - | Tidak | Plafon maksimal dasar Jaminan Pensiun |
+| `is_pin_secondary_auth_required`| `BOOLEAN`| Tidak | - | - | Tidak | Penegakan wajib PIN pada ESS (default true) |
+| `is_active` | `BOOLEAN` | Tidak | - | - | Tidak | Status keaktifan parameter |

@@ -2594,3 +2594,172 @@ Dokumen ini mendefinisikan batas rilis pertama (MVP), rincian kebutuhan fungsion
 | `HRD-ASM-24` | `EPIC HRD-44`, `FR-OT-02` (Aktivasi lembur nakes on-call medis) |
 | `HRD-ASM-25` | `EPIC HRD-47`, `FR-OT-19`, `FR-OT-20` (Kedaluwarsa CTO 90 hari kalender) |
 | `HRD-ASM-26` | `EPIC HRD-44`, `FR-OT-04` (Inisiasi lembur kelompok/tim medis ruangan) |
+
+
+---
+
+## 28. Bagian S-B5 — PRD ke MVP Penggajian Pegawai Rumah Sakit (Sub-modul 10, last_changed_in v14, 5 November 2026)
+
+Bagian ini mendokumentasikan Dokumen Kebutuhan Produk (*Product Requirements Document* / PRD) yang diterjemahkan menjadi batas rilis minimum (*Minimum Viable Product* / MVP) untuk **Slice `S-B5` — Penggajian Pegawai Rumah Sakit (Payroll Management)**.
+
+### 28.1 Batas Rilis Pertama (MVP Scope)
+* **Titik Awal (Inisiasi):** Sistem membaca dan memvalidasi kelengkapan penguncian data presensi kehadiran (Sub-07), cuti/izin (Sub-08), dan klaim lembur (Sub-09) yang telah terkunci cut-off per tanggal 20 bulan berjalan.
+* **Titik Akhir (Delivery):** Paket serah terima instruksi pembayaran penggajian berintegritas tinggi (SHA-256) diserahkan ke Modul Keuangan (*Finance Handoff* `INT-HR-53`), serta penerbitan slip gaji digital mandiri berpassword dan berproteksi PIN 6-digit pada portal Employee Self-Service (ESS) per tanggal 25.
+* **Batas Kewenangan (Out of Scope MVP sesuai `HRD-DEC-009`):**
+  * Pencairan transfer uang riil ke bank pegawai, antarmuka internet banking/host-to-host bank korporat, dan pengeluaran kas (kewenangan eksklusif modul Finance & Kasir).
+  * Pembuatan jurnal umum akuntansi (General Ledger) dan pembukuan akun beban gaji (kewenangan modul Akuntansi).
+  * Pelaporan formulir SPT Masa PPh 21 unifikasi ke portal e-Bupot DJP Online (kewenangan Tim Pajak/Finance).
+
+---
+
+### 28.2 Daftar Kebutuhan Fungsional (Functional Requirements)
+
+| Kode FR | Nama Kebutuhan Fungsional | Deskripsi Kebutuhan Bisnis | Rujukan Aturan / Keputusan |
+| --- | --- | --- | --- |
+| `FR-PAY-01` | Inisiasi Siklus Penggajian Bulanan | Payroll Officer dapat menginisiasi siklus penggajian baru untuk periode aktif pasca cut-off tgl 20. | `HRD-DEC-122` |
+| `FR-PAY-02` | Precondition Gate Check Periode Kerja | Sistem memvalidasi bahwa periode presensi (07), cuti (08), dan lembur (09) telah terkunci (*Locked/Closed*). | `PAY-B1`, `VR-PAY-02` |
+| `FR-PAY-03` | Snapshot Master Parameter Penggajian | Sistem mengambil salinan beku (*freeze snapshot*) atas grade gaji, tunjangan, dan batas plafon BPJS. | `HRD-DEC-122` |
+| `FR-PAY-04` | Kalkulasi Penghasilan Tetap Pegawai | Menghitung gaji pokok, tunjangan jabatan struktural, tunjangan fungsional profesi, dan tunjangan medis. | `HRD-DEC-123` |
+| `FR-PAY-05` | Penyerapan Data Lembur Terverifikasi Sub-09 | Menarik jam lembur sah terverifikasi dari Sub-modul 09 dan menghitung uang lembur sesuai PP 35/2021. | `INT-HR-52`, `PAY-B4` |
+| `FR-PAY-06` | Penyerapan Premi Shift Malam Presensi Sub-07 | Menarik frekuensi dinas malam dari Sub-modul 07 dan mengakumulasi premi dinas malam secara akurat. | `INT-HR-36`, `HRD-DEC-123` |
+| `FR-PAY-07` | Kalkulasi Iuran BPJS Kesehatan | Menghitung 1% iuran pekerja dan 4% pemberi kerja berdasar upah dengan pembatasan plafon resmi. | `VR-PAY-08` |
+| `FR-PAY-08` | Kalkulasi Iuran BPJS Ketenagakerjaan | Menghitung JHT (2% pekerja, 3.7% RS), JKK (0.89%), JKM (0.3%), dan JP (1% pekerja berplafon). | `VR-PAY-09` |
+| `FR-PAY-09` | Pemotongan Pajak PPh 21 Tarif TER | Menerapkan tabel Tarif Efektif Rata-Rata (Kategori A/B/C) PMK 168/2023 secara otomatis sesuai PTKP. | `INT-HR-56`, `HRD-DEC-123` |
+| `FR-PAY-10` | Penyerapan Potongan Pinjaman & Restitusi Sub-11| Menarik tagihan angsuran pinjaman koperasi karyawan dan pinjaman darurat RS dari Sub-modul 11. | `INT-HR-55` |
+| `FR-PAY-11` | Perhitungan Rapel & Penyesuaian Retrospektif | Menghitung penyesuaian susulan atas persetujuan lembur/kehadiran terlambat dari periode lalu. | `HRD-DEC-123` |
+| `FR-PAY-12` | Evaluasi Variansi Anomali Gaji (*Variance Guard*)| Sistem membandingkan take-home pay dengan bulan lalu; menandai deviasi $\ge 20\%$ atau nominal $\ge$ Rp 2.000.000. | `HRD-DEC-124`, `PAY-W1` |
+| `FR-PAY-13` | Otomasi Pembuatan Tiket Variance Alert | Membangkitkan tiket `trx_payroll_variance_alerts` berstatus `PendingJustification` saat anomali terdeteksi. | `HRD-DEC-124` |
+| `FR-PAY-14` | Pengisian Justifikasi Audit Variansi | Payroll Officer wajib mengisi catatan alasan logis (minimum 20 karakter) pada setiap anomali yang muncul. | `VR-PAY-15` |
+| `FR-PAY-15` | Gerbang Pemblokiran Submit Batch Variansi | Sistem menolak pengajuan approval batch jika masih terdapat tiket alert variansi yang berstatus pending. | `PAY-B5`, `VR-PAY-14` |
+| `FR-PAY-16` | Workflow Otorisasi Tier 1 (Payroll Officer) | Officer mengunci draft perhitungan dan mengajukan review resmi kepada HR Manager (`WaitingHrReview`). | `HRD-DEC-125` |
+| `FR-PAY-17` | Proteksi *Anti-Self-Approval* HR Manager | Sistem memblokir HR Manager menyetujui perhitungan gajinya sendiri; merutekan ke Direktur SDM. | `HRD-DEC-125`, `VR-PAY-17`|
+| `FR-PAY-18` | Workflow Otorisasi Tier 3 & Gembok Permanen | Direktur SDM/Keuangan menyetujui batch penggajian; sistem mengunci permanen seluruh data (*Immutable*). | `VR-PAY-20` |
+| `FR-PAY-19` | Rekapitulasi Finansial Penggajian per Unit | Menghasilkan rekap biaya gaji per instalasi, unit kerja, kelompok profesi nakes, dan akun pembebanan. | `FE-HRD-164` |
+| `FR-PAY-20` | Pembentukan Paket Serah Terima Finance SHA-256 | Men-generate paket berkas `trx_payroll_handoff_batches` dengan verifikasi integritas checksum SHA-256. | `INT-HR-53`, `HRD-DEC-126`|
+| `FR-PAY-21` | Transmisi Asinkron Serah Terima ke Finance | Mengirimkan berkas instruksi pencairan ke Finance dengan kebijakan *exponential backoff retry*. | `INT-HR-53` |
+| `FR-PAY-22` | Penanganan Callback Penolakan & Rollback Terkendali| Menangani sinyal `PaymentRejected` dari Finance; membuka gembok terkendali ke status `NeedCorrection`. | `INT-HR-54`, `HRD-DEC-126`|
+| `FR-PAY-23` | Otomasi Pelepasan Slip Gaji Digital ESS | Merilis slip gaji digital `trx_payroll_payslips` berstatus `Released` per tgl 25 atau pasca bayar Finance. | `HRD-DEC-127` |
+| `FR-PAY-24` | Proteksi Autentikasi PIN Sekunder 6-Digit ESS | Mewajibkan input PIN 6-digit untuk membuka slip gaji; mengunci akses 30 menit jika 3 kali salah. | `HRD-DEC-127`, `VR-PAY-22`|
+| `FR-PAY-25` | Unduh Slip Gaji PDF Ber-password & Watermark | Pegawai dapat mengunduh berkas slip gaji PDF resmi ber-password kombinasi tanggal lahir dan ber-watermark RS. | `HRD-DEC-127`, `VR-PAY-24`|
+
+---
+
+### 28.3 Rincian Epic MVP
+
+#### EPIC HRD-49: Inisiasi Siklus Penggajian & Precondition Gate Check
+Mencakup pembuatan siklus batch bulanan, validasi gerbang penguncian waktu kerja tgl 20, pembekuan parameter tarif master gaji, dan penolakan duplikasi periode.
+* **Kebutuhan Terkait:** `FR-PAY-01`, `FR-PAY-02`, `FR-PAY-03`.
+* **Kriteria Keberhasilan:** Payroll Officer tidak dapat membuat siklus baru sebelum presensi, cuti, dan lembur terkunci.
+
+#### EPIC HRD-50: Engine Perhitungan Gaji, Tunjangan, Lembur, Premi Shift & Pajak TER
+Mencakup engine kalkulasi otomatis seluruh komponen penghasilan kotor, potongan wajib regulasi pemerintah (BPJS Kesehatan, BPJS Ketenagakerjaan 4 program, PPh 21 TER PMK 168/2023), penarikan angsuran pinjaman Sub-11, dan penyesuaian retrospektif.
+* **Kebutuhan Terkait:** `FR-PAY-04`, `FR-PAY-05`, `FR-PAY-06`, `FR-PAY-07`, `FR-PAY-08`, `FR-PAY-09`, `FR-PAY-10`, `FR-PAY-11`.
+* **Kriteria Keberhasilan:** Seluruh perhitungan matematis presisi tanpa selisih pembulatan, mematuhi batas plafon upah regulasi, dan menghasilkan gaji bersih yang valid.
+
+#### EPIC HRD-51: Payroll Variance Guard & Penyelesaian Anomali Justifikasi
+Mencakup pendeteksian otomatis anomali perubahan gaji bersih $\ge 20\%$ atau $\ge$ Rp 2.000.000 terhadap histori bulan lalu, pembuatan tiket alert variansi, dan gerbang penolakan submission sebelum justifikasi dilengkapi.
+* **Kebutuhan Terkait:** `FR-PAY-12`, `FR-PAY-13`, `FR-PAY-14`, `FR-PAY-15`.
+* **Kriteria Keberhasilan:** Tidak ada lonjakan gaji yang lolos ke meja manajer tanpa catatan investigasi audit yang sah.
+
+#### EPIC HRD-52: Otorisasi 3-Jenjang, Penguncian Immutable & Paket Serah Terima Finance
+Mencakup alur persetujuan berjenjang (Officer $\rightarrow$ HR Manager $\rightarrow$ Direktur), penegakan aturan anti-self-approval, penguncian permanen batch, pembentukan paket serah terima Finance berintegritas SHA-256, dan mekanisme rollback callback terkendali.
+* **Kebutuhan Terkait:** `FR-PAY-16`, `FR-PAY-17`, `FR-PAY-18`, `FR-PAY-19`, `FR-PAY-20`, `FR-PAY-21`, `FR-PAY-22`.
+* **Kriteria Keberhasilan:** Pemisahan tugas (*Segregation of Duties*) terjamin mutlak, paket ke Finance anti-tamper dengan verifikasi checksum, dan status sinkron dengan Finance.
+
+#### EPIC HRD-53: Distribusi Slip Gaji Digital ESS & Keamanan PIN Sekunder
+Mencakup pelepasan slip gaji digital kepada seluruh pegawai rumah sakit pada portal ESS per tanggal penggajian resmi (tgl 25), proteksi PIN 6-digit dengan penalti lockout, serta fasilitas unduh dokumen PDF resmi.
+* **Kebutuhan Terkait:** `FR-PAY-23`, `FR-PAY-24`, `FR-PAY-25`.
+* **Kriteria Keberhasilan:** Informasi remunerasi bersifat konfidensial aman, pegawai dapat mengakses rincian gajinya secara mandiri, dan slip gaji ber-password.
+
+---
+
+### 28.4 Skenario Pengujian Penerimaan Pengguna (User Acceptance Testing - UAT)
+
+#### UAT-PAY-01: Inisiasi Siklus Penggajian & Validasi Gerbang Waktu Kerja
+* **Aktor:** Payroll Officer
+* **Langkah:**
+  1. Masuk ke menu HR Payroll Processing pada tanggal 21 November 2026.
+  2. Klik tombol "Buat Siklus Payroll Baru" untuk periode `2026-11`.
+  3. Sistem memeriksa status periode Sub-07 (Presensi), Sub-08 (Cuti), dan Sub-09 (Lembur).
+* **Hasil yang Diharapkan:** Bila salah satu modul belum berstatus locked/closed, sistem menolak inisiasi dengan pesan kesalahan informatif. Bila seluruhnya telah terkunci, siklus batch berstatus `Draft` terbentuk dan parameter master gaji tersalin ke snapshot.
+
+#### UAT-PAY-02: Kalkulasi Komponen Gaji, Lembur, Premi Shift & Pajak PPh 21 TER
+* **Aktor:** Payroll Officer & Auditor Finansial
+* **Langkah:**
+  1. Jalankan tombol "Hitung Seluruh Pegawai" pada batch aktif.
+  2. Periksa detail rincian penghasilan pada pegawai Dokter Spesialis Organik dan Perawat Rawat Inap Pelaksana Shift Malam.
+  3. Verifikasi komponen lembur PP 35/2021, premi shift malam, potongan BPJS berplafon, dan potongan PPh 21 TER Kategori A/B/C.
+* **Hasil yang Diharapkan:** Komponen penghasilan dan potongan terhitung akurat sesuai rumus master tanpa galat pembulatan; take-home pay mencerminkan penjumlahan dan pengurangan yang benar.
+
+#### UAT-PAY-03: Deteksi Anomali Variansi & Pengisian Justifikasi Audit
+* **Aktor:** Payroll Officer
+* **Langkah:**
+  1. Buka tab "Variansi & Anomali Gaji" pada layar kalkulasi batch.
+  2. Temukan pegawai perawat yang memiliki deviasi kenaikan take-home pay +25% akibat intensitas lembur ruang isolasi.
+  3. Upayakan klik tombol "Ajukan Review ke HR Manager" sebelum mengisi justifikasi.
+  4. Isi catatan justifikasi: "Kenaikan take-home pay diakibatkan penugasan darurat lembur ruang isolasi sebanyak 28 jam (SPKL-202611-042)."
+  5. Klik simpan dan ulangi pengajuan submit approval.
+* **Hasil yang Diharapkan:** Sistem memblokir submission pada langkah 3 (HTTP 422). Pada langkah 5, status tiket alert berubah menjadi `Resolved` dan batch berhasil diajukan ke HR Manager.
+
+#### UAT-PAY-04: Alur Otorisasi 3-Jenjang & Penguncian Permanen (Immutable)
+* **Aktor:** HR Manager & Direktur SDM/Keuangan
+* **Langkah:**
+  1. HR Manager membuka menu Persetujuan Payroll dan memeriksa berkas batch `2026-11`.
+  2. Sistem mendeteksi bahwa baris gaji HR Manager ada di dalam batch tersebut; HR Manager menyetujui batch secara umum namun flag otorisasi baris pribadinya dialihkan ke Direktur.
+  3. Direktur SDM/Keuangan melakukan final sign-off approval.
+* **Hasil yang Diharapkan:** Status batch beralih menjadi `ApprovedFinal`. Seluruh data batch, item gaji pegawai, dan rincian komponen terkunci permanen (*IsImmutable = true*); tombol hitung ulang atau sunting dinonaktifkan.
+
+#### UAT-PAY-05: Serah Terima Finance SHA-256 & Distribusi Slip Gaji ESS Ber-PIN
+* **Aktor:** Direktur SDM, Petugas Finance, & Pegawai Rumah Sakit (ESS)
+* **Langkah:**
+  1. Sistem memicu pembentukan paket `trx_payroll_handoff_batches` dengan Checksum SHA-256 dan mengirimkannya ke Finance.
+  2. Finance mengirimkan callback `PaymentConfirmed` setelah transfer bank selesai.
+  3. Pegawai login ke modul ESS pada tgl 25 November dan mengakses menu "Slip Gaji Saya".
+  4. Pegawai memasukkan PIN sekunder 6-digit.
+  5. Pegawai mengunduh berkas PDF slip gaji resmi.
+* **Hasil yang Diharapkan:** Data handoff Finance cocok dengan nilai HRD. Slip gaji digital berstatus `Released`. Input PIN 6-digit yang benar menampilkan rincian slip gaji, dan berkas PDF terunduh berproteksi kata sandi tanggal lahir.
+
+---
+
+### 28.5 Definisi Selesai (Definition of Done - DoD)
+
+| No | Kriteria Selesai (DoD) | Bukti Pengujian |
+| :---: | --- | --- |
+| 1 | Inisiasi batch payroll menolak pembuatan jika periode presensi, cuti, atau lembur belum berstatus terkunci cut-off tgl 20 | UAT-PAY-01 & pengujian `VR-PAY-02` |
+| 2 | Inisiasi batch payroll menolak duplikasi periode penggajian yang sama untuk unit kerja / entitas RS yang sama | Pengujian constraint unik & `VR-PAY-01` |
+| 3 | Perhitungan seluruh komponen penghasilan kotor, lembur, dan premi shift malam presisi tanpa selisih pembulatan | UAT-PAY-02 & unit test engine kalkulasi |
+| 4 | Pemotongan iuran BPJS Kesehatan dan BPJS Ketenagakerjaan menerapkan batas plafon upah tertinggi regulasi resmi | UAT-PAY-02 & validasi `VR-PAY-08`, `VR-PAY-09` |
+| 5 | Pemotongan PPh 21 bulanan menggunakan Tarif Efektif Rata-Rata (TER Kategori A, B, C) PMK 168/2023 secara tepat | UAT-PAY-02 & integrasi tabel master pajak `INT-HR-56` |
+| 6 | Anomali variansi kenaikan/penurunan net pay $\ge 20\%$ atau nominal $\ge$ Rp 2.000.000 wajib dilengkapi catatan justifikasi | UAT-PAY-03 & validasi `VR-PAY-14`, `PAY-B5` |
+| 7 | Alur otorisasi 3-jenjang menegakkan aturan pemisahan tugas (*Segregation of Duties*) dan anti-self-approval manajerial | UAT-PAY-04 & verifikasi workflow authorization |
+| 8 | Persetujuan final Direksi mengunci seluruh baris data penggajian secara permanen (*IsImmutable = true*) tanpa opsi mutasi | UAT-PAY-04 & pengujian penolakan edit `PAY-B6` |
+| 9 | Paket serah terima ke Finance membentuk checksum SHA-256 dan mendukung mekanisme rollback terkendali pasca callback | UAT-PAY-05 & pengujian integrasi `INT-HR-53`, `INT-HR-54` |
+| 10 | Slip gaji digital ESS berstatus `Released` tgl 25 dan dilindungi autentikasi PIN 6-digit sekunder dengan penguncian 30 menit | UAT-PAY-05 & pengujian keamanan PIN `VR-PAY-22` |
+
+---
+
+### 28.6 Urutan Pengiriman Gelombang MVP
+
+| Gelombang | Cakupan Kemampuan | Epic Terkait | Prasyarat |
+| --- | --- | --- | --- |
+| `MVP-30` | Skema database penggajian, precondition gate cut-off tgl 20, freeze parameter snapshot, dan engine kalkulasi gaji pokok, tunjangan, lembur, premi malam, BPJS, & PPh 21 TER | `EPIC HRD-49`, `EPIC HRD-50` | Sub-Modul 09 (`MVP-27`–`MVP-29`) selesai |
+| `MVP-31` | Payroll variance guard, deteksi anomali deviasi $\ge 20\%$, alur pengisian justifikasi investigasi, dan alur otorisasi 3-jenjang dengan anti-self-approval | `EPIC HRD-51`, `EPIC HRD-52` | `MVP-30` selesai & master role siap |
+| `MVP-32` | Penguncian immutable batch, paket serah terima Finance SHA-256, callback reconciler, dan penerbitan slip gaji digital ESS berproteksi PIN 6-digit | `EPIC HRD-52`, `EPIC HRD-53` | `MVP-31` selesai |
+| `Verifikasi E2E`| Audit kesiapan menyeluruh, eksekusi acceptance test suite `AT-HRD-PAY-01` s.d. `AT-HRD-PAY-20`, dan konformansi arsitektur QBE | Seluruh Epic | `MVP-30` s.d. `MVP-32` selesai |
+
+---
+
+### 28.7 Traceability Keputusan ke PRD
+
+| Keputusan / Asumsi | Epic & Kriteria DoD Terkait |
+| --- | --- |
+| `HRD-DEC-122` | `EPIC HRD-49`, `FR-PAY-01`, `FR-PAY-02`, `FR-PAY-03`, UAT-PAY-01, DoD butir 1, 2 |
+| `HRD-DEC-123` | `EPIC HRD-50`, `FR-PAY-04` s.d. `FR-PAY-11`, UAT-PAY-02, DoD butir 3, 4, 5 |
+| `HRD-DEC-124` | `EPIC HRD-51`, `FR-PAY-12` s.d. `FR-PAY-15`, UAT-PAY-03, DoD butir 6 |
+| `HRD-DEC-125` | `EPIC HRD-52`, `FR-PAY-16` s.d. `FR-PAY-19`, UAT-PAY-04, DoD butir 7 |
+| `HRD-DEC-126` | `EPIC HRD-52`, `FR-PAY-20` s.d. `FR-PAY-22`, UAT-PAY-05, DoD butir 8, 9 |
+| `HRD-DEC-127` | `EPIC HRD-53`, `FR-PAY-23` s.d. `FR-PAY-25`, UAT-PAY-05, DoD butir 10 |
+| `HRD-ASM-27` | `FR-PAY-06` (Nilai nominal baku premi dinas malam nakes) |
+| `HRD-ASM-28` | `FR-PAY-09` (Basis penyesuaian PPh 21 Pasal 17 pada masa pajak Desember) |
+| `HRD-ASM-29` | `FR-PAY-12` (Threshold deviasi variansi Rp 2.000.000 atau $\ge 20\%$) |
+| `HRD-ASM-30` | `FR-PAY-24` (Kebijakan penguncian 30 menit pasca 3 kegagalan PIN) |

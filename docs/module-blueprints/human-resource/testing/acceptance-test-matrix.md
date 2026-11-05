@@ -570,3 +570,33 @@ Matriks uji penerimaan (*Acceptance Test Matrix*) ini mengunci 20 skenario pengu
 | `AT-HRD-OT-18` | Scheduler kedaluwarsa saldo CTO 90 hari | Saldo CTO belum terpakai per H+91 hari kalender | Status tiket CTO menjadi `Expired`; kuota hangus non-tunai | Siap Uji | `FR-OT-20`, `HRD-ASM-25` |
 | `AT-HRD-OT-19` | Penguncian cut-off bulanan (tgl 20) | HR Payroll kunci periode cut-off 20 November | Status `CutoffLocked`; modifikasi ditolak HTTP 409 | Siap Uji | `FR-OT-21`, `VR-OT-16` |
 | `AT-HRD-OT-20` | Rapel retrospektif SPKL pending di payroll depan | SPKL pending disetujui tgl 23 Nov (pasca cut-off) | Flag `IsRetrospective = true`; masuk slip gaji Desember | Siap Uji | `FR-OT-23`, `HRD-DEC-121` |
+
+
+---
+
+## 22. Bagian S-B5 — Matriks Uji Penerimaan Penggajian Pegawai Rumah Sakit (Sub-modul 10, last_changed_in v14, 5 November 2026)
+
+Matriks uji penerimaan (*Acceptance Test Matrix*) ini mengunci 20 skenario pengujian komprehensif berbasis bukti untuk memvalidasi pemenuhan kebutuhan fungsional, regulasi pajak, keamanan segregation of duties, dan integritas finansial **Slice `S-B5` — Penggajian Pegawai Rumah Sakit**.
+
+| Kode Uji | Skenario Pengujian | Masukan Uji (Input) | Hasil yang Diharapkan (Expected Result) | Status Kesiapan | Rujukan Aturan / Keputusan |
+| --- | --- | --- | --- | :---: | --- |
+| `AT-HRD-PAY-01` | Inisiasi siklus payroll baru periode berjalan | Inisiasi payroll periode `2026-11` pasca cut-off tgl 20 | Batch tersimpan berstatus `Draft`; snapshot parameter terkunci | Siap Uji | `FR-PAY-01`, `HRD-DEC-122` |
+| `AT-HRD-PAY-02` | Penolakan inisiasi jika waktu kerja belum terkunci | Inisiasi payroll saat periode presensi/lembur masih `Open` | HTTP 400 Bad Request: "Periode presensi/lembur belum terkunci" | Siap Uji | `VR-PAY-02`, `PAY-B1` |
+| `AT-HRD-PAY-03` | Penolakan inisiasi payroll duplikat | Submit pembuatan payroll `2026-11` kedua kali | HTTP 409 Conflict: "Periode penggajian 2026-11 sudah ada" | Siap Uji | `VR-PAY-01`, `PAY-B2` |
+| `AT-HRD-PAY-04` | Kalkulasi komponen gaji pokok & tunjangan profesi | Trigger kalkulasi pada profil Dokter Spesialis Organik | Gaji pokok, tunjangan fungsional & risiko medis terhitung tepat | Siap Uji | `FR-PAY-04`, `HRD-DEC-123` |
+| `AT-HRD-PAY-05` | Penyerapan data lembur resmi terverifikasi Sub-09 | Perhitungan lembur perawat ICU (10 jam Tier 1, 15 jam Tier 2)| Nilai lembur terhitung otomatis sesuai formula PP 35/2021 | Siap Uji | `FR-PAY-05`, `INT-HR-52` |
+| `AT-HRD-PAY-06` | Kalkulasi premi shift malam presensi Sub-07 | Data kehadiran 8 shift malam (21:00 - 07:00) | Premi shift malam Rp 400.000 (8 x Rp 50.000) terakumulasi | Siap Uji | `FR-PAY-06`, `INT-HR-36` |
+| `AT-HRD-PAY-07` | Kalkulasi BPJS Kesehatan batas plafon gaji | Pegawai dengan gaji Rp 15.000.000 (di atas plafon Rp 12.000.000) | Iuran 1% pekerja dihitung tepat dari plafon Rp 12.000.000 (Rp 120.000) | Siap Uji | `FR-PAY-07`, `VR-PAY-08` |
+| `AT-HRD-PAY-08` | Kalkulasi BPJS Ketenagakerjaan (JHT & JP) | Pegawai organik gaji Rp 12.000.000 (di atas batas JP Rp 10.042.300)| JHT 2% dihitung dari gaji penuh; JP 1% dipotong batas Rp 100.423 | Siap Uji | `FR-PAY-08`, `VR-PAY-09` |
+| `AT-HRD-PAY-09` | Pemotongan PPh 21 Tarif Efektif Rata-Rata (TER) | Pegawai TK/0 bruto Rp 8.500.000 (TER A lapis tarif 1.5%) | PPh 21 TER terhitung otomatis Rp 127.500 tanpa selisih pembulatan | Siap Uji | `FR-PAY-09`, `INT-HR-56` |
+| `AT-HRD-PAY-10` | Penyerapan potongan angsuran pinjaman Sub-11 | Tarik potongan cicilan pinjaman koperasi Rp 500.000 | Komponen potongan muncul di slip gaji; sisa pokok pinjaman berkurang | Siap Uji | `FR-PAY-10`, `INT-HR-55` |
+| `AT-HRD-PAY-11` | Penyerapan penyesuaian retrospektif / rapel lembur | Kompensasi lembur pending bulan Oktober disetujui tgl 23 Nov | Nominal rapel masuk ke komponen `RetrospectiveAdjustment` | Siap Uji | `FR-PAY-11`, `HRD-DEC-123` |
+| `AT-HRD-PAY-12` | Deteksi anomali variansi kenaikan gaji $\ge 20\%$ | Gaji bersih staf naik dari Rp 6.000.000 ke Rp 7.500.000 (+25%)| Sistem memicu `trx_payroll_variance_alerts` status `PendingJustification` | Siap Uji | `FR-PAY-12`, `HRD-DEC-124` |
+| `AT-HRD-PAY-13` | Penolakan submit batch jika variansi belum dijustifikasi| Payroll Officer submit batch saat ada 2 alert pending | HTTP 422 Unprocessable Entity: "Terdapat variansi belum dijustifikasi" | Siap Uji | `VR-PAY-14`, `PAY-B5` |
+| `AT-HRD-PAY-14` | Pengisian justifikasi variansi minimum 20 karakter | Officer input penjelasan 25 karakter atas lonjakan jam lembur cito | Alert terselesaikan (`Resolved`); batch diizinkan untuk di-submit | Siap Uji | `FR-PAY-14`, `VR-PAY-15` |
+| `AT-HRD-PAY-15` | Otorisasi Tier 1 oleh Payroll Officer | Payroll Officer klik submit pengajuan approval | Status batch berubah `WaitingHrReview`; notifikasi ke HR Manager | Siap Uji | `FR-PAY-16`, `HRD-DEC-125` |
+| `AT-HRD-PAY-16` | Pemblokiran persetujuan diri sendiri (*Anti-Self*) | HR Manager menyetujui batch yang memuat gajinya sendiri | Approval tier 2 dialihkan otomatis ke HR Director / Wadir Umum | Siap Uji | `FR-PAY-17`, `VR-PAY-17` |
+| `AT-HRD-PAY-17` | Otorisasi Tier 3 Direktur & Penguncian Immutable | Direktur SDM/Keuangan menyetujui batch penggajian | Status `ApprovedFinal`; data terkunci permanen `IsImmutable = true` | Siap Uji | `FR-PAY-18`, `VR-PAY-20` |
+| `AT-HRD-PAY-18` | Pembentukan paket handoff Finance & verifikasi Checksum | Sistem men-generate payload batch `INT-HR-53` | Checksum SHA-256 terbentuk; rekap bank per pegawai terbit valid | Siap Uji | `FR-PAY-20`, `INT-HR-53` |
+| `AT-HRD-PAY-19` | Penolakan batch oleh Finance & Rollback Terkendali | Modul Finance mengirim callback `PaymentRejected` (rekening salah) | Status batch rollback ke `NeedCorrection`; gembok terbuka dengan audit | Siap Uji | `FR-PAY-22`, `HRD-DEC-126` |
+| `AT-HRD-PAY-20` | Rilis slip gaji ESS & Autentikasi PIN Sekunder 6-Digit | Pegawai akses slip gaji di ESS pada tgl 25 dan input PIN | PIN valid membuka slip gaji PDF; 3 kali salah mengunci akses 30 menit | Siap Uji | `FR-PAY-24`, `HRD-DEC-127` |

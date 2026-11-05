@@ -117,8 +117,8 @@ Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yan
 | **06** | **Scheduling, Roster & On-Call** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan (📋) | [ ] Baru Di-plan (📋) | Blueprint Selesai, BE/FE Siap Build |
 | **07** | **Attendance Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
 | **08** | **Leave & Permission Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
-| 09 | Overtime Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 10 | Payroll Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| **09** | **Overtime Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
+| **10** | **Payroll Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
 | 11 | Restitution & Deduction Integration | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 12 | Benefit Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 13 | Business Travel & Expense | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | Prioritas Rendah |
@@ -945,9 +945,9 @@ Tim operasi masih menangani kasus cito saat jadwal dinas selesai. Mereka tidak p
 **Status source:** `PARTIAL — PERLU END-TO-END COMPLETION`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — Kalkulasi payroll, komponen tunjangan/potongan, handoff Finance (`BE-HRD-010`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor monitoring payroll, slip gaji digital (`FE-HRD-013`).
+- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice S-B5 Kontrak V14 disetujui (5 November 2026, HRD-DEC-122 s.d. HRD-DEC-127, contracts/ v14), siap untuk /plan-module-delivery.
+- [ ] **Backend:** Baru Di-plan V2 (📋) — Kontrak v14 disetujui, siap di-plan ke roadmap backend.
+- [ ] **Frontend:** Baru Di-plan V2 (📋) — Kontrak v14 disetujui, siap di-plan ke roadmap frontend.
 
 ## Penjelasan untuk developer
 

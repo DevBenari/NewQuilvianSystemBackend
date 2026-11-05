@@ -351,6 +351,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<HrdMissingAttendance> HrdMissingAttendances { get; set; }
         public DbSet<HrdBusinessTripAttendance> HrdBusinessTripAttendances { get; set; }
         public DbSet<HrdRemoteAttendance> HrdRemoteAttendances { get; set; }
+        public DbSet<HrdAttendanceSetting> HrdAttendanceSettings { get; set; }
+        public DbSet<HrdEarlyLeavePermission> HrdEarlyLeavePermissions { get; set; }
+        public DbSet<HrdOfficialDutyRequest> HrdOfficialDutyRequests { get; set; }
+        public DbSet<HrdAttendancePeriodReopenLog> HrdAttendancePeriodReopenLogs { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - SCHEDULING MANAGEMENT

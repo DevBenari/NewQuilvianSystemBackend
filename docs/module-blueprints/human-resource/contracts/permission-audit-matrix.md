@@ -1007,3 +1007,53 @@ Matriks ini mengunci seluruh string penanda hak akses API (`[AccessPermission("R
 | `OVERTIME_PERIOD_CUTOFF_LOCKED` | `INFO` | `PeriodYear`, `PeriodMonth`, `CutoffDate`, `TotalVerifiedRequests` | Penguncian snapshot transaksi lembur bulanan (tgl 20) |
 | `OVERTIME_PAYROLL_HANDOFF_EXECUTED`| `CRITICAL` | `PeriodYear`, `PeriodMonth`, `TargetBatchId`, `TotalPayableHours` | Serah terima resmi data lembur ke modul 10 Payroll |
 | `OVERTIME_SELF_APPROVAL_ATTEMPT_BLOCKED`| `SECURITY`| `PlanId`, `CallerUserId`, `AttemptedAction: Approve`, `Reason: SelfApproval` | Percobaan persetujuan lembur sendiri digagalkan sistem |
+
+---
+
+## 18. Bagian `S-B5` — Matriks Hak Akses & Audit Penggajian Pegawai Rumah Sakit (Sub-modul 10, `last_changed_in` `v14`, 5 November 2026)
+
+Matriks ini mengunci seluruh string penanda izin akses API (`[AccessPermission("Resource", "Action")]`), peran pengguna yang berhak, serta daftar peristiwa audit kepatuhan (*audit trail events*) untuk **Slice `S-B5` — Penggajian Pegawai Rumah Sakit**.
+
+### 18.1 Matriks Hak Akses (Permissions)
+
+| Resource | Action | String Permission Persis | Peran Pengguna yang Berhak | Keterangan & Batas Operasional |
+| :--- | :--- | :--- | :--- | :--- |
+| `PayrollRun` | `View` | `[AccessPermission("PayrollRun", "View")]` | Payroll Officer, HR Manager, Direksi | Melihat daftar siklus dan ringkasan eksekutif payroll run |
+| `PayrollRun` | `Create` | `[AccessPermission("PayrollRun", "Create")]` | Payroll Officer | Membuka dan menginisiasi siklus penggajian bulanan baru |
+| `PayrollRun` | `Cancel` | `[AccessPermission("PayrollRun", "Cancel")]` | Payroll Officer, HR Manager | Membatalkan draf siklus penggajian sebelum diajukan |
+| `PayrollCalculation` | `Execute` | `[AccessPermission("PayrollCalculation", "Execute")]` | Payroll Officer | Memicu eksekusi kalkulasi formula pendapatan dan potongan |
+| `PayrollCalculation` | `ViewWorksheet`| `[AccessPermission("PayrollCalculation", "ViewWorksheet")]`| Payroll Officer, HR Manager | Membuka lembar kerja audit individual gaji pegawai |
+| `PayrollCalculation` | `ViewDetail` | `[AccessPermission("PayrollCalculation", "ViewDetail")]`| Payroll Officer, HR Manager | Melihat rincian breakdown formula komponen per pegawai |
+| `PayrollCalculation` | `Submit` | `[AccessPermission("PayrollCalculation", "Submit")]` | Payroll Officer | Mengajukan draf gaji terjustifikasi ke HR Manager |
+| `PayrollVariance` | `Justify` | `[AccessPermission("PayrollVariance", "Justify")]` | Payroll Officer | Mengisi catatan justifikasi resmi atas deviasi variansi $\ge 20\%$ |
+| `PayrollApproval` | `View` | `[AccessPermission("PayrollApproval", "View")]` | HR Manager, Direktur SDM, Direktur Keuangan | Mengakses kotak masuk persetujuan siklus penggajian |
+| `PayrollApproval` | `Review` | `[AccessPermission("PayrollApproval", "Review")]` | HR Manager | Menyetujui hasil tinjauan administratif Tahap 2 |
+| `PayrollApproval` | `AuthorizeFinal`| `[AccessPermission("PayrollApproval", "AuthorizeFinal")]`| Direktur SDM, Direktur Keuangan | Memberikan otorisasi final Tahap 3 & penguncian mutlak (*Final Lock*) |
+| `PayrollHandoff` | `Dispatch` | `[AccessPermission("PayrollHandoff", "Dispatch")]` | Payroll Officer, HR Manager | Membentuk berkas serah terima terenkripsi ke Finance |
+| `PayrollHandoff` | `View` | `[AccessPermission("PayrollHandoff", "View")]` | Payroll Officer, HR Manager, Finance User | Memantau status berkas, tanda terima, dan konfirmasi Finance |
+| `PayrollHandoff` | `HandleRejection`| `[AccessPermission("PayrollHandoff", "HandleRejection")]`| Finance Manager, HR Manager | Menangani pembukaan kunci terkendali saat batch ditolak Finance |
+| `PayrollHandoff` | `ConfirmPayment`| `[AccessPermission("PayrollHandoff", "ConfirmPayment")]`| Treasury / Kasir Finance | Menerbitkan konfirmasi transfer kliring bank sukses diselesaikan |
+| `SelfServicePayroll` | `ViewSelf` | `[AccessPermission("SelfServicePayroll", "ViewSelf")]` | Seluruh Staf Rumah Sakit | Membuka riwayat slip gaji pribadi di portal ESS |
+| `SelfServicePayroll` | `VerifyPin` | `[AccessPermission("SelfServicePayroll", "VerifyPin")]` | Seluruh Staf Rumah Sakit | Autentikasi sekunder PIN 6-digit untuk membuka lembar gaji |
+| `SelfServicePayroll` | `DownloadPdf` | `[AccessPermission("SelfServicePayroll", "DownloadPdf")]`| Seluruh Staf Rumah Sakit | Mengunduh berkas PDF slip gaji resmi ber-password |
+| `PayrollSetting` | `View` | `[AccessPermission("PayrollSetting", "View")]` | HR Officer, HR Manager, Admin | Membaca parameter kebijakan cut-off dan tarif BPJS |
+| `PayrollSetting` | `Manage` | `[AccessPermission("PayrollSetting", "Manage")]` | HR Director, System Administrator | Memperbarui parameter operasional penggajian rumah sakit |
+
+### 18.2 Matriks Jejak Audit Trail (Audit Trail Events)
+
+| Kode Event Audit | Tingkat Kepentingan | Data yang Dicatat | Pemicu Peristiwa |
+| :--- | :---: | :--- | :--- |
+| `PAYROLL_RUN_INITIALIZED` | `INFO` | `RunId`, `PeriodId`, `CutoffDate`, `InitiatedByUserId` | Inisiasi pembukaan siklus penggajian baru |
+| `PAYROLL_INPUT_SNAPSHOT_FROZEN` | `INFO` | `RunId`, `TotalAttendanceInputs`, `TotalOvertimeInputs`, `TotalLeaveInputs` | Pembekuan snapshot data masukan dari Sub-07, 08, 09 |
+| `PAYROLL_CALCULATION_EXECUTED` | `INFO` | `RunId`, `TotalEmployees`, `GrossPayAmount`, `NetPayAmount` | Eksekusi kalkulasi agregat formula gaji seluruh staf |
+| `PAYROLL_VARIANCE_ALERT_TRIGGERED` | `WARNING` | `RunId`, `EmployeeId`, `DeviationPercent`, `NetPayDiff` | Deteksi otomatis lonjakan gaji $\ge 20\%$ vs bulan lalu |
+| `PAYROLL_VARIANCE_JUSTIFIED` | `INFO` | `RunId`, `AlertId`, `JustifiedByUserId`, `ReasonText` | Pengisian catatan penjelasan formal variansi anomali |
+| `PAYROLL_SUBMITTED_FOR_REVIEW` | `INFO` | `RunId`, `SubmittedByUserId`, `TotalGrossPay` | Pengajuan paket penggajian ke tahap review HR Manager |
+| `PAYROLL_HR_REVIEW_APPROVED` | `INFO` | `RunId`, `ReviewedByManagerId`, `SamplingAuditNotes` | Persetujuan administratif Tahap 2 oleh HR Manager |
+| `PAYROLL_FINAL_AUTHORIZED_LOCKED` | `CRITICAL` | `RunId`, `AuthorizedByDirectorId`, `TotalNetPay`, `Checksum` | Otorisasi final Direksi & penguncian immutable data |
+| `PAYROLL_SELF_APPROVAL_BLOCKED` | `SECURITY` | `RunId`, `CallerUserId`, `AttemptedAction`, `Reason: SelfApproval` | Percobaan persetujuan paket sendiri digagalkan sistem |
+| `PAYROLL_FINANCE_HANDOFF_DISPATCHED` | `CRITICAL` | `RunId`, `BatchNumber`, `IntegrityChecksumSha256`, `RecipientDept` | Penyerahan paket data terenkripsi ke Departemen Keuangan |
+| `PAYROLL_FINANCE_REJECTION_RECORDED` | `WARNING` | `RunId`, `BatchNumber`, `FinanceRejectorId`, `RejectionReason` | Sinyal penolakan resmi Finance & pembukaan kunci terkendali |
+| `PAYROLL_PAYMENT_CONFIRMED` | `CRITICAL` | `RunId`, `BankDisbursementRefNo`, `ConfirmedByFinanceId` | Konfirmasi transfer kliring bank sukses & picu rilis ESS |
+| `PAYROLL_ESS_PAYSLIP_ACCESSED` | `INFO` | `PayslipId`, `EmployeeId`, `SessionIp`, `AuthMethod: PIN` | Pembukaan lembar rincian slip gaji mandiri di ESS |
+| `PAYROLL_FAILED_PIN_ATTEMPT_LOCKED` | `SECURITY` | `EmployeeId`, `FailedAttempts: 3`, `LockoutDuration: 30m` | Pembekuan akses slip gaji akibat 3 kali salah input PIN |

@@ -58,7 +58,7 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | `HRD-PH-001` | `S0-A`, `S0-B` | `READY` |
 | `HRD-PH-002` | `S-A1` s.d. `S-A7` | `READY` |
 | `HRD-PH-003` | `S-B1` s.d. `S-B4` | `PLANNED` — `S-B4` (17 BE, 13 FE rev 8); `S-B1` (13 BE, 14 FE rev 9); `S-B2` (14 BE, 14 FE rev 10); `S-B3` direncanakan pada roadmap revision `11` (5 November 2026): 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) |
-| `HRD-PH-004` | `S-B5` | `READY` sebagian |
+| `HRD-PH-004` | `S-B5` | `PLANNED` — Direncanakan pada roadmap revision `12` (5 November 2026): 15 task backend (`BE-HRD-146` s.d. `BE-HRD-160`) dan 14 task frontend (`FE-HRD-130` s.d. `FE-HRD-143`) |
 | `HRD-PH-005` | `S-C1` | `BLOCKED` |
 | `HRD-PH-006` | `S-C6` | `BLOCKED` |
 | `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1` dan `S-D2`: desain disetujui dan task direncanakan 3 November 2026 (`backend-roadmap.md` dan `frontend-roadmap.md` revision `6`); `S-D3` s.d. `S-D4` `BLOCKED`; `S-D5` `DEFERRED` |
@@ -346,18 +346,17 @@ Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan 
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | 49 endpoint pada 6 controller. Jalur masuk dari kehadiran tersedia lewat `AttendancePayrollHandoffController` dengan `execute`, `repair`, dan `rollback` per `payrollRunId`. Frontend memanggil nol |
-| **Target State** | Petugas payroll dapat menyiapkan periode, merekonsiliasi masukan dari kehadiran, cuti, dan lembur, menjalankan perhitungan, dan menyerahkan hasilnya |
-| **Backend Impact** | Diharapkan nihil untuk perhitungan. **Bentuk serah terima ke Finance tidak dirancang pada slice ini** |
-| **Frontend Impact** | Kelompok halaman baru di `src/app/hr/payroll/**`, terbatas sampai serah terima dijalankan |
-| **Database Impact** | Tidak ada |
-| **Dependency** | `HRD-DEP-004` |
-| **Blocking Decision** | `HRD-DEC-009` sudah final: tanggung jawab HR berhenti setelah `execute`. **`HRD-Q-10` dan `HRD-Q-11` masih terbuka**: bentuk data serah terima dan perilaku bila Finance menolak batch |
-| **QBE Impact** | Frontend saja untuk bagian yang boleh dikerjakan |
-| **Migration Risk** | Nihil untuk bagian yang boleh dikerjakan |
-| **Acceptance Criteria** | 1. Tidak ada endpoint HR yang mengubah status pembayaran. 2. Rantai berhenti pada `payroll-handoff/.../execute`. 3. Kehadiran, cuti, dan lembur yang belum selesai tidak ikut perhitungan. 4. Serah terima bersifat idempoten: menjalankannya dua kali tidak menghasilkan dua penyerahan |
-| **Release Status** | `PARTIAL` — perhitungan dan rekonsiliasi `READY`; bentuk serah terima dan penanganan penolakan `BLOCKED` |
-
+| **Current State** | 49 endpoint operasional legacy pada 6 controller. Blueprint arsitektur target V2 Slice `S-B5` telah dikunci lengkap pada Kontrak `v14` (7 entitas, 6 grup Swagger, 18 permissions, 14 audit events, 25 aturan validasi). |
+| **Target State** | Petugas payroll menginisiasi siklus batch pasca cut-off tgl 20 dengan precondition gate (Sub-07, 08, 09 closed), kalkulasi gaji otomatis berparameter transparan PPh 21 TER PMK 168/2023 & BPJS plafon, deteksi deviasi net pay >= 20% (variance alert), otorisasi 3-jenjang SoD anti-self-approval, pembekuan immutable, serah terima berkas Finance SHA-256 (`INT-HR-53`), callback penanganan penolakan/rollback terkendali (`INT-HR-54`), dan distribusi slip gaji digital ESS ber-PIN 6-digit tgl 25. |
+| **Backend Impact** | 7 entitas baru di schema `hrm` (`trx_payroll_runs`, `trx_payroll_item_details`, `trx_payroll_variance_alerts`, `trx_payroll_approvals`, `trx_payroll_handoff_batches`, `trx_payroll_payslips`, `hrd_payroll_settings`), DDL Postgres & migrasi EF Core, 15 task backend (`BE-HRD-146` s.d. `BE-HRD-160`). |
+| **Frontend Impact** | 6 layar baru (`FE-HRD-162` s.d. `FE-HRD-167`), wizard inisiasi batch, lembar kerja kalkulasi gaji, drawer investigasi variansi, inbox approval eksekutif, portal slip gaji ESS ber-PIN, 14 task frontend (`FE-HRD-130` s.d. `FE-HRD-143`). |
+| **Database Impact** | 7 tabel baru di schema `hrm` beserta indeks komposit performa kueri per unit kerja dan pegawai. |
+| **Dependency** | `HRD-DEP-004` (Terpenuhi oleh Sub-07, Sub-08, dan Sub-09 yang telah selesai dirancang). |
+| **Blocking Decision** | Ditutup penuh oleh `HRD-DEC-122` s.d. `HRD-DEC-127` dan asumsi `HRD-ASM-27` s.d. `HRD-ASM-30`. `HRD-Q-10` dan `HRD-Q-11` terjawab tuntas melalui kontrak serah terima berkas Finance SHA-256 (`INT-HR-53`) dan callback reconciler rollback terkendali ke `NeedCorrection` (`INT-HR-54`). |
+| **QBE Impact** | Kepatuhan penuh QBE backend (repository pattern, DI, Clean Architecture) dan design token frontend Quilvian. |
+| **Migration Risk** | Rendah: tabel payroll V2 independen tanpa mengubah skema legacy Finance. |
+| **Acceptance Criteria** | 1. Pra-syarat presensi, cuti, lembur terkunci cut-off tgl 20 diverifikasi ketat (`PAY-B1`). 2. Perhitungan PPh 21 TER PMK 168/2023 presisi. 3. Variansi deviasi >= 20% memblokir submission tanpa justifikasi min 20 karakter. 4. Anti-self-approval HR Manager aktif. 5. Otorisasi final mengunci data permanen (*immutable*). 6. Paket serah terima Finance ber-checksum SHA-256. 7. Slip gaji ESS dilindungi PIN 6-digit & lockout 30 menit. |
+| **Release Status** | `PLANNED` — Desain disetujui pengguna 5 November 2026 (`HRD-DEC-122` s.d. `HRD-DEC-127`). Direncanakan 15 task backend (`BE-HRD-146` s.d. `BE-HRD-160`) dan 14 task frontend (`FE-HRD-130` s.d. `FE-HRD-143`) pada roadmap revision `12` lintas gelombang `MVP-30` s.d. `MVP-32` & Verifikasi. |
 ---
 
 ## 4. Gelombang C — Pengembangan orang
@@ -650,8 +649,8 @@ Contoh supaya batasnya jelas:
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
 | `READY` | **16** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1) |
-| `PLANNED` | **4** | `S-B4` (1, sejak 4 November 2026 — 17 task BE, 13 task FE rev 8), `S-B1` (1, sejak 4 November 2026 — 13 task BE, 14 task FE rev 9), `S-B2` (1, sejak 4 November 2026 — 14 task BE, 14 task FE rev 10), `S-B3` (1, sejak 5 November 2026 — 15 task BE, 14 task FE rev 11) |
-| `PARTIAL` | 1 | `S-B5` |
+| `PLANNED` | **5** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, sejak 5 November 2026 — 15 task BE, 14 task FE rev 12) |
+| `PARTIAL` | **0** | Tidak ada slice PARTIAL |
 | `BLOCKED` | 4 | `S-C1`, `S-C6`, `S-D3`, `S-D4` |
 | `DEFERRED` | 1 | `S-D5` |
 | **Total** | **26** | |

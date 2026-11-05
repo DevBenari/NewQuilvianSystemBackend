@@ -2059,3 +2059,83 @@ Bagian ini mendefinisikan spesifikasi antarmuka pemrograman aplikasi (API Endpoi
 | `GET` | `/api/v1/corporate/human-resource/overtime/reconciliations/summary` | Rekapitulasi lembur siap bayar dan daftar rapel retrospektif periode lalu | `[AccessPermission("OvertimePeriod", "Manage")]` | Query: `year`, `month` | `OvertimeReconciliationSummaryDto` | `200`, `401`, `403` |
 | `POST` | `/api/v1/corporate/human-resource/overtime/periods/{id}/lock-cutoff` | Mengunci snapshot transaksi lembur pada cut-off bulanan (tgl 20) | `[AccessPermission("OvertimePeriod", "Manage")]` | Body: `{ cutoffDate: string }` | `LockOvertimePeriodResultDto` | `200`, `400`, `401`, `403`, `409` |
 | `POST` | `/api/v1/corporate/human-resource/overtime/periods/{id}/handoff-payroll` | Menyerahkan paket data rekonsiliasi lembur terkunci ke Sub-modul 10 Payroll | `[AccessPermission("OvertimePeriod", "HandoffPayroll")]` | Body: `{ targetPayrollBatchId: string }` | `OvertimePayrollHandoffResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+---
+
+## 20. Bagian `S-B5` — Kontrak API Penggajian Pegawai Rumah Sakit (Sub-modul 10, `last_changed_in` `v14`, 5 November 2026)
+
+Bagian ini mendefinisikan spesifikasi antarmuka pemrograman aplikasi (API Endpoint Contract) bergaya Swagger untuk **Sub-modul 10. Payroll Management (Slice `S-B5`)**, menyerap keputusan bisnis `HRD-DEC-122` s.d. `HRD-DEC-127` dan batasan kepemilikan `HRD-DEC-009`.
+
+### 20.1 Ikhtisar Grup Endpoint Swagger
+
+```csharp
+[Tags("HR Payroll - Run Cycles")]
+[Tags("HR Payroll - Calculations & Variance")]
+[Tags("HR Payroll - Approvals")]
+[Tags("HR Payroll - Finance Handoff")]
+[Tags("HR Payroll - Self-Service Payslips")]
+[Tags("HR Payroll - Settings")]
+```
+
+---
+
+### 20.2 Spesifikasi Endpoint Detail
+
+#### `[Tags("HR Payroll - Run Cycles")]`
+*Kelompok endpoint pembukaan, penutupan, dan pemantauan siklus penggajian bulanan.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/payroll/runs` | Daftar siklus penggajian bulanan dengan filter tahun & status | `[AccessPermission("PayrollRun", "View")]` | Query: `year`, `status`, `page`, `pageSize` | `PagedResult<PayrollRunSummaryDto>` | `200`, `401` |
+| `GET` | `/api/v1/corporate/human-resource/payroll/runs/{id}` | Detail siklus payroll: ringkasan finansial, progress approval, dan status kunci | `[AccessPermission("PayrollRun", "View")]` | Path: `id` (GUID) | `PayrollRunDetailDto` | `200`, `401`, `404` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/initialize` | Inisiasi siklus penggajian baru (memvalidasi penutupan Sub-07, 08, 09 tgl 20) | `[AccessPermission("PayrollRun", "Create")]` | Body: `InitializePayrollRunCommand` | `PayrollRunResultDto` | `201`, `400`, `401`, `409`, `422` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/cancel` | Membatalkan draf siklus penggajian sebelum diajukan ke jenjang persetujuan | `[AccessPermission("PayrollRun", "Cancel")]` | Body: `{ cancellationReason: string }` | `PayrollRunResultDto` | `200`, `400`, `401`, `409` |
+
+#### `[Tags("HR Payroll - Calculations & Variance")]`
+*Kelompok endpoint eksekusi mesin kalkulasi gaji, rincian komponen, dan penanganan variansi deviasi.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/calculate` | Memicu eksekusi kalkulasi gaji seluruh staf (PPh 21 TER, BPJS, lembur, presensi) | `[AccessPermission("PayrollCalculation", "Execute")]` | Path: `id` (GUID) | `PayrollCalculationResultDto` | `200`, `400`, `401`, `409` |
+| `GET` | `/api/v1/corporate/human-resource/payroll/runs/{id}/worksheet` | Lembar kerja audit gaji individual staf, kolom deviasi, dan status alert | `[AccessPermission("PayrollCalculation", "ViewWorksheet")]` | Query: `search`, `unitId`, `hasVarianceAlert`, `page`, `pageSize` | `PagedResult<PayrollWorksheetItemDto>` | `200`, `401`, `404` |
+| `GET` | `/api/v1/corporate/human-resource/payroll/runs/{id}/employees/{employeeId}/components` | Rincian breakdown formula komponen pendapatan & potongan per pegawai | `[AccessPermission("PayrollCalculation", "ViewDetail")]` | Path: `id`, `employeeId` | `EmployeePayrollComponentBreakdownDto` | `200`, `401`, `404` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/variances/{alertId}/justify` | Menyimpan catatan justifikasi formal atas lonjakan variansi gaji $\ge 20\%$ | `[AccessPermission("PayrollVariance", "Justify")]` | Body: `JustifyPayrollVarianceCommand` | `PayrollVarianceAlertDto` | `200`, `400`, `401`, `404` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/submit-review` | Mengajukan draf payroll ke HR Manager (terkunci bila ada variansi tanpa justifikasi) | `[AccessPermission("PayrollCalculation", "Submit")]` | Body: `{ submissionNotes: string }` | `PayrollRunResultDto` | `200`, `400`, `401`, `409` |
+
+#### `[Tags("HR Payroll - Approvals")]`
+*Kelompok endpoint alur persetujuan berjenjang pemisahan wewenang (3-Tier Segregation of Duties).*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/payroll/approvals/pending` | Daftar siklus penggajian yang menunggu persetujuan pengguna penilai | `[AccessPermission("PayrollApproval", "View")]` | Query: `tierLevel`, `page`, `pageSize` | `PagedResult<PendingPayrollApprovalSummaryDto>` | `200`, `401` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/approve-hr-review` | Persetujuan administratif Tahap 2 oleh HR Manager | `[AccessPermission("PayrollApproval", "Review")]` | Body: `{ reviewNotes: string }` | `PayrollApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/authorize-final` | Otorisasi final Tahap 3 oleh Direktur SDM/Keuangan & penguncian immutable | `[AccessPermission("PayrollApproval", "AuthorizeFinal")]` | Body: `{ authorizationNotes: string }` | `PayrollApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/request-revision` | Mengembalikan draf ke Petugas Payroll untuk revisi perbaikan data | `[AccessPermission("PayrollApproval", "Review")]` | Body: `{ revisionNotes: string }` | `PayrollApprovalResultDto` | `200`, `400`, `401`, `403`, `409` |
+
+#### `[Tags("HR Payroll - Finance Handoff")]`
+*Kelompok endpoint penyerahan berkas final ke Keuangan dan protokol rollback penolakan.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/dispatch-finance-handoff` | Membentuk dan menyerahkan paket serah terima terenkripsi ber-checksum SHA-256 | `[AccessPermission("PayrollHandoff", "Dispatch")]` | Path: `id` (GUID) | `FinanceHandoffBatchResultDto` | `200`, `400`, `401`, `409` |
+| `GET` | `/api/v1/corporate/human-resource/payroll/runs/{id}/handoff-status` | Memeriksa status penerimaan, konfirmasi bayar, atau penolakan Finance | `[AccessPermission("PayrollHandoff", "View")]` | Path: `id` (GUID) | `FinanceHandoffStatusDto` | `200`, `401`, `404` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/finance-rejection` | Menerima sinyal penolakan resmi dari Finance (memicu pembukaan kunci terkendali) | `[AccessPermission("PayrollHandoff", "HandleRejection")]` | Body: `FinanceRejectionCallbackCommand` | `FinanceRejectionResultDto` | `200`, `400`, `401`, `409` |
+| `POST` | `/api/v1/corporate/human-resource/payroll/runs/{id}/finance-payment-confirmed` | Menerima konfirmasi pembayaran transfer bank selesai dari Finance | `[AccessPermission("PayrollHandoff", "ConfirmPayment")]` | Body: `FinancePaymentConfirmationCommand` | `FinanceConfirmationResultDto` | `200`, `400`, `401`, `409` |
+
+#### `[Tags("HR Payroll - Self-Service Payslips")]`
+*Kelompok endpoint akses slip gaji digital mandiri pegawai terlindungi PIN sekunder.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/self-service/payroll/payslips` | Riwayat daftar periode slip gaji mandiri pegawai aktif di ESS | `[AccessPermission("SelfServicePayroll", "ViewSelf")]` | Query: `year`, `page`, `pageSize` | `PagedResult<SelfServicePayslipSummaryDto>` | `200`, `401` |
+| `POST` | `/api/v1/corporate/human-resource/self-service/payroll/payslips/{id}/verify-pin` | Verifikasi autentikasi sekunder PIN 6-digit untuk membuka lembar gaji | `[AccessPermission("SelfServicePayroll", "VerifyPin")]` | Body: `{ pin: string }` | `PayslipPinVerificationResultDto` | `200`, `400`, `401`, `403`, `429` |
+| `GET` | `/api/v1/corporate/human-resource/self-service/payroll/payslips/{id}/detail` | Rincian lengkap slip gaji digital (setelah PIN terverifikasi) | `[AccessPermission("SelfServicePayroll", "ViewSelf")]` | Header: `X-Payroll-PIN: token` | `SelfServicePayslipDetailDto` | `200`, `401`, `403`, `404` |
+| `GET` | `/api/v1/corporate/human-resource/self-service/payroll/payslips/{id}/download-pdf` | Mengunduh berkas PDF slip gaji resmi ber-password & watermark | `[AccessPermission("SelfServicePayroll", "DownloadPdf")]` | Header: `X-Payroll-PIN: token` | `FileStreamResult (PDF)` | `200`, `401`, `403`, `404` |
+
+#### `[Tags("HR Payroll - Settings")]`
+*Kelompok endpoint konfigurasi parameter operasional penggajian rumah sakit.*
+
+| Method | Path | Deskripsi | Otorisasi / Permission | Request Payload | Response Model | Status Codes |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/human-resource/payroll/settings` | Membaca parameter operasional payroll aktif (cut-off, variansi, tarif BPJS) | `[AccessPermission("PayrollSetting", "View")]` | None | `PayrollSettingDto` | `200`, `401` |
+| `PUT` | `/api/v1/corporate/human-resource/payroll/settings` | Memperbarui parameter operasional payroll rumah sakit | `[AccessPermission("PayrollSetting", "Manage")]` | Body: `UpdatePayrollSettingCommand` | `PayrollSettingDto` | `200`, `400`, `401`, `403` |

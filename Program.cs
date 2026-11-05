@@ -1194,6 +1194,7 @@ try
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceSettingService>();
     builder.Services.AddScoped<AttendanceDailyQueryService>();
     builder.Services.AddScoped<AttendanceCorrectionWorkflowLifecycleService>();
     builder.Services.AddScoped<AttendanceCorrectionService>();
@@ -1204,6 +1205,9 @@ try
         builder.Configuration.GetSection("HumanResource:AttendanceScheduler"));
     builder.Services.AddScoped<AttendancePeriodService>();
     builder.Services.AddScoped<AttendanceSchedulerService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.EarlyLeavePermissionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.OfficialDutyRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceScheduleMutationConsumer>();
 
     // CORPORATE - ACCOUNTING MANAGEMENT
     // Satu baris per service modul, sesuai 02-backend-architecture.md bagian 6. Pemanggilan

@@ -4650,3 +4650,456 @@ Modul memerlukan parameter konfigurasi operasional lembur yang disimpan pada tab
 | `HRD-ASM-24` | 22.1, 22.3 (`OvertimeRealizationService` integrasi on-call Sub-modul 06) |
 | `HRD-ASM-25` | 22.2, 22.7 (`Overtime.CtoValidityDays` 90 hari), 22.9 |
 | `HRD-ASM-26` | 22.2 (`TrxOvertimePlanDetail`), 22.8 (`OT-W6`) |
+
+---
+
+## 23. Bagian `S-B5` — Arsitektur Backend Penggajian Pegawai Rumah Sakit (Sub-modul 10, `last_changed_in` `v14`, 5 November 2026)
+
+Bagian ini mendefinisikan arsitektur backend komprehensif untuk **Sub-modul 10. Payroll Management (Slice `S-B5`)**, menyerap keputusan bisnis `HRD-DEC-122` s.d. `HRD-DEC-127`, asumsi `HRD-ASM-27` s.d. `HRD-ASM-30`, penegasan batas kepemilikan `HRD-DEC-009`, serta memetakan kapabilitas existing `HRD-CAP-09` (49 endpoint di folder `Areas/Corporate/HumanResource/PayrollManagement`).
+
+### 23.1 Konteks Domain & Kepemilikan Data (`PayrollManagement`)
+
+| Kelompok Data / Entitas | Modul Pemilik | Dipakai di Sub-Modul 10 | Status Kepemilikan | Keterangan & Batas Tanggung Jawab |
+| :--- | :--- | :---: | :---: | :--- |
+| Profil Pegawai & Gaji Pokok | Workforce Core (01/02) | Ya | Read-Only | Mengambil status kepegawaian, golongan/grade, jabatan, PTKP, dan `WfpSalaryAssignment` |
+| Presensi & Potongan Mangkir | Attendance (07) | Ya | Snapshot Handoff | Membaca jam kerja riil, potongan keterlambatan, dan denda mangkir via `TrxPayrollAttendanceInput` |
+| Cuti Tak Berbayar (Unpaid) | Leave (08) | Ya | Snapshot Handoff | Membaca pemotongan hari cuti tak berbayar (*unearned leave*) via `TrxPayrollVariableInput` |
+| Lembur & Rapel Retrospektif | Overtime (09) | Ya | Snapshot Handoff | Membaca uang lembur sah terverifikasi dan rapel periode lalu via `TrxPayrollOvertimeInput` |
+| Potongan Kasbon / Cicilan RS | Restitution (11) | Ya | Integrasi Potongan | Menarik angsuran pinjaman internal staf dan restitusi via event `INT-HR-55` |
+| Siklus Penggajian Bulanan | Payroll (10) | Ya | **Owner (Diperbarui)** | Entitas `TrxPayrollRun` mengelola siklus status draft, kalkulasi, review, approval, hingga handoff |
+| Rincian Komponen Pendapatan & Potongan | Payroll (10) | Ya | **Owner (Baru)** | Entitas `TrxPayrollItemDetail` menyimpan seluruh baris pendapatan, pajak TER, BPJS, dan potongan internal |
+| Deteksi Anomali Variansi Gaji | Payroll (10) | Ya | **Owner (Baru)** | Entitas `TrxPayrollVarianceAlert` mencatat bendera deviasi $\ge 20\%$ dan justifikasi wajib |
+| Persetujuan Berjenjang 3-Tahap | Payroll (10) | Ya | **Owner (Baru)** | Entitas `TrxPayrollApproval` menegakkan pemisahan wewenang (*Segregation of Duties*) & anti-self-approval |
+| Berkas Serah Terima Keuangan | Payroll (10) | Ya | **Owner (Baru)** | Entitas `TrxPayrollHandoffBatch` mencatat payload immutable terenkripsi dan protokol rollback Finance |
+| Slip Gaji Digital Mandiri (ESS) | Payroll (10) | Ya | **Owner (Diperbarui)** | Entitas `TrxPayrollPayslip` melayani pembacaan slip gaji ESS terlindungi PIN sekunder |
+| Pengaturan Kebijakan Penggajian RS | Payroll (10) | Ya | **Owner (Baru)** | Entitas `HrdPayrollSetting` menyimpan konfigurasi tanggal cut-off, ambang variansi, dan tarif BPJS |
+| Transfer Bank & Jurnal Akuntansi | Finance & Accounting | Ya | Outbound Handoff | **Di luar wewenang HR (`HRD-DEC-009`)**: Eksekusi kliring bank dan pencatatan buku besar umum |
+
+---
+
+### 23.2 Class Diagram Domain Penggajian (`PayrollManagement`)
+
+```mermaid
+classDiagram
+  class TrxPayrollRun {
+    +Guid Id
+    +string RunNumber
+    +Guid PeriodId
+    +DateTime PeriodStartDate
+    +DateTime PeriodEndDate
+    +DateTime CutoffDate
+    +string RunStatus
+    +int TotalEmployees
+    +decimal TotalGrossPay
+    +decimal TotalDeductions
+    +decimal TotalTaxWithheld
+    +decimal TotalBpjsEmployer
+    +decimal TotalBpjsEmployee
+    +decimal TotalNetPay
+    +bool IsLocked
+    +DateTime? LockedAt
+    +Guid? LockedByUserId
+    +string ChecksumSha256
+    +DateTime CreatedAt
+    +InitializeRun()
+    +CalculateTotals()
+    +LockForHandoff()
+    +RejectFromFinance()
+  }
+
+  class TrxPayrollItemDetail {
+    +Guid Id
+    +Guid PayrollRunId
+    +Guid EmployeeId
+    +string ComponentCategory
+    +string ComponentCode
+    +string ComponentName
+    +decimal Amount
+    +string RateType
+    +decimal Multiplier
+    +string ProvenanceSourceModule
+    +string ProvenanceReferenceId
+    +string TaxClassification
+    +bool IsSubjectToBpjs
+  }
+
+  class TrxPayrollVarianceAlert {
+    +Guid Id
+    +Guid PayrollRunId
+    +Guid EmployeeId
+    +decimal PreviousNetPay
+    +decimal CurrentNetPay
+    +decimal VariancePercentage
+    +decimal VarianceAmount
+    +string AlertSeverity
+    +string JustificationReason
+    +Guid? JustifiedByUserId
+    +DateTime? JustifiedAt
+    +bool IsResolved
+  }
+
+  class TrxPayrollApproval {
+    +Guid Id
+    +Guid PayrollRunId
+    +int ApprovalTierLevel
+    +string TierRoleName
+    +Guid ApproverUserId
+    +string ApprovalAction
+    +string Notes
+    +DateTime ActionAt
+    +string IpAddress
+  }
+
+  class TrxPayrollHandoffBatch {
+    +Guid Id
+    +Guid PayrollRunId
+    +string BatchReferenceNumber
+    +string HandoffStatus
+    +string BankDisbursementPayloadJson
+    +string IntegrityChecksum
+    +DateTime DispatchedAt
+    +Guid DispatchedByUserId
+    +DateTime? FinanceAcknowledgedAt
+    +string FinanceRejectionReason
+    +DateTime? FinanceRejectionAt
+  }
+
+  class TrxPayrollPayslip {
+    +Guid Id
+    +Guid PayrollRunId
+    +Guid EmployeeId
+    +string PayslipNumber
+    +decimal GrossAmount
+    +decimal TotalDeductions
+    +decimal NetAmount
+    +string PayslipStatus
+    +bool IsReleasedToEss
+    +DateTime? ReleasedAt
+    +int FailedPinAttemptCount
+    +DateTime? PinLockedUntil
+  }
+
+  class HrdPayrollSetting {
+    +Guid Id
+    +string SettingKey
+    +int MonthlyCutoffDay
+    +int OfficialDisbursementDay
+    +decimal VarianceThresholdPercent
+    +decimal VarianceThresholdNominal
+    +decimal BpjsHealthEmployerRate
+    +decimal BpjsHealthEmployeeRate
+    +decimal BpjsTkJhtEmployerRate
+    +decimal BpjsTkJhtEmployeeRate
+    +decimal BpjsTkJpCapAmount
+    +bool IsPinSecondaryAuthRequired
+    +bool IsActive
+  }
+
+  TrxPayrollRun "1" --> "*" TrxPayrollItemDetail : aggregates
+  TrxPayrollRun "1" --> "*" TrxPayrollVarianceAlert : flags
+  TrxPayrollRun "1" --> "*" TrxPayrollApproval : authorizes
+  TrxPayrollRun "1" --> "1" TrxPayrollHandoffBatch : dispatches
+  TrxPayrollRun "1" --> "*" TrxPayrollPayslip : generates
+```
+
+---
+
+### 23.3 Daftar Class Backend Baru & Diperbarui
+
+#### 1. Lapisan Model & Konfigurasi Entitas (`Domain & EntityFramework`)
+
+| Nama Class | Status | Lokasi File | Fungsi & Tanggung Jawab |
+| :--- | :---: | :--- | :--- |
+| `TrxPayrollRun` | Diperbarui | `Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollRun.cs` | Aggregate root siklus payroll: mengelola transisi status lifecycle, pembekuan snapshot, dan kalkulasi agregat finansial |
+| `TrxPayrollItemDetail` | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollItemDetail.cs` | Baris transaksi atomik komponen gaji: pendapatan tetap, pendapatan variabel, potongan TER PPh 21, BPJS, dan pinjaman |
+| `TrxPayrollVarianceAlert` | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollVarianceAlert.cs` | Rekaman anomali deviasi gaji ($\ge 20\%$ atau $\ge$ Rp 2 jt) beserta pencatatan justifikasi audit wajib Payroll Officer |
+| `TrxPayrollApproval` | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollApproval.cs` | Rekaman audit log persetujuan 3-jenjang (Officer $	o$ Manager $	o$ Direktur) dengan perlindungan *anti-self-approval* |
+| `TrxPayrollHandoffBatch` | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollHandoffBatch.cs` | Entitas serah terima ke Finance: memuat payload immutable, checksum SHA-256, dan status penolakan rollback |
+| `TrxPayrollPayslip` | Diperbarui | `Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollPayslip.cs` | Penyedia data slip gaji digital ESS: memuat kontrol rilis terjadwal dan proteksi kunci PIN sekunder |
+| `HrdPayrollSetting` | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Models/HrdPayrollSetting.cs` | Tabel master parameter operasional payroll rumah sakit: tanggal cut-off, ambang batas variansi, dan tarif regulasi |
+
+#### 2. Lapisan Service Domain & Application Logic (`Services`)
+
+| Nama Service | Status | Lokasi File | Dipanggil Oleh | Tanggung Jawab Utama |
+| :--- | :---: | :--- | :--- | :--- |
+| `PayrollInputPreconditionGuard` | **Baru** | `.../PayrollManagement/Services/PayrollInputPreconditionGuard.cs` | `PayrollRunCycleController` | Memvalidasi seluruh periode Sub-07, 08, 09 berstatus `Closed/Reconciled`; memblokir jika ada transaksi pending |
+| `PayrollCalculationEngine` | **Baru** | `.../PayrollManagement/Services/PayrollCalculationEngine.cs` | `PayrollCalculationController` | Menjalankan pipeline kalkulasi pendapatan tetap, pendapatan variabel, integrasi lembur/presensi, dan potongan |
+| `IndonesianTaxCalculator` | **Baru** | `.../PayrollManagement/Services/IndonesianTaxCalculator.cs` | `PayrollCalculationEngine` | Menghitung PPh 21 skema TER (Kategori A, B, C) sesuai PMK 168/2023 dan rekonsiliasi Pasal 17 masa Desember |
+| `BpjsContributionCalculator` | **Baru** | `.../PayrollManagement/Services/BpjsContributionCalculator.cs` | `PayrollCalculationEngine` | Menghitung iuran BPJS Kesehatan (1% staf, 4% RS) dan Ketenagakerjaan (JHT, JKK, JKM, JP dengan batas upah) |
+| `PayrollVarianceDetectionService` | **Baru** | `.../PayrollManagement/Services/PayrollVarianceDetectionService.cs` | `PayrollCalculationEngine` | Membandingkan Net Pay vs bulan lalu, menerbitkan `VarianceAlert`, dan memvalidasi kelengkapan justifikasi |
+| `PayrollRunLifecycleManager` | **Baru** | `.../PayrollManagement/Services/PayrollRunLifecycleManager.cs` | `PayrollApprovalController` | Mengelola pemajuan status siklus 3-tier SoD, mengunci transaksi menjadi immutable, dan audit jejak penilai |
+| `PayrollFinanceHandoffService` | **Baru** | `.../PayrollManagement/Services/PayrollFinanceHandoffService.cs` | `PayrollFinanceHandoffController` | Menyusun paket serah terima terenkripsi ber-checksum SHA-256 dan menangani rollback penolakan dari Finance |
+| `PayslipReleaseService` | **Baru** | `.../PayrollManagement/Services/PayslipReleaseService.cs` | `PayrollSelfServiceController` | Mengontrol rilis slip gaji ESS, memverifikasi PIN 6-digit pegawai, dan menghasilkan PDF ber-watermark resmi |
+
+#### 3. Lapisan API Controller (`Controllers`)
+
+| Nama Controller | Status | Tag Swagger & Rute Base | Izin Akses (`[AccessPermission]`) |
+| :--- | :---: | :--- | :--- |
+| `PayrollRunCycleController` | **Baru** | `[Tags("HR Payroll - Run Cycles")]`<br>`/api/v1/hr/payroll/runs` | `PayrollRun:View`, `PayrollRun:Create`, `PayrollRun:Cancel` |
+| `PayrollCalculationController` | **Baru** | `[Tags("HR Payroll - Calculations & Variance")]`<br>`/api/v1/hr/payroll/calculations` | `PayrollCalculation:Execute`, `PayrollVariance:Justify` |
+| `PayrollApprovalController` | **Baru** | `[Tags("HR Payroll - Approvals")]`<br>`/api/v1/hr/payroll/approvals` | `PayrollApproval:Review`, `PayrollApproval:AuthorizeFinal` |
+| `PayrollFinanceHandoffController` | **Baru** | `[Tags("HR Payroll - Finance Handoff")]`<br>`/api/v1/hr/payroll/finance-handoff` | `PayrollHandoff:Dispatch`, `PayrollHandoff:HandleRejection` |
+| `PayrollSelfServiceController` | Diperbarui | `[Tags("HR Payroll - Self-Service Payslips")]`<br>`/api/v1/hr/self-service/payroll` | `SelfServicePayroll:View`, `SelfServicePayroll:VerifyPin` |
+| `PayrollSettingController` | **Baru** | `[Tags("HR Payroll - Settings")]`<br>`/api/v1/hr/payroll/settings` | `PayrollSetting:View`, `PayrollSetting:Manage` |
+
+---
+
+### 23.4 Pohon Direktori Source Backend C#
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/Corporate/HumanResource/PayrollManagement/
+│   ├── Controllers/
+│   │   ├── AttendancePayrollHandoffController.cs        [EXISTING]
+│   │   ├── LeavePayrollIntegrationController.cs         [EXISTING]
+│   │   ├── OvertimePayrollHandoffController.cs          [EXISTING]
+│   │   ├── PayrollApprovalController.cs                 [NEW]
+│   │   ├── PayrollCalculationController.cs              [NEW]
+│   │   ├── PayrollFinanceHandoffController.cs           [NEW]
+│   │   ├── PayrollRunCycleController.cs                 [NEW]
+│   │   ├── PayrollSelfServiceController.cs              [NEW / EXTEND]
+│   │   └── PayrollSettingController.cs                  [NEW]
+│   ├── DTOs/
+│   │   ├── PayrollCalculationDtos.cs                    [NEW]
+│   │   ├── PayrollFinanceHandoffDtos.cs                 [NEW]
+│   │   ├── PayrollRunCycleDtos.cs                       [NEW]
+│   │   ├── PayrollSelfServiceDtos.cs                    [NEW]
+│   │   └── PayrollSettingDtos.cs                        [NEW]
+│   ├── Models/
+│   │   ├── HrdPayrollSetting.cs                         [NEW]
+│   │   ├── TrxPayrollApproval.cs                        [NEW]
+│   │   ├── TrxPayrollAttendanceInput.cs                 [EXISTING]
+│   │   ├── TrxPayrollHandoffBatch.cs                    [NEW]
+│   │   ├── TrxPayrollItemDetail.cs                      [NEW]
+│   │   ├── TrxPayrollOvertimeInput.cs                   [EXISTING]
+│   │   ├── TrxPayrollPayslip.cs                         [EXISTING / EXTEND]
+│   │   ├── TrxPayrollRun.cs                             [EXISTING / EXTEND]
+│   │   ├── TrxPayrollVariableInput.cs                   [EXISTING]
+│   │   └── TrxPayrollVarianceAlert.cs                   [NEW]
+│   ├── Services/
+│   │   ├── BpjsContributionCalculator.cs                [NEW]
+│   │   ├── IndonesianTaxCalculator.cs                   [NEW]
+│   │   ├── PayrollCalculationEngine.cs                  [NEW]
+│   │   ├── PayrollFinanceHandoffService.cs              [NEW]
+│   │   ├── PayrollInputPreconditionGuard.cs             [NEW]
+│   │   ├── PayrollRunLifecycleManager.cs                [NEW]
+│   │   ├── PayrollVarianceDetectionService.cs           [NEW]
+│   │   └── PayslipReleaseService.cs                     [NEW]
+│   └── Validators/
+│       ├── FinanceRejectionValidator.cs                 [NEW]
+│       ├── PayrollApprovalValidator.cs                  [NEW]
+│       ├── PayrollCalculationValidator.cs               [NEW]
+│       ├── PayrollRunInitializeValidator.cs             [NEW]
+│       ├── PayslipPinVerificationValidator.cs           [NEW]
+│       └── VarianceJustificationValidator.cs            [NEW]
+```
+
+---
+
+### 23.5 Rencana Migrasi Database PostgreSQL
+
+1. **Urutan Eksekusi Migrasi:**
+   * Migrasi 1: Pembuatan tabel konfigurasi penggajian `hrd_payroll_settings`.
+   * Migrasi 2: Penambahan kolom status penguncian dan checksum integritas pada tabel `trx_payroll_runs`.
+   * Migrasi 3: Pembuatan tabel rincian transaksi atomik komponen gaji `trx_payroll_item_details`.
+   * Migrasi 4: Pembuatan tabel anomali variansi `trx_payroll_variance_alerts`.
+   * Migrasi 5: Pembuatan tabel audit persetujuan bertingkat `trx_payroll_approvals`.
+   * Migrasi 6: Pembuatan tabel serah terima berkas ke Finance `trx_payroll_handoff_batches`.
+   * Migrasi 7: Penambahan kolom kontrol PIN sekunder dan rilis terjadwal pada `trx_payroll_payslips`.
+2. **Ketersediaan Layanan (Zero Downtime):**
+   * Seluruh penambahan kolom bersifat `NULLABLE` atau memiliki nilai default aman (`DEFAULT 0`, `DEFAULT FALSE`).
+   * Tidak ada instruksi `DROP TABLE` atau pengubahan tipe data kolom lama yang merusak data operasional.
+3. **Langkah Mundur (Rollback Strategy):**
+   * Setiap skrip migration EF Core dilengkapi method `Down()` yang secara presisi menghapus tabel dan indeks terkait tanpa memengaruhi tabel master pegawai.
+
+---
+
+### 23.6 Skema DDL Tabel Baru & Penambahan Kolom
+
+```sql
+-- 1. Tabel Konfigurasi Parameter Payroll Rumah Sakit
+CREATE TABLE IF NOT EXISTS hrd_payroll_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    monthly_cutoff_day INT NOT NULL DEFAULT 20,
+    official_disbursement_day INT NOT NULL DEFAULT 25,
+    variance_threshold_percent NUMERIC(5,2) NOT NULL DEFAULT 20.00,
+    variance_threshold_nominal NUMERIC(18,2) NOT NULL DEFAULT 2000000.00,
+    bpjs_health_employer_rate NUMERIC(5,4) NOT NULL DEFAULT 0.0400,
+    bpjs_health_employee_rate NUMERIC(5,4) NOT NULL DEFAULT 0.0100,
+    bpjs_tk_jht_employer_rate NUMERIC(5,4) NOT NULL DEFAULT 0.0370,
+    bpjs_tk_jht_employee_rate NUMERIC(5,4) NOT NULL DEFAULT 0.0200,
+    bpjs_tk_jp_cap_amount NUMERIC(18,2) NOT NULL DEFAULT 10042300.00,
+    is_pin_secondary_auth_required BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL DEFAULT 'SYSTEM',
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+-- 2. Penambahan Kolom Penguncian & Checksum pada Tabel TrxPayrollRun
+ALTER TABLE trx_payroll_runs
+    ADD COLUMN IF NOT EXISTS is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ NULL,
+    ADD COLUMN IF NOT EXISTS locked_by_user_id UUID NULL,
+    ADD COLUMN IF NOT EXISTS checksum_sha256 VARCHAR(64) NULL,
+    ADD COLUMN IF NOT EXISTS finance_handoff_status VARCHAR(50) NOT NULL DEFAULT 'PendingHandoff';
+
+-- 3. Tabel Rincian Komponen Gaji Atomik (Earnings & Deductions)
+CREATE TABLE IF NOT EXISTS trx_payroll_item_details (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_run_id UUID NOT NULL REFERENCES trx_payroll_runs(id) ON DELETE RESTRICT,
+    employee_id UUID NOT NULL,
+    component_category VARCHAR(50) NOT NULL, -- FixedEarning, VariableEarning, StatutoryDeduction, VoluntaryDeduction
+    component_code VARCHAR(50) NOT NULL,     -- BASIC, POS_ALLOW, NIGHT_SHIFT, OVERTIME, PPH21_TER, BPJS_KES, BPJS_TK, LOAN_DEDUCTION
+    component_name VARCHAR(150) NOT NULL,
+    amount NUMERIC(18,2) NOT NULL DEFAULT 0.00,
+    rate_type VARCHAR(50) NOT NULL DEFAULT 'Fixed', -- Fixed, Percentage, Formula, HoursMultiplied
+    multiplier NUMERIC(8,2) NOT NULL DEFAULT 1.00,
+    provenance_source_module VARCHAR(50) NOT NULL, -- Attendance07, Leave08, Overtime09, Restitution11, SalaryConfig
+    provenance_reference_id VARCHAR(100) NULL,
+    tax_classification VARCHAR(50) NOT NULL DEFAULT 'TaxableRegular',
+    is_subject_to_bpjs BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL DEFAULT 'SYSTEM'
+);
+
+CREATE INDEX IF NOT EXISTS idx_payroll_item_run_emp ON trx_payroll_item_details(payroll_run_id, employee_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_item_category ON trx_payroll_item_details(component_category);
+
+-- 4. Tabel Deteksi Anomali Variansi Gaji (Variance Alerts)
+CREATE TABLE IF NOT EXISTS trx_payroll_variance_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_run_id UUID NOT NULL REFERENCES trx_payroll_runs(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL,
+    previous_net_pay NUMERIC(18,2) NOT NULL,
+    current_net_pay NUMERIC(18,2) NOT NULL,
+    variance_percentage NUMERIC(6,2) NOT NULL,
+    variance_amount NUMERIC(18,2) NOT NULL,
+    alert_severity VARCHAR(20) NOT NULL DEFAULT 'Warning', -- Warning (20-49%), Critical (>=50%)
+    justification_reason TEXT NULL,
+    justified_by_user_id UUID NULL,
+    justified_at TIMESTAMPTZ NULL,
+    is_resolved BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_payroll_variance_run ON trx_payroll_variance_alerts(payroll_run_id, is_resolved);
+
+-- 5. Tabel Audit Otorisasi Berjenjang (3-Tier Segregation of Duties)
+CREATE TABLE IF NOT EXISTS trx_payroll_approvals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_run_id UUID NOT NULL REFERENCES trx_payroll_runs(id) ON DELETE CASCADE,
+    approval_tier_level INT NOT NULL, -- 1: Officer Review, 2: HR Manager Approval, 3: Director Final Authorization
+    tier_role_name VARCHAR(50) NOT NULL,
+    approver_user_id UUID NOT NULL,
+    approval_action VARCHAR(50) NOT NULL, -- Submitted, Approved, Rejected, RequestedRevision
+    notes TEXT NULL,
+    action_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(50) NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_payroll_approval_run ON trx_payroll_approvals(payroll_run_id, approval_tier_level);
+
+-- 6. Tabel Berkas Serah Terima ke Keuangan (Finance Handoff Batch)
+CREATE TABLE IF NOT EXISTS trx_payroll_handoff_batches (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_run_id UUID NOT NULL UNIQUE REFERENCES trx_payroll_runs(id) ON DELETE RESTRICT,
+    batch_reference_number VARCHAR(100) NOT NULL UNIQUE,
+    handoff_status VARCHAR(50) NOT NULL DEFAULT 'Dispatched', -- Dispatched, AcknowledgedByFinance, RejectedByFinance, PaymentConfirmed
+    bank_disbursement_payload_json JSONB NOT NULL,
+    integrity_checksum VARCHAR(64) NOT NULL,
+    dispatched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    dispatched_by_user_id UUID NOT NULL,
+    finance_acknowledged_at TIMESTAMPTZ NULL,
+    finance_rejection_reason TEXT NULL,
+    finance_rejection_at TIMESTAMPTZ NULL,
+    payment_confirmed_at TIMESTAMPTZ NULL
+);
+
+-- 7. Penambahan Kolom Keamanan PIN Sekunder pada TrxPayrollPayslip
+ALTER TABLE trx_payroll_payslips
+    ADD COLUMN IF NOT EXISTS is_released_to_ess BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS released_at TIMESTAMPTZ NULL,
+    ADD COLUMN IF NOT EXISTS secondary_pin_hash VARCHAR(255) NULL,
+    ADD COLUMN IF NOT EXISTS failed_pin_attempt_count INT NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS pin_locked_until TIMESTAMPTZ NULL;
+```
+
+---
+
+### 23.7 Rencana Data Master Awal & Konfigurasi Sistem
+
+Seeder otomatis pada saat inisialisasi aplikasi menyediakan nilai default parameter operasional pada tabel `hrd_payroll_settings`:
+
+| Key Konfigurasi | Nilai Default | Deskripsi & Regulasi Acuan |
+| :--- | :--- | :--- |
+| `Payroll.MonthlyCutoffDay` | `20` | Tanggal penutupan transaksi waktu kerja bulanan (`HRD-ASM-27`) |
+| `Payroll.OfficialDisbursementDay` | `25` | Tanggal gajian resmi dan jadwal rilis slip gaji ESS (`HRD-ASM-27`) |
+| `Payroll.VarianceThresholdPercent` | `20.00` | Ambang persentase batas lonjakan deviasi gaji bersih (`HRD-ASM-29`) |
+| `Payroll.VarianceThresholdNominal` | `2000000.00` | Ambang batas selisih nominal uang yang memicu alert (`HRD-ASM-29`) |
+| `Payroll.BpjsHealthEmployerRate` | `0.0400` | Iuran BPJS Kesehatan beban pemberi kerja RS (4.0%) |
+| `Payroll.BpjsHealthEmployeeRate` | `0.0100` | Iuran BPJS Kesehatan potongan dari gaji staf (1.0%) |
+| `Payroll.BpjsTkJhtEmployerRate` | `0.0370` | Iuran Jaminan Hari Tua (JHT) beban RS (3.7%) |
+| `Payroll.BpjsTkJhtEmployeeRate` | `0.0200` | Iuran Jaminan Hari Tua (JHT) beban staf (2.0%) |
+| `Payroll.BpjsTkJpCapAmount` | `10042300.00` | Plafon maksimal dasar perhitungan Jaminan Pensiun (JP) BPJS TK |
+| `Payroll.TaxCalculationMethod` | `TER_PMK_168_2023` | Metode baku perpajakan PPh 21 TER Kategori A/B/C (`HRD-ASM-28`) |
+| `Payroll.IsPinSecondaryAuthRequired` | `true` | Kewajiban autentikasi PIN 6-digit saat buka slip gaji (`HRD-ASM-30`) |
+
+---
+
+### 23.8 Matriks Aturan Bisnis & Validasi Keselamatan (`PAY-B` & `PAY-W`)
+
+#### 1. Validasi Pemblokir Kritis (*Hard-Blocking Rules — PAY-B*)
+
+| Kode Aturan | Kondisi Pelanggaran | Tindakan Sistem | Kode HTTP / Error |
+| :--- | :--- | :--- | :---: |
+| `PAY-B1` | Periode presensi, cuti, atau lembur belum berstatus `Closed/Reconciled` saat inisiasi payroll | Blokir proses kalkulasi; tampilkan daftar transaksi gantung | 422 Unprocessable Entity (`VR-PAY-01`) |
+| `PAY-B2` | Status payroll run sudah terminal (`ApprovedFinal`, `Closed`, `HandoffReady`) saat ada perubahan data | Blokir mutasi data; run telah berstatus immutable | 409 Conflict (`VR-PAY-02`) |
+| `PAY-B3` | Terdapat baris pegawai bertanda `VarianceAlert` yang belum memiliki justifikasi tertulis saat diajukan | Blokir aksi pengajuan (*Submit for Review*); kunci tombol submit | 400 Bad Request (`VR-PAY-07`) |
+| `PAY-B4` | Approver mencoba menyetujui payroll run yang dibuat/dihitung oleh dirinya sendiri (*Self-Approval*) | Tolak eksekusi approval secara mutlak; wajib dialihkan ke penilai lain | 403 Forbidden (`VR-PAY-08`) |
+| `PAY-B5` | Pegawai mencoba membuka rincian slip gaji sebelum tanggal rilis atau sebelum `PaymentConfirmed` | Blokir akses pembacaan lembar slip gaji di ESS | 403 Forbidden (`VR-PAY-18`) |
+| `PAY-B6` | Percobaan input PIN slip gaji salah $\ge 3$ kali berturut-turut | Kunci akses menu slip gaji pegawai selama 30 menit | 429 Too Many Requests (`VR-PAY-19`) |
+| `PAY-B7` | Finance mencoba melakukan penolakan batch tanpa mengisi catatan alasan tertulis resmi | Tolak penolakan batch; alasan wajib diisi minimal 15 karakter | 400 Bad Request (`VR-PAY-16`) |
+| `PAY-B8` | Checksum SHA-256 berkas serah terima tidak cocok (*tampered data*) saat diverifikasi Finance | Batalkan proses handoff dan tandai peringatan manipulasi data | 422 Unprocessable Entity (`VR-PAY-15`) |
+
+#### 2. Peringatan Validasi Beralasan (*Warning Rules — PAY-W*)
+
+| Kode Peringatan | Kondisi Terdeteksi | Dampak & Tindakan yang Diizinkan |
+| :--- | :--- | :--- |
+| `PAY-W1` | Kenaikan/penurunan gaji bersih pegawai $\ge 20\%$ dibanding bulan lalu | Tampilkan badge kuning `VarianceAlert`; izinkan submit setelah diisi justifikasi |
+| `PAY-W2` | Kenaikan gaji bersih $\ge 50\%$ akibat akumulasi jam lembur cito masif | Tampilkan badge merah `CriticalVariance`; kirim notifikasi khusus ke HR Manager |
+| `PAY-W3` | Gaji bersih (*Net Pay*) pegawai bernilai $\le$ 30% dari total gaji pokok akibat potongan pinjaman | Tampilkan peringatan batas minimum take-home-pay ketenagakerjaan |
+| `PAY-W4` | Pegawai baru pertama kali menerima gaji (belum memiliki data komparasi bulan lalu) | Beri label `NewEmployeePayroll`; lewati komparasi otomatis dengan verifikasi penugasan |
+| `PAY-W5` | Adanya rapel retrospektif lembur/cuti periode lampau yang masuk pada bulan berjalan | Tampilkan label `RetrospectiveIncluded` dan rincian dokumen asal pada lembar slip gaji |
+| `PAY-W6` | Format rekening bank pegawai tidak standar menurut ketentuan bank mitra RS | Beri peringatan oranye `InvalidBankFormatWarning` pada tabel serah terima Finance |
+
+---
+
+### 23.9 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-B5`
+
+| Fitur / Komponen | Alasan Dikecualikan | Penanganan Selama Rilis Berjalan |
+| :--- | :--- | :--- |
+| Pembayaran Aktual Rekening Bank Pegawai | Wewenang mutlak Departemen Keuangan/Kasir (`HRD-DEC-009`) | Diserahkan via berkas serah terima terenkripsi `TrxPayrollHandoffBatch` |
+| Pembuatan Jurnal Umum Akuntansi (GL) | Wewenang sistem akuntansi Modul Finance | Finance membentuk ayat jurnal akuntansi dari berkas serah terima |
+| Perhitungan Jasa Medis Dokter Spesialis RCM | Logika pembagian jasa medis berdasarkan tarif klaim tindakan medis | Dikelola modul Billing/Remunerasi Medis terpisah |
+| Penyetoran Kas Negara PPh 21 / BPJS | Tanggung jawab pembayaran pajak berada di Departemen Keuangan | Sistem HR hanya menyediakan laporan rekapitulasi bukti potong TER |
+
+---
+
+### 23.10 Traceability Keputusan ke Arsitektur Backend
+
+| Keputusan / Asumsi | Bagian Desain Backend Terkait |
+| :--- | :--- |
+| `HRD-DEC-122` | 23.1, 23.3 (`PayrollInputPreconditionGuard`), 23.8 (`PAY-B1`) |
+| `HRD-DEC-123` | 23.1, 23.2 (`TrxPayrollItemDetail`), 23.3 (`PayrollCalculationEngine`, `IndonesianTaxCalculator`, `BpjsContributionCalculator`), 23.6, 23.7 |
+| `HRD-DEC-124` | 23.1, 23.2 (`TrxPayrollVarianceAlert`), 23.3 (`PayrollVarianceDetectionService`), 23.6, 23.8 (`PAY-B3`, `PAY-W1`, `PAY-W2`) |
+| `HRD-DEC-125` | 23.1, 23.2 (`TrxPayrollApproval`), 23.3 (`PayrollRunLifecycleManager`, `PayrollApprovalController`), 23.6, 23.8 (`PAY-B4`) |
+| `HRD-DEC-126` | 23.1, 23.2 (`TrxPayrollHandoffBatch`), 23.3 (`PayrollFinanceHandoffService`), 23.6, 23.8 (`PAY-B7`, `PAY-B8`) |
+| `HRD-DEC-127` | 23.1, 23.2 (`TrxPayrollPayslip`), 23.3 (`PayslipReleaseService`, `PayrollSelfServiceController`), 23.6, 23.8 (`PAY-B5`, `PAY-B6`) |
+| `HRD-ASM-27` | 23.6, 23.7 (`Payroll.MonthlyCutoffDay` = 20, `Payroll.OfficialDisbursementDay` = 25) |
+| `HRD-ASM-28` | 23.3 (`IndonesianTaxCalculator` TER PMK 168/2023), 23.7 |
+| `HRD-ASM-29` | 23.6, 23.7 (`Payroll.VarianceThresholdPercent` = 20%, `Payroll.VarianceThresholdNominal` = Rp 2 jt) |
+| `HRD-ASM-30` | 23.3 (`PayslipReleaseService`), 23.6 (`secondary_pin_hash`), 23.8 (`PAY-B6`) |

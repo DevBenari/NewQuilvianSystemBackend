@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 11
+roadmap_revision: 12
 status: ACTIVE
 status_synced_at: "2026-11-03 — tanda status task lama disalin apa adanya dari revision 2; tidak ada task yang naik atau turun status pada revision ini"
-planning_updated_at: "2026-11-04 — Slice S-B2 Administrasi Cuti & Izin Pegawai Rumah Sakit (sub-modul 08) dipecah menjadi 14 task (BE-HRD-117 s.d. BE-HRD-130) per gelombang MVP-24 s.d. MVP-26 & Verifikasi; grafik B28 s.d. B31 ditambahkan; sebelumnya Slice S-B1 (BE-HRD-104 s.d. BE-HRD-116), Slice S-B4 (BE-HRD-087 s.d. BE-HRD-103) dan S-C4-ONB (BE-HRD-063 s.d. BE-HRD-086)"
+planning_updated_at: "2026-11-05 — Slice S-B5 Pemrosesan Penggajian Pegawai Rumah Sakit (sub-modul 10) dipecah menjadi 15 task (BE-HRD-146 s.d. BE-HRD-160) per gelombang MVP-30 s.d. MVP-32 & Verifikasi; grafik B36 s.d. B39 ditambahkan; sebelumnya Slice S-B3 (BE-HRD-131 s.d. BE-HRD-145), Slice S-B2 (BE-HRD-117 s.d. BE-HRD-130), Slice S-B1 (BE-HRD-104 s.d. BE-HRD-116), Slice S-B4 (BE-HRD-087 s.d. BE-HRD-103) dan S-C4-ONB (BE-HRD-063 s.d. BE-HRD-086)"
 generated_at: "2026-10-26"
 owners:
   - "Technical Owner — HR Module Lead"
@@ -22,6 +22,7 @@ approved_by:
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B1 Presensi dan Kehadiran (HRD-DEC-104 s.d. HRD-DEC-109) yang menjadi dasar task BE-HRD-104 s.d. BE-HRD-116"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 4 November 2026 — desain S-B2 Cuti & Izin Pegawai Rumah Sakit (HRD-DEC-110 s.d. HRD-DEC-115) yang menjadi dasar task BE-HRD-117 s.d. BE-HRD-130"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 5 November 2026 — desain S-B3 Administrasi Lembur Pegawai Rumah Sakit (HRD-DEC-116 s.d. HRD-DEC-121) yang menjadi dasar task BE-HRD-131 s.d. BE-HRD-145"
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 5 November 2026 — desain S-B5 Pemrosesan Penggajian Pegawai Rumah Sakit (HRD-DEC-122 s.d. HRD-DEC-127) yang menjadi dasar task BE-HRD-146 s.d. BE-HRD-160"
 blueprint_manifest_revision: 24
 decision_revision: 22
 decision_ids_s_b3: "HRD-DEC-116 s.d. HRD-DEC-121, HRD-ASM-23 s.d. HRD-ASM-26"
@@ -145,7 +146,25 @@ locked_input_hashes_s_c4_onb:
   flowcharts/pendampingan-klinis.md: bb00b4389f24c73ac039ae0714a8b409cf6d697aa4c94ea9a6177be8438d8f4c
   flowcharts/siklus-kontrak.md: 11a3cae04a379e9295a8682a183a7633b0dfcb568156f4824c8eb6b8cdd9e6b9
   flowcharts/batch-data-awal-kontrak.md: 24e97a41134d7c21b8f729008ca50e287f2e3acbf51479c84c82d0777ec77b5b
+decision_ids_s_b5: "HRD-DEC-122 s.d. HRD-DEC-127, HRD-ASM-27 s.d. HRD-ASM-30"
+source_commits_s_b5:
+  backend: "8b17b75a (branch MHamzah)"
+  frontend: "44990b3d3 (branch HamzahV2)"
+contract_versions_s_b5:
+  - "API Contract v14 bagian 20 — task S-B5"
+  - "State Transition Matrix v14 bagian 18 — task S-B5"
+  - "Validation Matrix v14 bagian 19 — task S-B5"
+  - "Permission Audit Matrix v14 bagian 18 — task S-B5"
+  - "Integration Contract v14 bagian 11 — task S-B5"
+  - "Data Dictionary v14 bagian 15 — task S-B5"
+  - "Acceptance Test Matrix v14 bagian 22 — task S-B5"
 ```
+
+**Apa yang berubah pada revision 12.**
+
+1. **Lima belas task backend `S-B5` baru**, `BE-HRD-146` s.d. `BE-HRD-160`, sesudah desain sub-modul 10 (Pemrosesan Penggajian Pegawai Rumah Sakit) disetujui pengguna pada 5 November 2026 (`HRD-DEC-122` s.d. `HRD-DEC-127`): fondasi skema payroll & migrasi EF Core, service kebijakan parameter penggajian & snapshot freeze, precondition gate validator (cut-off tgl 20 Sub-07, 08, 09), engine inisiasi batch & anti-duplikasi, engine kalkulasi komponen tetap & tunjangan profesi/medis, engine penyerapan lembur PP 35 & premi shift malam, engine kalkulasi iuran BPJS Kesehatan/Ketenagakerjaan berplafon, engine kalkulasi PPh 21 TER PMK 168/2023, penarikan potongan pinjaman Sub-11 (`INT-HR-55`), payroll variance guard deteksi deviasi >= 20% / Rp 2jt, resolusi justifikasi audit investigasi, alur otorisasi 3-jenjang & anti-self-approval HR Manager, pembekuan permanen batch immutable & paket serah terima Finance SHA-256 (`INT-HR-53`), callback reconciler (`INT-HR-54`) & pelepasan slip gaji ESS ber-PIN, serta verifikasi build dan QBE slice.
+2. **Grafik B36 s.d. B39 ditambahkan** beserta tabel gelombang eksekusi `S-B5` yang sepenuhnya bebas siklus.
+3. **Register status task backend diperbarui** mendaftarkan seluruh 15 task `S-B5` (`BE-HRD-146` s.d. `BE-HRD-160`).
 
 **Apa yang berubah pada revision 11.**
 
@@ -826,6 +845,21 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-143` | `S-B3` · `MVP-29` | Manajemen periode cut-off bulanan (tgl 20) & rekonsiliasi retrospektif | 📋 | `BE-HRD-140`, `BE-HRD-141` |
 | `BE-HRD-144` | `S-B3` · `MVP-29` | Handoff serah terima data lembur terkunci & rapel ke Modul 10 Payroll | 📋 | `BE-HRD-143` |
 | `BE-HRD-145` | `S-B3` · Verifikasi | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v13, build Slice S-B3 | 📋 | `BE-HRD-137`, `BE-HRD-138`, `BE-HRD-140`, `BE-HRD-142`, `BE-HRD-144` |
+| `BE-HRD-146` | `S-B5` / `MVP-30` | ⏳ | Skema database PostgreSQL & migrasi EF Core untuk entitas Payroll V2 |
+| `BE-HRD-147` | `S-B5` / `MVP-30` | ⏳ | Manajemen parameter konfigurasi master penggajian & pembekuan snapshot periode (`PayrollSettingService`) |
+| `BE-HRD-148` | `S-B5` / `MVP-30` | ⏳ | Precondition Gate Validator pengecekan penguncian waktu kerja Sub-07, 08, 09 (`PayrollPreconditionGateService`) |
+| `BE-HRD-149` | `S-B5` / `MVP-30` | ⏳ | Engine inisiasi batch siklus penggajian bulanan & proteksi anti-duplikasi periode (`PayrollRunInitializationService`) |
+| `BE-HRD-150` | `S-B5` / `MVP-30` | ⏳ | Engine kalkulasi penghasilan tetap: gaji pokok, tunjangan struktural, tunjangan fungsional profesi & risiko medis |
+| `BE-HRD-151` | `S-B5` / `MVP-30` | ⏳ | Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`) |
+| `BE-HRD-152` | `S-B5` / `MVP-30` | ⏳ | Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi |
+| `BE-HRD-153` | `S-B5` / `MVP-30` | ⏳ | Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023 |
+| `BE-HRD-154` | `S-B5` / `MVP-31` | ⏳ | Integrasi penarikan potongan pinjaman koperasi & restitusi dari Sub-modul 11 (`PayrollDeductionsIngestionService`) |
+| `BE-HRD-155` | `S-B5` / `MVP-31` | ⏳ | Payroll Variance Guard & deteksi otomatis deviasi net pay >= 20% / Rp 2jt (`PayrollVarianceGuardService`) |
+| `BE-HRD-156` | `S-B5` / `MVP-31` | ⏳ | Alur resolusi justifikasi audit variansi & gerbang penolakan submission batch (`PayrollVarianceResolutionService`) |
+| `BE-HRD-157` | `S-B5` / `MVP-31` | ⏳ | Engine alur otorisasi 3-jenjang, hierarki eskalasi & penegakan anti-self-approval HR Manager |
+| `BE-HRD-158` | `S-B5` / `MVP-32` | ⏳ | Pembekuan permanen batch immutable & pembangkitan paket serah terima Finance SHA-256 (`PayrollFinanceHandoffService`) |
+| `BE-HRD-159` | `S-B5` / `MVP-32` | ⏳ | Webhook reconciler callback pembayaran/penolakan Finance & distribusi slip gaji digital ESS ber-PIN sekunder 6-digit |
+| `BE-HRD-160` | `S-B5` / Verifikasi | ⏳ | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v14, dan build Slice S-B5 |
 
 ---
 
@@ -2861,9 +2895,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ## Rincian Task Slice `S-B1` — Presensi dan Kehadiran (`BE-HRD-104` s.d. `BE-HRD-116`)
 
-### ⏳ `BE-HRD-104` — Fondasi skema database, migrasi EF Core, dan audit trail presensi Slice `S-B1`
+### ✅ `BE-HRD-104` — Fondasi skema database, migrasi EF Core, dan audit trail presensi Slice `S-B1`
 * **Slice / MVP**: `S-B1` / `MVP-21`
-* **Status**: ⏳ Menunggu `BE-HRD-006` [B2]
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Menghasilkan tabel `HrdAttendanceSetting`, `HrdEarlyLeavePermission`, `HrdOfficialDutyRequest`, `HrdAttendancePeriodReopenLog` dengan migration EF Core teruji, indeks performa, dan relasi integritas data referensial.
 * **Requirement/decision**: `HRD-DEC-104` s.d. `HRD-DEC-109`, `02-backend-architecture.md` Bagian 20, `data/data-dictionary.md` Bagian 12.
 * **Kontrak**: Data Dictionary `v11` 12.1 s.d. 12.4.
@@ -2878,9 +2912,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Migration siap dieksekusi ke database dev, model terdaftar di DbContext.
 
-### ⏳ `BE-HRD-105` — Service parameter kebijakan presensi rumah sakit (`AttendanceSettingService`)
+### ✅ `BE-HRD-105` — Service parameter kebijakan presensi rumah sakit (`AttendanceSettingService`)
 * **Slice / MVP**: `S-B1` / `MVP-21`
-* **Status**: ⏳ Menunggu `BE-HRD-104`
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Service dan endpoint manajemen konfigurasi presensi rumah sakit: toleransi keterlambatan 10 menit (`HRD-DEC-105`), batas cut-off shift malam lintas hari (`HRD-DEC-104`), batas auto-convert `IncompletePunch` ke `Absent` saat tutup periode (`HRD-DEC-106`).
 * **Requirement/decision**: `HRD-DEC-105`, `HRD-DEC-106`, `02-backend-architecture.md` 20.9.1.
 * **Kontrak**: API Contract `v11` tag `[Tags("HR Attendance - Settings")]`, `VR-ATT-17` s.d. `VR-ATT-20`.
@@ -2895,9 +2929,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Service beroperasi stabil dan teruji validasinya.
 
-### ⏳ `BE-HRD-106` — Engine pemrosesan absensi harian & normalisasi shift malam lintas hari (`AttendanceDailyProcessingService`)
+### ✅ `BE-HRD-106` — Engine pemrosesan absensi harian & normalisasi shift malam lintas hari (`AttendanceDailyProcessingService`)
 * **Slice / MVP**: `S-B1` / `MVP-21`
-* **Status**: ⏳ Menunggu `BE-HRD-105`
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Mesin pemrosesan log mentah ke status harian: mengunci shift malam pada tanggal mulai (`ShiftDate = Hari H`, `HRD-DEC-104`), menerapkan toleransi 10 menit (lewat batas dihitung dari jam mulai resmi, `HRD-DEC-105`), dan menandai 1 punch sebagai `IncompletePunch` (`HRD-DEC-106`).
 * **Requirement/decision**: `HRD-DEC-104`, `HRD-DEC-105`, `HRD-DEC-106`, `02-backend-architecture.md` 20.9.2.
 * **Kontrak**: Validation Matrix `v11` `VR-ATT-01` s.d. `VR-ATT-04`, State Transition `v11` 15.1.
@@ -2912,9 +2946,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Engine pemrosesan presensi harian akurat memenuhi seluruh invariant medis 24/7.
 
-### ⏳ `BE-HRD-107` — Service & controller audit log mesin biometrik mentah immutable (`RawAttendanceLogService`)
+### ✅ `BE-HRD-107` — Service & controller audit log mesin biometrik mentah immutable (`RawAttendanceLogService`)
 * **Slice / MVP**: `S-B1` / `MVP-21`
-* **Status**: ⏳ Menunggu `BE-HRD-104`
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Endpoint baca saja untuk memantau rekaman log mentah mesin absensi (fingerprint, face recognition, RFID) yang bersifat kekal (*immutable*), bebas manipulasi, untuk keperluan audit dan investigasi selisih data.
 * **Requirement/decision**: `HRD-DEC-104`, `02-backend-architecture.md` 20.9.3.
 * **Kontrak**: API Contract `v11` tag `[Tags("HR Attendance - Raw Logs")]`.
@@ -2929,9 +2963,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Log mentah dapat dibaca transparan, integritas data mesin terlindungi.
 
-### ⏳ `BE-HRD-108` — Service permohonan izin pulang cepat non-deductible & waiver keterlambatan (`EarlyLeavePermissionService`)
+### ✅ `BE-HRD-108` — Service permohonan izin pulang cepat non-deductible & waiver keterlambatan (`EarlyLeavePermissionService`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: ⏳ Menunggu `BE-HRD-105`
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Pengelolaan perizinan pulang cepat administratif non-potong-cuti: pencatatan jam izin keluar, verifikasi approval atasan, perekaman jam kerja riil dari mesin, dan aktivasi waiver penalti presensi jika disetujui.
 * **Requirement/decision**: `HRD-DEC-107`, `HRD-Q-47`, `02-backend-architecture.md` 20.9.4.
 * **Kontrak**: State Transition Matrix `v11` 15.2, Validation Matrix `v11` `VR-ATT-07` s.d. `VR-ATT-10`.
@@ -2946,9 +2980,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Alur perizinan pulang cepat terpisah tegas dari kuota cuti.
 
-### ⏳ `BE-HRD-109` — Service surat penugasan dinas luar rumah sakit & pengakuan status OnDuty (`OfficialDutyRequestService`)
+### ✅ `BE-HRD-109` — Service surat penugasan dinas luar rumah sakit & pengakuan status OnDuty (`OfficialDutyRequestService`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: ⏳ Menunggu `BE-HRD-105`
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Pengelolaan surat tugas dinas luar (sopir/perawat ambulans rujukan, kurir spesimen lab, workshop/seminar, home care) yang otomatis mengesahkan status kehadiran harian menjadi `OnDuty` di sistem.
 * **Requirement/decision**: `HRD-DEC-109`, `02-backend-architecture.md` 20.9.5.
 * **Kontrak**: API Contract `v11` tag `[Tags("HR Attendance - Official Duty")]`, `VR-ATT-11` s.d. `VR-ATT-13`.
@@ -2963,9 +2997,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Status OnDuty sah berbasis surat tugas dan terhubung ke jadwal dinas.
 
-### ⏳ `BE-HRD-110` — Service jalur khusus koreksi presensi atas nama pegawai (`AttendanceCorrectionOnBehalfService`)
+### ✅ `BE-HRD-110` — Service jalur khusus koreksi presensi atas nama pegawai (`AttendanceCorrectionOnBehalfService`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: ⏳ Menunggu `BE-HRD-106`
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Tim HR Admin dapat mengajukan koreksi presensi atas nama pegawai yang terkendala ESS/sakit: wajib mencatat initiator HR, pegawai yang diwakili, alasan mendesak, bukti fisik, dan memicu notifikasi transparansi ke ESS pegawai.
 * **Requirement/decision**: `HRD-DEC-028`, `HRD-DEC-106`, `02-backend-architecture.md` 20.9.6.
 * **Kontrak**: Validation Matrix `v11` `VR-ATT-05`, `VR-ATT-06`, `VR-ATT-14`.
@@ -2980,9 +3014,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Jalur koreksi on-behalf transparan, berjejak audit, dan mematuhi tata kelola.
 
-### ⏳ `BE-HRD-111` — Controller & endpoint lengkap perizinan dan koreksi presensi (`AttendanceTransactionControllers`)
+### ✅ `BE-HRD-111` — Controller & endpoint lengkap perizinan dan koreksi presensi (`AttendanceTransactionControllers`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: ⏳ Menunggu `BE-HRD-108`, `BE-HRD-109`, `BE-HRD-110`
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Penerbitan endpoint Swagger lengkap untuk izin pulang cepat, dinas luar, dan koreksi on-behalf dengan otorisasi berbasis klaim izin (`Permission`).
 * **Requirement/decision**: `HRD-DEC-107`, `HRD-DEC-109`, `HRD-DEC-028`, API Contract `v11` 17.2.
 * **Kontrak**: API Contract `v11` 17.2 (butir 4, 5, 6, 7).
@@ -2997,9 +3031,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Seluruh endpoint transaksi presensi aktif dan terproteksi otorisasi.
 
-### ⏳ `BE-HRD-112` — Event listener rekalkulasi absensi akibat koreksi mundur jadwal roster (`AttendanceRetroactiveShiftConsumer`)
+### ✅ `BE-HRD-112` — Event listener rekalkulasi absensi akibat koreksi mundur jadwal roster (`AttendanceRetroactiveShiftConsumer`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: ⏳ Menunggu `BE-HRD-106`, `BE-HRD-097` [B22]
+* **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Implementasi consumer `RetroactiveShiftCorrectedEvent` dari modul Penjadwalan (06): saat jadwal dinas mundur (<= 3 hari) dikoreksi oleh Kepala Unit, absensi harian pegawai pada tanggal tersebut otomatis dikalkulasi ulang terhadap jam shift baru.
 * **Requirement/decision**: `HRD-DEC-102`, `INT-HR-41`, `02-backend-architecture.md` 20.9.7.
 * **Kontrak**: Integration Contract `v11` `INT-HR-41`.
@@ -3582,6 +3616,268 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
   2. Seluruh 6 tag grup Swagger lembur terdaftar dan dapat diakses pada dokumentasi API.
   3. Konformansi QBE valid (prefix entitas, DI registration, repository pattern).
   4. 10 butir Definition of Done pada `04-prd-to-mvp.md` Bagian 27 terpenuhi dengan bukti verifikasi valid.
+* **Bukti verifikasi**: Laporan build bersih, OpenAPI conformance log, laporan audit DoD.
+* **Risiko/pemilik**: Regresi fungsional modul lain; mitigasi: regression smoke testing controller.
+* **Definition of Done**: Build backend 100% lulus dan siap untuk integrasi frontend.
+
+
+---
+
+## 23. Rincian Task Backend Slice `S-B5` — Pemrosesan Penggajian Pegawai Rumah Sakit (Sub-modul 10, Kontrak v14)
+
+### ⏳ `BE-HRD-146` — Skema database PostgreSQL & migrasi EF Core untuk entitas Payroll V2
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-010`
+* **Outcome**: Skema database PostgreSQL untuk 7 entitas baru modul penggajian V2 (`trx_payroll_runs`, `trx_payroll_item_details`, `trx_payroll_variance_alerts`, `trx_payroll_approvals`, `trx_payroll_handoff_batches`, `trx_payroll_payslips`, `hrd_payroll_settings`) lengkap dengan tipe enum kanonikal, constraint unik periode, foreign key terisolasi, dan migrasi Entity Framework Core.
+* **Requirement/decision**: `HRD-DEC-122` s.d. `HRD-DEC-127`, `02-backend-architecture.md` 23.3 & 23.7.
+* **Kontrak**: `data/data-dictionary.md` Bagian 15, DDL PostgreSQL Section 23.7.
+* **Reuse**: `ApplicationDbContext.cs`, konvensi penamaan tabel schema `hrm`.
+* **Cakupan**: Berkas model entitas C#, konfigurasi `IEntityTypeConfiguration`, berkas migrasi EF Core.
+* **Dependency**: `BE-HRD-010`
+* **Acceptance criteria**:
+  1. Seluruh 7 entitas payroll terdefinisi dengan anotasi tipe data presisi (numeric 18,2 untuk nominal moneter).
+  2. Constraint unik pada `trx_payroll_runs(period_year, period_month)` dan `trx_payroll_payslips(payroll_run_id, workforce_profile_id)` aktif.
+  3. Indeks performa kueri per unit kerja, NIK pegawai, dan status run terpasang sempurna.
+* **Bukti verifikasi**: File migrasi EF Core, verifikasi `dotnet ef migrations script`.
+* **Risiko/pemilik**: Konflik migrasi; mitigasi: penamaan migrasi berstempel waktu tanpa mengubah skema tabel legacy.
+* **Definition of Done**: Migrasi EF Core terkompilasi bersih dan siap dieksekusi ke database.
+
+### ⏳ `BE-HRD-147` — Manajemen parameter konfigurasi master penggajian & pembekuan snapshot periode (`PayrollSettingService`)
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-146`
+* **Outcome**: Layanan CRUD konfigurasi parameter operasional payroll (`HrdPayrollSetting`), mencakup batas plafon upah BPJS Kesehatan, batas upah tertinggi BPJS Ketenagakerjaan JP, threshold variansi (default 20% dan Rp 2.000.000), serta logika penyalinan parameter aktif menjadi snapshot beku saat inisiasi batch.
+* **Requirement/decision**: `HRD-DEC-122`, `HRD-DEC-124`, `02-backend-architecture.md` 23.8 (`PAY-W4`, `PAY-W6`).
+* **Kontrak**: API Contract `v14` `[Tags("HR Payroll - Settings")]`, `VR-PAY-03`.
+* **Reuse**: `PayrollSettingController.cs`, `HrdPayrollSetting`.
+* **Cakupan**: `PayrollSettingService.cs`, DTO konfigurasi parameter payroll.
+* **Dependency**: `BE-HRD-146`
+* **Acceptance criteria**:
+  1. API setting mengizinkan pembacaan parameter aktif dan pembaruan hanya oleh role `HrdPayrollOfficer` / `HrdManager`.
+  2. Saat siklus payroll dibuat, salinan parameter aktif disimpan dalam format JSON snapshot pada batch penggajian.
+  3. Pembaruan parameter global tidak mengubah nilai snapshot pada siklus payroll yang sedang berjalan.
+* **Bukti verifikasi**: Uji API setting dan verifikasi persistensi snapshot JSON.
+* **Risiko/pemilik**: Perubahan tarif di tengah siklus; mitigasi: penguncian snapshot immutable per run.
+* **Definition of Done**: Service setting payroll aktif dan mendukung isolasi snapshot periode.
+
+### ⏳ `BE-HRD-148` — Precondition Gate Validator pengecekan penguncian waktu kerja Sub-07, 08, 09 (`PayrollPreconditionGateService`)
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-116` [B1], `BE-HRD-130` [B2], `BE-HRD-144` [B3]
+* **Outcome**: Layanan inspeksi gerbang prasyarat (*Precondition Gate*) yang memverifikasi bahwa seluruh data waktu kerja cut-off tgl 20 bulan berjalan telah berstatus `Locked` atau `Closed` pada modul Presensi (Sub-07), Cuti (Sub-08), dan Lembur (Sub-09) sebelum batch payroll diizinkan dibuat.
+* **Requirement/decision**: `HRD-DEC-122`, `02-backend-architecture.md` 23.8 (`PAY-B1`).
+* **Kontrak**: API Contract `v14` `/api/v1/hr/payroll/runs/precondition-check`, `VR-PAY-02`.
+* **Reuse**: `AttendancePeriodService`, `LeavePeriodService`, `OvertimePeriodService`.
+* **Cakupan**: `PayrollPreconditionGateService.cs`, DTO `PreconditionGateCheckResponse`.
+* **Dependency**: `BE-HRD-116` [B1], `BE-HRD-130` [B2], `BE-HRD-144` [B3]
+* **Acceptance criteria**:
+  1. Sistem mengembalikan status `CanInitialize = true` bila ketiga modul telah berstatus `Locked`/`Closed`.
+  2. Sistem mengembalikan `CanInitialize = false` beserta daftar detail modul/transaksi yang masih pending bila ada modul yang belum terkunci.
+  3. Pesan penolakan deskriptif disajikan informatif bagi petugas payroll.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-02`, UAT skenario `UAT-PAY-01`.
+* **Risiko/pemilik**: Payroll diinisiasi saat jam kerja belum final; mitigasi: hard-block validation pada service initialization.
+* **Definition of Done**: Validator precondition gate beroperasi andal dan menolak pembuatan payroll prematur.
+
+### ⏳ `BE-HRD-149` — Engine inisiasi batch siklus penggajian bulanan & proteksi anti-duplikasi periode (`PayrollRunInitializationService`)
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-147`, `BE-HRD-148`
+* **Outcome**: Layanan inisiasi siklus batch penggajian bulanan (`TrxPayrollRun`) baru berstatus `Draft`, pembentukan nomor batch resmi (format `PRUN-YYYYMM-XXX`), penegakan proteksi anti-duplikasi periode penggajian untuk tahun dan bulan yang sama, serta populasi daftar pegawai aktif yang berhak menerima gaji.
+* **Requirement/decision**: `HRD-DEC-122`, `02-backend-architecture.md` 23.8 (`PAY-B2`).
+* **Kontrak**: API Contract `v14` `POST /api/v1/hr/payroll/runs`, `VR-PAY-01`.
+* **Reuse**: `PayrollRunController.cs`, entitas `TrxPayrollRun`.
+* **Cakupan**: `PayrollRunInitializationService.cs`, command handler pembuatan batch.
+* **Dependency**: `BE-HRD-147`, `BE-HRD-148`
+* **Acceptance criteria**:
+  1. Permintaan pembuatan batch untuk periode yang sudah ada ditolak dengan HTTP 409 Conflict (`VR-PAY-01`).
+  2. Batch tersimpan berstatus `Draft` dan merekam snapshot parameter aktif dari `HrdPayrollSetting`.
+  3. Daftar baris `TrxPayrollItemDetail` terbentuk untuk seluruh profil pegawai aktif rumah sakit.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-01`, `AT-HRD-PAY-03`, UAT skenario `UAT-PAY-01`.
+* **Risiko/pemilik**: Duplikasi batch gaji; mitigasi: constraint unik database dan application-level lock.
+* **Definition of Done**: Inisiasi batch payroll berhasil membentuk draft awal dan baris detail pegawai.
+
+### ⏳ `BE-HRD-150` — Engine kalkulasi penghasilan tetap: gaji pokok, tunjangan struktural, tunjangan fungsional profesi & risiko medis
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-149`
+* **Outcome**: Engine perhitungan komponen penghasilan tetap per pegawai berdasarkan grade, level karir klinis dokter/perawat, jabatan struktural, dan unit kerja berisiko tinggi (ICU, Isolasi, Radiologi) tanpa pembulatan moneter ganjil.
+* **Requirement/decision**: `HRD-DEC-123`, `02-backend-architecture.md` 23.8 (`PAY-B3`).
+* **Kontrak**: API Contract `v14` `/api/v1/hr/payroll/runs/{id}/calculate`, `VR-PAY-04`, `VR-PAY-05`.
+* **Reuse**: Master data grade gaji dan struktur tunjangan karyawan.
+* **Cakupan**: `PayrollEarningsCalculationService.cs`, engine kalkulasi penghasilan kotor (*Gross Pay*).
+* **Dependency**: `BE-HRD-149`
+* **Acceptance criteria**:
+  1. Komponen gaji pokok, tunjangan jabatan, tunjangan fungsional profesi, dan tunjangan risiko terhitung presisi.
+  2. Data remunerasi tenaga medis honorer/organik dipetakan sesuai kontrak penempatan aktif.
+  3. Total akumulasi penghasilan kotor tersimpan pada kolom `GrossAmount` di `TrxPayrollItemDetail`.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-04`, UAT skenario `UAT-PAY-02`.
+* **Risiko/pemilik**: Selisih nominal rupiah; mitigasi: penggunaan tipe data decimal 18,2 dan math rounding banker's.
+* **Definition of Done**: Perhitungan penghasilan tetap teruji akurat untuk berbagai kelompok profesi rumah sakit.
+
+### ⏳ `BE-HRD-151` — Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`)
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-150`
+* **Outcome**: Layanan penyerapan data variabel jam lembur terverifikasi (tier 1.5x, 2x, holiday) beserta rapel lembur dari Sub-modul 09 (`INT-HR-52`), serta penyerapan akumulasi dinas shift malam dari Sub-modul 07 (`INT-HR-36`) untuk dikonversi menjadi nominal premi malam resmi.
+* **Requirement/decision**: `HRD-DEC-123`, `HRD-ASM-27`, `02-backend-architecture.md` 23.8 (`PAY-B4`).
+* **Kontrak**: API Contract `v14`, Integration Contract `INT-HR-36`, `INT-HR-52`, `VR-PAY-06`, `VR-PAY-07`.
+* **Reuse**: DTO payload lembur dan log presensi harian.
+* **Cakupan**: `PayrollOvertimeAndShiftIngestionService.cs`, kalkulator uang lembur dan premi shift malam.
+* **Dependency**: `BE-HRD-150`
+* **Acceptance criteria**:
+  1. Uang lembur terhitung otomatis berdasar formula upah per jam PP 35/2021 dan pengali jam sah.
+  2. Premi shift malam dikalikan nominal baku (default Rp 50.000/shift) sesuai kehadiran dinas malam aktual.
+  3. Rapel lembur retrospektif dari periode lampau tercatat pada komponen terpisah `RetrospectiveAdjustment`.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-05`, `AT-HRD-PAY-06`, `AT-HRD-PAY-11`, UAT skenario `UAT-PAY-02`.
+* **Risiko/pemilik**: Perbedaan klaim lembur vs presensi; mitigasi: konsumsi data snapshot yang telah berstatus Closed.
+* **Definition of Done**: Variabel lembur dan premi shift malam terintegrasi penuh ke dalam lembar kerja gaji.
+
+### ⏳ `BE-HRD-152` — Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-150`
+* **Outcome**: Engine kalkulasi potongan wajib jaminan sosial tenaga kerja: BPJS Kesehatan (1% pegawai, 4% RS berplafon Rp 12.000.000) serta 4 program BPJS Ketenagakerjaan (JKK 0.89%, JKM 0.3%, JHT 2% pegawai & 3.7% RS, JP 1% pegawai berplafon Rp 10.042.300).
+* **Requirement/decision**: `HRD-DEC-123`, `02-backend-architecture.md` 23.8 (`PAY-W4`).
+* **Kontrak**: `VR-PAY-08`, `VR-PAY-09`, `VR-PAY-10`.
+* **Reuse**: Parameter batas plafon dari `HrdPayrollSetting`.
+* **Cakupan**: `PayrollBpjsCalculationService.cs`, modul pemisahan beban pegawai vs beban rumah sakit.
+* **Dependency**: `BE-HRD-150`
+* **Acceptance criteria**:
+  1. Iuran BPJS Kesehatan pekerja dan pemberi kerja dihitung dari upah dengan pembatasan plafon maksimal.
+  2. Iuran JHT dihitung dari total upah tanpa batas; iuran JP dipotong batas upah maksimal regulasi PP.
+  3. Nilai potongan iuran pekerja mengurangi penghasilan kotor; beban pemberi kerja dicatat untuk pelaporan biaya.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-07`, `AT-HRD-PAY-08`, UAT skenario `UAT-PAY-02`.
+* **Risiko/pemilik**: Kepatuhan regulasi BPJS; mitigasi: parameter plafon dinamis tersimpan pada database master.
+* **Definition of Done**: Kalkulasi potongan dan kontribusi BPJS teruji presisi sesuai tabel ketentuan pemerintah.
+
+### ⏳ `BE-HRD-153` — Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023
+* **Slice / MVP**: `S-B5` / `MVP-30`
+* **Status**: ⏳ Menunggu `BE-HRD-150`, `BE-HRD-151`, `BE-HRD-152`
+* **Outcome**: Engine kalkulasi pemotongan pajak penghasilan PPh 21 bulanan mengacu pada tabel resmi Tarif Efektif Rata-Rata (TER Kategori A, B, dan C) sesuai Peraturan Menteri Keuangan Nomor 168 Tahun 2023 berdasarkan status PTKP dan penghasilan bruto.
+* **Requirement/decision**: `HRD-DEC-123`, `HRD-ASM-28`, `02-backend-architecture.md` 23.8.
+* **Kontrak**: API Contract `v14`, Integration Contract `INT-HR-56`, `VR-PAY-11`, `VR-PAY-12`.
+* **Reuse**: Tabel master TER PPh 21 dan data PTKP pegawai dari Master Data HRD.
+* **Cakupan**: `PayrollTaxCalculationService.cs`, engine lookup bracket tarif TER.
+* **Dependency**: `BE-HRD-150`, `BE-HRD-151`, `BE-HRD-152`
+* **Acceptance criteria**:
+  1. Pegawai dikelompokkan ke dalam TER Kategori A, B, atau C sesuai status pernikahan dan tanggungan PTKP.
+  2. Tarif persentase TER ditarik berdasar rentang penghasilan bruto bulan berjalan dan dipotongkan otomatis.
+  3. Masa pajak Desember mendukung perhitungan tarif progresif Pasal 17 UU PPh sebagai penyesuaian akhir tahun.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-09`, UAT skenario `UAT-PAY-02`.
+* **Risiko/pemilik**: Kesalahan hitung pajak pegawai; mitigasi: verifikasi silang bracket TER dan unit testing komprehensif.
+* **Definition of Done**: Engine pemotongan pajak PPh 21 TER PMK 168/2023 beroperasi tanpa cela.
+
+### ⏳ `BE-HRD-154` — Integrasi penarikan potongan pinjaman koperasi & restitusi dari Sub-modul 11 (`PayrollDeductionsIngestionService`)
+* **Slice / MVP**: `S-B5` / `MVP-31`
+* **Status**: ⏳ Menunggu `BE-HRD-153`
+* **Outcome**: Layanan konsumsi tagihan angsuran pinjaman belanja koperasi karyawan, pinjaman darurat rumah sakit, atau pemotongan kelebihan klaim restitusi kesehatan dari Sub-modul 11 via kontrak `INT-HR-55`, dengan aturan proteksi batas maksimal pemotongan gaji (maks 50% dari take-home pay).
+* **Requirement/decision**: `HRD-DEC-123`, `02-backend-architecture.md` 23.8.
+* **Kontrak**: Integration Contract `INT-HR-55`, `VR-PAY-25`.
+* **Reuse**: Endpoint kueri potongan cicilan aktif dari Sub-modul 11.
+* **Cakupan**: `PayrollDeductionsIngestionService.cs`, proteksi take-home pay minimum pegawai.
+* **Dependency**: `BE-HRD-153`
+* **Acceptance criteria**:
+  1. Tagihan cicilan pinjaman aktif terpotong otomatis dari slip gaji pegawai yang bersangkutan.
+  2. Potongan pinjaman dibatasi maksimal 50% penghasilan kotor untuk menjamin hak hidup layak pegawai.
+  3. Setiap potongan mencatat nomor referensi pinjaman dan nomor angsuran berjalan.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-10`, UAT skenario `UAT-PAY-02`.
+* **Risiko/pemilik**: Gaji bersih minus; mitigasi: pemblokiran nilai take-home pay negatif oleh validasi sistem.
+* **Definition of Done**: Tagihan pinjaman internal terintegrasi aman dan take-home pay final terhitung valid.
+
+### ⏳ `BE-HRD-155` — Payroll Variance Guard & deteksi otomatis deviasi net pay >= 20% / Rp 2jt (`PayrollVarianceGuardService`)
+* **Slice / MVP**: `S-B5` / `MVP-31`
+* **Status**: ⏳ Menunggu `BE-HRD-154`
+* **Outcome**: Layanan evaluasi anomali variansi gaji (*Payroll Variance Guard*) yang membandingkan gaji bersih pegawai pada siklus berjalan terhadap riwayat periode sebelumnya; sistem secara otomatis mendeteksi deviasi persentase $\ge 20\%$ atau selisih nominal $\ge$ Rp 2.000.000 dan membangkitkan tiket `TrxPayrollVarianceAlert` berstatus `PendingJustification`.
+* **Requirement/decision**: `HRD-DEC-124`, `HRD-ASM-29`, `02-backend-architecture.md` 23.8 (`PAY-W1`, `PAY-W2`, `PAY-W3`).
+* **Kontrak**: API Contract `v14` `[Tags("HR Payroll - Calculations & Variance")]`, `VR-PAY-13`.
+* **Reuse**: Entitas `TrxPayrollVarianceAlert`, kueri histori slip gaji periode lalu.
+* **Cakupan**: `PayrollVarianceGuardService.cs`, engine komparasi variansi multi-komponen.
+* **Dependency**: `BE-HRD-154`
+* **Acceptance criteria**:
+  1. Lonjakan atau anjloknya gaji bersih $\ge 20\%$ atau selisih $\ge$ Rp 2.000.000 memicu tiket alert variansi.
+  2. Pegawai baru tanpa histori gaji bulan lalu otomatis ditandai sebagai anomali jenis `NewEmployeeBaseline`.
+  3. Tiket mencatat nilai sebelum, nilai sesudah, selisih nominal, rasio persentase, dan komponen pemicu.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-12`, UAT skenario `UAT-PAY-03`.
+* **Risiko/pemilik**: Anomali finansial lolos ke pencairan; mitigasi: otomasi guard saat kalkulasi selesai.
+* **Definition of Done**: Variance guard mendeteksi seluruh anomali dan menyajikannya pada daftar audit investigasi.
+
+### ⏳ `BE-HRD-156` — Alur resolusi justifikasi audit variansi & gerbang penolakan submission batch (`PayrollVarianceResolutionService`)
+* **Slice / MVP**: `S-B5` / `MVP-31`
+* **Status**: ⏳ Menunggu `BE-HRD-155`
+* **Outcome**: Layanan penerimaan dan validasi justifikasi alasan audit anomali variansi oleh Payroll Officer (wajib minimum 20 karakter) serta penegakan gerbang validasi keras (*hard-block*) yang menolak pengajuan submit batch penggajian ke level manajer jika masih terdapat alert variansi berstatus pending.
+* **Requirement/decision**: `HRD-DEC-124`, `02-backend-architecture.md` 23.8 (`PAY-B5`).
+* **Kontrak**: API Contract `v14` `POST /variances/{id}/resolve`, `VR-PAY-14`, `VR-PAY-15`.
+* **Reuse**: Controller variance audit, model `TrxPayrollVarianceAlert`.
+* **Cakupan**: `PayrollVarianceResolutionService.cs`, validator panjang karakter justifikasi.
+* **Dependency**: `BE-HRD-155`
+* **Acceptance criteria**:
+  1. Pengisian alasan justifikasi di bawah 20 karakter ditolak dengan HTTP 400 Bad Request (`VR-PAY-15`).
+  2. Justifikasi valid mengubah status alert menjadi `Resolved` dan mencatat identitas officer serta stempel waktu.
+  3. Upaya submit batch yang masih memiliki alert berstatus `PendingJustification` ditolak HTTP 422 (`VR-PAY-14`).
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-13`, `AT-HRD-PAY-14`, UAT skenario `UAT-PAY-03`.
+* **Risiko/pemilik**: Justifikasi asal-asalan; mitigasi: audit trail permanen dan penolakan input kosong/terlalu pendek.
+* **Definition of Done**: Alur resolusi variansi aktif dan mengunci gerbang submission approval batch.
+
+### ⏳ `BE-HRD-157` — Engine alur otorisasi 3-jenjang, hierarki eskalasi & penegakan anti-self-approval HR Manager
+* **Slice / MVP**: `S-B5` / `MVP-31`
+* **Status**: ⏳ Menunggu `BE-HRD-156`
+* **Outcome**: Engine alur otorisasi berjenjang 3 tingkat (*3-tier segregation of duties*): Tier 1 (Payroll Officer mengunci draft & submit ke `WaitingHrReview`), Tier 2 (HR Manager me-review ke `WaitingFinalApproval`), dan Tier 3 (Direktur SDM/Keuangan menyetujui final `ApprovedFinal`), dengan penegakan keras aturan anti-self-approval di mana verifikasi baris gaji HR Manager dialihkan ke Direktur.
+* **Requirement/decision**: `HRD-DEC-125`, `02-backend-architecture.md` 23.8 (`PAY-B6`).
+* **Kontrak**: API Contract `v14` `[Tags("HR Payroll - Approvals")]`, `VR-PAY-16` s.d. `VR-PAY-20`.
+* **Reuse**: `PayrollApprovalController.cs`, entitas `TrxPayrollApproval`.
+* **Cakupan**: `PayrollApprovalWorkflowService.cs`, router hierarki persetujuan manajerial.
+* **Dependency**: `BE-HRD-156`
+* **Acceptance criteria**:
+  1. HR Manager dilarang menyetujui perhitungan gajinya sendiri; hak otorisasi baris pribadinya dirutekan ke Direksi.
+  2. Penolakan pada tahap mana pun mewajibkan catatan alasan penolakan dan mengembalikan status ke `NeedCorrection`.
+  3. Persetujuan Tier 3 oleh Direktur mengunci batch secara permanen dan menyetel flag `IsImmutable = true`.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-15`, `AT-HRD-PAY-16`, `AT-HRD-PAY-17`, UAT skenario `UAT-PAY-04`.
+* **Risiko/pemilik**: Kolusi internal; mitigasi: pemisahan peran ketat berbasis permission token terverifikasi.
+* **Definition of Done**: Workflow approval 3-jenjang beroperasi aman dan menegakkan segregation of duties.
+
+### ⏳ `BE-HRD-158` — Pembekuan permanen batch immutable & pembangkitan paket serah terima Finance SHA-256 (`PayrollFinanceHandoffService`)
+* **Slice / MVP**: `S-B5` / `MVP-32`
+* **Status**: ⏳ Menunggu `BE-HRD-157`
+* **Outcome**: Layanan pembekuan permanen seluruh baris data penggajian pasca persetujuan final Direksi, pembuatan paket serah terima keuangan (`TrxPayrollHandoffBatch`), penghitungan checksum integritas data SHA-256 atas seluruh baris transfer bank pegawai, serta pengiriman berkas serah terima ke Modul Finance secara asinkron via kontrak `INT-HR-53`.
+* **Requirement/decision**: `HRD-DEC-126`, `02-backend-architecture.md` 23.8 (`PAY-B7`).
+* **Kontrak**: API Contract `v14` `[Tags("HR Payroll - Finance Handoff")]`, Integration Contract `INT-HR-53`, `VR-PAY-21`.
+* **Reuse**: Handoff controller, generator hash SHA-256 kanonikal.
+* **Cakupan**: `PayrollFinanceHandoffService.cs`, serializer berkas transfer bank bank-rekaps.
+* **Dependency**: `BE-HRD-157`
+* **Acceptance criteria**:
+  1. Data batch penggajian berstatus `ApprovedFinal` ditandai immutable; modifikasi apa pun ditolak HTTP 409.
+  2. Paket handoff menyusun daftar rekening bank tujuan, NIK, nama pegawai, dan nominal transfer bersih.
+  3. Checksum integritas SHA-256 terbentuk dan tervalidasi sebelum transmisi berkas dikirimkan ke Finance.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-18`, UAT skenario `UAT-PAY-05`.
+* **Risiko/pemilik**: Kegagalan transmisi ke Finance; mitigasi: mekanisme exponential backoff retry hingga 5 kali.
+* **Definition of Done**: Paket serah terima keuangan terbentuk dengan checksum valid dan terkirim ke modul Finance.
+
+### ⏳ `BE-HRD-159` — Webhook reconciler callback pembayaran/penolakan Finance & distribusi slip gaji digital ESS ber-PIN sekunder 6-digit
+* **Slice / MVP**: `S-B5` / `MVP-32`
+* **Status**: ⏳ Menunggu `BE-HRD-158`
+* **Outcome**: Layanan penerima webhook callback dari Modul Finance (`INT-HR-54`) untuk menangani konfirmasi pencairan (`PaymentConfirmed` $\rightarrow$ status batch `Completed`) atau penolakan batch (`PaymentRejected` $\rightarrow$ rollback terkendali ke `NeedCorrection`), serta layanan pelepasan slip gaji digital ESS (`TrxPayrollPayslip`) per tanggal 25 yang diproteksi autentikasi PIN sekunder 6-digit dengan penalti penguncian akun 30 menit setelah 3 kegagalan.
+* **Requirement/decision**: `HRD-DEC-126`, `HRD-DEC-127`, `HRD-ASM-30`, `02-backend-architecture.md` 23.8 (`PAY-B8`).
+* **Kontrak**: API Contract `v14` `[Tags("HR Payroll - Self-Service Payslips")]`, Integration Contract `INT-HR-54`, `VR-PAY-22` s.d. `VR-PAY-24`.
+* **Reuse**: `PayrollPayslipController.cs`, encoder PIN bcrypt/argon2.
+* **Cakupan**: `PayrollDisbursementReconciliationService.cs`, `PayrollPayslipDistributionService.cs`.
+* **Dependency**: `BE-HRD-158`
+* **Acceptance criteria**:
+  1. Callback penolakan Finance membuka gembok immutable secara terkendali ke `NeedCorrection` dengan audit log.
+  2. Callback sukses menandai slip gaji `Released` dan mengizinkan pegawai mengaksesnya pada portal ESS per tgl 25.
+  3. Verifikasi PIN sekunder 6-digit memblokir akses 30 menit jika salah 3 kali berturut-turut (`VR-PAY-22`).
+  4. Unduhan dokumen PDF slip gaji diproteksi kata sandi terenkripsi (kombinasi tanggal lahir) dan watermark resmi RS.
+* **Bukti verifikasi**: Test case `AT-HRD-PAY-19`, `AT-HRD-PAY-20`, UAT skenario `UAT-PAY-05`.
+* **Risiko/pemilik**: Kebocoran nominal slip gaji; mitigasi: proteksi PIN sekunder dan enkripsi berkas PDF.
+* **Definition of Done**: Callback Finance sinkron dan slip gaji digital terdistribusi aman kepada pegawai.
+
+### ⏳ `BE-HRD-160` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v14, dan build Slice `S-B5`
+* **Slice / MVP**: `S-B5` / Verifikasi
+* **Status**: ⏳ Menunggu `BE-HRD-153`, `BE-HRD-157`, `BE-HRD-159`
+* **Outcome**: Audit komprehensif kepatuhan arsitektur backend, zero warning kompilasi .NET, verifikasi integritas seluruh endpoint Swagger penggajian, konformansi aturan rekayasa QBE, serta pemenuhan 10 butir Definition of Done Slice `S-B5`.
+* **Requirement/decision**: `HRD-DEC-122` s.d. `HRD-DEC-127`, `04-prd-to-mvp.md` Bagian 28 (DoD 1 s.d. 10).
+* **Kontrak**: Seluruh kontrak operasional `v14` Slice `S-B5`.
+* **Reuse**: Prosedur audit pre-deploy backend Quilvian.
+* **Cakupan**: Build verification, OpenAPI audit, QBE conformance check.
+* **Dependency**: `BE-HRD-153`, `BE-HRD-157`, `BE-HRD-159`
+* **Acceptance criteria**:
+  1. Solusi `NewQuilvianSystemBackend` berhasil di-build tanpa error (`dotnet build`).
+  2. Seluruh 6 tag grup Swagger penggajian terdaftar dan dapat diakses pada dokumentasi API.
+  3. Konformansi QBE valid (prefix entitas `trx_payroll_*`, DI registration, repository pattern).
+  4. 10 butir Definition of Done pada `04-prd-to-mvp.md` Bagian 28 terpenuhi dengan bukti verifikasi valid.
 * **Bukti verifikasi**: Laporan build bersih, OpenAPI conformance log, laporan audit DoD.
 * **Risiko/pemilik**: Regresi fungsional modul lain; mitigasi: regression smoke testing controller.
 * **Definition of Done**: Build backend 100% lulus dan siap untuk integrasi frontend.

@@ -737,3 +737,140 @@ Bagian ini mendefinisikan antarmuka pertukaran data, event domain sinkron/asinkr
   }
   ```
 * **Penanganan Kegagalan:** Serah terima bersifat atomik dua arah. Jika modul Payroll belum siap menerima, status periode tetap `CutoffLocked` dan proses transfer dapat dicoba ulang tanpa mengubah isi data lembur yang terkunci.
+
+
+## 11. Bagian S-B5 — Kontrak Integrasi Penggajian Pegawai Rumah Sakit (Sub-modul 10, last_changed_in v14, 5 November 2026)
+
+Bagian ini mendefinisikan kontrak integrasi lintas bounded context untuk siklus pemrosesan gaji (Payroll), mencakup serah terima paket pembayaran final ke modul Finance & Kasir Rumah Sakit, penerimaan sinyal callback konfirmasi pembayaran/penolakan dari Finance, penarikan potongan pinjaman karyawan dari Sub-modul 11, serta pembaruan tabel tarif pajak PPh 21 TER PMK 168/2023.
+
+### 11.1 INT-HR-53: Serah Terima Berkas Final Penggajian ke Modul Finance & Kasir
+* **Arah Integrasi:** Human Resource (Payroll Engine) $\rightarrow$ Finance & Accounting (Cashier / Treasury / General Ledger)
+* **Karakteristik Komunikasi:** Asynchronous Message Queue / Direct REST Webhook dengan Verifikasi Checksum SHA-256 dan Idempotency-Key.
+* **Tujuan:** Menyerahkan daftar instruksi pembayaran gaji bersih (*net pay*) seluruh pegawai rumah sakit yang telah berstatus `ApprovedFinal` kepada Bagian Keuangan untuk diproses pencairan bank (*disbursement*) dan pencatatan jurnal akuntansi.
+* **Triggers:** Approval final Direktur SDM/Keuangan atas batch penggajian (`trx_payroll_runs` status `ApprovedFinal` $\rightarrow$ `HandoffReady`).
+* **Endpoint / Event Target:** `POST /api/v1/finance/payroll-handoffs/receive-batch`
+* **Struktur Payload Serah Terima (`PayrollFinanceHandoffPayload`):**
+  ```json
+  {
+    "handoffBatchId": "d4c3b2a1-8765-4321-cba0-987654321def",
+    "payrollRunId": "c3b2a109-7654-3210-ba98-876543210cba",
+    "periodYear": 2026,
+    "periodMonth": 11,
+    "batchNumber": "PHB-202611-001",
+    "paymentMethod": "BankTransferBatch",
+    "sourceBankAccountId": "acc-rs-operasional-mandiri-01",
+    "totalEmployees": 320,
+    "totalGrossAmount": 2150000000.00,
+    "totalDeductionsAmount": 345000000.00,
+    "totalNetAmount": 1805000000.00,
+    "currency": "IDR",
+    "handoffTimestamp": "2026-11-23T14:30:00Z",
+    "handedOverByUserId": "usr-dir-keuangan-01",
+    "integrityChecksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "disbursementLines": [
+      {
+        "detailId": "a1b2c3d4-0001-4000-8000-000000000001",
+        "workforceProfileId": "e3b0c442-98fc-1c14-9af3-4c5678901234",
+        "employeeNik": "EMP-2024-001",
+        "employeeName": "dr. Siti Aminah, Sp.A",
+        "destinationBankCode": "MANDIRI",
+        "destinationBankAccountNumber": "1370012345678",
+        "destinationAccountHolder": "Siti Aminah",
+        "transferAmount": 18500000.00,
+        "paymentReference": "PAY-202611-EMP001"
+      }
+    ]
+  }
+  ```
+* **Jaminan Integritas & Keamanan:** Checksum SHA-256 dihitung dari urutan data kanonikal seluruh baris `disbursementLines`. Jika modul Finance mendeteksi selisih 1 Rupiah pun atau perbedaan hash, batch serah terima akan ditolak secara otomatis (*integrity failure*).
+* **Penanganan Kegagalan & Retry:** Modul HRD menerapkan mekanisme pengiriman ulang bertahap (*exponential backoff retry*: 1m, 5m, 15m) hingga maksimum 5 kali bila layanan Finance tidak merespons. Status handoff tetap `Dispatched` hingga Finance mengembalikan konfirmasi penerimaan (*Ack*).
+
+---
+
+### 11.2 INT-HR-54: Callback Konfirmasi Pembayaran / Penolakan Batch dari Finance
+* **Arah Integrasi:** Finance & Accounting $\rightarrow$ Human Resource (Payroll Engine)
+* **Karakteristik Komunikasi:** Webhook Callback / Event-Driven Consumer (`payroll.finance.disbursement.status`)
+* **Tujuan:** Menginformasikan sistem HRD bahwa proses transfer bank oleh Finance telah berhasil diselesaikan (*PaymentConfirmed*) atau ditolak/gagal karena anomali rekening/likuiditas (*PaymentRejected*), untuk memicu pelepasan slip gaji digital kepada pegawai atau rollback status terkendali.
+* **Endpoint Penerima HRD:** `POST /api/v1/hr/payroll/handoffs/callback`
+* **Struktur Callback Sukses (`FinancePaymentConfirmationCommand`):**
+  ```json
+  {
+    "handoffBatchId": "d4c3b2a1-8765-4321-cba0-987654321def",
+    "payrollRunId": "c3b2a109-7654-3210-ba98-876543210cba",
+    "status": "PaymentConfirmed",
+    "bankDisbursementReference": "TRX-MANDIRI-CORP-20261125-9988",
+    "actualDisbursedAt": "2026-11-25T08:15:22Z",
+    "confirmedByFinanceOfficer": "usr-fin-treasury-02",
+    "notes": "Seluruh transfer kliring batch Mandiri Corporate berhasil cair."
+  }
+  ```
+* **Struktur Callback Penolakan (`FinanceRejectionCallbackCommand`):**
+  ```json
+  {
+    "handoffBatchId": "d4c3b2a1-8765-4321-cba0-987654321def",
+    "payrollRunId": "c3b2a109-7654-3210-ba98-876543210cba",
+    "status": "PaymentRejected",
+    "rejectionReason": "Ditemukan nomor rekening tidak valid pada 2 pegawai dan limit harian bank belum dinaikkan.",
+    "rejectedByFinanceOfficer": "usr-fin-manager-01",
+    "rejectedAt": "2026-11-24T10:00:00Z"
+  }
+  ```
+* **Aturan Perubahan Status & Rollback Terkendali (`HRD-DEC-126`):**
+  1. Bila `status == PaymentConfirmed`: Status `trx_payroll_runs` berubah menjadi `Completed`, status `trx_payroll_handoff_batches` menjadi `PaymentConfirmed`, dan pemicu pelepasan slip gaji `trx_payroll_payslips` (`Released`) aktif pada tgl 25.
+  2. Bila `status == PaymentRejected`: Status `trx_payroll_runs` dialihkan ke `NeedCorrection`, gembok immutable dibuka secara terkendali dengan audit log lengkap, dan payroll officer dapat melakukan koreksi data nomor rekening pegawai.
+
+---
+
+### 11.3 INT-HR-55: Integrasi Penarikan Potongan Koperasi, Pinjaman & Restitusi (Sub-modul 11)
+* **Arah Integrasi:** Human Resource Sub-modul 11 (Kesejahteraan & Benefit) $\rightarrow$ Sub-modul 10 (Payroll Engine)
+* **Karakteristik Komunikasi:** Internal Service Query / Inter-Context Read Model
+* **Tujuan:** Menyerap total tagihan angsuran pinjaman koperasi karyawan, pinjaman darurat rumah sakit, atau selisih restitusi klaim kesehatan yang wajib dipotongkan langsung dari slip gaji bulan berjalan.
+* **Endpoint / Query:** `GET /api/v1/hr/welfare/deductions/active-installments?periodYear=2026&periodMonth=11`
+* **Struktur Respons Data Potongan (`ActivePayrollDeductionResponse`):**
+  ```json
+  [
+    {
+      "workforceProfileId": "e3b0c442-98fc-1c14-9af3-4c5678901234",
+      "deductionCategory": "CooperativeLoanInstallment",
+      "referenceNumber": "LOAN-KOP-2026-088",
+      "installmentNumber": 5,
+      "totalInstallments": 12,
+      "installmentAmount": 500000.00,
+      "remainingPrincipal": 3500000.00,
+      "notes": "Angsuran pinjaman belanja koperasi bulan ke-5"
+    },
+    {
+      "workforceProfileId": "b1c2d3e4-5678-90ab-cdef-1234567890ab",
+      "deductionCategory": "HospitalEmergencyLoan",
+      "referenceNumber": "EMG-RS-2026-012",
+      "installmentNumber": 2,
+      "totalInstallments": 3,
+      "installmentAmount": 1000000.00,
+      "remainingPrincipal": 1000000.00,
+      "notes": "Pinjaman darurat berobat keluarga"
+    }
+  ]
+  ```
+* **Aturan Proteksi Take-Home Pay:** Total akumulasi potongan pinjaman tidak boleh membuat take-home pay pegawai menjadi negatif atau bernilai di bawah batas minimum tunjangan operasional yang ditetapkan regulasi internal rumah sakit (maksimal 50% dari penghasilan kotor).
+
+---
+
+### 11.4 INT-HR-56: Integrasi Sinkronisasi Tabel Tarif Pajak PPh 21 TER PMK 168/2023
+* **Arah Integrasi:** Central Master Configuration / Tax Table Repository $\rightarrow$ Payroll Calculation Engine
+* **Karakteristik Komunikasi:** Read-through Cache & Sync Event
+* **Tujuan:** Memastikan rumus pemotongan PPh 21 bulanan menggunakan tabel resmi Tarif Efektif Rata-Rata (TER Kategori A, B, dan C) sesuai Peraturan Menteri Keuangan Nomor 168 Tahun 2023, serta tarif progresif Pasal 17 UU HPP untuk masa pajak terakhir (Desember).
+* **Struktur Parameter Tarif TER:**
+  ```json
+  {
+    "effectiveYear": 2026,
+    "regulationBasis": "PMK-168/PMK.03/2023",
+    "ptkpCategories": [
+      { "category": "TER_A", "ptkpStatus": ["TK/0", "TK/1", "K/0"], "brackets": 44 },
+      { "category": "TER_B", "ptkpStatus": ["TK/2", "TK/3", "K/1", "K/2"], "brackets": 40 },
+      { "category": "TER_C", "ptkpStatus": ["K/3"], "brackets": 41 }
+    ],
+    "lastUpdated": "2026-01-02T00:00:00Z",
+    "version": "v2024.1"
+  }
+  ```
+* **Pencegahan Human Error:** Parameter tarif pajak disimpan secara terpusat pada `hrd_payroll_settings` dan tabel master pajak tanpa hardcoded nilai di dalam kode program C#, sehingga perubahan regulasi pemerintah dapat disesuaikan tanpa redeploy aplikasi.

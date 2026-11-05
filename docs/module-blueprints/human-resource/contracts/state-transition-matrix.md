@@ -1503,3 +1503,56 @@ Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, 
 | `Open` | `CutoffLocked` | `LockCutoff` | HR Payroll / Scheduler| Tanggal cut-off bulanan (tgl 20) tiba (`HRD-DEC-121`) | Mengunci snapshot immutable; klaim pending diberi status retrospektif |
 | `CutoffLocked` | `Reconciled` | `RunReconciliation` | HR Payroll Officer | Seluruh klaim siap bayar & rapel lampau direkapitulasi | Berkas rekap lembur siap serah terima |
 | `Reconciled` | `Closed` | `ExecuteHandoff` | HR Payroll Officer | Serah terima data ke modul 10 Payroll sukses | Status periode ditutup mutlak (`Closed`); dilarang modifikasi |
+
+---
+
+## 18. Bagian `S-B5` — Matriks Transisi Status Penggajian Pegawai Rumah Sakit (Sub-modul 10, `last_changed_in` `v14`, 5 November 2026)
+
+Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, serta larangan transisi ilegal untuk entitas **Penggajian Pegawai Rumah Sakit**, mencakup siklus payroll run, penanganan variansi anomali, serah terima berkas ke Finance, dan rilis slip gaji mandiri ESS.
+
+### 18.1 Matriks Transisi Status Siklus Payroll (`PayrollRunStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `None` | `Draft` | `InitializeRun` | Payroll Officer | Periode Sub-07, 08, 09 berstatus `Closed/Reconciled` (`PAY-B1`) | Membuat rekaman `TrxPayrollRun` dan snapshot input waktu kerja |
+| `Draft` | `Calculating` | `ExecuteCalculation` | Payroll Officer | Snapshot masukan lengkap | Memulai kalkulasi agregat formula pendapatan dan potongan |
+| `Calculating` | `Review` | `CalculationCompleted`| Mesin Sistem | Pipeline perhitungan selesai 100% | Evaluasi deviasi Net Pay vs bulan lalu; terbitkan `VarianceAlert` |
+| `Review` | `WaitingHrReview` | `SubmitForReview` | Payroll Officer | Seluruh `VarianceAlert` telah memiliki catatan justifikasi (`PAY-B3`) | Status dialihkan ke kotak masuk HR Manager; draf dikunci dari edit |
+| `WaitingHrReview` | `WaitingFinalApproval`| `ApproveHrReview` | HR Manager | Audit administratif sampling selesai; *anti-self-approval* (`PAY-B4`)| Dialihkan ke kotak masuk Direktur SDM & Keuangan |
+| `WaitingHrReview` | `Draft` | `RequestRevision` | HR Manager | Ditemukan kekeliruan perhitungan atau penugasan komponen | Status dikembalikan ke Draf; Payroll Officer menerima notifikasi revisi |
+| `WaitingFinalApproval`| `ApprovedFinal` | `AuthorizeFinal` | Direktur SDM / Keuangan| Otorisasi penguncian permanen; *anti-self-approval* (`PAY-B4`)| Transaksi dikunci permanen (`IsLocked = true`); angka immutable |
+| `WaitingFinalApproval`| `Draft` | `RejectFinal` | Direktur SDM / Keuangan| Direksi menolak angka beban penggajian | Dikembalikan ke draf untuk rekonsiliasi ulang |
+| `ApprovedFinal` | `HandoffReady` | `GenerateHandoff` | Sistem | Paket serah terima ber-checksum SHA-256 berhasil dibentuk | Terbit rekaman `TrxPayrollHandoffBatch`; berkas dikirim ke Finance |
+| `HandoffReady` | `NeedCorrection` | `FinanceRejectionCallback`| Departemen Keuangan| Finance menolak batch resmi dengan alasan tertulis (`PAY-B7`) | Kunci data dibuka terkendali; audit trail rollback dicatat |
+| `NeedCorrection`| `Calculating` | `Recalculate` | Payroll Officer | Data rekening/komponen telah diperbaiki | Menghitung ulang dan memulai alur persetujuan dari awal |
+| `HandoffReady` | `Closed` | `PaymentConfirmed` | Departemen Keuangan| Finance mengonfirmasi seluruh transfer perbankan selesai | Run ditutup permanen; memicu rilis slip gaji digital ke portal ESS |
+| `ApprovedFinal` | **ILLEGAL** (`Draft`)| `DirectUnlock` | Siapapun | **DITOLAK KERAS**; pembukaan kunci tanpa penolakan Finance dilarang | Integritas audit kepatuhan GCG terproteksi |
+
+### 18.2 Matriks Transisi Status Deteksi Variansi Anomali (`VarianceAlertStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `None` | `Unresolved` | `DetectVariance` | Mesin Sistem | Deviasi gaji bersih $\ge 20\%$ atau selisih $\ge$ Rp 2.000.000 | Baris pegawai ditandai badge kuning/merah; pengajuan run terkunci |
+| `Unresolved` | `Justified` | `SaveJustification` | Payroll Officer | Input teks alasan formal minimal 15 karakter | Rekaman justifikasi tersimpan; flag terselesaikan sementara |
+| `Justified` | `Approved` | `ApproveReview` | HR Manager | HR Manager memvalidasi bukti lembur cito/potongan sah | Status variansi resmi disetujui untuk audit |
+| `Justified` | `Unresolved` | `RejectJustification`| HR Manager | Alasan tidak memadai atau bukti belum valid | Payroll Officer wajib melengkapi bukti atau mengoreksi data asal |
+
+### 18.3 Matriks Transisi Status Berkas Serah Terima Finance (`FinanceHandoffStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `PendingHandoff` | `Dispatched` | `DispatchBatch` | Sistem / HR Officer | Run berstatus `ApprovedFinal` & checksum SHA-256 valid | Berkas terenkripsi diserahkan ke sistem Keuangan |
+| `Dispatched` | `AcknowledgedByFinance`| `AcknowledgeReceipt`| Staf Finance | Finance menerima berkas dan memeriksa rekening bank | Notifikasi tanda terima tercatat pada dasbor handoff |
+| `Dispatched` / `Acknowledged` | `PaymentConfirmed` | `ConfirmPaymentSuccess`| Kasir / Treasury Finance| Transfer kliring bank sukses diselesaikan | Memicu pembukaan rilis slip gaji ESS (`HRD-DEC-127`) |
+| `Dispatched` / `Acknowledged` | `RejectedByFinance` | `RejectBatch` | Manajer Finance | Kendala likuiditas kas atau kesalahan fatal rekening bank | Status run diturunkan ke `NeedCorrection` untuk rollback terkendali |
+
+### 18.4 Matriks Transisi Status Slip Gaji Mandiri ESS (`PayslipStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `None` | `Draft` | `GeneratePayslipRecords`| Mesin Sistem | Perhitungan gaji run selesai | Rekaman slip gaji terbuat di database (belum terlihat di ESS) |
+| `Draft` | `Published` | `LockFinalRun` | Sistem | Run berstatus `ApprovedFinal` | Rincian angka slip gaji terkunci permanen |
+| `Published` | `ReleasedToEss` | `TriggerRelease` | Sistem / Penjadwal | Tanggal sistem $\ge 25$ atau status `PaymentConfirmed` | Slip gaji aktif di ESS pegawai berstatus siap buka dengan PIN |
+| `ReleasedToEss` | `TemporarilyLocked`| `FailPinThreeTimes` | Sistem Keamanan | Pegawai salah input PIN $\ge 3$ kali berturut-turut | Akses menu slip gaji dibekukan selama 30 menit demi keamanan |
+| `TemporarilyLocked`| `ReleasedToEss` | `ResetPin` / `Timeout`| Pegawai / Sistem | Masa penalti 30 menit berakhir atau reset PIN sukses | Pegawai dapat mencoba kembali verifikasi PIN |
+| `ReleasedToEss` | `Archived` | `AnnualArchive` | Sistem | Periode tahun kalender telah ditutup resmi | Dokumen slip gaji dipindahkan ke arsip historis |
