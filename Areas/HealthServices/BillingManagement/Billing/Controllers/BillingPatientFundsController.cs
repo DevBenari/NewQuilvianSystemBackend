@@ -221,7 +221,8 @@ public sealed class BillingPatientFundsController : ControllerBase
         try
         {
             var result = await _service.TopUpAsync(
-                encounterId, request, idempotencyKey, CurrentUserId(), cancellationToken);
+                encounterId, request, idempotencyKey, CurrentUserId(), cancellationToken,
+                requireBankTransferDetails: true);
             var message = result.IsReplay
                 ? "Top-up sudah diproses; hasil sebelumnya dikembalikan."
                 : "Top-up deposit rawat inap berhasil dicatat.";
