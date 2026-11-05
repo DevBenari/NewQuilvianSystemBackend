@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Security;
@@ -38,15 +39,18 @@ namespace QuilvianSystemBackend.Hubs
         private readonly ApplicationDbContext _dbContext;
         private readonly AccessPermissionService _accessPermissionService;
         private readonly InpBedAccessService _bedAccess;
+        private readonly NvwDeviceContextService _nurseViewDeviceContext;
 
         public QueueHub(
             ApplicationDbContext dbContext,
             AccessPermissionService accessPermissionService,
-            InpBedAccessService bedAccess)
+            InpBedAccessService bedAccess,
+            NvwDeviceContextService nurseViewDeviceContext)
         {
             _dbContext = dbContext;
             _accessPermissionService = accessPermissionService;
             _bedAccess = bedAccess;
+            _nurseViewDeviceContext = nurseViewDeviceContext;
         }
 
         public async Task JoinInpatientBedSelection(Guid serviceUnitId)
@@ -380,6 +384,48 @@ namespace QuilvianSystemBackend.Hubs
                 EmergencyRealtimeService.EmergencyQueueGroupName
             );
         }
+
+        public async Task JoinNurseViewFloor()
+        {
+            var resolved = await _nurseViewDeviceContext.ResolveActiveDeviceAsync(
+                GetCurrentUserId(),
+                Context.User?.FindFirstValue(NvwDeviceContextService.SessionStampClaim),
+                Context.ConnectionAborted
+            );
+
+            if (!resolved.IsSuccess || resolved.Value == null)
+            {
+                throw new HubException(resolved.Message ?? NurseViewDeviceRejectedMessage);
+            }
+
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildFloorGroupName(resolved.Value.FloorCode),
+                Context.ConnectionAborted
+            );
+        }
+
+        public async Task LeaveNurseViewFloor()
+        {
+            var floorCode = await _nurseViewDeviceContext.FindFloorCodeAsync(
+                GetCurrentUserId(),
+                Context.ConnectionAborted
+            );
+
+            if (string.IsNullOrWhiteSpace(floorCode))
+            {
+                return;
+            }
+
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildFloorGroupName(floorCode),
+                Context.ConnectionAborted
+            );
+        }
+
+        private const string NurseViewDeviceRejectedMessage =
+            "Grup lantai Nurse View hanya untuk akun perangkat Nurse View yang aktif.";
 
         private async Task<List<Guid>> ResolveAccessibleNurseStationClusterIdsAsync()
         {

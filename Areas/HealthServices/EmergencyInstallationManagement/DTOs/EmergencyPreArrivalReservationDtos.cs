@@ -158,4 +158,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public Guid RowVersion { get; set; }
     }
+
+    public class EmergencyPreArrivalReservationOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string ReservationNumber { get; set; } = string.Empty;
+        public string PatientName { get; set; } = string.Empty;
+        public EmergencyPreArrivalStatus Status { get; set; }
+        public DateTime EstimatedArrivalDateTime { get; set; }
+    }
+
+    public class EmergencyPreArrivalReservationSummaryResponse
+    {
+        public int TotalReservation { get; set; }
+        public int IncomingReservation { get; set; }
+        public int CheckedInReservation { get; set; }
+        public int CancelledReservation { get; set; }
+        public int ExpiredReservation { get; set; }
+    }
+
+    public class EmergencyPreArrivalReservationDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public EmergencyPreArrivalStatus? Status { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+    }
+
+    public class EmergencyPreArrivalReservationFilterMetadataResponse
+    {
+        public EmergencyPreArrivalReservationDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 20, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "estimatedarrivaldatetime", "createdatetime" };
+    }
 }

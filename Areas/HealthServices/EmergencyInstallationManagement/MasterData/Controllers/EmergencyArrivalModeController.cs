@@ -42,6 +42,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyArrivalModeFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Arrival Mode", Description = "Melihat metadata filter cara kedatangan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyArrivalMode", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyArrivalModeFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyArrivalModeDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "sequence", "code", "name", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyArrivalModeFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter cara kedatangan IGD berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyArrivalModeSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Arrival Mode", Description = "Melihat ringkasan cara kedatangan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyArrivalMode", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgArrivalMode>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyArrivalModeSummaryResponse
+            {
+                TotalArrivalMode = await query.CountAsync(cancellationToken),
+                ActiveArrivalMode = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveArrivalMode = await query.CountAsync(x => !x.IsActive, cancellationToken),
+                AmbulanceArrivalMode = await query.CountAsync(x => x.IsAmbulance, cancellationToken),
+                ReferralArrivalMode = await query.CountAsync(x => x.IsReferral, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyArrivalModeSummaryResponse>.Ok(
+                summary,
+                "Ringkasan cara kedatangan IGD berhasil diambil."
+            ));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyArrivalModeResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Arrival Mode", Description = "Melihat data master cara kedatangan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

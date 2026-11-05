@@ -122,4 +122,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     public class UpdateEmergencyObservationDetailRequest : CreateEmergencyObservationDetailRequest
     {
     }
+
+    public class EmergencyObservationDetailOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyObservationId { get; set; }
+        public DateTime ObservationDateTime { get; set; }
+        public string? ClinicalConditionSummary { get; set; }
+    }
+
+    public class EmergencyObservationDetailSummaryResponse
+    {
+        public int TotalObservationDetail { get; set; }
+        public int ActiveObservationDetail { get; set; }
+        public int InactiveObservationDetail { get; set; }
+    }
+
+    public class EmergencyObservationDetailDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public Guid? EmergencyObservationId { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "observationdatetime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyObservationDetailFilterMetadataResponse
+    {
+        public EmergencyObservationDetailDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "observationdatetime", "createdatetime" };
+    }
 }

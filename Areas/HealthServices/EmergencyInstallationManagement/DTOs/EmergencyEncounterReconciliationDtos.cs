@@ -92,4 +92,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool IsReversed { get; set; }
         public string? ReverseSkipReason { get; set; }
     }
+
+    public class EmergencyEncounterReconciliationOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string RunNumber { get; set; } = string.Empty;
+        public DateTime ExecutedAt { get; set; }
+        public bool IsReversed { get; set; }
+    }
+
+    public class EmergencyEncounterReconciliationSummaryResponse
+    {
+        public int TotalRuns { get; set; }
+        public int ActiveRuns { get; set; }
+        public int ReversedRuns { get; set; }
+        public int TotalReconciledEncounters { get; set; }
+    }
+
+    public class EmergencyEncounterReconciliationDefaultFilterResponse
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyEncounterReconciliationFilterMetadataResponse
+    {
+        public EmergencyEncounterReconciliationDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "executedat", "runnumber" };
+    }
 }

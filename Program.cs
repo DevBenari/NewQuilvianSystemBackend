@@ -1020,6 +1020,10 @@ try
     builder.Services.AddScoped<McuDeliveryService>();
 
     builder.Services.AddScoped<NvwDisplayDeviceService>();
+    builder.Services.AddScoped<NvwVitalSignIntervalService>();
+    builder.Services.AddScoped<NvwDeviceContextService>();
+    builder.Services.AddScoped<NvwFloorBoardQueryService>();
+    builder.Services.AddScoped<NvwRealtimeService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1464,6 +1468,16 @@ try
                     user.HasClaim(claim => claim.Type == "queue_display_code" && !string.IsNullOrWhiteSpace(claim.Value)) ||
                     user.HasClaim(claim => claim.Type == "display_code" && !string.IsNullOrWhiteSpace(claim.Value));
             });
+        });
+
+        options.AddPolicy(AuthorizationPolicies.NurseViewDisplayRead, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+                context.User.HasClaim(claim =>
+                    claim.Type == NvwDeviceContextService.DeviceIdClaim &&
+                    !string.IsNullOrWhiteSpace(claim.Value)));
         });
     });
 

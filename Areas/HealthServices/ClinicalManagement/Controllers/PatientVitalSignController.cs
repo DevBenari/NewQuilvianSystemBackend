@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -44,14 +45,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// <summary>Konteks episode dan deret tanda vital rawat inap — <c>BE-RWI-110</c>, <c>BE-RWI-121</c>.</summary>
         private readonly InpatientVitalSignService _inpatientVitalSignService;
 
+        private readonly NvwRealtimeService _nurseViewRealtime;
+
         public PatientVitalSignController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            InpatientVitalSignService inpatientVitalSignService)
+            InpatientVitalSignService inpatientVitalSignService,
+            NvwRealtimeService nurseViewRealtime)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _inpatientVitalSignService = inpatientVitalSignService;
+            _nurseViewRealtime = nurseViewRealtime;
         }
 
         /// <summary>Deret tanda vital satu episode rawat inap untuk tabel dan grafik.</summary>
@@ -584,6 +589,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             _dbContext.Set<TrxPatientVitalSign>().Add(entity);
             await _dbContext.SaveChangesAsync();
+            await _nurseViewRealtime.NotifyVitalSignChangedAsync(entity.InpEpisodeId);
 
             var response = ToCreateUpdateResponse(entity);
 
@@ -723,6 +729,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.VitalSignSource = PatientVitalSignSource.InpatientObservation;
 
             await _dbContext.SaveChangesAsync();
+            await _nurseViewRealtime.NotifyVitalSignChangedAsync(entity.InpEpisodeId);
 
             var response = ToUpdateResponse(entity);
 
@@ -869,6 +876,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
+            await _nurseViewRealtime.NotifyVitalSignChangedAsync(entity.InpEpisodeId);
 
             return Ok(ApiResponse<object>.Ok(
                 null,
