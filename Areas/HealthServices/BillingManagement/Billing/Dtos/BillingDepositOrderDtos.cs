@@ -172,16 +172,64 @@ public class CancelDepositOrderRequest
 
 public class DepositReceiptDto
 {
+    /// <summary>Pembayaran (BilDepositOrderPayment.Id) yang menjadi dasar kwitansi ini. Satu kwitansi = satu pembayaran.</summary>
+    public Guid PaymentId { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
     public string OrderNumber { get; set; } = string.Empty;
     public string MedicalRecordNumber { get; set; } = string.Empty;
     public string PatientName { get; set; } = string.Empty;
     public string EpisodeNumber { get; set; } = string.Empty;
     public string EncounterNumber { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Total Tagihan Deposit: nominal order deposit yang diminta (BilDepositPaymentOrder.RequestedAmount). Untuk order
+    /// <c>INITIAL_DEPOSIT</c> inilah Total Tagihan Deposit Awal yang diminta saat admisi rawat inap. Tidak pernah
+    /// diganti oleh nominal pembayaran transaksi.
+    /// </summary>
+    public decimal RequestedAmount { get; set; }
+
+    /// <summary>
+    /// Terbilang <see cref="RequestedAmount"/> (Terbilang Total Tagihan Deposit Awal). Dibentuk dari nilai yang sama
+    /// dengan <see cref="RequestedAmount"/> dan terpisah dari <see cref="AmountInWords"/> (terbilang pembayaran).
+    /// </summary>
+    public string RequestedAmountInWords { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Jenis order (<c>INITIAL_DEPOSIT</c> = deposit awal admisi, <c>ADDITIONAL_TOP_UP</c> = top-up tambahan) beserta
+    /// namanya, agar layar hanya menyebut "Deposit Awal" untuk order yang memang deposit awal.
+    /// </summary>
+    public string OrderType { get; set; } = string.Empty;
+    public string OrderTypeName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Jumlah Diterima: nominal pembayaran aktual pada transaksi kwitansi ini (BilDepositOrderPayment.Amount).
+    /// Selalu nominal satu pembayaran, bukan akumulasi order. <see cref="AmountInWords"/> dibentuk dari nilai yang sama.
+    /// </summary>
     public decimal Amount { get; set; }
     public string AmountInWords { get; set; } = string.Empty;
+
+    /// <summary>Akumulasi pembayaran SUCCESS order ini sampai dengan transaksi kwitansi ini (nilai historis, bukan saldo terkini).</summary>
+    public decimal PaidAmountAfterPayment { get; set; }
+
+    /// <summary>Sisa tagihan order setelah transaksi kwitansi ini (nilai historis, tidak berubah oleh pembayaran berikutnya).</summary>
+    public decimal OutstandingAfterPayment { get; set; }
+
+    /// <summary>Status pembayaran (SUCCESS atau REVERSED). Kwitansi pembayaran yang dibalik tidak berlaku.</summary>
+    public string PaymentStatus { get; set; } = string.Empty;
     public string PaymentMethodName { get; set; } = string.Empty;
     public bool IsCash { get; set; }
+    public bool IsBankTransfer { get; set; }
+
+    /// <summary>
+    /// Identitas rekening bank rumah sakit yang menerima transfer, dibaca dari master rekening metode pembayaran
+    /// (<c>MstPaymentMethodAccount</c>) lewat <c>PaymentMethodAccountId</c> pada mutasi deposit. Kosong untuk
+    /// pembayaran tanpa rekening (mis. tunai). Dibaca saat kwitansi dibuka, bukan salinan beku saat transaksi.
+    /// </summary>
+    public string? RecipientBankName { get; set; }
+    public string? RecipientAccountNumber { get; set; }
+    public string? RecipientAccountHolderName { get; set; }
+
+    /// <summary>Nomor referensi yang dicatat kasir pada transaksi (mis. referensi transfer). Bukan bukti verifikasi bank.</summary>
     public string? ReferenceNumber { get; set; }
     public DateTimeOffset PaymentDateTime { get; set; }
     public string CashierName { get; set; } = string.Empty;

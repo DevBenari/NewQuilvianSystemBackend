@@ -69,7 +69,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         [MaxLength(1000)]
         public string? Notes { get; set; }
-
     }
 
     public class UpdateEmergencySettingRequest : CreateEmergencySettingRequest
@@ -82,5 +81,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public EmergencyTriageSystem TriageSystem { get; set; }
+    }
+
+    public class EmergencySettingSummaryResponse
+    {
+        public int TotalSetting { get; set; }
+        public int ActiveSetting { get; set; }
+        public int InactiveSetting { get; set; }
+        public int DefaultSetting { get; set; }
+    }
+
+    public class EmergencySettingDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "code";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencySettingFilterMetadataResponse
+    {
+        public EmergencySettingDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "code", "name", "createdatetime" };
     }
 }

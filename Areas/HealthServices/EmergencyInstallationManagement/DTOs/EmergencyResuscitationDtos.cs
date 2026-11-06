@@ -96,4 +96,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [MaxLength(2000)]
         public string? Notes { get; set; }
     }
+
+    public class EmergencyResuscitationOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public string ResuscitationNumber { get; set; } = string.Empty;
+        public EmergencyResuscitationStatus ResuscitationStatus { get; set; }
+        public DateTime StartDateTime { get; set; }
+    }
+
+    public class EmergencyResuscitationSummaryResponse
+    {
+        public int TotalResuscitation { get; set; }
+        public int ActiveResuscitation { get; set; }
+        public int InProgressResuscitation { get; set; }
+        public int CompletedResuscitation { get; set; }
+        public int TerminatedResuscitation { get; set; }
+    }
+
+    public class EmergencyResuscitationDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public Guid? EmergencyVisitId { get; set; }
+        public EmergencyResuscitationStatus? ResuscitationStatus { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "startdatetime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyResuscitationFilterMetadataResponse
+    {
+        public EmergencyResuscitationDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "startdatetime", "resuscitationnumber", "createdatetime" };
+    }
 }

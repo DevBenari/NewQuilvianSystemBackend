@@ -75,8 +75,8 @@ public sealed class FinanceReceivableInvoiceBatchStatusSynchronizer
         var hasActivePayments = totalAllocated > 0 || totalOutstanding < totalOriginal;
 
         string targetStatus;
-        // RULE 1: Jika seluruh OutstandingAmount <= 0
-        if (activeReceivables.All(r => r.OutstandingAmount <= 0) && totalOriginal > 0)
+        // RULE 1: Jika seluruh OutstandingAmount <= 0 dan terbukti ada pembayaran/alokasi aktif
+        if (activeReceivables.All(r => r.OutstandingAmount <= 0) && totalOriginal > 0 && hasActivePayments)
         {
             targetStatus = FinReceivableInvoiceBatchStatuses.Paid;
         }
@@ -85,7 +85,7 @@ public sealed class FinanceReceivableInvoiceBatchStatusSynchronizer
         {
             targetStatus = FinReceivableInvoiceBatchStatuses.PartiallyPaid;
         }
-        // RULE 3: Jika OutstandingAmount > 0 dan belum ada payment aktif
+        // RULE 3: Jika belum ada pembayaran/alokasi aktif
         else
         {
             targetStatus = FinReceivableInvoiceBatchStatuses.Issued;

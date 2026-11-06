@@ -9,8 +9,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Repositories;

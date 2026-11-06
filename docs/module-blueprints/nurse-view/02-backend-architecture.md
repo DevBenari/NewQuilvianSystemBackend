@@ -223,7 +223,7 @@ Urutan penyusunan, satu query per langkah, tanpa query per bed:
 6. TTV sah terakhir per episode: `InpEpisodeId` cocok, `VitalSignStatus` ∈ {`Recorded`, `Verified`, `Corrected`}, `IsActive`, tidak dihapus; terbaru menurut `ObservationDateTime`.
 7. Hasil instrumen `FallRiskScale` terakhir per episode dari pengkajian `Completed`.
 8. Ada/tidaknya alergi `Active` per pasien.
-9. Roster: `TrxShiftAssignment` `Published`, bukan libur, `ScheduledStartAt ≤ sekarang < ScheduledEndAt`, `OrganizationUnitId` = organisasi bangsal, profesi perawat atau bidan.
+9. Roster: `TrxShiftAssignment` `Published`, bukan libur, `ScheduledStartAt ≤ sekarang < ScheduledEndAt`, `OrganizationUnitId` = organisasi bangsal, profesi perawat atau bidan. Sejak `0.1.2` (`NV-DEC-033`): unit kosong → `TrxRosterPeriod.OrganizationUnitId`; profesi roster kosong → `MstEmployee.ProfessionId`; profesi disaring `IsClinicalProfession` + `MapCpptProfessionType`.
 10. Interval aktif.
 11. Penyamaran identitas dan perhitungan "lewat jadwal" di memori.
 
@@ -274,7 +274,7 @@ Tanggal "hari ini" memakai jam operasional Asia/Jakarta (`G-08`), sama seperti `
 
 | Berkas | Status | Perubahan minimal |
 |---|---|---|
-| `Controllers/AuthController.cs` | `Diperbarui` | Resolver baru: bila akun adalah `LoginUserId` perangkat Nurse View berstatus `Active`, tambahkan klaim `is_nurse_view_account = true` dan `nurse_view_device_id`. Akun perangkat `Inactive` ditolak login |
+| `Controllers/AuthController.cs` | `Diperbarui` | Resolver baru: bila akun adalah `LoginUserId` perangkat Nurse View berstatus `Active`, tambahkan klaim `is_nurse_view_account = true` dan `nurse_view_device_id`, serta `nurse_view_session_stamp` agar sesi lama gugur sesudah Atur Ulang Login. Akun perangkat `Inactive` ditolak login (`NV-DEC-031`) |
 | `Constants/AuthorizationPolicies.cs` | `Diperbarui` | Konstanta `NurseViewDisplayRead`; ditambahkan ke `ApprovedAlternativeAuthorization` |
 | `Program.cs` | `Diperbarui` | Satu `AddPolicy(NurseViewDisplayRead)`: wajib klaim `nurse_view_device_id`. **Tanpa** role `SuperAdmin`/`Administrator` sebagai jalan pintas, agar akun manusia tidak pernah menerima papan publik. Registrasi `AddScoped` ke-6 service (ketentuan "jangan menambah kode ke `Program.cs`" dikecualikan hanya bila lead merestui) |
 | `Hubs/QueueHub.cs` | `Diperbarui` | Metode `JoinNurseViewFloor()` **tanpa parameter**: lantai diambil dari perangkat milik akun, sehingga TV tidak bisa memilih lantai lain |

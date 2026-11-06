@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs
 {
@@ -54,8 +56,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public Guid? WorkforceProfileId { get; set; }
         public Guid? BenefitPlanId { get; set; }
         [MaxLength(30)] public string? EnrollmentStatus { get; set; }
+        [MaxLength(30)] public string? PatientCardSyncStatus { get; set; }
         [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
         [Range(1, 50)] public int PageSize { get; set; } = 10;
+    }
+
+    /// <summary>
+    /// Ringkasan status sinkronisasi kartu penjamin pasien (BE-FIN-130, FIN-API-1.12 V.1).
+    /// Tidak memuat ID, nama, atau nomor rekam medis pasien demi privasi data.
+    /// </summary>
+    public sealed class PatientCardSyncSummaryResponse
+    {
+        public string Status { get; set; } = EmployeeBenefitCardSyncStatuses.NotStarted;
+        public string? ReasonCode { get; set; }
+        public string? ReasonLabel { get; set; }
+        public int AttemptCount { get; set; }
+        public DateTime? LastAttemptAt { get; set; }
+        public DateTime? NextAttemptAt { get; set; }
+        public DateTime? SyncedAt { get; set; }
     }
 
     public class EmployeeBenefitEnrollmentListResponse
@@ -88,6 +106,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public DateTime? EffectiveEndDate { get; set; }
         public decimal RemainingAmount { get; set; }
         public int ActiveDependentCount { get; set; }
+        /// <summary>Status sinkronisasi kartu pasien (SYNCED/WAITING_PATIENT/ON_HOLD/FAILED_RETRYABLE/REVOKED/NOT_STARTED; null bila belum Active).</summary>
+        public string? PatientCardSyncStatus { get; set; }
     }
 
     public sealed class EmployeeBenefitEnrollmentResponse : EmployeeBenefitEnrollmentListResponse
@@ -123,6 +143,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public Guid RowVersion { get; set; }
         public List<string> AvailableActions { get; set; } = new();
         public List<EmployeeBenefitDependentResponse> Dependents { get; set; } = new();
+        /// <summary>Ringkasan sinkronisasi kartu penjamin pasien (BE-FIN-130, FIN-API-1.12 V.1).</summary>
+        public PatientCardSyncSummaryResponse? PatientCardSync { get; set; }
     }
 
     public sealed class EmployeeBenefitSummaryResponse
@@ -177,6 +199,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         public List<EnrollmentFilterOptionResponse> EnrollmentStatuses { get; set; } = new();
         public List<EnrollmentFilterOptionResponse> DependentStatuses { get; set; } = new();
+        public List<EnrollmentFilterOptionResponse> PatientCardSyncStatuses { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50 };
         public int DefaultPageSize { get; set; } = 10;
     }

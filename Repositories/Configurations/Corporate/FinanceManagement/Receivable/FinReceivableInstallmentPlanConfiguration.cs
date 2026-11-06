@@ -13,10 +13,9 @@ public sealed class FinReceivableInstallmentPlanConfiguration : IEntityTypeConfi
             table.HasCheckConstraint(
                 "CK_FinReceivableInstallmentPlan_Status",
                 "\"Status\" IN ('MENUNGGU','DISETUJUI','DITOLAK','SELESAI','DIBATALKAN')");
-            // FIN-DES-099: pengaju MUST NOT menjadi penyetuju.
-            table.HasCheckConstraint(
-                "CK_FinReceivableInstallmentPlan_MakerChecker",
-                "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
+            // FIN-DES-099 (maker-checker) tidak lagi berupa CHECK database: izin SelfApprove bersifat dinamis sehingga tidak
+            // dapat dinyatakan di constraint. Penegakannya di FinanceReceivableInstallmentPlanService.EnsureCanDecideAsync;
+            // constraint lama dihapus oleh migration DropInstallmentPlanMakerCheckerConstraint.
             table.HasCheckConstraint(
                 "CK_FinReceivableInstallmentPlan_Amount",
                 "\"InstallmentCount\" > 0 AND \"InstallmentAmount\" > 0");

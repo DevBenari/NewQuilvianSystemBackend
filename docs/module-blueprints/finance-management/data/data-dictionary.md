@@ -557,3 +557,133 @@ Model: `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGu
 | `FamilyMemberIdSnapshot` | `Guid?` | Tidak | `NULL` | Tidak | Snapshot ID anggota keluarga HR saat kunjungan didaftarkan |
 | `BenefitRelationshipSnapshot` | `string(50)?` | Tidak | `NULL` | Tidak | Snapshot hubungan benefit saat kunjungan didaftarkan |
 
+
+## 12. Perubahan Skema Revisi 22 — Catatan Hasil Sinkronisasi Kartu Benefit RS
+
+```yaml
+last_changed_in: Revisi 22 (3 November 2026)
+status: approved   # 2026-11-03, pemilik (pengguna sesi)
+input_revision: 00-interview-decisions.md (FIN-DEC-231..257); 02-backend-architecture.md bagian V
+input_hash: lihat blueprint-manifest.md (artifact_hashes_revision_22)
+```
+
+Seluruh tabel mewarisi `IdentityModel` (sepuluh kolom audit dan penandaan hapus/batal); kolom itu tidak diulang di bawah.
+
+### 12.1 Status tabel dan pemilik
+
+| Tabel | Status | Modul pemilik | Model |
+|---|---|---|---|
+| `public."PatEmployeeBenefitCardSync"` | **Baru** | Patient Management (`Pat`) | `Areas/HealthServices/PatientManagement/MasterData/Models/PatEmployeeBenefitCardSync.cs` |
+| `public."TrxEmployeeBenefitEnrollment"` | Sudah ada | HR Benefit Management | `Areas/Corporate/HumanResource/BenefitManagement/Models/TrxEmployeeBenefitEnrollment.cs` |
+| `public."MstPatientCompanyGuarantor"` | Sudah ada | Patient Management | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientCompanyGuarantor.cs` |
+| `public."MstPatient"` | Sudah ada | Patient Management | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs` |
+| `public."MstCompanyGuarantor"` | Sudah ada | Administrator Master Data | `Areas/Administrator/MasterData/Models/MstCompanyGuarantor.cs` |
+| `public."MstWorkforceProfile"`, `"MstEmployee"`, `"MstDoctor"` | Sudah ada | HR Workforce | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/` |
+
+**Tidak ada kolom baru pada tabel yang sudah ada.**
+
+### 12.2 `PatEmployeeBenefitCardSync` (Baru)
+
+Satu baris per enrollment benefit. Menyimpan hasil terakhir pemasangan kartu "Benefit Karyawan RS" ke pasien yang
+terbukti sama dengan pemilik benefit (`FIN-DEC-237`, `239`, `250`, `251`, `253`).
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | |
+| `EmployeeBenefitEnrollmentId` | `uuid` | Ya | — | — | **Unik** terfilter `"IsDelete" = false` | FK → `TrxEmployeeBenefitEnrollment.Id`, `Restrict` | Tidak | Satu catatan per enrollment; dasar idempotensi |
+| `WorkforceProfileId` | `uuid` | Ya | — | — | Index | FK → `MstWorkforceProfile.Id`, `Restrict` | Tidak | Pemilik benefit, disalin dari enrollment saat catatan dibuat |
+| `SyncStatus` | `varchar` | Ya | — | 30 | Index gabungan (`SyncStatus`, `NextAttemptAt`) | — | Tidak | `SYNCED`, `WAITING_PATIENT`, `ON_HOLD`, `FAILED_RETRYABLE`, `REVOKED` (check constraint) |
+| `ReasonCode` | `varchar` | Bersyarat | `NULL` | 50 | — | — | Tidak | Wajib untuk `WAITING_PATIENT`, `ON_HOLD`, `FAILED_RETRYABLE`, `REVOKED`; kosong untuk `SYNCED`. Hanya kode, tidak pernah teks berisi data pribadi |
+| `AttemptCount` | `integer` | Ya | `0` | — | — | — | Tidak | ≥ 0 (check constraint). Naik pada setiap percobaan |
+| `LastAttemptAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | UTC |
+| `NextAttemptAt` | `timestamptz` | Tidak | `NULL` | — | Lihat index `SyncStatus` | — | Tidak | Diisi hanya untuk `WAITING_PATIENT` dan `FAILED_RETRYABLE` |
+| `PatientId` | `uuid` | Bersyarat | `NULL` | — | Index terfilter `IS NOT NULL` | FK → `MstPatient.Id`, `Restrict` | **Ya** | Pasien yang kartunya dipasang. Wajib untuk `SYNCED` dan `REVOKED`. Bersama `WorkforceProfileId` menyatakan bahwa seorang pegawai adalah pasien RS; **tidak boleh** masuk log |
+| `PatientCompanyGuarantorId` | `uuid` | Bersyarat | `NULL` | — | **Unik** terfilter `IS NOT NULL AND "IsDelete" = false` | FK → `MstPatientCompanyGuarantor.Id`, `Restrict` | **Ya** | Kartu yang dipasang atau dipakai ulang. Wajib untuk `SYNCED` dan `REVOKED`. Dipakai validasi kunjungan untuk mengenali kartu otomatis (`FIN-DEC-256`) |
+| `SyncedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | Terakhir kali berhasil |
+| `RevokedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | Saat pencabutan terdeteksi |
+| `LastTriggerSource` | `varchar` | Ya | — | 30 | — | — | Tidak | `ACTIVATION`, `SCHEDULER`, `MANUAL_RESYNC`, `CANCEL` (check constraint) |
+| `LastTriggeredByUserId` | `uuid` | Tidak | `NULL` | — | — | Tanpa FK (pola kolom aktor `CreateBy`) | Tidak | Aktor manusia untuk `MANUAL_RESYNC`, akun layanan untuk `SCHEDULER` |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Token konkurensi optimistik, diganti layanan pada setiap perubahan (pola `TrxEmployeeBenefitEnrollment.RowVersion`) |
+
+Check constraint:
+
+| Nama | Aturan |
+|---|---|
+| `CK_PatEmployeeBenefitCardSync_Status` | `SyncStatus` ∈ lima nilai di atas |
+| `CK_PatEmployeeBenefitCardSync_TriggerSource` | `LastTriggerSource` ∈ empat nilai di atas |
+| `CK_PatEmployeeBenefitCardSync_CardLink` | `SyncStatus` ∈ (`SYNCED`, `REVOKED`) ⇔ `PatientCompanyGuarantorId IS NOT NULL AND PatientId IS NOT NULL` |
+| `CK_PatEmployeeBenefitCardSync_Reason` | `SyncStatus = 'SYNCED'` ⇔ `ReasonCode IS NULL` |
+| `CK_PatEmployeeBenefitCardSync_AttemptCount` | `AttemptCount >= 0` |
+
+Contoh isi (data fiktif, bukan data asli):
+
+| Kolom | Rendy, berhasil | Pegawai X, ditahan |
+|---|---|---|
+| `SyncStatus` | `SYNCED` | `ON_HOLD` |
+| `ReasonCode` | `NULL` | `MULTIPLE_MATCH` |
+| `AttemptCount` | `1` | `2` |
+| `PatientCompanyGuarantorId` | `5c1e…` | `NULL` |
+| `LastTriggerSource` | `ACTIVATION` | `MANUAL_RESYNC` |
+
+### 12.3 Kolom kunci tabel yang sudah ada dan dipakai aturan bisnis amandemen ini
+
+| Tabel | Kolom | Dipakai untuk |
+|---|---|---|
+| `TrxEmployeeBenefitEnrollment` | `Id`, `WorkforceProfileId`, `EnrollmentNumber`, `EnrollmentStatus`, `EffectiveStartDate`, `EffectiveEndDate`, `SubmittedAt`, `SubmittedByUserId`, `ApprovedAt`, `ApprovedByUserId`, `ActivatedAt`, `ActivatedByUserId`, `CoverageLimitAmount`, `UsedAmount`, `RemainingAmount`, `RowVersion` | Ajukan atomik, Setujui+aktif, penjadwal, batas `ActivationCutoffUtc` (dibandingkan dengan `ActivatedAt`) |
+| `MstPatientCompanyGuarantor` | `Id`, `PatientId`, `CompanyGuarantorId`, `EmployeeNumber`, `BenefitOwnerWorkforceProfileId`, `BenefitOwnerType`, `FamilyMemberId`, `BenefitRelationship`, `IsActive`, `IsPrimary`, `LastEligibilityReferenceNumber` | Pakai ulang kartu, penahanan, pencabutan, nomor referensi benefit (`LastEligibilityReferenceNumber` = nomor enrollment untuk kartu otomatis) |
+| `MstPatient` | `Id`, `IdentityType`, `IdentityNumber` (Sensitif), `BirthDate` (Sensitif), `MergedToPatientId`, `IsActive` | Pencocokan otomatis dan cek ulang kunjungan |
+| `MstCompanyGuarantor` | `Id`, `CompanyGuarantorCode`, `IsEmployeeBenefitGuarantor`, `IsActive`, `ContractStartDate`, `ContractEndDate` | Penjamin internal tunggal (`FIN-DEC-236`) |
+| `MstWorkforceProfile` | `Id`, `UserType`, `IsActive` | Dokter tamu ditolak (`FIN-DEC-240`) |
+| `MstEmployee`, `MstDoctor` | `WorkforceProfileId`, `IdentityNumber` (Sensitif), `BirthDate` (Sensitif), `IsActive`, `ResignDate`, `IsCancel` | Identitas pemilik untuk pencocokan |
+
+**Koreksi catatan lama (bagian 11.2).** Baris `EmployeeId` di bagian 11.2 menyebut kolom itu wajib untuk penjamin
+internal. Sejak migration `20261019100000_AddWorkforceBenefitOwnerIdentity`, kartu internal sah dengan
+`BenefitOwnerWorkforceProfileId` saja (dokter tetap tidak punya `EmployeeId`), sesuai
+`CK_MstPatientCompanyGuarantor_BenefitLink`. Bagian 11.2 tidak disunting; catatan ini yang berlaku.
+
+### 12.4 Skema DDL (dokumentasi bentuk)
+
+> **Peringatan.** Bagian ini dokumentasi bentuk yang diharapkan dari configuration EF Core, **bukan** skrip untuk
+> dijalankan. Skema dibuat oleh migration EF yang ditulis tim pengembang.
+
+```sql
+CREATE TABLE public."PatEmployeeBenefitCardSync" (
+    "Id"                          uuid         NOT NULL PRIMARY KEY,
+    "EmployeeBenefitEnrollmentId" uuid         NOT NULL REFERENCES public."TrxEmployeeBenefitEnrollment"("Id") ON DELETE RESTRICT,
+    "WorkforceProfileId"          uuid         NOT NULL REFERENCES public."MstWorkforceProfile"("Id") ON DELETE RESTRICT,
+    "SyncStatus"                  varchar(30)  NOT NULL,
+    "ReasonCode"                  varchar(50)  NULL,
+    "AttemptCount"                integer      NOT NULL DEFAULT 0,
+    "LastAttemptAt"               timestamptz  NULL,
+    "NextAttemptAt"               timestamptz  NULL,
+    "PatientId"                   uuid         NULL REFERENCES public."MstPatient"("Id") ON DELETE RESTRICT,
+    "PatientCompanyGuarantorId"   uuid         NULL REFERENCES public."MstPatientCompanyGuarantor"("Id") ON DELETE RESTRICT,
+    "SyncedAt"                    timestamptz  NULL,
+    "RevokedAt"                   timestamptz  NULL,
+    "LastTriggerSource"           varchar(30)  NOT NULL,
+    "LastTriggeredByUserId"       uuid         NULL,
+    "RowVersion"                  uuid         NOT NULL,
+    -- sepuluh kolom IdentityModel tidak ditulis ulang
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_Status"
+        CHECK ("SyncStatus" IN ('SYNCED','WAITING_PATIENT','ON_HOLD','FAILED_RETRYABLE','REVOKED')),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_TriggerSource"
+        CHECK ("LastTriggerSource" IN ('ACTIVATION','SCHEDULER','MANUAL_RESYNC','CANCEL')),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_CardLink"
+        CHECK (("SyncStatus" IN ('SYNCED','REVOKED')) = ("PatientCompanyGuarantorId" IS NOT NULL AND "PatientId" IS NOT NULL)),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_Reason"
+        CHECK (("SyncStatus" = 'SYNCED') = ("ReasonCode" IS NULL)),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_AttemptCount" CHECK ("AttemptCount" >= 0)
+);
+
+CREATE UNIQUE INDEX "UX_PatEmployeeBenefitCardSync_Enrollment"
+    ON public."PatEmployeeBenefitCardSync" ("EmployeeBenefitEnrollmentId") WHERE "IsDelete" = false;
+CREATE UNIQUE INDEX "UX_PatEmployeeBenefitCardSync_Card"
+    ON public."PatEmployeeBenefitCardSync" ("PatientCompanyGuarantorId")
+    WHERE "PatientCompanyGuarantorId" IS NOT NULL AND "IsDelete" = false;
+CREATE INDEX "IX_PatEmployeeBenefitCardSync_Due"
+    ON public."PatEmployeeBenefitCardSync" ("SyncStatus", "NextAttemptAt");
+CREATE INDEX "IX_PatEmployeeBenefitCardSync_WorkforceProfile"
+    ON public."PatEmployeeBenefitCardSync" ("WorkforceProfileId");
+CREATE INDEX "IX_PatEmployeeBenefitCardSync_Patient"
+    ON public."PatEmployeeBenefitCardSync" ("PatientId") WHERE "PatientId" IS NOT NULL;
+```

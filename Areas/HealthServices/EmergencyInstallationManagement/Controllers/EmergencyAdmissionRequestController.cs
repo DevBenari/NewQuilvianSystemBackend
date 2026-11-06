@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -28,17 +32,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string LogCategory = "HealthServices.EmergencyInstallation";
         private const string NamaController = "EmergencyAdmissionRequest";
 
+        private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyDispositionService _service;
         private readonly LoggerService _loggerService;
 
         public EmergencyAdmissionRequestController(
+            ApplicationDbContext dbContext,
             EmergencyDispositionService service,
             LoggerService loggerService)
         {
+            _dbContext = dbContext;
             _service = service;
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyAdmissionRequestFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Admission Request", Description = "Melihat metadata filter permintaan rawat inap IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyAdmissionRequest", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyAdmissionRequestFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyAdmissionRequestDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyAdmissionRequestFilterMetadataResponse>.Ok(result, "Metadata filter permintaan rawat inap IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyAdmissionRequestSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Admission Request", Description = "Melihat ringkasan permintaan rawat inap IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyAdmissionRequest", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgAdmissionRequest>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyAdmissionRequestSummaryResponse
+            {
+                TotalAdmissionRequest = await query.CountAsync(cancellationToken),
+                DraftAdmissionRequest = await query.CountAsync(x => x.Status == EmergencyAdmissionRequestStatus.Draft, cancellationToken),
+                PendingSignatureAdmissionRequest = await query.CountAsync(x => x.Status == EmergencyAdmissionRequestStatus.AwaitingSignature, cancellationToken),
+                SignedAdmissionRequest = await query.CountAsync(x => x.Status == EmergencyAdmissionRequestStatus.Signed, cancellationToken),
+                CancelledAdmissionRequest = await query.CountAsync(x => x.Status == EmergencyAdmissionRequestStatus.Cancelled, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyAdmissionRequestSummaryResponse>.Ok(summary, "Ringkasan permintaan rawat inap IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyAdmissionRequestOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Admission Request Options", Description = "Melihat pilihan Form Permintaan Rawat Inap IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyAdmissionRequest", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyVisitId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgAdmissionRequest>().AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (emergencyVisitId.HasValue && emergencyVisitId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyVisitId == emergencyVisitId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.ClinicalIndication != null && x.ClinicalIndication.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderByDescending(x => x.CreateDateTime)
+                .Take(100)
+                .Select(x => new EmergencyAdmissionRequestOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitId = x.EmergencyVisitId,
+                    RequestNumber = x.Id.ToString(),
+                    RequestStatus = x.Status,
+                    CreatedAt = x.CreateDateTime
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyAdmissionRequestOptionResponse>>.Ok(items, "Pilihan Form Permintaan Rawat Inap IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<EmergencyAdmissionRequestSummary>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

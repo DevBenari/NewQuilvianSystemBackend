@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs
 {
@@ -121,6 +121,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         /// <summary>BE-FIN-105: SELF, SPOUSE, CHILD, PARENT, atau OTHER. Hanya-baca.</summary>
         public string? BenefitRelationship { get; set; }
+
+        /// <summary>FIN-DES-119: true bila penjamin kartu adalah penjamin internal (RS Benefit).</summary>
+        public bool IsEmployeeBenefitGuarantor { get; set; }
+
+        /// <summary>
+        /// FIN-DES-119: status benefit hidup dari HR untuk kartu internal; null untuk kartu penjamin biasa.
+        /// </summary>
+        public EmployeeBenefitStatusResponse? EmployeeBenefitStatus { get; set; }
 
         public DateTime CreateDateTime { get; set; }
 
@@ -421,5 +429,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsEligible { get; set; }
 
         public bool IsActive { get; set; }
+    }
+
+    /// <summary>
+    /// Status benefit hidup dari HR untuk kartu penjamin internal (FIN-API-1.12 V.2, FIN-DES-119).
+    /// </summary>
+    public class EmployeeBenefitStatusResponse
+    {
+        public string State { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
+
+        public string? EnrollmentNumber { get; set; }
+
+        public string? PlanName { get; set; }
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public string? Message { get; set; }
+    }
+
+    /// <summary>
+    /// Kode keadaan status benefit hidup untuk tampilan kartu internal (FIN-DES-119).
+    /// </summary>
+    public static class EmployeeBenefitStatusStates
+    {
+        public const string Active = "ACTIVE";
+        public const string NotYetEffective = "NOT_YET_EFFECTIVE";
+        public const string Ended = "ENDED";
+        public const string NotActive = "NOT_ACTIVE";
+        public const string NotEligible = "NOT_ELIGIBLE";
+        public const string NotLinked = "NOT_LINKED";
+        public const string HrUnavailable = "HR_UNAVAILABLE";
+    }
+
+    /// <summary>
+    /// Label bahasa Indonesia untuk status benefit hidup kartu internal (FIN-DES-119).
+    /// </summary>
+    public static class EmployeeBenefitStatusLabels
+    {
+        public const string Active = "Aktif";
+        public const string NotYetEffective = "Belum berlaku";
+        public const string Ended = "Kedaluwarsa";
+        public const string NotActive = "Belum aktif";
+        public const string NotEligible = "Tidak layak";
+        public const string NotLinked = "Belum tertaut";
+        public const string HrUnavailable = "Tidak dapat dibaca";
     }
 }

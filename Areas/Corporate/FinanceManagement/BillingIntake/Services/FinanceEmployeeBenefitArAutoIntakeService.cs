@@ -54,10 +54,14 @@ public sealed class FinanceEmployeeBenefitArAutoIntakeService(ApplicationDbConte
         var limit = Math.Clamp(maxPerCycle, 1, 500);
         var cutoff = (now ?? DateTimeOffset.UtcNow) - (grace < TimeSpan.Zero ? TimeSpan.Zero : grace);
 
-        // Handoff AR yang masih CREATED (belum diakui Finance). Penyaringan waktu dilakukan di memori: jumlahnya
+        // Handoff AR Karyawan yang masih CREATED (belum diakui Finance). Penyaringan waktu dilakukan di memori: jumlahnya
         // dibatasi oleh yang belum diolah, dan perbandingan DateTimeOffset tidak seragam di semua penyedia basis data.
+        // DebtorType = EMPLOYEE_BENEFIT WAJIB tetap ada: tanpanya handoff PAYER (penjamin luar dan porsi Benefit RS internal)
+        // serta PATIENT_GUARANTOR ikut diakui otomatis, padahal kontrak penjadwal ini hanya AR Karyawan dan jenis lain tetap
+        // manual. Filter ini pernah terhapus tanpa sengaja oleh commit lain (535d996b); jangan dilonggarkan.
         var handoffs = await dbContext.BilArHandoffs.AsNoTracking()
-            .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created)
+            .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created
+                        && x.DebtorType == BillingArDebtorTypes.EmployeeBenefit)
             .ToListAsync(cancellationToken);
         if (handoffs.Count == 0) return new EmployeeBenefitArAutoIntakeResult(0, 0, 0, 0);
 

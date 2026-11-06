@@ -931,3 +931,49 @@ input_hash: 1e01c38b9f7c5f62   # SHA-256 (16 karakter pertama) berkas ini sebelu
 | Revisi 19 | `FIN-VAL-249`..`271` | 23 |
 | Revisi 20 | `FIN-VAL-272`..`289` | 18 |
 | **Total Akumulatif** | `FIN-VAL-230`..`289` | **60** |
+
+## V. Revisi 22 (3 November 2026) — Benefit RS
+
+```yaml
+last_changed_in: FIN-VAL-1.14
+status: approved
+owner: Pemilik HR dan Registrasi (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: FIN-DEC-233..256; FIN-DES-109..126
+compatibility: FIN-VAL-271 (pengaju ≠ penyetuju) digantikan FIN-DEC-233 dan tidak lagi berlaku; aturan lain aditif.
+```
+
+### V.1 Aturan yang digantikan
+
+| Aturan | Keadaan | Pengganti |
+|---|---|---|
+| `FIN-VAL-271` Penyetuju enrollment harus berbeda dari pengaju (403) | **superseded** | `FIN-DEC-233`: pengaju boleh menyetujui sendiri; audit mencatat kedua aktor |
+
+### V.2 Aturan baru
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-290` | Ajukan Benefit | Penerima, program, tanggal pendaftaran, atau tanggal mulai kosong; tanggal akhir sebelum tanggal mulai | Pesan yang sudah ada per field, misalnya "Penerima benefit wajib dipilih." | 422 |
+| `FIN-VAL-291` | Aktifkan manual | Tanggal mulai berlaku masih di masa depan | "Benefit ini baru berlaku mulai 1 Desember 2026. Sistem mengaktifkannya otomatis pada tanggal itu." | 422 |
+| `FIN-VAL-292` | Setujui (tanggal mulai sudah tiba) | Syarat aktivasi gagal | Pesan syarat yang sudah ada, misalnya "Pegawai ini sudah memiliki benefit layanan RS yang aktif pada periode tersebut." Status tetap Diajukan | 422 |
+| `FIN-VAL-293` | Ajukan, Setujui, kelayakan, pencarian | Penerima adalah dokter tamu | "Jenis SDM ini tidak termasuk penerima benefit kesehatan menurut kebijakan HR." | 422 `OWNER_TYPE_NOT_ALLOWED` |
+| `FIN-VAL-294` | Sinkronkan ulang | Enrollment tidak `Active` | "Sinkronisasi kartu hanya dapat dijalankan untuk benefit yang sudah aktif." | 400 |
+| `FIN-VAL-295` | Pendaftaran kunjungan dan ganti penanggung, kartu hasil sinkronisasi | NIK, tanggal lahir, atau jenis tanda pengenal pasien tidak lagi cocok dengan pemilik | "Identitas pasien tidak lagi sesuai dengan pemilik Benefit Karyawan RS pada kartu ini. Kartu tidak dapat dipakai; daftarkan sebagai Pasien Umum atau minta Registrasi meninjau kartunya." | 400 (loket, usulan `FIN-DES-126`) / 422 `PATIENT_IDENTITY_MISMATCH` (ganti penanggung) |
+| `FIN-VAL-296` | Modal Daftarkan Penjamin, penjamin internal | Penerima benefit belum dipilih dari pencarian HR | Frontend menahan pengiriman: "Pilih penerima benefit dari data HR." Backend tetap menolak dengan pesan `EMPLOYEE_REQUIRED` yang sudah ada | 422 |
+| `FIN-VAL-297` | Modal Daftarkan Penjamin, penjamin internal | Pasien sudah punya kartu internal aktif | Frontend tidak mengirim: "Pasien sudah memiliki kartu Benefit Karyawan RS yang aktif." Backend tetap menolak duplikat dengan aturan yang sudah ada | — / 400 |
+| `FIN-VAL-298` | Pembuatan kartu internal dan tab | Benefit belum dapat dipakai | Pesan per keadaan (tabel V.3) | 422 `ENROLLMENT_NOT_ACTIVE` (kode lama, pesan baru) |
+| `FIN-VAL-299` | Daftar kerja Registrasi | Nilai `status` tidak dikenal | "Status sinkronisasi tidak dikenal." | 400 |
+
+### V.3 Pesan kelayakan per keadaan (`FIN-DES-124`)
+
+| Keadaan enrollment pemilik | Pesan |
+|---|---|
+| Draft | "Pengajuan benefit BEN000123 belum diajukan ke HRD." |
+| Submitted | "Pengajuan benefit BEN000123 sedang menunggu persetujuan HRD." |
+| Approved, belum tanggal mulai | "Benefit BEN000123 sudah disetujui dan baru berlaku mulai 1 Desember 2026." |
+| Active, belum tanggal mulai | "Benefit Medical Staf baru berlaku mulai 1 Desember 2026." |
+| Active, sudah berakhir | "Masa berlaku benefit Medical Staf berakhir 31 Oktober 2026." |
+| Tidak ada enrollment | Pesan `ENROLLMENT_NOT_ACTIVE` yang sudah ada |
+
+Nama status tidak lagi ditampilkan dalam Bahasa Inggris. Kode alasan tidak berubah agar pemanggil lama tetap bekerja.

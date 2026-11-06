@@ -2996,3 +2996,281 @@ Kini slice `S1` (pencatatan piutang pegawai dari serah terima), `S3` (potongan p
 | `FIN-OQ-111` | `OPEN` | Nilai persentase batas potongan piutang RS dan dasar hitung gaji bersih (milik HR) |
 | `FIN-OQ-103` | `OPEN` | Akun beban dan jurnal pelunasan internal (milik Accounting) |
 | Konfirmasi pemilik Registrasi | `FIN-DEC-204`, `209` | Masih tercatat sebagai risiko di roadmap sampai konfirmasi formal turun |
+
+## Pass `grill-me` (Amendment Pass) — Benefit RS: Pengajuan, Persetujuan HRD, Aktivasi, dan Sinkronisasi Penjamin Pasien, 3 November 2026
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `FIN-BP-001` — usulan **Revisi 21** (`draft`; berkas `blueprint-manifest.md` belum diubah, itu tugas `design-business-module`) |
+| Pemicu | Permintaan pemilik: pendaftaran benefit langsung berstatus Diajukan, HRD menyetujui, benefit aktif otomatis sesuai tanggal efektif, penjamin `SYS-RS-BENEFIT` tersinkron ke pasien, dan galat 422 pada modal Daftarkan Penjamin |
+| Mode | **Amendment**. Keputusan lama tidak ditimpa; yang digantikan ditandai `superseded` |
+| Source SHA | Backend `ba312826` (branch `Yasmina`), Frontend `fa7eb8d7` (branch `yasmina`) |
+| Capability map | `01-existing-capability-map.md` Finance dibuat pada Backend `09101d05` sehingga **basi**. Penelusuran khusus scope ini dilakukan pada sesi yang sama (hasil ringkasnya ada di `FIN-DEC-232`); belum disimpan sebagai berkas |
+| Bentuk blueprint | `SINGLE` tetap (`FIN-DEC-161`); tidak ditanyakan ulang |
+| Model | Claude Sonnet 5.5 (memenuhi batas minimum skill) |
+
+### Batas scope (dikonfirmasi pemilik)
+
+**Di dalam scope:** (1) tombol "Ajukan Benefit" membuat enrollment langsung berstatus Diajukan; (2) persetujuan HRD dan aktivasi, termasuk tanggal mulai berlaku di masa depan; (3) sinkronisasi penjamin internal `SYS-RS-BENEFIT` ke pasien yang terbukti sama dengan karyawan/dokter, termasuk status pending, gagal, dan ulang coba; (4) form Daftarkan Penjamin untuk penjamin internal dan pesan galat 422 yang spesifik; (5) tampilan pada tab Penjamin Perusahaan dan titik sentuh ke Pendaftaran Pasien; (6) siapa yang berhak menjadi pemilik benefit (karyawan, dokter tetap, dokter tamu) dan nasib kartu saat Cancelled atau Expired.
+
+**Di luar scope (dicatat untuk modul lain):**
+
+| Hal | Modul pemilik | Titik sentuh yang boleh dibahas |
+|---|---|---|
+| Hitungan dan pemotongan plafon, refill bulanan | HR Benefit Balance dan Billing | Aktivasi dan sinkronisasi **tidak boleh** mengubah saldo |
+| Invoice, Finance AR, kwitansi, angsuran piutang | Finance dan Billing | Approval dan sinkronisasi tidak membuat atau melunasi apa pun di sini |
+| Asuransi eksternal dan master penjamin eksternal | Administrator dan Patient Insurance | Tidak boleh berubah |
+| Membuat atau menggabung master pasien | Patient Management | Tidak boleh dibuat otomatis hanya demi sinkronisasi |
+| Verifikasi tanggungan keluarga | HR Dependent | Hanya soal apakah kartu keluarga ikut otomatis |
+| Perubahan schema dan migration | Tim pengembang | Hanya kebutuhannya yang dicatat |
+
+### Keputusan Amendment Pass ini
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-231` | Decision | **Scope amendment Benefit RS dikunci penuh end-to-end** (enam butir di atas), bukan dipecah per fase | Pemilik Finance dan HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me` |
+| `FIN-DEC-232` | Fact | **Hasil penelusuran source (Backend `ba312826`, Frontend `fa7eb8d7`).** (a) `CreateAsync` selalu menulis `Draft`; Frontend hanya memanggil create, sehingga Submit adalah aksi terpisah. (b) `ApproveAsync` hanya Submitted→Approved; `ActivateAsync` terpisah, hanya dari Approved, tidak mengecek tanggal efektif, dan menetapkan saldo awal. Eligibility dan Billing hanya membaca `Active`. (c) Tidak ada kode yang mengisi status `Expired` dan tidak ada penjadwal untuk enrollment. (d) Galat 422 `EMPLOYEE_REQUIRED` keluar dari `RegistrationEmployeeBenefitLookupService.ResolveCardLinkAsync` karena payload Frontend (`buildPatientCompanyGuarantorPayload`) tidak membawa `benefitOwnerWorkforceProfileId` atau `employeeId`; ini bukan akibat data HR yang belum sinkron. (e) Jalur "tarik" `POST …/patient-company-guarantors/internal-benefit-card` sudah ada dan idempoten tetapi hanya untuk pegawai sendiri dan dipicu saat registrasi; **tidak ada jalur "dorong"** dari HR ke kartu pasien. (f) `MstPatient` tidak punya kolom workforce; tautan pasien dan workforce dihitung dari NIK yang sama persis (`FIN-DEC-228`). (g) `MstPatientCompanyGuarantor` tidak punya kolom `EnrollmentId`, status sinkronisasi, maupun galat. (h) Kartu internal sengaja tanpa tanggal berlaku (masa berlaku dibaca langsung dari HR). | Agen (bukti source) | `approved` (fakta) | Agen, 3 November 2026 | `trace-existing-capabilities` sesi ini |
+| `FIN-DEC-233` | Decision | **Pengaju enrollment benefit BOLEH menyetujui pengajuannya sendiri. `FIN-VAL-271` (penyetuju harus berbeda dari pengaju, 403) dinyatakan `superseded`.** Contoh: Staf HR Rina mengajukan benefit untuk Rendy Saputra lalu menekan Setujui sendiri — diizinkan. Syarat pengganti: audit tetap mencatat `SubmittedByUserId` dan `ApprovedByUserId` secara terpisah walau orangnya sama, dan izin `EmployeeBenefitEnrollment : Approve` tetap wajib. **Risiko yang diterima pemilik:** satu orang dapat membuat sekaligus mengaktifkan plafon tanpa pemeriksa kedua. Penyelarasan dokumen (`validation-matrix`, `acceptance-test-matrix` butir `N.2.2`, `permission-audit-matrix`) adalah tugas `design-business-module`, tidak diubah pada pass ini. Constraint database `CK_TrxEmployeeBenefitEnrollment_MakerChecker` tidak perlu dipulihkan | Pemilik Finance dan HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; Backend `EmployeeBenefitEnrollmentService` komentar "SEMENTARA"; migration `DropEnrollmentMakerCheckerConstraint` |
+
+### Open Question pass ini
+
+| ID | Pertanyaan | Memblokir | Pemilik |
+|---|---|---|---|
+| `FIN-OQ-112` | Apakah persetujuan HRD sekaligus izin aktivasi bila tanggal mulai berlaku sudah tiba? | `DESIGN` | Finance dan HR |
+| `FIN-OQ-113` | Bagaimana benefit yang tanggal mulainya di masa depan menjadi Active (penjadwal atau tombol manual)? | `DESIGN` | Finance dan HR |
+| `FIN-OQ-114` | **Conflict:** `FIN-DEC-227` (`approved`) mengizinkan lebih dari satu penjamin internal, tetapi indeks unik `UX_MstCompanyGuarantor_EmployeeBenefit` hanya mengizinkan satu. Mana yang berlaku? | `DESIGN` | Finance dan Administrator |
+| `FIN-OQ-115` | Bukti sah pasien sama dengan karyawan/dokter untuk sinkronisasi otomatis (arah dorong) | `DESIGN` | Registrasi dan HR |
+| `FIN-OQ-116` | Di mana status pending/gagal/ulang coba disimpan (diturunkan saat dibaca atau disimpan) | `DESIGN` | Finance dan Registrasi |
+| `FIN-OQ-117` | **Conflict:** dokter tamu (`GuestDoctor`) diterima kode sebagai pemilik benefit, padahal blueprint HR menggolongkannya sebagai External User | `DESIGN` | HR |
+| `FIN-OQ-118` | Apakah kartu tanggungan keluarga ikut dibuat otomatis? | `LATER SLICE` | HR dan Registrasi |
+| `FIN-OQ-119` | Nasib kartu saat enrollment Cancelled atau Expired, dan sumber tampilan masa berlaku di tab Penjamin Perusahaan | `DESIGN` | Finance dan Registrasi |
+| `FIN-OQ-120` | Aturan pesan galat pada modal Daftarkan Penjamin (kasus yang dibedakan dan perilaku bila kartu sudah ada) | `IMPLEMENTATION` | Registrasi |
+
+### Jawaban pemilik, putaran 2 — aktivasi saat persetujuan (`FIN-OQ-112`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-234` | Decision | **Persetujuan HRD pada enrollment yang tanggal mulai berlakunya sudah tiba (hari ini atau lewat, tanggal operasional WIB) langsung mengaktifkan benefit dalam transaksi yang sama.** Saldo awal plafon ditetapkan dari plan pada saat aktivasi itu (aturan `FIN-DEC-207` tidak berubah). **Bila syarat aktivasi gagal, seluruh persetujuan dibatalkan:** enrollment tetap berstatus Diajukan dan HRD menerima pesan penyebab yang jelas. Contoh: Rendy sudah punya benefit Medical Active 1 Jan–31 Des 2026; HRD menyetujui pengajuan kedua Rendy periode 1 Nov–31 Des 2026 → ditolak dengan pesan "Pegawai ini sudah memiliki benefit layanan RS yang aktif pada periode tersebut", status tetap Diajukan, tidak ada jejak "disetujui". Tidak boleh ada Approved yang gagal Active karena kegagalan syarat (Approved hanya sah untuk tanggal mulai di masa depan, lihat `FIN-OQ-113`). Menutup `FIN-OQ-112` | Pemilik Finance dan HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Permintaan pemilik bagian B; jawaban pemilik atas `grill-me`; `FIN-DEC-207`; Backend `EmployeeBenefitEnrollmentService.ActivateAsync` (syarat plafon plan dan irisan periode Medical) |
+
+### Jawaban pemilik, putaran 3 — tanggal mulai berlaku di masa depan (`FIN-OQ-113`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-235` | Decision | **Enrollment yang disetujui dengan tanggal mulai berlaku di masa depan tetap berstatus Approved (persetujuan tercatat, belum dapat dipakai) dan diaktifkan oleh penjadwal otomatis harian ketika tanggalnya tiba (tanggal operasional WIB); tombol Aktifkan manual tetap dipertahankan sebagai cadangan.** Contoh: HRD menyetujui benefit Dr. Andi pada 28 Oktober dengan mulai berlaku 1 November → 28 Oktober sampai 31 Oktober berstatus Approved dan tidak dapat dipakai; mulai 1 November penjadwal mengubahnya menjadi Active. Syarat yang wajib: (1) penjadwal memakai aturan aktivasi yang **sama** dengan aktivasi manual (saldo awal ditetapkan **sekali**, tidak pernah diulang untuk enrollment yang sudah Active); (2) aman bila berjalan bersamaan dengan HRD yang menekan Aktifkan manual atau dengan dua instance server; (3) bila aktivasi gagal pada hari H, galat dicatat tanpa data pribadi, enrollment tetap Approved, dan dicoba lagi pada putaran berikutnya; (4) sinkronisasi penjamin pasien berjalan setelah aktivasi berhasil. Menutup `FIN-OQ-113` | Pemilik Finance dan HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; Backend: belum ada penjadwal enrollment, pola terdekat `FinanceEmployeeBenefitArIntakeSchedulerHostedService` |
+
+### Jawaban pemilik, putaran 4 — jumlah penjamin internal (`FIN-OQ-114`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-236` | Decision | **Untuk amendment Benefit RS, hanya ada SATU penjamin internal, yaitu `SYS-RS-BENEFIT` ("Benefit Karyawan RS"), dan sinkronisasi selalu memakai penjamin itu.** Master penjamin ini tidak dibuat ulang setiap persetujuan; yang ada dipakai ulang (pembuatan hanya bila belum ada satu pun, dijaga indeks unik `UX_MstCompanyGuarantor_EmployeeBenefit`). Klausa "boleh lebih dari satu penjamin internal" pada `FIN-DEC-227` **ditangguhkan** (tidak dihapus) sampai ada kebutuhan nyata; bila kelak dibutuhkan, itu amendment tersendiri yang menyentuh Registrasi, Billing, dan Finance. Contoh: enrollment Rendy dan enrollment dokter tetap mana pun selalu dipasang ke "Benefit Karyawan RS". Menutup `FIN-OQ-114` | Pemilik Finance dan Administrator (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-227`; Backend indeks `UX_MstCompanyGuarantor_EmployeeBenefit` |
+
+### Jawaban pemilik, putaran 5 — bukti pasien sama dengan penerima benefit (`FIN-OQ-115`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-237` | Decision | **Sinkronisasi otomatis (arah HR ke kartu pasien, tanpa petugas yang memilih pasien) hanya memasang kartu `SYS-RS-BENEFIT` bila NIK pasien sama persis dengan NIK penerima benefit di HR DAN tanggal lahirnya sama, serta tepat satu pasien aktif yang cocok.** Ini lebih ketat daripada `FIN-DEC-228` dan berlaku **khusus pemasangan otomatis**; jalur manual yang dikerjakan petugas tetap memakai `FIN-DEC-228`. Aturan turunan: (a) tidak ada pasien yang cocok → status "menunggu pasien", tidak ada pasien dan tidak ada kartu yang dibuat; (b) lebih dari satu pasien cocok → ditahan untuk ditinjau petugas Registrasi, tidak dipasang ke salah satunya; (c) pasien yang sudah digabung (merged) dibaca lewat pasien kanonik; (d) NIK atau tanggal lahir kosong di salah satu sisi → "menunggu", tidak ditebak dari nama. Contoh: enrollment Rendy Saputra (lahir 5 Mei 1990) tidak dipasang ke pasien Gilang Mahendra (lahir 12 Agustus 1988) walau NIK-nya kebetulan sama karena salah ketik. Nama pasien **tidak pernah** menjadi dasar pencocokan. Menutup `FIN-OQ-115` | Pemilik Registrasi dan HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-228`; Backend `PatientWorkforceIdentityResolver` |
+| `FIN-DEC-238` | Fact | **Celah pada pemeriksaan kunjungan.** Pencocokan identitas pasien dengan HR (`PATIENT_IDENTITY_MISMATCH`) hanya terjadi di `ResolveCardLinkAsync`, yaitu saat kartu dibuat atau diubah (`PatientCompanyGuarantorController` baris 455 dan 950). Pendaftaran kunjungan (`PatientEncounterController` baris 2764 dan `EncounterPaymentSourceService` baris 459) hanya memanggil `ValidateCardForServiceAsync`, yang memeriksa kelayakan pemilik di HR dan **tidak** mencocokkan ulang identitas pasien. Akibatnya kartu yang terlanjur terpasang ke pasien yang salah dapat dipakai pasien itu. Dicatat sebagai bahan `design-business-module`; **belum diputuskan** apakah pemeriksaan kunjungan perlu diperketat | Agen (bukti source) | `approved` (fakta) | Agen, 3 November 2026 | Pencarian seluruh pemanggil `ResolveCardLinkAsync` dan `ValidateCardForServiceAsync` |
+
+### Jawaban pemilik, putaran 6 — tempat status sinkronisasi (`FIN-OQ-116`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-239` | Decision | **Hasil sinkronisasi penjamin pasien DISIMPAN sebagai catatan hasil sinkronisasi per enrollment** (bukan dihitung ulang saat dibaca). Isi minimal catatan: nomor enrollment, status (berhasil / menunggu pasien / ditahan untuk ditinjau / gagal sementara), kode alasan, jumlah percobaan, waktu percobaan terakhir, ID pasien dan ID kartu penjamin yang dipasang. Tujuan: (1) daftar enrollment HR menampilkan penanda integrasi dengan murah; (2) HRD melihat alasan tanpa pencocokan ulang; (3) galat sementara tercatat dan dapat dicoba ulang; (4) bila enrollment dibatalkan, sistem menonaktifkan **persis kartu yang dulu dipasang**, walau NIK pasien kemudian berubah. Contoh: enrollment Rendy dibatalkan 3 bulan setelah kartu terpasang → kartu yang tercatat pada catatan itu dinonaktifkan, bukan kartu hasil tebakan ulang. Catatan itu harus unik per enrollment sehingga pemrosesan ulang tidak menggandakan. **Kebutuhan schema (BUKAN dikerjakan pada pass ini, tanpa migration):** tabel baru beserta pendaftaran pemilik dan prefix pada `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` sebelum model dibuat (`QBE-MOD-003`); migration dibuat dan dijalankan oleh tim pengembang. Menutup `FIN-OQ-116` | Pemilik Finance dan Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-237`; Backend `MstPatientCompanyGuarantor` tanpa kolom enrollment/status |
+
+### Jawaban pemilik, putaran 7 — dokter tamu (`FIN-OQ-117`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-240` | Decision | **Pemilik Benefit RS hanya karyawan dan dokter tetap. Dokter tamu (`GuestDoctor`) TIDAK berhak.** Dokter tamu tidak muncul pada pencarian penerima benefit, ditolak saat pembuatan enrollment, dan ditolak saat pemeriksaan kelayakan dengan alasan `OWNER_TYPE_NOT_ALLOWED`; karena itu tidak pernah mendapat kartu `SYS-RS-BENEFIT`, baik otomatis maupun manual. Contoh: HRD mencari "Dr. Budi" yang berstatus dokter tamu → tidak ditemukan sebagai penerima; bila enrollment lama atas Dr. Budi ada, ia tidak lagi dinyatakan layak. Menyelaraskan kode dengan niat komentar `WorkforceBenefitOwnerPolicy` dan dengan penggolongan HR (dokter tamu = External User). **Dampak lintas modul:** `WorkforceBenefitOwnerResolver` dipakai bersama Enrollment, Registrasi, Billing, dan Finance, sehingga perubahan wajib diuji pada keempatnya. **Tindak lanjut pemilik:** memeriksa data apakah sudah ada enrollment dokter tamu sebelum rilis (agen tidak membaca basis data). Menutup `FIN-OQ-117` | Pemilik HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; Backend `WorkforceBenefitOwnerPolicy`, `WorkforceBenefitOwnerResolver.LoadAsync`, `EmployeeBenefitEligibilityService.SearchWorkforceAsync`; HR `00-interview-decisions.md` (External User) |
+
+### Jawaban pemilik, putaran 8 — keluarga (`FIN-OQ-118`) dan Cancelled/Expired (`FIN-OQ-119`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-241` | Decision | **Sinkronisasi otomatis hanya untuk karyawan atau dokter tetap itu sendiri (hubungan `SELF`). Kartu anggota keluarga TETAP didaftarkan manual oleh petugas** dengan pemeriksaan tanggungan terverifikasi, kesesuaian plan, dan identitas (`FIN-DEC-204`, `FIN-DEC-228` ayat 2). Contoh: Sinta, istri Rendy dan sudah Verified di HR, tidak mendapat kartu otomatis saat enrollment Rendy aktif. Kartu keluarga otomatis dapat dibahas sebagai amendment lanjutan (`LATER SLICE`). Menutup `FIN-OQ-118` | Pemilik HR dan Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; Backend `EnsureInternalBenefitCard` (hanya Employee/Doctor) |
+| `FIN-DEC-242` | Decision | **Cancelled dan Expired.** (1) Enrollment **Cancelled** → kartu yang tercatat pada catatan hasil sinkronisasi (`FIN-DEC-239`) dinonaktifkan (`IsActive = false`, `IsPrimary = false`), **tidak dihapus**; riwayat penggunaan dan snapshot kunjungan tetap utuh. Penjamin lain milik pasien dan asuransi eksternal tidak disentuh. (2) **Tidak ada status `Expired` baru yang diisi sistem.** Masa berlaku tetap dibaca dari tanggal enrollment (perilaku sekarang). Alasan: pemakaian plafon (`UseAsync`) hanya menerima enrollment berstatus `Active`, sehingga mengubah status menjadi `Expired` berisiko menolak tagihan layanan bertanggal sebelum kedaluwarsa yang difinalisasi belakangan. (3) **Tab Penjamin Perusahaan membaca status dan masa berlaku benefit langsung dari HR (read-through), bukan salinan di kartu**; kartu internal tetap tanpa tanggal berlaku. Contoh: benefit Rendy berakhir 31 Oktober; pada 2 November tab menampilkan "Kedaluwarsa" dari bacaan HR, enrollment tetap `Active` berperiode lewat, dan tagihan kunjungan 30 Oktober yang difinalisasi 2 November tidak terganggu. (4) Pegawai tidak aktif/resign diperlakukan sama: kartu tampil "Tidak layak" lewat bacaan HR dan ditolak saat pendaftaran; kartu tidak diubah. Kartu tidak boleh tampak aktif bila bacaan HR menyatakan benefit belum atau tidak aktif. Menutup `FIN-OQ-119` | Pemilik Finance dan Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; Backend `EmployeeBenefitBalanceService.UseAsync` (baris 152 dan 163-177), `EmployeeBenefitEligibilityService.CheckAsync`; `FIN-DEC-230` |
+| `FIN-DEC-243` | Decision | **Tombol "Simpan Draft" pada modal Pendaftaran Benefit Pegawai Baru menjadi "Ajukan Benefit".** Pembuatan dan pengajuan dilakukan sebagai **satu operasi atomik di Backend**: validasi penerima dari data HR, plan, tanggal efektif, dan duplikasi enrollment; bila ada yang gagal, tidak ada enrollment tersimpan dan tidak ada Draft sisa; bila berhasil, enrollment langsung berstatus Submitted dengan `SubmittedAt` dan `SubmittedByUserId` terisi. Frontend **tidak** boleh memanggil Create lalu Submit sebagai dua permintaan. Data Draft historis dan alur Update, Submit, Cancel yang sudah ada **dipertahankan** dan tidak diubah massal. Klik ganda ditolak oleh pemeriksaan duplikasi enrollment terbuka (409) | Pemilik HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Permintaan pemilik bagian A; Backend `CreateAsync` (kunci advisory per pegawai dan plan) |
+| `FIN-DEC-244` | Decision | **Sinkronisasi penjamin pasien adalah langkah terpisah SESUDAH aktivasi dan persetujuan tersimpan. Kegagalan sinkronisasi tidak pernah membatalkan persetujuan atau aktivasi yang sah** (berbeda dengan syarat aktivasi pada `FIN-DEC-234`). Kegagalan dicatat pada catatan hasil sinkronisasi (`FIN-DEC-239`) dan sistem tidak pernah menyatakan sinkronisasi berhasil bila belum. Kartu tidak boleh dipakai sebelum enrollment aktif dan pemilik layak menurut bacaan HR. Sinkronisasi tidak memotong plafon, tidak membuat Invoice Billing, Finance AR, kwitansi, tidak melunasi piutang, dan tidak mengubah saldo pegawai | Pemilik Finance, HR, dan Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Permintaan pemilik bagian C dan Tahap 7 |
+| `FIN-DEC-245` | Decision | **Modal "Daftarkan Penjamin" untuk `SYS-RS-BENEFIT` mengikuti `FIN-DEC-229`, bukan formulir kartu perusahaan generik.** (1) Penerima benefit dipilih dari pencarian data HR dan Frontend mengirim identitas canonical (`benefitOwnerWorkforceProfileId`, serta `familyMemberId` bila keluarga), bukan nomor kartu bebas. (2) Isian nomor kartu bebas dan masa aktif manual tidak dipakai untuk penjamin internal; nomor dan nama diisi dari HR, masa berlaku dibaca dari HR. (3) Bila pasien sudah memiliki kartu internal aktif, kartu itu ditampilkan dan **tidak ada POST ulang**. (4) Validasi Backend (`EMPLOYEE_REQUIRED`, `PATIENT_IDENTITY_MISMATCH`, kelayakan) **tidak dihapus**. (5) Penjamin eksternal dan asuransi tidak berubah. (6) Galat 422 ditampilkan **spesifik**, tidak diganti "Coba kembali", dan tidak diubah menjadi HTTP 200; keadaan yang dibedakan: belum diajukan, menunggu HRD, belum aktif, belum tanggal efektif, identitas pasien tidak sesuai, penjamin sudah terdaftar, gagal sinkronisasi, kegagalan server. Penempatan tampilan dan tata letak adalah `DEV_DISCRETION` dalam komponen yang sudah ada | Pemilik Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Permintaan pemilik bagian F dan G; `FIN-DEC-229`; Frontend `buildPatientCompanyGuarantorPayload` dan `emergency-patient-payer-modal.jsx` |
+
+### Jawaban pemilik, putaran 9 — sinkron ulang dan penyelesaian kasus ditahan
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-246` | Decision | **Pengulangan sinkronisasi.** (1) Penjadwal mengulang otomatis untuk status "gagal sementara" dan "menunggu pasien". (2) **HRD dapat memicu "Sinkronkan ulang" dari detail enrollment** dengan izin khusus baru yang dipasang lewat Akses Role; setiap pemicuan mencatat siapa, kapan, dan hasilnya. (3) Kasus **"ditahan untuk ditinjau"** (lebih dari satu pasien cocok) tidak pernah terpasang sendiri; **petugas Registrasi menyelesaikannya** dengan mendaftarkan kartu lewat Daftarkan Penjamin (pemilih penerima dari data HR), lalu catatan hasil sinkronisasi menunjuk kartu tersebut. Contoh: enrollment Rendy "ditahan" karena dua rekam pasien duplikat; Registrasi menggabung rekam itu, HRD menekan Sinkronkan ulang, dan kartu terpasang sekali pada pasien kanonik. Selang waktu ulang penjadwal adalah `DEV_DISCRETION` | Pemilik HR dan Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-237`, `FIN-DEC-239` |
+
+### Pembaruan status Open Question
+
+| ID | Keadaan | Keterangan |
+|---|---|---|
+| `FIN-OQ-112` | **CLOSED** | `FIN-DEC-234` |
+| `FIN-OQ-113` | **CLOSED** | `FIN-DEC-235` |
+| `FIN-OQ-114` | **CLOSED** | `FIN-DEC-236` (satu penjamin internal; klausa jamak `FIN-DEC-227` ditangguhkan) |
+| `FIN-OQ-115` | **CLOSED** | `FIN-DEC-237` |
+| `FIN-OQ-116` | **CLOSED** | `FIN-DEC-239` (disimpan; kebutuhan schema dicatat) |
+| `FIN-OQ-117` | **CLOSED** | `FIN-DEC-240` |
+| `FIN-OQ-118` | **CLOSED** | `FIN-DEC-241` (keluarga tetap manual; otomatis sebagai `LATER SLICE`) |
+| `FIN-OQ-119` | **CLOSED** | `FIN-DEC-242` |
+| `FIN-OQ-120` | **CLOSED** | `FIN-DEC-245` |
+| `FIN-OQ-121` | `OPEN` | Pemilik modul dan prefix tabel catatan hasil sinkronisasi (`FIN-DEC-239`). Diselesaikan oleh `design-business-module` (agen mengusulkan, pemilik menyetujui); tidak memblokir pass ini. Model tidak boleh dibuat sebelum terdaftar di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` |
+| Maker-checker | **SUPERSEDED** | `FIN-VAL-271` digantikan `FIN-DEC-233`; penyelarasan `validation-matrix`, `permission-audit-matrix`, dan butir `N.2.2` pada `acceptance-test-matrix` adalah tugas `design-business-module` |
+| Konfirmasi pemilik Registrasi | `FIN-DEC-204`, `209` | Masih tercatat sebagai risiko; belum turun |
+
+### Hal yang masih berstatus Unknown (fakta source, bukan keputusan bisnis)
+
+| Hal | Cara menutup |
+|---|---|
+| Sumber data tab Penjamin Perusahaan pada halaman Informasi Pasien (`patientResources.companyGuarantors`) | `trace-existing-capabilities` (impact scan) |
+| Titik hilangnya pesan 422 Backend sebelum sampai modal (hanya teks fallback yang tampil) | `trace-existing-capabilities` |
+| Kesamaan format NIK antara `MstPatient.IdentityNumber` dan kolom NIK HR (resolver membandingkan angka saja dengan kolom HR apa adanya) | `trace-existing-capabilities`, lalu uji data oleh pemilik |
+| Perlu atau tidaknya memperketat pemeriksaan kunjungan agar mencocokkan ulang identitas (`FIN-DEC-238`) | Keputusan lanjutan pada `design-business-module` |
+| Ada tidaknya enrollment dokter tamu pada data nyata (`FIN-DEC-240`) | Tindak lanjut pemilik (agen tidak membaca basis data) |
+
+### Acceptance Criteria yang sudah dapat diuji
+
+| No | Kriteria |
+|---|---|
+| AC-01 | Pengguna menekan "Ajukan Benefit" dengan isian lengkap → satu permintaan, enrollment langsung `Submitted` dengan `SubmittedAt` dan `SubmittedByUserId`; daftar menampilkan "Diajukan" (`FIN-DEC-243`) |
+| AC-02 | Program Benefit kosong atau penerima tidak sah → ditolak Backend dengan pesan spesifik; tidak ada enrollment tersimpan dan tidak ada Draft sisa |
+| AC-03 | Klik "Ajukan Benefit" dua kali → tepat satu enrollment; permintaan kedua ditolak 409 |
+| AC-04 | HRD menyetujui enrollment yang tanggal mulainya hari ini atau lewat → langsung `Active`, saldo awal = batas plafon plan, `UsedAmount = 0`, lalu sinkronisasi berjalan (`FIN-DEC-234`) |
+| AC-05 | Syarat aktivasi gagal (mis. irisan periode dengan benefit Medical aktif) → persetujuan batal, status tetap `Submitted`, pesan penyebab jelas |
+| AC-06 | HRD menyetujui enrollment bertanggal mulai di masa depan → `Approved`, belum dapat dipakai, tidak ada kartu; pada tanggalnya penjadwal mengaktifkannya (`FIN-DEC-235`) |
+| AC-07 | Persetujuan atau aktivasi diulang (replay atau klik ganda) → ditolak, saldo awal tidak diatur ulang atau digandakan |
+| AC-08 | Dua HRD menyetujui bersamaan → tepat satu berhasil, yang lain 409 |
+| AC-09 | Pengaju menyetujui sendiri → diizinkan; audit mencatat dua aktor secara terpisah (`FIN-DEC-233`) |
+| AC-10 | Karyawan atau dokter tetap aktif dengan tepat satu pasien ber-NIK dan tanggal lahir sama → kartu `SYS-RS-BENEFIT` terpasang satu kali; pemrosesan ulang tidak menggandakan; dokter tetap tanpa `EmployeeId` tidak ditolak (`FIN-DEC-237`) |
+| AC-11 | Dokter tamu → tidak muncul sebagai penerima, ditolak `OWNER_TYPE_NOT_ALLOWED`, tidak mendapat kartu (`FIN-DEC-240`) |
+| AC-12 | Enrollment Rendy tidak pernah memasang kartu ke pasien Gilang bila NIK atau tanggal lahir berbeda; nama tidak dipakai sebagai dasar |
+| AC-13 | Lebih dari satu pasien cocok → "ditahan untuk ditinjau", tidak ada kartu; tidak ada pasien cocok atau NIK/tanggal lahir kosong → "menunggu pasien", tidak ada pasien baru dibuat |
+| AC-14 | Sinkronisasi gagal sementara → approval dan aktivasi tetap sah, status "gagal sementara" tercatat dengan alasan, dicoba ulang otomatis; HRD berizin dapat "Sinkronkan ulang"; hasilnya tanpa kartu ganda (`FIN-DEC-244`, `FIN-DEC-246`) |
+| AC-15 | Pasien sudah punya kartu internal aktif → dipakai ulang, tidak dibuat kartu kedua; penjamin lain dan asuransi eksternal tidak berubah |
+| AC-16 | Enrollment `Cancelled` → kartu yang tercatat dinonaktifkan, tidak dihapus, riwayat utuh; tidak ada status `Expired` baru; tab menampilkan "Kedaluwarsa" atau "Tidak layak" dari bacaan HR; tagihan layanan bertanggal sebelum kedaluwarsa tetap dapat difinalisasi (`FIN-DEC-242`) |
+| AC-17 | Modal Daftarkan Penjamin untuk `SYS-RS-BENEFIT`: penerima dipilih dari pencarian HR, payload membawa `benefitOwnerWorkforceProfileId`, tanpa nomor kartu bebas dan masa aktif manual; kartu sudah ada → ditampilkan tanpa POST ulang; galat 422 spesifik per keadaan dan bukan HTTP 200 (`FIN-DEC-245`) |
+| AC-18 | Persetujuan, aktivasi, dan sinkronisasi tidak memotong plafon, tidak membuat Invoice Billing, Finance AR, kwitansi, tidak melunasi piutang, dan tidak mengubah saldo pegawai |
+| AC-19 | Pendaftaran Pasien: kartu valid dapat dipilih; pasien tidak eligible yang memilih `SYS-RS-BENEFIT` ditolak Backend dengan alasan tepat; tagihan tetap membaca plafon HR aktual |
+
+### Penutup pass `grill-me` (Amendment Pass), 3 November 2026
+
+- **Keputusan baru:** `FIN-DEC-231`..`FIN-DEC-246` (fakta: 232, 238; selebihnya keputusan). Tidak ada keputusan lama yang ditimpa. **Digantikan:** `FIN-VAL-271` (oleh `FIN-DEC-233`). **Ditangguhkan:** klausa jamak `FIN-DEC-227` (oleh `FIN-DEC-236`).
+- **Bentuk blueprint:** `SINGLE` tetap (`FIN-DEC-161`).
+- **Open Question:** hanya `FIN-OQ-121` (pemilik dan prefix tabel) yang terbuka.
+- **Kebutuhan schema yang dicatat (tanpa migration):** satu tabel catatan hasil sinkronisasi (`FIN-DEC-239`); kemungkinan izin baru pada Akses Role (`FIN-DEC-246`).
+- **Di luar scope, untuk modul lain:** kartu keluarga otomatis (`LATER SLICE`, HR dan Registrasi); pengetatan pemeriksaan kunjungan (`FIN-DEC-238`); klausa penjamin internal jamak (`FIN-DEC-227`).
+- **Blocker desain:** tidak ada keputusan bisnis yang memblokir. Capability map Finance basi (Backend `09101d05` vs `ba312826`) dan lima hal Unknown di atas sebaiknya ditutup dulu.
+
+### Hasil impact scan setelah penutup pass (`trace-existing-capabilities`, 3 November 2026, `ba312826` / `fa7eb8d7`)
+
+Rincian bukti ada di `01-existing-capability-map.md` bagian 22. Tidak ada keputusan di atas yang digugurkan; dua fakta menambah dasar atau risiko keputusan.
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-247` | Fact | **Pelebaran dokter tamu pada commit `e5fc5888` (20 Oktober 2026) dibuat sengaja dan bukan salah komentar.** Commit itu (judulnya tentang tabel refund pasien) menambah `GuestDoctor` pada `WorkforceBenefitOwnerPolicy`, `WorkforceBenefitOwnerResolver.LoadAsync`, dan `ConflictFor`, serta menghapus filter `UserType` pada pencarian penerima. Dua test tertanggal 19 Oktober (`Resolver_GuestDoctor_IsNotAllowedByPolicy`, `Search_…ButNotGuestDoctors_…`) tidak diperbarui, sehingga menurut pembacaan source keduanya kini gagal (tidak dijalankan). **`FIN-DEC-240` dengan demikian membalik perubahan 20 Oktober itu dan memulihkan perilaku asli.** Pemilik HR perlu menyadari bahwa pelebaran tersebut pernah dikerjakan dengan sengaja sebelum rilis | Agen (bukti git dan source) | `approved` (fakta) | Agen, 3 November 2026 | `git show e5fc5888`; `WorkforceBenefitOwnerAcceptanceTests.cs:150,240` |
+| `FIN-DEC-248` | Fact | **Titik hilangnya pesan 422 ditemukan.** Thunk registrasi menolak dengan string lewat `rejectWithValue`, `.unwrap()` melempar string itu, dan modal membaca `.message` dari string sehingga fallback "Coba kembali" tampil. Backend dan `requestJson` sudah membawa pesan yang benar. Perbaikan adalah bagian `FIN-DEC-245` butir (6) | Agen (bukti source) | `approved` (fakta) | Agen, 3 November 2026 | Capability map bagian 22.1 K-1 |
+| `FIN-DEC-249` | Fact | **Fakta format identitas untuk `FIN-DEC-237`.** NIK pasien adalah teks bebas (di-trim saja) dan unik pada string persis; jenis tanda pengenal pasien bisa KTP, NIK, KIA, Passport, SIM, dan lainnya serta tidak diperiksa saat pencocokan; HR memakai kolom NIK wajib 16 karakter (karyawan) atau opsional 50 karakter (dokter), keduanya unik; tanggal lahir bertipe `date` di ketiga tabel. Akibatnya "lebih dari satu pasien cocok" hanya mungkin lewat varian format atau rantai merge. **Belum diputuskan:** apakah pencocokan otomatis juga mewajibkan jenis tanda pengenal KTP/NIK, dan apakah data nyata memuat NIK berformat spasi atau titik | Agen (bukti source) | `approved` (fakta) | Agen, 3 November 2026 | Capability map bagian 22.3 |
+| `FIN-OQ-122` | Open Question | Apakah pencocokan otomatis `FIN-DEC-237` juga mewajibkan `IdentityType` pasien bernilai KTP atau NIK (usulan agen: ya, untuk menutup kemungkinan nomor non-KTP kebetulan sama) | Registrasi dan HR | `OPEN` | — | `FIN-DEC-249`; diputuskan pemilik pada `design-business-module` |
+
+### Hasil gerbang kelengkapan (`requirement-completeness-gate`, 3 November 2026) — `FIN-RCG-001`
+
+Penilaian lengkap ada di `requirement-completeness-assessment.md`. Hasil: **`PARTIALLY_READY`**. Slice `S1`, `S2`, `S3`, `S7`, `S8` `READY_FOR_DOMAIN_DESIGN`; slice `S4`, `S5a`, `S5b`, `S6` `BUSINESS_DECISION_REQUIRED`. Tidak ada keputusan di atas yang digugurkan.
+
+| ID | Jenis | Pertanyaan | Slice | Dampak gap | Pemilik | Status |
+|---|---|---|---|---|---|---|
+| `FIN-OQ-122` | Open Question | Pencocokan otomatis wajib `IdentityType` KTP atau NIK? (usulan: ya) | `S5a` | `BLOCKING` | Registrasi dan HR | `OPEN` |
+| `FIN-OQ-123` | Open Question | Nasib enrollment, kartu, dan kunjungan dokter tamu yang sudah ada saat aturan berlaku; contoh: Dr. Budi punya benefit `Active` dan satu kunjungan yang belum difinalisasi (usulan: aturan berlaku untuk pendaftaran baru, data lama diselesaikan HR manual) | `S4` | `BLOCKING` | HR dan Billing | `OPEN` |
+| `FIN-OQ-124` | Open Question | Memasukkan pengetatan pemeriksaan identitas pada pendaftaran kunjungan (`S9`, `FIN-DEC-238`) atau mencatat penerimaan risiko residual | `S9`, risiko `S5a` | `BLOCKING` (untuk `S9`) | Registrasi | `OPEN` |
+| `FIN-OQ-125` | Open Question | Siapa membaca status dan alasan sinkronisasi, apa yang boleh tampil pada alasan, dan bagaimana Registrasi mengetahui kasus "ditahan" (usulan: alasan berupa kode umum tanpa identitas pasien; Registrasi menerima daftar lewat izin baca terpisah) | `S5b` | `BLOCKING` | HR dan Registrasi | `OPEN` |
+| `FIN-OQ-126` | Open Question | Aturan bila pasien sudah punya kartu internal untuk pemilik sama, untuk pemilik lain, atau kartu lama tanpa tautan; dan cara mencabut kartu yang terpasang ke pasien salah (usulan: pakai ulang; tambahan tanpa mengambil alih primary; kartu lama ditahan; pencabutan lewat jalur status yang ada) | `S5a`, `S6` | `BLOCKING` | Registrasi | `OPEN` |
+| `FIN-OQ-127` | Open Question | Enrollment `Approved` yang seluruh periodenya sudah lewat sebelum sempat diaktifkan (usulan: tidak diaktifkan, dicatat galat, dibatalkan manual oleh HRD) | `S3` | `NON_BLOCKING_STANDARD` | HR | `OPEN` (usulan standar, tidak menghalangi desain) |
+| `FIN-OQ-121` | Open Question | *(sudah ada)* Pemilik modul dan prefix tabel catatan hasil sinkronisasi | `S5a` | `NON_BLOCKING_STANDARD` untuk desain; **gerbang implementasi** | Finance, HR, Registrasi | `OPEN` |
+
+## Pass `grill-me` (Closure Pass) — penutupan blocker `FIN-RCG-001`, 3 November 2026
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `FIN-BP-001` — usulan Revisi 21 (`draft`) |
+| Mode | **Closure**: menutup `FIN-OQ-122`, `123`, `124`, `125`, `126` dari `requirement-completeness-assessment.md` (`FIN-RCG-001`) |
+| Source SHA | Backend `ba312826`, Frontend `fa7eb8d7` (tidak berubah sejak capability map bagian 22) |
+| Scope dan bentuk | Mengikuti `FIN-DEC-231` (scope penuh) dan `FIN-DEC-161` (`SINGLE`); tidak dibuka ulang |
+| Model | Claude Sonnet 5.5 (memenuhi batas minimum skill) |
+
+### Jawaban pemilik, putaran 10 — jenis tanda pengenal (`FIN-OQ-122`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-250` | Decision | **Pencocokan otomatis mewajibkan jenis tanda pengenal pasien (`MstPatient.IdentityType`) bernilai `KTP` atau `NIK`.** Jenis lain (KIA, Paspor, SIM, Akta Lahir, Lainnya) atau jenis kosong tidak dicocokkan dan hasilnya "menunggu pasien". Syarat ini ditambahkan pada `FIN-DEC-237` (NIK sama persis + tanggal lahir sama + tepat satu pasien aktif) dan berlaku khusus pemasangan otomatis; jalur manual petugas tetap mengikuti `FIN-DEC-228`. Contoh: Rendy Saputra (NIK 3201000100010001, lahir 5 Mei 1990) tidak otomatis terpasang ke pasien bernomor sama dan tanggal lahir sama yang jenis ID-nya tercatat "SIM" atau kosong; petugas membetulkan jenis ID di data pasien, lalu HRD menekan "Sinkronkan ulang" (`FIN-DEC-246`) dan kartu terpasang. Menutup `FIN-OQ-122` | Pemilik Registrasi dan HR (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-237`, `249`; Backend `MstPatient.IdentityType` |
+
+### Jawaban pemilik, putaran 11 — pasien sudah punya kartu internal lain (`FIN-OQ-126` butir b dan c)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-251` | Decision | **Bila pasien sudah punya kartu internal aktif yang BUKAN kartu pemilik sendiri yang sama, sinkronisasi tidak membuat atau mengubah kartu apa pun; hasilnya "ditahan untuk ditinjau" dan petugas Registrasi yang menentukan.** Berlaku untuk (1) kartu internal sebagai tanggungan pegawai lain dan (2) kartu lama tanpa tautan HR (`CARD_NOT_LINKED`, `FIN-DEC-230`). Bila kartu internal aktif yang ada ternyata milik pemilik yang sama dan berhubungan `SELF`, kartu itu **dipakai ulang** tanpa membuat kartu kedua (catatan hasil menunjuk kartu itu). Contoh: Sinta adalah pegawai dan istri Rendy, dan sudah punya kartu internal sebagai tanggungan Rendy; saat enrollment Sinta sendiri aktif, tidak ada kartu baru dibuat dan statusnya "ditahan untuk ditinjau". Sinkronisasi tidak pernah mengambil alih status kartu utama (`IsPrimary`) yang sudah ada. Menutup `FIN-OQ-126` butir (a), (b), dan (c) | Pemilik Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-230`, `239`, `241`; indeks unik satu primary aktif per pasien |
+| `FIN-DEC-252` | Fact | **Pintasan registrasi "Gunakan Benefit Karyawan" tidak memeriksa pemilik kartu.** `EnsureInternalBenefitCard` (`PatientCompanyGuarantorController.cs:677-694`) memakai kartu internal aktif pasien yang ada, yang utama lebih dulu, tanpa membandingkan pemilik atau hubungannya dengan orang yang berobat. Akibatnya pada contoh Sinta, kunjungan dapat membebani plafon Rendy walau Sinta punya plafon sendiri. Perilaku ini sudah ada sebelum amendment dan tidak diubah oleh `FIN-DEC-251` | Agen (bukti source) | `approved` (fakta) | Agen, 3 November 2026 | Backend `ba312826`, capability map `FIN-CAP-094` |
+| `FIN-OQ-128` | Open Question | Kartu internal mana yang dipakai saat pasien punya lebih dari satu (milik sendiri dan sebagai tanggungan pegawai lain): plafon sendiri dahulu, plafon tanggungan dahulu, atau petugas memilih? | `LATER SLICE` | HR dan Registrasi | `OPEN` | `FIN-DEC-252`; tidak memblokir amendment ini |
+
+### Jawaban pemilik, putaran 12 — kartu salah pasien (`FIN-OQ-126` butir d)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-253` | Decision | **Kartu yang terpasang ke pasien yang salah dicabut oleh petugas Registrasi dengan menonaktifkannya lewat jalur status kartu yang sudah ada (kartu tidak dihapus, riwayat kunjungan utuh). Sesudah itu catatan hasil sinkronisasi ditandai "dicabut", menunjuk kartu yang dicabut, dan penjadwal TIDAK memasangnya ulang otomatis.** Memasang lagi hanya lewat "Sinkronkan ulang" oleh HRD (`FIN-DEC-246`) setelah data pasien dibetulkan. Contoh: kartu Rendy terpasang ke rekam pasien "Rendi S." yang keliru → Registrasi menonaktifkannya → status "dicabut" → penjadwal tidak menyentuh enrollment itu lagi sampai HRD menekan "Sinkronkan ulang". Status catatan hasil sinkronisasi menjadi lima nilai: berhasil, menunggu pasien, ditahan untuk ditinjau, gagal sementara, dicabut (menambah `FIN-DEC-239`; hanya satu nilai tambahan, bukan tabel tambahan). Deteksi pencabutan (kartu `berhasil` yang kini nonaktif padahal enrollment masih `Active`) adalah rincian desain. Menutup `FIN-OQ-126` seluruhnya | Pemilik Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-239`, `246`; `FIN-GAP-006` |
+
+### Jawaban pemilik, putaran 13 — dokter tamu yang sudah ada (`FIN-OQ-123`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-254` | Decision | **Penolakan dokter tamu (`FIN-DEC-240`) diterapkan menyeluruh setelah pemilik membersihkan data; tidak ada aturan pengecualian untuk data lama.** Sebelum rilis, pemilik HR memeriksa data nyata: bila ada enrollment atau kunjungan dokter tamu, HR membatalkan atau menyelesaikan enrollment itu dan kasir menyelesaikan lebih dulu kunjungan yang belum final. Sesudah rilis, resolver pemilik benefit menolak dokter tamu di semua jalur (pencarian, enrollment, kelayakan, pemakaian plafon). Contoh: Dr. Budi (dokter tamu) punya enrollment Active dan satu kunjungan belum final → sebelum rilis kunjungan itu difinalisasi dan enrollment dibatalkan HR; bila terlewat, tagihannya tertahan dengan pesan jelas "Jenis SDM ini tidak termasuk penerima benefit kesehatan menurut kebijakan HR" sampai HR menanganinya. **Menjadi syarat rilis `S4`** (bukan syarat desain): pemilik HR menyerahkan hasil pemeriksaan data sebelum rilis. Menutup `FIN-OQ-123` | Pemilik HR dan Billing (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-240`, `247` |
+
+### Jawaban pemilik, putaran 14 — siapa melihat status sinkronisasi (`FIN-OQ-125`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-255` | Decision | **Dua tampilan terpisah untuk status sinkronisasi.** (1) **HRD** melihat penanda dan alasan umum pada daftar dan detail enrollment dengan izin baca enrollment yang sudah ada. (2) **Registrasi** mendapat daftar kerja kasus "menunggu pasien" dan "ditahan untuk ditinjau" lewat **izin baca baru** pada Akses Role, berisi pemilik benefit dan alasan umum. **Alasan hanya berupa kode umum** (contoh: "menunggu pasien", "ditahan: perlu tinjau") dan **tidak memuat nama, nomor rekam medis, atau identitas pasien kandidat**; petugas Registrasi mencari pasiennya sendiri memakai hak akses pasiennya. Contoh: enrollment Rendy "ditahan" karena dua rekam pasien bernomor sama → HRD melihat penanda "ditahan: perlu tinjau" tanpa nama pasien; petugas Registrasi melihat kasus itu pada daftar kerjanya, mencari rekam pasien, menggabung atau memperbaiki, lalu HRD menekan "Sinkronkan ulang". Tata letak dan penempatan layar adalah `DEV_DISCRETION` dalam komponen yang sudah ada. Menutup `FIN-OQ-125` | Pemilik HR dan Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-239`, `246` |
+
+### Jawaban pemilik, putaran 15 — pemeriksaan ulang identitas saat kunjungan (`FIN-OQ-124`)
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-256` | Decision | **Pendaftaran kunjungan memeriksa ulang identitas pasien HANYA untuk kartu penjamin hasil sinkronisasi otomatis.** Pada saat kunjungan didaftarkan dengan kartu itu, NIK, tanggal lahir, dan jenis tanda pengenal (KTP/NIK) pasien dicocokkan lagi dengan pemilik benefit di HR; bila salah satunya berubah atau tidak cocok, kunjungan ditolak dengan pesan jelas (kode `PATIENT_IDENTITY_MISMATCH`, status 422) dan kartu tidak dapat dipakai sampai ditinjau. Kartu manual dan kartu lama tanpa tautan **tidak** terkena pemeriksaan ini. Kartu hasil sinkronisasi dikenali dari catatan hasil sinkronisasi (`FIN-DEC-239`). Contoh: kartu Rendy terpasang ke pasien A; NIK pasien A kemudian diubah menjadi nomor lain → pendaftaran kunjungan berikutnya dengan kartu itu ditolak, kartu tidak dihapus, dan Registrasi menonaktifkannya lewat jalur pencabutan (`FIN-DEC-253`). **Scope diperluas oleh pemilik:** slice `S9` masuk scope dalam bentuk terbatas ini; ia menyentuh validasi pendaftaran kunjungan pada pendaftaran rawat jalan dan IGD (`PatientEncounterController`, `EncounterPaymentSourceService`). Pemeriksaan ini hanya membaca dan menolak; **tidak** mengubah status catatan hasil sinkronisasi secara otomatis. Menutup `FIN-OQ-124` dan menjawab `FIN-DEC-238` | Pemilik Registrasi (pengguna sesi) | `approved` | Pemilik, 3 November 2026 | Jawaban pemilik atas `grill-me`; `FIN-DEC-238`, `239`, `253`; `FIN-CAP-102` |
+
+### Penutup pass `grill-me` (Closure Pass), 3 November 2026
+
+**Keputusan baru:** `FIN-DEC-250`..`256` (fakta: `252`). Tidak ada keputusan lama yang ditimpa atau digantikan pada pass ini; `FIN-DEC-237` dan `FIN-DEC-239` diperkuat atau diperluas oleh `250`, `253`, dan `256`.
+
+**Pembaruan status Open Question**
+
+| ID | Keadaan | Keterangan |
+|---|---|---|
+| `FIN-OQ-122` | **CLOSED** | `FIN-DEC-250` |
+| `FIN-OQ-123` | **CLOSED** | `FIN-DEC-254` (dengan syarat rilis: pemilik HR memeriksa dan membersihkan data dokter tamu) |
+| `FIN-OQ-124` | **CLOSED** | `FIN-DEC-256` (`S9` masuk scope dalam bentuk terbatas) |
+| `FIN-OQ-125` | **CLOSED** | `FIN-DEC-255` |
+| `FIN-OQ-126` | **CLOSED** | `FIN-DEC-251` dan `FIN-DEC-253` |
+| `FIN-OQ-127` | `OPEN` (usulan standar) | Enrollment `Approved` yang seluruh periodenya sudah lewat sebelum diaktifkan: tidak diaktifkan, tidak ada status baru, dibatalkan manual HRD. Tidak menghalangi desain; disetujui pemilik saat `design-business-module` |
+| `FIN-OQ-121` | `OPEN` | Pemilik modul dan prefix tabel catatan sinkronisasi. Diusulkan `design-business-module`, disetujui pemilik registry; gerbang implementasi, bukan desain |
+| `FIN-OQ-128` | `OPEN` | Kartu internal mana yang dipakai bila pasien punya lebih dari satu. `LATER SLICE`, di luar amendment ini |
+
+**Blocker desain:** tidak ada keputusan bisnis yang masih memblokir. Dua syarat bukan keputusan: (1) pemilik HR memeriksa dan membersihkan data dokter tamu sebelum rilis `S4` (`FIN-DEC-254`); (2) pemilik memeriksa apakah NIK pasien atau HR memuat spasi atau titik (menentukan perlu tidaknya normalisasi format pada pencocokan).
+
+**Di luar scope, untuk modul lain:** pilihan kartu internal saat pasien punya lebih dari satu (`FIN-OQ-128`); kartu keluarga otomatis (`FIN-DEC-241`); klausa penjamin internal jamak (`FIN-DEC-227`, ditangguhkan `FIN-DEC-236`).
+
+**Catatan scope:** slice `S9` (pemeriksaan ulang identitas saat kunjungan, bentuk terbatas) kini masuk scope atas pilihan pemilik dan **belum dinilai** oleh `requirement-completeness-gate`.
+
+**Acceptance criteria tambahan yang dapat diuji** (melengkapi `AC-01`..`AC-19` pada bagian sebelumnya):
+
+| No | Kriteria |
+|---|---|
+| AC-20 | Pasien yang jenis tanda pengenalnya bukan KTP/NIK, atau kosong, tidak otomatis terpasang; hasilnya "menunggu pasien". Setelah petugas membetulkan jenis ID dan HRD menekan "Sinkronkan ulang", kartu terpasang (`FIN-DEC-250`) |
+| AC-21 | Pasien yang sudah punya kartu internal aktif untuk pemilik lain atau kartu lama tanpa tautan: tidak ada kartu dibuat atau diubah, status "ditahan untuk ditinjau", status kartu utama tidak berubah. Kartu aktif milik pemilik yang sama dan `SELF` dipakai ulang tanpa kartu kedua (`FIN-DEC-251`) |
+| AC-22 | Kartu yang dinonaktifkan Registrasi karena salah pasien menjadikan catatan "dicabut"; penjadwal tidak memasangnya ulang; "Sinkronkan ulang" oleh HRD memasangnya kembali setelah data benar (`FIN-DEC-253`) |
+| AC-23 | Dokter tamu tidak muncul pada pencarian penerima, ditolak saat enrollment dan kelayakan, dan tidak dapat memakai plafon; rilis menunggu hasil pemeriksaan data oleh pemilik HR (`FIN-DEC-254`) |
+| AC-24 | Alasan sinkronisasi tidak memuat nama, nomor rekam medis, atau identitas pasien. HRD melihat penanda dengan izin baca enrollment; petugas Registrasi melihat daftar kasus menunggu/ditahan hanya dengan izin baca baru (`FIN-DEC-255`) |
+| AC-25 | Pendaftaran kunjungan dengan kartu hasil sinkronisasi ditolak (422, `PATIENT_IDENTITY_MISMATCH`) bila NIK, tanggal lahir, atau jenis ID pasien tidak lagi cocok dengan pemilik; kartu manual dan kartu lama tidak terpengaruh (`FIN-DEC-256`) |
+
+### Hasil gerbang kelengkapan revision 2 (`requirement-completeness-gate`, 3 November 2026) — `FIN-RCG-001`
+
+Penilaian lengkap ada di `requirement-completeness-assessment.md` revision 2. Hasil: **`READY_FOR_DOMAIN_DESIGN` untuk seluruh slice `S1`–`S9`**; tidak ada butir `BLOCKING`, `CONFLICT`, atau `MISSING` yang memblokir. Tidak ada keputusan di atas yang digugurkan.
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-257` | Fact | **Fakta source untuk `S9` (pemeriksaan ulang identitas saat kunjungan).** Hanya dua jalur yang menempelkan kartu internal ke kunjungan dan keduanya sudah memanggil `ValidateCardForServiceAsync`: buat kunjungan di loket (`PatientEncounterController`) dan ganti penanggung (`EncounterPaymentSourceService`). Penagihan kasir (`BillingPayerEditService`) dan transfer rawat inap (`InpAdmissionTransferService` → `InitializeAdmissionAsync` → `SwitchPaymentSourceAsync`) bermuara ke jalur kedua. Kiosk dan check-in MCU tidak dapat memakai kartu internal (`EncounterIntakeService`). **Perbedaan kontrak:** jalur ganti penanggung mengembalikan 422 dengan kode alasan, jalur loket mengembalikan 400 hanya dengan pesan; `FIN-DEC-256` menyebut 422, sehingga penyamaan dicatat sebagai usulan standar `FIN-GAP-010` untuk disetujui pemilik saat desain. **Batas:** kunjungan yang mewarisi pembayaran (bayi baru lahir) melewati validasi kartu dan tidak dicakup `S9` | Agen (bukti source) | `approved` (fakta) | Agen, 3 November 2026 | `requirement-completeness-assessment.md` bagian 4.5 |
+| `FIN-OQ-129` | Open Question | Apakah kunjungan bayi baru lahir yang mewarisi pembayaran ibu memverifikasi tanggungan HR sebelum mewarisi kartu internal (`FIN-DEC-201`, `204`)? Layanan pewarisan belum ditelusuri | `LATER SLICE` | HR dan Registrasi | `OPEN` | Di luar scope; butuh `trace-existing-capabilities` lebih dulu |

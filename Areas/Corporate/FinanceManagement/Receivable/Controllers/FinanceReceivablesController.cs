@@ -189,6 +189,28 @@ public sealed class FinanceReceivablesController : ControllerBase
         Ok(ApiResponse<PagedResult<BillingDataEmployeeOptionResponse>>.Ok(
             await _billingDataService.GetEmployeeOptionsAsync(request, cancellationToken), "Pilihan karyawan berhasil diambil."));
 
+    // Piutang karyawan/dokter pada hasil filter Data Tagihan yang dapat diajukan perjanjian angsuran. Filter sama persis dengan
+    // GET billing-data (kategori employee dipaksa). MURNI BACA; pengajuan tetap POST receivables/{id}/installment-plans
+    // dengan hak FinanceReceivableInstallmentPlan : Create. Satu perjanjian untuk satu piutang.
+    [HttpGet("billing-data/installment-candidates")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<BillingDataInstallmentCandidatesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetBillingDataInstallmentCandidates(
+        [FromQuery] BillingDataQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _billingDataService.GetInstallmentCandidatesAsync(request, cancellationToken);
+            return Ok(ApiResponse<BillingDataInstallmentCandidatesResponse>.Ok(result, "Piutang yang dapat diajukan angsuran berhasil diambil."));
+        }
+        catch (BillingDataBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(400, exception.Message));
+        }
+    }
+
     // Laporan AR (Finance > Transaksi A/R > Laporan & Monitoring > Report AR).
     // Read-only report yang menampilkan daftar invoice Billing lunas per pasien dikelompokkan menurut penjamin (Payer/Asuransi/Perusahaan) ASC.
     [HttpGet("reports/billing-ar")]

@@ -131,4 +131,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [MaxLength(2000)]
         public string? Notes { get; set; }
     }
+
+    public class EmergencyDispositionOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public Guid DispositionTypeId { get; set; }
+        public string? DispositionTypeName { get; set; }
+        public EmergencyDispositionStatus DispositionStatus { get; set; }
+        public DateTime DispositionDateTime { get; set; }
+    }
+
+    public class EmergencyDispositionSummaryResponse
+    {
+        public int TotalDisposition { get; set; }
+        public int ActiveDisposition { get; set; }
+        public int ProposedDisposition { get; set; }
+        public int ConfirmedDisposition { get; set; }
+        public int CancelledDisposition { get; set; }
+    }
+
+    public class EmergencyDispositionDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public Guid? EmergencyVisitId { get; set; }
+        public Guid? DispositionTypeId { get; set; }
+        public Guid? DestinationServiceUnitId { get; set; }
+        public EmergencyDispositionStatus? DispositionStatus { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "dispositiondatetime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyDispositionFilterMetadataResponse
+    {
+        public EmergencyDispositionDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "dispositiondatetime", "createdatetime" };
+    }
 }
