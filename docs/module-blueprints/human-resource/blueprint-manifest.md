@@ -6,25 +6,25 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 30
+revision: 42
 status: DRAFT
 design_readiness: PARTIAL
-current_phase: HRD-PH-SLICE-B5-PLANNED
+current_phase: HRD-PH-SLICE-C1-PLANNED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-11-05T10:55:00Z
-last_verified_at: 2026-11-05T10:55:00Z
+updated_at: 2026-11-05T14:45:00Z
+last_verified_at: 2026-11-05T14:45:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
 backend_source_sha_current: 8b17b75a
 frontend_source_sha: 44990b3d3
 frontend_source_sha_previous: cfa82fbb3
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: 8db2bef0f2334829aaf6c910ae2228266a0dfd626f6ee81bf9912fcf7e1527df
-decision_revision: 24
+input_revision_hash: 8ffd0a0dc807ef5639a8840910029c94fed8cd140b3efad1e1c2e87bfec8a462
+decision_revision: 28
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.3
 capability_map_hash: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-contract_versions: v14
+contract_versions: v18
 contract_status_s_b1: approved
 contract_status_s_b2: approved
 contract_status_s_b3: approved
@@ -33,20 +33,24 @@ contract_status_s_d1: approved
 contract_status_s_d2: approved
 contract_status_s_c4_onb: approved
 contract_status_s_b5: approved
+contract_status_s_b6: approved
+contract_status_s_d3: approved
+contract_status_s_d4: approved
+contract_status_s_c1: approved
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: 8db2bef0f2334829aaf6c910ae2228266a0dfd626f6ee81bf9912fcf7e1527df
+  00-interview-decisions.md: 8ffd0a0dc807ef5639a8840910029c94fed8cd140b3efad1e1c2e87bfec8a462
   01-existing-capability-map.md: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-  02-backend-architecture.md: 6ac551fe52492edc9879cf0a338597c05c75ed7693297dd94957953c672f0f6f
-  03-frontend-architecture.md: 374965eeaed128328daa4f9a04b74dc40ed14d10445e9fe4fc542f89d2bbc9c6
-  04-prd-to-mvp.md: 480520ce1efd4db6359a66b6a5c82b7c35970f4983edcae0d4cb26b5aa294707
-  data/data-dictionary.md: f1c72ef6dfd39719bbb19f3c2c7d9d5d55b4eafd0a26dd4eee26b2c92574e170
-  contracts/api-contract.md: d427ee4132228fb273080694c7acc9fe68025214eb142cea662fb13a15c2d5fe
-  contracts/state-transition-matrix.md: e7ee0825bfddde92e4d6aa3d1063bdab46b37c3e277f8d9a530841e688f464b8
-  contracts/validation-matrix.md: 3cdb682147ed77c045ce8bfaa37694799a5852763236ec700775274706d1ecfc
-  contracts/integration-contract.md: 57ab715b74a2f2e5cd0cb6907310d2da03a01ae10a67e7bca2946ca6fb1a2d1a
-  contracts/permission-audit-matrix.md: 469dcfa6bc687421f975b87cde1f7ac95e7442e7b43438d8b7c10e17e4387b8a
-  testing/acceptance-test-matrix.md: ee261e559dbdc75ffc0847de8a555240c919b7f7869b7ce9bc26a3b377ef3057
+  02-backend-architecture.md: e935f4ea5c164be3f01c588dffa7b99b4d15ee8c679e2988986d9e716a140de9
+  03-frontend-architecture.md: 089e8f7e140a0252a5e92a47afedfa0480bb4a44d4f9d6db88a87e8bd4a1ca0c
+  04-prd-to-mvp.md: b89c90ce8f0b8e1bc1f571885165865d5dac12658d05b8052a5d208e9f42a834
+  data/data-dictionary.md: 62f3a7bf3eaf686b4e11b221453b8dc3f595e79e2450c127df07ce9915fe380c
+  contracts/api-contract.md: 0da944a53f8ed1390ad1ce42ecb8c37cb784b770e30781b88e008df0592d5689
+  contracts/state-transition-matrix.md: 1b52256d1a5e352be8b1121d58609daec0be9263c6aee13ab56a58fea2fc1c7d
+  contracts/validation-matrix.md: 4ad280140d12f65aafc4f7ed20a8a3a9c5b8a8cbf10d61d518c95e570b482834
+  contracts/integration-contract.md: be40da21775e41d645575b0817a5f3b6e16c19bafb4e13bf4acf2e52e1da2a14
+  contracts/permission-audit-matrix.md: 7bfeef6a3d7cc6fbb02a3b9f3372dac54474dbcdc0e11ff174bc0f428b37db75
+  testing/acceptance-test-matrix.md: 8a8794a59b7208c223045d9655d9bba0d746e7b4d753a17ae134af3d52f98a07
   flowcharts/00-alur-utama.md: 9a2af6abf27b896179af26191ed8ad255505385e3b5839ed12014e4023f33af3
   flowcharts/penjadwalan-kerja.md: 7c9a0560d62261f1a938192e7bbdd5b4dd4ccb7f89a025e5c7bdf6e1ed3d01ef
   flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
@@ -59,6 +63,10 @@ artifact_hashes:
   flowcharts/cuti-dan-perizinan.md: 7147237195cc71f5c310739bb7560e6db65c3fc2ee8d73b929ec41d88425e87e
   flowcharts/administrasi-lembur.md: 4f67e1be5e1f43ada0c6a52040e4c4355235f43a22e1e6aca528f2cec8d15acc
   flowcharts/pemrosesan-payroll.md: fc660420d8906b6ab36e61b53808e201c36a84ba05d5063c6d9534fa68f62544
+  flowcharts/restitusi-dan-potongan.md: 82f886df81222ebde69bd4215a7cdee0238eaba5bcf2b35cdce8f7253e92080e
+  flowcharts/manajemen-benefit.md: c38f3bcc5883188f9817242b4a67da20c4a82ddbbda9e78b01eb5c358f101e28
+  flowcharts/kredensial-dan-kewenangan-klinis.md: 3ee3ccf7570973ac474d7fdcd54b712c52180f3cc19647a67411d50724d00ab2
+  flowcharts/layanan-dan-persuratan-hr.md: 559ce58de8048faa628248a755f13f3c4ecf754a8fe9b864747e5037430b8cee
 active_dependency_ids:
   - HRD-DEP-001
   - HRD-DEP-002
@@ -67,8 +75,22 @@ active_dependency_ids:
   - HRD-DEP-005
   - HRD-DEP-006
   - HRD-DEP-007
-active_roadmap_revision: 12
+active_roadmap_revision: 16
 approvals:
+  - scope: S-D3
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-05
+    owner_answer: "Opsi A untuk HRD-DEC-134 s.d. HRD-DEC-139; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 25
+      - 03-frontend-architecture.md bagian 21
+      - 04-prd-to-mvp.md bagian 30
+      - data/data-dictionary.md bagian 17
+      - contracts/* bagian S-D3 (kontrak v16)
+      - testing/acceptance-test-matrix.md bagian 24
+      - flowcharts/manajemen-benefit.md
+      - roadmap/* revisi 14 (BE-HRD-176 s.d. BE-HRD-190, FE-HRD-158 s.d. FE-HRD-171)
+    not_covered: "bagian slice lain; rekam medis klinis RME dokter milik SIMRS Pelayanan Medis (HRD-DEC-010)"
   - scope: S-B3
     approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
     approved_at: 2026-11-05
@@ -409,6 +431,18 @@ Kehadirannya bukan penyimpangan struktur, dan ketiadaannya bukan blueprint yang 
 
 | Revision | Tanggal | Isi | Dasar |
 | --- | --- | --- | --- |
+| `42` | 2026-11-05 | **Perencanaan Delivery `S-C1` (Credentialing, License & Clinical Privilege — Tata Kelola Kredensialing 3 Komite, PSV STR/SIP & Penegakan RKK SIMRS INT-HR-69).** `S-C1` dipecah menjadi 16 task backend (`BE-HRD-206` s.d. `BE-HRD-221`) dan 15 task frontend (`FE-HRD-186` s.d. `FE-HRD-200`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B52 s.d. B55 & F50 s.d. F53). Status `S-C1` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-CRD-01` s.d. `FR-CRD-25`), 6 keputusan asal (`HRD-DEC-146` s.d. `HRD-DEC-151`), resolusi final `HRD-DEC-005`, 22 acceptance tests (`AT-HRD-CRD-01` s.d. `AT-HRD-CRD-22`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1l (0 Gap). `active_roadmap_revision` naik ke `16`. | Approval Pengguna 2026-11-05 |
+| `41` | 2026-11-05 | **Desain `S-C1` Credentialing, License & Clinical Privilege (Sub-modul 14) sebagai `draft`.** Menyerap decision log revision `28` bagian 44 — keputusan `HRD-DEC-146` s.d. `HRD-DEC-151`, asumsi `HRD-ASM-43` s.d. `HRD-ASM-46`, dan penuntasan status `HRD-DEC-005` menjadi approved. `02-backend-architecture.md` bagian 27 (tabel master `mst_credentialing_committees`, `trx_spk_rkk_issuances`, log `trx_clinical_privilege_emergency_override_logs`, ekstensi `wfp_credential_licenses` PSV STR/SIP, `wfp_clinical_privileges` level supervisi 4/3/1-2 & fast-track temporary/emergency, aturan `CRD-B1`..`B8`, `CRD-W1`..`W6`); `03-frontend-architecture.md` bagian 23 (8 layar baru `FE-HRD-187` s.d. `FE-HRD-194`); `data/data-dictionary.md` bagian 19; `contracts/api-contract.md` bagian 24 (4 tag Swagger, 27 endpoint rencana); `contracts/state-transition-matrix.md` bagian 22; `contracts/validation-matrix.md` bagian 23 (`VR-CRD-01` s.d. `VR-CRD-25`); `contracts/permission-audit-matrix.md` bagian 22 (14 permission, 14 audit event); `contracts/integration-contract.md` bagian 15 (`INT-HR-69` s.d. `INT-HR-72`); `testing/acceptance-test-matrix.md` bagian 26 (`AT-HRD-CRD-01` s.d. `AT-HRD-CRD-22`); `flowcharts/kredensial-dan-kewenangan-klinis.md` (4 diagram alur lengkap); `04-prd-to-mvp.md` bagian 32 (`EPIC HRD-69` s.d. `HRD-73`, 25 FR `FR-CRD-01` s.d. `FR-CRD-25`, 5 UAT, 10 DoD, Waves `MVP-42` s.d. `MVP-44`). `contract_versions` naik ke `v18`. | Persetujuan Rekomendasi Pengguna 2026-11-05 |
+| `40` | 2026-11-05 | **Grill-Me & Keputusan Bisnis `S-C1` Credentialing, License & Clinical Privilege (Sub-modul 14).** Penetapan batas scope tata kelola kredensialing 3 komite mandiri (Medik, Keperawatan, Nakes Lain), verifikasi primer PSV STR seumur hidup KKI/SatuSehat SDMK, radar pemantau SIP 5 tahun H-90 s.d. fail-closed H-0, asesmen panel Mitra Bestari (Peer Review), pengesahan tunggal SPK/RKK oleh Direktur Utama, resolusi final `HRD-DEC-005` (Hard-Stop bertingkat di SIMRS EMR `INT-HR-69` & life-saving override), tata kelola temporary privilege maks 3 bln & emergency privilege maks 72 jam, serta siklus SPK 3 tahun menuju rekredensialing Sub-15 (`HRD-DEC-146` s.d. `HRD-DEC-151`). Decision log naik ke revisi `28`. | Selesai Di-grill |
+| `39` | 2026-11-05 | **Perencanaan Delivery `S-D4` (HR Service Management & Request — Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS).** `S-D4` dipecah menjadi 15 task backend (`BE-HRD-191` s.d. `BE-HRD-205`) dan 14 task frontend (`FE-HRD-172` s.d. `FE-HRD-185`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B48 s.d. B51 & F46 s.d. F49). Status `S-D4` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-HRS-01` s.d. `FR-HRS-25`), 6 keputusan asal (`HRD-DEC-140` s.d. `HRD-DEC-145`), 20 acceptance tests (`AT-HRD-HRS-01` s.d. `AT-HRD-HRS-20`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1k (0 Gap). `active_roadmap_revision` naik ke `15`. | Approval Pengguna 2026-11-05 |
+| `38` | 2026-11-05 | **Desain `S-D4` Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS (Sub-modul 13) sebagai `draft`.** Menyerap decision log revision `27` bagian 43 — keputusan `HRD-DEC-140` s.d. `HRD-DEC-145` dan asumsi `HRD-ASM-39` s.d. `HRD-ASM-42`. `02-backend-architecture.md` bagian 26 (8 tabel baru: `mst_hr_service_categories`, `mst_hr_service_types`, `mst_employee_document_types`, `trx_hr_service_requests`, `trx_hr_service_request_attachments`, `trx_hr_service_request_comments`, `trx_employee_document_requests`, `trx_employee_document_issuances`, log `hrd_profile_change_histories`, aturan bisnis `HRS-B1`..`B8`, `HRS-W1`..`W6`, DDL Postgres); `03-frontend-architecture.md` bagian 22 (layar `FE-HRD-180` s.d. `FE-HRD-186`, antrean SLA helpdesk, editor template token dinamis, formulir permohonan ESS, drawer klarifikasi berkas, modal otorisasi surat resmi & QR generator, portal publik verifikasi keabsahan dokumen `/verify/document/{hash}` berproteksi 4-digit PIN finansial, dan pusat arsip e-Dossier); `data/data-dictionary.md` bagian 18; kelima kontrak bagian `S-D4` (kontrak `v17`, 4 grup Swagger `[Tags]`, 11 permission persis, 12 event audit, 25 aturan validasi `VR-HRS-01` s.d. `VR-HRS-25`, integrasi `INT-HR-65` s.d. `INT-HR-68`); `testing/acceptance-test-matrix.md` bagian 25 (20 skenario `AT-HRD-HRS-01` s.d. `AT-HRD-HRS-20`); `04-prd-to-mvp.md` bagian 31 (`EPIC HRD-64` s.d. `HRD-68`, 25 FR, 5 UAT, 10 butir DoD, gelombang `MVP-39` s.d. `MVP-41` & verifikasi); berkas flowchart baru `flowcharts/layanan-dan-persuratan-hr.md` (4 diagram alur). `contract_versions` naik ke `v17`. Siap untuk persetujuan pengguna. | `HRD-DEC-140` s.d. `HRD-DEC-145` |
+| `37` | 2026-11-05 | **Wawancara & Keputusan Sub-modul 13 HR Service Management & Request (`S-D4`).** Wawancara bisnis pass 13 untuk Sub-Modul 13 (Slice `S-D4`) selesai dan disetujui pengguna (`HRD-DEC-140` s.d. `HRD-DEC-145`), asumsi `HRD-ASM-39` s.d. `HRD-ASM-42`. Batas scope helpdesk tiket SDM dan penerbitan dokumen resmi kepegawaian rumah sakit: otentikasi dokumen via QR Code publik `/verify/document/{hash}` dan proteksi PIN 4-digit rahasia pegawai khusus pengungkapan rincian gaji (salary certificate); penetapan SLA 3-tier (Cito medis maks 4 jam, Standar 24 jam, Khusus 72 jam) dengan alert 75% durasi dan auto-eskalasi ke Manajer SDM jika overdue (100%); penguncian penarikan otomatis nominal gaji dari slip gaji final Sub-10 (`S-B5`) & kewajiban approval Supervisor C&B; pemutakhiran data master profil kepegawaian Sub-02 (`MstWorkforceProfile`) otomatis pasca-verifikasi dokumen sah; mesin penomoran surat terpusat *gapless auto-numbering engine* dan standarisasi template berbasis variabel token dinamis; serta pengarsipan digital permanen ke *Employee E-Dossier* Sub-02 dengan protokol revokasi dokumen sah (*immutable archive*). Siap untuk `/design-business-module`. | `HRD-DEC-140` s.d. `HRD-DEC-145` |
+| `36` | 2026-11-05 | **Perencanaan Delivery `S-D3` (Benefit Management — Manajemen Manfaat, Asuransi BPJS & Tanggungan Pegawai Rumah Sakit).** `S-D3` dipecah menjadi 15 task backend (`BE-HRD-176` s.d. `BE-HRD-190`) dan 14 task frontend (`FE-HRD-158` s.d. `FE-HRD-171`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B44 s.d. B47 & F42 s.d. F45). Status `S-D3` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-BEN-01` s.d. `FR-BEN-25`), 6 keputusan asal (`HRD-DEC-134` s.d. `HRD-DEC-139`), 20 acceptance tests (`AT-HRD-BEN-01` s.d. `AT-HRD-BEN-20`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1j (0 Gap). `active_roadmap_revision` naik ke `14`. | Approval Pengguna 2026-11-05 |
+| `35` | 2026-11-05 | **Desain `S-D3` Benefit Management (Sub-modul 12) sebagai `draft`.** Menyerap decision log revision `26` bagian 42 — keputusan `HRD-DEC-134` s.d. `HRD-DEC-139` dan asumsi `HRD-ASM-35` s.d. `HRD-ASM-38`. `02-backend-architecture.md` bagian 25 (7 tabel baru: `mst_benefit_plans`, `hrd_benefit_grade_eligibilities`, `trx_employee_insurance_enrollments`, `trx_employee_benefit_dependents`, `hrd_benefit_balance_movements`, `trx_benefit_claims`, `trx_benefit_claim_documents`, aturan bisnis `BEN-B1`..`B8`, `BEN-W1`..`W6`, DDL Postgres); `03-frontend-architecture.md` bagian 21 (layar `FE-HRD-174` s.d. `FE-HRD-179`, dasbor analitik manfaat, portal keluarga ESS, buku besar plafon internal RS, formulir klaim COB SEP BPJS); `data/data-dictionary.md` bagian 17; kelima kontrak bagian `S-D3` (kontrak `v16`, 4 grup Swagger `[Tags]`, 15 permission persis, 12 event audit, 25 aturan validasi `VR-BEN-01` s.d. `VR-BEN-25`, integrasi `INT-HR-61` s.d. `INT-HR-64`); `testing/acceptance-test-matrix.md` bagian 24 (20 skenario `AT-HRD-BEN-01` s.d. `AT-HRD-BEN-20`); `04-prd-to-mvp.md` bagian 30 (`EPIC HRD-59` s.d. `HRD-63`, 25 FR, 5 UAT, 10 butir DoD, gelombang `MVP-36` s.d. `MVP-38` & verifikasi); berkas flowchart baru `flowcharts/manajemen-benefit.md` (4 diagram alur). `contract_versions` naik ke `v16`. Siap untuk persetujuan pengguna. | `HRD-DEC-134` s.d. `HRD-DEC-139` |
+| `34` | 2026-11-05 | **Wawancara & Keputusan Sub-modul 12 Benefit Management (`S-D3`).** Wawancara bisnis pass 12 untuk Sub-Modul 12 (Slice `S-D3`) selesai dan disetujui pengguna (`HRD-DEC-134` s.d. `HRD-DEC-139`), asumsi `HRD-ASM-35` s.d. `HRD-ASM-38`. Struktur paket manfaat berjenjang 3-lapisan (BPJS wajib, asuransi swasta tambahan per grade, subsidi internal RS Quilvian), pembatasan tanggungan keluarga inti sah (maks 1 pasangan + 3 anak hingga usia 21/25 tahun kuliah via KK/Akta), alur berobat internal nakes di RS sendiri terintegrasi real-time SIMRS Admission & Billing (`INT-HR-61`) dengan pemotongan saldo plafon tahunan `HrdBenefitBalanceMovement` dan tagihan ekses, koordinasi manfaat COB BPJS Kesehatan sebagai primary payer & swasta secondary payer, aktivasi bertahap BPJS TK JKK/JKM H+0 Onboarding & BPJS Kes/swasta pasca-lulus masa percobaan 3 bulan `S-C4-ONB`, serta terminasi otomatis hak benefit per tanggal keluar kerja via Exit Clearance Sub-20. Siap untuk `/design-business-module`. | `HRD-DEC-134` s.d. `HRD-DEC-139` |
+| `33` | 2026-11-05 | **Perencanaan Delivery `S-B6` (Restitusi & Integrasi Pemotongan Penggajian).** `S-B6` dipecah menjadi 15 task backend (`BE-HRD-161` s.d. `BE-HRD-175`) dan 14 task frontend (`FE-HRD-144` s.d. `FE-HRD-157`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B40 s.d. B43 & F38 s.d. F41). Status `S-B6` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-DED-01` s.d. `FR-DED-25`), 6 keputusan asal (`HRD-DEC-128` s.d. `HRD-DEC-133`), 20 acceptance tests (`AT-HRD-DED-01` s.d. `AT-HRD-DED-20`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1i (0 Gap). `active_roadmap_revision` naik ke `13`. | Approval Pengguna 2026-11-05 |
+| `32` | 2026-11-05 | **Desain `S-B6` Restitusi & Pemotongan Penggajian (Sub-modul 11) sebagai `draft`.** Menyerap decision log revision `25` bagian 41 — keputusan `HRD-DEC-128` s.d. `HRD-DEC-133` dan asumsi `HRD-ASM-31` s.d. `HRD-ASM-34`. `02-backend-architecture.md` bagian 24 (6 tabel baru: `trx_restitution_claims`, `trx_restitution_claim_documents`, `trx_restitution_approvals`, `trx_employee_deduction_schedules`, `trx_payroll_deduction_items`, `trx_cashier_reimbursement_vouchers`, aturan bisnis `DED-B1`..`B8`, `DED-W1`..`W6`, DDL Postgres); `03-frontend-architecture.md` bagian 20 (layar `FE-HRD-168` s.d. `FE-HRD-173`, portal klaim restitusi ESS & upload bukti, drawer investigasi HR & simulasi hard-cap 50% PP 36/2021, integrasi voucher kasir cito); `data/data-dictionary.md` bagian 16; kelima kontrak bagian `S-B6` (kontrak `v15`, 4 grup Swagger `[Tags]`, 11 permission persis, 12 event audit, 25 aturan validasi `VR-DED-01` s.d. `VR-DED-25`, integrasi `INT-HR-57` s.d. `INT-HR-60`); `testing/acceptance-test-matrix.md` bagian 23 (20 skenario `AT-HRD-DED-01` s.d. `AT-HRD-DED-20`); `04-prd-to-mvp.md` bagian 29 (`EPIC HRD-54` s.d. `HRD-58`, 25 FR, 5 UAT, 10 butir DoD, gelombang `MVP-33` s.d. `MVP-35` & verifikasi); berkas flowchart baru `flowcharts/restitusi-dan-potongan.md` (4 diagram alur). `contract_versions` naik ke `v15`. | `HRD-DEC-128` s.d. `HRD-DEC-133` |
+| `31` | 2026-11-05 | **Wawancara & Keputusan Sub-modul 11 Restitution & Deduction (`S-B6`).** Menyerap decision log revision `25` bagian 41 — keputusan `HRD-DEC-128` s.d. `HRD-DEC-133` (seluruhnya `approved` oleh pengguna), asumsi `HRD-ASM-31` s.d. `HRD-ASM-34`, serta penegasan batas scope pemotongan dan restitusi pegawai. Batas maksimal pemotongan upah *Hard-Cap 50%* PP 36/2021 & hirarki prioritas pemotongan (ganti rugi kasir -> kasbon RS -> koperasi -> iuran), siklus sinkronisasi dua arah saldo piutang Finance via `INT-HR-55`, ruang lingkup klaim restitusi medis non-asuransi (kacamata kerja, faskes luar) & biaya dinas via ESS, tata kelola koreksi salah potong periode lampau (*traceable adjustment*) yang melindungi integritas payroll final `PAY-B6`, penyelesaian sisa pinjaman saat resign/PHK via Exit Clearance, serta kanal pembayaran restitusi slip gaji bulanan vs pencairan cito kasir RS. Siap untuk `design-business-module`. | `HRD-DEC-128` s.d. `HRD-DEC-133` |
 | `30` | 2026-11-05 | **Perencanaan Delivery `S-B5` (Pemrosesan Penggajian Pegawai Rumah Sakit).** `S-B5` dipecah menjadi 15 task backend (`BE-HRD-146` s.d. `BE-HRD-160`) dan 14 task frontend (`FE-HRD-130` s.d. `FE-HRD-143`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B36 s.d. B39 & F34 s.d. F37). Status `S-B5` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-PAY-01` s.d. `FR-PAY-25`), 6 keputusan asal (`HRD-DEC-122` s.d. `HRD-DEC-127`), 20 acceptance tests (`AT-HRD-PAY-01` s.d. `AT-HRD-PAY-20`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1h (0 Gap). `active_roadmap_revision` naik ke `12`. | Approval Pengguna 2026-11-05 |
 | `29` | 2026-11-05 | **Desain `S-B5` Penggajian Pegawai Rumah Sakit (Sub-modul 10) sebagai `draft`.** Menyerap decision log revision `24` bagian 40 — keputusan `HRD-DEC-122` s.d. `HRD-DEC-127` dan asumsi `HRD-ASM-27` s.d. `HRD-ASM-30`. `02-backend-architecture.md` bagian 23 (7 tabel baru: `trx_payroll_runs`, `trx_payroll_item_details`, `trx_payroll_variance_alerts`, `trx_payroll_approvals`, `trx_payroll_handoff_batches`, `trx_payroll_payslips`, `hrd_payroll_settings`, aturan bisnis `PAY-B1`..`B8`, `PAY-W1`..`W6`, DDL Postgres); `03-frontend-architecture.md` bagian 19 (layar `FE-HRD-162` s.d. `FE-HRD-167`, dasbor batch wizard, drawer investigasi anomali variansi, portal slip gaji ESS ber-PIN 6-digit); `data/data-dictionary.md` bagian 15; kelima kontrak bagian `S-B5` (kontrak `v14`, 6 grup Swagger `[Tags]`, 18 permission persis, 14 event audit, 25 aturan validasi `VR-PAY-01` s.d. `VR-PAY-25`, integrasi `INT-HR-53` s.d. `INT-HR-56`); `testing/acceptance-test-matrix.md` bagian 22 (20 skenario `AT-HRD-PAY-01` s.d. `AT-HRD-PAY-20`); `04-prd-to-mvp.md` bagian 28 (`EPIC HRD-49` s.d. `HRD-53`, 25 FR, 5 UAT, 10 butir DoD, gelombang `MVP-30` s.d. `MVP-32` & verifikasi); berkas flowchart baru `flowcharts/pemrosesan-payroll.md` (4 diagram alur). `contract_versions` naik ke `v14`. Siap untuk persetujuan pengguna. | `HRD-DEC-122` s.d. `HRD-DEC-127` |
 | `28` | 2026-11-05 | **Wawancara & Keputusan Sub-modul 10 Payroll Processing & Handoff (`S-B5`).** Menyerap decision log revision `24` bagian 40 — keputusan `HRD-DEC-122` s.d. `HRD-DEC-127` (seluruhnya `approved` oleh pengguna), asumsi `HRD-ASM-27` s.d. `HRD-ASM-30`, serta penegasan batas scope penggajian rumah sakit sesuai `HRD-DEC-009`. Penguncian otomatis prasyarat closed kehadiran/cuti/lembur tgl 20, mesin formula gaji berparameter transparan PPh 21 TER PMK 168/2023 & BPJS, ambang deteksi variansi anomali >= 20% / Rp 2jt, alur otorisasi 3-jenjang SoD anti-self-approval, berkas serah terima payroll terkunci dengan protokol rollback resmi Finance penutup `HRD-Q-10` & `HRD-Q-11`, serta proteksi rilis slip gaji ESS ber-PIN. Siap untuk `design-business-module`. | `HRD-DEC-122` s.d. `HRD-DEC-127` |
@@ -435,3 +469,45 @@ Kehadirannya bukan penyimpangan struktur, dan ketiadaannya bukan blueprint yang 
 
 Perubahan setelah approval membuat revision baru dan memicu impact scan pada kedua repository.
 Blueprint ini tidak pernah ditandai `approved` oleh skill; approval tetap tindakan manusia.
+  - scope: S-B6
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-05
+    owner_answer: "Opsi A untuk HRD-DEC-128 s.d. HRD-DEC-133; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 24
+      - 03-frontend-architecture.md bagian 20
+      - 04-prd-to-mvp.md bagian 29
+      - data/data-dictionary.md bagian 16
+      - contracts/* bagian S-B6 (kontrak v15)
+      - testing/acceptance-test-matrix.md bagian 23
+      - flowcharts/restitusi-dan-potongan.md
+      - roadmap/* revisi 13 (BE-HRD-161 s.d. BE-HRD-175, FE-HRD-144 s.d. FE-HRD-157)
+    not_covered: "bagian slice lain; piutang AR dan buku besar bunga milik Departemen Keuangan (HRD-DEC-009)"
+  - scope: S-D4
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-05
+    owner_answer: "Opsi A untuk HRD-DEC-140 s.d. HRD-DEC-145; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 26
+      - 03-frontend-architecture.md bagian 22
+      - 04-prd-to-mvp.md bagian 31
+      - data/data-dictionary.md bagian 18
+      - contracts/* bagian S-D4 (kontrak v17)
+      - testing/acceptance-test-matrix.md bagian 25
+      - flowcharts/layanan-dan-persuratan-hr.md
+      - roadmap/* revisi 15 (BE-HRD-191 s.d. BE-HRD-205, FE-HRD-172 s.d. FE-HRD-185)
+    not_covered: "bagian slice lain; SPK dan RKK klinis kredensialing dokter milik Komite Medik (Sub-14)"
+  - scope: S-C1
+    approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
+    approved_at: 2026-11-05
+    owner_answer: "Opsi A untuk HRD-DEC-146 s.d. HRD-DEC-151; resolusi final HRD-DEC-005 approved; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 27
+      - 03-frontend-architecture.md bagian 23
+      - 04-prd-to-mvp.md bagian 32
+      - data/data-dictionary.md bagian 19
+      - contracts/* bagian S-C1 (kontrak v18)
+      - testing/acceptance-test-matrix.md bagian 26
+      - flowcharts/kredensial-dan-kewenangan-klinis.md
+      - roadmap/* revisi 16 (BE-HRD-206 s.d. BE-HRD-221, FE-HRD-186 s.d. FE-HRD-200)
+    not_covered: "bagian slice lain; evaluasi praktik profesional berkelanjutan detail milik Sub-15 OPPE/FPPE"

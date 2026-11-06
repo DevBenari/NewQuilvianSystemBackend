@@ -390,6 +390,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxCompensatoryLeave> TrxCompensatoryLeaves { get; set; }
         public DbSet<TrxLeaveExecution> TrxLeaveExecutions { get; set; }
         public DbSet<TrxLeaveAttendanceIntegration> TrxLeaveAttendanceIntegrations { get; set; }
+        public DbSet<TrxLeaveBalanceLedger> TrxLeaveBalanceLedgers { get; set; }
+        public DbSet<TrxLeaveRecallRequest> TrxLeaveRecallRequests { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - LEAVE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OVERTIME MANAGEMENT
@@ -441,6 +443,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<WfpTransportAllowanceTransaction> WfpTransportAllowanceTransactions { get; set; }
         public DbSet<TrxPayrollRun> TrxPayrollRuns { get; set; }
         public DbSet<TrxPayrollRunEmployee> TrxPayrollRunEmployees { get; set; }
+        public DbSet<HrdPayrollSetting> HrdPayrollSettings { get; set; }
+        public DbSet<TrxPayrollVarianceAlert> TrxPayrollVarianceAlerts { get; set; }
+        public DbSet<TrxPayrollHandoffBatch> TrxPayrollHandoffBatches { get; set; }
         public DbSet<TrxPayrollEmployeeComponent> TrxPayrollEmployeeComponents { get; set; }
         public DbSet<TrxPayrollAttendanceInput> TrxPayrollAttendanceInputs { get; set; }
         public DbSet<TrxPayrollOvertimeInput> TrxPayrollOvertimeInputs { get; set; }

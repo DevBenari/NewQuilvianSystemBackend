@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Models;
@@ -28,6 +28,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public DateOnly EarnedDate { get; set; }
         public DateOnly EffectiveStartDate { get; set; }
         public DateOnly? ExpiryDate { get; set; }
+
+        [Column(TypeName = "decimal(4,1)")]
+        public decimal GrantedDays { get; set; } = 0;
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal RemainingHours { get; set; } = 0;
+
+        public bool IsExpired { get; set; } = false;
 
         public int SourceOvertimeMinutes { get; set; } = 0;
         public decimal ConversionRate { get; set; } = 1;

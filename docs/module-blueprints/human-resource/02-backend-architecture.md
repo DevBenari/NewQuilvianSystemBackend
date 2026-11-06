@@ -5103,3 +5103,1726 @@ Seeder otomatis pada saat inisialisasi aplikasi menyediakan nilai default parame
 | `HRD-ASM-28` | 23.3 (`IndonesianTaxCalculator` TER PMK 168/2023), 23.7 |
 | `HRD-ASM-29` | 23.6, 23.7 (`Payroll.VarianceThresholdPercent` = 20%, `Payroll.VarianceThresholdNominal` = Rp 2 jt) |
 | `HRD-ASM-30` | 23.3 (`PayslipReleaseService`), 23.6 (`secondary_pin_hash`), 23.8 (`PAY-B6`) |
+
+## 24. Bagian `S-B6` — Arsitektur Backend Restitusi & Pemotongan Penggajian Pegawai Rumah Sakit (Sub-modul 11, `last_changed_in` `v15`, 5 November 2026)
+
+Bagian ini mendefinisikan arsitektur backend komprehensif untuk **Sub-modul 11. Restitusi & Integrasi Pemotongan Penggajian (Slice `S-B6`)**, menyerap keputusan bisnis `HRD-DEC-128` s.d. `HRD-DEC-133`, asumsi rekayasa `HRD-ASM-31` s.d. `HRD-ASM-34`, penegasan batas kepemilikan piutang Finance `HRD-DEC-009` & `HRD-DEC-129`, batasan pemotongan upah tenaga kerja Pasal 65 PP 36/2021 jo PP 49/2025 (*Hard-Cap 50%*), pemisahan slip penutupan PHK/Resign (Sub-20 Exit Clearance), serta perlindungan jalur cepat kasir darurat (*Urgent Disbursement Cito*).
+
+### 24.1 Konteks Domain & Kepemilikan Data (`RestitutionAndDeductions`)
+
+| Kelompok Data / Entitas | Modul Pemilik | Dipakai di Sub-Modul 11 | Status Kepemilikan | Keterangan & Batas Tanggung Jawab |
+| :--- | :--- | :---: | :---: | :--- |
+| Profil Pegawai & Gaji Bruto | Workforce Core (01/02) / Payroll (10) | Ya | Read-Only | Mengambil status kepegawaian, grade/golongan, dan nilai `GrossPay` bulan berjalan untuk penentuan plafon 50% |
+| Buku Besar Piutang & Pinjaman RS | Finance & Accounting | Ya | Inbound / Outbound Callback | **Di luar HR (`HRD-DEC-009`, `HRD-DEC-129`)**: Finance memegang saldo buku besar, HR hanya menerima jadwal cicilan aktif (`INT-HR-55`) dan mengirim callback realisasi (`INT-HR-58`) |
+| Koperasi Pegawai RS | Koperasi Karyawan (Unit Eksternal/Kemitraan) | Ya | Inbound Invoice | Tagihan belanja / simpan pinjam koperasi disalurkan melalui Finance/HR sebagai potongan prioritas ke-3 |
+| Klaim Restitusi Mandiri ESS | Restitution (11) | Ya | **Owner (Baru)** | Entitas `TrxEmployeeRestitutionClaim` menampung klaim kacamata kerja, faskes luar, dan dinas darurat staf |
+| Penyesuaian Restitusi Slip Gaji | Restitution (11) | Ya | **Owner (Baru)** | Entitas `TrxPayrollRestitution` menampung reimbursement klaim approved dan koreksi salah potong periode lampau (`PAY-B6`) |
+| Jadwal Angsuran Pemotongan Gaji | Restitution (11) | Ya | **Owner (Baru)** | Entitas `TrxPayrollDeductionSchedule` mengelola master cicilan bulanan yang ditarik dari Finance |
+| Rincian Eksekusi Potongan Periode | Restitution (11) | Ya | **Owner (Baru)** | Entitas `TrxPayrollDeductionItem` menyimpan hasil eksekusi potong per komponen dengan penegakan hard-cap 50% berjenjang |
+| Voucher Pencairan Darurat Kasir | Restitution (11) | Ya | **Owner (Baru)** | Entitas `TrxCashierDisbursementVoucher` menerbitkan QR/PIN voucher tunai 24/7 di Kasir RS untuk kecelakaan kerja medis cito |
+| Konfigurasi Plafon & Kebijakan | Restitution (11) | Ya | **Owner (Baru)** | Entitas `HrdRestitutionSetting` menyimpan aturan plafon tahunan per grade dan ambang hard-cap upah |
+| Rekonsiliasi Pelunasan PHK / Resign | Exit Clearance (Sub-Modul 20) | Ya | Inter-Module Contract | Integrasi dengan Sub-Modul 20 untuk penyelesaian sisa pinjaman pada slip akhir (*Final Clearance Payslip*) |
+
+---
+
+### 24.2 Class Diagram Domain Restitusi & Pemotongan (`RestitutionAndDeductions`)
+
+```mermaid
+classDiagram
+  class TrxEmployeeRestitutionClaim {
+    +Guid Id
+    +string ClaimNumber
+    +Guid EmployeeId
+    +string ClaimCategory
+    +DateTime ExpenseDate
+    +decimal ClaimAmount
+    +decimal ApprovedAmount
+    +string ReceiptAttachmentUrl
+    +string MedicalResumeAttachmentUrl
+    +string ClaimStatus
+    +string ReasonNotes
+    +Guid? SupervisorId
+    +DateTime? SupervisorApprovedAt
+    +Guid? HrReviewerId
+    +DateTime? HrReviewedAt
+    +Guid? FinalApproverId
+    +DateTime? FinalApprovedAt
+    +bool IsCitoEmergency
+    +DateTime CreatedAt
+  }
+
+  class TrxPayrollRestitution {
+    +Guid Id
+    +string RestitutionNumber
+    +Guid EmployeeId
+    +Guid? ClaimId
+    +string RestitutionType
+    +decimal Amount
+    +Guid? AffectedPayrollRunId
+    +Guid? AffectedPayslipId
+    +Guid? TargetPayrollRunId
+    +string Status
+    +string Justification
+    +DateTime CreatedAt
+  }
+
+  class TrxPayrollDeductionSchedule {
+    +Guid Id
+    +string ScheduleNumber
+    +Guid EmployeeId
+    +string DeductionCategory
+    +int PriorityLevel
+    +string ExternalReferenceId
+    +decimal TotalLoanPrincipal
+    +decimal MonthlyInstallmentAmount
+    +int TotalInstallmentMonths
+    +int PaidInstallmentCount
+    +decimal RemainingPrincipal
+    +DateTime StartDate
+    +DateTime? EndDate
+    +string ScheduleStatus
+    +bool AutoCarryOverOnCapExceeded
+  }
+
+  class TrxPayrollDeductionItem {
+    +Guid Id
+    +Guid PayrollRunId
+    +Guid DeductionScheduleId
+    +Guid EmployeeId
+    +string DeductionCategory
+    +int PriorityLevel
+    +decimal ScheduledAmount
+    +decimal ActualDeductedAmount
+    +decimal DeferredAmount
+    +string ExecutionStatus
+    +string DeferralReason
+    +DateTime ExecutedAt
+  }
+
+  class TrxCashierDisbursementVoucher {
+    +Guid Id
+    +string VoucherNumber
+    +Guid ClaimId
+    +Guid EmployeeId
+    +decimal VoucherAmount
+    +string SecurityTokenHash
+    +DateTime IssuedAt
+    +DateTime ExpiredAt
+    +string VoucherStatus
+    +Guid? CashedByUserId
+    +DateTime? CashedAt
+    +string CashierReceiptNumber
+  }
+
+  class HrdRestitutionSetting {
+    +Guid Id
+    +string GradeLevelCode
+    +string BenefitCategory
+    +decimal AnnualLimitAmount
+    +int MinimumServiceMonthsRequired
+    +decimal MaxDeductionPercentageOfGross
+    +bool AllowEmergencyCitoCashier
+    +bool IsActive
+  }
+
+  TrxEmployeeRestitutionClaim "1" -- "0..1" TrxPayrollRestitution : generates
+  TrxEmployeeRestitutionClaim "1" -- "0..1" TrxCashierDisbursementVoucher : fast_track_cashier
+  TrxPayrollDeductionSchedule "1" -- "0..*" TrxPayrollDeductionItem : generates_monthly_cut
+  HrdRestitutionSetting "1" -- "0..*" TrxEmployeeRestitutionClaim : validates_limit
+```
+
+---
+
+### 24.3 Daftar Class Backend Baru & Diperbarui
+
+| Nama Class | Layer / Tipe | Status | Lokasi File | Fungsi Utama & Batas Tanggung Jawab |
+| :--- | :--- | :---: | :--- | :--- |
+| `TrxEmployeeRestitutionClaim` | Domain Entity | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Entities/TrxEmployeeRestitutionClaim.cs` | Entitas tabel klaim restitusi mandiri staf berlampiran nota/kuitansi asli dan audit persetujuan 3 tingkat |
+| `TrxPayrollRestitution` | Domain Entity | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Entities/TrxPayrollRestitution.cs` | Entitas komponen pengembalian uang/restitusi pada penggajian bulanan (termasuk kompensasi salah potong masa lalu) |
+| `TrxPayrollDeductionSchedule` | Domain Entity | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Entities/TrxPayrollDeductionSchedule.cs` | Entitas master jadwal cicilan piutang/pinjaman yang tersinkronisasi dengan Departemen Keuangan |
+| `TrxPayrollDeductionItem` | Domain Entity | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Entities/TrxPayrollDeductionItem.cs` | Entitas rincian eksekusi potongan slip gaji per periode dengan penegakan batas 50% dan pencatatan nilai ditunda |
+| `TrxCashierDisbursementVoucher` | Domain Entity | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Entities/TrxCashierDisbursementVoucher.cs` | Entitas voucher pencairan tunai kasir 24/7 untuk klaim darurat medis nakes (*Urgent Disbursement Cito*) |
+| `HrdRestitutionSetting` | Domain Entity | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Entities/HrdRestitutionSetting.cs` | Entitas pengaturan plafon tahunan restitusi per golongan dan persentase batasan pemotongan upah (default 50%) |
+| `RestitutionClaimService` | Application Service | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Services/RestitutionClaimService.cs` | Menangani siklus pengajuan klaim ESS, kalkulasi sisa plafon tahunan, alur persetujuan, dan penguncian voucher cito |
+| `PayrollDeductionEngineService` | Application Service | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Services/PayrollDeductionEngineService.cs` | Menjalankan perhitungan batasan hard-cap 50% PP 36/2021, pemangkasan berjenjang prioritas 1-4, dan penjadwalan sisa carry-over |
+| `FinanceDeductionSyncService` | Application Service | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Services/FinanceDeductionSyncService.cs` | Mengelola sinkronisasi batch jadwal cicilan H-3 dari Finance (`INT-HR-55`) dan pengiriman callback realisasi tgl 25 (`INT-HR-58`) |
+| `CashierVoucherDisbursementService`| Application Service | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Services/CashierVoucherDisbursementService.cs` | Melayani validasi dan pencairan voucher di loket Kasir RS serta memastikan flag `DisbursedViaCashier` terkunci |
+| `ExitClearanceReceivableService` | Application Service | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Services/ExitClearanceReceivableService.cs` | Menghitung sisa pinjaman saat resign/PHK, memotong hingga 100% dari pesangon penutupan, dan menerbitkan tagihan residu |
+| `RestitutionClaimController` | Web API Controller | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Controllers/RestitutionClaimController.cs` | Menyediakan endpoint RESTful pengajuan klaim ESS, persetujuan bertingkat, dan monitoring kuota plafon |
+| `PayrollDeductionScheduleController`| Web API Controller | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Controllers/PayrollDeductionScheduleController.cs` | Menyediakan endpoint RESTful sinkronisasi jadwal Finance, evaluasi simulasi plafon 50%, dan manajemen angsuran |
+| `CashierVoucherController` | Web API Controller | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Controllers/CashierVoucherController.cs` | Menyediakan endpoint RESTful penerbitan, otorisasi, dan kliring voucher kasir darurat 24/7 |
+| `RestitutionSettingController` | Web API Controller | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/Controllers/RestitutionSettingController.cs` | Menyediakan endpoint RESTful konfigurasi batas plafon benefit dan aturan penegakan persentase potongan upah |
+| `DeductionScheduleDtos` | DTO Model | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/DTOs/DeductionScheduleDtos.cs` | Kumpulan DTO Create, Update, Filter, dan Response untuk jadwal angsuran dan simulasi plafon 50% |
+| `RestitutionClaimDtos` | DTO Model | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/DTOs/RestitutionClaimDtos.cs` | Kumpulan DTO pengajuan klaim ESS, payload kuitansi, persetujuan berjenjang, dan riwayat klaim |
+| `CashierVoucherDtos` | DTO Model | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/DTOs/CashierVoucherDtos.cs` | Kumpulan DTO penerbitan voucher cito, verifikasi token kasir, dan konfirmasi pencairan tunai |
+| `RestitutionSettingDtos` | DTO Model | **Baru** | `Areas/Corporate/HumanResource/PayrollManagement/DTOs/RestitutionSettingDtos.cs` | Kumpulan DTO konfigurasi plafon benefit tahunan dan penegakan batas maksimal potongan gaji |
+
+---
+
+### 24.4 Pohon Direktori Source Backend C#
+
+```text
+NewQuilvianSystemBackend/
+└── Areas/
+    └── Corporate/
+        └── HumanResource/
+            └── PayrollManagement/
+                ├── Controllers/
+                │   ├── RestitutionClaimController.cs           [Baru - S-B6]
+                │   ├── PayrollDeductionScheduleController.cs   [Baru - S-B6]
+                │   ├── CashierVoucherController.cs             [Baru - S-B6]
+                │   └── RestitutionSettingController.cs         [Baru - S-B6]
+                ├── Services/
+                │   ├── RestitutionClaimService.cs              [Baru - S-B6]
+                │   ├── PayrollDeductionEngineService.cs        [Baru - S-B6]
+                │   ├── FinanceDeductionSyncService.cs          [Baru - S-B6]
+                │   ├── CashierVoucherDisbursementService.cs   [Baru - S-B6]
+                │   └── ExitClearanceReceivableService.cs       [Baru - S-B6]
+                ├── Entities/
+                │   ├── TrxEmployeeRestitutionClaim.cs          [Baru - S-B6]
+                │   ├── TrxPayrollRestitution.cs                [Baru - S-B6]
+                │   ├── TrxPayrollDeductionSchedule.cs          [Baru - S-B6]
+                │   ├── TrxPayrollDeductionItem.cs              [Baru - S-B6]
+                │   ├── TrxCashierDisbursementVoucher.cs        [Baru - S-B6]
+                │   └── HrdRestitutionSetting.cs                [Baru - S-B6]
+                ├── EntityConfigurations/
+                │   ├── TrxEmployeeRestitutionClaimConfiguration.cs   [Baru - S-B6]
+                │   ├── TrxPayrollRestitutionConfiguration.cs         [Baru - S-B6]
+                │   ├── TrxPayrollDeductionScheduleConfiguration.cs   [Baru - S-B6]
+                │   ├── TrxPayrollDeductionItemConfiguration.cs       [Baru - S-B6]
+                │   ├── TrxCashierDisbursementVoucherConfiguration.cs [Baru - S-B6]
+                │   └── HrdRestitutionSettingConfiguration.cs         [Baru - S-B6]
+                └── DTOs/
+                    ├── DeductionScheduleDtos.cs                [Baru - S-B6]
+                    ├── RestitutionClaimDtos.cs                 [Baru - S-B6]
+                    ├── CashierVoucherDtos.cs                   [Baru - S-B6]
+                    └── RestitutionSettingDtos.cs               [Baru - S-B6]
+```
+
+---
+
+### 24.5 Rencana Migrasi Database PostgreSQL
+
+1. **Nama File Migrasi:** `20261105_AddRestitutionAndPayrollDeductionTables.cs`
+2. **Karakteristik Eksekusi:** Zero-downtime, fully non-blocking, menambahkan 6 tabel baru tanpa mengubah kolom tabel produksi existing secara destruktif.
+3. **Pemberian Indeks Performa:**
+   - Indeks unik terklaster pada nomor klaim (`claim_number`), nomor jadwal (`schedule_number`), dan nomor voucher (`voucher_number`).
+   - Indeks gabungan `(employee_id, expense_date)` pada `trx_employee_restitution_claims` untuk kalkulasi cepat akumulasi plafon tahunan.
+   - Indeks komposit `(payroll_run_id, deduction_schedule_id)` pada `trx_payroll_deduction_items` untuk pemrosesan paralel engine penggajian.
+4. **Strategi Mundur (Rollback Strategy):**
+   - Bila migrasi gagal, eksekusi drop table berurutan dari tabel turunan: `trx_cashier_disbursement_vouchers`, `trx_payroll_deduction_items`, `trx_payroll_restitutions`, `trx_payroll_deduction_schedules`, `trx_employee_restitution_claims`, `hrd_restitution_settings`.
+
+---
+
+### 24.6 Skema DDL Tabel Baru & Penambahan Kolom
+
+```sql
+-- 1. Tabel Master Konfigurasi Plafon Restitusi & Batas Pemotongan Upah
+CREATE TABLE IF NOT EXISTS public.hrd_restitution_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    grade_level_code VARCHAR(50) NOT NULL,
+    benefit_category VARCHAR(100) NOT NULL, -- 'KacamataKerja', 'FaskesLuarDarurat', 'DinasCitoMedis'
+    annual_limit_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    minimum_service_months_required INT NOT NULL DEFAULT 0,
+    max_deduction_percentage_of_gross NUMERIC(5, 2) NOT NULL DEFAULT 50.00, -- Hard-cap 50% PP 36/2021
+    allow_emergency_cito_cashier BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by_user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by_user_id UUID NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NULL,
+    CONSTRAINT uq_restitution_setting_grade_category UNIQUE (grade_level_code, benefit_category)
+);
+
+-- 2. Tabel Pengajuan Klaim Restitusi Mandiri di ESS
+CREATE TABLE IF NOT EXISTS public.trx_employee_restitution_claims (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    claim_number VARCHAR(100) NOT NULL UNIQUE,
+    employee_id UUID NOT NULL REFERENCES public.m_employees(id),
+    claim_category VARCHAR(100) NOT NULL,
+    expense_date DATE NOT NULL,
+    claim_amount NUMERIC(15, 2) NOT NULL,
+    approved_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    receipt_attachment_url TEXT NOT NULL,
+    medical_resume_attachment_url TEXT NULL,
+    claim_status VARCHAR(50) NOT NULL DEFAULT 'Draft', -- 'Draft', 'Submitted', 'SupervisorApproved', 'HrReviewed', 'Approved', 'Rejected', 'QueuedForPayroll', 'ProcessedInPayroll', 'VoucherIssued', 'DisbursedViaCashier', 'Closed'
+    reason_notes TEXT NOT NULL,
+    rejection_reason TEXT NULL,
+    supervisor_id UUID NULL,
+    supervisor_approved_at TIMESTAMP WITH TIME ZONE NULL,
+    hr_reviewer_id UUID NULL,
+    hr_reviewed_at TIMESTAMP WITH TIME ZONE NULL,
+    final_approver_id UUID NULL,
+    final_approved_at TIMESTAMP WITH TIME ZONE NULL,
+    is_cito_emergency BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by_user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NULL
+);
+CREATE INDEX idx_restitution_claim_employee_date ON public.trx_employee_restitution_claims (employee_id, expense_date);
+
+-- 3. Tabel Komponen Restitusi Penggajian (Reimbursement & Koreksi Salah Potong Masa Lalu)
+CREATE TABLE IF NOT EXISTS public.trx_payroll_restitutions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    restitution_number VARCHAR(100) NOT NULL UNIQUE,
+    employee_id UUID NOT NULL REFERENCES public.m_employees(id),
+    claim_id UUID NULL REFERENCES public.trx_employee_restitution_claims(id),
+    restitution_type VARCHAR(50) NOT NULL, -- 'BenefitReimbursement', 'SalaryAdjustmentCorrection' (HRD-DEC-131)
+    amount NUMERIC(15, 2) NOT NULL,
+    affected_payroll_run_id UUID NULL REFERENCES public.trx_payroll_runs(id), -- Slip masa lalu yang salah potong
+    affected_payslip_id UUID NULL REFERENCES public.trx_payroll_payslips(id),
+    target_payroll_run_id UUID NULL REFERENCES public.trx_payroll_runs(id), -- Siklus penggajian berjalan tempat uang dikembalikan
+    status VARCHAR(50) NOT NULL DEFAULT 'PendingApproval', -- 'PendingApproval', 'Approved', 'IncludedInPayroll', 'Cancelled'
+    justification TEXT NOT NULL,
+    approved_by_user_id UUID NULL,
+    approved_at TIMESTAMP WITH TIME ZONE NULL,
+    created_by_user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Tabel Master Jadwal Angsuran Cicilan Pemotongan Gaji
+CREATE TABLE IF NOT EXISTS public.trx_payroll_deduction_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    schedule_number VARCHAR(100) NOT NULL UNIQUE,
+    employee_id UUID NOT NULL REFERENCES public.m_employees(id),
+    deduction_category VARCHAR(100) NOT NULL, -- 'GantiRugiAsetKasir', 'KasbonPinjamanRS', 'CicilanKoperasi', 'IuranPaguyuban'
+    priority_level INT NOT NULL, -- 1: Ganti Rugi, 2: Kasbon RS, 3: Koperasi, 4: Paguyuban (HRD-DEC-128)
+    external_reference_id VARCHAR(100) NULL, -- ID Piutang di modul Keuangan (Finance AR Code)
+    total_loan_principal NUMERIC(15, 2) NOT NULL,
+    monthly_installment_amount NUMERIC(15, 2) NOT NULL,
+    total_installment_months INT NOT NULL DEFAULT 1,
+    paid_installment_count INT NOT NULL DEFAULT 0,
+    remaining_principal NUMERIC(15, 2) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NULL,
+    schedule_status VARCHAR(50) NOT NULL DEFAULT 'Active', -- 'Active', 'Paused', 'Completed', 'Cancelled', 'ClearedAtSeparation'
+    auto_carry_over_on_cap_exceeded BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by_user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NULL
+);
+CREATE INDEX idx_deduction_schedule_emp_priority ON public.trx_payroll_deduction_schedules (employee_id, priority_level);
+
+-- 5. Tabel Rincian Eksekusi Pemotongan Gaji per Periode
+CREATE TABLE IF NOT EXISTS public.trx_payroll_deduction_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_run_id UUID NOT NULL REFERENCES public.trx_payroll_runs(id),
+    deduction_schedule_id UUID NOT NULL REFERENCES public.trx_payroll_deduction_schedules(id),
+    employee_id UUID NOT NULL REFERENCES public.m_employees(id),
+    deduction_category VARCHAR(100) NOT NULL,
+    priority_level INT NOT NULL,
+    scheduled_amount NUMERIC(15, 2) NOT NULL,
+    actual_deducted_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    deferred_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00, -- Nilai ditunda karena mentok batas 50%
+    execution_status VARCHAR(50) NOT NULL DEFAULT 'Pending', -- 'Pending', 'DeductedInFull', 'PartiallyDeducted', 'DeferredDueToSalaryCap', 'Cancelled'
+    deferral_reason TEXT NULL,
+    executed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_deduction_item_run_schedule UNIQUE (payroll_run_id, deduction_schedule_id)
+);
+
+-- 6. Tabel Voucher Pencairan Kasir Darurat Cito 24/7
+CREATE TABLE IF NOT EXISTS public.trx_cashier_disbursement_vouchers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    voucher_number VARCHAR(100) NOT NULL UNIQUE,
+    claim_id UUID NOT NULL REFERENCES public.trx_employee_restitution_claims(id),
+    employee_id UUID NOT NULL REFERENCES public.m_employees(id),
+    voucher_amount NUMERIC(15, 2) NOT NULL,
+    security_token_hash VARCHAR(256) NOT NULL, -- SHA-256 token satu kali pakai untuk kasir
+    issued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expired_at TIMESTAMP WITH TIME ZONE NOT NULL, -- Berlaku 48 jam sejak terbit
+    voucher_status VARCHAR(50) NOT NULL DEFAULT 'Issued', -- 'Issued', 'ClaimedAtCashier', 'DisbursedViaCashier', 'Expired', 'Cancelled'
+    cashed_by_user_id UUID NULL, -- ID User Kasir RS yang memverifikasi voucher
+    cashed_at TIMESTAMP WITH TIME ZONE NULL,
+    cashier_receipt_number VARCHAR(100) NULL,
+    notes TEXT NULL,
+    created_by_user_id UUID NOT NULL
+);
+CREATE INDEX idx_cashier_voucher_status_exp ON public.trx_cashier_disbursement_vouchers (voucher_status, expired_at);
+```
+
+---
+
+### 24.7 Rencana Data Master Awal & Konfigurasi Sistem
+
+Data awal disemai (*seeded*) pada tabel `hrd_restitution_settings` untuk menjamin kepatuhan batas pemotongan upah dan ketersediaan batas plafon benefit:
+
+| Golongan Pegawai (`grade_level_code`) | Kategori Manfaat (`benefit_category`) | Plafon Tahunan (`annual_limit_amount`) | Min. Masa Kerja | Batas Maks. Potongan (`max_deduction_percentage`) | Cito Kasir Diizinkan? |
+| :--- | :--- | :--- | :--- | :---: | :---: |
+| `GRADE-ALL` | `KebijakanUmumPemotongan` | Rp 0 | 0 bulan | **50.00%** (PP 36/2021) | Tidak |
+| `GRADE-I` (Staf Medis / Dokter Spesialis) | `KacamataKerja` | Rp 2.500.000 | 6 bulan | 50.00% | Tidak |
+| `GRADE-I` (Staf Medis / Dokter Spesialis) | `FaskesLuarDarurat` | Rp 10.000.000 | 3 bulan | 50.00% | **Ya (Cito Nakes)** |
+| `GRADE-II` (Perawat & Bidan) | `KacamataKerja` | Rp 1.500.000 | 6 bulan | 50.00% | Tidak |
+| `GRADE-II` (Perawat & Bidan) | `FaskesLuarDarurat` | Rp 7.500.000 | 3 bulan | 50.00% | **Ya (Cito Nakes)** |
+| `GRADE-III` (Penunjang Medik & Laboran) | `KacamataKerja` | Rp 1.250.000 | 6 bulan | 50.00% | Tidak |
+| `GRADE-III` (Penunjang Medik & Laboran) | `FaskesLuarDarurat` | Rp 5.000.000 | 3 bulan | 50.00% | **Ya (Cito Nakes)** |
+| `GRADE-IV` (Staf Umum & Administrasi) | `KacamataKerja` | Rp 1.000.000 | 12 bulan | 50.00% | Tidak |
+| `GRADE-IV` (Staf Umum & Administrasi) | `FaskesLuarDarurat` | Rp 3.000.000 | 12 bulan | 50.00% | Tidak |
+
+---
+
+### 24.8 Matriks Aturan Bisnis & Validasi Keselamatan (`DED-B` & `DED-W`)
+
+| Kode Aturan | Jenis | Target / Entitas | Deskripsi Aturan & Batas Keselamatan Finansial |
+| :--- | :--- | :--- | :--- |
+| `DED-B1` | Hard Invariant | `PayrollDeductionEngine` | Total seluruh pemotongan non-regulasi dalam 1 siklus penggajian bulanan dilarang keras melebihi **50% dari Gross Pay** (`HRD-DEC-128`, Pasal 65 PP 36/2021). |
+| `DED-B2` | Hard Invariant | `PayrollDeductionEngine` | Pemotongan wajib tunduk pada hirarki prioritas berjenjang mutlak: Priority 1 (Ganti rugi kasir/aset RS) $
+ightarrow$ Priority 2 (Pinjaman kasbon pokok RS) $
+ightarrow$ Priority 3 (Cicilan Koperasi RS) $
+ightarrow$ Priority 4 (Iuran sosial paguyuban). |
+| `DED-B3` | Hard Invariant | `TrxPayrollDeductionItem`| Tagihan yang tidak dapat dipotong akibat mentok batas plafon 50% wajib diberi status `DeferredDueToSalaryCap` dan secara otomatis ditunda (*carry-over*) ke periode bulan berikutnya tanpa denda bunga (`HRD-DEC-128`). |
+| `DED-B4` | Hard Invariant | `TrxPayrollRestitution` | Slip gaji final yang telah disahkan dan dibayarkan haram diubah nilainya (`PAY-B6`). Koreksi pengembalian salah potong periode lampau wajib melalui entitas `TrxPayrollRestitution` bertipe `SalaryAdjustmentCorrection` dengan audit referensi slip asal (`HRD-DEC-131`). |
+| `DED-B5` | Hard Invariant | `TrxPayrollRestitution` | Nominal pengembalian salah potong (*RestitutionAdjustment*) wajib diklasifikasikan sebagai komponen non-objek pajak PPh 21 guna mencegah pengenaan pajak ganda pada karyawan (`HRD-ASM-33`). |
+| `DED-B6` | Hard Invariant | `TrxCashierDisbursementVoucher`| Voucher kasir darurat cito yang telah dicairkan tunai berstatus `DisbursedViaCashier` haram masuk ke antrean transfer gaji bulanan tgl 25 guna mencegah pembayaran ganda (`HRD-DEC-133`). |
+| `DED-B7` | Hard Invariant | `ExitClearanceReceivable`| Pengecualian batas 50% hanya berlaku sah pada slip gaji penutupan akhir PHK/Resign (*Final Clearance Payslip*), di mana hak pesangon dan cuti dapat dipotong hingga 100% untuk melunasi sisa pinjaman rumah sakit (`HRD-DEC-132`). |
+| `DED-B8` | Hard Invariant | `TrxEmployeeRestitutionClaim`| Pengajuan klaim mandiri ESS dilarang disetujui sendiri oleh atasan pemohon (*Anti-Self-Approval*). Jika pemohon adalah kepala unit/direktur, persetujuan dialihkan ke pejabat 1 tingkat di atasnya. |
+| `DED-W1` | Safety Warning | `TrxPayrollDeductionItem`| Munculkan peringatan oranye ke HR Payroll Officer jika seorang pegawai memiliki cicilan yang tertunda (*deferred*) selama lebih dari 2 bulan berturut-turut. |
+| `DED-W2` | Safety Warning | `TrxEmployeeRestitutionClaim`| Munculkan notifikasi jika sisa kuota kacamata staf kurang dari 20% dari plafon tahunan. |
+| `DED-W3` | Safety Warning | `TrxCashierDisbursementVoucher`| Sistem mengirimkan notifikasi SMS/WA peringatan ke pemegang voucher jika voucher darurat cito belum dicairkan dalam kurun waktu 36 jam (mendekati batas kedaluwarsa 48 jam). |
+| `DED-W4` | Safety Warning | `FinanceDeductionSync` | Berikan peringatan visual jika data cicilan Finance per tgl 17 memiliki selisih nominal lebih dari 10% dibanding saldo bulan sebelumnya. |
+| `DED-W5` | Safety Warning | `ExitClearanceReceivable`| Terbitkan *Outstanding Receivable Statement* dan blokir penandatanganan formulir Exit Clearance Sub-20 jika hak pesangon tidak mencukupi untuk melunasi seluruh sisa pinjaman RS. |
+| `DED-W6` | Safety Warning | `TrxEmployeeRestitutionClaim`| Blokir unggahan berkas kuitansi klaim jika format bukan PDF/JPG/PNG atau ukuran berkas melebihi 5 MB. |
+
+---
+
+### 24.9 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-B6`
+
+1. **Sistem Perhitungan Bunga Majemuk & Amortisasi Pinjaman Bank:** Perhitungan bunga pinjaman komersial dan pembukuan piutang piutang adalah wewenang penuh Departemen Keuangan (`HRD-DEC-009`); HRD hanya bertindak sebagai eksekutor pemotongan nominal pokok sesuai snapshot tagihan.
+2. **Manajemen Inventaris & Penjualan Unit Koperasi Pegawai:** Aplikasi kasir ritel atau e-commerce koperasi karyawan tidak dirancang di modul HR; HR hanya menerima rekap invoice potongan cicilan belanja.
+3. **Pencairan Uang Fisik Kasir secara Otomatis dari HR:** HR tidak memegang brankas kasir kas kecil; pencairan kas fisik wajib melalui loket Kasir RS 24/7 dengan verifikasi voucher elektronik terenkripsi.
+4. **Pemotongan Otomatis terhadap Rekening Bank Pribadi Karyawan:** HRD tidak melakukan auto-debet perbankan di luar eksekusi slip gaji; bila hak gaji habis saat PHK, pegawai menyetor manual ke kasir RS.
+
+---
+
+### 24.10 Traceability Keputusan ke Arsitektur Backend
+
+| ID Keputusan | Komponen Arsitektur Backend yang Mewadahi | Lokasi Implementasi Kode C# |
+| :--- | :--- | :--- |
+| `HRD-DEC-128` | Engine Guard Batas 50% & Hirarki Prioritas 1-4 | `PayrollDeductionEngineService.cs`, tabel `trx_payroll_deduction_items`, kolom `deferred_amount` |
+| `HRD-DEC-129` | Sinkronisasi Dua Arah H-3 Snapshot & Callback Tgl 25 | `FinanceDeductionSyncService.cs`, `INT-HR-55`, `INT-HR-58` |
+| `HRD-DEC-130` | Klaim Restitusi Mandiri ESS & Multi-Level Approval | `RestitutionClaimService.cs`, `TrxEmployeeRestitutionClaim.cs`, `RestitutionClaimController.cs` |
+| `HRD-DEC-131` | Restitusi Koreksi Salah Potong Periode Lampau Non-Pajak | `TrxPayrollRestitution.cs` tipe `SalaryAdjustmentCorrection`, integrasi komponen slip gaji berjalan |
+| `HRD-DEC-132` | Pelunasan Pinjaman Resign/PHK via Exit Clearance | `ExitClearanceReceivableService.cs`, pengecualian batas 50% khusus pesangon akhir, integrasi Sub-20 |
+| `HRD-DEC-133` | Kanal Pencairan: Payroll Tgl 25 vs Cito Kasir RS 24/7 | `CashierVoucherDisbursementService.cs`, `TrxCashierDisbursementVoucher.cs`, token SHA-256 |
+
+
+---
+
+## 25. Desain Target Arsitektur Backend Sub-Modul 12 (Slice S-D3 Benefit Management — Manajemen Manfaat, Asuransi BPJS & Tanggungan Pegawai Rumah Sakit)
+
+Bagian ini mendefinisikan arsitektur backend target untuk **Sub-Modul 12 (Benefit Management — Slice `S-D3`)**, mencakup perancangan struktur paket manfaat 3-lapisan (Regulasi BPJS wajib, Asuransi Swasta Tambahan per grade, dan Subsidi Berobat Internal di RS Quilvian sendiri sesuai `HRD-DEC-134`), batasan hak tanggungan keluarga inti sah (maksimal 1 pasangan + 3 anak hingga usia 21/25 tahun kuliah via verifikasi KK/Akta sesuai `HRD-DEC-135`), integrasi real-time loket registrasi dan kasir SIMRS untuk layanan berobat nakes di RS sendiri (`INT-HR-61` sesuai `HRD-DEC-136`), penegakan aturan Koordinasi Manfaat (*Coordination of Benefits* - COB) BPJS Kesehatan sebagai Penjamin Primer (*Primary Payer*) ber-SEP dan asuransi swasta sebagai Penjamin Sekunder (*Secondary Payer*) (`HRD-DEC-137`), perlindungan keselamatan kerja nakes sejak H+0 Onboarding dan aktivasi bertahap pasca-lulus masa percobaan 3 bulan (`HRD-DEC-138`), serta penonaktifan hak benefit otomatis pada tanggal efektif pemutusan hubungan kerja melalui gerbang Exit Clearance Sub-Modul 20 (`HRD-DEC-139`).
+
+---
+
+### 25.1 Tabel Kepemilikan Data (Data Ownership Boundary)
+
+| Kelompok Data | Modul Pemilik | Status di Sub-12 | Dibuat Ulang? | Keterangan & Alasan Arsitektural |
+| :--- | :--- | :---: | :---: | :--- |
+| Paket Manfaat & Kelayakan Grade | `BenefitManagement` (HRD) | Pemilik Utama | Tidak | Mengatur struktur paket bertingkat 3-lapisan dan matriks kelayakan per grade/level kepegawaian. |
+| Kepesertaan Asuransi & Tanggungan | `BenefitManagement` (HRD) | Pemilik Utama | Tidak | Menyimpan nomor kepesertaan BPJS Kesehatan/TK, polis komersial, serta verifikasi keluarga inti sah. |
+| Buku Besar Mutasi Plafon Berobat RS | `BenefitManagement` (HRD) | Pemilik Utama | Tidak | Menjaga integritas saldo subsidi perawatan internal RS Quilvian (*double-entry balance movement ledger*). |
+| Transaksi Klaim & COB Sekunder | `BenefitManagement` (HRD) | Pemilik Utama | Tidak | Mengelola pengajuan klaim penjamin sekunder asuransi swasta/RS berlampiran SEP BPJS Kesehatan. |
+| Profil Staf & Tanggal Masuk/Keluar | `WorkforceManagement` (Sub-02) | Konsumen (Read) | Tidak | Membaca data NIP, status PKWT/PKWTT, tanggal onboarding H+0, dan tanggal efektif keluar. |
+| Pemotongan Iuran & Ekses Tagihan | `PayrollManagement` (Sub-10/11) | Integrasi (Async) | Tidak | Ekses tagihan yang melebihi plafon dialihkan ke pemotongan payroll Sub-Modul 11 (`S-B6`). |
+| Billing & Admission Kunjungan Pasien | `SIMRS Billing & Admission` | Integrasi (Sync) | Tidak | Pengecekan real-time hak berobat nakes di loket RS dan penguncian tagihan tindakan (`INT-HR-61`). |
+| Checklist Kliring Bebas Tunggakan | `ExitClearance` (Sub-20) | Integrasi (Sync) | Tidak | Validasi bahwa pegawai yang keluar tidak memiliki sisa tagihan medis rawat inap tertunggak. |
+
+---
+
+### 25.2 Class Diagram Target (Bounded Context: BenefitManagement)
+
+```mermaid
+classDiagram
+  class MstBenefitPlan {
+    +UUID Id
+    +string PlanCode
+    +string PlanName
+    +string BenefitCategory
+    +string CoverageTier
+    +decimal AnnualLimitAmount
+    +decimal HospitalDiscountPercentage
+    +bool RequiresBPJSPrimaryCOB
+    +int MinimumServiceMonths
+    +bool IsActive
+  }
+
+  class HrdBenefitGradeEligibility {
+    +UUID Id
+    +UUID BenefitPlanId
+    +string GradeLevelCode
+    +string EmploymentTypeCode
+    +decimal SpecificAnnualLimit
+    +string InpatientRoomClass
+    +bool IsActive
+  }
+
+  class TrxEmployeeInsuranceEnrollment {
+    +UUID Id
+    +UUID EmployeeId
+    +UUID BenefitPlanId
+    +string BpjsKesehatanNumber
+    +string BpjsKetenagakerjaanNumber
+    +string PrivateInsurancePolicyNumber
+    +string PrivateInsuranceProviderName
+    +string EnrollmentStatus
+    +DateTime EffectiveDate
+    +DateTime? ExpiryDate
+    +DateTime? TerminationDate
+  }
+
+  class TrxEmployeeBenefitDependent {
+    +UUID Id
+    +UUID EmployeeEnrollmentId
+    +string DependentName
+    +string NationalIdNumber
+    +string RelationshipType
+    +DateTime BirthDate
+    +bool IsActiveStudent
+    +string StudentVerificationLetterPath
+    +DateTime? StudentVerificationExpiryDate
+    +string VerificationStatus
+    +DateTime? VerifiedAt
+    +UUID? VerifiedByUserId
+  }
+
+  class HrdBenefitBalanceMovement {
+    +UUID Id
+    +UUID EmployeeId
+    +UUID BenefitPlanId
+    +string MovementType
+    +decimal MovementAmount
+    +decimal BalanceBefore
+    +decimal BalanceAfter
+    +string ReferenceNumber
+    +string Description
+    +DateTime MovementDate
+  }
+
+  class TrxBenefitClaim {
+    +UUID Id
+    +string ClaimNumber
+    +UUID EmployeeId
+    +UUID? DependentId
+    +UUID BenefitPlanId
+    +string ServiceType
+    +string HospitalName
+    +string SepBpjsNumber
+    +decimal TotalHospitalBill
+    +decimal PrimaryPayerCoveredAmount
+    +decimal SecondaryClaimAmount
+    +decimal OutOfPocketExcessAmount
+    +string ClaimStatus
+    +DateTime ServiceDate
+    +DateTime SubmittedAt
+    +DateTime? SettledAt
+  }
+
+  class TrxBenefitClaimDocument {
+    +UUID Id
+    +UUID ClaimId
+    +string DocumentType
+    +string DocumentNumber
+    +string FileStoragePath
+    +long FileSizeBytes
+    +string MimeType
+  }
+
+  MstBenefitPlan "1" --> "*" HrdBenefitGradeEligibility : defines eligibility
+  MstBenefitPlan "1" --> "*" TrxEmployeeInsuranceEnrollment : enrolled into
+  TrxEmployeeInsuranceEnrollment "1" --> "*" TrxEmployeeBenefitDependent : registers
+  TrxEmployeeInsuranceEnrollment "1" --> "*" HrdBenefitBalanceMovement : tracks balance
+  TrxEmployeeInsuranceEnrollment "1" --> "*" TrxBenefitClaim : submits claims
+  TrxBenefitClaim "1" --> "*" TrxBenefitClaimDocument : contains
+```
+
+---
+
+### 25.3 Penjelasan Class & Tanggung Jawab Komponen Backend
+
+| Nama Class / Komponen | Status | Lokasi File | Tanggung Jawab & Logika Transaksional |
+| :--- | :---: | :--- | :--- |
+| `MstBenefitPlan` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Models/MstBenefitPlan.cs` | Master paket manfaat 3-lapisan, menyimpan kuota limit, tier kamar rawat inap, persentase diskon internal RS, dan parameter mandatory COB BPJS. |
+| `HrdBenefitGradeEligibility` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Models/HrdBenefitGradeEligibility.cs` | Matriks pemetaan antara paket benefit dengan level golongan/grade kepegawaian staf rumah sakit serta status kerja (PKWT/PKWTT). |
+| `TrxEmployeeInsuranceEnrollment`| Baru | `Areas/Corporate/HumanResource/BenefitManagement/Models/TrxEmployeeInsuranceEnrollment.cs` | Entitas induk kepesertaan asuransi pegawai, menyimpan nomor BPJS Kes/TK, nomor polis asuransi swasta tambahan, status aktivasi bertahap, dan tanggal terminasi. |
+| `TrxEmployeeBenefitDependent` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Models/TrxEmployeeBenefitDependent.cs` | Entitas tanggungan keluarga inti (maks 1 pasangan + 3 anak), memvalidasi NIK, batas umur 21/25 tahun kuliah, dan status verifikasi fisik dokumen oleh HR. |
+| `HrdBenefitBalanceMovement` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Models/HrdBenefitBalanceMovement.cs` | Buku besar mutasi saldo subsidi plafon berobat internal RS Quilvian (alokasi tahunan, pengurangan transaksi berobat, penyesuaian manual). Menjamin saldo tidak pernah negatif. |
+| `TrxBenefitClaim` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Models/TrxBenefitClaim.cs` | Transaksi penyelesaian klaim biaya perawatan kesehatan dengan mekanisme COB, memvalidasi nomor SEP BPJS Kesehatan (`sep_number`), rincian biaya primer, sekunder, dan ekses. |
+| `TrxBenefitClaimDocument` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Models/TrxBenefitClaimDocument.cs` | Dokumen bukti pendukung klaim (salinan SEP, kuitansi bermaterai, perincian obat non-formularium, surat dekanat anak kuliah). |
+| `BenefitPlanService` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Services/BenefitPlanService.cs` | Layanan pengelola master paket manfaat, konfigurasi matriks eligibilitas grade, dan kalkulasi alokasi plafon tahunan prorata. |
+| `BenefitEnrollmentService` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Services/BenefitEnrollmentService.cs` | Mengatur siklus aktivasi bertahap: H+0 pendaftaran otomatis BPJS TK JKK/JKM via event `OnEmployeeOnboardingCompleted`, dan aktivasi BPJS Kes/swasta pasca-lulus masa percobaan 3 bulan via `OnProbationPassed`. |
+| `BenefitDependentService` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Services/BenefitDependentService.cs` | Memvalidasi kuota tanggungan keluarga (maks 1 pasangan + 3 anak), verifikasi batas umur, pengecekan surat kuliah tahunan per 31 Agustus, dan approval HR. |
+| `InHouseBenefitLedgerService` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Services/InHouseBenefitLedgerService.cs` | Layanan pembukuan saldo plafon berobat internal RS Quilvian; menangani transaksi real-time dengan loket SIMRS Admission & Kasir (`INT-HR-61`) dengan locking row tingkat database. |
+| `BenefitClaimVerificationService`| Baru | `Areas/Corporate/HumanResource/BenefitManagement/Services/BenefitClaimVerificationService.cs` | Memvalidasi kepatuhan COB BPJS Kesehatan, kelengkapan berkas kuitansi asli, kewajaran indikasi medis, dan perhitungan pembagian klaim sekunder vs ekses tagihan. |
+| `BenefitExitClearanceService` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Services/BenefitExitClearanceService.cs` | Mengintegrasikan penonaktifan benefit pada tanggal efektif resign/PHK, verifikasi bebas tagihan medis tertunggak pada formulir Exit Clearance Sub-20, dan penerbitan surat portabilitas BPJS Mandiri. |
+| `BenefitPlanController` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Controllers/BenefitPlanController.cs` | Controller API untuk administrasi master paket manfaat dan matriks eligibilitas grade (`[Tags("HR Benefits - Plans & Eligibility")]`). |
+| `BenefitEnrollmentController` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Controllers/BenefitEnrollmentController.cs` | Controller API untuk pendaftaran asuransi pegawai dan verifikasi data tanggungan keluarga ESS (`[Tags("HR Benefits - Enrollments & Dependents")]`). |
+| `InHouseHealthcareController` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Controllers/InHouseHealthcareController.cs` | Controller API untuk integrasi loket SIMRS, inquiry eligibilitas online, dan pemotongan saldo buku besar plafon (`[Tags("HR Benefits - In-House Healthcare & Balance")]`). |
+| `BenefitClaimController` | Baru | `Areas/Corporate/HumanResource/BenefitManagement/Controllers/BenefitClaimController.cs` | Controller API untuk pengajuan, verifikasi, dan settlement klaim koordinasi manfaat (COB) (`[Tags("HR Benefits - COB Claims & Settlement")]`). |
+
+---
+
+### 25.4 Arsitektur Folder Backend
+
+```text
+NewQuilvianSystemBackend/
+└── Areas/Corporate/HumanResource/BenefitManagement/
+    ├── Controllers/
+    │   ├── BenefitPlanController.cs                       [Baru - S-D3]
+    │   ├── BenefitEnrollmentController.cs                 [Baru - S-D3]
+    │   ├── InHouseHealthcareController.cs                 [Baru - S-D3]
+    │   └── BenefitClaimController.cs                      [Baru - S-D3]
+    ├── DTOs/
+    │   ├── BenefitPlanDtos.cs                             [Baru - S-D3]
+    │   ├── BenefitEnrollmentDtos.cs                       [Baru - S-D3]
+    │   ├── BenefitDependentDtos.cs                        [Baru - S-D3]
+    │   ├── InHouseHealthcareDtos.cs                       [Baru - S-D3]
+    │   └── BenefitClaimDtos.cs                            [Baru - S-D3]
+    ├── Models/
+    │   ├── MstBenefitPlan.cs                              [Baru - S-D3]
+    │   ├── HrdBenefitGradeEligibility.cs                  [Baru - S-D3]
+    │   ├── TrxEmployeeInsuranceEnrollment.cs              [Baru - S-D3]
+    │   ├── TrxEmployeeBenefitDependent.cs                 [Baru - S-D3]
+    │   ├── HrdBenefitBalanceMovement.cs                   [Baru - S-D3]
+    │   ├── TrxBenefitClaim.cs                             [Baru - S-D3]
+    │   └── TrxBenefitClaimDocument.cs                     [Baru - S-D3]
+    ├── Services/
+    │   ├── BenefitPlanService.cs                          [Baru - S-D3]
+    │   ├── BenefitEnrollmentService.cs                    [Baru - S-D3]
+    │   ├── BenefitDependentService.cs                     [Baru - S-D3]
+    │   ├── InHouseBenefitLedgerService.cs                 [Baru - S-D3]
+    │   ├── BenefitClaimVerificationService.cs             [Baru - S-D3]
+    │   └── BenefitExitClearanceService.cs                 [Baru - S-D3]
+    └── Repositories/Configurations/
+        ├── MstBenefitPlanConfiguration.cs                 [Baru - S-D3]
+        ├── HrdBenefitGradeEligibilityConfiguration.cs     [Baru - S-D3]
+        ├── TrxEmployeeInsuranceEnrollmentConfiguration.cs [Baru - S-D3]
+        ├── TrxEmployeeBenefitDependentConfiguration.cs    [Baru - S-D3]
+        ├── HrdBenefitBalanceMovementConfiguration.cs      [Baru - S-D3]
+        ├── TrxBenefitClaimConfiguration.cs                [Baru - S-D3]
+        └── TrxBenefitClaimDocumentConfiguration.cs        [Baru - S-D3]
+```
+
+---
+
+### 25.5 Skema Database PostgreSQL (DDL Target `S-D3`)
+
+```sql
+-- 1. Master Paket Manfaat Rumah Sakit (3-Lapisan)
+CREATE TABLE IF NOT EXISTS mst_benefit_plans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_code VARCHAR(50) NOT NULL UNIQUE,
+    plan_name VARCHAR(150) NOT NULL,
+    benefit_category VARCHAR(50) NOT NULL, -- BPJS_Mandatory, Private_Insurance, InHouse_HospitalCare
+    coverage_tier VARCHAR(50) NOT NULL,    -- Basic, Silver, Gold, Platinum, Executive
+    annual_limit_amount NUMERIC(15,2) NOT NULL DEFAULT 0.00,
+    hospital_discount_percentage NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+    requires_bpjs_primary_cob BOOLEAN NOT NULL DEFAULT true,
+    minimum_service_months INT NOT NULL DEFAULT 3,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(100) NULL,
+    updated_at TIMESTAMPTZ NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT false
+);
+
+-- 2. Aturan Kelayakan Benefit Berdasarkan Grade / Golongan
+CREATE TABLE IF NOT EXISTS hrd_benefit_grade_eligibilities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    benefit_plan_id UUID NOT NULL REFERENCES mst_benefit_plans(id) ON DELETE RESTRICT,
+    grade_level_code VARCHAR(50) NOT NULL,
+    employment_type_code VARCHAR(50) NOT NULL, -- Permanent (PKWTT), Contract (PKWT)
+    specific_annual_limit NUMERIC(15,2) NULL,
+    inpatient_room_class VARCHAR(50) NOT NULL, -- Kelas 2, Kelas 1, VIP, VVIP
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(100) NULL,
+    updated_at TIMESTAMPTZ NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT uq_benefit_grade_plan UNIQUE (benefit_plan_id, grade_level_code, employment_type_code)
+);
+
+-- 3. Pendaftaran & Kepesertaan Asuransi Pegawai
+CREATE TABLE IF NOT EXISTS trx_employee_insurance_enrollments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    benefit_plan_id UUID NOT NULL REFERENCES mst_benefit_plans(id) ON DELETE RESTRICT,
+    bpjs_kesehatan_number VARCHAR(50) NULL,
+    bpjs_ketenagakerjaan_number VARCHAR(50) NULL,
+    private_insurance_policy_number VARCHAR(100) NULL,
+    private_insurance_provider_name VARCHAR(150) NULL,
+    enrollment_status VARCHAR(50) NOT NULL DEFAULT 'Draft', -- Draft, PendingActivation, Active, Suspended, Terminated
+    effective_date TIMESTAMPTZ NOT NULL,
+    expiry_date TIMESTAMPTZ NULL,
+    termination_date TIMESTAMPTZ NULL,
+    termination_reason VARCHAR(255) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(100) NULL,
+    updated_at TIMESTAMPTZ NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS idx_insurance_enrollment_emp ON trx_employee_insurance_enrollments(employee_id, enrollment_status);
+
+-- 4. Tanggungan Keluarga Sah Pegawai (Maks 1 Pasangan + 3 Anak)
+CREATE TABLE IF NOT EXISTS trx_employee_benefit_dependents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_enrollment_id UUID NOT NULL REFERENCES trx_employee_insurance_enrollments(id) ON DELETE CASCADE,
+    dependent_name VARCHAR(150) NOT NULL,
+    national_id_number VARCHAR(16) NOT NULL, -- NIK 16 digit
+    relationship_type VARCHAR(50) NOT NULL,   -- Spouse, Child
+    birth_date DATE NOT NULL,
+    gender VARCHAR(10) NOT NULL,
+    family_card_number VARCHAR(16) NOT NULL,  -- Nomor KK
+    is_active_student BOOLEAN NOT NULL DEFAULT false,
+    student_verification_letter_path VARCHAR(255) NULL,
+    student_verification_expiry_date DATE NULL,
+    verification_status VARCHAR(50) NOT NULL DEFAULT 'Draft', -- Draft, Submitted, Verified, Rejected, ExpiredAgeLimit
+    verified_at TIMESTAMPTZ NULL,
+    verified_by_user_id UUID NULL,
+    rejection_reason TEXT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(100) NULL,
+    updated_at TIMESTAMPTZ NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS idx_benefit_dependent_enrollment ON trx_employee_benefit_dependents(employee_enrollment_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_dependent_nik ON trx_employee_benefit_dependents(national_id_number);
+
+-- 5. Buku Besar Mutasi Saldo Subsidi Plafon Berobat Internal RS
+CREATE TABLE IF NOT EXISTS hrd_benefit_balance_movements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    benefit_plan_id UUID NOT NULL REFERENCES mst_benefit_plans(id) ON DELETE RESTRICT,
+    movement_type VARCHAR(50) NOT NULL, -- AnnualAllocation, HospitalCareUsage, ManualAdjustment, YearEndExpiryReset
+    movement_amount NUMERIC(15,2) NOT NULL, -- Positif untuk alokasi, Negatif untuk pemakaian
+    balance_before NUMERIC(15,2) NOT NULL,
+    balance_after NUMERIC(15,2) NOT NULL,
+    reference_number VARCHAR(100) NOT NULL, -- Nomor registrasi SIMRS / Nomor alokasi tahunan
+    description TEXT NOT NULL,
+    movement_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_benefit_balance_non_negative CHECK (balance_after >= 0.00)
+);
+CREATE INDEX IF NOT EXISTS idx_benefit_movement_emp ON hrd_benefit_balance_movements(employee_id, benefit_plan_id, movement_date);
+
+-- 6. Transaksi Klaim Koordinasi Manfaat (COB) & Biaya Kesehatan
+CREATE TABLE IF NOT EXISTS trx_benefit_claims (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    claim_number VARCHAR(100) NOT NULL UNIQUE,
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    dependent_id UUID NULL REFERENCES trx_employee_benefit_dependents(id) ON DELETE RESTRICT,
+    benefit_plan_id UUID NOT NULL REFERENCES mst_benefit_plans(id) ON DELETE RESTRICT,
+    service_type VARCHAR(50) NOT NULL, -- Inpatient (Rawat Inap), Outpatient (Rawat Jalan), Emergency
+    hospital_name VARCHAR(150) NOT NULL,
+    sep_bpjs_number VARCHAR(100) NULL, -- Wajib jika COB diaktifkan
+    total_hospital_bill NUMERIC(15,2) NOT NULL,
+    primary_payer_covered_amount NUMERIC(15,2) NOT NULL DEFAULT 0.00, -- Ditanggung BPJS (INA-CBGs)
+    secondary_claim_amount NUMERIC(15,2) NOT NULL DEFAULT 0.00,       -- Ditanggung Asuransi Swasta / RS
+    out_of_pocket_excess_amount NUMERIC(15,2) NOT NULL DEFAULT 0.00,  -- Ekses bayar mandiri / potong gaji
+    claim_status VARCHAR(50) NOT NULL DEFAULT 'Draft', -- Draft, Submitted, UnderVerification, Approved, Rejected, Settled, Cancelled
+    service_date DATE NOT NULL,
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    settled_at TIMESTAMPTZ NULL,
+    settlement_reference VARCHAR(100) NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(100) NULL,
+    updated_at TIMESTAMPTZ NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS idx_benefit_claim_emp ON trx_benefit_claims(employee_id, claim_status);
+CREATE INDEX IF NOT EXISTS idx_benefit_claim_sep ON trx_benefit_claims(sep_bpjs_number);
+
+-- 7. Berkas Lampiran Bukti Klaim Manfaat
+CREATE TABLE IF NOT EXISTS trx_benefit_claim_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    claim_id UUID NOT NULL REFERENCES trx_benefit_claims(id) ON DELETE CASCADE,
+    document_type VARCHAR(50) NOT NULL, -- BPJS_SEP, Hospital_Invoice, Receipt_Original, Prescription_Details, Medical_Summary
+    document_number VARCHAR(100) NULL,
+    file_storage_path VARCHAR(255) NOT NULL,
+    file_size_bytes BIGINT NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    uploaded_by VARCHAR(100) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_claim_docs_claim_id ON trx_benefit_claim_documents(claim_id);
+```
+
+---
+
+### 25.6 Aturan Bisnis Backend (Business Invariants & Warnings)
+
+#### Business Rules (`BEN-B1` s.d. `BEN-B8`)
+| Kode Aturan | Klasifikasi | Entitas Target | Bunyi Aturan & Konsekuensi Sistem |
+| :--- | :--- | :--- | :--- |
+| `BEN-B1` | Hard Invariant | `TrxEmployeeInsuranceEnrollment` | Pendaftaran BPJS Ketenagakerjaan (program JKK & JKM risiko kerja) wajib langsung berstatus `Active` pada H+0 Onboarding (`EffectiveDate = OnboardingDate`), sedangkan BPJS Kesehatan, asuransi swasta tambahan, dan plafon subsidi internal RS wajib ditahan (`PendingActivation`) hingga pegawai resmi dinyatakan lulus masa percobaan 3 bulan (`ProbationPassed`). |
+| `BEN-B2` | Hard Invariant | `TrxEmployeeBenefitDependent` | Kuota tanggungan keluarga inti sah yang dapat didaftarkan dibatasi secara ketat maksimal **1 pasangan sah** (`Spouse`) dan maksimal **3 anak kandung / adopsi sah** (`Child`). Pengajuan anggota keluarga di luar kuota atau berstatus famili lain (orang tua, mertua, keponakan) wajib ditolak otomatis oleh sistem. |
+| `BEN-B3` | Hard Invariant | `TrxEmployeeBenefitDependent` | Batas usia pertanggungan anak sah dipatok maksimal 21 tahun belum menikah dan belum bekerja. Hak dapat diperpanjang hingga maksimal usia 25 tahun hanya jika pegawai melampirkan Surat Keterangan Mahasiswa Aktif dari dekanat perguruan tinggi. Sistem memblokir otomatis pertanggungan per 1 September jika surat perpanjangan tahunan tidak diperbarui sebelum 31 Agustus. |
+| `BEN-B4` | Hard Invariant | `HrdBenefitBalanceMovement` | Saldo plafon subsidi berobat internal rumah sakit tidak boleh bersaldo negatif (`balance_after >= 0.00`). Setiap transaksi kunjungan medis di SIMRS hanya dapat memotong saldo maksimal sebesar sisa limit berjalan; sisa tagihan yang tidak tertanggung diklasifikasikan sebagai ekses biaya. |
+| `BEN-B5` | Hard Invariant | `TrxBenefitClaim` | Untuk seluruh klaim rawat inap dan tindakan medis berencana yang memanfaatkan koordinasi manfaat (COB), nomor Surat Eligibilitas Peserta BPJS Kesehatan (`sep_number`) wajib terisi valid dan terverifikasi. Sistem memblokir submit klaim penjamin sekunder tanpa nomor SEP BPJS. |
+| `BEN-B6` | Hard Invariant | `HrdBenefitBalanceMovement` | Sisa plafon subsidi berobat internal rumah sakit yang tidak terpakai dalam satu tahun anggaran (1 Januari s.d. 31 Desember) otomatis hangus (*forfeited*) dan di-reset menjadi alokasi baru per 1 Januari pukul 00:00 WIB. Saldo tidak dapat diakumulasikan (*no carry-forward*) dan tidak dapat diuangkan (*non-cashable*). |
+| `BEN-B7` | Hard Invariant | `TrxEmployeeInsuranceEnrollment` | Pada tanggal efektif pemutusan hubungan kerja (*Effective Termination Date*), sistem secara otomatis mengubah status kepesertaan menjadi `Terminated`, menghentikan pemotongan iuran pada slip gaji penutupan, dan membekukan sisa plafon berobat internal. |
+| `BEN-B8` | Hard Invariant | `BenefitExitClearanceIntegration`| Formulir Exit Clearance Sub-Modul 20 diblokir dari status persetujuan akhir (*Sign-Off Blocked*) jika pegawai yang mengakhiri kerja masih memiliki tunggakan ekses tagihan berobat rawat inap di kasir rumah sakit yang belum dilunasi tunai atau belum dikonsolidasikan ke pemotongan pesangon akhir Sub-11 (`S-B6`). |
+
+#### Safety Warnings (`BEN-W1` s.d. `BEN-W6`)
+| Kode Aturan | Klasifikasi | Entitas Target | Bunyi Peringatan & Mitigasi Operasional |
+| :--- | :--- | :--- | :--- |
+| `BEN-W1` | Safety Warning | `TrxEmployeeBenefitDependent` | Berikan notifikasi peringatan dini di portal ESS kepada pegawai 60 hari dan 30 hari sebelum anak mencapai usia 21 tahun atau usia 25 tahun agar segera mengunggah surat keterangan kuliah atau mempersiapkan pendaftaran BPJS mandiri. |
+| `BEN-W2` | Safety Warning | `HrdBenefitBalanceMovement` | Munculkan indikator peringatan berwarna oranye pada layar kasir SIMRS jika sisa saldo plafon tahunan nakes telah terpakai lebih dari 80% dari batas maksimal grade. |
+| `BEN-W3` | Safety Warning | `TrxBenefitClaim` | Berikan peringatan audit jika tagihan tindakan non-formularium atau kenaikan kelas rawat inap melebihi limit pertanggungan asuransi swasta tambahan, sehingga ekses biaya dapat dikomunikasikan lebih awal kepada pegawai. |
+| `BEN-W4` | Safety Warning | `BenefitEnrollmentService` | Tampilkan peringatan verifikasi pada HR Benefit Officer jika seorang nakes baru belum memiliki nomor BPJS Kesehatan terdaftar padahal telah melewati masa kerja 90 hari kalender. |
+| `BEN-W5` | Safety Warning | `TrxEmployeeBenefitDependent` | Blokir unggahan dokumen kependudukan jika berkas scan Kartu Keluarga atau Akta Nikah memiliki ukuran di atas 5 MB atau tidak berformat PDF/JPG/PNG. |
+| `BEN-W6` | Safety Warning | `InHouseBenefitLedgerService` | Kunci baris data saldo (*row-level database lock*) selama proses transaksi kasir SIMRS berlangsung untuk mencegah terjadinya pemotongan ganda akibat permohonan billing bersamaan di poli rawat jalan dan farmasi. |
+
+---
+
+### 25.7 Rencana Migrasi & Data Master Awal
+
+1. **Rencana Migrasi Database:**
+   - Dijalankan secara *non-breaking* melalui Entity Framework Core Migration: `20261105150000_AddBenefitManagementDomainAndCOBClaims.cs`.
+   - Membuat 7 tabel baru: `mst_benefit_plans`, `hrd_benefit_grade_eligibilities`, `trx_employee_insurance_enrollments`, `trx_employee_benefit_dependents`, `hrd_benefit_balance_movements`, `trx_benefit_claims`, dan `trx_benefit_claim_documents`.
+   - Mengisi otomatis data kepesertaan awal BPJS TK bagi seluruh staf aktif yang telah ada di `mst_workforce_profiles`.
+
+2. **Rencana Data Master Awal (`MstBenefitPlan` Seed):**
+   - `BEN-BPJS-STD`: Paket Wajib Pemerintah (BPJS Ketenagakerjaan 4 Program + BPJS Kesehatan PPU Kelas 1/2 sesuai regulasi gaji, limit tahunan tidak terbatas sesuai hak INA-CBGs).
+   - `BEN-PVT-EXEC`: Asuransi Swasta Tambahan Executive (Khusus Direksi & Dokter Spesialis: Kamus VVIP/VIP, limit tambahan Rp 50.000.000/tahun, COB BPJS mandatory).
+   - `BEN-PVT-STAFF`: Asuransi Swasta Tambahan Staf (Khusus Staf Klinis & Penunjang: Kamar Kelas 1, limit tambahan Rp 20.000.000/tahun, COB BPJS mandatory).
+   - `BEN-INH-SUBSIDY`: Subsidi Berobat Internal RS Quilvian (Plafon rawat jalan/inap di RS Quilvian sendiri, diskon 30% jasa medis & 20% obat, limit tahunan disesuaikan matriks grade).
+
+---
+
+### 25.8 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-D3`
+
+1. **Aplikasi Penilaian Rekam Medis Elektronik (RME) Dokter:** Sistem HRD tidak mencatat riwayat diagnosa ICD-10 klinis atau catatan tindakan dokter; kerahasiaan data medis pasien tetap berada di dalam SIMRS Pelayanan Medis (`HRD-DEC-010`).
+2. **Kalkulator Penggajian Pemotongan Iuran BPJS Bulanan:** Penghitungan matematis formula pemotongan iuran BPJS 4% pemberi kerja dan 1% pekerja pada slip gaji adalah domain Sub-Modul 10 (`S-B5`); Sub-Modul 12 hanya mengelola kepesertaan dan nomor identitas polis.
+3. **Pembukuan Piutang Klaim ke Kantor BPJS / Asuransi Swasta:** Rekonsiliasi klaim piutang asuransi pihak ketiga ke buku besar keuangan adalah wewenang penuh Departemen Keuangan (*Finance General Ledger* sesuai `HRD-DEC-009`); HRD hanya memfasilitasi administrasi kepesertaan nakes.
+4. **Pendaftaran Otomatis Anggota Keluarga di Luar Keluarga Inti:** Sistem sengaja tidak menyediakan fasilitas pendaftaran orang tua kandung, mertua, atau kerabat jauh; fasilitas benefit RS Quilvian dibatasi murni pada keluarga inti sah.
+
+---
+
+### 25.9 Traceability Keputusan ke Arsitektur Backend
+
+| ID Keputusan | Komponen Arsitektur Backend yang Mewadahi | Lokasi Implementasi Kode C# |
+| :--- | :--- | :--- |
+| `HRD-DEC-134` | Struktur Paket Manfaat 3-Lapisan & Matriks Grade | `MstBenefitPlan.cs`, `HrdBenefitGradeEligibility.cs`, `BenefitPlanService.cs` |
+| `HRD-DEC-135` | Batasan Tanggungan Sah (1 Pasangan + 3 Anak, Batas Usia 21/25) | `TrxEmployeeBenefitDependent.cs`, `BenefitDependentService.cs`, aturan `BEN-B2`, `BEN-B3` |
+| `HRD-DEC-136` | Alur Berobat RS Sendiri & Integrasi Kasir SIMRS | `InHouseBenefitLedgerService.cs`, `HrdBenefitBalanceMovement.cs`, `InHouseHealthcareController.cs`, `INT-HR-61` |
+| `HRD-DEC-137` | Koordinasi Manfaat COB BPJS Kesehatan sebagai Primary Payer | `TrxBenefitClaim.cs` kolom `sep_bpjs_number`, `BenefitClaimVerificationService.cs`, aturan `BEN-B5` |
+| `HRD-DEC-138` | Masa Tunggu Aktivasi Bertahap (H+0 Onboarding vs Pasca-Percobaan) | `BenefitEnrollmentService.cs`, `OnEmployeeOnboardingCompleted`, `OnProbationPassed`, aturan `BEN-B1` |
+| `HRD-DEC-139` | Terminasi Hak Benefit & Kliring Bebas Tunggakan via Exit Clearance | `BenefitExitClearanceService.cs`, aturan `BEN-B7`, `BEN-B8`, integrasi Sub-20 |
+
+
+---
+
+## 26. Desain Target Arsitektur Backend Sub-Modul 13 (Slice S-D4 HR Service Management & Request — Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS)
+
+Bagian ini mendefinisikan arsitektur backend target untuk **Sub-Modul 13 (HR Service Management & Request — Slice `S-D4`)**, mencakup perancangan otomasi tiket helpdesk layanan SDM rumah sakit, pengamanan otentikasi dokumen publik ber-QR Code dengan proteksi 4-digit PIN rahasia untuk dokumen finansial/penghasilan sesuai [`HRD-DEC-140`](00-interview-decisions.md#L78-L90), manajemen SLA 3-tier kebutuhan operasional nakes (Cito 4 jam, Standar 24 jam, Khusus 72 jam) dengan alert 75% durasi dan auto-eskalasi keterlambatan ke Manajer SDM sesuai [`HRD-DEC-141`](00-interview-decisions.md#L91-L103), integrasi penarikan nominal gaji otomatis dari slip gaji final Sub-10 Payroll (`S-B5`) beserta gerbang approval Supervisor C&B sesuai [`HRD-DEC-142`](00-interview-decisions.md#L104-L116), pemutakhiran otomatis data profil kepegawaian Sub-02 (`MstWorkforceProfile`) pasca-verifikasi dokumen sah sesuai [`HRD-DEC-143`](00-interview-decisions.md#L117-L129), mesin penomoran surat resmi terpusat (*gapless auto-numbering engine*) berbasis template token dinamis sesuai [`HRD-DEC-144`](00-interview-decisions.md#L130-L142), serta pengarsipan abadi dokumen resmi ke repositori *Employee E-Dossier* Sub-02 dan tata kelola pencabutan keabsahan dokumen (*revocation*) sesuai [`HRD-DEC-145`](00-interview-decisions.md#L143-L155).
+
+---
+
+### 26.1 Tabel Kepemilikan Data (Data Ownership Matrix)
+
+| Kelompok Data | Entitas / Tabel | Modul Pemilik | Status di Modul Ini | Alasan & Batas Kewenangan |
+| :--- | :--- | :--- | :---: | :--- |
+| **Katalog Layanan SDM** | `mst_hr_service_categories`<br>`mst_hr_service_types` | HRD (Sub-Modul 13 `HrServiceManagement`) | **Baru** | Definisi kategori layanan, standar durasi jam SLA, formulir dinamis, dan matriks wewenang penugasan. |
+| **Master Jenis Dokumen Resmi** | `mst_employee_document_types` | HRD (Sub-Modul 13 `HrServiceManagement`) | **Baru** | Master template naskah dinas resmi rumah sakit, format penomoran gapless, token variabel dinamis, dan proteksi kerahasiaan gaji. |
+| **Tiket Helpdesk SDM** | `trx_hr_service_requests`<br>`trx_hr_service_request_attachments`<br>`trx_hr_service_request_comments` | HRD (Sub-Modul 13 `HrServiceManagement`) | **Baru** | Transaksi tiket helpdesk mandiri staf ESS, antrean penugasan analis SDM, tracking SLA real-time, dan utas klarifikasi berkas. |
+| **Permohonan & Penerbitan Dokumen** | `trx_employee_document_requests`<br>`trx_employee_document_issuances` | HRD (Sub-Modul 13 `HrServiceManagement`) | **Baru** | Draf surat resmi kepegawaian, persetujuan C&B/pejabat berwenang, penomoran seri otomatis, QR code publik, dan PIN finansial. |
+| **Audit Pemutakhiran Profil** | `hrd_profile_change_histories` | HRD (Sub-Modul 13 / Sub-Modul 02) | **Baru** | Log forensik perbandingan snapshot data profil lama dan data baru hasil permohonan staf yang disetujui. |
+| **Profil Induk Kepegawaian** | `mst_workforce_profiles`<br>`trx_employee_bank_details` | HRD (Sub-Modul 02 `WorkforceCore`) | **Sudah ada (Digunakan)** | Diperbarui secara otomatis pasca-verifikasi dokumen tiket via `INT-HR-65`. Tidak dibuat ulang. |
+| **Riwayat Penggajian Final** | `trx_payroll_payslips`<br>`trx_payroll_runs` | HRD (Sub-Modul 10 `PayrollProcessing`) | **Sudah ada (Digunakan)** | Sumber tunggal penarikan data nominal gaji bruto/netto resmi via `INT-HR-56`. Akses read-only murni. |
+| **Arsip Berkas Digital (E-Dossier)** | `mst_workforce_profile_documents` | HRD (Sub-Modul 02 `WorkforceCore`) | **Sudah ada (Digunakan)** | Repositori digital abadi penyimpanan salinan PDF dokumen resmi kepegawaian via `INT-HR-66`. Tidak dibuat ulang. |
+
+---
+
+### 26.2 Class Diagram Arsitektur Bounded Context `HrServiceManagement`
+
+```mermaid
+classDiagram
+    direction TB
+
+    class MstHrServiceCategory {
+        +Guid Id
+        +string CategoryCode
+        +string CategoryName
+        +string Description
+        +string IconName
+        +int DisplayOrder
+        +bool IsActive
+    }
+
+    class MstHrServiceType {
+        +Guid Id
+        +Guid CategoryId
+        +string TypeCode
+        +string TypeName
+        +string PriorityTier
+        +int SlaTargetHours
+        +bool RequiresAttachment
+        +string RequiredAttachmentDescription
+        +bool RequiresSupervisorApproval
+        +bool AutoAssignEnabled
+        +string DefaultAssigneeRole
+        +bool IsActive
+    }
+
+    class MstEmployeeDocumentType {
+        +Guid Id
+        +string DocumentCode
+        +string DocumentName
+        +string NumberingPattern
+        +int LastSequenceNumber
+        +int CurrentYear
+        +string TemplateBodyHtml
+        +string SupportedTokensJson
+        +int ValidityPeriodDays
+        +bool IsFinancialSensitive
+        +bool RequiresCbApproval
+        +string AuthorizedSignerTitle
+        +bool IsActive
+    }
+
+    class TrxHrServiceRequest {
+        +Guid Id
+        +string TicketNumber
+        +Guid EmployeeId
+        +Guid ServiceTypeId
+        +string Title
+        +string Description
+        +string PriorityTier
+        +int SlaTargetHours
+        +DateTime SlaDeadlineUtc
+        +string SlaStatus
+        +Guid? AssignedToUserId
+        +string RequestStatus
+        +DateTime? FirstResponseAtUtc
+        +DateTime? ResolvedAtUtc
+        +DateTime? ClosedAtUtc
+        +string ResolutionSummary
+    }
+
+    class TrxHrServiceRequestAttachment {
+        +Guid Id
+        +Guid RequestId
+        +string FilePath
+        +string OriginalFileName
+        +string ContentType
+        +long FileSizeBytes
+        +string AttachmentType
+        +DateTime UploadedAtUtc
+    }
+
+    class TrxHrServiceRequestComment {
+        +Guid Id
+        +Guid RequestId
+        +Guid AuthorUserId
+        +string AuthorName
+        +string CommentText
+        +bool IsInternalNote
+        +DateTime CreatedAtUtc
+    }
+
+    class TrxEmployeeDocumentRequest {
+        +Guid Id
+        +Guid HrServiceRequestId
+        +Guid DocumentTypeId
+        +Guid RequestedByEmployeeId
+        +string PurposeOfLetter
+        +string RecipientEntityName
+        +string SpecificNotes
+        +string DraftDocumentBodyHtml
+        +string ApprovalStatus
+        +Guid? CbApproverUserId
+        +DateTime? CbApprovedAtUtc
+        +Guid? AuthorizedSignerUserId
+        +DateTime? AuthorizedAtUtc
+        +string RejectionReason
+    }
+
+    class TrxEmployeeDocumentIssuance {
+        +Guid Id
+        +Guid DocumentRequestId
+        +Guid DocumentTypeId
+        +Guid EmployeeId
+        +string OfficialDocumentNumber
+        +DateTime IssuedDate
+        +DateTime ValidUntilDate
+        +string SignerName
+        +string SignerTitle
+        +string SignerSignatureHash
+        +string VerificationHash
+        +string QrCodeImagePath
+        +string PdfFilePath
+        +bool IsFinancialSensitive
+        +string SecurityPinHash
+        +decimal? SalaryBrutoAmount
+        +decimal? SalaryNettoAmount
+        +Guid? PayrollPayslipId
+        +string IssuanceStatus
+        +DateTime? RevokedAtUtc
+        +Guid? RevokedByUserId
+        +string RevocationReason
+        +string RevocationBapNumber
+        +Guid? EDossierDocumentId
+    }
+
+    class HrdProfileChangeHistory {
+        +Guid Id
+        +Guid HrServiceRequestId
+        +Guid EmployeeId
+        +string ComponentModified
+        +string OldValuesJson
+        +string NewValuesJson
+        +Guid ApprovedByUserId
+        +DateTime AppliedAtUtc
+    }
+
+    MstHrServiceCategory "1" -- "many" MstHrServiceType : mengelompokkan
+    MstHrServiceType "1" -- "many" TrxHrServiceRequest : menjadi acuan
+    TrxHrServiceRequest "1" -- "many" TrxHrServiceRequestAttachment : memiliki
+    TrxHrServiceRequest "1" -- "many" TrxHrServiceRequestComment : memiliki
+    TrxHrServiceRequest "1" -- "0..1" TrxEmployeeDocumentRequest : menindaklanjuti
+    MstEmployeeDocumentType "1" -- "many" TrxEmployeeDocumentRequest : template untuk
+    TrxEmployeeDocumentRequest "1" -- "0..1" TrxEmployeeDocumentIssuance : menerbitkan
+    MstEmployeeDocumentType "1" -- "many" TrxEmployeeDocumentIssuance : jenis dokumen
+    TrxHrServiceRequest "1" -- "0..1" HrdProfileChangeHistory : mencatat perubahan profil
+```
+
+---
+
+### 26.3 Penjelasan Komponen Arsitektur Backend C#
+
+| Nama Komponen | Kategori | Status | Lokasi File di Repositori | Fungsi & Tanggung Jawab Utama |
+| :--- | :--- | :---: | :--- | :--- |
+| `MstHrServiceCategory` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/MstHrServiceCategory.cs` | Entitas kategori layanan helpdesk SDM (Administrasi Umum, Surat Resmi, Data Pribadi). |
+| `MstHrServiceType` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/MstHrServiceType.cs` | Entitas jenis layanan spesifik, batas jam SLA target, dan konfigurasi berkas wajib. |
+| `MstEmployeeDocumentType` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/MstEmployeeDocumentType.cs` | Master naskah dinas, penomoran terpusat, template HTML/Liquid token dinamis, dan masa berlaku. |
+| `TrxHrServiceRequest` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/TrxHrServiceRequest.cs` | Agregat transaksi tiket permohonan staf, timer SLA, antrean penugasan, dan status penutupan. |
+| `TrxHrServiceRequestAttachment` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/TrxHrServiceRequestAttachment.cs` | Entitas berkas lampiran pendukung permohonan staf (PDF/JPG maksimal 5MB). |
+| `TrxHrServiceRequestComment` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/TrxHrServiceRequestComment.cs` | Utas komunikasi klarifikasi dua arah staf pemohon dan analis HR, termasuk catatan internal privat. |
+| `TrxEmployeeDocumentRequest` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/TrxEmployeeDocumentRequest.cs` | Transaksi permohonan penerbitan surat resmi dan alur persetujuan pejabat berwenang. |
+| `TrxEmployeeDocumentIssuance` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/TrxEmployeeDocumentIssuance.cs` | Rekam dokumen resmi ber-QR Code sah, proteksi PIN finansial, status revokasi, dan tautan e-Dossier. |
+| `HrdProfileChangeHistory` | Model | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Models/HrdProfileChangeHistory.cs` | Log forensik perbandingan nilai profil sebelum dan sesudah eksekusi pembaruan otomatis. |
+| `IHrServiceCatalogService` | Interface | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/IHrServiceCatalogService.cs` | Kontrak manajemen master kategori layanan, tipe layanan, dan template dokumen dinamis. |
+| `HrServiceCatalogService` | Service | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/HrServiceCatalogService.cs` | Implementasi konfigurasi katalog layanan, template HTML, dan urutan penomoran surat. |
+| `IHrServiceTicketService` | Interface | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/IHrServiceTicketService.cs` | Kontrak alur tiket helpdesk (submit, assign, update progress, resolve, close). |
+| `HrServiceTicketService` | Service | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/HrServiceTicketService.cs` | Implementasi otomasi tiket, validasi berkas pendukung, dan utas komunikasi klarifikasi. |
+| `IHrServiceSlaEngine` | Interface | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/IHrServiceSlaEngine.cs` | Kontrak kalkulasi sisa durasi SLA, penentuan status peringatan 75%, dan pemicu eskalasi. |
+| `HrServiceSlaEngine` | Service | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/HrServiceSlaEngine.cs` | Implementasi jam operasional RS, pemantauan timer 3-tier SLA, dan notifikasi keterlambatan. |
+| `IEmployeeDocumentIssuanceService` | Interface | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/IEmployeeDocumentIssuanceService.cs` | Kontrak penerbitan surat resmi, penarikan gaji otomatis Sub-10, QR generation, dan PIN finansial. |
+| `EmployeeDocumentIssuanceService` | Service | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/EmployeeDocumentIssuanceService.cs` | Implementasi penyusunan token template, penomoran terpusat atomik, enkripsi PIN, dan PDF rendering. |
+| `IPublicDocumentVerificationService` | Interface | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/IPublicDocumentVerificationService.cs` | Kontrak verifikasi dokumen portal publik eksternal dan pembukaan nominal gaji via PIN. |
+| `PublicDocumentVerificationService` | Service | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/PublicDocumentVerificationService.cs` | Implementasi validasi keaslian hash SHA-256, deteksi status revokasi, dan verifikasi BCrypt PIN. |
+| `IWorkforceProfileSyncService` | Interface | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/IWorkforceProfileSyncService.cs` | Kontrak pemutakhiran otomatis entitas data profil Sub-02 pasca-approval tiket sah. |
+| `WorkforceProfileSyncService` | Service | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Services/WorkforceProfileSyncService.cs` | Eksekusi atomik pembaruan rekening bank payroll/profil nakes dan pencatatan riwayat snapshot. |
+| `HrServiceSlaMonitoringWorker` | Background | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Workers/HrServiceSlaMonitoringWorker.cs` | Background worker berkala tiap 15 menit mendeteksi tiket mendekati tenggat dan auto-eskalasi. |
+| `HrServiceCatalogController` | Controller | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Controllers/HrServiceCatalogController.cs` | Endpoint manajemen master kategori layanan dan jenis dokumen kepegawaian. |
+| `HrServiceTicketController` | Controller | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Controllers/HrServiceTicketController.cs` | Endpoint operasional helpdesk, antrean penugasan analis SDM, dan pemrosesan tiket. |
+| `HrServiceEssController` | Controller | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Controllers/HrServiceEssController.cs` | Endpoint mandiri staf ESS untuk pengajuan tiket, permohonan surat, dan utas klarifikasi. |
+| `EmployeeDocumentIssuanceController` | Controller | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Controllers/EmployeeDocumentIssuanceController.cs` | Endpoint otorisasi pejabat, penerbitan surat resmi, pengarsipan e-Dossier, dan revokasi. |
+| `PublicDocumentVerificationController` | Controller | **Baru** | `Areas/Corporate/HumanResource/HrServiceManagement/Controllers/PublicDocumentVerificationController.cs` | Endpoint verifikasi publik tanpa sesi login (`/api/v1/public/documents/verify/{hash}`). |
+
+---
+
+### 26.4 Struktur Direktori Backend Target
+
+```text
+NewQuilvianSystemBackend/
+└── Areas/Corporate/HumanResource/HrServiceManagement/
+    ├── Controllers/
+    │   ├── HrServiceCatalogController.cs
+    │   ├── HrServiceTicketController.cs
+    │   ├── HrServiceEssController.cs
+    │   ├── EmployeeDocumentIssuanceController.cs
+    │   └── PublicDocumentVerificationController.cs
+    ├── DTOs/
+    │   ├── HrServiceCatalogDtos.cs
+    │   ├── HrServiceTicketDtos.cs
+    │   ├── EmployeeDocumentIssuanceDtos.cs
+    │   ├── PublicDocumentVerificationDtos.cs
+    │   └── ProfileChangeHistoryDtos.cs
+    ├── Models/
+    │   ├── MstHrServiceCategory.cs
+    │   ├── MstHrServiceType.cs
+    │   ├── MstEmployeeDocumentType.cs
+    │   ├── TrxHrServiceRequest.cs
+    │   ├── TrxHrServiceRequestAttachment.cs
+    │   ├── TrxHrServiceRequestComment.cs
+    │   ├── TrxEmployeeDocumentRequest.cs
+    │   ├── TrxEmployeeDocumentIssuance.cs
+    │   └── HrdProfileChangeHistory.cs
+    ├── Services/
+    │   ├── IHrServiceCatalogService.cs
+    │   ├── HrServiceCatalogService.cs
+    │   ├── IHrServiceTicketService.cs
+    │   ├── HrServiceTicketService.cs
+    │   ├── IHrServiceSlaEngine.cs
+    │   ├── HrServiceSlaEngine.cs
+    │   ├── IEmployeeDocumentIssuanceService.cs
+    │   ├── EmployeeDocumentIssuanceService.cs
+    │   ├── IPublicDocumentVerificationService.cs
+    │   ├── PublicDocumentVerificationService.cs
+    │   ├── IWorkforceProfileSyncService.cs
+    │   └── WorkforceProfileSyncService.cs
+    └── Workers/
+        └── HrServiceSlaMonitoringWorker.cs
+```
+
+---
+
+### 26.5 Status Model & Skema Database PostgreSQL DDL
+
+```sql
+-- Sub-Modul 13: HR Service Management & Request (Slice S-D4)
+
+CREATE TABLE mst_hr_service_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category_code VARCHAR(30) NOT NULL UNIQUE,
+    category_name VARCHAR(100) NOT NULL,
+    description TEXT NULL,
+    icon_name VARCHAR(50) NULL,
+    display_order INT NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE mst_hr_service_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category_id UUID NOT NULL REFERENCES mst_hr_service_categories(id) ON DELETE RESTRICT,
+    type_code VARCHAR(30) NOT NULL UNIQUE,
+    type_name VARCHAR(150) NOT NULL,
+    priority_tier VARCHAR(20) NOT NULL CHECK (priority_tier IN ('Cito', 'Standar', 'Khusus')),
+    sla_target_hours INT NOT NULL DEFAULT 24,
+    requires_attachment BOOLEAN NOT NULL DEFAULT FALSE,
+    required_attachment_description TEXT NULL,
+    requires_supervisor_approval BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_assign_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    default_assignee_role VARCHAR(50) NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE mst_employee_document_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_code VARCHAR(30) NOT NULL UNIQUE,
+    document_name VARCHAR(150) NOT NULL,
+    numbering_pattern VARCHAR(100) NOT NULL DEFAULT '[KODE]/RSQ-SDM/[BULAN_ROMAWI]/[TAHUN]/[NO_URUT]',
+    last_sequence_number INT NOT NULL DEFAULT 0,
+    current_year INT NOT NULL DEFAULT 2026,
+    template_body_html TEXT NOT NULL,
+    supported_tokens_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    validity_period_days INT NOT NULL DEFAULT 90,
+    is_financial_sensitive BOOLEAN NOT NULL DEFAULT FALSE,
+    requires_cb_approval BOOLEAN NOT NULL DEFAULT FALSE,
+    authorized_signer_title VARCHAR(100) NOT NULL DEFAULT 'Manajer Sumber Daya Manusia',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE trx_hr_service_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_number VARCHAR(50) NOT NULL UNIQUE,
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    service_type_id UUID NOT NULL REFERENCES mst_hr_service_types(id) ON DELETE RESTRICT,
+    title VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    priority_tier VARCHAR(20) NOT NULL CHECK (priority_tier IN ('Cito', 'Standar', 'Khusus')),
+    sla_target_hours INT NOT NULL,
+    sla_deadline_utc TIMESTAMPTZ NOT NULL,
+    sla_status VARCHAR(20) NOT NULL DEFAULT 'WithinSla' CHECK (sla_status IN ('WithinSla', 'Warning75', 'Overdue', 'Escalated')),
+    assigned_to_user_id UUID NULL,
+    request_status VARCHAR(30) NOT NULL DEFAULT 'Submitted' CHECK (request_status IN ('Draft', 'Submitted', 'Assigned', 'InReview', 'WaitingStaffResponse', 'Approved', 'Rejected', 'InProgress', 'Resolved', 'Closed', 'Cancelled')),
+    first_response_at_utc TIMESTAMPTZ NULL,
+    resolved_at_utc TIMESTAMPTZ NULL,
+    closed_at_utc TIMESTAMPTZ NULL,
+    resolution_summary TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX idx_hr_requests_employee ON trx_hr_service_requests(employee_id);
+CREATE INDEX idx_hr_requests_sla_status ON trx_hr_service_requests(sla_status, request_status);
+CREATE INDEX idx_hr_requests_deadline ON trx_hr_service_requests(sla_deadline_utc) WHERE request_status NOT IN ('Closed', 'Cancelled', 'Resolved');
+
+CREATE TABLE trx_hr_service_request_attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID NOT NULL REFERENCES trx_hr_service_requests(id) ON DELETE CASCADE,
+    file_path VARCHAR(500) NOT NULL,
+    original_file_name VARCHAR(255) NOT NULL,
+    content_type VARCHAR(100) NOT NULL,
+    file_size_bytes BIGINT NOT NULL,
+    attachment_type VARCHAR(50) NOT NULL,
+    uploaded_at_utc TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE trx_hr_service_request_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID NOT NULL REFERENCES trx_hr_service_requests(id) ON DELETE CASCADE,
+    author_user_id UUID NOT NULL,
+    author_name VARCHAR(150) NOT NULL,
+    comment_text TEXT NOT NULL,
+    is_internal_note BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at_utc TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE trx_employee_document_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hr_service_request_id UUID NOT NULL UNIQUE REFERENCES trx_hr_service_requests(id) ON DELETE RESTRICT,
+    document_type_id UUID NOT NULL REFERENCES mst_employee_document_types(id) ON DELETE RESTRICT,
+    requested_by_employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    purpose_of_letter VARCHAR(255) NOT NULL,
+    recipient_entity_name VARCHAR(200) NOT NULL,
+    specific_notes TEXT NULL,
+    draft_document_body_html TEXT NOT NULL,
+    approval_status VARCHAR(30) NOT NULL DEFAULT 'Submitted' CHECK (approval_status IN ('Submitted', 'CbApproved', 'Authorized', 'Rejected')),
+    cb_approver_user_id UUID NULL,
+    cb_approved_at_utc TIMESTAMPTZ NULL,
+    authorized_signer_user_id UUID NULL,
+    authorized_at_utc TIMESTAMPTZ NULL,
+    rejection_reason TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE trx_employee_document_issuances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_request_id UUID NOT NULL UNIQUE REFERENCES trx_employee_document_requests(id) ON DELETE RESTRICT,
+    document_type_id UUID NOT NULL REFERENCES mst_employee_document_types(id) ON DELETE RESTRICT,
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    official_document_number VARCHAR(100) NOT NULL UNIQUE,
+    issued_date DATE NOT NULL,
+    valid_until_date DATE NOT NULL,
+    signer_name VARCHAR(150) NOT NULL,
+    signer_title VARCHAR(150) NOT NULL,
+    signer_signature_hash VARCHAR(256) NOT NULL,
+    verification_hash VARCHAR(64) NOT NULL UNIQUE,
+    qr_code_image_path VARCHAR(500) NOT NULL,
+    pdf_file_path VARCHAR(500) NOT NULL,
+    is_financial_sensitive BOOLEAN NOT NULL DEFAULT FALSE,
+    security_pin_hash VARCHAR(255) NULL,
+    salary_bruto_amount NUMERIC(18,2) NULL,
+    salary_netto_amount NUMERIC(18,2) NULL,
+    payroll_payslip_id UUID NULL REFERENCES trx_payroll_payslips(id) ON DELETE RESTRICT,
+    issuance_status VARCHAR(20) NOT NULL DEFAULT 'Active' CHECK (issuance_status IN ('Active', 'Expired', 'Revoked')),
+    revoked_at_utc TIMESTAMPTZ NULL,
+    revoked_by_user_id UUID NULL,
+    revocation_reason TEXT NULL,
+    revocation_bap_number VARCHAR(100) NULL,
+    e_dossier_document_id UUID NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX idx_doc_issuance_verification_hash ON trx_employee_document_issuances(verification_hash);
+CREATE INDEX idx_doc_issuance_official_number ON trx_employee_document_issuances(official_document_number);
+CREATE INDEX idx_doc_issuance_employee ON trx_employee_document_issuances(employee_id);
+
+CREATE TABLE hrd_profile_change_histories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hr_service_request_id UUID NOT NULL REFERENCES trx_hr_service_requests(id) ON DELETE RESTRICT,
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    component_modified VARCHAR(50) NOT NULL,
+    old_values_json JSONB NOT NULL,
+    new_values_json JSONB NOT NULL,
+    approved_by_user_id UUID NOT NULL,
+    applied_at_utc TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX idx_profile_change_employee ON hrd_profile_change_histories(employee_id);
+```
+
+---
+
+### 26.6 Aturan Bisnis & Aturan Alur Kerja
+
+#### Aturan Bisnis (`HRS-B1` s.d. `HRS-B8`)
+- **`HRS-B1` (Validasi Tier Prioritas & Prasyarat Cito):** Tiket dengan prioritas *Cito* (SLA 4 jam kerja) wajib menyertakan surat disposisi atau bukti panggilan dinas darurat yang ditandatangani Kepala Ruangan, Kepala Instalasi, atau Komite Medik. Pengajuan cito tanpa lampiran disposisi sah ditolak oleh sistem.
+- **`HRS-B2` (Kalkulasi Timer SLA Jam Kerja Rumah Sakit):** Penghitungan batas waktu SLA (`sla_deadline_utc`) untuk tier *Standar* (24 jam) dan *Khusus* (72 jam) dihitung berdasarkan jam operasional resmi kantor HRD (Senin s.d. Jumat pukul 08:00 - 17:00 WIB), mengecualikan hari libur nasional. Khusus tier *Cito*, jam dihitung secara linier 24/7 demi mobilitas penugasan klinis darurat.
+- **`HRS-B3` (Integritas Mesin Penomoran Terpusat Anti-Lompat):** Penomoran surat resmi wajib dieksekusi melalui transaksi database terisolasi (`SERIALIZABLE` / row locking `SELECT ... FOR UPDATE` pada tabel `mst_employee_document_types`). Pembatalan draf surat yang belum disetujui dilarang membakar nomor seri (*no sequence burn*), menjamin nomor naskah dinas selalu berurutan tanpa jeda (*gapless*).
+- **`HRS-B4` (Penarikan Otomatis Gaji dari Sub-10 Terkunci):** Surat Keterangan Gaji (*Salary Certificate*) dilarang keras menerima input angka nominal manual dari staf pemohon maupun analis HR. Nilai gaji pokok, tunjangan tetap, dan penerimaan netto wajib ditarik langsung dari slip gaji terakhir yang berstatus finalized pada Sub-Modul 10 (`INT-HR-56`).
+- **`HRS-B5` (Proteksi Kerahasiaan Finansial via QR & PIN 4-Digit):** QR Code pada lembar dokumen mengarah ke portal verifikasi publik `/verify/document/{hash}`. Metadata legalitas surat ditampilkan secara terbuka, namun rincian angka finansial wajib disamarkan (*masked*). Pembukaan angka nominal gaji hanya dapat dilakukan jika pihak pemeriksa memasukkan 4-digit PIN rahasia yang di-hash menggunakan BCrypt pada database.
+- **`HRS-B6` (Atomik Pemutakhiran Profil Pasca-Approval Tiket):** Tiket perubahan rekening payroll atau status perkawinan yang disetujui petugas HR wajib mengeksekusi pembaruan data master Sub-02 (`MstWorkforceProfile` & `TrxEmployeeBankDetail`) dalam 1 transaksi atomik, disertai penyimpanan rekaman data lama ke `HrdProfileChangeHistory`.
+- **`HRS-B7` (Imutabilitas Dokumen Terbit & Larangan Edit):** Dokumen yang telah berstatus `Issued` bersifat abadi (*immutable*). File PDF dan metadata surat tidak dapat diedit atau dihapus dari sistem. Jika terjadi kekeliruan data, surat hanya dapat dicabut keabsahannya dengan status `Revoked`.
+- **`HRS-B8` (Retensi Pengarsipan Abadi E-Dossier):** Setiap dokumen yang diterbitkan otomatis disalin ke repositori berkas elektronik pegawai Sub-02 (`INT-HR-66`) dan dapat diunduh ulang tanpa batas oleh pegawai pemilik dokumen melalui menu ESS "Dokumen Saya".
+
+#### Aturan Alur Kerja (`HRS-W1` s.d. `HRS-W6`)
+- **`HRS-W1` (Alur Penugasan Antrean Helpdesk):** Tiket baru masuk berstatus `Submitted`. Petugas HR Service mengambil tiket (*claim/assign to me*) yang mengubah status menjadi `InReview`. Jika analis yang ditugaskan tidak merespons dalam 50% SLA, supervisor berhak mere-assign tiket ke petugas lain.
+- **`HRS-W2` (Penangguhan Timer pada Status Klarifikasi):** Ketika petugas meminta kelengkapan berkas tambahan, status berubah menjadi `WaitingStaffResponse`. Timer SLA ditangguhkan sementara (*paused*) dan kembali berjalan (*resumed*) saat staf mengunggah berkas perbaikan.
+- **`HRS-W3` (Peringatan Dini 75% & Auto-Eskalasi 100%):** Background worker memantau sisa durasi tiket setiap 15 menit. Pada pencapaian 75% durasi, sistem mengubah `sla_status` menjadi `Warning75` dan mengirimkan email/notifikasi ke HR Supervisor. Pada 100% durasi tanpa resolusi, status berubah menjadi `Overdue` dan otomatis dieskalasi ke Manajer SDM (`Escalated`).
+- **`HRS-W4` (Gerbang Approval 2-Tier Dokumen Finansial):** Permohonan surat keterangan penghasilan wajib melalui 2 tahap verifikasi: verifikasi akurasi draf oleh Analis SDM -> persetujuan otorisasi oleh Supervisor Kompensasi & Benefit / Manajer SDM. Pemohon dilarang menyetujui suratnya sendiri.
+- **`HRS-W5` (Protokol Pencabutan Keabsahan Surat / Revokasi):** Perintah pencabutan dokumen hanya dapat diterbitkan oleh pengguna berwewenang Manajer SDM atau Legal RS, wajib mencantumkan Nomor Berita Acara Pemeriksaan (BAP) dan alasan pembatalan tertulis. QR Code publik langsung menampilkan banner merah penolakan.
+- **`HRS-W6` (Penerbitan Surat Pengalaman Kerja / Paklaring):** Surat Pengalaman Kerja hanya dapat diajukan dan diterbitkan untuk staf yang telah menyelesaikan seluruh tahapan bebas tanggungan (*Exit Clearance*) pada Sub-Modul 20.
+
+---
+
+### 26.7 Rencana Migrasi & Data Master Awal (Seed Data)
+
+1. **Rencana Migrasi Database (`20261105150000_AddHrServiceManagementAndDocumentIssuanceEntities.cs`):**
+   - Menambahkan 8 tabel baru berelasi aman dengan `mst_workforce_profiles` dan `trx_payroll_payslips`.
+   - Menambahkan indeks terarah pada kolom pencarian tiket, timer SLA, dan hash verifikasi QR publik.
+
+2. **Rencana Data Master Awal (`MstHrServiceCategory` & `MstEmployeeDocumentType` Seed):**
+   - **Kategori Layanan:** `ADM-GEN` (Administrasi & Personalia), `DOC-OFF` (Penerbitan Surat Resmi Kepegawaian), `DATA-UPD` (Permohonan Pemutakhiran Data Pribadi & Rekening), `TRAVEL-REQ` (Surat Tugas Perjalanan Dinas Klinis).
+   - **Jenis Layanan:**
+     - `SRV-SKK`: Surat Keterangan Kerja Aktif (SLA Standar 24 Jam, tanpa approval atasan).
+     - `SRV-SAL`: Surat Keterangan Penghasilan / KPR (SLA Khusus 72 Jam, mandatory approval C&B).
+     - `SRV-CITO`: Surat Tugas Darurat Medis / Izin Cito (SLA Cito 4 Jam, mandatory disposisi atasan).
+     - `SRV-BANK`: Perubahan Rekening Bank Payroll (SLA Standar 24 Jam, lampiran buku tabungan wajib).
+     - `SRV-NIKAH`: Perubahan Status Perkawinan & Tanggungan (SLA Standar 24 Jam, lampiran buku nikah wajib).
+   - **Master Template Dokumen:**
+     - `DOC-SKK`: Surat Keterangan Kerja Aktif (Format `[NO]/RSQ-SDM/SKK/[BULAN_ROMAWI]/[TAHUN]`).
+     - `DOC-SAL`: Surat Keterangan Gaji / Salary Certificate (Format `[NO]/RSQ-SDM/SKG/[BULAN_ROMAWI]/[TAHUN]`, `is_financial_sensitive = TRUE`).
+     - `DOC-PAKLARING`: Surat Pengalaman Kerja (Format `[NO]/RSQ-SDM/SPK/[BULAN_ROMAWI]/[TAHUN]`).
+     - `DOC-REK-VISA`: Surat Pengantar Visa Kedutaan (Format `[NO]/RSQ-SDM/VISA/[BULAN_ROMAWI]/[TAHUN]`).
+
+---
+
+### 26.8 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-D4`
+
+1. **Editor Format Naskah Word Lepas (.docx):** Sistem sengaja mengunci format dokumen berbasis HTML/Liquid template token yang terstandarisasi. Petugas dilarang mengunggah file dokumen Microsoft Word hasil ketikan mandiri demi menjaga 100% konsistensi tata naskah dinas resmi rumah sakit.
+2. **Bypass PIN Verifikasi Finansial via Backdoor Admin:** Tim IT dan Administrator HRD dilarang memiliki akses membocorkan atau melihat PIN 4-digit staf; PIN dienkripsi searah (BCrypt) dan hanya staf bersangkutan yang dapat membuka rincian nominal gajinya kepada pihak luar.
+3. **Pemberian Surat Keterangan bagi Karyawan yang Berstatus Terminasi Tidak Terhormat:** Sistem menolak penerbitan Surat Pengalaman Kerja (Paklaring) standar apabila jenis terminasi pegawai adalah Pemutusan Hubungan Kerja Tidak Dengan Hormat (PHK-TDH) akibat pelanggaran disiplin berat Sub-19/20.
+4. **Penghapusan Fisik Berkas Surat yang Dibatalkan:** Dokumen yang keliru dilarang keras dihapus dari basis data (`HARD DELETE`); seluruh berkas tetap tersimpan untuk kebutuhan audit hukum forensik dan hanya ditandai dengan status `Revoked`.
+
+---
+
+### 26.9 Traceability Keputusan ke Arsitektur Backend
+
+| ID Keputusan | Komponen Arsitektur Backend yang Mewadahi | Lokasi Implementasi Kode C# |
+| :--- | :--- | :--- |
+| `HRD-DEC-140` | Otentikasi QR Code Publik & Proteksi PIN 4-Digit Gaji | `TrxEmployeeDocumentIssuance.cs`, `PublicDocumentVerificationService.cs`, `PublicDocumentVerificationController.cs` |
+| `HRD-DEC-141` | Standar SLA 3-Tier (4 Jam, 24 Jam, 72 Jam) & Eskalasi Keterlambatan | `MstHrServiceType.cs`, `TrxHrServiceRequest.cs`, `HrServiceSlaEngine.cs`, `HrServiceSlaMonitoringWorker.cs` |
+| `HRD-DEC-142` | Penarikan Otomatis Gaji dari Payroll Sub-10 & Approval C&B | `EmployeeDocumentIssuanceService.cs`, integrasi `INT-HR-56`, aturan `HRS-B4`, `HRS-W4` |
+| `HRD-DEC-143` | Pemutakhiran Profil Otomatis Pasca-Verifikasi Berkas Sah | `WorkforceProfileSyncService.cs`, `HrdProfileChangeHistory.cs`, integrasi `INT-HR-65`, aturan `HRS-B6` |
+| `HRD-DEC-144` | Mesin Penomoran Terpusat Gapless & Template Token Dinamis | `MstEmployeeDocumentType.cs`, `EmployeeDocumentIssuanceService.cs`, aturan `HRS-B3` |
+| `HRD-DEC-145` | Pengarsipan Abadi E-Dossier & Protokol Pencabutan Dokumen Sah (Revokasi) | `TrxEmployeeDocumentIssuance.cs`, integrasi `INT-HR-66`, aturan `HRS-B7`, `HRS-B8`, `HRS-W5` |
+
+
+---
+
+## 27. Arsitektur Backend Sub-Modul 14: Credentialing, License & Clinical Privilege (Slice `S-C1`, Kontrak `v18`)
+
+Bagian ini mendefinisikan arsitektur backend komprehensif untuk **Sub-Modul 14 (Slice `S-C1`)** yang mengatur tata kelola kredensialing 3 pilar komite rumah sakit (Komite Medik, Komite Keperawatan, Komite Nakes Lain), verifikasi keabsahan sumber primer (*Primary Source Verification* - PSV) STR seumur hidup dan SIP 5 tahunan, penilaian panel Mitra Bestari (*Peer Review*), penerbitan dan pengesahan SPK & RKK oleh Direktur Utama, resolusi final `HRD-DEC-005` (Hard-Stop terintegrasi SIMRS/EMR `INT-HR-69`), tata kelola kewenangan sementara dan darurat, serta siklus evaluasi 3 tahunan menuju rekredensialing Sub-15, sesuai keputusan [`HRD-DEC-146`](00-interview-decisions.md#L7165-L7185) s.d. [`HRD-DEC-151`](00-interview-decisions.md#L7250-L7270).
+
+---
+
+### 27.1 Tabel Kepemilikan Data (Data Ownership Matrix)
+
+| Kelompok Data | Entitas / Tabel | Modul Pemilik | Status di Modul Ini | Alasan & Batas Kewenangan |
+| :--- | :--- | :--- | :---: | :--- |
+| **Komite Kredensial RS** | `mst_credentialing_committees` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Baru** | Definisi 3 pilar komite mandiri (Medik, Keperawatan, Nakes Lain) dan buku putih (*whitebook*) kompetensinya. |
+| **Katalog Kewenangan Klinis** | `mst_clinical_privilege_catalogs` | HRD (Master Data Credential) | **Sudah Ada / Diperbarui** | Katalog butir prosedur tindakan medis/keperawatan, derajat risiko, dan prasyarat kompetensi minimal. |
+| **Lisensi Profesional Nakes** | `wfp_credential_licenses` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Sudah Ada / Diperbarui** | STR seumur hidup nakes, SIP 5 tahunan faskes RS, nomor registrasi KKI/SatuSehat SDMK, dan bukti audit PSV. |
+| **Permohonan Kredensial** | `trx_credentialing_applications`<br>`trx_credentialing_documents` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Sudah Ada / Diperbarui** | Berkas pendaftaran awal nakes, pengunggahan dokumen legalitas, dan penetapan komite tujuan. |
+| **Audit Verifikasi PSV** | `trx_credentialing_verifications` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Sudah Ada / Diperbarui** | Rekam jejak verifikasi sumber primer ke database KKI/Kemenkes oleh staf kredensialing RS. |
+| **Asesmen Mitra Bestari** | `trx_clinical_privilege_assessments`<br>`trx_credentialing_committee_reviews` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Sudah Ada / Diperbarui** | Penilaian independen minimal 2 reviewer Mitra Bestari (*Peer Review*) dan risalah sidang pleno komite. |
+| **Pengesahan SPK & RKK** | `trx_spk_rkk_issuances`<br>`trx_clinical_privilege_approvals` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Baru / Diperbarui** | Dokumen Surat Penugasan Klinis dan Rincian Kewenangan Klinis sah bertanda tangan Direktur Utama RS. |
+| **Registri Kewenangan Aktif** | `wfp_clinical_privileges` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Sudah Ada / Diperbarui** | Hak kewenangan klinis aktif nakes, level supervisi (Mandiri/Supervisi/Ditolak), dan tipe penugasan (Regular/Temporary/Emergency). |
+| **Audit Override Darurat** | `trx_clinical_privilege_emergency_override_logs` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Baru** | Log penegakan wewenang klinis SIMRS saat tombol cito bypass darurat penyelamatan nyawa diaktifkan dokter. |
+| **Siklus Rekredensialing** | `trx_recredentialing_applications` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Sudah Ada / Diperbarui** | Pengajuan berkas rekredensialing berkala siklus 3 tahun terhubung dengan rekam jejak OPPE Sub-15. |
+| **Profil & E-Dossier Pegawai** | `mst_workforce_profiles`<br>`mst_workforce_profile_documents` | HRD (Sub-Modul 02 `WorkforceCore`) | **Dipakai Ulang (Read-Only)** | Menarik data identitas nakes, NIP, unit kerja, serta menyimpan salinan PDF SPK-RKK ke e-Dossier pegawai. |
+| **Roster Jadwal Shift Dinas** | `trx_roster_schedules` | HRD (Sub-Modul 06 `SchedulingManagement`) | **Integrasi (`INT-HR-71`)** | Blokir otomatis shift jaga dan pemanggilan nakes saat status SIP kedaluwarsa atau SPK/RKK ditangguhkan. |
+
+---
+
+### 27.2 Class Diagram Arsitektur Bounded Context `CredentialingManagement`
+
+```mermaid
+classDiagram
+    direction TB
+
+    class MstCredentialingCommittee {
+        +Guid Id
+        +string CommitteeCode
+        +string CommitteeName
+        +string ProfessionCategory
+        +Guid ChairPersonWorkforceId
+        +Guid SecretaryWorkforceId
+        +bool IsActive
+        +DateTime CreatedAt
+    }
+
+    class WfpCredentialLicense {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +string LicenseType
+        +string LicenseNumber
+        +string IssuingAuthority
+        +DateTime IssueDate
+        +DateTime? ExpiryDate
+        +bool IsLifetime
+        +bool IsPsvVerified
+        +string PsvSourceUrl
+        +DateTime? PsvVerifiedAt
+        +Guid? PsvVerifiedBy
+        +string Status
+    }
+
+    class TrxCredentialingApplication {
+        +Guid Id
+        +string ApplicationNumber
+        +Guid WorkforceProfileId
+        +Guid CommitteeId
+        +string ApplicationType
+        +string CurrentClinicalLevel
+        +string TargetClinicalLevel
+        +string Status
+        +DateTime SubmissionDate
+        +Guid? ReviewerChairmanId
+    }
+
+    class TrxClinicalPrivilegeAssessment {
+        +Guid Id
+        +Guid ApplicationId
+        +Guid PeerReviewerWorkforceId
+        +Guid PrivilegeCatalogId
+        +int RequestedLevel
+        +int RecommendedLevel
+        +string ReviewerNotes
+        +DateTime AssessmentDate
+        +string SignatureHash
+    }
+
+    class TrxSpkRkkIssuance {
+        +Guid Id
+        +string SpkNumber
+        +string RkkNumber
+        +Guid WorkforceProfileId
+        +Guid CommitteeId
+        +DateTime EffectiveStartDate
+        +DateTime EffectiveEndDate
+        +string PrivilegeNature
+        +Guid ApprovedByDirectorId
+        +DateTime ApprovedAt
+        +string DigitalSignatureHash
+        +string DocumentPdfPath
+        +string QrVerificationToken
+        +string Status
+    }
+
+    class WfpClinicalPrivilege {
+        +Guid Id
+        +Guid SpkIssuanceId
+        +Guid WorkforceProfileId
+        +Guid PrivilegeCatalogId
+        +int SupervisionLevel
+        +Guid? SupervisorWorkforceId
+        +string PrivilegeNature
+        +DateTime ValidFrom
+        +DateTime ValidUntil
+        +bool IsSuspended
+        +string SuspensionReason
+        +string Status
+    }
+
+    class TrxClinicalPrivilegeEmergencyOverrideLog {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +Guid PrivilegeCatalogId
+        +string SimrsPatientEpisodeId
+        +string ActionAttempted
+        +string EmergencyReasonJustification
+        +DateTime OverrideTriggeredAt
+        +string IpAddress
+        +bool IsAuditedByKmkp
+        +DateTime? KmkpAuditAt
+        +string KmkpAuditVerdict
+    }
+
+    class TrxRecredentialingApplication {
+        +Guid Id
+        +string RecredentialNumber
+        +Guid CurrentSpkIssuanceId
+        +Guid WorkforceProfileId
+        +Guid CommitteeId
+        +decimal OppePerformanceScore
+        +string OppeEvaluationSummary
+        +DateTime RequestedDate
+        +string Status
+    }
+
+    MstCredentialingCommittee "1" --> "*" TrxCredentialingApplication : oversees
+    TrxCredentialingApplication "1" --> "*" TrxClinicalPrivilegeAssessment : peer_reviewed_by
+    TrxCredentialingApplication "1" --> "0..1" TrxSpkRkkIssuance : results_in
+    TrxSpkRkkIssuance "1" --> "*" WfpClinicalPrivilege : grants
+    WfpClinicalPrivilege "1" --> "*" TrxClinicalPrivilegeEmergencyOverrideLog : tracked_by
+    TrxSpkRkkIssuance "1" --> "0..1" TrxRecredentialingApplication : triggers_cycle
+```
+
+---
+
+### 27.3 Penjelasan Komponen Arsitektur Backend C#
+
+#### 27.3.1 Model Entitas EF Core
+
+| Nama Class Model | Status | Lokasi File | Fungsi Utama & Batas Kewenangan |
+| :--- | :---: | :--- | :--- |
+| `MstCredentialingCommittee` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Entitas master 3 komite (Medik, Keperawatan, Nakes Lain) beserta struktur pengurusnya. |
+| `WfpCredentialLicense` | **Diperbarui** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Entitas lisensi legalitas (STR Seumur Hidup KKI dan SIP 5 tahun) dengan penanda verifikasi primer PSV. |
+| `TrxCredentialingApplication` | **Diperbarui** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Berkas pendaftaran kredensial awal atau kenaikan jenjang klinis nakes. |
+| `TrxClinicalPrivilegeAssessment` | **Diperbarui** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Asesmen teknis portofolio dan rekomendasi derajat wewenang oleh panel Mitra Bestari (*Peer Review*). |
+| `TrxSpkRkkIssuance` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Dokumen resmi Surat Penugasan Klinis dan Rincian Kewenangan Klinis sah bertanda tangan Direktur Utama RS. |
+| `WfpClinicalPrivilege` | **Diperbarui** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Baris kewenangan klinis individual aktif, derajat supervisi (Level 4/3/1-2), dan penugasan sementara/darurat. |
+| `TrxClinicalPrivilegeEmergencyOverrideLog` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Log audit bypass darurat cito penyelamatan nyawa di SIMRS/EMR untuk audit KMKP & Komite Medik. |
+| `TrxRecredentialingApplication` | **Diperbarui** | `Areas/Corporate/HumanResource/CredentialingManagement/Models/` | Berkas siklus evaluasi berkala rekredensialing 3 tahun terhubung dengan nilai kinerja klinis OPPE Sub-15. |
+
+#### 27.3.2 Komponen Service & Business Logic
+
+| Nama Service / Interface | Status | Lokasi File | Peran & Tanggung Jawab |
+| :--- | :---: | :--- | :--- |
+| `ICredentialVerificationService`<br>`CredentialVerificationService` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Services/` | Layanan audit verifikasi keabsahan primer PSV STR/SIP ke database KKI/SatuSehat SDMK Kemenkes. |
+| `IClinicalPrivilegeGateService`<br>`ClinicalPrivilegeGateService` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Services/` | Layanan gerbang wewenang klinis performa tinggi (`INT-HR-69`) dengan Redis cache latensi < 50ms untuk SIMRS. |
+| `ISpkRkkIssuanceService`<br>`SpkRkkIssuanceService` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Services/` | Mesin penyusunan, digital signing e-Sign Direktur Utama, penerbitan PDF ber-QR Code, dan distribusi ke e-Dossier. |
+| `IRecredentialingCycleService`<br>`RecredentialingCycleService` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Services/` | Background scheduler audit masa berlaku 3 tahun, radar H-90, dan otomasi penangguhan (*suspended*) pada H-0. |
+
+#### 27.3.3 Controller & API Endpoints
+
+| Nama Controller | Status | Lokasi File | Tanggung Jawab Routing |
+| :--- | :---: | :--- | :--- |
+| `CredentialLicenseController` | **Diperbarui** | `Areas/Corporate/HumanResource/CredentialingManagement/Controllers/` | Kelola registrasi lisensi STR/SIP, eksekusi audit PSV, dan radar peringatan kedaluwarsa. |
+| `CredentialingApplicationController` | **Diperbarui** | `Areas/Corporate/HumanResource/CredentialingManagement/Controllers/` | Pengajuan berkas kredensial, disposisi ke 3 komite, dan manajemen panel Mitra Bestari. |
+| `SpkRkkIssuanceController` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Controllers/` | Penyusunan draf SPK-RKK, approval Direktur Pelayanan, dan pengesahan Direktur Utama RS. |
+| `ClinicalPrivilegeGateController` | **Baru** | `Areas/Corporate/HumanResource/CredentialingManagement/Controllers/` | Endpoint real-time `validate-gate` untuk SIMRS EMR, order co-signature, dan override darurat cito. |
+
+---
+
+### 27.4 Struktur Direktori Backend Target
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/
+│   └── Corporate/
+│       └── HumanResource/
+│           └── CredentialingManagement/
+│               ├── Controllers/
+│               │   ├── CredentialLicenseController.cs             # [Diperbarui] API STR/SIP & PSV KKI
+│               │   ├── CredentialingApplicationController.cs      # [Diperbarui] Pengajuan & Peer Review
+│               │   ├── SpkRkkIssuanceController.cs                # [Baru] Pengesahan SPK/RKK Dirut
+│               │   ├── ClinicalPrivilegeGateController.cs         # [Baru] Gate Real-Time SIMRS INT-HR-69
+│               │   └── RecredentialingCycleController.cs          # [Diperbarui] Siklus 3 Tahun & OPPE
+│               ├── DTOs/
+│               │   ├── CredentialLicenseDtos.cs                   # [Diperbarui] Request/Response STR/SIP
+│               │   ├── CredentialingApplicationDtos.cs            # [Diperbarui] DTO Berkas & Whitebook
+│               │   ├── PeerReviewAssessmentDtos.cs                # [Baru] DTO Skoring Mitra Bestari
+│               │   ├── SpkRkkIssuanceDtos.cs                      # [Baru] DTO Pengesahan Dirut & QR
+│               │   └── ClinicalPrivilegeGateDtos.cs               # [Baru] DTO Validasi SIMRS & Override
+│               ├── Models/
+│               │   ├── MstCredentialingCommittee.cs               # [Baru] 3 Komite Profesi RS
+│               │   ├── WfpCredentialLicense.cs                    # [Diperbarui] Lisensi STR/SIP & PSV
+│               │   ├── TrxCredentialingApplication.cs             # [Diperbarui] Berkas Kredensial
+│               │   ├── TrxCredentialingDocument.cs                # [Sudah Ada] Berkas Lampiran
+│               │   ├── TrxCredentialingVerification.cs            # [Diperbarui] Log Audit PSV
+│               │   ├── TrxClinicalPrivilegeAssessment.cs          # [Diperbarui] Asesmen Peer Review
+│               │   ├── TrxCredentialingCommitteeReview.cs         # [Diperbarui] Sidang Pleno Komite
+│               │   ├── TrxSpkRkkIssuance.cs                       # [Baru] Dokumen Sah SPK/RKK Dirut
+│               │   ├── WfpClinicalPrivilege.cs                    # [Diperbarui] Registri Hak Klinis Aktif
+│               │   ├── TrxClinicalPrivilegeEmergencyOverrideLog.cs# [Baru] Audit Bypass Cito SIMRS
+│               │   ├── TrxClinicalPrivilegeSuspension.cs          # [Sudah Ada] Penangguhan Wewenang
+│               │   ├── TrxClinicalPrivilegeRevocation.cs          # [Sudah Ada] Pencabutan Wewenang
+│               │   └── TrxRecredentialingApplication.cs           # [Diperbarui] Siklus 3 Tahun & OPPE
+│               ├── Services/
+│               │   ├── ICredentialVerificationService.cs          # [Baru] Interface PSV Verification
+│               │   ├── CredentialVerificationService.cs           # [Baru] Implementasi PSV Kemenkes
+│               │   ├── IClinicalPrivilegeGateService.cs           # [Baru] Interface Gate SIMRS Real-Time
+│               │   ├── ClinicalPrivilegeGateService.cs            # [Baru] Implementasi Gate & Redis Cache
+│               │   ├── ISpkRkkIssuanceService.cs                  # [Baru] Interface Penerbitan SPK Dirut
+│               │   ├── SpkRkkIssuanceService.cs                   # [Baru] Implementasi PDF & e-Sign
+│               │   ├── IRecredentialingCycleService.cs            # [Baru] Interface Siklus Rekredensial
+│               │   └── RecredentialingCycleService.cs             # [Baru] Scheduler Radar & Auto-Suspend
+│               └── Jobs/
+│                   ├── SipExpirationMonitorJob.cs                 # [Baru] Cron Job Harian Cek SIP 5 Tahun
+│                   └── RecredentialingReminderJob.cs              # [Baru] Cron Job Radar SPK H-90 Sub-15
+```
+
+---
+
+### 27.5 Status Model & Skema Database PostgreSQL DDL
+
+```sql
+-- Skema Tabel Sub-Modul 14: Credentialing, License & Clinical Privilege (Slice S-C1)
+
+-- 1. Master Komite Kredensial Rumah Sakit (3 Komite)
+CREATE TABLE IF NOT EXISTS mst_credentialing_committees (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    committee_code VARCHAR(30) NOT NULL UNIQUE, -- 'MEDIK', 'KEPERAWATAN', 'NAKES_LAIN'
+    committee_name VARCHAR(150) NOT NULL,
+    profession_category VARCHAR(100) NOT NULL,
+    chairperson_workforce_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    secretary_workforce_id UUID REFERENCES mst_workforce_profiles(id),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100)
+);
+
+-- 2. Pembaruan Kolom Tabel Lisensi Profesional (WfpCredentialLicense)
+ALTER TABLE wfp_credential_licenses
+    ADD COLUMN IF NOT EXISTS is_lifetime BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS is_psv_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS psv_source_url VARCHAR(500),
+    ADD COLUMN IF NOT EXISTS psv_verified_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS psv_verified_by UUID REFERENCES mst_workforce_profiles(id),
+    ADD COLUMN IF NOT EXISTS satusehat_practitioner_id VARCHAR(100);
+
+CREATE INDEX IF NOT EXISTS idx_credential_licenses_expiry ON wfp_credential_licenses(expiry_date) WHERE expiry_date IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_credential_licenses_psv ON wfp_credential_licenses(is_psv_verified, license_type);
+
+-- 3. Tabel Dokumen Sah Penerbitan SPK & RKK oleh Direktur Utama
+CREATE TABLE IF NOT EXISTS trx_spk_rkk_issuances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    spk_number VARCHAR(100) NOT NULL UNIQUE,
+    rkk_number VARCHAR(100) NOT NULL UNIQUE,
+    workforce_profile_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    committee_id UUID NOT NULL REFERENCES mst_credentialing_committees(id),
+    effective_start_date DATE NOT NULL,
+    effective_end_date DATE NOT NULL,
+    privilege_nature VARCHAR(30) NOT NULL DEFAULT 'REGULAR', -- 'REGULAR', 'TEMPORARY', 'EMERGENCY'
+    approved_by_director_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    approved_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    digital_signature_hash VARCHAR(256) NOT NULL,
+    document_pdf_path VARCHAR(500) NOT NULL,
+    qr_verification_token VARCHAR(100) NOT NULL UNIQUE,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE', -- 'DRAFT', 'ACTIVE', 'EXPIRED', 'SUSPENDED', 'REVOKED'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spk_issuances_workforce ON trx_spk_rkk_issuances(workforce_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_spk_issuances_dates ON trx_spk_rkk_issuances(effective_start_date, effective_end_date);
+
+-- 4. Pembaruan Kolom Entitas Kewenangan Klinis (WfpClinicalPrivilege)
+ALTER TABLE wfp_clinical_privileges
+    ADD COLUMN IF NOT EXISTS spk_issuance_id UUID REFERENCES trx_spk_rkk_issuances(id),
+    ADD COLUMN IF NOT EXISTS supervision_level INT NOT NULL DEFAULT 4, -- 4: Mandiri, 3: Supervisi, 1-2: Ditolak
+    ADD COLUMN IF NOT EXISTS supervisor_workforce_id UUID REFERENCES mst_workforce_profiles(id),
+    ADD COLUMN IF NOT EXISTS privilege_nature VARCHAR(30) NOT NULL DEFAULT 'REGULAR',
+    ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS suspension_reason VARCHAR(500);
+
+CREATE INDEX IF NOT EXISTS idx_clinical_privileges_gate ON wfp_clinical_privileges(workforce_profile_id, privilege_catalog_id, supervision_level, is_suspended);
+
+-- 5. Tabel Log Audit Bypass Darurat Penyelamatan Nyawa (Life-Saving Override)
+CREATE TABLE IF NOT EXISTS trx_clinical_privilege_emergency_override_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workforce_profile_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    privilege_catalog_id UUID NOT NULL,
+    simrs_patient_episode_id VARCHAR(100) NOT NULL,
+    action_attempted VARCHAR(200) NOT NULL,
+    emergency_reason_justification TEXT NOT NULL,
+    override_triggered_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(50) NOT NULL,
+    is_audited_by_kmkp BOOLEAN NOT NULL DEFAULT FALSE,
+    kmkp_audit_at TIMESTAMPTZ,
+    kmkp_audit_verdict VARCHAR(50), -- 'JUSTIFIED_CLINICAL_EMERGENCY', 'ETHICAL_VIOLATION'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_override_logs_workforce ON trx_clinical_privilege_emergency_override_logs(workforce_profile_id, override_triggered_at);
+CREATE INDEX IF NOT EXISTS idx_override_logs_kmkp_audit ON trx_clinical_privilege_emergency_override_logs(is_audited_by_kmkp);
+```
+
+---
+
+### 27.6 Aturan Bisnis & Aturan Alur Kerja
+
+#### 27.6.1 Aturan Blokir Mutlak (Invariants & Hard Blocks)
+
+- **`CRD-B1` (Blokir Penugasan Tanpa Dokumen Primer Sah):** Nakes dilarang keras diterbitkan SPK/RKK sebelum dokumen STR diverifikasi keabsahannya via PSV KKI/SatuSehat SDMK dan ditandai `is_psv_verified = true` oleh staf kredensialing (`HRD-DEC-146`).
+- **`CRD-B2` (Fail-Closed SIP Kedaluwarsa):** Tepat pada tanggal kedaluwarsa SIP 5 tahun (pukul 00:00 H-0), sistem wajib memblokir otomatis penugasan jadwal di Sub-06 dan menonaktifkan akun order SIMRS/EMR (`HRD-DEC-146`).
+- **`CRD-B3` (Mandat Otorisasi Tunggal Direktur Utama):** Surat Penugasan Klinis (SPK) dan RKK tidak sah dan tidak berlaku jika tidak ditandatangani secara digital oleh Direktur Utama Rumah Sakit (`HRD-DEC-148`).
+- **`CRD-B4` (Hard-Stop Order Tanpa RKK di SIMRS):** SIMRS/EMR wajib memblokir keras order tindakan/resep medis jika nakes tidak memiliki kewenangan (Level 1-2) pada RKK aktifnya, menyelesaikan final posisi sementara `HRD-DEC-005` (`HRD-DEC-149`).
+- **`CRD-B5` (Kewajiban Dokter Supervisor untuk Level 3):** Tindakan berstatus supervisi (Level 3) wajib memiliki nama dokter supervisor yang terdaftar di SPK; order tindakan berstatus tertahan (*Pending Co-Signature*) hingga disetujui digital dalam kurun waktu 24 jam (`HRD-DEC-148`, `VR-CRD-07`).
+- **`CRD-B6` (Batas Durasi Maksimal Emergency Privilege):** Kewenangan darurat kebencanaan (*Emergency Privilege*) dibatasi masa berlaku maksimal 72 jam sejak disahkan Direktur Pelayanan Medik (`HRD-DEC-150`).
+- **`CRD-B7` (Batas Durasi Temporary Privilege):** Kewenangan sementara dokter konsultan tamu dibatasi maksimal 3 bulan, dan perpanjangan hanya diizinkan maksimal 1 kali (`HRD-DEC-150`).
+- **`CRD-B8` (Auto-Suspended SPK Siklus 3 Tahun):** Jika nakes belum menyelesaikan rekredensialing hingga tanggal jatuh tempo 3 tahun, kewenangan klinis otomatis beralih ke status `Suspended` (`HRD-DEC-151`).
+
+#### 27.6.2 Aturan Peringatan Dini (Warnings & Notifications)
+
+- **`CRD-W1` (Radar SIP H-90, H-60, H-30, H-7):** Sistem mengirimkan email dan notifikasi push berkala kepada nakes dan atasan medis saat masa berlaku SIP mendekati kedaluwarsa.
+- **`CRD-W2` (Radar Rekredensialing H-90):** Sistem memicu inisiasi berkas rekredensialing otomatis pada H-60 sebelum masa berlaku 3 tahun SPK berakhir.
+- **`CRD-W3` (Peringatan Co-Signature Mendekati Batas 24 Jam):** Dokter supervisor menerima peringatan saat order tindakan Level 3 belum di-*co-sign* setelah 18 jam sejak diinput.
+- **`CRD-W4` (Alert Bypass Darurat ke KMKP & Komite Medik):** Setiap eksekusi tombol *Life-Saving Override* seketika mengirimkan alert insiden klinis ke Ketua Komite Medik dan KMKP dalam 24 jam.
+- **`CRD-W5` (Peringatan Perbedaan Asesmen Peer Review):** Jika terjadi divergensi rekomendasi derajat wewenang antara Reviewer 1 dan 2, sistem memberi peringatan untuk diagendakan konsensus komite.
+- **`CRD-W6` (Peringatan Batas Tempat Praktik SIP):** Sistem mencatat peringatan jika dokter telah mendaftarkan 3 tempat praktik faskes lain di database KKI.
+
+---
+
+### 27.7 Rencana Migrasi & Data Master Awal (Seed Data)
+
+1. **Urutan Eksekusi Migrasi:**  
+   - Jalankan DDL tabel master komite `mst_credentialing_committees`.
+   - Jalankan `ALTER TABLE` penambahan kolom PSV pada `wfp_credential_licenses`.
+   - Jalankan DDL tabel pengesahan `trx_spk_rkk_issuances`.
+   - Jalankan `ALTER TABLE` penambahan level supervisi pada `wfp_clinical_privileges`.
+   - Jalankan DDL tabel audit bypass darurat `trx_clinical_privilege_emergency_override_logs`.
+   - Migrasi dapat dijalankan secara online tanpa downtime (*Zero-Downtime Migration*).
+
+2. **Data Master Awal (Seed Data):**  
+   - 3 Komite Kredensial Rumah Sakit:
+     - `MEDIK` — Komite Medik Rumah Sakit (Dokter Umum, Dokter Gigi, Dokter Spesialis, Subspesialis).
+     - `KEPERAWATAN` — Komite Keperawatan Rumah Sakit (Perawat Jenjang PK I s.d. PK V dan Bidan).
+     - `NAKES_LAIN` — Komite Tenaga Kesehatan Lainnya (Apoteker, Radiografer, Analis Lab, Fisioterapis, Nutrisionis).
+
+---
+
+### 27.8 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-C1`
+
+1. **Penilaian Kinerja Klinis Berkelanjutan Otomatis (OPPE Engine):** Formulasi skoring indikator mutu klinis detail dikerjakan pada Sub-Modul 15 Performance Management; Sub-14 hanya menerima agregasi nilai akhir OPPE (`INT-HR-70`).
+2. **Integrasi Mesin OCR Otomatis Ijazah:** Verifikasi dokumen primer ijazah dan STR tetap diverifikasi oleh mata teliti petugas sekretariat komite (*human-in-the-loop*) guna mencegah *false-positive* kecerdasan buatan pada dokumen kedokteran.
+3. **Penerbitan SIP Otomatis ke Dinas Kesehatan:** Integrasi penerbitan izin praktik merupakan wewenang eksternal DPMPTSP/Dinkes daerah di luar ranah sistem internal rumah sakit.
+
+---
+
+### 27.9 Traceability Keputusan ke Arsitektur Backend
+
+| Keputusan Disetujui | Komponen Arsitektur Backend Pemenuh | Verifikasi Uji |
+| :--- | :--- | :--- |
+| `HRD-DEC-146` (PSV STR Seumur Hidup & Radar SIP 5 Tahun) | `CredentialVerificationService`, `SipExpirationMonitorJob`, kolom `is_psv_verified` pada `WfpCredentialLicense` | `AT-HRD-CRD-01`, `AT-HRD-CRD-02`, `AT-HRD-CRD-05` |
+| `HRD-DEC-147` (Pemisahan 3 Komite & Panel Mitra Bestari) | `MstCredentialingCommittee`, `TrxClinicalPrivilegeAssessment` (min 2 reviewer) | `AT-HRD-CRD-06`, `AT-HRD-CRD-07` |
+| `HRD-DEC-148` (SPK/RKK Sah Dirut & 3 Derajat Supervisi) | `TrxSpkRkkIssuance`, `supervision_level` pada `WfpClinicalPrivilege` | `AT-HRD-CRD-09`, `AT-HRD-CRD-10` |
+| `HRD-DEC-149` / Resolusi `HRD-DEC-005` (Hard-Stop Gate SIMRS) | `ClinicalPrivilegeGateService`, `INT-HR-69`, `TrxClinicalPrivilegeEmergencyOverrideLog` | `AT-HRD-CRD-12`, `AT-HRD-CRD-13`, `AT-HRD-CRD-14` |
+| `HRD-DEC-150` (Temporary & Emergency Privilege) | Kolom `privilege_nature` pada `TrxSpkRkkIssuance` & `WfpClinicalPrivilege` | `AT-HRD-CRD-16`, `AT-HRD-CRD-17` |
+| `HRD-DEC-151` (Siklus 3 Tahun & Auto-Suspend) | `RecredentialingReminderJob`, `TrxRecredentialingApplication`, flag `is_suspended` | `AT-HRD-CRD-19`, `AT-HRD-CRD-20` |

@@ -1057,3 +1057,191 @@ Matriks ini mengunci seluruh string penanda izin akses API (`[AccessPermission("
 | `PAYROLL_PAYMENT_CONFIRMED` | `CRITICAL` | `RunId`, `BankDisbursementRefNo`, `ConfirmedByFinanceId` | Konfirmasi transfer kliring bank sukses & picu rilis ESS |
 | `PAYROLL_ESS_PAYSLIP_ACCESSED` | `INFO` | `PayslipId`, `EmployeeId`, `SessionIp`, `AuthMethod: PIN` | Pembukaan lembar rincian slip gaji mandiri di ESS |
 | `PAYROLL_FAILED_PIN_ATTEMPT_LOCKED` | `SECURITY` | `EmployeeId`, `FailedAttempts: 3`, `LockoutDuration: 30m` | Pembekuan akses slip gaji akibat 3 kali salah input PIN |
+
+## 19. Bagian `S-B6` — Matriks Hak Akses & Audit Restitusi & Pemotongan Penggajian Pegawai Rumah Sakit (Sub-modul 11, `last_changed_in` `v15`, 5 November 2026)
+
+Bagian ini mendefinisikan matriks hak akses berbasis peran (*Role-Based Access Control* - RBAC) dan jejak audit tak-terbantahkan (*Immutable Audit Trail*) untuk **Sub-modul 11 (Restitution & Payroll Deduction Integration — Slice `S-B6`)**.
+
+---
+
+### 19.1 Matriks Butir Hak Akses (Permissions)
+
+| String Hak Akses Persis | Modul / Sumber Daya | Aksi Diizinkan | Peran yang Berhak (Role Mapping) | Deskripsi Fungsional Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[AccessPermission("ESS_Restitution", "View")]` | ESS Portal | Baca | Seluruh Pegawai RS (Nakes & Non-Nakes) | Melihat histori klaim pribadi, progress approval, dan sisa kuota plafon tahunan |
+| `[AccessPermission("ESS_Restitution", "Create")]` | ESS Portal | Buat | Seluruh Pegawai RS (Masa Kerja $\ge$ Min) | Mengisi formulir klaim kacamata/medis dan mengunggah pindaian kuitansi asli |
+| `[AccessPermission("HR_Deduction", "View")]` | Modul HRD | Baca | HR Officer, Payroll Specialist, Finance Reviewer | Membuka dasbor pemotongan, daftar jadwal cicilan, dan monitoring rasio upah 50% |
+| `[AccessPermission("HR_Deduction", "Manage")]` | Modul HRD | Kelola | Payroll Specialist, HR C&B Lead | Memicu sinkronisasi Finance H-3, simulasi batas 50%, dan menjeda jadwal cicilan |
+| `[AccessPermission("HR_Deduction", "Approve")]` | Modul HRD | Setujui | Kepala Ruangan, HR C&B Lead, Manajer SDM, Direktur | Menyetujui klaim restitusi bertingkat dan menerbitkan voucher kasir cito 24/7 |
+| `[AccessPermission("HR_Deduction", "Correct")]` | Modul HRD | Koreksi | HR Payroll Specialist, Manajer Keuangan | Menerbitkan transaksi kompensasi salah potong periode lampau (`PAY-B6`) |
+| `[AccessPermission("HR_Deduction", "Audit")]` | Modul HRD | Audit | Tim SPI (Internal Audit), Manajer Kepatuhan RS | Mengunduh berkas jejak audit pemotongan berjenjang dan log penundaan tagihan |
+| `[AccessPermission("Cashier_Desk", "Verify")]` | Loket Kasir RS | Verifikasi | Petugas Loket Kasir RS 24/7 | Melakukan pemindaian QR code / verifikasi token voucher darurat cito di loket |
+| `[AccessPermission("Cashier_Desk", "Disburse")]`| Loket Kasir RS | Eksekusi | Petugas Loket Kasir RS 24/7, Supervisor Kasir | Mengonfirmasi penyerahan fisik uang tunai dan mengunci status `DisbursedViaCashier` |
+| `[AccessPermission("HR_Setting", "View")]` | Pengaturan | Baca | HR Officer, Auditor Internal | Melihat tabel konfigurasi plafon tahunan dan persentase batasan pemotongan upah |
+| `[AccessPermission("HR_Setting", "Manage")]` | Pengaturan | Kelola | Direktur SDM & Umum | Memperbarui nominal plafon tahunan per grade dan mengubah toleransi batas sistem |
+
+---
+
+### 19.2 Matriks Jejak Audit Tak-Terbantahkan (Audit Events)
+
+Seluruh peristiwa transaksi penting dicatat pada penyimpanan log audit tak-terbantahkan (*append-only audit log*):
+
+| Kode Peristiwa | Nama Peristiwa Audit | Pemicu (Trigger) | Data Kunci yang Direkam | Retensi Log |
+| :--- | :--- | :--- | :--- | :---: |
+| `AUDIT-DED-01` | *Finance Snapshot Synchronized* | Penarikan jadwal cicilan H-3 dari modul Keuangan | Waktu sinkronisasi, jumlah kontrak aktif diterima, total nilai piutang, status respons | 10 Tahun |
+| `AUDIT-DED-02` | *Restitution Claim Submitted* | Pegawai submit klaim mandiri di ESS | ID Pegawai, nomor klaim, kategori manfaat, nominal diajukan, hash berkas kuitansi | 10 Tahun |
+| `AUDIT-DED-03` | *Supervisor Claim Approved* | Persetujuan tahap 1 oleh Atasan Langsung | ID Atasan, ID Klaim, waktu persetujuan, catatan rekomendasi kedinasan | 10 Tahun |
+| `AUDIT-DED-04` | *HR Physical Receipt Verified* | Verifikasi kuitansi nota oleh HR C&B | ID Petugas C&B, nomor seri kuitansi fisik, cap stempel faskes luar terverifikasi | 10 Tahun |
+| `AUDIT-DED-05` | *Manager Final Claim Authorized* | Otorisasi final oleh Manajer SDM | ID Manajer, nominal akhir disetujui, kanal pencairan terpilih (Payroll / Kasir) | 10 Tahun |
+| `AUDIT-DED-06` | *Cito Cashier Voucher Issued* | Penerbitan voucher kasir darurat 24/7 | Nomor voucher, ID Pegawai nakes, nominal tunai, hash token SHA-256, batas kedaluwarsa | 10 Tahun |
+| `AUDIT-DED-07` | *Cashier Physical Fund Disbursed* | Kasir menyerahkan dana tunai di loket | ID Kasir, nomor tanda terima kasir, waktu penyerahan, penguncian flag non-payroll | 10 Tahun |
+| `AUDIT-DED-08` | *Hard-Cap 50% Rule Enforced* | Pemangkasan tagihan karena mentok batas 50% | Nilai Gross Pay, plafon 50%, daftar tagihan terpotong vs terpotong parsial vs ditunda | 10 Tahun |
+| `AUDIT-DED-09` | *Deduction Deferred Carried Over*| Tagihan sisa ditunda ke bulan depan | ID Jadwal, ID Pegawai, nominal tertunda, nomor siklus bulan asal & tujuan | 10 Tahun |
+| `AUDIT-DED-10` | *Salary Past Correction Issued* | Kompensasi salah potong periode lampau dibuat | ID Slip Gaji lampau terdampak, nominal kompensasi, dasar justifikasi, otorisasi HR-Finance | 10 Tahun |
+| `AUDIT-DED-11` | *Separation Debt Fully Cleared* | Pelunasan pinjaman saat PHK/Resign | ID Pegawai, nomor slip penutupan (Final Payslip), total utang dilunasi dari pesangon | 10 Tahun |
+| `AUDIT-DED-12` | *Receivable Statement Issued* | Hak pesangon tidak cukup melunasi utang | Nilai selisih piutang tertunggak, nomor tagihan kasir, pencegahan sign-off Exit Clearance | 10 Tahun |
+
+
+---
+
+## 20. Matriks Hak Akses & Jejak Audit Sub-Modul 12 (Slice S-D3 Benefit Management)
+
+Bagian ini mendefinisikan matriks kewenangan hak akses berbasis peran (*Role-Based Access Control* - RBAC) dan spesifikasi rekaman jejak audit (*audit trail logging*) untuk seluruh operasi pada **Sub-Modul 12 (Benefit Management — Slice `S-D3`)**.
+
+---
+
+### 20.1 Matriks Butir Hak Akses (Access Permissions)
+
+| String Butir Hak Akses | Deskripsi Kewenangan Operasional | Peran Pengguna yang Berhak (Roles) |
+| :--- | :--- | :--- |
+| `[AccessPermission("HR_Benefit", "View")]` | Melihat ringkasan eksekutif dasbor analitik manfaat, rasio penyerapan plafon, dan status kepesertaan BPJS. | HR Director, HR Manager, HR Benefit Officer |
+| `[AccessPermission("HR_Benefit_Plan", "View")]` | Melihat katalog master paket manfaat 3-lapisan dan matriks kelayakan grade staf rumah sakit. | HR Benefit Officer, HR Specialist, Finance Manager |
+| `[AccessPermission("HR_Benefit_Plan", "Manage")]` | Membuat, mengedit pagu limit tahunan, persentase diskon tarif staf RS, atau tier kamar rawat inap. | HR Director, HR Manager |
+| `[AccessPermission("HR_Benefit_Enrollment", "View")]` | Melihat daftar kepesertaan asuransi seluruh pegawai rumah sakit beserta nomor BPJS dan masa berlakunya. | HR Benefit Officer, HR Supervisor |
+| `[AccessPermission("HR_Benefit_Enrollment", "Manage")]`| Mengaktifkan paket benefit lengkap pasca-lulus masa percobaan 3 bulan atau memperbarui nomor polis asuransi. | HR Benefit Officer, HR Manager |
+| `[AccessPermission("HR_Benefit_Dependent", "Verify")]` | Memeriksa keabsahan berkas fisik scan KK/Akta tanggungan keluarga dan menetapkan status persetujuan verifikasi. | HR Benefit Officer |
+| `[AccessPermission("HR_Benefit_InHouse", "View")]` | Membaca histori buku besar mutasi saldo subsidi plafon berobat di RS Quilvian sendiri per pegawai. | HR Benefit Officer, Finance Officer |
+| `[AccessPermission("HR_Benefit_InHouse", "Adjust")]` | Melakukan koreksi/penyesuaian manual saldo plafon nakes atas pembatalan tindakan medis di SIMRS. | HR Director, HR Manager |
+| `[AccessPermission("HR_Benefit_Claim", "View")]` | Melihat antrean transaksi pengajuan klaim penjamin sekunder (COB) berlampiran SEP BPJS. | HR Benefit Officer, Finance AR Officer |
+| `[AccessPermission("HR_Benefit_Claim", "Settle")]` | Menyetujui dan mengonfirmasi penyelesaian transfer santunan klaim sekunder serta mendelegasikan ekses ke payroll. | HR Manager, Finance Disbursement |
+| `[AccessPermission("ESS_Benefit", "ViewSelf")]` | Pegawai melihat kepesertaan paket benefit sendiri, sisa plafon berobat RS, dan status kartu BPJS. | Seluruh Pegawai Aktif (Employee Self-Service) |
+| `[AccessPermission("ESS_Benefit", "ManageFamily")]` | Pegawai mendaftarkan pasangan sah atau anak berlampiran berkas KK/akta di portal ESS. | Seluruh Pegawai Aktif (Employee Self-Service) |
+| `[AccessPermission("ESS_Benefit", "SubmitClaim")]` | Pegawai mengajukan klaim koordinasi manfaat (COB) atas biaya perawatan medis berlampiran nomor SEP. | Seluruh Pegawai Aktif (Employee Self-Service) |
+| `[AccessPermission("SIMRS_Integration", "Inquiry")]` | Petugas loket pendaftaran/admisi SIMRS mengecek eligibilitas hak subsidi dan sisa plafon staf/keluarga. | Sistem SIMRS Admission Service Account |
+| `[AccessPermission("SIMRS_Integration", "Deduct")]` | Petugas kasir SIMRS memotong saldo plafon nakes secara otomatis saat billing pasien ditutup. | Sistem SIMRS Cashier Service Account |
+
+---
+
+### 20.2 Matriks Jejak Audit (Audit Trail Events)
+
+Seluruh perubahan status, verifikasi dokumen, pengurangan saldo buku besar, dan persetujuan klaim dicatat ke tabel jejak audit sistem dengan struktur data payload terenkripsi.
+
+| Kode Event Audit | Tingkat Keparahan | Pemicu (Trigger) | Data Kunci yang Direkam (Audit Payload) |
+| :--- | :---: | :--- | :--- |
+| `HRD_BENEFIT_PLAN_CREATED` | `Normal` | Pembuatan master paket manfaat baru | `PlanCode`, `PlanName`, `Category`, `AnnualLimit`, `CreatedBy`, `Timestamp` |
+| `HRD_BENEFIT_PLAN_UPDATED` | `Warning` | Perubahan limit tahunan / % diskon RS | `PlanCode`, `OldLimit`, `NewLimit`, `OldDiscount`, `NewDiscount`, `UpdatedBy` |
+| `HRD_BENEFIT_PROBATION_ACTIVATED` | `Normal` | Aktivasi paket benefit pasca-probation | `EmployeeId`, `NIP`, `ProbationEvaluationId`, `EffectiveDate`, `ActivatedBy` |
+| `HRD_BENEFIT_POLICY_UPDATED` | `Normal` | Pengkinian nomor BPJS atau polis swasta | `EmployeeId`, `PolicyType`, `OldPolicyNumber`, `NewPolicyNumber`, `UpdatedBy` |
+| `HRD_BENEFIT_DEPENDENT_VERIFIED` | `Normal` | Persetujuan tanggungan keluarga ESS | `DependentId`, `NIK`, `Relationship`, `FamilyCardNumber`, `VerifiedBy` |
+| `HRD_BENEFIT_DEPENDENT_REJECTED` | `Warning` | Penolakan berkas tanggungan keluarga | `DependentId`, `NIK`, `RejectionReason`, `RejectedBy`, `Timestamp` |
+| `HRD_BENEFIT_INHOUSE_BALANCE_DEDUCTED` | `Critical`| Kasir SIMRS memotong saldo plafon nakes | `EmployeeId`, `SimrsRegNumber`, `DeductedAmount`, `BalanceBefore`, `BalanceAfter` |
+| `HRD_BENEFIT_INHOUSE_BALANCE_ADJUSTED` | `Critical`| Koreksi manual saldo plafon oleh HR Mgr | `EmployeeId`, `AdjustmentAmount`, `Reason`, `ReferenceNumber`, `AdjustedBy` |
+| `HRD_BENEFIT_COB_CLAIM_SUBMITTED` | `Normal` | Pegawai men-submit klaim COB di ESS | `ClaimNumber`, `EmployeeId`, `SepBpjsNumber`, `TotalBill`, `SecondaryClaimAmount` |
+| `HRD_BENEFIT_COB_CLAIM_SETTLED` | `Critical`| HR/Keuangan melunasi santunan klaim | `ClaimNumber`, `SettledAmount`, `ExcessAmount`, `SettlementRef`, `SettledBy` |
+| `HRD_BENEFIT_TERMINATED_EXIT_CLEARANCE` | `Critical`| Penonaktifan benefit saat resign/PHK | `EmployeeId`, `EffectiveTerminationDate`, `ExitClearanceId`, `TerminatedBy` |
+| `HRD_BENEFIT_YEAR_END_FORFEITED` | `Warning` | Sisa plafon hangus saat reset 1 Januari | `EmployeeId`, `Year`, `ForfeitedBalanceAmount`, `SystemResetTimestamp` |
+
+
+---
+
+## 21. Matriks Hak Akses & Jejak Audit Sub-Modul 13 (Slice S-D4 HR Service Management & Request — Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS)
+
+Bagian ini mendefinisikan seluruh string hak akses persis (*exact permission strings*) dan matriks jejak audit (*audit trail matrix*) untuk **Sub-Modul 13 (Slice `S-D4`)**, memastikan tata kelola layanan helpdesk SDM, otorisasi penerbitan dokumen resmi, proteksi kerahasiaan gaji, serta forensik pemutakhiran profil kepegawaian berjalan aman dan patuh regulasi.
+
+---
+
+### 21.1 Matriks Butir Hak Akses (Access Permissions)
+
+| Butir Hak Akses (Exact Permission String) | Deskripsi Fungsional & Batasan Akses | Role Pengguna yang Memiliki Hak |
+| :--- | :--- | :--- |
+| `[AccessPermission("HR_Service", "Access")]` | Hak membuka grup menu induk Layanan & Helpdesk SDM pada sidebar aplikasi. | HR Administrator, HR Specialist, HR Manager |
+| `[AccessPermission("HR_Service_Catalog", "View")]` | Melihat konfigurasi master kategori layanan, tipe layanan, target jam SLA, dan master template dokumen. | HR Administrator, HR Specialist, HR Manager |
+| `[AccessPermission("HR_Service_Catalog", "Manage")]` | Membuat dan mengedit kategori layanan, durasi SLA, token template dokumen dinamis, serta pola penomoran surat. | HR Administrator, HR Manager |
+| `[AccessPermission("HR_Service_Ticket", "View")]` | Melihat antrean tiket permohonan staf, memantau countdown timer SLA, dan membuka statistik helpdesk. | HR Administrator, HR Specialist, HR Manager |
+| `[AccessPermission("HR_Service_Ticket", "Assign")]` | Menugaskan atau mere-assign tiket dari antrean umum ke analis tertentu, atau mengambil alih tiket (*claim*). | HR Specialist, HR Supervisor, HR Manager |
+| `[AccessPermission("HR_Service_Ticket", "Process")]` | Memproses tiket, memeriksa berkas bukti, mengirim pesan klarifikasi, dan mengeksekusi penyelesaian tiket (*resolve*). | HR Specialist, HR Supervisor |
+| `[AccessPermission("HR_Document", "Issue")]` | Memeriksa draf surat resmi, mengesahkan penarikan gaji otomatis Sub-10, menerbitkan nomor surat seri gapless, dan stempel QR Code. | Supervisor Kompensasi & Benefit, Manajer SDM |
+| `[AccessPermission("HR_Document", "Revoke")]` | Mencabut keabsahan hukum dokumen resmi kepegawaian terbit dengan menginputkan Berita Acara Pemeriksaan (BAP). | Manajer SDM, Bagian Hukum / Legal Rumah Sakit |
+| `[AccessPermission("ESS_Service", "Access")]` | Hak membuka menu induk portal mandiri Layanan Kepegawaian di portal ESS. | Seluruh Staf Rumah Sakit Aktif (Medis & Non-Medis) |
+| `[AccessPermission("ESS_Service", "CreateRequest")]` | Mengajukan tiket permohonan mandiri, meminta surat resmi, membalas utas klarifikasi, dan melihat riwayat tiket sendiri. | Seluruh Staf Rumah Sakit Aktif (Medis & Non-Medis) |
+| `[AccessPermission("ESS_Document", "ViewMyArchive")]` | Mengakses menu "Dokumen Saya", mengunduh salinan PDF resmi, dan membuka 4-digit PIN rahasia surat finansial. | Seluruh Staf Rumah Sakit Aktif (Medis & Non-Medis) |
+
+---
+
+### 21.2 Matriks Jejak Audit (Audit Trail Events)
+
+Seluruh aktivitas pengajuan tiket, penugasan antrean, perubahan data profil, penerbitan surat ber-QR, pembukaan PIN gaji di portal publik, serta pencabutan keabsahan dokumen wajib direkam ke dalam log audit sistem yang tidak dapat diubah (*tamper-evident*).
+
+| Kode Event Audit | Tingkat Keparahan | Pemicu (Trigger) | Data Kunci yang Direkam (Audit Payload) |
+| :--- | :---: | :--- | :--- |
+| `HRS_TICKET_SUBMITTED` | `Normal` | Staf men-submit tiket di ESS | `TicketNumber`, `EmployeeId`, `ServiceTypeCode`, `PriorityTier`, `SlaDeadlineUtc`, `Timestamp` |
+| `HRS_TICKET_ASSIGNED` | `Normal` | Tiket ditugaskan ke analis HR | `TicketNumber`, `AssignedToUserId`, `AssignedByUserId`, `OldAssigneeUserId`, `Timestamp` |
+| `HRS_TICKET_CLARIFICATION_REQUESTED` | `Normal` | Analis meminta kelengkapan berkas | `TicketNumber`, `AuthorUserId`, `IsInternalNote`, `CommentTextLength`, `TimerPaused` |
+| `HRS_TICKET_RESOLVED` | `Normal` | Analis menyelesaikan tiket tuntas | `TicketNumber`, `ResolvedByUserId`, `ResolutionSummary`, `DurationMinutes`, `SlaResult` |
+| `HRS_PROFILE_CHANGE_AUTO_APPLIED` | `Critical`| Sistem mutasi data master Sub-02 | `TicketNumber`, `EmployeeId`, `ComponentModified`, `OldValuesSnapshot`, `NewValuesApplied` |
+| `HRS_DOCUMENT_DRAFT_GENERATED` | `Normal` | Pembuatan draf naskah dinas | `DocumentRequestId`, `DocumentTypeCode`, `EmployeeId`, `IsFinancialSensitive` |
+| `HRS_DOCUMENT_CB_APPROVED` | `Critical`| Supervisor C&B verifikasi gaji | `DocumentRequestId`, `EmployeeId`, `PayrollPayslipId`, `SalaryBruto`, `ApprovedByUserId` |
+| `HRS_DOCUMENT_ISSUED` | `Critical`| Pejabat sahkan surat & rilis QR | `OfficialDocumentNumber`, `VerificationHash`, `SignerUserId`, `ValidUntilDate`, `PinGenerated` |
+| `HRS_DOCUMENT_REVOKED` | `Critical`| Pencabutan keabsahan surat | `OfficialDocumentNumber`, `RevokedByUserId`, `RevocationBapNumber`, `RevocationReason` |
+| `HRS_PUBLIC_DOCUMENT_VERIFIED` | `Normal` | Pihak ketiga scan QR publik | `VerificationHash`, `OfficialDocumentNumber`, `RequestIpAddress`, `UserAgent`, `Timestamp` |
+| `HRS_PUBLIC_SALARY_PIN_REVEALED`| `Critical`| Pihak ketiga berhasil buka PIN | `VerificationHash`, `OfficialDocumentNumber`, `RequestIpAddress`, `PinAttemptCount`, `Timestamp` |
+| `HRS_SLA_BREACH_ESCALATED` | `Warning` | Tiket helpdesk melewati batas 100% | `TicketNumber`, `ServiceTypeCode`, `AssignedToUserId`, `OverdueMinutes`, `EscalatedToManager` |
+
+
+---
+
+## 22. Matriks Hak Akses & Jejak Audit Sub-Modul 14 (Slice `S-C1` Credentialing, License & Clinical Privilege)
+
+Bagian ini mendefinisikan seluruh string otorisasi berbasis wewenang (*role-based access control* - RBAC) dan jejak audit (*audit trail*) untuk **Sub-Modul 14 (Slice `S-C1`)**, guna menjamin pemisahan kewenangan klinis yang ketat (*clinical governance*), perlindungan integritas dokumen lisensi STR/SIP, kerahasiaan rekam jejak penilaian Mitra Bestari (*Peer Review*), otorisasi tunggal Direktur Utama RS, serta transparansi insiden bypass darurat keselamatan pasien di SIMRS.
+
+---
+
+### 22.1 Matriks Butir Hak Akses (Access Permissions)
+
+| Butir Hak Akses (Exact Permission String) | Deskripsi Fungsional & Batasan Akses | Role Pengguna yang Memiliki Hak |
+| :--- | :--- | :--- |
+| `[AccessPermission("Credential_Governance", "Access")]` | Hak membuka grup menu induk Kredensialing & Tata Kelola Profesi Rumah Sakit. | Direktur Utama, Direktur Medis, Ketua Komite Medik/Keperawatan/Nakes, Staf Kredensialing |
+| `[AccessPermission("Credential_Application", "Create")]` | Hak mengajukan berkas kredensial baru, mengunggah portofolio, dan checklist whitebook via portal ESS. | Tenaga Medis, Dokter Spesialis, Perawat Klinis, Bidan, Nakes Lainnya |
+| `[AccessPermission("Credential_Application", "View")]` | Melihat daftar berkas permohonan kredensial dan rincian portofolio pemohon. | Pengurus Komite Profesi, Staf Sekretariat Kredensialing |
+| `[AccessPermission("Credential_Verification", "Execute")]` | Menjalankan audit verifikasi sumber primer (PSV) ke database KKI / SatuSehat SDMK Kemenkes. | Staf Sekretariat Kredensialing, Subkomite Kredensial |
+| `[AccessPermission("Credential_License", "View")]` | Melihat daftar dokumen STR seumur hidup, SIP 5 tahun, dan radar pantauan kedaluwarsa izin. | Staf Kredensialing, HR Specialist, Kepala Bidang Pelayanan |
+| `[AccessPermission("Peer_Review", "Assess")]` | Menilai kesesuaian logbook portofolio, menentukan derajat wewenang tindakan, dan submit rekomendasi. | Dokter/Nakes yang Ditunjuk Sebagai Anggota Panel Mitra Bestari |
+| `[AccessPermission("Committee_Review", "Assign")]` | Menetapkan anggota panel Mitra Bestari sebidang untuk menilai berkas permohonan klinis. | Ketua Subkomite Kredensial Komite Terkait |
+| `[AccessPermission("Committee_Review", "Approve")]` | Mengesahkan hasil sidang pleno komite dan menerbitkan surat usulan resmi Ketua Komite ke Direksi. | Ketua Komite Medik, Ketua Komite Keperawatan, Ketua Komite Nakes Lain |
+| `[AccessPermission("Spk_Rkk", "ParafDirector")]` | Memberikan paraf telaah manajerial dan kesesuaian operasional layanan rumah sakit. | Direktur Pelayanan Medik, Direktur Keperawatan |
+| `[AccessPermission("Spk_Rkk", "SignDirector")]` | Otorisasi pengesahan tunggal dan penandatanganan elektronik (e-Sign) SPK & lampiran RKK sah. | Direktur Utama Rumah Sakit |
+| `[AccessPermission("Clinical_Privilege", "CoSign")]` | Memberikan persetujuan digital (*co-signature*) atas order tindakan medis di bawah supervisi Level 3. | Dokter Supervisor Senior yang Ditunjuk dalam SPK |
+| `[AccessPermission("Clinical_Privilege", "EmergencyOverride")]` | Menjalankan tombol bypass darurat penyelamatan nyawa di SIMRS/EMR dengan input alasan klinis cito. | Dokter Spesialis IGD/ICU/OK yang Sedang Bertugas Dinas |
+| `[AccessPermission("Kmkp_Audit", "Decide")]` | Melakukan audit telaah keselamatan pasien dan menjatuhkan putusan sidang terhadap kejadian override darurat. | Ketua Komite Mutu & Keselamatan Pasien (KMKP), Komite Medik |
+| `[AccessPermission("FastTrack_Privilege", "Grant")]` | Menerbitkan kewenangan sementara dokter tamu atau kewenangan darurat cito bencana massal. | Direktur Pelayanan Medik, Direktur Utama RS |
+
+---
+
+### 22.2 Matriks Jejak Audit (Audit Trail Events)
+
+| Nama Event Audit | Pemicu (Trigger) & Sumber Aksi | Data Kritis yang Direkam dalam Log | Tingkat Risiko |
+| :--- | :--- | :--- | :---: |
+| `CredentialApplicationSubmitted` | Nakes men-submit berkas kredensial via ESS | `ApplicationId`, `WorkforceId`, `CommitteeId`, `TargetLevel`, `Timestamp`, `IPAddress` | Rendah |
+| `PrimarySourceVerificationCompleted` | Petugas mencatat hasil verifikasi PSV STR/SIP | `LicenseId`, `PsvSourceUrl`, `PsvResult`, `PsvVerifiedBy`, `VerificationNotes`, `Timestamp` | Tinggi |
+| `PeerReviewAssessmentSubmitted` | Reviewer Mitra Bestari menyerahkan rekomendasi | `AssessmentId`, `PeerReviewerId`, `PrivilegeCatalogId`, `RecommendedLevel`, `SignatureHash` | Kritis |
+| `CommitteePlenaryFinalized` | Ketua Komite mengesahkan risalah sidang pleno | `CommitteeReviewId`, `CommitteeCode`, `ChairmanId`, `TotalApprovedPrivileges`, `Timestamp` | Kritis |
+| `SpkRkkSignedByDirector` | Direktur Utama menandatangani SPK & RKK sah | `SpkIssuanceId`, `SpkNumber`, `DirectorId`, `DigitalSignatureHash`, `EffectiveDates`, `QrToken` | Kritis |
+| `ClinicalGateValidated` | SIMRS EMR memvalidasi wewenang tindakan klinis | `DoctorId`, `ProcedureCode`, `UnitId`, `Verdict` (`ALLOW_INDEPENDENT` / `DENIED`), `LatencyMs` | Sedang |
+| `SupervisedOrderCoSigned` | Dokter supervisor menyetujui order tindakan Level 3 | `OrderId`, `SupervisorDoctorId`, `CandidateDoctorId`, `ProcedureCode`, `CoSignedAt` | Tinggi |
+| `LifeSavingEmergencyOverrideTriggered` | Dokter menekan tombol bypass darurat cito EMR | `OverrideLogId`, `DoctorId`, `PatientEpisodeId`, `ActionAttempted`, `EmergencyJustification`, `IP` | Fatal |
+| `EmergencyOverrideKmkpAudited` | KMKP mencatat vonis audit telaah bypass darurat | `OverrideLogId`, `KmkpAuditorId`, `AuditVerdict`, `AuditNotes`, `Timestamp` | Kritis |
+| `TemporaryPrivilegeGranted` | Direksi menerbitkan kewenangan dokter konsultan tamu | `IssuanceId`, `GuestDoctorId`, `HomeFacility`, `DurationDays`, `SupervisorId`, `ApprovedBy` | Tinggi |
+| `EmergencyPrivilegeGranted` | Direktur Medis mengotorisasi kewenangan bencana cito | `IssuanceId`, `VolunteerDoctorId`, `DisasterEventCode`, `ExpiryHours`, `ApprovedBy` | Kritis |
+| `ClinicalPrivilegeSuspended` | Sistem menangguhkan wewenang akibat SIP/SPK mati | `PrivilegeId`, `DoctorId`, `TriggerSource` (`SIP_EXPIRED` / `SPK_3YR_EXPIRED`), `Timestamp` | Fatal |
+| `ClinicalPrivilegeRevoked` | Direktur Utama mencabut SPK akibat pelanggaran etik | `PrivilegeId`, `DoctorId`, `RevocationBapUrl`, `RevokedByDirectorId`, `Reason`, `Timestamp` | Fatal |
+| `SipExpirationRadarAlertSent` | Scheduler mengirimkan alert sisa masa berlaku SIP | `LicenseId`, `DoctorId`, `DaysRemaining` (90/60/30/7), `DeliveryChannels`, `Timestamp` | Rendah |

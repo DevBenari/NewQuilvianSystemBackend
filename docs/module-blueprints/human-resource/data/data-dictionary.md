@@ -3630,3 +3630,683 @@ Kamus data ini mendokumentasikan skema tabel, kolom, tipe data, nullability, ind
 | `bpjs_tk_jp_cap_amount`| `NUMERIC(18,2)`| Tidak | - | - | Tidak | Plafon maksimal dasar Jaminan Pensiun |
 | `is_pin_secondary_auth_required`| `BOOLEAN`| Tidak | - | - | Tidak | Penegakan wajib PIN pada ESS (default true) |
 | `is_active` | `BOOLEAN` | Tidak | - | - | Tidak | Status keaktifan parameter |
+
+## 16. Bagian `S-B6` — Kamus Data Restitusi & Pemotongan Penggajian Pegawai Rumah Sakit (Sub-modul 11, `last_changed_in` `v15`, 5 November 2026)
+
+Bagian ini mendefinisikan kamus data terperinci untuk 6 entitas tabel baru yang mengelola **Sub-modul 11 (Restitution & Payroll Deduction Integration — Slice `S-B6`)**, mencakup penegakan integritas data, relasi kunci, validasi bisnis batas 50% PP 36/2021, serta penandaan kolom sensitif.
+
+---
+
+### 16.1 Tabel `public.hrd_restitution_settings` (Status: BARU)
+
+Tabel master pengaturan kebijakan plafon tahunan penggantian biaya (kacamata kerja, faskes luar, dinas darurat) per golongan serta batas maksimal pemotongan upah tenaga kerja.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik konfigurasi pengaturan kebijakan |
+| `grade_level_code` | `VARCHAR(50)` | No | - | FK / UQ1 | Tidak | Kode golongan/tingkat pegawai (`GRADE-I`, `GRADE-II`, dll.) atau `GRADE-ALL` |
+| `benefit_category` | `VARCHAR(100)` | No | - | UQ1 | Tidak | Kategori manfaat: `KacamataKerja`, `FaskesLuarDarurat`, `DinasCitoMedis`, `KebijakanUmumPemotongan` |
+| `annual_limit_amount` | `NUMERIC(15,2)` | No | `0.00` | - | Tidak | Batas maksimal rupiah yang dapat diklaim pegawai dalam satu tahun takwim |
+| `minimum_service_months_required`| `INT` | No | `0` | - | Tidak | Syarat masa kerja minimal (dalam bulan) agar pegawai berhak atas manfaat |
+| `max_deduction_percentage_of_gross`| `NUMERIC(5,2)` | No | `50.00` | - | Tidak | Batas maksimal persentase potongan upah kotor non-regulasi (Hard-Cap 50% PP 36/2021) |
+| `allow_emergency_cito_cashier` | `BOOLEAN` | No | `FALSE` | - | Tidak | Penanda apakah kategori ini boleh dicairkan darurat via loket Kasir RS 24/7 |
+| `is_active` | `BOOLEAN` | No | `TRUE` | - | Tidak | Status keaktifan kebijakan konfigurasi |
+
+---
+
+### 16.2 Tabel `public.trx_employee_restitution_claims` (Status: BARU)
+
+Tabel transaksi pengajuan klaim restitusi mandiri staf rumah sakit melalui portal ESS berlampiran dokumen struk kuitansi asli dan riwayat audit persetujuan bertingkat.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik klaim restitusi |
+| `claim_number` | `VARCHAR(100)` | No | - | UQ | Tidak | Nomor resmi berkas klaim (Format: `CLM-REST/YYYYMM/NNNN`) |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID pegawai pemohon klaim (merujuk ke `public.m_employees(id)`) |
+| `claim_category` | `VARCHAR(100)` | No | - | - | Tidak | Kategori klaim: `KacamataKerja`, `FaskesLuarDarurat`, `DinasCitoMedis` |
+| `expense_date` | `DATE` | No | - | IDX1 | Tidak | Tanggal pengeluaran pada kuitansi asli (maksimal 60 hari kalender lampau) |
+| `claim_amount` | `NUMERIC(15,2)` | No | - | - | Ya | Nominal total biaya yang diajukan oleh pegawai |
+| `approved_amount` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Nominal yang disetujui HR C&B setelah dipotong sisa kuota plafon |
+| `receipt_attachment_url` | `TEXT` | No | - | - | Ya | Tautan URL penyimpanan berkas pindaian/foto kuitansi asli |
+| `medical_resume_attachment_url` | `TEXT` | Yes | `NULL` | - | Ya (Medis) | Tautan URL resume medis dokter / resep kacamata (Data Medis Sensitif) |
+| `claim_status` | `VARCHAR(50)` | No | `'Draft'` | IDX2 | Tidak | Status siklus klaim: `Draft`, `Submitted`, `SupervisorApproved`, `HrReviewed`, `Approved`, `Rejected`, `QueuedForPayroll`, `ProcessedInPayroll`, `VoucherIssued`, `DisbursedViaCashier`, `Closed` |
+| `reason_notes` | `TEXT` | No | - | - | Tidak | Uraian keperluan pengeluaran klaim |
+| `rejection_reason` | `TEXT` | Yes | `NULL` | - | Tidak | Alasan tertulis apabila klaim ditolak pada salah satu tahap verifikasi |
+| `supervisor_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID atasan langsung pemohon yang menyetujui tahap 1 (Anti-Self-Approval) |
+| `supervisor_approved_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu stempel persetujuan atasan langsung |
+| `hr_reviewer_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID petugas HR C&B yang memverifikasi keabsahan kuitansi fisik |
+| `hr_reviewed_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu stempel verifikasi HR C&B |
+| `final_approver_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID Manajer SDM / Direktur yang memberikan otorisasi akhir |
+| `final_approved_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu stempel otorisasi akhir |
+| `is_cito_emergency` | `BOOLEAN` | No | `FALSE` | - | Tidak | Penanda darurat medis nakes (jalur cepat pencairan kasir 24/7) |
+
+---
+
+### 16.3 Tabel `public.trx_payroll_restitutions` (Status: BARU)
+
+Tabel penampung komponen penyesuaian restitusi yang diinjeksikan ke siklus penggajian bulanan, mencakup pencairan klaim yang disetujui maupun kompensasi koreksi salah potong periode lampau (`PAY-B6`).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik catatan restitusi payroll |
+| `restitution_number` | `VARCHAR(100)` | No | - | UQ | Tidak | Nomor registrasi restitusi payroll (Format: `RST-PAY/YYYYMM/NNNN`) |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID pegawai penerima restitusi (merujuk ke `public.m_employees(id)`) |
+| `claim_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID klaim asal pada `trx_employee_restitution_claims` (bila dari klaim ESS) |
+| `restitution_type` | `VARCHAR(50)` | No | - | - | Tidak | Jenis restitusi: `BenefitReimbursement` atau `SalaryAdjustmentCorrection` (`HRD-DEC-131`) |
+| `amount` | `NUMERIC(15,2)` | No | - | - | Ya | Nominal uang yang dikembalikan ke pegawai pada slip gaji |
+| `affected_payroll_run_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID siklus penggajian masa lalu yang mengalami kesalahan pemotongan (Immutable Audit Link) |
+| `affected_payslip_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID slip gaji masa lalu yang salah dipotong |
+| `target_payroll_run_id` | `UUID` | Yes | `NULL` | FK, IDX2 | Tidak | ID siklus penggajian aktif berjalan tempat dana dikembalikan |
+| `status` | `VARCHAR(50)` | No | `'PendingApproval'`| - | Tidak | Status komponen: `PendingApproval`, `Approved`, `IncludedInPayroll`, `Cancelled` |
+| `justification` | `TEXT` | No | - | - | Tidak | Penjelasan audit dan dasar hukum pengembalian uang |
+| `approved_by_user_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID pejabat otorisasi pengembalian dana |
+| `approved_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu stempel persetujuan pengembalian dana |
+
+---
+
+### 16.4 Tabel `public.trx_payroll_deduction_schedules` (Status: BARU)
+
+Tabel master jadwal pemotongan angsuran cicilan pinjaman/kasbon dan piutang staf yang disinkronisasikan dari Departemen Keuangan (*Finance Handoff*).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik jadwal angsuran |
+| `schedule_number` | `VARCHAR(100)` | No | - | UQ | Tidak | Nomor registrasi jadwal cicilan (Format: `DED-SCH/YYYYMM/NNNN`) |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID pegawai yang memiliki kewajiban cicilan |
+| `deduction_category` | `VARCHAR(100)` | No | - | - | Tidak | Kategori potongan: `GantiRugiAsetKasir`, `KasbonPinjamanRS`, `CicilanKoperasi`, `IuranPaguyuban` |
+| `priority_level` | `INT` | No | - | IDX1 | Tidak | Tingkat prioritas eksekusi berjenjang: 1 (Tertinggi) s.d. 4 (Terendah) (`HRD-DEC-128`) |
+| `external_reference_id` | `VARCHAR(100)` | Yes | `NULL` | IDX2 | Tidak | Nomor registrasi piutang/kontrak pinjaman pada modul Finance (Finance AR Code) |
+| `total_loan_principal` | `NUMERIC(15,2)` | No | - | - | Ya | Total pokok pinjaman/ganti rugi yang wajib dilunasi |
+| `monthly_installment_amount`| `NUMERIC(15,2)` | No | - | - | Ya | Besaran nilai angsuran normal per bulan |
+| `total_installment_months` | `INT` | No | `1` | - | Tidak | Total jangka waktu cicilan (tenor dalam satuan bulan) |
+| `paid_installment_count` | `INT` | No | `0` | - | Tidak | Jumlah bulan angsuran yang telah berhasil dipotong |
+| `remaining_principal` | `NUMERIC(15,2)` | No | - | - | Ya | Sisa pokok pinjaman yang belum lunas |
+| `start_date` | `DATE` | No | - | - | Tidak | Tanggal mulai diberlakukannya pemotongan cicilan |
+| `end_date` | `DATE` | Yes | `NULL` | - | Tidak | Perkiraan tanggal selesai/lunas |
+| `schedule_status` | `VARCHAR(50)` | No | `'Active'` | - | Tidak | Status jadwal: `Active`, `Paused`, `Completed`, `Cancelled`, `ClearedAtSeparation` |
+| `auto_carry_over_on_cap_exceeded`| `BOOLEAN` | No | `TRUE` | - | Tidak | Penanda apakah sisa tagihan otomatis ditunda ke bulan depan jika mentok batas 50% |
+
+---
+
+### 16.5 Tabel `public.trx_payroll_deduction_items` (Status: BARU)
+
+Tabel rincian eksekusi pemotongan gaji per siklus penggajian bulanan yang mencatat nilai terjadwal, nilai terpotong aktual, dan nilai yang ditunda akibat pembatasan regulasi.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik baris eksekusi pemotongan |
+| `payroll_run_id` | `UUID` | No | - | FK, UQ1 | Tidak | ID siklus penggajian bulanan terkait (merujuk ke `trx_payroll_runs(id)`) |
+| `deduction_schedule_id`| `UUID` | No | - | FK, UQ1 | Tidak | ID jadwal cicilan terkait (merujuk ke `trx_payroll_deduction_schedules(id)`) |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID pegawai yang dipotong gajinya |
+| `deduction_category` | `VARCHAR(100)` | No | - | - | Tidak | Salinan kategori pemotongan untuk keperluan reporting cepat |
+| `priority_level` | `INT` | No | - | - | Tidak | Salinan tingkat prioritas eksekusi (1 s.d. 4) |
+| `scheduled_amount` | `NUMERIC(15,2)` | No | - | - | Ya | Nominal angsuran yang seharusnya ditagihkan pada periode ini |
+| `actual_deducted_amount`| `NUMERIC(15,2)`| No | `0.00` | - | Ya | Nominal yang berhasil dipotong secara sah pada slip gaji berjalan |
+| `deferred_amount` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Nominal yang ditunda (*carry-over*) karena membentur batas 50% upah kotor |
+| `execution_status` | `VARCHAR(50)` | No | `'Pending'`| - | Tidak | Status eksekusi: `Pending`, `DeductedInFull`, `PartiallyDeducted`, `DeferredDueToSalaryCap`, `Cancelled` |
+| `deferral_reason` | `TEXT` | Yes | `NULL` | - | Tidak | Keterangan sistem mengapa terjadi pemotongan parsial atau penundaan penuh |
+| `executed_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu stempel eksekusi perhitungan oleh mesin penggajian |
+
+---
+
+### 16.6 Tabel `public.trx_cashier_disbursement_vouchers` (Status: BARU)
+
+Tabel voucher pengeluaran kas elektronik untuk pencairan tunai di loket Kasir RS 24/7 bagi staf medis yang mengalami kondisi darurat kecelakaan kerja okupasional (*Cito Emergency*).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik voucher kasir |
+| `voucher_number` | `VARCHAR(100)` | No | - | UQ | Tidak | Nomor seri voucher elektronik (Format: `VCH-CSH/YYYYMM/NNNN`) |
+| `claim_id` | `UUID` | No | - | FK | Tidak | ID klaim restitusi terkait (merujuk ke `trx_employee_restitution_claims(id)`) |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID staf nakes penerima dana tunai |
+| `voucher_amount` | `NUMERIC(15,2)` | No | - | - | Ya | Besaran nominal uang tunai yang wajib diserahkan kasir |
+| `security_token_hash`| `VARCHAR(256)` | No | - | - | Ya (Token) | Nilai hash SHA-256 dari token otorisasi satu kali pakai (OTP) |
+| `issued_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu penerbitan voucher elektronik |
+| `expired_at` | `TIMESTAMPTZ` | No | - | IDX2 | Tidak | Waktu kedaluwarsa voucher (tepat 48 jam sejak `issued_at`) |
+| `voucher_status` | `VARCHAR(50)` | No | `'Issued'` | IDX2 | Tidak | Status voucher: `Issued`, `ClaimedAtCashier`, `DisbursedViaCashier`, `Expired`, `Cancelled` |
+| `cashed_by_user_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID user petugas kasir yang menyerahkan uang tunai |
+| `cashed_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu kasir memvalidasi sistem dan menyerahkan uang |
+| `cashier_receipt_number`| `VARCHAR(100)`| Yes | `NULL` | - | Tidak | Nomor bukti tanda terima kasir cetak fisik |
+| `notes` | `TEXT` | Yes | `NULL` | - | Tidak | Catatan operasional kasir atau keterangan insiden |
+
+
+---
+
+## 17. Kamus Data Sub-Modul 12 (Slice S-D3 Benefit Management — Manajemen Manfaat, Asuransi BPJS & Tanggungan Pegawai Rumah Sakit)
+
+Bagian ini mendokumentasikan spesifikasi kamus data teknis untuk 7 entitas baru pada **Sub-Modul 12 (Benefit Management — Slice `S-D3`)**, mencakup struktur kolom, tipe data, relasi kunci, indeks performa, penanda sensitivitas privasi, serta aturan validasi database. Sepuluh kolom standar warisan `IdentityModel` (`id`, `created_by`, `created_at`, `updated_by`, `updated_at`, `is_deleted`, `deleted_by`, `deleted_at`, `tenant_id`, `version`) berlaku untuk seluruh tabel berstatus `Baru` di bawah ini.
+
+---
+
+### 17.1 Tabel `mst_benefit_plans` (Master Paket Manfaat Rumah Sakit)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `BenefitManagement` (HRD)
+- **Deskripsi:** Master katalog paket manfaat berjenjang 3-lapisan (Regulasi BPJS wajib, Asuransi Swasta Tambahan per grade, dan Subsidi Berobat Internal di RS Quilvian sendiri sesuai `HRD-DEC-134`).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik paket manfaat |
+| `plan_code` | `VARCHAR(50)` | No | - | UQ | Tidak | Kode unik paket manfaat (contoh: `BEN-BPJS-STD`, `BEN-PVT-EXEC`) |
+| `plan_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama deskriptif paket manfaat |
+| `benefit_category` | `VARCHAR(50)` | No | - | IDX1 | Tidak | Kategori: `BPJS_Mandatory`, `Private_Insurance`, `InHouse_HospitalCare` |
+| `coverage_tier` | `VARCHAR(50)` | No | - | - | Tidak | Tier perlindungan: `Basic`, `Silver`, `Gold`, `Platinum`, `Executive` |
+| `annual_limit_amount` | `NUMERIC(15,2)` | No | `0.00` | - | Tidak | Pagu plafon anggaran tahunan per orang (Rupiah); 0 jika tak terbatas |
+| `hospital_discount_percentage`| `NUMERIC(5,2)` | No | `0.00` | - | Tidak | Persentase diskon pelayanan di RS Quilvian sendiri (0.00% s.d. 100.00%) |
+| `requires_bpjs_primary_cob` | `BOOLEAN` | No | `true` | - | Tidak | Wajib COB primer BPJS Kesehatan ber-SEP sebelum klaim sekunder |
+| `minimum_service_months` | `INT` | No | `3` | - | Tidak | Masa tunggu aktivasi (bulan); 0 untuk BPJS TK, 3 untuk asuransi swasta/RS |
+| `is_active` | `BOOLEAN` | No | `true` | IDX2 | Tidak | Penanda keaktifan paket manfaat |
+
+---
+
+### 17.2 Tabel `hrd_benefit_grade_eligibilities` (Matriks Kelayakan Paket per Grade)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `BenefitManagement` (HRD)
+- **Deskripsi:** Matriks pemetaan kelayakan paket manfaat berdasarkan golongan/grade kepegawaian dan tipe ikatan kerja (PKWT/PKWTT).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik aturan kelayakan |
+| `benefit_plan_id` | `UUID` | No | - | FK, UQ1 | Tidak | ID paket manfaat terkait (merujuk ke `mst_benefit_plans(id)`) |
+| `grade_level_code` | `VARCHAR(50)` | No | - | UQ1, IDX1 | Tidak | Kode golongan/grade staf (contoh: `GR-01`, `GR-MED-SP`, `GR-DIR`) |
+| `employment_type_code` | `VARCHAR(50)`| No | - | UQ1 | Tidak | Status ikatan kerja: `Permanent` (PKWTT), `Contract` (PKWT) |
+| `specific_annual_limit`| `NUMERIC(15,2)`| Yes | `NULL` | - | Tidak | Nominal plafon khusus per grade (override limit standar paket jika terisi) |
+| `inpatient_room_class` | `VARCHAR(50)` | No | - | - | Tidak | Hak kelas kamar rawat inap: `Kelas 2`, `Kelas 1`, `VIP`, `VVIP` |
+| `is_active` | `BOOLEAN` | No | `true` | - | Tidak | Penanda keaktifan aturan eligibilitas |
+
+---
+
+### 17.3 Tabel `trx_employee_insurance_enrollments` (Kepesertaan Asuransi Pegawai)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `BenefitManagement` (HRD)
+- **Deskripsi:** Pendaftaran kepesertaan asuransi pegawai rumah sakit, menyimpan nomor kartu BPJS dan polis swasta serta siklus aktivasi bertahap.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik kepesertaan asuransi |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID staf nakes terkait (merujuk ke `mst_workforce_profiles(id)`) |
+| `benefit_plan_id` | `UUID` | No | - | FK | Tidak | ID paket manfaat yang diikuti (merujuk ke `mst_benefit_plans(id)`) |
+| `bpjs_kesehatan_number` | `VARCHAR(50)` | Yes | `NULL` | IDX2 | Ya (BPJS) | Nomor kartu BPJS Kesehatan (13 digit angka) |
+| `bpjs_ketenagakerjaan_number`| `VARCHAR(50)`| Yes | `NULL` | IDX3 | Ya (BPJS) | Nomor kartu BPJS Ketenagakerjaan (11 digit angka) |
+| `private_insurance_policy_number`|`VARCHAR(100)`| Yes | `NULL` | - | Ya | Nomor polis asuransi komersial tambahan perorangan |
+| `private_insurance_provider_name`|`VARCHAR(150)`| Yes | `NULL` | - | Tidak | Nama perusahaan asuransi mitra (misal: Mandiri Inhealth, Prudential) |
+| `enrollment_status` | `VARCHAR(50)` | No | `'Draft'` | IDX1 | Tidak | Status: `Draft`, `PendingActivation`, `Active`, `Suspended`, `Terminated` |
+| `effective_date` | `TIMESTAMPTZ` | No | - | - | Tidak | Tanggal mulai berlakunya hak benefit |
+| `expiry_date` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Tanggal akhir polis asuransi tahunan |
+| `termination_date` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Tanggal efektif penonaktifan benefit akibat resign/PHK |
+| `termination_reason` | `VARCHAR(255)` | Yes | `NULL` | - | Tidak | Alasan penonaktifan (Resigned, ContractEnd, Dismissed, Deceased) |
+
+---
+
+### 17.4 Tabel `trx_employee_benefit_dependents` (Tanggungan Keluarga Inti Sah)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `BenefitManagement` (HRD)
+- **Deskripsi:** Menyimpan data anggota keluarga inti sah pegawai (maksimal 1 pasangan + 3 anak) beserta riwayat verifikasi dokumen kependudukan.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik tanggungan keluarga |
+| `employee_enrollment_id` | `UUID` | No | - | FK, IDX1 | Tidak | ID enrollment asuransi staf terkait |
+| `dependent_name` | `VARCHAR(150)` | No | - | - | Ya | Nama lengkap tanggungan sesuai Kartu Keluarga |
+| `national_id_number` | `VARCHAR(16)` | No | - | IDX2 | Ya (NIK) | NIK KTP/KIA 16 digit angka valid |
+| `relationship_type` | `VARCHAR(50)` | No | - | - | Tidak | Jenis hubungan: `Spouse` (Pasangan Sah), `Child` (Anak Kandung/Adopsi) |
+| `birth_date` | `DATE` | No | - | - | Ya | Tanggal lahir tanggungan |
+| `gender` | `VARCHAR(10)` | No | - | - | Tidak | Jenis kelamin: `Male`, `Female` |
+| `family_card_number` | `VARCHAR(16)` | No | - | - | Ya (KK) | Nomor Kartu Keluarga (16 digit angka) |
+| `is_active_student` | `BOOLEAN` | No | `false` | - | Tidak | Penanda anak kuliah aktif usia 21-25 tahun |
+| `student_verification_letter_path`| `VARCHAR(255)`| Yes | `NULL` | - | Tidak | Lokasi berkas surat keterangan aktif kuliah dekanat kampus |
+| `student_verification_expiry_date`| `DATE` | Yes | `NULL` | IDX3 | Tidak | Tanggal kedaluwarsa surat kuliah (default 31 Agustus tahun ajaran) |
+| `verification_status` | `VARCHAR(50)` | No | `'Draft'` | - | Tidak | Status: `Draft`, `Submitted`, `Verified`, `Rejected`, `ExpiredAgeLimit` |
+| `verified_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu persetujuan verifikasi oleh HR Benefit Officer |
+| `verified_by_user_id` | `UUID` | Yes | `NULL` | FK | Tidak | ID user petugas HR yang memverifikasi dokumen fisik |
+| `rejection_reason` | `TEXT` | Yes | `NULL` | - | Tidak | Alasan penolakan berkas (jika status `Rejected`) |
+| `is_active` | `BOOLEAN` | No | `true` | - | Tidak | Penanda status aktif tanggungan |
+
+---
+
+### 17.5 Tabel `hrd_benefit_balance_movements` (Buku Besar Mutasi Saldo Subsidi Berobat RS)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `BenefitManagement` (HRD)
+- **Deskripsi:** Buku besar double-entry pencatatan mutasi saldo subsidi plafon berobat di RS Quilvian sendiri, menjamin integritas saldo tidak pernah negatif.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik mutasi buku besar |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID staf nakes pemilik plafon subsidi |
+| `benefit_plan_id` | `UUID` | No | - | FK | Tidak | ID paket subsidi berobat RS |
+| `movement_type` | `VARCHAR(50)` | No | - | IDX2 | Tidak | Tipe: `AnnualAllocation`, `HospitalCareUsage`, `ManualAdjustment`, `YearEndExpiryReset` |
+| `movement_amount` | `NUMERIC(15,2)` | No | - | - | Ya | Besaran nominal mutasi (Positif = Penambahan, Negatif = Pemakaian) |
+| `balance_before` | `NUMERIC(15,2)` | No | - | - | Ya | Saldo plafon berjalan sebelum transaksi |
+| `balance_after` | `NUMERIC(15,2)` | No | - | - | Ya | Saldo plafon berjalan setelah transaksi (Wajib `>= 0.00`) |
+| `reference_number` | `VARCHAR(100)` | No | - | IDX3 | Tidak | Nomor referensi transaksi (No. Registrasi SIMRS, No. SK Plafon Tahunan) |
+| `description` | `TEXT` | No | - | - | Tidak | Narasi keterangan mutasi dan rincian tindakan medis/poli |
+| `movement_date` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | IDX1 | Tidak | Waktu transaksi pemotongan atau alokasi saldo |
+
+---
+
+### 17.6 Tabel `trx_benefit_claims` (Transaksi Klaim Koordinasi Manfaat COB)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `BenefitManagement` (HRD)
+- **Deskripsi:** Transaksi pengajuan dan penyelesaian klaim biaya perawatan kesehatan dengan mekanisme COB BPJS Kesehatan sebagai Primary Payer.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik klaim manfaat |
+| `claim_number` | `VARCHAR(100)` | No | - | UQ | Tidak | Nomor seri klaim manfaat (Format: `CLM-BEN/YYYYMM/NNNN`) |
+| `employee_id` | `UUID` | No | - | FK, IDX1 | Ya | ID staf nakes yang mengajukan klaim |
+| `dependent_id` | `UUID` | Yes | `NULL` | FK | Ya | ID tanggungan keluarga pasien (jika klaim atas nama keluarga) |
+| `benefit_plan_id` | `UUID` | No | - | FK | Tidak | ID paket asuransi/benefit yang diklaim |
+| `service_type` | `VARCHAR(50)` | No | - | - | Tidak | Kategori: `Inpatient` (Rawat Inap), `Outpatient` (Rawat Jalan), `Emergency` |
+| `hospital_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama rumah sakit tempat nakes/keluarga dirawat |
+| `sep_bpjs_number` | `VARCHAR(100)` | Yes | `NULL` | IDX2 | Tidak | Nomor Surat Eligibilitas Peserta BPJS Kesehatan (Wajib untuk klaim COB) |
+| `total_hospital_bill`| `NUMERIC(15,2)`| No | - | - | Ya | Total tagihan kuitansi asli rumah sakit (Rupiah) |
+| `primary_payer_covered_amount`|`NUMERIC(15,2)`| No | `0.00` | - | Ya | Porsi biaya yang ditanggung BPJS Kesehatan (Tarif INA-CBGs) |
+| `secondary_claim_amount`|`NUMERIC(15,2)`| No | `0.00` | - | Ya | Porsi santunan yang diklaimkan ke asuransi swasta tambahan / RS |
+| `out_of_pocket_excess_amount`|`NUMERIC(15,2)`| No | `0.00` | - | Ya | Sisa tagihan ekses yang dibayar mandiri atau dipotong slip gaji |
+| `claim_status` | `VARCHAR(50)` | No | `'Draft'` | IDX1 | Tidak | Status: `Draft`, `Submitted`, `UnderVerification`, `Approved`, `Rejected`, `Settled`, `Cancelled` |
+| `service_date` | `DATE` | No | - | - | Tidak | Tanggal pasien menerima perawatan medis |
+| `submitted_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengajuan klaim oleh pegawai di ESS |
+| `settled_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pencairan/pelunasan santunan klaim sekunder |
+| `settlement_reference`| `VARCHAR(100)`| Yes | `NULL` | - | Tidak | Nomor referensi transfer bank / pembayaran kasir |
+
+---
+
+### 17.7 Tabel `trx_benefit_claim_documents` (Lampiran Berkas Bukti Klaim Manfaat)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `BenefitManagement` (HRD)
+- **Deskripsi:** Berkas digital lampiran pendukung klaim manfaat (scan SEP BPJS, kuitansi bermaterai, resume medis, perincian obat).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik berkas lampiran |
+| `claim_id` | `UUID` | No | - | FK, IDX1 | Tidak | ID klaim terkait (merujuk ke `trx_benefit_claims(id)`) |
+| `document_type` | `VARCHAR(50)` | No | - | - | Tidak | Tipe: `BPJS_SEP`, `Hospital_Invoice`, `Receipt_Original`, `Prescription_Details`, `Medical_Summary` |
+| `document_number` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Nomor bukti yang tertera pada lembar dokumen fisik |
+| `file_storage_path` | `VARCHAR(255)` | No | - | - | Tidak | Path lokasi penyimpanan berkas digital terenkripsi |
+| `file_size_bytes` | `BIGINT` | No | - | - | Tidak | Ukuran berkas digital dalam satuan byte (Maks 5 MB) |
+| `mime_type` | `VARCHAR(100)` | No | - | - | Tidak | Format MIME: `application/pdf`, `image/jpeg`, `image/png` |
+| `uploaded_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengunggahan dokumen ke server |
+| `uploaded_by` | `VARCHAR(100)` | No | - | - | Tidak | NIP / username pengunggah dokumen |
+
+
+---
+
+## 18. Kamus Data Sub-Modul 13: HR Service Management & Request (Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS)
+
+Bagian ini mendefinisikan kamus data lengkap untuk entitas transaksi dan master pendukung **Sub-Modul 13 (Slice `S-D4`)**, mencakup katalog layanan SDM, penomoran terpusat naskah dinas, tiket helpdesk dengan SLA berjenjang, penarikan gaji otomatis berproteksi PIN 4-digit, serta log pemutakhiran profil kepegawaian.
+
+Setiap entitas di bawah ini mewarisi 10 kolom audit standar `IdentityModel` (`id`, `created_at`, `created_by`, `updated_at`, `updated_by`, `is_deleted`, `deleted_at`, `deleted_by`, `row_version`, `tenant_id`) kecuali dinyatakan secara eksplisit.
+
+---
+
+### 18.1 Tabel `mst_hr_service_categories` (Kategori Layanan SDM)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Master pengelompokan layanan bantuan SDM rumah sakit (Administrasi Umum, Persuratan Resmi, Pemutakhiran Profil, Perjalanan Dinas Klinis).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik kategori layanan |
+| `category_code` | `VARCHAR(30)` | No | - | UQ, IDX1 | Tidak | Kode unik kategori (contoh: `ADM-GEN`, `DOC-OFF`, `DATA-UPD`) |
+| `category_name` | `VARCHAR(100)` | No | - | - | Tidak | Nama resmi kategori layanan |
+| `description` | `TEXT` | Yes | `NULL` | - | Tidak | Uraian cakupan permohonan dalam kategori ini |
+| `icon_name` | `VARCHAR(50)` | Yes | `NULL` | - | Tidak | Nama identifier icon UI untuk portal ESS |
+| `display_order` | `INT` | No | `0` | - | Tidak | Urutan penayangan pada katalog layanan ESS |
+| `is_active` | `BOOLEAN` | No | `TRUE` | IDX2 | Tidak | Penanda keaktifan kategori |
+
+---
+
+### 18.2 Tabel `mst_hr_service_types` (Tipe / Jenis Layanan Spesifik)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Detail jenis layanan spesifik, batas target durasi jam SLA, konfigurasi berkas wajib, dan kewenangan penugasan.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik jenis layanan |
+| `category_id` | `UUID` | No | - | FK, IDX1 | Tidak | Merujuk ke `mst_hr_service_categories(id)` |
+| `type_code` | `VARCHAR(30)` | No | - | UQ, IDX2 | Tidak | Kode unik tipe layanan (contoh: `SRV-SKK`, `SRV-SAL`, `SRV-CITO`) |
+| `type_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama jenis layanan yang tampil di menu staf |
+| `priority_tier` | `VARCHAR(20)` | No | `'Standar'` | IDX3 | Tidak | Tingkatan prioritas: `'Cito'`, `'Standar'`, `'Khusus'` |
+| `sla_target_hours` | `INT` | No | `24` | - | Tidak | Batas waktu target penyelesaian dalam jam kerja (Cito: 4, Standar: 24, Khusus: 72) |
+| `requires_attachment` | `BOOLEAN` | No | `FALSE` | - | Tidak | Flag apakah pemohon wajib melampirkan berkas bukti pendukung |
+| `required_attachment_description`| `TEXT` | Yes | `NULL` | - | Tidak | Petunjuk berkas yang wajib diunggah (misal: scan buku tabungan asli) |
+| `requires_supervisor_approval` | `BOOLEAN` | No | `FALSE` | - | Tidak | Flag apakah butuh disposisi Kepala Ruangan sebelum diproses HR |
+| `auto_assign_enabled` | `BOOLEAN` | No | `FALSE` | - | Tidak | Flag otomatis penugasan ke analis HR tertentu |
+| `default_assignee_role` | `VARCHAR(50)` | Yes | `NULL` | - | Tidak | Role analis penanggung jawab default (`HR_Specialist`, `HR_Officer_CB`) |
+| `is_active` | `BOOLEAN` | No | `TRUE` | IDX4 | Tidak | Penanda keaktifan jenis layanan |
+
+---
+
+### 18.3 Tabel `mst_employee_document_types` (Master Template Dokumen Resmi Kepegawaian)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Template naskah dinas resmi rumah sakit, konfigurasi nomor surat gapless, token variabel dinamis, dan perlindungan kerahasiaan nominal gaji.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik jenis template surat |
+| `document_code` | `VARCHAR(30)` | No | - | UQ, IDX1 | Tidak | Kode format dokumen (contoh: `DOC-SKK`, `DOC-SAL`, `DOC-SPK`) |
+| `document_name` | `VARCHAR(150)` | No | - | - | Tidak | Judul resmi dokumen (contoh: Surat Keterangan Kerja Aktif) |
+| `numbering_pattern` | `VARCHAR(100)` | No | `'[KODE]/...'` | - | Tidak | Pola format nomor surat standar RS Quilvian |
+| `last_sequence_number` | `INT` | No | `0` | - | Tidak | Counter urutan nomor surat terakhir tahun berjalan (*gapless*) |
+| `current_year` | `INT` | No | `2026` | - | Tidak | Tahun penomoran aktif untuk peresetan tahunan |
+| `template_body_html` | `TEXT` | No | - | - | Tidak | Isi naskah dinas berformat HTML/Liquid dengan variabel token |
+| `supported_tokens_json` | `JSONB` | No | `'[]'::jsonb` | - | Tidak | Array string daftar token variabel yang diizinkan |
+| `validity_period_days` | `INT` | No | `90` | - | Tidak | Masa berlaku dokumen dalam hari kalender (default 90 hari / 3 bulan) |
+| `is_financial_sensitive` | `BOOLEAN` | No | `FALSE` | IDX2 | Tidak | Flag dokumen finansial yang memuat gaji (memerlukan PIN 4-digit & approval C&B) |
+| `requires_cb_approval` | `BOOLEAN` | No | `FALSE` | - | Tidak | Flag kewajiban persetujuan Supervisor Kompensasi & Benefit |
+| `authorized_signer_title` | `VARCHAR(100)`| No | `'Manajer SDM'`| - | Tidak | Jabatan pejabat berwenang penandatangan dokumen |
+| `is_active` | `BOOLEAN` | No | `TRUE` | IDX3 | Tidak | Penanda keaktifan template dokumen |
+
+---
+
+### 18.4 Tabel `trx_hr_service_requests` (Tiket Permohonan Layanan SDM)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Agregat utama tiket permohonan staf rumah sakit via ESS, tracking SLA 3-tier secara real-time, dan antrean analis SDM.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik tiket layanan |
+| `ticket_number` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Nomor tiket unik sistem (contoh: `TKT-202611-00128`) |
+| `employee_id` | `UUID` | No | - | FK, IDX2 | Tidak | ID staf pemohon (merujuk ke `mst_workforce_profiles(id)`) |
+| `service_type_id` | `UUID` | No | - | FK, IDX3 | Tidak | ID jenis layanan (merujuk ke `mst_hr_service_types(id)`) |
+| `title` | `VARCHAR(200)` | No | - | - | Tidak | Ringkasan pokok permohonan staf |
+| `description` | `TEXT` | No | - | - | Tidak | Uraian lengkap rincian permohonan |
+| `priority_tier` | `VARCHAR(20)` | No | `'Standar'` | IDX4 | Tidak | Nilai: `'Cito'`, `'Standar'`, `'Khusus'` |
+| `sla_target_hours` | `INT` | No | - | - | Tidak | Target waktu SLA yang dikunci saat tiket disubmit |
+| `sla_deadline_utc` | `TIMESTAMPTZ` | No | - | IDX5 | Tidak | Batas waktu penyelesaian absolut (dihitung berbasis jam kerja RS) |
+| `sla_status` | `VARCHAR(20)` | No | `'WithinSla'` | IDX6 | Tidak | Status SLA: `'WithinSla'`, `'Warning75'`, `'Overdue'`, `'Escalated'` |
+| `assigned_to_user_id` | `UUID` | Yes | `NULL` | IDX7 | Tidak | ID user analis HR penanggung jawab penanganan tiket |
+| `request_status` | `VARCHAR(30)` | No | `'Submitted'` | IDX8 | Tidak | Status: `'Draft'`, `'Submitted'`, `'InReview'`, `'WaitingStaffResponse'`, `'Approved'`, `'Rejected'`, `'Resolved'`, `'Closed'`, `'Cancelled'` |
+| `first_response_at_utc` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu respon pertama kali oleh analis HR |
+| `resolved_at_utc` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu penyelesaian tiket secara tuntas |
+| `closed_at_utc` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu penutupan tiket oleh pemohon atau auto-close 7 hari |
+| `resolution_summary` | `TEXT` | Yes | `NULL` | - | Tidak | Rangkuman hasil pemrosesan oleh tim HR |
+
+---
+
+### 18.5 Tabel `trx_hr_service_request_attachments` (Lampiran Berkas Pendukung Tiket)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Berkas dokumen bukti persyaratan permohonan (scan KTP, buku tabungan, buku nikah, disposisi cito).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik berkas lampiran |
+| `request_id` | `UUID` | No | - | FK, IDX1 | Tidak | Merujuk ke `trx_hr_service_requests(id)` |
+| `file_path` | `VARCHAR(500)` | No | - | - | Ya | Path penyimpanan berkas terenkripsi di server |
+| `original_file_name` | `VARCHAR(255)` | No | - | - | Tidak | Nama asli file saat diunggah oleh staf |
+| `content_type` | `VARCHAR(100)` | No | - | - | Tidak | Format MIME: `application/pdf`, `image/jpeg`, `image/png` |
+| `file_size_bytes` | `BIGINT` | No | - | - | Tidak | Ukuran file dalam bytes (Maksimal 5.242.880 bytes / 5 MB) |
+| `attachment_type` | `VARCHAR(50)` | No | - | - | Tidak | Tipe: `DisposisiCito`, `BukuTabungan`, `BukuNikah`, `KTP`, `Lainnya` |
+| `uploaded_at_utc` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengunggahan berkas |
+
+---
+
+### 18.6 Tabel `trx_hr_service_request_comments` (Utas Percakapan Klarifikasi)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Utas obrolan klarifikasi 2-arah antara staf pemohon dan tim HR Service Desk, termasuk catatan internal privat.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik komentar |
+| `request_id` | `UUID` | No | - | FK, IDX1 | Tidak | Merujuk ke `trx_hr_service_requests(id)` |
+| `author_user_id` | `UUID` | No | - | IDX2 | Tidak | ID user pengirim pesan |
+| `author_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama pengirim komentar yang ditampilkan |
+| `comment_text` | `TEXT` | No | - | - | Tidak | Isi teks pesan klarifikasi |
+| `is_internal_note` | `BOOLEAN` | No | `FALSE` | IDX3 | Tidak | Flag jika `TRUE`, pesan hanya bisa dibaca sesama tim HR (tidak tampak di ESS) |
+| `created_at_utc` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengiriman pesan |
+
+---
+
+### 18.7 Tabel `trx_employee_document_requests` (Permohonan Surat Resmi Kepegawaian)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Detail transaksi permohonan surat naskah dinas resmi dan alur persetujuan pejabat berwenang sebelum penerbitan nomor.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik transaksi permohonan dokumen |
+| `hr_service_request_id` | `UUID`| No | - | UQ, FK, IDX1| Tidak | ID tiket induk (merujuk ke `trx_hr_service_requests(id)`) |
+| `document_type_id` | `UUID` | No | - | FK, IDX2 | Tidak | Merujuk ke `mst_employee_document_types(id)` |
+| `requested_by_employee_id`| `UUID` | No | - | FK, IDX3 | Tidak | ID pegawai pemohon |
+| `purpose_of_letter` | `VARCHAR(255)`| No | - | - | Tidak | Tujuan pembuatan surat (misal: Pengajuan KPR Bank BTN) |
+| `recipient_entity_name` | `VARCHAR(200)`| No | - | - | Tidak | Pihak yang dituju (misal: Pimpinan Bank BTN Cabang Medika) |
+| `specific_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Keterangan khusus yang perlu dicantumkan |
+| `draft_document_body_html`| `TEXT` | No | - | - | Ya | Draf naskah dinas hasil rendering token dengan data profil staf |
+| `approval_status` | `VARCHAR(30)` | No | `'Submitted'` | IDX4 | Tidak | Status: `'Submitted'`, `'CbApproved'`, `'Authorized'`, `'Rejected'` |
+| `cb_approver_user_id` | `UUID` | Yes | `NULL` | - | Tidak | ID supervisor C&B yang memverifikasi data gaji |
+| `cb_approved_at_utc` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu persetujuan oleh C&B Supervisor |
+| `authorized_signer_user_id`| `UUID`| Yes | `NULL` | - | Tidak | ID pejabat penandatangan dokumen (Manajer SDM) |
+| `authorized_at_utc` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu otorisasi pembubuhan tanda tangan |
+| `rejection_reason` | `TEXT` | Yes | `NULL` | - | Tidak | Alasan penolakan permohonan surat |
+
+---
+
+### 18.8 Tabel `trx_employee_document_issuances` (Dokumen Resmi Terbit & Portal Verifikasi QR)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` (HRD)
+- **Deskripsi:** Rekam dokumen resmi kepegawaian yang telah sah, ber-QR Code publik, berproteksi 4-digit PIN finansial, dan pengarsipan e-Dossier.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik penerbitan dokumen |
+| `document_request_id` | `UUID` | No | - | UQ, FK, IDX1| Tidak | Merujuk ke `trx_employee_document_requests(id)` |
+| `document_type_id` | `UUID` | No | - | FK, IDX2 | Tidak | Merujuk ke `mst_employee_document_types(id)` |
+| `employee_id` | `UUID` | No | - | FK, IDX3 | Tidak | ID pegawai pemilik dokumen |
+| `official_document_number`| `VARCHAR(100)`| No | - | UQ, IDX4 | Tidak | Nomor seri resmi (contoh: `042/RSQ-SDM/SKG/XI/2026/0128`) |
+| `issued_date` | `DATE` | No | - | - | Tidak | Tanggal penerbitan resmi dokumen |
+| `valid_until_date` | `DATE` | No | - | IDX5 | Tidak | Batas tanggal masa berlaku dokumen (default H+90 hari) |
+| `signer_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama lengkap pejabat penandatangan sah |
+| `signer_title` | `VARCHAR(150)` | No | - | - | Tidak | Jabatan pejabat penandatangan |
+| `signer_signature_hash` | `VARCHAR(256)`| No | - | - | Tidak | Hash integritas digital signature penandatangan |
+| `verification_hash` | `VARCHAR(64)` | No | - | UQ, IDX6 | Tidak | Hash unik SHA-256 untuk URL QR Code publik (`/verify/document/{hash}`) |
+| `qr_code_image_path` | `VARCHAR(500)` | No | - | - | Tidak | Path file gambar kode QR yang ditempel di kaki PDF |
+| `pdf_file_path` | `VARCHAR(500)` | No | - | - | Ya | Path file PDF naskah dinas resmi siap unduh |
+| `is_financial_sensitive` | `BOOLEAN` | No | `FALSE` | IDX7 | Tidak | Flag dokumen finansial yang memuat gaji |
+| `security_pin_hash` | `VARCHAR(255)` | Yes | `NULL` | - | Ya | Hash BCrypt dari 4-digit PIN rahasia untuk membuka rincian gaji |
+| `salary_bruto_amount` | `NUMERIC(18,2)`| Yes | `NULL` | - | Ya | Nominal gaji bruto yang disahkan (ditarik dari Sub-10) |
+| `salary_netto_amount` | `NUMERIC(18,2)`| Yes | `NULL` | - | Ya | Nominal penerimaan gaji bersih yang disahkan |
+| `payroll_payslip_id` | `UUID` | Yes | `NULL` | FK | Ya | ID slip gaji Sub-10 sumber penarikan data |
+| `issuance_status` | `VARCHAR(20)` | No | `'Active'` | IDX8 | Tidak | Status: `'Active'`, `'Expired'`, `'Revoked'` |
+| `revoked_at_utc` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pencabutan dokumen bila dibatalkan |
+| `revoked_by_user_id` | `UUID` | Yes | `NULL` | - | Tidak | ID user pejabat yang mengeksekusi revokasi |
+| `revocation_reason` | `TEXT` | Yes | `NULL` | - | Tidak | Alasan tertulis pembatalan keabsahan dokumen |
+| `revocation_bap_number` | `VARCHAR(100)`| Yes | `NULL` | - | Tidak | Nomor Berita Acara Pemeriksaan (BAP) pembatalan |
+| `e_dossier_document_id` | `UUID` | Yes | `NULL` | - | Tidak | ID berkas pada repositori E-Dossier Sub-02 (`INT-HR-66`) |
+
+---
+
+### 18.9 Tabel `hrd_profile_change_histories` (Log Audit Pemutakhiran Profil Otomatis)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `HrServiceManagement` / `WorkforceCore` (HRD)
+- **Deskripsi:** Log forensik perbandingan snapshot data lama dan data baru hasil permohonan staf yang disetujui petugas HR Service.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik log histori perubahan profil |
+| `hr_service_request_id` | `UUID`| No | - | FK, IDX1 | Tidak | Merujuk ke tiket layanan sumber perubahan |
+| `employee_id` | `UUID` | No | - | FK, IDX2 | Tidak | ID pegawai yang datanya dimutakhirkan |
+| `component_modified` | `VARCHAR(50)` | No | - | - | Tidak | Komponen yang diubah: `'Bank_Account'`, `'Marital_Status'`, `'Address'` |
+| `old_values_json` | `JSONB` | No | - | - | Ya | Snapshot data lama sebelum diubah |
+| `new_values_json` | `JSONB` | No | - | - | Ya | Nilai data baru hasil pengajuan staf |
+| `approved_by_user_id` | `UUID` | No | - | - | Tidak | ID petugas analis HR yang menyetujui perubahan |
+| `applied_at_utc` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu mutasi data master berhasil dieksekusi |
+
+
+---
+
+## 19. Kamus Data Sub-Modul 14: Credentialing, License & Clinical Privilege (Slice `S-C1`)
+
+Bagian ini mendefinisikan kamus data lengkap untuk tabel baru dan pembaruan tabel yang digunakan oleh **Sub-Modul 14 (Slice `S-C1`)** dalam rangka tata kelola kredensialing 3 komite mandiri (Medik, Keperawatan, Nakes Lain), verifikasi sumber primer (PSV) STR seumur hidup & SIP 5 tahun, pengesahan SPK & RKK oleh Direktur Utama, registri kewenangan klinis aktif, dan log audit bypass darurat di SIMRS/EMR.
+
+---
+
+### 19.1 Tabel `mst_credentialing_committees` (Master Komite Kredensial Rumah Sakit)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Master 3 pilar komite tata kelola profesi tenaga kesehatan rumah sakit berdasarkan amanat Permenkes 6/2026.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik komite kredensial |
+| `committee_code` | `VARCHAR(30)` | No | - | UQ, IDX1 | Tidak | Kode komite unik: `MEDIK`, `KEPERAWATAN`, `NAKES_LAIN` (`VR-CRD-10`) |
+| `committee_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama resmi komite (contoh: "Komite Medik RS Quilvian") |
+| `profession_category` | `VARCHAR(100)` | No | - | - | Tidak | Kategori rumpun profesi yang dinaungi |
+| `chairperson_workforce_id` | `UUID` | No | - | FK (`mst_workforce_profiles`) | Tidak | ID dokter/perawat/nakes yang menjabat Ketua Komite |
+| `secretary_workforce_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID sekretaris komite yang mengelola administrasi berkas |
+| `is_active` | `BOOLEAN` | No | `TRUE` | - | Tidak | Status keaktifan komite |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan baris master |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Username pembuat |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pembaruan terakhir |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Username pembaru terakhir |
+
+---
+
+### 19.2 Tabel `wfp_credential_licenses` (Lisensi Profesional STR & SIP Tenaga Medis)
+- **Status Tabel:** `Diperbarui` (Kolom Baru: `is_lifetime`, `is_psv_verified`, `psv_source_url`, `psv_verified_at`, `psv_verified_by`, `satusehat_practitioner_id`)
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Registri dokumen legalitas izin praktik dokter dan tenaga kesehatan di rumah sakit (UU 17/2023).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik lisensi nakes |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX1 | Tidak | ID nakes pemilik lisensi |
+| `license_type` | `VARCHAR(30)` | No | - | IDX2 | Tidak | Tipe dokumen lisensi: `STR`, `SIP`, `SURAT_TUGAS` |
+| `license_number` | `VARCHAR(100)` | No | - | IDX3 | Ya | Nomor registrasi resmi STR KKI atau nomor SIP Dinkes |
+| `issuing_authority` | `VARCHAR(150)` | No | - | - | Tidak | Instansi penerbit (contoh: KKI, Dinkes Kota Surabaya, DPMPTSP) |
+| `issue_date` | `DATE` | No | - | - | Tidak | Tanggal penerbitan dokumen lisensi |
+| `expiry_date` | `DATE` | Yes | `NULL` | IDX4 | Tidak | Tanggal kedaluwarsa dokumen (wajib 5 tahun untuk SIP; NULL untuk STR Seumur Hidup) |
+| `is_lifetime` | `BOOLEAN` | No | `FALSE` | - | Tidak | `TRUE` jika STR berlaku seumur hidup sesuai UU 17/2023 (`HRD-DEC-146`) |
+| `is_psv_verified` | `BOOLEAN` | No | `FALSE` | IDX5 | Tidak | Status verifikasi sumber primer ke portal KKI / SatuSehat SDMK |
+| `psv_source_url` | `VARCHAR(500)` | Yes | `NULL` | - | Ya | URL rujukan verifikasi keabsahan portal Kemenkes |
+| `psv_verified_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pelaksanaan audit PSV oleh staf kredensialing |
+| `psv_verified_by` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID staf sekretariat kredensialing yang melakukan PSV |
+| `satusehat_practitioner_id` | `VARCHAR(100)` | Yes | `NULL` | IDX6 | Ya | ID Praktisi nakes di platform SatuSehat Kemenkes |
+| `status` | `VARCHAR(30)` | No | `'ACTIVE'` | IDX7 | Tidak | Status lisensi: `PENDING_PSV`, `ACTIVE`, `EXPIRING_SOON`, `EXPIRED`, `REVOKED` |
+
+---
+
+### 19.3 Tabel `trx_credentialing_applications` (Berkas Permohonan Kredensial Nakes)
+- **Status Tabel:** `Diperbarui` (Kolom Baru: `committee_id`, `application_type`, `current_clinical_level`, `target_clinical_level`)
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Berkas permohonan kredensialing baru atau kenaikan jenjang klinis nakes ke komite terkait.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik berkas permohonan |
+| `application_number` | `VARCHAR(100)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi berkas gapless (contoh: `CRD/2026/XI/0001`) |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID nakes pemohon kredensial |
+| `committee_id` | `UUID` | No | - | FK (`mst_credentialing_committees`) | Tidak | Komite tujuan penelaahan (Medik / Keperawatan / Nakes Lain) |
+| `application_type` | `VARCHAR(30)` | No | `'INITIAL'` | - | Tidak | Tipe permohonan: `INITIAL`, `RECREDENTIALING`, `LEVEL_ADVANCEMENT` |
+| `current_clinical_level`| `VARCHAR(30)` | Yes | `NULL` | - | Tidak | Jenjang klinis saat ini (contoh: PK II, Dokter Spesialis Pratama) |
+| `target_clinical_level` | `VARCHAR(30)` | No | - | - | Tidak | Jenjang klinis yang dimohonkan (contoh: PK III, Konsultan) |
+| `status` | `VARCHAR(30)` | No | `'DRAFT'` | IDX3 | Tidak | Status: `DRAFT`, `SUBMITTED`, `UNDER_PSV`, `PEER_REVIEW`, `PLENARY`, `APPROVED`, `REJECTED` |
+| `submission_date` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu berkas disubmit resmi oleh pemohon |
+| `reviewer_chairman_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID Ketua Subkomite penanggung jawab berkas |
+
+---
+
+### 19.4 Tabel `trx_clinical_privilege_assessments` (Asesmen Panel Mitra Bestari / Peer Review)
+- **Status Tabel:** `Diperbarui` (Kolom Baru: `peer_reviewer_workforce_id`, `requested_level`, `recommended_level`, `signature_hash`)
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Hasil evaluasi teknis portofolio dan rekomendasi derajat wewenang oleh panel Mitra Bestari (minimal 2 reviewer).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik asesmen peer review |
+| `application_id` | `UUID` | No | - | FK (`trx_credentialing_applications`), IDX1 | Tidak | ID berkas permohonan kredensial |
+| `peer_reviewer_workforce_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID nakes reviewer Mitra Bestari yang ditunjuk |
+| `privilege_catalog_id` | `UUID` | No | - | FK (`mst_clinical_privilege_catalogs`) | Tidak | ID butir tindakan medis/keperawatan yang dinilai |
+| `requested_level` | `INT` | No | 4 | - | Tidak | Derajat wewenang yang diminta (4: Mandiri, 3: Supervisi) |
+| `recommended_level` | `INT` | No | - | - | Tidak | Derajat wewenang hasil asesmen reviewer (4: Mandiri, 3: Supervisi, 1-2: Ditolak) |
+| `reviewer_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Catatan pertimbangan klinis atau alasan penolakan/supervisi |
+| `assessment_date` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu asesmen diselesaikan reviewer |
+| `signature_hash` | `VARCHAR(256)` | No | - | - | Ya | Hash integritas tanda tangan elektronik reviewer |
+
+---
+
+### 19.5 Tabel `trx_spk_rkk_issuances` (Dokumen Sah Penerbitan SPK & RKK oleh Direktur Utama)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Dokumen Surat Penugasan Klinis (SPK) dan lampiran Rincian Kewenangan Klinis (RKK) yang disahkan secara tunggal oleh Direktur Utama RS.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik dokumen SPK/RKK |
+| `spk_number` | `VARCHAR(100)` | No | - | UQ, IDX1 | Tidak | Nomor resmi SPK gapless (contoh: `SPK/RSQ-DIR/XI/2026/0045`) |
+| `rkk_number` | `VARCHAR(100)` | No | - | UQ, IDX2 | Tidak | Nomor resmi lampiran RKK gapless |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX3 | Tidak | ID nakes yang menerima penugasan klinis |
+| `committee_id` | `UUID` | No | - | FK (`mst_credentialing_committees`) | Tidak | ID komite yang merekomendasikan |
+| `effective_start_date` | `DATE` | No | - | IDX4 | Tidak | Tanggal mulai berlaku penugasan klinis |
+| `effective_end_date` | `DATE` | No | - | IDX4 | Tidak | Tanggal akhir berlaku (standar 3 tahun sejak tanggal pengesahan Dirut) |
+| `privilege_nature` | `VARCHAR(30)` | No | `'REGULAR'` | - | Tidak | Sifat penugasan: `REGULAR`, `TEMPORARY` (maks 3 bln), `EMERGENCY` (maks 72 jam) |
+| `approved_by_director_id`| `UUID` | No | - | FK (`mst_workforce_profiles`) | Tidak | ID Direktur Utama penandatangan dokumen sah |
+| `approved_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu stempel pengesahan Direktur Utama |
+| `digital_signature_hash` | `VARCHAR(256)` | No | - | - | Ya | Hash integritas SHA-256 tanda tangan elektronik Direktur Utama |
+| `document_pdf_path` | `VARCHAR(500)` | No | - | - | Tidak | Lokasi file PDF resmi di repositori dokumen rumah sakit |
+| `qr_verification_token` | `VARCHAR(100)` | No | - | UQ, IDX5 | Ya | Token unik QR Code untuk verifikasi keabsahan publik |
+| `status` | `VARCHAR(30)` | No | `'ACTIVE'` | IDX6 | Tidak | Status dokumen: `ACTIVE`, `EXPIRING_SOON`, `EXPIRED`, `SUSPENDED`, `REVOKED` |
+
+---
+
+### 19.6 Tabel `wfp_clinical_privileges` (Registri Kewenangan Klinis Individual Aktif)
+- **Status Tabel:** `Diperbarui` (Kolom Baru: `spk_issuance_id`, `supervision_level`, `supervisor_workforce_id`, `privilege_nature`, `is_suspended`, `suspension_reason`)
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Daftar butir tindakan klinis aktif per nakes yang menjadi acuan gerbang SIMRS/EMR.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik baris kewenangan klinis |
+| `spk_issuance_id` | `UUID` | Yes | `NULL` | FK (`trx_spk_rkk_issuances`), IDX1 | Tidak | ID dokumen induk pengesahan SPK/RKK Dirut |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID nakes pemilik wewenang |
+| `privilege_catalog_id` | `UUID` | No | - | FK (`mst_clinical_privilege_catalogs`), IDX3 | Tidak | ID butir tindakan medis/keperawatan |
+| `supervision_level` | `INT` | No | 4 | IDX4 | Tidak | Derajat wewenang: 4: Mandiri, 3: Supervisi, 1-2: Ditolak (`HRD-DEC-148`) |
+| `supervisor_workforce_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID dokter supervisor penanggung jawab jika Level 3 |
+| `privilege_nature` | `VARCHAR(30)` | No | `'REGULAR'` | - | Tidak | `REGULAR`, `TEMPORARY`, `EMERGENCY` |
+| `valid_from` | `DATE` | No | - | - | Tidak | Tanggal awal aktif kewenangan |
+| `valid_until` | `DATE` | No | - | IDX5 | Tidak | Tanggal kedaluwarsa kewenangan |
+| `is_suspended` | `BOOLEAN` | No | `FALSE` | IDX6 | Tidak | Status penangguhan wewenang (`TRUE` jika SIP mati atau dalam evaluasi etik) |
+| `suspension_reason` | `VARCHAR(500)` | Yes | `NULL` | - | Tidak | Alasan penangguhan wewenang klinis |
+
+---
+
+### 19.7 Tabel `trx_clinical_privilege_emergency_override_logs` (Log Audit Bypass Darurat SIMRS)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Rekam jejak audit saat dokter mengaktifkan bypass darurat penyelamatan nyawa (*Life-Saving Emergency Override*) untuk tindakan di luar RKK aktifnya.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik log override darurat |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX1 | Tidak | ID dokter yang mengeksekusi bypass darurat |
+| `privilege_catalog_id` | `UUID` | No | - | FK (`mst_clinical_privilege_catalogs`) | Tidak | ID tindakan medis yang di-override |
+| `simrs_patient_episode_id` | `VARCHAR(100)` | No | - | IDX2 | Ya | ID registrasi pasien gawat darurat di SIMRS |
+| `action_attempted` | `VARCHAR(200)` | No | - | - | Tidak | Nama prosedur tindakan yang dijalankan |
+| `emergency_reason_justification` | `TEXT` | No | - | - | Ya | Penjelasan justifikasi medis cito darurat nyawa oleh dokter |
+| `override_triggered_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | IDX3 | Tidak | Waktu tombol bypass ditekan di EMR |
+| `ip_address` | `VARCHAR(50)` | No | - | - | Ya | Alamat IP komputer workstation IGD/ICU/OK |
+| `is_audited_by_kmkp` | `BOOLEAN` | No | `FALSE` | IDX4 | Tidak | Status konfirmasi audit oleh Komite Mutu & Keselamatan Pasien |
+| `kmkp_audit_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu sidang telaah audit KMKP |
+| `kmkp_audit_verdict` | `VARCHAR(50)` | Yes | `NULL` | - | Tidak | Putusan KMKP: `JUSTIFIED_CLINICAL_EMERGENCY`, `ETHICAL_VIOLATION` |
+
+---
+
+### 19.8 Tabel `trx_recredentialing_applications` (Siklus Evaluasi Rekredensialing 3 Tahunan)
+- **Status Tabel:** `Diperbarui` (Kolom Baru: `oppe_performance_score`, `oppe_evaluation_summary`, `current_spk_issuance_id`)
+- **Modul Pemilik:** `CredentialingManagement` (HRD)
+- **Deskripsi:** Berkas evaluasi berkala 3 tahunan nakes terhubung dengan nilai kinerja klinis OPPE Sub-15.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik berkas rekredensialing |
+| `recredential_number` | `VARCHAR(100)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi berkas rekredensialing gapless |
+| `current_spk_issuance_id` | `UUID` | No | - | FK (`trx_spk_rkk_issuances`) | Tidak | ID dokumen SPK/RKK aktif yang sedang dievaluasi |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID nakes yang dievaluasi berkala |
+| `committee_id` | `UUID` | No | - | FK (`mst_credentialing_committees`) | Tidak | ID komite pemeriksa |
+| `oppe_performance_score` | `DECIMAL(5,2)` | Yes | `NULL` | - | Tidak | Skor agregasi evaluasi kinerja klinis dari Sub-15 (0-100) |
+| `oppe_evaluation_summary` | `TEXT` | Yes | `NULL` | - | Tidak | Ringkasan rekam jejak mutu asuhan klinis dokter |
+| `requested_date` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengajuan atau inisiasi otomatis draf pada H-60 |
+| `status` | `VARCHAR(30)` | No | `'DRAFT'` | IDX3 | Tidak | Status: `DRAFT`, `SUBMITTED`, `UNDER_EVALUATION`, `APPROVED`, `SUSPENDED` |

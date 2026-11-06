@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -27,13 +27,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         [Required, MaxLength(30)]
         public string VerificationStatus { get; set; } = "Pending";
-        // Pending, Approved, Rejected, NeedRevision, Skipped.
+        // Pending, Approved, Rejected, NeedRevision, Skipped, AutoVerified, FlaggedDiscrepancy, ManuallyAdjusted, RejectedDiscrepancy.
 
         public DateTime? ActionAt { get; set; }
         public int SubmittedMinutes { get; set; } = 0;
         public int EligibleMinutes { get; set; } = 0;
         public int VerifiedMinutes { get; set; } = 0;
         public decimal VerifiedAmount { get; set; } = 0;
+
+        public DateTime? BiometricCheckIn { get; set; }
+        public DateTime? BiometricCheckOut { get; set; }
+        public int BiometricExcessMinutes { get; set; } = 0;
+        public int VerifiedPayableMinutes { get; set; } = 0;
+
+        [MaxLength(255)]
+        public string? DiscrepancyReason { get; set; }
+
+        [MaxLength(2000)]
+        public string? ManualAdjustmentNotes { get; set; }
+
+        public Guid? VerifiedByHrAdminId { get; set; }
 
         public bool IsAttendanceMatched { get; set; } = false;
         public bool IsPolicyCompliant { get; set; } = false;
@@ -54,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public ApplicationUser? VerifierUser { get; set; }
         public MstWorkforceProfile? VerifierWorkforceProfile { get; set; }
         public MstRejectionReason? RejectionReason { get; set; }
+        public MstWorkforceProfile? VerifiedByHrAdmin { get; set; }
 
         public ICollection<TrxCompensatoryTimeOff> CompensatoryTimeOffs { get; set; }
             = new List<TrxCompensatoryTimeOff>();

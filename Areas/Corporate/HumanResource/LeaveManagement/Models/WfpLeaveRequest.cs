@@ -81,6 +81,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         public bool HasTrainingConflict { get; set; } = false;
         public bool HasCriticalStaffingImpact { get; set; } = false;
 
+        /// <summary>
+        /// Flag jika pengajuan cuti melanggar kuota minimal shift dinas 24/7 (HRD-DEC-111).
+        /// </summary>
+        public bool HasStaffingCoverageWarning { get; set; } = false;
+
+        /// <summary>
+        /// Rincian unit, tanggal, shift, dan kuota staf yang terancam.
+        /// </summary>
+        public string? CoverageWarningDetails { get; set; }
+
+        /// <summary>
+        /// Catatan mitigasi perawat pengganti oleh Kepala Ruangan / Unit.
+        /// </summary>
+        [MaxLength(500)]
+        public string? CoverageMitigationNotes { get; set; }
+
+        /// <summary>
+        /// Verifikasi keabsahan surat dokter oleh K3RS / Petugas Medis (HRD-DEC-112).
+        /// </summary>
+        public bool IsDoctorNoteVerified { get; set; } = false;
+
+        /// <summary>
+        /// Nama faskes / rumah sakit / klinik penerbit surat sakit.
+        /// </summary>
+        [MaxLength(255)]
+        public string? DoctorNoteFaskesName { get; set; }
+
+        /// <summary>
+        /// Nomor Surat Izin Praktik (SIP) dokter pemeriksa.
+        /// </summary>
+        [MaxLength(100)]
+        public string? DoctorSipNumber { get; set; }
+
+        /// <summary>
+        /// Penanda cuti disetujui pasca tanggal cut-off payroll (HRD-DEC-114).
+        /// </summary>
+        public bool IsPendingPayrollReconciliation { get; set; } = false;
+
+        /// <summary>
+        /// Pengunci mutlak immutabilitas cuti bila periode payroll telah ditutup (HRD-DEC-115).
+        /// </summary>
+        public bool IsPayrollClosed { get; set; } = false;
+
         public string? BalanceSimulationJson { get; set; }
         public string? RosterImpactJson { get; set; }
         public string? ValidationResultJson { get; set; }
@@ -139,5 +182,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         public ICollection<TrxLeaveCancellationRequest> CancellationRequests { get; set; } = new List<TrxLeaveCancellationRequest>();
         public ICollection<TrxLeaveRecall> Recalls { get; set; } = new List<TrxLeaveRecall>();
         public ICollection<TrxLeaveBalanceTransaction> BalanceTransactions { get; set; } = new List<TrxLeaveBalanceTransaction>();
+        public ICollection<TrxLeaveBalanceLedger> BalanceLedgers { get; set; } = new List<TrxLeaveBalanceLedger>();
+        public ICollection<TrxLeaveRecallRequest> RecallRequests { get; set; } = new List<TrxLeaveRecallRequest>();
     }
 }

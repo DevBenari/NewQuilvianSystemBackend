@@ -1230,6 +1230,7 @@ try
         builder.Configuration.GetSection("Accounting:AccountingEventScheduler"));
     builder.Services.AddScoped<AccAccountingEventService>();
 
+    builder.Services.AddScoped<LeaveBalanceLedgerService>();
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
     builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
@@ -1247,6 +1248,11 @@ try
         builder.Configuration.GetSection("HumanResource:LeaveCarryForwardScheduler"));
     builder.Services.AddScoped<LeaveRequestCalculationService>();
     builder.Services.AddScoped<LeaveRequestReservationService>();
+    builder.Services.AddScoped<SafeStaffingCoverageGuard>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ISafeStaffingQueryService>(
+        sp => sp.GetRequiredService<SafeStaffingCoverageGuard>());
+    builder.Services.AddScoped<MedicalCertificateVerificationService>();
+    builder.Services.AddScoped<LeaveApprovalService>();
     builder.Services.AddScoped<LeaveRequestAttachmentService>();
     builder.Services.AddScoped<LeaveRequestService>();
     builder.Services.AddScoped<LeaveRequestBalanceLifecycleService>();
@@ -1266,6 +1272,8 @@ try
     builder.Services.AddScoped<LeaveCancellationService>();
     builder.Services.AddScoped<LeaveRecallService>();
     builder.Services.AddScoped<LeaveFinalReconciliationService>();
+    builder.Services.AddScoped<LeaveRecallWorkflowService>();
+    builder.Services.AddScoped<LeavePayrollReconciliationService>();
     builder.Services.AddScoped<OvertimePolicyResolverService>();
     builder.Services.AddScoped<OvertimeRateResolverService>();
     builder.Services.AddScoped<OvertimePlanQueryService>();
@@ -1293,6 +1301,26 @@ try
     builder.Services.AddScoped<OvertimeSelfServiceContextService>();
     builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
     builder.Services.AddScoped<OvertimeSelfServiceService>();
+
+    // Slice S-B3 (Overtime Management) - MVP-27, MVP-28 & MVP-29
+    builder.Services.AddSingleton<IOvertimeSettingService, OvertimeSettingService>();
+    builder.Services.AddScoped<IOvertimeQuotaEnforcementGuard, OvertimeQuotaEnforcementGuard>();
+    builder.Services.AddScoped<IOvertimePlanService, OvertimePlanService>();
+    builder.Services.AddScoped<IMedicalDirectorOvertimeEscalationService, MedicalDirectorOvertimeEscalationService>();
+    builder.Services.AddScoped<IOvertimeApprovalWorkflowService, OvertimeApprovalWorkflowService>();
+    builder.Services.AddScoped<IOvertimeRealizationService, OvertimeRealizationService>();
+    builder.Services.AddScoped<IOvertimeBiometricVerificationService, OvertimeBiometricVerificationService>();
+    builder.Services.AddScoped<IOvertimeDiscrepancyService, OvertimeDiscrepancyService>();
+    builder.Services.AddScoped<ICompensatoryTimeOffService, CompensatoryTimeOffService>();
+    builder.Services.AddScoped<ICompensatoryTimeOffExpirationService, CompensatoryTimeOffExpirationService>();
+    builder.Services.AddScoped<IOvertimePeriodManagementService, OvertimePeriodManagementService>();
+    builder.Services.AddScoped<IOvertimePayrollHandoffModernService, OvertimePayrollHandoffModernService>();
+
+    // Slice S-B5 (Payroll Management) - MVP-30
+    builder.Services.AddScoped<IPayrollSettingService, PayrollSettingService>();
+    builder.Services.AddScoped<IPayrollPreconditionGateService, PayrollPreconditionGateService>();
+    builder.Services.AddScoped<IPayrollRunInitializationService, PayrollRunInitializationService>();
+    builder.Services.AddScoped<IPayrollEarningsCalculationService, PayrollEarningsCalculationService>();
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();

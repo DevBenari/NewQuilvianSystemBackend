@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `24` — **Revision `24` (bagian 40) adalah Pass Wawancara 10: Sub-modul 10 Payroll Processing & Handoff (Penggajian Pegawai Rumah Sakit, Slice `S-B5`), dibuka 5 November 2026: penegasan batas scope penggajian rumah sakit sesuai `HRD-DEC-009`, pertanyaan `HRD-Q-125` s.d. `HRD-Q-130`, keputusan `HRD-DEC-122` s.d. `HRD-DEC-127` (penguncian otomatis prasyarat closed kehadiran/cuti/lembur tgl 20, mesin formula gaji berparameter transparan PPh 21 TER PMK 168/2023 & BPJS, ambang deteksi variansi anomali >= 20% / Rp 2jt, alur otorisasi 3-jenjang SoD anti-self-approval, berkas serah terima payroll terkunci dengan protokol rollback resmi Finance penutup `HRD-Q-10` & `HRD-Q-11`, serta proteksi rilis slip gaji ESS ber-PIN).** **Revision `23` (bagian 39) adalah Pass Wawancara 9: Sub-modul 09 Overtime Management (Administrasi Lembur Pegawai Rumah Sakit, Slice `S-B3`), dibuka 4 November 2026: penegasan batas scope lembur rumah sakit, pertanyaan `HRD-Q-119` s.d. `HRD-Q-124`, keputusan `HRD-DEC-116` s.d. `HRD-DEC-121` (SPKL pra-dinas terencana H-1 & pasca-dinas darurat cito H+1, batas lembur PP 35/2021 maks 4 jam/hari & 18 jam/minggu dengan eskalasi darurat Direktur Pelayanan Medik, opsi kompensasi uang lembur vs CTO berkedaluwarsa 3 bulan & pengecualian pejabat struktural, verifikasi min-duration rule terhadap mesin presensi biometrik, alur persetujuan 2-tahap dengan anti-self-approval mutlak, serta penutupan periode cut-off & rekonsiliasi retrospektif payroll).** **Revision `22` (bagian 38) adalah Pass Wawancara 8: Sub-modul 08 Leave & Permission Management (Administrasi Cuti & Izin Pegawai Rumah Sakit, Slice `S-B2`), dibuka 4 November 2026: penegasan batas scope cuti rumah sakit, pertanyaan `HRD-Q-113` s.d. `HRD-Q-118`, keputusan `HRD-DEC-110` s.d. `HRD-DEC-115` (hak cuti 12 hari & carry-forward 6 hari hingga 30 Juni, safe staffing coverage warning, cuti sakit & privasi dokter, alur recall darurat & pemulihan saldo, rekonsiliasi retrospektif payroll, dan penutupan celah /reverse `HRD-Q-35`).** **Revision `21` (bagian 37) adalah Pass Wawancara 7: Sub-modul 07 Attendance Management (Presensi & Kehadiran Staf Rumah Sakit, Slice `S-B1`), dibuka 4 November 2026: penegasan batas scope presensi rumah sakit 24/7, pertanyaan `HRD-Q-107` s.d. `HRD-Q-112`, keputusan `HRD-DEC-104` (shift malam lintas hari dikunci pada tanggal masuk shift).** **Revision `20` (bagian 36) adalah Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), dibuka 4 November 2026: audit HEAD BE `38e892b0` / FE `44990b3d3`, temuan `HRD-TF-050` s.d. `HRD-TF-057`, pertanyaan `HRD-Q-99` s.d. `HRD-Q-105`, keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` — seluruh 7 keputusan inti `approved` oleh pengguna dan ditutup 4 November 2026; `HRD-Q-106` (cek regulasi PP 35/2021) terbuka untuk HRD dan tidak memblokir desain. Siap untuk `design-business-module`.** **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
-| Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
+| Revision | `28` — **Revision `28` (bagian 44) adalah Pass Wawancara 14: Sub-modul 14 Credentialing, License & Clinical Privilege (Kredensial, Lisensi Praktik STR/SIP & Rincian Kewenangan Klinis Rumah Sakit, Slice `S-C1`), dibuka 5 November 2026: penegasan batas scope kredensialing 3 komite dan penegakan kewenangan klinis SIMRS, pertanyaan `HRD-Q-149` s.d. `HRD-Q-154`, keputusan `HRD-DEC-146` s.d. `HRD-DEC-151` (verifikasi PSV STR seumur hidup KKI/SatuSehat SDMK & radar pemantau SIP 5 tahun H-90 s.d. fail-closed H-0 di Sub-06 dan SIMRS, pemisahan 3 komite mandiri Komite Medik/Keperawatan/Nakes Lain & panel Mitra Bestari peer review, otorisasi tunggal SPK/RKK oleh Direktur Utama dengan 3 derajat kewenangan mandiri/supervisi/tidak berwenang, resolusi final `HRD-DEC-005` menjadi Hard-Stop bertingkat ke SIMRS EMR `INT-HR-69` dengan jalur life-saving emergency override & audit KMKP 24 jam, tata kelola penugasan cepat temporary privilege maks 3 bulan & emergency privilege cito bencana maks 48-72 jam, serta siklus SPK/RKK 3 tahun berjenjang menuju rekredensialing berkala Sub-15 dan penangguhan suspended otomatis). Menuntaskan status `HRD-DEC-005` menjadi approved.** **Revision `27` (bagian 43) adalah Pass Wawancara 13: Sub-modul 13 HR Service Management & Request (Layanan Administrasi, Helpdesk Tiket SDM & Penerbitan Dokumen Kepegawaian Rumah Sakit, Slice `S-D4`), dibuka 5 November 2026: penegasan batas scope tiket helpdesk dan persuratan kepegawaian RS, pertanyaan `HRD-Q-143` s.d. `HRD-Q-148`, keputusan `HRD-DEC-140` s.d. `HRD-DEC-145` (otentikasi QR Code publik & PIN 4-digit untuk data finansial, standar SLA 3-tier cito 4 jam / standar 24 jam / khusus 72 jam & eskalasi keterlambatan ke Manajer SDM, penarikan otomatis nominal gaji dari payroll finalized Sub-10 & approval supervisor C&B, pemutakhiran data profil pegawai otomatis pasca-verifikasi dokumen sah, mesin penomoran surat terpusat gapless & template variabel token dinamis, serta pengarsipan abadi e-Dossier Sub-02, riwayat ESS & protokol revokasi dokumen sah).** **Revision `26` (bagian 42) adalah Pass Wawancara 12: Sub-modul 12 Benefit Management (Manajemen Manfaat, Asuransi BPJS & Tanggungan Pegawai Rumah Sakit, Slice `S-D3`), dibuka 5 November 2026: penegasan batas scope paket benefit rumah sakit, pertanyaan `HRD-Q-137` s.d. `HRD-Q-142`, keputusan `HRD-DEC-134` s.d. `HRD-DEC-139` (struktur paket berjenjang 3-lapisan regulasi BPJS wajib, asuransi swasta tambahan per grade & subsidi berobat internal RS, batasan tanggungan keluarga inti maks 1 pasangan + 3 anak hingga usia 21/25 tahun kuliah aktif via KK/Akta, alur berobat internal nakes & integrasi real-time SIMRS Admission/Billing `INT-HR-61` dengan pemotongan saldo plafon `HrdBenefitBalanceMovement` & tagihan ekses, koordinasi manfaat COB BPJS Kesehatan sebagai primary payer & RS/swasta secondary payer, aktivasi bertahap BPJS TK JKK/JKM aktif H+0 Onboarding dan BPJS Kes/swasta pasca-lulus masa percobaan 3 bulan `S-C4-ONB`, serta terminasi benefit otomatis per tanggal keluar kerja via Exit Clearance Sub-20).** **Revision `25` (bagian 41) adalah Pass Wawancara 11: Sub-modul 11 Restitution & Payroll Deduction Integration (Restitusi & Integrasi Pemotongan Penggajian, Slice `S-B6`), dibuka 5 November 2026: penegasan batas scope restitusi dan pemotongan kewajiban finansial non-regulasi, pertanyaan `HRD-Q-131` s.d. `HRD-Q-136`, keputusan `HRD-DEC-128` s.d. `HRD-DEC-133` (batas maksimal pemotongan gaji Hard-Cap 50% PP 36/2021 & hirarki prioritas pemotongan berjenjang, siklus sinkronisasi dua arah saldo piutang Finance via `INT-HR-55`, ruang lingkup klaim restitusi medis darurat & biaya operasional dinas via ESS, tata kelola koreksi salah potong periode lampau tanpa manipulasi payroll final `PAY-B6`, penyelesaian sisa pinjaman saat resign/PHK via Exit Clearance, serta kanal pembayaran restitusi slip gaji bulanan vs pencairan cito kasir RS).** **Revision `24` (bagian 40) adalah Pass Wawancara 10: Sub-modul 10 Payroll Processing & Handoff (Penggajian Pegawai Rumah Sakit, Slice `S-B5`), dibuka 5 November 2026: penegasan batas scope penggajian rumah sakit sesuai `HRD-DEC-009`, pertanyaan `HRD-Q-125` s.d. `HRD-Q-130`, keputusan `HRD-DEC-122` s.d. `HRD-DEC-127` (penguncian otomatis prasyarat closed kehadiran/cuti/lembur tgl 20, mesin formula gaji berparameter transparan PPh 21 TER PMK 168/2023 & BPJS, ambang deteksi variansi anomali >= 20% / Rp 2jt, alur otorisasi 3-jenjang SoD anti-self-approval, berkas serah terima payroll terkunci dengan protokol rollback resmi Finance penutup `HRD-Q-10` & `HRD-Q-11`, serta proteksi rilis slip gaji ESS ber-PIN).** **Revision `23` (bagian 39) adalah Pass Wawancara 9: Sub-modul 09 Overtime Management (Administrasi Lembur Pegawai Rumah Sakit, Slice `S-B3`), dibuka 4 November 2026: penegasan batas scope lembur rumah sakit, pertanyaan `HRD-Q-119` s.d. `HRD-Q-124`, keputusan `HRD-DEC-116` s.d. `HRD-DEC-121` (SPKL pra-dinas terencana H-1 & pasca-dinas darurat cito H+1, batas lembur PP 35/2021 maks 4 jam/hari & 18 jam/minggu dengan eskalasi darurat Direktur Pelayanan Medik, opsi kompensasi uang lembur vs CTO berkedaluwarsa 3 bulan & pengecualian pejabat struktural, verifikasi min-duration rule terhadap mesin presensi biometrik, alur persetujuan 2-tahap dengan anti-self-approval mutlak, serta penutupan periode cut-off & rekonsiliasi retrospektif payroll).** **Revision `22` (bagian 38) adalah Pass Wawancara 8: Sub-modul 08 Leave & Permission Management (Administrasi Cuti & Izin Pegawai Rumah Sakit, Slice `S-B2`), dibuka 4 November 2026: penegasan batas scope cuti rumah sakit, pertanyaan `HRD-Q-113` s.d. `HRD-Q-118`, keputusan `HRD-DEC-110` s.d. `HRD-DEC-115` (hak cuti 12 hari & carry-forward 6 hari hingga 30 Juni, safe staffing coverage warning, cuti sakit & privasi dokter, alur recall darurat & pemulihan saldo, rekonsiliasi retrospektif payroll, dan penutupan celah /reverse `HRD-Q-35`).** **Revision `21` (bagian 37) adalah Pass Wawancara 7: Sub-modul 07 Attendance Management (Presensi & Kehadiran Staf Rumah Sakit, Slice `S-B1`), dibuka 4 November 2026: penegasan batas scope presensi rumah sakit 24/7, pertanyaan `HRD-Q-107` s.d. `HRD-Q-112`, keputusan `HRD-DEC-104` (shift malam lintas hari dikunci pada tanggal masuk shift).** **Revision `20` (bagian 36) adalah Pass Wawancara 6: Sub-modul 06 Scheduling, Roster & On-Call (`S-B4`), dibuka 4 November 2026: audit HEAD BE `38e892b0` / FE `44990b3d3`, temuan `HRD-TF-050` s.d. `HRD-TF-057`, pertanyaan `HRD-Q-99` s.d. `HRD-Q-105`, keputusan `HRD-DEC-097` s.d. `HRD-DEC-103` — seluruh 7 keputusan inti `approved` oleh pengguna dan ditutup 4 November 2026; `HRD-Q-106` (cek regulasi PP 35/2021) terbuka untuk HRD dan tidak memblokir desain. Siap untuk `design-business-module`.** **Revision `19` (bagian 34) adalah Pass Wawancara 5: Sub-modul 05 Onboarding, Contract & Employment Lifecycle (`S-C4` bagian onboarding dan kontrak), dibuka 4 November 2026: audit HEAD BE `8b17b75a` / FE `44990b3d3`, temuan `HRD-TF-039` s.d. `HRD-TF-048`, pertanyaan `HRD-Q-82` s.d. `HRD-Q-97`, keputusan `HRD-DEC-081` s.d. `HRD-DEC-090` — seluruhnya `approved` oleh pengguna dan ditutup hari yang sama; menutup bagian masa percobaan `HRD-Q-06` dan `HRD-Q-05` untuk tabel sub-modul 05.** **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Status | `draft`. Seluruh keputusan rekayasa, produk teknis, dan gerbang kredensialing klinis (`HRD-DEC-005` & `HRD-DEC-146` s.d. `HRD-DEC-151`) sudah `approved` oleh pemilik teknis (`HRD-DEC-015`) dan diselaraskan dengan tata kelola Komite Medik/Keperawatan (UU 17/2023 & Permenkes 6/2026). Satu keputusan sensitif — `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai K3RS mengesahkan pada Sub-16. |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
 | Product/domain owner | **Pemilik teknis:** pengguna, ditetapkan `HRD-DEC-015`. **Pemilik kebijakan bisnis, Komite Medik, dan K3RS:** masih `OPEN`, lihat `HRD-Q-01` |
@@ -6809,3 +6809,480 @@ Pass ini dibuka 5 November 2026 untuk mengunci seluruh aturan bisnis, formula pe
 | `HRD-ASM-28` | Perhitungan PPh 21 masa Januari–November menerapkan skema Tarif Efektif Rata-Rata (TER) Kategori A/B/C sesuai PMK 168/2023, sedangkan masa Desember menerapkan rekonsiliasi Pasal 17 tarif progresif tahunan | Kepatuhan mutlak regulasi perpajakan nasional terbaru di Indonesia | Formula perpajakan diisolasi dalam modul kalkulator pajak tersendiri yang siap diperbarui jika regulasi berubah |
 | `HRD-ASM-29` | Ambang variansi anomali yang memicu bendera peringatan (*Variance Alert*) ditetapkan pada deviasi $\ge 20\%$ kenaikan/penurunan gaji bersih atau deviasi nominal $\ge$ Rp 2.000.000 dibanding bulan sebelumnya | Mencegah kekeliruan perhitungan lembur dan kesalahan potongan kasbon dalam skala finansial signifikan | Nilai ambang persentase dan nominal dapat disesuaikan oleh HR Administrator melalui menu pengaturan |
 | `HRD-ASM-30` | Pembukaan slip gaji digital pada portal ESS menerapkan autentikasi sekunder berupa verifikasi PIN 6-digit pegawai atau password sesi aktif | Menjaga privasi data penghasilan nakes di area kerja bersama (ruang perawat/nurse station/IGD) | Pegawai yang lupa PIN dapat melakukan reset mandiri melalui verifikasi email/OTP |
+
+
+---
+
+## 41. Pass Wawancara 11 — Sub-modul 11: Restitution & Payroll Deduction Integration (Slice `S-B6`, 5 November 2026)
+
+Pass ini mencatat hasil wawancara bisnis terstruktur untuk **Sub-modul 11: Restitusi & Integrasi Pemotongan Penggajian (Restitution & Payroll Deduction Integration)**, menetapkan aturan batas pemotongan gaji sesuai regulasi PP 36/2021 jo PP 49/2025, sinkronisasi piutang pegawai dua arah dengan Finance (`INT-HR-55`), tata kelola klaim restitusi mandiri di ESS, pengembalian salah potong periode lampau (*traceable adjustment*) yang melindungi integritas payroll final (`PAY-B6`), pelunasan kewajiban saat pemisahan kerja (Exit Clearance), serta jalur pencairan klaim kasir darurat.
+
+### 41.1 Daftar Pertanyaan Kritis yang Ditutup
+
+| ID Pertanyaan | Topik Pertanyaan | Status | Keputusan Terkait |
+| --- | --- | :---: | :---: |
+| `HRD-Q-131` | Batas Maksimal Pemotongan Gaji (*Deduction Cap*) & Hirarki Prioritas Pemotongan (PP 36/2021) | **CLOSED** | `HRD-DEC-128` |
+| `HRD-Q-132` | Mekanisme Sinkronisasi Saldo Piutang Pegawai dengan Modul Finance & Kasir (`INT-HR-55`) | **CLOSED** | `HRD-DEC-129` |
+| `HRD-Q-133` | Ruang Lingkup & Validasi Klaim Restitusi Biaya Karyawan (Medical & Operational Reimbursement) | **CLOSED** | `HRD-DEC-130` |
+| `HRD-Q-134` | Tata Kelola Restitusi Koreksi Salah Potong Periode Lampau Tanpa Mengubah Payroll Final (`PAY-B6`) | **CLOSED** | `HRD-DEC-131` |
+| `HRD-Q-135` | Penyelesaian Sisa Pinjaman Saat Pegawai Mengundurkan Diri / PHK (Integrasi Exit Clearance Sub-Modul 20) | **CLOSED** | `HRD-DEC-132` |
+| `HRD-Q-136` | Kanal Pembayaran Restitusi: Ditransfer Bersama Slip Gaji Bulanan vs Pencairan Kasir Cito | **CLOSED** | `HRD-DEC-133` |
+
+---
+
+### 41.2 Keputusan Bisnis yang Dikunci
+
+#### `HRD-DEC-128` — Batas Maksimal Pemotongan Gaji (*Hard-Cap 50%* PP 36/2021) & Hirarki Prioritas Pemotongan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-131` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Pasal 65 PP No. 36 Tahun 2021 jo PP No. 49 Tahun 2025; Perlindungan Hak Upah Pegawai |
+| Ringkasan | Sistem menerapkan pembatasan keras (*Hard-Cap 50%*) di mana total seluruh akumulasi pemotongan upah non-regulasi (kasbon RS, koperasi karyawan, iuran sosial, ganti rugi aset) tidak boleh melebihi 50% dari total penghasilan kotor (*Gross Pay*) bulan berjalan. Jika total kewajiban melebihi 50%, sistem mengeksekusi pemotongan berdasarkan **Hirarki Prioritas Berjenjang**: (1) Prioritas 1: Ganti rugi dinas / selisih setoran kasir RS; (2) Prioritas 2: Cicilan pinjaman kasbon / darurat RS; (3) Prioritas 3: Cicilan belanja Koperasi Karyawan Rumah Sakit; (4) Prioritas 4: Iuran sukarela / paguyuban sosial. Tagihan prioritas rendah yang tidak tertampung dipotong sebagian atau ditunda penuh, lalu otomatis dialihkan menjadi tunggakan (*carry-over balance*) ke siklus berikutnya dengan notifikasi audit otomatis ke Finance dan Koperasi. |
+| Implikasi Arsitektur | 1. Service `PayrollDeductionCapEngine` menghitung `MaxDeductionLimit = GrossEarnings * 0.50m` sebelum memotong cicilan.<br>2. Validasi `VR-DED-01`: Menolak hasil kalkulasi jika take-home pay bernilai minus atau potongan melebihi ambang batas 50% tanpa otorisasi sistem.<br>3. Entitas `TrxPayrollDeductionItem` menyimpan status eksekusi: `FullDeducted`, `PartialDeducted`, atau `DeferredToNextPeriod`.<br>4. Kepatuhan mutlak terhadap regulasi ketenagakerjaan Republik Indonesia dan proteksi kelayakan hidup pekerja rumah sakit. |
+
+#### `HRD-DEC-129` — Siklus Sinkronisasi Dua Arah Saldo Piutang Finance & Konfirmasi Realisasi Pemotongan (`INT-HR-55`)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-132` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Batas Bounded Context Finansial `HRD-DEC-009`; `FinancePayrollDeductionBatchService`; Kontrak `INT-HR-55` |
+| Ringkasan | Departemen Keuangan (Finance) adalah *source of truth* tunggal atas saldo buku besar piutang pegawai (*Employee Accounts Receivable*). HRD tidak menduplikasi entitas piutang. Sinkronisasi dilakukan melalui **Siklus Sinkronisasi Dua Arah Terjadwal (*Scheduled Two-Way Handshake*)**: (1) *Pra-Payroll (tgl 17 / H-3 Cut-off):* Finance mengirimkan paket snapshot tagihan aktif (`ActivePayrollDeductionResponse` via `INT-HR-55`); (2) *Fase Eksekusi:* Mesin payroll HR mengunci jadwal cicilan tersebut ke lembar kerja gaji; (3) *Pasca-Payroll (tgl 25 pasca konfirmasi transfer):* HRD mengirimkan laporan callback realisasi pemotongan aktual (`PayrollDeductionExecutionCallback`) ke Finance untuk memotong saldo pokok piutang secara atomik. |
+| Implikasi Arsitektur | 1. Endpoint kueri `GET /api/v1/hr/welfare/deductions/active-installments` membaca tagihan aktif terverifikasi dari Finance.<br>2. Webhook / Message Publisher `payroll.deductions.realized` mengirimkan konfirmasi potongan per detail ID pinjaman ke Finance.<br>3. Bila cicilan hanya terpotong sebagian karena batas 50%, callback melaporkan nominal riil yang terpotong dan sisa tunggakan.<br>4. Mencegah rekonsiliasi manual yang memakan waktu dan menghindari sengketa selisih saldo pinjaman antara HRD, Finance, dan Pegawai. |
+
+#### `HRD-DEC-130` — Ruang Lingkup Klaim Restitusi Biaya Medis Non-Asuransi & Operasional Dinas via ESS
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-133` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Kebijakan Kesejahteraan Staf RS; Tata Kelola Klaim Mandiri Employee Self-Service (ESS) |
+| Ringkasan | Sub-modul 11 mengelola pengajuan klaim restitusi mandiri oleh pegawai pada portal ESS untuk dua kategori utama: (1) **Restitusi Medis Non-Asuransi:** Penggantian biaya kacamata kerja non-BPJS, obat darurat/pajanan infeksius di apotek faskes luar saat dinas, dan tindakan gawat darurat faskes luar yang disetujui; (2) **Restitusi Operasional Dinas Mendesak:** Biaya transportasi dinas darurat, rujukan pasien luar kota, atau pembelian perlengkapan kerja cito. Pegawai wajib mengunggah foto digital kuitansi/struk asli dan resume medis singkat. Sistem memvalidasi sisa kuota/plafon tahunan pegawai sebelum pengajuan diteruskan ke alur persetujuan bertingkat (Atasan Langsung $\rightarrow$ HR C&B $\rightarrow$ Manajer SDM). |
+| Implikasi Arsitektur | 1. Entitas `TrxEmployeeRestitutionClaim` menyimpan data klaim, kategori, nominal, berkas kuitansi, dan kuota terpakai.<br>2. Validasi `VR-RES-01`: Menolak pengajuan jika nominal klaim melebihi sisa plafon tahunan pegawai untuk kategori terkait.<br>3. Berkas kuitansi diverifikasi keaslian fisiknya oleh HR C&B sebelum status klaim berubah menjadi `ApprovedForPayroll`.<br>4. Memberikan kenyamanan layanan mandiri bagi pegawai rumah sakit dan transparansi saldo plafon benefit tahunan. |
+
+#### `HRD-DEC-131` — Tata Kelola Restitusi Koreksi Salah Potong Periode Lampau (*Traceable Adjustment*) Tanpa Mengubah Payroll Final (`PAY-B6`)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-134` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Aturan Kekekalan Payroll `PAY-B6`; `PayrollRestitutionService`; Audit Finansial Rumah Sakit |
+| Ringkasan | Transaksi payroll yang sudah berstatus `ApprovedFinal` atau `Completed` **dilarang keras dibuka, diedit, atau dimanipulasi secara retroaktif**. Apabila terjadi kekeliruan pemotongan gaji atau kelebihan potong pinjaman pada periode lampau, pengembalian uang dilakukan melalui mekanisme **Restitusi Koreksi Terlacak (*Traceable Restitution Adjustment*)**: Petugas Payroll menerbitkan transaksi `TrxPayrollRestitution` yang menautkan referensi transaksi asal (`SourceId`, `SourceType`). Nominal pengembalian uang ditambahkan secara otomatis pada slip gaji bulan berjalan sebagai komponen penghasilan khusus `RestitutionAdjustment` yang diklasifikasikan sebagai penghasilan non-objek pajak PPh 21 (karena pajak telah dipotong pada periode kesalahan). |
+| Implikasi Arsitektur | 1. Entitas `TrxPayrollRestitution` merekam `SourcePayrollRunId`, `SourceDetailId`, nominal kompensasi, dan alasan audit.<br>2. Service kalkulasi payroll membaca restitusi koreksi aktif dan memasukannya ke baris slip gaji bulan berjalan.<br>3. Modul kalkulator pajak mengecualikan nominal `RestitutionAdjustment` dari perhitungan dasar pengenaan pajak PPh 21 TER.<br>4. Integritas arsip historis payroll tetap suci, rekonsiliasi kas Finance terlindungi, dan audit trail perbaikan data transparan 100%. |
+
+#### `HRD-DEC-132` — Penyelesaian Sisa Kewajiban Pinjaman Saat Pegawai Mengundurkan Diri / PHK (Integrasi Exit Clearance Sub-Modul 20)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-135` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Alur Pemisahan Kerja Staf RS (Separation-to-Closure); Sub-Modul 20 Exit Clearance |
+| Ringkasan | Saat seorang pegawai mengajukan pengunduran diri (*resign*) atau mengalami pemutusan hubungan kerja (PHK), sistem secara otomatis mengunci seluruh sisa pokok pinjaman RS dan tagihan koperasi karyawan, lalu menerbitkan instruksi **Pemotongan Pelunasan Akhir (*Final Separation Deduction*)**. Seluruh sisa kewajiban dipotongkan langsung dari akumulasi hak finansial terakhir pegawai (gaji bulan terakhir, kompensasi sisa hak cuti tahunan, dan uang pesangon/penghargaan masa kerja) pada slip gaji penutupan (*Final Clearance Payslip*). Jika hak finansial tidak mencukupi untuk melunasi seluruh utang, sistem memotong hingga saldo hak habis (take-home pay Rp 0) dan secara otomatis menerbitkan **Surat Tagihan Sisa Piutang Tertunggak (*Outstanding Receivable Statement*)** yang wajib dilunasi tunai ke Kasir RS sebelum checklist formulir Exit Clearance (Sub-Modul 20) dapat disahkan oleh HR dan Finance. |
+| Implikasi Arsitektur | 1. Integrasi dengan Sub-Modul 20: Checklist Exit Clearance memeriksa status `RemainingLoanBalance == 0`.<br>2. Engine slip gaji akhir mendukung pemotongan hingga 100% dari hak pesangon/pemisahan (pengecualian batas 50% khusus PHK/Resign final).<br>3. Menerbitkan nomor tagihan piutang residu untuk kasir bila hak finansial pegawai lebih kecil dari total utang pinjaman.<br>4. Mencegah risiko kerugian finansial rumah sakit atas piutang macet pegawai yang telah meninggalkan rumah sakit. |
+
+#### `HRD-DEC-133` — Kanal Pembayaran Restitusi: Standar Slip Gaji Bulanan vs Jalur Cepat Darurat Medis Kasir RS (`UrgentDisbursementCito`)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-136` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Respons Darurat Pajanan Okupasional Nakes; Layanan Kasir Rumah Sakit 24/7 |
+| Ringkasan | Pembayaran klaim restitusi pegawai diatur melalui dua kanal resmi: (1) **Jalur Standar (Default):** Seluruh klaim restitusi rutin (kacamata kerja, restitusi koreksi gaji, biaya dinas terjadwal) dicairkan bersamaan dengan transfer gaji bulanan pada tanggal 25 (ditambahkan ke komponen slip gaji berjalan); (2) **Jalur Cepat Darurat Medis (*Urgent Disbursement Cito*):** Untuk insiden darurat klinis nakes (tertusuk jarum/pajanan HIV/Hepatitis yang butuh obat cito) yang disetujui Direktur SDM/Keuangan, sistem menerbitkan **Voucher Pencairan Kasir Elektronik (*Cash Disbursement Voucher*)**. Pegawai dapat mencairkan dana tunai langsung di loket Kasir RS 24/7. Kasir memvalidasi voucher di sistem, menyerahkan uang, dan sistem secara otomatis menandai status klaim menjadi `DisbursedViaCashier` agar tidak ditransfer ganda pada slip gaji bulanan. |
+| Implikasi Arsitektur | 1. Status siklus klaim restitusi: `Draft` $\rightarrow$ `Submitted` $\rightarrow$ `Approved` $\rightarrow$ `QueuedForPayroll` (Jalur Standar) ATAU `VoucherIssued` $\rightarrow$ `DisbursedViaCashier` (Jalur Cito).<br>2. Endpoint `POST /restitutions/{id}/issue-cashier-voucher` mengunci flag agar tidak terbaca oleh engine payroll run.<br>3. Integrasi `INT-FIN-VOUCHER`: Kasir membaca kode voucher unik terenkripsi sebelum mengeluarkan uang tunai.<br>4. Menghormati keselamatan kerja nakes dalam situasi krisis medis tanpa menimbulkan anomali pembayaran ganda di penggajian. |
+
+---
+
+### 41.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-31` | Batas maksimal pemotongan upah non-regulasi dihitung tepat 50% dari total penghasilan kotor (*Gross Pay*) bulan berjalan sebelum potongan pajak PPh 21 dan BPJS | Mengikuti ketentuan Pasal 65 PP 36/2021 jo PP 49/2025 yang merujuk pada upah bruto pekerja | Jika rumah sakit memberlakukan kebijakan internal batas 50% dari upah bersih (*Net Pay*), ambang batas dapat dikonfigurasi melalui setting sistem |
+| `HRD-ASM-32` | Jadwal snapshot cicilan piutang ditarik dari Finance pada tanggal 17 (H-3 batas cut-off absensi/lembur tgl 20) | Memberikan waktu rekonsiliasi bagi HR Payroll Officer sebelum kalkulasi massal dimulai | Jika jadwal cicilan berubah setelah tgl 17, penyesuaian ditampung pada siklus bulan berikutnya |
+| `HRD-ASM-33` | Kompensasi pengembalian salah potong (*RestitutionAdjustment*) diklasifikasikan sebagai penghasilan non-objek pajak PPh 21 | Mencegah pemajakan ganda karena penghasilan tersebut telah dikenakan pajak pada bulan terjadinya kesalahan pemotongan | Dipetakan pada kode komponen penghasilan non-pajak di slip gaji |
+| `HRD-ASM-34` | Pencairan darurat cito melalui kasir rumah sakit wajib diverifikasi secara elektronik sebelum kasir menyerahkan uang | Menghindari manipulasi voucher kasir dan mencegah pengeluaran kas tanpa otorisasi sah | Kasir menolak pencairan voucher jika kode QR/stempel elektronik tidak valid di sistem |
+
+
+---
+
+## 42. Pass Wawancara 12 — Sub-modul 12 Benefit Management (Manajemen Manfaat, Asuransi & Tanggungan Pegawai Rumah Sakit, Slice `S-D3`, 5 November 2026)
+
+Pass wawancara ini diselenggarakan pada 5 November 2026 untuk mengunci seluruh batas ruang lingkup, struktur paket manfaat tenaga kesehatan/staf umum, integrasi asuransi regulasi (BPJS Kesehatan & Ketenagakerjaan), verifikasi tanggungan keluarga sah, mekanisme berobat di rumah sakit sendiri (*In-House Medical Care*), koordinasi manfaat (*Coordination of Benefits* - COB), masa tunggu kelayakan aktivasi (*waiting period*), serta terminasi hak asuransi saat pemisahan kerja (Exit Clearance Sub-Modul 20).
+
+### 42.1 Pertanyaan Bisnis yang Ditutup (`HRD-Q-137` s.d. `HRD-Q-142`)
+
+| ID Pertanyaan | Topik Pertanyaan | Status | Ditutup Oleh | Keputusan Terkait |
+| :--- | :--- | :---: | :---: | :---: |
+| `HRD-Q-137` | Struktur paket manfaat: Regulasi BPJS vs Asuransi Swasta vs Fasilitas Berobat Internal RS | `CLOSED` | Pengguna (`HRD-DEC-015`) | `HRD-DEC-134` |
+| `HRD-Q-138` | Kriteria kelayakan & batasan tanggungan keluarga sah pegawai (*eligible dependents*) | `CLOSED` | Pengguna (`HRD-DEC-015`) | `HRD-DEC-135` |
+| `HRD-Q-139` | Alur berobat di RS sendiri (*In-House Medical Care*) & integrasi billing SIMRS (`INT-HR-61`) | `CLOSED` | Pengguna (`HRD-DEC-015`) | `HRD-DEC-136` |
+| `HRD-Q-140` | Aturan koordinasi manfaat (*Coordination of Benefits* - COB) antara BPJS dan Asuransi Swasta/RS | `CLOSED` | Pengguna (`HRD-DEC-015`) | `HRD-DEC-137` |
+| `HRD-Q-141` | Masa tunggu kelayakan (*waiting period / eligibility gate*) aktivasi benefit pegawai baru | `CLOSED` | Pengguna (`HRD-DEC-015`) | `HRD-DEC-138` |
+| `HRD-Q-142` | Mekanisme terminasi kepesertaan asuransi saat resign/PHK & portabilitas BPJS via Exit Clearance | `CLOSED` | Pengguna (`HRD-DEC-015`) | `HRD-DEC-139` |
+
+---
+
+### 42.2 Keputusan Resmi yang Disetujui (`HRD-DEC-134` s.d. `HRD-DEC-139`)
+
+#### `HRD-DEC-134` — Struktur Paket Manfaat Berjenjang 3-Lapisan (Regulasi BPJS, Asuransi Swasta & Subsidi Berobat RS)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-137` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Regulasi BPJS Kesehatan (UU 24/2011) & Kebijakan Remunerasi Nakes Rumah Sakit |
+| Ringkasan | Sistem menetapkan struktur paket manfaat (*Benefit Plans*) rumah sakit terbagi dalam 3 lapisan yang saling melengkapi: (1) **Lapisan 1 (Regulasi Wajib Pemerintah):** BPJS Kesehatan (Pekerja Penerima Upah / PPU) dan BPJS Ketenagakerjaan (4 Program: JKK, JKM, JHT, JP) yang wajib diikutsertakan bagi seluruh staf aktif rumah sakit tanpa kecuali; (2) **Lapisan 2 (Asuransi Komersial Tambahan / Swasta):** Polis asuransi kesehatan swasta rawat inap (contoh: Manulife/InHealth VIP) yang dialokasikan berbasis golongan (*grade-based allocation*, misal: Dokter Spesialis, Pejabat Struktural, dan Manajer); (3) **Lapisan 3 (Fasilitas Subsidi Berobat Internal RS):** Kuota plafon rawat jalan dan diskon tindakan/obat di RS Quilvian sendiri bagi seluruh staf dan keluarganya dengan pencatatan mutasi kredit/debet saldo tahunan (*HrdBenefitBalanceMovement*). |
+| Implikasi Arsitektur | 1. Entitas master `MstBenefitPlan` menampung jenis provider (`BPJS_Kesehatan`, `BPJS_Ketenagakerjaan`, `PrivateInsurance`, `InHouseHospitalClinic`).<br>2. Relasi konfigurasi kelayakan grade `HrdBenefitGradeEligibility` memetakan batas plafon dan kelas perawatan kamar hak staf.<br>3. Integrasi pencatatan nomor kartu/polis digital pegawai pada `TrxEmployeeInsuranceEnrollment`. |
+
+#### `HRD-DEC-135` — Batasan Tanggungan Keluarga Sah: 1 Pasangan + 3 Anak (Hingga Usia 21/25 Tahun Kuliah Aktif)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-138` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Batasan Tanggungan Keluarga Inti BPJS PPU (Maksimal 5 Jiwa: Pekerja + Pasangan + 3 Anak) |
+| Ringkasan | Tanggungan keluarga sah (*eligible dependents*) yang berhak didaftarkan fasilitas benefit asuransi dan subsidi pengobatan rumah sakit dibatasi ketat pada keluarga inti: **1 pasangan sah (suami/istri)** berdasarkan Buku Nikah/Akta Perkawinan resmi Catatan Sipil, serta **maksimal 3 orang anak sah (kandung atau adopsi legal)**. Batas usia pertanggungan anak adalah tepat **hingga usia 21 tahun**, atau dapat diperpanjang **hingga usia 25 tahun** selama anak belum menikah, belum bekerja, dan melampirkan Surat Keterangan Mahasiswa Aktif dari perguruan tinggi yang diverifikasi ulang setiap tahun takwim. Anggota keluarga di luar kriteria tersebut (orang tua, mertua, anak ke-4 dst.) tidak ditanggung subsidi RS namun dapat didaftarkan sebagai peserta tambahan mandiri atas biaya pribadi pegawai. |
+| Implikasi Arsitektur | 1. Entitas `TrxEmployeeBenefitDependent` mencatat NIK, nama, hubungan keluarga, tanggal lahir, dan batas kedaluwarsa pertanggungan.<br>2. Scheduler otomatis `DependentAgeAuditJob` menonaktifkan status anak yang telah mencapai usia 21 tahun kecuali memiliki unggahan surat keterangan kuliah aktif yang sah.<br>3. Guard validasi sistem menolak pendaftaran anak ke-4 atau lebih dari 1 pasangan aktif. |
+
+#### `HRD-DEC-136` — Alur Berobat Internal Nakes di RS Sendiri & Integrasi Billing SIMRS (`INT-HR-61`)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-139` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Layanan Kesehatan Khusus Staf Medis (*Employee Health Service*); SIMRS Billing Integration |
+| Ringkasan | Pelayanan kesehatan staf rumah sakit dan tanggungan keluarganya saat berobat di RS Quilvian sendiri (IGD, Poliklinik Rawat Jalan, atau Rawat Inap) dikelola melalui integrasi langsung real-time dengan modul Admission & Billing SIMRS (`INT-HR-61`). Petugas registrasi SIMRS menginput NIP pegawai / NIK tanggungan; sistem memverifikasi status kepesertaan aktif, kelas rawat hak kamar (Kelas 1, VIP, VVIP), dan sisa saldo plafon rawat jalan tahunan staf. Billing SIMRS otomatis memotong biaya tindakan/obat dari saldo plafon via entitas buku besar `HrdBenefitBalanceMovement` dan menerapkan diskon nakes resmi RS. Jika tagihan perawatan melampaui plafon (*excess bill*), selisih biaya dapat dibayar tunai langsung di kasir atau secara otomatis dialihkan menjadi instruksi pemotongan slip gaji bulan berjalan (`TrxPayrollDeductionSchedule` via Sub-Modul 11 `S-B6`). |
+| Implikasi Arsitektur | 1. Kontrak integrasi `INT-HR-61`: `POST /api/v1/corporate/hrd/benefits/eligibility-check` dan callback penagihan `POST /api/v1/corporate/hrd/benefits/inhouse-billing-settlement`.<br>2. Transaksi buku besar atomik `HrdBenefitBalanceMovement` mencatat mutasi debet/kredit saldo plafon per kunjungan medis.<br>3. Mencegah nakes mengeluarkan uang pribadi di faskes tempat kerjanya sendiri tanpa birokrasi reimbursement manual yang lambat. |
+
+#### `HRD-DEC-137` — Koordinasi Manfaat (COB): BPJS Kesehatan Penjamin Primer & Asuransi RS Penjamin Sekunder
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-140` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Ketentuan Koordinasi Manfaat Kemenkes RI & BPJS Kesehatan (*Coordination of Benefits* - COB) |
+| Ringkasan | Sistem menegakkan kepatuhan aturan *Coordination of Benefits* (COB) secara ketat: untuk seluruh kasus rawat inap atau tindakan medis terencana, **BPJS Kesehatan wajib difungsikan sebagai Penjamin Utama / Primer (*Primary Payer*)** dengan penerbitan Surat Eligibilitas Peserta (SEP). Asuransi swasta atau fasilitas subsidi RS hanya bertindak sebagai **Penjamin Tambahan / Sekunder (*Secondary Payer*)** yang meng-cover selisih biaya (*cost-sharing*) akibat kenaikan kelas rawat (misal dari hak BPJS Kelas 1 naik ke kamar VIP hak asuransi RS) atau obat-obatan non-formularium nasional BPJS yang diresepkan dokter spesialis. Klaim asuransi swasta tanpa SEP BPJS hanya diizinkan untuk kasus kegawatdaruratan medis ekstrem di mana faskes rujukan BPJS penuh atau atas rekomendasi tertulis Direktur Pelayanan Medik. |
+| Implikasi Arsitektur | 1. Kolom `sep_number` (Surat Eligibilitas Peserta BPJS) wajib terisi pada entitas penyelesaian klaim COB `TrxBenefitClaim`.<br>2. Mesin validasi billing memisahkan porsi tagihan klaim BPJS (tarif INA-CBGs) dan porsi ekses klaim sekunder.<br>3. Menghindari inefisiensi pengeluaran anggaran rumah sakit atas biaya yang sebenarnya dijamin oleh BPJS Kesehatan. |
+
+#### `HRD-DEC-138` — Masa Tunggu Aktivasi Bertahap: BPJS TK H+0 & BPJS Kesehatan/Swasta Pasca-Lulus Percobaan 3 Bulan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-141` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Perlindungan Keselamatan Kerja Nakes (K3RS / JKK) & Tata Kelola Anggaran Masa Percobaan (`S-C4-ONB`) |
+| Ringkasan | Hak aktivasi paket manfaat bagi pegawai baru rumah sakit diatur secara bertahap: (1) **Hari Pertama Kerja (H+0 Onboarding):** Program jaminan risiko kecelakaan kerja dan kematian BPJS Ketenagakerjaan (JKK & JKM) wajib langsung diaktifkan seketika guna melindungi tenaga kesehatan dari risiko biologis/kecelakaan kerja sejak hari pertama bertugas di lingkungan rumah sakit; (2) **Pasca-Lulus Masa Percobaan 3 Bulan:** BPJS Kesehatan PPU, Asuransi Swasta Tambahan, serta Fasilitas Subsidi Berobat Keluarga RS baru diaktifkan setelah pegawai dinyatakan resmi lulus masa percobaan 3 bulan (`ProbationPassed`) dan menandatangani SK Pengangkatan PKWT/PKWTT (`S-C4-ONB`). Selama masa percobaan 3 bulan, kebutuhan rawat jalan darurat nakes difasilitasi melalui Klinik K3RS Rumah Sakit. |
+| Implikasi Arsitektur | 1. Event listener `OnEmployeeOnboardingCompleted` memicu pendaftaran instan BPJS Ketenagakerjaan (JKK & JKM).<br>2. Event listener `OnProbationPassed` dari Sub-Modul 05 mengaktifkan paket lengkap `MstBenefitPlan` dan membuka hak pendaftaran tanggungan keluarga.<br>3. Mencegah kerugian finansial premi asuransi komersial tahunan bagi pegawai yang gugur pada masa evaluasi awal. |
+
+#### `HRD-DEC-139` — Terminasi Hak Benefit Otomatis pada Tanggal Keluar & Portabilitas BPJS via Exit Clearance Sub-20
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-142` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Siklus Penutupan Kepegawaian (Exit Clearance Sub-Modul 20); Prosedur Mutasi BPJS Kesehatan |
+| Ringkasan | Saat seorang pegawai mengajukan pengunduran diri (*resign*), habis masa kontrak, atau PHK, sistem secara otomatis menonaktifkan seluruh fasilitas asuransi komersial dan hak subsidi plafon berobat internal tepat pada tanggal efektif pemutusan hubungan kerja (*Effective Termination Date*). Modul HRD menghentikan alokasi premi pada slip gaji penutupan, menerbitkan Surat Keterangan Penonaktifan BPJS PPU agar mantan pegawai dapat melakukan mutasi portabilitas mandiri, serta mengirimkan konfirmasi bebas tagihan medis (*Medical Billing Clearance*) ke checklist formulir Exit Clearance Sub-Modul 20. Jika masih terdapat sisa tagihan medis ekses rawat inap yang belum terbayar, tagihan tersebut dikonsolidasikan ke pemotongan pesangon akhir penutupan (Sub-Modul 11 `S-B6`). |
+| Implikasi Arsitektur | 1. Integrasi dengan Sub-Modul 20: Checklist Exit Clearance memvalidasi flag `BenefitObligationsCleared == true`.<br>2. Otomasi penonaktifan kepesertaan `TrxEmployeeInsuranceEnrollment.status = 'Terminated'`.<br>3. Mencegah risiko tagihan medis rumah sakit tak tertagih atas pegawai yang sudah meninggalkan fasilitas rumah sakit. |
+
+---
+
+### 42.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-35` | Tarif diskon pelayanan kesehatan internal rumah sakit bagi pegawai dan keluarga diatur melalui konfigurasi parameter terpusat (contoh: 20% s.d. 50% dari tarif umum) | Menjaga konsistensi tarif penagihan kasir SIMRS dan perlindungan margin operasional rumah sakit | Dapat disesuaikan per jenis tindakan (rawat jalan vs rawat inap vs obat) melalui setting sistem |
+| `HRD-ASM-36` | Batas usia 25 tahun bagi anak kuliah aktif diverifikasi setahun sekali melalui surat keterangan dekanat perguruan tinggi | Menghindari kelanjutan subsidi asuransi bagi anak yang telah lulus atau berhenti kuliah | Sistem memblokir otomatis pertanggungan jika surat keterangan baru belum diunggah per 31 Agustus |
+| `HRD-ASM-37` | Seluruh data tanggungan keluarga diverifikasi kesesuaiannya terhadap database kependudukan nasional (NIK/KK) | Mencegah penipuan pendaftaran tanggungan fiktif atau keluarga jauh | Membutuhkan lampiran scan Kartu Keluarga asli saat input di portal ESS |
+| `HRD-ASM-38` | Sisa plafon subsidi berobat internal RS yang tidak terpakai dalam satu tahun takwim otomatis hangus (tidak dapat diuangkan atau di-carry forward) | Sifat subsidi kesehatan rumah sakit adalah proteksi risiko medis (*contingency benefit*), bukan tabungan tunai | Saldo plafon di-reset otomatis setiap 1 Januari pukul 00:00 WIB |
+
+
+---
+
+## 43. Pass Wawancara 13: Sub-Modul 13 HR Service Management & Request (Layanan Administrasi, Helpdesk Tiket SDM & Penerbitan Dokumen Kepegawaian Rumah Sakit, Slice S-D4)
+
+- **Tanggal Wawancara:** 5 November 2026
+- **Status Sesi:** `approved` — seluruh rekomendasi pada pertanyaan `HRD-Q-143` s.d. `HRD-Q-148` disetujui penuh oleh Pengguna selaku pemilik teknis dan produk (`HRD-DEC-015`).
+- **Target Slice:** `S-D4` (membuka blocker `S-D4` dari status `BLOCKED` menjadi `READY FOR DESIGN`).
+- **Fokus Bisnis:** Penataan helpdesk tiket layanan SDM, SLA berjenjang kebutuhan cito nakes, penerbitan dokumen resmi ber-QR Code publik dan ber-PIN finansial, standarisasi penomoran surat terpusat, serta pengarsipan digital e-Dossier pegawai rumah sakit.
+
+---
+
+### 43.1 Pertanyaan dan Status Penutupan
+
+#### `HRD-Q-143` — Otentikasi & Verifikasi Keaslian Dokumen Publik via QR Code
+- **Status:** `CLOSED`
+- **Ditutup oleh:** `HRD-DEC-140`
+- **Pilihan Terpilih:** **Opsi A (Direkomendasikan)** — Dokumen PDF diterbitkan dengan QR Code unik yang mengarah ke portal verifikasi publik resmi RS Quilvian (`/verify/document/{hash}`). Pihak luar yang men-scan QR hanya melihat metadata validitas (Nomor Surat, Nama Pegawai, Tanggal Terbit, Masa Berlaku, Penandatangan, dan Status Sah/Dicabut). Khusus Surat Keterangan Penghasilan, rincian angka nominal gaji disamarkan (*masked*) dan hanya dapat dibuka jika pihak pemeriksa memasukkan 4-digit PIN verifikasi yang dipegang resmi oleh pegawai bersangkutan.
+
+#### `HRD-Q-144` — Standar Service Level Agreement (SLA) Layanan & Eskalasi Keterlambatan
+- **Status:** `CLOSED`
+- **Ditutup oleh:** `HRD-DEC-141`
+- **Pilihan Terpilih:** **Opsi A (Direkomendasikan)** — Sistem membagi SLA ke dalam 3 tier berjenjang: (1) *Layanan Cito / Darurat Medis* (SLA maks 4 jam kerja, wajib justifikasi Kepala Ruangan / Komite Medik); (2) *Layanan Standar* (Surat Keterangan Kerja/Aktif, rekomendasi paspor/visa, SLA maks 24 jam kerja); (3) *Layanan Khusus / Otorisasi Pimpinan* (Salary certificate, surat rekomendasi beasiswa spesialis Direksi, SLA maks 72 jam kerja). Jika tiket mencapai 75% batas waktu SLA tanpa tindak lanjut, sistem memicu notifikasi peringatan (*warning*) ke HR Supervisor. Jika melewati batas 100% SLA (*overdue*), tiket otomatis dieskalasi ke Manajer SDM dan tercatat sebagai rapor merah pada KPI layanan internal HR.
+
+#### `HRD-Q-145` — Kerahasiaan & Otorisasi Surat Keterangan Penghasilan (Salary Certificate)
+- **Status:** `CLOSED`
+- **Ditutup oleh:** `HRD-DEC-142`
+- **Pilihan Terpilih:** **Opsi A (Direkomendasikan)** — Sistem mengunci bahwa rincian nominal gaji pada draf surat **wajib ditarik otomatis dari riwayat slip gaji resmi yang telah difinalisasi di Sub-Modul 10 Payroll Processing (`S-B5`)** (rata-rata 3 bulan terakhir atau bulan berjalan; pembuat surat dilarang mengetik nominal bebas). Penerbitan draf surat ini wajib disetujui minimal oleh **Kompensasi & Benefit Supervisor atau Manajer SDM** sebelum dokumen dapat ditandatangani dan diterbitkan.
+
+#### `HRD-Q-146` — Alur Permohonan Pemutakhiran Data Pribadi & Rekening Bank
+- **Status:** `CLOSED`
+- **Ditutup oleh:** `HRD-DEC-143`
+- **Pilihan Terpilih:** **Opsi A (Direkomendasikan)** — Pegawai mengajukan tiket permohonan pemutakhiran data di portal ESS dengan melampirkan scan berkas pendukung asli (buku tabungan untuk rekening payroll baru, buku nikah untuk status perkawinan, KTP untuk domisili). Petugas HR Service memverifikasi keabsahan dokumen; setelah tiket disetujui, **sistem otomatis memperbarui data master kepegawaian di Sub-Modul 02 (`MstWorkforceProfile`)** dengan pencatatan jejak audit (*Audit Trail*), sehingga pegawai tidak perlu mengisi form kertas manual terpisah.
+
+#### `HRD-Q-147` — Format Penomoran Surat Resmi & Manajemen Template Dokumen Terpusat
+- **Status:** `CLOSED`
+- **Ditutup oleh:** `HRD-DEC-144`
+- **Pilihan Terpilih:** **Opsi A (Direkomendasikan)** — Sistem menerapkan **mesin penomoran surat otomatis terpusat (*Centralized Auto-Numbering Engine*)** dengan format standar rumah sakit (contoh: `[KODE_SURAT]/RSQ-SDM/[BULAN_ROMAWI]/[TAHUN]/[NO_URUT]`) yang menghasilkan nomor seri unik anti-lompat (*gapless sequence*). Template dokumen dirancang berbasis sistem variabel dinamis token (`{{NamaPegawai}}`, `{{NIP}}`, `{{Jabatan}}`, `{{UnitKerja}}`, `{{TanggalMulaiKerja}}`, `{{TujuanSurat}}`) yang dikelola terpusat oleh HR Administrator; petugas dilarang mengedit format surat di Microsoft Word secara lepas.
+
+#### `HRD-Q-148` — Penyimpanan Arsip Digital (E-Dossier) & Akses Riwayat Mandiri di ESS
+- **Status:** `CLOSED`
+- **Ditutup oleh:** `HRD-DEC-145`
+- **Pilihan Terpilih:** **Opsi A (Direkomendasikan)** — Seluruh surat dan dokumen yang telah disetujui, ditandatangani digital, dan ber-QR Code otomatis diarsipkan secara permanen ke repositori dokumen digital pegawai (**`Employee E-Dossier` di Sub-Modul 02 `Workforce Core`**). Pegawai dapat melihat dan mengunduh ulang salinan dokumen PDF resmi kapan saja melalui portal ESS pada tab *"Dokumen Saya"*. Dokumen yang telah terbit bersifat abadi (*immutable archive*); jika terjadi kekeliruan administratif, surat tidak dihapus melainkan dicabut keabsahannya dengan status `Revoked` disertai alasan resmi.
+
+---
+
+### 43.2 Keputusan Desain Bisnis yang Disetujui
+
+#### `HRD-DEC-140` — Otentikasi QR Code Publik & Proteksi PIN 4-Digit untuk Data Finansial
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-143` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Validasi Legal Dokumen Rumah Sakit; Standar Kepatuhan UU ITE & Perlindungan Data Pribadi |
+| Ringkasan | Setiap dokumen resmi kepegawaian yang diterbitkan sistem wajib menyematkan kode QR verifikasi dinamis pada lembar kaki dokumen. Ketika dipindai oleh pihak eksternal (bank, kedutaan, lembaga pemerintah), pemindai diarahkan ke endpoint verifikasi publik resmi RS Quilvian (`/verify/document/{documentHash}`). Halaman verifikasi hanya menampilkan metadata legalitas dokumen (Nomor Surat Resmi, Tanggal Terbit, Nama Staf, Masa Berlaku, dan Nama Pejabat Penandatangan). Khusus dokumen yang mengandung informasi finansial (Surat Keterangan Gaji / Salary Certificate), rincian nominal disamarkan (*masked*) dan hanya dapat dilihat jika pihak verifikator menginputkan 4-digit PIN pengaman yang diberikan secara privat oleh pegawai pemilik dokumen. |
+| Implikasi Arsitektur | 1. Entitas `TrxEmployeeDocumentIssuance` menyimpan kolom `verification_hash`, `qr_code_image_path`, dan `security_pin_hash`.<br>2. Endpoint publik tanpa otentikasi sesi: `GET /api/v1/public/documents/verify/{hash}` dan `POST /api/v1/public/documents/verify/{hash}/reveal-salary`.<br>3. Menjamin dokumen bebas dari pemalsuan cap stempel fisik dan melindungi privasi nominal penghasilan staf medis. |
+
+#### `HRD-DEC-141` — Standar SLA 3-Tier (Cito 4 Jam, Standar 24 Jam, Khusus 72 Jam) & Eskalasi Otomatis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-144` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Standar Pelayanan Minimal (SPM) Rumah Sakit; Tata Kelola Respons Cepat Tenaga Medis 24/7 |
+| Ringkasan | Sistem menetapkan target Service Level Agreement (SLA) operasional yang dibagi menjadi 3 tingkatan prioritas: (1) **Tier Cito / Darurat Medis (SLA maks 4 jam kerja):** Khusus surat tugas darurat klinis, surat izin mendadak luar kota, atau panggilan tugas kebencanaan, wajib dilengkapi justifikasi Kepala Ruangan / Komite Medik; (2) **Tier Standar (SLA maks 24 jam kerja):** Surat Keterangan Kerja biasa, paklaring, pengantar visa/paspor, dan permohonan pemutakhiran data pribadi; (3) **Tier Khusus / Pimpinan (SLA maks 72 jam kerja):** Surat keterangan penghasilan, rekomendasi beasiswa spesialis Direksi, atau dokumen hukum kepegawaian. Timer SLA berjalan otomatis saat tiket masuk status `Submitted`. Peringatan dini dikirimkan ke HR Supervisor pada 75% durasi SLA, dan jika mencapai 100% tanpa penyelesaian, tiket otomatis berstatus `Overdue`, dieskalasi ke Manajer SDM, serta mengurangi skor KPI tim HR Service. |
+| Implikasi Arsitektur | 1. Kolom `sla_target_hours`, `sla_deadline`, `is_overdue`, dan `priority_level` pada `TrxHrServiceRequest`.<br>2. Background worker berjalan berkala setiap 15 menit mengecek tiket mendekati SLA.<br>3. Menghilangkan bottleneck birokrasi surat yang dapat mengganggu mobilitas dan kesiapan tugas nakes. |
+
+#### `HRD-DEC-142` — Penarikan Nominal Gaji Otomatis dari Payroll Finalized Sub-10 & Approval Supervisor C&B
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-145` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Tata Kelola Penggajian Terkunci (`HRD-DEC-009`); Pencegahan Fraud Pinjaman Perbankan |
+| Ringkasan | Pembuatan Surat Keterangan Penghasilan (Salary Certificate) untuk keperluan pengajuan KPR perbankan, visa, atau kredit multiguna dilarang keras menggunakan input nominal bebas oleh pemohon maupun operator HR. Sistem secara otomatis menarik nominal penghasilan riil (rata-rata gaji bruto/netto 3 bulan terakhir atau bulan berjalan) dari entitas slip gaji yang telah disahkan dan berstatus finalized pada Sub-Modul 10 Payroll Processing (`TrxPayrollPayslip` via `INT-HR-56`). Dokumen draf yang dihasilkan wajib melewati gerbang persetujuan (*approval gate*) oleh Supervisor Kompensasi & Benefit atau Manajer SDM sebelum dokumen dapat dibubuhi tanda tangan digital. |
+| Implikasi Arsitektur | 1. Integrasi read-only dengan Sub-Modul 10: `IPayrollHistoryQueryService` membaca data slip gaji final pegawai.<br>2. Workflow approval 2-tier: Pemohon (ESS) -> Reviewer C&B -> Approval Manajer SDM.<br>3. Mencegah manipulasi angka slip gaji untuk pengajuan kredit fiktif dan melindungi kredibilitas legal institusi RS. |
+
+#### `HRD-DEC-143` — Pemutakhiran Data Master Profil Otomatis Pasca-Verifikasi Berkas Sah
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-146` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Manajemen Data Induk Kepegawaian (Sub-Modul 02 `WorkforceCore`); Single Source of Truth |
+| Ringkasan | Untuk permohonan pemutakhiran data pribadi non-transaksional (perubahan nomor rekening bank payroll, status pernikahan, alamat domisili KTP, kontak darurat), staf nakes mengajukan tiket permohonan pemutakhiran di portal ESS dengan wajib melampirkan berkas dokumen digital asli yang sah (scan buku rekening bank, buku nikah, KTP). Petugas HR Service memvalidasi keabsahan fisik/digital dokumen tersebut. Tepat setelah tiket disetujui (`Approved`), sistem secara otomatis mengeksekusi pembaruan data pada entitas induk profil kepegawaian Sub-Modul 02 (`MstWorkforceProfile` dan `TrxEmployeeBankDetail`) tanpa memerlukan pengetikan ulang manual oleh operator HR, lengkap dengan pencatatan audit trail sebelum dan sesudah perubahan. |
+| Implikasi Arsitektur | 1. Event listener `OnHrServiceDataCorrectionApproved` memicu update data profil kepegawaian Sub-02.<br>2. Riwayat data lama disimpan ke tabel log `HrdProfileChangeHistory`.<br>3. Menghindari kesalahan pengetikan nomor rekening bank yang berisiko fatal pada saat transfer penggajian bulanan. |
+
+#### `HRD-DEC-144` — Mesin Penomoran Surat Terpusat (Gapless Auto-Numbering) & Template Token Dinamis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-147` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Standar Tata Naskah Dinas Rumah Sakit; Kerapihan Tata Kelola Arsip Legal |
+| Ringkasan | Seluruh dokumen dan surat kepegawaian yang diterbitkan sistem wajib menggunakan mesin penomoran otomatis terpusat (*Centralized Auto-Numbering Engine*) yang menjamin urutan nomor surat resmi rumah sakit bersifat unik, berurutan tanpa lompatan (*gapless sequence*), dan terhindar dari nomor surat ganda akibat pembatalan. Format penomoran dikonfigurasi terpusat: `[KODE_DOKUMEN]/RSQ-SDM/[BULAN_ROMAWI]/[TAHUN]/[NO_URUT_4_DIGIT]`. Template dokumen dirancang menggunakan format token variabel dinamis (`{{NamaLengkap}}`, `{{NIP}}`, `{{Jabatan}}`, `{{UnitKerja}}`, `{{MasaKerja}}`, `{{TujuanPermohonan}}`, `{{PejabatPenandatangan}}`). Format draf dokumen dihasilkan secara otomatis oleh sistem tanpa intervensi editor eksternal terpisah (Microsoft Word) guna menjamin konsistensi tata naskah dinas rumah sakit. |
+| Implikasi Arsitektur | 1. Tabel master `MstEmployeeDocumentType` menyimpan template HTML/Liquid beserta variabel token yang didukung.<br>2. Komponen `DocumentAutoNumberingService` mengunci baris counter nomor surat dengan transaksi database atomik.<br>3. Standarisasi 100% tata naskah dinas resmi rumah sakit di mata pihak eksternal. |
+
+#### `HRD-DEC-145` — Pengarsipan Abadi E-Dossier Sub-02, Riwayat ESS & Protokol Revokasi Dokumen Sah
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-148` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Retensi Arsip Kepegawaian Rumah Sakit; Lingkungan Kerja Nirkertas (*Paperless Hospital*) |
+| Ringkasan | Seluruh dokumen kepegawaian yang telah berstatus `Issued` (ditandatangani secara digital dan ber-QR Code) secara otomatis disimpan permanen ke dalam berkas elektronik pegawai (**`Employee E-Dossier` di Sub-Modul 02 `Workforce Core`**) dan langsung dapat diakses/diunduh ulang oleh pegawai bersangkutan di portal ESS pada menu *"Dokumen Saya"*. Dokumen yang telah diterbitkan bersifat kekal (*immutable archive*) dan tidak dapat dihapus dari basis data. Jika di kemudian hari ditemukan kekeliruan administratif atau pemalsuan data pemohon, dokumen tersebut tidak dihapus melainkan dicabut keabsahannya dengan status `Revoked`, di mana pemindaian QR Code publik akan memunculkan banner merah peringatan: *"Dokumen ini telah DICABUT/TIDAK BERLAKU"* beserta tanggal dan alasan pencabutan resmi. |
+| Implikasi Arsitektur | 1. Integrasi repositori file: `TrxEmployeeDocumentIssuance` mengaitkan path file PDF ke `MstWorkforceProfileDocument`.<br>2. Fitur pencabutan status dokumen: `POST /api/v1/corporate/hrd/services/documents/{id}/revoke` dengan mandatory catatan alasan pembatalan.<br>3. Menjamin transparansi rekam jejak berkas kepegawaian dan kepatuhan audit hukum. |
+
+---
+
+### 43.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-39` | Format penomoran surat resmi menggunakan format standar `[KODE]/RSQ-SDM/[BULAN_ROMAWI]/[TAHUN]/[NO_URUT]` | Menjaga konsistensi tata naskah dinas rumah sakit | Format dapat disesuaikan per jenis dokumen melalui konfigurasi master dokumen |
+| `HRD-ASM-40` | Masa berlaku standar dokumen surat keterangan kerja atau rekomendasi adalah 3 bulan sejak tanggal terbit | Batas waktu wajar kepatuhan administrasi pihak ketiga (Bank/Kedutaan) | Setelah 3 bulan, status dokumen pada halaman verifikasi publik otomatis menampilkan `Expired` |
+| `HRD-ASM-41` | PIN 4-digit verifikasi surat penghasilan digenerate otomatis dan dikirimkan secara privat ke akun ESS pegawai pemohon | Menjaga kerahasiaan nominal gaji saat dokumen diserahkan ke pihak luar | Pegawai dapat mengganti atau me-reset PIN jika diperlukan melalui portal ESS |
+| `HRD-ASM-42` | Tanda tangan digital pejabat berwenang menggunakan sertifikat elektronik internal rumah sakit atau e-Sign berintegritas hash SHA-256 | Memenuhi keabsahan dokumen elektronik tanpa ketergantungan wajib pada vendor berbayar luar | Mendukung verifikasi integritas berkas terhadap perubahan (*tamper-evident*) |
+
+
+---
+
+## 44. Pass Wawancara 14: Sub-modul 14 Credentialing, License & Clinical Privilege (Slice `S-C1`)
+
+Pass ini dibuka pada **5 November 2026** untuk merumuskan tata kelola kredensialing tenaga medis dan tenaga kesehatan rumah sakit, verifikasi keabsahan dokumen primer (*Primary Source Verification* - PSV), struktur 3 komite klinis independen, mekanisme rekomendasi Mitra Bestari (*Peer Review*), pengesahan Surat Penugasan Klinis (SPK) dan Rincian Kewenangan Klinis (RKK) oleh Direktur Utama, integrasi penegakan batas kewenangan klinis ke SIMRS/EMR (`INT-HR-69`), tata kelola kewenangan klinis darurat & sementara, serta resolusi final posisi sementara `HRD-DEC-005` menjadi *approved*.
+
+### 44.1 Batas Scope Sub-modul 14
+
+- **Di dalam Scope (`IN-SCOPE`):**
+  1. Tata kelola kredensialing terpisah untuk 3 pilar komite profesi rumah sakit: **Komite Medik**, **Komite Keperawatan**, dan **Komite Tenaga Kesehatan Lainnya**.
+  2. Verifikasi Keabsahan Sumber Primer (*Primary Source Verification* - PSV) terhadap dokumen legalitas: **STR Seumur Hidup** (KKI / SatuSehat SDMK Kemenkes) dan **SIP 5 Tahunan** (Dinkes/DPMPTSP, maks 3 tempat praktik).
+  3. Mekanisme pengajuan kewenangan klinis (*Clinical Privilege*), penilaian kompetensi oleh panel **Mitra Bestari (*Peer Review*)**, dan rapat pleno komite.
+  4. Hierarki penerbitan dan pengesahan resmi **Surat Penugasan Klinis (SPK)** dan **Rincian Kewenangan Klinis (RKK)** oleh **Direktur Utama Rumah Sakit**.
+  5. Klasifikasi derajat kewenangan klinis: **Mandiri (Level 4)**, **Di Bawah Supervisi (Level 3)**, dan **Tidak Diberikan Kewenangan (Level 1-2)**.
+  6. Penegakan batas kewenangan klinis ke sistem pelayanan medis SIMRS/EMR (**`INT-HR-69`**) dengan proteksi *Hard-Stop* dan audit bypass darurat (*emergency override*).
+  7. Tata kelola kewenangan khusus: **Kewenangan Sementara (*Temporary Privilege*)** untuk dokter konsultan tamu dan **Kewenangan Darurat (*Emergency Privilege*)** untuk situasi cito kebencanaan.
+  8. Siklus masa berlaku SPK/RKK (3 tahun), peringatan dini H-90 kedaluwarsa SIP, serta transisi otomatis ke proses Rekredensialing.
+
+- **Di luar Scope (`OUT-OF-SCOPE`):**
+  - Evaluasi Praktik Profesional Berkelanjutan (OPPE) dan Terfokus (FPPE) tahunan (*dikelola di Sub-Modul 15 Performance Management*).
+  - Penempatan unit kerja bangsal dan kontrak kerja administratif pegawai (*dikelola di Sub-Modul 05 Onboarding & Lifecycle*).
+  - Penghitungan dan pembagian jasa medis tarif tindakan (*dikelola di Sub-Modul 10 Payroll & Jasa Medis*).
+  - Eksekusi rekam medis elektronik pasien di ruang rawat (*dikelola di modul EMR Rawat Jalan / Rawat Inap / Bedah Sentral*).
+
+---
+
+### 44.2 Pertanyaan dan Keputusan Approved
+
+#### `HRD-DEC-146` — Verifikasi PSV STR Seumur Hidup KKI/SatuSehat SDMK & Radar Pemantau SIP 5 Tahun H-90 s.d. Fail-Closed H-0
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-149` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | UU No. 17 Tahun 2023 tentang Kesehatan; Standar Akreditasi KARS/STARKES 2024 (KPS 10-12); Tata Kelola Dokumen Praktik Tenaga Medis |
+| Ringkasan | Sesuai UU 17/2023, Surat Tanda Registrasi (STR) nakes berlaku seumur hidup dan divalidasi keabsahannya oleh petugas kredensialing melalui mekanisme *Primary Source Verification* (PSV) via portal Konsil Kedokteran Indonesia (KKI) atau SatuSehat SDMK Kemenkes, lengkap dengan pencatatan tautan URL bukti verifikasi dan stempel tanggal audit. Sebaliknya, Surat Izin Praktik (SIP) memiliki masa berlaku 5 tahun dan terikat pada faskes RS. Sistem memasang mesin audit background yang memantau sisa masa berlaku SIP dengan notifikasi berjenjang: H-90, H-60, H-30, dan H-7. Tepat pada tanggal kedaluwarsa SIP (H-0 pukul 00:00), sistem secara otomatis mengeksekusi *fail-closed action*: memblokir penugasan dinas/jaga nakes pada Sub-Modul 06 Roster Scheduling dan menonaktifkan akun order peresepan/tindakan di SIMRS/EMR guna menghindari risiko pidana malpraktik faskes tanpa izin. |
+| Implikasi Arsitektur | 1. Kolom `is_psv_verified`, `psv_source_url`, `psv_verified_at`, `psv_verified_by` pada `WfpCredentialLicense`.<br>2. Scheduler `SipExpirationMonitorJob` berjalan harian memicu event `OnSipExpired`.<br>3. Integrasi sync status aktif nakes ke Sub-06 Scheduling (`INT-HR-31`) dan SIMRS IAM (`INT-HR-69`). |
+
+#### `HRD-DEC-147` — Pemisahan Tata Kelola 3 Komite Kredensial Mandiri & Panel Mitra Bestari (*Peer Review*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-150` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Permenkes No. 6 Tahun 2026 tentang Rumah Sakit; Standar Tata Kelola Klinis (*Clinical Governance*) |
+| Ringkasan | Sistem memisahkan secara tegas arsitektur alur pengajuan, penelaahan, dan rekomendasi kredensial ke dalam 3 komite mandiri: (1) **Komite Medik:** Dokter Umum, Dokter Gigi, Dokter Spesialis, dan Subspesialis; (2) **Komite Keperawatan:** Tenaga Perawat (Jenjang Karir PK I s.d. PK V) dan Bidan; (3) **Komite Tenaga Kesehatan Lainnya:** Apoteker, TTK, Radiografer, Analis Laboratorium, Fisioterapis, Nutrisionis, dsb. Setiap komite mengelola buku putih (*whitebook*) kompetensi masing-masing. Untuk setiap permohonan kredensial baru atau peningkatan kewenangan klinis, Subkomite Kredensial wajib membentuk panel **Mitra Bestari (*Peer Review*)** beranggotakan minimal 2 orang sejawat seprofesi/subspesialisasi yang sama (internal RS atau pakar kolegium eksternal) untuk memberikan asesmen teknis dan rekomendasi tertulis independen sebelum berkas dibawa ke Rapat Pleno Komite. |
+| Implikasi Arsitektur | 1. Tabel master `MstCredentialingCommittee` dengan kode `MEDIK`, `KEPERAWATAN`, `NAKES_LAIN`.<br>2. Model `TrxClinicalPrivilegeAssessment` mencatat panel peer review minimal 2 reviewer.<br>3. Pemisahan hak akses menu dan alur review berbasis role komite masing-masing. |
+
+#### `HRD-DEC-148` — Hierarki Pengesahan SPK & RKK oleh Direktur Utama serta 3 Derajat Supervisi Klinis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-151` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | *Hospital Bylaws*; Tanggung Jawab Hukum Pemilik Faskes; Standar KARS KPS 11 |
+| Ringkasan | Kewenangan klinis dokter dan nakes di rumah sakit bersumber dari mandat penugasan Direktur Utama. Penerbitan Surat Penugasan Klinis (SPK) beserta lampiran Rincian Kewenangan Klinis (RKK) wajib disahkan secara tunggal oleh **Direktur Utama Rumah Sakit** berdasarkan surat rekomendasi resmi Ketua Komite terkait. Setiap butir tindakan klinis dalam lampiran RKK diklasifikasikan secara tegas ke dalam 3 derajat kewenangan: (1) **Level 4 — Mandiri (Kewenangan Penuh):** Tenaga medis berwenang melakukan tindakan mandiri tanpa asistensi; (2) **Level 3 — Di Bawah Supervisi:** Tenaga medis berwenang melakukan tindakan hanya dengan pendampingan langsung/tidak langsung dari supervisor yang ditunjuk dalam SPK; (3) **Level 1-2 — Tidak Berwenang (Ditolak):** Tenaga medis dilarang keras melakukan tindakan tersebut di lingkungan rumah sakit. |
+| Implikasi Arsitektur | 1. Model `WfpClinicalPrivilege` mencatat `supervision_level` enum (`Independent`, `UnderSupervision`, `Denied`).<br>2. Workflow pengesahan SPK/RKK berjenjang: Pengusul -> Subkomite -> Ketua Komite -> Direktur Pelayanan -> Disahkan Direktur Utama.<br>3. Mencegah tindakan medis berisiko tinggi tanpa pengawasan supervisor yang kompeten. |
+
+#### `HRD-DEC-149` — Resolusi Final `HRD-DEC-005`: Penegakan Hard-Stop Bertingkat di SIMRS EMR (`INT-HR-69`) & Life-Saving Override
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-152`, menutup tuntas posisi sementara `HRD-DEC-005` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Penuntasan Posisi Sementara `HRD-DEC-005`; Keselamatan Pasien (*Patient Safety Invariant*); Standar Pelayanan Medis STARKES 2024 |
+| Ringkasan | Keputusan `HRD-DEC-005` yang semula berstatus *draft/fail-open* kini **DITUTUP DAN DISETUJUI SECARA FINAL** menjadi protokol penegakan wewenang klinis bertingkat (*Tiered Clinical Gate*) via integrasi API real-time `INT-HR-69`: (1) **Tindakan Tidak Berwenang:** Sistem SIMRS/EMR menerapkan **Hard-Stop (Blokir Keras)** — tombol simpan/order dinonaktifkan dengan peringatan penolakan; (2) **Tindakan Di Bawah Supervisi:** Sistem mengizinkan permohonan order, namun status order berstatus *Pending Co-Signature* dan wajib disetujui digital oleh dokter supervisor dalam kurun waktu 24 jam sebelum tindakan elektif invasif dijalankan; (3) **Pengecualian Darurat (*Life-Saving Emergency Override*):** Tersedia tombol bypass darurat khusus dengan wajib mengisi teks justifikasi medis klinis cito; audit trail otomatis dibubuhkan dan notifikasi peringatan insiden seketika dikirimkan ke Ketua Komite Medik dan Komite Mutu & Keselamatan Pasien (KMKP) untuk diaudit dalam tempo 24 jam. |
+| Implikasi Arsitektur | 1. Status `HRD-DEC-005` dinaikkan menjadi `approved`.<br>2. Endpoint performa tinggi `POST /api/v1/corporate/hrd/clinical-privileges/validate-gate` (latensi < 50ms, response ber-cache Redis).<br>3. Tabel log `TrxClinicalPrivilegeEmergencyOverrideLog` mencatat seluruh kejadian bypass darurat. |
+
+#### `HRD-DEC-150` — Tata Kelola Kewenangan Klinis Sementara (*Temporary Privilege*) & Kewenangan Darurat (*Emergency Privilege*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-153` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Penanganan Darurat Bencana Medis; Kunjungan Dokter Ahli Konsultan Luar Kota (*Proctoring*) |
+| Ringkasan | Rumah sakit menyediakan 2 jalur cepat resmi penugasan klinis: (1) **Temporary Clinical Privilege (Kewenangan Sementara):** Diberikan kepada dokter konsultan tamu/proctoring dari luar faskes yang memiliki STR dan SIP aktif faskes asal. Draf RKK diverifikasi oleh Ketua Komite Medik dan disahkan Direktur Utama untuk masa berlaku spesifik (maksimal 3 bulan, dapat diperpanjang 1 kali untuk 3 bulan); (2) **Emergency Clinical Privilege (Kewenangan Darurat):** Diberikan dalam situasi bencana massal, lonjakan wabah luar biasa (KLB), atau kondisi darurat cito. Diberikan instan oleh Direktur Pelayanan Medik atas persetujuan darurat dengan masa berlaku maksimal **48 s.d. 72 jam**, terbatas khusus untuk tindakan medis penyelamatan nyawa (*life-saving*), dan wajib dilaporkan secara administratif ke Komite Medik dalam kurun waktu 7 hari kerja. |
+| Implikasi Arsitektur | 1. Kolom `privilege_nature` enum (`Regular`, `Temporary`, `Emergency`) pada `WfpClinicalPrivilege`.<br>2. Alur bypass rapat komite untuk tipe `Emergency` dengan otorisasi tunggal Direktur Pelayanan Medik.<br>3. Masa kedaluwarsa otomatis terkunci 72 jam untuk emergency privilege. |
+
+#### `HRD-DEC-151` — Siklus SPK/RKK 3 Tahun, Radar Rekredensialing H-90, dan Penangguhan Otomatis (*Suspended*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-154` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 5 November 2026 |
+| Evidence | Standar Akreditasi KARS KPS 11 (Evaluasi Praktik Profesional & Rekredensialing Berkala); Siklus Kewenangan 3 Tahunan |
+| Ringkasan | Masa berlaku Surat Penugasan Klinis (SPK) dan Rincian Kewenangan Klinis (RKK) dikunci standar selama **3 tahun** sejak tanggal pengesahan Direktur Utama. Sistem mengirimkan peringatan otomatis kepada nakes dan sekretariat komite pada **H-90, H-60, dan H-30** sebelum kedaluwarsa. Pada H-60, sistem otomatis menginisiasi draf *Recredentialing Application* di portal staf medis dengan menarik riwayat RKK aktif serta ringkasan evaluasi kinerja klinis OPPE dari Sub-Modul 15 (`INT-HR-70`). Apabila hingga tanggal jatuh tempo (H-0 pukul 00:00) SPK/RKK baru belum disahkan Direktur Utama, status kewenangan klinis nakes otomatis berubah menjadi **`Suspended` (Ditangguhkan)**; dokter tidak dapat memberikan pelayanan mandiri dan seluruh order klinis wajib didampingi supervisor hingga SPK/RKK baru disahkan. |
+| Implikasi Arsitektur | 1. Kolom `effective_start_date`, `effective_end_date`, `is_suspended` pada `WfpClinicalPrivilege`.<br>2. Worker otomatis `RecredentialingReminderJob` membuat draf `TrxRecredentialingApplication`.<br>3. Mencegah terjadinya kekosongan hukum penugasan klinis yang dapat menggugurkan klaim BPJS/Asuransi. |
+
+---
+
+### 44.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-43` | Masa berlaku STR seumur hidup dicatat dengan nilai `valid_until = NULL` atau tanggal infinity `9999-12-31` | Mengakomodasi ketentuan UU 17/2023 tanpa merusak skema tanggal not-null | Kolom `is_lifetime` boolean menjadi filter utama pengecekan kedaluwarsa |
+| `HRD-ASM-44` | Panel Mitra Bestari terdiri dari minimal 2 anggota reviewer untuk tindakan bedah/spesialistik | Standar baku peer review kredensial komite medik rumah sakit | Jumlah reviewer dapat disesuaikan pada buku putih tindakan berisiko rendah |
+| `HRD-ASM-45` | Response API penegakan kewenangan klinis `INT-HR-69` disimpan di distributed cache (Redis) dengan TTL 15 menit dan invalidasi instan saat SPK/RKK berubah | Memenuhi batas latensi < 50ms saat dipanggil ratusan kali per menit oleh SIMRS/EMR | Jika cache down, fallback langsung melakukan query database dengan index komposit |
+| `HRD-ASM-46` | Penangguhan (*Suspension*) kewenangan klinis pada H-0 tidak serta merta memutus hubungan kerja pegawai administratif | Membedakan antara relasi kepegawaian administratif (Sub-05) dengan izin pelayanan medis klinis | Nakes tetap berstatus karyawan namun dialihkan ke tugas administratif non-pelayanan klinis |

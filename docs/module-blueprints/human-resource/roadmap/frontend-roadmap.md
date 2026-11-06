@@ -6,7 +6,7 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 12
+roadmap_revision: 15
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡 (acceptance criteria belum terbukti, menunggu FIX-HRD-002-09); FE-HRD-022, FE-HRD-024, FE-HRD-025 dikerjakan ulang dan tetap ✅. Sebelumnya: tanda FE-HRD-011, FE-HRD-015, FE-HRD-016, FE-HRD-018 diselaraskan ke 🟡 mengikuti register"
 planning_updated_at: "2026-11-05 — Slice S-B5 Pemrosesan Penggajian Pegawai Rumah Sakit (sub-modul 10) dipecah menjadi 14 task (FE-HRD-130 s.d. FE-HRD-143) untuk 6 layar FE-HRD-162 s.d. FE-HRD-167 per gelombang MVP-30 s.d. MVP-32 & Verifikasi; grafik F34 s.d. F37 ditambahkan; sebelumnya Slice S-B3 (FE-HRD-116 s.d. FE-HRD-129), Slice S-B2 (FE-HRD-102 s.d. FE-HRD-115), Slice S-B1 (FE-HRD-088 s.d. FE-HRD-101), Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087) dan Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074)"
@@ -111,6 +111,18 @@ locked_input_hashes_s_c4_onb:
   flowcharts/pendampingan-klinis.md: bb00b4389f24c73ac039ae0714a8b409cf6d697aa4c94ea9a6177be8438d8f4c
   flowcharts/siklus-kontrak.md: 11a3cae04a379e9295a8682a183a7633b0dfcb568156f4824c8eb6b8cdd9e6b9
   flowcharts/batch-data-awal-kontrak.md: 24e97a41134d7c21b8f729008ca50e287f2e3acbf51479c84c82d0777ec77b5b
+decision_ids_s_b6: "HRD-DEC-128 s.d. HRD-DEC-133, HRD-ASM-31 s.d. HRD-ASM-34"
+source_commits_s_b6:
+  backend: "8b17b75a (branch MHamzah)"
+  frontend: "44990b3d3 (branch HamzahV2)"
+contract_versions_s_b6:
+  - "API Contract v15 bagian 21 — task S-B6"
+  - "State Transition Matrix v15 bagian 19 — task S-B6"
+  - "Validation Matrix v15 bagian 20 — task S-B6"
+  - "Permission Audit Matrix v15 bagian 19 — task S-B6"
+  - "Integration Contract v15 bagian 12 — task S-B6"
+  - "Data Dictionary v15 bagian 16 — task S-B6"
+  - "Acceptance Test Matrix v15 bagian 23 — task S-B6"
 decision_ids_s_b3: "HRD-DEC-116 s.d. HRD-DEC-121, HRD-ASM-23 s.d. HRD-ASM-26"
 source_commits_s_b3: "BE 8b17b75a (MHamzah), FE 44990b3d3 (HamzahV2)"
 contract_versions_s_b3:
@@ -136,6 +148,18 @@ locked_input_hashes_s_b3:
   flowcharts/administrasi-lembur.md: 4f67e1be5e1f43ada0c6a52040e4c4355235f43a22e1e6aca528f2cec8d15acc
   testing/acceptance-test-matrix.md: 4c4ab7420cb00feaabd870a038ecd4ab927417c774d5d39ce1d9103e06a3791e
 ```
+
+**Apa yang berubah pada revision 14.**
+
+1. **Empat belas task frontend `S-D3` baru**, `FE-HRD-158` s.d. `FE-HRD-171`, untuk membangun dan memverifikasi 6 layar baru (`FE-HRD-174` s.d. `FE-HRD-179`), modal dan drawer verifikasi pada sub-modul 12 (Benefit Management): client API service & adapter Axios/Redux slice, peta navigasi menu & guard RBAC, desain token & badge status kepesertaan BPJS, dasbor analitik manfaat & grafik utilisasi plafon (`FE-HRD-174`), katalog master paket manfaat 3-lapisan & setting diskon staf RS (`FE-HRD-175`), drawer matriks kelayakan grade staf ke kamar rawat inap, monitoring kepesertaan asuransi pegawai & aktivasi bertahap H+0 vs pasca-percobaan (`FE-HRD-176`), meja kerja verifikasi dokumen kependudukan KK/akta HR (`FE-HRD-177`), portal mandiri ESS keluarga saya & indikator kuota 1 pasangan + 3 anak, inquiry hak berobat nakes di RS sendiri & buku besar mutasi saldo plafon (`FE-HRD-178`), modal penyesuaian saldo manual HR, meja kerja verifikasi & settlement klaim sekunder COB (`FE-HRD-179`), formulir pengajuan klaim COB mandatory SEP BPJS di portal ESS, serta audit verifikasi build produksi standalone dan linter CI/CD.
+2. **Grafik F42 s.d. F45 ditambahkan** beserta tabel gelombang eksekusi `S-D3` yang sepenuhnya bebas siklus.
+3. **Register status task frontend diperbarui** mendaftarkan seluruh 14 task `S-D3` (`FE-HRD-158` s.d. `FE-HRD-171`).
+
+**Apa yang berubah pada revision 13.**
+
+1. **Empat belas task frontend `S-B6` baru**, `FE-HRD-144` s.d. `FE-HRD-157`, untuk membangun dan memverifikasi 6 layar baru (`FE-HRD-168` s.d. `FE-HRD-173`), modal dan drawer investigasi pada sub-modul 11 (Restitusi & Integrasi Pemotongan Penggajian): client API service & adapter Axios/Redux, desain token & badge status indikator rasio upah 50%, dasbor pemantauan realisasi potongan & tagihan tunda (`FE-HRD-168`), tabel peringatan pegawai mendekati batas 50% & trigger sinkronisasi Finance H-3, lembar kerja jadwal angsuran master pinjaman (`FE-HRD-170`), modal simulasi interaktif hard-cap 50% & breakdown prioritas 1-4, pelacak kuota plafon tahunan pegawai di portal ESS (`FE-HRD-169`), formulir pengajuan klaim mandiri ESS & dropzone kuitansi <60 hari, antrean verifikasi persetujuan 3-tier & anti-self-approval (`FE-HRD-172`), modal pratinjau zoom nota kuitansi & resume medis, drawer investigasi restitusi koreksi salah potong masa lalu non-pajak PPh 21 (`FE-HRD-171`), penerbitan voucher kasir cito 24/7 & penampil QR code, layar pengaturan plafon benefit per grade (`FE-HRD-173`), serta verifikasi build produksi dan linter CI/CD.
+2. **Grafik F38 s.d. F41 ditambahkan** beserta tabel gelombang eksekusi `S-B6` yang sepenuhnya bebas siklus.
+3. **Register status task frontend diperbarui** mendaftarkan seluruh 14 task `S-B6` (`FE-HRD-144` s.d. `FE-HRD-157`).
 
 **Apa yang berubah pada revision 12.**
 
@@ -740,6 +764,35 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-141` | `S-B5` / `MVP-32` | ⏳ | Layar `FE-HRD-167` — Portal Slip Gaji Mandiri Pegawai (ESS) & Keypad Proteksi PIN Sekunder 6-Digit (`/ess/payslips`) |
 | `FE-HRD-142` | `S-B5` / `MVP-30` | ⏳ | Layar Pengaturan Parameter Penggajian RS, Batas Plafon BPJS & Threshold Variansi (`/hr/payroll/settings`) |
 | `FE-HRD-143` | `S-B5` / Verifikasi | ⏳ | Verifikasi ujung-ke-ujung antarmuka, linter CI/CD, build Next.js, dan hak akses peran Slice S-B5 |
+| `FE-HRD-144` | `S-B6` / `MVP-33` | ⏳ | Service API client, adapter TypeScript/Axios, Redux slice & state management restitusi dan potongan |
+| `FE-HRD-145` | `S-B6` / `MVP-33` | ⏳ | Desain token, status badge, format mata uang & indikator rasio upah 50% |
+| `FE-HRD-146` | `S-B6` / `MVP-33` | ⏳ | Layar `FE-HRD-168` — Dasbor Utama Restitusi & Pemotongan Gaji (Bagian 1: Ringkasan & Metrik) (`/corporate/hrd/payroll/deductions`) |
+| `FE-HRD-147` | `S-B6` / `MVP-33` | ⏳ | Layar `FE-HRD-168` — Tabel Peringatan Rasio Potongan Gaji >40% & Trigger Sinkronisasi Finance (Bagian 2) |
+| `FE-HRD-148` | `S-B6` / `MVP-33` | ⏳ | Layar `FE-HRD-170` — Lembar Kerja Jadwal Angsuran Master Pinjaman (Bagian 1) (`/corporate/hrd/payroll/deductions/schedules`) |
+| `FE-HRD-149` | `S-B6` / `MVP-33` | ⏳ | Layar `FE-HRD-170` — Modal Simulasi Penegakan Hard-Cap 50% & Visualisasi Pemangkasan Berjenjang (Bagian 2) |
+| `FE-HRD-150` | `S-B6` / `MVP-34` | ⏳ | Layar `FE-HRD-169` — Pelacak Kuota Plafon Tahunan Pegawai di Portal ESS (Bagian 1) (`/ess/restitution-claims`) |
+| `FE-HRD-151` | `S-B6` / `MVP-34` | ⏳ | Layar `FE-HRD-169` — Formulir Pengajuan Klaim Restitusi Mandiri di ESS & Dropzone Kuitansi (Bagian 2) |
+| `FE-HRD-152` | `S-B6` / `MVP-34` | ⏳ | Layar `FE-HRD-172` — Kotak Antrean Verifikasi Persetujuan Bertingkat 3-Tier (Bagian 1) (`/corporate/hrd/payroll/deductions/approvals`) |
+| `FE-HRD-153` | `S-B6` / `MVP-34` | ⏳ | Komponen `ModalClaimDocumentPreview` — Pratinjau Interaktif Zoom Berkas Nota Kuitansi & Resume Medis |
+| `FE-HRD-154` | `S-B6` / `MVP-35` | ⏳ | Komponen Drawer Slide-Over `FE-HRD-171` — Investigasi & Koreksi Restitusi Salah Potong Periode Lampau |
+| `FE-HRD-155` | `S-B6` / `MVP-35` | ⏳ | Layar `FE-HRD-172` & `ModalVoucherQrViewer` — Penerbitan Voucher Kasir Cito 24/7 & Penampil QR Code (Bagian 2) |
+| `FE-HRD-156` | `S-B6` / `MVP-35` | ⏳ | Layar `FE-HRD-173` — Pengaturan Kebijakan Plafon Benefit per Grade & Batas Pemotongan Upah (`/corporate/hrd/payroll/deductions/settings`) |
+| `FE-HRD-157` | `S-B6` / Verifikasi | ⏳ | Verifikasi ujung-ke-ujung antarmuka UI/UX, linter CI/CD, build Next.js, dan hak akses peran Slice S-B6 |
+| `FE-HRD-158` | `S-D3` / `MVP-36` | ⏳ | Service API client, adapter TypeScript/Axios, Redux slice & state management manfaat kesehatan |
+| `FE-HRD-159` | `S-D3` / `MVP-36` | ⏳ | Registrasi peta navigasi sidebar, rute `/corporate/hrd/benefits/*`, rute ESS & permission guards |
+| `FE-HRD-160` | `S-D3` / `MVP-36` | ⏳ | Komponen reusable & token UI manfaat (StatusBadge, kartu limit, meteran utilisasi, uploader KK/akta) |
+| `FE-HRD-161` | `S-D3` / `MVP-36` | ⏳ | Layar `FE-HRD-174` — Dasbor Analitik Manfaat Kesehatan, Utilisasi Plafon & Alert Batas Usia Tanggungan |
+| `FE-HRD-162` | `S-D3` / `MVP-36` | ⏳ | Layar `FE-HRD-175` — Master Katalog Paket Manfaat 3-Lapisan, Pagu Plafon & Diskon Tarif Staf RS |
+| `FE-HRD-163` | `S-D3` / `MVP-36` | ⏳ | Komponen Drawer `FE-HRD-175` — Matriks Kelayakan Grade Staf Rumah Sakit ke Kelas Kamar Rawat Inap |
+| `FE-HRD-164` | `S-D3` / `MVP-36` | ⏳ | Layar `FE-HRD-176` — Monitoring Kepesertaan Asuransi Pegawai, Aktivasi H+0 vs Pasca-Percobaan 3 Bulan |
+| `FE-HRD-165` | `S-D3` / `MVP-36` | ⏳ | Layar `FE-HRD-177` — Antrean Meja Kerja Verifikasi Dokumen Kependudukan Tanggungan Keluarga HR |
+| `FE-HRD-166` | `S-D3` / `MVP-36` | ⏳ | Layar `FE-HRD-177` (ESS View) — Portal Mandiri ESS Keluarga Saya & Indikator Kuota 1 Pasangan + 3 Anak |
+| `FE-HRD-167` | `S-D3` / `MVP-37` | ⏳ | Layar `FE-HRD-178` — Inquiry Hak Berobat Staf di RS Sendiri & Buku Besar Mutasi Saldo Plafon SIMRS |
+| `FE-HRD-168` | `S-D3` / `MVP-37` | ⏳ | Modal Dialog `FE-HRD-178` — Penyesuaian Manual Saldo Plafon Berobat RS oleh HR Manajer |
+| `FE-HRD-169` | `S-D3` / `MVP-38` | ⏳ | Layar `FE-HRD-179` — Meja Kerja Monitoring, Audit Kuitansi & Settlement Klaim Koordinasi Manfaat (COB) |
+| `FE-HRD-170` | `S-D3` / `MVP-38` | ⏳ | Layar `FE-HRD-179` (ESS View) — Formulir Mandiri Pengajuan Klaim COB Berlampiran Mandatory SEP BPJS |
+| `FE-HRD-171` | `S-D3` / `MVP-38` & Verifikasi | ⏳ | Verifikasi ujung-ke-ujung antarmuka UI/UX, linter CI/CD, build Next.js, dan hak akses peran Slice S-D3 |
+
 
 ---
 
@@ -1018,6 +1071,52 @@ FE-HRD-128 [F30] ──┘
 | **4** | `FE-HRD-078` (aksi salin/pola), `FE-HRD-079` (drawer validasi & alasan), `FE-HRD-081` (modal ganti petugas), `FE-HRD-082` (koreksi mundur & banner Closed) | `FE-HRD-080` |
 | **5** | `FE-HRD-080` (aksi terbitkan roster mandiri) | `FE-HRD-087` (verifikasi layar S-B4) |
 | **6** | `FE-HRD-087` (verifikasi menu, hak akses & keterjangkauan S-B4) | Selesai dan siap UAT modul |
+
+### Grafik F42 — `S-D3` `MVP-36`: Client API, Redux Slice, Dasbor Analitik & Master Paket Manfaat 3-Lapisan
+
+```text
+FE-HRD-158 (Client API & Redux Slice) ───┬───> FE-HRD-160 (Komponen & Token UI) ───┬───> FE-HRD-161 (Dasbor FE-HRD-174)
+BE-HRD-180 [BE] ────────────────────────┤                                         ├───> FE-HRD-162 (Master Paket FE-HRD-175)
+FE-HRD-159 (Rute Menu & Guard RBAC) ────┘                                         └───> FE-HRD-163 (Drawer Matriks Grade)
+```
+
+### Grafik F43 — `S-D3` `MVP-36`: Pelacak Aktivasi Asuransi Pegawai, Portal ESS Keluarga & Verifikasi Dokumen HR
+
+```text
+FE-HRD-158 [F42] ───┬───> FE-HRD-164 (Monitoring Kepesertaan FE-HRD-176)
+BE-HRD-184 [BE] ────┼───> FE-HRD-165 (Verifikasi Dokumen HR FE-HRD-177)
+FE-HRD-160 [F42] ───┴───> FE-HRD-166 (Portal Mandiri ESS Keluarga)
+```
+
+### Grafik F44 — `S-D3` `MVP-37`: Layanan Berobat RS Quilvian Sendiri, Saldo Plafon & Mutasi Buku Besar Ledger
+
+```text
+FE-HRD-158 [F42] ───┬───> FE-HRD-167 (Inquiry Berobat & Ledger FE-HRD-178) ───> FE-HRD-168 (Modal Adjustment Saldo)
+BE-HRD-187 [BE] ────┤
+FE-HRD-160 [F42] ───┘
+```
+
+### Grafik F45 — `S-D3` `MVP-38` & Verifikasi: Formulir Klaim COB Mandatory SEP BPJS, Drawer Settlement & Verifikasi Build
+
+```text
+FE-HRD-158 [F42] ───┬───> FE-HRD-169 (Meja Kerja Klaim COB FE-HRD-179) ───┬───> FE-HRD-171 (Verifikasi Build Next.js & Linter)
+BE-HRD-190 [BE] ────┼───> FE-HRD-170 (Formulir Klaim COB ESS) ────────────┤
+FE-HRD-161 [F42] ───┤                                                     │
+FE-HRD-162 [F42] ───┤                                                     │
+FE-HRD-164 [F43] ───┤                                                     │
+FE-HRD-165 [F43] ───┤                                                     │
+FE-HRD-167 [F44] ───┴─────────────────────────────────────────────────────┘
+```
+
+#### Tabel Gelombang Eksekusi Frontend `S-D3`
+
+| Gelombang | Task yang Dapat Dimulai Bersamaan | Yang Menunggu Gelombang Ini |
+| :---: | --- | --- |
+| **1** | `FE-HRD-158` (client API & Redux slice), `FE-HRD-159` (rute menu & RBAC guard), `FE-HRD-160` (komponen reusable & token visual) | `FE-HRD-161`, `FE-HRD-162`, `FE-HRD-164`, `FE-HRD-166`, `FE-HRD-167`, `FE-HRD-170` |
+| **2** | `FE-HRD-161` (dasbor analitik manfaat `FE-HRD-174`), `FE-HRD-162` (layar master paket manfaat `FE-HRD-175`), `FE-HRD-164` (monitoring kepesertaan `FE-HRD-176`), `FE-HRD-166` (portal keluarga ESS) | `FE-HRD-163`, `FE-HRD-165`, `FE-HRD-167` |
+| **3** | `FE-HRD-163` (drawer matriks grade staf), `FE-HRD-165` (antrean verifikasi berkas HR `FE-HRD-177`), `FE-HRD-167` (inquiry hak berobat & mutasi buku besar SIMRS `FE-HRD-178`), `FE-HRD-170` (form klaim COB ESS) | `FE-HRD-168`, `FE-HRD-169` |
+| **4** | `FE-HRD-168` (modal penyesuaian manual saldo plafon HR), `FE-HRD-169` (meja kerja audit & settlement klaim COB `FE-HRD-179`) | `FE-HRD-171` |
+| **5** | `FE-HRD-171` (verifikasi ujung-ke-ujung antarmuka UI/UX, linter CI/CD, build Next.js, dan hak akses peran Slice S-D3) | **Sign-off Teknis Frontend Slice S-D3** |
 
 ### `FE-HRD-001` — Penyelarasan Rute Kebab-Case pada Endpoint Constants Master Data
 * **Slice**: `S0-B`
@@ -3502,3 +3601,937 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 * **Bukti verifikasi**: Tangkapan layar navigasi sidebar per peran, laporan lint dan build produksi bersih.
 * **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA.
 * **Definition of Done**: Seluruh antarmuka penggajian teruji, bebas tautan mati (broken link), dan siap pakai.
+
+
+### ⏳ `FE-HRD-144` — Service API client, adapter TypeScript/Axios, Redux slice & state management restitusi dan potongan
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ⏳ Menunggu `BE-HRD-166` [BE], `BE-HRD-169` [BE]
+* **Outcome**: Modul komunikasi data frontend terpadu mencakup service client Axios, transformer data DTO backend ke camelCase, Redux Toolkit slice untuk mengelola state jadwal angsuran, klaim restitusi ESS, antrean approval, dan cache kuota benefit tahunan.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 20.1, API Contract `v15` Bagian 21.
+* **Kontrak**: API Contract `v15` 4 tag grup Swagger.
+* **Kewenangan UI**: `MANDATORY` fondasi data frontend.
+* **Reuse**: Axios client instance `@/lib/axios`, Redux store root reducer `@/lib/redux/store`.
+* **Cakupan**: `src/lib/services/hr/deduction-service.js`, `src/lib/services/hr/restitution-service.js`, `src/lib/redux/slices/restitution-deduction-slice.js`.
+* **Dependency**: `BE-HRD-166` [BE], `BE-HRD-169` [BE]
+* **Acceptance criteria**:
+  1. Service client mencakup seluruh pemanggilan API untuk 4 tag grup Swagger (jadwal cicilan, klaim restitusi, voucher kasir, pengaturan).
+  2. Redux slice menampung state terisolasi: `schedules`, `claims`, `approvals`, `simulationResult`, `settings`.
+  3. Penanganan error terpusat melempar pesan validasi ramah pengguna dari respon backend 400/409/413.
+  4. Mendukung optimistik UI update untuk perubahan status persetujuan berkas.
+* **Bukti verifikasi**: Unit test Redux slice action & reducer, mock API call testing.
+* **Risiko & pemilik**: Pemilik: Frontend HR Lead.
+* **Definition of Done**: Service data dan Redux slice terdaftar aktif dan siap dikonsumsi seluruh komponen UI S-B6.
+
+### ⏳ `FE-HRD-145` — Desain token, status badge, format mata uang & indikator rasio upah 50%
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ⏳ Menunggu `FE-HRD-144`
+* **Outcome**: Kumpulan komponen visual pendukung mencakup status badge siklus klaim restitusi, badge prioritas cicilan 1-4, format mata uang Rupiah otomatis, progress bar kuota plafon tahunan, serta indikator visual penegakan hard-cap 50% PP 36/2021.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 20.2, State Transition Matrix `v15` Bagian 19.
+* **Kontrak**: State Transition Matrix `v15` `RestitutionClaimStatus`, `DeductionScheduleStatus`.
+* **Kewenangan UI**: Kepatuhan penuh desain sistem Quilvian.
+* **Reuse**: `@/components/features/base-features/base-badge`, design tokens warna Quilvian.
+* **Cakupan**: `src/components/features/hr/deductions/StatusBadges.jsx`, `src/components/features/hr/deductions/CapProgressBar.jsx`.
+* **Dependency**: `FE-HRD-144`
+* **Acceptance criteria**:
+  1. Status badge merender seluruh 11 status klaim restitusi dengan padanan warna semantik yang tepat.
+  2. Indikator rasio upah kotor menampilkan gradasi warna: Hijau (<40%), Oranye (40-49%), dan Merah Tebal (>=50%).
+  3. Formatter mata uang Rupiah (`formatRupiah`) memformat angka tanpa toleransi pembulatan yang salah.
+  4. Progress bar kuota plafon menampilkan rasio kuota terpakai vs kuota tersisa secara proporsional.
+* **Bukti verifikasi**: Storybook / visual snapshot rendering badge dan progress bar.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Specialist.
+* **Definition of Done**: Komponen visual token dan status badge teruji dan dapat digunakan ulang di seluruh layar modul.
+
+### ⏳ `FE-HRD-146` — Layar `FE-HRD-168` — Dasbor Utama Restitusi & Pemotongan Gaji (Bagian 1: Ringkasan & Metrik)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ⏳ Menunggu `FE-HRD-144`, `FE-HRD-145`
+* **Outcome**: Halaman dasbor eksekutif `/corporate/hrd/payroll/deductions` yang menampilkan ringkasan metrik total potongan terjadwal, nominal terealisasi pada slip gaji berjalan, total tagihan yang ditunda (*deferred carry-over*), serta antrean klaim restitusi menunggu approval.
+* **Requirement/decision**: `HRD-DEC-128`, `03-frontend-architecture.md` Bagian 20.2.1.
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Installment Schedules")]`.
+* **Kewenangan UI**: `MANDATORY` tata letak kartu metrik eksekutif.
+* **Reuse**: BaseCard, MetricWidget, InformationAlert.
+* **Cakupan**: `src/app/corporate/hrd/payroll/deductions/page.jsx`, `src/components/features/hr/deductions/DashboardMetrics.jsx`.
+* **Dependency**: `FE-HRD-144`, `FE-HRD-145`
+* **Acceptance criteria**:
+  1. Halaman memuat 4 kartu ringkasan metrik utama dengan pembaruan data real-time dari API.
+  2. Menampilkan banner status siklus jadwal cicilan aktif (terkunci per tanggal 20).
+  3. Menyediakan tombol aksi utama: *"Tarik Snapshot Keuangan"* dan *"Simulasi Plafon 50%"*.
+  4. Menampilkan indikator loading skeleton saat data metrik sedang ditarik dari server.
+* **Bukti verifikasi**: Uji rendering layar dasbor, snapshot test tampilan kartu metrik.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Halaman dasbor metrik potongan berfungsi penuh dan mematuhi hak akses `HR_Deduction_View`.
+
+### ⏳ `FE-HRD-147` — Layar `FE-HRD-168` — Tabel Peringatan Rasio Potongan Gaji >40% & Trigger Sinkronisasi Finance (Bagian 2)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ⏳ Menunggu `FE-HRD-146`
+* **Outcome**: Tabel pemantauan pegawai berisiko yang memiliki total potongan cicilan mendekati batas regulasi (>40% Gross Pay), daftar cicilan yang mengalami penundaan (*carry-over*), serta modal dialog konfirmasi sinkronisasi data H-3 dari modul Keuangan.
+* **Requirement/decision**: `HRD-DEC-128`, `HRD-DEC-129`, `03-frontend-architecture.md` Bagian 20.2.1 & 20.3.
+* **Kontrak**: API Contract `v15` `POST /deductions/schedules/sync-finance`, Validation Matrix `v15` `VR-DED-01`.
+* **Kewenangan UI**: `MANDATORY` tabel peringatan dini risiko penggajian.
+* **Reuse**: BaseTable, SearchInput, PaginationControl, ModalFinanceSyncConfirm.
+* **Cakupan**: `src/components/features/hr/deductions/HighDeductionRatioTable.jsx`, `src/components/features/hr/deductions/FinanceSyncModal.jsx`.
+* **Dependency**: `FE-HRD-146`
+* **Acceptance criteria**:
+  1. Tabel menampilkan daftar staf dengan rasio potongan >40% lengkap dengan badge status plafon (Aman / Mentok 50%).
+  2. Dialog konfirmasi sinkronisasi menampilkan rekapitulasi data cicilan baru yang masuk dari Finance.
+  3. Tombol aksi detail membuka rincian kontrak pinjaman pegawai bersangkutan.
+  4. Filter tab memungkinkan pergantian tampilan antara daftar peringatan rasio dan daftar tagihan tertunda (*Deferred List*).
+* **Bukti verifikasi**: Pengujian tabel interaktif, filter pagination, verifikasi eksekusi sinkronisasi Finance.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Specialist.
+* **Definition of Done**: Tabel peringatan rasio potong beroperasi lancar dan memfasilitasi pencegahan over-deduction.
+
+### ⏳ `FE-HRD-148` — Layar `FE-HRD-170` — Lembar Kerja Jadwal Angsuran Master Pinjaman (Bagian 1)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ⏳ Menunggu `FE-HRD-144`, `FE-HRD-145`
+* **Outcome**: Lembar kerja teknis `/corporate/hrd/payroll/deductions/schedules` bagi HR Payroll Specialist untuk mengelola master angsuran pinjaman dari Finance, melihat sisa pokok pinjaman, tenor terbayar, dan mengajukan jeda cicilan resmi.
+* **Requirement/decision**: `HRD-DEC-128`, `HRD-DEC-129`, `03-frontend-architecture.md` Bagian 20.2.3.
+* **Kontrak**: API Contract `v15` `GET /deductions/schedules`, `PUT /deductions/schedules/{id}/pause`.
+* **Kewenangan UI**: `MANDATORY` lembar kerja manajemen pinjaman.
+* **Reuse**: BaseTable, FilterDropdown, BaseModal, StatusBadge.
+* **Cakupan**: `src/app/corporate/hrd/payroll/deductions/schedules/page.jsx`, `src/components/features/hr/deductions/DeductionScheduleTable.jsx`.
+* **Dependency**: `FE-HRD-144`, `FE-HRD-145`
+* **Acceptance criteria**:
+  1. Menampilkan seluruh jadwal cicilan aktif dengan kolom NIP, nama pegawai, kategori potongan, prioritas 1-4, dan sisa saldo.
+  2. Fitur pencarian cepat berdasarkan nama staf atau nomor kontrak pinjaman Finance (`external_reference_id`).
+  3. Modal aksi jeda cicilan memvalidasi input alasan wajib diisi dan pilihan durasi maksimal 3 bulan (`VR-DED-20`).
+  4. Mendukung ekspor data jadwal angsuran ke format spreadsheet Excel/CSV.
+* **Bukti verifikasi**: Uji pencarian, filter kategori, aksi jeda cicilan, export excel.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Lembar kerja angsuran pinjaman berjalan responsif dan melayani manipulasi data cicilan secara aman.
+
+### ⏳ `FE-HRD-149` — Layar `FE-HRD-170` — Modal Simulasi Penegakan Hard-Cap 50% & Visualisasi Pemangkasan Berjenjang (Bagian 2)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ⏳ Menunggu `FE-HRD-148`
+* **Outcome**: Modal simulasi interaktif yang memproyeksikan eksekusi pemotongan gaji berjenjang terhadap proyeksi upah kotor pegawai, memvisualisasikan komponen yang terpotong penuh, terpotong parsial, dan yang ditunda akibat batas 50% PP 36/2021.
+* **Requirement/decision**: `HRD-DEC-128`, `03-frontend-architecture.md` Bagian 20.2.3.
+* **Kontrak**: API Contract `v15` `POST /deductions/schedules/simulate-cap`, Validation Matrix `v15` `VR-DED-01` s.d. `VR-DED-03`.
+* **Kewenangan UI**: `MANDATORY` visualisasi perhitungan simulasi payroll.
+* **Reuse**: BaseModal, BaseButton, ProgressBar, Card.
+* **Cakupan**: `src/components/features/hr/deductions/SimulationCapModal.jsx`.
+* **Dependency**: `FE-HRD-148`
+* **Acceptance criteria**:
+  1. Modal menerima input ID pegawai dan proyeksi Gross Pay untuk menghitung batas maksimal 50%.
+  2. Menampilkan rincian eksekusi Prioritas 1 (Ganti Rugi), 2 (Kasbon), 3 (Koperasi), dan 4 (Paguyuban) secara runtut.
+  3. Tagihan yang melebihi kuota ditandai visual dengan badge oranye `PartiallyDeducted` dan `DeferredDueToSalaryCap`.
+  4. Menampilkan teks kesimpulan: *"Total tagihan ditunda Rp X otomatis dialihkan ke siklus penggajian bulan depan."*
+* **Bukti verifikasi**: Uji interaksi simulasi perhitungan batas 50%, verifikasi skenario UAT `UAT-DED-01`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Specialist.
+* **Definition of Done**: Modal simulasi hard-cap 50% berjalan interaktif dan memudahkan verifikasi batas sebelum payroll final dieksekusi.
+
+### ⏳ `FE-HRD-150` — Layar `FE-HRD-169` — Pelacak Kuota Plafon Tahunan Pegawai di Portal ESS (Bagian 1)
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ⏳ Menunggu `FE-HRD-144`, `FE-HRD-145`
+* **Outcome**: Komponen portal ESS `/ess/restitution-claims` yang menampilkan pelacak kuota saldo benefit tahunan staf (kacamata kerja, faskes luar darurat) secara transparan lengkap dengan riwayat klaim yang pernah diajukan.
+* **Requirement/decision**: `HRD-DEC-130`, `03-frontend-architecture.md` Bagian 20.2.2.
+* **Kontrak**: API Contract `v15` `GET /restitutions/claims/my-claims`.
+* **Kewenangan UI**: `MANDATORY` antarmuka portal layanan mandiri staf (ESS).
+* **Reuse**: BaseCard, ProgressBar, StatusBadge.
+* **Cakupan**: `src/app/ess/restitution-claims/page.jsx`, `src/components/features/hr/restitution/EssQuotaTracker.jsx`.
+* **Dependency**: `FE-HRD-144`, `FE-HRD-145`
+* **Acceptance criteria**:
+  1. Menampilkan progress bar kuota kacamata kerja (plafon tahunan, nominal terpakai, dan sisa kuota tersedia).
+  2. Menampilkan progress bar kuota faskes luar darurat sesuai golongan pemohon.
+  3. Tabel histori menampilkan daftar seluruh klaim staf, tanggal pengeluaran, nominal disetujui, dan badge status terkini.
+  4. Dilengkapi tombol aksi *"Ajukan Klaim Baru"* yang memicu formulir input pengajuan.
+* **Bukti verifikasi**: Uji rendering ESS kuota tracker per grade level staf, snapshot test.
+* **Risiko & pemilik**: Pemilik: Frontend ESS UI Lead.
+* **Definition of Done**: Layar pelacak kuota plafon ESS aktif dan menampilkan data kuota yang sinkron dengan backend.
+
+### ⏳ `FE-HRD-151` — Layar `FE-HRD-169` — Formulir Pengajuan Klaim Restitusi Mandiri di ESS & Dropzone Kuitansi (Bagian 2)
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ⏳ Menunggu `FE-HRD-150`
+* **Outcome**: Formulir pengajuan klaim mandiri digital bagi staf rumah sakit untuk memilih kategori manfaat, mengisi nominal nota, mengunggah foto kuitansi/struk asli dan resume medis via dropzone interaktif, serta opsi klaim darurat medis nakes cito.
+* **Requirement/decision**: `HRD-DEC-130`, `HRD-DEC-133`, `03-frontend-architecture.md` Bagian 20.2.2.
+* **Kontrak**: API Contract `v15` `POST /restitutions/claims`, Validation Matrix `v15` `VR-DED-09`, `VR-DED-10`, `VR-DED-15`.
+* **Kewenangan UI**: `MANDATORY` form pengajuan mandiri ESS.
+* **Reuse**: `@/components/features/base-features/base-form-control`, BaseButton, FileDropzone.
+* **Cakupan**: `src/components/features/hr/restitution/EssClaimForm.jsx`.
+* **Dependency**: `FE-HRD-150`
+* **Acceptance criteria**:
+  1. Form memvalidasi input tanggal nota maksimal mundur 60 hari dari hari ini (`VR-DED-09`).
+  2. Validasi sisi klien menolak submit jika nominal klaim melebihi sisa kuota plafon yang tersedia (`VR-DED-10`).
+  3. File dropzone mendukung pratinjau instan foto kuitansi dan menolak berkas non-PDF/JPG atau ukuran > 5MB (`VR-DED-15`).
+  4. Staf medis IGD dapat mencentang opsi darurat cito *"Insiden Pajanan Medis Cito (Pencairan Kasir 24/7)"*.
+* **Bukti verifikasi**: Uji form submit di ESS, boundary test tanggal nota > 60 hari, verifikasi skenario UAT `UAT-DED-03`.
+* **Risiko & pemilik**: Pemilik: Frontend ESS UI Specialist.
+* **Definition of Done**: Form pengajuan klaim ESS berfungsi mulus dan mengunggah berkas nota asli secara aman.
+
+### ⏳ `FE-HRD-152` — Layar `FE-HRD-172` — Kotak Antrean Verifikasi Persetujuan Bertingkat 3-Tier (Bagian 1)
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ⏳ Menunggu `FE-HRD-144`, `FE-HRD-145`
+* **Outcome**: Panel persetujuan terpadu `/corporate/hrd/payroll/deductions/approvals` bagi Kepala Ruangan, HR C&B, dan Manajer SDM untuk meninjau berkas klaim bawahan, memverifikasi kuitansi fisik, menyesuaikan nominal disetujui, dan mengeksekusi approval tanpa celah self-approval.
+* **Requirement/decision**: `HRD-DEC-130`, `03-frontend-architecture.md` Bagian 20.2.5.
+* **Kontrak**: API Contract `v15` `GET /restitutions/claims/pending-approval`, `POST /restitutions/claims/{id}/approve`.
+* **Kewenangan UI**: `MANDATORY` antarmuka persetujuan manajerial.
+* **Reuse**: ApprovalInboxWidget, BaseButton, StatusBadge.
+* **Cakupan**: `src/app/corporate/hrd/payroll/deductions/approvals/page.jsx`, `src/components/features/hr/restitution/ApprovalQueueList.jsx`.
+* **Dependency**: `FE-HRD-144`, `FE-HRD-145`
+* **Acceptance criteria**:
+  1. Antrean menampilkan berkas klaim sesuai peran otorisasi aktif (Tahap Supervisor, Tahap HR C&B, Tahap Manajer SDM).
+  2. Tombol persetujuan dinonaktifkan secara otomatis jika pemohon klaim adalah akun yang sedang login (*Anti-Self-Approval*, `VR-DED-08`).
+  3. Petugas HR C&B dapat menyesuaikan kolom *Approved Amount* sesuai verifikasi kuitansi fisik (`VR-DED-23`).
+  4. Penolakan berkas klaim memunculkan dialog wajib isi catatan alasan penolakan.
+* **Bukti verifikasi**: Uji login multi-peran, verifikasi pemblokiran self-approval, verifikasi skenario UAT `UAT-DED-03`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Panel persetujuan 3-tier beroperasi ketat dan menjamin tata kelola otorisasi yang sah.
+
+### ⏳ `FE-HRD-153` — Komponen `ModalClaimDocumentPreview` — Pratinjau Interaktif Zoom Berkas Nota Kuitansi & Resume Medis
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ⏳ Menunggu `FE-HRD-152`
+* **Outcome**: Dialog pratinjau dokumen kuitansi interaktif yang dilengkapi fitur perbesaran (*zoom in/out*), rotasi gambar 90 derajat, dan filter kontras tinggi agar petugas HR C&B dapat membaca nomor nota, tanggal, dan cap stempel faskes luar secara jelas.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 20.3.
+* **Kontrak**: API Contract `v15` `receipt_attachment_url`, `medical_resume_attachment_url`.
+* **Kewenangan UI**: Komponen utilitas pemeriksaan dokumen medis/nota.
+* **Reuse**: BaseModal, React-Image-Viewer / canvas zoom utility.
+* **Cakupan**: `src/components/features/hr/restitution/ModalClaimDocumentPreview.jsx`.
+* **Dependency**: `FE-HRD-152`
+* **Acceptance criteria**:
+  1. Modal menampilkan dokumen kuitansi dalam resolusi penuh tanpa distorsi gambar.
+  2. Kontrol zoom (50% s.d. 300%) dan rotasi (90°, 180°, 270°) berfungsi responsif via tombol maupun mouse wheel.
+  3. Tab navigasi memungkinkan perpindahan instan antara berkas kuitansi asli dan berkas resume medis dokter.
+  4. Menampilkan watermark status verifikasi pada pratinjau dokumen.
+* **Bukti verifikasi**: Uji interaksi zoom/rotasi berkas struk optik dan kuitansi klinik eksternal.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Specialist.
+* **Definition of Done**: Komponen pratinjau dokumen mempermudah verifikasi keabsahan kuitansi fisik secara digital.
+
+### ⏳ `FE-HRD-154` — Komponen Drawer Slide-Over `FE-HRD-171` — Investigasi & Koreksi Restitusi Salah Potong Periode Lampau
+* **Slice / MVP**: `S-B6` / `MVP-35`
+* **Status**: ⏳ Menunggu `FE-HRD-144`, `FE-HRD-145`, `FE-HRD-148`
+* **Outcome**: Komponen drawer geser (*slide-over*) untuk menginvestigasi keluhan salah potong gaji bulan-bulan lalu, mencari nomor slip gaji lampau, memilih baris potongan keliru, dan menerbitkan kompensasi pengembalian uang pada slip gaji berjalan tanpa mengubah slip final masa lalu.
+* **Requirement/decision**: `HRD-DEC-131`, `03-frontend-architecture.md` Bagian 20.2.4.
+* **Kontrak**: API Contract `v15` `POST /restitutions/corrections`, Validation Matrix `v15` `VR-DED-04`, `VR-DED-05`.
+* **Kewenangan UI**: `MANDATORY` antarmuka koreksi penggajian terkontrol.
+* **Reuse**: BaseDrawer, BaseForm, DatePicker, CurrencyInput.
+* **Cakupan**: `src/components/features/hr/deductions/PastPeriodCorrectionDrawer.jsx`.
+* **Dependency**: `FE-HRD-144`, `FE-HRD-145`, `FE-HRD-148`
+* **Acceptance criteria**:
+  1. Drawer memuat data rincian pemotongan slip gaji masa lalu yang dipilih oleh HR Officer.
+  2. Radio button memungkinkan pemilihan tepat satu komponen pemotongan yang keliru.
+  3. Form mewajibkan input alasan justifikasi audit minimal 20 karakter sebelum tombol submit aktif.
+  4. Komponen tujuan otomatis terkunci pada `RestitutionAdjustment` bertanda bebas pajak PPh 21 (`VR-DED-05`).
+* **Bukti verifikasi**: Uji investigasi salah potong di UI, verifikasi penautan nomor slip asal, skenario UAT `UAT-DED-04`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Drawer koreksi restitusi beroperasi ber-audit penuh dan menjamin integritas slip lama.
+
+### ⏳ `FE-HRD-155` — Layar `FE-HRD-172` & `ModalVoucherQrViewer` — Penerbitan Voucher Kasir Cito 24/7 & Penampil QR Code (Bagian 2)
+* **Slice / MVP**: `S-B6` / `MVP-35`
+* **Status**: ⏳ Menunggu `FE-HRD-152`
+* **Outcome**: Antarmuka bagi Direktur Medis/SDM untuk mengotorisasi klaim darurat medis nakes cito, mencetak voucher kasir elektronik ber-token SHA-256, menampilkan QR code untuk scan loket Kasir RS 24/7, serta visualisasi peringatan keselamatan anti-bayar ganda.
+* **Requirement/decision**: `HRD-DEC-133`, `03-frontend-architecture.md` Bagian 20.2.5 & 20.3.
+* **Kontrak**: API Contract `v15` `POST /restitutions/claims/{id}/issue-cashier-voucher`, Validation Matrix `v15` `VR-DED-06`.
+* **Kewenangan UI**: `MANDATORY` antarmuka kasir darurat cito.
+* **Reuse**: BaseModal, QrCodeViewer, PrintUtility.
+* **Cakupan**: `src/components/features/hr/restitution/ModalVoucherQrViewer.jsx`.
+* **Dependency**: `FE-HRD-152`
+* **Acceptance criteria**:
+  1. Tombol *"Terbitkan Voucher Kasir Cito 24/7"* hanya muncul pada berkas klaim bertanda `IsCitoEmergency == true`.
+  2. Dialog menampilkan QR code voucher kasir, token 6 digit, batas waktu kedaluwarsa 48 jam, dan nominal tunai.
+  3. Tampil peringatan merah: *"Klaim ini dicairkan tunai di Kasir RS dan otomatis DIKECUALIKAN dari slip gaji bulanan."*
+  4. Menyediakan tombol cetak fisik PDF tanda terima kasir dan tombol kirim voucher ke WhatsApp staf pemohon.
+* **Bukti verifikasi**: Uji pembentukan QR voucher cito, verifikasi skenario UAT `UAT-DED-05`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Specialist.
+* **Definition of Done**: Antarmuka penerbitan voucher kasir cito beroperasi cepat dan melindungi keselamatan nakes krisis medis.
+
+### ⏳ `FE-HRD-156` — Layar `FE-HRD-173` — Pengaturan Kebijakan Plafon Benefit per Grade & Batas Pemotongan Upah
+* **Slice / MVP**: `S-B6` / `MVP-35`
+* **Status**: ⏳ Menunggu `FE-HRD-144`, `FE-HRD-145`
+* **Outcome**: Halaman konfigurasi `/corporate/hrd/payroll/deductions/settings` bagi HR Administrator untuk mengelola batas kuota kacamata kerja/medis per grade, masa kerja minimal, toleransi batas peringatan rasio potong (default 40%), dan batas hard-cap upah 50% PP 36/2021.
+* **Requirement/decision**: `HRD-DEC-128`, `HRD-DEC-130`, `03-frontend-architecture.md` Bagian 20.2.6.
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Settings")]`.
+* **Kewenangan UI**: `MANDATORY` halaman pengaturan kebijakan modul.
+* **Reuse**: `@/components/features/base-features/base-form-control`, BaseButton, InformationAlert, Table.
+* **Cakupan**: `src/app/corporate/hrd/payroll/deductions/settings/page.jsx`, `src/components/features/hr/deductions/SettingsPolicyForm.jsx`.
+* **Dependency**: `FE-HRD-144`, `FE-HRD-145`
+* **Acceptance criteria**:
+  1. Tabel menampilkan matriks seluruh grade level dengan batas kuota rupiah tahunan dan durasi masa kerja.
+  2. Field ambang batas pemotongan upah non-regulasi terkunci pada default 50.00% berlandaskan Pasal 65 PP 36/2021.
+  3. Toggle perizinan cito kasir per grade dapat diaktifkan/dinonaktifkan oleh administrator.
+  4. Penyimpanan perubahan parameter mencatat riwayat log audit perubahan pengaturan.
+* **Bukti verifikasi**: Uji simpan parameter konfigurasi plafon dan verifikasi persistensi nilai baru.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead.
+* **Definition of Done**: Layar pengaturan kebijakan restitusi dan potongan tersimpan rapi dan mengendalikan parameter sistem.
+
+### ⏳ `FE-HRD-157` — Verifikasi ujung-ke-ujung antarmuka UI/UX, linter CI/CD, build Next.js, dan hak akses peran Slice S-B6
+* **Slice / MVP**: `S-B6` / Verifikasi
+* **Status**: ⏳ Menunggu `FE-HRD-147`, `FE-HRD-149`, `FE-HRD-151`, `FE-HRD-153`, `FE-HRD-154`, `FE-HRD-155`, `FE-HRD-156`
+* **Outcome**: Audit komprehensif kepatuhan antarmuka frontend, zero error linter CI/CD (`npm run lint:errors`), verifikasi kompilasi produksi standalone Next.js App Router (`npm run build`), kepatuhan akses peran RBAC, serta pemenuhan seluruh kriteria UAT `UAT-DED-01` s.d. `UAT-DED-05`.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 20.1 & 20.2, `04-prd-to-mvp.md` Bagian 29.4 & 29.5.
+* **Kontrak**: Seluruh kontrak operasional `v15` Slice `S-B6`.
+* **Kewenangan UI**: Kepatuhan penuh standar desain antarmuka Quilvian.
+* **Reuse**: Prosedur audit pre-deploy frontend Quilvian.
+* **Cakupan**: Audit menu navigasi sidebar, uji loading/empty/error state, `npm run lint:errors`, `npm run build`.
+* **Dependency**: `FE-HRD-147`, `FE-HRD-149`, `FE-HRD-151`, `FE-HRD-153`, `FE-HRD-154`, `FE-HRD-155`, `FE-HRD-156`
+* **Acceptance criteria**:
+  1. Menu Restitusi & Pemotongan tampil di sidebar sesuai hak akses peran pengguna aktif.
+  2. Staf umum hanya dapat mengakses portal klaim mandiri ESS pribadinya (`/ess/restitution-claims`).
+  3. Dasbor pemantauan dan lembar kerja angsuran hanya dapat diakses HR C&B, Payroll Officer, dan Manajer SDM.
+  4. `npm run lint:errors` dan `npm run build` berhasil 100% dengan 0 error kompilasi.
+* **Bukti verifikasi**: Laporan lint CI/CD bersih, tangkapan layar navigasi sidebar per peran, laporan verifikasi UAT.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA.
+* **Definition of Done**: Seluruh antarmuka restitusi dan pemotongan teruji, bebas broken link, dan siap rilis produksi.
+
+### ⏳ `FE-HRD-158` — Service API client, adapter TypeScript/Axios, Redux slice & state management manfaat kesehatan
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu approval delivery planning S-D3
+* **Outcome**: Modul service client API Axios `benefitsApi.js`, adapter serialisasi data DTO, Redux toolkit slice `benefitsSlice.js` dengan state terisolasi (plans, enrollments, dependents, ledger, claims, analytics), penanganan async thunk, dan selector teroptimasi memoized.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 21.2, `contracts/api-contract.md` Bagian 22 (Kontrak `v16`).
+* **Kewenangan UI**: Standar state management Redux Toolkit & Axios instance Quilvian.
+* **Reuse**: Axios client instance terpusat, JWT bearer interceptor.
+* **Cakupan**: `src/lib/api/hr/benefitsApi.js`, `src/redux/slices/hr/benefitsSlice.js`.
+* **Dependency**: Tidak ada (fondasi frontend pertama S-D3).
+* **Acceptance criteria**:
+  1. API client mengimplementasikan seluruh endpoint dari 4 grup tag Swagger `[Tags]`.
+  2. Redux slice memelihara state loading, data cache, error message, dan pagination metadata.
+* **Bukti verifikasi**: Unit test Redux reducers dan mock service API.
+* **Risiko & pemilik**: Kegagalan refresh token; mitigasi: penanganan error 401 terpusat di axios interceptor.
+* **Definition of Done**: Service API dan slice Redux terdaftar pada root reducer dan lolos build linter.
+
+### ⏳ `FE-HRD-159` — Registrasi peta navigasi sidebar, rute `/corporate/hrd/benefits/*`, rute ESS & permission guards
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-158`
+* **Outcome**: Pendaftaran 6 rute menu internal HRD `/corporate/hrd/benefits/*` dan 3 rute mandiri ESS `/ess/*` pada konfigurasi sidebar navigasi Quilvian, didampingi komponen PermissionGuard pelindung hak akses peran RBAC.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 21.1 (Peta Butir Menu).
+* **Kewenangan UI**: Standar navigasi sidebar Quilvian UI.
+* **Reuse**: `PermissionGuard`, `SidebarNav`, config menu terpusat.
+* **Cakupan**: `src/config/navigation/hrBenefitsNav.js`, Next.js route middleware.
+* **Dependency**: `FE-HRD-158`
+* **Acceptance criteria**:
+  1. Menu Manajemen Manfaat hanya muncul bagi pengguna dengan hak `HR_Benefit:View`.
+  2. Menu ESS Keluarga Saya dan Klaim COB muncul bagi seluruh pegawai aktif.
+* **Bukti verifikasi**: Pengujian navigasi visual antar peran pengguna berbeda.
+* **Risiko & pemilik**: Broken link pada rute dinamis; mitigasi: route constants terdefinisi rapi.
+* **Definition of Done**: Seluruh tautan menu terdaftar dan terlindungi guard otentikasi.
+
+### ⏳ `FE-HRD-160` — Komponen reusable & token UI manfaat (StatusBadge, kartu limit, meteran utilisasi, uploader KK/akta)
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-158`
+* **Outcome**: Koleksi komponen UI reusable pendukung modul benefit: `BenefitStatusBadge` (Draft/Active/Suspended/Terminated), `BalanceMeterBar` (progress bar penyerapan plafon), `QuotaCounterWidget` (indikator kuota anak 1-3), dan `DocumentDropzoneUpload` (file uploader dengan preview PDF/JPG maks 5 MB).
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 21.2 & 21.3.
+* **Kewenangan UI**: Design token Quilvian (@/components/features/base-features/base-form-control, card tokens).
+* **Reuse**: BaseButton, StatusBadge, BaseProgress, FileUpload.
+* **Cakupan**: `src/components/features/hr/benefits/common/*.jsx`.
+* **Dependency**: `FE-HRD-158`
+* **Acceptance criteria**:
+  1. Komponen memvalidasi file lampiran otomatis (format PDF/JPG/PNG dan ukuran <= 5 MB).
+  2. Progress bar utilisasi saldo berubah warna: hijau (<50%), kuning (50-80%), oranye (>80%), merah (100%).
+* **Bukti verifikasi**: Storybook / isolated component testing, responsivitas elemen UI.
+* **Risiko & pemilik**: Kegagalan rendering preview file di mobile; mitigasi: fallback link unduh berkas.
+* **Definition of Done**: Seluruh komponen UI reusable siap dipakai oleh halaman-halaman fitur.
+
+### ⏳ `FE-HRD-161` — Layar `FE-HRD-174` — Dasbor Analitik Manfaat Kesehatan, Utilisasi Plafon & Alert Batas Usia Tanggungan
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-159`, `FE-HRD-160`
+* **Outcome**: Halaman dasbor analitik `/corporate/hrd/benefits/dashboard` menampilkan 4 kartu KPI kepesertaan BPJS dan anggaran plafon RS, grafik batang serapan plafon kuartalan rawat inap vs jalan, dan tabel peringatan dini tanggungan mendekati usia 21/25 tahun.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 21.2.1.
+* **Kewenangan UI**: Standar dasbor eksekutif Quilvian.
+* **Reuse**: MetricCard, ChartComponent, DataTable, InformationAlert.
+* **Cakupan**: `src/app/corporate/hrd/benefits/dashboard/page.jsx`, `src/components/features/hr/benefits/DashboardWidgets.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-159`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Kartu metrik menampilkan total pegawai terdaftar BPJS TK, BPJS Kes, dan total pagu terpakai secara akurat.
+  2. Tabel peringatan menandai anak yang membutuhkan pembaruan surat keterangan kuliah per 31 Agustus.
+* **Bukti verifikasi**: Pengujian visual dasbor, verifikasi respons filter periode.
+* **Risiko & pemilik**: Slow query analitik; mitigasi: backend endpoint teroptimasi agregasi.
+* **Definition of Done**: Dasbor analitik aktif dan menyajikan data operasional secara interaktif.
+
+### ⏳ `FE-HRD-162` — Layar `FE-HRD-175` — Master Katalog Paket Manfaat 3-Lapisan, Pagu Plafon & Diskon Tarif Staf RS
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-159`, `FE-HRD-160`
+* **Outcome**: Halaman `/corporate/hrd/benefits/plans` untuk mengelola katalog paket manfaat 3-lapisan, tabel daftar paket dengan pagu limit tahunan, toggle mandatory COB BPJS, dan modal tambah/edit paket benefit.
+* **Requirement/decision**: `HRD-DEC-134`, `03-frontend-architecture.md` Bagian 21.2.2.
+* **Kewenangan UI**: Standar tabel master dan modal form Quilvian.
+* **Reuse**: Table, ModalForm, CurrencyInput, SwitchToggle.
+* **Cakupan**: `src/app/corporate/hrd/benefits/plans/page.jsx`, `src/components/features/hr/benefits/BenefitPlanFormModal.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-159`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Tabel menampilkan seluruh paket aktif beserta persentase diskon tarif staf RS.
+  2. Form memvalidasi bahwa paket asuransi swasta tambahan wajib mencentang opsi COB BPJS.
+* **Bukti verifikasi**: Pengujian operasi CRUD paket manfaat di lingkungan dev.
+* **Risiko & pemilik**: Inkonsistensi data kode paket; mitigasi: field kode paket terkunci saat edit.
+* **Definition of Done**: Halaman master katalog paket beroperasi penuh dan terhubung ke API.
+
+### ⏳ `FE-HRD-163` — Komponen Drawer `FE-HRD-175` — Matriks Kelayakan Grade Staf Rumah Sakit ke Kelas Kamar Rawat Inap
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-162`
+* **Outcome**: Komponen drawer geser (*slide-over*) pada layar katalog paket untuk mengonfigurasi pemetaan matriks Grade Level staf (Direksi, Spesialis, Keperawatan, Staf Umum) terhadap hak kelas kamar rawat inap (Kelas 2, Kelas 1, VIP, VVIP) dan plafon spesifik.
+* **Requirement/decision**: `HRD-DEC-134`, `03-frontend-architecture.md` Bagian 21.2.2.
+* **Kewenangan UI**: Standar SlideOver Drawer Quilvian.
+* **Reuse**: BaseDrawer, SelectDropdown, Badge.
+* **Cakupan**: `src/components/features/hr/benefits/GradeEligibilityDrawer.jsx`.
+* **Dependency**: `FE-HRD-162`
+* **Acceptance criteria**:
+  1. Drawer menampilkan tabel matriks grade yang mudah diedit per baris.
+  2. Perubahan hak kelas kamar tersimpan dan langsung tercermin pada data kelayakan nakes.
+* **Bukti verifikasi**: Uji interaksi penyimpanan matriks grade.
+* **Risiko & pemilik**: Duplikasi mapping grade; mitigasi: validasi kombinasi unique grade + employment type.
+* **Definition of Done**: Drawer matriks kelayakan grade selesai dan terintegrasi dengan tabel master.
+
+### ⏳ `FE-HRD-164` — Layar `FE-HRD-176` — Monitoring Kepesertaan Asuransi Pegawai, Aktivasi H+0 vs Pasca-Percobaan 3 Bulan
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-159`, `FE-HRD-160`
+* **Outcome**: Halaman `/corporate/hrd/benefits/enrollments` untuk memantau status kepesertaan seluruh staf rumah sakit, membedakan status aktif cepat BPJS TK H+0 Onboarding dengan penahanan paket kesehatan masa percobaan 3 bulan, serta modal pemutakhiran nomor kartu BPJS Kes/TK & polis swasta.
+* **Requirement/decision**: `HRD-DEC-138`, `03-frontend-architecture.md` Bagian 21.2.3.
+* **Kewenangan UI**: Standar tabel filter dan modal form Quilvian.
+* **Reuse**: TableWithFilters, SearchInput, StatusBadge, Modal.
+* **Cakupan**: `src/app/corporate/hrd/benefits/enrollments/page.jsx`, `src/components/features/hr/benefits/PolicyNumberModal.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-159`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Pegawai masa percobaan ditandai badge kuning `PendingActivation (Masa Percobaan)`.
+  2. Form modal memvalidasi format 13 digit untuk nomor BPJS Kesehatan dan 11 digit untuk BPJS TK.
+* **Bukti verifikasi**: Uji pencarian data staf, validasi form nomor polis.
+* **Risiko & pemilik**: Salah ketik nomor identitas BPJS; mitigasi: visual feedback validasi regex digit.
+* **Definition of Done**: Layar monitoring kepesertaan aktif dan memudahkan audit HR.
+
+### ⏳ `FE-HRD-165` — Layar `FE-HRD-177` — Antrean Meja Kerja Verifikasi Dokumen Kependudukan Tanggungan Keluarga HR
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-160`
+* **Outcome**: Halaman meja kerja `/corporate/hrd/benefits/dependents` bagi HR Benefit Officer untuk memeriksa berkas pendaftaran tanggungan keluarga ESS, menampilkan perbandingan data NIK/KK dengan preview dokumen scan KK/Akta berdampingan, serta dialog persetujuan atau penolakan disertai alasan.
+* **Requirement/decision**: `HRD-DEC-135`, `03-frontend-architecture.md` Bagian 21.2.4.
+* **Kewenangan UI**: Standar split-screen verification workstation Quilvian.
+* **Reuse**: DocumentViewerModal, BaseButton, TextArea.
+* **Cakupan**: `src/app/corporate/hrd/benefits/dependents/page.jsx`, `src/components/features/hr/benefits/DependentVerificationModal.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Penampil dokumen mendukung zoom dan rotasi gambar scan Kartu Keluarga dan Akta.
+  2. Tombol penolakan mewajibkan pengisian catatan alasan penolakan minimal 15 karakter.
+* **Bukti verifikasi**: Uji alur verifikasi berkas keluarga oleh HR di lingkungan dev.
+* **Risiko & pemilik**: Dokumen scan buram; mitigasi: instruksi upload jelas pada form ESS.
+* **Definition of Done**: Meja kerja verifikasi tanggungan keluarga beroperasi efisien dan aman.
+
+### ⏳ `FE-HRD-166` — Layar `FE-HRD-177` (ESS View) — Portal Mandiri ESS Keluarga Saya & Indikator Kuota 1 Pasangan + 3 Anak
+* **Slice / MVP**: `S-D3` / `MVP-36`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-160`
+* **Outcome**: Halaman portal mandiri `/ess/my-dependents` bagi staf nakes untuk melihat daftar keluarga yang terdaftar, kartu indikator sisa kuota (Pasangan: 1/1, Anak: 2/3), tombol pendaftaran baru, dan dropzone upload dokumen scan KK, Akta Nikah/Lahir, atau Surat Keterangan Mahasiswa Aktif bagi anak usia 21-25 tahun.
+* **Requirement/decision**: `HRD-DEC-135`, `03-frontend-architecture.md` Bagian 21.2.4.
+* **Kewenangan UI**: Portal mandiri ESS ramah ponsel/tablet (mobile-first layout).
+* **Reuse**: CardWidget, FileDropzone, ProgressBar, Alert.
+* **Cakupan**: `src/app/ess/my-dependents/page.jsx`, `src/components/features/ess/FamilyRegistrationForm.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Tombol tambah anak dinonaktifkan otomatis dengan tooltip penjelasan jika kuota 3 anak telah terpenuhi.
+  2. Form mewajibkan unggah surat keterangan dekanat jika tanggal lahir anak menunjukkan usia > 21 tahun.
+* **Bukti verifikasi**: Pengujian form pendaftaran keluarga dari akun staf biasa di portal ESS.
+* **Risiko & pemilik**: Pendaftaran keluarga non-inti; mitigasi: pilihan hubungan keluarga dikunci hanya Pasangan dan Anak.
+* **Definition of Done**: Pegawai dapat mendaftarkan tanggungan keluarga secara mandiri dan transparan.
+
+### ⏳ `FE-HRD-167` — Layar `FE-HRD-178` — Inquiry Hak Berobat Staf di RS Sendiri & Buku Besar Mutasi Saldo Plafon SIMRS
+* **Slice / MVP**: `S-D3` / `MVP-37`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-160`
+* **Outcome**: Halaman `/corporate/hrd/benefits/inhouse-ledger` untuk mengecek hak subsidi nakes secara online, kartu visual sisa saldo plafon dan hak diskon staf, serta tabel histori mutasi buku besar double-entry `HrdBenefitBalanceMovement` (alokasi tahunan, pemotongan kunjungan RS, penyesuaian).
+* **Requirement/decision**: `HRD-DEC-136`, `03-frontend-architecture.md` Bagian 21.2.5.
+* **Kewenangan UI**: Standar buku besar dan search inquiry Quilvian.
+* **Reuse**: SearchInput, LedgerTable, BalanceCard, ExportButton.
+* **Cakupan**: `src/app/corporate/hrd/benefits/inhouse-ledger/page.jsx`, `src/components/features/hr/benefits/BenefitLedgerTable.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Pencarian via NIP langsung menampilkan hak kelas kamar rawat inap, diskon tarif, dan sisa saldo plafon.
+  2. Tabel mutasi menyajikan saldo sebelum, debit pemakaian, kredit alokasi, saldo akhir, dan no. registrasi SIMRS.
+* **Bukti verifikasi**: Verifikasi konsistensi saldo buku besar terhadap data API.
+* **Risiko & pemilik**: Kerahasiaan data kunjungan poli staf; mitigasi: kolom diagnosis medis tidak ditampilkan di modul HR.
+* **Definition of Done**: Buku besar saldo plafon berobat internal RS transparan dan akurat.
+
+### ⏳ `FE-HRD-168` — Modal Dialog `FE-HRD-178` — Penyesuaian Manual Saldo Plafon Berobat RS oleh HR Manajer
+* **Slice / MVP**: `S-D3` / `MVP-37`
+* **Status**: ⏳ Menunggu `FE-HRD-167`
+* **Outcome**: Dialog modal pop-up bagi HR Manajer untuk melakukan adjustment saldo plafon nakes disertai catatan alasan pembatalan tindakan SIMRS, input nomor referensi berita acara, dan konfirmasi keamanan ganda.
+* **Requirement/decision**: `HRD-DEC-136`, `03-frontend-architecture.md` Bagian 21.2.5.
+* **Kewenangan UI**: Modal form otorisasi khusus Manajer.
+* **Reuse**: ModalDialog, CurrencyInput, TextArea, BaseButton.
+* **Cakupan**: `src/components/features/hr/benefits/BalanceAdjustmentModal.jsx`.
+* **Dependency**: `FE-HRD-167`
+* **Acceptance criteria**:
+  1. Modal hanya dapat diakses oleh user dengan hak akses peran `HR_Benefit_InHouse:Adjust`.
+  2. Sistem menolak penyesuaian yang akan mengakibatkan saldo akhir bernilai negatif.
+* **Bukti verifikasi**: Uji input penyesuaian manual dan pencatatan audit log.
+* **Risiko & pemilik**: Koreksi sepihak tanpa bukti; mitigasi: mandatory pengisian nomor referensi surat pembatalan SIMRS.
+* **Definition of Done**: Penyesuaian manual saldo plafon tercatat aman pada buku besar.
+
+### ⏳ `FE-HRD-169` — Layar `FE-HRD-179` — Meja Kerja Monitoring, Audit Kuitansi & Settlement Klaim Koordinasi Manfaat (COB)
+* **Slice / MVP**: `S-D3` / `MVP-38`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-160`
+* **Outcome**: Halaman meja kerja `/corporate/hrd/benefits/cob-claims` bagi tim Kompensasi & Benefit untuk mengaudit klaim biaya kesehatan penjamin sekunder berlampiran SEP BPJS Kesehatan, memverifikasi kuitansi selisih naik kelas, menyetujui nominal santunan, dan memproses settlement pelunasan.
+* **Requirement/decision**: `HRD-DEC-137`, `03-frontend-architecture.md` Bagian 21.2.6.
+* **Kewenangan UI**: Workstation tabel filter dan drawer settlement klaim.
+* **Reuse**: Table, Drawer, DocumentPreview, CurrencyDisplay.
+* **Cakupan**: `src/app/corporate/hrd/benefits/cob-claims/page.jsx`, `src/components/features/hr/benefits/ClaimSettlementDrawer.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Meja kerja menampilkan kolom nomor SEP BPJS Kesehatan dengan tanda centang verifikasi online.
+  2. Drawer settlement memfasilitasi opsi pendelegasian sisa ekses biaya ke pemotongan payroll Sub-11 (`S-B6`).
+* **Bukti verifikasi**: Uji alur audit kuitansi dan konfirmasi settlement santunan.
+* **Risiko & pemilik**: Ekses tagihan lolos tanpa penagihan; mitigasi: auto-trigger integrasi Sub-11 pada saat settlement.
+* **Definition of Done**: Meja kerja audit klaim COB tuntas dan siap operasional.
+
+### ⏳ `FE-HRD-170` — Layar `FE-HRD-179` (ESS View) — Formulir Mandiri Pengajuan Klaim COB Berlampiran Mandatory SEP BPJS
+* **Slice / MVP**: `S-D3` / `MVP-38`
+* **Status**: ⏳ Menunggu `FE-HRD-158`, `FE-HRD-160`
+* **Outcome**: Formulir pengajuan mandiri di portal `/ess/claims/cob-submission` bagi pegawai nakes untuk mengajukan klaim santunan sekunder asuransi swasta/RS, wajib menginput nomor SEP BPJS Kesehatan 19 digit, kalkulator pemisahan biaya INA-CBGs vs selisih, dan uploader berkas kwitansi asli.
+* **Requirement/decision**: `HRD-DEC-137`, `03-frontend-architecture.md` Bagian 21.2.6.
+* **Kewenangan UI**: Formulir bertahap mandiri ESS (*step-by-step submission form*).
+* **Reuse**: StepperForm, FileUpload, CurrencyInput, InformationAlert.
+* **Cakupan**: `src/app/ess/claims/cob-submission/page.jsx`, `src/components/features/ess/CobClaimForm.jsx`.
+* **Dependency**: `FE-HRD-158`, `FE-HRD-160`
+* **Acceptance criteria**:
+  1. Form memblokir tombol submit jika nomor SEP BPJS belum diisi dengan pesan peringatan `VR-BEN-16`.
+  2. Kalkulator otomatis menghitung selisih santunan sekunder berdasarkan total tagihan dikurangi jaminan BPJS.
+* **Bukti verifikasi**: Pengujian submit klaim COB mandiri dari antarmuka ESS staf.
+* **Risiko & pemilik**: Pengajuan klaim ganda; mitigasi: pengecekan nomor SEP unik pada database.
+* **Definition of Done**: Pengajuan klaim koordinasi manfaat mandiri dapat dilakukan dengan mudah oleh pegawai.
+
+### ⏳ `FE-HRD-171` — Verifikasi ujung-ke-ujung antarmuka UI/UX, linter CI/CD, build Next.js, dan hak akses peran Slice S-D3
+* **Slice / MVP**: `S-D3` / `MVP-38` & Verifikasi
+* **Status**: ⏳ Menunggu `FE-HRD-161`, `FE-HRD-162`, `FE-HRD-164`, `FE-HRD-165`, `FE-HRD-167`, `FE-HRD-169`, `FE-HRD-170`
+* **Outcome**: Audit komprehensif seluruh layar modul benefit (`FE-HRD-174` s.d. `FE-HRD-179`), verifikasi konsistensi token visual Quilvian, validasi linting CI/CD bebas error (`npm run lint:errors`), verifikasi kompilasi produksi standalone Next.js App Router (`npm run build`), kepatuhan akses peran RBAC, dan pemenuhan seluruh kriteria UAT `UAT-HRD-BEN-01` s.d. `UAT-HRD-BEN-05`.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 21.1 & 21.2, `04-prd-to-mvp.md` Bagian 30.4 & 30.5.
+* **Kewenangan UI**: Kepatuhan penuh standar antarmuka Next.js Quilvian.
+* **Reuse**: Skrip pra-deploy frontend `npm run lint:errors`, `npm run build`.
+* **Cakupan**: Verifikasi seluruh antarmuka modul benefit dan portal ESS.
+* **Dependency**: `FE-HRD-161`, `FE-HRD-162`, `FE-HRD-164`, `FE-HRD-165`, `FE-HRD-167`, `FE-HRD-169`, `FE-HRD-170`
+* **Acceptance criteria**:
+  1. Seluruh 6 layar antarmuka teruji bebas dari broken link dan error rendering.
+  2. Staf umum hanya dapat mengakses portal keluarga dan klaim mandiri ESS miliknya.
+  3. `npm run lint:errors` dan `npm run build` berhasil 100% dengan zero warning/error.
+  4. 5 skenario UAT pada `04-prd-to-mvp.md` Bagian 30.4 tervalidasi dengan hasil memuaskan.
+* **Bukti verifikasi**: Laporan lint CI/CD bersih, tangkapan layar navigasi antar peran, laporan hasil pengujian UAT.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama Tim QA.
+* **Definition of Done**: Antarmuka frontend modul benefit 100% siap rilis produksi.
+
+
+---
+
+## Rincian Task Frontend Slice `S-D4` — HR Service Management & Request (Sub-modul 13, Kontrak v17)
+
+Bagian ini memuat pemecahan delivery antarmuka pengguna **Sub-Modul 13 (Slice `S-D4`)** menjadi 14 task frontend terperinci (`FE-HRD-172` s.d. `FE-HRD-185`), grafik urutan dependency pohon teks (Grafik F46 s.d. F49), serta tabel gelombang eksekusi `MVP-39` s.d. `MVP-41` & Verifikasi.
+
+### Grafik Urutan Dependency Pohon Teks `S-D4`
+
+#### Grafik F46 — `S-D4` `MVP-39`: Client API, Redux Slice, Dasbor Helpdesk & Pengaturan Katalog Layanan
+
+```text
+FE-HRD-172 (Client API & Redux Slice) ───┬───> FE-HRD-173 (Katalog Layanan & SLA Setup FE-HRD-181) ───> FE-HRD-174 (Template Editor Token Dinamis)
+BE-HRD-193 [BE] ────────────────────────┤
+FE-HRD-172 [F46] ───────────────────────┴───> FE-HRD-175 (Dasbor KPI Helpdesk FE-HRD-180) ────────────> FE-HRD-176 (Tabel Antrean SLA Countdown)
+BE-HRD-195 [BE] ───────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Grafik F47 — `S-D4` `MVP-39`: Modal Re-assign Penugasan & Portal Mandiri Pengajuan Tiket ESS
+
+```text
+FE-HRD-176 [F46] ───┬───> FE-HRD-177 (Modal Re-assign Penugasan Analis)
+BE-HRD-195 [BE] ────┤
+FE-HRD-172 [F46] ───┴───> FE-HRD-178 (Portal ESS Katalog Tiles FE-HRD-182) ───> FE-HRD-179 (Wizard Multi-Step & Upload Lampiran)
+BE-HRD-196 [BE] ─────────────────────────────────────────────────────────────┘
+```
+
+#### Grafik F48 — `S-D4` `MVP-40`: Drawer Pemrosesan Tiket, Utas Klarifikasi & Pemutakhiran Profil Sub-02
+
+```text
+FE-HRD-176 [F46] ───┬───> FE-HRD-180 (Drawer Pemrosesan Tiket & Chat FE-HRD-183) ───> FE-HRD-181 (Aksi Mutasi Profil Otomatis)
+BE-HRD-199 [BE] ────┤
+FE-HRD-174 [F46] ───┴───> FE-HRD-182 (Modal Otorisasi Surat Resmi & QR FE-HRD-184) ───> FE-HRD-183 (Modal Pencabutan Dokumen BAP)
+BE-HRD-203 [BE] ────┘
+```
+
+#### Grafik F49 — `S-D4` `MVP-41` & Verifikasi: Portal Publik Verifikasi QR, PIN Gaji & Pusat Arsip E-Dossier
+
+```text
+FE-HRD-172 [F46] ───┬───> FE-HRD-184 (Portal Publik Verifikasi QR & PIN Dialog FE-HRD-185) ───┬───> FE-HRD-185 (Verifikasi Build Next.js & Linter)
+BE-HRD-204 [BE] ────┤                                                                      │
+FE-HRD-172 [F46] ───┼───> FE-HRD-185 (Arsip Dokumen Saya ESS & Kartu PIN FE-HRD-186) ──────┤
+BE-HRD-205 [BE] ────┤                                                                      │
+FE-HRD-176 [F46] ───┤                                                                      │
+FE-HRD-179 [F47] ───┤                                                                      │
+FE-HRD-180 [F48] ───┤                                                                      │
+FE-HRD-182 [F48] ───┴──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### Tabel Gelombang Eksekusi Frontend `S-D4`
+
+| Gelombang | Task yang Dapat Dimulai Bersamaan | Yang Menunggu Gelombang Ini |
+| :---: | --- | --- |
+| **1** | `FE-HRD-172` (client API & Redux slice helpdesk) | `FE-HRD-173`, `FE-HRD-175`, `FE-HRD-178`, `FE-HRD-184` |
+| **2** | `FE-HRD-173` (layar katalog layanan `FE-HRD-181`), `FE-HRD-175` (dasbor KPI helpdesk `FE-HRD-180`), `FE-HRD-178` (portal tiles ESS `FE-HRD-182`) | `FE-HRD-174`, `FE-HRD-176`, `FE-HRD-179` |
+| **3** | `FE-HRD-174` (editor template token dinamis), `FE-HRD-176` (antrean tiket SLA countdown), `FE-HRD-179` (wizard ESS multi-langkah & drag-and-drop) | `FE-HRD-177`, `FE-HRD-180`, `FE-HRD-182` |
+| **4** | `FE-HRD-177` (modal re-assign cepat), `FE-HRD-180` (drawer tiket & chat klarifikasi `FE-HRD-183`), `FE-HRD-182` (modal otorisasi surat & QR `FE-HRD-184`), `FE-HRD-184` (portal publik verifikasi QR `FE-HRD-185`) | `FE-HRD-181`, `FE-HRD-183`, `FE-HRD-185` |
+| **5** | `FE-HRD-181` (aksi mutasi profil otomatis), `FE-HRD-183` (modal revokasi ber-BAP), `FE-HRD-185` (pusat arsip e-Dossier ESS `FE-HRD-186` & verifikasi linter/build) | *(Semua task S-D4 tuntas)* |
+
+---
+
+### Detail Spesifikasi Task Frontend (`FE-HRD-172` s.d. `FE-HRD-185`)
+
+#### ⏳ `FE-HRD-172` — Redux Toolkit Slice `hrServiceSlice` & Endpoint Client Axios
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Ready
+* **Outcome**: Definisi state management global tiket helpdesk, timer SLA, filter antrean analis, penanganan error terpusat, dan modul Axios client terintegrasi dengan endpoint Kontrak `v17`.
+* **Requirement/decision**: `03-frontend-architecture.md` Bagian 22.3.
+* **Cakupan**: `src/lib/redux/slices/hrServiceSlice.js`, `src/lib/api/hrServiceApi.js`.
+* **Dependency**: `BE-HRD-193`
+* **Acceptance criteria**:
+  1. Slice mengelola state antrean tiket, detail tiket aktif, utas percakapan, dan metrik KPI helpdesk.
+  2. Modul API client mengekspos pemanggilan ke seluruh 4 tag grup endpoint Kontrak `v17`.
+* **Bukti verifikasi**: Unit test Redux dispatch & asynchronous thunk API client.
+* **Definition of Done**: State management helpdesk terpasang rapi dan siap dikonsumsi komponen UI.
+
+#### ⏳ `FE-HRD-173` — Antarmuka Pengaturan Katalog Layanan SDM & Target Jam SLA (`FE-HRD-181`)
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Menunggu `FE-HRD-172`, `BE-HRD-193`
+* **Outcome**: Layanan antarmuka master kategori dan tipe layanan SDM, konfigurasi jam SLA operasional, toggle berkas wajib, dan approval atasan.
+* **Requirement/decision**: `FR-HRS-01`, `03-frontend-architecture.md` Layar `FE-HRD-181`.
+* **Cakupan**: `src/app/corporate/hrd/services/catalog/page.jsx`.
+* **Dependency**: `FE-HRD-172`, `BE-HRD-193`
+* **Acceptance criteria**:
+  1. Menampilkan tabel hierarki kategori dan jenis layanan aktif.
+  2. Form input jam SLA memvalidasi rentang 1 s.d. 168 jam dengan pesan error `VR-HRS-03`.
+* **Bukti verifikasi**: Tangkapan layar navigasi pengaturan katalog dan penambahan jenis layanan baru.
+* **Definition of Done**: Katalog layanan dapat dikonfigurasi dengan mudah oleh HR Administrator.
+
+#### ⏳ `FE-HRD-174` — Editor Template Naskah Dinas Token Dinamis & Konfigurasi Pola Penomoran Gapless (`FE-HRD-181`)
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Menunggu `FE-HRD-173`, `BE-HRD-194`
+* **Outcome**: Editor template surat resmi berbasis variabel token dinamis (`{{NamaLengkap}}`, `{{NIP}}`, dll.) dengan pratinjau langsung (*live preview*), pola penomoran surat gapless, dan toggle proteksi finansial.
+* **Requirement/decision**: `HRD-DEC-144`, `FR-HRS-02`, `FR-HRS-03`, `FR-HRS-04`.
+* **Cakupan**: `src/app/corporate/hrd/services/catalog/templates/[id]/page.jsx`.
+* **Dependency**: `FE-HRD-173`, `BE-HRD-194`
+* **Acceptance criteria**:
+  1. Editor memuat tombol penyisip token dinamis otomatis ke area teks naskah dinas.
+  2. Live preview menampilkan contoh format surat dengan data simulasi pegawai.
+  3. Konfigurasi pola nomor surat memvalidasi keberadaan token `[NO_URUT]` dan `[TAHUN]` (`VR-HRS-09`).
+* **Bukti verifikasi**: Pengujian pembuatan template surat keterangan kerja dan verifikasi live preview.
+* **Definition of Done**: Template naskah dinas resmi terstandarisasi bebas dari editor Word lepas.
+
+#### ⏳ `FE-HRD-175` — Dasbor Meja Bantuan (Helpdesk) SDM & Kartu Metrik KPI SLA Operasional (`FE-HRD-180`)
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Menunggu `FE-HRD-172`, `BE-HRD-195`
+* **Outcome**: Tampilan dasbor ringkasan helpdesk menampilkan 4 kartu KPI performa (Tiket Aktif, Cito Kritis < 2 jam, Peringatan 75%, dan Overdue/Eskalasi) serta grafik pemenuhan SLA.
+* **Requirement/decision**: `03-frontend-architecture.md` Layar `FE-HRD-180`.
+* **Cakupan**: `src/app/corporate/hrd/services/tickets/page.jsx` (Region Kartu KPI).
+* **Dependency**: `FE-HRD-172`, `BE-HRD-195`
+* **Acceptance criteria**:
+  1. Kartu KPI memperbarui angka secara real-time via REST/SignalR.
+  2. Kartu Cito dan Overdue diberi aksen merah mencolok untuk memicu respon cepat supervisor.
+* **Bukti verifikasi**: Tangkapan layar dasbor dengan variasi data tiket aktif dan overdue.
+* **Definition of Done**: Metrik performa helpdesk tersaji visual dan informatif bagi manajemen HR.
+
+#### ⏳ `FE-HRD-176` — Antrean Tiket Helpdesk Berjenjang 3-Tier dengan Indikator Countdown Timer SLA Real-Time (`FE-HRD-180`)
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Menunggu `FE-HRD-175`, `BE-HRD-195`
+* **Outcome**: Tabel antrean tiket helpdesk dengan filter prioritas (Cito/Standar/Khusus), indikator countdown jam tersisa, tombol ambil tiket (*claim*), dan penanda status visual (*StatusBadge*).
+* **Requirement/decision**: `HRD-DEC-141`, `FR-HRS-07`, `FR-HRS-08`.
+* **Cakupan**: `src/app/corporate/hrd/services/tickets/page.jsx` (Region Tabel Antrean).
+* **Dependency**: `FE-HRD-175`, `BE-HRD-195`
+* **Acceptance criteria**:
+  1. Kolom timer menampilkan countdown detik/menit/jam dan berubah kuning pada 75% serta merah berkedip saat Overdue.
+  2. Tombol "Ambil Tiket" langsung mengubah penugasan ke analis login dan status menjadi `InReview`.
+* **Bukti verifikasi**: Pengujian filter prioritas Cito dan interaksi pengklaiman tiket antrean.
+* **Definition of Done**: Analis HR dapat mengelola antrean pekerjaan secara tertib dan transparan.
+
+#### ⏳ `FE-HRD-177` — Modal Re-assign Penugasan Analis SDM Cepat & Penyeimbangan Beban Kerja (`FE-HRD-180`)
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Menunggu `FE-HRD-176`, `BE-HRD-195`
+* **Outcome**: Dialog modal bagi Supervisor HR untuk mendisposisikan ulang tiket yang mendekati batas waktu atau berstatus overdue ke analis lain yang memiliki beban kerja lebih ringan.
+* **Requirement/decision**: `03-frontend-architecture.md` Layar `FE-HRD-180`.
+* **Cakupan**: `src/components/features/corporate/hr/services/ModalReassignTicket.jsx`.
+* **Dependency**: `FE-HRD-176`, `BE-HRD-195`
+* **Acceptance criteria**:
+  1. Menampilkan daftar analis aktif beserta jumlah tiket yang sedang ditangani saat ini.
+  2. Konfirmasi re-assign mengirimkan alert notifikasi ke analis penerima baru.
+* **Bukti verifikasi**: Pengujian re-assign tiket kritis dari supervisor ke analis spesialis.
+* **Definition of Done**: Penyeimbangan antrean tiket kritis berjalan fleksibel.
+
+#### ⏳ `FE-HRD-178` — Portal ESS Mandiri: Katalog Layanan Interaktif (*Service Tiles*) & Estimasi Durasi (`FE-HRD-182`)
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Menunggu `FE-HRD-172`, `BE-HRD-193`
+* **Outcome**: Antarmuka katalog layanan visual berbasis grid kartu (*tiles*) di portal ESS pegawai, menampilkan kategori permohonan populer, syarat berkas, dan estimasi jam SLA.
+* **Requirement/decision**: `FR-HRS-11`, `03-frontend-architecture.md` Layar `FE-HRD-182`.
+* **Cakupan**: `src/app/portal/services/requests/page.jsx` (Region Tiles Katalog).
+* **Dependency**: `FE-HRD-172`, `BE-HRD-193`
+* **Acceptance criteria**:
+  1. Kartu layanan menampilkan ikon intuitif, judul, dan badge durasi SLA (contoh: "SLA 24 Jam Kerja").
+  2. Mengklik kartu langsung membuka formulir pengajuan tiket untuk jenis layanan terpilih.
+* **Bukti verifikasi**: Navigasi pemilihan layanan mandiri dari akun staf klinis.
+* **Definition of Done**: Katalog permohonan staf tersaji menarik, ramah pengguna, dan jelas.
+
+#### ⏳ `FE-HRD-179` — Formulir Pengajuan Tiket ESS Multi-Langkah & Validasi Drag-and-Drop Lampiran 5MB (`FE-HRD-182`)
+* **Slice / MVP**: `S-D4` / `MVP-39`
+* **Status**: ⏳ Menunggu `FE-HRD-178`, `BE-HRD-196`
+* **Outcome**: Wizard pengajuan tiket 3-langkah dengan komponen drag-and-drop unggah berkas, validasi ukuran file maksimal 5MB, format PDF/JPG, dan banner wajib disposisi untuk prioritas Cito.
+* **Requirement/decision**: `FR-HRS-12`, `FR-HRS-13`, validasi `VR-HRS-01`, `VR-HRS-02`.
+* **Cakupan**: `src/components/features/portal/services/TicketSubmissionWizard.jsx`.
+* **Dependency**: `FE-HRD-178`, `BE-HRD-196`
+* **Acceptance criteria**:
+  1. Memblokir file melebihi 5MB atau selain format PDF/JPG/PNG dengan alert informatif.
+  2. Menampilkan alert kuning tegas jika pemohon memilih prioritas Cito, mewajibkan unggahan surat disposisi medis.
+  3. Submit berhasil memunculkan nomor tiket unik dan mengarahkan ke tab "Riwayat Tiket Saya".
+* **Bukti verifikasi**: Uji submit tiket Standar dan pengujian error handling upload file besar.
+* **Definition of Done**: Staf medis dapat mengajukan permohonan secara mandiri tanpa bingung.
+
+#### ⏳ `FE-HRD-180` — Drawer Pemrosesan Tiket Analis, Penampil Berkas Side-by-Side & Utas Obrolan Klarifikasi (`FE-HRD-183`)
+* **Slice / MVP**: `S-D4` / `MVP-40`
+* **Status**: ⏳ Menunggu `FE-HRD-176`, `BE-HRD-196`
+* **Outcome**: Panel drawer pemrosesan tiket sisi kanan dengan penampil berkas lampiran terintegrasi (*side-by-side preview*), form chat dua arah klarifikasi staf, dan toggle memo internal HR.
+* **Requirement/decision**: `FR-HRS-14`, `03-frontend-architecture.md` Layar `FE-HRD-183`.
+* **Cakupan**: `src/components/features/corporate/hr/services/DrawerTicketProcessing.jsx`.
+* **Dependency**: `FE-HRD-176`, `BE-HRD-196`
+* **Acceptance criteria**:
+  1. Analis dapat memeriksa dokumen scan KTP/buku tabungan berdampingan dengan kolom isian data.
+  2. Mengirim pesan klarifikasi ke staf otomatis mengubah status tiket menjadi `WaitingStaffResponse` dan mem-pause timer.
+  3. Catatan internal HR diberi penanda latar belakang kuning berbeda agar tidak keliru dikirim ke staf.
+* **Bukti verifikasi**: Simulasi percakapan klarifikasi berkas antara analis HR dan staf perawat.
+* **Definition of Done**: Drawer pemrosesan tiket mempercepat investigasi dan komunikasi berkas permohonan.
+
+#### ⏳ `FE-HRD-181` — Antarmuka Verifikasi Berkas Perubahan Rekening/Status & Eksekusi Pemutakhiran Profil Sub-02 (`FE-HRD-183`)
+* **Slice / MVP**: `S-D4` / `MVP-40`
+* **Status**: ⏳ Menunggu `FE-HRD-180`, `BE-HRD-199`
+* **Outcome**: Formulir verifikasi permohonan ubah data master dengan tombol aksi "Setujui & Mutakhirkan Master Data", menampilkan dialog perbandingan data lama vs data baru.
+* **Requirement/decision**: `HRD-DEC-143`, `FR-HRS-15`, aturan `HRS-B6`.
+* **Cakupan**: `src/components/features/corporate/hr/services/ProfileChangeVerificationPanel.jsx`.
+* **Dependency**: `FE-HRD-180`, `BE-HRD-199`
+* **Acceptance criteria**:
+  1. Dialog memunculkan tabel diff: Rekening Lama (Bank/Nomor) vs Rekening Baru yang diajukan staf.
+  2. Klik "Setujui" memicu eksekusi mutasi profil otomatis ke Sub-02 dan menampilkan notifikasi sukses hijau.
+* **Bukti verifikasi**: Uji eksekusi pemutakhiran rekening payroll pegawai dan verifikasi status `Resolved`.
+* **Definition of Done**: Pemutakhiran data master kepegawaian tuntas tanpa intervensi re-entry data manual.
+
+#### ⏳ `FE-HRD-182` — Modal Otorisasi Surat Resmi Pejabat, Pratinjau Live Naskah Dinas & Generator QR Code (`FE-HRD-184`)
+* **Slice / MVP**: `S-D4` / `MVP-40`
+* **Status**: ⏳ Menunggu `FE-HRD-174`, `BE-HRD-201`, `BE-HRD-203`
+* **Outcome**: Dialog modal otorisasi pejabat berwenang (Supervisor C&B / Manajer SDM) dengan pratinjau lembar surat berkop resmi RS, rincian gaji read-only Sub-10, input tanda tangan digital, dan penerbitan nomor seri gapless.
+* **Requirement/decision**: `HRD-DEC-140`, `HRD-DEC-142`, `FR-HRS-16`, `FR-HRS-17`, `FR-HRS-19`.
+* **Cakupan**: `src/components/features/corporate/hr/services/ModalDocumentAuthorization.jsx`.
+* **Dependency**: `FE-HRD-174`, `BE-HRD-201`, `BE-HRD-203`
+* **Acceptance criteria**:
+  1. Menampilkan pratinjau PDF draf surat naskah dinas dengan kop resmi dan tata letak presisi.
+  2. Data gaji terkunci read-only; dilarang mengedit nominal angka di formulir (`HRD-DEC-142`).
+  3. Pejabat dilarang mengesahkan surat atas nama dirinya sendiri (tombol otorisasi dinonaktifkan dengan tooltip peringatan).
+* **Bukti verifikasi**: Pengujian otorisasi Surat Keterangan Gaji KPR dan penerbitan nomor seri sah.
+* **Definition of Done**: Surat resmi diterbitkan sah, ber-QR Code, dan siap diunduh.
+
+#### ⏳ `FE-HRD-183` — Modal Pencabutan Keabsahan Surat Resmi (Revokasi) Ber-Input Nomor BAP (`FE-HRD-184`)
+* **Slice / MVP**: `S-D4` / `MVP-40`
+* **Status**: ⏳ Menunggu `FE-HRD-182`, `BE-HRD-205`
+* **Outcome**: Dialog modal pencatatan Berita Acara Pemeriksaan (BAP) untuk mencabut keabsahan hukum surat resmi terbit yang terindikasi cacat administrasi atau fraud.
+* **Requirement/decision**: `HRD-DEC-145`, `FR-HRS-25`, validasi `VR-HRS-14`.
+* **Cakupan**: `src/components/features/corporate/hr/services/ModalDocumentRevocation.jsx`.
+* **Dependency**: `FE-HRD-182`, `BE-HRD-205`
+* **Acceptance criteria**:
+  1. Input nomor BAP dan alasan pembatalan tertulis wajib diisi minimal 20 karakter.
+  2. Mengonfirmasi pencabutan langsung mengubah status dokumen menjadi `Revoked`.
+* **Bukti verifikasi**: Eksekusi pencabutan surat dan verifikasi perubahan status pada arsip.
+* **Definition of Done**: Protokol revokasi dokumen sah terlaksana aman dan terdokumentasi.
+
+#### ⏳ `FE-HRD-184` — Halaman Portal Publik Verifikasi Keabsahan Dokumen (`/verify/document/[hash]`) & Dialog Input 4-Digit PIN Masked Gaji (`FE-HRD-185`)
+* **Slice / MVP**: `S-D4` / `MVP-41`
+* **Status**: ⏳ Menunggu `FE-HRD-172`, `BE-HRD-204`
+* **Outcome**: Halaman publik responsif tanpa sesi login yang dibuka saat pihak eksternal memindai QR Code, menampilkan banner legalitas, metadata surat, nominal gaji disamarkan, dan dialog input 4-digit PIN.
+* **Requirement/decision**: `HRD-DEC-140`, `FR-HRS-22`, `FR-HRS-23`, `FR-HRS-24`.
+* **Cakupan**: `src/app/verify/document/[hash]/page.jsx`.
+* **Dependency**: `FE-HRD-172`, `BE-HRD-204`
+* **Acceptance criteria**:
+  1. Menampilkan banner hijau "SAH & BERLAKU" atau banner merah "DICABUT / TIDAK BERLAKU" jika direvokasi.
+  2. Pada surat finansial, angka gaji tertutup `Rp ••••••••••`; input PIN 4-digit yang tepat membuka rincian nominal asli.
+  3. Salah input PIN 3 kali memunculkan peringatan penguncian akses selama 30 menit.
+* **Bukti verifikasi**: Simulasi scan QR melalui browser smartphone dan uji pembukaan PIN nominal gaji.
+* **Definition of Done**: Portal publik verifikasi dokumen beroperasi aman dan melindungi kerahasiaan nakes.
+
+#### ⏳ `FE-HRD-185` — Pusat Arsip Digital Kepegawaian (Dokumen Saya ESS), Kartu PIN Rahasia & Verifikasi Ujung-ke-Ujung Slice `S-D4` (`FE-HRD-186`)
+* **Slice / MVP**: `S-D4` / `MVP-41` & Verifikasi
+* **Status**: ⏳ Menunggu `FE-HRD-176`, `FE-HRD-179`, `FE-HRD-180`, `FE-HRD-182`, `FE-HRD-184`
+* **Outcome**: Antarmuka repositori mandiri "Dokumen Saya" di portal ESS, kartu pengungkapan PIN privat berproteksi password, audit komprehensif linter CI/CD (`npm run lint:errors`), build Next.js produksi (`npm run build`), dan validasi seluruh skenario UAT.
+* **Requirement/decision**: `HRD-DEC-145`, `03-frontend-architecture.md` Layar `FE-HRD-186`, `04-prd-to-mvp.md` Bagian 31.4 & 31.5.
+* **Cakupan**: `src/app/portal/services/my-documents/page.jsx`.
+* **Dependency**: `FE-HRD-176`, `FE-HRD-179`, `FE-HRD-180`, `FE-HRD-182`, `FE-HRD-184`
+* **Acceptance criteria**:
+  1. Pegawai dapat melihat dan mengunduh ulang berkas PDF resmi bertanda tangan digital miliknya kapan saja.
+  2. PIN 4-digit rahasia dapat dilihat pegawai dengan memasukkan verifikasi kata sandi akun ESS.
+  3. Dokumen yang direvokasi menampilkan tanda watermark visual "REVOKED".
+  4. `npm run lint:errors` dan `npm run build` lulus 100% tanpa error, dan 5 skenario UAT tervalidasi.
+* **Bukti verifikasi**: Laporan linting bersih, tangkapan layar unduhan e-Dossier, laporan hasil pengujian UAT.
+* **Definition of Done**: Antarmuka frontend helpdesk SDM dan persuratan resmi siap rilis produksi.
+
+
+---
+
+## Bagian S-C1 — Roadmap Pengiriman Frontend Sub-Modul 14: Credentialing, License & Clinical Privilege (Slice `S-C1`, Kontrak `v18`, 5 November 2026)
+
+Bagian ini merinci 15 task implementasi frontend terisolasi (**`FE-HRD-186` s.d. `FE-HRD-200`**) untuk **Sub-Modul 14 (Slice `S-C1`)** memakai Next.js App Router, React, Redux Toolkit, Tailwind CSS, dan Quilvian Base Components, yang mengimplementasikan antarmuka pendaftaran lisensi STR/SIP, verifikasi sumber primer (PSV) KKI/SatuSehat SDMK, meja kerja penilaian panel Mitra Bestari (*Peer Review*), sidang pleno komite, konsol pengesahan SPK-RKK oleh Direktur Utama, direktori registri wewenang SIMRS, dialog penegakan Hard-Stop bertingkat, serta radar pemantau kedaluwarsa 3 tahunan.
+
+---
+
+### Grafik Urutan Dependency Pohon Teks `S-C1`
+
+#### Grafik F50 — `S-C1` `MVP-42`: Redux Slice, Portal Kredensial ESS & Dashboard PSV Staf Kredensialing
+```text
+FE-HRD-186 (Client API & Redux Slice) ───┬───> FE-HRD-187 (Portal Kredensial Wizard ESS FE-HRD-187) ───> FE-HRD-189 (Radar Visual SIP 5 Tahun)
+BE-HRD-210 [BE] ────────────────────────┤
+FE-HRD-186 [F50] ───────────────────────┴───> FE-HRD-188 (Dashboard PSV & Drawer Kemenkes FE-HRD-188) ───┘
+BE-HRD-208 [BE] ────────────────────────┘
+```
+
+#### Grafik F51 — `S-C1` `MVP-43`: Master 3 Komite, Meja Mitra Bestari, Pleno & Pengesahan SPK Dirut
+```text
+FE-HRD-186 [F50] ───┬───> FE-HRD-190 (Katalog Whitebook 3 Komite) ───> FE-HRD-191 (Meja Asesmen Peer Review FE-HRD-189) ──┐
+BE-HRD-211 [BE] ────┤                                                                                             │
+FE-HRD-187 [F50] ───┴─────────────────────────────────────────────────────────────────────────────────────────────┼─> FE-HRD-192 (Sidang Pleno Komite FE-HRD-190)
+BE-HRD-213 [BE] ──────────────────────────────────────────────────────────────────────────────────────────────────┤
+                                                                                                                  │
+FE-HRD-192 [F51] ───┬───> FE-HRD-193 (Konsol Pengesahan Dirut FE-HRD-191) ───> FE-HRD-194 (Portal Publik QR Verify) ────┘
+BE-HRD-214 [BE] ────┘
+```
+
+#### Grafik F52 — `S-C1` `MVP-44`: Registri RKK, Dialog Hard-Stop SIMRS, Co-Signature & Fast-Track
+```text
+FE-HRD-186 [F50] ───┬───> FE-HRD-195 (Registri RKK & Direktori RS FE-HRD-192) ───┬───> FE-HRD-196 (Dialog Hard-Stop SIMRS INT-HR-69)
+BE-HRD-216 [BE] ────┤                                                            │
+                    │                                                            ├───> FE-HRD-197 (Modal Co-Signature 24 Jam Supervisor)
+                    │                                                            │
+                    │                                                            └───> FE-HRD-198 (Bypass Darurat Nyawa & Audit KMKP)
+                    │
+FE-HRD-193 [F51] ───┴───> FE-HRD-199 (Konsol Fast-Track FE-HRD-193 & Radar Rekredensialing FE-HRD-194)
+BE-HRD-219 [BE] ────┤
+BE-HRD-220 [BE] ────┘
+```
+
+#### Grafik F53 — `S-C1` Verifikasi & Standalone Build Production
+```text
+FE-HRD-189 [F50] ───┬────────────────────────────────────────────────────────┐
+FE-HRD-194 [F51] ───┼─> FE-HRD-200 ⏳ (Verifikasi Build Standalone, Linting 0 Error & UAT Acceptance S-C1)
+FE-HRD-198 [F52] ───┤
+FE-HRD-199 [F52] ───┤
+BE-HRD-221 [BE] ────┘
+```
+
+---
+
+### Tabel Gelombang Eksekusi Frontend `S-C1`
+
+| Gelombang | Task ID | Target Deliverable / Output Utama | Syarat Masuk (Dependencies) |
+| :---: | :--- | :--- | :--- |
+| **`MVP-42`** | `FE-HRD-186`, `FE-HRD-187`, `FE-HRD-188`, `FE-HRD-189` | Redux toolkit slice, endpoint client Axios, portal self-service nakes wizard 4-langkah, dashboard verifikasi PSV staf kredensialing, drawer validasi SatuSehat SDMK, dan radar kedaluwarsa SIP 5 tahun. | `BE-HRD-208`, `BE-HRD-210` |
+| **`MVP-43`** | `FE-HRD-190`, `FE-HRD-191`, `FE-HRD-192`, `FE-HRD-193`, `FE-HRD-194` | Komponen seleksi 3 komite mandiri, katalog whitebook, meja kerja Mitra Bestari (Peer Review), konsolidasi sidang pleno komite, konsol pengesahan e-Sign Direktur Utama RS, live PDF previewer, dan portal verifikasi publik ber-QR Code. | `FE-HRD-186`, `BE-HRD-211`, `BE-HRD-213`, `BE-HRD-214` |
+| **`MVP-44`** | `FE-HRD-195`, `FE-HRD-196`, `FE-HRD-197`, `FE-HRD-198`, `FE-HRD-199` | Registri direktori kewenangan klinis nakes, dialog peringatan Hard-Stop di SIMRS/EMR, modal persetujuan co-signature 24 jam supervisor, tombol life-saving emergency override ber-audit KMKP, konsol fast-track penugasan cepat, dan monitoring rekredensialing 3 tahun. | `FE-HRD-193`, `BE-HRD-216`, `BE-HRD-219`, `BE-HRD-220` |
+| **Verifikasi** | `FE-HRD-200` | Verifikasi integrasi Next.js App Router, audit kepatuhan linter CI/CD `npm run lint:errors` 0 error, build produksi standalone `npm run build`, dan pengujian penerimaan pengguna. | Seluruh task `FE-HRD-186` s.d. `FE-HRD-199` selesai |
+
+---
+
+### Detail Spesifikasi Task Frontend (`FE-HRD-186` s.d. `FE-HRD-200`)
+
+#### ⏳ `FE-HRD-186` — Redux Toolkit Slice `credentialingSlice`, Axios Client & TypeScript Interfaces
+* **Slice / MVP**: `S-C1` / `MVP-42`
+* **Status**: ⏳ Menunggu `BE-HRD-210`
+* **Outcome**: State management terpusat untuk berkas kredensial, lisensi STR/SIP, data PSV SatuSehat SDMK, penugasan peer review, registri RKK, dan audit bypass darurat, lengkap dengan TypeScript interfaces dan Axios wrapper.
+* **Dependencies**: `BE-HRD-210`
+* **Acceptance Criteria**: State terintegrasi dengan Redux store aplikasi, penanganan state `loading`, `idle`, `fulfilled`, dan `rejected` berjalan konsisten.
+* **Verifikasi**: Build TypeScript kompilasi bersih tanpa type errors.
+
+#### ⏳ `FE-HRD-187` — Portal Kredensial Tenaga Medis: Wizard Pendaftaran & Checklist Whitebook (`FE-HRD-187`)
+* **Slice / MVP**: `S-C1` / `MVP-42`
+* **Status**: ⏳ Menunggu `FE-HRD-186`
+* **Outcome**: Layar portal staf nakes pada rute `/self-service/credentials/apply` berupa formulir wizard 4 langkah (Identitas & Lisensi, Portofolio Logbook, Checklist Whitebook dengan auto-lock komite profesi, Pernyataan Etik & Submit).
+* **Dependencies**: `FE-HRD-186`
+* **Acceptance Criteria**: Form tervalidasi `VR-CRD-01` & `VR-CRD-04`; butir checklist whitebook terisolasi sesuai komite nakes; berkas tersimpan status `Submitted`.
+* **Verifikasi**: Uji fungsional form submission & upload berkas.
+
+#### ⏳ `FE-HRD-188` — Dashboard Verifikasi PSV Staf Kredensialing & Drawer SatuSehat SDMK (`FE-HRD-188`)
+* **Slice / MVP**: `S-C1` / `MVP-42`
+* **Status**: ⏳ Menunggu `FE-HRD-186`, `BE-HRD-208`
+* **Outcome**: Meja kerja sekretariat kredensialing pada `/corporate/hrd/credentialing/psv-verification` mencakup kartu ringkasan KPI, tabel antrean verifikasi berkas, dan action drawer audit keabsahan primer ke portal KKI / SatuSehat SDMK.
+* **Dependencies**: `FE-HRD-186`, `BE-HRD-208`
+* **Acceptance Criteria**: Staf dapat mencatat status lolos/tolak PSV, URL rujukan bukti Kemenkes, dan tanggal audit; status berkas ter-update seketika.
+* **Verifikasi**: Uji alur kerja verifikasi PSV staf.
+
+#### ⏳ `FE-HRD-189` — Komponen Visual Radar Pemantau Kedaluwarsa SIP 5 Tahun & Peringatan Dini
+* **Slice / MVP**: `S-C1` / `MVP-42`
+* **Status**: ⏳ Menunggu `FE-HRD-187`, `FE-HRD-188`
+* **Outcome**: Indikator visual progres masa berlaku SIP (Hijau > 90 hari, Kuning H-90..H-31, Oranye H-30..H-8, Merah H-7..H-0), banner peringatan fail-closed pada portal nakes, dan modal unggah perpanjangan SIP baru.
+* **Dependencies**: `FE-HRD-187`, `FE-HRD-188`
+* **Acceptance Criteria**: Status peringatan ter-render akurat mengikuti hari kalender; modal perpanjangan SIP memvalidasi batas 5 tahun (`VR-CRD-03`).
+* **Verifikasi**: Uji visual rendering berbagai rentang tanggal kedaluwarsa.
+
+#### ⏳ `FE-HRD-190` — Komponen Manajemen 3 Komite Mandiri & Katalog Whitebook Kompetensi
+* **Slice / MVP**: `S-C1` / `MVP-43`
+* **Status**: ⏳ Menunggu `FE-HRD-186`, `BE-HRD-211`
+* **Outcome**: Modul konfigurasi master komite pada antarmuka admin untuk mengatur struktur pengurus 3 komite (Medik, Keperawatan, Nakes Lain) dan penugasan butir prosedur tindakan klinis ke dalam buku putih kompetensi.
+* **Dependencies**: `FE-HRD-186`, `BE-HRD-211`
+* **Acceptance Criteria**: Pengaturan komite terisolasi; penambahan tindakan klinis baru memuat derajat risiko dan kriteria supervisi baku.
+* **Verifikasi**: Uji CRUD katalog whitebook komite.
+
+#### ⏳ `FE-HRD-191` — Meja Kerja Asesmen Mitra Bestari / Peer Review Desk (`FE-HRD-189`)
+* **Slice / MVP**: `S-C1` / `MVP-43`
+* **Status**: ⏳ Menunggu `FE-HRD-190`
+* **Outcome**: Layar khusus reviewer Mitra Bestari pada rute `/corporate/hrd/credentialing/peer-review` untuk menelaah logbook pengalaman kasus pemohon, menetapkan rekomendasi derajat wewenang (4 Mandiri, 3 Supervisi, 1-2 Ditolak), dan menandatangani berita acara digital.
+* **Dependencies**: `FE-HRD-190`
+* **Acceptance Criteria**: Tombol submit rekomendasi aktif jika seluruh butir tindakan telah dinilai; sistem menolak akses reviewer jika pemohon adalah dirinya sendiri (`VR-CRD-15`).
+* **Verifikasi**: Uji alur penilaian peer review.
+
+#### ⏳ `FE-HRD-192` — Sidang Pleno Komite Kredensial & Konsolidasi Penilaian Reviewer (`FE-HRD-190`)
+* **Slice / MVP**: `S-C1` / `MVP-43`
+* **Status**: ⏳ Menunggu `FE-HRD-191`, `BE-HRD-213`
+* **Outcome**: Layar sidang pengurus komite pada `/corporate/hrd/credentialing/committee-plenary` menampilkan komparasi rekomendasi Reviewer 1 vs Reviewer 2, tombol konsensus komite, catatan pembinaan etik, dan fitur generate surat rekomendasi Ketua Komite.
+* **Dependencies**: `FE-HRD-191`, `BE-HRD-213`
+* **Acceptance Criteria**: Matriks divergensi skor menyorot butir perbedaan pendapat antar reviewer; surat rekomendasi sah ter-generate bertanda tangan Ketua Komite.
+* **Verifikasi**: Uji konsolidasi sidang pleno komite.
+
+#### ⏳ `FE-HRD-193` — Konsol Pengesahan SPK & RKK Direktur Utama (*Director Approval Console* — `FE-HRD-191`)
+* **Slice / MVP**: `S-C1` / `MVP-43`
+* **Status**: ⏳ Menunggu `FE-HRD-192`, `BE-HRD-214`
+* **Outcome**: Layar otorisasi eksekutif Direktur Utama RS pada `/corporate/hrd/credentialing/director-approval` dilengkapi live PDF viewer naskah SPK-RKK, panel validasi supervisor Level 3, paraf Direktur Pelayanan, dan modal otorisasi e-Sign Direktur Utama RS.
+* **Dependencies**: `FE-HRD-192`, `BE-HRD-214`
+* **Acceptance Criteria**: Live PDF merender tabel RKK rapi; e-Sign sukses mengunci dokumen SPK status `Active` dan menerbitkan token QR Code unik.
+* **Verifikasi**: Uji live rendering PDF & eksekusi e-Sign Dirut.
+
+#### ⏳ `FE-HRD-194` — Halaman Publik Responsif Verifikasi Keabsahan Dokumen SPK-RKK (`/public/credentials/verify/[qrToken]`)
+* **Slice / MVP**: `S-C1` / `MVP-43`
+* **Status**: ⏳ Menunggu `FE-HRD-193`
+* **Outcome**: Halaman publik tanpa login yang diakses saat kamera memindai barcode QR pada berkas fisik SPK-RKK, menampilkan status keabsahan dokumen, stempel rumah sakit, identitas dokter, masa berlaku 3 tahun, dan rincian hak klinis yang disahkan.
+* **Dependencies**: `FE-HRD-193`
+* **Acceptance Criteria**: Jika QR token valid dan dokumen aktif, muncul kartu hijau keabsahan; jika dokumen dicabut/kedaluwarsa, muncul banner merah pembatalan.
+* **Verifikasi**: Uji pemindaian QR Code dari mobile browser.
+
+#### ⏳ `FE-HRD-195` — Registri Kewenangan Klinis Rumah Sakit & Direktori Pencarian Nakes (`FE-HRD-192`)
+* **Slice / MVP**: `S-C1` / `MVP-44`
+* **Status**: ⏳ Menunggu `FE-HRD-186`, `BE-HRD-216`
+* **Outcome**: Direktori pencarian instan kewenangan klinis pada `/corporate/hrd/credentialing/clinical-privilege-registry` untuk diakses oleh unit IGD, rawat inap, kamar operasi, dan farmasi guna memeriksa batasan kewenangan dokter/nakes bertugas.
+* **Dependencies**: `FE-HRD-186`, `BE-HRD-216`
+* **Acceptance Criteria**: Pencarian instan per dokter atau per tindakan merespons cepat; badge wewenang (Mandiri vs Supervisi) tampil jelas.
+* **Verifikasi**: Uji pencarian & filtering registri klinis.
+
+#### ⏳ `FE-HRD-196` — Dialog Penegakan Hard-Stop & Banner Lisensi Kedaluwarsa di SIMRS/EMR
+* **Slice / MVP**: `S-C1` / `MVP-44`
+* **Status**: ⏳ Menunggu `FE-HRD-195`, `BE-HRD-216`
+* **Outcome**: Komponen dialog antarmuka SIMRS/EMR yang memblokir tombol order tindakan jika dokter tidak memiliki kewenangan (Level 1-2) atau SIP mati, menampilkan pesan penolakan resmi resolusi `HRD-DEC-005` & `HRD-DEC-149`.
+* **Dependencies**: `FE-HRD-195`, `BE-HRD-216`
+* **Acceptance Criteria**: Tombol submit dinonaktifkan keras (*Hard-Stop*); dialog konfirmasi penolakan menyajikan tautan regulasi RKK dokter.
+* **Verifikasi**: Uji simulasi penolakan order tindakan di EMR.
+
+#### ⏳ `FE-HRD-197` — Modal Persetujuan Co-Signature Supervisi & Timer 24 Jam Supervisor
+* **Slice / MVP**: `S-C1` / `MVP-44`
+* **Status**: ⏳ Menunggu `FE-HRD-195`, `BE-HRD-217`
+* **Outcome**: Antarmuka meja kerja dokter supervisor untuk meninjau order tindakan di bawah supervisi Level 3 yang tertahan (*Pending Co-Signature*), dilengkapi timer hitung mundur 24 jam dan tombol persetujuan digital / pembatalan order.
+* **Dependencies**: `FE-HRD-195`, `BE-HRD-217`
+* **Acceptance Criteria**: Dokter supervisor dapat membubuhkan paraf digital persetujuan; order terbit penuh ke modul tindakan SIMRS.
+* **Verifikasi**: Uji alur co-signature tindakan supervisi.
+
+#### ⏳ `FE-HRD-198` — Komponen Life-Saving Emergency Override & Console Audit Insiden Mutu KMKP
+* **Slice / MVP**: `S-C1` / `MVP-44`
+* **Status**: ⏳ Menunggu `FE-HRD-196`, `BE-HRD-218`
+* **Outcome**: Modal tombol darurat "Darurat Nyawa (Life-Saving Override)" pada antarmuka EMR dengan validasi input alasan medis cito, serta meja telaah audit insiden mutu di portal Komite Mutu & Keselamatan Pasien (KMKP) untuk menjatuhkan vonis telaah dalam 7 hari.
+* **Dependencies**: `FE-HRD-196`, `BE-HRD-218`
+* **Acceptance Criteria**: Bypass darurat mengizinkan eksekusi order dengan penanda merah; berkas audit otomatis masuk ke dashboard sidang KMKP.
+* **Verifikasi**: Uji eksekusi override darurat & audit KMKP.
+
+#### ⏳ `FE-HRD-199` — Konsol Penugasan Cepat Temporary & Emergency (`FE-HRD-193`) serta Radar Rekredensialing (`FE-HRD-194`)
+* **Slice / MVP**: `S-C1` / `MVP-44`
+* **Status**: ⏳ Menunggu `FE-HRD-193`, `BE-HRD-219`, `BE-HRD-220`
+* **Outcome**: Antarmuka penerbitan kewenangan sementara dokter tamu (maks 3 bln) dan darurat kebencanaan (maks 72 jam) pada rute `/corporate/hrd/credentialing/fast-track-privilege`, serta visualisasi timeline siklus 3 tahun rekredensialing dan daftar suspended nakes pada `/corporate/hrd/credentialing/recredentialing-cycle`.
+* **Dependencies**: `FE-HRD-193`, `BE-HRD-219`, `BE-HRD-220`
+* **Acceptance Criteria**: Fast-track privilege terbit dengan countdown jam otomatis; radar rekredensialing menampilkan status integrasi nilai OPPE Sub-15.
+* **Verifikasi**: Uji penugasan cepat & monitoring siklus 3 tahun.
+
+#### ⏳ `FE-HRD-200` — Verifikasi Integrasi Menyeluruh Next.js, Linting 0 Error & UAT Acceptance `S-C1`
+* **Slice / MVP**: `S-C1` / Verifikasi
+* **Status**: ⏳ Menunggu `FE-HRD-186` s.d. `FE-HRD-199`, `BE-HRD-221`
+* **Outcome**: Verifikasi kompilasi produksi Next.js App Router (`npm run build`), audit ketat linter CI/CD (`npm run lint:errors`) dengan hasil 0 error, verifikasi responsive rendering di desktop/tablet/mobile, serta verifikasi kelulusan skenario UAT 1-5.
+* **Dependencies**: Seluruh task frontend `FE-HRD-186` s.d. `FE-HRD-199` dan `BE-HRD-221`
+* **Acceptance Criteria**: Build standalone Next.js sukses; linter 0 error 0 warning; seluruh 8 layar baru beroperasi mulus dan aman.
+* **Verifikasi**: Laporan task tracked `FE-HRD-200.md` dan output terminal npm.

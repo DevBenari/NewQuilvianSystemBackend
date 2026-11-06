@@ -119,10 +119,10 @@ Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yan
 | **08** | **Leave & Permission Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
 | **09** | **Overtime Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
 | **10** | **Payroll Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
-| 11 | Restitution & Deduction Integration | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 12 | Benefit Management | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| **11** | **Restitution & Deduction Integration** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
+| **12** | **Benefit Management** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
 | 13 | Business Travel & Expense | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | Prioritas Rendah |
-| 14 | Credentialing, License & Clinical Privilege | [ ] Menunggu Komite Medik | [ ] Terblokir Komite Medik | [ ] Terblokir Komite Medik | Terblokir Persetujuan Klinis |
+| **14** | **Credentialing, License & Clinical Privilege** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 (Slice S-C1) |
 | 15 | OPPE, FPPE & Recredentialing | [ ] Menunggu Komite Medik | [ ] Belum dikerjakan | [ ] Belum dikerjakan | Tahap Lanjutan |
 | 16 | Learning, Training & Competency | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 17 | Performance Management & Clinical Career | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
@@ -130,7 +130,7 @@ Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yan
 | 19 | Employee Relation & Discipline | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 20 | Separation, Exit Clearance & Offboarding | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 21 | Employee Self-Service & Unified Approval | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 22 | HR Service & Employee Document Service | [ ] Menunggu Audit Data | [ ] Terblokir Skema Destruktif | [ ] Belum dikerjakan | Terblokir Keputusan Skema |
+| **22** | **HR Service & Employee Document Service** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
 
 
 ---
@@ -1041,9 +1041,9 @@ Perawat menerima gaji pokok, tunjangan profesi, night-shift allowance dan overti
 **Status source:** `TERSEDIA CORE — HARDEN INTEGRATION`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — Restitusi biaya rawat inap staf, angsuran cicilan pinjaman (`BE-HRD-010`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor dual-tab pemantauan cicilan & restitusi (`FE-HRD-013`).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-B6 Rencana delivery disetujui (5 November 2026, Kontrak v15 approved, Roadmap rev 13), siap untuk eksekusi task per task.
+- [ ] **Backend:** Baru Di-plan V2 (📋) — 15 task (`BE-HRD-161` s.d. `BE-HRD-175`) pada roadmap revisi 13.
+- [ ] **Frontend:** Baru Di-plan V2 (📋) — 14 task (`FE-HRD-144` s.d. `FE-HRD-157`) pada roadmap revisi 13.
 
 ## Penjelasan untuk developer
 
@@ -1125,9 +1125,9 @@ Pegawai mempunyai cicilan piutang rumah sakit Rp500.000 per bulan. Finance adala
 **Status source:** `TERSEDIA CORE — EXTEND CLAIM/INTEGRATION`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — Pendaftaran benefit BPJS Ketenagakerjaan & Kesehatan, plafon benefit (`BE-HRD-019`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Layar kepesertaan asuransi & tanggungan keluarga (`FE-HRD-020`).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-D3 Rencana delivery disetujui (5 November 2026, Kontrak v16 approved, Roadmap rev 14), siap untuk eksekusi task per task.
+- [ ] **Backend:** Baru Di-plan V2 (📋) — 15 task (`BE-HRD-176` s.d. `BE-HRD-190`) pada roadmap revisi 14.
+- [ ] **Frontend:** Baru Di-plan V2 (📋) — 14 task (`FE-HRD-158` s.d. `FE-HRD-171`) pada roadmap revisi 14.
 
 ## Penjelasan untuk developer
 
@@ -1298,9 +1298,9 @@ Tim akreditasi dikirim ke pelatihan luar kota. Sebelum berangkat ada surat tugas
 **Status source:** `PARTIAL — MODEL KUAT, WORKFLOW PERLU DITUTUP`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Menunggu persetujuan tata kelola Komite Medik (`HRD-DEC-005`).
-- [ ] **Backend:** Terblokir wewenang Komite Medik (`BE-HRD-011` ⛔).
-- [ ] **Frontend:** Terblokir wewenang Komite Medik (`FE-HRD-014` ⛔).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-C1 Rencana delivery disetujui (5 November 2026, Kontrak v18 approved, Roadmap rev 16), siap untuk eksekusi task per task.
+- [ ] **Backend:** Baru Di-plan V2 (📋) — 16 task (`BE-HRD-206` s.d. `BE-HRD-221`) pada roadmap revisi 16.
+- [ ] **Frontend:** Baru Di-plan V2 (📋) — 15 task (`FE-HRD-186` s.d. `FE-HRD-200`) pada roadmap revisi 16.
 
 ## Penjelasan untuk developer
 
@@ -2036,9 +2036,9 @@ Perawat mengajukan tukar shift. Request tidak dikirim ke nama manager yang di-ha
 **Status source:** `PARTIAL — PERSISTENCE FOUNDATION`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Menunggu audit penyesuaian skema database (`HRD-Q-05`).
-- [ ] **Backend:** Terblokir keputusan skema destruktif (`BE-HRD-020` ⛔).
-- [ ] **Frontend:** Belum dikerjakan.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-D4 Rencana delivery disetujui (5 November 2026, Kontrak v17 approved, Roadmap rev 15), siap untuk eksekusi task per task.
+- [ ] **Backend:** Baru Di-plan V2 (📋) — 15 task (`BE-HRD-191` s.d. `BE-HRD-205`) pada roadmap revisi 15.
+- [ ] **Frontend:** Baru Di-plan V2 (📋) — 14 task (`FE-HRD-172` s.d. `FE-HRD-185`) pada roadmap revisi 15.
 
 ## Penjelasan untuk developer
 

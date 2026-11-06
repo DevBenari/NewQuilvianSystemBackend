@@ -6,7 +6,7 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 12
+roadmap_revision: 14
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
 planning_updated_at: "2026-11-05 — jejak S-B5 Pemrosesan Penggajian Pegawai Rumah Sakit ditambahkan (bagian 1h): BE-HRD-146 s.d. BE-HRD-160, FE-HRD-130 s.d. FE-HRD-143; sebelumnya S-B3 (bagian 1g), S-B2 (bagian 1f), S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
@@ -737,3 +737,257 @@ Jejak ketertelusuran penuh antara 25 kebutuhan fungsional (`FR-PAY-01` s.d. `FR-
 | Keterkaitan requirement ke bukti verifikasi S-B5 | **LENGKAP** (0 Gap) | Seluruh 25 functional requirement (`FR-PAY-01` s.d. `FR-PAY-25`) memiliki pemetaan task backend (`BE-HRD-146`..`160`), task frontend (`FE-HRD-130`..`143`), serta bukti verifikasi uji penerimaan (`AT-HRD-PAY-01`..`20`, `UAT-PAY-01`..`05`). |
 
 **Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah. Bukti verifikasi backend yang dipetakan adalah QBE preflight/conformance, review diff, `dotnet restore`/`dotnet build`, verifikasi kontrak API, dan verifikasi proses bisnis. Ketiadaan unit test backend **bukan** coverage gap.
+
+
+---
+
+### 1i. Traceability Slice `S-B6` — Restitusi & Integrasi Pemotongan Penggajian (Sub-modul 11, Kontrak `v15`)
+
+Jejak ketertelusuran penuh antara 25 kebutuhan fungsional (`FR-DED-01` s.d. `FR-DED-25`), 6 keputusan bisnis (`HRD-DEC-128` s.d. `HRD-DEC-133`), 4 asumsi (`HRD-ASM-31` s.d. `HRD-ASM-34`), 15 task backend (`BE-HRD-161` s.d. `BE-HRD-175`), 14 task frontend (`FE-HRD-144` s.d. `FE-HRD-157`), 20 acceptance tests (`AT-HRD-DED-01` s.d. `AT-HRD-DED-20`), serta 5 skenario UAT (`UAT-DED-01` s.d. `UAT-DED-05`).
+
+| Requirement ID | Deskripsi Singkat Kebutuhan | Dokumen Rujukan / Aturan | Task BE | Task FE | Bukti Uji Verifikasi | Status Gap |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| `FR-DED-01` | Kalkulasi ambang batas pemotongan non-regulasi tepat 50% Gross Pay | BE A 24.8 (`DED-B1`); `HRD-DEC-128`; PP 36/2021 | `BE-HRD-164` | `FE-HRD-145`, `FE-HRD-149` | `AT-HRD-DED-01`, `UAT-DED-01` | LENGKAP (0 Gap) |
+| `FR-DED-02` | Penegakan hirarki prioritas berjenjang 1 s.d. 4 (Ganti Rugi $
+ightarrow$ Kasbon $
+ightarrow$ Koperasi $
+ightarrow$ Paguyuban) | BE A 24.8 (`DED-B2`); `HRD-DEC-128`; `VR-DED-02` | `BE-HRD-165` | `FE-HRD-148`, `FE-HRD-149` | `AT-HRD-DED-02`, `UAT-DED-01` | LENGKAP (0 Gap) |
+| `FR-DED-03` | Pemangkasan parsial komponen & pencatatan `deferred_amount` | BE A 24.8; `HRD-DEC-128`; `VR-DED-03` | `BE-HRD-165` | `FE-HRD-146`, `FE-HRD-149` | `AT-HRD-DED-03`, `UAT-DED-01` | LENGKAP (0 Gap) |
+| `FR-DED-04` | Otomasi penjadwalan ulang (*carry-over*) tagihan tertunda ke bulan berikutnya | BE A 24.8 (`DED-B3`); `HRD-DEC-128` | `BE-HRD-165` | `FE-HRD-147`, `FE-HRD-149` | `AT-HRD-DED-04`, `UAT-DED-01` | LENGKAP (0 Gap) |
+| `FR-DED-05` | Tarik snapshot batch piutang aktif Finance H-3 cut-off (tgl 17) | `INT-HR-57`; `HRD-DEC-129`; `HRD-ASM-32` | `BE-HRD-163` | `FE-HRD-146`, `FE-HRD-147` | `AT-HRD-DED-05`, `UAT-DED-02` | LENGKAP (0 Gap) |
+| `FR-DED-06` | Penguncian jadwal cicilan bulan berjalan per tgl 20 pukul 23:59:59 | BE A 24.8; `HRD-DEC-129`; `VR-DED-17` | `BE-HRD-163` | `FE-HRD-146`, `FE-HRD-148` | `AT-HRD-DED-07`, `UAT-DED-02` | LENGKAP (0 Gap) |
+| `FR-DED-07` | Pengiriman webhook callback realisasi pemotongan tgl 25 ke Finance | `INT-HR-58`; `HRD-DEC-129`; `AUDIT-DED-01` | `BE-HRD-174` | `FE-HRD-144`, `FE-HRD-157` | `AT-HRD-DED-08`, `UAT-DED-02` | LENGKAP (0 Gap) |
+| `FR-DED-08` | Mekanisme retry eksponensial saat sinkronisasi Finance mengalami timeout | `INT-HR-57`; `HRD-DEC-129` | `BE-HRD-163` | `FE-HRD-147` | `AT-HRD-DED-06`, `UAT-DED-02` | LENGKAP (0 Gap) |
+| `FR-DED-09` | Formulir pengajuan klaim mandiri kacamata/medis di portal ESS | FE A 20.2.2; `HRD-DEC-130`; `VR-DED-15` | `BE-HRD-167` | `FE-HRD-150`, `FE-HRD-151` | `AT-HRD-DED-09`, `UAT-DED-03` | LENGKAP (0 Gap) |
+| `FR-DED-10` | Validasi kuota sisa plafon tahunan pegawai otomatis di ESS | BE A 24.7; `HRD-DEC-130`; `VR-DED-10`, `VR-DED-11` | `BE-HRD-162`, `BE-HRD-167` | `FE-HRD-150`, `FE-HRD-151` | `AT-HRD-DED-10`, `UAT-DED-03` | LENGKAP (0 Gap) |
+| `FR-DED-11` | Validasi batas usia kuitansi pengeluaran maksimal 60 hari kalender | `HRD-DEC-130`; `VR-DED-09` | `BE-HRD-167` | `FE-HRD-151` | `AT-HRD-DED-11`, `UAT-DED-03` | LENGKAP (0 Gap) |
+| `FR-DED-12` | Verifikasi bertingkat 3-Tier (Atasan, HR C&B, Manajer SDM) | `HRD-DEC-130`; State A 19.1; `VR-DED-23` | `BE-HRD-168` | `FE-HRD-152`, `FE-HRD-153` | `AT-HRD-DED-13`, `UAT-DED-03` | LENGKAP (0 Gap) |
+| `FR-DED-13` | Penegakan aturan mutlak Anti-Self-Approval klaim restitusi | BE A 24.8 (`DED-B8`); `VR-DED-08` | `BE-HRD-168` | `FE-HRD-152` | `AT-HRD-DED-12`, `UAT-DED-03` | LENGKAP (0 Gap) |
+| `FR-DED-14` | Injeksi otomatis klaim approved non-cito ke slip gaji bulanan tgl 25 | BE A 24.3; `HRD-DEC-130`; `TrxPayrollRestitution` | `BE-HRD-170` | `FE-HRD-144`, `FE-HRD-157` | `AT-HRD-DED-14`, `UAT-DED-03` | LENGKAP (0 Gap) |
+| `FR-DED-15` | Formulir investigasi keluhan salah potong gaji periode lampau | FE A 20.2.4; `HRD-DEC-131`; `PAY-B6` | `BE-HRD-171` | `FE-HRD-154` | `AT-HRD-DED-15`, `UAT-DED-04` | LENGKAP (0 Gap) |
+| `FR-DED-16` | Penguncian tautan audit slip lampau terdampak (`affected_payslip_id`) | BE A 24.8 (`DED-B4`); `HRD-DEC-131`; `VR-DED-04` | `BE-HRD-171` | `FE-HRD-154` | `AT-HRD-DED-15`, `UAT-DED-04` | LENGKAP (0 Gap) |
+| `FR-DED-17` | Klasifikasi komponen restitusi non-pajak (Bebas PPh 21) | BE A 24.8 (`DED-B5`); `HRD-ASM-33`; `VR-DED-05` | `BE-HRD-171` | `FE-HRD-154` | `AT-HRD-DED-16`, `UAT-DED-04` | LENGKAP (0 Gap) |
+| `FR-DED-18` | Konsolidasi sisa pokok utang pinjaman pada Final Clearance Payslip | `INT-HR-60`; `HRD-DEC-132`; Sub-20 Exit | `BE-HRD-174` | `FE-HRD-148`, `FE-HRD-157` | `AT-HRD-DED-20`, `UAT-DED-01` | LENGKAP (0 Gap) |
+| `FR-DED-19` | Pengecualian batas 50% hingga 100% pesangon penutupan akhir kerja | BE A 24.8 (`DED-B7`); `HRD-DEC-132`; `VR-DED-07` | `BE-HRD-174` | `FE-HRD-148`, `FE-HRD-157` | `AT-HRD-DED-20`, `UAT-DED-01` | LENGKAP (0 Gap) |
+| `FR-DED-20` | Penerbitan Outstanding Receivable Statement jika pesangon defisit | `HRD-DEC-132`; `VR-DED-21`; `AUDIT-DED-12` | `BE-HRD-174` | `FE-HRD-147`, `FE-HRD-157` | `AT-HRD-DED-20`, `UAT-DED-04` | LENGKAP (0 Gap) |
+| `FR-DED-21` | Penahanan pengesahan formulir Exit Clearance Sub-20 hingga utang lunas | `INT-HR-60`; `HRD-DEC-132`; `VR-DED-21` | `BE-HRD-174` | `FE-HRD-147`, `FE-HRD-157` | `AT-HRD-DED-20`, `UAT-DED-04` | LENGKAP (0 Gap) |
+| `FR-DED-22` | Tagging & flagging darurat medis nakes cito (`UrgentDisbursementCito`) | BE A 24.8; `HRD-DEC-133`; `IsCitoEmergency` | `BE-HRD-167`, `BE-HRD-172` | `FE-HRD-151`, `FE-HRD-155` | `AT-HRD-DED-17`, `UAT-DED-05` | LENGKAP (0 Gap) |
+| `FR-DED-23` | Penerbitan voucher kasir elektronik ber-token SHA-256 kedaluwarsa 48 jam | BE A 24.6; `HRD-DEC-133`; `VR-DED-13`, `VR-DED-14` | `BE-HRD-172` | `FE-HRD-155` | `AT-HRD-DED-17`, `UAT-DED-05` | LENGKAP (0 Gap) |
+| `FR-DED-24` | Kliring & verifikasi online voucher di loket Kasir RS 24/7 | `INT-HR-59`; `HRD-DEC-133`; `AUDIT-DED-07` | `BE-HRD-173` | `FE-HRD-155` | `AT-HRD-DED-18`, `UAT-DED-05` | LENGKAP (0 Gap) |
+| `FR-DED-25` | Penguncian status DisbursedViaCashier pencegah bayar ganda di penggajian | BE A 24.8 (`DED-B6`); `HRD-DEC-133`; `VR-DED-06` | `BE-HRD-173`, `BE-HRD-170` | `FE-HRD-155` | `AT-HRD-DED-19`, `UAT-DED-05` | LENGKAP (0 Gap) |
+
+#### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-DED-01` s.d. `AT-HRD-DED-04` | `BE-HRD-164`, `BE-HRD-165`, `FE-HRD-145`, `FE-HRD-149` | Penegakan batas hard-cap 50% PP 36/2021, hirarki prioritas 1-4, pemotongan parsial, penundaan otomatis (*carry-over*) |
+| `AT-HRD-DED-05` s.d. `AT-HRD-DED-08` | `BE-HRD-163`, `BE-HRD-174`, `FE-HRD-146`, `FE-HRD-147` | Sinkronisasi batch Finance H-3 tgl 17, retry timeout, penguncian tgl 20, callback webhook realisasi tgl 25 |
+| `AT-HRD-DED-09` s.d. `AT-HRD-DED-11` | `BE-HRD-167`, `FE-HRD-150`, `FE-HRD-151` | Pengajuan klaim mandiri ESS, pelacak kuota plafon tahunan, penolakan over-quota & kuitansi >60 hari |
+| `AT-HRD-DED-12`, `AT-HRD-DED-13` | `BE-HRD-168`, `FE-HRD-152`, `FE-HRD-153` | Penegakan anti-self-approval atasan, alur verifikasi berkas 3-tier, penyesuaian nominal disetujui |
+| `AT-HRD-DED-14` | `BE-HRD-170`, `FE-HRD-144`, `FE-HRD-157` | Injeksi otomatis klaim approved non-cito ke slip gaji tgl 25 sebagai tunjangan non-pajak |
+| `AT-HRD-DED-15`, `AT-HRD-DED-16` | `BE-HRD-171`, `FE-HRD-154` | Restitusi koreksi salah potong masa lalu tanpa revisi slip lama, penautan audit link, bebas pajak PPh 21 |
+| `AT-HRD-DED-17` s.d. `AT-HRD-DED-19` | `BE-HRD-172`, `BE-HRD-173`, `FE-HRD-155` | Penerbitan voucher QR kasir cito 24/7, kliring loket kasir, garansi nol risiko bayar ganda di penggajian |
+| `AT-HRD-DED-20` | `BE-HRD-174`, `FE-HRD-148`, `FE-HRD-157` | Pelunasan pinjaman PHK/Resign pada pesangon penutupan Exit Clearance Sub-20 & tagihan piutang residu |
+| `UAT-DED-01` s.d. `UAT-DED-05` | `BE-HRD-175`, `FE-HRD-157` | Validasi bisnis ujung-ke-ujung seluruh alur restitusi, potongan upah 50%, integrasi Keuangan, kasir cito, dan Exit Clearance |
+
+#### Gap keterkaitan requirement ke bukti verifikasi
+
+| Gap | Status | Catatan / Pemilik |
+| --- | :---: | --- |
+| Keterkaitan requirement ke bukti verifikasi S-B6 | **LENGKAP** (0 Gap) | Seluruh 25 functional requirement `FR-DED-01` s.d. `FR-DED-25` terpetakan penuh ke 15 task backend (`BE-HRD-161` s.d. `BE-HRD-175`), 14 task frontend (`FE-HRD-144` s.d. `FE-HRD-157`), 20 acceptance tests (`AT-HRD-DED-01` s.d. `AT-HRD-DED-20`), serta 5 skenario UAT (`UAT-DED-01` s.d. `UAT-DED-05`). |
+
+**Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah dan ketiadaan automated test bukan coverage gap. Bukti verifikasi backend dipenuhi lewat verifikasi build `dotnet build`, conformance QBE preflight, review scope/diff, verifikasi kontrak API OpenAPI, dan verifikasi proses bisnis.
+
+
+### Bagian 1j: Pemetaan Jejak Requirement Bisnis Sub-Modul 12 (Slice S-D3 Benefit Management)
+
+Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement traceability*) untuk **Sub-Modul 12 (Benefit Management — Slice `S-D3`)**, menghubungkan keputusan bisnis (`HRD-DEC-134` s.d. `HRD-DEC-139`), functional requirements (`FR-BEN-01` s.d. `FR-BEN-25`), task backend (`BE-HRD-176` s.d. `BE-HRD-190`), task frontend (`FE-HRD-158` s.d. `FE-HRD-171`), acceptance tests (`AT-HRD-BEN-01` s.d. `AT-HRD-BEN-20`), serta skenario UAT (`UAT-HRD-BEN-01` s.d. `05`).
+
+#### Matriks jejak requirement ke task
+
+| ID FR | Deskripsi Kebutuhan Fungsional | Rujukan Desain / Keputusan | Task Backend | Task Frontend | Bukti Acceptance / UAT | Status Ketercakupan |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| `FR-BEN-01` | Katalog paket manfaat berjenjang 3-lapisan & pagu tahunan | BE A 25.2; `HRD-DEC-134`; PRD 30.3 | `BE-HRD-176`, `BE-HRD-179` | `FE-HRD-158`, `FE-HRD-162` | `AT-HRD-BEN-01`, `UAT-HRD-BEN-01` | LENGKAP (0 Gap) |
+| `FR-BEN-02` | Konfigurasi diskon tarif pelayanan RS bagi nakes & keluarga | BE A 25.5; `HRD-DEC-134`; `HRD-ASM-35` | `BE-HRD-177`, `BE-HRD-179` | `FE-HRD-162`, `FE-HRD-167` | `AT-HRD-BEN-01`, `UAT-HRD-BEN-02` | LENGKAP (0 Gap) |
+| `FR-BEN-03` | Pemetaan matriks kelayakan paket benefit berdasarkan grade staf | BE A 25.2; `HRD-DEC-134`; `HrdBenefitGradeEligibility` | `BE-HRD-176`, `BE-HRD-179` | `FE-HRD-162`, `FE-HRD-163` | `AT-HRD-BEN-02`, `UAT-HRD-BEN-01` | LENGKAP (0 Gap) |
+| `FR-BEN-04` | Penetapan hak kelas kamar rawat inap (Kelas 2, 1, VIP, VVIP) | BE A 25.5; `HRD-DEC-134`; InpatientRoomClass | `BE-HRD-178`, `BE-HRD-180` | `FE-HRD-163`, `FE-HRD-167` | `AT-HRD-BEN-02`, `UAT-HRD-BEN-03` | LENGKAP (0 Gap) |
+| `FR-BEN-05` | Penguncian mandatory COB BPJS Kesehatan untuk asuransi swasta | BE A 25.6 (`BEN-B5`); `HRD-DEC-137`; `VR-BEN-16` | `BE-HRD-178`, `BE-HRD-180` | `FE-HRD-162`, `FE-HRD-170` | `AT-HRD-BEN-01`, `UAT-HRD-BEN-03` | LENGKAP (0 Gap) |
+| `FR-BEN-06` | Pencatatan nomor kepesertaan BPJS Kes (13 dig), TK (11 dig) & polis swasta | BE A 25.5; `HRD-DEC-138`; `VR-BEN-09`..`10` | `BE-HRD-176`, `BE-HRD-182` | `FE-HRD-158`, `FE-HRD-164` | `AT-HRD-BEN-03`, `UAT-HRD-BEN-04` | LENGKAP (0 Gap) |
+| `FR-BEN-07` | Pendaftaran mandiri tanggungan keluarga ESS berlampiran KK/Akta | BE A 25.3; `HRD-DEC-135`; `TrxEmployeeBenefitDependent`| `BE-HRD-181`, `BE-HRD-183` | `FE-HRD-160`, `FE-HRD-166` | `AT-HRD-BEN-07`, `UAT-HRD-BEN-01` | LENGKAP (0 Gap) |
+| `FR-BEN-08` | Penegakan batas kuota maksimal 1 pasangan sah dan 3 anak sah | BE A 25.6 (`BEN-B2`); `HRD-DEC-135`; `VR-BEN-01`..`02` | `BE-HRD-181`, `BE-HRD-183` | `FE-HRD-160`, `FE-HRD-166` | `AT-HRD-BEN-04`..`05`, `UAT-HRD-BEN-01` | LENGKAP (0 Gap) |
+| `FR-BEN-09` | Batas usia anak <= 21 tahun (non-mahasiswa) & <= 25 tahun (mahasiswa aktif) | BE A 25.6 (`BEN-B3`); `HRD-DEC-135`; `VR-BEN-05`..`08` | `BE-HRD-181`, `BE-HRD-183` | `FE-HRD-160`, `FE-HRD-166` | `AT-HRD-BEN-06`..`07`, `UAT-HRD-BEN-01` | LENGKAP (0 Gap) |
+| `FR-BEN-10` | Antrean verifikasi berkas kependudukan fisik & persetujuan HR | BE A 25.3; `HRD-DEC-135`; `VR-BEN-25`; `AUDIT-BEN-05` | `BE-HRD-183`, `BE-HRD-184` | `FE-HRD-165`, `FE-HRD-171` | `AT-HRD-BEN-08`..`09`, `UAT-HRD-BEN-01` | LENGKAP (0 Gap) |
+| `FR-BEN-11` | API inquiry eligibilitas online real-time untuk loket admisi SIMRS | `INT-HR-61`; `HRD-DEC-136`; InHouseHealthcareController | `BE-HRD-185`, `BE-HRD-186` | `FE-HRD-158`, `FE-HRD-167` | `AT-HRD-BEN-11`, `UAT-HRD-BEN-02` | LENGKAP (0 Gap) |
+| `FR-BEN-12` | Kalkulasi otomatis sisa saldo plafon tahunan & diskon tarif staf RS | BE A 25.3; `HRD-DEC-136`; InHouseBenefitLedgerService | `BE-HRD-185`, `BE-HRD-186` | `FE-HRD-167`, `FE-HRD-171` | `AT-HRD-BEN-11`, `UAT-HRD-BEN-02` | LENGKAP (0 Gap) |
+| `FR-BEN-13` | API pemotongan saldo plafon real-time loket kasir SIMRS | `INT-HR-61`; `HRD-DEC-136`; `BEN-W6` row-locking | `BE-HRD-186`, `BE-HRD-187` | `FE-HRD-167`, `FE-HRD-171` | `AT-HRD-BEN-12`, `UAT-HRD-BEN-02` | LENGKAP (0 Gap) |
+| `FR-BEN-14` | Pencatatan mutasi buku besar saldo plafon non-negatif (`chk_non_negative`) | BE A 25.6 (`BEN-B4`); `HRD-DEC-136`; `VR-BEN-14`..`15` | `BE-HRD-176`, `BE-HRD-186` | `FE-HRD-167`, `FE-HRD-168` | `AT-HRD-BEN-12`..`13`, `UAT-HRD-BEN-02` | LENGKAP (0 Gap) |
+| `FR-BEN-15` | Pendelegasian ekses tagihan medis ke pemotongan payroll Sub-11 | `INT-HR-63`; `HRD-DEC-136`; OnHospitalCareExcessGenerated | `BE-HRD-186`, `BE-HRD-189` | `FE-HRD-167`, `FE-HRD-169` | `AT-HRD-BEN-14`, `UAT-HRD-BEN-02` | LENGKAP (0 Gap) |
+| `FR-BEN-16` | Formulir pengajuan klaim biaya kesehatan COB di portal mandiri ESS | BE A 25.3; `HRD-DEC-137`; `TrxBenefitClaim` | `BE-HRD-188`, `BE-HRD-190` | `FE-HRD-160`, `FE-HRD-170` | `AT-HRD-BEN-15`, `UAT-HRD-BEN-03` | LENGKAP (0 Gap) |
+| `FR-BEN-17` | Penegakan mandatory nomor SEP BPJS Kesehatan pada klaim COB sekunder | BE A 25.6 (`BEN-B5`); `HRD-DEC-137`; `VR-BEN-16`..`17` | `BE-HRD-188`, `BE-HRD-189` | `FE-HRD-170`, `FE-HRD-171` | `AT-HRD-BEN-15`..`16`, `UAT-HRD-BEN-03` | LENGKAP (0 Gap) |
+| `FR-BEN-18` | Validasi konsistensi rincian biaya: tagihan = primer + sekunder + ekses | `contracts/validation-matrix.md` Bagian 21; `VR-BEN-18` | `BE-HRD-188`, `BE-HRD-189` | `FE-HRD-169`, `FE-HRD-170` | `AT-HRD-BEN-15`, `UAT-HRD-BEN-03` | LENGKAP (0 Gap) |
+| `FR-BEN-19` | Meja kerja verifikasi klaim sekunder & audit kuitansi naik kelas | BE A 25.3; `HRD-DEC-137`; BenefitClaimVerificationService | `BE-HRD-189`, `BE-HRD-190` | `FE-HRD-169`, `FE-HRD-171` | `AT-HRD-BEN-17`, `UAT-HRD-BEN-03` | LENGKAP (0 Gap) |
+| `FR-BEN-20` | Konfirmasi settlement pelunasan klaim sekunder & nomor referensi transfer | BE A 25.5; `HRD-DEC-137`; `AUDIT-BEN-10` | `BE-HRD-189`, `BE-HRD-190` | `FE-HRD-169`, `FE-HRD-171` | `AT-HRD-BEN-17`, `UAT-HRD-BEN-03` | LENGKAP (0 Gap) |
+| `FR-BEN-21` | Aktivasi cepat kepesertaan BPJS TK (JKK & JKM) pada H+0 Onboarding | BE A 25.6 (`BEN-B1`); `HRD-DEC-138`; `VR-BEN-11` | `BE-HRD-182`, `BE-HRD-184` | `FE-HRD-164`, `FE-HRD-171` | `AT-HRD-BEN-03`, `UAT-HRD-BEN-04` | LENGKAP (0 Gap) |
+| `FR-BEN-22` | Penahanan paket kesehatan selama masa evaluasi percobaan 3 bulan | BE A 25.6 (`BEN-B1`); `HRD-DEC-138`; `VR-BEN-12` | `BE-HRD-182`, `BE-HRD-184` | `FE-HRD-164`, `FE-HRD-171` | `AT-HRD-BEN-03`, `UAT-HRD-BEN-04` | LENGKAP (0 Gap) |
+| `FR-BEN-23` | Aktivasi paket lengkap pasca-lulus masa percobaan (`ProbationPassed`) | BE A 25.6 (`BEN-B1`); `HRD-DEC-138`; `VR-BEN-13` | `BE-HRD-182`, `BE-HRD-184` | `FE-HRD-164`, `FE-HRD-171` | `AT-HRD-BEN-10`, `UAT-HRD-BEN-04` | LENGKAP (0 Gap) |
+| `FR-BEN-24` | Cron job tahunan reset hangus sisa plafon per 1 Januari (`YearEndExpiryReset`)| BE A 25.6 (`BEN-B6`); `HRD-DEC-134`; `VR-BEN-22` | `BE-HRD-186`, `BE-HRD-190` | `FE-HRD-161`, `FE-HRD-171` | `AT-HRD-BEN-18`, `UAT-HRD-BEN-02` | LENGKAP (0 Gap) |
+| `FR-BEN-25` | Terminasi benefit saat keluar & pemblokiran Exit Clearance bila ada tunggakan | `INT-HR-64`; `HRD-DEC-139`; `VR-BEN-23`..`24` | `BE-HRD-189`, `BE-HRD-190` | `FE-HRD-164`, `FE-HRD-171` | `AT-HRD-BEN-19`..`20`, `UAT-HRD-BEN-05` | LENGKAP (0 Gap) |
+
+#### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-BEN-01`, `AT-HRD-BEN-02` | `BE-HRD-176` s.d. `BE-HRD-180`, `FE-HRD-162`, `FE-HRD-163` | Katalog paket manfaat 3-lapisan, pagu limit tahunan, tier kamar rawat inap, dan matriks kelayakan grade staf |
+| `AT-HRD-BEN-03`, `AT-HRD-BEN-10` | `BE-HRD-182`, `FE-HRD-164` | Aktivasi cepat BPJS TK H+0 Onboarding, penahanan paket kesehatan probation, dan aktivasi penuh pasca-kelulusan |
+| `AT-HRD-BEN-04` s.d. `AT-HRD-BEN-07` | `BE-HRD-181`, `BE-HRD-183`, `FE-HRD-166` | Penegakan batas kuota keluarga (1 pasangan + 3 anak), batas usia 21/25 tahun mahasiswa aktif & mandatory surat dekanat |
+| `AT-HRD-BEN-08`, `AT-HRD-BEN-09` | `BE-HRD-183`, `BE-HRD-184`, `FE-HRD-165` | Meja kerja verifikasi berkas scan KK/Akta fisik oleh HR Benefit Officer, approval, dan penolakan ber-catatan |
+| `AT-HRD-BEN-11` s.d. `AT-HRD-BEN-14` | `BE-HRD-185`, `BE-HRD-186`, `BE-HRD-187`, `FE-HRD-167`, `FE-HRD-168` | Layanan berobat nakes di RS sendiri via SIMRS `INT-HR-61`, kalkulasi diskon staf, mutasi buku besar plafon non-negatif & ekses tagihan |
+| `AT-HRD-BEN-15` s.d. `AT-HRD-BEN-17` | `BE-HRD-188`, `BE-HRD-189`, `BE-HRD-190`, `FE-HRD-169`, `FE-HRD-170` | Pengajuan klaim koordinasi manfaat (COB) di ESS berlampiran mandatory SEP BPJS Kesehatan & settlement pelunasan santunan |
+| `AT-HRD-BEN-18` | `BE-HRD-186`, `BE-HRD-190`, `FE-HRD-161` | Eksekusi cron job 1 Januari untuk me-reset sisa saldo plafon tahun lalu menjadi hangus dan alokasi pagu tahun baru |
+| `AT-HRD-BEN-19`, `AT-HRD-BEN-20` | `BE-HRD-189`, `BE-HRD-190`, `FE-HRD-164`, `FE-HRD-171` | Penonaktifan kepesertaan pada tanggal efektif keluar, penerbitan surat mutasi BPJS Mandiri & blokir Exit Clearance Sub-20 bila ada tunggakan |
+| `UAT-HRD-BEN-01` s.d. `UAT-HRD-BEN-05` | `BE-HRD-190`, `FE-HRD-171` | Pengujian penerimaan pengguna menyeluruh untuk pendaftaran tanggungan, berobat di RS sendiri, klaim COB, aktivasi probation & Exit Clearance |
+
+#### Gap keterkaitan requirement ke bukti verifikasi
+
+| Gap | Status | Catatan / Pemilik |
+| --- | :---: | --- |
+| Keterkaitan requirement ke bukti verifikasi S-D3 | **LENGKAP** (0 Gap) | Seluruh 25 functional requirement `FR-BEN-01` s.d. `FR-BEN-25` terpetakan penuh ke 15 task backend (`BE-HRD-176` s.d. `BE-HRD-190`), 14 task frontend (`FE-HRD-158` s.d. `FE-HRD-171`), 20 acceptance tests (`AT-HRD-BEN-01` s.d. `AT-HRD-BEN-20`), serta 5 skenario UAT (`UAT-HRD-BEN-01` s.d. `05`). |
+
+**Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah dan ketiadaan automated test bukan coverage gap. Bukti verifikasi backend dipenuhi lewat verifikasi build `dotnet build`, conformance QBE preflight, review scope/diff, verifikasi kontrak API OpenAPI, dan verifikasi proses bisnis.
+
+
+---
+
+## 1k. Traceability Slice `S-D4` — HR Service Management & Request / Employee Document Service (Sub-modul 13, Kontrak `v17`)
+
+Jejak ketertelusuran penuh antara 25 kebutuhan fungsional (`FR-HRS-01` s.d. `FR-HRS-25`), 6 keputusan bisnis (`HRD-DEC-140` s.d. `HRD-DEC-145`), 4 asumsi (`HRD-ASM-39` s.d. `HRD-ASM-42`), 15 task backend (`BE-HRD-191` s.d. `BE-HRD-205`), 14 task frontend (`FE-HRD-172` s.d. `FE-HRD-185`), 20 acceptance tests (`AT-HRD-HRS-01` s.d. `AT-HRD-HRS-20`), serta 5 skenario UAT (`UAT-HRD-HRS-01` s.d. `UAT-HRD-HRS-05`).
+
+#### Matriks jejak requirement ke task
+
+| ID FR | Deskripsi Kebutuhan Fungsional | Rujukan Desain / Keputusan | Task Backend | Task Frontend | Bukti Acceptance / UAT | Status Ketercakupan |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| `FR-HRS-01` | Master kategori & jenis layanan SDM berparameter SLA jam operasional RS | BE A 26.3; `HRD-DEC-141`; `VR-HRS-03` | `BE-HRD-191`, `BE-HRD-193` | `FE-HRD-172`, `FE-HRD-173` | `AT-HRD-HRS-01`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-02` | Template naskah dinas resmi berbasis variabel token dinamis Liquid/HTML | BE A 26.3; `HRD-DEC-144`; `VR-HRS-16` | `BE-HRD-191`, `BE-HRD-193` | `FE-HRD-173`, `FE-HRD-174` | `AT-HRD-HRS-01`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-03` | Mesin penomoran surat resmi terpusat gapless berbasis locking atomik | BE A 26.6 (`HRS-B3`); `HRD-DEC-144`; `VR-HRS-09`..`10` | `BE-HRD-194`, `BE-HRD-202` | `FE-HRD-174`, `FE-HRD-182` | `AT-HRD-HRS-13`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-04` | Penandaan naskah dinas sensitif finansial (`is_financial_sensitive`) | BE A 26.3; `HRD-DEC-140`; `VR-HRS-05` | `BE-HRD-191`, `BE-HRD-193` | `FE-HRD-174`, `FE-HRD-182` | `AT-HRD-HRS-08`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-05` | Masa berlaku standar surat resmi kepegawaian (default 90 hari) | BE A 26.3; `HRD-ASM-40`; `VR-HRS-13` | `BE-HRD-191`, `BE-HRD-202` | `FE-HRD-174`, `FE-HRD-184` | `AT-HRD-HRS-17`, `UAT-HRD-HRS-04` | LENGKAP (0 Gap) |
+| `FR-HRS-06` | Agregat tiket helpdesk SDM berpenomoran unik `TKT-YYYYMM-XXXXX` | BE A 26.5; `FR-HRS-06`; `VR-HRS-04` | `BE-HRD-191`, `BE-HRD-195` | `FE-HRD-172`, `FE-HRD-176` | `AT-HRD-HRS-01`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-07` | Penghitungan deadline jam kerja operasional RS (melompati libur/weekend) | BE A 26.6 (`HRS-B2`); `HRD-DEC-141` | `BE-HRD-195`, `BE-HRD-197` | `FE-HRD-175`, `FE-HRD-176` | `AT-HRD-HRS-03`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-08` | Penugasan antrean analis SDM (*claim to me* / disposisi) & first response | BE A 26.6 (`HRS-W1`); `03-FE` `FE-HRD-180` | `BE-HRD-195`, `BE-HRD-197` | `FE-HRD-176`, `FE-HRD-177` | `AT-HRD-HRS-01`, `UAT-HRD-HRS-02` | LENGKAP (0 Gap) |
+| `FR-HRS-09` | Penangguhan (*pause*) & pelanjutan (*resume*) timer SLA saat klarifikasi | BE A 26.6 (`HRS-W2`); State A 21.1 | `BE-HRD-196`, `BE-HRD-197` | `FE-HRD-176`, `FE-HRD-180` | `AT-HRD-HRS-04`..`05`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-10` | Worker pemantau SLA berkala: alert kuning 75% & auto-eskalasi 100% | BE A 26.6 (`HRS-W3`); `INT-HR-68`; `HRD-DEC-141` | `BE-HRD-197`, `BE-HRD-198` | `FE-HRD-175`, `FE-HRD-176` | `AT-HRD-HRS-06`..`07`, `UAT-HRD-HRS-02` | LENGKAP (0 Gap) |
+| `FR-HRS-11` | Katalog kartu layanan interaktif (*service tiles*) di portal ESS | FE A 22.2 (`FE-HRD-182`); `FR-HRS-11` | `BE-HRD-193`, `BE-HRD-195` | `FE-HRD-172`, `FE-HRD-178` | `AT-HRD-HRS-01`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-12` | Upload lampiran berkas persyaratan digital terenkripsi (PDF/JPG maks 5MB) | BE A 26.5; `VR-HRS-01`, `VR-HRS-15` | `BE-HRD-195`, `BE-HRD-196` | `FE-HRD-178`, `FE-HRD-179` | `AT-HRD-HRS-01`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-13` | Penguncian mandatory surat disposisi klinis untuk tiket prioritas Cito | BE A 26.6 (`HRS-B1`); `HRD-DEC-141`; `VR-HRS-02` | `BE-HRD-195`, `BE-HRD-196` | `FE-HRD-178`, `FE-HRD-179` | `AT-HRD-HRS-02`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-14` | Utas komunikasi klarifikasi 2-arah staf pemohon & catatan internal HR | BE A 26.5; `FR-HRS-14`; `FE-HRD-183` | `BE-HRD-196`, `BE-HRD-197` | `FE-HRD-179`, `FE-HRD-180` | `AT-HRD-HRS-04`, `UAT-HRD-HRS-01` | LENGKAP (0 Gap) |
+| `FR-HRS-15` | Pemutakhiran otomatis data master profil Sub-02 pasca-verifikasi dokumen | `INT-HR-65`; `HRD-DEC-143`; `HRS-B6`; `VR-HRS-25` | `BE-HRD-195`, `BE-HRD-199` | `FE-HRD-180`, `FE-HRD-181` | `AT-HRD-HRS-14`..`15`, `UAT-HRD-HRS-05` | LENGKAP (0 Gap) |
+| `FR-HRS-16` | Penarikan otomatis gaji final Sub-10 pada surat gaji & anti-manual input | `INT-HR-56`; `HRD-DEC-142`; `HRS-B4`; `VR-HRS-05`..`06` | `BE-HRD-200`, `BE-HRD-202` | `FE-HRD-180`, `FE-HRD-182` | `AT-HRD-HRS-08`..`10`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-17` | Alur approval 2-tier surat gaji: Reviewer C&B -> Otorisasi Manajer SDM | BE A 26.6 (`HRS-W4`); `HRD-DEC-142`; `VR-HRS-07` | `BE-HRD-200`, `BE-HRD-201` | `FE-HRD-180`, `FE-HRD-182` | `AT-HRD-HRS-11`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-18` | Penegakan aturan mutlak Anti-Self-Approval otorisasi surat resmi | `HRD-DEC-142`; `VR-HRS-08`; State A 21.3 | `BE-HRD-201`, `BE-HRD-202` | `FE-HRD-182` | `AT-HRD-HRS-12`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-19` | Penerbitan naskah dinas resmi PDF, nomor seri gapless & QR Code unik | `HRD-DEC-144`; `VR-HRS-24`; `FE-HRD-184` | `BE-HRD-194`, `BE-HRD-202`, `BE-HRD-203` | `FE-HRD-182` | `AT-HRD-HRS-13`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-20` | Generator 4-digit PIN acak terenkripsi BCrypt untuk proteksi data gaji | `HRD-DEC-140`; `VR-HRS-11`; `HRD-ASM-41` | `BE-HRD-202`, `BE-HRD-203` | `FE-HRD-182`, `FE-HRD-185` | `AT-HRD-HRS-18`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-21` | Pengarsipan otomatis salinan surat resmi terbit ke E-Dossier Sub-02 | `INT-HR-66`; `HRD-DEC-145`; `HRS-B8` | `BE-HRD-202`, `BE-HRD-205` | `FE-HRD-182`, `FE-HRD-185` | `AT-HRD-HRS-16`, `UAT-HRD-HRS-03` | LENGKAP (0 Gap) |
+| `FR-HRS-22` | Portal publik verifikasi QR `/verify/document/{hash}` tanpa sesi login | `HRD-DEC-140`; `FE-HRD-185`; `VR-HRS-24` | `BE-HRD-203`, `BE-HRD-204` | `FE-HRD-172`, `FE-HRD-184` | `AT-HRD-HRS-17`, `UAT-HRD-HRS-04` | LENGKAP (0 Gap) |
+| `FR-HRS-23` | Masking nominal gaji di portal publik & pembukaan rincian via PIN 4-digit | `HRD-DEC-140`; `HRS-B5`; PRD 31.3 | `BE-HRD-203`, `BE-HRD-204` | `FE-HRD-184` | `AT-HRD-HRS-17`..`18`, `UAT-HRD-HRS-04` | LENGKAP (0 Gap) |
+| `FR-HRS-24` | Rate limiting salah input PIN 3 kali per jam per IP (kunci 30 menit) | `VR-HRS-12`; `02-BE` 26.6 | `BE-HRD-204` | `FE-HRD-184` | `AT-HRD-HRS-19`, `UAT-HRD-HRS-04` | LENGKAP (0 Gap) |
+| `FR-HRS-25` | Fitur pencabutan keabsahan dokumen (revokasi) ber-BAP & tanda merah portal | `HRD-DEC-145`; `HRS-B7`; `HRS-W5`; `VR-HRS-14` | `BE-HRD-204`, `BE-HRD-205` | `FE-HRD-183`, `FE-HRD-184`, `FE-HRD-185` | `AT-HRD-HRS-20`, `UAT-HRD-HRS-05` | LENGKAP (0 Gap) |
+
+#### Matriks acceptance test ke task
+
+| Acceptance test | Task | Cakupan Pengujian |
+| --- | --- | --- |
+| `AT-HRD-HRS-01`, `AT-HRD-HRS-02` | `BE-HRD-195`, `BE-HRD-196`, `FE-HRD-178`, `FE-HRD-179` | Pengajuan tiket mandiri ESS, upload lampiran persyaratan, dan penolakan prioritas Cito tanpa disposisi pimpinan |
+| `AT-HRD-HRS-03` s.d. `AT-HRD-HRS-05` | `BE-HRD-197`, `FE-HRD-176`, `FE-HRD-180` | Inisiasi timer jam kerja RS, penangguhan (*pause*) saat minta klarifikasi berkas, dan pelanjutan (*resume*) saat staf membalas |
+| `AT-HRD-HRS-06`, `AT-HRD-HRS-07` | `BE-HRD-198`, `FE-HRD-175`, `FE-HRD-176` | Background worker berkala tiap 15 menit mendeteksi sisa waktu, memicu alert kuning 75%, dan auto-eskalasi 100% keterlambatan |
+| `AT-HRD-HRS-08` s.d. `AT-HRD-HRS-10` | `BE-HRD-200`, `BE-HRD-202`, `FE-HRD-182` | Penarikan nominal gaji otomatis dari slip gaji final Sub-10, penolakan jika belum finalized, dan proteksi anti-manual input |
+| `AT-HRD-HRS-11`, `AT-HRD-HRS-12` | `BE-HRD-201`, `FE-HRD-182` | Penegakan gerbang persetujuan 2-tier Supervisor C&B serta penolakan otorisasi surat mandiri oleh pejabat (Anti-Self-Approval) |
+| `AT-HRD-HRS-13` | `BE-HRD-194`, `BE-HRD-202`, `FE-HRD-174`, `FE-HRD-182` | Integritas mesin penomoran surat seri resmi gapless sequence saat multi-user konkurensi paralel |
+| `AT-HRD-HRS-14`, `AT-HRD-HRS-15` | `BE-HRD-199`, `FE-HRD-181` | Pemutakhiran otomatis data rekening payroll/master kepegawaian Sub-02 pasca-approval tiket sah dan rekam log audit snapshot |
+| `AT-HRD-HRS-16` | `BE-HRD-205`, `FE-HRD-185` | Pengarsipan otomatis salinan berkas PDF resmi terbit ke repositori digital *Employee E-Dossier* Sub-02 dan unduh mandiri ESS |
+| `AT-HRD-HRS-17`, `AT-HRD-HRS-18` | `BE-HRD-203`, `BE-HRD-204`, `FE-HRD-184` | Pemindaian QR Code publik menampilkan status sah dengan nominal gaji tersamar, dan pembukaan rincian nominal via 4-digit PIN |
+| `AT-HRD-HRS-19` | `BE-HRD-204`, `FE-HRD-184` | Pembatasan percobaan input PIN salah di portal publik maksimal 3 kali per jam per IP sebelum penguncian 30 menit (anti-brute force) |
+| `AT-HRD-HRS-20` | `BE-HRD-205`, `FE-HRD-183`, `FE-HRD-184`, `FE-HRD-185` | Protokol pencabutan surat resmi terbit ber-BAP, penyematan watermark revoked di e-Dossier, dan banner merah penolakan di portal publik |
+| `UAT-HRD-HRS-01` s.d. `UAT-HRD-HRS-05` | `BE-HRD-205`, `FE-HRD-185` | Validasi bisnis ujung-ke-ujung seluruh alur tiket helpdesk, SLA jam kerja RS, surat gaji KPR, verifikasi QR publik & revokasi |
+
+#### Gap keterkaitan requirement ke bukti verifikasi
+
+| Gap | Status | Catatan / Pemilik |
+| --- | :--- :--- | :--- |
+| Keterkaitan requirement ke bukti verifikasi S-D4 | **LENGKAP** (0 Gap) | Seluruh 25 functional requirement `FR-HRS-01` s.d. `FR-HRS-25` terpetakan penuh ke 15 task backend (`BE-HRD-191` s.d. `BE-HRD-205`), 14 task frontend (`FE-HRD-172` s.d. `FE-HRD-185`), 20 acceptance tests (`AT-HRD-HRS-01` s.d. `AT-HRD-HRS-20`), serta 5 skenario UAT (`UAT-HRD-HRS-01` s.d. `05`). |
+
+**Kebijakan Uji Backend:** Sesuai `rules/backend/TEST_POLICY.md`, backend tidak menuntut proyek automated test terpisah dan ketiadaan automated test bukan coverage gap. Bukti verifikasi backend dipenuhi lewat verifikasi build `dotnet build`, conformance QBE preflight, review scope/diff, verifikasi kontrak API OpenAPI, dan verifikasi proses bisnis.
+
+
+---
+
+## 1l. Traceability Slice `S-C1` — Credentialing, License & Clinical Privilege (Sub-modul 14, Kontrak `v18`)
+
+Jejak ketertelusuran penuh antara 25 kebutuhan fungsional (`FR-CRD-01` s.d. `FR-CRD-25`), 6 keputusan bisnis (`HRD-DEC-146` s.d. `HRD-DEC-151`), penuntasan posisi `HRD-DEC-005`, 4 asumsi (`HRD-ASM-43` s.d. `HRD-ASM-46`), 16 task backend (`BE-HRD-206` s.d. `BE-HRD-221`), 15 task frontend (`FE-HRD-186` s.d. `FE-HRD-200`), 22 acceptance tests (`AT-HRD-CRD-01` s.d. `AT-HRD-CRD-22`), serta 5 skenario UAT (`UAT-CRD-01` s.d. `UAT-CRD-05`).
+
+#### Matriks jejak requirement ke task
+
+| ID FR | Deskripsi Kebutuhan Fungsional | Rujukan Desain / Keputusan | Task Backend | Task Frontend | Bukti Acceptance / UAT | Status Ketercakupan |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| `FR-CRD-01` | Pendaftaran dokumen STR seumur hidup & SIP 5 tahunan faskes RS via ESS | BE § 27.5; `HRD-DEC-146`; `VR-CRD-01` | `BE-HRD-206`, `BE-HRD-210` | `FE-HRD-186`, `FE-HRD-187` | `AT-HRD-CRD-01`, `UAT-CRD-01` | **TERCAKUP PENUH** |
+| `FR-CRD-02` | Audit verifikasi sumber primer (PSV) ke portal KKI / SatuSehat SDMK Kemenkes | BE § 27.3; `HRD-DEC-146`; `VR-CRD-02` | `BE-HRD-208`, `BE-HRD-210` | `FE-HRD-186`, `FE-HRD-188` | `AT-HRD-CRD-01`, `AT-HRD-CRD-02`, `UAT-CRD-01` | **TERCAKUP PENUH** |
+| `FR-CRD-03` | Validasi masa berlaku SIP maksimal 5 tahun sejak tanggal terbit izin Dinkes | BE § 27.6; `HRD-DEC-146`; `VR-CRD-03` | `BE-HRD-207`, `BE-HRD-210` | `FE-HRD-187`, `FE-HRD-189` | `AT-HRD-CRD-03`, `AT-HRD-CRD-04` | **TERCAKUP PENUH** |
+| `FR-CRD-04` | Background worker radar pemantau kedaluwarsa SIP H-90, H-60, H-30, H-7 | BE § 27.6; `HRD-DEC-146`; `VR-CRD-20` | `BE-HRD-209`, `BE-HRD-210` | `FE-HRD-188`, `FE-HRD-189` | `AT-HRD-CRD-05`, `UAT-CRD-01` | **TERCAKUP PENUH** |
+| `FR-CRD-05` | Fail-closed H-0: Nonaktif akun order SIMRS (`INT-HR-69`) & blokir jadwal Sub-06 (`INT-HR-71`) | BE § 27.6; `HRD-DEC-146`; `CRD-B2` | `BE-HRD-209`, `BE-HRD-216` | `FE-HRD-189`, `FE-HRD-196` | `AT-HRD-CRD-06`, `UAT-CRD-01` | **TERCAKUP PENUH** |
+| `FR-CRD-06` | Pemisahan alur kredensialing 3 komite mandiri (Medik, Keperawatan, Nakes Lain) | BE § 27.1; `HRD-DEC-147`; `VR-CRD-10` | `BE-HRD-206`, `BE-HRD-211` | `FE-HRD-187`, `FE-HRD-190` | `AT-HRD-CRD-07`, `UAT-CRD-02` | **TERCAKUP PENUH** |
+| `FR-CRD-07` | Katalog whitebook kompetensi klinis terisolasi per komite profesi | BE § 27.3; `HRD-DEC-147` | `BE-HRD-207`, `BE-HRD-211` | `FE-HRD-187`, `FE-HRD-190` | `AT-HRD-CRD-07`, `UAT-CRD-02` | **TERCAKUP PENUH** |
+| `FR-CRD-08` | Penunjukan panel Mitra Bestari (minimal 2 reviewer sejawat sebidang) | BE § 27.3; `HRD-DEC-147`; `VR-CRD-11` | `BE-HRD-212`, `BE-HRD-215` | `FE-HRD-190`, `FE-HRD-191` | `AT-HRD-CRD-08`, `UAT-CRD-02` | **TERCAKUP PENUH** |
+| `FR-CRD-09` | Penegakan aturan anti-self-review panel Mitra Bestari | BE § 27.6; `HRD-DEC-147`; `VR-CRD-15` | `BE-HRD-212` | `FE-HRD-191` | `AT-HRD-CRD-08` | **TERCAKUP PENUH** |
+| `FR-CRD-10` | Rekomendasi derajat wewenang panel (4 Mandiri, 3 Supervisi, 1-2 Ditolak) | BE § 27.6; `HRD-DEC-147` | `BE-HRD-213`, `BE-HRD-215` | `FE-HRD-191`, `FE-HRD-192` | `AT-HRD-CRD-09`, `UAT-CRD-02` | **TERCAKUP PENUH** |
+| `FR-CRD-11` | Sidang pleno komite konsolidasi penilaian & penerbitan usulan Ketua Komite | BE § 27.3; `HRD-DEC-147` | `BE-HRD-213`, `BE-HRD-215` | `FE-HRD-192` | `AT-HRD-CRD-10`, `UAT-CRD-02` | **TERCAKUP PENUH** |
+| `FR-CRD-12` | Draf SPK wajib menetapkan nama dokter supervisor untuk tindakan Level 3 | BE § 27.6; `HRD-DEC-148`; `VR-CRD-05` | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-192`, `FE-HRD-193` | `AT-HRD-CRD-11`, `UAT-CRD-03` | **TERCAKUP PENUH** |
+| `FR-CRD-13` | Paraf telaah kesesuaian operasional layanan oleh Direktur Pelayanan Medik | BE § 27.3; `HRD-DEC-148` | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | `AT-HRD-CRD-12`, `UAT-CRD-03` | **TERCAKUP PENUH** |
+| `FR-CRD-14` | Pengesahan tunggal dan tanda tangan elektronik (e-Sign) oleh Direktur Utama RS | BE § 27.3; `HRD-DEC-148`; `VR-CRD-12` | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | `AT-HRD-CRD-13`, `AT-HRD-CRD-14`, `UAT-CRD-03` | **TERCAKUP PENUH** |
+| `FR-CRD-15` | Generate nomor register gapless, PDF ber-QR Code & auto-arsip e-Dossier Sub-02 | BE § 27.3; `HRD-DEC-148`; `INT-HR-72` | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193`, `FE-HRD-194` | `AT-HRD-CRD-15`, `AT-HRD-CRD-16`, `UAT-CRD-03` | **TERCAKUP PENUH** |
+| `FR-CRD-16` | Layanan gerbang real-time SIMRS (`INT-HR-69`) ber-cache Redis latensi < 50ms | BE § 27.3; `HRD-DEC-149`; `HRD-ASM-45` | `BE-HRD-216` | `FE-HRD-186`, `FE-HRD-195` | `AT-HRD-CRD-17` | **TERCAKUP PENUH** |
+| `FR-CRD-17` | SIMRS mengizinkan langsung order tindakan mandiri (Level 4) | BE § 27.6; `HRD-DEC-149` | `BE-HRD-216` | `FE-HRD-195` | `AT-HRD-CRD-17`, `UAT-CRD-04` | **TERCAKUP PENUH** |
+| `FR-CRD-18` | Penahanan order tindakan Level 3 supervisi & alur co-signature supervisor 24 jam | BE § 27.6; `HRD-DEC-149`; `VR-CRD-07` | `BE-HRD-217` | `FE-HRD-197` | `AT-HRD-CRD-18`, `UAT-CRD-04` | **TERCAKUP PENUH** |
+| `FR-CRD-19` | Penolakan keras (Hard-Stop) order tindakan tidak berwenang / lisensi kedaluwarsa | BE § 27.6; Resolusi `HRD-DEC-005` & `HRD-DEC-149` | `BE-HRD-216` | `FE-HRD-196` | `AT-HRD-CRD-19`, `UAT-CRD-04` | **TERCAKUP PENUH** |
+| `FR-CRD-20` | Tombol bypass darurat penyelamatan nyawa (Life-Saving Override) & alert audit KMKP | BE § 27.5; `HRD-DEC-149`; `VR-CRD-08` | `BE-HRD-218` | `FE-HRD-198` | `AT-HRD-CRD-20`, `UAT-CRD-05` | **TERCAKUP PENUH** |
+| `FR-CRD-21` | Otorisasi kewenangan sementara (*Temporary Privilege*) dokter tamu maks 3 bulan | BE § 27.6; `HRD-DEC-150`; `VR-CRD-13` | `BE-HRD-219` | `FE-HRD-199` | `AT-HRD-CRD-21` | **TERCAKUP PENUH** |
+| `FR-CRD-22` | Otorisasi kewenangan darurat (*Emergency Privilege*) bencana cito maks 72 jam | BE § 27.6; `HRD-DEC-150`; `VR-CRD-09` | `BE-HRD-219` | `FE-HRD-199` | `AT-HRD-CRD-22` | **TERCAKUP PENUH** |
+| `FR-CRD-23` | Penguncian masa berlaku SPK/RKK standar selama 3 tahun sejak pengesahan Dirut | BE § 27.6; `HRD-DEC-151`; `VR-CRD-14` | `BE-HRD-214`, `BE-HRD-220` | `FE-HRD-193`, `FE-HRD-199` | `AT-HRD-CRD-13`, `UAT-CRD-05` | **TERCAKUP PENUH** |
+| `FR-CRD-24` | Radar rekredensialing H-90, inisiasi draf H-60 & integrasi nilai OPPE Sub-15 | BE § 27.6; `HRD-DEC-151`; `INT-HR-70` | `BE-HRD-220` | `FE-HRD-199` | `UAT-CRD-05` | **TERCAKUP PENUH** |
+| `FR-CRD-25` | Eksekusi auto-suspended kewenangan nakes tepat H-0 jika rekredensialing belum sah | BE § 27.6; `HRD-DEC-151`; `VR-CRD-16` | `BE-HRD-220` | `FE-HRD-199` | `UAT-CRD-05` | **TERCAKUP PENUH** |
+
+---
+
+#### Matriks acceptance test ke task
+
+| ID Skenario Uji | Deskripsi Skenario Uji | Task Backend Terkait | Task Frontend Terkait | Status Rencana |
+| :--- | :--- | :--- | :--- | :---: |
+| `AT-HRD-CRD-01` | Pendaftaran STR seumur hidup & verifikasi PSV Kemenkes | `BE-HRD-208`, `BE-HRD-210` | `FE-HRD-186`, `FE-HRD-188` | `Rencana` |
+| `AT-HRD-CRD-02` | Penolakan disposisi berkas jika STR belum terverifikasi PSV | `BE-HRD-208`, `BE-HRD-210` | `FE-HRD-188` | `Rencana` |
+| `AT-HRD-CRD-03` | Registrasi lisensi SIP 5 tahunan faskes rumah sakit | `BE-HRD-206`, `BE-HRD-210` | `FE-HRD-187`, `FE-HRD-189` | `Rencana` |
+| `AT-HRD-CRD-04` | Penolakan masa berlaku SIP melebihi batas 5 tahun | `BE-HRD-207`, `BE-HRD-210` | `FE-HRD-187`, `FE-HRD-189` | `Rencana` |
+| `AT-HRD-CRD-05` | Eksekusi radar peringatan dini SIP H-90, H-60, H-30, H-7 | `BE-HRD-209` | `FE-HRD-188`, `FE-HRD-189` | `Rencana` |
+| `AT-HRD-CRD-06` | Eksekusi fail-closed H-0: SIP kedaluwarsa | `BE-HRD-209`, `BE-HRD-216` | `FE-HRD-189`, `FE-HRD-196` | `Rencana` |
+| `AT-HRD-CRD-07` | Pengajuan berkas kredensial dengan pemisahan 3 komite | `BE-HRD-211`, `BE-HRD-212` | `FE-HRD-187`, `FE-HRD-190` | `Rencana` |
+| `AT-HRD-CRD-08` | Penugasan panel Mitra Bestari & blokir anti-self-review | `BE-HRD-212` | `FE-HRD-190`, `FE-HRD-191` | `Rencana` |
+| `AT-HRD-CRD-09` | Asesmen portofolio oleh panel Mitra Bestari | `BE-HRD-213` | `FE-HRD-191`, `FE-HRD-192` | `Rencana` |
+| `AT-HRD-CRD-10` | Sidang pleno komite menyetujui rekomendasi kewenangan | `BE-HRD-213`, `BE-HRD-215` | `FE-HRD-192` | `Rencana` |
+| `AT-HRD-CRD-11` | Keharusan penetapan dokter supervisor untuk Level 3 | `BE-HRD-214` | `FE-HRD-192`, `FE-HRD-193` | `Rencana` |
+| `AT-HRD-CRD-12` | Paraf manajerial Direktur Pelayanan Medik / Keperawatan | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | `Rencana` |
+| `AT-HRD-CRD-13` | Pengesahan tunggal SPK & RKK oleh Direktur Utama RS | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | `Rencana` |
+| `AT-HRD-CRD-14` | Penolakan pengesahan SPK oleh selain Direktur Utama | `BE-HRD-214` | `FE-HRD-193` | `Rencana` |
+| `AT-HRD-CRD-15` | Auto-arsip dokumen sah SPK ke e-Dossier Sub-02 | `BE-HRD-214` | `FE-HRD-193` | `Rencana` |
+| `AT-HRD-CRD-16` | Verifikasi keabsahan dokumen via pemindaian QR Code | `BE-HRD-215` | `FE-HRD-194` | `Rencana` |
+| `AT-HRD-CRD-17` | Evaluasi wewenang mandiri Level 4 di SIMRS EMR | `BE-HRD-216` | `FE-HRD-186`, `FE-HRD-195` | `Rencana` |
+| `AT-HRD-CRD-18` | Evaluasi wewenang supervisi Level 3 & alur co-signature | `BE-HRD-217` | `FE-HRD-197` | `Rencana` |
+| `AT-HRD-CRD-19` | Blokir keras order tindakan klinis tidak berwenang | `BE-HRD-216` | `FE-HRD-196` | `Rencana` |
+| `AT-HRD-CRD-20` | Bypass darurat cito penyelamatan nyawa (Life-Saving Override) | `BE-HRD-218` | `FE-HRD-198` | `Rencana` |
+| `AT-HRD-CRD-21` | Penerbitan kewenangan klinis sementara dokter konsultan tamu | `BE-HRD-219` | `FE-HRD-199` | `Rencana` |
+| `AT-HRD-CRD-22` | Penerbitan kewenangan darurat cito bencana massal | `BE-HRD-219` | `FE-HRD-199` | `Rencana` |
+
+---
+
+#### Gap keterkaitan requirement ke bukti verifikasi
+
+- **Total Kebutuhan Fungsional (`FR-CRD-01` s.d. `FR-CRD-25`):** 25 Kebutuhan.
+- **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
+- **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
+- **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis rumah sakit, 6 keputusan otoritas klinis, 22 skenario acceptance tests, dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-206` s.d. `BE-HRD-221`) dan 15 task frontend (`FE-HRD-186` s.d. `FE-HRD-200`).

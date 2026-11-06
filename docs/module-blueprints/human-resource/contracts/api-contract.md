@@ -2139,3 +2139,257 @@ Bagian ini mendefinisikan spesifikasi antarmuka pemrograman aplikasi (API Endpoi
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: |
 | `GET` | `/api/v1/corporate/human-resource/payroll/settings` | Membaca parameter operasional payroll aktif (cut-off, variansi, tarif BPJS) | `[AccessPermission("PayrollSetting", "View")]` | None | `PayrollSettingDto` | `200`, `401` |
 | `PUT` | `/api/v1/corporate/human-resource/payroll/settings` | Memperbarui parameter operasional payroll rumah sakit | `[AccessPermission("PayrollSetting", "Manage")]` | Body: `UpdatePayrollSettingCommand` | `PayrollSettingDto` | `200`, `400`, `401`, `403` |
+
+## 21. Bagian `S-B6` — Kontrak API Restitusi & Pemotongan Penggajian Pegawai Rumah Sakit (Sub-modul 11, `last_changed_in` `v15`, 5 November 2026)
+
+Bagian ini mendefinisikan kontrak antarmuka pemrograman aplikasi (RESTful API Contract) bergaya OpenAPI/Swagger untuk **Sub-modul 11 (Restitution & Payroll Deduction Integration — Slice `S-B6`)**, dikelompokkan ke dalam tag grup Swagger resmi `[Tags(...)]`. Seluruh endpoint baru pada fase desain ini diberi label **Rencana (belum tersedia)**.
+
+---
+
+### [Tags("HR Deductions - Installment Schedules")]
+
+Grup endpoint ini mengelola master jadwal angsuran pemotongan gaji staf, sinkronisasi tagihan piutang dari Departemen Keuangan (Finance), dan simulasi evaluasi batas hard-cap 50% PP 36/2021.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `POST` | `/api/v1/corporate/hrd/deductions/schedules/sync-finance` | **Rencana (belum tersedia)** | Menarik snapshot tagihan cicilan piutang pegawai dari Finance (H-3 cut-off / tgl 17) | `[AccessPermission("HR_Deduction", "Manage")]` | `{ "periodMonth": 11, "periodYear": 2026, "forceSync": false }` | `BaseResponse<FinanceSyncSummaryDto>` | `200 OK`, `400 Bad Request`, `502 Bad Gateway` |
+| `GET` | `/api/v1/corporate/hrd/deductions/schedules` | **Rencana (belum tersedia)** | Mengambil daftar master jadwal cicilan aktif per pegawai dengan filter status & prioritas | `[AccessPermission("HR_Deduction", "View")]` | Query: `employeeId`, `category`, `priorityLevel`, `status`, `page`, `pageSize` | `BaseResponse<PagedResult<DeductionScheduleResponseDto>>` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/corporate/hrd/deductions/schedules/{id}` | **Rencana (belum tersedia)** | Mengambil rincian histori angsuran, total terpotong, sisa pokok, dan daftar item tertunda | `[AccessPermission("HR_Deduction", "View")]` | Path param: `id (UUID)` | `BaseResponse<DeductionScheduleDetailDto>` | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/deductions/schedules/simulate-cap` | **Rencana (belum tersedia)** | Melakukan simulasi pemotongan berjenjang prioritas 1-4 terhadap upah kotor pegawai dan validasi batas 50% | `[AccessPermission("HR_Deduction", "Manage")]` | `{ "employeeId": "UUID", "projectedGrossPay": 8500000.00 }` | `BaseResponse<DeductionCapSimulationResultDto>` | `200 OK`, `400 Bad Request` |
+| `PUT` | `/api/v1/corporate/hrd/deductions/schedules/{id}/pause` | **Rencana (belum tersedia)** | Menjeda sementara pemotongan cicilan pegawai untuk siklus bulan tertentu atas memo sah | `[AccessPermission("HR_Deduction", "Manage")]` | `{ "pauseDurationMonths": 1, "reason": "Bencana alam keluarga staf" }` | `BaseResponse<DeductionScheduleResponseDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+
+---
+
+### [Tags("HR Deductions - Restitutions & Claims")]
+
+Grup endpoint ini melayani pengajuan klaim penggantian biaya mandiri oleh staf di portal ESS (kacamata kerja, faskes darurat, dinas cito), verifikasi dokumen kuitansi, persetujuan bertingkat, serta penerbitan koreksi salah potong periode lampau (`PAY-B6`).
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `POST` | `/api/v1/corporate/hrd/restitutions/claims` | **Rencana (belum tersedia)** | Pengajuan klaim restitusi mandiri oleh staf di portal ESS berlampiran struk asli | `[AccessPermission("ESS_Restitution", "Create")]` | `Multipart/form-data`: `ClaimCategory`, `ExpenseDate`, `ClaimAmount`, `ReasonNotes`, `ReceiptFile`, `MedicalResumeFile`, `IsCitoEmergency` | `BaseResponse<RestitutionClaimResponseDto>` | `201 Created`, `400 Bad Request`, `413 Payload Too Large` |
+| `GET` | `/api/v1/corporate/hrd/restitutions/claims/my-claims` | **Rencana (belum tersedia)** | Mengambil riwayat klaim restitusi staf yang login dan sisa kuota plafon tahunan berjalan | `[AccessPermission("ESS_Restitution", "View")]` | Query: `year`, `status`, `page`, `pageSize` | `BaseResponse<MyRestitutionSummaryDto>` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/corporate/hrd/restitutions/claims/pending-approval` | **Rencana (belum tersedia)** | Mengambil daftar berkas klaim menunggu verifikasi atasan, HR C&B, atau Manajer SDM | `[AccessPermission("HR_Deduction", "View")]` | Query: `approvalStage (Supervisor|Hr|Final)`, `category`, `page`, `pageSize` | `BaseResponse<PagedResult<RestitutionClaimReviewDto>>` | `200 OK`, `403 Forbidden` |
+| `POST` | `/api/v1/corporate/hrd/restitutions/claims/{id}/approve` | **Rencana (belum tersedia)** | Menyetujui berkas klaim restitusi dengan verifikasi kuitansi dan penyesuaian nominal | `[AccessPermission("HR_Deduction", "Approve")]` | `{ "approvedAmount": 1250000.00, "reviewNotes": "Kuitansi dan resep optik valid" }` | `BaseResponse<RestitutionClaimResponseDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/restitutions/claims/{id}/reject` | **Rencana (belum tersedia)** | Menolak berkas pengajuan klaim restitusi disertai alasan penolakan transparan | `[AccessPermission("HR_Deduction", "Approve")]` | `{ "rejectionReason": "Kuitansi tidak memiliki cap stempel faskes sah" }` | `BaseResponse<RestitutionClaimResponseDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/restitutions/corrections` | **Rencana (belum tersedia)** | Menerbitkan kompensasi salah potong gaji periode lampau tanpa merevisi slip gaji final (`HRD-DEC-131`) | `[AccessPermission("HR_Deduction", "Correct")]` | `{ "employeeId": "UUID", "affectedPayslipId": "UUID", "amount": 500000.00, "justification": "Salah pemotongan denda mangkir periode Oktober 2026", "targetPayrollRunId": "UUID" }` | `BaseResponse<PayrollRestitutionResponseDto>` | `201 Created`, `400 Bad Request`, `409 Conflict` |
+
+---
+
+### [Tags("HR Deductions - Cashier Vouchers")]
+
+Grup endpoint ini melayani penerbitan dan kliring voucher kasir elektronik 24/7 khusus bagi nakes yang mengalami kecelakaan kerja darurat cito (*Urgent Disbursement Cito*).
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `POST` | `/api/v1/corporate/hrd/restitutions/claims/{id}/issue-cashier-voucher` | **Rencana (belum tersedia)** | Menerbitkan voucher kasir elektronik ber-token SHA-256 untuk pencairan tunai darurat cito | `[AccessPermission("HR_Deduction", "Approve")]` | `{ "validityHours": 48, "emergencyJustification": "Profilaksis cito tertusuk jarum nakes IGD" }` | `BaseResponse<CashierVoucherDetailDto>` | `201 Created`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/restitutions/cashier-vouchers/{voucherNumber}/verify` | **Rencana (belum tersedia)** | Validasi keabsahan QR code/token voucher oleh petugas loket Kasir RS 24/7 | `[AccessPermission("Cashier_Desk", "Verify")]` | Path param: `voucherNumber`, Query: `token` | `BaseResponse<CashierVoucherValidationDto>` | `200 OK`, `400 Bad Request`, `404 Not Found`, `410 Gone (Expired)` |
+| `POST` | `/api/v1/corporate/hrd/restitutions/cashier-vouchers/{voucherNumber}/disburse` | **Rencana (belum tersedia)** | Konfirmasi penyerahan dana kasir fisik & penguncian flag `DisbursedViaCashier` | `[AccessPermission("Cashier_Desk", "Disburse")]` | `{ "token": "string", "cashierReceiptNumber": "RCP-CSH-0912", "disbursedAmount": 750000.00 }` | `BaseResponse<CashierVoucherDisburseResultDto>` | `200 OK`, `400 Bad Request`, `409 Conflict` |
+
+---
+
+### [Tags("HR Deductions - Settings")]
+
+Grup endpoint ini melayani administrasi master konfigurasi plafon benefit tahunan per golongan dan batas persentase pemotongan upah.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/restitutions/settings` | **Rencana (belum tersedia)** | Mengambil daftar seluruh konfigurasi kuota plafon benefit per grade dan batas maksimal potongan | `[AccessPermission("HR_Setting", "View")]` | Query: `gradeLevelCode`, `benefitCategory` | `BaseResponse<List<RestitutionSettingResponseDto>>` | `200 OK`, `401 Unauthorized` |
+| `PUT` | `/api/v1/corporate/hrd/restitutions/settings/{id}` | **Rencana (belum tersedia)** | Memperbarui nominal plafon tahunan, masa kerja minimal, atau status izin cito kasir per grade | `[AccessPermission("HR_Setting", "Manage")]` | `{ "annualLimitAmount": 2000000.00, "minimumServiceMonthsRequired": 6, "allowEmergencyCitoCashier": true, "isActive": true }` | `BaseResponse<RestitutionSettingResponseDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+
+
+---
+
+## 22. Kontrak API Sub-Modul 12 (Slice S-D3 Benefit Management, Kontrak v16)
+
+Bagian ini mendefinisikan kontrak antarmuka pemrograman aplikasi (API) untuk **Sub-Modul 12 (Benefit Management — Slice `S-D3`)**, disusun dengan gaya dokumentasi OpenAPI/Swagger yang mengelompokkan endpoint ke dalam empat tag grup canonical. Seluruh endpoint pada rilis target ini berstatus **Rencana (belum tersedia)** dan dikawal oleh atribut wewenang `[AccessPermission("Resource", "Action")]`.
+
+---
+
+### [Tags("HR Benefits - Plans & Eligibility")]
+
+Grup endpoint ini melayani administrasi master paket manfaat bertingkat 3-lapisan (BPJS wajib, asuransi swasta per grade, subsidi internal RS Quilvian) serta matriks pemetaan hak dan kelas kamar rawat inap.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/benefits/plans` | **Rencana (belum tersedia)** | Mengambil daftar seluruh paket manfaat aktif beserta limit pagu tahunan | `[AccessPermission("HR_Benefit_Plan", "View")]` | Query: `category`, `isActive`, `page`, `pageSize` | `BaseResponse<PagedResult<BenefitPlanSummaryDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/benefits/plans` | **Rencana (belum tersedia)** | Membuat paket manfaat baru dengan penetapan limit tahunan dan tier kamar | `[AccessPermission("HR_Benefit_Plan", "Manage")]` | `{ "planCode": "BEN-PVT-EXEC", "planName": "Executive Health", "benefitCategory": "Private_Insurance", "annualLimitAmount": 50000000.00, "requiresBPJSPrimaryCOB": true }` | `BaseResponse<BenefitPlanDetailDto>` | `201 Created`, `400 Bad Request`, `409 Conflict` |
+| `PUT` | `/api/v1/corporate/hrd/benefits/plans/{id}` | **Rencana (belum tersedia)** | Memperbarui nominal plafon, persentase diskon tarif staf RS, atau status aktif paket | `[AccessPermission("HR_Benefit_Plan", "Manage")]` | `{ "planName": "string", "annualLimitAmount": 60000000.00, "hospitalDiscountPercentage": 35.00, "isActive": true }` | `BaseResponse<BenefitPlanDetailDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/benefits/plans/eligibility-matrix` | **Rencana (belum tersedia)** | Mengambil matriks pemetaan paket manfaat dan hak kelas rawat inap per grade | `[AccessPermission("HR_Benefit_Plan", "View")]` | Query: `gradeLevelCode` | `BaseResponse<List<BenefitGradeEligibilityDto>>` | `200 OK`, `401 Unauthorized` |
+| `PUT` | `/api/v1/corporate/hrd/benefits/plans/eligibility-matrix` | **Rencana (belum tersedia)** | Mengatur pemetaan grade staf terhadap paket benefit dan kelas kamar rawat inap | `[AccessPermission("HR_Benefit_Plan", "Manage")]` | `{ "benefitPlanId": "uuid", "gradeLevelCode": "GR-MED-SP", "employmentTypeCode": "Permanent", "inpatientRoomClass": "VIP" }` | `BaseResponse<BenefitGradeEligibilityDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+
+---
+
+### [Tags("HR Benefits - Enrollments & Dependents")]
+
+Grup endpoint ini melayani pencatatan kepesertaan asuransi pegawai, pemantauan aktivasi bertahap H+0 vs pasca-lulus percobaan 3 bulan, pendaftaran tanggungan keluarga via ESS, dan verifikasi fisik dokumen oleh HR.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/benefits/enrollments` | **Rencana (belum tersedia)** | Mengambil daftar kepesertaan asuransi pegawai rumah sakit dengan filter status aktivasi | `[AccessPermission("HR_Benefit_Enrollment", "View")]` | Query: `status`, `unitId`, `searchKeyword`, `page`, `pageSize` | `BaseResponse<PagedResult<EmployeeEnrollmentListItemDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/benefits/enrollments/{id}/activate-probation` | **Rencana (belum tersedia)** | Mengaktifkan paket lengkap BPJS Kesehatan/Swasta pasca-lulus masa percobaan 3 bulan | `[AccessPermission("HR_Benefit_Enrollment", "Manage")]` | `{ "probationEvaluationId": "uuid", "effectiveDate": "2026-11-05T00:00:00Z" }` | `BaseResponse<EmployeeEnrollmentDetailDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `PUT` | `/api/v1/corporate/hrd/benefits/enrollments/{id}/policy-numbers` | **Rencana (belum tersedia)** | Memperbarui nomor kartu BPJS Kesehatan, BPJS TK, atau nomor polis asuransi swasta | `[AccessPermission("HR_Benefit_Enrollment", "Manage")]` | `{ "bpjsKesehatanNumber": "0001234567890", "bpjsKetenagakerjaanNumber": "12345678901", "privateInsurancePolicyNumber": "POL-9921" }` | `BaseResponse<EmployeeEnrollmentDetailDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/benefits/dependents/pending-verification` | **Rencana (belum tersedia)** | Mengambil antrean pendaftaran anggota keluarga ESS yang membutuhkan verifikasi dokumen HR | `[AccessPermission("HR_Benefit_Dependent", "Verify")]` | Query: `page`, `pageSize` | `BaseResponse<PagedResult<PendingDependentVerificationDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/benefits/dependents/{id}/verify` | **Rencana (belum tersedia)** | Persetujuan atau penolakan verifikasi berkas KK/Akta tanggungan keluarga oleh HR | `[AccessPermission("HR_Benefit_Dependent", "Verify")]` | `{ "verificationStatus": "Verified", "rejectionReason": "string (opsional)" }` | `BaseResponse<BenefitDependentDetailDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/benefits/dependents/my-family` | **Rencana (belum tersedia)** | Mengambil daftar anggota keluarga yang terdaftar pada profil pegawai yang sedang login | `[AccessPermission("ESS_Benefit", "ManageFamily")]` | None (Current User Session) | `BaseResponse<List<EmployeeDependentSummaryDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/benefits/dependents/my-family` | **Rencana (belum tersedia)** | Pegawai mendaftarkan pasangan sah atau anak melalui portal ESS berlampiran berkas digital | `[AccessPermission("ESS_Benefit", "ManageFamily")]` | Multipart/form-data: `NationalIdNumber`, `DependentName`, `RelationshipType`, `BirthDate`, `FamilyCardFile`, `StudentLetterFile` | `BaseResponse<EmployeeDependentSummaryDto>` | `201 Created`, `400 Bad Request`, `422 Unprocessable Entity` |
+
+---
+
+### [Tags("HR Benefits - In-House Healthcare & Balance")]
+
+Grup endpoint ini melayani integrasi real-time loket registrasi dan kasir SIMRS untuk layanan berobat nakes di RS Quilvian sendiri (`INT-HR-61`), pengecekan sisa kuota plafon, dan pencatatan mutasi buku besar.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/benefits/inhouse/coverage-inquiry` | **Rencana (belum tersedia)** | Validasi hak berobat staf/keluarga secara online oleh petugas admisi loket SIMRS | `[AccessPermission("SIMRS_Integration", "Inquiry")]` | Query: `nationalIdNumber` ATAU `employeeIdNumber` | `BaseResponse<InHouseCoverageInquiryDto>` | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/benefits/inhouse/deduct-balance` | **Rencana (belum tersedia)** | Mengurangi saldo plafon subsidi nakes saat kasir SIMRS menutup kuitansi pembayaran tindakan | `[AccessPermission("SIMRS_Integration", "Deduct")]` | `{ "employeeId": "uuid", "simrsRegistrationNumber": "REG-20261105-001", "grossBillAmount": 1500000.00, "discountAppliedAmount": 450000.00, "plafonDeductedAmount": 1050000.00 }` | `BaseResponse<BenefitBalanceDeductionResultDto>` | `200 OK`, `400 Bad Request`, `409 Conflict (Saldo Kurang)` |
+| `GET` | `/api/v1/corporate/hrd/benefits/inhouse/ledger/{employeeId}` | **Rencana (belum tersedia)** | Mengambil histori mutasi buku besar plafon tahunan nakes (alokasi, pemakaian, penyesuaian) | `[AccessPermission("HR_Benefit_InHouse", "View")]` | Path param: `employeeId`, Query: `year` | `BaseResponse<List<BenefitBalanceMovementDto>>` | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/benefits/inhouse/ledger/adjust` | **Rencana (belum tersedia)** | Penyesuaian manual saldo plafon nakes oleh HR Manajer (koreksi pembatalan tindakan SIMRS) | `[AccessPermission("HR_Benefit_InHouse", "Adjust")]` | `{ "employeeId": "uuid", "adjustmentAmount": 350000.00, "reason": "Pembatalan pemeriksaan CT Scan SIMRS", "referenceNumber": "REV-SIMRS-99" }` | `BaseResponse<BenefitBalanceMovementDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+
+---
+
+### [Tags("HR Benefits - COB Claims & Settlement")]
+
+Grup endpoint ini melayani pengajuan klaim penjamin sekunder asuransi komersial/RS dengan mandatory nomor SEP BPJS Kesehatan, verifikasi tagihan selisih, dan penyelesaian settlement.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/benefits/claims` | **Rencana (belum tersedia)** | Mengambil daftar pengajuan klaim biaya kesehatan COB dengan filter status | `[AccessPermission("HR_Benefit_Claim", "View")]` | Query: `claimStatus`, `serviceType`, `page`, `pageSize` | `BaseResponse<PagedResult<BenefitClaimSummaryDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/benefits/claims` | **Rencana (belum tersedia)** | Pegawai mengajukan klaim penjamin sekunder (COB) di ESS wajib menyertakan nomor SEP BPJS | `[AccessPermission("ESS_Benefit", "SubmitClaim")]` | `{ "dependentId": "uuid (opsional)", "serviceType": "Inpatient", "hospitalName": "RSUP Persahabatan", "sepBpjsNumber": "0041R0011126V000123", "totalHospitalBill": 12000000.00, "primaryPayerCoveredAmount": 8500000.00, "secondaryClaimAmount": 3500000.00 }` | `BaseResponse<BenefitClaimDetailDto>` | `201 Created`, `400 Bad Request (SEP Mandatory)` |
+| `POST` | `/api/v1/corporate/hrd/benefits/claims/{id}/documents` | **Rencana (belum tersedia)** | Mengunggah dokumen pendukung klaim (salinan SEP BPJS, kwitansi asli, perincian obat) | `[AccessPermission("ESS_Benefit", "SubmitClaim")]` | Multipart/form-data: `DocumentType`, `DocumentNumber`, `File` | `BaseResponse<ClaimDocumentUploadResultDto>` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/benefits/claims/{id}/settle` | **Rencana (belum tersedia)** | Konfirmasi penyelesaian santunan klaim sekunder dan pendelegasian ekses tagihan ke Sub-11 | `[AccessPermission("HR_Benefit_Claim", "Settle")]` | `{ "approvedSecondaryAmount": 3500000.00, "outOfPocketExcessAmount": 0.00, "settlementReference": "TRF-BNI-98124", "delegateExcessToPayroll": false }` | `BaseResponse<BenefitClaimDetailDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+
+
+---
+
+## 23. Kontrak API Sub-Modul 13 (Slice S-D4 HR Service Management & Request — Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS)
+
+Bagian ini mendefinisikan kontrak antarmuka pemrograman aplikasi (API) untuk **Sub-Modul 13 (HR Service Management & Request — Slice `S-D4`)** dengan nomor versi kontrak **`v17`**, berstatus **`draft`**. Seluruh endpoint di bawah ini dikelompokkan berdasarkan atribut grup Swagger `[Tags(...)]`, mencakup katalog layanan, tiket helpdesk dengan SLA berjenjang, permohonan mandiri ESS, otorisasi penerbitan dokumen resmi ber-QR Code dengan proteksi 4-digit PIN finansial, serta portal publik verifikasi keabsahan dokumen.
+
+---
+
+### [Tags("HR Services - Catalog & SLA")]
+
+Grup endpoint ini melayani manajemen master kategori layanan SDM rumah sakit, standar durasi jam SLA operasional, serta pemeliharaan template naskah dinas resmi berbasis token dinamis.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/services/categories` | **Rencana (belum tersedia)** | Mengambil daftar seluruh kategori layanan SDM aktif | `[AccessPermission("HR_Service_Catalog", "View")]` | Query: `isActive` | `BaseResponse<List<HrServiceCategoryDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/services/categories` | **Rencana (belum tersedia)** | Membuat kategori layanan SDM baru | `[AccessPermission("HR_Service_Catalog", "Manage")]` | `{ "categoryCode": "DOC-OFF", "categoryName": "Persuratan Resmi", "iconName": "file-text", "displayOrder": 2 }` | `BaseResponse<HrServiceCategoryDto>` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/services/types` | **Rencana (belum tersedia)** | Mengambil daftar tipe layanan spesifik beserta durasi SLA dan penugasan | `[AccessPermission("HR_Service_Catalog", "View")]` | Query: `categoryId`, `priorityTier` | `BaseResponse<List<HrServiceTypeDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/services/types` | **Rencana (belum tersedia)** | Menambahkan tipe layanan baru lengkap dengan konfigurasi berkas wajib | `[AccessPermission("HR_Service_Catalog", "Manage")]` | `{ "categoryId": "uuid", "typeCode": "SRV-SAL", "typeName": "Surat Gaji KPR", "priorityTier": "Khusus", "slaTargetHours": 72, "requiresAttachment": false, "requiresSupervisorApproval": true }` | `BaseResponse<HrServiceTypeDto>` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/services/document-types` | **Rencana (belum tersedia)** | Mengambil master jenis naskah dinas resmi dan status proteksi finansial | `[AccessPermission("HR_Service_Catalog", "View")]` | Query: `isActive` | `BaseResponse<List<EmployeeDocumentTypeDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/services/document-types` | **Rencana (belum tersedia)** | Mendaftarkan template naskah dinas resmi baru berparameter token | `[AccessPermission("HR_Service_Catalog", "Manage")]` | `{ "documentCode": "DOC-SKK", "documentName": "Surat Keterangan Kerja", "numberingPattern": "[NO]/RSQ-SDM/SKK/[BULAN_ROMAWI]/[TAHUN]", "templateBodyHtml": "<p>Menerangkan bahwa {{NamaLengkap}}...</p>", "validityPeriodDays": 90, "isFinancialSensitive": false }` | `BaseResponse<EmployeeDocumentTypeDto>` | `201 Created`, `400 Bad Request` |
+| `PUT` | `/api/v1/corporate/hrd/services/document-types/{id}` | **Rencana (belum tersedia)** | Memperbarui isi template naskah dinas atau parameter masa berlaku surat | `[AccessPermission("HR_Service_Catalog", "Manage")]` | `{ "documentName": "string", "templateBodyHtml": "string", "validityPeriodDays": 90, "isFinancialSensitive": true }` | `BaseResponse<EmployeeDocumentTypeDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+
+---
+
+### [Tags("HR Services - Tickets & Queue")]
+
+Grup endpoint ini melayani operasional harian meja bantuan (Helpdesk) SDM, antrean penugasan analis, penegakan timer SLA, penanganan status klarifikasi, serta penyelesaian tiket.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/services/tickets` | **Rencana (belum tersedia)** | Mengambil daftar tiket permohonan staf dengan filter prioritas & status SLA | `[AccessPermission("HR_Service_Ticket", "View")]` | Query: `priorityTier`, `slaStatus`, `requestStatus`, `assignedToMe`, `page`, `pageSize` | `BaseResponse<PagedResult<HrServiceTicketSummaryDto>>` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/corporate/hrd/services/tickets/{id}` | **Rencana (belum tersedia)** | Mengambil rincian detail tiket, berkas lampiran, dan riwayat timer SLA | `[AccessPermission("HR_Service_Ticket", "View")]` | Path param: `id` | `BaseResponse<HrServiceTicketDetailDto>` | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/services/tickets/{id}/assign` | **Rencana (belum tersedia)** | Menugaskan analis penanggung jawab tiket (*claim to me* atau disposisi supervisor) | `[AccessPermission("HR_Service_Ticket", "Assign")]` | `{ "assigneeUserId": "uuid" }` | `BaseResponse<HrServiceTicketDetailDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/services/tickets/{id}/comments` | **Rencana (belum tersedia)** | Mengirim pesan klarifikasi ke staf atau mencatat memo internal HR | `[AccessPermission("HR_Service_Ticket", "Process")]` | `{ "commentText": "Mohon unggah ulang scan KTP karena buram", "isInternalNote": false, "pauseSla": true }` | `BaseResponse<HrServiceTicketCommentDto>` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/services/tickets/{id}/resolve` | **Rencana (belum tersedia)** | Menyelesaikan tiket permohonan dan mengeksekusi pembaruan data profil jika ada | `[AccessPermission("HR_Service_Ticket", "Process")]` | `{ "resolutionSummary": "Data rekening bank telah dimutakhirkan", "autoApplyProfileChanges": true }` | `BaseResponse<HrServiceTicketDetailDto>` | `200 OK`, `400 Bad Request`, `409 Conflict` |
+| `GET` | `/api/v1/corporate/hrd/services/analytics/sla-summary` | **Rencana (belum tersedia)** | Metrik performa helpdesk: tiket aktif, kritis < 2 jam, peringatan 75%, dan overdue | `[AccessPermission("HR_Service_Ticket", "View")]` | None | `BaseResponse<HrServiceSlaMetricsDto>` | `200 OK`, `401 Unauthorized` |
+
+---
+
+### [Tags("HR Services - ESS Requests & My Documents")]
+
+Grup endpoint ini melayani portal mandiri staf (ESS) untuk mengajukan tiket permohonan, melampirkan berkas persyaratan, memantau riwayat, serta mengunduh dokumen resmi dari e-Dossier.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/services/catalog/ess-tiles` | **Rencana (belum tersedia)** | Mengambil daftar kartu layanan mandiri yang tersedia untuk portal pegawai | `[AccessPermission("ESS_Service", "CreateRequest")]` | None (Current User Session) | `BaseResponse<List<EssServiceTileDto>>` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/corporate/hrd/services/requests` | **Rencana (belum tersedia)** | Staf mengajukan tiket permohonan layanan baru berlampiran berkas digital | `[AccessPermission("ESS_Service", "CreateRequest")]` | Multipart/form-data: `ServiceTypeId`, `Title`, `Description`, `PriorityTier`, `Attachments` | `BaseResponse<HrServiceTicketDetailDto>` | `201 Created`, `400 Bad Request`, `422 Unprocessable Entity` |
+| `GET` | `/api/v1/corporate/hrd/services/requests/my-tickets` | **Rencana (belum tersedia)** | Mengambil riwayat seluruh tiket yang diajukan oleh staf yang sedang login | `[AccessPermission("ESS_Service", "CreateRequest")]` | Query: `status`, `page`, `pageSize` | `BaseResponse<PagedResult<HrServiceTicketSummaryDto>>` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/corporate/hrd/services/documents/my-archive` | **Rencana (belum tersedia)** | Mengambil daftar dokumen resmi kepegawaian staf yang tersimpan di e-Dossier | `[AccessPermission("ESS_Document", "ViewMyArchive")]` | None (Current User Session) | `BaseResponse<List<EmployeeOfficialDocumentArchiveDto>>` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/corporate/hrd/services/documents/{id}/my-pin` | **Rencana (belum tersedia)** | Melihat 4-digit PIN rahasia untuk membuka nominal gaji pada surat finansial | `[AccessPermission("ESS_Document", "ViewMyArchive")]` | Path param: `id`, Header: `X-Ess-Password-Token` | `BaseResponse<DocumentSecurityPinRevealDto>` | `200 OK`, `401 Unauthorized`, `404 Not Found` |
+
+---
+
+### [Tags("HR Services - Document Issuance & Public Verification")]
+
+Grup endpoint ini melayani persetujuan pejabat berwenang, penarikan gaji otomatis Sub-10, penomoran seri gapless, stempel QR Code, pencabutan dokumen (revokasi), serta verifikasi publik tanpa sesi.
+
+| Method | Endpoint Path | Status Ketersediaan | Deskripsi Fungsional | Butir Hak Akses | Request Body / Query | Format Response | Kode Status HTTP |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
+| `GET` | `/api/v1/corporate/hrd/services/document-requests/{id}/preview` | **Rencana (belum tersedia)** | Pratinjau draf surat resmi hasil integrasi data nakes dan nominal gaji | `[AccessPermission("HR_Document", "Issue")]` | Path param: `id` | `BaseResponse<DraftDocumentPreviewDto>` | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/services/document-requests/{id}/authorize` | **Rencana (belum tersedia)** | Pejabat mengesahkan draf surat, mengambil nomor gapless, dan merilis QR | `[AccessPermission("HR_Document", "Issue")]` | `{ "signerDigitalSignatureToken": "SIG-TOKEN-128", "pinPlainCode": "8812 (opsional/auto)" }` | `BaseResponse<IssuedOfficialDocumentDto>` | `200 OK`, `400 Bad Request`, `409 Conflict` |
+| `POST` | `/api/v1/corporate/hrd/services/documents/{id}/revoke` | **Rencana (belum tersedia)** | Mencabut keabsahan dokumen resmi terbit disertai Berita Acara Pemeriksaan | `[AccessPermission("HR_Document", "Revoke")]` | `{ "revocationBapNumber": "BAP/2026/XI/009", "revocationReason": "Pembatalan beasiswa spesialis oleh Direksi" }` | `BaseResponse<IssuedOfficialDocumentDto>` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/api/v1/public/documents/verify/{hash}` | **Rencana (belum tersedia)** | Portal publik memvalidasi keaslian surat: metadata legal, masa berlaku, status sah/dicabut | *Publik (Tanpa Sesi Login)* | Path param: `hash` | `BaseResponse<PublicDocumentVerificationResultDto>` | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/public/documents/verify/{hash}/reveal-salary` | **Rencana (belum tersedia)** | Membuka rincian angka nominal gaji pada surat keterangan penghasilan via 4-digit PIN | *Publik (Tanpa Sesi Login)* | `{ "securityPin": "8812" }` | `BaseResponse<PublicSalaryRevealResultDto>` | `200 OK`, `401 Unauthorized (PIN Salah)`, `429 Too Many Requests` |
+
+
+---
+
+## 24. Kontrak API Sub-Modul 14 (Slice `S-C1` Credentialing, License & Clinical Privilege, Kontrak `v18`)
+
+Bagian ini mendefinisikan spesifikasi antarmuka pemrograman aplikasi (API) untuk **Sub-Modul 14 (Credentialing, License & Clinical Privilege — Slice `S-C1`)** dengan nomor versi kontrak **`v18`**, berstatus **`draft`**. Seluruh endpoint di bawah ini dikelompokkan berdasarkan atribut grup Swagger `[Tags(...)]`, mencakup tata kelola lisensi STR/SIP, verifikasi primer PSV KKI / SatuSehat SDMK, pengajuan kredensial 3 komite mandiri, penilaian panel Mitra Bestari (*Peer Review*), pengesahan SPK-RKK oleh Direktur Utama, penegakan gerbang wewenang klinis SIMRS/EMR (`INT-HR-69`), jalur kewenangan sementara & darurat, serta siklus rekredensialing 3 tahunan. Seluruh endpoint baru diberi label **`Rencana (belum tersedia)`** sampai diimplementasikan pada roadmap delivery.
+
+---
+
+### 24.1 Ikhtisar Grup Endpoint Swagger
+
+| Tag Grup Swagger | Deskripsi Domain & Tanggung Jawab | Jumlah Endpoint |
+| :--- | :--- | :---: |
+| `[Tags("Corporate - HRD Credentialing & License")]` | Manajemen lisensi legalitas STR/SIP, audit keabsahan primer PSV SatuSehat SDMK / KKI, dan radar kedaluwarsa SIP 5 tahunan. | 6 |
+| `[Tags("Corporate - HRD Clinical Privilege & Peer Review")]` | Katalog whitebook tindakan, pengajuan berkas kredensial 3 komite mandiri, disposisi panel Mitra Bestari (Peer Review), dan risalah sidang pleno. | 7 |
+| `[Tags("Corporate - HRD SPK RKK Management & Issuance")]` | Penyusunan draf SPK-RKK, paraf Direktur Pelayanan Medik, otorisasi tunggal e-Sign Direktur Utama RS, distribusi PDF ber-QR Code, dan portal verifikasi publik. | 6 |
+| `[Tags("Corporate - HRD Clinical Gate & Emergency Privilege")]` | API penegakan wewenang klinis performa tinggi SIMRS (`INT-HR-69`), persetujuan order co-signature supervisi, bypass darurat penyelamatan nyawa (*Life-Saving Override*), penugasan cepat dokter tamu, dan audit KMKP. | 8 |
+
+---
+
+### 24.2 Spesifikasi Endpoint Detail
+
+#### 24.2.1 `[Tags("Corporate - HRD Credentialing & License")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/corporate/hrd/credentialing/licenses` | `Rencana (belum tersedia)` | Pendaftaran dokumen lisensi STR seumur hidup atau SIP 5 tahunan nakes | `Credential_License:Create` | `CreateCredentialLicenseRequestDto` | `201 Created`, `400 Bad Request`, `409 Conflict` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/licenses` | `Rencana (belum tersedia)` | Menampilkan daftar lisensi nakes terdaftar dengan filter komite dan status verifikasi | `Credential_License:View` | - | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/licenses/{id}` | `Rencana (belum tersedia)` | Menampilkan rincian dokumen lisensi, nomor registrasi, dan histori audit PSV | `Credential_License:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/licenses/{id}/verify-psv` | `Rencana (belum tersedia)` | Mencatat bukti verifikasi keabsahan primer (PSV) ke portal KKI / SatuSehat SDMK Kemenkes | `Credential_Verification:Execute` | `VerifyLicensePsvRequestDto` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/licenses/expiration-radar` | `Rencana (belum tersedia)` | Menampilkan data radar pemantau kedaluwarsa SIP 5 tahun berjenjang (H-90, H-60, H-30, H-7, H-0) | `Credential_License:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/licenses/{id}/renew` | `Rencana (belum tersedia)` | Mengunggah dokumen perpanjangan SIP baru yang diterbitkan Dinkes | `Credential_License:Update` | `RenewLicenseRequestDto` | `200 OK`, `400 Bad Request` |
+
+#### 24.2.2 `[Tags("Corporate - HRD Clinical Privilege & Peer Review")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/credentialing/whitebooks/catalog` | `Rencana (belum tersedia)` | Menampilkan daftar master butir tindakan klinis (*whitebook*) berdasarkan kode komite | `Clinical_Privilege:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/applications` | `Rencana (belum tersedia)` | Mengajukan berkas kredensialing awal, rekredensialing, atau kenaikan jenjang klinis nakes | `Credential_Application:Create` | `CreateCredentialingApplicationRequestDto` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/applications` | `Rencana (belum tersedia)` | Menampilkan daftar antrean berkas permohonan kredensialing di meja komite | `Credential_Application:View` | - | `200 OK` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/applications/{id}` | `Rencana (belum tersedia)` | Menampilkan rincian berkas pemohon, lampiran portofolio, dan checklist RKK | `Credential_Application:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/applications/{id}/assign-peer-reviewers` | `Rencana (belum tersedia)` | Menetapkan minimal 2 anggota panel Mitra Bestari sebidang untuk menilai berkas | `Committee_Review:Assign` | `AssignPeerReviewersRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/peer-reviews/{id}/submit-assessment` | `Rencana (belum tersedia)` | Menyerahkan berita acara rekomendasi derajat wewenang oleh reviewer Mitra Bestari | `Peer_Review:Assess` | `SubmitPeerReviewAssessmentRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/committee-reviews/{id}/finalize-recommendation` | `Rencana (belum tersedia)` | Mengesahkan hasil sidang pleno komite dan menerbitkan surat usulan Ketua Komite ke Dirut | `Committee_Review:Approve` | `FinalizeCommitteeReviewRequestDto` | `200 OK`, `400 Bad Request` |
+
+#### 24.2.3 `[Tags("Corporate - HRD SPK RKK Management & Issuance")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/corporate/hrd/credentialing/spk-issuances/draft` | `Rencana (belum tersedia)` | Menyusun draf dokumen SPK dan lampiran RKK lengkap dengan penunjukan nama supervisor | `Spk_Rkk:Create` | `GenerateSpkRkkDraftRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/spk-issuances/{id}/paraf-director-service` | `Rencana (belum tersedia)` | Membubuhkan paraf persetujuan manajerial oleh Direktur Pelayanan Medik / Keperawatan | `Spk_Rkk:ParafDirector` | `ParafSpkRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/spk-issuances/{id}/sign-and-issue` | `Rencana (belum tersedia)` | Pengesahan tunggal dan penandatanganan digital (e-Sign) oleh Direktur Utama RS | `Spk_Rkk:SignDirector` | `SignSpkRkkRequestDto` | `200 OK`, `400 Bad Request`, `403 Forbidden` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/spk-issuances/{id}` | `Rencana (belum tersedia)` | Menampilkan rincian dokumen sah SPK, masa berlaku 3 tahun, dan rincian lampiran RKK | `Spk_Rkk:View` | - | `200 OK`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/spk-issuances/{id}/pdf` | `Rencana (belum tersedia)` | Mengunduh berkas fisik PDF resmi SPK-RKK berstempel tanda tangan digital dan QR Code | `Spk_Rkk:Download` | - | `200 OK (application/pdf)`, `404 Not Found` |
+| `GET` | `/api/v1/public/credentials/verify/{qrToken}` | `Rencana (belum tersedia)` | Endpoint publik tanpa login untuk memvalidasi keabsahan dokumen SPK-RKK via pemindaian QR Code | `Anonymous` | - | `200 OK`, `404 Not Found` |
+
+#### 24.2.4 `[Tags("Corporate - HRD Clinical Gate & Emergency Privilege")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/corporate/hrd/clinical-privileges/validate-gate` | `Rencana (belum tersedia)` | API performa tinggi (`INT-HR-69`) dipanggil SIMRS/EMR untuk evaluasi hak wewenang tindakan klinis | `Simrs_System:Validate` | `ValidateClinicalGateRequestDto` | `200 OK (GateVerdict)`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/clinical-privileges/orders/{id}/co-sign` | `Rencana (belum tersedia)` | Persetujuan digital order tindakan Level 3 oleh dokter supervisor dalam kurun waktu 24 jam | `Clinical_Privilege:CoSign` | `CoSignPrivilegeOrderRequestDto` | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/clinical-privileges/emergency-override` | `Rencana (belum tersedia)` | Eksekusi bypass darurat penyelamatan nyawa SIMRS (*Life-Saving Override*) dengan pencatatan log audit | `Clinical_Privilege:EmergencyOverride` | `EmergencyOverrideRequestDto` | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/clinical-privileges/emergency-override/audit-logs` | `Rencana (belum tersedia)` | Menampilkan daftar insiden bypass darurat untuk diaudit oleh tim KMKP dan Komite Medik | `Kmkp_Audit:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/clinical-privileges/emergency-override/{id}/audit-verdict` | `Rencana (belum tersedia)` | Mencatat vonis sidang audit mutu KMKP terhadap kejadian bypass darurat penyelamatan jiwa | `Kmkp_Audit:Decide` | `AuditVerdictRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/fast-track/temporary-privilege` | `Rencana (belum tersedia)` | Menerbitkan kewenangan sementara bagi dokter konsultan tamu (maksimal 3 bulan) | `FastTrack_Privilege:Grant` | `GrantTemporaryPrivilegeRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/fast-track/emergency-privilege` | `Rencana (belum tersedia)` | Menerbitkan kewenangan darurat cito bencana massal (maksimal 72 jam) atas wewenang Dir Pelayanan | `FastTrack_Privilege:Emergency` | `GrantEmergencyPrivilegeRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/clinical-privileges/{id}/suspend` | `Rencana (belum tersedia)` | Menangguhkan status kewenangan klinis nakes akibat SIP mati, rekredensialing terlambat, atau pelanggaran | `Clinical_Privilege:Suspend` | `SuspendPrivilegeRequestDto` | `200 OK`, `400 Bad Request` |

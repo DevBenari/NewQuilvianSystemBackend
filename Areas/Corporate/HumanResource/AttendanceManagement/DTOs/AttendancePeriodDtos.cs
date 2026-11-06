@@ -179,6 +179,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public int RunningProcessingRun { get; set; }
         public int RunningSchedulerJob { get; set; }
         public int LinkedToOtherPeriod { get; set; }
+        public int IncompletePunchDailyCount { get; set; }
+        public int PendingEarlyLeavePermissionCount { get; set; }
+        public int PendingOfficialDutyRequestCount { get; set; }
         public DateTime ValidatedAt { get; set; }
         public List<AttendancePeriodValidationIssueResponse> Issues { get; set; } = new();
     }
@@ -190,6 +193,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public string PreviousStatus { get; set; } = string.Empty;
         public string CurrentStatus { get; set; } = string.Empty;
         public int AffectedAttendanceDailyCount { get; set; }
+        public int ConvertedIncompleteToAbsentCount { get; set; }
+        public bool IsRollbackPayrollExecuted { get; set; }
+        public string? RollbackPayrollNotes { get; set; }
         public DateTime ActionAt { get; set; }
+    }
+
+    public class AttendancePeriodReopenLogResponse
+    {
+        public Guid Id { get; set; }
+        public Guid AttendancePeriodId { get; set; }
+        public string PeriodCode { get; set; } = string.Empty;
+        public Guid ReopenedByUserId { get; set; }
+        public string? ReopenedByUserName { get; set; }
+        public DateTime ReopenedAt { get; set; }
+        public string ReopenReason { get; set; } = string.Empty;
+        public DateTime? PreviousClosedAt { get; set; }
+        public Guid? PreviousClosedByUserId { get; set; }
+        public string? PreviousClosedByUserName { get; set; }
+        public bool IsRollbackPayrollExecuted { get; set; }
+        public string? RollbackPayrollNotes { get; set; }
+        public DateTime CreateDateTime { get; set; }
     }
 }

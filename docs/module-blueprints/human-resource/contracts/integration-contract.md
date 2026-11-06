@@ -874,3 +874,318 @@ Bagian ini mendefinisikan kontrak integrasi lintas bounded context untuk siklus 
   }
   ```
 * **Pencegahan Human Error:** Parameter tarif pajak disimpan secara terpusat pada `hrd_payroll_settings` dan tabel master pajak tanpa hardcoded nilai di dalam kode program C#, sehingga perubahan regulasi pemerintah dapat disesuaikan tanpa redeploy aplikasi.
+
+## 12. Bagian S-B6 — Kontrak Integrasi Restitusi & Pemotongan Penggajian Pegawai Rumah Sakit (Sub-modul 11, last_changed_in v15, 5 November 2026)
+
+Bagian ini mendefinisikan kontrak integrasi antar-modul dan eksternal (**`INT-HR-57` s.d. `INT-HR-60`**) untuk **Sub-modul 11 (Restitution & Payroll Deduction Integration — Slice `S-B6`)**, mencakup sinkronisasi jadwal piutang dengan Keuangan, callback realisasi pemotongan pasca gajian, protokol voucher kasir darurat 24/7, dan pelunasan pinjaman penutupan kerja.
+
+---
+
+### 12.1 `INT-HR-57`: Sinkronisasi Jadwal Cicilan Piutang Aktif Finance (Inbound Finance $
+ightarrow$ HRD)
+
+- **Tujuan Integrasi:** Menarik daftar komitmen angsuran pinjaman, kasbon staf, dan cicilan koperasi yang tercatat pada buku besar piutang Departemen Keuangan (*source of truth*) untuk disiapkan pada penggajian bulan berjalan (`HRD-DEC-129`).
+- **Jadwal & Frekuensi Eksekusi:** Terjadwal otomatis setiap tanggal **17 pukul 01:00 WIB** (H-3 sebelum batas akhir penutupan absensi/lembur tanggal 20).
+- **Protokol & Endpoint:** REST API HTTPS over TLS 1.3, Mutual TLS (mTLS) + Bearer Service Token.
+  - Endpoint Penyedia (Finance): `GET /api/v1/finance/receivables/payroll-deductions/active`
+  - Query Params: `periodMonth=11&periodYear=2026`
+- **Spesifikasi Kontrak Payload Response:**
+```json
+{
+  "syncTimestamp": "2026-11-17T01:00:15Z",
+  "periodMonth": 11,
+  "periodYear": 2026,
+  "totalActiveContracts": 142,
+  "totalScheduledAmount": 128500000.00,
+  "items": [
+    {
+      "externalReferenceId": "FIN-LN-2025-0811",
+      "employeeId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "employeeNip": "KRY-2022-0045",
+      "category": "KasbonPinjamanRS",
+      "priorityLevel": 2,
+      "totalPrincipal": 10000000.00,
+      "monthlyInstallment": 1000000.00,
+      "currentInstallmentNumber": 4,
+      "totalInstallments": 10,
+      "remainingPrincipal": 7000000.00
+    }
+  ]
+}
+```
+- **Penanganan Kesalahan & Ketahanan Jaringan:** Jika Finance tidak merespons dalam 30 detik (timeout), modul HRD melakukan *retry* eksponensial (3x pada menit ke-5, ke-15, dan ke-30). Jika tetap gagal, sistem menerbitkan alert prioritas tinggi kepada Administrator Payroll dan Finance untuk sinkronisasi manual sebelum tanggal 20.
+
+---
+
+### 12.2 `INT-HR-58`: Callback Eksekusi Realisasi Pemotongan Penggajian (Outbound HRD $
+ightarrow$ Finance)
+
+- **Tujuan Integrasi:** Mengirimkan bukti realisasi pemotongan gaji aktual yang berhasil dieksekusi setelah siklus penggajian bulanan disahkan dan ditransfer (tgl 25) guna memotong saldo buku besar piutang pegawai di Departemen Keuangan secara atomik (`HRD-DEC-129`).
+- **Jadwal & Pemicu:** Otomatis dipicu segera setelah status siklus penggajian berubah menjadi `Approved` / `HandoffReady` pada tanggal 25.
+- **Protokol & Endpoint:** Asynchronous Webhook dengan HMAC-SHA256 Signature Header `X-Quilvian-Signature`.
+  - Endpoint Konsumen (Finance): `POST /api/v1/finance/receivables/payroll-deductions/execution-callback`
+- **Spesifikasi Kontrak Payload Request:**
+```json
+{
+  "payrollRunId": "b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e",
+  "disbursementDate": "2026-11-25T08:30:00Z",
+  "executionSummary": {
+    "totalDeductedSuccessfully": 115000000.00,
+    "totalDeferredDueToCap": 13500000.00,
+    "affectedEmployeeCount": 142
+  },
+  "executions": [
+    {
+      "externalReferenceId": "FIN-LN-2025-0811",
+      "employeeId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "scheduledAmount": 1000000.00,
+      "actualDeductedAmount": 1000000.00,
+      "deferredAmount": 0.00,
+      "status": "DeductedInFull",
+      "newRemainingPrincipal": 6000000.00
+    },
+    {
+      "externalReferenceId": "FIN-COOP-2026-0342",
+      "employeeId": "f7e8d9c0-b1a2-3f4e-5d6c-7b8a9e0f1a2b",
+      "scheduledAmount": 1500000.00,
+      "actualDeductedAmount": 500000.00,
+      "deferredAmount": 1000000.00,
+      "status": "PartiallyDeducted",
+      "deferralReason": "Batas 50% PP 36/2021 tercapai. Sisa tagihan dialihkan ke siklus Desember 2026.",
+      "newRemainingPrincipal": 2500000.00
+    }
+  ]
+}
+```
+- **Idempotensi & Konfirmasi:** Finance wajib mengembalikan HTTP `200 OK` dengan payload konfirmasi nomor jurnal transaksi piutang. Jika Finance gagal memproses, event masuk antrean *dead-letter queue* untuk rekonsiliasi otomatis tanpa mengubah status slip gaji yang sudah terlanjur ditransfer.
+
+---
+
+### 12.3 `INT-HR-59`: Kliring Voucher Pencairan Darurat Kasir RS (Outbound HRD $
+ightarrow$ Kasir RS 24/7)
+
+- **Tujuan Integrasi:** Menyediakan verifikasi instan secara online dan real-time bagi loket Kasir Rumah Sakit 24/7 saat mencairkan dana tunai restitusi darurat medis staf (*Urgent Disbursement Cito* sesuai `HRD-DEC-133`).
+- **Pihak Terlibat:** Modul HRD (Penerbit Voucher) $
+ightarrow$ Modul Kasir RS (Loket Pelayanan Kasir 24 Jam).
+- **Protokol:** REST API Internal dengan enkripsi token satu kali pakai (One-Time Token SHA-256).
+- **Alur Transaksi Kliring Kasir:**
+  1. Nakes menunjukkan QR Code voucher pada gawai ESS ke loket kasir IGD.
+  2. Kasir memindai barcode / menginput nomor voucher: `GET /api/v1/corporate/hrd/restitutions/cashier-vouchers/{voucherNumber}/verify?token={token}`.
+  3. Modul HRD mengembalikan data validasi: Status `Valid`, Nama Pegawai, Unit Kerja, dan Jumlah Rupiah Tunai yang wajib diserahkan.
+  4. Kasir menyerahkan uang dan menekan tombol konfirmasi: `POST /api/v1/corporate/hrd/restitutions/cashier-vouchers/{voucherNumber}/disburse`.
+  5. Sistem HRD seketika mengubah status klaim menjadi `DisbursedViaCashier`, mengunci token, dan mencoret klaim dari antrean transfer slip gaji bulanan.
+
+---
+
+### 12.4 `INT-HR-60`: Penyelesaian Sisa Piutang pada Formulir Exit Clearance (HRD Sub-11 $
+ightarrow$ HRD Sub-20 Exit Clearance)
+
+- **Tujuan Integrasi:** Menghubungkan modul pemotongan gaji dengan proses penyelesaian masa kerja staf rumah sakit (Exit Clearance Sub-Modul 20) saat seorang pegawai mengundurkan diri (*resign*) atau terkena PHK (`HRD-DEC-132`).
+- **Titik Pemicu Integrasi:** Terbitnya draf formulir Exit Clearance staf di Sub-Modul 20.
+- **Aturan Integrasi Antar-Sub-Modul:**
+  1. Sub-Modul 20 mengirim permintaan audit piutang ke Sub-Modul 11 via internal query service.
+  2. Sub-Modul 11 menarik seluruh saldo pokok pinjaman aktif staf dari tabel `trx_payroll_deduction_schedules`.
+  3. Sub-Modul 11 menerbitkan komponen `FinalSeparationDeduction` untuk dihitung pada slip penutupan (*Final Clearance Payslip*), memotong hingga 100% dari hak pesangon dan hak sisa cuti.
+  4. Bila seluruh utang lunas, Sub-Modul 11 mengirim sinyal hijau `FinancialObligationsCleared = true` ke Sub-Modul 20.
+  5. Bila hak finansial tidak mencukupi, Sub-Modul 11 menerbitkan `OutstandingReceivableStatement` berkode bayar kasir dan menahan persetujuan formulir Exit Clearance (`FinancialObligationsCleared = false`) hingga kasir mengonfirmasi setoran pelunasan tunai.
+
+
+---
+
+## 13. Kontrak Integrasi Sub-Modul 12 (Slice S-D3 Benefit Management, INT-HR-61 s.d. INT-HR-64)
+
+Bagian ini mendefinisikan spesifikasi kontrak integrasi teknis antara **Sub-Modul 12 (Benefit Management — Slice `S-D3`)** dengan sistem eksternal rumah sakit (SIMRS Registrasi & Kasir, Portal BPJS Kesehatan/TK) serta sub-modul internal HRD (Sub-11 Restitusi & Pemotongan Gaji, Sub-20 Exit Clearance).
+
+---
+
+### 13.1 `INT-HR-61`: Integrasi Real-Time SIMRS Admission & Cashiering
+- **Tujuan Integrasi:** Memfasilitasi layanan berobat nakes dan keluarga inti di fasilitas RS Quilvian sendiri (`HRD-DEC-136`). Petugas pendaftaran SIMRS memvalidasi eligibilitas status staf, dan kasir SIMRS memotong saldo plafon tahunan nakes pada buku besar `HrdBenefitBalanceMovement` secara real-time saat transaksi ditutup.
+- **Tipe Interaksi:** Sinkronus (REST API over TLS 1.3 internal LAN).
+- **Arah Aliran Data:** Dua arah (`SIMRS Admission/Billing` <-> `HRD Benefit Management`).
+- **Endpoint Terkait:**
+  - `GET /api/v1/corporate/hrd/benefits/inhouse/coverage-inquiry`
+  - `POST /api/v1/corporate/hrd/benefits/inhouse/deduct-balance`
+- **Spesifikasi Payload Deduct Balance:**
+  ```json
+  {
+    "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "simrsRegistrationNumber": "REG-20261105-00123",
+    "patientNationalId": "3171012304950001",
+    "grossBillAmount": 1500000.00,
+    "discountAppliedAmount": 450000.00,
+    "plafonDeductedAmount": 1050000.00,
+    "excessAmount": 0.00,
+    "serviceDate": "2026-11-05T10:30:00Z"
+  }
+  ```
+- **SLA & Keandalan:** Waktu respons maksimal 500 ms (P99). Jika koneksi ke HRD mengalami kegagalan/timeout, kasir SIMRS menerapkan mode fallback offline: mencatat nomor kartu pegawai secara manual dan mengirimkan batch sinkronisasi asinkronus saat koneksi pulih.
+- **Pencegahan Double-Deduction:** Menggunakan kunci idempoten berbasis `simrsRegistrationNumber` (indeks unik pada kolom referensi buku besar).
+
+---
+
+### 13.2 `INT-HR-62`: Integrasi Sinkronisasi Data BPJS Kesehatan & Ketenagakerjaan
+- **Tujuan Integrasi:** Memfasilitasi pendaftaran massal kepesertaan BPJS Kesehatan PPU dan BPJS Ketenagakerjaan pegawai baru serta pemutakhiran data tanggungan keluarga inti ke portal resmi BPJS.
+- **Tipe Interaksi:** Asinkronus (Batch API / Export Berkas Terstandarisasi e-Dabu & SIPP BPJS).
+- **Arah Aliran Data:** Satu arah (`HRD Benefit Management` -> `Portal BPJS e-Dabu / SIPP`).
+- **Frekuensi Eksekusi:** Otomatis setiap tanggal 10 dan 20 setiap bulan, atau on-demand saat onboarding pegawai baru selesai.
+- **Struktur Berkas Handoff:** Format file CSV/Excel enkripsi terstandarisasi BPJS mencakup NIK 16 digit, Nama Lengkap, Nomor KK, Tanggal Lahir, Upah Dasar Perhitungan Iuran (Sub-10), dan Kode Faskes Tingkat Pertama (FKTP) pilihan nakes.
+- **Penanganan Gagal:** Baris data dengan NIK tidak terdaftar di Disdukcapil diisolasi ke dalam laporan anomali (*reconciliation exception report*) untuk diverifikasi ulang oleh HR Benefit Officer.
+
+---
+
+### 13.3 `INT-HR-63`: Integrasi Pendelegasian Ekses Biaya Berobat ke Pemotongan Gaji (`S-B6`)
+- **Tujuan Integrasi:** Menyelesaikan sisa tagihan berobat (*out-of-pocket excess*) nakes di RS Quilvian yang melebihi batas plafon tahunan, di mana pegawai memilih untuk melunasinya melalui pemotongan slip gaji bulan berjalan (Sub-Modul 11 `S-B6`).
+- **Tipe Interaksi:** Asinkronus (Message Queue / Domain Event `OnHospitalCareExcessGenerated`).
+- **Arah Aliran Data:** Satu arah (`HRD Benefit Management` -> `HRD Restitution & Deduction Integration Sub-11`).
+- **Spesifikasi Payload Event:**
+  ```json
+  {
+    "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "simrsRegistrationNumber": "REG-20261105-00123",
+    "excessAmount": 750000.00,
+    "deductionCategory": "HospitalCareExcess",
+    "targetPayrollPeriod": "2026-11",
+    "authorizationSignedLetterPath": "/storage/hrd/excess-auth/AUTH-EXC-20261105-01.pdf"
+  }
+  ```
+- **Ketentuan Bisnis:** Pemotongan ekses medis ini tunduk pada aturan *Hard-Cap 50%* PP 36/2021 dan hirarki prioritas ke-2 (kewajiban RS) pada Sub-Modul 11. Jika sisa batas 50% tidak mencukupi, sisa ekses otomatis dijadwalkan ke siklus cicilan bulan berikutnya.
+
+---
+
+### 13.4 `INT-HR-64`: Integrasi Penonaktifan Benefit & Kliring Medis Exit Clearance (Sub-20)
+- **Tujuan Integrasi:** Memastikan seluruh fasilitas asuransi dan subsidi berobat internal dinonaktifkan tepat pada tanggal efektif pemutusan hubungan kerja (`EffectiveTerminationDate`), serta memvalidasi bebas tunggakan medis ekses pada checklist Exit Clearance Sub-Modul 20 (`HRD-DEC-139`).
+- **Tipe Interaksi:** Sinkronus & Event-Driven (`ExitClearance Sub-20` <-> `HRD Benefit Management`).
+- **Arah Aliran Data:** Dua arah.
+- **Alur Kerja Integrasi:**
+  1. Saat pengajuan resign/PHK diproses, checklist Exit Clearance Sub-20 memanggil query verifikasi `CheckBenefitObligationsCleared(employeeId)`.
+  2. Modul Benefit memeriksa apakah ada tagihan ekses rawat inap yang belum terbayar di kasir atau belum dialokasikan ke pesangon penutupan. Jika masih ada tunggakan, gerbang Exit Clearance berstatus `BLOCKED`.
+  3. Tepat pada pukul 23:59:59 WIB pada `EffectiveTerminationDate`, event listener `OnEmployeeTerminated` mengubah `TrxEmployeeInsuranceEnrollment.status = 'Terminated'` dan menerbitkan berkas PDF Surat Pengantar Mutasi Mandiri BPJS Kesehatan.
+
+
+---
+
+## 14. Kontrak Integrasi Sub-Modul 13 (Slice S-D4 HR Service Management & Request — Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS)
+
+Bagian ini mendefinisikan seluruh antarmuka integrasi antar-modul (*integration contracts*) untuk **Sub-Modul 13 (Slice `S-D4`)**, mencakup pemutakhiran otomatis data profil master kepegawaian Sub-02, pengarsipan permanen e-Dossier, penarikan riwayat slip gaji final Sub-10, serta pemantauan dan eskalasi SLA melalui sistem notifikasi rumah sakit.
+
+---
+
+### 14.1 `INT-HR-65`: Integrasi Pemutakhiran Otomatis Profil Kepegawaian ke Sub-Modul 02 (`WorkforceCore`)
+- **Tujuan Integrasi:** Mengeksekusi mutasi perubahan data pribadi non-transaksional staf rumah sakit (rekening bank payroll, status pernikahan, kontak darurat KTP) secara otomatis pada basis data induk Sub-02 (`MstWorkforceProfile` & `TrxEmployeeBankDetail`) tepat setelah tiket diverifikasi dan disetujui resmi oleh analis HR Desk (`HRD-DEC-143`).
+- **Tipe Interaksi:** Sinkronus Terisolasi via Service Interface `IWorkforceProfileSyncService` dalam transaksi database atomik.
+- **Arah Aliran Data:** Satu arah (`HrServiceManagement` -> `WorkforceCore Sub-02`).
+- **Alur Kerja Integrasi:**
+  1. Analis HR mengklik "Setujui Permohonan Pemutakhiran" pada `FE-HRD-183`.
+  2. `WorkforceProfileSyncService` membuka transaksi atomik:
+     a. Mengambil snapshot data lama dari `mst_workforce_profiles` atau `trx_employee_bank_details`.
+     b. Menyimpan rekaman sebelum-dan-sesudah ke tabel `hrd_profile_change_histories`.
+     c. Menjalankan query update data baru pada entitas master Sub-02.
+  3. Jika gagal, transaksi di-rollback penuh tanpa merusak status tiket; jika sukses, tiket ditandai `Resolved` dan event `HRS_PROFILE_CHANGE_AUTO_APPLIED` dipicu.
+- **Payload Data Mutasi:**
+  ```json
+  {
+    "hrServiceRequestId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "employeeId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "componentModified": "Bank_Account",
+    "payload": {
+      "bankName": "Bank Central Asia (BCA)",
+      "bankAccountNumber": "8812093812",
+      "bankAccountHolderName": "Ns. Siti Rahmawati, S.Kep",
+      "bankBranch": "KCP RS Quilvian",
+      "supportingDocumentPath": "/storage/hrd/requests/202611/BukuTabungan_Siti.pdf"
+    },
+    "approvedByUserId": "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"
+  }
+  ```
+
+---
+
+### 14.2 `INT-HR-66`: Integrasi Pengarsipan Permanen Dokumen Resmi ke E-Dossier Sub-02
+- **Tujuan Integrasi:** Menyimpan salinan berkas digital (PDF resmi bertanda tangan elektronik dan ber-QR Code) yang telah berstatus `Issued` ke dalam repositori berkas kepegawaian (*Employee E-Dossier*) Sub-Modul 02 (`HRD-DEC-145`).
+- **Tipe Interaksi:** Sinkronus via Service `IEmployeeDossierArchiveService`.
+- **Arah Aliran Data:** Satu arah (`HrServiceManagement` -> `WorkforceCore Sub-02`).
+- **Ketentuan Bisnis:** Berkas yang tersimpan di e-Dossier diklasifikasikan ke dalam kategori dokumen `Official_Letters` (Surat Resmi Kepegawaian), bersifat abadi (*read-only archive*), dan langsung muncul di tab "Dokumen Saya" pada antarmuka portal ESS pegawai. Jika dokumen dicabut keabsahannya (`Revoked`), berkas tidak dihapus dari e-Dossier melainkan disematkan watermark visual "REVOKED / TIDAK BERLAKU".
+
+---
+
+### 14.3 `INT-HR-67`: Integrasi Penarikan Data Gaji Final dari Sub-Modul 10 (`PayrollProcessing`)
+- **Tujuan Integrasi:** Menyediakan data riwayat penghasilan staf medis yang valid dan akurat untuk penyusunan Surat Keterangan Gaji (*Salary Certificate* KPR/Bank) tanpa memperkenankan input manual (`HRD-DEC-142`).
+- **Tipe Interaksi:** Sinkronus Query via Interface `IPayrollHistoryQueryService` (Read-Only).
+- **Arah Aliran Data:** Satu arah (`PayrollProcessing Sub-10` -> `HrServiceManagement`).
+- **Ketentuan Bisnis:**
+  1. Service membaca slip gaji terakhir yang berstatus `Finalized` dari `trx_payroll_payslips` (`INT-HR-56`).
+  2. Data yang diekstrak mencakup Gaji Pokok, Tunjangan Tetap, Total Penerimaan Kotor (Bruto), Total Potongan Wajib, dan Penerimaan Bersih (Netto).
+  3. Jika pegawai belum memiliki slip gaji final (misal: pegawai baru bulan pertama), sistem menolak pembuatan draf dengan pesan instruksi resmi (`VR-HRS-05`).
+
+---
+
+### 14.4 `INT-HR-68`: Integrasi Notifikasi Eskalasi SLA ke Sistem Pesan Rumah Sakit (*Notification Hub*)
+- **Tujuan Integrasi:** Mengirimkan peringatan dini (*early warning*) kepada HR Supervisor pada 75% durasi SLA dan notifikasi eskalasi merah keterlambatan kepada Manajer SDM pada 100% durasi SLA (`HRD-DEC-141`).
+- **Tipe Interaksi:** Asinkronus via Message Bus / SignalR Hub (`INotificationDispatcherService`).
+- **Arah Aliran Data:** Satu arah (`HrServiceManagement` -> `Hospital Notification Hub`).
+- **Kanal Pengiriman:** Notifikasi In-App UI (lonceng notifikasi header), Webhook bot internal rumah sakit, dan email dinas resmi supervisor/manajer SDM.
+
+
+---
+
+## 15. Kontrak Integrasi Sub-Modul 14 (Slice `S-C1` Credentialing, License & Clinical Privilege)
+
+Bagian ini mendefinisikan seluruh titik integrasi lintas domain dan sistem eksternal untuk **Sub-Modul 14 (Slice `S-C1`)**, mencakup penegakan wewenang klinis SIMRS/EMR real-time (`INT-HR-69`), pertukaran data evaluasi kinerja OPPE dengan Sub-15 (`INT-HR-70`), penguncian otomatis jadwal shift Sub-06 saat lisensi mati (`INT-HR-71`), serta pengarsipan berkas sah ke e-Dossier Sub-02 (`INT-HR-72`).
+
+---
+
+### 15.1 `INT-HR-69`: Integrasi Real-Time Penegakan Batas Kewenangan Klinis SIMRS/EMR Gate
+- **Tujuan Integrasi:** Menyediakan antarmuka validasi gerbang wewenang klinis performa tinggi (*Clinical Gate*) yang dipanggil langsung oleh sistem pelayanan SIMRS / Electronic Medical Record (EMR) setiap kali tenaga medis hendak meresepkan obat keras, mengorder tindakan medis invasif, atau menjadwalkan prosedur operasi bedah, menyelesaikan posisi sementara `HRD-DEC-005` menjadi *Hard-Stop* bertingkat (`HRD-DEC-149`).
+- **Tipe Interaksi:** Sinkronus API RESTful performa tinggi ber-cache Redis terdistribusi dengan target latensi p99 < 50ms.
+- **Arah Aliran Data:** SIMRS / EMR (Consumer) -> Sub-Modul 14 Credentialing Management (Provider).
+- **Spesifikasi Payload Request:**
+  ```json
+  {
+    "workforceProfileId": "c4d32a8b-1111-4a9c-9c71-abcdef123456",
+    "procedureCatalogCode": "PROC-SURG-LAP-001",
+    "hospitalUnitId": "u9f8e7d6-2222-4b8a-8a62-123456abcdef",
+    "patientEpisodeId": "EPISODE-RAWAT-INAP-20261105-089"
+  }
+  ```
+- **Spesifikasi Payload Response:**
+  ```json
+  {
+    "gateVerdict": "ALLOW_UNDER_SUPERVISION", // ALLOW_INDEPENDENT, ALLOW_UNDER_SUPERVISION, DENIED_NOT_PRIVILEGED, DENIED_LICENSE_EXPIRED
+    "supervisionLevel": 3,
+    "assignedSupervisorDoctorId": "d8e7f6a5-3333-4c9b-7b53-fedcba654321",
+    "assignedSupervisorDoctorName": "dr. Bambang Soeprapto, Sp.B-KBD",
+    "spkIssuanceNumber": "SPK/RSQ-DIR/XI/2026/0045",
+    "spkValidUntil": "2029-11-05",
+    "requiresCoSignature": true,
+    "coSignatureDeadlineHours": 24,
+    "denialReason": null
+  }
+  ```
+- **Penanganan Kegagalan / Fallback:** Jika cluster cache Redis tidak dapat dijangkau, sistem beralih langsung (*failover*) ke query indeks komposit database PostgreSQL (`workforce_profile_id`, `privilege_catalog_id`, `is_suspended`). Jika koneksi jaringan HRD dan SIMRS putus total (*network partition*), SIMRS beralih ke mode darurat lokal dengan wajib membubuhkan flag audit `EMERGENCY_OFFLINE_OVERRIDE` yang dilaporkan saat koneksi pulih.
+
+---
+
+### 15.2 `INT-HR-70`: Integrasi Penarikan Rekam Jejak Kinerja OPPE dari Sub-Modul 15
+- **Tujuan Integrasi:** Menarik agregasi nilai evaluasi praktik profesional berkelanjutan (*Ongoing Professional Practice Evaluation* - OPPE) dan audit insiden keselamatan pasien dokter dari Sub-Modul 15 Performance Management saat sistem menginisiasi draf berkas rekredensialing berkala pada H-60 (`HRD-DEC-151`).
+- **Tipe Interaksi:** Asinkronus Event / Internal Service Bus Query via `IOppePerformanceQueryService`.
+- **Arah Aliran Data:** Sub-Modul 15 Performance Management (Provider) -> Sub-Modul 14 Credentialing (Consumer).
+- **Dataset yang Ditukarkan:** `WorkforceId`, `EvaluationCycleYears` (3 tahun), `OverallOppeScore` (0-100), `ClinicalCompetenceScore`, `PatientSafetyIncidentCount`, `MedicalRecordCompletenessRate`, `EthicsDisciplineComplianceFlag`.
+- **Penanganan Kegagalan:** Jika Sub-15 belum menyelesaikan finalisasi nilai tahunan berjalan, sistem menandai draf berkas rekredensialing dengan status `OPPE_PENDING_CLOSURE` dan memberikan peringatan pada antrean sekretariat komite.
+
+---
+
+### 15.3 `INT-HR-71`: Integrasi Pemblokiran Roster Jadwal Dinas Sub-Modul 06 Saat SIP Kedaluwarsa
+- **Tujuan Integrasi:** Mengirimkan sinyal otomatis (*fail-closed lock*) ke Sub-Modul 06 Scheduling & Roster Management tepat saat tanggal kedaluwarsa lisensi SIP (H-0 pukul 00:00) tercapai, guna memblokir nakes dari penugasan roster jaga bangsal/IGD/OK dan mencegah risiko hukum malpraktik faskes tanpa izin operasional (`HRD-DEC-146`, `CRD-B2`).
+- **Tipe Interaksi:** Asinkronus Domain Event `OnSipExpiredIntegrationEvent` melalui message broker / MediatR event handler.
+- **Arah Aliran Data:** Sub-Modul 14 Credentialing Management (Publisher) -> Sub-Modul 06 Scheduling Management (Subscriber).
+- **Dampak pada Sub-06:** Seluruh slot shift jadwal dinas yang belum berjalan otomatis ditandai status `BLOCKED_LICENSE_EXPIRED`, memicu peringatan merah pada dashboard kepala ruangan untuk melakukan penggantian nakes (*Ganti Petugas* sesuai `HRD-Q-103`).
+
+---
+
+### 15.4 `INT-HR-72`: Integrasi Sinkronisasi Master Pegawai & E-Dossier Sub-Modul 02 (`WorkforceCore`)
+- **Tujuan Integrasi:** 
+  1. Menarik data profil induk pegawai klinis (nama lengkap bergelar, NIP, rumpun profesi, unit penempatan primer) dari Sub-02.
+  2. Mengarsipkan secara otomatis berkas digital PDF Surat Penugasan Klinis (SPK) dan RKK yang telah disahkan Direktur Utama ke repositori berkas elektronik abadi pegawai (*Employee E-Dossier* di `mst_workforce_profile_documents`) sesuai [`HRD-DEC-148`].
+- **Tipe Interaksi:** Sinkronus Service Call via `IWorkforceDossierArchiveService`.
+- **Arah Aliran Data:** Sub-Modul 14 Credentialing (Publisher/Writer) -> Sub-Modul 02 Workforce Core (Storage).
+- **Karakteristik Arsip:** Metadata arsip mencakup `DocumentCategory = 'CLINICAL_PRIVILEGE_SPK'`, nomor register SPK/RKK, hash SHA-256 berkas, dan penanda retensi abadi (*immutable*).
