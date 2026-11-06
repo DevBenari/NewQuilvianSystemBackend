@@ -105,7 +105,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             MdfServiceSourceDomains.Procedure,
             MdfServiceSourceDomains.Laboratory,
             MdfServiceSourceDomains.Adhoc,
-            MdfServiceSourceDomains.AdhocCatalog
+            MdfServiceSourceDomains.AdhocCatalog,
+            MdfServiceSourceDomains.Optical
         };
         public string ResetButtonLabel { get; set; } = "Reset";
     }

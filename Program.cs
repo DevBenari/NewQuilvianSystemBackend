@@ -1017,8 +1017,19 @@ try
     // BE-OPT-010. Kunjungan Optik lewat EncounterIntakeService (Registrasi tetap pemilik kunjungan).
     builder.Services.AddScoped<OptVisitService>();
     builder.Services.AddScoped<OptPractitionerGuard>();
+    // BE-OPT-031: tarif pemeriksaan refraksi sekali saat final lewat ClinicalMilestoneFactProducer.
+    builder.Services.AddScoped<OptBillingGateway>();
     builder.Services.AddScoped<OptRefractionExamService>();
     builder.Services.AddScoped<OptPrescriptionService>();
+    // BE-OPT-033: potong/kembali stok pesanan Optik lewat DrugStockService (jenis dokumen OpticalOrder, OPT-DEC-054/060).
+    builder.Services.AddScoped<OptStockGateway>();
+    // BE-OPT-032: pesanan Optik (draf, tagihkan per barang, batal awal) dan pembaca status bayar dari Billing.
+    builder.Services.AddScoped<OptOrderPaymentGate>();
+    builder.Services.AddScoped<OptOrderService>();
+    // BE-OPT-050: keluhan garansi dan remake tanpa tagihan.
+    builder.Services.AddScoped<OptWarrantyClaimService>();
+    // BE-OPT-052: empat laporan Optik (baca-saja).
+    builder.Services.AddScoped<OptReportService>();
     // BE-OPT-013: pembaca Rekam Medis Optik (pemeriksaan refraksi + resep), persetujuan pemilik OPT-APR-007. Tanpa kriteria kelengkapan.
     builder.Services.AddScoped<IMedicalRecordDocumentSource, OptMedicalRecordDocumentSource>();
 
@@ -1363,6 +1374,11 @@ try
         builder.Services.Configure<McuNoShowOptions>(
             builder.Configuration.GetSection(McuNoShowOptions.SectionName));
         builder.Services.AddHostedService<McuNoShowHostedService>();
+        // optik BE-OPT-062: tarif pemeriksaan yang belum tercatat dikirim ulang otomatis. Saklar
+        // OpticalManagement:ExamChargeRetry:Enabled, bawaan menyala.
+        builder.Services.Configure<OptExamChargeRetryOptions>(
+            builder.Configuration.GetSection(OptExamChargeRetryOptions.SectionName));
+        builder.Services.AddHostedService<OptExamChargeRetryHostedService>();
         // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
         builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();

@@ -100466,6 +100466,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -100535,6 +100538,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ExternalLabSupplierId")
                         .HasDatabaseName("IX_OptOrder_ExternalLabSupplierId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_OptOrder_IdempotencyKey")
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique()
@@ -100819,6 +100827,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid?>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -100873,6 +100884,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId")
                         .HasDatabaseName("IX_OptPrescription_EncounterId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_OptPrescription_IdempotencyKey")
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
 
                     b.HasIndex("PrescriptionNumber")
                         .IsUnique()
@@ -101525,6 +101541,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("ExaminedByWorkforceProfileId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -101571,6 +101590,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_OptWarrantyClaim_EncounterId");
 
                     b.HasIndex("ExaminedByWorkforceProfileId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_OptWarrantyClaim_IdempotencyKey")
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
 
                     b.HasIndex("OrderId")
                         .HasDatabaseName("IX_OptWarrantyClaim_OrderId");
@@ -110658,6 +110682,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<Guid?>("ReferralSourceEncounterId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("RegisteredAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -110730,6 +110757,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ReferralInstitutionId")
                         .HasFilter("\"ReferralInstitutionId\" IS NOT NULL");
+
+                    b.HasIndex("ReferralSourceEncounterId");
 
                     b.HasIndex("RegisteredByUserId");
 
@@ -139880,6 +139909,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ReferralInstitutionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "ReferralSourceEncounter")
+                        .WithMany()
+                        .HasForeignKey("ReferralSourceEncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RegisteredByUser")
                         .WithMany()
                         .HasForeignKey("RegisteredByUserId")
@@ -139927,6 +139961,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ReferralDoctor");
 
                     b.Navigation("ReferralInstitution");
+
+                    b.Navigation("ReferralSourceEncounter");
 
                     b.Navigation("RegisteredByUser");
 

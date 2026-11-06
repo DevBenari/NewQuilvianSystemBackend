@@ -22,8 +22,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
     /// tidak (<c>OPT-VAL-033</c>).
     /// </para>
     /// <para>
-    /// <b>Tanpa penerbitan tagihan.</b> Fakta tarif pemeriksaan saat final (<c>OPT-DEC-042</c>) dikerjakan
-    /// <c>BE-OPT-031</c>; di sini <see cref="OptRefractionExam.BillingFactEmittedAt"/> tidak disentuh.
+    /// <b>Tarif pemeriksaan sekali saat final</b> (<c>BE-OPT-031</c>, <c>OPT-DEC-042</c>, <c>OPT-AC-024</c>). Sesudah final
+    /// tersimpan, <see cref="OptBillingGateway"/> menyerahkan satu fakta ke producer klinis. Bila producer sudah mencatatnya,
+    /// <see cref="OptRefractionExam.BillingFactEmittedAt"/> diisi lewat pembaruan bersyarat tanpa menaikkan <c>Version</c>,
+    /// sehingga <c>ExpectedVersion</c> di layar tetap sah. Bila belum tercatat (tindakan belum diatur, basis data tidak
+    /// terjangkau), pemeriksaan tetap final dan penyerahan dicoba lagi pada revisi berikutnya. Revisi pada pemeriksaan yang
+    /// sudah tertagih tidak menerbitkan apa pun (<c>OPT-DEC-047</c>).
     /// </para>
     /// <para>
     /// <b>Kewenangan klinis</b> dicek <see cref="OptPractitionerGuard"/> pada tanggal WIB saat tindakan: profesi RO/Sp.M,
@@ -69,6 +73,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
         private readonly ClinicalDocumentIntegrityService _integrity;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly TimeProvider _time;
+        private readonly OptBillingGateway? _billing;
 
         public const ClinicalDocumentKind DocumentKind = ClinicalDocumentKind.OpticalRefraction;
 
@@ -82,8 +87,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             OptVisitService visitService,
             ClinicalDocumentIntegrityService integrity,
             IHttpContextAccessor httpContextAccessor,
-            TimeProvider? timeProvider = null)
+            TimeProvider? timeProvider = null,
+            OptBillingGateway? billingGateway = null)
         {
+            _billing = billingGateway;
             _dbContext = dbContext;
             _guard = guard;
             _numberService = numberService;
@@ -256,7 +263,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             Touch(exam, actorUserId, now);
 
             var gagal = await SignAsync(exam, current.Id, actorUserId, now, cancellationToken);
-            return gagal ?? await SaveAsync(exam, cancellationToken);
+            if (gagal is not null)
+                return gagal;
+            return await BillAfterCommitAsync(exam, await SaveAsync(exam, cancellationToken), actorUserId, cancellationToken);
         }
 
         /// <summary>Revisi sesudah final: menambah versi baru; versi lama dan tagihan tidak berubah (<c>OPT-DEC-047</c>).</summary>
@@ -304,7 +313,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             Touch(exam, actorUserId, now);
 
             var gagal = await SignAsync(exam, revisi.Id, actorUserId, now, cancellationToken);
-            return gagal ?? await SaveAsync(exam, cancellationToken);
+            if (gagal is not null)
+                return gagal;
+            return await BillAfterCommitAsync(exam, await SaveAsync(exam, cancellationToken), actorUserId, cancellationToken);
         }
 
         /// <summary>Batalkan draf. Pemeriksaan final ditolak <c>OPT-VAL-033</c>.</summary>
@@ -478,6 +489,99 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             exam.UpdateBy = actorUserId;
         }
 
+        /// <summary>
+        /// Menyerahkan tarif pemeriksaan sesudah commit bila belum pernah tercatat. Gagal menyerahkan tidak menggagalkan
+        /// tindakan klinis; jawaban membawa <c>BillingMessage</c> agar layar dapat memberi tahu petugas.
+        /// </summary>
+        private async Task<OptResult<OptRefractionExamResponse>> BillAfterCommitAsync(
+            OptRefractionExam exam, OptResult<OptRefractionExamResponse> saved, Guid actorUserId, CancellationToken cancellationToken)
+        {
+            if (!saved.IsSuccess || _billing is null || exam.BillingFactEmittedAt is not null)
+                return saved;
+
+            var emisi = await EmitAndMarkAsync(exam, actorUserId, cancellationToken);
+            if (!emisi.Recorded)
+            {
+                saved.Value!.BillingMessage = emisi.Message;
+                return saved;
+            }
+
+            saved.Value!.BillingFactEmittedAt = exam.BillingFactEmittedAt;
+            return saved;
+        }
+
+        /// <summary>
+        /// Pemeriksaan final yang tarifnya belum tercatat, urut waktu final, untuk pekerja latar (<c>OPT-DEC-082</c>).
+        /// <paramref name="after"/> adalah posisi halaman sebelumnya.
+        /// </summary>
+        public async Task<List<OptExamAwaitingCharge>> GetExamsAwaitingChargeAsync(
+            DateTime finalizedBefore, DateTime? after, int take, CancellationToken cancellationToken = default)
+        {
+            var exams = _dbContext.OptRefractionExams.AsNoTracking()
+                .Where(x => !x.IsDelete
+                    && x.Status == OptRefractionExamStatus.Final
+                    && x.BillingFactEmittedAt == null
+                    && x.FinalizedAt != null
+                    && x.FinalizedAt <= finalizedBefore);
+            if (after is { } posisi)
+                exams = exams.Where(x => x.FinalizedAt > posisi);
+
+            return await exams
+                .OrderBy(x => x.FinalizedAt).ThenBy(x => x.Id)
+                .Take(take)
+                .Select(x => new OptExamAwaitingCharge(x.Id, x.FinalizedAt!.Value))
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Mengirim ulang tarif satu pemeriksaan lewat jalur yang sama dengan final dan revisi. Pelaku fakta adalah pemeriksa yang
+        /// memfinalkan, sebab pekerja latar tidak punya akun. Tagihan yang sudah final diurus Billing sebagai adjustment
+        /// (<c>OPT-DEC-083</c>).
+        /// </summary>
+        public async Task<OptExamChargeRetryResult> RetryExamChargeAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var exam = await _dbContext.OptRefractionExams.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            if (_billing is null || exam is null || exam.Status != OptRefractionExamStatus.Final || exam.BillingFactEmittedAt is not null)
+                return new OptExamChargeRetryResult(OptExamChargeRetryOutcome.NotEligible, exam?.ExamNumber, null);
+            if (exam.FinalizedBy is not { } actorUserId)
+                return new OptExamChargeRetryResult(OptExamChargeRetryOutcome.MissingActor, exam.ExamNumber, null);
+
+            var emisi = await EmitAndMarkAsync(exam, actorUserId, cancellationToken);
+            return new OptExamChargeRetryResult(
+                emisi.Recorded ? OptExamChargeRetryOutcome.Recorded : OptExamChargeRetryOutcome.NotRecorded, exam.ExamNumber, emisi.Message);
+        }
+
+        /// <summary>Menyerahkan fakta tarif; bila tercatat, penanda diisi lewat pembaruan bersyarat tanpa menaikkan <c>Version</c>.</summary>
+        private async Task<OptBillingEmission> EmitAndMarkAsync(OptRefractionExam exam, Guid actorUserId, CancellationToken cancellationToken)
+        {
+            var emisi = await _billing!.EmitExamChargeAsync(exam, actorUserId, cancellationToken);
+            if (!emisi.Recorded)
+                return emisi;
+
+            var now = Now();
+            await _dbContext.OptRefractionExams
+                .Where(x => x.Id == exam.Id && x.BillingFactEmittedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.BillingFactEmittedAt, now), cancellationToken);
+
+            // Selaraskan entitas terlacak tanpa menandainya berubah, supaya penyimpanan lain tidak menulis ulang kolom ini.
+            // Producer membersihkan change tracker konteks bersama bila penyerahan ke Billing terputus; entitas yang
+            // sudah terlepas cukup diperbarui nilainya.
+            var entri = _dbContext.Entry(exam);
+            if (entri.State == EntityState.Detached)
+            {
+                exam.BillingFactEmittedAt = now;
+            }
+            else
+            {
+                var kolom = entri.Property(x => x.BillingFactEmittedAt);
+                kolom.CurrentValue = now;
+                kolom.OriginalValue = now;
+                kolom.IsModified = false;
+            }
+
+            return emisi;
+        }
+
         private async Task<OptResult<OptRefractionExamResponse>> SaveAsync(OptRefractionExam exam, CancellationToken cancellationToken)
         {
             try
@@ -560,6 +664,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 CurrentRevisionNo = exam.CurrentRevisionNo,
                 StartedAt = exam.StartedAt,
                 FinalizedAt = exam.FinalizedAt,
+                BillingFactEmittedAt = exam.BillingFactEmittedAt,
                 CancelReason = exam.CancelReason,
                 Version = exam.Version,
                 Current = semua.FirstOrDefault(r => r.RevisionNo == exam.CurrentRevisionNo),

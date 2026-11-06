@@ -97,6 +97,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// </summary>
         public bool RequirePartnerEligibility { get; set; }
 
+        /// <summary>
+        /// Kunjungan asal rujukan internal, contoh kunjungan Poli Mata yang merujuk ke Optik (<c>INT-OPT-10</c>,
+        /// <c>BE-OPT-003</c>). Opsional dan hanya untuk kunjungan <c>Outpatient</c> (jalur penunjang); wajib
+        /// kunjungan milik <c>PatientId</c> yang sama. Tidak terikat <see cref="IsReferral"/>, karena rujukan antar-unit
+        /// di rumah sakit ini tidak membawa surat atau instansi perujuk. Bawaan kosong menjaga perilaku pemanggil lama.
+        /// </summary>
+        public Guid? ReferralSourceEncounterId { get; set; }
+
         [MaxLength(500)]
         public string? Notes { get; set; }
     }

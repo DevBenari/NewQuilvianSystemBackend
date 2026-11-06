@@ -160,6 +160,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.DTOs
         public int CurrentRevisionNo { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime? FinalizedAt { get; set; }
+
+        /// <summary>
+        /// Waktu tarif pemeriksaan diserahkan ke tagihan (<c>BE-OPT-031</c>). Kosong pada pemeriksaan final berarti tarifnya
+        /// belum masuk tagihan; lihat <see cref="BillingMessage"/>.
+        /// </summary>
+        public DateTime? BillingFactEmittedAt { get; set; }
+
+        /// <summary>Hanya diisi pada jawaban final/revisi bila tarif belum dapat ditagihkan; pemeriksaan tetap final.</summary>
+        public string? BillingMessage { get; set; }
+
         public string? CancelReason { get; set; }
 
         /// <summary>Kirim kembali sebagai <c>ExpectedVersion</c> pada tindakan berikutnya.</summary>

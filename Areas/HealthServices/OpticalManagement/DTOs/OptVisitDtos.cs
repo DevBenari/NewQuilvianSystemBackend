@@ -43,8 +43,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.DTOs
         public Guid? ReferralDoctorId { get; set; }
 
         /// <summary>
-        /// Kunjungan Poli Mata asal rujukan (<c>OPT-DEC-037</c>). <b>Belum tersedia</b> sampai <c>BE-OPT-003</c>
-        /// menambah kolom tujuannya di Registrasi; bila diisi sekarang permintaan ditolak, bukan dibuang diam-diam.
+        /// Kunjungan Poli Mata asal rujukan (<c>OPT-DEC-037</c>, <c>BE-OPT-003</c>). Opsional; wajib kunjungan milik pasien
+        /// yang sama, bila tidak Registrasi menolak <c>400</c>. Tidak mewajibkan <see cref="IsReferral"/>: rujukan antar-unit
+        /// tidak membawa surat atau instansi perujuk.
         /// </summary>
         public Guid? ReferralSourceEncounterId { get; set; }
 
@@ -84,6 +85,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.DTOs
         public string MedicalRecordNumber { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public bool IsReferral { get; set; }
+
+        /// <summary>Kunjungan Poli Mata asal rujukan (<c>OPT-AC-023</c>); kosong bila bukan rujukan bertaut.</summary>
+        public Guid? ReferralSourceEncounterId { get; set; }
+
+        /// <summary>Nomor kunjungan asal rujukan.</summary>
+        public string? ReferralSourceEncounterNumber { get; set; }
+
+        /// <summary>Dokter pada kunjungan asal rujukan, contoh dr. Sp.M Poli Mata; kosong bila kunjungan asal tanpa dokter.</summary>
+        public string? ReferralSourceDoctorName { get; set; }
+
         public int ExamCount { get; set; }
         public int PrescriptionCount { get; set; }
         public int OpenOrderCount { get; set; }

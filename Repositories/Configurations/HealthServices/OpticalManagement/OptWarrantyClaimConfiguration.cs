@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Optic
             builder.HasIndex(x => x.OrderId).HasDatabaseName("IX_OptWarrantyClaim_OrderId");
             builder.HasIndex(x => x.EncounterId).HasDatabaseName("IX_OptWarrantyClaim_EncounterId");
             builder.HasIndex(x => x.RemakeOrderId).IsUnique().HasFilter("\"RemakeOrderId\" IS NOT NULL").HasDatabaseName("UX_OptWarrantyClaim_RemakeOrderId");
+            builder.HasIndex(x => x.IdempotencyKey).IsUnique().HasFilter("\"IdempotencyKey\" IS NOT NULL").HasDatabaseName("UX_OptWarrantyClaim_IdempotencyKey");
 
             builder.HasOne<OptOrder>()
                 .WithMany()

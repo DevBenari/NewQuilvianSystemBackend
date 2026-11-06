@@ -14,6 +14,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         public const string Laboratory = "LABORATORY";
         public const string Adhoc = "ADHOC";
         public const string AdhocCatalog = "ADHOC_CATALOG";
+
+        /// <summary>Pemeriksaan refraksi Optik yang final (<c>BE-OPT-031</c>/<c>051</c>, <c>INT-OPT-08</c>, <c>OPT-DEC-055</c>).</summary>
+        public const string Optical = "OPTICAL";
     }
 
     /// <summary>
