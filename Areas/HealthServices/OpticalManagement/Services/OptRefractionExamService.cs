@@ -499,12 +499,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             if (!saved.IsSuccess || _billing is null || exam.BillingFactEmittedAt is not null)
                 return saved;
 
-            var emisi = await _billing.EmitExamChargeAsync(exam, actorUserId, cancellationToken);
+            var emisi = await EmitAndMarkAsync(exam, actorUserId, cancellationToken);
             if (!emisi.Recorded)
             {
                 saved.Value!.BillingMessage = emisi.Message;
                 return saved;
             }
+
+            saved.Value!.BillingFactEmittedAt = exam.BillingFactEmittedAt;
+            return saved;
+        }
+
+        /// <summary>
+        /// Pemeriksaan final yang tarifnya belum tercatat, urut waktu final, untuk pekerja latar (<c>OPT-DEC-082</c>).
+        /// <paramref name="after"/> adalah posisi halaman sebelumnya.
+        /// </summary>
+        public async Task<List<OptExamAwaitingCharge>> GetExamsAwaitingChargeAsync(
+            DateTime finalizedBefore, DateTime? after, int take, CancellationToken cancellationToken = default)
+        {
+            var exams = _dbContext.OptRefractionExams.AsNoTracking()
+                .Where(x => !x.IsDelete
+                    && x.Status == OptRefractionExamStatus.Final
+                    && x.BillingFactEmittedAt == null
+                    && x.FinalizedAt != null
+                    && x.FinalizedAt <= finalizedBefore);
+            if (after is { } posisi)
+                exams = exams.Where(x => x.FinalizedAt > posisi);
+
+            return await exams
+                .OrderBy(x => x.FinalizedAt).ThenBy(x => x.Id)
+                .Take(take)
+                .Select(x => new OptExamAwaitingCharge(x.Id, x.FinalizedAt!.Value))
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Mengirim ulang tarif satu pemeriksaan lewat jalur yang sama dengan final dan revisi. Pelaku fakta adalah pemeriksa yang
+        /// memfinalkan, sebab pekerja latar tidak punya akun. Tagihan yang sudah final diurus Billing sebagai adjustment
+        /// (<c>OPT-DEC-083</c>).
+        /// </summary>
+        public async Task<OptExamChargeRetryResult> RetryExamChargeAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var exam = await _dbContext.OptRefractionExams.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            if (_billing is null || exam is null || exam.Status != OptRefractionExamStatus.Final || exam.BillingFactEmittedAt is not null)
+                return new OptExamChargeRetryResult(OptExamChargeRetryOutcome.NotEligible, exam?.ExamNumber, null);
+            if (exam.FinalizedBy is not { } actorUserId)
+                return new OptExamChargeRetryResult(OptExamChargeRetryOutcome.MissingActor, exam.ExamNumber, null);
+
+            var emisi = await EmitAndMarkAsync(exam, actorUserId, cancellationToken);
+            return new OptExamChargeRetryResult(
+                emisi.Recorded ? OptExamChargeRetryOutcome.Recorded : OptExamChargeRetryOutcome.NotRecorded, exam.ExamNumber, emisi.Message);
+        }
+
+        /// <summary>Menyerahkan fakta tarif; bila tercatat, penanda diisi lewat pembaruan bersyarat tanpa menaikkan <c>Version</c>.</summary>
+        private async Task<OptBillingEmission> EmitAndMarkAsync(OptRefractionExam exam, Guid actorUserId, CancellationToken cancellationToken)
+        {
+            var emisi = await _billing!.EmitExamChargeAsync(exam, actorUserId, cancellationToken);
+            if (!emisi.Recorded)
+                return emisi;
 
             var now = Now();
             await _dbContext.OptRefractionExams
@@ -527,8 +579,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 kolom.IsModified = false;
             }
 
-            saved.Value!.BillingFactEmittedAt = now;
-            return saved;
+            return emisi;
         }
 
         private async Task<OptResult<OptRefractionExamResponse>> SaveAsync(OptRefractionExam exam, CancellationToken cancellationToken)

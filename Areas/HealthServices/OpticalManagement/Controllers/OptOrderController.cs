@@ -84,11 +84,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Controlle
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction(P.Create, "Create Opt Order", Description = "Membuat draf pesanan Optik", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission(P.Order.Resource, P.Create)]
-        public async Task<IActionResult> Create([FromBody] OptOrderCreateRequest request, CancellationToken cancellationToken = default) =>
+        public async Task<IActionResult> Create(
+            [FromBody] OptOrderCreateRequest request,
+            [FromHeader(Name = "Idempotency-Key")] Guid? idempotencyKey,
+            CancellationToken cancellationToken = default) =>
             await OptHttp.RespondAsync(this,
-                await _service.CreateAsync(request, OptHttp.ActorId(User), cancellationToken),
+                await _service.CreateAsync(request, OptHttp.ActorId(User), idempotencyKey, cancellationToken),
                 "Draf pesanan tersimpan.", _logger, P.Order.Resource, P.Create,
-                x => $"{x.OrderNumber} dibuat sebagai draf berisi {x.ItemCount} barang.");
+                x => x.IsReplay
+                    ? $"Pembuatan pesanan {x.OrderNumber} diulang dengan kunci yang sama; tidak ada pesanan baru."
+                    : $"{x.OrderNumber} dibuat sebagai draf berisi {x.ItemCount} barang.");
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<OptOrderResponse>), StatusCodes.Status200OK)]

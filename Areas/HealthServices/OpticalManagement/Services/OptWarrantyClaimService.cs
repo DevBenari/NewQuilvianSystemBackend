@@ -34,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
         public const int DefaultPageSize = 25;
         public const int MaxPageSize = 100;
 
+        public const string IdempotencyKeyRequiredMessage = "Header Idempotency-Key wajib diisi agar Simpan dua kali tidak membuat keluhan ganda.";
         public const string NotFoundMessage = "Keluhan garansi tidak ditemukan.";
         public const string NotHandedOverMessage = "Keluhan hanya untuk kacamata yang sudah diserahkan.";
         public const string NewEncounterMessage = "Daftarkan kunjungan keluhan baru untuk pasien ini.";
@@ -129,8 +130,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
 
         // ---------------------------------------------------------------- tindakan
 
-        public async Task<OptResult<OptWarrantyClaimResponse>> CreateAsync(OptWarrantyClaimCreateRequest request, Guid actorUserId, CancellationToken cancellationToken = default)
+        public async Task<OptResult<OptWarrantyClaimResponse>> CreateAsync(OptWarrantyClaimCreateRequest request, Guid actorUserId, Guid? idempotencyKey, CancellationToken cancellationToken = default)
         {
+            // Diperiksa paling awal agar kiriman ulang tidak ditolak oleh hasil kiriman pertamanya sendiri (OPT-DEC-077).
+            if (idempotencyKey is not { } kunci || kunci == Guid.Empty)
+                return OptResult<OptWarrantyClaimResponse>.Invalid(OptErrorCodes.InvalidRequest, IdempotencyKeyRequiredMessage);
+            if (await FindReplayAsync(kunci, cancellationToken) is { } ulang)
+                return ulang;
+
             if (request.OrderId is not { } orderId || orderId == Guid.Empty)
                 return OptResult<OptWarrantyClaimResponse>.Invalid(OptErrorCodes.InvalidRequest, "Pilih pesanan yang dikeluhkan.");
             if (request.ComplaintType is not { } jenis || !Enum.IsDefined(jenis))
@@ -168,12 +175,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 IsWithinWarranty = batas is { } b && hariIni <= b,
                 WarrantyDeadlineSnapshot = batas,
                 Status = OptWarrantyClaimStatus.Submitted,
+                IdempotencyKey = kunci,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
             };
             _dbContext.OptWarrantyClaims.Add(claim);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Dua kiriman serentak berkunci sama: indeks unik menolak yang kalah, lalu data pemenangnya dikembalikan.
+                // Kegagalan lain tidak punya data pemenang, sehingga tetap diteruskan apa adanya.
+                _dbContext.ChangeTracker.Clear();
+                if (await FindReplayAsync(kunci, cancellationToken) is { } pemenang)
+                    return pemenang;
+                throw;
+            }
+
             return OptResult<OptWarrantyClaimResponse>.Ok(await ProjectAsync(claim, cancellationToken));
+        }
+
+        private async Task<OptResult<OptWarrantyClaimResponse>?> FindReplayAsync(Guid kunci, CancellationToken cancellationToken)
+        {
+            var id = await _dbContext.OptWarrantyClaims.AsNoTracking()
+                .Where(x => x.IdempotencyKey == kunci)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (id is null)
+                return null;
+
+            var hasil = await GetDetailAsync(id.Value, cancellationToken);
+            if (hasil.Value is { } keluhan)
+                keluhan.IsReplay = true;
+            return hasil;
         }
 
         public async Task<OptResult<OptWarrantyClaimResponse>> ExamineAsync(Guid id, OptWarrantyClaimExamineRequest request, Guid actorUserId, CancellationToken cancellationToken = default)

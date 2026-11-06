@@ -2,12 +2,12 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `OPT-BP-001` r1 `approved`; decision log r8 |
+| Blueprint | `OPT-BP-001` r5 `approved`; decision log r13 |
 | Keputusan | `OPT-FE-001` (menu, daftar layar), `OPT-FE-002` (route, daftar/detail, tab/modal) |
-| Status | `approved` — Yoga Aji Pratama, 2026-11-04 (struktur `OPT-DEC-061`..`075` dan seluruh rincian brief ini; menutup `OPT-OQ-018`) |
-| Revisi | `r2` 2026-11-04 — pratinjau harga tampil di detail pesanan `Draft` sesudah Simpan Draf, bukan di form saat memilih barang (`OPT-DEC-076`, disetujui Yoga Aji Pratama) |
-| Repository | `QuilvianSystemFrontendDev` (v2) `2bb756de7` (branch `YogaV2`); backend `d8fa6e40` + `BE-OPT-003`..`053` di working tree |
-| Masukan | `03-frontend-architecture.md` r1; `OPT-API-v1`, `OPT-PERM-v1`, `OPT-STATE-v1`, `OPT-VAL-v1`; brief MCU (`mcu/05-screen-brief.md`) sebagai acuan bentuk |
+| Status | r2 `approved` — Yoga Aji Pratama, 2026-11-04 (struktur `OPT-DEC-061`..`075` dan seluruh rincian brief ini; menutup `OPT-OQ-018`). r3, r4, dan r5 `approved` — Yoga Aji Pratama, 2026-11-06 |
+| Revisi | `r5` 2026-11-06 — persetujuan izin lintas modul (`OPT-DEC-086`); layar tidak berubah. Sebelumnya `r4` 2026-11-06 — izin lintas modul lengkap (`OPT-DEC-085`) dan keterangan status sesudah `OPT-DEC-084`; tata letak tidak berubah. Sebelumnya `r3` 2026-11-06 — aksi Daftarkan Barang (`OPT-DEC-080`), modal Ajukan Diskon hanya kebijakan Optik (`OPT-DEC-079`), daur kunci kirim ganda (`OPT-DEC-077`), keterangan penjamin (`OPT-DEC-078`). Sebelumnya `r2` 2026-11-04 — pratinjau harga tampil di detail pesanan `Draft` sesudah Simpan Draf, bukan di form saat memilih barang (`OPT-DEC-076`, disetujui Yoga Aji Pratama) |
+| Repository | `QuilvianSystemFrontendDev` (v2) `2bb756de7` (branch `YogaV2`); backend `d8fa6e40` + `BE-OPT-003`..`053` di working tree. r3 membaca frontend `811f22159`, backend `06e40fb7` |
+| Masukan | `03-frontend-architecture.md` r2; `OPT-API-v1.4`, `OPT-PERM-v1.4`, `OPT-STATE-v1.1`, `OPT-VAL-v1.3`; brief MCU (`mcu/05-screen-brief.md`) sebagai acuan bentuk |
 | Menutup | Task `FE-OPT-000`; mencabut penahan `FE-OPT-010`..`032` (kecuali bagian yang menunggu `OPT-API-v1.1`, lihat bagian 8) |
 
 Brief ini menjawab **di mana** setiap pekerjaan Optik dilakukan di layar dan **bagaimana bentuknya**.
@@ -160,7 +160,7 @@ Daftarkan Kunjungan Optik
 | Aturan tampilan | Isi |
 | --- | --- |
 | Cari pasien | Komponen pencarian pasien yang sudah ada (pola pencarian pasien Lab); pasien baru dibuat di Patient Management, bukan di sini |
-| Penjamin | Pilihan asuransi/penjamin pasien dari endpoint penjamin yang sudah dipakai pendaftaran lain (`/admin/options` berizin, bukan `/options` kiosk) |
+| Penjamin | Pilihan asuransi/penjamin pasien dari endpoint penjamin yang sudah dipakai pendaftaran lain (`/admin/options` berizin, bukan `/options` kiosk). Isian Penjamin Perusahaan diterima server untuk unit Optik (`OPT-DEC-078`, `OPT-APR-013`, `BE-OPT-061`); penolakan kartu tampil apa adanya |
 | Kunjungan asal | Kunjungan rawat jalan pasien yang sama dari `patient-encounters/admin/options?patientId&encounterType=Outpatient&onlyActive=false` (`PatientEncounter : Read`). Pasien lain atau kunjungan non-rawat-jalan ditolak server (`OPT-REG-REJECTED`) |
 | Sesudah simpan | Ke detail kunjungan baru. Pada alur keluhan (`claimOrderId`) langsung ke `…/visits/[encounterId]/warranty-claims/new?orderId=` |
 | Kirim ganda | Tombol nonaktif selama permintaan; server mengenali pengulangan (`IsReplay`) |
@@ -317,7 +317,7 @@ Riwayat status  ·  Pengajuan batal  ·  Garansi (sesudah diserahkan)
 | Ajukan Batal | Alasan; per baris lensa stok: *sudah dipotong / belum* | `POST orders/{id}/cancellation-requests` |
 | Putuskan Batal | Setujui/Tolak + catatan; tampil ringkasan pengajuan | `POST …/cancellation-requests/{requestId}/decision` |
 | Tutup Tidak Diambil | Alasan; keterangan *"Tagihan tetap penuh; kacamata disimpan atas nama pasien."* | `POST orders/{id}/close-not-collected` |
-| Ajukan Diskon | Baris tagihan, kebijakan diskon Optik, nominal, alasan. Baris dan harga dibaca dari tagihan Billing (`InvoiceId` dari status bayar); di atas batas → *"Menunggu persetujuan Kepala Optik"* | `POST billing-management/billing/invoices/{id}/discounts` (Billing, as-is) |
+| Ajukan Diskon | Kebijakan diskon Optik, baris tagihan, alasan. Nominal tidak diketik, karena Billing menghitungnya dari kebijakan. Pilihan **hanya kebijakan Optik**: `PROMO_ITEM` aktif yang berpenanda Optik (`OPT-DEC-079`, `084`: kode berawalan `OPT-`). Bila belum ada kebijakan: *"Belum ada kebijakan diskon aktif."* Baris dan harga dibaca dari tagihan Billing (`InvoiceId` dari status bayar). **Contoh:** Diskon Optik 10% pada frame Rp 450.000 langsung mengurangi tagihan Rp 45.000; promo 50% unit lain tidak tampil; permintaan 15% tidak punya pilihan | `GET billing-management/master-data/discount-policies` (`DiscountPolicy : Read`); `POST billing-management/billing/invoices/{id}/discounts` (Billing, as-is) |
 
 | Elemen | Aturan |
 | --- | --- |
@@ -375,17 +375,27 @@ dari baris tagihan, sebelum diskon tagihan."* Ekspor berkas tidak termasuk MVP.
 
 | Layar | Bentuk | Isi |
 | --- | --- | --- |
-| Katalog Barang Optik | Tabel: kode, nama, kategori, merk, warna/ukuran/indeks (menurut kategori), stok depo, aktif; penyaring kategori, cari, aktif. Aksi **Ubah Profil** → modal | `GET reference-data/item-catalog`; modal `PUT item-profiles/{drugId}` (isian menurut kategori: frame — merk, warna, ukuran, bahan; lensa — indeks, desain, lapisan; lensa kontak — BC, DIA, masa pakai) |
+| Katalog Barang Optik | Tabel: kode, nama, kategori, merk, warna/ukuran/indeks (menurut kategori), stok depo, aktif; penyaring kategori, cari, aktif. Aksi **Daftarkan Barang** dan **Ubah Profil** → modal yang sama (`OPT-DEC-080`) | `GET reference-data/item-catalog`; modal `PUT item-profiles/{drugId}` (isian menurut kategori: frame — merk, warna, ukuran, bahan; lensa — indeks, desain, lapisan; lensa kontak — BC, DIA, masa pakai) |
 | Pengaturan Optik | Satu form: minimum uang muka %, pengingat ambil (hari), batas tutup tidak diambil (hari), usia resep (bulan), masa garansi (ukuran hari, lensa bulan, frame bulan), rentang BC/DIA. Keterangan *"Berlaku untuk pesanan sesudah disimpan."* Di bawahnya tabel riwayat perubahan | `GET`/`PUT reference-data/settings` (`ExpectedVersion`) |
 
-Batas diskon tidak ada di Pengaturan Optik: diatur di kebijakan diskon Billing (`OPT-DEC-027`).
+**Daftarkan Barang** (`OPT-DEC-080`):
+
+| Aturan | Isi |
+| --- | --- |
+| Kegunaan | Katalog hanya menampilkan barang berprofil, sehingga tanpa aksi ini katalog tidak pernah terisi lewat layar |
+| Pilihan barang | `GET master-data/drugs/options?isPrescribable=false` (`Drug : Read`), dicari minimal 2 huruf. Barang ber-`IsPrescribable = true` tidak ada di pilihan |
+| Keterangan modal | *"Barang dibuat di Master Data Farmasi dan ditandai tidak dapat diresepkan; hanya barang itu yang tampil di sini. Mendaftarkan barang yang sudah ada di katalog akan menimpa profilnya."* |
+| Barang yang sudah berprofil | Modal memperingatkan lewat keterangan itu, dan tidak mencegah. Risiko diterima karena bisa diperbaiki lewat Ubah Profil |
+| Contoh | Admin Optik memilih frame FR-001 (samaran), mengisi merk, warna, ukuran, dan bahan. Frame itu tampil di katalog dan bisa dipilih di form pesanan |
+
+Batas diskon tidak ada di Pengaturan Optik. Batas MVP 10% ditegakkan oleh nilai kebijakan diskon Billing (`OPT-DEC-027`, `079`).
 
 ## 6. Perilaku bersama
 
 | Keadaan | Perilaku |
 | --- | --- |
 | Memuat | Kerangka muat per bagian; tombol aksi nonaktif |
-| Kirim ganda | Satu `Idempotency-Key` per niat aksi; tombol nonaktif selama permintaan |
+| Kirim ganda | Satu `Idempotency-Key` per niat aksi; tombol nonaktif selama permintaan. Wajib pada Daftarkan Kunjungan, Simpan Resep (internal dan luar), Simpan Draf pesanan baru, dan Catat Keluhan (`OPT-DEC-077`). **Daur kunci**, pola `optical-visit-slice`: kunci dibuat saat kiriman pertama; dipakai lagi bila hasilnya tidak diketahui (jaringan putus atau `503`) dan isi sama; dibuat baru bila isi diubah; dibuang sesudah server menjawab berhasil atau menolak. **Contoh:** jaringan putus sesudah keluhan KLM-0001 tersimpan, lalu Dedi menekan Simpan lagi dengan isi yang sama. Layar menampilkan KLM-0001, dan tidak ada keluhan kedua |
 | `409` | Pesan server, lalu detail dimuat ulang (status/versi berubah) |
 | `403` | Pesan server apa adanya (izin atau STR/SIP); tidak dicoba ulang otomatis |
 | `503` | *"Modul pendukung sedang tidak dapat dihubungi"* + tombol *Coba lagi* |
@@ -410,6 +420,8 @@ dan menghitung uang di layar.
 | ID | Hal | Dampak ke layar | Pemilik |
 | --- | --- | --- | --- |
 | `OPT-API-v1.1` | Task `BE-OPT-054`: (a) dua penyaring + empat tanda di daftar pesanan (`OPT-DEC-067`); (b) pratinjau harga pesanan `Draft` (`OPT-DEC-075`, `076`) | `BE-OPT-054` ✅ selesai 2026-11-04 ([laporan](task/report/backend/BE-OPT-054.md)); kartu penyaring, kolom Tanda, dan pratinjau harga sudah punya endpoint | Yoga Aji Pratama (`/qv-build-be BE-OPT-054`) |
-| Izin lintas modul | Petugas pendaftaran Optik butuh `PatientEncounter : Read` (pilihan kunjungan asal); petugas penjualan butuh izin baca tagihan dan `BillingDiscount : Create` untuk Ajukan Diskon | Tanpa izin, bagian itu menampilkan pesan server | Admin akses per departemen-jabatan |
+| Izin lintas modul | Daftar lengkap di `OPT-PERM-v1.4` (`OPT-DEC-085`). Pendaftaran: `Patient : Read`, `PatientInsurance : Read`, `PatientCompanyGuarantor : Read`, `PatientEncounter : Read`. Detail pesanan: `BillingInvoice : Read`, `Supplier : Read`, `DiscountPolicy : Read`, `BillingDiscount : Create`. Daftarkan Barang: `Drug : Read` | Tanpa izin, bagian itu menampilkan pesan server. RO dan Sp.M sengaja tanpa `BillingInvoice : Read`, sedangkan Status Bayar tetap tampil | Admin akses per departemen-jabatan; enam izin disetujui Yoga Aji Pratama (`OPT-DEC-086`) |
 | Pemasok lab luar | Pilihan pemasok untuk Kirim ke Pengerjaan dari endpoint pilihan pemasok yang sudah ada | Diverifikasi di `FE-OPT-020` | Pengembang |
 | Cetak | Disusun dari data detail di layar; tidak ada endpoint cetak | — | Pengembang |
+| `OPT-API-v1.2` | Empat `POST` pembuat menolak kiriman tanpa header (`OPT-DEC-077`) | Layar wajib terbit lebih dulu atau bersamaan dengan backend; kalau backend lebih dulu, Simpan pada resep, pesanan, dan keluhan ditolak `400` | Yoga Aji Pratama |
+| Penanda kebijakan Optik | Kode berawalan `OPT-` (`OPT-DEC-084`) | Penyaring modal terpasang (`FE-OPT-041`); kebijakan `OPT-DISC-10` dibuat Billing | Yasmina |

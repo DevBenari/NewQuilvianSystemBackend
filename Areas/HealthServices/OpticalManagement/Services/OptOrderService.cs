@@ -63,6 +63,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
         public const string QuantityMessage = "Jumlah harus lebih dari 0.";
         public const string CancelReasonMessage = "Tuliskan alasan pembatalan.";
         public const string CancelAfterWorkMessage = "Pembatalan sesudah pengerjaan perlu persetujuan Kepala Optik.";
+        public const string IdempotencyKeyRequiredMessage = "Header Idempotency-Key wajib diisi agar Simpan dua kali tidak membuat pesanan ganda.";
         public const string MixedPrescriptionMessage = "Lensa kontak dan lensa kacamata memakai resep berbeda. Buat pesanan terpisah.";
         public const string OutdatedVersionMessage = "Resep ini sudah direvisi. Pilih versi terbaru.";
         public const string DirectSaleSpectacleLensMessage = "Lensa kacamata dijual lewat pesanan berpengerjaan, bukan penjualan langsung.";
@@ -248,8 +249,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
 
         // ---------------------------------------------------------------- buat dan ubah
 
-        public async Task<OptResult<OptOrderResponse>> CreateAsync(OptOrderCreateRequest request, Guid actorUserId, CancellationToken cancellationToken = default)
+        public async Task<OptResult<OptOrderResponse>> CreateAsync(OptOrderCreateRequest request, Guid actorUserId, Guid? idempotencyKey, CancellationToken cancellationToken = default)
         {
+            // Diperiksa paling awal agar kiriman ulang tidak ditolak oleh hasil kiriman pertamanya sendiri (OPT-DEC-077).
+            if (idempotencyKey is not { } kunci || kunci == Guid.Empty)
+                return OptResult<OptOrderResponse>.Invalid(OptErrorCodes.InvalidRequest, IdempotencyKeyRequiredMessage);
+            if (await FindReplayAsync(kunci, cancellationToken) is { } ulang)
+                return ulang;
+
             var tolakJenis = RejectKind(request.OrderKind);
             if (tolakJenis is not null)
                 return tolakJenis;
@@ -283,6 +290,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 Status = OptOrderStatus.Draft,
                 // Penjualan langsung tidak mengenal uang muka (OPT-DEC-020); minimum 0%.
                 DownPaymentMinPercentSnapshot = request.OrderKind == OptOrderKind.DirectSale ? 0m : setting.DownPaymentMinPercent,
+                IdempotencyKey = kunci,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
             };
@@ -297,9 +305,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             }
             order.StatusHistories.Add(History(order.Id, null, OptOrderStatus.Draft, actorUserId, now, null));
             _dbContext.OptOrders.Add(order);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Dua kiriman serentak berkunci sama: indeks unik menolak yang kalah, lalu data pemenangnya dikembalikan.
+                // Kegagalan lain tidak punya data pemenang, sehingga tetap diteruskan apa adanya.
+                _dbContext.ChangeTracker.Clear();
+                if (await FindReplayAsync(kunci, cancellationToken) is { } pemenang)
+                    return pemenang;
+                throw;
+            }
 
             return OptResult<OptOrderResponse>.Ok(await ProjectAsync(order, cancellationToken));
+        }
+
+        private async Task<OptResult<OptOrderResponse>?> FindReplayAsync(Guid kunci, CancellationToken cancellationToken)
+        {
+            var id = await _dbContext.OptOrders.AsNoTracking()
+                .Where(x => x.IdempotencyKey == kunci)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (id is null)
+                return null;
+
+            var hasil = await GetDetailAsync(id.Value, cancellationToken);
+            if (hasil.Value is { } pesanan)
+                pesanan.IsReplay = true;
+            return hasil;
         }
 
         /// <summary>

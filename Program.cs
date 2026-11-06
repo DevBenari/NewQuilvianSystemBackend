@@ -1350,6 +1350,11 @@ try
         builder.Services.Configure<McuNoShowOptions>(
             builder.Configuration.GetSection(McuNoShowOptions.SectionName));
         builder.Services.AddHostedService<McuNoShowHostedService>();
+        // optik BE-OPT-062: tarif pemeriksaan yang belum tercatat dikirim ulang otomatis. Saklar
+        // OpticalManagement:ExamChargeRetry:Enabled, bawaan menyala.
+        builder.Services.Configure<OptExamChargeRetryOptions>(
+            builder.Configuration.GetSection(OptExamChargeRetryOptions.SectionName));
+        builder.Services.AddHostedService<OptExamChargeRetryHostedService>();
         // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
         builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();

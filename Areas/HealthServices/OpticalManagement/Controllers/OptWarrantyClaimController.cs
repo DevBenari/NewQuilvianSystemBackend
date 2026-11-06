@@ -62,11 +62,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Controlle
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction(P.Create, "Create Opt Warranty Claim", Description = "Mencatat keluhan garansi pada kunjungan keluhan", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission(P.WarrantyClaim.Resource, P.Create)]
-        public async Task<IActionResult> Create([FromBody] OptWarrantyClaimCreateRequest request, CancellationToken cancellationToken = default) =>
+        public async Task<IActionResult> Create(
+            [FromBody] OptWarrantyClaimCreateRequest request,
+            [FromHeader(Name = "Idempotency-Key")] Guid? idempotencyKey,
+            CancellationToken cancellationToken = default) =>
             await OptHttp.RespondAsync(this,
-                await _service.CreateAsync(request, OptHttp.ActorId(User), cancellationToken),
+                await _service.CreateAsync(request, OptHttp.ActorId(User), idempotencyKey, cancellationToken),
                 "Keluhan garansi tercatat.", _logger, P.WarrantyClaim.Resource, P.Create,
-                x => $"{x.ClaimNumber} dicatat atas pesanan {x.OrderNumber} ({x.ComplaintTypeLabel}, {(x.IsWithinWarranty ? "dalam" : "di luar")} garansi).");
+                x => x.IsReplay
+                    ? $"Pencatatan keluhan {x.ClaimNumber} diulang dengan kunci yang sama; tidak ada keluhan baru."
+                    : $"{x.ClaimNumber} dicatat atas pesanan {x.OrderNumber} ({x.ComplaintTypeLabel}, {(x.IsWithinWarranty ? "dalam" : "di luar")} garansi).");
 
         [HttpPost("{id:guid}/examination")]
         [ProducesResponseType(typeof(ApiResponse<OptWarrantyClaimResponse>), StatusCodes.Status200OK)]

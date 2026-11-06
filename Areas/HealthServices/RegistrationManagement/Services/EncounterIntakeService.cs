@@ -131,7 +131,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             await ValidateReferralSourceEncounterAsync(request, patient.Id, visit, cancellationToken);
 
-            var paymentReference = await LoadPaymentSourceReferenceAsync(request, visit, cancellationToken);
+            var paymentReference = await LoadPaymentSourceReferenceAsync(request, visit, serviceUnit, cancellationToken);
 
             var patientClassId = await ResolveOutpatientPatientClassIdAsync(cancellationToken);
 
@@ -597,15 +597,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private async Task<PaymentReference> LoadPaymentSourceReferenceAsync(
             EncounterIntakeRequest request,
             IntakeVisitProfile visit,
+            MstServiceUnit serviceUnit,
             CancellationToken cancellationToken)
         {
             if (request.PaymentType == EncounterPaymentType.CompanyGuarantor)
             {
                 // Sama seperti jalur kiosk: Penjamin Perusahaan hanya diterima petugas admisi
                 // (RWI-ENC-PAYER-001 bagian 7), sehingga wewenangnya tidak ikut meluas ke sini.
-                // Satu-satunya pengecualian adalah check-in MCU di meja admisi MCU (INT-MCU-02,
-                // BE-MCU-013): peserta korporat datang atas tanggungan perusahaannya.
-                if (visit.EncounterType != EncounterType.MedicalCheckup)
+                // Pengecualiannya hanya dua: check-in MCU di meja admisi MCU (INT-MCU-02, BE-MCU-013),
+                // dan kunjungan unit Optik (OPT-DEC-078, OPT-APR-013, BE-OPT-061). Keduanya melayani
+                // peserta korporat yang datang atas tanggungan perusahaannya.
+                var isOpticalVisit = visit.EncounterType == EncounterType.Outpatient
+                    && serviceUnit.ServiceUnitType == ServiceUnitType.Optical;
+                if (visit.EncounterType != EncounterType.MedicalCheckup && !isOpticalVisit)
                 {
                     throw new EncounterIntakeValidationException(
                         "Penjamin perusahaan hanya dapat dipilih lewat pendaftaran loket.");

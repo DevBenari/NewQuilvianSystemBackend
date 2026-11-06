@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Konteks | `BC-OPT-01` Optik — Klinis |
-| Revision | `1` — `draft` |
-| Keputusan | `OPT-DEC-005`, `007`, `011`, `012`, `017`, `022`, `023`, `039`, `042`, `045`, `046`, `047` |
+| Revision | `3` — `approved`, Yoga Aji Pratama 2026-11-06. Hanya label yang berubah dari r2: kolom `IdempotencyKey` kini tersedia |
+| Keputusan | `OPT-DEC-005`, `007`, `011`, `012`, `017`, `022`, `023`, `039`, `042`, `045`, `046`, `047`, `077` |
 
 ```mermaid
 erDiagram
@@ -48,6 +48,7 @@ erDiagram
         timestamp LockedAt "terisi = terkunci"
         uuid LockedByOrderId FK
         int Version
+        uuid IdempotencyKey UK "kirim ganda"
     }
     OptPrescriptionVersion {
         uuid Id PK

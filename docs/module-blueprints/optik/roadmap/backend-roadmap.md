@@ -3,19 +3,19 @@
 | Field | Nilai |
 |---|---|
 | Roadmap ID | `OPT-RM-BE-001` |
-| Revision | `3` — task `BE-OPT-054` (`OPT-API-v1.1`: penyaring Kepala Optik dan pratinjau harga) dari screen brief yang disetujui 2026-11-04; r2 persetujuan mitra tercatat (`OPT-DEC-050`..`055`) |
-| Status | `approved` (Yoga Aji Pratama, 2026-11-03); r2 status persetujuan mitra; r3 `approved` (Yoga Aji Pratama, 2026-11-04) |
-| Blueprint | `OPT-BP-001` r1, `approved` sisi Optik (Yoga Aji Pratama, 2026-11-03) |
+| Revision | `6` — task `BE-OPT-063` dari temuan audit `T2`; sebelumnya `5` — task `BE-OPT-062` dari amendment r10 (`OPT-DEC-082`, `083`); sebelumnya `4` — task `BE-OPT-060`, `061` dari amendment r9 (`OPT-DEC-077`, `078`); sebelumnya `3` — task `BE-OPT-054` (`OPT-API-v1.1`: penyaring Kepala Optik dan pratinjau harga) dari screen brief yang disetujui 2026-11-04; r2 persetujuan mitra tercatat (`OPT-DEC-050`..`055`) |
+| Status | `approved` (Yoga Aji Pratama, 2026-11-03); r2 status persetujuan mitra; r3 `approved` (Yoga Aji Pratama, 2026-11-04); **r5, r6 `DRAFT`**: rencana task belum disetujui, dan setiap task butuh approval sendiri. `BE-OPT-060`..`063` ✅ selesai 2026-11-06 |
+| Blueprint | `OPT-BP-001` r1, `approved` sisi Optik (Yoga Aji Pratama, 2026-11-03); r2 `approved` sisi Optik (Yoga Aji Pratama, 2026-11-06); r3, r4, dan r5 `approved` sisi Optik (Yoga Aji Pratama, 2026-11-06) |
 | Cakupan | `MVP-0` s.d. `MVP-4` (`EPIC OPT-00` s.d. `OPT-11`). `POST-MVP` dicatat di bagian akhir |
-| SHA baseline | BE `2a5094ca` (branch `yoga`), FE `b6dd6c304` (branch `YogaV2`) |
-| Kontrak masukan | `OPT-API-v1`, `OPT-STATE-v1`, `OPT-VAL-v1`, `OPT-INT-v1`, `OPT-PERM-v1`, `OPT-PRD-v1` — `approved` sisi Optik 2026-11-03. Hash per berkas di [`blueprint-manifest.md`](../blueprint-manifest.md) bagian *Artifact hashes*. Delta tambahan `OPT-API-v1.1` (`OPT-DEC-067`, `075`, `076`, disahkan pemilik 2026-11-04) dirinci di `BE-OPT-054`; `contracts/api-contract.md` terkunci hash, penyegarannya dicatat di decision log bagian 11 |
-| Masukan desain | `00-interview-decisions.md` r4, `02-backend-architecture.md` r1, `erd/data-dictionary.md`, `04-prd-to-mvp.md` bagian 10 dan 20, `testing/acceptance-test-matrix.md` |
+| SHA baseline | BE `2a5094ca` (branch `yoga`), FE `b6dd6c304` (branch `YogaV2`). r4: BE `06e40fb7`, FE `811f22159`. r5: sama, ditambah `BE-OPT-060` dan `FE-OPT-040` di working tree. r6: sama, ditambah `BE-OPT-060`..`062` dan `FE-OPT-040`..`042` di working tree |
+| Kontrak masukan | `OPT-API-v1`, `OPT-STATE-v1`, `OPT-VAL-v1`, `OPT-INT-v1`, `OPT-PERM-v1`, `OPT-PRD-v1` — `approved` sisi Optik 2026-11-03. Hash per berkas di [`blueprint-manifest.md`](../blueprint-manifest.md) bagian *Artifact hashes*. Delta tambahan `OPT-API-v1.1` (`OPT-DEC-067`, `075`, `076`, disahkan pemilik 2026-11-04) dirinci di `BE-OPT-054`; `contracts/api-contract.md` terkunci hash, penyegarannya dicatat di decision log bagian 11. **r5 memakai `OPT-API-v1.3`, `OPT-VAL-v1.2`, `OPT-INT-v1.2`, `approved` 2026-11-06 dan terkunci hash di manifest r3** |
+| Masukan desain | `00-interview-decisions.md` r10, `02-backend-architecture.md` r3, `erd/data-dictionary.md`, `04-prd-to-mvp.md` bagian 10 dan 20, `testing/acceptance-test-matrix.md` |
 | Owner | Yoga Aji Pratama |
 
 > **Batas dokumen.**
 > 1. Roadmap ini memecah desain menjadi task kecil, tetapi **bukan** izin menulis kode. Setiap task dikerjakan lewat `build-module-backend` dengan `TASK MODE: BACKEND` dan approval task yang eksplisit.
 > 2. **QBE preflight** dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend dan `docs/engineering/`, bukan dari roadmap ini.
-> 3. Migration dibuat di `BE-OPT-002` dan `BE-OPT-003`. **Penerapan** migration ke basis data mana pun butuh otorisasi terpisah per sesi. Bila ada migration lain yang tertunda di basis data tujuan, pakai skrip `--idempotent`, bukan `database update`.
+> 3. Migration dibuat di `BE-OPT-002`, `BE-OPT-003`, dan `BE-OPT-060`. **Penerapan** migration ke basis data mana pun butuh otorisasi terpisah per sesi. Bila ada migration lain yang tertunda di basis data tujuan, pakai skrip `--idempotent`, bukan `database update`.
 > 4. Build backend memakai `-p:RunAnalyzers=False`. Sebelum build, server lokal BE/FE dimatikan. Uji yang menulis data memakai harness InMemory/SQLite di `Tests/` (berkas uji baru wajib `git add -f`). Uji di devYoga hanya dengan izin pemilik per sesi.
 > 5. Task yang mengubah kode milik modul lain (Registrasi, Billing, Farmasi, Rekam Medis, Medical Fee, Master Data) memakai persetujuan pemiliknya yang tercatat di `OPT-EVD-002` (amendment pass 2026-11-03, `OPT-DEC-050`..`055`). Laporan task wajib menyebut penyetujunya.
 > 6. Commit, push, dan deployment tetap wewenang pemilik.
@@ -41,6 +41,8 @@ lensa stok Rp 600.000, pemeriksaan Rp 75.000.
 | `MVP-3` | Penyerahan, batal, tidak diambil, penjualan langsung; kunjungan tertutup saat pesanan selesai | Ibu Sari melunasi dan menerima kacamata; kunjungan ditutup |
 | `MVP-4` | Garansi dan remake, jasa medis pemeriksa, empat laporan | Keluhan pusing → remake Rp 0 |
 | Penyesuaian layar | Kepala Optik menemukan pengajuan batal dan pesanan lewat batas dari daftar; petugas melihat perkiraan harga sebelum menagih | Draf frame + lensa menampilkan perkiraan Rp 1.050.000 sebelum Tagihkan |
+| Amendment kesiapan | Simpan dua kali tidak membuat resep, pesanan, atau keluhan ganda; pasien perusahaan bisa didaftarkan di Optik | Keluhan KLM-0001 dikirim dua kali tetap satu; karyawan PT Contoh (samaran) didaftarkan dengan kartu perusahaan |
+| Amendment kesiapan lanjutan | Tarif pemeriksaan yang tertinggal masuk tagihan otomatis, tanpa tagihan ganda | Tarif Rp 75.000 pemeriksaan Ibu Sari yang tertinggal masuk tagihan pada putaran berikutnya |
 
 ## Grafik Dependency
 
@@ -60,6 +62,13 @@ BE-OPT-001 {Master Data ✅} ────┘
 ✅BE-OPT-051 {Medical Fee ✅} <── BE-OPT-031  └──────────────────────────────> ✅BE-OPT-053
 
 ✅BE-OPT-032 + ✅BE-OPT-041 ─> ✅BE-OPT-054 {OPT-API-v1.1} ─> FE-OPT-020 (pratinjau harga), FE-OPT-021 (penyaring Kepala)
+
+✅{persetujuan r2 + kunci hash} ─┬─> ✅BE-OPT-060 (kunci simpan ganda) ── terbit sesudah atau bersama ──> ✅FE-OPT-040
+                                └─> ✅BE-OPT-061 (penjamin) <── ✅{OPT-APR-013, Muhammad Hamzah}
+
+✅{persetujuan r3 + kunci hash} + ✅BE-OPT-031 ─> ✅BE-OPT-062 (pekerja latar tarif) ── rilis ──> ✅{OPT-APR-015, Yasmina}
+
+✅BE-OPT-032 + ✅BE-OPT-061 + ✅FE-OPT-041 ─> ✅BE-OPT-063 (uji kontrak diskon pada Billing)
 ```
 
 | Gelombang | Task | Boleh mulai setelah |
@@ -70,6 +79,11 @@ BE-OPT-001 {Master Data ✅} ────┘
 | `MVP-3` ✅ | `BE-OPT-040` ✅, `041` ✅, `042` ✅ | `BE-OPT-034` |
 | `MVP-4` ✅ | `BE-OPT-050` ✅, `051` ✅, `052` ✅, `053` ✅ | `BE-OPT-041`; persetujuan Medical Fee ✅ |
 | Penyesuaian layar ✅ | `BE-OPT-054` ✅ | `BE-OPT-032` ✅, `041` ✅; screen brief ✅ (2026-11-04); persetujuan task r3. Tanpa kode modul lain |
+| Amendment kesiapan | `BE-OPT-060` ✅, `061` ✅ | Persetujuan r2 dan kunci hash ✅ 2026-11-06; `061` juga `OPT-APR-013` ✅ (`OPT-EVD-003`). Keduanya tidak saling bergantung |
+| Amendment kesiapan lanjutan ✅ | `BE-OPT-062` ✅ | Persetujuan r3 dan kunci hash ✅ 2026-11-06. `OPT-APR-015` ✅ (`OPT-EVD-003`) |
+| Temuan audit 2026-11-06 ✅ | `BE-OPT-063` ✅ | Blueprint r4 ✅; `OPT-APR-014` ✅ |
+
+**Yang berjalan bersamaan:** pengisian data dan konfigurasi blocker `B1`..`B4` di `testing/readiness-report.md`, serta uji alur dengan cara bayar Tunai dan Asuransi. Penahan itu tidak menghalangi alur lain.
 
 **Yang tetap bisa berjalan tanpa persetujuan mitra:** begitu `BE-OPT-000` disetujui pemilik
 registry, `BE-OPT-002`, `004`, `005`, `010`, `011`, `012` dapat dikerjakan seluruhnya di dalam
@@ -103,6 +117,10 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | `BE-OPT-052` ✅ | API empat laporan | OPT-10 | 041, 050 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-052.md) |
 | `BE-OPT-053` ✅ | Uji menyeluruh: privasi log, registri izin, alur penuh di harness | OPT-00..11 | 052 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-053.md) |
 | `BE-OPT-054` ✅ | `OPT-API-v1.1`: dua penyaring + empat tanda baris di daftar pesanan; pratinjau harga pesanan `Draft` | OPT-04, OPT-06 | 032, 041 | Optik | Selesai 2026-11-04 — [laporan](../task/report/backend/BE-OPT-054.md) |
+| `BE-OPT-060` ✅ | Kunci simpan ganda pada empat `POST` pembuat + migration `AddOpticalCreateIdempotencyKey` | OPT-03, 04, 07 | 012 ✅, 032 ✅, 050 ✅ | Optik | Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-060.md); migration `20261106025752_AddOpticalCreateIdempotencyKey` diterapkan ke devYoga 2026-11-06, lingkungan lain belum; **jangan terbit sebelum `FE-OPT-040`** (selesai 2026-11-06, belum terbit) |
+| `BE-OPT-061` ✅ | Registrasi menerima Penjamin Perusahaan untuk kunjungan unit Optik | OPT-01 | 010 ✅ | Registrasi (`OPT-APR-013` ✅ Muhammad Hamzah, `OPT-EVD-003`) | Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-061.md); tanpa migration |
+| `BE-OPT-062` ✅ | Pekerja latar kirim ulang tarif pemeriksaan yang tertinggal | OPT-02, 08 | 031 ✅, 011 ✅ | Optik | Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-062.md); tanpa migration; hosted service belum pernah dijalankan terhadap basis data mana pun; `OPT-APR-015` ✅ |
+| `BE-OPT-063` ✅ | Uji kontrak diskon Optik pada Billing sungguhan | OPT-08 | 032 ✅, 061 ✅, `FE-OPT-041` ✅ | Optik | Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-063.md); hanya berkas uji; tidak ada selisih kontrak |
 
 ## Rincian Task
 
@@ -474,11 +492,80 @@ bertaut, lalu disambungkan saat `030`/`003` disetujui.
 | Risiko/pemilik | Perkiraan bisa berbeda dari tagihan bila tarif berubah antara pratinjau dan Tagihkan, sehingga dilabeli *perkiraan*. Batas hari wajib memakai satu fungsi yang sama dengan validasi tutup agar tanda dan tombol tidak bertentangan. Optik |
 | DoD | Kriteria (1)–(8) terbukti; laporan `task/report/backend/BE-OPT-054.md`; traceability dan roadmap diperbarui; penyegaran `contracts/api-contract.md` tercatat untuk pass blueprint |
 
+### `BE-OPT-060` ✅ — Kunci simpan ganda pada empat `POST` pembuat
+
+| Field | Isi |
+|---|---|
+| Status | ✅ Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-060.md). 20 uji baru lulus (total Optik 267); registri izin tetap 45 endpoint. Migration diterapkan ke devYoga 2026-11-06 (riwayat 381, 0 tertunda); lingkungan lain belum. Kriteria (7) terbukti lewat peniruan pada indeks unik sungguhan; dua koneksi serentak di PostgreSQL menjadi sisa bukti `B5`. **Jangan terbit sebelum `FE-OPT-040`** |
+| Outcome | Jaringan putus sesudah server menyimpan, lalu petugas menekan Simpan lagi: tidak ada data ganda, dan layar menerima data pertama. **Contoh:** keluhan KLM-0001 dikirim dua kali, hanya ada satu keluhan pada pesanan itu, sehingga tidak bisa berujung dua remake gratis |
+| Requirement/decision | `FR-OPT-033`, `044`, `072`; `NFR-003`; `OPT-DEC-077`; risiko `R1` |
+| Kontrak | `OPT-API-v1.2` konvensi dan aturan kunci; `OPT-VAL-v1.1` bagian 7; `erd/data-dictionary.md` r2; `02-backend-architecture.md` r2 bagian 4.2, 4.4, 4.5, 6, 7, 10, 12 |
+| Reuse | Pola `FinPatientRefundRequest` (kolom + indeks unik), `OptVisitController` (header `Guid?`), `OptVisitListItemResponse.IsReplay` dan teks log kiriman ulang, `EncounterIntakeService.IsUniqueViolation` |
+| Cakupan | `OptPrescription.cs`, `OptOrder.cs`, `OptWarrantyClaim.cs`; tiga configuration; satu migration; `OptPrescriptionService`, `OptOrderService`, `OptWarrantyClaimService`; `OptPrescriptionController`, `OptOrderController`, `OptWarrantyClaimController`; tiga DTO response; penyesuaian pemanggil di `Tests/QuilvianSystemBackend.OpticalTests/`. Registri izin tetap 45 endpoint. Tanpa kode modul lain |
+| Dependency | `BE-OPT-012` ✅, `032` ✅, `050` ✅; persetujuan r2 ✅; approval task ✅ (Yoga Aji Pratama, 2026-11-06) |
+| Urutan rilis | Backend ini **tidak boleh** terbit sebelum `FE-OPT-040`, karena layar lama ditolak `400` |
+| Acceptance criteria | (1) `OPT-AC-035`: keempat `POST` dikirim ulang berkunci sama menjawab `200`, data pertama, `IsReplay = true`, jumlah baris tetap satu. (2) Header kosong atau Guid nol ditolak `400` `OPT-INVALID-REQUEST` tanpa baris tersimpan. (3) Kunci diperiksa paling awal: kiriman ulang resep dari pemeriksaan yang sama tidak kena `409` "sudah ada", dan kiriman berkunci **baru** tetap kena `409` itu. (4) Pesanan remake berkunci kosong tidak bentrok (dua remake dari dua keluhan berbeda tersimpan). (5) Log kiriman ulang berbunyi "diulang dengan kunci yang sama", tanpa kolom Sensitif. (6) `Down` hanya menghapus tiga indeks dan tiga kolom. (7) Kiriman serentak: satu baris, kedua jawaban menunjuk data yang sama |
+| Verifikasi | Uji harness untuk (1)–(6), termasuk uji mutasi urutan pemeriksaan kunci; (7) wajib di PostgreSQL karena `IsUniqueViolation` mengenali `PostgresException` dan harness memakai SQLite: basis data sekali pakai, atau dicatat sebagai sisa bukti untuk `B5`; regresi seluruh `OpticalTests`; checker QBE `-Mode Strict -Path` + kontrol negatif |
+| Handoff | QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend dan `docs/engineering/`. Migration dibuat lewat task ini; **penerapan** ke basis data butuh otorisasi terpisah |
+| Risiko/pemilik | Mengubah tanda tangan service berarti banyak uji lama perlu disesuaikan. Periksa jalur remake di `OptWarrantyClaimService` agar tidak diwajibkan membawa kunci. Nomor dokumen kiriman serentak yang kalah bisa berlubang; ini diterima. Optik |
+| DoD | Kriteria (1)–(6) terbukti, (7) terbukti atau tercatat sebagai sisa; migration belum diterapkan tanpa izin; laporan `task/report/backend/BE-OPT-060.md`; traceability diperbarui |
+
+### `BE-OPT-061` ✅ — Penjamin Perusahaan pada kunjungan Optik
+
+| Field | Isi |
+|---|---|
+| Status | ✅ Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-061.md). 7 uji baru lulus (total Optik 284); `OPT-AC-027` lulus dengan penjamin sungguhan di harness. `OPT-APR-013` ✅ Muhammad Hamzah (`OPT-EVD-003`). **Slice terdampak:** pasien perusahaan pada `EPIC OPT-01`, dan rilis MVP (`OPT-DEC-078`). **Tetap bisa berjalan:** kunjungan dengan cara bayar Tunai dan Asuransi |
+| Outcome | Admisi memilih Kartu Penjamin Perusahaan pada kunjungan Optik dan kunjungan tersimpan. **Contoh:** dari total Rp 1.200.000, perusahaan menanggung Rp 1.000.000, sehingga uang muka minimal Rp 100.000 |
+| Requirement/decision | `FR-OPT-012`, `FR-OPT-041`; `OPT-DEC-030`, `078`; risiko `R3` |
+| Kontrak | `OPT-INT-v1.1` `INT-OPT-01`; `OPT-VAL-v1.1` bagian 8; `02-backend-architecture.md` r2 bagian 4.2 |
+| Reuse | `EncounterIntakeService.LoadCompanyCardAsync` tanpa perubahan; snapshot penjamin yang sudah dipakai jalur MCU; `ServiceUnitType.Optical` |
+| Cakupan | `Areas/HealthServices/RegistrationManagement/Services/EncounterIntakeService.cs` (`LoadPaymentSourceReferenceAsync`); uji di `Tests/`. Tanpa migration, tanpa kolom baru, tanpa perubahan layar |
+| Dependency | `BE-OPT-010` ✅; persetujuan r2 ✅; `OPT-APR-013` ✅; approval task ✅ |
+| Acceptance criteria | (1) `OPT-AC-036`: kunjungan unit Optik dengan kartu berlaku tersimpan. (2) Kunjungan Laboratorium dengan kartu yang sama tetap ditolak "Penjamin perusahaan hanya dapat dipilih lewat pendaftaran loket." (3) Kartu berakhir, kartu pasien lain, kartu belum layak, dan benefit karyawan internal tetap ditolak di unit Optik. (4) Jalur MCU tidak berubah. (5) `OPT-AC-027` lulus dengan penjamin sungguhan: bagian pasien Rp 200.000, terbayar Rp 90.000 ditolak, Rp 100.000 diterima. (6) `UAT-30`, `31` |
+| Verifikasi | Uji harness jalur baru + regresi Lab, Radiologi, MCU; `OPT-AC-027` lewat rantai Billing sungguhan di harness; checker QBE `-Mode Strict -Path` + kontrol negatif |
+| Handoff | QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend dan `docs/engineering/`. Laporan task wajib menyebut penyetuju `OPT-APR-013` |
+| Risiko/pemilik | Service dipakai banyak modul, sehingga pengecualian harus sempit: jenis unit dibaca dari `MstServiceUnit`, karena profil kunjungan penunjang tidak membawanya. Pemilik Registrasi |
+| DoD | Kriteria (1)–(6) terbukti; laporan `task/report/backend/BE-OPT-061.md`; traceability diperbarui |
+
+### `BE-OPT-062` ✅ — Pekerja latar kirim ulang tarif pemeriksaan
+
+| Field | Isi |
+|---|---|
+| Status | ✅ Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-062.md). 10 uji baru lulus (total Optik 277); tanpa migration. Kriteria (9) terbukti sebagian. Temuan: kunjungan tertutup tanpa tagihan membuat tagihan `OPEN` baru. `OPT-APR-015` ✅ (Yasmina, `OPT-EVD-003`); temuan tagihan dicatat `OPT-OQ-023` |
+| Outcome | Pemeriksaan final yang tarifnya belum tercatat masuk tagihan otomatis, tanpa tagihan ganda dan tanpa petugas membuka satu per satu. **Contoh:** tindakan baru diatur sesudah 50 pemeriksaan; ke-50 tarif terkirim dalam satu putaran, dan yang tagihannya sudah final menjadi adjustment |
+| Requirement/decision | `FR-OPT-022`; `NFR-008`; `OPT-DEC-082`, `083`; `OPT-AC-039`..`041`; `UAT-36`, `37`; risiko `R2` |
+| Kontrak | `OPT-INT-v1.2` bagian *Kirim ulang tarif pemeriksaan*; `OPT-PERM-v1.2` baris audit; `02-backend-architecture.md` r3 bagian 4.2, 9, 10, 12. Tanpa endpoint baru |
+| Reuse | `OptBillingGateway.EmitExamChargeAsync`, logika penandaan `BillAfterCommitAsync` (dipakai bersama, bukan disalin), pola `McuNoShowHostedService` + opsi, pola `ClinicalFactDispatchWorker.ProcessDueBatchAsync` agar satu putaran bisa diuji |
+| Cakupan | **Baru:** `OM/Services/OptExamChargeRetryHostedService.cs` beserta `OptExamChargeRetryOptions`. **Diperbarui:** `OptRefractionExamService` (`GetExamsAwaitingChargeAsync`, `RetryExamChargeAsync`), `OptBillingGateway` (pemeriksaan tindakan sudah diatur), `Program.cs` (blok `runBackgroundJobs`), uji di `Tests/QuilvianSystemBackend.OpticalTests/`. Tanpa migration, tanpa kode Billing, tanpa perubahan layar |
+| Dependency | `BE-OPT-011` ✅, `BE-OPT-031` ✅; persetujuan r3 ✅; approval task ✅ (Yoga Aji Pratama, 2026-11-06) |
+| Acceptance criteria | (1) `OPT-AC-039`: 3 pemeriksaan tertinggal menghasilkan 3 baris tarif; putaran kedua tidak menambah apa pun; penanda terisi; pelaku fakta `FinalizedBy`, waktu fakta `FinalizedAt`. (2) Pemeriksaan dalam `GraceMinutes`, `Draft`, `Cancelled`, dan yang sudah tercatat tidak dipilih. (3) Pemeriksaan yang terus gagal tidak menghalangi: 51 pemeriksaan dengan `BatchSize` 50, yang ke-51 terkirim pada putaran berikutnya. (4) `OPT-AC-040`: tindakan belum diatur menghasilkan satu peringatan per putaran, tanpa fakta; sesudah diatur, ketiganya terkirim. (5) Galat satu pemeriksaan tidak menghentikan putaran. (6) `Enabled = false`: tidak ada putaran. (7) `OPT-AC-041`: tagihan final menjadi adjustment yang menunggu persetujuan, dan total tagihan tidak berubah. (8) Kunjungan tertutup tanpa tagihan: perilaku Billing dicatat di laporan; tarif tidak hilang diam-diam. (9) Tarif berlaku sesudah tanggal pemeriksaan: fakta tercatat, masuk rekonsiliasi, tidak dikirim ulang lagi. (10) Log tanpa kolom Sensitif. (11) Final dan revisi berperilaku sama seperti sebelumnya (`OPT-AC-024`) |
+| Verifikasi | Uji harness dengan rantai Billing sungguhan untuk (1)–(11), memanggil satu putaran langsung tanpa menjalankan hosted service; uji mutasi pada syarat pemilihan dan pelaku fakta; regresi seluruh `OpticalTests`; checker QBE `-Mode Strict -Path` + kontrol negatif multi-baris, di pemanggilan terpisah dari `dotnet test` |
+| Handoff | QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend dan `docs/engineering/`. Hosted service tidak dijalankan terhadap devYoga tanpa izin, karena menulis ke basis data bersama |
+| Risiko/pemilik | Pemeriksaan yang terus ditolak Billing memunculkan peringatan berulang setiap putaran: amati saat uji, dan catat di laporan bila perlu penahan. Tarif dengan tanggal berlaku sesudah pemeriksaan masuk rekonsiliasi, sehingga petugas tarif perlu tahu saat mengisi `B4`. Optik; Yasmina untuk adjustment |
+| DoD | Kriteria (1)–(11) terbukti; laporan `task/report/backend/BE-OPT-062.md`; traceability diperbarui; `OPT-APR-015` ✅ tercatat |
+
+### `BE-OPT-063` ✅ — Uji kontrak diskon Optik pada Billing
+
+| Field | Isi |
+|---|---|
+| Status | ✅ Selesai 2026-11-06 — [laporan](../task/report/backend/BE-OPT-063.md). 9 kasus baru lulus (total Optik 293); tidak ada selisih kontrak. Approval task: Yoga Aji Pratama 2026-11-06 ("lanjutkan sesuai saran kamu", atas tawaran temuan `T2`) |
+| Outcome | Terbukti bahwa Diskon Optik 10% benar-benar memotong baris pesanan Optik pada Billing sungguhan, bukan hanya pada API tiruan. **Contoh:** `OPT-DISC-10` pada frame Rp 450.000 mengurangi tagihan Rp 45.000, langsung berlaku tanpa persetujuan, dan minimum uang muka mengikuti angka baru |
+| Requirement/decision | `FR-OPT-082`; `OPT-DEC-079`, `084`; `OPT-AC-016`, `OPT-AC-037` baris kedua; `UAT-29`; temuan `T2` |
+| Kontrak | `OPT-INT-v1.3` `INT-OPT-11`; `OPT-API-v1.4` bagian diskon; `OPT-PERM-v1.3`. Tanpa endpoint baru |
+| Reuse | `BillingDiscountService.ApplyAsync` sungguhan; `PesananUji` (rantai Billing sungguhan); `OptOrderService.GetPaymentStatusAsync` |
+| Cakupan | **Baru:** `Tests/QuilvianSystemBackend.OpticalTests/Be063DiscountBillingTests.cs`. Tanpa kode produksi, tanpa migration, tanpa perubahan kode Billing |
+| Dependency | `BE-OPT-032` ✅, `BE-OPT-061` ✅, `FE-OPT-041` ✅; `OPT-APR-014` ✅ |
+| Acceptance criteria | (1) `OPT-AC-016`: `OPT-DISC-10` (`PROMO_ITEM`, `INVOICE_ITEM`, `PERCENTAGE`, 10) pada baris frame Rp 450.000 tercatat Rp 45.000, berstatus disetujui tanpa langkah persetujuan. (2) `OPT-AC-037`, `UAT-29`: bagian pasien pada kalkulasi terbaru berkurang Rp 45.000. (3) Status bayar Optik mengikuti: bagian pasien dan minimum uang muka dihitung dari angka baru. (4) Baris lensa pada tagihan yang sama tidak berubah. (5) Kebijakan yang sama pada baris yang sama ditolak sebagai konflik. (6) Nominal yang diketik pemanggil ditolak. (7) Tagihan final menolak diskon. (8) Karakterisasi risiko `OPT-DEC-079`: pemanggil langsung tetap bisa memakai kebijakan tanpa awalan `OPT-`, dan kebijakan `OPT-` bernilai di atas 10% tetap berlaku. Semula tertulis 50%; harness SQLite menolak nilai itu sebagai artefak perbandingan teks (lihat laporan) |
+| Verifikasi | Uji harness dengan service Billing sungguhan; uji mutasi sementara atas perhitungan persen diskon, lalu berkas dipulihkan dan dibandingkan; regresi `OpticalTests` penuh. Bila uji menemukan selisih dengan kontrak, berhenti dan laporkan: kode Billing milik Yasmina tidak diubah task ini |
+| Handoff | QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend dan `docs/engineering/`. Tidak menulis ke devYoga |
+| Risiko/pemilik | Harness memakai SQLite, sehingga kunci `Serializable` dan transaksi Billing tetap menunggu `B5`. Kebijakan `OPT-DISC-10` di data tetap milik Yasmina |
+| DoD | Kriteria (1)–(8) terbukti; laporan `task/report/backend/BE-OPT-063.md`; traceability diperbarui |
+
 ## POST-MVP (di luar roadmap ini)
 
 | Usulan | Pemilik | Dasar |
 |---|---|---|
 | Alokasi pembayaran per baris tagihan; cabut aturan sementara `OPT-DEC-035` | Billing (`OPT-APR-003`) | PRD bagian 8 |
-| Persetujuan diskon per `ApproverRole` | Billing (`OPT-APR-004`) | PRD bagian 8 |
+| Diskon di atas 10% dengan persetujuan Kepala Optik (`UAT-19`, kalimat kedua `OPT-AC-011`, bagian 15% `OPT-AC-016`) | Billing (`OPT-APR-004`) | PRD bagian 8; `OPT-DEC-079` |
 | Jalur kacamata BPJS | Insurance/Registrasi + Optik | `OPT-DEC-030` |
 | Uji coba dan kontrol lensa kontak | Optik | `OPT-DEC-022` |

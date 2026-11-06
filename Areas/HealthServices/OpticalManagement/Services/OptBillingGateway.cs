@@ -85,6 +85,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             _bridge = bridge;
         }
 
+        /// <summary>Tindakan Pemeriksaan Refraksi sudah diatur dan aktif. Dipakai pekerja latar sebelum memulai satu putaran.</summary>
+        public async Task<bool> IsExamProcedureConfiguredAsync(CancellationToken cancellationToken = default) =>
+            await FindExamProcedureIdAsync(cancellationToken) is not null;
+
+        private async Task<Guid?> FindExamProcedureIdAsync(CancellationToken cancellationToken) =>
+            string.IsNullOrEmpty(_procedureCode)
+                ? null
+                : await _dbContext.Set<MstProcedure>().AsNoTracking()
+                    .Where(x => x.ProcedureCode == _procedureCode && x.IsActive && !x.IsDelete)
+                    .OrderBy(x => x.CreateDateTime)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
         /// <summary>
         /// Menyerahkan fakta tarif satu pemeriksaan final. <c>Recorded</c> benar bila producer sudah mencatat faktanya
         /// (terkirim, diulang, atau menunggu kirim ulang); sejak itu penyerahan ke Billing menjadi tanggung jawab producer.
@@ -97,13 +110,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
 
             try
             {
-                var procedureId = string.IsNullOrEmpty(_procedureCode)
-                    ? null
-                    : await _dbContext.Set<MstProcedure>().AsNoTracking()
-                        .Where(x => x.ProcedureCode == _procedureCode && x.IsActive && !x.IsDelete)
-                        .OrderBy(x => x.CreateDateTime)
-                        .Select(x => (Guid?)x.Id)
-                        .FirstOrDefaultAsync(cancellationToken);
+                var procedureId = await FindExamProcedureIdAsync(cancellationToken);
                 if (procedureId is null)
                 {
                     await _loggerService.WarningAsync("Optical", "OptBilling.ExamCharge",

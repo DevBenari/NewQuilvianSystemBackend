@@ -95,5 +95,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.DTOs
         public Guid? RemakeOrderId { get; set; }
         public string? RemakeOrderNumber { get; set; }
         public int Version { get; set; }
+
+        /// <summary>Benar bila jawaban ini berasal dari kunci idempoten yang sudah dipakai (tombol Simpan ditekan dua kali). Tidak disimpan.</summary>
+        public bool IsReplay { get; set; }
     }
 }
