@@ -4750,3 +4750,229 @@ Kamus data ini memuat spesifikasi skema relasional modul pembelajaran, pelatihan
 | `synced_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu sukses sinkronisasi dengan API Kemenkes |
 | `supporting_document_url`| `VARCHAR(250)`| Yes | `NULL` | - | Ya | Tautan bukti pendukung sertifikat/surat tugas di e-Dossier |
 | `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengentrian data perolehan SKP |
+
+
+## 22. Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)
+
+Kamus data ini memuat spesifikasi skema relasional modul manajemen kinerja pegawai rumah sakit dan evaluasi jenjang karier klinis nakes (*PerformanceManagement*), mencakup 10 tabel yang mengatur katalog KPI, siklus penilaian tahunan, cascading sasaran, lembar penilaian komposit 60:40, sidang kalibrasi, program PIP 60 hari, review clinical ladder PK I-V, serta penanganan sanggah banding nilai kinerja.
+
+### 22.1 Tabel `mst_kpi_metric_catalogs` (Master Katalog Indikator Kinerja & Perilaku)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (HR Performance & Manajemen Mutu)
+- **Deskripsi:** Master katalog metrik target kinerja kuantitatif dan rubrik deskriptor Core Values BerAKHLAK skala likert 1 s.d. 5.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik indikator metrik kinerja |
+| `metric_code` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Kode unik metrik (misal `KPI-FIN-01`, `KPI-MED-04`, `BEH-AKH-01`) |
+| `metric_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama resmi indikator kinerja atau butir Core Values |
+| `component_type` | `VARCHAR(30)` | No | - | IDX2 | Tidak | Tipe komponen: `QUANTITATIVE_KPI`, `CORE_VALUES_BEHAVIOR` |
+| `category` | `VARCHAR(50)` | No | - | - | Tidak | Kategori: `FINANCIAL`, `SERVICE_QUALITY`, `PATIENT_SAFETY`, `PEOPLE_CULTURE` |
+| `target_profession_group` | `VARCHAR(50)` | No | `'ALL'` | - | Tidak | Kelompok profesi target: `MEDIS`, `KEPERAWATAN`, `PENUNJANG`, `UMUM`, `ALL` |
+| `unit_of_measure` | `VARCHAR(30)` | Yes | `NULL` | - | Tidak | Satuan ukur: `PERSEN`, `MENIT`, `RUPIAH`, `JUMLAH_KASUS`, `SKALA_1_5` |
+| `target_polarity` | `VARCHAR(20)` | No | `'POSITIVE'` | - | Tidak | Polaritas capaian: `POSITIVE` (makin tinggi makin baik), `NEGATIVE` (makin rendah makin baik) |
+| `default_target_value` | `NUMERIC(15,2)` | Yes | `NULL` | - | Tidak | Nilai target patokan standar rumah sakit |
+| `scoring_rubric_json` | `JSONB` | Yes | `NULL` | - | Tidak | Panduan rubrik deskriptor operasional skor 1 s.d. 5 |
+| `is_active` | `BOOLEAN` | No | `TRUE` | IDX3 | Tidak | Status keaktifan indikator metrik |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan data master |
+| `created_by` | `UUID` | No | - | - | Tidak | ID user pembuat |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pengubahan data |
+| `updated_by` | `UUID` | Yes | `NULL` | - | Tidak | ID user pengubah |
+
+### 22.2 Tabel `trx_performance_cycles` (Siklus Periode Evaluasi Kinerja Rumah Sakit)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (HR Performance RS)
+- **Deskripsi:** Pengaturan periode siklus penilaian kinerja tahunan atau semesteran rumah sakit, mencakup jadwal tenggat waktu penilaian berjenjang dan sidang kalibrasi.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik siklus penilaian |
+| `cycle_code` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Kode unik siklus (misal `CYC-2026-ANNUAL`, `CYC-2026-H1`) |
+| `cycle_title` | `VARCHAR(150)` | No | - | - | Tidak | Judul nama siklus evaluasi kinerja |
+| `evaluation_year` | `INTEGER` | No | - | IDX2 | Tidak | Tahun evaluasi pelaksanaan kinerja (misal `2026`) |
+| `cycle_type` | `VARCHAR(30)` | No | `'ANNUAL'` | - | Tidak | Tipe siklus: `ANNUAL`, `SEMESTER_1`, `SEMESTER_2`, `SPECIAL_PROBATION` |
+| `start_date` | `DATE` | No | - | - | Tidak | Tanggal awal periode kerja yang dinilai |
+| `end_date` | `DATE` | No | - | - | Tidak | Tanggal akhir periode kerja yang dinilai |
+| `self_appraisal_deadline` | `TIMESTAMPTZ` | No | - | - | Tidak | Batas waktu pengisian evaluasi mandiri oleh staf di ESS |
+| `manager_appraisal_deadline`| `TIMESTAMPTZ`| No | - | - | Tidak | Batas waktu pengisian nilai oleh Kepala Ruangan / Karu |
+| `calibration_deadline` | `TIMESTAMPTZ` | No | - | - | Tidak | Batas waktu pelaksanaan sidang pleno kalibrasi manajemen |
+| `status` | `VARCHAR(30)` | No | `'Draft'` | IDX3 | Tidak | Status: `Draft`, `Active`, `InReview`, `Calibrating`, `Closed`, `Cancelled` |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan siklus |
+| `created_by` | `UUID` | No | - | - | Tidak | ID user perancang siklus |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pengubahan data siklus |
+| `updated_by` | `UUID` | Yes | `NULL` | - | Tidak | ID user pengubah |
+
+### 22.3 Tabel `trx_performance_goals` (Sasaran Kerja Target Individu Pegawai)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (Pegawai & Kepala Ruangan)
+- **Deskripsi:** Butir target sasaran kerja kuantitatif individu pegawai yang diturunkan (*cascading*) dari sasaran mutu instalasi/unit kerja, lengkap dengan bobot dan target capaian.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik butir sasaran kerja individu |
+| `performance_cycle_id` | `UUID` | No | - | FK (`trx_performance_cycles`), IDX1 | Tidak | Relasi ke siklus kinerja yang berjalan |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID pegawai pemilik sasaran kerja |
+| `kpi_metric_catalog_id` | `UUID` | No | - | FK (`mst_kpi_metric_catalogs`), IDX3 | Tidak | Relasi ke master indikator metrik yang diukur |
+| `goal_description` | `VARCHAR(250)` | No | - | - | Tidak | Rincian narasi target kerja spesifik individu |
+| `weight_percentage` | `NUMERIC(5,2)` | No | - | - | Tidak | Bobot kontribusi target dalam komponen KPI (total 100%) |
+| `target_value` | `NUMERIC(15,2)` | No | - | - | Tidak | Nilai target capaian yang disepakati bersama atasan |
+| `actual_value` | `NUMERIC(15,2)` | Yes | `NULL` | - | Tidak | Nilai aktual realisasi capaian di akhir periode |
+| `achievement_percentage`| `NUMERIC(5,2)`| Yes | `NULL` | - | Tidak | Persentase ketercapaian target individu (`actual / target`) |
+| `status` | `VARCHAR(30)` | No | `'Draft'` | IDX4 | Tidak | Status: `Draft`, `Submitted`, `Approved_Locked`, `Cancelled` |
+| `approved_by` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID Kepala Ruangan yang menyetujui target |
+| `approved_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu persetujuan target sasaran |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan butir sasaran |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pembaruan data |
+
+### 22.4 Tabel `trx_performance_appraisals` (Lembar Rapor Evaluasi Kinerja Pegawai)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (HRD & Penilai Kinerja)
+- **Deskripsi:** Rapor komposit evaluasi kinerja pegawai rumah sakit, menggabungkan 60% KPI hasil kerja dan 40% perilaku Core Values BerAKHLAK, lengkap dengan riwayat skor pra dan pasca kalibrasi.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik lembar rapor evaluasi |
+| `performance_cycle_id` | `UUID` | No | - | FK (`trx_performance_cycles`), IDX1 | Tidak | Relasi ke siklus evaluasi |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID pegawai yang dievaluasi (UQ komposit bersama cycle_id) |
+| `first_line_manager_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX3 | Tidak | ID Kepala Ruangan / Atasan langsung penilai |
+| `second_line_manager_id`| `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`), IDX4 | Tidak | ID Kepala Bidang / Atasan kedua penelaah |
+| `kpi_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Skor terbobot komponen hasil kerja KPI kuantitatif (60%) |
+| `behavior_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Skor terbobot komponen perilaku Core Values BerAKHLAK (40%) |
+| `pre_calibration_score`| `NUMERIC(5,2)` | Yes | `NULL` | - | Ya | Skor komposit awal sebelum sidang kalibrasi |
+| `final_composite_score`| `NUMERIC(5,2)` | Yes | `NULL` | IDX5 | Ya | Skor komposit resmi akhir pasca sidang kalibrasi |
+| `performance_band` | `VARCHAR(20)` | Yes | `NULL` | IDX6 | Tidak | Predikat: `SANGAT_BAIK_A`, `BAIK_B`, `CUKUP_C`, `KURANG_D`, `BURUK_E` |
+| `status` | `VARCHAR(30)` | No | `'Draft'` | IDX7 | Tidak | Status: `Draft`, `SelfSubmitted`, `ManagerAssessed`, `SecondLineReviewed`, `InCalibration`, `FinalApproved`, `Disputed` |
+| `calibration_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Risalah justifikasi komite jika terjadi perubahan nilai |
+| `manager_feedback_notes`| `TEXT`| Yes | `NULL` | - | Tidak | Catatan umpan balik pembinaan dari atasan langsung |
+| `employee_acknowledged_at`| `TIMESTAMPTZ`| Yes | `NULL` | - | Tidak | Waktu penandatanganan/konfirmasi nilai oleh pegawai di ESS |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu inisiasi lembar evaluasi |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu mutasi data evaluasi |
+
+### 22.5 Tabel `trx_performance_appraisal_details` (Rincian Butir Penilaian KPI & Perilaku)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (Penilai Kinerja)
+- **Deskripsi:** Detail butir penilaian individu per metrik KPI hasil kerja dan per butir perilaku Core Values BerAKHLAK, memuat skor evaluasi mandiri dan skor penilai.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik butir rincian penilaian |
+| `performance_appraisal_id`| `UUID`| No | - | FK (`trx_performance_appraisals`), IDX1 | Tidak | Relasi ke induk lembar evaluasi kinerja |
+| `component_type` | `VARCHAR(30)` | No | - | IDX2 | Tidak | Tipe: `QUANTITATIVE_KPI`, `CORE_VALUES_BEHAVIOR` |
+| `metric_or_code` | `VARCHAR(50)` | No | - | - | Tidak | Kode metrik KPI atau butir nilai BerAKHLAK |
+| `item_title` | `VARCHAR(200)` | No | - | - | Tidak | Judul nama butir penilaian |
+| `weight_percentage` | `NUMERIC(5,2)` | No | - | - | Tidak | Bobot butir dalam komponen bersangkutan |
+| `self_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Skor penilaian refleksi mandiri oleh staf |
+| `manager_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Skor resmi yang diberikan atasan langsung |
+| `final_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Skor akhir butir pasca review dan kalibrasi |
+| `evidence_document_url`| `VARCHAR(250)`| Yes | `NULL` | - | Ya | Tautan berkas bukti dukung capaian kinerja di e-Dossier |
+| `evaluator_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Catatan deskripsi pengamatan perilaku kerja pegawai |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan butir rincian |
+
+### 22.6 Tabel `trx_performance_calibration_sessions` (Sidang Pleno Kalibrasi Manajemen RS)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (Komite Kalibrasi & Direksi RS)
+- **Deskripsi:** Registri pelaksanaan sidang pleno kalibrasi manajemen rumah sakit, memuat sebaran pedoman fleksibel, sebaran aktual, dan penetapan skor akhir RS.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik sidang kalibrasi |
+| `performance_cycle_id` | `UUID` | No | - | FK (`trx_performance_cycles`), IDX1 | Tidak | Relasi ke siklus evaluasi yang dikalibrasi |
+| `session_number` | `VARCHAR(50)` | No | - | UQ, IDX2 | Tidak | Nomor registrasi sidang pleno (misal `CAL-2026-PLENO-01`) |
+| `session_date` | `TIMESTAMPTZ` | No | - | - | Tidak | Tanggal dan waktu pelaksanaan sidang |
+| `guiding_distribution_json`| `JSONB` | No | - | - | Tidak | Parameter pedoman sebaran nilai (10-15% A, 70-80% B, 5-10% C/D) |
+| `actual_distribution_json` | `JSONB` | Yes | `NULL` | - | Tidak | Realisasi sebaran nilai komposit RS pasca kalibrasi |
+| `total_employees_calibrated`| `INTEGER`| No | `0` | - | Tidak | Jumlah total pegawai yang dievaluasi dalam sidang |
+| `total_overrides_applied`| `INTEGER` | No | `0` | - | Tidak | Jumlah pegawai yang nilainya disesuaikan oleh komite |
+| `minutes_of_meeting_url`| `VARCHAR(250)`| Yes | `NULL` | - | Ya | Berkas PDF risalah berita acara sidang pleno bertanda tangan Direksi |
+| `status` | `VARCHAR(30)` | No | `'Scheduled'` | IDX3 | Tidak | Status: `Scheduled`, `InProgress`, `Completed`, `Cancelled` |
+| `completed_by` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID Direktur SDM yang menutup sidang kalibrasi |
+| `completed_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pengesahan hasil kalibrasi |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu penjadwalan sidang |
+
+### 22.7 Tabel `trx_performance_improvement_plans` (Program Peningkatan Kinerja - PIP 60 Hari)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (HR Performance & Atasan Langsung)
+- **Deskripsi:** Kontrak formal pelaksanaan program pembinaan kinerja 60 hari kalender bagi pegawai yang memperoleh nilai evaluasi di bawah standar (skor < 65).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik kontrak pembinaan PIP |
+| `pip_number` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi kontrak PIP (misal `PIP-2026-0034`) |
+| `performance_appraisal_id`| `UUID`| No | - | FK (`trx_performance_appraisals`), IDX2 | Tidak | Relasi ke rapor kinerja pemicu pembinaan |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX3 | Tidak | ID pegawai yang menjalani program pembinaan |
+| `mentor_workforce_profile_id`| `UUID`| No | - | FK (`mst_workforce_profiles`), IDX4 | Tidak | ID staf senior / mentor pendamping yang ditunjuk |
+| `start_date` | `DATE` | No | - | IDX5 | Tidak | Tanggal awal berlakunya kontrak PIP (Hari ke-1) |
+| `end_date` | `DATE` | No | - | IDX6 | Tidak | Tanggal batas akhir periode 60 hari kalender (Hari ke-60) |
+| `action_plan_summary` | `TEXT` | No | - | - | Tidak | Rangkuman sasaran target perbaikan konkret |
+| `status` | `VARCHAR(30)` | No | `'Draft'` | IDX7 | Tidak | Status: `Draft`, `Active`, `Extended`, `Completed`, `Failed`, `Terminated` |
+| `final_verdict` | `VARCHAR(30)` | Yes | `NULL` | - | Tidak | Putusan sidang: `PASSED_NORMAL`, `EXTENDED_30_DAYS`, `ESCALATED_HR_LEGAL` |
+| `verdict_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Pertimbangan komite atas hasil akhir evaluasi PIP |
+| `signed_contract_url` | `VARCHAR(250)` | Yes | `NULL` | - | Ya | Berkas PDF kontrak komitmen PIP bertanda tangan pegawai dan atasan |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu penerbitan kontrak pembinaan |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu mutasi status pembinaan |
+
+### 22.8 Tabel `trx_performance_pip_action_logs` (Logbook Mingguan Monitoring Pembinaan PIP)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (Mentor & Atasan Langsung)
+- **Deskripsi:** Catatan berkala monitoring mingguan (Minggu 1 s.d. 8) pelaksanaan rencana aksi perbaikan kinerja oleh mentor dan atasan langsung.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik logbook monitoring mingguan |
+| `pip_id` | `UUID` | No | - | FK (`trx_performance_improvement_plans`), IDX1 | Tidak | Relasi ke kontrak PIP induk |
+| `week_number` | `INTEGER` | No | - | IDX2 | Tidak | Minggu ke pembinaan (1 s.d. 8, atau 9 s.d. 12 jika perpanjangan) |
+| `log_date` | `DATE` | No | - | - | Tidak | Tanggal pelaksanaan evaluasi mingguan |
+| `progress_summary` | `TEXT` | No | - | - | Tidak | Ringkasan pencapaian dan kemajuan kinerja pegawai |
+| `deficiencies_observed`| `TEXT` | Yes | `NULL` | - | Tidak | Catatan kekurangan atau kendala yang masih ditemukan |
+| `mentor_feedback` | `TEXT` | No | - | - | Tidak | Arahan pembinaan dan rekomendasi dari mentor pendamping |
+| `is_target_on_track` | `BOOLEAN` | No | `TRUE` | - | Tidak | Status kepatuhan progres: TRUE (sesuai target), FALSE (berisiko gagal) |
+| `logged_by` | `UUID` | No | - | FK (`mst_workforce_profiles`) | Tidak | ID user pencatat logbook (Mentor / Karu) |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengentrian data logbook |
+
+### 22.9 Tabel `trx_clinical_career_ladder_reviews` (Evaluasi Jenjang Karier Klinis Nakes - PK I s.d. PK V)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` & Komite Keperawatan / Nakes
+- **Deskripsi:** Berkas permohonan dan evaluasi kenaikan jenjang karier profesional perawat klinis/nakes, memvalidasi prasyarat skor KPI minimal >= 75 dan audit logbook komite.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik berkas jenjang karier klinis |
+| `review_number` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi berkas review (misal `LAD-KEP-2026-0089`) |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID nakes yang mengajukan kenaikan jenjang |
+| `performance_appraisal_id`| `UUID`| No | - | FK (`trx_performance_appraisals`), IDX3 | Tidak | Relasi ke rapor kinerja pembukti prasyarat administratif |
+| `current_clinical_level`| `VARCHAR(20)` | No | - | - | Tidak | Jenjang klinis aktif saat ini (misal `PK_I`, `PK_II`, `PK_III`, `PK_IV`) |
+| `target_clinical_level` | `VARCHAR(20)` | No | - | - | Tidak | Jenjang klinis yang diajukan (misal `PK_II`, `PK_III`, `PK_IV`, `PK_V`) |
+| `clinical_experience_years`| `NUMERIC(4,1)`| No | - | - | Tidak | Total masa kerja klinis relevan dalam satuan tahun |
+| `meets_performance_gate`| `BOOLEAN` | No | `FALSE` | - | Tidak | Lulus gate skor kinerja tahunan (skor >= 75.00 / predikat "Baik") |
+| `meets_competency_gate` | `BOOLEAN` | No | `FALSE` | - | Tidak | Lulus gate sertifikasi kompetensi aktif Sub-16 (`INT-HR-83`) |
+| `free_from_sentinel` | `BOOLEAN` | No | `TRUE` | - | Tidak | Bebas dari catatan insiden keselamatan pasien sentinel Sub-15 |
+| `portfolio_logbook_score`| `NUMERIC(5,2)`| Yes | `NULL` | - | Tidak | Nilai kelayakan audit portofolio logbook oleh asesor komite |
+| `committee_verdict` | `VARCHAR(30)` | No | `'PENDING'` | IDX4 | Tidak | Rekomendasi: `RECOMMENDED`, `DEFERRED_6_MONTHS`, `NOT_RECOMMENDED` |
+| `appointment_letter_url`| `VARCHAR(250)`| Yes | `NULL` | - | Ya | Berkas PDF Surat Keputusan (SK) Direktur Utama penetapan jenjang |
+| `final_status` | `VARCHAR(30)` | No | `'Draft'` | IDX5 | Tidak | Status: `Draft`, `Submitted`, `Audited`, `CommitteePlenary`, `Approved`, `Rejected` |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu permohonan diajukan |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pengesahan keputusan |
+
+### 22.10 Tabel `trx_performance_appraisal_disputes` (Sengketa Sanggah Banding Nilai Kinerja)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `PerformanceManagement` (HR Performance & Komite Banding)
+- **Deskripsi:** Registri penanganan sanggah banding resmi pegawai atas hasil evaluasi kinerja pasca kalibrasi, mencakup mediasi HR dalam 7 hari dan putusan final komite dalam 14 hari.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik berkas sanggah banding |
+| `dispute_number` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi sanggahan (misal `DSP-2026-0012`) |
+| `performance_appraisal_id`| `UUID`| No | - | FK (`trx_performance_appraisals`), IDX2 | Tidak | Relasi ke lembar evaluasi kinerja yang disanggah |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX3 | Tidak | ID pegawai pemohon banding |
+| `dispute_date` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | IDX4 | Tidak | Tanggal presisi pengajuan sanggahan (maks H+7 sejak rilis) |
+| `disputed_component` | `VARCHAR(30)` | No | - | - | Tidak | Komponen yang disanggah: `QUANTITATIVE_KPI`, `CORE_VALUES`, `BOTH` |
+| `grievance_reason` | `TEXT` | No | - | - | Tidak | Uraian argumentasi keberatan dan kronologi penolakan skor |
+| `evidence_document_url`| `VARCHAR(250)`| No | - | - | Ya | Tautan berkas bukti pembanding konkret dari pemohon |
+| `mediation_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Notulen mediasi klarifikasi oleh tim HR Performance |
+| `final_verdict` | `VARCHAR(30)` | Yes | `NULL` | IDX5 | Tidak | Putusan: `SCORE_UPHELD_ORIGINAL`, `SCORE_REVISED_ADJUSTED`, `REASSIGN_EVALUATOR` |
+| `adjusted_composite_score`| `NUMERIC(5,2)`| Yes | `NULL` | - | Ya | Nilai komposit baru jika putusan banding mengabulkan penyesuaian |
+| `verdict_delivered_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu penetapan putusan final majelis banding (maks H+14) |
+| `decided_by` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID Direktur SDM pemutus perkara sengketa |
+| `status` | `VARCHAR(30)` | No | `'Submitted'` | IDX6 | Tidak | Status: `Submitted`, `MediationPhase`, `PlenaryReview`, `Resolved`, `Rejected` |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengajuan sanggahan |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu penutupan perkara |

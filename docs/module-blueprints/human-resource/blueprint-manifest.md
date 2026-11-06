@@ -6,25 +6,25 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 47
+revision: 50
 status: DRAFT
 design_readiness: PARTIAL
-current_phase: HRD-PH-SLICE-C2-DESIGNED
+current_phase: HRD-PH-SLICE-C3-DESIGNED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-11-06T11:10:00Z
-last_verified_at: 2026-11-06T11:10:00Z
+updated_at: 2026-11-06T13:55:00Z
+last_verified_at: 2026-11-06T13:55:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
 backend_source_sha_current: 8b17b75a
 frontend_source_sha: 44990b3d3
 frontend_source_sha_previous: cfa82fbb3
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: d7198343d3fcfd16e8aac8c82d53056d74a243e84dc57a95e85f7aa439b8314d
-decision_revision: 30
+input_revision_hash: c57952fab0ee75c59777566e028d692368cd5888e7ad1fc4a59d15897e8fe415
+decision_revision: 31
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.3
 capability_map_hash: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-contract_versions: v20
+contract_versions: v21
 contract_status_s_b1: approved
 contract_status_s_b2: approved
 contract_status_s_b3: approved
@@ -38,21 +38,22 @@ contract_status_s_d3: approved
 contract_status_s_d4: approved
 contract_status_s_c1: approved
 contract_status_s_c1_oppe: approved
-contract_status_s_c2: draft
+contract_status_s_c2: approved
+contract_status_s_c3: draft
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: d7198343d3fcfd16e8aac8c82d53056d74a243e84dc57a95e85f7aa439b8314d
+  00-interview-decisions.md: c57952fab0ee75c59777566e028d692368cd5888e7ad1fc4a59d15897e8fe415
   01-existing-capability-map.md: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
-  02-backend-architecture.md: d57e201f3a2c813726a1ab4a811626fd781007ec0a3895c7e95e5f8290fd1445
-  03-frontend-architecture.md: 909a5d392c44da3481cb4a3a721a15c989ae5e38508758e8ec97871a7e074e5d
-  04-prd-to-mvp.md: 294320c84285280f1bbe8069ebc6f9e647f9d97bc53117cdc5381c33eb21c557
-  data/data-dictionary.md: c0741e0c95bd822eafbd06d34dc0eeb7e4b3ebe82cceff1d2e5e9fa151d9a646
-  contracts/api-contract.md: c45bcd88f4068ea51850c5e84bfdbe748ccd03bc7374ea3c23de0c6f03119729
-  contracts/state-transition-matrix.md: e0b0cdf9dc9b570aa9c014cc5849700946ef5074092ad56cd1743a499eeaa31a
-  contracts/validation-matrix.md: 53240408cd2b0314ae6eb9a87df18966465c48801fe47bfb580623f16fd1d788
-  contracts/integration-contract.md: a5b8832c75e3805d789cb04b89ba5d648f85647fc294fb3f7a1a5cb238227240
-  contracts/permission-audit-matrix.md: 37d1eb6f567efa9b65dcc787ae677f1b6905638286ed7cecd3c6bf870cd01c7a
-  testing/acceptance-test-matrix.md: ccda123a1c87a60e6fba1f63dc1545f05d2f8d684963f50d34152827c6e15e98
+  02-backend-architecture.md: 833e0af886dff0c869e8876a9c83f09c825eeecfdc7b05aef64d11bbfa538533
+  03-frontend-architecture.md: 17e4bdc806666cb3259a6eb74d4dbfe3678a61c6b9b9687e9b568e374a4be145
+  04-prd-to-mvp.md: faa13b2b1a0190a9b6c168a6ccef3d0edab69eacb65054ad27e04a83a06da17b
+  data/data-dictionary.md: 26f58665b7af52de86c08dc5a2ca9e852b4e38e53f29a6ee1f1c8f5ec51d329b
+  contracts/api-contract.md: 482f08b850c8cdad2a2ae1bfe02ebb317b2e47d172e1af8c9fb333c25a6d6c19
+  contracts/state-transition-matrix.md: 556d8504c7f726576eab0f36f8da557db897c3e53174ce50d2294b4ada119cde
+  contracts/validation-matrix.md: 35a50c5f2393c468ca3f3992af73278d518c604263907fb03d292d884f9214cd
+  contracts/integration-contract.md: 72024877dde149e663dd283525c79825d526061d709c3d9d9e4ec47569bbf8fe
+  contracts/permission-audit-matrix.md: 0510cd3014abd96b9e270975f4848ced17b098c09b524c8404111062f15a4ea7
+  testing/acceptance-test-matrix.md: efa8b9240fc4da0640d76290a049f58abbce452ff2dc3891bf1cd0d1e2f91f61
   flowcharts/00-alur-utama.md: 9a2af6abf27b896179af26191ed8ad255505385e3b5839ed12014e4023f33af3
   flowcharts/penjadwalan-kerja.md: 7c9a0560d62261f1a938192e7bbdd5b4dd4ccb7f89a025e5c7bdf6e1ed3d01ef
   flowcharts/presensi-dan-kehadiran.md: 4c1db3c47ade024988d62cc0c6cc6ae9372a264bf66386e50d61a088717a24d9
@@ -71,6 +72,7 @@ artifact_hashes:
   flowcharts/layanan-dan-persuratan-hr.md: 559ce58de8048faa628248a755f13f3c4ecf754a8fe9b864747e5037430b8cee
   flowcharts/evaluasi-kinerja-klinis-oppe-fppe.md: 0378a10c10ae555837beedca58b4bf966ed6486a5a0e8326dd3fe0fd9c042f11
   flowcharts/pelatihan-dan-kompetensi-nakes.md: d7d944a75f645cf750ebe6acd4f3497053cdce93bc40c22c239db8c529eebfc0
+  flowcharts/penilaian-kinerja-dan-jenjang-karier.md: 729b522118e675be1a15b8eeed74cb13d9219313dce962ccdc9b197c6e920e5a
 active_dependency_ids:
   - HRD-DEP-001
   - HRD-DEP-002
@@ -79,7 +81,7 @@ active_dependency_ids:
   - HRD-DEP-005
   - HRD-DEP-006
   - HRD-DEP-007
-active_roadmap_revision: 17
+active_roadmap_revision: 18
 approvals:
   - scope: S-D3
     approved_by: Pengguna — pemilik teknis dan produk (HRD-DEC-015)
@@ -435,6 +437,9 @@ Kehadirannya bukan penyimpangan struktur, dan ketiadaannya bukan blueprint yang 
 
 | Revision | Tanggal | Isi | Dasar |
 | --- | --- | --- | --- |
+| `50` | 2026-11-06 | **Desain `S-C3` Performance Management & Clinical Career (Sub-modul 17) sebagai `draft`.** Menyerap decision log revision `31` bagian 47 — keputusan `HRD-DEC-164` s.d. `HRD-DEC-169` dan asumsi `HRD-ASM-55` s.d. `HRD-ASM-58`. `02-backend-architecture.md` bagian 30 (10 tabel: `mst_kpi_metric_catalogs`, `trx_performance_cycles`, `trx_performance_goals`, `trx_performance_appraisals`, `trx_performance_appraisal_details`, `trx_performance_calibration_sessions`, `trx_performance_improvement_plans`, `trx_performance_pip_action_logs`, `trx_clinical_career_ladder_reviews`, `trx_performance_appraisal_disputes`, aturan bisnis `PRF-B1`..`B8`, `PRF-W1`..`W6`, Class Diagram, DDL Postgres & EF migrations); `03-frontend-architecture.md` bagian 26 (8 layar `FE-HRD-231` s.d. `FE-HRD-238`, dasbor kinerja & karier, katalog KPI & BerAKHLAK, siklus & target cascading mutu unit, portal lembar evaluasi 60:40, konsol sidang kalibrasi guiding distribution, tata kelola PIP 60 hari & logbook mentor mingguan, portofolio kenaikan jenjang klinis PK I-V gatekeeper, portal sanggah banding nilai SLA 7/14 hari, 5 modal, Redux slice `performanceManagementSlice.ts`); `data/data-dictionary.md` bagian 22 (10 tabel relasional); `contracts/api-contract.md` bagian 27 (Kontrak `v21`, 4 tag Swagger, 24 endpoint rencana); `contracts/state-transition-matrix.md` bagian 25 (5 state machines); `contracts/validation-matrix.md` bagian 26 (`VR-PRF-01` s.d. `VR-PRF-25`); `contracts/permission-audit-matrix.md` bagian 25 (14 permission, 14 audit event); `contracts/integration-contract.md` bagian 18 (`INT-HR-81` s.d. `INT-HR-84`); `testing/acceptance-test-matrix.md` bagian 29 (`AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`); berkas flowchart baru `flowcharts/penilaian-kinerja-dan-jenjang-karier.md` (5 diagram alur); `04-prd-to-mvp.md` bagian 35 (`EPIC HRD-84` s.d. `HRD-88`, 25 FR `FR-PRF-01` s.d. `FR-PRF-25`, 5 UAT, 10 DoD, Waves `MVP-51` s.d. `MVP-53`). `current_phase` menjadi `HRD-PH-SLICE-C3-DESIGNED`, `contract_versions` naik ke `v21`, `contract_status_s_c3: draft`. | Persetujuan Rekomendasi Pengguna 2026-11-06 |
+| `49` | 2026-11-06 | **Grill-Me & Keputusan Bisnis `S-C3` Performance Management & Clinical Career (Sub-modul 17).** Penetapan batas scope komposisi evaluasi baku 60% KPI hasil kerja kuantitatif + 40% perilaku Core Values BerAKHLAK skala 1-5, sidang pleno kalibrasi manajemen berpedoman sebaran fleksibel (10-15% A, 70-80% B, 5-10% C/D), alur evaluasi berjenjang tiga tingkat (Self -> Karu -> Kabid) & peer review IDP opsional non-skor, program pembinaan formal PIP 60 hari kalender bagi skor < 65 beserta monitoring logbook mingguan mentor & pembekuan promosi/mutasi, skor kinerja tahunan minimal 75 sebagai prasyarat administratif kenaikan jenjang klinis (Clinical Ladder PK I-V) terintegrasi Sub-14/15/16, serta saluran sanggah banding nilai SLA 7 hari pengajuan dan 14 hari putusan majelis (`HRD-DEC-164` s.d. `HRD-DEC-169`, `HRD-ASM-55` s.d. `HRD-ASM-58`). Decision log naik ke revisi `31`. | Selesai Di-grill |
+| `48` | 2026-11-06 | **Perencanaan Delivery `S-C2` (Learning, Training & Competency — Pelatihan Wajib Akreditasi STARKES 100%, Evaluasi Kelulusan OSCE Assessor, Radar Kedaluwarsa & Safeguard Shift Buddy System, Ikatan Dinas Retensi Nakes, serta Visual Tracker 50 SKP Plataran Sehat).** `S-C2` dipecah menjadi 16 task backend (`BE-HRD-238` s.d. `BE-HRD-253`) dan 15 task frontend (`FE-HRD-216` s.d. `FE-HRD-230`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B60 s.d. B63 & F58 s.d. F61). Status `S-C2` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-TRN-01` s.d. `FR-TRN-25`), 6 keputusan asal (`HRD-DEC-158` s.d. `HRD-DEC-163`), 22 acceptance tests (`AT-HRD-TRN-01` s.d. `AT-HRD-TRN-22`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1n (0 Gap). `active_roadmap_revision` naik ke `18`, `contract_status_s_c2` disahkan menjadi `approved`. | Approval Pengguna 2026-11-06 |
 | `47` | 2026-11-06 | **Desain `S-C2` Learning, Training & Competency (Sub-modul 16) sebagai `draft`.** Menyerap decision log revision `30` bagian 46 — keputusan `HRD-DEC-158` s.d. `HRD-DEC-163` dan asumsi `HRD-ASM-51` s.d. `HRD-ASM-54`. `02-backend-architecture.md` bagian 29 (10 tabel: `mst_mandatory_training_rules`, `trx_training_plans`, `trx_training_sessions`, `trx_training_enrollment_requests`, `trx_training_attendances`, `trx_training_assessments`, `trx_training_certificates`, `trx_training_budgets`, `hrd_training_bond_contracts`, `trx_plataran_sehat_skp_records`, aturan bisnis `TRN-B1`..`B8`, `TRN-W1`..`W6`, DDL Postgres & EF migrations); `03-frontend-architecture.md` bagian 25 (8 layar `FE-HRD-216` s.d. `FE-HRD-223`, dashboard radar STARKES, manajemen sesi & presensi, lembar ujian OSCE bertanda tangan digital assessor, kontrol anggaran TNA, ikatan dinas retensi, dan tracker 50 SKP Plataran Sehat); `data/data-dictionary.md` bagian 21 (10 tabel); `contracts/api-contract.md` bagian 26 (4 tag Swagger, 24 endpoint rencana); `contracts/state-transition-matrix.md` bagian 24; `contracts/validation-matrix.md` bagian 25 (`VR-TRN-01` s.d. `VR-TRN-25`); `contracts/permission-audit-matrix.md` bagian 24 (13 permission, 14 audit event); `contracts/integration-contract.md` bagian 17 (`INT-HR-77` s.d. `INT-HR-80`); `testing/acceptance-test-matrix.md` bagian 28 (`AT-HRD-TRN-01` s.d. `AT-HRD-TRN-22`); `flowcharts/pelatihan-dan-kompetensi-nakes.md` (4 diagram alur); `04-prd-to-mvp.md` bagian 34 (`EPIC HRD-79` s.d. `HRD-83`, 25 FR `FR-TRN-01` s.d. `FR-TRN-25`, 5 UAT, 10 DoD, Waves `MVP-48` s.d. `MVP-50`). `contract_versions` naik ke `v20`, `contract_status_s_c2: draft`. | Persetujuan Rekomendasi Pengguna 2026-11-06 |
 | `46` | 2026-11-06 | **Grill-Me & Keputusan Bisnis `S-C2` Learning, Training & Competency (Sub-modul 16).** Penetapan batas scope pelatihan wajib akreditasi 100% staf 2 tahun (BHD/PPI/SKP/K3RS/Komunikasi), pemisahan presensi vs kelulusan kompetensi via OSCE terverifikasi assessor, pengamanan operasional shift dinas nakes overdue training dengan buddy system & eskalasi kredensial, integrasi prasyarat kompetensi ke RKK Sub-14 & OPPE Sub-15, tata kelola pengajuan diklat eksternal ber-budget limit & ikatan dinas otomatis, serta pencatatan portofolio SKP Kemenkes Plataran Sehat (`HRD-DEC-158` s.d. `HRD-DEC-163`, `HRD-ASM-51` s.d. `HRD-ASM-54`). Decision log naik ke revisi `30`. | Selesai Di-grill |
 | `45` | 2026-11-06 | **Perencanaan Delivery `S-C1-OPPE` (OPPE, FPPE & Recredentialing — Evaluasi Praktik Berkelanjutan 60:40, Pemicu FPPE Sentinel/Komplikasi, Proctoring Dokter Baru & Sinkronisasi Putusan SIMRS INT-HR-76).** `S-C1-OPPE` dipecah menjadi 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`); grafik dependency pohon teks ditambahkan pada kedua roadmap (Grafik B56 s.d. B59 & F54 s.d. F57). Status `S-C1-OPPE` pada `00-slice-roadmap.md` naik menjadi `PLANNED`; seluruh rantai 25 requirement bisnis (`FR-OPP-01` s.d. `FR-OPP-25`), 6 keputusan asal (`HRD-DEC-152` s.d. `HRD-DEC-157`), 22 acceptance tests (`AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`), dan 5 skenario UAT dipetakan lengkap pada `requirement-traceability.md` bagian 1m (0 Gap). `active_roadmap_revision` naik ke `17`, `contract_status_s_c1_oppe` disahkan menjadi `approved`. | Approval Pengguna 2026-11-06 |
@@ -534,3 +539,18 @@ Blueprint ini tidak pernah ditandai `approved` oleh skill; approval tetap tindak
       - flowcharts/evaluasi-kinerja-klinis-oppe-fppe.md
       - roadmap/* revisi 17 (BE-HRD-222 s.d. BE-HRD-237, FE-HRD-201 s.d. FE-HRD-215)
     not_covered: "bagian slice lain; KPI administratif HR milik Sub-17 dan audit primer STR/SIP milik Sub-14"
+
+  - scope: S-C2
+    approved_by: "Pengguna — pemilik teknis dan produk (HRD-DEC-015)"
+    approved_at: 2026-11-06
+    owner_answer: "Opsi A untuk HRD-DEC-158 s.d. HRD-DEC-163; /design-business-module dan /plan-module-delivery disetujui"
+    covers:
+      - 02-backend-architecture.md bagian 29
+      - 03-frontend-architecture.md bagian 25
+      - 04-prd-to-mvp.md bagian 34
+      - data/data-dictionary.md bagian 21
+      - contracts/* bagian S-C2 (kontrak v20)
+      - testing/acceptance-test-matrix.md bagian 28
+      - flowcharts/pelatihan-dan-kompetensi-nakes.md
+      - roadmap/* revisi 18 (BE-HRD-238 s.d. BE-HRD-253, FE-HRD-216 s.d. FE-HRD-230)
+    not_covered: "bagian slice lain; penilaian KPI tahunan umum milik Sub-17 dan evaluasi klinis rekam medis milik Sub-15 OPPE"

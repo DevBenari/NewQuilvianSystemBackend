@@ -7581,3 +7581,231 @@ CREATE INDEX IF NOT EXISTS idx_hrd_training_bond_contracts_workforce
 | `HRD-DEC-161` (Prasyarat RKK Sub-14 & Portofolio OPPE Sub-15) | `CompetencyPrerequisiteGateService`, `ICompetencyPrerequisiteGateService`, `INT-HR-77`, `INT-HR-78` | `AT-HRD-TRN-10`, `AT-HRD-TRN-11` |
 | `HRD-DEC-162` (Pengajuan Pelatihan Eksternal & Ikatan Dinas) | `TrxTrainingEnrollmentRequest`, `TrxTrainingBudget`, `HrdTrainingBondContract`, `TrainingEnrollmentAndBudgetService` | `AT-HRD-TRN-13`, `AT-HRD-TRN-14` |
 | `HRD-DEC-163` (Portofolio SKP Kemenkes Plataran Sehat) | `TrxTrainingCertificate`, `PlataranSehatSkpTrackingService`, `PlataranSehatSkpTrackerController` | `AT-HRD-TRN-16`, `AT-HRD-TRN-17` |
+
+
+## 30. Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)
+
+Bagian ini mendefinisikan arsitektur backend untuk modul pengelolaan kinerja pegawai rumah sakit dan evaluasi kenaikan jenjang karier klinis (*PerformanceManagement*). Desain ini mengatur pembobotan baku 60% KPI + 40% Perilaku Core Values BerAKHLAK, alur penilaian berjenjang tiga tingkat, sidang kalibrasi manajemen dengan pedoman distribusi fleksibel (*Guiding Distribution*), program peningkatan kinerja PIP 60 hari, keterkaitan jenjang klinis nakes (*Clinical Ladder* PK I-V) berbasis portofolio komite, serta tata kelola sanggah banding nilai.
+
+### 30.1 Bounded Context & Data Ownership
+
+| Kelompok Data | Entitas / Tabel | Bounded Context Pemilik | Status | Keterangan & Batas Tanggung Jawab |
+| :--- | :--- | :--- | :---: | :--- |
+| **Katalog Indikator** | `mst_kpi_metric_catalogs` | `PerformanceManagement` | `Baru` | Master katalog metrik target KPI unit kerja dan jabatan |
+| **Siklus Kinerja** | `trx_performance_cycles` | `PerformanceManagement` | `Baru` | Pengaturan periode evaluasi tahunan/semesteran rumah sakit |
+| **Sasaran Individu** | `trx_performance_goals` | `PerformanceManagement` | `Baru` | Butir sasaran kerja individu hasil cascading target unit |
+| **Lembar Evaluasi** | `trx_performance_appraisals` | `PerformanceManagement` | `Baru` | Rapor komposit evaluasi kinerja pegawai (60% KPI + 40% Perilaku) |
+| **Rincian Skor** | `trx_performance_appraisal_details` | `PerformanceManagement` | `Baru` | Butir penilaian metrik numerik dan rubrik Core Values BerAKHLAK |
+| **Sidang Kalibrasi** | `trx_performance_calibration_sessions`| `PerformanceManagement` | `Baru` | Risalah sidang pleno kalibrasi manajemen & penyesuaian skor |
+| **Program PIP** | `trx_performance_improvement_plans` | `PerformanceManagement` | `Baru` | Kontrak program pembinaan kinerja 60 hari untuk staf berkinerja < 65 |
+| **Logbook PIP** | `trx_performance_pip_action_logs` | `PerformanceManagement` | `Baru` | Catatan monitoring mingguan rencana aksi pembinaan PIP |
+| **Jenjang Klinis** | `trx_clinical_career_ladder_reviews` | `PerformanceManagement` | `Baru` | Permohonan & verifikasi kelayakan jenjang klinis nakes PK I-V |
+| **Sengketa Nilai** | `trx_performance_appraisal_disputes` | `PerformanceManagement` | `Baru` | Registri berkas sanggah banding nilai, mediasi HR, dan putusan final |
+
+---
+
+### 30.2 Class Diagram Backend `PerformanceManagement`
+
+```mermaid
+classDiagram
+    class TrxPerformanceCycle {
+        +UUID Id
+        +string CycleCode
+        +string CycleTitle
+        +int Year
+        +string CycleType
+        +DateTime StartDate
+        +DateTime EndDate
+        +DateTime SelfAppraisalDeadline
+        +DateTime ManagerAppraisalDeadline
+        +DateTime CalibrationDeadline
+        +string Status
+    }
+
+    class MstKpiMetricCatalog {
+        +UUID Id
+        +string MetricCode
+        +string MetricName
+        +string Category
+        +string UnitOfMeasure
+        +string TargetPolarity
+        +decimal DefaultTargetValue
+        +bool IsActive
+    }
+
+    class TrxPerformanceGoal {
+        +UUID Id
+        +UUID PerformanceCycleId
+        +UUID WorkforceProfileId
+        +UUID KpiMetricCatalogId
+        +string GoalDescription
+        +decimal WeightPercentage
+        +decimal TargetValue
+        +decimal ActualValue
+        +string Status
+    }
+
+    class TrxPerformanceAppraisal {
+        +UUID Id
+        +UUID PerformanceCycleId
+        +UUID WorkforceProfileId
+        +UUID FirstLineManagerId
+        +UUID SecondLineManagerId
+        +decimal KpiScore
+        +decimal BehaviorScore
+        +decimal PreCalibrationScore
+        +decimal FinalCompositeScore
+        +string PerformanceBand
+        +string Status
+        +string CalibrationNotes
+    }
+
+    class TrxPerformanceAppraisalDetail {
+        +UUID Id
+        +UUID PerformanceAppraisalId
+        +string ComponentType
+        +string MetricOrCoreValueCode
+        +string ItemDescription
+        +decimal WeightPercentage
+        +decimal SelfScore
+        +decimal ManagerScore
+        +decimal FinalScore
+        +string EvidenceDocumentUrl
+    }
+
+    class TrxPerformanceCalibrationSession {
+        +UUID Id
+        +UUID PerformanceCycleId
+        +string SessionNumber
+        +DateTime SessionDate
+        +string GuidingDistributionJson
+        +string ActualDistributionJson
+        +int TotalEmployeesCalibrated
+        +string Status
+    }
+
+    class TrxPerformanceImprovementPlan {
+        +UUID Id
+        +UUID PerformanceAppraisalId
+        +UUID WorkforceProfileId
+        +UUID MentorWorkforceProfileId
+        +string PipNumber
+        +DateTime StartDate
+        +DateTime EndDate
+        +string ActionPlanSummary
+        +string Status
+        +string FinalVerdict
+    }
+
+    class TrxPerformancePipActionLog {
+        +UUID Id
+        +UUID PerformanceImprovementPlanId
+        +int WeekNumber
+        +DateTime LogDate
+        +string ProgressNotes
+        +string MentorFeedback
+        +bool IsTargetOnTrack
+    }
+
+    class TrxClinicalCareerLadderReview {
+        +UUID Id
+        +UUID WorkforceProfileId
+        +UUID PerformanceAppraisalId
+        +string CurrentClinicalLevel
+        +string TargetClinicalLevel
+        +bool MeetsPerformanceThreshold
+        +bool MeetsClinicalCompetency
+        +bool FreeFromSentinelIncident
+        +string CommitteeRecommendation
+        +string FinalStatus
+    }
+
+    class TrxPerformanceAppraisalDispute {
+        +UUID Id
+        +UUID PerformanceAppraisalId
+        +UUID WorkforceProfileId
+        +string DisputeNumber
+        +DateTime SubmissionDate
+        +string DisputedComponent
+        +string Reason
+        +string SupportingEvidenceUrl
+        +string MediationNotes
+        +string FinalVerdict
+        +string Status
+    }
+
+    TrxPerformanceCycle "1" --> "*" TrxPerformanceGoal : defines
+    TrxPerformanceCycle "1" --> "*" TrxPerformanceAppraisal : evaluates
+    TrxPerformanceCycle "1" --> "*" TrxPerformanceCalibrationSession : calibrates
+    MstKpiMetricCatalog "1" --> "*" TrxPerformanceGoal : references
+    TrxPerformanceAppraisal "1" --> "*" TrxPerformanceAppraisalDetail : contains
+    TrxPerformanceAppraisal "1" --> "0..1" TrxPerformanceImprovementPlan : triggers
+    TrxPerformanceAppraisal "1" --> "0..*" TrxClinicalCareerLadderReview : qualifies
+    TrxPerformanceAppraisal "1" --> "0..1" TrxPerformanceAppraisalDispute : appealed_by
+    TrxPerformanceImprovementPlan "1" --> "*" TrxPerformancePipActionLog : logs
+```
+
+---
+
+### 30.3 Penjelasan Class Service & Controller
+
+| Nama Class | Tipe | Lokasi Folder | Fungsi & Tanggung Jawab Utama |
+| :--- | :--- | :--- | :--- |
+| `PerformanceCyclesController` | Controller | `Areas/Corporate/HRD/Controllers/` | Endpoint pengelolaan siklus tahunan, jadwal tenggat waktu, dan aktivasi siklus |
+| `PerformanceGoalsController` | Controller | `Areas/Corporate/HRD/Controllers/` | Endpoint perumusan target sasaran individu, cascading unit, dan persetujuan Karu |
+| `PerformanceAppraisalsController` | Controller | `Areas/Corporate/HRD/Controllers/` | Endpoint penilaian berjenjang (self, Karu, Kabid), kalkulasi 60:40, dan rilis skor |
+| `PerformanceCalibrationController`| Controller | `Areas/Corporate/HRD/Controllers/` | Endpoint sidang kalibrasi komite, distribusi guiding kurva, dan override nilai |
+| `PerformancePipController` | Controller | `Areas/Corporate/HRD/Controllers/` | Endpoint kontrak pembinaan PIP 60 hari, logbook mingguan, dan sidang putusan akhir |
+| `ClinicalCareerLadderController` | Controller | `Areas/Corporate/HRD/Controllers/` | Endpoint permohonan jenjang klinis PK I-V, gate prasyarat, dan rekomendasi komite |
+| `PerformanceDisputesController` | Controller | `Areas/Corporate/HRD/Controllers/` | Endpoint pengajuan sanggah banding 7 hari, mediasi HR, dan putusan final 14 hari |
+| `PerformanceCycleService` | Service | `Areas/Corporate/HRD/Services/` | Logika bisnis pembukaan periode, validasi overlapping siklus, dan penguncian |
+| `PerformanceAppraisalService` | Service | `Areas/Corporate/HRD/Services/` | Engine kalkulasi skor komposit 60% KPI + 40% Core Values, penentuan predikat |
+| `PerformanceCalibrationService`| Service | `Areas/Corporate/HRD/Services/` | Engine kompilasi kurva lonceng fleksibel dan validasi justifikasi penyesuaian skor |
+| `PerformancePipService` | Service | `Areas/Corporate/HRD/Services/` | Tata kelola kontrak pembinaan staf berkinerja rendah, monitoring mingguan, dan sidang |
+| `ClinicalCareerEligibilityGate`| Service | `Areas/Corporate/HRD/Services/` | Gate verifikasi prasyarat skor KPI >= 75, kompetensi Sub-16, dan bebas kasus Sub-15 |
+| `PerformanceDisputeService` | Service | `Areas/Corporate/HRD/Services/` | Logika SLA banding 7 hari pengajuan, 14 hari putusan, dan eksekusi revisi skor |
+
+---
+
+### 30.4 Aturan Bisnis Utama (`PRF-B1` s.d. `PRF-B8`)
+
+1. **`PRF-B1` (Komposisi Skor Baku 60:40):** Skor komposit akhir dihitung deterministik: `(KPI * 0.60) + (Perilaku * 0.40)`. Sistem menolak penerbitan nilai jika salah satu komponen belum dinilai (`VR-PRF-03`).
+2. **`PRF-B2` (Alur Penilaian Tiga Tingkat):** Evaluasi wajib berurutan: `Self-Assessment` -> `Penilaian Karu` -> `Review Kabid`. Atasan kedua tidak dapat mengesahkan berkas sebelum atasan langsung menyerahkan skor resmi (`VR-PRF-04`).
+3. **`PRF-B3` (Batas Sebaran Kalibrasi Fleksibel):** Sidang kalibrasi menggunakan pedoman sebaran nilai rumah sakit: 10-15% Istimewa (A), 70-80% Baik (B), 5-10% Kurang (C/D). Deviasi nilai wajib disertai nota pertimbangan komite (`VR-PRF-05`).
+4. **`PRF-B4` (Kewajiban Pembinaan PIP Skor < 65):** Staf dengan skor komposit akhir < 65.00 otomatis diterbitkan kontrak PIP 60 hari kalender, dan hak promosi/mutasi dibekukan sementara (`VR-PRF-08`).
+5. **`PRF-B5` (Monitoring PIP Mingguan Wajib Terisi):** Mentor dan atasan wajib mengisi logbook aksi perbaikan minimal 1 kali per minggu (total 8 catatan); sistem mengirim alert jika terlewat > 7 hari (`VR-PRF-09`).
+6. **`PRF-B6` (Batas Remedial Perpanjangan PIP):** Putusan akhir PIP hanya boleh diperpanjang maksimal 1 kali dengan durasi paling lama 30 hari kalender jika terdapat tren perbaikan positif (`VR-PRF-10`).
+7. **`PRF-B7` (Prasyarat Jenjang Klinis Nakes PK I-V):** Kenaikan jenjang klinis mensyaratkan skor kinerja minimal 75.00, bukti kompetensi aktif Sub-16, dan bebas dari insiden keselamatan pasien sentinel di Sub-15 (`VR-PRF-14`).
+8. **`PRF-B8` (Batas Waktu Sanggah Banding 7/14 Hari):** Pegawai berhak mengajukan sanggahan maksimal 7 hari kalender pasca nilai dirilis; komite wajib memutus final dalam 14 hari kalender (`VR-PRF-12`, `VR-PRF-13`).
+
+---
+
+### 30.5 Background Workers Kinerja (`PRF-W1` s.d. `PRF-W6`)
+
+1. **`PRF-W1` (`PerformanceCycleDeadlineWorker`):** Berjalan harian, mengirimkan notifikasi pengingat tenggat waktu pengisian self-assessment (H-7, H-3) dan penilaian atasan (H-5, H-1).
+2. **`PRF-W2` (`PerformanceAutoLockWorker`):** Mengunci formulir penilaian secara otomatis saat batas waktu siklus berakhir (*fail-closed*), memindahkan berkas yang belum dinilai ke status peringatan eskalasi.
+3. **`PRF-W3` (`PerformanceCalibrationAggregatorWorker`):** Mengompilasi kurva sebaran nilai seluruh instalasi secara otomatis saat fase review atasan kedua selesai, menyiapkan matriks data untuk sidang pleno.
+4. **`PRF-W4` (`PipWeeklyMonitoringReminderWorker`):** Memeriksa kepatuhan pengisian logbook mingguan PIP setiap hari Senin pukul 08:00, mengirim alert ke atasan dan mentor jika belum diisi.
+5. **`PRF-W5` (`PipSixtyDayEvaluationDeadlineWorker`):** Mendeteksi kontrak PIP yang mendekati hari ke-50 dan hari ke-60, mengagendakan sidang pleno evaluasi akhir komite kinerja.
+6. **`PRF-W6` (`AppraisalDisputeSlaTrackerWorker`):** Melacak batas waktu penyelesaian mediasi sanggah banding, memicu eskalasi otomatis ke Direktur SDM pada hari ke-10 jika belum selesai.
+
+---
+
+### 30.6 Rencana Migrasi Basis Data PostgreSQL
+
+Migration EF Core: `20261106150000_AddPerformanceManagementCoreEntities.cs`.
+- Membuat 10 tabel relasional baru lengkap dengan Primary Key UUID (`gen_random_uuid()`), Foreign Keys berindeks, tipe data presisi (`numeric(5,2)` untuk skor, `timestamptz` untuk audit waktu), kolom boolean aktif, dan penanda soft-delete (`is_deleted`).
+- Menambahkan indeks komposit unik: `(performance_cycle_id, workforce_profile_id)` pada `trx_performance_appraisals` untuk menjamin seorang pegawai hanya memiliki tepat satu lembar evaluasi dalam satu siklus kinerja.
+
+---
+
+### 30.7 Pemetaan Keputusan Otoritas Bisnis (`HRD-DEC-164` s.d. `HRD-DEC-169`)
+
+| Decision ID | Intisari Keputusan | Komponen Backend Terkait | Bukti Uji Penerimaan |
+| :--- | :--- | :--- | :--- |
+| `HRD-DEC-164` | Komposisi Baku 60% KPI + 40% Core Values BerAKHLAK | `TrxPerformanceAppraisal`, `PerformanceAppraisalService` | `AT-HRD-PRF-01`, `AT-HRD-PRF-02` |
+| `HRD-DEC-165` | Sidang Kalibrasi Manajemen Guiding Distribution | `TrxPerformanceCalibrationSession`, `PerformanceCalibrationService` | `AT-HRD-PRF-04`, `AT-HRD-PRF-05` |
+| `HRD-DEC-166` | Alur Penilaian Berjenjang Tiga Tingkat | `TrxPerformanceAppraisalDetail`, `PerformanceAppraisalsController` | `AT-HRD-PRF-03`, `AT-HRD-PRF-06` |
+| `HRD-DEC-167` | Tata Kelola Kontrak PIP 60 Hari Kalender & 3 Putusan | `TrxPerformanceImprovementPlan`, `TrxPerformancePipActionLog` | `AT-HRD-PRF-07`, `AT-HRD-PRF-08` |
+| `HRD-DEC-168` | Prasyarat Jenjang Karier Klinis Nakes (PK I - PK V) | `TrxClinicalCareerLadderReview`, `ClinicalCareerEligibilityGate` | `AT-HRD-PRF-10`, `AT-HRD-PRF-11` |
+| `HRD-DEC-169` | Alur Banding Sanggah Nilai Kinerja (SLA 7 / 14 Hari) | `TrxPerformanceAppraisalDispute`, `PerformanceDisputeService` | `AT-HRD-PRF-13`, `AT-HRD-PRF-14` |

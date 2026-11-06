@@ -2059,3 +2059,142 @@ stateDiagram-v2
 | `Active` | `Completed` | Masa retensi terpenuhi penuh | Staf setia mengabdi hingga tanggal `end_date` tanpa pemutusan hubungan kerja. | Sistem / Worker |
 | `Active` | `BreachPenalized` | Pegawai mengundurkan diri sepihak | Staf mengajukan resign sebelum ikatan selesai; tagihan penalti ganti rugi diterbitkan otomatis (`VR-TRN-17`). | `Training_Bond:Manage` |
 | `Active` | `Discharged` | Pelepasan ikatan dinas khusus | Kebijakan direksi atas pertimbangan kemanusiaan (misal cacat permanen, sakit kritis menahun). | `Training_Bond:Manage` |
+
+## 25. Matriks Transisi Status Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3)
+
+Matriks transisi status ini mengatur siklus hidup entitas operasional penilaian kinerja pegawai rumah sakit, evaluasi berjenjang tiga tingkat, sidang pleno kalibrasi, program pembinaan kinerja PIP 60 hari, jenjang karier klinis perawat/nakes, serta sengketa sanggah banding nilai.
+
+### 25.1 Siklus Hidup Periode Kinerja (`PerformanceCycleStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Buat Siklus Kinerja Baru
+    Draft --> Active : Buka Periode & Cascading Target
+    Active --> InReview : Batas Waktu Target Lewat, Mulai Penilaian
+    InReview --> Calibrating : Seluruh Penilaian Selesai, Mulai Sidang
+    Calibrating --> Closed : Nilai Resmi Disahkan & Dirilis
+    Draft --> Cancelled : Batalkan Siklus
+    Active --> Cancelled : Pembatalan Darurat
+    Closed --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pembuatan draf siklus evaluasi kerja | HR Performance menetapkan tahun evaluasi dan tanggal tenggat waktu (`VR-PRF-01`). | `Performance_Cycle:Manage` |
+| `Draft` | `Active` | Pembukaan resmi periode kinerja | Tanggal mulai tercapai, sasaran target instalasi siap di-cascading ke staf. | `Performance_Cycle:Manage` |
+| `Active` | `InReview` | Akhir periode kerja yang dinilai | Portal pengisian lembar evaluasi (self & manager) resmi dibuka. | Sistem / Worker |
+| `InReview` | `Calibrating` | Tenggat waktu atasan kedua selesai | Seluruh berkas review terkumpul, matriks kurva lonceng sebaran nilai digenerate. | Sistem / Worker |
+| `Calibrating` | `Closed` | Pengesahan sidang pleno kalibrasi | Direktur SDM menutup sidang pleno, skor akhir dikunci dan dirilis ke ESS (`VR-PRF-06`). | `Performance_Calibration:Manage` |
+| `Draft` / `Active` | `Cancelled` | Pembatalan siklus kerja | Pembatalan resmi akibat bencana darurat atau restrukturisasi total institusi. | `Performance_Cycle:Manage` |
+
+---
+
+### 25.2 Siklus Hidup Lembar Rapor Evaluasi Kinerja Pegawai (`PerformanceAppraisalStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Inisiasi Lembar Evaluasi
+    Draft --> SelfSubmitted : Pegawai Submit Self-Assessment di ESS
+    SelfSubmitted --> ManagerAssessed : Karu Input Skor 60% KPI + 40% Perilaku
+    ManagerAssessed --> SecondLineReviewed : Kabid Menyetujui & Otorisasi Berkas
+    SecondLineReviewed --> InCalibration : Masuk ke Antrean Sidang Kalibrasi
+    InCalibration --> FinalApproved : Komite Kalibrasi Mengesahkan Nilai
+    FinalApproved --> Disputed : Pegawai Mengajukan Sanggahan Banding (H+7)
+    Disputed --> FinalApproved : Putusan Majelis Banding Selesai
+    FinalApproved --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pembukaan fase penilaian siklus | Sistem men-generate lembar kerja evaluasi untuk seluruh pegawai aktif unit. | Sistem / Worker |
+| `Draft` | `SelfSubmitted` | Pegawai menyerahkan evaluasi mandiri | Pegawai mengisi refleksi diri dan mengunggah dokumen bukti di ESS. | `Performance_Appraisal:SelfAssess` |
+| `SelfSubmitted` | `ManagerAssessed` | Penilaian oleh atasan langsung (Karu) | Karu mengisi seluruh butir nilai 60% KPI dan 40% Core Values BerAKHLAK (`VR-PRF-03`). | `Performance_Appraisal:ManagerAssess` |
+| `ManagerAssessed` | `SecondLineReviewed` | Penelaahan oleh atasan kedua (Kabid) | Kabid memeriksa konsistensi skor antar ruangan dan menyetujui berkas (`VR-PRF-04`). | `Performance_Appraisal:SecondLineReview` |
+| `SecondLineReviewed`| `InCalibration` | Sidang kalibrasi dibuka | Seluruh berkas unit dikompilasi ke dalam matriks sebaran nilai komite. | Sistem / Worker |
+| `InCalibration` | `FinalApproved` | Komite kalibrasi mengesahkan skor | Skor akhir komposit ditetapkan (dengan/tanpa override notes) dan dirilis ke ESS. | `Performance_Calibration:Manage` |
+| `FinalApproved` | `Disputed` | Pengajuan sanggah banding oleh pegawai | Pegawai mengajukan sanggahan resmi dalam rentang maksimal 7 hari kalender (`VR-PRF-12`). | `Performance_Dispute:Submit` |
+| `Disputed` | `FinalApproved` | Penetapan putusan sidang banding | Direktur SDM menerbitkan putusan final dan skor akhir diperbarui (`VR-PRF-13`). | `Performance_Dispute:Manage` |
+
+---
+
+### 25.3 Siklus Hidup Program Peningkatan Kinerja (`PerformancePipStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Nilai Terkalibrasi < 65 Memicu PIP
+    Draft --> Active : Kontrak Ditandatangani Pegawai & Mentor
+    Active --> Extended : Putusan Sidang Hari Ke-60: Perpanjangan 30 Hari
+    Active --> Completed : Putusan Sidang: Target Tercapai / Lulus
+    Extended --> Completed : Target Tercapai pada Masa Perpanjangan
+    Active --> Failed : Putusan Sidang: Gagal / Tidak Ada Perbaikan
+    Extended --> Failed : Tetap Gagal Pasca Perpanjangan
+    Active --> Terminated : Pegawai Mengundurkan Diri Sepihak
+    Completed --> [*]
+    Failed --> [*]
+    Terminated --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Deteksi skor akhir < 65.00 | Sistem menerbitkan draf kontrak pembinaan formal PIP 60 hari kalender (`VR-PRF-08`). | Sistem / Worker |
+| `Draft` | `Active` | Penandatanganan kontrak komitmen | Pegawai, atasan, dan mentor menyetujui target perbaikan; masa 60 hari berjalan. | `Performance_Pip:Manage` |
+| `Active` | `Completed` | Evaluasi akhir hari ke-60 lulus | Staf membuktikan pencapaian target perbaikan; status kinerja kembali normal. | `Performance_Pip:Manage` |
+| `Active` | `Extended` | Evaluasi hari ke-60: perpanjangan | Tren perbaikan positif parsial, komite memberi tambahan waktu maks 30 hari (`VR-PRF-10`). | `Performance_Pip:Manage` |
+| `Extended` | `Completed` | Evaluasi pasca perpanjangan lulus | Staf menuntaskan target pada masa 30 hari tambahan; status normal kembali. | `Performance_Pip:Manage` |
+| `Active` / `Extended` | `Failed` | Evaluasi akhir tidak memenuhi target | Staf gagal menunjukkan perbaikan; berkas dieskalasi ke HR Legal / Komite Etik. | `Performance_Pip:Manage` |
+| `Active` | `Terminated` | Pengunduran diri saat PIP | Pegawai mengundurkan diri sepihak sebelum masa pembinaan 60 hari selesai. | `Performance_Pip:Manage` |
+
+---
+
+### 25.4 Siklus Hidup Review Jenjang Karier Klinis Nakes (`ClinicalLadderStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Ajukan Kenaikan Jenjang di ESS
+    Draft --> Submitted : Serahkan Portofolio & Logbook Kasus
+    Submitted --> EligibilityVerified : Gate Sistem Memvalidasi Prasyarat
+    Submitted --> Rejected : Skor KPI < 75 / Sertifikat Mati
+    EligibilityVerified --> Audited : Asesor Komite Selesai Audit Dokumen
+    Audited --> CommitteePlenary : Sidang Pleno Komite Keperawatan
+    CommitteePlenary --> Approved : SK Kenaikan Jenjang Diterbitkan Direksi
+    CommitteePlenary --> Rejected : Komite Menolak / Menunda Kenaikan
+    Approved --> [*]
+    Rejected --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Nakes membuat draf pengajuan jenjang | Nakes memilih jenjang target (misal PK II ke PK III) di portal ESS. | `Clinical_Career:Apply` |
+| `Draft` | `Submitted` | Pengunggahan logbook kasus klinis | Nakes melampirkan portofolio tindakan mandiri dan sertifikat pendukung. | `Clinical_Career:Apply` |
+| `Submitted` | `EligibilityVerified`| Validasi otomatis service gate | Skor kinerja >= 75, sertifikat kompetensi Sub-16 aktif, bebas sentinel Sub-15 (`VR-PRF-14`).| Sistem / Gate |
+| `Submitted` | `Rejected` | Kegagalan gate prasyarat sistem | Skor kinerja < 75 atau sertifikat kritis expired; pengajuan ditolak seketika (*fail-closed*).| Sistem / Gate |
+| `EligibilityVerified`| `Audited` | Audit portofolio oleh asesor klinis | Asesor memverifikasi kecukupan kuota kasus tindakan mandiri perawat. | `Clinical_Career:Manage` |
+| `Audited` | `CommitteePlenary` | Sidang pleno Komite Keperawatan | Komite membahas kelayakan etika dan kompetensi klinis nakes pemohon. | `Clinical_Career:Manage` |
+| `CommitteePlenary` | `Approved` | Pengesahan SK Direktur Utama | SK Penetapan Jenjang Klinis terbit; otomatis mutasi level Sub-02 dan RKK Sub-14 (`INT-HR-83`).| `Clinical_Career:Manage` |
+| `CommitteePlenary` | `Rejected` | Putusan penundaan / penolakan komite | Rekomendasi penundaan 6 bulan atau retensi jenjang berjalan dengan pembinaan. | `Clinical_Career:Manage` |
+
+---
+
+### 25.5 Siklus Hidup Sengketa Sanggah Banding Nilai Kinerja (`AppraisalDisputeStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Submitted : Pegawai Input Sanggahan (H+7 Pasca Rilis)
+    Submitted --> MediationPhase : Berkas Bukti Lengkap, Mulai Mediasi HR
+    Submitted --> Rejected : Melebihi Batas Waktu 7 Hari / Tanpa Bukti
+    MediationPhase --> Resolved : Kesepakatan di Mediasi (Revisi Skor Disetujui)
+    MediationPhase --> PlenaryReview : Mediasi Buntu, Eskalasi ke Majelis Banding
+    PlenaryReview --> Resolved : Putusan Final Komite Diterbitkan (Maks H+14)
+    Resolved --> [*]
+    Rejected --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Submitted` | Pengajuan sanggahan oleh pegawai | Pegawai mengentri keberatan dan melampirkan berkas bukti pembanding di ESS (`VR-PRF-12`). | `Performance_Dispute:Submit` |
+| `Submitted` | `Rejected` | Penolakan pendaftaran sanggahan | Diajukan melampaui batas H+7 atau tidak melampaui bukti dokumen pembanding. | `Performance_Dispute:Manage` |
+| `Submitted` | `MediationPhase` | Penerimaan berkas oleh HRD | Tim HR Performance menjadwalkan klarifikasi tertutup antara penilai dan pemohon. | `Performance_Dispute:Manage` |
+| `MediationPhase` | `Resolved` | Kesepakatan mediasi damai | Penilai dan pemohon sepakat koreksi skor; berita acara mediasi disahkan HRD. | `Performance_Dispute:Manage` |
+| `MediationPhase` | `PlenaryReview` | Ketidaksepakatan di mediasi | Sengketa berlanjut dan dieskalasi ke Komite Kalibrasi / Direktur SDM. | `Performance_Dispute:Manage` |
+| `PlenaryReview` | `Resolved` | Putusan final majelis banding | Putusan final diterbitkan dalam batas waktu 14 hari kalender; sengketa ditutup resmi (`VR-PRF-13`). | `Performance_Dispute:Manage` |

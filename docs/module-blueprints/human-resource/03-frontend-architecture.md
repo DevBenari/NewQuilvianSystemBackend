@@ -3016,3 +3016,124 @@ interface LearningDevelopmentState {
   error: string | null;
 }
 ```
+
+
+## 26. Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)
+
+Bagian ini mendefinisikan arsitektur antarmuka pengguna (frontend) Next.js App Router untuk tata kelola penilaian kinerja berkala rumah sakit dan jenjang karier klinis nakes. Arsitektur ini mencakup 8 layar terintegrasi ([`FE-HRD-231`](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/docs/module-blueprints/human-resource/03-frontend-architecture.md#L3020-L3055) s.d. [`FE-HRD-238`](file:///c:/Users/Admin/Documents/Quilvian/Qulvian/NewQuilvianSystemBackend/docs/module-blueprints/human-resource/03-frontend-architecture.md#L3280-L3315)), 5 komponen dialog modal, dan manajemen state Redux `performanceManagementSlice.ts`.
+
+### 26.1 Peta Butir Menu Navigasi Modul Kinerja Pegawai
+
+```text
+Dashboard & HR Analytics
+└── Manajemen Kinerja & Karier (/hr/performance)
+    ├── Dashboard Kinerja & Kalibrasi (/hr/performance/dashboard) ── [FE-HRD-231]
+    ├── Katalog Metrik KPI & Nilai Budaya (/hr/performance/kpi-catalogs) ── [FE-HRD-232]
+    ├── Siklus Kinerja & Cascading Target (/hr/performance/cycles) ── [FE-HRD-233]
+    ├── Lembar Evaluasi & Persetujuan Berjenjang (/hr/performance/appraisals) ── [FE-HRD-234]
+    ├── Sidang Kalibrasi Manajemen (/hr/performance/calibration) ── [FE-HRD-235]
+    ├── Program Peningkatan Kinerja - PIP (/hr/performance/pip) ── [FE-HRD-236]
+    ├── Jenjang Karier Klinis Nakes (/hr/performance/clinical-ladder) ── [FE-HRD-237]
+    └── Banding & Sanggah Nilai Kinerja (/hr/performance/disputes) ── [FE-HRD-238]
+```
+
+---
+
+### 26.2 Skema Rinci Layar Antarmuka (`FE-HRD-231` s.d. `FE-HRD-238`)
+
+#### 26.2.1 [FE-HRD-231] Dashboard Kinerja Pegawai, Siklus Aktif & Matriks Sebaran Nilai
+* **Rute URL:** `/hr/performance/dashboard`
+* **Hak Akses:** `Performance_Cycle:View`
+* **Kegunaan:** Menampilkan ringkasan eksekutif progres pengisian evaluasi kinerja rumah sakit, persentase kepatuhan pengisian self-assessment dan atasan, grafik sebaran kurva nilai aktual vs pedoman distribusi fleksibel (10-15% A, 70-80% B, 5-10% C/D), kartu metrik pegawai berstatus PIP aktif, serta jadwal tenggat waktu kalender penilaian.
+* **Komponen & Sumber Data:**
+  - Kartu Metrik KPI (`TotalPegawaiDinilai`, `RataRataSkorRS`, `TotalPegawaiDalamPip`, `SisaHariKalibrasi`).
+  - Diagram Distribusi Nilai Komposit RS (Grafik Batang & Garis Kurva Normal Lonceng).
+  - Tabel Peringatan Keterlambatan Pengisian Penilaian per Unit Kerja.
+
+#### 26.2.2 [FE-HRD-232] Konfigurasi Master Metrik KPI & Indikator Core Values BerAKHLAK
+* **Rute URL:** `/hr/performance/kpi-catalogs`
+* **Hak Akses:** `Performance_Metric:Manage`
+* **Kegunaan:** Mengelola katalog master target metrik kinerja kuantitatif (efisiensi biaya, mutu layanan, akurasi administrasi) dan rubrik deskriptor perilaku Core Values BerAKHLAK (Berorientasi Pelayanan, Akuntabel, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif) skala likert 1-5.
+* **Komponen & Sumber Data:**
+  - Tabel katalog metrik dengan filter kategori, rumpun profesi (Medis, Keperawatan, Penunjang, Umum).
+  - Tombol aksi pembuka modal `KpiMetricCatalogModal` untuk pendaftaran indikator baru.
+
+#### 26.2.3 [FE-HRD-233] Manajemen Siklus Evaluasi Kinerja & Cascading Sasaran Unit
+* **Rute URL:** `/hr/performance/cycles`
+* **Hak Akses:** `Performance_Cycle:Manage`
+* **Kegunaan:** Mengatur pembukaan siklus evaluasi tahunan/semesteran, menetapkan kalender tenggat waktu (Self-appraisal, Manager review, Sidang kalibrasi), serta memfasilitasi cascading target sasaran mutu unit ke draf target individu staf melalui dialog `GoalCascadingModal`.
+* **Komponen & Sumber Data:**
+  - Tabel riwayat siklus kinerja tahunan dengan status badge (`Draft`, `Active`, `InReview`, `Calibrating`, `Closed`).
+  - Panel visual pohon cascading target: Sasaran Strategis RS -> Sasaran Instalasi -> Sasaran Individu Staf.
+
+#### 26.2.4 [FE-HRD-234] Portal Lembar Evaluasi Kinerja (Self-Assessment, Karu & Kabid)
+* **Rute URL:** `/hr/performance/appraisals`
+* **Hak Akses:** `Performance_Appraisal:Assess`
+* **Kegunaan:** Portal kerja pengisian evaluasi komposit 60% KPI + 40% Perilaku Core Values dengan alur berjenjang: staf mengisi refleksi diri dan unggah bukti di ESS, atasan langsung (Karu) memberi skor dan catatan pembinaan, serta atasan kedua (Kabid) melakukan penelaahan dan otorisasi berkas.
+* **Komponen & Sumber Data:**
+  - Tab status berkas: `Menunggu Penilaian Mandiri`, `Menunggu Review Karu`, `Menunggu Otorisasi Kabid`, `Selesai Kalibrasi`.
+  - Formulir penilaian interaktif memisahkan tabel butir KPI numerik dan tabel rubrik Core Values BerAKHLAK dengan kalkulator komposit real-time (`kpi * 0.6 + behavior * 0.4`).
+
+#### 26.2.5 [FE-HRD-235] Konsol Sidang Pleno Kalibrasi Manajemen & Kurva Sebaran RS
+* **Rute URL:** `/hr/performance/calibration`
+* **Hak Akses:** `Performance_Calibration:Manage`
+* **Kegunaan:** Ruang kerja digital Komite Kalibrasi (Direksi, HR Manager, Kabid) untuk meninjau distribusi skor seluruh ruangan, mendeteksi leniency bias antar kepala ruangan, melakukan penyesuaian skor dengan mencatat nota justifikasi resmi via `CalibrationOverrideModal`, dan mengesahkan nilai final komposit RS.
+* **Komponen & Sumber Data:**
+  - Visual kurva lonceng interaktif dengan indikator sebaran zona pedoman (*Guiding Distribution*).
+  - Tabel perbandingan skor sebelum dan sesudah kalibrasi (*Pre- vs Post-Calibration*).
+  - Tombol eksekusi pengesahan massal dan rilis nilai ke portal pegawai.
+
+#### 26.2.6 [FE-HRD-236] Tata Kelola Program Peningkatan Kinerja (PIP 60 Hari) & Logbook
+* **Rute URL:** `/hr/performance/pip`
+* **Hak Akses:** `Performance_Pip:Manage`
+* **Kegunaan:** Mengelola pelaksanaan program pembinaan intensif bagi staf berkinerja rendah (skor < 65), menerbitkan kontrak komitmen rencana aksi via `PipContractModal`, memantau logbook evaluasi mingguan mentor (Minggu 1 s.d. 8), serta mencatat putusan akhir sidang PIP (Lulus, Perpanjang, atau Eskalasi HR Legal).
+* **Komponen & Sumber Data:**
+  - Kartu progres pembinaan staf dengan timeline 60 hari kalender.
+  - Tabel rincian logbook mingguan dengan indikator ketercapaian target (*On Track* / *At Risk*).
+
+#### 26.2.7 [FE-HRD-237] Portofolio Asesmen Kenaikan Jenjang Karier Klinis Nakes PK I-V
+* **Rute URL:** `/hr/performance/clinical-ladder`
+* **Hak Akses:** `Clinical_Career:Manage`
+* **Kegunaan:** Portal pengajuan dan verifikasi permohonan kenaikan jenjang karier klinis tenaga keperawatan dan nakes (PK I s.d. PK V), memvalidasi gate prasyarat administratif (skor KPI >= 75, kompetensi Sub-16, bebas sentinel Sub-15), memfasilitasi audit portofolio logbook klinis, dan mencatat rekomendasi sidang Komite Keperawatan.
+* **Komponen & Sumber Data:**
+  - Tabel permohonan jenjang klinis dengan status gate kelayakan (`Eligible` / `Ineligible`).
+  - Drawer audit portofolio tindakan klinis dan tombol pembuka `ClinicalLadderReviewModal`.
+
+#### 26.2.8 [FE-HRD-238] Portal Sanggah Banding Nilai Kinerja & Mediasi Sengketa
+* **Rute URL:** `/hr/performance/disputes`
+* **Hak Akses:** `Performance_Dispute:Manage`
+* **Kegunaan:** Portal pendaftaran keberatan nilai oleh pegawai (maksimal 7 hari kalender pasca rilis nilai), pencatatan resume dokumen bukti pembanding, pengelolaan jadwal mediasi klarifikasi HR Performance, serta pencatatan putusan akhir sidang majelis banding dalam batas SLA 14 hari kalender.
+* **Komponen & Sumber Data:**
+  - Counter hitung mundur sisa waktu sanggah banding (*countdown SLA timer*).
+  - Tabel rekapitulasi sengketa nilai dengan status: `Diajukan`, `Mediasi HR`, `Sidang Majelis`, `Putusan Final`.
+  - Panel rincian putusan banding: Nilai Tetap, Nilai Disesuaikan, atau Pergantian Penilai.
+
+---
+
+### 26.3 Komponen Dialog Modal Pendukung
+
+1. **`KpiMetricCatalogModal`:** Form dialog pendaftaran indikator kinerja kuantitatif dan butir Core Values BerAKHLAK dengan validasi tipe data, target numerik, dan formula polaritas.
+2. **`GoalCascadingModal`:** Dialog penetapan target sasaran individu pegawai yang diturunkan dari KPI instalasi/unit, validasi batas 3 s.d. 8 butir sasaran, dan total bobot 100%.
+3. **`CalibrationOverrideModal`:** Dialog otorisasi penyesuaian skor kinerja oleh Komite Kalibrasi, mewajibkan pengisian alasan pertimbangan klinis/manajerial dan lampiran nota risalah sidang.
+4. **`PipContractModal`:** Dialog penerbitan kontrak pembinaan PIP 60 hari kalender, penetapan sasaran perbaikan terukur, penunjukan mentor, dan form entri logbook mingguan.
+5. **`ClinicalLadderReviewModal`:** Dialog sidang Komite Keperawatan untuk mengevaluasi audit logbook klinis dan menetapkan rekomendasi kenaikan jenjang klinis (PK I s.d. PK V).
+
+---
+
+### 26.4 Redux State Management (`performanceManagementSlice.ts`)
+
+```typescript
+export interface PerformanceManagementState {
+  activeCycle: PerformanceCycleDto | null;
+  cyclesList: PagedResult<PerformanceCycleDto>;
+  kpiCatalogs: KpiMetricCatalogDto[];
+  myAppraisal: PerformanceAppraisalDetailDto | null;
+  subordinateAppraisals: PagedResult<PerformanceAppraisalSummaryDto>;
+  calibrationData: CalibrationDistributionDto | null;
+  activePipList: PerformancePipDto[];
+  clinicalLadderApplications: PagedResult<ClinicalLadderReviewDto>;
+  activeDisputes: PerformanceDisputeDto[];
+  isLoading: boolean;
+  error: string | null;
+}
+```

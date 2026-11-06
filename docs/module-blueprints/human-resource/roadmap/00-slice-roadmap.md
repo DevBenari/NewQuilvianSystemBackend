@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `17` — revisi `16` menyerap target state Slice `S-C1`; **revisi `17` (6 November 2026) menyerap keputusan `HRD-DEC-152` s.d. `HRD-DEC-157` dan asumsi `HRD-ASM-47` s.d. `HRD-ASM-50` untuk target state Slice `S-C1-OPPE` (OPPE, FPPE & Recredentialing), merencanakan 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`) lintas gelombang MVP-45 s.d. MVP-47 & Verifikasi** |
+| Roadmap revision | `18` — revisi `17` menyerap target state Slice `S-C1-OPPE`; **revisi `18` (6 November 2026) menyerap keputusan `HRD-DEC-158` s.d. `HRD-DEC-163` dan asumsi `HRD-ASM-51` s.d. `HRD-ASM-54` untuk target state Slice `S-C2` (Learning, Training & Competency — Pelatihan Wajib Akreditasi STARKES 100%, Evaluasi OSCE, Radar Kedaluwarsa & Safeguard Shift Buddy System, Ikatan Dinas Nakes > Rp 10 Jt / > 1 Bulan, serta Visual Tracker 50 SKP Plataran Sehat Kemenkes), merencanakan 16 task backend (`BE-HRD-238` s.d. `BE-HRD-253`) dan 15 task frontend (`FE-HRD-216` s.d. `FE-HRD-230`) lintas gelombang MVP-48 s.d. MVP-50 & Verifikasi** |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -380,24 +380,21 @@ ightarrow$ Paguyuban) dan carry-over otomatis, portal pengajuan klaim mandiri ka
 
 ## 4. Gelombang C — Pengembangan orang
 
-### `S-C2` — Kompetensi dan pelatihan
+### `S-C2` — Kompetensi dan pelatihan (Learning, Training & Competency)
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | 18 endpoint pada 2 controller, sementara model berjumlah 13. Master data pelatihan sudah lengkap di frontend: katalog, kategori, dan aturan pelatihan wajib |
-| **Target State** | Penugasan pelatihan wajib, pencatatan kehadiran pelatihan, penilaian kompetensi, dan penerbitan sertifikat |
-| **Backend Impact** | `EXTEND`. Cakupan ditetapkan saat desain |
-| **Frontend Impact** | Kelompok halaman baru untuk sisi transaksi; master data sudah ada |
-| **Database Impact** | Kemungkinan `EXTEND` kolom pada model existing. Tidak ada tabel baru yang diharapkan |
-| **Dependency** | `HRD-DEP-006` untuk sertifikat |
-| **Blocking Decision** | Interval pelatihan wajib per peran adalah `HRD-Q-06`; itu isi master data |
-| **QBE Impact** | `NEW CODE` untuk endpoint tambahan. Entity baru wajib `Hrd` bila memang dibutuhkan |
-| **Migration Risk** | Rendah |
-| **Acceptance Criteria** | 1. Pelatihan wajib yang belum dipenuhi terlihat per pegawai dan per unit. 2. Sertifikat tersimpan sebagai bukti yang dapat ditelusuri. 3. Masa berlaku sertifikat memicu peringatan sebelum kedaluwarsa |
-| **Release Status** | `READY` |
-
-Catatan batas: kompetensi dan pelatihan dirancang sebagai kemampuan administratif. Keterkaitannya
-dengan kewenangan klinis **tidak** dirancang di sini, karena itu bagian `S-C1` yang `BLOCKED`.
+| **Current State** | 18 endpoint pada 2 controller lama; master katalog dasar ada namun belum terintegrasi dengan akreditasi rumah sakit, ujian OSCE, maupun radar kedaluwarsa nakes |
+| **Target State** | Standar 5 pelatihan wajib akreditasi STARKES KPS 8 (100% pegawai aktif, siklus 2 tahun), pemisahan presensi (80%/100%) vs kelulusan kompetensi via post-test teori (>=75) dan simulasi OSCE klinis langsung (>=80) ber-e-sign assessor, radar kedaluwarsa H-90/60/30 & safeguard dinas shift *buddy system* ke Sub-06 (`INT-HR-79`), prasyarat penurunan RKK Level 4 ke Level 3 supervisi ke Sub-14 (`INT-HR-77`), TNA & kontrol pagu anggaran diklat departemen, penerbitan otomatis akta ikatan dinas retensi kerja nakes > Rp 10 Jt / > 1 bulan beserta tagihan denda wanprestasi resign sepihak, visual tracker target akumulasi 50 SKP dalam 5 tahun, verifikasi API Plataran Sehat Kemenkes (`INT-HR-80`), serta agregasi bukti CPD ke pilar *Medical Knowledge* evaluasi OPPE Sub-15 (`INT-HR-78`) |
+| **Backend Impact** | `EXTEND`. 16 task backend (`BE-HRD-238` s.d. `BE-HRD-253`) mencakup 10 model tabel relasional Postgres (`mst_mandatory_training_rules`, `trx_training_plans`, `trx_training_sessions`, `trx_training_enrollment_requests`, `trx_training_attendances`, `trx_training_assessments`, `trx_training_certificates`, `trx_training_budgets`, `hrd_training_bond_contracts`, `trx_plataran_sehat_skp_records`), 24 endpoint API Kontrak `v20`, 8 aturan bisnis `TRN-B1`..`B8`, dan 6 background worker `TRN-W1`..`W6` |
+| **Frontend Impact** | `EXTEND`. 15 task frontend (`FE-HRD-216` s.d. `FE-HRD-230`) untuk 8 layar antarmuka (`FE-HRD-216` s.d. `FE-HRD-223`), 5 komponen modal/drawer, dan Redux slice `learningDevelopmentSlice.ts` |
+| **Database Impact** | 10 tabel relasional baru/terekspansi dengan UUID PK, audit columns, soft-delete, dan foreign keys terindeks lengkap |
+| **Dependency** | `HRD-DEP-006` (Sertifikat & e-Dossier Sub-02), `INT-HR-77` (Sub-14 Kredensialing), `INT-HR-78` (Sub-15 OPPE), `INT-HR-79` (Sub-06 Scheduling), `INT-HR-80` (Plataran Sehat Kemenkes) |
+| **Blocking Decision** | Selesai & Approved — `HRD-DEC-158` s.d. `HRD-DEC-163` (Revisi 30) |
+| **QBE Impact** | `NEW CODE` untuk controller, services, background workers, dan client API contracts |
+| **Migration Risk** | Rendah — tabel baru terisolasi dalam skema EF Core dengan penamaan konvensi Quilvian |
+| **Acceptance Criteria** | Seluruh 25 aturan validasi (`VR-TRN-01` s.d. `VR-TRN-25`), 22 skenario acceptance test (`AT-HRD-TRN-01` s.d. `AT-HRD-TRN-22`), dan 5 skenario UAT terpenuhi tanpa celah |
+| **Release Status** | `PLANNED` |
 
 ### `S-C3` — Manajemen kinerja
 
@@ -691,7 +688,7 @@ Contoh supaya batasnya jelas:
 
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
-| `READY` | **16** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1) |
+| `READY` | **15** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C3` s.d. `S-C5` (3), `S-E` (1), `S-D1` (1), `S-D2` (1) |
 | `PLANNED` | **8** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D3` (1, rev 14), `S-D4` (1, sejak 5 November 2026 — 15 task BE, 14 task FE rev 15) |
 | `PARTIAL` | **0** | Tidak ada slice PARTIAL |
 | `PLANNED` | 10 | `S-B1`, `S-B2`, `S-B3`, `S-B5`, `S-B6`, `S-D1`, `S-D3`, `S-D4`, `S-C1`, `S-C1-OPPE` |

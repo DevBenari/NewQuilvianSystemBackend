@@ -3495,3 +3495,111 @@ Dokumen PRD ke MVP ini mendefinisikan batas rilis, target kapabilitas bisnis, ke
 | **`MVP-48` (Gelombang Pelatihan Wajib & Radar Kedaluwarsa Akreditasi)** | Master 5 pelatihan wajib STARKES KPS 8, siklus 24 bulan, radar peringatan H-90/60/30, grace period 30 hari, flag Overdue, penugasan *buddy system* ke Sub-06 (`INT-HR-79`), dan pembekuan wewenang RKK ke Sub-14 (`INT-HR-77`). | Controller & Services Mandatory Rules & Radar, `FE-HRD-216` (Dashboard Radar Pelatihan Wajib RS), `FE-HRD-217` (Konfigurasi Aturan Wajib Akreditasi). |
 | **`MVP-49` (Gelombang Sesi Diklat, Penilaian OSCE & e-Sertifikat)** | Penjadwalan batch kelas workshop simulasi, presensi harian, penilaian ujian teori post-test, rubrik simulasi klinis OSCE bertanda tangan digital assessor, alur remedial, dan penerbitan e-Sertifikat ke e-Dossier Sub-02. | Services Training Sessions, Assessment & Certification, `FE-HRD-218` (Manajemen Sesi Kelas & Presensi), `FE-HRD-219` (Lembar Penilaian Ujian Teori & OSCE), `FE-HRD-220` (Registri Portofolio e-Sertifikat Pegawai). |
 | **`MVP-50` (Gelombang TNA, Budget, Ikatan Dinas & SKP Plataran Sehat)** | Program tahunan diklat TNA, pengajuan mandiri ESS, persetujuan berjenjang, kontrol pagu anggaran unit, penerbitan kontrak ikatan dinas retensi 12-36 bulan, tagihan penalti resign sepihak, dan visual tracker 50 SKP Plataran Sehat Kemenkes (`INT-HR-80`). | Controller Training Plans, Budgets, Bonds & SKP Tracker, `FE-HRD-221` (Rencana Tahunan TNA & Kontrol Anggaran), `FE-HRD-222` (Tata Kelola Kontrak Ikatan Dinas Retensi), `FE-HRD-223` (Portofolio 50 SKP & Plataran Sehat Kemenkes). |
+
+## 35. Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3)
+
+Dokumen PRD ke MVP ini mendefinisikan batas rilis, target kapabilitas bisnis, kebutuhan fungsional, kriteria keberterimaan (UAT), Definition of Done (DoD), serta gelombang implementasi (*Delivery Waves*) untuk **Sub-Modul 17: Performance Management & Clinical Career** (Target Slice **`S-C3`**).
+
+### 35.1 Scope Ringkasan & Boundaries
+
+- **Tujuan Modul:** Menyelaraskan target strategis rumah sakit ke kinerja individu pegawai, memastikan evaluasi adil dan berimbang antara capaian hasil kerja kuantitatif (60% KPI) dengan etika perilaku (40% Core Values BerAKHLAK), mencegah bias kelonggaran nilai melalui sidang pleno kalibrasi manajemen berpedoman distribusi fleksibel, menyediakan mekanisme pembinaan formal terstruktur melalui PIP 60 hari bagi pegawai berkinerja rendah, memfasilitasi evaluasi jenjang karier profesional perawat klinis/nakes (*Clinical Ladder* PK I s.d. PK V) berbasis portofolio komite independen, serta menyediakan saluran sanggah banding nilai kinerja yang berkeadilan.
+- **Batasan Dalam Cakupan (In-Scope):**
+  1. Konfigurasi periode siklus evaluasi kerja tahunan/semesteran rumah sakit dan jadwal tenggat waktu bertingkat.
+  2. Master katalog indikator kinerja kuantitatif dan rubrik deskriptor Core Values BerAKHLAK skala likert 1-5.
+  3. Cascading sasaran strategis instalasi ke 3 s.d. 8 target individu pegawai dengan total bobot 100%.
+  4. Penilaian berjenjang resmi tiga tingkat: Refleksi mandiri (Self-assessment), Penilaian atasan langsung (Karu), dan Penelaahan atasan kedua (Kabid).
+  5. Sidang pleno kalibrasi manajemen rumah sakit dengan pedoman distribusi fleksibel (*Guiding Distribution* 10-15% A, 70-80% B, 5-10% C/D) dan kewajiban nota pertimbangan tertulis untuk setiap penyesuaian skor.
+  6. Kontrak formal Program Peningkatan Kinerja (PIP) 60 hari kalender, monitoring logbook mingguan mentor, dan 3 putusan akhir (Lulus, Perpanjangan 30 Hari, atau Eskalasi HR Legal).
+  7. Pembekuan sementara hak promosi/mutasi pegawai selama berstatus kontrak PIP aktif.
+  8. Evaluasi kenaikan jenjang karier profesional perawat klinis (PK I s.d. PK V) dan nakes lainnya dengan prasyarat minimal skor kinerja tahunan >= 75.00, kompetensi Sub-16, bebas sentinel Sub-15, dan rekomendasi Komite Keperawatan.
+  9. Saluran pengajuan sanggah banding nilai resmi oleh pegawai dalam rentang maksimal 7 hari kalender pasca rilis nilai, mediasi HR Performance, dan sidang putusan final majelis banding Direktur SDM dalam 14 hari kalender.
+  10. Integrasi umpan skor kinerja terkalibrasi ke pengali insentif remunerasi Sub-10 (`INT-HR-81`) dan rekomendasi pelatihan IDP ke Sub-16 (`INT-HR-82`).
+- **Batasan Luar Cakupan (Out-of-Scope):**
+  - Evaluasi praktik profesional berkelanjutan dokter berbasis rekam medis dan 6 pilar ACGME (wewenang Sub-Modul 15 OPPE/FPPE).
+  - Ujian simulasi klinis langsung (OSCE) dan sertifikasi kompetensi STARKES (wewenang Sub-Modul 16).
+  - Kalkulasi nominal insentif remunerasi, bonus tahunan, dan pencairan gaji (wewenang Sub-Modul 10 Payroll).
+  - Proses persidangan disiplin etik berat dan pemutusan hubungan kerja definitif (wewenang Sub-Modul 19 Hubungan Industrial / Legal SDM).
+
+---
+
+### 35.2 Daftar Epic Bisnis
+
+| ID Epic | Nama Epic | Deskripsi Ringkas Cakupan Kapabilitas |
+| :--- | :--- | :--- |
+| **`EPIC HRD-84`** | Siklus Kinerja Rumah Sakit, Cascading Target KPI & Pemantauan Check-in | Pengaturan siklus kinerja tahunan/semesteran, katalog metrik KPI kuantitatif, cascading target unit ke individu (3-8 butir, 100% bobot), dan pencatatan check-in berkala. |
+| **`EPIC HRD-85`** | Penilaian Berjenjang Tiga Tingkat (Self, Karu, Kabid) Komposisi 60:40 BerAKHLAK | Portal evaluasi mandiri staf di ESS, penilaian atasan langsung (Karu) dengan rasio baku 60% KPI + 40% Core Values BerAKHLAK, dan penelaahan konsistensi oleh atasan kedua (Kabid). |
+| **`EPIC HRD-86`** | Sidang Pleno Kalibrasi Manajemen & Pedoman Distribusi Fleksibel Kurva Lonceng | Konsol sidang kalibrasi komite RS, penelaahan deviasi leniency bias antar unit, penyesuaian skor ber-nota justifikasi resmi, pengesahan nilai komposit RS, dan rilis massal ke ESS. |
+| **`EPIC HRD-87`** | Tata Kelola Program Peningkatan Kinerja (PIP 60 Hari) & Logbook Monitoring | Pemicu otomatis PIP untuk skor < 65, penerbitan kontrak pembinaan 60 hari, pembekuan mutasi, logbook mingguan mentor (1-8 minggu), dan sidang 3 putusan akhir. |
+| **`EPIC HRD-88`** | Integrasi Jenjang Karier Klinis Nakes (Clinical Ladder PK I-V) & Majelis Sanggah Banding | Validasi gate skor KPI >= 75 untuk jenjang klinis perawat/nakes, audit logbook komite, sinkronisasi SK jenjang baru ke Sub-02/14, serta saluran sanggah banding nilai SLA 7/14 hari. |
+
+---
+
+### 35.3 Kebutuhan Fungsional (Functional Requirements)
+
+| ID FR | Epic Terkait | Kebutuhan Fungsional | Kriteria Keberterimaan (Acceptance Criteria) |
+| :--- | :--- | :--- | :--- |
+| `FR-PRF-01` | `EPIC HRD-84` | Konfigurasi Siklus Periode Evaluasi Kinerja RS | Admin dapat membuka siklus tahunan/semesteran baru dan menetapkan jadwal tenggat waktu; mencegah tumpang tindih siklus aktif (`VR-PRF-01`). |
+| `FR-PRF-02` | `EPIC HRD-84` | Katalog Master Indikator KPI & Core Values BerAKHLAK | Sistem menyediakan katalog metrik kuantitatif terukur dan rubrik deskriptor Core Values BerAKHLAK skala likert 1 s.d. 5 (`VR-PRF-19`). |
+| `FR-PRF-03` | `EPIC HRD-84` | Cascading Target Sasaran Mutu Unit ke Individu | Karu dapat menurunkan sasaran mutu unit ke 3-8 butir target individu staf dengan total akumulasi bobot tepat 100.00% (`VR-PRF-02`). |
+| `FR-PRF-04` | `EPIC HRD-84` | Sesi Check-in Berkala & Monitoring Evidence | Pegawai dan atasan dapat mencatat progres capaian kerja berkala dan melampirkan tautan logbook untuk mencegah kejutan penilaian di akhir tahun. |
+| `FR-PRF-05` | `EPIC HRD-85` | Pengisian Refleksi Diri (Self-Assessment) di ESS | Pegawai dapat mengisi evaluasi mandiri atas target KPI dan Core Values beserta unggahan bukti pendukung sebelum batas waktu siklus mandiri berakhir. |
+| `FR-PRF-06` | `EPIC HRD-85` | Penilaian Komposit Resmi 60:40 oleh Karu | Atasan langsung menilai seluruh butir KPI dan perilaku dengan formula baku: `(KPI * 0.60) + (Perilaku * 0.40)` (`VR-PRF-03`). |
+| `FR-PRF-07` | `EPIC HRD-85` | Pemberian Catatan Ulasan Pembinaan Atasan | Karu wajib mencantumkan narasi umpan balik pembinaan konkret pada lembar evaluasi sebelum menyerahkan berkas ke atasan kedua. |
+| `FR-PRF-08` | `EPIC HRD-85` | Penelaahan Konsistensi Nilai oleh Kabid | Atasan kedua meninjau konsistensi skor antar ruangan di bawah kewenangannya dan mengesahkan berkas menuju antrean sidang kalibrasi (`VR-PRF-04`). |
+| `FR-PRF-09` | `EPIC HRD-86` | Kompilasi Visual Matriks Kurva Sebaran Nilai RS | Sistem mengompilasi kurva sebaran nilai komposit RS aktual terhadap pedoman distribusi fleksibel (10-15% A, 70-80% B, 5-10% C/D). |
+| `FR-PRF-10` | `EPIC HRD-86` | Sidang Pleno Kalibrasi Manajemen RS | Komite Kalibrasi dapat membuka sidang pleno digital, menelaah deviasi nilai ruangan, dan mencatat risalah berita acara sidang. |
+| `FR-PRF-11` | `EPIC HRD-86` | Penyesuaian Skor (Override) Ber-Nota Justifikasi | Komite berwenang menyesuaikan skor pegawai dengan kewajiban mencatat nota pertimbangan tertulis resmi (*override notes*, `VR-PRF-05`). |
+| `FR-PRF-12` | `EPIC HRD-86` | Pengesahan Nilai Final Komposit RS | Direktur SDM mengesahkan penutupan sidang pleno, mengunci skor komposit akhir, dan menetapkan predikat kinerja baku (A s.d. E, `VR-PRF-07`). |
+| `FR-PRF-13` | `EPIC HRD-86` | Publikasi Serentak Skor Kinerja ke Portal ESS | Skor akhir dirilis secara serentak ke portal ESS pegawai dan mengaktifkan hitung mundur masa sanggah banding selama 7 hari kalender (`VR-PRF-12`). |
+| `FR-PRF-14` | `EPIC HRD-87` | Pemicu Otomatis Program PIP untuk Skor < 65 | Staf dengan nilai akhir komposit < 65.00 secara otomatis diterbitkan draf kontrak pembinaan formal PIP 60 hari kalender (`VR-PRF-08`). |
+| `FR-PRF-15` | `EPIC HRD-87` | Penerbitan Kontrak Komitmen Rencana Aksi PIP | Kontrak PIP memuat sasaran target perbaikan terukur, penunjukan mentor pendamping, dan ditandatangani oleh pegawai serta atasan. |
+| `FR-PRF-16` | `EPIC HRD-87` | Pembekuan Hak Promosi & Mutasi Selama Masa PIP | Sistem membekukan sementara hak pengajuan promosi jabatan, rotasi, dan mutasi internal bagi pegawai yang sedang menjalani PIP aktif (`VR-PRF-11`). |
+| `FR-PRF-17` | `EPIC HRD-87` | Pengisian Logbook Mingguan Monitoring PIP | Mentor dan atasan wajib mengisi catatan evaluasi progres perbaikan mingguan (Minggu 1 s.d. 8) dengan indikator ketercapaian target (`VR-PRF-09`). |
+| `FR-PRF-18` | `EPIC HRD-87` | Sidang Evaluasi Hari Ke-60 & Tiga Putusan PIP | Sidang komite hari ke-60 menetapkan putusan: Lulus (normal kembali), Perpanjangan terbatas (maks 30 hari, `VR-PRF-10`), atau Gagal (eskalasi HR Legal). |
+| `FR-PRF-19` | `EPIC HRD-88` | Gate Prasyarat Skor Kinerja Minimal 75 untuk Jenjang | Kenaikan jenjang karier klinis perawat/nakes (PK I s.d. PK V) memvalidasi syarat skor kinerja tahunan minimal 75.00 (`VR-PRF-14`). |
+| `FR-PRF-20` | `EPIC HRD-88` | Validasi Prasyarat Masa Kerja Klinis & Sertifikat | Sistem memvalidasi masa kerja klinis minimum per jenjang (`VR-PRF-15`) dan kepemilikan sertifikat kompetensi aktif di Sub-16 (`VR-PRF-16`). |
+| `FR-PRF-21` | `EPIC HRD-88` | Pengecekan Bebas Insiden Sentinel Klinis Sub-15 | Sistem memverifikasi ketiadaan riwayat pelanggaran mutu klinis atau investigasi sentinel aktif di Sub-15 OPPE/FPPE (`VR-PRF-17`). |
+| `FR-PRF-22` | `EPIC HRD-88` | Audit Portofolio Logbook Klinis Komite Keperawatan | Asesor Komite Keperawatan mengaudit dokumen logbook tindakan mandiri nakes dan menetapkan rekomendasi kenaikan jenjang klinis (`VR-PRF-18`). |
+| `FR-PRF-23` | `EPIC HRD-88` | Sinkronisasi SK Jenjang Klinis Baru ke Sub-02 & Sub-14 | Penerbitan SK kenaikan jenjang baru otomatis memutakhirkan level kepangkatan di Sub-02 dan membuka paket wewenang RKK di Sub-14 (`INT-HR-83`). |
+| `FR-PRF-24` | `EPIC HRD-88` | Pengajuan Sanggah Banding Nilai Resmi (Batas H+7) | Pegawai dapat mengajukan sanggahan resmi dalam batas waktu 7 hari kalender pasca nilai dirilis dengan wajib melampirkan bukti pembanding (`VR-PRF-12`). |
+| `FR-PRF-25` | `EPIC HRD-88` | Mediasi HRD & Putusan Majelis Banding (Batas H+14) | Tim HR memediasi klarifikasi tertutup dalam 7 hari kerja; Majelis Banding menetapkan putusan final mengikat maksimal 14 hari kalender (`VR-PRF-13`). |
+
+---
+
+### 35.4 Skenario Pengujian Penerimaan Pengguna (User Acceptance Testing)
+
+1. **UAT-1 (Cascading Target KPI, Evaluasi Mandiri & Penilaian Berjenjang 60:40):**
+   Memastikan pembukaan siklus kerja tahunan berhasil, cascading sasaran instalasi ke target individu staf dengan bobot 100%, pengisian refleksi mandiri di ESS, serta penilaian Karu menerapkan formula komposit baku 60% KPI + 40% Core Values BerAKHLAK yang disetujui Kabid.
+2. **UAT-2 (Sidang Pleno Kalibrasi Manajemen & Penyesuaian Skor Ber-Nota):**
+   Komite Kalibrasi meninjau sebaran kurva lonceng nilai RS terhadap pedoman distribusi fleksibel (10-15% A, 70-80% B, 5-10% C/D). Dilakukan penyesuaian skor pada unit dengan deviasi ekstrem yang mewajibkan pengisian nota pertimbangan tertulis hingga pengesahan dan rilis massal ke ESS.
+3. **UAT-3 (Pemicu Otomatis PIP 60 Hari, Monitoring Mingguan & Sidang Kelulusan):**
+   Staf dengan skor akhir 62.00 otomatis memicu kontrak pembinaan formal PIP 60 hari kalender, pembekuan hak mutasi, perekaman 8 logbook mingguan mentor on-track, dan sidang hari ke-60 menetapkan putusan kelulusan yang memulihkan status kepegawaian normal.
+4. **UAT-4 (Permohonan Jenjang Karier Klinis Nakes PK I-V & Verifikasi Gate):**
+   Perawat mengajukan kenaikan jenjang ke PK III. Sistem memvalidasi skor kinerja tahunan (86 >= 75), sertifikat kompetensi aktif Sub-16, dan bebas kasus sentinel Sub-15. Asesor komite mengaudit logbook tindakan, dan SK Direktur Utama memutakhirkan profil Sub-02 serta paket RKK Sub-14.
+5. **UAT-5 (Mekanisme Sanggah Banding Nilai Kinerja & Putusan Majelis):**
+   Pegawai mengajukan sanggahan nilai resmi pada hari ke-5 pasca rilis (memenuhi batas H+7) dengan melampirkan berkas bukti pembanding. HR Performance memfasilitasi mediasi klarifikasi tertutup, dan Majelis Banding menerbitkan putusan penyesuaian nilai final dalam batas SLA 14 hari.
+
+---
+
+### 35.5 Sepuluh Kriteria Selesai (Definition of Done - DoD)
+
+1. **Skema Basis Data Lengkap & Termigrasi:** Seluruh 10 tabel (`mst_kpi_metric_catalogs`, `trx_performance_cycles`, `trx_performance_goals`, `trx_performance_appraisals`, `trx_performance_appraisal_details`, `trx_performance_calibration_sessions`, `trx_performance_improvement_plans`, `trx_performance_pip_action_logs`, `trx_clinical_career_ladder_reviews`, `trx_performance_appraisal_disputes`) terdefinisi di EF Core dengan indeks unik dan audit columns lengkap.
+2. **24 Kontrak Endpoint API Terkunci:** Seluruh endpoint berstatus `Rencana (belum tersedia)` telah terpetakan ke 4 grup tag Swagger baku Kontrak `v21`.
+3. **Komposisi Skor 60:40 Berfungsi Deterministik:** Formula baku 60% KPI hasil kerja dan 40% perilaku Core Values BerAKHLAK terbukti menghitung skor komposit secara akurat.
+4. **Penilaian Tiga Tingkat Beroperasi Konsisten:** Tahapan evaluasi berjenjang (Self -> Karu -> Kabid) terbukti menegakkan garis komando dan mencegah bypass wewenang.
+5. **Sidang Kalibrasi dengan Guiding Distribution Aktif:** Konsol kalibrasi terbukti memetakan sebaran nilai aktual terhadap pedoman fleksibel dan mewajibkan nota justifikasi untuk setiap override nilai.
+6. **Program Pembinaan PIP 60 Hari Beroperasi Penuh:** Skor < 65 otomatis memicu kontrak PIP 60 hari, pembekuan mutasi, dan monitoring mingguan mentor.
+7. **Clinical Ladder Gate Terintegrasi Sub-14/15/16:** Pengajuan jenjang klinis perawat/nakes terbukti memeriksa skor KPI >= 75, sertifikat kompetensi Sub-16, dan bebas sentinel Sub-15.
+8. **Mekanisme Sanggah Banding SLA 7/14 Hari Teruji:** Penolakan otomatis sanggahan > H+7 dan pengawalan batas penyelesaian majelis banding 14 hari berjalan terbukti efektif.
+9. **UI/UX Mengikuti Standar Antarmuka Quilvian:** 8 layar frontend (`FE-HRD-231` s.d. `FE-HRD-238`) menggunakan base component standar, status badge, dan Redux state yang konsisten.
+10. **Traceability Lengkap & Tanpa Celah:** Seluruh 25 Kebutuhan Fungsional (`FR-PRF-01` s.d. `FR-PRF-25`) terpetakan 100% pada matriks penelusuran kebutuhan (*Requirement Traceability Matrix*).
+
+---
+
+### 35.6 Urutan Gelombang Pengiriman (Delivery Waves)
+
+| Gelombang Rilis | Fokus Fungsional & Modul Deliverables | Target Deliverable Backend & Frontend |
+| :--- | :--- | :--- |
+| **`MVP-51` (Gelombang Siklus, Target & Penilaian Berjenjang 60:40)** | Siklus kinerja tahunan/semesteran, katalog KPI & Core Values BerAKHLAK, cascading target sasaran mutu unit, self-assessment di ESS, penilaian resmi Karu 60:40, dan penelaahan Kabid. | Controller & Services Cycles, Goals & Appraisals, `FE-HRD-231` (Dashboard Kinerja), `FE-HRD-232` (Katalog KPI), `FE-HRD-233` (Siklus & Target), `FE-HRD-234` (Portal Lembar Evaluasi). |
+| **`MVP-52` (Gelombang Sidang Kalibrasi & Program Pembinaan PIP 60 Hari)** | Sidang pleno kalibrasi manajemen RS, pedoman distribusi fleksibel (10-15% A, 70-80% B, 5-10% C/D), penyesuaian skor ber-nota justifikasi, rilis nilai serentak ke ESS, dan kontrak PIP 60 hari beserta monitoring logbook mingguan mentor. | Controller Calibration & PIP Services, `FE-HRD-235` (Konsol Sidang Kalibrasi), `FE-HRD-236` (Tata Kelola PIP & Logbook). |
+| **`MVP-53` (Gelombang Clinical Ladder Nakes & Majelis Sanggah Banding)** | Permohonan jenjang klinis nakes PK I-V, gate prasyarat KPI >= 75 & sertifikat Sub-16, audit logbook komite, sinkronisasi SK jenjang baru ke Sub-02/14, serta saluran sanggah banding nilai SLA 7/14 hari dan putusan majelis. | Controller Clinical Ladder & Disputes Services, `FE-HRD-237` (Portofolio Jenjang Klinis PK I-V), `FE-HRD-238` (Portal Sanggah Banding Nilai). |

@@ -7514,3 +7514,118 @@ Pass ini dibuka pada **6 November 2026** untuk merumuskan arsitektur dan tata ke
 | `HRD-ASM-52` | Masa berlaku sertifikat pelatihan klinis spesifik (seperti BHD, ACLS, ATLS, PPI) dibatasi 2 tahun, sedangkan orientasi umum karyawan berlaku seumur hidup selama bekerja di RS | Protokol resertifikasi KARS/AHA/Kemenkes mewajibkan penyegaran berkala tindakan resusitasi dan pengendalian infeksi | Sertifikat klinis yang tidak diperbarui dalam 2 tahun akan kehilangan validitasnya di sistem |
 | `HRD-ASM-53` | Rasio pendampingan pelatih klinis (trainer/assessor) terhadap peserta praktikum simulasi klinis maksimal 1:5 | Efektivitas observasi keterampilan tindakan medis langsung (*OSCE*) menuntut pengawasan ketat | Jika rasio melebihi 1:5, sesi simulasi praktikum dibagi menjadi kelompok gelombang terpisah |
 | `HRD-ASM-54` | Pelatihan eksternal yang dibiayai mandiri oleh nakes (tanpa subsidi dana rumah sakit) tidak dikenakan klausul ikatan dinas, tetapi sertifikat dan perolehan SKP-nya tetap diakui sah di sistem | Menghormati hak inisiatif pengembangan profesional mandiri pegawai tanpa membebani kewajiban retensi tambahan | Nakes dapat bebas mengunggah bukti kelulusan mandiri untuk diakreditasi Diklat |
+
+
+## 47. Keputusan Wawancara Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)
+
+Dokumen ini merekam hasil wawancara penggalian kebutuhan bisnis (*grill-me*) pass 17 untuk **Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)** yang telah disetujui penuh oleh Pengguna pada tanggal 6 November 2026.
+
+### 47.1 Batas Ruang Lingkup Sub-Modul 17
+
+* **Di Dalam Ruang Lingkup (In-Scope):**
+  1. **Siklus Penilaian Kinerja Rumah Sakit:** Pengaturan periode penilaian (Tahunan / Semesteran), cascading target unit ke individu, check-in berkala, dan penilaian akhir.
+  2. **Komposisi Penilaian Ganda Terstandar:** Pembobotan baku 60% KPI Hasil Kerja (Unit & Individu) + 40% Perilaku Kerja (Core Values ASN BerAKHLAK / Budaya Mutu RS).
+  3. **Penilaian Berjenjang Resmi:** Penilaian mandiri (*self-assessment*), penilaian atasan langsung (Karu/Supervisor), dan penelaahan atasan kedua (Kabid/Manajer).
+  4. **Sidang Pleno Kalibrasi Manajemen (*Calibration Session*):** Penyelarasan distribusi nilai antar departemen dengan pedoman distribusi fleksibel (*Guiding Distribution*) berbasis bukti untuk mencegah *leniency bias*.
+  5. **Program Peningkatan Kinerja (*Performance Improvement Plan* - PIP):** Tata kelola pembinaan formal bagi staf berkinerja rendah (skor < 65) selama 60 hari kalender dengan rencana aksi terukur, monitoring mingguan, dan 3 pilihan putusan akhir.
+  6. **Integrasi Jenjang Karier Klinis Nakes (*Clinical Ladder*):** Nilai kinerja tahunan (minimal >= 75) sebagai prasyarat administratif kenaikan jenjang klinis (PK I s.d. PK V), dengan wewenang kenaikan tetap melalui uji portofolio logbook, kompetensi Sub-16, dan rekomendasi Komite Keperawatan/Nakes.
+  7. **Alur Banding / Sanggah Nilai Kinerja (*Appraisal Dispute*):** Mekanisme pengajuan banding resmi maksimal 7 hari pasca rilis nilai, mediasi HR Performance, dan putusan final Komite Kalibrasi/Direktur SDM dalam 14 hari kalender.
+
+* **Di Luar Ruang Lingkup (Out-of-Scope):**
+  * Evaluasi praktik profesional berkelanjutan dokter berbasis rekam medis dan 6 pilar ACGME (wewenang Sub-Modul 15 OPPE/FPPE).
+  * Ujian simulasi klinis langsung (OSCE) dan sertifikasi kompetensi STARKES (wewenang Sub-Modul 16).
+  * Kalkulasi nominal insentif remunerasi, bonus tahunan, dan pencairan gaji (wewenang Sub-Modul 10 Payroll).
+  * Proses persidangan disiplin etik berat dan pemutusan hubungan kerja definitif (wewenang Sub-Modul 19 Hubungan Industrial / Legal SDM).
+
+---
+
+### 47.2 Keputusan Otoritas Bisnis yang Disetujui
+
+#### `HRD-DEC-164` — Komposisi Baku Penilaian Kinerja Rumah Sakit (60% KPI Hasil Kerja + 40% Perilaku Core Values)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-167` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 6 November 2026 |
+| Evidence | Permenkes Standar Tata Kelola RS; PermenPAN-RB No. 6 Tahun 2022 tentang Pengelolaan Kinerja Pegawai; Standar Mutu KARS |
+| Ringkasan | Sistem menetapkan komposisi baku penilaian evaluasi kinerja seluruh pegawai rumah sakit (medis, keperawatan, penunjang, dan administrasi): (1) **60% KPI Hasil Kerja Kuantitatif:** Pencapaian target kinerja terukur yang diturunkan (*cascading*) dari target instalasi/unit (efisiensi, mutu output, kecepatan layanan, dan akurasi administrasi); (2) **40% Perilaku Kerja / Core Values:** Evaluasi penerapan nilai budaya kerja ASN BerAKHLAK / Nilai Budaya Rumah Sakit (Berorientasi Pelayanan, Akuntabel, Kompeten, Harmonis, Loyal, Adaptif, dan Kolaboratif) berpedoman pada rubrik indikator perilaku operasional konkret; (3) **Kalkulasi Komposit Terpadu:** Nilai komposit akhir dihitung otomatis dengan formula: `(Skor_KPI * 0.60) + (Skor_Perilaku * 0.40)`. |
+| Implikasi Arsitektur | 1. Entitas `TrxPerformanceAppraisal` memisahkan kolom `kpi_score`, `behavior_score`, dan `composite_score`.<br>2. Entitas detail `TrxPerformanceAppraisalDetail` mencatat butir evaluasi metrik KPI dan butir rubrik perilaku.<br>3. Mencegah orientasi semata-mata pada angka target dengan tetap menjunjung tinggi etika dan keselamatan pasien. |
+
+#### `HRD-DEC-165` — Sidang Pleno Kalibrasi Manajemen dengan Pedoman Distribusi Fleksibel (*Guiding Distribution*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-168` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 6 November 2026 |
+| Evidence | Praktik Terbaik Tata Kelola SDM RS; Penyelarasan Anggaran Insentif & Pencegahan Leniency Bias |
+| Ringkasan | Seluruh skor evaluasi kinerja yang diserahkan atasan langsung tidak bersifat final secara seketika, melainkan wajib melalui Sidang Pleno Kalibrasi Manajemen: (1) **Pedoman Distribusi Fleksibel (*Guiding Distribution*):** Ditargetkan rentang sebaran nilai: 10-15% Istimewa (Sangat Baik / A), 70-80% Baik / Sesuai Standar (B), dan 5-10% Kurang / Butuh Pembinaan (C/D); (2) **Bukan Kurva Kaku Mutlak:** Distribusi bersifat pedoman kendali mutu, di mana komite dapat mempertahankan skor tinggi di unit berkinerja luar biasa jika didukung data bukti objektif (*evidence review*); (3) **Wewenang Penyesuaian Skor:** Komite Kalibrasi (Direksi, HR Manager, dan Kepala Bidang) berhak menyesuaikan skor dengan mencatat nota justifikasi resmi (*calibration override notes*). |
+| Implikasi Arsitektur | 1. Entitas `TrxPerformanceCalibrationSession` untuk mencatat sidang pleno, peserta komite, dan risalah.<br>2. Kolom `pre_calibration_score`, `post_calibration_score`, dan `calibration_notes` pada lembar evaluasi.<br>3. Mencegah disparitas penilaian subjektif antar kepala ruangan dan menjaga keadilan anggaran insentif. |
+
+#### `HRD-DEC-166` — Alur Penilaian Berjenjang Resmi (Self-Assessment, Karu, Kabid) dengan Umpan Balik Sejawat Opsional
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-169` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 6 November 2026 |
+| Evidence | Pola Hierarki Akuntabilitas Pelayanan Rumah Sakit |
+| Ringkasan | Sistem menerapkan alur penilaian kinerja berjenjang resmi dengan pemisahan tugas yang tegas: (1) **Self-Assessment (Mandiri):** Pegawai menginput refleksi capaian kinerja dan mengunggah dokumen bukti portofolio via portal ESS; (2) **Penilaian Atasan Langsung (Karu / Supervisor):** Atasan langsung menilai capaian target dan perilaku harian dengan membubuhkan skor resmi; (3) **Penelaahan & Pengesahan Atasan Kedua (Kabid / Manajer):** Atasan tidak langsung meninjau konsistensi dan mengesahkan berkas sebelum dibawa ke sidang kalibrasi; (4) **Umpan Balik Rekan Sejawat (*Peer Feedback*):** Tersedia opsional bagi staf pelayanan untuk tujuan pengembangan diri pribadi (*Individual Development Plan* - IDP), namun skor resminya tidak dihitung ke nilai komposit kinerja pegawai guna mencegah politisasi kerja. |
+| Implikasi Arsitektur | 1. State machine `PerformanceAppraisalStatus`: `Draft` -> `SelfSubmitted` -> `ManagerAssessed` -> `SecondLineReviewed` -> `InCalibration` -> `FinalApproved`.<br>2. Hak akses bertingkat: `Appraisal:SelfAssess`, `Appraisal:ManagerAssess`, `Appraisal:SecondLineReview`.<br>3. Menjamin akuntabilitas garis komando dan menyederhanakan beban administrasi nakes. |
+
+#### `HRD-DEC-167` — Tata Kelola Program Peningkatan Kinerja (*Performance Improvement Plan* - PIP) 60 Hari Kalender
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-170` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 6 November 2026 |
+| Evidence | UU Ketenagakerjaan No. 13 Tahun 2003 jo. UU Cipta Kerja; Standar Kepatuhan Audit KARS KPS |
+| Ringkasan | Pegawai yang memperoleh skor evaluasi akhir kinerja dengan predikat "Kurang" (skor < 65) secara otomatis diwajibkan mengikuti Program Peningkatan Kinerja (PIP): (1) **Durasi Baku 60 Hari Kalender:** Dilengkapi dokumen kontrak PIP yang memuat sasaran perbaikan terukur, rencana aksi spesifik, dan penunjukan mentor pembimbing; (2) **Monitoring Logbook Mingguan:** Atasan dan mentor wajib mengisi evaluasi mingguan di sistem; (3) **Tiga Putusan Akhir PIP:** Sidang evaluasi pasca 60 hari menetapkan: (a) `Lulus / Selesai` (kinerja kembali normal), (b) `Perpanjangan Terbatas` (maksimal 30 hari kalender tambahan jika ada tren perbaikan positif), atau (c) `Gagal / Eskalasi` (penyerahan berkas ke HR Legal / Komite Etik untuk mutasi, demosi, atau evaluasi kelanjutan ikatan kerja). |
+| Implikasi Arsitektur | 1. Entitas `TrxPerformanceImprovementPlan` dan `TrxPerformancePipActionLog`.<br>2. Background worker `PipDeadlineMonitoringWorker` untuk peringatan sisa masa pembinaan.<br>3. Menjamin perlindungan hak pegawai dan kepatuhan hukum pembinaan tenaga kerja rumah sakit. |
+
+#### `HRD-DEC-168` — Integrasi Skor Kinerja Tahunan Sebagai Prasyarat Kenaikan Jenjang Karier Klinis Nakes (*Clinical Ladder*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-171` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 6 November 2026 |
+| Evidence | Permenkes No. 40 Tahun 2017 tentang Pengembangan Jenjang Karir Profesional Perawat Klinis; Pedoman Kredensial Komite Keperawatan |
+| Ringkasan | Sistem memisahkan secara tegas wewenang penilaian kinerja umum dengan kenaikan jenjang karier klinis tenaga keperawatan dan nakes (*Clinical Ladder* PK I s.d. PK V): (1) **Prasyarat Administratif Minimal:** Skor evaluasi kinerja tahunan berfungsi sebagai *eligibility gate* (wajib berpredikat minimal "Baik" / skor >= 75) untuk dapat mengajukan asesmen jenjang klinis; (2) **Uji Portofolio & Wewenang Komite Keperawatan:** Kenaikan jenjang klinis tidak terjadi otomatis dari nilai KPI, melainkan wajib melalui verifikasi masa kerja klinis, logbook tindakan mandiri, sertifikasi kompetensi Sub-16, bebas insiden keselamatan pasien Sub-15, dan rekomendasi resmi sidang Komite Keperawatan / Tenaga Kesehatan; (3) **Sinkronisasi Otomatis:** Kenaikan jenjang klinis yang disahkan Komite otomatis memperbarui level kepegawaian di Sub-02 dan kewenangan RKK di Sub-14 (`INT-HR-83`). |
+| Implikasi Arsitektur | 1. Entitas `TrxClinicalCareerLadderReview` mencatat permohonan, verifikasi prasyarat, dan rekomendasi sidang komite.<br>2. Service gate `IClinicalCareerEligibilityGate` memvalidasi kelayakan skor kinerja sebelum permohonan dibuka.<br>3. Menjaga prinsip keselamatan pasien bahwa kompetensi klinis dinilai oleh sesama profesi klinis. |
+
+#### `HRD-DEC-169` — Prosedur Banding Nilai Kinerja (*Appraisal Dispute & Grievance Mechanism*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-172` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 6 November 2026 |
+| Evidence | Standar Akuntabilitas & Keadilan Organisasi Rumah Sakit; Good Corporate Governance (GCG) |
+| Ringkasan | Menjamin keadilan prosedural bagi pegawai melalui saluran banding resmi (*Appraisal Dispute Mechanism*): (1) **Batas Waktu Pengajuan:** Pegawai yang tidak menyetujui skor akhir kinerja berhak mengajukan sanggahan resmi maksimal 7 hari kalender sejak nilai dirilis ke portal ESS; (2) **Kewajiban Bukti Pembanding:** Form sanggahan wajib melampirkan berkas dokumen bukti capaian kerja atau logbook yang dianggap diabaikan penilai; (3) **Mediasi HR Performance:** Tim HR Performance memfasilitasi klarifikasi antara penilai dan pemohon dalam 7 hari kerja; (4) **Putusan Final Mengikat:** Komite Kalibrasi / Direktur SDM menerbitkan putusan final dalam maksimal 14 hari kalender berupa: `Nilai Tetap`, `Nilai Disesuaikan`, atau `Penugasan Penilai Alternatif` yang bersifat mengikat dan menutup sengketa. |
+| Implikasi Arsitektur | 1. Entitas `TrxPerformanceAppraisalDispute` mencatat nomor register sanggahan, alasan, berkas bukti, dan putusan.<br>2. Batas waktu (*time-boxed SLA*) 7 dan 14 hari mencegah penundaan siklus pencairan insentif tahunan.<br>3. Meningkatkan rasa keadilan pegawai dan kepatuhan terhadap prinsip keterbukaan evaluasi kerja. |
+
+---
+
+### 47.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-55` | Standar skala penilaian perilaku Core Values menggunakan skala likert 1 s.d. 5 dengan deskriptor operasional baku rumah sakit | Mempermudah penilai memberikan skor objektif dengan indikator nyata | Penilai akan menggunakan interpretasi bebas yang berisiko bias personal |
+| `HRD-ASM-56` | Batas minimal kehadiran kerja (presensi Sub-07) untuk dapat menerima skor kinerja penuh adalah 90% jam kerja efektif dalam periode penilaian | Pegawai dengan absensi buruk tidak dapat dinilai kinerjanya secara adil terhadap rekan kerja lain | Jika absensi < 90% tanpa izin dinas sah, skor akhir dikenakan faktor pengurang proporsional |
+| `HRD-ASM-57` | Seluruh data catatan evaluasi dan risalah sidang kalibrasi bersifat rahasia (*confidential*) dan hanya dapat dilihat oleh pegawai bersangkutan, penilai, komite, dan HR Performance | Melindungi privasi dan moral pegawai dari perbandingan negatif antar rekan sejawat | Akses publik terhadap skor detail pegawai lain dapat memicu disharmoni lingkungan kerja |
+| `HRD-ASM-58` | Tindak lanjut hasil evaluasi akhir kinerja otomatis terhubung ke perhitungan insentif tahunan Sub-10 dan Rencana Pengembangan Individu (IDP) Sub-16 | Penilaian kinerja tidak boleh berhenti sebagai arsip, melainkan menjadi basis penghargaan dan pengembangan karier | Pegawai merasa evaluasi kerja tidak bermakna bagi kemajuan karier profesionalnya |

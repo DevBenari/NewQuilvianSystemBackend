@@ -1332,3 +1332,51 @@ Seluruh perubahan status, penilaian klinis berisiko tinggi, transaksi anggaran, 
 | `TrainingBondContractGenerated` | Kontrak Legal | Penerbitan Ikatan Dinas | Nomor akta kontrak, ID staf nakes, total nominal biaya, masa retensi bulan | `High` |
 | `TrainingBondBreachFlagged` | Penalti | Wanprestasi Resign | ID kontrak, tanggal breach, nominal denda penalti ganti rugi, dasar kalkulasi | `Critical` |
 | `PlataranSehatCertificateVerified`| Sinkronisasi | Verifikasi Kemenkes | ID sertifikat Plataran Sehat, ID nakes, jumlah SKP diakui, status respon API | `Medium` |
+
+## 25. Matriks Hak Akses & Jejak Audit Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3)
+
+Matriks ini merinci 14 hak akses berbasis peran (*Role-Based Access Control* - RBAC) dan 14 jejak audit (*Audit Trail Events*) permanen untuk memastikan tata kelola penilaian kinerja, perlindungan kerahasiaan evaluasi, pengawasan sidang kalibrasi, akuntabilitas pembinaan PIP, serta keabsahan jenjang profesi nakes rumah sakit.
+
+### 25.1 Matriks Hak Akses (RBAC Permissions)
+
+| Kode Hak Akses | Nama Perizinan | Modul / Konteks | Deskripsi Kewenangan Operasional | Peran Pemegang (Roles) |
+| :--- | :--- | :--- | :--- | :--- |
+| `Performance_Cycle:View` | Baca Siklus Kinerja | Manajemen Kinerja | Melihat daftar periode evaluasi kerja tahunan/semesteran dan kalender tenggat | `All_Authenticated_Employees` |
+| `Performance_Cycle:Manage` | Kelola Siklus Kinerja | Manajemen Kinerja | Membuka periode baru, menetapkan jadwal batas waktu, dan mengunci siklus evaluasi | `HRD_Admin`, `HR_Performance_Manager` |
+| `Performance_Metric:View` | Baca Katalog KPI & Nilai | Standar Mutu SDM | Melihat master indikator metrik kuantitatif dan rubrik deskriptor Core Values | `All_Authenticated_Employees` |
+| `Performance_Metric:Manage` | Kelola Katalog KPI & Nilai| Standar Mutu SDM | Menambah, mengubah, menonaktifkan indikator kinerja, satuan, dan formula polaritas | `HR_Performance_Manager`, `Quality_Director` |
+| `Performance_Goal:View` | Baca Sasaran Individu | Perencanaan Kinerja| Melihat rincian butir sasaran kerja target tahunan pegawai | `Employee`, `Unit_Head`, `Department_Head` |
+| `Performance_Goal:Manage` | Otorisasi Sasaran Kerja | Perencanaan Kinerja| Menetapkan cascading sasaran target unit dan menyetujui target individu pegawai | `Unit_Head`, `Department_Head` |
+| `Performance_Appraisal:SelfAssess` | Isi Evaluasi Mandiri | Evaluasi Pegawai | Mengisi lembar refleksi diri, unggah bukti dukung di ESS, dan tanda tangan rilis | `Employee` (Khusus Data Pribadi) |
+| `Performance_Appraisal:ManagerAssess` | Nilai Staf Bawahan (Karu) | Penilaian Berjenjang | Memberi skor resmi 60% KPI dan 40% perilaku Core Values untuk staf di ruangannya | `Unit_Head`, `Clinical_Supervisor` |
+| `Performance_Appraisal:SecondLineReview`| Review & Otorisasi Kabid | Penilaian Berjenjang | Menelaah konsistensi nilai antar ruangan dan mengesahkan berkas ke komite | `Department_Head`, `Division_Head` |
+| `Performance_Calibration:View` | Baca Kurva Kalibrasi RS | Sidang Kalibrasi | Melihat grafik sebaran nilai aktual RS terhadap pedoman distribusi fleksibel | `Calibration_Committee_Members` |
+| `Performance_Calibration:Manage` | Otorisasi Skor Sidang | Sidang Kalibrasi | Melakukan penyesuaian skor (*override*), mengesahkan hasil pleno, dan rilis skor | `Board_of_Directors`, `HR_Director` |
+| `Performance_Pip:Manage` | Kelola Program PIP 60 Hari | Pembinaan Kinerja | Menerbitkan kontrak PIP, mencatat logbook mingguan mentor, dan putusan sidang | `HR_Performance_Staff`, `Unit_Head`, `Mentor` |
+| `Clinical_Career:Apply` | Ajukan Jenjang Klinis | Profesi Nakes | Mengajukan permohonan kenaikan jenjang klinis (PK I-V) dan unggah logbook di ESS | `Clinical_Staff` (Perawat, Bidan, Nakes) |
+| `Clinical_Career:Manage` | Kelola Sidang Jenjang Nakes| Komite Keperawatan | Mengaudit logbook portofolio, memimpin sidang komite, dan rekomendasi SK Direksi | `Komite_Keperawatan_Admin`, `Clinical_Assessor` |
+| `Performance_Dispute:Submit` | Ajukan Sanggahan Banding | Hak Pegawai ESS | Mendaftarkan formulir sanggah nilai resmi dan melampirkan berkas bukti pembanding | `Employee` (Pemohon Banding) |
+| `Performance_Dispute:Manage` | Adjudikasi Sengketa Nilai | Majelis Banding | Memfasilitasi mediasi klarifikasi HRD dan menetapkan putusan final Direktur SDM | `HR_Performance_Manager`, `HR_Director` |
+
+---
+
+### 25.2 Matriks Jejak Audit Keamanan & Akuntabilitas (Audit Events)
+
+Seluruh perubahan siklus, penyesuaian skor kalibrasi, penerbitan kontrak pembinaan PIP, dan putusan banding dicatat secara permanen (*append-only*) pada log audit sistem.
+
+| Kode Event Audit | Kategori Event | Sumber Pemicu | Data Kritis yang Direkam | Tingkat Kritis |
+| :--- | :--- | :--- | :--- | :---: |
+| `PerformanceCycleConfigured` | Konfigurasi | Input HRD | ID siklus, tahun evaluasi, jadwal tenggat waktu, user pembuat | `Medium` |
+| `PerformanceGoalsCascaded` | Perencanaan | Approval Karu | ID pegawai, daftar butir target KPI, bobot, target nilai disepakati | `Low` |
+| `SelfAppraisalSubmitted` | Pengisian | Submit ESS Staf | ID evaluasi, ID pegawai, waktu penyerahan mandiri, tautan bukti | `Low` |
+| `ManagerAppraisalCompleted` | Penilaian | Submit Karu | ID evaluasi, skor KPI (60%), skor perilaku (40%), skor komposit awal | `Medium` |
+| `SecondLineAppraisalReviewed` | Penelaahan | Otorisasi Kabid | ID evaluasi, ID atasan kedua, waktu telaah, catatan pertimbangan | `Medium` |
+| `CalibrationSessionOpened` | Sidang | Pembukaan Pleno | Nomor register sidang, tanggal, daftar komite hadir, pedoman distribusi | `Medium` |
+| `AppraisalScoreOverridden` | Penyesuaian | Override Komite | ID evaluasi, skor awal, skor baru, alasan justifikasi resmi komite | `Critical` |
+| `CalibrationSessionFinalized` | Pengesahan | Penutupan Pleno | ID sidang, total pegawai terkalibrasi, sebaran nilai final, approver | `High` |
+| `AppraisalScoresReleased` | Publikasi | Rilis Nilai RS | ID siklus, total nilai dirilis, waktu rilis, batas akhir masa sanggah (H+7) | `High` |
+| `PerformancePipContractIssued` | Pembinaan | Pemicu Skor < 65 | ID pegawai, nomor kontrak PIP, ID mentor, sasaran perbaikan terukur | `High` |
+| `PipWeeklyLogbookRecorded` | Monitoring | Input Mentor | ID kontrak PIP, minggu ke, ringkasan progres, status on-track/at-risk | `Medium` |
+| `PipFinalVerdictDelivered` | Keputusan | Sidang Hari Ke-60 | ID kontrak PIP, putusan (Lulus/Perpanjang/Eskalasi HR Legal), alasan | `Critical` |
+| `ClinicalLadderReviewApproved` | Jenjang Karir | Rekomendasi Komite | ID nakes, jenjang asal, jenjang baru (PK I-V), nomor SK penetapan | `High` |
+| `AppraisalDisputeVerdictDelivered`| Sengketa Nilai| Putusan Majelis | Nomor sanggahan, ID pemohon, putusan (Tetap/Disesuaikan), skor akhir baru | `Critical` |

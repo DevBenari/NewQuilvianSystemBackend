@@ -2504,3 +2504,51 @@ Kontrak API ini mendefinisikan 24 endpoint RESTful untuk tata kelola pelatihan w
 | `GET` | `/api/v1/corporate/hrd/learning/skp/staff/{staffId}/summary` | `Rencana (belum tersedia)` | Menampilkan kalkulasi perolehan 50 SKP nakes (Pembelajaran, Pelayanan, Pengabdian) 5 tahunan | `Training_PlataranSehat:View` | - | `200 OK`, `404 Not Found` |
 | `POST` | `/api/v1/corporate/hrd/learning/skp/records` | `Rencana (belum tersedia)` | Mencatat bukti kegiatan perolehan SKP nakes lokal beserta unggahan bukti pendukung | `Training_PlataranSehat:Manage` | `CreateSkpRecordRequestDto` | `201 Created`, `400 Bad Request` |
 | `POST` | `/api/v1/corporate/hrd/learning/skp/sync-plataran-sehat/{staffId}` | `Rencana (belum tersedia)` | Sinkronisasi portofolio SKP dan verifikasi ID sertifikat ke API Plataran Sehat Kemenkes (`INT-HR-80`) | `Training_PlataranSehat:Sync` | `SyncPlataranSehatRequestDto` | `200 OK`, `502 Bad Gateway` |
+
+### 27. Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3, Kontrak v21)
+
+Kontrak API ini mendefinisikan 24 endpoint RESTful untuk tata kelola siklus kinerja tahunan rumah sakit, penilaian komposit 60% KPI + 40% Core Values BerAKHLAK berjenjang tiga tingkat, sidang kalibrasi manajemen berpedoman sebaran fleksibel, pembinaan PIP 60 hari kalender, kenaikan jenjang karier klinis nakes (PK I s.d. PK V), serta sengketa sanggah banding nilai. Seluruh endpoint berada dalam namespace `/api/v1/corporate/hrd/performance/` dan berstatus `Rencana (belum tersedia)`.
+
+#### 27.1 `[Tags("Corporate - HRD Performance Cycles & Goal Cascading")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/performance/cycles` | `Rencana (belum tersedia)` | Menampilkan daftar riwayat siklus evaluasi kinerja tahunan dan jadwal tenggat waktu | `Performance_Cycle:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/performance/cycles` | `Rencana (belum tersedia)` | Membuat dan membuka siklus penilaian kinerja baru (Tahunan / Semesteran) | `Performance_Cycle:Manage` | `CreatePerformanceCycleRequestDto` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/performance/kpi-catalogs` | `Rencana (belum tersedia)` | Menampilkan master katalog metrik target KPI kuantitatif dan rubrik deskriptor Core Values BerAKHLAK | `Performance_Metric:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/performance/kpi-catalogs` | `Rencana (belum tersedia)` | Mendaftarkan atau mengubah master indikator target kinerja dan rubrik perilaku | `Performance_Metric:Manage` | `CreateKpiMetricCatalogRequestDto` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/performance/goals/staff/{staffId}` | `Rencana (belum tersedia)` | Menampilkan rincian sasaran kerja target individu staf pada siklus aktif | `Performance_Goal:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/performance/goals/cascading` | `Rencana (belum tersedia)` | Menetapkan dan mengesahkan target sasaran individu yang diturunkan dari KPI instalasi (`VR-PRF-02`) | `Performance_Goal:Manage` | `CascadePerformanceGoalsRequestDto` | `201 Created`, `400 Bad Request` |
+
+#### 27.2 `[Tags("Corporate - HRD Performance Appraisals & Multi-Level Review")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/performance/appraisals/my-appraisal` | `Rencana (belum tersedia)` | Menampilkan lembar kerja evaluasi kinerja mandiri pegawai yang sedang login (ESS) | `Performance_Appraisal:SelfAssess` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/performance/appraisals/self-submit` | `Rencana (belum tersedia)` | Menyerahkan lembar refleksi diri evaluasi mandiri beserta unggahan dokumen bukti capaian | `Performance_Appraisal:SelfAssess` | `SubmitSelfAppraisalRequestDto` | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/performance/appraisals/subordinates` | `Rencana (belum tersedia)` | Menampilkan daftar lembar evaluasi staf bawahan yang menunggu penilaian atasan langsung (Karu) | `Performance_Appraisal:ManagerAssess` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/performance/appraisals/{id}/manager-assess` | `Rencana (belum tersedia)` | Menginput skor resmi 60% KPI hasil kerja dan 40% perilaku Core Values BerAKHLAK oleh Karu (`VR-PRF-03`) | `Performance_Appraisal:ManagerAssess` | `SubmitManagerAppraisalRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/appraisals/{id}/second-line-review` | `Rencana (belum tersedia)` | Penelaahan dan otorisasi berkas evaluasi oleh atasan kedua (Kabid) sebelum kalibrasi (`VR-PRF-04`) | `Performance_Appraisal:SecondLineReview` | `ProcessSecondLineReviewDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/appraisals/{id}/acknowledge` | `Rencana (belum tersedia)` | Konfirmasi penerimaan dan penandatanganan skor akhir resmi oleh pegawai via portal ESS | `Performance_Appraisal:SelfAssess` | `AcknowledgeAppraisalRequestDto` | `200 OK`, `400 Bad Request` |
+
+#### 27.3 `[Tags("Corporate - HRD Performance Calibration & Dispute Resolution")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/performance/calibration/distribution-matrix` | `Rencana (belum tersedia)` | Menampilkan sebaran kurva nilai aktual RS terhadap pedoman distribusi fleksibel (10-15% A, 70-80% B, 5-10% C/D) | `Performance_Calibration:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/performance/calibration/sessions` | `Rencana (belum tersedia)` | Menjadwalkan dan membuka sidang pleno kalibrasi manajemen rumah sakit | `Performance_Calibration:Manage` | `CreateCalibrationSessionRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/calibration/override-score` | `Rencana (belum tersedia)` | Penyesuaian skor kinerja pegawai oleh Komite Kalibrasi dengan kewajiban nota pertimbangan (`VR-PRF-05`) | `Performance_Calibration:Manage` | `OverrideCalibrationScoreRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/calibration/sessions/{id}/finalize` | `Rencana (belum tersedia)` | Pengesahan final hasil kalibrasi nilai RS dan instruksi rilis massal ke portal pegawai | `Performance_Calibration:Manage` | `FinalizeCalibrationSessionRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/disputes/submit` | `Rencana (belum tersedia)` | Pengajuan sanggah banding nilai kinerja resmi oleh pegawai (maksimal H+7 pasca rilis nilai, `VR-PRF-12`) | `Performance_Dispute:Submit` | `SubmitAppraisalDisputeRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/disputes/{id}/adjudicate` | `Rencana (belum tersedia)` | Menerbitkan putusan final majelis banding Direktur SDM (maksimal H+14, `VR-PRF-13`) | `Performance_Dispute:Manage` | `AdjudicateDisputeRequestDto` | `200 OK`, `400 Bad Request` |
+
+#### 27.4 `[Tags("Corporate - HRD Performance Improvement Plan & Clinical Ladder")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/performance/pip/active-list` | `Rencana (belum tersedia)` | Menampilkan daftar pegawai yang sedang menjalani Program Peningkatan Kinerja (skor < 65) | `Performance_Pip:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/performance/pip/issue-contract` | `Rencana (belum tersedia)` | Menerbitkan kontrak pembinaan formal PIP 60 hari kalender, sasaran perbaikan, dan mentor (`VR-PRF-08`) | `Performance_Pip:Manage` | `IssuePipContractRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/pip/{id}/weekly-logs` | `Rencana (belum tersedia)` | Menginput catatan observasi monitoring mingguan (Minggu 1 s.d. 8) oleh mentor dan atasan (`VR-PRF-09`) | `Performance_Pip:Manage` | `RecordPipWeeklyLogRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/pip/{id}/final-verdict` | `Rencana (belum tersedia)` | Menerbitkan putusan akhir sidang PIP (Lulus, Perpanjang 30 Hari, atau Eskalasi HR Legal, `VR-PRF-10`) | `Performance_Pip:Manage` | `VerdictPipRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/performance/clinical-ladder/apply` | `Rencana (belum tersedia)` | Pengajuan kenaikan jenjang klinis nakes (PK I-V) via ESS dengan validasi gate KPI >= 75 (`VR-PRF-14`) | `Clinical_Career:Apply` | `ApplyClinicalLadderRequestDto` | `201 Created`, `422 Unprocessable Entity` |
+| `POST` | `/api/v1/corporate/hrd/performance/clinical-ladder/{id}/verdict` | `Rencana (belum tersedia)` | Pengesahan rekomendasi sidang Komite Keperawatan dan sinkronisasi SK jenjang baru ke Sub-02/14 (`INT-HR-83`)| `Clinical_Career:Manage` | `VerdictClinicalLadderRequestDto` | `200 OK`, `400 Bad Request` |

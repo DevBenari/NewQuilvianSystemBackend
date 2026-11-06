@@ -31,6 +31,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private readonly IPayrollOvertimeAndShiftIngestionService _overtimeAndShiftService;
         private readonly IPayrollBpjsCalculationService _bpjsCalculationService;
         private readonly IPayrollTaxCalculationService _taxCalculationService;
+        private readonly IPayrollDeductionsIngestionService _deductionsService;
+        private readonly IPayrollVarianceGuardService _varianceGuardService;
+        private readonly IPayrollVarianceResolutionService _varianceResolutionService;
+        private readonly IPayrollApprovalWorkflowService _approvalService;
+        private readonly IPayrollFinanceHandoffService _financeHandoffService;
+        private readonly IPayrollDisbursementReconciliationService _reconciliationService;
+        private readonly IPayrollPayslipDistributionService _payslipService;
 
         public PayrollRunModernController(
             IPayrollPreconditionGateService preconditionGateService,
@@ -38,7 +45,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             IPayrollEarningsCalculationService earningsCalculationService,
             IPayrollOvertimeAndShiftIngestionService overtimeAndShiftService,
             IPayrollBpjsCalculationService bpjsCalculationService,
-            IPayrollTaxCalculationService taxCalculationService)
+            IPayrollTaxCalculationService taxCalculationService,
+            IPayrollDeductionsIngestionService deductionsService,
+            IPayrollVarianceGuardService varianceGuardService,
+            IPayrollVarianceResolutionService varianceResolutionService,
+            IPayrollApprovalWorkflowService approvalService,
+            IPayrollFinanceHandoffService financeHandoffService,
+            IPayrollDisbursementReconciliationService reconciliationService,
+            IPayrollPayslipDistributionService payslipService)
         {
             _preconditionGateService = preconditionGateService ?? throw new ArgumentNullException(nameof(preconditionGateService));
             _runInitializationService = runInitializationService ?? throw new ArgumentNullException(nameof(runInitializationService));
@@ -46,6 +60,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             _overtimeAndShiftService = overtimeAndShiftService ?? throw new ArgumentNullException(nameof(overtimeAndShiftService));
             _bpjsCalculationService = bpjsCalculationService ?? throw new ArgumentNullException(nameof(bpjsCalculationService));
             _taxCalculationService = taxCalculationService ?? throw new ArgumentNullException(nameof(taxCalculationService));
+            _deductionsService = deductionsService ?? throw new ArgumentNullException(nameof(deductionsService));
+            _varianceGuardService = varianceGuardService ?? throw new ArgumentNullException(nameof(varianceGuardService));
+            _varianceResolutionService = varianceResolutionService ?? throw new ArgumentNullException(nameof(varianceResolutionService));
+            _approvalService = approvalService ?? throw new ArgumentNullException(nameof(approvalService));
+            _financeHandoffService = financeHandoffService ?? throw new ArgumentNullException(nameof(financeHandoffService));
+            _reconciliationService = reconciliationService ?? throw new ArgumentNullException(nameof(reconciliationService));
+            _payslipService = payslipService ?? throw new ArgumentNullException(nameof(payslipService));
         }
 
         [HttpGet("preconditions")]
@@ -285,6 +306,451 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             return Ok(ApiResponse<EmployeePph21CalculationDto>.Ok(result.Data!, result.Message));
+        }
+
+        // ==========================================
+        // MVP-31: DEDUCTIONS INGESTION (BE-HRD-154)
+        // ==========================================
+
+        [HttpPost("{id:guid}/ingest-deductions")]
+        [AccessAction("IngestDeductions", "Penyerapan Potongan Pinjaman & Restitusi Batch", Description = "Menyerap potongan cicilan pinjaman koperasi/internal dan restitusi seluruh pegawai dengan proteksi plafon 50%", AccessType = AccessTypes.Update, SortOrder = 13)]
+        [AccessPermission("PayrollRunModern", "IngestDeductions")]
+        [ProducesResponseType(typeof(ApiResponse<IngestDeductionsResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> IngestDeductions(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _deductionsService.IngestDeductionsAsync(id, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<IngestDeductionsResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/employees/{employeeRunId:guid}/ingest-deductions")]
+        [AccessAction("IngestEmployeeDeductions", "Penyerapan Potongan Pinjaman Pegawai", Description = "Menyerap potongan cicilan pinjaman untuk 1 pegawai spesifik", AccessType = AccessTypes.Update, SortOrder = 14)]
+        [AccessPermission("PayrollRunModern", "IngestEmployeeDeductions")]
+        [ProducesResponseType(typeof(ApiResponse<EmployeeDeductionSummaryDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> IngestEmployeeDeductions(
+            Guid id,
+            Guid employeeRunId,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _deductionsService.IngestEmployeeDeductionsAsync(id, employeeRunId, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<EmployeeDeductionSummaryDto>.Ok(result.Data!, result.Message));
+        }
+
+        // ==========================================
+        // MVP-31: VARIANCE GUARD & AUDIT (BE-HRD-155, BE-HRD-156)
+        // ==========================================
+
+        [HttpPost("{id:guid}/evaluate-variances")]
+        [AccessAction("EvaluateVariances", "Audit Payroll Variance Guard", Description = "Evaluasi lonjakan/penurunan deviasi gaji bersih >= 20% / Rp 2jt dibanding bulan lalu", AccessType = AccessTypes.Update, SortOrder = 15)]
+        [AccessPermission("PayrollRunModern", "EvaluateVariances")]
+        [ProducesResponseType(typeof(ApiResponse<EvaluateVarianceResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> EvaluateVariances(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _varianceGuardService.EvaluateRunVariancesAsync(id, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<EvaluateVarianceResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpGet("{id:guid}/variances")]
+        [AccessAction("ViewVariances", "Melihat Daftar Alert Variansi Gaji", Description = "Melihat seluruh tiket peringatan anomali variansi gaji pegawai pada batch", AccessType = AccessTypes.Read, SortOrder = 16)]
+        [AccessPermission("PayrollRunModern", "ViewVariances")]
+        [ProducesResponseType(typeof(ApiResponse<List<PayrollVarianceAlertDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetVariances(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _varianceGuardService.GetRunVarianceAlertsAsync(id, cancellationToken);
+            return Ok(ApiResponse<List<PayrollVarianceAlertDto>>.Ok(result.Data ?? new(), result.Message));
+        }
+
+        [HttpPost("{id:guid}/variances/{alertId:guid}/resolve")]
+        [AccessAction("ResolveVariance", "Resolusi Justifikasi Audit Variansi", Description = "Mengisi catatan alasan justifikasi audit anomali variansi pegawai (minimal 20 karakter)", AccessType = AccessTypes.Update, SortOrder = 17)]
+        [AccessPermission("PayrollRunModern", "ResolveVariance")]
+        [ProducesResponseType(typeof(ApiResponse<PayrollVarianceAlertDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> ResolveVariance(
+            Guid id,
+            Guid alertId,
+            [FromBody] ResolveVarianceAlertCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _varianceResolutionService.ResolveAlertAsync(alertId, command, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PayrollVarianceAlertDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpGet("{id:guid}/variances/check-submission")]
+        [AccessAction("CheckSubmissionGate", "Pengecekan Gerbang Submission Batch", Description = "Memverifikasi apakah seluruh alert variansi telah terjustifikasi sebelum submit", AccessType = AccessTypes.Read, SortOrder = 18)]
+        [AccessPermission("PayrollRunModern", "CheckSubmissionGate")]
+        [ProducesResponseType(typeof(ApiResponse<BatchVarianceSubmissionCheckDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> CheckSubmissionGate(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _varianceResolutionService.CheckBatchCanBeSubmittedAsync(id, cancellationToken);
+            return Ok(ApiResponse<BatchVarianceSubmissionCheckDto>.Ok(result.Data!, result.Message));
+        }
+
+        // ==========================================
+        // MVP-31: APPROVAL WORKFLOW 3-TIER (BE-HRD-157)
+        // ==========================================
+
+        [HttpPost("{id:guid}/submit")]
+        [AccessAction("SubmitForReview", "Tier 1: Pengajuan Batch oleh Payroll Officer", Description = "Mengajukan draft batch penggajian ke HR Manager dengan gerbang lolos audit variansi (PAY-B3)", AccessType = AccessTypes.Update, SortOrder = 19)]
+        [AccessPermission("PayrollRunModern", "SubmitForReview")]
+        [ProducesResponseType(typeof(ApiResponse<PayrollApprovalResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> SubmitForReview(
+            Guid id,
+            [FromBody] SubmitPayrollRunCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _approvalService.SubmitRunForReviewAsync(id, command, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PayrollApprovalResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/review")]
+        [AccessAction("ReviewByHrManager", "Tier 2: Review Batch oleh HR Manager", Description = "Review manajerial batch penggajian dengan penegakan keras anti-self-approval (PAY-B4)", AccessType = AccessTypes.Update, SortOrder = 20)]
+        [AccessPermission("PayrollRunModern", "ReviewByHrManager")]
+        [ProducesResponseType(typeof(ApiResponse<PayrollApprovalResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> ReviewByHrManager(
+            Guid id,
+            [FromBody] ReviewPayrollRunCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _approvalService.ReviewRunAsync(id, command, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PayrollApprovalResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/approve-final")]
+        [AccessAction("ApproveFinalByDirector", "Tier 3: Persetujuan Final Direksi", Description = "Persetujuan final Direktur SDM & Keuangan serta penguncian permanen batch immutable (PAY-B2)", AccessType = AccessTypes.Update, SortOrder = 21)]
+        [AccessPermission("PayrollRunModern", "ApproveFinalByDirector")]
+        [ProducesResponseType(typeof(ApiResponse<PayrollApprovalResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> ApproveFinalByDirector(
+            Guid id,
+            [FromBody] ApprovePayrollRunCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _approvalService.ApproveRunFinalAsync(id, command, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PayrollApprovalResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/reject")]
+        [AccessAction("RejectBatch", "Penolakan Batch Penggajian ke NeedCorrection", Description = "Menolak batch kembali ke NeedCorrection dengan kewajiban catatan alasan tertulis resmi minimal 15 karakter (PAY-B7)", AccessType = AccessTypes.Update, SortOrder = 22)]
+        [AccessPermission("PayrollRunModern", "RejectBatch")]
+        [ProducesResponseType(typeof(ApiResponse<PayrollApprovalResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> RejectBatch(
+            Guid id,
+            [FromBody] RejectPayrollRunCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _approvalService.RejectRunAsync(id, command, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PayrollApprovalResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpGet("{id:guid}/approvals")]
+        [AccessAction("ViewApprovalHistory", "Melihat Riwayat Persetujuan Approval", Description = "Melihat rekam jejak audit trail seluruh tahapan persetujuan batch penggajian", AccessType = AccessTypes.Read, SortOrder = 23)]
+        [AccessPermission("PayrollRunModern", "ViewApprovalHistory")]
+        [ProducesResponseType(typeof(ApiResponse<List<PayrollApprovalHistoryDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetApprovalHistory(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _approvalService.GetApprovalHistoryAsync(id, cancellationToken);
+            return Ok(ApiResponse<List<PayrollApprovalHistoryDto>>.Ok(result.Data ?? new(), result.Message));
+        }
+
+        // ==========================================
+        // MVP-32: FINANCE HANDOFF & CHECKSUIM SHA-256 (BE-HRD-158)
+        // ==========================================
+
+        [HttpPost("{id:guid}/dispatch-finance-handoff")]
+        [Tags("HR Payroll - Finance Handoff")]
+        [AccessAction("DispatchFinanceHandoff", "Serah Terima Berkas ke Finance", Description = "Membentuk paket serah terima final dengan verifikasi checksum SHA-256 dan mengunci batch immutable (INT-HR-53)", AccessType = AccessTypes.Update, SortOrder = 24)]
+        [AccessPermission("PayrollRunModern", "DispatchFinanceHandoff")]
+        [ProducesResponseType(typeof(ApiResponse<FinanceHandoffBatchResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DispatchFinanceHandoff(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            try
+            {
+                var result = await _financeHandoffService.DispatchFinanceHandoffAsync(id, actorUserId, cancellationToken);
+                return Ok(ApiResponse<FinanceHandoffBatchResultDto>.Ok(result, result.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        [HttpGet("{id:guid}/handoff-status")]
+        [Tags("HR Payroll - Finance Handoff")]
+        [AccessAction("ViewHandoffStatus", "Melihat Status Handoff Finance", Description = "Memantau status penerimaan berkas, konfirmasi bayar, atau penolakan oleh Finance", AccessType = AccessTypes.Read, SortOrder = 25)]
+        [AccessPermission("PayrollRunModern", "ViewHandoffStatus")]
+        [ProducesResponseType(typeof(ApiResponse<FinanceHandoffStatusDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetHandoffStatus(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var status = await _financeHandoffService.GetHandoffStatusAsync(id, cancellationToken);
+            if (status == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, $"Status handoff untuk batch ID {id} tidak ditemukan."));
+            }
+            return Ok(ApiResponse<FinanceHandoffStatusDto>.Ok(status, "Status serah terima berkas Finance berhasil diambil."));
+        }
+
+        [HttpGet("{id:guid}/handoff-payload")]
+        [Tags("HR Payroll - Finance Handoff")]
+        [AccessAction("ViewHandoffPayload", "Melihat Payload Berkas Handoff Finance", Description = "Mengambil snapshot payload baris transfer rekening bank berintegritas SHA-256", AccessType = AccessTypes.Read, SortOrder = 26)]
+        [AccessPermission("PayrollRunModern", "ViewHandoffPayload")]
+        [ProducesResponseType(typeof(ApiResponse<PayrollFinanceHandoffPayload>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetHandoffPayload(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var payload = await _financeHandoffService.GetHandoffPayloadAsync(id, cancellationToken);
+            if (payload == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, $"Payload handoff untuk batch ID {id} tidak ditemukan."));
+            }
+            return Ok(ApiResponse<PayrollFinanceHandoffPayload>.Ok(payload, "Payload berkas serah terima Finance berhasil diambil."));
+        }
+
+        // ==========================================
+        // MVP-32: WEBHOOK RECONCILER & DISBURSEMENT (BE-HRD-159)
+        // ==========================================
+
+        [HttpPost("{id:guid}/finance-payment-confirmed")]
+        [Tags("HR Payroll - Finance Handoff")]
+        [AccessAction("ConfirmFinancePayment", "Webhook: Konfirmasi Pembayaran Finance", Description = "Menerima callback konfirmasi transfer bank sukses dari Finance (INT-HR-54) & rilis slip gaji", AccessType = AccessTypes.Update, SortOrder = 27)]
+        [AccessPermission("PayrollRunModern", "ConfirmFinancePayment")]
+        [ProducesResponseType(typeof(ApiResponse<FinanceConfirmationResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ConfirmFinancePayment(
+            Guid id,
+            [FromBody] FinancePaymentConfirmationCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            command.PayrollRunId = id;
+            try
+            {
+                var result = await _reconciliationService.ConfirmPaymentAsync(command, cancellationToken);
+                return Ok(ApiResponse<FinanceConfirmationResultDto>.Ok(result, result.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+        }
+
+        [HttpPost("{id:guid}/finance-rejection")]
+        [Tags("HR Payroll - Finance Handoff")]
+        [AccessAction("RejectFinancePayment", "Webhook: Penolakan Pembayaran Finance", Description = "Menerima callback penolakan pencairan Finance dengan rollback status terkendali (PAY-B7, INT-HR-54)", AccessType = AccessTypes.Update, SortOrder = 28)]
+        [AccessPermission("PayrollRunModern", "RejectFinancePayment")]
+        [ProducesResponseType(typeof(ApiResponse<FinanceRejectionResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> RejectFinancePayment(
+            Guid id,
+            [FromBody] FinanceRejectionCallbackCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            command.PayrollRunId = id;
+            try
+            {
+                var result = await _reconciliationService.RejectPaymentAsync(command, cancellationToken);
+                return Ok(ApiResponse<FinanceRejectionResultDto>.Ok(result, result.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+        }
+
+        // ==========================================
+        // MVP-32: SELF-SERVICE PAYSLIPS ESS (BE-HRD-159)
+        // ==========================================
+
+        [HttpGet("self-service/my-payslips")]
+        [Tags("HR Payroll - Self-Service Payslips")]
+        [AccessAction("GetMyPayslips", "Portal ESS: Melihat Daftar Slip Gaji Saya", Description = "Mengambil daftar riwayat slip gaji pegawai mandiri yang sudah dirilis secara resmi", AccessType = AccessTypes.Read, SortOrder = 29)]
+        [AccessPermission("PayrollRunModern", "GetMyPayslips")]
+        [ProducesResponseType(typeof(ApiResponse<List<SelfServicePayslipSummaryDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMyPayslips(
+            [FromQuery] int? year,
+            CancellationToken cancellationToken = default)
+        {
+            var employeeId = GetCurrentUserId();
+            var list = await _payslipService.GetMyPayslipsAsync(employeeId, year, cancellationToken);
+            return Ok(ApiResponse<List<SelfServicePayslipSummaryDto>>.Ok(list, "Daftar slip gaji mandiri berhasil dimuat."));
+        }
+
+        [HttpPost("self-service/verify-pin")]
+        [Tags("HR Payroll - Self-Service Payslips")]
+        [AccessAction("VerifyPayslipPin", "Portal ESS: Verifikasi PIN Sekunder 6-Digit", Description = "Verifikasi autentikasi PIN sekunder 6-digit dengan penalti penguncian 30 menit (VR-PAY-22, PAY-B6)", AccessType = AccessTypes.Update, SortOrder = 30)]
+        [AccessPermission("PayrollRunModern", "VerifyPayslipPin")]
+        [ProducesResponseType(typeof(ApiResponse<PayslipPinVerificationResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PayslipPinVerificationResultDto>), StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> VerifyPayslipPin(
+            [FromBody] VerifyPayslipPinRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var employeeId = GetCurrentUserId();
+            var result = await _payslipService.VerifyPinAsync(employeeId, request.Pin, cancellationToken);
+            if (!result.IsSuccess && result.LockoutMinutesRemaining > 0)
+            {
+                return StatusCode(StatusCodes.Status429TooManyRequests, ApiResponse<PayslipPinVerificationResultDto>.Fail(StatusCodes.Status429TooManyRequests, result.Message));
+            }
+            if (!result.IsSuccess)
+            {
+                return BadRequest(ApiResponse<PayslipPinVerificationResultDto>.Fail(StatusCodes.Status400BadRequest, result.Message));
+            }
+            return Ok(ApiResponse<PayslipPinVerificationResultDto>.Ok(result, result.Message));
+        }
+
+        [HttpGet("self-service/payslips/{payslipId:guid}/detail")]
+        [Tags("HR Payroll - Self-Service Payslips")]
+        [AccessAction("GetPayslipDetail", "Portal ESS: Rincian Lengkap Lembar Slip Gaji", Description = "Melihat rincian komponen penerimaan & potongan slip gaji setelah PIN sekunder terverifikasi", AccessType = AccessTypes.Read, SortOrder = 31)]
+        [AccessPermission("PayrollRunModern", "GetPayslipDetail")]
+        [ProducesResponseType(typeof(ApiResponse<SelfServicePayslipDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPayslipDetail(
+            Guid payslipId,
+            [FromHeader(Name = "X-Payroll-PIN")] string pinToken,
+            CancellationToken cancellationToken = default)
+        {
+            var employeeId = GetCurrentUserId();
+            try
+            {
+                var detail = await _payslipService.GetPayslipDetailAsync(payslipId, employeeId, pinToken, cancellationToken);
+                return Ok(ApiResponse<SelfServicePayslipDetailDto>.Ok(detail, "Rincian slip gaji berhasil dimuat."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized, ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+        }
+
+        [HttpGet("self-service/payslips/{payslipId:guid}/download-pdf")]
+        [Tags("HR Payroll - Self-Service Payslips")]
+        [AccessAction("DownloadPayslipPdf", "Portal ESS: Unduh Dokumen PDF Slip Gaji", Description = "Mengunduh berkas PDF slip gaji ber-watermark resmi RS berproteksi kata sandi (VR-PAY-24)", AccessType = AccessTypes.Read, SortOrder = 32)]
+        [AccessPermission("PayrollRunModern", "DownloadPayslipPdf")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadPayslipPdf(
+            Guid payslipId,
+            [FromHeader(Name = "X-Payroll-PIN")] string pinToken,
+            CancellationToken cancellationToken = default)
+        {
+            var employeeId = GetCurrentUserId();
+            try
+            {
+                var (fileBytes, fileName, contentType) = await _payslipService.DownloadPayslipPdfAsync(payslipId, employeeId, pinToken, cancellationToken);
+                return File(fileBytes, contentType, fileName);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized, ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, ex.Message));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
         }
 
         private Guid GetCurrentUserId()

@@ -1065,3 +1065,89 @@ Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement tracea
 - **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
 - **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
 - **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis rumah sakit, 6 keputusan otoritas klinis, 22 skenario acceptance tests, dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`).
+
+
+### Bagian 1n: Pemetaan Jejak Requirement Bisnis Sub-Modul 16 (Slice `S-C2` Learning, Training & Competency)
+
+Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-25`), 6 Keputusan Otoritas Bisnis (`HRD-DEC-158` s.d. `HRD-DEC-163`), 22 Acceptance Test Skenario (`AT-HRD-TRN-01` s.d. `AT-HRD-TRN-22`), dan 5 Skenario UAT untuk **Sub-Modul 16: Learning, Training & Competency (Slice `S-C2`)** ke dalam 16 Task Backend (`BE-HRD-238` s.d. `BE-HRD-253`) dan 15 Task Frontend (`FE-HRD-216` s.d. `FE-HRD-230`).
+
+#### 1. Pemetaan Kebutuhan Fungsional (FR) ke Task Roadmap
+
+| ID FR | Deskripsi Kebutuhan Fungsional | Epic Pemilik | Task Backend Pelaksana | Task Frontend Pelaksana | Bukti Verifikasi Target | Status Gap |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| `FR-TRN-01` | Master 5 Pelatihan Wajib STARKES KPS 8 | `EPIC HRD-79` | `BE-HRD-238`, `BE-HRD-239` | `FE-HRD-216`, `FE-HRD-218`, `FE-HRD-219` | `VR-TRN-01`, `AT-HRD-TRN-01` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-02` | Siklus Masa Berlaku Maksimal 24 Bulan | `EPIC HRD-79` | `BE-HRD-239` | `FE-HRD-218`, `FE-HRD-219` | `VR-TRN-02`, `AT-HRD-TRN-02` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-03` | Pemetaan Pelatihan Khusus Ruang Intensif | `EPIC HRD-79` | `BE-HRD-239` | `FE-HRD-218`, `FE-HRD-219` | `VR-TRN-01`, `AT-HRD-TRN-01` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-04` | Radar Kedaluwarsa Bertingkat H-90/60/30 | `EPIC HRD-79` | `BE-HRD-240` | `FE-HRD-216`, `FE-HRD-217` | `VR-TRN-09`, `AT-HRD-TRN-03`, `AT-HRD-TRN-04` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-05` | Pengaturan Grace Period 30 Hari | `EPIC HRD-79` | `BE-HRD-240`, `BE-HRD-241` | `FE-HRD-217` | `VR-TRN-10`, `AT-HRD-TRN-05` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-06` | Flag Overdue & Safeguard Shift Buddy System | `EPIC HRD-79` | `BE-HRD-241` | `FE-HRD-217` | `VR-TRN-11`, `INT-HR-79`, `AT-HRD-TRN-06` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-07` | Pembekuan Hak RKK Level 4 ke Level 3 Sub-14 | `EPIC HRD-79` | `BE-HRD-241` | `FE-HRD-217` | `VR-TRN-12`, `INT-HR-77`, `AT-HRD-TRN-07` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-08` | Rencana Program Tahunan TNA | `EPIC HRD-81` | `BE-HRD-242` | `FE-HRD-216`, `FE-HRD-225` | `VR-TRN-13`, `AT-HRD-TRN-08` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-09` | Otorisasi Pengesahan Program oleh Direksi | `EPIC HRD-81` | `BE-HRD-242` | `FE-HRD-225` | `VR-TRN-13`, `AT-HRD-TRN-08` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-10` | Penjadwalan Batch Kelas, Lab & Webinar | `EPIC HRD-80` | `BE-HRD-243` | `FE-HRD-216`, `FE-HRD-220` | `VR-TRN-07`, `VR-TRN-08`, `AT-HRD-TRN-09` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-11` | Pendaftaran Mandiri Diklat via ESS | `EPIC HRD-81` | `BE-HRD-244` | `FE-HRD-220` | `VR-TRN-07`, `AT-HRD-TRN-10` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-12` | Alur Persetujuan Dispensasi Dinas Berjenjang | `EPIC HRD-81` | `BE-HRD-244` | `FE-HRD-220` | `VR-TRN-15`, `AT-HRD-TRN-10` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-13` | Pengendalian & Monitoring Pagu Anggaran Unit | `EPIC HRD-81` | `BE-HRD-245` | `FE-HRD-225` | `VR-TRN-14`, `AT-HRD-TRN-11` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-14` | Otomasi Pemindahan ke Anggaran Komitmen | `EPIC HRD-81` | `BE-HRD-245` | `FE-HRD-225` | `VR-TRN-15`, `AT-HRD-TRN-11` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-15` | Perekaman Presensi Harian & Ambang 80/100% | `EPIC HRD-80` | `BE-HRD-246` | `FE-HRD-220`, `FE-HRD-221` | `VR-TRN-03`, `AT-HRD-TRN-12` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-16` | Penilaian Ujian Teori Post-Test (>=75) | `EPIC HRD-80` | `BE-HRD-247` | `FE-HRD-222` | `VR-TRN-04`, `AT-HRD-TRN-13` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-17` | Penilaian Ujian Simulasi OSCE Klinis (>=80)| `EPIC HRD-80` | `BE-HRD-248` | `FE-HRD-222`, `FE-HRD-223` | `VR-TRN-05`, `AT-HRD-TRN-14` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-18` | Pengesahan Asesmen Digital Signature Penguji| `EPIC HRD-80` | `BE-HRD-248` | `FE-HRD-223` | `VR-TRN-06`, `AT-HRD-TRN-14` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-19` | Tata Kelola Remedial Evaluasi Maksimal 2x | `EPIC HRD-80` | `BE-HRD-247`, `BE-HRD-248` | `FE-HRD-222` | `VR-TRN-20`, `AT-HRD-TRN-15` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-20` | Penerbitan Otomatis e-Sertifikat & e-Dossier | `EPIC HRD-80` | `BE-HRD-249` | `FE-HRD-224` | `VR-TRN-21`, `INT-HR-72`, `AT-HRD-TRN-16` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-21` | Deteksi Draf Ikatan Dinas (>10Jt / >1Bln) | `EPIC HRD-82` | `BE-HRD-250` | `FE-HRD-226`, `FE-HRD-227` | `VR-TRN-16`, `AT-HRD-TRN-17` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-22` | Penegakan Retensi 12-36 Bln & Denda Resign | `EPIC HRD-82` | `BE-HRD-250`, `BE-HRD-251` | `FE-HRD-226`, `FE-HRD-227` | `VR-TRN-17`, `VR-TRN-18`, `AT-HRD-TRN-18`, `AT-HRD-TRN-19` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-23` | Registri Portofolio SKP Nakes 3 Kategori | `EPIC HRD-83` | `BE-HRD-252` | `FE-HRD-228` | `VR-TRN-23`, `AT-HRD-TRN-20` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-24` | Visual Tracker Akumulasi 50 SKP dalam 5 Th | `EPIC HRD-83` | `BE-HRD-252` | `FE-HRD-228` | `VR-TRN-24`, `AT-HRD-TRN-20` | **Tercakup Penuh (0 Gap)** |
+| `FR-TRN-25` | Verifikasi Plataran Sehat & Umpan OPPE | `EPIC HRD-83` | `BE-HRD-252` | `FE-HRD-228`, `FE-HRD-229` | `VR-TRN-22`, `VR-TRN-25`, `INT-HR-80`, `INT-HR-78`, `AT-HRD-TRN-21`, `AT-HRD-TRN-22` | **Tercakup Penuh (0 Gap)** |
+
+---
+
+#### 2. Pemetaan Keputusan Otoritas Bisnis (`HRD-DEC-158` s.d. `HRD-DEC-163`)
+
+| ID Keputusan | Judul / Intisari Keputusan | Komponen Backend Terkait | Komponen Frontend Terkait | Task Terkait |
+| :--- | :--- | :--- | :--- | :--- |
+| `HRD-DEC-158` | Standar 5 Pelatihan Wajib STARKES 100% Staf Siklus 2 Tahun | `MandatoryTrainingRuleService`, `MstMandatoryTrainingRule` | `FE-HRD-216`, `FE-HRD-217`, `MandatoryTrainingRuleModal` | `BE-HRD-239`, `BE-HRD-240`, `FE-HRD-217`, `FE-HRD-218`, `FE-HRD-219` |
+| `HRD-DEC-159` | Pemisahan Presensi Hadir vs Kelulusan Simulasi OSCE Bertanda Tangan Assessor | `TrainingAttendanceService`, `ClinicalOsceAssessmentService`, `TrxTrainingAssessment` | `FE-HRD-218`, `FE-HRD-219`, `OsceClinicalEvaluationModal` | `BE-HRD-246`, `BE-HRD-247`, `BE-HRD-248`, `FE-HRD-221`, `FE-HRD-222`, `FE-HRD-223` |
+| `HRD-DEC-160` | Safeguard Shift Dinas *Buddy System* saat H-0 Overdue Terhubung ke Sub-06 | `TrainingExpiryRadarService`, flag `OverdueMandatoryTraining`, `INT-HR-79` | `FE-HRD-216` (Radar Visual), badge pengamanan shift | `BE-HRD-240`, `BE-HRD-241`, `FE-HRD-217` |
+| `HRD-DEC-161` | Prasyarat RKK Sub-14 & Umpan CPD ke Pilar OPPE Sub-15 | `INT-HR-77` (Downgrade Level 3), `INT-HR-78` (Medical Knowledge Score) | `FE-HRD-220` (Registri Sertifikat), `FE-HRD-223` (Portofolio SKP) | `BE-HRD-241`, `BE-HRD-249`, `BE-HRD-252`, `FE-HRD-224`, `FE-HRD-228` |
+| `HRD-DEC-162` | TNA, Kontrol Saldo Pagu & Ikatan Dinas (>10 Jt / >1 Bln) | `TrainingBudgetControlService`, `TrainingBondService`, `HrdTrainingBondContract` | `FE-HRD-221` (TNA Budget), `FE-HRD-222` (Ikatan Dinas), `TrainingBondContractModal` | `BE-HRD-242`, `BE-HRD-245`, `BE-HRD-250`, `BE-HRD-251`, `FE-HRD-225`, `FE-HRD-226`, `FE-HRD-227` |
+| `HRD-DEC-163` | Registri Portofolio 50 SKP & Gateway Plataran Sehat Kemenkes | `TrxPlataranSehatSkpRecord`, `INT-HR-80` (Plataran Sehat SatuSehat SDMK API) | `FE-HRD-223` (Radial Progress SKP), `PlataranSehatSyncModal` | `BE-HRD-252`, `FE-HRD-228`, `FE-HRD-229` |
+
+---
+
+#### 3. Pemetaan Matriks Acceptance Test ke Task Roadmap
+
+| ID UAT | Ringkasan Skenario Pengujian | Task Backend Pelaksana | Task Frontend Pelaksana | Status Kesiapan |
+| :--- | :--- | :--- | :--- | :---: |
+| `AT-HRD-TRN-01` | Pendaftaran Master Aturan 5 Pelatihan Wajib STARKES KPS 8 | `BE-HRD-239` | `FE-HRD-218`, `FE-HRD-219` | `Rencana` |
+| `AT-HRD-TRN-02` | Penolakan konfigurasi masa berlaku akreditasi > 24 bulan | `BE-HRD-239` | `FE-HRD-219` | `Rencana` |
+| `AT-HRD-TRN-03` | Deteksi otomatis sertifikat masuk radar kedaluwarsa H-90/60/30 | `BE-HRD-240` | `FE-HRD-217` | `Rencana` |
+| `AT-HRD-TRN-04` | Penyiaran pesan peringatan perpanjangan massal ke staf nakes | `BE-HRD-240` | `FE-HRD-217` | `Rencana` |
+| `AT-HRD-TRN-05` | Pemberian grace period 30 hari pasca habis tempo sertifikat | `BE-HRD-241` | `FE-HRD-217` | `Rencana` |
+| `AT-HRD-TRN-06` | Penugasan otomatis buddy system jaga shift ke Sub-06 | `BE-HRD-241` | `FE-HRD-217` | `Rencana` |
+| `AT-HRD-TRN-07` | Pembekuan kewenangan klinis RKK Level 4 ke Level 3 di Sub-14 | `BE-HRD-241` | `FE-HRD-217` | `Rencana` |
+| `AT-HRD-TRN-08` | Penyusunan dan pengesahan rencana kerja tahunan diklat (TNA) | `BE-HRD-242` | `FE-HRD-225` | `Rencana` |
+| `AT-HRD-TRN-09` | Penjadwalan batch kelas pelatihan internal dan workshop lab | `BE-HRD-243` | `FE-HRD-220` | `Rencana` |
+| `AT-HRD-TRN-10` | Pendaftaran diklat via ESS dengan persetujuan berjenjang | `BE-HRD-244` | `FE-HRD-220` | `Rencana` |
+| `AT-HRD-TRN-11` | Pemblokiran pengajuan diklat jika pagu anggaran unit defisit | `BE-HRD-245` | `FE-HRD-225` | `Rencana` |
+| `AT-HRD-TRN-12` | Validasi kehadiran presensi minimal 100% untuk staf klinis | `BE-HRD-246` | `FE-HRD-221` | `Rencana` |
+| `AT-HRD-TRN-13` | Penilaian ujian teori post-test memenuhi passing grade >= 75 | `BE-HRD-247` | `FE-HRD-222` | `Rencana` |
+| `AT-HRD-TRN-14` | Pengesahan rubrik OSCE dengan tanda tangan digital assessor | `BE-HRD-248` | `FE-HRD-223` | `Rencana` |
+| `AT-HRD-TRN-15` | Pelaksanaan remedial maksimal 2 kali untuk peserta gagal | `BE-HRD-247`, `BE-HRD-248` | `FE-HRD-222` | `Rencana` |
+| `AT-HRD-TRN-16` | Penerbitan otomatis e-Sertifikat dan arsip ke e-Dossier Sub-02 | `BE-HRD-249` | `FE-HRD-224` | `Rencana` |
+| `AT-HRD-TRN-17` | Deteksi otomatis diklat biaya > Rp 10 Juta memicu ikatan dinas | `BE-HRD-250` | `FE-HRD-226`, `FE-HRD-227` | `Rencana` |
+| `AT-HRD-TRN-18` | Penandatanganan akta ikatan dinas dan aktivasi masa retensi | `BE-HRD-250` | `FE-HRD-226`, `FE-HRD-227` | `Rencana` |
+| `AT-HRD-TRN-19` | Penagihan ganti rugi saat pegawai ikatan dinas resign sepihak | `BE-HRD-251` | `FE-HRD-227` | `Rencana` |
+| `AT-HRD-TRN-20` | Visual tracker akumulasi 50 SKP nakes selama 5 tahun berjalan | `BE-HRD-252` | `FE-HRD-228` | `Rencana` |
+| `AT-HRD-TRN-21` | Verifikasi ID sertifikat ke API Plataran Sehat Kemenkes | `BE-HRD-252` | `FE-HRD-229` | `Rencana` |
+| `AT-HRD-TRN-22` | Agregasi jam diklat dan SKP ke pilar evaluasi OPPE Sub-15 | `BE-HRD-252` | `FE-HRD-228` | `Rencana` |
+
+---
+
+#### 4. Analisis Gap Keterkaitan Requirement ke Bukti Verifikasi
+
+- **Total Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-25`):** 25 Kebutuhan.
+- **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
+- **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
+- **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis rumah sakit, 6 keputusan otoritas diklat & klinis (`HRD-DEC-158` s.d. `HRD-DEC-163`), 22 skenario acceptance tests (`AT-HRD-TRN-01` s.d. `AT-HRD-TRN-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-238` s.d. `BE-HRD-253`) dan 15 task frontend (`FE-HRD-216` s.d. `FE-HRD-230`).

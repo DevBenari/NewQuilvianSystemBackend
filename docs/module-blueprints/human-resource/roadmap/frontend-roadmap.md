@@ -4713,3 +4713,191 @@ BE-HRD-237 [BE] ───┘
 * **Dependencies**: Seluruh task frontend `FE-HRD-201` s.d. `FE-HRD-214` dan `BE-HRD-237`
 * **Acceptance Criteria**: Build standalone Next.js sukses; linter 0 error 0 warning; seluruh 8 layar baru beroperasi mulus dan aman.
 * **Verifikasi**: Laporan task tracked `FE-HRD-215.md` dan output terminal npm.
+
+
+## 19. Rencana Kerja Frontend Sub-Modul 16: Learning, Training & Competency (Slice `S-C2`)
+
+### 19.1 Grafik Urutan Dependency Frontend `S-C2`
+
+#### Grafik F58: Gelombang `MVP-48` (Client API, Redux Slice, Dashboard Radar & Aturan Wajib STARKES)
+```text
+FE-HRD-216 (Client API & Redux Slice) ──┬──> FE-HRD-217 (Dashboard Pelatihan & Radar Layar FE-HRD-216)
+BE-HRD-240 [BE] ───────────────────────┘
+FE-HRD-216 [F58] ──> FE-HRD-218 (Konfigurasi Aturan Wajib Layar FE-HRD-217) ──> FE-HRD-219 (Modal Aturan Wajib & Ambang Nilai)
+BE-HRD-239 [BE] ───┘
+```
+
+#### Grafik F59: Gelombang `MVP-49` (Manajemen Sesi Diklat, Presensi QR, Lembar Ujian OSCE & e-Sertifikat)
+```text
+FE-HRD-216 [F58] ──> FE-HRD-220 (Manajemen Sesi Pelatihan Layar FE-HRD-218) ──> FE-HRD-221 (Modal Presensi QR / RFID)
+BE-HRD-243 [BE] ───┘
+FE-HRD-216 [F58] ──> FE-HRD-222 (Lembar Ujian Teori & OSCE Layar FE-HRD-219) ──> FE-HRD-223 (Modal Rubrik OSCE & e-Sign Assessor) ──┐
+BE-HRD-248 [BE] ───┘                                                                                                                  │
+                                                                                                                                     ├──> FE-HRD-224 ⏳ (Registri Portofolio e-Sertifikat FE-HRD-220)
+BE-HRD-249 [BE] ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Grafik F60: Gelombang `MVP-50` (TNA, Kontrol Anggaran, Ikatan Dinas & SKP Plataran Sehat)
+```text
+FE-HRD-216 [F58] ──> FE-HRD-225 (Rencana Tahunan TNA & Pagu Anggaran Layar FE-HRD-221)
+BE-HRD-245 [BE] ───┘
+FE-HRD-216 [F58] ──> FE-HRD-226 (Tata Kelola Ikatan Dinas Retensi Layar FE-HRD-222) ──> FE-HRD-227 (Modal Draf Akta Ikatan Dinas)
+BE-HRD-251 [BE] ───┘
+FE-HRD-216 [F58] ──> FE-HRD-228 (Portofolio 50 SKP 5 Tahunan Layar FE-HRD-223) ──> FE-HRD-229 (Modal Sinkronisasi Plataran Sehat)
+BE-HRD-252 [BE] ───┘
+```
+
+#### Grafik F61: Gelombang Verifikasi & Kepatuhan Arsitektur `S-C2`
+```text
+FE-HRD-217 [F58] ──┐
+FE-HRD-224 [F59] ──┼──> FE-HRD-230 ⏳ (Verifikasi Menyeluruh Next.js App Router, Linting 0 Error & UAT Acceptance S-C2)
+FE-HRD-227 [F60] ──┤
+FE-HRD-229 [F60] ──┤
+BE-HRD-253 [BE] ───┘
+```
+
+---
+
+### 19.2 Tabel Gelombang Eksekusi Frontend `S-C2`
+
+| Gelombang | Task ID | Nama Task Ringkas | Prasyarat (Dependencies) | Target Deliverables & Layar |
+| :--- | :--- | :--- | :--- | :--- |
+| **`MVP-48`** | `FE-HRD-216` | Redux Slice `learningDevelopmentSlice.ts`, Axios Client & DTO Types | `BE-HRD-239`, `BE-HRD-240` | Fondasi client HTTP Axios, TypeScript DTO Kontrak `v20`, store Redux |
+| **`MVP-48`** | `FE-HRD-217` | Dashboard Pelatihan Pegawai & Radar Kedaluwarsa | `FE-HRD-216`, `BE-HRD-240` | Layar `FE-HRD-216` (`/hr/learning/dashboard`), radar H-90/60/30 |
+| **`MVP-48`** | `FE-HRD-218` | Konfigurasi Aturan Pelatihan Wajib Akreditasi RS | `FE-HRD-216`, `BE-HRD-239` | Layar `FE-HRD-217` (`/hr/learning/mandatory-rules`), tabel katalog 5 diklat |
+| **`MVP-48`** | `FE-HRD-219` | Modal Konfigurasi Aturan Pelatihan Wajib & Ambang | `FE-HRD-218` | Komponen `MandatoryTrainingRuleModal`, form validasi 24 bulan & ambang |
+| **`MVP-49`** | `FE-HRD-220` | Manajemen Sesi Pelatihan, Kalender Batch & Kuota | `FE-HRD-216`, `BE-HRD-243` | Layar `FE-HRD-218` (`/hr/learning/sessions`), kalender kelas & filter batch |
+| **`MVP-49`** | `FE-HRD-221` | Modal Presensi QR Code / RFID & Rekapitulasi Hadir | `FE-HRD-220`, `BE-HRD-246` | Komponen `TrainingAttendanceQrModal`, scanner check-in & hitung durasi |
+| **`MVP-49`** | `FE-HRD-222` | Lembar Penilaian Asesmen Teori Post-Test & OSCE | `FE-HRD-216`, `BE-HRD-247` | Layar `FE-HRD-219` (`/hr/learning/assessments`), filter ujian nakes |
+| **`MVP-49`** | `FE-HRD-223` | Modal Rubrik Checklist OSCE & Tanda Tangan Assessor | `FE-HRD-222`, `BE-HRD-248` | Komponen `OsceClinicalEvaluationModal`, canvas digital signature assessor |
+| **`MVP-49`** | `FE-HRD-224` | Registri Portofolio e-Sertifikat & Arsip e-Dossier | `FE-HRD-220`, `FE-HRD-222`, `BE-HRD-249` | Layar `FE-HRD-220` (`/hr/learning/certificates`), preview PDF & unduh |
+| **`MVP-50`** | `FE-HRD-225` | Rencana Program Tahunan TNA & Monitoring Pagu Anggaran | `FE-HRD-216`, `BE-HRD-242`, `BE-HRD-245` | Layar `FE-HRD-221` (`/hr/learning/annual-plans`), progress bar pagu unit |
+| **`MVP-50`** | `FE-HRD-226` | Tata Kelola Kontrak Ikatan Dinas Retensi Nakes | `FE-HRD-216`, `BE-HRD-250` | Layar `FE-HRD-222` (`/hr/learning/bonds`), tabel masa retensi & status |
+| **`MVP-50`** | `FE-HRD-227` | Modal Draf Akta Ikatan Dinas & Tagihan Penalti Resign | `FE-HRD-226`, `BE-HRD-251` | Komponen `TrainingBondContractModal`, rincian kalkulator denda ganti rugi |
+| **`MVP-50`** | `FE-HRD-228` | Portofolio 50 SKP Nakes & Visual Progress Radial | `FE-HRD-216`, `BE-HRD-252` | Layar `FE-HRD-223` (`/hr/learning/skp-tracker`), radial chart 3 ranah SKP |
+| **`MVP-50`** | `FE-HRD-229` | Modal Verifikasi ID Sertifikat Plataran Sehat Kemenkes | `FE-HRD-228`, `BE-HRD-252` | Komponen `PlataranSehatSyncModal`, tombol sinkronisasi SatuSehat SDMK |
+| **Verifikasi** | `FE-HRD-230` | Verifikasi Menyeluruh Next.js, Linting 0 Error & UAT | `FE-HRD-217`, `FE-HRD-224`, `FE-HRD-227`, `FE-HRD-229`, `BE-HRD-253` | Build standalone sukses, 0 lint error, kelulusan skenario `UAT-01..05` |
+
+---
+
+### 19.3 Detail Spesifikasi Task Frontend (`FE-HRD-216` s.d. `FE-HRD-230`)
+
+#### ⏳ `FE-HRD-216` — Inisialisasi Redux Slice `learningDevelopmentSlice.ts`, Axios Client API & DTO Types Kontrak `v20`
+* **Slice / MVP**: `S-C2` / `MVP-48`
+* **Status**: ⏳ Siap Dikerjakan (Kontrak `v20` Terkunci)
+* **Outcome**: Pembuatan state Redux `learningDevelopmentSlice.ts` pada folder `@/store/slices/hr/`, deklarasi antarmuka TypeScript untuk 24 DTO endpoint Kontrak `v20`, konfigurasi endpoint Axios client di `@/services/api/hr/learningService.ts`, penanganan error terpusat (`400`, `422`, `409`, `502`), serta penyiapan selektor state loading dan caching data.
+* **Dependencies**: `BE-HRD-239`, `BE-HRD-240` (Kontrak API `v20`).
+* **Acceptance Criteria**: Type definition TypeScript 100% cocok dengan skema Swagger Kontrak `v20`; store Redux terdaftar pada root store tanpa konflik kompilasi.
+* **Verifikasi**: `npm run build` dan audit linting TypeScript.
+
+#### ⏳ `FE-HRD-217` — Dashboard Pelatihan Pegawai, Sertifikasi & Radar Kedaluwarsa (`FE-HRD-216`)
+* **Slice / MVP**: `S-C2` / `MVP-48`
+* **Status**: ⏳ Menunggu `FE-HRD-216`, `BE-HRD-240`
+* **Outcome**: Pembangunan layar dasbor komprehensif pada rute `/hr/learning/dashboard` (Layar `FE-HRD-216`), mencakup kartu metrik KPI kepatuhan akreditasi rumah sakit (Target 100%), visualisasi radar kedaluwarsa nakes bergradasi warna (Kuning H-90, Oranye H-60, Merah Muda H-30, Merah Menyala H-0 Overdue), penandaan staf dengan safeguard shift *buddy system*, tabel peringatan dini, serta tombol penyiaran pesan peringatan perpanjangan massal.
+* **Dependencies**: `FE-HRD-216`, `BE-HRD-240`.
+* **Acceptance Criteria**: Dasbor menampilkan statistik kepatuhan akreditasi secara real-time; kartu radar kedaluwarsa merespons filter unit kerja dan profesi.
+* **Verifikasi**: Uji visual dashboard dan skenario radar kedaluwarsa `AT-HRD-TRN-03`, `AT-HRD-TRN-04`.
+
+#### ⏳ `FE-HRD-218` — Konfigurasi Aturan Pelatihan Wajib Akreditasi & Penugasan Unit (`FE-HRD-217`)
+* **Slice / MVP**: `S-C2` / `MVP-48`
+* **Status**: ⏳ Menunggu `FE-HRD-216`, `BE-HRD-239`
+* **Outcome**: Pembangunan layar pengelolaan master aturan pelatihan wajib pada rute `/hr/learning/mandatory-rules` (Layar `FE-HRD-217`), tabel interaktif daftar 5 pelatihan wajib akreditasi STARKES dan pelatihan klinis khusus ruang intensif, badge penugasan lingkup target pegawai (100% Seluruh Pegawai / Unit Khusus), kolom masa berlaku (24 Bulan), kolom grace period, sakelar keaktifan aturan, serta tombol pembuka modal konfigurasi.
+* **Dependencies**: `FE-HRD-216`, `BE-HRD-239`.
+* **Acceptance Criteria**: Tabel menampilkan seluruh parameter aturan pelatihan wajib; proteksi tombol hapus untuk 5 pelatihan dasar akreditasi rumah sakit (`VR-TRN-01`).
+* **Verifikasi**: Uji navigasi dan render katalog aturan `AT-HRD-TRN-01`.
+
+#### ⏳ `FE-HRD-219` — Modal Konfigurasi Aturan Pelatihan Wajib & Ambang Nilai (`MandatoryTrainingRuleModal`)
+* **Slice / MVP**: `S-C2` / `MVP-48`
+* **Status**: ⏳ Menunggu `FE-HRD-218`
+* **Outcome**: Komponen dialog modal `@/components/features/learning/MandatoryTrainingRuleModal.tsx` menggunakan `BaseFormControl` Quilvian, form input kode pelatihan, judul pelatihan, pilihan kategori dan target nakes, field numerik masa berlaku (validasi klien maks 24 bulan, `VR-TRN-02`), ambang minimal presensi (80% / 100%), passing score teori (>= 75), sakelar kewajiban simulasi OSCE dan passing score OSCE (>= 80), serta sakelar dampak safeguard shift dinas.
+* **Dependencies**: `FE-HRD-218`.
+* **Acceptance Criteria**: Validasi form mencegah input masa berlaku melampaui 24 bulan; pesan error muncul tepat di bawah field jika input tidak valid.
+* **Verifikasi**: Uji validasi batas masa berlaku dan ambang kelulusan `AT-HRD-TRN-02`.
+
+#### ⏳ `FE-HRD-220` — Manajemen Sesi Pelatihan, Kalender Batch Kelas & Presensi Kehadiran (`FE-HRD-218`)
+* **Slice / MVP**: `S-C2` / `MVP-49`
+* **Status**: ⏳ Menunggu `FE-HRD-216`, `BE-HRD-243`
+* **Outcome**: Pembangunan layar kalender dan batch kelas pelatihan pada rute `/hr/learning/sessions` (Layar `FE-HRD-218`), tampilan kalender bulanan dan tabel list sesi diklat internal/eksternal, visualisasi sisa kuota kapasitas ruang/lab simulator (`VR-TRN-07`), badge status sesi (`Scheduled`, `RegistrationOpen`, `InProgress`, `AssessmentPhase`, `Completed`), tombol buka pendaftaran, dan tombol pintas pembuka modal absensi presensi harian.
+* **Dependencies**: `FE-HRD-216`, `BE-HRD-243`.
+* **Acceptance Criteria**: Batch kelas terkelompokkan rapi berdasarkan jadwal dan status; indikator kuota penuh tampil jelas dan mencegah pendaftaran berlebih.
+* **Verifikasi**: Uji kalender sesi dan kuota `AT-HRD-TRN-09`.
+
+#### ⏳ `FE-HRD-221` — Modal Presensi QR Code / RFID & Rekapitulasi Hadir Sesi (`TrainingAttendanceQrModal`)
+* **Slice / MVP**: `S-C2` / `MVP-49`
+* **Status**: ⏳ Menunggu `FE-HRD-220`, `BE-HRD-246`
+* **Outcome**: Komponen modal dialog `@/components/features/learning/TrainingAttendanceQrModal.tsx` untuk menampilkan QR Code absensi dinamis per hari sesi, simulator pemindaian RFID/kartu pegawai, tabel rekapitulasi kehadiran peserta real-time, perhitungan persentase jam hadir kumulatif, serta visual badge kelayakan mengikuti ujian kelulusan (Hijau: Memenuhi Syarat >=80%/100%, Merah: Gugur Presensi, `VR-TRN-03`).
+* **Dependencies**: `FE-HRD-220`, `BE-HRD-246`.
+* **Acceptance Criteria**: Pemindaian presensi mencatat log secara instan; sistem menampilkan peringatan visual jika kehadiran staf klinis kurang dari 100%.
+* **Verifikasi**: Uji presensi QR dan validasi kelayakan ujian `AT-HRD-TRN-12`.
+
+#### ⏳ `FE-HRD-222` — Lembar Penilaian Asesmen Teori Post-Test & Ujian Simulasi Klinis OSCE (`FE-HRD-219`)
+* **Slice / MVP**: `S-C2` / `MVP-49`
+* **Status**: ⏳ Menunggu `FE-HRD-216`, `BE-HRD-247`
+* **Outcome**: Pembangunan layar kerja penguji dan bagian Diklat pada rute `/hr/learning/assessments` (Layar `FE-HRD-219`), tabel rekapitulasi peserta sesi yang lolos presensi, kolom input cepat nilai teori post-test, penanda kelulusan teori (Passing Grade >= 75.00, `VR-TRN-04`), indikator percobaan remedial (1/2, 2/2, `VR-TRN-20`), tombol buka lembar rubrik OSCE klinis, serta tombol eksekusi penerbitan sertifikat bagi peserta yang lulus komprehensif.
+* **Dependencies**: `FE-HRD-216`, `BE-HRD-247`.
+* **Acceptance Criteria**: Pemisahan tegas nilai teori dan praktik; peserta yang belum lulus salah satu komponen tidak dapat diterbitkan sertifikatnya.
+* **Verifikasi**: Uji lembar kerja penilaian dan alur remedial `AT-HRD-TRN-13`, `AT-HRD-TRN-15`.
+
+#### ⏳ `FE-HRD-223` — Modal Rubrik Checklist OSCE & Tanda Tangan Digital Assessor (`OsceClinicalEvaluationModal`)
+* **Slice / MVP**: `S-C2` / `MVP-49`
+* **Status**: ⏳ Menunggu `FE-HRD-222`, `BE-HRD-248`
+* **Outcome**: Komponen modal dialog `@/components/features/learning/OsceClinicalEvaluationModal.tsx` untuk pengujian simulasi klinis langsung (misal Resusitasi Jantung Paru, Pemasangan CVC, Intubasi), menampilkan tabel rubrik checklist butir keterampilan, kalkulasi otomatis skor OSCE (Passing Grade >= 80.00, `VR-TRN-05`), field textarea umpan balik pembinaan instruktur, serta kanvas tanda tangan digital / otentikasi PIN dokter assessor penguji (`VR-TRN-06`).
+* **Dependencies**: `FE-HRD-222`, `BE-HRD-248`.
+* **Acceptance Criteria**: Form mengunci tombol simpan sebelum seluruh butir rubrik terisi dan tanda tangan digital terverifikasi sah.
+* **Verifikasi**: Uji rubrik evaluasi OSCE dan tanda tangan penguji `AT-HRD-TRN-14`.
+
+#### ⏳ `FE-HRD-224` — Registri Portofolio e-Sertifikat Pegawai & Verifikasi Dokumen Eksternal (`FE-HRD-220`)
+* **Slice / MVP**: `S-C2` / `MVP-49`
+* **Status**: ⏳ Menunggu `FE-HRD-220`, `FE-HRD-222`, `BE-HRD-249`
+* **Outcome**: Pembangunan layar portofolio sertifikat pada rute `/hr/learning/certificates` (Layar `FE-HRD-220`), tabel seluruh sertifikat kepegawaian internal dan eksternal, nomor seri registrasi baku (`SRT/HRD-TRN/...`), tanggal terbit, masa berlaku, status (`Active`, `ExpiringSoon`, `Expired`, `Revoked`), tombol pratinjau dokumen PDF di e-Dossier Sub-02 (`INT-HR-72`), tombol verifikasi keabsahan sertifikat eksternal oleh tim Diklat (`VR-TRN-19`), serta tombol unduh e-Sertifikat ber-QR Code.
+* **Dependencies**: `FE-HRD-220`, `FE-HRD-222`, `BE-HRD-249`.
+* **Acceptance Criteria**: Sertifikat internal terbit otomatis pasca penilaian selesai; dokumen eksternal berstatus `Unverified` hingga disetujui staf Diklat.
+* **Verifikasi**: Uji registri sertifikat dan unduh PDF `AT-HRD-TRN-16`.
+
+#### ⏳ `FE-HRD-225` — Rencana Program Tahunan TNA & Monitoring Pagu Anggaran Unit (`FE-HRD-221`)
+* **Slice / MVP**: `S-C2` / `MVP-50`
+* **Status**: ⏳ Menunggu `FE-HRD-216`, `BE-HRD-242`, `BE-HRD-245`
+* **Outcome**: Pembangunan layar perencanaan kerja tahunan pada rute `/hr/learning/annual-plans` (Layar `FE-HRD-221`), rekapitulasi program pelatihan tahunan berbasis TNA, ringkasan kartu anggaran (Pagu Alokasi, Anggaran Komitmen Berjalan, Realisasi Pembayaran, Sisa Saldo Pagu Unit, `VR-TRN-14`), visual progress bar realisasi anggaran departemen, tombol pengajuan rencana ke Direksi, serta tombol persetujuan eksekutif Direktur SDM/Keuangan.
+* **Dependencies**: `FE-HRD-216`, `BE-HRD-242`, `BE-HRD-245`.
+* **Acceptance Criteria**: Visual progress bar menampilkan sisa saldo anggaran unit secara akurat; indikator peringatan muncul saat pagu menipis (< 15%).
+* **Verifikasi**: Uji monitoring pagu anggaran dan approval TNA `AT-HRD-TRN-08`, `AT-HRD-TRN-11`.
+
+#### ⏳ `FE-HRD-226` — Tata Kelola Kontrak Ikatan Dinas Retensi Nakes & Perhitungan Denda Resign (`FE-HRD-222`)
+* **Slice / MVP**: `S-C2` / `MVP-50`
+* **Status**: ⏳ Menunggu `FE-HRD-216`, `BE-HRD-250`
+* **Outcome**: Pembangunan layar administrasi ikatan dinas pada rute `/hr/learning/bonds` (Layar `FE-HRD-222`), tabel data staf nakes yang menjalani ikatan dinas pasca pelatihan berbiaya tinggi (> Rp 10 Juta / > 1 Bulan), kolom nomor akta perjanjian, total pembiayaan sponsor RS, masa retensi kerja (12 s.d. 36 bulan), tanggal mulai & selesai retensi, visual counter sisa bulan ikatan, badge status (`Active`, `Completed`, `BreachPenalized`), serta tombol aksi pencatatan wanprestasi resign sepihak.
+* **Dependencies**: `FE-HRD-216`, `BE-HRD-250`.
+* **Acceptance Criteria**: Seluruh staf dengan ikatan dinas aktif terpantau dengan counter sisa waktu yang presisi; akses terbatas untuk peran HR Legal dan Direksi.
+* **Verifikasi**: Uji tabel monitoring ikatan dinas `AT-HRD-TRN-18`.
+
+#### ⏳ `FE-HRD-227` — Modal Draf Akta Ikatan Dinas & Rincian Tagihan Penalti Resign (`TrainingBondContractModal`)
+* **Slice / MVP**: `S-C2` / `MVP-50`
+* **Status**: ⏳ Menunggu `FE-HRD-226`, `BE-HRD-251`
+* **Outcome**: Komponen modal dialog `@/components/features/learning/TrainingBondContractModal.tsx` dengan mode ganda: (1) Pratinjau draf akta ikatan dinas, klausul retensi kerja dan tombol unggah berkas bertanda tangan meterai; (2) Kalkulator denda wanprestasi resign sepihak yang menampilkan rincian matematis pembiayaan, formula prorata sisa bulan ikatan (`VR-TRN-17`), total invoice ganti rugi yang dibebankan ke pegawai, serta tombol cetak surat tagihan penalti.
+* **Dependencies**: `FE-HRD-226`, `BE-HRD-251`.
+* **Acceptance Criteria**: Kalkulasi denda ganti rugi terhitung otomatis saat tanggal resign dimasukkan; cetak invoice tagihan memuat rincian klausul akta sah.
+* **Verifikasi**: Uji kalkulator penalti dan cetak invoice `AT-HRD-TRN-17`, `AT-HRD-TRN-19`.
+
+#### ⏳ `FE-HRD-228` — Portofolio 50 SKP Nakes 5 Tahunan & Visual Progress Bar Radial (`FE-HRD-223`)
+* **Slice / MVP**: `S-C2` / `MVP-50`
+* **Status**: ⏳ Menunggu `FE-HRD-216`, `BE-HRD-252`
+* **Outcome**: Pembangunan layar portofolio profesi nakes pada rute `/hr/learning/skp-tracker` (Layar `FE-HRD-223`), komponen radial progress chart pemenuhan target akumulasi 50 SKP dalam 5 tahun untuk perpanjangan SIP nakes (`VR-TRN-24`), rincian capaian per 3 ranah Kemenkes (Pembelajaran/Diklat, Pelayanan Klinis, Pengabdian Masyarakat, `VR-TRN-23`), tabel histori perolehan SKP, indikator verifikasi Plataran Sehat, serta tombol tambah klaim perolehan SKP mandiri.
+* **Dependencies**: `FE-HRD-216`, `BE-HRD-252`.
+* **Acceptance Criteria**: Radial progress chart menampilkan persentase capaian target 50 SKP dengan segmentasi warna per kategori yang informatif.
+* **Verifikasi**: Uji visual progress SKP dan capaian 5 tahun `AT-HRD-TRN-20`.
+
+#### ⏳ `FE-HRD-229` — Modal Verifikasi ID Sertifikat & Sinkronisasi Plataran Sehat Kemenkes (`PlataranSehatSyncModal`)
+* **Slice / MVP**: `S-C2` / `MVP-50`
+* **Status**: ⏳ Menunggu `FE-HRD-228`, `BE-HRD-252`
+* **Outcome**: Komponen modal dialog `@/components/features/learning/PlataranSehatSyncModal.tsx` untuk input nomor registrasi sertifikat Plataran Sehat Kemenkes (`VR-TRN-22`), tombol interaktif pemicu pengecekan online ke API SatuSehat SDMK (`INT-HR-80`), penampil respon detail (Badan Akreditasi, Judul Pelatihan, Bobot SKP Sah, Tanggal Terbit), penanganan status fallback saat jaringan lambat, serta tombol konfirmasi simpan ke portofolio pegawai.
+* **Dependencies**: `FE-HRD-228`, `BE-HRD-252`.
+* **Acceptance Criteria**: Pengecekan API menampilkan status verifikasi instan; nomor sertifikat yang tidak valid memunculkan peringatan error yang jelas.
+* **Verifikasi**: Uji sinkronisasi gateway Kemenkes `AT-HRD-TRN-21`.
+
+#### ⏳ `FE-HRD-230` — Verifikasi Integrasi Menyeluruh Next.js App Router, Linting 0 Error & UAT Acceptance `S-C2`
+* **Slice / MVP**: `S-C2` / Verifikasi
+* **Status**: ⏳ Menunggu `FE-HRD-217`, `FE-HRD-224`, `FE-HRD-227`, `FE-HRD-229`, `BE-HRD-253`
+* **Outcome**: Verifikasi kompilasi produksi Next.js App Router (`npm run build`), audit ketat linter CI/CD (`npm run lint:errors`) dengan hasil 0 error, verifikasi responsive rendering di desktop/tablet/mobile, pengujian interaksi 8 layar antarmuka baru, serta pembuktian kelulusan skenario `UAT-01` s.d. `UAT-05` secara visual dan fungsional.
+* **Dependencies**: Seluruh task frontend `FE-HRD-216` s.d. `FE-HRD-229` dan task verifikasi backend `BE-HRD-253`.
+* **Acceptance Criteria**: Build standalone Next.js sukses tanpa peringatan kritis; linter 0 error 0 warning; seluruh 8 layar baru dan 5 modal beroperasi konsisten.
+* **Verifikasi**: Laporan task tracked `FE-HRD-230.md` dan output terminal npm.

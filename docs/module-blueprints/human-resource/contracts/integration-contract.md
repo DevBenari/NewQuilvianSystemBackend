@@ -1376,3 +1376,93 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 - **Penanganan Kegagalan & Rate Limiting:**
   Apabila gateway Kemenkes mengalami downtime (502 Bad Gateway / Connection Timeout), status sinkronisasi ditandai `LOCAL_RECORDED` dan antrean dikirimkan kembali melalui background job bertenggang 6 jam.
+
+## 18. Kontrak Integrasi Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3)
+
+Kontrak integrasi ini menetapkan protokol pertukaran data antara modul manajemen kinerja (*PerformanceManagement*) dengan modul internal penggajian (Sub-10), pengembangan kompetensi (Sub-16), kredensialing klinis (Sub-14), dan evaluasi mutu klinis (Sub-15).
+
+### 18.1 `INT-HR-81`: Integrasi Umpan Skor Kinerja ke Modul Penggajian & Remunerasi Sub-10
+- **Arah Aliran Data:** `PerformanceManagement` -> `PayrollManagement` (Sub-Modul 10)
+- **Protokol / Pola:** Asynchronous Domain Event via MediatR / In-Memory Message Bus (`PerformanceAppraisalFinalizedEvent`)
+- **Pemicu (Trigger):**
+  Penutupan resmi sidang kalibrasi dan rilis nilai akhir komposit kinerja seluruh pegawai rumah sakit.
+- **Deskripsi & Dampak Finansial:**
+  Menyediakan nilai komposit terkalibrasi dan predikat kinerja pegawai (A, B, C, D, E) ke mesin penggajian Sub-10 sebagai koefisien faktor pengali resmi (*performance multiplier*) perhitungan insentif tahunan atau bonus jasa pelayanan RS (`VR-PRF-24`).
+- **Payload Struktur Data:**
+```json
+{
+  "eventId": "evt-8101-uuid",
+  "eventType": "PerformanceAppraisalFinalized",
+  "timestamp": "2026-11-06T12:00:00Z",
+  "data": {
+    "workforceProfileId": "c4d30623-1181-424a-9b43-2287950c2668",
+    "performanceCycleCode": "CYC-2026-ANNUAL",
+    "finalCompositeScore": 88.50,
+    "performanceBand": "BAIK_B",
+    "incentiveMultiplier": 1.05,
+    "isPipParticipant": false
+  }
+}
+```
+- **Penanganan Kegagalan / Idempoten:** Idempoten berdasarkan kombinasi `workforceProfileId` dan `performanceCycleCode`. Jika Sub-10 belum membuka siklus bonus, data disimpan dalam tabel staging remunerasi.
+
+---
+
+### 18.2 `INT-HR-82`: Integrasi Gap Kinerja Pegawai ke Rencana Pengembangan Individu (IDP) Sub-16
+- **Arah Aliran Data:** `PerformanceManagement` -> `LearningAndDevelopment` (Sub-Modul 16)
+- **Protokol / Pola:** Asynchronous Domain Event (`PerformanceCompetencyGapIdentifiedEvent`)
+- **Pemicu (Trigger):**
+  Hasil evaluasi akhir pegawai mengidentifikasi butir target KPI atau butir Core Values yang memperoleh skor rendah (< 60.00).
+- **Deskripsi & Dampak Pengembangan:**
+  Meneruskan area defisiensi kinerja pegawai ke sistem Diklat Sub-16 untuk secara otomatis didaftarkan sebagai rekomendasi kebutuhan pelatihan (*Training Needs Analysis* - TNA) dan Rencana Pengembangan Individu (*Individual Development Plan* - IDP) pada tahun fiskal berikutnya (`VR-PRF-25`).
+- **Payload Struktur Data:**
+```json
+{
+  "workforceProfileId": "c4d30623-1181-424a-9b43-2287950c2668",
+  "deficiencyCategory": "COMMUNICATION_AND_SBAR",
+  "scoreRecorded": 55.00,
+  "recommendedTrainingCode": "TRN-MND-COMM-SBAR",
+  "recommendedAction": "PRIORITY_REFRESHER_ENROLLMENT"
+}
+```
+
+---
+
+### 18.3 `INT-HR-83`: Integrasi Pemutakhiran Jenjang Karier Klinis Nakes ke Sub-02 & Sub-14
+- **Arah Aliran Data:** `PerformanceManagement` -> `WorkforceCore` (Sub-02) & `CredentialingPrivilege` (Sub-14)
+- **Protokol / Pola:** Transactional Event Dispatcher (`ClinicalCareerLadderPromotedEvent`)
+- **Pemicu (Trigger):**
+  Penerbitan Surat Keputusan (SK) Direktur Utama atas pengesahan kenaikan jenjang karier klinis perawat/nakes (PK I s.d. PK V) pasca rekomendasi sidang Komite Keperawatan.
+- **Deskripsi & Dampak Klinis:**
+  Secara otomatis memutakhirkan level kepangkatan klinis pada profil master pegawai di Sub-02 (`MstWorkforceProfile`), serta menginstruksikan modul kredensialing Sub-14 untuk membuka paket tindakan klinis mandiri (Level 4) yang sesuai dengan jenjang klinis baru tersebut (`VR-PRF-23`).
+- **Payload Struktur Data:**
+```json
+{
+  "workforceProfileId": "d8e3b522-8321-499b-9801-1123456789ab",
+  "staffName": "Ns. Siti Rahmawati, S.Kep",
+  "previousClinicalLevel": "PK_II",
+  "newClinicalLevel": "PK_III",
+  "appointmentLetterNumber": "SK-DIR/KEP-LAD/2026/011",
+  "effectiveDate": "2026-11-06",
+  "unlockedPrivilegePackage": "CLINICAL_PRIVILEGE_PACKAGE_PK3_ICU"
+}
+```
+
+---
+
+### 18.4 `INT-HR-84`: Integrasi Pengecekan Catatan Insiden Sentinel dari Sub-15 OPPE/FPPE
+- **Arah Aliran Data:** `ClinicalPerformanceQuality` (Sub-15) -> `PerformanceManagement`
+- **Protokol / Pola:** Synchronous REST Query Client (`IFppeIncidentGateService`)
+- **Pemicu (Trigger):**
+  Staf tenaga keperawatan atau nakes mengajukan permohonan kenaikan jenjang karier klinis di portal ESS.
+- **Deskripsi & Penegakan Keselamatan Pasien:**
+  Sistem memverifikasi basis data insiden mutu dan audit FPPE Sub-15 secara real-time. Jika nakes memiliki riwayat kasus insiden keselamatan pasien sentinel atau investigasi FPPE aktif dalam 12 bulan terakhir, sistem langsung menolak pengajuan kenaikan jenjang klinis (*gate locked*, `VR-PRF-17`).
+- **Response Data dari Sub-15:**
+```json
+{
+  "workforceProfileId": "d8e3b522-8321-499b-9801-1123456789ab",
+  "hasActiveSentinelIncident": false,
+  "activeFppeInvestigationsCount": 0,
+  "isEligibleForPromotion": true
+}
+```

@@ -1325,6 +1325,17 @@ try
     builder.Services.AddScoped<IPayrollBpjsCalculationService, PayrollBpjsCalculationService>();
     builder.Services.AddScoped<IPayrollTaxCalculationService, PayrollTaxCalculationService>();
 
+    // Slice S-B5 (Payroll Management) - MVP-31
+    builder.Services.AddScoped<IPayrollDeductionsIngestionService, PayrollDeductionsIngestionService>();
+    builder.Services.AddScoped<IPayrollVarianceGuardService, PayrollVarianceGuardService>();
+    builder.Services.AddScoped<IPayrollVarianceResolutionService, PayrollVarianceResolutionService>();
+    builder.Services.AddScoped<IPayrollApprovalWorkflowService, PayrollApprovalWorkflowService>();
+
+    // Slice S-B5 (Payroll Management) - MVP-32 (Finance Handoff, Webhook Reconciler, ESS Payslips)
+    builder.Services.AddScoped<IPayrollFinanceHandoffService, PayrollFinanceHandoffService>();
+    builder.Services.AddScoped<IPayrollDisbursementReconciliationService, PayrollDisbursementReconciliationService>();
+    builder.Services.AddScoped<IPayrollPayslipDistributionService, PayrollPayslipDistributionService>();
+
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
     builder.Services.AddScoped<DiscountPolicyService>();

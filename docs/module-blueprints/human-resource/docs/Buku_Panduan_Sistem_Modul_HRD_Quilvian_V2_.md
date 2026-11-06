@@ -1485,9 +1485,9 @@ Dokter bedah mempunyai OPPE stabil selama dua tahun, tetapi tahun ketiga terdapa
 **Status source:** `PARTIAL — EXTEND_EXISTING`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice S-C2 Pelatihan wajib akreditasi STARKES KPS 8 (100% pegawai, siklus 2 tahun), evaluasi kelulusan presensi vs ujian teori post-test & simulasi OSCE klinis ber-e-sign assessor, radar kedaluwarsa H-90/60/30 & safeguard shift dinas buddy system ke Sub-06, prasyarat RKK Sub-14 & umpan CPD ke OPPE Sub-15, TNA & pagu anggaran diklat, penerbitan otomatis akta ikatan dinas retensi kerja nakes > Rp 10 Jt / > 1 bulan, serta visual tracker 50 SKP Plataran Sehat Kemenkes dirancang lengkap dalam 11 artefak blueprint (Kontrak v20, 24 API endpoints, 25 aturan validasi, 22 UAT case, 25 FR, Waves MVP-48 s.d. MVP-50).
-- [ ] **Backend:** Menunggu Desain V2 (⏳) — Rancang ekspansi 11 model Trx, katalog kompetensi & modul asesmen.
-- [ ] **Frontend:** Menunggu Desain V2 (⏳) — Rancang portal diklat, monitoring sertifikasi, OSCE evaluation & SKP tracker.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-C2 Learning, Training & Competency dipecah menjadi 16 task backend (BE-HRD-238 s.d. BE-HRD-253) dan 15 task frontend (FE-HRD-216 s.d. FE-HRD-230) per gelombang MVP-48 s.d. MVP-50 & Verifikasi; grafik dependency pohon teks B60-B63 & F58-F61 ditambahkan pada kedua roadmap; seluruh 25 FR, 6 keputusan bisnis, 22 UAT, dan 5 skenario UAT terpetakan dengan 0 gap pada requirement-traceability.md bagian 1n (6 November 2026, Roadmap Rev 18).
+- [ ] **Backend:** Siap Diimplementasi (⏳) — 16 task terencana (BE-HRD-238 s.d. BE-HRD-253), menunggu otorisasi task approved.
+- [ ] **Frontend:** Siap Diimplementasi (⏳) — 15 task terencana (FE-HRD-216 s.d. FE-HRD-230) untuk 8 layar & 5 modal, menunggu otorisasi task approved.
 
 ## Penjelasan untuk developer
 
@@ -1579,9 +1579,9 @@ Perawat ICU wajib mempunyai kompetensi ventilator, BHD/BHL dan infection prevent
 **Status source:** `PARTIAL — EXTEND_EXISTING`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — KPI individu & unit, evaluasi kinerja berkala (`BE-HRD-013`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Lembar penilaian kinerja, review berkala atasan (`FE-HRD-016`).
+- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice S-C3 Komposisi 60:40 (KPI Kuantitatif & Core Values BerAKHLAK), sidang pleno kalibrasi manajemen berpedoman distribusi fleksibel, alur evaluasi berjenjang (Self-assessment, Karu, Kabid), PIP formal 60 hari kalender, prasyarat jenjang karier klinis nakes (Clinical Ladder PK I-V), dan mekanisme sanggah banding 7/14 hari dirancang lengkap dalam 11 artefak blueprint (Kontrak v21, 24 API endpoints, 25 aturan validasi, 22 UAT case, 25 FR, Waves MVP-51 s.d. MVP-53).
+- [ ] **Backend:** Perlu Penyesuaian (⏳) — Perlu penambahan 10 tabel relasional baru (`mst_kpi_metric_catalogs`, `trx_performance_cycles`, `trx_performance_goals`, `trx_performance_appraisals`, `trx_performance_appraisal_details`, `trx_performance_calibration_sessions`, `trx_performance_improvement_plans`, `trx_performance_pip_action_logs`, `trx_clinical_career_ladder_reviews`, `trx_performance_appraisal_disputes`), 24 endpoints Kontrak v21, serta 6 background workers.
+- [ ] **Frontend:** Perlu Penyesuaian (⏳) — Perlu penambahan 8 layar antarmuka baru (`FE-HRD-231` s.d. `FE-HRD-238`), 5 modal interaktif, dan Redux state slice `performanceManagementSlice.ts`.
 
 ## Penjelasan untuk developer
 
