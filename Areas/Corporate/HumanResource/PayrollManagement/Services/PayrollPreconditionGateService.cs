@@ -58,7 +58,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var pendingLeaveCount = await _context.Set<WfpLeaveRequest>()
                 .CountAsync(x => !x.IsDelete &&
                                  x.StartDate <= cutoffDate &&
-                                 (x.RequestStatus == "WaitingApproval" || x.RequestStatus == "WaitingUnitApproval"),
+                                 (x.LeaveRequestStatus == "WaitingApproval" || x.LeaveRequestStatus == "WaitingUnitApproval"),
                             cancellationToken);
 
             bool leaveLocked = pendingLeaveCount == 0;

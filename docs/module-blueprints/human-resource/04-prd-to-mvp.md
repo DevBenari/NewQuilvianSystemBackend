@@ -3260,3 +3260,238 @@ Bagian ini mendefinisikan dokumen *Product Requirement Document (PRD) to Minimum
 | **`MVP-42` (Gelombang Lisensi & PSV)** | Tata kelola lisensi profesional, verifikasi primer PSV KKI / SatuSehat SDMK, radar masa berlaku SIP 5 tahun, dan fail-closed scheduler H-0 (`INT-HR-71`). | Controllers & Services Lisensi, `FE-HRD-187` (Portal Kredensial ESS), `FE-HRD-188` (Dashboard PSV Kredensialing). |
 | **`MVP-43` (Gelombang 3 Komite & SPK Dirut)** | Pemisahan 3 komite mandiri, katalog whitebook, panel Mitra Bestari (Peer Review), sidang pleno komite, dan pengesahan SPK-RKK oleh Direktur Utama. | Models & Services SPK-RKK, `FE-HRD-189` (Meja Peer Review), `FE-HRD-190` (Sidang Pleno Komite), `FE-HRD-191` (Konsol Dirut). |
 | **`MVP-44` (Gelombang Penegakan SIMRS & Siklus)** | Penegakan wewenang klinis SIMRS (`INT-HR-69`), Hard-Stop bertingkat, co-signature 24 jam, life-saving override KMKP, fast-track, dan siklus rekredensialing 3 tahun. | `ClinicalPrivilegeGateController`, Redis Cache, `FE-HRD-192` (Registri RKK & Audit SIMRS), `FE-HRD-193` (Fast-Track), `FE-HRD-194` (Siklus Rekredensial). |
+
+---
+
+## 33. Dokumen PRD ke MVP Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`)
+
+### 33.1 Gambaran Umum & Batasan Produk Minimum (MVP Scope Boundaries)
+
+Sub-Modul 15 (Slice `S-C1-OPPE`) berfokus pada standardisasi penjaminan mutu dan keselamatan asuhan klinis dokter spesialis dan tenaga medis di rumah sakit sesuai standar akreditasi KARS / STARKES 2024 (KPS 12 & KPS 13) dan Permenkes 6/2026:
+1. **Evaluasi Praktik Profesional Berkelanjutan (OPPE):** Siklus evaluasi berkala (tahunan atau semesteran) dengan pembobotan baku 60% indikator kuantitatif terintegrasi SIMRS/KMKP dan 40% evaluasi kualitatif telaah sejawat (*Peer Review*) KSM berbasis 6 pilar ACGME/KARS.
+2. **Kerahasiaan Telaah Sejawat (*Peer Review Privilege*):** Perlindungan hukum kerahasiaan lembar evaluasi sejawat dengan pembatasan hak akses ketat serta pencatatan log audit keamanan permanen (*tamper-proof read-audit logging*) setiap kali dokumen dibuka.
+3. **Evaluasi Praktik Profesional Terfokus (FPPE):** Deteksi otomatis ambang pemicu insiden keselamatan pasien (1 kejadian sentinel, komplikasi bedah > 2 SD, keterlambatan EMR > 48 jam > 20%, rujukan komite etik) serta protokol proctoring terarah bagi dokter spesialis baru (3 bulan / 10 kasus) dan prosedur klinis baru (6 bulan / 5 kasus).
+4. **Kalkulator Komposit 3 Tahun Rekredensialing:** Perhitungan deterministik rapor mutu 3 tahunan berbobot progresif (Tahun 1: 25%, Tahun 2: 35%, Tahun 3: 40%) beserta klasifikasi eligibilitas otomatis ke dalam 3 tier kelayakan: Tier Hijau (*Fast-Track*), Tier Kuning (*Clarification*), dan Tier Merah (*Plenary Investigation*).
+5. **Otomasi 4 Putusan Akhir ke Modul SIMRS EMR:** Transmisi otomatis putusan sidang rekredensialing ke modul EMR SIMRS (`INT-HR-76`), mencakup perpanjangan wewenang mandiri Level 4, pembatasan wewenang Level 3 supervisi dengan batas *co-signature* 24 jam, serta pemblokiran mutlak (*Hard-Stop*) order peresepan dan pemesanan operasi untuk putusan pencabutan wewenang (*Revoked*).
+
+*Batasan Luar Ruang Lingkup (Out of Scope):* Indikator kinerja umum HR non-klinis (Sub-17), audit keabsahan primer PSV STR seumur hidup & SIP 5 tahun (Sub-14), tata kelola sanksi disiplin umum ketenagakerjaan SP1-SP3 (Sub-19), dan perhitungan jasa medis/remunerasi dokter (Sub-10).
+
+---
+
+### 33.2 Rincian Fitur MVP & Epic Pemetaan
+
+#### 33.2.1 `EPIC HRD-74`: Tata Kelola Indikator & Siklus Evaluasi OPPE Berkala
+- `FR-OPP-01`: Sistem menyediakan master katalog indikator OPPE yang dikelompokkan ke dalam 6 pilar kompetensi standar ACGME/KARS.
+- `FR-OPP-02`: Sistem memfasilitasi konfigurasi target ambang batas numerik dan pembobotan indikator spesifik kelompok KSM (Bedah, Non-Bedah, Penunjang).
+- `FR-OPP-03`: Sistem memfasilitasi pembukaan periode siklus evaluasi OPPE tahunan atau semesteran per KSM maupun serentak seluruh RS.
+- `FR-OPP-04`: Sistem memvalidasi bahwa total persentase pembobotan kuantitatif dan kualitatif pada periode OPPE wajib tepat 100% (`VR-OPP-01`).
+- `FR-OPP-05`: Sistem secara otomatis menginisiasi draf berkas rapor evaluasi individu bagi seluruh tenaga medis aktif di unit sasaran.
+
+#### 33.2.2 `EPIC HRD-75`: Integrasi Otomatis Data Mutu Klinis SIMRS/KMKP & Agregasi Bobot 60%
+- `FR-OPP-06`: Sistem menyediakan adapter integrasi `INT-HR-73` untuk mengekstrak data indikator klinis objektif dari database SIMRS & KMKP.
+- `FR-OPP-07`: Sistem menghitung rasio kepatuhan pengisian resume medis EMR dalam tempo 1x24 jam pasca-pasien pulang rawat inap.
+- `FR-OPP-08`: Sistem menghitung persentase kepatuhan penerapan Clinical Pathway dan tingkat kepatuhan resep terhadap formularium rumah sakit.
+- `FR-OPP-09`: Sistem mengagregasikan seluruh indikator kuantitatif SIMRS dengan kontribusi bobot baku sebesar 60% terhadap nilai komposit OPPE.
+- `FR-OPP-10`: Sistem menampilkan sinyal peringatan dini (*early warning alert*) jika ada indikator klinis dokter yang jatuh di bawah target minimal KSM.
+
+#### 33.2.3 `EPIC HRD-76`: Instrumen Telaah Sejawat KSM 40% & Perlindungan Hak Istimewa Peer Review
+- `FR-OPP-11`: Sistem memfasilitasi pembentukan penugasan telaah sejawat (*peer review*) ke minimal 2 dokter sebidang dalam kelompok KSM yang sama.
+- `FR-OPP-12`: Sistem memblokir mutlak penelaahan berkas evaluasi sejawat oleh dokter terhadap dirinya sendiri (*anti-self-review*, `VR-OPP-03`).
+- `FR-OPP-13`: Sistem menyediakan instrumen penilaian skala Likert (1-5) untuk domain etika profesi, komunikasi efektif, dan partisipasi audit mortalitas/morbiditas.
+- `FR-OPP-14`: Sistem mewajibkan pengisian catatan naratif deskriptif klinis apabila penilai memberikan nilai rendah (skor <= 2, `VR-OPP-04`).
+- `FR-OPP-15`: Sistem mengamankan dokumen telaah sejawat di bawah hak istimewa *Peer Review Privilege* dan mencatat log audit permanen saat dokumen dibuka (`VR-OPP-23`).
+
+#### 33.2.4 `EPIC HRD-77`: Deteksi Ambang Kritis, Pelacakan Kasus Proctoring FPPE & Sidang Pleno
+- `FR-OPP-16`: Sistem menerima feed insiden keselamatan pasien `INT-HR-74` dan memicu penugasan FPPE seketika saat terjadi 1 insiden sentinel (`VR-OPP-05`).
+- `FR-OPP-17`: Sistem mendeteksi anomali tren komplikasi bedah > 2 SD dan penundaan resume EMR > 48 jam > 20% sebagai pemicu evaluasi terarah FPPE.
+- `FR-OPP-18`: Sistem memfasilitasi penetapan penugasan proctoring staf baru (target 3 bulan / 10 kasus) dan prosedur baru (target 6 bulan / 5 kasus).
+- `FR-OPP-19`: Sistem menyediakan buku catatan digital (*logbook*) kasus klinis terproctoring dengan enkripsi/pseudonimisasi nomor rekam medis pasien (`VR-OPP-11`).
+- `FR-OPP-20`: Sistem menyediakan antarmuka verifikasi dan pengesahan evaluasi kemandirian tindakan medis oleh Dokter Proctor senior pendamping.
+- `FR-OPP-21`: Sistem memfasilitasi sidang pleno Subkomite Mutu Profesi untuk menerbitkan vonis kesimpulan FPPE (Lolos, Extended, Supervisi, atau Revoked).
+
+#### 33.2.5 `EPIC HRD-78`: Kalkulator Komposit 3 Tahun Rekredensialing & Sinkronisasi Putusan SIMRS EMR
+- `FR-OPP-22`: Sistem menyediakan kalkulator komposit 3 tahun rekredensialing dengan rasio pembobotan baku: Tahun 1 (25%), Tahun 2 (35%), Tahun 3 (40%).
+- `FR-OPP-23`: Sistem mengklasifikasikan eligibilitas berkas rekredensialing secara otomatis ke dalam Tier Hijau (*Fast-Track*), Tier Kuning, atau Tier Merah.
+- `FR-OPP-24`: Sistem memfasilitasi penetapan 4 putusan sidang rekredensialing (Perpanjang As-Is, Upgrade, Restricted, Revoked) oleh Komite Medik dan Direksi.
+- `FR-OPP-25`: Sistem mentransmisikan instruksi pembaruan wewenang Level 1 s.d. Level 4 ke modul EMR SIMRS (`INT-HR-76`) dengan penegakan Hard-Stop mutlak.
+
+---
+
+### 33.3 Ringkasan Kebutuhan Fungsional (Functional Requirements Matrix)
+
+| ID Kebutuhan | Nama Kebutuhan Fungsional | Epic Pemetaan | Aturan Validasi | Skenario Uji | Prioritas |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| `FR-OPP-01` | Master Katalog Indikator OPPE 6 Pilar ACGME/KARS | `EPIC HRD-74` | `VR-OPP-01` | `AT-HRD-OPP-01` | P0 |
+| `FR-OPP-02` | Konfigurasi Target Ambang Batas & Bobot KSM | `EPIC HRD-74` | `VR-OPP-01` | `AT-HRD-OPP-02` | P0 |
+| `FR-OPP-03` | Pembukaan Periode Siklus Evaluasi OPPE | `EPIC HRD-74` | `VR-OPP-24` | `AT-HRD-OPP-01` | P0 |
+| `FR-OPP-04` | Validasi Komposisi Total Bobot Evaluasi Tepat 100% | `EPIC HRD-74` | `VR-OPP-01` | `AT-HRD-OPP-02` | P0 |
+| `FR-OPP-05` | Inisiasi Otomatis Berkas Rapor Individu Dokter | `EPIC HRD-74` | `VR-OPP-01` | `AT-HRD-OPP-01` | P1 |
+| `FR-OPP-06` | Adapter Ekstraksi Data Indikator SIMRS & KMKP | `EPIC HRD-75` | `VR-OPP-25` | `AT-HRD-OPP-03` | P0 |
+| `FR-OPP-07` | Kalkulasi Kepatuhan Resume Medis EMR 1x24 Jam | `EPIC HRD-75` | `VR-OPP-07` | `AT-HRD-OPP-03` | P0 |
+| `FR-OPP-08` | Evaluasi Kepatuhan Clinical Pathway & Formularium | `EPIC HRD-75` | `VR-OPP-01` | `AT-HRD-OPP-03` | P1 |
+| `FR-OPP-09` | Agregasi Bobot Kuantitatif SIMRS 60% | `EPIC HRD-75` | `VR-OPP-01` | `AT-HRD-OPP-08` | P0 |
+| `FR-OPP-10` | Early Warning Alert Indikator di Bawah Standar KSM | `EPIC HRD-75` | `VR-OPP-06` | `AT-HRD-OPP-11` | P1 |
+| `FR-OPP-11` | Penugasan Telaah Sejawat Peer Review KSM | `EPIC HRD-76` | `VR-OPP-02` | `AT-HRD-OPP-04` | P0 |
+| `FR-OPP-12` | Blokir Anti-Self-Review Penilaian Sejawat | `EPIC HRD-76` | `VR-OPP-03` | `AT-HRD-OPP-05` | P0 |
+| `FR-OPP-13` | Instrumen Skala Likert Etika & Komunikasi Multidisiplin | `EPIC HRD-76` | `VR-OPP-04` | `AT-HRD-OPP-06` | P1 |
+| `FR-OPP-14` | Kewajiban Narasi Deskriptif untuk Skor Likert <= 2 | `EPIC HRD-76` | `VR-OPP-04` | `AT-HRD-OPP-06` | P0 |
+| `FR-OPP-15` | Penegakan Peer Review Privilege & Read-Audit Logging | `EPIC HRD-76` | `VR-OPP-23` | `AT-HRD-OPP-07` | P0 |
+| `FR-OPP-16` | Deteksi Sentinel Keselamatan Pasien Pemicu FPPE | `EPIC HRD-77` | `VR-OPP-05` | `AT-HRD-OPP-10` | P0 |
+| `FR-OPP-17` | Deteksi Komplikasi > 2 SD & Resume EMR Kronis | `EPIC HRD-77` | `VR-OPP-06` | `AT-HRD-OPP-11` | P0 |
+| `FR-OPP-18` | Penugasan Proctoring Dokter Baru & Prosedur Baru | `EPIC HRD-77` | `VR-OPP-08` | `AT-HRD-OPP-13` | P0 |
+| `FR-OPP-19` | Logbook Kasus Terproctoring Berpseudonim Pasien | `EPIC HRD-77` | `VR-OPP-11` | `AT-HRD-OPP-15` | P0 |
+| `FR-OPP-20` | Verifikasi Pengesahan Derajat Kemandirian Proctor | `EPIC HRD-77` | `VR-OPP-12` | `AT-HRD-OPP-16` | P0 |
+| `FR-OPP-21` | Sidang Pleno Penetapan Vonis Kesimpulan FPPE | `EPIC HRD-77` | `VR-OPP-14` | `AT-HRD-OPP-17` | P0 |
+| `FR-OPP-22` | Kalkulator Komposit 3 Tahun Rekredensial (25-35-40) | `EPIC HRD-78` | `VR-OPP-15` | `AT-HRD-OPP-19` | P0 |
+| `FR-OPP-23` | Klasifikasi Eligibilitas Tier Hijau/Kuning/Merah | `EPIC HRD-78` | `VR-OPP-16` | `AT-HRD-OPP-20` | P0 |
+| `FR-OPP-24` | Penetapan 4 Putusan Akhir Sidang Rekredensialing | `EPIC HRD-78` | `VR-OPP-20` | `AT-HRD-OPP-21` | P0 |
+| `FR-OPP-25` | Dispatch Wewenang ke SIMRS EMR & Hard-Stop Blokir | `EPIC HRD-78` | `VR-OPP-22` | `AT-HRD-OPP-22` | P0 |
+
+---
+
+### 33.4 Skenario Pengujian Penerimaan Pengguna (UAT Scenarios)
+
+- **`UAT-OPP-01` (Alur Siklus Tahunan OPPE & Perhitungan Komposit 60:40):**  
+  Subkomite Mutu Profesi membuka periode evaluasi OPPE tahun 2026. Sistem menarik data kuantitatif SIMRS (skor 82). Dua dokter sejawat KSM mengisi form peer review konfidensial (skor rata-rata 88). Sistem menghitung nilai komposit akhir ((0.60 * 82) + (0.40 * 88) = 84.40). Rapor disahkan dan dokter menandatangani konfirmasi baca via ESS.
+- **`UAT-OPP-02` (Perlindungan Hak Istimewa Kerahasiaan Peer Review):**  
+  Pengguna dengan wewenang sah membuka detail ulasan sejawat yang bersifat konfidensial. Sistem menampilkan dialog peringatan hukum *Peer Review Privilege* dan mencatat log audit permanen (nama pengakses, IP, waktu presisi). Staf HR non-medis yang mencoba mengakses dokumen ditolak dengan pesan `403 Forbidden`.
+- **`UAT-OPP-03` (Pemicu Kritis Insiden Sentinel & Inisiasi FPPE):**  
+  Modul keselamatan pasien SIMRS mencatat satu kejadian sentinel tertinggalnya kasa operasi. Sinyal `INT-HR-74` seketika memicu pembentukan kasus investigasi FPPE terarah pada dokter operator. Ketua Komite Medik menunjuk Dokter Proctor senior untuk memantau 10 kasus tindakan bedah berikutnya.
+- **`UAT-OPP-04` (Proctoring Dokter Baru & Pengesahan Hasil FPPE):**  
+  Dokter spesialis bedah baru menjalani proctoring 3 bulan. Seluruh 10 kasus operasi dientri ke logbook berformat pseudonim dan diverifikasi kemandiriannya oleh proctor. Sidang pleno Subkomite Mutu Profesi menetapkan vonis *FullPrivilegeConfirmed*, dan status RKK dokter diperbarui menjadi mandiri penuh di SIMRS.
+- **`UAT-OPP-05` (Kalkulasi Rapor Komposit 3 Tahun & Penegakan Hard-Stop Putusan Revokasi):**  
+  Pada evaluasi rekredensialing berkala, sistem mengagregasi skor OPPE 3 tahun (Th 1: 78, Th 2: 82, Th 3: 86) menghasilkan komposit 82.60 (Tier Hijau Fast-Track). Pada dokter lain dengan putusan sidang *Revoked* akibat pelanggaran mutu fatal, sistem mengirimkan sinyal `INT-HR-76` ke SIMRS yang seketika memblokir keras (*Hard-Stop*) akses pemesanan resep dan kamar operasi dokter tersebut.
+
+---
+
+### 33.5 Kriteria Selesai (Definition of Done - DoD)
+
+1. **Model & Skema Database Terpasang:** 7 tabel operasional baru dan 1 tabel log audit permanen (`hrd_clinical_peer_review_audit_logs`) berhasil diterapkan pada database PostgreSQL tanpa galat.
+2. **Katalog Indikator & Pembobotan Baku Teruji:** Konfigurasi master indikator berbasis 6 pilar ACGME/KARS dan validasi total bobot tepat 100% (standar 60:40) lolos unit test 100%.
+3. **Kerahasiaan Peer Review Privilege Beroperasi:** Akses telaah sejawat terisolasi dari staf non-wewenang dan mekanisme pencatatan *read-audit log* terbukti *tamper-proof*.
+4. **Adapter Integrasi SIMRS Mutu Berfungsi:** Layanan ekstraksi indikator kuantitatif SIMRS/KMKP (`INT-HR-73`) sukses menarik data volume, kepatuhan resume EMR 24 jam, dan Clinical Pathway.
+5. **Feed Pemicu Kritis FPPE Real-Time Aktif:** Sinyal kejadian sentinel, komplikasi bedah > 2 SD, dan rujukan etik sukses memicu penugasan investigasi FPPE secara otomatis.
+6. **Logbook Kasus Proctoring Terenkripsi:** Form pencatatan kasus klinis menerapkan pseudonimisasi ID rekam medis pasien demi kepatuhan regulasi privasi data medis.
+7. **Sidang Pleno FPPE Menghasilkan Putusan Sah:** Berita acara sidang pleno menghasilkan 4 rekomendasi putusan yang secara otomatis mengupdate status RKK tenaga medis.
+8. **Kalkulator Komposit 3 Tahun Deterministik:** Formula rasio baku 25%-35%-40% dan klasifikasi otomatis tier kelayakan (Hijau, Kuning, Merah) berjalan akurat.
+9. **Penegakan Wewenang SIMRS Lulus Uji:** Transmisi putusan ke SIMRS EMR (`INT-HR-76`) terbukti mengaktifkan status wewenang Level 4, Level 3 supervisi co-sign 24 jam, atau Hard-Stop blokir total untuk status Revoked.
+10. **Traceability Lengkap & Tanpa Gap:** Seluruh 25 Kebutuhan Fungsional (`FR-OPP-01` s.d. `FR-OPP-25`) terpetakan 100% pada matriks penelusuran kebutuhan (*Requirement Traceability Matrix*).
+
+---
+
+### 33.6 Urutan Gelombang Pengiriman (Delivery Waves)
+
+| Gelombang Rilis | Fokus Fungsional & Modul Deliverables | Target Deliverable Backend & Frontend |
+| :--- | :--- | :--- |
+| **`MVP-45` (Gelombang OPPE & Kualitas SIMRS)** | Konfigurasi master indikator 6 pilar ACGME, pembukaan periode evaluasi, ekstraksi data kuantitatif SIMRS/KMKP 60%, dan instrumen telaah sejawat kualitatif 40% berstatus *Peer Review Privilege*. | Controller & Services OPPE, `FE-HRD-201` (Dashboard OPPE Radar), `FE-HRD-202` (Konfigurasi Periode), `FE-HRD-203` (Form Peer Review Konfidensial). |
+| **`MVP-46` (Gelombang FPPE & Proctoring Terarah)** | Feed deteksi pemicu kritis (sentinel/komplikasi), inisiasi penugasan FPPE dokter baru & prosedur baru, logbook kasus berpseudonim, verifikasi kemandirian proctor, dan sidang pleno kesimpulan FPPE. | Services FPPE & Logbook Proctoring, `FE-HRD-204` (Feed Pemicu FPPE), `FE-HRD-205` (Pemantauan Proctoring), `FE-HRD-206` (Sidang Kesimpulan FPPE). |
+| **`MVP-47` (Gelombang Rekredensialing & Integrasi SIMRS)** | Kalkulator komposit 3 tahun progresif (25%-35%-40%), klasifikasi tier eligibilitas (Hijau/Kuning/Merah), diskresi override, penetapan 4 putusan sidang rekredensialing, dan dispatch pembaruan wewenang Level 1-4 ke modul SIMRS EMR (`INT-HR-76`). | `RecredentialingCompositeCalculator`, SIMRS Privileges Dispatcher, `FE-HRD-207` (Kalkulator Rapor Komposit 3 Tahun), `FE-HRD-208` (Konsol Sinkronisasi Putusan SIMRS). |
+
+## 34. Sub-Modul 16: Learning, Training & Competency (Slice S-C2)
+
+Dokumen PRD ke MVP ini mendefinisikan batas rilis, target kapabilitas bisnis, kebutuhan fungsional, kriteria keberterimaan (UAT), Definition of Done (DoD), serta gelombang implementasi (*Delivery Waves*) untuk **Sub-Modul 16: Learning, Training & Competency** (Target Slice **`S-C2`**).
+
+### 34.1 Scope Ringkasan & Boundaries
+
+- **Tujuan Modul:** Menjamin 100% kepatuhan standar pelatihan wajib akreditasi rumah sakit (STARKES 2024: KPS 8 & 8.1), menegakkan kompetensi nakes melalui ujian simulasi klinis langsung (OSCE), mencegah risiko keselamatan pasien akibat kedaluwarsa kompetensi via radar bertingkat dan safeguard dinas jaga (*buddy system*), mengontrol efisiensi anggaran diklat via TNA dan ikatan dinas retensi, serta menyediakan pelacakan portofolio 50 SKP nakes terintegrasi Plataran Sehat Kemenkes RI.
+- **Batasan Dalam Cakupan (In-Scope):**
+  1. Standar 5 Pelatihan Wajib Akreditasi RS (BHD/BLS, PPI, SKP, K3RS & Code Red, Komunikasi Efektif SBAR) untuk seluruh pegawai (100%) dengan siklus masa berlaku 2 tahun (24 bulan).
+  2. Pelatihan kompetensi klinis khusus unit intensif (ICU: Ventilator & CVC; OK: Perioperatif; IGD: ATLS & Triase; Dialisis: Pernefri).
+  3. Pemisahan kehadiran presensi vs kelulusan kompetensi via ujian teori post-test tertulis (>= 75) dan simulasi keterampilan langsung OSCE (>= 80) bertanda tangan digital assessor.
+  4. Radar kedaluwarsa bertingkat H-90, H-60, H-30 dan masa tenggang 30 hari (*grace period*).
+  5. Pengamanan shift dinas (*buddy system*) ke Sub-06 Scheduling saat sertifikat darurat mati (H-0 Overdue) dan penurunan hak mandiri RKK Level 4 ke Level 3 supervisi ke Sub-14 (`INT-HR-77`).
+  6. Rencana Program Pembelajaran dan Pelatihan Tahunan RS berbasis *Training Needs Analysis* (TNA) dan pembukaan pagu anggaran.
+  7. Pengajuan pendaftaran diklat eksternal/internal mandiri via ESS, persetujuan berjenjang, dan validasi ketersediaan pagu departemen (`trx_training_budgets`).
+  8. Penerbitan otomatis akta perjanjian ikatan dinas retensi kerja nakes untuk diklat > Rp 10 Juta atau > 1 bulan, pemantauan masa retensi (12 - 36 bulan), serta perhitungan denda penalti ganti rugi wanprestasi saat resign sepihak.
+  9. Registri sertifikat elektronik (e-Sertifikat) berpenomoran baku dan pengarsipan otomatis ke e-Dossier Sub-02.
+  10. Pencatatan portofolio SKP nakes terbagi 3 kategori Kemenkes (Pembelajaran, Pelayanan, Pengabdian), visual tracker 50 SKP 5 tahunan, dan verifikasi sertifikat Plataran Sehat Kemenkes (`INT-HR-80`).
+- **Batasan Luar Cakupan (Out-of-Scope):**
+  - Verifikasi keabsahan primer (PSV) ijazah, STR seumur hidup, dan SIP 5 tahunan (merupakan wewenang Sub-14).
+  - Evaluasi mutu rekam medis, audit kepatuhan klinis, dan insiden sentinel dokter (wewenang Sub-15 OPPE/FPPE).
+  - Penilaian indikator kinerja non-klinis tahunan umum (wewenang Sub-17 Performance Management).
+  - Pencairan honorarium narasumber dan klaim reimburse perjalanan dinas (wewenang Sub-10 / Sub-11 Payroll).
+  - Pemeriksaan berkala kesehatan kerja (MCU) dan vaksinasi hepatitis staf medis (wewenang Sub-18 OHS).
+
+---
+
+### 34.2 Daftar Epic Bisnis
+
+| ID Epic | Nama Epic | Deskripsi Ringkas Cakupan Kapabilitas |
+| :--- | :--- | :--- |
+| **`EPIC HRD-79`** | Tata Kelola Pelatihan Wajib Akreditasi & Radar Kedaluwarsa STARKES | Konfigurasi 5 standar pelatihan wajib RS siklus 24 bulan, radar peringatan bertingkat H-90/60/30, grace period 30 hari, flag Overdue, penugasan dinas *buddy system* ke Sub-06, dan penurunan hak RKK Level 4 ke Level 3 di Sub-14. |
+| **`EPIC HRD-80`** | Pelaksanaan Sesi Diklat, Ujian Teori & Simulasi OSCE Klinis | Penjadwalan batch kelas workshop laboratorium simulasi, presensi absensi harian, ujian post-test tertulis, ujian praktik keterampilan klinis OSCE berskor checklist & e-sign assessor, fasilitas remedial, dan penerbitan e-sertifikat ke e-Dossier. |
+| **`EPIC HRD-81`** | TNA, Pengajuan Diklat ESS & Kontrol Anggaran Diklat RS | Rencana program tahunan diklat berbasis TNA, pengajuan mandiri staf via ESS, persetujuan dispensasi dinas berjenjang, dan validasi pagu anggaran tahunan unit pengusul agar tidak defisit. |
+| **`EPIC HRD-82`** | Perjanjian Ikatan Dinas & Komitmen Retensi Kerja Nakes | Penerbitan otomatis akta ikatan dinas untuk diklat bernilai > Rp 10 Juta atau > 1 bulan, pengesahan meterai, monitoring masa retensi 12-36 bulan, dan perhitungan tagihan ganti rugi wanprestasi saat staf resign sepihak. |
+| **`EPIC HRD-83`** | Pencatatan Portofolio SKP & Sinkronisasi Plataran Sehat Kemenkes | Pencatatan perolehan SKP nakes 3 kategori, visual tracker radial target 50 SKP dalam 5 tahun, verifikasi nomor sertifikat Plataran Sehat Kemenkes, dan penyediaan bukti CPD untuk evaluasi OPPE Sub-15. |
+
+---
+
+### 34.3 Kebutuhan Fungsional (Functional Requirements)
+
+| ID FR | Epic Terkait | Kebutuhan Fungsional | Kriteria Keberterimaan (Acceptance Criteria) |
+| :--- | :--- | :--- | :--- |
+| `FR-TRN-01` | `EPIC HRD-79` | Konfigurasi Master 5 Pelatihan Wajib STARKES KPS 8 | Sistem menyediakan master aturan untuk BHD, PPI, SKP, K3RS/Code Red, dan Komunikasi SBAR yang wajib diikuti oleh 100% pegawai aktif (`VR-TRN-01`). |
+| `FR-TRN-02` | `EPIC HRD-79` | Penegakan Siklus Masa Berlaku Maksimal 24 Bulan | Sistem menetapkan masa kedaluwarsa maksimal 24 bulan untuk pelatihan wajib akreditasi dan menolak konfigurasi melampaui batas tersebut (`VR-TRN-02`). |
+| `FR-TRN-03` | `EPIC HRD-79` | Pemetaan Pelatihan Khusus Ruang Intensif RS | Sistem memetakan sertifikat spesialisasi klinis untuk unit kerja tertentu (ICU, OK, IGD, Dialisis, NICU) yang menjadi prasyarat penugasan unit. |
+| `FR-TRN-04` | `EPIC HRD-79` | Radar Kedaluwarsa Bertingkat (H-90, H-60, H-30) | Worker harian mengevaluasi tanggal masa berlaku sertifikat dan menerbitkan notifikasi otomatis ke portal ESS, email, dan WhatsApp staf serta kepala ruangan. |
+| `FR-TRN-05` | `EPIC HRD-79` | Pengaturan Masa Tenggang (*Grace Period*) 30 Hari | Sistem memberikan toleransi pendaftaran penyegaran selama 30 hari pasca habis masa berlaku sebelum memberlakukan pembatasan dinas penuh (`VR-TRN-10`). |
+| `FR-TRN-06` | `EPIC HRD-79` | Flag Overdue & Safeguard Dinas Shift (*Buddy System*) | Sertifikat mati (H-0 Overdue) memicu flag Overdue dan mewajibkan penugasan didampingi perawat/dokter senior pada modul jadwal Sub-06 (`VR-TRN-11`). |
+| `FR-TRN-07` | `EPIC HRD-79` | Pembekuan Otomatis RKK Level 4 ke Level 3 di Sub-14 | Sertifikat klinis kritis yang mati memicu penurunan status rincian kewenangan klinis mandiri menjadi supervisi ke Sub-14 Kredensialing (`INT-HR-77`). |
+| `FR-TRN-08` | `EPIC HRD-81` | Penyusunan Rencana Program Diklat Tahunan (TNA) | Bagian Diklat dapat menyusun dokumen program pelatihan tahunan berbasis TNA, memuat judul, target departemen, kuota, dan estimasi biaya per program. |
+| `FR-TRN-09` | `EPIC HRD-81` | Otorisasi Pengesahan Program Tahunan oleh Direksi | Direktur SDM dan Keuangan dapat mengesahkan dokumen program tahunan diklat dan secara otomatis mengaktifkan pagu anggaran tahun fiskal berjalan. |
+| `FR-TRN-10` | `EPIC HRD-80` | Penjadwalan Batch Sesi Kelas & Workshop Simulasi | Diklat dapat membuat jadwal kelas internal/eksternal, menentukan instruktur/assessor, aula/lab simulasi, URL meeting online, dan kapasitas kuota peserta. |
+| `FR-TRN-11` | `EPIC HRD-81` | Pengajuan Pendaftaran Diklat Mandiri via ESS | Pegawai dapat melihat katalog pelatihan yang dibuka dan mengajukan pendaftaran mandiri via ESS dengan mengunggah justifikasi pengembangan kompetensi. |
+| `FR-TRN-12` | `EPIC HRD-81` | Alur Persetujuan Dispensasi Dinas Berjenjang | Pendaftaran diklat diproses melalui alur persetujuan Kepala Ruangan (dispensasi jadwal dinas) dan Tim Diklat (validasi kualifikasi dan anggaran). |
+| `FR-TRN-13` | `EPIC HRD-81` | Pengendalian & Monitoring Pagu Anggaran Diklat Unit | Sistem mencatat alokasi pagu per unit kerja dan menolak persetujuan pengajuan jika biaya melebihi sisa pagu anggaran departemen (`VR-TRN-14`). |
+| `FR-TRN-14` | `EPIC HRD-81` | Otomasi Pemindahan Saldo ke Anggaran Komitmen | Persetujuan pendaftaran oleh Diklat memotong sisa saldo pagu dan mencatatnya sebagai anggaran komitmen berjalan hingga realisasi pembayaran tuntas. |
+| `FR-TRN-15` | `EPIC HRD-80` | Perekaman Presensi Harian & Ambang Kehadiran | Presensi peserta dicatat per hari materi; peserta wajib hadir minimal 80% (umum) atau 100% (klinis) untuk memenuhi syarat mengikuti ujian kelulusan (`VR-TRN-03`). |
+| `FR-TRN-16` | `EPIC HRD-80` | Penilaian Ujian Teori Post-Test Tertulis | Sistem mencatat skor post-test peserta (skala 0 - 100) dan menentukan status kelulusan teori dengan ambang batas minimal 75.00 (`VR-TRN-04`). |
+| `FR-TRN-17` | `EPIC HRD-80` | Penilaian Ujian Simulasi Keterampilan Klinis (OSCE) | Pelatihan klinis menyelenggarakan ujian simulasi langsung berpandukan lembar rubrik checklist dengan nilai kelulusan minimal 80.00 (`VR-TRN-05`). |
+| `FR-TRN-18` | `EPIC HRD-80` | Pengesahan Asesmen dengan Tanda Tangan Assessor | Lembar rubrik OSCE wajib disahkan dengan tanda tangan digital atau token kriptografis dari instruktur klinis yang terverifikasi (`VR-TRN-06`). |
+| `FR-TRN-19` | `EPIC HRD-80` | Tata Kelola Remedial Evaluasi Teori dan OSCE | Peserta yang belum memenuhi batas kelulusan berhak mengikuti remedial maksimal 2 kali percobaan dalam rentang waktu paling lambat 30 hari kalender (`VR-TRN-20`). |
+| `FR-TRN-20` | `EPIC HRD-80` | Penerbitan Otomatis e-Sertifikat & Arsip e-Dossier | Peserta yang dinyatakan lulus menerima e-Sertifikat resmi berpenomoran unik yang secara otomatis tersimpan pada berkas e-Dossier pegawai di Sub-02. |
+| `FR-TRN-21` | `EPIC HRD-82` | Deteksi Otomatis Penerbitan Draf Akta Ikatan Dinas | Pengajuan diklat dengan pembiayaan rumah sakit > Rp 10.000.000 atau durasi > 30 hari secara otomatis memicu pembuatan draf akta ikatan dinas (`VR-TRN-16`). |
+| `FR-TRN-22` | `EPIC HRD-82` | Penegakan Komitmen Retensi Kerja & Penalti Resign | Menetapkan masa retensi 12 - 36 bulan dan secara otomatis menghitung tagihan denda penalti ganti rugi jika pegawai mengundurkan diri sepihak sebelum ikatan usai (`VR-TRN-17`). |
+| `FR-TRN-23` | `EPIC HRD-83` | Registri Portofolio SKP Nakes 3 Kategori Kemenkes | Pegawai nakes dapat mencatat perolehan SKP yang dikelompokkan ke kategori Pembelajaran, Pelayanan, dan Pengabdian Masyarakat sesuai pedoman Kemenkes RI. |
+| `FR-TRN-24` | `EPIC HRD-83` | Visual Tracker Akumulasi 50 SKP dalam 5 Tahun | Tampilan visual dashboard radial yang memantau progres perolehan target 50 SKP nakes selama siklus 5 tahun perpanjangan Surat Izin Praktik (SIP). |
+| `FR-TRN-25` | `EPIC HRD-83` | Sinkronisasi Plataran Sehat & Umpan Pilar OPPE | Verifikasi ID kegiatan ke API Plataran Sehat Kemenkes (`INT-HR-80`) serta agregasi jam CPD sebagai umpan pilar *Medical Knowledge* evaluasi OPPE Sub-15 (`INT-HR-78`). |
+
+---
+
+### 34.4 Skenario Pengujian Penerimaan Pengguna (User Acceptance Testing)
+
+1. **UAT-1 (Kepatuhan Pelatihan Wajib & Radar Kedaluwarsa Akreditasi):**
+   Memastikan 5 pelatihan wajib akreditasi STARKES terkonfigurasi dengan siklus 24 bulan. Ketika staf mencapai H-60 dan H-30 sebelum kedaluwarsa, notifikasi otomatis terkirim. Pada H-0 Overdue, sistem memicu penugasan pendampingan dinas shift (*buddy system*) di Sub-06 dan pembekuan wewenang RKK mandiri Level 4 di Sub-14.
+2. **UAT-2 (Pelaksanaan Sesi Diklat, Ujian Teori & Simulasi OSCE Klinis):**
+   Membuat jadwal sesi pelatihan klinis ICU Ventilator, mendaftarkan peserta, mencatat presensi 100%, menginput skor ujian post-test teori (85) dan ujian simulasi praktik klinis OSCE (90) dengan tanda tangan digital assessor, hingga penerbitan e-sertifikat yang terarsip di e-Dossier Sub-02.
+3. **UAT-3 (TNA, Pengajuan ESS & Kontrol Saldo Pagu Anggaran Diklat):**
+   Staf mengajukan pendaftaran kursus eksternal via portal ESS. Sistem memverifikasi ketersediaan sisa pagu anggaran departemen pengusul. Jika saldo pagu mencukupi, persetujuan atasan dan Diklat berhasil memotong komitmen anggaran; jika defisit, pendaftaran ditolak seketika (*fail-closed*).
+4. **UAT-4 (Penerbitan Kontrak Ikatan Dinas & Penagihan Penalti Wanprestasi):**
+   Pendaftaran beasiswa subspesialisasi senilai Rp 25.000.000 memicu penerbitan draf akta ikatan dinas retensi kerja selama 24 bulan. Dilakukan simulasi pengunduran diri pegawai pada bulan ke-6; sistem berhasil menerbitkan tagihan penalti ganti rugi berdasarkan formula prorata sisa bulan retensi.
+5. **UAT-5 (Portofolio 50 SKP Kemenkes & Verifikasi Plataran Sehat):**
+   Nakes menginput berkas perolehan SKP dengan menyertakan ID Sertifikat Plataran Sehat Kemenkes. Sistem memanggil gateway API Kemenkes untuk verifikasi validitas, memperbarui capaian tracker visual target 50 SKP 5 tahunan, dan meneruskan bukti jam CPD ke evaluasi semesteran OPPE Sub-15.
+
+---
+
+### 34.5 Sepuluh Kriteria Selesai (Definition of Done - DoD)
+
+1. **Skema Basis Data Lengkap & Termigrasi:** Seluruh 10 tabel (`mst_mandatory_training_rules`, `trx_training_plans`, `trx_training_sessions`, `trx_training_enrollment_requests`, `trx_training_attendances`, `trx_training_assessments`, `trx_training_certificates`, `trx_training_budgets`, `hrd_training_bond_contracts`, `trx_plataran_sehat_skp_records`) terdefinisi di EF Core dengan indeks unik dan audit columns lengkap.
+2. **24 Kontrak Endpoint API Terkunci:** Seluruh endpoint berstatus `Rencana (belum tersedia)` telah terpetakan ke 4 grup tag Swagger baku.
+3. **Pemisahan Presensi vs Kelulusan OSCE Berfungsi:** Validasi presensi 80%/100% dan kelulusan ganda (teori >= 75 dan OSCE >= 80) terbukti menegakkan integritas kelulusan.
+4. **Radar Kedaluwarsa & Safeguard Shift Aktif:** Background worker evaluasi berkala (H-90, H-60, H-30) terbukti mengirim peringatan dan menginstruksikan pengamanan *buddy system* ke Sub-06 saat H-0 Overdue.
+5. **Integrasi RKK & OPPE Terverifikasi:** Event integrasi ke Sub-14 (`INT-HR-77`) dan Sub-15 (`INT-HR-78`) terbukti memperbarui status kewenangan klinis dan pilar *Medical Knowledge*.
+6. **Kontrol Anggaran Diklat Mencegah Defisit:** Alokasi pagu anggaran unit kerja terbukti menolak pengajuan pelatihan yang melampaui sisa saldo pagu.
+7. **Penerbitan Otomatis Ikatan Dinas Teruji:** Pelatihan dengan biaya > Rp 10 Juta atau durasi > 1 bulan secara konsisten memicu draf akta ikatan dinas dan formula penalti ganti rugi.
+8. **Tracker 50 SKP Plataran Sehat Akurat:** Visualisasi progres perolehan SKP 5 tahunan berfungsi dengan integrasi gateway API Kemenkes (`INT-HR-80`).
+9. **UI/UX Mengikuti Standar Antarmuka Quilvian:** 8 layar frontend (`FE-HRD-216` s.d. `FE-HRD-223`) menggunakan base component standar, status badge, dan Redux state yang konsisten.
+10. **Traceability Lengkap & Tanpa Celah:** Seluruh 25 Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-25`) terpetakan 100% pada matriks penelusuran kebutuhan (*Requirement Traceability Matrix*).
+
+---
+
+### 34.6 Urutan Gelombang Pengiriman (Delivery Waves)
+
+| Gelombang Rilis | Fokus Fungsional & Modul Deliverables | Target Deliverable Backend & Frontend |
+| :--- | :--- | :--- |
+| **`MVP-48` (Gelombang Pelatihan Wajib & Radar Kedaluwarsa Akreditasi)** | Master 5 pelatihan wajib STARKES KPS 8, siklus 24 bulan, radar peringatan H-90/60/30, grace period 30 hari, flag Overdue, penugasan *buddy system* ke Sub-06 (`INT-HR-79`), dan pembekuan wewenang RKK ke Sub-14 (`INT-HR-77`). | Controller & Services Mandatory Rules & Radar, `FE-HRD-216` (Dashboard Radar Pelatihan Wajib RS), `FE-HRD-217` (Konfigurasi Aturan Wajib Akreditasi). |
+| **`MVP-49` (Gelombang Sesi Diklat, Penilaian OSCE & e-Sertifikat)** | Penjadwalan batch kelas workshop simulasi, presensi harian, penilaian ujian teori post-test, rubrik simulasi klinis OSCE bertanda tangan digital assessor, alur remedial, dan penerbitan e-Sertifikat ke e-Dossier Sub-02. | Services Training Sessions, Assessment & Certification, `FE-HRD-218` (Manajemen Sesi Kelas & Presensi), `FE-HRD-219` (Lembar Penilaian Ujian Teori & OSCE), `FE-HRD-220` (Registri Portofolio e-Sertifikat Pegawai). |
+| **`MVP-50` (Gelombang TNA, Budget, Ikatan Dinas & SKP Plataran Sehat)** | Program tahunan diklat TNA, pengajuan mandiri ESS, persetujuan berjenjang, kontrol pagu anggaran unit, penerbitan kontrak ikatan dinas retensi 12-36 bulan, tagihan penalti resign sepihak, dan visual tracker 50 SKP Plataran Sehat Kemenkes (`INT-HR-80`). | Controller Training Plans, Budgets, Bonds & SKP Tracker, `FE-HRD-221` (Rencana Tahunan TNA & Kontrol Anggaran), `FE-HRD-222` (Tata Kelola Kontrak Ikatan Dinas Retensi), `FE-HRD-223` (Portofolio 50 SKP & Plataran Sehat Kemenkes). |

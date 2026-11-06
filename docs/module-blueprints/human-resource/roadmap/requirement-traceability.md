@@ -9,7 +9,7 @@ blueprint_shape: SINGLE
 roadmap_revision: 14
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
-planning_updated_at: "2026-11-05 — jejak S-B5 Pemrosesan Penggajian Pegawai Rumah Sakit ditambahkan (bagian 1h): BE-HRD-146 s.d. BE-HRD-160, FE-HRD-130 s.d. FE-HRD-143; sebelumnya S-B3 (bagian 1g), S-B2 (bagian 1f), S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
+planning_updated_at: "2026-11-06 - jejak S-C1-OPPE Evaluasi Praktik Profesional Berkelanjutan (OPPE), Penugasan Terfokus (FPPE) & Rapor Komposit Rekredensialing 3 Tahunan ditambahkan (bagian 1m): BE-HRD-222 s.d. BE-HRD-237, FE-HRD-201 s.d. FE-HRD-215; sebelumnya S-C1 (bagian 1l), S-D4 (bagian 1k), S-D3 (bagian 1j), S-B6 (bagian 1i), S-B5 (bagian 1h), S-B3 (bagian 1g), S-B2 (bagian 1f), S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
 generated_at: "2026-10-26"
 owners:
   - "Module Lead & Quality Assurance"
@@ -991,3 +991,77 @@ Jejak ketertelusuran penuh antara 25 kebutuhan fungsional (`FR-CRD-01` s.d. `FR-
 - **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
 - **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
 - **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis rumah sakit, 6 keputusan otoritas klinis, 22 skenario acceptance tests, dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-206` s.d. `BE-HRD-221`) dan 15 task frontend (`FE-HRD-186` s.d. `FE-HRD-200`).
+
+---
+
+### Bagian 1m: Pemetaan Jejak Requirement Bisnis Sub-Modul 15 (Slice `S-C1-OPPE` OPPE, FPPE & Recredentialing)
+
+Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement traceability*) untuk **Sub-Modul 15 (OPPE, FPPE & Recredentialing - Slice `S-C1-OPPE`)**, menghubungkan keputusan bisnis (`HRD-DEC-152` s.d. `HRD-DEC-157`), functional requirements (`FR-OPP-01` s.d. `FR-OPP-25`), task backend (`BE-HRD-222` s.d. `BE-HRD-237`), task frontend (`FE-HRD-201` s.d. `FE-HRD-215`), acceptance tests (`AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`), serta skenario UAT (`UAT-OPP-01` s.d. `05`).
+
+#### Matriks jejak requirement ke task
+
+| ID Kebutuhan | Deskripsi Kebutuhan Fungsional | Dasar Desain & Keputusan | Task Backend Terkait | Task Frontend Terkait | Skenario UAT | Status Traceability |
+| :--- | :--- | :--- | :--- | :--- | :---: | :---: |
+| `FR-OPP-01` | Master katalog indikator OPPE 6 pilar kompetensi standar ACGME/KARS | BE A § 28.1; `HRD-DEC-152`; `VR-OPP-01` | `BE-HRD-222`, `BE-HRD-223` | `FE-HRD-201`, `FE-HRD-203` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-02` | Konfigurasi target ambang batas numerik dan pembobotan per KSM | BE A § 28.1; `HRD-DEC-152`; `VR-OPP-01` | `BE-HRD-223` | `FE-HRD-203`, `FE-HRD-204` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-03` | Pembukaan periode siklus evaluasi OPPE tahunan atau semesteran | BE A § 28.2; `HRD-DEC-152`; `VR-OPP-24` | `BE-HRD-224` | `FE-HRD-203` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-04` | Validasi komposisi total bobot evaluasi kuantitatif + kualitatif tepat 100% | BE A § 28.2; `HRD-DEC-152`; `VR-OPP-01` | `BE-HRD-224` | `FE-HRD-203` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-05` | Inisiasi otomatis berkas rapor evaluasi individu bagi dokter aktif di KSM | BE A § 28.3; `HRD-DEC-152`; `VR-OPP-01` | `BE-HRD-224` | `FE-HRD-202`, `FE-HRD-203` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-06` | Adapter ekstraksi data indikator kuantitatif dari database SIMRS & KMKP | BE A § 28.4; `HRD-DEC-152`; `INT-HR-73` | `BE-HRD-225` | `FE-HRD-202` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-07` | Kalkulasi rasio kepatuhan pengisian resume medis EMR 1x24 jam pasca-pulang | BE A § 28.4; `HRD-DEC-152`; `VR-OPP-07` | `BE-HRD-225` | `FE-HRD-202` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-08` | Evaluasi kepatuhan Clinical Pathway dan peresepan formularium RS | BE A § 28.4; `HRD-DEC-152`; `INT-HR-73` | `BE-HRD-225` | `FE-HRD-202` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-09` | Agregasi bobot kuantitatif SIMRS baku 60% terhadap nilai komposit OPPE | BE A § 28.3; `HRD-DEC-152`; `VR-OPP-01` | `BE-HRD-225`, `BE-HRD-228` | `FE-HRD-202` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-10` | Early warning alert visual jika indikator klinis jatuh di bawah standar KSM | BE A § 28.3; `HRD-DEC-152`; `VR-OPP-06` | `BE-HRD-228`, `BE-HRD-236` | `FE-HRD-202` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-11` | Penugasan instrumen telaah sejawat (peer review) dalam kelompok KSM sebidang | BE A § 28.4; `HRD-DEC-152`; `VR-OPP-02` | `BE-HRD-226` | `FE-HRD-205` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-12` | Blokir mutlak anti-self-review pada pengisian telaah sejawat | BE A § 28.4; `HRD-DEC-152`; `VR-OPP-03` | `BE-HRD-226` | `FE-HRD-205` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-13` | Penilaian skala Likert 1-5 etika profesi, komunikasi & partisipasi audit M&M | BE A § 28.4; `HRD-DEC-152`; `VR-OPP-04` | `BE-HRD-226` | `FE-HRD-205` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-14` | Kewajiban pengisian catatan naratif klinis jika skor Likert <= 2 | BE A § 28.4; `HRD-DEC-152`; `VR-OPP-04` | `BE-HRD-226` | `FE-HRD-205` | `UAT-OPP-01` | **TERCAKUP PENUH** |
+| `FR-OPP-15` | Penegakan Peer Review Privilege & perekaman read-audit logging tamper-proof | BE A § 28.8; `HRD-DEC-156`; `VR-OPP-23` | `BE-HRD-227` | `FE-HRD-206` | `UAT-OPP-02` | **TERCAKUP PENUH** |
+| `FR-OPP-16` | Deteksi 1 kasus insiden sentinel otomatis memicu penugasan investigasi FPPE | BE A § 28.5; `HRD-DEC-153`; `VR-OPP-05` | `BE-HRD-229`, `BE-HRD-230` | `FE-HRD-207`, `FE-HRD-208` | `UAT-OPP-03` | **TERCAKUP PENUH** |
+| `FR-OPP-17` | Deteksi komplikasi bedah > 2 SD & penundaan resume EMR kronis pemicu FPPE | BE A § 28.5; `HRD-DEC-153`; `VR-OPP-06` | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | `UAT-OPP-03` | **TERCAKUP PENUH** |
+| `FR-OPP-18` | Penugasan proctoring dokter baru (3 bln / 10 kasus) & prosedur baru (6 bln / 5 kasus) | BE A § 28.5; `HRD-DEC-154`; `VR-OPP-08`..`10` | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | `UAT-OPP-04` | **TERCAKUP PENUH** |
+| `FR-OPP-19` | Buku catatan digital (logbook) kasus proctoring dengan pseudonimisasi pasien | BE A § 28.6; `HRD-DEC-154`; `VR-OPP-11` | `BE-HRD-231` | `FE-HRD-210` | `UAT-OPP-04` | **TERCAKUP PENUH** |
+| `FR-OPP-20` | Antarmuka verifikasi pengesahan kemandirian tindakan medis oleh Dokter Proctor | BE A § 28.6; `HRD-DEC-154`; `VR-OPP-12` | `BE-HRD-231` | `FE-HRD-210` | `UAT-OPP-04` | **TERCAKUP PENUH** |
+| `FR-OPP-21` | Sidang pleno Subkomite Mutu Profesi menetapkan vonis kesimpulan & rencana pembinaan | BE A § 28.7; `HRD-DEC-154`; `VR-OPP-13`..`14` | `BE-HRD-232` | `FE-HRD-211` | `UAT-OPP-04` | **TERCAKUP PENUH** |
+| `FR-OPP-22` | Kalkulator komposit 3 tahun rekredensialing dengan rasio baku 25%-35%-40% | BE A § 28.7; `HRD-DEC-155`; `VR-OPP-15` | `BE-HRD-233` | `FE-HRD-212` | `UAT-OPP-05` | **TERCAKUP PENUH** |
+| `FR-OPP-23` | Klasifikasi eligibilitas otomatis ke dalam Tier Hijau, Tier Kuning, atau Tier Merah | BE A § 28.7; `HRD-DEC-155`; `VR-OPP-16`..`18` | `BE-HRD-233`, `BE-HRD-234` | `FE-HRD-212`, `FE-HRD-213` | `UAT-OPP-05` | **TERCAKUP PENUH** |
+| `FR-OPP-24` | Penetapan 4 putusan sidang rekredensialing (Perpanjang, Upgrade, Restricted, Revoked) | BE A § 28.7; `HRD-DEC-157`; `VR-OPP-20` | `BE-HRD-235` | `FE-HRD-214` | `UAT-OPP-05` | **TERCAKUP PENUH** |
+| `FR-OPP-25` | Dispatch sinkronisasi wewenang ke SIMRS EMR & penegakan Hard-Stop lockout | BE A § 28.7; `HRD-DEC-157`; `VR-OPP-21`..`22` | `BE-HRD-235` | `FE-HRD-214` | `UAT-OPP-05` | **TERCAKUP PENUH** |
+
+---
+
+#### Matriks acceptance test ke task
+
+| ID Skenario Uji | Deskripsi Skenario Uji | Task Backend Terkait | Task Frontend Terkait | Status Rencana |
+| :--- | :--- | :--- | :--- | :---: |
+| `AT-HRD-OPP-01` | Pembukaan siklus periode OPPE baru dengan rasio 60:40 | `BE-HRD-223`, `BE-HRD-224` | `FE-HRD-201`, `FE-HRD-203` | `Rencana` |
+| `AT-HRD-OPP-02` | Penolakan konfigurasi bobot OPPE jika total tidak 100% | `BE-HRD-224` | `FE-HRD-203` | `Rencana` |
+| `AT-HRD-OPP-03` | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP | `BE-HRD-225` | `FE-HRD-202` | `Rencana` |
+| `AT-HRD-OPP-04` | Penugasan formulir telaah sejawat ke dokter rekan KSM | `BE-HRD-226` | `FE-HRD-205` | `Rencana` |
+| `AT-HRD-OPP-05` | Penolakan penilaian sejawat mandiri (anti-self-review) | `BE-HRD-226` | `FE-HRD-205` | `Rencana` |
+| `AT-HRD-OPP-06` | Keharusan narasi klinis jika skor telaah sejawat <= 2 | `BE-HRD-226` | `FE-HRD-205` | `Rencana` |
+| `AT-HRD-OPP-07` | Penegakan Peer Review Privilege & perekaman read-audit | `BE-HRD-227` | `FE-HRD-206` | `Rencana` |
+| `AT-HRD-OPP-08` | Perhitungan nilai komposit akhir 60% SIMRS + 40% Peer | `BE-HRD-228` | `FE-HRD-202` | `Rencana` |
+| `AT-HRD-OPP-09` | Pengesahan rapor OPPE dan konfirmasi baca oleh nakes | `BE-HRD-228` | `FE-HRD-202` | `Rencana` |
+| `AT-HRD-OPP-10` | Deteksi insiden sentinel memicu penugasan FPPE seketika | `BE-HRD-229`, `BE-HRD-230` | `FE-HRD-207`, `FE-HRD-208` | `Rencana` |
+| `AT-HRD-OPP-11` | Pemicu FPPE komplikasi bedah melampaui 2 standar deviasi | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | `Rencana` |
+| `AT-HRD-OPP-12` | Pemicu FPPE akibat keterlambatan resume EMR > 48 jam | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | `Rencana` |
+| `AT-HRD-OPP-13` | Inisiasi proctoring staf dokter baru (3 bulan / 10 kasus) | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | `Rencana` |
+| `AT-HRD-OPP-14` | Inisiasi proctoring penambahan prosedur klinis baru | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | `Rencana` |
+| `AT-HRD-OPP-15` | Penyamaran (pseudonimisasi) identitas RM pasien pada logbook | `BE-HRD-231` | `FE-HRD-210` | `Rencana` |
+| `AT-HRD-OPP-16` | Verifikasi tindakan dan penilaian kemandirian oleh proctor | `BE-HRD-231` | `FE-HRD-210` | `Rencana` |
+| `AT-HRD-OPP-17` | Putusan pleno FPPE memutuskan perpanjangan masa proctoring | `BE-HRD-232` | `FE-HRD-211` | `Rencana` |
+| `AT-HRD-OPP-18` | Putusan pleno FPPE menurunkan kewenangan ke Level 3 supervisi | `BE-HRD-232` | `FE-HRD-211` | `Rencana` |
+| `AT-HRD-OPP-19` | Kalkulasi rapor komposit 3 tahun dengan rasio 25-35-40 | `BE-HRD-233` | `FE-HRD-212` | `Rencana` |
+| `AT-HRD-OPP-20` | Otomasi pengelompokan ke Tier Hijau Fast-Track | `BE-HRD-233` | `FE-HRD-212` | `Rencana` |
+| `AT-HRD-OPP-21` | Penyesuaian diskresi tier kelayakan oleh Ketua Komite | `BE-HRD-234` | `FE-HRD-213` | `Rencana` |
+| `AT-HRD-OPP-22` | Transmisi putusan Revoked memblokir hak order SIMRS | `BE-HRD-235` | `FE-HRD-214` | `Rencana` |
+
+---
+
+#### Gap keterkaitan requirement ke bukti verifikasi
+
+- **Total Kebutuhan Fungsional (`FR-OPP-01` s.d. `FR-OPP-25`):** 25 Kebutuhan.
+- **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
+- **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
+- **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis rumah sakit, 6 keputusan otoritas klinis, 22 skenario acceptance tests, dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`).

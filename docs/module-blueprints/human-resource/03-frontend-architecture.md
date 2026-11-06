@@ -2632,3 +2632,387 @@ interface CredentialingState {
   error: string | null;
 }
 ```
+
+---
+
+## 24. Arsitektur Frontend Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`)
+
+### 24.1 Struktur Menu & Navigasi
+
+Sub-modul OPPE, FPPE & Recredentialing terintegrasi dalam kelompok menu portal tenaga medis dan portal manajemen Komite Medik / KMKP:
+
+```text
+Portal Tenaga Medis & Komite Medik
+└── Kinerja & Mutu Klinis (Clinical Performance & Quality)
+    ├── [FE-HRD-201] Dashboard Kinerja Klinis & Radar OPPE (/portal/performance/clinical-oppe)
+    ├── [FE-HRD-202] Konfigurasi Periode & Matriks OPPE KSM (/admin/performance/oppe-periods)
+    ├── [FE-HRD-203] Evaluasi Kualitatif Peer Review Sejawat (/portal/performance/peer-review-entry)
+    ├── [FE-HRD-204] Pusat Deteksi Pemicu & Kasus FPPE (/admin/performance/fppe-triggers)
+    ├── [FE-HRD-205] Pemantauan Proctoring Staf & Prosedur Baru (/admin/performance/fppe-proctoring)
+    ├── [FE-HRD-206] Sidang Kesimpulan & Rekomendasi FPPE (/admin/performance/fppe-conclusions)
+    ├── [FE-HRD-207] Kalkulator Rapor 3 Tahun Rekredensialing (/admin/credentialing/recred-composite-scorecard)
+    └── [FE-HRD-208] Konsol Sinkronisasi Putusan ke SIMRS EMR (/admin/credentialing/recred-simrs-sync)
+```
+
+---
+
+### 24.2 Spesifikasi Layar Antarmuka Pengguna
+
+#### 24.2.1 [FE-HRD-201] Dashboard Kinerja Klinis & Radar OPPE Dokter Spesialis
+- **Rute:** `/portal/performance/clinical-oppe`
+- **Tujuan:** Menyajikan visualisasi komprehensif performa praktik dokter spesialis secara mandiri dan bagi Ketua KSM/Komite Medik.
+- **Elemen Tampilan:**
+  - Kartu Ringkasan Status OPPE Tahunan (Nilai Komposit, Status Lulus Evaluasi, Status Peringatan Dini).
+  - Radar Chart 6 Area Kompetensi Standar ACGME/KARS:
+    1. *Patient Care* (Tingkat Keberhasilan Klinis & Keselamatan Pasien).
+    2. *Medical Knowledge* (Partisipasi CPD/SKP, Kesesuaian Diagnosis).
+    3. *Practice-Based Learning* (Kepatuhan Clinical Pathway & Audit Kasus).
+    4. *Interpersonal & Communication Skills* (Keluhan Pasien & Komunikasi SBAR).
+    5. *Professionalism* (Etika Profesi & Kehadiran Tugas Jaga/Visite).
+    6. *Systems-Based Practice* (Kepatuhan Formularium Nasional/RS & Efisiensi Utilisasi).
+  - Breakdown Nilai 60% Kuantitatif (SIMRS/KMKP) dan 40% Kualitatif (Peer Review).
+  - Tabel Riwayat Evaluasi Periode Sebelumnya beserta catatan rekomendasi pembinaan.
+- **Interaksi:**
+  - Filter tahun evaluasi dan jenis spesialisasi.
+  - Unduh Rapor Ringkasan OPPE resmi bertanda tangan digital Komite Medik (format PDF).
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/clinical-performance/oppe/staff-evaluations/my-summary`
+  - `GET /api/v1/corporate/hrd/clinical-performance/oppe/staff-evaluations/{id}/radar`
+
+#### 24.2.2 [FE-HRD-202] Konfigurasi Periode & Matriks Indikator OPPE KSM
+- **Rute:** `/admin/performance/oppe-periods`
+- **Tujuan:** Fasilitas bagi Subkomite Mutu Profesi untuk membuka periode evaluasi tahunan/semesteran dan mengatur matriks indikator per KSM.
+- **Elemen Tampilan:**
+  - Tabel Daftar Periode OPPE (Tahun, Semester, Unit/KSM Sasaran, Batas Waktu, Status: *Draft*, *Active*, *EvaluationClosed*, *Finalized*).
+  - Panel Konfigurasi Bobot Indikator KSM (Bobot Kuantitatif SIMRS vs Kualitatif Peer Review, default 60:40).
+  - Master Katalog Indikator OPPE (Kode Indikator, Pilar ACGME, Sumber Data: SIMRS/Manual, Ambang Batas Target, Bobot %).
+- **Interaksi:**
+  - Tombol aksi: "Buka Periode Evaluasi Baru", "Kunci Penilaian Periode", "Tutup & Finalisasi Rapor".
+  - Modal `OppeIndicatorConfigModal` untuk memodifikasi target spesifik KSM (misal: rasio IDO Bedah < 1.5%, keterlambatan resume EMR < 5%).
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/clinical-performance/oppe/periods`
+  - `POST /api/v1/corporate/hrd/clinical-performance/oppe/periods`
+  - `GET /api/v1/corporate/hrd/clinical-performance/oppe/metric-catalogs`
+  - `PUT /api/v1/corporate/hrd/clinical-performance/oppe/metric-catalogs/{id}`
+
+#### 24.2.3 [FE-HRD-203] Form Evaluasi Kualitatif Peer Review Sejawat KSM
+- **Rute:** `/portal/performance/peer-review-entry`
+- **Tujuan:** Lembar penilaian sejawat konfidensial oleh sesama dokter spesialis dalam KSM yang sama.
+- **Elemen Tampilan:**
+  - Banner Peringatan Legal Hak Istimewa Konfidensialitas (*Peer Review Privilege*). Penegasan bahwa data dilindungi undang-undang dan tidak dapat dibuka kepada publik.
+  - Daftar Dokter yang Ditugaskan untuk Ditinjau (Anonim atau Berkode Reviewer).
+  - Rubrik Penilaian Etika Profesi, Komunikasi Multidisiplin, Kehadiran Konferensi Kasus Sulit/M&M, dan Kedisiplinan Visite Pasien.
+  - Kolom Narasi Kualitatif untuk catatan pengamatan perilaku profesional dan rekomendasi pembinaan.
+- **Interaksi:**
+  - Form validasi skor likert (1 s.d. 5) dan catatan wajib jika skor <= 2.
+  - Tombol "Simpan Draf" dan "Submit Penilaian Sejawat (Final)".
+  - Sebelum membuka detail ulasan sejawat, sistem memicu modal konfirmasi kerahasiaan dan mencatat audit pembacaan.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/clinical-performance/oppe/peer-reviews/assigned`
+  - `POST /api/v1/corporate/hrd/clinical-performance/oppe/peer-reviews/{id}/submit`
+  - `POST /api/v1/corporate/hrd/clinical-performance/peer-review-audit/log-access`
+
+#### 24.2.4 [FE-HRD-204] Pusat Deteksi Pemicu Kritis & Pelacakan Kasus FPPE
+- **Rute:** `/admin/performance/fppe-triggers`
+- **Tujuan:** Dashboard monitoring pemicu insiden keselamatan pasien dan inisiasi evaluasi praktik profesional terfokus (FPPE).
+- **Elemen Tampilan:**
+  - Feed Pemicu Kritis Real-Time (Sentinel Event dari SIMRS/KMKP, Komplikasi Bedah > 2 SD, Keterlambatan Resume EMR > 48 jam > 20%, Surat Rujukan Etik Subkomite).
+  - Status Indikator Bahaya (Merah: Membutuhkan Inisiasi FPPE Segera, Kuning: Pemantauan Intensif).
+  - Tabel Kasus FPPE Berjalan (Nomor Kasus, Nama Dokter, KSM, Kategori Pemicu, Status Proctoring, Tanggal Mulai).
+- **Interaksi:**
+  - Tombol "Aktivasi Penugasan FPPE" dengan memilih pemicu, menunjuk Ketua Tim Evaluasi/Proctor, dan menetapkan durasi pemantauan.
+  - Filter pencarian berdasarkan KSM, tipe pemicu, dan rentang tanggal insiden.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/clinical-performance/fppe/triggers/active`
+  - `POST /api/v1/corporate/hrd/clinical-performance/fppe/engagements`
+  - `GET /api/v1/corporate/hrd/clinical-performance/fppe/engagements`
+
+#### 24.2.5 [FE-HRD-205] Pemantauan Proctoring Staf Baru & Prosedur Baru
+- **Rute:** `/admin/performance/fppe-proctoring`
+- **Tujuan:** Pemantauan kemajuan logbook kasus klinis yang disupervisi oleh proctor bagi staf baru (3 bulan / 10 kasus) atau prosedur baru (6 bulan / 5 kasus).
+- **Elemen Tampilan:**
+  - Kartu Metrik Kemajuan Kasus (Kasus Tercapai vs Target, misal: 7/10 Kasus).
+  - Kartu Waktu Pemantauan Tersisa (Hari tersisa dalam masa observasi proctoring).
+  - Logbook Kasus Terproctoring (Nomor RM Pasien Terpseudonimisasi, Nama Tindakan Medis, Tanggal Tindakan, Nama Proctor Pendamping, Status Verifikasi, Derajat Kemandirian Klinis).
+- **Interaksi:**
+  - Entri logbook kasus oleh dokter melalui modal `FppeCaseLogEntryModal`.
+  - Verifikasi dan persetujuan kemandirian prosedur oleh Dokter Proctor pendamping.
+  - Alert visual jika batas waktu pemantauan mendekati akhir namun target kasus belum terpenuhi.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/case-logs`
+  - `POST /api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/case-logs`
+  - `PUT /api/v1/corporate/hrd/clinical-performance/fppe/case-logs/{logId}/verify`
+
+#### 24.2.6 [FE-HRD-206] Sidang Kesimpulan & Rekomendasi Wewenang FPPE
+- **Rute:** `/admin/performance/fppe-conclusions`
+- **Tujuan:** Lembar kerja Subkomite Mutu Profesi untuk menetapkan kesimpulan hasil evaluasi praktik terfokus dan rekomendasi kelanjutan wewenang klinis.
+- **Elemen Tampilan:**
+  - Ringkasan Laporan Proctoring Kasus Klinis dan Rekapitulasi Komplikasi Pasien.
+  - Formulir Penetapan Keputusan Sidang Pleno FPPE:
+    1. *FullPrivilegeConfirmed* (Lolos evaluasi, wewenang klinis mandiri penuh disahkan).
+    2. *ProctoringExtended* (Perpanjangan masa proctoring tambahan 3 bulan).
+    3. *SupervisedPractice* (Penurunan derajat kewenangan menjadi didampingi supervisi).
+    4. *PrivilegeRevoked* (Pencabutan wewenang klinis terkait).
+  - Catatan Rincian Justifikasi Klinis dan Rencana Tindak Lanjut Pembinaan (*Remediation Plan*).
+- **Interaksi:**
+  - Tanda tangan digital anggota sidang pleno Subkomite Mutu Profesi.
+  - Tombol "Finalisasi Kesimpulan FPPE" yang secara otomatis mengupdate status RKK tenaga medis.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/conclusion`
+  - `POST /api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/conclusion`
+  - `POST /api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/close`
+
+#### 24.2.7 [FE-HRD-207] Kalkulator Rapor Komposit 3 Tahun Rekredensialing
+- **Rute:** `/admin/credentialing/recred-composite-scorecard`
+- **Tujuan:** Perhitungan otomatis rapor komposit 3 tahun berbasis OPPE/FPPE sebagai dasar objektif sidang rekredensialing berkala dokter spesialis.
+- **Elemen Tampilan:**
+  - Formula Kalkulasi Progresif: Tahun 1 (Bobot 25%), Tahun 2 (Bobot 35%), Tahun 3 (Bobot 40%).
+  - Kartu Rapor Komposit Akhir (Nilai Akhir 0-100) dan Penentuan Tier Kelayakan:
+    - **Tier Hijau (Score >= 80 & Nol Sentinel):** Jalur Cepat (*Fast-Track*) Perpanjangan SPK/RKK Tanpa Pembatasan.
+    - **Tier Kuning (Score 65–79 atau Catatan EMR):** Jalur Wawancara Klarifikasi KSM & Rencana Perbaikan Klinis.
+    - **Tier Merah (Score < 65 atau Pernah Gagal FPPE):** Jalur Sidang Pleno Investigasi Khusus / Pembatasan Wewenang (*Restricted*).
+  - Matriks perbandingan tren performa klinis dokter tahun ke tahun.
+- **Interaksi:**
+  - Tombol simulasi kalkulasi ulang jika terdapat data revisi SIMRS.
+  - Modal `RecredentialingTierOverrideModal` bagi Ketua Komite Medik untuk menyesuaikan tier dengan catatan pertimbangan khusus.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/credentialing/recredentialing/scorecards/{staffId}`
+  - `POST /api/v1/corporate/hrd/credentialing/recredentialing/scorecards/{staffId}/calculate`
+  - `POST /api/v1/corporate/hrd/credentialing/recredentialing/scorecards/{staffId}/override-tier`
+
+#### 24.2.8 [FE-HRD-208] Konsol Sinkronisasi Putusan Rekredensialing ke SIMRS EMR
+- **Rute:** `/admin/credentialing/recred-simrs-sync`
+- **Tujuan:** Monitoring dan pengendalian sinkronisasi 4 putusan rekredensialing ke modul EMR SIMRS secara otomatis dan terisolasi.
+- **Elemen Tampilan:**
+  - Tabel Status Sinkronisasi Wewenang Klinis SIMRS:
+    - Putusan *Perpanjang As-Is* -> Level 4 Mandiri (Tersinkronisasi Aktif).
+    - Putusan *Upgrade* -> Level 4 Mandiri untuk Prosedur Tambahan (Tersinkronisasi Aktif).
+    - Putusan *Restricted* -> Level 3 Supervisi (Aktif dengan Validasi Co-Signature EMR 24 Jam).
+    - Putusan *Revoked* -> Level 1/2 (Hard-Stop Mutlak / Blokir Akses Order Resep & Operasi SIMRS).
+  - Status Sambungan Integrasi API SIMRS `INT-HR-76` (Waktu Sync Terakhir, Latensi, Status Payload).
+  - Log Jejak Audit Percobaan Akses yang Ditolak oleh SIMRS akibat Status Restricted/Revoked.
+- **Interaksi:**
+  - Tombol "Trigger Sinkronisasi Ulang" untuk penanganan kegagalan jaringan antarsistem.
+  - Modal `SimrsClinicalPrivilegeSyncModal` untuk meninjau payload JSON sebelum sinkronisasi darurat manual.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/credentialing/recredentialing/simrs-sync/status`
+  - `POST /api/v1/corporate/hrd/credentialing/recredentialing/simrs-sync/{applicationId}/dispatch`
+  - `GET /api/v1/corporate/hrd/credentialing/recredentialing/simrs-sync/audit-logs`
+
+---
+
+### 24.3 Komponen Modal, Drawer & Redux State Slice
+
+#### 24.3.1 Komponen Modal & Drawer Pendukung
+
+1. `OppeIndicatorConfigModal`: Modal pengaturan ambang target dan pembobotan indikator spesifik kelompok KSM (Bedah, Non-Bedah, Penunjang Medis).
+2. `PeerReviewConfidentialityWarningModal`: Modal dialog peringatan kerahasiaan hukum (*Peer Review Privilege*) yang wajib dikonfirmasi sebelum mengakses telaah sejawat.
+3. `FppeCaseLogEntryModal`: Modal dialog pencatatan kasus observasi klinis terproctoring lengkap dengan evaluasi kemandirian dokter pendamping.
+4. `RecredentialingTierOverrideModal`: Modal persetujuan penyesuaian tier hasil perhitungan komposit 3 tahun beserta bukti justifikasi klinis Komite Medik.
+5. `SimrsClinicalPrivilegeSyncModal`: Modal konfirmasi teknis payload sinkronisasi level 1-4 kewenangan klinis ke database SIMRS EMR.
+
+#### 24.3.2 Redux State Slice (`clinicalPerformanceSlice.ts`)
+
+```typescript
+interface ClinicalPerformanceState {
+  myOppeSummary: OppeStaffEvaluationSummaryDto | null;
+  activeOppePeriods: OppeEvaluationPeriodDto[];
+  metricCatalogs: OppeMetricCatalogDto[];
+  assignedPeerReviews: OppePeerReviewAssignmentDto[];
+  activeFppeTriggers: FppeTriggerFeedDto[];
+  activeFppeEngagements: PagedResult<FppeEngagementSummaryDto>;
+  currentCaseLogs: FppeCaseLogDto[];
+  recredCompositeScorecard: RecredentialingCompositeScorecardDto | null;
+  simrsSyncStatuses: PagedResult<SimrsPrivilegeSyncStatusDto>;
+  isLoading: boolean;
+  error: string | null;
+}
+```
+
+---
+
+## 25. Arsitektur Frontend Sub-Modul 16: Learning, Training & Competency (`S-C2`)
+
+### 25.1 Struktur Menu & Navigasi
+
+Sub-modul Learning, Training & Competency terintegrasi ke dalam portal mandiri pegawai (ESS) dan portal administrasi Diklat / Manajemen Rumah Sakit:
+
+```text
+Portal SDM & Tenaga Medis
+└── Pendidikan, Pelatihan & Kompetensi (Learning & Development)
+    ├── [FE-HRD-216] Dashboard Pelatihan Pegawai, Sertifikasi & Radar Kedaluwarsa (/portal/learning/dashboard)
+    ├── [FE-HRD-217] Manajemen Kalender & Sesi Pelatihan Diklat RS (/admin/learning/training-sessions)
+    ├── [FE-HRD-218] Antarmuka Presensi Sesi & Monitoring Kehadiran Kelas (/admin/learning/sessions/{id}/attendance)
+    ├── [FE-HRD-219] Meja Asesmen Teori & Ujian Praktik Simulasi Klinis OSCE (/admin/learning/sessions/{id}/assessments)
+    ├── [FE-HRD-220] Portal Pengajuan Diklat Eksternal & Pelacakan Proposal Belajar (/portal/learning/enrollment-requests)
+    ├── [FE-HRD-221] Verifikasi Anggaran Diklat & Kontrak Ikatan Dinas (/admin/learning/budget-and-bonds)
+    ├── [FE-HRD-222] Tracker Portofolio Satuan Kredit Profesi (SKP) Plataran Sehat (/portal/learning/skp-portfolio)
+    └── [FE-HRD-223] Konsol Pengamanan Shift Dinas & Kepatuhan Pelatihan Wajib (/admin/learning/overdue-compliance)
+```
+
+---
+
+### 25.2 Spesifikasi Layar Antarmuka Pengguna
+
+#### 25.2.1 [FE-HRD-216] Dashboard Pelatihan Pegawai, Sertifikasi & Radar Kedaluwarsa
+- **Rute:** `/portal/learning/dashboard`
+- **Tujuan:** Menyajikan rekam jejak sertifikasi, status pemenuhan 5 pelatihan wajib akreditasi KARS, serta radar peringatan kedaluwarsa bagi individu pegawai dan Kepala Ruangan.
+- **Elemen Tampilan:**
+  - Kartu Ringkasan Kepatuhan Pelatihan Wajib Akreditasi RS:
+    1. Bantuan Hidup Dasar (BHD / BLS) — Status: Aktif / Expiring Soon / Overdue.
+    2. Pencegahan dan Pengendalian Infeksi (PPI).
+    3. Keselamatan Pasien Rumah Sakit (SKP).
+    4. Keselamatan dan Kesehatan Kerja Rumah Sakit & Kebakaran (K3RS / Code Red).
+    5. Komunikasi Efektif (SBAR).
+  - Radar Pemantau Kedaluwarsa Sertifikat (Timeline H-90, H-60, H-30, H-0).
+  - Tabel Riwayat Sertifikat Kompetensi Aktif beserta tombol unduh PDF resmi ber-QR Code publik.
+  - Banner peringatan prioritas tinggi jika terdapat sertifikat kritis yang mendekati jatuh tempo.
+- **Interaksi:**
+  - Tombol "Daftar Sesi Refresher Diklat" yang memicu modal `RefresherSessionReservationModal`.
+  - Filter pencarian sertifikat berdasarkan rumpun kompetensi dan rentang tanggal terbit.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/mandatory-trainings/my-status`
+  - `GET /api/v1/corporate/hrd/learning/certificates/my-records`
+
+#### 25.2.2 [FE-HRD-217] Manajemen Kalender & Sesi Pelatihan Diklat RS
+- **Rute:** `/admin/learning/training-sessions`
+- **Tujuan:** Antarmuka pengelola Bagian Diklat RS untuk merencanakan kalender pelatihan tahunan dan mengelola jadwal sesi kelas/praktikum.
+- **Elemen Tampilan:**
+  - Tampilan Kalender Interaktif (Jadwal Kelas Internal, Simulasi OSCE, dan Webinar).
+  - Tabel Daftar Sesi Pelatihan (Kode Sesi, Nama Program Diklat, Tanggal Mulai/Selesai, Lokasi Ruangan, Nama Instruktur Utama, Kuota Peserta, Status: *Draft*, *OpenForEnrollment*, *Ongoing*, *Completed*, *Cancelled*).
+  - Panel Ringkasan Pagu Anggaran Pelatihan Tahunan vs Realisasi Biaya.
+- **Interaksi:**
+  - Tombol aksi: "Buka Sesi Baru", "Tutup Pendaftaran", "Cetak Lembar Presensi", "Generate Sesi Refresher".
+  - Filter pencarian berdasarkan kategori materi diklat (Wajib KARS, Klinis Spesifik, Umum).
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/training-plans`
+  - `GET /api/v1/corporate/hrd/learning/training-sessions`
+  - `POST /api/v1/corporate/hrd/learning/training-sessions`
+
+#### 25.2.3 [FE-HRD-218] Antarmuka Presensi Sesi & Monitoring Kehadiran Kelas
+- **Rute:** `/admin/learning/sessions/{id}/attendance`
+- **Tujuan:** Fasilitas check-in presensi peserta pelatihan di lokasi kelas atau laboratorium praktikum klinis.
+- **Elemen Tampilan:**
+  - Pemancar Kode QR Presensi Sesi Dinamis (berubah setiap 30 detik untuk mencegah kecurangan titip presensi).
+  - Tabel Daftar Kehadiran Peserta Real-Time (Nama Nakes, NIP, Unit Kerja, Waktu Check-In, Metode: Tap RFID / QR Scanner / Manual Instruktur, Status Verifikasi Kehadiran).
+  - Kartu Indikator Persentase Kehadiran Peserta (Ambang Batas Kelulusan: >= 80% umum atau 100% klinis khusus).
+- **Interaksi:**
+  - Tombol "Tandai Hadir Manual" oleh instruktur dengan input alasan khusus.
+  - Ekspor log presensi ke format PDF/Excel resmi bertanda tangan digital instruktur.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/training-sessions/{id}/attendances`
+  - `POST /api/v1/corporate/hrd/learning/training-sessions/{id}/attendances/check-in`
+  - `PUT /api/v1/corporate/hrd/learning/training-sessions/{id}/attendances/{participantId}/verify`
+
+#### 25.2.4 [FE-HRD-219] Meja Asesmen Teori & Ujian Praktik Simulasi Klinis OSCE
+- **Rute:** `/admin/learning/sessions/{id}/assessments`
+- **Tujuan:** Lembar kerja evaluasi komprehensif bagi Trainer/Assessor klinis untuk menginput nilai pre-test, post-test, dan hasil ujian keterampilan klinis langsung (*OSCE*).
+- **Elemen Tampilan:**
+  - Tabel Evaluasi Kelulusan Ganda Peserta:
+    - Kolom Jam Presensi Kehadiran (%).
+    - Kolom Nilai Pre-Test & Post-Test Teori (Ambang Batas: >= 80.0 klinis / >= 75.0 umum).
+    - Kolom Status Ujian Praktik Simulasi Klinis OSCE (*Lulus / Remedial / Tidak Lolos*).
+    - Kolom Nama Assessor Klinis Penguji.
+  - Status Kelulusan Akhir (*Passed / Failed / RemedialScheduled*).
+- **Interaksi:**
+  - Tombol "Input Rubrik Ujian OSCE" yang memicu modal `OscePracticalScoringModal`.
+  - Tombol "Sahkan Kelulusan & Terbitkan Sertifikat Digital", yang memvalidasi pemenuhan syarat ganda sebelum sertifikat ber-QR terbit.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/training-sessions/{id}/assessments`
+  - `POST /api/v1/corporate/hrd/learning/training-sessions/{id}/assessments/submit`
+  - `POST /api/v1/corporate/hrd/learning/training-sessions/{id}/finalize-results`
+
+#### 25.2.5 [FE-HRD-220] Portal Pengajuan Diklat Eksternal & Pelacakan Proposal Belajar
+- **Rute:** `/portal/learning/enrollment-requests`
+- **Tujuan:** Fasilitas bagi pegawai untuk mengajukan keikutsertaan pelatihan/seminar/fellowship eksternal berbayar secara mandiri via ESS.
+- **Elemen Tampilan:**
+  - Tabel Riwayat Pengajuan Pelatihan Eksternal Pegawai (Judul Pelatihan, Penyelenggara Eksternal, Tanggal Pelaksanaan, Estimasi Biaya, Status Persetujuan: *Submitted*, *DepartmentApproved*, *BudgetVerified*, *DirectorApproved*, *Rejected*).
+  - Visual Stepper Alur Persetujuan Berjenjang.
+  - Kartu Peringatan Kewajiban Ikatan Dinas (jika estimasi biaya > Rp 10 Juta atau durasi > 1 bulan).
+- **Interaksi:**
+  - Tombol "Ajukan Permohonan Pelatihan Eksternal" yang memicu modal `ExternalTrainingProposalModal`.
+  - Tombol unggah laporan hasil pelatihan dan bukti sertifikat kelulusan pasca-kegiatan.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/enrollment-requests/my-requests`
+  - `POST /api/v1/corporate/hrd/learning/enrollment-requests`
+  - `POST /api/v1/corporate/hrd/learning/enrollment-requests/{id}/upload-completion-report`
+
+#### 25.2.6 [FE-HRD-221] Verifikasi Anggaran Diklat & Kontrak Ikatan Dinas
+- **Rute:** `/admin/learning/budget-and-bonds`
+- **Tujuan:** Meja kerja Manajer Diklat dan HR Legal untuk mengendalikan pagu anggaran diklat dan menerbitkan perjanjian ikatan dinas retensi kerja.
+- **Elemen Tampilan:**
+  - Dashboard Alokasi & Realisasi Pagu Anggaran Diklat per Unit Kerja (`TrxTrainingBudget`).
+  - Antrean Berkas Pengajuan Pelatihan Berbiaya Tinggi (> Rp 10 Juta / > 1 Bulan).
+  - Tabel Daftar Nakes yang Sedang Menjalani Masa Ikatan Dinas (Nama Nakes, Judul Diklat yang Dibiayai, Total Investasi RS, Masa Retensi, Tanggal Selesai Ikatan Dinas, Status: *Active*, *Fulfilled*, *Breached*).
+- **Interaksi:**
+  - Tombol "Terbitkan Draf Perjanjian Ikatan Dinas" yang memicu modal `TrainingBondSignatureModal`.
+  - Penolakan permohonan jika anggaran unit telah habis atau tidak relevan dengan kebutuhan rumah sakit.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/budgets/status`
+  - `GET /api/v1/corporate/hrd/learning/training-bonds/active`
+  - `POST /api/v1/corporate/hrd/learning/training-bonds/issue`
+
+#### 25.2.7 [FE-HRD-222] Tracker Portofolio Satuan Kredit Profesi (SKP) Plataran Sehat
+- **Rute:** `/portal/learning/skp-portfolio`
+- **Tujuan:** Dashboard pelacakan kecukupan perolehan Satuan Kredit Profesi (SKP) resmi Kemenkes bagi tenaga medis menuju perpanjangan SIP 5 tahun.
+- **Elemen Tampilan:**
+  - Circular Progress Bar Pemenuhan Target SKP 5 Tahun (misal: Tercapai 38 dari Target 50 SKP — 76%).
+  - Breakdown 3 Kategori Resmi SKP Kemenkes:
+    1. SKP Ranah Pembelajaran (Pelatihan, Workshop, Simposium, E-Learning).
+    2. SKP Ranah Pelayanan (Pelayanan Medis/Keperawatan Harian, Visite).
+    3. SKP Ranah Pengabdian Masyarakat & Profesi (Bakti Sosial, Pengurus Organisasi Profesi).
+  - Tabel Rekam Jejak Kegiatan Ber-SKP (Nama Kegiatan, Penyelenggara, No SK Kemenkes, Tanggal, Poin SKP, Tautan Verifikasi Plataran Sehat).
+- **Interaksi:**
+  - Tombol "Klaim Perolehan SKP Baru" yang memicu modal `PlataranSehatVerificationModal`.
+  - Tombol ekspor portofolio SKP resmi untuk lampiran permohonan perpanjangan SIP ke Subkomite Kredensial Sub-14.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/skp-tracker/my-summary`
+  - `POST /api/v1/corporate/hrd/learning/skp-tracker/claim`
+  - `GET /api/v1/corporate/hrd/learning/skp-tracker/export-portfolio`
+
+#### 25.2.8 [FE-HRD-223] Konsol Pengamanan Shift Dinas & Kepatuhan Pelatihan Wajib
+- **Rute:** `/admin/learning/overdue-compliance`
+- **Tujuan:** Pengawasan kepatuhan pelatihan wajib akreditasi rumah sakit dan pengendalian operasional shift nakes dengan sertifikat kedaluwarsa.
+- **Elemen Tampilan:**
+  - Angka Persentase Kepatuhan Pelatihan Wajib RS (Target Akreditasi: 100%).
+  - Tabel Nakes Berstatus *Overdue Mandatory Training* (Nama Nakes, Ruangan/Unit, Jenis Pelatihan yang Expired, Hari Keterlambatan, Status Shift Dinas).
+  - Status Penugasan Pendampingan (*Buddy System*): Nama pendamping perawat/dokter senior yang ditunjuk untuk shift dinas nakes terkait di Sub-06.
+- **Interaksi:**
+  - Tombol "Kirim Notifikasi Peringatan Terakhir" ke WhatsApp dan ESS nakes.
+  - Tombol "Disposisi Penugasan Refresher Darurat" untuk mengalokasikan kursi prioritas pada kelas diklat terdekat.
+- **API Pendukung:**
+  - `GET /api/v1/corporate/hrd/learning/mandatory-trainings/overdue-list`
+  - `POST /api/v1/corporate/hrd/learning/mandatory-trainings/{staffId}/assign-refresher-cito`
+  - `POST /api/v1/corporate/hrd/learning/mandatory-trainings/{staffId}/escalate-credentialing`
+
+---
+
+### 25.3 Komponen Modal, Drawer & Redux State Slice
+
+#### 25.3.1 Komponen Modal & Drawer Pendukung
+
+1. `OscePracticalScoringModal`: Modal dialog penginputan rubrik penilaian simulasi keterampilan klinis OSCE per station uji (cth: RJP, Intubasi, APD) lengkap dengan tanda tangan digital Assessor.
+2. `TrainingBondSignatureModal`: Modal penandatanganan elektronik (e-Sign) perjanjian ikatan dinas retensi kerja nakes dengan pratinjau klausul penalti ganti rugi.
+3. `PlataranSehatVerificationModal`: Modal verifikasi nomor akreditasi Kemenkes dan ID sertifikat digital Plataran Sehat Kemenkes.
+4. `ExternalTrainingProposalModal`: Modal pengajuan proposal pelatihan eksternal lengkap dengan rincian biaya pendaftaran, perjalanan, dan justifikasi klinis.
+5. `RefresherSessionReservationModal`: Modal cepat bagi nakes untuk memilih slot jadwal pelatihan penyegaran saat menerima radar H-90 kedaluwarsa.
+
+#### 25.3.2 Redux State Slice (`learningDevelopmentSlice.ts`)
+
+```typescript
+interface LearningDevelopmentState {
+  myMandatoryStatus: MandatoryTrainingSummaryDto | null;
+  myCertificates: PagedResult<TrainingCertificateSummaryDto>;
+  activeTrainingPlans: TrainingPlanDto[];
+  trainingSessions: PagedResult<TrainingSessionListItemDto>;
+  currentSessionAttendance: SessionAttendanceDetailDto | null;
+  currentSessionAssessments: SessionAssessmentDetailDto[];
+  myEnrollmentRequests: EnrollmentRequestDto[];
+  trainingBudgets: TrainingBudgetSummaryDto[];
+  activeTrainingBonds: PagedResult<TrainingBondListItemDto>;
+  mySkpSummary: SkpPortfolioSummaryDto | null;
+  overdueStaffList: PagedResult<OverdueStaffComplianceDto>;
+  isLoading: boolean;
+  error: string | null;
+}
+```

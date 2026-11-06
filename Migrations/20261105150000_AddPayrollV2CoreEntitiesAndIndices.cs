@@ -1,11 +1,14 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using QuilvianSystemBackend.Repositories;
 
 #nullable disable
 
 namespace QuilvianSystemBackend.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261105150000_AddPayrollV2CoreEntitiesAndIndices")]
     public partial class AddPayrollV2CoreEntitiesAndIndices : Migration
     {
         /// <inheritdoc />

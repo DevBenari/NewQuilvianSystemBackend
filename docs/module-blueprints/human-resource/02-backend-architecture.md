@@ -6826,3 +6826,758 @@ CREATE INDEX IF NOT EXISTS idx_override_logs_kmkp_audit ON trx_clinical_privileg
 | `HRD-DEC-149` / Resolusi `HRD-DEC-005` (Hard-Stop Gate SIMRS) | `ClinicalPrivilegeGateService`, `INT-HR-69`, `TrxClinicalPrivilegeEmergencyOverrideLog` | `AT-HRD-CRD-12`, `AT-HRD-CRD-13`, `AT-HRD-CRD-14` |
 | `HRD-DEC-150` (Temporary & Emergency Privilege) | Kolom `privilege_nature` pada `TrxSpkRkkIssuance` & `WfpClinicalPrivilege` | `AT-HRD-CRD-16`, `AT-HRD-CRD-17` |
 | `HRD-DEC-151` (Siklus 3 Tahun & Auto-Suspend) | `RecredentialingReminderJob`, `TrxRecredentialingApplication`, flag `is_suspended` | `AT-HRD-CRD-19`, `AT-HRD-CRD-20` |
+
+
+---
+
+## 28. Arsitektur Backend Sub-Modul 15: OPPE, FPPE & Recredentialing (Slice `S-C1-OPPE`, Kontrak `v19`)
+
+Bagian ini mendefinisikan arsitektur backend terperinci untuk **Sub-Modul 15 (Slice `S-C1-OPPE`)** yang mengatur evaluasi praktik profesional berkelanjutan (*Ongoing Professional Practice Evaluation* - OPPE), evaluasi terfokus intensif (*Focused Professional Practice Evaluation* - FPPE), kerahasiaan rekam jejak telaah sejawat (*Peer Review Privilege*), agregasi komposit 3 tahun, serta penyelarasan 4 putusan sidang rekredensialing ke registri wewenang klinis aktif dan SIMRS EMR (`INT-HR-69`), sesuai keputusan [`HRD-DEC-152`](00-interview-decisions.md#L7290-L7310) s.d. [`HRD-DEC-157`](00-interview-decisions.md#L7395-L7415).
+
+---
+
+### 28.1 Tabel Kepemilikan Data (Data Ownership Matrix)
+
+| Kelompok Data | Entitas / Tabel | Modul Pemilik | Status di Modul Ini | Alasan & Batas Kewenangan |
+| :--- | :--- | :--- | :---: | :--- |
+| **Katalog Metrik OPPE** | `mst_oppe_metric_catalogs` | HRD (Sub-Modul 15 `QualityPerformance`) | **Baru** | Definisi 6 pilar metrik klinis KARS, target capaian per spesialisasi, bobot nilai, dan sumber integrasi data. |
+| **Periode Evaluasi OPPE** | `trx_oppe_evaluation_periods` | HRD (Sub-Modul 15 `QualityPerformance`) | **Baru** | Siklus tahunan dan semesteran evaluasi berkala praktik klinis staf medis rumah sakit. |
+| **Rapor Evaluasi OPPE Staf** | `trx_oppe_staff_evaluations`<br>`trx_oppe_staff_evaluation_details` | HRD (Sub-Modul 15 `QualityPerformance`) | **Baru** | Lembar skor tahunan nakes (bobot 60% data SIMRS/KMKP + 40% peer review kualitatif KSM), status acknowledged nakes. |
+| **Penugasan FPPE Terfokus** | `trx_fppe_engagements` | HRD (Sub-Modul 15 `QualityPerformance`) | **Baru** | Surat tugas evaluasi terfokus intensif berbasis pemicu kritis (*red flag*) atau adaptasi staf baru/prosedur baru. |
+| **Logbook Kasus Proctoring** | `trx_fppe_case_logs` | HRD (Sub-Modul 15 `QualityPerformance`) | **Baru** | Lembar observasi per kasus tindakan bedah/medis yang diawasi dokter proctor senior berpenunjukan. |
+| **Putusan Evaluasi FPPE** | `trx_fppe_evaluation_conclusions` | HRD (Sub-Modul 15 `QualityPerformance`) | **Baru** | Berita acara rekomendasi kelulusan mandiri Level 4, perpanjangan masa supervisi, atau pembatasan wewenang klinis. |
+| **Audit Akses Peer Review** | `hrd_clinical_peer_review_audit_logs` | HRD (Sub-Modul 15 `QualityPerformance`) | **Baru** | Log audit permanen mencatat setiap pembacaan data rahasia performa klinis dokter (*tamper-proof*). |
+| **Lisensi & SPK/RKK Aktif** | `wfp_credential_licenses`<br>`wfp_clinical_privileges`<br>`trx_spk_rkk_issuances` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Dipakai Ulang (Read/Update)** | Basis data wewenang yang dievaluasi berkala dan diperbarui status kemandiriannya pasca-sidang rekredensialing. |
+| **Berkas Rekredensialing** | `trx_recredentialing_applications` | HRD (Sub-Modul 14 `CredentialingManagement`) | **Diperbarui** | Agregasi skor komposit 3 tahunan (25%-35%-40%) dan penentuan tier kelayakan Hijau/Kuning/Merah. |
+| **Insiden Keselamatan Pasien** | `trx_patient_safety_incidents` | SIMRS / Mutu (`KMKP`) | **Integrasi (`INT-HR-73`)** | Penarikan data insiden sentinel, KTD, KNC, dan komplikasi operasi sebagai pemicu otomatis FPPE. |
+| **Status Kesehatan Fisik/Jiwa** | `trx_occupational_mcu_records` | HRD (Sub-Modul 18 `OccupationalHealth`) | **Integrasi (`INT-HR-76`)** | Bukti kelayakan medis jasmani dan rohani (*Medical Fitness*) sebagai prasyarat wajib pengesahan SPK rekredensialing. |
+
+---
+
+### 28.2 Class Diagram Arsitektur Bounded Context `ClinicalPerformanceQuality`
+
+```mermaid
+classDiagram
+    direction TB
+
+    class MstOppeMetricCatalog {
+        +Guid Id
+        +string MetricCode
+        +string MetricName
+        +string CompetencyDomain
+        +string SpecialtyGroup
+        +string DataSourceType
+        +decimal TargetStandardValue
+        +decimal MetricWeightPercentage
+        +bool IsActive
+    }
+
+    class TrxOppeEvaluationPeriod {
+        +Guid Id
+        +string PeriodCode
+        +string PeriodName
+        +int EvaluationYear
+        +int Semester
+        +DateTime StartDate
+        +DateTime EndDate
+        +string Status
+    }
+
+    class TrxOppeStaffEvaluation {
+        +Guid Id
+        +Guid PeriodId
+        +Guid WorkforceProfileId
+        +Guid CommitteeId
+        +decimal QuantitativeScore
+        +decimal QualitativeScore
+        +decimal FinalCompositeScore
+        +string PerformanceGrade
+        +Guid EvaluatorKsmHeadId
+        +string EvaluatorRecommendationNotes
+        +bool IsAcknowledgedByStaff
+        +DateTime? AcknowledgedAt
+        +string Status
+    }
+
+    class TrxOppeStaffEvaluationDetail {
+        +Guid Id
+        +Guid StaffEvaluationId
+        +Guid MetricCatalogId
+        +decimal TargetValue
+        +decimal ActualValue
+        +decimal ComputedScore
+        +string EvaluatorNotes
+    }
+
+    class TrxFppeEngagement {
+        +Guid Id
+        +string EngagementNumber
+        +Guid WorkforceProfileId
+        +Guid? PrivilegeCatalogId
+        +string TriggerSource
+        +string InitialReasonJustification
+        +Guid AssignedProctorWorkforceId
+        +DateTime StartDate
+        +DateTime TargetEndDate
+        +int TargetCaseCount
+        +int CompletedCaseCount
+        +string Status
+    }
+
+    class TrxFppeCaseLog {
+        +Guid Id
+        +Guid FppeEngagementId
+        +string SimrsPatientEpisodeId
+        +string ProcedurePerformed
+        +DateTime ProcedureDate
+        +int TechnicalSkillScore
+        +int CriticalDecisionScore
+        +bool HasComplication
+        +string ComplicationDescription
+        +string ProctorFeedbackNotes
+    }
+
+    class TrxFppeEvaluationConclusion {
+        +Guid Id
+        +Guid FppeEngagementId
+        +string RecommendedAction
+        +string PlenaryReviewSummary
+        +Guid ApprovedByCommitteeChairmanId
+        +DateTime FinalizedAt
+        +string SignatureHash
+    }
+
+    class HrdClinicalPeerReviewAuditLog {
+        +Guid Id
+        +Guid AccessedWorkforceProfileId
+        +string RecordType
+        +Guid RecordId
+        +Guid AccessedByUserId
+        +string AccessReason
+        +DateTime AccessedAt
+        +string IpAddress
+    }
+
+    TrxOppeEvaluationPeriod "1" --> "*" TrxOppeStaffEvaluation : conducts
+    TrxOppeStaffEvaluation "1" --> "*" TrxOppeStaffEvaluationDetail : contains
+    MstOppeMetricCatalog "1" --> "*" TrxOppeStaffEvaluationDetail : references
+    TrxFppeEngagement "1" --> "*" TrxFppeCaseLog : tracks
+    TrxFppeEngagement "1" --> "0..1" TrxFppeEvaluationConclusion : concludes
+    TrxOppeStaffEvaluation ..> HrdClinicalPeerReviewAuditLog : audit_logged
+    TrxFppeEngagement ..> HrdClinicalPeerReviewAuditLog : audit_logged
+```
+
+---
+
+### 28.3 Penjelasan Komponen Arsitektur Backend C#
+
+#### 28.3.1 Model Entitas EF Core
+
+| Nama Class Model | Status | Lokasi File | Fungsi Utama & Batas Kewenangan |
+| :--- | :---: | :--- | :--- |
+| `MstOppeMetricCatalog` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Master pustaka indikator mutu OPPE 6 pilar KARS, sumber penarikan data, dan target capaian. |
+| `TrxOppeEvaluationPeriod` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Siklus pembukaan dan penutupan evaluasi berkala semesteran/tahunan nakes. |
+| `TrxOppeStaffEvaluation` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Lembar agregasi nilai OPPE tahunan dokter (60% kuantitatif + 40% kualitatif) dan pengakuan staf. |
+| `TrxOppeStaffEvaluationDetail` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Rincian nilai per metrik capaian klinis riil vs standar rumah sakit. |
+| `TrxFppeEngagement` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Surat tugas penugasan evaluasi terfokus intensif berbasis insiden atau adaptasi/proctoring baru. |
+| `TrxFppeCaseLog` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Rekam observasi kasus bedah/klinis yang diawasi dokter proctor senior berpenunjukan. |
+| `TrxFppeEvaluationConclusion` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Berita acara rekomendasi putusan sidang FPPE untuk promosi wewenang, supervisi, atau pencabutan. |
+| `HrdClinicalPeerReviewAuditLog` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Models/` | Log audit keamanan mencatat identitas, IP address, dan alasan pembacaan rekam performa klinis. |
+
+#### 28.3.2 Komponen Service & Business Logic
+
+| Nama Service / Interface | Status | Lokasi File | Peran & Tanggung Jawab |
+| :--- | :---: | :--- | :--- |
+| `IOppeDataAggregationService`<br>`OppeDataAggregationService` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Services/` | Layanan penarikan data otomatis volume, kelengkapan EMR, CP, dan komplikasi dari SIMRS & KMKP (`INT-HR-73`). |
+| `IFppeTriggerDetectionService`<br>`FppeTriggerDetectionService` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Services/` | Mesin pemantau insiden kritis (sentinel, komplikasi > 2SD, EMR > 48 jam > 20%) dan notifikasi rahasia Komite Medik. |
+| `IProctoringWorkflowService`<br>`ProctoringWorkflowService` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Services/` | Pengelolaan log kasus proctoring dokter baru (10 kasus) dan prosedur baru (5 kasus) hingga rekomendasi kelulusan. |
+| `IRecredentialingCompositeCalculatorService`<br>`RecredentialingCompositeCalculatorService` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Services/` | Perhitungan skor komposit 3 tahunan terbobot (25%-35%-40%), evaluasi MCU K3RS, dan klasifikasi tier Hijau/Kuning/Merah. |
+| `IClinicalPeerReviewAuditService`<br>`ClinicalPeerReviewAuditService` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Services/` | Pencatatan audit trail pembacaan data rahasia telaah sejawat (*Read-Audit Logging*). |
+
+#### 28.3.3 Controller & API Endpoints
+
+| Nama Controller | Status | Lokasi File | Tanggung Jawab Routing |
+| :--- | :---: | :--- | :--- |
+| `OppeOngoingEvaluationController` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Controllers/` | Kelola master metrik, periode evaluasi, agregasi nilai kuantitatif SIMRS, dan scoring kualitatif KSM. |
+| `FppeFocusedEvaluationController` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Controllers/` | Pemicu FPPE, penugasan proctor, input logbook kasus klinis, dan finalisasi putusan evaluasi terfokus. |
+| `RecredentialingQualityController` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Controllers/` | Kalkulasi rapor komposit 3 tahun, integrasi status MCU K3RS, dan penyelarasan wewenang pasca-sidang ke SIMRS. |
+| `ClinicalPeerReviewAuditController` | **Baru** | `Areas/Corporate/HumanResource/PerformanceManagement/Controllers/` | Meja periksa jejak audit akses rekam telaah sejawat rahasia untuk Komite Medik dan Direktur Pelayanan. |
+
+---
+
+### 28.4 Struktur Direktori Backend Target
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/
+│   └── Corporate/
+│       └── HumanResource/
+│           └── PerformanceManagement/
+│               ├── Controllers/
+│               │   ├── OppeOngoingEvaluationController.cs         # [Baru] API Rapor OPPE & Agregasi SIMRS
+│               │   ├── FppeFocusedEvaluationController.cs         # [Baru] API Penugasan FPPE & Proctoring Log
+│               │   ├── RecredentialingQualityController.cs        # [Baru] API Rapor 3 Tahun & Sinkron SIMRS
+│               │   └── ClinicalPeerReviewAuditController.cs       # [Baru] API Audit Akses Data Rahasia
+│               ├── DTOs/
+│               │   ├── OppeEvaluationDtos.cs                      # [Baru] DTO Rapor OPPE & Metrik KARS
+│               │   ├── FppeWorkflowDtos.cs                        # [Baru] DTO Penugasan & Log Kasus Proctor
+│               │   ├── RecredentialingQualityDtos.cs              # [Baru] DTO Skor Komposit & Tier Kelayakan
+│               │   └── ClinicalPeerReviewAuditDtos.cs             # [Baru] DTO Jejak Audit Akses
+│               ├── Models/
+│               │   ├── MstOppeMetricCatalog.cs                    # [Baru] Pustaka Metrik OPPE 6 Pilar
+│               │   ├── TrxOppeEvaluationPeriod.cs                 # [Baru] Periode Tahunan/Semesteran
+│               │   ├── TrxOppeStaffEvaluation.cs                  # [Baru] Rapor OPPE Tahunan Individu
+│               │   ├── TrxOppeStaffEvaluationDetail.cs            # [Baru] Rincian Skor per Metrik Klinis
+│               │   ├── TrxFppeEngagement.cs                       # [Baru] Surat Tugas FPPE Terfokus
+│               │   ├── TrxFppeCaseLog.cs                          # [Baru] Log Kasus Pendampingan Proctor
+│               │   ├── TrxFppeEvaluationConclusion.cs             # [Baru] Berita Acara Putusan FPPE
+│               │   └── HrdClinicalPeerReviewAuditLog.cs           # [Baru] Log Audit Akses Read-Security
+│               ├── Services/
+│               │   ├── IOppeDataAggregationService.cs             # [Baru] Interface Agregasi Data SIMRS/KMKP
+│               │   ├── OppeDataAggregationService.cs              # [Baru] Implementasi Agregasi Mutu Klinis
+│               │   ├── IFppeTriggerDetectionService.cs            # [Baru] Interface Radar Alarm Red Flag
+│               │   ├── FppeTriggerDetectionService.cs             # [Baru] Implementasi Deteksi Sentinel & Komplikasi
+│               │   ├── IProctoringWorkflowService.cs              # [Baru] Interface Proctoring Adaptasi/Prosedur Baru
+│               │   ├── ProctoringWorkflowService.cs               # [Baru] Implementasi Pengawalan Kuota Kasus
+│               │   ├── IRecredentialingCompositeCalculatorService.cs # [Baru] Interface Rapor Komposit 3 Tahun
+│               │   ├── RecredentialingCompositeCalculatorService.cs  # [Baru] Implementasi Bobot 25-35-40 & Tiering
+│               │   ├── IClinicalPeerReviewAuditService.cs         # [Baru] Interface Audit Keamanan Akses
+│               │   └── ClinicalPeerReviewAuditService.cs          # [Baru] Implementasi Read-Audit Logging
+│               └── Jobs/
+│                   ├── MonthlyOppeMetricAggregationJob.cs         # [Baru] Cron Job Bulanan Tarik Data SIMRS
+│                   └── FppeTriggerDetectionJob.cs                 # [Baru] Cron Job Mingguan Evaluasi Komplikasi > 2SD
+```
+
+---
+
+### 28.5 Status Model & Skema Database PostgreSQL DDL
+
+```sql
+-- Skema Tabel Sub-Modul 15: OPPE, FPPE & Recredentialing (Slice S-C1-OPPE)
+
+-- 1. Master Pustaka Indikator Mutu OPPE (6 Pilar ACGME / KARS)
+CREATE TABLE IF NOT EXISTS mst_oppe_metric_catalogs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    metric_code VARCHAR(30) NOT NULL UNIQUE,
+    metric_name VARCHAR(150) NOT NULL,
+    competency_domain VARCHAR(50) NOT NULL, -- 'PATIENT_CARE', 'MEDICAL_KNOWLEDGE', 'PRACTICE_IMPROVEMENT', 'INTERPERSONAL_SKILLS', 'PROFESSIONALISM', 'SYSTEMS_PRACTICE'
+    specialty_group VARCHAR(50) NOT NULL, -- 'BEDAH', 'NON_BEDAH', 'ANESTESI', 'KEPERAWATAN', 'ALL'
+    data_source_type VARCHAR(30) NOT NULL, -- 'SIMRS_VOLUME', 'SIMRS_EMR_COMPLETION', 'KMKP_INCIDENT', 'PEER_REVIEW_SMF'
+    target_standard_value DECIMAL(8,2) NOT NULL DEFAULT 85.00,
+    metric_weight_percentage DECIMAL(5,2) NOT NULL DEFAULT 10.00,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100)
+);
+
+-- 2. Tabel Periode Evaluasi OPPE Berkala (Semesteran / Tahunan)
+CREATE TABLE IF NOT EXISTS trx_oppe_evaluation_periods (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    period_code VARCHAR(50) NOT NULL UNIQUE,
+    period_name VARCHAR(150) NOT NULL,
+    evaluation_year INT NOT NULL,
+    semester INT NOT NULL DEFAULT 1, -- 1: Semester 1, 2: Semester 2, 0: Full Year
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'OPEN', -- 'DRAFT', 'OPEN', 'EVALUATING', 'FINALIZED', 'CLOSED'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_oppe_periods_year ON trx_oppe_evaluation_periods(evaluation_year, semester);
+
+-- 3. Tabel Lembar Rapor Evaluasi OPPE Tahunan Staf Medis
+CREATE TABLE IF NOT EXISTS trx_oppe_staff_evaluations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    period_id UUID NOT NULL REFERENCES trx_oppe_evaluation_periods(id),
+    workforce_profile_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    committee_id UUID NOT NULL REFERENCES mst_credentialing_committees(id),
+    quantitative_score DECIMAL(5,2) NOT NULL DEFAULT 0.00, -- Maksimal 60.00
+    qualitative_score DECIMAL(5,2) NOT NULL DEFAULT 0.00, -- Maksimal 40.00
+    final_composite_score DECIMAL(5,2) NOT NULL DEFAULT 0.00, -- 0 - 100.00
+    performance_grade VARCHAR(20) NOT NULL DEFAULT 'C', -- 'A' (>=85), 'B' (75-84), 'C' (65-74), 'D' (<65)
+    evaluator_ksm_head_id UUID REFERENCES mst_workforce_profiles(id),
+    evaluator_recommendation_notes TEXT,
+    is_acknowledged_by_staff BOOLEAN NOT NULL DEFAULT FALSE,
+    acknowledged_at TIMESTAMPTZ,
+    status VARCHAR(30) NOT NULL DEFAULT 'DRAFT', -- 'DRAFT', 'EVALUATED_KSM', 'FINALIZED', 'DISPUTED'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100)
+);
+
+CREATE INDEX IF NOT EXISTS idx_oppe_evaluations_staff ON trx_oppe_staff_evaluations(workforce_profile_id, period_id);
+CREATE INDEX IF NOT EXISTS idx_oppe_evaluations_score ON trx_oppe_staff_evaluations(final_composite_score);
+
+-- 4. Tabel Rincian Skor per Metrik Klinis
+CREATE TABLE IF NOT EXISTS trx_oppe_staff_evaluation_details (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    staff_evaluation_id UUID NOT NULL REFERENCES trx_oppe_staff_evaluations(id) ON DELETE CASCADE,
+    metric_catalog_id UUID NOT NULL REFERENCES mst_oppe_metric_catalogs(id),
+    target_value DECIMAL(8,2) NOT NULL,
+    actual_value DECIMAL(8,2) NOT NULL,
+    computed_score DECIMAL(5,2) NOT NULL,
+    evaluator_notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_oppe_details_eval ON trx_oppe_staff_evaluation_details(staff_evaluation_id);
+
+-- 5. Tabel Penugasan FPPE Evaluasi Terfokus Intensif
+CREATE TABLE IF NOT EXISTS trx_fppe_engagements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    engagement_number VARCHAR(100) NOT NULL UNIQUE,
+    workforce_profile_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    privilege_catalog_id UUID, -- NULL jika evaluasi umum / sentinel
+    trigger_source VARCHAR(50) NOT NULL, -- 'NEW_STAFF', 'NEW_PRIVILEGE_PROCTORING', 'SENTINEL_EVENT', 'ABNORMAL_COMPLICATION', 'EMR_DELINQUENCY', 'ETHICAL_DISCIPLINARY'
+    initial_reason_justification TEXT NOT NULL,
+    assigned_proctor_workforce_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    start_date DATE NOT NULL,
+    target_end_date DATE NOT NULL,
+    target_case_count INT NOT NULL DEFAULT 10,
+    completed_case_count INT NOT NULL DEFAULT 0,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE', -- 'ACTIVE', 'IN_REVIEW', 'COMPLETED_SUCCESS', 'FAILED_RESTRICTED', 'CANCELLED'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ,
+    updated_by VARCHAR(100)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fppe_workforce ON trx_fppe_engagements(workforce_profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_fppe_trigger ON trx_fppe_engagements(trigger_source);
+
+-- 6. Tabel Log Kasus Klinis / Bedah Pendampingan Proctor (TrxFppeCaseLog)
+CREATE TABLE IF NOT EXISTS trx_fppe_case_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fppe_engagement_id UUID NOT NULL REFERENCES trx_fppe_engagements(id) ON DELETE CASCADE,
+    simrs_patient_episode_id VARCHAR(100) NOT NULL,
+    procedure_performed VARCHAR(200) NOT NULL,
+    procedure_date DATE NOT NULL,
+    technical_skill_score INT NOT NULL, -- 1 s.d. 5
+    critical_decision_score INT NOT NULL, -- 1 s.d. 5
+    has_complication BOOLEAN NOT NULL DEFAULT FALSE,
+    complication_description TEXT,
+    proctor_feedback_notes TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_fppe_caselog_engagement ON trx_fppe_case_logs(fppe_engagement_id);
+
+-- 7. Tabel Berita Acara Kesimpulan Akhir FPPE
+CREATE TABLE IF NOT EXISTS trx_fppe_evaluation_conclusions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fppe_engagement_id UUID NOT NULL REFERENCES trx_fppe_engagements(id) UNIQUE,
+    recommended_action VARCHAR(50) NOT NULL, -- 'GRANT_INDEPENDENT', 'EXTEND_SUPERVISION', 'RESTRICT_PRIVILEGE', 'REVOKE_PRIVILEGE'
+    plenary_review_summary TEXT NOT NULL,
+    approved_by_committee_chairman_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    finalized_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    signature_hash VARCHAR(256) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. Tabel Log Audit Keamanan Akses Rahasia Telaah Sejawat (Peer Review Read-Audit Log)
+CREATE TABLE IF NOT EXISTS hrd_clinical_peer_review_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    accessed_workforce_profile_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    record_type VARCHAR(50) NOT NULL, -- 'OPPE_REPORT', 'FPPE_CASE_LOG', 'COMPLICATION_INCIDENT'
+    record_id UUID NOT NULL,
+    accessed_by_user_id UUID NOT NULL REFERENCES mst_workforce_profiles(id),
+    access_reason VARCHAR(250) NOT NULL,
+    accessed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(50) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_peer_audit_staff ON hrd_clinical_peer_review_audit_logs(accessed_workforce_profile_id, accessed_at);
+```
+
+---
+
+### 28.6 Aturan Bisnis & Aturan Alur Kerja
+
+#### 28.6.1 Aturan Blokir Mutlak (Invariants & Hard Blocks)
+
+- **`OPP-B1` (Bobot Baku OPPE 60:40):** Perhitungan skor akhir OPPE wajib menggunakan formula persentase baku: 60% data kuantitatif SIMRS/KMKP + 40% evaluasi kualitatif KSM (`HRD-DEC-152`).
+- **`OPP-B2` (Otomasi Pemicu Sentinel):** Terjadinya 1 kali insiden sentinel keselamatan pasien wajib secara otomatis memicu pembukaan berkas FPPE dalam waktu 7 hari kerja (`HRD-DEC-153`).
+- **`OPP-B3` (Prasyarat Kuota Kasus FPPE):** Dokter baru wajib menyelesaikan minimal 10 kasus klinis, dan prosedur baru minimal 5 kasus mandiri terdampingi sebelum diajukan untuk promosi Level 4 Mandiri (`HRD-DEC-154`).
+- **`OPP-B4` (Kemandirian Proctor Bersertifikat):** Dokter proctor penilai FPPE wajib memiliki kewenangan klinis Mandiri (Level 4) untuk prosedur yang sama dan dilarang menilai berkas dirinya sendiri (*Anti-Self-Review* `VR-OPP-11`).
+- **`OPP-B5` (Bobot Progresif Rekredensial 3 Tahun):** Agregasi rapor 3 tahun rekredensialing wajib menerapkan bobot: Tahun ke-1 (25%), Tahun ke-2 (35%), dan Tahun ke-3 (40%) (`HRD-DEC-155`).
+- **`OPP-B6` (Isolasi Kerahasiaan Peer Review):** Akses data rapor OPPE dan kasus FPPE dilarang keras diberikan kepada staf umum HRD, staf keuangan, dan pihak non-otoritas klinis (`HRD-DEC-156`).
+- **`OPP-B7` (Mandatori Audit Read-Logging):** Setiap pemanggilan API pembacaan data performa klinis rahasia wajib mencatat log audit permanen di `HrdClinicalPeerReviewAuditLog` (`HRD-DEC-156`).
+- **`OPP-B8` (Penyelarasan Instan 4 Putusan ke SIMRS):** Putusan akhir sidang rekredensialing (Perpanjang, Upgrade, Restricted, Revoked) wajib secara otomatis menyinkronkan hak akses di SIMRS/EMR via `INT-HR-69` tanpa jeda administrasi manual (`HRD-DEC-157`).
+
+#### 28.6.2 Aturan Peringatan Dini (Warnings & Notifications)
+
+- **`OPP-W1` (Peringatan Kepatuhan Resume Medis EMR < 85%):** Sistem mengirimkan alert kuning ke dokter dan Kepala KSM saat angka kepatuhan resume medis EMR bulanan berada di bawah 85% (`HRD-ASM-48`).
+- **`OPP-W2` (Alert Lonjakan Komplikasi Mendekati 2 SD):** Sistem memberikan peringatan dini jika tren komplikasi bedah dokter meningkat selama 2 bulan berturut-turut.
+- **`OPP-W3` (Peringatan Batas Waktu FPPE 6 Bulan):** Sistem memicu notifikasi peringatan pada bulan ke-5 jika target kuota kasus proctoring belum terpenuhi (`HRD-ASM-49`).
+- **`OPP-W4` (Peringatan Kelayakan Medis MCU K3RS):** Sistem memberi peringatan pada H-60 jika dokter belum menjalani MCU berkala K3RS untuk pemenuhan *Medical Fitness* (`INT-HR-76`).
+- **`OPP-W5` (Peringatan Hak Sanggah OPPE 7 Hari):** Dokter pemohon menerima notifikasi batas waktu 7 hari kerja untuk mengajukan klarifikasi tertulis atas rapor OPPE tahunan yang diterbitkan.
+- **`OPP-W6` (Alert Akses Berulang Data Rahasia):** Sistem menerbitkan notifikasi audit jika akun non-pimpinan membuka lebih dari 5 berkas performa klinis dokter dalam rentang 1 jam.
+
+---
+
+### 28.7 Rencana Migrasi & Data Master Awal (Seed Data)
+
+1. **Urutan Eksekusi Migrasi:**  
+   - Jalankan DDL master pustaka metrik `mst_oppe_metric_catalogs`.
+   - Jalankan DDL periode evaluasi `trx_oppe_evaluation_periods`.
+   - Jalankan DDL rapor staf `trx_oppe_staff_evaluations` & `trx_oppe_staff_evaluation_details`.
+   - Jalankan DDL engagement FPPE `trx_fppe_engagements`, `trx_fppe_case_logs`, dan `trx_fppe_evaluation_conclusions`.
+   - Jalankan DDL log audit keamanan `hrd_clinical_peer_review_audit_logs`.
+   - Seluruh tabel bersifat baru (*zero table modification* pada model inti lainnya) sehingga dapat dimigrasikan secara online tanpa risiko downtime (*Zero-Downtime Migration*).
+
+2. **Data Master Awal (Seed Data):**  
+   - 6 Pilar Metrik Baku OPPE KARS:
+     - `OPPE-PC-01`: Volume Prosedur Klinis / Operasi per Semester (Target: Sesuai standar KSM masing-masing).
+     - `OPPE-MK-01`: Partisipasi Pendidikan Berkelanjutan / SKP IDI/PPNI Tahunan (Target: Min 25 SKP/tahun).
+     - `OPPE-PL-01`: Angka Komplikasi Pasca-Tindakan Bedah Invasif (Target: < 2.00%).
+     - `OPPE-IS-01`: Survei Kepuasan Komunikasi Pasien & Kepatuhan Informed Consent (Target: >= 85.00%).
+     - `OPPE-PR-01`: Kepatuhan Jam Pelayanan Poli / Ronde Visite Pasien Rawat Inap (Target: >= 90.00%).
+     - `OPPE-SB-01`: Kepatuhan Pengisian Resume Medis EMR 1x24 Jam & Resep Formularium RS (Target: >= 90.00%).
+
+---
+
+### 28.8 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-C1-OPPE`
+
+1. **Kalkulasi Machine Learning Prediktif Malpraktik:** Analisis prediktif berbasis AI tidak diaktifkan pada rilis awal demi menjaga kepatuhan etika just culture dan menghindari diskriminasi terhadap dokter bedah kasus risiko tinggi (*high-risk tertiary cases*).
+2. **Survei Pasien Berbayar Eksternal:** Integrasi feedback pasien ditarik dari modul internal Rawat Jalan/Inap SIMRS tanpa melibatkan vendor pihak ketiga berbayar.
+3. **Penerbitan Sertifikat SKP Otomatis ke Kemenkes:** Pelaporan SKP pelatihan tetap disahkan melalui sistem Plataran Sehat Kemenkes di luar cakupan aplikasi rumah sakit.
+
+---
+
+### 28.9 Traceability Keputusan ke Arsitektur Backend
+
+| Keputusan Disetujui | Komponen Arsitektur Backend Pemenuh | Verifikasi Uji |
+| :--- | :--- | :--- |
+| `HRD-DEC-152` (Bobot OPPE 60% SIMRS + 40% SMF) | `MstOppeMetricCatalog`, `TrxOppeStaffEvaluationDetail`, `OppeDataAggregationService` | `AT-HRD-OPP-01`, `AT-HRD-OPP-02` |
+| `HRD-DEC-153` (Ambang Pemicu Kritis FPPE) | `FppeTriggerDetectionJob`, `FppeTriggerDetectionService`, model `TrxFppeEngagement` | `AT-HRD-OPP-04`, `AT-HRD-OPP-05` |
+| `HRD-DEC-154` (Proctoring Dokter Baru 10 Kasus & Prosedur 5 Kasus) | `TrxFppeCaseLog`, `TrxFppeEvaluationConclusion`, `ProctoringWorkflowService` | `AT-HRD-OPP-07`, `AT-HRD-OPP-08` |
+| `HRD-DEC-155` (Rapor Komposit 3 Tahun Rekredensialing 25-35-40) | `RecredentialingCompositeCalculatorService`, kolom `composite_score` & tiering | `AT-HRD-OPP-11`, `AT-HRD-OPP-12` |
+| `HRD-DEC-156` (Kerahasiaan Peer Review & Read-Audit Logging) | `ClinicalPeerReviewAuditFilter`, `HrdClinicalPeerReviewAuditLog`, permission RBAC | `AT-HRD-OPP-14`, `AT-HRD-OPP-15` |
+| `HRD-DEC-157` (Otomasi 4 Putusan Rekredensialing ke SIMRS) | Event listener `OnRecredentialingFinalizedIntegrationEvent`, `INT-HR-69`, `INT-HR-75` | `AT-HRD-OPP-17`, `AT-HRD-OPP-18` |
+
+---
+
+## 29. Arsitektur Backend Sub-Modul 16: Learning, Training & Competency (`S-C2`)
+
+### 29.1 Tabel Kepemilikan Data (Data Ownership Matrix)
+
+| Nama Tabel / Entitas | Bounded Context | Modul Pemilik | Status | Keterangan & Batas Rekayasa |
+| :--- | :--- | :--- | :---: | :--- |
+| `mst_training_categories` | `MasterData` | `LearningAndDevelopment` | `Sudah ada` | Master klasifikasi pelatihan (Akreditasi Wajib, Klinis Spesifik, Manajerial, Orientasi). |
+| `mst_training_catalogs` | `MasterData` | `LearningAndDevelopment` | `Sudah ada` | Katalog materi pelatihan, standar jam pelajaran (JP), dan kurikulum dasar. |
+| `mst_competencies` | `MasterData` | `LearningAndDevelopment` | `Sudah ada` | Katalog kamus kompetensi klinis dan non-klinis profesi rumah sakit. |
+| `mst_mandatory_training_rules` | `MasterData` | `LearningAndDevelopment` | `Diperbarui` | Aturan pelatihan wajib RS dengan penambahan masa berlaku 2 tahun (`validity_months = 24`) & cakupan staf (`HRD-DEC-158`). |
+| `mst_position_competency_requirements` | `MasterData` | `LearningAndDevelopment` | `Sudah ada` | Matriks prasyarat kompetensi minimal per jabatan atau ruangan (ICU, OK, IGD). |
+| `trx_training_plans` | `TrainingGovernance` | `LearningAndDevelopment` | `Diperbarui` | Program tahunan rencana diklat rumah sakit berbasis Training Needs Analysis (TNA). |
+| `trx_training_sessions` | `TrainingExecution` | `LearningAndDevelopment` | `Diperbarui` | Jadwal kelas dan sesi praktikum pelatihan lengkap dengan lokasi, kuota, dan instruktur. |
+| `trx_training_enrollment_requests`| `TrainingWorkflow` | `LearningAndDevelopment` | `Diperbarui` | Pengajuan pendaftaran pelatihan pegawai internal/eksternal via portal ESS (`HRD-DEC-162`). |
+| `trx_training_participants` | `TrainingExecution` | `LearningAndDevelopment` | `Diperbarui` | Daftar peserta resmi yang terdaftar pada sesi pelatihan. |
+| `trx_training_attendances` | `TrainingExecution` | `LearningAndDevelopment` | `Diperbarui` | Log presensi kehadiran sesi kelas/simulasi (jam hadir, tap QR, status verifikasi) (`HRD-DEC-159`). |
+| `trx_training_assessments` | `CompetencyEvaluation` | `LearningAndDevelopment` | `Diperbarui` | Lembar penilaian pre-test, post-test teori, dan rubrik ujian praktik klinis langsung (*OSCE*). |
+| `trx_training_results` | `CompetencyEvaluation` | `LearningAndDevelopment` | `Diperbarui` | Rekapitulasi hasil evaluasi akhir peserta (kehadiran, nilai teori, kelulusan praktik). |
+| `trx_training_certificates` | `CertificationRecord` | `LearningAndDevelopment` | `Diperbarui` | Berkas sertifikat kelulusan ber-QR Code publik, masa berlaku, dan perolehan SKP Kemenkes (`HRD-DEC-163`). |
+| `trx_training_budgets` | `TrainingBudget` | `LearningAndDevelopment` | `Diperbarui` | Pagu anggaran unit Diklat tahunan, realisasi biaya, dan sisa alokasi dana operasional. |
+| `hrd_training_bond_contracts` | `EmploymentRetention` | `LearningAndDevelopment` | `Baru` | Perjanjian komitmen ikatan dinas / retensi kerja pelatihan eksternal berbiaya tinggi (`HRD-DEC-162`). |
+| `wfp_training_records` | `WorkforceProfile` | `WorkforceCore` (Sub-02) | `Sudah ada` | Riwayat kepesertaan pelatihan pada rekam jejak pegawai terpadu. |
+| `wfp_competency_assessments` | `WorkforceProfile` | `WorkforceCore` (Sub-02) | `Sudah ada` | Ringkasan level penguasaan kompetensi terkini per pegawai. |
+
+---
+
+### 29.2 Diagram Class Arsitektur Target (Mermaid)
+
+```mermaid
+classDiagram
+    class MstMandatoryTrainingRule {
+        +UUID Id
+        +UUID TrainingCatalogId
+        +String TargetStaffScope
+        +Int ValidityMonths
+        +Boolean IsMandatoryForAccreditation
+        +Boolean IsActive
+    }
+
+    class TrxTrainingPlan {
+        +UUID Id
+        +String PlanCode
+        +String PlanName
+        +Int PlanYear
+        +Decimal EstimatedTotalBudget
+        +String Status
+    }
+
+    class TrxTrainingSession {
+        +UUID Id
+        +UUID TrainingPlanId
+        +UUID TrainingCatalogId
+        +String SessionCode
+        +DateTime StartTime
+        +DateTime EndTime
+        +String LocationRoom
+        +Int CapacityQuota
+        +UUID PrimaryTrainerWorkforceId
+        +String SessionStatus
+    }
+
+    class TrxTrainingEnrollmentRequest {
+        +UUID Id
+        +UUID WorkforceProfileId
+        +UUID TrainingCatalogId
+        +String TrainingType
+        +Decimal RequestedCost
+        +String JustificationNotes
+        +String ApprovalStatus
+        +Boolean RequiresTrainingBond
+    }
+
+    class TrxTrainingAttendance {
+        +UUID Id
+        +UUID TrainingSessionId
+        +UUID WorkforceProfileId
+        +DateTime CheckInTime
+        +String AttendanceMethod
+        +Boolean IsVerifiedByTrainer
+    }
+
+    class TrxTrainingAssessment {
+        +UUID Id
+        +UUID TrainingSessionId
+        +UUID WorkforceProfileId
+        +Decimal PreTestScore
+        +Decimal PostTestScore
+        +Decimal OscePracticalScore
+        +Boolean IsOscePassed
+        +UUID AssessorWorkforceId
+        +String AssessorNotes
+    }
+
+    class TrxTrainingCertificate {
+        +UUID Id
+        +UUID WorkforceProfileId
+        +UUID TrainingCatalogId
+        +String CertificateNumber
+        +DateTime IssueDate
+        +DateTime ExpiryDate
+        +Decimal SkpPoints
+        +String SkpCategory
+        +String KemenkesAccreditationNumber
+        +String PlataranSehatCertificateId
+        +String VerificationQrToken
+        +String CertificateFileUrl
+        +String Status
+    }
+
+    class HrdTrainingBondContract {
+        +UUID Id
+        +UUID EnrollmentRequestId
+        +UUID WorkforceProfileId
+        +Decimal TotalHospitalInvestment
+        +Int RetentionDurationMonths
+        +DateTime BondStartDate
+        +DateTime BondEndDate
+        +Decimal PrematureResignationPenaltyAmount
+        +Boolean IsFulfilled
+        +String DigitalSignatureHash
+    }
+
+    MstMandatoryTrainingRule --> TrxTrainingPlan : memandu kuota
+    TrxTrainingPlan "1" --> "*" TrxTrainingSession : merinci jadwal
+    TrxTrainingSession "1" --> "*" TrxTrainingAttendance : mencatat presensi
+    TrxTrainingSession "1" --> "*" TrxTrainingAssessment : mengevaluasi uji
+    TrxTrainingAssessment --> TrxTrainingCertificate : syarat terbit (ganda)
+    TrxTrainingAttendance --> TrxTrainingCertificate : syarat hadir >= 80%
+    TrxTrainingEnrollmentRequest "1" --> "0..1" HrdTrainingBondContract : memicu ikatan dinas
+```
+
+---
+
+### 29.3 Penjelasan Komponen Layanan & Controller Backend
+
+#### 29.3.1 Layanan Domain & Aplikasi (Application & Domain Services)
+
+1. `MandatoryTrainingGovernanceService`:
+   - Mengelola aturan pelatihan wajib akreditasi (5 materi dasar KARS/STARKES: BHD, PPI, SKP, K3RS, Komunikasi).
+   - Menjalankan siklus resertifikasi tepat 24 bulan dan memicu notifikasi peringatan berjenjang pada H-90, H-60, dan H-30 (`HRD-DEC-158`).
+   - Menerapkan pengamanan operasional *Conditional Safeguard* saat sertifikat kritis nakes kedaluwarsa (flag *Overdue Mandatory Training*, indikator pendampingan *buddy system* ke Sub-06, dan notifikasi kredensialing) (`HRD-DEC-160`).
+2. `ClinicalSkillOsceAssessmentService`:
+   - Memisahkan secara ketat pencatatan jam kehadiran presensi dengan evaluasi kelulusan keterampilan klinis langsung (*OSCE*) (`HRD-DEC-159`).
+   - Memvalidasi pemenuhan syarat kelulusan ganda: presensi minimal 80%-100%, skor post-test teori >= 75/80, dan hasil uji simulasi OSCE yang ditandatangani secara digital oleh Assessor klinis tersertifikasi.
+3. `TrainingEnrollmentAndBudgetService`:
+   - Mengelola alur permohonan keikutsertaan pelatihan internal dan eksternal via portal ESS.
+   - Memvalidasi ketersediaan pagu anggaran unit Diklat (`TrxTrainingBudget`).
+   - Menangani penerbitan otomatis dokumen Perjanjian Ikatan Dinas / Retensi Kerja (`HrdTrainingBondContract`) bagi pelatihan bernilai investasi > Rp 10 Juta atau durasi > 1 bulan (`HRD-DEC-162`).
+4. `PlataranSehatSkpTrackingService`:
+   - Mencatat perolehan Satuan Kredit Profesi (SKP) nakes dalam 3 kategori resmi Kemenkes (Pembelajaran, Pelayanan, Pengabdian) (`HRD-DEC-163`).
+   - Menyediakan kalkulator pelacakan akumulasi target SKP 5 tahunan dokter/perawat menuju siklus perpanjangan SIP di Sub-14.
+   - Menyimpan nomor akreditasi Kemenkes/Kolegium dan ID verifikasi sertifikat portal Plataran Sehat Kemenkes.
+5. `CompetencyPrerequisiteGateService`:
+   - Menyediakan antarmuka integrasi performa tinggi `INT-HR-77` bagi modul Kredensialing Sub-14 untuk memvalidasi keabsahan sertifikat prasyarat tindakan klinis pada formulir RKK nakes (`HRD-DEC-161`).
+   - Mentransmisikan data pencapaian pelatihan ke modul OPPE Sub-15 (`INT-HR-78`) untuk menyumbang skor pilar *Medical Knowledge*.
+
+#### 29.3.2 Pengendali RESTful API (Controllers)
+
+1. `MandatoryHospitalTrainingController`:
+   - `[Tags("Corporate - HRD Mandatory Hospital Training & Certification")]`
+   - Melayani katalog aturan pelatihan wajib akreditasi, radar kedaluwarsa 2 tahunan, dan penerbitan notifikasi refresher retraining.
+2. `TrainingSessionAndAttendanceController`:
+   - `[Tags("Corporate - HRD Mandatory Hospital Training & Certification")]`
+   - Melayani pembukaan sesi pelatihan, penjadwalan kelas, pencatatan presensi kehadiran tap QR/biometrik, dan verifikasi instruktur.
+3. `ClinicalSkillAssessmentController`:
+   - `[Tags("Corporate - HRD Clinical Competency & OSCE Assessment")]`
+   - Melayani penginputan nilai pre-test, post-test, lembar rubrik penilaian simulasi OSCE, dan pengesahan digital assessor.
+4. `TrainingEnrollmentAndBudgetController`:
+   - `[Tags("Corporate - HRD Training Enrollment & Budget Governance")]`
+   - Melayani permohonan keikutsertaan diklat ESS, approval berjenjang, validasi pagu anggaran, dan pengesahan dokumen ikatan dinas.
+5. `PlataranSehatSkpTrackerController`:
+   - `[Tags("Corporate - HRD Plataran Sehat & SKP Kemenkes Tracking")]`
+   - Melayani pencatatan klaim SKP nakes, visualisasi progress bar akumulasi target SKP 5 tahunan, dan verifikasi tautan Plataran Sehat.
+
+---
+
+### 29.4 Aturan Rekayasa Bisnis Backend (`TRN-B1` s.d. `TRN-B8`)
+
+- **`TRN-B1` (Validitas Pelatihan Wajib 24 Bulan):** Setiap sertifikat pelatihan wajib standar KARS (BHD, PPI, SKP, K3RS, Komunikasi) memiliki masa aktif tepat 24 bulan sejak tanggal penerbitan.
+- **`TRN-B2` (Syarat Kelulusan Ganda):** Penerbitan sertifikat kompetensi wajib memenuhi kriteria kumulatif: kehadiran >= 80% (umum) atau 100% (klinis khusus) DAN lulus post-test teori (skor >= 75/80) serta lulus ujian keterampilan klinis praktikum OSCE.
+- **`TRN-B3` (Pengamanan Operasional Sertifikat Kedaluwarsa):** Sertifikat pelatihan wajib kritis yang kedaluwarsa pada H-0 otomatis mengaktifkan penanda `OverdueMandatoryTraining`, mewajibkan pendampingan senior (*buddy system*) pada shift dinas Sub-06, dan mengirimkan alert ke Komite Kredensial.
+- **`TRN-B4` (Kunci Prasyarat Kredensialing RKK):** Butir tindakan medis berisiko tinggi di Sub-14 (`S-C1`) yang mensyaratkan sertifikasi khusus terkunci secara otomatis jika status sertifikat nakes di Sub-16 tidak aktif atau kedaluwarsa.
+- **`TRN-B5` (Pengendalian Pagu Anggaran Diklat):** Sistem menolak pengajuan pelatihan eksternal berbayar jika estimasi biaya melebihi sisa pagu anggaran unit Diklat tahun berjalan pada `TrxTrainingBudget`.
+- **`TRN-B6` (Otomasi Ikatan Dinas Retensi):** Pelatihan eksternal dengan biaya > Rp 10 Juta atau durasi > 1 bulan wajib menerbitkan perjanjian ikatan dinas (retensi kerja 1-2 tahun) yang tercatat sebagai adendum kontrak kerja Sub-05.
+- **`TRN-B7` (Kategori SKP Baku Kemenkes):** Pencatatan poin SKP nakes wajib diklasifikasikan ke dalam 3 kategori resmi: `SKP_PEMBELAJARAN`, `SKP_PELAYANAN`, atau `SKP_PENGABDIAN`.
+- **`TRN-B8` (Integritas Token QR Sertifikat):** Setiap sertifikat digital yang diterbitkan memiliki token verifikasi kriptografis unik minimal 32 karakter yang dapat divalidasi keabsahannya oleh publik.
+
+---
+
+### 29.5 Latar Belakang Pekerja Sistem (Background Workers `TRN-W1` s.d. `TRN-W6`)
+
+1. `TRN-W1: MandatoryTrainingExpirationMonitorJob`: Berjalan setiap hari pukul 02:00 WIB untuk memindai masa berlaku 2 tahun pelatihan wajib dan mengirimkan alert radar pada H-90, H-60, dan H-30.
+2. `TRN-W2: OverdueTrainingSafeguardEnforcerJob`: Berjalan setiap hari pukul 00:01 WIB untuk menerapkan flag status overdue pada H-0 dan mengirimkan sinyal pengamanan shift dinas ke Sub-06 Scheduling.
+3. `TRN-W3: PlataranSehatSkpAggregationJob`: Berjalan setiap minggu untuk mengagregasikan total perolehan SKP aktif nakes dan menghitung persentase ketercapaian target 5 tahunan.
+4. `TRN-W4: TrainingBudgetReconciliationJob`: Berjalan setiap akhir bulan untuk merekonsiliasi realisasi pengeluaran diklat terhadap pagu anggaran operasional RS.
+5. `TRN-W5: AutoDossierCertificateArchivalJob`: Memproses antrean berkas sertifikat yang baru terbit untuk diunggah dan diarsipkan secara permanen ke e-Dossier pegawai Sub-02.
+6. `TRN-W6: TrainingBondMaturityJob`: Memantau jatuh tempo masa ikatan dinas pegawai dan menerbitkan surat keterangan pembebasan ikatan dinas saat masa retensi berakhir.
+
+---
+
+### 29.6 Struktur Folder & File Backend Target
+
+```text
+NewQuilvianSystemBackend/Areas/Corporate/HumanResource/LearningAndDevelopment/
+├── Controllers/
+│   ├── MandatoryHospitalTrainingController.cs             [Baru]
+│   ├── TrainingSessionAndAttendanceController.cs          [Baru]
+│   ├── ClinicalSkillAssessmentController.cs               [Baru]
+│   ├── TrainingEnrollmentAndBudgetController.cs           [Baru]
+│   ├── PlataranSehatSkpTrackerController.cs               [Baru]
+│   ├── WfpTrainingRecordController.cs                     [Diperbarui]
+│   └── WfpCompetencyAssessmentController.cs               [Diperbarui]
+├── DTOs/
+│   ├── MandatoryTrainingDtos.cs                           [Baru]
+│   ├── TrainingSessionAndAttendanceDtos.cs                [Baru]
+│   ├── ClinicalSkillAssessmentDtos.cs                     [Baru]
+│   ├── TrainingEnrollmentAndBudgetDtos.cs                 [Baru]
+│   └── PlataranSehatSkpDtos.cs                            [Baru]
+├── Models/
+│   ├── TrxTrainingPlan.cs                                 [Diperbarui]
+│   ├── TrxTrainingSession.cs                              [Diperbarui]
+│   ├── TrxTrainingEnrollmentRequest.cs                    [Diperbarui]
+│   ├── TrxTrainingParticipant.cs                         [Diperbarui]
+│   ├── TrxTrainingAttendance.cs                           [Diperbarui]
+│   ├── TrxTrainingAssessment.cs                           [Diperbarui]
+│   ├── TrxTrainingResult.cs                               [Diperbarui]
+│   ├── TrxTrainingCertificate.cs                          [Diperbarui]
+│   ├── TrxTrainingBudget.cs                               [Diperbarui]
+│   ├── TrxIndividualDevelopmentPlan.cs                    [Diperbarui]
+│   ├── TrxTrainingEvaluation.cs                           [Diperbarui]
+│   ├── HrdTrainingBondContract.cs                         [Baru]
+│   ├── WfpTrainingRecord.cs                               [Diperbarui]
+│   └── WfpCompetencyAssessment.cs                         [Diperbarui]
+├── Services/
+│   ├── IMandatoryTrainingGovernanceService.cs             [Baru]
+│   ├── MandatoryTrainingGovernanceService.cs              [Baru]
+│   ├── IClinicalSkillOsceAssessmentService.cs             [Baru]
+│   ├── ClinicalSkillOsceAssessmentService.cs              [Baru]
+│   ├── ITrainingEnrollmentAndBudgetService.cs             [Baru]
+│   ├── TrainingEnrollmentAndBudgetService.cs              [Baru]
+│   ├── IPlataranSehatSkpTrackingService.cs                [Baru]
+│   ├── PlataranSehatSkpTrackingService.cs                 [Baru]
+│   ├── ICompetencyPrerequisiteGateService.cs              [Baru]
+│   └── CompetencyPrerequisiteGateService.cs               [Baru]
+└── BackgroundWorkers/
+    ├── MandatoryTrainingExpirationMonitorJob.cs           [Baru]
+    ├── OverdueTrainingSafeguardEnforcerJob.cs             [Baru]
+    ├── PlataranSehatSkpAggregationJob.cs                  [Baru]
+    ├── TrainingBudgetReconciliationJob.cs                 [Baru]
+    ├── AutoDossierCertificateArchivalJob.cs               [Baru]
+    └── TrainingBondMaturityJob.cs                         [Baru]
+```
+
+---
+
+### 29.7 Rencana Skema Database & Migrasi EF Core
+
+#### 29.7.1 Ekstensi Skema & Tabel Baru PostgreSQL
+
+```sql
+-- 1. Penambahan Kolom Aturan Pelatihan Wajib Akreditasi RS
+ALTER TABLE mst_mandatory_training_rules
+    ADD COLUMN IF NOT EXISTS validity_months INT NOT NULL DEFAULT 24,
+    ADD COLUMN IF NOT EXISTS target_staff_scope VARCHAR(50) NOT NULL DEFAULT 'ALL_EMPLOYEES',
+    ADD COLUMN IF NOT EXISTS is_mandatory_for_accreditation BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- 2. Penambahan Kolom Akreditasi SKP Kemenkes pada Sertifikat
+ALTER TABLE trx_training_certificates
+    ADD COLUMN IF NOT EXISTS skp_points DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    ADD COLUMN IF NOT EXISTS skp_category VARCHAR(50) NULL,
+    ADD COLUMN IF NOT EXISTS kemenkes_accreditation_number VARCHAR(100) NULL,
+    ADD COLUMN IF NOT EXISTS plataran_sehat_certificate_id VARCHAR(100) NULL,
+    ADD COLUMN IF NOT EXISTS verification_qr_token VARCHAR(100) NOT NULL DEFAULT gen_random_uuid()::text;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trx_training_certificates_qr_token 
+    ON trx_training_certificates(verification_qr_token);
+
+-- 3. Tabel Perjanjian Komitmen Ikatan Dinas Pelatihan Eksternal
+CREATE TABLE IF NOT EXISTS hrd_training_bond_contracts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    enrollment_request_id UUID NOT NULL REFERENCES trx_training_enrollment_requests(id) ON DELETE RESTRICT,
+    workforce_profile_id UUID NOT NULL REFERENCES mst_workforce_profiles(id) ON DELETE RESTRICT,
+    total_hospital_investment DECIMAL(14,2) NOT NULL,
+    retention_duration_months INT NOT NULL,
+    bond_start_date DATE NOT NULL,
+    bond_end_date DATE NOT NULL,
+    premature_resignation_penalty_amount DECIMAL(14,2) NOT NULL,
+    is_fulfilled BOOLEAN NOT NULL DEFAULT FALSE,
+    digital_signature_hash VARCHAR(256) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMPTZ NULL,
+    updated_by VARCHAR(100) NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_hrd_training_bond_contracts_workforce 
+    ON hrd_training_bond_contracts(workforce_profile_id);
+```
+
+---
+
+### 29.8 Yang Sengaja Tidak Dibuat pada Rilis Pertama `S-C2`
+
+1. **Sinkronisasi Otomatis API Dua-Arah ke Database Server Kemenkes:** Verifikasi sertifikat Plataran Sehat dilakukan melalui validasi URL/ID sertifikat digital resmi tanpa koneksi direct push-data yang membutuhkan MoU antarkementerian.
+2. **Platform Ujian Virtual Proctored Berbayar:** Ujian teori pre-test dan post-test menggunakan modul kuis internal rumah sakit tanpa lisensi vendor eksternal.
+3. **Pemberian Sanksi Disiplin SP Langsung:** Sanksi ketidakpatuhan diklat disalurkan sebagai catatan evaluasi kinerja dan pembatasan shift, bukan otomatis menerbitkan Surat Peringatan (SP) yang merupakan wewenang Sub-19 Employee Relations.
+
+---
+
+### 29.9 Traceability Keputusan ke Arsitektur Backend
+
+| Keputusan Disetujui | Komponen Arsitektur Backend Pemenuh | Verifikasi Uji |
+| :--- | :--- | :--- |
+| `HRD-DEC-158` (Pelatihan Wajib 100% Staf & Siklus 2 Tahun) | `MstMandatoryTrainingRule`, `MandatoryTrainingGovernanceService`, `MandatoryTrainingExpirationMonitorJob` | `AT-HRD-TRN-01`, `AT-HRD-TRN-02` |
+| `HRD-DEC-159` (Pemisahan Presensi vs Kelulusan OSCE) | `TrxTrainingAttendance`, `TrxTrainingAssessment`, `ClinicalSkillOsceAssessmentService` | `AT-HRD-TRN-04`, `AT-HRD-TRN-05` |
+| `HRD-DEC-160` (Pengamanan Dinas Buddy System saat Overdue) | `OverdueTrainingSafeguardEnforcerJob`, flag `OverdueMandatoryTraining`, event `OnMandatoryTrainingExpired` | `AT-HRD-TRN-07`, `AT-HRD-TRN-08` |
+| `HRD-DEC-161` (Prasyarat RKK Sub-14 & Portofolio OPPE Sub-15) | `CompetencyPrerequisiteGateService`, `ICompetencyPrerequisiteGateService`, `INT-HR-77`, `INT-HR-78` | `AT-HRD-TRN-10`, `AT-HRD-TRN-11` |
+| `HRD-DEC-162` (Pengajuan Pelatihan Eksternal & Ikatan Dinas) | `TrxTrainingEnrollmentRequest`, `TrxTrainingBudget`, `HrdTrainingBondContract`, `TrainingEnrollmentAndBudgetService` | `AT-HRD-TRN-13`, `AT-HRD-TRN-14` |
+| `HRD-DEC-163` (Portofolio SKP Kemenkes Plataran Sehat) | `TrxTrainingCertificate`, `PlataranSehatSkpTrackingService`, `PlataranSehatSkpTrackerController` | `AT-HRD-TRN-16`, `AT-HRD-TRN-17` |

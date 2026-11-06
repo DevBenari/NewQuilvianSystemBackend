@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
-using QuilvianSystemBackend.Persistence;
+using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -165,8 +165,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     IsDisplayedOnPayslip = true,
                     SortOrder = 1,
                     IsActive = true,
-                    CreatedBy = actorUserId.ToString(),
-                    CreatedDate = DateTime.UtcNow
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
                 };
                 newComponents.Add(baseComp);
                 componentSummary.Add(new PayrollComponentSummaryDto
@@ -200,8 +200,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     IsDisplayedOnPayslip = true,
                     SortOrder = 2,
                     IsActive = true,
-                    CreatedBy = actorUserId.ToString(),
-                    CreatedDate = DateTime.UtcNow
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
                 };
                 newComponents.Add(structComp);
                 componentSummary.Add(new PayrollComponentSummaryDto
@@ -235,8 +235,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     IsDisplayedOnPayslip = true,
                     SortOrder = 3,
                     IsActive = true,
-                    CreatedBy = actorUserId.ToString(),
-                    CreatedDate = DateTime.UtcNow
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
                 };
                 newComponents.Add(funcComp);
                 componentSummary.Add(new PayrollComponentSummaryDto
@@ -270,8 +270,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     IsDisplayedOnPayslip = true,
                     SortOrder = 4,
                     IsActive = true,
-                    CreatedBy = actorUserId.ToString(),
-                    CreatedDate = DateTime.UtcNow
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
                 };
                 newComponents.Add(hazComp);
                 componentSummary.Add(new PayrollComponentSummaryDto

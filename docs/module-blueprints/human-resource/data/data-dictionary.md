@@ -4310,3 +4310,443 @@ Bagian ini mendefinisikan kamus data lengkap untuk tabel baru dan pembaruan tabe
 | `oppe_evaluation_summary` | `TEXT` | Yes | `NULL` | - | Tidak | Ringkasan rekam jejak mutu asuhan klinis dokter |
 | `requested_date` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengajuan atau inisiasi otomatis draf pada H-60 |
 | `status` | `VARCHAR(30)` | No | `'DRAFT'` | IDX3 | Tidak | Status: `DRAFT`, `SUBMITTED`, `UNDER_EVALUATION`, `APPROVED`, `SUSPENDED` |
+
+---
+
+## 20. Kamus Data Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`)
+
+### 20.1 Tabel `mst_oppe_metric_catalogs` (Katalog Indikator Kinerja Klinis OPPE)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Master katalog indikator evaluasi praktik profesional berkelanjutan berbasis 6 pilar standar ACGME/KARS.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik indikator OPPE |
+| `metric_code` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Kode unik indikator (cth: `OPP-SURG-IDO`, `OPP-EMR-TIME`) |
+| `metric_name` | `VARCHAR(250)` | No | - | - | Tidak | Nama deskriptif indikator performa klinis |
+| `acgme_domain` | `VARCHAR(50)` | No | - | IDX2 | Tidak | 6 Pilar: `PatientCare`, `MedicalKnowledge`, `PracticeBasedLearning`, `InterpersonalCommunication`, `Professionalism`, `SystemsBasedPractice` |
+| `target_profession_type` | `VARCHAR(50)` | No | - | - | Tidak | Profesi target: `DOKTER_SPESIALIS`, `DOKTER_UMUM`, `PERAWAT_KLINIS` |
+| `ksm_department_id` | `UUID` | Yes | `NULL` | FK (`mst_organization_units`) | Tidak | Spesifik KSM tertentu (NULL = berlaku umum seluruh dokter) |
+| `data_source_type` | `VARCHAR(50)` | No | - | - | Tidak | Sumber data: `SIMRS_AUTOMATED`, `PEER_REVIEW_QUALITATIVE`, `PATIENT_SAFETY_INCIDENT`, `CLINICAL_AUDIT_MANUAL` |
+| `target_threshold_operator` | `VARCHAR(10)` | No | - | - | Tidak | Operator ambang target: `GTE` (>=), `LTE` (<=), `EQ` (==), `BETWEEN` |
+| `target_threshold_value` | `DECIMAL(10,2)` | No | - | - | Tidak | Nilai numerik target kepatuhan atau batas maksimal toleransi |
+| `default_weight_percentage` | `DECIMAL(5,2)` | No | `0.00` | - | Tidak | Bobot kontribusi indikator dalam persentase |
+| `simrs_metric_extractor_key` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Kunci integrasi job ekstraktor data otomatis modul SIMRS/KMKP |
+| `is_active` | `BOOLEAN` | No | `TRUE` | IDX3 | Tidak | Status keaktifan indikator dalam evaluasi |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan master |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Pembuat data |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu modifikasi terakhir |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Pengubah data |
+
+---
+
+### 20.2 Tabel `trx_oppe_evaluation_periods` (Periode Siklus Evaluasi OPPE)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Periode siklus evaluasi berkala OPPE tahunan atau semesteran per KSM atau rumah sakit.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik periode evaluasi OPPE |
+| `period_code` | `VARCHAR(100)` | No | - | UQ, IDX1 | Tidak | Kode registrasi periode tahunan/semesteran |
+| `period_name` | `VARCHAR(250)` | No | - | - | Tidak | Nama periode (misal: "OPPE Semester 1 2026 - KSM Bedah") |
+| `evaluation_year` | `INT` | No | - | IDX2 | Tidak | Tahun kalender pelaksanaan evaluasi |
+| `evaluation_cycle` | `VARCHAR(20)` | No | - | - | Tidak | Siklus: `SEMESTER_1`, `SEMESTER_2`, `ANNUAL` |
+| `start_date` | `DATE` | No | - | - | Tidak | Tanggal awal rentang data klinis yang dievaluasi |
+| `end_date` | `DATE` | No | - | - | Tidak | Tanggal akhir rentang data klinis yang dievaluasi |
+| `ksm_department_id` | `UUID` | Yes | `NULL` | FK (`mst_organization_units`) | Tidak | Lingkup KSM tertentu (NULL jika serentak seluruh RS) |
+| `status` | `VARCHAR(30)` | No | `'DRAFT'` | IDX3 | Tidak | Siklus: `DRAFT`, `ACTIVE`, `EVALUATION_CLOSED`, `FINALIZED`, `CANCELLED` |
+| `quantitative_weight_percentage` | `DECIMAL(5,2)` | No | `60.00` | - | Tidak | Bobot porsi nilai data objektif SIMRS (standar: 60%) |
+| `qualitative_weight_percentage` | `DECIMAL(5,2)` | No | `40.00` | - | Tidak | Bobot porsi telaah sejawat / peer review (standar: 40%) |
+| `is_locked` | `BOOLEAN` | No | `FALSE` | - | Tidak | Status penguncian data (tidak dapat diedit lagi jika TRUE) |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan periode |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Pembuat data |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu perubahan terakhir |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Pengubah data |
+
+---
+
+### 20.3 Tabel `trx_oppe_staff_evaluations` (Rapor Evaluasi OPPE Individu Dokter)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Berkas rapor evaluasi kinerja klinis individu tenaga medis dalam satu periode OPPE tertentu.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik rapor individu OPPE |
+| `evaluation_period_id` | `UUID` | No | - | FK (`trx_oppe_evaluation_periods`), IDX1 | Tidak | Relasi ke siklus periode evaluasi |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID dokter spesialis/nakes yang dievaluasi |
+| `evaluation_number` | `VARCHAR(100)` | No | - | UQ, IDX3 | Tidak | Nomor rapor resmi registrasi OPPE |
+| `quantitative_score` | `DECIMAL(5,2)` | Yes | `NULL` | - | Tidak | Skor agregasi nilai objektif SIMRS/KMKP (0-100) |
+| `qualitative_score` | `DECIMAL(5,2)` | Yes | `NULL` | - | Tidak | Skor rata-rata telaah sejawat peer review KSM (0-100) |
+| `composite_score` | `DECIMAL(5,2)` | Yes | `NULL` | - | Tidak | Nilai komposit akhir (60% kuantitatif + 40% kualitatif) |
+| `passed_evaluation` | `BOOLEAN` | No | `FALSE` | - | Tidak | Status kelulusan ambang batas standar OPPE (>= 75.0) |
+| `early_warning_triggered` | `BOOLEAN` | No | `FALSE` | IDX4 | Tidak | True jika terdapat indikator jatuh di bawah batas bahaya |
+| `status` | `VARCHAR(30)` | No | `'DRAFT'` | IDX5 | Tidak | Status: `DRAFT`, `IN_REVIEW`, `COMPLETED`, `ACKNOWLEDGED`, `DISPUTED` |
+| `committee_notes` | `TEXT` | Yes | `NULL` | - | Ya | Kesimpulan & rekomendasi tertulis Subkomite Mutu Profesi |
+| `acknowledged_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu konfirmasi persetujuan/baca oleh dokter yang bersangkutan |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembentukan berkas |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Pembuat data |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu update nilai |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Pengubah nilai |
+
+---
+
+### 20.4 Tabel `trx_oppe_staff_evaluation_details` (Rincian Butir Penilaian Indikator OPPE)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Detail skor per butir indikator dan catatan peer review yang dilindungi kerahasiaan (*Peer Review Privilege*).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik detail penilaian indikator |
+| `staff_evaluation_id` | `UUID` | No | - | FK (`trx_oppe_staff_evaluations`), IDX1 | Tidak | Relasi ke berkas rapor induk |
+| `metric_catalog_id` | `UUID` | No | - | FK (`mst_oppe_metric_catalogs`), IDX2 | Tidak | Relasi ke master indikator |
+| `target_value` | `DECIMAL(10,2)` | No | - | - | Tidak | Ambang target yang ditetapkan KSM/RS |
+| `achieved_value` | `DECIMAL(10,2)` | No | - | - | Tidak | Nilai riil pencapaian dokter dari data SIMRS/Review |
+| `metric_score` | `DECIMAL(5,2)` | No | - | - | Tidak | Skor butir terkonversi skala 0 s.d. 100 |
+| `weight_percentage` | `DECIMAL(5,2)` | No | - | - | Tidak | Bobot kontribusi butir terhadap sub-komponen |
+| `weighted_score` | `DECIMAL(5,2)` | No | - | - | Tidak | Hasil kali skor butir dengan persentase bobot |
+| `simrs_sync_timestamp` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu data otomatis ditarik dari SIMRS |
+| `raw_data_payload_json` | `JSONB` | Yes | `NULL` | - | Ya | Payload bukti agregasi kasus dari database klinis |
+| `reviewer_workforce_profile_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Ya | ID dokter sejawat penilai (dirahasiakan) |
+| `peer_review_notes` | `TEXT` | Yes | `NULL` | - | Ya | Catatan kualitatif konfidensial peer review |
+| `is_confidential_peer_review` | `BOOLEAN` | No | `FALSE` | IDX3 | Tidak | True jika butir tunduk pada hak istimewa *Peer Review Privilege* |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu entri |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Pembuat data |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu edit |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Pengubah data |
+
+---
+
+### 20.5 Tabel `trx_fppe_engagements` (Penugasan & Kasus FPPE Terarah)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Berkas penugasan evaluasi praktik klinis terarah (FPPE) baik untuk staf baru, prosedur baru, maupun audit pemicu insiden keselamatan.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik penugasan FPPE |
+| `fppe_number` | `VARCHAR(100)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi penugasan FPPE terstruktur |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID dokter spesialis yang menjalani FPPE |
+| `trigger_type` | `VARCHAR(50)` | No | - | IDX3 | Tidak | Jenis pemicu: `NEW_STAFF_ONBOARDING`, `NEW_CLINICAL_PROCEDURE`, `SENTINEL_EVENT`, `SURGICAL_COMPLICATION_HIGH`, `EMR_TIMELINESS_BREACH`, `ETHICAL_COMMITTEE_REFERRAL` |
+| `privilege_catalog_id` | `UUID` | Yes | `NULL` | FK (`mst_clinical_privilege_catalogs`) | Tidak | Spesifik tindakan/prosedur baru yang dievaluasi (opsional) |
+| `supervisor_workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`) | Tidak | ID dokter proctor/supervisor pendamping yang ditunjuk |
+| `start_date` | `DATE` | No | - | - | Tidak | Tanggal dimulainya masa pemantauan proctoring |
+| `end_date` | `DATE` | No | - | - | Tidak | Batas akhir masa pemantauan proctoring |
+| `target_case_count` | `INT` | No | `10` | - | Tidak | Target jumlah kasus klinis terproctoring (staf baru: 10, prosedur baru: 5) |
+| `completed_case_count` | `INT` | No | `0` | - | Tidak | Jumlah kasus yang telah selesai diverifikasi proctor |
+| `status` | `VARCHAR(30)` | No | `'INITIATED'` | IDX4 | Tidak | Status: `INITIATED`, `IN_PROGRESS`, `EXTENDED`, `UNDER_REVIEW`, `CONCLUDED`, `ABORTED` |
+| `trigger_justification_notes` | `TEXT` | No | - | - | Ya | Latar belakang pemicu insiden atau rujukan komite etik |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu inisiasi FPPE |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Pembuat data |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu perubahan status |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Pengubah status |
+
+---
+
+### 20.6 Tabel `trx_fppe_case_logs` (Logbook Kasus Terproctoring FPPE)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Buku catatan logbook pelaksanaan tindakan medis dalam masa proctoring FPPE.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik catatan kasus terproctoring |
+| `fppe_engagement_id` | `UUID` | No | - | FK (`trx_fppe_engagements`), IDX1 | Tidak | Relasi ke berkas induk penugasan FPPE |
+| `case_number` | `VARCHAR(100)` | No | - | IDX2 | Tidak | Nomor urut kasus dalam masa proctoring |
+| `simrs_patient_pseudonym_id` | `VARCHAR(100)` | No | - | - | Ya | ID samaran rekam medis pasien untuk audit klinis terproteksi |
+| `procedure_catalog_id` | `UUID` | No | - | FK (`mst_clinical_privilege_catalogs`) | Tidak | Jenis tindakan medis yang dilaksanakan |
+| `procedure_date` | `DATE` | No | - | - | Tidak | Tanggal pelaksanaan tindakan operasi/tindakan medis |
+| `clinical_independence_level` | `INT` | No | - | - | Tidak | Tingkat kemandirian: 1 (Observasi), 2 (Asistensi), 3 (Supervisi Langsung), 4 (Mandiri Terpantau) |
+| `proctor_evaluation_verdict` | `VARCHAR(50)` | No | - | - | Tidak | Putusan proctor: `SATISFACTORY`, `ACCEPTABLE_WITH_COACHING`, `UNSATISFACTORY`, `COMPLICATION_OCCURRED` |
+| `complication_observed` | `BOOLEAN` | No | `FALSE` | IDX3 | Tidak | True jika terjadi komplikasi intra/pasca-prosedur |
+| `proctor_clinical_notes` | `TEXT` | No | - | - | Ya | Evaluasi teknik klinis dan keselamatan pasien oleh proctor |
+| `is_verified_by_proctor` | `BOOLEAN` | No | `FALSE` | IDX4 | Tidak | Status persetujuan tanda tangan digital proctor |
+| `verified_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu persetujuan verifikasi proctor |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu entri logbook |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Pembuat data |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu revisi entri |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Pengubah entri |
+
+---
+
+### 20.7 Tabel `trx_fppe_evaluation_conclusions` (Kesimpulan & Rekomendasi Sidang Pleno FPPE)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Berita acara putusan sidang pleno Subkomite Mutu Profesi atas hasil evaluasi FPPE.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik kesimpulan FPPE |
+| `fppe_engagement_id` | `UUID` | No | - | UQ, FK (`trx_fppe_engagements`), IDX1 | Tidak | Relasi 1-to-1 dengan berkas penugasan FPPE |
+| `conclusion_number` | `VARCHAR(100)` | No | - | UQ, IDX2 | Tidak | Nomor registrasi berita acara putusan FPPE |
+| `plenary_date` | `DATE` | No | - | - | Tidak | Tanggal pelaksanaan rapat pleno komite medik |
+| `final_verdict` | `VARCHAR(50)` | No | - | IDX3 | Tidak | Putusan: `FULL_PRIVILEGE_CONFIRMED`, `PROCTORING_EXTENDED`, `SUPERVISED_PRACTICE`, `PRIVILEGE_REVOKED` |
+| `remediation_plan_details` | `TEXT` | Yes | `NULL` | - | Ya | Program pembinaan klinis dan pendampingan wajib |
+| `extension_duration_months` | `INT` | Yes | `NULL` | - | Tidak | Tambahan bulan pemantauan jika perpanjangan proctoring |
+| `committee_chair_workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`) | Tidak | ID Ketua Komite Medik / Subkomite Mutu penandatangan |
+| `simrs_privilege_sync_status` | `VARCHAR(30)` | No | `'PENDING'` | IDX4 | Tidak | Status sinkronisasi ke EMR SIMRS: `PENDING`, `SYNCED`, `FAILED`, `BYPASSED` |
+| `simrs_sync_timestamp` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pembaharuan hak akses ke modul SIMRS |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu penerbitan putusan |
+| `created_by` | `VARCHAR(100)` | No | - | - | Tidak | Pembuat data |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pembaruan |
+| `updated_by` | `VARCHAR(100)` | Yes | `NULL` | - | Tidak | Pengubah data |
+
+---
+
+### 20.8 Tabel `hrd_clinical_peer_review_audit_logs` (Log Audit Kerahasiaan Peer Review Privilege)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `ClinicalPerformanceQuality` (HRD & Komite Medik)
+- **Deskripsi:** Log keamanan permanen yang mencatat seluruh aksi pembacaan atau pembukaan dokumen telaah sejawat (*tamper-proof*).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik log audit akses kerahasiaan |
+| `peer_review_detail_id` | `UUID` | No | - | FK (`trx_oppe_staff_evaluation_details`), IDX1 | Tidak | Relasi ke detail butir evaluasi peer review yang dibaca |
+| `accessor_workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID personel yang membuka/membaca dokumen konfidensial |
+| `accessed_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | IDX3 | Tidak | Waktu presisi pembacaan dokumen |
+| `access_channel` | `VARCHAR(50)` | No | - | - | Tidak | Kanal akses: `WEB_PORTAL`, `API_DIRECT`, `EXPORT_REPORT` |
+| `ip_address` | `VARCHAR(50)` | No | - | - | Ya | Alamat IP pemohon akses |
+| `user_agent` | `VARCHAR(250)` | Yes | `NULL` | - | Tidak | Data peramban/perangkat yang dipakai |
+| `confidentiality_notice_acknowledged` | `BOOLEAN` | No | `TRUE` | - | Tidak | Penegasan bahwa pengakses telah menyetujui peringatan hukum kerahasiaan |
+
+## 21. Sub-Modul 16: Learning, Training & Competency (Slice S-C2)
+
+Kamus data ini memuat spesifikasi skema relasional modul pembelajaran, pelatihan, dan kompetensi tenaga kesehatan serta seluruh pegawai rumah sakit (*LearningAndDevelopment* dan *hrd_training_bond_contracts*), mencakup pemenuhan 5 pelatihan wajib akreditasi STARKES KPS 8, evaluasi OSCE klinis, radar kedaluwarsa berkala, kontrol anggaran diklat, ikatan dinas retensi nakes, dan pencatatan SKP Plataran Sehat Kemenkes.
+
+### 21.1 Tabel `mst_mandatory_training_rules` (Master Aturan Pelatihan Wajib Akreditasi RS)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (Diklat & SDM RS)
+- **Deskripsi:** Master katalog aturan pelatihan wajib berkala rumah sakit (BHD/BLS, PPI, Keselamatan Pasien/SKP, K3RS & Code Red, Komunikasi Efektif SBAR) dan pelatihan klinis khusus unit intensif (ACLS, ICU Ventilator, dsb) sesuai standar STARKES 2024 (KPS 8 & 8.1).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik aturan pelatihan wajib |
+| `training_code` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Kode unik pelatihan (misal `TRN-MND-BHD`, `TRN-MND-PPI`, `TRN-MND-ACLS`) |
+| `training_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama resmi pelatihan wajib rumah sakit |
+| `training_category` | `VARCHAR(50)` | No | - | IDX2 | Tidak | Kategori: `ACCREDITATION_MANDATORY_HOSPITAL_WIDE`, `CLINICAL_INTENSIVE_SPECIALTY`, `DEPARTMENTAL_SPECIFIC` |
+| `target_scope` | `VARCHAR(50)` | No | - | - | Tidak | Lingkup target: `ALL_EMPLOYEES_100_PERCENT`, `ALL_CLINICAL_STAFF`, `UNIT_SPECIFIC` |
+| `target_unit_id` | `UUID` | Yes | `NULL` | FK (`mst_departments`), IDX3 | Tidak | ID unit kerja spesifik jika berlaku untuk unit tertentu (ICU, OK, IGD, Dialisis) |
+| `target_profession_group` | `VARCHAR(50)` | Yes | `NULL` | - | Tidak | Kelompok profesi target: `MEDIS`, `KEPERAWATAN`, `NAKES_LAIN`, `NON_MEDIS`, `ALL` |
+| `validity_period_months` | `INTEGER` | No | `24` | - | Tidak | Masa berlaku sertifikat dalam satuan bulan (default: 24 bulan / 2 tahun sesuai standar akreditasi) |
+| `grace_period_days` | `INTEGER` | No | `30` | - | Tidak | Masa tenggang pendaftaran perpanjangan sebelum radar pemblokiran shift (default: 30 hari) |
+| `min_attendance_percentage` | `NUMERIC(5,2)` | No | `80.00` | - | Tidak | Ambang minimal kehadiran presensi (80.00% umum, 100.00% nakes klinis) |
+| `min_theory_passing_score` | `NUMERIC(5,2)` | No | `75.00` | - | Tidak | Nilai kelulusan minimal ujian teori post-test (default: 75.00) |
+| `is_osce_required` | `BOOLEAN` | No | `FALSE` | - | Tidak | Wajib ujian simulasi keterampilan klinis langsung (*OSCE*) bertanda tangan assessor |
+| `min_osce_passing_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Nilai kelulusan minimal ujian simulasi OSCE jika diwajibkan (misal 80.00) |
+| `impact_on_clinical_privilege`| `BOOLEAN` | No | `FALSE` | - | Tidak | Apakah memicu pembekuan RKK Level 4 jika kedaluwarsa (`INT-HR-77`) |
+| `impact_on_shift_scheduling` | `BOOLEAN` | No | `TRUE` | - | Tidak | Apakah memicu penugasan *buddy system* / pendampingan di jadwal shift Sub-06 (`INT-HR-79`) |
+| `is_active` | `BOOLEAN` | No | `TRUE` | IDX4 | Tidak | Status keaktifan aturan pelatihan wajib |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan data aturan |
+| `created_by` | `UUID` | No | - | - | Tidak | ID user pembuat aturan |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pengubahan data aturan |
+| `updated_by` | `UUID` | Yes | `NULL` | - | Tidak | ID user pengubah aturan |
+
+### 21.2 Tabel `trx_training_plans` (Rencana Diklat Tahunan & Analisis Kebutuhan Pelatihan - TNA)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (Diklat & Manajemen Keuangan RS)
+- **Deskripsi:** Rekapitulasi Rencana Program Pembelajaran dan Pelatihan Tahunan RS (*Annual Training Master Plan*) berbasis *Training Needs Analysis* (TNA) dan kepatuhan akreditasi.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik rencana diklat tahunan |
+| `plan_number` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi program diklat tahunan (misal `PLN-TRN-2026-001`) |
+| `budget_year` | `INTEGER` | No | - | IDX2 | Tidak | Tahun anggaran pelaksanaan diklat (misal `2026`) |
+| `plan_title` | `VARCHAR(200)` | No | - | - | Tidak | Judul rencana kerja program diklat |
+| `department_id` | `UUID` | Yes | `NULL` | FK (`mst_departments`), IDX3 | Tidak | ID departemen pengusul (NULL jika rencana diklat terpadu tingkat rumah sakit) |
+| `total_estimated_budget` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Total estimasi pagu biaya pelaksanaan program |
+| `currency` | `VARCHAR(3)` | No | `'IDR'` | - | Tidak | Mata uang anggaran (default: IDR) |
+| `status` | `VARCHAR(30)` | No | `'Draft'` | IDX4 | Tidak | Status: `Draft`, `Submitted`, `Approved`, `Active`, `Closed`, `Cancelled` |
+| `approved_by` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID Direktur / Manajer SDM yang menyetujui program tahunan |
+| `approved_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pengesahan rencana tahunan |
+| `approval_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Catatan pertimbangan pengesahan pimpinan |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan rencana kerja |
+| `created_by` | `UUID` | No | - | - | Tidak | ID user pembuat |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pembaruan data |
+| `updated_by` | `UUID` | Yes | `NULL` | - | Tidak | ID user pengubah |
+
+### 21.3 Tabel `trx_training_sessions` (Sesi Penyelenggaraan Kelas & Workshop Pelatihan)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (Bagian Diklat RS)
+- **Deskripsi:** Pelaksanaan batch atau sesi kelas/workshop/simulasi pelatihan yang dijadwalkan, mencakup narasumber, instruktur klinis, kuota, metode, dan tempat pelaksanaan.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik sesi kelas pelatihan |
+| `training_rule_id` | `UUID` | Yes | `NULL` | FK (`mst_mandatory_training_rules`), IDX1 | Tidak | Relasi ke master aturan jika sesi pelatihan wajib akreditasi |
+| `session_code` | `VARCHAR(50)` | No | - | UQ, IDX2 | Tidak | Kode unik sesi kelas (misal `SES-BHD-2026-B1`) |
+| `session_title` | `VARCHAR(200)` | No | - | - | Tidak | Judul nama kelas/sesi pelatihan |
+| `training_type` | `VARCHAR(50)` | No | - | IDX3 | Tidak | Tipe: `INTERNAL_IN_HOUSE`, `EXTERNAL_OFF_SITE`, `HYBRID_SIMULATION`, `ONLINE_WEBINAR` |
+| `start_time` | `TIMESTAMPTZ` | No | - | IDX4 | Tidak | Tanggal dan waktu pembukaan sesi pelatihan |
+| `end_time` | `TIMESTAMPTZ` | No | - | - | Tidak | Tanggal dan waktu penutupan sesi pelatihan |
+| `location_room` | `VARCHAR(150)` | Yes | `NULL` | - | Tidak | Ruang kelas, aula, atau laboratorium simulasi RS |
+| `virtual_meeting_url` | `VARCHAR(250)` | Yes | `NULL` | - | Tidak | URL tautan webinar/zoom jika hybrid atau daring |
+| `max_capacity` | `INTEGER` | No | `30` | - | Tidak | Kuota kapasitas maksimal peserta |
+| `current_enrolled_count` | `INTEGER` | No | `0` | - | Tidak | Jumlah peserta yang telah terdaftar resmi |
+| `primary_instructor_name` | `VARCHAR(150)` | No | - | - | Tidak | Nama narasumber utama / instruktur pelatihan |
+| `primary_assessor_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`), IDX5 | Tidak | ID dokter/perawat assesor penguji simulasi OSCE |
+| `total_duration_hours` | `NUMERIC(5,2)` | No | `8.00` | - | Tidak | Total jam pelajaran efektif diklat (JPL) |
+| `skp_points` | `NUMERIC(5,2)` | No | `0.00` | - | Tidak | Bobot poin SKP Kemenkes yang diakui |
+| `status` | `VARCHAR(30)` | No | `'Scheduled'` | IDX6 | Tidak | Status: `Scheduled`, `RegistrationOpen`, `InProgress`, `AssessmentPhase`, `Completed`, `Cancelled` |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pembuatan sesi pelatihan |
+| `created_by` | `UUID` | No | - | - | Tidak | ID user perancang sesi |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pengubahan data sesi |
+| `updated_by` | `UUID` | Yes | `NULL` | - | Tidak | ID user pengubah sesi |
+
+### 21.4 Tabel `trx_training_enrollment_requests` (Pengajuan Pendaftaran Diklat & Penugasan Staf)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (ESS Staf & Diklat RS)
+- **Deskripsi:** Pendaftaran peserta ke sesi diklat, baik melalui inisiatif pegawai (*Employee Self-Service* - ESS), penugasan otomatis sistem radar kedaluwarsa, maupun penugasan resmi atasan.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik berkas pendaftaran diklat |
+| `enrollment_number` | `VARCHAR(50)` | No | - | UQ, IDX1 | Tidak | Nomor registrasi pendaftaran (misal `ENR-TRN-2026-0045`) |
+| `training_session_id` | `UUID` | No | - | FK (`trx_training_sessions`), IDX2 | Tidak | Relasi ke sesi kelas yang diikuti |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX3 | Tidak | ID pegawai / nakes yang mendaftar |
+| `enrollment_source` | `VARCHAR(50)` | No | - | - | Tidak | Sumber pendaftaran: `ESS_SELF_SUBMISSION`, `RADAR_EXPIRY_AUTO_ASSIGNED`, `SUPERVISOR_MANDATED` |
+| `cost_amount` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Biaya keikutsertaan pelatihan |
+| `funding_source` | `VARCHAR(50)` | No | `'HOSPITAL_BUDGET'` | - | Tidak | Sumber dana: `HOSPITAL_BUDGET`, `PERSONAL_STAFF`, `SPONSOR_THIRD_PARTY` |
+| `status` | `VARCHAR(30)` | No | `'Draft'` | IDX4 | Tidak | Status: `Draft`, `PendingSupervisor`, `PendingDiklat`, `Approved`, `InTraining`, `Completed`, `Failed`, `Cancelled`, `Rejected` |
+| `supervisor_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID Kepala Ruangan / Supervisor yang menyetujui dispensasi dinas |
+| `supervisor_action_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu persetujuan supervisor |
+| `diklat_approver_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID staf Diklat yang memvalidasi anggaran dan kuota |
+| `diklat_action_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu validasi Diklat |
+| `rejection_reason` | `TEXT` | Yes | `NULL` | - | Tidak | Alasan penolakan jika pendaftaran ditolak |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengajuan pendaftaran |
+| `created_by` | `UUID` | No | - | - | Tidak | ID pembuat berkas |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu modifikasi berkas |
+| `updated_by` | `UUID` | Yes | `NULL` | - | Tidak | ID pengubah berkas |
+
+### 21.5 Tabel `trx_training_attendances` (Presensi Kehadiran Peserta Sesi Pelatihan)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (Bagian Diklat RS)
+- **Deskripsi:** Log rekaman absensi dan durasi hadir peserta pada setiap sesi pembelajaran per hari/sesi materi sebagai prasyarat utama keikutsertaan ujian kelulusan.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik log presensi diklat |
+| `enrollment_id` | `UUID` | No | - | FK (`trx_training_enrollment_requests`), IDX1 | Tidak | Relasi ke pendaftaran peserta |
+| `training_session_id` | `UUID` | No | - | FK (`trx_training_sessions`), IDX2 | Tidak | Relasi ke sesi pelatihan |
+| `session_date` | `DATE` | No | - | IDX3 | Tidak | Tanggal kehadiran kelas |
+| `check_in_time` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu presisi check-in hadir |
+| `check_out_time` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu presisi check-out pulang/selesai sesi |
+| `actual_duration_minutes` | `INTEGER` | No | `0` | - | Tidak | Durasi aktual menghadiri materi dalam menit |
+| `attendance_status` | `VARCHAR(30)` | No | `'PRESENT'` | - | Tidak | Status: `PRESENT`, `LATE`, `PERMIT`, `ABSENT` |
+| `verified_by` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID instruktur/staf Diklat pemverifikasi daftar hadir |
+| `notes` | `VARCHAR(250)` | Yes | `NULL` | - | Tidak | Catatan kehadiran jika terlambat atau izin |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pencatatan presensi |
+
+### 21.6 Tabel `trx_training_assessments` (Hasil Ujian Evaluasi Teori Post-Test & Simulasi Praktik OSCE)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (Assessor Klinis & Bagian Diklat RS)
+- **Deskripsi:** Hasil evaluasi objektif kelulusan kompetensi yang memisahkan skor teori post-test dari skor ujian simulasi keterampilan klinis langsung (*Objective Structured Clinical Examination* - OSCE).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik evaluasi kompetensi |
+| `enrollment_id` | `UUID` | No | - | UQ, FK (`trx_training_enrollment_requests`), IDX1 | Tidak | Relasi ke pendaftaran peserta (satu evaluasi per peserta) |
+| `post_test_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Nilai ujian teori post-test tertulis (skala 0 - 100) |
+| `post_test_passed` | `BOOLEAN` | No | `FALSE` | - | Tidak | Status kelulusan teori (skor >= `min_theory_passing_score`) |
+| `osce_score` | `NUMERIC(5,2)` | Yes | `NULL` | - | Tidak | Nilai ujian simulasi keterampilan klinis langsung OSCE |
+| `osce_checklist_data` | `JSONB` | Yes | `NULL` | - | Tidak | Rincian skor butir rubrik penilaian simulasi keterampilan |
+| `osce_passed` | `BOOLEAN` | No | `FALSE` | - | Tidak | Status kelulusan ujian praktik simulasi OSCE |
+| `assessor_id` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID dokter/perawat instruktur penilai ujian OSCE |
+| `assessor_digital_signature`| `TEXT`| Yes | `NULL` | - | Ya | Tanda tangan digital / hash kriptografis pengesahan assessor |
+| `assessment_date` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pelaksanaan ujian penilaian |
+| `final_outcome` | `VARCHAR(30)` | No | `'PENDING'` | IDX3 | Tidak | Hasil akhir: `PASSED`, `FAILED_THEORY_REMEDIATION`, `FAILED_OSCE_REMEDIATION`, `FAILED_UNQUALIFIED` |
+| `remediation_deadline` | `DATE` | Yes | `NULL` | - | Tidak | Batas waktu remedial ujian jika diberi kesempatan perbaikan |
+| `feedback_notes` | `TEXT` | Yes | `NULL` | - | Tidak | Catatan umpan balik pembinaan dari penguji klinis |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pencatatan hasil penilaian |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu perbaikan nilai jika remedial |
+
+### 21.7 Tabel `trx_training_certificates` (Sertifikat Pelatihan, Portofolio & Radar Kedaluwarsa)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (Bagian Diklat & SDM RS)
+- **Deskripsi:** Registri sertifikat pelatihan dan kompetensi staf rumah sakit, terhubung ke radar peringatan kedaluwarsa (H-90, H-60, H-30) dan arsip dokumen digital e-Dossier pegawai Sub-02.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik sertifikat kompetensi |
+| `certificate_number` | `VARCHAR(100)` | No | - | UQ, IDX1 | Tidak | Nomor seri resmi sertifikat (internal RS atau lembaga eksternal) |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID pegawai pemilik sertifikat |
+| `training_rule_id` | `UUID` | Yes | `NULL` | FK (`mst_mandatory_training_rules`), IDX3 | Tidak | Relasi ke master aturan jika sertifikat pelatihan wajib |
+| `enrollment_id` | `UUID` | Yes | `NULL` | FK (`trx_training_enrollment_requests`) | Tidak | Relasi ke berkas diklat internal jika diterbitkan oleh RS |
+| `training_title` | `VARCHAR(200)` | No | - | - | Tidak | Nama pelatihan yang tercantum pada sertifikat |
+| `issuing_institution` | `VARCHAR(150)` | No | - | - | Tidak | Lembaga penerbit (misal `Bagian Diklat RS Quilvian`, `PERKI`, `Kemenkes RI`) |
+| `issue_date` | `DATE` | No | - | IDX4 | Tidak | Tanggal penerbitan sertifikat |
+| `expiry_date` | `DATE` | Yes | `NULL` | IDX5 | Tidak | Tanggal kedaluwarsa masa berlaku (NULL jika seumur hidup) |
+| `status` | `VARCHAR(30)` | No | `'Active'` | IDX6 | Tidak | Status: `Draft`, `Active`, `ExpiringSoon`, `Expired`, `Revoked` |
+| `certificate_document_url`| `VARCHAR(250)`| No | - | - | Ya | Tautan berkas dokumen digital sertifikat (e-Dossier Sub-02) |
+| `plataran_sehat_cert_id` | `VARCHAR(100)` | Yes | `NULL` | IDX7 | Tidak | ID sertifikat resmi pada platform Plataran Sehat Kemenkes |
+| `skp_points_earned` | `NUMERIC(5,2)` | No | `0.00` | - | Tidak | Poin SKP resmi yang diperoleh |
+| `is_verified_by_diklat` | `BOOLEAN` | No | `FALSE` | - | Tidak | Status verifikasi keabsahan oleh staf Diklat jika unggahan eksternal |
+| `verified_by` | `UUID` | Yes | `NULL` | FK (`mst_workforce_profiles`) | Tidak | ID staf Diklat pemeriksa dokumen eksternal |
+| `verified_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu verifikasi keabsahan berkas |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pencatatan sertifikat |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu pembaruan data sertifikat |
+
+### 21.8 Tabel `trx_training_budgets` (Pagu Anggaran & Realisasi Biaya Pelatihan per Unit Kerja)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (Manajemen Keuangan & Diklat RS)
+- **Deskripsi:** Pengendalian alokasi pagu anggaran diklat tahunan per departemen/unit kerja, memastikan pengajuan pelatihan tidak melampaui sisa pagu biaya yang tersedia.
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik pagu anggaran unit |
+| `department_id` | `UUID` | No | - | FK (`mst_departments`), IDX1 | Tidak | ID unit kerja / departemen pemilik alokasi pagu |
+| `fiscal_year` | `INTEGER` | No | - | IDX2 | Tidak | Tahun anggaran fiskal berjalan (misal `2026`) |
+| `allocated_budget` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Pagu anggaran pelatihan yang disetujui untuk unit |
+| `committed_budget` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Anggaran yang telah terikat oleh pendaftaran dalam proses approval |
+| `realized_budget` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Anggaran yang telah direalisasikan dan dibayarkan |
+| `remaining_budget` | `NUMERIC(15,2)` | No | `0.00` | - | Ya | Sisa alokasi pagu anggaran yang masih dapat digunakan |
+| `is_frozen` | `BOOLEAN` | No | `FALSE` | - | Tidak | Flag pembekuan anggaran jika terjadi audit atau penyesuaian kas RS |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu penetapan pagu anggaran |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu mutasi perhitungan pagu |
+
+### 21.9 Tabel `hrd_training_bond_contracts` (Perjanjian Ikatan Dinas & Komitmen Retensi Staf Diklat)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` & `WorkforceCore` (Legal SDM RS)
+- **Deskripsi:** Kontrak ikatan dinas dan retensi kerja staf nakes yang dibiayai rumah sakit untuk pelatihan eksternal/spesialisasi dengan biaya > Rp 10 Juta atau durasi > 1 bulan (`HRD-DEC-162`).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik perjanjian ikatan dinas |
+| `contract_number` | `VARCHAR(100)` | No | - | UQ, IDX1 | Tidak | Nomor register akta ikatan dinas (misal `BND-HRD-2026-0012`) |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX2 | Tidak | ID staf nakes yang menandatangani ikatan dinas |
+| `enrollment_id` | `UUID` | No | - | FK (`trx_training_enrollment_requests`), IDX3 | Tidak | Relasi ke pendaftaran diklat yang dibiayai RS |
+| `training_title` | `VARCHAR(200)` | No | - | - | Tidak | Nama pelatihan/studi spesialisasi yang ditempuh |
+| `total_sponsorship_amount`| `NUMERIC(15,2)`| No | `0.00` | - | Ya | Total biaya pembiayaan oleh rumah sakit (pelatihan, transport, saku) |
+| `retention_period_months`| `INTEGER` | No | `24` | - | Tidak | Masa wajib retensi kerja dalam bulan (misal 12 s.d. 36 bulan) |
+| `start_date` | `DATE` | No | - | IDX4 | Tidak | Tanggal mulai berlakunya ikatan dinas (pasca pelatihan selesai) |
+| `end_date` | `DATE` | No | - | IDX5 | Tidak | Tanggal berakhirnya ikatan dinas secara normal |
+| `penalty_formula_type` | `VARCHAR(50)` | No | `'PRORATED_REMAINING_MONTHS'`| - | Tidak | Metode denda wanprestasi: `FULL_COST_PLUS_FINE_50`, `PRORATED_REMAINING_MONTHS` |
+| `status` | `VARCHAR(30)` | No | `'Draft'` | IDX6 | Tidak | Status: `Draft`, `PendingSigning`, `Active`, `Completed`, `BreachPenalized`, `Discharged` |
+| `signed_document_url` | `VARCHAR(250)` | Yes | `NULL` | - | Ya | Berkas PDF akta ikatan dinas bertanda tangan basah / meterai / e-Sign |
+| `breach_recorded_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Tanggal pencatatan wanprestasi jika staf mengundurkan diri sepihak |
+| `penalty_invoiced_amount`| `NUMERIC(15,2)`| Yes | `NULL` | - | Ya | Nominal tagihan penalti ganti rugi yang dibebankan kepada staf |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu penerbitan draft kontrak ikatan dinas |
+| `created_by` | `UUID` | No | - | - | Tidak | ID staf HR Legal pembuat kontrak |
+| `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu modifikasi data ikatan dinas |
+| `updated_by` | `UUID` | Yes | `NULL` | - | Tidak | ID user pengubah |
+
+### 21.10 Tabel `trx_plataran_sehat_skp_records` (Pencatatan Portofolio Satuan Kredit Profesi - SKP Kemenkes)
+- **Status Tabel:** `Baru`
+- **Modul Pemilik:** `LearningAndDevelopment` (SDM Nakes & Plataran Sehat Kemenkes)
+- **Deskripsi:** Portofolio perolehan Satuan Kredit Profesi (SKP) tenaga medis dan tenaga kesehatan yang dipetakan ke 3 kategori resmi Kemenkes (Pembelajaran, Pelayanan, Pengabdian) untuk perpanjangan SIP 5 tahunan (`INT-HR-80`).
+
+| Nama Kolom | Tipe Data | Nullable? | Default | PK/FK/Index | Sensitif? | Keterangan & Validasi Bisnis |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
+| `id` | `UUID` | No | `gen_random_uuid()` | PK | Tidak | Pengenal unik log portofolio SKP |
+| `workforce_profile_id` | `UUID` | No | - | FK (`mst_workforce_profiles`), IDX1 | Tidak | ID nakes pemilik perolehan SKP |
+| `skp_category` | `VARCHAR(50)` | No | - | IDX2 | Tidak | Kategori: `PEMBELAJARAN_DIKLAT`, `PELAYANAN_KLINIS`, `PENGABDIAN_MASYARAKAT` |
+| `activity_title` | `VARCHAR(250)` | No | - | - | Tidak | Nama kegiatan/seminar/pelayanan penghasil SKP |
+| `skp_earned` | `NUMERIC(5,2)` | No | `0.00` | - | Tidak | Jumlah poin SKP yang diperoleh |
+| `activity_date` | `DATE` | No | - | IDX3 | Tidak | Tanggal perolehan atau pelaksanaan kegiatan |
+| `plataran_sehat_id` | `VARCHAR(100)` | Yes | `NULL` | IDX4 | Tidak | ID referensi kegiatan / sertifikat dari Plataran Sehat Kemenkes |
+| `sync_status` | `VARCHAR(30)` | No | `'LOCAL_RECORDED'` | - | Tidak | Status: `LOCAL_RECORDED`, `VERIFIED_PLATARAN_SEHAT`, `SYNCED_SATUSEHAT_SDMK`, `REJECTED` |
+| `synced_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu sukses sinkronisasi dengan API Kemenkes |
+| `supporting_document_url`| `VARCHAR(250)`| Yes | `NULL` | - | Ya | Tautan bukti pendukung sertifikat/surat tugas di e-Dossier |
+| `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengentrian data perolehan SKP |

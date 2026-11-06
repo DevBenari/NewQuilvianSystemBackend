@@ -4535,3 +4535,181 @@ BE-HRD-221 [BE] ────┘
 * **Dependencies**: Seluruh task frontend `FE-HRD-186` s.d. `FE-HRD-199` dan `BE-HRD-221`
 * **Acceptance Criteria**: Build standalone Next.js sukses; linter 0 error 0 warning; seluruh 8 layar baru beroperasi mulus dan aman.
 * **Verifikasi**: Laporan task tracked `FE-HRD-200.md` dan output terminal npm.
+
+---
+
+## 18. Rencana Kerja Frontend Sub-Modul 15: OPPE, FPPE & Recredentialing (Slice `S-C1-OPPE`)
+
+### 18.1 Grafik Urutan Dependency Frontend `S-C1-OPPE`
+
+#### Grafik F54: Gelombang `MVP-45` (Client API, Redux Slice, Dashboard Radar OPPE & Form Peer Review Konfidensial)
+```text
+FE-HRD-201 (Client API & Redux Slice) ──┬──> FE-HRD-202 (Dashboard Radar OPPE Dokter FE-HRD-201)
+BE-HRD-228 [BE] ───────────────────────┘
+FE-HRD-201 [F54] ──> FE-HRD-203 (Konfigurasi Periode FE-HRD-202) ──> FE-HRD-204 (Modal Matriks KSM)
+BE-HRD-223 [BE] ───┘
+FE-HRD-201 [F54] ──> FE-HRD-205 (Form Peer Review FE-HRD-203) ──> FE-HRD-206 (Modal Disclaimer & Read-Audit)
+BE-HRD-227 [BE] ───┘
+```
+
+#### Grafik F55: Gelombang `MVP-46` (Feed Pemicu FPPE, Pemantauan Proctoring & Sidang Pleno)
+```text
+FE-HRD-201 [F54] ──> FE-HRD-207 (Feed Pemicu FPPE FE-HRD-204) ──> FE-HRD-208 (Modal Inisiasi Proctoring)
+BE-HRD-229 [BE] ───┘
+FE-HRD-201 [F54] ──> FE-HRD-209 (Pemantauan Proctoring FE-HRD-205) ──> FE-HRD-210 (Modal Logbook Berpseudonim) ──┐
+BE-HRD-231 [BE] ───┘                                                                                                │
+                                                                                                                    ├──> FE-HRD-211 ⏳ (Sidang Pleno Kesimpulan FE-HRD-206)
+BE-HRD-232 [BE] ────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Grafik F56: Gelombang `MVP-47` (Kalkulator Komposit 3 Tahun, Override Diskresi & Konsol SIMRS Sync)
+```text
+FE-HRD-201 [F54] ──> FE-HRD-212 (Kalkulator 3 Tahun FE-HRD-207) ──> FE-HRD-213 (Modal Override Tier)
+BE-HRD-233 [BE] ───┘
+FE-HRD-212 [F56] ──> FE-HRD-214 ⏳ (Konsol Sinkronisasi SIMRS EMR FE-HRD-208 & Modal Dispatch)
+BE-HRD-235 [BE] ───┘
+```
+
+#### Grafik F57: Gelombang Verifikasi & Standalone Build Production
+```text
+FE-HRD-202 [F54] ──┐
+FE-HRD-206 [F54] ──┼
+FE-HRD-211 [F55] ──┼──> FE-HRD-215 ⏳ (Verifikasi Build Standalone, Linting 0 Error & UAT Acceptance S-C1-OPPE)
+FE-HRD-214 [F56] ──┤
+BE-HRD-237 [BE] ───┘
+```
+
+---
+
+### Tabel Gelombang Eksekusi Frontend `S-C1-OPPE`
+
+| Gelombang | Task ID | Target Deliverable / Output Utama | Syarat Masuk (Dependencies) |
+| :---: | :--- | :--- | :--- |
+| **`MVP-45`** | `FE-HRD-201`, `FE-HRD-202`, `FE-HRD-203`, `FE-HRD-204`, `FE-HRD-205`, `FE-HRD-206` | Inisialisasi Redux state `clinicalPerformanceSlice.ts`, Axios client API Kontrak `v19`, dashboard radar chart 6 pilar ACGME/KARS dokter spesialis, antarmuka manajemen periode OPPE KSM, modal konfigurasi target ambang indikator, form evaluasi sejawat konfidensial, serta modal disclaimer hak istimewa *Peer Review Privilege* dengan perekaman *read-audit log*. | Disetujuinya Kontrak `v19` & `BE-HRD-223`, `BE-HRD-227`, `BE-HRD-228` |
+| **`MVP-46`** | `FE-HRD-207`, `FE-HRD-208`, `FE-HRD-209`, `FE-HRD-210`, `FE-HRD-211` | Dashboard feed deteksi pemicu kritis FPPE real-time, modal penugasan proctoring dokter baru & prosedur baru, dashboard pemantauan target kasus proctoring, modal entri logbook kasus berpseudonim, serta meja sidang pleno kesimpulan FPPE dan perumusan rencana pembinaan klinis. | `FE-HRD-201`, `BE-HRD-229`, `BE-HRD-231`, `BE-HRD-232` |
+| **`MVP-47`** | `FE-HRD-212`, `FE-HRD-213`, `FE-HRD-214` | Layanan kalkulator rapor komposit 3 tahun rekredensialing (25%-35%-40%), kartu visualisasi tier kelayakan (Hijau, Kuning, Merah), modal diskresi override Ketua Komite Medik, serta konsol monitoring sinkronisasi 4 putusan rekredensialing ke modul EMR SIMRS (`INT-HR-76`) beserta audit status lockout. | `FE-HRD-201`, `BE-HRD-233`, `BE-HRD-235` |
+| **Verifikasi** | `FE-HRD-215` | Audit linting ketat `npm run lint:errors` dengan hasil 0 error, verifikasi kompilasi produksi standalone `npm run build`, audit responsive rendering di desktop/tablet/mobile, serta verifikasi kelulusan skenario `UAT-OPP-01` s.d. `UAT-OPP-05`. | Seluruh task `FE-HRD-201` s.d. `FE-HRD-214` dan `BE-HRD-237` selesai |
+
+---
+
+### Detail Spesifikasi Task Frontend (`FE-HRD-201` s.d. `FE-HRD-215`)
+
+#### ⏳ `FE-HRD-201` — Inisialisasi Redux Slice `clinicalPerformanceSlice.ts`, Axios Client API & DTO Types Kontrak `v19`
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu Eksekusi
+* **Outcome**: Deklarasi modul Redux state slice `clinicalPerformanceSlice.ts`, adapter Axios terisolasi untuk 24 endpoint API Kontrak `v19`, DTO interface TypeScript (indikator ACGME, periode evaluasi, draf rapor, pemicu FPPE, logbook kasus, rapor 3 tahun, status sinkronisasi SIMRS), serta middleware error handler ramah pengguna.
+* **Dependencies**: Disetujuinya Kontrak `v19` & Blueprint Rev 44
+* **Acceptance Criteria**: State Redux dan action creators terpasang rapi; Axios client menangani HTTP 200, 400, 403, 404, dan 502 secara graceful; types TypeScript selaras 100% dengan kontrak backend.
+* **Verifikasi**: Uji unit Redux & verifikasi tipe TypeScript.
+
+#### ⏳ `FE-HRD-202` — Dashboard Kinerja Klinis & Visualisasi Radar OPPE Dokter Spesialis (`FE-HRD-201`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `FE-HRD-201`, `BE-HRD-228`
+* **Outcome**: Halaman dashboard utama performa klinis pada rute `/portal/performance/clinical-oppe`, radar chart interaktif 6 area kompetensi standar ACGME/KARS, kartu nilai komposit akhir (skor 60% SIMRS + 40% Peer Review), indikator kelulusan standar, riwayat pencapaian tahun sebelumnya, serta tombol unduh rapor resmi PDF bertanda tangan digital komite.
+* **Dependencies**: `FE-HRD-201`, `BE-HRD-228`
+* **Acceptance Criteria**: Radar chart menampilkan 6 pilar kompetensi secara responsif; rincian breakdown nilai 60:40 tersaji transparan; unduh rapor PDF berfungsi.
+* **Verifikasi**: Uji fungsional visual `AT-HRD-OPP-08` dan `UAT-OPP-01`.
+
+#### ⏳ `FE-HRD-203` — Manajemen Periode & Pengaturan Matriks Indikator OPPE KSM (`FE-HRD-202`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `FE-HRD-201`, `BE-HRD-223`
+* **Outcome**: Antarmuka bagi Subkomite Mutu Profesi pada rute `/admin/performance/oppe-periods`, tabel siklus periode evaluasi tahunan/semesteran, filter status periode (*Draft*, *Active*, *EvaluationClosed*, *Finalized*), tombol aksi pembukaan periode baru, penguncian entri, dan finalisasi rapor KSM.
+* **Dependencies**: `FE-HRD-201`, `BE-HRD-223`
+* **Acceptance Criteria**: Admin dapat membuka periode evaluasi baru; validasi form mencegah submit jika bobot kuantitatif dan kualitatif tidak tepat 100% (`VR-OPP-01`).
+* **Verifikasi**: Uji fungsional form `AT-HRD-OPP-01` dan `AT-HRD-OPP-02`.
+
+#### ⏳ `FE-HRD-204` — Modal Pengaturan Ambang Batas & Bobot Indikator Spesifik KSM (`OppeIndicatorConfigModal`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `FE-HRD-203`
+* **Outcome**: Komponen modal dialog interaktif untuk menyesuaikan ambang batas target numerik dan persentase kontribusi bobot indikator khusus KSM (misal: IDO Bedah < 1.5%, keterlambatan resume EMR Penyakit Dalam < 5%, kepatuhan CP Anak > 90%).
+* **Dependencies**: `FE-HRD-203`
+* **Acceptance Criteria**: Form modal memvalidasi tipe operator (GTE, LTE, EQ, BETWEEN); perubahan target tersimpan ke master indikator KSM.
+* **Verifikasi**: Uji konfigurasi indikator spesifik KSM.
+
+#### ⏳ `FE-HRD-205` — Formulir Evaluasi Kualitatif Peer Review Sejawat KSM (`FE-HRD-203`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `FE-HRD-201`
+* **Outcome**: Lembar instrumen telaah sejawat pada rute `/portal/performance/peer-review-entry`, daftar dokter sejawat yang ditugaskan untuk dinilai, skala penilaian Likert 1-5 untuk domain etika profesi, komunikasi efektif SBAR, dan partisipasi audit mortalitas/morbiditas, serta validasi catatan wajib jika skor <= 2 (`VR-OPP-04`).
+* **Dependencies**: `FE-HRD-201`
+* **Acceptance Criteria**: Form Likert berfungsi mulus; pesan peringatan muncul dan submit terkunci jika penilai memberi nilai <= 2 tanpa catatan naratif minimal 25 karakter.
+* **Verifikasi**: Uji validasi kualitatif `AT-HRD-OPP-04` dan `AT-HRD-OPP-06`.
+
+#### ⏳ `FE-HRD-206` — Komponen Peringatan Kerahasiaan Hak Istimewa Peer Review Privilege & Modal Read-Audit Log
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `FE-HRD-205`, `BE-HRD-227`
+* **Outcome**: Komponen dialog peringatan hukum *Peer Review Privilege* (`PeerReviewConfidentialityWarningModal`) yang wajib disetujui pengguna sebelum lembar ulasan kualitatif sejawat terbuka, disertai pemanggilan API seketika untuk mencatat log pembacaan (*read-audit log*) ke database forensik.
+* **Dependencies**: `FE-HRD-205`, `BE-HRD-227`
+* **Acceptance Criteria**: Dokumen konfidensial tertutup blur sebelum tombol "Saya Menyetujui Ketentuan Kerahasiaan" diklik; klik memicu request pencatatan audit log `PeerReviewDocumentRead`.
+* **Verifikasi**: Uji privasi & keamanan audit `AT-HRD-OPP-07` dan `UAT-OPP-02`.
+
+#### ⏳ `FE-HRD-207` — Dashboard Pusat Deteksi Pemicu Kritis & Pelacakan Kasus FPPE (`FE-HRD-204`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `FE-HRD-201`, `BE-HRD-229`
+* **Outcome**: Antarmuka pusat pengawasan insiden keselamatan klinis pada rute `/admin/performance/fppe-triggers`, feed real-time alert kejadian sentinel, komplikasi bedah > 2 SD, penundaan resume EMR > 48 jam > 20%, serta tabel daftar kasus penugasan FPPE berjalan.
+* **Dependencies**: `FE-HRD-201`, `BE-HRD-229`
+* **Acceptance Criteria**: Insiden sentinel ditandai dengan badge merah berkedip prioritas fatal; rincian pemicu menyajikan data insiden SIMRS/KMKP pendukung.
+* **Verifikasi**: Uji feed deteksi insiden `AT-HRD-OPP-10`, `AT-HRD-OPP-11`, dan `UAT-OPP-03`.
+
+#### ⏳ `FE-HRD-208` — Modal Inisiasi Penugasan FPPE & Penetapan Dokter Proctor Senior
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `FE-HRD-207`
+* **Outcome**: Modal dialog pembuatan berkas penugasan FPPE terarah, pemilihan pemicu insiden / rujukan etik, penetapan target kasus observasi (default: 10 kasus staf baru, 5 kasus prosedur baru), serta pemilihan Dokter Proctor senior pendamping dengan validasi masa kerja klinis.
+* **Dependencies**: `FE-HRD-207`
+* **Acceptance Criteria**: Form memvalidasi pengisian target kasus dan durasi observasi; penugasan FPPE sukses terbentuk dengan status `InProgress`.
+* **Verifikasi**: Uji inisiasi penugasan proctoring `AT-HRD-OPP-13` dan `AT-HRD-OPP-14`.
+
+#### ⏳ `FE-HRD-209` — Dashboard Pemantauan Proctoring Staf Baru & Prosedur Baru (`FE-HRD-205`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `FE-HRD-201`
+* **Outcome**: Dashboard kemajuan proctoring pada rute `/admin/performance/fppe-proctoring`, kartu progres kasus (misal: 7/10 kasus terpenuhi), hitung mundur sisa hari masa observasi (3 bulan / 6 bulan), status verifikasi proctor, serta daftar logbook tindakan klinis.
+* **Dependencies**: `FE-HRD-201`
+* **Acceptance Criteria**: Visual progress bar menampilkan persentase ketercapaian target kasus secara akurat; warning banner muncul jika masa observasi < 14 hari namun kasus belum lengkap.
+* **Verifikasi**: Uji pemantauan progres kasus proctoring `UAT-OPP-04`.
+
+#### ⏳ `FE-HRD-210` — Modal Entri Logbook Kasus Terpseudonim & Antarmuka Verifikasi Proctor (`FppeCaseLogEntryModal`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `FE-HRD-209`, `BE-HRD-231`
+* **Outcome**: Modal pencatatan kasus tindakan operasi/tindakan medis terproctoring dengan input nomor rekam medis yang otomatis disamarkan (*pseudonimisasi*, `VR-OPP-11`), input tanggal tindakan, serta antarmuka verifikasi bagi Dokter Proctor untuk menilai kemandirian klinis (Level 1-4) dan mencatat observasi komplikasi.
+* **Dependencies**: `FE-HRD-209`, `BE-HRD-231`
+* **Acceptance Criteria**: Nomor RM pasien terenkripsi/terpseudonimkan pada antarmuka; Dokter Proctor dapat menyetujui verifikasi dengan membubuhkan tanda tangan digital.
+* **Verifikasi**: Uji privasi data RM & verifikasi proctor `AT-HRD-OPP-15` dan `AT-HRD-OPP-16`.
+
+#### ⏳ `FE-HRD-211` — Sidang Pleno Kesimpulan & Rekomendasi Wewenang FPPE (`FE-HRD-206`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `FE-HRD-210`, `BE-HRD-232`
+* **Outcome**: Meja kerja persidangan Subkomite Mutu Profesi pada rute `/admin/performance/fppe-conclusions`, ringkasan rekapitulasi kasus proctoring dan tingkat komplikasi, formulir penetapan putusan pleno (Lolos Penuh, Perpanjang Proctoring, Supervisi, atau Cabut Wewenang), editor rencana pembinaan (*Remediation Plan*), serta pengesahan digital Ketua Komite Medik.
+* **Dependencies**: `FE-HRD-210`, `BE-HRD-232`
+* **Acceptance Criteria**: Putusan pleno tersimpan sah; opsi perpanjangan dibatasi maksimal 3 bulan; status RKK dokter seketika terbarui pasca-sidang.
+* **Verifikasi**: Uji sidang pleno FPPE `AT-HRD-OPP-17`, `AT-HRD-OPP-18`, dan `UAT-OPP-04`.
+
+#### ⏳ `FE-HRD-212` — Kalkulator Rapor Komposit 3 Tahun Rekredensialing & Visualisasi Tier (`FE-HRD-207`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
+* **Status**: ⏳ Menunggu `FE-HRD-201`, `BE-HRD-233`
+* **Outcome**: Antarmuka kalkulator rapor mutu 3 tahunan pada rute `/admin/credentialing/recred-composite-scorecard`, tabel perbandingan skor OPPE tahun ke-1 (25%), tahun ke-2 (35%), dan tahun ke-3 (40%), kartu skor akhir komposit, badge visual tier kelayakan: Tier Hijau (*Fast-Track*), Tier Kuning (*Clarification*), dan Tier Merah (*Plenary Investigation*), serta ringkasan catatan pembinaan.
+* **Dependencies**: `FE-HRD-201`, `BE-HRD-233`
+* **Acceptance Criteria**: Komposit 3 tahun terhitung deterministik; kartu tier menampilkan rekomendasi alur sidang rekredensialing secara visual dan jelas.
+* **Verifikasi**: Uji algoritma kalkulasi komposit `AT-HRD-OPP-19`, `AT-HRD-OPP-20`, dan `UAT-OPP-05`.
+
+#### ⏳ `FE-HRD-213` — Modal Diskresi Penyesuaian Tier Kelayakan Rekredensialing (`RecredentialingTierOverrideModal`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
+* **Status**: ⏳ Menunggu `FE-HRD-212`
+* **Outcome**: Modal dialog otorisasi khusus Ketua Komite Medik untuk menyesuaikan tier kelayakan kalkulator (misal menaikkan/menurunkan tier nakes), dilengkapi form wajib input alasan justifikasi klinis tertulis dan unggah berkas nota pertimbangan (`VR-OPP-19`).
+* **Dependencies**: `FE-HRD-212`
+* **Acceptance Criteria**: Penyesuaian tier terkunci jika kolom justifikasi kosong; event audit `RecredentialingTierOverridden` tercatat di riwayat berkas.
+* **Verifikasi**: Uji diskresi otorisasi tier `AT-HRD-OPP-21`.
+
+#### ⏳ `FE-HRD-214` — Konsol Sinkronisasi Putusan Rekredensialing ke SIMRS EMR & Audit Bypass (`FE-HRD-208`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
+* **Status**: ⏳ Menunggu `FE-HRD-212`, `BE-HRD-235`
+* **Outcome**: Konsol pengendalian sinkronisasi wewenang klinis pada rute `/admin/credentialing/recred-simrs-sync`, pemantauan status transmisi 4 putusan (Perpanjang As-Is & Upgrade -> Level 4 Mandiri, Restricted -> Level 3 Supervisi co-sign 24 jam, Revoked -> Level 1-2 Hard-Stop Blokir Total), modal inspeksi payload JSON (`SimrsClinicalPrivilegeSyncModal`), tombol retry transmisi, serta log jejak audit percobaan akses yang ditolak oleh SIMRS.
+* **Dependencies**: `FE-HRD-212`, `BE-HRD-235`
+* **Acceptance Criteria**: Status sinkronisasi ke modul EMR SIMRS terpantau real-time; pengujian simulasi putusan Revoked memicu konfirmasi lockout Hard-Stop seketika.
+* **Verifikasi**: Uji integrasi SIMRS & penegakan Hard-Stop `AT-HRD-OPP-22` dan `UAT-OPP-05`.
+
+#### ⏳ `FE-HRD-215` — Verifikasi Integrasi Menyeluruh Next.js, Linting 0 Error & UAT Acceptance `S-C1-OPPE`
+* **Slice / MVP**: `S-C1-OPPE` / Verifikasi
+* **Status**: ⏳ Menunggu `FE-HRD-201` s.d. `FE-HRD-214`, `BE-HRD-237`
+* **Outcome**: Verifikasi kompilasi produksi Next.js App Router (`npm run build`), audit ketat linter CI/CD (`npm run lint:errors`) dengan hasil 0 error, verifikasi responsive rendering di desktop/tablet/mobile, serta verifikasi kelulusan skenario `UAT-OPP-01` s.d. `UAT-OPP-05`.
+* **Dependencies**: Seluruh task frontend `FE-HRD-201` s.d. `FE-HRD-214` dan `BE-HRD-237`
+* **Acceptance Criteria**: Build standalone Next.js sukses; linter 0 error 0 warning; seluruh 8 layar baru beroperasi mulus dan aman.
+* **Verifikasi**: Laporan task tracked `FE-HRD-215.md` dan output terminal npm.

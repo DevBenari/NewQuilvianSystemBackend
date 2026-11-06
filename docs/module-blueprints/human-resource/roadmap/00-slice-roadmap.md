@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `16` — revisi `15` menyerap target state Slice `S-D4`; **revisi `16` (5 November 2026) menyerap keputusan `HRD-DEC-146` s.d. `HRD-DEC-151`, `HRD-ASM-43` s.d. `HRD-ASM-46`, dan resolusi final `HRD-DEC-005` untuk target state Slice `S-C1` (Credentialing, License & Clinical Privilege), merencanakan 16 task backend (`BE-HRD-206` s.d. `BE-HRD-221`) dan 15 task frontend (`FE-HRD-186` s.d. `FE-HRD-200`) lintas gelombang MVP-42 s.d. MVP-44 & Verifikasi** |
+| Roadmap revision | `17` — revisi `16` menyerap target state Slice `S-C1`; **revisi `17` (6 November 2026) menyerap keputusan `HRD-DEC-152` s.d. `HRD-DEC-157` dan asumsi `HRD-ASM-47` s.d. `HRD-ASM-50` untuk target state Slice `S-C1-OPPE` (OPPE, FPPE & Recredentialing), merencanakan 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`) lintas gelombang MVP-45 s.d. MVP-47 & Verifikasi** |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -59,7 +59,7 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | `HRD-PH-002` | `S-A1` s.d. `S-A7` | `READY` |
 | `HRD-PH-003` | `S-B1` s.d. `S-B4` | `PLANNED` — `S-B4` (17 BE, 13 FE rev 8); `S-B1` (13 BE, 14 FE rev 9); `S-B2` (14 BE, 14 FE rev 10); `S-B3` direncanakan pada roadmap revision `11` (5 November 2026): 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) |
 | `HRD-PH-004` | `S-B5`, `S-B6` | `PLANNED` — `S-B5` (15 BE, 14 FE rev 12); `S-B6` direncanakan pada roadmap revision `13` (5 November 2026): 15 task backend (`BE-HRD-161` s.d. `BE-HRD-175`) dan 14 task frontend (`FE-HRD-144` s.d. `FE-HRD-157`) |
-| `HRD-PH-005` | `S-C1` | `PLANNED` (16 task BE `BE-HRD-206` s.d. `BE-HRD-221`, 15 task FE `FE-HRD-186` s.d. `FE-HRD-200`, roadmap rev 16) |
+| `HRD-PH-005` | `S-C1`, `S-C1-OPPE` | `PLANNED` — `S-C1` (16 BE, 15 FE rev 16); `S-C1-OPPE` direncanakan pada roadmap revision `17` (6 November 2026): 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`) |
 | `HRD-PH-006` | `S-C6` | `BLOCKED` |
 | `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1` dan `S-D2`; `PLANNED` untuk `S-D3` (15 BE, 14 FE rev 14) dan `S-D4` (5 November 2026, 15 task BE & 14 task FE, roadmap rev 15); `S-D5` `DEFERRED` |
 | `HRD-PH-008` | `S-C2` s.d. `S-C5` | `READY` |
@@ -415,8 +415,7 @@ dengan kewenangan klinis **tidak** dirancang di sini, karena itu bagian `S-C1` y
 | **Acceptance Criteria** | 1. Satu pegawai tidak dapat dinilai dua kali pada siklus yang sama. 2. Penilaian yang sudah final tidak dapat diubah diam-diam; koreksi menghasilkan revisi. 3. Pegawai melihat hasilnya sendiri, bukan hasil orang lain |
 | **Release Status** | `READY` |
 
-Catatan batas: kontribusi mutu dan keselamatan pasien untuk tenaga medis **tidak** dirancang di
-sini. Itu bagian OPPE yang `BLOCKED`.
+Catatan batas: kontribusi mutu dan keselamatan pasien untuk tenaga medis dirancang pada `S-C1-OPPE` yang telah berstatus `PLANNED` (Roadmap Revisi 17).
 
 ### `S-C4` — Lifecycle dan offboarding
 
@@ -695,7 +694,7 @@ Contoh supaya batasnya jelas:
 | `READY` | **16** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1) |
 | `PLANNED` | **8** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D3` (1, rev 14), `S-D4` (1, sejak 5 November 2026 — 15 task BE, 14 task FE rev 15) |
 | `PARTIAL` | **0** | Tidak ada slice PARTIAL |
-| `PLANNED` | 9 | `S-B1`, `S-B2`, `S-B3`, `S-B5`, `S-B6`, `S-D1`, `S-D3`, `S-D4`, `S-C1` |
+| `PLANNED` | 10 | `S-B1`, `S-B2`, `S-B3`, `S-B5`, `S-B6`, `S-D1`, `S-D3`, `S-D4`, `S-C1`, `S-C1-OPPE` |
 | `BLOCKED` | 1 | `S-C6` |
 | `DEFERRED` | 1 | `S-D5` |
 | **Total** | **27** | |

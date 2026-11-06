@@ -123,7 +123,7 @@ Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yan
 | **12** | **Benefit Management** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
 | 13 | Business Travel & Expense | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | Prioritas Rendah |
 | **14** | **Credentialing, License & Clinical Privilege** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 (Slice S-C1) |
-| 15 | OPPE, FPPE & Recredentialing | [ ] Menunggu Komite Medik | [ ] Belum dikerjakan | [ ] Belum dikerjakan | Tahap Lanjutan |
+| **15** | **OPPE, FPPE & Recredentialing** | [x] Selesai Di-grill (✅) | [ ] Menunggu Desain/Plan (📋) | [ ] Menunggu Desain/Plan (📋) | Evaluasi Mutu Klinis & Rekredensialing Disetujui (Slice S-C1-OPPE) |
 | 16 | Learning, Training & Competency | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 17 | Performance Management & Clinical Career | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 18 | Occupational Health & Staff Safety | [ ] Menunggu K3RS | [ ] Terblokir Kebijakan K3RS | [ ] Terblokir Kebijakan K3RS | Terblokir Privasi Medis |
@@ -591,9 +591,9 @@ Perawat baru dengan kontrak PKWT mengikuti orientasi rumah sakit dan preceptorsh
 **Status source:** `PARTIAL END-TO-END — REUSE + HARDEN`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Dirancang & Disetujui (✅) — Roster 24/7 unit, validasi keselamatan `B1`–`B7` & peringatan beralasan `W1`–`W7`, terbit mandiri Kepala Ruangan, override langsung efektif, koreksi mundur 3 hari, tata kelola siaga on-call & SLA menit (`02-backend-architecture.md` §19, `03-frontend-architecture.md` §15, Kontrak `v10`).
-- [ ] **Backend:** Baru Di-Plan / Belum Di-Build (📋) — Roadmap selesai direncanakan (17 task: `BE-HRD-087` s.d. `BE-HRD-103`), spesifikasi kontrak API & validasi siap, kode program belum dieksekusi/di-build.
-- [ ] **Frontend:** Baru Di-Plan / Belum Di-Build (📋) — Roadmap selesai direncanakan (13 task: `FE-HRD-075` s.d. `FE-HRD-087` untuk 6 layar `FE-HRD-138` s.d. `FE-HRD-143`), UI component siap dibangun, kode program belum dieksekusi/di-build.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-C1-OPPE Rencana delivery disetujui (6 November 2026, Kontrak v19 approved, Roadmap rev 17), siap untuk eksekusi task per task.
+- [ ] **Backend:** Baru Di-plan V2 (⏳) — 16 task (`BE-HRD-222` s.d. `BE-HRD-237`) pada roadmap revisi 17.
+- [ ] **Frontend:** Baru Di-plan V2 (⏳) — 15 task (`FE-HRD-201` s.d. `FE-HRD-215`) pada roadmap revisi 17.
 
 ## Penjelasan untuk developer
 
@@ -1395,9 +1395,9 @@ Dokter spesialis mendapatkan SIP aktif tetapi meminta privilege prosedur interve
 **Status source:** `NEW + EXTEND_EXISTING — P0`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Menunggu persetujuan tata kelola Komite Keperawatan & Medik.
-- [ ] **Backend:** Belum dikerjakan (Tahap lanjutan pasca-kredensial).
-- [ ] **Frontend:** Belum dikerjakan.
+- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice S-C1-OPPE Desain teknis selesai (6 November 2026, Kontrak v19 draft), siap untuk perencanaan delivery slice (/plan-module-delivery).
+- [ ] **Backend:** Menunggu Rencana V2 (⏳) — Perancangan 8 tabel & 24 endpoint API `v19` selesai.
+- [ ] **Frontend:** Menunggu Rencana V2 (⏳) — Perancangan 8 layar (`FE-HRD-201` s.d. `FE-HRD-208`) selesai.
 
 ## Penjelasan untuk developer
 
@@ -1485,9 +1485,9 @@ Dokter bedah mempunyai OPPE stabil selama dua tahun, tetapi tahun ketiga terdapa
 **Status source:** `PARTIAL — EXTEND_EXISTING`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — Diklat RS, sertifikasi kompetensi, pencatatan masa berlaku STR/SIP (`BE-HRD-012`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor diklat & sertifikat, monitoring masa berlaku sertifikasi (`FE-HRD-015`).
+- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice S-C2 Pelatihan wajib akreditasi STARKES KPS 8 (100% pegawai, siklus 2 tahun), evaluasi kelulusan presensi vs ujian teori post-test & simulasi OSCE klinis ber-e-sign assessor, radar kedaluwarsa H-90/60/30 & safeguard shift dinas buddy system ke Sub-06, prasyarat RKK Sub-14 & umpan CPD ke OPPE Sub-15, TNA & pagu anggaran diklat, penerbitan otomatis akta ikatan dinas retensi kerja nakes > Rp 10 Jt / > 1 bulan, serta visual tracker 50 SKP Plataran Sehat Kemenkes dirancang lengkap dalam 11 artefak blueprint (Kontrak v20, 24 API endpoints, 25 aturan validasi, 22 UAT case, 25 FR, Waves MVP-48 s.d. MVP-50).
+- [ ] **Backend:** Menunggu Desain V2 (⏳) — Rancang ekspansi 11 model Trx, katalog kompetensi & modul asesmen.
+- [ ] **Frontend:** Menunggu Desain V2 (⏳) — Rancang portal diklat, monitoring sertifikasi, OSCE evaluation & SKP tracker.
 
 ## Penjelasan untuk developer
 

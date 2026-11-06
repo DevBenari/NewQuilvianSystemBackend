@@ -6,7 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
-using QuilvianSystemBackend.Persistence;
+using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -106,8 +106,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     PaymentDate = paymentDate,
                     PayrollPeriodStatus = "Processing",
                     IsActive = true,
-                    CreatedBy = actorUserId.ToString(),
-                    CreatedDate = DateTime.UtcNow
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
                 };
 
                 _context.MstPayrollPeriods.Add(period);
@@ -118,8 +118,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             // 5. Generate Nomor Batch Unik Resmi (Format: PRUN-YYYYMM-XXX)
             var currentMonthRunsCount = await _context.TrxPayrollRuns
-                .CountAsync(r => r.CreatedDate.Year == command.PeriodYear
-                              && r.CreatedDate.Month == command.PeriodMonth, cancellationToken);
+                .CountAsync(r => r.CreateDateTime.Year == command.PeriodYear
+                              && r.CreateDateTime.Month == command.PeriodMonth, cancellationToken);
 
             var runNumber = $"PRUN-{command.PeriodYear}{command.PeriodMonth:D2}-{(currentMonthRunsCount + 1):D3}";
 
@@ -141,8 +141,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 Notes = command.Notes,
                 IsLocked = false,
                 IsActive = true,
-                CreatedBy = actorUserId.ToString(),
-                CreatedDate = DateTime.UtcNow
+                CreateBy = actorUserId,
+                CreateDateTime = DateTime.UtcNow
             };
 
             // 7. Populasi Daftar Pegawai Aktif Rumah Sakit
@@ -178,7 +178,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     WorkforceProfileId = profile.Id,
                     EmployeePayrollStatus = "Pending",
                     CurrencyCode = "IDR",
-                    EmployeeNumberSnapshot = profile.WorkforceCode,
+                    EmployeeNumberSnapshot = profile.ProfileCode,
                     EmployeeNameSnapshot = profile.DisplayName,
                     DepartmentNameSnapshot = profile.PrimaryDepartment?.DepartmentName,
                     PositionNameSnapshot = profile.PrimaryPosition?.PositionName,
@@ -190,8 +190,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     GrossPay = salaryAss?.BaseSalary ?? 0m,
                     NetPay = salaryAss?.BaseSalary ?? 0m,
                     IsActive = true,
-                    CreatedBy = actorUserId.ToString(),
-                    CreatedDate = DateTime.UtcNow
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
                 };
 
                 runEmployees.Add(runEmp);
@@ -239,8 +239,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             {
                 Id = run.Id,
                 RunNumber = run.RunNumber,
-                PeriodYear = run.PayrollPeriod?.FiscalYear ?? run.CreatedDate.Year,
-                PeriodMonth = run.PayrollPeriod?.PeriodNumber ?? run.CreatedDate.Month,
+                PeriodYear = run.PayrollPeriod?.FiscalYear ?? run.CreateDateTime.Year,
+                PeriodMonth = run.PayrollPeriod?.PeriodNumber ?? run.CreateDateTime.Month,
                 PeriodName = run.PayrollPeriod?.PayrollPeriodName ?? "Periode Gaji",
                 RunType = run.RunType,
                 RunStatus = run.RunStatus,
@@ -258,7 +258,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 IsLocked = run.IsLocked,
                 ConfigurationSnapshotJson = run.ConfigurationSnapshotJson,
                 Notes = run.Notes,
-                CreatedAt = run.CreatedDate,
+                CreatedAt = run.CreateDateTime,
                 Employees = run.Employees.Select(e => new PayrollRunEmployeeItemDto
                 {
                     Id = e.Id,
@@ -283,15 +283,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var runs = await _context.TrxPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .Where(r => r.IsActive)
-                .OrderByDescending(r => r.CreatedDate)
+                .OrderByDescending(r => r.CreateDateTime)
                 .ToListAsync(cancellationToken);
 
             return runs.Select(r => new PayrollRunSummaryDto
             {
                 Id = r.Id,
                 RunNumber = r.RunNumber,
-                PeriodYear = r.PayrollPeriod?.FiscalYear ?? r.CreatedDate.Year,
-                PeriodMonth = r.PayrollPeriod?.PeriodNumber ?? r.CreatedDate.Month,
+                PeriodYear = r.PayrollPeriod?.FiscalYear ?? r.CreateDateTime.Year,
+                PeriodMonth = r.PayrollPeriod?.PeriodNumber ?? r.CreateDateTime.Month,
                 RunType = r.RunType,
                 RunStatus = r.RunStatus,
                 TotalEmployeeCount = r.TotalEmployeeCount,
@@ -301,7 +301,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 TotalNetPay = r.TotalNetPay,
                 CalculatedAt = r.CalculatedAt,
                 ApprovedAt = r.ApprovedAt,
-                CreatedAt = r.CreatedDate
+                CreatedAt = r.CreateDateTime
             }).ToList();
         }
     }

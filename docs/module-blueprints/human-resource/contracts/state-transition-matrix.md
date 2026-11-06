@@ -1858,3 +1858,204 @@ Enum: `GrantedIndependent`, `GrantedSupervised`, `Suspended`, `Revoked`.
 | `[None]` | `GrantedSupervised` | SPK resmi disahkan Dirut dengan Level 3 | Dokter supervisor terdaftar di database | Order di SIMRS memerlukan co-signature supervisor dalam 24 jam | `Spk_Rkk:SignDirector` |
 | `GrantedIndependent` | `Suspended` | SIP kedaluwarsa atau masa SPK 3 tahun habis | Trigger event `OnSipExpired` atau `OnSpkExpired` | Dokter tidak dapat melakukan order tindakan mandiri di SIMRS | `System_Scheduler` |
 | `Suspended` | `GrantedIndependent` | SPK baru hasil rekredensialing diterbitkan | Berkas rekredensialing disahkan kembali oleh Dirut | Hak pelayanan mandiri dipulihkan seketika pada SIMRS | `Spk_Rkk:SignDirector` |
+
+---
+
+## 23. Matriks Transisi Status Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`)
+
+### 23.1 Transisi Status Siklus Periode OPPE (`OppeEvaluationPeriodStatus`)
+
+Enum: `Draft`, `Active`, `EvaluationClosed`, `Finalized`, `Cancelled`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Sekretariat Komite Medik membuat periode OPPE baru | Tahun dan siklus (Semester 1, Semester 2, Tahunan) diisi valid | Matriks indikator KSM dan bobot default (60:40) dipetakan | `Oppe_Period:Manage` |
+| `Draft` | `Active` | Ketua Subkomite Mutu Profesi membuka periode evaluasi | Matriks indikator KSM lengkap dengan target ambang batas | Jadwal background sync SIMRS dijadwalkan; form peer review dibuka | `Oppe_Period:Manage` |
+| `Active` | `EvaluationClosed` | Batas akhir waktu entri penilaian sejawat tercapai | Jadwal cutoff periode berakhir atau ditutup manual oleh admin | Entri baru peer review dikunci (*read-only*); kalkulator komposit dijalankan | `Oppe_Period:Manage` |
+| `EvaluationClosed` | `Finalized` | Sidang Subkomite Mutu Profesi mengesahkan seluruh rapor | Seluruh rapor dokter berstatus `Completed` atau terverifikasi | Status periode dikunci permanen (`is_locked = TRUE`), rapor siap disinkronkan ke recredentialing | `Oppe_Period:Manage` |
+| `Draft` / `Active` | `Cancelled` | Pembatalan darurat periode oleh Direksi / Komite Medik | Alasan pembatalan resmi tercatat dalam sistem | Seluruh draf evaluasi dibatalkan, logbook diarsipkan | `Oppe_Period:Manage` |
+
+---
+
+### 23.2 Transisi Status Rapor Individu OPPE Dokter (`OppeStaffEvaluationStatus`)
+
+Enum: `Draft`, `InReview`, `Completed`, `Acknowledged`, `Disputed`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Background worker menginisiasi rapor seluruh dokter aktif | Periode OPPE berstatus `Active` | Berkas rapor terbentuk dengan target indikator spesifik KSM | `System_Worker` |
+| `Draft` | `InReview` | Integrasi SIMRS menarik data kuantitatif / Peer review masuk | Data indikator SIMRS terisi & penugasan peer review terkirim | Sistem menghitung skor parsial sementara; alert dini menyala jika di bawah target | `System_Worker` / `Oppe_Evaluation:Calculate` |
+| `InReview` | `Completed` | Subkomite Mutu menyetujui komposit 60% SIMRS + 40% Peer | Seluruh indikator terisi dan skor komposit terhitung | Rapor resmi terbit, notifikasi dikirim ke portal dokter untuk dibaca | `Oppe_Evaluation:Finalize` |
+| `Completed` | `Acknowledged` | Dokter menekan konfirmasi baca di portal mandiri | Dokter telah meninjau rincian nilai dan catatan komite | Rapor tercatat sah telah diketahui nakes, siap menjadi arsip e-Dossier | `Staff:SelfPortal` |
+| `Completed` | `Disputed` | Dokter mengajukan sanggahan nilai indikator tertentu | Diajukan dalam tempo maksimal 7 hari kalender pasca-terbit | Berkas masuk daftar klarifikasi Subkomite Mutu Profesi | `Staff:SelfPortal` |
+| `Disputed` | `Completed` | Klarifikasi selesai dikaji bersama Ketua KSM | Berita acara penyesuaian/penetapan ulang nilai disetujui | Nilai komposit diperbarui, status dikembalikan ke Completed | `Oppe_Evaluation:Finalize` |
+
+---
+
+### 23.3 Transisi Status Penugasan FPPE Terarah (`FppeEngagementStatus`)
+
+Enum: `Initiated`, `InProgress`, `Extended`, `UnderReview`, `Concluded`, `Aborted`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Initiated` | Pemicu kritis terdeteksi (sentinel, komplikasi > 2 SD, staf baru) | Insiden terverifikasi atau nakes baru selesai kredensialing awal | Penugasan FPPE terbentuk; draf proctoring logbook disiapkan | `Fppe_Engagement:Create` |
+| `Initiated` | `InProgress` | Ketua Komite Medik menetapkan Dokter Proctor pendamping | Surat tugas proctor diterbitkan dengan target kasus (10 / 5) | Akses entri logbook kasus dibuka bagi dokter & proctor | `Fppe_Engagement:Create` |
+| `InProgress` | `Extended` | Masa observasi habis namun target kasus belum cukup | Evaluasi proctor merekomendasikan penambahan durasi observasi | Durasi diperpanjang maksimal 3 bulan; target kasus disesuaikan | `Fppe_Engagement:Create` |
+| `InProgress` / `Extended` | `UnderReview` | Target kasus klinis tercapai & seluruh logbook diverifikasi proctor | Logbook kasus lengkap dan diverifikasi proctor | Jadwal sidang pleno Subkomite Mutu Profesi diagendakan | `System_Worker` / `Fppe_CaseLog:Verify` |
+| `UnderReview` | `Concluded` | Sidang pleno mengesahkan vonis akhir FPPE | Berita acara putusan sidang ditandatangani Ketua Komite | Putusan FPPE mengupdate status RKK tenaga medis (Lolos/Supervisi/Cabut) | `Fppe_Conclusion:Approve` |
+| `Initiated` / `InProgress` | `Aborted` | Investigasi kasus menemukan dokter tidak bersalah / mutasi | Keputusan resmi Ketua Komite Medik dengan justifikasi | Penugasan FPPE ditutup tanpa catatan pelanggaran | `Fppe_Engagement:Create` |
+
+---
+
+### 23.4 Klasifikasi Tier Kelayakan Rekredensialing (`RecredentialingEligibilityTier`)
+
+Enum: `GreenFastTrack`, `YellowClarificationReview`, `RedPlenaryInvestigation`.
+
+| Klasifikasi Tier | Kriteria Ambang Batas Komposit & Insiden | Prosedur Sidang Rekredensialing | Dampak Terhadap Wewenang Klinis SIMRS |
+| :--- | :--- | :--- | :--- |
+| **Tier Hijau** (*Fast-Track*) | Skor komposit 3 tahun >= 80.0 DAN nol (0) insiden sentinel | Rekomendasi perpanjangan instan tanpa wawancara mendalam | Perpanjangan SPK/RKK wewenang Level 4 Mandiri disahkan otomatis |
+| **Tier Kuning** (*Clarification*) | Skor komposit 3 tahun 65.0 s.d. 79.9 ATAU keterlambatan EMR > 20% | Wawancara klarifikasi oleh KSM & penandatanganan komitmen perbaikan | Perpanjangan bersyarat dengan audit kepatuhan per 6 bulan |
+| **Tier Merah** (*Plenary Investigation*) | Skor komposit 3 tahun < 65.0 ATAU pernah gagal FPPE / etik | Sidang investigasi khusus pleno Komite Medik lengkap | Penurunan wewenang ke Level 3 Supervisi atau pencabutan wewenang |
+
+## 24. Matriks Transisi Status Sub-Modul 16: Learning, Training & Competency (Slice S-C2)
+
+Matriks transisi status ini mengatur siklus hidup entitas operasional pembelajaran, sertifikasi kompetensi klinis nakes, kontrol rencana kerja tahunan diklat, dan akta ikatan dinas retensi tenaga kerja rumah sakit.
+
+### 24.1 Siklus Hidup Rencana Diklat Tahunan (`TrainingPlanStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Buat Rencana Kerja TNA
+    Draft --> Submitted : Ajukan ke Direktur SDM
+    Submitted --> Approved : Disetujui Pimpinan
+    Submitted --> Draft : Dikembalikan untuk Revisi
+    Approved --> Active : Tahun Fiskal Berjalan
+    Active --> Closed : Tutup Buku & Evaluasi Akhir
+    Draft --> Cancelled : Batalkan Rencana
+    Submitted --> Cancelled : Ditolak / Dibatalkan
+    Active --> Cancelled : Penghentian Program
+    Closed --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pembuatan draf rencana kerja tahunan diklat | Tim Diklat menginput usulan program pelatihan dan estimasi biaya per departemen. | `Training_Plan:Create` |
+| `Draft` | `Submitted` | Pengajuan dokumen rencana kerja | Seluruh rincian program dan estimasi anggaran telah lengkap diisi (`VR-TRN-13`). | `Training_Plan:Create` |
+| `Submitted` | `Approved` | Pengesahan oleh Direktur / Manajer SDM | Verifikasi kelayakan alokasi pagu terhadap rencana kerja rumah sakit (`VR-TRN-14`). | `Training_Plan:Approve` |
+| `Submitted` | `Draft` | Pengembalian berkas pengusulan | Terdapat ketidaksesuaian estimasi biaya atau target pelatihan yang perlu direvisi. | `Training_Plan:Approve` |
+| `Approved` | `Active` | Awal tahun anggaran fiskal | Tahun berjalan aktif, sesi-sesi pelatihan turunan program dapat dijadwalkan. | `Training_Plan:Manage` |
+| `Active` | `Closed` | Akhir tahun anggaran berjalan | Seluruh sesi telah selesai dan realisasi anggaran final telah diaudit. | `Training_Plan:Manage` |
+| `Draft` / `Submitted` / `Active` | `Cancelled` | Pembatalan rencana kerja tahunan | Pembatalan resmi akibat restrukturisasi atau keputusan direksi. | `Training_Plan:Approve` |
+
+---
+
+### 24.2 Siklus Hidup Sesi Kelas & Workshop Pelatihan (`TrainingSessionStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scheduled : Jadwalkan Sesi Kelas
+    Scheduled --> RegistrationOpen : Buka Kuota Pendaftaran
+    RegistrationOpen --> InProgress : Buka Sesi & Presensi
+    InProgress --> AssessmentPhase : Sesi Selesai, Mulai Ujian
+    AssessmentPhase --> Completed : Nilai Masuk & Sertifikat Terbit
+    Scheduled --> Cancelled : Batalkan Jadwal
+    RegistrationOpen --> Cancelled : Kuota Tidak Terpenuhi
+    Completed --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Scheduled` | Penyusunan jadwal sesi pelatihan | Diklat menetapkan judul, tanggal, kuota, instruktur, dan tempat/link virtual. | `Training_Session:Manage` |
+| `Scheduled` | `RegistrationOpen` | Pembukaan periode pendaftaran peserta | Tanggal pendaftaran aktif, form ESS staf dan penugasan atasan dibuka (`VR-TRN-07`). | `Training_Session:Manage` |
+| `RegistrationOpen` | `InProgress` | Hari pelaksanaan materi dimulai | Tanggal mulai tercapai, kuota minimal terpenuhi, absensi presensi dibuka. | `Training_Session:Manage` |
+| `InProgress` | `AssessmentPhase` | Penyampaian materi diklat selesai | Seluruh hari sesi terlaksana, peserta memenuhi syarat kehadiran masuk ke ujian (`VR-TRN-03`). | `Training_Session:Manage` |
+| `AssessmentPhase` | `Completed` | Penilaian selesai & sertifikat diterbitkan | Seluruh peserta tuntas dinilai (post-test teori & simulasi OSCE klinis). | `Training_Session:Manage` |
+| `Scheduled` / `RegistrationOpen` | `Cancelled` | Pembatalan penyelenggaraan sesi | Kuota minimal peserta tidak tercapai atau kendala force majeure instruktur. | `Training_Session:Manage` |
+
+---
+
+### 24.3 Siklus Hidup Pendaftaran Peserta Diklat (`TrainingEnrollmentStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Input Pendaftaran (ESS/Admin)
+    Draft --> PendingSupervisor : Ajukan Pendaftaran
+    PendingSupervisor --> PendingDiklat : Disetujui Kepala Ruangan
+    PendingSupervisor --> Rejected : Ditolak Atasan
+    PendingDiklat --> Approved : Divalidasi Diklat & Anggaran
+    PendingDiklat --> Rejected : Ditolak Diklat
+    Approved --> InTraining : Sesi Dimulai & Presensi
+    InTraining --> Completed : Lulus Presensi & Ujian OSCE
+    InTraining --> Failed : Tidak Lulus Presensi / Asesmen
+    Approved --> Cancelled : Pembatalan Mandiri / Dinas
+    Completed --> [*]
+    Failed --> [*]
+    Rejected --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pengisian form registrasi diklat | Staf mengentri pengajuan diklat via ESS atau staf Diklat menugaskan via radar. | `Training_Enrollment:Submit` |
+| `Draft` | `PendingSupervisor` | Penyerahan berkas pendaftaran | Staf mengajukan dispensasi dinas ke atasan langsung/kepala ruangan. | `Training_Enrollment:Submit` |
+| `PendingSupervisor` | `PendingDiklat` | Persetujuan atasan langsung | Atasan menyetujui jadwal dispensasi tidak mengganggu kontinuitas dinas unit. | `Training_Enrollment:Approve` |
+| `PendingDiklat` | `Approved` | Verifikasi tim Diklat | Diklat memvalidasi kecukupan sisa pagu anggaran dan ketersediaan kuota kelas (`VR-TRN-15`). | `Training_Enrollment:Approve` |
+| `PendingSupervisor` / `PendingDiklat` | `Rejected` | Penolakan pendaftaran | Alasan penolakan dicatat (anggaran habis, jadwal bentrok kritis dinas, dsb). | `Training_Enrollment:Approve` |
+| `Approved` | `InTraining` | Check-in pertama sesi pelatihan | Peserta hadir dan mencatatkan presensi absensi pada hari pertama kelas. | `Training_Session:Manage` |
+| `InTraining` | `Completed` | Kelulusan evaluasi komprehensif | Kehadiran >= 80% (umum) / 100% (klinis) DAN lulus teori (>=75) serta OSCE (>=80) (`VR-TRN-04`). | `Training_Assessment:Grade` |
+| `InTraining` | `Failed` | Gagal evaluasi / absen melampaui batas | Kehadiran kurang dari ambang atau gagal remedial teori dan OSCE. | `Training_Assessment:Grade` |
+| `Approved` | `Cancelled` | Pembatalan keikutsertaan | Pembatalan diajukan sebelum sesi dimulai karena rotasi darurat dinas. | `Training_Enrollment:Submit` |
+
+---
+
+### 24.4 Siklus Hidup Sertifikat Kompetensi & Radar Kedaluwarsa (`TrainingCertificateStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Generate Sertifikat Pasca Kelulusan
+    Draft --> Active : Verifikasi & Terbitkan e-Sertifikat
+    Active --> ExpiringSoon : Masuk Radar H-90, H-60, H-30
+    ExpiringSoon --> Active : Perpanjangan Sukses (Sertifikat Baru)
+    ExpiringSoon --> Expired : Melewati Tanggal Kedaluwarsa (H-0)
+    Expired --> Active : Mengikuti Pelatihan Ulang & Lulus
+    Active --> Revoked : Dicabut Komite Etik / Medik
+    Revoked --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Kelulusan asesmen peserta diklat | Sistem men-generate draft sertifikat dengan nomor seri resmi unik. | `Training_Certificate:Issue` |
+| `Draft` | `Active` | Pengesahan & penerbitan sertifikat | Tanda tangan digital pejabat Diklat dibubuhkan, auto-arsip ke e-Dossier Sub-02 (`INT-HR-72`). | `Training_Certificate:Issue` |
+| `Active` | `ExpiringSoon` | Evaluasi worker radar harian | Tanggal kedaluwarsa berada dalam rentang <= 90 hari sebelum habis tempo (`TRN-W1`). | Sistem / Worker |
+| `ExpiringSoon` | `Active` | Perpanjangan diklat tepat waktu | Pegawai telah menyelesaikan kelas penyegaran dan sertifikat baru diterbitkan. | `Training_Certificate:Issue` |
+| `ExpiringSoon` | `Expired` | Tanggal hari ini > tanggal kedaluwarsa | Sertifikat mati; memicu status Overdue dan pengamanan jadwal shift *buddy system* (`INT-HR-79`). | Sistem / Worker |
+| `Expired` | `Active` | Staf mengikuti retifikasi/pelatihan ulang | Staf lulus pelatihan penyegaran dan sertifikat baru diaktifkan. | `Training_Certificate:Issue` |
+| `Active` | `Revoked` | Pencabutan izin kompetensi khusus | Komite Medik / Keperawatan mencabut sertifikat akibat malpraktik / pelanggaran disiplin. | `Training_Mandatory:Manage` |
+
+---
+
+### 24.5 Siklus Hidup Perjanjian Ikatan Dinas & Retensi Pegawai (`TrainingBondStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Inisiasi Akta Ikatan Dinas (> Rp 10 Jt / > 1 Bln)
+    Draft --> PendingSigning : Ajukan Penandatanganan Kontrak
+    PendingSigning --> Active : Penandatanganan Selesai & Diklat Tuntas
+    Active --> Completed : Masa Retensi Kerja Berakhir Normal
+    Active --> BreachPenalized : Resign Sepihak / Pelanggaran Disiplin
+    Active --> Discharged : Pembebasan Khusus Direksi
+    Completed --> [*]
+    BreachPenalized --> [*]
+    Discharged --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Deteksi pendaftaran diklat berbiaya tinggi | Biaya pelatihan > Rp 10.000.000 atau durasi > 30 hari kalender (`VR-TRN-16`). | `Training_Bond:Manage` |
+| `Draft` | `PendingSigning` | Pengajuan draf akta ke staf dan direksi | Dokumen klausul masa retensi (12 - 36 bulan) dan formula denda dicantumkan. | `Training_Bond:Manage` |
+| `PendingSigning` | `Active` | Penandatanganan meterai & diklat selesai | Berkas PDF akta ditandatangani dan diunggah; masa retensi resmi berjalan sejak tanggal selesai diklat. | `Training_Bond:Manage` |
+| `Active` | `Completed` | Masa retensi terpenuhi penuh | Staf setia mengabdi hingga tanggal `end_date` tanpa pemutusan hubungan kerja. | Sistem / Worker |
+| `Active` | `BreachPenalized` | Pegawai mengundurkan diri sepihak | Staf mengajukan resign sebelum ikatan selesai; tagihan penalti ganti rugi diterbitkan otomatis (`VR-TRN-17`). | `Training_Bond:Manage` |
+| `Active` | `Discharged` | Pelepasan ikatan dinas khusus | Kebijakan direksi atas pertimbangan kemanusiaan (misal cacat permanen, sakit kritis menahun). | `Training_Bond:Manage` |

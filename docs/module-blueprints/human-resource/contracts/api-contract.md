@@ -2393,3 +2393,114 @@ Bagian ini mendefinisikan spesifikasi antarmuka pemrograman aplikasi (API) untuk
 | `POST` | `/api/v1/corporate/hrd/credentialing/fast-track/temporary-privilege` | `Rencana (belum tersedia)` | Menerbitkan kewenangan sementara bagi dokter konsultan tamu (maksimal 3 bulan) | `FastTrack_Privilege:Grant` | `GrantTemporaryPrivilegeRequestDto` | `201 Created`, `400 Bad Request` |
 | `POST` | `/api/v1/corporate/hrd/credentialing/fast-track/emergency-privilege` | `Rencana (belum tersedia)` | Menerbitkan kewenangan darurat cito bencana massal (maksimal 72 jam) atas wewenang Dir Pelayanan | `FastTrack_Privilege:Emergency` | `GrantEmergencyPrivilegeRequestDto` | `201 Created`, `400 Bad Request` |
 | `POST` | `/api/v1/corporate/hrd/clinical-privileges/{id}/suspend` | `Rencana (belum tersedia)` | Menangguhkan status kewenangan klinis nakes akibat SIP mati, rekredensialing terlambat, atau pelanggaran | `Clinical_Privilege:Suspend` | `SuspendPrivilegeRequestDto` | `200 OK`, `400 Bad Request` |
+
+---
+
+## 25. Kontrak API Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`, `v19`)
+
+Kontrak API ini mendefinisikan 24 endpoint RESTful untuk pengelolaan Evaluasi Praktik Profesional Berkelanjutan (OPPE), Evaluasi Praktik Profesional Terfokus (FPPE), kalkulasi rapor komposit 3 tahun rekredensialing, serta penegakan kerahasiaan telaah sejawat (*Peer Review Privilege*).
+
+### 25.1 Ringkasan Tag Swagger Sub-Modul 15
+
+| Tag Swagger | Kategori Layanan | Jumlah Endpoint | Keterangan & Modul Terkait |
+| :--- | :--- | :---: | :--- |
+| `[Tags("Corporate - HRD OPPE Clinical Performance Evaluation")]` | OPPE Evaluasi Kinerja Klinis | 6 | Siklus evaluasi berkala, agregasi 60% SIMRS + 40% Peer Review |
+| `[Tags("Corporate - HRD FPPE Incident & Focused Evaluation")]` | FPPE Evaluasi Klinis Terarah | 7 | Pemicu insiden (sentinel/komplikasi), proctoring staf/prosedur baru, putusan pleno |
+| `[Tags("Corporate - HRD Recredentialing Quality & Composite Scorecard")]` | Kualitas Rekredensialing & SIMRS | 6 | Kalkulator komposit 3 tahun (25%-35%-40%), 4 putusan akhir, dispatch SIMRS `INT-HR-76` |
+| `[Tags("Corporate - HRD Peer Review Confidentiality & Audit Log")]` | Kerahasiaan Peer Review & Master | 5 | Master indikator 6 pilar ACGME, form ulasan sejawat, dan read-audit logging permanen |
+
+---
+
+### 25.2 Spesifikasi Endpoint API Bergaya Swagger
+
+#### 25.2.1 `[Tags("Corporate - HRD OPPE Clinical Performance Evaluation")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/clinical-performance/oppe/periods` | `Rencana (belum tersedia)` | Menampilkan daftar siklus evaluasi periode OPPE tahunan atau semesteran | `Oppe_Period:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/oppe/periods` | `Rencana (belum tersedia)` | Membuka periode evaluasi OPPE baru per unit KSM atau serentak seluruh RS | `Oppe_Period:Manage` | `CreateOppePeriodRequestDto` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/clinical-performance/oppe/periods/{id}/evaluations` | `Rencana (belum tersedia)` | Menampilkan daftar seluruh rapor evaluasi dokter spesialis dalam periode terkait | `Oppe_Evaluation:View` | - | `200 OK`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/clinical-performance/oppe/staff-evaluations/{id}` | `Rencana (belum tersedia)` | Menampilkan rincian rapor OPPE individu lengkap dengan rincian 6 area kompetensi ACGME | `Oppe_Evaluation:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/oppe/staff-evaluations/{id}/aggregate-simrs` | `Rencana (belum tersedia)` | Memicu ekstraksi & kalkulasi otomatis indikator kuantitatif 60% dari data SIMRS/KMKP | `Oppe_Evaluation:Calculate` | `TriggerSimrsAggregationRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/oppe/staff-evaluations/{id}/finalize` | `Rencana (belum tersedia)` | Mengesahkan nilai komposit akhir OPPE dan menetapkan status kelulusan standar | `Oppe_Evaluation:Finalize` | `FinalizeOppeEvaluationRequestDto` | `200 OK`, `400 Bad Request` |
+
+#### 25.2.2 `[Tags("Corporate - HRD FPPE Incident & Focused Evaluation")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/clinical-performance/fppe/triggers/feed` | `Rencana (belum tersedia)` | Menampilkan feed real-time indikator ambang batas kritis pemicu FPPE dari SIMRS/KMKP | `Fppe_Trigger:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/fppe/engagements` | `Rencana (belum tersedia)` | Menginisiasi penugasan FPPE terarah (staf baru, prosedur baru, insiden) & menunjuk proctor | `Fppe_Engagement:Create` | `CreateFppeEngagementRequestDto` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}` | `Rencana (belum tersedia)` | Menampilkan rincian penugasan FPPE, target kasus klinis, dan progres verifikasi | `Fppe_Engagement:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/case-logs` | `Rencana (belum tersedia)` | Menambahkan entri tindakan klinis terproctoring ke dalam logbook FPPE dokter | `Fppe_CaseLog:Create` | `CreateFppeCaseLogRequestDto` | `201 Created`, `400 Bad Request` |
+| `PUT` | `/api/v1/corporate/hrd/clinical-performance/fppe/case-logs/{logId}/verify` | `Rencana (belum tersedia)` | Verifikasi dan penetapan vonis penilaian kemandirian kasus oleh Dokter Proctor pendamping | `Fppe_CaseLog:Verify` | `VerifyFppeCaseLogRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/conclude` | `Rencana (belum tersedia)` | Mengesahkan vonis sidang pleno FPPE (Lolos, Perpanjang, Supervisi, Cabut Wewenang) | `Fppe_Conclusion:Approve` | `ConcludeFppeEngagementRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/fppe/engagements/{id}/sync-privilege` | `Rencana (belum tersedia)` | Memperbarui status kewenangan klinis RKK dokter di sistem dan SIMRS EMR sesuai putusan FPPE | `Fppe_Conclusion:Approve` | `SyncFppePrivilegeRequestDto` | `200 OK`, `400 Bad Request` |
+
+#### 25.2.3 `[Tags("Corporate - HRD Recredentialing Quality & Composite Scorecard")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/credentialing/recredentialing/scorecards/{staffId}` | `Rencana (belum tersedia)` | Menampilkan kartu rapor komposit 3 tahunan (25%-35%-40%) dan rekomendasi tier kelayakan | `Recred_Scorecard:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/recredentialing/scorecards/{staffId}/calculate` | `Rencana (belum tersedia)` | Menghitung kalkulasi komposit 3 tahun secara otomatis dari data historis OPPE & insiden FPPE | `Recred_Scorecard:Calculate` | `CalculateRecredScorecardRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/recredentialing/scorecards/{staffId}/override-tier` | `Rencana (belum tersedia)` | Penyesuaian diskresi tier kelayakan oleh Ketua Komite Medik dengan justifikasi terdokumentasi | `Recred_Scorecard:Override` | `OverrideRecredTierRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/recredentialing/verdicts` | `Rencana (belum tersedia)` | Menerbitkan putusan akhir sidang rekredensialing (Perpanjang, Upgrade, Restricted, Revoked) | `Recred_Verdict:Decide` | `CreateRecredVerdictRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/credentialing/recredentialing/verdicts/{id}/dispatch-simrs` | `Rencana (belum tersedia)` | Mengirimkan instruksi pembaruan wewenang Level 1-4 ke modul SIMRS EMR (`INT-HR-76`) | `Recred_Verdict:Dispatch` | `DispatchSimrsPrivilegeRequestDto` | `200 OK`, `502 Bad Gateway` |
+| `GET` | `/api/v1/corporate/hrd/credentialing/recredentialing/simrs-sync/audit-logs` | `Rencana (belum tersedia)` | Menampilkan log riwayat pengiriman, latensi jaringan, dan respons status aktivasi hak SIMRS | `Recred_Verdict:View` | - | `200 OK` |
+
+#### 25.2.4 `[Tags("Corporate - HRD Peer Review Confidentiality & Audit Log")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/clinical-performance/oppe/metric-catalogs` | `Rencana (belum tersedia)` | Menampilkan master katalog indikator kinerja klinis OPPE 6 pilar ACGME/KARS | `Oppe_Metric:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/oppe/metric-catalogs` | `Rencana (belum tersedia)` | Mendaftarkan indikator performa klinis baru atau mengubah target batas ambang KSM | `Oppe_Metric:Manage` | `CreateOppeMetricCatalogRequestDto` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/clinical-performance/oppe/peer-reviews/assigned` | `Rencana (belum tersedia)` | Menampilkan daftar berkas penilaian sejawat konfidensial yang ditugaskan ke dokter penilai | `Peer_Review:Assess` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/oppe/peer-reviews/{id}/submit` | `Rencana (belum tersedia)` | Menyerahkan lembar skor likert dan ulasan kualitatif konfidensial telaah sejawat | `Peer_Review:Assess` | `SubmitPeerReviewEvaluationRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/clinical-performance/peer-review-audit/log-access` | `Rencana (belum tersedia)` | Mencatat log keamanan permanen saat dokumen telaah sejawat dibuka (*read-audit logging*) | `Peer_Review:View` | `LogPeerReviewAccessRequestDto` | `200 OK`, `400 Bad Request` |
+
+### 26. Sub-Modul 16: Learning, Training & Competency (Slice S-C2, Kontrak v20)
+
+Kontrak API ini mendefinisikan 24 endpoint RESTful untuk tata kelola pelatihan wajib akreditasi STARKES KPS 8, asesmen klinis & ujian OSCE bersertifikat digital, TNA & kontrol pagu anggaran diklat, penerbitan kontrak ikatan dinas nakes, serta pelacakan portofolio 50 SKP Plataran Sehat Kemenkes. Seluruh endpoint berada dalam namespace `/api/v1/corporate/hrd/learning/` dan berstatus `Rencana (belum tersedia)`.
+
+#### 26.1 `[Tags("Corporate - HRD Mandatory Hospital Training & Certification")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/learning/mandatory-rules` | `Rencana (belum tersedia)` | Menampilkan daftar katalog master pelatihan wajib akreditasi STARKES KPS 8 & masa berlaku | `Training_Mandatory:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/learning/mandatory-rules` | `Rencana (belum tersedia)` | Mendaftarkan aturan pelatihan wajib baru atau memperbarui masa berlaku/ambang kelulusan | `Training_Mandatory:Manage` | `CreateMandatoryTrainingRuleRequestDto` | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/learning/certificates/expiring-radar` | `Rencana (belum tersedia)` | Menampilkan dashboard radar staf berisiko kedaluwarsa pelatihan wajib (H-90, H-60, H-30, H-0 Overdue) | `Training_Certificate:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/learning/certificates/expiring-radar/broadcast-alerts` | `Rencana (belum tersedia)` | Mengirimkan notifikasi peringatan perpanjangan diklat massal via WhatsApp/Email/ESS ke staf | `Training_Certificate:Manage` | `BroadcastExpiryAlertRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/certificates/overdue/{staffId}/shift-buddy-safeguard` | `Rencana (belum tersedia)` | Menandai flag Overdue dan menginstruksikan penugasan pendamping (*buddy system*) ke Sub-06 Scheduling (`INT-HR-79`) | `Training_Mandatory:Manage` | `AssignShiftBuddySafeguardRequestDto` | `200 OK`, `404 Not Found` |
+| `GET` | `/api/v1/corporate/hrd/learning/certificates/staff/{staffId}` | `Rencana (belum tersedia)` | Menampilkan seluruh portofolio sertifikat kompetensi dan status keaktifan milik staf | `Training_Certificate:View` | - | `200 OK`, `404 Not Found` |
+
+#### 26.2 `[Tags("Corporate - HRD Clinical Competency & OSCE Assessment")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/learning/sessions` | `Rencana (belum tersedia)` | Menampilkan jadwal batch/sesi kelas pelatihan, workshop simulasi, dan kapasitas kuota | `Training_Session:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/learning/sessions` | `Rencana (belum tersedia)` | Membuat jadwal sesi kelas pelatihan internal atau workshop simulasi keterampilan klinis baru | `Training_Session:Manage` | `CreateTrainingSessionRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/sessions/{sessionId}/attendances/check-in` | `Rencana (belum tersedia)` | Mencatat presensi kehadiran harian peserta sesi pelatihan (QR / RFID / manual) | `Training_Session:Manage` | `RecordAttendanceRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/assessments/theory-post-test` | `Rencana (belum tersedia)` | Menginput atau menerima hasil rekap skor ujian teori post-test tertulis peserta | `Training_Assessment:Grade` | `SubmitPostTestScoreRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/assessments/clinical-osce` | `Rencana (belum tersedia)` | Menginput skor rubrik checklist simulasi OSCE klinis langsung bertanda tangan digital assessor | `Training_Assessment:Grade` | `SubmitOsceAssessmentRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/certificates/issue` | `Rencana (belum tersedia)` | Menerbitkan e-Sertifikat resmi kelulusan kompetensi dan otomatis menyinkronkan ke e-Dossier Sub-02 | `Training_Certificate:Issue` | `IssueTrainingCertificateRequestDto` | `201 Created`, `400 Bad Request` |
+
+#### 26.3 `[Tags("Corporate - HRD Training Enrollment & Budget Governance")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/learning/plans/annual` | `Rencana (belum tersedia)` | Menampilkan daftar program master rencana tahunan diklat (TNA) dan estimasi anggaran | `Training_Plan:View` | - | `200 OK` |
+| `POST` | `/api/v1/corporate/hrd/learning/plans/annual` | `Rencana (belum tersedia)` | Menyusun dan mengajukan Rencana Program Pelatihan Tahunan RS (TNA) | `Training_Plan:Create` | `CreateAnnualTrainingPlanRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/plans/annual/{id}/approve` | `Rencana (belum tersedia)` | Pengesahan program kerja diklat tahunan oleh Direktur / Manajer SDM | `Training_Plan:Approve` | `ApproveTrainingPlanRequestDto` | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/enrollments/ess-submit` | `Rencana (belum tersedia)` | Pengajuan pendaftaran diklat internal/eksternal mandiri oleh staf via ESS beserta justifikasi dinas | `Training_Enrollment:Submit` | `SubmitEnrollmentRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/enrollments/{id}/approval-workflow` | `Rencana (belum tersedia)` | Persetujuan pendaftaran berjenjang (Kepala Ruangan & Diklat RS) dengan validasi pagu anggaran unit | `Training_Enrollment:Approve` | `ProcessEnrollmentApprovalDto` | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/learning/budgets/department/{departmentId}/status` | `Rencana (belum tersedia)` | Memeriksa status alokasi pagu, komitmen berjalan, realisasi, dan sisa pagu anggaran diklat unit | `Training_Budget:View` | - | `200 OK`, `404 Not Found` |
+
+#### 26.4 `[Tags("Corporate - HRD Plataran Sehat & SKP Kemenkes Tracking")]`
+
+| Method | Path | Status | Deskripsi | Hak Akses | Request Body | Response Codes |
+| :---: | :--- | :---: | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/corporate/hrd/learning/bonds/staff/{staffId}` | `Rencana (belum tersedia)` | Menampilkan histori perjanjian ikatan dinas, masa retensi kerja, dan klausul penalti staf | `Training_Bond:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/learning/bonds/generate-contract` | `Rencana (belum tersedia)` | Menerbitkan draf akta ikatan dinas untuk diklat bernilai > Rp 10 Juta atau durasi > 1 bulan (`HRD-DEC-162`) | `Training_Bond:Manage` | `GenerateTrainingBondRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/bonds/{id}/record-breach` | `Rencana (belum tersedia)` | Mencatat wanprestasi pengunduran diri sepihak dan menghitung tagihan penalti ganti rugi staf | `Training_Bond:Manage` | `RecordBondBreachRequestDto` | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/corporate/hrd/learning/skp/staff/{staffId}/summary` | `Rencana (belum tersedia)` | Menampilkan kalkulasi perolehan 50 SKP nakes (Pembelajaran, Pelayanan, Pengabdian) 5 tahunan | `Training_PlataranSehat:View` | - | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/corporate/hrd/learning/skp/records` | `Rencana (belum tersedia)` | Mencatat bukti kegiatan perolehan SKP nakes lokal beserta unggahan bukti pendukung | `Training_PlataranSehat:Manage` | `CreateSkpRecordRequestDto` | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/corporate/hrd/learning/skp/sync-plataran-sehat/{staffId}` | `Rencana (belum tersedia)` | Sinkronisasi portofolio SKP dan verifikasi ID sertifikat ke API Plataran Sehat Kemenkes (`INT-HR-80`) | `Training_PlataranSehat:Sync` | `SyncPlataranSehatRequestDto` | `200 OK`, `502 Bad Gateway` |

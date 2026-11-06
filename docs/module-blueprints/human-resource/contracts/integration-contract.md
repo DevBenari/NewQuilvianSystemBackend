@@ -1189,3 +1189,190 @@ Bagian ini mendefinisikan seluruh titik integrasi lintas domain dan sistem ekste
 - **Tipe Interaksi:** Sinkronus Service Call via `IWorkforceDossierArchiveService`.
 - **Arah Aliran Data:** Sub-Modul 14 Credentialing (Publisher/Writer) -> Sub-Modul 02 Workforce Core (Storage).
 - **Karakteristik Arsip:** Metadata arsip mencakup `DocumentCategory = 'CLINICAL_PRIVILEGE_SPK'`, nomor register SPK/RKK, hash SHA-256 berkas, dan penanda retensi abadi (*immutable*).
+
+---
+
+## 16. Kontrak Integrasi Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`)
+
+### 16.1 `INT-HR-73`: Integrasi Penarikan Data Indikator Kuantitatif Mutu Klinis dari SIMRS & KMKP
+- **Tujuan Integrasi:** Menarik data objektif capaian indikator performa klinis dokter spesialis (porsi 60% bobot kuantitatif OPPE) secara otomatis dari database operasional SIMRS dan sistem pelaporan Komite Mutu & Keselamatan Pasien (KMKP).
+- **Tipe Interaksi:** Asinkronus Scheduled Job / Direct Database View Read via `IOppeSimrsMetricExtractorService`.
+- **Arah Aliran Data:** Modul SIMRS / KMKP (Provider) -> Sub-Modul 15 Clinical Performance (Consumer).
+- **Dataset yang Ditukarkan:**
+  - Volume tindakan medis & prosedur operasi dokter per periode.
+  - Angka kepatuhan pengisian resume medis EMR dalam kurun waktu 1x24 jam pasca-pulang.
+  - Tingkat kepatuhan penerapan *Clinical Pathway* (CP) rawat inap.
+  - Tingkat kepatuhan peresepan obat sesuai Formularium Nasional dan Formularium RS.
+  - Tingkat kejadian Infeksi Daerah Operasi (IDO) dan komplikasi anestesi.
+- **Penanganan Kegagalan / Fallback:** Jika koneksi API SIMRS terganggu saat penarikan data berkala, scheduler menjadwalkan upaya ulang (*retry*) dengan *exponential backoff*. Jika SIMRS mengalami downtime panjang, staf komite dapat mengunggah lembar agregasi data resmi KMKP yang telah diverifikasi Direktur Pelayanan Medik.
+
+---
+
+### 16.2 `INT-HR-74`: Integrasi Umpan Balik Pemicu Kritis Insiden Keselamatan Pasien (FPPE Trigger Feed)
+- **Tujuan Integrasi:** Mengalirkan notifikasi seketika (*real-time event*) saat terjadi insiden keselamatan pasien atau pelanggaran ambang batas kritis yang mewajibkan pelaksanaan Evaluasi Praktik Profesional Terarah (FPPE) sesuai amanat akreditasi KARS/STARKES.
+- **Tipe Interaksi:** Asinkronus Event Hook via `IFppeTriggerEventReceiver` / MediatR Notification.
+- **Arah Aliran Data:** Modul Keselamatan Pasien SIMRS / KMKP (Publisher) -> Sub-Modul 15 Performance (Subscriber).
+- **Pemicu & Ambang Batas Kritis:**
+  1. Terjadinya satu (1) kasus insiden sentinel keselamatan pasien (cth: salah sisi operasi, kematian tak terduga).
+  2. Angka komplikasi bedah dokter > 2 standar deviasi (> 2 SD) di atas rata-rata KSM selama 3 bulan berturut-turut.
+  3. Keterlambatan pengisian resume medis EMR > 48 jam yang melampaui 20% total pasien dalam 2 bulan.
+  4. Surat rujukan resmi hasil investigasi Subkomite Etik dan Disiplin Profesi.
+- **Dampak pada Sistem:** Otomatis membentuk entri draf penugasan FPPE pada feed pengawasan Subkomite Mutu Profesi dan memicu alert prioritas tinggi.
+
+---
+
+### 16.3 `INT-HR-75`: Integrasi Penyediaan Rapor Komposit 3 Tahun ke Sub-Modul 14 Credentialing
+- **Tujuan Integrasi:** Menyediakan data rapor kinerja komposit 3 tahun berbasis riwayat evaluasi tahunan OPPE dan evaluasi terarah FPPE bagi Sub-Modul 14 Credentialing saat menyelenggarakan sidang rekredensialing berkala dokter (`HRD-DEC-155`).
+- **Tipe Interaksi:** Sinkronus Service Bus Query via `IRecredentialingCompositeProvider`.
+- **Arah Aliran Data:** Sub-Modul 15 Performance Management (Provider) -> Sub-Modul 14 Credentialing (Consumer).
+- **Dataset yang Ditukarkan:**
+  - `WorkforceProfileId`: ID dokter spesialis.
+  - Skor Komposit Progresif 3 Tahun: Tahun 1 (bobot 25%), Tahun 2 (bobot 35%), Tahun 3 (bobot 40%).
+  - Nilai Rapor Komposit Akhir (0-100).
+  - Klasifikasi Eligibilitas Tier: `GreenFastTrack`, `YellowClarificationReview`, atau `RedPlenaryInvestigation`.
+  - Riwayat Hasil Penugasan FPPE (Lolos, Extended, Supervised, Revoked) selama 3 tahun masa tugas.
+  - Flag Peringatan: Ada insiden sentinel atau sanksi komite etik.
+
+---
+
+### 16.4 `INT-HR-76`: Integrasi Sinkronisasi 4 Putusan Akhir Rekredensialing ke Modul EMR SIMRS
+- **Tujuan Integrasi:** Mentransmisikan instruksi pembaruan wewenang klinis (Level 1 s.d. Level 4) ke modul Electronic Medical Record (EMR) SIMRS pasca-pengesahan 4 putusan sidang rekredensialing oleh Direktur Utama dan Komite Medik (`HRD-DEC-157`).
+- **Tipe Interaksi:** Transaksi Terdistribusi Sinkronus dengan Outbox Fallback via `ISimrsClinicalPrivilegeDispatcher`.
+- **Arah Aliran Data:** HRD Credentialing & Performance (Publisher) -> SIMRS EMR Core (Consumer).
+- **Pemetaan Putusan ke Tingkat Wewenang Klinis SIMRS:**
+  1. **Putusan `Perpanjang As-Is` & `Upgrade`:**
+     - Status SIMRS: Level 4 Mandiri Penuh.
+     - Dokter bebas melakukan order tindakan medis dan resep tanpa hambatan sistem.
+  2. **Putusan `Restricted`:**
+     - Status SIMRS: Level 3 Supervisi.
+     - Order tindakan tertahan di modul EMR dan mewajibkan tanda tangan digital pendamping (*co-signature*) oleh dokter supervisor dalam tempo maksimal 24 jam.
+  3. **Putusan `Revoked`:**
+     - Status SIMRS: Level 1-2 (Hard-Stop Mutlak).
+     - Seluruh menu pemesanan tindakan bedah, penjadwalan kamar operasi (OK), dan otorisasi resep farmasi di SIMRS diblokir total secara seketika (*fail-closed*).
+- **Penanganan Kegagalan / Fallback:** Jika koneksi API SIMRS gagal saat transmisi putusan, sistem menyimpan instruksi ke tabel transaksi outbox dan melakukan retry otomatis setiap 30 detik. Dashboard pengawasan menampilkan status antrean sinkronisasi hingga respon `200 OK` diterima dari SIMRS.
+
+## 17. Kontrak Integrasi Sub-Modul 16: Learning, Training & Competency (Slice S-C2)
+
+Kontrak integrasi ini menetapkan protokol pertukaran data antara modul pembelajaran dan pelatihan (*LearningAndDevelopment*) dengan modul internal rumah sakit lainnya (Kredensialing Sub-14, OPPE Sub-15, Penjadwalan Dinas Sub-06) serta sistem eksternal Plataran Sehat Kemenkes RI.
+
+### 17.1 `INT-HR-77`: Integrasi Pemenuhan Prasyarat Pelatihan & Sertifikat ke Sub-Modul 14 Credentialing & RKK
+- **Arah Aliran Data:** `LearningAndDevelopment` -> `CredentialingPrivilege` (Sub-Modul 14)
+- **Protokol / Pola:** Asynchronous Domain Event via MediatR / In-Memory Message Bus (`TrainingCertificateStatusChangedEvent`)
+- **Pemicu (Trigger):**
+  1. Sertifikat pelatihan kritis staf (ACLS, ATLS, BHD, Dialisis, dsb) kedaluwarsa (berstatus `Expired`).
+  2. Staf baru saja lulus sertifikasi/resertifikasi kompetensi klinis (berstatus `Active`).
+- **Deskripsi & Dampak Klinis:**
+  Menyediakan data status kompetensi terkini dokter/perawat ke Komite Kredensial. Apabila sertifikat prasyarat RKK Level 4 (mandiri) mati, Sub-14 otomatis menurunkan status kewenangan rincian tindakan klinis tersebut ke Level 3 (supervisi) hingga sertifikat penyegaran dipenuhi (`VR-TRN-12`).
+- **Payload Struktur Data:**
+```json
+{
+  "eventId": "evt-7701-uuid",
+  "eventType": "TrainingCertificateStatusChanged",
+  "timestamp": "2026-11-06T08:00:00Z",
+  "data": {
+    "workforceProfileId": "c4d30623-1181-424a-9b43-2287950c2668",
+    "trainingCode": "TRN-MND-ACLS",
+    "trainingTitle": "Advanced Cardiovascular Life Support (ACLS)",
+    "certificateNumber": "SRT/HRD-TRN/2026/11/00892",
+    "certificateStatus": "Expired",
+    "expiryDate": "2026-11-05",
+    "impactOnClinicalPrivilege": true,
+    "recommendedPrivilegeLevel": "SUPERVISED_LEVEL_3"
+  }
+}
+```
+- **Penanganan Kegagalan / Idempoten:** Idempoten berdasarkan kombinasi `workforceProfileId` dan `trainingCode`. Jika Sub-14 sedang offline/terkendala, event disimpan dalam *outbox message table* dengan percobaan ulang berulang (*exponential backoff*).
+
+---
+
+### 17.2 `INT-HR-78`: Integrasi Umpan Bukti Pelatihan Berkelanjutan ke Sub-Modul 15 OPPE/FPPE
+- **Arah Aliran Data:** `LearningAndDevelopment` -> `ClinicalPerformanceQuality` (Sub-Modul 15)
+- **Protokol / Pola:** Synchronous REST API Query & Asynchronous Event Aggregation
+- **Pemicu (Trigger):**
+  Penutupan periode evaluasi OPPE semesteran staf medis atau inisiasi sidang rekredensialing tenaga kesehatan.
+- **Deskripsi & Dampak Klinis:**
+  Menyediakan rekapitulasi data pelatihan pengembangan profesi berkelanjutan (CPD) dan perolehan SKP nakes untuk menghitung nilai indikator pilar *Medical Knowledge* pada Rapor Kinerja Klinis Berkelanjutan (OPPE).
+- **Payload Struktur Data:**
+```json
+{
+  "workforceProfileId": "c4d30623-1181-424a-9b43-2287950c2668",
+  "evaluationPeriod": "2026-H1",
+  "totalTrainingHoursEarned": 32.0,
+  "mandatoryAccreditationCompliance": "100%",
+  "skpPointsEarnedInPeriod": 14.5,
+  "completedCertifications": [
+    {
+      "trainingTitle": "Pelatihan Resusitasi Neonatus Lanjut",
+      "issueDate": "2026-03-15",
+      "skpPoints": 4.0,
+      "passedOsce": true
+    }
+  ],
+  "medicalKnowledgeScoreContribution": 95.0
+}
+```
+- **Penanganan Kegagalan:** Sub-15 membaca rekap data pelatihan dengan batas waktu *fallback timeout* 3 detik; jika gagal, menggunakan data *snapshot* lokal terakhir.
+
+---
+
+### 17.3 `INT-HR-79`: Integrasi Pengamanan Jadwal Jaga & Penugasan Buddy System ke Sub-Modul 06 Scheduling
+- **Arah Aliran Data:** `LearningAndDevelopment` -> `WorkforceScheduling` (Sub-Modul 06)
+- **Protokol / Pola:** Real-time Inter-Module Event Bus (`MandatoryTrainingOverdueSafeguardTriggeredEvent`)
+- **Pemicu (Trigger):**
+  Staf pelayanan klinis aktif memiliki sertifikat pelatihan wajib (BHD/PPI/Keselamatan Pasien) berstatus `Expired` (H-0 Overdue).
+- **Deskripsi & Dampak Keselamatan:**
+  Sub-06 Scheduling menerima sinyal penegakan keselamatan dinas. Sistem melarang penugasan dinas jaga mandiri di ruangan perawatan atau ruang intensif; pegawai yang berstatus Overdue wajib dipasangkan berdampingan dengan perawat/dokter senior yang kompeten (*buddy system safeguard*) (`HRD-DEC-160`, `VR-TRN-11`).
+- **Payload Struktur Data:**
+```json
+{
+  "eventId": "evt-7901-uuid",
+  "eventType": "MandatoryTrainingOverdueSafeguardTriggered",
+  "timestamp": "2026-11-06T00:05:00Z",
+  "data": {
+    "workforceProfileId": "d8e3b522-8321-499b-9801-1123456789ab",
+    "staffName": "Ns. Hendra Pratama, S.Kep",
+    "departmentId": "dep-icu-uuid",
+    "overdueTrainingList": ["TRN-MND-BHD", "TRN-MND-PPI"],
+    "requiresBuddySafeguard": true,
+    "effectiveFrom": "2026-11-06",
+    "gracePeriodExpiry": "2026-12-06"
+  }
+}
+```
+- **Penanganan Kegagalan:** Sub-06 menyimpan flag pengamanan lokal pada profil staf; setiap kali pembuatan roster jadwal baru dieksekusi, validator jadwal otomatis memberlakukan aturan *buddy system*.
+
+---
+
+### 17.4 `INT-HR-80`: Integrasi Sinkronisasi Portofolio SKP & Verifikasi Sertifikat Plataran Sehat Kemenkes
+- **Arah Aliran Data:** `LearningAndDevelopment` <-> Plataran Sehat Kemenkes / SatuSehat SDMK API
+- **Protokol / Pola:** Outbound HTTPS REST Client dengan OIDC Bearer Token Auth Kemenkes
+- **Pemicu (Trigger):**
+  1. Staf mengunggah bukti perolehan SKP eksternal yang mencantumkan ID Sertifikat Plataran Sehat.
+  2. Worker mingguan menyinkronkan data akumulasi SKP nakes rumah sakit ke SatuSehat SDMK.
+- **Deskripsi & Kepatuhan Regulasi:**
+  Melakukan verifikasi keabsahan ID kegiatan/sertifikat yang diterbitkan platform Plataran Sehat Kemenkes RI, serta mencatat status verifikasi resmi pada portofolio 5 tahunan perpanjangan SIP staf nakes (`HRD-DEC-163`, `VR-TRN-22`).
+- **Request Payload ke Plataran Sehat API:**
+```http
+GET /api/v1/certificates/verify?certificate_id=CRT-PS-2026-98124 HTTP/1.1
+Host: api.satusehat.kemkes.go.id
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+- **Response Payload dari Plataran Sehat API:**
+```json
+{
+  "success": true,
+  "data": {
+    "certificateId": "CRT-PS-2026-98124",
+    "participantNik": "3201234567890001",
+    "participantName": "dr. Ratna Sp.JP",
+    "activityTitle": "Workshop Manajemen Kegawatdaruratan Aritmia",
+    "accreditationBody": "Kemenkes RI & PERKI",
+    "skpPoints": 3.0,
+    "skpCategory": "PEMBELAJARAN_DIKLAT",
+    "issueDate": "2026-10-12",
+    "isValid": true
+  }
+}
+```
+- **Penanganan Kegagalan & Rate Limiting:**
+  Apabila gateway Kemenkes mengalami downtime (502 Bad Gateway / Connection Timeout), status sinkronisasi ditandai `LOCAL_RECORDED` dan antrean dikirimkan kembali melalui background job bertenggang 6 jam.

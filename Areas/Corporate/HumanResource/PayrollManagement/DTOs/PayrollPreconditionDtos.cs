@@ -18,5 +18,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         public string OvertimeMessage { get; set; } = string.Empty;
         public List<string> UnresolvedIssues { get; set; } = new();
         public string SummaryMessage { get; set; } = string.Empty;
+        public string Message => SummaryMessage;
     }
 }

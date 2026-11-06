@@ -1321,6 +1321,9 @@ try
     builder.Services.AddScoped<IPayrollPreconditionGateService, PayrollPreconditionGateService>();
     builder.Services.AddScoped<IPayrollRunInitializationService, PayrollRunInitializationService>();
     builder.Services.AddScoped<IPayrollEarningsCalculationService, PayrollEarningsCalculationService>();
+    builder.Services.AddScoped<IPayrollOvertimeAndShiftIngestionService, PayrollOvertimeAndShiftIngestionService>();
+    builder.Services.AddScoped<IPayrollBpjsCalculationService, PayrollBpjsCalculationService>();
+    builder.Services.AddScoped<IPayrollTaxCalculationService, PayrollTaxCalculationService>();
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();

@@ -1245,3 +1245,90 @@ Bagian ini mendefinisikan seluruh string otorisasi berbasis wewenang (*role-base
 | `ClinicalPrivilegeSuspended` | Sistem menangguhkan wewenang akibat SIP/SPK mati | `PrivilegeId`, `DoctorId`, `TriggerSource` (`SIP_EXPIRED` / `SPK_3YR_EXPIRED`), `Timestamp` | Fatal |
 | `ClinicalPrivilegeRevoked` | Direktur Utama mencabut SPK akibat pelanggaran etik | `PrivilegeId`, `DoctorId`, `RevocationBapUrl`, `RevokedByDirectorId`, `Reason`, `Timestamp` | Fatal |
 | `SipExpirationRadarAlertSent` | Scheduler mengirimkan alert sisa masa berlaku SIP | `LicenseId`, `DoctorId`, `DaysRemaining` (90/60/30/7), `DeliveryChannels`, `Timestamp` | Rendah |
+
+---
+
+## 23. Matriks Hak Akses & Jejak Audit Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`)
+
+### 23.1 Matriks Hak Akses Granular (Granular Permissions)
+
+| Kode Hak Akses (`PermissionCode`) | Deskripsi Wewenang & Batas Operasi | Peran yang Diberikan Hak (*Roles*) |
+| :--- | :--- | :--- |
+| `[AccessPermission("Oppe_Governance", "Access")]` | Hak membuka grup menu induk Kinerja Klinis, Evaluasi OPPE, FPPE, dan Rekredensialing Mutu. | Direktur Utama, Direktur Medis, Ketua Komite Medik, Komite Mutu (KMKP), Ketua KSM |
+| `[AccessPermission("Oppe_Period", "Manage")]` | Membuka periode evaluasi OPPE baru, mengonfigurasi matriks indikator KSM, mengunci, dan memfinalisasi siklus. | Ketua Subkomite Mutu Profesi, Sekretariat Komite Medik |
+| `[AccessPermission("Oppe_Period", "View")]` | Melihat daftar periode evaluasi OPPE yang sedang berjalan dan memantau status partisipasi KSM. | Ketua KSM, Kepala Bidang Pelayanan Medis, Anggota Komite Medik |
+| `[AccessPermission("Oppe_Evaluation", "View")]` | Melihat rapor capaian performa klinis individu dokter (mandiri untuk dokter ybs, atau seluruh KSM bagi Ketua KSM). | Dokter Spesialis Ybs, Ketua KSM, Ketua Subkomite Mutu Profesi |
+| `[AccessPermission("Oppe_Evaluation", "Calculate")]` | Memicu ekstraksi & perhitungan agregasi nilai kuantitatif 60% dari pangkalan data SIMRS/KMKP. | Admin Komite Medik, Sistem Background Worker |
+| `[AccessPermission("Oppe_Evaluation", "Finalize")]` | Mengesahkan nilai komposit akhir rapor OPPE dan menetapkan status kelulusan standar mutu klinis. | Ketua Subkomite Mutu Profesi, Ketua Komite Medik |
+| `[AccessPermission("Peer_Review", "Assess")]` | Mengisi instrumen evaluasi kualitatif sejawat konfidensial 40% bagi dokter rekan sebidang. | Dokter Spesialis Penilai yang Ditugaskan dalam KSM |
+| `[AccessPermission("Fppe_Trigger", "View")]` | Memantau feed real-time deteksi ambang batas kritis pemicu FPPE (sentinel, komplikasi, audit resume). | Komite Mutu & Keselamatan Pasien (KMKP), Subkomite Mutu Profesi |
+| `[AccessPermission("Fppe_Engagement", "Create")]` | Menginisiasi berkas penugasan FPPE terarah, menetapkan target kasus, dan menunjuk Dokter Proctor. | Ketua Komite Medik, Ketua Subkomite Mutu Profesi |
+| `[AccessPermission("Fppe_CaseLog", "Verify")]` | Menelaah dan memberikan pengesahan verifikasi penilaian tindakan mandiri pada logbook proctoring. | Dokter Proctor Senior yang Ditunjuk Resmi |
+| `[AccessPermission("Fppe_Conclusion", "Approve")]` | Mengesahkan berita acara putusan sidang pleno FPPE (Lolos, Perpanjang Proctoring, Supervisi, Cabut). | Ketua Komite Medik, Ketua Subkomite Mutu Profesi |
+| `[AccessPermission("Recred_Verdict", "Decide")]` | Mengoperasikan kalkulator komposit 3 tahun, override diskresi tier, dan menetapkan 4 putusan rekredensialing. | Ketua Komite Medik, Direktur Pelayanan Medik |
+
+---
+
+### 23.2 Matriks Jejak Audit (Audit Trail Events)
+
+| Nama Event Audit | Pemicu (Trigger) & Sumber Aksi | Data Kritis yang Direkam dalam Log | Tingkat Risiko |
+| :--- | :--- | :--- | :---: |
+| `OppePeriodCreated` | Subkomite membuka siklus periode evaluasi OPPE baru | `PeriodId`, `PeriodCode`, `Year`, `Cycle`, `CreatedBy`, `Timestamp` | Rendah |
+| `OppePeriodFinalized` | Subkomite mengesahkan dan mengunci periode evaluasi | `PeriodId`, `TotalStaffEvaluated`, `FinalizedBy`, `Timestamp` | Kritis |
+| `OppeSimrsDataAggregated` | Sistem/Petugas menarik data kuantitatif SIMRS | `EvaluationId`, `DoctorId`, `CalculatedQuantitativeScore`, `LatencyMs`, `Timestamp` | Sedang |
+| `PeerReviewEvaluationSubmitted` | Dokter penilai menyerahkan evaluasi kualitatif sejawat | `DetailId`, `ReviewerDoctorId`, `CandidateDoctorId`, `QualitativeScore`, `Timestamp` | Kritis |
+| `PeerReviewDocumentRead` | Pengguna membuka dan membaca lembar ulasan sejawat | `DetailId`, `AccessorDoctorId`, `CandidateDoctorId`, `Channel`, `IpAddress`, `UserAgent`, `Timestamp` | Fatal |
+| `OppeStaffEvaluationCompleted` | Subkomite mengesahkan nilai komposit rapor akhir OPPE | `EvaluationId`, `DoctorId`, `CompositeScore`, `PassedStatus`, `ApprovedBy`, `Timestamp` | Kritis |
+| `FppeTriggerIncidentDetected` | SIMRS/KMKP mendeteksi kejadian insiden sentinel / anomali | `IncidentId`, `DoctorId`, `TriggerType`, `IncidentDate`, `SimrsReferenceCode`, `Timestamp` | Fatal |
+| `FppeEngagementInitiated` | Komite menerbitkan penugasan investigasi FPPE terarah | `FppeId`, `DoctorId`, `ProctorDoctorId`, `TriggerType`, `TargetCaseCount`, `Timestamp` | Kritis |
+| `FppeCaseLogRecorded` | Dokter mengentri tindakan medis ke dalam logbook | `CaseLogId`, `FppeId`, `DoctorId`, `ProcedureCatalogId`, `PseudonymId`, `Timestamp` | Sedang |
+| `FppeCaseLogVerifiedByProctor` | Dokter proctor menyetujui evaluasi kemandirian kasus | `CaseLogId`, `ProctorDoctorId`, `Verdict`, `ComplicationObserved`, `VerifiedAt` | Kritis |
+| `FppeConclusionApproved` | Sidang pleno mengesahkan berita acara vonis akhir FPPE | `FppeId`, `DoctorId`, `FinalVerdict`, `PlenaryChairmanId`, `RemediationNotes`, `Timestamp` | Fatal |
+| `RecredentialingCompositeCalculated`| Sistem menghitung rapor komposit 3 tahun (25-35-40) | `StaffId`, `Year1Score`, `Year2Score`, `Year3Score`, `CompositeScore`, `CalculatedTier` | Tinggi |
+| `RecredentialingTierOverridden` | Ketua Komite menyesuaikan tier kelayakan kalkulator | `StaffId`, `OriginalTier`, `NewTier`, `OverrideReasonJustification`, `ChairmanId`, `Timestamp` | Kritis |
+| `RecredentialingVerdictDispatched` | Putusan rekredensialing dikirim ke SIMRS EMR (`INT-HR-76`) | `StaffId`, `VerdictType`, `SimrsLevelGranted` (1-4), `SimrsResponseCode`, `Timestamp` | Fatal |
+
+## 24. Matriks Hak Akses & Jejak Audit Sub-Modul 16: Learning, Training & Competency (Slice S-C2)
+
+Matriks ini merinci 13 hak akses berbasis peran (*Role-Based Access Control* - RBAC) dan 14 jejak audit (*Audit Trail Events*) permanen untuk memastikan tata kelola pembelajaran, penegakan integritas sertifikasi, kepatuhan ikatan dinas, serta perlindungan data kompetensi nakes rumah sakit.
+
+### 24.1 Matriks Hak Akses (RBAC Permissions)
+
+| Kode Hak Akses | Nama Perizinan | Modul / Konteks | Deskripsi Kewenangan Operasional | Peran Pemegang (Roles) |
+| :--- | :--- | :--- | :--- | :--- |
+| `Training_Mandatory:View` | Baca Aturan Pelatihan Wajib | Diklat / Akreditasi | Melihat katalog master aturan pelatihan wajib STARKES KPS 8, target nakes, dan masa berlaku | `HRD_Admin`, `Diklat_Staff`, `Unit_Head`, `Employee` |
+| `Training_Mandatory:Manage` | Kelola Aturan Wajib & Radar | Diklat / Akreditasi | Mengonfigurasi parameter pelatihan wajib, grace period, dan penegakan flag *Overdue* | `HRD_Admin`, `Diklat_Manager` |
+| `Training_Plan:Create` | Susun Usulan Program TNA | Perencanaan Diklat | Membuat dan mengajukan draf Rencana Program Pelatihan Tahunan RS dan TNA per unit kerja | `Diklat_Staff`, `Department_Head` |
+| `Training_Plan:Approve` | Sahkan Rencana Kerja Tahunan | Manajemen Eksekutif | Menyetujui dokumen master program tahunan diklat dan membuka pagu anggaran resmi RS | `HRD_Director`, `Medical_Director`, `Finance_Director` |
+| `Training_Session:View` | Lihat Jadwal Sesi Pelatihan | Penyelenggaraan Diklat| Melihat kalender batch kelas, workshop simulasi, instruktur, dan kuota peserta | Seluruh Karyawan (`All_Authenticated`) |
+| `Training_Session:Manage` | Kelola Sesi Kelas & Presensi | Penyelenggaraan Diklat| Membuat jadwal sesi, mengatur ruang/tautan webinar, mencatat absensi, dan membatalkan sesi | `Diklat_Staff`, `Diklat_Manager` |
+| `Training_Enrollment:Submit` | Ajukan Pendaftaran Diklat | ESS / Penugasan Dinas | Mendaftarkan diri sendiri (ESS) atau mendaftarkan staf bawahan ke sesi pelatihan internal/eksternal | `Employee`, `Unit_Head`, `Diklat_Staff` |
+| `Training_Enrollment:Approve`| Setujui Pendaftaran Diklat | Alur Persetujuan | Menyetujui dispensasi dinas dan ketersediaan pagu anggaran diklat secara berjenjang | `Unit_Head`, `Diklat_Manager` |
+| `Training_Assessment:Grade` | Nilai Ujian Teori & OSCE | Evaluasi Kompetensi | Memasukkan skor post-test teori serta mengesahkan rubrik simulasi OSCE bertanda tangan digital | `Clinical_Assessor`, `Training_Instructor` |
+| `Training_Certificate:Issue` | Terbitkan Sertifikat & Radar | Sertifikasi Kepegawaian| Menerbitkan e-Sertifikat resmi kelulusan, memverifikasi sertifikat eksternal, dan arsip e-Dossier | `Diklat_Staff`, `Diklat_Manager`, `HRD_Admin` |
+| `Training_Budget:Manage` | Kelola Pagu Anggaran Diklat | Keuangan & Diklat | Menetapkan alokasi pagu anggaran tahunan diklat per departemen dan memantau realisasi biaya | `Finance_Manager`, `Diklat_Manager` |
+| `Training_Bond:Manage` | Kelola Kontrak Ikatan Dinas | Legal SDM & Retensi | Menerbitkan draf akta ikatan dinas, memantau masa retensi, dan mencatat tagihan penalti wanprestasi | `HR_Legal_Officer`, `HRD_Manager` |
+| `Training_PlataranSehat:Sync`| Sinkronisasi SKP Kemenkes | Portofolio Profesi | Mencatat kegiatan perolehan SKP nakes, memvalidasi ID, dan menyinkronkan data ke Plataran Sehat | `Diklat_Staff`, `Komite_Medik_Admin`, `Nakes_User` |
+
+---
+
+### 24.2 Matriks Jejak Audit Keamanan & Akuntabilitas (Audit Events)
+
+Seluruh perubahan status, penilaian klinis berisiko tinggi, transaksi anggaran, dan penerbitan penalti ganti rugi dicatat secara permanen (*append-only*) pada log audit sistem.
+
+| Kode Event Audit | Kategori Event | Sumber Pemicu | Data Kritis yang Direkam | Tingkat Kritis |
+| :--- | :--- | :--- | :--- | :---: |
+| `MandatoryTrainingRuleConfigured` | Konfigurasi | Pengubahan Aturan | Kode pelatihan, masa berlaku bulan, ambang nilai, target nakes, user ID | `Medium` |
+| `AnnualTrainingPlanApproved` | Anggaran | Pengesahan Direksi | ID rencana tahunan, tahun fiskal, total pagu biaya yang disahkan, approver ID | `High` |
+| `TrainingSessionScheduled` | Operasional | Penjadwalan Sesi | ID sesi, judul pelatihan, tanggal mulai/selesai, kuota kapasitas, instruktur | `Low` |
+| `TrainingEnrollmentSubmitted` | Pendaftaran | Input ESS / Dinas | ID pendaftaran, staf pemohon, sesi target, sumber dana, estimasi biaya | `Low` |
+| `TrainingEnrollmentApproved` | Otorisasi | Persetujuan Berjenjang | ID pendaftaran, level persetujuan (Atasan/Diklat), waktu persetujuan, user ID | `Medium` |
+| `TrainingAttendanceRecorded` | Presensi | Check-in Kelas | ID pendaftaran, sesi pelatihan, waktu check-in/out, status kehadiran, pengawas | `Low` |
+| `TrainingTheoryPostTestGraded` | Penilaian | Input Nilai Teori | ID evaluasi, peserta, nilai ujian post-test tertulis, status kelulusan teori | `Medium` |
+| `TrainingOsceSimGraded` | Ujian Klinis | Pengesahan Asesmen | ID evaluasi, nilai OSCE, tanda tangan digital assessor, rincian skor checklist | `High` |
+| `TrainingCertificateIssued` | Sertifikasi | Penerbitan e-Sertifikat | Nomor seri sertifikat, ID nakes, tanggal kedaluwarsa, URL dokumen e-Dossier | `High` |
+| `MandatoryTrainingExpiryRadarTriggered`| Kepatuhan | Evaluasi Worker | ID staf, jenis pelatihan wajib, tanggal kedaluwarsa, kanal peringatan (H-90/60/30) | `Low` |
+| `StaffShiftBuddySystemAssigned` | Keselamatan | Safeguard Jadwal Dinas | ID nakes Overdue, ID unit ruangan, tanggal dinas, ID staf senior pendamping | `Critical` |
+| `TrainingBondContractGenerated` | Kontrak Legal | Penerbitan Ikatan Dinas | Nomor akta kontrak, ID staf nakes, total nominal biaya, masa retensi bulan | `High` |
+| `TrainingBondBreachFlagged` | Penalti | Wanprestasi Resign | ID kontrak, tanggal breach, nominal denda penalti ganti rugi, dasar kalkulasi | `Critical` |
+| `PlataranSehatCertificateVerified`| Sinkronisasi | Verifikasi Kemenkes | ID sertifikat Plataran Sehat, ID nakes, jumlah SKP diakui, status respon API | `Medium` |

@@ -17,6 +17,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         public decimal BpjsKetenagakerjaanJhtEmployerRate { get; set; }
         public decimal BpjsKetenagakerjaanJkkRate { get; set; }
         public decimal BpjsKetenagakerjaanJkmRate { get; set; }
+        public decimal BpjsJpCapAmount { get => BpjsKetenagakerjaanJpCapAmount; set => BpjsKetenagakerjaanJpCapAmount = value; }
+        public decimal BpjsJpEmployeeRate { get => BpjsKetenagakerjaanJpEmployeeRate; set => BpjsKetenagakerjaanJpEmployeeRate = value; }
+        public decimal BpjsJpEmployerRate { get => BpjsKetenagakerjaanJpEmployerRate; set => BpjsKetenagakerjaanJpEmployerRate = value; }
+        public decimal BpjsJhtEmployeeRate { get => BpjsKetenagakerjaanJhtEmployeeRate; set => BpjsKetenagakerjaanJhtEmployeeRate = value; }
+        public decimal BpjsJhtEmployerRate { get => BpjsKetenagakerjaanJhtEmployerRate; set => BpjsKetenagakerjaanJhtEmployerRate = value; }
+        public decimal BpjsJkkRate { get => BpjsKetenagakerjaanJkkRate; set => BpjsKetenagakerjaanJkkRate = value; }
+        public decimal BpjsJkmRate { get => BpjsKetenagakerjaanJkmRate; set => BpjsKetenagakerjaanJkmRate = value; }
         public decimal VarianceThresholdPercentage { get; set; }
         public decimal VarianceThresholdAmount { get; set; }
         public int MonthlyCutoffDay { get; set; }

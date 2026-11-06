@@ -28,15 +28,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private readonly IPayrollPreconditionGateService _preconditionGateService;
         private readonly IPayrollRunInitializationService _runInitializationService;
         private readonly IPayrollEarningsCalculationService _earningsCalculationService;
+        private readonly IPayrollOvertimeAndShiftIngestionService _overtimeAndShiftService;
+        private readonly IPayrollBpjsCalculationService _bpjsCalculationService;
+        private readonly IPayrollTaxCalculationService _taxCalculationService;
 
         public PayrollRunModernController(
             IPayrollPreconditionGateService preconditionGateService,
             IPayrollRunInitializationService runInitializationService,
-            IPayrollEarningsCalculationService earningsCalculationService)
+            IPayrollEarningsCalculationService earningsCalculationService,
+            IPayrollOvertimeAndShiftIngestionService overtimeAndShiftService,
+            IPayrollBpjsCalculationService bpjsCalculationService,
+            IPayrollTaxCalculationService taxCalculationService)
         {
             _preconditionGateService = preconditionGateService ?? throw new ArgumentNullException(nameof(preconditionGateService));
             _runInitializationService = runInitializationService ?? throw new ArgumentNullException(nameof(runInitializationService));
             _earningsCalculationService = earningsCalculationService ?? throw new ArgumentNullException(nameof(earningsCalculationService));
+            _overtimeAndShiftService = overtimeAndShiftService ?? throw new ArgumentNullException(nameof(overtimeAndShiftService));
+            _bpjsCalculationService = bpjsCalculationService ?? throw new ArgumentNullException(nameof(bpjsCalculationService));
+            _taxCalculationService = taxCalculationService ?? throw new ArgumentNullException(nameof(taxCalculationService));
         }
 
         [HttpGet("preconditions")]
@@ -50,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             if (year < 2020 || year > 2100 || month < 1 || month > 12)
             {
-                return BadRequest(ApiResponse<object>.Fail("Parameter tahun atau bulan tidak valid.", StatusCodes.Status400BadRequest));
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Parameter tahun atau bulan tidak valid."));
             }
 
             var result = await _preconditionGateService.CheckPreconditionsAsync(year, month, cancellationToken);
@@ -72,7 +81,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             if (!result.Success)
             {
-                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.Message, result.StatusCode));
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
             }
 
             return StatusCode(result.StatusCode, ApiResponse<PayrollRunOperationResultDto>.Ok(result.Data!, result.Message));
@@ -100,7 +109,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var detail = await _runInitializationService.GetPayrollRunDetailAsync(id, cancellationToken);
             if (detail == null)
             {
-                return NotFound(ApiResponse<object>.Fail($"Batch penggajian dengan ID {id} tidak ditemukan.", StatusCodes.Status404NotFound));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, $"Batch penggajian dengan ID {id} tidak ditemukan."));
             }
 
             return Ok(ApiResponse<PayrollRunDetailDto>.Ok(detail, "Detail batch penggajian berhasil diambil."));
@@ -121,7 +130,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             if (!result.Success)
             {
-                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.Message, result.StatusCode));
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
             }
 
             return Ok(ApiResponse<PayrollEarningsCalculationResultDto>.Ok(result.Data!, result.Message));
@@ -143,10 +152,139 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             if (!result.Success)
             {
-                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.Message, result.StatusCode));
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
             }
 
             return Ok(ApiResponse<PayrollEmployeeEarningsResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/ingest-overtime-and-shift")]
+        [AccessAction("IngestOvertimeAndShift", "Penyerapan Lembur & Premi Shift Malam Batch", Description = "Menyerap data lembur Sub-09 dan premi shift malam Sub-07 seluruh pegawai batch", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("PayrollRunModern", "IngestOvertimeAndShift")]
+        [ProducesResponseType(typeof(ApiResponse<IngestOvertimeAndShiftResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> IngestOvertimeAndShift(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _overtimeAndShiftService.IngestOvertimeAndShiftAsync(id, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<IngestOvertimeAndShiftResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/employees/{employeeRunId:guid}/ingest-overtime-and-shift")]
+        [AccessAction("IngestEmployeeOvertimeAndShift", "Penyerapan Lembur & Premi Shift Malam Pegawai", Description = "Menyerap data lembur Sub-09 dan premi shift malam Sub-07 satu pegawai", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("PayrollRunModern", "IngestEmployeeOvertimeAndShift")]
+        [ProducesResponseType(typeof(ApiResponse<EmployeeVariableEarningSummaryDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> IngestEmployeeOvertimeAndShift(
+            Guid id,
+            Guid employeeRunId,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _overtimeAndShiftService.IngestEmployeeOvertimeAndShiftAsync(id, employeeRunId, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<EmployeeVariableEarningSummaryDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/calculate-bpjs")]
+        [AccessAction("CalculateBpjs", "Kalkulasi Iuran BPJS Batch", Description = "Menghitung iuran BPJS Kesehatan dan 4 program BPJS Ketenagakerjaan berplafon seluruh pegawai", AccessType = AccessTypes.Update, SortOrder = 9)]
+        [AccessPermission("PayrollRunModern", "CalculateBpjs")]
+        [ProducesResponseType(typeof(ApiResponse<CalculateBpjsResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> CalculateBpjs(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _bpjsCalculationService.CalculateBpjsContributionsAsync(id, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<CalculateBpjsResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/employees/{employeeRunId:guid}/calculate-bpjs")]
+        [AccessAction("CalculateEmployeeBpjs", "Kalkulasi Iuran BPJS Pegawai", Description = "Menghitung iuran BPJS Kesehatan dan 4 program BPJS Ketenagakerjaan satu pegawai", AccessType = AccessTypes.Update, SortOrder = 10)]
+        [AccessPermission("PayrollRunModern", "CalculateEmployeeBpjs")]
+        [ProducesResponseType(typeof(ApiResponse<EmployeeBpjsCalculationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> CalculateEmployeeBpjs(
+            Guid id,
+            Guid employeeRunId,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _bpjsCalculationService.CalculateEmployeeBpjsAsync(id, employeeRunId, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<EmployeeBpjsCalculationDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/calculate-pph21")]
+        [AccessAction("CalculatePph21", "Kalkulasi Pemotongan PPh 21 TER Batch", Description = "Menghitung pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER A, B, C) PMK 168/2023 seluruh pegawai", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission("PayrollRunModern", "CalculatePph21")]
+        [ProducesResponseType(typeof(ApiResponse<CalculatePph21ResultDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> CalculatePph21(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _taxCalculationService.CalculatePph21TerAsync(id, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<CalculatePph21ResultDto>.Ok(result.Data!, result.Message));
+        }
+
+        [HttpPost("{id:guid}/employees/{employeeRunId:guid}/calculate-pph21")]
+        [AccessAction("CalculateEmployeePph21", "Kalkulasi Pemotongan PPh 21 Pegawai", Description = "Menghitung pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) satu pegawai", AccessType = AccessTypes.Update, SortOrder = 12)]
+        [AccessPermission("PayrollRunModern", "CalculateEmployeePph21")]
+        [ProducesResponseType(typeof(ApiResponse<EmployeePph21CalculationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> CalculateEmployeePph21(
+            Guid id,
+            Guid employeeRunId,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _taxCalculationService.CalculateEmployeePph21TerAsync(id, employeeRunId, actorUserId, cancellationToken);
+
+            if (!result.Success)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<EmployeePph21CalculationDto>.Ok(result.Data!, result.Message));
         }
 
         private Guid GetCurrentUserId()

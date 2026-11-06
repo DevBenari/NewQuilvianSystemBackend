@@ -1,4 +1,4 @@
-﻿# Roadmap Delivery Backend — Modul Human Resource
+# Roadmap Delivery Backend — Modul Human Resource
 
 ## Metadata
 
@@ -845,14 +845,14 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-143` | `S-B3` · `MVP-29` | Manajemen periode cut-off bulanan (tgl 20) & rekonsiliasi retrospektif | ✅ | `BE-HRD-140`, `BE-HRD-141` |
 | `BE-HRD-144` | `S-B3` · `MVP-29` | Handoff serah terima data lembur terkunci & rapel ke Modul 10 Payroll | ✅ | `BE-HRD-143` |
 | `BE-HRD-145` | `S-B3` · Verifikasi | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v13, build Slice S-B3 | ✅ | `BE-HRD-137`, `BE-HRD-138`, `BE-HRD-140`, `BE-HRD-142`, `BE-HRD-144` |
-| `BE-HRD-146` | `S-B5` / `MVP-30` | ⏳ | Skema database PostgreSQL & migrasi EF Core untuk entitas Payroll V2 |
-| `BE-HRD-147` | `S-B5` / `MVP-30` | ⏳ | Manajemen parameter konfigurasi master penggajian & pembekuan snapshot periode (`PayrollSettingService`) |
-| `BE-HRD-148` | `S-B5` / `MVP-30` | ⏳ | Precondition Gate Validator pengecekan penguncian waktu kerja Sub-07, 08, 09 (`PayrollPreconditionGateService`) |
-| `BE-HRD-149` | `S-B5` / `MVP-30` | ⏳ | Engine inisiasi batch siklus penggajian bulanan & proteksi anti-duplikasi periode (`PayrollRunInitializationService`) |
-| `BE-HRD-150` | `S-B5` / `MVP-30` | ⏳ | Engine kalkulasi penghasilan tetap: gaji pokok, tunjangan struktural, tunjangan fungsional profesi & risiko medis |
-| `BE-HRD-151` | `S-B5` / `MVP-30` | ⏳ | Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`) |
-| `BE-HRD-152` | `S-B5` / `MVP-30` | ⏳ | Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi |
-| `BE-HRD-153` | `S-B5` / `MVP-30` | ⏳ | Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023 |
+| `BE-HRD-146` | `S-B5` / `MVP-30` | ✅ | Skema database PostgreSQL & migrasi EF Core untuk entitas Payroll V2 |
+| `BE-HRD-147` | `S-B5` / `MVP-30` | ✅ | Manajemen parameter konfigurasi master penggajian & pembekuan snapshot periode (`PayrollSettingService`) |
+| `BE-HRD-148` | `S-B5` / `MVP-30` | ✅ | Precondition Gate Validator pengecekan penguncian waktu kerja Sub-07, 08, 09 (`PayrollPreconditionGateService`) |
+| `BE-HRD-149` | `S-B5` / `MVP-30` | ✅ | Engine inisiasi batch siklus penggajian bulanan & proteksi anti-duplikasi periode (`PayrollRunInitializationService`) |
+| `BE-HRD-150` | `S-B5` / `MVP-30` | ✅ | Engine kalkulasi penghasilan tetap: gaji pokok, tunjangan struktural, tunjangan fungsional profesi & risiko medis |
+| `BE-HRD-151` | `S-B5` / `MVP-30` | ✅ | Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`) |
+| `BE-HRD-152` | `S-B5` / `MVP-30` | ✅ | Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi |
+| `BE-HRD-153` | `S-B5` / `MVP-30` | ✅ | Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023 |
 | `BE-HRD-154` | `S-B5` / `MVP-31` | ⏳ | Integrasi penarikan potongan pinjaman koperasi & restitusi dari Sub-modul 11 (`PayrollDeductionsIngestionService`) |
 | `BE-HRD-155` | `S-B5` / `MVP-31` | ⏳ | Payroll Variance Guard & deteksi otomatis deviasi net pay >= 20% / Rp 2jt (`PayrollVarianceGuardService`) |
 | `BE-HRD-156` | `S-B5` / `MVP-31` | ⏳ | Alur resolusi justifikasi audit variansi & gerbang penolakan submission batch (`PayrollVarianceResolutionService`) |
@@ -3710,9 +3710,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Selisih nominal rupiah; mitigasi: penggunaan tipe data decimal 18,2 dan math rounding banker's.
 * **Definition of Done**: Perhitungan penghasilan tetap teruji akurat untuk berbagai kelompok profesi rumah sakit.
 
-### ⏳ `BE-HRD-151` — Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`)
+### ✅ `BE-HRD-151` — Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`)
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: ⏳ Menunggu `BE-HRD-150`
+* **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Layanan penyerapan data variabel jam lembur terverifikasi (tier 1.5x, 2x, holiday) beserta rapel lembur dari Sub-modul 09 (`INT-HR-52`), serta penyerapan akumulasi dinas shift malam dari Sub-modul 07 (`INT-HR-36`) untuk dikonversi menjadi nominal premi malam resmi.
 * **Requirement/decision**: `HRD-DEC-123`, `HRD-ASM-27`, `02-backend-architecture.md` 23.8 (`PAY-B4`).
 * **Kontrak**: API Contract `v14`, Integration Contract `INT-HR-36`, `INT-HR-52`, `VR-PAY-06`, `VR-PAY-07`.
@@ -3727,9 +3727,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Perbedaan klaim lembur vs presensi; mitigasi: konsumsi data snapshot yang telah berstatus Closed.
 * **Definition of Done**: Variabel lembur dan premi shift malam terintegrasi penuh ke dalam lembar kerja gaji.
 
-### ⏳ `BE-HRD-152` — Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi
+### ✅ `BE-HRD-152` — Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: ⏳ Menunggu `BE-HRD-150`
+* **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Engine kalkulasi potongan wajib jaminan sosial tenaga kerja: BPJS Kesehatan (1% pegawai, 4% RS berplafon Rp 12.000.000) serta 4 program BPJS Ketenagakerjaan (JKK 0.89%, JKM 0.3%, JHT 2% pegawai & 3.7% RS, JP 1% pegawai berplafon Rp 10.042.300).
 * **Requirement/decision**: `HRD-DEC-123`, `02-backend-architecture.md` 23.8 (`PAY-W4`).
 * **Kontrak**: `VR-PAY-08`, `VR-PAY-09`, `VR-PAY-10`.
@@ -3744,9 +3744,9 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kepatuhan regulasi BPJS; mitigasi: parameter plafon dinamis tersimpan pada database master.
 * **Definition of Done**: Kalkulasi potongan dan kontribusi BPJS teruji presisi sesuai tabel ketentuan pemerintah.
 
-### ⏳ `BE-HRD-153` — Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023
+### ✅ `BE-HRD-153` — Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: ⏳ Menunggu `BE-HRD-150`, `BE-HRD-151`, `BE-HRD-152`
+* **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Engine kalkulasi pemotongan pajak penghasilan PPh 21 bulanan mengacu pada tabel resmi Tarif Efektif Rata-Rata (TER Kategori A, B, dan C) sesuai Peraturan Menteri Keuangan Nomor 168 Tahun 2023 berdasarkan status PTKP dan penghasilan bruto.
 * **Requirement/decision**: `HRD-DEC-123`, `HRD-ASM-28`, `02-backend-architecture.md` 23.8.
 * **Kontrak**: API Contract `v14`, Integration Contract `INT-HR-56`, `VR-PAY-11`, `VR-PAY-12`.
@@ -3763,7 +3763,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### ⏳ `BE-HRD-154` — Integrasi penarikan potongan pinjaman koperasi & restitusi dari Sub-modul 11 (`PayrollDeductionsIngestionService`)
 * **Slice / MVP**: `S-B5` / `MVP-31`
-* **Status**: ⏳ Menunggu `BE-HRD-153`
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat `BE-HRD-153` Selesai)
 * **Outcome**: Layanan konsumsi tagihan angsuran pinjaman belanja koperasi karyawan, pinjaman darurat rumah sakit, atau pemotongan kelebihan klaim restitusi kesehatan dari Sub-modul 11 via kontrak `INT-HR-55`, dengan aturan proteksi batas maksimal pemotongan gaji (maks 50% dari take-home pay).
 * **Requirement/decision**: `HRD-DEC-123`, `02-backend-architecture.md` 23.8.
 * **Kontrak**: Integration Contract `INT-HR-55`, `VR-PAY-25`.
@@ -3866,7 +3866,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ### ⏳ `BE-HRD-160` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v14, dan build Slice `S-B5`
 * **Slice / MVP**: `S-B5` / Verifikasi
-* **Status**: ⏳ Menunggu `BE-HRD-153`, `BE-HRD-157`, `BE-HRD-159`
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat `BE-HRD-153` Selesai), `BE-HRD-157`, `BE-HRD-159`
 * **Outcome**: Audit komprehensif kepatuhan arsitektur backend, zero warning kompilasi .NET, verifikasi integritas seluruh endpoint Swagger penggajian, konformansi aturan rekayasa QBE, serta pemenuhan 10 butir Definition of Done Slice `S-B5`.
 * **Requirement/decision**: `HRD-DEC-122` s.d. `HRD-DEC-127`, `04-prd-to-mvp.md` Bagian 28 (DoD 1 s.d. 10).
 * **Kontrak**: Seluruh kontrak operasional `v14` Slice `S-B5`.
@@ -4330,3 +4330,180 @@ BE-HRD-220 [B54] ─┘
 * **Dependencies**: Seluruh task backend `BE-HRD-206` s.d. `BE-HRD-220`
 * **Acceptance Criteria**: `dotnet build` lulus 0 error 0 warning kritis; seluruh acceptance criteria 16 task terpenuhi; 10 kriteria DoD tercapai.
 * **Verifikasi**: Laporan task tracked `BE-HRD-221.md` dan output terminal dotnet.
+
+---
+
+## 17. Rencana Kerja Backend Sub-Modul 15: OPPE, FPPE & Recredentialing (Slice `S-C1-OPPE`)
+
+### 17.1 Grafik Urutan Dependency Backend `S-C1-OPPE`
+
+#### Grafik B56: Gelombang `MVP-45` (OPPE Evaluasi Kinerja Klinis & Kualitas SIMRS)
+```text
+BE-HRD-222 (Skema DB OPPE/FPPE) ──> BE-HRD-223 (Katalog Indikator ACGME) ──> BE-HRD-224 (Periode Siklus OPPE) ──> BE-HRD-225 (Ekstraksi Kuantitatif SIMRS 60%) ──┐
+                                                                               │                                                                                    │
+                                                                               └──> BE-HRD-226 (Penugasan Peer Review 40%) ──> BE-HRD-227 (Privilege & Read-Audit) ─┴─> BE-HRD-228 ⏳ (Kalkulator Komposit 60:40 & Sidang)
+```
+
+#### Grafik B57: Gelombang `MVP-46` (FPPE Pemicu Kritis, Proctoring Staf/Prosedur Baru & Sidang Pleno)
+```text
+BE-HRD-222 [B56] ──> BE-HRD-229 (Feed Pemicu FPPE Sentinel/Komplikasi) ──> BE-HRD-230 (Penugasan FPPE & Proctor) ──> BE-HRD-231 (Logbook Kasus & Verifikasi) ──> BE-HRD-232 ⏳ (Sidang Pleno Kesimpulan FPPE)
+```
+
+#### Grafik B58: Gelombang `MVP-47` (Kalkulator Komposit 3 Tahun Rekredensialing & Sinkronisasi Putusan SIMRS)
+```text
+BE-HRD-228 [B56] ──┬──> BE-HRD-233 (Kalkulator Komposit 3 Tahun & Tier) ──> BE-HRD-234 (Diskresi Override Tier) ──> BE-HRD-235 ⏳ (4 Putusan Rekredensialing & Dispatcher SIMRS EMR)
+BE-HRD-232 [B57] ──┘
+BE-HRD-230 [B57] ──┬──> BE-HRD-236 ⏳ (Worker Pemantau Batas Proctoring & Anomali Komplikasi Bulanan)
+BE-HRD-225 [B56] ──┘
+```
+
+#### Grafik B59: Gelombang Verifikasi & Kepatuhan Arsitektur `S-C1-OPPE`
+```text
+BE-HRD-228 [B56] ──┐
+BE-HRD-232 [B57] ──┼──> BE-HRD-237 ⏳ (Validasi Kompilasi .NET, QBE & Uji Penerimaan AT-HRD-OPP-01..22)
+BE-HRD-235 [B58] ──┤
+BE-HRD-236 [B58] ──┘
+```
+
+---
+
+### Tabel Gelombang Eksekusi Backend `S-C1-OPPE`
+
+| Gelombang | Task ID | Target Deliverable / Output Utama | Syarat Masuk (Dependencies) |
+| :---: | :--- | :--- | :--- |
+| **`MVP-45`** | `BE-HRD-222`, `BE-HRD-223`, `BE-HRD-224`, `BE-HRD-225`, `BE-HRD-226`, `BE-HRD-227`, `BE-HRD-228` | Entitas EF Core 8 tabel, master katalog indikator 6 pilar ACGME/KARS, siklus evaluasi periode OPPE, adapter ekstraksi data kuantitatif SIMRS/KMKP 60%, instrumen telaah sejawat kualitatif 40%, penegakan *Peer Review Privilege* dengan perekaman *read-audit log*, serta kalkulator komposit 60:40 dan pengesahan rapor OPPE. | Disetujuinya Kontrak `v19` & Blueprint Rev 44 |
+| **`MVP-46`** | `BE-HRD-229`, `BE-HRD-230`, `BE-HRD-231`, `BE-HRD-232` | Layanan penangkap feed pemicu kritis FPPE (sentinel, komplikasi bedah > 2 SD, resume EMR kronis), inisiasi penugasan FPPE dokter baru & prosedur baru, logbook kasus proctoring dengan pseudonimisasi pasien, verifikasi kemandirian proctor, serta sidang pleno kesimpulan FPPE. | `BE-HRD-222` |
+| **`MVP-47`** | `BE-HRD-233`, `BE-HRD-234`, `BE-HRD-235`, `BE-HRD-236` | Kalkulator deterministik rapor komposit 3 tahun rekredensialing (25%-35%-40%), klasifikasi otomatis tier kelayakan (Hijau, Kuning, Merah), layanan diskresi penyesuaian tier Ketua Komite, transmisi 4 putusan rekredensialing ke modul EMR SIMRS (`INT-HR-76`), serta background worker pemantau sisa waktu proctoring. | `BE-HRD-228`, `BE-HRD-232` |
+| **Verifikasi** | `BE-HRD-237` | Kompilasi .NET bersih 0 error, verifikasi konformansi QBE preflight, verifikasi kontrak API Swagger Kontrak `v19`, dan pengujian penerimaan `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`. | Seluruh task `BE-HRD-222` s.d. `BE-HRD-236` selesai |
+
+---
+
+### Detail Spesifikasi Task Backend (`BE-HRD-222` s.d. `BE-HRD-237`)
+
+#### ⏳ `BE-HRD-222` — EF Core Entity Models & Database Migration Skema OPPE & FPPE (`S-C1-OPPE`)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu Eksekusi
+* **Outcome**: Deklarasi 8 entity models EF Core (`MstOppeMetricCatalog`, `TrxOppeEvaluationPeriod`, `TrxOppeStaffEvaluation`, `TrxOppeStaffEvaluationDetail`, `TrxFppeEngagement`, `TrxFppeCaseLog`, `TrxFppeEvaluationConclusion`, `HrdClinicalPeerReviewAuditLog`), konfigurasi fluent mapping PostgreSQL, indeks foreign key dan unique constraints, serta migrasi EF Core bersih tanpa modifikasi tabel legacy.
+* **Dependencies**: Disetujuinya Kontrak `v19` & Blueprint Rev 44
+* **Acceptance Criteria**: Model EF Core valid; migration PostgreSQL berhasil dieksekusi tanpa galat; constraint integritas data aktif.
+* **Verifikasi**: `dotnet ef migrations add` dan verifikasi skema database.
+
+#### ⏳ `BE-HRD-223` — Master Katalog Indikator OPPE 6 Pilar ACGME/KARS & Konfigurasi Ambang Batas KSM
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `BE-HRD-222`
+* **Outcome**: REST API dan domain service untuk master katalog indikator performa klinis berbasis 6 pilar standar ACGME/KARS (`PatientCare`, `MedicalKnowledge`, `PracticeBasedLearning`, `InterpersonalCommunication`, `Professionalism`, `SystemsBasedPractice`), konfigurasi target ambang batas per KSM, dan pengaturan bobot default (`mst_oppe_metric_catalogs`, `VR-OPP-01`).
+* **Dependencies**: `BE-HRD-222`
+* **Acceptance Criteria**: Endpoint `GET /metric-catalogs` dan `POST /metric-catalogs` beroperasi sesuai kontrak; validasi ambang batas numerik berfungsi.
+* **Verifikasi**: Uji fungsional `AT-HRD-OPP-01`.
+
+#### ⏳ `BE-HRD-224` — Tata Kelola Periode Siklus OPPE Tahunan/Semesteran & Inisiasi Rapor Dokter
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `BE-HRD-223`
+* **Outcome**: Layanan pembukaan siklus periode evaluasi OPPE baru (`trx_oppe_evaluation_periods`), validasi total pembobotan kuantitatif + kualitatif wajib tepat 100% (standar 60:40, `VR-OPP-01`), penguncian periode pasca-finalisasi (`VR-OPP-24`), serta otomasi inisiasi draf rapor evaluasi individu dokter (`trx_oppe_staff_evaluations`).
+* **Dependencies**: `BE-HRD-223`
+* **Acceptance Criteria**: Periode OPPE terbit status `Active`; draf rapor dokter terinisiasi otomatis; penolakan jika total bobot != 100% (`VR-OPP-01`).
+* **Verifikasi**: Uji fungsional `AT-HRD-OPP-01` dan uji negatif `AT-HRD-OPP-02`.
+
+#### ⏳ `BE-HRD-225` — Layanan Ekstraksi & Agregasi Otomatis Data Indikator Kuantitatif SIMRS/KMKP 60%
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `BE-HRD-224`
+* **Outcome**: Implementasi adapter integrasi `INT-HR-73` (`IOppeSimrsMetricExtractorService`) untuk menarik data indikator kuantitatif dari SIMRS dan modul KMKP (volume tindakan, kepatuhan resume EMR 1x24 jam, kepatuhan Clinical Pathway, kepatuhan formularium RS, tingkat IDO), serta kalkulasi agregasi bobot kuantitatif 60%.
+* **Dependencies**: `BE-HRD-224`
+* **Acceptance Criteria**: Data kuantitatif SIMRS teragregasi secara otomatis; nilai skor tertimbang 60% terhitung presisi; penyimpanan raw JSON payload bukti audit.
+* **Verifikasi**: Uji integrasi `AT-HRD-OPP-03`.
+
+#### ⏳ `BE-HRD-226` — Penugasan & Evaluasi Kualitatif Telaah Sejawat (Peer Review) 40% KSM
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `BE-HRD-224`
+* **Outcome**: Penugasan instrumen evaluasi telaah sejawat ke dokter rekan sebidang dalam KSM yang sama (`VR-OPP-02`), pemblokiran keras evaluasi mandiri (*anti-self-review*, `VR-OPP-03`), entri skala Likert 1-5 untuk domain etika profesi dan komunikasi, serta kewajiban catatan naratif jika skor <= 2 (`VR-OPP-04`).
+* **Dependencies**: `BE-HRD-224`
+* **Acceptance Criteria**: Form ulasan sejawat terkirim ke penilai KSM; submit ditolak jika tanpa narasi klinis untuk skor rendah; blokir self-review berhasil.
+* **Verifikasi**: Uji fungsional `AT-HRD-OPP-04`, `AT-HRD-OPP-05`, dan `AT-HRD-OPP-06`.
+
+#### ⏳ `BE-HRD-227` — Penegakan Kerahasiaan Hak Istimewa Peer Review Privilege & Read-Audit Logging Tamper-Proof
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `BE-HRD-226`
+* **Outcome**: Mekanisme proteksi data konfidensial di bawah hak istimewa *Peer Review Privilege* (`HRD-DEC-156`), isolasi akses dari staf HR non-medis, penegakan dialog peringatan hukum kerahasiaan, serta perekaman seketika ke tabel log audit permanen `hrd_clinical_peer_review_audit_logs` (*tamper-proof read-audit log*, `VR-OPP-23`).
+* **Dependencies**: `BE-HRD-226`
+* **Acceptance Criteria**: Setiap request pembacaan lembar ulasan sejawat mencatat ID personel, IP, timestamp presisi, dan status persetujuan disclaimer; staf umum ditolak `403 Forbidden`.
+* **Verifikasi**: Uji audit keselamatan & privasi `AT-HRD-OPP-07`.
+
+#### ⏳ `BE-HRD-228` — Kalkulator Rapor Akhir Komposit OPPE 60:40 & Sidang Pengesahan Subkomite Mutu
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
+* **Status**: ⏳ Menunggu `BE-HRD-225`, `BE-HRD-227`
+* **Outcome**: Layanan perhitungan deterministik nilai komposit akhir OPPE ((0.60 * Kuantitatif) + (0.40 * Kualitatif)), penetapan status kelulusan standar mutu klinis (>= 75.0), evaluasi sinyal peringatan dini (*early warning*), pengesahan sidang Subkomite Mutu Profesi, serta alur konfirmasi baca oleh nakes via portal ESS.
+* **Dependencies**: `BE-HRD-225`, `BE-HRD-227`
+* **Acceptance Criteria**: Nilai komposit terhitung tepat; status rapor berubah menjadi `Completed` lalu `Acknowledged` pasca-konfirmasi dokter; arsip otomatis ke e-Dossier Sub-02.
+* **Verifikasi**: Uji algoritma kalkulasi `AT-HRD-OPP-08` dan alur persetujuan `AT-HRD-OPP-09`.
+
+#### ⏳ `BE-HRD-229` — Layanan Penerimaan Feed Pemicu Kritis FPPE (Sentinel, Komplikasi > 2 SD, Resume Medis Kronis)
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `BE-HRD-222`
+* **Outcome**: Implementasi penerima event asinkronus `INT-HR-74` (`IFppeTriggerEventReceiver`) untuk mendeteksi ambang pemicu insiden keselamatan pasien: 1 kejadian sentinel (`VR-OPP-05`), komplikasi bedah > 2 SD selama 3 bulan berturut-turut (`VR-OPP-06`), keterlambatan resume EMR > 48 jam > 20% selama 2 bulan (`VR-OPP-07`), serta surat rujukan sidang Komite Etik.
+* **Dependencies**: `BE-HRD-222`
+* **Acceptance Criteria**: Sinyal sentinel seketika menginisiasi draf penugasan investigasi FPPE; feed pemicu kritis tersaji di antarmuka pengawasan KMKP.
+* **Verifikasi**: Uji pemicu real-time `AT-HRD-OPP-10`, `AT-HRD-OPP-11`, dan `AT-HRD-OPP-12`.
+
+#### ⏳ `BE-HRD-230` — Inisiasi Penugasan FPPE Terarah & Penunjukan Proctor Senior
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `BE-HRD-229`
+* **Outcome**: Domain service inisiasi berkas penugasan FPPE (`trx_fppe_engagements`), verifikasi kualifikasi senioritas Dokter Proctor pendamping minimal masa kerja 3 tahun (`VR-OPP-08`), penetapan target pemantauan staf baru (minimal 3 bulan / 10 kasus, `VR-OPP-09`), dan penetapan target prosedur baru (minimal 6 bulan / 5 kasus, `VR-OPP-10`).
+* **Dependencies**: `BE-HRD-229`
+* **Acceptance Criteria**: Penugasan FPPE terbit status `InProgress`; penunjukan proctor divalidasi kualifikasinya; target kasus terkunci sesuai kategori.
+* **Verifikasi**: Uji fungsional `AT-HRD-OPP-13` dan `AT-HRD-OPP-14`.
+
+#### ⏳ `BE-HRD-231` — Logbook Kasus Terproctoring Berpseudonim & Verifikasi Kemandirian Tindakan Proctor
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `BE-HRD-230`
+* **Outcome**: Pengelolaan buku catatan logbook tindakan klinis terproctoring (`trx_fppe_case_logs`), penerapan enkripsi/penyamaran (pseudonimisasi) identitas rekam medis pasien (`VR-OPP-11`), pencatatan evaluasi teknik klinis, observasi komplikasi, serta verifikasi tanda tangan digital proctor atas tingkat kemandirian prosedur Level 1 s.d. Level 4 (`VR-OPP-12`).
+* **Dependencies**: `BE-HRD-230`
+* **Acceptance Criteria**: Nomor RM tersimpan dalam format pseudonim ID aman; kasus klinis berhasil diverifikasi proctor; counter progres kasus bertambah.
+* **Verifikasi**: Uji privasi medis & verifikasi proctor `AT-HRD-OPP-15` dan `AT-HRD-OPP-16`.
+
+#### ⏳ `BE-HRD-232` — Sidang Pleno Penetapan Vonis Kesimpulan FPPE & Rencana Pembinaan
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-46`
+* **Status**: ⏳ Menunggu `BE-HRD-231`
+* **Outcome**: Layanan persidangan pleno Subkomite Mutu Profesi untuk menetapkan berita acara kesimpulan FPPE (`trx_fppe_evaluation_conclusions`), validasi otorisasi Ketua Komite (`VR-OPP-14`), penanganan 4 rekomendasi vonis (`FullPrivilegeConfirmed`, `ProctoringExtended` maks 3 bulan `VR-OPP-13`, `SupervisedPractice`, `PrivilegeRevoked`), serta perumusan rencana pembinaan (*Remediation Plan*).
+* **Dependencies**: `BE-HRD-231`
+* **Acceptance Criteria**: Vonis FPPE sah terbit; durasi perpanjangan dibatasi maksimal 3 bulan; status kewenangan klinis dokter diperbarui di sistem.
+* **Verifikasi**: Uji sidang pleno `AT-HRD-OPP-17` dan `AT-HRD-OPP-18`.
+
+#### ⏳ `BE-HRD-233` — Kalkulator Rapor Komposit 3 Tahun Rekredensialing (25%-35%-40%) & Klasifikasi Tier
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
+* **Status**: ⏳ Menunggu `BE-HRD-228`, `BE-HRD-232`
+* **Outcome**: Implementasi layanan query `INT-HR-75` (`IRecredentialingCompositeProvider`) untuk menghitung rapor komposit 3 tahun secara deterministik dengan rasio progresif Tahun 1 (25%), Tahun 2 (35%), Tahun 3 (40%) (`VR-OPP-15`), serta otomasi klasifikasi eligibilitas ke dalam 3 tier: Tier Hijau (skor >= 80 & 0 sentinel, `VR-OPP-16`), Tier Kuning (skor 65-79 atau penundaan EMR, `VR-OPP-17`), dan Tier Merah (skor < 65 atau gagal FPPE, `VR-OPP-18`).
+* **Dependencies**: `BE-HRD-228`, `BE-HRD-232`
+* **Acceptance Criteria**: Komposit 3 tahun terhitung akurat sesuai formula baku; klasifikasi tier berjalan objektif tanpa bias.
+* **Verifikasi**: Uji algoritma kalkulasi `AT-HRD-OPP-19` dan klasifikasi tier `AT-HRD-OPP-20`.
+
+#### ⏳ `BE-HRD-234` — Layanan Diskresi Penyesuaian Tier Rekredensialing & Audit Rekomendasi Komite Medik
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
+* **Status**: ⏳ Menunggu `BE-HRD-233`
+* **Outcome**: Mekanisme penyesuaian tier kelayakan hasil kalkulator oleh Ketua Komite Medik, kewajiban penyertaan nota justifikasi klinis tertulis (`VR-OPP-19`), pencatatan event audit `RecredentialingTierOverridden`, serta penyusunan berkas rekomendasi menuju sidang pleno rekredensialing.
+* **Dependencies**: `BE-HRD-233`
+* **Acceptance Criteria**: Penyesuaian tier ditolak jika tanpa justifikasi klinis; rekam jejak audit tersimpan permanen.
+* **Verifikasi**: Uji diskresi otorisasi `AT-HRD-OPP-21`.
+
+#### ⏳ `BE-HRD-235` — Penetapan 4 Putusan Sidang Rekredensialing & Dispatcher Integrasi SIMRS EMR
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
+* **Status**: ⏳ Menunggu `BE-HRD-234`
+* **Outcome**: Layanan penerbitan 4 putusan sah sidang rekredensialing (`Perpanjang As-Is`, `Upgrade`, `Restricted`, `Revoked`, `VR-OPP-20`), serta implementasi dispatcher sinkronisasi `INT-HR-76` (`ISimrsClinicalPrivilegeDispatcher`) yang mentransmisikan instruksi wewenang Level 4 mandiri, Level 3 supervisi co-sign 24 jam (`VR-OPP-21`), atau Hard-Stop pemblokiran order mutlak untuk putusan Revoked (`VR-OPP-22`, `VR-OPP-25`).
+* **Dependencies**: `BE-HRD-234`
+* **Acceptance Criteria**: Putusan rekredensialing terkirim ke database SIMRS EMR; menu order dan peresepan dokter seketika terkunci jika status Revoked.
+* **Verifikasi**: Uji integrasi SIMRS & Hard-Stop `AT-HRD-OPP-22`.
+
+#### ⏳ `BE-HRD-236` — Background Worker Pemantau Sisa Waktu Proctoring & Evaluasi Tren Komplikasi Bulanan
+* **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
+* **Status**: ⏳ Menunggu `BE-HRD-225`, `BE-HRD-230`
+* **Outcome**: Implementasi background worker berkala (`OPP-W1` s.d. `OPP-W6`): `OppeSimrsDataSyncJob`, `FppeTriggerMonitorJob`, `FppeProctoringDeadlineJob` (peringatan H-14 masa observasi habis), `RecredentialingCompositeScoreJob`, `OppeEarlyWarningJob`, dan `SurgicalComplicationScannerJob` (analisis statistik komplikasi > 2 SD).
+* **Dependencies**: `BE-HRD-225`, `BE-HRD-230`
+* **Acceptance Criteria**: Worker berjalan deterministik sesuai jadwal cron; deteksi anomali statistik memicu event pemicu FPPE.
+* **Verifikasi**: Uji background worker & simulasi scheduler.
+
+#### ⏳ `BE-HRD-237` — Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C1-OPPE`
+* **Slice / MVP**: `S-C1-OPPE` / Verifikasi
+* **Status**: ⏳ Menunggu `BE-HRD-222` s.d. `BE-HRD-236`
+* **Outcome**: Verifikasi kompilasi bersih .NET (`dotnet build`) tanpa error, audit konformansi arsitektur QBE Preflight, validasi kepatuhan 24 endpoint API Swagger Kontrak `v19`, serta eksekusi lengkap 22 skenario pengujian penerimaan `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`.
+* **Dependencies**: Seluruh task backend `BE-HRD-222` s.d. `BE-HRD-236`
+* **Acceptance Criteria**: `dotnet build` lulus 0 error 0 warning kritis; seluruh acceptance criteria 16 task terpenuhi; 10 kriteria DoD tercapai.
+* **Verifikasi**: Laporan task tracked `BE-HRD-237.md` dan output terminal dotnet.
