@@ -209,14 +209,14 @@ flowchart LR
     classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
 
     BENV008["✅ BE-NV-008<br/>Fondasi data tablet dan panggilan"]:::selesai
-    BENV009["🟡 BE-NV-009<br/>API admin tablet bed"]:::sebagian
-    BENV010["BE-NV-010<br/>Login dan runtime akun tablet"]:::belum
+    BENV009["✅ BE-NV-009<br/>API admin tablet bed"]:::selesai
+    BENV010["🟡 BE-NV-010<br/>Login dan runtime akun tablet"]:::sebagian
     BENV011["BE-NV-011<br/>Panggilan dari tablet"]:::belum
     BENV012["BE-NV-012<br/>Konsol: daftar dan aksi perawat"]:::belum
     BENV013["BE-NV-013<br/>Tutup otomatis saat pindah atau pulang"]:::belum
     BENV014["BE-NV-014<br/>Sinyal realtime dan grup hub"]:::belum
     BENV015["BE-NV-015<br/>Strip TV dan penanda kartu"]:::belum
-    BENV016["🟡 BE-NV-016<br/>API ambang lama menunggu"]:::sebagian
+    BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::selesai
 
     BENV008 --> BENV009
     BENV009 --> BENV010
@@ -286,14 +286,14 @@ ringkas per berkas.
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
 | ✅ `BE-NV-008` | Fondasi data tablet bed dan panggilan pasien | `NV-DEC-035`, `039`, `040`, `048`, `049`, `050`, `053`; `AD-01`, `03`; `G-10`, `15`, `17`; `NFR-009`, `011` | `0.2.0` kamus data R2 | `IdentityModel`, pola configuration `NvwDisplayDevice`, index berfilter `InpBedPlacement` | 4 model, 6 enum, 4 configuration, 4 `DbSet`; berhenti sebelum migration | — | Kartu | QBE; build dan migration oleh Rizki; pemeriksaan index read-only | Filter index salah → dua panggilan aktif per bed / Rizki | Kartu |
-| 🟡 `BE-NV-009` | API admin tablet bed | `FR-NV-033`–`035`; `NV-DEC-035`; `AD-01`, `03`, `04`; `G-17` | `0.2.0` api §5 | Alur `NvwDisplayDeviceService`, `NumberSeriesAllocator`, `UserManager` | Service + controller (9 endpoint) + DTO + resource `NurseViewBedTablet`; `VAL-NV-17`–`25` | `BE-NV-008` | Kartu | HTTP via Swagger/Antigravity oleh Rizki | Kata sandi bocor ke log / Rizki | Kartu |
-| `BE-NV-010` | Login dan runtime akun tablet bed | `FR-NV-034`, `036`; `NV-DEC-030`, `046`, `056`; `AD-02`; `G-09` | `0.2.0` api §6 `/current` | Resolver TV Nurse View, `NvwDeviceContextService`, policy `NurseViewDisplayRead` | `AuthController`, `AuthorizationPolicies`, `Program.cs`, context service, runtime controller `GET /current` | `BE-NV-009` | Kartu, termasuk regresi `NV-AC-041` | Login enam jenis akun + bandingkan klaim | **Regresi login seluruh sistem** / Rizki, syarat lead | Kartu |
+| ✅ `BE-NV-009` | API admin tablet bed | `FR-NV-033`–`035`; `NV-DEC-035`; `AD-01`, `03`, `04`; `G-17` | `0.2.0` api §5 | Alur `NvwDisplayDeviceService`, `NumberSeriesAllocator`, `UserManager` | Service + controller (9 endpoint) + DTO + resource `NurseViewBedTablet`; `VAL-NV-17`–`25` | `BE-NV-008` | Kartu | HTTP via Swagger/Antigravity oleh Rizki | Kata sandi bocor ke log / Rizki | Kartu |
+| 🟡 `BE-NV-010` | Login dan runtime akun tablet bed | `FR-NV-034`, `036`; `NV-DEC-030`, `046`, `056`; `AD-02`; `G-09` | `0.2.0` api §6 `/current` | Resolver TV Nurse View, `NvwDeviceContextService`, policy `NurseViewDisplayRead` | `AuthController`, `AuthorizationPolicies`, `Program.cs`, context service, runtime controller `GET /current` | `BE-NV-009` | Kartu, termasuk regresi `NV-AC-041` | Login enam jenis akun + bandingkan klaim | **Regresi login seluruh sistem** / Rizki, syarat lead | Kartu |
 | `BE-NV-011` | Panggilan dari tablet: tekan, Darurat, batal, perawat hadir | `FR-NV-037`, `038`, `040`, `042`, `044`, `045`; `NV-DEC-039`, `041`, `046`, `050`, `054`; `G-12`, `13` | `0.2.0` api §6 `POST` | Context service (`BE-NV-010`), pola `Idempotency-Key` refund | `NvwPatientCallService` sisi tablet + 3 endpoint `POST`; `VAL-NV-28`–`32`, `37`, `38` | `BE-NV-010` | Kartu | HTTP termasuk kirim ganda dan paralel; jejak lewat `SELECT` | Panggilan ganda / Rizki | Kartu |
 | `BE-NV-012` | Konsol: daftar dan aksi perawat | `FR-NV-039`, `041`, `044`, `049`, `050`; `NV-DEC-038`, `040`, `043`, `044`, `053`; `AD-06` | `0.2.0` api §7 | `NvwPatientMasking`, `ApplicationUser.DisplayName`, service ambang (`BE-NV-016`) | Controller (6 endpoint) + query konsol + klaim/ambil alih/lepas/tutup; `VAL-NV-33`–`36`, `39` | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP dua akun perawat + paralel; pencarian identitas di JSON | Identitas bocor; klaim ganda / Rizki | Kartu |
 | `BE-NV-013` | Tutup otomatis saat pasien pindah atau pulang | `FR-NV-043`, `044`; `NV-DEC-046`, `050`, `052`; `AD-05` | `0.2.0` state §5, integration R2 §5 | Pola `AttendanceSchedulerHostedService`, enum `InpBedPlacementEndReason` | Reconciliation service + hosted service 30 detik | `BE-NV-011` | Kartu | Pindah/pulang pasien uji lewat layar Rawat Inap; ukur jeda lewat `SELECT` | Arti `EndReason` milik Rawat Inap → `TLM-NV-002` / Rizki | Kartu |
 | `BE-NV-014` | Sinyal realtime panggilan dan grup hub | `FR-NV-048`; `NV-AC-028`; `NV-DEC-044`, `047`; `VAL-NV-41` | `0.2.0` api §10 | `NvwRealtimeService`, `QueueHub#JoinAdmissionQueueBoard`, `#JoinNurseViewFloor` | `NotifyPatientCallChangedAsync` + pemanggilnya; 4 method hub | `BE-NV-012`, `BE-NV-013` | Kartu | Uji hub TV + konsol + tablet | Regresi grup hub lain / Rizki, syarat lead | Kartu |
 | `BE-NV-015` | Strip TV dan penanda kartu | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048` | `0.2.0` api §9 | `NvwDisplayRuntimeController`, `NvwFloorBoardQueryService`, service ambang (`BE-NV-016`) | `GET /active-calls`, query strip, `ActiveCallPriority` di papan | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP akun TV dan tablet; perbandingan JSON `/board` | Identitas bocor di strip; regresi papan / Rizki | Kartu |
-| 🟡 `BE-NV-016` | API ambang lama menunggu | `FR-NV-053`; `NV-DEC-048`; `G-15` | `0.2.0` api §8 | Pola ganti-seluruh `NvwVitalSignIntervalService` | Service (termasuk `ResolveWaitLevel`) + controller + DTO; `VAL-NV-40` | `BE-NV-008` | Kartu | HTTP isi → ganti → cabut | Angka bawaan terselip / Rizki | Kartu |
+| ✅ `BE-NV-016` | API ambang lama menunggu | `FR-NV-053`; `NV-DEC-048`; `G-15` | `0.2.0` api §8 | Pola ganti-seluruh `NvwVitalSignIntervalService` | Service (termasuk `ResolveWaitLevel`) + controller + DTO; `VAL-NV-40` | `BE-NV-008` | Kartu | HTTP isi → ganti → cabut | Angka bawaan terselip / Rizki | Kartu |
 
 ### Kartu task revision 2
 
@@ -314,11 +314,11 @@ ringkas per berkas.
 | Risiko/pemilik | Filter index salah tulis → dua panggilan aktif per bed lolos, atau tablet nonaktif menghalangi tablet pengganti / Rizki. DB dev dipakai bersama → waktu penerapan migration dikoordinasikan Rizki |
 | DoD | AC-1–4 terpetakan ke source; QBE `PASS`; build Rizki lulus; migration diterapkan; laporan `task/report/backend/BE-NV-008.md` |
 
-#### 🟡 BE-NV-009 — API admin tablet bed
+#### ✅ BE-NV-009 — API admin tablet bed
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 **SEBAGIAN 6 November 2026.** AC 5/5 terpetakan ke source: `NvwBedTabletService`, `NvwBedTabletController` (9 endpoint), `NvwBedTabletDtos`, kode `VAL-NV-17`–`25` di `NvwResult`, resource `NurseViewBedTablet`, `Program.cs` +1 `AddScoped`. QBE Strict `PASS` (9 berkas gabungan dengan `BE-NV-016`, 0 violation, 0 review); pasangan atribut akses 9/9; nol komentar; CRLF. **Belum terpenuhi:** DoD build Rizki (`NOT RUN`) dan uji HTTP no. 1–29 (`NOT RUN`). AC-4 (`VAL-NV-20`) runtime tetap menunggu `BE-NV-011`, sesuai kartu. `AUTOMATED TEST: NOT APPLICABLE`. Laporan: [`BE-NV-009.md`](../task/report/backend/BE-NV-009.md) |
+| Status | ✅ **SELESAI 6 November 2026.** AC 5/5 terpetakan ke source dan bukti: `NvwBedTabletService`, `NvwBedTabletController` (9 endpoint), `NvwBedTabletDtos`, kode `VAL-NV-17`–`25` di `NvwResult`, resource `NurseViewBedTablet`, `Program.cs` +1 `AddScoped`. QBE Strict `PASS` (9 berkas gabungan dengan `BE-NV-016`, 0 violation, 0 review); pasangan atribut akses 9/9. Build `PASS` menurut pernyataan Rizki (DLL 10.56; jumlah warning tidak dinyatakan); startup "Permission registry valid". Uji HTTP 6 Nov 11.07 WIB no. 1–29 `PASS` (28 cek + pemindaian log nol kata sandi, delapan jejak aksi) dengan aktor peran berizin sementara dan aktor tanpa hak; policy jabatan uji dipulihkan identik. AC-4 (`VAL-NV-20`) terbukti lewat source; bukti runtime-nya milik `BE-NV-011` sesuai kartu. `AUTOMATED TEST: NOT APPLICABLE`. Riwayat: 🟡 SEBAGIAN 6 Nov pagi sebelum build dan uji. Laporan: [`BE-NV-009.md`](../task/report/backend/BE-NV-009.md) |
 | Gelombang | 2 · `MVP-6` · `EPIC NV-05` |
 | Outcome | Admin IT dapat mendaftarkan tablet untuk satu bed, mengubah atau memindahkan bed-nya, membuat login, mengatur ulang login, dan menonaktifkan tablet |
 | Trace | `FR-NV-033`, `034`, `035`; `NV-DEC-035`; `AD-01`, `AD-03`, `AD-04`; `G-17`; `VAL-NV-17`–`25`; state §4; flowchart `06`; `02-backend-architecture.md` R2.4.1, R2.4.5, R2.4.6, R2.9 |
@@ -331,11 +331,11 @@ ringkas per berkas.
 | Risiko/pemilik | Kata sandi bocor ke log atau response rincian / Rizki. `IX_NvwBedTablet_BedId_InUse` ikut menolak pengaktifan kembali tablet lama bila bed sudah dipasangi tablet pengganti; itu perilaku yang diharapkan (`VAL-NV-19`) |
 | DoD | AC-1–5 terpetakan ke source; QBE `PASS`; build Rizki lulus; uji HTTP tercatat; laporan `task/report/backend/BE-NV-009.md` |
 
-#### BE-NV-010 — Login dan runtime akun tablet bed
+#### 🟡 BE-NV-010 — Login dan runtime akun tablet bed
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 6 November 2026.** AC 5/5 terpetakan ke source: `NvwBedTabletContextService`, `NvwPatientCallQueryService.GetForTabletAsync`, `NvwBedTabletRuntimeController` `GET /current`, `NvwBedTabletRuntimeDtos`, kode `VAL-NV-26`/`27`; berkas bersama `AuthController.cs` (+146/−21, hanya tambahan), `AuthorizationPolicies.cs` (+4/−1), `Program.cs` (+12/−0) sesuai restu `NV-DEC-056`. QBE Strict `PASS` (8 berkas, 0 violation, 0 review). Baseline regresi login 12 skenario direkam sebelum kode berjalan. **Belum terpenuhi:** DoD build Rizki (`NOT RUN`), regresi login sesudah build (AC-1, `NOT RUN`), uji runtime tablet 13 cek (AC-2 s.d. AC-5, `NOT RUN`). `AUTOMATED TEST: NOT APPLICABLE`. Laporan: [`BE-NV-010.md`](../task/report/backend/BE-NV-010.md) |
 | Gelombang | 3 · `MVP-6` · `EPIC NV-05` |
 | Outcome | Tablet masuk dengan akun perangkatnya dan hanya bisa membuka runtime tablet untuk bed-nya sendiri. Akun TV dan akun manusia ditolak di runtime tablet, akun tablet ditolak di papan TV, dan login akun lain tidak berubah |
 | Trace | `FR-NV-034` (nonaktif langsung ditolak runtime), `FR-NV-036`; `NV-DEC-030`, `046`, `056`; `AD-02`; `G-09`; `VAL-NV-14` × tablet, `VAL-NV-26`, `27`; `NV-AC-041`; `UAT-12`, `14`, `26`; `02-backend-architecture.md` R2.4.5 (`NvwBedTabletContextService`), R2.5, R2.10 |
@@ -434,11 +434,11 @@ ringkas per berkas.
 | Risiko/pemilik | Kebocoran identitas di strip; regresi papan revision 1 / Rizki |
 | DoD | AC-1–6 terpetakan ke source; build Rizki lulus; JSON bukti tersimpan; laporan `task/report/backend/BE-NV-015.md` |
 
-#### 🟡 BE-NV-016 — API ambang lama menunggu
+#### ✅ BE-NV-016 — API ambang lama menunggu
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 **SEBAGIAN 6 November 2026.** AC 5/5 terpetakan ke source: `NvwPatientCallWaitThresholdService` (`GetActiveAsync`, `ReplaceAsync`, `ResolveWaitLevel`), `NvwPatientCallWaitThresholdController` (`GET /`, `PUT /`), DTO, kode `VAL-NV-40`, resource `NurseViewPatientCallWaitThreshold`, `Program.cs` +1 `AddScoped`; tanpa angka bawaan. AC-4 terbukti lewat penelusuran source (150 detik `None`, 180 `Warning`, 300 `Critical`). QBE Strict `PASS` (9 berkas gabungan dengan `BE-NV-009`, 0 violation, 0 review); pasangan atribut akses 2/2. **Belum terpenuhi:** DoD build Rizki (`NOT RUN`) dan uji HTTP AC-1 → AC-5 no. 1–14 (`NOT RUN`). `AUTOMATED TEST: NOT APPLICABLE`. Laporan: [`BE-NV-016.md`](../task/report/backend/BE-NV-016.md) |
+| Status | ✅ **SELESAI 6 November 2026.** AC 5/5 terpetakan ke source dan bukti: `NvwPatientCallWaitThresholdService` (`GetActiveAsync`, `ReplaceAsync`, `ResolveWaitLevel`), `NvwPatientCallWaitThresholdController` (`GET /`, `PUT /`), DTO, kode `VAL-NV-40`, resource `NurseViewPatientCallWaitThreshold`, `Program.cs` +1 `AddScoped`; tanpa angka bawaan. QBE Strict `PASS` (9 berkas gabungan dengan `BE-NV-009`, 0 violation, 0 review); pasangan atribut akses 2/2. Build `PASS` menurut pernyataan Rizki (DLL 10.56). Uji HTTP 6 Nov 11.07 WIB no. 1–14 `PASS` (AC-1 → AC-5, termasuk tiga jejak log beserta rujukan); ambang dicabut lagi, nol baris aktif di DB dev. AC-4 lewat penelusuran source (150 detik `None`, 180 `Warning`, 300 `Critical`), sesuai cara verifikasi kartu. `AUTOMATED TEST: NOT APPLICABLE`. Riwayat: 🟡 SEBAGIAN 6 Nov pagi sebelum build dan uji. Laporan: [`BE-NV-016.md`](../task/report/backend/BE-NV-016.md) |
 | Gelombang | 2 · `MVP-9` · `EPIC NV-09` — lihat "Catatan urutan `BE-NV-016`" |
 | Outcome | Admin memasukkan ambang kuning dan merah yang disahkan Komite Keperawatan. Selama kosong, seluruh panggilan tampil tanpa warna |
 | Trace | `FR-NV-053`; `NV-DEC-048`; `G-15`; `NV-OQ-022` (angka, runtime saja); `VAL-NV-40`; `NV-AC-040`; `UAT-25`; permission-audit R2 §9 baris "Ganti ambang" |

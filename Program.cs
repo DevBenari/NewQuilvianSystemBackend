@@ -1026,6 +1026,8 @@ try
     builder.Services.AddScoped<NvwRealtimeService>();
     builder.Services.AddScoped<NvwBedTabletService>();
     builder.Services.AddScoped<NvwPatientCallWaitThresholdService>();
+    builder.Services.AddScoped<NvwPatientCallQueryService>();
+    builder.Services.AddScoped<NvwBedTabletContextService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1479,6 +1481,16 @@ try
             policy.RequireAssertion(context =>
                 context.User.HasClaim(claim =>
                     claim.Type == NvwDeviceContextService.DeviceIdClaim &&
+                    !string.IsNullOrWhiteSpace(claim.Value)));
+        });
+
+        options.AddPolicy(AuthorizationPolicies.NurseViewBedTabletAccess, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+                context.User.HasClaim(claim =>
+                    claim.Type == NvwBedTabletContextService.TabletIdClaim &&
                     !string.IsNullOrWhiteSpace(claim.Value)));
         });
     });

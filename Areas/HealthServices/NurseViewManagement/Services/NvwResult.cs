@@ -77,6 +77,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string TabletLoginNotCreated = "VAL-NV-23";
         public const string TabletDeactivationReason = "VAL-NV-24";
         public const string TabletAlreadyInactive = "VAL-NV-25";
+        public const string BedTabletUnavailable = "VAL-NV-26";
+        public const string BedTabletInactiveLogin = "VAL-NV-27";
         public const string WaitThresholdInvalid = "VAL-NV-40";
     }
 
@@ -113,6 +115,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string TabletDeactivationReason = "Alasan menonaktifkan wajib diisi (5–500 karakter).";
         public const string TabletAlreadyInactive = "Tablet sudah nonaktif.";
         public const string TabletNotFound = "Tablet bed tidak ditemukan.";
+        public const string BedTabletUnavailable = "Tablet ini tidak dapat dipakai. Hubungi IT.";
+        public const string BedTabletInactive = "Tablet bed dinonaktifkan. Hubungi IT.";
         public const string WaitThresholdRange = "Ambang kuning 1–240 menit dan ambang merah harus lebih besar, paling banyak 480 menit.";
     }
 }

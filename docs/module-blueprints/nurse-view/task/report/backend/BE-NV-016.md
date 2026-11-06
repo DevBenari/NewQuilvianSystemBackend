@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` — prompt Rizki 6 Nov 2026, target tulis `NewQuilvianSystemBackend` branch `rizkiG` |
 | Target tulis | `Areas/HealthServices/NurseViewManagement/{Constants,Controllers,DTOs,Services}`, `Program.cs` (satu `AddScoped`, restu `NV-DEC-056`), laporan ini, baris status roadmap dan traceability |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `0c6eab34` (branch `rizkiG`); perubahan belum di-commit |
-| Tanggal | 2026-11-06 |
-| Status | 🟡 **SEBAGIAN** — source lengkap untuk AC-1–5, QBE Strict `PASS` (9 berkas gabungan dengan `BE-NV-009`, 0 violation, 0 review), pasangan atribut akses 2/2 cocok, AC-4 terbukti lewat penelusuran source. **Belum:** `dotnet build` oleh Rizki dan uji HTTP AC-1 → AC-5 oleh Rizki/Antigravity (§5) |
+| Commit backend saat dikerjakan | Dikerjakan di atas `0c6eab34` (branch `rizkiG`); source di-commit Rizki sebagai `13fa1c4d` "update nurse view" (6 Nov 10.19, sudah di `origin/rizkiG`). Kode yang diuji sama dengan `13fa1c4d` |
+| Tanggal | 2026-11-06 — source 10.05, build Rizki 10.56, uji HTTP 11.07 WIB |
+| Status | ✅ **SELESAI 6 November 2026** — AC 5/5 terpenuhi: AC-1, 2, 3, 5 lewat uji HTTP (13/13 cek `PASS` + pemindaian log no. 14 `PASS`), AC-4 lewat penelusuran source sesuai cara verifikasi kartu. QBE Strict `PASS` (9 berkas gabungan dengan `BE-NV-009`, 0 violation, 0 review); pasangan atribut akses 2/2; build `PASS` menurut pernyataan Rizki. Ambang dicabut lagi sesudah uji, tabel kembali tanpa baris aktif. Verifikasi developer, bukan UAT. Riwayat: 🟡 SEBAGIAN 6 Nov 2026 pagi, sebelum build dan uji HTTP |
 
 ---
 
@@ -166,24 +166,31 @@ Kode status: `200` berhasil · `400` `VAL-NV-40` · `403` tanpa hak akses.
 | AC-4 penelusuran source `ResolveWaitLevel` dengan kuning 3, merah 5 | 150 detik: 150 ≥ 300? tidak; 150 ≥ 180? tidak → `None`. 180 detik: 180 ≥ 300? tidak; 180 ≥ 180? ya → `Warning`. 300 detik: 300 ≥ 300? ya → `Critical`. Ambang `null` atau `IsConfigured = false` → `None` | `PASS` (source) | `NvwPatientCallWaitThresholdService.ResolveWaitLevel` |
 | Nol komentar, akhiran baris CRLF, review diff | Sama dengan `BE-NV-009` §5 | `PASS` | `grep`, hitungan byte Node, `git diff` |
 | `SELECT` read-only DB dev | `NvwPatientCallWaitThreshold` 0 baris — titik awal AC-1 | `PASS` | Keluaran `psql`; tidak ada penulisan |
-| `dotnet build` | Belum | `NOT RUN` | Dijalankan Rizki; perintah di laporan `BE-NV-009` §5 (satu kali build untuk kedua task) |
-| Uji HTTP AC-1 → AC-5 | Belum | `NOT RUN` | Skenario di bawah |
+| `dotnet build` (gabungan dengan `BE-NV-009`) | Lulus | `PASS` (pernyataan owner) | Rizki menyatakan sudah build, 6 Nov 2026; DLL 10.56.58 lebih baru dari source dan memuat `NvwPatientCallWaitThresholdService`. Jumlah warning tidak dinyatakan |
+| Startup backend | Lulus | `PASS` | "Permission registry valid"; `NurseViewPatientCallWaitThreshold` Read/Update terdaftar di `SysActionAccess` |
+| Uji HTTP no. 1–13 | 13/13 cek | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-009-016-20261106/run-2026-11-06T04-07-12-082Z/hasil.json` dan `percobaan.json` |
+| Pemindaian log no. 14 | Tiga jejak lengkap | `PASS` | `hasil.json` bagian `pindaiLog` |
+| `SELECT` read-only sesudah uji | Sesuai | `PASS` | Rincian di bawah |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
 
-Uji manual: `REQUIRED`.
+Uji manual: `PASS` — uji HTTP oleh agent, 6 Nov 2026 11.07 WIB. Verifikasi developer, bukan UAT.
 
-**Tidak dijalankan:** `dotnet build` dan uji HTTP — milik Rizki menurut aturan task.
+**Tidak dijalankan:** `dotnet build` dan `dotnet run` oleh agent — milik Rizki menurut aturan task.
 
-### Skenario uji HTTP untuk Antigravity — urut
+### Skenario uji HTTP — urut, dijalankan 6 November 2026
 
 **Aturan uji.** Sama dengan `BE-NV-009`: aktor berhak = akun peran yang diberi
 `NurseViewPatientCallWaitThreshold : Read/Update` lewat Akses Role (salin → tambah → pulihkan),
 bukan SuperAdmin; aktor tanpa hak = akun yang tidak memegang resource ini. Tanpa SQL tulis.
-Rujukan memakai awalan `UJI-DEV-NV-016-` agar mudah dicari di log. Bukti di
-`QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-016-<tanggal>/`. **Angka bukan angka
-sah Komite** (`NV-OQ-022`), dan ambang **wajib dicabut lagi** di akhir (no. 12) karena DB dev
-dipakai bersama. Tanggal "hari ini" = tanggal WIB saat uji.
+Rujukan memakai awalan `UJI-DEV-NV-016-` agar mudah dicari di log. **Angka bukan angka sah
+Komite** (`NV-OQ-022`), dan ambang **wajib dicabut lagi** di akhir (no. 12) karena DB dev dipakai
+bersama. Tanggal "hari ini" = tanggal WIB saat uji.
+
+**Pelaksanaan.** Satu skrip dan satu putaran dengan `BE-NV-009` (laporan `BE-NV-009` §5 memuat
+aktor, izin sementara, dan pemulihannya): aktor berhak `QUILVIAN_PERAWAT_RUANGAN_*` dengan izin
+sementara `NurseViewPatientCallWaitThreshold` Read/Update, aktor tanpa hak `QUILVIAN_LOKET_*`.
+Policy jabatan uji dipulihkan identik sesudah uji. "Hari ini" = 2026-11-06, "besok" = 2026-11-07.
 
 | No | Langkah | Hasil yang diharapkan | AC |
 | ---: | --- | --- | --- |
@@ -202,11 +209,33 @@ dipakai bersama. Tanggal "hari ini" = tanggal WIB saat uji.
 | 13 | `GET /` | `isConfigured` false | AC-5, AC-1 |
 | 14 | Pindai log hari uji | Tiga baris: "…diganti: kuning 3 menit, merah 5 menit… Rujukan: UJI-DEV-NV-016-SET-…", "…kuning 4 menit, merah 6 menit… GANTI…", "…dicabut… CABUT…", masing-masing dengan pengguna aktor | AC-3, AC-5 |
 
-Sesudah uji, agent memeriksa lewat `SELECT` read-only: dua baris `NvwPatientCallWaitThreshold`,
-keduanya `IsDelete = true` dengan `DeleteBy` = aktor dan `DeleteDateTime` terisi; nol baris aktif.
 AC-4 tidak diuji lewat HTTP pada task ini karena belum ada endpoint yang mengembalikan `WaitLevel`;
 buktinya penelusuran source di atas, dan sisi runtime-nya ikut uji `BE-NV-012` (`NV-AC-040`) dan
 `BE-NV-015`.
+
+### Hasil uji 6 November 2026
+
+| No | Hasil sebenarnya | Status |
+| ---: | --- | --- |
+| 1 | `200`; `isConfigured` false; seluruh angka, rujukan, tanggal, dan pencatat `null` | `PASS` |
+| 2 | `400` "Ambang kuning 1–240 menit dan ambang merah harus lebih besar, paling banyak 480 menit."; `errors.code` `VAL-NV-40` | `PASS` |
+| 3 | `400`, `400`; pesan no. 2 | `PASS` |
+| 4 | `400`, `400`, `400`; pesan no. 2 | `PASS` |
+| 5 | `400` "Tanggal pengesahan tidak boleh melewati hari ini." (2026-11-07) | `PASS` |
+| 6 | `400`, `400` "Nomor surat/notulen pengesahan Komite Keperawatan wajib diisi." | `PASS` |
+| 7 | `400` "Tanggal pengesahan wajib diisi." | `PASS` |
+| 8 | `200`; masih `isConfigured` false — no. 2–7 tidak menulis apa pun | `PASS` |
+| 9 | `200`; `isConfigured` true; kuning 3; merah 5; rujukan `UJI-DEV-NV-016-SET-04-07-12`; `ratifiedOn` 2026-11-06; `recordedByName` = nama aktor; `recordedAt` terisi | `PASS` |
+| 10 | `200`; kuning 4; merah 6; rujukan `UJI-DEV-NV-016-GANTI-04-07-12` | `PASS` |
+| 11 | `403`, `403` | `PASS` |
+| 12 | `200` "Ambang lama menunggu dicabut. Panggilan tampil tanpa warna."; `isConfigured` false | `PASS` |
+| 13 | `200`; `isConfigured` false | `PASS` |
+| 14 | Tiga baris log `NurseViewPatientCallWaitThreshold.Update` dengan `UserId` aktor berhak: "…diganti: kuning 3 menit, merah 5 menit. Lingkup: GLOBAL. Rujukan: UJI-DEV-NV-016-SET-04-07-12; disahkan 2026-11-06.", "…kuning 4 menit, merah 6 menit… GANTI…", "…dicabut; panggilan tampil tanpa warna… CABUT…" | `PASS` |
+
+**Pemeriksaan `SELECT` read-only sesudah uji.** `NvwPatientCallWaitThreshold` berisi dua baris:
+3/5 (`…SET…`) dan 4/6 (`…GANTI…`), keduanya `IsDelete = true`, `DeleteDateTime` terisi, `DeleteBy`
+dan `CreateBy` = Id aktor berhak. Nol baris aktif, jadi DB dev kembali tanpa ambang. Rujukan
+pencabutan hanya ada di log (no. 14), sesuai desain.
 
 ---
 
@@ -214,13 +243,13 @@ buktinya penelusuran source di atas, dan sisi runtime-nya ikut uji `BE-NV-012` (
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 tabel kosong → `GET /` `IsConfigured = false`, dan `ResolveWaitLevel` selalu `None` (`NV-AC-040`) | Terpetakan ke source; runtime belum | `GetActiveAsync` (tanpa baris → `IsConfigured = false`); `ResolveWaitLevel` mengembalikan `None` bila `IsConfigured` bukan `true`. Uji no. 1 |
-| AC-2 kuning 3 merah 2 → `400`; hanya kuning → `400`; tanggal besok → `400`; rujukan kosong → `400` (`VAL-NV-40`) | Terpetakan ke source; runtime belum | `ReplaceAsync`: `IsValidPair`, rujukan, tanggal (`AppDateTimeHelper.OperationalDate`). Uji no. 2–8 |
-| AC-3 kuning 3, merah 5, rujukan, hari ini → `200`; baris lama bertanda hapus beserta pelakunya | Terpetakan ke source; runtime belum | `ReplaceAsync`: baris aktif `IsDelete = true`, `DeleteBy = actorUserId`, `DeleteDateTime = now`, lalu sisip baris baru, satu transaksi. Uji no. 9–10 + `SELECT` sesudah uji |
+| AC-1 tabel kosong → `GET /` `IsConfigured = false`, dan `ResolveWaitLevel` selalu `None` (`NV-AC-040`) | Terpenuhi | Uji no. 1 `PASS`; `ResolveWaitLevel` mengembalikan `None` bila `IsConfigured` bukan `true` (source) |
+| AC-2 kuning 3 merah 2 → `400`; hanya kuning → `400`; tanggal besok → `400`; rujukan kosong → `400` (`VAL-NV-40`) | Terpenuhi | Uji no. 2–8 `PASS`, termasuk batas 0/241/481, rujukan 201 karakter, dan tanpa tanggal |
+| AC-3 kuning 3, merah 5, rujukan, hari ini → `200`; baris lama bertanda hapus beserta pelakunya | Terpenuhi | Uji no. 9–10 `PASS`; `SELECT` sesudah uji: baris 3/5 `IsDelete = true` dengan `DeleteBy` = aktor |
 | AC-4 menunggu 2 menit 30 detik → `None`, 3 menit → `Warning`, 5 menit → `Critical` | Terpenuhi lewat penelusuran source | §5 baris AC-4; sesuai cara verifikasi kartu ("AC-4 lewat penelusuran source") |
-| AC-5 kedua angka dikosongkan dengan rujukan pencabutan → `IsConfigured = false` | Terpetakan ke source; runtime belum | `IsRevocation` → semua baris aktif ditandai hapus, tanpa sisipan; rujukan masuk teks log. Uji no. 12–14 |
-| DoD — build Rizki lulus | **Belum terpenuhi** | Menunggu build |
-| DoD — uji HTTP tercatat | **Belum terpenuhi** | Menunggu uji no. 1–14 |
+| AC-5 kedua angka dikosongkan dengan rujukan pencabutan → `IsConfigured = false` | Terpenuhi | Uji no. 12–14 `PASS`; nol baris aktif sesudah uji |
+| DoD — build Rizki lulus | Terpenuhi | Pernyataan Rizki 6 Nov; DLL 10.56.58; startup "Permission registry valid" |
+| DoD — uji HTTP tercatat | Terpenuhi | §5: no. 1–14 `PASS` |
 | DoD — laporan ada | Terpenuhi | Berkas ini |
 
 **QBE yang berlaku dan dipatuhi:** `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001`, `QBE-LOG-001`
@@ -246,4 +275,5 @@ tambahan, restu `NV-DEC-056`) · branch `rizkiG`.
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Sama dengan laporan `BE-NV-009` §7 (satu working tree) |
-| Langkah berikutnya | Rizki build sekali; uji HTTP no. 1–14; sesudah itu `BE-NV-016` bisa ✅ dan menjadi prasyarat `BE-NV-012`, `BE-NV-015`, serta pasangan frontend `FE-NV-015` |
+| Data uji yang tertinggal di DB dev | Dua baris ambang uji bertanda hapus; nol ambang aktif. Tidak ada data lain |
+| Langkah berikutnya | `BE-NV-016` kini memenuhi prasyarat ambang untuk `BE-NV-012` dan `BE-NV-015`; pasangan frontend `FE-NV-015` boleh dimulai. Angka sah tetap menunggu Komite Keperawatan (`NV-OQ-022`) |

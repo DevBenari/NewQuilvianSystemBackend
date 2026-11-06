@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` — prompt Rizki 6 Nov 2026, target tulis `NewQuilvianSystemBackend` branch `rizkiG` |
 | Target tulis | `Areas/HealthServices/NurseViewManagement/{Constants,Controllers,DTOs,Services}`, `Program.cs` (satu `AddScoped`, restu `NV-DEC-056`), laporan ini, baris status roadmap dan traceability |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `0c6eab34` (branch `rizkiG`); perubahan belum di-commit |
-| Tanggal | 2026-11-06 |
-| Status | 🟡 **SEBAGIAN** — source lengkap untuk AC-1–5, QBE Strict `PASS` (9 berkas, 0 violation, 0 review), pasangan atribut akses 11/11 cocok. **Belum:** `dotnet build` oleh Rizki dan uji HTTP oleh Rizki/Antigravity (§5). Dikerjakan bersama `BE-NV-016` supaya cukup satu kali build |
+| Commit backend saat dikerjakan | Dikerjakan di atas `0c6eab34` (branch `rizkiG`); source di-commit Rizki sebagai `13fa1c4d` "update nurse view" (6 Nov 10.19, sudah di `origin/rizkiG`). Kode yang diuji sama dengan `13fa1c4d` (`git diff HEAD` kosong untuk source) |
+| Tanggal | 2026-11-06 — source 10.05, build Rizki 10.56, uji HTTP 11.07 WIB |
+| Status | ✅ **SELESAI 6 November 2026** — AC 5/5 terpetakan ke source; QBE Strict `PASS` (9 berkas, 0 violation, 0 review); pasangan atribut akses 11/11; build `PASS` menurut pernyataan Rizki; uji HTTP 28/28 cek `PASS` ditambah pemindaian log no. 29 `PASS`. AC-4 (`VAL-NV-20`) terbukti lewat source; bukti runtime-nya milik `BE-NV-011` sesuai kartu. Verifikasi developer, bukan UAT. Riwayat: 🟡 SEBAGIAN 6 Nov 2026 pagi, sebelum build dan uji HTTP |
 
 ---
 
@@ -214,15 +214,18 @@ tidak dikenal pada pilihan bed.
 | Akhiran baris | 9 berkas CRLF, nol LF tunggal, tanpa BOM; `Program.cs` tetap tanpa baris baru di akhir | `PASS` | Hitungan byte lewat Node |
 | Review diff berkas bersama | `Program.cs` +2/−0; `NvwResult.cs` dan `NurseViewPermissions.cs` hanya tambahan | `PASS` | `git diff` |
 | `SELECT` read-only DB dev (`default_transaction_read_only=on`) | `NvwBedTablet` 0 baris; 189 bed aktif seluruhnya di kamar berlantai (lantai 2, 3, 4, 5, 8, 9); 5 bed nonaktif/terhapus tersedia untuk uji `VAL-NV-18` | `PASS` | Keluaran `psql`; tidak ada penulisan |
-| `dotnet build` | Belum | `NOT RUN` | Dijalankan Rizki (aturan task); perintah di bawah |
-| Uji HTTP | Belum | `NOT RUN` | Skenario di bawah, oleh Rizki/Antigravity sesudah build |
+| `dotnet build` (gabungan `BE-NV-009` + `BE-NV-016`) | Lulus | `PASS` (pernyataan owner) | Rizki menyatakan sudah build, 6 Nov 2026. `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 10.56.58, lebih baru dari source terakhir (10.05), dan memuat `NvwBedTabletService` serta `NvwPatientCallWaitThresholdService`. Jumlah warning tidak dinyatakan |
+| Startup backend (`dotnet run -p:RunAnalyzers=false --no-build`, dijalankan Rizki 10.59) | Lulus | `PASS` | Log startup 11.00.33: "Permission registry valid"; `SysActionAccess` memuat 5 kemampuan baru (`NurseViewBedTablet` Read/Create/Update, `NurseViewPatientCallWaitThreshold` Read/Update), seluruhnya `VisibleInRoleAccess` dan bukan system-only; rute baru tanpa login `401`, rute palsu `404` |
+| Uji HTTP no. 1–28 | 28/28 cek | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-009-016-20261106/run-2026-11-06T04-07-12-082Z/hasil.json` dan `percobaan.json` |
+| Pemindaian log no. 29 | Nol kata sandi, delapan jejak aksi lengkap | `PASS` | `hasil.json` bagian `pindaiLog`; `Logs/quilvian-backend-20261106.json` |
+| `SELECT` read-only sesudah uji | Sesuai | `PASS` | Rincian di bawah |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
 
-Uji manual: `REQUIRED`.
+Uji manual: `PASS` — uji HTTP oleh agent, 6 Nov 2026 11.07 WIB. Verifikasi developer, bukan UAT.
 
-**Tidak dijalankan:** `dotnet build`, `dotnet run`, dan uji HTTP — sesuai aturan task, build dan
-eksekusi runtime milik Rizki. Tidak ada `dotnet ef` karena task ini tanpa migration.
+**Tidak dijalankan:** `dotnet build`, `dotnet run`, dan `dotnet ef` oleh agent — build dan
+menjalankan backend milik Rizki. Tidak ada migration pada task ini.
 
 ### Perintah build untuk Rizki
 
@@ -246,21 +249,37 @@ Saat startup, `PermissionRegistryValidator` memeriksa atribut akses. Bila gagal,
 dengan pesan yang menyebut endpoint-nya; bila lolos, resource `NurseViewBedTablet` dan
 `NurseViewPatientCallWaitThreshold` muncul di layar Akses Role lewat `AccessMenuSeeder`.
 
-### Skenario uji HTTP untuk Antigravity — urut
+### Skenario uji HTTP — urut, dijalankan 6 November 2026
 
 **Aturan uji.** Aktor berhak = akun peran yang diberi `NurseViewBedTablet : Read/Create/Update`
 lewat layar Akses Role memakai pola salin → tambah → pulihkan (DB dev dipakai bersama; jangan
 menimpa seluruh policy). SuperAdmin boleh untuk persiapan lewat aplikasi, tetapi **bukan** aktor
 skenario, karena SuperAdmin melewati pemeriksaan akses sehingga salah pasang atribut tidak
-terlihat. Aktor tanpa hak = akun yang tidak memegang `NurseViewBedTablet`, misalnya
-`QUILVIAN_LOKET_*` (periksa dulu, seperti `BE-NV-002` no. 11). Tanpa SQL tulis. Kata sandi hanya di
-memori skrip; di JSON bukti, setiap ruas `password` ditulis `<disamarkan>`. Simpan bukti di
-`QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-009-<tanggal>/` beserta skrip dan
-`percobaan.json`. Berhenti bila langkah prasyarat gagal.
+terlihat. Aktor tanpa hak = akun yang tidak memegang `NurseViewBedTablet`. Tanpa SQL tulis. Kata
+sandi hanya di memori skrip; di JSON bukti, setiap ruas `password` ditulis `<disamarkan>`. Berhenti
+bila langkah prasyarat gagal.
 
-Pilih dua bed aktif di Lantai 3 yang `HasTabletInUse = false` dari langkah 2: **bed A** dan
-**bed B**. Untuk `VAL-NV-18` pakai bed nonaktif `71950186-9e7e-4368-abe4-1457dc2e8d7a`
-(`BD-RSMMC-00169`, Lantai 3) dan bed terhapus tanpa lantai `0dbc6876-5920-4c65-9f68-c64bfa45d839`.
+**Pelaksanaan.** Dijalankan agent dengan skrip Node `fetch`
+(`QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-009-016-20261106/uji.mjs`, folder
+di-ignore git) terhadap `https://localhost:7184`, 11.07.12–11.07.25 WIB, 69 panggilan API tercatat
+di `percobaan.json`. Aktor:
+
+| Peran dalam uji | Akun | Keterangan |
+| --- | --- | --- |
+| Persiapan | `QUILVIAN_SUPERADMIN_*` | Hanya untuk membaca, menambah, dan memulihkan policy jabatan uji |
+| Aktor berhak | `QUILVIAN_PERAWAT_RUANGAN_*` (Keperawatan, jabatan dengan 20 izin — paling sedikit di antara akun uji; 5 pengguna aktif) | Diberi 5 izin sementara (3 `NurseViewBedTablet`, 2 `NurseViewPatientCallWaitThreshold`) |
+| Aktor tanpa hak | `QUILVIAN_LOKET_*` (36 izin, tanpa satu pun resource Nurse View) | — |
+
+**Izin sementara.** Prasyarat diperiksa lebih dulu: `GET /policies` jabatan uji = 20 butir = 20
+baris aktif `SysAccessPolicy` di DB, nol butir tersembunyi. Salinan disimpan di `policy-asli.json`;
+lalu `POST` salinan + 5 izin baru → 25 butir, 20 butir lama utuh. Sesudah uji, salinan asli
+di-`POST` kembali di blok `finally`: hasil `GET` identik dengan salinan (20 = 20), dan `SELECT`
+read-only memastikan 20 baris aktif tanpa resource Nurse View.
+
+Bed yang terpilih otomatis dari no. 2: **bed A** = `BD-RSMMC-00015` "330-A" dan **bed B** =
+`BD-RSMMC-00016` "330-B" (kamar KELAS I 330, Lantai 3). Untuk `VAL-NV-18` dipakai bed nonaktif
+`71950186-9e7e-4368-abe4-1457dc2e8d7a` (`BD-RSMMC-00169`, Lantai 3) dan bed terhapus tanpa lantai
+`0dbc6876-5920-4c65-9f68-c64bfa45d839`.
 
 | No | Langkah | Hasil yang diharapkan | AC |
 | ---: | --- | --- | --- |
@@ -298,8 +317,45 @@ AC-4 (`VAL-NV-20`, tolak pindah bed yang masih punya panggilan aktif) **tidak bi
 runtime pada task ini, karena panggilan baru bisa dibuat di `BE-NV-011`. Bukti task ini adalah
 penelusuran source (§6); bukti runtime-nya diambil saat verifikasi `BE-NV-011`, sesuai kartu.
 
-Sesudah uji, agent memeriksa lewat `SELECT` read-only: dua baris `NvwBedTablet` `DeviceStatus = 3`
-dengan `DeactivatedBy`, `LoginIssuedBy` terisi pada T1, dan satu akun `nvt-000001` terkunci.
+### Hasil uji 6 November 2026
+
+| No | Hasil sebenarnya | Status |
+| ---: | --- | --- |
+| 1 | `200`; lantai `2`,`3`,`4`,`5`,`8`,`9` | `PASS` |
+| 2 | `200`; 66 bed Lantai 3, seluruhnya `hasTabletInUse` false sebelum uji | `PASS` |
+| 3 | `422`, `422`; pesan `VAL-NV-02` | `PASS` |
+| 4 | `201`; `NVT-000001` (nomor pertama deret `NVW_BED_TABLET`); `deviceStatus` 1; `version` 0; `hasActiveCall` false; `availableActions` `Update`, `CreateLogin`, `Deactivate`; `floorCode` `3` | `PASS` |
+| 5 | Kosong, 101 karakter, dan spasi saja: ketiganya `400` dengan pesan `VAL-NV-17` | `PASS` |
+| 6 | Bed acak, tanpa `bedId`, bed nonaktif, bed terhapus tanpa lantai: keempatnya `422` pesan `VAL-NV-18`, `errors.code` `VAL-NV-18` | `PASS` |
+| 7 | `409` "Bed ini sudah punya tablet. Nonaktifkan tablet lama lebih dulu." | `PASS` |
+| 8 | `201`; `NVT-000002` — no. 5–7 tidak memakan nomor | `PASS` |
+| 9 | `409` pesan `VAL-NV-19` | `PASS` |
+| 10 | `200`; bed A dan B `hasTabletInUse` true | `PASS` |
+| 11 | `200`; sandi terisi; `nvt-000001`; `version` 1; kunci JSON hanya `tabletId`, `deviceCode`, `loginUserName`, `password`, `version` — properti server-saja tidak bocor | `PASS` |
+| 12 | `409` pesan `VAL-NV-22` | `PASS` |
+| 13 | `409` pesan `VAL-NV-23` | `PASS` |
+| 14 | `200`; nol kata `password` di seluruh JSON; `deviceStatus` 2; `loginIssuedByName` = nama aktor; `availableActions` memuat `ResetLogin`; `previousBedCode` tidak ada | `PASS` |
+| 15 | `409` pesan `VAL-NV-21` | `PASS` |
+| 16 | `200` "Login berhasil." | `PASS` |
+| 17 | `400`, `400`; pesan `VAL-NV-24` | `PASS` |
+| 18 | `200`; `deviceStatus` 3; `deactivatedAt`, `deactivatedByName`, `deactivationReason` terisi; `version` 2; `availableActions` `Update`, `ResetLogin` | `PASS` |
+| 19 | `401` "Akun terkunci sementara karena terlalu banyak percobaan login gagal." | `PASS` |
+| 20 | `409` "Tablet sudah nonaktif." | `PASS` |
+| 21 | `200`; sandi baru berbeda; `GET` → `deviceStatus` 2, `version` 3, jejak nonaktif tetap | `PASS` |
+| 22 | Sandi lama `401` "Email atau password salah."; sandi baru `200` | `PASS` |
+| 23 | `200`; `version` 4 | `PASS` |
+| 24 | `200`; T2 kini di bed A (`BD-RSMMC-00015`); `version` 1; log "dipindah dari bed BD-RSMMC-00016 ke bed BD-RSMMC-00015" | `PASS` |
+| 25 | `409` pesan `VAL-NV-19` — T1 tidak bisa aktif kembali karena bed A dipakai T2 | `PASS` |
+| 26 | Status 3 → 1 baris, hanya T1; tanpa saring status → 2 baris, T1 dan T2 | `PASS` |
+| 27 | `403`, `403`, `403` | `PASS` |
+| 28 | `200`; T2 `deviceStatus` 3 | `PASS` |
+| 29 | 92 baris log sejak uji mulai: kedua sandi tablet 0 kemunculan (asli, ter-encode URL, dan ter-escape JSON); pola `Nvt@<hex>aA1!` 0; ruas `"password":` 0; sandi ketiga aktor 0. Delapan jejak aksi tablet tercatat dengan pelaku `UserId` aktor berhak: 2× Create, CreateLogin, 2× Deactivate T1, ResetLogin, Update (pindah bed), Deactivate T2 — masing-masing memuat kode tablet, Id, `BedCode`, aksi, dan status | `PASS` |
+
+**Pemeriksaan `SELECT` read-only sesudah uji.** `NvwBedTablet`: `NVT-000001` dan `NVT-000002`,
+keduanya `DeviceStatus = 3` di bed "330-A"; `LoginIssuedBy`, `DeactivatedBy`, `CreateBy`,
+`UpdateBy` = Id aktor berhak; `NVT-000002` tanpa login. `AspNetUsers`: satu akun `nvt-000001`,
+`UserCode` `NVT-000001`, terkunci > 50 tahun, `AccessFailedCount` 0. Policy jabatan uji: 20 baris
+aktif, nol resource Nurse View.
 
 ---
 
@@ -307,14 +363,14 @@ dengan `DeactivatedBy`, `LoginIssuedBy` terisi pada T1, dan satu akun `nvt-00000
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 sembilan endpoint sama dengan api §5: method, path, hak akses, request, response | Terpetakan ke source; runtime belum | `NvwBedTabletController.cs` 9 action; DTO `NvwBedTabletDtos.cs`; tiga delta kecil di §3.3. Uji no. 1–4, 10, 24, 26, 27 |
-| AC-2 `VAL-NV-17`–`25` menolak dengan kode dan pesan matriks | Terpetakan ke source; runtime belum | `NvwResult.cs` (pesan persis matriks); service: `CreateAsync`/`UpdateAsync` (`17`, `18`, `19`, `20`, `21`), `CreateLoginAsync` (`21`, `22`), `ResetLoginAsync` (`19`, `21`, `23`), `DeactivateAsync` (`21`, `24`, `25`); index unik `23505` → `19`. Uji no. 5–9, 12, 13, 15, 17, 20, 25 |
-| AC-3 buat login → `Active`, sandi hanya di response login; atur ulang → sandi dan sesi lama gugur; nonaktif tanpa alasan → `400` | Terpetakan ke source; runtime belum | `CreateLoginAsync`, `ResetLoginAsync` (sandi baru, buka kunci, security stamp baru, `LoginIssuedAt` baru sebagai dasar stempel sesi `BE-NV-010`), `DeactivateAsync`. "Sesi lama gugur" pada sisi runtime tablet ditegakkan `BE-NV-010`; yang dibuktikan di sini sandi lama ditolak. Uji no. 11, 14, 16–19, 21–23 |
-| AC-4 pindah tablet dari bed dengan panggilan aktif → `409` (`VAL-NV-20`) | Terpetakan ke source; runtime menunggu `BE-NV-011` | `UpdateAsync`: bila `BedId` berubah, `BedHasActiveCallAsync(tablet.BedId)` memeriksa `NvwPatientCall` `Waiting`/`Claimed` yang tidak terhapus pada bed lama sebelum pemeriksaan bed baru |
-| AC-5 kolom login dan nonaktif terisi beserta pelakunya; sandi tidak ada di response rincian maupun log | Terpetakan ke source; runtime belum | `LoginIssuedAt/By`, `DeactivatedAt/By/Reason` diisi; rincian memuat `LoginIssuedByName`, `DeactivatedByName`; `NvwBedTabletDetailResponse` tidak punya properti `Password`; teks log tanpa sandi. Uji no. 14, 18, 29 |
+| AC-1 sembilan endpoint sama dengan api §5: method, path, hak akses, request, response | Terpenuhi | `NvwBedTabletController.cs` 9 action; DTO `NvwBedTabletDtos.cs`; tiga delta kecil di §3.3. Uji no. 1–4, 10, 24, 26, 27 `PASS`; kesembilan endpoint dipanggil aktor berhak dan ditolak aktor tanpa hak |
+| AC-2 `VAL-NV-17`–`25` menolak dengan kode dan pesan matriks | Terpenuhi | `NvwResult.cs` (pesan persis matriks); service `CreateAsync`/`UpdateAsync`, `CreateLoginAsync`, `ResetLoginAsync`, `DeactivateAsync`; index unik `23505` → `19`. Uji no. 5–9, 12, 13, 15, 17, 20, 25 `PASS`: kode HTTP dan pesan sama dengan matriks; contoh kartu `NVT-000001` dan `409` tablet kedua (`UAT-13`) terbukti. `VAL-NV-20` lihat AC-4 |
+| AC-3 buat login → `Active`, sandi hanya di response login; atur ulang → sandi dan sesi lama gugur; nonaktif tanpa alasan → `400` | Terpenuhi untuk sisi admin | Uji no. 11, 14, 16–19, 21–23 `PASS`: sandi hanya di response login, sandi lama `401` sesudah atur ulang, nonaktif tanpa alasan `400`. Atur ulang mengganti `LoginIssuedAt` dan security stamp; penolakan token lama di runtime tablet ditegakkan dan diuji di `BE-NV-010` |
+| AC-4 pindah tablet dari bed dengan panggilan aktif → `409` (`VAL-NV-20`) | Terpenuhi di source; runtime milik `BE-NV-011` sesuai kartu | `UpdateAsync`: bila `BedId` berubah, `BedHasActiveCallAsync(tablet.BedId)` memeriksa `NvwPatientCall` `Waiting`/`Claimed` yang tidak terhapus pada bed lama sebelum pemeriksaan bed baru. Jalur pindah tanpa panggilan aktif terbukti runtime (no. 24) |
+| AC-5 kolom login dan nonaktif terisi beserta pelakunya; sandi tidak ada di response rincian maupun log | Terpenuhi | Uji no. 14, 18, 29 `PASS`; `SELECT` sesudah uji: `LoginIssuedBy`, `DeactivatedBy` = Id aktor |
 | DoD — QBE `PASS` | Terpenuhi | §5: 9 berkas, 0 violation, 0 review |
-| DoD — build Rizki lulus | **Belum terpenuhi** | Menunggu build |
-| DoD — uji HTTP tercatat | **Belum terpenuhi** | Menunggu uji no. 1–29 |
+| DoD — build Rizki lulus | Terpenuhi | Pernyataan Rizki 6 Nov; DLL 10.56.58 memuat kedua service; startup "Permission registry valid" |
+| DoD — uji HTTP tercatat | Terpenuhi | §5: no. 1–29 `PASS`; bukti `run-2026-11-06T04-07-12-082Z` |
 | DoD — laporan ada | Terpenuhi | Berkas ini |
 
 **QBE yang berlaku dan dipatuhi:** `QBE-SVC-001` (controller → `NvwBedTabletService`, tanpa
@@ -341,9 +397,10 @@ Submodule — · pemilik Rizki Gunawan · prefix `Nvw` · registry `ACTIVE` (bar
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Sampai `BE-NV-010` selesai, akun tablet yang dibuat di sini login sebagai akun biasa tanpa hak akses dan tanpa diarahkan ke layar tablet. Jangan bagikan kredensialnya di luar uji |
-| Masalah yang diketahui | (1) Pindah bed membaca panggilan aktif lalu menyimpan tanpa kunci baris. Bila `BE-NV-011` membuat panggilan di antara dua langkah itu, panggilan bisa lahir pada bed lama sementara tablet sudah pindah. Celahnya beberapa milidetik dan butuh admin memindah tablet tepat saat pasien menekan; cukup dicegah di `BE-NV-011` dengan mengambil bed dari tablet di dalam transaksi panggilan, bukan dengan mengubah task ini. (2) `VAL-NV-19` diterapkan literal pada pindah bed, termasuk untuk tablet `Inactive`; index database sendiri hanya menahan tablet yang belum nonaktif. (3) Login tablet nonaktif masih dijawab pesan "Akun terkunci sementara…" milik `AuthController`; pesan `AD-02` baru ada di `BE-NV-010` |
+| Masalah yang diketahui | (1) Pindah bed membaca panggilan aktif lalu menyimpan tanpa kunci baris. Bila `BE-NV-011` membuat panggilan di antara dua langkah itu, panggilan bisa lahir pada bed lama sementara tablet sudah pindah. Celahnya beberapa milidetik dan butuh admin memindah tablet tepat saat pasien menekan; cukup dicegah di `BE-NV-011` dengan mengambil bed dari tablet di dalam transaksi panggilan, bukan dengan mengubah task ini. (2) `VAL-NV-19` diterapkan literal pada pindah bed, termasuk untuk tablet `Inactive`; index database sendiri hanya menahan tablet yang belum nonaktif. (3) Login tablet nonaktif masih dijawab pesan "Akun terkunci sementara…" milik `AuthController` (terbukti no. 19); pesan `AD-02` baru ada di `BE-NV-010`. (4) Penolakan dari anotasi DTO (`VAL-NV-17` nama, `VAL-NV-24` alasan) dijawab dalam bentuk ProblemDetails bawaan ASP.NET — `{"title":"One or more validation errors occurred.","errors":{"DeviceName":["Nama tablet wajib…"]}}` — bukan amplop `ApiResponse`, dan tanpa `errors.code`. Pesannya persis matriks. Perilaku ini sama dengan endpoint perangkat display `BE-NV-002`; `Reason` kosong memunculkan pesan yang sama dua kali (dari `[Required]` dan `[MinLength]`). Penolakan dari service (`VAL-NV-18`–`23`, `25`) memakai `ApiResponse` dengan `errors.code`. Tidak diubah pada task ini karena bentuknya sama dengan endpoint perangkat display yang sudah lulus `BE-NV-002`; catatan untuk `FE-NV-008`: pesan `400` dari anotasi ada di `errors.<Field>[0]`, bukan di `message` |
 | Risiko tersisa | Opsi password Identity dipenuhi pola `Nvt@<16 hex>aA1!`; bila kebijakan password berubah, pembuatan login bisa gagal dengan pesan Identity. Akun `nvt-…` hasil uji tetap ada di `AspNetUsers` (terkunci bila tabletnya nonaktif) |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Perubahan dua task ini (`BE-NV-009` + `BE-NV-016`): `M Program.cs`, `M Areas/HealthServices/NurseViewManagement/Services/NvwResult.cs`, `M …/Constants/NurseViewPermissions.cs`; `?? …/Controllers/NvwBedTabletController.cs`, `NvwPatientCallWaitThresholdController.cs`; `?? …/DTOs/NvwBedTabletDtos.cs`, `NvwPatientCallWaitThresholdDtos.cs`; `?? …/Services/NvwBedTabletService.cs`, `NvwPatientCallWaitThresholdService.cs`; `?? docs/…/task/report/backend/BE-NV-009.md`, `BE-NV-016.md`; `M docs/…/roadmap/backend-roadmap.md`, `frontend-roadmap.md`, `requirement-traceability.md` (baris status saja). Sudah ada sebelum task ini dan tidak disentuh: berkas `BE-NV-008` (6 enum, 4 model, 4 configuration, `ApplicationDbContext.cs`, migration `20261106015006` + snapshot), dokumen blueprint revision 2 lain, `TLM-NV-002`, dan berkas `docs/module-blueprints/igd/**` milik pengguna |
-| Langkah berikutnya | Rizki build sekali untuk `BE-NV-009` + `BE-NV-016`; uji HTTP no. 1–29; lalu `BE-NV-010` (login dan runtime akun tablet — butuh regresi login seluruh sistem) |
+| Status Git | Sesudah uji 6 Nov: source kedua task, `BE-NV-008`, migration, dan dokumen revision 2 sudah ada di `13fa1c4d`; branch `rizkiG` sejajar `origin/rizkiG`. Yang tersisa hanya pembaruan dokumen hasil uji: `M docs/module-blueprints/nurse-view/task/report/backend/BE-NV-009.md`, `BE-NV-016.md`, `M …/roadmap/backend-roadmap.md`, `frontend-roadmap.md`, `requirement-traceability.md`. Skrip dan bukti uji ada di `QuilvianSystemFrontendDev/test-with-agy/` yang di-ignore git, jadi tidak ikut commit |
+| Data uji yang tertinggal di DB dev | `NVT-000001` "Tablet Bed A (uji BE-NV-009)" dan `NVT-000002` "Tablet Bed B (uji BE-NV-009)", keduanya **nonaktif** di bed 330-A, sehingga 330-A dan 330-B bebas untuk tablet nyata. Akun `nvt-000001` terkunci; kata sandinya tidak disimpan di mana pun. Deret `NVW_BED_TABLET` kini di 2, jadi tablet berikutnya `NVT-000003`. Policy jabatan uji sudah dipulihkan |
+| Langkah berikutnya | `BE-NV-010` (login dan runtime akun tablet — butuh regresi login seluruh sistem); pasangan frontend `FE-NV-008` kini boleh dimulai. Pemberian izin tetap Admin IT lewat layar Akses Role (traceability R2.9) |
