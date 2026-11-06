@@ -55,3 +55,188 @@ belum dikerjakan.
 | `BE-NV-006` | `rawat-inap/keperawatan/docs/task-lintas-modul/TLM-NV-001` permintaan 2 | Laporan task dirujuk dari folder TLM; status TLM diperbarui — **terpenuhi 3 Nov** (§7 baris 2026-11-03) |
 | `BE-NV-007` | `rawat-inap/keperawatan/docs/task-lintas-modul/TLM-NV-001` permintaan 1 | Idem — **terpenuhi 4 Nov** (§7 baris 2026-11-04) |
 | `BE-NV-005` | `rawat-inap/episode-rawat-inap/docs/task-lintas-modul/TLM-NV-001` | Hanya baca; tidak ada perubahan kode Rawat Inap |
+
+## Revision 2 — Tablet bed dan panggilan pasien
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `nurse-view` revision `2` `approved` (`NV-DEC-055`) |
+| Roadmap revision | `2` — 2026-11-05 · **`approved`** — Rizki Gunawan, 2026-11-05 |
+| Contract version | `0.2.0` `approved` |
+| SHA | BE `0c6eab34` (`rizkiG`), FE `91a11b08f` (`RizkiV2`) |
+| Hash masukan | Lihat `blueprint-manifest.md` blok Revision 2 (`input_hashes`, `artifact_hashes`) |
+| Gerbang | `NV-OQ-028` ditutup 2026-11-05 (`NV-DEC-056`); `NV-OQ-022` hanya runtime warna |
+| Task | Backend `BE-NV-008`–`BE-NV-016`; frontend `FE-NV-008`–`FE-NV-015` |
+
+Kolom **Status** diisi build skill sesudah laporan task ada. Saat bagian ini ditulis, seluruhnya
+belum dikerjakan. Untuk backend, kolom **Bukti** berisi bukti verifikasi menurut
+`rules/backend/TEST_POLICY.md` (QBE, review diff, build oleh Rizki, uji HTTP/hub), bukan unit test.
+Untuk frontend, buktinya lint dan uji layar; unit test tidak diwajibkan.
+
+### R2.1 Functional requirement → task → bukti
+
+| Requirement | Decision | Desain/kontrak | Task backend | Task frontend | Bukti | Status |
+|---|---|---|---|---|---|---|
+| Fondasi data (4 tabel, 6 enum) | `NV-DEC-039`, `048`, `049`; `AD-01`, `03` | kamus data R2.2, R2.4; backend R2.7, R2.8 | `BE-NV-008` | — | Migration `AddNurseViewPatientCall` diterapkan Rizki; index diperiksa `SELECT` read-only | ✅ 6 Nov 2026: source 4 model, 6 enum, 4 configuration, 4 `DbSet`; QBE Strict `PASS` (15 berkas, 0 violation); migration `20261106015006_AddNurseViewPatientCall` diterapkan Rizki dan diperiksa bersih; 12 index beserta filternya terverifikasi `SELECT` read-only ([`BE-NV-008.md`](../task/report/backend/BE-NV-008.md)). Riwayat: 🟡 5 Nov |
+| `FR-NV-033` daftarkan tablet, satu bed satu tablet | `NV-DEC-035`; `AD-01`, `03` | api §5, `VAL-NV-17`–`19` | `BE-NV-009` | `FE-NV-008` | `UAT-12` sisi admin, `UAT-13`, `VAL-NV-19` | 🟡 6 Nov 2026: source `NvwBedTabletService.CreateAsync`, `GET /bed-options`, kode `NVT` dari deret `NVW_BED_TABLET`, `VAL-NV-17`–`19`; QBE Strict `PASS` (9 berkas, 0 violation). Build Rizki dan uji HTTP no. 2–10 belum ([`BE-NV-009.md`](../task/report/backend/BE-NV-009.md)) |
+| `FR-NV-034` login sekali, atur ulang, nonaktif beralasan | `NV-DEC-035`; `AD-02`; `G-17` | api §5, §6; state §4; `VAL-NV-21`–`27` | `BE-NV-009`, `BE-NV-010` | `FE-NV-008`, `FE-NV-009` | Uji HTTP buat → login → atur ulang → nonaktif; tablet nonaktif ditolak runtime | 🟡 6 Nov 2026: bagian `BE-NV-009` — source buat login, atur ulang (termasuk aktifkan kembali dengan cek `VAL-NV-19`), nonaktif beralasan, `VAL-NV-21`–`25`; build dan uji HTTP no. 11–25 belum ([`BE-NV-009.md`](../task/report/backend/BE-NV-009.md)). Bagian `BE-NV-010` (`VAL-NV-26`, `27`, penolakan runtime) belum dikerjakan |
+| `FR-NV-035` pindah bed tanpa panggilan aktif | `AD-04` | api §5, `VAL-NV-20` | `BE-NV-009` | `FE-NV-008` | `VAL-NV-20` (bukti runtime saat `BE-NV-011`) | 🟡 6 Nov 2026: source `NvwBedTabletService.UpdateAsync` menolak pindah bila bed lama punya panggilan `Waiting`/`Claimed`, lalu memeriksa bed baru (`VAL-NV-19`); build dan uji jalur sukses pindah (no. 24) belum; bukti runtime `VAL-NV-20` tetap di `BE-NV-011` ([`BE-NV-009.md`](../task/report/backend/BE-NV-009.md)) |
+| `FR-NV-036` runtime tablet: bed dari akun, bed kosong terkunci, tanpa identitas, pemisahan TV dan tablet | `NV-DEC-046`, `056`; `G-09` | api §6 `/current`; permission R2 §8 | `BE-NV-010` | `FE-NV-009` | `UAT-12`, `UAT-14`, `VAL-NV-14` × tablet, `VAL-NV-26` × TV | Belum dikerjakan |
+| `FR-NV-037` tekan panggil, satu panggilan aktif per bed, kunci permintaan | `NV-DEC-039` | api §6 `POST /calls` | `BE-NV-011` | `FE-NV-011` | `NV-AC-029`, uji kirim ganda | Belum dikerjakan |
+| `FR-NV-038` naik Darurat, tidak pernah turun | `NV-DEC-039`; `G-13` | api §6; state §5 | `BE-NV-011` | `FE-NV-011` | `NV-AC-029` | Belum dikerjakan |
+| `FR-NV-039` klaim tunggal, ambil alih, lepas | `NV-DEC-040` | api §7; `VAL-NV-33`–`35`, `38` | `BE-NV-012` | `FE-NV-012` | `NV-AC-032`, `033`, `UAT-17` | Belum dikerjakan |
+| `FR-NV-040` "Perawat hadir" tahan 3 detik | `NV-DEC-041`, `050` | api §6 `nurse-arrived` | `BE-NV-011` | `FE-NV-011` | `NV-AC-034`, `042`, `UAT-15` | Belum dikerjakan |
+| `FR-NV-041` tutup dari konsol dengan alasan | `NV-DEC-053` | api §7 `close`; `VAL-NV-36` | `BE-NV-012` | `FE-NV-012` | `NV-AC-044`, `UAT-18` | Belum dikerjakan |
+| `FR-NV-042` pasien membatalkan panggilan biasa yang menunggu | `NV-DEC-054` | api §6 `cancel`; `VAL-NV-31` | `BE-NV-011`, `BE-NV-012` | `FE-NV-011` | `NV-AC-045` | Belum dikerjakan |
+| `FR-NV-043` tutup otomatis saat pindah/pulang ≤ 60 detik | `NV-DEC-046`, `050`, `052`; `AD-05` | state §5; integration R2 §5 | `BE-NV-013` | `FE-NV-011` (tablet kembali "Bed belum berpenghuni") | `NV-AC-038`, `042`, `UAT-19` | Belum dikerjakan |
+| `FR-NV-044` satu kejadian satu jejak | `NV-DEC-049` | kamus data `NvwPatientCallEvent`; permission R2 §9 | `BE-NV-011`, `BE-NV-012`, `BE-NV-013` | — | Hitungan jejak lewat `SELECT` read-only per skenario | Belum dikerjakan |
+| `FR-NV-045` gagal kirim → pesan bel dinding, kirim ulang tanpa ganda | `NV-DEC-037`, `039` | api §6 `Idempotency-Key`; fe R2.9 | `BE-NV-011` | `FE-NV-011` | `NV-AC-039`, `UAT-20` | Belum dikerjakan |
+| `FR-NV-046` strip tetap di atas, berurutan, tanpa identitas, "+k lainnya" | `NV-DEC-044`, `047`; `NV-FE-006` | api §9 | `BE-NV-015` | `FE-NV-014` | `NV-AC-030`, `031`, `037`, `UAT-21`, `UAT-22` | Belum dikerjakan |
+| `FR-NV-047` penanda kartu bed, TV tanpa suara | `NV-DEC-013`, `047` | api §9 `ActiveCallPriority` | `BE-NV-015` | `FE-NV-014` | `UAT-21` | Belum dikerjakan |
+| `FR-NV-048` pembaruan lewat sinyal ≤ 5 detik, cadangan muat ulang | `NV-DEC-047` | api §10; integration R2 §8 | `BE-NV-014` | `FE-NV-010`, `FE-NV-014` | `NV-AC-028`, `NFR-008` | Belum dikerjakan |
+| `FR-NV-049` konsol dengan akun sendiri, pilih lantai, izin tanpa roster | `NV-DEC-043`; `AD-06` | api §7; permission R2 §6–§8 | `BE-NV-012` | `FE-NV-012` | `NV-AC-036` | Belum dikerjakan |
+| `FR-NV-050` isi dan aksi daftar konsol | `NV-DEC-038`, `040`, `044` | api §7 | `BE-NV-012` | `FE-NV-012` | `NV-AC-030`, `032`, `037` | Belum dikerjakan |
+| `FR-NV-051` bunyi, nada Darurat, pengingat, tunda, "Aktifkan suara" | `NV-DEC-045`; `G-14`; `NV-FE-007` | fe R2.6; state §7 | — | `FE-NV-013` | `NV-AC-035`, `UAT-23`, `UAT-24` | Belum dikerjakan |
+| `FR-NV-052` prototipe `nurseCallContext.jsx` dihapus | `NV-DEC-051` | fe R2.8 | — | `FE-NV-012` | `NV-AC-043`: berkas tidak ada, pencarian `import` nol | Belum dikerjakan |
+| `FR-NV-053` ambang kuning/merah dengan rujukan SK; kosong → tanpa warna | `NV-DEC-048`; `G-15` | api §8; `VAL-NV-40` | `BE-NV-016` | `FE-NV-015`; warna di `FE-NV-012`, `FE-NV-014` | `UAT-25`, `NV-AC-040` | 🟡 6 Nov 2026: bagian `BE-NV-016` — source `GET`/`PUT` ambang ganti-seluruh, `VAL-NV-40`, `ResolveWaitLevel`, tanpa angka bawaan; QBE Strict `PASS`; build Rizki dan uji HTTP no. 1–14 belum ([`BE-NV-016.md`](../task/report/backend/BE-NV-016.md)). Frontend belum dikerjakan |
+| Regresi login (syarat lead) | `NV-DEC-030`, `056` | backend R2.5; fe R2.7 | `BE-NV-010` | `FE-NV-009` | `NV-AC-041`, `UAT-26` | Belum dikerjakan |
+
+### R2.2 Acceptance criteria → task
+
+| Acceptance | Inti | Task backend | Task frontend | Bukti yang diharapkan | Status |
+|---|---|---|---|---|---|
+| `NV-AC-028` | Panggilan tampil di strip dan konsol tanpa menunggu 60 detik | `BE-NV-014` | `FE-NV-010`, `FE-NV-012`, `FE-NV-014` | Rekaman berjam TV + konsol | Belum dikerjakan |
+| `NV-AC-029` | Tekan ulang dan Darurat tetap satu item sejak tekan pertama | `BE-NV-011` | `FE-NV-011` | Response `POST /calls` ketiga + `GET /active` | Belum dikerjakan |
+| `NV-AC-030` | Urutan Darurat dulu, lalu paling lama menunggu | `BE-NV-012`, `BE-NV-015` | `FE-NV-012`, `FE-NV-014` | Tangkapan konsol dan strip | Belum dikerjakan |
+| `NV-AC-031` | Strip tidak ikut berganti halaman | `BE-NV-015` | `FE-NV-014` | Rekaman TV 30 detik | Belum dikerjakan |
+| `NV-AC-032` | Klaim kedua → Ambil alih; jejak mencatat keduanya | `BE-NV-012` | `FE-NV-012`, `FE-NV-014` | Response `409` `VAL-NV-33`, response ambil alih, jejak | Belum dikerjakan |
+| `NV-AC-033` | Lepas → `Waiting`, jam awal tetap | `BE-NV-012` | `FE-NV-012` | Response `release` | Belum dikerjakan |
+| `NV-AC-034` | Tahan < 3 detik tetap aktif; 3 detik → `Handled` | `BE-NV-011` | `FE-NV-011` | Rekaman tablet + jejak `NurseArrived` | Belum dikerjakan |
+| `NV-AC-035` | Pengingat berbunyi; senyap bila semua diklaim; panggilan baru tetap berbunyi saat ditunda | — | `FE-NV-013` | Rekaman video bersuara | Belum dikerjakan |
+| `NV-AC-036` | Tanpa izin → `403`; berizin tanpa roster → klaim diterima | `BE-NV-012` | `FE-NV-012` | Dua response | Belum dikerjakan |
+| `NV-AC-037` | Strip tanpa identitas; konsol hanya inisial · JK · umur | `BE-NV-012`, `BE-NV-015` | `FE-NV-012`, `FE-NV-014` | JSON tersimpan; pencarian nama lengkap → nol | Belum dikerjakan |
+| `NV-AC-038` | Pindah → `ClosedBySystem` ≤ 60 detik; tablet "Bed belum berpenghuni" | `BE-NV-013` | `FE-NV-011` | Rekaman berjam + jejak `ClosedBySystem` | Belum dikerjakan |
+| `NV-AC-039` | Tablet terputus → pesan bel dinding; tersambung → tepat satu panggilan | `BE-NV-011` | `FE-NV-011` | Rekaman + jejak satu `Pressed` | Belum dikerjakan |
+| `NV-AC-040` | Ambang kosong → tanpa warna | `BE-NV-016`, `BE-NV-012`, `BE-NV-015` | `FE-NV-012`, `FE-NV-014`, `FE-NV-015` | Tangkapan + `IsConfigured = false` | 🟡 6 Nov 2026: bagian `BE-NV-016` terpetakan ke source (`GetActiveAsync` → `IsConfigured = false`; `ResolveWaitLevel` → `None` bila ambang kosong); runtime belum ([`BE-NV-016.md`](../task/report/backend/BE-NV-016.md)). `BE-NV-012`, `BE-NV-015`, dan frontend belum dikerjakan |
+| `NV-AC-041` | Regresi login empat akun sesudah tablet ditambahkan | `BE-NV-010` | `FE-NV-009` | Rekaman login | Belum dikerjakan |
+| `NV-AC-042` | Koreksi/pembatalan penempatan tidak menutup panggilan; "Perawat hadir" tetap bisa | `BE-NV-011`, `BE-NV-013` | `FE-NV-011` | Rekaman + response `nurse-arrived` | Belum dikerjakan |
+| `NV-AC-043` | `nurseCallContext.jsx` tidak ada dan tidak dirujuk | — | `FE-NV-012` | Hasil pencarian kosong | Belum dikerjakan |
+| `NV-AC-044` | Tutup dari konsol wajib beralasan; tercatat tidak dikonfirmasi di bed | `BE-NV-012` | `FE-NV-012` | Dua response + jejak `ClosedFromConsole` | Belum dikerjakan |
+| `NV-AC-045` | Batal hanya untuk panggilan biasa yang menunggu | `BE-NV-011`, `BE-NV-012` | `FE-NV-011` | Response `409` + response berhasil | Belum dikerjakan |
+| `VAL-NV-14` × tablet | Akun tablet ditolak papan dan strip TV | `BE-NV-010`, `BE-NV-015` | — | Dua response `403` | Belum dikerjakan |
+| `VAL-NV-26` × TV | Akun TV dan Administrator ditolak runtime tablet | `BE-NV-010` | — | Response `403` | Belum dikerjakan |
+| `VAL-NV-19` | Tablet kedua untuk bed yang sama ditolak | `BE-NV-009` | `FE-NV-008` | Response `409` | 🟡 6 Nov 2026: source pada buat, pindah bed, dan aktifkan kembali, ditambah terjemahan benturan `IX_NvwBedTablet_BedId_InUse`; uji HTTP no. 7, 9, 25 belum ([`BE-NV-009.md`](../task/report/backend/BE-NV-009.md)) |
+| `VAL-NV-28` | Bed kosong tidak bisa memanggil; layar tanpa tombol | `BE-NV-011` | `FE-NV-011` | Response + tangkapan | Belum dikerjakan |
+| `VAL-NV-29` | `POST /calls` tanpa `Idempotency-Key` → `400` | `BE-NV-011` | — | Response | Belum dikerjakan |
+| `VAL-NV-38` | Klaim bersamaan → satu `409` | `BE-NV-012` | `FE-NV-012` | Dua response | Belum dikerjakan |
+| `VAL-NV-41` | Akun TV/tablet ditolak grup konsol | `BE-NV-014` | — | Log hub | Belum dikerjakan |
+| Idempotensi | Kunci sama dua kali → satu jejak | `BE-NV-011` | `FE-NV-011` | Response + jejak | Belum dikerjakan |
+| Logging | `CloseNote` dan kata sandi tablet tidak masuk log | `BE-NV-009`, `BE-NV-012`, `BE-NV-014` | — | Potongan log | 🟡 6 Nov 2026: bagian `BE-NV-009` — teks log enam aksi admin tanpa kata sandi (source); pemindaian log no. 29 belum ([`BE-NV-009.md`](../task/report/backend/BE-NV-009.md)). `BE-NV-012`, `BE-NV-014` belum dikerjakan |
+
+### R2.3 Skenario UAT → task yang harus selesai lebih dulu
+
+UAT dijalankan tim UAT terpisah. Kolom kedua menyebut task yang wajib ✅ sebelum skenario itu
+masuk akal diuji.
+
+| UAT | Task prasyarat | Catatan |
+|---|---|---|
+| `UAT-12` | `BE-NV-009`, `BE-NV-010`, `FE-NV-008`, `FE-NV-009`, `FE-NV-011` | Layar `Siap` dengan dua tombol baru ada di `FE-NV-011` |
+| `UAT-13` | `BE-NV-009`, `FE-NV-008` | — |
+| `UAT-14` | `BE-NV-010`, `BE-NV-015` | `/active-calls` baru ada di `BE-NV-015` |
+| `UAT-15` | `BE-NV-011`, `BE-NV-012`, `FE-NV-011`, `FE-NV-012` | — |
+| `UAT-16` | `BE-NV-011`, `BE-NV-012`, `FE-NV-012`, `FE-NV-014` | — |
+| `UAT-17` | `BE-NV-011`, `BE-NV-012`, `FE-NV-011`, `FE-NV-012` | — |
+| `UAT-18` | `BE-NV-012`, `FE-NV-012` | — |
+| `UAT-19` | `BE-NV-013`, `FE-NV-011` | Butuh pindah pasien lewat layar Rawat Inap |
+| `UAT-20` | `BE-NV-011`, `FE-NV-011` | — |
+| `UAT-21` | `BE-NV-015`, `FE-NV-014` | — |
+| `UAT-22` | `FE-NV-014` | — |
+| `UAT-23` | `FE-NV-013` | Butuh rekaman bersuara |
+| `UAT-24` | `BE-NV-012`, `FE-NV-012`, `FE-NV-013` | — |
+| `UAT-25` | `BE-NV-016`, `FE-NV-015`, `FE-NV-012`, `FE-NV-014` | Warna tampil di konsol dan strip |
+| `UAT-26` | `BE-NV-010`, `FE-NV-009` | Regresi login, syarat lead |
+
+### R2.4 Kebutuhan non-fungsional → task
+
+| NFR | Kebutuhan | Task | Bukti |
+|---|---|---|---|
+| `NFR-008` | Panggilan baru tampil ≤ 5 detik | `BE-NV-014`, `FE-NV-010`, `FE-NV-012`, `FE-NV-014` | Jam event vs jam tekan pada rekaman berjam |
+| `NFR-009` | Satu panggilan aktif per bed dijamin index | `BE-NV-008`, `BE-NV-011` | `pg_indexes` + uji dua tekanan paralel |
+| `NFR-010` | `POST` runtime tablet idempoten | `BE-NV-011`, `FE-NV-011` | Kunci sama dua kali → satu jejak |
+| `NFR-011` | Concurrency `Version`, konflik → `409` | `BE-NV-008`, `BE-NV-009`, `BE-NV-011`, `BE-NV-012` | Uji klaim paralel |
+| `NFR-012` | Pemeriksaan tiap 30 detik; galat satu putaran tidak menghentikan host | `BE-NV-013` | Penelusuran source + catatan jeda |
+| `NFR-013` | Jumlah query tetap | `BE-NV-012`, `BE-NV-015` | Penelusuran source; hitungan query bila log SQL dinyalakan |
+| `NFR-014` | Simpan UTC, tampil Asia/Jakarta, lama menunggu dari jam server | `BE-NV-011`–`BE-NV-015`; `FE-NV-011`, `FE-NV-012`, `FE-NV-014` | Response `ServerTimeUtc` + tampilan |
+| `NFR-015` | Kata sandi tablet dan `CloseNote` tidak masuk log maupun sinyal | `BE-NV-009`, `BE-NV-012`, `BE-NV-014` | Potongan log dan payload hub |
+
+### R2.5 Definition of Done PRD → pemenuhan
+
+| Butir DoD `04-prd-to-mvp.md` R2.19 | Dipenuhi oleh | Keadaan |
+|---|---|---|
+| Restu lead tercatat dan syaratnya terbukti | `NV-DEC-056` (tercatat); syarat terbukti lewat `BE-NV-010`, `FE-NV-009` | Restu tercatat 2026-11-05; syarat belum terbukti |
+| Satu tablet memanggil dan ditutup di bed | `UAT-12`, `UAT-15` | Belum |
+| Banyak panggilan berurutan tanpa ganda | `UAT-16`, `NV-AC-029`, `030` | Belum |
+| Klaim tunggal saat bersamaan | `UAT-17`, `VAL-NV-38` | Belum |
+| Panggilan tidak tertinggal tanpa jalan tutup | `UAT-18`, `UAT-19`, `NV-AC-042`, `044` | Belum |
+| Gagal kirim tanpa ganda dan menunjuk bel dinding | `UAT-20`, `NV-AC-039` | Belum |
+| Identitas tidak bocor di tablet dan TV | `UAT-14`, `UAT-21`, `NV-AC-037` | Belum |
+| Konsol berbunyi dan berhenti sesuai aturan | `UAT-23`, `NV-AC-035` | Belum |
+| Tiga butir menu terdaftar dan terjangkau | `FE-NV-008`, `FE-NV-012`, `FE-NV-015` | Belum |
+| Hak akses diberikan tanpa menimpa policy lain | Langkah operasional R2.9 | Belum |
+| Prototipe lama terhapus | `FE-NV-012` AC-10 (`NV-AC-043`) | Belum |
+| Daftar periksa go-live `G-16` terpenuhi | R2.8 | Belum diperiksa |
+
+### R2.6 Pekerjaan pendamping yang dilacak
+
+| Butir | Bentuk | Pemilik | Dilacak di | Status |
+|---|---|---|---|---|
+| Pemberitahuan ketergantungan baca `InpBedPlacement.EndDateTime`/`EndReason` ke Muhammad Hamzah | Dokumen `TLM-NV-002` | Rizki Gunawan menyampaikan | R2.7 | Ditulis 2026-11-05; belum disampaikan |
+| Kabar butir menu Konsol Panggilan di grup Rawat Inap (`NV-FE-008`) | `TLM-NV-002` bagian 4 | Rizki Gunawan menyampaikan | R2.7 | Ditulis 2026-11-05; belum disampaikan |
+| Penghapusan `src/lib/helpers/nurseCallContext.jsx` (`NV-DEC-051`) | Cakupan (9) dan AC-10 `FE-NV-012` | Rizki Gunawan | R2.1 baris `FR-NV-052`, R2.2 baris `NV-AC-043` | Belum dikerjakan. Fakta 2026-11-05 di `91a11b08f`: berkas masih ada, hanya merujuk dirinya sendiri, tidak di-`import` berkas lain |
+| Daftar periksa go-live `G-16` (`NV-UNK-005`–`007`) | Pemeriksaan lapangan | Pengelola sarana, kepala ruang, Admin IT | R2.8 | Belum diperiksa |
+
+### R2.7 Dokumen lintas modul
+
+| Task | Dokumen | Kewajiban | Status |
+|---|---|---|---|
+| `BE-NV-010`, `BE-NV-011`, `BE-NV-013` | `rawat-inap/episode-rawat-inap/docs/task-lintas-modul/TLM-NV-002-akhir-penempatan-bed-dan-menu-konsol-panggilan.md` bagian 2–3 | Pemberitahuan baca; tidak ada perubahan kode Rawat Inap. Sebaiknya disampaikan sebelum `BE-NV-013` dimulai; tidak menahan task. Laporan `BE-NV-013` dirujuk dari dokumen itu | `PEMBERITAHUAN`, belum disampaikan |
+| `FE-NV-012` | Dokumen yang sama, bagian 4 | Kabar butir menu di grup Rawat Inap. Bila Hamzah keberatan, letak menu menjadi keputusan baru Rizki Gunawan | `PEMBERITAHUAN`, belum disampaikan |
+
+`TLM-NV-001` (keperawatan dan episode) tidak berubah: revision 2 tidak menyentuh
+`PatientVitalSignController` maupun `ProjectBatchAsync`.
+
+### R2.8 Daftar periksa go-live `G-16`
+
+Butir ini tidak mengubah desain dan bukan task kode. Butir ini menahan **go-live**, tidak menahan
+implementasi maupun uji developer. Setiap butir diperiksa per lantai yang akan memakai tablet bed.
+
+| Butir | Pertanyaan | Penanggung jawab | Cara memeriksa | Bukti yang dicatat | Kapan | Bila hasilnya buruk | Status |
+|---|---|---|---|---|---|---|---|
+| `NV-UNK-005` | Apakah setiap bed rawat inap punya bel kabel yang berfungsi? | Pengelola sarana rumah sakit | Tekan bel di setiap bed lantai sasaran, lalu pastikan bunyinya terdengar di nurse station. **Contoh:** lantai 3 berisi 40 bed → 40 baris "berfungsi/tidak" | Daftar bed bertanggal dan bernama pemeriksa | Sebelum UAT di lantai uji dan sebelum go-live setiap lantai | Bed tanpa bel yang berfungsi menahan go-live lantai itu sampai bel diperbaiki, karena tablet hanya pelengkap (`NV-DEC-037`) | Belum diperiksa |
+| `NV-UNK-006` | Apakah petugas mencatat pindah bed tepat saat pasien benar-benar berpindah? | Kepala ruang | Amati atau tanyakan tiga transfer: jam pencatatan di layar Rawat Inap dibandingkan jam pasien meninggalkan bed. **Contoh:** dicatat 10.00, pasien baru pindah 10.20 → tablet bed lama terkunci 20 menit selagi pasien masih di sana | Catatan tiga contoh beserta selisih menitnya | Sebelum go-live | Bila sering lebih awal: edukasi pencatatan; bel kabel tetap cadangan. Lanjut atau tidaknya go-live diputuskan Rizki Gunawan | Belum diperiksa |
+| `NV-UNK-007` | Apakah tablet contoh sanggup menjalankan layar tablet bed? | Admin IT | Uji satu tablet contoh: versi browser, layar tetap menyala, mode kiosk (pasien tidak bisa keluar dari layar), sambung ulang Wi-Fi, login bertahan sesudah tablet dinyalakan ulang, dan izin bunyi | Lembar uji dan foto layar | Sebelum pengadaan tablet | Tablet yang gagal tidak dibeli; pilih tipe lain | Belum diperiksa |
+
+### R2.9 Acceptance tanpa task — coverage gap
+
+| Butir | Sebab | Penanganan |
+|---|---|---|
+| `G-16` prasyarat lapangan | Pekerjaan operasional, bukan kode | Daftar periksa R2.8 |
+| `NV-OQ-022` angka ambang sah | Kebijakan Komite Keperawatan | Langkah operasional sesudah `FE-NV-015`; tanpa angka, panggilan tampil tanpa warna (`NV-DEC-048`) |
+| Pemberian hak akses | Konfigurasi Akses Role, bukan kode | Sesudah `BE-NV-009`, `012`, `016`: Admin IT diberi `NurseViewBedTablet : Read/Create/Update` dan `NurseViewPatientCallWaitThreshold : Read/Update`; perawat rawat inap dan kepala ruang diberi `NurseViewPatientCall : Read/Update`. Tambahkan pada policy peran, jangan menimpa seluruhnya: salin, tambah, lalu pulihkan bila hanya untuk uji. Bukti: tangkapan layar Akses Role |
+| Pendaftaran tablet untuk bed lantai uji | Data operasional | Lewat layar `FE-NV-008` oleh Admin IT; tablet uji dinonaktifkan sesudah uji bila tidak dipakai |
+| Pelaksanaan `UAT-12`–`UAT-26` | Milik tim UAT | Agent tidak menulis "UAT lulus"; laporan task hanya memuat verifikasi developer |
+| Laporan waktu tanggap | Ditunda (`NV-DEC-049`, PRD R2.8) | Bukan gap: datanya sudah dicatat `BE-NV-011`–`013` |
+
+Tidak ada functional requirement revision 2 yang tidak punya task. Tidak ada task backend yang
+mensyaratkan automated test.
+
+### R2.10 Pemeriksaan konsistensi roadmap
+
+| Pemeriksaan | Backend | Frontend |
+|---|---|---|
+| Jumlah task | 9 (`BE-NV-008`–`016`) | 8 (`FE-NV-008`–`015`) |
+| Panah grafik = entri kolom `Dependency` | 11 = 11 | 12 = 12 |
+| Jumlah node grafik (batas 15) | 9 | 15 (8 task + 7 cermin backend) |
+| Bebas siklus | Ya | Ya |
+| Task ⛔ | 0 | 0 |
+| Bentuk grafik | Mermaid, mengikuti grafik revision 1 di berkas yang sama (§13) | Mermaid, idem |

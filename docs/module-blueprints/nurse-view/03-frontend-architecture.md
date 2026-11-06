@@ -8,6 +8,10 @@
 | Masukan | `00-interview-decisions.md` rev `2`, `contracts/api-contract.md` `0.1.0` |
 | Konvensi | Pakai ulang komponen dan gaya yang sudah ada; `globals.css` tidak disentuh |
 
+> **Revision 2 (`approved` `NV-DEC-055`, kontrak `0.2.0`) — 2026-11-05.** Layar tablet bed, Konsol Panggilan,
+> strip TV, dan admin tablet ada di
+> [Revision 2](#revision-2--tablet-bed-dan-panggilan-pasien). Bagian 1–8 tetap revision 1.
+
 ## 1. Kebutuhan layar
 
 | ID | Layar | Pengguna | Keputusan |
@@ -189,3 +193,246 @@ Syarat: redirect Kiosk (`/kiosk`) dan display antrean (`/queue-display`) di `pro
 | Route halaman TV `/nurse-view-display` | Developer, mengikuti pola `/queue-display` | `DEV_DISCRETION` (`NV-FE-005`) |
 | Penempatan menu di Administrator › Master Data | Usulan desain, mengikuti "Display Antrian" | Menunggu approval blueprint |
 | Bentuk konfirmasi nonaktif (modal atau inline) | Developer | `DEV_DISCRETION` |
+
+## Revision 2 — Tablet bed dan panggilan pasien
+
+| Field | Nilai |
+|---|---|
+| Revision | `2` · status `approved` — Rizki Gunawan, 2026-11-05 (`NV-DEC-055`) |
+| Frontend SHA | `91a11b08f` (branch `RizkiV2`) |
+| Masukan | `00-interview-decisions.md` rev `5` (`NV-DEC-034`–`054`, `NV-FE-006`, `007`); `contracts/api-contract.md` `0.2.0` |
+| Kewenangan | security/privasi/invariant → keputusan owner → konvensi proyek → `DEV_DISCRETION` |
+
+### R2.1 Kebutuhan layar
+
+| ID | Layar | Pengguna | Status | Keputusan |
+|---|---|---|---|---|
+| `FE-NVW-04` | Papan Lantai di TV — ditambah **strip Panggilan Aktif** dan penanda kartu bed | Akun TV | Diperbarui | `NV-DEC-044`, `047`, `048` |
+| `FE-NVW-05` | Daftar Tablet Bed | Admin IT | Baru | `NV-DEC-035` |
+| `FE-NVW-06` | Form Tablet Bed (buat/ubah) + aksi login & nonaktif | Admin IT | Baru | `NV-DEC-035`, `AD-01`–`04` |
+| `FE-NVW-07` | Layar Tablet Bed | Pasien/keluarga; perawat untuk "Perawat hadir" | Baru | `NV-DEC-037`–`039`, `041`, `046`, `050`, `054` |
+| `FE-NVW-08` | Konsol Panggilan | Perawat, kepala ruang (akun sendiri) | Baru | `NV-DEC-034`, `040`, `043`–`045`, `053` |
+| `FE-NVW-09` | Ambang Lama Menunggu | Admin IT; baca: kepala ruang | Baru | `NV-DEC-048` |
+
+### R2.2 Peta butir menu
+
+```text
+Administrator                                     <- sudah ada, tingkat 0
+└── Master Data                                   <- sudah ada
+    ├── Display Nurse View                        <- sudah ada
+    ├── Interval TTV Nurse View                   <- sudah ada
+    ├── Tablet Bed Nurse View                     -> /administrator/master-data/nurse-view-bed-tablets
+    └── Ambang Panggilan Nurse View               -> /administrator/master-data/nurse-view-call-wait-thresholds
+Rawat Inap                                        <- sudah ada, tingkat 0 (induk disahkan NV-FE-008)
+└── Konsol Panggilan Pasien                       -> /health-services/nurse-view-management/patient-call-console
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Tablet Bed Nurse View | 2 | Administrator › Master Data | `/administrator/master-data/nurse-view-bed-tablets` | `FE-NVW-05` | `NurseViewBedTablet : Read` | Baru |
+| Ambang Panggilan Nurse View | 2 | Administrator › Master Data | `/administrator/master-data/nurse-view-call-wait-thresholds` | `FE-NVW-09` | `NurseViewPatientCallWaitThreshold : Read` | Baru |
+| Konsol Panggilan Pasien | 1 | Rawat Inap (`NV-FE-008`) | `/health-services/nurse-view-management/patient-call-console` | `FE-NVW-08` | `NurseViewPatientCall : Read` | Baru |
+
+| Layar tanpa butir menu | Jalan masuk |
+|---|---|
+| `FE-NVW-06` Form Tablet Bed | Dari `FE-NVW-05`: tombol Tambah (`/nurse-view-bed-tablets/create`) dan baris daftar (`/nurse-view-bed-tablets/[slug]`) |
+| `FE-NVW-07` Layar Tablet Bed | Akun tablet login → `proxy.js` mengalihkan ke `/nurse-view-bed-tablet` (pola `/nurse-view-display`). Tidak dibuka akun manusia |
+| `FE-NVW-04` Papan Lantai | Tetap seperti revision 1 |
+
+**Catatan `NV-FE-008`.** Konsol dipakai perawat rawat inap, jadi diusulkan di grup Rawat Inap.
+Grup itu milik modul Rawat Inap, sehingga penambahannya dikabarkan ke Muhammad Hamzah.
+Alternatifnya butir tingkat 0 sendiri "Nurse View". Route tetap milik Nurse View. **Disahkan owner
+2026-11-05 (`NV-DEC-055`): grup Rawat Inap.** Nama dan urutan butir `DEV_DISCRETION`.
+
+### R2.3 Skema fitur per layar
+
+#### `FE-NVW-05` Daftar Tablet Bed
+
+Bentuknya sama dengan `FE-NVW-01`, dengan kolom bed.
+
+```text
++- Tablet Bed Nurse View ------------------------------------- FE-NVW-05 -+
+| [cari kode/nama/bed]  [Lantai v]  [Status v]                [+ Tambah]  |
++-------------------------------------------------------------------------+
+| Kode       | Nama              | Bed    | Lantai | Status   | Online     |
+| NVT-000001 | Tablet Bed 305-A  | 305-A  | 3      | Aktif    | Online     |
+| NVT-000002 | Tablet Bed 306-B  | 306-B  | 3      | Belum ada login | —   |
++-------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                |
+| kosong -> "Belum ada tablet bed."                      [+ Tambah]       |
+| gagal  -> "Data tablet gagal dimuat."                  [Coba lagi]      |
++- Halaman 1 dari n ------------------------- [< Sebelumnya] [Berikutnya >]+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Saringan | kata kunci, lantai, status | `GET /bed-tablets/floors` | `NurseViewBedTablet : Read` | Lantai gagal dimuat → saringan lantai disembunyikan |
+| Tabel | kode, nama, bed, lantai, status, online | `GET /bed-tablets` | `NurseViewBedTablet : Read` | Lihat skema |
+| Tambah | ke `FE-NVW-06` | — | `NurseViewBedTablet : Create` | Disembunyikan bila tidak berhak |
+
+#### `FE-NVW-06` Form Tablet Bed
+
+Bentuknya sama dengan `FE-NVW-02`; isian lantai diganti pemilih bed.
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | status, online, jejak login/nonaktif, "Ada panggilan aktif" bila ada | `GET /bed-tablets/{id}` | `: Read` | Gagal → pesan + coba lagi |
+| Tombol aksi | Buat Login / Atur Ulang Login / Nonaktifkan mengikuti `AvailableActions` | `POST /{id}/login`, `POST /{id}/login/reset`, `PATCH /{id}/deactivate` | `NurseViewBedTablet : Update` | `409` → pesan `validation-matrix.md` + muat ulang |
+| Pemilih bed | lantai lalu bed; bed yang sudah punya tablet tidak bisa dipilih | `GET /bed-tablets/floors`, `GET /bed-tablets/bed-options?floorCode=` | `: Read` | Tanpa bed di lantai itu → "Lantai ini belum punya bed aktif." |
+| Form | nama, lokasi, keterangan | `POST /` atau `PUT /{id}` | `: Create` / `: Update` | Pesan validasi di bawah isian |
+| Kotak kata sandi | hanya dari response login | `NvwBedTabletLoginResponse` | `: Update` | Tidak disimpan di state global, `localStorage`, maupun log |
+
+#### `FE-NVW-07` Layar Tablet Bed
+
+```text
++- Bed 305-A · Kamar Melati 305 ------------------------------ FE-NVW-07 -+
+|                                                                         |
+|   Siap:                                                                 |
+|   [        PANGGIL PERAWAT        ]   [          DARURAT          ]     |
+|                                                                         |
+|   Menunggu (biasa):                                                     |
+|   "Panggilan terkirim · menunggu 1:10"                                  |
+|   [ Batal ]                     [ DARURAT ]                             |
+|                                                                         |
+|   Diklaim:  "Dewi menuju"                                               |
+|   Darurat:  "Panggilan DARURAT terkirim · menunggu 0:20" (tanpa Batal)  |
+|                                                                         |
+|   Gagal kirim: "Panggilan belum terkirim — tekan bel di dinding"        |
+|   Bed kosong:  "Bed belum berpenghuni"                                  |
++-------------------------------------------------------------------------+
+| ........ area perawat: [ Perawat hadir — tahan 3 detik ] ........       |
++-------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | kode bed, nama kamar. **Tanpa** nama atau inisial pasien (`G-09`) | `GET /bed-tablet-runtime/current` | policy `NurseViewBedTabletAccess` | `401`/`403` → layar login |
+| Tombol panggil | "Panggil perawat", "Darurat" | `POST /bed-tablet-runtime/calls` | idem | Disembunyikan saat `BedKosong`. Gagal → `GagalKirim` |
+| Status panggilan | status, lama menunggu, nama perawat bila diklaim | `ActiveCall` | idem | — |
+| Batal | hanya bila `CanCancel` | `POST /calls/current/cancel` | idem | `409` → muat ulang keadaan |
+| Area perawat | "Perawat hadir — tahan 3 detik", hanya bila ada panggilan aktif, termasuk saat bed kosong (`NV-DEC-050`) | `POST /calls/current/nurse-arrived` | idem | Dilepas < 3 detik → tidak terkirim |
+| Pita terputus | "Koneksi terputus — gunakan bel di dinding" | status realtime + muat ulang | — | — |
+
+Ketentuan yang mengikat: dua tombol utama besar dan berbeda jelas; Darurat tidak bisa ditekan
+tidak sengaja dari tombol biasa; area perawat terpisah dan tidak menyerupai tombol pasien.
+Ukuran, warna, dan susunan `DEV_DISCRETION` (`NV-FE-010`).
+
+#### `FE-NVW-08` Konsol Panggilan
+
+```text
++- Konsol Panggilan · LANTAI 3 ---------------- (ganti lantai) FE-NVW-08 -+
+| Sari · 10.01.20      [Aktifkan suara]  [Matikan bunyi]                  |
+| "Pengingat ditunda sampai 10.06"   (bila ditunda)                       |
++-------------------------------------------------------------------------+
+| Bed   | Pasien          | Jenis    | Menunggu | Status       | Aksi      |
+| 331-C | R.A. · P · 72th | DARURAT  | 0:20     | Menunggu     | [Saya tangani] [Tutup] |
+| 305-A | B.S. · L · 64th | Panggilan| 1:00 ×2  | Sari menuju  | [Lepas] [Tutup]        |
+| 318-B | A.R. · P · 41th | Panggilan| 0:40     | Dewi menuju  | [Ambil alih] [Tutup]   |
++-------------------------------------------------------------------------+
+| kosong -> "Tidak ada panggilan aktif di Lantai 3."                      |
+| gagal  -> "Daftar panggilan gagal dimuat."              [Coba lagi]     |
+| basi   -> pita "Data terakhir 10.00 — koneksi terputus"                 |
++-------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | lantai terpilih (besar dan jelas, `NV-DEC-043`), nama pengguna, jam | `GET /patient-calls/floors`; pilihan lantai diingat di PC | `NurseViewPatientCall : Read` | Belum ada lantai tersimpan → `PilihLantai` |
+| Daftar | bed, inisial · jenis kelamin · umur, jenis, lama menunggu, hitungan tekan, pengklaim, warna lama menunggu | `GET /patient-calls/active?floorCode=` | `NurseViewPatientCall : Read` | Lihat skema |
+| Saya tangani / Ambil alih / Lepas / Tutup | mengikuti `AvailableActions` | `POST /{id}/claim`, `/take-over`, `/release`, `/close` | `NurseViewPatientCall : Update` | Disembunyikan bila tidak berhak. `409` → pesan + muat ulang daftar |
+| Tutup panggilan | pilihan alasan wajib; keterangan wajib untuk "Lainnya" | `POST /{id}/close` | `: Update` | `400` → pesan di bawah isian |
+| Bunyi | per panggilan baru, nada Darurat berbeda, pengingat, tunda | event `NurseViewPatientCallChanged` + daftar | `: Read` | Browser menolak bunyi → tombol "Aktifkan suara" (`G-14`) |
+
+#### `FE-NVW-04` Papan Lantai di TV — tambahan
+
+```text
++- LANTAI 3 ------------------------------------ 10.01 · Data 10.01 -+
+| PANGGILAN: 331-C DARURAT 0:20 | 305-A Sari menuju 1:00 | +3 lainnya |
++--------------------------------------------------------------------+
+| (papan seperti revision 1; kartu 331-C dan 305-A diberi penanda)    |
++--------------------------------------------------- Halaman 1 / 3 --+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Strip Panggilan Aktif | nomor bed, jenis, lama menunggu, pengklaim; **tanpa** identitas pasien; tetap di atas, tidak ikut berganti halaman (`NV-DEC-047`) | `GET /display-runtime/active-calls` | policy `NurseViewDisplayRead` | Tidak ada panggilan → strip tidak memakan tempat. Tidak muat → "+k lainnya" (`NV-FE-006`) |
+| Penanda kartu | kartu bed yang sedang memanggil | `NvwBedCardResponse.ActiveCallPriority` | idem | — |
+| Warna lama menunggu | kuning/merah sesuai ambang | `WaitLevel` | idem | Ambang kosong → tanpa warna (`NV-DEC-048`) |
+
+TV tetap **tanpa suara** (`NV-DEC-013`).
+
+#### `FE-NVW-09` Ambang Lama Menunggu
+
+Bentuknya sama dengan `FE-NVW-03`: dua isian menit (kuning, merah), nomor SK/notulen Komite,
+tanggal pengesahan, dan status "Belum dikonfigurasi — panggilan tampil tanpa warna" saat kosong.
+Sumber `GET`/`PUT /patient-call-wait-thresholds`; hak akses `NurseViewPatientCallWaitThreshold :
+Read`/`Update`. **Tanpa angka bawaan** (`G-15`).
+
+### R2.4 Aksi per peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md` §7. Admin IT mengelola `FE-NVW-05`, `06`,
+`09`. Perawat dan kepala ruang memakai `FE-NVW-08`. Pasien dan perawat memakai `FE-NVW-07` lewat
+akun tablet. Akun TV hanya `FE-NVW-04`.
+
+### R2.5 Data, realtime, dan pembaruan
+
+| Layar | Muat awal | Realtime | Cadangan |
+|---|---|---|---|
+| `FE-NVW-04` TV | `GET /board` + `GET /active-calls` | `NurseViewPatientCallChanged` di grup lantai → muat ulang strip segera; papan dijadwalkan lewat jalur yang ada (paling sering 1×/5 detik) untuk penanda kartu | Strip ikut muat ulang papan tiap 60 detik |
+| `FE-NVW-07` tablet | `GET /current` | `JoinNurseViewBedTablet` → muat ulang keadaan saat event | Tiap 15 detik selama ada panggilan aktif, tiap 60 detik bila tidak (`NV-FE-009`) |
+| `FE-NVW-08` konsol | `GET /active?floorCode=` | `JoinNurseViewCallConsole(floorCode)`; ganti lantai = keluar grup lama, masuk grup baru | Tiap 15 detik (`NV-FE-009`); pita basi bila tidak ada daftar baru > 120 detik |
+
+`src/lib/realtime/queue-realtime-client.js` ditambah konstanta event
+`NurseViewPatientCallChanged`, callback `onNurseViewPatientCallChanged`, serta pasangan join/leave
+konsol dan tablet yang ikut bergabung ulang saat tersambung kembali. Lama menunggu dihitung di
+layar dari `FirstPressedAt` dan selisih jam server (`ServerTimeUtc`), bukan dari jam perangkat.
+
+### R2.6 Bunyi Konsol Panggilan (`NV-DEC-045`)
+
+| Kejadian | Bunyi |
+|---|---|
+| Panggilan biasa baru | Satu bunyi pendek; berkas `/audio/queue-dingdong.mp3` yang sudah ada dapat dipakai |
+| Panggilan Darurat baru, atau naik menjadi Darurat | Nada lain yang jelas berbeda (`DEV_DISCRETION`) |
+| Masih ada `Waiting` belum diklaim | Pengingat tiap 15–60 detik (`NV-FE-007`) |
+| Semua sudah diklaim | Senyap |
+| "Matikan bunyi" | Pengingat ditunda; konsol menampilkan "sampai HH:MM"; panggilan baru tetap berbunyi |
+| Browser menolak bunyi | Tombol "Aktifkan suara" (pola layar antrean, `NV-CAP-27`) |
+
+### R2.7 Berkas bersama frontend — menunggu restu lead `NV-OQ-028`
+
+| Berkas | Perubahan |
+|---|---|
+| `src/proxy.js` | Konstanta `NURSE_VIEW_BED_TABLET_PATH = "/nurse-view-bed-tablet"`; akun bercookie `isNurseViewBedTabletAccount` dialihkan ke sana dan dicegah membuka route lain |
+| `src/lib/hooks/auth/use-base-login.jsx` | Mengenali akun tablet bed dan menyetel cookie `isNurseViewBedTabletAccount` |
+| `src/components/providers/root-layout-shell.jsx`, `src/components/ui/auth-wrapper.jsx`, `src/components/providers/session-activity-manager.jsx` | Masing-masing satu baris `"/nurse-view-bed-tablet"` pada daftar prefix, persis seperti `/nurse-view-display` |
+| `src/lib/realtime/queue-realtime-client.js` | Event dan join/leave baru (R2.5); tidak mengubah perilaku grup lain |
+| `src/utils/menu-sidebar/menu-items.jsx` | Tiga butir menu (R2.2) |
+
+### R2.8 Prototipe yang dihapus (`NV-DEC-051`)
+
+`src/lib/helpers/nurseCallContext.jsx` dihapus dalam task frontend Konsol Panggilan. Tidak ada
+`import` yang merujuknya (`NV-CAP-29`), sehingga penghapusan tidak memutus layar lain.
+Buktinya `NV-AC-043`.
+
+### R2.9 Penanganan keadaan dan kirim ganda
+
+| Keadaan | Perilaku |
+|---|---|
+| Kirim ganda di tablet | Setiap tekan membuat satu `Idempotency-Key` baru. Kirim ulang otomatis memakai kunci yang **sama**, sehingga server tidak membuat jejak ganda |
+| Kirim ganda di konsol | Tombol aksi dikunci selama permintaan berjalan; `409` → pesan + muat ulang daftar |
+| Gagal kirim di tablet | `GagalKirim`, kirim ulang otomatis dengan jeda bertambah, pesan bel dinding tetap tampil sampai berhasil |
+| Data basi di konsol | Pita abu-abu; daftar lama tetap terlihat |
+| Penyimpanan | Konsol hanya menyimpan pilihan lantai di `localStorage` PC (dibungkus try/catch). Daftar panggilan tidak disimpan |
+| Admin | Sama dengan revision 1 §6 |
+
+### R2.10 Kewenangan UI
+
+| ID | Area | Keputusan | Status |
+|---|---|---|---|
+| `NV-FE-006` | Kapasitas strip, wajib "+k lainnya" | Developer dalam batas `NV-DEC-044` | `DEV_DISCRETION` (decision log) |
+| `NV-FE-007` | Jeda pengingat 15–60 detik dan lama tunda | Developer dalam batas `NV-DEC-045` | `DEV_DISCRETION` (decision log) |
+| `NV-FE-008` | Penempatan butir menu Konsol Panggilan | Usulan desain: grup Rawat Inap | `approved` — grup Rawat Inap (`NV-DEC-055`) |
+| `NV-FE-009` | Interval muat ulang cadangan tablet dan konsol (usulan 15 detik saat ada panggilan) | Developer, paling lambat 30 detik | `DEV_DISCRETION` — disahkan `NV-DEC-055` |
+| `NV-FE-010` | Ukuran, warna, susunan layar tablet; nada Darurat | Developer, dengan syarat R2.3 `FE-NVW-07` | `DEV_DISCRETION` — disahkan `NV-DEC-055` |
+| — | Route `/nurse-view-bed-tablet` dan `/health-services/nurse-view-management/patient-call-console` | Developer, mengikuti `NV-FE-005` | `DEV_DISCRETION` |
+| — | Isi tablet tanpa identitas, isi strip, isi konsol, urutan, bunyi | Owner | `approved` (`NV-DEC-038`–`047`; `G-09` disahkan `NV-DEC-055`) |

@@ -5,7 +5,7 @@ plan_id: PLAN-REPAIR-IGD-004
 issue: ../issue/issue-004-data-perawat-tidak-sampai-dokter-igd.md
 status_rencana: DISETUJUI_SEBAGIAN
 tanggal_rencana: "2026-11-04"
-diputuskan_oleh: "Rizki Gunawan (persetujuan lisan di sesi kerja) — FIX-01 dan FIX-02; K-01/K-02/K-03 belum diputuskan"
+diputuskan_oleh: "Rizki Gunawan (persetujuan lisan di sesi kerja) — FIX-01 dan FIX-02 (4 Nov); K-01 disetujui 5 Nov 2026 (FIX-03); K-02/K-03 belum diputuskan"
 tanggal_keputusan: "2026-11-04"
 basis_source_backend: "30f1396d (rizkiG)"
 basis_source_frontend: "739e05f68 (RizkiV2)"
@@ -17,11 +17,11 @@ basis_source_frontend: "739e05f68 (RizkiV2)"
 | --- | --- | --- | --- | :---: | --- | --- | --- |
 | `FIX-IGD-004-01` | `ISS-IGD-004-06` | Perbaiki dua pemanggilan `buildProgressNoteSoapPayload` supaya simpan ulang/selesaikan tidak mengosongkan S/O/A/P | FE | 1 | — | 🟡 SEBAGIAN — AC 1–2 dari 4 terverifikasi di browser; AC 3–4 (Selesaikan) belum dapat diuji karena tidak ada tombol Selesaikan (`ISS-IGD-004-T2`); laporan task tracked belum ada | [laporan uji](../../testing/test-by-agy/laporan-live-testing-soap-dokter-igd.md) |
 | `FIX-IGD-004-02` | `ISS-IGD-004-04`, `-05` | Tambahkan pengambil data nyeri dan tanda vital berbasis encounter pada SOAP dokter IGD | FE | 1 | — | 🟡 SEBAGIAN — AC 1, 3, 5 terverifikasi di browser; AC 2 (tanda vital Observasi lebih baru diutamakan) dan AC 4 (draf lama tidak berubah) belum teramati; laporan task tracked belum ada | [laporan uji](../../testing/test-by-agy/laporan-live-testing-soap-dokter-igd.md) |
-| `FIX-IGD-004-03` | `ISS-IGD-004-01` | Simpan dan baca kembali tanda vital pada Pengkajian Medis (komponen bersama Rawat Inap) | FE | 2 | — | ⛔ TERBLOKIR — menunggu K-01 | — |
-| `FIX-IGD-004-04` | `ISS-IGD-004-02` | Pengkajian Medis IGD: isi otomatis keluhan, tanda vital, dan nyeri perawat pada isian kosong | FE | 3 | — | ⛔ TERBLOKIR — menunggu K-01, K-02, P-01/P-02 | — |
+| `FIX-IGD-004-03` | `ISS-IGD-004-01` | Simpan dan baca kembali tanda vital pada Pengkajian Medis (komponen bersama Rawat Inap) | FE | 2 | — | 🟡 SEBAGIAN — AC 1, 2, 3, 5 terverifikasi di browser IGD (5 Nov 2026); AC 4 (Rawat Inap) di luar ranah IGD menurut keputusan pemilik — cukup unit test; laporan task tracked belum ada | [laporan uji §11](../../testing/test-by-agy/laporan-live-testing-soap-dokter-igd.md) |
+| `FIX-IGD-004-04` | `ISS-IGD-004-02` | Pengkajian Medis IGD: isi otomatis keluhan, tanda vital, dan nyeri perawat pada isian kosong | FE | 3 | — | ⛔ TERBLOKIR — menunggu K-02, P-01/P-02 (K-01 disetujui 5 Nov 2026) | — |
 | `FIX-IGD-004-05` | `ISS-IGD-004-03` | Tampilkan diagnosis klinis dari pesanan penunjang perawat sebagai rujukan di Pengkajian Medis | FE | 3 | — | ⛔ TERBLOKIR — menunggu K-03, P-03 | — |
 
-**Ringkasan: 0 dari 5 perbaikan selesai; 2 sebagian (source diubah dan lolos uji browser sebagian, 4 Nov 2026); 3 terblokir keputusan.**
+**Ringkasan: 0 dari 5 perbaikan selesai; 3 sebagian (FIX-01 dan FIX-02 sejak 4 Nov 2026, FIX-03 sejak 5 Nov 2026); 2 terblokir keputusan (FIX-04, FIX-05).**
 
 ---
 
@@ -274,7 +274,9 @@ berulang tanpa henti (dependency efek).
 2. Dokter mengetik TD "120/80" manual → simpan → tersimpan sebagai 120 dan 80.
 3. Format TD tidak sah (misalnya "120") ditolak di layar dengan pesan yang jelas, bukan disimpan
    setengah.
-4. Kajian medis Rawat Inap: perilaku sama (uji satu pasien rawat inap).
+4. Kajian medis Rawat Inap: perilaku sama (uji satu pasien rawat inap). *(5 Nov 2026: uji browser Rawat Inap di luar ranah
+   IGD — keputusan pemilik. Perilaku bersama dibuktikan lewat unit test; verifikasi layar Rawat Inap menjadi urusan pemilik
+   Rawat Inap.)*
 5. Kajian lama tanpa tanda vital tetap terbuka tanpa galat.
 
 **Verifikasi.** `npx eslint`; unit test util bila tersedia (pola berkas, lihat catatan Node 24);
@@ -333,7 +335,7 @@ K-03 (keputusan klinis)
 
 | No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 | Izin mengubah util bersama Pengkajian Medis milik Rawat Inap | Setujui / tolak | Setujui — memperbaiki dua modul sekaligus | `FIX-03`, `FIX-04` |
+| K-01 | Izin mengubah util bersama Pengkajian Medis milik Rawat Inap | Setujui / tolak | Setujui — memperbaiki dua modul sekaligus — **disetujui** 5 Nov 2026 | `FIX-03` (dikerjakan), `FIX-04` |
 | K-02 | Data perawat terisi otomatis di formulir Pengkajian Medis IGD? | Otomatis untuk isian kosong / tombol salin / rujukan saja | Otomatis untuk isian kosong, bertanda sumber | `FIX-04` |
 | K-03 | ICD-10 pilihan perawat sampai ke dokter sebagai apa? | Diagnosis otomatis / rujukan dikonfirmasi dokter / tetap di pesanan | Rujukan baca-saja | `FIX-05` |
 
@@ -372,3 +374,6 @@ Revisi dokumen dikerjakan lewat jalur blueprint, bukan oleh `diagnose-module-iss
 | 2026-11-04 | Rencana dibuat, 5 perbaikan (2 siap dikerjakan, 3 menunggu keputusan), menunggu persetujuan | `diagnose-module-issue` |
 | 2026-11-04 | Rizki Gunawan menyetujui dan meminta perbaikan dilanjutkan; `FIX-01` dan `FIX-02` dikerjakan pada `use-emergency-progress-note.jsx` (basis `739e05f68`). Tambahan di luar rencana awal: label tingkat kesadaran pada Objective memakai `CONSCIOUSNESS_OPTIONS`, karena backend hanya mengirim angka (tanpa ini Objective tercetak "Tingkat Kesadaran: 1"). ESLint berkas: 0 masalah | Claude Code |
 | 2026-11-04 | Uji browser Chromium akun Dokter IGD: isi otomatis S/O 4/4 lulus (pasien uji B9CDD2); simpan ulang draf 3/3 lulus (pasien uji K1-C). Ditemukan `ISS-IGD-004-T2` (tidak ada tombol Selesaikan) dan `ISS-IGD-004-T3` (SOAP tidak dapat dibuat bila encounter tanpa dokter). Laporan: `testing/test-by-agy/laporan-live-testing-soap-dokter-igd.md` | Claude Code |
+| 2026-11-05 | **K-01 disetujui** Rizki Gunawan (lisan; sebagai pemilik IGD, mewakili persetujuan tim internal atas komponen Rawat Inap): `FIX-IGD-004-03` boleh mengubah `inpatient-medical-assessment-utils.jsx` supaya tanda vital Pengkajian Medis tersimpan dan terbaca kembali. Berlaku untuk IGD **dan** Rawat Inap. Dikerjakan di sesi kerja baru. K-02 dan K-03 tetap terbuka, sehingga `FIX-04` dan `FIX-05` tetap terblokir | Claude Code |
+| 2026-11-05 | `FIX-IGD-004-03` dikerjakan di atas `91a11b08f` pada `inpatient-medical-assessment-utils.jsx` saja: lima isian `tandaVital*` masuk `EMPTY_MEDICAL_ASSESSMENT_FORM`; `buildFormFromDetail` mengisinya dari `detail.vitals` (TD `sistolik/diastolik`; bila hanya satu sisi tercatat ditampilkan "120/" agar tidak terhapus diam-diam); payload buat baru dan ubah memetakan TD → `bloodPressureSystolic`/`Diastolic`, nadi → `pulseRate`, RR → `respiratoryRate`, suhu → `temperature` (koma diterima), SpO₂ → `oxygenSaturation`; pada payload ubah nilai layar menimpa `detail.vitals`, kolom tanda vital lain tetap dikirim ulang; isian kosong → `null`. Format tidak sah (TD tanpa garis miring, angka berhuruf) ditolak sebelum dikirim lewat `Error` yang ditampilkan hook sebagai galat simpan — hook Rawat Inap tidak diubah. Validasi hanya format, **bukan** rentang klinis (backend juga tidak memvalidasi rentang; kolom suhu/SpO₂ `numeric(5,2)`). ESLint 0 masalah; unit test baru `tests/unit/emergency-medical-assessment-vitals.test.mjs` 9/9, uji Kajian Medis Rawat Inap 29/29. Uji browser IGD 5/5 lulus (pasien uji K1-A — K1-C tidak punya pengkajian perawat untuk tombol sinkron; menambah kajian medis draf `ASM-20261105-00001`). Uji browser Rawat Inap terblokir akun | Claude Code |
+| 2026-11-05 | Keputusan pemilik (Rizki Gunawan): ranah IGD saja. AC 4 `FIX-IGD-004-03` (uji browser Rawat Inap) tidak dikejar oleh IGD; temuan di komponen Rawat Inap tidak diperbaiki oleh IGD | Claude Code |

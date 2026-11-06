@@ -5,10 +5,10 @@ plan_id: PLAN-REPAIR-IGD-007
 issue: ../issue/issue-007-detail-soap-kosong-penanda-draf.md
 status_rencana: DISETUJUI_SEBAGIAN
 tanggal_rencana: "2026-11-04"
-diputuskan_oleh: "Rizki Gunawan (lisan): IGD tanpa draf; pindah segmen menyegarkan; FIX-01 dikerjakan. FIX-02 tidak diteruskan; FIX-03 menunggu K-02"
+diputuskan_oleh: "Rizki Gunawan (lisan): IGD tanpa draf; pindah segmen menyegarkan; FIX-01 dikerjakan (4 Nov). FIX-02 tidak diteruskan. K-02 disetujui 5 Nov 2026 (FIX-03)"
 tanggal_keputusan: "2026-11-04"
 basis_source_backend: "30f1396d (rizkiG)"
-basis_source_frontend: "739e05f68 (RizkiV2) + perubahan belum di-commit FIX-IGD-004/005/006"
+basis_source_frontend: "739e05f68 (RizkiV2) + perubahan belum di-commit FIX-IGD-004/005/006; FIX-03 di atas 91a11b08f (RizkiV2)"
 ```
 
 ## 1. Register status pengerjaan
@@ -17,10 +17,10 @@ basis_source_frontend: "739e05f68 (RizkiV2) + perubahan belum di-commit FIX-IGD-
 | --- | --- | --- | --- | :---: | --- | --- | --- |
 | `FIX-IGD-007-01` | `ISS-IGD-007-01`, `-02` | Props `ProgressNoteDetail` dan `SoapHistoryPanel` dibetulkan; bilah aksi "Kembali ke Riwayat" + "Catatan Baru"; **pindah segmen menyegarkan** (Riwayat dimuat ulang; kembali ke Form dari catatan selesai membuka form baru) | FE (milik IGD) | 1 | — | 🟡 SEBAGIAN — AC 1–5 terverifikasi di browser; laporan task tracked belum ada | [laporan uji §10](../../testing/test-by-agy/laporan-live-testing-soap-dokter-igd.md) |
 | `FIX-IGD-007-02` | `ISS-IGD-007-03` | Penanda status berwarna + teks pada kartu Riwayat SOAP | FE (komponen bersama Rawat Inap) | — | — | DIBATALKAN — digantikan keputusan "tanpa draf" (`FIX-IGD-007-04`); draf lama tetap berlabel "Sedang ditulis" | — |
-| `FIX-IGD-007-03` | `ISSUE-IGD-006-T4` | Tombol Koreksi (izin `isAllowed`), props modal Koreksi dan Salin, payload addendum `{ addendumText, correctionReason }` | FE (milik IGD) | 2 | — | ⛔ TERBLOKIR — menunggu K-02 | — |
+| `FIX-IGD-007-03` | `ISSUE-IGD-006-T4` | Tombol Koreksi (izin `isAllowed`), props modal Koreksi dan Salin, payload addendum `{ addendumText, correctionReason }` | FE (milik IGD) | 2 | — | 🟡 SEBAGIAN — AC 1–2 terverifikasi di browser (5 Nov 2026); laporan task tracked belum ada | [laporan uji §11](../../testing/test-by-agy/laporan-live-testing-soap-dokter-igd.md) |
 | `FIX-IGD-007-04` | Keputusan pemilik "input langsung berhasil tanpa draf"; `ISS-IGD-007-T1`, `-T2` | Gerbang kelengkapan benar-benar menahan sebelum ada yang dikirim (`issues.length`, bukan `issues.hasErrors`); kekurangan tampil langsung tanpa konfirmasi; pesan penolakan server ditampilkan lewat `saveError`; kata "draf" dihapus dari teks layar IGD | FE (milik IGD) | 1 | — | 🟡 SEBAGIAN — AC terverifikasi di browser (T1 + regresi B1–B5); laporan task tracked belum ada | [laporan uji §10](../../testing/test-by-agy/laporan-live-testing-soap-dokter-igd.md) |
 
-**Ringkasan: 0 dari 4 perbaikan selesai; 2 sebagian, 1 dibatalkan, 1 terblokir K-02.**
+**Ringkasan: 0 dari 4 perbaikan selesai; 3 sebagian (FIX-01, -03, -04), 1 dibatalkan (FIX-02).**
 
 **Perilaku "tanpa draf" yang disepakati.** Menekan **Simpan Catatan CPPT**:
 (1) bila S/O/A/P atau diagnosis belum lengkap → tidak ada yang dikirim ke server, kekurangan tampil
@@ -180,7 +180,7 @@ K-01 (pemilik Rawat Inap)
 | No | Keputusan | Rekomendasi | Menahan |
 | ---: | --- | --- | --- |
 | K-01 | Izin prop opt-in penanda warna di `soap-history-panel.jsx` (milik Rawat Inap) | Setujui opt-in | `FIX-IGD-007-02` |
-| K-02 | Sertakan perbaikan Koreksi/Salin (`ISSUE-IGD-006-T4`) sekarang | Ya | `FIX-IGD-007-03` |
+| K-02 | Sertakan perbaikan Koreksi/Salin (`ISSUE-IGD-006-T4`) sekarang | Ya — **disetujui** 5 Nov 2026 | `FIX-IGD-007-03` (dikerjakan) |
 
 ---
 
@@ -207,3 +207,5 @@ K-01 (pemilik Rawat Inap)
 | --- | --- | --- |
 | 2026-11-04 | Rencana dibuat, 3 perbaikan, menunggu persetujuan | `diagnose-module-issue` |
 | 2026-11-04 | Keputusan pemilik: "input langsung berhasil tanpa draf" dan "pindah tab maka refresh". `FIX-01` diperluas dengan penyegaran saat pindah segmen; `FIX-02` dibatalkan; `FIX-04` ditambahkan. Dikerjakan pada `emergency-doctor-progress-tab.jsx` dan `use-emergency-progress-note.jsx`; ESLint 0 masalah. Uji: 7/7 lulus tanpa data baru; regresi jalur sukses satu tombol 5/5 (menambah 1 catatan selesai + 1 CPPT pada K1-C) | Claude Code |
+| 2026-11-05 | **K-02 disetujui** Rizki Gunawan (lisan): `FIX-IGD-007-03` dikerjakan — tombol Koreksi pada tampilan catatan selesai (izin `addendumAuthority.isAllowed`), props `CorrectionModal` dan `ConfirmModal` (Salin) mengikuti Rawat Inap, payload addendum `{ addendumText, correctionReason }`. Dikerjakan di sesi kerja baru | Claude Code |
+| 2026-11-05 | `FIX-IGD-007-03` dikerjakan di atas `91a11b08f`: `emergency-doctor-progress-tab.jsx` — tombol **Koreksi** (`emergency-progress-note-correction`) pada bilah baca-saja bila `addendumAuthority?.isAllowed`; `CorrectionModal` memakai `show`/`title`/`message`/`loading`/`onCancel`/`onSubmit`; `ConfirmModal` Salin memakai `show`/`variant="warning"`/`confirmLabel="Salin dan Timpa"`/`cancelLabel`/`onConfirm`/`onCancel`/`onHide` dengan judul dan pesan Rawat Inap (menyebut nomor catatan sumber); `handleCorrectionSubmit` meneruskan payload utuh. `use-emergency-progress-note.jsx` — `submitAddendum({ addendumText, correctionReason })` mengirim keduanya apa adanya (bentuk lama `{ notes }` dibuang service sehingga server menolak "Isi koreksi wajib diisi."). ESLint 0 masalah. Uji browser 7/7 lulus (K1–K4, S1–S2, Z; menambah 1 addendum pada `CON-20261104-00001` K1-C). Temuan sampingan: Batal di jendela Koreksi nonaktif selama isi kosong (`ISS-IGD-006-T7`, komponen Rawat Inap). Status 🟡 SEBAGIAN sampai ada laporan task tracked | Claude Code |

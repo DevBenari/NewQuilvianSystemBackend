@@ -247,7 +247,7 @@ sebagai "objective tidak tersimpan vital sign".
 | **Area** | Frontend — komponen **milik Rawat Inap** (`physician-workspace/tabs/assessment`), dipakai ulang IGD |
 | **Keparahan** | High — dokter mengira tanda vital tersimpan padahal tidak |
 | **Status bukti** | SUDAH-VERIFIKASI |
-| **Perbaikan** | `FIX-IGD-004-03` |
+| **Perbaikan** | `FIX-IGD-004-03` — dikerjakan 5 Nov 2026; 🟡 sebagian (laporan task tracked belum ada; uji browser Rawat Inap di luar ranah IGD) |
 
 **Apa yang terjadi.** Bagian "2. Tanda Vital & Kondisi Umum" pada formulir Pengkajian Medis punya
 isian TD, Nadi, Pernapasan, Suhu, dan Saturasi. Ada juga tombol **Sinkronkan Tanda Vital dari
@@ -482,7 +482,7 @@ Catatan berstatus draf dengan keempat panjang `0` padahal dokter pernah mengisin
 
 | No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 | Izin mengubah komponen bersama Pengkajian Medis milik Rawat Inap (pemilik Muhammad Hamzah) | Setujui / tolak (IGD membuat adapter sendiri) | **Setujui**. Perbaikannya memulihkan penyimpanan tanda vital di **kedua** modul, tanpa mengubah perilaku lain | `FIX-IGD-004-03`, `FIX-IGD-004-04` |
+| K-01 | Izin mengubah komponen bersama Pengkajian Medis milik Rawat Inap (pemilik Muhammad Hamzah) | Setujui / tolak (IGD membuat adapter sendiri) | **Setujui**. Perbaikannya memulihkan penyimpanan tanda vital di **kedua** modul, tanpa mengubah perilaku lain — **disetujui** Rizki Gunawan 5 Nov 2026 | `FIX-IGD-004-03`, `FIX-IGD-004-04` |
 | K-02 | Untuk IGD: apakah keluhan utama, tanda vital, dan nyeri perawat **terisi otomatis** di formulir Pengkajian Medis dokter? | Otomatis untuk isian kosong / tetap tombol salin / rujukan saja | **Otomatis untuk isian yang masih kosong** saat kajian baru dibuat, dengan penanda "dari pengkajian perawat"; dokter tetap dapat mengubah | `FIX-IGD-004-04` |
 | K-03 | ICD-10 yang dipilih perawat: bagaimana sampai ke dokter? | Menjadi diagnosis pasien otomatis / rujukan baca-saja yang dikonfirmasi dokter / tetap hanya di pesanan | **Rujukan baca-saja**; dokter menetapkan diagnosis sendiri lewat pencarian ICD-10. Diagnosis medis adalah kewenangan dokter | `FIX-IGD-004-05` |
 
@@ -511,3 +511,5 @@ Catatan berstatus draf dengan keempat panjang `0` padahal dokter pernah mengisin
 | --- | --- | --- |
 | 2026-11-04 | Issue dibuat dari laporan 3 butir tanpa lampiran; 6 temuan pelapor, 1 temuan tambahan | `diagnose-module-issue` |
 | 2026-11-04 | Rizki Gunawan menyetujui; status `DALAM_PERBAIKAN`. `FIX-IGD-004-01` dan `-02` dikerjakan dan diuji di browser (lihat plan repair Riwayat). Ditambahkan `ISS-IGD-004-T2` dan `-T3` dari hasil uji. K-01, K-02, dan K-03 belum diputuskan | Claude Code |
+| 2026-11-05 | K-01 disetujui (lisan, Rizki Gunawan). `ISS-IGD-004-01` diperbaiki lewat `FIX-IGD-004-03` pada `inpatient-medical-assessment-utils.jsx`: tanda vital Pengkajian Medis kini tersimpan dan terbaca kembali; format tidak sah ditolak di layar. Uji browser IGD 5/5 lulus; uji browser Rawat Inap terblokir akun (akun Dokter IGD tidak terdaftar di sensus Rawat Inap). Laporan uji §11. Status issue tetap `DALAM_PERBAIKAN` (FIX-04/-05 menunggu K-02/K-03) | Claude Code |
+| 2026-11-05 | Keputusan pemilik: ranah IGD saja. Uji browser Rawat Inap (AC 4 `FIX-IGD-004-03`) tidak dikejar oleh IGD; perubahan util bersama tetap berlaku untuk Rawat Inap dan tercakup unit test | Claude Code |

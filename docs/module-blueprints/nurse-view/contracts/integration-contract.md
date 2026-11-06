@@ -49,3 +49,56 @@ Nurse View **tidak memanggil sistem luar**. Integrasi alat monitor pasien ditund
 | Idempotensi | Penerima selalu memuat ulang papan penuh; sinyal ganda hanya menambah satu muat ulang |
 | Tanpa sinyal | Muat ulang penuh setiap 60 detik tetap berjalan |
 | Grup terlarang | `inpatient-bed-selection:{unit}` — akun perangkat ditolak oleh pemeriksaan izin yang sudah ada |
+
+## Revision 2 — Tablet bed dan panggilan pasien
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.2.0` · status `approved` — Rizki Gunawan, 2026-11-05 (`NV-DEC-055`) |
+| Owner | Rizki Gunawan · `approved_by` Rizki Gunawan · `approved_at` 2026-11-05 |
+| Traceability | `NV-DEC-035`, `037`, `043`, `046`, `050`, `052`; `NV-CAP-17`–`23` |
+
+Tetap **tanpa sistem luar**. Bel kabel tidak diintegrasikan (`NV-DEC-037`).
+
+### 5. Arah baca — tambahan
+
+| Dari modul | Data | Cara | Bila data tidak ada | Pemilik yang dikabari |
+|---|---|---|---|---|
+| Rawat Inap | Penempatan aktif satu bed | Query `InpBedPlacement` dengan `BedId` tablet dan `EndDateTime IS NULL` (unik per bed, `INV-INP-02`) | Tablet `BedKosong`; panggilan baru ditolak `VAL-NV-28` | Muhammad Hamzah — **pemberitahuan ketergantungan baca baru**, bukan permintaan perubahan kode (`TLM-NV-002` episode, dibuat di `plan-module-delivery`) |
+| Rawat Inap | Akhir penempatan (`EndDateTime`, `EndReason`) untuk panggilan aktif | Query berkala tiap 30 detik oleh `NvwPatientCallReconciliationService` | Panggilan tetap aktif sampai perawat menutup | Idem |
+| Master Data | Bed, kamar, lantai | Query `MstBed`, `MstRoom` | Bed tanpa lantai tidak bisa dipasangi tablet (`VAL-NV-18`) | Admin master data |
+| Patient | Nama, jenis kelamin, tanggal lahir | Query `MstPatient` lewat `InpEpisodeId`, langsung disamarkan, hanya untuk konsol | "Umur –" | — |
+| Platform Identity | `DisplayName` pengklaim | Query `ApplicationUser` | Nama pengguna | — |
+
+**Contoh ketergantungan.** Pukul 10.05 petugas admisi memindahkan pasien 331-C ke 402-B lewat
+layar Rawat Inap. Rawat Inap mengakhiri penempatan 331-C dengan `EndReason = Transfer`, seperti
+biasa, tanpa tahu Nurse View ada. Paling lambat 10.06 pemeriksaan berkala Nurse View membaca
+akhir penempatan itu dan menutup panggilan 331-C. Bila kelak Rawat Inap mengganti arti
+`EndReason`, Nurse View terdampak; karena itu Hamzah dikabari.
+
+### 6. Arah tulis — tambahan
+
+| Ke modul | Yang ditulis | Catatan |
+|---|---|---|
+| Platform Identity | Satu `ApplicationUser` per tablet lewat `UserManager` | Pola `NvwDisplayDeviceService` |
+| Platform Number Series | Alokasi deret `NVW_BED_TABLET` | `NumberSeriesAllocator` |
+| Rawat Inap, Clinical, Patient, Master Data | **Tidak ada** | — |
+
+### 7. Titik sentuh kode di luar modul — tambahan
+
+| Modul | Berkas | Perubahan | Status |
+|---|---|---|---|
+| Platform | `AuthController`, `AuthorizationPolicies.cs`, `Program.cs`, `QueueHub.cs` | `02-backend-architecture.md` R2.5 | **Menunggu restu lead `NV-OQ-028`** |
+| Frontend platform | `proxy.js`, `use-base-login.jsx`, `root-layout-shell.jsx`, `auth-wrapper.jsx`, `session-activity-manager.jsx`, `queue-realtime-client.js`, `menu-items.jsx` | `03-frontend-architecture.md` R2.7 | **Menunggu restu lead `NV-OQ-028`**; butir menu di grup Rawat Inap juga dikabarkan ke Hamzah (`NV-FE-008`) |
+| Rawat Inap, Clinical | — | **Tidak ada** perubahan kode | — |
+
+### 8. Realtime — tambahan
+
+| Hal | Ketentuan |
+|---|---|
+| Sinyal | `NurseViewPatientCallChanged`, payload tanpa identitas pasien dan tanpa nama perawat |
+| Pengiriman | Sesudah commit, best-effort; gagal → dicatat log, perintah panggilan tetap berhasil |
+| Penerima | TV (grup lantai yang sudah ada), konsol (grup konsol lantai), tablet (grup tablet) |
+| Idempotensi | Penerima selalu memuat ulang bagiannya; sinyal ganda hanya menambah satu muat ulang |
+| Tanpa sinyal | TV: strip dimuat ulang bersama papan tiap 60 detik. Konsol: daftar dimuat ulang tiap 15 detik. Tablet: keadaan dimuat ulang tiap 15 detik selama ada panggilan aktif (`NV-FE-009`) |
+| Pemeriksaan berkala | `NvwPatientCallReconciliationHostedService` tiap 30 detik; galat dicatat log dan putaran berikutnya tetap berjalan |

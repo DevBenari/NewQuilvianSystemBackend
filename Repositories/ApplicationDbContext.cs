@@ -1320,6 +1320,10 @@ namespace QuilvianSystemBackend.Repositories
         #region NURSE VIEW MANAGEMENT
         public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
         public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
+        public DbSet<NvwBedTablet> NvwBedTablets { get; set; }
+        public DbSet<NvwPatientCall> NvwPatientCalls { get; set; }
+        public DbSet<NvwPatientCallEvent> NvwPatientCallEvents { get; set; }
+        public DbSet<NvwPatientCallWaitThreshold> NvwPatientCallWaitThresholds { get; set; }
         #endregion NURSE VIEW MANAGEMENT
 
         #region OPTICAL MANAGEMENT

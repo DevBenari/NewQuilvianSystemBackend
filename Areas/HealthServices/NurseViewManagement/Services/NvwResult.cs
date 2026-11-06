@@ -68,6 +68,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string NotDisplayAccount = "VAL-NV-14";
         public const string DeviceInactive = "VAL-NV-15";
         public const string SessionStale = "NV-SESSION-STALE";
+        public const string TabletNameRequired = "VAL-NV-17";
+        public const string BedInvalid = "VAL-NV-18";
+        public const string BedHasTablet = "VAL-NV-19";
+        public const string BedHasActiveCall = "VAL-NV-20";
+        public const string TabletVersionMismatch = "VAL-NV-21";
+        public const string TabletLoginAlreadyExists = "VAL-NV-22";
+        public const string TabletLoginNotCreated = "VAL-NV-23";
+        public const string TabletDeactivationReason = "VAL-NV-24";
+        public const string TabletAlreadyInactive = "VAL-NV-25";
+        public const string WaitThresholdInvalid = "VAL-NV-40";
     }
 
     public static class NvwMessages
@@ -93,5 +103,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string NotDisplayAccount = "Akun ini bukan akun display Nurse View.";
         public const string DeviceInactive = "Perangkat display dinonaktifkan. Hubungi IT.";
         public const string SessionStale = "Sesi perangkat sudah tidak berlaku. Silakan login ulang.";
+        public const string TabletNameRequired = "Nama tablet wajib diisi, paling banyak 100 karakter.";
+        public const string BedInvalid = "Bed tidak dikenal atau kamarnya belum punya lantai. Pilih bed dari daftar.";
+        public const string BedHasTablet = "Bed ini sudah punya tablet. Nonaktifkan tablet lama lebih dulu.";
+        public const string BedHasActiveCall = "Bed ini masih punya panggilan aktif. Selesaikan panggilannya dulu.";
+        public const string TabletVersionMismatch = "Data tablet sudah diubah orang lain. Muat ulang lalu coba lagi.";
+        public const string TabletLoginAlreadyExists = "Tablet ini sudah punya login. Gunakan Atur Ulang Login.";
+        public const string TabletLoginNotCreated = "Tablet belum punya login. Gunakan Buat Login.";
+        public const string TabletDeactivationReason = "Alasan menonaktifkan wajib diisi (5–500 karakter).";
+        public const string TabletAlreadyInactive = "Tablet sudah nonaktif.";
+        public const string TabletNotFound = "Tablet bed tidak ditemukan.";
+        public const string WaitThresholdRange = "Ambang kuning 1–240 menit dan ambang merah harus lebih besar, paling banyak 480 menit.";
     }
 }
