@@ -3137,3 +3137,184 @@ export interface PerformanceManagementState {
   error: string | null;
 }
 ```
+
+
+---
+
+## 27. Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 27.1 Peta Butir Menu Navigasi Modul Hubungan Industrial & Terminasi
+
+Menu navigasi ditempatkan di bawah grup utama `Kepegawaian & Tata Tertib Rumah Sakit` dengan pemisahan hak akses berbasis peran (Staf Medis / Karyawan, Supervisor, HR Relations, Komite Disiplin, dan Direksi):
+
+```text
+Sidebar Menu: Hubungan Industrial & Terminasi (Sub-Modul 18)
+├── [FE-HRD-246] Dasbor Hubungan Industrial & Radar Exit Clearance (/hrd/relations/dashboard)
+├── [FE-HRD-247] Laporan Insiden Disiplin & Filter Just Culture (/hrd/relations/incidents)
+├── [FE-HRD-248] Penerbitan & Monitoring Surat Peringatan (SP 1-3) (/hrd/relations/sanctions)
+├── [FE-HRD-249] Manajemen Skorsing Investigasi (Paid Suspension) (/hrd/relations/suspensions)
+├── [FE-HRD-250] Kanal Pengaduan Staf (ESS) & Whistleblowing Rahasia (/hrd/relations/grievance)
+├── [FE-HRD-251] Risalah Perundingan Bipartit & Perjanjian Bersama (/hrd/relations/bipartite)
+├── [FE-HRD-252] Pengajuan PHK & Kalkulator Pesangon PP 35/2021 (/hrd/separations)
+└── [FE-HRD-253] Pusat Kendali Exit Clearance Multi-Departemen (/hrd/separations/exit-clearance)
+```
+
+---
+
+### 27.2 Skema Rinci Layar Antarmuka (`FE-HRD-246` s.d. `FE-HRD-253`)
+
+#### 27.2.1 [FE-HRD-246] Dasbor Hubungan Industrial & Radar Exit Clearance
+* **Tujuan Layar:** Menyajikan ikhtisar eksekutif bagi Direktur SDM dan Manajer Hubungan Industrial mengenai kasus disiplin aktif, sanksi SP yang mendekati kedaluwarsa 6 bulan, pegawai dalam masa skorsing, serta proses offboarding berjalan yang menunggu penyelesaian kliring aset.
+* **Komponen Visual Utama:**
+  - *Statistik Metrik Kartu:* Total SP Aktif (SP1, SP2, SP3), Kasus Skorsing Berjalan, Tiket Grievance Terbuka, dan Proses Exit Clearance Aktif.
+  - *Radar Kedaluwarsa SP (H-14):* Tabel peringatan sanksi disiplin yang akan habis masa 6 bulannya dalam 14 hari ke depan.
+  - *Matriks Pelanggaran Berdasar Prinsip Just Culture:* Diagram donat proporsi Human Error vs At-Risk Behavior vs Reckless Misconduct.
+  - *Tabel Proses Exit Clearance Kritis:* Daftar pegawai yang akan efektif keluar dalam 3 hari ke depan dengan indikator visual departemen kliring yang masih berstatus `Pending`.
+
+#### 27.2.2 [FE-HRD-247] Konsol Laporan Insiden Disiplin, Sidang BAP & Filter Just Culture
+* **Tujuan Layar:** Mencatat pelaporan insiden pelanggaran tata tertib, memvalidasi prasyarat audit klinis KMKP/Komite Medik (`INT-HR-86`), mengelola Berita Acara Pemeriksaan (BAP), dan mencatat kesimpulan sidang etik.
+* **Fitur Utama:**
+  - Form pelaporan insiden dengan penandaan otomatis: Apakah insiden melibatkan pelayanan pasien (*Clinical Event*)?
+  - Jika ya: Menampilkan kotak validasi wajib memasukkan nomor registrasi audit keselamatan pasien KMKP (`KmKpAuditReferenceNumber`).
+  - Panel Tripartit Just Culture: Toggle klasifikasi wajib (Human Error, At-Risk Behavior, Reckless Misconduct) dengan catatan rekomendasi pembinaan vs sanksi disiplin.
+  - Tab Berita Acara Pemeriksaan (BAP): Pencatatan saksi-saksi, pembelaan staf, bukti dokumen fisik/digital, dan rekomendasi putusan tim pemeriksa.
+
+#### 27.2.3 [FE-HRD-248] Modul Penerbitan & Monitoring Surat Peringatan (SP 1-3 Masa 6 Bulan)
+* **Tujuan Layar:** Menerbitkan Surat Peringatan bertingkat (Teguran Lisan, SP 1, SP 2, SP 3) dengan tanggal kedaluwarsa otomatis 6 bulan kalender sesuai Pasal 52 PP No. 35 Tahun 2021, serta memfasilitasi proses sanggah banding.
+* **Fitur Utama:**
+  - Otomasi tanggal berlaku: Input `IssuedDate` otomatis menghitung `ValidUntil = IssuedDate + 6 Months`.
+  - Riwayat Disiplin Terpadu: Menampilkan seluruh histori sanksi masa lalu staf dari e-Dossier Sub-02 (`INT-HR-85`).
+  - Pengecekan Kenaikan Tingkat: Bila pegawai memiliki SP 1 aktif, sistem menyarankan penerbitan SP 2; untuk pelanggaran berat, tombol *Emergency Direct SP 3* dapat diaktifkan setelah persetujuan Direktur SDM.
+  - Tombol aksi cetak PDF resmi dokumen SP dengan tanda tangan digital tersertifikasi.
+
+#### 27.2.4 [FE-HRD-249] Manajemen Skorsing Investigasi (*Paid Suspension*) & Pemantauan Akses SIMRS
+* **Tujuan Layar:** Mengelola status skorsing staf yang sedang menjalani proses pemeriksaan intensif menuju pemutusan hubungan kerja dengan perlindungan upah 100% dan pembekuan akses rumah sakit.
+* **Fitur Utama:**
+  - Pelacak Durasi Skorsing: Indikator visual progres waktu (Hari ke-N dari batas maksimal 180 hari / 6 bulan).
+  - Verifikasi Hak Upah Penuh: Banner konfirmasi bahwa pegawai tetap berhak atas 100% gaji pokok dan tunjangan tetap di Sub-10 Payroll sesuai Pasal 157A UU Ketenagakerjaan.
+  - Saklar Keamanan Digital & Fisik (`INT-HR-88`): Status real-time pemblokiran login SSO SIMRS, EMR, PACS, dan penonaktifan kartu akses fisik pintu rumah sakit.
+
+#### 27.2.5 [FE-HRD-250] Portal Pengaduan Staf (ESS) & Whistleblowing Rahasia Terenkripsi
+* **Tujuan Layar:** Memberikan fasilitas bagi seluruh staf untuk menyampaikan keluhan kerja harian (*grievance*) serta kanal pelaporan kecurangan rahasia (*confidential whistleblowing*) dengan jaminan anti-retaliasi.
+* **Fitur Utama:**
+  - Pilihan Dua Mode Pelaporan:
+    1. *Keluhan Terbuka:* Untuk perselisihan jadwal shift, fasilitas kerja, dan hubungan kerja; terkirim ke supervisor/atasan langsung dengan batas SLA 14 hari kerja.
+    2. *Kanal Whistleblower Rahasia:* Untuk dugaan korupsi, gratifikasi obat, pelecehan seksual, pemalsuan dokumen klinis; pelapor dapat memilih opsi `Anonim`, formulir dienkripsi end-to-end, dan hanya dapat dibuka oleh Tim Kepatuhan / Direktur SDM.
+  - Garansi Anti-Retaliasi: Pernyataan kebijakan perlindungan saksi/pelapor dan enkripsi identitas pelapor.
+
+#### 27.2.6 [FE-HRD-251] Manajemen Forum & Risalah Perundingan Bipartit (LKS Bipartit / Serikat Pekerja)
+* **Tujuan Layar:** Mendokumentasikan pelaksanaan perundingan bipartit antara pihak manajemen rumah sakit dan serikat pekerja / perwakilan staf dalam menyelesaikan perselisihan hubungan industrial.
+* **Fitur Utama:**
+  - Registrasi agenda perundingan perselisihan hak, kepentingan, atau PHK.
+  - Pencatatan notulen resmi (*Minutes of Meeting*) dan daftar hadir kedua belah pihak.
+  - Unggah berkas dokumen Perjanjian Bersama (PB) yang telah didaftarkan ke Dinas Tenaga Kerja.
+
+#### 27.2.7 [FE-HRD-252] Portal Pengajuan PHK & Kalkulator Pesangon Regulasi PP 35/2021
+* **Tujuan Layar:** Mengelola pengajuan pengakhiran ikatan kerja (resign sukarela, pensiun, habis masa kontrak PKWT, pemutusan SP 3) dan menghitung rincian kompensasi finansial secara otomatis berbasis formula regulasi.
+* **Fitur Utama:**
+  - Pilihan Alasan Terminasi (Resign, Pensiun, Kontrak Selesai, SP3, Pelanggaran Berat, Meninggal).
+  - Mesin Hitung Pesangon Real-Time:
+    - Input otomatis masa kerja efektif dari `HireDate` Sub-02.
+    - Kalkulasi otomatis nilai Uang Pesangon (UP), Uang Penghargaan Masa Kerja (UPMK), Uang Penggantian Hak (UPH: sisa cuti tahunan belum gugur), dan Uang Pisah sesuai formula PP 35/2021.
+    - Perhitungan kompensasi PKWT proporsional `(Masa Kerja / 12) x 1 Bulan Upah`.
+  - Alur persetujuan finansial: Lembar kompensasi wajib diverifikasi Manajer C&B dan disahkan Direktur Keuangan.
+
+#### 27.2.8 [FE-HRD-253] Pusat Kendali Exit Clearance Multi-Departemen & Status Kunci Payroll Sub-10
+* **Tujuan Layar:** Mengontrol penyelesaian checklist serah terima aset, dokumen, dan kewajiban staf dari 5 unit kerja sebelum slip gaji terakhir dan transfer pesangon dapat dicairkan.
+* **Fitur Utama:**
+  - Papan Kendali 5 Departemen:
+    1. *Unit Kerja:* Serah terima tugas dan berkas fisik (`Handover Notes`).
+    2. *Umum & Aset:* Seragam dinas, ID card, inventaris laptop/elektronik.
+    3. *Farmasi / Alkes:* Pengembalian alkes dinas, stetoskop RS, kartu kendali obat.
+    4. *Keuangan:* Bebas tunggakan koperasi rumah sakit, kasbon kerja.
+    5. *IT & SIMRS:* Penutupan akun SSO, pencabutan email RS, pembatalan TTE.
+  - Indikator Gembok Payroll (`INT-HR-87`): Menampilkan status visual `LOCKED` (Rilis Gaji Terkunci). Tombol `UNLOCK PAYROLL` hanya aktif otomatis ketika kelima unit di atas telah berstatus `Approved`.
+
+---
+
+### 27.3 Komponen Dialog Modal Pendukung
+
+1. `DisciplinaryIncidentModal.tsx`: Dialog pencatatan insiden pelanggaran tata tertib dan input nomor audit KMKP.
+2. `BapInvestigationModal.tsx`: Dialog pembuatan lembar Berita Acara Pemeriksaan (BAP) dan unggah bukti fisik.
+3. `SeveranceCalculationModal.tsx`: Dialog kalkulator simulasi pesangon PP 35/2021 lengkap dengan rincian UP, UPMK, UPH.
+4. `DepartmentClearanceSignoffModal.tsx`: Dialog persetujuan serah terima inventaris per unit kliring.
+5. `WhistleblowerSubmissionModal.tsx`: Dialog pengaduan rahasia terenkripsi dengan pemilihan opsi anonimitas.
+
+---
+
+### 27.4 Redux State Management (`employeeRelationSlice.ts`)
+
+```typescript
+// employeeRelationSlice.ts
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+interface DisciplinaryCaseState {
+  incidentReports: any[];
+  activeSanctions: any[];
+  suspensions: any[];
+  grievanceTickets: any[];
+  bipartiteForums: any[];
+  separations: any[];
+  activeClearanceProcess: any | null;
+  severanceBreakdown: any | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const initialState: DisciplinaryCaseState = {
+  incidentReports: [],
+  activeSanctions: [],
+  suspensions: [],
+  grievanceTickets: [],
+  bipartiteForums: [],
+  separations: [],
+  activeClearanceProcess: null,
+  severanceBreakdown: null,
+  isLoading: false,
+  error: null,
+};
+
+export const employeeRelationSlice = createSlice({
+  name: 'employeeRelation',
+  initialState,
+  reducers: {
+    setIncidentReports: (state, action: PayloadAction<any[]>) => {
+      state.incidentReports = action.payload;
+    },
+    setActiveSanctions: (state, action: PayloadAction<any[]>) => {
+      state.activeSanctions = action.payload;
+    },
+    setSuspensions: (state, action: PayloadAction<any[]>) => {
+      state.suspensions = action.payload;
+    },
+    setGrievanceTickets: (state, action: PayloadAction<any[]>) => {
+      state.grievanceTickets = action.payload;
+    },
+    setActiveClearanceProcess: (state, action: PayloadAction<any>) => {
+      state.activeClearanceProcess = action.payload;
+    },
+    setSeveranceBreakdown: (state, action: PayloadAction<any>) => {
+      state.severanceBreakdown = action.payload;
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
+    },
+  },
+});
+
+export const {
+  setIncidentReports,
+  setActiveSanctions,
+  setSuspensions,
+  setGrievanceTickets,
+  setActiveClearanceProcess,
+  setSeveranceBreakdown,
+  setLoading,
+  setError,
+} = employeeRelationSlice.actions;
+
+export default employeeRelationSlice.reducer;
+```

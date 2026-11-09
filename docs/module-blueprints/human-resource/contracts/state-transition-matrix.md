@@ -2198,3 +2198,80 @@ stateDiagram-v2
 | `MediationPhase` | `Resolved` | Kesepakatan mediasi damai | Penilai dan pemohon sepakat koreksi skor; berita acara mediasi disahkan HRD. | `Performance_Dispute:Manage` |
 | `MediationPhase` | `PlenaryReview` | Ketidaksepakatan di mediasi | Sengketa berlanjut dan dieskalasi ke Komite Kalibrasi / Direktur SDM. | `Performance_Dispute:Manage` |
 | `PlenaryReview` | `Resolved` | Putusan final majelis banding | Putusan final diterbitkan dalam batas waktu 14 hari kalender; sengketa ditutup resmi (`VR-PRF-13`). | `Performance_Dispute:Manage` |
+
+
+---
+
+## 26. Matriks Transisi Status Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 26.1 Siklus Hidup Laporan Kasus Disiplin (`DisciplinaryCaseStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Reported : Insiden Dilaporkan
+    Reported --> Investigating : BAP Pemeriksaan Dibuka
+    Investigating --> ResolvedNoSanction : Human Error / Pembinaan Tanpa SP
+    Investigating --> SanctionRecommended : Bukti Reckless Misconduct Sah
+    SanctionRecommended --> SanctionIssued : Surat Sanksi SP Diterbitkan Direktur SDM
+    ResolvedNoSanction --> [*]
+    SanctionIssued --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Reported` | Buka Berkas Pemeriksaan | `Investigating` | Nomor BAP terbit; tim pemeriksa ditunjuk | HR Legal / Supervisor |
+| `Investigating` | Rekomendasikan Pembinaan | `ResolvedNoSanction` | Klasifikasi Just Culture = `HumanError`; diarahkan ke Diklat Sub-16 | Tim Pemeriksa BAP |
+| `Investigating` | Tetapkan Dugaan Pelanggaran | `SanctionRecommended` | Bukti Reckless Misconduct sah; nomor audit KMKP ada jika kasus klinis | Tim Pemeriksa BAP |
+| `SanctionRecommended` | Sahkan Penerbitan Sanksi | `SanctionIssued` | Ditandatangani Direktur SDM; `ValidUntil = IssuedDate + 6 Months` | Direktur SDM |
+
+---
+
+### 26.2 Siklus Hidup Surat Peringatan (`DisciplinarySanctionStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Active` | Masa Berlaku Berakhir | `Expired` | Mencapai `ValidUntil` (6 bulan kalender); tidak ada pelanggaran baru | `SpExpirationWorker` (`EMP-W1`) |
+| `Active` | Banding Dikabulkan | `RevokedOnAppeal` | Putusan sidang sanggah banding Direksi menyatakan sanksi gugur | Direktur Utama / Komite Etik |
+| `Active` | Pelanggaran Berulang | `Escalated` | Pegawai melakukan pelanggaran baru sebelum 6 bulan; naik ke SP lebih tinggi | Direktur SDM |
+
+---
+
+### 26.3 Siklus Hidup Skorsing Masa Investigasi (`DisciplinarySuspensionStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Surat Penetapan Skorsing | `Active` | Dugaan pelanggaran berat; hak upah 100% aktif; akses SSO SIMRS dicabut | Direktur Utama |
+| `Active` | Rehabilitasi Pegawai | `CompletedReinstated` | Hasil investigasi membuktikan staf tidak bersalah; akun SIMRS diaktifkan lagi | Direktur Utama |
+| `Active` | Putusan Pemutusan Kerja | `EscalatedToTermination` | BAP membuktikan pelanggaran berat; berkas dialihkan ke pemutusan hubungan kerja | Direktur Utama |
+
+---
+
+### 26.4 Siklus Hidup Pengaduan Keluhan & Whistleblowing (`GrievanceTicketStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Submitted` | Verifikasi Tiket | `UnderReview` | Diterima oleh Supervisor atau Tim Kepatuhan (jika whistleblower) | Supervisor / Tim Kepatuhan |
+| `UnderReview` | Jadwalkan Klarifikasi | `MediationScheduled` | Para pihak dipanggil untuk mediasi dalam batas SLA 14 hari kerja | Mediasi HR |
+| `MediationScheduled`| Capai Kesepakatan | `Resolved` | Berita acara mediasi ditandatangani kedua belah pihak | Mediasi HR |
+| `UnderReview` | Perselisihan Buntu | `EscalatedToBipartite` | Mediasi internal gagal; dinaikkan ke forum perundingan Bipartit resmi | Manajer SDM |
+| `Resolved` | Penutupan Kasus | `Closed` | Rekomendasi perbaikan terlaksana penuh | Staf Pelapor / HR |
+
+---
+
+### 26.5 Siklus Hidup Pemutusan Hubungan Kerja (`EmployeeSeparationStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Initiated` | Validasi Perhitungan Hak | `CalculationApproved` | Lembar pesangon PP 35/2021 disahkan Direktur Keuangan | Direktur Keuangan |
+| `CalculationApproved`| Buka Kliring Aset | `ClearanceInProgress` | Berkas exit clearance 5 departemen diinisiasi | HR Offboarding |
+| `ClearanceInProgress`| Kliring Lengkap & Payroll Unlock | `FinalizedCompleted` | Seluruh 5 unit berstatus `Approved`; rilis gaji akhir terbuka di Sub-10 | Direktur SDM |
+| `Initiated` / `ClearanceInProgress` | Pembatalan Pengunduran Diri | `Cancelled` | Permohonan pembatalan disetujui Direktur SDM sebelum tanggal efektif | Direktur SDM |
+
+---
+
+### 26.6 Siklus Hidup Proses Exit Clearance (`ExitClearanceProcessStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `InProgress` | Terdeteksi Tanggungan Tertunda | `BlockedOutstanding` | H-1 efektif masih ada alat medis, laptop, atau utang yang belum diselesaikan | `ExitClearanceReminderWorker` |
+| `InProgress` / `BlockedOutstanding`| Seluruh Unit Menyetujui | `Completed` | 5 unit kerja (Unit, Aset, Farmasi, Keuangan, IT) menyetujui secara digital | Sistem / Head of HR |

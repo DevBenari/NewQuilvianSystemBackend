@@ -860,6 +860,21 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-158` | `S-B5` / `MVP-32` | ✅ | Pembekuan permanen batch immutable & pembangkitan paket serah terima Finance SHA-256 (`PayrollFinanceHandoffService`) |
 | `BE-HRD-159` | `S-B5` / `MVP-32` | ✅ | Webhook reconciler callback pembayaran/penolakan Finance & distribusi slip gaji digital ESS ber-PIN sekunder 6-digit |
 | `BE-HRD-160` | `S-B5` / Verifikasi | ✅ | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v14, dan build Slice S-B5 |
+| `BE-HRD-161` | `S-B6` / `MVP-33` | ✅ | Fondasi skema database restitusi klaim & pemotongan penggajian (6 entitas DDL & migrasi EF Core) |
+| `BE-HRD-162` | `S-B6` / `MVP-33` | ✅ | Layanan konfigurasi kebijakan plafon tahunan restitusi & persentase batas pemotongan upah (`RestitutionSettingService`) |
+| `BE-HRD-163` | `S-B6` / `MVP-33` | ✅ | Integrasi sinkronisasi jadwal piutang aktif dari Finance H-3 cut-off tgl 17 (`FinanceDeductionSyncService`, `INT-HR-57`) |
+| `BE-HRD-164` | `S-B6` / `MVP-33` | ✅ | Engine validasi hard-cap maksimal pemotongan upah tepat 50% Gross Pay (`PayrollDeductionEngineService`, `DED-B1`, PP 36/2021) |
+| `BE-HRD-165` | `S-B6` / `MVP-33` | ✅ | Engine prioritas berjenjang 1-4, pemangkasan parsial & penjadwalan sisa carry-over otomatis ke bulan berikutnya (`DED-B2`, `DED-B3`) |
+| `BE-HRD-166` | `S-B6` / `MVP-34` | ✅ | Layanan evaluasi kuota & sisa plafon tahunan pegawai untuk klaim kacamata/medis di ESS (`VR-DED-10`, `VR-DED-11`) |
+| `BE-HRD-167` | `S-B6` / `MVP-34` | ✅ | Layanan pengajuan klaim restitusi mandiri di portal ESS (filter kuitansi < 60 hari & upload lampiran nota) |
+| `BE-HRD-168` | `S-B6` / `MVP-34` | ✅ | Engine alur verifikasi & persetujuan 3-tier klaim restitusi dengan penegakan mutlak anti-self-approval (`DED-B8`) |
+| `BE-HRD-169` | `S-B6` / `MVP-34` | ✅ | Layanan kompensasi salah potong masa lalu tanpa revisi slip final dengan audit link slip asal (`PAY-B6`, `HRD-DEC-131`) |
+| `BE-HRD-170` | `S-B6` / `MVP-34` | ✅ | Engine injeksi otomatis klaim restitusi approved non-cito ke slip gaji bulanan tgl 25 sebagai komponen non-pajak |
+| `BE-HRD-171` | `S-B6` / `MVP-35` | ⏳ | Layanan investigasi keluhan salah potong & rekonsiliasi pengembalian dana bebas PPh 21 (`DED-B5`, `HRD-ASM-33`) |
+| `BE-HRD-172` | `S-B6` / `MVP-35` | ⏳ | Layanan penerbitan voucher kasir darurat medis cito nakes ber-token SHA-256 kedaluwarsa 48 jam (`HRD-DEC-133`) |
+| `BE-HRD-173` | `S-B6` / `MVP-35` | ⏳ | Layanan kliring & verifikasi online loket kasir RS 24/7 (`INT-HR-59`) dengan flag anti-bayar ganda (`DisbursedViaCashier`, `DED-B6`) |
+| `BE-HRD-174` | `S-B6` / `MVP-35` | ⏳ | Integrasi pelunasan utang pinjaman pada Exit Clearance pesangon Sub-20 (`INT-HR-60`, `DED-B7`) & webhook callback ke Finance (`INT-HR-58`) |
+| `BE-HRD-175` | `S-B6` / Verifikasi | ⏳ | Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v15, dan build final Slice S-B6 |
 
 ---
 
@@ -2609,7 +2624,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ## Rincian Task Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`BE-HRD-087` s.d. `BE-HRD-103`)
 
-### ✅ `BE-HRD-087` — Fondasi skema database dan migrasi EF Core Slice `S-B4`
+### ✅  `BE-HRD-087` — Fondasi skema database dan migrasi EF Core Slice `S-B4`
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ⏳ Siap dikerjakan (fondasi slice `S-B4`)
 * **Outcome**: Tabel `HrdSchedulingSettings` terbentuk; alter kolom pada `TrxRosterPeriod`, `TrxShiftAssignment`, `TrxShiftReplacement`, dan `TrxOnCallAssignment` selesai tanpa memutus data yang ada; seed parameter awal terpasang.
@@ -2626,7 +2641,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pastikan migrasi bersifat additive tanpa drop kolom. Pemilik: Backend Technical Lead.
 * **Definition of Done**: Migration terbentuk, lolos update db, model lolos compile C#.
 
-### ✅ `BE-HRD-088` — Service konfigurasi penjadwalan & parameter waktu kerja (`SchedulingSettingService`)
+### ✅  `BE-HRD-088` — Service konfigurasi penjadwalan & parameter waktu kerja (`SchedulingSettingService`)
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ✅ Selesai (2026-11-04) `BE-HRD-087`
 * **Outcome**: Service dan controller untuk membaca dan memperbarui parameter aturan jeda istirahat (default 11 jam), batas hari berurutan, toleransi koreksi mundur (default 3 hari), dan toggle eskalasi ke blocking.
@@ -2642,7 +2657,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Service dan controller terdaftar di DI, lolos compile, API responsif.
 
-### ✅ `BE-HRD-089` — Mesin validasi jadwal: evaluasi aturan memblokir `B1`–`B7` (`RosterValidationService`)
+### ✅  `BE-HRD-089` — Mesin validasi jadwal: evaluasi aturan memblokir `B1`–`B7` (`RosterValidationService`)
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ✅ Selesai (2026-11-04), `BE-HRD-088`
 * **Outcome**: Mesin evaluasi mendeteksi seluruh pelanggaran memblokir (`B1` bentrok jam, `B2` cuti disetujui, `B3` mutasi unit, `B4` belum siap kerja `HRD-DEC-088`, `B5` kontrak berakhir `HRD-DEC-089`, `B6` status gagal dibaca `INT-HR-31`, `B7` staf Didampingi tanpa perawat Mandiri `HRD-DEC-100`).
@@ -2659,7 +2674,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Seluruh aturan `B1`–`B7` teruji dan mengembalikan kode penolakan yang tepat.
 
-### ✅ `BE-HRD-090` — Mesin evaluasi peringatan `W1`–`W7` & validasi alasan wajib
+### ✅  `BE-HRD-090` — Mesin evaluasi peringatan `W1`–`W7` & validasi alasan wajib
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ✅ Selesai (2026-11-04)
 * **Outcome**: Mesin evaluasi mendeteksi peringatan kerja (`W1` jeda < 11 jam, `W2` hari kerja > 6 hari, `W3` malam berurutan > 2, `W4` cuti pending, `W5` STR kedaluwarsa, `W6` kuota kurang, `W7` kualifikasi shift), serta memvalidasi ketersediaan alasan konfirmasi.
@@ -2676,7 +2691,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Evaluasi peringatan akurat, alasan wajib divalidasi.
 
-### ✅ `BE-HRD-091` — Auto-populate staf eligible unit & filter kesiapan kerja (`INT-HR-40`)
+### ✅  `BE-HRD-091` — Auto-populate staf eligible unit & filter kesiapan kerja (`INT-HR-40`)
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ✅ Selesai (2026-11-04)
 * **Outcome**: Saat draft roster dibuat, sistem otomatis mengisi daftar staf dari penempatan aktif unit (`WorkforceCore`) yang berstatus siap kerja (`HRD-DEC-088`), serta menandai staf bertanda `Didampingi` beserta nama preceptornya (`HRD-DEC-087`).
@@ -2693,7 +2708,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Query eligible staf cepat (< 500ms untuk 50 staf) dan akurat.
 
-### ✅ `BE-HRD-092` — Fitur salin periode lalu & terapkan pola shift
+### ✅  `BE-HRD-092` — Fitur salin periode lalu & terapkan pola shift
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ✅ Selesai (2026-11-04)
 * **Outcome**: Kepala unit dapat menduplikasi seluruh matriks shift bulan sebelumnya atau menerapkan template pola shift berulang ke kelompok pegawai.
@@ -2709,7 +2724,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Proses massal berjalan di dalam database transaction, waktu eksekusi < 2 detik.
 
-### ✅ `BE-HRD-093` — Penerbitan roster mandiri dengan validasi ulang otomatis & notifikasi tembusan
+### ✅  `BE-HRD-093` — Penerbitan roster mandiri dengan validasi ulang otomatis & notifikasi tembusan
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ✅ Selesai (2026-11-04)
 * **Outcome**: Roster diterbitkan langsung oleh Kepala Unit (`HRD-DEC-098`); tombol Terbitkan otomatis menjalankan validasi ulang; status berubah ke `Published`; notifikasi dikirim ke staf dan Kepala Bidang.
@@ -2726,7 +2741,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Terbit aman konkurensi, jejak audit publikasi tersimpan.
 
-### ✅ `BE-HRD-094` — Controller & endpoint lengkap Roster Period (`RosterPeriodController`)
+### ✅  `BE-HRD-094` — Controller & endpoint lengkap Roster Period (`RosterPeriodController`)
 * **Slice / MVP**: `S-B4` / `MVP-18`
 * **Status**: ✅ Selesai (2026-11-04)
 * **Outcome**: Seluruh endpoint RESTful untuk siklus hidup roster bulanan terdaftar, divalidasi hak aksesnya, dan beroperasi stabil.
@@ -2742,7 +2757,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Endpoint bergaya Swagger terpasang, response konsisten.
 
-### ✅ `BE-HRD-095` — Service penggantian shift langsung (*Override*) & audit trail (`ShiftReplacementService`)
+### ✅  `BE-HRD-095` — Service penggantian shift langsung (*Override*) & audit trail (`ShiftReplacementService`)
 * **Slice / MVP**: `S-B4` / `MVP-19`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Penggantian staf darurat pasca-terbit dieksekusi langsung oleh Kepala Unit; status periode tetap `Published` (tidak turun ke Draft); staf pengganti divalidasi keamanannya; notifikasi otomatis terkirim.
@@ -2759,7 +2774,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Service mutasi shift langsung efektif dan terekam di audit trail.
 
-### ✅ `BE-HRD-096` — Controller & endpoint Ganti Petugas Langsung (`ShiftReplacementController`)
+### ✅  `BE-HRD-096` — Controller & endpoint Ganti Petugas Langsung (`ShiftReplacementController`)
 * **Slice / MVP**: `S-B4` / `MVP-19`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Endpoint POST untuk eksekusi penggantian staf darurat pada shift terbit dengan atribut permission yang tepat.
@@ -2775,7 +2790,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Endpoint beroperasi stabil, error ditangani bersih.
 
-### ✅ `BE-HRD-097` — Service koreksi mundur jadwal (<= 3 hari) & event rekalkulasi absensi (`INT-HR-36`)
+### ✅  `BE-HRD-097` — Service koreksi mundur jadwal (<= 3 hari) & event rekalkulasi absensi (`INT-HR-36`)
 * **Slice / MVP**: `S-B4` / `MVP-19`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Kepala unit dapat mengoreksi jadwal tanggal mundur maksimal 3 hari ke belakang; perubahan otomatis memicu event rekalkulasi kehadiran di modul 07; koreksi > 3 hari ditolak sistem.
@@ -2792,7 +2807,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Toleransi 3 hari tervalidasi, rekalkulasi absensi terpicu otomatis.
 
-### ✅ `BE-HRD-098` — Service & endpoint penutupan periode roster oleh HRD Payroll (`Closed` Lock)
+### ✅  `BE-HRD-098` — Service & endpoint penutupan periode roster oleh HRD Payroll (`Closed` Lock)
 * **Slice / MVP**: `S-B4` / `MVP-19`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Tim Payroll HRD dapat menutup periode roster saat cut-off penggajian; periode `Draft` ditolak untuk ditutup; periode `Closed` terkunci mutlak (*read-only*).
@@ -2809,7 +2824,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Status `Closed` mengunci seluruh operasi tulis pada periode terkait.
 
-### ✅ `BE-HRD-099` — Penyelarasan status siaga aktif (`Active`) untuk kontrak Lab (`LAB-DEC-111`)
+### ✅  `BE-HRD-099` — Penyelarasan status siaga aktif (`Active`) untuk kontrak Lab (`LAB-DEC-111`)
 * **Slice / MVP**: `S-B4` / `MVP-20`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Memperbaiki bug `HRD-TF-053` agar status siaga aktif tetap `Active` (bukan `Activated`) sehingga `LabConfirmingDoctorResolver` tetap menemukan dokter konfirmator hasil kritis lab.
@@ -2826,7 +2841,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Kontrak integrasi Lab pulih dan tidak rusak saat pemanggilan dokter.
 
-### ✅ `BE-HRD-100` — Service pencatatan pemanggilan cito (*Call-In*) & evaluasi SLA waktu respon
+### ✅  `BE-HRD-100` — Service pencatatan pemanggilan cito (*Call-In*) & evaluasi SLA waktu respon
 * **Slice / MVP**: `S-B4` / `MVP-20`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Unit klinis dapat mencatat pemanggilan siaga cito; sistem mencatat waktu panggil (*CallInTime*), waktu kedatangan (*ArrivalTime*), menghitung `ResponseMinutes`, dan memvalidasi terhadap `ExpectedResponseMinutes`.
@@ -2843,7 +2858,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Perekaman call-in akurat, indikator SLA mutu RS terekam.
 
-### ✅ `BE-HRD-101` — Integrasi handoff kompensasi siaga & pemanggilan cito ke Payroll dan Lembur (`INT-HR-38`)
+### ✅  `BE-HRD-101` — Integrasi handoff kompensasi siaga & pemanggilan cito ke Payroll dan Lembur (`INT-HR-38`)
 * **Slice / MVP**: `S-B4` / `MVP-20`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Jam standby siaga diteruskan ke modul Payroll (10) untuk tunjangan siaga; transaksi pemanggilan cito diteruskan ke modul Lembur (09) dan Payroll (10) sebagai hak insentif panggil cito (*call-out fee*).
@@ -2859,7 +2874,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Integrasi data kompensasi terhubung tanpa celah.
 
-### ✅ `BE-HRD-102` — Controller & endpoint lengkap On-Call (`OnCallAssignmentController`)
+### ✅  `BE-HRD-102` — Controller & endpoint lengkap On-Call (`OnCallAssignmentController`)
 * **Slice / MVP**: `S-B4` / `MVP-20`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Seluruh endpoint penugasan siaga, aktivasi, dan pemanggilan cito terpasang dengan otorisasi yang tepat.
@@ -2875,7 +2890,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Endpoint aktif dan terdokumentasi di Swagger.
 
-### ✅ `BE-HRD-103` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, dan build Slice `S-B4`
+### ✅  `BE-HRD-103` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak, dan build Slice `S-B4`
 * **Slice / MVP**: `S-B4` / Verifikasi
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Seluruh kode backend slice `S-B4` terverifikasi lolos kompilasi .NET, lulus QBE conformance check, dan memenuhi seluruh kriteria penerimaan `AT-HRD-SCH-01` s.d. `AT-HRD-SCH-20`.
@@ -2895,7 +2910,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ## Rincian Task Slice `S-B1` — Presensi dan Kehadiran (`BE-HRD-104` s.d. `BE-HRD-116`)
 
-### ✅ `BE-HRD-104` — Fondasi skema database, migrasi EF Core, dan audit trail presensi Slice `S-B1`
+### ✅  `BE-HRD-104` — Fondasi skema database, migrasi EF Core, dan audit trail presensi Slice `S-B1`
 * **Slice / MVP**: `S-B1` / `MVP-21`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Menghasilkan tabel `HrdAttendanceSetting`, `HrdEarlyLeavePermission`, `HrdOfficialDutyRequest`, `HrdAttendancePeriodReopenLog` dengan migration EF Core teruji, indeks performa, dan relasi integritas data referensial.
@@ -2912,7 +2927,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Migration siap dieksekusi ke database dev, model terdaftar di DbContext.
 
-### ✅ `BE-HRD-105` — Service parameter kebijakan presensi rumah sakit (`AttendanceSettingService`)
+### ✅  `BE-HRD-105` — Service parameter kebijakan presensi rumah sakit (`AttendanceSettingService`)
 * **Slice / MVP**: `S-B1` / `MVP-21`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Service dan endpoint manajemen konfigurasi presensi rumah sakit: toleransi keterlambatan 10 menit (`HRD-DEC-105`), batas cut-off shift malam lintas hari (`HRD-DEC-104`), batas auto-convert `IncompletePunch` ke `Absent` saat tutup periode (`HRD-DEC-106`).
@@ -2929,7 +2944,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Service beroperasi stabil dan teruji validasinya.
 
-### ✅ `BE-HRD-106` — Engine pemrosesan absensi harian & normalisasi shift malam lintas hari (`AttendanceDailyProcessingService`)
+### ✅  `BE-HRD-106` — Engine pemrosesan absensi harian & normalisasi shift malam lintas hari (`AttendanceDailyProcessingService`)
 * **Slice / MVP**: `S-B1` / `MVP-21`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Mesin pemrosesan log mentah ke status harian: mengunci shift malam pada tanggal mulai (`ShiftDate = Hari H`, `HRD-DEC-104`), menerapkan toleransi 10 menit (lewat batas dihitung dari jam mulai resmi, `HRD-DEC-105`), dan menandai 1 punch sebagai `IncompletePunch` (`HRD-DEC-106`).
@@ -2946,7 +2961,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Engine pemrosesan presensi harian akurat memenuhi seluruh invariant medis 24/7.
 
-### ✅ `BE-HRD-107` — Service & controller audit log mesin biometrik mentah immutable (`RawAttendanceLogService`)
+### ✅  `BE-HRD-107` — Service & controller audit log mesin biometrik mentah immutable (`RawAttendanceLogService`)
 * **Slice / MVP**: `S-B1` / `MVP-21`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Endpoint baca saja untuk memantau rekaman log mentah mesin absensi (fingerprint, face recognition, RFID) yang bersifat kekal (*immutable*), bebas manipulasi, untuk keperluan audit dan investigasi selisih data.
@@ -2963,7 +2978,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Log mentah dapat dibaca transparan, integritas data mesin terlindungi.
 
-### ✅ `BE-HRD-108` — Service permohonan izin pulang cepat non-deductible & waiver keterlambatan (`EarlyLeavePermissionService`)
+### ✅  `BE-HRD-108` — Service permohonan izin pulang cepat non-deductible & waiver keterlambatan (`EarlyLeavePermissionService`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Pengelolaan perizinan pulang cepat administratif non-potong-cuti: pencatatan jam izin keluar, verifikasi approval atasan, perekaman jam kerja riil dari mesin, dan aktivasi waiver penalti presensi jika disetujui.
@@ -2980,7 +2995,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Alur perizinan pulang cepat terpisah tegas dari kuota cuti.
 
-### ✅ `BE-HRD-109` — Service surat penugasan dinas luar rumah sakit & pengakuan status OnDuty (`OfficialDutyRequestService`)
+### ✅  `BE-HRD-109` — Service surat penugasan dinas luar rumah sakit & pengakuan status OnDuty (`OfficialDutyRequestService`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Pengelolaan surat tugas dinas luar (sopir/perawat ambulans rujukan, kurir spesimen lab, workshop/seminar, home care) yang otomatis mengesahkan status kehadiran harian menjadi `OnDuty` di sistem.
@@ -2997,7 +3012,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Status OnDuty sah berbasis surat tugas dan terhubung ke jadwal dinas.
 
-### ✅ `BE-HRD-110` — Service jalur khusus koreksi presensi atas nama pegawai (`AttendanceCorrectionOnBehalfService`)
+### ✅  `BE-HRD-110` — Service jalur khusus koreksi presensi atas nama pegawai (`AttendanceCorrectionOnBehalfService`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Tim HR Admin dapat mengajukan koreksi presensi atas nama pegawai yang terkendala ESS/sakit: wajib mencatat initiator HR, pegawai yang diwakili, alasan mendesak, bukti fisik, dan memicu notifikasi transparansi ke ESS pegawai.
@@ -3014,7 +3029,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Jalur koreksi on-behalf transparan, berjejak audit, dan mematuhi tata kelola.
 
-### ✅ `BE-HRD-111` — Controller & endpoint lengkap perizinan dan koreksi presensi (`AttendanceTransactionControllers`)
+### ✅  `BE-HRD-111` — Controller & endpoint lengkap perizinan dan koreksi presensi (`AttendanceTransactionControllers`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Penerbitan endpoint Swagger lengkap untuk izin pulang cepat, dinas luar, dan koreksi on-behalf dengan otorisasi berbasis klaim izin (`Permission`).
@@ -3031,7 +3046,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead.
 * **Definition of Done**: Seluruh endpoint transaksi presensi aktif dan terproteksi otorisasi.
 
-### ✅ `BE-HRD-112` — Event listener rekalkulasi absensi akibat koreksi mundur jadwal roster (`AttendanceRetroactiveShiftConsumer`)
+### ✅  `BE-HRD-112` — Event listener rekalkulasi absensi akibat koreksi mundur jadwal roster (`AttendanceRetroactiveShiftConsumer`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Implementasi consumer `RetroactiveShiftCorrectedEvent` dari modul Penjadwalan (06): saat jadwal dinas mundur (<= 3 hari) dikoreksi oleh Kepala Unit, absensi harian pegawai pada tanggal tersebut otomatis dikalkulasi ulang terhadap jam shift baru.
@@ -3363,7 +3378,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ## Rincian Task Slice `S-B3` — Administrasi Lembur Pegawai Rumah Sakit (`BE-HRD-131` s.d. `BE-HRD-145`)
 
-### ✅ `BE-HRD-131` — Fondasi skema database lembur, DDL PostgreSQL, dan indeks performa Slice `S-B3`
+### ✅  `BE-HRD-131` — Fondasi skema database lembur, DDL PostgreSQL, dan indeks performa Slice `S-B3`
 * **Slice / MVP**: `S-B3` / `MVP-27`
 * **Status**: 📋 Menunggu `BE-HRD-008` [B3]
 * **Outcome**: Penambahan kolom dan indeks pada tabel `trx_overtime_plans`, `trx_overtime_plan_details`, `trx_overtime_realizations`, `trx_overtime_verifications`, `trx_compensatory_time_offs`, dan `trx_overtime_periods` dengan skrip DDL PostgreSQL teruji dan bebas downtime.
@@ -3380,7 +3395,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kunci tabel saat alter kolom; mitigasi: operasi aditif tanpa default lock panjang.
 * **Definition of Done**: Skema migrasi lolos compile dan update skema database lokal tanpa error.
 
-### ✅ `BE-HRD-132` — Service pengaturan kebijakan kuota & parameter operasional lembur RS (`OvertimeSettingService`)
+### ✅  `BE-HRD-132` — Service pengaturan kebijakan kuota & parameter operasional lembur RS (`OvertimeSettingService`)
 * **Slice / MVP**: `S-B3` / `MVP-27`
 * **Status**: 📋 Menunggu `BE-HRD-131`
 * **Outcome**: Service pembacaan dan konfigurasi kebijakan operasional lembur rumah sakit (kuota harian 4 jam & mingguan 18 jam PP 35/2021, toleransi anomali biometrik 30 menit, interval pembulatan 30 menit, masa kedaluwarsa CTO 90 hari, dan tanggal cut-off bulanan tgl 20).
@@ -3397,7 +3412,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Nilai konfigurasi null; mitigasi: fallback hardcoded aman sesuai aturan PP 35/2021.
 * **Definition of Done**: Service terdaftar di DI container dan mengembalikan nilai parameter tervalidasi.
 
-### ✅ `BE-HRD-133` — DTO & validasi FluentValidation SPKL pra-dinas & klaim cito pasca-dinas
+### ✅  `BE-HRD-133` — DTO & validasi FluentValidation SPKL pra-dinas & klaim cito pasca-dinas
 * **Slice / MVP**: `S-B3` / `MVP-27`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Class DTO lengkap dan validator ketat FluentValidation untuk pengajuan SPKL terencana H-1 dan klaim darurat medis pasca-dinas cito H+1.
@@ -3415,7 +3430,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Format input tanggal/jam tidak valid; mitigasi: ISO 8601 parsing ketat.
 * **Definition of Done**: Validator terdaftar dan seluruh aturan validasi dasar teruji.
 
-### ✅ `BE-HRD-134` — Service SPKL pra-dinas terencana H-1 & penugasan kelompok tim medis (`OvertimePlanService`)
+### ✅  `BE-HRD-134` — Service SPKL pra-dinas terencana H-1 & penugasan kelompok tim medis (`OvertimePlanService`)
 * **Slice / MVP**: `S-B3` / `MVP-27`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Service pengelolaan SPKL pra-dinas terencana yang mendukung pengajuan perorangan maupun kelompok tim medis ruangan (`HRD-ASM-26`), kalkulasi estimasi total jam kerja, dan pembentukan draf SPKL berstatus `WaitingApproval`.
@@ -3432,7 +3447,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Nomor registrasi duplikat saat submit konkuren; mitigasi: sequence atomik database.
 * **Definition of Done**: Service berhasil membuat dan menyimpan data SPKL induk dan rincian staf.
 
-### ✅ `BE-HRD-135` — Service klaim darurat medis cito pasca-dinas H+1 & integrasi nomor RM (`OvertimeRealizationService`)
+### ✅  `BE-HRD-135` — Service klaim darurat medis cito pasca-dinas H+1 & integrasi nomor RM (`OvertimeRealizationService`)
 * **Slice / MVP**: `S-B3` / `MVP-28`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Service pelaporan klaim lembur darurat medis cito pasca-dinas dengan tenggat penyerahan H+1 hari kerja, validasi nomor rekam medis, dan penanganan lembur nakes siaga on-call aktif (`HRD-ASM-24`).
@@ -3449,7 +3464,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Tenggat waktu terlewati akibat hari libur; mitigasi: kalkulasi hari kerja faskes.
 * **Definition of Done**: Service berhasil menyimpan klaim cito darurat dan menolak klaim kadaluwarsa.
 
-### ✅ `BE-HRD-136` — Engine penegakan kuota PP 35/2021 & deteksi eskalasi darurat klinis (`OvertimeQuotaEnforcementGuard`)
+### ✅  `BE-HRD-136` — Engine penegakan kuota PP 35/2021 & deteksi eskalasi darurat klinis (`OvertimeQuotaEnforcementGuard`)
 * **Slice / MVP**: `S-B3` / `MVP-27`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Engine pelindung kepatuhan regulasi ketenagakerjaan yang memblokir lembur biasa > 4 jam/hari atau > 18 jam/minggu, serta mendeteksi kebutuhan eskalasi ke Direktur Pelayanan Medik untuk darurat penyelamatan nyawa.
@@ -3466,7 +3481,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Salah hitung siklus awal minggu; mitigasi: kalender kerja berbasis CultureInfo ID.
 * **Definition of Done**: Guard memvalidasi kuota secara akurat dan mengarahkan eskalasi darurat secara otomatis.
 
-### ✅ `BE-HRD-137` — Workflow persetujuan 2-tahap ruangan & pemblokiran mutlak self-approval (`OvertimeWorkflowService`)
+### ✅  `BE-HRD-137` — Workflow persetujuan 2-tahap ruangan & pemblokiran mutlak self-approval (`OvertimeWorkflowService`)
 * **Slice / MVP**: `S-B3` / `MVP-27`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Workflow persetujuan bertingkat (Tahap 1 Kepala Ruangan, Tahap 2 Verifikasi HR) dengan penjaga anti-self-approval mutlak (`VR-OT-03`) dan perutean eskalasi hierarki jika atasan yang lembur.
@@ -3483,7 +3498,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Konflik wewenang approval; mitigasi: delegasi hierarkis via `ReportingLineResolver`.
 * **Definition of Done**: Alur persetujuan berjalan sesuai hierarki dan pemblokiran self-approval teruji.
 
-### ✅ `BE-HRD-138` — Workflow otorisasi eskalasi khusus Direktur Pelayanan Medik darurat cito
+### ✅  `BE-HRD-138` — Workflow otorisasi eskalasi khusus Direktur Pelayanan Medik darurat cito
 * **Slice / MVP**: `S-B3` / `MVP-28`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Layanan persetujuan eksekutif bagi Direktur Pelayanan Medik untuk meninjau urgensi darurat cito yang melampaui kuota PP 35/2021 dengan asesmen risiko kelelahan nakes.
@@ -3500,7 +3515,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Keterlambatan respon Direktur; mitigasi: delegasi wewenang darurat ke HR Director.
 * **Definition of Done**: Endpoint otorisasi Direktur Medis berfungsi dan audit log dispensasi tercatat.
 
-### ✅ `BE-HRD-139` — Service verifikasi silang mesin biometrik presensi & min-duration rule (`OvertimeBiometricVerificationService`)
+### ✅  `BE-HRD-139` — Service verifikasi silang mesin biometrik presensi & min-duration rule (`OvertimeBiometricVerificationService`)
 * **Slice / MVP**: `S-B3` / `MVP-28`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Service penelusuran silang otomatis ke mesin presensi Sub-modul 07 (`INT-HR-50`), penerapan aturan nilai terkecil (*min-duration rule*), pembulatan 30 menit ke bawah, dan penandaan *Flagged Discrepancy*.
@@ -3517,7 +3532,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Keterlambatan log sinkronisasi presensi; mitigasi: retry queue asinkron.
 * **Definition of Done**: Service berhasil mencocokkan log mesin dan menghitung durasi sah berdasar formula terkecil.
 
-### ✅ `BE-HRD-140` — Manajemen anomali discrepancy presensi & investigasi logbook fisik HR
+### ✅  `BE-HRD-140` — Manajemen anomali discrepancy presensi & investigasi logbook fisik HR
 * **Slice / MVP**: `S-B3` / `MVP-28`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Fasilitas evaluasi anomali lembur bagi HR Admin untuk meneliti berkas logbook dinas ruangan fisik, melakukan penyesuaian manual durasi sah (*Manual Adjustment*), atau menolak klaim lembur fiktif.
@@ -3534,7 +3549,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Pemalsuan logbook fisik; mitigasi: tanda tangan basah / digital Kepala Ruangan wajib ada.
 * **Definition of Done**: Endpoint investigasi manual dan penolakan klaim discrepancy berfungsi dengan validasi dokumen.
 
-### ✅ `BE-HRD-141` — Service hak libur pengganti CTO (90 hari) & posting mutasi kredit cuti 08 (`CompensatoryTimeOffService`)
+### ✅  `BE-HRD-141` — Service hak libur pengganti CTO (90 hari) & posting mutasi kredit cuti 08 (`CompensatoryTimeOffService`)
 * **Slice / MVP**: `S-B3` / `MVP-29`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Service konversi jam lembur terverifikasi menjadi kuota hak cuti pengganti (*Compensatory Time Off / CTO*), penerbitan tiket CTO berkedaluwarsa 90 hari, dan penerbitan event integrasi `INT-HR-49` ke buku besar cuti Sub-modul 08.
@@ -3551,7 +3566,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kegagalan kirim event antar-submodul; mitigasi: outbox pattern transactional.
 * **Definition of Done**: Tiket CTO terbit dan mutasi kredit saldo cuti tercatat di database.
 
-### ✅ `BE-HRD-142` — Background scheduler eksekusi hangus saldo CTO kedaluwarsa 90 hari
+### ✅  `BE-HRD-142` — Background scheduler eksekusi hangus saldo CTO kedaluwarsa 90 hari
 * **Slice / MVP**: `S-B3` / `MVP-29`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Pekerjaan latar belakang (*background scheduler job*) harian yang secara otomatis memeriksa tiket CTO aktif yang telah melewati tanggal kedaluwarsa 90 hari kalender, menandai status `Expired`, dan menghanguskan sisa kuota tanpa kompensasi uang tunai.
@@ -3568,7 +3583,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Staf protes saldo hangus mendadak; mitigasi: notifikasi peringatan H-14 dan H-3 sebelum kedaluwarsa.
 * **Definition of Done**: Job kedaluwarsa berjalan sukses dan mengubah status tiket kadaluwarsa secara otomatis.
 
-### ✅ `BE-HRD-143` — Manajemen periode cut-off bulanan (tgl 20) & rekonsiliasi retrospektif (`OvertimePeriodReconciliationService`)
+### ✅  `BE-HRD-143` — Manajemen periode cut-off bulanan (tgl 20) & rekonsiliasi retrospektif (`OvertimePeriodReconciliationService`)
 * **Slice / MVP**: `S-B3` / `MVP-29`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Layanan penutupan transaksi lembur bulanan pada tanggal cut-off (tgl 20), penguncian snapshot immutable (`CutoffLocked`), penandaan klaim pending sebagai `PendingNextReconciliation`, dan penarikan rapel lembur retrospektif periode lalu.
@@ -3585,7 +3600,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Perubahan data pasca-kunci; mitigasi: guard database lock dan status immutability.
 * **Definition of Done**: Periode berhasil dikunci snapshot dan perhitungan rapel retrospektif terverifikasi.
 
-### ✅ `BE-HRD-144` — Handoff serah terima data lembur terkunci & rapel ke Modul 10 Payroll
+### ✅  `BE-HRD-144` — Handoff serah terima data lembur terkunci & rapel ke Modul 10 Payroll
 * **Slice / MVP**: `S-B3` / `MVP-29`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Layanan pembentukan paket data serah terima resmi transaksi lembur terverifikasi (jam pengali 1.5x / 2x / hari libur) dan rapel retrospektif ke Modul 10 Payroll via kontrak `INT-HR-52`, serta penutupan mutlak periode menjadi `Closed`.
@@ -3602,7 +3617,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kegagalan koneksi ke modul payroll; mitigasi: idempotency key pada batch handoff.
 * **Definition of Done**: Endpoint handoff mengembalikan status sukses dan menghasilkan paket data terverifikasi.
 
-### ✅ `BE-HRD-145` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v13, dan build Slice `S-B3`
+### ✅  `BE-HRD-145` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v13, dan build Slice `S-B3`
 * **Slice / MVP**: `S-B3` / Verifikasi
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Audit komprehensif kepatuhan arsitektur backend, zero warning kompilasi .NET, verifikasi integritas 78 endpoint bergaya Swagger, konformansi aturan QBE, serta pemenuhan 10 butir Definition of Done Slice `S-B3`.
@@ -3625,7 +3640,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 
 ## 23. Rincian Task Backend Slice `S-B5` — Pemrosesan Penggajian Pegawai Rumah Sakit (Sub-modul 10, Kontrak v14)
 
-### ✅ BE-HRD-146 — Skema database PostgreSQL & migrasi EF Core untuk entitas Payroll V2
+### ✅  BE-HRD-146 — Skema database PostgreSQL & migrasi EF Core untuk entitas Payroll V2
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Skema database PostgreSQL untuk 7 entitas baru modul penggajian V2 (`trx_payroll_runs`, `trx_payroll_item_details`, `trx_payroll_variance_alerts`, `trx_payroll_approvals`, `trx_payroll_handoff_batches`, `trx_payroll_payslips`, `hrd_payroll_settings`) lengkap dengan tipe enum kanonikal, constraint unik periode, foreign key terisolasi, dan migrasi Entity Framework Core.
@@ -3642,7 +3657,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Konflik migrasi; mitigasi: penamaan migrasi berstempel waktu tanpa mengubah skema tabel legacy.
 * **Definition of Done**: Migrasi EF Core terkompilasi bersih dan siap dieksekusi ke database.
 
-### ✅ BE-HRD-147 — Manajemen parameter konfigurasi master penggajian & pembekuan snapshot periode (PayrollSettingService)
+### ✅  BE-HRD-147 — Manajemen parameter konfigurasi master penggajian & pembekuan snapshot periode (PayrollSettingService)
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Layanan CRUD konfigurasi parameter operasional payroll (`HrdPayrollSetting`), mencakup batas plafon upah BPJS Kesehatan, batas upah tertinggi BPJS Ketenagakerjaan JP, threshold variansi (default 20% dan Rp 2.000.000), serta logika penyalinan parameter aktif menjadi snapshot beku saat inisiasi batch.
@@ -3659,7 +3674,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Perubahan tarif di tengah siklus; mitigasi: penguncian snapshot immutable per run.
 * **Definition of Done**: Service setting payroll aktif dan mendukung isolasi snapshot periode.
 
-### ✅ BE-HRD-148 — Precondition Gate Validator pengecekan penguncian waktu kerja Sub-07, 08, 09 (PayrollPreconditionGateService)
+### ✅  BE-HRD-148 — Precondition Gate Validator pengecekan penguncian waktu kerja Sub-07, 08, 09 (PayrollPreconditionGateService)
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Layanan inspeksi gerbang prasyarat (*Precondition Gate*) yang memverifikasi bahwa seluruh data waktu kerja cut-off tgl 20 bulan berjalan telah berstatus `Locked` atau `Closed` pada modul Presensi (Sub-07), Cuti (Sub-08), dan Lembur (Sub-09) sebelum batch payroll diizinkan dibuat.
@@ -3676,7 +3691,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Payroll diinisiasi saat jam kerja belum final; mitigasi: hard-block validation pada service initialization.
 * **Definition of Done**: Validator precondition gate beroperasi andal dan menolak pembuatan payroll prematur.
 
-### ✅ BE-HRD-149 — Engine inisiasi batch siklus penggajian bulanan & proteksi anti-duplikasi periode (PayrollRunInitializationService)
+### ✅  BE-HRD-149 — Engine inisiasi batch siklus penggajian bulanan & proteksi anti-duplikasi periode (PayrollRunInitializationService)
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Layanan inisiasi siklus batch penggajian bulanan (`TrxPayrollRun`) baru berstatus `Draft`, pembentukan nomor batch resmi (format `PRUN-YYYYMM-XXX`), penegakan proteksi anti-duplikasi periode penggajian untuk tahun dan bulan yang sama, serta populasi daftar pegawai aktif yang berhak menerima gaji.
@@ -3693,7 +3708,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Duplikasi batch gaji; mitigasi: constraint unik database dan application-level lock.
 * **Definition of Done**: Inisiasi batch payroll berhasil membentuk draft awal dan baris detail pegawai.
 
-### ✅ BE-HRD-150 — Engine kalkulasi penghasilan tetap: gaji pokok, tunjangan struktural, tunjangan fungsional profesi & risiko medis
+### ✅  BE-HRD-150 — Engine kalkulasi penghasilan tetap: gaji pokok, tunjangan struktural, tunjangan fungsional profesi & risiko medis
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-05)
 * **Outcome**: Engine perhitungan komponen penghasilan tetap per pegawai berdasarkan grade, level karir klinis dokter/perawat, jabatan struktural, dan unit kerja berisiko tinggi (ICU, Isolasi, Radiologi) tanpa pembulatan moneter ganjil.
@@ -3710,7 +3725,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Selisih nominal rupiah; mitigasi: penggunaan tipe data decimal 18,2 dan math rounding banker's.
 * **Definition of Done**: Perhitungan penghasilan tetap teruji akurat untuk berbagai kelompok profesi rumah sakit.
 
-### ✅ `BE-HRD-151` — Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`)
+### ✅  `BE-HRD-151` — Engine penyerapan lembur resmi Sub-09 & premi shift malam presensi Sub-07 (`PayrollOvertimeAndShiftIngestionService`)
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Layanan penyerapan data variabel jam lembur terverifikasi (tier 1.5x, 2x, holiday) beserta rapel lembur dari Sub-modul 09 (`INT-HR-52`), serta penyerapan akumulasi dinas shift malam dari Sub-modul 07 (`INT-HR-36`) untuk dikonversi menjadi nominal premi malam resmi.
@@ -3727,7 +3742,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Perbedaan klaim lembur vs presensi; mitigasi: konsumsi data snapshot yang telah berstatus Closed.
 * **Definition of Done**: Variabel lembur dan premi shift malam terintegrasi penuh ke dalam lembar kerja gaji.
 
-### ✅ `BE-HRD-152` — Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi
+### ✅  `BE-HRD-152` — Engine kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan berplafon upah resmi
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Engine kalkulasi potongan wajib jaminan sosial tenaga kerja: BPJS Kesehatan (1% pegawai, 4% RS berplafon Rp 12.000.000) serta 4 program BPJS Ketenagakerjaan (JKK 0.89%, JKM 0.3%, JHT 2% pegawai & 3.7% RS, JP 1% pegawai berplafon Rp 10.042.300).
@@ -3744,7 +3759,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kepatuhan regulasi BPJS; mitigasi: parameter plafon dinamis tersimpan pada database master.
 * **Definition of Done**: Kalkulasi potongan dan kontribusi BPJS teruji presisi sesuai tabel ketentuan pemerintah.
 
-### ✅ `BE-HRD-153` — Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023
+### ✅  `BE-HRD-153` — Engine kalkulasi pemotongan PPh 21 bulanan Tarif Efektif Rata-Rata (TER) PMK 168/2023
 * **Slice / MVP**: `S-B5` / `MVP-30`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Engine kalkulasi pemotongan pajak penghasilan PPh 21 bulanan mengacu pada tabel resmi Tarif Efektif Rata-Rata (TER Kategori A, B, dan C) sesuai Peraturan Menteri Keuangan Nomor 168 Tahun 2023 berdasarkan status PTKP dan penghasilan bruto.
@@ -3761,7 +3776,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kesalahan hitung pajak pegawai; mitigasi: verifikasi silang bracket TER dan unit testing komprehensif.
 * **Definition of Done**: Engine pemotongan pajak PPh 21 TER PMK 168/2023 beroperasi tanpa cela.
 
-### ✅ `BE-HRD-154` — Integrasi penarikan potongan pinjaman koperasi & restitusi dari Sub-modul 11 (`PayrollDeductionsIngestionService`)
+### ✅  `BE-HRD-154` — Integrasi penarikan potongan pinjaman koperasi & restitusi dari Sub-modul 11 (`PayrollDeductionsIngestionService`)
 * **Slice / MVP**: `S-B5` / `MVP-31`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Layanan konsumsi tagihan angsuran pinjaman belanja koperasi karyawan, pinjaman darurat rumah sakit, atau pemotongan kelebihan klaim restitusi kesehatan dari Sub-modul 11 via kontrak `INT-HR-55`, dengan aturan proteksi batas maksimal pemotongan gaji (maks 50% dari take-home pay).
@@ -3778,7 +3793,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Gaji bersih minus; mitigasi: pemblokiran nilai take-home pay negatif oleh validasi sistem.
 * **Definition of Done**: Tagihan pinjaman internal terintegrasi aman dan take-home pay final terhitung valid.
 
-### ✅ `BE-HRD-155` — Payroll Variance Guard & deteksi otomatis deviasi net pay >= 20% / Rp 2jt (`PayrollVarianceGuardService`)
+### ✅  `BE-HRD-155` — Payroll Variance Guard & deteksi otomatis deviasi net pay >= 20% / Rp 2jt (`PayrollVarianceGuardService`)
 * **Slice / MVP**: `S-B5` / `MVP-31`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Layanan evaluasi anomali variansi gaji (*Payroll Variance Guard*) yang membandingkan gaji bersih pegawai pada siklus berjalan terhadap riwayat periode sebelumnya; sistem secara otomatis mendeteksi deviasi persentase $\ge 20\%$ atau selisih nominal $\ge$ Rp 2.000.000 dan membangkitkan tiket `TrxPayrollVarianceAlert` berstatus `PendingJustification`.
@@ -3795,7 +3810,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Anomali finansial lolos ke pencairan; mitigasi: otomasi guard saat kalkulasi selesai.
 * **Definition of Done**: Variance guard mendeteksi seluruh anomali dan menyajikannya pada daftar audit investigasi.
 
-### ✅ `BE-HRD-156` — Alur resolusi justifikasi audit variansi & gerbang penolakan submission batch (`PayrollVarianceResolutionService`)
+### ✅  `BE-HRD-156` — Alur resolusi justifikasi audit variansi & gerbang penolakan submission batch (`PayrollVarianceResolutionService`)
 * **Slice / MVP**: `S-B5` / `MVP-31`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Layanan penerimaan dan validasi justifikasi alasan audit anomali variansi oleh Payroll Officer (wajib minimum 20 karakter) serta penegakan gerbang validasi keras (*hard-block*) yang menolak pengajuan submit batch penggajian ke level manajer jika masih terdapat alert variansi berstatus pending.
@@ -3812,7 +3827,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Justifikasi asal-asalan; mitigasi: audit trail permanen dan penolakan input kosong/terlalu pendek.
 * **Definition of Done**: Alur resolusi variansi aktif dan mengunci gerbang submission approval batch.
 
-### ✅ `BE-HRD-157` — Engine alur otorisasi 3-jenjang, hierarki eskalasi & penegakan anti-self-approval HR Manager
+### ✅  `BE-HRD-157` — Engine alur otorisasi 3-jenjang, hierarki eskalasi & penegakan anti-self-approval HR Manager
 * **Slice / MVP**: `S-B5` / `MVP-31`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Engine alur otorisasi berjenjang 3 tingkat (*3-tier segregation of duties*): Tier 1 (Payroll Officer mengunci draft & submit ke `WaitingHrReview`), Tier 2 (HR Manager me-review ke `WaitingFinalApproval`), dan Tier 3 (Direktur SDM/Keuangan menyetujui final `ApprovedFinal`), dengan penegakan keras aturan anti-self-approval di mana verifikasi baris gaji HR Manager dialihkan ke Direktur.
@@ -3829,7 +3844,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kolusi internal; mitigasi: pemisahan peran ketat berbasis permission token terverifikasi.
 * **Definition of Done**: Workflow approval 3-jenjang beroperasi aman dan menegakkan segregation of duties.
 
-### ✅ `BE-HRD-158` — Pembekuan permanen batch immutable & pembangkitan paket serah terima Finance SHA-256 (`PayrollFinanceHandoffService`)
+### ✅  `BE-HRD-158` — Pembekuan permanen batch immutable & pembangkitan paket serah terima Finance SHA-256 (`PayrollFinanceHandoffService`)
 * **Slice / MVP**: `S-B5` / `MVP-32`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Layanan pembekuan permanen seluruh baris data penggajian pasca persetujuan final Direksi, pembuatan paket serah terima keuangan (`TrxPayrollHandoffBatch`), penghitungan checksum integritas data SHA-256 atas seluruh baris transfer bank pegawai, serta pengiriman berkas serah terima ke Modul Finance secara asinkron via kontrak `INT-HR-53`.
@@ -3846,7 +3861,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kegagalan transmisi ke Finance; mitigasi: mekanisme exponential backoff retry hingga 5 kali.
 * **Definition of Done**: Paket serah terima keuangan terbentuk dengan checksum valid dan terkirim ke modul Finance.
 
-### ✅ `BE-HRD-159` — Webhook reconciler callback pembayaran/penolakan Finance & distribusi slip gaji digital ESS ber-PIN sekunder 6-digit
+### ✅  `BE-HRD-159` — Webhook reconciler callback pembayaran/penolakan Finance & distribusi slip gaji digital ESS ber-PIN sekunder 6-digit
 * **Slice / MVP**: `S-B5` / `MVP-32`
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Layanan penerima webhook callback dari Modul Finance (`INT-HR-54`) untuk menangani konfirmasi pencairan (`PaymentConfirmed` $\rightarrow$ status batch `Completed`) atau penolakan batch (`PaymentRejected` $\rightarrow$ rollback terkendali ke `NeedCorrection`), serta layanan pelepasan slip gaji digital ESS (`TrxPayrollPayslip`) per tanggal 25 yang diproteksi autentikasi PIN sekunder 6-digit dengan penalti penguncian akun 30 menit setelah 3 kegagalan.
@@ -3864,7 +3879,7 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Risiko/pemilik**: Kebocoran nominal slip gaji; mitigasi: proteksi PIN sekunder dan enkripsi berkas PDF.
 * **Definition of Done**: Callback Finance sinkron dan slip gaji digital terdistribusi aman kepada pegawai.
 
-### ✅ `BE-HRD-160` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v14, dan build Slice `S-B5`
+### ✅  `BE-HRD-160` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v14, dan build Slice `S-B5`
 * **Slice / MVP**: `S-B5` / Verifikasi
 * **Status**: ✅ Selesai (2026-11-06)
 * **Outcome**: Audit komprehensif kepatuhan arsitektur backend, zero warning kompilasi .NET, verifikasi integritas seluruh endpoint Swagger penggajian, konformansi aturan rekayasa QBE, serta pemenuhan 10 butir Definition of Done Slice `S-B5`.
@@ -3881,6 +3896,292 @@ bagian 17; `04-prd-to-mvp.md` bagian 23.
 * **Bukti verifikasi**: Laporan build bersih, OpenAPI conformance log, laporan audit DoD.
 * **Risiko/pemilik**: Regresi fungsional modul lain; mitigasi: regression smoke testing controller.
 * **Definition of Done**: Build backend 100% lulus dan siap untuk integrasi frontend.
+
+
+---
+
+## 25. Rincian Task Backend Slice `S-B6` — Restitusi & Integrasi Pemotongan Penggajian (Sub-modul 11, Kontrak v15)
+
+Bagian ini memuat pemecahan delivery **Sub-Modul 11 (Slice `S-B6`)** menjadi 15 task backend terperinci (`BE-HRD-161` s.d. `BE-HRD-175`), grafik urutan dependency pohon teks (Grafik B40 s.d. B43), serta tabel gelombang eksekusi `MVP-33` s.d. `MVP-35` & Verifikasi.
+
+### Grafik Urutan Dependency Pohon Teks `S-B6`
+
+#### Grafik B40: Gelombang `MVP-33` (Fondasi Database, Kebijakan Plafon, Engine Guard 50% & Sinkronisasi Finance)
+```text
+BE-HRD-161 ✅ ─┬─> BE-HRD-162 ✅ ──> BE-HRD-164 ✅ ──> BE-HRD-165 ✅
+               │
+               └─> BE-HRD-163 ✅
+```
+
+#### Grafik B41: Gelombang `MVP-34` (Klaim Restitusi ESS, Plafon Tahunan, Approval 3-Tier & Injeksi Payroll)
+```text
+BE-HRD-161 [B40] ─┬─> BE-HRD-166 ✅ ──> BE-HRD-167 ✅ ──> BE-HRD-168 ✅ ─┬─> BE-HRD-170 ✅
+                  │                                                       │
+                  └─> BE-HRD-169 ✅ ──────────────────────────────────────┘
+```
+
+#### Grafik B42: Gelombang `MVP-35` (Jalur Cepat Kasir Cito 24/7, Koreksi Masa Lalu & Exit Clearance)
+```text
+BE-HRD-168 [B41] ──> BE-HRD-172 ⏳ ──> BE-HRD-173 ⏳
+BE-HRD-169 [B41] ──> BE-HRD-171 ⏳
+BE-HRD-165 [B40] ──> BE-HRD-174 ⏳
+```
+
+#### Grafik B43: Gelombang Verifikasi
+```text
+BE-HRD-165 [B40] ─┐
+BE-HRD-170 [B41] ─┼─> BE-HRD-175 ⏳
+BE-HRD-174 [B42] ─┘
+```
+
+---
+
+### Kartu Detail Task Backend Slice `S-B6`
+
+### ✅ `BE-HRD-161` — Fondasi skema database restitusi klaim & pemotongan penggajian (6 entitas DDL & migrasi EF Core)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Entitas domain C# dan DDL skema database PostgreSQL untuk 6 entitas baru: `HrdRestitutionSetting`, `TrxEmployeeRestitutionClaim`, `TrxPayrollRestitution`, `TrxPayrollDeductionSchedule`, `TrxPayrollDeductionItem`, `TrxCashierDisbursementVoucher`, pendaftaran DbSet pada `ApplicationDbContext`, indeks unik terklaster pada nomor dokumen, dan berkas migrasi EF Core.
+* **Requirement/decision**: `HRD-DEC-128` s.d. `HRD-DEC-133`, `02-backend-architecture.md` 24.1 s.d. 24.6.
+* **Kontrak**: Seluruh skema data Kontrak `v15`.
+* **Reuse**: `IdentityModel`, pola repository EF Core.
+* **Cakupan**: Model entities, konfigurasi DbContext, migrasi EF Core PostgreSQL.
+* **Dependency**: Tidak ada (fondasi data).
+* **Acceptance criteria**:
+  1. 6 entitas baru terdaftar pada `ApplicationDbContext` dengan constraint schema `public`.
+  2. Indeks komposit performa evaluasi kuota per pegawai dan indeks unik nomor klaim/voucher terbentuk.
+  3. Proyek `NewQuilvianSystemBackend` berhasil di-build tanpa error.
+* **Bukti verifikasi**: Skrip migrasi EF Core, kompilasi build bersih `dotnet build`.
+* **Risiko/pemilik**: Kegagalan migrasi skema; mitigasi: DDL idempotent `CREATE TABLE IF NOT EXISTS`.
+* **Definition of Done**: 6 entitas terdefinisi di C# dan migrasi database siap dieksekusi.
+
+### ✅ `BE-HRD-162` — Layanan konfigurasi kebijakan plafon tahunan restitusi & persentase batas pemotongan upah (`RestitutionSettingService`)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Layanan CRUD konfigurasi kebijakan batas plafon tahunan per grade staf RS, batas minimal masa kerja, ambang batas pemotongan upah (default 50%), serta hak akses jalur cepat kasir darurat cito.
+* **Requirement/decision**: `HRD-DEC-128`, `HRD-DEC-130`, `02-backend-architecture.md` 24.7 (`HrdRestitutionSetting`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Settings")]`.
+* **Reuse**: Pola setting service Quilvian.
+* **Cakupan**: `RestitutionSettingService.cs`, DTOs, controller endpoints.
+* **Dependency**: `BE-HRD-161`
+* **Acceptance criteria**:
+  1. Mendukung pengambilan kebijakan plafon berdasarkan kode grade/golongan dan kategori manfaat.
+  2. Penegakan nilai default batasan potongan 50% sesuai Pasal 65 PP 36/2021.
+* **Bukti verifikasi**: Unit test / service test `RestitutionSettingService`.
+* **Risiko/pemilik**: Konfigurasi kosong; mitigasi: seeding otomatis data master awal per grade.
+* **Definition of Done**: Layanan setting aktif dan melayani query kuota kebijakan staf RS.
+
+### ✅ `BE-HRD-163` — Integrasi sinkronisasi jadwal piutang aktif dari Finance H-3 cut-off tgl 17 (`FinanceDeductionSyncService`, `INT-HR-57`)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Layanan penarikan snapshot jadwal cicilan piutang/pinjaman pegawai aktif dari Modul Keuangan (`INT-HR-57`) pada tanggal 17 (H-3 cut-off) dengan retry policy eksponensial dan penguncian jadwal per tanggal 20 pukul 23:59:59.
+* **Requirement/decision**: `HRD-DEC-129`, `HRD-ASM-32`, Integration Contract `INT-HR-57`, `VR-DED-17`.
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Cashier Vouchers & Schedules")]`.
+* **Reuse**: HTTP client retry policy handler.
+* **Cakupan**: `FinanceDeductionSyncService.cs`, scheduler ingestor.
+* **Dependency**: `BE-HRD-161`
+* **Acceptance criteria**:
+  1. Penarikan data piutang Finance membentuk/memperbarui `TrxPayrollDeductionSchedule`.
+  2. Jadwal cicilan bulan berjalan terkunci otomatis per tgl 20 pukul 23:59:59 (`VR-DED-17`).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-05`, `AT-HRD-DED-06`, `AT-HRD-DED-07`.
+* **Risiko/pemilik**: Timeout Finance API; mitigasi: retry eksponensial 1m, 5m, 15m.
+* **Definition of Done**: Sinkronisasi jadwal Finance sukses masuk ke jadwal pemotongan HRD.
+
+### ✅ `BE-HRD-164` — Engine validasi hard-cap maksimal pemotongan upah tepat 50% Gross Pay (`PayrollDeductionEngineService`, `DED-B1`, PP 36/2021)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Mesin kalkulasi batasan akumulasi pemotongan upah non-regulasi yang menegakkan secara mutlak batas maksimal tepat 50% dari penghasilan kotor (*Gross Pay*) bulan berjalan, menjaga hak hidup layak pegawai RS.
+* **Requirement/decision**: `HRD-DEC-128`, Pasal 65 PP 36/2021 jo PP 49/2025, `02-backend-architecture.md` 24.8 (`DED-B1`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Engine")]`.
+* **Reuse**: Kalkulator Gross Pay dari Sub-10.
+* **Cakupan**: `PayrollDeductionEngineService.cs` (metode evaluasi limit 50%).
+* **Dependency**: `BE-HRD-161`, `BE-HRD-162`
+* **Acceptance criteria**:
+  1. Total potongan non-regulasi (kasbon, koperasi, paguyuban) tidak pernah melebihi $50\% \times \text{GrossPay}$.
+  2. Simulasi pemotongan menghasilkan status lolos atau status peringatan batas plafon tercapai.
+* **Bukti verifikasi**: Test case `AT-HRD-DED-01`, UAT skenario `UAT-DED-01`.
+* **Risiko/pemilik**: Take home pay minus; mitigasi: pemblokiran hard-cap 50% di tingkat engine.
+* **Definition of Done**: Engine menolak pemotongan melebihi batas 50% Gross Pay.
+
+### ✅ `BE-HRD-165` — Engine prioritas berjenjang 1-4, pemangkasan parsial & penjadwalan sisa carry-over otomatis ke bulan berikutnya (`DED-B2`, `DED-B3`)
+* **Slice / MVP**: `S-B6` / `MVP-33`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Algoritma alokasi kuota pemotongan berjenjang sesuai hirarki mutlak: Prioritas 1 (Ganti Rugi Kasir/Aset RS) $\rightarrow$ Prioritas 2 (Kasbon Pinjaman RS) $\rightarrow$ Prioritas 3 (Cicilan Koperasi RS) $\rightarrow$ Prioritas 4 (Iuran Paguyuban/Sosial), dengan pemangkasan parsial dan penjadwalan sisa (*carry-over*) otomatis ke bulan berikutnya berstatus `DeferredDueToSalaryCap` tanpa denda bunga.
+* **Requirement/decision**: `HRD-DEC-128`, `02-backend-architecture.md` 24.8 (`DED-B2`, `DED-B3`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Engine")]`.
+* **Reuse**: `TrxPayrollDeductionItem`.
+* **Cakupan**: `PayrollDeductionEngineService.cs` (algoritma alokasi prioritas & carry-over).
+* **Dependency**: `BE-HRD-164`
+* **Acceptance criteria**:
+  1. Pemotongan dialokasikan urut dari prioritas 1 hingga prioritas 4 hingga pagu 50% habis.
+  2. Komponen yang tersisa sebagian dipotong sebagian (`actual_deducted_amount`) dan sisanya ditunda (`deferred_amount`).
+  3. Tagihan tertunda secara otomatis dijadwalkan ulang ke bulan berikutnya tanpa denda bunga (`VR-DED-03`).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-02`, `AT-HRD-DED-03`, `AT-HRD-DED-04`.
+* **Risiko/pemilik**: Koperasi tidak terpotong karena kasbon besar; mitigasi: pencatatan audit log transparan dan penundaan resmi.
+* **Definition of Done**: Hirarki prioritas 1-4 aktif dan otomatisasi carry-over beroperasi aman.
+
+### ✅ `BE-HRD-166` — Layanan evaluasi kuota & sisa plafon tahunan pegawai untuk klaim kacamata/medis di ESS (`VR-DED-10`, `VR-DED-11`)
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Layanan pelacak real-time sisa kuota plafon tahunan pegawai untuk klaim kacamata kerja dan faskes luar darurat berdasarkan riwayat klaim approved tahun berjalan vs batas master per grade.
+* **Requirement/decision**: `HRD-DEC-130`, `02-backend-architecture.md` 24.7 (`VR-DED-10`, `VR-DED-11`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Restitution Claims")]`.
+* **Reuse**: Query agregat histori klaim.
+* **Cakupan**: `RestitutionClaimService.cs` (metode `GetEmployeeRemainingQuotaAsync`).
+* **Dependency**: `BE-HRD-161`, `BE-HRD-162`
+* **Acceptance criteria**:
+  1. Menghitung akumulasi klaim approved per kategori manfaat dalam tahun berjalan.
+  2. Memberikan peringatan saat sisa kuota kacamata $< 20\%$ (`DED-W2`).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-10`, UAT skenario `UAT-DED-03`.
+* **Risiko/pemilik**: Over-claim melebihi plafon; mitigasi: pemblokiran submit di portal ESS jika kuota habis.
+* **Definition of Done**: Sisa kuota plafon terhitung akurat dan tampil di dashboard pegawai.
+
+### ✅ `BE-HRD-167` — Layanan pengajuan klaim restitusi mandiri di portal ESS (filter kuitansi < 60 hari & upload lampiran nota)
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Layanan penerima pengajuan klaim mandiri pegawai di ESS dengan validasi masa kedaluwarsa kuitansi maksimal 60 hari kalender sejak tanggal nota (`VR-DED-09`), validasi upload kuitansi asli, dan flagging darurat medis nakes cito (`IsCitoEmergency`).
+* **Requirement/decision**: `HRD-DEC-130`, `HRD-DEC-133`, `02-backend-architecture.md` 24.8 (`VR-DED-09`, `VR-DED-15`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Restitution Claims")]`.
+* **Reuse**: File storage service.
+* **Cakupan**: `RestitutionClaimService.cs` (metode `SubmitClaimAsync`).
+* **Dependency**: `BE-HRD-166`
+* **Acceptance criteria**:
+  1. Pengajuan kuitansi bertanggal $> 60$ hari kalender ditolak otomatis oleh sistem (HTTP 400).
+  2. Klaim tersimpan dengan status `Submitted` dan nomor klaim unik (`CLM-YYYYMM-XXXXXX`).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-09`, `AT-HRD-DED-11`.
+* **Risiko/pemilik**: Kuitansi palsu/kedaluwarsa; mitigasi: validasi tanggal kuitansi dan kewajiban unggah berkas.
+* **Definition of Done**: Pegawai dapat mengajukan klaim mandiri di ESS dengan validasi ketat.
+
+### ✅ `BE-HRD-168` — Engine alur verifikasi & persetujuan 3-tier klaim restitusi dengan penegakan mutlak anti-self-approval (`DED-B8`)
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Workflow persetujuan 3 tingkat: Tier 1 (Supervisor/Atasan Langsung) $\rightarrow$ Tier 2 (HR C&B Reviewer) $\rightarrow$ Tier 3 (HR Manager Final Approval), dengan penegakan keras aturan anti-self-approval di mana atasan dilarang menyetujui klaimnya sendiri.
+* **Requirement/decision**: `HRD-DEC-130`, `02-backend-architecture.md` 24.8 (`DED-B8`, `VR-DED-08`, `VR-DED-23`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Restitution Claims")]`.
+* **Reuse**: Alur otorisasi approval generic.
+* **Cakupan**: `RestitutionClaimService.cs` (metode `ApproveSupervisorAsync`, `ReviewHrAsync`, `ApproveFinalAsync`).
+* **Dependency**: `BE-HRD-167`
+* **Acceptance criteria**:
+  1. Atasan yang mengajukan klaim tidak dapat menyetujui klaim pribadinya (HTTP 403 Forbidden).
+  2. HR C&B berhak melakukan penyesuaian nominal disetujui (`approved_amount`) dengan catatan alasan.
+  3. Status akhir klaim approved beralih ke `QueuedForPayroll` (atau `VoucherIssued` jika cito).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-12`, `AT-HRD-DED-13`.
+* **Risiko/pemilik**: Fraud klaim staf; mitigasi: 3-tier approval dan anti-self-approval mutlak.
+* **Definition of Done**: Alur persetujuan 3-tier beroperasi aman dan menegakkan pemisahan wewenang.
+
+### ✅ `BE-HRD-169` — Layanan kompensasi salah potong masa lalu tanpa revisi slip final dengan audit link slip asal (`PAY-B6`, `HRD-DEC-131`)
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Layanan penerbitan kompensasi pengembalian dana salah potong gaji periode lampau tanpa merevisi lembar slip gaji final yang telah dibayarkan, menautkan audit link ke slip asal (`affected_payslip_id`), dan mengantrekan uang pengganti ke siklus payroll bulan berjalan.
+* **Requirement/decision**: `HRD-DEC-131`, `02-backend-architecture.md` 24.8 (`DED-B4`, `VR-DED-04`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Restitutions")]`.
+* **Reuse**: Entitas `TrxPayrollRestitution`.
+* **Cakupan**: `RestitutionClaimService.cs` (metode `CreateCorrectionRestitutionAsync`).
+* **Dependency**: `BE-HRD-161`
+* **Acceptance criteria**:
+  1. Slip gaji periode lampau tetap berstatus immutable dan tidak berubah nominalnya (`PAY-B6`).
+  2. Entitas `TrxPayrollRestitution` tipe `SalaryAdjustmentCorrection` terbentuk dengan referensi slip terdampak.
+* **Bukti verifikasi**: Test case `AT-HRD-DED-15`, UAT skenario `UAT-DED-04`.
+* **Risiko/pemilik**: Pengubahan histori slip final; mitigasi: pembukuan kompensasi terpisah pada run aktif.
+* **Definition of Done**: Kompensasi salah potong tercatat resmi tanpa melanggar immutability slip lama.
+
+### ✅ `BE-HRD-170` — Engine injeksi otomatis klaim restitusi approved non-cito ke slip gaji bulanan tgl 25 sebagai komponen non-pajak
+* **Slice / MVP**: `S-B6` / `MVP-34`
+* **Status**: ✅ Selesai (2026-11-06)
+* **Outcome**: Layanan injeksi otomatis seluruh klaim berstatus `QueuedForPayroll` dan restitusi koreksi approved ke dalam lembar kerja siklus penggajian Sub-10 tanggal 25 sebagai komponen penerimaan non-pajak (reimbursement).
+* **Requirement/decision**: `HRD-DEC-130`, `HRD-DEC-131`, `02-backend-architecture.md` 24.8 (`DED-B5`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Restitutions")]`.
+* **Reuse**: Ingestion controller Sub-10.
+* **Cakupan**: `RestitutionClaimService.cs` (metode `IngestApprovedRestitutionsToPayrollAsync`).
+* **Dependency**: `BE-HRD-168`, `BE-HRD-169`
+* **Acceptance criteria**:
+  1. Klaim berstatus `QueuedForPayroll` berubah menjadi `ProcessedInPayroll`.
+  2. Komponen penerimaan slip gaji bertambah dengan kode `REIMBURSEMENT_CLAIM` tanpa menambah DPP PPh 21.
+* **Bukti verifikasi**: Test case `AT-HRD-DED-14`, UAT skenario `UAT-DED-03`.
+* **Risiko/pemilik**: Reimbursement dikenakan pajak; mitigasi: klasifikasi tegas non-objek PPh 21.
+* **Definition of Done**: Klaim approved non-cito otomatis masuk ke slip gaji tgl 25 secara aman.
+
+### ⏳ `BE-HRD-171` — Layanan investigasi keluhan salah potong & rekonsiliasi pengembalian dana bebas PPh 21 (`DED-B5`, `HRD-ASM-33`)
+* **Slice / MVP**: `S-B6` / `MVP-35`
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat BE-HRD-169 telah terpenuhi)
+* **Outcome**: Layanan penanganan tiket keluhan salah potong gaji oleh HR Payroll Officer, pencatatan hasil audit investigasi, verifikasi nominal pengembalian, dan penguncian status bebas pajak PPh 21 pada restitusi adjustment.
+* **Requirement/decision**: `HRD-DEC-131`, `HRD-ASM-33`, `02-backend-architecture.md` 24.8 (`DED-B5`, `VR-DED-05`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Restitutions")]`.
+* **Reuse**: Audit logger.
+* **Cakupan**: `RestitutionClaimService.cs` (metode resolusi tiket keluhan salah potong).
+* **Dependency**: `BE-HRD-169`
+* **Acceptance criteria**:
+  1. Investigasi keluhan merekam bukti telaah payroll officer dan nominal koreksi yang disepakati.
+  2. Komponen penyesuaian diberi tag flag non-pajak PPh 21 (`IsTaxable = false`).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-16`, UAT skenario `UAT-DED-04`.
+* **Risiko/pemilik**: Pajak ganda karyawan; mitigasi: audit tag non-objek pajak.
+* **Definition of Done**: Penanganan keluhan salah potong tuntas dan menghasilkan restitusi non-pajak sah.
+
+### ⏳ `BE-HRD-172` — Layanan penerbitan voucher kasir darurat medis cito nakes ber-token SHA-256 kedaluwarsa 48 jam (`HRD-DEC-133`)
+* **Slice / MVP**: `S-B6` / `MVP-35`
+* **Status**: ⏳ Menunggu `BE-HRD-168`
+* **Outcome**: Layanan penerbitan voucher pencairan kasir tunai 24/7 (`TrxCashierDisbursementVoucher`) untuk klaim darurat medis nakes cito (`IsCitoEmergency = true`) yang disahkan Direktur, dilengkapi token kriptografi SHA-256 satu kali pakai dan masa berlaku tepat 48 jam.
+* **Requirement/decision**: `HRD-DEC-133`, `02-backend-architecture.md` 24.6, 24.8 (`VR-DED-13`, `VR-DED-14`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Cashier Vouchers & Schedules")]`.
+* **Reuse**: SHA-256 token generator.
+* **Cakupan**: `CashierVoucherDisbursementService.cs` (metode `IssueVoucherAsync`).
+* **Dependency**: `BE-HRD-168`
+* **Acceptance criteria**:
+  1. Voucher terbit dengan nomor unik (`VCH-YYYYMM-XXXXXX`) dan masa aktif 48 jam sejak terbit.
+  2. Status klaim terkait berubah menjadi `VoucherIssued`.
+* **Bukti verifikasi**: Test case `AT-HRD-DED-17`, UAT skenario `UAT-DED-05`.
+* **Risiko/pemilik**: Voucher kedaluwarsa; mitigasi: peringatan otomatis jika mendekati 36 jam (`DED-W3`).
+* **Definition of Done**: Voucher kasir cito 48 jam ber-token aman berhasil diterbitkan.
+
+### ⏳ `BE-HRD-173` — Layanan kliring & verifikasi online loket kasir RS 24/7 (`INT-HR-59`) dengan flag anti-bayar ganda (`DisbursedViaCashier`, `DED-B6`)
+* **Slice / MVP**: `S-B6` / `MVP-35`
+* **Status**: ⏳ Menunggu `BE-HRD-172`
+* **Outcome**: Layanan verifikasi dan kliring online voucher di loket Kasir RS 24/7 (`INT-HR-59`), pencatatan nomor kuitansi kasir, pemutakhiran status voucher ke `DisbursedViaCashier`, serta penguncian mutlak agar klaim tidak ditransfer ulang di penggajian bulanan tgl 25.
+* **Requirement/decision**: `HRD-DEC-133`, `02-backend-architecture.md` 24.8 (`DED-B6`, `VR-DED-06`).
+* **Kontrak**: API Contract `v15` `[Tags("HR Deductions - Cashier Vouchers & Schedules")]`.
+* **Reuse**: Integration endpoint Kasir RS.
+* **Cakupan**: `CashierVoucherDisbursementService.cs` (metode `ClaimVoucherAtCashierAsync`).
+* **Dependency**: `BE-HRD-172`
+* **Acceptance criteria**:
+  1. Kasir memvalidasi voucher via token SHA-256; jika valid dan belum expired, uang tunai dicairkan.
+  2. Klaim terkunci permanen dengan flag `DisbursedViaCashier` dan tidak dapat diinjeksi ke payroll (`DED-B6`).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-18`, `AT-HRD-DED-19`, UAT skenario `UAT-DED-05`.
+* **Risiko/pemilik**: Pembayaran ganda kasir dan payroll; mitigasi: hard flag `DisbursedViaCashier`.
+* **Definition of Done**: Kliring kasir sukses dan garansi nol risiko pembayaran ganda ditegakkan.
+
+### ⏳ `BE-HRD-174` — Integrasi pelunasan utang pinjaman pada Exit Clearance pesangon Sub-20 (`INT-HR-60`, `DED-B7`) & webhook callback ke Finance (`INT-HR-58`)
+* **Slice / MVP**: `S-B6` / `MVP-35`
+* **Status**: ⏳ Menunggu `BE-HRD-165`
+* **Outcome**: Layanan rekonsiliasi pelunasan sisa pokok pinjaman pegawai yang resign/PHK pada Final Clearance Payslip dengan pemotongan pesangon hingga 100% (`DED-B7`), penerbitan surat tagihan residu jika pesangon defisit, penahanan pengesahan Exit Clearance Sub-20 hingga lunas (`INT-HR-60`), serta transmisi webhook callback realisasi pemotongan bulanan ke Finance (`INT-HR-58`).
+* **Requirement/decision**: `HRD-DEC-129`, `HRD-DEC-132`, `02-backend-architecture.md` 24.8 (`DED-B7`, `VR-DED-07`, `VR-DED-21`).
+* **Kontrak**: Integration Contract `INT-HR-58`, `INT-HR-60`.
+* **Reuse**: Exit clearance integration client.
+* **Cakupan**: `ExitClearanceReceivableService.cs`, `FinanceDeductionSyncService.cs`.
+* **Dependency**: `BE-HRD-165`
+* **Acceptance criteria**:
+  1. Sisa pinjaman dipotong dari hak pesangon dan cuti pada slip penutupan hingga 100%.
+  2. Webhook callback realisasi pemotongan terkirim ke Modul Finance per tanggal 25 (`INT-HR-58`).
+* **Bukti verifikasi**: Test case `AT-HRD-DED-08`, `AT-HRD-DED-20`.
+* **Risiko/pemilik**: Pegawai keluar membawa sisa utang; mitigasi: penahanan clearance dan tagihan piutang resmi.
+* **Definition of Done**: Rekonsiliasi exit clearance dan callback Finance realisasi berjalan sinkron.
+
+### ⏳ `BE-HRD-175` — Verifikasi ujung-ke-ujung arsitektur QBE, kontrak v15, dan build Slice `S-B6`
+* **Slice / MVP**: `S-B6` / Verifikasi
+* **Status**: ⏳ Menunggu `BE-HRD-165`, `BE-HRD-170`, `BE-HRD-174`
+* **Outcome**: Audit komprehensif kepatuhan arsitektur backend, zero error kompilasi .NET, verifikasi integritas seluruh endpoint Swagger restitusi dan potongan upah, konformansi aturan rekayasa QBE, serta pemenuhan seluruh kriteria Definition of Done Slice `S-B6`.
+* **Requirement/decision**: `HRD-DEC-128` s.d. `HRD-DEC-133`, `04-prd-to-mvp.md` Bagian 29.
+* **Kontrak**: Seluruh kontrak operasional `v15` Slice `S-B6`.
+* **Reuse**: Prosedur audit pre-deploy backend Quilvian.
+* **Cakupan**: Build verification, OpenAPI audit, QBE conformance check.
+* **Dependency**: `BE-HRD-165`, `BE-HRD-170`, `BE-HRD-174`
+* **Acceptance criteria**:
+  1. Solusi `NewQuilvianSystemBackend` berhasil di-build tanpa error (`dotnet build`).
+  2. Seluruh 4 tag grup Swagger restitusi terdaftar dan dapat diakses pada dokumentasi API.
+  3. Konformansi QBE valid (prefix entitas, DI registration, repository pattern).
+* **Bukti verifikasi**: Laporan build bersih, OpenAPI conformance log, laporan audit DoD.
+* **Risiko/pemilik**: Regresi fungsional; mitigasi: full smoke build check.
+* **Definition of Done**: Build backend 100% lulus dan siap untuk integrasi frontend.
+
 
 
 ---
@@ -4695,3 +4996,386 @@ BE-HRD-252 [B62] ──┘
 * **Dependencies**: Seluruh task backend `BE-HRD-238` s.d. `BE-HRD-252`.
 * **Acceptance Criteria**: `dotnet build` lulus 0 error 0 warning kritis; seluruh acceptance criteria 16 task backend terpenuhi; 10 kriteria DoD tercapai.
 * **Verifikasi**: Laporan task tracked `BE-HRD-253.md` dan output terminal dotnet.
+
+
+---
+
+## 19. Rencana Kerja Backend Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)
+
+### 19.1 Grafik Urutan Dependency Backend `S-C3`
+
+#### Grafik B64: Gelombang `MVP-51` (Siklus, Katalog KPI, Cascading Target & Penilaian Berjenjang 60:40)
+```text
+BE-HRD-254 (Skema DB 10 Tabel & Seeding Master) ──> BE-HRD-255 (EF Repositories & UoW) ──> BE-HRD-256 (DTOs & Validation Rules) ──┬──> BE-HRD-257 (Siklus Kinerja PRF-B1) ──> BE-HRD-258 (Cascading Target Sasaran PRF-B2) ──┐
+                                                                                                                                     │                                                                                             ├──> BE-HRD-259 ⏳ (Penilaian Tiga Tingkat 60:40 PRF-B3/B4)
+                                                                                                                                     └──> BE-HRD-260 (Peer Review IDP Sejawat Non-Skor PRF-B5) ───────────────────────────────────┘
+```
+
+#### Grafik B65: Gelombang `MVP-52` (Sidang Pleno Kalibrasi Manajemen & Program Pembinaan Formal PIP 60 Hari)
+```text
+BE-HRD-259 [B64] ──> BE-HRD-261 (Sidang Kalibrasi Guiding Distribution 10-15/70-80/5-10% & Nota PRF-B6) ──> BE-HRD-262 (Kontrak PIP 60 Hari & Logbook Mingguan PRF-B7) ──> BE-HRD-263 ⏳ (Pembekuan Mutasi/Promosi Sub-06 INT-HR-84)
+```
+
+#### Grafik B66: Gelombang `MVP-53` (Clinical Ladder Nakes PK I-V & Saluran Sanggah Banding Nilai)
+```text
+BE-HRD-261 [B65] ──> BE-HRD-264 (Evaluasi Jenjang Klinis PK I-V & Prasyarat Mutu PRF-B8) ──┬──> BE-HRD-265 (Integrasi Sertifikat Sub-16 INT-HR-81 & Bebas Sentinel Sub-15 INT-HR-82) ──> BE-HRD-266 ⏳ (Sinkronisasi SK Jenjang Sub-02/14 INT-HR-83)
+BE-HRD-261 [B65] ──> BE-HRD-267 ⏳ (Tata Kelola Sanggah Banding Nilai SLA 7/14 Hari) ──────┘
+```
+
+#### Grafik B67: Gelombang Verifikasi & Kepatuhan Arsitektur `S-C3`
+```text
+BE-HRD-263 [B65] ──┐
+BE-HRD-266 [B66] ──┼──> BE-HRD-268 (Controller API Kontrak v21 & 6 Background Workers PRF-W1..W6) ──> BE-HRD-269 ⏳ (Validasi Kompilasi .NET, QBE Conformance & Acceptance Tests S-C3)
+BE-HRD-267 [B66] ──┘
+```
+
+```text
+Legenda:
+──>    : Prasyarat langsung (kiri harus selesai sebelum kanan dapat dimulai)
+├──>   : Percabangan dependensi
+[...]  : Cermin task dari grafik gelombang sebelumnya
+â ³    : Task aktif berstatus Menunggu Prasyarat (Waiting Dependencies)
+```
+
+---
+
+### 19.2 Tabel Urutan Gelombang Eksekusi Backend `S-C3`
+
+| Gelombang | ID Task | Nama Task | Prasyarat Langsung | Lingkup Deliverable |
+| :--- | :--- | :--- | :--- | :--- |
+| **`MVP-51`** | `BE-HRD-254` | Migrasi Skema DB 10 Tabel Relasional & Seeding Master KPI/BerAKHLAK | - | EF Core migrations 10 tabel, indeks unik, audit columns, seeding katalog indikator KPI kuantitatif & Core Values BerAKHLAK skala 1-5. |
+| **`MVP-51`** | `BE-HRD-255` | Entity Framework Core Repositories & Unit of Work Performance | `BE-HRD-254` | Antarmuka `IPerformanceRepository`, `IPerformanceUnitOfWork`, konfigurasi DbContext, soft-delete query filter. |
+| **`MVP-51`** | `BE-HRD-256` | DTOs, Object Mapping & Aturan Validasi Request (`VR-PRF-01`..`25`) | `BE-HRD-255` | FluentValidation rules `VR-PRF-01` s.d. `VR-PRF-25`, DTOs request/response Kontrak v21, AutoMapper profiles. |
+| **`MVP-51`** | `BE-HRD-257` | Service Siklus Kinerja, Guard Periode & Validasi Anti-Tumpang-Tindih | `BE-HRD-256` | `PerformanceCycleService`, penegakan aturan `PRF-B1` (anti-overlapping cycle), transisi siklus `Draft` -> `Active` -> `Calibration` -> `Closed`. |
+| **`MVP-51`** | `BE-HRD-258` | Service Cascading Target Sasaran Mutu Unit ke Individu | `BE-HRD-257` | `PerformanceGoalService`, penetapan sasaran kerja cascading dari unit kerja ke pegawai, validasi akumulasi total bobot tepat 100% (`PRF-B2`, `VR-PRF-04`). |
+| **`MVP-51`** | `BE-HRD-259` | Service Evaluasi Tiga Tingkat Berjenjang (Self -> Karu -> Kabid) & Formula Baku 60:40 | `BE-HRD-258`, `BE-HRD-260` | `PerformanceAppraisalService`, alur evaluasi berjenjang tiga tingkat tanpa bypass wewenang (`PRF-B3`), formula baku 60% KPI hasil kerja kuantitatif + 40% perilaku Core Values BerAKHLAK skala 1-5 (`PRF-B4`). |
+| **`MVP-51`** | `BE-HRD-260` | Service Peer Review Sejawat untuk IDP Non-Skor | `BE-HRD-256` | `PerformancePeerReviewService`, fasilitasi umpan balik sejawat anonim/teridentifikasi khusus rekomendasi *Individual Development Plan* tanpa mempengaruhi skor komposit (`PRF-B5`). |
+| **`MVP-52`** | `BE-HRD-261` | Service Sidang Pleno Kalibrasi Manajemen & Guiding Distribution | `BE-HRD-259` | `PerformanceCalibrationService`, konsol sidang pleno kalibrasi, visualisasi sebaran nilai terhadap pedoman fleksibel (*Guiding Distribution* 10-15% A, 70-80% B, 5-10% C/D), kewajiban nota justifikasi tertulis override nilai (`PRF-B6`), dan rilis nilai serentak ke ESS. |
+| **`MVP-52`** | `BE-HRD-262` | Service Program Pembinaan Formal PIP 60 Hari Kalender & Logbook Mingguan | `BE-HRD-261` | `PerformanceImprovementPlanService`, pemicu otomatis PIP untuk skor akhir < 65.00 (`PRF-B7`), penetapan target perbaikan, penugasan mentor, monitoring 8 logbook mingguan, serta sidang putusan kelulusan hari ke-60. |
+| **`MVP-52`** | `BE-HRD-263` | Integrasi Pembekuan Mutasi/Promosi Staf PIP ke Sub-06 (`INT-HR-84`) | `BE-HRD-262` | Publikasi domain event `StaffEnteredPipEvent` (`INT-HR-84`) yang memblokir hak mutasi/promosi di Sub-06, pencatatan event audit `StaffPipSanctionEnforced`, serta pemulihan hak kepegawaian normal via `StaffCompletedPipEvent`. |
+| **`MVP-53`** | `BE-HRD-264` | Service Evaluasi Kenaikan Jenjang Karier Klinis Nakes (Clinical Ladder PK I-V) | `BE-HRD-261` | `ClinicalCareerLadderService`, verifikasi gatekeeper prasyarat administratif skor kinerja tahunan minimal 75.00 ("Baik", `PRF-B8`), pendaftaran asesmen kenaikan jenjang klinis nakes, audit logbook tindakan oleh Komite Keperawatan/Nakes. |
+| **`MVP-53`** | `BE-HRD-265` | Integrasi Prasyarat Mutu Jenjang Klinis ke Sub-16 (`INT-HR-81`) & Sub-15 (`INT-HR-82`) | `BE-HRD-264` | Validasi integrasi sertifikat kompetensi aktif dari Sub-16 (`INT-HR-81`) dan verifikasi bebas kasus pelanggaran sentinel / keselamatan pasien dari Sub-15 (`INT-HR-82`). |
+| **`MVP-53`** | `BE-HRD-266` | Integrasi Sinkronisasi SK Jenjang Baru ke Sub-02 & Sub-14 (`INT-HR-83`) | `BE-HRD-265` | Penerbitan SK Direktur Utama jenjang baru dan sinkronisasi otomatis mutasi tingkat jabatan ke Sub-02 Profil Induk serta pemutakhiran paket kewenangan klinis RKK ke Sub-14 (`INT-HR-83`). |
+| **`MVP-53`** | `BE-HRD-267` | Service Tata Kelola Sanggah Banding Nilai Kinerja SLA 7/14 Hari | `BE-HRD-261` | `PerformanceDisputeService`, penerimaan sanggahan nilai resmi pegawai di ESS dalam SLA maksimal H+7, validasi lampiran bukti pembanding, mediasi klarifikasi HR Performance H+7 kerja, sidang majelis banding Direktur SDM maksimal SLA 14 hari kalender. |
+| **Verifikasi** | `BE-HRD-268` | Controller API Kontrak v21 & Registrasi 6 Background Workers (`PRF-W1`..`W6`) | `BE-HRD-263`, `BE-HRD-266`, `BE-HRD-267` | 4 Controller endpoint Kontrak v21 (24 endpoints), registrasi 6 background workers (`PerformanceCycleStatusTransitionWorker`, `PerformanceGoalLockingWorker`, `PerformanceCalibrationDeadlineWorker`, `PerformancePipMilestoneMonitoringWorker`, `ClinicalCareerLadderExpiryWorker`, `PerformanceDisputeSlaEnforcementWorker`). |
+| **Verifikasi** | `BE-HRD-269` | Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C3` | Seluruh task `BE-HRD-254` s.d. `BE-HRD-268` | Verifikasi `dotnet build`, QBE Preflight Conformance Check, validasi 24 endpoint API Swagger Kontrak v21, eksekusi 22 test case `AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`, dan pemenuhan 10 kriteria DoD. |
+
+---
+
+### 19.3 Rincian Spesifikasi Task Backend `S-C3`
+
+#### â ³ `BE-HRD-254` â€” Migrasi Skema DB 10 Tabel Relasional Performance & Seeding Master Data Katalog KPI / Core Values BerAKHLAK
+* **Slice / MVP**: `S-C3` / `MVP-51`
+* **Status**: â ³ Siap Dikerjakan (Approved Roadmap Rev 19)
+* **Outcome**: Penambahan skema basis data PostgreSQL untuk 10 tabel relasional baru (`mst_kpi_metric_catalogs`, `trx_performance_cycles`, `trx_performance_goals`, `trx_performance_appraisals`, `trx_performance_appraisal_details`, `trx_performance_calibration_sessions`, `trx_performance_improvement_plans`, `trx_performance_pip_action_logs`, `trx_clinical_career_ladder_reviews`, `trx_performance_appraisal_disputes`) dengan Primary Key GUID/UUID, indeks komposit efisien pada pencarian siklus dan pegawai, audit columns lengkap (`created_at`, `created_by`, `updated_at`, `updated_by`, `is_deleted`), konfigurasi Entity Framework Core fluent mapping, serta migration seeding awal master katalog indikator KPI kuantitatif rumah sakit dan 7 butir Core Values BerAKHLAK skala likert 1-5.
+* **Dependencies**: Tidak ada (Task perdana Backend `S-C3`).
+* **Acceptance Criteria**: Migrasi EF Core berhasil dieksekusi tanpa eror; seluruh 10 tabel tercipta di skema PostgreSQL dengan relasi foreign key dan indeks unik yang presisi; data awal Core Values BerAKHLAK ter-seed dengan benar.
+* **Verifikasi**: Laporan task tracked `BE-HRD-254.md` dan log eksekusi migrasi EF Core.
+
+#### â ³ `BE-HRD-255` â€” Entity Framework Core Repositories & Unit of Work Performance Management
+* **Slice / MVP**: `S-C3` / `MVP-51`
+* **Status**: â ³ Menunggu `BE-HRD-254`
+* **Outcome**: Pembangunan lapisan akses data (*data access layer*) terisolasi menggunakan Generic Repository Pattern dan Unit of Work: `IPerformanceCycleRepository`, `IPerformanceGoalRepository`, `IPerformanceAppraisalRepository`, `IPerformanceCalibrationRepository`, `IPerformancePipRepository`, `IClinicalCareerLadderRepository`, `IPerformanceDisputeRepository`, dan `IPerformanceUnitOfWork`. Menerapkan global query filter untuk soft-delete (`is_deleted == false`), transaksi atomik basis data ACID, serta penanganan konkurensi optimistik.
+* **Dependencies**: `BE-HRD-254`
+* **Acceptance Criteria**: Seluruh operasi CRUD beroperasi konsisten; transaksi roll back secara atomik jika terjadi kegagalan penyimpanan data ganda; soft-delete terfilter otomatis pada query pembacaan.
+* **Verifikasi**: Uji isolasi data layer pada laporan task tracked `BE-HRD-255.md`.
+
+#### â ³ `BE-HRD-256` â€” DTOs, Object Mapping & Aturan Validasi Request (`VR-PRF-01` s.d. `VR-PRF-25`)
+* **Slice / MVP**: `S-C3` / `MVP-51`
+* **Status**: â ³ Menunggu `BE-HRD-255`
+* **Outcome**: Pembuatan Data Transfer Objects (DTOs) request dan response sesuai spesifikasi Kontrak API `v21`, konfigurasi AutoMapper profiles, dan implementasi 25 aturan validasi bisnis ketat menggunakan FluentValidation (`VR-PRF-01` s.d. `VR-PRF-25`), mencakup pencegahan tumpang tindih tanggal siklus (`VR-PRF-01`), pembatasan jumlah target sasaran mutu maksimal 10 indikator (`VR-PRF-03`), validasi akumulasi bobot target tepat 100% (`VR-PRF-04`), pembatasan skala likert BerAKHLAK 1-5 (`VR-PRF-08`), batas waktu sanggah banding maksimal 7 hari kalender (`VR-PRF-21`), dan validasi berkas portofolio klinis.
+* **Dependencies**: `BE-HRD-255`
+* **Acceptance Criteria**: Validasi request menolak payload tidak valid dengan kode HTTP 422/400 dan pesan kesalahan terstruktur dalam Bahasa Indonesia baku; mapping DTO ke entitas domain terbebas dari kebocoran properti internal.
+* **Verifikasi**: Unit test validator FluentValidation pada `AT-HRD-PRF-02`, `AT-HRD-PRF-04`.
+
+#### â ³ `BE-HRD-257` â€” Service Siklus Kinerja, Guard Periode & Validasi Anti-Tumpang-Tindih (`PerformanceCycleService` & `PRF-B1`)
+* **Slice / MVP**: `S-C3` / `MVP-51`
+* **Status**: â ³ Menunggu `BE-HRD-256`
+* **Outcome**: Layanan domain pengelolaan siklus evaluasi kinerja berkala rumah sakit (semesteran/tahunan). Mengimplementasikan aturan `PRF-B1` yang mencegah pembukaan dua siklus aktif yang saling tumpang tindih pada rentang tanggal yang sama untuk unit/kelompok pegawai yang sama. Mengatur siklus transisi status siklus (`Draft` -> `Active` -> `Calibration` -> `Closed`, `VR-PRF-02`) dan mengunci pembuatan lembar kerja baru saat siklus telah berstatus `Closed`.
+* **Dependencies**: `BE-HRD-256`
+* **Acceptance Criteria**: Sistem menolak pendaftaran siklus kinerja kedua jika tanggal mulainya berada di dalam rentang siklus yang masih aktif (`VR-PRF-01`); pembukaan dan penutupan siklus mencatat event audit `PerformanceCycleCreated` dan `PerformanceCycleClosed`.
+* **Verifikasi**: Uji fungsional siklus kinerja `AT-HRD-PRF-01`.
+
+#### â ³ `BE-HRD-258` â€” Service Cascading Target Sasaran Mutu Unit ke Individu & Validasi Bobot 100% (`PerformanceGoalService` & `PRF-B2`)
+* **Slice / MVP**: `S-C3` / `MVP-51`
+* **Status**: â ³ Menunggu `BE-HRD-257`
+* **Outcome**: Layanan penetapan dan penurunan sasaran mutu (*cascading performance goals*) dari target indikator kinerja unit kerja/instalasi ke sasaran kerja individu pegawai. Mengimplementasikan aturan `PRF-B2` yang mewajibkan akumulasi bobot target tepat 100.00% sebelum dapat diajukan (*Locking Rule*), pembatasan maksimal 10 butir KPI per pegawai (`VR-PRF-03`), penegakan garis persetujuan atasan langsung (Kepala Ruangan/Kepala Unit), dan pembekuan target pasca disetujui atasan.
+* **Dependencies**: `BE-HRD-257`
+* **Acceptance Criteria**: Pengajuan sasaran kerja ditolak jika akumulasi bobot < 100% atau > 100% (`VR-PRF-04`); persetujuan sasaran oleh atasan langsung mengubah status menjadi `Approved` dan membekukan target dari perubahan sepihak.
+* **Verifikasi**: Uji validasi total bobot target sasaran `AT-HRD-PRF-03`, `AT-HRD-PRF-04`.
+
+#### â ³ `BE-HRD-259` â€” Service Evaluasi Tiga Tingkat Berjenjang (Self -> Karu -> Kabid) & Formula Baku 60:40 (`PerformanceAppraisalService`, `PRF-B3`, `PRF-B4`)
+* **Slice / MVP**: `S-C3` / `MVP-51`
+* **Status**: â ³ Menunggu `BE-HRD-258`, `BE-HRD-260`
+* **Outcome**: Mesin kalkulasi dan orkestrasi penilaian kinerja resmi pegawai rumah sakit. Mengimplementasikan alur penilaian berjenjang tiga tingkat tanpa bypass wewenang (`PRF-B3`): Pegawai mengisi *Self-Assessment*, Kepala Ruangan (Karu) melakukan penilaian utama hasil kerja dan perilaku, dan Kepala Bidang (Kabid) melakukan penelaahan serta persetujuan akhir. Menerapkan formula baku perhitungan nilai komposit (`PRF-B4`): `60% x Skor KPI Hasil Kerja Kuantitatif + 40% x Skor Perilaku Core Values BerAKHLAK (dikonversi ke skala 100)`. Mengelompokkan predikat kinerja (Sangat Baik >= 90, Baik 75-89, Cukup 65-74, Kurang < 65).
+* **Dependencies**: `BE-HRD-258`, `BE-HRD-260`
+* **Acceptance Criteria**: Penilaian atasan ditolak jika pegawai belum menuntaskan self-assessment (`VR-PRF-05`); formula matematis 60% KPI + 40% BerAKHLAK menghasilkan skor komposit yang presisi hingga 2 desimal (`VR-PRF-09`); predikat kinerja terpetakan deterministik.
+* **Verifikasi**: Uji kalkulasi skor komposit 60:40 dan evaluasi berjenjang `AT-HRD-PRF-05`, `AT-HRD-PRF-06`, `AT-HRD-PRF-07`.
+
+#### â ³ `BE-HRD-260` â€” Service Peer Review Sejawat untuk IDP Non-Skor (`PerformancePeerReviewService` & `PRF-B5`)
+* **Slice / MVP**: `S-C3` / `MVP-51`
+* **Status**: â ³ Menunggu `BE-HRD-256`
+* **Outcome**: Layanan pengumpulan umpan balik rekan sejawat setara (*Peer Review 360 Feedback*). Mengimplementasikan aturan `PRF-B5` di mana umpan balik peer review bersifat opsional dan secara ketat difungsikan sebagai bahan rekomendasi rencana pengembangan individu (*Individual Development Plan* - IDP) non-skor, sehingga tidak boleh mempengaruhi atau mendistorsi nilai kuantitatif evaluasi resmi pegawai. Mendukung mode masukan teridentifikasi maupun anonim terproteksi.
+* **Dependencies**: `BE-HRD-256`
+* **Acceptance Criteria**: Rekaman ulasan rekan sejawat berhasil disimpan dan diagregasikan ke laporan IDP; sistem menjamin nilai komposit resmi pegawai 100% murni dihitung dari rasio 60% KPI + 40% BerAKHLAK tanpa campur tangan bobot peer review (`VR-PRF-10`).
+* **Verifikasi**: Uji isolasi peer review dari skor akhir pada `AT-HRD-PRF-08`.
+
+#### â ³ `BE-HRD-261` â€” Service Sidang Pleno Kalibrasi Manajemen & Guiding Distribution (`PerformanceCalibrationService` & `PRF-B6`)
+* **Slice / MVP**: `S-C3` / `MVP-52`
+* **Status**: â ³ Menunggu `BE-HRD-259`
+* **Outcome**: Modul tata kelola sidang pleno kalibrasi manajemen RS tingkat komite/direksi. Menghitung sebaran distribusi predikat nilai aktual seluruh pegawai dan membandingkannya terhadap kurva pedoman sebaran fleksibel (*Guiding Distribution*, `PRF-B6`): Predikat A (Sangat Baik) 10-15%, Predikat B (Baik) 70-80%, dan Predikat C/D (Cukup/Kurang) 5-10%. Mengizinkan penyesuaian (*score override*) oleh komite kalibrasi dengan kewajiban melampirkan nota justifikasi tertulis minimal 50 karakter (`VR-PRF-12`). Menyediakan mekanisme penguncian sesi kalibrasi dan rilis nilai serentak ke portal ESS pegawai.
+* **Dependencies**: `BE-HRD-259`
+* **Acceptance Criteria**: Penyesuaian skor tanpa nota justifikasi ditolak sistem (`VR-PRF-13`); audit trail mencatat nilai awal, nilai kalibrasi, nama penilai, dan isi nota justifikasi secara permanen; pengesahan sidang kalibrasi memicu event `PerformanceScoresReleasedToEss`.
+* **Verifikasi**: Uji konsol kalibrasi dan audit override nilai `AT-HRD-PRF-09`, `AT-HRD-PRF-10`, `AT-HRD-PRF-11`.
+
+#### â ³ `BE-HRD-262` â€” Service Program Pembinaan Formal PIP 60 Hari Kalender & Logbook Mingguan Mentor (`PerformanceImprovementPlanService` & `PRF-B7`)
+* **Slice / MVP**: `S-C3` / `MVP-52`
+* **Status**: â ³ Menunggu `BE-HRD-261`
+* **Outcome**: Layanan otomasi program pembinaan peningkatan kinerja (*Performance Improvement Plan* - PIP) terstruktur 60 hari kalender. Mengimplementasikan aturan `PRF-B7` yang secara otomatis memicu pembukaan kasus PIP formal ketika skor akhir komposit pegawai pasca-kalibrasi berada di bawah ambang minimal 65.00 (`VR-PRF-14`). Mengatur penugasan mentor, pencatatan target perbaikan mingguan, pemantauan 8 logbook mingguan mentor (Minggu 1 s.d. 8), serta sidang evaluasi kelulusan pada hari ke-60 dengan 3 opsi putusan resmi: Lulus (kembali normal), Perpanjangan (maksimal 30 hari), atau Eskalasi HR Hubungan Industrial.
+* **Dependencies**: `BE-HRD-261`
+* **Acceptance Criteria**: Staf dengan skor < 65 otomatis berstatus `EnrolledInPip`; logbook mingguan mewajibkan catatan perkembangan minimal 20 karakter dari mentor (`VR-PRF-15`); sidang hari ke-60 menegakkan putusan resmi.
+* **Verifikasi**: Uji pemicu otomatis PIP dan pencatatan logbook mingguan `AT-HRD-PRF-12`, `AT-HRD-PRF-13`, `AT-HRD-PRF-14`.
+
+#### â ³ `BE-HRD-263` â€” Integrasi Pembekuan Mutasi/Promosi Staf PIP ke Sub-06 Kepegawaian (`INT-HR-84`)
+* **Slice / MVP**: `S-C3` / `MVP-52`
+* **Status**: â ³ Menunggu `BE-HRD-262`
+* **Outcome**: Penegakan pengamanan karir pegawai yang sedang menjalani pembinaan khusus. Mengirimkan domain event `StaffEnteredPipEvent` (`INT-HR-84`) ke Sub-06 Kepegawaian guna mengaktifkan sakelar pembekuan hak mutasi, promosi jabatan, dan kenaikan golongan selama 60 hari masa PIP berjalan (`VR-PRF-16`). Apabila pegawai dinyatakan lulus pada sidang evaluasi hari ke-60, sistem mengirimkan event pemulihan `StaffCompletedPipEvent` untuk membuka kembali hak kepegawaian normal.
+* **Dependencies**: `BE-HRD-262`
+* **Acceptance Criteria**: Pengajuan mutasi/promosi untuk pegawai aktif PIP ditolak otomatis oleh validasi Sub-06; pemulihan status kepegawaian berjalan sinkron pasca kelulusan PIP.
+* **Verifikasi**: Uji integrasi pembekuan hak kepegawaian `INT-HR-84` pada `AT-HRD-PRF-15`.
+
+#### â ³ `BE-HRD-264` â€” Service Evaluasi Kenaikan Jenjang Karier Klinis Nakes (Clinical Ladder PK I-V) & Prasyarat Mutu (`ClinicalCareerLadderService` & `PRF-B8`)
+* **Slice / MVP**: `S-C3` / `MVP-53`
+* **Status**: â ³ Menunggu `BE-HRD-261`
+* **Outcome**: Layanan verifikasi dan tata kelola kenaikan jenjang karier profesional perawat klinis dan nakes (PK I s.d. PK V) berpedoman Permenkes 40/2017. Mengimplementasikan aturan `PRF-B8` yang mewajibkan skor kinerja tahunan minimal 75.00 ("Baik") sebagai gerbang prasyarat administratif (*Administrative Gatekeeper*) sebelum pengajuan dapat diproses lebih lanjut (`VR-PRF-17`). Mengelola alur pendaftaran, penyerahan berkas portofolio logbook tindakan klinis, dan sidang asesmen portofolio oleh panel asesor Komite Keperawatan / Komite Tenaga Kesehatan Lainnya.
+* **Dependencies**: `BE-HRD-261`
+* **Acceptance Criteria**: Permohonan kenaikan jenjang ditolak otomatis jika skor kinerja tahunan terakhir < 75.00 (`VR-PRF-17`); berkas portofolio tindakan klinis tervalidasi lengkap oleh komite.
+* **Verifikasi**: Uji gatekeeper kenaikan jenjang klinis `AT-HRD-PRF-16`, `AT-HRD-PRF-17`.
+
+#### â ³ `BE-HRD-265` â€” Integrasi Prasyarat Mutu Jenjang Klinis ke Sub-16 (`INT-HR-81`) & Sub-15 (`INT-HR-82`)
+* **Slice / MVP**: `S-C3` / `MVP-53`
+* **Status**: â ³ Menunggu `BE-HRD-264`
+* **Outcome**: Penguatan integrasi mutu klinis lintas modul rumah sakit saat evaluasi jenjang karir nakes. Memvalidasi kepemilikan sertifikat pelatihan dan kompetensi aktif (BHD, PPI, Pasien Safety) serta kelulusan ujian OSCE klinis dari Sub-16 Learning & Competency (`INT-HR-81`, `VR-PRF-18`). Memeriksa rekam jejak keselamatan pasien dan memastikan nakes bebas dari keterlibatan kasus insiden keselamatan pasien berkategori Sentinel atau komplikasi mayor dalam 12 bulan terakhir dari Sub-15 OPPE (`INT-HR-82`, `VR-PRF-19`).
+* **Dependencies**: `BE-HRD-264`
+* **Acceptance Criteria**: Pengajuan jenjang klinis ditolak atau dibekukan jika sertifikat wajib Sub-16 telah kedaluwarsa atau tercatat kasus sentinel aktif pada Sub-15.
+* **Verifikasi**: Uji integrasi data prasyarat mutu `INT-HR-81` dan `INT-HR-82` pada `AT-HRD-PRF-18`, `AT-HRD-PRF-19`.
+
+#### â ³ `BE-HRD-266` â€” Integrasi Sinkronisasi SK Jenjang Baru ke Sub-02 & Sub-14 (`INT-HR-83`)
+* **Slice / MVP**: `S-C3` / `MVP-53`
+* **Status**: â ³ Menunggu `BE-HRD-265`
+* **Outcome**: Otomasi mutasi data pasca penetapan Surat Keputusan (SK) Kenaikan Jenjang Karier Klinis oleh Direktur Utama RS. Menerbitkan nomor SK resmi, mencatat riwayat kenaikan jenjang (`VR-PRF-20`), menyinkronkan pembaruan tingkat jenjang klinis ke Sub-02 Profil Induk Kepegawaian (`INT-HR-83`), serta memicu pemutakhiran paket kewenangan klinis (RKK) yang berlaku pada SIMRS EMR melalui Sub-14 Kredensialing.
+* **Dependencies**: `BE-HRD-265`
+* **Acceptance Criteria**: Pengesahan SK Direktur Utama secara atomik memperbarui jenjang kepegawaian di profil nakes dan membuka akses kewenangan klinis baru di SIMRS.
+* **Verifikasi**: Uji sinkronisasi SK jenjang klinis baru `INT-HR-83` pada `AT-HRD-PRF-20`.
+
+#### â ³ `BE-HRD-267` â€” Service Tata Kelola Sanggah Banding Nilai Kinerja SLA 7/14 Hari (`PerformanceDisputeService`)
+* **Slice / MVP**: `S-C3` / `MVP-53`
+* **Status**: â ³ Menunggu `BE-HRD-261`
+* **Outcome**: Layanan penanganan keberatan dan sanggah banding nilai kinerja resmi pegawai (`trx_performance_appraisal_disputes`). Menegakkan batas waktu pengajuan sanggahan maksimal 7 hari kalender pasca rilis nilai di ESS (`VR-PRF-21`), validasi lampiran dokumen bukti pembanding (`VR-PRF-22`), alur mediasi tertutup klarifikasi oleh HR Performance dalam 7 hari kerja (`VR-PRF-23`), serta penegakan batas waktu penerbitan putusan final majelis banding Direktur SDM maksimal 14 hari kalender sejak berkas diregistrasi (`VR-PRF-24`).
+* **Dependencies**: `BE-HRD-261`
+* **Acceptance Criteria**: Pengajuan sanggahan melewati batas H+7 ditolak otomatis oleh sistem; status lembar penilaian terkunci sementara `Disputed` selama proses mediasi berlangsung; putusan majelis banding bersifat final dan mengikat.
+* **Verifikasi**: Uji SLA sanggah banding dan putusan majelis `AT-HRD-PRF-21`, `AT-HRD-PRF-22`.
+
+#### â ³ `BE-HRD-268` â€” Controller API Kontrak v21 (4 Grup Tag Swagger, 24 Endpoints) & Registrasi 6 Background Workers (`PRF-W1`..`PRF-W6`)
+* **Slice / MVP**: `S-C3` / Verifikasi
+* **Status**: â ³ Menunggu `BE-HRD-263`, `BE-HRD-266`, `BE-HRD-267`
+* **Outcome**: Implementasi seluruh 24 endpoint API pada 4 Controller ASP.NET Core beranotasi Swagger `[Tags("HRD - ...")]` sesuai Kontrak `v21`, penegakan atribut otorisasi 14 permission persis (`Permissions.Hrd.Performance.*`), pencatatan 14 action audit trails, serta registrasi 6 background workers berbasis `BackgroundService` (`PerformanceCycleStatusTransitionWorker`, `PerformanceGoalLockingWorker`, `PerformanceCalibrationDeadlineWorker`, `PerformancePipMilestoneMonitoringWorker`, `ClinicalCareerLadderExpiryWorker`, `PerformanceDisputeSlaEnforcementWorker`).
+* **Dependencies**: `BE-HRD-263`, `BE-HRD-266`, `BE-HRD-267`.
+* **Acceptance Criteria**: Seluruh 24 endpoint API terdaftar rapi pada Swagger UI dengan skema DTO yang valid; 6 background workers berjalan terisolasi di background sesuai jadwal cron/interval tanpa mengganggu alur HTTP request.
+* **Verifikasi**: Uji kontrak API Swagger dan registrasi DI background service pada laporan task `BE-HRD-268.md`.
+
+#### â ³ `BE-HRD-269` â€” Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C3`
+* **Slice / MVP**: `S-C3` / Verifikasi
+* **Status**: â ³ Menunggu Seluruh Task `BE-HRD-254` s.d. `BE-HRD-268`
+* **Outcome**: Verifikasi kompilasi bersih aplikasi .NET (`dotnet build`) tanpa error, audit konformansi arsitektur QBE Preflight (`tooling/qbe/Invoke-QbeConformanceCheck.ps1`), validasi kepatuhan 24 endpoint API Swagger Kontrak `v21`, serta eksekusi lengkap 22 skenario pengujian penerimaan `AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`.
+* **Dependencies**: Seluruh task backend `BE-HRD-254` s.d. `BE-HRD-268`.
+* **Acceptance Criteria**: `dotnet build` lulus 0 error 0 warning kritis; seluruh acceptance criteria 16 task backend terpenuhi; 10 kriteria DoD tercapai.
+* **Verifikasi**: Laporan task tracked `BE-HRD-269.md` dan output terminal dotnet.
+
+
+---
+
+## 20. Rencana Kerja Backend Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 20.1 Grafik Urutan Dependency Backend `S-C5`
+
+#### Grafik B68: Gelombang `MVP-54` (Skema Data, Tata Kelola Disiplin, Filter Just Culture KMKP & Sanksi SP PP 35/2021)
+```text
+BE-HRD-270 (Skema DB 10 Tabel & Migrasi EF Core) ──> BE-HRD-271 (EF Repositories & UoW) ──> BE-HRD-272 (DTOs & FluentValidation VR-EMP) ──┬──> BE-HRD-273 (Insiden Disiplin & Just Culture INT-HR-86) ──> BE-HRD-274 (Sidang BAP & Pembelaan Staf) ──> BE-HRD-275 (Penerbitan SP 1-3 Masa 6 Bulan PP 35/2021)
+                                                                                                                                              └──> BE-HRD-276 ⏳ (Worker Kedaluwarsa SP H+180 Hari EMP-W1)
+```
+
+#### Grafik B69: Gelombang `MVP-55` (Skorsing Upah Penuh, Pembekuan Akses SIMRS, Kanal Pengaduan Staf, Whistleblowing Rahasia & Forum Bipartit)
+```text
+BE-HRD-275 [B68] ──┬──> BE-HRD-277 (Skorsing Upah Penuh Paid Suspension & Revokasi SIMRS INT-HR-88) ──> BE-HRD-278 (Worker Durasi Maks 6 Bulan EMP-W2)
+                   ├──> BE-HRD-279 (Kanal Grievance ESS & Worker SLA Mediasi 14 Hari EMP-W3)
+                   ├──> BE-HRD-280 (Whistleblower Terenkripsi Asimetris & Isolasi RBAC Kepatuhan)
+                   └──> BE-HRD-281 ⏳ (Notulen Sidang & Naskah Perjanjian Bersama PB Bipartit)
+```
+
+#### Grafik B70: Gelombang `MVP-56` (Pemutusan Kerja PHK, Kalkulator Pesangon PP 35/2021 & Exit Clearance Multi-Departemen Pemblokir Payroll)
+```text
+BE-HRD-277 [B69] ──┬──> BE-HRD-282 (Pengajuan PHK/Resign 30 Hari & Radar Kontrak PKWT EMP-W4) ──> BE-HRD-283 (Kalkulator Pesangon PP 35/2021 & Approval CFO)
+                   └──> BE-HRD-284 ⏳ (Pusat Kendali Exit Clearance 5 Unit & Worker Pengingat Kliring EMP-W5)
+```
+
+#### Grafik B71: Gelombang Verifikasi & Uji Integrasi End-to-End
+```text
+BE-HRD-283 [B70] ──┬──> BE-HRD-285 ⏳ (Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final INT-HR-87 & Verifikasi E2E)
+BE-HRD-284 [B70] ──┘
+```
+
+---
+
+### 20.2 Tabel Urutan Gelombang Eksekusi Backend `S-C5`
+
+| Gelombang Eksekusi | Task ID | Deskripsi Singkat Pekerjaan Backend | Prasyarat (Dependencies) | Target MVP |
+|---|---|---|---|---|
+| **Gelombang 1** | `BE-HRD-270` | DDL 10 Tabel Postgres & Migrasi EF Core `20261106_AddEmployeeRelationAndExitClearance` | None | `MVP-54` |
+| **Gelombang 1** | `BE-HRD-271` | EF Core Repositories & Unit of Work Context Hubungan Industrial & Exit Clearance | `BE-HRD-270` | `MVP-54` |
+| **Gelombang 1** | `BE-HRD-272` | DTOs Request/Response, Model Mapping & FluentValidation Rules (`VR-EMP-01` s.d. `VR-EMP-10`) | `BE-HRD-271` | `MVP-54` |
+| **Gelombang 2** | `BE-HRD-273` | Service Laporan Insiden Disiplin, Filter Just Culture RS & Integrasi KMKP (`INT-HR-86`) | `BE-HRD-272` | `MVP-54` |
+| **Gelombang 2** | `BE-HRD-274` | Service Sidang Pemeriksaan Berita Acara Pemeriksaan (BAP) Disiplin & Pembelaan Staf | `BE-HRD-273` | `MVP-54` |
+| **Gelombang 2** | `BE-HRD-275` | Service Penerbitan Sanksi SP 1-3 Masa Berlaku 6 Bulan PP 35/2021 & Sanggah Banding | `BE-HRD-274` | `MVP-54` |
+| **Gelombang 2** | `BE-HRD-276` | Background Worker `DisciplinarySanctionExpiryWorker` (`EMP-W1`) Pembersihan SP H+180 | `BE-HRD-275` | `MVP-54` |
+| **Gelombang 3** | `BE-HRD-277` | Service Skorsing Upah Penuh (*Paid Suspension*) & Event Pembekuan Akses SIMRS (`INT-HR-88`) | `BE-HRD-275` | `MVP-55` |
+| **Gelombang 3** | `BE-HRD-278` | Background Worker `SuspensionPeriodMonitoringWorker` (`EMP-W2`) Batas Maksimal 6 Bulan | `BE-HRD-277` | `MVP-55` |
+| **Gelombang 3** | `BE-HRD-279` | Service Kanal Pengaduan Staf (Grievance ESS) & Worker Pemantauan SLA 14 Hari (`EMP-W3`) | `BE-HRD-275` | `MVP-55` |
+| **Gelombang 3** | `BE-HRD-280` | Service Whistleblowing Rahasia Terenkripsi Asimetris & Isolasi RBAC Kepatuhan | `BE-HRD-275` | `MVP-55` |
+| **Gelombang 3** | `BE-HRD-281` | Service Notulen & Dokumentasi Forum Bipartit RS (LKS Bipartit / Serikat Pekerja) | `BE-HRD-275` | `MVP-55` |
+| **Gelombang 4** | `BE-HRD-282` | Service Pengajuan Terminasi (Resign 30 Hari, Kontrak, Pensiun, SP3) & Radar Kontrak `EMP-W4`| `BE-HRD-277` | `MVP-56` |
+| **Gelombang 4** | `BE-HRD-283` | Calculation Engine Hak Kompensasi Pesangon PP 35/2021 (UP, UPMK, UPH) & Approval CFO | `BE-HRD-282` | `MVP-56` |
+| **Gelombang 4** | `BE-HRD-284` | Service Pusat Kendali Exit Clearance 5 Departemen & Worker Pengingat Kliring `EMP-W5` | `BE-HRD-282` | `MVP-56` |
+| **Verifikasi** | `BE-HRD-285` | Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final `INT-HR-87` & Audit E2E | `BE-HRD-283`, `BE-HRD-284` | Verifikasi |
+
+---
+
+### 20.3 Rincian Spesifikasi Task Backend `S-C5`
+
+#### ⏳ `BE-HRD-270` — DDL Basis Data PostgreSQL 10 Tabel & Migrasi EF Core Hubungan Industrial & Exit Clearance
+* **Slice / MVP**: `S-C5` / `MVP-54`
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat terpenuhi)
+* **Outcome**: Penambahan 10 tabel relasional skema PostgreSQL (`trx_disciplinary_incident_reports`, `trx_disciplinary_investigation_records`, `trx_disciplinary_sanctions`, `trx_disciplinary_suspensions`, `trx_employee_grievances`, `trx_bipartite_negotiation_forums`, `trx_employee_separations`, `trx_severance_calculations`, `trx_exit_clearance_processes`, `trx_exit_clearance_checklists`). Migrasi EF Core `20261106_AddEmployeeRelationAndExitClearance` terkompilasi bersih tanpa peringatan skema, lengkap dengan indeks performa pencarian nomor sanksi, tiket pengaduan, dan status clearance.
+* **Dependencies**: None
+* **Acceptance Criteria**: Seluruh 10 tabel terbuat di PostgreSQL dengan kolom tipe data, primary key UUID, foreign key ke profil pegawai Sub-02, audit trails, dan indeks komposit yang tepat.
+* **Verifikasi**: `dotnet ef migrations add` dan review file migrasi C#.
+
+#### ⏳ `BE-HRD-271` — Implementasi EF Core Repositories & Unit of Work Bounded Context Hubungan Industrial
+* **Slice / MVP**: `S-C5` / `MVP-54`
+* **Status**: ⏳ Menunggu `BE-HRD-270`
+* **Outcome**: Implementasi pola Repository dan Unit of Work untuk entitas disiplin, skorsing, pengaduan, forum bipartit, pemutusan hubungan kerja, kalkulasi pesangon, dan proses exit clearance. Mengonfigurasi entity mapping pada DbContext dengan `AsNoTracking` untuk operasi query berkecepatan tinggi.
+* **Dependencies**: `BE-HRD-270`
+* **Acceptance Criteria**: Seluruh interface repository (`IDisciplinaryIncidentRepository`, `ISanctionRepository`, `ISeparationRepository`, `IExitClearanceRepository`) terdaftar di DI container ASP.NET Core.
+* **Verifikasi**: Uji dependency injection pada startup backend.
+
+#### ⏳ `BE-HRD-272` — DTOs, FluentValidation Rules (`VR-EMP-01` s.d. `VR-EMP-10`) & Model Mapping
+* **Slice / MVP**: `S-C5` / `MVP-54`
+* **Status**: ⏳ Menunggu `BE-HRD-271`
+* **Outcome**: Implementasi seluruh Request DTO dan Response DTO untuk 24 endpoint Kontrak API `v22`, kelas profile AutoMapper/Mapster, serta validator FluentValidation yang menegakkan aturan bisnis `VR-EMP-01` s.d. `VR-EMP-10` (validasi kelengkapan form insiden, filter nomor audit KMKP untuk insiden medis, pencegahan SP atas kategori Human Error, validasi tim pemeriksa BAP, dan perhitungan kedaluwarsa SP tepat 6 bulan kalender).
+* **Dependencies**: `BE-HRD-271`
+* **Acceptance Criteria**: Request invalid menghasilkan HTTP 422 Unprocessable Entity dengan rincian pesan kesalahan validasi yang informatif.
+* **Verifikasi**: Uji validasi input payload DTO.
+
+#### ⏳ `BE-HRD-273` — Service Pelaporan Insiden Disiplin, Filter Just Culture RS & Integrasi KMKP (`DisciplinaryIncidentService` & `INT-HR-86`)
+* **Slice / MVP**: `S-C5` / `MVP-54`
+* **Status**: ⏳ Menunggu `BE-HRD-272`
+* **Outcome**: Layanan pencatatan insiden pelanggaran tata tertib kerja dengan filter prinsip *Just Culture* rumah sakit. Mengimplementasikan aturan `EMP-B2` yang menghubungkan laporan insiden pelayanan medis pasien dengan nomor registrasi audit klinis KMKP Sub-15 (`INT-HR-86`). Menegakkan larangan penjatuhan sanksi SP untuk kategori *Human Error* dan mengalihkan tindakan ke modul pembinaan/diklat Sub-16.
+* **Dependencies**: `BE-HRD-272`
+* **Acceptance Criteria**: Insiden klinis tanpa nomor audit KMKP sah ditolak otomatis (`VR-EMP-02`); insiden berstatus *Human Error* diblokir dari proses penerbitan sanksi SP (`VR-EMP-03`).
+* **Verifikasi**: Uji alur Just Culture `AT-HRD-EMP-01`, `AT-HRD-EMP-02`, `AT-HRD-EMP-03`.
+
+#### ⏳ `BE-HRD-274` — Service Sidang Pemeriksaan Berita Acara Pemeriksaan (BAP) Disiplin & Pembelaan Staf (`DisciplinaryInvestigationService`)
+* **Slice / MVP**: `S-C5` / `MVP-54`
+* **Status**: ⏳ Menunggu `BE-HRD-273`
+* **Outcome**: Layanan digitalisasi administrasi Berita Acara Pemeriksaan (BAP). Mengelola penjadwalan sidang klarifikasi, pencatatan daftar nama pemeriksa independen (minimal 2 orang sesuai `VR-EMP-04`), rangkuman kesaksian saksi, unggah berkas bukti fisik/digital, pencatatan lembar pembelaan tertulis staf terperiksa (`VR-EMP-05`), serta perumusan kesimpulan rekomendasi tindakan hukum disiplin.
+* **Dependencies**: `BE-HRD-273`
+* **Acceptance Criteria**: Dokumen BAP tersimpan rapi dengan nomor unik `BAP-...`, status transisi dari `Draft` ke `ApprovedByHrDirector` berjalan sesuai state machine.
+* **Verifikasi**: Uji sidang BAP pada `AT-HRD-EMP-04`.
+
+#### ⏳ `BE-HRD-275` — Service Penerbitan Sanksi Surat Peringatan (SP 1-3 Masa 6 Bulan PP 35/2021) & Sanggah Banding (`DisciplinarySanctionService` & `EMP-B1`)
+* **Slice / MVP**: `S-C5` / `MVP-54`
+* **Status**: ⏳ Menunggu `BE-HRD-274`
+* **Outcome**: Layanan penerbitan Surat Peringatan bertingkat (Teguran Lisan maks 3 bulan, SP 1, SP 2, SP 3). Menegakkan formula tanggal kedaluwarsa tepat 6 bulan kalender (`ValidUntil = IssuedDate + 6 Months`) sesuai Pasal 52 PP No. 35 Tahun 2021 (`EMP-B1`, `VR-EMP-06`). Mengatur kenaikan sanksi berjenjang (`VR-EMP-08`), jalur cepat penerbitan langsung SP 3 untuk pelanggaran berat berizin Direktur SDM (`VR-EMP-09`), pencatatan arsip permanen ke e-Dossier Sub-02 (`INT-HR-85`), serta memfasilitasi pengajuan sanggah banding tertulis maksimal 7 hari kerja (`VR-EMP-10`).
+* **Dependencies**: `BE-HRD-274`
+* **Acceptance Criteria**: `ValidUntil` tercatat tepat 6 bulan kalender dari tanggal penerbitan; riwayat sanksi tersinkronkan ke profil e-Dossier Sub-02 (`INT-HR-85`).
+* **Verifikasi**: Uji penerbitan sanksi SP dan banding `AT-HRD-EMP-05`, `AT-HRD-EMP-08`, `AT-HRD-EMP-09`, `AT-HRD-EMP-10`.
+
+#### ⏳ `BE-HRD-276` — Background Worker `DisciplinarySanctionExpiryWorker` (`EMP-W1`) Pembersihan SP H+180 Hari & Notifikasi H-14
+* **Slice / MVP**: `S-C5` / `MVP-54`
+* **Status**: ⏳ Menunggu `BE-HRD-275`
+* **Outcome**: Layanan background terjadwal harian (`DisciplinarySanctionExpiryWorker`). Memindai sanksi SP berstatus `Active` yang telah mencapai tanggal kedaluwarsa (`ValidUntil`), mengubah statusnya menjadi `Expired` secara otomatis pada H+180, serta mengirimkan notifikasi peringatan H-14 sebelum berakhirnya masa sanksi kepada pegawai dan atasan langsung.
+* **Dependencies**: `BE-HRD-275`
+* **Acceptance Criteria**: Status SP aktif tepat berubah menjadi `Expired` pada tanggal jatuh tempo; status disiplin pegawai kembali bersih tanpa menghilangkan arsip audit.
+* **Verifikasi**: Uji worker kedaluwarsa sanksi pada `AT-HRD-EMP-06`, `AT-HRD-EMP-07`.
+
+#### ⏳ `BE-HRD-277` — Service Skorsing Upah Penuh (*Paid Suspension* 100% Upah) & Event Pembekuan Akses SIMRS (`INT-HR-88`)
+* **Slice / MVP**: `S-C5` / `MVP-55`
+* **Status**: ⏳ Menunggu `BE-HRD-275`
+* **Outcome**: Layanan penetapan skorsing investigasi pegawai menuju PHK. Menegakkan kepatuhan Pasal 157A UU Ketenagakerjaan bahwa upah pokok dan tunjangan tetap wajib dibayarkan 100% (`wage_payment_status = 'PaidFull'`, `VR-EMP-12`). Menerbitkan domain event `INT-HR-88` (`AccessRevocationRequestedEvent`) ke subsistem IAM/Keycloak SSO SIMRS untuk memutus sesi aktif login EMR/PACS dan menonaktifkan kartu tanda pengenal fisik (*smart card*) akses fasilitas rumah sakit secara instan (`VR-EMP-13`).
+* **Dependencies**: `BE-HRD-275`
+* **Acceptance Criteria**: Surat skorsing terbit dengan batas maksimal 6 bulan; event revokasi SIMRS terbit seketika; hak gaji pokok di Sub-10 tetap berjalan penuh.
+* **Verifikasi**: Uji paid suspension dan revokasi akses SIMRS `AT-HRD-EMP-11`, `AT-HRD-EMP-12`.
+
+#### ⏳ `BE-HRD-278` — Background Worker `SuspensionPeriodMonitoringWorker` (`EMP-W2`) Batas Maksimal 6 Bulan Skorsing
+* **Slice / MVP**: `S-C5` / `MVP-55`
+* **Status**: ⏳ Menunggu `BE-HRD-277`
+* **Outcome**: Layanan pemantauan durasi skorsing investigasi harian (`SuspensionPeriodMonitoringWorker`). Menghitung selisih hari berjalan sejak skorsing dimulai. Pada hari ke-150 (H-30 dari batas maksimal 180 hari / 6 bulan), worker menerbitkan alert eskalasi prioritas tinggi kepada Direktur Utama dan Direktur SDM untuk segera menetapkan keputusan sidang akhir (rehabilitasi atau penetapan PHK resmi).
+* **Dependencies**: `BE-HRD-277`
+* **Acceptance Criteria**: Alert eskalasi terbit otomatis pada hari ke-150; mencegah pelanggaran hukum akibat skorsing berlarut-larut melebihi 6 bulan kalender.
+* **Verifikasi**: Uji threshold durasi skorsing pada unit test worker.
+
+#### ⏳ `BE-HRD-279` — Service Kanal Pengaduan Staf (Grievance ESS) & Worker Pemantauan SLA 14 Hari (`EMP-W3`)
+* **Slice / MVP**: `S-C5` / `MVP-55`
+* **Status**: ⏳ Menunggu `BE-HRD-275`
+* **Outcome**: Layanan penanganan keluhan hubungan kerja harian pegawai (*Grievance*) melalui portal ESS. Mengatur registrasi tiket keluhan, perutean ke atasan langsung, pencatatan hasil klarifikasi dan notulen mediasi damai. Didukung background worker `GrievanceSlaEscalationWorker` (`EMP-W3`) yang memantau batas waktu penyelesaian maksimal 14 hari kerja (`VR-EMP-14`) dan mengeskalasikan tiket ke Kepala Bagian SDM jika melewati batas waktu tanpa tanggapan.
+* **Dependencies**: `BE-HRD-275`
+* **Acceptance Criteria**: Tiket keluhan terdaftar dengan SLA target 14 hari kerja; eskalasi otomatis berjalan saat supervisor tidak menanggapi dalam 7 hari kerja.
+* **Verifikasi**: Uji alur tiket keluhan dan eskalasi SLA `AT-HRD-EMP-13`.
+
+#### ⏳ `BE-HRD-280` — Service Whistleblowing Rahasia Terenkripsi Asimetris & Isolasi RBAC Kepatuhan (`WhistleblowerCaseService` & `EMP-B3`)
+* **Slice / MVP**: `S-C5` / `MVP-55`
+* **Status**: ⏳ Menunggu `BE-HRD-275`
+* **Outcome**: Layanan pelaporan dugaan kecurangan (fraud pengadaan, gratifikasi farmasi, pelecehan seksual, manipulasi rekam medis) yang aman dan berkeadilan. Menerapkan enkripsi asimetris pada payload laporan (`VR-EMP-15`), mendukung opsi pelaporan anonim total, serta menerapkan filter otorisasi ketat di mana atasan langsung pihak terlapor dilarang keras membuka tiket (`VR-EMP-16`, RBAC `Hrd.Disciplinary.WhistleblowerReview`).
+* **Dependencies**: `BE-HRD-275`
+* **Acceptance Criteria**: Laporan whistleblower tersimpan dalam format terenkripsi; pengguna tanpa wewenang khusus Kepatuhan menerima HTTP 403 Forbidden saat mengakses.
+* **Verifikasi**: Uji enkripsi payload dan isolasi akses `AT-HRD-EMP-14`, `AT-HRD-EMP-15`.
+
+#### ⏳ `BE-HRD-281` — Service Dokumentasi & Risalah Perundingan Forum Bipartit RS (LKS Bipartit / Serikat Pekerja)
+* **Slice / MVP**: `S-C5` / `MVP-55`
+* **Status**: ⏳ Menunggu `BE-HRD-275`
+* **Outcome**: Layanan administrasi forum perundingan Bipartit rumah sakit. Mengelola pendaftaran agenda perselisihan (hak, kepentingan, PHK), pencatatan daftar hadir perwakilan manajemen dan perwakilan pekerja (`VR-EMP-17`), notulen resmi jalannya rapat (*Minutes of Meeting*), serta pengunggahan berkas digital naskah Perjanjian Bersama (PB) berformat PDF yang berkekuatan hukum (`VR-EMP-18`).
+* **Dependencies**: `BE-HRD-275`
+* **Acceptance Criteria**: Berkas Bipartit tersimpan dengan nomor register resmi; naskah Perjanjian Bersama terarsip aman sebagai referensi hukum hubungan industrial.
+* **Verifikasi**: Uji registrasi forum Bipartit pada `AT-HRD-EMP-16`.
+
+#### ⏳ `BE-HRD-282` — Service Pengajuan Terminasi (Resign 30 Hari, Kontrak, Pensiun, SP3) & Radar Kontrak `EMP-W4`
+* **Slice / MVP**: `S-C5` / `MVP-56`
+* **Status**: ⏳ Menunggu `BE-HRD-277`
+* **Outcome**: Layanan registrasi pengakhiran ikatan kerja pegawai untuk berbagai alasan (pengunduran diri sukarela dengan validasi pemberitahuan minimal 30 hari kalender sesuai `VR-EMP-19`, berakhirnya masa kontrak PKWT, pensiun normal, pelanggaran disiplin SP 3, pelanggaran berat mendesak, atau meninggal dunia). Terintegrasi dengan background worker `PkwtContractExpiryRadarWorker` (`EMP-W4`) yang memindai masa kontrak PKWT pada H-60 dan H-30.
+* **Dependencies**: `BE-HRD-277`
+* **Acceptance Criteria**: Pengajuan resign sukarela < 30 hari ditolak validasi; worker memindai kontrak PKWT yang akan habis dan menerbitkan notifikasi evaluasi.
+* **Verifikasi**: Uji validasi pengajuan terminasi `AT-HRD-EMP-17`.
+
+#### ⏳ `BE-HRD-283` — Calculation Engine Kompensasi Hak Pesangon PP 35/2021 (UP, UPMK, UPH) & Approval CFO (`SeveranceCalculationEngine`)
+* **Slice / MVP**: `S-C5` / `MVP-56`
+* **Status**: ⏳ Menunggu `BE-HRD-282`
+* **Outcome**: Mesin kalkulasi kompensasi terminasi deterministik berbasis matriks alasan PHK regulasi PP No. 35 Tahun 2021. Menarik masa kerja riil secara otomatis dari tanggal mulai kerja sah (`HireDate`) di profil pegawai Sub-02 (`VR-EMP-20`). Menghitung Uang Pesangon (UP), Uang Penghargaan Masa Kerja (UPMK), Uang Penggantian Hak cuti tahunan aktif (`VR-EMP-22`), Uang Pisah, dan kompensasi PKWT proporsional `(Bulan/12) x Upah` (`VR-EMP-21`). Mengunci rincian lembar pesangon hingga disetujui resmi oleh Direktur Keuangan (`VR-EMP-23`).
+* **Dependencies**: `BE-HRD-282`
+* **Acceptance Criteria**: Komponen pesangon terhitung akurat sesuai formula regulasi PP 35/2021; lembar pesangon terkunci dan dilarang disinkronkan ke payroll tanpa persetujuan Direktur Keuangan.
+* **Verifikasi**: Uji formula pesangon dan kompensasi PKWT `AT-HRD-EMP-18`, `AT-HRD-EMP-19`, `AT-HRD-EMP-20`.
+
+#### ⏳ `BE-HRD-284` — Service Pusat Kendali Exit Clearance 5 Departemen & Worker Pengingat Kliring `EMP-W5`
+* **Slice / MVP**: `S-C5` / `MVP-56`
+* **Status**: ⏳ Menunggu `BE-HRD-282`
+* **Outcome**: Layanan pengendalian proses exit clearance lintas departemen. Membuka berkas kliring digital yang memuat butir checklist dari 5 departemen (Unit Kerja, Umum/Aset, Farmasi/Alkes, Keuangan, IT) sesuai `VR-EMP-24`. Mengelola pencatatan serah terima fisik barang dan sisa piutang. Didukung background worker `ExitClearanceChecklistReminderWorker` (`EMP-W5`) yang mengirimkan notifikasi pengingat harian ke departemen yang masih pending menjelang tanggal efektif pengunduran diri.
+* **Dependencies**: `BE-HRD-282`
+* **Acceptance Criteria**: Seluruh butir checklist 5 departemen tercatat; pengingat otomatis terkirim ke verifikator departemen yang belum memberikan persetujuan.
+* **Verifikasi**: Uji inisiasi dan persetujuan checklist pada `AT-HRD-EMP-21`.
+
+#### ⏳ `BE-HRD-285` — Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final Sub-10 (`INT-HR-87`), Worker Penutupan IAM `EMP-W6` & Audit Verifikasi E2E
+* **Slice / MVP**: `S-C5` / Verifikasi
+* **Status**: ⏳ Menunggu `BE-HRD-283`, `BE-HRD-284`
+* **Outcome**: Implementasi seluruh 24 endpoint API pada 5 Controller ASP.NET Core beranotasi Swagger `[Tags("Corporate - HRD ...")]` sesuai Kontrak API `v22`. Mengimplementasikan service provider gerbang `IExitClearanceStatusProvider` yang secara ketat memblokir tombol rilis gaji terakhir (*final settlement run*) dan transfer dana pesangon di Sub-10 Payroll sebelum exit clearance berstatus `Completed` (`INT-HR-87`, `VR-EMP-25`). Mengonfigurasi worker `ItAccessRevocationSyncWorker` (`EMP-W6`) serta melakukan audit verifikasi kompilasi `dotnet build` dan kepatuhan QBE Conformance.
+* **Dependencies**: `BE-HRD-283`, `BE-HRD-284`
+* **Acceptance Criteria**: Seluruh 24 endpoint API terdaftar rapi pada Swagger UI; rilis payroll Sub-10 terblokir otomatis jika exit clearance belum tuntas 100%; `dotnet build` lulus 0 error.
+* **Verifikasi**: Uji gerbang hard-block payroll `AT-HRD-EMP-22` dan laporan task tracked `BE-HRD-285.md`.

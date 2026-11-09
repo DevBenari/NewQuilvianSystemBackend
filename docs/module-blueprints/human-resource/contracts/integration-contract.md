@@ -1466,3 +1466,102 @@ Kontrak integrasi ini menetapkan protokol pertukaran data antara modul manajemen
   "isEligibleForPromotion": true
 }
 ```
+
+
+---
+
+## 19. Kontrak Integrasi Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 19.1 `INT-HR-85`: Integrasi Catatan Sanksi Disiplin & SP ke Berkas Pegawai e-Dossier Sub-02
+
+* **Modul Terkait:** Sub-Modul 18 Hubungan Industrial -> Sub-Modul 02 Administrasi Pegawai & e-Dossier (`MstWorkforceProfile`).
+* **Tujuan & Mekanisme:** Setiap penerbitan sanksi Surat Peringatan (Teguran Lisan, SP 1, SP 2, SP 3) atau surat skorsing secara otomatis menambahkan catatan riwayat disiplin permanen pada tab *Disciplinary & Conduct Record* di portal 360 e-Dossier pegawai.
+* **Payload Event / Kontrak:**
+  ```json
+  {
+    "eventId": "EVT-DISC-SANCTION-RECORDED-20261106-001",
+    "eventType": "Hrd.Disciplinary.SanctionRecorded",
+    "timestamp": "2026-11-06T15:00:00Z",
+    "payload": {
+      "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "sanctionNumber": "SP-02/HRD/XI/2026",
+      "sanctionLevel": "SP2",
+      "issuedDate": "2026-11-06",
+      "validUntil": "2027-05-06",
+      "status": "Active",
+      "bapNumber": "BAP-HRD-2026-089"
+    }
+  }
+  ```
+* **Kompensasi / Kegagalan:** Jika sinkronisasi ke e-Dossier gagal, operasi dicatat dalam outbox table dan dikirim ulang otomatis via `OutboxMessageRelayWorker`.
+
+---
+
+### 19.2 `INT-HR-86`: Integrasi Just Culture & Bukti Insiden Keselamatan Pasien dari Sub-15 OPPE/KMKP
+
+* **Modul Terkait:** Sub-Modul 15 OPPE/FPPE & Komite Keselamatan Pasien Rumah Sakit (KMKP) -> Sub-Modul 18 Hubungan Industrial.
+* **Tujuan & Mekanisme:** Memvalidasi prinsip *Just Culture*. Laporan dugaan pelanggaran tata tertib yang menyangkut pelayanan medis pasien wajib memverifikasi keabsahan nomor registrasi investigasi audit klinis KMKP (`KmKpAuditReferenceNumber`). Sistem melarang penjatuhan sanksi SP bila audit KMKP menyimpulkan kejadian tersebut merupakan *Human Error* akibat kelelahan/kegagalan sistem fasilitas RS.
+* **Service Contract Interface:**
+  ```csharp
+  public interface IClinicalIncidentVerificationService
+  {
+      Task<ClinicalIncidentAuditDto?> VerifyClinicalAuditReferenceAsync(
+          string kmkpAuditReferenceNumber,
+          Guid employeeId,
+          CancellationToken cancellationToken = default);
+  }
+  ```
+
+---
+
+### 19.3 `INT-HR-87`: Hard-Block Pencairan Gaji Akhir & Pesangon ke Sub-10 Payroll (`INT-HR-21`)
+
+* **Modul Terkait:** Sub-Modul 18 Exit Clearance -> Sub-Modul 10 Payroll Processing & Handoff.
+* **Tujuan & Mekanisme:** Mengamankan keuangan dan aset rumah sakit. Layanan penggajian Sub-10 mengimplementasikan gerbang verifikasi ketat (`IExitClearanceStatusProvider`). Tombol proses rilis gaji terakhir (*final settlement run*) dan transfer pesangon PHK **terkunci otomatis (*hard-blocked*)** sampai proses exit clearance berstatus `Completed` (seluruh 5 departemen menyetujui secara digital).
+* **Service Contract Interface:**
+  ```csharp
+  public interface IExitClearanceStatusProvider
+  {
+      Task<ClearanceLockStatusResultDto> CheckPayrollReleaseEligibilityAsync(
+          Guid employeeId,
+          CancellationToken cancellationToken = default);
+  }
+  ```
+* **Hasil Verifikasi:**
+  ```json
+  {
+    "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "isFinalPayrollUnlocked": false,
+    "overallClearanceStatus": "InProgress",
+    "pendingDepartments": [
+      "GeneralAffairsAsset",
+      "InformationTechnology"
+    ],
+    "blockingReason": "Laptop inventaris belum diserahkan dan akun SSO belum ditutup."
+  }
+  ```
+
+---
+
+### 19.4 `INT-HR-88`: Integrasi Pencabutan Otomatis Sesi Login SSO SIMRS, EMR, PACS & Akses Fisik
+
+* **Modul Terkait:** Sub-Modul 18 Hubungan Industrial & Terminasi -> Modul IAM / Keycloak SSO SIMRS & Sistem Smart Card Akses Fisik RS.
+* **Tujuan & Mekanisme:** Pada detik ditetapkannya status *Suspension* (skorsing masa investigasi) atau tercapainya tanggal efektif terminasi kerja (`EffectiveDate`), sistem menerbitkan sinyal darurat pencabutan hak akses digital dan fisik untuk mencegah kebocoran data rekam medis atau sabotase operasional rumah sakit.
+* **Payload Event:**
+  ```json
+  {
+    "eventId": "EVT-SEC-ACCESS-REVOCATION-20261106-001",
+    "eventType": "Hrd.Security.AccessRevoked",
+    "timestamp": "2026-11-06T15:05:00Z",
+    "payload": {
+      "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "reason": "PaidSuspensionInvestigation",
+      "revokeSimrsSession": true,
+      "revokeEmrAccess": true,
+      "revokePacsAccess": true,
+      "revokeEmailAccess": true,
+      "deactivateSmartCardPhysicalBadge": true,
+      "effectiveImmediately": true
+    }
+  }
+  ```

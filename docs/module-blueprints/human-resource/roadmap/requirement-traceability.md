@@ -1151,3 +1151,187 @@ Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-2
 - **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
 - **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
 - **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis rumah sakit, 6 keputusan otoritas diklat & klinis (`HRD-DEC-158` s.d. `HRD-DEC-163`), 22 skenario acceptance tests (`AT-HRD-TRN-01` s.d. `AT-HRD-TRN-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-238` s.d. `BE-HRD-253`) dan 15 task frontend (`FE-HRD-216` s.d. `FE-HRD-230`).
+
+
+---
+
+### Bagian 1o: Pemetaan Jejak Requirement Bisnis Sub-Modul 17 (Slice `S-C3` Performance Management & Clinical Career)
+
+Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-PRF-01` s.d. `FR-PRF-25`), 6 Keputusan Otoritas Bisnis (`HRD-DEC-164` s.d. `HRD-DEC-169`), 4 Asumsi (`HRD-ASM-55` s.d. `HRD-ASM-58`), 22 Acceptance Test Skenario (`AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`), dan 5 Skenario UAT untuk **Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)** ke dalam 16 Task Backend (`BE-HRD-254` s.d. `BE-HRD-269`) dan 15 Task Frontend (`FE-HRD-231` s.d. `FE-HRD-245`).
+
+#### 1. Pemetaan Kebutuhan Fungsional (FR) ke Task Roadmap
+
+| ID FR | Deskripsi Kebutuhan Fungsional | Epic Pemilik | Task Backend Pelaksana | Task Frontend Pelaksana | Bukti Verifikasi Target | Status Gap |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| `FR-PRF-01` | Periode Siklus Evaluasi Kinerja Berkala RS | `EPIC HRD-84` | `BE-HRD-254`, `BE-HRD-257` | `FE-HRD-231`, `FE-HRD-232`, `FE-HRD-234` | `VR-PRF-01`, `AT-HRD-PRF-01` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-02` | State Machine Transisi Siklus Kinerja | `EPIC HRD-84` | `BE-HRD-257`, `BE-HRD-268` | `FE-HRD-234` | `VR-PRF-02`, `AT-HRD-PRF-01` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-03` | Katalog Master KPI Kuantitatif Rumah Sakit | `EPIC HRD-84` | `BE-HRD-254`, `BE-HRD-256` | `FE-HRD-231`, `FE-HRD-233` | `VR-PRF-03`, `AT-HRD-PRF-02` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-04` | Rubrik Core Values BerAKHLAK Skala Likert 1-5 | `EPIC HRD-84` | `BE-HRD-254`, `BE-HRD-256` | `FE-HRD-233` | `VR-PRF-08`, `AT-HRD-PRF-02` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-05` | Cascading Sasaran Mutu Unit ke Sasaran Individu | `EPIC HRD-84` | `BE-HRD-258` | `FE-HRD-234`, `FE-HRD-235` | `VR-PRF-03`, `AT-HRD-PRF-03` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-06` | Validasi Akumulasi Total Bobot Tepat 100% | `EPIC HRD-84` | `BE-HRD-256`, `BE-HRD-258` | `FE-HRD-235` | `VR-PRF-04`, `AT-HRD-PRF-04` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-07` | Pengisian Mandiri Self-Assessment di ESS | `EPIC HRD-85` | `BE-HRD-259` | `FE-HRD-231`, `FE-HRD-236` | `VR-PRF-05`, `AT-HRD-PRF-05` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-08` | Penilaian Resmi Berjenjang Tiga Tingkat (Karu & Kabid) | `EPIC HRD-85` | `BE-HRD-259` | `FE-HRD-236` | `VR-PRF-06`, `AT-HRD-PRF-06` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-09` | Formula Baku Komposisi 60:40 (KPI & BerAKHLAK) | `EPIC HRD-85` | `BE-HRD-259` | `FE-HRD-236` | `VR-PRF-09`, `AT-HRD-PRF-07` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-10` | Umpan Balik Rekan Sejawat Peer Review IDP Non-Skor | `EPIC HRD-85` | `BE-HRD-260` | `FE-HRD-237` | `VR-PRF-10`, `AT-HRD-PRF-08` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-11` | Konsol Sidang Pleno Kalibrasi Manajemen Direksi | `EPIC HRD-86` | `BE-HRD-261` | `FE-HRD-238` | `VR-PRF-11`, `AT-HRD-PRF-09` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-12` | Panduan Sebaran Fleksibel (Guiding Distribution) | `EPIC HRD-86` | `BE-HRD-261` | `FE-HRD-238` | `VR-PRF-11`, `AT-HRD-PRF-10` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-13` | Kewajiban Nota Justifikasi Override Nilai | `EPIC HRD-86` | `BE-HRD-256`, `BE-HRD-261` | `FE-HRD-238`, `FE-HRD-239` | `VR-PRF-12`, `VR-PRF-13`, `AT-HRD-PRF-11` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-14` | Penguncian Kalibrasi & Rilis Nilai Serentak ke ESS | `EPIC HRD-86` | `BE-HRD-261`, `BE-HRD-268` | `FE-HRD-238` | `AT-HRD-PRF-11` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-15` | Pemicu Otomatis Program Pembinaan PIP Skor < 65 | `EPIC HRD-87` | `BE-HRD-262` | `FE-HRD-232`, `FE-HRD-240` | `VR-PRF-14`, `AT-HRD-PRF-12` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-16` | Kontrak PIP 60 Hari Kalender & Penunjukan Mentor | `EPIC HRD-87` | `BE-HRD-262` | `FE-HRD-240` | `VR-PRF-14`, `AT-HRD-PRF-13` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-17` | Monitoring 8 Sesi Logbook Mingguan Mentor | `EPIC HRD-87` | `BE-HRD-262` | `FE-HRD-240`, `FE-HRD-241` | `VR-PRF-15`, `AT-HRD-PRF-14` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-18` | Pembekuan Hak Mutasi & Promosi Staf PIP ke Sub-06 | `EPIC HRD-87` | `BE-HRD-263` | `FE-HRD-240` | `VR-PRF-16`, `INT-HR-84`, `AT-HRD-PRF-15` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-19` | Sidang Evaluasi Hari ke-60 & 3 Opsi Putusan PIP | `EPIC HRD-87` | `BE-HRD-262`, `BE-HRD-263` | `FE-HRD-241` | `AT-HRD-PRF-15` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-20` | Prasyarat Skor Kinerja Minimal 75 Kenaikan Jenjang Nakes | `EPIC HRD-88` | `BE-HRD-264` | `FE-HRD-242` | `VR-PRF-17`, `AT-HRD-PRF-16` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-21` | Registri Kenaikan Jenjang Klinis Perawat/Nakes PK I-V | `EPIC HRD-88` | `BE-HRD-254`, `BE-HRD-264` | `FE-HRD-242` | `VR-PRF-17`, `AT-HRD-PRF-17` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-22` | Verifikasi Prasyarat Sertifikat Sub-16 & Bebas Sentinel Sub-15 | `EPIC HRD-88` | `BE-HRD-265` | `FE-HRD-242` | `VR-PRF-18`, `VR-PRF-19`, `INT-HR-81`, `INT-HR-82`, `AT-HRD-PRF-18`, `AT-HRD-PRF-19` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-23` | Penerbitan SK Direktur Utama & Sinkronisasi Sub-02/14 | `EPIC HRD-88` | `BE-HRD-266` | `FE-HRD-242` | `VR-PRF-20`, `INT-HR-83`, `AT-HRD-PRF-20` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-24` | Saluran Sanggah Banding Nilai ESS SLA Maksimal H+7 | `EPIC HRD-88` | `BE-HRD-267` | `FE-HRD-243` | `VR-PRF-21`, `VR-PRF-22`, `AT-HRD-PRF-21` | **Tercakup Penuh (0 Gap)** |
+| `FR-PRF-25` | Mediasi Klarifikasi H+7 & Putusan Majelis Banding SLA 14 Hari | `EPIC HRD-88` | `BE-HRD-267` | `FE-HRD-243`, `FE-HRD-244` | `VR-PRF-23`, `VR-PRF-24`, `AT-HRD-PRF-22` | **Tercakup Penuh (0 Gap)** |
+
+---
+
+#### 2. Pemetaan Keputusan Otoritas Bisnis (`HRD-DEC-164` s.d. `HRD-DEC-169`) & Asumsi
+
+| ID Keputusan / Asumsi | Topik Kebijakan Rumah Sakit | Task Backend Pengawal | Task Frontend Pengawal | Status Kepatuhan |
+| :--- | :--- | :--- | :--- | :---: |
+| `HRD-DEC-164` | Komposisi Baku 60% KPI Kuantitatif + 40% Core Values BerAKHLAK | `BE-HRD-256`, `BE-HRD-259` | `FE-HRD-233`, `FE-HRD-236` | **Patuh Penuh** |
+| `HRD-DEC-165` | Sidang Pleno Kalibrasi Manajemen & Guiding Distribution Fleksibel | `BE-HRD-261` | `FE-HRD-238`, `FE-HRD-239` | **Patuh Penuh** |
+| `HRD-DEC-166` | Alur Evaluasi Tiga Tingkat (Self-Karu-Kabid) & Peer Review Non-Skor | `BE-HRD-259`, `BE-HRD-260` | `FE-HRD-236`, `FE-HRD-237` | **Patuh Penuh** |
+| `HRD-DEC-167` | Program Pembinaan PIP 60 Hari Kalender & Logbook Mingguan Mentor | `BE-HRD-262`, `BE-HRD-263` | `FE-HRD-240`, `FE-HRD-241` | **Patuh Penuh** |
+| `HRD-DEC-168` | Prasyarat Kinerja Minimal 75 Kenaikan Jenjang Klinis (Clinical Ladder PK I-V) | `BE-HRD-264`, `BE-HRD-265`, `BE-HRD-266` | `FE-HRD-242` | **Patuh Penuh** |
+| `HRD-DEC-169` | Saluran Sanggah Banding Nilai Kinerja SLA 7 Hari ESS & 14 Hari Putusan Majelis | `BE-HRD-267` | `FE-HRD-243`, `FE-HRD-244` | **Patuh Penuh** |
+| `HRD-ASM-55` | Standar Siklus Evaluasi Semesteran & Tahunan | `BE-HRD-257` | `FE-HRD-234` | **Tervalidasi** |
+| `HRD-ASM-56` | Pembatasan Maksimal 10 Indikator KPI per Pegawai | `BE-HRD-256`, `BE-HRD-258` | `FE-HRD-235` | **Tervalidasi** |
+| `HRD-ASM-57` | Format Logbook Mingguan PIP Berbasis Capaian Target Remedial | `BE-HRD-262` | `FE-HRD-241` | **Tervalidasi** |
+| `HRD-ASM-58` | Majelis Banding Diketuai Direktur SDM Didampingi Atasan & Komite Terkait | `BE-HRD-267` | `FE-HRD-244` | **Tervalidasi** |
+
+---
+
+#### 3. Pemetaan Acceptance Test Skenario (`AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`)
+
+| ID Acceptance Test | Skenario Pengujian Penerimaan | Task Backend Terkait | Task Frontend Terkait | Status Kesiapan |
+| :--- | :--- | :--- | :--- | :---: |
+| `AT-HRD-PRF-01` | Pembukaan siklus evaluasi kinerja dan validasi anti-tumpang-tindih | `BE-HRD-257` | `FE-HRD-232`, `FE-HRD-234` | `Rencana` |
+| `AT-HRD-PRF-02` | Pembuatan dan pemeliharaan katalog master KPI serta Core Values BerAKHLAK | `BE-HRD-254`, `BE-HRD-256` | `FE-HRD-233` | `Rencana` |
+| `AT-HRD-PRF-03` | Penurunan cascading sasaran mutu unit ke sasaran kerja pegawai | `BE-HRD-258` | `FE-HRD-234` | `Rencana` |
+| `AT-HRD-PRF-04` | Penolakan pengajuan sasaran kerja jika akumulasi bobot != 100.00% | `BE-HRD-256`, `BE-HRD-258` | `FE-HRD-235` | `Rencana` |
+| `AT-HRD-PRF-05` | Pengisian mandiri self-assessment di ESS dan penguncian lembar kerja | `BE-HRD-259` | `FE-HRD-236` | `Rencana` |
+| `AT-HRD-PRF-06` | Penolakan penilaian atasan jika self-assessment pegawai belum tuntas | `BE-HRD-259` | `FE-HRD-236` | `Rencana` |
+| `AT-HRD-PRF-07` | Kalkulasi akurat nilai komposit komposisi baku 60:40 dan penentuan predikat | `BE-HRD-259` | `FE-HRD-236` | `Rencana` |
+| `AT-HRD-PRF-08` | Umpan balik peer review sejawat tersimpan tanpa mengubah skor komposit | `BE-HRD-260` | `FE-HRD-237` | `Rencana` |
+| `AT-HRD-PRF-09` | Pemetaan sebaran nilai aktual pada kurva guiding distribution di konsol kalibrasi | `BE-HRD-261` | `FE-HRD-238` | `Rencana` |
+| `AT-HRD-PRF-10` | Penolakan override nilai pada sidang kalibrasi tanpa nota justifikasi tertulis | `BE-HRD-256`, `BE-HRD-261` | `FE-HRD-238`, `FE-HRD-239` | `Rencana` |
+| `AT-HRD-PRF-11` | Pengesahan sidang pleno kalibrasi dan rilis serentak nilai kinerja ke ESS | `BE-HRD-261`, `BE-HRD-268` | `FE-HRD-238` | `Rencana` |
+| `AT-HRD-PRF-12` | Pemicu otomatis program pembinaan formal PIP untuk pegawai dengan skor < 65 | `BE-HRD-262` | `FE-HRD-232`, `FE-HRD-240` | `Rencana` |
+| `AT-HRD-PRF-13` | Penerbitan kontrak pembinaan PIP 60 hari kalender dan penugasan mentor | `BE-HRD-262` | `FE-HRD-240` | `Rencana` |
+| `AT-HRD-PRF-14` | Pencatatan rutin 8 sesi logbook mingguan mentor dan monitoring evaluasi | `BE-HRD-262` | `FE-HRD-240`, `FE-HRD-241` | `Rencana` |
+| `AT-HRD-PRF-15` | Penegakan pembekuan hak mutasi/promosi ke Sub-06 dan sidang hari ke-60 | `BE-HRD-262`, `BE-HRD-263` | `FE-HRD-240`, `FE-HRD-241` | `Rencana` |
+| `AT-HRD-PRF-16` | Penolakan permohonan kenaikan jenjang klinis jika skor kinerja < 75.00 | `BE-HRD-264` | `FE-HRD-242` | `Rencana` |
+| `AT-HRD-PRF-17` | Pendaftaran kenaikan jenjang klinis nakes PK I-V dan registri portofolio | `BE-HRD-254`, `BE-HRD-264` | `FE-HRD-242` | `Rencana` |
+| `AT-HRD-PRF-18` | Verifikasi kepemilikan sertifikat diklat aktif dan kelulusan OSCE dari Sub-16 | `BE-HRD-265` | `FE-HRD-242` | `Rencana` |
+| `AT-HRD-PRF-19` | Verifikasi rekam jejak keselamatan pasien bebas kasus sentinel dari Sub-15 | `BE-HRD-265` | `FE-HRD-242` | `Rencana` |
+| `AT-HRD-PRF-20` | Penerbitan SK kenaikan jenjang klinis dan sinkronisasi otomatis ke Sub-02/14 | `BE-HRD-266` | `FE-HRD-242` | `Rencana` |
+| `AT-HRD-PRF-21` | Pengajuan sanggah banding nilai di ESS dan penolakan otomatis melewati H+7 | `BE-HRD-267` | `FE-HRD-243` | `Rencana` |
+| `AT-HRD-PRF-22` | Penanganan mediasi klarifikasi dan penetapan putusan majelis banding SLA 14 hari | `BE-HRD-267` | `FE-HRD-243`, `FE-HRD-244` | `Rencana` |
+
+---
+
+#### 4. Analisis Gap Keterkaitan Requirement ke Bukti Verifikasi
+
+- **Total Kebutuhan Fungsional (`FR-PRF-01` s.d. `FR-PRF-25`):** 25 Kebutuhan.
+- **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
+- **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
+- **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis rumah sakit, 6 keputusan otoritas manajemen kinerja & jenjang klinis (`HRD-DEC-164` s.d. `HRD-DEC-169`), 4 asumsi teknis, 22 skenario acceptance tests (`AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-254` s.d. `BE-HRD-269`) dan 15 task frontend (`FE-HRD-231` s.d. `FE-HRD-245`).
+
+
+---
+
+### Bagian 1p: Pemetaan Jejak Requirement Bisnis Sub-Modul 18 (Slice `S-C5` Hubungan Industrial & Terminasi)
+
+Bagian ini mendokumentasikan pemetaan deterministik 100% tanpa celah antara kebutuhan fungsional (`FR-EMP-01` s.d. `FR-EMP-25`), keputusan otoritas bisnis (`HRD-DEC-170` s.d. `HRD-DEC-175`), asumsi rekayasa (`HRD-ASM-59` s.d. `HRD-ASM-62`), dan kriteria penerimaan (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`) terhadap 16 task backend (`BE-HRD-270` s.d. `BE-HRD-285`) dan 15 task frontend (`FE-HRD-246` s.d. `FE-HRD-260`).
+
+#### 1. Pemetaan Kebutuhan Fungsional (FR) ke Task Roadmap
+
+| ID Kebutuhan | Deskripsi Kebutuhan Fungsional Bisnis | Task Backend Pelaksana | Task Frontend Pelaksana | Bukti Verifikasi |
+| :--- | :--- | :--- | :--- | :--- |
+| `FR-EMP-01` | Form pelaporan insiden tata tertib pegawai (tanggal, lokasi, kategori, deskripsi) | `BE-HRD-270`, `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-246`, `FE-HRD-249` | `AT-HRD-EMP-01` |
+| `FR-EMP-02` | Validasi wajib input nomor referensi audit keselamatan pasien KMKP untuk insiden medis | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `AT-HRD-EMP-02` |
+| `FR-EMP-03` | Klasifikasi Just Culture: Human Error vs At-Risk Behavior vs Reckless Misconduct | `BE-HRD-270`, `BE-HRD-273` | `FE-HRD-248`, `FE-HRD-249` | `AT-HRD-EMP-02` |
+| `FR-EMP-04` | Larangan penerbitan SP atas insiden Human Error dan pengalihan ke pembinaan/diklat Sub-16 | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `AT-HRD-EMP-03` |
+| `FR-EMP-05` | Lembar Berita Acara Pemeriksaan (BAP) digital dengan pembelaan staf & barang bukti | `BE-HRD-270`, `BE-HRD-274` | `FE-HRD-250` | `AT-HRD-EMP-04` |
+| `FR-EMP-06` | Pencatatan sanksi bertingkat: Teguran Lisan, SP 1, SP 2, dan SP 3 | `BE-HRD-270`, `BE-HRD-275` | `FE-HRD-246`, `FE-HRD-251` | `AT-HRD-EMP-05` |
+| `FR-EMP-07` | Penetapan masa berlaku SP 1, SP 2, SP 3 tepat 6 bulan kalender (PP 35/2021) | `BE-HRD-272`, `BE-HRD-275` | `FE-HRD-251` | `AT-HRD-EMP-05` |
+| `FR-EMP-08` | Penetapan masa berlaku Teguran Lisan maksimal 3 bulan kalender (90 hari) | `BE-HRD-272`, `BE-HRD-275` | `FE-HRD-251` | `AT-HRD-EMP-05` |
+| `FR-EMP-09` | Validasi kenaikan sanksi berjenjang (SP 2 membutuhkan SP 1 aktif) | `BE-HRD-272`, `BE-HRD-275` | `FE-HRD-251` | `AT-HRD-EMP-08` |
+| `FR-EMP-10` | Jalur langsung (*bypass*) penerbitan SP 3 untuk pelanggaran berat berizin Direktur SDM | `BE-HRD-275` | `FE-HRD-251` | `AT-HRD-EMP-09` |
+| `FR-EMP-11` | Worker otomatisasi status SP menjadi Expired pada H+180 hari kalender (`EMP-W1`) | `BE-HRD-276` | `FE-HRD-248`, `FE-HRD-251` | `AT-HRD-EMP-06` |
+| `FR-EMP-12` | Pengiriman notifikasi peringatan H-14 sebelum berakhirnya masa aktif sanksi SP | `BE-HRD-276` | `FE-HRD-248` | `AT-HRD-EMP-07` |
+| `FR-EMP-13` | Pengajuan sanggah banding tertulis atas surat sanksi SP maksimal 7 hari kerja | `BE-HRD-275` | `FE-HRD-252` | `AT-HRD-EMP-10` |
+| `FR-EMP-14` | Penetapan surat skorsing investigasi (*paid suspension*) durasi maksimal 6 bulan | `BE-HRD-270`, `BE-HRD-277`, `BE-HRD-278` | `FE-HRD-253` | `AT-HRD-EMP-11` |
+| `FR-EMP-15` | Jaminan pembayaran hak upah penuh 100% selama skorsing (Pasal 157A UU Ketenagakerjaan) | `BE-HRD-272`, `BE-HRD-277` | `FE-HRD-253` | `AT-HRD-EMP-11` |
+| `FR-EMP-16` | Penonaktifan seketika login SSO SIMRS/EMR/PACS & kartu fisik saat skorsing/PHK (`INT-HR-88`) | `BE-HRD-277`, `BE-HRD-285` | `FE-HRD-253` | `AT-HRD-EMP-12` |
+| `FR-EMP-17` | Kanal pengaduan keluhan kerja pegawai (Grievance ESS) batas SLA 14 hari kerja (`EMP-W3`) | `BE-HRD-270`, `BE-HRD-279` | `FE-HRD-254` | `AT-HRD-EMP-13` |
+| `FR-EMP-18` | Kanal whistleblower rahasia terenkripsi asimetris dengan opsi anonimitas & anti-retaliasi | `BE-HRD-270`, `BE-HRD-280` | `FE-HRD-255` | `AT-HRD-EMP-14` |
+| `FR-EMP-19` | Isolasi akses tiket whistleblower khusus Tim Kepatuhan / Direktur SDM | `BE-HRD-272`, `BE-HRD-280` | `FE-HRD-247`, `FE-HRD-255` | `AT-HRD-EMP-15` |
+| `FR-EMP-20` | Dokumentasi perundingan Bipartit, notulen risalah dan naskah Perjanjian Bersama (PB) PDF | `BE-HRD-270`, `BE-HRD-281` | `FE-HRD-256` | `AT-HRD-EMP-16` |
+| `FR-EMP-21` | Pengajuan terminasi kerja: Resign 30 hari notice, habis kontrak PKWT, pensiun, SP3 | `BE-HRD-270`, `BE-HRD-282` | `FE-HRD-246`, `FE-HRD-257` | `AT-HRD-EMP-17` |
+| `FR-EMP-22` | Mesin kalkulasi pesangon deterministik PP 35/2021 (UP, UPMK, UPH, Uang Pisah) dari HireDate | `BE-HRD-270`, `BE-HRD-283` | `FE-HRD-258` | `AT-HRD-EMP-18`, `AT-HRD-EMP-19` |
+| `FR-EMP-23` | Perhitungan kompensasi PKWT proporsional: `(Masa Kerja Bulan / 12) x Upah 1 Bulan` | `BE-HRD-272`, `BE-HRD-283` | `FE-HRD-258` | `AT-HRD-EMP-18` |
+| `FR-EMP-24` | Pusat kendali Exit Clearance checklist 5 departemen (Unit, Aset, Farmasi, Keu, IT) | `BE-HRD-270`, `BE-HRD-284` | `FE-HRD-259`, `FE-HRD-260` | `AT-HRD-EMP-21` |
+| `FR-EMP-25` | Hard-block pemblokir rilis gaji akhir & transfer pesangon di Sub-10 sebelum clearance tuntas | `BE-HRD-284`, `BE-HRD-285` | `FE-HRD-260` | `AT-HRD-EMP-22` |
+
+---
+
+#### 2. Pemetaan Keputusan Otoritas Bisnis (`HRD-DEC-170` s.d. `HRD-DEC-175`) & Asumsi
+
+| ID Keputusan / Asumsi | Pokok Keputusan Bisnis / Asumsi Teknis | Task Backend | Task Frontend | Status Keterlacakan |
+| :--- | :--- | :--- | :--- | :---: |
+| `HRD-DEC-170` | Sanksi SP Bertingkat Masa Berlaku 6 Bulan Kalender PP 35/2021 & Bypass SP 3 | `BE-HRD-275`, `BE-HRD-276` | `FE-HRD-251` | `Tercakup Penuh` |
+| `HRD-DEC-171` | Prinsip Just Culture RS & Prasyarat Audit Insiden Klinis KMKP Sub-15 | `BE-HRD-273` | `FE-HRD-249` | `Tercakup Penuh` |
+| `HRD-DEC-172` | Kanal Dual-Mode: Grievance Terbuka ESS & Whistleblower Terenkripsi Anti-Retaliasi | `BE-HRD-279`, `BE-HRD-280` | `FE-HRD-254`, `FE-HRD-255` | `Tercakup Penuh` |
+| `HRD-DEC-173` | Tata Kelola Skorsing Upah Penuh (*Paid Suspension*) & Revokasi Akses SIMRS | `BE-HRD-277`, `BE-HRD-278` | `FE-HRD-253` | `Tercakup Penuh` |
+| `HRD-DEC-174` | Kalkulator Hak Pesangon Otomatis Regulasi PP 35/2021 & Approval Direktur Keuangan | `BE-HRD-283` | `FE-HRD-258` | `Tercakup Penuh` |
+| `HRD-DEC-175` | Gerbang Digital Exit Clearance Multi-Departemen & Hard-Block Payroll Final Sub-10 | `BE-HRD-284`, `BE-HRD-285` | `FE-HRD-259`, `FE-HRD-260` | `Tercakup Penuh` |
+| `HRD-ASM-59` | Masa kerja dihitung akurat dari `HireDate` resmi profil pegawai Sub-02 | `BE-HRD-283` | `FE-HRD-258` | `Tercakup Penuh` |
+| `HRD-ASM-60` | Enkripsi data Berita Acara Pemeriksaan (BAP) dan tiket Whistleblowing level aplikasi | `BE-HRD-274`, `BE-HRD-280` | `FE-HRD-250`, `FE-HRD-255` | `Tercakup Penuh` |
+| `HRD-ASM-61` | Peringatan otomatis H-14 masa kedaluwarsa sanksi SP ke staf dan atasan | `BE-HRD-276` | `FE-HRD-248` | `Tercakup Penuh` |
+| `HRD-ASM-62` | Pencabutan instan token login SSO SIMRS Keycloak saat skorsing & terminasi | `BE-HRD-277`, `BE-HRD-285` | `FE-HRD-253` | `Tercakup Penuh` |
+
+---
+
+#### 3. Pemetaan Acceptance Test Skenario (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`)
+
+| ID Acceptance Test | Skenario Pengujian Penerimaan | Task Backend Terkait | Task Frontend Terkait | Status Kesiapan |
+| :--- | :--- | :--- | :--- | :---: |
+| `AT-HRD-EMP-01` | Pelaporan insiden tata tertib pegawai dan registrasi nomor unik | `BE-HRD-273` | `FE-HRD-246`, `FE-HRD-249` | `Rencana` |
+| `AT-HRD-EMP-02` | Validasi Just Culture penolakan insiden klinis tanpa nomor audit KMKP | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `Rencana` |
+| `AT-HRD-EMP-03` | Pemblokiran sanksi SP untuk insiden terbukti kategori Human Error | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `Rencana` |
+| `AT-HRD-EMP-04` | Pelaksanaan sidang Berita Acara Pemeriksaan (BAP) & pencatatan pembelaan | `BE-HRD-274` | `FE-HRD-250` | `Rencana` |
+| `AT-HRD-EMP-05` | Penerbitan SP 1 dengan tanggal kedaluwarsa tepat 6 bulan kalender PP 35/2021 | `BE-HRD-275` | `FE-HRD-251` | `Rencana` |
+| `AT-HRD-EMP-06` | Worker otomatisasi status SP aktif menjadi Expired pada H+180 hari kalender | `BE-HRD-276` | `FE-HRD-248`, `FE-HRD-251` | `Rencana` |
+| `AT-HRD-EMP-07` | Pengiriman notifikasi peringatan H-14 sebelum berakhirnya masa aktif sanksi SP | `BE-HRD-276` | `FE-HRD-248` | `Rencana` |
+| `AT-HRD-EMP-08` | Kenaikan sanksi berjenjang dari SP 1 ke SP 2 atas pelanggaran baru dalam 6 bulan | `BE-HRD-275` | `FE-HRD-251` | `Rencana` |
+| `AT-HRD-EMP-09` | Penerbitan langsung SP 3 untuk pelanggaran berat dengan persetujuan Direktur SDM | `BE-HRD-275` | `FE-HRD-251` | `Rencana` |
+| `AT-HRD-EMP-10` | Alur sanggah banding sanksi SP maksimal 7 hari kerja dan putusan pembatalan | `BE-HRD-275` | `FE-HRD-252` | `Rencana` |
+| `AT-HRD-EMP-11` | Penetapan skorsing investigasi dengan jaminan upah penuh 100% Pasal 157A | `BE-HRD-277` | `FE-HRD-253` | `Rencana` |
+| `AT-HRD-EMP-12` | Pencabutan instan akses login SSO SIMRS/EMR dan kartu fisik saat skorsing | `BE-HRD-277`, `BE-HRD-285` | `FE-HRD-253` | `Rencana` |
+| `AT-HRD-EMP-13` | Pengiriman tiket keluhan hubungan kerja via ESS dan penegakan SLA 14 hari | `BE-HRD-279` | `FE-HRD-254` | `Rencana` |
+| `AT-HRD-EMP-14` | Pengiriman laporan whistleblower anonim terenkripsi asimetris pada payload | `BE-HRD-280` | `FE-HRD-255` | `Rencana` |
+| `AT-HRD-EMP-15` | Isolasi akses baca tiket whistleblower dari atasan langsung pihak terlapor | `BE-HRD-280` | `FE-HRD-247`, `FE-HRD-255` | `Rencana` |
+| `AT-HRD-EMP-16` | Dokumentasi perundingan forum Bipartit RS dan arsip naskah Perjanjian Bersama | `BE-HRD-281` | `FE-HRD-256` | `Rencana` |
+| `AT-HRD-EMP-17` | Pengajuan terminasi resign sukarela dengan validasi notice minimal 30 hari | `BE-HRD-282` | `FE-HRD-257` | `Rencana` |
+| `AT-HRD-EMP-18` | Kalkulator pesangon resign (UP/UPMK Rp 0, UPH cuti + Uang Pisah) PP 35/2021 | `BE-HRD-283` | `FE-HRD-258` | `Rencana` |
+| `AT-HRD-EMP-19` | Kalkulator pesangon pensiun (1.75x UP + 1x UPMK + UPH) sesuai masa kerja sah | `BE-HRD-283` | `FE-HRD-258` | `Rencana` |
+| `AT-HRD-EMP-20` | Persetujuan resmi lembar pesangon oleh Direktur Keuangan sebelum payroll lock | `BE-HRD-283` | `FE-HRD-258` | `Rencana` |
+| `AT-HRD-EMP-21` | Verifikasi digital checklist exit clearance 5 departemen secara berjenjang | `BE-HRD-284` | `FE-HRD-259`, `FE-HRD-260` | `Rencana` |
+| `AT-HRD-EMP-22` | Hard-block penolakan rilis payroll final Sub-10 sebelum clearance tuntas 100% | `BE-HRD-285` | `FE-HRD-260` | `Rencana` |
+
+---
+
+#### 4. Analisis Gap Keterkaitan Requirement ke Bukti Verifikasi
+
+- **Total Kebutuhan Fungsional (`FR-EMP-01` s.d. `FR-EMP-25`):** 25 Kebutuhan.
+- **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
+- **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
+- **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis ketenagakerjaan rumah sakit, 6 keputusan otoritas hubungan industrial & terminasi (`HRD-DEC-170` s.d. `HRD-DEC-175`), 4 asumsi teknis (`HRD-ASM-59` s.d. `HRD-ASM-62`), 22 skenario acceptance tests (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-270` s.d. `BE-HRD-285`) dan 15 task frontend (`FE-HRD-246` s.d. `FE-HRD-260`).

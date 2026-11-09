@@ -1157,3 +1157,36 @@ Matriks aturan validasi ini memuat 25 aturan penegakan integritas bisnis (`VR-PR
 | `VR-PRF-23` | Mutasi | Pembaruan Profil Kepegawaian Pasca SK Jenjang | Penerbitan SK Direktur Utama atas jenjang klinis baru secara otomatis memutakhirkan level kepangkatan di Sub-02 dan kewenangan RKK di Sub-14. | `200 OK` (Event) — Profil level kepegawaian dan rincian kewenangan klinis berhasil disinkronkan. |
 | `VR-PRF-24` | Remunerasi | Umpan Skor Kinerja ke Pengali Insentif Sub-10 | Skor akhir komposit kinerja terkalibrasi menjadi faktor pengali resmi (*performance multiplier*) perhitungan insentif tahunan di Sub-10 (`INT-HR-81`). | `200 OK` — Skor kinerja berhasil dipetakan ke koefisien pengali remunerasi pegawai. |
 | `VR-PRF-25` | Kompetensi | Umpan Gap Kinerja ke Rencana Pelatihan Sub-16 | Butir penilaian kinerja yang bernilai rendah (< 60) otomatis dipetakan sebagai rekomendasi kebutuhan pelatihan (*IDP*) ke Sub-16 (`INT-HR-82`). | `200 OK` — Kebutuhan pengembangan kompetensi berhasil ditambahkan ke rencana TNA diklat. |
+
+
+---
+
+## 27. Matriks Validasi Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+| Kode Aturan | Kategori / Entitas Target | Aturan Validasi / Ekspresi Logika | Pesan Kesalahan / Konsekuensi Bila Gagal |
+|---|---|---|---|
+| `VR-EMP-01` | Laporan Insiden | Wajib memuat `employee_id`, `incident_date` (tidak boleh di masa depan), `incident_location`, dan `description` minimal 50 karakter | *"Data dasar laporan insiden tidak lengkap atau deskripsi kronologi kejadian terlalu singkat."* |
+| `VR-EMP-02` | Just Culture Insiden | Jika `category = 'ClinicalSafety'`, maka `kmkp_audit_reference_number` wajib terisi dan terdaftar di Sub-15 | *"Insiden yang melibatkan keselamatan pasien wajib menyertakan nomor registrasi audit keselamatan pasien KMKP."* |
+| `VR-EMP-03` | Penjatuhan Sanksi | Dilarang menerbitkan sanksi SP jika `just_culture_classification = 'HumanError'` | *"Prinsip Just Culture: Insiden kategori Human Error murni dialihkan ke pembinaan/diklat Sub-16, bukan sanksi SP."* |
+| `VR-EMP-04` | Pemeriksaan BAP | `investigator_names` minimal memuat 2 pemeriksa dan tidak boleh sama dengan `employee_id` terperiksa | *"Tim pemeriksa BAP minimal terdiri dari 2 orang independen tanpa konflik kepentingan."* |
+| `VR-EMP-05` | Pemeriksaan BAP | BAP tidak dapat disahkan jika `employee_defense_statement` kosong tanpa alasan penolakan tertulis | *"Berita Acara Pemeriksaan wajib memuat lembar pembelaan tertulis pegawai terperiksa."* |
+| `VR-EMP-06` | Sanksi SP | Tanggal kedaluwarsa SP 1, 2, 3 wajib tepat `ValidUntil = IssuedDate + 6 Months` kalender | *"Masa berlaku Surat Peringatan (SP 1, 2, 3) wajib tepat 6 bulan kalender sesuai Pasal 52 PP 35/2021."* |
+| `VR-EMP-07` | Teguran Lisan | Masa berlaku Teguran Lisan maksimal 90 hari kalender (`IssuedDate + 3 Months`) | *"Masa berlaku teguran lisan tidak boleh melebihi 3 bulan kalender."* |
+| `VR-EMP-08` | Tingkat Sanksi SP | SP 2 hanya dapat diterbitkan bila staf memiliki SP 1 berstatus `Active`, kecuali ditandai sebagai pelanggaran berat mendesak | *"Penerbitan SP 2 mensyaratkan adanya SP 1 yang masih aktif, kecuali untuk pelanggaran berat langsung."* |
+| `VR-EMP-09` | Direct SP 3 Bypass | Penerbitan SP 3 langsung tanpa SP 1/2 wajib melampirkan persetujuan Direktur SDM dan kategori `RecklessMisconduct` | *"Penerbitan langsung SP 3 wajib melalui persetujuan Direktur SDM dengan bukti pelanggaran berat."* |
+| `VR-EMP-10` | Sanggah Banding SP | Pengajuan banding atas sanksi SP dibatasi maksimal 7 hari kerja sejak `IssuedDate` | *"Batas waktu pengajuan sanggah banding sanksi disiplin telah kedaluwarsa (maksimal 7 hari kerja)."* |
+| `VR-EMP-11` | Skorsing Durasi | Durasi skorsing investigasi (`expected_end_date - start_date`) maksimal 180 hari kalender (6 bulan) | *"Masa skorsing investigasi tidak boleh melampaui batas maksimal 6 bulan kalender sesuai regulasi."* |
+| `VR-EMP-12` | Skorsing Hak Upah | `wage_payment_status` wajib bernilai `'PaidFull'` (upah pokok dan tunjangan tetap 100%) | *"Pelanggaran Pasal 157A UU Ketenagakerjaan: Pegawai dalam masa skorsing wajib menerima upah penuh."* |
+| `VR-EMP-13` | Skorsing Akses | Saat skorsing aktif, `is_system_access_revoked` dan `is_physical_access_revoked` wajib bernilai `TRUE` | *"Demi keamanan rumah sakit, akses SIMRS dan kartu fisik wajib dibekukan selama masa skorsing."* |
+| `VR-EMP-14` | SLA Grievance | Batas waktu tanggapan mediasi tiket keluhan `target_resolution_date` maksimal 14 hari kerja dari tanggal pengajuan | *"Target resolusi tiket keluhan kerja melebihi standar SLA pelayanan kepegawaian (14 hari kerja)."* |
+| `VR-EMP-15` | Whistleblower Enkripsi | Payload tiket whistleblower wajib terenkripsi (`encrypted_report_payload` bukan teks polos) | *"Data pengaduan whistleblower wajib dienkripsi pada level payload sebelum dikirim ke server."* |
+| `VR-EMP-16` | Hak Akses Whistleblower | Pengguna yang memiliki relasi atasan langsung terhadap pihak terlapor dilarang mengakses tiket pengaduan | *"Akses ditolak: Atasan langsung terlapor dilarang membaca berkas penyelidikan whistleblower."* |
+| `VR-EMP-17` | Forum Bipartit | `management_representatives` dan `union_representatives` masing-masing minimal memuat 1 nama delegasi | *"Forum perundingan Bipartit wajib dihadiri oleh perwakilan kedua belah pihak secara sah."* |
+| `VR-EMP-18` | Naskah Perjanjian PB | `joint_agreement_document_url` wajib berekstensi `.pdf` dan tidak boleh kosong jika status = `CompletedAgreementReached` | *"Naskah Perjanjian Bersama (PB) wajib dilampirkan dalam format PDF resmi."* |
+| `VR-EMP-19` | Notice Resign | Tanggal pemberitahuan resign sukarela (`notice_date`) minimal 30 hari kalender sebelum `effective_date` | *"Pemberitahuan pengunduran diri sukarela wajib memenuhi ketentuan One Month Notice (30 hari)."* |
+| `VR-EMP-20` | Masa Kerja Pesangon | `service_years` dan `service_months` wajib dihitung akurat dari `HireDate` hingga `effective_date` | *"Perhitungan masa kerja pesangon wajib sinkron dengan tanggal mulai kerja sah di profil pegawai."* |
+| `VR-EMP-21` | Kompensasi PKWT | Nilai kompensasi PKWT wajib dihitung proporsional: `(service_months / 12) * base_monthly_wage` | *"Formula kompensasi PKWT tidak sesuai dengan ketentuan Pasal 15 s.d. 17 PP No. 35 Tahun 2021."* |
+| `VR-EMP-22` | Uang Penggantian Hak | Komponen UPH cuti wajib memvalidasi sisa cuti tahunan aktif dikalikan upah per hari (`base_wage / 21` atau `25`) | *"Nilai Uang Penggantian Hak cuti tahunan tidak sesuai dengan sisa saldo cuti sah di Sub-08."* |
+| `VR-EMP-23` | Otorisasi Pesangon | `is_approved_by_finance_director` wajib bernilai `TRUE` sebelum status perhitungan menjadi `Approved` | *"Lembar kalkulasi pesangon wajib mendapatkan pengesahan digital resmi dari Direktur Keuangan."* |
+| `VR-EMP-24` | Kelengkapan Kliring | Seluruh item checklist dari 5 departemen (Unit, Aset, Farmasi, Keuangan, IT) wajib berstatus `Approved` | *"Proses exit clearance belum dapat diselesaikan karena masih ada checklist departemen yang pending/ditolak."* |
+| `VR-EMP-25` | Hard-Block Payroll | `is_final_payroll_unlocked` dilarang diset `TRUE` jika `overall_clearance_status != 'Completed'` | *"Hard-Block Keamanan: Payroll dan pesangon akhir dilarang dirilis sebelum exit clearance selesai 100%."* |

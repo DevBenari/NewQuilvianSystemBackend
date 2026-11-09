@@ -2552,3 +2552,71 @@ Kontrak API ini mendefinisikan 24 endpoint RESTful untuk tata kelola siklus kine
 | `POST` | `/api/v1/corporate/hrd/performance/pip/{id}/final-verdict` | `Rencana (belum tersedia)` | Menerbitkan putusan akhir sidang PIP (Lulus, Perpanjang 30 Hari, atau Eskalasi HR Legal, `VR-PRF-10`) | `Performance_Pip:Manage` | `VerdictPipRequestDto` | `200 OK`, `400 Bad Request` |
 | `POST` | `/api/v1/corporate/hrd/performance/clinical-ladder/apply` | `Rencana (belum tersedia)` | Pengajuan kenaikan jenjang klinis nakes (PK I-V) via ESS dengan validasi gate KPI >= 75 (`VR-PRF-14`) | `Clinical_Career:Apply` | `ApplyClinicalLadderRequestDto` | `201 Created`, `422 Unprocessable Entity` |
 | `POST` | `/api/v1/corporate/hrd/performance/clinical-ladder/{id}/verdict` | `Rencana (belum tersedia)` | Pengesahan rekomendasi sidang Komite Keperawatan dan sinkronisasi SK jenjang baru ke Sub-02/14 (`INT-HR-83`)| `Clinical_Career:Manage` | `VerdictClinicalLadderRequestDto` | `200 OK`, `400 Bad Request` |
+
+
+---
+
+## 28. Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`, Kontrak `v22`)
+
+Seluruh endpoint pada bagian ini berstatus **Rencana (belum tersedia)** dan dikelompokkan ke dalam 5 tag Swagger resmi untuk tata kelola disiplin, penanganan pengaduan/whistleblowing, perundingan bipartit, pemutusan hubungan kerja dengan pesangon regulatif, serta pusat kendali exit clearance multi-departemen.
+
+### 28.1 `[Tags("Corporate - HRD Employee Disciplinary & Just Culture")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/disciplinary/incidents` | Laporkan dugaan pelanggaran tata tertib kerja dengan klasifikasi Just Culture | `Hrd.Disciplinary.CreateIncident` | `CreateIncidentReportRequestDto` (employeeId, incidentDate, location, category, justCultureClassification, description, kmkpAuditRef) | `IncidentReportResponseDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/disciplinary/incidents` | Daftar seluruh laporan insiden tata tertib RS | `Hrd.Disciplinary.ViewIncidents` | Query params: `employeeId`, `justCultureClassification`, `status`, `page`, `pageSize` | `PagedResult<IncidentReportResponseDto>`, `200 OK` |
+| `GET` | `/api/v1/hrd/disciplinary/incidents/{incidentId}` | Detail laporan insiden, kronologi dan bukti KMKP | `Hrd.Disciplinary.ViewIncidents` | Path param: `incidentId` (UUID) | `IncidentReportDetailDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/disciplinary/investigations` | Buka berkas Berita Acara Pemeriksaan (BAP) formal | `Hrd.Disciplinary.ConductInvestigation` | `InitiateInvestigationRequestDto` (incidentReportId, hearingDate, investigatorNames, witnessStatements) | `InvestigationRecordResponseDto`, `201 Created` |
+| `PUT` | `/api/v1/hrd/disciplinary/investigations/{investigationId}/findings` | Rekam hasil pemeriksaan BAP dan rekomendasi tindakan sanksi | `Hrd.Disciplinary.ConductInvestigation` | `RecordBapFindingsRequestDto` (employeeDefense, findings, recommendedAction) | `InvestigationRecordResponseDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/disciplinary/sanctions` | Terbitkan Surat Peringatan (Teguran, SP1, SP2, SP3 masa 6 bulan) | `Hrd.Disciplinary.IssueSanction` | `IssueSanctionRequestDto` (investigationId, employeeId, sanctionLevel, issuedDate, violationDescription) | `SanctionResponseDto` (validUntil = issuedDate + 6M), `201 Created` |
+| `GET` | `/api/v1/hrd/disciplinary/sanctions/employee/{employeeId}` | Riwayat sanksi SP aktif dan arsip e-Dossier pegawai | `Hrd.Disciplinary.ViewSanctions` | Path param: `employeeId` (UUID) | `List<SanctionResponseDto>`, `200 OK` |
+| `POST` | `/api/v1/hrd/disciplinary/sanctions/{sanctionId}/appeal` | Pengajuan sanggah banding tertulis atas surat sanksi SP | `Hrd.Disciplinary.AppealSanction` | `AppealSanctionRequestDto` (appealStatement, supportingEvidenceUrls) | `SanctionAppealResponseDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/disciplinary/suspensions` | Penetapan skorsing masa investigasi (*paid suspension* upah 100%) | `Hrd.Disciplinary.IssueSuspension` | `IssueSuspensionRequestDto` (investigationId, employeeId, startDate, expectedEndDate) | `SuspensionResponseDto` (isSystemAccessRevoked=true), `201 Created` |
+| `POST` | `/api/v1/hrd/disciplinary/suspensions/{suspensionId}/reinstate` | Pengakhiran skorsing & pemulihan nama baik/akses SIMRS | `Hrd.Disciplinary.ManageSuspension` | `ReinstateEmployeeRequestDto` (actualEndDate, reinstatementNotes) | `SuspensionResponseDto`, `200 OK` |
+
+---
+
+### 28.2 `[Tags("Corporate - HRD Grievance & Confidential Whistleblowing")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/grievances` | Kirim tiket pengaduan hubungan kerja harian staf via ESS | `Hrd.Grievance.Submit` | `SubmitGrievanceRequestDto` (category, targetUnit, severityLevel, reportDescription) | `GrievanceTicketResponseDto`, `201 Created` |
+| `POST` | `/api/v1/hrd/grievances/whistleblower` | Kirim laporan dugaan korupsi/pelecehan rahasia terenkripsi | `Hrd.Grievance.SubmitWhistleblower` | `SubmitWhistleblowerRequestDto` (isAnonymous, encryptedPayload, category, targetUnit) | `WhistleblowerTicketReceiptDto` (ticketNumber), `201 Created` |
+| `GET` | `/api/v1/hrd/grievances/my-tickets` | Daftar tiket pengaduan yang diajukan oleh user login | `Hrd.Grievance.ViewOwn` | Query params: `status`, `page`, `pageSize` | `PagedResult<GrievanceTicketSummaryDto>`, `200 OK` |
+| `GET` | `/api/v1/hrd/grievances/compliance-inbox` | Kotak masuk rahasia Tim Kepatuhan / Direktur SDM | `Hrd.Disciplinary.WhistleblowerReview` | Query params: `category`, `severityLevel`, `status` | `PagedResult<WhistleblowerCaseDto>`, `200 OK` |
+| `PUT` | `/api/v1/hrd/grievances/{grievanceId}/mediation` | Catat risalah mediasi keluhan kerja dan hasil resolusi | `Hrd.Grievance.Mediate` | `RecordMediationResolutionRequestDto` (mediatorEmployeeId, resolutionNotes, isResolved) | `GrievanceTicketResponseDto`, `200 OK` |
+
+---
+
+### 28.3 `[Tags("Corporate - HRD Bipartite Negotiation & Labor Relations")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/bipartite/forums` | Jadwalkan perundingan forum Bipartit RS (LKS Bipartit / Serikat) | `Hrd.Bipartite.Schedule` | `ScheduleBipartiteMeetingRequestDto` (meetingDate, disputeType, managementReps, unionReps, agenda) | `BipartiteForumResponseDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/bipartite/forums` | Daftar catatan jalannya sidang perundingan Bipartit | `Hrd.Bipartite.View` | Query params: `disputeType`, `status`, `year` | `PagedResult<BipartiteForumResponseDto>`, `200 OK` |
+| `PUT` | `/api/v1/hrd/bipartite/forums/{forumId}/minutes` | Catat notulen jalannya perundingan dan posisi para pihak | `Hrd.Bipartite.RecordMinutes` | `RecordMinutesRequestDto` (minutesOfMeeting, attendeesList, deadlockPoints) | `BipartiteForumResponseDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/bipartite/forums/{forumId}/joint-agreement` | Unggah naskah resmi Perjanjian Bersama (PB) yang ditandatangani | `Hrd.Bipartite.UploadAgreement` | `UploadJointAgreementRequestDto` (jointAgreementDocUrl, registrationDisnakerNumber) | `BipartiteForumResponseDto`, `200 OK` |
+
+---
+
+### 28.4 `[Tags("Corporate - HRD Employee Separation & PP35 Severance")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/separations` | Pengajuan terminasi kerja (Resign, Pensiun, Kontrak Selesai, SP3) | `Hrd.Separation.Initiate` | `InitiateSeparationRequestDto` (employeeId, separationReason, noticeDate, effectiveDate, resignationLetterUrl) | `SeparationResponseDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/separations` | Daftar proses terminasi kerja dan status kliring | `Hrd.Separation.View` | Query params: `status`, `separationReason`, `departmentId` | `PagedResult<SeparationResponseDto>`, `200 OK` |
+| `POST` | `/api/v1/hrd/separations/{separationId}/calculate-severance` | Jalankan mesin hitung kompensasi pesangon PP 35/2021 | `Hrd.Separation.CalculateSeverance` | `CalculateSeveranceRequestDto` (separationId, baseMonthlyWage, unusedLeaveDays) | `SeveranceCalculationResponseDto` (UP, UPMK, UPH, UangPisah, Pajak, Net), `200 OK` |
+| `GET` | `/api/v1/hrd/separations/{separationId}/severance-breakdown` | Lembar rincian transparansi formula hitung pesangon | `Hrd.Separation.ViewSeverance` | Path param: `separationId` (UUID) | `SeveranceCalculationDetailDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/separations/{separationId}/approve-severance` | Pengesahan lembar pesangon oleh Direktur Keuangan | `Hrd.Separation.ApproveSeveranceFinance` | `ApproveSeveranceRequestDto` (notes, isApproved) | `SeveranceCalculationResponseDto`, `200 OK` |
+
+---
+
+### 28.5 `[Tags("Corporate - HRD Multi-Department Exit Clearance & Asset Handover")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/exit-clearance/{separationId}` | Ambil status matriks kliring 5 unit kerja (Unit, Aset, Farmasi, Keuangan, IT) | `Hrd.ExitClearance.View` | Path param: `separationId` (UUID) | `ExitClearanceProcessDetailDto` (overallStatus, checklists), `200 OK` |
+| `PUT` | `/api/v1/hrd/exit-clearance/checklists/{checklistId}/signoff` | Verifikasi persetujuan serah terima inventaris per unit kliring | `Hrd.ExitClearance.SignoffChecklist` | `SignoffChecklistRequestDto` (isReturned, outstandingLiabilityAmount, approverNotes) | `ExitClearanceChecklistDto`, `200 OK` |
+| `GET` | `/api/v1/hrd/exit-clearance/payroll-lock-status/{employeeId}` | Gerbang verifikasi status gembok payroll akhir Sub-10 (`INT-HR-87`) | `Hrd.ExitClearance.ViewLockStatus` | Path param: `employeeId` (UUID) | `PayrollLockStatusResponseDto` (isFinalPayrollUnlocked, pendingDepartments), `200 OK` |
+| `POST` | `/api/v1/hrd/exit-clearance/{clearanceProcessId}/complete` | Pengesahan akhir exit clearance & pembukaan kunci payroll akhir | `Hrd.ExitClearance.Finalize` | `FinalizeExitClearanceRequestDto` (notes) | `ExitClearanceProcessDetailDto` (isFinalPayrollUnlocked=true), `200 OK` |

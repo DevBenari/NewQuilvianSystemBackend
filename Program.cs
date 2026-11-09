@@ -1336,6 +1336,14 @@ try
     builder.Services.AddScoped<IPayrollDisbursementReconciliationService, PayrollDisbursementReconciliationService>();
     builder.Services.AddScoped<IPayrollPayslipDistributionService, PayrollPayslipDistributionService>();
 
+    // Slice S-B6 (Restitution & Deduction Integration) - MVP-33 (Settings, Finance Sync, Deduction Engine)
+    builder.Services.AddScoped<IRestitutionSettingService, RestitutionSettingService>();
+    builder.Services.AddScoped<IFinanceDeductionSyncService, FinanceDeductionSyncService>();
+    builder.Services.AddScoped<IPayrollDeductionEngineService, PayrollDeductionEngineService>();
+
+    // Slice S-B6 (Restitution & Deduction Integration) - MVP-34 (Claims, Approvals, Salary Correction & Payroll Injection)
+    builder.Services.AddScoped<IRestitutionClaimService, RestitutionClaimService>();
+
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
     builder.Services.AddScoped<DiscountPolicyService>();

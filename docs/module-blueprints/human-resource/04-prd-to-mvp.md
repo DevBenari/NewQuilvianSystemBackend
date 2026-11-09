@@ -3603,3 +3603,101 @@ Dokumen PRD ke MVP ini mendefinisikan batas rilis, target kapabilitas bisnis, ke
 | **`MVP-51` (Gelombang Siklus, Target & Penilaian Berjenjang 60:40)** | Siklus kinerja tahunan/semesteran, katalog KPI & Core Values BerAKHLAK, cascading target sasaran mutu unit, self-assessment di ESS, penilaian resmi Karu 60:40, dan penelaahan Kabid. | Controller & Services Cycles, Goals & Appraisals, `FE-HRD-231` (Dashboard Kinerja), `FE-HRD-232` (Katalog KPI), `FE-HRD-233` (Siklus & Target), `FE-HRD-234` (Portal Lembar Evaluasi). |
 | **`MVP-52` (Gelombang Sidang Kalibrasi & Program Pembinaan PIP 60 Hari)** | Sidang pleno kalibrasi manajemen RS, pedoman distribusi fleksibel (10-15% A, 70-80% B, 5-10% C/D), penyesuaian skor ber-nota justifikasi, rilis nilai serentak ke ESS, dan kontrak PIP 60 hari beserta monitoring logbook mingguan mentor. | Controller Calibration & PIP Services, `FE-HRD-235` (Konsol Sidang Kalibrasi), `FE-HRD-236` (Tata Kelola PIP & Logbook). |
 | **`MVP-53` (Gelombang Clinical Ladder Nakes & Majelis Sanggah Banding)** | Permohonan jenjang klinis nakes PK I-V, gate prasyarat KPI >= 75 & sertifikat Sub-16, audit logbook komite, sinkronisasi SK jenjang baru ke Sub-02/14, serta saluran sanggah banding nilai SLA 7/14 hari dan putusan majelis. | Controller Clinical Ladder & Disputes Services, `FE-HRD-237` (Portofolio Jenjang Klinis PK I-V), `FE-HRD-238` (Portal Sanggah Banding Nilai). |
+
+
+---
+
+## 36. Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 36.1 Scope Ringkasan & Boundaries
+
+Sub-modul 18 (Slice `S-C5`) mengelola siklus penegakan tata tertib pegawai, Berita Acara Pemeriksaan (BAP), penerbitan Surat Peringatan (SP 1, SP 2, SP 3) dengan masa kedaluwarsa 6 bulan kalender sesuai **PP No. 35 Tahun 2021**, penerapan prinsip keselamatan pasien berkeadilan (*Just Culture*), tata kelola skorsing investigasi (*paid suspension* 100% upah) dengan pencabutan seketika akses login SIMRS/EMR, saluran pengaduan kerja ganda (keluhan terbuka ESS & whistleblower rahasia terenkripsi), dokumentasi perundingan forum Bipartit, pengakhiran ikatan kerja (PHK/resign/pensiun/kontrak), mesin hitung kompensasi pesangon deterministik berbasis alasan terminasi, serta pusat kendali *Exit Clearance* 5 departemen yang bertindak sebagai pemblokir (*hard-block*) rilis pencairan gaji akhir dan pesangon di Sub-10 Payroll.
+
+---
+
+### 36.2 Daftar Epic Bisnis
+
+1. **`EPIC HRD-89` — Tata Kelola Laporan Insiden Disiplin, Sidang BAP & Filter Just Culture Rumah Sakit**
+   Mencatat pelaporan pelanggaran tata tertib, menghubungkan insiden pelayanan medis dengan nomor audit keselamatan pasien KMKP Sub-15, membedakan Human Error (pembinaan) vs Reckless Misconduct (sanksi), dan menyelenggarakan sidang pemeriksaan Berita Acara Pemeriksaan (BAP) berkeadilan.
+2. **`EPIC HRD-90` — Penerbitan & Monitoring Surat Peringatan (SP 1, SP 2, SP 3) Kedaluwarsa 6 Bulan PP 35/2021**
+   Menerbitkan sanksi tertulis berjenjang (Teguran Lisan, SP 1, SP 2, SP 3) dengan tanggal berlaku 6 bulan kalender, menyediakan jalur langsung SP 3 untuk pelanggaran berat, otomatisasi status kedaluwarsa H+180 via worker `EMP-W1`, serta memfasilitasi proses sanggah banding staf.
+3. **`EPIC HRD-91` — Pengelolaan Skorsing Investigasi (*Paid Suspension*) & Pengamanan Akses SIMRS**
+   Menetapkan status skorsing bagi pegawai dalam pemeriksaan intensif menuju PHK dengan jaminan pembayaran upah pokok dan tunjangan tetap 100% sesuai Pasal 157A UU Ketenagakerjaan, serta memicu pencabutan otomatis hak login SIMRS, EMR, PACS, dan akses kartu fisik rumah sakit (`INT-HR-88`).
+4. **`EPIC HRD-92` — Kanal Pengaduan Staf (Grievance ESS), Whistleblowing Rahasia Terenkripsi & Forum Bipartit**
+   Menyediakan saluran pengaduan keluhan kerja sehari-hari berbatas waktu penanganan 14 hari kerja, portal whistleblower rahasia terenkripsi end-to-end dengan proteksi anti-retaliasi, serta mendokumentasikan notulen jalannya perundingan perselisihan forum LKS Bipartit RS.
+5. **`EPIC HRD-93` — Pengakhiran Kerja (PHK), Kalkulator Pesangon Regulasi PP 35/2021 & Exit Clearance Hard-Block**
+   Mengelola proses pengunduran diri sukarela (one month notice), habis kontrak PKWT, pensiun, dan pemutusan sanksi; mengoperasikan mesin hitung kompensasi pesangon (UP, UPMK, UPH, Uang Pisah); memverifikasi kliring 5 unit; serta memblokir rilis gaji akhir di Sub-10 sebelum clearance tuntas 100%.
+
+---
+
+### 36.3 Kebutuhan Fungsional (Functional Requirements)
+
+* **`FR-EMP-01`**: Sistem wajib menyediakan formulir pelaporan insiden tata tertib pegawai yang mencakup tanggal, lokasi, kategori, deskripsi kronologi, dan jenis pelapor.
+* **`FR-EMP-02`**: Sistem wajib mewajibkan input nomor referensi audit keselamatan pasien KMKP (`KmKpAuditReferenceNumber`) untuk setiap insiden kategori pelayanan klinis (`INT-HR-86`).
+* **`FR-EMP-03`**: Sistem wajib menerapkan prinsip *Just Culture* dengan mengklasifikasikan insiden menjadi `HumanError`, `AtRiskBehavior`, atau `RecklessMisconduct`.
+* **`FR-EMP-04`**: Sistem dilarang menerbitkan sanksi Surat Peringatan (SP) untuk insiden yang terklasifikasi sebagai *Human Error* murni dan wajib mengalihkannya ke modul pembinaan/diklat Sub-16.
+* **`FR-EMP-05`**: Sistem wajib menyediakan lembar kerja digital Berita Acara Pemeriksaan (BAP) yang memuat nama tim pemeriksa, kesaksian saksi, barang bukti, dan pembelaan staf terperiksa.
+* **`FR-EMP-06`**: Sistem wajib mencatat penerbitan sanksi Surat Peringatan dengan tingkatan: Teguran Lisan, SP 1, SP 2, dan SP 3.
+* **`FR-EMP-07`**: Sistem wajib menetapkan tanggal kedaluwarsa sanksi SP 1, SP 2, dan SP 3 tepat 6 bulan kalender sejak tanggal diterbitkan (`ValidUntil = IssuedDate + 6 Months`) sesuai PP No. 35 Tahun 2021 Pasal 52.
+* **`FR-EMP-08`**: Sistem wajib menetapkan masa berlaku sanksi Teguran Lisan maksimal 3 bulan kalender (90 hari).
+* **`FR-EMP-09`**: Sistem wajib memvalidasi kenaikan jenjang sanksi secara bertahap (SP 2 membutuhkan SP 1 aktif), kecuali untuk kasus pelanggaran berat mendesak.
+* **`FR-EMP-10`**: Sistem wajib mengizinkan penerbitan langsung SP 3 untuk pelanggaran berat/mendesak setelah divalidasi oleh HR Legal dan disetujui Direktur SDM.
+* **`FR-EMP-11`**: Sistem wajib menyediakan background worker `DisciplinarySanctionExpiryWorker` (`EMP-W1`) yang otomatis mengubah status SP menjadi `Expired` pada H+180 hari kalender.
+* **`FR-EMP-12`**: Sistem wajib mengirimkan notifikasi peringatan H-14 sebelum berakhirnya masa aktif sanksi SP kepada staf bersangkutan dan atasan langsung.
+* **`FR-EMP-13`**: Sistem wajib menyediakan fitur pengajuan sanggah banding tertulis atas surat sanksi SP maksimal 7 hari kerja sejak tanggal penerbitan.
+* **`FR-EMP-14`**: Sistem wajib memfasilitasi penetapan surat skorsing masa investigasi (*paid suspension*) dengan durasi maksimal 180 hari kalender (6 bulan).
+* **`FR-EMP-15`**: Sistem wajib menjamin status pembayaran upah penuh 100% (`wage_payment_status = 'PaidFull'`) selama masa skorsing investigasi sesuai Pasal 157A UU Ketenagakerjaan.
+* **`FR-EMP-16`**: Sistem wajib memicu event seketika `INT-HR-88` untuk menonaktifkan akun login SSO SIMRS/EMR/PACS dan kartu fisik akses gedung saat surat skorsing atau penetapan PHK aktif.
+* **`FR-EMP-17`**: Sistem wajib menyediakan kanal pengaduan keluhan hubungan kerja (*grievance*) di portal ESS pegawai dengan batas SLA mediasi maksimal 14 hari kerja.
+* **`FR-EMP-18`**: Sistem wajib menyediakan kanal pelaporan pelanggaran rahasia (*whistleblowing*) terenkripsi dengan opsi pelaporan `Anonim` dan proteksi anti-retaliasi.
+* **`FR-EMP-19`**: Sistem wajib mengisolasi hak akses tiket whistleblower sehingga hanya dapat dibuka oleh Tim Kepatuhan dan Direktur SDM (`Hrd.Disciplinary.WhistleblowerReview`).
+* **`FR-EMP-20`**: Sistem wajib mendokumentasikan agenda perundingan Bipartit, daftar perwakilan kedua belah pihak, notulen risalah perselisihan, dan naskah Perjanjian Bersama (PB) berformat PDF.
+* **`FR-EMP-21`**: Sistem wajib memfasilitasi pengajuan pengakhiran ikatan kerja (PHK) dengan kategori: Resign Sukarela, Habis Kontrak PKWT, Pensiun Normal, Pelanggaran Disiplin SP 3, Pelanggaran Berat, dan Meninggal Dunia.
+* **`FR-EMP-22`**: Sistem wajib menyediakan mesin hitung pesangon otomatis yang menghitung Uang Pesangon (UP), Uang Penghargaan Masa Kerja (UPMK), Uang Penggantian Hak (UPH), dan Uang Pisah berdasarkan formula regulasi PP 35/2021 dan masa kerja sah dari `HireDate` Sub-02.
+* **`FR-EMP-23`**: Sistem wajib menghitung kompensasi pengakhiran kontrak PKWT secara proporsional: `(Masa Kerja Bulan / 12) x 1 Bulan Upah Terakhir`.
+* **`FR-EMP-24`**: Sistem wajib mengelola pusat kendali *Exit Clearance* dengan checklist verifikasi digital dari 5 departemen penanggung jawab (Unit Kerja, Umum/Aset, Farmasi/Alkes, Keuangan, IT).
+* **`FR-EMP-25`**: Sistem wajib memblokir secara otomatis (*hard-block*) tombol otorisasi pencairan gaji terakhir dan transfer pesangon di Sub-10 Payroll sebelum seluruh 5 departemen memberikan status persetujuan `Approved` (`INT-HR-87`).
+
+---
+
+### 36.4 Skenario Pengujian Penerimaan Pengguna (User Acceptance Testing)
+
+Telah didokumentasikan lengkap pada berkas `testing/acceptance-test-matrix.md` bagian 30.2 yang mencakup 5 skenario utama:
+1. `UAT-EMP-01`: Penerbitan Sanksi Disiplin Berjenjang Sesuai PP 35/2021 & Kedaluwarsa Otomatis 6 Bulan.
+2. `UAT-EMP-02`: Penanganan Insiden Pelayanan Medis Pasien dengan Filter Prinsip Just Culture RS.
+3. `UAT-EMP-03`: Pelaporan Kecurangan Farmasi Melalui Kanal Whistleblowing Terenkripsi & Anti-Retaliasi.
+4. `UAT-EMP-04`: Penetapan Skorsing Investigasi Pelanggaran Berat dengan Upah Penuh & Pencabutan Akses SIMRS.
+5. `UAT-EMP-05`: Pengakhiran Kerja Resign Sukarela, Kalkulasi Pesangon PP 35/2021 & Exit Clearance Hard-Block.
+
+---
+
+### 36.5 Sepuluh Kriteria Selesai (Definition of Done - DoD)
+
+1. **Kepatuhan Regulasi Ketenagakerjaan (PP 35/2021 & UU Cipta Kerja):** Formula pesangon dan masa berlaku sanksi SP 6 bulan kalender tervalidasi 100% sesuai dasar hukum perburuhan nasional.
+2. **Penegakan Prinsip Just Culture RS:** Pemisahan tegas antara Human Error (diklat) vs Reckless Misconduct (disiplin) terintegrasi dengan nomor audit keselamatan pasien KMKP Sub-15 (`INT-HR-86`).
+3. **Kerahasiaan Whistleblower & Anti-Retaliasi:** Payload laporan pengaduan rahasia terenkripsi pada level aplikasi dan terisolasi dari atasan langsung pihak terlapor.
+4. **Kepastian Perlindungan Upah Skorsing:** Sistem menjamin hak 100% upah pokok dan tunjangan tetap berjalan selama masa skorsing investigasi maksimal 6 bulan kalender.
+5. **Pengamanan Akses SIMRS & Fasilitas Fisik:** Event `INT-HR-88` memutus sesi aktif SSO SIMRS/EMR/PACS dan kartu fisik secara instan saat skorsing/PHK aktif.
+6. **Deterministik Kalkulator Pesangon:** Seluruh komponen UP, UPMK, UPH, dan Uang Pisah terhitung otomatis berdasarkan masa kerja riil dari `HireDate` Sub-02.
+7. **Pusat Kendali Exit Clearance 5 Departemen:** Checklist serah terima terverifikasi digital secara berjenjang oleh Unit Kerja, Aset Umum, Farmasi, Keuangan, dan IT.
+8. **Hard-Block Payroll Sub-10:** Rilis pencairan gaji terakhir dan transfer pesangon di Sub-10 Payroll terblokir otomatis hingga clearance `Completed` (`INT-HR-87`).
+9. **Kesiapan Layanan API & Swagger:** 24 endpoint API pada `contracts/api-contract.md` bagian 28 terstandarisasi dengan 5 tag grup Swagger resmi.
+10. **Kesiapan Otomasi Background Workers:** 6 worker (`EMP-W1` s.d. `EMP-W6`) siap memantau kedaluwarsa SP, durasi skorsing, SLA grievance, dan sinkronisasi penonaktifan akun IT.
+
+---
+
+### 36.6 Urutan Gelombang Pengiriman (Delivery Waves)
+
+* **`MVP-54` — Wave 1: Tata Kelola Disiplin, Filter Just Culture & Sanksi SP PP 35/2021**
+  - Implementasi entitas `trx_disciplinary_incident_reports`, `trx_disciplinary_investigation_records`, dan `trx_disciplinary_sanctions`.
+  - Filter Just Culture dengan nomor audit KMKP Sub-15 (`INT-HR-86`).
+  - Worker kedaluwarsa sanksi SP 6 bulan `EMP-W1` dan layar `FE-HRD-247`, `FE-HRD-248`.
+* **`MVP-55` — Wave 2: Skorsing Upah Penuh, Kanal Pengaduan Staf, Whistleblowing & Bipartit**
+  - Implementasi entitas `trx_disciplinary_suspensions`, `trx_employee_grievances`, dan `trx_bipartite_negotiation_forums`.
+  - Integrasi pencabutan sesi SIMRS `INT-HR-88` dan enkripsi payload whistleblower.
+  - Worker eskalasi SLA grievance `EMP-W3` dan layar `FE-HRD-249`, `FE-HRD-250`, `FE-HRD-251`.
+* **`MVP-56` — Wave 3: Pemutusan Kerja, Kalkulator Pesangon PP 35/2021 & Exit Clearance Hard-Block**
+  - Implementasi entitas `trx_employee_separations`, `trx_severance_calculations`, `trx_exit_clearance_processes`, dan `trx_exit_clearance_checklists`.
+  - Mesin hitung pesangon PP 35/2021 dan pengesahan Direktur Keuangan.
+  - Integrasi hard-block pencairan payroll akhir ke Sub-10 (`INT-HR-87`).
+  - Worker pengingat kliring aset `EMP-W5` dan layar `FE-HRD-252`, `FE-HRD-253`.

@@ -825,3 +825,64 @@ Matriks pengujian penerimaan (*User Acceptance Testing* - UAT) ini memuat 22 ske
 | `AT-HRD-PRF-20` | Kedaluwarsa | Penolakan otomatis pengajuan sanggah banding setelah H+7 | Nilai dirilis 10 hari yang lalu | Pegawai mencoba mengklik tombol sanggah banding di ESS | Sistem menonaktifkan form dan menolak pengajuan dengan error `400 Bad Request` batas waktu habis (`VR-PRF-12`). | `Rencana` |
 | `AT-HRD-PRF-21` | Mediasi HR | Klarifikasi tertutup HRD menyepakati penyesuaian skor damai | Sengketa nilai terdaftar | HR Performance memfasilitasi pertemuan Karu dan staf | Karu mengakui kekhilafan data dan menyetujui koreksi nilai; berita acara disahkan menjadi `Resolved`. | `Rencana` |
 | `AT-HRD-PRF-22` | Majelis Banding| Sidang majelis banding Direktur SDM memutus perkara dalam 14 hari| Mediasi klarifikasi tidak mencapai titik temu | Berkas dieskalasi ke Komite Majelis Banding | Majelis menetapkan putusan final mengikat, skor akhir dimutakhirkan, dan sengketa ditutup resmi (`VR-PRF-13`). | `Rencana` |
+
+
+---
+
+## 30. Matriks Pengujian Penerimaan Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 30.1 Butir Uji Kriteria Penerimaan (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`)
+
+| ID Pengujian | Deskripsi Skenario Uji | Kriteria Keberhasilan (Acceptance Criteria) | Tipe Pengujian |
+|---|---|---|---|
+| `AT-HRD-EMP-01` | Pelaporan insiden tata tertib pegawai | Form insiden terekam dengan status `Reported` dan nomor unik `INC-...` | Integration |
+| `AT-HRD-EMP-02` | Validasi Just Culture kasus insiden klinis medis | Sistem menolak laporan insiden klinis tanpa nomor audit KMKP sah (`VR-EMP-02`) | Negative |
+| `AT-HRD-EMP-03` | Pemblokiran sanksi SP untuk kategori Human Error | Sistem menolak penerbitan sanksi SP jika insiden terbukti Human Error (`VR-EMP-03`) | Security / Rule |
+| `AT-HRD-EMP-04` | Pelaksanaan sidang Berita Acara Pemeriksaan (BAP) | BAP tersimpan lengkap dengan daftar pemeriksa, pembelaan staf, dan temuan | Functional |
+| `AT-HRD-EMP-05` | Penerbitan SP 1 dengan masa berlaku 6 bulan | `ValidUntil` otomatis tercatat tepat `IssuedDate + 6 Months` kalender | Unit / Business |
+| `AT-HRD-EMP-06` | Kedaluwarsa otomatis sanksi SP pada H+180 hari | Worker `EMP-W1` mengubah status sanksi aktif menjadi `Expired` pada H+180 | Worker / Async |
+| `AT-HRD-EMP-07` | Peringatan H-14 kedaluwarsa sanksi SP | Notifikasi peringatan terkirim ke staf dan atasan 14 hari sebelum sanksi gugur | Async Event |
+| `AT-HRD-EMP-08` | Kenaikan berjenjang sanksi SP 1 ke SP 2 | Sistem mengizinkan penerbitan SP 2 karena pegawai masih memiliki SP 1 aktif | Business Rule |
+| `AT-HRD-EMP-09` | Penerbitan langsung SP 3 untuk pelanggaran berat | SP 3 langsung terbit sukses setelah persetujuan Direktur SDM terverifikasi | Functional |
+| `AT-HRD-EMP-10` | Alur sanggah banding atas sanksi SP | Tiket banding tercatat dan sanksi berubah status `RevokedOnAppeal` jika disetujui | Workflow |
+| `AT-HRD-EMP-11` | Penetapan status skorsing investigasi (*paid suspension*) | Skorsing aktif tercatat, hak upah bernilai `PaidFull`, tanggal batas maks 6 bulan | Regulatory |
+| `AT-HRD-EMP-12` | Pencabutan instan akses SSO SIMRS saat skorsing | Event `INT-HR-88` terbit dan sesi token Keycloak SIMRS/EMR terhapus seketika | Security Event |
+| `AT-HRD-EMP-13` | Pengiriman tiket keluhan hubungan kerja via ESS | Tiket keluhan terkirim ke supervisor dengan SLA target 14 hari kerja | Functional |
+| `AT-HRD-EMP-14` | Pengiriman laporan whistleblower anonim terenkripsi | Tiket whistleblower tersimpan dalam payload terenkripsi tanpa identitas terbuka | Cryptography / Privacy |
+| `AT-HRD-EMP-15` | Isolasi akses baca tiket whistleblower dari atasan | Atasan langsung menerima HTTP 403 Forbidden saat mencoba membaca tiket | Security / Auth |
+| `AT-HRD-EMP-16` | Dokumentasi perundingan forum Bipartit RS | Agenda perundingan, notulen risalah, dan naskah PB PDF tersimpan lengkap | Compliance |
+| `AT-HRD-EMP-17` | Pengajuan terminasi resign sukarela 30 hari | Sistem memvalidasi tanggal notice minimal 30 hari kalender sebelum tanggal efektif | Validation |
+| `AT-HRD-EMP-18` | Kalkulator pesangon resign (UPH + Uang Pisah) | UP dan UPMK bernilai Rp 0; UPH cuti dan Uang Pisah terhitung akurat PP 35/2021 | Calculation Engine |
+| `AT-HRD-EMP-19` | Kalkulator pesangon pensiun (1.75x UP + 1x UPMK + UPH) | Formula pengali 1.75x UP dan 1x UPMK teraplikasi akurat sesuai masa kerja sah | Calculation Engine |
+| `AT-HRD-EMP-20` | Persetujuan lembar pesangon oleh Direktur Keuangan | Nilai pesangon terkunci dan status perhitungan berubah menjadi `Approved` | Approval Gate |
+| `AT-HRD-EMP-21` | Gerbang exit clearance 5 departemen | Checklist dari Unit, Aset, Farmasi, Keuangan, dan IT terverifikasi bertahap | Multi-Party Signoff |
+| `AT-HRD-EMP-22` | Hard-block pemblokir rilis gaji akhir di Sub-10 | Sub-10 menolak proses payroll final jika clearance masih pending (`INT-HR-87`) | Inter-Module Gate |
+
+---
+
+### 30.2 Lima Skenario Pengujian Penerimaan Pengguna (User Acceptance Testing - UAT)
+
+1. **UAT-EMP-01: Penerbitan Sanksi Disiplin Berjenjang Sesuai PP 35/2021 & Kedaluwarsa 6 Bulan**
+   - *Aktor:* Kepala Ruangan, Staf Medis Terlapor, Manajer HR.
+   - *Langkah:* Pelaporan insiden ketidakhadiran berulang -> Pemeriksaan BAP klarifikasi -> Penerbitan SP 1 bertanggal kedaluwarsa 6 bulan -> Simulasi berjalannya waktu 180 hari -> Worker `EMP-W1` mengeset status `Expired` dan mengirim notifikasi pembersihan sanksi.
+   - *Ekspektasi:* SP 1 aktif selama tepat 6 bulan kalender, tercatat di e-Dossier Sub-02, dan otomatis kedaluwarsa tanpa intervensi manual jika tidak ada pelanggaran baru.
+
+2. **UAT-EMP-02: Penanganan Insiden Pelayanan Medis Pasien dengan Filter Prinsip Just Culture**
+   - *Aktor:* Perawat Pelapor, Tim KMKP Sub-15, Komite Etik Disiplin RS, Direktur SDM.
+   - *Langkah:* Laporan insiden kesalahan dosis obat di bangsal rawat inap -> Validasi nomor audit KMKP -> Audit KMKP membuktikan penyebab utama adalah kelelahan akibat shift darurat dan pelabelan obat mirip (*Human Error*) -> Sistem memblokir penerbitan SP dan mengalihkan perawat ke pelatihan resertifikasi PPI/BHD Sub-16.
+   - *Ekspektasi:* Tenaga medis terlindungi dari kriminalisasi kesalahan manusiawi murni, budaya keselamatan pasien terjaga, dan data terdokumentasi rapi.
+
+3. **UAT-EMP-03: Pelaporan Kecurangan Farmasi Melalui Kanal Whistleblowing Terenkripsi & Anti-Retaliasi**
+   - *Aktor:* Staf Farmasi Pelapor, Tim Kepatuhan Internal, Direktur SDM.
+   - *Langkah:* Staf farmasi menemukan gratifikasi pengadaan obat -> Mengirimkan tiket via portal whistleblower dengan mode `Anonim` -> Data dienkripsi asimetris -> Tiket hanya muncul di dasbor Tim Kepatuhan -> Kepala Instalasi Farmasi tidak memiliki hak akses membuka tiket.
+   - *Ekspektasi:* Identitas pelapor 100% aman terlindungi dari kebocoran internal dan intimidasi atasan langsung.
+
+4. **UAT-EMP-04: Penetapan Skorsing Investigasi Pelanggaran Berat dengan Upah Penuh & Pencabutan Akses SIMRS**
+   - *Aktor:* Pegawai Terperiksa, Direktur Utama, Administrator IT SIMRS.
+   - *Langkah:* Dugaan manipulasi data rekam medis pasien -> Direktur Utama menerbitkan surat skorsing investigasi -> Sistem seketika menerbitkan sinyal `INT-HR-88` -> Sesi login SIMRS/EMR terputus dan kartu pintar akses ruang server/rekam medis nonaktif -> Hak gaji pokok dan tunjangan tetap di Sub-10 Payroll tetap terproses 100%.
+   - *Ekspektasi:* Rumah sakit terlindungi dari manipulasi data lanjutan, sementara hak normatif upah pekerja tetap dipenuhi sesuai UU Ketenagakerjaan Pasal 157A.
+
+5. **UAT-EMP-05: Pengakhiran Kerja Resign Sukarela, Kalkulasi Pesangon PP 35/2021 & Exit Clearance Hard-Block**
+   - *Aktor:* Pegawai Resign, Staf Aset Umum, Farmasi, Keuangan, IT, Petugas Payroll Sub-10.
+   - *Langkah:* Pegawai mengajukan resign 30 hari sebelumnya -> Sistem menghitung hak UPH cuti dan Uang Pisah -> Direktur Keuangan mengesahkan lembar kompensasi -> Pegawai mengembalikan seragam dinas, stetoskop RS, kartu akses, dan melunasi kasbon -> Bagian IT mencabut akses SSO SIMRS -> Seluruh 5 unit memberi persetujuan `Approved` -> Petugas Payroll Sub-10 dapat membuka gembok dan merilis transfer gaji terakhir serta uang pisah.
+   - *Ekspektasi:* Zero aset hilang, akun sistem tertutup rapi, dan tidak ada sengketa pembayaran gaji akhir.

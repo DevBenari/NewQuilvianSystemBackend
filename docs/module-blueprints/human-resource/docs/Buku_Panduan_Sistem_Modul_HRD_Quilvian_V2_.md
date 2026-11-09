@@ -1579,9 +1579,9 @@ Perawat ICU wajib mempunyai kompetensi ventilator, BHD/BHL dan infection prevent
 **Status source:** `PARTIAL — EXTEND_EXISTING`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice S-C3 Komposisi 60:40 (KPI Kuantitatif & Core Values BerAKHLAK), sidang pleno kalibrasi manajemen berpedoman distribusi fleksibel, alur evaluasi berjenjang (Self-assessment, Karu, Kabid), PIP formal 60 hari kalender, prasyarat jenjang karier klinis nakes (Clinical Ladder PK I-V), dan mekanisme sanggah banding 7/14 hari dirancang lengkap dalam 11 artefak blueprint (Kontrak v21, 24 API endpoints, 25 aturan validasi, 22 UAT case, 25 FR, Waves MVP-51 s.d. MVP-53).
-- [ ] **Backend:** Perlu Penyesuaian (⏳) — Perlu penambahan 10 tabel relasional baru (`mst_kpi_metric_catalogs`, `trx_performance_cycles`, `trx_performance_goals`, `trx_performance_appraisals`, `trx_performance_appraisal_details`, `trx_performance_calibration_sessions`, `trx_performance_improvement_plans`, `trx_performance_pip_action_logs`, `trx_clinical_career_ladder_reviews`, `trx_performance_appraisal_disputes`), 24 endpoints Kontrak v21, serta 6 background workers.
-- [ ] **Frontend:** Perlu Penyesuaian (⏳) — Perlu penambahan 8 layar antarmuka baru (`FE-HRD-231` s.d. `FE-HRD-238`), 5 modal interaktif, dan Redux state slice `performanceManagementSlice.ts`.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-C3 Performance Management & Clinical Career dipecah menjadi 16 task backend (`BE-HRD-254` s.d. `BE-HRD-269`) dan 15 task frontend (`FE-HRD-231` s.d. `FE-HRD-245`) per gelombang MVP-51 s.d. MVP-53 & Verifikasi; grafik dependency pohon teks B64-B67 & F62-F65 ditambahkan pada kedua roadmap; seluruh 25 FR, 6 keputusan bisnis, 4 asumsi, 22 UAT, dan 5 skenario UAT terpetakan dengan 0 gap pada requirement-traceability.md bagian 1o (6 November 2026, Roadmap Rev 19).
+- [ ] **Backend:** Siap Diimplementasi (⏳) — 16 task terencana (`BE-HRD-254` s.d. `BE-HRD-269`), menunggu otorisasi task approved.
+- [ ] **Frontend:** Siap Diimplementasi (⏳) — 15 task terencana (`FE-HRD-231` s.d. `FE-HRD-245`) untuk 8 layar & 5 modal, menunggu otorisasi task approved.
 
 ## Penjelasan untuk developer
 
@@ -1762,7 +1762,7 @@ Perawat tertusuk jarum setelah tindakan. Sistem membuat exposure episode, mencat
 **Status source:** `PARTIAL — EXTEND_EXISTING`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-C5 Hubungan Industrial & Terminasi dipecah menjadi 16 task backend (BE-HRD-270 s.d. BE-HRD-285) dan 15 task frontend (FE-HRD-246 s.d. FE-HRD-260) per gelombang MVP-54 s.d. MVP-56 & Verifikasi; grafik dependency pohon teks B68-B71 & F66-F69 ditambahkan pada kedua roadmap; seluruh 25 FR, 6 keputusan bisnis, 4 asumsi, 22 UAT, dan 5 skenario UAT terpetakan dengan 0 gap pada requirement-traceability.md bagian 1p (6 November 2026, Roadmap Rev 20).
 - [x] **Backend:** Sudah dikerjakan (✅) — Pencatatan sanksi disiplin, SP 1/2/3, investigasi kasus (`BE-HRD-015`).
 - [x] **Frontend:** Sudah dikerjakan (✅) — Dasbor kasus hubungan industrial & modal sanksi SP (`FE-HRD-018`).
 
@@ -1852,7 +1852,7 @@ Terjadi medication incident. Quality melakukan incident analysis. Jika akar masa
 **Status source:** `TERSEDIA CORE — EXTEND FULL LIFECYCLE`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-C5 Hubungan Industrial & Terminasi dipecah menjadi 16 task backend (BE-HRD-270 s.d. BE-HRD-285) dan 15 task frontend (FE-HRD-246 s.d. FE-HRD-260) per gelombang MVP-54 s.d. MVP-56 & Verifikasi; grafik dependency pohon teks B68-B71 & F66-F69 ditambahkan pada kedua roadmap; seluruh 25 FR, 6 keputusan bisnis, 4 asumsi, 22 UAT, dan 5 skenario UAT terpetakan dengan 0 gap pada requirement-traceability.md bagian 1p (6 November 2026, Roadmap Rev 20).
 - [x] **Backend:** Sudah dikerjakan (✅) — Exit interview, serah terima aset, gerbang kliring Finance (`BE-HRD-014`).
 - [x] **Frontend:** Sudah dikerjakan (✅) — Formulir exit clearance bertingkat antar-departemen (`FE-HRD-017`).
 

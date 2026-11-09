@@ -1380,3 +1380,60 @@ Seluruh perubahan siklus, penyesuaian skor kalibrasi, penerbitan kontrak pembina
 | `PipFinalVerdictDelivered` | Keputusan | Sidang Hari Ke-60 | ID kontrak PIP, putusan (Lulus/Perpanjang/Eskalasi HR Legal), alasan | `Critical` |
 | `ClinicalLadderReviewApproved` | Jenjang Karir | Rekomendasi Komite | ID nakes, jenjang asal, jenjang baru (PK I-V), nomor SK penetapan | `High` |
 | `AppraisalDisputeVerdictDelivered`| Sengketa Nilai| Putusan Majelis | Nomor sanggahan, ID pemohon, putusan (Tetap/Disesuaikan), skor akhir baru | `Critical` |
+
+
+---
+
+## 26. Matriks Hak Akses & Jejak Audit Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 26.1 Matriks Hak Akses (RBAC Permissions)
+
+| Kode Izin (*Permission Code*) | Deskripsi Kewenangan | Peran yang Memiliki (*Assigned Roles*) | Sifat & Batas Tindakan |
+|---|---|---|---|
+| `Hrd.Disciplinary.CreateIncident` | Melaporkan dugaan insiden tata tertib | Seluruh Staf, Kepala Ruangan, Supervisor | Pembuatan tiket insiden awal |
+| `Hrd.Disciplinary.ViewIncidents` | Melihat daftar laporan insiden tata tertib RS | HR Relations, Tim Kepatuhan, Direktur SDM | Pembacaan terbatas unit wewenang |
+| `Hrd.Disciplinary.ConductInvestigation`| Melaksanakan sidang klarifikasi BAP disiplin | HR Legal, Tim Pemeriksa, Komite Disiplin | Input bukti dan temuan investigasi |
+| `Hrd.Disciplinary.IssueSanction` | Menerbitkan sanksi Surat Peringatan (SP 1-3) | Manajer HR, Direktur SDM | Otorisasi penerbitan sanksi sah |
+| `Hrd.Disciplinary.ViewSanctions` | Melihat riwayat sanksi SP pegawai | HR Officer, Atasan Langsung, Pegawai Bersangkutan | Tampilan profil sanksi e-Dossier |
+| `Hrd.Disciplinary.AppealSanction` | Mengajukan sanggah banding sanksi SP | Pegawai Penerima Sanksi | Pembukaan tiket banding formal |
+| `Hrd.Disciplinary.IssueSuspension` | Menerbitkan surat skorsing (*paid suspension*) | Direktur Utama | Tindakan hukum skorsing resmi |
+| `Hrd.Disciplinary.ManageSuspension` | Memantau & memulihkan pegawai diskorsing | Direktur SDM, HR Legal | Pengendalian masa berlaku skorsing |
+| `Hrd.Disciplinary.WhistleblowerReview` | Mengakses kotak masuk laporan whistleblower | Tim Kepatuhan Khusus, Direktur SDM | Sangat Rahasia (*Restricted Access*) |
+| `Hrd.Grievance.Submit` | Mengirimkan keluhan hubungan kerja via ESS | Seluruh Staf / Karyawan Rumah Sakit | Pengaduan mandiri terbuka |
+| `Hrd.Grievance.SubmitWhistleblower` | Mengirimkan pengaduan whistleblower terenkripsi| Seluruh Staf / Publik Internal RS | Pengaduan rahasia anonim |
+| `Hrd.Grievance.ViewOwn` | Memantau perkembangan status tiket keluhan | Pegawai Pengadu | Hanya melihat tiket milik sendiri |
+| `Hrd.Grievance.Mediate` | Mengelola mediasi keluhan & pencatatan solusi | Mediator HR, Kepala Ruangan, Supervisor | Penyelesaian damai hubungan kerja |
+| `Hrd.Bipartite.Schedule` | Menjadwalkan sidang perundingan Bipartit | HR Industrial Relations | Penjadwalan resmi forum Bipartit |
+| `Hrd.Bipartite.View` | Melihat arsip dokumen perundingan Bipartit | Pengurus LKS Bipartit, HR, Direksi | Transparansi hubungan industrial |
+| `Hrd.Bipartite.RecordMinutes` | Mencatat risalah resmi sidang Bipartit | Sekretaris Forum Bipartit, HR Legal | Dokumentasi Berita Acara Rapat |
+| `Hrd.Bipartite.UploadAgreement` | Mengunggah dokumen Perjanjian Bersama (PB) | HR Legal | Pengarsipan naskah berkekuatan hukum |
+| `Hrd.Separation.Initiate` | Mengajukan terminasi kerja / pengunduran diri | Pegawai (Resign), HR Officer (Kontrak/Pensiun/SP3) | Pembukaan proses terminasi |
+| `Hrd.Separation.View` | Melihat daftar pegawai dalam proses terminasi | HR Offboarding, Manajer Unit Terkait | Monitoring status pengakhiran ikatan kerja |
+| `Hrd.Separation.CalculateSeverance`| Mengoperasikan kalkulator pesangon PP 35/2021 | Analis Kompensasi (C&B Specialist) | Perhitungan UP, UPMK, UPH, Uang Pisah |
+| `Hrd.Separation.ViewSeverance` | Melihat rincian lembar kompensasi pesangon | Pegawai Terkait, Manajer C&B, Direksi | Transparansi rincian finansial |
+| `Hrd.Separation.ApproveSeveranceFinance`| Mengesahkan nilai pencairan pesangon | Direktur Keuangan (CFO) | Kunci persetujuan anggaran pesangon |
+| `Hrd.ExitClearance.View` | Melihat papan kendali status exit clearance | HR Offboarding, Petugas Kliring 5 Unit | Pemantauan matriks serah terima |
+| `Hrd.ExitClearance.SignoffChecklist` | Memberikan persetujuan kliring unit kerja | Verifikator Unit (Aset, Farmasi, Keu, IT) | Verifikasi fisik & tanda tangan digital |
+| `Hrd.ExitClearance.ViewLockStatus` | Memeriksa status gembok payroll akhir | Petugas Payroll Sub-10, Staf Offboarding | Pengecekan gerbang kelayakan rilis gaji |
+| `Hrd.ExitClearance.Finalize` | Menyelesaikan clearance & membuka gembok payroll | Manajer SDM / Kepala Bagian Kepegawaian | Otorisasi pembukaan gembok payroll final |
+
+---
+
+### 26.2 Matriks Jejak Audit Keamanan & Akuntabilitas (Audit Events)
+
+| Kode Peristiwa Audit | Deskripsi Peristiwa | Kategori Tingkat Risiko | Detail Data yang Dicatat |
+|---|---|---|---|
+| `HRD_DISCIPLINARY_INCIDENT_REPORTED` | Laporan insiden tata tertib dibuat di sistem | `MEDIUM` | IncidentId, EmployeeId, Category, ReporterType, Timestamp |
+| `HRD_JUST_CULTURE_CLASSIFICATION_RECORDED`| Klasifikasi Just Culture ditetapkan tim BAP | `HIGH` | IncidentId, JustCultureClass, KmKpAuditRef, InvestigatorNames |
+| `HRD_BAP_INVESTIGATION_CONCLUDED` | Sidang pemeriksaan BAP selesai & disahkan | `HIGH` | InvestigationId, RecommendedAction, FindingsSummary |
+| `HRD_DISCIPLINARY_SANCTION_ISSUED` | Surat Peringatan (Teguran/SP 1-3) resmi diterbitkan | `CRITICAL` | SanctionId, EmployeeId, Level, IssuedDate, ValidUntil (+6M) |
+| `HRD_DISCIPLINARY_SANCTION_EXPIRED` | Status sanksi SP berubah kedaluwarsa otomatis | `LOW` | SanctionId, EmployeeId, ExpiredAt (H+180 Worker) |
+| `HRD_DISCIPLINARY_SANCTION_APPEALED` | Pegawai mengajukan sanggah banding sanksi | `MEDIUM` | SanctionId, EmployeeId, AppealStatementUrl, SubmittedAt |
+| `HRD_PAID_SUSPENSION_ISSUED` | Penetapan skorsing investigasi (upah penuh) | `CRITICAL` | SuspensionId, EmployeeId, StartDate, ExpectedEndDate |
+| `HRD_SIMRS_ACCESS_REVOKED_SUSPENSION` | Sesi SSO SIMRS/EMR dicabut instan karena skorsing | `CRITICAL` | EmployeeId, UserId, SessionTokenRevokedList, Timestamp |
+| `HRD_GRIEVANCE_TICKET_SUBMITTED` | Tiket keluhan hubungan kerja dikirim pegawai | `LOW` | TicketNumber, Category, TargetUnit, SLA_Deadline |
+| `HRD_WHISTLEBLOWER_REPORT_ENCRYPTED` | Laporan whistleblower terenkripsi diterima sistem | `HIGH` | TicketNumber, EncryptedHash, AnonymousFlag, ReceivedAt |
+| `HRD_BIPARTITE_AGREEMENT_REGISTERED` | Perjanjian Bersama (PB) resmi didaftarkan | `HIGH` | ForumId, RegisterNumber, AgreementDocUrl, DisnakerRef |
+| `HRD_SEVERANCE_CALCULATION_FINALIZED` | Rincian pesangon PP 35/2021 disetujui Direktur Keu | `CRITICAL` | SeparationId, GrossAmount, TaxFinal, NetAmount, ApprovedBy |
+| `HRD_EXIT_CLEARANCE_CHECKLIST_APPROVED` | Item serah terima disetujui unit kliring | `MEDIUM` | ChecklistId, DepartmentType, ItemName, ApprovedByUserId |
+| `HRD_FINAL_PAYROLL_UNLOCKED` | Gembok rilis payroll & pesangon dibuka otomatis | `CRITICAL` | SeparationId, EmployeeId, UnlockedAt, AllChecklistsStatus |

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `18` — revisi `17` menyerap target state Slice `S-C1-OPPE`; **revisi `18` (6 November 2026) menyerap keputusan `HRD-DEC-158` s.d. `HRD-DEC-163` dan asumsi `HRD-ASM-51` s.d. `HRD-ASM-54` untuk target state Slice `S-C2` (Learning, Training & Competency — Pelatihan Wajib Akreditasi STARKES 100%, Evaluasi OSCE, Radar Kedaluwarsa & Safeguard Shift Buddy System, Ikatan Dinas Nakes > Rp 10 Jt / > 1 Bulan, serta Visual Tracker 50 SKP Plataran Sehat Kemenkes), merencanakan 16 task backend (`BE-HRD-238` s.d. `BE-HRD-253`) dan 15 task frontend (`FE-HRD-216` s.d. `FE-HRD-230`) lintas gelombang MVP-48 s.d. MVP-50 & Verifikasi** |
+| Roadmap revision | `20` — **revisi `20` (6 November 2026) menyerap keputusan `HRD-DEC-170` s.d. `HRD-DEC-175` dan asumsi `HRD-ASM-59` s.d. `HRD-ASM-62` untuk target state Slice `S-C5` (Hubungan Industrial & Terminasi: Disciplinary, Grievance, Whistleblowing, Bipartite, Termination PP 35/2021 & Exit Clearance Multi-Departemen Pemblokir Payroll), merencanakan 16 task backend (`BE-HRD-270` s.d. `BE-HRD-285`) dan 15 task frontend (`FE-HRD-246` s.d. `FE-HRD-260`) lintas gelombang MVP-54 s.d. MVP-56 & Verifikasi**; revisi `19` menyerap target state Slice `S-C3` |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -396,21 +396,21 @@ ightarrow$ Paguyuban) dan carry-over otomatis, portal pengajuan klaim mandiri ka
 | **Acceptance Criteria** | Seluruh 25 aturan validasi (`VR-TRN-01` s.d. `VR-TRN-25`), 22 skenario acceptance test (`AT-HRD-TRN-01` s.d. `AT-HRD-TRN-22`), dan 5 skenario UAT terpenuhi tanpa celah |
 | **Release Status** | `PLANNED` |
 
-### `S-C3` — Manajemen kinerja
+### `S-C3` — Manajemen kinerja (Performance Management & Clinical Career)
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | 18 endpoint pada 2 controller, model berjumlah 11. Master data sudah lengkap: siklus, skala, template, dan katalog KPI |
-| **Target State** | Siklus penilaian berjalan, atasan menilai, pegawai melihat hasilnya, dan riwayat tersimpan |
-| **Backend Impact** | `EXTEND` |
-| **Frontend Impact** | Kelompok halaman baru untuk sisi transaksi |
-| **Database Impact** | Kemungkinan `EXTEND` kolom |
-| **Dependency** | `HRD-DEP-002` bila penilaian memerlukan persetujuan berjenjang |
-| **Blocking Decision** | Tidak ada untuk staf nonklinis |
-| **QBE Impact** | `NEW CODE` untuk endpoint tambahan |
-| **Migration Risk** | Rendah |
-| **Acceptance Criteria** | 1. Satu pegawai tidak dapat dinilai dua kali pada siklus yang sama. 2. Penilaian yang sudah final tidak dapat diubah diam-diam; koreksi menghasilkan revisi. 3. Pegawai melihat hasilnya sendiri, bukan hasil orang lain |
-| **Release Status** | `READY` |
+| **Current State** | 18 endpoint pada 2 controller lama; master katalog dasar ada namun belum terintegrasi dengan komposisi baku 60:40, kalibrasi manajemen guiding distribution, program PIP 60 hari, prasyarat clinical ladder PK I-V, maupun mekanisme sanggah banding nilai kinerja |
+| **Target State** | Siklus evaluasi berkala semesteran/tahunan berjenjang 3 tingkat (Self -> Karu -> Kabid) dengan peer review opsional non-skor, komposisi baku 60% KPI hasil kerja kuantitatif (unit & individu) + 40% perilaku Core Values BerAKHLAK skala likert 1-5, sidang pleno kalibrasi manajemen berpedoman distribusi fleksibel (*Guiding Distribution* 10-15% A, 70-80% B, 5-10% C/D) dengan audit nota justifikasi untuk setiap override nilai, program pembinaan khusus formal PIP 60 hari kalender bagi skor komposit < 65 beserta pemantauan 8 logbook mingguan mentor & pembekuan hak mutasi/promosi ke Sub-06 (`INT-HR-84`), skor kinerja tahunan minimal 75 sebagai prasyarat administratif kenaikan jenjang karier klinis perawat/nakes (*Clinical Ladder* PK I-V) terintegrasi audit logbook komite, sertifikat kompetensi Sub-16 (`INT-HR-81`), bebas sentinel Sub-15 (`INT-HR-82`), sinkronisasi SK jenjang baru ke Sub-02 & Sub-14 (`INT-HR-83`), serta saluran sanggah banding nilai kinerja SLA 7 hari pengajuan ESS dan 14 hari putusan majelis banding Direktur SDM |
+| **Backend Impact** | `EXTEND`. 16 task backend (`BE-HRD-254` s.d. `BE-HRD-269`) mencakup 10 model tabel relasional Postgres (`mst_kpi_metric_catalogs`, `trx_performance_cycles`, `trx_performance_goals`, `trx_performance_appraisals`, `trx_performance_appraisal_details`, `trx_performance_calibration_sessions`, `trx_performance_improvement_plans`, `trx_performance_pip_action_logs`, `trx_clinical_career_ladder_reviews`, `trx_performance_appraisal_disputes`), 24 endpoint API Kontrak `v21`, 8 aturan bisnis `PRF-B1`..`B8`, dan 6 background workers `PRF-W1`..`PRF-W6` |
+| **Frontend Impact** | `EXTEND`. 15 task frontend (`FE-HRD-231` s.d. `FE-HRD-245`) untuk 8 layar antarmuka (`FE-HRD-231` s.d. `FE-HRD-238`), 5 modal dialog interaktif, dan Redux state slice `performanceManagementSlice.ts` |
+| **Database Impact** | 10 tabel relasional baru/terekspansi dengan UUID PK, audit columns, soft-delete, dan foreign keys terindeks lengkap |
+| **Dependency** | `INT-HR-81` (Sub-16 Sertifikat Diklat/OSCE), `INT-HR-82` (Sub-15 Log Sentinel & Mutu Klinis), `INT-HR-83` (Sub-02 Profil Induk & Sub-14 RKK Jenjang Baru), `INT-HR-84` (Sub-06 Pemblokiran Mutasi/Promosi PIP) |
+| **Blocking Decision** | Selesai & Approved — `HRD-DEC-164` s.d. `HRD-DEC-169` dan asumsi `HRD-ASM-55` s.d. `HRD-ASM-58` (Revisi 31) |
+| **QBE Impact** | `NEW CODE` untuk controller, services, background workers, dan client API contracts |
+| **Migration Risk** | Rendah — tabel baru terisolasi dalam skema EF Core dengan penamaan konvensi Quilvian |
+| **Acceptance Criteria** | Seluruh 25 aturan validasi (`VR-PRF-01` s.d. `VR-PRF-25`), 22 skenario acceptance test (`AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`), dan 5 skenario UAT terpenuhi tanpa celah |
+| **Release Status** | `PLANNED` — Desain disetujui pengguna 6 November 2026 (`HRD-DEC-164` s.d. `HRD-DEC-169`). Direncanakan 16 task backend (`BE-HRD-254` s.d. `BE-HRD-269`) dan 15 task frontend (`FE-HRD-231` s.d. `FE-HRD-245`) pada roadmap revision `19` lintas gelombang `MVP-51` s.d. `MVP-53` & Verifikasi. |
 
 Catatan batas: kontribusi mutu dan keselamatan pasien untuk tenaga medis dirancang pada `S-C1-OPPE` yang telah berstatus `PLANNED` (Roadmap Revisi 17).
 
@@ -463,21 +463,21 @@ sini.
 | **Gerbang** | `HRD-DEC-032` (pemetaan peran) menahan `BE-HRD-085` dan `BE-HRD-086` |
 | **Release Status** | `READY` |
 
-### `S-C5` — Hubungan karyawan dan kedisiplinan
+### `S-C5` — Hubungan Industrial & Terminasi (Disciplinary, Grievance, Whistleblowing, Bipartite & Exit Clearance)
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | 10 endpoint pada 1 controller, model berjumlah 8. Master data lengkap di frontend: jenis pelanggaran, jenis sanksi, jenis tindakan disiplin, jenis kasus |
-| **Target State** | Pencatatan kasus, tindakan disiplin, sanksi, dan riwayatnya |
-| **Backend Impact** | `EXTEND` |
-| **Frontend Impact** | Kelompok halaman baru untuk sisi transaksi |
-| **Database Impact** | Kemungkinan `EXTEND` kolom |
-| **Dependency** | `HRD-DEP-002` |
-| **Blocking Decision** | Kepemilikan proses kekerasan di tempat kerja dan konseling adalah `HRD-Q-06` |
-| **QBE Impact** | `NEW CODE` untuk endpoint tambahan. Empat controller master data domain ini tersimpan di folder yang salah, lihat `HRD-TF-004`; pemindahannya digabungkan ke `S0-B` |
-| **Migration Risk** | Rendah |
-| **Acceptance Criteria** | 1. Kasus kedisiplinan hanya dapat dibaca peran yang berwenang. 2. Setiap tindakan menyimpan alasan, pelaku, dan waktu. 3. Kasus yang sudah ditutup tidak dapat diubah diam-diam |
-| **Release Status** | `READY` |
+| **Current State** | 10 endpoint legacy pada 1 controller, model berjumlah 8 (`HRD-CAP-18`). Onboarding telah dipisah ke `S-C4-ONB`, menyisakan sanksi disiplin dan exit clearance yang belum terintegrasi ke regulasi nasional PP 35/2021 dan prinsip Just Culture. |
+| **Target State** | Tata kelola disiplin kerja berkeadilan (*Just Culture* RS) membedakan Human Error (pembinaan diklat Sub-16) vs Reckless Misconduct (sanksi BAP); Surat Peringatan bertingkat (Teguran Lisan, SP 1, SP 2, SP 3) dengan masa berlaku tepat 6 bulan kalender sesuai Pasal 52 PP No. 35 Tahun 2021 dan otomatisasi status `Expired` H+180 hari via worker `EMP-W1`; pengelolaan skorsing investigasi (*paid suspension*) dengan jaminan upah 100% Pasal 157A UU Ketenagakerjaan serta pembekuan instan sesi login SSO SIMRS/EMR/PACS & akses fisik gedung (`INT-HR-88`); saluran pengaduan ganda (keluhan terbuka ESS dengan batas SLA 14 hari kerja via worker `EMP-W3` & kanal Whistleblower rahasia terenkripsi anti-retaliasi ber-RBAC isolasi Kepatuhan); dokumentasi perundingan perselisihan hak/kepentingan forum Bipartit RS; pemutusan hubungan kerja (resign 30 hari notice, pensiun, habis kontrak PKWT, SP3) dengan mesin hitung kompensasi pesangon deterministik PP 35/2021 (UP, UPMK, UPH cuti, Uang Pisah) tervalidasi Direktur Keuangan; serta pusat kendali *Exit Clearance* 5 departemen (Unit, Aset, Farmasi, Keuangan, IT) yang bertindak sebagai pemblokir (*hard-block*) rilis pencairan gaji akhir dan pesangon di Sub-10 Payroll (`INT-HR-87`). |
+| **Backend Impact** | 10 tabel relasional baru PostgreSQL (`trx_disciplinary_incident_reports`, `trx_disciplinary_investigation_records`, `trx_disciplinary_sanctions`, `trx_disciplinary_suspensions`, `trx_employee_grievances`, `trx_bipartite_negotiation_forums`, `trx_employee_separations`, `trx_severance_calculations`, `trx_exit_clearance_processes`, `trx_exit_clearance_checklists`); 24 endpoint API Kontrak `v22` dengan 5 tag grup Swagger; 6 background worker (`EMP-W1` s.d. `EMP-W6`); integrasi `INT-HR-85` s.d. `INT-HR-88`. |
+| **Frontend Impact** | 8 Layar Antarmuka (`FE-HRD-246` s.d. `FE-HRD-253`) mencakup dasbor hubungan industrial, laporan insiden Just Culture & BAP, monitoring SP 1-3 masa 6 bulan, konsol skorsing upah penuh & pengamanan SIMRS, portal keluhan ESS & whistleblower terenkripsi, risalah forum Bipartit, pengajuan PHK & kalkulator pesangon PP 35/2021, serta pusat kendali exit clearance multi-departemen; 5 komponen modal; Redux slice `employeeRelationSlice.ts`. |
+| **Database Impact** | Migrasi EF Core `20261106_AddEmployeeRelationAndExitClearance`, indeks komposit performa tinggi status sanksi dan clearance gate, zero data loss. |
+| **Dependency** | `HRD-DEP-001` (Workforce Core Sub-02 `MstWorkforceProfile`), `INT-HR-86` (KMKP Sub-15 Audit Query), `INT-HR-87` (Sub-10 Payroll Gate Provider), `INT-HR-88` (Identity Server / Keycloak SSO Session Revocation). |
+| **Blocking Decision** | Seluruh keputusan telah disahkan: `HRD-DEC-170` s.d. `HRD-DEC-175` (`APPROVED`, Decision Revision `32`). Tidak ada keputusan yang memblokir. |
+| **QBE Impact** | `NEW CODE` untuk controller, service, dan repositori baru dengan kepatuhan arsitektur Quilvian Backend Engineering standard. |
+| **Migration Risk** | Rendah — tabel baru independen tanpa memutus skema legacy berjalan. |
+| **Acceptance Criteria** | 25 Aturan Validasi (`VR-EMP-01` s.d. `VR-EMP-25`) dan 22 Acceptance Tests (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`) tervalidasi 100% lulus. |
+| **Release Status** | `PLANNED` — Desain disetujui pengguna 6 November 2026 (`HRD-DEC-170` s.d. `HRD-DEC-175`). Direncanakan 16 task backend (`BE-HRD-270` s.d. `BE-HRD-285`) dan 15 task frontend (`FE-HRD-246` s.d. `FE-HRD-260`) pada roadmap revision `20` lintas gelombang `MVP-54` s.d. `MVP-56` & Verifikasi. |
 
 ---
 
@@ -688,10 +688,9 @@ Contoh supaya batasnya jelas:
 
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
-| `READY` | **15** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C3` s.d. `S-C5` (3), `S-E` (1), `S-D1` (1), `S-D2` (1) |
-| `PLANNED` | **8** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D3` (1, rev 14), `S-D4` (1, sejak 5 November 2026 — 15 task BE, 14 task FE rev 15) |
+| `READY` | **12** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C4` (1), `S-E` (1), `S-D2` (1) |
+| `PLANNED` | **13** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D1` (1, rev 14), `S-D3` (1, rev 14), `S-D4` (1, rev 15), `S-C1` (1, rev 16), `S-C1-OPPE` (1, rev 17), `S-C2` (1, rev 18), `S-C3` (1, rev 19), `S-C5` (1, rev 20) |
 | `PARTIAL` | **0** | Tidak ada slice PARTIAL |
-| `PLANNED` | 10 | `S-B1`, `S-B2`, `S-B3`, `S-B5`, `S-B6`, `S-D1`, `S-D3`, `S-D4`, `S-C1`, `S-C1-OPPE` |
 | `BLOCKED` | 1 | `S-C6` |
 | `DEFERRED` | 1 | `S-D5` |
 | **Total** | **27** | |

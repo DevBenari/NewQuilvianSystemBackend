@@ -4976,3 +4976,225 @@ Kamus data ini memuat spesifikasi skema relasional modul manajemen kinerja pegaw
 | `status` | `VARCHAR(30)` | No | `'Submitted'` | IDX6 | Tidak | Status: `Submitted`, `MediationPhase`, `PlenaryReview`, `Resolved`, `Rejected` |
 | `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | - | Tidak | Waktu pengajuan sanggahan |
 | `updated_at` | `TIMESTAMPTZ` | Yes | `NULL` | - | Tidak | Waktu penutupan perkara |
+
+
+---
+
+## 23. Kamus Data Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 23.1 Tabel `trx_disciplinary_incident_reports` (Laporan Insiden Pelanggaran Disiplin & Just Culture)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `incident_report_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik laporan insiden |
+| `incident_number` | `VARCHAR(64)` | NOT NULL | - | Nomor dokumen insiden (mis. `INC-2026-11-001`) |
+| `employee_id` | `UUID` | NOT NULL | - | ID pegawai terlapor (FK ke `mst_workforce_profiles`) |
+| `incident_date` | `TIMESTAMPTZ` | NOT NULL | - | Tanggal dan waktu kejadian insiden |
+| `incident_location` | `VARCHAR(255)` | NOT NULL | - | Tempat kejadian (mis. Ruang Rawat Inap Melati) |
+| `category` | `VARCHAR(64)` | NOT NULL | - | Kategori (Attendance, Behavioral, ClinicalSafety, Ethics, SOPViolation) |
+| `just_culture_classification` | `VARCHAR(32)` | NOT NULL | `'HumanError'` | Klasifikasi Just Culture: `HumanError`, `AtRiskBehavior`, `RecklessMisconduct` |
+| `description` | `TEXT` | NOT NULL | - | Kronologi rinci kejadian insiden |
+| `reporter_type` | `VARCHAR(32)` | NOT NULL | - | Jenis pelapor: `Self`, `Superior`, `Peer`, `Committee`, `PatientGrievance` |
+| `reporter_employee_id` | `UUID` | NULL | - | ID pegawai pelapor jika bukan anonim |
+| `kmkp_audit_reference_number`| `VARCHAR(64)` | NULL | - | Nomor referensi investigasi KMKP untuk insiden klinis (`INT-HR-86`) |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Reported'` | Status: `Reported`, `Investigating`, `ResolvedNoSanction`, `SanctionRecommended` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan laporan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data terakhir |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pembuat data |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data terakhir |
+
+---
+
+### 23.2 Tabel `trx_disciplinary_investigation_records` (Berita Acara Pemeriksaan - BAP Disiplin)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `investigation_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik berkas pemeriksaan BAP |
+| `incident_report_id` | `UUID` | NOT NULL | - | FK ke `trx_disciplinary_incident_reports` |
+| `bap_number` | `VARCHAR(64)` | NOT NULL | - | Nomor resmi dokumen BAP (mis. `BAP-HRD-2026-089`) |
+| `hearing_date` | `TIMESTAMPTZ` | NOT NULL | - | Tanggal dan jam pelaksanaan sidang klarifikasi/BAP |
+| `investigator_names` | `TEXT` | NOT NULL | - | Daftar nama tim pemeriksa HR Legal / Komite Disiplin |
+| `witness_statements` | `TEXT` | NULL | - | Rangkuman kesaksian saksi-saksi |
+| `evidence_document_urls` | `TEXT` | NULL | - | URL berkas dokumen bukti fisik/rekaman CCTV/log SIMRS |
+| `employee_defense_statement`| `TEXT` | NULL | - | Pernyataan pembelaan tertulis dari pegawai terperiksa |
+| `investigation_findings` | `TEXT` | NOT NULL | - | Fakta hukum dan temuan kesimpulan tim pemeriksa |
+| `recommended_action` | `VARCHAR(64)` | NOT NULL | - | Rekomendasi: `Coaching`, `VerbalWarning`, `SP1`, `SP2`, `SP3`, `Suspension`, `Termination` |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Draft'` | Status BAP: `Draft`, `Submitted`, `ApprovedByHrDirector`, `Rejected` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pembuatan dokumen BAP |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data BAP |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas penyusun BAP |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data BAP |
+
+---
+
+### 23.3 Tabel `trx_disciplinary_sanctions` (Surat Peringatan & Sanksi Disiplin PP 35/2021)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `sanction_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik surat sanksi disiplin |
+| `investigation_id` | `UUID` | NULL | - | FK ke berkas BAP jika diterbitkan melalui sidang formal |
+| `employee_id` | `UUID` | NOT NULL | - | ID pegawai penerima sanksi (FK ke `mst_workforce_profiles`) |
+| `sanction_number` | `VARCHAR(64)` | NOT NULL | - | Nomor registrasi surat sanksi (mis. `SP-02/HRD/XI/2026`) |
+| `sanction_level` | `VARCHAR(32)` | NOT NULL | - | Tingkat: `VerbalWarning`, `SP1`, `SP2`, `SP3` |
+| `issued_date` | `DATE` | NOT NULL | - | Tanggal resmi surat sanksi diterbitkan |
+| `valid_until` | `DATE` | NOT NULL | - | Tanggal kedaluwarsa sanksi (`IssuedDate + 6 Months` berdasar PP 35/2021) |
+| `violation_description` | `TEXT` | NOT NULL | - | Uraian pasal tata tertib yang dilanggar |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Active'` | Status sanksi: `Active`, `Expired`, `RevokedOnAppeal` |
+| `is_appealed` | `BOOLEAN` | NOT NULL | `FALSE` | Indikator apakah staf mengajukan sanggah banding |
+| `appeal_resolution` | `TEXT` | NULL | - | Putusan akhir sidang banding Direksi jika ada |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan data sanksi |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data sanksi |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pejabat penerbit |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data terakhir |
+
+---
+
+### 23.4 Tabel `trx_disciplinary_suspensions` (Skorsing Investigasi - Paid Suspension)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `suspension_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik berkas skorsing investigasi |
+| `investigation_id` | `UUID` | NOT NULL | - | FK ke berkas BAP dasar penjatuhan skorsing |
+| `employee_id` | `UUID` | NOT NULL | - | ID pegawai yang diskorsing (FK ke `mst_workforce_profiles`) |
+| `suspension_number` | `VARCHAR(64)` | NOT NULL | - | Nomor surat penetapan skorsing |
+| `start_date` | `DATE` | NOT NULL | - | Tanggal efektif mulai berlakunya skorsing |
+| `expected_end_date` | `DATE` | NOT NULL | - | Batas akhir skorsing (Maksimal 6 bulan sesuai regulasi) |
+| `actual_end_date` | `DATE` | NULL | - | Tanggal aktual berakhirnya masa skorsing |
+| `wage_payment_status` | `VARCHAR(32)` | NOT NULL | `'PaidFull'` | Status hak upah: `PaidFull` (100% upah pokok & tunjangan tetap Pasal 157A) |
+| `is_system_access_revoked`| `BOOLEAN` | NOT NULL | `TRUE` | Status pemblokiran akun login SSO SIMRS, EMR, PACS (`INT-HR-88`) |
+| `is_physical_access_revoked`| `BOOLEAN` | NOT NULL | `TRUE` | Status penonaktifan kartu akses fisik pintu rumah sakit |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Active'` | Status: `Active`, `CompletedReinstated`, `EscalatedToTermination` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan penetapan skorsing |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data skorsing |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pejabat pembuat |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data |
+
+---
+
+### 23.5 Tabel `trx_employee_grievances` (Kanal Pengaduan Keluhan Staf & Whistleblowing)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `grievance_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik tiket pengaduan |
+| `ticket_number` | `VARCHAR(64)` | NOT NULL | - | Nomor tiket (mis. `GRV-2026-11-0042`) |
+| `complainant_employee_id`| `UUID` | NULL | - | ID staf pengadu jika bukan mode anonim total |
+| `is_whistleblower_case` | `BOOLEAN` | NOT NULL | `FALSE` | Penanda kasus whistleblower kritis (fraud/pelecehan) |
+| `is_anonymous` | `BOOLEAN` | NOT NULL | `FALSE` | Permintaan identitas anonim dari pengadu |
+| `encrypted_report_payload` | `TEXT` | NOT NULL | - | Uraian laporan terenkripsi asimetris level aplikasi |
+| `category` | `VARCHAR(64)` | NOT NULL | - | Kategori (InterpersonalConflict, ShiftDispute, Workload, Fraud, Harassment) |
+| `target_unit` | `VARCHAR(128)` | NULL | - | Unit kerja lokasi dugaan terjadinya masalah |
+| `severity_level` | `VARCHAR(32)` | NOT NULL | `'Medium'` | Tingkat urgensi: `Low`, `Medium`, `High`, `Critical` |
+| `target_resolution_date` | `DATE` | NOT NULL | - | Batas SLA penyelesaian (maksimal 14 hari kerja) |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Submitted'` | Status tiket: `Submitted`, `UnderReview`, `MediationScheduled`, `Resolved`, `Closed` |
+| `resolution_notes` | `TEXT` | NULL | - | Notulen kesepakatan damai atau putusan mediasi HR |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pengiriman tiket pengaduan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran status tiket |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengirim |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data |
+
+---
+
+### 23.6 Tabel `trx_bipartite_negotiation_forums` (Forum Perundingan Bipartit RS)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `forum_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik agenda sidang Bipartit |
+| `register_number` | `VARCHAR(64)` | NOT NULL | - | Nomor registrasi sidang Bipartit (mis. `BIP-2026-003`) |
+| `meeting_date` | `TIMESTAMPTZ` | NOT NULL | - | Tanggal dan jam pelaksanaan perundingan |
+| `dispute_type` | `VARCHAR(64)` | NOT NULL | - | Jenis: `RightsDispute`, `InterestDispute`, `TerminationDispute`, `UnionDispute` |
+| `management_representatives`| `TEXT` | NOT NULL | - | Daftar delegasi manajemen rumah sakit |
+| `union_representatives` | `TEXT` | NOT NULL | - | Daftar delegasi serikat pekerja / perwakilan buruh |
+| `agenda_description` | `TEXT` | NOT NULL | - | Pokok permasalahan yang dirundingkan |
+| `minutes_of_meeting` | `TEXT` | NOT NULL | - | Risalah jalannya perundingan Bipartit |
+| `joint_agreement_document_url`| `VARCHAR(512)`| NULL | - | URL berkas naskah Perjanjian Bersama (PB) yang ditandatangani |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Scheduled'` | Status: `Scheduled`, `CompletedAgreementReached`, `Deadlocked`, `Cancelled` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan agenda |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pencatat |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data |
+
+---
+
+### 23.7 Tabel `trx_employee_separations` (Pemutusan Hubungan Kerja - PHK)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `separation_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik proses pemutusan hubungan kerja |
+| `separation_number` | `VARCHAR(64)` | NOT NULL | - | Nomor registrasi PHK (mis. `SEP-2026-11-015`) |
+| `employee_id` | `UUID` | NOT NULL | - | ID staf yang putus kerja (FK ke `mst_workforce_profiles`) |
+| `separation_reason` | `VARCHAR(64)` | NOT NULL | - | Alasan: `VoluntaryResign`, `ContractEnd`, `Retirement`, `DisciplinarySP3`, `SevereMisconduct`, `Deceased` |
+| `notice_date` | `DATE` | NOT NULL | - | Tanggal penyampaian surat pemberitahuan/pengunduran diri |
+| `effective_date` | `DATE` | NOT NULL | - | Tanggal resmi pengakhiran ikatan kerja |
+| `resignation_letter_url` | `VARCHAR(512)` | NULL | - | URL dokumen surat pengunduran diri / penetapan PHK |
+| `termination_decision_number`| `VARCHAR(128)`| NULL | - | Nomor SK Direksi pengesahan PHK |
+| `approval_status` | `VARCHAR(32)` | NOT NULL | `'Pending'` | Status persetujuan: `Pending`, `ApprovedByDirector`, `Rejected` |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Initiated'` | Status alur: `Initiated`, `ClearanceInProgress`, `FinalizedCompleted`, `Cancelled` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu inisiasi pengajuan terminasi |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data terminasi |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas inisiator |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data |
+
+---
+
+### 23.8 Tabel `trx_severance_calculations` (Kalkulasi Pesangon & Kompensasi PP 35/2021)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `calculation_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik lembar hitung pesangon |
+| `separation_id` | `UUID` | NOT NULL | - | FK ke `trx_employee_separations` |
+| `base_monthly_wage` | `NUMERIC(14,2)`| NOT NULL | - | Upah dasar acuan (Upah Pokok + Tunjangan Tetap) |
+| `service_years` | `INT` | NOT NULL | - | Masa kerja bulat dalam tahun |
+| `service_months` | `INT` | NOT NULL | - | Sisa bulan masa kerja |
+| `severance_pay_amount` | `NUMERIC(14,2)`| NOT NULL | `0` | Nominal Uang Pesangon (UP) |
+| `service_award_amount` | `NUMERIC(14,2)`| NOT NULL | `0` | Nominal Uang Penghargaan Masa Kerja (UPMK) |
+| `rights_compensation_amount`| `NUMERIC(14,2)`| NOT NULL | `0` | Nominal Uang Penggantian Hak (UPH: cuti tahunan, ongkos) |
+| `separation_allowance_amount`| `NUMERIC(14,2)`| NOT NULL | `0` | Nominal Uang Pisah (sesuai PP/PKB) |
+| `total_severance_gross` | `NUMERIC(14,2)`| NOT NULL | `0` | Total bruto seluruh komponen pesangon |
+| `tax_deduction` | `NUMERIC(14,2)`| NOT NULL | `0` | Potongan Pajak Penghasilan Pasal 21 Final atas Pesangon |
+| `total_severance_net` | `NUMERIC(14,2)`| NOT NULL | `0` | Total bersih yang disetor ke pegawai |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Draft'` | Status lembar hitung: `Draft`, `VerifiedByHr`, `ApprovedByFinanceDirector` |
+| `is_approved_by_finance_director`| `BOOLEAN`| NOT NULL | `FALSE` | Kunci otorisasi Direktur Keuangan sebelum disinkronkan ke payroll |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu kalkulasi pertama kali |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran nilai |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas kalkulator |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data |
+
+---
+
+### 23.9 Tabel `trx_exit_clearance_processes` (Induk Proses Exit Clearance Pegawai)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `clearance_process_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik berkas kliring keluar |
+| `separation_id` | `UUID` | NOT NULL | - | FK ke `trx_employee_separations` |
+| `employee_id` | `UUID` | NOT NULL | - | ID pegawai offboarding (FK ke `mst_workforce_profiles`) |
+| `initiated_date` | `DATE` | NOT NULL | - | Tanggal dimulainya proses exit clearance |
+| `target_completion_date`| `DATE` | NOT NULL | - | Batas tanggal seluruh unit harus selesai memverifikasi |
+| `actual_completion_date`| `DATE` | NULL | - | Tanggal aktual seluruh 5 unit berstatus `Approved` |
+| `overall_clearance_status`| `VARCHAR(32)` | NOT NULL | `'InProgress'` | Status: `InProgress`, `Completed`, `BlockedOutstanding` |
+| `is_final_payroll_unlocked`| `BOOLEAN` | NOT NULL | `FALSE` | Kunci gembok pembuka rilis gaji akhir di Sub-10 (`INT-HR-87`) |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pembukaan berkas kliring |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran berkas |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas inisiator |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data |
+
+---
+
+### 23.10 Tabel `trx_exit_clearance_checklists` (Checklist Serah Terima Multi-Departemen)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `checklist_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik butir checklist kliring |
+| `clearance_process_id` | `UUID` | NOT NULL | - | FK ke `trx_exit_clearance_processes` |
+| `department_type` | `VARCHAR(32)` | NOT NULL | - | Departemen: `WorkUnitHandover`, `GeneralAffairsAsset`, `PharmacyMedicalDevice`, `FinanceCooperative`, `InformationTechnology` |
+| `item_name` | `VARCHAR(255)` | NOT NULL | - | Nama barang/kewajiban (mis. Kunci Ruangan, ID Card, Stetoskop, Pinjaman, Akun SSO) |
+| `is_returned` | `BOOLEAN` | NOT NULL | `FALSE` | Konfirmasi fisik barang telah diserahkan kembali |
+| `outstanding_liability_amount`| `NUMERIC(14,2)`| NOT NULL | `0` | Nominal tanggungan ganti rugi/sisa utang jika ada |
+| `approver_notes` | `TEXT` | NULL | - | Catatan verifikator departemen terkait |
+| `approved_by_user_id` | `UUID` | NULL | - | ID user penandatangan digital departemen |
+| `approved_at` | `TIMESTAMPTZ` | NULL | - | Waktu persetujuan digital diberikan |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Pending'` | Status butir: `Pending`, `Approved`, `RejectedOutstanding` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu inisiasi item checklist |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu verifikasi item |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pembuat item |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas verifikator |

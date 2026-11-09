@@ -7809,3 +7809,469 @@ Migration EF Core: `20261106150000_AddPerformanceManagementCoreEntities.cs`.
 | `HRD-DEC-167` | Tata Kelola Kontrak PIP 60 Hari Kalender & 3 Putusan | `TrxPerformanceImprovementPlan`, `TrxPerformancePipActionLog` | `AT-HRD-PRF-07`, `AT-HRD-PRF-08` |
 | `HRD-DEC-168` | Prasyarat Jenjang Karier Klinis Nakes (PK I - PK V) | `TrxClinicalCareerLadderReview`, `ClinicalCareerEligibilityGate` | `AT-HRD-PRF-10`, `AT-HRD-PRF-11` |
 | `HRD-DEC-169` | Alur Banding Sanggah Nilai Kinerja (SLA 7 / 14 Hari) | `TrxPerformanceAppraisalDispute`, `PerformanceDisputeService` | `AT-HRD-PRF-13`, `AT-HRD-PRF-14` |
+
+
+---
+
+## 31. Sub-Modul 18: Hubungan Industrial & Terminasi (Disciplinary, Grievance, Bipartite & Exit Clearance, Slice `S-C5`)
+
+### 31.1 Bounded Context & Data Ownership
+
+Sub-modul 18 mencakup dua bounded context yang saling berkoordinasi:
+1. **`EmployeeRelationManagement`**: Mengelola tata kelola disiplin kerja berkeadilan (*Just Culture*), Berita Acara Pemeriksaan (BAP), penerbitan sanksi Surat Peringatan (SP) sesuai PP 35/2021, tata kelola skorsing investigasi (*paid suspension*), kanal pengaduan kerja (*grievance*), saluran pelaporan dugaan pelanggaran rahasia (*confidential whistleblowing*), serta dokumentasi perundingan forum Bipartit (LKS Bipartit / Serikat Pekerja).
+2. **`ExitClearanceManagement` (Lifecycle Sub-Domain)**: Mengelola proses formal pengakhiran ikatan kerja (PHK, resign, pensiun, habis kontrak PKWT), perhitungan hak kompensasi dan pesangon normatif sesuai formula PP No. 35 Tahun 2021, serta pusat kendali *exit clearance* 5 departemen (Unit Kerja, Umum/Aset, Farmasi/Alkes, Keuangan, IT/SIMRS) yang menjadi gerbang pemblokir (*hard-block*) rilis pencairan gaji terakhir dan pesangon di Sub-10 Payroll.
+
+```text
++----------------------------------------------------------------------------------------------------+
+|                                BOUNDED CONTEXT: HumanResource                                       |
+|                                                                                                    |
+|  +--------------------------------------------+    +--------------------------------------------+  |
+|  |     Context: EmployeeRelationManagement    |    |      Context: ExitClearanceManagement      |  |
+|  |                                            |    |                                            |  |
+|  |  - TrxDisciplinaryIncidentReport           |    |  - TrxEmployeeSeparation                   |  |
+|  |  - TrxDisciplinaryInvestigationRecord     |    |  - TrxSeveranceCalculation                 |  |
+|  |  - TrxDisciplinarySanction                 |    |  - TrxExitClearanceProcess                 |  |
+|  |  - TrxDisciplinarySuspension               |    |  - TrxExitClearanceChecklist               |  |
+|  |  - TrxEmployeeGrievance                    |    |                                            |  |
+|  |  - TrxBipartiteNegotiationForum            |    |                                            |  |
+|  +--------------------------------------------+    +--------------------------------------------+  |
+|                         |                                                |                         |
+|                         v                                                v                         |
+|  +----------------------------------------------------------------------------------------------+  |
+|  | Inter-Module Integrations:                                                                   |  |
+|  | - INT-HR-85: Arsip Sanksi Disiplin Permanen ke Sub-02 e-Dossier (MstWorkforceProfile)         |  |
+|  | - INT-HR-86: Integrasi Audit Insiden Keselamatan Pasien KMKP Sub-15 (Prinsip Just Culture)   |  |
+|  | - INT-HR-87: Hard-Block Gerbang Pencairan Gaji Akhir & Pesangon ke Sub-10 Payroll Processing  |  |
+|  | - INT-HR-88: Penonaktifan Seketika Token Login SSO SIMRS/EMR/PACS & Akses Fisik Smart Card    |  |
+|  +----------------------------------------------------------------------------------------------+  |
++----------------------------------------------------------------------------------------------------+
+```
+
+---
+
+### 31.2 Class Diagram Backend `EmployeeRelationManagement` & `ExitClearance`
+
+```mermaid
+classDiagram
+    direction TB
+
+    class TrxDisciplinaryIncidentReport {
+        +Guid IncidentReportId
+        +string IncidentNumber
+        +Guid EmployeeId
+        +DateTime IncidentDate
+        +string IncidentLocation
+        +string Category
+        +string JustCultureClassification
+        +string Description
+        +string ReporterType
+        +Guid? ReporterEmployeeId
+        +string KmKpAuditReferenceNumber
+        +string Status
+        +DateTime CreatedAt
+    }
+
+    class TrxDisciplinaryInvestigationRecord {
+        +Guid InvestigationId
+        +Guid IncidentReportId
+        +string BapNumber
+        +DateTime HearingDate
+        +string InvestigatorNames
+        +string WitnessStatements
+        +string EvidenceDocumentUrls
+        +string EmployeeDefenseStatement
+        +string InvestigationFindings
+        +string RecommendedAction
+        +string Status
+    }
+
+    class TrxDisciplinarySanction {
+        +Guid SanctionId
+        +Guid? InvestigationId
+        +Guid EmployeeId
+        +string SanctionNumber
+        +string SanctionLevel
+        +DateTime IssuedDate
+        +DateTime ValidUntil
+        +string ViolationDescription
+        +string Status
+        +bool IsAppealed
+        +string AppealResolution
+    }
+
+    class TrxDisciplinarySuspension {
+        +Guid SuspensionId
+        +Guid InvestigationId
+        +Guid EmployeeId
+        +string SuspensionNumber
+        +DateTime StartDate
+        +DateTime ExpectedEndDate
+        +DateTime? ActualEndDate
+        +string WagePaymentStatus
+        +bool IsSystemAccessRevoked
+        +bool IsPhysicalAccessRevoked
+        +string Status
+    }
+
+    class TrxEmployeeGrievance {
+        +Guid GrievanceId
+        +string TicketNumber
+        +Guid? ComplainantEmployeeId
+        +bool IsWhistleblowerCase
+        +bool IsAnonymous
+        +string EncryptedReportPayload
+        +string Category
+        +string TargetUnit
+        +string SeverityLevel
+        +DateTime TargetResolutionDate
+        +string Status
+        +string ResolutionNotes
+    }
+
+    class TrxBipartiteNegotiationForum {
+        +Guid ForumId
+        +string RegisterNumber
+        +DateTime MeetingDate
+        +string DisputeType
+        +string ManagementRepresentatives
+        +string UnionRepresentatives
+        +string AgendaDescription
+        +string MinutesOfMeeting
+        +string JointAgreementDocumentUrl
+        +string Status
+    }
+
+    class TrxEmployeeSeparation {
+        +Guid SeparationId
+        +string SeparationNumber
+        +Guid EmployeeId
+        +string SeparationReason
+        +DateTime NoticeDate
+        +DateTime EffectiveDate
+        +string ResignationLetterUrl
+        +string TerminationDecisionNumber
+        +string ApprovalStatus
+        +string Status
+    }
+
+    class TrxSeveranceCalculation {
+        +Guid CalculationId
+        +Guid SeparationId
+        +decimal BaseMonthlyWage
+        +int ServiceYears
+        +int ServiceMonths
+        +decimal SeverancePayAmount
+        +decimal ServiceAwardAmount
+        +decimal RightsCompensationAmount
+        +decimal SeparationAllowanceAmount
+        +decimal TotalSeveranceGross
+        +decimal TaxDeduction
+        +decimal TotalSeveranceNet
+        +string Status
+        +bool IsApprovedByFinanceDirector
+    }
+
+    class TrxExitClearanceProcess {
+        +Guid ClearanceProcessId
+        +Guid SeparationId
+        +Guid EmployeeId
+        +DateTime InitiatedDate
+        +DateTime TargetCompletionDate
+        +DateTime? ActualCompletionDate
+        +string OverallClearanceStatus
+        +bool IsFinalPayrollUnlocked
+    }
+
+    class TrxExitClearanceChecklist {
+        +Guid ChecklistId
+        +Guid ClearanceProcessId
+        +string DepartmentType
+        +string ItemName
+        +bool IsReturned
+        +decimal OutstandingLiabilityAmount
+        +string ApproverNotes
+        +Guid? ApprovedByUserId
+        +DateTime? ApprovedAt
+        +string Status
+    }
+
+    TrxDisciplinaryIncidentReport "1" --> "0..1" TrxDisciplinaryInvestigationRecord : diproses_melalui
+    TrxDisciplinaryInvestigationRecord "1" --> "0..1" TrxDisciplinarySanction : menghasilkan_sanksi
+    TrxDisciplinaryInvestigationRecord "1" --> "0..1" TrxDisciplinarySuspension : memicu_skorsing
+    TrxEmployeeSeparation "1" --> "1" TrxSeveranceCalculation : dihitung_hak_pesangon
+    TrxEmployeeSeparation "1" --> "1" TrxExitClearanceProcess : membuka_proses_kliring
+    TrxExitClearanceProcess "1" --> "1..*" TrxExitClearanceChecklist : terdiri_dari_unit_kliring
+```
+
+---
+
+### 31.3 Penjelasan Class Service & Controller
+
+1. **`DisciplinaryCaseController` & `IDisciplinaryCaseService`**
+   - Menangani siklus hidup pelaporan insiden tata tertib, penjadwalan sidang pemeriksaan BAP, validasi prinsip *Just Culture*, penerbitan sanksi Surat Peringatan (Teguran Lisan, SP 1, SP 2, SP 3), serta pengelolaan skorsing investigasi (*paid suspension*).
+2. **`EmployeeGrievanceController` & `IEmployeeGrievanceService`**
+   - Mengelola dua saluran pelaporan (*Dual-Mode*): keluhan terbuka antar-staf via portal ESS serta kanal Whistleblowing rahasia terenkripsi. Mengontrol batas SLA penanganan 14 hari kerja dan penerbitan rekomendasi mediasi.
+3. **`BipartiteForumController` & `IBipartiteForumService`**
+   - Mencatat agenda perundingan LKS Bipartit atau serikat pekerja, daftar hadir perwakilan manajemen dan pekerja, notulen risalah perselisihan, serta pengunggahan dokumen Perjanjian Bersama (PB).
+4. **`EmployeeSeparationController` & `IEmployeeSeparationService`**
+   - Mengelola pengajuan pengakhiran ikatan kerja (resign sukarela, pensiun, habis kontrak PKWT, pemutusan sanksi SP3/pelanggaran berat) serta mengoperasikan mesin kalkulasi pesangon deterministik sesuai formula PP 35/2021.
+5. **`ExitClearanceController` & `IExitClearanceService`**
+   - Mengontrol proses kliring lintas 5 departemen (Unit Kerja, Umum/Aset, Farmasi/Alkes, Keuangan, IT), memverifikasi serah terima aset dinas dan pelunasan kewajiban, memicu event pencabutan SSO SIMRS, serta memegang kunci pembuka rilis gaji akhir (*payroll unlock gatekeeper*).
+
+---
+
+### 31.4 Aturan Bisnis Utama (`EMP-B1` s.d. `EMP-B8`)
+
+* **`EMP-B1` — Validitas Sanksi SP 6 Bulan Kalender & Kedaluwarsa Otomatis (`HRD-DEC-170`)**
+  Teguran Lisan berlaku 3 bulan, sedangkan SP 1, SP 2, dan SP 3 berlaku masing-masing tepat **6 bulan kalender** sejak tanggal diterbitkan. Bila terjadi pelanggaran baru dalam masa aktif, level SP dinaikkan secara berjenjang. Bila 6 bulan terlampaui tanpa pelanggaran baru, sanksi otomatis berstatus `Expired` (riwayat permanen di e-Dossier Sub-02).
+* **`EMP-B2` — Filter Just Culture untuk Insiden Klinis Rumah Sakit (`HRD-DEC-171`)**
+  Insiden yang melibatkan keselamatan pasien wajib melewati verifikasi Komite Medik/Keperawatan/KMKP Sub-15. Kesalahan murni *Human Error* atau kegagalan sistemik dilarang dijatuhi sanksi SP (dialihkan ke diklat Sub-16). Sanksi disiplin hanya dapat diproses untuk kategori *Reckless Misconduct* yang didukung bukti resmi nomor register KMKP (`INT-HR-86`).
+* **`EMP-B3` — Enkripsi & Perlindungan Pelapor Whistleblowing (`HRD-DEC-172`)**
+  Laporan kecurangan, gratifikasi, atau pelecehan dapat dikirim secara `Anonim` atau `Rahasia`. Data pengadu dienkripsi menggunakan enkripsi asimetris level aplikasi dan tiket laporan diisolasi total sehingga atasan langsung terlapor tidak memiliki hak akses baca.
+* **`EMP-B4` — Jaminan Upah Penuh (*Paid Suspension*) Selama Skorsing Investigasi (`HRD-DEC-173`)**
+  Sesuai Pasal 157A UU Ketenagakerjaan jo UU Cipta Kerja, pegawai yang diskorsing selama masa pemeriksaan maksimal 6 bulan kalender **tetap berhak atas upah pokok beserta tunjangan tetap 100%**. Sistem dilarang menghentikan komponen gaji pokok di payroll Sub-10 selama status skorsing berjalan.
+* **`EMP-B5` — Penonaktifan Seketika Sesi Akses SIMRS & Fisik Saat Skorsing/PHK (`HRD-DEC-173`)**
+  Penerbitan surat skorsing atau surat penetapan PHK secara otomatis menerbitkan event `INT-HR-88` yang mencabut sesi aktif token JWT SSO SIMRS/EMR/PACS dan memblokir izin akses kartu pintar (*smart card*) ke instalasi rawat inap, ICU, laboratorium, dan depo farmasi.
+* **`EMP-B6` — Deterministik Kalkulator Pesangon PP No. 35 Tahun 2021 (`HRD-DEC-174`)**
+  Hak Uang Pesangon (UP), Uang Penghargaan Masa Kerja (UPMK), Uang Penggantian Hak (UPH), dan Uang Pisah dihitung otomatis berdasarkan formula regulasi:
+  - Resign Sukarela: UPH + Uang Pisah (tanpa UP & UPMK).
+  - Pensiun Normal: 1.75x UP + 1x UPMK + 1x UPH.
+  - Habis Kontrak PKWT: Kompensasi proporsional `(Bulan Kerja / 12) x 1 Bulan Upah`.
+  - Pelanggaran Disiplin SP 3: 0.5x UP + 1x UPMK + 1x UPH.
+* **`EMP-B7` — Gerbang Kliring Exit Clearance 5 Departemen Wajib Tuntas (`HRD-DEC-175`)**
+  Seluruh item checklist dari 5 departemen (Unit Kerja, Aset Umum, Farmasi/Alkes, Keuangan/Koperasi, dan IT) wajib berstatus `Approved` secara digital. Jika ada satu item pending atau ditolak karena aset belum kembali, proses clearance tidak dapat dinyatakan selesai.
+* **`EMP-B8` — Hard-Block Pemblokir Rilis Payroll Akhir di Sub-10 (`HRD-DEC-175`)**
+  Layanan payroll processing Sub-10 (`INT-HR-87`) secara ketat memblokir tombol otorisasi pencairan gaji terakhir (*final payroll run*) dan disbursement dana pesangon hingga service gate `IExitClearanceStatusProvider.IsCleared(employeeId)` mengembalikan nilai `true`.
+
+---
+
+### 31.5 Background Workers Hubungan Industrial (`EMP-W1` s.d. `EMP-W6`)
+
+1. **`DisciplinarySanctionExpiryWorker` (`EMP-W1`)**
+   - Berjalan terjadwal harian pukul 00:30 WIB. Memeriksa sanksi SP yang telah mencapai `ValidUntil` (6 bulan kalender), mengubah status sanksi aktif menjadi `Expired`, serta mengirimkan notifikasi H-14 kepada pegawai dan atasannya.
+2. **`SuspensionPeriodMonitoringWorker` (`EMP-W2`)**
+   - Berjalan harian pukul 01:00 WIB. Memantau durasi skorsing investigasi agar tidak melampaui batas maksimal 6 bulan kalender sesuai regulasi. Menerbitkan alert eskalasi prioritas tinggi ke Direktur SDM pada hari ke-150 (H-30) untuk penetapan putusan akhir PHK atau rehabilitasi.
+3. **`GrievanceSlaEscalationWorker` (`EMP-W3`)**
+   - Berjalan setiap 4 jam. Menghitung hari kerja sejak tiket keluhan diajukan. Bila dalam 7 hari kerja belum ada respon supervisor, sistem otomatis mengeskalasikan tiket ke Kepala Bagian SDM, dan bila mencapai hari ke-14 memicu notifikasi peringatan pelanggaran SLA mediasi.
+4. **`PkwtContractExpiryRadarWorker` (`EMP-W4`)**
+   - Berjalan harian pukul 02:00 WIB. Memindai data kontrak kerja PKWT aktif. Mengirimkan sinyal radar H-60 dan H-30 kepada Kepala Unit dan HR Manpower Planning untuk memastikan keputusan perpanjangan kontrak atau persiapan kalkulasi uang kompensasi terminasi PKWT.
+5. **`ExitClearanceChecklistReminderWorker` (`EMP-W5`)**
+   - Berjalan harian pukul 07:00 WIB. Memeriksa proses exit clearance yang sedang berjalan. Mengirimkan notifikasi pengingat harian ke departemen yang belum menyetujui checklist serah terima aset (Aset Umum, IT, Keuangan) menjelang tanggal efektif pengunduran diri.
+6. **`ItAccessRevocationSyncWorker` (`EMP-W6`)**
+   - Berjalan setiap 15 menit. Memastikan bahwa akun pengguna SIMRS dari pegawai yang telah mencapai tanggal efektif PHK (`EffectiveDate`) benar-benar telah diubah menjadi `Disabled` di repositori Identity Server / Keycloak RS, serta menghapus seluruh sesi aktif.
+
+---
+
+### 31.6 Rencana Migrasi Basis Data PostgreSQL
+
+Migration EF Core: `20261106_AddEmployeeRelationAndExitClearance`
+
+```sql
+-- 1. Tabel Laporan Insiden Disiplin (Just Culture)
+CREATE TABLE IF NOT EXISTS trx_disciplinary_incident_reports (
+    incident_report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    incident_number VARCHAR(64) NOT NULL UNIQUE,
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    incident_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    incident_location VARCHAR(255) NOT NULL,
+    category VARCHAR(64) NOT NULL,
+    just_culture_classification VARCHAR(32) NOT NULL DEFAULT 'HumanError', -- HumanError, AtRiskBehavior, RecklessMisconduct
+    description TEXT NOT NULL,
+    reporter_type VARCHAR(32) NOT NULL, -- Self, Superior, Peer, Committee, PatientGrievance
+    reporter_employee_id UUID REFERENCES mst_workforce_profiles(employee_id),
+    kmkp_audit_reference_number VARCHAR(64),
+    status VARCHAR(32) NOT NULL DEFAULT 'Reported', -- Reported, Investigating, ResolvedNoSanction, SanctionRecommended
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 2. Tabel Berita Acara Pemeriksaan (BAP) Disiplin
+CREATE TABLE IF NOT EXISTS trx_disciplinary_investigation_records (
+    investigation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    incident_report_id UUID NOT NULL REFERENCES trx_disciplinary_incident_reports(incident_report_id),
+    bap_number VARCHAR(64) NOT NULL UNIQUE,
+    hearing_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    investigator_names TEXT NOT NULL,
+    witness_statements TEXT,
+    evidence_document_urls TEXT,
+    employee_defense_statement TEXT,
+    investigation_findings TEXT NOT NULL,
+    recommended_action VARCHAR(64) NOT NULL, -- Coaching, VerbalWarning, SP1, SP2, SP3, Suspension, Termination
+    status VARCHAR(32) NOT NULL DEFAULT 'Draft', -- Draft, Submitted, ApprovedByHrDirector, Rejected
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 3. Tabel Surat Peringatan & Sanksi Disiplin (PP 35/2021)
+CREATE TABLE IF NOT EXISTS trx_disciplinary_sanctions (
+    sanction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    investigation_id UUID REFERENCES trx_disciplinary_investigation_records(investigation_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    sanction_number VARCHAR(64) NOT NULL UNIQUE,
+    sanction_level VARCHAR(32) NOT NULL, -- VerbalWarning, SP1, SP2, SP3
+    issued_date DATE NOT NULL,
+    valid_until DATE NOT NULL, -- IssuedDate + 6 Months
+    violation_description TEXT NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'Active', -- Active, Expired, RevokedOnAppeal
+    is_appealed BOOLEAN NOT NULL DEFAULT FALSE,
+    appeal_resolution TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 4. Tabel Skorsing Investigasi Pegawai (Paid Suspension)
+CREATE TABLE IF NOT EXISTS trx_disciplinary_suspensions (
+    suspension_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    investigation_id UUID NOT NULL REFERENCES trx_disciplinary_investigation_records(investigation_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    suspension_number VARCHAR(64) NOT NULL UNIQUE,
+    start_date DATE NOT NULL,
+    expected_end_date DATE NOT NULL, -- Max StartDate + 6 Months
+    actual_end_date DATE,
+    wage_payment_status VARCHAR(32) NOT NULL DEFAULT 'PaidFull', -- Sesuai Pasal 157A UU Ketenagakerjaan
+    is_system_access_revoked BOOLEAN NOT NULL DEFAULT TRUE,
+    is_physical_access_revoked BOOLEAN NOT NULL DEFAULT TRUE,
+    status VARCHAR(32) NOT NULL DEFAULT 'Active', -- Active, CompletedReinstated, EscalatedToTermination
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 5. Tabel Kanal Keluhan & Whistleblowing Terenkripsi
+CREATE TABLE IF NOT EXISTS trx_employee_grievances (
+    grievance_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_number VARCHAR(64) NOT NULL UNIQUE,
+    complainant_employee_id UUID REFERENCES mst_workforce_profiles(employee_id),
+    is_whistleblower_case BOOLEAN NOT NULL DEFAULT FALSE,
+    is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
+    encrypted_report_payload TEXT NOT NULL,
+    category VARCHAR(64) NOT NULL, -- InterpersonalConflict, ShiftDispute, Workload, Fraud, Harassment, Malpractice
+    target_unit VARCHAR(128),
+    severity_level VARCHAR(32) NOT NULL DEFAULT 'Medium', -- Low, Medium, High, Critical
+    target_resolution_date DATE NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'Submitted', -- Submitted, UnderReview, MediationScheduled, Resolved, Closed
+    resolution_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 6. Tabel Notulen Forum Bipartit RS
+CREATE TABLE IF NOT EXISTS trx_bipartite_negotiation_forums (
+    forum_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    register_number VARCHAR(64) NOT NULL UNIQUE,
+    meeting_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    dispute_type VARCHAR(64) NOT NULL, -- RightsDispute, InterestDispute, TerminationDispute, UnionDispute
+    management_representatives TEXT NOT NULL,
+    union_representatives TEXT NOT NULL,
+    agenda_description TEXT NOT NULL,
+    minutes_of_meeting TEXT NOT NULL,
+    joint_agreement_document_url VARCHAR(512),
+    status VARCHAR(32) NOT NULL DEFAULT 'Scheduled', -- Scheduled, CompletedAgreementReached, Deadlocked, Cancelled
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 7. Tabel Pemutusan Hubungan Kerja (PHK)
+CREATE TABLE IF NOT EXISTS trx_employee_separations (
+    separation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    separation_number VARCHAR(64) NOT NULL UNIQUE,
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    separation_reason VARCHAR(64) NOT NULL, -- VoluntaryResign, ContractEnd, Retirement, DisciplinarySP3, SevereMisconduct, Deceased
+    notice_date DATE NOT NULL,
+    effective_date DATE NOT NULL,
+    resignation_letter_url VARCHAR(512),
+    termination_decision_number VARCHAR(128),
+    approval_status VARCHAR(32) NOT NULL DEFAULT 'Pending', -- Pending, ApprovedByDirector, Rejected
+    status VARCHAR(32) NOT NULL DEFAULT 'Initiated', -- Initiated, ClearanceInProgress, FinalizedCompleted, Cancelled
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 8. Tabel Kalkulasi Pesangon (PP 35/2021)
+CREATE TABLE IF NOT EXISTS trx_severance_calculations (
+    calculation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    separation_id UUID NOT NULL REFERENCES trx_employee_separations(separation_id),
+    base_monthly_wage NUMERIC(14,2) NOT NULL,
+    service_years INT NOT NULL,
+    service_months INT NOT NULL,
+    severance_pay_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+    service_award_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+    rights_compensation_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+    separation_allowance_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total_severance_gross NUMERIC(14,2) NOT NULL DEFAULT 0,
+    tax_deduction NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total_severance_net NUMERIC(14,2) NOT NULL DEFAULT 0,
+    status VARCHAR(32) NOT NULL DEFAULT 'Draft', -- Draft, VerifiedByHr, ApprovedByFinanceDirector
+    is_approved_by_finance_director BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 9. Tabel Induk Proses Exit Clearance
+CREATE TABLE IF NOT EXISTS trx_exit_clearance_processes (
+    clearance_process_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    separation_id UUID NOT NULL REFERENCES trx_employee_separations(separation_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    initiated_date DATE NOT NULL,
+    target_completion_date DATE NOT NULL,
+    actual_completion_date DATE,
+    overall_clearance_status VARCHAR(32) NOT NULL DEFAULT 'InProgress', -- InProgress, Completed, BlockedOutstanding
+    is_final_payroll_unlocked BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 10. Tabel Checklist Kliring Multi-Departemen
+CREATE TABLE IF NOT EXISTS trx_exit_clearance_checklists (
+    checklist_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clearance_process_id UUID NOT NULL REFERENCES trx_exit_clearance_processes(clearance_process_id),
+    department_type VARCHAR(32) NOT NULL, -- WorkUnitHandover, GeneralAffairsAsset, PharmacyMedicalDevice, FinanceCooperative, InformationTechnology
+    item_name VARCHAR(255) NOT NULL,
+    is_returned BOOLEAN NOT NULL DEFAULT FALSE,
+    outstanding_liability_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
+    approver_notes TEXT,
+    approved_by_user_id UUID,
+    approved_at TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(32) NOT NULL DEFAULT 'Pending', -- Pending, Approved, RejectedOutstanding
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_disciplinary_sanction_emp_status ON trx_disciplinary_sanctions(employee_id, status);
+CREATE INDEX IF NOT EXISTS idx_disciplinary_sanction_valid_until ON trx_disciplinary_sanctions(valid_until);
+CREATE INDEX IF NOT EXISTS idx_grievance_ticket ON trx_employee_grievances(ticket_number);
+CREATE INDEX IF NOT EXISTS idx_separation_emp ON trx_employee_separations(employee_id);
+CREATE INDEX IF NOT EXISTS idx_clearance_status ON trx_exit_clearance_processes(overall_clearance_status, is_final_payroll_unlocked);
+```
+
+---
+
+### 31.7 Pemetaan Keputusan Otoritas Bisnis (`HRD-DEC-170` s.d. `HRD-DEC-175`)
+
+| Decision ID | Aspek Keputusan Bisnis | Implementasi Komponen Backend |
+|---|---|---|
+| `HRD-DEC-170` | Sanksi SP Bertingkat Masa Berlaku 6 Bulan PP 35/2021 | Entitas `TrxDisciplinarySanction`, validasi `ValidUntil = IssuedDate + 6 Months`, `DisciplinarySanctionExpiryWorker` (`EMP-W1`) |
+| `HRD-DEC-171` | Prinsip *Just Culture* & Filter Insiden Klinis KMKP | Field `JustCultureClassification` pada `TrxDisciplinaryIncidentReport`, integrasi `INT-HR-86` ke audit Sub-15 KMKP |
+| `HRD-DEC-172` | Dual-Mode Grievance & Whistleblower Terenkripsi | Entitas `TrxEmployeeGrievance`, field `EncryptedReportPayload`, isolasi RBAC `Hrd.Disciplinary.WhistleblowerReview` |
+| `HRD-DEC-173` | Tata Kelola Skorsing Upah Penuh (*Paid Suspension*) | Entitas `TrxDisciplinarySuspension`, perlindungan upah 100%, event pemblokiran seketika SIMRS & akses fisik (`INT-HR-88`) |
+| `HRD-DEC-174` | Kalkulator Hak Pesangon Otomatis Regulasi PP 35/2021 | Entitas `TrxSeveranceCalculation`, service kalkulasi deterministik `SeveranceCalculationEngine` berbasis formula PP 35 |
+| `HRD-DEC-175` | Gerbang Digital Exit Clearance Multi-Departemen & Payroll Hard-Block | Entitas `TrxExitClearanceProcess`, `TrxExitClearanceChecklist`, integrasi `INT-HR-87` pemblokir payroll final Sub-10 |

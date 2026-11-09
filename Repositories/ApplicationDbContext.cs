@@ -457,6 +457,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPayrollReversal> TrxPayrollReversals { get; set; }
         public DbSet<TrxMedicalServiceFeeCalculation> TrxMedicalServiceFeeCalculations { get; set; }
         public DbSet<TrxMedicalServiceFeePayment> TrxMedicalServiceFeePayments { get; set; }
+        public DbSet<HrdRestitutionSetting> HrdRestitutionSettings { get; set; }
+        public DbSet<TrxEmployeeRestitutionClaim> TrxEmployeeRestitutionClaims { get; set; }
+        public DbSet<TrxPayrollRestitution> TrxPayrollRestitutions { get; set; }
+        public DbSet<TrxPayrollDeductionSchedule> TrxPayrollDeductionSchedules { get; set; }
+        public DbSet<TrxPayrollDeductionItem> TrxPayrollDeductionItems { get; set; }
+        public DbSet<TrxCashierDisbursementVoucher> TrxCashierDisbursementVouchers { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - PAYROLL MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
