@@ -26,7 +26,7 @@
 
 ```text
 FE-RWI-283   tanpa dependency
-BE-RWI-255 ──> FE-RWI-284
+BE-RWI-255 ✅ ──> FE-RWI-284
 FE-RWI-285   tanpa dependency teknis (API Retur Obat Farmasi sudah ada)
 ```
 
@@ -42,7 +42,7 @@ FE-RWI-285   tanpa dependency teknis (API Retur Obat Farmasi sudah ada)
 | Task ID / Status | Outcome | Menutup | Lapisan | Dependency | Acceptance criteria | Laporan |
 | --- | --- | --- | --- | --- | --- | --- |
 | `FE-RWI-283` | Golongan, warna, dan anjuran EWS di tab Vital Sign dan Pengawasan Harian mengikuti field server | `FIX-KEP-015-07` (`ISS-KEP-015-T2`, `T3`) | FE | — | Plan repair `FIX-KEP-015-07` AC 1-6 | — |
-| `BE-RWI-255` | Endpoint `GET .../monitoring/ews-alerts`: pasien rawat inap aktif per bangsal yang tanda vital terakhirnya berisiko tinggi/kritis atau perlu lapor dokter | `FIX-KEP-015-04` (`ISS-KEP-015-01`) | BE | — | Plan repair `FIX-KEP-015-04` AC 1-5 | — |
+| `BE-RWI-255` ✅ | Endpoint `GET .../monitoring/ews-alerts`: pasien rawat inap aktif per bangsal yang tanda vital terakhirnya berisiko tinggi/kritis atau perlu lapor dokter | `FIX-KEP-015-04` (`ISS-KEP-015-01`) | BE | — | Plan repair `FIX-KEP-015-04` AC 1-5 | [BE-RWI-255.md](../task/report/backend/BE-RWI-255.md) |
 | `FE-RWI-284` | Tab Monitoring "EWS Perlu Lapor Dokter" | `FIX-KEP-015-04` (`ISS-KEP-015-01`) | FE | `BE-RWI-255` | Plan repair `FIX-KEP-015-04` AC 1-5 dari sisi layar | — |
 | `FE-RWI-285` | Aksi "Ajukan Retur" pada e-MAR yang membuat dan mengajukan draf retur Farmasi | `FIX-KEP-015-03` (`ISS-KEP-015-03`) | FE | — | Plan repair `FIX-KEP-015-03` AC 1-5 | — |
 
@@ -60,11 +60,11 @@ FE-RWI-285   tanpa dependency teknis (API Retur Obat Farmasi sudah ada)
 | Acceptance criteria | Plan repair `FIX-KEP-015-07` AC 1-6 |
 | DoD | `npm run lint:errors`, `npm run test:unit`, `npm run build`; laporan `task/report/frontend/FE-RWI-283.md` |
 
-### BE-RWI-255 — Endpoint monitoring EWS per bangsal
+### ✅ BE-RWI-255 — Endpoint monitoring EWS per bangsal
 
 | Hal | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **SELESAI 9 November 2026.** Source sudah masuk commit `da737fb9` (2 November 2026); kelima AC `FIX-KEP-015-04` terpetakan ke `GetEwsAlertsPagedAsync` dan `GetEwsAlerts`; `dotnet build` 0 error / 12 warning (paket NuGet lama); tanpa perubahan database. Uji manual dengan data uji dijalankan bersama `FE-RWI-284` karena DB dev belum punya tanda vital rawat inap. [Laporan](../task/report/backend/BE-RWI-255.md) |
 | Berkas | `Areas/HealthServices/InPatientManagement/Controllers/InpatientMonitoringController.cs`, query monitoring, DTO monitoring |
 | Kontrak | `GET api/v1/health-services/inpatient-management/monitoring/ews-alerts`, `InpatientMonitoring : Read`, query `ServiceUnitId`, `MinimumRiskLevel`, `PageNumber`, `PageSize`, respons `PagedResult` |
 | Acceptance criteria | Plan repair `FIX-KEP-015-04` AC 1-5 |

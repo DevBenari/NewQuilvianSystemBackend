@@ -8927,3 +8927,175 @@ classDiagram
 * **Nama Migrasi:** `20261109_AddWorkflowAndUnifiedApprovalV2`
 * **Dampak Skema:** Memperbarui 8 tabel relasional pada skema `human_resource`, menambahkan kolom `delegated_employee_id`, `on_behalf_of_employee_id`, `sla_deadline`, `is_overdue`, dan `digital_signature_hash`.
 * **Zero-Downtime:** Ya — seluruh kolom baru bersifat nullable dengan indeks gabungan `(approver_employee_id, assignment_status)` dan `(sla_deadline, is_overdue)` untuk menjamin query kecepatan tinggi pada dasbor inbox atasan.
+
+
+---
+
+## 34. Arsitektur Backend Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 34.1 Bounded Context & Tabel Kepemilikan Data
+
+Sub-modul ini mengelola dua bounded context operasional keuangan kepegawaian rumah sakit:
+1. `BusinessTravelManagement`: Tata kelola penugasan perjalanan dinas luar fasilitas (SPPD), partisipan nakes, akomodasi, transportasi, uang muka kerja (*travel cash advance*), rekonsiliasi selisih (*expense settlement*), dan tautan ke absensi dinas luar.
+2. `ExpenseManagement`: Penggantian biaya pengeluaran langsung operasional lokal tanpa perjalanan luar kota (*Non-Trip Expense Claim*) seperti pembelian darurat bahan medis cito, konsumsi rapat panitia akreditasi, dan ongkos kurir pengiriman sampel lab.
+3. Master data penunjang dikelola di `MasterData/TravelAndExpense` (kebijakan perjalanan, zonasi wilayah, tarif lumpsum uang harian per grade, dan kategori beban).
+
+| Nama Tabel Basis Data | Modul Pemilik | Status Tabel | Peran & Tanggung Jawab Data | Perilaku Hapus |
+|---|---|---|---|---|
+| `TrxBusinessTravelRequest` | BusinessTravel | `Diperbarui` | Entitas utama pengajuan Surat Perintah Perjalanan Dinas (SPPD) nakes/staf | Soft Delete (`IsDeleted`) |
+| `TrxBusinessTravelParticipant` | BusinessTravel | `Diperbarui` | Daftar staf nakes/tim delegasi yang ikut serta dalam 1 surat tugas dinas | Soft Delete (`IsDeleted`) |
+| `TrxBusinessTravelApproval` | BusinessTravel | `Diperbarui` | Riwayat persetujuan berjenjang SPPD (Karu, Kabid, SDM, Direksi) | Restricted |
+| `TrxTravelItinerary` | BusinessTravel | `Diperbarui` | Jadwal rincian agenda harian kegiatan kedinasan dan lokasi pertemuan | Soft Delete (`IsDeleted`) |
+| `TrxTravelTransportation` | BusinessTravel | `Diperbarui` | Data reservasi tiket transportasi (pesawat, kereta, travel, ambulans) | Soft Delete (`IsDeleted`) |
+| `TrxTravelAccommodation` | BusinessTravel | `Diperbarui` | Data reservasi hotel/penginapan dan batas plafon kelas per grade | Soft Delete (`IsDeleted`) |
+| `TrxTravelAdvanceRequest` | BusinessTravel | `Diperbarui` | Permohonan uang muka kerja (maksimal 80% dari estimasi biaya disetujui) | Soft Delete (`IsDeleted`) |
+| `TrxTravelAdvancePayment` | BusinessTravel | `Diperbarui` | Bukti pencairan fisik/transfer uang muka dari Kasir/Finance RS | Restricted |
+| `TrxTravelExpenseClaim` | BusinessTravel | `Diperbarui` | Formulir rincian pengeluaran riil perjalanan dinas untuk settlement | Soft Delete (`IsDeleted`) |
+| `TrxTravelExpenseItem` | BusinessTravel | `Diperbarui` | Baris item pengeluaran riil, nota, dan deklarasi biaya darurat tanpa kuitansi | Soft Delete (`IsDeleted`) |
+| `TrxTravelSettlement` | BusinessTravel | `Diperbarui` | Rekonsiliasi akhir selisih uang muka vs riil (kurang bayar / setor lebih) | Soft Delete (`IsDeleted`) |
+| `TrxTravelDocument` | BusinessTravel | `Diperbarui` | Berkas lampiran surat tugas, sertifikat seminar CME, foto bukti tiket | Soft Delete (`IsDeleted`) |
+| `TrxTravelAttendanceLink` | BusinessTravel | `Diperbarui` | Tautan integrasi presensi hadir dinas luar Sub-07 & hard-stop roster Sub-06 | Restricted |
+| `TrxExpenseClaim` | Expense | `Diperbarui` | Formulir klaim penggantian pengeluaran operasional non-trip staf | Soft Delete (`IsDeleted`) |
+| `TrxExpenseClaimItem` | Expense | `Diperbarui` | Rincian kuitansi pengeluaran barang/jasa operasional non-trip | Soft Delete (`IsDeleted`) |
+| `TrxExpenseReceipt` | Expense | `Diperbarui` | Berkas digital foto kuitansi/faktur pajak pembelian barang cito | Soft Delete (`IsDeleted`) |
+| `TrxExpenseApproval` | Expense | `Diperbarui` | Log persetujuan klaim biaya non-trip oleh atasan dan verifikator keuangan | Restricted |
+| `TrxExpenseVerification` | Expense | `Diperbarui` | Lembar audit pemeriksaan fisik bukti kas oleh Verifikator Finance | Restricted |
+| `TrxExpensePayment` | Expense | `Diperbarui` | Bukti pembayaran/reimbursement dari kasir ke rekening pegawai | Restricted |
+| `MstTravelAllowanceRate` | MasterData | `Diperbarui` | Matriks tarif baku uang harian (per diem) per zonasi wilayah dan grade | Soft Delete (`IsDeleted`) |
+| `MstTravelDestinationZone` | MasterData | `Diperbarui` | Master pengelompokan zonasi tujuan dinas (Zona 1, Zona 2, Zona 3) | Soft Delete (`IsDeleted`) |
+| `MstExpenseCategory` | MasterData | `Diperbarui` | Kategori pos beban operasional (Logistik Cito, Konsumsi Rapat, Kurir Lab) | Soft Delete (`IsDeleted`) |
+
+---
+
+### 34.2 Class Diagram Bounded Context `BusinessTravelManagement` & `ExpenseManagement`
+
+```mermaid
+classDiagram
+    class TrxBusinessTravelRequest {
+        +Guid Id
+        +string TravelRequestNumber
+        +Guid WorkforceProfileId
+        +Guid DepartmentId
+        +Guid CostCenterId
+        +Guid TravelTypeId
+        +Guid DestinationZoneId
+        +string TravelTitle
+        +string TravelPurpose
+        +string Origin
+        +string Destination
+        +DateOnly StartDate
+        +DateOnly EndDate
+        +int TravelDayCount
+        +decimal EstimatedTransportationAmount
+        +decimal EstimatedAccommodationAmount
+        +decimal EstimatedAllowanceAmount
+        +decimal EstimatedTotalAmount
+        +decimal ApprovedBudgetAmount
+        +string TravelStatus
+        +bool HasScheduleConflict
+        +bool IsBudgetAvailable
+    }
+
+    class TrxTravelAdvanceRequest {
+        +Guid Id
+        +Guid BusinessTravelRequestId
+        +string AdvanceNumber
+        +decimal RequestedAmount
+        +decimal ApprovedAmount
+        +string AdvanceStatus
+        +DateTime? PaidAt
+    }
+
+    class TrxTravelSettlement {
+        +Guid Id
+        +Guid BusinessTravelRequestId
+        +Guid TravelAdvanceRequestId
+        +string SettlementNumber
+        +decimal TotalAdvanceAmount
+        +decimal TotalActualAmount
+        +decimal SettlementDifferenceAmount
+        +string DifferenceType
+        +string SettlementStatus
+        +DateTime? SettledAt
+    }
+
+    class TrxTravelExpenseItem {
+        +Guid Id
+        +Guid TravelExpenseClaimId
+        +string ExpenseCategory
+        +decimal Amount
+        +bool IsMissingReceiptDeclared
+        +string MissingReceiptReason
+        +string ReceiptFileUrl
+    }
+
+    class TrxExpenseClaim {
+        +Guid Id
+        +string ExpenseClaimNumber
+        +Guid EmployeeId
+        +Guid DepartmentId
+        +Guid CostCenterId
+        +string ClaimTitle
+        +decimal TotalAmount
+        +string ClaimStatus
+        +DateTime SubmittedAt
+    }
+
+    class TrxExpenseClaimItem {
+        +Guid Id
+        +Guid ExpenseClaimId
+        +Guid ExpenseCategoryId
+        +decimal Amount
+        +string Description
+        +string ReceiptAttachmentUrl
+    }
+
+    class MstTravelAllowanceRate {
+        +Guid Id
+        +Guid DestinationZoneId
+        +string JobGradeGroup
+        +decimal DailyPerDiemRate
+        +string CurrencyCode
+    }
+
+    TrxBusinessTravelRequest "1" --> "*" TrxTravelAdvanceRequest : requests advance
+    TrxBusinessTravelRequest "1" --> "1" TrxTravelSettlement : reconciles
+    TrxBusinessTravelRequest "1" --> "*" TrxTravelExpenseItem : detailed in
+    TrxExpenseClaim "1" --> "*" TrxExpenseClaimItem : contains items
+```
+
+---
+
+### 34.3 Delapan Aturan Bisnis Inti Backend (`TRV-B1` s.d. `TRV-B8`)
+
+* **`TRV-B1` — Pemisahan Alur Kerja Perjalanan Dinas (SPPD) & Pengeluaran Non-Trip (`HRD-DEC-188`):** Engine backend memperlakukan `TrxBusinessTravelRequest` dan `TrxExpenseClaim` sebagai dua instansiasi terpisah. Permohonan SPPD mengikat tanggal dinas, kota tujuan, dan akomodasi, sedangkan klaim biaya non-trip berfokus pada pos beban operasional langsung (`VR-TRV-01`).
+* **`TRV-B2` — Batas Plafon Maksimal Uang Muka 80% & Verifikasi 2-Pintu (`HRD-DEC-189`):** Nilai `RequestedAmount` pada `TrxTravelAdvanceRequest` dilarang melebihi **80% dari `ApprovedBudgetAmount`** (`VR-TRV-02`). Permohonan uang muka wajib melalui gerbang approval ganda: Atasan Langsung dan Finance Manager sebelum diteruskan ke kasir untuk pencairan (`VR-TRV-03`).
+* **`TRV-B3` — Perhitungan Otomatis Lumpsum Uang Harian (*Per Diem*) Berbasis Matriks (`HRD-DEC-190`):** Sistem menghitung nilai `EstimatedAllowanceAmount` secara otomatis dengan mengalikan jumlah hari dinas (`TravelDayCount`) terhadap tarif baku di `MstTravelAllowanceRate` berdasarkan kombinasi `DestinationZoneId` dan grade jabatan pemohon (`VR-TRV-04`). Tidak memerlukan bukti struk makan/ojek satu per satu.
+* **`TRV-B4` — Batas Waktu Settlement 7 Hari & Sanksi Keterlambatan Bertingkat (`HRD-DEC-191`):** Pegawai wajib mengajukan settlement pengeluaran maksimal 7 hari kalender pasca `EndDate`. Keterlambatan melewati 14 hari membekukan hak pengajuan SPPD baru (`VR-TRV-05`). Keterlambatan melewati 30 hari memicu event `TravelAdvanceDefaulted` untuk pemotongan langsung via payroll Sub-10 (`INT-HR-55`).
+* **`TRV-B5` — Batas Toleransi Deklarasi Biaya Tanpa Kuitansi Maksimal 10% (`HRD-DEC-192`):** Formulir deklarasi biaya darurat tanpa nota (*Declaration of Missing Receipts*) dibatasi maksimal **Rp 150.000 per item** dan akumulasi total maksimal **10% dari total klaim riil** (`VR-TRV-15`). Pengeluaran tiket pesawat/kereta dan hotel wajib mutlak invoice resmi ber-NPWP (`VR-TRV-07`).
+* **`TRV-B6` — Sinkronisasi Kehadiran "Dinas Luar" & Gembok Hard-Stop Roster Medis (`HRD-DEC-193`):** Saat status SPPD menjadi `Approved`, sistem otomatis menerbitkan event `TravelApproved` untuk: (1) mencatat kehadiran "Hadir Dinas Luar" pada modul Presensi Sub-07 (`INT-HR-97`), dan (2) memasang status gembok *hard-stop* pada modul Penjadwalan Roster Sub-06 yang menolak penjadwalan dinas bangsal staf selama rentang tanggal SPPD (`VR-TRV-06`).
+* **`TRV-B7` — Pengembalian Sisa Uang Muka Lebih Bayar (*Excess Advance Refund*):** Jika hasil settlement membuktikan `TotalAdvanceAmount > TotalActualAmount`, sistem menerbitkan tagihan pengembalian (*Cashier Refund Voucher*) dengan batas waktu pembayaran ke Kasir RS maksimal 3 hari kerja (`VR-TRV-08`).
+* **`TRV-B8` — Integrasi Beban Biaya ke Cost Center Unit & Validasi Ketersediaan Anggaran:** Setiap pengajuan SPPD dan klaim operasional wajib mencantumkan `CostCenterId` unit kerja pemohon (`VR-TRV-09`). Sistem memvalidasi ketersediaan pagu anggaran dinas unit kerja sebelum menyetujui SPPD (`IsBudgetAvailable = true`).
+
+---
+
+### 34.4 Background Workers Otomasi Perjalanan Dinas (`TRV-W1` s.d. `TRV-W6`)
+
+1. **`TRV-W1` — `TravelAdvanceSettlementReminderWorker` (Pengingat Penyerahan Settlement):**
+   * *Pemicu:* Berjalan harian pada pukul 08:00 pagi.
+   * *Aksi:* Memindai perjalanan dinas yang telah melewati `EndDate` namun belum menyerahkan settlement. Mengirimkan notifikasi push dan email pengingat pada H+3 dan H+5 kepulangan dinas staf.
+2. **`TRV-W2` — `TravelSettlementOverdueWorker` (Pembeku SPPD & Pemicu Pemotongan Payroll):**
+   * *Pemicu:* Berjalan harian pada pukul 00:15 tengah malam.
+   * *Aksi:* Memindai settlement yang melewati batas 14 hari untuk menandai `IsTravelPrivilegeFrozen = true`, serta settlement yang menunggak > 30 hari untuk mengirimkan instruksi pemotongan sisa uang muka ke modul payroll Sub-10 (`INT-HR-55`).
+3. **`TRV-W3` — `TravelAttendanceSyncWorker` (Sinkronisasi Log Presensi Dinas Luar):**
+   * *Pemicu:* Berjalan harian pada pukul 06:00 pagi.
+   * *Aksi:* Memindai seluruh nakes/staf yang memiliki SPPD aktif pada hari berjalan dan otomatis menyuntikkan status log presensi "Hadir Dinas Luar" ke database `TrxAttendanceLog` Sub-07.
+4. **`TRV-W4` — `TravelCurrencyRateSyncWorker` (Pembaruan Kurs Valuta Asing BI):**
+   * *Pemicu:* Berjalan harian pada pukul 09:00 pagi.
+   * *Aksi:* Menarik data kurs tengah Bank Indonesia untuk mata uang USD, EUR, SGD, MYR, SAR dan memperbarui tabel konversi mata uang dinas luar negeri.
+5. **`TRV-W5` — `NonTripExpenseVerificationWorker` (Pengawal SLA Verifikasi Kasir):**
+   * *Pemicu:* Berjalan setiap 4 jam.
+   * *Aksi:* Memindai klaim biaya operasional non-trip yang telah disetujui atasan namun belum diverifikasi kasir keuangan > 48 jam untuk dikirimkan notifikasi eskalasi ke Supervisor Keuangan.
+6. **`TRV-W6` — `TravelBudgetAvailabilityGuardWorker` (Pemantau Sisa Pagu Anggaran Unit):**
+   * *Pemicu:* Berjalan bulanan pada tanggal 1 pukul 00:01 dini hari.
+   * *Aksi:* Menghitung realisasi serapan anggaran perjalanan dinas per cost center unit kerja dan memperbarui indikator ketersediaan anggaran pada dasbor pengajuan.

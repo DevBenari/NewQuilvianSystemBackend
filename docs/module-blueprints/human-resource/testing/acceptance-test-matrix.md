@@ -1008,3 +1008,50 @@ Matriks pengujian penerimaan (*User Acceptance Testing* - UAT) ini memuat 22 ske
    - *Aktor:* Perawat Pemohon, Kepala Ruangan (Approver 1), Kepala Bidang (Approver 2).
    - *Langkah:* Perawat mengajukan tukar shift mendesak (SLA 24 jam) -> Karu tidak membuka sistem selama 20 jam -> Sistem mengirim push notification peringatan merah H-4 jam -> Memasuki jam ke-25 (SLA terlewati), worker `WF-W1` menandai tiket `IsOverdue = true`, menolak auto-approve, dan otomatis mengeskalasi tiket ke inbox Kepala Bidang Keperawatan -> Kepala Bidang segera memproses persetujuan darurat.
    - *Ekspektasi:* Keselamatan pasien terjamin karena tidak ada persetujuan liar tanpa kontrol manusia, dan tiket macet segera tertangani.
+
+
+---
+
+## 33. Matriks Pengujian Penerimaan Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 33.1 Rincian 22 Kriteria Uji Penerimaan Otomatis (`AT-HRD-TRV-01` s.d. `AT-HRD-TRV-22`)
+
+| Kode Pengujian | Target Komponen yang Diuji | Kondisi Pengujian (Prasyarat & Masukan) | Hasil yang Diharapkan (Expected Result) |
+|---|---|---|---|
+| `AT-HRD-TRV-01` | Formulir Pembuatan SPPD | Pengajuan SPPD baru dengan tanggal, kota, agenda, dan moda transportasi lengkap | Tiket SPPD terdaftar berstatus `Submitted` dengan nomor registrasi unik format `SPPD/RSQ/YYYY/MM/XXX` |
+| `AT-HRD-TRV-02` | Kalkulator Otomatis Lumpsum Uang Harian | Perjalanan dinas 4 hari tujuan Surabaya (Zona 2) untuk perawat pelaksana (Grade II) | Sistem otomatis menghitung `EstimatedAllowanceAmount = 4 * TarifPerDiem(Zona 2, Grade II)` dari master data |
+| `AT-HRD-TRV-03` | Batas Maksimal Plafon Uang Muka 80% | Pemohon mengajukan uang muka Rp 9.000.000 pada SPPD dengan pagu disetujui Rp 10.000.000 | Sistem menolak pengajuan (`VR-TRV-02`) karena melebihi batas maksimal 80% (maks Rp 8.000.000) |
+| `AT-HRD-TRV-04` | Alur Persetujuan Uang Muka 2-Pintu | Permohonan uang muka diajukan ke Atasan Langsung dan Finance Manager | Uang muka baru dapat dicairkan setelah statusnya `Approved` oleh kedua pejabat otoritas sah |
+| `AT-HRD-TRV-05` | Pencairan Dana Uang Muka oleh Kasir RS | Kasir menginput nomor voucher kasir / referensi transfer bank | Status uang muka berubah `Paid`, mencatat tanggal pencairan dan audit log `HRD_TRV_ADVANCE_PAID` |
+| `AT-HRD-TRV-06` | Gembok Hard-Stop Roster Medis Sub-06 | SPPD disetujui untuk dokter spesialis pada tanggal 12 s.d. 15 November | Modul Penjadwalan Roster Sub-06 menolak keras penjadwalan dinas jaga bangsal dokter pada tanggal tersebut |
+| `AT-HRD-TRV-07` | Sinkronisasi Presensi Hadir Dinas Luar Sub-07 | Hari keberangkatan dinas tercapai | Modul Presensi Sub-07 otomatis menyuntikkan status log presensi "Hadir Dinas Luar" tanpa dianggap alpa |
+| `AT-HRD-TRV-08` | Penyerahan Laporan Settlement Tepat Waktu | Pegawai menyerahkan laporan settlement pada H+4 kepulangan dengan bukti kuitansi riil | Berkas settlement diterima berstatus `Submitted` dalam batas SLA aman (< 7 hari) |
+| `AT-HRD-TRV-09` | Notifikasi Pengingat Settlement H+3 & H+5 | Pegawai belum menyerahkan settlement pada H+3 dan H+5 kepulangan dinas | Worker `TRV-W1` menyiarkan push notification dan email peringatan batas waktu penyerahan settlement |
+| `AT-HRD-TRV-10` | Pembekuan Hak SPPD Baru (H+14 Hari) | Pegawai belum menyelesaikan settlement setelah melewati 14 hari kepulangan | Sistem otomatis membekukan hak pengajuan SPPD baru (`VR-TRV-14`) dan mencatat `HRD_TRV_SPPD_FROZEN_OVERDUE` |
+| `AT-HRD-TRV-11` | Otomasi Pemotongan Payroll Tunggakan > 30 Hari| Settlement menunggak melewati 30 hari hingga akhir bulan berjalan | Sisa uang muka yang belum dipertanggungjawabkan diteruskan otomatis ke slip gaji Sub-10 sebagai potongan sah |
+| `AT-HRD-TRV-12` | Batas Maksimal Deklarasi Biaya Tanpa Nota 10% | Pegawai mengisi formulir deklarasi biaya darurat tanpa nota Rp 200.000 pada klaim Rp 1.000.000 | Sistem menolak klaim (`VR-TRV-08`) karena nominal deklarasi melebihi Rp 150.000 dan melebihi 10% total klaim |
+| `AT-HRD-TRV-13` | Validasi Alasan Darurat Deklarasi Tanpa Nota | Pegawai mengisi formulir deklarasi darurat dengan alasan teks < 15 karakter | Sistem menolak pengajuan (`VR-TRV-09`) dan meminta penjelasan kronologi kedaruratan lebih rinci |
+| `AT-HRD-TRV-14` | Kewajiban Invoice Resmi untuk Tiket & Hotel | Pegawai melampirkan kwitansi biasa tanpa NPWP/boarding pass untuk klaim tiket pesawat | Verifikator Keuangan menandai berkas tidak lolos audit dan mengembalikan ke pemohon untuk revisi |
+| `AT-HRD-TRV-15` | Rekonsiliasi Settlement Selisih Kurang Bayar | Uang muka Rp 3.000.000, pengeluaran riil sah Rp 3.500.000 | Sistem menghitung `DifferenceType = Underpaid` Rp 500.000 dan menerbitkan voucher pencairan kasir ke staf |
+| `AT-HRD-TRV-16` | Rekonsiliasi Settlement Selisih Lebih Bayar | Uang muka Rp 4.000.000, pengeluaran riil sah Rp 3.200.000 | Sistem menghitung `DifferenceType = Overpaid` Rp 800.000 dan menerbitkan tagihan setor balik ke Kasir RS |
+| `AT-HRD-TRV-17` | Pengajuan Klaim Operasional Non-Trip | Staf farmasi mengajukan ganti biaya pembelian kasa steril cito di apotek luar Rp 250.000 | Klaim non-trip terdaftar pada `TrxExpenseClaim` tanpa mewajibkan pembuatan surat tugas perjalanan luar kota |
+| `AT-HRD-TRV-18` | Verifikasi Struk Pembelian Non-Trip oleh Kasir | Staf Finance memeriksa foto struk apotek dan mencocokkan tanggal transaksi | Status klaim berubah `Verified` dan siap untuk dicairkan oleh Kasir RS |
+| `AT-HRD-TRV-19` | Pembayaran Reimbursement Non-Trip oleh Kasir | Kasir mencairkan uang tunai / transfer ke staf pemohon | Status klaim berubah `Paid`, mencatat nomor referensi kasir dan audit log `HRD_EXP_CLAIM_PAID` |
+| `AT-HRD-TRV-20` | Pemblokiran Bentrok Tanggal SPPD & Cuti | Staf mengajukan SPPD pada rentang tanggal di mana ia memiliki cuti tahunan disetujui | Sistem menolak pengajuan SPPD (`VR-TRV-11`) karena bentrok jadwal ketidakhadiran cuti |
+| `AT-HRD-TRV-21` | Validasi Ketersediaan Anggaran Unit Cost Center| Pengajuan SPPD pada unit kerja yang pagu anggaran dinas tahunannya telah habis | Sistem menolak pengajuan (`VR-TRV-12`) dengan pesan "Pagu anggaran perjalanan dinas unit kerja habis" |
+| `AT-HRD-TRV-22` | Kepatuhan Kontrak API v25 5 Tag Swagger | Audit verifikasi seluruh 24 endpoint API pada Swagger UI | Seluruh endpoint terdaftar rapi, otorisasi token JWT dan model DTO tervalidasi 100% |
+
+---
+
+### 33.2 Lima Skenario Uji Penerimaan Pengguna Terpadu (UAT Scenarios)
+
+1. **UAT-TRV-01: Alur Ujung-ke-Ujung Pengajuan SPPD, Uang Muka & Pelaksanaan Tugas Dinas Medis:**  
+   Dokter spesialis bedah anak diajukan dinas luar kota 3 hari untuk workshop teknik bedah minimal invasif. Sistem menghitung estimasi biaya tiket, hotel, dan lumpsum per diem otomatis. Pemohon mengajukan uang muka 80%, disetujui atasan dan Finance, lalu dicairkan kasir. Selama tanggal dinas, presensi tercatat "Hadir Dinas Luar" dan jadwal jaga bangsal dokter diblokir otomatis dari roster Sub-06.
+2. **UAT-TRV-02: Alur Rekonsiliasi Settlement Selisih Kurang Bayar (*Underpaid Reimbursement*):**  
+   Pasca kepulangan dinas, staf menyerahkan settlement pada H+4 dengan melampirkan boarding pass asli dan invoice hotel. Total riil melampaui uang muka karena ada kenaikan tarif hotel resmi. Verifikator Finance memeriksa bukti dan mengesahkan selisih kurang bayar. Kasir mentransfer selisih uang ke rekening staf dalam 2 hari kerja. SPPD ditutup berstatus `Completed`.
+3. **UAT-TRV-03: Penegakan Disiplin Settlement: Pembekuan SPPD & Pemotongan Otomatis Slip Gaji:**  
+   Staf administrasi menerima uang muka dinas Rp 2.500.000 namun tidak menyerahkan settlement hingga H+14. Sistem membekukan hak pembuatan SPPD baru. Pada H+30, worker otomatis mengirimkan instruksi pemotongan sisa uang muka ke modul payroll Sub-10. Gaji staf bulan berjalan terpotong resmi sebesar saldo yang belum dipertanggungjawabkan dengan batas aman 50% upah.
+4. **UAT-TRV-04: Penanganan Kedaruratan Evakuasi Pasien & Deklarasi Biaya Tanpa Kuitansi:**  
+   Perawat ICU mendampingi evakuasi ambulans pasien rujukan ke pulau seberang. Terjadi kebutuhan sewa perahu penyeberangan darurat malam hari Rp 120.000 tanpa kuitansi. Staf mengisi formulir *Declaration of Missing Receipts* disertai kronologi medis darurat. Atasan langsung mengesahkan deklarasi karena nominal < Rp 150.000 dan < 10% total klaim. Biaya diganti penuh oleh rumah sakit.
+5. **UAT-TRV-05: Penggantian Biaya Operasional Non-Trip Lapangan (*Direct Expense Claim*):**  
+   Analis laboratorium membeli reagen golongan darah langka secara cito di apotek rekanan Rp 350.000 menggunakan uang pribadi karena stok gudang kosong saat operasi darurat. Staf membuat klaim non-trip di portal ESS dengan foto struk resmi. Kepala Unit Lab menyetujui, Finance memverifikasi, dan Kasir mencairkan uang tunai reimbursement dalam waktu < 24 jam.

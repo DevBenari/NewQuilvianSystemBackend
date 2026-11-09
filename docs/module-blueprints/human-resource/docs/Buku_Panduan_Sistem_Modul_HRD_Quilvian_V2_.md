@@ -15,8 +15,8 @@
 | Frontend Evidence | `DevBenari/QuilvianSystemFrontendDev` branch `HamzahV2` |
 | Backend Evidence | `DevBenari/NewQuilvianSystemBackend` branch `MHamzah` |
 | Dokumen Awal | `Penjelasan_Sistem_dan_Sub_Modul_HRD_Rumah_Sakit.md` |
-| Edisi | 4 November 2026 — dimutakhirkan dengan 3 Status Implementasi (Module Blueprint, Backend, Frontend) untuk Sub-Modul 01 s.d. 06 serta tabel status kesiapan implementasi seluruh 22 sub-modul |
-| Status | Business & Implementation Reference — Active Alignment |
+| Edisi | 9 November 2026 — Dimutakhirkan ke Status Selesai Di-plan (✅) untuk SELURUH 22 Sub-Modul HRD V2 (Roadmap rev 23, 0 Gap, 0 DEFERRED, 0 BLOCKED) |
+| Status | Selesai Di-plan (✅) — Seluruh 22 Sub-Modul Siap Implementasi V2 |
 
 > **Tujuan buku ini:** developer harus memahami **mengapa** sebuah fitur HRD diperlukan, **siapa** yang menjalankan proses, **kapan** proses dimulai, **apa keputusan bisnisnya**, **data apa yang berubah**, **modul apa yang terdampak**, dan **apa risiko bila implementasi salah**.
 
@@ -109,29 +109,28 @@ Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yan
 
 | No | Sub-Modul HRD | Module Blueprint | Backend | Frontend | Status Keseluruhan |
 | :---: | :--- | :---: | :---: | :---: | :--- |
-| **01** | **Master Data HR** | [x] Selesai Dirancang (✅) | [x] Selesai Di-build (✅) | [x] Selesai Di-build (✅) | Lengkap & Aktif di Produksi |
-| **02** | **Workforce Core & Employee 360** | [x] Selesai Dirancang (✅) | [x] Selesai Di-build (✅) | [x] Selesai Di-build (✅) | Lengkap & Aktif di Produksi |
-| **03** | **Workforce Planning & Staffing** | [x] Selesai Dirancang (✅) | [x] Sebagian Di-build (🟡) | [ ] Baru Di-plan (📋) | Blueprint Selesai, BE Sebagian |
-| **04** | **Recruitment & Hiring** | [x] Selesai Dirancang (✅) | [x] Sebagian Di-build (🟡) | [ ] Baru Di-plan (📋) | Blueprint Selesai, Siap Build |
-| **05** | **Onboarding, Contract & Employment Lifecycle** | [x] Selesai Dirancang (✅) | [x] Selesai Di-build (✅) | [ ] Baru Di-plan (📋) | Blueprint & BE Selesai, FE Siap Build |
-| **06** | **Scheduling, Roster & On-Call** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan (📋) | [ ] Baru Di-plan (📋) | Blueprint Selesai, BE/FE Siap Build |
-| **07** | **Attendance Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
-| **08** | **Leave & Permission Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
-| **09** | **Overtime Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
-| **10** | **Payroll Management** | [x] Selesai Dirancang (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, BE/FE V2 Siap Build |
-| **11** | **Restitution & Deduction Integration** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
-| **12** | **Benefit Management** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
-| 13 | Business Travel & Expense | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | [ ] Ditunda (DEFERRED) | Prioritas Rendah |
-| **14** | **Credentialing, License & Clinical Privilege** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 (Slice S-C1) |
-| **15** | **OPPE, FPPE & Recredentialing** | [x] Selesai Di-grill (✅) | [ ] Menunggu Desain/Plan (📋) | [ ] Menunggu Desain/Plan (📋) | Evaluasi Mutu Klinis & Rekredensialing Disetujui (Slice S-C1-OPPE) |
-| 16 | Learning, Training & Competency | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 17 | Performance Management & Clinical Career | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| **18** | **Occupational Health & Staff Safety** | [x] Selesai Di-plan (✅) | [ ] Siap Build V2 (⏳) | [ ] Siap Build V2 (⏳) | Selesai Di-plan V2 (Slice S-C6), 16 Task BE & 15 Task FE |
-| 19 | Employee Relation & Discipline | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 20 | Separation, Exit Clearance & Offboarding | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| **21** | **Employee Self-Service & Unified Approval** | [x] Selesai Di-design (✅) | [ ] Siap Delivery Plan (⏳) | [ ] Siap Delivery Plan (⏳) | Selesai Di-design V2 (Slice S-A7-V2), Siap Delivery Planning |
-| **22** | **HR Service & Employee Document Service** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
-
+| **01** | **Master Data HR** | [x] Selesai Di-plan (✅) | [x] Selesai Di-build (✅) | [x] Selesai Di-build (✅) | Lengkap & Aktif di Produksi (Selesai Di-plan V2) |
+| **02** | **Workforce Core & Employee 360** | [x] Selesai Di-plan (✅) | [x] Selesai Di-build (✅) | [x] Selesai Di-build (✅) | Lengkap & Aktif di Produksi (Selesai Di-plan V2) |
+| **03** | **Workforce Planning & Staffing** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-D1: Siap Build V2, Kontrak v7) |
+| **04** | **Recruitment & Hiring** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-D2: 12 BE Tasks, 14 FE Tasks, Kontrak v8) |
+| **05** | **Onboarding, Contract & Employment Lifecycle** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C4-ONB: 24 BE Tasks, 17 FE Tasks, Kontrak v9) |
+| **06** | **Scheduling, Roster & On-Call** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-B4: 17 BE Tasks, 13 FE Tasks, Kontrak v10) |
+| **07** | **Attendance Management** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-B1: 13 BE Tasks, 14 FE Tasks, Kontrak v11) |
+| **08** | **Leave & Permission Management** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-B2: 14 BE Tasks, 14 FE Tasks, Kontrak v12) |
+| **09** | **Overtime Management** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-B3: 15 BE Tasks, 14 FE Tasks, Kontrak v13) |
+| **10** | **Payroll Management** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-B5: 15 BE Tasks, 14 FE Tasks, Kontrak v14) |
+| **11** | **Restitution & Deduction Integration** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-B6: 15 BE Tasks, 14 FE Tasks, Kontrak v15) |
+| **12** | **Benefit Management** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-D3: 15 BE Tasks, 14 FE Tasks, Kontrak v16) |
+| **13** | **Business Travel & Expense** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-D5: 16 BE Tasks, 15 FE Tasks, Kontrak v25) |
+| **14** | **Credentialing, License & Clinical Privilege** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C1: 16 BE Tasks, 15 FE Tasks, Kontrak v18) |
+| **15** | **OPPE, FPPE & Recredentialing** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C1-OPPE: 16 BE Tasks, 15 FE Tasks, Kontrak v19) |
+| **16** | **Learning, Training & Competency** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C2: 16 BE Tasks, 15 FE Tasks, Kontrak v20) |
+| **17** | **Performance Management & Clinical Career** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C3: 16 BE Tasks, 15 FE Tasks, Kontrak v21) |
+| **18** | **Occupational Health & Staff Safety** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C6: 16 BE Tasks, 15 FE Tasks, Kontrak v23) |
+| **19** | **Employee Relation & Discipline** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C5: 16 BE Tasks, 15 FE Tasks, Kontrak v22) |
+| **20** | **Separation, Exit Clearance & Offboarding** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-C5: 16 BE Tasks, 15 FE Tasks, Kontrak v22) |
+| **21** | **Employee Self-Service & Unified Approval** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-A7-V2: 16 BE Tasks, 15 FE Tasks, Kontrak v24) |
+| **22** | **HR Service & Employee Document Service** | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | [x] Selesai Di-plan (✅) | Selesai Di-plan (Slice S-D4: 15 BE Tasks, 14 FE Tasks, Kontrak v17) |
 
 ---
 
@@ -591,9 +590,9 @@ Perawat baru dengan kontrak PKWT mengikuti orientasi rumah sakit dan preceptorsh
 **Status source:** `PARTIAL END-TO-END — REUSE + HARDEN`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-C1-OPPE Rencana delivery disetujui (6 November 2026, Kontrak v19 approved, Roadmap rev 17), siap untuk eksekusi task per task.
-- [ ] **Backend:** Baru Di-plan V2 (⏳) — 16 task (`BE-HRD-222` s.d. `BE-HRD-237`) pada roadmap revisi 17.
-- [ ] **Frontend:** Baru Di-plan V2 (⏳) — 15 task (`FE-HRD-201` s.d. `FE-HRD-215`) pada roadmap revisi 17.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-B4 Rencana delivery disetujui (4 November 2026, Kontrak v10 approved, Roadmap rev 8: 17 BE Tasks, 13 FE Tasks).
+- [x] **Backend:** Selesai Di-plan (✅) — 17 task backend (`BE-HRD-087` s.d. `BE-HRD-103`), siap build V2.
+- [x] **Frontend:** Selesai Di-plan (✅) — 13 task frontend (`FE-HRD-075` s.d. `FE-HRD-087`), siap build V2.
 
 ## Penjelasan untuk developer
 
@@ -771,9 +770,9 @@ Perawat dinas malam tap masuk 20:55 dan tap pulang 07:10. Sistem harus mengaitka
 **Status source:** `TERSEDIA KUAT — REUSE + HARDEN`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice `S-B2` Kontrak V12 disetujui (4 November 2026).
-- [ ] **Backend:** Baru Di-plan V2 (📋) — 14 task (`BE-HRD-117` s.d. `BE-HRD-130`) pada roadmap revisi 10.
-- [ ] **Frontend:** Baru Di-plan V2 (📋) — 14 task (`FE-HRD-102` s.d. `FE-HRD-115`) pada roadmap revisi 10.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-B2 Rencana delivery disetujui (4 November 2026, Kontrak v12 approved, Roadmap rev 10: 14 BE Tasks, 14 FE Tasks).
+- [x] **Backend:** Selesai Di-plan (✅) — 14 task backend (`BE-HRD-117` s.d. `BE-HRD-130`), siap build V2.
+- [x] **Frontend:** Selesai Di-plan (✅) — 14 task frontend (`FE-HRD-102` s.d. `FE-HRD-115`), siap build V2.
 
 ## Penjelasan untuk developer
 
@@ -859,9 +858,9 @@ Dua perawat ICU mengajukan cuti pada minggu yang sama. Keduanya punya saldo. Sis
 **Status source:** `TERSEDIA KUAT — REUSE + HARDEN`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice `S-B3` Kontrak V13 disetujui (5 November 2026).
-- [ ] **Backend:** Baru Di-plan V2 (📋) — 15 task (`BE-HRD-131` s.d. `BE-HRD-145`) pada roadmap revisi 11.
-- [ ] **Frontend:** Baru Di-plan V2 (📋) — 14 task (`FE-HRD-116` s.d. `FE-HRD-129`) pada roadmap revisi 11.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-B3 Rencana delivery disetujui (5 November 2026, Kontrak v13 approved, Roadmap rev 11: 15 BE Tasks, 14 FE Tasks).
+- [x] **Backend:** Selesai Di-plan (✅) — 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`), siap build V2.
+- [x] **Frontend:** Selesai Di-plan (✅) — 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`), siap build V2.
 
 ## Penjelasan untuk developer
 
@@ -945,9 +944,9 @@ Tim operasi masih menangani kasus cito saat jadwal dinas selesai. Mereka tidak p
 **Status source:** `PARTIAL — PERLU END-TO-END COMPLETION`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Dirancang (✅) — Slice S-B5 Kontrak V14 disetujui (5 November 2026, HRD-DEC-122 s.d. HRD-DEC-127, contracts/ v14), siap untuk /plan-module-delivery.
-- [ ] **Backend:** Baru Di-plan V2 (📋) — Kontrak v14 disetujui, siap di-plan ke roadmap backend.
-- [ ] **Frontend:** Baru Di-plan V2 (📋) — Kontrak v14 disetujui, siap di-plan ke roadmap frontend.
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-B5 Rencana delivery disetujui (5 November 2026, Kontrak v14 approved, Roadmap rev 12: 15 BE Tasks, 14 FE Tasks).
+- [x] **Backend:** Selesai Di-plan (✅) — 15 task backend (`BE-HRD-146` s.d. `BE-HRD-160`), siap build V2.
+- [x] **Frontend:** Selesai Di-plan (✅) — 14 task frontend (`FE-HRD-130` s.d. `FE-HRD-143`), siap build V2.
 
 ## Penjelasan untuk developer
 
@@ -1214,9 +1213,9 @@ Anak pegawai berobat di rumah sakit tempat orang tuanya bekerja. Registration me
 **Status source:** `PARTIAL — PERSISTENCE FOUNDATION`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Ditunda (DEFERRED) — Bukan prioritas operasional inti V2.
-- [ ] **Backend:** Ditunda (DEFERRED) (`BE-HRD-021`).
-- [ ] **Frontend:** Ditunda (DEFERRED).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-D5 Rencana delivery disetujui (9 November 2026, Kontrak v25 approved, Roadmap rev 23).
+- [ ] **Backend:** Siap Build V2 (⏳) — 16 task disetujui (BE-HRD-318 s.d. BE-HRD-333), kontrak v25 terkunci.
+- [ ] **Frontend:** Siap Build V2 (⏳) — 15 task disetujui (FE-HRD-291 s.d. FE-HRD-305), kontrak v25 terkunci.
 
 ## Penjelasan untuk developer
 
@@ -1948,9 +1947,9 @@ Dokter resign efektif akhir bulan. Sebelum inactive, Finance harus menyelesaikan
 **Status source:** `TERSEDIA CORE — NAVIGATION & CONTRACT HARDENING`
 
 ### 3 Status Implementasi
-- [x] **Module Blueprint:** Selesai Di-design (✅) — Blueprint V2 Lengkap (Slice S-A7-V2), Unified Approval Engine, Dynamic Routing, Anti Self-Approval, Plh Delegation, SLA Escalation, Bulk Approval.
-- [ ] **Backend:** Siap Delivery Planning V2 (⏳).
-- [ ] **Frontend:** Siap Delivery Planning V2 (⏳).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Slice S-A7-V2 Rencana delivery disetujui (9 November 2026, Kontrak v24 approved, Roadmap rev 22: 16 BE Tasks, 15 FE Tasks).
+- [x] **Backend:** Selesai Di-plan (✅) — 16 task backend (`BE-HRD-302` s.d. `BE-HRD-317`), siap build V2.
+- [x] **Frontend:** Selesai Di-plan (✅) — 15 task frontend (`FE-HRD-276` s.d. `FE-HRD-290`), siap build V2.
 
 ## Penjelasan untuk developer
 

@@ -1256,3 +1256,36 @@ Matriks aturan validasi ini memuat 25 aturan penegakan integritas bisnis (`VR-PR
 | `VR-WF-23` | Batas Waktu Draf Revisi | Tiket yang berstatus `ReturnedForRevision` wajib diajukan ulang dalam waktu maksimal 7 hari kalender | *"Permohonan dibatalkan otomatis karena masa perbaikan draf revisi melampaui batas waktu 7 hari kalender."* |
 | `VR-WF-24` | Integritas Status Workflow | Transisi status workflow wajib mematuhi matriks state diagram; lompatan status ilegal langsung dibatalkan | *"Transisi status workflow tidak sah atau melanggar urutan tahapan yang ditentukan."* |
 | `VR-WF-25` | Akuntabilitas Dual-Identity Plh| Persetujuan oleh Plh wajib merekam `action_employee_id` dan `on_behalf_of_employee_id` tanpa boleh null | *"Jejak audit tidak lengkap: Keputusan Pelaksana Harian wajib menyertakan identitas pejabat definitif."* |
+
+
+---
+
+## 30. Matriks Aturan Validasi Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+| Kode Validasi | Target Entitas / Kolom | Deskripsi Aturan Validasi Bisnis | Kondisi Gagal & Kode Respons |
+|---|---|---|---|
+| `VR-TRV-01` | `TrxBusinessTravelRequest.WorkforceProfileId` | Pemohon wajib berstatus pegawai aktif RS dan tidak dalam status penangguhan dinas | Ditolak `400 Bad Request` ("Pegawai tidak aktif atau tidak berwenang dinas") |
+| `VR-TRV-02` | `TrxTravelAdvanceRequest.RequestedAmount` | Uang muka dilarang melebihi 80% dari `ApprovedBudgetAmount` SPPD (`HRD-DEC-189`) | Ditolak `400 Bad Request` ("Permohonan uang muka melebihi batas 80% pagu") |
+| `VR-TRV-03` | `TrxTravelAdvanceRequest.AdvanceStatus` | Uang muka wajib disetujui Atasan Langsung dan Finance Manager sebelum dicairkan | Ditolak `403 Forbidden` ("Otorisasi persetujuan uang muka belum lengkap 2-pintu") |
+| `VR-TRV-04` | `TrxBusinessTravelRequest.EstimatedAllowanceAmount` | Uang harian dihitung otomatis dari `MstTravelAllowanceRate` berdasarkan zona & grade | Ditolak `400 Bad Request` ("Perhitungan tarif uang harian per diem tidak valid") |
+| `VR-TRV-05` | `TrxTravelSettlement.SubmittedAt` | Settlement wajib diserahkan staf maksimal 7 hari kalender pasca kepulangan (`HRD-DEC-191`) | Ditandai `IsOverdue = true`, peringatan SLA |
+| `VR-TRV-06` | `TrxBusinessTravelRequest.StartDate` s.d. `EndDate` | Gembok hard-stop menolak penjadwalan roster dinas bangsal Sub-06 selama SPPD aktif | Ditolak `409 Conflict` ("Pegawai sedang ditugaskan dinas luar, jadwal diblokir") |
+| `VR-TRV-07` | `TrxTravelExpenseItem.ReceiptFileUrl` | Tiket pesawat/kereta dan hotel wajib melampirkan invoice resmi ber-NPWP / boarding pass | Ditolak `400 Bad Request` ("Bukti tiket antar-kota atau hotel wajib invoice resmi") |
+| `VR-TRV-08` | `TrxTravelExpenseItem.IsMissingReceiptDeclared` | Deklarasi biaya tanpa kuitansi dibatasi maks Rp 150.000/transaksi dan total <= 10% | Ditolak `400 Bad Request` ("Deklarasi biaya tanpa nota melebihi ambang batas toleransi") |
+| `VR-TRV-09` | `TrxTravelExpenseItem.MissingReceiptReason` | Deklarasi tanpa nota wajib memuat alasan darurat tertulis minimal 15 karakter | Ditolak `400 Bad Request` ("Alasan darurat ketiadaan kuitansi wajib dijelaskan detail") |
+| `VR-TRV-10` | `TrxBusinessTravelRequest.Dates` | Tanggal perjalanan dinas tidak boleh tumpang tindih (*overlap*) dengan SPPD lain pemohon | Ditolak `400 Bad Request` ("Terdapat penugasan perjalanan dinas lain pada tanggal tersebut") |
+| `VR-TRV-11` | `TrxBusinessTravelRequest.Dates` | Tanggal perjalanan dinas tidak boleh tumpang tindih dengan cuti disetujui di Sub-08 | Ditolak `400 Bad Request` ("Pegawai tercatat sedang mengambil cuti pada tanggal yang sama") |
+| `VR-TRV-12` | `TrxBusinessTravelRequest.CostCenterId` | Cost center unit kerja wajib memiliki sisa pagu anggaran dinas yang mencukupi | Ditolak `400 Bad Request` ("Pagu anggaran perjalanan dinas unit kerja telah habis") |
+| `VR-TRV-13` | `TrxTravelSettlement.SettlementDifferenceAmount` | Selisih kas wajib diselesaikan maksimal 3 hari kerja pasca settlement disahkan | Ditandai peringatan kasir keuangan |
+| `VR-TRV-14` | `TrxTravelSettlement.DefaultedAt` | Settlement menunggak > 14 hari membekukan pembuatan SPPD baru pegawai bersangkutan | Ditolak `403 Forbidden` ("Hak SPPD dibekukan karena memiliki tunggakan settlement") |
+| `VR-TRV-15` | `TrxTravelSettlement.PayrollDeductionSync` | Settlement menunggak > 30 hari diteruskan ke payroll Sub-10 dengan batas potong maks 50% | Divalidasi oleh Payroll Guard `PAY-B3` |
+| `VR-TRV-16` | `TrxExpenseClaim.TotalAmount` | Klaim pengeluaran non-trip wajib memiliki kuitansi pembelian sah dan tanggal dalam bulan berjalan | Ditolak `400 Bad Request` ("Kuitansi pembelian non-trip wajib tanggal bulan berjalan") |
+| `VR-TRV-17` | `TrxExpenseClaimItem.ExpenseCategoryId` | Pos beban klaim non-trip wajib terdaftar pada master pos beban operasional rumah sakit | Ditolak `400 Bad Request` ("Kategori beban biaya operasional tidak valid") |
+| `VR-TRV-18` | `TrxExpenseClaim.ReceiptAttachment` | Berkas struk pembelian darurat wajib berupa file gambar/PDF yang terbaca jelas (< 10MB) | Ditolak `400 Bad Request` ("Berkas lampiran struk tidak valid atau melebihi 10MB") |
+| `VR-TRV-19` | `TrxBusinessTravelRequest.TravelDayCount` | Jumlah hari dinas wajib dihitung inklusif (`EndDate - StartDate + 1`) | Ditolak `400 Bad Request` ("Perhitungan hari penugasan dinas tidak konsisten") |
+| `VR-TRV-20` | `TrxBusinessTravelRequest.ApprovalNotes` | Catatan penolakan SPPD atau klaim non-trip wajib diisi tertulis minimal 15 karakter | Ditolak `400 Bad Request` ("Alasan penolakan wajib diisi minimal 15 karakter") |
+| `VR-TRV-21` | `TrxTravelAdvancePayment.ReferenceNumber` | Bukti pencairan kasir wajib mencantumkan nomor referensi voucher kasir / nomor transfer bank | Ditolak `400 Bad Request` ("Nomor referensi pembayaran kasir wajib diisi") |
+| `VR-TRV-22` | `TrxTravelSettlement.RefundVoucherNumber` | Tanda terima setor balik kelebihan uang muka wajib nomor bukti penerimaan kasir sah | Ditolak `400 Bad Request` ("Nomor bukti setor pengembalian kasir wajib dicatat") |
+| `VR-TRV-23` | `TrxBusinessTravelParticipant.WorkforceProfileId` | Seluruh peserta dinas rombongan wajib pegawai aktif dan tidak memiliki bentrok jadwal | Ditolak `400 Bad Request` ("Salah satu peserta memiliki bentrok jadwal dinas lain") |
+| `VR-TRV-24` | `TrxBusinessTravelRequest.CurrencyCode` | Mata uang selain IDR wajib menyertakan nilai kurs tengah BI pada tanggal pengajuan | Ditolak `400 Bad Request` ("Kurs konversi valuta asing tidak ditemukan") |
+| `VR-TRV-25` | `TrxBusinessTravelRequest.WorkflowInstanceId` | SPPD wajib terhubung ke engine workflow terpadu Sub-21 untuk audit multi-jenjang | Ditolak `500 Internal Error` ("Gagal menginisiasi workflow terpadu persetujuan dinas") |

@@ -3576,3 +3576,51 @@ interface UnifiedApprovalState {
   slaMetrics: SlaComplianceReportDto | null;
 }
 ```
+
+
+---
+
+## 30. Arsitektur Frontend Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 30.1 Kebutuhan Antarmuka Pengguna & Hirarki Navigasi
+
+Sub-modul ini menyediakan antarmuka pengguna berbasis Next.js App Router yang memungkinkan staf medis dan non-medis mengajukan permohonan dinas luar kota secara mandiri, mengelola uang muka kerja, mempertanggungjawabkan biaya dengan mudah, serta memproses klaim operasional non-trip:
+
+```text
+Portal Intranet Rumah Sakit
+  └── /hrd/travel                                        (Menu Utama Perjalanan Dinas & Biaya)
+        ├── /hrd/travel/dashboard                        (FE-HRD-291 - Dasbor Utama & Radar Anggaran Dinas)
+        ├── /hrd/travel/requests                         (FE-HRD-292 - Daftar Antrean & Status SPPD)
+        │     └── /hrd/travel/requests/create            (FE-HRD-293 - Formulir Pengajuan SPPD & Rute)
+        ├── /hrd/travel/advances                         (FE-HRD-294 - Konsol Uang Muka Kerja / Advance)
+        ├── /hrd/travel/settlements                      (FE-HRD-295 - Lembar Rekonsiliasi & Settlement Biaya)
+        ├── /hrd/travel/expenses                         (FE-HRD-296 - Portal Klaim Pengeluaran Non-Trip)
+        ├── /hrd/travel/rates-and-policies               (FE-HRD-297 - Matriks Tarif Lumpsum & Zonasi Wilayah)
+        └── /hrd/travel/overdue-settlements              (FE-HRD-298 - Radar Pemantau Keterlambatan Settlement)
+```
+
+---
+
+### 30.2 Rincian 8 Layar Utama Next.js App Router
+
+| Kode Layar | Rute URL | Judul Layar | Peran Pengguna (Roles) | Fitur Utama & Komponen Baku |
+|---|---|---|---|---|
+| `FE-HRD-291` | `/hrd/travel/dashboard` | Dasbor Perjalanan Dinas & Biaya | Seluruh Staf, Kepala Ruangan, Keuangan | Kartu ringkasan SPPD aktif bulan berjalan, metrik realisasi anggaran per unit cost center, radar settlement menunggu pertanggungjawaban, dan tombol aksi cepat pengajuan |
+| `FE-HRD-292` | `/hrd/travel/requests` | Pusat Penugasan & Riwayat SPPD | Seluruh Pegawai RS (Pemohon & Approver) | Tabel daftar perjalanan dinas staf, filter per status (`Draft`, `Submitted`, `Approved`, `InTravel`, `WaitingSettlement`), badge hitung mundur hari keberangkatan, tombol cetak surat tugas resmi |
+| `FE-HRD-293` | `/hrd/travel/requests/create` | Formulir Pengajuan SPPD Mandiri | Seluruh Pegawai RS (Pemohon Mandiri) | Formulir multi-step: (1) Detail agenda & kota tujuan; (2) Pilihan moda transportasi & hotel; (3) Kalkulator otomatis lumpsum uang harian per diem berbasis grade; (4) Pengajuan uang muka kerja (maks 80%) |
+| `FE-HRD-294` | `/hrd/travel/advances` | Manajemen Uang Muka Kerja (Advance) | Pemohon Dinas, Verifikator Finance, Kasir | Papan kendali pencairan uang muka dinas, verifikasi pagu kasir, generator voucher kasir cito, tombol konfirmasi tanda terima dana transfer bank/tunai |
+| `FE-HRD-295` | `/hrd/travel/settlements` | Lembar Rekonsiliasi & Settlement Biaya | Pemohon Dinas, Supervisor Keuangan | Lembar kerja pencocokan uang muka vs pengeluaran riil, unggah kuitansi/boarding pass, komputasi otomatis selisih lebih/kurang bayar, penanda batas waktu 7 hari kalender |
+| `FE-HRD-296` | `/hrd/travel/expenses` | Portal Klaim Biaya Operasional Non-Trip | Seluruh Pegawai RS (Klaim Lapangan) | Formulir penggantian pengeluaran langsung non-perjalanan dinas (logistik cito, konsumsi rapat, kurir lab), upload struk kuitansi toko, verifikasi approval atasan & kasir |
+| `FE-HRD-297` | `/hrd/travel/rates-and-policies` | Matriks Tarif Lumpsum & Kebijakan | HR Administrator, Manajer Keuangan | Konfigurasi tarif uang harian per diem per zonasi wilayah (Zona 1-3) dan grade jabatan nakes, pengaturan batas plafon hotel berbintang, dan aturan persetujuan bertingkat |
+| `FE-HRD-298` | `/hrd/travel/overdue-settlements` | Konsol Monitoring Keterlambatan Settlement | HR Admin, Finance Manager, Direksi | Radar pemantau staf yang terlambat menyerahkan LPJ (> 7 hari), penanda status pembekuan SPPD (> 14 hari), dan simulasi pemotongan otomatis via payroll bulan berjalan (> 30 hari) |
+
+---
+
+### 30.3 Modal Dialog Interaktif & Redux State Slice
+* **Lima Modal Dialog:**
+  1. `MissingReceiptDeclarationModal.tsx`: Formulir deklarasi pengeluaran darurat tanpa kuitansi resmi (maks Rp 150.000 / 10% total klaim) dengan kolom kronologi kedaruratan.
+  2. `AdvanceDisbursementModal.tsx`: Konfirmasi persetujuan pencairan uang muka kasir lengkap nomor voucher dan rekening tujuan.
+  3. `RefundSettlementModal.tsx`: Tanda terima pengembalian sisa kelebihan uang muka dinas ke Kasir RS.
+  4. `TravelReceiptUploadModal.tsx`: Drawer pratinjau dan pengunggahan berkas invoice hotel, tiket penerbangan, dan surat tugas bermeterai.
+  5. `TravelApprovalPinModal.tsx`: Dialog verifikasi 6-digit PIN keamanan pejabat approver saat mengesahkan SPPD dan settlement.
+* **Redux Store:** Terkapsulasi pada `businessTravelSlice.ts` (`@/lib/store/slices/businessTravelSlice.ts`) mengelola cache antrean SPPD, kalkulator per diem real-time, status uang muka, dan rekonsiliasi settlement.

@@ -5578,3 +5578,101 @@ Kamus data ini memuat spesifikasi skema relasional modul manajemen kinerja pegaw
 | `changed_by_employee_id`| `Guid`| `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Aktor atau System Worker) | Ya |
 | `change_reason` | `string` | `VARCHAR(255)`| Ya | Alasan perubahan status (misal: "Eskalasi Otomatis Timeout SLA") | Tidak |
 | `changed_at` | `DateTime` | `TIMESTAMPTZ` | Tidak | Timestamp perubahan status | Tidak |
+
+
+---
+
+## 26. Kamus Data Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 26.1 Tabel `TrxBusinessTravelRequest` (Header Surat Perintah Perjalanan Dinas)
+
+Menyimpan data permohonan perjalanan dinas nakes dan staf rumah sakit ke luar fasilitas.
+
+| Nama Kolom | Tipe Data | Nullable | Default | Keterangan & Referensi |
+|---|---|---|---|---|
+| `Id` | `UUID` | Tidak | `gen_random_uuid()` | Primary Key |
+| `TravelRequestNumber` | `VARCHAR(50)` | Tidak | - | Nomor registrasi resmi SPPD (contoh: `SPPD/RSQ/2026/11/001`) |
+| `WorkforceProfileId` | `UUID` | Tidak | - | FK ke `MstWorkforceProfile` (Profil Kepegawaian Pemohon) |
+| `EmployeeId` | `UUID` | Ya | `NULL` | FK ke `MstEmployee` |
+| `DepartmentId` | `UUID` | Ya | `NULL` | FK ke `MstDepartment` |
+| `CostCenterId` | `UUID` | Ya | `NULL` | FK ke `MstCostCenter` pembebanan anggaran |
+| `TravelTypeId` | `UUID` | Tidak | - | FK ke `MstTravelType` (Seminar CME, Studi Banding, Pasien Rujukan) |
+| `TravelPolicyId` | `UUID` | Ya | `NULL` | FK ke `MstTravelPolicy` |
+| `DestinationZoneId` | `UUID` | Ya | `NULL` | FK ke `MstTravelDestinationZone` (Zona 1, Zona 2, Zona 3) |
+| `TravelTitle` | `VARCHAR(250)` | Tidak | - | Judul kegiatan perjalanan dinas |
+| `TravelPurpose` | `VARCHAR(2000)` | Tidak | - | Tujuan dan urgensi kedinasan rumah sakit |
+| `Origin` | `VARCHAR(250)` | Tidak | - | Kota/lokasi asal keberangkatan |
+| `Destination` | `VARCHAR(250)` | Tidak | - | Kota/lokasi tujuan dinas |
+| `StartDate` | `DATE` | Tidak | - | Tanggal mulai penugasan dinas |
+| `EndDate` | `DATE` | Tidak | - | Tanggal selesai penugasan dinas |
+| `TravelDayCount` | `INTEGER` | Tidak | `1` | Total durasi hari penugasan dinas |
+| `EstimatedTransportationAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Estimasi total biaya tiket transportasi PP |
+| `EstimatedAccommodationAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Estimasi total biaya hotel/penginapan |
+| `EstimatedAllowanceAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Estimasi total lumpsum uang harian per diem |
+| `EstimatedOtherAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Estimasi biaya lain-lain yang disetujui |
+| `EstimatedTotalAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Total akumulasi estimasi biaya perjalanan |
+| `ApprovedBudgetAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Pagu anggaran yang disetujui Manajer/Finance |
+| `TravelStatus` | `VARCHAR(40)` | Tidak | `'Draft'` | Status: `Draft`, `Submitted`, `Approved`, `InTravel`, `WaitingSettlement`, `Completed`, `Rejected` |
+| `HasScheduleConflict` | `BOOLEAN` | Tidak | `FALSE` | Indikator bentrok jadwal roster shift medis |
+| `IsBudgetAvailable` | `BOOLEAN` | Tidak | `FALSE` | Indikator ketersediaan pagu anggaran cost center |
+| `IsDeleted` | `BOOLEAN` | Tidak | `FALSE` | Audit soft delete |
+| `CreatedAt` | `TIMESTAMPTZ` | Tidak | `NOW()` | Timestamp pembuatan data |
+
+---
+
+### 26.2 Tabel `TrxTravelAdvanceRequest` (Permohonan Uang Muka Kerja SPPD)
+
+Menyimpan data permohonan dana kas di muka untuk perjalanan dinas (maksimal 80% dari pagu).
+
+| Nama Kolom | Tipe Data | Nullable | Default | Keterangan & Referensi |
+|---|---|---|---|---|
+| `Id` | `UUID` | Tidak | `gen_random_uuid()` | Primary Key |
+| `BusinessTravelRequestId` | `UUID` | Tidak | - | FK ke `TrxBusinessTravelRequest` |
+| `AdvanceNumber` | `VARCHAR(50)` | Tidak | - | Nomor dokumen permohonan uang muka |
+| `RequestedAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Nominal uang muka diajukan (maks 80% estimasi) |
+| `ApprovedAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Nominal uang muka disetujui Finance |
+| `AdvanceStatus` | `VARCHAR(30)` | Tidak | `'Draft'` | Status: `Draft`, `Submitted`, `Approved`, `Paid`, `Settled` |
+| `DisbursementMethod` | `VARCHAR(30)` | Tidak | `'BankTransfer'` | Metode pencairan (`BankTransfer`, `CashVoucher`) |
+| `PaidAt` | `TIMESTAMPTZ` | Ya | `NULL` | Timestamp pencairan dana oleh Kasir |
+| `IsDeleted` | `BOOLEAN` | Tidak | `FALSE` | Audit soft delete |
+
+---
+
+### 26.3 Tabel `TrxTravelSettlement` (Rekonsiliasi Penyelesaian Biaya Dinas)
+
+Menyimpan hasil perhitungan komparasi uang muka kerja vs pengeluaran riil nakes pasca perjalanan.
+
+| Nama Kolom | Tipe Data | Nullable | Default | Keterangan & Referensi |
+|---|---|---|---|---|
+| `Id` | `UUID` | Tidak | `gen_random_uuid()` | Primary Key |
+| `BusinessTravelRequestId` | `UUID` | Tidak | - | FK ke `TrxBusinessTravelRequest` |
+| `TravelAdvanceRequestId` | `UUID` | Ya | `NULL` | FK ke `TrxTravelAdvanceRequest` |
+| `SettlementNumber` | `VARCHAR(50)` | Tidak | - | Nomor dokumen pertanggungjawaban settlement |
+| `TotalAdvanceAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Total uang muka yang telah diterima pegawai |
+| `TotalActualAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Total pengeluaran riil terverifikasi bukti |
+| `SettlementDifferenceAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Selisih nilai (`TotalActualAmount - TotalAdvanceAmount`) |
+| `DifferenceType` | `VARCHAR(20)` | Tidak | `'Balanced'` | Tipe: `Balanced`, `Underpaid` (RS bayar staf), `Overpaid` (Staf setor RS) |
+| `SettlementStatus` | `VARCHAR(30)` | Tidak | `'Draft'` | Status: `Draft`, `Submitted`, `Verified`, `Settled`, `Defaulted` |
+| `SettledAt` | `TIMESTAMPTZ` | Ya | `NULL` | Timestamp penyelesaian final transaksi kas |
+| `IsOverdue` | `BOOLEAN` | Tidak | `FALSE` | Penanda keterlambatan (> 7 hari kepulangan) |
+| `IsDeleted` | `BOOLEAN` | Tidak | `FALSE` | Audit soft delete |
+
+---
+
+### 26.4 Tabel `TrxExpenseClaim` (Klaim Pengeluaran Operasional Non-Trip)
+
+Menyimpan pengajuan klaim penggantian biaya operasional langsung tanpa perjalanan dinas luar kota.
+
+| Nama Kolom | Tipe Data | Nullable | Default | Keterangan & Referensi |
+|---|---|---|---|---|
+| `Id` | `UUID` | Tidak | `gen_random_uuid()` | Primary Key |
+| `ExpenseClaimNumber` | `VARCHAR(50)` | Tidak | - | Nomor dokumen klaim operasional non-trip |
+| `EmployeeId` | `UUID` | Tidak | - | FK ke `MstEmployee` (Pegawai Pengaju) |
+| `DepartmentId` | `UUID` | Tidak | - | FK ke `MstDepartment` |
+| `CostCenterId` | `UUID` | Tidak | - | FK ke `MstCostCenter` pembebanan anggaran |
+| `ClaimTitle` | `VARCHAR(250)` | Tidak | - | Judul klaim (misal: Pembelian Reagen Cito) |
+| `TotalAmount` | `DECIMAL(18,2)` | Tidak | `0.00` | Total nilai penggantian biaya yang diajukan |
+| `ClaimStatus` | `VARCHAR(30)` | Tidak | `'Draft'` | Status: `Draft`, `Submitted`, `Approved`, `Verified`, `Paid`, `Rejected` |
+| `SubmittedAt` | `TIMESTAMPTZ` | Ya | `NULL` | Timestamp pengajuan berkas |
+| `PaidAt` | `TIMESTAMPTZ` | Ya | `NULL` | Timestamp pencairan dana oleh Kasir RS |
+| `IsDeleted` | `BOOLEAN` | Tidak | `FALSE` | Audit soft delete |

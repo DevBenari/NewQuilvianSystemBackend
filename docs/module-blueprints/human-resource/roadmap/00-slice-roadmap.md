@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `21` — **revisi `21` (9 November 2026) menyerap keputusan `HRD-DEC-176` s.d. `HRD-DEC-181` dan asumsi `HRD-ASM-63` s.d. `HRD-ASM-66` serta resolusi resmi `HRD-DEC-010` (Enkripsi AES-256 field rekam medis klinis & pembatasan akses HR Admin) untuk target state Slice `S-C6` (Occupational Health & Staff Safety: Rekam Medis Terenkripsi, Kelaikan Kerja Fitness to Work, Hard-Stop Roster Medis Sub-06, Respon Cito Tertusuk Jarum < 4 Jam, Radar Imunisasi Nakes STARKES, & Klaim BPJS Ketenagakerjaan JKK 2x24 Jam), merencanakan 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`) dan 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`) lintas gelombang MVP-57 s.d. MVP-59 & Verifikasi**; revisi `20` menyerap target state Slice `S-C5` |
+| Roadmap revision | `23` — **revisi `23` (9 November 2026) menyerap keputusan `HRD-DEC-188` s.d. `HRD-DEC-193` dan asumsi `HRD-ASM-71` s.d. `HRD-ASM-74` untuk target state Slice `S-D5` (Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management: Pemisahan SPPD vs Non-Trip Expense, Uang Muka Maksimal 80% & Otorisasi 2-Pintu, Tarif Baku Lumpsum Per Diem Multi-Dimensi Zonasi/Grade, Disiplin Settlement 7 Hari & Sanksi Potong Payroll > 30 Hari, Deklarasi Darurat Tanpa Nota Maks 10%, serta Presensi Hadir Dinas Luar Sub-07 & Gembok Hard-Stop Roster Sub-06), merencanakan 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) lintas gelombang MVP-63 s.d. MVP-65 & Verifikasi — MENUNTASKAN STATUS DEFERRED MENJADI 0 DEFERRED**; revisi `22` menyerap target state Slice `S-A7-V2` |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -56,13 +56,13 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | Fase | Slice | Status fase |
 | --- | --- | --- |
 | `HRD-PH-001` | `S0-A`, `S0-B` | `READY` |
-| `HRD-PH-002` | `S-A1` s.d. `S-A7` | `READY` |
+| `HRD-PH-002` | `S-A1` s.d. `S-A6` | `READY`; `S-A7` diperbarui menjadi `S-A7-V2` `PLANNED` (16 BE, 15 FE rev 22) |
 | `HRD-PH-003` | `S-B1` s.d. `S-B4` | `PLANNED` — `S-B4` (17 BE, 13 FE rev 8); `S-B1` (13 BE, 14 FE rev 9); `S-B2` (14 BE, 14 FE rev 10); `S-B3` direncanakan pada roadmap revision `11` (5 November 2026): 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) |
 | `HRD-PH-004` | `S-B5`, `S-B6` | `PLANNED` — `S-B5` (15 BE, 14 FE rev 12); `S-B6` direncanakan pada roadmap revision `13` (5 November 2026): 15 task backend (`BE-HRD-161` s.d. `BE-HRD-175`) dan 14 task frontend (`FE-HRD-144` s.d. `FE-HRD-157`) |
 | `HRD-PH-005` | `S-C1`, `S-C1-OPPE` | `PLANNED` — `S-C1` (16 BE, 15 FE rev 16); `S-C1-OPPE` direncanakan pada roadmap revision `17` (6 November 2026): 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`) |
 | `HRD-PH-006` | `S-C6` | `PLANNED` - direncanakan pada roadmap revision `21` (9 November 2026): 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`) dan 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`) |
-| `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1` dan `S-D2`; `PLANNED` untuk `S-D3` (15 BE, 14 FE rev 14) dan `S-D4` (5 November 2026, 15 task BE & 14 task FE, roadmap rev 15); `S-D5` `DEFERRED` |
-| `HRD-PH-008` | `S-C2` s.d. `S-C5` | `READY` |
+| `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1` dan `S-D2`; `PLANNED` untuk `S-D3` (15 BE, 14 FE), `S-D4` (15 BE, 14 FE), dan `S-D5` (16 BE, 15 FE rev 23 — 0 DEFERRED!) |
+| `HRD-PH-008` | `S-C2` s.d. `S-C5` | `PLANNED` — `S-C4-ONB` (rev 7), `S-C2` (rev 18), `S-C3` (rev 19), `S-C5` (rev 20) |
 | `HRD-PH-009` | `S-E` | **Bukan fase yang dijadwalkan.** Aturan lintas-slice yang berlaku sepanjang implementasi |
 
 ### 0.5 Daftar seluruh slice
@@ -249,21 +249,21 @@ Catatan: pekerjaan pada empat berkas absensi yang saat ini belum di-commit di fr
 diselesaikan lebih dulu, supaya pemindahan tidak bertabrakan dengan perubahan yang sedang
 berjalan.
 
-### `S-A7` — Kotak masuk persetujuan terpadu
+### `S-A7` — Kotak masuk persetujuan terpadu (V2 Hardening: Slice `S-A7-V2`)
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | `WorkflowManagement` menyediakan 48 endpoint sebagai mesin persetujuan bersama, termasuk `ApprovalInboxController` yang sudah menyatukan query lintas domain. **Tidak ada satu pun antarmuka persetujuan** di frontend, dan tidak ada folder `src/app/manajer`. **SLA/eskalasi: `MISSING` sebagai mesin penegakan.** `DueAt`/`ReminderAfterHours`/`EscalationAfterHours`/`AutoApproveAfterHours`/`AutoRejectAfterHours` ada sebagai field konfigurasi pada `MstWorkflowStep`, tapi **tidak ada** `BackgroundService`/`IHostedService` yang membacanya dan bertindak — dibuktikan `flows/09-unified-approval.md` |
-| **Target State** | Satu halaman berisi seluruh pengajuan yang menunggu persetujuan orang yang sedang login, lintas jenis transaksi: cuti, lembur, tukar shift, ubah jadwal, koreksi kehadiran, perubahan data, dan pengunduran diri. **`HRD-DEC-030`, 28 Agustus 2026: reminder/escalation engine adalah target `EXTEND`** — `DueAt`/`ReminderAfterHours`/`EscalationAfterHours` harus benar-benar dieksekusi scheduled processing. `AutoApproveAfterHours`/`AutoRejectAfterHours` **default OFF**, hanya aktif bila `WorkflowDefinitionId` transaksi secara eksplisit mengizinkan — dilarang berlaku otomatis ke seluruh transaksi HR |
-| **Backend Impact** | `EXTEND`. Perlu satu endpoint yang menjawab "apa yang menunggu persetujuan saya", lintas jenis transaksi, dengan bentuk ringkasan yang seragam — **sudah ada** lewat `ApprovalInboxController`. **`EXTEND` tambahan**: mesin penegakan SLA/eskalasi/auto-approve/auto-reject, `HRD-DEC-030`. Aturan bisnis tetap milik masing-masing domain |
-| **Frontend Impact** | Halaman baru untuk atasan. Baris ringkasan seragam, detail tetap dibuka di halaman transaksi masing-masing |
-| **Database Impact** | Tidak ada tabel baru. Kemungkinan perlu index pada penugasan penyetuju dan status instance |
-| **Dependency** | `HRD-DEP-002` |
-| **Blocking Decision** | `HRD-DEC-011` dan `HRD-DEC-018` sudah `approved`. `HRD-Q-12` dan `HRD-Q-13` masih terbuka, tetapi keduanya menyangkut rincian, bukan bentuk dasarnya |
-| **QBE Impact** | `NEW CODE` untuk endpoint ringkasan; wajib `ApiResponse<T>` dan `PagedResult<T>`. Tidak boleh membuat entity baru untuk menampung ringkasan |
-| **Migration Risk** | Rendah. Penambahan index dapat dijalankan tanpa mematikan layanan |
-| **Acceptance Criteria** | 1. Tiga pengajuan berbeda jenis dengan atasan yang sama muncul pada satu halaman. 2. Aturan saldo cuti tetap dipakai untuk cuti, dan aturan kelayakan lembur tetap dipakai untuk lembur — kotak masuk tidak menyeragamkan keduanya. 3. Batas waktu tanggapan dan jalur eskalasi tiap jenis transaksi tetap berbeda dan tetap berlaku. 4. Orang yang tidak berwenang tidak melihat pengajuan yang bukan haknya |
-| **Release Status** | `READY` |
+| **Current State** | `WorkflowManagement` menyediakan 48 endpoint awal sebagai mesin persetujuan bersama (`ApprovalInboxController`, `ApprovalDelegationController`, dll.), namun integrasi antarmuka frontend, penegakan disiplin SLA ketat tanpa auto-approve, perlindungan anti-self-approval mutlak ber-skip-level, dan persetujuan massal bersyarat 100% indikator hijau belum terstandarisasi V2. |
+| **Target State** | **Selesai Dirancang & Direncanakan (Slice `S-A7-V2`):** Konsolidasi kotak masuk persetujuan terpadu lintas 15 modul HRD rumah sakit (Cuti, Lembur, Tukar Shift, Koreksi Presensi, Restitusi Medis, Pinjaman Karyawan, Resign, Diklat, Persuratan HR). Dilengkapi matriks alur persetujuan dinamis multi-dimensi (`HRD-DEC-182`), pemblokiran keras persetujuan mandiri (*Anti Self-Approval*) ber-skip-level routing (`HRD-DEC-183`), pendelegasian wewenang digital berbatas waktu Plh berjejak audit ganda (`HRD-DEC-184`), disiplin SLA ketat (24 jam tukar shift, 48 jam cuti, 72 jam klaim) dengan notifikasi H-4 jam & **nol auto-approve demi keselamatan pasien** (`HRD-DEC-185`), siklus tri-state (*Approve*, *Reject* min 15 karakter, *Return for Revision* resubmit 7 hari - `HRD-DEC-186`), serta persetujuan massal bersyarat ber-PIN khusus item berindikator 100% hijau (`HRD-DEC-187`). |
+| **Backend Impact** | `EXTEND` & `HARDENING`. 8 tabel relasional `WorkflowManagement`, 8 aturan bisnis `WF-B1` s.d. `WF-B8`, 6 background workers `WF-W1` s.d. `WF-W6` (termasuk pemindai SLA `WF-W1` dan pencabut Plh `WF-W2`), 24 endpoint API pada 5 Controller Swagger `[Tags("Corporate - HRD Workflow ...")]` Kontrak `v24`. Direncanakan 16 task backend (`BE-HRD-302` s.d. `BE-HRD-317`). |
+| **Frontend Impact** | Pembangunan 8 layar Next.js App Router (`FE-HRD-276` s.d. `FE-HRD-283`), 5 modal dialog pendukung (PIN otorisasi, alasan tolak min 15 karakter, drawer revisi, surat kuasa Plh, bulk approval), dan Redux slice `unifiedApprovalSlice.ts`. Direncanakan 15 task frontend (`FE-HRD-276` s.d. `FE-HRD-290`). |
+| **Database Impact** | Pemutakhiran 8 tabel `trx_workflow_*` dan `trx_approval_*` via migration EF Core `20261109_AddWorkflowAndUnifiedApprovalV2`, penambahan indeks performa pada `(ApproverEmployeeId, AssignmentStatus)`, `(ApplicantEmployeeId, CurrentStatus)`, dan `(IsOverdue, SlaDeadline)`. |
+| **Dependency** | `HRD-DEP-002` (Workforce Profile Sub-02), `INT-HR-93` s.d. `INT-HR-96`. |
+| **Blocking Decision** | Seluruh 6 keputusan bisnis (`HRD-DEC-182` s.d. `HRD-DEC-187`) telah **APPROVED** oleh pengguna pada 9 November 2026. Zero Blocker. |
+| **QBE Impact** | `NEW CODE` & `TOUCHED LEGACY`; kepatuhan arsitektur QBE Conformance, pembungkus `ApiResponse<T>`, `PagedResult<T>`, dan isolasi otorisasi `Hrd.Workflow.*`. |
+| **Migration Risk** | Rendah. Struktur database dan skema relasional mendukung zero downtime migration. |
+| **Acceptance Criteria** | 1. Permohonan dari 15 modul HRD tampil konsolidasi dalam 1 inbox seragam. 2. Percobaan self-approval terblokir keras dan dialihkan skip-level ke atasan atas. 3. Plh menerima tiket sesuai tanggal delegasi dengan jejak audit ganda. 4. Batas SLA melewati waktu tidak pernah auto-approve, melainkan auto-eskalasi berjenjang. 5. Penolakan wajib alasan >= 15 karakter. 6. Pengembalian revisi dapat diedit dan di-resubmit pemohon tanpa tiket baru. 7. Bulk approval hanya aktif untuk item 100% berindikator hijau. |
+| **Release Status** | `PLANNED` — direncanakan pada roadmap revision `22` (9 November 2026): 16 task backend (`BE-HRD-302` s.d. `BE-HRD-317`) dan 15 task frontend (`FE-HRD-276` s.d. `FE-HRD-290`) |
 
 `HRD-DEC-018` adalah pagar terpenting slice ini. Yang boleh diseragamkan hanya bentuk baris,
 cara memfilter, penanda status, dan cara berpindah ke detail. Workflow, policy, permission,
@@ -541,7 +541,7 @@ kelayakan kerja tanpa isi medis.
 | **QBE Impact** | `QBE-DB-001` audit dependency fisik sebelum rename atau perubahan. `QBE-DB-002` dilarang `DROP` lalu `CREATE` bila perubahan yang mempertahankan data masih aman. `QBE-MOD-002` entity operasional baru wajib memakai prefix `Hrd` sesuai `HRD-DEC-019` |
 | **Migration Risk** | **Tinggi.** Ini satu-satunya kelompok slice yang berpotensi menghasilkan migration destruktif |
 | **Acceptance Criteria** | Tidak ditetapkan. Kriteria yang berlaku sekarang: **tidak ada migration destruktif yang boleh direncanakan sebelum isi tabel diketahui** |
-| **Release Status** | **`S-D1` dan `S-D2` `READY` sejak 3 November 2026; desain disetujui dan task direncanakan pada hari yang sama.** Untuk `S-D1`: `BE-HRD-017`, `BE-HRD-029` s.d. `BE-HRD-051`, `FE-HRD-029` s.d. `FE-HRD-043` (`HRD-DEC-058` s.d. `HRD-DEC-071`). Untuk `S-D2`: `BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062`, `FE-HRD-044` s.d. `FE-HRD-057` (`HRD-DEC-073` s.d. `HRD-DEC-080`). `HRD-Q-05` dan `HRD-BLK-004` ditutup untuk 20 tabel `RecruitmentManagement` lewat `HRD-DEC-074` dijaga `EMPTY_TABLE_GUARD` (audit membuktikan 20 tabel kosong 0 baris). `S-D3` s.d. `S-D4` tetap `BLOCKED`. `S-D5` `DEFERRED`. |
+| **Release Status** | **`S-D1` dan `S-D2` `READY`; `S-D3` dan `S-D4` `PLANNED`. `S-D5` kini `PLANNED` pada roadmap revisi `23` (9 November 2026): 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`). Seluruh 5 domain tanpa API telah tuntas direncanakan (0 DEFERRED, 0 BLOCKED).** |
 
 
 ### `S-D3` — Benefit Management (Target State Terinci)
@@ -570,6 +570,20 @@ kelayakan kerja tanpa isi medis.
 | **Migration Risk** | Rendah. Tabel baru tidak mengganggu data eksisting, penegakan integritas data menggunakan foreign key restrict dan check constraint status. |
 | **Acceptance Criteria** | 20 skenario acceptance tests `AT-HRD-HRS-01` s.d. `AT-HRD-HRS-20` dan 10 butir DoD pada `04-prd-to-mvp.md` Bagian 31.5 terpenuhi lengkap. |
 | **Release Status** | `PLANNED` (Roadmap Revisi 15, 5 November 2026). Siap untuk eksekusi task per task. |
+
+### `S-D5` — Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management (Target State Terinci)
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | 20 model legacy `BusinessTravelManagement` dan `ExpenseManagement` di backend tanpa controller aktif. Telah ditinjau pada wawancara Pass 21 (`HRD-DEC-188` s.d. `HRD-DEC-193`). Status `DEFERRED` resmi dicabut. |
+| **Target State** | 20 model EF Core diperbarui dan dimigrasikan via `20261109_AddBusinessTravelAndExpenseManagementV2`. 5 grup API controller Swagger-tagged (`Travel Requests`, `Travel Advances`, `Travel Settlements`, `Direct Non-Trip Expenses`, `Travel Rates & Policies`). 8 layar antarmuka Next.js App Router (`FE-HRD-291` s.d. `FE-HRD-298`), 5 modal dialog interaktif, dan Redux store `businessTravelSlice.ts`. |
+| **Backend Impact** | 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) mencakup migrasi non-breaking, pemisahan SPPD dan pengeluaran non-trip (`TRV-B1`), plafon uang muka maksimal 80% dengan approval 2-pintu Atasan & Finance (`TRV-B2`), kalkulator tarif baku per diem otomatis berbasis zonasi & grade (`TRV-B3`), settlement SLA 7 hari dengan pembekuan SPPD H+14 dan pemotongan otomatis via payroll Sub-10 pada H+30 (`TRV-B4`), toleransi deklarasi darurat tanpa nota maks 10% (`TRV-B5`), sinkronisasi kehadiran "Hadir Dinas Luar" di Sub-07, dan gembok hard-stop roster dinas bangsal di Sub-06 (`TRV-B6`, `INT-HR-97`). |
+| **Frontend Impact** | 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) mencakup dasbor analitik biaya dinas, pusat pengajuan SPPD mandiri multi-step, manajemen pencairan uang muka kasir, lembar kerja rekonsiliasi settlement kurang/lebih bayar, portal klaim biaya non-trip lapangan, matriks tarif per diem, radar keterlambatan settlement overdue, modal deklarasi darurat, dan audit kualitas linter/build. |
+| **Database Impact** | Migrasi non-breaking Entity Framework Core memperbarui 20 tabel relasional di schema `public`. Penambahan indeks performa pada `(WorkforceProfileId, TravelStatus)`, `(CostCenterId, StartDate)`, dan `(IsOverdue, SettledAt)`. |
+| **Migration Risk** | Rendah. Struktur tabel mempertahankan data eksisting dengan foreign key restrict dan check constraint aman. |
+| **Acceptance Criteria** | 22 skenario acceptance tests `AT-HRD-TRV-01` s.d. `AT-HRD-TRV-22` dan 10 butir DoD pada `04-prd-to-mvp.md` Bagian 39.5 terpenuhi 100%. |
+| **Release Status** | `PLANNED` (Roadmap Revisi 23, 9 November 2026). 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`). |
+
 
 ---
 
@@ -688,12 +702,12 @@ Contoh supaya batasnya jelas:
 
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
-| `READY` | **12** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C4` (1), `S-E` (1), `S-D2` (1) |
-| `PLANNED` | **13** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D1` (1, rev 14), `S-D3` (1, rev 14), `S-D4` (1, rev 15), `S-C1` (1, rev 16), `S-C1-OPPE` (1, rev 17), `S-C2` (1, rev 18), `S-C3` (1, rev 19), `S-C5` (1, rev 20), `S-C6` (1, rev 21) |
+| `READY` | **11** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A6` (6), `S-C4` (1), `S-E` (1), `S-D2` (1) |
+| `PLANNED` | **17** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D1` (1, rev 14), `S-D3` (1, rev 14), `S-D4` (1, rev 15), `S-C1` (1, rev 16), `S-C1-OPPE` (1, rev 17), `S-C2` (1, rev 18), `S-C3` (1, rev 19), `S-C5` (1, rev 20), `S-C6` (1, rev 21), `S-A7-V2` (1, rev 22), `S-D5` (1, rev 23) |
 | `PARTIAL` | **0** | Tidak ada slice PARTIAL |
-| `BLOCKED` | **0** | *Seluruh 27 slice bebas blocker* |
-| `DEFERRED` | 1 | `S-D5` |
-| **Total** | **27** | |
+| `BLOCKED` | **0** | *Seluruh 28 slice bebas blocker (0 BLOCKED)* |
+| `DEFERRED` | **0** | *Seluruh slice telah direncanakan (0 DEFERRED — 100% COMPLETE)* |
+| **Total** | **28** | |
 
 Tidak ada slice `BLOCKED` yang boleh dinaikkan menjadi `READY` berdasarkan asumsi. Kenaikan
 status hanya sah bila dependency yang disebut namanya benar-benar terpenuhi, dan buktinya

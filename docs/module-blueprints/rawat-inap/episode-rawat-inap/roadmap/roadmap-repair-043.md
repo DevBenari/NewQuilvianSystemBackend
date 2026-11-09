@@ -25,8 +25,8 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-256 ──> FE-RWI-286
-BE-RWI-257   tanpa dependency
+BE-RWI-256 ✅ ──> FE-RWI-286
+BE-RWI-257 ✅   tanpa dependency
 ```
 
 | Gelombang | Boleh mulai setelah | Task ID |
@@ -40,19 +40,19 @@ BE-RWI-257   tanpa dependency
 
 | Task ID / Status | Outcome | Menutup | Lapisan | Dependency | Acceptance criteria | Laporan |
 | --- | --- | --- | --- | --- | --- | --- |
-| `BE-RWI-256` | Resume medis menyimpan rencana kontrol terstruktur (tanggal, poli, dokter) beserta validasinya dan salinan revisinya | `FIX-EPS-043-02` (`ISS-EPS-043-02`) | BE | — | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi server | — |
+| `BE-RWI-256` ✅ | Resume medis menyimpan rencana kontrol terstruktur (tanggal, poli, dokter) beserta validasinya dan salinan revisinya | `FIX-EPS-043-02` (`ISS-EPS-043-02`) | BE | — | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi server | [BE-RWI-256.md](../task/report/backend/BE-RWI-256.md) |
 | `FE-RWI-286` | Form, detail, dan cetakan resume medis menampilkan rencana kontrol terstruktur | `FIX-EPS-043-02` (`ISS-EPS-043-02`) | FE | `BE-RWI-256` | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi layar; rangka plan repair bagian 3.B | — |
-| `BE-RWI-257` | Lembar IPD memakai nama perujuk luar pada episode sebagai sumber ketiga | `FIX-EPS-043-05` (`ISS-EPS-043-03` bagian B) | BE | — | Plan repair `FIX-EPS-043-05` AC 1-4 | — |
+| `BE-RWI-257` ✅ | Lembar IPD memakai nama perujuk luar pada episode sebagai sumber ketiga | `FIX-EPS-043-05` (`ISS-EPS-043-03` bagian B) | BE | — | Plan repair `FIX-EPS-043-05` AC 1-4 | [BE-RWI-257.md](../task/report/backend/BE-RWI-257.md) |
 
 ---
 
 ## Kartu Task
 
-### BE-RWI-256 — Rencana kontrol terstruktur pada resume medis
+### ✅ BE-RWI-256 — Rencana kontrol terstruktur pada resume medis
 
 | Hal | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **SELESAI 9 November 2026.** Source masuk commit `da737fb9`; AC 1-5 sisi server terpetakan ke `ValidateFollowUpPlanAsync`, penyimpanan, salinan revisi, dan proyeksi detail; `dotnet build` 0 error / 12 warning (paket NuGet lama); migration `20261102050639_AddStructuredFollowUpToInpDischargeSummary` sudah diterapkan di `QuilvianNewDevHamzah` (kolom terbukti lewat `information_schema`). Uji manual dijalankan bersama `FE-RWI-286`. [Laporan](../task/report/backend/BE-RWI-256.md) |
 | Berkas | `InpDischargeSummary.cs`, `InpDischargeSummaryRevision.cs`, `InpatientDischargeDtos.cs`, service resume, satu migration baru (file migration disiapkan; penerapan ke database oleh pemilik) |
 | Kontrak | Kolom opsional tanggal kontrol, poli kontrol, dokter kontrol; `FollowUpInstruction` tetap sebagai catatan |
 | Acceptance criteria | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi server |
@@ -68,11 +68,11 @@ BE-RWI-257   tanpa dependency
 | Acceptance criteria | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi layar |
 | DoD | `npm run lint:errors`, `npm run test:unit`, `npm run build`; laporan `task/report/frontend/FE-RWI-286.md` |
 
-### BE-RWI-257 — Sumber ketiga dokter perujuk luar pada IPD
+### ✅ BE-RWI-257 — Sumber ketiga dokter perujuk luar pada IPD
 
 | Hal | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **SELESAI 9 November 2026.** Source masuk commit `da737fb9`; AC 1-4 terpetakan ke cabang ketiga `referringDoctor` pada `InpAdmissionWorkspaceQueryService.cs`; `dotnet build` 0 error / 12 warning; tanpa perubahan database. Uji cetak empat kasus dijalankan pada sesi uji langsung MVP. Pencatatan amandemen `RWI-DEC-254`/`RWI-AC-386` di `00-interview-decisions.md` masuk Slice 6 MVP. [Laporan](../task/report/backend/BE-RWI-257.md) |
 | Berkas | `InpAdmissionWorkspaceQueryService.cs` |
 | Keputusan | K-04 (2026-11-02) mengamandemen `RWI-DEC-254` dan `RWI-AC-386`: urutan sumber "surat pengantar → perujuk luar Registrasi → perujuk luar yang dicatat admisi → garis kosong" |
 | Acceptance criteria | Plan repair `FIX-EPS-043-05` AC 1-4 |

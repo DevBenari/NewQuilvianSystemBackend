@@ -1547,3 +1547,58 @@ Seluruh perubahan siklus, penyesuaian skor kalibrasi, penerbitan kontrak pembina
 | `HRD_WF_DOWNSTREAM_ACTION_TRIGGERED`| Aksi final memicu perubahan data pada domain modul hilir | `CRITICAL` | WorkflowNumber, ReferenceDomain, ReferenceEntityId, TriggerTimestamp |
 | `HRD_WF_DOWNSTREAM_RECONCILIATION_RUN`| Worker rekonsiliasi mengeksekusi ulang aksi hilir yang macet | `HIGH` | WorkflowNumber, ReferenceDomain, RetryAttemptCount, ResolutionStatus |
 | `HRD_WF_MATRIX_POLICY_UPDATED` | Konfigurasi matriks alur persetujuan diperbarui admin | `CRITICAL` | UpdatedByUserId, DepartmentId, RequestType, PreviousSteps, NewStepsConfig |
+
+
+---
+
+## 29. Matriks Hak Akses & Audit Trail Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 29.1 Matriks 24 Hak Akses (Permissions)
+
+| Kode Permission | Deskripsi Wewenang | Role Pemilik Akses |
+|---|---|---|
+| `Hrd.BusinessTravel.Request.View` | Melihat riwayat pengajuan SPPD dinas | Seluruh Pegawai RS (ESS), Atasan, HR |
+| `Hrd.BusinessTravel.Request.Create` | Mengajukan permohonan perjalanan dinas baru | Seluruh Pegawai RS (ESS) |
+| `Hrd.BusinessTravel.Request.Edit` | Mengubah draf SPPD sebelum diajukan | Pemohon Asli |
+| `Hrd.BusinessTravel.Request.Cancel` | Membatalkan perjalanan dinas sebelum berangkat | Pemohon, Atasan Langsung |
+| `Hrd.BusinessTravel.Request.Approve` | Otorisasi persetujuan penugasan dinas SPPD | Kepala Ruangan, Manajer, Direksi |
+| `Hrd.BusinessTravel.Advance.Request` | Mengajukan uang muka perjalanan dinas | Pemohon SPPD |
+| `Hrd.BusinessTravel.Advance.Approve` | Persetujuan nominal uang muka kerja | Finance Manager, Kabid Keuangan |
+| `Hrd.BusinessTravel.Advance.Disburse` | Otorisasi pencairan dana uang muka kasir | Kasir RS, Treasury |
+| `Hrd.BusinessTravel.Settlement.Submit` | Menyerahkan laporan pertanggungjawaban biaya | Pemohon SPPD |
+| `Hrd.BusinessTravel.Settlement.Verify` | Memeriksa keabsahan fisik bukti kuitansi riil | Verifikator Keuangan RS |
+| `Hrd.BusinessTravel.Settlement.Close` | Menyelesaikan transaksi kas selisih settlement | Kasir RS, Treasury |
+| `Hrd.BusinessTravel.MissingReceipt.Declare` | Mengajukan deklarasi darurat tanpa nota | Pemohon SPPD |
+| `Hrd.BusinessTravel.MissingReceipt.Approve` | Otorisasi persetujuan deklarasi darurat | Atasan Langsung, Direktur Keuangan |
+| `Hrd.BusinessTravel.Rate.View` | Melihat tabel matriks tarif lumpsum per diem | Seluruh Pegawai RS |
+| `Hrd.BusinessTravel.Rate.Manage` | Mengonfigurasi tarif uang harian dan zonasi | HR Administrator, Manajer SDM |
+| `Hrd.BusinessTravel.Overdue.Monitor` | Memantau radar keterlambatan settlement | HR Admin, Finance Manager, Direksi |
+| `Hrd.Expense.Claim.View` | Melihat daftar klaim pengeluaran non-trip | Seluruh Pegawai RS, Kasir |
+| `Hrd.Expense.Claim.Create` | Mengajukan klaim biaya operasional langsung | Seluruh Pegawai RS (ESS) |
+| `Hrd.Expense.Claim.Edit` | Mengedit draf klaim biaya operasional non-trip | Pemohon Asli |
+| `Hrd.Expense.Claim.Approve` | Persetujuan klaim operasional oleh atasan | Kepala Unit Kerja, Manajer Divisi |
+| `Hrd.Expense.Claim.Verify` | Audit keabsahan nota pembelian darurat | Verifikator Keuangan RS |
+| `Hrd.Expense.Claim.Pay` | Pencairan dana reimbursement non-trip kasir | Kasir RS, Treasury |
+| `Hrd.Expense.Category.Manage` | Mengelola master pos beban biaya operasional | Finance Admin, Akuntansi |
+| `Hrd.BusinessTravel.Audit.View` | Mengunduh log audit transaksi perjalanan dinas | Auditor Internal RS, Komite Etik |
+
+---
+
+### 29.2 Matriks 14 Event Audit Permanen (*Immutable Audit Trail*)
+
+| Kode Event Audit | Pemicu Peristiwa (Trigger) | Data Kunci yang Direkam | Tingkat Kritis |
+|---|---|---|---|
+| `HRD_TRV_REQUEST_SUBMITTED` | Staf mengirimkan permohonan SPPD baru | `TravelRequestNumber`, `ApplicantId`, `Destination`, `StartDate` | Normal |
+| `HRD_TRV_REQUEST_APPROVED` | Atasan mengesahkan surat tugas dinas | `TravelRequestNumber`, `ApproverId`, `ApprovedBudgetAmount` | Tinggi |
+| `HRD_TRV_ADVANCE_REQUESTED` | Permohonan uang muka diajukan | `AdvanceNumber`, `RequestedAmount`, `TravelRequestNumber` | Tinggi |
+| `HRD_TRV_ADVANCE_PAID` | Kasir mencairkan uang muka dinas | `AdvanceNumber`, `DisbursedAmount`, `VoucherNumber`, `CashierId` | Finansial Kritis |
+| `HRD_TRV_SETTLEMENT_SUBMITTED` | Staf menyerahkan laporan settlement LPJ | `SettlementNumber`, `TotalAdvance`, `TotalActual`, `DiffAmount` | Tinggi |
+| `HRD_TRV_MISSING_RECEIPT_DECLARED` | Pengajuan deklarasi darurat tanpa nota | `SettlementNumber`, `ItemAmount`, `EmergencyReason`, `ApproverId` | Finansial Kritis |
+| `HRD_TRV_SETTLEMENT_VERIFIED` | Tim keuangan mengesahkan bukti kuitansi | `SettlementNumber`, `VerifiedActualAmount`, `VerifierId` | Finansial Kritis |
+| `HRD_TRV_SETTLEMENT_CLOSED` | Selisih kas dituntaskan oleh Kasir RS | `SettlementNumber`, `FinalDiffPaidOrRefunded`, `CashierId` | Finansial Kritis |
+| `HRD_TRV_SPPD_FROZEN_OVERDUE` | Pembekuan hak SPPD karena telat LPJ > 14 hari | `EmployeeId`, `OverdueDays`, `UnsettledAdvanceAmount` | Tinggi |
+| `HRD_TRV_PAYROLL_DEDUCTION_TRIGGERED`| Pemotongan gaji otomatis tunggakan > 30 hari | `EmployeeId`, `DeductionAmount`, `PayrollPeriodId` | Finansial Kritis |
+| `HRD_TRV_ATTENDANCE_SYNCED` | Suntik presensi otomatis "Hadir Dinas Luar" | `EmployeeId`, `DutyDate`, `TravelRequestNumber` | Normal |
+| `HRD_TRV_ROSTER_LOCK_APPLIED` | Pemasangan gembok hard-stop roster dinas bangsal | `EmployeeId`, `RestrictedDates`, `WardUnitId` | Keselamatan Pasien |
+| `HRD_EXP_CLAIM_SUBMITTED` | Staf mengajukan klaim operasional non-trip | `ExpenseClaimNumber`, `EmployeeId`, `TotalAmount`, `CategoryId`| Normal |
+| `HRD_EXP_CLAIM_PAID` | Kasir mencairkan klaim operasional non-trip | `ExpenseClaimNumber`, `PaidAmount`, `VoucherNumber`, `CashierId` | Finansial Kritis |

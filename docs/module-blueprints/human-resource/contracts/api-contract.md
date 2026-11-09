@@ -2746,3 +2746,67 @@ Seluruh endpoint pada bagian ini berstatus **Rencana (belum tersedia)** dan dike
 | `GET` | `/api/v1/hrd/workflow/sla/overdue` | Mengambil daftar permohonan yang telah melampaui batas waktu SLA | HR Admin, Manajer SDM | `departmentId`, `requestType`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
 | `POST` | `/api/v1/hrd/workflow/sla/escalate/{id}` | Melakukan intervensi eskalasi manual tiket macet ke atasan lebih tinggi | HR Admin, Manajer SDM | `id` (Path), `ManualEscalationRequestDto` (TargetApproverId, EscalationReason)| `200 OK`, `400 Bad Request` |
 | `GET` | `/api/v1/hrd/workflow/sla/compliance-report` | Mengunduh laporan kepatuhan SLA kecepatan respon persetujuan rumah sakit | Direksi RS, Manajer SDM | `startDate`, `endDate`, `departmentId` | `200 OK`, `401 Unauthorized` |
+
+
+---
+
+## 31. Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+Kontrak API Versi `v25` mencakup 24 endpoint rencana berstandar Swagger untuk mengelola siklus perjalanan dinas, uang muka, rekonsiliasi biaya, dan klaim operasional non-trip rumah sakit.
+
+### 31.1 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Requests")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/travel/requests` | Mengambil daftar pengajuan SPPD dinas pegawai/tim | Seluruh Pegawai, Atasan, HR | `status`, `startDate`, `endDate`, `departmentId`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/hrd/travel/requests/{id}` | Mengambil detail lengkap SPPD, agenda rute, estimasi biaya, dan status approval | Pemohon, Atasan, HR | `id` (UUID Path) | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/hrd/travel/requests` | Mendaftarkan pengajuan perjalanan dinas baru (SPPD) | Seluruh Pegawai RS (ESS) | `CreateBusinessTravelRequestDto` (TravelTitle, Destination, Dates, Estimates) | `201 Created`, `400 Bad Request` |
+| `PUT` | `/api/v1/hrd/travel/requests/{id}` | Memperbarui draf pengajuan SPPD sebelum diajukan resmi | Pemohon Asli | `id` (Path), `UpdateBusinessTravelRequestDto` | `200 OK`, `400 Bad Request` |
+| `PUT` | `/api/v1/hrd/travel/requests/{id}/cancel` | Membatalkan perjalanan dinas yang belum berjalan | Pemohon, Atasan | `id` (Path), `CancelTravelRequestDto` (CancellationReason) | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/travel/requests/{id}/document-pdf` | Mengunduh lembar surat tugas dan SPPD resmi ber-barcode untuk verifikasi fisik | Pemohon, HR, Auditor | `id` (Path) | `200 OK`, `404 Not Found` |
+
+---
+
+### 31.2 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Advances")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/travel/advances` | Mengambil daftar permohonan uang muka kerja SPPD | Pemohon, Finance, Kasir | `status`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/hrd/travel/advances` | Mengajukan uang muka perjalanan dinas (maksimal 80% dari pagu yang disetujui) | Pemohon SPPD Sah | `CreateTravelAdvanceRequestDto` (BusinessTravelRequestId, RequestedAmount) | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/hrd/travel/advances/{id}/approve` | Persetujuan uang muka oleh Supervisor & Finance Manager | Finance Manager, Kabid | `id` (Path), `ApproveAdvanceRequestDto` (ApprovedAmount, ApprovalNote) | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/hrd/travel/advances/{id}/disburse` | Konfirmasi pencairan dana uang muka oleh Kasir RS (voucher / transfer bank) | Kasir RS, Treasury | `id` (Path), `DisburseAdvancePaymentDto` (PaymentMethod, ReferenceNumber) | `200 OK`, `400 Bad Request` |
+
+---
+
+### 31.3 Grup Tag Swagger `[Tags("Corporate - HRD Business Travel Settlements")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/travel/settlements` | Mengambil daftar pertanggungjawaban settlement biaya perjalanan dinas | Pemohon, Finance, HR | `status`, `isOverdue`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/hrd/travel/settlements/{id}` | Mengambil lembar komputasi rekonsiliasi uang muka vs pengeluaran riil nakes | Pemohon, Verifikator | `id` (UUID Path) | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/hrd/travel/settlements` | Mengajukan settlement biaya perjalanan dinas dan melampirkan kuitansi riil | Pemohon SPPD | `SubmitTravelSettlementDto` (RequestId, ActualExpenses, MissingReceipts) | `201 Created`, `400 Bad Request` |
+| `POST` | `/api/v1/hrd/travel/settlements/{id}/verify` | Verifikasi fisik bukti kuitansi oleh Tim Auditor Keuangan RS | Verifikator Keuangan | `id` (Path), `VerifySettlementDto` (ApprovedActualAmount, VerificationNotes)| `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/hrd/travel/settlements/{id}/close` | Penyelesaian akhir kas: pencairan selisih kurang atau setor balik selisih lebih | Kasir RS, Treasury | `id` (Path), `CloseSettlementDto` (PaymentOrRefundRef, ReceiptDocUrl) | `200 OK`, `400 Bad Request` |
+
+---
+
+### 31.4 Grup Tag Swagger `[Tags("Corporate - HRD Direct Non-Trip Expenses")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/expenses/claims` | Mengambil daftar pengajuan klaim biaya operasional non-trip staf | Seluruh Staf, Kasir | `status`, `categoryId`, `startDate`, `endDate`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/hrd/expenses/claims` | Mengajukan klaim penggantian biaya operasional langsung lapangan non-trip | Seluruh Pegawai RS (ESS) | `CreateExpenseClaimDto` (Title, DepartmentId, CostCenterId, Items) | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/expenses/claims/{id}` | Mengambil detail rincian klaim non-trip dan bukti struk kuitansi | Pemohon, Verifikator | `id` (UUID Path) | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/hrd/expenses/claims/{id}/verify` | Verifikasi audit keabsahan kuitansi pembelian darurat oleh Finance | Verifikator Finance | `id` (Path), `VerifyExpenseClaimDto` (VerifiedAmount, VerificationNotes) | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/hrd/expenses/claims/{id}/pay` | Otorisasi pembayaran pencairan uang klaim ke rekening staf oleh Kasir RS | Kasir RS, Treasury | `id` (Path), `PayExpenseClaimDto` (PaymentMethod, ReferenceNumber) | `200 OK`, `400 Bad Request` |
+
+---
+
+### 31.5 Grup Tag Swagger `[Tags("Corporate - HRD Travel Rates & Policies")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/travel/rates` | Mengambil matriks tarif baku lumpsum uang harian per zonasi & grade | Seluruh Pegawai, HR | `zoneId`, `jobGradeGroup` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/hrd/travel/rates` | Mengonfigurasi tarif uang harian dinas (per diem) rumah sakit | HR Admin, Direktur SDM | `ConfigureTravelRateDto` (ZoneId, JobGradeGroup, DailyPerDiemRate) | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/travel/zones` | Mengambil daftar zonasi tujuan perjalanan dinas (Zona 1, Zona 2, Zona 3) | Seluruh Pegawai, HR | None | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/hrd/travel/overdue-reports` | Mengunduh radar laporan pegawai menunggak settlement > 7, 14, dan 30 hari | HR Admin, Finance Manager | `departmentId`, `cutoffDate` | `200 OK`, `401 Unauthorized` |

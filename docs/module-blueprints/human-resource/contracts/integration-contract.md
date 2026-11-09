@@ -1784,3 +1784,65 @@ Kontrak integrasi ini menetapkan protokol pertukaran data antara modul manajemen
       Task<bool> IsEligibleDelegateAsync(Guid principalId, Guid delegateId, CancellationToken cancellationToken);
   }
   ```
+
+
+---
+
+## 22. Integrasi Lintas Modul Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 22.1 `INT-HR-97`: Sinkronisasi Presensi "Hadir Dinas Luar" (Sub-07) & Gembok Hard-Stop Roster Medis (Sub-06)
+* **Domain Pemilik:** `BusinessTravelManagement`
+* **Domain Konsumen:** `AttendanceManagement` (Sub-07) & `ShiftAndRosterManagement` (Sub-06)
+* **Pemicu:** Perubahan status `TrxBusinessTravelRequest` menjadi `Approved`.
+* **Payload Event:**
+  ```json
+  {
+    "eventId": "EVT-TRV-SYNC-001",
+    "travelRequestNumber": "SPPD/RSQ/2026/11/001",
+    "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "startDate": "2026-11-15",
+    "endDate": "2026-11-18",
+    "dutyType": "OfficialBusinessDuty",
+    "restrictedWardUnitId": "7cb85f64-5717-4562-b3fc-2c963f66afb2"
+  }
+  ```
+* **Perilaku Konsumen:**
+  - Modul Presensi Sub-07 otomatis menyuntikkan status hadir dinas luar untuk tanggal 15 s.d. 18 November tanpa mewajibkan tap fingerprint di lokasi RS.
+  - Modul Roster Sub-06 memasang status gembok *hard-stop*, memblokir Kepala Ruangan dari memasukkan nama pegawai tersebut pada shift jaga bangsal atau jaga malam.
+
+---
+
+### 22.2 `INT-HR-98`: Integrasi Pencairan Uang Muka & Pengembalian Lebih Bayar Kasir RS (Finance & Cashier)
+* **Domain Pemilik:** `BusinessTravelManagement`
+* **Domain Konsumen:** `FinanceTreasuryManagement` / Modul Kasir Rumah Sakit
+* **Pemicu:** Disetujuinya permohonan uang muka kerja atau pengesahan settlement yang menghasilkan lebih bayar (*overpaid refund*).
+* **Kontrak Alur:**
+  - `TravelAdvanceApproved`: Menerbitkan voucher pengeluaran kasir cito (*Cashier Disbursement Voucher*) dengan nomor referensi unik untuk ditransfer atau diambil tunai oleh staf.
+  - `SettlementRefundRequired`: Menerbitkan nota tagihan setor balik (*Cashier Deposit Voucher*) ke rekening penerimaan rumah sakit.
+
+---
+
+### 22.3 `INT-HR-99`: Integrasi Otomasi Pemotongan Gaji untuk Settlement Menunggak > 30 Hari
+* **Domain Pemilik:** `BusinessTravelManagement`
+* **Domain Konsumen:** `PayrollManagement` (Sub-10 - `S-B5`) & `RestitutionAndDeduction` (Sub-11 - `S-B6`)
+* **Pemicu:** Worker `TravelSettlementOverdueWorker` (`TRV-W2`) mendeteksi settlement yang belum dipertanggungjawabkan > 30 hari kalender.
+* **Payload Transaksi:**
+  ```json
+  {
+    "eventId": "EVT-TRV-DEDUCT-001",
+    "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "deductionType": "UnsettledTravelAdvanceDefault",
+    "unsettledAdvanceAmount": 2400000.00,
+    "effectivePayrollPeriod": "2026-11",
+    "maxAllowableCap": 0.50
+  }
+  ```
+* **Perilaku Konsumen:** Modul Penggajian Sub-10 otomatis memotongkan sisa uang muka tersebut pada slip gaji bulan berjalan dengan mematuhi batas *hard-cap 50%* PP 36/2021 (`PAY-B3`).
+
+---
+
+### 22.4 `INT-HR-100`: Integrasi Orkestrasi Workflow Persetujuan Terpadu (Sub-21)
+* **Domain Pemilik:** `BusinessTravelManagement` & `ExpenseManagement`
+* **Domain Konsumen:** `WorkflowManagement` (Sub-21 - `S-A7-V2`)
+* **Pemicu:** Pengajuan baru SPPD, uang muka kerja, laporan settlement, atau klaim biaya non-trip dari portal ESS.
+* **Kontrak Alur:** Mendaftarkan instansiasi tiket workflow terpusat ke `TrxWorkflowInstance`, mengevaluasi matriks approver dinamis multi-level, menerapkan aturan anti self-approval (`HRD-DEC-183`), dan mendistribusikan tiket ke `Unified Approval Inbox` para atasan/pejabat Plh.

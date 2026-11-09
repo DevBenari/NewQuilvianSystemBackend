@@ -2442,3 +2442,66 @@ stateDiagram-v2
 | `Scheduled` / `[*] ` | Tanggal Mulai Berlaku | `Active` | Tanggal hari ini `>= StartDate` dan `<= EndDate` | Worker `WF-W2` |
 | `Active` | Tanggal Akhir Terlewati | `Expired` | Tanggal hari ini `> EndDate`; hak wewenang Plh dicabut otomatis | Worker `WF-W2` |
 | `Active` / `Scheduled` | Pencabutan Dini Wewenang | `RevokedEarly` | Pejabat definitif kembali aktif lebih cepat dari rencana | Pejabat Definitif |
+
+
+---
+
+## 29. Matriks Transisi Status Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 29.1 Siklus Hidup Permohonan SPPD (`BusinessTravelStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Inisiasi Formulir SPPD
+    Draft --> Submitted : Diajukan oleh Pegawai
+    Submitted --> Approved : Disetujui Atasan, HR & Direksi
+    Submitted --> Rejected : Ditolak (Alasan Tertulis)
+    Draft --> Cancelled : Dibatalkan Pemohon
+    Submitted --> Cancelled : Dibatalkan Sebelum Tanggal Berangkat
+    Approved --> InTravel : Tanggal Mulai Dinas Tercapai
+    InTravel --> WaitingSettlement : Tanggal Dinas Selesai (Kembali ke RS)
+    WaitingSettlement --> Completed : Laporan Settlement Selesai & Ditutup
+    Completed --> [*]
+    Rejected --> [*]
+    Cancelled --> [*]
+```
+
+### 29.2 Siklus Hidup Uang Muka Kerja (`TravelAdvanceStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Pengajuan Uang Muka (Maks 80%)
+    Draft --> Submitted : Dikirim ke Finance
+    Submitted --> Approved : Disetujui Finance Manager
+    Submitted --> Rejected : Ditolak (Anggaran Tidak Tersedia)
+    Approved --> Paid : Kasir Mencairkan Dana Transfer/Tunai
+    Paid --> Settled : Rekonsiliasi Settlement Selesai
+    Settled --> [*]
+```
+
+### 29.3 Siklus Hidup Pertanggungjawaban Biaya (`TravelSettlementStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Pegawai Mengisi Pengeluaran Riil
+    Draft --> Submitted : Diserahkan dalam SLA <= 7 Hari
+    Submitted --> Verified : Verifikasi Fisik Kuitansi oleh Keuangan
+    Verified --> Settled : Selisih Diselesaikan Kasir RS
+    Submitted --> Defaulted : Menunggak > 30 Hari (Potong Payroll)
+    Defaulted --> Settled : Terpotong Otomatis di Slip Gaji
+    Settled --> [*]
+```
+
+### 29.4 Siklus Hidup Klaim Pengeluaran Non-Trip (`ExpenseClaimStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Catat Pembelian Operasional Darurat
+    Draft --> Submitted : Diajukan dengan Lampiran Bukti
+    Submitted --> Approved : Disetujui Kepala Unit Kerja
+    Approved --> Verified : Diverifikasi Staf Finance
+    Verified --> Paid : Dicairkan oleh Kasir RS
+    Submitted --> Rejected : Ditolak (Bukan Beban RS)
+    Paid --> [*]
+    Rejected --> [*]
+```

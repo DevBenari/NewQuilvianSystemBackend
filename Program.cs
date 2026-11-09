@@ -1359,6 +1359,17 @@ try
     // Slice S-D3 (Benefit Management) - Verifikasi (Year-End Benefit Expiry Background Worker)
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.YearEndBenefitExpiryWorker>();
 
+    // Slice S-D4 (HR Service Management) - MVP-39 (Auto-Numbering Gapless, Catalog & Tickets)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IDocumentAutoNumberingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.DocumentAutoNumberingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrServiceCatalogService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrServiceCatalogService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrServiceTicketService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrServiceTicketService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrServiceSlaEngine, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrServiceSlaEngine>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Workers.HrServiceSlaMonitoringWorker>();
+
+    // Slice S-D4 (HR Service Management) - MVP-40 (Profile Sync, Document Issuance 2-Tier, Anti-Manual Guard, PDF Rendering & QR/PIN Verification)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IWorkforceProfileSyncService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.WorkforceProfileSyncService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IEmployeeDocumentIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.EmployeeDocumentIssuanceService>();
+
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
     builder.Services.AddScoped<DiscountPolicyService>();

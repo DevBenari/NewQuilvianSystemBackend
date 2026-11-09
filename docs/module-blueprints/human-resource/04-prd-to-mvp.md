@@ -3923,3 +3923,105 @@ Sub-Modul 21 (Employee Self-Service & Unified Approval Inbox V2 Hardening) adala
   - Fitur persetujuan massal bersyarat dengan modal dialog verifikasi PIN (`BulkApprovalModal`).
   - 6 background worker otomatis (`WF-W1` s.d. `WF-W6`) dan orkestrasi integrasi domain hilir (`INT-HR-93`).
   - Layar radar overdue SLA `FE-HRD-283` dan pelacak riwayat staf `FE-HRD-281`.
+
+
+---
+
+## 39. Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 39.1 Ringkasan Ruang Lingkup & Latar Belakang Bisnis
+
+Sub-Modul 13 (Business Travel & Expense Management) mengakhiri status `DEFERRED` dan melengkapi ekosistem HRD Quilvian V2. Di rumah sakit modern, nakes dan staf sering kali ditugaskan keluar fasilitas untuk seminar ilmiah kedokteran (CME/SKP Ikatan Dokter/PPNI), studi banding akreditasi, workshop Kemenkes, atau evakuasi ambulans pendampingan rujukan darurat, di samping timbulnya pengeluaran operasional cito lokal (pembelian reagen/kasa darurat malam hari di apotek luar). 
+
+Sistem ini dirancang untuk:
+1. **Memisahkan SPPD Perjalanan Dinas & Klaim Biaya Non-Trip (`HRD-DEC-188`):** Memberikan alur terstruktur yang membedakan penugasan dinas luar kota dengan klaim biaya operasional langsung tanpa birokrasi berbelit.
+2. **Mengendalikan Likuiditas Uang Muka Kasir (`HRD-DEC-189`):** Membatasi uang muka maksimal 80% dari pagu yang disetujui dengan otorisasi 2-pintu (Atasan & Finance) guna mencegah piutang macet pegawai.
+3. **Menstandarisasi Uang Harian Lumpsum Multi-Dimensi (`HRD-DEC-190`):** Menghitung otomatis uang makan, saku, dan transportasi lokal berdasarkan matriks zonasi wilayah (Zona 1-3) dan grade jabatan nakes tanpa mewajibkan kuitansi receh.
+4. **Menegakkan Disiplin Waktu Settlement & Otomasi Potong Payroll (`HRD-DEC-191`):** Menegakkan SLA penyerahan LPJ maksimal 7 hari, membekukan SPPD baru jika lewat 14 hari, dan memotongkan sisa uang muka ke slip gaji jika menunggak > 30 hari.
+5. **Memberikan Fleksibilitas Terkontrol Deklarasi Darurat Tanpa Nota (`HRD-DEC-192`):** Mengizinkan deklarasi biaya darurat tanpa nota maksimal Rp 150.000 / 10% total klaim untuk menghadapi situasi darurat evakuasi rujukan medis.
+6. **Melindungi Pelayanan Medis Pasien via Presensi Dinas Luar & Gembok Roster (`HRD-DEC-193`):** Mencatat otomatis presensi hadir dinas luar di Sub-07 dan mengunci modul roster Sub-06 agar dokter/perawat tidak dijadwalkan ganda (*ghost shift*) saat sedang dinas luar kota.
+
+---
+
+### 39.2 Pemetaan Epic & Fitur Inti
+
+* **`EPIC HRD-104` — Pengajuan SPPD Mandiri, Rute & Lumpsum Per Diem Dinamis**
+  - Formulir permohonan SPPD multi-step di ESS.
+  - Perhitungan otomatis uang harian lumpsum berdasarkan matriks `MstTravelAllowanceRate`.
+  - Pengecekan bentrok jadwal cuti Sub-08 dan ketersediaan pagu anggaran cost center unit.
+* **`EPIC HRD-105` — Tata Kelola Uang Muka Kerja (Advance) & Verifikasi Kasir RS**
+  - Permohonan uang muka maksimal 80% dari estimasi disetujui.
+  - Alur persetujuan ganda Atasan Langsung dan Finance Manager.
+  - Integrasi penerbitan voucher kasir dan pencairan via transfer payroll/tunai.
+* **`EPIC HRD-106` — Rekonsiliasi Settlement, Pengembalian Kas & Penegakan Disiplin Payroll**
+  - Lembar kerja pencocokan uang muka vs pengeluaran riil berbukti sah.
+  - Penanganan selisih kurang bayar (reimbursement) dan setor balik lebih bayar ke Kasir RS.
+  - Worker pengingat H+3/H+5, pembeku SPPD H+14, dan otomasi pemotongan payroll H+30 (`INT-HR-55`).
+* **`EPIC HRD-107` — Klaim Pengeluaran Operasional Langsung Non-Trip (Direct Expense)**
+  - Pengajuan mandiri klaim biaya pembelian darurat lokal (reagen cito, konsumsi rapat, kurir lab).
+  - Unggah foto struk toko dan verifikasi audit fisik kasir keuangan RS.
+* **`EPIC HRD-108` — Integrasi Kesinambungan Layanan Medis (Presensi & Roster Hard-Stop)**
+  - Sinkronisasi otomatis log presensi "Hadir Dinas Luar" ke Sub-07 (`INT-HR-97`).
+  - Gembok hard-stop pencegah penugasan shift dinas bangsal pada modul Roster Sub-06.
+
+---
+
+### 39.3 Rincian 25 Kebutuhan Fungsional Bisnis (`FR-TRV-01` s.d. `FR-TRV-25`)
+
+1. `FR-TRV-01`: Registrasi pengajuan SPPD mandiri nakes via portal ESS lengkap rute, tanggal, dan agenda tugas.
+2. `FR-TRV-02`: Perhitungan otomatis akumulasi estimasi biaya dinas (tiket, hotel, lumpsum, lain-lain).
+3. `FR-TRV-03`: Integrasi matriks tarif baku per diem berdasarkan zonasi wilayah tujuan dan grade nakes.
+4. `FR-TRV-04`: Validasi ketersediaan pagu anggaran dinas unit kerja (`CostCenterId`) sebelum pengajuan.
+5. `FR-TRV-05`: Pemblokiran pengajuan SPPD bila terdapat tumpang tindih tanggal dengan cuti disetujui di Sub-08.
+6. `FR-TRV-06`: Permohonan uang muka kerja dengan batas maksimal 80% dari pagu anggaran yang disetujui.
+7. `FR-TRV-07`: Alur persetujuan ganda 2-pintu permohonan uang muka oleh Atasan Langsung dan Finance Manager.
+8. `FR-TRV-08`: Integrasi pencairan uang muka oleh Kasir RS melalui transfer bank payroll atau voucher kasir.
+9. `FR-TRV-09`: Penerbitan berkas resmi Surat Tugas dan SPPD ber-barcode terenkripsi untuk bukti fisik nakes.
+10. `FR-TRV-10`: Suntik log presensi otomatis berstatus "Hadir Dinas Luar" pada modul Presensi Sub-07 (`INT-HR-97`).
+11. `FR-TRV-11`: Pemasangan gembok hard-stop penjadwalan dinas jaga bangsal pada modul Roster Sub-06 (`INT-HR-97`).
+12. `FR-TRV-12`: Pengunggahan berkas bukti pengeluaran riil (invoice hotel ber-NPWP dan tiket boarding pass sah).
+13. `FR-TRV-13`: Formulir deklarasi biaya darurat tanpa kuitansi (*Missing Receipt Declaration*) maks Rp 150.000 / 10%.
+14. `FR-TRV-14`: Kewajiban persetujuan tertulis atasan langsung atas deklarasi biaya darurat tanpa nota.
+15. `FR-TRV-15`: Komputasi otomatis rekonsiliasi settlement komparasi uang muka vs riil (kurang / lebih bayar).
+16. `FR-TRV-16`: Pencairan selisih kurang bayar (*underpaid reimbursement*) oleh Kasir RS maksimal 3 hari kerja.
+17. `FR-TRV-17`: Penyetoran balik sisa kelebihan uang muka (*overpaid refund*) oleh staf ke Kasir RS maksimal 3 hari kerja.
+18. `FR-TRV-18`: Pengiriman sirene notifikasi pengingat penyerahan settlement pada H+3 dan H+5 kepulangan dinas.
+19. `FR-TRV-19`: Pembekuan otomatis hak pengajuan SPPD baru bagi pegawai yang menunggak settlement > 14 hari.
+20. `FR-TRV-20`: Otomasi penerusan instruksi pemotongan sisa uang muka ke modul Penggajian Sub-10 jika menunggak > 30 hari.
+21. `FR-TRV-21`: Pengajuan mandiri klaim pengeluaran operasional non-trip (pembelian reagen cito, konsumsi rapat).
+22. `FR-TRV-22`: Verifikasi fisik struk pembelian darurat non-trip oleh Tim Finance RS dalam SLA < 48 jam.
+23. `FR-TRV-23`: Pembayaran reimbursement non-trip oleh Kasir RS ke rekening payroll pegawai.
+24. `FR-TRV-24`: Integrasi kurs valuta asing Bank Indonesia untuk konversi dinas luar negeri nakes secara transparan.
+25. `FR-TRV-25`: Laporan analitik realisasi serapan anggaran perjalanan dinas per departemen dan ekspor PDF/Excel.
+
+---
+
+### 39.4 Rencana Tahapan Gelombang Implementasi (MVP Waves)
+
+* **`MVP-63` — Fondasi SPPD Mandiri, Matriks Lumpsum Per Diem & Uang Muka Kasir (Bobot: 35%)**
+  - Entitas `TrxBusinessTravelRequest`, `TrxTravelAdvanceRequest`, dan matriks `MstTravelAllowanceRate`.
+  - Formulir ESS pengajuan SPPD multi-step dan kalkulator tarif otomatis.
+  - Alur persetujuan 2-pintu uang muka dan pencairan dana kasir.
+* **`MVP-64` — Rekonsiliasi Settlement, Deklarasi Darurat Tanpa Nota & Sanksi Payroll (Bobot: 35%)**
+  - Entitas `TrxTravelSettlement`, `TrxTravelExpenseItem`, dan drawer upload kuitansi.
+  - Formulir deklarasi biaya darurat tanpa kuitansi ber-guardrail maksimal 10%.
+  - Worker pengingat H+3/H+5, pembeku SPPD H+14, dan sinkronisasi pemotongan gaji H+30 ke Sub-10.
+* **`MVP-65` — Pengeluaran Operasional Non-Trip, Presensi Dinas Luar & Gembok Roster (Bobot: 30%)**
+  - Bounded context `ExpenseManagement` untuk penggantian pengeluaran langsung lapangan.
+  - Sinkronisasi presensi "Hadir Dinas Luar" ke Sub-07 dan gembok hard-stop roster ke Sub-06.
+  - Dasbor analitik biaya, ekspor laporan realisasi anggaran unit, dan verifikasi E2E Kontrak v25.
+
+---
+
+### 39.5 Sepuluh Butir Kriteria Kesiapan Rilis (Definition of Done — DoD)
+
+1. **Pemisahan Alur Bersih:** Alur SPPD dan klaim non-trip terpisah sempurna dan tidak saling bergantung.
+2. **Perhitungan Lumpsum Akurat 100%:** Komputasi per diem harian merefleksikan matriks zona dan grade tanpa deviasi.
+3. **Disiplin Uang Muka 80%:** Sistem menolak keras pengajuan uang muka di atas batas 80% dari pagu yang disetujui.
+4. **Validasi 2-Pintu Terkunci:** Uang muka tidak dapat dicairkan kasir tanpa persetujuan Atasan dan Finance.
+5. **Gembok Roster Berfungsi:** Kepala Ruangan dicegah menjadwalkan nakes pada dinas bangsal saat SPPD aktif.
+6. **Presensi Terhubung:** Rekam presensi staf dinas luar tercatat sah tanpa potongan alpa pada modul Sub-07.
+7. **Batas Toleransi Tanpa Nota Terkunci:** Deklarasi biaya tanpa kuitansi dibatasi keras maksimal Rp 150.000 / 10%.
+8. **Penegakan Sanksi Settlement Berjalan:** Pembekuan SPPD pada H+14 dan pemotongan payroll pada H+30 tereksekusi otomatis.
+9. **Kepatuhan Kontrak API v25:** Seluruh 24 endpoint API lulus uji Swagger dengan respon HTTP standar.
+10. **Kualitas Kode Standar Industri:** Kompilasi backend lulus `dotnet build` 0 warning dan frontend lulus `npm run lint:errors` & `npm run build` 0 error.

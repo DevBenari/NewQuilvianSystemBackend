@@ -567,6 +567,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxHrServiceRequestAttachment> TrxHrServiceRequestAttachments { get; set; }
         public DbSet<TrxEmployeeDocumentRequest> TrxEmployeeDocumentRequests { get; set; }
         public DbSet<TrxEmployeeDocumentIssuance> TrxEmployeeDocumentIssuances { get; set; }
+        public DbSet<HrdProfileChangeHistory> HrdProfileChangeHistories { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT

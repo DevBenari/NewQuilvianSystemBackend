@@ -7993,3 +7993,121 @@ Wawancara bisnis disetujui pada **9 November 2026** melalui `/grill-me`. Pemilik
 | `HRD-ASM-68` | Waktu SLA dihitung berdasarkan jam kerja operasional untuk staf non-shift (Senin-Jumat) dan jam kalender 24/7 untuk staf pelayanan medis shift | Menyesuaikan realitas operasional pelayanan rumah sakit gawat darurat | Perhitungan SLA menjadi bias jika staf gawat darurat diperlakukan memakai hari libur kantor |
 | `HRD-ASM-69` | Delegasi wewenang yang berakhir masa berlakunya otomatis dicabut hak aksesnya oleh worker sistem pada tengah malam tanggal berakhir | Menghindari penyalahgunaan wewenang persetujuan oleh Pelaksana Harian pasca atasan aktif kembali | Mantan Plh tetap bisa menyetujui request staf setelah kepala ruangan resmi masuk dinas |
 | `HRD-ASM-70` | Persetujuan massal mengeksekusi transaksi database secara berurutan (*batch transactional*) dengan pola partial success dan ringkasan eksekusi | Menghindari kegagalan seluruh batch hanya karena 1 tiket permohonan mengalami perubahan kondisi | Beban database melonjak dan timeout jika satu batch memproses ribuan data secara paralel tak terkontrol |
+
+
+---
+
+## 51. Keputusan Bisnis Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+Tanggal Wawancara: 9 November 2026  
+Status Scope: **APPROVED** — Menutup status `DEFERRED` dari Slice `S-D5` dan mengunci tata kelola perjalanan dinas nakes dan pengeluaran operasional non-trip rumah sakit.  
+Dasar Referensi: Praktik Rumah Sakit Indonesia (Siloam RS-10), Standar Akreditasi Kemenkes STARKES, dan Peraturan Pemerintah Pengupahan (PP 36/2021 & PP 49/2025).
+
+### 51.1 Batas Ruang Lingkup (Scope Boundaries)
+
+* **Di dalam scope:**
+  1. Pengajuan dan persetujuan Surat Perintah Perjalanan Dinas (SPPD) untuk nakes dan staf rumah sakit (seminar ilmiah/CME, studi banding akreditasi, workshop Kemenkes, pendampingan pasien rujukan, dan tugas manajerial antar-cabang).
+  2. Pengajuan klaim penggantian biaya operasional non-perjalanan dinas (*Non-Trip Expense Claim*) untuk kebutuhan mendesak lokal (pembelian reagen/kasa darurat di apotek rekanan, konsumsi rapat komite medik cito, ongkos kurir sampel darah lab).
+  3. Tata kelola uang muka kerja (*Travel Cash Advance*) maksimal 80% dari estimasi disetujui, alur persetujuan atasan & Finance, serta pencairan via kasir/transfer.
+  4. Standarisasi uang harian (*Per Diem Allowance*) berbasis sistem lumpsum baku multi-dimensi (zonasi wilayah lokal/nasional/internasional dan grade jabatan nakes Golongan I s.d. V).
+  5. Rekonsiliasi penyelesaian selisih (*Expense Settlement*) dengan batas SLA 7 hari kalender, pengembalian sisa dana kas, dan penegakan pemotongan otomatis via payroll Sub-10 jika menunggak > 30 hari (`INT-HR-55`).
+  6. Validasi bukti pengeluaran sah (invoice hotel ber-NPWP, boarding pass) dan penanganan khusus deklarasi darurat tanpa bukti kuitansi (*Declaration of Missing Receipts*) maksimal Rp 150.000 / 10% total klaim.
+  7. Integrasi otomatis pencatatan kehadiran "Hadir Dinas Luar" pada modul Presensi Sub-07 dan gembok validasi ketat (*hard-stop*) penjadwalan dinas pada modul Roster Sub-06 (`INT-HR-97`).
+
+* **Di luar scope:**
+  1. Jurnal pembukuan akuntansi kas besar/bank (General Ledger & AP Journal) milik Departemen Keuangan/Finance RS.
+  2. Kontrak korporat kerjasama tahunan tiket pesawat/hotel skala besar milik Bagian Umum/Procurement RS.
+  3. Klaim restitusi biaya berobat pegawai/keluarga (milik Sub-11 Restitusi Medis dan Sub-12 Manajemen Benefit).
+
+---
+
+### 51.2 Keputusan Bisnis yang Dikunci (`HRD-DEC-188` s.d. `HRD-DEC-193`)
+
+#### `HRD-DEC-188` — Pemisahan Alur Surat Perintah Perjalanan Dinas (SPPD) vs Penggantian Biaya Operasional Non-Trip (*Expense Claim*)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-191` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 9 November 2026 |
+| Evidence | Praktik Tata Kelola Keuangan Rumah Sakit; Standar Audit Kepatuhan Akreditasi |
+| Ringkasan | Sistem memisahkan secara tegas dua jenis transaksi pengeluaran operasional: (1) **Surat Perintah Perjalanan Dinas (SPPD / Business Travel):** Formulir penugasan luar kota/fasilitas yang memuat kota tujuan, tanggal dinas, moda transportasi, akomodasi, uang harian, dan surat tugas resmi; (2) **Klaim Pengeluaran Operasional Non-Trip (Expense Claim):** Formulir penggantian biaya langsung operasional lokal tanpa bepergian (misal: pembelian reagen cito di apotek luar, konsumsi rapat akreditasi, biaya transportasi kurir spesimen lab) yang hanya memerlukan tanggal transaksi, kategori beban, nota kuitansi, dan deskripsi kebutuhan. Keduanya bermuara pada antarmuka persetujuan atasan terpadu (`Unified Approval Inbox` Sub-21). |
+| Implikasi Arsitektur | 1. Bounded context `BusinessTravelManagement` menangani entitas `TrxBusinessTravelRequest` dan entitas pendukung perjalanannya.<br>2. Bounded context `ExpenseManagement` menangani entitas `TrxExpenseClaim` dan `TrxExpenseClaimItem` secara mandiri tanpa memaksakan pembuatan SPPD fiktif.<br>3. Mencegah birokrasi berbelit dan menjaga akuntabilitas audit keuangan. |
+
+#### `HRD-DEC-189` — Kebijakan Pencairan Uang Muka Perjalanan Dinas (*Travel Advance*) Maksimal 80% & Verifikasi 2-Pintu
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-192` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 9 November 2026 |
+| Evidence | Kebijakan Manajemen Likuiditas Kas Korporat Rumah Sakit; Mitigasi Piutang Karyawan |
+| Ringkasan | Staf yang ditugaskan perjalanan dinas berhak mengajukan Uang Muka Kerja (*Travel Advance*) dengan ketentuan: (1) **Plafon Maksimal 80%:** Uang muka dibatasi maksimal **80% dari total estimasi biaya yang disetujui** (tiket, hotel, dan uang saku harian) guna mencegah kelebihan pembayaran (*excess advance*) yang sulit ditagih; (2) **Alur Persetujuan 2-Pintu:** Wajib disetujui oleh Atasan Langsung (urgensi kedinasan) dan Finance/Treasury Manager (verifikasi ketersediaan dana kas); (3) **Kanal Pencairan:** Ditransfer ke rekening bank payroll pegawai atau dicairkan via voucher kasir RS (`TrxTravelAdvancePayment`); (4) **Dispensasi Khusus Cito:** Tugas darurat mendadak (< 24 jam, misal: evakuasi pasien rujukan kritis) diizinkan meminta uang muka 100% dengan dispensasi Direktur Keuangan. Sisa 20% biaya riil dicairkan saat settlement disahkan. |
+| Implikasi Arsitektur | 1. Entitas `TrxTravelAdvanceRequest` mencatat `RequestedAmount`, `ApprovedAmount`, dan relasi ke `TrxBusinessTravelRequest`.<br>2. Status advance dipantau: `Draft`, `Submitted`, `ManagerApproved`, `FinanceApproved`, `Paid`, `Settled`.<br>3. Mencegah uang muka gantung yang membebani neraca keuangan rumah sakit. |
+
+#### `HRD-DEC-190` — Standarisasi Uang Harian (*Per Diem Allowance*) Berbasis Sistem Lumpsum Matriks Zonasi Wilayah & Grade Nakes
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-193` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 9 November 2026 |
+| Evidence | Standar Praktik Perjalanan Dinas BUMN/RS Swasta Modern (Siloam RS-10); Efisiensi Verifikasi Audit |
+| Ringkasan | Uang harian (*per diem allowance*) untuk makan, transportasi lokal dalam kota, dan uang saku diberikan dalam bentuk **lumpsum tetap per hari tanpa kewajiban melampirkan struk makan/ojek receh**. Besaran tarif ditentukan otomatis oleh sistem melalui tabel master `MstTravelAllowanceRate` berdasarkan dua dimensi: (1) **Zonasi Tujuan:** Zona 1 (Lokal/Dalam Provinsi), Zona 2 (Luar Provinsi/Nasional), Zona 3 (Internasional); dan (2) **Golongan/Grade Nakes:** Golongan I-II (Pelaksana/Perawat Pelaksana), Golongan III (Karu/Dokter Umum/Supervisor), Golongan IV-V (Dokter Spesialis/Manajer/Direksi). Biaya transportasi antar-kota (pesawat/kereta) dan hotel tetap mengikuti sistem *at-cost* (sesuai invoice resmi penyedia). |
+| Implikasi Arsitektur | 1. Engine backend menghitung otomatis `EstimatedAllowanceAmount = TravelDayCount * RatePerDiem`.<br>2. Bagian verifikasi keuangan terbebas dari memeriksa ribuan kuitansi makan warung yang rawan manipulasi.<br>3. Menjamin keadilan hak kompensasi dinas nakes secara transparan. |
+
+#### `HRD-DEC-191` — Batas Waktu Pertanggungjawaban (*Settlement SLA*) 7 Hari & Penegakan Otomatis Pemotongan Payroll Jika Menunggak > 30 Hari
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-194` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 9 November 2026 |
+| Evidence | Standar Akuntansi Keuangan Rumah Sakit; Ketetapan Penggajian PP 36/2021 & PP 49/2025 (`HRD-DEC-009`) |
+| Ringkasan | Penegakan disiplin tutup buku kas pertanggungjawaban dinas (*Expense Settlement*): (1) **SLA Penyerahan 7 Hari Kalender:** Pegawai wajib menyerahkan laporan pengeluaran riil dan dokumen bukti di portal ESS maksimal 7 hari kalender pasca kepulangan; (2) **Penyelesaian Selisih Kas:** Jika aktual > uang muka, Kasir RS membayarkan selisih kurang dalam 3 hari kerja; jika uang muka > aktual, pegawai wajib mengembalikan sisa dana (*refund*) dalam 3 hari kerja; (3) **Pembekuan Hak SPPD Baru (H+14 Hari):** Pegawai yang belum menyelesaikan settlement > 14 hari diblokir otomatis dari pengajuan SPPD berikutnya (*freeze travel privilege*); (4) **Otomasi Pemotongan Payroll (H+30 Hari):** Jika settlement menunggak > 30 hari hingga akhir bulan, sistem secara otomatis meneruskan sisa piutang uang muka yang belum dipertanggungjawabkan ke modul Penggajian Sub-10 (`S-B5`) sebagai potongan gaji bulanan resmi (`HRD-DEC-009`, `INT-HR-55`). |
+| Implikasi Arsitektur | 1. Background worker `TravelSettlementOverdueWorker` (`TRV-W2`) memantau keterlambatan penyerahan settlement.<br>2. Integrasi ke `TrxEmployeeDeductionSchedule` pada Sub-11 dan `TrxPayrollItemDetail` pada Sub-10 via event `TravelAdvanceDefaulted`.<br>3. Menjamin zero piutang macet perjalanan dinas pegawai. |
+
+#### `HRD-DEC-192` — Kebijakan Validasi Kuitansi Sah & Deklarasi Biaya Darurat Tanpa Nota (*Declaration of Missing Receipts*) Maksimal 10%
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-195` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 9 November 2026 |
+| Evidence | Prosedur Pengendalian Internal (Internal Control) Keuangan Rumah Sakit; Mitigasi Kondisi Darurat Medis |
+| Ringkasan | Pengendalian keabsahan bukti pembayaran pengeluaran: (1) **Kewajiban Bukti Sah At-Cost:** Seluruh pengeluaran tiket antar-kota, sewa ambulans rujukan, dan hotel wajib melampirkan invoice resmi ber-NPWP / boarding pass sah; (2) **Formulir Deklarasi Biaya Tanpa Kuitansi (*Declaration of Missing Receipts*):** Khusus pengeluaran darurat lapangan yang mustahil mendapatkan kuitansi formal (misal: ojek darurat antar sampel darah di daerah terpencil, sewa perahu penyeberangan evakuasi pasien, tips porter darurat), sistem menyediakan formulir deklarasi tertulis; (3) **Plafon Pengaman (*Safety Guardrail*):** Dibatasi maksimal **Rp 150.000 per transaksi** dan total akumulasi maksimal **10% dari total klaim perjalanan dinas** (`VR-TRV-15`), wajib mencantumkan kronologi alasan darurat dan ditandatangani persetujuan atasan langsung. |
+| Implikasi Arsitektur | 1. Model `TrxTravelExpenseItem` dan `TrxExpenseClaimItem` memiliki field `IsMissingReceiptDeclared`, `MissingReceiptReason`, dan `MissingReceiptApprovedBy`.<br>2. Validasi menolak klaim jika total deklarasi melebihi batas 10% tanpa otorisasi Direktur Keuangan.<br>3. Melindungi staf medis dari kerugian pribadi saat menghadapi kedaruratan di lapangan. |
+
+#### `HRD-DEC-193` — Integrasi Status Presensi "Hadir Dinas Luar" (Sub-07) & Gembok Hard-Stop Roster Medis (Sub-06)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-196` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 9 November 2026 |
+| Evidence | Keselamatan Pasien (Patient Safety); Kepastian Rasio Ketenagaan Nakes Standar Akreditasi Kemenkes |
+| Ringkasan | Menghubungkan persetujuan perjalanan dinas dengan kesinambungan pelayanan medis rumah sakit: (1) **Sinkronisasi Presensi Otomatis (Sub-07):** Saat status SPPD berubah menjadi `Approved`, sistem otomatis mencatat rekam presensi pegawai pada rentang tanggal dinas sebagai **Hadir Bertugas Dinas Luar (*Official Business Duty*)** (`INT-HR-97`), sehingga pegawai tidak ditandai alpa/terlambat dan tunjangan kehadiran tetap dihitung sah; (2) **Gembok Validasi Ketat (*Hard-Stop*) Roster Medis (Sub-06):** Sistem secara otomatis memasang status proteksi jadwal (*roster restriction lock*) pada modul Penjadwalan Kerja Sub-06 (`INT-HR-97`, `VR-TRV-06`). Kepala Ruangan/Supervisor dicegah secara keras menjadwalkan dokter atau perawat tersebut pada shift jaga bangsal atau jaga malam selama tanggal perjalanan dinas untuk menghindari jadwal fiktif (*ghost shift*) dan kekosongan tenaga medis. |
+| Implikasi Arsitektur | 1. Event `Hrd.BusinessTravel.TravelApproved` memicu webhook internal ke modul presensi Sub-07 dan modul roster Sub-06.<br>2. Jika jadwal dinas sudah terlanjur dibuat sebelum SPPD terbit, sistem memicu notifikasi peringatan pergantian staf pengganti (*substitute nurse*) kepada Kepala Ruangan.<br>3. Mencegah malpraktik akibat kekurangan perawat jaga di bangsal rawat inap. |
+
+---
+
+### 51.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-71` | Seluruh perhitungan selisih settlement uang muka vs aktual diproses secara transaksional di database HRD dan diteruskan salinannya ke Kasir/Finance | Menjaga konsistensi data riwayat perjalanan staf sebelum proses pencairan/pengembalian fisik | Terjadi diskrepansi saldo uang muka antara pembukuan kasir dan catatan pegawai |
+| `HRD-ASM-72` | Nilai tukar mata uang asing (*Currency Exchange Rate*) untuk perjalanan dinas internasional menggunakan kurs tengah Bank Indonesia pada tanggal transaksi | Menjamin kepastian konversi biaya dinas luar negeri nakes ke Rupiah secara objektif | Selisih kurs memicu sengketa nilai penggantian biaya antara rumah sakit dan pegawai |
+| `HRD-ASM-73` | Penyimpanan berkas foto kuitansi/boarding pass menggunakan format terkompresi PDF/JPG aman terisolasi di server penyimpanan internal RS | Memenuhi syarat audit pajak dan akreditasi rumah sakit tanpa menghabiskan kuota storage | Berkas kuitansi hilang atau tidak dapat diaudit oleh KAP independen |
+| `HRD-ASM-74` | Integrasi pemotongan payroll untuk settlement menunggak > 30 hari mematuhi aturan batas maksimal pemotongan upah 50% PP 36/2021 | Kepatuhan hukum ketenagakerjaan Republik Indonesia dan perlindungan hak dasar pegawai | Terjadi pelanggaran regulasi ketenagakerjaan jika gaji staf terpotong habis hingga minus |
