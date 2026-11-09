@@ -543,6 +543,16 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxFppeCaseLog> TrxFppeCaseLogs { get; set; }
         public DbSet<TrxFppeEvaluationConclusion> TrxFppeEvaluationConclusions { get; set; }
         public DbSet<HrdClinicalPeerReviewAuditLog> HrdClinicalPeerReviewAuditLogs { get; set; }
+
+        // Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3, Kontrak v21)
+        public DbSet<MstKpiMetricCatalog> MstKpiMetricCatalogs { get; set; }
+        public DbSet<TrxPerformanceGoal> TrxPerformanceGoals { get; set; }
+        public DbSet<TrxPerformanceAppraisal> TrxPerformanceAppraisals { get; set; }
+        public DbSet<TrxPerformanceAppraisalDetail> TrxPerformanceAppraisalDetails { get; set; }
+        public DbSet<TrxPerformanceCalibrationSession> TrxPerformanceCalibrationSessions { get; set; }
+        public DbSet<TrxPerformancePipActionLog> TrxPerformancePipActionLogs { get; set; }
+        public DbSet<TrxClinicalCareerLadderReview> TrxClinicalCareerLadderReviews { get; set; }
+        public DbSet<TrxPerformanceAppraisalDispute> TrxPerformanceAppraisalDisputes { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - PERFORMANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OCCUPATIONAL HEALTH MANAGEMENT

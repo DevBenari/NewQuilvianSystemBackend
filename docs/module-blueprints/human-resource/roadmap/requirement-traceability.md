@@ -1212,28 +1212,28 @@ Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-PRF-01` s.d. `FR-PRF-2
 
 | ID Acceptance Test | Skenario Pengujian Penerimaan | Task Backend Terkait | Task Frontend Terkait | Status Kesiapan |
 | :--- | :--- | :--- | :--- | :---: |
-| `AT-HRD-PRF-01` | Pembukaan siklus evaluasi kinerja dan validasi anti-tumpang-tindih | `BE-HRD-257` | `FE-HRD-232`, `FE-HRD-234` | `Rencana` |
-| `AT-HRD-PRF-02` | Pembuatan dan pemeliharaan katalog master KPI serta Core Values BerAKHLAK | `BE-HRD-254`, `BE-HRD-256` | `FE-HRD-233` | `Rencana` |
-| `AT-HRD-PRF-03` | Penurunan cascading sasaran mutu unit ke sasaran kerja pegawai | `BE-HRD-258` | `FE-HRD-234` | `Rencana` |
-| `AT-HRD-PRF-04` | Penolakan pengajuan sasaran kerja jika akumulasi bobot != 100.00% | `BE-HRD-256`, `BE-HRD-258` | `FE-HRD-235` | `Rencana` |
-| `AT-HRD-PRF-05` | Pengisian mandiri self-assessment di ESS dan penguncian lembar kerja | `BE-HRD-259` | `FE-HRD-236` | `Rencana` |
-| `AT-HRD-PRF-06` | Penolakan penilaian atasan jika self-assessment pegawai belum tuntas | `BE-HRD-259` | `FE-HRD-236` | `Rencana` |
-| `AT-HRD-PRF-07` | Kalkulasi akurat nilai komposit komposisi baku 60:40 dan penentuan predikat | `BE-HRD-259` | `FE-HRD-236` | `Rencana` |
-| `AT-HRD-PRF-08` | Umpan balik peer review sejawat tersimpan tanpa mengubah skor komposit | `BE-HRD-260` | `FE-HRD-237` | `Rencana` |
-| `AT-HRD-PRF-09` | Pemetaan sebaran nilai aktual pada kurva guiding distribution di konsol kalibrasi | `BE-HRD-261` | `FE-HRD-238` | `Rencana` |
-| `AT-HRD-PRF-10` | Penolakan override nilai pada sidang kalibrasi tanpa nota justifikasi tertulis | `BE-HRD-256`, `BE-HRD-261` | `FE-HRD-238`, `FE-HRD-239` | `Rencana` |
-| `AT-HRD-PRF-11` | Pengesahan sidang pleno kalibrasi dan rilis serentak nilai kinerja ke ESS | `BE-HRD-261`, `BE-HRD-268` | `FE-HRD-238` | `Rencana` |
-| `AT-HRD-PRF-12` | Pemicu otomatis program pembinaan formal PIP untuk pegawai dengan skor < 65 | `BE-HRD-262` | `FE-HRD-232`, `FE-HRD-240` | `Rencana` |
-| `AT-HRD-PRF-13` | Penerbitan kontrak pembinaan PIP 60 hari kalender dan penugasan mentor | `BE-HRD-262` | `FE-HRD-240` | `Rencana` |
-| `AT-HRD-PRF-14` | Pencatatan rutin 8 sesi logbook mingguan mentor dan monitoring evaluasi | `BE-HRD-262` | `FE-HRD-240`, `FE-HRD-241` | `Rencana` |
-| `AT-HRD-PRF-15` | Penegakan pembekuan hak mutasi/promosi ke Sub-06 dan sidang hari ke-60 | `BE-HRD-262`, `BE-HRD-263` | `FE-HRD-240`, `FE-HRD-241` | `Rencana` |
-| `AT-HRD-PRF-16` | Penolakan permohonan kenaikan jenjang klinis jika skor kinerja < 75.00 | `BE-HRD-264` | `FE-HRD-242` | `Rencana` |
-| `AT-HRD-PRF-17` | Pendaftaran kenaikan jenjang klinis nakes PK I-V dan registri portofolio | `BE-HRD-254`, `BE-HRD-264` | `FE-HRD-242` | `Rencana` |
-| `AT-HRD-PRF-18` | Verifikasi kepemilikan sertifikat diklat aktif dan kelulusan OSCE dari Sub-16 | `BE-HRD-265` | `FE-HRD-242` | `Rencana` |
-| `AT-HRD-PRF-19` | Verifikasi rekam jejak keselamatan pasien bebas kasus sentinel dari Sub-15 | `BE-HRD-265` | `FE-HRD-242` | `Rencana` |
-| `AT-HRD-PRF-20` | Penerbitan SK kenaikan jenjang klinis dan sinkronisasi otomatis ke Sub-02/14 | `BE-HRD-266` | `FE-HRD-242` | `Rencana` |
-| `AT-HRD-PRF-21` | Pengajuan sanggah banding nilai di ESS dan penolakan otomatis melewati H+7 | `BE-HRD-267` | `FE-HRD-243` | `Rencana` |
-| `AT-HRD-PRF-22` | Penanganan mediasi klarifikasi dan penetapan putusan majelis banding SLA 14 hari | `BE-HRD-267` | `FE-HRD-243`, `FE-HRD-244` | `Rencana` |
+| `AT-HRD-PRF-01` | Pembukaan siklus evaluasi kinerja dan validasi anti-tumpang-tindih | `BE-HRD-257` | `FE-HRD-232`, `FE-HRD-234` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-02` | Pembuatan dan pemeliharaan katalog master KPI serta Core Values BerAKHLAK | `BE-HRD-254`, `BE-HRD-256` | `FE-HRD-233` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-03` | Penurunan cascading sasaran mutu unit ke sasaran kerja pegawai | `BE-HRD-258` | `FE-HRD-234` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-04` | Penolakan pengajuan sasaran kerja jika akumulasi bobot != 100.00% | `BE-HRD-256`, `BE-HRD-258` | `FE-HRD-235` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-05` | Pengisian mandiri self-assessment di ESS dan penguncian lembar kerja | `BE-HRD-259` | `FE-HRD-236` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-06` | Penolakan penilaian atasan jika self-assessment pegawai belum tuntas | `BE-HRD-259` | `FE-HRD-236` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-07` | Kalkulasi akurat nilai komposit komposisi baku 60:40 dan penentuan predikat | `BE-HRD-259` | `FE-HRD-236` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-08` | Umpan balik peer review sejawat tersimpan tanpa mengubah skor komposit | `BE-HRD-260` | `FE-HRD-237` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-09` | Pemetaan sebaran nilai aktual pada kurva guiding distribution di konsol kalibrasi | `BE-HRD-261` | `FE-HRD-238` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-10` | Penolakan override nilai pada sidang kalibrasi tanpa nota justifikasi tertulis | `BE-HRD-256`, `BE-HRD-261` | `FE-HRD-238`, `FE-HRD-239` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-11` | Pengesahan sidang pleno kalibrasi dan rilis serentak nilai kinerja ke ESS | `BE-HRD-261`, `BE-HRD-268` | `FE-HRD-238` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-12` | Pemicu otomatis program pembinaan formal PIP untuk pegawai dengan skor < 65 | `BE-HRD-262` | `FE-HRD-232`, `FE-HRD-240` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-13` | Penerbitan kontrak pembinaan PIP 60 hari kalender dan penugasan mentor | `BE-HRD-262` | `FE-HRD-240` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-14` | Pencatatan rutin 8 sesi logbook mingguan mentor dan monitoring evaluasi | `BE-HRD-262` | `FE-HRD-240`, `FE-HRD-241` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-15` | Penegakan pembekuan hak mutasi/promosi ke Sub-06 dan sidang hari ke-60 | `BE-HRD-262`, `BE-HRD-263` | `FE-HRD-240`, `FE-HRD-241` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-16` | Penolakan permohonan kenaikan jenjang klinis jika skor kinerja < 75.00 | `BE-HRD-264` | `FE-HRD-242` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-17` | Pendaftaran kenaikan jenjang klinis nakes PK I-V dan registri portofolio | `BE-HRD-254`, `BE-HRD-264` | `FE-HRD-242` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-18` | Verifikasi kepemilikan sertifikat diklat aktif dan kelulusan OSCE dari Sub-16 | `BE-HRD-265` | `FE-HRD-242` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-19` | Verifikasi rekam jejak keselamatan pasien bebas kasus sentinel dari Sub-15 | `BE-HRD-265` | `FE-HRD-242` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-20` | Penerbitan SK kenaikan jenjang klinis dan sinkronisasi otomatis ke Sub-02/14 | `BE-HRD-266` | `FE-HRD-242` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-21` | Pengajuan sanggah banding nilai di ESS dan penolakan otomatis melewati H+7 | `BE-HRD-267` | `FE-HRD-243` | `✅ Terealisasi (S-C3 Selesai)` |
+| `AT-HRD-PRF-22` | Penanganan mediasi klarifikasi dan penetapan putusan majelis banding SLA 14 hari | `BE-HRD-267` | `FE-HRD-243`, `FE-HRD-244` | `✅ Terealisasi (S-C3 Selesai)` |
 
 ---
 

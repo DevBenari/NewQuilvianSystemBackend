@@ -1411,6 +1411,23 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingCertificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingCertificationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingBondingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingBondingService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IPlataranSehatSkpService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.PlataranSehatSkpService>();
+    // Slice S-C3 (Performance Management & Clinical Career) - MVP-51..53 (Kontrak v21)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceUnitOfWork, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceUnitOfWork>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceCycleService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceCycleService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceGoalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceGoalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceAppraisalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceAppraisalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceCalibrationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceCalibrationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceDisputeService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceDisputeService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceImprovementPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceImprovementPlanService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IClinicalCareerLadderService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ClinicalCareerLadderService>();
+
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceCycleTransitionWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceGoalLockingWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceCalibrationDeadlineWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformancePipMilestoneMonitoringWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.ClinicalCareerLadderExpiryWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceDisputeSlaEnforcementWorker>();
+
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();

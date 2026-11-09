@@ -5162,26 +5162,26 @@ BE-HRD-252 [B62] ──┘
 
 #### Grafik B64: Gelombang `MVP-51` (Siklus, Katalog KPI, Cascading Target & Penilaian Berjenjang 60:40)
 ```text
-BE-HRD-254 (Skema DB 10 Tabel & Seeding Master) ──> BE-HRD-255 (EF Repositories & UoW) ──> BE-HRD-256 (DTOs & Validation Rules) ──┬──> BE-HRD-257 (Siklus Kinerja PRF-B1) ──> BE-HRD-258 (Cascading Target Sasaran PRF-B2) ──┐
-                                                                                                                                     │                                                                                             ├──> BE-HRD-259 ⏳ (Penilaian Tiga Tingkat 60:40 PRF-B3/B4)
-                                                                                                                                     └──> BE-HRD-260 (Peer Review IDP Sejawat Non-Skor PRF-B5) ───────────────────────────────────┘
+BE-HRD-254 ✅ (Skema DB 10 Tabel & Seeding Master) ──> BE-HRD-255 ✅ (EF Repositories & UoW) ──> BE-HRD-256 ✅ (DTOs & Validation Rules) ──┬──> BE-HRD-257 ✅ (Siklus Kinerja PRF-B1) ──> BE-HRD-258 ✅ (Cascading Target Sasaran PRF-B2) ──┐
+                                                                                                                                            │                                                                                                   ├──> BE-HRD-259 ✅ (Penilaian Tiga Tingkat 60:40 PRF-B3/B4)
+                                                                                                                                            └──> BE-HRD-260 ✅ (Peer Review IDP Sejawat Non-Skor PRF-B5) ───────────────────────────────────────┘
 ```
 
 #### Grafik B65: Gelombang `MVP-52` (Sidang Pleno Kalibrasi Manajemen & Program Pembinaan Formal PIP 60 Hari)
 ```text
-BE-HRD-259 [B64] ──> BE-HRD-261 (Sidang Kalibrasi Guiding Distribution 10-15/70-80/5-10% & Nota PRF-B6) ──> BE-HRD-262 (Kontrak PIP 60 Hari & Logbook Mingguan PRF-B7) ──> BE-HRD-263 ⏳ (Pembekuan Mutasi/Promosi Sub-06 INT-HR-84)
+BE-HRD-259 [B64] ──> BE-HRD-261 ✅ (Sidang Kalibrasi Guiding Distribution 10-15/70-80/5-10% & Nota PRF-B6) ──> BE-HRD-262 ✅ (Kontrak PIP 60 Hari & Logbook Mingguan PRF-B7) ──> BE-HRD-263 ✅ (Pembekuan Mutasi/Promosi Sub-06 INT-HR-84)
 ```
 
 #### Grafik B66: Gelombang `MVP-53` (Clinical Ladder Nakes PK I-V & Saluran Sanggah Banding Nilai)
 ```text
-BE-HRD-261 [B65] ──> BE-HRD-264 (Evaluasi Jenjang Klinis PK I-V & Prasyarat Mutu PRF-B8) ──┬──> BE-HRD-265 (Integrasi Sertifikat Sub-16 INT-HR-81 & Bebas Sentinel Sub-15 INT-HR-82) ──> BE-HRD-266 ⏳ (Sinkronisasi SK Jenjang Sub-02/14 INT-HR-83)
-BE-HRD-261 [B65] ──> BE-HRD-267 ⏳ (Tata Kelola Sanggah Banding Nilai SLA 7/14 Hari) ──────┘
+BE-HRD-261 [B65] ──> BE-HRD-264 ✅ (Evaluasi Jenjang Klinis PK I-V & Prasyarat Mutu PRF-B8) ──┬──> BE-HRD-265 ✅ (Integrasi Sertifikat Sub-16 INT-HR-81 & Bebas Sentinel Sub-15 INT-HR-82) ──> BE-HRD-266 ✅ (Sinkronisasi SK Jenjang Sub-02/14 INT-HR-83)
+BE-HRD-261 [B65] ──> BE-HRD-267 ✅ (Tata Kelola Sanggah Banding Nilai SLA 7/14 Hari) ──────────┘
 ```
 
 #### Grafik B67: Gelombang Verifikasi & Kepatuhan Arsitektur `S-C3`
 ```text
 BE-HRD-263 [B65] ──┐
-BE-HRD-266 [B66] ──┼──> BE-HRD-268 (Controller API Kontrak v21 & 6 Background Workers PRF-W1..W6) ──> BE-HRD-269 ⏳ (Validasi Kompilasi .NET, QBE Conformance & Acceptance Tests S-C3)
+BE-HRD-266 [B66] ──┼──> BE-HRD-268 ✅ (Controller API Kontrak v21 & 6 Background Workers PRF-W1..W6) ──> BE-HRD-269 ✅ (Validasi Kompilasi .NET, QBE Conformance & Acceptance Tests S-C3)
 BE-HRD-267 [B66] ──┘
 ```
 
@@ -5220,23 +5220,23 @@ Legenda:
 
 ### 19.3 Rincian Spesifikasi Task Backend `S-C3`
 
-#### â ³ `BE-HRD-254` â€” Migrasi Skema DB 10 Tabel Relasional Performance & Seeding Master Data Katalog KPI / Core Values BerAKHLAK
+#### ✅ `BE-HRD-254` — Migrasi Skema DB 10 Tabel Relasional Performance & Seeding Master Data Katalog KPI / Core Values BerAKHLAK
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Siap Dikerjakan (Approved Roadmap Rev 19)
+* **Status**: ✅ Selesai (2026-11-09) — Bukti: [BE-HRD-254.md](../task/report/backend/BE-HRD-254.md), Kompilasi C# 0 error, migrasi EF Core dan 10 model/konfigurasi siap.
 * **Outcome**: Penambahan skema basis data PostgreSQL untuk 10 tabel relasional baru (`mst_kpi_metric_catalogs`, `trx_performance_cycles`, `trx_performance_goals`, `trx_performance_appraisals`, `trx_performance_appraisal_details`, `trx_performance_calibration_sessions`, `trx_performance_improvement_plans`, `trx_performance_pip_action_logs`, `trx_clinical_career_ladder_reviews`, `trx_performance_appraisal_disputes`) dengan Primary Key GUID/UUID, indeks komposit efisien pada pencarian siklus dan pegawai, audit columns lengkap (`created_at`, `created_by`, `updated_at`, `updated_by`, `is_deleted`), konfigurasi Entity Framework Core fluent mapping, serta migration seeding awal master katalog indikator KPI kuantitatif rumah sakit dan 7 butir Core Values BerAKHLAK skala likert 1-5.
 * **Dependencies**: Tidak ada (Task perdana Backend `S-C3`).
 * **Acceptance Criteria**: Migrasi EF Core berhasil dieksekusi tanpa eror; seluruh 10 tabel tercipta di skema PostgreSQL dengan relasi foreign key dan indeks unik yang presisi; data awal Core Values BerAKHLAK ter-seed dengan benar.
 * **Verifikasi**: Laporan task tracked `BE-HRD-254.md` dan log eksekusi migrasi EF Core.
 
-#### â ³ `BE-HRD-255` â€” Entity Framework Core Repositories & Unit of Work Performance Management
+#### ✅ `BE-HRD-255` — Entity Framework Core Repositories & Unit of Work Performance Management
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Menunggu `BE-HRD-254`
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat BE-HRD-254 telah selesai)
 * **Outcome**: Pembangunan lapisan akses data (*data access layer*) terisolasi menggunakan Generic Repository Pattern dan Unit of Work: `IPerformanceCycleRepository`, `IPerformanceGoalRepository`, `IPerformanceAppraisalRepository`, `IPerformanceCalibrationRepository`, `IPerformancePipRepository`, `IClinicalCareerLadderRepository`, `IPerformanceDisputeRepository`, dan `IPerformanceUnitOfWork`. Menerapkan global query filter untuk soft-delete (`is_deleted == false`), transaksi atomik basis data ACID, serta penanganan konkurensi optimistik.
 * **Dependencies**: `BE-HRD-254`
 * **Acceptance Criteria**: Seluruh operasi CRUD beroperasi konsisten; transaksi roll back secara atomik jika terjadi kegagalan penyimpanan data ganda; soft-delete terfilter otomatis pada query pembacaan.
 * **Verifikasi**: Uji isolasi data layer pada laporan task tracked `BE-HRD-255.md`.
 
-#### â ³ `BE-HRD-256` â€” DTOs, Object Mapping & Aturan Validasi Request (`VR-PRF-01` s.d. `VR-PRF-25`)
+#### ✅ `BE-HRD-256` — DTOs, Object Mapping & Aturan Validasi Request (VR-PRF-01 s.d. VR-PRF-25)
 * **Slice / MVP**: `S-C3` / `MVP-51`
 * **Status**: â ³ Menunggu `BE-HRD-255`
 * **Outcome**: Pembuatan Data Transfer Objects (DTOs) request dan response sesuai spesifikasi Kontrak API `v21`, konfigurasi AutoMapper profiles, dan implementasi 25 aturan validasi bisnis ketat menggunakan FluentValidation (`VR-PRF-01` s.d. `VR-PRF-25`), mencakup pencegahan tumpang tindih tanggal siklus (`VR-PRF-01`), pembatasan jumlah target sasaran mutu maksimal 10 indikator (`VR-PRF-03`), validasi akumulasi bobot target tepat 100% (`VR-PRF-04`), pembatasan skala likert BerAKHLAK 1-5 (`VR-PRF-08`), batas waktu sanggah banding maksimal 7 hari kalender (`VR-PRF-21`), dan validasi berkas portofolio klinis.
@@ -5244,7 +5244,7 @@ Legenda:
 * **Acceptance Criteria**: Validasi request menolak payload tidak valid dengan kode HTTP 422/400 dan pesan kesalahan terstruktur dalam Bahasa Indonesia baku; mapping DTO ke entitas domain terbebas dari kebocoran properti internal.
 * **Verifikasi**: Unit test validator FluentValidation pada `AT-HRD-PRF-02`, `AT-HRD-PRF-04`.
 
-#### â ³ `BE-HRD-257` â€” Service Siklus Kinerja, Guard Periode & Validasi Anti-Tumpang-Tindih (`PerformanceCycleService` & `PRF-B1`)
+#### ✅ `BE-HRD-257` — Service Siklus Kinerja, Guard Periode & Validasi Anti-Tumpang-Tindih (PerformanceCycleService & PRF-B1)
 * **Slice / MVP**: `S-C3` / `MVP-51`
 * **Status**: â ³ Menunggu `BE-HRD-256`
 * **Outcome**: Layanan domain pengelolaan siklus evaluasi kinerja berkala rumah sakit (semesteran/tahunan). Mengimplementasikan aturan `PRF-B1` yang mencegah pembukaan dua siklus aktif yang saling tumpang tindih pada rentang tanggal yang sama untuk unit/kelompok pegawai yang sama. Mengatur siklus transisi status siklus (`Draft` -> `Active` -> `Calibration` -> `Closed`, `VR-PRF-02`) dan mengunci pembuatan lembar kerja baru saat siklus telah berstatus `Closed`.
@@ -5252,7 +5252,7 @@ Legenda:
 * **Acceptance Criteria**: Sistem menolak pendaftaran siklus kinerja kedua jika tanggal mulainya berada di dalam rentang siklus yang masih aktif (`VR-PRF-01`); pembukaan dan penutupan siklus mencatat event audit `PerformanceCycleCreated` dan `PerformanceCycleClosed`.
 * **Verifikasi**: Uji fungsional siklus kinerja `AT-HRD-PRF-01`.
 
-#### â ³ `BE-HRD-258` â€” Service Cascading Target Sasaran Mutu Unit ke Individu & Validasi Bobot 100% (`PerformanceGoalService` & `PRF-B2`)
+#### ✅ `BE-HRD-258` — Service Cascading Target Sasaran Mutu Unit ke Individu & Validasi Bobot 100% (PerformanceGoalService & PRF-B2)
 * **Slice / MVP**: `S-C3` / `MVP-51`
 * **Status**: â ³ Menunggu `BE-HRD-257`
 * **Outcome**: Layanan penetapan dan penurunan sasaran mutu (*cascading performance goals*) dari target indikator kinerja unit kerja/instalasi ke sasaran kerja individu pegawai. Mengimplementasikan aturan `PRF-B2` yang mewajibkan akumulasi bobot target tepat 100.00% sebelum dapat diajukan (*Locking Rule*), pembatasan maksimal 10 butir KPI per pegawai (`VR-PRF-03`), penegakan garis persetujuan atasan langsung (Kepala Ruangan/Kepala Unit), dan pembekuan target pasca disetujui atasan.
@@ -5260,7 +5260,7 @@ Legenda:
 * **Acceptance Criteria**: Pengajuan sasaran kerja ditolak jika akumulasi bobot < 100% atau > 100% (`VR-PRF-04`); persetujuan sasaran oleh atasan langsung mengubah status menjadi `Approved` dan membekukan target dari perubahan sepihak.
 * **Verifikasi**: Uji validasi total bobot target sasaran `AT-HRD-PRF-03`, `AT-HRD-PRF-04`.
 
-#### â ³ `BE-HRD-259` â€” Service Evaluasi Tiga Tingkat Berjenjang (Self -> Karu -> Kabid) & Formula Baku 60:40 (`PerformanceAppraisalService`, `PRF-B3`, `PRF-B4`)
+#### ✅ `BE-HRD-259` — Service Evaluasi Tiga Tingkat Berjenjang (Self -> Karu -> Kabid) & Formula Baku 60:40 (PerformanceAppraisalService, PRF-B3, PRF-B4)
 * **Slice / MVP**: `S-C3` / `MVP-51`
 * **Status**: â ³ Menunggu `BE-HRD-258`, `BE-HRD-260`
 * **Outcome**: Mesin kalkulasi dan orkestrasi penilaian kinerja resmi pegawai rumah sakit. Mengimplementasikan alur penilaian berjenjang tiga tingkat tanpa bypass wewenang (`PRF-B3`): Pegawai mengisi *Self-Assessment*, Kepala Ruangan (Karu) melakukan penilaian utama hasil kerja dan perilaku, dan Kepala Bidang (Kabid) melakukan penelaahan serta persetujuan akhir. Menerapkan formula baku perhitungan nilai komposit (`PRF-B4`): `60% x Skor KPI Hasil Kerja Kuantitatif + 40% x Skor Perilaku Core Values BerAKHLAK (dikonversi ke skala 100)`. Mengelompokkan predikat kinerja (Sangat Baik >= 90, Baik 75-89, Cukup 65-74, Kurang < 65).
@@ -5268,7 +5268,7 @@ Legenda:
 * **Acceptance Criteria**: Penilaian atasan ditolak jika pegawai belum menuntaskan self-assessment (`VR-PRF-05`); formula matematis 60% KPI + 40% BerAKHLAK menghasilkan skor komposit yang presisi hingga 2 desimal (`VR-PRF-09`); predikat kinerja terpetakan deterministik.
 * **Verifikasi**: Uji kalkulasi skor komposit 60:40 dan evaluasi berjenjang `AT-HRD-PRF-05`, `AT-HRD-PRF-06`, `AT-HRD-PRF-07`.
 
-#### â ³ `BE-HRD-260` â€” Service Peer Review Sejawat untuk IDP Non-Skor (`PerformancePeerReviewService` & `PRF-B5`)
+#### ✅ `BE-HRD-260` — Service Peer Review Sejawat untuk IDP Non-Skor (PerformancePeerReviewService & PRF-B5)
 * **Slice / MVP**: `S-C3` / `MVP-51`
 * **Status**: â ³ Menunggu `BE-HRD-256`
 * **Outcome**: Layanan pengumpulan umpan balik rekan sejawat setara (*Peer Review 360 Feedback*). Mengimplementasikan aturan `PRF-B5` di mana umpan balik peer review bersifat opsional dan secara ketat difungsikan sebagai bahan rekomendasi rencana pengembangan individu (*Individual Development Plan* - IDP) non-skor, sehingga tidak boleh mempengaruhi atau mendistorsi nilai kuantitatif evaluasi resmi pegawai. Mendukung mode masukan teridentifikasi maupun anonim terproteksi.
@@ -5276,7 +5276,7 @@ Legenda:
 * **Acceptance Criteria**: Rekaman ulasan rekan sejawat berhasil disimpan dan diagregasikan ke laporan IDP; sistem menjamin nilai komposit resmi pegawai 100% murni dihitung dari rasio 60% KPI + 40% BerAKHLAK tanpa campur tangan bobot peer review (`VR-PRF-10`).
 * **Verifikasi**: Uji isolasi peer review dari skor akhir pada `AT-HRD-PRF-08`.
 
-#### â ³ `BE-HRD-261` â€” Service Sidang Pleno Kalibrasi Manajemen & Guiding Distribution (`PerformanceCalibrationService` & `PRF-B6`)
+#### ✅ `BE-HRD-261` — Service Sidang Pleno Kalibrasi Manajemen & Guiding Distribution (PerformanceCalibrationService & PRF-B6)
 * **Slice / MVP**: `S-C3` / `MVP-52`
 * **Status**: â ³ Menunggu `BE-HRD-259`
 * **Outcome**: Modul tata kelola sidang pleno kalibrasi manajemen RS tingkat komite/direksi. Menghitung sebaran distribusi predikat nilai aktual seluruh pegawai dan membandingkannya terhadap kurva pedoman sebaran fleksibel (*Guiding Distribution*, `PRF-B6`): Predikat A (Sangat Baik) 10-15%, Predikat B (Baik) 70-80%, dan Predikat C/D (Cukup/Kurang) 5-10%. Mengizinkan penyesuaian (*score override*) oleh komite kalibrasi dengan kewajiban melampirkan nota justifikasi tertulis minimal 50 karakter (`VR-PRF-12`). Menyediakan mekanisme penguncian sesi kalibrasi dan rilis nilai serentak ke portal ESS pegawai.
@@ -5284,7 +5284,7 @@ Legenda:
 * **Acceptance Criteria**: Penyesuaian skor tanpa nota justifikasi ditolak sistem (`VR-PRF-13`); audit trail mencatat nilai awal, nilai kalibrasi, nama penilai, dan isi nota justifikasi secara permanen; pengesahan sidang kalibrasi memicu event `PerformanceScoresReleasedToEss`.
 * **Verifikasi**: Uji konsol kalibrasi dan audit override nilai `AT-HRD-PRF-09`, `AT-HRD-PRF-10`, `AT-HRD-PRF-11`.
 
-#### â ³ `BE-HRD-262` â€” Service Program Pembinaan Formal PIP 60 Hari Kalender & Logbook Mingguan Mentor (`PerformanceImprovementPlanService` & `PRF-B7`)
+#### ✅ `BE-HRD-262` — Service Program Pembinaan Formal PIP 60 Hari & Logbook Mingguan (PerformanceImprovementPlanService & PRF-B7)
 * **Slice / MVP**: `S-C3` / `MVP-52`
 * **Status**: â ³ Menunggu `BE-HRD-261`
 * **Outcome**: Layanan otomasi program pembinaan peningkatan kinerja (*Performance Improvement Plan* - PIP) terstruktur 60 hari kalender. Mengimplementasikan aturan `PRF-B7` yang secara otomatis memicu pembukaan kasus PIP formal ketika skor akhir komposit pegawai pasca-kalibrasi berada di bawah ambang minimal 65.00 (`VR-PRF-14`). Mengatur penugasan mentor, pencatatan target perbaikan mingguan, pemantauan 8 logbook mingguan mentor (Minggu 1 s.d. 8), serta sidang evaluasi kelulusan pada hari ke-60 dengan 3 opsi putusan resmi: Lulus (kembali normal), Perpanjangan (maksimal 30 hari), atau Eskalasi HR Hubungan Industrial.
@@ -5292,7 +5292,7 @@ Legenda:
 * **Acceptance Criteria**: Staf dengan skor < 65 otomatis berstatus `EnrolledInPip`; logbook mingguan mewajibkan catatan perkembangan minimal 20 karakter dari mentor (`VR-PRF-15`); sidang hari ke-60 menegakkan putusan resmi.
 * **Verifikasi**: Uji pemicu otomatis PIP dan pencatatan logbook mingguan `AT-HRD-PRF-12`, `AT-HRD-PRF-13`, `AT-HRD-PRF-14`.
 
-#### â ³ `BE-HRD-263` â€” Integrasi Pembekuan Mutasi/Promosi Staf PIP ke Sub-06 Kepegawaian (`INT-HR-84`)
+#### ✅ `BE-HRD-263` — Integrasi Pembekuan Mutasi/Promosi Staf PIP ke Sub-06 Penjadwalan (INT-HR-84)
 * **Slice / MVP**: `S-C3` / `MVP-52`
 * **Status**: â ³ Menunggu `BE-HRD-262`
 * **Outcome**: Penegakan pengamanan karir pegawai yang sedang menjalani pembinaan khusus. Mengirimkan domain event `StaffEnteredPipEvent` (`INT-HR-84`) ke Sub-06 Kepegawaian guna mengaktifkan sakelar pembekuan hak mutasi, promosi jabatan, dan kenaikan golongan selama 60 hari masa PIP berjalan (`VR-PRF-16`). Apabila pegawai dinyatakan lulus pada sidang evaluasi hari ke-60, sistem mengirimkan event pemulihan `StaffCompletedPipEvent` untuk membuka kembali hak kepegawaian normal.
@@ -5300,7 +5300,7 @@ Legenda:
 * **Acceptance Criteria**: Pengajuan mutasi/promosi untuk pegawai aktif PIP ditolak otomatis oleh validasi Sub-06; pemulihan status kepegawaian berjalan sinkron pasca kelulusan PIP.
 * **Verifikasi**: Uji integrasi pembekuan hak kepegawaian `INT-HR-84` pada `AT-HRD-PRF-15`.
 
-#### â ³ `BE-HRD-264` â€” Service Evaluasi Kenaikan Jenjang Karier Klinis Nakes (Clinical Ladder PK I-V) & Prasyarat Mutu (`ClinicalCareerLadderService` & `PRF-B8`)
+#### ✅ `BE-HRD-264` — Service Evaluasi Kenaikan Jenjang Karier Klinis Nakes (Clinical Ladder PK I-V, PRF-B8)
 * **Slice / MVP**: `S-C3` / `MVP-53`
 * **Status**: â ³ Menunggu `BE-HRD-261`
 * **Outcome**: Layanan verifikasi dan tata kelola kenaikan jenjang karier profesional perawat klinis dan nakes (PK I s.d. PK V) berpedoman Permenkes 40/2017. Mengimplementasikan aturan `PRF-B8` yang mewajibkan skor kinerja tahunan minimal 75.00 ("Baik") sebagai gerbang prasyarat administratif (*Administrative Gatekeeper*) sebelum pengajuan dapat diproses lebih lanjut (`VR-PRF-17`). Mengelola alur pendaftaran, penyerahan berkas portofolio logbook tindakan klinis, dan sidang asesmen portofolio oleh panel asesor Komite Keperawatan / Komite Tenaga Kesehatan Lainnya.
@@ -5308,7 +5308,7 @@ Legenda:
 * **Acceptance Criteria**: Permohonan kenaikan jenjang ditolak otomatis jika skor kinerja tahunan terakhir < 75.00 (`VR-PRF-17`); berkas portofolio tindakan klinis tervalidasi lengkap oleh komite.
 * **Verifikasi**: Uji gatekeeper kenaikan jenjang klinis `AT-HRD-PRF-16`, `AT-HRD-PRF-17`.
 
-#### â ³ `BE-HRD-265` â€” Integrasi Prasyarat Mutu Jenjang Klinis ke Sub-16 (`INT-HR-81`) & Sub-15 (`INT-HR-82`)
+#### ✅ `BE-HRD-265` — Integrasi Prasyarat Mutu Jenjang Klinis ke Sub-16 Diklat (INT-HR-81) & Sub-15 OPPE (INT-HR-82)
 * **Slice / MVP**: `S-C3` / `MVP-53`
 * **Status**: â ³ Menunggu `BE-HRD-264`
 * **Outcome**: Penguatan integrasi mutu klinis lintas modul rumah sakit saat evaluasi jenjang karir nakes. Memvalidasi kepemilikan sertifikat pelatihan dan kompetensi aktif (BHD, PPI, Pasien Safety) serta kelulusan ujian OSCE klinis dari Sub-16 Learning & Competency (`INT-HR-81`, `VR-PRF-18`). Memeriksa rekam jejak keselamatan pasien dan memastikan nakes bebas dari keterlibatan kasus insiden keselamatan pasien berkategori Sentinel atau komplikasi mayor dalam 12 bulan terakhir dari Sub-15 OPPE (`INT-HR-82`, `VR-PRF-19`).
@@ -5316,7 +5316,7 @@ Legenda:
 * **Acceptance Criteria**: Pengajuan jenjang klinis ditolak atau dibekukan jika sertifikat wajib Sub-16 telah kedaluwarsa atau tercatat kasus sentinel aktif pada Sub-15.
 * **Verifikasi**: Uji integrasi data prasyarat mutu `INT-HR-81` dan `INT-HR-82` pada `AT-HRD-PRF-18`, `AT-HRD-PRF-19`.
 
-#### â ³ `BE-HRD-266` â€” Integrasi Sinkronisasi SK Jenjang Baru ke Sub-02 & Sub-14 (`INT-HR-83`)
+#### ✅ `BE-HRD-266` — Integrasi Sinkronisasi SK Jenjang Baru ke Sub-02 Profil Induk & Sub-14 Kredensialing (INT-HR-83)
 * **Slice / MVP**: `S-C3` / `MVP-53`
 * **Status**: â ³ Menunggu `BE-HRD-265`
 * **Outcome**: Otomasi mutasi data pasca penetapan Surat Keputusan (SK) Kenaikan Jenjang Karier Klinis oleh Direktur Utama RS. Menerbitkan nomor SK resmi, mencatat riwayat kenaikan jenjang (`VR-PRF-20`), menyinkronkan pembaruan tingkat jenjang klinis ke Sub-02 Profil Induk Kepegawaian (`INT-HR-83`), serta memicu pemutakhiran paket kewenangan klinis (RKK) yang berlaku pada SIMRS EMR melalui Sub-14 Kredensialing.
@@ -5324,7 +5324,7 @@ Legenda:
 * **Acceptance Criteria**: Pengesahan SK Direktur Utama secara atomik memperbarui jenjang kepegawaian di profil nakes dan membuka akses kewenangan klinis baru di SIMRS.
 * **Verifikasi**: Uji sinkronisasi SK jenjang klinis baru `INT-HR-83` pada `AT-HRD-PRF-20`.
 
-#### â ³ `BE-HRD-267` â€” Service Tata Kelola Sanggah Banding Nilai Kinerja SLA 7/14 Hari (`PerformanceDisputeService`)
+#### ✅ `BE-HRD-267` — Service Tata Kelola Sanggah Banding Nilai Kinerja Pegawai (SLA 7/14 Hari, PerformanceDisputeService)
 * **Slice / MVP**: `S-C3` / `MVP-53`
 * **Status**: â ³ Menunggu `BE-HRD-261`
 * **Outcome**: Layanan penanganan keberatan dan sanggah banding nilai kinerja resmi pegawai (`trx_performance_appraisal_disputes`). Menegakkan batas waktu pengajuan sanggahan maksimal 7 hari kalender pasca rilis nilai di ESS (`VR-PRF-21`), validasi lampiran dokumen bukti pembanding (`VR-PRF-22`), alur mediasi tertutup klarifikasi oleh HR Performance dalam 7 hari kerja (`VR-PRF-23`), serta penegakan batas waktu penerbitan putusan final majelis banding Direktur SDM maksimal 14 hari kalender sejak berkas diregistrasi (`VR-PRF-24`).
@@ -5332,7 +5332,7 @@ Legenda:
 * **Acceptance Criteria**: Pengajuan sanggahan melewati batas H+7 ditolak otomatis oleh sistem; status lembar penilaian terkunci sementara `Disputed` selama proses mediasi berlangsung; putusan majelis banding bersifat final dan mengikat.
 * **Verifikasi**: Uji SLA sanggah banding dan putusan majelis `AT-HRD-PRF-21`, `AT-HRD-PRF-22`.
 
-#### â ³ `BE-HRD-268` â€” Controller API Kontrak v21 (4 Grup Tag Swagger, 24 Endpoints) & Registrasi 6 Background Workers (`PRF-W1`..`PRF-W6`)
+#### ✅ `BE-HRD-268` — 4 Controller API Swagger Kontrak v21 & Registrasi 6 Background Workers (PRF-W1..W6)
 * **Slice / MVP**: `S-C3` / Verifikasi
 * **Status**: â ³ Menunggu `BE-HRD-263`, `BE-HRD-266`, `BE-HRD-267`
 * **Outcome**: Implementasi seluruh 24 endpoint API pada 4 Controller ASP.NET Core beranotasi Swagger `[Tags("HRD - ...")]` sesuai Kontrak `v21`, penegakan atribut otorisasi 14 permission persis (`Permissions.Hrd.Performance.*`), pencatatan 14 action audit trails, serta registrasi 6 background workers berbasis `BackgroundService` (`PerformanceCycleStatusTransitionWorker`, `PerformanceGoalLockingWorker`, `PerformanceCalibrationDeadlineWorker`, `PerformancePipMilestoneMonitoringWorker`, `ClinicalCareerLadderExpiryWorker`, `PerformanceDisputeSlaEnforcementWorker`).
@@ -5340,7 +5340,7 @@ Legenda:
 * **Acceptance Criteria**: Seluruh 24 endpoint API terdaftar rapi pada Swagger UI dengan skema DTO yang valid; 6 background workers berjalan terisolasi di background sesuai jadwal cron/interval tanpa mengganggu alur HTTP request.
 * **Verifikasi**: Uji kontrak API Swagger dan registrasi DI background service pada laporan task `BE-HRD-268.md`.
 
-#### â ³ `BE-HRD-269` â€” Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C3`
+#### ✅ `BE-HRD-269` — Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests S-C3
 * **Slice / MVP**: `S-C3` / Verifikasi
 * **Status**: â ³ Menunggu Seluruh Task `BE-HRD-254` s.d. `BE-HRD-268`
 * **Outcome**: Verifikasi kompilasi bersih aplikasi .NET (`dotnet build`) tanpa error, audit konformansi arsitektur QBE Preflight (`tooling/qbe/Invoke-QbeConformanceCheck.ps1`), validasi kepatuhan 24 endpoint API Swagger Kontrak `v21`, serta eksekusi lengkap 22 skenario pengujian penerimaan `AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`.
