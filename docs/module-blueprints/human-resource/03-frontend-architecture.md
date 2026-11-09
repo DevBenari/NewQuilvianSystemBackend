@@ -3318,3 +3318,261 @@ export const {
 
 export default employeeRelationSlice.reducer;
 ```
+
+
+---
+
+## 28. Sub-Modul 19: Occupational Health & Staff Safety (Slice `S-C6`)
+
+### 28.1 Peta Butir Menu Navigasi Modul K3RS & Staff Safety
+
+Menu navigasi dikelompokkan di bawah grup utama `Kesehatan & Keselamatan Kerja Rumah Sakit (K3RS)` dengan segmentasi wewenang berbasis peran (Dokter K3RS, Perawat K3RS, Manajer Ruangan, HR Admin, dan Seluruh Staf Medis via ESS):
+
+```text
+Sidebar Menu: Kesehatan & Keselamatan Kerja (K3RS) (Sub-Modul 19)
+├── [FE-HRD-261] Dasbor K3RS & Radar Kepatuhan MCU (/hrd/occupational-health/dashboard)
+├── [FE-HRD-262] Meja Kerja Dokter K3RS & Rekam Medis Terenkripsi (/hrd/occupational-health/records)
+├── [FE-HRD-263] Jadwal & Registri Hasil MCU Berkala Berbasis Risiko (/hrd/occupational-health/mcu)
+├── [FE-HRD-264] Konsol Darurat Tertusuk Jarum & Pajanan Cito PEP (/hrd/occupational-health/needle-stick)
+├── [FE-HRD-265] Radar Imunisasi & Vaksinasi Wajib Nakes (/hrd/occupational-health/vaccinations)
+├── [FE-HRD-266] Surat Pembatasan Kerja & Return-to-Work (/hrd/occupational-health/restrictions)
+├── [FE-HRD-267] Insiden Kecelakaan Kerja KAK/PAK & Klaim BPJS JKK (/hrd/occupational-health/injuries)
+└── [FE-HRD-268] Portal Kesehatan Kerja Mandiri Pegawai (ESS) (/hrd/occupational-health/my-health)
+```
+
+---
+
+### 28.2 Skema Rinci Layar Antarmuka (`FE-HRD-261` s.d. `FE-HRD-268`)
+
+#### 28.2.1 [FE-HRD-261] Dasbor K3RS Eksekutif, Radar Kepatuhan MCU & Status Proteksi Vaksinasi RS
+* **Tujuan Layar:** Menyajikan ikhtisar statistik keselamatan kerja bagi Direktur Utama, Komite K3RS, dan Manajer SDM mengenai status kesehatan staf, radar kepatuhan MCU tahunan per unit, status imunitas nakes, kasus tertusuk jarum dalam pemantauan, serta staf yang sedang dalam status pembatasan kerja (*work restriction*).
+* **Komponen Visual Utama:**
+  - *Kartu Metrik Kunci:* Kepatuhan MCU Institusi (% dari target STARKES KPS), Total Nakes Berstatus Fit with Restriction, Insiden Tertusuk Jarum Aktif, dan Jam Kerja Hilang (*Lost Time Injury* - LTI).
+  - *Radar Kepatuhan MCU Unit:* Diagram batang progres pemeriksaan kesehatan per departemen/instalasi.
+  - *Radar Imunitas Hepatitis B:* Donat chart persentase staf ber-titer protektif anti-HBs (>= 10 mIU/mL) vs Low Immunity / Non-Responder.
+  - *Tabel Kasus Kritis K3RS:* Daftar pegawai yang mengalami pajanan infeksius dalam 30 hari terakhir dan status pemberian PEP.
+
+#### 28.2.2 [FE-HRD-262] Meja Kerja Dokter K3RS & Rekam Medis Kesehatan Kerja Staf Terenkripsi
+* **Tujuan Layar:** Antarmuka khusus Dokter Pemeriksa Kesehatan Tenaga Kerja RS untuk mengakses dan mencatat rekam medis klinis lengkap staf dengan enkripsi AES-256 (`HRD-DEC-176`).
+* **Fitur Utama:**
+  - Pencarian aman data kesehatan pegawai dengan verifikasi kredensial dokter K3RS.
+  - Tab Rekam Medis Klinis Lengkap: Riwayat penyakit dahulu, anamnesis okupasional, hasil laboratorium darah detail, viewer ekspertise rontgen toraks, dan riwayat alergi.
+  - Konsol Penetapan Status *Fitness to Work*: Pilihan status (`Fit`, `FitWithRestriction`, `TemporaryUnfit`, `PermanentUnfit`), input durasi berlaku, dan generator kalimat restriksi operasional untuk atasan/HR (tanpa diagnosis medis).
+
+#### 28.2.3 [FE-HRD-263] Manajemen Jadwal & Registri Hasil Medical Check-Up (MCU) Berkala Berbasis Risiko
+* **Tujuan Layar:** Mengelola penjadwalan MCU berkala tahunan bagi staf, segmentasi paket pemeriksaan sesuai risiko ruangan, dan pencatatan hasil penapisan.
+* **Fitur Utama:**
+  - Pemetaan Paket Otomatis: Memilih pegawai otomatis menetapkan paket pemeriksaan berdasarkan profil unit (Paket Radiasi TLD, Paket Serologi Bedah/Lab, Paket Paru/TB, Paket Kimia CSSD, atau Paket Umum).
+  - Kalender Penjadwalan MCU & Sinkronisasi Roster Sub-06: Mencegah jadwal MCU bertabrakan dengan shift jaga nakes.
+  - Mass Certification Gate: Pengesahan kelayakan kerja massal hasil MCU oleh Dokter K3RS.
+
+#### 28.2.4 [FE-HRD-264] Konsol Cito Tanggap Darurat Tertusuk Jarum (*Needle-Stick*) & Pajanan Okupasional PEP
+* **Tujuan Layar:** Konsol gawat darurat K3RS & PPI untuk merespons insiden tertusuk jarum suntik bekas pakai atau cipratan darah pasien infeksius secara seketika (*real-time*).
+* **Fitur Utama:**
+  - Emergency Alert Banner: Notifikasi visual berkedip merah saat ada laporan tertusuk jarum baru yang masuk dari ESS nakes.
+  - Countdown SLA PEP < 4 Jam: Penghitung mundur waktu batas pemberian obat Profilaksis Pasca Pajanan (ARV / Hepatitis B Imunoglobulin).
+  - Panel Pasien Sumber Pajanan: Input nomor rekam medis pasien sumber untuk penarikan riwayat serologi SIMRS secara cepat.
+  - Kalender Radar Serologi Serial: Timeline jadwal kontrol darah berkala nakes terpapar pada Bulan ke-1, Bulan ke-3, dan Bulan ke-6.
+
+#### 28.2.5 [FE-HRD-265] Radar Imunisasi, Vaksinasi Wajib Nakes & Pemantauan Titer Antibodi
+* **Tujuan Layar:** Memantau cakupan vaksinasi seluruh staf medis dan tenaga kesehatan rumah sakit serta melacak masa proteksi kekebalan tubuh aktif.
+* **Fitur Utama:**
+  - Matriks Status Vaksinasi Per Nakes (Hepatitis B Dosis 1-3, Influenza, Varisela, MMR).
+  - Pelacak Titer Antibodi Kuantitatif (anti-HBs): Indikator visual hijau jika >= 10 mIU/mL dan merah jika < 10 mIU/mL.
+  - Tombol aksi *"Terbitkan Panggilan Booster"*: Mengirimkan notifikasi panggilan vaksinasi massal ke portal ESS bagi staf yang titer antibodinya telah menurun.
+
+#### 28.2.6 [FE-HRD-266] Tata Kelola Surat Pembatasan Kerja (*Work Restriction*) & Evaluasi Return-to-Work
+* **Tujuan Layar:** Menerbitkan surat rekomendasi pembatasan tugas klinis staf medis dan mengelola alur evaluasi pemulihan kelaikan kerja penuh.
+* **Fitur Utama:**
+  - Formulir Penerbitan Restriksi: Checklist larangan dinas (Dilarang Shift Malam, Dilarang Angkat Beban > 10 kg, Dilarang Kontak Ruang Isolasi TB, Dilarang Area Radiasi).
+  - Status Integrasi Sub-06 (`INT-HR-89`): Indikator bahwa pembatasan dinas aktif mengunci roster jadwal kerja di modul scheduling.
+  - Tombol Asesmen Return-to-Work: Modal pemeriksaan fisik oleh Dokter K3RS sebelum surat restriksi dapat dicabut secara sah.
+
+#### 28.2.7 [FE-HRD-267] Registrasi Insiden Kecelakaan Kerja (KAK/PAK), Investigasi CAPA & Generator BPJS JKK
+* **Tujuan Layar:** Pencatatan insiden kecelakaan di lingkungan rumah sakit, investigasi keselamatan kerja K3RS, dan pengurusan klaim Jaminan Kecelakaan Kerja (JKK) BPJS Ketenagakerjaan.
+* **Fitur Utama:**
+  - Form pencatatan KAK: Waktu kejadian, lokasi spesifik, uraian kronologis, anggota tubuh cedera, dan saksi.
+  - Panel Investigasi Akar Masalah (RCA) & Penyusunan Tindakan Korektif (CAPA).
+  - One-Click Generator Berkas Klaim BPJS JKK: Menghasilkan formulir PDF resmi BPJS Ketenagakerjaan Formulir 3a (Tahap I, batas 2x24 jam) dan Formulir 3b (Tahap II) lengkap dengan data terisi otomatis.
+
+#### 28.2.8 [FE-HRD-268] Portal Mandiri Kesehatan Kerja Pegawai di ESS (Riwayat MCU, Vaksin, Status Fitness)
+* **Tujuan Layar:** Antarmuka mandiri bagi pegawai di Employee Self-Service (ESS) untuk memantau status kesehatan kerja pribadi.
+* **Fitur Utama:**
+  - Tombol Darurat Cito: *"Lapor Tertusuk Jarum / Pajanan Cairan Tubuh"*.
+  - Riwayat Hasil MCU Pribadi: Unduh resume hasil pemeriksaan kesehatan berkala dengan otentikasi PIN keamanan.
+  - Kartu Vaksinasi Digital: Menampilkan riwayat vaksinasi dan status antibodi nakes.
+  - Informasi Status Kelaikan Kerja & Surat Pembatasan Tugas Dinas Aktif.
+
+---
+
+### 28.3 Komponen Dialog Modal Pendukung
+
+1. `NeedleStickEmergencyModal.tsx`: Dialog laporan darurat tertusuk jarum di ESS dengan pertanyaan pemandu cito.
+2. `MedicalExaminationEntryModal.tsx`: Dialog input data anamnesis fisik dan hasil laboratorium terenkripsi oleh tim K3RS.
+3. `WorkRestrictionIssuanceModal.tsx`: Dialog penerbitan surat rekomendasi pembatasan kerja medis bagi pegawai.
+4. `ReturnToWorkAssessmentModal.tsx`: Dialog Berita Acara pemeriksaan fisik pemulihan kelaikan kerja sebelum pencabutan restriksi.
+5. `BpjsJkkClaimGeneratorModal.tsx`: Dialog pratinjau dan unduh berkas klaim JKK BPJS Ketenagakerjaan Tahap I dan II.
+
+---
+
+### 28.4 Redux State Management (`occupationalHealthSlice.ts`)
+
+```typescript
+// occupationalHealthSlice.ts
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+interface OccupationalHealthState {
+  healthRecords: any[];
+  medicalExaminations: any[];
+  fitnessAssessments: any[];
+  workRestrictions: any[];
+  vaccinationRecords: any[];
+  needleStickIncidents: any[];
+  occupationalInjuries: any[];
+  activePatientSource: any | null;
+  activeInjuryClaim: any | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const initialState: OccupationalHealthState = {
+  healthRecords: [],
+  medicalExaminations: [],
+  fitnessAssessments: [],
+  workRestrictions: [],
+  vaccinationRecords: [],
+  needleStickIncidents: [],
+  occupationalInjuries: [],
+  activePatientSource: null,
+  activeInjuryClaim: null,
+  isLoading: false,
+  error: null,
+};
+
+export const occupationalHealthSlice = createSlice({
+  name: 'occupationalHealth',
+  initialState,
+  reducers: {
+    setHealthRecords: (state, action: PayloadAction<any[]>) => {
+      state.healthRecords = action.payload;
+    },
+    setMedicalExaminations: (state, action: PayloadAction<any[]>) => {
+      state.medicalExaminations = action.payload;
+    },
+    setWorkRestrictions: (state, action: PayloadAction<any[]>) => {
+      state.workRestrictions = action.payload;
+    },
+    setVaccinationRecords: (state, action: PayloadAction<any[]>) => {
+      state.vaccinationRecords = action.payload;
+    },
+    setNeedleStickIncidents: (state, action: PayloadAction<any[]>) => {
+      state.needleStickIncidents = action.payload;
+    },
+    setOccupationalInjuries: (state, action: PayloadAction<any[]>) => {
+      state.occupationalInjuries = action.payload;
+    },
+    setActivePatientSource: (state, action: PayloadAction<any>) => {
+      state.activePatientSource = action.payload;
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
+    },
+  },
+});
+
+export const {
+  setHealthRecords,
+  setMedicalExaminations,
+  setWorkRestrictions,
+  setVaccinationRecords,
+  setNeedleStickIncidents,
+  setOccupationalInjuries,
+  setActivePatientSource,
+  setLoading,
+  setError,
+} = occupationalHealthSlice.actions;
+
+export default occupationalHealthSlice.reducer;
+```
+
+
+---
+
+## 29. Arsitektur Frontend Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 29.1 Kebutuhan Antarmuka Pengguna & Hirarki Navigasi
+
+Sub-modul ini menyediakan antarmuka terpadu bagi pegawai rumah sakit untuk mengajukan permohonan mandiri (ESS) dan pintu tunggal bagi para atasan, kepala ruangan, dokter penanggung jawab, dan direksi untuk memeriksa serta mengeksekusi persetujuan (*Unified Approval Inbox*) dari seluruh 15 modul HRD secara cepat, transparan, dan akuntabel.
+
+```text
+Portal Intranet Rumah Sakit
+  ├── /hrd/self-service                                   (FE-HRD-280 - Portal Mandiri Staf ESS)
+  │     ├── /hrd/self-service/my-requests                 (FE-HRD-281 - Pelacak Riwayat Permohonan)
+  │     └── /hrd/self-service/revisions/[id]              (FE-HRD-282 - Lembar Perbaikan Draf Revisi)
+  │
+  └── /hrd/approvals                                      (Menu Otorisasi Atasan & Manajemen)
+        ├── /hrd/approvals/inbox                          (FE-HRD-276 - Kotak Masuk Persetujuan Terpadu)
+        ├── /hrd/approvals/[id]                           (FE-HRD-277 - Lembar Rincian & Riwayat Tiket)
+        ├── /hrd/approvals/delegation                     (FE-HRD-278 - Pengaturan Delegasi Wewenang Plh)
+        ├── /hrd/approvals/matrix                         (FE-HRD-279 - Konfigurasi Matriks Alur Persetujuan)
+        └── /hrd/approvals/overdue                        (FE-HRD-283 - Konsol Monitoring Tiket Lewat SLA)
+```
+
+---
+
+### 29.2 Rincian 8 Layar Utama Next.js App Router
+
+| Kode Layar | Rute URL | Judul Layar | Peran Pengguna (Roles) | Fitur Utama & Komponen Baku |
+|---|---|---|---|---|
+| `FE-HRD-276` | `/hrd/approvals/inbox` | Kotak Masuk Persetujuan Terpadu | Kepala Ruangan, Supervisor, Manajer, Direksi | Papan kendali inbox dengan tab *Pending*, *Urgent (H-4 SLA)*, *Delegated*, dan *Approved*; filter per kategori request; tombol centang persetujuan massal bersyarat; indikator badge SLA |
+| `FE-HRD-277` | `/hrd/approvals/[id]` | Lembar Detail & Riwayat Permohonan | Approver Berwenang, Pelaksana Harian (Plh) | Rincian lengkap permohonan; ringkasan verifikasi otomatis (indikator hijau/merah bentrok jadwal atau saldo cuti); thread percakapan revisi; tombol tri-state: *Approve*, *Reject*, *Return for Revision* |
+| `FE-HRD-278` | `/hrd/approvals/delegation` | Pengaturan Pendelegasian Wewenang | Seluruh Pejabat Approver, HR Admin | Tabel riwayat delegasi wewenang; status delegasi aktif/kedaluwarsa; tombol pembuatan delegasi baru berbatas waktu (*time-bound*); pilihan penunjukan Plh |
+| `FE-HRD-279` | `/hrd/approvals/matrix` | Konfigurasi Matriks Alur Persetujuan | HR Admin, Direktur SDM | Tabel konfigurasi alur persetujuan per tipe permohonan dan unit kerja; visualisasi pohon hierarki step persetujuan; konfigurasi batas waktu SLA |
+| `FE-HRD-280` | `/hrd/self-service` | Portal Layanan Mandiri Pegawai (ESS) | Seluruh Pegawai Rumah Sakit | Dasbor ringkasan profil kepegawaian staf; widget sisa saldo cuti; jadwal dinas minggu ini; riwayat absensi; kartu pintas permohonan mandiri cepat |
+| `FE-HRD-281` | `/hrd/self-service/my-requests` | Pelacak Riwayat Permohonan Mandiri | Seluruh Pegawai Rumah Sakit | Tabel pelacak status seluruh permohonan staf; stepper visual perjalanan tahapan persetujuan; penanda tiket berstatus `ReturnedForRevision` |
+| `FE-HRD-282` | `/hrd/self-service/revisions/[id]` | Formulir Perbaikan Permohonan Revisi | Staf Pemohon | Formulir pengeditan data permohonan yang dikembalikan atasan; catatan revisi dari approver; unggah ulang berkas lampiran; tombol ajukan ulang (*Resubmit*) |
+| `FE-HRD-283` | `/hrd/approvals/overdue` | Konsol Monitoring Tiket Lewat SLA | Manajer SDM, Direksi, Kepala Bagian Mutu | Radar pemantauan tiket persetujuan yang telah melewati batas SLA; tabel metrik kecepatan respon per kepala ruangan; tombol intervensi ambil alih/eskalasi |
+
+---
+
+### 29.3 Daftar 5 Modal Dialog Interaktif
+
+1. **`ApproveConfirmModal.tsx`**: Dialog konfirmasi persetujuan tunggal dengan input catatan opsional dan konfirmasi PIN keamanan atau tanda tangan digital.
+2. **`RejectReasonModal.tsx`**: Dialog penolakan permohonan dengan validasi input alasan penolakan tertulis wajib minimal 15 karakter (`VR-WF-05`).
+3. **`ReturnForRevisionModal.tsx`**: Dialog pengembalian berkas ke staf pemohon dengan kolom rincian perbaikan yang diminta dan lampiran instruksi.
+4. **`BulkApprovalModal.tsx`**: Dialog persetujuan massal bersyarat yang menampilkan daftar tiket tervalidasi bersih (indikator hijau) beserta ringkasan risiko sebelum eksekusi 1-klik PIN.
+5. **`NewDelegationModal.tsx`**: Dialog penunjukan Pelaksana Harian (Plh) dengan pemilihan nama pegawai setara, rentang tanggal mulai dan selesai, serta pilihan kategori permohonan yang didelegasikan.
+
+---
+
+### 29.4 State Management Redux Toolkit (`unifiedApprovalSlice.ts`)
+
+```typescript
+interface UnifiedApprovalState {
+  inbox: {
+    items: WorkflowInstanceDto[];
+    totalCount: number;
+    pendingCount: number;
+    urgentCount: number;
+    delegatedCount: number;
+    selectedIds: string[];
+    filter: InboxFilterState;
+    isLoading: boolean;
+    error: string | null;
+  };
+  currentDetail: WorkflowInstanceDetailDto | null;
+  delegations: {
+    items: ApprovalDelegationDto[];
+    isLoading: boolean;
+  };
+  myRequests: {
+    items: WorkflowInstanceDto[];
+    totalCount: number;
+    isLoading: boolean;
+  };
+  slaMetrics: SlaComplianceReportDto | null;
+}
+```

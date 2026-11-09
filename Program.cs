@@ -1344,6 +1344,21 @@ try
     // Slice S-B6 (Restitution & Deduction Integration) - MVP-34 (Claims, Approvals, Salary Correction & Payroll Injection)
     builder.Services.AddScoped<IRestitutionClaimService, RestitutionClaimService>();
 
+    // Slice S-B6 (Restitution & Deduction Integration) - MVP-35 (Cashier Voucher Disbursement & Exit Clearance Receivables)
+    builder.Services.AddScoped<ICashierVoucherDisbursementService, CashierVoucherDisbursementService>();
+    builder.Services.AddScoped<IExitClearanceReceivableService, ExitClearanceReceivableService>();
+
+    // Slice S-D3 (Benefit Management) - MVP-36 (Plans, Eligibility & Grade Rules)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitPlanService>();
+    // Slice S-D3 (Benefit Management) - MVP-37 (Insurance Enrollments, ESS Dependents & Verification)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitEnrollmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitEnrollmentService>();
+    // Slice S-D3 (Benefit Management) - MVP-38 (In-House Healthcare & Balance Ledger)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitInHouseService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitInHouseService>();
+    // Slice S-D3 (Benefit Management) - MVP-38 (COB Claims, Settlement & Exit Clearance)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitClaimService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitClaimService>();
+    // Slice S-D3 (Benefit Management) - Verifikasi (Year-End Benefit Expiry Background Worker)
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.YearEndBenefitExpiryWorker>();
+
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
     builder.Services.AddScoped<DiscountPolicyService>();

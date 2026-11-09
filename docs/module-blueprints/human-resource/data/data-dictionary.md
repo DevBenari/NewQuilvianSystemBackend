@@ -5198,3 +5198,383 @@ Kamus data ini memuat spesifikasi skema relasional modul manajemen kinerja pegaw
 | `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu verifikasi item |
 | `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pembuat item |
 | `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas verifikator |
+
+
+---
+
+## 24. Kamus Data Sub-Modul 19: Occupational Health & Staff Safety (Slice `S-C6`)
+
+### 24.1 Tabel `wfp_health_records` (Master Rekam Medis Kesehatan Kerja Staf Terenkripsi)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `health_record_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik berkas rekam kesehatan kerja |
+| `employee_id` | `UUID` | NOT NULL | - | ID pegawai pemilik rekam medis (FK ke `mst_workforce_profiles`) |
+| `record_number` | `VARCHAR(64)` | NOT NULL | - | Nomor rekam kesehatan okupasional (mis. `OHR-2026-00452`) |
+| `blood_type` | `VARCHAR(8)` | NOT NULL | - | Golongan darah (A, B, AB, O) |
+| `rhesus` | `VARCHAR(8)` | NOT NULL | - | Faktor rhesus (+ / -) |
+| `known_allergies` | `TEXT` | NULL | - | Daftar alergi obat/makanan/lateks |
+| `current_fitness_status` | `VARCHAR(32)` | NOT NULL | `'Fit'` | Status kelayakan kerja umum: `Fit`, `FitWithRestriction`, `TemporaryUnfit`, `PermanentUnfit` |
+| `encrypted_clinical_history_json`| `TEXT` | NOT NULL | - | Riwayat medis komprehensif terenkripsi AES-256 (`HRD-DEC-176`) |
+| `last_examined_date` | `DATE` | NULL | - | Tanggal pemeriksaan fisik terakhir |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pembuatan berkas |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data terakhir |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pembuat data |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah data terakhir |
+
+---
+
+### 24.2 Tabel `trx_employee_medical_examinations` (Pemeriksaan Kesehatan Berkala / MCU)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `examination_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik lembar pemeriksaan MCU |
+| `health_record_id` | `UUID` | NOT NULL | - | FK ke `wfp_health_records` |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `examination_number` | `VARCHAR(64)` | NOT NULL | - | Nomor dokumen MCU (mis. `MCU-2026-11-0089`) |
+| `exam_type` | `VARCHAR(32)` | NOT NULL | - | Jenis: `PreEmployment`, `AnnualPeriodic`, `SpecialExposure`, `PostIllnessReturn` |
+| `examination_date` | `DATE` | NOT NULL | - | Tanggal pelaksanaan MCU |
+| `occupational_risk_profile` | `VARCHAR(64)` | NOT NULL | - | Profil risiko unit: `RadiationRisk`, `BiohazardSurgery`, `AirborneIsolation`, `ChemicalCytotoxic`, `GeneralOffice` |
+| `encrypted_clinical_findings_json`| `TEXT` | NOT NULL | - | Temuan fisik dokter terenkripsi |
+| `encrypted_lab_results_json` | `TEXT` | NOT NULL | - | Hasil pemeriksaan laboratorium angka terenkripsi |
+| `thorax_xray_finding` | `VARCHAR(64)` | NULL | - | Kesimpulan rontgen toraks: `Normal`, `SuspiciousTB`, `Cardiomegaly`, `Other` |
+| `overall_fitness_conclusion`| `VARCHAR(32)` | NOT NULL | `'Fit'` | Kesimpulan kelaikan: `Fit`, `FitWithRestriction`, `TemporaryUnfit` |
+| `examining_doctor_name` | `VARCHAR(128)` | NOT NULL | - | Nama dokter pemeriksa kesehatan kerja |
+| `examining_doctor_sip` | `VARCHAR(64)` | NOT NULL | - | Nomor SIP dokter pemeriksa |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Scheduled'` | Status: `Scheduled`, `CompletedPendingVerification`, `VerifiedCertified`, `Cancelled` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pendaftaran MCU |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pencatat |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.3 Tabel `trx_employee_fitness_to_works` (Penetapan Kelaikan Kerja - Fitness to Work)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `fitness_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik penetapan kelaikan |
+| `examination_id` | `UUID` | NOT NULL | - | FK ke `trx_employee_medical_examinations` |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `fitness_status` | `VARCHAR(32)` | NOT NULL | - | Status: `Fit`, `FitWithRestriction`, `TemporaryUnfit`, `PermanentUnfit` |
+| `assessment_date` | `DATE` | NOT NULL | - | Tanggal asesmen kelayakan kerja |
+| `valid_until` | `DATE` | NULL | - | Tanggal batas berlaku kelaikan kerja |
+| `operational_restriction_summary`| `TEXT` | NULL | - | Uraian restriksi penugasan terbuka untuk HR/Atasan (tanpa diagnosis medis) |
+| `doctor_notes` | `TEXT` | NULL | - | Catatan dokter K3RS |
+| `is_approved_by_oh_doctor` | `BOOLEAN` | NOT NULL | `FALSE` | Otorisasi resmi dokter K3RS |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu penetapan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas penilai |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.4 Tabel `trx_work_restrictions` (Surat Rekomendasi Pembatasan Tugas Dinas)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `restriction_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik pembatasan dinas |
+| `fitness_id` | `UUID` | NOT NULL | - | FK ke `trx_employee_fitness_to_works` |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `restriction_number` | `VARCHAR(64)` | NOT NULL | - | Nomor registrasi surat restriksi (mis. `RST-K3RS-2026-042`) |
+| `restriction_type` | `VARCHAR(64)` | NOT NULL | - | Jenis: `NoNightShift`, `NoHeavyLifting`, `NoAirborneArea`, `NoRadiationArea`, `ErgonomicSeatedOnly` |
+| `start_date` | `DATE` | NOT NULL | - | Tanggal mulai berlakunya pembatasan tugas |
+| `end_date` | `DATE` | NOT NULL | - | Tanggal batas akhir restriksi |
+| `operational_directives` | `TEXT` | NOT NULL | - | Arahan operasional bagi Kepala Ruangan |
+| `disallow_night_shift` | `BOOLEAN` | NOT NULL | `FALSE` | Kunci pemblokir shift malam di Sub-06 (`INT-HR-89`) |
+| `disallow_heavy_lifting` | `BOOLEAN` | NOT NULL | `FALSE` | Pembatasan beban angkat berat |
+| `disallow_infectious_airborne_area`| `BOOLEAN`| NOT NULL | `FALSE` | Kunci larangan penugasan ruang isolasi airborne |
+| `disallow_radiation_area`| `BOOLEAN` | NOT NULL | `FALSE` | Kunci larangan penugasan area radiasi |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Active'` | Status: `Active`, `UnderReview`, `ClearedOnAssessment`, `Expired` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu penerbitan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas dokter penerbit |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.5 Tabel `trx_return_to_work_assessments` (Evaluasi Kelayakan Kembali Bertugas)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `assessment_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik berkas evaluasi kembali kerja |
+| `restriction_id` | `UUID` | NOT NULL | - | FK ke `trx_work_restrictions` |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `assessment_date` | `DATE` | NOT NULL | - | Tanggal sidang pemeriksaan fisik pemulihan |
+| `physical_exam_findings` | `TEXT` | NOT NULL | - | Temuan pemeriksaan fisik pemulihan kerja |
+| `conclusion_status` | `VARCHAR(32)` | NOT NULL | - | Kesimpulan: `ClearedFullDuty`, `ExtendRestriction`, `ModifyRestriction`, `Unfit` |
+| `evaluator_doctor_name` | `VARCHAR(128)` | NOT NULL | - | Nama dokter K3RS penilai |
+| `is_restriction_lifted` | `BOOLEAN` | NOT NULL | `FALSE` | Indikator pencabutan sah pembatasan kerja di Sub-06 |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Completed'` | Status dokumen: `Completed` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas penilai |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.6 Tabel `trx_employee_vaccinations` (Registri Vaksinasi Staf RS)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `vaccination_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik data vaksinasi |
+| `health_record_id` | `UUID` | NOT NULL | - | FK ke `wfp_health_records` |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `vaccine_name` | `VARCHAR(64)` | NOT NULL | - | Nama vaksin: `HepatitisB`, `InfluenzaAnnual`, `Varicella`, `MMR`, `DTP` |
+| `dose_number` | `INT` | NOT NULL | - | Dosis ke-N (1, 2, 3, Booster) |
+| `administered_date` | `DATE` | NOT NULL | - | Tanggal penyuntikan vaksin |
+| `batch_number` | `VARCHAR(64)` | NOT NULL | - | Nomor batch pabrikan vaksin |
+| `expiry_date` | `DATE` | NOT NULL | - | Tanggal kedaluwarsa vial vaksin |
+| `administered_by` | `VARCHAR(128)` | NOT NULL | - | Nama vaksinator / fasyankes |
+| `next_booster_due_date`| `DATE` | NULL | - | Tanggal perkiraan jatuh tempo booster |
+| `status` | `VARCHAR(32)` | NOT NULL | `'ValidActive'` | Status: `ValidActive`, `DueBooster`, `Expired` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pencatat |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.7 Tabel `trx_employee_health_surveillances` (Surveillance Risiko & Titer Antibodi)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `surveillance_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik lembar surveillance |
+| `health_record_id` | `UUID` | NOT NULL | - | FK ke `wfp_health_records` |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `hazard_category` | `VARCHAR(64)` | NOT NULL | - | Kategori: `RadiationTLD`, `AntiHbsTiter`, `SpirometryNoise`, `ChemicalExposure` |
+| `monitoring_period_start`| `DATE` | NOT NULL | - | Tanggal mulai periode pemantauan |
+| `monitoring_period_end` | `DATE` | NOT NULL | - | Tanggal akhir periode pemantauan |
+| `radiation_dose_msv` | `NUMERIC(8,4)` | NULL | - | Dosis radiasi kumulatif dalam mSv |
+| `antibody_titer_value` | `NUMERIC(10,2)`| NULL | - | Nilai titer antibodi (anti-HBs) |
+| `titer_unit` | `VARCHAR(32)` | NULL | - | Satuan nilai (mis. `mIU/mL`) |
+| `is_protective_level_achieved`| `BOOLEAN`| NOT NULL | `TRUE` | Apakah titer >= 10 mIU/mL (protektif) |
+| `surveillance_conclusion`| `TEXT` | NOT NULL | - | Kesimpulan pemantauan bahaya kerja |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pencatat |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.8 Tabel `trx_needle_stick_incidents` (Insiden Tertusuk Jarum Cito)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `incident_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik insiden jarum |
+| `employee_id` | `UUID` | NOT NULL | - | ID pegawai tertusuk jarum (FK ke `mst_workforce_profiles`) |
+| `incident_number` | `VARCHAR(64)` | NOT NULL | - | Nomor dokumen cito (mis. `NSI-2026-11-0021`) |
+| `incident_timestamp` | `TIMESTAMPTZ` | NOT NULL | - | Waktu tepat terjadinya tusukan jarum |
+| `incident_location` | `VARCHAR(255)` | NOT NULL | - | Lokasi (mis. Ruang Rawat Inap Bedah, Depo Farmasi) |
+| `needle_device_type` | `VARCHAR(128)` | NOT NULL | - | Jenis alat: `Syringe`, `IVCannula`, `SutureNeedle`, `Lancet`, `Scalpel` |
+| `source_patient_mrn` | `VARCHAR(64)` | NULL | - | Nomor rekam medis pasien sumber pajanan |
+| `is_source_known` | `BOOLEAN` | NOT NULL | `TRUE` | Apakah pasien sumber teridentifikasi |
+| `source_serology_status` | `VARCHAR(64)` | NULL | - | Status serologi sumber: `HIV_Positive`, `HepB_Positive`, `HepC_Positive`, `Negative`, `Unknown` |
+| `is_pep_administered` | `BOOLEAN` | NOT NULL | `FALSE` | Konfirmasi pemberian obat Profilaksis Pasca Pajanan (PEP) |
+| `pep_administered_time`| `TIMESTAMPTZ` | NULL | - | Waktu inisiasi PEP pertama kali (SLA < 4 jam) |
+| `pep_regimen_description`| `TEXT` | NULL | - | Regimen obat yang diberikan (ARV/Immunoglobulin) |
+| `status` | `VARCHAR(32)` | NOT NULL | `'ReportedCito'` | Status: `ReportedCito`, `PepAdministered`, `MonitoringSerial`, `ClearedNegative`, `ChronicReferred` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pelaporan cito |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pelapor |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.9 Tabel `trx_occupational_exposures` (Pajanan Okupasional & Radar Serologi Serial)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `exposure_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik berkas pajanan |
+| `needle_stick_incident_id`| `UUID` | NULL | - | FK ke insiden jarum jika berasal dari tusukan jarum |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `exposure_type` | `VARCHAR(64)` | NOT NULL | - | Jenis: `BloodBodyFluidSplash`, `ChemicalInhalation`, `RadiationAccident` |
+| `exposure_timestamp` | `TIMESTAMPTZ` | NOT NULL | - | Waktu paparan zat/cairan infeksius |
+| `body_part_exposed` | `VARCHAR(128)` | NOT NULL | - | Anggota tubuh terpapar (mis. Mukosa Mata, Kulit Terbuka) |
+| `severity_level` | `VARCHAR(32)` | NOT NULL | `'High'` | Tingkat keparahan: `Low`, `Medium`, `High`, `Critical` |
+| `month_1_serology_date`| `DATE` | NOT NULL | - | Tanggal jadwal kontrol serologi Bulan ke-1 |
+| `month_3_serology_date`| `DATE` | NOT NULL | - | Tanggal jadwal kontrol serologi Bulan ke-3 |
+| `month_6_serology_date`| `DATE` | NOT NULL | - | Tanggal jadwal kontrol serologi Bulan ke-6 |
+| `final_serology_outcome`| `VARCHAR(64)` | NULL | - | Hasil akhir serologi: `NegativeNonReactive`, `SeroconvertedReferred`, `Pending` |
+| `status` | `VARCHAR(32)` | NOT NULL | `'UnderMonitoring'` | Status: `UnderMonitoring`, `ClosedCleared`, `ClosedPositiveReferred` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pencatatan berkas |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran berkas |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pencatat |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+---
+
+### 24.10 Tabel `trx_employee_injuries` (Kecelakaan Kerja KAK/PAK & Klaim BPJS JKK)
+
+| Kolom | Tipe Data | Nullable | Default | Deskripsi / Domain |
+|---|---|---|---|---|
+| `injury_id` | `UUID` | NOT NULL | `gen_random_uuid()` | Kunci primer unik insiden kecelakaan kerja |
+| `employee_id` | `UUID` | NOT NULL | - | FK ke `mst_workforce_profiles` |
+| `incident_number` | `VARCHAR(64)` | NOT NULL | - | Nomor berkas insiden (mis. `KAK-2026-11-0012`) |
+| `incident_timestamp` | `TIMESTAMPTZ` | NOT NULL | - | Waktu kejadian kecelakaan kerja |
+| `incident_location` | `VARCHAR(255)` | NOT NULL | - | Lokasi spesifik kejadian |
+| `injury_description` | `TEXT` | NOT NULL | - | Kronologi dan mekanisme terjadinya kecelakaan |
+| `affected_body_parts` | `VARCHAR(255)` | NOT NULL | - | Anggota tubuh cedera (mis. Fraktur Radius Kanan, Luka Robek Jari) |
+| `lost_time_days` | `INT` | NOT NULL | `0` | Jumlah hari kerja hilang (*Lost Time Injury* - LTI) |
+| `root_cause_analysis` | `TEXT` | NOT NULL | - | Analisis akar masalah keselamatan kerja K3RS (CAPA) |
+| `corrective_action_plan`| `TEXT` | NOT NULL | - | Rencana tindakan perbaikan dan pencegahan berulang |
+| `bpjs_stage_1_report_number`| `VARCHAR(64)`| NULL | - | Nomor registrasi pelaporan BPJS Ketenagakerjaan Tahap I (Formulir 3a) |
+| `bpjs_stage_1_submitted_at`| `TIMESTAMPTZ`| NULL | - | Waktu pengiriman laporan Tahap I (SLA maks 2x24 jam) |
+| `bpjs_stage_2_report_number`| `VARCHAR(64)`| NULL | - | Nomor registrasi pelaporan BPJS Tahap II (Formulir 3b) |
+| `bpjs_stage_2_submitted_at`| `TIMESTAMPTZ`| NULL | - | Waktu pengiriman laporan Tahap II pasca perawatan tuntas |
+| `status` | `VARCHAR(32)` | NOT NULL | `'Reported'` | Status: `Reported`, `InInvestigation`, `BpjsStage1Submitted`, `TreatmentCompleted`, `BpjsStage2Finalized` |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pelaporan |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Waktu pemutakhiran data |
+| `created_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pelapor |
+| `updated_by` | `VARCHAR(128)` | NOT NULL | - | Identitas pengubah |
+
+
+---
+
+## 25. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 25.1 Tabel `trx_workflow_instances` (Instansiasi Alur Kerja Persetujuan)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan data induk tiket permohonan kepegawaian yang berjalan melalui workflow engine terpadu.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `workflow_number` | `string` | `VARCHAR(50)` | Tidak | Nomor registrasi unik tiket permohonan (misal: `WF-202611-0001`), Unique Index | Tidak |
+| `request_type` | `string` | `VARCHAR(50)` | Tidak | Tipe permohonan (`Leave`, `Overtime`, `ShiftExchange`, `AttendanceCorrection`, `Reimbursement`, `Termination`, `Training`, `HrLetter`) | Tidak |
+| `reference_domain` | `string` | `VARCHAR(50)` | Tidak | Nama domain modul hilir pemilik entitas asli (`LeaveManagement`, `SchedulingManagement`, dll.) | Tidak |
+| `reference_entity_id` | `Guid` | `UUID` | Tidak | ID entitas permohonan asli pada modul hilir | Tidak |
+| `applicant_employee_id`| `Guid` | `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Staf pemohon) | Ya |
+| `department_id` | `Guid` | `UUID` | Tidak | Foreign Key ke `mst_departments.id` (Unit kerja pemohon saat pengajuan) | Tidak |
+| `amount` | `decimal?` | `NUMERIC(14,2)` | Ya | Nilai nominal finansial jika permohonan berupa reimbursement/pinjaman | Ya |
+| `priority_level` | `string` | `VARCHAR(20)` | Tidak | Tingkat prioritas (`Normal`, `Urgent`, `EmergencyCito`) | Tidak |
+| `current_status` | `string` | `VARCHAR(30)` | Tidak | Status terkini (`Draft`, `Submitted`, `UnderReview`, `ReturnedForRevision`, `Approved`, `Rejected`, `Cancelled`) | Tidak |
+| `current_step_number` | `int` | `INTEGER` | Tidak | Nomor tahapan persetujuan aktif (1..n) | Tidak |
+| `total_steps` | `int` | `INTEGER` | Tidak | Total tahapan persetujuan yang harus dilalui | Tidak |
+| `submitted_at` | `DateTime` | `TIMESTAMPTZ` | Tidak | Waktu pengajuan resmi ke workflow | Tidak |
+| `sla_deadline` | `DateTime?` | `TIMESTAMPTZ` | Ya | Batas waktu tanggap persetujuan sesuai matriks SLA | Tidak |
+| `is_overdue` | `bool` | `BOOLEAN` | Tidak | Penanda apakah permohonan telah melewati batas waktu SLA | Tidak |
+| `finalized_at` | `DateTime?` | `TIMESTAMPTZ` | Ya | Waktu permohonan selesai tuntas (Approved atau Rejected) | Tidak |
+
+---
+
+### 25.2 Tabel `trx_workflow_step_instances` (Tahapan Alur Persetujuan)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan data setiap tahapan persetujuan yang wajib dilalui sebuah workflow instance.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `workflow_instance_id`| `Guid` | `UUID` | Tidak | Foreign Key ke `trx_workflow_instances.id`, Index | Tidak |
+| `step_number` | `int` | `INTEGER` | Tidak | Urutan tahapan (1, 2, 3, dst.) | Tidak |
+| `step_name` | `string` | `VARCHAR(100)`| Tidak | Nama tahapan (misal: "Persetujuan Kepala Ruangan", "Verifikasi Komite Medik") | Tidak |
+| `required_role` | `string` | `VARCHAR(50)` | Tidak | Peran otorisasi minimum yang dibutuhkan (`Supervisor`, `HeadOfDepartment`, `Director`) | Tidak |
+| `step_status` | `string` | `VARCHAR(30)` | Tidak | Status tahapan (`Pending`, `InReview`, `Approved`, `Rejected`, `Skipped`) | Tidak |
+| `due_date` | `DateTime?` | `TIMESTAMPTZ` | Ya | Batas waktu penyelesaian tahapan spesifik ini | Tidak |
+| `completed_at` | `DateTime?` | `TIMESTAMPTZ` | Ya | Waktu tahapan berhasil diselesaikan | Tidak |
+
+---
+
+### 25.3 Tabel `trx_workflow_approver_assignments` (Penugasan Pejabat Approver)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan data pejabat approver yang ditugaskan untuk mengevaluasi suatu tahapan persetujuan.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `workflow_step_instance_id`| `Guid` | `UUID`| Tidak | Foreign Key ke `trx_workflow_step_instances.id`, Index | Tidak |
+| `approver_employee_id` | `Guid` | `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Pejabat approver definitif) | Ya |
+| `delegated_employee_id`| `Guid?` | `UUID` | Ya | Foreign Key ke `mst_workforce_profiles.id` (Pejabat penerima delegasi/Plh jika aktif) | Ya |
+| `is_delegated` | `bool` | `BOOLEAN` | Tidak | Penanda apakah wewenang sedang dialihkan ke Plh | Tidak |
+| `assignment_status` | `string` | `VARCHAR(30)` | Tidak | Status penugasan (`Assigned`, `Actioned`, `Escalated`, `Revoked`) | Tidak |
+| `assigned_at` | `DateTime` | `TIMESTAMPTZ` | Tidak | Waktu tiket masuk ke inbox approver | Tidak |
+
+---
+
+### 25.4 Tabel `trx_approval_actions` (Jejak Aksi Otorisasi Approver)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan riwayat eksekusi keputusan otorisasi oleh approver secara imutabel.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `workflow_step_instance_id`| `Guid`| `UUID` | Tidak | Foreign Key ke `trx_workflow_step_instances.id`, Index | Tidak |
+| `action_employee_id` | `Guid` | `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Staf yang menekan tombol aksi) | Ya |
+| `on_behalf_of_employee_id`| `Guid?`| `UUID` | Ya | Foreign Key ke `mst_workforce_profiles.id` (Pejabat definitif bila Plh bertindak) | Ya |
+| `action_type` | `string` | `VARCHAR(30)` | Tidak | Jenis keputusan (`Approve`, `Reject`, `ReturnForRevision`, `Escalate`) | Tidak |
+| `reason_comment` | `string` | `TEXT` | Ya | Alasan tertulis (wajib minimal 15 karakter jika `action_type = 'Reject'`) | Tidak |
+| `action_timestamp` | `DateTime` | `TIMESTAMPTZ` | Tidak | Waktu persis penandatanganan keputusan | Tidak |
+| `digital_signature_hash`| `string`| `VARCHAR(256)`| Ya | Hash cryptographic tanda tangan digital keputusan persetujuan | Tidak |
+
+---
+
+### 25.5 Tabel `trx_approval_delegations` (Registrasi Pendelegasian Wewenang / Plh)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan data surat kuasa digital penunjukan Pelaksana Harian (Plh) saat atasan berhalangan.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `principal_employee_id`| `Guid` | `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Pejabat definitif pemberi wewenang) | Ya |
+| `delegate_employee_id` | `Guid` | `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Pegawai pengganti penerima wewenang / Plh) | Ya |
+| `start_date` | `DateTime` | `DATE` | Tidak | Tanggal awal berlakunya delegasi wewenang | Tidak |
+| `end_date` | `DateTime` | `DATE` | Tidak | Tanggal akhir berlakunya delegasi wewenang | Tidak |
+| `delegated_request_types`| `string` | `VARCHAR(200)`| Tidak | Daftar tipe permohonan yang didelegasikan (koma dipisah atau `ALL`) | Tidak |
+| `delegation_reason` | `string` | `VARCHAR(255)`| Tidak | Alasan pendelegasian wewenang (Cuti Tahunan, Dinas Luar, Sakit) | Tidak |
+| `is_active` | `bool` | `BOOLEAN` | Tidak | Penanda status keaktifan delegasi | Tidak |
+| `created_at` | `DateTime` | `TIMESTAMPTZ` | Tidak | Waktu pendaftaran surat kuasa delegasi | Tidak |
+
+---
+
+### 25.6 Tabel `trx_workflow_comments` (Thread Komentar & Catatan Revisi)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan percakapan catatan klarifikasi dan instruksi revisi antara approver dan staf pemohon.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `workflow_instance_id`| `Guid` | `UUID` | Tidak | Foreign Key ke `trx_workflow_instances.id`, Index | Tidak |
+| `author_employee_id` | `Guid` | `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Penulis komentar) | Ya |
+| `comment_text` | `string` | `TEXT` | Tidak | Isi teks komentar klarifikasi atau catatan revisi | Tidak |
+| `is_internal_review_only`| `bool` | `BOOLEAN` | Tidak | Penanda catatan rahasia antar approver (tidak tampak oleh pemohon) | Tidak |
+| `created_at` | `DateTime` | `TIMESTAMPTZ` | Tidak | Waktu komentar dikirimkan | Tidak |
+
+---
+
+### 25.7 Tabel `trx_workflow_attachments` (Berkas Lampiran Permohonan)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan metadata dokumen bukti fisik atau lampiran pendukung tiket permohonan.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `workflow_instance_id`| `Guid` | `UUID` | Tidak | Foreign Key ke `trx_workflow_instances.id`, Index | Tidak |
+| `file_name` | `string` | `VARCHAR(255)`| Tidak | Nama berkas asli | Tidak |
+| `file_storage_path` | `string` | `VARCHAR(500)`| Tidak | Path penyimpanan berkas terenkripsi pada storage server | Tidak |
+| `file_size_bytes` | `long` | `BIGINT` | Tidak | Ukuran berkas dalam satuan byte | Tidak |
+| `file_extension` | `string` | `VARCHAR(10)` | Tidak | Ekstensi berkas (`.pdf`, `.jpg`, `.png`, dll.) | Tidak |
+| `uploaded_at` | `DateTime` | `TIMESTAMPTZ` | Tidak | Waktu berkas diunggah | Tidak |
+
+---
+
+### 25.8 Tabel `trx_workflow_status_histories` (Rekam Jejak Kronologis Siklus Hidup)
+* **Modul Pemilik:** Workflow Management
+* **Status Tabel:** Diperbarui (Hardening V2)
+* **Deskripsi:** Menyimpan catatan audit permanen setiap perpindahan status workflow demi kepatuhan hukum dan akreditasi.
+
+| Nama Kolom | Tipe C# | Tipe PostgreSQL | Null | Keterangan & Batasan Validasi | Sensitif |
+|---|---|---|:---:|---|:---:|
+| `id` | `Guid` | `UUID` | Tidak | Primary Key | Tidak |
+| `workflow_instance_id`| `Guid` | `UUID` | Tidak | Foreign Key ke `trx_workflow_instances.id`, Index | Tidak |
+| `previous_status` | `string` | `VARCHAR(30)` | Ya | Status sebelum perpindahan | Tidak |
+| `new_status` | `string` | `VARCHAR(30)` | Tidak | Status baru yang dicapai | Tidak |
+| `changed_by_employee_id`| `Guid`| `UUID` | Tidak | Foreign Key ke `mst_workforce_profiles.id` (Aktor atau System Worker) | Ya |
+| `change_reason` | `string` | `VARCHAR(255)`| Ya | Alasan perubahan status (misal: "Eskalasi Otomatis Timeout SLA") | Tidak |
+| `changed_at` | `DateTime` | `TIMESTAMPTZ` | Tidak | Timestamp perubahan status | Tidak |

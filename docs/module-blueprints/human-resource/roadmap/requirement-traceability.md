@@ -1335,3 +1335,95 @@ Bagian ini mendokumentasikan pemetaan deterministik 100% tanpa celah antara kebu
 - **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
 - **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
 - **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis ketenagakerjaan rumah sakit, 6 keputusan otoritas hubungan industrial & terminasi (`HRD-DEC-170` s.d. `HRD-DEC-175`), 4 asumsi teknis (`HRD-ASM-59` s.d. `HRD-ASM-62`), 22 skenario acceptance tests (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-270` s.d. `BE-HRD-285`) dan 15 task frontend (`FE-HRD-246` s.d. `FE-HRD-260`).
+
+
+---
+
+### Bagian 1q: Matriks Keterlacakan Kebutuhan Slice `S-C6` (Occupational Health & Staff Safety / K3RS & MCU)
+
+Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirement Traceability*) untuk **Slice `S-C6` (Sub-Modul 19)** yang menghubungkan kebutuhan fungsional (`FR-OHS-01` s.d. `FR-OHS-25`), keputusan bisnis (`HRD-DEC-176` s.d. `HRD-DEC-181` serta resolusi `HRD-DEC-010`), asumsi teknis (`HRD-ASM-63` s.d. `HRD-ASM-66`), kontrak API v23, 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`), 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`), serta 22 skenario pengujian acceptance (`AT-HRD-OHS-01` s.d. `AT-HRD-OHS-22`) dan 5 skenario UAT terpadu.
+
+#### 1. Tabel Keterlacakan Kebutuhan Fungsional Bisnis (Functional Requirements Traceability)
+
+| Kode Kebutuhan | Deskripsi Kebutuhan Bisnis K3RS & MCU | Task Backend Terkait | Task Frontend Terkait | Kontrak API Terkait | Acceptance Test Terkait | Status |
+|---|---|---|---|---|---|---|
+| `FR-OHS-01` | Registrasi berkas rekam kesehatan staf awal & riwayat medis | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-261`, `FE-HRD-264` | `POST /api/v1/hrd/health-records` | `AT-HRD-OHS-01` | `Rencana` |
+| `FR-OHS-02` | Enkripsi AES-256 field medis klinis (ICD-10, rontgen, serologi) | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-262`, `FE-HRD-264` | `GET /api/v1/hrd/health-records/{id}` | `AT-HRD-OHS-01` | `Rencana` |
+| `FR-OHS-03` | Pemisahan tampilan HR vs Klinis Dokter (HRD-DEC-176) | `BE-HRD-288`, `BE-HRD-289` | `FE-HRD-263`, `FE-HRD-264` | `GET /api/v1/hrd/health-records/summary` | `AT-HRD-OHS-02`, `AT-HRD-OHS-03` | `Rencana` |
+| `FR-OHS-04` | Penilaian status kelaikan kerja (Fitness to Work) dokter Hiperkes | `BE-HRD-290` | `FE-HRD-264`, `FE-HRD-265` | `POST /api/v1/hrd/fitness-to-work` | `AT-HRD-OHS-04` | `Rencana` |
+| `FR-OHS-05` | Penerbitan surat pembatasan tugas medis (Work Restriction) | `BE-HRD-291` | `FE-HRD-266` | `POST /api/v1/hrd/work-restrictions` | `AT-HRD-OHS-05` | `Rencana` |
+| `FR-OHS-06` | Hard-Stop penjadwalan roster Sub-06 saat restriksi aktif (INT-HR-89) | `BE-HRD-291` | `FE-HRD-266`, `FE-HRD-275` | Event `WorkRestrictionEnforced` | `AT-HRD-OHS-06` | `Rencana` |
+| `FR-OHS-07` | Asesmen kelaikan kembali bertugas penuh (Return-to-Work / RTW) | `BE-HRD-293` | `FE-HRD-267` | `POST /api/v1/hrd/return-to-work` | `AT-HRD-OHS-07` | `Rencana` |
+| `FR-OHS-08` | Tombol panik darurat tertusuk jarum mobile ESS staf (< 5 detik) | `BE-HRD-294` | `FE-HRD-268`, `FE-HRD-269` | `POST /api/v1/hrd/needle-stick/emergency`| `AT-HRD-OHS-08` | `Rencana` |
+| `FR-OHS-09` | Formulir triase darurat pajanan darah cito di IGD/K3RS < 1 jam | `BE-HRD-294` | `FE-HRD-268` | `POST /api/v1/hrd/needle-stick/triage` | `AT-HRD-OHS-08` | `Rencana` |
+| `FR-OHS-10` | Fast-track resep terapi PPP/PEP < 4 jam ke Depo Farmasi (INT-HR-91) | `BE-HRD-295` | `FE-HRD-268` | `POST /api/v1/hrd/needle-stick/pep-order`| `AT-HRD-OHS-09` | `Rencana` |
+| `FR-OHS-11` | Inisiasi otomatis protokol pemantauan serial bulan 1, 3, dan 6 | `BE-HRD-296` | `FE-HRD-268` | `GET /api/v1/hrd/surveillance/serial` | `AT-HRD-OHS-10` | `Rencana` |
+| `FR-OHS-12` | Evaluasi akhir serologi bulan ke-6 & penutupan bebas infeksi | `BE-HRD-296` | `FE-HRD-268` | `PUT /api/v1/hrd/needle-stick/{id}/close` | `AT-HRD-OHS-11` | `Rencana` |
+| `FR-OHS-13` | Penjadwalan paket MCU berkala massal atau perorangan | `BE-HRD-299` | `FE-HRD-272` | `POST /api/v1/hrd/mcu/schedule` | `AT-HRD-OHS-12` | `Rencana` |
+| `FR-OHS-14` | Matriks penapisan MCU otomatis berbasis risiko ruangan kerja | `BE-HRD-288`, `BE-HRD-299` | `FE-HRD-272` | `GET /api/v1/hrd/mcu/hazard-packages` | `AT-HRD-OHS-12` | `Rencana` |
+| `FR-OHS-15` | Integrasi unggah berkas hasil uji penunjang LIS & PACS terenkripsi | `BE-HRD-299` | `FE-HRD-272` | `POST /api/v1/hrd/mcu/{id}/upload-result`| `AT-HRD-OHS-01` | `Rencana` |
+| `FR-OHS-16` | Digital signature dokter & status imutabel hasil MCU disahkan | `BE-HRD-290`, `BE-HRD-299` | `FE-HRD-265`, `FE-HRD-272` | `PUT /api/v1/hrd/mcu/{id}/sign` | `AT-HRD-OHS-13` | `Rencana` |
+| `FR-OHS-17` | Registrasi log vaksinasi staf lengkap nomor batch & pabrikan | `BE-HRD-297` | `FE-HRD-270` | `POST /api/v1/hrd/vaccinations` | `AT-HRD-OHS-14` | `Rencana` |
+| `FR-OHS-18` | Dasbor radar pemantauan imunitas staf akreditasi STARKES KPS | `BE-HRD-297` | `FE-HRD-270` | `GET /api/v1/hrd/vaccinations/radar` | `AT-HRD-OHS-15` | `Rencana` |
+| `FR-OHS-19` | Tiket rujukan booster otomatis bagi titer Anti-HBs < 10 mIU/mL | `BE-HRD-297` | `FE-HRD-270` | `POST /api/v1/hrd/vaccinations/auto-booster`| `AT-HRD-OHS-15`, `AT-HRD-OHS-16` | `Rencana` |
+| `FR-OHS-20` | Pemantauan dosis serap radiasi TLD & alarm batas ambang Bapeten | `BE-HRD-298` | `FE-HRD-271` | `POST /api/v1/hrd/surveillance/radiation`| `AT-HRD-OHS-17` | `Rencana` |
+| `FR-OHS-21` | Registrasi kecelakaan kerja KAK/PAK, foto TKP & identifikasi korban | `BE-HRD-300` | `FE-HRD-273` | `POST /api/v1/hrd/injuries` | `AT-HRD-OHS-19` | `Rencana` |
+| `FR-OHS-22` | Investigasi keselamatan K3RS, analisis akar masalah (RCA) & CAPA | `BE-HRD-300` | `FE-HRD-273` | `PUT /api/v1/hrd/injuries/{id}/capa` | `AT-HRD-OHS-19` | `Rencana` |
+| `FR-OHS-23` | Generator formulir ekspor BPJS JKK Tahap I < 2x24 jam (INT-HR-90) | `BE-HRD-300` | `FE-HRD-274` | `POST /api/v1/hrd/injuries/{id}/bpjs-stage1`| `AT-HRD-OHS-18` | `Rencana` |
+| `FR-OHS-24` | Pelacakan hari kerja hilang (LTI) sinkron ke presensi Sub-07 | `BE-HRD-300` | `FE-HRD-273` | `GET /api/v1/hrd/injuries/{id}/lti-sync` | `AT-HRD-OHS-20` | `Rencana` |
+| `FR-OHS-25` | Finalisasi klaim santunan biaya medis BPJS JKK Tahap II & kwitansi | `BE-HRD-300`, `BE-HRD-301` | `FE-HRD-274` | `POST /api/v1/hrd/injuries/{id}/bpjs-stage2`| `AT-HRD-OHS-21` | `Rencana` |
+
+---
+
+#### 2. Tabel Keterlacakan Keputusan Bisnis & Kebijakan K3RS
+
+| Kode Keputusan / Asumsi | Ringkasan Kebijakan Bisnis yang Diputuskan | Implementasi Task Backend | Implementasi Task Frontend | Bukti Verifikasi / Test |
+|---|---|---|---|---|
+| `HRD-DEC-010` / `HRD-DEC-176` | Resolusi Privasi Medis: Field-Level Access Separation, AES-256 data klinis | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-262`, `FE-HRD-264` | `AT-HRD-OHS-01`, `AT-HRD-OHS-02`, `AT-HRD-OHS-03` |
+| `HRD-DEC-177` | SLA Emas Pajanan: Tombol panik ESS < 5 detik, Terapi PPP < 4 jam, Pemantauan 1-3-6 bln | `BE-HRD-294`, `BE-HRD-295`, `BE-HRD-296` | `FE-HRD-268`, `FE-HRD-269` | `AT-HRD-OHS-08`, `AT-HRD-OHS-09`, `AT-HRD-OHS-10`, `AT-HRD-OHS-11` |
+| `HRD-DEC-178` | MCU Berbasis Profil Risiko Ruangan & Radar Kepatuhan Akreditasi STARKES KPS | `BE-HRD-288`, `BE-HRD-299` | `FE-HRD-267`, `FE-HRD-272` | `AT-HRD-OHS-12`, `AT-HRD-OHS-22` |
+| `HRD-DEC-179` | Radar Imunisasi Nakes: Log batch vaksin, Titer Anti-HBs < 10 mIU/mL auto-booster H-30 | `BE-HRD-297` | `FE-HRD-270` | `AT-HRD-OHS-14`, `AT-HRD-OHS-15`, `AT-HRD-OHS-16` |
+| `HRD-DEC-180` | Surat Work Restriction: Hard-stop validasi Sub-06 (INT-HR-89) & Asesmen RTW wajib | `BE-HRD-291`, `BE-HRD-292`, `BE-HRD-293` | `FE-HRD-266`, `FE-HRD-267`, `FE-HRD-275` | `AT-HRD-OHS-05`, `AT-HRD-OHS-06`, `AT-HRD-OHS-07` |
+| `HRD-DEC-181` | Klaim BPJS JKK Tahap I < 2x24 jam (INT-HR-90), Investigasi CAPA & Hari Hilang LTI | `BE-HRD-300`, `BE-HRD-301` | `FE-HRD-273`, `FE-HRD-274` | `AT-HRD-OHS-18`, `AT-HRD-OHS-19`, `AT-HRD-OHS-20`, `AT-HRD-OHS-21` |
+| `HRD-ASM-63` | Format payload ciphertext terisolasi dalam kolom JSONB/String terenkripsi | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-264` | `AT-HRD-OHS-01` |
+| `HRD-ASM-64` | Kit darurat PPP tersedia standby di Depo Farmasi IGD 24 jam non-stop | `BE-HRD-295` | `FE-HRD-268` | `AT-HRD-OHS-09` |
+| `HRD-ASM-65` | Integrasi data bacaan badge TLD batch-import dari berkas laboratorium Bapeten | `BE-HRD-298` | `FE-HRD-271` | `AT-HRD-OHS-17` |
+| `HRD-ASM-66` | API Gateway e-Klaim JKK BPJS menggunakan format JSON REST resmi BPJS | `BE-HRD-300` | `FE-HRD-274` | `AT-HRD-OHS-18` |
+
+---
+
+#### 3. Tabel Keterlacakan Kriteria Pengujian Penerimaan (Acceptance Test Traceability)
+
+| Kode Pengujian | Target Komponen yang Diuji | Task Backend Terkait | Task Frontend Terkait | Status Pengujian |
+|---|---|---|---|---|
+| `AT-HRD-OHS-01` | Uji penyimpanan rekam medis klinis dalam bentuk ciphertext AES-256 | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-264` | `Rencana` |
+| `AT-HRD-OHS-02` | Uji isolasi akses: Query HR Admin hanya menghasilkan status kelayakan kerja | `BE-HRD-288`, `BE-HRD-289` | `FE-HRD-263` | `Rencana` |
+| `AT-HRD-OHS-03` | Uji akses mandiri staf membaca hasil MCU pribadinya via portal ESS | `BE-HRD-289` | `FE-HRD-264` | `Rencana` |
+| `AT-HRD-OHS-04` | Uji validasi penolakan kelaikan kerja bila nomor STR/Hiperkes dokter tidak sah | `BE-HRD-290` | `FE-HRD-265` | `Rencana` |
+| `AT-HRD-OHS-05` | Uji penerbitan surat restriksi tugas 'Fit with Restriction' masa maks 6 bulan | `BE-HRD-291` | `FE-HRD-266` | `Rencana` |
+| `AT-HRD-OHS-06` | Uji penolakan keras (Hard-Stop) penyusunan jadwal shift Sub-06 saat restriksi aktif | `BE-HRD-291` | `FE-HRD-266`, `FE-HRD-275` | `Rencana` |
+| `AT-HRD-OHS-07` | Uji asesmen Return-to-Work Fit yang secara instan membuka gembok roster Sub-06 | `BE-HRD-293` | `FE-HRD-267` | `Rencana` |
+| `AT-HRD-OHS-08` | Uji sirene notifikasi cito < 5 detik tombol darurat tertusuk jarum di portal ESS | `BE-HRD-294` | `FE-HRD-268`, `FE-HRD-269` | `Rencana` |
+| `AT-HRD-OHS-09` | Uji kepatuhan SLA pemberian Profilaksis Pasca Pajanan (PPP) < 4 jam dari insiden | `BE-HRD-295` | `FE-HRD-268` | `Rencana` |
+| `AT-HRD-OHS-10` | Uji otomasi pembentukan 3 tonggak jadwal surveilans darah (Bulan 1, 3, dan 6) | `BE-HRD-296` | `FE-HRD-268` | `Rencana` |
+| `AT-HRD-OHS-11` | Uji penutupan kasus insiden pajanan status sembuh non-reaktif pasca tes 6 bulan | `BE-HRD-296` | `FE-HRD-268` | `Rencana` |
+| `AT-HRD-OHS-12` | Uji penapisan paket MCU otomatis berbasis profil bahaya ruangan kerja staf | `BE-HRD-288`, `BE-HRD-299` | `FE-HRD-272` | `Rencana` |
+| `AT-HRD-OHS-13` | Uji imutabilitas hasil pemeriksaan kesehatan pasca pengesahan digital dokter K3RS | `BE-HRD-290`, `BE-HRD-299` | `FE-HRD-265`, `FE-HRD-272` | `Rencana` |
+| `AT-HRD-OHS-14` | Uji validasi penolakan pencatatan vaksinasi jika nomor batch / pabrikan kosong | `BE-HRD-297` | `FE-HRD-270` | `Rencana` |
+| `AT-HRD-OHS-15` | Uji deteksi otomatis titer Anti-HBs < 10 mIU/mL & penerbitan rujukan booster | `BE-HRD-297` | `FE-HRD-270` | `Rencana` |
+| `AT-HRD-OHS-16` | Uji pengiriman notifikasi pengingat booster vaksinasi pada H-30 sebelum expired | `BE-HRD-297` | `FE-HRD-270` | `Rencana` |
+| `AT-HRD-OHS-17` | Uji alarm peringatan dosis radiasi TLD melebihi batas kumulatif 20 mSv/tahun | `BE-HRD-298` | `FE-HRD-271` | `Rencana` |
+| `AT-HRD-OHS-18` | Uji ekspor formulir pelaporan kecelakaan kerja BPJS JKK Tahap I dalam < 48 jam | `BE-HRD-300` | `FE-HRD-274` | `Rencana` |
+| `AT-HRD-OHS-19` | Uji penyusunan BAP investigasi kecelakaan kerja minimal 2 personel & CAPA | `BE-HRD-300` | `FE-HRD-273` | `Rencana` |
+| `AT-HRD-OHS-20` | Uji sinkronisasi akumulasi hari kerja hilang (LTI) dengan presensi izin sakit | `BE-HRD-300` | `FE-HRD-273` | `Rencana` |
+| `AT-HRD-OHS-21` | Uji validasi kelengkapan berkas klaim reimbursement JKK BPJS Tahap II | `BE-HRD-300`, `BE-HRD-301` | `FE-HRD-274` | `Rencana` |
+| `AT-HRD-OHS-22` | Uji generator laporan kepatuhan MCU dan vaksinasi standar akreditasi STARKES KPS | `BE-HRD-299`, `BE-HRD-301` | `FE-HRD-272` | `Rencana` |
+
+---
+
+#### 4. Analisis Gap Keterkaitan Requirement ke Bukti Verifikasi
+
+- **Total Kebutuhan Fungsional (`FR-OHS-01` s.d. `FR-OHS-25`):** 25 Kebutuhan.
+- **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
+- **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
+- **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis perlindungan keselamatan nakes rumah sakit, resolusi privasi rekam medis `HRD-DEC-010` via `HRD-DEC-176`, 6 keputusan otoritas K3RS (`HRD-DEC-176` s.d. `HRD-DEC-181`), 4 asumsi teknis (`HRD-ASM-63` s.d. `HRD-ASM-66`), 22 skenario acceptance tests (`AT-HRD-OHS-01` s.d. `AT-HRD-OHS-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`) dan 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`).

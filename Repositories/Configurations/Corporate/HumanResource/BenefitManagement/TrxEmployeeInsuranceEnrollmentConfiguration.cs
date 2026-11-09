@@ -15,6 +15,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.SubmittedDate).HasColumnType("timestamp with time zone");
             entity.Property(x => x.EffectiveStartDate).HasColumnType("timestamp with time zone");
             entity.Property(x => x.EffectiveEndDate).HasColumnType("timestamp with time zone");
+            entity.Property(x => x.TerminationDate).HasColumnType("timestamp with time zone");
+            entity.Property(x => x.BpjsKesehatanNumber).HasMaxLength(50);
+            entity.Property(x => x.BpjsKetenagakerjaanNumber).HasMaxLength(50);
+            entity.Property(x => x.PrivateInsurancePolicyNumber).HasMaxLength(100);
+            entity.Property(x => x.TerminationReason).HasMaxLength(255);
             entity.Property(x => x.PremiumAmount).HasPrecision(18, 2);
             entity.Property(x => x.EmployerContributionAmount).HasPrecision(18, 2);
             entity.Property(x => x.EmployeeContributionAmount).HasPrecision(18, 2);

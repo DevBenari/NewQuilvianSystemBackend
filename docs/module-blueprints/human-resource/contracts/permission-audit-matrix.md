@@ -1437,3 +1437,113 @@ Seluruh perubahan siklus, penyesuaian skor kalibrasi, penerbitan kontrak pembina
 | `HRD_SEVERANCE_CALCULATION_FINALIZED` | Rincian pesangon PP 35/2021 disetujui Direktur Keu | `CRITICAL` | SeparationId, GrossAmount, TaxFinal, NetAmount, ApprovedBy |
 | `HRD_EXIT_CLEARANCE_CHECKLIST_APPROVED` | Item serah terima disetujui unit kliring | `MEDIUM` | ChecklistId, DepartmentType, ItemName, ApprovedByUserId |
 | `HRD_FINAL_PAYROLL_UNLOCKED` | Gembok rilis payroll & pesangon dibuka otomatis | `CRITICAL` | SeparationId, EmployeeId, UnlockedAt, AllChecklistsStatus |
+
+
+---
+
+## 27. Sub-Modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up) — Slice `S-C6`
+
+### 27.1 Matriks Hak Akses (Permissions)
+
+| Kode Hak Akses (Permission Key) | Deskripsi Kewenangan | Peran Terotorisasi (Roles) | Batasan & Aturan Keamanan |
+|---|---|---|---|
+| `Hrd.OccupationalHealth.ViewSummary` | Melihat ringkasan dasbor K3RS operasional & statistik kelaikan | HR Admin, Manajer SDM, Komite K3RS, Direksi RS | Hanya menampilkan angka agregat & status operasional |
+| `Hrd.OccupationalHealth.ViewClinicalDetail`| Membaca rincian medis klinis lengkap terenkripsi (ICD-10, lab, rontgen)| Dokter K3RS Bersertifikat, Staf Bersangkutan (ESS) | Terkunci AES-256; HR Admin & Atasan diblokir total |
+| `Hrd.OccupationalHealth.CreateMedicalRecord`| Membuat berkas rekam kesehatan staf awal & riwayat medis | Perawat K3RS, Dokter K3RS | Pencatatan data dasar pra-kerja & kesehatan berkala |
+| `Hrd.OccupationalHealth.ScheduleMcu` | Menjadwalkan pemeriksaan MCU berkala atau khusus staf | Staf Administrasi K3RS, HR Training & Safety | Penentuan tanggal, lokasi, dan paket pemeriksaan |
+| `Hrd.OccupationalHealth.RecordMcuCheckin`| Mencatat kehadiran staf & log pengambilan spesimen MCU | Petugas Registrasi MCU K3RS | Pencetakan label barcode dan bukti kehadiran MCU |
+| `Hrd.OccupationalHealth.UploadMcuResults`| Mengunggah berkas hasil laboratorium & radiologi terenkripsi | Analis Laboratorium, Radiografer, Perawat K3RS | Validasi integritas berkas digital (PDF/DICOM/LIS) |
+| `Hrd.OccupationalHealth.AssessFitnessToWork`| Menerbitkan vonis status kelayakan kerja staf (Fit/Unfit) | Dokter K3RS Bersertifikat Hiperkes | Wajib menyertakan tanda tangan digital sah dokter |
+| `Hrd.OccupationalHealth.IssueWorkRestriction`| Menerbitkan surat pembatasan tugas dinas medis (*Work Restriction*)| Dokter K3RS Bersertifikat Hiperkes | Menyalakan hard-stop validasi penjadwalan Sub-06 |
+| `Hrd.OccupationalHealth.RevokeWorkRestriction`| Memperpanjang atau mencabut surat pembatasan tugas kerja | Dokter K3RS Bersertifikat Hiperkes | Wajib mencatat alasan klinis perubahan status restriksi |
+| `Hrd.OccupationalHealth.AssessReturnToWork`| Melakukan evaluasi kelaikan kembali bekerja penuh (*Return-to-Work*) | Dokter K3RS Bersertifikat Hiperkes | Syarat mutlak pemulihan jadwal dinas normal staf |
+| `Hrd.OccupationalHealth.ReportNeedleStickEmergency`| Menekan tombol darurat pelaporan tertusuk jarum / pajanan darah | Seluruh Pegawai RS (ESS), Atasan Shift | Membuka tiket darurat cito berprioritas tertinggi |
+| `Hrd.OccupationalHealth.TriageNeedleStick`| Melakukan evaluasi triase medis darurat pajanan okupasional | Dokter Jaga IGD, Dokter K3RS | Wajib diselesaikan dalam batas waktu < 1 jam kejadian |
+| `Hrd.OccupationalHealth.PrescribePEP` | Meresepkan terapi Profilaksis Pasca Pajanan (PPP/PEP) HIV/HBV | Dokter K3RS, Dokter Jaga IGD | Batas target pemberian obat profilaksis < 4 jam |
+| `Hrd.OccupationalHealth.ManageSerialSurveillance`| Mengelola jadwal dan hasil surveilans serologi serial 1, 3, 6 bulan | Tim Pencegahan Penyakit Infeksi K3RS | Pemantauan konversi serologis hingga tuntas |
+| `Hrd.OccupationalHealth.RecordVaccination`| Mencatat log vaksinasi staf, nomor batch, dan tanggal kedaluwarsa | Vaksinator K3RS, Perawat K3RS | Pencatatan buku vaksinasi elektronik resmi pegawai |
+| `Hrd.OccupationalHealth.ViewImmunityRadar`| Melihat radar kepatuhan antibodi & titer protektif nakes RS | Komite K3RS, Tim PPI RS, Manajer SDM | Pemantauan cakupan herd immunity staf per ruangan |
+| `Hrd.OccupationalHealth.RecordHazardSurveillance`| Mencatat hasil pemantauan dosis radiasi TLD, audiometri, spirometri | Petugas Proteksi Radiasi (PPR), Staf K3RS | Evaluasi keselamatan lingkungan kerja khusus |
+| `Hrd.OccupationalHealth.ReportOccupationalInjury`| Membuat laporan kecelakaan akibat kerja (KAK/PAK) | Staf Korban, Kepala Ruangan, Supervisor | Dokumentasi awal kronologi, saksi, dan waktu kejadian |
+| `Hrd.OccupationalHealth.InvestigateInjury`| Mengisi berita acara investigasi insiden, RCA, dan rekomendasi CAPA | Tim Investigator K3RS, Manajer Mutu K3RS | Analisis akar masalah keselamatan kerja rumah sakit |
+| `Hrd.OccupationalHealth.SubmitBPJSClaimStage1`| Mengunggah dan mengirim formulir pelaporan BPJS JKK Tahap I | Staf Klaim Asuransi HR K3RS | Pengiriman ke portal BPJS maksimal 2x24 jam insiden |
+| `Hrd.OccupationalHealth.FinalizeBPJSClaimStage2`| Mengajukan berkas penggantian biaya medis BPJS JKK Tahap II | Staf Klaim Asuransi HR K3RS | Pengesahan kwitansi biaya pengobatan dan santunan |
+| `Hrd.OccupationalHealth.ExportStarkesReport`| Mengunduh laporan kepatuhan K3RS standar akreditasi STARKES KPS | Direktur SDM, Komite K3RS, Tim Akreditasi | Format resmi matriks pemenuhan kesehatan pegawai |
+| `Hrd.OccupationalHealth.ConfigureHazardMatrix`| Mengonfigurasi pemetaan bahaya ruangan kerja & paket MCU wajib | Administrator K3RS, Kepala Instalasi K3RS | Pengaturan aturan bisnis penapisan risiko lingkungan |
+| `Hrd.OccupationalHealth.ManageAuditTrail`| Mengaudit rekam jejak akses berkas medis sensitif staf K3RS | Petugas Kepatuhan Privasi Data (DPO), IT Auditor | Verifikasi tidak adanya kebocoran rekam medis |
+
+---
+
+### 27.2 Matriks Jejak Audit Keamanan & Akuntabilitas (Audit Events)
+
+| Kode Peristiwa Audit | Deskripsi Peristiwa | Kategori Tingkat Risiko | Detail Data yang Dicatat |
+|---|---|---|---|
+| `HRD_OHS_CLINICAL_RECORD_ACCESSED` | Berkas rekam medis klinis sensitif staf dibuka | `CRITICAL` | EmployeeId, AccessingDoctorId, RecordId, Purpose, AccessTimestamp |
+| `HRD_OHS_CLINICAL_RECORD_UNAUTHORIZED_BLOCKED`| Upaya akses berkas klinis oleh staf non-medis diblokir | `CRITICAL` | BlockedUserId, TargetEmployeeId, AttemptedEndpoint, ClientIpAddress |
+| `HRD_OHS_FITNESS_TO_WORK_DECIDED` | Putusan status kelaikan kerja staf disahkan | `HIGH` | EmployeeId, FitnessStatus, DoctorLicenseNumber, ValidUntil |
+| `HRD_OHS_WORK_RESTRICTION_ISSUED` | Surat pembatasan tugas kerja resmi diterbitkan | `HIGH` | EmployeeId, RestrictionCategory, ValidUntil, RosterLockApplied |
+| `HRD_OHS_WORK_RESTRICTION_CLEARED` | Pembatasan tugas kerja dicabut pasca asesmen RTW | `MEDIUM` | EmployeeId, RestrictionId, RtwAssessmentId, ClearedAt |
+| `HRD_OHS_NEEDLE_STICK_EMERGENCY_REPORTED`| Tombol darurat tertusuk jarum ditekan via portal ESS | `CRITICAL` | EmployeeId, IncidentTimestamp, ExposureLocation, SirenDispatched |
+| `HRD_OHS_PEP_PRESCRIBED_TIMELY` | Resep Profilaksis Pasca Pajanan diberikan tepat waktu | `HIGH` | IncidentId, EmployeeId, PepStartTime, ElapsedHoursFromIncident |
+| `HRD_OHS_SERIAL_SURVEILLANCE_SCHEDULED`| Jadwal pemantauan serologi serial 1, 3, 6 bulan aktif | `MEDIUM` | IncidentId, EmployeeId, SerialSurveillanceMilestonesList |
+| `HRD_OHS_VACCINATION_LOGGED` | Log imunisasi staf dan nomor batch vaksin dicatat | `LOW` | EmployeeId, VaccineName, BatchNumber, DoseSequence, ExpiryDate |
+| `HRD_OHS_LOW_ANTIBODY_BOOSTER_TRIGGERED`| Titer Anti-HBs non-protektif memicu jadwal booster | `MEDIUM` | EmployeeId, TiterValue, ThresholdValue, AutoBoosterTicketId |
+| `HRD_OHS_RADIATION_DOSE_LIMIT_EXCEEDED`| Dosis serap radiasi TLD melampaui batas ambang aman | `CRITICAL` | EmployeeId, CumulativeDose_mSv, UnitName, UrgentRotationTriggered |
+| `HRD_OHS_INJURY_BPJS_STAGE1_SUBMITTED`| Formulir klaim JKK Tahap I terkirim ke portal BPJS | `HIGH` | InjuryId, BPJSTicketNumber, SubmissionTimestamp, ElapsedHours |
+| `HRD_OHS_INJURY_BPJS_STAGE2_FINALIZED`| Berkas klaim biaya JKK Tahap II selesai dan cair | `HIGH` | InjuryId, BPJSApprovalNumber, ReimbursedAmount, FinalizedAt |
+| `HRD_OHS_STARKES_COMPLIANCE_EXPORTED`| Dokumen kepatuhan K3RS STARKES KPS diunduh resmi | `LOW` | ExportedByUserId, ReportingPeriod, TotalStaffAuditedCount |
+
+
+---
+
+## 28. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 28.1 Matriks Hak Akses (Permissions)
+
+| Kode Hak Akses (Permission Key) | Deskripsi Kewenangan | Peran Terotorisasi (Roles) | Batasan & Aturan Keamanan |
+|---|---|---|---|
+| `Hrd.Workflow.ViewInbox` | Melihat kotak masuk persetujuan terpadu pribadi | Kepala Ruangan, Supervisor, Manajer, Direksi, Plh | Hanya menampilkan tiket yang ditugaskan ke approver |
+| `Hrd.Workflow.ViewInstanceDetail` | Membaca rincian lengkap tiket permohonan, data pemohon, dan lampiran | Pemohon Asli, Approver Aktif, HR Admin | Pemohon hanya bisa melihat tiket miliknya sendiri |
+| `Hrd.Workflow.ApproveRequest` | Mengeksekusi keputusan persetujuan pada tahapan aktif | Approver Ditugaskan, Pejabat Plh Sah | Dilarang self-approval (`VR-WF-02`); wajib PIN |
+| `Hrd.Workflow.RejectRequest` | Menolak permohonan kepegawaian | Approver Ditugaskan, Pejabat Plh Sah | Wajib menyertakan alasan tertulis minimal 15 karakter |
+| `Hrd.Workflow.ReturnForRevision` | Mengembalikan permohonan ke staf untuk perbaikan data | Approver Ditugaskan, Pejabat Plh Sah | Wajib memberikan instruksi perbaikan tertulis |
+| `Hrd.Workflow.BulkApprove` | Melakukan persetujuan massal untuk permohonan berisiko rendah | Approver Manajerial (Karu, Kabid, Manajer) | Hanya aktif untuk permohonan tervalidasi bersih |
+| `Hrd.Workflow.CreateInstance` | Mengajukan permohonan mandiri dari portal ESS | Seluruh Pegawai Rumah Sakit (ESS) | Pengisian data permohonan sesuai hak aksesnya |
+| `Hrd.Workflow.CancelMyInstance` | Membatalkan permohonan mandiri yang belum disetujui | Staf Pemohon Asli | Hanya aktif jika tiket belum berstatus disetujui |
+| `Hrd.Workflow.ResubmitRevision` | Mengajukan ulang permohonan yang telah diperbaiki staf | Staf Pemohon Asli | Wajib menyertakan ringkasan keterangan perbaikan |
+| `Hrd.Workflow.AddComment` | Menambahkan komentar klarifikasi pada thread tiket | Pemohon, Approver Aktif | Percakapan terekam permanen dalam riwayat tiket |
+| `Hrd.Workflow.ViewInternalComment`| Membaca catatan rahasia antar approver | Approver Struktural, Komite Medik, HR | Dilarang tampak pada layar staf pemohon |
+| `Hrd.Workflow.UploadAttachment` | Mengunggah berkas lampiran pendukung baru | Pemohon, Approver | Format PDF/JPG maksimal 10 MB |
+| `Hrd.Workflow.ViewDelegationList` | Melihat daftar riwayat pendelegasian wewenang Plh | Pejabat Approver, HR Admin | Monitoring penugasan Plh aktif |
+| `Hrd.Workflow.CreateDelegation` | Mendaftarkan penunjukan Pelaksana Harian (Plh) berbatas waktu | Pejabat Struktural Definitif | Plh minimal setara atau 1 tingkat di bawahnya |
+| `Hrd.Workflow.RevokeDelegation` | Mencabut wewenang delegasi Plh sebelum masa berlaku habis | Pemberi Wewenang, HR Admin | Mengembalikan wewenang ke pejabat definitif |
+| `Hrd.Workflow.ActAsDelegate` | Mengeksekusi aksi persetujuan atas nama pejabat definitif | Pegawai Ditunjuk sebagai Plh Sah | Mencatat jejak audit dual-identity secara permanen |
+| `Hrd.Workflow.ConfigureMatrix` | Mengonfigurasi matriks alur persetujuan per unit kerja | HR Admin, Direktur SDM | Pengaturan aturan alur workflow rumah sakit |
+| `Hrd.Workflow.ViewMatrix` | Melihat visualisasi diagram pohon alur persetujuan | HR Admin, Kepala Bagian, Auditor Internal | Pemeriksaan kepatuhan alur otorisasi |
+| `Hrd.Workflow.ViewSlaOverdue` | Melihat papan radar pemantauan tiket yang melewati batas SLA | Manajer SDM, Direksi, Tim Mutu RS | Pemantauan kedisiplinan respon atasan |
+| `Hrd.Workflow.ManualEscalate` | Melakukan eskalasi manual tiket yang macet ke atasan atas | HR Admin, Manajer SDM | Intervensi administratif atas permohonan darurat |
+| `Hrd.Workflow.ExportSlaReport` | Mengunduh laporan kepatuhan SLA persetujuan per unit kerja | Direktur SDM, Direktur Utama, Komite Mutu | Evaluasi kecepatan birokrasi internal RS |
+| `Hrd.Workflow.ViewAuditTrail` | Memeriksa seluruh rekam jejak kronologis audit workflow | Petugas Kepatuhan, IT Auditor | Verifikasi tidak adanya manipulasi wewenang |
+| `Hrd.Workflow.ManageSystemWorkers`| Mengatur konfigurasi worker pemantau SLA dan delegasi | IT Administrator SIMRS | Pemeliharaan berkala background workers |
+| `Hrd.Workflow.SuperAdminBypass` | Intervensi darurat tingkat tinggi atas izin Direktur Utama | Direktur Utama, HR Director | Tindakan darurat kebencanaan/force majeure |
+
+---
+
+### 28.2 Matriks Jejak Audit Keamanan & Akuntabilitas (Audit Events)
+
+| Kode Peristiwa Audit | Deskripsi Peristiwa | Kategori Tingkat Risiko | Detail Data yang Dicatat |
+|---|---|---|---|
+| `HRD_WF_INSTANCE_SUBMITTED` | Permohonan baru diajukan secara resmi dari ESS | `LOW` | WorkflowNumber, RequestType, ApplicantEmployeeId, DepartmentId, SubmittedAt |
+| `HRD_WF_STEP_ASSIGNED` | Tiket berhasil masuk ke antrean inbox approver tertentu | `LOW` | WorkflowNumber, StepNumber, ApproverEmployeeId, SlaDeadline |
+| `HRD_WF_REQUEST_APPROVED` | Keputusan persetujuan disahkan oleh approver | `MEDIUM` | WorkflowNumber, StepNumber, ApproverEmployeeId, ActionTimestamp, SignatureHash |
+| `HRD_WF_REQUEST_REJECTED` | Keputusan penolakan final disahkan oleh approver | `MEDIUM` | WorkflowNumber, StepNumber, ApproverEmployeeId, RejectionReasonText |
+| `HRD_WF_RETURNED_FOR_REVISION` | Permohonan dikembalikan ke staf untuk perbaikan data | `LOW` | WorkflowNumber, StepNumber, ApproverEmployeeId, RevisionInstructions |
+| `HRD_WF_INSTANCE_RESUBMITTED` | Staf mengajukan ulang permohonan yang telah direvisi | `LOW` | WorkflowNumber, ApplicantEmployeeId, ResubmittedAt, ChangesSummary |
+| `HRD_WF_BULK_APPROVAL_EXECUTED` | Persetujuan massal bersyarat berhasil dieksekusi | `HIGH` | ApproverEmployeeId, TotalProcessedCount, SuccessCount, SkippedCount |
+| `HRD_WF_DELEGATION_REGISTERED` | Surat kuasa digital penunjukan Plh diterbitkan | `HIGH` | PrincipalEmployeeId, DelegateEmployeeId, StartDate, EndDate, RequestTypes |
+| `HRD_WF_DELEGATION_REVOKED` | Wewenang delegasi Plh dicabut sebelum tanggal akhir | `MEDIUM` | PrincipalEmployeeId, RevokedByEmployeeId, RevokedAt, Reason |
+| `HRD_WF_ACTING_APPROVAL_EXECUTED`| Keputusan persetujuan dieksekusi oleh Plh atas nama definitif | `HIGH` | WorkflowNumber, ActingPlhId, OnBehalfOfId, ActionType, Timestamp |
+| `HRD_WF_SLA_TIMEOUT_ESCALATED` | Tiket melewati batas SLA dan otomatis dieskalasi ke atasan | `HIGH` | WorkflowNumber, StepNumber, DefaultApproverId, EscalatedToApproverId |
+| `HRD_WF_DOWNSTREAM_ACTION_TRIGGERED`| Aksi final memicu perubahan data pada domain modul hilir | `CRITICAL` | WorkflowNumber, ReferenceDomain, ReferenceEntityId, TriggerTimestamp |
+| `HRD_WF_DOWNSTREAM_RECONCILIATION_RUN`| Worker rekonsiliasi mengeksekusi ulang aksi hilir yang macet | `HIGH` | WorkflowNumber, ReferenceDomain, RetryAttemptCount, ResolutionStatus |
+| `HRD_WF_MATRIX_POLICY_UPDATED` | Konfigurasi matriks alur persetujuan diperbarui admin | `CRITICAL` | UpdatedByUserId, DepartmentId, RequestType, PreviousSteps, NewStepsConfig |

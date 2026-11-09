@@ -11,5 +11,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         Task<List<DeductionScheduleResponseDto>> GetActiveSchedulesForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken = default);
         Task<List<DeductionScheduleResponseDto>> GetSchedulesAsync(DeductionScheduleFilterDto filter, CancellationToken cancellationToken = default);
         Task<bool> LockCurrentMonthSchedulesAsync(int periodYear, int periodMonth, Guid userId, CancellationToken cancellationToken = default);
+        Task<FinanceCallbackAcknowledgmentDto> SendDeductionRealizationCallbackToFinanceAsync(int periodYear, int periodMonth, Guid payrollRunId, Guid userId, CancellationToken cancellationToken = default);
     }
 }

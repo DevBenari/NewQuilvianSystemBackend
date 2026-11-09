@@ -2275,3 +2275,170 @@ stateDiagram-v2
 |---|---|---|---|---|
 | `InProgress` | Terdeteksi Tanggungan Tertunda | `BlockedOutstanding` | H-1 efektif masih ada alat medis, laptop, atau utang yang belum diselesaikan | `ExitClearanceReminderWorker` |
 | `InProgress` / `BlockedOutstanding`| Seluruh Unit Menyetujui | `Completed` | 5 unit kerja (Unit, Aset, Farmasi, Keuangan, IT) menyetujui secara digital | Sistem / Head of HR |
+
+
+---
+
+## 27. Sub-Modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up) — Slice `S-C6`
+
+### 27.1 Siklus Hidup Penilaian Kelayakan Kerja Staf (`FitnessToWorkStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scheduled: Registrasi MCU / Rujukan K3RS
+    Scheduled --> InExamination: Staf Datang & Sampel Diambil
+    InExamination --> MedicalReview: Hasil Lab & Radiologi Terunggah
+    MedicalReview --> Fit: Dokter K3RS Menilai Sehat Tanpa Catatan
+    MedicalReview --> FitWithRestriction: Dokter K3RS Menetapkan Pembatasan Kerja
+    MedicalReview --> TemporarilyUnfit: Butuh Istirahat Sakit / Pengobatan
+    MedicalReview --> PermanentlyUnfit: Cacat Total / Kontraindikasi Permanen
+    FitWithRestriction --> MedicalReview: Evaluasi Ulang Masa Pembatasan Selesai
+    TemporarilyUnfit --> MedicalReview: Masa Pemulihan Selesai / Asesmen RTW
+    PermanentlyUnfit --> EscalatedToSeparation: Rekomendasi Pensiun Medis Sub-18
+    Fit --> [*]
+    EscalatedToSeparation --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Registrasi MCU / Pemeriksaan | `Scheduled` | Pegawai terdaftar dalam jadwal pemeriksaan berkala atau rujukan insiden | Staf Admin K3RS |
+| `Scheduled` | Kehadiran Staf & Input Klinis | `InExamination` | Pegawai hadir, tanda vital dicatat, sampel lab/rontgen diambil | Perawat K3RS |
+| `InExamination`| Seluruh Hasil Penunjang Masuk | `MedicalReview` | Seluruh hasil lab serologi, rontgen, spirometri, audiometri terunggah lengkap | Dokter K3RS |
+| `MedicalReview`| Putusan Sehat Penuh | `Fit` | Tidak ditemukan kontraindikasi medis terhadap profil risiko ruangan kerja | Dokter K3RS Bersertifikat |
+| `MedicalReview`| Putusan Sehat dengan Catatan | `FitWithRestriction` | Ditemukan batasan fisik/medis; dokumen pembatasan tugas wajib diterbitkan | Dokter K3RS Bersertifikat |
+| `MedicalReview`| Putusan Tidak Laik Sementara | `TemporarilyUnfit` | Staf menderita penyakit menular aktif atau cedera akut yang butuh pemulihan | Dokter K3RS Bersertifikat |
+| `MedicalReview`| Putusan Tidak Laik Permanen | `PermanentlyUnfit` | Kondisi fisik/kognitif permanen yang membahayakan keselamatan pasien/diri | Komite Medis K3RS |
+| `FitWithRestriction` / `TemporarilyUnfit` | Asesmen Kembali Bekerja (RTW) | `MedicalReview` | Staf menjalani evaluasi ulang pasca masa pemulihan atau masa restriksi | Dokter K3RS Bersertifikat |
+| `PermanentlyUnfit` | Rekomendasi Pensiun Dini Medis | `EscalatedToSeparation` | Asesmen permanen disahkan; diteruskan ke Sub-18 PHK pasal uzur medis | Direktur SDM & K3RS |
+
+---
+
+### 27.2 Siklus Hidup Pembatasan Tugas Medis Staf (`WorkRestrictionStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Penerbitan Surat Pembatasan | `Active` | Ditandatangani Dokter K3RS; hard-stop terpasang otomatis ke roster Sub-06 | Dokter K3RS Bersertifikat |
+| `Active` | Masa Berlaku Berakhir Normal | `Expired` | Tanggal akhir pembatasan terlewati tanpa permohonan perpanjangan | Worker `OHS-W2` |
+| `Active` | Evaluasi Lanjutan & Perpanjangan | `Extended` | Asesmen klinis ulang menyatakan kondisi belum pulih sempurna | Dokter K3RS Bersertifikat |
+| `Active` | Pemulihan Dini & Pencabutan | `RevokedEarly` | Staf pulih lebih cepat dari perkiraan; surat pencabutan diterbitkan | Dokter K3RS Bersertifikat |
+| `Active` / `Extended` | Asesmen Kembali Kerja Penuh (RTW) | `CompletedCleared` | Uji kelaikan RTW lulus; seluruh gembok restriksi roster Sub-06 dilepas | Dokter K3RS Bersertifikat |
+
+---
+
+### 27.3 Siklus Hidup Tanggap Darurat Tertusuk Jarum & Pajanan Okupasional (`NeedleStickIncidentStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> ReportedEmergency: Staf Tekan Tombol Darurat ESS
+    ReportedEmergency --> TriageAssessed: Triase Cito IGD / K3RS (< 1 Jam)
+    TriageAssessed --> PEPPrescribed: Evaluasi Risiko Tinggi & Terapi PPP (< 4 Jam)
+    TriageAssessed --> SurveillanceOnly: Evaluasi Risiko Rendah Tanpa PPP
+    PEPPrescribed --> BaselineSerologyTaken: Sampel Staf & Pasien Sumber Diambil
+    SurveillanceOnly --> BaselineSerologyTaken: Sampel Baseline Diambil
+    BaselineSerologyTaken --> SurveillanceActive: Pemantauan Serial Bulan 1, 3, 6
+    SurveillanceActive --> ClosedSeronegative: Evaluasi Akhir Bulan ke-6 Non-Reaktif
+    SurveillanceActive --> EscalatedSeroconverted: Terjadi Serokonversi Reaktif (Tertular)
+    ClosedSeronegative --> [*]
+    EscalatedSeroconverted --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Laporan Tombol Darurat ESS | `ReportedEmergency` | Dilaporkan staf via ESS; sirene notifikasi cito terkirim ke K3RS & PPI | Staf Medis Terpajan |
+| `ReportedEmergency` | Triase Medis Cito Darurat | `TriageAssessed` | Staf diperiksa di IGD/K3RS dalam batas SLA < 1 jam sejak laporan | Dokter Jaga IGD / K3RS |
+| `TriageAssessed`| Peresepan Profilaksis Pasca Pajanan | `PEPPrescribed` | Pajanan darah pasien sumber HIV/HBV; obat ARV/HBIG diberikan < 4 jam | Dokter K3RS & Farmasi |
+| `TriageAssessed`| Pajanan Risiko Rendah (Tanpa PPP) | `SurveillanceOnly` | Jarum steril / jarum bersih tanpa darah pasien infeksius | Dokter K3RS |
+| `PEPPrescribed` / `SurveillanceOnly` | Pengambilan Darah Baseline | `BaselineSerologyTaken` | Darah staf (HBsAg, Anti-HBs, Anti-HCV, Anti-HIV) & pasien sumber diambil | Analis Lab & K3RS |
+| `BaselineSerologyTaken` | Inisiasi Protokol Pemantauan Serial | `SurveillanceActive` | Jadwal reminder otomatis bulan ke-1, ke-3, dan ke-6 terbit di kalender ESS | Worker `OHS-W1` |
+| `SurveillanceActive` | Pemantauan 6 Bulan Bersih | `ClosedSeronegative` | Hasil serologi bulan ke-6 terbukti non-reaktif (staf dinyatakan sembuh) | Dokter K3RS & PPI |
+| `SurveillanceActive` | Terjadi Serokonversi Reaktif | `EscalatedSeroconverted` | Hasil lab berubah menjadi reaktif; dialihkan ke pengobatan penyakit kerja PAK | Komite Medis K3RS |
+
+---
+
+### 27.4 Siklus Hidup Pelaksanaan MCU Staf (`MedicalExaminationStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Scheduled` | Konfirmasi Registrasi Staf | `RegisteredArrived` | Staf tiba di lokasi pemeriksaan K3RS; barcode pemeriksaan dicetak | Staf Admin K3RS |
+| `RegisteredArrived` | Pengambilan Sampel & Radiologi | `SampleCollected` | Darah, urine, dahak diambil; rontgen/audiometri selesai dilaksanakan | Tenaga Medis MCU |
+| `SampleCollected` | Hasil Penunjang Terbit | `ResultsUploaded` | Seluruh hasil LIS/PACS terunggah ke berkas terenkripsi | Analis Lab / Radiografer |
+| `ResultsUploaded` | Telaah Rekomendasi Dokter K3RS | `DoctorReview` | Dokter K3RS menyusun kesimpulan kelaikan dan anjuran kesehatan | Dokter K3RS |
+| `DoctorReview` | Pengesahan & Publikasi Status | `CompletedPublished` | Sertifikat kelaikan kerja dirilis ke HR; berkas medis terkunci AES-256 | Dokter K3RS Bersertifikat |
+| `Scheduled` | Staf Tidak Hadir MCU | `NoShowExpired` | Tanggal pemeriksaan terlewati tanpa kehadiran staf; SP peringatan MCU terbit | Worker `OHS-W4` |
+
+---
+
+### 27.5 Siklus Hidup Penanganan Kecelakaan Kerja & Klaim JKK BPJS (`OccupationalInjuryStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Laporan Insiden Kecelakaan Kerja | `Reported` | Laporan KAK dibuat; detail TKP, saksi, dan kondisi korban terdata | Staf Korban / Atasan |
+| `Reported` | Investigasi K3RS & Verifikasi TKP | `Investigating` | Tim K3RS melakukan olah TKP, analisis akar masalah (RCA), dan susun CAPA | Tim K3RS RS |
+| `Investigating`| Pelaporan BPJS Ketenagakerjaan Tahap I | `BPJSClaimStage1Submitted`| Formulir JKK Tahap I terkirim ke portal BPJS dalam batas waktu < 2x24 jam | Petugas Klaim HR K3RS |
+| `BPJSClaimStage1Submitted` | Perawatan Medis & Rehabilitasi | `MedicalTreatmentOngoing` | Korban menjalani rawat inap/jalan; pemantauan hari kerja hilang (LTI) | Tim Medis & K3RS |
+| `MedicalTreatmentOngoing` | Asesmen Kesiapan Bekerja Kembali | `ReturnToWorkAssessed` | Dokter K3RS menerbitkan sertifikat RTW kelaikan kerja kembali bertugas | Dokter K3RS |
+| `ReturnToWorkAssessed` | Pengajuan Klaim Akhir Tahap II | `BPJSClaimStage2Finalized` | Kuitansi pengobatan, surat sembuh/cacat diserahkan ke BPJS Ketenagakerjaan | Petugas Klaim HR K3RS |
+| `BPJSClaimStage2Finalized` | Penutupan Kasus Kecelakaan | `Closed` | Pembayaran klaim JKK BPJS diterima; laporan akhir K3RS diarsipkan | Manajer SDM & K3RS |
+
+
+---
+
+## 28. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 28.1 Siklus Hidup Tiket Permohonan Terpadu (`WorkflowInstanceStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: Staf Membuka Formulir ESS
+    Draft --> Submitted: Staf Menekan Ajukan
+    Submitted --> UnderReview: Tiket Masuk Inbox Approver Step 1
+    UnderReview --> ReturnedForRevision: Approver Meminta Perbaikan Data
+    ReturnedForRevision --> Resubmitted: Staf Mengedit & Mengajukan Ulang
+    Resubmitted --> UnderReview: Kembali Masuk Inbox Approver Terkait
+    UnderReview --> Approved: Seluruh Tahapan Persetujuan Selesai
+    UnderReview --> Rejected: Salah Satu Approver Menolak Permohonan
+    Draft --> Cancelled: Staf Membatalkan Draf Permohonan
+    Submitted --> Cancelled: Staf Menarik Kembali Sebelum Diproses
+    UnderReview --> EscalatedDueToTimeout: Batas Waktu SLA Terlewati
+    EscalatedDueToTimeout --> UnderReview: Diambil Alih Atasan Lebih Tinggi
+    Approved --> [*]
+    Rejected --> [*]
+    Cancelled --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Buka Formulir ESS | `Draft` | Pengisian data awal permohonan mandiri di portal ESS | Staf Pemohon |
+| `Draft` | Kirim Permohonan Resmi | `Submitted` | Seluruh data wajib terisi; matriks alur persetujuan terbentuk | Staf Pemohon |
+| `Submitted` | Penugasan Tiket ke Approver | `UnderReview` | Tiket berhasil masuk ke antrean inbox approver tahapan aktif | Workflow Engine |
+| `UnderReview` | Permintaan Klarifikasi / Koreksi | `ReturnedForRevision` | Approver memberikan catatan revisi minimal 10 karakter | Approver Ditugaskan |
+| `ReturnedForRevision` | Perbaikan & Kirim Ulang | `Resubmitted` | Staf memperbarui data atau mengunggah lampiran pengganti | Staf Pemohon |
+| `Resubmitted`| Penugasan Ulang ke Approver | `UnderReview` | Tiket kembali ke inbox approver yang meminta revisi | Workflow Engine |
+| `UnderReview` | Persetujuan Tahapan Terakhir | `Approved` | Seluruh step approver menyetujui; memicu eksekusi domain hilir | Approver Final |
+| `UnderReview` | Penolakan Permohonan | `Rejected` | Approver menolak disertai alasan penolakan wajib minimal 15 karakter | Approver Ditugaskan |
+| `Submitted` / `Draft` | Pembatalan Mandiri | `Cancelled` | Permohonan ditarik oleh pemohon sebelum keputusan diambil | Staf Pemohon |
+| `UnderReview` | Batas Waktu SLA Terlewati | `EscalatedDueToTimeout` | Tiket belum direspon melewati batas `SlaDeadline` | Worker `WF-W1` |
+| `EscalatedDueToTimeout` | Ambil Alih Wewenang | `UnderReview` | Atasan tingkat di atasnya menerima wewenang eskalasi | Atasan Tingkat Atas |
+
+---
+
+### 28.2 Siklus Hidup Tahapan Persetujuan Berjenjang (`WorkflowStepStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Inisiasi Step | `Pending` | Tahapan menunggu penyelesaian dari tahapan sebelumnya | Workflow Engine |
+| `Pending` | Tahapan Sebelumnya Lolos | `InReview` | Tahapan menjadi aktif dan masuk ke inbox approver terkait | Workflow Engine |
+| `InReview` | Keputusan Persetujuan | `Approved` | Approver sah menekan setuju dengan verifikasi PIN | Approver / Plh |
+| `InReview` | Keputusan Penolakan | `Rejected` | Approver menolak; tahapan berikutnya otomatis dibatalkan | Approver / Plh |
+| `InReview` | Pemohon Self-Approval | `SkippedSelfApproval` | Pemohon adalah approver definitif; step dialihkan ke atasan | Engine `WF-B2` |
+
+---
+
+### 28.3 Siklus Hidup Pendelegasian Wewenang / Plh (`ApprovalDelegationStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Registrasi Surat Kuasa Plh | `Scheduled` | Didaftarkan sebelum tanggal `StartDate` tiba | Pejabat Definitif |
+| `Scheduled` / `[*] ` | Tanggal Mulai Berlaku | `Active` | Tanggal hari ini `>= StartDate` dan `<= EndDate` | Worker `WF-W2` |
+| `Active` | Tanggal Akhir Terlewati | `Expired` | Tanggal hari ini `> EndDate`; hak wewenang Plh dicabut otomatis | Worker `WF-W2` |
+| `Active` / `Scheduled` | Pencabutan Dini Wewenang | `RevokedEarly` | Pejabat definitif kembali aktif lebih cepat dari rencana | Pejabat Definitif |

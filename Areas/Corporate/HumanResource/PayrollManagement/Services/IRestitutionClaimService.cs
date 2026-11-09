@@ -16,6 +16,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         Task<RestitutionClaimResponseDto> FinalApproveAsync(Guid claimId, FinalApprovalRequestDto request, Guid finalApproverUserId, CancellationToken cancellationToken = default);
         Task<RestitutionClaimResponseDto> RejectClaimAsync(Guid claimId, RejectClaimRequestDto request, Guid userId, CancellationToken cancellationToken = default);
         Task<PayrollRestitutionResponseDto> CreateSalaryCorrectionAsync(CreateSalaryCorrectionRequestDto request, Guid userId, CancellationToken cancellationToken = default);
+        Task<SalaryGrievanceInvestigationResultDto> InvestigateAndResolveSalaryGrievanceAsync(SalaryGrievanceInvestigationRequestDto request, Guid investigatorUserId, CancellationToken cancellationToken = default);
         Task<List<PayrollRestitutionResponseDto>> GetPayrollRestitutionsAsync(Guid? employeeId, Guid? targetPayrollRunId, string? status, CancellationToken cancellationToken = default);
         Task<InjectRestitutionToPayrollResultDto> InjectApprovedRestitutionsToPayrollAsync(Guid targetPayrollRunId, Guid userId, CancellationToken cancellationToken = default);
     }

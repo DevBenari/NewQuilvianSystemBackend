@@ -154,6 +154,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         /// <summary>
+        /// Investigasi keluhan salah potong gaji oleh HR Payroll Officer dan penerbitan restitusi koreksi bebas PPh 21 (BE-HRD-171, DED-B5, HRD-ASM-33).
+        /// </summary>
+        [HttpPost("restitutions/grievance-investigation")]
+        [Tags("HR Deductions - Restitutions")]
+        public async Task<IActionResult> InvestigateAndResolveSalaryGrievance(
+            [FromBody] SalaryGrievanceInvestigationRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _claimService.InvestigateAndResolveSalaryGrievanceAsync(request, GetCurrentUserId(), cancellationToken);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Mengambil daftar komponen restitusi dan koreksi penggajian.
         /// </summary>
         [HttpGet("restitutions")]

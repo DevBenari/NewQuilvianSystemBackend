@@ -1565,3 +1565,222 @@ Kontrak integrasi ini menetapkan protokol pertukaran data antara modul manajemen
     }
   }
   ```
+
+
+---
+
+## 20. Sub-Modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up) — Slice `S-C6`
+
+### 20.1 `INT-HR-89`: Integrasi Pembatasan Tugas Medis (*Work Restriction*) ke Modul Penjadwalan Shift & Roster Sub-06
+
+* **Modul Terkait:** Sub-Modul 19 K3RS & Keselamatan Staf -> Sub-Modul 06 Pengelolaan Waktu Kerja, Shift & Roster.
+* **Tujuan & Mekanisme:** Saat dokter K3RS menerbitkan surat pembatasan tugas dinas medis (*Work Restriction Certificate*), sistem K3RS menyiarkan sinyal penegakan restriksi. Engine penjadwalan Sub-06 secara otomatis memasang gerbang validasi ketat (*hard-stop*) sehingga kepala ruangan dilarang menugaskan staf bersangkutan pada shift malam, penanganan pasien aerosol/airborne, atau unit berbahaya tertentu hingga masa restriksi dicabut melalui asesmen *Return-to-Work*.
+* **Payload Event Penerbitan Restriksi:**
+  ```json
+  {
+    "eventId": "EVT-OHS-RESTRICTION-ENFORCED-20261109-001",
+    "eventType": "Hrd.OccupationalHealth.WorkRestrictionEnforced",
+    "timestamp": "2026-11-09T08:30:00Z",
+    "payload": {
+      "restrictionId": "7f8b3c41-9d22-48a1-b841-3fa85f645717",
+      "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "doctorName": "dr. Ratna Hidayati, Sp.Ok",
+      "doctorHiperkesLicense": "HPK-DKI-2024-0881",
+      "effectiveDate": "2026-11-09",
+      "validUntil": "2026-12-09",
+      "restrictedCategories": [
+        "ProhibitNightShift",
+        "ProhibitAirborneInfectiousWard",
+        "ProhibitLiftingAbove10Kg"
+      ],
+      "hardStopEnforced": true
+    }
+  }
+  ```
+* **Payload Event Pencabutan Restriksi (*Return-to-Work*):**
+  ```json
+  {
+    "eventId": "EVT-OHS-RESTRICTION-CLEARED-20261109-002",
+    "eventType": "Hrd.OccupationalHealth.WorkRestrictionCleared",
+    "timestamp": "2026-12-08T14:15:00Z",
+    "payload": {
+      "restrictionId": "7f8b3c41-9d22-48a1-b841-3fa85f645717",
+      "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "returnToWorkAssessmentId": "9b12c448-43a2-4cb1-80a2-112233445566",
+      "clearedDate": "2026-12-08",
+      "isFitForFullDuty": true,
+      "releaseRosterLock": true
+    }
+  }
+  ```
+
+---
+
+### 20.2 `INT-HR-90`: Integrasi Pelaporan Insiden Kecelakaan Kerja (KAK/PAK) & Klaim JKK ke Portal BPJS Ketenagakerjaan
+
+* **Modul Terkait:** Sub-Modul 19 K3RS & Keselamatan Staf -> Gateway API / Web Portal BPJS Ketenagakerjaan (e-Klaim JKK).
+* **Tujuan & Mekanisme:** Memenuhi kepatuhan regulasi UU Ketenagakerjaan & Permenaker perihal pelaporan kecelakaan kerja maksimal 2x24 jam sejak waktu insiden. Sistem K3RS secara otomatis mengekspor berkas data kronologi, identitas korban, saksi, dan kondisi awal ke formulir elektronik BPJS Ketenagakerjaan Tahap I, serta mengunggah resume medis dan rincian kuitansi biaya perawatan pada pengajuan santunan Tahap II.
+* **Payload Event Integrasi Klaim JKK Tahap I:**
+  ```json
+  {
+    "eventId": "EVT-OHS-BPJS-STAGE1-20261109-003",
+    "eventType": "Hrd.OccupationalHealth.BPJSClaimStage1Dispatched",
+    "timestamp": "2026-11-09T11:00:00Z",
+    "payload": {
+      "injuryIncidentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "bpjsKetenagakerjaanCardNumber": "0001234567891",
+      "incidentDateTime": "2026-11-09T07:15:00Z",
+      "incidentLocation": "Gedung A Lantai 3 - Koridor Farmasi",
+      "injuryCategory": "TertimpaTroliAlatMedis",
+      "bodyPartInjured": "PergelanganKakiKanan",
+      "immediateActionTaken": "FiksasiSpalkDanRontgenIGD",
+      "submissionDeadline": "2026-11-11T07:15:00Z",
+      "submissionChannel": "ElectronicApiBPJS"
+    }
+  }
+  ```
+
+---
+
+### 20.3 `INT-HR-91`: Integrasi Tindak Lanjut Insiden Pajanan Biologis Cito ke Tim PPI Sub-15 & Farmasi Sub-12
+
+* **Modul Terkait:** Sub-Modul 19 K3RS & Keselamatan Staf -> Sub-Modul 15 Mutu Klinis & Komite PPI -> Sub-Modul 12 Farmasi Rumah Sakit.
+* **Tujuan & Mekanisme:** Ketika insiden pajanan biologis (tertusuk jarum suntik bekas darah pasien infeksius) dilaporkan melalui tombol darurat portal ESS, sistem segera membunyikan sirene digital darurat. Tiket audit investigasi langsung dibuat pada Sub-15 Komite PPI untuk audit rantai infeksi, sekaligus menerbitkan *Cito Order* ke Depo Farmasi IGD Sub-12 untuk perakitan paket profilaksis pasca pajanan (Starter Pack ARV & Hepatitis B Immunoglobulin) agar dapat diminum korban dalam batas emas keselamatan < 4 jam.
+* **Payload Event Cito Pajanan Darah:**
+  ```json
+  {
+    "eventId": "EVT-OHS-NEEDLESTICK-EMERGENCY-20261109-004",
+    "eventType": "Hrd.OccupationalHealth.NeedleStickEmergencyTriggered",
+    "timestamp": "2026-11-09T09:05:00Z",
+    "payload": {
+      "incidentId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
+      "exposedEmployeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "exposureDateTime": "2026-11-09T08:50:00Z",
+      "exposureType": "DeepHollowBoreNeedleStick",
+      "sourcePatientMrn": "RM-2026-990812",
+      "sourceKnownInfection": "HIV_And_HBV_Positive",
+      "dispatchEmergencyTriage": true,
+      "autoOrderPepPharmacyKit": true,
+      "pharmacyLocation": "DepoFarmasiGawatDarurat",
+      "ppiInvestigationTicketRequired": true
+    }
+  }
+  ```
+
+---
+
+### 20.4 `INT-HR-92`: Integrasi Sinkronisasi Kelaikan Kerja (*Fitness to Work*) ke Kredensialing Staf Medis Sub-03
+
+* **Modul Terkait:** Sub-Modul 19 K3RS & Keselamatan Staf -> Sub-Modul 03 Registrasi, Lisensi, Kredensialing & Privilese Klinis.
+* **Tujuan & Mekanisme:** Memastikan bahwa Surat Penugasan Klinis (SPK) dan Rincian Kewenangan Klinis (RKK) dokter, dokter spesialis, perawat, dan tenaga penunjang medis selalu didukung oleh status kelaikan fisik dan mental yang valid. Bila hasil pemeriksaan kesehatan berkala menetapkan status `TemporarilyUnfit` atau `PermanentlyUnfit`, Sub-03 secara otomatis menangguhkan privilese tindakan invasif/operasi tertentu hingga rekomendasi pemulihan K3RS terpenuhi.
+* **Payload Event Kelaikan Staf Medis:**
+  ```json
+  {
+    "eventId": "EVT-OHS-CREDENTIAL-FITNESS-SYNC-20261109-005",
+    "eventType": "Hrd.OccupationalHealth.ClinicalCredentialFitnessSynced",
+    "timestamp": "2026-11-09T16:00:00Z",
+    "payload": {
+      "employeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "medicalStaffRegistrationNumber": "STR-KARS-MED-88910",
+      "evaluationPeriod": "AnnualMcu2026",
+      "fitnessStatus": "FitWithRestriction",
+      "clinicalRestrictionNotice": "PembatasanTindakanBedahMikroTanganKanan30Hari",
+      "credentialCommitteeActionRequired": "TemporaryClinicalPrivilegeSuspension",
+      "doctorK3RsLicense": "HPK-DKI-2024-0881"
+    }
+  }
+  ```
+
+
+---
+
+## 21. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 21.1 `INT-HR-93`: Integrasi Pemicu Eksekusi Operasional Domain Hilir Pasca Persetujuan Final (*Downstream Execution*)
+
+* **Modul Terkait:** Sub-Modul 21 Workflow Engine -> Sub-Modul 06 (Roster), Sub-07 (Presensi), Sub-08 (Cuti), Sub-09 (Lembur), Sub-11 (Restitusi), Sub-12 (Benefit), Sub-18 (Terminasi), Sub-22 (Dokumen HR).
+* **Tujuan & Mekanisme:** Saat tahapan terakhir workflow persetujuan disahkan menjadi `Approved`, engine workflow secara idempoten menyiarkan event domain hilir. Masing-masing modul pelanggan mengeksekusi perubahan data resmi (misal: Sub-08 memotong saldo cuti pemohon, Sub-06 menukar jadwal shift perawat, Sub-09 mencatat hak lembur payroll) tanpa memerlukan approval manual sekunder di masing-masing modul.
+* **Payload Event Eksekusi Hilir:**
+  ```json
+  {
+    "eventId": "EVT-WF-FINAL-APPROVED-20261109-001",
+    "eventType": "Hrd.Workflow.InstanceFinalApproved",
+    "timestamp": "2026-11-09T14:30:00Z",
+    "payload": {
+      "workflowInstanceId": "e1f2a3b4-c5d6-7890-ef12-34567890abcd",
+      "workflowNumber": "WF-202611-0089",
+      "requestType": "LeaveRequest",
+      "referenceDomain": "LeaveManagement",
+      "referenceEntityId": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+      "applicantEmployeeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "finalApproverEmployeeId": "8b7c6d5e-4f3a-2109-abcd-ef0123456789",
+      "actingOnBehalfOfEmployeeId": null,
+      "approvalTimestamp": "2026-11-09T14:29:45Z",
+      "executionActionRequired": "DeductLeaveBalanceAndConfirmScheduleBlock"
+    }
+  }
+  ```
+
+---
+
+### 21.2 `INT-HR-94`: Integrasi Sinkronisasi Status Cuti Atasan dari Sub-08 ke Engine Delegasi Wewenang (*Auto-Prompt Plh*)
+
+* **Modul Terkait:** Sub-Modul 08 Manajemen Cuti -> Sub-Modul 21 Workflow Management.
+* **Tujuan & Mekanisme:** Ketika seorang pejabat struktural (Kepala Ruangan, Kepala Instalasi, atau Manajer) mengajukan cuti tahunan di Sub-08 dan cuti tersebut disetujui, modul Sub-08 mengirimkan sinyal ke Workflow Engine. Jika pejabat tersebut belum mendaftarkan pendelegasian wewenang Plh, sistem secara otomatis menampilkan modal pengingat wajib menunjuk Plh agar antrean inbox persetujuan staf tidak terbengkalai selama masa cuti.
+* **Payload Event Cuti Pejabat:**
+  ```json
+  {
+    "eventId": "EVT-LEAVE-APPROVED-OFFICER-20261109-002",
+    "eventType": "Hrd.Leave.OfficerLeaveApproved",
+    "timestamp": "2026-11-09T10:00:00Z",
+    "payload": {
+      "employeeId": "8b7c6d5e-4f3a-2109-abcd-ef0123456789",
+      "officerPositionTitle": "Kepala Ruangan Rawat Inap Melati",
+      "leaveStartDate": "2026-11-15",
+      "leaveEndDate": "2026-11-20",
+      "isApprovalDelegationRequired": true,
+      "activeDelegationRegistered": false
+    }
+  }
+  ```
+
+---
+
+### 21.3 `INT-HR-95`: Integrasi Notifikasi Terpadu Multikanal (Push Notification Mobile, Web & WhatsApp Gateway)
+
+* **Modul Terkait:** Sub-Modul 21 Workflow Management -> Layanan Shared Notifikasi & Messaging Gateway Rumah Sakit.
+* **Tujuan & Mekanisme:** Mengirimkan sinyal notifikasi cito dan harian kepada staf pemohon dan pejabat approver. Saat tiket masuk ke inbox, approver menerima push notification pada aplikasi mobile; saat tiket berstatus `ReturnedForRevision` atau `Approved`, staf menerima pembaruan instan. Dilengkapi worker pengirim email ringkasan harian (*daily approval digest*) setiap jam 07:00 pagi WIB.
+* **Payload Event Notifikasi Workflow:**
+  ```json
+  {
+    "eventId": "EVT-NOTIF-DISPATCH-20261109-003",
+    "eventType": "Hrd.Notification.DispatchWorkflowAlert",
+    "timestamp": "2026-11-09T07:00:00Z",
+    "payload": {
+      "targetUserId": "usr-88990011-2233",
+      "targetEmployeeId": "8b7c6d5e-4f3a-2109-abcd-ef0123456789",
+      "channel": "PushAndEmailDigest",
+      "notificationTitle": "Ringkasan Persetujuan Harian: 4 Tiket Menunggu Respon",
+      "notificationBody": "Anda memiliki 4 permohonan staf (2 Tukar Shift mendekati batas SLA, 1 Cuti, 1 Lembur) yang memerlukan otorisasi.",
+      "deepLinkUrl": "/hrd/approvals/inbox?filter=pending",
+      "priority": "High"
+    }
+  }
+  ```
+
+---
+
+### 21.4 `INT-HR-96`: Integrasi Pengambilan Hirarki Pohon Jabatan & Filter Anti Self-Approval ke Sub-02 Workforce Core
+
+* **Modul Terkait:** Sub-Modul 21 Workflow Management -> Sub-Modul 02 Workforce Core & Organisasi.
+* **Tujuan & Mekanisme:** Saat engine workflow membentuk rantai persetujuan (*approval routing matrix*), sistem memanggil antarmuka layanan `IOrganizationalHierarchyProvider` dari Sub-02 untuk menentukan atasan langsung dan atasan satu tingkat di atasnya (*skip-level superior*). Menjamin bahwa permohonan yang diajukan oleh pejabat approver itu sendiri tidak pernah memunculkan namanya sendiri sebagai penilai, melainkan dialihkan otomatis ke pejabat di atasnya (`VR-WF-02`).
+* **Kontrak Service Interface:**
+  ```csharp
+  public interface IOrganizationalHierarchyProvider
+  {
+      Task<EmployeeHierarchyDto> GetReportingLineAsync(Guid employeeId, CancellationToken cancellationToken);
+      Task<Guid?> GetSkipLevelManagerIdAsync(Guid employeeId, CancellationToken cancellationToken);
+      Task<bool> IsEligibleDelegateAsync(Guid principalId, Guid delegateId, CancellationToken cancellationToken);
+  }
+  ```

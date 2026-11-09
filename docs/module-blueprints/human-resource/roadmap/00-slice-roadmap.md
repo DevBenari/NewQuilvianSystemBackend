@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `20` — **revisi `20` (6 November 2026) menyerap keputusan `HRD-DEC-170` s.d. `HRD-DEC-175` dan asumsi `HRD-ASM-59` s.d. `HRD-ASM-62` untuk target state Slice `S-C5` (Hubungan Industrial & Terminasi: Disciplinary, Grievance, Whistleblowing, Bipartite, Termination PP 35/2021 & Exit Clearance Multi-Departemen Pemblokir Payroll), merencanakan 16 task backend (`BE-HRD-270` s.d. `BE-HRD-285`) dan 15 task frontend (`FE-HRD-246` s.d. `FE-HRD-260`) lintas gelombang MVP-54 s.d. MVP-56 & Verifikasi**; revisi `19` menyerap target state Slice `S-C3` |
+| Roadmap revision | `21` — **revisi `21` (9 November 2026) menyerap keputusan `HRD-DEC-176` s.d. `HRD-DEC-181` dan asumsi `HRD-ASM-63` s.d. `HRD-ASM-66` serta resolusi resmi `HRD-DEC-010` (Enkripsi AES-256 field rekam medis klinis & pembatasan akses HR Admin) untuk target state Slice `S-C6` (Occupational Health & Staff Safety: Rekam Medis Terenkripsi, Kelaikan Kerja Fitness to Work, Hard-Stop Roster Medis Sub-06, Respon Cito Tertusuk Jarum < 4 Jam, Radar Imunisasi Nakes STARKES, & Klaim BPJS Ketenagakerjaan JKK 2x24 Jam), merencanakan 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`) dan 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`) lintas gelombang MVP-57 s.d. MVP-59 & Verifikasi**; revisi `20` menyerap target state Slice `S-C5` |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -60,7 +60,7 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | `HRD-PH-003` | `S-B1` s.d. `S-B4` | `PLANNED` — `S-B4` (17 BE, 13 FE rev 8); `S-B1` (13 BE, 14 FE rev 9); `S-B2` (14 BE, 14 FE rev 10); `S-B3` direncanakan pada roadmap revision `11` (5 November 2026): 15 task backend (`BE-HRD-131` s.d. `BE-HRD-145`) dan 14 task frontend (`FE-HRD-116` s.d. `FE-HRD-129`) |
 | `HRD-PH-004` | `S-B5`, `S-B6` | `PLANNED` — `S-B5` (15 BE, 14 FE rev 12); `S-B6` direncanakan pada roadmap revision `13` (5 November 2026): 15 task backend (`BE-HRD-161` s.d. `BE-HRD-175`) dan 14 task frontend (`FE-HRD-144` s.d. `FE-HRD-157`) |
 | `HRD-PH-005` | `S-C1`, `S-C1-OPPE` | `PLANNED` — `S-C1` (16 BE, 15 FE rev 16); `S-C1-OPPE` direncanakan pada roadmap revision `17` (6 November 2026): 16 task backend (`BE-HRD-222` s.d. `BE-HRD-237`) dan 15 task frontend (`FE-HRD-201` s.d. `FE-HRD-215`) |
-| `HRD-PH-006` | `S-C6` | `BLOCKED` |
+| `HRD-PH-006` | `S-C6` | `PLANNED` - direncanakan pada roadmap revision `21` (9 November 2026): 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`) dan 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`) |
 | `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1` dan `S-D2`; `PLANNED` untuk `S-D3` (15 BE, 14 FE rev 14) dan `S-D4` (5 November 2026, 15 task BE & 14 task FE, roadmap rev 15); `S-D5` `DEFERRED` |
 | `HRD-PH-008` | `S-C2` s.d. `S-C5` | `READY` |
 | `HRD-PH-009` | `S-E` | **Bukan fase yang dijadwalkan.** Aturan lintas-slice yang berlaku sepanjang implementasi |
@@ -689,9 +689,9 @@ Contoh supaya batasnya jelas:
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
 | `READY` | **12** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-C4` (1), `S-E` (1), `S-D2` (1) |
-| `PLANNED` | **13** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D1` (1, rev 14), `S-D3` (1, rev 14), `S-D4` (1, rev 15), `S-C1` (1, rev 16), `S-C1-OPPE` (1, rev 17), `S-C2` (1, rev 18), `S-C3` (1, rev 19), `S-C5` (1, rev 20) |
+| `PLANNED` | **13** | `S-B4` (1, rev 8), `S-B1` (1, rev 9), `S-B2` (1, rev 10), `S-B3` (1, rev 11), `S-B5` (1, rev 12), `S-B6` (1, rev 13), `S-D1` (1, rev 14), `S-D3` (1, rev 14), `S-D4` (1, rev 15), `S-C1` (1, rev 16), `S-C1-OPPE` (1, rev 17), `S-C2` (1, rev 18), `S-C3` (1, rev 19), `S-C5` (1, rev 20), `S-C6` (1, rev 21) |
 | `PARTIAL` | **0** | Tidak ada slice PARTIAL |
-| `BLOCKED` | 1 | `S-C6` |
+| `BLOCKED` | **0** | *Seluruh 27 slice bebas blocker* |
 | `DEFERRED` | 1 | `S-D5` |
 | **Total** | **27** | |
 

@@ -886,3 +886,125 @@ Matriks pengujian penerimaan (*User Acceptance Testing* - UAT) ini memuat 22 ske
    - *Aktor:* Pegawai Resign, Staf Aset Umum, Farmasi, Keuangan, IT, Petugas Payroll Sub-10.
    - *Langkah:* Pegawai mengajukan resign 30 hari sebelumnya -> Sistem menghitung hak UPH cuti dan Uang Pisah -> Direktur Keuangan mengesahkan lembar kompensasi -> Pegawai mengembalikan seragam dinas, stetoskop RS, kartu akses, dan melunasi kasbon -> Bagian IT mencabut akses SSO SIMRS -> Seluruh 5 unit memberi persetujuan `Approved` -> Petugas Payroll Sub-10 dapat membuka gembok dan merilis transfer gaji terakhir serta uang pisah.
    - *Ekspektasi:* Zero aset hilang, akun sistem tertutup rapi, dan tidak ada sengketa pembayaran gaji akhir.
+
+
+---
+
+## 31. Sub-Modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up) — Slice `S-C6`
+
+### 31.1 Matriks Kriteria Pengujian Penerimaan Otomatis (Acceptance Test Criteria)
+
+| Kode Pengujian | Target Komponen / Logika Bisnis | Kondisi Uji & Prasyarat | Hasil yang Diharapkan (Expected Result) | Tingkat Prioritas |
+|---|---|---|---|---|
+| `AT-HRD-OHS-01` | Enkripsi Rekam Medis Klinis K3RS | Simpan rekam medis staf dengan diagnosis klinis dan catatan dokter | Data tersimpan terenkripsi AES-256 di basis data; tidak terbaca plain-text | `CRITICAL` |
+| `AT-HRD-OHS-02` | Pemisahan Hak Akses HR vs Dokter (HRD-DEC-176) | Request GET rincian rekam medis dilakukan memakai token akun HR Admin | Respon hanya memuat status kelayakan kerja; akses data klinis menghasilkan HTTP 403 | `CRITICAL` |
+| `AT-HRD-OHS-03` | Akses Mandiri Rekam Medis Pegawai via ESS | Pegawai login ke portal ESS dan membuka riwayat MCU miliknya | Pegawai dapat mengunduh salinan rekam kesehatan pribadinya secara aman | `HIGH` |
+| `AT-HRD-OHS-04` | Validasi Sertifikat Hiperkes Dokter K3RS | Dokter tanpa nomor sertifikat Hiperkes mencoba mengesahkan kelaikan kerja | Sistem menolak pengesahan dengan pesan error validasi `VR-OHS-03` | `HIGH` |
+| `AT-HRD-OHS-05` | Penetapan Status 'Fit With Restriction' | Dokter menetapkan status kelaikan dengan restriksi dinas malam | Surat pembatasan tugas diterbitkan dengan tanggal kedaluwarsa maksimal 6 bulan | `HIGH` |
+| `AT-HRD-OHS-06` | Roster Hard-Stop Penjadwalan Sub-06 (`INT-HR-89`) | Atasan mencoba menjadwalkan shift malam pada staf yang memiliki restriksi aktif | Sistem roster melempar eksepsi error `VR-OHS-06` dan membatalkan simpan shift | `CRITICAL` |
+| `AT-HRD-OHS-07` | Pelepasan Restriksi via Asesmen Return-to-Work | Dokter K3RS menerbitkan asesmen RTW `Fit` setelah masa pemulihan selesai | Status restriksi beralih ke `CompletedCleared` dan kunci roster Sub-06 terbuka | `HIGH` |
+| `AT-HRD-OHS-08` | Tombol Darurat Tertusuk Jarum ESS (< 5 Detik) | Pegawai menekan tombol panik tertusuk jarum pada portal ESS mobile | Tiket darurat terbit seketika dan sinyal notifikasi cito sampai ke ponsel K3RS/PPI | `CRITICAL` |
+| `AT-HRD-OHS-09` | Batas Emas Terapi PPP / PEP < 4 Jam | Staf terpajan darah jarum risiko tinggi menjalani triase IGD/K3RS | Resep paket darurat PPP terbit dan tercatat dimulai < 4 jam dari waktu insiden | `CRITICAL` |
+| `AT-HRD-OHS-10` | Otomasi Jadwal Surveilans Serial 1, 3, 6 Bulan | Insiden pajanan darah infeksius disahkan oleh dokter K3RS | Worker `OHS-W1` membentuk 3 jadwal surveilans darah otomatis di kalender staf | `HIGH` |
+| `AT-HRD-OHS-11` | Penutupan Kasus Pajanan Non-Reaktif | Hasil uji serologi bulan ke-6 menunjukkan non-reaktif (negatif) | Tiket pajanan berstatus `ClosedSeronegative` dan staf dinyatakan aman | `MEDIUM` |
+| `AT-HRD-OHS-12` | Penapisan Otomatis Paket MCU Berbasis Risiko | Staf radiologi didaftarkan ke jadwal pemeriksaan MCU berkala | Paket MCU otomatis menyertakan evaluasi radiasi TLD dan darah rutin perifer | `HIGH` |
+| `AT-HRD-OHS-13` | Imutabilitas Hasil Kelaikan yang Telah Disahkan | Pengguna mencoba menyunting status kelayakan kerja yang sudah ditandatangani | Sistem menolak perubahan data (HTTP 400 Bad Request / Immutable Record) | `HIGH` |
+| `AT-HRD-OHS-14` | Kelengkapan Data Log Imunisasi Staf | Input vaksinasi staf tanpa menyertakan nomor batch dan pabrikan vaksin | Sistem menolak input dengan pesan error validasi `VR-OHS-14` | `MEDIUM` |
+| `AT-HRD-OHS-15` | Deteksi Titer Anti-HBs Non-Protektif (< 10 mIU/mL) | Hasil lab staf mencatat titer Anti-HBs sebesar 3 mIU/mL | Status imunitas otomatis `NonProtective` dan tiket rujukan booster terbit | `HIGH` |
+| `AT-HRD-OHS-16` | Notifikasi Pengingat Dini Booster Vaksin H-30 | Simulasi tanggal saat ini berada pada H-30 kedaluwarsa imunitas staf | Worker `OHS-W3` mengirim pesan pengingat booster ke akun portal ESS staf | `LOW` |
+| `AT-HRD-OHS-17` | Ambang Batas Kumulatif Radiasi TLD (> 20 mSv/thn) | Rekam dosis radiasi tahunan staf melampaui batas aman 20 mSv | Sistem menyalakan alarm peringatan bahaya radiasi dan rekomendasi rotasi kerja | `CRITICAL` |
+| `AT-HRD-OHS-18` | Ekspor Dokumen Klaim JKK Tahap I BPJS (< 2x24 Jam) | Data kecelakaan kerja diekspor untuk pelaporan BPJS Ketenagakerjaan | Berkas elektronik Formulir JKK Tahap I siap kirim lengkap dengan kronologi TKP | `HIGH` |
+| `AT-HRD-OHS-19` | Investigasi Kecelakaan Kerja & Matriks CAPA | Tim K3RS menyelesaikan formulir investigasi kecelakaan kerja | Berkas investigasi memuat minimal 2 nama investigator dan tabel rekomendasi CAPA | `MEDIUM` |
+| `AT-HRD-OHS-20` | Sinkronisasi Hari Kerja Hilang (LTI) ke Sub-07 | Staf izin sakit akibat kecelakaan kerja selama 7 hari kalender | Kolom `lost_time_injury_days` otomatis terisi 7 hari dan sinkron dengan Sub-07 | `MEDIUM` |
+| `AT-HRD-OHS-21` | Finalisasi Klaim JKK Tahap II dan Penggantian Biaya | Staf K3RS mengunggah resume medis dan kwitansi perawatan IGD RS | Dokumen klaim santunan Tahap II tervalidasi lengkap dan siap klaim | `HIGH` |
+| `AT-HRD-OHS-22` | Ekspor Laporan Kepatuhan Akreditasi STARKES KPS | Manajemen mengunduh laporan pemenuhan kesehatan staf tahunan | Terbit berkas ringkasan STARKES KPS berisi persentase MCU dan cakupan vaksinasi | `HIGH` |
+
+---
+
+### 31.2 Skenario Pengujian Penerimaan Pengguna (User Acceptance Testing Scenarios)
+
+1. **UAT-OHS-01: Penanganan Tanggap Darurat Tertusuk Jarum Cito, Pemberian PPP < 4 Jam & Pemantauan 6 Bulan**
+   - *Aktor:* Perawat Bangsal Bedah (Korban), Dokter Jaga IGD, Dokter Spesialis Okupasi K3RS, Analis Lab.
+   - *Langkah:* Perawat tertusuk jarum saat menjahit luka pasien terkonfirmasi Hepatitis B -> Perawat menekan tombol darurat di ESS -> Sirene berbunyi di K3RS & PPI -> Triase IGD dalam 30 menit -> Dokter K3RS meresepkan Hepatitis B Immunoglobulin & Starter Pack ARV yang diserahkan dalam waktu 2,5 jam sejak insiden -> Pengambilan darah baseline staf dan pasien -> Worker `OHS-W1` mengeset pemantauan serial bulan 1, 3, dan 6 -> Uji lab bulan ke-6 non-reaktif -> Tiket resmi ditutup aman.
+   - *Ekspektasi:* Respon cito terpenuhi dalam batas emas keselamatan < 4 jam, obat profilaksis tersedia instan, dan staf terpantau secara terstruktur hingga bebas risiko penularan.
+
+2. **UAT-OHS-02: Pelaksanaan MCU Berkala Berbasis Profil Ruangan, Pembatasan Tugas Medis & Hard-Stop Roster**
+   - *Aktor:* Staf Ruang Perawatan Paru, Dokter K3RS Bersertifikat, Kepala Ruangan, Staf HR Admin.
+   - *Langkah:* Staf menjalani MCU berkala tahunan -> Rontgen toraks dan spirometri terunggah aman -> Dokter K3RS mendiagnosis bronkitis akut dengan restriksi tidak boleh kontak dengan pasien infeksius menular dan tidak berdinas malam selama 30 hari -> Terbit surat restriksi `FitWithRestriction` -> Kepala Ruangan menyusun jadwal dinas malam di Sub-06 -> Sistem menolak penjadwalan (*Hard-Stop*) -> HR Admin hanya melihat status kelaikan operasional tanpa tahu rincian catatan klinis internal.
+   - *Ekspektasi:* Rahasia medis staf terlindungi 100% dari HR/atasan, sementara keselamatan staf terjamin secara fisik lewat gembok penjadwalan otomatis.
+
+3. **UAT-OHS-03: Radar Kepatuhan Imunisasi Nakes, Deteksi Titer Anti-HBs Rendah & Penjadwalan Booster Otomatis**
+   - *Aktor:* Dokter Spesialis Bedah, Petugas Vaksinator K3RS, Komite Mutu K3RS.
+   - *Langkah:* Hasil evaluasi lab tahunan mencatat titer Anti-HBs dokter bedah turun menjadi 4,5 mIU/mL (di bawah ambang protektif 10 mIU/mL) -> Dasbor radar imunitas mendeteksi status `NonProtective` -> Sistem menerbitkan tiket otomatis rujukan vaksinasi booster Hepatitis B -> Dokter bedah menerima notifikasi kalender vaksinasi di portal ESS -> Dokter disuntik vaksin booster dan nomor batch dicatat -> Status imunitas pulih protektif.
+   - *Ekspektasi:* Seluruh tenaga medis berisiko tinggi memiliki proteksi imunologis yang terpantau aktif demi kepatuhan akreditasi STARKES dan keselamatan kerja.
+
+4. **UAT-OHS-04: Penanganan Kecelakaan Kerja Tertimpa Alat Medis, Investigasi K3RS & Klaim JKK BPJS Tahap I-II**
+   - *Aktor:* Petugas CSSD (Korban), Kepala Instalasi CSSD, Staf Klaim K3RS, Tim Keselamatan K3RS.
+   - *Langkah:* Petugas CSSD mengalami cedera fraktur ringan kaki saat memindahkan autoklaf steril -> Laporan kecelakaan dibuat di sistem -> Tim K3RS olah TKP dan menyusun CAPA perbaikan lantai licin -> Staf Klaim mengekspor Formulir JKK Tahap I ke portal BPJS Ketenagakerjaan dalam 18 jam (patuh < 48 jam) -> Korban dirawat dan istirahat sakit 14 hari (LTI sinkron dengan Sub-07) -> Pengajuan Tahap II selesai dan seluruh biaya RS diganti penuh oleh BPJS.
+   - *Ekspektasi:* Kepatuhan regulasi 2x24 jam terpenuhi, risiko kerja diperbaiki tuntas, dan santunan jaminan sosial tenaga kerja cair tanpa kendala.
+
+5. **UAT-OHS-05: Asesmen Kelaikan Kembali Bekerja (Return-to-Work) & Pemulihan Kewenangan Klinis Sub-03**
+   - *Aktor:* Perawat Terluka, Dokter K3RS Bersertifikat, Sub-Komite Kredensial Keperawatan Sub-03.
+   - *Langkah:* Masa istirahat pemulihan cedera fraktur selesai -> Perawat mengajukan evaluasi kembali bertugas (RTW) -> Dokter K3RS melakukan uji kebugaran fisik, rentang gerak motorik, dan kekuatan beban -> Hasil evaluasi dinilai `FitForFullDuty` -> Asesmen disahkan -> Kunci gembok roster Sub-06 dilepas otomatis -> Sub-03 memulihkan status kewenangan klinis aktif perawat.
+   - *Ekspektasi:* Transisi staf dari masa sakit kembali ke pelayanan pasien berjalan aman, terukur, dan sah secara hukum kedokteran okupasi.
+
+
+---
+
+## 32. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 32.1 Matriks Kriteria Pengujian Penerimaan Otomatis (Acceptance Test Criteria)
+
+| Kode Pengujian | Target Komponen / Logika Bisnis | Kondisi Uji & Prasyarat | Hasil yang Diharapkan (Expected Result) | Tingkat Prioritas |
+|---|---|---|---|---|
+| `AT-HRD-WF-01` | Inisiasi Workflow Tiket Baru dari ESS | Pegawai mengisi formulir permohonan cuti/lembur di portal ESS | `TrxWorkflowInstance` terbuat dengan nomor registrasi unik dan status `Submitted` | `HIGH` |
+| `AT-HRD-WF-02` | Resolusi Dinamis Matriks Persetujuan Multi-Level | Permohonan diajukan oleh staf perawat bangsal | Sistem membentuk alur 2 tahap: Step 1 Kepala Ruangan, Step 2 Kepala Bidang Keperawatan | `HIGH` |
+| `AT-HRD-WF-03` | Anti Self-Approval Pejabat Struktural (`VR-WF-02`) | Kepala Ruangan mengajukan permohonan cuti tahunan mandiri | Sistem memblokir approval mandiri dan otomatis mengalihkan tiket ke Kepala Bidang | `CRITICAL` |
+| `AT-HRD-WF-04` | Penugasan Wewenang ke Pelaksana Harian (Plh) | Kepala Ruangan cuti dan menunjuk Wakil Karu sebagai Plh aktif | Tiket permohonan staf masuk ke inbox Plh dengan penanda badge "Delegated Request" | `HIGH` |
+| `AT-HRD-WF-05` | Jejak Audit Ganda Keputusan Plh | Plh mengeksekusi persetujuan cuti atas nama Kepala Ruangan | `TrxApprovalAction` mencatat `action_employee_id = Plh` dan `on_behalf_of = Karu` | `CRITICAL` |
+| `AT-HRD-WF-06` | Kedaluwarsa Otomatis Wewenang Delegasi Plh | Tanggal hari ini melewati `EndDate` surat kuasa Plh | Worker `WF-W2` mengeset `IsActive = false`; wewenang Plh dicabut seketika | `MEDIUM` |
+| `AT-HRD-WF-07` | Penolakan Permohonan dengan Alasan Wajib | Approver menolak tiket tanpa menyertakan catatan alasan tertulis | Sistem melempar eksepsi error validasi `VR-WF-05` (alasan minimal 15 karakter) | `HIGH` |
+| `AT-HRD-WF-08` | Pengembalian Berkas Revisi (Return for Revision) | Approver meminta perubahan tanggal dinas pada tiket tukar shift | Status tiket beralih ke `ReturnedForRevision` dan masuk ke tab revisi pemohon di ESS | `HIGH` |
+| `AT-HRD-WF-09` | Pengajuan Ulang (Resubmit) Pasca Koreksi Data | Staf mengedit tanggal dinas dan mengirim ulang tiket | Tiket berstatus `Resubmitted` dan kembali masuk ke inbox approver terkait | `HIGH` |
+| `AT-HRD-WF-10` | Pembatalan Mandiri Tiket oleh Pemohon | Staf membatalkan permohonan sebelum approver mengambil tindakan | Status tiket berubah menjadi `Cancelled` dan keluar dari antrean inbox approver | `MEDIUM` |
+| `AT-HRD-WF-11` | Larangan Auto-Approve saat Timeout SLA (`VR-WF-11`) | Tiket permohonan melewati batas waktu SLA tanpa respon atasan | Sistem dilarang menyetujui tiket; status beralih ke `EscalatedDueToTimeout` | `CRITICAL` |
+| `AT-HRD-WF-12` | Eskalasi Otomatis Tiket Macet via Worker `WF-W1` | Tiket berstatus overdue selama 6 jam sejak batas waktu SLA | Worker `WF-W1` menduplikasi penugasan tiket ke atasan tingkat di atasnya | `HIGH` |
+| `AT-HRD-WF-13` | Peringatan Dini Batas Waktu SLA H-4 Jam | Tiket permohonan berada pada sisa waktu 4 jam sebelum SLA habis | Sistem mengirimkan notifikasi push prioritas tinggi ke ponsel approver | `MEDIUM` |
+| `AT-HRD-WF-14` | Persetujuan Massal Permohonan Berisiko Rendah | Approver memilih 10 permohonan lembur rutin berindikator hijau | 10 tiket disetujui sekaligus dalam satu kali konfirmasi PIN keamanan | `HIGH` |
+| `AT-HRD-WF-15` | Penolakan Persetujuan Massal untuk Tiket Warning | Approver mencoba memasukkan tiket tukar shift bentrok ke bulk approve | Sistem menolak item tersebut dari batch dan mewajibkan evaluasi lembar detail | `CRITICAL` |
+| `AT-HRD-WF-16` | Verifikasi Keaslian PIN Otorisasi Approver | Approver memasukkan PIN keamanan yang salah saat menyetujui tiket | Sistem menolak eksekusi persetujuan dengan HTTP 403 Forbidden | `HIGH` |
+| `AT-HRD-WF-17` | Eksekusi Idempoten Pemotongan Saldo Cuti Sub-08 | Tiket cuti disetujui final oleh approver tahapan terakhir | Sinyal `INT-HR-93` memotong saldo cuti di Sub-08 tepat 1 kali tanpa duplikasi | `CRITICAL` |
+| `AT-HRD-WF-18` | Eksekusi Perubahan Jadwal Shift Sub-06 | Tiket tukar shift disetujui final oleh Kepala Ruangan | Roster dinas kedua perawat di Sub-06 otomatis bertukar posisi shift | `CRITICAL` |
+| `AT-HRD-WF-19` | Pengiriman Email Ringkasan Harian Atasan | Simulasi jadwal waktu pukul 07:00 pagi WIB | Worker `WF-W3` mengirim email kompilasi daftar pending request ke atasan | `LOW` |
+| `AT-HRD-WF-20` | Isolasi Catatan Internal Peninjauan Approver | Pemohon login ke ESS dan memeriksa riwayat permohonannya | Catatan bertanda `is_internal_review_only = true` tidak tampil di layar pemohon | `MEDIUM` |
+| `AT-HRD-WF-21` | Validasi Ukuran & Format Berkas Lampiran | Pengguna mengunggah berkas format `.exe` atau berukuran 15 MB | Sistem menolak berkas dengan pesan validasi `VR-WF-13` dan `VR-WF-14` | `LOW` |
+| `AT-HRD-WF-22` | Rekonsiliasi Otomatis Aksi Hilir yang Macet | Terjadi network glitch saat sinyal persetujuan dikirim ke Sub-08 | Worker `WF-W6` mengeksekusi ulang sinyal hingga pemotongan saldo terkonfirmasi | `HIGH` |
+
+---
+
+### 32.2 Skenario Pengujian Penerimaan Pengguna (User Acceptance Testing Scenarios)
+
+1. **UAT-WF-01: Alur Pengajuan Cuti Staf, Peninjauan Atasan Langsung & Pemotongan Saldo Cuti Otomatis**
+   - *Aktor:* Perawat Rawat Inap, Kepala Ruangan, Sistem Sub-08.
+   - *Langkah:* Perawat mengajukan cuti tahunan 3 hari melalui portal ESS -> Tiket masuk ke Unified Approval Inbox Kepala Ruangan -> Indikator validasi menunjukkan hijau (saldo cukup 8 hari, tidak bentrok kuota shift) -> Kepala Ruangan menyetujui dengan PIN -> Sistem menerbitkan event `INT-HR-93` -> Saldo cuti berkurang menjadi 5 hari di Sub-08 dan jadwal shift di Sub-06 ditandai cuti resmi.
+   - *Ekspektasi:* Transaksi persetujuan berjalan mulus dari pengajuan mandiri hingga pembaruan operasional tanpa jeda manual.
+
+2. **UAT-WF-02: Mekanisme Anti Self-Approval Kepala Ruangan & Pengalihan Otorisasi ke Kepala Bidang**
+   - *Aktor:* Kepala Ruangan Melati (Pemohon), Kepala Bidang Keperawatan (Approver).
+   - *Langkah:* Kepala Ruangan mengajukan izin lembur supervisi akreditasi -> Sistem mengevaluasi aturan `VR-WF-02` dan mendeteksi pemohon adalah pejabat approver -> Sistem memblokir tombol approve diri sendiri dan secara otomatis mengarahkan tiket ke inbox Kepala Bidang Keperawatan -> Kepala Bidang menerima notifikasi dan menyetujui lembur Karu.
+   - *Ekspektasi:* Zero self-approval, tata kelola wewenang rumah sakit terjaga 100% dari potensi manipulasi.
+
+3. **UAT-WF-03: Pendelegasian Wewenang Selama Masa Cuti Atasan & Jejak Audit Pelaksana Harian (Plh)**
+   - *Aktor:* Kepala Ruangan (Definitif), Wakil Kepala Ruangan (Plh), Perawat Pemohon.
+   - *Langkah:* Karu mendaftarkan pendelegasian wewenang ke Wakil Karu selama 5 hari masa cuti -> Perawat mengajukan tukar shift jaga malam -> Tiket masuk ke inbox Wakil Karu bertanda "Delegated Request: On Behalf of Karu" -> Wakil Karu menyetujui -> Log audit permanen mencatat Wakil Karu sebagai eksekutor atas nama Kepala Ruangan definitif.
+   - *Ekspektasi:* Tidak ada keterlambatan persetujuan shift saat kepala ruangan cuti, dan akuntabilitas audit tetap jelas.
+
+4. **UAT-WF-04: Penanganan Permohonan Tukar Shift dengan Siklus Pengembalian Revisi (Return for Revision)**
+   - *Aktor:* Perawat Pengaju, Perawat Pengganti, Kepala Ruangan.
+   - *Langkah:* Perawat mengajukan tukar shift dinas malam ke dinas pagi -> Karu meninjau dan melihat perawat belum melampirkan persetujuan tertulis perawat pengganti -> Karu memilih aksi `Return for Revision` dengan catatan: "Lampirkan bukti konfirmasi perawat pengganti" -> Tiket kembali ke tab revisi ESS perawat -> Perawat mengunggah bukti dan menekan `Resubmit` -> Tiket kembali aktif di inbox Karu -> Karu menyetujui.
+   - *Ekspektasi:* Kolaborasi perbaikan data berjalan efektif tanpa mengharuskan staf mengulang isi formulir dari awal.
+
+5. **UAT-WF-05: Penegakan SLA Batas Waktu 24 Jam, Peringatan Dini & Eskalasi Otomatis Tanpa Auto-Approve**
+   - *Aktor:* Perawat Pemohon, Kepala Ruangan (Approver 1), Kepala Bidang (Approver 2).
+   - *Langkah:* Perawat mengajukan tukar shift mendesak (SLA 24 jam) -> Karu tidak membuka sistem selama 20 jam -> Sistem mengirim push notification peringatan merah H-4 jam -> Memasuki jam ke-25 (SLA terlewati), worker `WF-W1` menandai tiket `IsOverdue = true`, menolak auto-approve, dan otomatis mengeskalasi tiket ke inbox Kepala Bidang Keperawatan -> Kepala Bidang segera memproses persetujuan darurat.
+   - *Ekspektasi:* Keselamatan pasien terjamin karena tidak ada persetujuan liar tanpa kontrol manusia, dan tiket macet segera tertangani.

@@ -126,10 +126,10 @@ Berikut adalah matriks status implementasi seluruh 22 sub-modul HRD Quilvian yan
 | **15** | **OPPE, FPPE & Recredentialing** | [x] Selesai Di-grill (✅) | [ ] Menunggu Desain/Plan (📋) | [ ] Menunggu Desain/Plan (📋) | Evaluasi Mutu Klinis & Rekredensialing Disetujui (Slice S-C1-OPPE) |
 | 16 | Learning, Training & Competency | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 17 | Performance Management & Clinical Career | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 18 | Occupational Health & Staff Safety | [ ] Menunggu K3RS | [ ] Terblokir Kebijakan K3RS | [ ] Terblokir Kebijakan K3RS | Terblokir Privasi Medis |
+| **18** | **Occupational Health & Staff Safety** | [x] Selesai Di-plan (✅) | [ ] Siap Build V2 (⏳) | [ ] Siap Build V2 (⏳) | Selesai Di-plan V2 (Slice S-C6), 16 Task BE & 15 Task FE |
 | 19 | Employee Relation & Discipline | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
 | 20 | Separation, Exit Clearance & Offboarding | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
-| 21 | Employee Self-Service & Unified Approval | [ ] Antrean Blueprint V2 | [x] Sudah dikerjakan (✅) | [x] Sudah dikerjakan (✅) | Operasional V1 Aktif |
+| **21** | **Employee Self-Service & Unified Approval** | [x] Selesai Di-design (✅) | [ ] Siap Delivery Plan (⏳) | [ ] Siap Delivery Plan (⏳) | Selesai Di-design V2 (Slice S-A7-V2), Siap Delivery Planning |
 | **22** | **HR Service & Employee Document Service** | [x] Selesai Di-plan (✅) | [ ] Baru Di-plan V2 (📋) | [ ] Baru Di-plan V2 (📋) | Blueprint Selesai, Siap Build V2 |
 
 
@@ -1669,9 +1669,9 @@ Perawat mempunyai KPI kehadiran dan service quality yang baik, tetapi belum meme
 **Status source:** `PARTIAL — MODEL KUAT, OPERASIONALISASI DIPERLUKAN`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Menunggu kebijakan perlindungan privasi data medis K3RS (`HRD-DEC-010`).
-- [ ] **Backend:** Terblokir privasi data medis staf K3RS (`BE-HRD-016` ⛔).
-- [ ] **Frontend:** Terblokir privasi data medis staf K3RS (`FE-HRD-019` ⛔).
+- [x] **Module Blueprint:** Selesai Di-plan (✅) — Resolusi HRD-DEC-010 disahkan via HRD-DEC-176 (Pemisahan Hak Akses Enkripsi AES-256), 16 Task BE (BE-HRD-286..301) & 15 Task FE (FE-HRD-261..275) Terencana.
+- [ ] **Backend:** Siap Build V2 (⏳).
+- [ ] **Frontend:** Siap Build V2 (⏳).
 
 ## Penjelasan untuk developer
 
@@ -1948,9 +1948,9 @@ Dokter resign efektif akhir bulan. Sebelum inactive, Finance harus menyelesaikan
 **Status source:** `TERSEDIA CORE — NAVIGATION & CONTRACT HARDENING`
 
 ### 3 Status Implementasi
-- [ ] **Module Blueprint:** Antrean Blueprint V2 (Kontrak operasional V1 aktif).
-- [x] **Backend:** Sudah dikerjakan (✅) — Portal layanan mandiri & integrasi Unified Approval Inbox (`BE-HRD-004`, `BE-HRD-005`).
-- [x] **Frontend:** Sudah dikerjakan (✅) — Portal ESS lengkap & kotak masuk persetujuan terpadu atasan (`FE-HRD-003`..`008`).
+- [x] **Module Blueprint:** Selesai Di-design (✅) — Blueprint V2 Lengkap (Slice S-A7-V2), Unified Approval Engine, Dynamic Routing, Anti Self-Approval, Plh Delegation, SLA Escalation, Bulk Approval.
+- [ ] **Backend:** Siap Delivery Planning V2 (⏳).
+- [ ] **Frontend:** Siap Delivery Planning V2 (⏳).
 
 ## Penjelasan untuk developer
 

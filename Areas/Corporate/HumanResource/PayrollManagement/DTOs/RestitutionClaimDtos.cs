@@ -158,4 +158,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         public List<PayrollRestitutionResponseDto> InjectedItems { get; set; } = new();
         public string Message { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Permintaan investigasi keluhan salah potong gaji oleh HR Payroll Officer (BE-HRD-171, DED-B5, HRD-ASM-33, VR-DED-05).
+    /// </summary>
+    public class SalaryGrievanceInvestigationRequestDto
+    {
+        [Required]
+        public Guid EmployeeId { get; set; }
+
+        [Required]
+        public Guid AffectedPayrollRunId { get; set; }
+
+        public Guid? AffectedPayslipId { get; set; }
+
+        [Range(1000, 100000000)]
+        public decimal ClaimedExcessDeductionAmount { get; set; }
+
+        [Range(1000, 100000000)]
+        public decimal ApprovedRefundAmount { get; set; }
+
+        [Required, MinLength(15)]
+        public string InvestigationFindings { get; set; } = string.Empty;
+
+        public Guid? TargetPayrollRunId { get; set; }
+    }
+
+    /// <summary>
+    /// Hasil resolusi investigasi keluhan salah potong gaji dengan status terkunci non-pajak PPh 21 (BE-HRD-171, DED-B5).
+    /// </summary>
+    public class SalaryGrievanceInvestigationResultDto
+    {
+        public Guid RestitutionId { get; set; }
+        public string RestitutionNumber { get; set; } = string.Empty;
+        public Guid EmployeeId { get; set; }
+        public string? EmployeeName { get; set; }
+        public string? EmployeeNik { get; set; }
+        public Guid AffectedPayrollRunId { get; set; }
+        public Guid? AffectedPayslipId { get; set; }
+        public decimal ClaimedExcessDeductionAmount { get; set; }
+        public decimal ApprovedRefundAmount { get; set; }
+        public bool IsTaxable { get; set; } = false; // Mutlak non-pajak PPh 21 (DED-B5, HRD-ASM-33)
+        public string Status { get; set; } = "Approved";
+        public string InvestigationFindings { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
 }

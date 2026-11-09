@@ -3701,3 +3701,225 @@ Telah didokumentasikan lengkap pada berkas `testing/acceptance-test-matrix.md` b
   - Mesin hitung pesangon PP 35/2021 dan pengesahan Direktur Keuangan.
   - Integrasi hard-block pencairan payroll akhir ke Sub-10 (`INT-HR-87`).
   - Worker pengingat kliring aset `EMP-W5` dan layar `FE-HRD-252`, `FE-HRD-253`.
+
+
+---
+
+## 37. Sub-Modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up) — Slice `S-C6`
+
+### 37.1 Ringkasan Ruang Lingkup & Latar Belakang Bisnis
+
+Sub-Modul 19 (Occupational Health & Staff Safety / K3RS & MCU) adalah pilar keselamatan kerja dan perlindungan kesehatan tenaga medis di lingkungan rumah sakit. Rumah sakit merupakan tempat kerja dengan tingkat bahaya biologis, radiasi, ergonomis, dan kimiawi yang tinggi. Sub-modul ini dirancang untuk:
+1. **Menjamin Kerahasiaan Rekam Medis Staf (HRD-DEC-176):** Memisahkan secara ketat data klinis sensitif (diagnosis ICD-10, catatan lab, rontgen) yang terenkripsi AES-256 khusus untuk Dokter K3RS dan portal mandiri staf (ESS), dari status kelaikan operasional (*Fit*, *Fit with Restriction*, *Unfit*) yang dapat dilihat oleh HR Admin dan Atasan Kerja.
+2. **Respon Cito Pajanan Darah & Tertusuk Jarum (*Needle-Stick Injury*):** Menyediakan tombol panik darurat di portal ESS, notifikasi darurat < 5 menit, penyediaan Profilaksis Pasca Pajanan (PPP/PEP) dalam batas emas keselamatan < 4 jam, dan pemantauan serologi serial bulan 1, 3, dan 6.
+3. **Hard-Stop Penjadwalan Roster Medis (`INT-HR-89`):** Menegakkan kepatuhan atas surat pembatasan tugas kerja (*Work Restriction*) dokter dan perawat sehingga atasan tidak dapat menugaskan staf pada jadwal malam atau unit berisiko tinggi saat staf dalam masa pemulihan.
+4. **Radar Imunisasi Nakes & Akreditasi STARKES KPS:** Memantau titer antibodi protektif (Anti-HBs >= 10 mIU/mL), log nomor batch vaksinasi nakes, dan penapisan MCU berkala sesuai profil bahaya ruangan kerja staf.
+5. **Klaim JKK BPJS Ketenagakerjaan & Hari Kerja Hilang (LTI):** Melaporkan insiden kecelakaan kerja dalam waktu maksimal 2x24 jam (Formulir Tahap I), investigasi akar masalah keselamatan K3RS (CAPA), dan pengajuan penggantian biaya santunan medis Tahap II (`INT-HR-90`).
+
+---
+
+### 37.2 Pemetaan Epic & Fitur Inti
+
+* **`EPIC HRD-94` — Rekam Medis K3RS Terenkripsi, Kelaikan Kerja & Pembatasan Tugas Medis**
+  - Penyimpanan rekam kesehatan staf terenkripsi AES-256 dan portal ESS mandiri.
+  - Penilaian *Fitness to Work* oleh Dokter K3RS bersertifikat Hiperkes.
+  - Penerbitan surat pembatasan kerja medis dan asesmen *Return-to-Work* pemulihan tugas.
+* **`EPIC HRD-95` — Tanggap Darurat Tertusuk Jarum, Terapi PPP Cito & Pemantauan Serial**
+  - Tombol panik darurat pajanan okupasional portal ESS staf mobile.
+  - Protokol triase darurat cito < 1 jam dan pemberian paket terapi PPP/PEP < 4 jam.
+  - Otomasi penjadwalan surveilans serologi serial darah pada Bulan ke-1, 3, dan 6.
+* **`EPIC HRD-96` — Pelaksanaan Medical Check-Up (MCU) Berkala Berbasis Profil Bahaya Ruangan**
+  - Penjadwalan MCU pra-kerja, berkala tahunan, khusus bahaya, dan purna tugas.
+  - Penyesuaian otomatis paket penapisan risiko lingkungan kerja (radiasi, serologi, spirometri).
+  - Unggah hasil penunjang LIS/PACS terenkripsi dan digital signature kesimpulan MCU.
+* **`EPIC HRD-97` — Radar Imunisasi & Vaksinasi Nakes serta Surveilans Paparan Bahaya Khusus**
+  - Buku vaksinasi elektronik staf lengkap dengan nomor batch dan masa kedaluwarsa vaksin.
+  - Deteksi otomatis titer Anti-HBs non-protektif (< 10 mIU/mL) dan tiket booster otomatis.
+  - Pemantauan dosis serap radiasi TLD kuartalan/tahunan dan alarm batas ambang Bapeten.
+* **`EPIC HRD-98` — Manajemen Kecelakaan Kerja (KAK/PAK), Investigasi K3RS & Klaim JKK BPJS**
+  - Pelaporan kecelakaan kerja dan berita acara olah tempat kejadian perkara K3RS.
+  - Generator formulir ekspor BPJS Ketenagakerjaan JKK Tahap I (< 2x24 jam) dan Tahap II.
+  - Pemantauan hari kerja hilang (*Lost Time Injury* - LTI) yang sinkron dengan presensi Sub-07.
+
+---
+
+### 37.3 Kebutuhan Fungsional Detil (Functional Requirements)
+
+| Kode Kebutuhan | Nama Kebutuhan Fungsional | Deskripsi Alur & Logika Bisnis | Target Pengguna |
+|---|---|---|---|
+| `FR-OHS-01` | Pendaftaran Rekam Kesehatan Staf | Pembuatan berkas rekam kesehatan staf baru terenkripsi dengan data riwayat alergi, komorbid, dan riwayat paparan bahaya | Perawat / Dokter K3RS |
+| `FR-OHS-02` | Enkripsi Rekam Medis Klinis | Enkripsi otomatis AES-256 pada seluruh field diagnosis ICD-10, catatan medis, dan berkas rontgen | Sistem Backend |
+| `FR-OHS-03` | Pemisahan Tampilan HR vs Klinis | Papan kendali HR Admin hanya memuat status kelaikan operasional dan batasan tugas tanpa detail penyakit klinis | HR Admin, Atasan |
+| `FR-OHS-04` | Penilaian Fitness to Work | Penetapan kesimpulan kelaikan (*Fit*, *Fit with Restriction*, *Temporarily Unfit*, *Permanently Unfit*) oleh dokter Hiperkes | Dokter K3RS |
+| `FR-OHS-05` | Penerbitan Surat Work Restriction | Penerbitan surat pembatasan tugas kerja resmi berbatas waktu (maksimal 6 bulan) dengan kategori tugas terlarang | Dokter K3RS |
+| `FR-OHS-06` | Hard-Stop Roster Sub-06 | Penguncian otomatis sistem penyusunan shift Sub-06 terhadap staf yang memiliki pembatasan tugas dinas aktif | Engine Roster Sub-06 |
+| `FR-OHS-07` | Asesmen Return-to-Work (RTW) | Evaluasi kelaikan fisik dan motorik pasca cedera/sakit sebelum izin kembali bertugas penuh diterbitkan | Dokter K3RS |
+| `FR-OHS-08` | Tombol Darurat Tertusuk Jarum | Tombol lapor darurat cepat pada portal ESS yang membunyikan alarm sirene ke petugas K3RS dan PPI | Staf Medis Terpajan |
+| `FR-OHS-09` | Triase Darurat Pajanan Cito | Formulir evaluasi cepat status keparahan tusukan, kedalaman luka, dan status serologi darah pasien sumber | Dokter Jaga IGD / K3RS |
+| `FR-OHS-10` | Fast-Track Terapi PPP / PEP | Penerbitan resep darurat otomatis ke depo farmasi untuk paket ARV dan imunoglobulin Hepatitis B dalam < 4 jam | Dokter K3RS, Farmasi |
+| `FR-OHS-11` | Inisiasi Pemantauan Serial | Penjadwalan otomatis pemeriksaan darah evaluasi pasca pajanan pada Bulan ke-1, 3, dan 6 | Worker `OHS-W1` |
+| `FR-OHS-12` | Evaluasi Serologi Bulan ke-6 | Verifikasi hasil akhir penapisan darah 6 bulan untuk penutupan kasus status sembuh tanpa serokonversi | Tim PPI & K3RS |
+| `FR-OHS-13` | Penjadwalan Paket MCU Berkala | Penyusunan jadwal dan pemanggilan staf untuk MCU massal tahunan sesuai kuota harian klinik K3RS | Staf Administrasi K3RS |
+| `FR-OHS-14` | Matriks Risiko Paket MCU | Penyesuaian otomatis item uji MCU berdasarkan profil bahaya lingkungan kerja ruangan staf | Administrator K3RS |
+| `FR-OHS-15` | Unggah Hasil Uji LIS & PACS | Integrasi dan unggah berkas hasil lab dan foto rontgen ke berkas rekam medis terenkripsi | Analis Lab / Radiografer |
+| `FR-OHS-16` | Digital Signature Sertifikat MCU | Pengesahan sertifikat kelaikan kerja hasil MCU berkala dengan sertifikat digital resmi dokter penilai | Dokter K3RS Bersertifikat |
+| `FR-OHS-17` | Pencatatan Log Imunisasi Staf | Registrasi pemberian vaksinasi staf mencakup nomor batch, tanggal kadaluarsa, dosis urutan, dan vaksinator | Vaksinator K3RS |
+| `FR-OHS-18` | Radar Kepatuhan Imunitas Nakes | Dasbor visual pemantauan status antibodi tenaga medis per ruangan untuk kepatuhan akreditasi STARKES KPS | Komite K3RS, Direksi RS |
+| `FR-OHS-19` | Tiket Rujukan Booster Otomatis | Pembentukan otomatis tiket rujukan booster bagi staf dengan titer antibodi di bawah batas protektif | Worker `OHS-W3` |
+| `FR-OHS-20` | Pemantauan Dosis Radiasi TLD | Pencatatan hasil pembacaan berkala badge TLD radiasi staf dan alarm batas ambang kumulatif Bapeten | Petugas Radiasi (PPR) |
+| `FR-OHS-21` | Registrasi Kecelakaan Kerja KAK | Pencatatan awal insiden kecelakaan kerja lengkap dengan foto TKP, uraian kronologis, dan saksi mata | Staf / Supervisor |
+| `FR-OHS-22` | Investigasi & Rekomendasi CAPA | Pengisian BAP olah TKP, penentuan akar masalah (RCA), dan penetapan rencana tindakan perbaikan keselamatan | Tim Investigasi K3RS |
+| `FR-OHS-23` | Ekspor Formulir BPJS JKK Tahap I | Pembuatan dan ekspor berkas formulir pelaporan kecelakaan kerja resmi BPJS Ketenagakerjaan dalam 2x24 jam | Staf Klaim K3RS |
+| `FR-OHS-24` | Pelacakan Hari Kerja Hilang (LTI) | Perhitungan akumulasi hari kerja yang hilang akibat cedera dinas yang sinkron dengan presensi sakit Sub-07 | Staf K3RS, Sub-07 |
+| `FR-OHS-25` | Finalisasi Klaim Biaya JKK Tahap II| Pengumpulan kwitansi pengobatan, resume dokter penutup, dan verifikasi santunan tunai BPJS Ketenagakerjaan | Staf Klaim K3RS, Finance |
+
+---
+
+### 37.4 Kriteria Penerimaan Pengguna (Acceptance Criteria)
+
+1. **Privasi Rekam Medis (HRD-DEC-176):** HR Admin dan atasan hanya dapat membaca status kelaikan operasional (*Fit* / *Fit with Restriction* / *Unfit*); diagnosis penyakit ICD-10 dan resep obat terenkripsi AES-256 dan hanya dapat dibuka oleh Dokter K3RS dan pegawai bersangkutan di ESS.
+2. **SLA Tanggap Darurat Pajanan:** Sirene tombol darurat tertusuk jarum terkirim < 5 detik ke tim K3RS; obat Profilaksis Pasca Pajanan (PPP) berhasil diserahkan ke korban dalam waktu < 4 jam dari jam insiden.
+3. **Penegakan Restriksi Shift Medis:** Roster shift Sub-06 menolak secara mutlak penugasan staf pada jadwal dinas yang dilarang dalam surat pembatasan tugas (*hard-stop*); restriksi hanya bisa dilepas melalui asesmen *Return-to-Work*.
+4. **Radar Imunisasi & STARKES KPS:** Titer Anti-HBs < 10 mIU/mL otomatis memicu tiket vaksinasi booster Hepatitis B; laporan pemenuhan kesehatan staf dapat diunduh dalam format standar akreditasi STARKES.
+5. **Kepatuhan Regulasi JKK BPJS:** Dokumen pelaporan kecelakaan kerja Formulir Tahap I dapat diekspor lengkap dalam batas waktu regulasi maksimal 2x24 jam; hari kerja hilang (LTI) sinkron dengan presensi Sub-07.
+
+---
+
+### 37.5 Definisi Selesai (Definition of Done - DoD)
+
+1. **Integritas Skema Basis Data:** 10 tabel relasional K3RS terpasang di skema PostgreSQL dengan relasi FK, indeks pencarian, dan enkripsi kolom klinis.
+2. **Kesesuaian Endpoint API & Swagger:** 24 endpoint API pada `contracts/api-contract.md` bagian 29 siap diimplementasikan dengan 5 tag Swagger resmi.
+3. **Penyelarasan Hak Akses & Jejak Audit:** 24 permission keys `Hrd.OccupationalHealth.*` dan 14 event audit keamanan terdaftar pada matriks otorisasi.
+4. **Validasi Kontrak & State Machine:** 25 aturan validasi `VR-OHS-01` s.d. `VR-OHS-25` dan 5 diagram transisi status siap diuji dalam unit test.
+5. **Otomasi Background Workers:** 6 worker K3RS (`OHS-W1` s.d. `OHS-W6`) terdokumentasi lengkap spesifikasi pemicu, kriteria eksekusi, dan aksi perbaikannya.
+6. **Desain Antarmuka Pengguna:** 8 rancangan layar Next.js (`FE-HRD-261` s.d. `FE-HRD-268`) dan 5 modal dialog siap diimplementasikan dengan komponen baku Quilvian.
+
+---
+
+### 37.6 Urutan Gelombang Pengiriman (Delivery Waves)
+
+* **`MVP-57` — Wave 1: Fondasi K3RS, Rekam Medis Terenkripsi, Kelaikan Kerja & Hard-Stop Roster**
+  - Implementasi entitas `wfp_health_records`, `trx_employee_fitness_to_works`, `trx_work_restrictions`, dan `trx_return_to_work_assessments`.
+  - Enkripsi AES-256 field rekam medis klinis dan pemisahan hak akses per-field (`HRD-DEC-176`).
+  - Integrasi hard-stop validasi pembatasan tugas dinas ke roster Sub-06 (`INT-HR-89`).
+  - Worker kedaluwarsa restriksi `OHS-W2` dan layar `FE-HRD-261`, `FE-HRD-262`, `FE-HRD-263`.
+* **`MVP-58` — Wave 2: Tanggap Darurat Pajanan Cito, Terapi PPP, Radar Vaksinasi & Penapisan Bahaya Ruangan**
+  - Implementasi entitas `trx_needle_stick_incidents`, `trx_occupational_exposures`, `trx_employee_vaccinations`, dan `trx_employee_health_surveillances`.
+  - Tombol panik darurat ESS, notifikasi darurat K3RS/PPI, dan fast-track resep PPP < 4 jam (`INT-HR-91`).
+  - Protokol pemantauan serial bulan 1, 3, 6 via worker `OHS-W1` dan dasbor radar imunisasi staf.
+  - Worker pengingat booster `OHS-W3`, worker alarm radiasi `OHS-W5`, dan layar `FE-HRD-264`, `FE-HRD-265`, `FE-HRD-266`.
+* **`MVP-59` — Wave 3: MCU Berkala STARKES, Investigasi Kecelakaan KAK/PAK & Integrasi JKK BPJS Ketenagakerjaan**
+  - Implementasi entitas `trx_employee_medical_examinations` dan `trx_employee_injuries`.
+  - Penyesuaian otomatis paket penapisan MCU berbasis profil ruangan kerja dan ekspor laporan STARKES KPS.
+  - Formulir pelaporan BPJS Ketenagakerjaan JKK Tahap I (< 2x24 jam) dan Tahap II (`INT-HR-90`).
+  - Worker pengingat MCU `OHS-W4`, worker eskalasi BPJS `OHS-W6`, dan layar `FE-HRD-267`, `FE-HRD-268`.
+
+
+---
+
+## 38. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 38.1 Ringkasan Ruang Lingkup & Latar Belakang Bisnis
+
+Sub-Modul 21 (Employee Self-Service & Unified Approval Inbox V2 Hardening) adalah infrastruktur pusat otorisasi dan interaksi mandiri seluruh pegawai rumah sakit. Di lingkungan rumah sakit yang beroperasi 24/7, para dokter spesialis, kepala ruangan, manajer, dan direktur sering berpindah antara pelayanan klinis gawat darurat dan tugas manajerial. Sistem ini menyatukan pintu pengajuan pegawai dan pintu persetujuan atasan ke dalam satu platform terpadu untuk:
+1. **Mengonsolidasikan Kotak Masuk Persetujuan (*Unified Approval Inbox*):** Atasan tidak perlu berpindah ke 15 menu yang berbeda untuk menyetujui cuti, lembur, tukar shift, absensi, klaim restitusi, atau permohonan surat; seluruhnya disajikan dalam satu dasbor terpadu.
+2. **Menegakkan Tata Kelola Wewenang & Anti Self-Approval (`HRD-DEC-183`):** Memblokir keras pejabat struktural menyetujui permohonan kepegawaiannya sendiri, dialihkan otomatis ke atasan satu tingkat di atasnya.
+3. **Menjamin Kontinuitas Layanan via Pendelegasian Wewenang Plh (`HRD-DEC-184`):** Pengalihan wewenang persetujuan berbatas waktu kepada pejabat setara saat atasan sedang cuti atau dinas luar, dengan pencatatan jejak audit ganda (*dual-identity audit*).
+4. **Disiplin Batas Waktu SLA & Larangan Auto-Approve Demi Keselamatan Pasien (`HRD-DEC-185`):** Menegakkan batas waktu layanan persetujuan (24-72 jam) dengan auto-eskalasi berjenjang dan menolak mutlak auto-approve agar keselamatan kuota dinas medis tetap terjaga.
+5. **Kenyamanan Kolaborasi Tri-State & Persetujuan Massal Bersyarat (`HRD-DEC-186`, `HRD-DEC-187`):** Mendukung pengembalian berkas draf revisi tanpa membuat tiket baru dari awal, serta persetujuan massal 1-klik PIN khusus permohonan berisiko rendah yang tervalidasi bersih.
+
+---
+
+### 38.2 Pemetaan Epic & Fitur Inti
+
+* **`EPIC HRD-99` — Unified Approval Engine & Inbox Konsolidasi Lintas Modul**
+  - Mesin orkestrasi workflow terpadu yang memetakan permohonan dari 15 modul HRD.
+  - Dasbor kotak masuk persetujuan terpadu dengan tab *Pending*, *Urgent (H-4 SLA)*, dan *Delegated*.
+  - Eksekusi transaksional idempoten ke modul operasional hilir (`INT-HR-93`).
+* **`EPIC HRD-100` — Matriks Alur Persetujuan Dinamis & Pencegahan Self-Approval (*Anti Self-Approval*)**
+  - Resolusi dinamis rantai persetujuan berdasarkan unit kerja, tipe permohonan, dan level jabatan pemohon.
+  - Hard-block tombol persetujuan mandiri (`ApplicantId == ApproverId`) dan eskalasi lewat tingkat (*skip-level*).
+  - Integrasi pohon pelaporan jabatan struktural dan komite medik Sub-02 (`INT-HR-96`).
+* **`EPIC HRD-101` — Manajemen Pendelegasian Wewenang Digital (*Acting Approver* / Plh)**
+  - Pendaftaran surat kuasa digital penunjukan Pelaksana Harian (Plh) berbatas waktu.
+  - Aktivasi otomatis penunjukan Plh saat atasan mengajukan cuti tahunan di Sub-08 (`INT-HR-94`).
+  - Worker pencabutan otomatis wewenang Plh saat masa berlaku berakhir (`WF-W2`).
+* **`EPIC HRD-102` — Penegakan SLA, Notifikasi Eskalasi Timeout & Tri-State Actions (*Return for Revision*)**
+  - Penghitungan batas waktu SLA persetujuan (24 jam tukar shift, 48 jam cuti, 72 jam klaim).
+  - Worker auto-eskalasi `WF-W1` yang memindahkan tiket macet ke atasan tingkat di atasnya tanpa auto-approve.
+  - Opsi tindakan pengembalian permohonan ke staf (*Return for Revision*) dan fitur resubmit draf.
+* **`EPIC HRD-103` — Persetujuan Massal Bersyarat (*Conditional Bulk Approval*) & Portal ESS Staf**
+  - Persetujuan banyak tiket sekaligus khusus permohonan berisiko rendah dengan indikator validasi hijau.
+  - Pengecualian mutlak untuk tukar shift kritis dan tiket bertanda peringatan bentrok jadwal.
+  - Portal layanan mandiri staf (ESS) lengkap dengan pelacak stepper tahapan persetujuan.
+
+---
+
+### 38.3 Kebutuhan Fungsional Detil (Functional Requirements)
+
+| Kode Kebutuhan | Nama Kebutuhan Fungsional | Deskripsi Alur & Logika Bisnis | Target Pengguna |
+|---|---|---|---|
+| `FR-WF-01` | Inisiasi Tiket Workflow Baru | Pembuatan instansiasi alur persetujuan baru dari portal ESS untuk seluruh jenis permohonan kepegawaian | Seluruh Pegawai RS |
+| `FR-WF-02` | Resolusi Matriks Alur Persetujuan | Penentuan rantai approver otomatis berdasarkan matriks kebijakan multi-dimensi tanpa hardcoding | Workflow Engine |
+| `FR-WF-03` | Pemblokiran Persetujuan Mandiri | Hard-block persetujuan jika pemohon sama dengan approver dan pengalihan tiket ke atasan satu tingkat di atasnya | Workflow Engine |
+| `FR-WF-04` | Integrasi Pohon Jabatan Sub-02 | Pengambilan garis hierarki struktural manajerial dan komite medik aktif dari Workforce Core | Backend Service |
+| `FR-WF-05` | Kotak Masuk Persetujuan Terpadu | Dasbor inbox tunggal yang merangkum seluruh permohonan lintas modul dengan filter status dan urgensi SLA | Approver, Plh |
+| `FR-WF-06` | Lembar Rincian & Verifikasi Otomatis | Tampilan detail permohonan lengkap dengan checklist indikator hijau/merah atas kelayakan saldo dan jadwal | Approver, Plh |
+| `FR-WF-07` | Tindakan Persetujuan Sah | Otorisasi permohonan oleh approver ditugaskan dengan verifikasi PIN keamanan atau tanda tangan digital | Approver, Plh |
+| `FR-WF-08` | Tindakan Penolakan Permanen | Penghentian alur permohonan disertai kewajiban mengisi alasan penolakan tertulis minimal 15 karakter | Approver, Plh |
+| `FR-WF-09` | Pengembalian Berkas Revisi | Pengembalian draf tiket ke pemohon (*Return for Revision*) dengan instruksi perbaikan tanpa mengulang dari nol | Approver, Plh |
+| `FR-WF-10` | Penyuntingan Draf Pasca Revisi | Formulir koreksi data atau penggantian lampiran buram pada portal ESS staf pemohon | Staf Pemohon |
+| `FR-WF-11` | Pengajuan Ulang Tiket Revisi | Resubmit tiket yang telah diperbaiki staf untuk kembali masuk ke inbox approver terkait | Staf Pemohon |
+| `FR-WF-12` | Pembatalan Mandiri Permohonan | Penarikan permohonan mandiri oleh staf sebelum keputusan persetujuan disahkan | Staf Pemohon |
+| `FR-WF-13` | Registrasi Delegasi Wewenang Plh | Pendaftaran surat kuasa digital penunjukan Pelaksana Harian berbatas waktu dengan kategori izin spesifik | Pejabat Definitif |
+| `FR-WF-14` | Integrasi Deteksi Cuti Atasan | Tampilan pengingat wajib menunjuk Plh saat pejabat mengajukan cuti tahunan di Sub-08 | Sub-08 & Workflow |
+| `FR-WF-15` | Pencabutan Otomatis Wewenang Plh | Pencabutan otomatis status keaktifan delegasi saat tanggal akhir terlewati oleh background worker | Worker `WF-W2` |
+| `FR-WF-16` | Jejak Audit Ganda Keputusan Plh | Pencatatan identitas Plh sebagai eksekutor dan pejabat definitif sebagai pemberi kuasa pada log audit | Audit Trail Engine |
+| `FR-WF-17` | Penegakan Batas Waktu SLA | Perhitungan tenggat waktu respon permohonan berdasarkan jenis request (24 jam tukar shift, 48 jam cuti) | Workflow Engine |
+| `FR-WF-18` | Peringatan Dini Batas Waktu H-4 Jam | Pengiriman notifikasi push prioritas tinggi ke ponsel approver saat sisa waktu SLA mendekati 4 jam | Worker `WF-W4` |
+| `FR-WF-19` | Auto-Eskalasi Tiket Macet | Pengalihan otomatis tiket yang melewati batas waktu SLA ke atasan tingkat di atasnya tanpa auto-approve | Worker `WF-W1` |
+| `FR-WF-20` | Radar Pemantauan Tiket Overdue | Dasbor kendali bagi manajemen SDM untuk memantau tiket macet dan metrik kedisiplinan respon per unit | Manajer SDM, Direksi |
+| `FR-WF-21` | Persetujuan Massal Bersyarat | Kemampuan menyetujui multi-tiket sekaligus untuk permohonan berisiko rendah yang tervalidasi bersih | Approver Manajerial |
+| `FR-WF-22` | Filter Pengecualian Persetujuan Massal | Penolakan otomatis atas tiket bertanda warning bentrok atau tukar shift dari daftar persetujuan massal | Engine Validasi |
+| `FR-WF-23` | Eksekusi Transaksional Idempoten | Penerbitan event perubahan data ke modul operasional hilir secara idempoten pasca persetujuan final | Event Dispatcher |
+| `FR-WF-24` | Rekonsiliasi Eksekusi Hilir | Worker rekonsiliasi berkala yang mengeksekusi ulang sinyal hilir yang sempat gagal jaringan | Worker `WF-W6` |
+| `FR-WF-25` | Email Ringkasan Persetujuan Harian | Pengiriman kompilasi email ringkasan tiket pending ke atasan setiap jam 07:00 pagi WIB | Worker `WF-W3` |
+
+---
+
+### 38.4 Kriteria Penerimaan Pengguna (Acceptance Criteria)
+
+1. **Konsolidasi Pintu Tunggal Inbox:** Atasan dapat melihat dan mengeksekusi seluruh permohonan staf dari 15 modul HRD dalam satu kotak masuk terpadu dengan penyaringan status dan kategori permohonan yang akurat.
+2. **Pencegahan Mutlak Self-Approval (`HRD-DEC-183`):** Sistem secara mutlak memblokir tombol persetujuan mandiri jika pemohon sama dengan approver; tiket otomatis dialihkan ke atasan satu tingkat di atasnya.
+3. **Pendelegasian Wewenang Berbatas Waktu (`HRD-DEC-184`):** Permohonan staf otomatis masuk ke inbox Plh saat pejabat definitif berhalangan/cuti; jejak audit mencatat identitas ganda eksekutor dan pemberi kuasa secara permanen.
+4. **Disiplin SLA & Keselamatan Kuota Staf (`HRD-DEC-185`):** Tiket yang melewati batas waktu SLA otomatis dialihkan ke atasan lebih tinggi oleh worker `WF-W1` tanpa persetujuan otomatis (*no auto-approve*).
+5. **Kenyamanan Tindakan Tri-State & Bulk Approve (`HRD-DEC-186`, `HRD-DEC-187`):** Approver dapat mengembalikan draf revisi (*Return for Revision*) dan mengeksekusi persetujuan massal bersyarat dengan 1 kali konfirmasi PIN keamanan.
+
+---
+
+### 38.5 Definisi Selesai (Definition of Done - DoD)
+
+1. **Integritas Skema Basis Data:** 8 tabel relasional workflow terkonfigurasi pada skema `human_resource` dengan indeks performa tinggi untuk inbox querying.
+2. **Kesesuaian Endpoint API & Swagger:** 24 endpoint API pada `contracts/api-contract.md` bagian 30 terstandarisasi dengan 5 tag Swagger resmi.
+3. **Otorisasi Hak Akses & Jejak Audit:** 24 permission keys `Hrd.Workflow.*` dan 14 event audit keamanan terdaftar pada matriks otorisasi.
+4. **Validasi Kontrak & State Machine:** 25 aturan validasi `VR-WF-01` s.d. `VR-WF-25` dan 3 diagram transisi status siap diuji dalam unit test.
+5. **Otomasi Background Workers:** 6 worker workflow (`WF-W1` s.d. `WF-W6`) terdokumentasi lengkap spesifikasi pemicu, kriteria eksekusi, dan aksi penanganannya.
+6. **Desain Antarmuka Pengguna:** 8 rancangan layar Next.js (`FE-HRD-276` s.d. `FE-HRD-283`) dan 5 modal dialog siap diimplementasikan dengan komponen baku Quilvian.
+
+---
+
+### 38.6 Urutan Gelombang Pengiriman (Delivery Waves)
+
+* **`MVP-60` — Wave 1: Fondasi Unified Workflow Engine, State Transitions & Dynamic Matrix Resolution**
+  - Implementasi entitas `trx_workflow_instances`, `trx_workflow_step_instances`, dan `trx_workflow_approver_assignments`.
+  - Mesin resolusi matriks alur persetujuan dinamis (`WorkflowRoutingMatrixEngine`).
+  - Layar dasbor inbox `FE-HRD-276` dan detail tiket `FE-HRD-277`.
+* **`MVP-61` — Wave 2: Anti Self-Approval, Pendelegasian Wewenang Plh, Dual Audit Trail & Tri-State Actions**
+  - Implementasi entitas `trx_approval_actions`, `trx_approval_delegations`, dan `trx_workflow_comments`.
+  - Filter proteksi anti self-approval `VR-WF-02` dan alur pengalihan wewenang Plh berbatas waktu.
+  - Alur tindakan tri-state (*Approve*, *Reject*, *Return for Revision*) dan layar delegasi `FE-HRD-278`.
+* **`MVP-62` — Wave 3: Penegakan SLA, Worker Auto-Eskalasi, Conditional Bulk Approval & Eksekusi Hilir Idempoten**
+  - Implementasi entitas `trx_workflow_attachments` dan `trx_workflow_status_histories`.
+  - Fitur persetujuan massal bersyarat dengan modal dialog verifikasi PIN (`BulkApprovalModal`).
+  - 6 background worker otomatis (`WF-W1` s.d. `WF-W6`) dan orkestrasi integrasi domain hilir (`INT-HR-93`).
+  - Layar radar overdue SLA `FE-HRD-283` dan pelacak riwayat staf `FE-HRD-281`.

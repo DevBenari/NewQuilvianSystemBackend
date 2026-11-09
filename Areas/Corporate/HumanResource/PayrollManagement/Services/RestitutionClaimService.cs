@@ -417,6 +417,82 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             };
         }
 
+        public async Task<SalaryGrievanceInvestigationResultDto> InvestigateAndResolveSalaryGrievanceAsync(
+            SalaryGrievanceInvestigationRequestDto request,
+            Guid investigatorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var emp = await _dbContext.MstEmployees
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == request.EmployeeId && !e.IsDelete, cancellationToken);
+            if (emp == null)
+            {
+                throw new KeyNotFoundException($"Pegawai dengan ID {request.EmployeeId} tidak ditemukan.");
+            }
+
+            var affectedRun = await _dbContext.TrxPayrollRuns
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == request.AffectedPayrollRunId && !r.IsDelete, cancellationToken);
+            if (affectedRun == null)
+            {
+                throw new KeyNotFoundException($"Payroll run lampau dengan ID {request.AffectedPayrollRunId} tidak ditemukan.");
+            }
+
+            if (request.ApprovedRefundAmount <= 0)
+            {
+                throw new InvalidOperationException("Nominal pengembalian dana yang disetujui harus lebih besar dari 0.");
+            }
+
+            if (request.ApprovedRefundAmount > request.ClaimedExcessDeductionAmount)
+            {
+                throw new InvalidOperationException($"Nominal pengembalian (Rp {request.ApprovedRefundAmount:N2}) tidak boleh melebihi nilai keluhan salah potong yang diajukan (Rp {request.ClaimedExcessDeductionAmount:N2}).");
+            }
+
+            string rstNumber = $"RST-GRV-{DateTime.UtcNow.Year}{DateTime.UtcNow.Month:D2}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+
+            var restitution = new TrxPayrollRestitution
+            {
+                Id = Guid.NewGuid(),
+                RestitutionNumber = rstNumber,
+                EmployeeId = request.EmployeeId,
+                ClaimId = null,
+                RestitutionType = "SalaryAdjustmentCorrection",
+                Amount = request.ApprovedRefundAmount,
+                AffectedPayrollRunId = request.AffectedPayrollRunId,
+                AffectedPayslipId = request.AffectedPayslipId,
+                TargetPayrollRunId = request.TargetPayrollRunId,
+                Status = "Approved",
+                Justification = $"[Investigasi Keluhan HR Payroll] Telaah Officer {investigatorUserId}: {request.InvestigationFindings}. Klaim salah potong: Rp {request.ClaimedExcessDeductionAmount:N2}, Disetujui: Rp {request.ApprovedRefundAmount:N2}",
+                IsTaxable = false, // Mutlak non-pajak PPh 21 (DED-B5, HRD-ASM-33, VR-DED-05)
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = investigatorUserId
+            };
+
+            await _dbContext.TrxPayrollRestitutions.AddAsync(restitution, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Investigasi keluhan salah potong diselesaikan. Restitusi {RestitutionNumber} diterbitkan untuk pegawai {EmployeeId} senilai Rp {Amount} (Non-pajak PPh 21)",
+                rstNumber, request.EmployeeId, request.ApprovedRefundAmount);
+
+            return new SalaryGrievanceInvestigationResultDto
+            {
+                RestitutionId = restitution.Id,
+                RestitutionNumber = restitution.RestitutionNumber,
+                EmployeeId = restitution.EmployeeId,
+                EmployeeName = emp.FullName,
+                EmployeeNik = emp.EmployeeNumber,
+                AffectedPayrollRunId = request.AffectedPayrollRunId,
+                AffectedPayslipId = request.AffectedPayslipId,
+                ClaimedExcessDeductionAmount = request.ClaimedExcessDeductionAmount,
+                ApprovedRefundAmount = restitution.Amount,
+                IsTaxable = false,
+                Status = restitution.Status,
+                InvestigationFindings = request.InvestigationFindings,
+                CreatedAt = restitution.CreateDateTime,
+                Message = "Investigasi keluhan salah potong gaji berhasil diproses. Restitusi koreksi non-pajak PPh 21 telah diterbitkan dan disetujui untuk siklus payroll berikutnya."
+            };
+        }
+
         public async Task<List<PayrollRestitutionResponseDto>> GetPayrollRestitutionsAsync(
             Guid? employeeId,
             Guid? targetPayrollRunId,

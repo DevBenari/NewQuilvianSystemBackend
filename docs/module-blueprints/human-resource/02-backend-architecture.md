@@ -8275,3 +8275,655 @@ CREATE INDEX IF NOT EXISTS idx_clearance_status ON trx_exit_clearance_processes(
 | `HRD-DEC-173` | Tata Kelola Skorsing Upah Penuh (*Paid Suspension*) | Entitas `TrxDisciplinarySuspension`, perlindungan upah 100%, event pemblokiran seketika SIMRS & akses fisik (`INT-HR-88`) |
 | `HRD-DEC-174` | Kalkulator Hak Pesangon Otomatis Regulasi PP 35/2021 | Entitas `TrxSeveranceCalculation`, service kalkulasi deterministik `SeveranceCalculationEngine` berbasis formula PP 35 |
 | `HRD-DEC-175` | Gerbang Digital Exit Clearance Multi-Departemen & Payroll Hard-Block | Entitas `TrxExitClearanceProcess`, `TrxExitClearanceChecklist`, integrasi `INT-HR-87` pemblokir payroll final Sub-10 |
+
+
+---
+
+## 32. Sub-Modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up, Slice `S-C6`)
+
+### 32.1 Bounded Context & Data Ownership
+
+Sub-modul 19 beroperasi di bawah bounded context **`OccupationalHealthManagement`**. Domain ini mengelola penapisan risiko kesehatan kerja, rekam medis kesehatan kerja staf terlindungi privasi ketat (*Field-Level Access Separation*), pelaksanaan pemeriksaan kesehatan berkala (MCU), tanggap darurat pajanan okupasional dan jarum suntik (*needle-stick injury*), pemantauan titer antibodi vaksinasi nakes, surat pembatasan dinas (*work restriction*) yang terintegrasi dengan roster kerja, evaluasi kelaikan kembali bekerja (*return-to-work assessment*), serta pelaporan kecelakaan kerja (KAK/PAK) klaim BPJS Ketenagakerjaan JKK.
+
+```text
++----------------------------------------------------------------------------------------------------+
+|                                BOUNDED CONTEXT: HumanResource                                       |
+|                                                                                                    |
+|  +----------------------------------------------------------------------------------------------+  |
+|  |                     Context: OccupationalHealthManagement (K3RS)                             |  |
+|  |                                                                                              |  |
+|  |  - WfpHealthRecord (Master Rekam Kesehatan Staf Terenkripsi)                                 |  |
+|  |  - TrxEmployeeMedicalExamination (MCU Pra-Kerja, Berkala & Khusus)                          |  |
+|  |  - TrxEmployeeFitnessToWork (Penetapan Kelaikan Kerja: Fit/Restriction/Unfit)                |  |
+|  |  - TrxWorkRestriction (Surat Pembatasan Tugas Dinas Medis)                                   |  |
+|  |  - TrxReturnToWorkAssessment (Evaluasi Kelayakan Pencabutan Restriksi)                       |  |
+|  |  - TrxEmployeeVaccination (Registri Vaksinasi Wajib & Nomor Batch)                           |  |
+|  |  - TrxEmployeeHealthSurveillance (Surveillance TLD Radiasi & Titer Antibodi)                 |  |
+|  |  - TrxNeedleStickIncident (Insiden Jarum Cito & Profilaksis PEP < 4 Jam)                     |  |
+|  |  - TrxOccupationalExposure (Pajanan Darah/Cairan Tubuh & Follow-up Serologi 1, 3, 6 Bln)     |  |
+|  |  - TrxEmployeeInjury (Kecelakaan Kerja KAK/PAK, CAPA K3RS & Klaim JKK BPJS Tahap I & II)   |  |
+|  +----------------------------------------------------------------------------------------------+  |
+|                                                |                                                   |
+|                                                v                                                   |
+|  +----------------------------------------------------------------------------------------------+  |
+|  | Inter-Module Integrations:                                                                   |  |
+|  | - INT-HR-89: Hard-Stop Validasi Jadwal Roster Dinas Sub-06 terhadap Status Work Restriction |  |
+|  | - INT-HR-90: Integrasi Klaim Jaminan Kecelakaan Kerja (JKK) ke Sub-12 Benefit & BPJS        |  |
+|  | - INT-HR-91: Integrasi Data Pemantauan Dosis Radiasi Staf dari Sistem Fisika Medis RS        |  |
+|  | - INT-HR-92: Sinkronisasi Data Pajanan Infeksius dengan Tim PPI (Pencegahan Infeksi RS)     |  |
+|  +----------------------------------------------------------------------------------------------+  |
++----------------------------------------------------------------------------------------------------+
+```
+
+---
+
+### 32.2 Class Diagram Backend `OccupationalHealthManagement`
+
+```mermaid
+classDiagram
+    direction TB
+
+    class WfpHealthRecord {
+        +Guid HealthRecordId
+        +Guid EmployeeId
+        +string RecordNumber
+        +string BloodType
+        +string Rhesus
+        +string KnownAllergies
+        +string CurrentFitnessStatus
+        +string EncryptedClinicalHistoryJson
+        +DateTime LastExaminedDate
+        +DateTime CreatedAt
+    }
+
+    class TrxEmployeeMedicalExamination {
+        +Guid ExaminationId
+        +Guid HealthRecordId
+        +Guid EmployeeId
+        +string ExaminationNumber
+        +string ExamType
+        +DateTime ExaminationDate
+        +string OccupationalRiskProfile
+        +string EncryptedClinicalFindingsJson
+        +string EncryptedLabResultsJson
+        +string ThoraxXrayFinding
+        +string OverallFitnessConclusion
+        +string ExaminingDoctorName
+        +string Status
+    }
+
+    class TrxEmployeeFitnessToWork {
+        +Guid FitnessId
+        +Guid ExaminationId
+        +Guid EmployeeId
+        +string FitnessStatus
+        +DateTime AssessmentDate
+        +DateTime? ValidUntil
+        +string OperationalRestrictionSummary
+        +string DoctorNotes
+        +bool IsApprovedByOhDoctor
+    }
+
+    class TrxWorkRestriction {
+        +Guid RestrictionId
+        +Guid FitnessId
+        +Guid EmployeeId
+        +string RestrictionNumber
+        +string RestrictionType
+        +DateTime StartDate
+        +DateTime EndDate
+        +string OperationalDirectives
+        +bool DisallowNightShift
+        +bool DisallowHeavyLifting
+        +bool DisallowInfectiousAirborneArea
+        +bool DisallowRadiationArea
+        +string Status
+    }
+
+    class TrxReturnToWorkAssessment {
+        +Guid AssessmentId
+        +Guid RestrictionId
+        +Guid EmployeeId
+        +DateTime AssessmentDate
+        +string PhysicalExamFindings
+        +string ConclusionStatus
+        +string EvaluatorDoctorName
+        +bool IsRestrictionLifted
+        +string Status
+    }
+
+    class TrxEmployeeVaccination {
+        +Guid VaccinationId
+        +Guid HealthRecordId
+        +Guid EmployeeId
+        +string VaccineName
+        +int DoseNumber
+        +DateTime AdministeredDate
+        +string BatchNumber
+        +DateTime ExpiryDate
+        +string AdministeredBy
+        +DateTime? NextBoosterDueDate
+        +string Status
+    }
+
+    class TrxEmployeeHealthSurveillance {
+        +Guid SurveillanceId
+        +Guid HealthRecordId
+        +Guid EmployeeId
+        +string HazardCategory
+        +DateTime MonitoringPeriodStart
+        +DateTime MonitoringPeriodEnd
+        +decimal? RadiationDoseMsv
+        +decimal? AntibodyTiterValue
+        +string TiterUnit
+        +bool IsProtectiveLevelAchieved
+        +string SurveillanceConclusion
+    }
+
+    class TrxNeedleStickIncident {
+        +Guid IncidentId
+        +Guid EmployeeId
+        +string IncidentNumber
+        +DateTime IncidentTimestamp
+        +string IncidentLocation
+        +string NeedleDeviceType
+        +string SourcePatientMrn
+        +bool IsSourceKnown
+        +string SourceSerologyStatus
+        +bool IsPepAdministered
+        +DateTime? PepAdministeredTime
+        +string PepRegimenDescription
+        +string Status
+    }
+
+    class TrxOccupationalExposure {
+        +Guid ExposureId
+        +Guid? NeedleStickIncidentId
+        +Guid EmployeeId
+        +string ExposureType
+        +DateTime ExposureTimestamp
+        +string BodyPartExposed
+        +string SeverityLevel
+        +DateTime Month1SerologyDate
+        +DateTime Month3SerologyDate
+        +DateTime Month6SerologyDate
+        +string FinalSerologyOutcome
+        +string Status
+    }
+
+    class TrxEmployeeInjury {
+        +Guid InjuryId
+        +Guid EmployeeId
+        +string IncidentNumber
+        +DateTime IncidentTimestamp
+        +string IncidentLocation
+        +string InjuryDescription
+        +string AffectedBodyParts
+        +int LostTimeDays
+        +string RootCauseAnalysis
+        +string CorrectiveActionPlan
+        +string BpjsStage1ReportNumber
+        +DateTime? BpjsStage1SubmittedAt
+        +string BpjsStage2ReportNumber
+        +DateTime? BpjsStage2SubmittedAt
+        +string Status
+    }
+
+    WfpHealthRecord "1" --> "0..*" TrxEmployeeMedicalExamination : memiliki_riwayat_mcu
+    TrxEmployeeMedicalExamination "1" --> "1" TrxEmployeeFitnessToWork : menghasilkan_kelaikan
+    TrxEmployeeFitnessToWork "1" --> "0..1" TrxWorkRestriction : memicu_pembatasan_kerja
+    TrxWorkRestriction "1" --> "0..1" TrxReturnToWorkAssessment : dievaluasi_untuk_kembali
+    WfpHealthRecord "1" --> "0..*" TrxEmployeeVaccination : mencatat_riwayat_vaksin
+    WfpHealthRecord "1" --> "0..*" TrxEmployeeHealthSurveillance : pemantauan_risiko
+    TrxNeedleStickIncident "1" --> "0..1" TrxOccupationalExposure : ditindaklanjuti_pajanan
+```
+
+---
+
+### 32.3 Penjelasan Class Service & Controller
+
+1. **`HealthRecordController` & `IHealthRecordService`**
+   - Mengelola master rekam kesehatan kerja staf (`WfpHealthRecord`). Menerapkan enkripsi asimetris AES-256 pada level payload untuk riwayat klinis. Menegakkan pemisahan hak akses per-field (*Field-Level Access Separation* sesuai `HRD-DEC-176`): endpoint klinis hanya dapat diakses Dokter K3RS, sedangkan endpoint kelayakan kerja (`Fitness to Work`) menghasilkan ringkasan operasional bebas diagnosis untuk HR dan atasan.
+2. **`MedicalCheckUpController` & `IMedicalCheckUpService`**
+   - Menangani siklus MCU pra-kerja, MCU tahunan berkala, dan MCU khusus pasca sakit berkepanjangan. Mengonfigurasi paket pemeriksaan laboratorium/rontgen berdasar profil risiko unit (`MstOccupationalRiskProfile`), mencatat hasil penapisan klinis terenkripsi, serta menghasilkan sertifikat kelayakan kerja resmi.
+3. **`NeedleStickIncidentController` & `INeedleStickIncidentService`**
+   - Menangani alur darurat pelaporan tertusuk jarum dan pajanan cairan tubuh infeksius cito. Mengirimkan notifikasi darurat SMS/WA ke Dokter Jaga K3RS dan Tim PPI, mengunci SLA inisiasi Profilaksis Pasca Pajanan (PEP) < 4 jam, mencatat rekam medis pasien sumber pajanan, dan mendaftarkan jadwal radar serologi serial (Bulan ke-1, 3, dan 6).
+4. **`VaccinationTrackingController` & `IVaccinationTrackingService`**
+   - Mengelola riwayat imunisasi wajib nakes (Hepatitis B, Influenza, Varisela, MMR). Mencatat nomor batch dan tanggal kedaluwarsa vaksin, mengevaluasi kadar titer protektif antibodi (anti-HBs >= 10 mIU/mL), serta menerbitkan panggilan booster otomatis.
+5. **`WorkRestrictionController` & `IWorkRestrictionService`**
+   - Menerbitkan surat rekomendasi pembatasan dinas medis (*Work Restriction Certificate*). Menyediakan service interface `IWorkRestrictionValidationService` untuk integrasi validasi *hard-stop* ke modul Penjadwalan Roster Sub-06 (`INT-HR-89`), serta menyelenggarakan asesmen kelaikan kembali bekerja penuh (*Return-to-Work Assessment*).
+6. **`OccupationalInjuryController` & `IOccupationalInjuryService`**
+   - Mengelola pelaporan insiden kecelakaan kerja (KAK) dan penyakit akibat kerja (PAK). Memfasilitasi investigasi akar masalah keselamatan K3RS (CAPA), menghitung hari kerja hilang (LTI), serta men-generate formulir klaim JKK BPJS Ketenagakerjaan Tahap I (1x24 jam) dan Tahap II (`INT-HR-90`).
+
+---
+
+### 32.4 Aturan Bisnis Utama (`OHS-B1` s.d. `OHS-B8`)
+
+* **`OHS-B1` — Pemisahan Privasi Rekam Medis Staf Per-Field (`HRD-DEC-176`)**
+  Data diagnosis medis (ICD-10), hasil angka tes lab, dan citra rontgen toraks tersimpan terenkripsi dan dilarang dikembalikan pada endpoint yang dipanggil oleh HR Admin atau Atasan Langsung. Tampilan bagi atasan dan HR murni dibatasi pada enum kelaikan kerja (`Fit`, `FitWithRestriction`, `Unfit`) dan instruksi penugasan operasional tanpa terminologi patologis klinis.
+* **`OHS-B2` — SLA Darurat Inisiasi Profilaksis Pasca Pajanan (PEP) < 4 Jam (`HRD-DEC-177`)**
+  Laporan tertusuk jarum berstatus cito mewajibkan penanganan pertama dan konsultasi pemberian regimen obat profilaksis ARV/Imunoglobulin Hepatitis B tuntas dalam waktu maksimal 4 jam (batas absolut 24 jam) sejak kejadian tertusuk jarum tercatat.
+* **`OHS-B3` — Pemantauan Serologi Serial Pasca Pajanan Bulan 1, 3, dan 6 (`HRD-DEC-177`)**
+  Setiap insiden pajanan okupasional cairan tubuh berisiko tinggi secara otomatis membuat 3 jadwal kontrol laboratorium berkala (Bulan ke-1, Bulan ke-3, Bulan ke-6). Status insiden dilarang ditutup (*Closed*) sebelum hasil tes serologi Bulan ke-6 terverifikasi negatif serokonversi oleh Dokter K3RS.
+* **`OHS-B4` — Paket MCU Berkala Wajib Menyesuaikan Matriks Bahaya Unit (`HRD-DEC-178`)**
+  Sistem melarang pemberian paket MCU standar umum bagi pegawai yang bertugas di ruangan berisiko tinggi. Staf Radiologi wajib menyertakan evaluasi dosis TLD dan hematologi lengkap; Staf Bedah/Lab wajib tes serologi Hepatitis/HIV; Staf Ruang Paru wajib toraks/IGRA; Staf CSSD/Linen wajib uji spirometri dan audiometri.
+* **`OHS-B5` — Ambang Batas Protektif Titer Antibodi Hepatitis B (anti-HBs >= 10 mIU/mL) (`HRD-DEC-179`)**
+  Tenaga kesehatan yang bertugas di unit invasif/kritis yang memiliki hasil uji anti-HBs < 10 mIU/mL secara otomatis diklasifikasikan berstatus imunitas rendah (*Low Immunity*) dan wajib dijadwalkan pemberian vaksinasi booster Hepatitis B.
+* **`OHS-B6` — Hard-Stop Validasi Jadwal Roster Dinas Terhadap Status Work Restriction Sub-06 (`HRD-DEC-180`, `INT-HR-89`)**
+  Ketika surat pembatasan kerja aktif (misal `DisallowNightShift = true`), layanan scheduling Sub-06 secara otomatis memblokir penyimpanan jadwal dinas malam untuk pegawai tersebut dengan pesan validasi restriksi K3RS.
+* **`OHS-B7` — Mandatori Asesmen Dokter K3RS Sebelum Pencabutan Restriksi Kerja (`HRD-DEC-180`)**
+  Status surat pembatasan kerja dilarang diubah menjadi selesai atau dicabut tanpa adanya entri Berita Acara Evaluasi *Return-to-Work* yang ditandatangani secara digital oleh Dokter K3RS yang memiliki SIP aktif di rumah sakit.
+* **`OHS-B8` — Tenggat Waktu Pelaporan Klaim JKK BPJS Ketenagakerjaan Tahap I Maksimal 2x24 Jam (`HRD-DEC-181`, `INT-HR-90`)**
+  Setiap insiden kecelakaan kerja yang menimbulkan cedera fisik wajib menghasilkan formulir BPJS Ketenagakerjaan 3a (Tahap I) dan diteruskan ke petugas BPJS Sub-12 dalam batas waktu maksimal 48 jam (2x24 jam) sejak waktu kejadian kecelakaan.
+
+---
+
+### 32.5 Background Workers K3RS (`OHS-W1` s.d. `OHS-W6`)
+
+1. **`McuAnnualRecallWorker` (`OHS-W1`)**
+   - Berjalan terjadwal setiap awal pekan (Senin pukul 01:30 WIB). Memindai pegawai yang masa berlaku MCU tahunannya akan habis dalam 30 hari ke depan (H-30) dan 7 hari ke depan (H-7), serta menerbitkan notifikasi reservasi jadwal MCU otomatis ke ESS pegawai.
+2. **`VaccinationBoosterRadarWorker` (`OHS-W2`)**
+   - Berjalan terjadwal harian pukul 02:00 WIB. Memindai data nakes yang telah melewati masa 1 tahun sejak vaksinasi influenza terakhir atau memiliki titer anti-HBs di bawah ambang protektif, serta menyusun daftar antrean panggilan booster vaksinasi K3RS.
+3. **`NeedleStickSerialSerologyRadarWorker` (`OHS-W3`)**
+   - Berjalan terjadwal harian pukul 03:00 WIB. Memeriksa daftar nakes yang sedang dalam pemantauan pasca-pajanan tertusuk jarum. Pada H-7 sebelum jatuh tempo pemeriksaan Bulan ke-1, Bulan ke-3, dan Bulan ke-6, worker mengirimkan peringatan jadwal tes darah ke nakes dan Dokter K3RS.
+4. **`WorkRestrictionExpiryWorker` (`OHS-W4`)**
+   - Berjalan terjadwal harian pukul 03:30 WIB. Memindai surat pembatasan kerja yang mendekati tanggal `EndDate` (H-3), serta mengirimkan notifikasi kepada pegawai dan kepala ruangan untuk segera menghadiri evaluasi *Return-to-Work* di klinik K3RS.
+5. **`RadiationDoseThresholdMonitoringWorker` (`OHS-W5`)**
+   - Berjalan bulanan pasca impor data TLD reader dari Fisika Medis (`INT-HR-91`). Menghitung akumulasi dosis radiasi tahun berjalan staf radiologi. Bila dosis mendekati batas 20 mSv per tahun, worker menerbitkan peringatan bahaya radiasi darurat ke Komite K3RS untuk rotasi penugasan segera.
+6. **`BpjsJkkReportingDeadlineWorker` (`OHS-W6`)**
+   - Berjalan setiap 2 jam. Memantau insiden kecelakaan kerja berstatus `Reported`. Jika dalam 24 jam berkas Formulir 3a BPJS belum dikirimkan ke BPJS Sub-12, worker menerbitkan alert eskalasi keterlambatan klaim ke Manajer K3RS dan Manajer C&B.
+
+---
+
+### 32.6 Rencana Migrasi Basis Data PostgreSQL
+
+Migration EF Core: `20261109_AddOccupationalHealthManagement`
+
+```sql
+-- 1. Master Rekam Kesehatan Staf (Field-Level Encryption)
+CREATE TABLE IF NOT EXISTS wfp_health_records (
+    health_record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL UNIQUE REFERENCES mst_workforce_profiles(employee_id),
+    record_number VARCHAR(64) NOT NULL UNIQUE,
+    blood_type VARCHAR(8) NOT NULL,
+    rhesus VARCHAR(8) NOT NULL,
+    known_allergies TEXT,
+    current_fitness_status VARCHAR(32) NOT NULL DEFAULT 'Fit', -- Fit, FitWithRestriction, TemporaryUnfit, PermanentUnfit
+    encrypted_clinical_history_json TEXT NOT NULL, -- AES-256 payload klinis rahasia
+    last_examined_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 2. Pemeriksaan Kesehatan Staf (MCU Pra-Kerja, Berkala & Khusus)
+CREATE TABLE IF NOT EXISTS trx_employee_medical_examinations (
+    examination_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    health_record_id UUID NOT NULL REFERENCES wfp_health_records(health_record_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    examination_number VARCHAR(64) NOT NULL UNIQUE,
+    exam_type VARCHAR(32) NOT NULL, -- PreEmployment, AnnualPeriodic, SpecialExposure, PostIllnessReturn
+    examination_date DATE NOT NULL,
+    occupational_risk_profile VARCHAR(64) NOT NULL, -- RadiationRisk, BiohazardSurgery, AirborneIsolation, ChemicalCytotoxic, GeneralOffice
+    encrypted_clinical_findings_json TEXT NOT NULL, -- Anamnesis fisik terenkripsi
+    encrypted_lab_results_json TEXT NOT NULL, -- Hasil lab angka terenkripsi
+    thorax_xray_finding VARCHAR(64), -- Normal, SuspiciousTB, Cardiomegaly, Other
+    overall_fitness_conclusion VARCHAR(32) NOT NULL DEFAULT 'Fit',
+    examining_doctor_name VARCHAR(128) NOT NULL,
+    examining_doctor_sip VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'Scheduled', -- Scheduled, CompletedPendingVerification, VerifiedCertified, Cancelled
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 3. Penetapan Status Kelayakan Kerja (Fitness to Work)
+CREATE TABLE IF NOT EXISTS trx_employee_fitness_to_works (
+    fitness_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    examination_id UUID NOT NULL REFERENCES trx_employee_medical_examinations(examination_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    fitness_status VARCHAR(32) NOT NULL, -- Fit, FitWithRestriction, TemporaryUnfit, PermanentUnfit
+    assessment_date DATE NOT NULL,
+    valid_until DATE,
+    operational_restriction_summary TEXT, -- Teks deskripsi operasional terbuka bagi Atasan/HR
+    doctor_notes TEXT,
+    is_approved_by_oh_doctor BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 4. Surat Rekomendasi Pembatasan Tugas Dinas (Work Restriction)
+CREATE TABLE IF NOT EXISTS trx_work_restrictions (
+    restriction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fitness_id UUID NOT NULL REFERENCES trx_employee_fitness_to_works(fitness_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    restriction_number VARCHAR(64) NOT NULL UNIQUE,
+    restriction_type VARCHAR(64) NOT NULL, -- NoNightShift, NoHeavyLifting, NoAirborneArea, NoRadiationArea, ErgonomicSeatedOnly
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    operational_directives TEXT NOT NULL,
+    disallow_night_shift BOOLEAN NOT NULL DEFAULT FALSE,
+    disallow_heavy_lifting BOOLEAN NOT NULL DEFAULT FALSE,
+    disallow_infectious_airborne_area BOOLEAN NOT NULL DEFAULT FALSE,
+    disallow_radiation_area BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(32) NOT NULL DEFAULT 'Active', -- Active, UnderReview, ClearedOnAssessment, Expired
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 5. Asesmen Kelayakan Kembali Bertugas (Return-to-Work Assessment)
+CREATE TABLE IF NOT EXISTS trx_return_to_work_assessments (
+    assessment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    restriction_id UUID NOT NULL REFERENCES trx_work_restrictions(restriction_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    assessment_date DATE NOT NULL,
+    physical_exam_findings TEXT NOT NULL,
+    conclusion_status VARCHAR(32) NOT NULL, -- ClearedFullDuty, ExtendRestriction, ModifyRestriction, Unfit
+    evaluator_doctor_name VARCHAR(128) NOT NULL,
+    is_restriction_lifted BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(32) NOT NULL DEFAULT 'Completed',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 6. Registri Vaksinasi Staf Rumah Sakit
+CREATE TABLE IF NOT EXISTS trx_employee_vaccinations (
+    vaccination_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    health_record_id UUID NOT NULL REFERENCES wfp_health_records(health_record_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    vaccine_name VARCHAR(64) NOT NULL, -- HepatitisB, InfluenzaAnnual, Varicella, MMR, DTP
+    dose_number INT NOT NULL,
+    administered_date DATE NOT NULL,
+    batch_number VARCHAR(64) NOT NULL,
+    expiry_date DATE NOT NULL,
+    administered_by VARCHAR(128) NOT NULL,
+    next_booster_due_date DATE,
+    status VARCHAR(32) NOT NULL DEFAULT 'ValidActive', -- ValidActive, DueBooster, Expired
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 7. Surveillance Risiko & Titer Antibodi
+CREATE TABLE IF NOT EXISTS trx_employee_health_surveillances (
+    surveillance_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    health_record_id UUID NOT NULL REFERENCES wfp_health_records(health_record_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    hazard_category VARCHAR(64) NOT NULL, -- RadiationTLD, AntiHbsTiter, SpirometryNoise, ChemicalExposure
+    monitoring_period_start DATE NOT NULL,
+    monitoring_period_end DATE NOT NULL,
+    radiation_dose_msv NUMERIC(8,4),
+    antibody_titer_value NUMERIC(10,2),
+    titer_unit VARCHAR(32), -- mIU/mL, etc.
+    is_protective_level_achieved BOOLEAN NOT NULL DEFAULT TRUE,
+    surveillance_conclusion TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 8. Insiden Tertusuk Jarum Cito (Needle-Stick Injury)
+CREATE TABLE IF NOT EXISTS trx_needle_stick_incidents (
+    incident_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    incident_number VARCHAR(64) NOT NULL UNIQUE,
+    incident_timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    incident_location VARCHAR(255) NOT NULL,
+    needle_device_type VARCHAR(128) NOT NULL, -- Syringe, IVCannula, SutureNeedle, Lancet, Scalpel
+    source_patient_mrn VARCHAR(64),
+    is_source_known BOOLEAN NOT NULL DEFAULT TRUE,
+    source_serology_status VARCHAR(64), -- HIV_Positive, HepB_Positive, HepC_Positive, Unknown, Negative
+    is_pep_administered BOOLEAN NOT NULL DEFAULT FALSE,
+    pep_administered_time TIMESTAMP WITH TIME ZONE,
+    pep_regimen_description TEXT,
+    status VARCHAR(32) NOT NULL DEFAULT 'ReportedCito', -- ReportedCito, PepAdministered, MonitoringSerial, ClearedNegative, ChronicReferred
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 9. Pajanan Okupasional & Follow-up Serologi
+CREATE TABLE IF NOT EXISTS trx_occupational_exposures (
+    exposure_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    needle_stick_incident_id UUID REFERENCES trx_needle_stick_incidents(incident_id),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    exposure_type VARCHAR(64) NOT NULL, -- BloodBodyFluidSplash, ChemicalInhalation, RadiationAccident
+    exposure_timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    body_part_exposed VARCHAR(128) NOT NULL,
+    severity_level VARCHAR(32) NOT NULL DEFAULT 'High',
+    month_1_serology_date DATE NOT NULL,
+    month_3_serology_date DATE NOT NULL,
+    month_6_serology_date DATE NOT NULL,
+    final_serology_outcome VARCHAR(64), -- NegativeNonReactive, SeroconvertedReferred, Pending
+    status VARCHAR(32) NOT NULL DEFAULT 'UnderMonitoring', -- UnderMonitoring, ClosedCleared, ClosedPositiveReferred
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+-- 10. Insiden Kecelakaan Kerja (KAK / PAK & Klaim BPJS JKK)
+CREATE TABLE IF NOT EXISTS trx_employee_injuries (
+    injury_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES mst_workforce_profiles(employee_id),
+    incident_number VARCHAR(64) NOT NULL UNIQUE,
+    incident_timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    incident_location VARCHAR(255) NOT NULL,
+    injury_description TEXT NOT NULL,
+    affected_body_parts VARCHAR(255) NOT NULL,
+    lost_time_days INT NOT NULL DEFAULT 0,
+    root_cause_analysis TEXT NOT NULL,
+    corrective_action_plan TEXT NOT NULL,
+    bpjs_stage_1_report_number VARCHAR(64),
+    bpjs_stage_1_submitted_at TIMESTAMP WITH TIME ZONE,
+    bpjs_stage_2_report_number VARCHAR(64),
+    bpjs_stage_2_submitted_at TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(32) NOT NULL DEFAULT 'Reported', -- Reported, InInvestigation, BpjsStage1Submitted, TreatmentCompleted, BpjsStage2Finalized
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(128) NOT NULL,
+    updated_by VARCHAR(128) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_health_record_emp ON wfp_health_records(employee_id);
+CREATE INDEX IF NOT EXISTS idx_mcu_emp_date ON trx_employee_medical_examinations(employee_id, examination_date);
+CREATE INDEX IF NOT EXISTS idx_restriction_emp_status ON trx_work_restrictions(employee_id, status);
+CREATE INDEX IF NOT EXISTS idx_vaccination_emp_name ON trx_employee_vaccinations(employee_id, vaccine_name);
+CREATE INDEX IF NOT EXISTS idx_needle_stick_timestamp ON trx_needle_stick_incidents(incident_timestamp);
+CREATE INDEX IF NOT EXISTS idx_injury_emp_timestamp ON trx_employee_injuries(employee_id, incident_timestamp);
+```
+
+---
+
+### 32.7 Pemetaan Keputusan Otoritas Bisnis (`HRD-DEC-176` s.d. `HRD-DEC-181`)
+
+| Decision ID | Aspek Keputusan Bisnis | Implementasi Komponen Backend |
+|---|---|---|
+| `HRD-DEC-176` | Resolusi `HRD-DEC-010`: Field-Level Privacy Rekam Medis K3RS vs Fitness Status | `WfpHealthRecord`, field `EncryptedClinicalFindingsJson`, pemisahan DTO klinis vs fitness operasional |
+| `HRD-DEC-177` | Alur Cito Tertusuk Jarum (*Needle-Stick*), PEP < 4 Jam & Serial Serology Radar | `TrxNeedleStickIncident`, `TrxOccupationalExposure`, worker `NeedleStickSerialSerologyRadarWorker` (`OHS-W3`) |
+| `HRD-DEC-178` | Paket MCU Berkala Berbasis Profil Risiko Bahaya Unit & Radar Tahunan H-30/H-7 | `TrxEmployeeMedicalExamination`, worker `McuAnnualRecallWorker` (`OHS-W1`), master matriks risiko unit |
+| `HRD-DEC-179` | Pelacak Imunitas Vaksinasi Nakes (Titer Anti-HBs & Booster Otomatis) | `TrxEmployeeVaccination`, `TrxEmployeeHealthSurveillance`, worker `VaccinationBoosterRadarWorker` (`OHS-W2`) |
+| `HRD-DEC-180` | Surat Pembatasan Kerja (*Work Restriction*) & Hard-Stop Jadwal Dinas Sub-06 | `TrxWorkRestriction`, `TrxReturnToWorkAssessment`, service validator `INT-HR-89` ke scheduling |
+| `HRD-DEC-181` | Pelaporan KAK/PAK, Investigasi CAPA & Generator Berkas JKK BPJS Tahap I/II | `TrxEmployeeInjury`, integrasi `INT-HR-90` ke Sub-12, worker `BpjsJkkReportingDeadlineWorker` (`OHS-W6`) |
+
+
+---
+
+## 33. Arsitektur Backend Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 33.1 Bounded Context & Tabel Kepemilikan Data
+
+Sub-modul ini mengelola sentralisasi alur kerja persetujuan mandiri (*Unified Approval Workflow Engine*) untuk seluruh permohonan kepegawaian lintas 15 modul HRD rumah sakit (Cuti, Lembur, Tukar Shift, Koreksi Presensi, Klaim Restitusi, Pinjaman Karyawan, Resign, Pelatihan, dan Permohonan Dokumen HR). Bounded context utama adalah `WorkflowManagement` yang berkolaborasi erat dengan `WorkforceProfileManagement` (pohon jabatan struktural Sub-02) dan modul operasional masing-masing pemohon.
+
+| Nama Tabel Basis Data | Modul Pemilik | Status Tabel | Peran & Tanggung Jawab Data | Perilaku Hapus |
+|---|---|---|---|---|
+| `trx_workflow_instances` | Workflow | `Diperbarui` | Instansiasi proses workflow persetujuan untuk setiap tiket permohonan staf | Soft Delete (`IsDeleted`) |
+| `trx_workflow_step_instances` | Workflow | `Diperbarui` | Tahapan berjenjang alur persetujuan (Step 1, Step 2, dst.) | Soft Delete (`IsDeleted`) |
+| `trx_workflow_approver_assignments` | Workflow | `Diperbarui` | Penugasan pejabat approver atau penerima delegasi untuk tiap tahapan | Soft Delete (`IsDeleted`) |
+| `trx_approval_actions` | Workflow | `Diperbarui` | Log riwayat aksi keputusan otorisasi (Approve, Reject, Return, Escalate) | Restricted |
+| `trx_approval_delegations` | Workflow | `Diperbarui` | Registrasi pendelegasian wewenang berbatas waktu (*Acting Approver* / Plh) | Soft Delete (`IsDeleted`) |
+| `trx_workflow_comments` | Workflow | `Diperbarui` | Thread percakapan dan catatan klarifikasi revisi antara approver dan staf | Soft Delete (`IsDeleted`) |
+| `trx_workflow_attachments` | Workflow | `Diperbarui` | Berkas lampiran pendukung permohonan (surat dokter, formulir, nota) | Soft Delete (`IsDeleted`) |
+| `trx_workflow_status_histories` | Workflow | `Diperbarui` | Rekam jejak kronologis perpindahan status workflow (*Immutable Audit Trail*) | Restricted |
+
+---
+
+### 33.2 Class Diagram Bounded Context `WorkflowManagement`
+
+```mermaid
+classDiagram
+    class TrxWorkflowInstance {
+        +Guid Id
+        +string WorkflowNumber
+        +string RequestType
+        +string ReferenceDomain
+        +Guid ReferenceEntityId
+        +Guid ApplicantEmployeeId
+        +Guid DepartmentId
+        +decimal? Amount
+        +string PriorityLevel
+        +string CurrentStatus
+        +int CurrentStepNumber
+        +int TotalSteps
+        +DateTime SubmittedAt
+        +DateTime? SlaDeadline
+        +bool IsOverdue
+        +DateTime? FinalizedAt
+    }
+
+    class TrxWorkflowStepInstance {
+        +Guid Id
+        +Guid WorkflowInstanceId
+        +int StepNumber
+        +string StepName
+        +string RequiredRole
+        +string StepStatus
+        +DateTime? DueDate
+        +DateTime? CompletedAt
+    }
+
+    class TrxWorkflowApproverAssignment {
+        +Guid Id
+        +Guid WorkflowStepInstanceId
+        +Guid ApproverEmployeeId
+        +Guid? DelegatedEmployeeId
+        +bool IsDelegated
+        +string AssignmentStatus
+        +DateTime AssignedAt
+    }
+
+    class TrxApprovalAction {
+        +Guid Id
+        +Guid WorkflowStepInstanceId
+        +Guid ActionEmployeeId
+        +Guid? OnBehalfOfEmployeeId
+        +string ActionType
+        +string ReasonComment
+        +DateTime ActionTimestamp
+        +string DigitalSignatureHash
+    }
+
+    class TrxApprovalDelegation {
+        +Guid Id
+        +Guid PrincipalEmployeeId
+        +Guid DelegateEmployeeId
+        +DateTime StartDate
+        +DateTime EndDate
+        +string DelegatedRequestTypes
+        +string DelegationReason
+        +bool IsActive
+        +DateTime CreatedAt
+    }
+
+    class TrxWorkflowComment {
+        +Guid Id
+        +Guid WorkflowInstanceId
+        +Guid AuthorEmployeeId
+        +string CommentText
+        +bool IsInternalReviewOnly
+        +DateTime CreatedAt
+    }
+
+    class TrxWorkflowAttachment {
+        +Guid Id
+        +Guid WorkflowInstanceId
+        +string FileName
+        +string FileStoragePath
+        +long FileSizeBytes
+        +string FileExtension
+        +DateTime UploadedAt
+    }
+
+    class TrxWorkflowStatusHistory {
+        +Guid Id
+        +Guid WorkflowInstanceId
+        +string PreviousStatus
+        +string NewStatus
+        +Guid ChangedByEmployeeId
+        +string ChangeReason
+        +DateTime ChangedAt
+    }
+
+    TrxWorkflowInstance "1" --> "*" TrxWorkflowStepInstance : has steps
+    TrxWorkflowStepInstance "1" --> "*" TrxWorkflowApproverAssignment : assigns
+    TrxWorkflowStepInstance "1" --> "*" TrxApprovalAction : records action
+    TrxWorkflowInstance "1" --> "*" TrxWorkflowComment : thread
+    TrxWorkflowInstance "1" --> "*" TrxWorkflowAttachment : holds
+    TrxWorkflowInstance "1" --> "*" TrxWorkflowStatusHistory : tracks lifecycle
+    TrxApprovalDelegation ..> TrxWorkflowApproverAssignment : resolves acting approver
+```
+
+---
+
+### 33.3 Aturan Bisnis Inti Backend (`WF-B1` s.d. `WF-B8`)
+
+* **`WF-B1` — Penentuan Rantai Persetujuan Matriks Dinamis (*Dynamic Routing Matrix Resolution*):** Saat permohonan dibuat dari ESS, engine mengevaluasi konfigurasi matriks alur persetujuan berdasarkan kombinasi tipe request, unit kerja, level jabatan, dan besaran nominal finansial. Rantai tahapan (Step 1..n) dibentuk otomatis tanpa hardcoding struktur statis.
+* **`WF-B2` — Hard-Block Persetujuan Mandiri (*Anti Self-Approval*) & *Skip-Level Routing* (`HRD-DEC-183`):** Sistem secara mutlak memblokir aksi persetujuan bila `ApplicantEmployeeId == ApproverEmployeeId` (`VR-WF-02`). Penugasan tiket otomatis dialihkan (*skip-level*) ke atasan struktural satu tingkat di atasnya.
+* **`WF-B3` — Pendelegasian Wewenang Berbatas Waktu (*Time-Bound Digital Delegation* - `HRD-DEC-184`):** Resolver inbox secara otomatis memasukkan tiket ke inbox pejabat Pelaksana Harian (Plh) jika tanggal hari ini berada dalam rentang `StartDate` s.d. `EndDate` delegasi aktif. Aksi keputusan mencatat `ActionEmployeeId` (Plh) dan `OnBehalfOfEmployeeId` (pejabat definitif).
+* **`WF-B4` — Penegakan Disiplin SLA & Larangan Auto-Approve Demi Keselamatan Pasien (`HRD-DEC-185`):** Batas waktu respon tiket persetujuan dihitung secara ketat (24 jam untuk tukar shift, 48 jam untuk cuti, 72 jam untuk klaim). Sistem **dilarang menyetujui otomatis saat timeout**. Tiket yang melewati batas waktu dialihkan ke atasan lebih tinggi oleh worker `WF-W1`.
+* **`WF-B5` — Siklus Tri-State: *Approve*, *Reject*, dan *Return for Revision* (`HRD-DEC-186`):** Approver berwenang menyetujui, menolak dengan alasan wajib minimal 15 karakter (`VR-WF-05`), atau mengembalikan permohonan ke pemohon (`ReturnedForRevision`) untuk perbaikan data tanpa mengharuskan pembuatan tiket baru dari nol.
+* **`WF-B6` — Persetujuan Massal Bersyarat (*Conditional Bulk Approval* - `HRD-DEC-187`):** Fitur persetujuan sekaligus hanya aktif untuk permohonan sejenis berisiko rendah yang seluruh indikator validasinya berwarna **HIJAU** (saldo cukup, tidak bentrok jadwal). Permohonan berisiko tinggi atau bertanda peringatan bentrok **wajib dibuka satu per satu**.
+* **`WF-B7` — Notifikasi Terpadu Multikanal (*Unified Notification Gateway*):** Sistem menyiarkan notifikasi instan ke web portal, push notification aplikasi mobile, dan pengiriman ringkasan harian (*daily approval digest*) setiap jam 07:00 pagi bagi atasan via worker `WF-W3`.
+* **`WF-B8` — Eksekusi Transaksional Idempoten Domain Hilir (*Idempotent Downstream Execution*):** Saat tahapan terakhir workflow berstatus `Approved`, engine workflow memicu domain hilir secara idempoten (mengurangi saldo cuti di Sub-08, memperbarui jadwal roster di Sub-06, atau merilis pesanan tiket di Sub-13). Jika terjadi gangguan koneksi, transaksi dapat diulang secara aman tanpa duplikasi.
+
+---
+
+### 33.4 Background Workers Otomasi Workflow (`WF-W1` s.d. `WF-W6`)
+
+1. **`WF-W1` — `WorkflowSlaEscalationWorker` (Pemindai Batas Waktu SLA & Auto-Eskalasi):**
+   * *Pemicu:* Berjalan periodik setiap 15 menit.
+   * *Aksi:* Memindai tiket pending yang telah melewati `SlaDeadline`. Menandai `IsOverdue = true`, menyalakan alarm merah, dan menugaskan tiket ke atasan tingkat di atasnya (*auto-escalate*) sambil mengirimkan notifikasi darurat.
+2. **`WF-W2` — `ApprovalDelegationExpiryWorker` (Pencabutan Otomatis Wewenang Delegasi Plh):**
+   * *Pemicu:* Berjalan harian pada pukul 00:05 tengah malam.
+   * *Aksi:* Memindai berkas delegasi di `trx_approval_delegations` yang tanggal `EndDate` telah terlewati. Mengubah status menjadi `IsActive = false` dan memulihkan kepemilikan inbox tunggal ke pejabat definitif.
+3. **`WF-W3` — `ApprovalDigestNotificationWorker` (Ringkasan Harian Permohonan Tertunda Atasan):**
+   * *Pemicu:* Berjalan harian setiap pukul 07:00 pagi WIB.
+   * *Aksi:* Mengompilasi daftar permohonan pending per atasan dan mengirimkan satu email ringkasan terpadu (*daily approval digest*) agar atasan dapat memprioritaskan persetujuan sebelum memulai ronde dinas bangsal.
+4. **`WF-W4` — `WorkflowStaleRequestReminderWorker` (Pengingat Tiket Mendekati Batas SLA):**
+   * *Pemicu:* Berjalan periodik setiap 2 jam.
+   * *Aksi:* Mengirimkan notifikasi pengingat ke ponsel atasan jika tiket telah menginjak 50% dan 75% dari total batas waktu SLA yang dialokasikan.
+5. **`WF-W5` — `BulkApprovalBatchExecutionWorker` (Pemroses Antrean Persetujuan Massal Latar Belakang):**
+   * *Pemicu:* Dipicu saat atasan melakukan persetujuan massal > 20 permohonan sekaligus.
+   * *Aksi:* Memproses batch secara berurutan (*batch chunking*) dengan proteksi konkurensi, menghasilkan laporan ringkasan sukses/gagal secara deterministik.
+6. **`WF-W6` — `WorkflowDomainExecutionReconciliationWorker` (Rekonsiliasi Integrasi Domain Hilir):**
+   * *Pemicu:* Berjalan periodik setiap 30 menit.
+   * *Aksi:* Mendeteksi tiket yang sudah berstatus `Approved` namun eksekusi perubahan data di domain hilir (Sub-06/Sub-08) mengalami kegagalan sementara (deadlock/network timeout), untuk dieksekusi ulang secara otomatis.
+
+---
+
+### 33.5 Rencana Migrasi EF Core & DDL PostgreSQL
+
+* **Nama Migrasi:** `20261109_AddWorkflowAndUnifiedApprovalV2`
+* **Dampak Skema:** Memperbarui 8 tabel relasional pada skema `human_resource`, menambahkan kolom `delegated_employee_id`, `on_behalf_of_employee_id`, `sla_deadline`, `is_overdue`, dan `digital_signature_hash`.
+* **Zero-Downtime:** Ya — seluruh kolom baru bersifat nullable dengan indeks gabungan `(approver_employee_id, assignment_status)` dan `(sla_deadline, is_overdue)` untuk menjamin query kecepatan tinggi pada dasbor inbox atasan.

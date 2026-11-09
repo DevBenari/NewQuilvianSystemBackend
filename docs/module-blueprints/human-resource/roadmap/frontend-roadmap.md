@@ -5277,3 +5277,206 @@ FE-HRD-259 [F68] ──┘
 * **Dependencies**: `FE-HRD-258`, `FE-HRD-259`, `BE-HRD-285` [BE]
 * **Acceptance Criteria**: Gembok payroll final hanya dapat dibuka jika seluruh 5 departemen telah berstatus `Approved`; `npm run lint:errors` dan `npm run build` lulus 100%.
 * **Verifikasi**: Uji hard-block payroll `AT-HRD-EMP-22` dan laporan task tracked `FE-HRD-260.md`.
+
+
+---
+
+## 22. Rencana Pengiriman Frontend `S-C6`: Occupational Health & Staff Safety (K3RS & Medical Check-Up)
+
+Bagian ini memetakan perencanaan teknis pelaksanaan antarmuka frontend Next.js App Router untuk **Sub-Modul 19 (Occupational Health & Staff Safety / K3RS & MCU — Slice `S-C6`)** menjadi 15 task terukur (`FE-HRD-261` s.d. `FE-HRD-275`) yang mencakup implementasi 8 layar utama (`FE-HRD-261` s.d. `FE-HRD-268`), 5 modal interaktif, widget tombol darurat tertusuk jarum mobile ESS, dasbor radar imunitas nakes STARKES, gembok visual kelaikan kerja pada modul roster Sub-06, dan generator formulir klaim BPJS Ketenagakerjaan JKK.
+
+---
+
+### 22.1 Grafik Urutan Ketergantungan Frontend `S-C6` (Pohon Teks)
+
+#### Grafik F70: Fondasi State Redux, API Client, Komponen Visual K3RS & Dasbor Utama
+```text
+FE-HRD-261 ⏳ (Setup Types, Redux Slice & Axios Client Kontrak v23)
+   │
+   └─> FE-HRD-262 ⏳ (Komponen Visual: Badge Status, Alert Kerahasiaan Medis & Kelaikan)
+          │
+          └─> FE-HRD-263 ⏳ (Layar Dasbor Utama K3RS Rumah Sakit /hrd/occupational-health)
+```
+
+#### Grafik F71: Portal Rekam Medis Staf, Modal Fitness to Work & Manajemen Restriksi
+```text
+FE-HRD-263 [F70] ─┬─> FE-HRD-264 ⏳ (Layar Rekam Kesehatan Staf & Evaluasi Fitness to Work)
+                  │      │
+                  │      └─> FE-HRD-265 ⏳ (Modal Pengesahan Kelaikan Kerja Dokter Hiperkes)
+                  │             │
+                  │             └─> FE-HRD-266 ⏳ (Layar Manajemen Pembatasan Tugas Medis Work Restriction)
+                  │                    │
+                  │                    └─> FE-HRD-267 ⏳ (Modal Asesmen Return-to-Work RTW & Pembuka Gembok Roster)
+```
+
+#### Grafik F72: Konsol Tanggap Darurat Tertusuk Jarum, Widget Panik ESS & Radar Imunisasi
+```text
+FE-HRD-263 [F70] ─┬─> FE-HRD-268 ⏳ (Layar Konsol Tanggap Darurat Pajanan Darah & Tertusuk Jarum)
+                  │      │
+                  │      └─> FE-HRD-269 ⏳ (Widget Tombol Panik Darurat Tertusuk Jarum Mobile ESS Staf)
+                  │
+                  └─> FE-HRD-270 ⏳ (Layar Radar Imunisasi & Vaksinasi Nakes STARKES KPS)
+```
+
+#### Grafik F73: Surveilans Bahaya Ruangan, MCU Berkala, Kecelakaan Kerja & Verifikasi E2E
+```text
+FE-HRD-263 [F70] ─┬─> FE-HRD-271 ⏳ (Layar Surveilans Paparan Bahaya Ruangan Khusus TLD Radiasi)
+                  ├─> FE-HRD-272 ⏳ (Layar Pusat Penjadwalan & Pelaksanaan MCU Berkala STARKES)
+                  ├─> FE-HRD-273 ⏳ (Layar Registrasi Kecelakaan Kerja KAK/PAK & Olah TKP)
+                  │      │
+                  │      └─> FE-HRD-274 ⏳ (Modal Generator Ekspor Formulir Klaim JKK BPJS Tahap I-II)
+                  │
+FE-HRD-265 [F71] ─┤
+FE-HRD-267 [F71] ─┤
+FE-HRD-269 [F72] ─┼─> FE-HRD-275 ⏳ (Integrasi Navigasi Sidebar K3RS, Indikator Hard-Stop Roster & Verifikasi E2E)
+FE-HRD-270 [F72] ─┤
+FE-HRD-271 [F73] ─┤
+FE-HRD-272 [F73] ─┤
+FE-HRD-274 [F73] ─┘
+```
+
+---
+
+### 22.2 Tabel Urutan Gelombang Eksekusi Frontend `S-C6`
+
+| Gelombang Eksekusi | Task ID | Deskripsi Singkat Pekerjaan Frontend | Prasyarat (Dependencies) | Target MVP |
+|---|---|---|---|---|
+| **Gelombang 1** | `FE-HRD-261` | Setup TypeScript Interfaces, Redux Slice `occupationalHealthSlice.ts` & Axios Client | None | `MVP-57` |
+| **Gelombang 1** | `FE-HRD-262` | Komponen Visual K3RS: StatusBadge Kelaikan, Alert Kerahasiaan Medis & Indikator | `FE-HRD-261` | `MVP-57` |
+| **Gelombang 2** | `FE-HRD-263` | Layar Dasbor Utama K3RS Rumah Sakit (`FE-HRD-261`) pada `/hrd/occupational-health` | `FE-HRD-262`, `BE-HRD-289` [BE] | `MVP-57` |
+| **Gelombang 2** | `FE-HRD-264` | Layar Rekam Kesehatan Staf & Evaluasi Fitness to Work (`FE-HRD-262`) | `FE-HRD-263`, `BE-HRD-289` [BE] | `MVP-57` |
+| **Gelombang 3** | `FE-HRD-265` | Modal Dialog Pengesahan Kelaikan Kerja Dokter Hiperkes (`FitnessToWorkModal.tsx`) | `FE-HRD-264`, `BE-HRD-290` [BE] | `MVP-57` |
+| **Gelombang 3** | `FE-HRD-266` | Layar Manajemen Pembatasan Tugas Medis (*Work Restriction*) (`FE-HRD-263`) | `FE-HRD-265`, `BE-HRD-291` [BE] | `MVP-57` |
+| **Gelombang 3** | `FE-HRD-267` | Modal Asesmen Kembali Bekerja (*Return-to-Work*) & Pelepasan Hard-Stop Roster | `FE-HRD-266`, `BE-HRD-293` [BE] | `MVP-57` |
+| **Gelombang 4** | `FE-HRD-268` | Layar Konsol Tanggap Darurat Pajanan Darah & Tertusuk Jarum (`FE-HRD-264`) | `FE-HRD-263`, `BE-HRD-294` [BE] | `MVP-58` |
+| **Gelombang 4** | `FE-HRD-269` | Widget Tombol Panik Darurat Tertusuk Jarum Mobile ESS Staf (`NeedleStickPanicButton.tsx`)| `FE-HRD-268`, `BE-HRD-294` [BE] | `MVP-58` |
+| **Gelombang 4** | `FE-HRD-270` | Layar Radar Imunisasi & Vaksinasi Tenaga Medis (`FE-HRD-265`) | `FE-HRD-263`, `BE-HRD-297` [BE] | `MVP-58` |
+| **Gelombang 5** | `FE-HRD-271` | Layar Surveilans Paparan Bahaya Ruangan Khusus TLD Radiasi (`FE-HRD-266`) | `FE-HRD-263`, `BE-HRD-298` [BE] | `MVP-58` |
+| **Gelombang 5** | `FE-HRD-272` | Layar Pusat Penjadwalan & Pelaksanaan MCU Berkala STARKES (`FE-HRD-267`) | `FE-HRD-263`, `BE-HRD-299` [BE] | `MVP-59` |
+| **Gelombang 5** | `FE-HRD-273` | Layar Registrasi Kecelakaan Kerja KAK/PAK & Olah TKP (`FE-HRD-268`) | `FE-HRD-263`, `BE-HRD-300` [BE] | `MVP-59` |
+| **Gelombang 5** | `FE-HRD-274` | Modal Generator Ekspor Formulir Klaim JKK BPJS Ketenagakerjaan Tahap I-II | `FE-HRD-273`, `BE-HRD-300` [BE] | `MVP-59` |
+| **Gelombang 6** | `FE-HRD-275` | Integrasi Navigasi Sidebar K3RS, Indikator Hard-Stop Roster Sub-06 & Uji Linter Build E2E | `FE-HRD-265`, `FE-HRD-267`, `FE-HRD-269`, `FE-HRD-270`, `FE-HRD-271`, `FE-HRD-272`, `FE-HRD-274`, `BE-HRD-301` [BE] | Verifikasi |
+
+---
+
+### 22.3 Rincian Kartu Spesifikasi Task Frontend `S-C6`
+
+#### ⏳ `FE-HRD-261` — Setup TypeScript Interfaces, Redux Slice `occupationalHealthSlice.ts` & Axios Client
+* **Slice / MVP**: `S-C6` / `MVP-57`
+* **Status**: ⏳ Menunggu Eksekusi
+* **Outcome**: Penyiapan tipe data TypeScript untuk 10 entitas K3RS, enumerasi status (`FitnessToWorkStatus`, `WorkRestrictionStatus`, dll.), konfigurasi Redux Toolkit slice (`occupationalHealthSlice.ts`) dengan async thunks untuk memanggil 24 endpoint API Kontrak v23, serta integrasi Axios client dengan interceptor token otentikasi JWT.
+* **Dependencies**: None
+* **Acceptance Criteria**: State Redux terinisialisasi bersih; seluruh types dan interfaces sinkron 1:1 dengan DTOs backend Kontrak v23.
+* **Verifikasi**: Uji tipe data TypeScript dan eksekusi reducer Redux.
+
+#### ⏳ `FE-HRD-262` — Komponen Visual K3RS: StatusBadge Kelaikan, Alert Kerahasiaan Medis & Indikator
+* **Slice / MVP**: `S-C6` / `MVP-57`
+* **Status**: ⏳ Menunggu `FE-HRD-261`
+* **Outcome**: Pembuatan komponen atomik UI K3RS berbasis design token Quilvian: `FitnessStatusBadge` (hijau untuk `Fit`, kuning untuk `Fit with Restriction`, merah untuk `Unfit`), `MedicalConfidentialityAlert` (banner informasi peringatan kerahasiaan rekam medis UU PDP), dan `ImmunityIndicatorCard` (grafik visual kadar titer antibodi Anti-HBs).
+* **Dependencies**: `FE-HRD-261`
+* **Acceptance Criteria**: Komponen visual merender warna dan label status secara akurat tanpa styling manual hardcoded.
+* **Verifikasi**: Uji visual komponen atomik K3RS.
+
+#### ⏳ `FE-HRD-263` — Layar Dasbor Utama K3RS Rumah Sakit (`FE-HRD-261`) pada `/hrd/occupational-health`
+* **Slice / MVP**: `S-C6` / `MVP-57`
+* **Status**: ⏳ Menunggu `FE-HRD-262`, `BE-HRD-289` [BE]
+* **Outcome**: Pembangunan layar dasbor komprehensif K3RS (`FE-HRD-261`). Menyajikan kartu ringkasan kelaikan kerja rumah sakit (Total Staf, Laik Penuh, Dalam Restriksi Tugas, Tidak Laik Sementara), radar insiden tertusuk jarum aktif dalam masa pemantauan serial 6 bulan, persentase kepatuhan MCU tahunan akreditasi STARKES KPS, serta tombol pintas tanggap darurat pajanan.
+* **Dependencies**: `FE-HRD-262`, `BE-HRD-289` [BE]
+* **Acceptance Criteria**: Metrik agregat K3RS tampil real-time; role HR Admin hanya melihat metrik operasional tanpa rincian penyakit klinis (`HRD-DEC-176`).
+* **Verifikasi**: Uji dasbor utama K3RS `AT-HRD-OHS-02`.
+
+#### ⏳ `FE-HRD-264` — Layar Rekam Kesehatan Staf & Evaluasi Fitness to Work (`FE-HRD-262`)
+* **Slice / MVP**: `S-C6` / `MVP-57`
+* **Status**: ⏳ Menunggu `FE-HRD-263`, `BE-HRD-289` [BE]
+* **Outcome**: Pembangunan layar rekam kesehatan pegawai (`FE-HRD-262`) pada rute `/hrd/occupational-health/records`. Menampilkan tabel riwayat pemeriksaan kesehatan staf, filter berdasarkan unit kerja/ruangan risiko, serta tab rincian yang membedakan tampilan staf/dokter (rekam klinis lengkap terenkripsi) dan tampilan HR (ringkasan operasional).
+* **Dependencies**: `FE-HRD-263`, `BE-HRD-289` [BE]
+* **Acceptance Criteria**: Akses login pegawai mandiri menampilkan riwayat MCU pribadinya; akun HR dibatasi pada kesimpulan kelaikan saja.
+* **Verifikasi**: Uji akses mandiri staf di ESS `AT-HRD-OHS-03`.
+
+#### ⏳ `FE-HRD-265` — Modal Dialog Pengesahan Kelaikan Kerja Dokter Hiperkes (`FitnessToWorkModal.tsx`)
+* **Slice / MVP**: `S-C6` / `MVP-57`
+* **Status**: ⏳ Menunggu `FE-HRD-264`, `BE-HRD-290` [BE]
+* **Outcome**: Pembuatan modal dialog interaktif bagi dokter pemeriksa untuk mengesahkan status kelayakan kerja staf (`FitnessToWorkModal.tsx`). Menampilkan input status kelaikan, kolom alasan medis terenkripsi, input nomor lisensi/sertifikat Hiperkes dokter penilai (`VR-OHS-03`), dan konfirmasi penandatanganan digital resmi.
+* **Dependencies**: `FE-HRD-264`, `BE-HRD-290` [BE]
+* **Acceptance Criteria**: Tombol simpan terkunci jika nomor lisensi Hiperkes kosong; status menjadi imutabel setelah disahkan.
+* **Verifikasi**: Uji modal penetapan kelaikan kerja `AT-HRD-OHS-04`.
+
+#### ⏳ `FE-HRD-266` — Layar Manajemen Pembatasan Tugas Medis (*Work Restriction*) (`FE-HRD-263`)
+* **Slice / MVP**: `S-C6` / `MVP-57`
+* **Status**: ⏳ Menunggu `FE-HRD-265`, `BE-HRD-291` [BE]
+* **Outcome**: Pembangunan layar manajemen restriksi tugas staf (`FE-HRD-263`) pada rute `/hrd/occupational-health/restrictions`. Menampilkan daftar staf yang sedang memiliki surat pembatasan tugas dinas aktif, kategori tugas terlarang (shift malam, beban berat, ruang isolasi), tanggal kedaluwarsa restriksi, dan indikator gembok hard-stop yang terpasang di modul roster Sub-06 (`INT-HR-89`).
+* **Dependencies**: `FE-HRD-265`, `BE-HRD-291` [BE]
+* **Acceptance Criteria**: Tabel menampilkan sisa hari masa restriksi; indikator gembok hard-stop roster Sub-06 aktif menyala.
+* **Verifikasi**: Uji layar pembatasan tugas dinas `AT-HRD-OHS-05`.
+
+#### ⏳ `FE-HRD-267` — Modal Asesmen Kembali Bekerja (*Return-to-Work*) & Pelepasan Hard-Stop Roster
+* **Slice / MVP**: `S-C6` / `MVP-57`
+* **Status**: ⏳ Menunggu `FE-HRD-266`, `BE-HRD-293` [BE]
+* **Outcome**: Pembuatan modal dialog evaluasi kesiapan kembali bertugas penuh (`ReturnToWorkModal.tsx`). Dokter K3RS mengisi checklist evaluasi fisik/motorik, kesimpulan kelaikan tugas normal, dan menerbitkan surat pemulihan yang secara instan melepaskan status gembok hard-stop roster di Sub-06 (`VR-OHS-07`, `INT-HR-89`).
+* **Dependencies**: `FE-HRD-266`, `BE-HRD-293` [BE]
+* **Acceptance Criteria**: Pelepasan restriksi wajib menyertakan hasil asesmen RTW; badge kelaikan staf berubah kembali hijau "Fit".
+* **Verifikasi**: Uji alur asesmen RTW `AT-HRD-OHS-07`.
+
+#### ⏳ `FE-HRD-268` — Layar Konsol Tanggap Darurat Pajanan Darah & Tertusuk Jarum (`FE-HRD-264`)
+* **Slice / MVP**: `S-C6` / `MVP-58`
+* **Status**: ⏳ Menunggu `FE-HRD-263`, `BE-HRD-294` [BE]
+* **Outcome**: Pembangunan layar ruang kendali tanggap darurat tertusuk jarum (`FE-HRD-264`) pada rute `/hrd/occupational-health/needle-stick`. Menampilkan antrean tiket darurat cito, indikator hitung mundur waktu emas terapi PPP (< 4 jam), identitas pasien sumber, dan matriks pemantauan surveilans serial darah pada Bulan ke-1, Bulan ke-3, dan Bulan ke-6.
+* **Dependencies**: `FE-HRD-263`, `BE-HRD-294` [BE]
+* **Acceptance Criteria**: Tiket darurat baru berkedip dengan alarm merah; timer hitung mundur PPP berjalan akurat sejak jam insiden.
+* **Verifikasi**: Uji konsol tanggap darurat pajanan `AT-HRD-OHS-09`.
+
+#### ⏳ `FE-HRD-269` — Widget Tombol Panik Darurat Tertusuk Jarum Mobile ESS Staf (`NeedleStickPanicButton.tsx`)
+* **Slice / MVP**: `S-C6` / `MVP-58`
+* **Status**: ⏳ Menunggu `FE-HRD-268`, `BE-HRD-294` [BE]
+* **Outcome**: Pembuatan widget tombol panik cito berukuran besar pada portal ESS mobile staf rumah sakit (`NeedleStickPanicButton.tsx`). Menyediakan formulir lapor cepat 3 langkah: jam kejadian, lokasi ruangan, dan status identitas pasien sumber, yang secara instan mengirimkan notifikasi darurat sirene ke posko K3RS/PPI dalam < 5 detik (`INT-HR-91`).
+* **Dependencies**: `FE-HRD-268`, `BE-HRD-294` [BE]
+* **Acceptance Criteria**: Pelaporan selesai dalam < 30 detik oleh korban; notifikasi darurat terkirim seketika ke konsol K3RS.
+* **Verifikasi**: Uji tombol darurat panik ESS `AT-HRD-OHS-08`.
+
+#### ⏳ `FE-HRD-270` — Layar Radar Imunisasi & Vaksinasi Tenaga Medis (`FE-HRD-265`)
+* **Slice / MVP**: `S-C6` / `MVP-58`
+* **Status**: ⏳ Menunggu `FE-HRD-263`, `BE-HRD-297` [BE]
+* **Outcome**: Pembangunan layar radar imunisasi nakes (`FE-HRD-265`) pada rute `/hrd/occupational-health/vaccinations`. Menampilkan tabel buku vaksinasi elektronik staf, log nomor batch & pabrikan vaksin, pelacak visual kadar titer antibodi Anti-HBs kuantitatif, serta penanda status staf yang membutuhkan suntikan vaksinasi booster Hepatitis B karena titer < 10 mIU/mL (`VR-OHS-15`).
+* **Dependencies**: `FE-HRD-263`, `BE-HRD-297` [BE]
+* **Acceptance Criteria**: Titer di bawah 10 mIU/mL ditandai badge peringatan merah; tombol buat rujukan booster dapat diklik satu sentuhan.
+* **Verifikasi**: Uji radar kepatuhan imunitas nakes `AT-HRD-OHS-15`.
+
+#### ⏳ `FE-HRD-271` — Layar Surveilans Paparan Bahaya Ruangan Khusus TLD Radiasi (`FE-HRD-266`)
+* **Slice / MVP**: `S-C6` / `MVP-58`
+* **Status**: ⏳ Menunggu `FE-HRD-263`, `BE-HRD-298` [BE]
+* **Outcome**: Pembangunan layar pemantauan bahaya okupasional ruangan (`FE-HRD-266`) pada rute `/hrd/occupational-health/surveillance`. Menampilkan grafik tren dosis radiasi badge TLD triwulanan staf radiologi/kateterisasi, peringatan batas dosis kumulatif tahunan Bapeten (> 20 mSv), serta rekaman hasil audiometri dan spirometri staf unit berisiko tinggi.
+* **Dependencies**: `FE-HRD-263`, `BE-HRD-298` [BE]
+* **Acceptance Criteria**: Dosis radiasi di atas batas aman memunculkan banner peringatan merah bahaya radiasi dan rekomendasi rotasi kerja.
+* **Verifikasi**: Uji pemantauan dosis radiasi TLD `AT-HRD-OHS-17`.
+
+#### ⏳ `FE-HRD-272` — Layar Pusat Penjadwalan & Pelaksanaan MCU Berkala STARKES (`FE-HRD-267`)
+* **Slice / MVP**: `S-C6` / `MVP-59`
+* **Status**: ⏳ Menunggu `FE-HRD-263`, `BE-HRD-299` [BE]
+* **Outcome**: Pembangunan layar pusat MCU berkala staf (`FE-HRD-267`) pada rute `/hrd/occupational-health/mcu`. Kalender penjadwalan pemeriksaan kesehatan tahunan, penapisan paket otomatis berbasis risiko ruangan kerja staf, dasbor progres kehadiran pegawai, dan generator ekspor laporan pemenuhan standar akreditasi rumah sakit STARKES instrumen KPS.
+* **Dependencies**: `FE-HRD-263`, `BE-HRD-299` [BE]
+* **Acceptance Criteria**: Paket MCU tersaring otomatis sesuai profil risiko ruangan; tombol ekspor dokumen kepatuhan STARKES KPS menghasilkan dokumen resmi.
+* **Verifikasi**: Uji penapisan MCU berbasis risiko `AT-HRD-OHS-12` dan ekspor laporan STARKES `AT-HRD-OHS-22`.
+
+#### ⏳ `FE-HRD-273` — Layar Registrasi Kecelakaan Kerja KAK/PAK & Olah TKP (`FE-HRD-268`)
+* **Slice / MVP**: `S-C6` / `MVP-59`
+* **Status**: ⏳ Menunggu `FE-HRD-263`, `BE-HRD-300` [BE]
+* **Outcome**: Pembangunan layar pencatatan kecelakaan kerja (`FE-HRD-268`) pada rute `/hrd/occupational-health/injuries`. Formulir registrasi insiden kecelakaan fisik/penyakit akibat kerja, galeri foto tempat kejadian perkara (TKP), input saksi, matriks investigasi akar masalah keselamatan K3RS (CAPA), dan pelacakan hari kerja hilang (*Lost Time Injury* - LTI).
+* **Dependencies**: `FE-HRD-263`, `BE-HRD-300` [BE]
+* **Acceptance Criteria**: Form investigasi memuat minimal 2 investigator K3RS; LTI terhitung sinkron dengan hari izin sakit.
+* **Verifikasi**: Uji registrasi kecelakaan kerja `AT-HRD-OHS-19` dan sinkronisasi LTI `AT-HRD-OHS-20`.
+
+#### ⏳ `FE-HRD-274` — Modal Generator Ekspor Formulir Klaim JKK BPJS Ketenagakerjaan Tahap I-II
+* **Slice / MVP**: `S-C6` / `MVP-59`
+* **Status**: ⏳ Menunggu `FE-HRD-273`, `BE-HRD-300` [BE]
+* **Outcome**: Pembuatan modal dialog pembuatan berkas klaim BPJS JKK (`BPJSClaimExportModal.tsx`). Menampilkan generator dokumen formulir pelaporan Tahap I berstandar BPJS Ketenagakerjaan dengan batas waktu pelaporan < 2x24 jam (`VR-OHS-18`), serta kompilasi lampiran kwitansi asli dan resume medis dokter untuk klaim santunan Tahap II.
+* **Dependencies**: `FE-HRD-273`, `BE-HRD-300` [BE]
+* **Acceptance Criteria**: Berkas PDF Formulir JKK Tahap I terisi lengkap otomatis dan siap diserahkan ke BPJS Ketenagakerjaan.
+* **Verifikasi**: Uji generator formulir klaim JKK BPJS `AT-HRD-OHS-18` dan `AT-HRD-OHS-21`.
+
+#### ⏳ `FE-HRD-275` — Integrasi Navigasi Sidebar K3RS, Indikator Hard-Stop Roster Sub-06 & Uji Linter Build E2E
+* **Slice / MVP**: `S-C6` / Verifikasi
+* **Status**: ⏳ Menunggu `FE-HRD-265`, `FE-HRD-267`, `FE-HRD-269`, `FE-HRD-270`, `FE-HRD-271`, `FE-HRD-272`, `FE-HRD-274`, `BE-HRD-301` [BE]
+* **Outcome**: Pendaftaran rute dan menu navigasi K3RS pada sidebar utama modul HRD Next.js App Router, integrasi badge peringatan kelaikan medis pada modul penyusunan roster Sub-06 (menampilkan tooltip restriksi dinas), serta eksekusi audit kualitas frontend secara menyeluruh: validasi linting `npm run lint:errors` lulus 0 error dan kompilasi build produksi `npm run build` sukses 100%.
+* **Dependencies**: Seluruh task frontend `FE-HRD-261` s.d. `FE-HRD-274` serta task backend `BE-HRD-301` [BE]
+* **Acceptance Criteria**: Menu K3RS tampil rapi sesuai permission user; gembok restriksi muncul di layar roster Sub-06; `npm run lint:errors` dan `npm run build` lulus tanpa error.
+* **Verifikasi**: Uji hard-stop roster `AT-HRD-OHS-06` dan laporan task tracked `FE-HRD-275.md`.

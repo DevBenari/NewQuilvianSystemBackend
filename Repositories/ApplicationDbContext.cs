@@ -466,6 +466,7 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - PAYROLL MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
+        public DbSet<HrdBenefitGradeEligibility> HrdBenefitGradeEligibilities { get; set; }
         public DbSet<TrxEmployeeBenefitEnrollment> TrxEmployeeBenefitEnrollments { get; set; }
         public DbSet<TrxEmployeeBenefitDependent> TrxEmployeeBenefitDependents { get; set; }
         public DbSet<HrdBenefitBalanceMovement> HrdBenefitBalanceMovements { get; set; }

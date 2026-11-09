@@ -2620,3 +2620,129 @@ Seluruh endpoint pada bagian ini berstatus **Rencana (belum tersedia)** dan dike
 | `PUT` | `/api/v1/hrd/exit-clearance/checklists/{checklistId}/signoff` | Verifikasi persetujuan serah terima inventaris per unit kliring | `Hrd.ExitClearance.SignoffChecklist` | `SignoffChecklistRequestDto` (isReturned, outstandingLiabilityAmount, approverNotes) | `ExitClearanceChecklistDto`, `200 OK` |
 | `GET` | `/api/v1/hrd/exit-clearance/payroll-lock-status/{employeeId}` | Gerbang verifikasi status gembok payroll akhir Sub-10 (`INT-HR-87`) | `Hrd.ExitClearance.ViewLockStatus` | Path param: `employeeId` (UUID) | `PayrollLockStatusResponseDto` (isFinalPayrollUnlocked, pendingDepartments), `200 OK` |
 | `POST` | `/api/v1/hrd/exit-clearance/{clearanceProcessId}/complete` | Pengesahan akhir exit clearance & pembukaan kunci payroll akhir | `Hrd.ExitClearance.Finalize` | `FinalizeExitClearanceRequestDto` (notes) | `ExitClearanceProcessDetailDto` (isFinalPayrollUnlocked=true), `200 OK` |
+
+
+---
+
+## 29. Sub-Modul 19: Occupational Health & Staff Safety (Slice `S-C6`, Kontrak `v23`)
+
+Seluruh endpoint pada bagian ini berstatus **Rencana (belum tersedia)** dan dikelompokkan ke dalam 5 tag Swagger resmi untuk perlindungan privasi data medis staf, penyelenggaraan MCU berbasis profil risiko, tanggap darurat tertusuk jarum/pajanan infeksius, pelacakan vaksinasi nakes, serta pembatasan kerja dan pelaporan kecelakaan kerja BPJS JKK.
+
+### 29.1 `[Tags("Corporate - HRD Occupational Health & Medical Privacy")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/occupational-health/records/{employeeId}/clinical` | Ambil data rekam medis klinis lengkap staf terenkripsi (khusus Dokter K3RS) | `Hrd.OccupationalHealth.ViewClinicalDetail` | Path param: `employeeId` (UUID) | `HealthRecordClinicalDetailDto` (diagnosis ICD-10, lab results, clinical history), `200 OK` |
+| `GET` | `/api/v1/hrd/occupational-health/records/{employeeId}/fitness-summary` | Ambil ringkasan status kelayakan kerja operasional bebas diagnosis (untuk HR & Atasan) | `Hrd.OccupationalHealth.ViewFitnessSummary` | Path param: `employeeId` (UUID) | `EmployeeFitnessSummaryDto` (fitnessStatus, restrictionDirectives), `200 OK` |
+| `PUT` | `/api/v1/hrd/occupational-health/records/{employeeId}/fitness-status` | Perbarui status kelaikan kerja staf dan durasi berlaku | `Hrd.OccupationalHealth.AssessFitness` | `UpdateFitnessStatusRequestDto` (fitnessStatus, validUntil, operationalRestrictionSummary) | `EmployeeFitnessSummaryDto`, `200 OK` |
+| `GET` | `/api/v1/hrd/occupational-health/my-health` | Portal ESS: Ambil ringkasan rekam kesehatan dan status imunisasi milik user login | `Hrd.OccupationalHealth.ViewSelfRecord` | None | `MyHealthProfileDto`, `200 OK` |
+| `GET` | `/api/v1/hrd/occupational-health/dashboard/executive` | Ambil statistik kepatuhan MCU institusi, kasus K3RS aktif, dan jam hilang LTI | `Hrd.OccupationalHealth.ViewDashboard` | Query params: `year`, `departmentId` | `OhsExecutiveDashboardDto`, `200 OK` |
+
+---
+
+### 29.2 `[Tags("Corporate - HRD Medical Check-Up & Risk Surveillance")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/occupational-health/mcu/schedule` | Daftarkan jadwal pemeriksaan MCU tahunan/khusus berdasar risiko ruangan | `Hrd.OccupationalHealth.ScheduleMcu` | `ScheduleMcuRequestDto` (employeeId, examType, examinationDate, riskProfile) | `MedicalExaminationResponseDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/occupational-health/mcu` | Daftar pelaksanaan MCU pegawai dengan filter risiko dan unit | `Hrd.OccupationalHealth.ViewMcu` | Query params: `examType`, `riskProfile`, `status`, `page`, `pageSize` | `PagedResult<MedicalExaminationSummaryDto>`, `200 OK` |
+| `POST` | `/api/v1/hrd/occupational-health/mcu/{examinationId}/results` | Catat hasil pemeriksaan fisik dan laboratorium terenkripsi oleh dokter | `Hrd.OccupationalHealth.RecordMcuResults` | `RecordMcuResultsRequestDto` (encryptedFindings, encryptedLabResults, thoraxXray, fitnessConclusion) | `MedicalExaminationResponseDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/occupational-health/surveillance/radiation-dose` | Catat impor data dosis radiasi TLD bulanan staf radiologi (`INT-HR-91`) | `Hrd.OccupationalHealth.RecordSurveillance` | `RecordRadiationDoseRequestDto` (employeeId, periodStart, periodEnd, doseMsv) | `HealthSurveillanceResponseDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/occupational-health/surveillance/radiation-radar` | Radar pemantauan akumulasi dosis radiasi staf radiologi terhadap batas 20 mSv | `Hrd.OccupationalHealth.ViewSurveillance` | Query params: `year`, `isNearThresholdOnly` | `List<RadiationSurveillanceRadarDto>`, `200 OK` |
+
+---
+
+### 29.3 `[Tags("Corporate - HRD Needle-Stick & Occupational Exposure Emergency")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/occupational-health/needle-stick/report-cito` | Tombol Darurat ESS: Laporkan insiden tertusuk jarum suntik bekas cito | `Hrd.OccupationalHealth.ReportNeedleStick` | `ReportNeedleStickCitoRequestDto` (incidentTimestamp, location, deviceType, sourcePatientMrn) | `NeedleStickReceiptDto` (incidentNumber, slaPepCountdownSeconds), `201 Created` |
+| `GET` | `/api/v1/hrd/occupational-health/needle-stick` | Daftar antrean insiden tertusuk jarum dan status pemberian PEP | `Hrd.OccupationalHealth.ManageNeedleStick` | Query params: `status`, `isPepAdministered` | `PagedResult<NeedleStickIncidentDto>`, `200 OK` |
+| `POST` | `/api/v1/hrd/occupational-health/needle-stick/{incidentId}/administer-pep` | Rekam tindakan inisiasi Profilaksis Pasca Pajanan (PEP) < 4 jam | `Hrd.OccupationalHealth.AdministerPep` | `AdministerPepRequestDto` (pepRegimenDescription, pepAdministeredTime, doctorNotes) | `NeedleStickIncidentDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/occupational-health/exposures/{exposureId}/serial-serology` | Catat hasil pemantauan tes darah berkala Bulan ke-1, 3, dan 6 | `Hrd.OccupationalHealth.RecordSerologyFollowup`| `RecordSerologyFollowupRequestDto` (followUpMonth, testDate, outcomeStatus, labDocumentUrl) | `OccupationalExposureDto`, `200 OK` |
+| `GET` | `/api/v1/hrd/occupational-health/exposures/radar-active` | Radar pemantauan nakes yang sedang dalam jadwal kontrol serologi 6 bulan | `Hrd.OccupationalHealth.ViewExposureRadar` | None | `List<ActiveExposureRadarSummaryDto>`, `200 OK` |
+
+---
+
+### 29.4 `[Tags("Corporate - HRD Staff Vaccination & Immunity Tracking")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/occupational-health/vaccinations` | Catat riwayat penyuntikan vaksin wajib nakes (batch, dosis, tanggal) | `Hrd.OccupationalHealth.RecordVaccination` | `RecordVaccinationRequestDto` (employeeId, vaccineName, doseNumber, administeredDate, batchNumber, expiryDate) | `VaccinationRecordDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/occupational-health/vaccinations/employee/{employeeId}` | Riwayat vaksinasi lengkap seorang pegawai | `Hrd.OccupationalHealth.ViewVaccination` | Path param: `employeeId` (UUID) | `List<VaccinationRecordDto>`, `200 OK` |
+| `POST` | `/api/v1/hrd/occupational-health/vaccinations/titer-assessment` | Rekam hasil uji laboratorium titer antibodi protektif (anti-HBs) | `Hrd.OccupationalHealth.RecordVaccination` | `RecordAntibodyTiterRequestDto` (employeeId, antibodyTiterValue, titerUnit, testDate) | `HealthSurveillanceResponseDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/occupational-health/vaccinations/booster-recall-list` | Daftar nakes yang memerlukan vaksinasi booster atau ber-titer < 10 mIU/mL | `Hrd.OccupationalHealth.ManageVaccinationRecall` | Query params: `vaccineType`, `departmentId` | `PagedResult<NakesVaccinationRecallDto>`, `200 OK` |
+
+---
+
+### 29.5 `[Tags("Corporate - HRD Work Restriction & Injury BPJS JKK")]`
+
+| Method | Path | Deskripsi | Auth / Permission | Request Payload / Params | Response Payload / Status |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/occupational-health/restrictions` | Terbitkan surat rekomendasi pembatasan tugas dinas medis (*Work Restriction*) | `Hrd.OccupationalHealth.IssueRestriction` | `IssueWorkRestrictionRequestDto` (employeeId, restrictionType, startDate, endDate, directives, disallowNightShift) | `WorkRestrictionDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/occupational-health/restrictions/validate-schedule/{employeeId}`| Endpoint verifikasi hard-stop jadwal roster dinas Sub-06 (`INT-HR-89`) | `Hrd.OccupationalHealth.ValidateSchedule` | Query params: `shiftDate`, `shiftType`, `unitId` | `ScheduleValidationResultDto` (isAllowed, rejectionReason), `200 OK` |
+| `POST` | `/api/v1/hrd/occupational-health/restrictions/{restrictionId}/return-to-work`| Asesmen pemeriksaan fisik kelaikan kembali bekerja penuh oleh dokter K3RS | `Hrd.OccupationalHealth.AssessReturnToWork` | `RecordReturnToWorkRequestDto` (physicalFindings, conclusionStatus, isRestrictionLifted) | `ReturnToWorkAssessmentDto`, `200 OK` |
+| `POST` | `/api/v1/hrd/occupational-health/injuries` | Registrasi laporan insiden kecelakaan kerja (KAK) dan investigasi CAPA | `Hrd.OccupationalHealth.ReportInjury` | `ReportEmployeeInjuryRequestDto` (employeeId, timestamp, location, description, affectedParts, rootCause) | `EmployeeInjuryResponseDto`, `201 Created` |
+| `GET` | `/api/v1/hrd/occupational-health/injuries/{injuryId}/bpjs-jkk-form` | Generator berkas resmi pelaporan klaim JKK BPJS Ketenagakerjaan Tahap I/II | `Hrd.OccupationalHealth.GenerateBpjsForm` | Path param: `injuryId`, Query param: `stage` (1 or 2) | `BpjsJkkClaimFormDto` (formPdfUrl, deadlineStatus), `200 OK` |
+
+
+---
+
+## 30. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 30.1 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Inbox & Instances")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/workflow/inbox` | Mengambil daftar permohonan persetujuan yang pending untuk approver login | Approver, Plh | `status`, `requestType`, `isUrgent`, `isDelegated`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/hrd/workflow/inbox/summary` | Mengambil ringkasan metrik kotak masuk (pending, urgent H-4 SLA, delegated) | Approver, Plh, Manager | None | `200 OK`, `401 Unauthorized` |
+| `GET` | `/api/v1/hrd/workflow/instances/{id}` | Mengambil detail lengkap tiket permohonan, tahapan step, dan checklist validasi | Pemohon, Approver, HR | `id` (UUID Path) | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/hrd/workflow/instances` | Mendaftarkan dan memulai workflow persetujuan baru dari ESS | Seluruh Pegawai RS (ESS) | `CreateWorkflowInstanceRequestDto` (RequestType, RefEntityId, Details) | `201 Created`, `400 Bad Request` |
+| `PUT` | `/api/v1/hrd/workflow/instances/{id}/cancel` | Membatalkan permohonan oleh pemohon sebelum tiket disetujui final | Pemohon Asli | `id` (Path), `cancellationReason` | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/workflow/my-requests` | Mengambil riwayat permohonan mandiri yang diajukan staf login di ESS | Seluruh Pegawai RS (ESS) | `status`, `requestType`, `startDate`, `endDate`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+
+---
+
+### 30.2 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Approval Actions")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `POST` | `/api/v1/hrd/workflow/approvals/{stepInstanceId}/approve` | Menyetujui permohonan pada tahapan tertentu oleh approver sah | Approver Ditugaskan, Plh | `stepInstanceId` (Path), `ApproveActionRequestDto` (Note, PinSignature) | `200 OK`, `400 Bad Request`, `403 Forbidden` |
+| `POST` | `/api/v1/hrd/workflow/approvals/{stepInstanceId}/reject` | Menolak permohonan dengan alasan penolakan wajib minimal 15 karakter | Approver Ditugaskan, Plh | `stepInstanceId` (Path), `RejectActionRequestDto` (RejectReason, PinSignature) | `200 OK`, `400 Bad Request`, `403 Forbidden` |
+| `POST` | `/api/v1/hrd/workflow/approvals/{stepInstanceId}/return` | Mengembalikan draf permohonan ke staf pemohon untuk koreksi data/revisi | Approver Ditugaskan, Plh | `stepInstanceId` (Path), `ReturnForRevisionRequestDto` (RevisionNotes) | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/hrd/workflow/approvals/bulk-approve` | Melakukan persetujuan massal bersyarat untuk permohonan berisiko rendah bersih | Approver, Manager, Kabid | `BulkApproveRequestDto` (StepInstanceIds, BatchNote, PinSignature) | `200 OK`, `400 Bad Request` |
+| `POST` | `/api/v1/hrd/workflow/instances/{id}/resubmit` | Mengajukan ulang permohonan yang telah diperbaiki staf pasca revisi | Pemohon Asli | `id` (Path), `ResubmitWorkflowRequestDto` (UpdatedData, ResubmitComment) | `200 OK`, `400 Bad Request` |
+
+---
+
+### 30.3 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Delegations")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/workflow/delegations` | Mengambil daftar pendelegasian wewenang aktif dan riwayat masa lalu | Pejabat Approver, HR | `isActive`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/hrd/workflow/delegations` | Mendaftarkan surat kuasa penunjukan Pelaksana Harian (Plh) berbatas waktu | Pejabat Approver Definitif | `CreateApprovalDelegationRequestDto` (DelegateId, StartDate, EndDate, Types) | `201 Created`, `400 Bad Request` |
+| `PUT` | `/api/v1/hrd/workflow/delegations/{id}/revoke` | Mencabut wewenang delegasi Plh lebih awal sebelum tanggal berakhir | Pemberi Wewenang, HR | `id` (Path), `RevokeDelegationRequestDto` (RevokeReason) | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/workflow/delegations/my-acting-roles` | Mengambil daftar wewenang Plh yang sedang dipegang oleh staf login | Pegawai Ditunjuk Plh | None | `200 OK`, `401 Unauthorized` |
+
+---
+
+### 30.4 Grup Tag Swagger `[Tags("Corporate - HRD Workflow Comments & Attachments")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/workflow/instances/{id}/comments` | Mengambil riwayat percakapan thread dan catatan revisi permohonan | Pemohon, Approver, HR | `id` (Path) | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/hrd/workflow/instances/{id}/comments` | Menambahkan komentar klarifikasi baru pada tiket permohonan | Pemohon, Approver | `id` (Path), `AddWorkflowCommentRequestDto` (CommentText, IsInternalOnly) | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/workflow/instances/{id}/attachments` | Mengambil daftar berkas lampiran pendukung permohonan | Pemohon, Approver, HR | `id` (Path) | `200 OK`, `404 Not Found` |
+| `POST` | `/api/v1/hrd/workflow/instances/{id}/attachments` | Mengunggah berkas lampiran pendukung baru (PDF/JPG maksimal 10MB) | Pemohon, Approver | `id` (Path), `multipart/form-data` (file, description) | `201 Created`, `400 Bad Request` |
+
+---
+
+### 30.5 Grup Tag Swagger `[Tags("Corporate - HRD Workflow SLA & Matrix Management")]`
+
+| Method | Path | Deskripsi & Kegunaan | Auth & Roles | Request Body / Query Params | Response Codes |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/hrd/workflow/matrix` | Mengambil konfigurasi matriks alur persetujuan per unit kerja | HR Admin, Direktur SDM | `departmentId`, `requestType` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/hrd/workflow/matrix` | Membuat atau memperbarui konfigurasi tahapan alur persetujuan dinamis | HR Admin, Direktur SDM | `ConfigureWorkflowMatrixRequestDto` (DepartmentId, RequestType, StepsConfig) | `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/workflow/sla/overdue` | Mengambil daftar permohonan yang telah melampaui batas waktu SLA | HR Admin, Manajer SDM | `departmentId`, `requestType`, `pageNumber`, `pageSize` | `200 OK`, `401 Unauthorized` |
+| `POST` | `/api/v1/hrd/workflow/sla/escalate/{id}` | Melakukan intervensi eskalasi manual tiket macet ke atasan lebih tinggi | HR Admin, Manajer SDM | `id` (Path), `ManualEscalationRequestDto` (TargetApproverId, EscalationReason)| `200 OK`, `400 Bad Request` |
+| `GET` | `/api/v1/hrd/workflow/sla/compliance-report` | Mengunduh laporan kepatuhan SLA kecepatan respon persetujuan rumah sakit | Direksi RS, Manajer SDM | `startDate`, `endDate`, `departmentId` | `200 OK`, `401 Unauthorized` |
