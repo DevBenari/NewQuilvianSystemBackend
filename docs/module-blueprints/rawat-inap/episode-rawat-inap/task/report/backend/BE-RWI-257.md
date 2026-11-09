@@ -110,8 +110,16 @@ Source sudah masuk commit `da737fb9`; **tidak ada perubahan source baru** pada s
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `REQUIRED` — cetak IPD untuk keempat kasus dijalankan pada sesi uji langsung MVP;
-hasilnya ditambahkan ke laporan ini.
+Uji runtime 9 November 2026 lewat `GET .../episodes/{episodeId}/admission-workspace/base-data`:
+
+| Kasus | Episode | Hasil `referringDoctor` | Klasifikasi |
+| --- | --- | --- | --- |
+| AC 2 — tanpa surat, perujuk + fasilitas | `RI-261023085011-F0F277` | "dr. Uji Perujuk (Puskesmas Uji Agy)" | `PASS` |
+| AC 2 — kasus kedua | `RI-261026104414-CEE503` | "dr. Ratih Wulandari (Puskesmas Kecamatan Setiabudi)" | `PASS` |
+| AC 4 — tanpa surat dan tanpa perujuk | `RI-261028-VIP-081` | `null` (dicetak garis kosong), tanpa galat | `PASS` |
+| AC 1 dan AC 3 | DB dev tidak punya episode dengan surat pengantar + perujuk luar, atau perujuk tanpa fasilitas | `NOT RUN` — terbukti di source | — |
+
+Uji manual: `PASS` untuk AC 2 dan AC 4; AC 1 dan AC 3 terbukti di source.
 
 ---
 

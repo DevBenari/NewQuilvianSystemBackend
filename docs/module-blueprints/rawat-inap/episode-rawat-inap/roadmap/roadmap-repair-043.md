@@ -25,7 +25,7 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-256 ✅ ──> FE-RWI-286
+BE-RWI-256 ✅ ──> FE-RWI-286 🟡
 BE-RWI-257 ✅   tanpa dependency
 ```
 
@@ -41,7 +41,7 @@ BE-RWI-257 ✅   tanpa dependency
 | Task ID / Status | Outcome | Menutup | Lapisan | Dependency | Acceptance criteria | Laporan |
 | --- | --- | --- | --- | --- | --- | --- |
 | `BE-RWI-256` ✅ | Resume medis menyimpan rencana kontrol terstruktur (tanggal, poli, dokter) beserta validasinya dan salinan revisinya | `FIX-EPS-043-02` (`ISS-EPS-043-02`) | BE | — | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi server | [BE-RWI-256.md](../task/report/backend/BE-RWI-256.md) |
-| `FE-RWI-286` | Form, detail, dan cetakan resume medis menampilkan rencana kontrol terstruktur | `FIX-EPS-043-02` (`ISS-EPS-043-02`) | FE | `BE-RWI-256` | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi layar; rangka plan repair bagian 3.B | — |
+| `FE-RWI-286` 🟡 | Form, detail, dan cetakan resume medis menampilkan rencana kontrol terstruktur | `FIX-EPS-043-02` (`ISS-EPS-043-02`) | FE | `BE-RWI-256` | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi layar; rangka plan repair bagian 3.B | [FE-RWI-286.md](../task/report/frontend/FE-RWI-286.md) |
 | `BE-RWI-257` ✅ | Lembar IPD memakai nama perujuk luar pada episode sebagai sumber ketiga | `FIX-EPS-043-05` (`ISS-EPS-043-03` bagian B) | BE | — | Plan repair `FIX-EPS-043-05` AC 1-4 | [BE-RWI-257.md](../task/report/backend/BE-RWI-257.md) |
 
 ---
@@ -58,11 +58,11 @@ BE-RWI-257 ✅   tanpa dependency
 | Acceptance criteria | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi server |
 | DoD | `dotnet build` pada project aplikasi; laporan `task/report/backend/BE-RWI-256.md` |
 
-### FE-RWI-286 — Rencana kontrol terstruktur pada layar resume medis
+### 🟡 FE-RWI-286 — Rencana kontrol terstruktur pada layar resume medis
 
 | Hal | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** Source lengkap; sesi ini menambah penandaan isian dari pesan server (AC 2). AC 4 terbukti di layar; AC 2 dan AC 3 terbukti di server dan unit test. **Belum:** AC 1 (simpan + cetak), AC 5 (salinan revisi), dan tampilan form edit — `VISUAL CHECK: NOT FEASIBLE` karena butuh akun DPJP (dr. Rendy Pangalila, `rendi@admin.com`), sedangkan kata sandinya tidak ada di manifest uji. Lint/build exit 0; unit 0 kegagalan baru. [Laporan](../task/report/frontend/FE-RWI-286.md) |
 | Berkas | `inpatient-discharge-view.jsx`, `inpatient-discharge-utils.jsx`, cetakan resume |
 | Kontrak | Hasil `BE-RWI-256` |
 | Acceptance criteria | Plan repair `FIX-EPS-043-02` AC 1-5 dari sisi layar |

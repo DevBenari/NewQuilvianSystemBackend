@@ -25,9 +25,9 @@
 ## Grafik Urutan Dependency
 
 ```text
-FE-RWI-283   tanpa dependency
-BE-RWI-255 ✅ ──> FE-RWI-284
-FE-RWI-285   tanpa dependency teknis (API Retur Obat Farmasi sudah ada)
+FE-RWI-283 ✅   tanpa dependency
+BE-RWI-255 ✅ ──> FE-RWI-284 ✅
+FE-RWI-285 ✅   tanpa dependency teknis (API Retur Obat Farmasi sudah ada)
 ```
 
 | Gelombang | Boleh mulai setelah | Task ID |
@@ -41,20 +41,20 @@ FE-RWI-285   tanpa dependency teknis (API Retur Obat Farmasi sudah ada)
 
 | Task ID / Status | Outcome | Menutup | Lapisan | Dependency | Acceptance criteria | Laporan |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-283` | Golongan, warna, dan anjuran EWS di tab Vital Sign dan Pengawasan Harian mengikuti field server | `FIX-KEP-015-07` (`ISS-KEP-015-T2`, `T3`) | FE | — | Plan repair `FIX-KEP-015-07` AC 1-6 | — |
+| `FE-RWI-283` ✅ | Golongan, warna, dan anjuran EWS di tab Vital Sign dan Pengawasan Harian mengikuti field server | `FIX-KEP-015-07` (`ISS-KEP-015-T2`, `T3`) | FE | — | Plan repair `FIX-KEP-015-07` AC 1-6 | [FE-RWI-283.md](../task/report/frontend/FE-RWI-283.md) |
 | `BE-RWI-255` ✅ | Endpoint `GET .../monitoring/ews-alerts`: pasien rawat inap aktif per bangsal yang tanda vital terakhirnya berisiko tinggi/kritis atau perlu lapor dokter | `FIX-KEP-015-04` (`ISS-KEP-015-01`) | BE | — | Plan repair `FIX-KEP-015-04` AC 1-5 | [BE-RWI-255.md](../task/report/backend/BE-RWI-255.md) |
-| `FE-RWI-284` | Tab Monitoring "EWS Perlu Lapor Dokter" | `FIX-KEP-015-04` (`ISS-KEP-015-01`) | FE | `BE-RWI-255` | Plan repair `FIX-KEP-015-04` AC 1-5 dari sisi layar | — |
-| `FE-RWI-285` | Aksi "Ajukan Retur" pada e-MAR yang membuat dan mengajukan draf retur Farmasi | `FIX-KEP-015-03` (`ISS-KEP-015-03`) | FE | — | Plan repair `FIX-KEP-015-03` AC 1-5 | — |
+| `FE-RWI-284` ✅ | Tab Monitoring "EWS Perlu Lapor Dokter" | `FIX-KEP-015-04` (`ISS-KEP-015-01`) | FE | `BE-RWI-255` | Plan repair `FIX-KEP-015-04` AC 1-5 dari sisi layar | [FE-RWI-284.md](../task/report/frontend/FE-RWI-284.md) |
+| `FE-RWI-285` ✅ | Aksi "Ajukan Retur" pada e-MAR yang membuat dan mengajukan draf retur Farmasi | `FIX-KEP-015-03` (`ISS-KEP-015-03`) | FE | — | Plan repair `FIX-KEP-015-03` AC 1-5 | [FE-RWI-285.md](../task/report/frontend/FE-RWI-285.md) |
 
 ---
 
 ## Kartu Task
 
-### FE-RWI-283 — Tampilan EWS mengikuti server
+### ✅ FE-RWI-283 — Tampilan EWS mengikuti server
 
 | Hal | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **SELESAI 9 November 2026.** AC 1-6 terbukti di peramban dengan data uji (screenshot `test-with-agy/screenshots/rawat-inap-mvp-1109/05-layar-ews/`). Sesi ini juga memperbaiki label "Terkini" yang menempel pada pengukuran terlama dan pengukuran batal yang masih dipakai sebagai observasi terkini. `npm run lint:errors` exit 0; `npm run build` exit 0; `npm run test:unit` 4144 lulus / 56 gagal lama (0 kegagalan baru); `check-css-usage` 0 temuan. [Laporan](../task/report/frontend/FE-RWI-283.md) |
 | Berkas | `nursing-workspace/sections/daily-monitoring/daily-monitoring-section.jsx`, `nursing-workspace/sections/nursing-care/tabs/nursing-vital-sign-tab.jsx` |
 | Kontrak | `PatientVitalSignSeriesItem` (`EarlyWarningScore`, `EwsRiskLevel`); konstanta `EWS_RISK_LABEL`/`EWS_RISK_TONE` yang sudah ada |
 | Acceptance criteria | Plan repair `FIX-KEP-015-07` AC 1-6 |
@@ -70,21 +70,21 @@ FE-RWI-285   tanpa dependency teknis (API Retur Obat Farmasi sudah ada)
 | Acceptance criteria | Plan repair `FIX-KEP-015-04` AC 1-5 |
 | DoD | `dotnet build` pada project aplikasi; laporan `task/report/backend/BE-RWI-255.md` |
 
-### FE-RWI-284 — Tab Monitoring "EWS Perlu Lapor Dokter"
+### ✅ FE-RWI-284 — Tab Monitoring "EWS Perlu Lapor Dokter"
 
 | Hal | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **SELESAI 9 November 2026.** Source sudah ada di commit `66b7e5600`; AC 1, 2, 3, 5 terbukti di layar/endpoint dengan data uji, AC 4 di source; saringan "Kritis saja" berfungsi. Lint/build exit 0; unit 0 kegagalan baru. [Laporan](../task/report/frontend/FE-RWI-284.md) |
 | Berkas | `inpatient-management/monitoring/**`, `inpatient-monitoring-constants.jsx`, service monitoring |
 | Kontrak | Hasil `BE-RWI-255` |
 | Acceptance criteria | Plan repair `FIX-KEP-015-04` AC 1-5 dari sisi layar; rangka plan repair bagian 3.C |
 | DoD | `npm run lint:errors`, `npm run test:unit`, `npm run build`; laporan `task/report/frontend/FE-RWI-284.md` |
 
-### FE-RWI-285 — Ajukan Retur dari e-MAR
+### ✅ FE-RWI-285 — Ajukan Retur dari e-MAR
 
 | Hal | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **SELESAI 9 November 2026.** Kirim dari e-MAR langsung mengajukan retur (AC 1), stok tidak berubah sebelum diperiksa (AC 2), stok 45 → 48 sesudah diperiksa (AC 3 sisi stok), klik ganda satu retur (AC 4), tombol mengikuti hak `DrugReturn` (AC 5). Ditemukan dan diperbaiki: form Retur Obat Farmasi belum mengirim penyerahan sumber wajib (`PHM080`, sejak `BUG-PHA-BE-003`). Sisi tagihan AC 3 `NOT FEASIBLE` di DB dev (Pemakaian Obat belum terintegrasi ke Billing); pembatalan tagihan jalur resep milik `BE-RWI-158`. Lint/build exit 0; unit 0 kegagalan baru. [Laporan](../task/report/frontend/FE-RWI-285.md) |
 | Berkas | `nursing-workspace/sections/medication/**`; service `pharmacy-management/drug-return.service.js` yang sudah ada |
 | Kontrak | `POST api/v1/health-services/pharmacy-management/drug-returns` (`DrugReturn : Create`) dan `POST .../{id}/submit` (`DrugReturn : Update`) |
 | Keputusan | K-04 (2026-11-02): perawat mengajukan, apoteker memeriksa, depo penerima dipilih di form. Pemberian hak `DrugReturn : Create`/`Update` pada peran perawat dilakukan admin lewat layar Akses Role, bukan oleh task ini |

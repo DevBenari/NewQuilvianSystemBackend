@@ -1366,9 +1366,19 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrServiceSlaEngine, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrServiceSlaEngine>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Workers.HrServiceSlaMonitoringWorker>();
 
-    // Slice S-D4 (HR Service Management) - MVP-40 (Profile Sync, Document Issuance 2-Tier, Anti-Manual Guard, PDF Rendering & QR/PIN Verification)
+    // Slice S-D4 (HR Service Management) - MVP-40 & MVP-41 (Profile Sync, Document Issuance 2-Tier, Anti-Manual Guard, PDF Rendering, E-Dossier & Anti-Brute-Force Rate Limiter)
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IWorkforceProfileSyncService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.WorkforceProfileSyncService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IEmployeeDocumentIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.EmployeeDocumentIssuanceService>();
+    builder.Services.AddSingleton<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IPinRateLimiterService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.PinRateLimiterService>();
+
+    // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-42 (PSV Kemenkes/KKI & Radar Pemantau SIP 5 Tahun / Fail-Closed H-0)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialVerificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialVerificationService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Workers.LicenseExpiryMonitoringWorker>();
+
+    // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-43 (Master 3 Komite, Panel Mitra Bestari, Sidang Pleno & Pengesahan SPK-RKK Dirut)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingCommitteeService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingCommitteeService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingWorkflowService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingWorkflowService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ISpkRkkIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.SpkRkkIssuanceService>();
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();

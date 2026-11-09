@@ -127,8 +127,19 @@ isian tambahan seperti pada bagian 3.3.
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `REQUIRED` — satu resume baru dan satu resume lama, dijalankan bersama `FE-RWI-286`
-pada sesi uji langsung; hasilnya ditambahkan ke laporan ini.
+Uji runtime 9 November 2026 (backend dari build scratch, sesi superadmin, episode Tn. F
+`RI-261022042812-C2994B`, keputusan pulang 22 Oktober 2026). Validasi berjalan sebelum pemeriksaan
+wewenang, sehingga tidak ada data resume yang berubah:
+
+| Skenario | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `PUT .../summary` tanggal kontrol 1 Oktober + poli | 400 "Tanggal kontrol tidak boleh sebelum tanggal keputusan pulang." | `PASS` |
+| Tanggal 16 November tanpa poli | 400 "Poliklinik kontrol wajib dipilih bila tanggal kontrol diisi." | `PASS` |
+| Poli tanpa tanggal | 400 "Tanggal kontrol wajib diisi bila poliklinik atau dokter kontrol dipilih." | `PASS` |
+| Resume lama (hanya teks "TEST") dibuka di layar | Tanpa galat; jadwal kontrol "-" | `PASS` |
+| Simpan rencana kontrol baru dan salinan revisi (AC 1, AC 5) | Butuh akun DPJP | `NOT RUN` |
+
+Uji manual: `PASS` untuk validasi server; simpan sebagai DPJP `NOT FEASIBLE` tanpa akun DPJP (lihat `FE-RWI-286`).
 
 ---
 

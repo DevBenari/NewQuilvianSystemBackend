@@ -41,13 +41,13 @@ tanda belum dikerjakan. Kolom status di bawah diperbarui setiap kali satu item s
 | Slice | Item | Roadmap asal | Ringkasan | Status |
 |---|---|---|---|---|
 | 1. Keselamatan pasien di bangsal | `BE-RWI-255` | [roadmap-repair-015](keperawatan/roadmap/roadmap-repair-015.md) | Endpoint daftar pasien EWS berisiko per bangsal | ✅ 9 Nov — [laporan](keperawatan/task/report/backend/BE-RWI-255.md) |
-| | `FE-RWI-283` | roadmap-repair-015 | Warna dan golongan EWS mengikuti hitungan server | |
-| | `FE-RWI-284` | roadmap-repair-015 | Tab Monitoring "EWS Perlu Lapor Dokter" | |
-| | `FE-RWI-285` | roadmap-repair-015 | Tombol "Ajukan Retur" di e-MAR | |
+| | `FE-RWI-283` | roadmap-repair-015 | Warna dan golongan EWS mengikuti hitungan server | ✅ 9 Nov — [laporan](keperawatan/task/report/frontend/FE-RWI-283.md) |
+| | `FE-RWI-284` | roadmap-repair-015 | Tab Monitoring "EWS Perlu Lapor Dokter" | ✅ 9 Nov — [laporan](keperawatan/task/report/frontend/FE-RWI-284.md) |
+| | `FE-RWI-285` | roadmap-repair-015 | Tombol "Ajukan Retur" di e-MAR | ✅ 9 Nov — [laporan](keperawatan/task/report/frontend/FE-RWI-285.md) |
 | 2. Resume medis dan berkas admisi | `BE-RWI-256` | [roadmap-repair-043](episode-rawat-inap/roadmap/roadmap-repair-043.md) | Rencana kontrol terstruktur pada resume medis (server) | ✅ 9 Nov — [laporan](episode-rawat-inap/task/report/backend/BE-RWI-256.md) |
-| | `FE-RWI-286` | roadmap-repair-043 | Rencana kontrol pada form, detail, dan cetakan resume | |
+| | `FE-RWI-286` | roadmap-repair-043 | Rencana kontrol pada form, detail, dan cetakan resume | 🟡 butuh akun DPJP untuk uji simpan — [laporan](episode-rawat-inap/task/report/frontend/FE-RWI-286.md) |
 | | `BE-RWI-257` | roadmap-repair-043 | Lembar Data Dasar Rawat Inap (IPD) memakai nama perujuk luar yang dicatat admisi | ✅ 9 Nov — [laporan](episode-rawat-inap/task/report/backend/BE-RWI-257.md) |
-| 3. Pesanan penunjang oleh perawat | `FE-RWI-172` | [frontend-roadmap-finishing dokter](dokter-rawat-inap/roadmap/frontend-roadmap-finishing.md) | Perawat memesan Lab/Radiologi atas instruksi dokter; diawali uji runtime `BE-RWI-104` | 🟡 |
+| 3. Pesanan penunjang oleh perawat | `FE-RWI-172` | [frontend-roadmap-finishing dokter](dokter-rawat-inap/roadmap/frontend-roadmap-finishing.md) | Perawat memesan Lab/Radiologi atas instruksi dokter; diawali uji runtime `BE-RWI-104` | ✅ 9 Nov — [laporan](dokter-rawat-inap/task/report/frontend/FE-RWI-172.md) |
 | 4. Admisi transfer IGD/Poli | `FIX-EPS-006-02` s.d. `08` (7 item) | [frontend-roadmap-admisi-transfer-igd](episode-rawat-inap/roadmap/frontend-roadmap-admisi-transfer-igd.md) | Bukti transaksi nyata dari antrean transfer sampai pasien dirawat | 🟡 |
 | 5. Alur utama ujung ke ujung | `FE-RWI-035` (memayungi `FE-RWI-003`, `004`, `012`, `013`, `015`, `019`) | [frontend-roadmap episode](episode-rawat-inap/roadmap/frontend-roadmap.md) | Pasien baru dari admisi sampai episode ditutup; layar tertutup bagi peran tak berhak | 🟡 |
 | 6. Merapikan dokumen | Roadmap, laporan, ringkasan sisa pekerjaan | — | Menyelaraskan tanda status yang bertentangan (`BE-RWI-127`, `128`, `147` s.d. `159`, `FE-RWI-143` s.d. `146`) dengan bukti | |

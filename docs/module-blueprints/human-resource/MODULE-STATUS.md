@@ -63,7 +63,7 @@ Perbedaan `BLOCKED` dan `DEFERRED` sering tertukar, padahal akibatnya berbeda ja
 | Payroll sisi HR | `S-B5` | `PLANNED` | Slice `S-B5` disetujui (15 task BE, 14 task FE, Roadmap rev 12, Kontrak v14 approved) |
 | Integrasi restitusi & potongan payroll | `S-B6` | `PLANNED` | Slice `S-B6` disetujui (15 task BE, 14 task FE, Roadmap rev 13, Kontrak v15 approved) |
 | Benefit pegawai & BPJS | `S-D3` | `PLANNED` | Slice `S-D3` disetujui (15 task BE, 14 task FE, Roadmap rev 14, Kontrak v16 approved) |
-| Layanan HR & persuratan digital | `S-D4` | `PLANNED` | Slice `S-D4` disetujui (15 task BE, 14 task FE, Roadmap rev 15, Kontrak v17 approved) |
+| Layanan HR & persuratan digital | `S-D4` | `BACKEND_COMPLETED` | Slice `S-D4` Backend tuntas 100% (15/15 task BE-HRD-191 s.d. BE-HRD-205 selesai, 10 DoD terpenuhi; FE 14 task pending) |
 | Kredensial, SPK & RKK nakes | `S-C1` | `PLANNED` | Slice `S-C1` disetujui (16 task BE, 15 task FE, Roadmap rev 16, Kontrak v18 approved) |
 | OPPE & FPPE mutu klinis | `S-C1-OPPE` | `PLANNED` | Slice `S-C1-OPPE` disetujui (16 task BE, 15 task FE, Roadmap rev 17, Kontrak v19 approved) |
 | Pelatihan & kompetensi STARKES | `S-C2` | `PLANNED` | Slice `S-C2` disetujui (16 task BE, 15 task FE, Roadmap rev 18, Kontrak v20 approved) |

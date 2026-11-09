@@ -4571,9 +4571,9 @@ BE-HRD-204 [B50] ──┘
 * **Bukti verifikasi**: Pemindaian QR Code dan verifikasi hash BCrypt PIN.
 * **Definition of Done**: QR Code dan PIN finansial terintegrasi aman pada dokumen resmi.
 
-#### ⏳ `BE-HRD-204` — Endpoint Portal Publik Verifikasi QR `/verify/document/{hash}` & Rate Limiter
+#### ✅ `BE-HRD-204` — Endpoint Portal Publik Verifikasi QR `/verify/document/{hash}` & Rate Limiter
 * **Slice / MVP**: `S-D4` / `MVP-41`
-* **Status**: ⏳ Menunggu BE-HRD-203
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Controller publik tanpa autentikasi sesi login untuk verifikasi legalitas dokumen dan endpoint pembukaan rincian nominal gaji ber-PIN.
 * **Requirement/decision**: `HRD-DEC-140`, validasi `VR-HRS-12`.
 * **Kontrak**: `[Tags("HR Services - Document Issuance & Public Verification")]`
@@ -4585,9 +4585,9 @@ BE-HRD-204 [B50] ──┘
 * **Bukti verifikasi**: Test case `AT-HRD-HRS-17`, `AT-HRD-HRS-18`, `AT-HRD-HRS-19`.
 * **Definition of Done**: Portal publik verifikasi dokumen beroperasi aman dari eksploitasi data.
 
-#### ⏳ `BE-HRD-205` — Pengarsipan Abadi E-Dossier (`INT-HR-66`), Revokasi Ber-BAP & Verifikasi DoD S-D4
+#### ✅ `BE-HRD-205` — Pengarsipan Abadi E-Dossier (`INT-HR-66`), Revokasi Ber-BAP & Verifikasi DoD S-D4
 * **Slice / MVP**: `S-D4` / `MVP-41` & Verifikasi
-* **Status**: ⏳ Menunggu BE-HRD-198, BE-HRD-199, BE-HRD-204
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Pengarsipan otomatis salinan PDF ke repositori digital Sub-02, fitur pencabutan keabsahan surat ber-BAP, serta audit kepatuhan komprehensif 10 butir DoD Slice `S-D4`.
 * **Requirement/decision**: `HRD-DEC-145`, aturan `HRS-B7`, `HRS-B8`, `HRS-W5`, `04-prd-to-mvp.md` Bagian 31.5.
 * **Dependency**: `BE-HRD-198`, `BE-HRD-199`, `BE-HRD-204`
@@ -4612,17 +4612,17 @@ Bagian ini merinci 16 task implementasi backend terisolasi (**`BE-HRD-206` s.d. 
 
 #### Grafik B52: Gelombang `MVP-42` (Lisensi STR/SIP, PSV Kemenkes/KKI & Radar Pemantau H-90 s.d. Fail-Closed H-0)
 ```text
-BE-HRD-206 ⏳ ─┬─> BE-HRD-207 ⏳ ─┬─> BE-HRD-208 ⏳ ──> BE-HRD-210 ⏳
+BE-HRD-206 ✅ ─┬─> BE-HRD-207 ✅ ─┬─> BE-HRD-208 ✅ ──> BE-HRD-210 ✅
                │                  │
-               │                  └─> BE-HRD-209 ⏳ (Cron Radar SIP & Fail-Closed Sub-06)
+               │                  └─> BE-HRD-209 ✅ (Cron Radar SIP & Fail-Closed Sub-06)
                │
                └─> [Lanjut ke Gelombang MVP-43 B53]
 ```
 
 #### Grafik B53: Gelombang `MVP-43` (Master 3 Komite, Penugasan Peer Review, Sidang Pleno & Pengesahan SPK Dirut)
 ```text
-BE-HRD-206 [B52] ─┬─> BE-HRD-211 ⏳ ──> BE-HRD-212 ⏳ ──> BE-HRD-213 ⏳ ──┐
-BE-HRD-208 [B52] ─┤                                                        ├─> BE-HRD-214 ⏳ ──> BE-HRD-215 ⏳
+BE-HRD-206 [B52] ─┬─> BE-HRD-211 ✅ ──> BE-HRD-212 ✅ ──> BE-HRD-213 ✅ ──┐
+BE-HRD-208 [B52] ─┤                                                        ├─> BE-HRD-214 ✅ ──> BE-HRD-215 ✅
 BE-HRD-207 [B52] ─┴────────────────────────────────────────────────────────┘
 ```
 
@@ -4651,8 +4651,8 @@ BE-HRD-220 [B54] ─┘
 
 | Gelombang | Task ID | Target Deliverable / Output Utama | Syarat Masuk (Dependencies) |
 | :---: | :--- | :--- | :--- |
-| **`MVP-42`** | `BE-HRD-206`, `BE-HRD-207`, `BE-HRD-208`, `BE-HRD-209`, `BE-HRD-210` | Entitas EF Core, DDL migration PostgreSQL, service verifikasi primer PSV Kemenkes/KKI, cron job radar SIP H-90 s.d. H-0, dan REST API controller lisensi. | Disetujuinya Kontrak `v18` & Blueprint Rev 41 |
-| **`MVP-43`** | `BE-HRD-211`, `BE-HRD-212`, `BE-HRD-213`, `BE-HRD-214`, `BE-HRD-215` | Master 3 komite mandiri (Medik, Keperawatan, Nakes Lain), katalog whitebook, panel Mitra Bestari (min 2 reviewer), sidang pleno, mesin penerbitan SPK-RKK sah e-Sign Direktur Utama RS, PDF ber-QR Code, dan auto-arsip e-Dossier Sub-02. | `BE-HRD-206`, `BE-HRD-207`, `BE-HRD-208` |
+| **`MVP-42`** | `BE-HRD-206`, `BE-HRD-207`, `BE-HRD-208`, `BE-HRD-209`, `BE-HRD-210` | Entitas EF Core, DDL migration PostgreSQL, service verifikasi primer PSV Kemenkes/KKI, cron job radar SIP H-90 s.d. H-0, dan REST API controller lisensi. | ✅ **Selesai (2026-11-09)** |
+| **`MVP-43`** | `BE-HRD-211`, `BE-HRD-212`, `BE-HRD-213`, `BE-HRD-214`, `BE-HRD-215` | Master 3 komite mandiri (Medik, Keperawatan, Nakes Lain), katalog whitebook, panel Mitra Bestari (min 2 reviewer), sidang pleno, mesin penerbitan SPK-RKK sah e-Sign Direktur Utama RS, PDF ber-QR Code, dan auto-arsip e-Dossier Sub-02. | ✅ **Selesai (2026-11-09)** |
 | **`MVP-44`** | `BE-HRD-216`, `BE-HRD-217`, `BE-HRD-218`, `BE-HRD-219`, `BE-HRD-220` | Layanan gerbang real-time SIMRS (`INT-HR-69`) ber-cache Redis latensi < 50ms, protokol co-signature 24 jam supervisor, log audit bypass darurat penyelamatan nyawa KMKP, otorisasi fast-track temporary/emergency privilege, dan scheduler siklus 3 tahun SPK. | `BE-HRD-214`, `BE-HRD-215` |
 | **Verifikasi** | `BE-HRD-221` | Kompilasi .NET bersih 0 error, verifikasi konformansi QBE preflight, verifikasi kontrak API Swagger, dan pengujian penerimaan `AT-HRD-CRD-01` s.d. `AT-HRD-CRD-22`. | Seluruh task `BE-HRD-206` s.d. `BE-HRD-220` selesai |
 
@@ -4660,81 +4660,81 @@ BE-HRD-220 [B54] ─┘
 
 ### Detail Spesifikasi Task Backend (`BE-HRD-206` s.d. `BE-HRD-221`)
 
-#### ⏳ `BE-HRD-206` — EF Core Entity Models & Database Migration Skema Kredensialing (`S-C1`)
+#### ✅ `BE-HRD-206` — EF Core Entity Models & Database Migration Skema Kredensialing (`S-C1`)
 * **Slice / MVP**: `S-C1` / `MVP-42`
-* **Status**: ⏳ Menunggu Eksekusi
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Penambahan model `MstCredentialingCommittee`, `TrxSpkRkkIssuance`, `TrxClinicalPrivilegeEmergencyOverrideLog`, serta pembaruan tabel `wfp_credential_licenses` (kolom PSV & STR seumur hidup) dan `wfp_clinical_privileges` (kolom supervisi Level 4/3/1-2) via migrasi EF Core PostgreSQL.
 * **Dependencies**: Kontrak `v18` disetujui
 * **Acceptance Criteria**: Migrasi berhasil dijalankan pada PostgreSQL, skema tabel, indeks komposit gate query, dan foreign key terbentuk tanpa data loss.
 * **Verifikasi**: `dotnet ef migrations add AddCredentialingClinicalPrivilegeEntities` & inspeksi skema DB.
 
-#### ⏳ `BE-HRD-207` — DTOs, Enums & Request/Response Models Lisensi, Peer Review & SPK-RKK
+#### ✅ `BE-HRD-207` — DTOs, Enums & Request/Response Models Lisensi, Peer Review & SPK-RKK
 * **Slice / MVP**: `S-C1` / `MVP-42`
-* **Status**: ⏳ Menunggu `BE-HRD-206`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Kelas DTO lengkap untuk pendaftaran lisensi, verifikasi PSV, pengajuan kredensial 3 komite, asesmen portofolio Mitra Bestari, pengesahan e-Sign Dirut, response gate SIMRS, serta enum `SupervisionLevel`, `PrivilegeNature`, `LicenseStatus`, dan `CommitteeCode`.
 * **Dependencies**: `BE-HRD-206`
 * **Acceptance Criteria**: Seluruh field DTO memuat anotasi validasi data (`[Required]`, `[StringLength]`, `[Range]`) sesuai matriks validasi `VR-CRD-01` s.d. `VR-CRD-25`.
 * **Verifikasi**: Unit test serialisasi JSON & build project.
 
-#### ⏳ `BE-HRD-208` — Service Verifikasi Sumber Primer (PSV) Kemenkes / KKI (`ICredentialVerificationService`)
+#### ✅ `BE-HRD-208` — Service Verifikasi Sumber Primer (PSV) Kemenkes / KKI (`ICredentialVerificationService`)
 * **Slice / MVP**: `S-C1` / `MVP-42`
-* **Status**: ⏳ Menunggu `BE-HRD-206`, `BE-HRD-207`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Implementasi logika audit keabsahan primer dokumen STR seumur hidup dan SIP 5 tahun ke portal Konsil Kedokteran Indonesia / SatuSehat SDMK Kemenkes, pencatatan URL bukti verifikasi, stempel audit, dan penguncian status `is_psv_verified = true` (`HRD-DEC-146`, `VR-CRD-02`).
 * **Dependencies**: `BE-HRD-206`, `BE-HRD-207`
 * **Acceptance Criteria**: Verifikasi PSV berhasil mencatat metadata audit lengkap; menolak disposisi komite jika dokumen belum terverifikasi sah.
 * **Verifikasi**: Uji fungsional `AT-HRD-CRD-01` dan `AT-HRD-CRD-02`.
 
-#### ⏳ `BE-HRD-209` — Scheduler Radar Pemantau SIP 5 Tahun & Fail-Closed Action (`SipExpirationMonitorJob`)
+#### ✅ `BE-HRD-209` — Scheduler Radar Pemantau SIP 5 Tahun & Fail-Closed Action (`SipExpirationMonitorJob`)
 * **Slice / MVP**: `S-C1` / `MVP-42`
-* **Status**: ⏳ Menunggu `BE-HRD-206`, `BE-HRD-207`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Background worker harian (berjalan pukul 00:00) yang memantau sisa masa berlaku SIP 5 tahun, mengirim notifikasi radar berjenjang (H-90, H-60, H-30, H-7), serta mengeksekusi aksi fail-closed otomatis tepat pada H-0: menonaktifkan akun order SIMRS (`INT-HR-69`) dan memblokir penugasan jadwal Sub-06 (`INT-HR-71`, `CRD-B2`).
 * **Dependencies**: `BE-HRD-206`, `BE-HRD-207`
 * **Acceptance Criteria**: Alert radar terkirim bertahap; saat H-0 tercapai akun SIMRS nonaktif dan jadwal dinas terblokir seketika.
 * **Verifikasi**: Uji simulasi waktu `AT-HRD-CRD-05` dan `AT-HRD-CRD-06`.
 
-#### ⏳ `BE-HRD-210` — REST API Controller Manajemen Lisensi Profesional (`CredentialLicenseController`)
+#### ✅ `BE-HRD-210` — REST API Controller Manajemen Lisensi Profesional (`CredentialLicenseController`)
 * **Slice / MVP**: `S-C1` / `MVP-42`
-* **Status**: ⏳ Menunggu `BE-HRD-208`, `BE-HRD-209`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Controller ASP.NET Core mengekspos endpoint grup Swagger `[Tags("Corporate - HRD Credentialing & License")]`: pendaftaran STR/SIP, eksekusi audit PSV, rincian radar kedaluwarsa, dan unggah perpanjangan SIP baru.
 * **Dependencies**: `BE-HRD-208`, `BE-HRD-209`
 * **Acceptance Criteria**: Endpoint merespons kode status `200 OK`, `201 Created`, dan `400 Bad Request` sesuai kontrak API bagian 24.2.1.
 * **Verifikasi**: Uji integrasi endpoint via Postman / integration test.
 
-#### ⏳ `BE-HRD-211` — Manajemen 3 Komite Mandiri & Katalog Whitebook Kompetensi
+#### ✅ `BE-HRD-211` — Manajemen 3 Komite Mandiri & Katalog Whitebook Kompetensi
 * **Slice / MVP**: `S-C1` / `MVP-43`
-* **Status**: ⏳ Menunggu `BE-HRD-206`, `BE-HRD-207`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Service dan repository untuk mengelola 3 pilar komite tata kelola profesi (Komite Medik, Keperawatan, Nakes Lain) dan katalog buku putih (*whitebook*) kompetensi tindakan klinis sesuai Permenkes 6/2026 (`HRD-DEC-147`).
 * **Dependencies**: `BE-HRD-206`, `BE-HRD-207`
 * **Acceptance Criteria**: Data master komite terisolasi rapi; katalog tindakan klinis terfilter otomatis berdasarkan rumpun profesi pemohon.
 * **Verifikasi**: Uji fungsional `AT-HRD-CRD-07`.
 
-#### ⏳ `BE-HRD-212` — Alur Pengajuan Kredensial, Disposisi & Anti-Self-Review Panel Mitra Bestari
+#### ✅ `BE-HRD-212` — Alur Pengajuan Kredensial, Disposisi & Anti-Self-Review Panel Mitra Bestari
 * **Slice / MVP**: `S-C1` / `MVP-43`
-* **Status**: ⏳ Menunggu `BE-HRD-211`, `BE-HRD-208`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Service pengajuan berkas kredensial nakes via ESS, penelaahan kelengkapan portofolio logbook, penunjukan panel Mitra Bestari (minimal 2 anggota sejawat sebidang), serta penegakan aturan anti-self-review mutlak (`VR-CRD-15`).
 * **Dependencies**: `BE-HRD-211`, `BE-HRD-208`
 * **Acceptance Criteria**: Sistem menolak jika panel reviewer kurang dari 2 orang atau jika nakes mencoba menilai berkas dirinya sendiri.
 * **Verifikasi**: Uji keamanan `AT-HRD-CRD-08`.
 
-#### ⏳ `BE-HRD-213` — Service Asesmen Mitra Bestari (Peer Review) & Sidang Pleno Komite
+#### ✅ `BE-HRD-213` — Service Asesmen Mitra Bestari (Peer Review) & Sidang Pleno Komite
 * **Slice / MVP**: `S-C1` / `MVP-43`
-* **Status**: ⏳ Menunggu `BE-HRD-212`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Service kompilasi skor penilaian portofolio klinis oleh reviewer Mitra Bestari, penetapan derajat wewenang (Level 4 Mandiri, Level 3 Supervisi, Level 1-2 Ditolak), resolusi divergensi skor antar reviewer, risalah sidang pleno, dan penerbitan surat usulan Ketua Komite.
 * **Dependencies**: `BE-HRD-212`
 * **Acceptance Criteria**: Berita acara rekomendasi peer review tersimpan dengan hash integritas; surat rekomendasi komite terbit resmi.
 * **Verifikasi**: Uji fungsional `AT-HRD-CRD-09` dan `AT-HRD-CRD-10`.
 
-#### ⏳ `BE-HRD-214` — Mesin Penerbitan SPK-RKK Sah, Supervisor Level 3 & Otorisasi e-Sign Dirut (`ISpkRkkIssuanceService`)
+#### ✅ `BE-HRD-214` — Mesin Penerbitan SPK-RKK Sah, Supervisor Level 3 & Otorisasi e-Sign Dirut (`ISpkRkkIssuanceService`)
 * **Slice / MVP**: `S-C1` / `MVP-43`
-* **Status**: ⏳ Menunggu `BE-HRD-213`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Mesin penyusunan draf SPK berpenunjukan supervisor Level 3 (`VR-CRD-05`), alur paraf Direktur Pelayanan, otorisasi pengesahan tunggal e-Sign Direktur Utama RS (`HRD-DEC-148`), pembuatan berkas PDF resmi ber-QR Code publik, dan auto-arsip ke e-Dossier Sub-02 (`INT-HR-72`).
 * **Dependencies**: `BE-HRD-213`
 * **Acceptance Criteria**: Dokumen SPK-RKK sah ber-QR Code aktif; menolak otorisasi selain dari akun Direktur Utama RS (`VR-CRD-12`); masa berlaku dikunci 3 tahun.
 * **Verifikasi**: Uji otorisasi `AT-HRD-CRD-11` s.d. `AT-HRD-CRD-16`.
 
-#### ⏳ `BE-HRD-215` — REST API Controller SPK-RKK & Sidang Komite (`SpkRkkIssuanceController`)
+#### ✅ `BE-HRD-215` — REST API Controller SPK-RKK & Sidang Komite (`SpkRkkIssuanceController`)
 * **Slice / MVP**: `S-C1` / `MVP-43`
-* **Status**: ⏳ Menunggu `BE-HRD-214`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Controller ASP.NET Core mengekspos endpoint grup Swagger `[Tags("Corporate - HRD SPK RKK Management & Issuance")]` dan `[Tags("Corporate - HRD Clinical Privilege & Peer Review")]`: draf SPK, paraf Direktur Pelayanan, sign Dirut, download PDF, dan verifikasi publik QR Code.
 * **Dependencies**: `BE-HRD-214`
 * **Acceptance Criteria**: Seluruh endpoint REST merespons status code baku dan payload valid sesuai kontrak API bagian 24.2.2 & 24.2.3.

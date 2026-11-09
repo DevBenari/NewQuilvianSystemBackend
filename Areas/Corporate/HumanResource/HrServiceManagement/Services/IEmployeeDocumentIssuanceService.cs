@@ -59,9 +59,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
         /// <summary>
         /// Membuka masking rincian nominal gaji pada dokumen finansial dengan 4-digit PIN terverifikasi (VR-HRS-09)
+        /// Dilindungi oleh Rate Limiter Anti-Brute-Force (VR-HRS-12: max 3 kali salah percobaan per 30 menit).
         /// </summary>
         Task<FinancialDetailsUnlockedDto> UnlockFinancialDetailsAsync(
             UnlockFinancialDetailsRequestDto request,
+            string? clientIp = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>

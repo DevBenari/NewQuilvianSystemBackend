@@ -159,12 +159,18 @@ Kode status:
 | AC 3 — pengukuran salah input dilewati | Subquery mengecualikan `Cancelled` dan `EnteredInError`, sama dengan pola `PatientVitalSignController.cs:299` | `PASS` (penelusuran source) | Subquery `Latest` |
 | AC 4 — episode `Closed` tidak tampil | Hanya `Admitted` dan `DischargePending` | `PASS` (penelusuran source) | Filter `EpisodeStatus` |
 | AC 5 — pasien IGD/poli tidak tampil | Query berangkat dari `InpEpisode`; tanda vital hanya ikut bila `InpEpisodeId` sama | `PASS` (penelusuran source) | Subquery `Latest` |
-| Data DB dev `QuilvianNewDevHamzah` (baca-saja) | 67 baris tanda vital, **semuanya tanpa tautan episode rawat inap** (sumber IGD, poli, dan konsultasi dokter). Belum ada tanda vital rawat inap, jadi endpoint saat ini mengembalikan daftar kosong. Itu keadaan data, bukan cacat | `NOT RUN` untuk bukti runtime | Query `count(*)` per `VitalSignSource` |
+| Data DB dev `QuilvianNewDevHamzah` sebelum uji | 67 baris tanda vital, semuanya tanpa tautan episode rawat inap (IGD, poli, konsultasi dokter); endpoint mengembalikan 0 baris. Keadaan data, bukan cacat | — | Query `count(*)` per `VitalSignSource` |
+| Runtime AC 1 (9 Nov, backend dari build scratch, sesi superadmin) | Data uji bangsal Rawat Inap: Ny. D VIP 311 EWS 14, Ny. M VIP 309 EWS 6, Ny. P VIP 310 EWS 2. Respons: Ny. D (14, Kritis) lalu Ny. M (6, Tinggi); Ny. P tidak tampil | `PASS` | `test-with-agy/screenshots/rawat-inap-mvp-1109/03-ews-api/network.log` (repository frontend) |
+| Runtime AC 2 | Ny. M diukur ulang 11.00 EWS 2 → daftar tinggal Ny. D | `PASS` | Network log yang sama |
+| Runtime AC 3 | Pengukuran Ny. D 10.10 (EWS 14) dibatalkan lewat `PATCH .../cancel` → daftar memakai pengukuran 09.00 (EWS 7) | `PASS` | Network log yang sama |
+| Runtime AC 5 | 48 tanda vital IGD/poli berpenanda lapor dokter tidak pernah tampil | `PASS` | Network log yang sama |
+| Runtime `MinimumRiskLevel=Critical` | Hanya golongan Kritis | `PASS` | Network log yang sama |
+| Runtime AC 4 | DB dev tidak punya episode `Closed` yang memiliki tanda vital, dan menutup episode uji di luar cakupan | `NOT RUN` — tetap terbukti lewat penelusuran source | — |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `REQUIRED` — dijalankan bersama `FE-RWI-284` dengan membuat tanda vital uji melalui
-ruang kerja perawat; hasilnya ditambahkan ke laporan ini.
+Uji manual: `PASS` — AC 1, 2, 3, 5 dijalankan 9 November 2026 bersama `FE-RWI-284` dengan data uji yang
+dibuat lewat form "Catat Tanda Vital" dan endpoint yang sama; AC 4 terbukti di source.
 
 ---
 

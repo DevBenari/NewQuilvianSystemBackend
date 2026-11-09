@@ -16,6 +16,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IDocumentAutoNumberingService _numberingService;
+        private readonly IPinRateLimiterService _rateLimiter;
         private readonly ILogger<EmployeeDocumentIssuanceService> _logger;
 
         private static readonly CultureInfo IdCulture = new("id-ID");
@@ -23,10 +24,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         public EmployeeDocumentIssuanceService(
             ApplicationDbContext dbContext,
             IDocumentAutoNumberingService numberingService,
+            IPinRateLimiterService rateLimiter,
             ILogger<EmployeeDocumentIssuanceService> logger)
         {
             _dbContext = dbContext;
             _numberingService = numberingService;
+            _rateLimiter = rateLimiter;
             _logger = logger;
         }
 
@@ -323,6 +326,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             var renderedHtml = RenderDocumentTemplate(docType, issuance, officialDocNumber, verificationUrl, request.SignerName, request.SignerTitle, now);
             var (pdfFilePath, fileSizeBytes, fileChecksum) = SaveRenderedDocumentFile(renderedHtml, officialDocNumber);
 
+            // INT-HR-66: Pengarsipan Abadi ke Repositori Digital E-Dossier Sub-02 (WfpDocument)
+            if (issuance.WorkforceProfileId.HasValue)
+            {
+                var wfpDoc = new QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpDocument
+                {
+                    Id = Guid.NewGuid(),
+                    WorkforceProfileId = issuance.WorkforceProfileId.Value,
+                    DocumentType = docType.DocumentTypeCode,
+                    DocumentName = docType.DocumentTypeName,
+                    DocumentNumber = officialDocNumber,
+                    IssueDate = now,
+                    ExpiredDate = issuance.ValidUntil,
+                    IssuingAuthority = "Rumah Sakit Quilvian Utama",
+                    FilePath = pdfFilePath,
+                    FileContentType = "application/pdf",
+                    StoredFileName = Path.GetFileName(pdfFilePath),
+                    OriginalFileName = issuance.DocumentFileName,
+                    FileSizeBytes = fileSizeBytes,
+                    FileChecksum = fileChecksum,
+                    IsConfidential = issuance.IsFinancialSensitive,
+                    IsVerified = true,
+                    VerifiedAt = now,
+                    VerifiedByUserId = authorizedSignerUserId,
+                    VerificationNote = $"Pengarsipan otomatis E-Dossier Sub-02 (Nomor Dokumen: {officialDocNumber})",
+                    IsActive = true,
+                    CreateBy = authorizedSignerUserId,
+                    CreateDateTime = now
+                };
+                _dbContext.WfpDocuments.Add(wfpDoc);
+                issuance.EDossierDocumentId = wfpDoc.Id;
+                issuance.WorkforceDocumentId = wfpDoc.Id;
+            }
+
             // 6. Pembaruan entitas resmi
             issuance.OfficialDocumentNumber = officialDocNumber;
             issuance.DigitallySignedByUserId = authorizedSignerUserId;
@@ -398,7 +434,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                     IsValid = false,
                     IssuanceNumber = issuance.IssuanceNumber,
                     OfficialDocumentNumber = issuance.OfficialDocumentNumber,
-                    VerificationStatusMessage = $"Dokumen ini telah DICABUT/DIBATALKAN resmi pada {issuance.RevokedAt:dd MMMM yyyy}. Alasan: {issuance.RevocationReason}"
+                    DocumentTypeName = issuance.EmployeeDocumentRequest?.EmployeeDocumentType?.DocumentTypeName ?? "Naskah Dinas SDM",
+                    VerificationStatusMessage = $"PERINGATAN RESMI: Dokumen ini telah DICABUT/DIBATALKAN oleh Rumah Sakit Quilvian pada {issuance.RevokedAt:dd MMMM yyyy} berdasarkan Berita Acara Pencabutan (BAP) No. {issuance.RevocationBapNumber}. Alasan: {issuance.RevocationReason}. Segala bentuk penggunaan dokumen ini adalah TIDAK SAH secara hukum."
                 };
             }
 
@@ -432,8 +469,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
         public async Task<FinancialDetailsUnlockedDto> UnlockFinancialDetailsAsync(
             UnlockFinancialDetailsRequestDto request,
+            string? clientIp = null,
             CancellationToken cancellationToken = default)
         {
+            var clientIpSafe = string.IsNullOrWhiteSpace(clientIp) ? "127.0.0.1" : clientIp;
+
+            // VR-HRS-12: Proteksi Rate Limiting & Anti-Brute-Force PIN (Max 3 kali percobaan per 30 menit)
+            var rateLimitCheck = _rateLimiter.CheckRateLimit(request.VerificationHash, clientIpSafe);
+            if (rateLimitCheck.IsBlocked)
+            {
+                _logger.LogWarning("[RATE-LIMIT-LOCK] Percobaan akses PIN untuk hash {Hash} dari IP {Ip} ditolak: {Msg}",
+                    request.VerificationHash, clientIpSafe, rateLimitCheck.BlockedMessage);
+                throw new InvalidOperationException(rateLimitCheck.BlockedMessage);
+            }
+
             var issuance = await _dbContext.TrxEmployeeDocumentIssuances
                 .Include(x => x.WorkforceProfile)
                     .ThenInclude(w => w!.Employee)
@@ -451,10 +500,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
             if (string.IsNullOrWhiteSpace(issuance.SecurityPinHash) || !VerifyPin(request.SecurityPin, issuance.SecurityPinHash))
             {
-                _logger.LogWarning("[PIN-INVALID] Percobaan membuka data finansial dokumen {DocNum} gagal karena PIN tidak cocok.",
-                    issuance.OfficialDocumentNumber);
-                throw new InvalidOperationException("PIN 4-digit keamanan finansial tidak valid atau tidak cocok.");
+                _rateLimiter.RecordFailedAttempt(request.VerificationHash, clientIpSafe);
+                var remaining = rateLimitCheck.RemainingAttempts - 1;
+
+                _logger.LogWarning("[PIN-INVALID] Gagal verifikasi PIN dokumen {DocNum} dari IP {Ip}. Sisa kesempatan: {Remaining}",
+                    issuance.OfficialDocumentNumber, clientIpSafe, remaining);
+
+                if (remaining <= 0)
+                {
+                    throw new InvalidOperationException(
+                        "Akses pembukaan PIN finansial diblokir sementara selama 30 menit karena salah memasukkan PIN sebanyak 3 kali berturut-turut demi keamanan data finansial tenaga medis (VR-HRS-12).");
+                }
+
+                throw new InvalidOperationException(
+                    $"PIN 4-digit keamanan finansial tidak valid atau tidak cocok. Sisa kesempatan mencoba: {remaining} kali sebelum terkunci 30 menit (VR-HRS-12).");
             }
+
+            // PIN Benar: Reset rate limiter attempts
+            _rateLimiter.ResetAttempts(request.VerificationHash, clientIpSafe);
 
             var bruto = issuance.SalaryBrutoAmount ?? 0m;
             var netto = issuance.SalaryNettoAmount ?? 0m;
@@ -531,6 +594,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             Guid revokingUserId,
             CancellationToken cancellationToken = default)
         {
+            // VR-HRS-14: Pencabutan dokumen dinas wajib menyertakan nomor BAP dan alasan pembatalan
+            if (string.IsNullOrWhiteSpace(request.RevocationReason))
+            {
+                throw new InvalidOperationException("Alasan pencabutan surat naskah dinas wajib diisi lengkap sesuai regulasi RS (VR-HRS-14).");
+            }
+            if (string.IsNullOrWhiteSpace(request.RevocationBapNumber))
+            {
+                throw new InvalidOperationException("Nomor Berita Acara Pencabutan (BAP) wajib dicantumkan dalam pembatalan surat dinas resmi (VR-HRS-14).");
+            }
+
             var issuance = await _dbContext.TrxEmployeeDocumentIssuances
                 .Include(x => x.EmployeeDocumentRequest)
                 .Include(x => x.WorkforceProfile)
@@ -555,6 +628,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             issuance.IssuanceStatus = "Revoked";
             issuance.UpdateBy = revokingUserId;
             issuance.UpdateDateTime = now;
+
+            // INT-HR-66: Non-aktifkan juga arsip E-Dossier Sub-02
+            if (issuance.EDossierDocumentId.HasValue)
+            {
+                var wfpDoc = await _dbContext.WfpDocuments
+                    .FirstOrDefaultAsync(d => d.Id == issuance.EDossierDocumentId.Value && !d.IsDelete, cancellationToken);
+
+                if (wfpDoc != null)
+                {
+                    wfpDoc.IsActive = false;
+                    wfpDoc.Description = $"[REVOKED] Dicabut resmi dengan BAP No: {request.RevocationBapNumber}. Alasan: {request.RevocationReason}";
+                    wfpDoc.UpdateBy = revokingUserId;
+                    wfpDoc.UpdateDateTime = now;
+                }
+            }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 

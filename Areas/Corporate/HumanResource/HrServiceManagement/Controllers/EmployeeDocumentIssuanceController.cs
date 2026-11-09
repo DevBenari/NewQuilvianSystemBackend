@@ -188,6 +188,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
         /// <summary>
         /// Endpoint Publik: Membuka kunci rincian nominal gaji dengan 4-digit PIN keamanan terenkripsi (VR-HRS-09)
+        /// Dilindungi Rate Limiter Anti-Brute-Force (VR-HRS-12: max 3 kali salah percobaan per 30 menit).
         /// </summary>
         [HttpPost("unlock-financial")]
         [AllowAnonymous]
@@ -197,7 +198,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         {
             try
             {
-                var result = await _issuanceService.UnlockFinancialDetailsAsync(request, cancellationToken);
+                var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                var result = await _issuanceService.UnlockFinancialDetailsAsync(request, clientIp, cancellationToken);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)

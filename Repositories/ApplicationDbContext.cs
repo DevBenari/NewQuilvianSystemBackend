@@ -480,6 +480,9 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - CREDENTIALING MANAGEMENT
+        public DbSet<MstCredentialingCommittee> MstCredentialingCommittees { get; set; }
+        public DbSet<TrxSpkRkkIssuance> TrxSpkRkkIssuances { get; set; }
+        public DbSet<TrxClinicalPrivilegeEmergencyOverrideLog> TrxClinicalPrivilegeEmergencyOverrideLogs { get; set; }
         public DbSet<WfpCertification> WfpCertifications { get; set; }
         public DbSet<WfpCredentialLicense> WfpCredentialLicenses { get; set; }
         public DbSet<WfpClinicalPrivilege> WfpClinicalPrivileges { get; set; }
