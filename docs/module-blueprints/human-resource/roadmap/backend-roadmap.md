@@ -5549,48 +5549,48 @@ Bagian ini memetakan perencanaan teknis pelaksanaan backend untuk **Sub-Modul 19
 
 #### Grafik B72: Fondasi Skema Basis Data K3RS, Unit of Work, Enkripsi AES-256 & DTOs
 ```text
-BE-HRD-286 ⏳ (DDL 10 Tabel Postgres, Kolom Ciphertext AES-256 & EF Migration)
+BE-HRD-286 ✅ (DDL 10 Tabel Postgres, Kolom Ciphertext AES-256 & EF Migration)
    │
-   └─> BE-HRD-287 ⏳ (EF Core Repositories & Unit of Work Context K3RS)
+   └─> BE-HRD-287 ✅ (EF Core Repositories & Unit of Work Context K3RS)
           │
-          └─> BE-HRD-288 ⏳ (DTOs Request/Response, Model Mapping & FluentValidation VR-OHS-01..10)
+          └─> BE-HRD-288 ✅ (DTOs Request/Response, Model Mapping & FluentValidation VR-OHS-01..10)
 ```
 
 #### Grafik B73: Rekam Kesehatan Terenkripsi, Kelaikan Kerja, Surat Restriksi & Hard-Stop Roster Sub-06
 ```text
-BE-HRD-288 [B72] ─┬─> BE-HRD-289 ⏳ (Service Rekam Medis Terenkripsi & Field-Level Access HRD-DEC-176)
+BE-HRD-288 [B72] ─┬─> BE-HRD-289 ✅ (Service Rekam Medis Terenkripsi & Field-Level Access HRD-DEC-176)
                   │      │
-                  │      └─> BE-HRD-290 ⏳ (Service Fitness to Work & Validasi Dokter Hiperkes)
+                  │      └─> BE-HRD-290 ✅ (Service Fitness to Work & Validasi Dokter Hiperkes)
                   │             │
-                  │             └─> BE-HRD-291 ⏳ (Service Work Restriction & Event Hard-Stop Sub-06 INT-HR-89)
+                  │             └─> BE-HRD-291 ✅ (Service Work Restriction & Event Hard-Stop Sub-06 INT-HR-89)
                   │                    │
-                  │                    ├─> BE-HRD-292 ⏳ (Worker WorkRestrictionExpirationWorker OHS-W2 H+180)
+                  │                    ├─> BE-HRD-292 ✅ (Worker WorkRestrictionExpirationWorker OHS-W2 H+180)
                   │                    │
-                  │                    └─> BE-HRD-293 ⏳ (Service Asesmen Return-to-Work RTW & Pembuka Gembok Roster)
+                  │                    └─> BE-HRD-293 ✅ (Service Asesmen Return-to-Work RTW & Pembuka Gembok Roster)
 ```
 
 #### Grafik B74: Tanggap Darurat Tertusuk Jarum Cito, Terapi PPP < 4 Jam & Surveilans Serial 1-3-6 Bulan
 ```text
-BE-HRD-288 [B72] ─┬─> BE-HRD-294 ⏳ (Service Tanggap Darurat Tertusuk Jarum & Sirene ESS Panic INT-HR-91)
+BE-HRD-288 [B72] ─┬─> BE-HRD-294 ✅ (Service Tanggap Darurat Tertusuk Jarum & Sirene ESS Panic INT-HR-91)
                   │      │
-                  │      └─> BE-HRD-295 ⏳ (Service Fast-Track Resep Terapi PPP/PEP < 4 Jam & Farmasi Sub-12)
+                  │      └─> BE-HRD-295 ✅ (Service Fast-Track Resep Terapi PPP/PEP < 4 Jam & Farmasi Sub-12)
                   │             │
-                  │             └─> BE-HRD-296 ⏳ (Worker SerialSurveillanceFollowUpWorker OHS-W1 Bulan 1-3-6)
+                  │             └─> BE-HRD-296 ✅ (Worker SerialSurveillanceFollowUpWorker OHS-W1 Bulan 1-3-6)
 ```
 
 #### Grafik B75: Radar Imunisasi STARKES, Bahaya Ruangan, MCU Berkala, Kecelakaan Kerja & Klaim BPJS JKK
 ```text
-BE-HRD-288 [B72] ─┬─> BE-HRD-297 ⏳ (Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Booster OHS-W3)
-                  ├─> BE-HRD-298 ⏳ (Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm OHS-W5)
-                  ├─> BE-HRD-299 ⏳ (Service Pelaksanaan MCU Berkala Berbasis Profil Ruangan & Worker OHS-W4)
+BE-HRD-288 [B72] ─┬─> BE-HRD-297 ✅ (Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Booster OHS-W3)
+                  ├─> BE-HRD-298 ✅ (Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm OHS-W5)
+                  ├─> BE-HRD-299 ✅ (Service Pelaksanaan MCU Berkala Berbasis Profil Ruangan & Worker OHS-W4)
                   │      │
-                  │      └─> BE-HRD-300 ⏳ (Service Registrasi KAK/PAK, Olah TKP & Integrasi BPJS JKK INT-HR-90)
+                  │      └─> BE-HRD-300 ✅ (Service Registrasi KAK/PAK, Olah TKP & Integrasi BPJS JKK INT-HR-90)
                   │
 BE-HRD-289 [B73] ─┤
 BE-HRD-290 [B73] ─┤
 BE-HRD-291 [B73] ─┤
 BE-HRD-293 [B73] ─┤
-BE-HRD-294 [B74] ─┼─> BE-HRD-301 ⏳ (Controller API Kontrak v23 5 Tag Swagger, Worker OHS-W6 & Verifikasi E2E)
+BE-HRD-294 [B74] ─┼─> BE-HRD-301 ✅ (Controller API Kontrak v23 5 Tag Swagger, Worker OHS-W6 & Verifikasi E2E)
 BE-HRD-295 [B74] ─┤
 BE-HRD-296 [B74] ─┤
 BE-HRD-297 [B75] ─┤

@@ -9,7 +9,7 @@ blueprint_shape: SINGLE
 roadmap_revision: 15
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡 (acceptance criteria belum terbukti, menunggu FIX-HRD-002-09); FE-HRD-022, FE-HRD-024, FE-HRD-025 dikerjakan ulang dan tetap ✅. Sebelumnya: tanda FE-HRD-011, FE-HRD-015, FE-HRD-016, FE-HRD-018 diselaraskan ke 🟡 mengikuti register"
-planning_updated_at: "2026-11-09 - Slice S-B2 Layar Cuti & Izin Pegawai Rumah Sakit (sub-modul 08) diselesaikan secara penuh (FE-HRD-102 s.d. FE-HRD-115 ✅ PASS) mencakup 6 rute antarmuka, 14 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087), Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074) Penjadwalan, Roster Dinas 24/7, dan On-Call Pegawai Rumah Sakit (sub-modul 06) diselesaikan secara penuh (FE-HRD-075 s.d. FE-HRD-087 ✅ PASS) mencakup 3 sub-menu, 13 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074), Slice S-B5, Slice S-B3, S-B2, S-B1"
+planning_updated_at: "2026-11-09 - Slice S-B3 Administrasi Lembur Pegawai Rumah Sakit (sub-modul 09) diselesaikan secara penuh (FE-HRD-116 s.d. FE-HRD-129 ✅ PASS) mencakup 6 rute antarmuka, 14 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-B2 (FE-HRD-102 s.d. FE-HRD-115), Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087), Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074)"
 generated_at: "2026-10-26"
 owners:
   - "Frontend Technical Owner — HR UI Lead"
@@ -741,34 +741,34 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-113` | `S-B2` · `MVP-26` | Kotak masuk approval Leave Recall HR Manager & restore saldo sisa | ✅ | `FE-HRD-112` ✅, `BE-HRD-127` [BE] | [FE-HRD-113.md](../task/report/frontend/FE-HRD-113.md) |
 | `FE-HRD-114` | `S-B2` · `MVP-26` | Layar `FE-HRD-155` — Rekonsiliasi Akhir Cuti, Tabel Retrospektif & Payroll Close | ✅ | `FE-HRD-102` ✅, `BE-HRD-129` [BE] | [FE-HRD-114.md](../task/report/frontend/FE-HRD-114.md) |
 | `FE-HRD-115` | `S-B2` · Verifikasi | Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice S-B2 | ✅ | `FE-HRD-104` ✅, `FE-HRD-106` ✅, `FE-HRD-109` ✅, `FE-HRD-111` ✅, `FE-HRD-113` ✅, `FE-HRD-114` ✅ | [FE-HRD-115.md](../task/report/frontend/FE-HRD-115.md) |
-| `FE-HRD-116` | `S-B3` · `MVP-27` | API service client, tipe TypeScript & Redux slice lembur |  | `FE-HRD-007` ✅, `BE-HRD-131` [BE] | — |
-| `FE-HRD-117` | `S-B3` · `MVP-27` | Komponen form dual-mode SPKL & kalkulator kuota lembur PP 35/2021 |  | `FE-HRD-116` | — |
-| `FE-HRD-118` | `S-B3` · `MVP-27` | Layar `FE-HRD-156` — Pengajuan SPKL Pra-Dinas & Klaim Cito Pasca-Dinas ESS |  | `FE-HRD-116`, `FE-HRD-117`, `BE-HRD-134` [BE], `BE-HRD-135` [BE] | — |
-| `FE-HRD-119` | `S-B3` · `MVP-28` | Komponen kotak masuk persetujuan berjenjang & anti-self-approval |  | `FE-HRD-116`, `BE-HRD-137` [BE] | — |
-| `FE-HRD-120` | `S-B3` · `MVP-28` | Layar `FE-HRD-157` — Kotak Masuk Approval Lembur Ruangan (Penyelia & Ka. Unit) |  | `FE-HRD-119`, `BE-HRD-137` [BE] | — |
-| `FE-HRD-121` | `S-B3` · `MVP-28` | Drawer investigasi anomali presensi biometrik & bukti logbook fisik dinas |  | `FE-HRD-116`, `BE-HRD-139` [BE], `BE-HRD-140` [BE] | — |
-| `FE-HRD-122` | `S-B3` · `MVP-28` | Layar `FE-HRD-158` — Pusat Verifikasi Presensi & Rekonsiliasi Discrepancy HR |  | `FE-HRD-121`, `BE-HRD-140` [BE] | — |
-| `FE-HRD-123` | `S-B3` · `MVP-28` | Layar `FE-HRD-159-A` — Kotak Masuk Approval Eskalasi Direktur Medik |  | `FE-HRD-116`, `BE-HRD-138` [BE] | — |
-| `FE-HRD-124` | `S-B3` · `MVP-29` | Komponen kartu tiket saldo hak libur pengganti CTO (90 hari masa aktif) |  | `FE-HRD-116`, `BE-HRD-141` [BE] | — |
-| `FE-HRD-125` | `S-B3` · `MVP-29` | Layar `FE-HRD-159` — Monitoring Saldo Cuti Pengganti (CTO) & Riwayat Konversi |  | `FE-HRD-124`, `BE-HRD-141` [BE] | — |
-| `FE-HRD-126` | `S-B3` · `MVP-29` | Komponen tabel rekonsiliasi & indikator rapel retrospektif lembur |  | `FE-HRD-116`, `BE-HRD-143` [BE] | — |
-| `FE-HRD-127` | `S-B3` · `MVP-29` | Layar `FE-HRD-160` — Penutupan Periode Lembur, Cut-Off & Rekonsiliasi Payroll |  | `FE-HRD-126`, `BE-HRD-143` [BE], `BE-HRD-144` [BE] | — |
-| `FE-HRD-128` | `S-B3` · `MVP-27` | Layar `FE-HRD-161` — Pengaturan Kebijakan & Kuota Lembur RS (PP 35/2021) |  | `FE-HRD-116`, `BE-HRD-132` [BE] | — |
-| `FE-HRD-129` | `S-B3` · Verifikasi | Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice S-B3 |  | `FE-HRD-118`, `FE-HRD-120`, `FE-HRD-122`, `FE-HRD-123`, `FE-HRD-125`, `FE-HRD-127`, `FE-HRD-128` | — |
-| `FE-HRD-130` | `S-B5` / `MVP-30` | ⏳ | Fondasi frontend modul Payroll, Redux slice `payrollSlice.js`, Axios client & tipe data kanonikal |
-| `FE-HRD-131` | `S-B5` / `MVP-30` | ⏳ | Layanan API service frontend integrasi endpoint Run Cycles & Settings |
-| `FE-HRD-132` | `S-B5` / `MVP-30` | ⏳ | Layar `FE-HRD-162` — Dasbor Ringkasan & Monitoring Siklus Penggajian (`/hr/payroll/runs`) |
-| `FE-HRD-133` | `S-B5` / `MVP-30` | ⏳ | Layar `FE-HRD-163` — Wizard Inisiasi Batch & Validasi Precondition Gate Cut-off tgl 20 (`/hr/payroll/runs/new`) |
-| `FE-HRD-134` | `S-B5` / `MVP-30` | ⏳ | Layar `FE-HRD-164` — Lembar Kerja Kalkulasi Gaji, Komponen Rincian & Filter Unit/Profesi (`/hr/payroll/runs/[id]/worksheet`) |
-| `FE-HRD-135` | `S-B5` / `MVP-31` | ⏳ | Layar `FE-HRD-165` — Drawer Investigasi Anomali Variansi & Penginputan Justifikasi Audit (`/hr/payroll/runs/[id]/variances`) |
-| `FE-HRD-136` | `S-B5` / `MVP-31` | ⏳ | Komponen Modal Detail Rincian Gaji Pegawai & Komparasi Slip Gaji vs Histori Bulan Lalu (`PayrollEmployeeDetailModal`) |
-| `FE-HRD-137` | `S-B5` / `MVP-31` | ⏳ | Layanan API service frontend & Redux actions untuk alur otorisasi 3-jenjang & anti-self-approval |
-| `FE-HRD-138` | `S-B5` / `MVP-31` | ⏳ | Layar `FE-HRD-166` — Dasbor Otorisasi 3-Jenjang Penggajian & Rekapitulasi Eksekutif Finansial (`/hr/payroll/approvals`) |
-| `FE-HRD-139` | `S-B5` / `MVP-32` | ⏳ | Komponen Modal Konfirmasi Penguncian Immutable & Trigger Serah Terima Finance SHA-256 (`PayrollFinanceHandoffModal`) |
-| `FE-HRD-140` | `S-B5` / `MVP-32` | ⏳ | Dasbor Pemantauan Status Serah Terima Finance & Webhook Reconciler (`/hr/payroll/handoffs`) |
-| `FE-HRD-141` | `S-B5` / `MVP-32` | ⏳ | Layar `FE-HRD-167` — Portal Slip Gaji Mandiri Pegawai (ESS) & Keypad Proteksi PIN Sekunder 6-Digit (`/ess/payslips`) |
-| `FE-HRD-142` | `S-B5` / `MVP-30` | ⏳ | Layar Pengaturan Parameter Penggajian RS, Batas Plafon BPJS & Threshold Variansi (`/hr/payroll/settings`) |
-| `FE-HRD-143` | `S-B5` / Verifikasi | ⏳ | Verifikasi ujung-ke-ujung antarmuka, linter CI/CD, build Next.js, dan hak akses peran Slice S-B5 |
+| `FE-HRD-116` | `S-B3` · `MVP-27` | API service client, tipe TypeScript & Redux slice lembur | ✅ | `FE-HRD-007` ✅, `BE-HRD-131` [BE] | [FE-HRD-116.md](../task/report/frontend/FE-HRD-116.md) |
+| `FE-HRD-117` | `S-B3` · `MVP-27` | Komponen form dual-mode SPKL & kalkulator kuota lembur PP 35/2021 | ✅ | `FE-HRD-116` | [FE-HRD-117.md](../task/report/frontend/FE-HRD-117.md) |
+| `FE-HRD-118` | `S-B3` · `MVP-27` | Layar `FE-HRD-156` — Pengajuan SPKL Pra-Dinas & Klaim Cito Pasca-Dinas ESS | ✅ | `FE-HRD-116`, `FE-HRD-117`, `BE-HRD-134` [BE], `BE-HRD-135` [BE] | [FE-HRD-118.md](../task/report/frontend/FE-HRD-118.md) |
+| `FE-HRD-119` | `S-B3` · `MVP-28` | Komponen kotak masuk persetujuan berjenjang & anti-self-approval | ✅ | `FE-HRD-116`, `BE-HRD-137` [BE] | [FE-HRD-119.md](../task/report/frontend/FE-HRD-119.md) |
+| `FE-HRD-120` | `S-B3` · `MVP-28` | Layar `FE-HRD-157` — Kotak Masuk Approval Lembur Ruangan (Penyelia & Ka. Unit) | ✅ | `FE-HRD-119`, `BE-HRD-137` [BE] | [FE-HRD-120.md](../task/report/frontend/FE-HRD-120.md) |
+| `FE-HRD-121` | `S-B3` · `MVP-28` | Drawer investigasi anomali presensi biometrik & bukti logbook fisik dinas | ✅ | `FE-HRD-116`, `BE-HRD-139` [BE], `BE-HRD-140` [BE] | [FE-HRD-121.md](../task/report/frontend/FE-HRD-121.md) |
+| `FE-HRD-122` | `S-B3` · `MVP-28` | Layar `FE-HRD-158` — Pusat Verifikasi Presensi & Rekonsiliasi Discrepancy HR | ✅ | `FE-HRD-121`, `BE-HRD-140` [BE] | [FE-HRD-122.md](../task/report/frontend/FE-HRD-122.md) |
+| `FE-HRD-123` | `S-B3` · `MVP-28` | Layar `FE-HRD-159-A` — Kotak Masuk Approval Eskalasi Direktur Medik | ✅ | `FE-HRD-116`, `BE-HRD-138` [BE] | [FE-HRD-123.md](../task/report/frontend/FE-HRD-123.md) |
+| `FE-HRD-124` | `S-B3` · `MVP-29` | Komponen kartu tiket saldo hak libur pengganti CTO (90 hari masa aktif) | ✅ | `FE-HRD-116`, `BE-HRD-141` [BE] | [FE-HRD-124.md](../task/report/frontend/FE-HRD-124.md) |
+| `FE-HRD-125` | `S-B3` · `MVP-29` | Layar `FE-HRD-159` — Monitoring Saldo Cuti Pengganti (CTO) & Riwayat Konversi | ✅ | `FE-HRD-124`, `BE-HRD-141` [BE] | [FE-HRD-125.md](../task/report/frontend/FE-HRD-125.md) |
+| `FE-HRD-126` | `S-B3` · `MVP-29` | Komponen tabel rekonsiliasi & indikator rapel retrospektif lembur | ✅ | `FE-HRD-116`, `BE-HRD-143` [BE] | [FE-HRD-126.md](../task/report/frontend/FE-HRD-126.md) |
+| `FE-HRD-127` | `S-B3` · `MVP-29` | Layar `FE-HRD-160` — Penutupan Periode Lembur, Cut-Off & Rekonsiliasi Payroll | ✅ | `FE-HRD-126`, `BE-HRD-143` [BE], `BE-HRD-144` [BE] | [FE-HRD-127.md](../task/report/frontend/FE-HRD-127.md) |
+| `FE-HRD-128` | `S-B3` · `MVP-27` | Layar `FE-HRD-161` — Pengaturan Kebijakan & Kuota Lembur RS (PP 35/2021) | ✅ | `FE-HRD-116`, `BE-HRD-132` [BE] | [FE-HRD-128.md](../task/report/frontend/FE-HRD-128.md) |
+| `FE-HRD-129` | `S-B3` · Verifikasi | Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice S-B3 | ✅ | `FE-HRD-118`, `FE-HRD-120`, `FE-HRD-122`, `FE-HRD-123`, `FE-HRD-125`, `FE-HRD-127`, `FE-HRD-128` | [FE-HRD-129.md](../task/report/frontend/FE-HRD-129.md) |
+| `FE-HRD-130` | `S-B5` / `MVP-30` | Fondasi frontend modul Payroll, Redux slice `payrollSlice.js`, Axios client & tipe data kanonikal | ✅ | `BE-HRD-147` [BE], `BE-HRD-149` [BE], `BE-HRD-153` [BE] | [FE-HRD-130.md](../task/report/frontend/FE-HRD-130.md) |
+| `FE-HRD-131` | `S-B5` / `MVP-30` | Layanan API service frontend integrasi endpoint Run Cycles & Settings | ✅ | `FE-HRD-130` | [FE-HRD-131.md](../task/report/frontend/FE-HRD-131.md) |
+| `FE-HRD-132` | `S-B5` / `MVP-30` | Layar `FE-HRD-162` — Dasbor Ringkasan & Monitoring Siklus Penggajian (`/hr/payroll/runs`) | ✅ | `FE-HRD-131` | [FE-HRD-132.md](../task/report/frontend/FE-HRD-132.md) |
+| `FE-HRD-133` | `S-B5` / `MVP-30` | Layar `FE-HRD-163` — Wizard Inisiasi Batch & Validasi Precondition Gate Cut-off tgl 20 (`/hr/payroll/runs/new`) | ✅ | `FE-HRD-132` | [FE-HRD-133.md](../task/report/frontend/FE-HRD-133.md) |
+| `FE-HRD-134` | `S-B5` / `MVP-30` | Layar `FE-HRD-164` — Lembar Kerja Kalkulasi Gaji, Komponen Rincian & Filter Unit/Profesi (`/hr/payroll/runs/[id]/worksheet`) | ✅ | `FE-HRD-133` | [FE-HRD-134.md](../task/report/frontend/FE-HRD-134.md) |
+| `FE-HRD-135` | `S-B5` / `MVP-31` | Layar `FE-HRD-165` — Drawer Investigasi Anomali Variansi & Penginputan Justifikasi Audit (`/hr/payroll/runs/[id]/variances`) | ✅ | `FE-HRD-134`, `BE-HRD-156` [BE] | [FE-HRD-135.md](../task/report/frontend/FE-HRD-135.md) |
+| `FE-HRD-136` | `S-B5` / `MVP-31` | Komponen Modal Detail Rincian Gaji Pegawai & Komparasi Slip Gaji vs Histori Bulan Lalu (`PayrollEmployeeDetailModal`) | ✅ | `FE-HRD-135` | [FE-HRD-136.md](../task/report/frontend/FE-HRD-136.md) |
+| `FE-HRD-137` | `S-B5` / `MVP-31` | Layanan API service frontend & Redux actions untuk alur otorisasi 3-jenjang & anti-self-approval | ✅ | `FE-HRD-136`, `BE-HRD-157` [BE] | [FE-HRD-137.md](../task/report/frontend/FE-HRD-137.md) |
+| `FE-HRD-138` | `S-B5` / `MVP-31` | Layar `FE-HRD-166` — Dasbor Otorisasi 3-Jenjang Penggajian & Rekapitulasi Eksekutif Finansial (`/hr/payroll/approvals`) | ✅ | `FE-HRD-137` | [FE-HRD-138.md](../task/report/frontend/FE-HRD-138.md) |
+| `FE-HRD-139` | `S-B5` / `MVP-32` | Komponen Modal Konfirmasi Penguncian Immutable & Trigger Serah Terima Finance SHA-256 (`PayrollFinanceHandoffModal`) | ✅ | `FE-HRD-138`, `BE-HRD-158` [BE] | [FE-HRD-139.md](../task/report/frontend/FE-HRD-139.md) |
+| `FE-HRD-140` | `S-B5` / `MVP-32` | Dasbor Pemantauan Status Serah Terima Finance & Webhook Reconciler (`/hr/payroll/handoffs`) | ✅ | `FE-HRD-139` | [FE-HRD-140.md](../task/report/frontend/FE-HRD-140.md) |
+| `FE-HRD-141` | `S-B5` / `MVP-32` | Layar `FE-HRD-167` — Portal Slip Gaji Mandiri Pegawai (ESS) & Keypad Proteksi PIN Sekunder 6-Digit (`/ess/payslips`) | ✅ | `FE-HRD-140`, `BE-HRD-159` [BE] | [FE-HRD-141.md](../task/report/frontend/FE-HRD-141.md) |
+| `FE-HRD-142` | `S-B5` / `MVP-30` | Layar Pengaturan Parameter Penggajian RS, Batas Plafon BPJS & Threshold Variansi (`/hr/payroll/settings`) | ✅ | `FE-HRD-131` | [FE-HRD-142.md](../task/report/frontend/FE-HRD-142.md) |
+| `FE-HRD-143` | `S-B5` / Verifikasi | Verifikasi ujung-ke-ujung antarmuka, linter CI/CD, build Next.js, dan hak akses peran Slice S-B5 | ✅ | `FE-HRD-133`, `FE-HRD-134`, `FE-HRD-135`, `FE-HRD-138`, `FE-HRD-141` | [FE-HRD-143.md](../task/report/frontend/FE-HRD-143.md) |
 | `FE-HRD-144` | `S-B6` / `MVP-33` | ⏳ | Service API client, adapter TypeScript/Axios, Redux slice & state management restitusi dan potongan |
 | `FE-HRD-145` | `S-B6` / `MVP-33` | ⏳ | Desain token, status badge, format mata uang & indikator rasio upah 50% |
 | `FE-HRD-146` | `S-B6` / `MVP-33` | ⏳ | Layar `FE-HRD-168` — Dasbor Utama Restitusi & Pemotongan Gaji (Bagian 1: Ringkasan & Metrik) (`/corporate/hrd/payroll/deductions`) |
@@ -3095,7 +3095,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-116` — API service client, tipe TypeScript & Redux slice lembur
 * **Slice / MVP**: `S-B3` / `MVP-27`
-* **Status**: Menunggu `FE-HRD-007` ✅, `BE-HRD-131` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-116.md](../task/report/frontend/FE-HRD-116.md).
 * **Outcome**: Service Axios modular (`overtimeService.js`), tipe TypeScript/JSDoc kontrak data lembur v13, dan Redux slice (`overtimeSlice.js`) untuk mengelola state permohonan SPKL, klaim cito, approval, verifikasi discrepancy, saldo CTO, dan penutupan periode payroll.
 * **Requirement/decision**: `03-frontend-architecture.md` 18.2.1, API Contract `v13`.
 * **Kontrak**: API Contract `v13` seluruh endpoint `/api/v1/hr/overtimes/*`.
@@ -3113,7 +3113,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-117` — Komponen form dual-mode SPKL & kalkulator kuota lembur PP 35/2021
 * **Slice / MVP**: `S-B3` / `MVP-27`
-* **Status**: Menunggu `FE-HRD-116`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-117.md](../task/report/frontend/FE-HRD-117.md).
 * **Outcome**: Komponen reusable `OvertimeFormSwitch` dengan toggle mode: (1) Rencana Terencana SPKL H-1 (termasuk multi-select penugasan tim medis `IsCollectivePlan`), dan (2) Klaim Darurat Cito Pasca-Dinas H+1 (dengan input wajib Nomor RM / No. Insiden IGD / ICU per `HRD-DEC-116`). Dilengkapi kalkulator kuota real-time peringatan batas 4 jam/hari dan 18 jam/minggu (PP 35/2021) dengan indikator eskalasi Direktur Medik.
 * **Requirement/decision**: `HRD-DEC-116`, `HRD-DEC-118`, `03-frontend-architecture.md` 18.2.2.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Plans & Claims")]`.
@@ -3131,7 +3131,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-118` — Layar `FE-HRD-156` — Pengajuan SPKL Pra-Dinas & Klaim Cito Pasca-Dinas ESS
 * **Slice / MVP**: `S-B3` / `MVP-27`
-* **Status**: Menunggu `FE-HRD-116`, `FE-HRD-117`, `BE-HRD-134` [BE], `BE-HRD-135` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-118.md](../task/report/frontend/FE-HRD-118.md).
 * **Outcome**: Halaman portal ESS `/hr/self-service/overtime` bagi staf rumah sakit untuk mengajukan rencana SPKL pra-dinas mandiri/tim, mengajukan klaim cito darurat pasca-dinas dengan melampirkan berkas bukti tindakan medis/surat tugas dinas, memantau riwayat pengajuan, serta melihat status persetujuan berjenjang.
 * **Requirement/decision**: `HRD-DEC-116`, `HRD-DEC-117`, `03-frontend-architecture.md` 18.2.1.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Plans & Claims")]`.
@@ -3150,7 +3150,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-119` — Komponen kotak masuk persetujuan berjenjang & anti-self-approval
 * **Slice / MVP**: `S-B3` / `MVP-28`
-* **Status**: Menunggu `FE-HRD-116`, `BE-HRD-137` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-119.md](../task/report/frontend/FE-HRD-119.md).
 * **Outcome**: Komponen kartu/tabel inbox persetujuan lembur ruangan dengan penguncian mutlak tombol aksi (*disabled button*) jika penilai adalah pemohon lembur sendiri (anti-self-approval per `HRD-DEC-117`), menampilkan rincian rencana jam vs waktu aktual shift, alasan penugasan, dan catatan persetujuan berjenjang.
 * **Requirement/decision**: `HRD-DEC-117`, `03-frontend-architecture.md` 18.2.2.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Approvals")]`.
@@ -3168,7 +3168,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-120` — Layar `FE-HRD-157` — Kotak Masuk Approval Lembur Ruangan (Penyelia & Ka. Unit)
 * **Slice / MVP**: `S-B3` / `MVP-28`
-* **Status**: Menunggu `FE-HRD-119`, `BE-HRD-137` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-120.md](../task/report/frontend/FE-HRD-120.md).
 * **Outcome**: Halaman `/hr/overtime/approvals` bagi Kepala Ruangan / Kepala Instalasi / Supervisor Medis untuk memeriksa pengajuan lembur tim, menyetujui, menolak, atau mengembalikan dengan catatan perbaikan sebelum diteruskan ke verifikasi HR.
 * **Requirement/decision**: `HRD-DEC-117`, `03-frontend-architecture.md` 18.2.1.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Approvals")]`.
@@ -3186,7 +3186,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-121` — Drawer investigasi anomali presensi biometrik & bukti logbook fisik dinas
 * **Slice / MVP**: `S-B3` / `MVP-28`
-* **Status**: Menunggu `FE-HRD-116`, `BE-HRD-139` [BE], `BE-HRD-140` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-121.md](../task/report/frontend/FE-HRD-121.md).
 * **Outcome**: Drawer modal detail `OvertimeDiscrepancyDrawer` untuk HR Attendance Officer: menampilkan perbandingan 3 panel (Waktu SPKL Rencana vs Waktu Aktual Biometrik Mesin Finger/Face vs Logbook Fisik Ruangan), rincian selisih menit (discrepancy), indikator aturan batas minimum 30 menit (`MinOvertimeDurationRule`), dan formulir penetapan durasi lembur yang diakui resmi dengan kewajiban upload bukti logbook fisik bertandatangan Ka. Ruangan (`HRD-DEC-119`).
 * **Requirement/decision**: `HRD-DEC-119`, `03-frontend-architecture.md` 18.2.2.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Verifications")]`.
@@ -3204,7 +3204,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-122` — Layar `FE-HRD-158` — Pusat Verifikasi Presensi & Rekonsiliasi Discrepancy HR
 * **Slice / MVP**: `S-B3` / `MVP-28`
-* **Status**: Menunggu `FE-HRD-121`, `BE-HRD-140` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-122.md](../task/report/frontend/FE-HRD-122.md).
 * **Outcome**: Halaman pusat kendali `/hr/overtime/verifications` bagi staf HR Attendance untuk memverifikasi seluruh SPKL/klaim lembur yang telah disetujui ruangan terhadap data tap mesin presensi Sub-Modul 07, menyortir kasus anomali/discrepancy, dan menerbitkan persetujuan final verifikasi lembur berbayar.
 * **Requirement/decision**: `HRD-DEC-119`, `03-frontend-architecture.md` 18.2.1.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Verifications")]`.
@@ -3222,7 +3222,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-123` — Layar `FE-HRD-159-A` — Kotak Masuk Approval Eskalasi Direktur Medik
 * **Slice / MVP**: `S-B3` / `MVP-28`
-* **Status**: Menunggu `FE-HRD-116`, `BE-HRD-138` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-123.md](../task/report/frontend/FE-HRD-123.md).
 * **Outcome**: Halaman `/hr/overtime/medical-director-inbox` khusus bagi Direktur Pelayanan Medik (dan Direktur Terkait) untuk mengevaluasi dan memberikan otorisasi khusus terhadap kasus lembur darurat cito yang melampaui kuota PP 35/2021 (> 4 jam/hari atau > 18 jam/minggu) demi penyelamatan nyawa pasien (*life-saving*) dan kontinuitas pelayanan vital rumah sakit (`HRD-DEC-118`).
 * **Requirement/decision**: `HRD-DEC-118`, `03-frontend-architecture.md` 18.2.1.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Medical Director Approvals")]`.
@@ -3240,7 +3240,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-124` — Komponen kartu tiket saldo hak libur pengganti CTO (90 hari masa aktif)
 * **Slice / MVP**: `S-B3` / `MVP-29`
-* **Status**: Menunggu `FE-HRD-116`, `BE-HRD-141` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-124.md](../task/report/frontend/FE-HRD-124.md).
 * **Outcome**: Komponen reusable `CompensatoryTimeOffCard` yang menampilkan saldo hak libur pengganti staf, tanggal kedaluwarsa 90 hari kalender sejak SPKL disetujui (`HRD-DEC-120`), visual countdown hari aktif tersisa, serta riwayat konversi ke mutasi kredit cuti pada Sub-Modul 08 (Cuti & Izin).
 * **Requirement/decision**: `HRD-DEC-120`, `03-frontend-architecture.md` 18.2.2.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Compensatory Time-Off")]`.
@@ -3258,7 +3258,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-125` — Layar `FE-HRD-159` — Monitoring Saldo Cuti Pengganti (CTO) & Riwayat Konversi
 * **Slice / MVP**: `S-B3` / `MVP-29`
-* **Status**: Menunggu `FE-HRD-124`, `BE-HRD-141` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-125.md](../task/report/frontend/FE-HRD-125.md).
 * **Outcome**: Halaman `/hr/overtime/compensatory-leave` dengan mode tampilan ganda: (1) Dasbor mandiri pegawai ESS untuk melihat saldo tiket CTO dan opsi tombol langsung ajukan cuti (terhubung ke Sub-Modul 08), dan (2) Dasbor HR Officer untuk memantau seluruh saldo CTO aktif pegawai RS, audit tiket kedaluwarsa hangus, dan rekapitulasi konversi.
 * **Requirement/decision**: `HRD-DEC-120`, `03-frontend-architecture.md` 18.2.1.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Compensatory Time-Off")]`.
@@ -3276,7 +3276,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-126` — Komponen tabel rekonsiliasi & indikator rapel retrospektif lembur
 * **Slice / MVP**: `S-B3` / `MVP-29`
-* **Status**: Menunggu `FE-HRD-116`, `BE-HRD-143` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-126.md](../task/report/frontend/FE-HRD-126.md).
 * **Outcome**: Komponen reusable `OvertimeReconciliationTable` untuk menampilkan data lembur yang masuk dalam cut-off tanggal 20 bulan berjalan vs klaim cito/SPKL yang terlambat diverifikasi pasca-cut-off yang ditandai sebagai `RetrospectiveAdjustment` (akan dirapel otomatis pada payroll bulan berikutnya per `HRD-DEC-121`), dilengkapi filter status verifikasi dan tombol ekspor audit.
 * **Requirement/decision**: `HRD-DEC-121`, `03-frontend-architecture.md` 18.2.2.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Reconciliations & Close")]`.
@@ -3294,7 +3294,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-127` — Layar `FE-HRD-160` — Penutupan Periode Lembur, Cut-Off & Rekonsiliasi Payroll
 * **Slice / MVP**: `S-B3` / `MVP-29`
-* **Status**: Menunggu `FE-HRD-126`, `BE-HRD-143` [BE], `BE-HRD-144` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-127.md](../task/report/frontend/FE-HRD-127.md).
 * **Outcome**: Halaman `/hr/overtime/reconciliations` bagi HR Payroll Officer untuk melakukan rekonsiliasi akhir bulanan, memeriksa rekapitulasi jam lembur per pegawai/unit, menjalankan aksi resmi `Tutup & Kunci Periode Lembur` (*Payroll Close*), serta menyerahkan data transaksi lembur terkunci ke Modul 10 (Payroll) secara aman.
 * **Requirement/decision**: `HRD-DEC-121`, `03-frontend-architecture.md` 18.2.1.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Reconciliations & Close")]`.
@@ -3312,7 +3312,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-128` — Layar `FE-HRD-161` — Pengaturan Kebijakan & Kuota Lembur RS (PP 35/2021)
 * **Slice / MVP**: `S-B3` / `MVP-27`
-* **Status**: Menunggu `FE-HRD-116`, `BE-HRD-132` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-128.md](../task/report/frontend/FE-HRD-128.md).
 * **Outcome**: Halaman `/hr/overtime/settings` bagi HR Administrator untuk mengonfigurasi parameter operasional lembur rumah sakit: batas kuota jam harian (default 4 jam) dan mingguan (default 18 jam), aturan pembulatan durasi (minimum 30 menit), masa berlaku saldo CTO (default 90 hari kalender), tanggal cut-off payroll bulanan (default tgl 20), serta penugasan wewenang persetujuan eskalasi medis.
 * **Requirement/decision**: `HRD-DEC-116` s.d. `HRD-DEC-121`, `03-frontend-architecture.md` 18.2.1.
 * **Kontrak**: API Contract `v13` tag `[Tags("HR Overtime - Settings")]`.
@@ -3330,7 +3330,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-129` — Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice `S-B3`
 * **Slice / MVP**: `S-B3` / Verifikasi
-* **Status**: Menunggu `FE-HRD-118`, `FE-HRD-120`, `FE-HRD-122`, `FE-HRD-123`, `FE-HRD-125`, `FE-HRD-127`, `FE-HRD-128`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-129.md](../task/report/frontend/FE-HRD-129.md).
 * **Outcome**: Seluruh 6 layar baru `S-B3` (`FE-HRD-156` s.d. `FE-HRD-161`) dan modal drawer investigasi terverifikasi terjangkau dari sidebar menu navigasi `Manajemen Lembur`, hak akses peran teruji (Staf Medis ESS vs Supervisor Ruangan vs HR Attendance vs Direktur Medik vs HR Payroll), dan lolos uji ketat linter CI/CD.
 * **Requirement/decision**: `03-frontend-architecture.md` 18.1, 18.2; `04-prd-to-mvp.md` 27.5 (DoD `S-B3`).
 * **Kontrak**: Seluruh kontrak `v13` bagian `S-B3`.
@@ -3354,7 +3354,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-130` — Fondasi frontend modul Payroll, Redux slice `payrollSlice.js`, Axios client & tipe data kanonikal
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: Menunggu `BE-HRD-147` [BE], `BE-HRD-149` [BE], `BE-HRD-153` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-130.md](../task/report/frontend/FE-HRD-130.md).
 * **Outcome**: Fondasi arsitektur frontend untuk modul penggajian V2: Redux Toolkit slice `payrollSlice.js`, Axios HTTP client terspesialisasi dengan penanganan idempotency key dan token otentikasi peran HRD, pemetaan enum status siklus hidup kanonikal (`PayrollRunStatus`, `VarianceAlertStatus`, `FinanceHandoffStatus`, `PayslipStatus`), serta tipe data TypeScript/JSDoc rincian gaji.
 * **Requirement/decision**: `HRD-DEC-122` s.d. `HRD-DEC-127`, `03-frontend-architecture.md` 19.3 & 19.4.
 * **Kontrak**: API Contract `v14` Bagian 20, State Transition Matrix `v14` Bagian 18.
@@ -3372,7 +3372,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-131` — Layanan API service frontend integrasi endpoint Run Cycles & Settings
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: Menunggu `FE-HRD-130`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-131.md](../task/report/frontend/FE-HRD-131.md).
 * **Outcome**: Berkas service frontend `src/services/payroll/payrollService.js` yang membungkus pemanggilan API backend untuk siklus batch penggajian (`[Tags("HR Payroll - Run Cycles")]`), kueri precondition check, dan pembacaan konfigurasi parameter (`[Tags("HR Payroll - Settings")]`).
 * **Requirement/decision**: `HRD-DEC-122`, `03-frontend-architecture.md` 19.4.
 * **Kontrak**: API Contract `v14` Bagian 20 (Tag 1 & Tag 6).
@@ -3390,7 +3390,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-132` — Layar `FE-HRD-162` — Dasbor Ringkasan & Monitoring Siklus Penggajian (`/hr/payroll/runs`)
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: Menunggu `FE-HRD-131`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-132.md](../task/report/frontend/FE-HRD-132.md).
 * **Outcome**: Halaman dasbor utama `/hr/payroll/runs` bagi Payroll Officer dan HR Manager untuk memantau status siklus penggajian bulanan rumah sakit, ringkasan KPI eksekutif (total take-home pay, jumlah staf terbayar, rasio variansi, status serah terima Finance), tabel riwayat batch dengan filter tahun/bulan, serta tombol navigasi inisiasi batch baru.
 * **Requirement/decision**: `HRD-DEC-122`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `GET /api/v1/hr/payroll/runs`.
@@ -3408,7 +3408,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-133` — Layar `FE-HRD-163` — Wizard Inisiasi Batch & Validasi Precondition Gate Cut-off tgl 20 (`/hr/payroll/runs/new`)
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: Menunggu `FE-HRD-132`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-133.md](../task/report/frontend/FE-HRD-133.md).
 * **Outcome**: Halaman wizard `/hr/payroll/runs/new` untuk memandu Payroll Officer menginisiasi siklus penggajian baru, mencakup pemilihan tahun/bulan periode, visualisasi verifikasi gerbang prasyarat 3 modul waktu kerja (Presensi 07, Cuti 08, Lembur 09), checklist penguncian cut-off tgl 20, dan tombol submit inisiasi draft batch.
 * **Requirement/decision**: `HRD-DEC-122`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `/runs/precondition-check` & `POST /runs`, `VR-PAY-01`, `VR-PAY-02`.
@@ -3426,7 +3426,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-134` — Layar `FE-HRD-164` — Lembar Kerja Kalkulasi Gaji, Komponen Rincian & Filter Unit/Profesi (`/hr/payroll/runs/[id]/worksheet`)
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: Menunggu `FE-HRD-133`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-134.md](../task/report/frontend/FE-HRD-134.md).
 * **Outcome**: Halaman lembar kerja utama penggajian `/hr/payroll/runs/[id]/worksheet` untuk mengeksekusi kalkulasi batch, memfilter data pegawai berdasarkan unit kerja instalasi dan kelompok profesi medis (Dokter Spesialis, Dokter Umum, Perawat, Staf Non-Klinis), menyajikan tabel komponen gaji (pokok, tunjangan medis, lembur PP 35, premi malam, potongan BPJS, PPh 21 TER, pinjaman koperasi), serta indikator badge peringatan variansi anomali.
 * **Requirement/decision**: `HRD-DEC-123`, `HRD-DEC-124`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `POST /calculate` & `GET /runs/{id}/items`.
@@ -3445,7 +3445,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-135` — Layar `FE-HRD-165` — Drawer Investigasi Anomali Variansi & Penginputan Justifikasi Audit (`/hr/payroll/runs/[id]/variances`)
 * **Slice / MVP**: `S-B5` / `MVP-31`
-* **Status**: Menunggu `FE-HRD-134`, `BE-HRD-156` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-135.md](../task/report/frontend/FE-HRD-135.md).
 * **Outcome**: Drawer samping / tab audit `/hr/payroll/runs/[id]/variances` bagi Payroll Officer untuk menginvestigasi seluruh tiket anomali deviasi gaji yang terdeteksi (*Variance Alerts*), menyajikan perbandingan *side-by-side* rincian slip gaji bulan lalu vs bulan berjalan, komponen pemicu lonjakan/penurunan, serta form penginputan justifikasi audit wajib (minimum 20 karakter) untuk menyelesaikan alert.
 * **Requirement/decision**: `HRD-DEC-124`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `GET /variances` & `POST /variances/{id}/resolve`, `VR-PAY-14`, `VR-PAY-15`.
@@ -3463,7 +3463,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-136` — Komponen Modal Detail Rincian Gaji Pegawai & Komparasi Slip Gaji vs Histori Bulan Lalu (`PayrollEmployeeDetailModal`)
 * **Slice / MVP**: `S-B5` / `MVP-31`
-* **Status**: Menunggu `FE-HRD-135`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-136.md](../task/report/frontend/FE-HRD-136.md).
 * **Outcome**: Komponen dialog modal pop-up yang menyajikan pratinjau slip gaji lengkap seorang pegawai pada batch berjalan, rincian per komponen tunjangan fungsional medis/shift, formula potongan pajak TER dan BPJS, perbandingan delta nominal dengan bulan sebelumnya, serta riwayat catatan investigasi khusus pegawai tersebut.
 * **Requirement/decision**: `HRD-DEC-123`, `HRD-DEC-124`, `03-frontend-architecture.md` 19.2.2.
 * **Kontrak**: API Contract `v14` `GET /runs/{id}/items/{detailId}`.
@@ -3481,7 +3481,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-137` — Layanan API service frontend & Redux actions untuk alur otorisasi 3-jenjang & anti-self-approval
 * **Slice / MVP**: `S-B5` / `MVP-31`
-* **Status**: Menunggu `FE-HRD-136`, `BE-HRD-157` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-137.md](../task/report/frontend/FE-HRD-137.md).
 * **Outcome**: Berkas service frontend dan Redux actions untuk alur persetujuan berjenjang penggajian (`[Tags("HR Payroll - Approvals")]`), validasi pemisahan peran (*Segregation of Duties*), deteksi hak otorisasi pengguna aktif, dan penanganan pemblokiran approval diri sendiri (*Anti-Self-Approval*).
 * **Requirement/decision**: `HRD-DEC-125`, `03-frontend-architecture.md` 19.4.
 * **Kontrak**: API Contract `v14` Bagian 20 (Tag 3), `VR-PAY-16` s.d. `VR-PAY-20`.
@@ -3499,7 +3499,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-138` — Layar `FE-HRD-166` — Dasbor Otorisasi 3-Jenjang Penggajian & Rekapitulasi Eksekutif Finansial (`/hr/payroll/approvals`)
 * **Slice / MVP**: `S-B5` / `MVP-31`
-* **Status**: Menunggu `FE-HRD-137`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-138.md](../task/report/frontend/FE-HRD-138.md).
 * **Outcome**: Halaman persetujuan eksekutif `/hr/payroll/approvals` bagi HR Manager dan Direktur SDM/Keuangan untuk meninjau batch penggajian yang menunggu otorisasi (`WaitingHrReview` / `WaitingFinalApproval`), menyajikan rekapitulasi beban gaji per unit kerja dan kelompok tenaga medis, status penyelesaian seluruh tiket variansi (wajib 0 pending), riwayat stempel otorisasi berjenjang, serta tombol persetujuan final (*Final Sign-off*).
 * **Requirement/decision**: `HRD-DEC-125`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `GET /approvals` & `POST /approvals/final`, `VR-PAY-20`.
@@ -3517,7 +3517,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-139` — Komponen Modal Konfirmasi Penguncian Immutable & Trigger Serah Terima Finance SHA-256 (`PayrollFinanceHandoffModal`)
 * **Slice / MVP**: `S-B5` / `MVP-32`
-* **Status**: Menunggu `FE-HRD-138`, `BE-HRD-158` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-139.md](../task/report/frontend/FE-HRD-139.md).
 * **Outcome**: Komponen dialog modal konfirmasi pembekuan permanen batch penggajian (*Immutable Lock*), visualisasi verifikasi nilai checksum SHA-256 yang dibangkitkan, ringkasan rekapitulasi rekening bank transfer payroll, serta tombol eksekusi serah terima berkas instruksi pembayaran ke Modul Finance (`INT-HR-53`).
 * **Requirement/decision**: `HRD-DEC-126`, `03-frontend-architecture.md` 19.2.2.
 * **Kontrak**: API Contract `v14` `POST /handoffs/dispatch`, `VR-PAY-21`.
@@ -3535,7 +3535,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-140` — Dasbor Pemantauan Status Serah Terima Finance & Webhook Reconciler (`/hr/payroll/handoffs`)
 * **Slice / MVP**: `S-B5` / `MVP-32`
-* **Status**: Menunggu `FE-HRD-139`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-140.md](../task/report/frontend/FE-HRD-140.md).
 * **Outcome**: Halaman pemantauan `/hr/payroll/handoffs` bagi tim payroll untuk memantau status serah terima berkas di modul Keuangan secara langsung: status transmisi (`Dispatched`), konfirmasi pencairan bank (`PaymentConfirmed`), atau sinyal penolakan berkas (`PaymentRejected`) beserta detail catatan koreksi dari Finance.
 * **Requirement/decision**: `HRD-DEC-126`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `GET /handoffs`, Integration Contract `INT-HR-54`.
@@ -3553,7 +3553,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-141` — Layar `FE-HRD-167` — Portal Slip Gaji Mandiri Pegawai (ESS) & Keypad Proteksi PIN Sekunder 6-Digit (`/ess/payslips`)
 * **Slice / MVP**: `S-B5` / `MVP-32`
-* **Status**: Menunggu `FE-HRD-140`, `BE-HRD-159` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-141.md](../task/report/frontend/FE-HRD-141.md).
 * **Outcome**: Halaman portal mandiri pegawai `/ess/payslips` pada modul Employee Self-Service (ESS) untuk melihat dan mengunduh slip gaji bulanan, dilengkapi komponen keypad virtual input PIN sekunder 6-digit rahasia, penanganan pembatasan salah PIN (maks 3 kali dengan penalti lockout 30 menit), pratinjau slip gaji interaktif, dan tombol unduh berkas PDF resmi terenkripsi password tanggal lahir.
 * **Requirement/decision**: `HRD-DEC-127`, `HRD-ASM-30`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `[Tags("HR Payroll - Self-Service Payslips")]`, `VR-PAY-22`, `VR-PAY-24`.
@@ -3572,7 +3572,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-142` — Layar Pengaturan Parameter Penggajian RS, Batas Plafon BPJS & Threshold Variansi (`/hr/payroll/settings`)
 * **Slice / MVP**: `S-B5` / `MVP-30`
-* **Status**: Menunggu `FE-HRD-131`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-142.md](../task/report/frontend/FE-HRD-142.md).
 * **Outcome**: Halaman konfigurasi `/hr/payroll/settings` bagi HR Administrator untuk menyesuaikan parameter operasional penggajian rumah sakit: batas upah tertinggi BPJS Ketenagakerjaan JP, batas upah maksimal BPJS Kesehatan, nominal baku premi shift malam dinas, ambang deviasi persentase variansi (default 20%), ambang deviasi nominal rupiah (default Rp 2.000.000), serta tanggal cut-off bulanan (default tgl 20).
 * **Requirement/decision**: `HRD-DEC-122`, `HRD-DEC-124`, `03-frontend-architecture.md` 19.2.1.
 * **Kontrak**: API Contract `v14` `[Tags("HR Payroll - Settings")]`.
@@ -3590,7 +3590,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-143` — Verifikasi ujung-ke-ujung antarmuka, linter CI/CD, build Next.js, dan hak akses peran Slice `S-B5`
 * **Slice / MVP**: `S-B5` / Verifikasi
-* **Status**: Menunggu `FE-HRD-133`, `FE-HRD-134`, `FE-HRD-135`, `FE-HRD-138`, `FE-HRD-141`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-143.md](../task/report/frontend/FE-HRD-143.md).
 * **Outcome**: Seluruh 6 layar baru `S-B5` (`FE-HRD-162` s.d. `FE-HRD-167`), drawer investigasi anomali variansi, portal slip gaji ESS ber-PIN, dan modal serah terima Finance terverifikasi dapat diakses dari sidebar menu navigasi, hak akses peran teruji (Staf ESS vs Payroll Officer vs HR Manager vs Direktur SDM/Keuangan), dan lolos audit ketat linter serta kompilasi produksi Next.js.
 * **Requirement/decision**: `03-frontend-architecture.md` 19.1, 19.2; `04-prd-to-mvp.md` 28.5 (DoD `S-B5`).
 * **Kontrak**: Seluruh kontrak `v14` bagian `S-B5`.

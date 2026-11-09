@@ -1449,6 +1449,26 @@ try
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.ExitClearanceChecklistReminderWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.ItAccessRevocationSyncWorker>();
 
+    // Slice S-C6 (Occupational Health & Staff Safety / K3RS & Medical Check-Up) - MVP-57..59 (Kontrak v23)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalHealthUnitOfWork, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalHealthUnitOfWork>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IHealthRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.HealthRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IFitnessToWorkService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.FitnessToWorkService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IWorkRestrictionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.WorkRestrictionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IReturnToWorkService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.ReturnToWorkService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.INeedleStickEmergencyService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.NeedleStickEmergencyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalExposureService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalExposureService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IStaffVaccinationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.StaffVaccinationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IHazardSurveillanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.HazardSurveillanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IMedicalExaminationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.MedicalExaminationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalInjuryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalInjuryService>();
+
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.SerialSurveillanceFollowUpWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.WorkRestrictionExpirationWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.VaccineBoosterReminderWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.McuComplianceScheduleWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.RadiationDoseThresholdAlertWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.BPJSOccupationalInjuryFollowUpWorker>();
+
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
