@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7dd08c585` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `b83e8f05` + perubahan `BE-NV-015` belum di-commit (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC-1–6 terpetakan ke source; `npx eslint` 7 berkas 0 error, 0 warning; UI gate 6 elemen seluruhnya `COMPOSE`; grep anti-regresi bersih; pemeriksaan fungsi murni 15/15. Belum: `npm run build` (port 3000 dipakai server Next milik Rizki), uji layar TV berjam termasuk putus jaringan, dan regresi papan `FE-NV-005` L1–L8 / `FE-NV-007` — menunggu build backend `BE-NV-014`/`015` |
+| Status | 🟡 **SEBAGIAN 9 November 2026** — AC-1–6 terpetakan ke source; `npx eslint` 7 berkas 0 error, 0 warning; UI gate 6 elemen seluruhnya `COMPOSE`; grep anti-regresi bersih; pemeriksaan fungsi murni 15/15. `npm run build` `PASS` 9 Nov 2026 menurut pernyataan Rizki — `.next/BUILD_ID` 16.05, `standalone` 16.06, chunk memuat `display-runtime/active-calls`; backend `BE-NV-014`/`015` juga sudah dibangun Rizki. Belum, dijadwalkan 10 Nov 2026 atas permintaan Rizki: uji layar TV berjam termasuk putus jaringan, dan regresi papan `FE-NV-005` L1–L8 / `FE-NV-007` |
 
 ---
 
@@ -175,8 +175,8 @@ diikuti TV lewat `JoinNurseViewFloor`; tidak ada join baru.
 | Grep anti-regresi `ui-consistency-checklist` §G | Warna literal 0, tombol mentah 0, `<table>` 0, utility typography 0, `!important` 0, inline style 0, blok dark 0; 28 selector baru seluruhnya milik layar TV | `PASS` | Keluaran grep |
 | Pemeriksaan fungsi murni strip dan penanda (skrip sekali pakai di scratchpad, bukan test repository) | 15/15: selisih jam server, urutan dari server, lama menunggu 0:20/1:00/0:40, jenis, "Dewi menuju", 8 panggilan → 5 tampil + "+3", `totalActive` > item, kosong, penanda `null`/`1`/`2` | `PASS` | Keluaran `cek-utils.mjs` |
 | Akhiran baris | 8 berkas CRLF, LF 0 | `PASS` | Hitungan byte Node |
-| `npm run build` | Tidak dijalankan: port 3000 dipakai server Next milik Rizki (`node … next/dist/server/lib/start-server.js`, PID 19528); build akan menimpa `.next` miliknya | `NOT RUN` | `netstat`, `Win32_Process` |
-| Uji layar TV berjam, putus jaringan, regresi `FE-NV-005` L1–L8 dan `FE-NV-007` | Menunggu build backend `BE-NV-014`/`015` | `NOT RUN` | — |
+| `npm run build` (oleh Rizki) | Berhasil menurut pernyataan Rizki 9 Nov 2026; agent memeriksa artefaknya: `.next/BUILD_ID` 16.05 (source strip 15.03), `.next/standalone/server.js` 16.06 dan `static` tersalin (`postbuild`), tiga chunk memuat `display-runtime/active-calls`. Sebelumnya build agent dihentikan atas permintaan Rizki ("build semua nyaa saya yang jalankan") | `PASS` | Pernyataan Rizki; pemeriksaan `.next` |
+| Uji layar TV berjam, putus jaringan, regresi `FE-NV-005` L1–L8 dan `FE-NV-007` | Build backend dan frontend sudah ada; uji dijadwalkan 10 Nov 2026 atas permintaan Rizki | `NOT RUN` | — |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest; ketentuan owner tanpa unit test.`
 
@@ -214,7 +214,7 @@ layar penuh, Playwright headed berjam; tablet bed lantai 3 lewat API):
 | AC-6 regresi papan `FE-NV-005` L1–L8 dan `FE-NV-007` tetap lulus | 🟡 Diff papan hanya menambah; runtime belum | Perubahan jalur papan: `scheduleRealtimeLoad` tetap; kartu kosong membungkus nomor bed dalam `cardTitle`; jam pita basi = tertua papan/strip |
 | DoD — AC-1–6 terpetakan ke source | Terpenuhi | Tabel ini |
 | DoD — lint `0 errors` | Terpenuhi | `npx eslint` 0 error, 0 warning |
-| DoD — rekaman berjam TV | **Belum** | Menunggu build backend |
+| DoD — rekaman berjam TV | **Belum** | Dijadwalkan 10 Nov 2026 |
 | DoD — laporan | Terpenuhi | Berkas ini |
 
 ---

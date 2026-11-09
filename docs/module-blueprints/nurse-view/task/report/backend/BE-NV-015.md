@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b83e8f05` (branch `rizkiG`; satu commit di atas `1e17628c`, hanya `requirement-traceability.md`); working tree bersih sebelum task |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC 6/6 terpetakan ke source; QBE Strict `PASS` (5 berkas, 0 violation, 0 review); baseline `/board` build lama sudah direkam. Belum, sesuai urutan Rizki (uji dijalankan sesudah `FE-NV-014` terbentuk): `dotnet build` dan uji HTTP akun TV + tablet, termasuk perbandingan JSON `/board` sesudah build |
+| Status | 🟡 **SEBAGIAN 9 November 2026** — AC 6/6 terpetakan ke source; QBE Strict `PASS` (5 berkas, 0 violation, 0 review); baseline `/board` build lama sudah direkam. `dotnet build` `PASS` 9 Nov 2026 menurut pernyataan Rizki — DLL 15.59, lebih baru dari source terakhir 14.49, memuat simbol baru task ini (`GetActiveCalls`, `GetActiveForDisplayAsync`, `GetActivePriorityByBedAsync`, `NvwDisplayCallStripResponse`, `ActiveCallPriority`). Belum, dijadwalkan 10 Nov 2026 atas permintaan Rizki: uji HTTP akun TV + tablet, termasuk perbandingan JSON `/board` dengan baseline |
 
 ---
 
@@ -146,7 +146,7 @@ Pesan sukses strip: "Panggilan aktif lantai berhasil diambil."
 | Pasangan atribut akses | `GetActiveCalls`: `[AccessAction(P.Read …)]` + policy bernama, pola sama dengan dua action lain di controller ini (akun perangkat, tanpa `[AccessPermission]`) | `PASS` | Source |
 | Penelusuran source AC-1–6 | §6 | `PASS` | Source |
 | Baseline `/board` build lama (DLL 9 Nov 11.43, sebelum task ini) | TV `NVW-000002` lantai 3: `/current` `200`, `/board` `200` — 1 bangsal, 66 kartu, 4 kartu terisi (325-A, 325-B, 325-C, 326-C), **0** kartu berkunci `activeCallPriority`; `/active-calls` `404` | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-015-20261109/baseline-2026-11-09T07-52-25-718Z/` (`papan.json`, `strip.json`, `ringkas.json`), skrip `rekam-papan.mjs` |
-| `dotnet build` | Ditunda sesuai urutan Rizki | `NOT RUN` | — |
+| `dotnet build` (oleh Rizki) | Berhasil menurut pernyataan Rizki 9 Nov 2026; agent memeriksa artefaknya: DLL 15.59 (source terakhir 14.49) memuat `GetActiveCalls`, `GetActiveForDisplayAsync`, `GetActivePriorityByBedAsync`, `NvwDisplayCallStripResponse`, `ActiveCallPriority` | `PASS` | Pernyataan Rizki; pencarian simbol di DLL |
 | Uji HTTP akun TV dan tablet; perbandingan JSON `/board` sesudah build | Ditunda sesuai urutan Rizki | `NOT RUN` | — |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
@@ -193,7 +193,7 @@ Sandi baru tidak ditulis ke berkas mana pun; pengaman skrip menolak penulisan be
 | AC-5 bagian lain `/board` tidak berubah | 🟡 Terpetakan ke source; baseline terekam, pembanding sesudah build belum | Diff `NvwFloorBoardQueryService` hanya menambah satu query dan satu field; urutan kartu, bangsal, perawat jaga, TTV tidak disentuh. Baseline 66 kartu tanpa kunci `activeCallPriority` |
 | AC-6 jumlah query `/board` dan `/active-calls` sama untuk 1 maupun 10 panggilan | 🟡 Terpetakan ke source; hitungan log SQL belum | `/board`: tepat +1 query per permintaan, di luar perulangan kartu; pemetaan lewat kamus. `/active-calls`: bacaan ambang (1, +1 nama pencatat bila ambang terisi) + 1 query panggilan berisi label bed dan nama pengklaim. Tidak ada query di dalam perulangan item |
 | DoD — AC-1–6 terpetakan ke source | Terpenuhi | Tabel ini |
-| DoD — build Rizki lulus | **Belum** (ditunda) | — |
+| DoD — build Rizki lulus | Terpenuhi 9 Nov 2026 | Pernyataan Rizki; DLL 15.59 memuat simbol baru |
 | DoD — JSON bukti tersimpan | **Sebagian**: baseline tersimpan; JSON sesudah build belum | Folder baseline §5 |
 | DoD — laporan | Terpenuhi | Berkas ini |
 

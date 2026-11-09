@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `589fb513` (branch `rizkiG`); perubahan `BE-NV-011`–`013` sebagian sudah di-stage Rizki, belum di-commit |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC 6/6 terpetakan ke source; QBE Strict `PASS` (7 berkas, 0 violation, 0 review). Belum, atas permintaan Rizki ("build dan pengujian belakangan"): `dotnet build` dan uji hub (TV, konsol, tablet, serta regresi grup hub lama) |
+| Status | 🟡 **SEBAGIAN 9 November 2026** — AC 6/6 terpetakan ke source; QBE Strict `PASS` (7 berkas, 0 violation, 0 review). `dotnet build` `PASS` 9 Nov 2026 menurut pernyataan Rizki — DLL 15.59, lebih baru dari source terakhir 14.49, memuat simbol baru task ini (`JoinNurseViewCallConsole`, `JoinNurseViewBedTablet`, `NotifyPatientCallChangedAsync`). Belum, dijadwalkan 10 Nov 2026 atas permintaan Rizki: uji hub (TV, konsol, tablet, serta regresi grup hub lama) |
 
 ---
 
@@ -155,7 +155,7 @@ Tidak ada endpoint HTTP baru. Permukaan realtime di `/hubs/queues`:
 | `Invoke-QbeConformanceCheck.ps1 -Mode Strict -Path <7 berkas>` (array path) | Files evaluated **7** · VIOLATION 0 · REVIEW 0 · INFO 0 · `Final result: PASS` | `PASS` | Keluaran checker 2026-11-09 |
 | Review diff/scope; nol komentar; akhiran baris | Hanya berkas Nurse View + `QueueHub.cs`; method hub lama tidak berubah; CRLF | `PASS` | `git diff`, hitungan byte Node |
 | Penelusuran source AC-1–6 | §6 | `PASS` | Source |
-| `dotnet build` | Ditunda atas permintaan Rizki | `NOT RUN` | — |
+| `dotnet build` (oleh Rizki) | Berhasil menurut pernyataan Rizki 9 Nov 2026; agent memeriksa artefaknya: `bin/Debug/net9.0/QuilvianSystemBackend.dll` 15.59 (source terakhir 14.49) memuat `JoinNurseViewCallConsole`, `JoinNurseViewBedTablet`, `NotifyPatientCallChangedAsync` | `PASS` | Pernyataan Rizki; pencarian simbol di DLL |
 | Uji hub (TV + konsol + tablet + regresi grup lama) | Ditunda atas permintaan Rizki | `NOT RUN` | — |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
@@ -183,7 +183,7 @@ tetap berperilaku sama (AC-6). (7) AC-5 lewat penelusuran source dan klien yang 
 | AC-5 sinyal gagal tidak menggagalkan perintah | 🟡 Terpetakan ke source; runtime belum | `try`/`catch` + `LogError` di `NotifyPatientCallChangedAsync`; dipanggil sesudah commit |
 | AC-6 grup lain sama seperti sebelumnya | 🟡 Terpetakan ke source (diff hanya menambah); runtime belum | Diff `QueueHub.cs` §3.2 |
 | DoD — AC-1–6 terpetakan ke source | Terpenuhi | Tabel ini |
-| DoD — build Rizki lulus | **Belum** (ditunda) | — |
+| DoD — build Rizki lulus | Terpenuhi 9 Nov 2026 | Pernyataan Rizki; DLL 15.59 memuat simbol baru |
 | DoD — log uji hub tersimpan | **Belum** (ditunda) | — |
 | DoD — laporan | Terpenuhi | Berkas ini |
 
