@@ -2162,6 +2162,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             ClinicalDocumentKind.PathologyAnatomyResult => "Hasil Patologi Anatomi",
             ClinicalDocumentKind.OpticalRefraction => "Pemeriksaan Refraksi",
             ClinicalDocumentKind.OpticalPrescription => "Resep Optik",
+            ClinicalDocumentKind.RehabAssessment => "Asesmen Rehab Medik",
+            ClinicalDocumentKind.RehabProgram => "Program Terapi Rehab",
+            ClinicalDocumentKind.RehabSession => "Sesi Terapi Rehab",
+            ClinicalDocumentKind.RehabProgressReview => "Reasesmen Rehab",
+            ClinicalDocumentKind.RehabDischargeSummary => "Ringkasan Akhir Rehab",
+            ClinicalDocumentKind.RehabEducation => "Edukasi dan Persetujuan Rehab",
             _ => jenis.ToString()
         };
 
