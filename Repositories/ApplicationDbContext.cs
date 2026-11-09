@@ -531,6 +531,16 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPerformanceCheckIn> TrxPerformanceCheckIns { get; set; }
         public DbSet<TrxCalibrationSession> TrxCalibrationSessions { get; set; }
         public DbSet<TrxPerformanceImprovementPlan> TrxPerformanceImprovementPlans { get; set; }
+
+        // Sub-Modul 15: OPPE & FPPE (Clinical Performance Evaluation)
+        public DbSet<MstOppeMetricCatalog> MstOppeMetricCatalogs { get; set; }
+        public DbSet<TrxOppeEvaluationPeriod> TrxOppeEvaluationPeriods { get; set; }
+        public DbSet<TrxOppeStaffEvaluation> TrxOppeStaffEvaluations { get; set; }
+        public DbSet<TrxOppeStaffEvaluationDetail> TrxOppeStaffEvaluationDetails { get; set; }
+        public DbSet<TrxFppeEngagement> TrxFppeEngagements { get; set; }
+        public DbSet<TrxFppeCaseLog> TrxFppeCaseLogs { get; set; }
+        public DbSet<TrxFppeEvaluationConclusion> TrxFppeEvaluationConclusions { get; set; }
+        public DbSet<HrdClinicalPeerReviewAuditLog> HrdClinicalPeerReviewAuditLogs { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - PERFORMANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OCCUPATIONAL HEALTH MANAGEMENT

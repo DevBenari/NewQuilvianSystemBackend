@@ -1380,6 +1380,23 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingWorkflowService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingWorkflowService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ISpkRkkIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.SpkRkkIssuanceService>();
 
+    // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-44 (Gate SIMRS INT-HR-69, Co-Signature, Life-Saving Override & SPK 3-Year Expiry Monitor)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.IClinicalPrivilegeGateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ClinicalPrivilegeGateService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Workers.SpkRkkExpiryMonitoringWorker>();
+
+    // Slice S-C1-OPPE (OPPE, FPPE & Recredentialing) - MVP-45 (Clinical Performance Evaluation, ACGME 6 Pillars, SIMRS 60:40 & Read-Audit)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IOppeDataAggregationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.OppeDataAggregationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IClinicalPeerReviewAuditService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ClinicalPeerReviewAuditService>();
+
+    // Slice S-C1-OPPE (OPPE, FPPE & Recredentialing) - MVP-46 (FPPE Triggers, Proctoring Workflow, Case Logbook & Plenary Session)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IFppeTriggerDetectionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.FppeTriggerDetectionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IProctoringWorkflowService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ProctoringWorkflowService>();
+
+    // Slice S-C1-OPPE (OPPE, FPPE & Recredentialing) - MVP-47 (3-Year Recred Composite, Tier Classification, SIMRS Dispatcher & Proctoring Worker)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IRecredentialingCompositeProvider, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.RecredentialingQualityService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ISimrsClinicalPrivilegeDispatcher, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.SimrsClinicalPrivilegeDispatcher>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.FppeProctoringMonitoringWorker>();
+
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
     builder.Services.AddScoped<DiscountPolicyService>();
