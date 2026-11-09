@@ -22,6 +22,18 @@ public sealed class PurchaseOrderItemResponse
     public decimal LineTotal { get; set; }
 }
 
+/// <summary>
+/// GET /summary — ringkasan jumlah Purchase Order per status untuk monitoring Purchasing. Hanya membaca;
+/// tidak mengubah PO, penerimaan, invoice, maupun utang.
+/// </summary>
+public sealed class PurchaseOrderSummaryResponse
+{
+    public int TotalPurchaseOrders { get; set; }
+
+    /// <summary>Jumlah PO per nilai status (<c>FinPurchaseOrderStatuses</c>). Status tanpa PO tidak ikut dikirim.</summary>
+    public Dictionary<string, int> CountByStatus { get; set; } = new();
+}
+
 public class PurchaseOrderResponse
 {
     public Guid Id { get; set; }
