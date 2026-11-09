@@ -1469,6 +1469,48 @@ try
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.RadiationDoseThresholdAlertWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.BPJSOccupationalInjuryFollowUpWorker>();
 
+    // Slice S-A7-V2 (Employee Self-Service & Unified Approval Inbox V2 Hardening) - MVP-60..62 (Kontrak v24)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowRoutingMatrixService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowRoutingMatrixService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowInstanceCreationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowInstanceCreationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IApprovalInboxQueryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.ApprovalInboxQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IAntiSelfApprovalGuardService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.AntiSelfApprovalGuardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IApprovalDelegationV2Service, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.ApprovalDelegationV2Service>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowApprovalActionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowApprovalActionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowSlaEnforcementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowSlaEnforcementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IBulkApprovalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.BulkApprovalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IUnifiedNotificationGatewayService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.UnifiedNotificationGatewayService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowResubmitService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowResubmitService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IIdempotentDownstreamExecutionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IdempotentDownstreamExecutionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowCommentAndAttachmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowCommentAndAttachmentService>();
+
+    // Slice S-A7-V2: 6 Hosted Background Services (WF-W1..WF-W6)
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.WorkflowSlaEscalationWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ApprovalDelegationExpiryWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.DailyApprovalDigestWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.WorkflowSlaEarlyWarningWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.BulkApprovalProcessingWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ReturnedRequestExpiryWorker>();
+
+    // Slice S-D5 (Business Travel & Expense Reimbursement) - MVP-63..65 (Kontrak v25)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IMstTravelAllowanceRateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.MstTravelAllowanceRateService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelBudgetAndConflictValidationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelBudgetAndConflictValidationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IBusinessTravelRequestService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAdvanceRequestService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAdvanceRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IAdvanceApprovalAndVoucherService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.AdvanceApprovalAndVoucherService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IAdvanceDisbursementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.AdvanceDisbursementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelDocumentGenerationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelDocumentGenerationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IMissingReceiptDeclarationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.MissingReceiptDeclarationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelSettlementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelSettlementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IDirectExpenseClaimService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.DirectExpenseClaimService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IExpenseVerificationAndPaymentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ExpenseVerificationAndPaymentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAttendanceAndRosterLockService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAttendanceAndRosterLockService>();
+
+    // Slice S-D5: 4 Hosted Background Services (TRV-W1, TRV-W2, TRV-W4, RosterLockExpiry)
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelAdvanceSettlementReminderWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelSettlementOverdueWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelCurrencyRateSyncWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelRosterLockExpiryWorker>();
+
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();

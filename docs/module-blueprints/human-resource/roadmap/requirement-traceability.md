@@ -352,6 +352,34 @@ tercatat di bawah adalah requirement yang belum punya jalan pembuktian penuh.
 | `FE-HRD-141` | Portal Slip Gaji Mandiri Pegawai (ESS) & PIN 6-Digit | `PayrollRunModernController.cs` | `src/app/ess/payslips/**`, `PayslipPinKeypadModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-141.md](../task/report/frontend/FE-HRD-141.md) |
 | `FE-HRD-142` | Pengaturan Parameter Penggajian RS & Plafon BPJS | `PayrollSettingModernController.cs` | `src/app/hr/payroll/settings/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-142.md](../task/report/frontend/FE-HRD-142.md) |
 | `FE-HRD-143` | Verifikasi Ujung-ke-Ujung Antarmuka Penggajian Slice S-B5 | Seluruh Controller Payroll | `src/app/hr/payroll/**`, `src/app/ess/payslips/**`, `menu-items.jsx` | ✅ Lulus Linter & Turbopack Build (608 Rute) | [FE-HRD-143.md](../task/report/frontend/FE-HRD-143.md) |
+| `FE-HRD-144` | Service API Client, Adaptor DTO, Tipe Redux Slice & State Management Restitusi & Potongan | `PayrollRestitutionController.cs`, `PayrollRunInstallmentDeductionController.cs` | `src/lib/services/hr/restitution-service.js`, `restitution-slice.js`, `store.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-144.md](../task/report/frontend/FE-HRD-144.md) |
+| `FE-HRD-145` | Utilitas Token, Format Rupiah, Kalkulator Plafon & Rasio 50% PP 36/2021 | `PayrollRestitutionController.cs` | `src/utils/hr/restitution/**`, `restitution.module.css` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-145.md](../task/report/frontend/FE-HRD-145.md) |
+| `FE-HRD-146` | Komponen Dasbor Pemantauan Restitusi & Pemotongan Upah RS (4 KPI) | `PayrollRestitutionController.cs` | `src/components/view/hr/restitution/deductions-dashboard-view.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-146.md](../task/report/frontend/FE-HRD-146.md) |
+| `FE-HRD-147` | Layar FE-HRD-168 – Dasbor Restitusi & Integrasi Pemotongan Penggajian RS | `PayrollRestitutionController.cs` | `src/app/corporate/hrd/payroll/deductions/**`, `src/app/hr/payroll/deductions/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-147.md](../task/report/frontend/FE-HRD-147.md) |
+| `FE-HRD-148` | Komponen Jadwal Angsuran Pinjaman & Modal Simulasi Hard-Cap 50% | `PayrollRunInstallmentDeductionController.cs` | `src/components/features/hr/restitution/DeductionCapSimulationModal.jsx`, view | ✅ Lulus Linter & Turbopack Build | [FE-HRD-148.md](../task/report/frontend/FE-HRD-148.md) |
+| `FE-HRD-149` | Layar FE-HRD-170 – Master Jadwal Angsuran & Peringatan Rasio Upah | `PayrollRunInstallmentDeductionController.cs` | `src/app/corporate/hrd/payroll/deductions/schedules/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-149.md](../task/report/frontend/FE-HRD-149.md) |
+| `FE-HRD-150` | Komponen Pelacak Kuota Plafon Restitusi ESS & Modal Klaim Mandiri Nakes | `PayrollRestitutionController.cs` | `src/components/features/hr/restitution/EssClaimFormModal.jsx`, view | ✅ Lulus Linter & Turbopack Build | [FE-HRD-150.md](../task/report/frontend/FE-HRD-150.md) |
+| `FE-HRD-151` | Layar FE-HRD-169 – Portal Layanan Mandiri (ESS) Klaim Restitusi RS | `PayrollRestitutionController.cs` | `src/app/ess/restitution-claims/**`, `src/app/hr/self-service/restitution-claims/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-151.md](../task/report/frontend/FE-HRD-151.md) |
+| `FE-HRD-152` | Layar FE-HRD-172 – Kotak Masuk Approval 3-Tier Restitusi RS | `PayrollRestitutionController.cs` | `src/app/corporate/hrd/payroll/deductions/approvals/**`, view | ✅ Lulus Linter & Turbopack Build | [FE-HRD-152.md](../task/report/frontend/FE-HRD-152.md) |
+| `FE-HRD-153` | Komponen Viewer Dokumen Zoom, Rotasi & Validasi Nota 60 Hari | `PayrollRestitutionController.cs` | `src/components/features/hr/restitution/ModalClaimDocumentPreview.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-153.md](../task/report/frontend/FE-HRD-153.md) |
+| `FE-HRD-154` | Layar FE-HRD-171 – Drawer Koreksi Salah Potong Periode Lampau | `PayrollRestitutionController.cs` | `src/components/features/hr/restitution/PastPeriodCorrectionDrawer.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-154.md](../task/report/frontend/FE-HRD-154.md) |
+| `FE-HRD-155` | Komponen Generator Voucher QR Code Kasir 24/7 Cito Darurat Pajanan Nakes | `PayrollRestitutionController.cs` | `src/components/features/hr/restitution/ModalVoucherQrViewer.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-155.md](../task/report/frontend/FE-HRD-155.md) |
+| `FE-HRD-156` | Layar FE-HRD-173 – Pengaturan Kebijakan Plafon Benefit & Batas Potong Upah | `PayrollRestitutionController.cs` | `src/app/corporate/hrd/payroll/deductions/settings/**`, view | ✅ Lulus Linter & Turbopack Build | [FE-HRD-156.md](../task/report/frontend/FE-HRD-156.md) |
+| `FE-HRD-157` | Verifikasi Ujung-ke-Ujung Antarmuka Restitusi & Pemotongan Slice S-B6 | Seluruh Controller Restitusi & Potongan | `src/app/corporate/hrd/payroll/deductions/**`, `src/app/ess/**`, `menu-items.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-157.md](../task/report/frontend/FE-HRD-157.md) |
+| `FE-HRD-158` | Service API Client, Adaptor DTO, Tipe Redux Slice & State Management Manfaat Kesehatan | `BenefitPlanController.cs`, `BenefitEnrollmentController.cs`, `BenefitClaimController.cs` | `src/lib/services/hr/benefits-service.js`, `benefits-slice.js`, `store.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-158.md](../task/report/frontend/FE-HRD-158.md) |
+| `FE-HRD-159` | Registrasi Peta Navigasi Sidebar, Rute /corporate/hrd/benefits/*, Rute ESS & Guards | Seluruh Controller Manfaat Kesehatan | `src/utils/menu-sidebar/menu-items.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-159.md](../task/report/frontend/FE-HRD-159.md) |
+| `FE-HRD-160` | Komponen Reusable & Token UI Manfaat (StatusBadge, Meteran, Uploader KK/Akta) | `BenefitPlanController.cs` | `src/utils/hr/benefits/**`, `benefits.module.css` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-160.md](../task/report/frontend/FE-HRD-160.md) |
+| `FE-HRD-161` | Layar FE-HRD-174 – Dasbor Analitik Manfaat Kesehatan, Utilisasi Plafon & Alert Batas Usia | `BenefitEnrollmentController.cs`, `BenefitPlanController.cs` | `src/app/corporate/hrd/benefits/dashboard/**`, view | ✅ Lulus Linter & Turbopack Build | [FE-HRD-161.md](../task/report/frontend/FE-HRD-161.md) |
+| `FE-HRD-162` | Layar FE-HRD-175 – Master Katalog Paket Manfaat 3-Lapisan, Pagu Plafon & Diskon Tarif Staf | `BenefitPlanController.cs` | `src/app/corporate/hrd/benefits/plans/**`, `BenefitPlanFormModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-162.md](../task/report/frontend/FE-HRD-162.md) |
+| `FE-HRD-163` | Komponen Drawer FE-HRD-175 – Matriks Kelayakan Grade Staf ke Kelas Kamar Rawat Inap | `BenefitPlanController.cs` | `src/components/features/hr/benefits/GradeEligibilityDrawer.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-163.md](../task/report/frontend/FE-HRD-163.md) |
+| `FE-HRD-164` | Layar FE-HRD-176 – Monitoring Kepesertaan Asuransi Pegawai, Aktivasi H+0 vs Masa Percobaan | `BenefitEnrollmentController.cs` | `src/app/corporate/hrd/benefits/enrollments/**`, `PolicyNumberModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-164.md](../task/report/frontend/FE-HRD-164.md) |
+| `FE-HRD-165` | Layar FE-HRD-177 – Antrean Meja Kerja Verifikasi Dokumen Tanggungan Keluarga HR | `BenefitEnrollmentController.cs` | `src/app/corporate/hrd/benefits/dependents/**`, `DependentVerificationModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-165.md](../task/report/frontend/FE-HRD-165.md) |
+| `FE-HRD-166` | Layar FE-HRD-177 (ESS View) – Portal Mandiri ESS Keluarga Saya & Indikator Kuota 1 Pasangan + 3 Anak | `BenefitEnrollmentController.cs` | `src/app/ess/my-dependents/**`, `FamilyRegistrationFormModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-166.md](../task/report/frontend/FE-HRD-166.md) |
+| `FE-HRD-167` | Layar FE-HRD-178 – Inquiry Hak Berobat Staf di RS Sendiri & Buku Besar Mutasi Saldo SIMRS | `InHouseHealthcareController.cs` | `src/app/corporate/hrd/benefits/inhouse-ledger/**`, view | ✅ Lulus Linter & Turbopack Build | [FE-HRD-167.md](../task/report/frontend/FE-HRD-167.md) |
+| `FE-HRD-168` | Modal Dialog FE-HRD-178 – Penyesuaian Manual Saldo Plafon Berobat RS oleh HR Manajer | `InHouseHealthcareController.cs` | `src/components/features/hr/benefits/ManualBalanceAdjustmentModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-168.md](../task/report/frontend/FE-HRD-168.md) |
+| `FE-HRD-169` | Layar FE-HRD-179 – Meja Kerja Monitoring, Audit Kuitansi & Settlement Klaim Koordinasi Manfaat (COB) | `BenefitClaimController.cs` | `src/app/corporate/hrd/benefits/cob-claims/**`, `ClaimSettlementDrawer.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-169.md](../task/report/frontend/FE-HRD-169.md) |
+| `FE-HRD-170` | Layar FE-HRD-179 (ESS View) – Formulir Mandiri Pengajuan Klaim COB Berlampiran Mandatory SEP BPJS | `BenefitClaimController.cs` | `src/app/ess/claims/cob-submission/**`, view | ✅ Lulus Linter & Turbopack Build | [FE-HRD-170.md](../task/report/frontend/FE-HRD-170.md) |
+| `FE-HRD-171` | Verifikasi Ujung-ke-Ujung Antarmuka UI/UX, Linter CI/CD, Build Next.js, dan Hak Akses Peran Slice S-D3 | Seluruh Controller Benefit Management | `src/app/corporate/hrd/benefits/**`, `src/app/ess/**`, `menu-items.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-171.md](../task/report/frontend/FE-HRD-171.md) |
 
 
 ## 1b. Jejak `S-D2` Rekrutmen dan Hiring — requirement ke task dan bukti
@@ -1524,31 +1552,31 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 
 | Kode Kebutuhan | Deskripsi Kebutuhan Bisnis ESS & Unified Approval | Task Backend Terkait | Task Frontend Terkait | Kontrak API Terkait | Acceptance Test Terkait | Status |
 |---|---|---|---|---|---|---|
-| `FR-WF-01` | Pendaftaran instansiasi tiket workflow baru dari portal mandiri ESS | `BE-HRD-302`, `BE-HRD-304` | `FE-HRD-276`, `FE-HRD-288` | `POST /api/v1/hrd/workflow/instances` | `AT-HRD-WF-01` | `Rencana` |
-| `FR-WF-02` | Resolusi rantai tahapan persetujuan dinamis matriks multi-dimensi | `BE-HRD-303` | `FE-HRD-281`, `FE-HRD-287` | `GET /api/v1/hrd/workflow/matrix` | `AT-HRD-WF-02` | `Rencana` |
-| `FR-WF-03` | Agregasi data kotak masuk terpadu lintas 15 modul HRD | `BE-HRD-305` | `FE-HRD-277`, `FE-HRD-278` | `GET /api/v1/hrd/workflow/inbox` | `AT-HRD-WF-03` | `Rencana` |
-| `FR-WF-04` | Kartu metrik antrean pending, urgent H-4 SLA, dan badge delegasi | `BE-HRD-305` | `FE-HRD-279` | `GET /api/v1/hrd/workflow/inbox/summary` | `AT-HRD-WF-03`, `AT-HRD-WF-10` | `Rencana` |
-| `FR-WF-05` | Pemblokiran mutlak persetujuan mandiri (Anti Self-Approval - HRD-DEC-183) | `BE-HRD-306` | `FE-HRD-280`, `FE-HRD-282` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-04` | `Rencana` |
-| `FR-WF-06` | Otomasi pengalihan tiket skip-level ke atasan atas saat self-approval | `BE-HRD-306` | `FE-HRD-281` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-04` | `Rencana` |
-| `FR-WF-07` | Pendaftaran surat kuasa penunjukan Pelaksana Harian (Plh - HRD-DEC-184) | `BE-HRD-307` | `FE-HRD-284`, `FE-HRD-285` | `POST /api/v1/hrd/workflow/delegations` | `AT-HRD-WF-05` | `Rencana` |
-| `FR-WF-08` | Pencabutan wewenang delegasi Plh lebih awal sebelum batas tanggal | `BE-HRD-307` | `FE-HRD-284` | `PUT /api/v1/hrd/workflow/delegations/{id}/revoke` | `AT-HRD-WF-05` | `Rencana` |
-| `FR-WF-09` | Otomasi pencabutan wewenang Plh kedaluwarsa oleh worker WF-W2 | `BE-HRD-308` | `FE-HRD-284` | Background Worker `WF-W2` | `AT-HRD-WF-06` | `Rencana` |
-| `FR-WF-10` | Eksekusi persetujuan permohonan dengan verifikasi PIN / digital signature | `BE-HRD-309` | `FE-HRD-282` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-07`, `AT-HRD-WF-12` | `Rencana` |
-| `FR-WF-11` | Penolakan permohonan dengan alasan wajib minimal 15 karakter | `BE-HRD-309` | `FE-HRD-283` | `POST /api/v1/hrd/workflow/approvals/{id}/reject` | `AT-HRD-WF-07` | `Rencana` |
-| `FR-WF-12` | Pengembalian draf permohonan ke staf untuk koreksi revisi (Return) | `BE-HRD-309` | `FE-HRD-283` | `POST /api/v1/hrd/workflow/approvals/{id}/return` | `AT-HRD-WF-07` | `Rencana` |
-| `FR-WF-13` | Pencatatan jejak audit ganda otorisasi Plh atas nama pejabat definitif | `BE-HRD-309` | `FE-HRD-280` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-08` | `Rencana` |
-| `FR-WF-14` | Penegakan batas waktu SLA (24 jam shift, 48 jam cuti, 72 jam klaim) | `BE-HRD-310` | `FE-HRD-277`, `FE-HRD-279` | `GET /api/v1/hrd/workflow/sla/overdue` | `AT-HRD-WF-09` | `Rencana` |
-| `FR-WF-15` | Larangan mutlak auto-approve saat batas waktu habis (HRD-DEC-185) | `BE-HRD-310` | `FE-HRD-277` | Engine Policy Guard `WF-B4` | `AT-HRD-WF-09` | `Rencana` |
-| `FR-WF-16` | Otomasi eskalasi tiket macet ke atasan tingkat atas oleh worker WF-W1 | `BE-HRD-310` | `FE-HRD-287` | Background Worker `WF-W1` | `AT-HRD-WF-09` | `Rencana` |
-| `FR-WF-17` | Sirene notifikasi peringatan dini H-4 jam SLA oleh worker WF-W4 | `BE-HRD-311` | `FE-HRD-279` | Background Worker `WF-W4` | `AT-HRD-WF-10` | `Rencana` |
-| `FR-WF-18` | Validasi guard 100% indikator hijau untuk bulk approval (HRD-DEC-187) | `BE-HRD-312` | `FE-HRD-286` | `POST /api/v1/hrd/workflow/approvals/bulk-approve` | `AT-HRD-WF-11` | `Rencana` |
-| `FR-WF-19` | Eksekusi persetujuan massal aman ber-PIN dan pemrosesan antrean batch | `BE-HRD-312`, `BE-HRD-313` | `FE-HRD-286` | Background Worker `WF-W5` | `AT-HRD-WF-12`, `AT-HRD-WF-13` | `Rencana` |
-| `FR-WF-20` | Gateway notifikasi instan multikanal (Web push, Mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | `POST /api/v1/hrd/workflow/instances/{id}/comments` | `AT-HRD-WF-14` | `Rencana` |
-| `FR-WF-21` | Pengiriman email ringkasan harian tiket pending pukul 07:00 (WF-W3) | `BE-HRD-314` | `FE-HRD-277` | Background Worker `WF-W3` | `AT-HRD-WF-15` | `Rencana` |
-| `FR-WF-22` | Resubmit draf revisi mandiri staf pasca pengembalian dalam 7 hari | `BE-HRD-315` | `FE-HRD-289` | `POST /api/v1/hrd/workflow/instances/{id}/resubmit` | `AT-HRD-WF-16` | `Rencana` |
-| `FR-WF-23` | Pembatalan otomatis tiket revisi yang diabaikan > 7 hari oleh WF-W6 | `BE-HRD-315` | `FE-HRD-289` | Background Worker `WF-W6` | `AT-HRD-WF-17` | `Rencana` |
-| `FR-WF-24` | Sinyal eksekusi idempoten ke modul transaksi hilir pasca approval (INT-HR-93) | `BE-HRD-316` | `FE-HRD-277` | Event Publisher `WorkflowApproved` | `AT-HRD-WF-18` | `Rencana` |
-| `FR-WF-25` | Prompt otomasi pembuatan delegasi Plh saat cuti pejabat disetujui (INT-HR-94) | `BE-HRD-316` | `FE-HRD-290` | Event Consumer `LeaveRequestApproved` | `AT-HRD-WF-19` | `Rencana` |
+| `FR-WF-01` | Pendaftaran instansiasi tiket workflow baru dari portal mandiri ESS | `BE-HRD-302`, `BE-HRD-304` | `FE-HRD-276`, `FE-HRD-288` | `POST /api/v1/hrd/workflow/instances` | `AT-HRD-WF-01` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-02` | Resolusi rantai tahapan persetujuan dinamis matriks multi-dimensi | `BE-HRD-303` | `FE-HRD-281`, `FE-HRD-287` | `GET /api/v1/hrd/workflow/matrix` | `AT-HRD-WF-02` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-03` | Agregasi data kotak masuk terpadu lintas 15 modul HRD | `BE-HRD-305` | `FE-HRD-277`, `FE-HRD-278` | `GET /api/v1/hrd/workflow/inbox` | `AT-HRD-WF-03` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-04` | Kartu metrik antrean pending, urgent H-4 SLA, dan badge delegasi | `BE-HRD-305` | `FE-HRD-279` | `GET /api/v1/hrd/workflow/inbox/summary` | `AT-HRD-WF-03`, `AT-HRD-WF-10` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-05` | Pemblokiran mutlak persetujuan mandiri (Anti Self-Approval - HRD-DEC-183) | `BE-HRD-306` | `FE-HRD-280`, `FE-HRD-282` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-04` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-06` | Otomasi pengalihan tiket skip-level ke atasan atas saat self-approval | `BE-HRD-306` | `FE-HRD-281` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-04` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-07` | Pendaftaran surat kuasa penunjukan Pelaksana Harian (Plh - HRD-DEC-184) | `BE-HRD-307` | `FE-HRD-284`, `FE-HRD-285` | `POST /api/v1/hrd/workflow/delegations` | `AT-HRD-WF-05` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-08` | Pencabutan wewenang delegasi Plh lebih awal sebelum batas tanggal | `BE-HRD-307` | `FE-HRD-284` | `PUT /api/v1/hrd/workflow/delegations/{id}/revoke` | `AT-HRD-WF-05` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-09` | Otomasi pencabutan wewenang Plh kedaluwarsa oleh worker WF-W2 | `BE-HRD-308` | `FE-HRD-284` | Background Worker `WF-W2` | `AT-HRD-WF-06` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-10` | Eksekusi persetujuan permohonan dengan verifikasi PIN / digital signature | `BE-HRD-309` | `FE-HRD-282` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-07`, `AT-HRD-WF-12` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-11` | Penolakan permohonan dengan alasan wajib minimal 15 karakter | `BE-HRD-309` | `FE-HRD-283` | `POST /api/v1/hrd/workflow/approvals/{id}/reject` | `AT-HRD-WF-07` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-12` | Pengembalian draf permohonan ke staf untuk koreksi revisi (Return) | `BE-HRD-309` | `FE-HRD-283` | `POST /api/v1/hrd/workflow/approvals/{id}/return` | `AT-HRD-WF-07` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-13` | Pencatatan jejak audit ganda otorisasi Plh atas nama pejabat definitif | `BE-HRD-309` | `FE-HRD-280` | `POST /api/v1/hrd/workflow/approvals/{id}/approve` | `AT-HRD-WF-08` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-14` | Penegakan batas waktu SLA (24 jam shift, 48 jam cuti, 72 jam klaim) | `BE-HRD-310` | `FE-HRD-277`, `FE-HRD-279` | `GET /api/v1/hrd/workflow/sla/overdue` | `AT-HRD-WF-09` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-15` | Larangan mutlak auto-approve saat batas waktu habis (HRD-DEC-185) | `BE-HRD-310` | `FE-HRD-277` | Engine Policy Guard `WF-B4` | `AT-HRD-WF-09` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-16` | Otomasi eskalasi tiket macet ke atasan tingkat atas oleh worker WF-W1 | `BE-HRD-310` | `FE-HRD-287` | Background Worker `WF-W1` | `AT-HRD-WF-09` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-17` | Sirene notifikasi peringatan dini H-4 jam SLA oleh worker WF-W4 | `BE-HRD-311` | `FE-HRD-279` | Background Worker `WF-W4` | `AT-HRD-WF-10` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-18` | Validasi guard 100% indikator hijau untuk bulk approval (HRD-DEC-187) | `BE-HRD-312` | `FE-HRD-286` | `POST /api/v1/hrd/workflow/approvals/bulk-approve` | `AT-HRD-WF-11` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-19` | Eksekusi persetujuan massal aman ber-PIN dan pemrosesan antrean batch | `BE-HRD-312`, `BE-HRD-313` | `FE-HRD-286` | Background Worker `WF-W5` | `AT-HRD-WF-12`, `AT-HRD-WF-13` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-20` | Gateway notifikasi instan multikanal (Web push, Mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | `POST /api/v1/hrd/workflow/instances/{id}/comments` | `AT-HRD-WF-14` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-21` | Pengiriman email ringkasan harian tiket pending pukul 07:00 (WF-W3) | `BE-HRD-314` | `FE-HRD-277` | Background Worker `WF-W3` | `AT-HRD-WF-15` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-22` | Resubmit draf revisi mandiri staf pasca pengembalian dalam 7 hari | `BE-HRD-315` | `FE-HRD-289` | `POST /api/v1/hrd/workflow/instances/{id}/resubmit` | `AT-HRD-WF-16` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-23` | Pembatalan otomatis tiket revisi yang diabaikan > 7 hari oleh WF-W6 | `BE-HRD-315` | `FE-HRD-289` | Background Worker `WF-W6` | `AT-HRD-WF-17` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-24` | Sinyal eksekusi idempoten ke modul transaksi hilir pasca approval (INT-HR-93) | `BE-HRD-316` | `FE-HRD-277` | Event Publisher `WorkflowApproved` | `AT-HRD-WF-18` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-25` | Prompt otomasi pembuatan delegasi Plh saat cuti pejabat disetujui (INT-HR-94) | `BE-HRD-316` | `FE-HRD-290` | Event Consumer `LeaveRequestApproved` | `AT-HRD-WF-19` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 
 ---
 
@@ -1573,28 +1601,28 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 
 | Kode Pengujian | Target Komponen yang Diuji | Task Backend Terkait | Task Frontend Terkait | Status Pengujian |
 |---|---|---|---|---|
-| `AT-HRD-WF-01` | Uji instansiasi tiket alur kerja baru dari formulir permohonan mandiri ESS | `BE-HRD-302`, `BE-HRD-304` | `FE-HRD-288` | `Rencana` |
-| `AT-HRD-WF-02` | Uji resolusi dinamis tahapan persetujuan berdasarkan matriks unit kerja dan nominal | `BE-HRD-303` | `FE-HRD-281`, `FE-HRD-287` | `Rencana` |
-| `AT-HRD-WF-03` | Uji agregasi data kotak masuk terpadu dari 15 modul HRD dalam 1 tampilan seragam | `BE-HRD-305` | `FE-HRD-277`, `FE-HRD-278` | `Rencana` |
-| `AT-HRD-WF-04` | Uji penolakan keras persetujuan mandiri (Anti Self-Approval) dan otomasi skip-level | `BE-HRD-306` | `FE-HRD-280`, `FE-HRD-281` | `Rencana` |
-| `AT-HRD-WF-05` | Uji pendaftaran surat kuasa Plh dan distribusi tiket ke inbox pejabat pengganti | `BE-HRD-307` | `FE-HRD-284`, `FE-HRD-285` | `Rencana` |
-| `AT-HRD-WF-06` | Uji pencabutan otomatis wewenang Plh yang telah kedaluwarsa oleh worker WF-W2 | `BE-HRD-308` | `FE-HRD-284` | `Rencana` |
-| `AT-HRD-WF-07` | Uji eksekusi tri-state, validasi alasan penolakan min 15 karakter, dan return draf | `BE-HRD-309` | `FE-HRD-282`, `FE-HRD-283` | `Rencana` |
-| `AT-HRD-WF-08` | Uji pencatatan jejak audit ganda otorisasi Plh atas nama pejabat definitif | `BE-HRD-309` | `FE-HRD-280` | `Rencana` |
-| `AT-HRD-WF-09` | Uji penegakan disiplin SLA, penolakan keras auto-approve, dan auto-eskalasi WF-W1 | `BE-HRD-310` | `FE-HRD-277`, `FE-HRD-287` | `Rencana` |
-| `AT-HRD-WF-10` | Uji pengiriman sirene notifikasi peringatan dini H-4 jam sebelum SLA terlewati | `BE-HRD-311` | `FE-HRD-279` | `Rencana` |
-| `AT-HRD-WF-11` | Uji proteksi bulk approval: penolakan otomatis item berisiko/bentrok dari batch | `BE-HRD-312` | `FE-HRD-286` | `Rencana` |
-| `AT-HRD-WF-12` | Uji verifikasi PIN keamanan 6-digit untuk otorisasi tunggal dan persetujuan massal | `BE-HRD-309`, `BE-HRD-312` | `FE-HRD-282`, `FE-HRD-286` | `Rencana` |
-| `AT-HRD-WF-13` | Uji pemrosesan batch aman berurutan dan isolasi kegagalan transaksi oleh WF-W5 | `BE-HRD-313` | `FE-HRD-286` | `Rencana` |
-| `AT-HRD-WF-14` | Uji integrasi pengiriman notifikasi multikanal (Web push, Push mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | `Rencana` |
-| `AT-HRD-WF-15` | Uji pengiriman ringkasan harian (daily digest) permohonan pending pukul 07:00 pagi | `BE-HRD-314` | `FE-HRD-277` | `Rencana` |
-| `AT-HRD-WF-16` | Uji perbaikan draf permohonan dan resubmit mandiri staf pasca pengembalian revisi | `BE-HRD-315` | `FE-HRD-289` | `Rencana` |
-| `AT-HRD-WF-17` | Uji pembatalan otomatis tiket permohonan yang tidak diperbaiki staf > 7 hari | `BE-HRD-315` | `FE-HRD-289` | `Rencana` |
-| `AT-HRD-WF-18` | Uji eksekusi transaksional idempoten ke modul hilir pasca persetujuan final | `BE-HRD-316` | `FE-HRD-277` | `Rencana` |
-| `AT-HRD-WF-19` | Uji pemicu prompt otomatis penunjukan Plh saat pengajuan cuti pejabat disetujui | `BE-HRD-316` | `FE-HRD-290` | `Rencana` |
-| `AT-HRD-WF-20` | Uji kepatuhan kontrak API Swagger 5 Tag 24 endpoint Kontrak v24 | `BE-HRD-317` | `FE-HRD-277` | `Rencana` |
-| `AT-HRD-WF-21` | Uji kelengkapan pencatatan 14 event audit permanen dan digital signature hash | `BE-HRD-317` | `FE-HRD-280` | `Rencana` |
-| `AT-HRD-WF-22` | Uji kompilasi build produksi, audit linting frontend, dan QBE Conformance backend | `BE-HRD-317` | `FE-HRD-290` | `Rencana` |
+| `AT-HRD-WF-01` | Uji instansiasi tiket alur kerja baru dari formulir permohonan mandiri ESS | `BE-HRD-302`, `BE-HRD-304` | `FE-HRD-288` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-02` | Uji resolusi dinamis tahapan persetujuan berdasarkan matriks unit kerja dan nominal | `BE-HRD-303` | `FE-HRD-281`, `FE-HRD-287` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-03` | Uji agregasi data kotak masuk terpadu dari 15 modul HRD dalam 1 tampilan seragam | `BE-HRD-305` | `FE-HRD-277`, `FE-HRD-278` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-04` | Uji penolakan keras persetujuan mandiri (Anti Self-Approval) dan otomasi skip-level | `BE-HRD-306` | `FE-HRD-280`, `FE-HRD-281` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-05` | Uji pendaftaran surat kuasa Plh dan distribusi tiket ke inbox pejabat pengganti | `BE-HRD-307` | `FE-HRD-284`, `FE-HRD-285` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-06` | Uji pencabutan otomatis wewenang Plh yang telah kedaluwarsa oleh worker WF-W2 | `BE-HRD-308` | `FE-HRD-284` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-07` | Uji eksekusi tri-state, validasi alasan penolakan min 15 karakter, dan return draf | `BE-HRD-309` | `FE-HRD-282`, `FE-HRD-283` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-08` | Uji pencatatan jejak audit ganda otorisasi Plh atas nama pejabat definitif | `BE-HRD-309` | `FE-HRD-280` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-09` | Uji penegakan disiplin SLA, penolakan keras auto-approve, dan auto-eskalasi WF-W1 | `BE-HRD-310` | `FE-HRD-277`, `FE-HRD-287` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-10` | Uji pengiriman sirene notifikasi peringatan dini H-4 jam sebelum SLA terlewati | `BE-HRD-311` | `FE-HRD-279` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-11` | Uji proteksi bulk approval: penolakan otomatis item berisiko/bentrok dari batch | `BE-HRD-312` | `FE-HRD-286` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-12` | Uji verifikasi PIN keamanan 6-digit untuk otorisasi tunggal dan persetujuan massal | `BE-HRD-309`, `BE-HRD-312` | `FE-HRD-282`, `FE-HRD-286` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-13` | Uji pemrosesan batch aman berurutan dan isolasi kegagalan transaksi oleh WF-W5 | `BE-HRD-313` | `FE-HRD-286` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-14` | Uji integrasi pengiriman notifikasi multikanal (Web push, Push mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-15` | Uji pengiriman ringkasan harian (daily digest) permohonan pending pukul 07:00 pagi | `BE-HRD-314` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-16` | Uji perbaikan draf permohonan dan resubmit mandiri staf pasca pengembalian revisi | `BE-HRD-315` | `FE-HRD-289` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-17` | Uji pembatalan otomatis tiket permohonan yang tidak diperbaiki staf > 7 hari | `BE-HRD-315` | `FE-HRD-289` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-18` | Uji eksekusi transaksional idempoten ke modul hilir pasca persetujuan final | `BE-HRD-316` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-19` | Uji pemicu prompt otomatis penunjukan Plh saat pengajuan cuti pejabat disetujui | `BE-HRD-316` | `FE-HRD-290` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-20` | Uji kepatuhan kontrak API Swagger 5 Tag 24 endpoint Kontrak v24 | `BE-HRD-317` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-21` | Uji kelengkapan pencatatan 14 event audit permanen dan digital signature hash | `BE-HRD-317` | `FE-HRD-280` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-22` | Uji kompilasi build produksi, audit linting frontend, dan QBE Conformance backend | `BE-HRD-317` | `FE-HRD-290` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 
 ---
 
@@ -1616,31 +1644,31 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 
 | Kode Kebutuhan | Deskripsi Kebutuhan Bisnis Travel & Expense | Task Backend Terkait | Task Frontend Terkait | Kontrak API Terkait | Acceptance Test Terkait | Status |
 |---|---|---|---|---|---|---|
-| `FR-TRV-01` | Registrasi pengajuan SPPD mandiri nakes via portal ESS | `BE-HRD-318`, `BE-HRD-320` | `FE-HRD-291`, `FE-HRD-295` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-01` | `Rencana` |
-| `FR-TRV-02` | Perhitungan otomatis akumulasi estimasi biaya dinas | `BE-HRD-320` | `FE-HRD-296` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-01` | `Rencana` |
-| `FR-TRV-03` | Integrasi matriks tarif baku per diem berdasarkan zonasi & grade | `BE-HRD-319` | `FE-HRD-294`, `FE-HRD-297` | `GET /api/v1/hrd/travel/rates` | `AT-HRD-TRV-02` | `Rencana` |
-| `FR-TRV-04` | Validasi ketersediaan pagu anggaran dinas unit kerja (CostCenterId) | `BE-HRD-321` | `FE-HRD-293` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-21` | `Rencana` |
-| `FR-TRV-05` | Pemblokiran pengajuan SPPD bila tumpang tindih tanggal dengan cuti | `BE-HRD-321` | `FE-HRD-296` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-20` | `Rencana` |
-| `FR-TRV-06` | Permohonan uang muka kerja dengan batas maksimal 80% dari pagu | `BE-HRD-322` | `FE-HRD-296`, `FE-HRD-298` | `POST /api/v1/hrd/travel/advances` | `AT-HRD-TRV-03` | `Rencana` |
-| `FR-TRV-07` | Alur persetujuan ganda 2-pintu uang muka oleh Atasan & Finance | `BE-HRD-323` | `FE-HRD-298` | `POST /api/v1/hrd/travel/advances/{id}/approve` | `AT-HRD-TRV-04` | `Rencana` |
-| `FR-TRV-08` | Integrasi pencairan uang muka kasir via transfer payroll/tunai | `BE-HRD-324` | `FE-HRD-298` | `POST /api/v1/hrd/travel/advances/{id}/disburse` | `AT-HRD-TRV-05` | `Rencana` |
-| `FR-TRV-09` | Penerbitan berkas resmi Surat Tugas dan SPPD ber-barcode PDF | `BE-HRD-325` | `FE-HRD-295` | `GET /api/v1/hrd/travel/requests/{id}/document-pdf` | `AT-HRD-TRV-01` | `Rencana` |
-| `FR-TRV-10` | Suntik log presensi otomatis "Hadir Dinas Luar" ke Sub-07 (INT-HR-97) | `BE-HRD-332` | `FE-HRD-305` | Event `TravelApproved` | `AT-HRD-TRV-07` | `Rencana` |
-| `FR-TRV-11` | Pemasangan gembok hard-stop roster dinas bangsal Sub-06 (INT-HR-97) | `BE-HRD-332` | `FE-HRD-305` | Event `TravelApproved` | `AT-HRD-TRV-06` | `Rencana` |
-| `FR-TRV-12` | Pengunggahan bukti invoice hotel ber-NPWP dan boarding pass tiket | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-304` | `POST /api/v1/hrd/travel/settlements` | `AT-HRD-TRV-14` | `Rencana` |
-| `FR-TRV-13` | Formulir deklarasi biaya darurat tanpa kuitansi maks Rp 150rb / 10% | `BE-HRD-327` | `FE-HRD-300` | `POST /api/v1/hrd/travel/settlements` | `AT-HRD-TRV-12` | `Rencana` |
-| `FR-TRV-14` | Kewajiban persetujuan tertulis atasan atas deklarasi biaya darurat | `BE-HRD-327` | `FE-HRD-300` | `POST /api/v1/hrd/travel/settlements` | `AT-HRD-TRV-13` | `Rencana` |
-| `FR-TRV-15` | Komputasi otomatis rekonsiliasi settlement uang muka vs riil | `BE-HRD-326` | `FE-HRD-299` | `GET /api/v1/hrd/travel/settlements/{id}` | `AT-HRD-TRV-15`, `AT-HRD-TRV-16` | `Rencana` |
-| `FR-TRV-16` | Pencairan selisih kurang bayar oleh Kasir RS maksimal 3 hari kerja | `BE-HRD-326` | `FE-HRD-301` | `POST /api/v1/hrd/travel/settlements/{id}/close` | `AT-HRD-TRV-15` | `Rencana` |
-| `FR-TRV-17` | Penyetoran balik sisa kelebihan uang muka oleh staf ke Kasir RS | `BE-HRD-326` | `FE-HRD-301` | `POST /api/v1/hrd/travel/settlements/{id}/close` | `AT-HRD-TRV-16` | `Rencana` |
-| `FR-TRV-18` | Pengiriman notifikasi pengingat settlement pada H+3 dan H+5 (TRV-W1) | `BE-HRD-328` | `FE-HRD-292` | Background Worker `TRV-W1` | `AT-HRD-TRV-09` | `Rencana` |
-| `FR-TRV-19` | Pembekuan otomatis hak SPPD baru bagi pegawai menunggak > 14 hari | `BE-HRD-329` | `FE-HRD-302` | Background Worker `TRV-W2` | `AT-HRD-TRV-10` | `Rencana` |
-| `FR-TRV-20` | Otomasi potong sisa uang muka ke modul payroll Sub-10 jika > 30 hari | `BE-HRD-329` | `FE-HRD-302` | Event `TravelAdvanceDefaulted` | `AT-HRD-TRV-11` | `Rencana` |
-| `FR-TRV-21` | Pengajuan mandiri klaim biaya operasional non-trip (reagen cito, rapat) | `BE-HRD-330` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims` | `AT-HRD-TRV-17` | `Rencana` |
-| `FR-TRV-22` | Verifikasi fisik struk pembelian non-trip oleh Finance SLA < 48 jam | `BE-HRD-331` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims/{id}/verify` | `AT-HRD-TRV-18` | `Rencana` |
-| `FR-TRV-23` | Pembayaran reimbursement non-trip oleh Kasir RS ke rekening payroll | `BE-HRD-331` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims/{id}/pay` | `AT-HRD-TRV-19` | `Rencana` |
-| `FR-TRV-24` | Integrasi kurs tengah Bank Indonesia untuk konversi dinas luar negeri | `BE-HRD-333` | `FE-HRD-294` | Background Worker `TRV-W4` | `AT-HRD-TRV-22` | `Rencana` |
-| `FR-TRV-25` | Laporan analitik realisasi anggaran perjalanan dinas per departemen | `BE-HRD-333` | `FE-HRD-292`, `FE-HRD-293` | `GET /api/v1/hrd/travel/overdue-reports` | `AT-HRD-TRV-21` | `Rencana` |
+| `FR-TRV-01` | Registrasi pengajuan SPPD mandiri nakes via portal ESS | `BE-HRD-318`, `BE-HRD-320` | `FE-HRD-291`, `FE-HRD-295` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-01` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-02` | Perhitungan otomatis akumulasi estimasi biaya dinas | `BE-HRD-320` | `FE-HRD-296` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-01` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-03` | Integrasi matriks tarif baku per diem berdasarkan zonasi & grade | `BE-HRD-319` | `FE-HRD-294`, `FE-HRD-297` | `GET /api/v1/hrd/travel/rates` | `AT-HRD-TRV-02` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-04` | Validasi ketersediaan pagu anggaran dinas unit kerja (CostCenterId) | `BE-HRD-321` | `FE-HRD-293` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-21` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-05` | Pemblokiran pengajuan SPPD bila tumpang tindih tanggal dengan cuti | `BE-HRD-321` | `FE-HRD-296` | `POST /api/v1/hrd/travel/requests` | `AT-HRD-TRV-20` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-06` | Permohonan uang muka kerja dengan batas maksimal 80% dari pagu | `BE-HRD-322` | `FE-HRD-296`, `FE-HRD-298` | `POST /api/v1/hrd/travel/advances` | `AT-HRD-TRV-03` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-07` | Alur persetujuan ganda 2-pintu uang muka oleh Atasan & Finance | `BE-HRD-323` | `FE-HRD-298` | `POST /api/v1/hrd/travel/advances/{id}/approve` | `AT-HRD-TRV-04` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-08` | Integrasi pencairan uang muka kasir via transfer payroll/tunai | `BE-HRD-324` | `FE-HRD-298` | `POST /api/v1/hrd/travel/advances/{id}/disburse` | `AT-HRD-TRV-05` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-09` | Penerbitan berkas resmi Surat Tugas dan SPPD ber-barcode PDF | `BE-HRD-325` | `FE-HRD-295` | `GET /api/v1/hrd/travel/requests/{id}/document-pdf` | `AT-HRD-TRV-01` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-10` | Suntik log presensi otomatis "Hadir Dinas Luar" ke Sub-07 (INT-HR-97) | `BE-HRD-332` | `FE-HRD-305` | Event `TravelApproved` | `AT-HRD-TRV-07` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-11` | Pemasangan gembok hard-stop roster dinas bangsal Sub-06 (INT-HR-97) | `BE-HRD-332` | `FE-HRD-305` | Event `TravelApproved` | `AT-HRD-TRV-06` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-12` | Pengunggahan bukti invoice hotel ber-NPWP dan boarding pass tiket | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-304` | `POST /api/v1/hrd/travel/settlements` | `AT-HRD-TRV-14` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-13` | Formulir deklarasi biaya darurat tanpa kuitansi maks Rp 150rb / 10% | `BE-HRD-327` | `FE-HRD-300` | `POST /api/v1/hrd/travel/settlements` | `AT-HRD-TRV-12` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-14` | Kewajiban persetujuan tertulis atasan atas deklarasi biaya darurat | `BE-HRD-327` | `FE-HRD-300` | `POST /api/v1/hrd/travel/settlements` | `AT-HRD-TRV-13` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-15` | Komputasi otomatis rekonsiliasi settlement uang muka vs riil | `BE-HRD-326` | `FE-HRD-299` | `GET /api/v1/hrd/travel/settlements/{id}` | `AT-HRD-TRV-15`, `AT-HRD-TRV-16` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-16` | Pencairan selisih kurang bayar oleh Kasir RS maksimal 3 hari kerja | `BE-HRD-326` | `FE-HRD-301` | `POST /api/v1/hrd/travel/settlements/{id}/close` | `AT-HRD-TRV-15` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-17` | Penyetoran balik sisa kelebihan uang muka oleh staf ke Kasir RS | `BE-HRD-326` | `FE-HRD-301` | `POST /api/v1/hrd/travel/settlements/{id}/close` | `AT-HRD-TRV-16` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-18` | Pengiriman notifikasi pengingat settlement pada H+3 dan H+5 (TRV-W1) | `BE-HRD-328` | `FE-HRD-292` | Background Worker `TRV-W1` | `AT-HRD-TRV-09` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-19` | Pembekuan otomatis hak SPPD baru bagi pegawai menunggak > 14 hari | `BE-HRD-329` | `FE-HRD-302` | Background Worker `TRV-W2` | `AT-HRD-TRV-10` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-20` | Otomasi potong sisa uang muka ke modul payroll Sub-10 jika > 30 hari | `BE-HRD-329` | `FE-HRD-302` | Event `TravelAdvanceDefaulted` | `AT-HRD-TRV-11` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-21` | Pengajuan mandiri klaim biaya operasional non-trip (reagen cito, rapat) | `BE-HRD-330` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims` | `AT-HRD-TRV-17` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-22` | Verifikasi fisik struk pembelian non-trip oleh Finance SLA < 48 jam | `BE-HRD-331` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims/{id}/verify` | `AT-HRD-TRV-18` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-23` | Pembayaran reimbursement non-trip oleh Kasir RS ke rekening payroll | `BE-HRD-331` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims/{id}/pay` | `AT-HRD-TRV-19` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-24` | Integrasi kurs tengah Bank Indonesia untuk konversi dinas luar negeri | `BE-HRD-333` | `FE-HRD-294` | Background Worker `TRV-W4` | `AT-HRD-TRV-22` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-25` | Laporan analitik realisasi anggaran perjalanan dinas per departemen | `BE-HRD-333` | `FE-HRD-292`, `FE-HRD-293` | `GET /api/v1/hrd/travel/overdue-reports` | `AT-HRD-TRV-21` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 
 ---
 
@@ -1665,28 +1693,28 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 
 | Kode Pengujian | Target Komponen yang Diuji | Task Backend Terkait | Task Frontend Terkait | Status Pengujian |
 |---|---|---|---|---|
-| `AT-HRD-TRV-01` | Uji formulir pendaftaran SPPD mandiri nakes ber-barcode resmi | `BE-HRD-318`, `BE-HRD-320` | `FE-HRD-295` | `Rencana` |
-| `AT-HRD-TRV-02` | Uji kalkulator tarif lumpsum uang harian per diem berbasis zonasi & grade | `BE-HRD-319` | `FE-HRD-294`, `FE-HRD-297` | `Rencana` |
-| `AT-HRD-TRV-03` | Uji penolakan keras uang muka di atas batas maksimal 80% pagu | `BE-HRD-322` | `FE-HRD-296`, `FE-HRD-298` | `Rencana` |
-| `AT-HRD-TRV-04` | Uji alur otorisasi persetujuan uang muka 2-pintu Atasan & Finance | `BE-HRD-323` | `FE-HRD-298` | `Rencana` |
-| `AT-HRD-TRV-05` | Uji pencairan uang muka kasir lengkap nomor referensi transfer/voucher | `BE-HRD-324` | `FE-HRD-298` | `Rencana` |
-| `AT-HRD-TRV-06` | Uji penolakan keras (Hard-Stop) penjadwalan dinas bangsal Sub-06 saat SPPD aktif | `BE-HRD-332` | `FE-HRD-305` | `Rencana` |
-| `AT-HRD-TRV-07` | Uji suntik log presensi otomatis "Hadir Dinas Luar" pada modul Sub-07 | `BE-HRD-332` | `FE-HRD-305` | `Rencana` |
-| `AT-HRD-TRV-08` | Uji penyerahan berkas settlement tepat waktu dalam batas SLA 7 hari | `BE-HRD-326` | `FE-HRD-299` | `Rencana` |
-| `AT-HRD-TRV-09` | Uji pengiriman sirene notifikasi pengingat settlement pada H+3 dan H+5 | `BE-HRD-328` | `FE-HRD-292` | `Rencana` |
-| `AT-HRD-TRV-10` | Uji pembekuan otomatis hak pembuatan SPPD baru bagi penunggak > 14 hari | `BE-HRD-329` | `FE-HRD-302` | `Rencana` |
-| `AT-HRD-TRV-11` | Uji pemotongan slip gaji otomatis sisa uang muka menunggak > 30 hari via Sub-10 | `BE-HRD-329` | `FE-HRD-302` | `Rencana` |
-| `AT-HRD-TRV-12` | Uji penolakan deklarasi darurat tanpa nota di atas plafon Rp 150rb atau > 10% | `BE-HRD-327` | `FE-HRD-300` | `Rencana` |
-| `AT-HRD-TRV-13` | Uji validasi alasan kronologi darurat ketiadaan kuitansi minimal 15 karakter | `BE-HRD-327` | `FE-HRD-300` | `Rencana` |
-| `AT-HRD-TRV-14` | Uji penolakan kuitansi tiket/hotel yang tidak ber-NPWP / tanpa boarding pass | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-304` | `Rencana` |
-| `AT-HRD-TRV-15` | Uji komputasi settlement kurang bayar & pencairan reimbursement kasir 3 hari | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-301` | `Rencana` |
-| `AT-HRD-TRV-16` | Uji komputasi settlement lebih bayar & tanda terima setor balik kasir 3 hari | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-301` | `Rencana` |
-| `AT-HRD-TRV-17` | Uji pengajuan mandiri klaim biaya operasional non-trip (reagen cito, konsumsi) | `BE-HRD-330` | `FE-HRD-303` | `Rencana` |
-| `AT-HRD-TRV-18` | Uji verifikasi fisik struk pembelian non-trip oleh Tim Finance dalam < 48 jam | `BE-HRD-331` | `FE-HRD-303`, `FE-HRD-304` | `Rencana` |
-| `AT-HRD-TRV-19` | Uji pembayaran reimbursement non-trip oleh Kasir RS ke rekening staf | `BE-HRD-331` | `FE-HRD-303` | `Rencana` |
-| `AT-HRD-TRV-20` | Uji penolakan pengajuan SPPD akibat bentrok jadwal cuti tahunan Sub-08 | `BE-HRD-321` | `FE-HRD-296` | `Rencana` |
-| `AT-HRD-TRV-21` | Uji validasi pagu anggaran unit cost center dan peringatan over-budget | `BE-HRD-321` | `FE-HRD-293` | `Rencana` |
-| `AT-HRD-TRV-22` | Uji kepatuhan 24 endpoint API Swagger Kontrak v25 & audit QBE Conformance | `BE-HRD-333` | `FE-HRD-305` | `Rencana` |
+| `AT-HRD-TRV-01` | Uji formulir pendaftaran SPPD mandiri nakes ber-barcode resmi | `BE-HRD-318`, `BE-HRD-320` | `FE-HRD-295` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-02` | Uji kalkulator tarif lumpsum uang harian per diem berbasis zonasi & grade | `BE-HRD-319` | `FE-HRD-294`, `FE-HRD-297` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-03` | Uji penolakan keras uang muka di atas batas maksimal 80% pagu | `BE-HRD-322` | `FE-HRD-296`, `FE-HRD-298` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-04` | Uji alur otorisasi persetujuan uang muka 2-pintu Atasan & Finance | `BE-HRD-323` | `FE-HRD-298` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-05` | Uji pencairan uang muka kasir lengkap nomor referensi transfer/voucher | `BE-HRD-324` | `FE-HRD-298` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-06` | Uji penolakan keras (Hard-Stop) penjadwalan dinas bangsal Sub-06 saat SPPD aktif | `BE-HRD-332` | `FE-HRD-305` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-07` | Uji suntik log presensi otomatis "Hadir Dinas Luar" pada modul Sub-07 | `BE-HRD-332` | `FE-HRD-305` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-08` | Uji penyerahan berkas settlement tepat waktu dalam batas SLA 7 hari | `BE-HRD-326` | `FE-HRD-299` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-09` | Uji pengiriman sirene notifikasi pengingat settlement pada H+3 dan H+5 | `BE-HRD-328` | `FE-HRD-292` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-10` | Uji pembekuan otomatis hak pembuatan SPPD baru bagi penunggak > 14 hari | `BE-HRD-329` | `FE-HRD-302` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-11` | Uji pemotongan slip gaji otomatis sisa uang muka menunggak > 30 hari via Sub-10 | `BE-HRD-329` | `FE-HRD-302` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-12` | Uji penolakan deklarasi darurat tanpa nota di atas plafon Rp 150rb atau > 10% | `BE-HRD-327` | `FE-HRD-300` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-13` | Uji validasi alasan kronologi darurat ketiadaan kuitansi minimal 15 karakter | `BE-HRD-327` | `FE-HRD-300` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-14` | Uji penolakan kuitansi tiket/hotel yang tidak ber-NPWP / tanpa boarding pass | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-304` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-15` | Uji komputasi settlement kurang bayar & pencairan reimbursement kasir 3 hari | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-301` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-16` | Uji komputasi settlement lebih bayar & tanda terima setor balik kasir 3 hari | `BE-HRD-326` | `FE-HRD-299`, `FE-HRD-301` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-17` | Uji pengajuan mandiri klaim biaya operasional non-trip (reagen cito, konsumsi) | `BE-HRD-330` | `FE-HRD-303` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-18` | Uji verifikasi fisik struk pembelian non-trip oleh Tim Finance dalam < 48 jam | `BE-HRD-331` | `FE-HRD-303`, `FE-HRD-304` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-19` | Uji pembayaran reimbursement non-trip oleh Kasir RS ke rekening staf | `BE-HRD-331` | `FE-HRD-303` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-20` | Uji penolakan pengajuan SPPD akibat bentrok jadwal cuti tahunan Sub-08 | `BE-HRD-321` | `FE-HRD-296` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-21` | Uji validasi pagu anggaran unit cost center dan peringatan over-budget | `BE-HRD-321` | `FE-HRD-293` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-22` | Uji kepatuhan 24 endpoint API Swagger Kontrak v25 & audit QBE Conformance | `BE-HRD-333` | `FE-HRD-305` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 
 ---
 

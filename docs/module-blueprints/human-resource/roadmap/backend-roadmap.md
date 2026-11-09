@@ -5764,36 +5764,36 @@ BE-HRD-300 [B75] ─┘
 #### Grafik B76 — Fondasi Data, Matriks Routing Dinamis & Resolver Inbox (`BE-HRD-302` s.d. `BE-HRD-305`)
 
 ```text
-BE-HRD-003 ✅ [B1] ─> BE-HRD-302 ⏳ ─> BE-HRD-303 ⏳ ─┬─> BE-HRD-304 ⏳
+BE-HRD-003 ✅ [B1] ─> BE-HRD-302 ✅ ─> BE-HRD-303 ✅ ─┬─> BE-HRD-304 ✅
                                                       │
-                                                      └─> BE-HRD-305 ⏳
+                                                      └─> BE-HRD-305 ✅
 ```
 
 #### Grafik B77 — Anti Self-Approval, Delegasi Plh & Eksekusi Tri-State (`BE-HRD-306` s.d. `BE-HRD-309`)
 
 ```text
-BE-HRD-304 ⏳ [B76] ─> BE-HRD-306 ⏳ ─┬─> BE-HRD-307 ⏳ ─> BE-HRD-308 ⏳
+BE-HRD-304 ✅ [B76] ─> BE-HRD-306 ✅ ─┬─> BE-HRD-307 ✅ ─> BE-HRD-308 ✅
                                       │
-                                      └─> BE-HRD-309 ⏳
+                                      └─> BE-HRD-309 ✅
 ```
 
 #### Grafik B78 — Disiplin SLA, Auto-Eskalasi & Persetujuan Massal Bersyarat (`BE-HRD-310` s.d. `BE-HRD-313`)
 
 ```text
-BE-HRD-309 ⏳ [B77] ─┬─> BE-HRD-310 ⏳ ─> BE-HRD-311 ⏳
+BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-310 ✅ ─> BE-HRD-311 ✅
                       │
-                      └─> BE-HRD-312 ⏳ ─> BE-HRD-313 ⏳
+                      └─> BE-HRD-312 ✅ ─> BE-HRD-313 ✅
 ```
 
 #### Grafik B79 — Notifikasi Multikanal, Resubmit Draf, Kontrak API v24 5 Tag Swagger & Verifikasi E2E (`BE-HRD-314` s.d. `BE-HRD-317`)
 
 ```text
-BE-HRD-305 ⏳ [B76] ─┬─> BE-HRD-314 ⏳
-BE-HRD-309 ⏳ [B77] ─┘
-BE-HRD-309 ⏳ [B77] ────> BE-HRD-315 ⏳
-BE-HRD-309 ⏳ [B77] ─┬─> BE-HRD-316 ⏳
-BE-HRD-312 ⏳ [B78] ─┘
-BE-HRD-302 ⏳ s.d. BE-HRD-316 ⏳ ───────> BE-HRD-317 ⏳
+BE-HRD-305 ✅ [B76] ─┬─> BE-HRD-314 ✅
+BE-HRD-309 ✅ [B77] ─┘
+BE-HRD-309 ✅ [B77] ────> BE-HRD-315 ✅
+BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-316 ✅
+BE-HRD-312 ✅ [B78] ─┘
+BE-HRD-302 ✅ s.d. BE-HRD-316 ✅ ───────> BE-HRD-317 ✅
 ```
 
 ---
@@ -5949,34 +5949,34 @@ BE-HRD-302 ⏳ s.d. BE-HRD-316 ⏳ ───────> BE-HRD-317 ⏳
 #### Grafik B80 — Fondasi Data, Matriks Tarif Lumpsum & Pengajuan SPPD (`BE-HRD-318` s.d. `BE-HRD-321`)
 
 ```text
-BE-HRD-003 ✅ [B1] ─> BE-HRD-318 ⏳ ─> BE-HRD-319 ⏳ ─┬─> BE-HRD-320 ⏳
+BE-HRD-003 ✅ [B1] ─> BE-HRD-318 ✅ ─> BE-HRD-319 ✅ ─┬─> BE-HRD-320 ✅
                                                       │
-                                                      └─> BE-HRD-321 ⏳
+                                                      └─> BE-HRD-321 ✅
 ```
 
 #### Grafik B81 — Uang Muka Kerja 80%, Persetujuan 2-Pintu & Pencairan Kasir (`BE-HRD-322` s.d. `BE-HRD-325`)
 
 ```text
-BE-HRD-320 ⏳ [B80] ─┬─> BE-HRD-322 ⏳ ─> BE-HRD-323 ⏳ ─> BE-HRD-324 ⏳
+BE-HRD-320 ✅ [B80] ─┬─> BE-HRD-322 ✅ ─> BE-HRD-323 ✅ ─> BE-HRD-324 ✅
                      │
-                     └─> BE-HRD-325 ⏳
+                     └─> BE-HRD-325 ✅
 ```
 
 #### Grafik B82 — Rekonsiliasi Settlement, Deklarasi Darurat Tanpa Nota & Sanksi Payroll (`BE-HRD-326` s.d. `BE-HRD-329`)
 
 ```text
-BE-HRD-324 ⏳ [B81] ─┬─> BE-HRD-326 ⏳ ─┬─> BE-HRD-327 ⏳
-BE-HRD-325 ⏳ [B81] ─┘                 ├─> BE-HRD-328 ⏳
+BE-HRD-324 ✅ [B81] ─┬─> BE-HRD-326 ✅ ─┬─> BE-HRD-327 ✅
+BE-HRD-325 ✅ [B81] ─┘                 ├─> BE-HRD-328 ✅
                                         │
-                                        └─> BE-HRD-329 ⏳
+                                        └─> BE-HRD-329 ✅
 ```
 
 #### Grafik B83 — Klaim Non-Trip, Integrasi Presensi/Roster, Kontrak v25 & Verifikasi E2E (`BE-HRD-330` s.d. `BE-HRD-333`)
 
 ```text
-BE-HRD-318 ⏳ [B80] ───────────────────> BE-HRD-330 ⏳ ─> BE-HRD-331 ⏳
-BE-HRD-320 ⏳ [B80] ───────────────────> BE-HRD-332 ⏳
-BE-HRD-318 ⏳ s.d. BE-HRD-332 ⏳ ───────> BE-HRD-333 ⏳
+BE-HRD-318 ✅ [B80] ───────────────────> BE-HRD-330 ✅ ─> BE-HRD-331 ✅
+BE-HRD-320 ✅ [B80] ───────────────────> BE-HRD-332 ✅
+BE-HRD-318 ✅ s.d. BE-HRD-332 ✅ ───────> BE-HRD-333 ✅
 ```
 
 ---
