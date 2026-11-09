@@ -9,7 +9,7 @@ blueprint_shape: SINGLE
 roadmap_revision: 15
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡 (acceptance criteria belum terbukti, menunggu FIX-HRD-002-09); FE-HRD-022, FE-HRD-024, FE-HRD-025 dikerjakan ulang dan tetap ✅. Sebelumnya: tanda FE-HRD-011, FE-HRD-015, FE-HRD-016, FE-HRD-018 diselaraskan ke 🟡 mengikuti register"
-planning_updated_at: "2026-11-09 - Slice S-B4 Penjadwalan, Roster Dinas 24/7, dan On-Call Pegawai Rumah Sakit (sub-modul 06) diselesaikan secara penuh (FE-HRD-075 s.d. FE-HRD-087 ✅ PASS) mencakup 3 sub-menu, 13 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074), Slice S-B5, Slice S-B3, S-B2, S-B1"
+planning_updated_at: "2026-11-09 - Slice S-B2 Layar Cuti & Izin Pegawai Rumah Sakit (sub-modul 08) diselesaikan secara penuh (FE-HRD-102 s.d. FE-HRD-115 ✅ PASS) mencakup 6 rute antarmuka, 14 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087), Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074) Penjadwalan, Roster Dinas 24/7, dan On-Call Pegawai Rumah Sakit (sub-modul 06) diselesaikan secara penuh (FE-HRD-075 s.d. FE-HRD-087 ✅ PASS) mencakup 3 sub-menu, 13 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074), Slice S-B5, Slice S-B3, S-B2, S-B1"
 generated_at: "2026-10-26"
 owners:
   - "Frontend Technical Owner — HR UI Lead"
@@ -727,20 +727,20 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-099` | `S-B1` · `MVP-21` | Layar `FE-HRD-149` — Pengaturan Kebijakan Presensi HR (Toleransi & Batas Hari) |  | `FE-HRD-088`, `BE-HRD-105` [BE] | — |
 | `FE-HRD-100` | `S-B1` · `MVP-22` | Penyelarasan Portal ESS untuk Absensi & Perizinan Presensi |  | `FE-HRD-088`, `FE-HRD-006` [F3] | — |
 | `FE-HRD-101` | `S-B1` · Verifikasi | Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar S-B1 |  | `FE-HRD-091`, `FE-HRD-093`, `FE-HRD-094`, `FE-HRD-096`, `FE-HRD-097`, `FE-HRD-098`, `FE-HRD-099`, `FE-HRD-100` | — |
-| `FE-HRD-102` | `S-B2` · `MVP-24` | API service client, tipe TypeScript & Redux slice cuti |  | `FE-HRD-007` ✅, `BE-HRD-120` [BE] | — |
-| `FE-HRD-103` | `S-B2` · `MVP-24` | Komponen metrik kartu saldo & progress bar pemakaian cuti tahunan |  | `FE-HRD-102` | — |
-| `FE-HRD-104` | `S-B2` · `MVP-24` | Layar `FE-HRD-150` — Dasbor Kuota & Saldo Cuti ESS & drawer ledger |  | `FE-HRD-102`, `FE-HRD-103`, `BE-HRD-120` [BE] | — |
-| `FE-HRD-105` | `S-B2` · `MVP-24` | Layar `FE-HRD-153` — Manajemen Alokasi Saldo, Carry-Forward & Runner HR |  | `FE-HRD-102`, `BE-HRD-120` [BE] | — |
-| `FE-HRD-106` | `S-B2` · `MVP-24` | Modal penyesuaian saldo resmi HR berdokumen audit (`LeaveBalanceAdjustmentModal`) |  | `FE-HRD-105`, `BE-HRD-128` [BE] | — |
-| `FE-HRD-107` | `S-B2` · `MVP-25` | Komponen kalender cuti, pemilih sesi half-day 0.5 hari & validasi saldo |  | `FE-HRD-102` | — |
-| `FE-HRD-108` | `S-B2` · `MVP-25` | Modal unggah surat sakit dokter ber-SIP & masking privasi medis K3RS |  | `FE-HRD-102`, `BE-HRD-123` [BE] | — |
-| `FE-HRD-109` | `S-B2` · `MVP-25` | Layar `FE-HRD-151` — Formulir Pengajuan Cuti Mandiri & Cuti Sakit ESS |  | `FE-HRD-107`, `FE-HRD-108`, `BE-HRD-122` [BE] | — |
-| `FE-HRD-110` | `S-B2` · `MVP-25` | Komponen banner peringatan kuota pelayanan (Safe Staffing Coverage Warning) |  | `FE-HRD-102`, `BE-HRD-121` [BE] | — |
-| `FE-HRD-111` | `S-B2` · `MVP-25` | Layar `FE-HRD-152` — Kotak Masuk Approval Atasan & Aksi Approve with Mitigation |  | `FE-HRD-110`, `BE-HRD-124` [BE] | — |
-| `FE-HRD-112` | `S-B2` · `MVP-26` | Layar `FE-HRD-154` — Inisiasi & Pemantauan Pemanggilan Darurat (Leave Recall) |  | `FE-HRD-102`, `BE-HRD-126` [BE] | — |
-| `FE-HRD-113` | `S-B2` · `MVP-26` | Kotak masuk approval Leave Recall HR Manager & restore saldo sisa |  | `FE-HRD-112`, `BE-HRD-127` [BE] | — |
-| `FE-HRD-114` | `S-B2` · `MVP-26` | Layar `FE-HRD-155` — Rekonsiliasi Akhir Cuti, Tabel Retrospektif & Payroll Close |  | `FE-HRD-102`, `BE-HRD-129` [BE] | — |
-| `FE-HRD-115` | `S-B2` · Verifikasi | Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice S-B2 |  | `FE-HRD-104`, `FE-HRD-106`, `FE-HRD-109`, `FE-HRD-111`, `FE-HRD-113`, `FE-HRD-114` | — |
+| `FE-HRD-102` | `S-B2` · `MVP-24` | API service client, tipe TypeScript & Redux slice cuti | ✅ | `FE-HRD-007` ✅, `BE-HRD-120` [BE] | [FE-HRD-102.md](../task/report/frontend/FE-HRD-102.md) |
+| `FE-HRD-103` | `S-B2` · `MVP-24` | Komponen metrik kartu saldo & progress bar pemakaian cuti tahunan | ✅ | `FE-HRD-102` ✅ | [FE-HRD-103.md](../task/report/frontend/FE-HRD-103.md) |
+| `FE-HRD-104` | `S-B2` · `MVP-24` | Layar `FE-HRD-150` — Dasbor Kuota & Saldo Cuti ESS & drawer ledger | ✅ | `FE-HRD-102` ✅, `FE-HRD-103` ✅, `BE-HRD-120` [BE] | [FE-HRD-104.md](../task/report/frontend/FE-HRD-104.md) |
+| `FE-HRD-105` | `S-B2` · `MVP-24` | Layar `FE-HRD-153` — Manajemen Alokasi Saldo, Carry-Forward & Runner HR | ✅ | `FE-HRD-102` ✅, `BE-HRD-120` [BE] | [FE-HRD-105.md](../task/report/frontend/FE-HRD-105.md) |
+| `FE-HRD-106` | `S-B2` · `MVP-24` | Modal penyesuaian saldo resmi HR berdokumen audit (`LeaveBalanceAdjustmentModal`) | ✅ | `FE-HRD-105` ✅, `BE-HRD-128` [BE] | [FE-HRD-106.md](../task/report/frontend/FE-HRD-106.md) |
+| `FE-HRD-107` | `S-B2` · `MVP-25` | Komponen kalender cuti, pemilih sesi half-day 0.5 hari & validasi saldo | ✅ | `FE-HRD-102` ✅ | [FE-HRD-107.md](../task/report/frontend/FE-HRD-107.md) |
+| `FE-HRD-108` | `S-B2` · `MVP-25` | Modal unggah surat sakit dokter ber-SIP & masking privasi medis K3RS | ✅ | `FE-HRD-102` ✅, `BE-HRD-123` [BE] | [FE-HRD-108.md](../task/report/frontend/FE-HRD-108.md) |
+| `FE-HRD-109` | `S-B2` · `MVP-25` | Layar `FE-HRD-151` — Formulir Pengajuan Cuti Mandiri & Cuti Sakit ESS | ✅ | `FE-HRD-107` ✅, `FE-HRD-108` ✅, `BE-HRD-122` [BE] | [FE-HRD-109.md](../task/report/frontend/FE-HRD-109.md) |
+| `FE-HRD-110` | `S-B2` · `MVP-25` | Komponen banner peringatan kuota pelayanan (Safe Staffing Coverage Warning) | ✅ | `FE-HRD-102` ✅, `BE-HRD-121` [BE] | [FE-HRD-110.md](../task/report/frontend/FE-HRD-110.md) |
+| `FE-HRD-111` | `S-B2` · `MVP-25` | Layar `FE-HRD-152` — Kotak Masuk Approval Atasan & Aksi Approve with Mitigation | ✅ | `FE-HRD-110` ✅, `BE-HRD-124` [BE] | [FE-HRD-111.md](../task/report/frontend/FE-HRD-111.md) |
+| `FE-HRD-112` | `S-B2` · `MVP-26` | Layar `FE-HRD-154` — Inisiasi & Pemantauan Pemanggilan Darurat (Leave Recall) | ✅ | `FE-HRD-102` ✅, `BE-HRD-126` [BE] | [FE-HRD-112.md](../task/report/frontend/FE-HRD-112.md) |
+| `FE-HRD-113` | `S-B2` · `MVP-26` | Kotak masuk approval Leave Recall HR Manager & restore saldo sisa | ✅ | `FE-HRD-112` ✅, `BE-HRD-127` [BE] | [FE-HRD-113.md](../task/report/frontend/FE-HRD-113.md) |
+| `FE-HRD-114` | `S-B2` · `MVP-26` | Layar `FE-HRD-155` — Rekonsiliasi Akhir Cuti, Tabel Retrospektif & Payroll Close | ✅ | `FE-HRD-102` ✅, `BE-HRD-129` [BE] | [FE-HRD-114.md](../task/report/frontend/FE-HRD-114.md) |
+| `FE-HRD-115` | `S-B2` · Verifikasi | Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice S-B2 | ✅ | `FE-HRD-104` ✅, `FE-HRD-106` ✅, `FE-HRD-109` ✅, `FE-HRD-111` ✅, `FE-HRD-113` ✅, `FE-HRD-114` ✅ | [FE-HRD-115.md](../task/report/frontend/FE-HRD-115.md) |
 | `FE-HRD-116` | `S-B3` · `MVP-27` | API service client, tipe TypeScript & Redux slice lembur |  | `FE-HRD-007` ✅, `BE-HRD-131` [BE] | — |
 | `FE-HRD-117` | `S-B3` · `MVP-27` | Komponen form dual-mode SPKL & kalkulator kuota lembur PP 35/2021 |  | `FE-HRD-116` | — |
 | `FE-HRD-118` | `S-B3` · `MVP-27` | Layar `FE-HRD-156` — Pengajuan SPKL Pra-Dinas & Klaim Cito Pasca-Dinas ESS |  | `FE-HRD-116`, `FE-HRD-117`, `BE-HRD-134` [BE], `BE-HRD-135` [BE] | — |
@@ -2840,7 +2840,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-102` — Service Client API Cuti, Perizinan, dan Redux State Management (`leave-service.js`, `leaveSlice.js`)
 * **Slice / MVP**: `S-B2` / `MVP-24`
-* **Status**: Menunggu `BE-HRD-120` [BE], `FE-HRD-007` ✅ [F3].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-102.md](../task/report/frontend/FE-HRD-102.md).
 * **Outcome**: Modul komunikasi API Axios terpusat dan state management Redux Toolkit untuk kuota saldo, mutasi buku besar, pengajuan cuti ESS, approval berindikator kuota, recall darurat, dan rekonsiliasi payroll.
 * **Requirement/decision**: `03-frontend-architecture.md` Bagian 17; API Contract `v12` Bagian 18.
 * **Kontrak**: API Contract `v12` seluruh tag `[Tags("HR Leave - ...")]`.
@@ -2858,7 +2858,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-103` — Komponen Metrik Kartu Saldo & Progress Bar Pemakaian Cuti Tahunan (`LeaveBalanceMetricCards`)
 * **Slice / MVP**: `S-B2` / `MVP-24`
-* **Status**: Menunggu `FE-HRD-102`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-103.md](../task/report/frontend/FE-HRD-103.md).
 * **Outcome**: Komponen reusable untuk menampilkan ringkasan hak cuti tahunan berjalan (12 hari), saldo aktif dapat dipakai, kuota carry-forward (disertai lencana peringatan kedaluwarsa 30 Juni per `HRD-DEC-110`), dan bar visualisasi persentase pemakaian.
 * **Requirement/decision**: `HRD-DEC-110`, `03-frontend-architecture.md` 17.2.1.
 * **Kontrak**: API Contract `v12` `LeaveBalanceSummaryDto`.
@@ -2876,7 +2876,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-104` — Layar `FE-HRD-150` — Dasbor Kuota & Saldo Cuti Pegawai ESS (`/hr/leave/my-balance`) & Drawer Buku Besar
 * **Slice / MVP**: `S-B2` / `MVP-24`
-* **Status**: Menunggu `FE-HRD-102`, `FE-HRD-103`, `BE-HRD-120` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-104.md](../task/report/frontend/FE-HRD-104.md).
 * **Outcome**: Layar portal mandiri karyawan (ESS) untuk melihat saldo cuti pribadi, countdown kedaluwarsa kuota bawaan 30 Juni, tombol cepat ajukan cuti baru, serta tabel drawer riwayat mutasi buku besar (`TrxLeaveBalanceLedger`).
 * **Requirement/decision**: `HRD-DEC-110`, `03-frontend-architecture.md` 17.1, 17.2.1.
 * **Kontrak**: API Contract `v12` `GET /leave/balances/my`, `GET /leave/balances/ledger`.
@@ -2894,7 +2894,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-105` — Layar `FE-HRD-153` — Manajemen Alokasi Saldo, Carry-Forward & Runner Kedaluwarsa HR (`/hr/leave/balances-admin`)
 * **Slice / MVP**: `S-B2` / `MVP-24`
-* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-120` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-105.md](../task/report/frontend/FE-HRD-105.md).
 * **Outcome**: Layar administrasi HR untuk memantau saldo seluruh staf rumah sakit per unit kerja, widget pemantauan sisa carry-forward menjelang 30 Juni, dan tombol manual eksekusi runner pemotongan kedaluwarsa carry-forward.
 * **Requirement/decision**: `HRD-DEC-110`, `03-frontend-architecture.md` 17.2.4.
 * **Kontrak**: API Contract `v12` `GET /leave/balances/admin`, `POST /leave/balances/carry-forward/run`.
@@ -2912,7 +2912,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-106` — Modal Penyesuaian Saldo Resmi HR Berdokumen Audit (`LeaveBalanceAdjustmentModal`)
 * **Slice / MVP**: `S-B2` / `MVP-24`
-* **Status**: Menunggu `FE-HRD-105`, `BE-HRD-128` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-106.md](../task/report/frontend/FE-HRD-106.md).
 * **Outcome**: Dialog modal khusus HR Manager untuk menyesuaikan saldo cuti staf secara resmi pasca penutupan periode payroll (`HRD-DEC-115`), mewajibkan input nomor dokumen SK/audit dan alasan operasional tertulis.
 * **Requirement/decision**: `HRD-DEC-115`, `03-frontend-architecture.md` 17.3, Validation Matrix `v12` `VR-LEV-18`.
 * **Kontrak**: API Contract `v12` `POST /leave/balances/adjustment`.
@@ -2930,7 +2930,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-107` — Komponen Kalender Cuti, Pemilih Sesi Half-Day 0.5 Hari & Validasi Saldo (`LeaveDateRangePicker`)
 * **Slice / MVP**: `S-B2` / `MVP-25`
-* **Status**: Menunggu `FE-HRD-102`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-107.md](../task/report/frontend/FE-HRD-107.md).
 * **Outcome**: Komponen pemilih rentang tanggal cuti pintar yang otomatis mendeteksi hari libur nasional / lepas jaga, menyediakan toggle opsi Cuti Setengah Hari (*Half-Day Leave* 0.5 hari sesi Pagi atau Siang/Sore per `HRD-ASM-20`), dan memvalidasi kecukupan saldo secara real-time.
 * **Requirement/decision**: `HRD-ASM-20`, `03-frontend-architecture.md` 17.2.2.
 * **Kontrak**: Validation Matrix `v12` `VR-LEV-03` s.d. `VR-LEV-05`.
@@ -2948,7 +2948,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-108` — Modal Unggah Surat Sakit Dokter Ber-SIP & Masking Privasi Medis K3RS (`MedicalCertificateUploadModal`)
 * **Slice / MVP**: `S-B2` / `MVP-25`
-* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-123` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-108.md](../task/report/frontend/FE-HRD-108.md).
 * **Outcome**: Komponen unggah berkas pindaian PDF/JPG Surat Keterangan Sakit dokter resmi ber-SIP untuk cuti sakit $\ge 2$ hari (`HRD-DEC-112`), dilengkapi input nama faskes dan nomor SIP, serta teks jaminan privasi medis staf K3RS.
 * **Requirement/decision**: `HRD-DEC-112`, `03-frontend-architecture.md` 17.2.2, 17.3.
 * **Kontrak**: Validation Matrix `v12` `VR-LEV-06` s.d. `VR-LEV-08`.
@@ -2966,7 +2966,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-109` — Layar `FE-HRD-151` — Formulir Pengajuan Cuti Mandiri & Cuti Sakit ESS (`/hr/leave/request`)
 * **Slice / MVP**: `S-B2` / `MVP-25`
-* **Status**: Menunggu `FE-HRD-107`, `FE-HRD-108`, `BE-HRD-122` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-109.md](../task/report/frontend/FE-HRD-109.md).
 * **Outcome**: Layar formulir lengkap pengajuan cuti tahunan, cuti setengah hari (0.5 hari), izin alasan penting, cuti bersama, dan cuti sakit bagi seluruh staf rumah sakit melalui portal mandiri ESS.
 * **Requirement/decision**: `HRD-DEC-110`, `HRD-DEC-112`, `HRD-ASM-19`, `HRD-ASM-20`, `03-frontend-architecture.md` 17.2.2.
 * **Kontrak**: API Contract `v12` `POST /leave/requests`.
@@ -2985,7 +2985,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-110` — Komponen Banner Peringatan Kuota Pelayanan Staf (`SafeStaffingCoverageWarningBanner`)
 * **Slice / MVP**: `S-B2` / `MVP-25`
-* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-121` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-110.md](../task/report/frontend/FE-HRD-110.md).
 * **Outcome**: Komponen banner peringatan ketersediaan staf (*Safe Staffing Coverage Warning*) yang muncul pada kotak masuk approval atasan bila cuti yang diajukan menyebabkan jumlah perawat/staf dinas berada di bawah rasio minimal aman RS (`HRD-DEC-111`).
 * **Requirement/decision**: `HRD-DEC-111`, `03-frontend-architecture.md` 17.2.3, 17.3.
 * **Kontrak**: API Contract `v12` `LeaveApprovalInboxItemDto.HasStaffingCoverageWarning`.
@@ -3003,7 +3003,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-111` — Layar `FE-HRD-152` — Kotak Masuk Approval Atasan & Aksi Approve with Mitigation (`/hr/leave/approval-inbox`)
 * **Slice / MVP**: `S-B2` / `MVP-25`
-* **Status**: Menunggu `FE-HRD-110`, `BE-HRD-124` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-111.md](../task/report/frontend/FE-HRD-111.md).
 * **Outcome**: Layar kotak masuk persetujuan cuti bawahan bagi Kepala Ruangan/Instalasi: evaluasi kuota staf, pratinjau surat sakit berprivasi medis K3RS (diagnosa disamarkan), aksi Approve, aksi *Approve with Mitigation* (catatan perawat pengganti), revisi, dan penolakan operasional.
 * **Requirement/decision**: `HRD-DEC-111`, `HRD-DEC-112`, `03-frontend-architecture.md` 17.2.3.
 * **Kontrak**: API Contract `v12` tag `[Tags("HR Leave - Approvals & Coverage")]`.
@@ -3021,7 +3021,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-112` — Layar `FE-HRD-154` — Inisiasi & Pemantauan Pemanggilan Darurat (Leave Recall) (`/hr/leave/recalls`)
 * **Slice / MVP**: `S-B2` / `MVP-26`
-* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-126` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-112.md](../task/report/frontend/FE-HRD-112.md).
 * **Outcome**: Layar monitoring staf yang sedang menjalani cuti aktif dan dialog modal inisiasi pemanggilan dinas darurat (*Leave Recall*) oleh Kepala Ruangan saat terjadi KLB, bencana alam, atau lonjakan pasien kritis ICU (`HRD-DEC-113`).
 * **Requirement/decision**: `HRD-DEC-113`, `03-frontend-architecture.md` 17.2.5, 17.3.
 * **Kontrak**: API Contract `v12` tag `[Tags("HR Leave - Recall Management")]`.
@@ -3039,7 +3039,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-113` — Kotak Masuk Approval Leave Recall HR Manager & Restore Saldo Sisa (`LeaveRecallApprovalInbox`)
 * **Slice / MVP**: `S-B2` / `MVP-26`
-* **Status**: Menunggu `FE-HRD-112`, `BE-HRD-127` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-113.md](../task/report/frontend/FE-HRD-113.md).
 * **Outcome**: Layar antrean persetujuan resmi pemanggilan dinas darurat khusus untuk HR Manager (`HRD-DEC-113`, `HRD-Q-36`): meninjau justifikasi darurat, menyetujui pemanggilan yang otomatis memicu restore saldo sisa ke ledger, atau menolak usulan recall.
 * **Requirement/decision**: `HRD-DEC-113`, `03-frontend-architecture.md` 17.2.5.
 * **Kontrak**: API Contract `v12` `POST /leave/recalls/{id}/approve`, `POST /leave/recalls/{id}/reject`.
@@ -3057,7 +3057,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-114` — Layar `FE-HRD-155` — Rekonsiliasi Akhir Cuti, Tabel Retrospektif & Payroll Close (`/hr/leave/reconciliations`)
 * **Slice / MVP**: `S-B2` / `MVP-26`
-* **Status**: Menunggu `FE-HRD-102`, `BE-HRD-129` [BE].
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-114.md](../task/report/frontend/FE-HRD-114.md).
 * **Outcome**: Dasbor rekonsiliasi akhir cuti bulanan bagi HR Payroll Officer: memantau cuti pending saat cut-off yang akan direkonsiliasi retrospektif bulan depan (`HRD-DEC-114`), tombol penguncian periode cuti (*Payroll Close*), dan penonaktifan pembatalan bebas (immutabilitas status Completed per `HRD-DEC-115`).
 * **Requirement/decision**: `HRD-DEC-114`, `HRD-DEC-115`, `03-frontend-architecture.md` 17.2.6.
 * **Kontrak**: API Contract `v12` tag `[Tags("HR Leave - Reconciliations & Close")]`.
@@ -3075,7 +3075,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-115` — Verifikasi ujung-ke-ujung antarmuka, linter, dan akses peran Slice `S-B2`
 * **Slice / MVP**: `S-B2` / Verifikasi
-* **Status**: Menunggu `FE-HRD-104`, `FE-HRD-106`, `FE-HRD-109`, `FE-HRD-111`, `FE-HRD-113`, `FE-HRD-114`.
+* **Status**: Selesai (✅ PASS). Laporan: [FE-HRD-115.md](../task/report/frontend/FE-HRD-115.md).
 * **Outcome**: Seluruh 6 layar baru `S-B2` (`FE-HRD-150` s.d. `FE-HRD-155`) dan modal dialog pendukung terverifikasi terjangkau dari sidebar menu `Cuti & Perizinan`, hak akses peran teruji (Staf ESS vs Atasan Unit vs HR Manager), dan lolos uji linter CI/CD.
 * **Requirement/decision**: `03-frontend-architecture.md` 17.1, 17.2; `04-prd-to-mvp.md` 26.5 (DoD `S-B2`).
 * **Kontrak**: Seluruh kontrak `v12` bagian `S-B2`.

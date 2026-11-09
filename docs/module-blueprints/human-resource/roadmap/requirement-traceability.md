@@ -266,6 +266,64 @@ tercatat di bawah adalah requirement yang belum punya jalan pembuktian penuh.
 | `FE-HRD-027` | Form Permohonan Kuasa HR | `EmployeeProfileChangeController.cs` | `src/app/hr/workforce-core/employee-profile-changes/create-on-behalf/**` | ✅ Selesai — kendala multipart 415 diselesaikan via perbaikan interceptor InstanceAxios (`FIX-HRD-003-06`) | [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md) |
 | `FE-HRD-026-ESS` | Permohonan Perubahan Data Mandiri (Kelola Data Saya) | `EmployeeProfileChangeSelfServiceController.cs` | `src/app/self-services/human-resource/employee/profile-changes/**` | ✅ Selesai — diimplementasikan penuh (live diff, bukti sensitif, aksi tunggal, riwayat pengajuan) via PLAN-REPAIR-HRD-003 | [PLAN-REPAIR-003](../docs/plan-repair/plan-repair-003-employee-self-service-profile-change.md) |
 | `FE-HRD-028` | Penguncian Form Master Data | `EmployeeController.cs` | `src/components/view/hr/master-data/employees/form/**` | ✅ Lulus Linter & Test Unit | [FE-HRD-028.md](../task/report/frontend/FE-HRD-028.md) |
+| `FE-HRD-044` | Layar Antrean & Permintaan Requisition (`/hr/recruitment/requisitions`) | `HrdRequisitionController.cs` | `src/app/hr/recruitment/requisitions/**` | ✅ Lulus Linter & Build | [FE-HRD-044.md](../task/report/frontend/FE-HRD-044.md) |
+| `FE-HRD-045` | Layar Detail & Draf Requisition (`/hr/recruitment/requisitions/[id]`) | `HrdRequisitionController.cs` | `src/app/hr/recruitment/requisitions/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-045.md](../task/report/frontend/FE-HRD-045.md) |
+| `FE-HRD-046` | Layar Pengelolaan Lowongan Kerja (`/hr/recruitment/vacancies`) | `HrdJobVacancyController.cs` | `src/app/hr/recruitment/vacancies/**` | ✅ Lulus Linter & Build | [FE-HRD-046.md](../task/report/frontend/FE-HRD-046.md) |
+| `FE-HRD-047` | Layar Detail Lowongan & Pelamar Masuk (`/hr/recruitment/vacancies/[id]`) | `HrdJobVacancyController.cs` | `src/app/hr/recruitment/vacancies/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-047.md](../task/report/frontend/FE-HRD-047.md) |
+| `FE-HRD-048` | Layar Direktori Data Pelamar & NIK Rehire Flow (`/hr/recruitment/candidates`) | `HrdCandidateController.cs` | `src/app/hr/recruitment/candidates/**` | ✅ Lulus Linter & Build | [FE-HRD-048.md](../task/report/frontend/FE-HRD-048.md) |
+| `FE-HRD-049` | Layar Detail Pelamar & Penapisan STR Klinis Otomatis (`/hr/recruitment/candidates/[id]`) | `HrdCandidateController.cs` | `src/app/hr/recruitment/candidates/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-049.md](../task/report/frontend/FE-HRD-049.md) |
+| `FE-HRD-050` | Layar Formulir Evaluasi Wawancara HR (`/hr/recruitment/evaluations/hr/[id]`) | `HrdInterviewEvaluationController.cs` | `src/app/hr/recruitment/evaluations/hr/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-050.md](../task/report/frontend/FE-HRD-050.md) |
+| `FE-HRD-051` | Formulir Uji Klinis Unit dengan Hak Veto Klinis (`/hr/recruitment/evaluations/clinical/[id]`) | `HrdClinicalAssessmentController.cs` | `src/app/hr/recruitment/evaluations/clinical/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-051.md](../task/report/frontend/FE-HRD-051.md) |
+| `FE-HRD-052` | Layar Daftar Penawaran Kerja (*Job Offers*) (`/hr/recruitment/offers`) | `HrdJobOfferController.cs` | `src/app/hr/recruitment/offers/**` | ✅ Lulus Linter & Build | [FE-HRD-052.md](../task/report/frontend/FE-HRD-052.md) |
+| `FE-HRD-053` | Detail Penawaran & Persetujuan Bertingkat T13/T14 (`/hr/recruitment/offers/[id]`) | `HrdJobOfferController.cs` | `src/app/hr/recruitment/offers/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-053.md](../task/report/frontend/FE-HRD-053.md) |
+| `FE-HRD-054` | Pemantauan MCU Pra-Kerja & Masking Medis K3RS (`/hr/recruitment/mcu-clearance`) | `HrdMcuClearanceController.cs` | `src/app/hr/recruitment/mcu-clearance/**` | ✅ Lulus Linter & Build | [FE-HRD-054.md](../task/report/frontend/FE-HRD-054.md) |
+| `FE-HRD-055` | Bank Cadangan (*Talent Pool*) & Fast-Track (`/hr/recruitment/talent-pool`) | `HrdTalentPoolController.cs` | `src/app/hr/recruitment/talent-pool/**` | ✅ Lulus Linter & Build | [FE-HRD-055.md](../task/report/frontend/FE-HRD-055.md) |
+| `FE-HRD-056` | Serah Terima ke Onboarding (*Hiring Handoff*) (`/hr/recruitment/handoffs`) | `HrdHiringHandoffController.cs` | `src/app/hr/recruitment/handoffs/**` | ✅ Lulus Linter & Build | [FE-HRD-056.md](../task/report/frontend/FE-HRD-056.md) |
+| `FE-HRD-057` | Verifikasi Menu, Hak Akses & Keterjangkauan Layar Rekrutmen `S-D2` | Seluruh Controller Rekrutmen | `src/app/hr/recruitment/**` | ✅ Lulus Linter & Build | [FE-HRD-057.md](../task/report/frontend/FE-HRD-057.md) |
+| `FE-HRD-058` | Fondasi Layanan API & Label Status `S-C4-ONB` | Seluruh Controller Onboarding & Kontrak | `src/lib/services/hr/onboarding-service.js` | ✅ Lulus Linter & Build | [FE-HRD-058.md](../task/report/frontend/FE-HRD-058.md) |
+| `FE-HRD-059` | Template Onboarding & Navigasi Menu | `HrdOnboardingTemplateController.cs` | `src/app/hr/onboarding/templates/**` | ✅ Lulus Linter & Build | [FE-HRD-059.md](../task/report/frontend/FE-HRD-059.md) |
+| `FE-HRD-060` | Daftar & Detail Kasus Onboarding | `HrdOnboardingCaseController.cs` | `src/app/hr/onboarding/cases/**` | ✅ Lulus Linter & Build | [FE-HRD-060.md](../task/report/frontend/FE-HRD-060.md) |
+| `FE-HRD-061` | Aksi Checklist pada Detail Kasus Onboarding | `HrdOnboardingCaseController.cs` | `src/components/features/hr/onboarding/` | ✅ Lulus Linter & Build | [FE-HRD-061.md](../task/report/frontend/FE-HRD-061.md) |
+| `FE-HRD-062` | Siap Kerja, Batal Bergabung & Tautan Serah Terima | `HrdOnboardingCaseController.cs` | `src/app/hr/onboarding/cases/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-062.md](../task/report/frontend/FE-HRD-062.md) |
+| `FE-HRD-063` | Daftar & Detail Kontrak Kerja | `HrdEmploymentContractController.cs` | `src/app/hr/contracts/**` | ✅ Lulus Linter & Build | [FE-HRD-063.md](../task/report/frontend/FE-HRD-063.md) |
+| `FE-HRD-064` | Keputusan & Koreksi Kontrak pada Detail Kontrak | `HrdEmploymentContractController.cs` | `src/app/hr/contracts/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-064.md](../task/report/frontend/FE-HRD-064.md) |
+| `FE-HRD-065` | Masa Percobaan (*Probation*) & Evaluasi Staf | `HrdProbationEvaluationController.cs` | `src/app/hr/onboarding/probation/**` | ✅ Lulus Linter & Build | [FE-HRD-065.md](../task/report/frontend/FE-HRD-065.md) |
+| `FE-HRD-066` | Pendampingan Klinis (*Clinical Preceptorship*) | `HrdClinicalPreceptorshipController.cs` | `src/app/hr/onboarding/preceptorship/**` | ✅ Lulus Linter & Build | [FE-HRD-066.md](../task/report/frontend/FE-HRD-066.md) |
+| `FE-HRD-067` | Batch Data Awal Kontrak | `HrdContractBatchController.cs` | `src/app/hr/contracts/batches/**` | ✅ Lulus Linter & Build | [FE-HRD-067.md](../task/report/frontend/FE-HRD-067.md) |
+| `FE-HRD-068` | Permintaan Akses Pegawai Baru (*IT/Facility Provisioning*) | `HrdAccessProvisioningController.cs` | `src/app/hr/onboarding/provisioning/**` | ✅ Lulus Linter & Build | [FE-HRD-068.md](../task/report/frontend/FE-HRD-068.md) |
+| `FE-HRD-069` | Pengaturan Kebijakan Onboarding & Kontrak | `HrdOnboardingSettingsController.cs` | `src/app/hr/onboarding/settings/**` | ✅ Lulus Linter & Build | [FE-HRD-069.md](../task/report/frontend/FE-HRD-069.md) |
+| `FE-HRD-070` | Layar Perlu Tindakan (*Action Required*) | `HrdOnboardingDashboardController.cs` | `src/app/hr/onboarding/action-required/**` | ✅ Lulus Linter & Build | [FE-HRD-070.md](../task/report/frontend/FE-HRD-070.md) |
+| `FE-HRD-071` | Amandemen Layar Riwayat Kontrak & Form Master Pegawai | `EmployeeController.cs` | `src/components/view/hr/master-data/employees/form/**` | ✅ Lulus Linter & Build | [FE-HRD-071.md](../task/report/frontend/FE-HRD-071.md) |
+| `FE-HRD-072` | Amandemen Layar Tawaran `S-D2`: Jenis & Masa Kontrak | `HrdJobOfferController.cs` | `src/app/hr/recruitment/offers/[id]/**` | ✅ Lulus Linter & Build | [FE-HRD-072.md](../task/report/frontend/FE-HRD-072.md) |
+| `FE-HRD-073` | Penanganan Tugas T15 s.d. T18 di Kotak Masuk HR | `WorkflowInstanceController.cs` | `src/app/hr/workflow/approval-inbox/**` | ✅ Lulus Linter & Build | [FE-HRD-073.md](../task/report/frontend/FE-HRD-073.md) |
+| `FE-HRD-074` | Verifikasi Menu, Hak Akses & Keterjangkauan Layar `S-C4-ONB` | Seluruh Controller Onboarding | `src/app/hr/onboarding/**`, `src/app/hr/contracts/**` | ✅ Lulus Linter & Build | [FE-HRD-074.md](../task/report/frontend/FE-HRD-074.md) |
+| `FE-HRD-075` | Service Client API Roster Penjadwalan | `RosterScheduleAdministrationController.cs` | `src/lib/services/hr/roster-scheduling-service.js` | ✅ Lulus Linter & Build | [FE-HRD-075.md](../task/report/frontend/FE-HRD-075.md) |
+| `FE-HRD-076` | State Management Redux Roster Unit & Cache Invalidation | `RosterScheduleAdministrationController.cs` | `src/lib/state/slice/hr/roster-scheduling/` | ✅ Lulus Linter & Build | [FE-HRD-076.md](../task/report/frontend/FE-HRD-076.md) |
+| `FE-HRD-077` | Layar Kisi Roster Bulanan Unit (`/hr/scheduling/roster`) | `RosterScheduleAdministrationController.cs` | `src/app/hr/scheduling/roster/**` | ✅ Lulus Linter & Build | [FE-HRD-077.md](../task/report/frontend/FE-HRD-077.md) |
+| `FE-HRD-078` | Komponen Aksi Massal: Salin Periode Lalu & Pola Shift | `RosterScheduleAdministrationController.cs` | `src/components/features/hr/scheduling/` | ✅ Lulus Linter & Build | [FE-HRD-078.md](../task/report/frontend/FE-HRD-078.md) |
+| `FE-HRD-079` | Drawer Validasi Jadwal: Aturan B1-B7 & W1-W7 | `RosterScheduleAdministrationController.cs` | `src/components/features/hr/scheduling/RosterValidationDrawer.jsx` | ✅ Lulus Linter & Build | [FE-HRD-079.md](../task/report/frontend/FE-HRD-079.md) |
+| `FE-HRD-080` | Aksi Terbitkan Roster Mandiri Ka. Unit & Validasi Alasan | `RosterScheduleAdministrationController.cs` | `src/components/features/hr/scheduling/PublishRosterModal.jsx` | ✅ Lulus Linter & Build | [FE-HRD-080.md](../task/report/frontend/FE-HRD-080.md) |
+| `FE-HRD-081` | Modal Ganti Petugas Cepat (*Quick Replacement*) Alasan Wajib | `RosterScheduleAdministrationController.cs` | `src/components/features/hr/scheduling/QuickReplacementModal.jsx` | ✅ Lulus Linter & Build | [FE-HRD-081.md](../task/report/frontend/FE-HRD-081.md) |
+| `FE-HRD-082` | Koreksi Mundur Jadwal (<= 3 hari) & Proteksi Closed Banner | `RosterScheduleAdministrationController.cs` | `src/components/features/hr/scheduling/RetroactiveCorrectionModal.jsx` | ✅ Lulus Linter & Build | [FE-HRD-082.md](../task/report/frontend/FE-HRD-082.md) |
+| `FE-HRD-083` | Service Client API On-Call & SLA Pemanggilan | `OnCallScheduleController.cs` | `src/lib/services/hr/on-call-service.js` | ✅ Lulus Linter & Build | [FE-HRD-083.md](../task/report/frontend/FE-HRD-083.md) |
+| `FE-HRD-084` | Layar Kalender Penugasan Siaga (*On-Call Coverage*) | `OnCallScheduleController.cs` | `src/app/hr/scheduling/on-call/**` | ✅ Lulus Linter & Build | [FE-HRD-084.md](../task/report/frontend/FE-HRD-084.md) |
+| `FE-HRD-085` | Modal Panggil Siaga (*Call-In*) & Badge Pemenuhan SLA | `OnCallScheduleController.cs` | `src/components/features/hr/scheduling/OnCallCallInModal.jsx` | ✅ Lulus Linter & Build | [FE-HRD-085.md](../task/report/frontend/FE-HRD-085.md) |
+| `FE-HRD-086` | Layar Pengaturan Kebijakan Penjadwalan HR | `SchedulingSettingsController.cs` | `src/app/hr/scheduling/settings/**` | ✅ Lulus Linter & Build | [FE-HRD-086.md](../task/report/frontend/FE-HRD-086.md) |
+| `FE-HRD-087` | Verifikasi Ujung-ke-Ujung Layar Roster & On-Call Slice S-B4 | `RosterScheduleAdministrationController.cs`, `OnCallScheduleController.cs` | `src/app/hr/scheduling/**`, `menu-items.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-087.md](../task/report/frontend/FE-HRD-087.md) |
+| `FE-HRD-102` | API Service Client, Tipe & Redux Slice Cuti | `LeaveAdministrationController.cs`, `EmployeeSelfServiceLeaveController.cs` | `src/lib/services/hr/leave-service.js`, `src/lib/state/slice/hr/leave/` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-102.md](../task/report/frontend/FE-HRD-102.md) |
+| `FE-HRD-103` | Komponen Kartu Metrik Saldo & Progress Bar Cuti | `EmployeeSelfServiceLeaveController.cs` | `src/components/features/hr/leave/LeaveBalanceMetricCards.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-103.md](../task/report/frontend/FE-HRD-103.md) |
+| `FE-HRD-104` | Dasbor Saldo Kuota ESS & Drawer Buku Besar Ledger | `EmployeeSelfServiceLeaveController.cs` | `src/app/hr/leave/my-balance/**`, `LeaveLedgerDrawer.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-104.md](../task/report/frontend/FE-HRD-104.md) |
+| `FE-HRD-105` | Manajemen Alokasi Saldo, Carry-Forward & Runner HR | `LeaveAdministrationController.cs` | `src/app/hr/leave/balances-admin/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-105.md](../task/report/frontend/FE-HRD-105.md) |
+| `FE-HRD-106` | Modal Penyesuaian Saldo Resmi HR Dokumen Audit | `LeaveAdministrationController.cs` | `src/components/features/hr/leave/LeaveBalanceAdjustmentModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-106.md](../task/report/frontend/FE-HRD-106.md) |
+| `FE-HRD-107` | Pemilih Rentang Tanggal, Half-Day & Validasi Saldo | `EmployeeSelfServiceLeaveController.cs` | `src/components/features/hr/leave/LeaveDateRangePicker.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-107.md](../task/report/frontend/FE-HRD-107.md) |
+| `FE-HRD-108` | Modal Unggah Surat Sakit Ber-SIP & Masking Privasi Medis | `EmployeeSelfServiceLeaveController.cs` | `src/components/features/hr/leave/MedicalCertificateUploadModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-108.md](../task/report/frontend/FE-HRD-108.md) |
+| `FE-HRD-109` | Formulir Pengajuan Cuti Mandiri & Izin Sakit ESS | `EmployeeSelfServiceLeaveController.cs` | `src/app/hr/leave/request/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-109.md](../task/report/frontend/FE-HRD-109.md) |
+| `FE-HRD-110` | Banner Peringatan Kuota Safe Staffing Coverage | `LeaveAdministrationController.cs` | `src/components/features/hr/leave/SafeStaffingCoverageWarningBanner.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-110.md](../task/report/frontend/FE-HRD-110.md) |
+| `FE-HRD-111` | Kotak Masuk Approval Atasan & Approve with Mitigation | `LeaveAdministrationController.cs` | `src/app/hr/leave/approval-inbox/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-111.md](../task/report/frontend/FE-HRD-111.md) |
+| `FE-HRD-112` | Inisiasi & Pemantauan Pemanggilan Darurat (Leave Recall) | `LeaveAdministrationController.cs` | `src/app/hr/leave/recalls/**`, `LeaveRecallInitiationModal.jsx` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-112.md](../task/report/frontend/FE-HRD-112.md) |
+| `FE-HRD-113` | Approval Recall HR Manager & Restore Saldo Sisa | `LeaveAdministrationController.cs` | `src/app/hr/leave/recalls/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-113.md](../task/report/frontend/FE-HRD-113.md) |
+| `FE-HRD-114` | Rekonsiliasi Akhir Cuti, Retrospektif & Payroll Close | `LeaveAdministrationController.cs` | `src/app/hr/leave/reconciliations/**` | ✅ Lulus Linter & Turbopack Build | [FE-HRD-114.md](../task/report/frontend/FE-HRD-114.md) |
+| `FE-HRD-115` | Verifikasi Ujung-ke-Ujung Antarmuka Cuti Slice S-B2 | `LeaveAdministrationController.cs`, `EmployeeSelfServiceLeaveController.cs` | `src/app/hr/leave/**`, `menu-items.jsx` | ✅ Lulus Linter & Turbopack Build (594 Rute) | [FE-HRD-115.md](../task/report/frontend/FE-HRD-115.md) |
 
 
 ## 1b. Jejak `S-D2` Rekrutmen dan Hiring — requirement ke task dan bukti
@@ -581,31 +639,31 @@ akan diperbarui oleh build skill saat task selesai.
 
 | FR | Perilaku Bisnis | Desain & Kontrak | Task Backend | Task Frontend | Bukti yang Diharapkan | Status |
 | --- | --- | --- | --- | --- | --- | :---: |
-| `FR-LEV-01` | Alokasi hak cuti tahunan 12 hari kerja per tahun kalender (prorata pegawai baru) | BE §21.8; `HRD-DEC-110` | `BE-HRD-118` | `FE-HRD-103`, `FE-HRD-104` | `AT-HRD-LEV-01`, `UAT-LEV-01` | |
-| `FR-LEV-02` | Pembukuan mutasi saldo kredit/debit atomik pada `TrxLeaveBalanceLedger` | BE §21.2; Data §13.1; `HRD-DEC-110` | `BE-HRD-117`, `BE-HRD-118` | `FE-HRD-104` | `AT-HRD-LEV-02` | |
-| `FR-LEV-03` | Pemindahan sisa saldo cuti akhir tahun (31 Des) maksimal 6 hari kerja | BE §21.8; `VR-LEV-12`; `HRD-DEC-110` | `BE-HRD-119` | `FE-HRD-105` | `AT-HRD-LEV-03`, `UAT-LEV-01` | |
-| `FR-LEV-04` | Penghangusan otomatis sisa cuti akhir tahun di atas 6 hari kerja (`Forfeiture`) | BE §21.8; `LEV-B8`; `HRD-DEC-110` | `BE-HRD-119` | `FE-HRD-105` | `AT-HRD-LEV-03` | |
-| `FR-LEV-05` | Penghangusan sisa saldo carry-forward yang belum terpakai per 30 Juni | BE §21.8; `LEV-W2`; `HRD-DEC-110` | `BE-HRD-119`, `BE-HRD-120` | `FE-HRD-105` | `AT-HRD-LEV-04`, `UAT-LEV-01` | |
-| `FR-LEV-06` | Pengajuan cuti tahunan mandiri via ESS dengan penghitungan hari efektif | BE §21.8; API §18.1; `HRD-DEC-110` | `BE-HRD-122` | `FE-HRD-109` | `AT-HRD-LEV-05` | |
-| `FR-LEV-07` | Opsi cuti setengah hari (half-day 0.5 hari kerja) sesi pagi/siang | BE §21.8; `VR-LEV-04`..`05`; `HRD-ASM-20` | `BE-HRD-122` | `FE-HRD-107`, `FE-HRD-109` | `AT-HRD-LEV-07`, `AT-HRD-LEV-08` | |
-| `FR-LEV-08` | Penolakan submit permohonan cuti bila saldo aktif tidak mencukupi | BE §21.8; `VR-LEV-01`; `LEV-B1` | `BE-HRD-118`, `BE-HRD-122` | `FE-HRD-107`, `FE-HRD-109` | `AT-HRD-LEV-06` | |
-| `FR-LEV-09` | Evaluasi ketersediaan staf unit 24/7 & notifikasi Safe Staffing Coverage Warning | BE §21.8; Integration §9.2.1 (`INT-HR-45`); `HRD-DEC-111` | `BE-HRD-121` | `FE-HRD-110`, `FE-HRD-111` | `AT-HRD-LEV-09`, `UAT-LEV-02` | |
-| `FR-LEV-10` | Persetujuan Approve with Mitigation atasan dengan input catatan staf pengganti | BE §21.8; `VR-LEV-21`; `HRD-DEC-111` | `BE-HRD-124` | `FE-HRD-111` | `AT-HRD-LEV-10`, `AT-HRD-LEV-11` | |
-| `FR-LEV-11` | Pembatalan pre-leave mandiri sebelum hari-H memulihkan saldo 100% | BE §21.8; `VR-LEV-17`; `HRD-ASM-21` | `BE-HRD-125` | `FE-HRD-104` | `AT-HRD-LEV-15` | |
-| `FR-LEV-12` | Izin sakit mandiri 1 hari kerja melalui ESS dengan surat pernyataan diri | BE §21.8; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-109` | `AT-HRD-LEV-12` | |
-| `FR-LEV-13` | Cuti sakit $\ge 2$ hari kerja wajib unggah surat keterangan dokter ber-SIP | BE §21.8; `VR-LEV-06`; `LEV-B3`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108`, `FE-HRD-109` | `AT-HRD-LEV-13`, `UAT-LEV-03` | |
-| `FR-LEV-14` | Validasi metadata surat sakit (faskes, nomor SIP dokter, rentang istirahat) | BE §21.8; `VR-LEV-08`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108` | `AT-HRD-LEV-13` | |
-| `FR-LEV-15` | Masking diagnosa medis (ICD-10) dari atasan langsung demi privasi K3RS | BE §21.8; `VR-LEV-09`; `LEV-W3`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108`, `FE-HRD-111` | `AT-HRD-LEV-14`, `UAT-LEV-03` | |
-| `FR-LEV-16` | Inisiasi Leave Recall darurat RS oleh Kepala Ruangan pada cuti Active | BE §21.8; `VR-LEV-14`; `HRD-DEC-113` | `BE-HRD-126` | `FE-HRD-112` | `AT-HRD-LEV-16`, `UAT-LEV-04` | |
-| `FR-LEV-17` | Otorisasi persetujuan Leave Recall tunggal oleh HR Manager | BE §21.8; `VR-LEV-15`; `LEV-B5`; `HRD-DEC-113` | `BE-HRD-126` | `FE-HRD-113` | `AT-HRD-LEV-17` | |
-| `FR-LEV-18` | Eksekusi otomatis restore sisa hari cuti ke saldo ledger (`RecallRestore`) | BE §21.8; `VR-LEV-16`; `LEV-W4`; `HRD-DEC-113` | `BE-HRD-127` | `FE-HRD-113` | `AT-HRD-LEV-17`, `UAT-LEV-04` | |
-| `FR-LEV-19` | Penerbitan event pemulihan jadwal shift aktif di Roster 06 pasca-recall | BE §21.8; Integration §9.2.2 (`INT-HR-46`); `HRD-DEC-113` | `BE-HRD-127` | `FE-HRD-113` | `AT-HRD-LEV-18` | |
-| `FR-LEV-20` | Pencatatan riwayat recall darurat lengkap pada audit trail kepatuhan RS | BE §21.8; Permission §16.2; `HRD-DEC-113` | `BE-HRD-126`, `BE-HRD-127` | `FE-HRD-112`, `FE-HRD-113` | `AT-HRD-LEV-17` | |
-| `FR-LEV-21` | Cuti pending saat cut-off payroll tidak memotong gaji pegawai bulan berjalan | BE §21.8; `LEV-W5`; `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | |
-| `FR-LEV-22` | Penandaan IsPendingPayrollReconciliation untuk rekonsiliasi bulan berikutnya | BE §21.8; `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | |
-| `FR-LEV-23` | Penguncian immutabilitas cuti Completed / PayrollClosed menolak /reverse (HTTP 409) | BE §21.8; `VR-LEV-19`..`20`; `LEV-B4`; `HRD-DEC-115` | `BE-HRD-128` | `FE-HRD-114` | `AT-HRD-LEV-20`, `UAT-LEV-05` | |
-| `FR-LEV-24` | Penyesuaian saldo resmi HR via TrxLeaveAdjustment wajib nomor dokumen audit | BE §21.8; `VR-LEV-18`; `LEV-B6`; `HRD-DEC-115` | `BE-HRD-128` | `FE-HRD-106` | `AT-HRD-LEV-20`, `UAT-LEV-05` | |
-| `FR-LEV-25` | Penutupan periode cuti menghasilkan snapshot terkunci untuk serah terima payroll | BE §21.8; Integration §9.2.4 (`INT-HR-48`); `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | |
+| `FR-LEV-01` | Alokasi hak cuti tahunan 12 hari kerja per tahun kalender (prorata pegawai baru) | BE §21.8; `HRD-DEC-110` | `BE-HRD-118` | `FE-HRD-103`, `FE-HRD-104` | `AT-HRD-LEV-01`, `UAT-LEV-01` | ✅ FE Selesai |
+| `FR-LEV-02` | Pembukuan mutasi saldo kredit/debit atomik pada `TrxLeaveBalanceLedger` | BE §21.2; Data §13.1; `HRD-DEC-110` | `BE-HRD-117`, `BE-HRD-118` | `FE-HRD-104` | `AT-HRD-LEV-02` | ✅ FE Selesai |
+| `FR-LEV-03` | Pemindahan sisa saldo cuti akhir tahun (31 Des) maksimal 6 hari kerja | BE §21.8; `VR-LEV-12`; `HRD-DEC-110` | `BE-HRD-119` | `FE-HRD-105` | `AT-HRD-LEV-03`, `UAT-LEV-01` | ✅ FE Selesai |
+| `FR-LEV-04` | Penghangusan otomatis sisa cuti akhir tahun di atas 6 hari kerja (`Forfeiture`) | BE §21.8; `LEV-B8`; `HRD-DEC-110` | `BE-HRD-119` | `FE-HRD-105` | `AT-HRD-LEV-03` | ✅ FE Selesai |
+| `FR-LEV-05` | Penghangusan sisa saldo carry-forward yang belum terpakai per 30 Juni | BE §21.8; `LEV-W2`; `HRD-DEC-110` | `BE-HRD-119`, `BE-HRD-120` | `FE-HRD-105` | `AT-HRD-LEV-04`, `UAT-LEV-01` | ✅ FE Selesai |
+| `FR-LEV-06` | Pengajuan cuti tahunan mandiri via ESS dengan penghitungan hari efektif | BE §21.8; API §18.1; `HRD-DEC-110` | `BE-HRD-122` | `FE-HRD-109` | `AT-HRD-LEV-05` | ✅ FE Selesai |
+| `FR-LEV-07` | Opsi cuti setengah hari (half-day 0.5 hari kerja) sesi pagi/siang | BE §21.8; `VR-LEV-04`..`05`; `HRD-ASM-20` | `BE-HRD-122` | `FE-HRD-107`, `FE-HRD-109` | `AT-HRD-LEV-07`, `AT-HRD-LEV-08` | ✅ FE Selesai |
+| `FR-LEV-08` | Penolakan submit permohonan cuti bila saldo aktif tidak mencukupi | BE §21.8; `VR-LEV-01`; `LEV-B1` | `BE-HRD-118`, `BE-HRD-122` | `FE-HRD-107`, `FE-HRD-109` | `AT-HRD-LEV-06` | ✅ FE Selesai |
+| `FR-LEV-09` | Evaluasi ketersediaan staf unit 24/7 & notifikasi Safe Staffing Coverage Warning | BE §21.8; Integration §9.2.1 (`INT-HR-45`); `HRD-DEC-111` | `BE-HRD-121` | `FE-HRD-110`, `FE-HRD-111` | `AT-HRD-LEV-09`, `UAT-LEV-02` | ✅ FE Selesai |
+| `FR-LEV-10` | Persetujuan Approve with Mitigation atasan dengan input catatan staf pengganti | BE §21.8; `VR-LEV-21`; `HRD-DEC-111` | `BE-HRD-124` | `FE-HRD-111` | `AT-HRD-LEV-10`, `AT-HRD-LEV-11` | ✅ FE Selesai |
+| `FR-LEV-11` | Pembatalan pre-leave mandiri sebelum hari-H memulihkan saldo 100% | BE §21.8; `VR-LEV-17`; `HRD-ASM-21` | `BE-HRD-125` | `FE-HRD-104` | `AT-HRD-LEV-15` | ✅ FE Selesai |
+| `FR-LEV-12` | Izin sakit mandiri 1 hari kerja melalui ESS dengan surat pernyataan diri | BE §21.8; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-109` | `AT-HRD-LEV-12` | ✅ FE Selesai |
+| `FR-LEV-13` | Cuti sakit $\ge 2$ hari kerja wajib unggah surat keterangan dokter ber-SIP | BE §21.8; `VR-LEV-06`; `LEV-B3`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108`, `FE-HRD-109` | `AT-HRD-LEV-13`, `UAT-LEV-03` | ✅ FE Selesai |
+| `FR-LEV-14` | Validasi metadata surat sakit (faskes, nomor SIP dokter, rentang istirahat) | BE §21.8; `VR-LEV-08`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108` | `AT-HRD-LEV-13` | ✅ FE Selesai |
+| `FR-LEV-15` | Masking diagnosa medis (ICD-10) dari atasan langsung demi privasi K3RS | BE §21.8; `VR-LEV-09`; `LEV-W3`; `HRD-DEC-112` | `BE-HRD-123` | `FE-HRD-108`, `FE-HRD-111` | `AT-HRD-LEV-14`, `UAT-LEV-03` | ✅ FE Selesai |
+| `FR-LEV-16` | Inisiasi Leave Recall darurat RS oleh Kepala Ruangan pada cuti Active | BE §21.8; `VR-LEV-14`; `HRD-DEC-113` | `BE-HRD-126` | `FE-HRD-112` | `AT-HRD-LEV-16`, `UAT-LEV-04` | ✅ FE Selesai |
+| `FR-LEV-17` | Otorisasi persetujuan Leave Recall tunggal oleh HR Manager | BE §21.8; `VR-LEV-15`; `LEV-B5`; `HRD-DEC-113` | `BE-HRD-126` | `FE-HRD-113` | `AT-HRD-LEV-17` | ✅ FE Selesai |
+| `FR-LEV-18` | Eksekusi otomatis restore sisa hari cuti ke saldo ledger (`RecallRestore`) | BE §21.8; `VR-LEV-16`; `LEV-W4`; `HRD-DEC-113` | `BE-HRD-127` | `FE-HRD-113` | `AT-HRD-LEV-17`, `UAT-LEV-04` | ✅ FE Selesai |
+| `FR-LEV-19` | Penerbitan event pemulihan jadwal shift aktif di Roster 06 pasca-recall | BE §21.8; Integration §9.2.2 (`INT-HR-46`); `HRD-DEC-113` | `BE-HRD-127` | `FE-HRD-113` | `AT-HRD-LEV-18` | ✅ FE Selesai |
+| `FR-LEV-20` | Pencatatan riwayat recall darurat lengkap pada audit trail kepatuhan RS | BE §21.8; Permission §16.2; `HRD-DEC-113` | `BE-HRD-126`, `BE-HRD-127` | `FE-HRD-112`, `FE-HRD-113` | `AT-HRD-LEV-17` | ✅ FE Selesai |
+| `FR-LEV-21` | Cuti pending saat cut-off payroll tidak memotong gaji pegawai bulan berjalan | BE §21.8; `LEV-W5`; `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | ✅ FE Selesai |
+| `FR-LEV-22` | Penandaan IsPendingPayrollReconciliation untuk rekonsiliasi bulan berikutnya | BE §21.8; `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | ✅ FE Selesai |
+| `FR-LEV-23` | Penguncian immutabilitas cuti Completed / PayrollClosed menolak /reverse (HTTP 409) | BE §21.8; `VR-LEV-19`..`20`; `LEV-B4`; `HRD-DEC-115` | `BE-HRD-128` | `FE-HRD-114` | `AT-HRD-LEV-20`, `UAT-LEV-05` | ✅ FE Selesai |
+| `FR-LEV-24` | Penyesuaian saldo resmi HR via TrxLeaveAdjustment wajib nomor dokumen audit | BE §21.8; `VR-LEV-18`; `LEV-B6`; `HRD-DEC-115` | `BE-HRD-128` | `FE-HRD-106` | `AT-HRD-LEV-20`, `UAT-LEV-05` | ✅ FE Selesai |
+| `FR-LEV-25` | Penutupan periode cuti menghasilkan snapshot terkunci untuk serah terima payroll | BE §21.8; Integration §9.2.4 (`INT-HR-48`); `HRD-DEC-114` | `BE-HRD-129` | `FE-HRD-114` | `AT-HRD-LEV-19` | ✅ FE Selesai |
 
 #### Matriks acceptance test ke task
 
@@ -1304,28 +1362,28 @@ Bagian ini mendokumentasikan pemetaan deterministik 100% tanpa celah antara kebu
 
 | ID Acceptance Test | Skenario Pengujian Penerimaan | Task Backend Terkait | Task Frontend Terkait | Status Kesiapan |
 | :--- | :--- | :--- | :--- | :---: |
-| `AT-HRD-EMP-01` | Pelaporan insiden tata tertib pegawai dan registrasi nomor unik | `BE-HRD-273` | `FE-HRD-246`, `FE-HRD-249` | `Rencana` |
-| `AT-HRD-EMP-02` | Validasi Just Culture penolakan insiden klinis tanpa nomor audit KMKP | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `Rencana` |
-| `AT-HRD-EMP-03` | Pemblokiran sanksi SP untuk insiden terbukti kategori Human Error | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `Rencana` |
-| `AT-HRD-EMP-04` | Pelaksanaan sidang Berita Acara Pemeriksaan (BAP) & pencatatan pembelaan | `BE-HRD-274` | `FE-HRD-250` | `Rencana` |
-| `AT-HRD-EMP-05` | Penerbitan SP 1 dengan tanggal kedaluwarsa tepat 6 bulan kalender PP 35/2021 | `BE-HRD-275` | `FE-HRD-251` | `Rencana` |
-| `AT-HRD-EMP-06` | Worker otomatisasi status SP aktif menjadi Expired pada H+180 hari kalender | `BE-HRD-276` | `FE-HRD-248`, `FE-HRD-251` | `Rencana` |
-| `AT-HRD-EMP-07` | Pengiriman notifikasi peringatan H-14 sebelum berakhirnya masa aktif sanksi SP | `BE-HRD-276` | `FE-HRD-248` | `Rencana` |
-| `AT-HRD-EMP-08` | Kenaikan sanksi berjenjang dari SP 1 ke SP 2 atas pelanggaran baru dalam 6 bulan | `BE-HRD-275` | `FE-HRD-251` | `Rencana` |
-| `AT-HRD-EMP-09` | Penerbitan langsung SP 3 untuk pelanggaran berat dengan persetujuan Direktur SDM | `BE-HRD-275` | `FE-HRD-251` | `Rencana` |
-| `AT-HRD-EMP-10` | Alur sanggah banding sanksi SP maksimal 7 hari kerja dan putusan pembatalan | `BE-HRD-275` | `FE-HRD-252` | `Rencana` |
-| `AT-HRD-EMP-11` | Penetapan skorsing investigasi dengan jaminan upah penuh 100% Pasal 157A | `BE-HRD-277` | `FE-HRD-253` | `Rencana` |
-| `AT-HRD-EMP-12` | Pencabutan instan akses login SSO SIMRS/EMR dan kartu fisik saat skorsing | `BE-HRD-277`, `BE-HRD-285` | `FE-HRD-253` | `Rencana` |
-| `AT-HRD-EMP-13` | Pengiriman tiket keluhan hubungan kerja via ESS dan penegakan SLA 14 hari | `BE-HRD-279` | `FE-HRD-254` | `Rencana` |
-| `AT-HRD-EMP-14` | Pengiriman laporan whistleblower anonim terenkripsi asimetris pada payload | `BE-HRD-280` | `FE-HRD-255` | `Rencana` |
-| `AT-HRD-EMP-15` | Isolasi akses baca tiket whistleblower dari atasan langsung pihak terlapor | `BE-HRD-280` | `FE-HRD-247`, `FE-HRD-255` | `Rencana` |
-| `AT-HRD-EMP-16` | Dokumentasi perundingan forum Bipartit RS dan arsip naskah Perjanjian Bersama | `BE-HRD-281` | `FE-HRD-256` | `Rencana` |
-| `AT-HRD-EMP-17` | Pengajuan terminasi resign sukarela dengan validasi notice minimal 30 hari | `BE-HRD-282` | `FE-HRD-257` | `Rencana` |
-| `AT-HRD-EMP-18` | Kalkulator pesangon resign (UP/UPMK Rp 0, UPH cuti + Uang Pisah) PP 35/2021 | `BE-HRD-283` | `FE-HRD-258` | `Rencana` |
-| `AT-HRD-EMP-19` | Kalkulator pesangon pensiun (1.75x UP + 1x UPMK + UPH) sesuai masa kerja sah | `BE-HRD-283` | `FE-HRD-258` | `Rencana` |
-| `AT-HRD-EMP-20` | Persetujuan resmi lembar pesangon oleh Direktur Keuangan sebelum payroll lock | `BE-HRD-283` | `FE-HRD-258` | `Rencana` |
-| `AT-HRD-EMP-21` | Verifikasi digital checklist exit clearance 5 departemen secara berjenjang | `BE-HRD-284` | `FE-HRD-259`, `FE-HRD-260` | `Rencana` |
-| `AT-HRD-EMP-22` | Hard-block penolakan rilis payroll final Sub-10 sebelum clearance tuntas 100% | `BE-HRD-285` | `FE-HRD-260` | `Rencana` |
+| `AT-HRD-EMP-01` | Pelaporan insiden tata tertib pegawai dan registrasi nomor unik | `BE-HRD-273` | `FE-HRD-246`, `FE-HRD-249` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-02` | Validasi Just Culture penolakan insiden klinis tanpa nomor audit KMKP | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-03` | Pemblokiran sanksi SP untuk insiden terbukti kategori Human Error | `BE-HRD-272`, `BE-HRD-273` | `FE-HRD-249` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-04` | Pelaksanaan sidang Berita Acara Pemeriksaan (BAP) & pencatatan pembelaan | `BE-HRD-274` | `FE-HRD-250` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-05` | Penerbitan SP 1 dengan tanggal kedaluwarsa tepat 6 bulan kalender PP 35/2021 | `BE-HRD-275` | `FE-HRD-251` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-06` | Worker otomatisasi status SP aktif menjadi Expired pada H+180 hari kalender | `BE-HRD-276` | `FE-HRD-248`, `FE-HRD-251` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-07` | Pengiriman notifikasi peringatan H-14 sebelum berakhirnya masa aktif sanksi SP | `BE-HRD-276` | `FE-HRD-248` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-08` | Kenaikan sanksi berjenjang dari SP 1 ke SP 2 atas pelanggaran baru dalam 6 bulan | `BE-HRD-275` | `FE-HRD-251` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-09` | Penerbitan langsung SP 3 untuk pelanggaran berat dengan persetujuan Direktur SDM | `BE-HRD-275` | `FE-HRD-251` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-10` | Alur sanggah banding sanksi SP maksimal 7 hari kerja dan putusan pembatalan | `BE-HRD-275` | `FE-HRD-252` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-11` | Penetapan skorsing investigasi dengan jaminan upah penuh 100% Pasal 157A | `BE-HRD-277` | `FE-HRD-253` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-12` | Pencabutan instan akses login SSO SIMRS/EMR dan kartu fisik saat skorsing | `BE-HRD-277`, `BE-HRD-285` | `FE-HRD-253` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-13` | Pengiriman tiket keluhan hubungan kerja via ESS dan penegakan SLA 14 hari | `BE-HRD-279` | `FE-HRD-254` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-14` | Pengiriman laporan whistleblower anonim terenkripsi asimetris pada payload | `BE-HRD-280` | `FE-HRD-255` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-15` | Isolasi akses baca tiket whistleblower dari atasan langsung pihak terlapor | `BE-HRD-280` | `FE-HRD-247`, `FE-HRD-255` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-16` | Dokumentasi perundingan forum Bipartit RS dan arsip naskah Perjanjian Bersama | `BE-HRD-281` | `FE-HRD-256` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-17` | Pengajuan terminasi resign sukarela dengan validasi notice minimal 30 hari | `BE-HRD-282` | `FE-HRD-257` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-18` | Kalkulator pesangon resign (UP/UPMK Rp 0, UPH cuti + Uang Pisah) PP 35/2021 | `BE-HRD-283` | `FE-HRD-258` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-19` | Kalkulator pesangon pensiun (1.75x UP + 1x UPMK + UPH) sesuai masa kerja sah | `BE-HRD-283` | `FE-HRD-258` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-20` | Persetujuan resmi lembar pesangon oleh Direktur Keuangan sebelum payroll lock | `BE-HRD-283` | `FE-HRD-258` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-21` | Verifikasi digital checklist exit clearance 5 departemen secara berjenjang | `BE-HRD-284` | `FE-HRD-259`, `FE-HRD-260` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-22` | Hard-block penolakan rilis payroll final Sub-10 sebelum clearance tuntas 100% | `BE-HRD-285` | `FE-HRD-260` | `✅ Terealisasi (S-C5 Selesai)` |
 
 ---
 

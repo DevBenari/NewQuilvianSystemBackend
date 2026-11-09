@@ -1428,6 +1428,27 @@ try
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.ClinicalCareerLadderExpiryWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceDisputeSlaEnforcementWorker>();
 
+    // Slice S-C5 (Hubungan Industrial & Terminasi / Exit Clearance) - MVP-54..56 (Kontrak v22)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IEmployeeRelationUnitOfWork, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.EmployeeRelationUnitOfWork>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinaryIncidentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinaryIncidentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinaryInvestigationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinaryInvestigationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinarySanctionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinarySanctionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinarySuspensionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinarySuspensionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IEmployeeGrievanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.EmployeeGrievanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IWhistleblowerCaseService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.WhistleblowerCaseService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IBipartiteForumService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.BipartiteForumService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IEmployeeSeparationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.EmployeeSeparationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.ISeveranceCalculationEngine, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.SeveranceCalculationEngine>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IExitClearanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.ExitClearanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IExitClearanceStatusProvider, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.ExitClearanceService>();
+
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.DisciplinarySanctionExpiryWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.SuspensionPeriodMonitoringWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.GrievanceSlaEscalationWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.PkwtContractExpiryRadarWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.ExitClearanceChecklistReminderWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.ItAccessRevocationSyncWorker>();
+
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();

@@ -581,6 +581,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxDisciplinaryCase> TrxDisciplinaryCases { get; set; }
         public DbSet<TrxDisciplinaryDecision> TrxDisciplinaryDecisions { get; set; }
         public DbSet<HrdEmployeeRecognition> HrdEmployeeRecognitions { get; set; }
+        public DbSet<TrxDisciplinaryIncidentReport> TrxDisciplinaryIncidentReports { get; set; }
+        public DbSet<TrxDisciplinaryInvestigationRecord> TrxDisciplinaryInvestigationRecords { get; set; }
+        public DbSet<TrxDisciplinarySanction> TrxDisciplinarySanctions { get; set; }
+        public DbSet<TrxDisciplinarySuspension> TrxDisciplinarySuspensions { get; set; }
+        public DbSet<TrxBipartiteNegotiationForum> TrxBipartiteNegotiationForums { get; set; }
+        public DbSet<TrxSeveranceCalculation> TrxSeveranceCalculations { get; set; }
+        public DbSet<TrxExitClearanceProcess> TrxExitClearanceProcesses { get; set; }
+        public DbSet<TrxExitClearanceChecklist> TrxExitClearanceChecklists { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - EMPLOYEE RELATION MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
