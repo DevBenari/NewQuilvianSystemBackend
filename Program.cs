@@ -1028,6 +1028,8 @@ try
     builder.Services.AddScoped<NvwPatientCallWaitThresholdService>();
     builder.Services.AddScoped<NvwPatientCallQueryService>();
     builder.Services.AddScoped<NvwBedTabletContextService>();
+    builder.Services.AddScoped<NvwPatientCallService>();
+    builder.Services.AddScoped<NvwPatientCallReconciliationService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1352,6 +1354,7 @@ try
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
         builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
         builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
+        builder.Services.AddHostedService<NvwPatientCallReconciliationHostedService>();
         builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
         builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
         builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();

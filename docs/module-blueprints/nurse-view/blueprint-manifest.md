@@ -81,40 +81,40 @@ owners:
   security: Lead (governance/QBE) — berkas bersama revision 2 direstui dengan syarat NV-DEC-030 (NV-DEC-056, NV-OQ-028 ditutup 2026-11-05)
   frontend_authority: Rizki Gunawan; DEV_DISCRETION NV-FE-006, 007; usulan NV-FE-008..010
   neighbour_modules:
-    rawat_inap: Muhammad Hamzah — TLM-NV-002 episode (pemberitahuan baca InpBedPlacement.EndDateTime/EndReason + kabar butir menu konsol di grup Rawat Inap, NV-FE-008); ditulis 2026-11-05, belum disampaikan
+    rawat_inap: Muhammad Hamzah — TLM-NV-002 episode (pemberitahuan baca InpBedPlacement.EndDateTime/EndReason + kabar butir menu konsol di grup Rawat Inap, NV-FE-008); ditulis 2026-11-05, disampaikan dan dijawab 2026-11-09 (TLM-NV-002 bagian 8; NV-DEC-057)
     clinical_policy: Komite Keperawatan (NV-OQ-022, angka ambang)
 approved_by: Rizki Gunawan
 approved_at: 2026-11-05
 backend_commit_sha: 0c6eab34      # branch rizkiG
 frontend_commit_sha: 91a11b08f    # branch RizkiV2
 contract_versions:
-  set: 0.2.0
-  status: approved                # NV-DEC-055; 0.1.2 tetap berlaku untuk bagian revision 1
+  set: 0.2.1
+  status: approved                # 0.2.1: NV-DEC-057, 2026-11-09 (state §5, kamus data R2.3, permission-audit R2 §9); 0.2.0: NV-DEC-055; 0.1.2 tetap berlaku untuk bagian revision 1
 proposals_approved: [AD-01, AD-02, AD-03, AD-04, AD-05, AD-06, G-09, G-10, G-11, G-12, G-13, G-14, G-16, G-17, NV-FE-008, NV-FE-009, NV-FE-010]
 implementation_gates: []                   # NV-OQ-028 ditutup NV-DEC-056 (2026-11-05); NV-OQ-022 runtime saja, bukan gerbang implementasi
 input_revisions:
-  00-interview-decisions.md: 5 (NV-DEC-034..056, NV-AC-028..045)
+  00-interview-decisions.md: 5 (NV-DEC-034..057, NV-AC-028..045; NV-AC-042 diubah NV-DEC-057)
   01-existing-capability-map.md: 2 (NV-CAP-17..29)
   02-requirement-completeness-assessment.md: 2 (NV-S8, R2.10; R2.5 NV-OQ-028 ditutup)
 input_hashes:            # md5, 12 karakter pertama, 2026-11-05 — sesudah NV-DEC-056
-  00-interview-decisions.md: 9c7cd23add31          # sebelumnya 505c91692171 (saat approval NV-DEC-055)
+  00-interview-decisions.md: cb16bfd13447          # sesudah NV-DEC-057 (2026-11-09); sebelumnya 9c7cd23add31, saat approval NV-DEC-055 505c91692171
   01-existing-capability-map.md: 9ad8b350b119
   02-requirement-completeness-assessment.md: 82f6a9e2dab7   # sebelumnya a4ce11b45f98
 artifact_hashes:         # md5, 12 karakter pertama, 2026-11-05 — seluruh berkas memuat revision 1 + bagian Revision 2
-  02-backend-architecture.md: a3c7827f1292
+  02-backend-architecture.md: a8bfd619f55a   # NV-DEC-057 (R2.4 reconciliation, enum CloseReason); sebelumnya a3c7827f1292
   03-frontend-architecture.md: d7c435ebc16b
   04-prd-to-mvp.md: a4155103aa87          # sesudah NV-DEC-056 (R2.20); saat approval 7f5ecfb34d63
   flowcharts/00-alur-utama.md: bd44dd2b74db
   flowcharts/04-panggilan-pasien.md: 436df9aa73a3        # baru
   flowcharts/05-penutupan-panggilan.md: 821daea0be8f     # baru
   flowcharts/06-pengelolaan-tablet-bed.md: 7f1fad5d4e95  # baru
-  data/data-dictionary.md: c9d6e132d01c
+  data/data-dictionary.md: 79716f287115   # 0.2.1 NV-DEC-057; sebelumnya c9d6e132d01c
   contracts/api-contract.md: 8dc7b3aae027   # label status §5–§8 dibetulkan ke approved, 2026-11-05; saat approval d85638ceed17
-  contracts/state-transition-matrix.md: ae9363a99ca1
+  contracts/state-transition-matrix.md: 6fb323f5509a   # 0.2.1 NV-DEC-057; sebelumnya ae9363a99ca1
   contracts/validation-matrix.md: 8f4fef93d6b7
   contracts/integration-contract.md: bb26c9ca2010
-  contracts/permission-audit-matrix.md: 49e9854221be
-  testing/acceptance-test-matrix.md: 29ecf09745bf
+  contracts/permission-audit-matrix.md: 65a52575f4f9   # 0.2.1 NV-DEC-057; sebelumnya 49e9854221be
+  testing/acceptance-test-matrix.md: 7590f3722184   # NV-AC-042 diubah NV-DEC-057; sebelumnya 29ecf09745bf
 unchanged_in_revision_2: [flowcharts/01-pengelolaan-perangkat.md, flowcharts/02-pembaruan-papan.md, flowcharts/03-pengesahan-interval-ttv.md]
 roadmap:                 # plan-module-delivery, roadmap revision 2, 2026-11-05 — bagian "Revision 2" di ketiga berkas
   status: approved       # Rizki Gunawan, 2026-11-05
@@ -129,8 +129,8 @@ roadmap:                 # plan-module-delivery, roadmap revision 2, 2026-11-05 
     roadmap/requirement-traceability.md: 6bb818de7611
 cross_module_documents:
   rawat-inap/episode-rawat-inap/docs/task-lintas-modul/TLM-NV-002-akhir-penempatan-bed-dan-menu-konsol-panggilan.md:
-    hash: 3fae4ee074cd
-    status: PEMBERITAHUAN — belum disampaikan ke Muhammad Hamzah
+    hash: aa8a0f26ba58   # sesudah jawaban, NV-DEC-057, dan catatan uji BE-NV-013; sebelumnya 3fae4ee074cd
+    status: DIJAWAB — disampaikan Rizki Gunawan, dijawab Muhammad Hamzah 2026-11-09 (bagian 8); ditindaklanjuti NV-DEC-057
 go_live_checklist: G-16 (NV-UNK-005..007) — roadmap/requirement-traceability.md R2.8, belum diperiksa
 ```
 
@@ -183,6 +183,7 @@ Tidak memblokir: `NV-OQ-010` (Komite Keperawatan) — tanda lewat jadwal aman-ga
 | 2026-11-05 | `NV-OQ-028` ditutup (`NV-DEC-056`): lead merestui sebelas berkas bersama sesuai `02-backend-architecture.md` R2.5 dan `03-frontend-architecture.md` R2.7 dengan syarat `NV-DEC-030`, dilaporkan Rizki Gunawan secara lisan. Status pertanyaan diperbarui di `00-interview-decisions.md`, `02-requirement-completeness-assessment.md` R2.5, `04-prd-to-mvp.md` R2.20, dan blok revision 2 di atas (`implementation_gates`, `input_hashes`, `artifact_hashes`). Penyebutan "menunggu restu lead" di `02-backend-architecture.md` R2.5, `03-frontend-architecture.md` R2.7, `contracts/integration-contract.md` §7, dan `01-existing-capability-map.md` sengaja tidak disunting; `NV-DEC-056` yang berlaku | Tidak — status pertanyaan terbuka, bukan isi desain; revision tetap `2`, kontrak tetap `0.2.0` |
 | 2026-11-05 | `plan-module-delivery` revision 2: bagian "Revision 2" ditambahkan ke `roadmap/backend-roadmap.md` (`BE-NV-008`–`016`), `roadmap/frontend-roadmap.md` (`FE-NV-008`–`015`), dan `roadmap/requirement-traceability.md` (FR, AC, UAT, NFR, DoD, `G-16`, lintas modul). Node, tabel, dan status revision 1 tidak disunting. Dokumen lintas modul `TLM-NV-002` ditulis di folder `episode-rawat-inap`. Grafik revision 2 memakai Mermaid karena berkas yang sama sudah memakai Mermaid (`grafik-dependency-roadmap.md` §13). Roadmap revision 2 berstatus `draft` sampai disetujui Rizki Gunawan | Tidak untuk blueprint; roadmap revision menjadi `2` |
 | 2026-11-05 | Approval owner: roadmap revision 2 (17 task, `BE-NV-008`–`016`, `FE-NV-008`–`015`) disetujui Rizki Gunawan ("lanjutkan saya setujui"). Status di metadata ketiga roadmap dan blok `roadmap` di atas diubah ke `approved`. Bersamaan, label "status `draft`" pada baris Contract version `contracts/api-contract.md` §5–§8 dibetulkan menjadi `approved` (`NV-DEC-055`), karena kepala dokumen dan approval kontrak `0.2.0` sudah `approved` sejak `NV-DEC-055` | Tidak — label status, bukan isi kontrak; kontrak tetap `0.2.0` |
+| 2026-11-09 | `TLM-NV-002` disampaikan Rizki Gunawan dan dijawab Muhammad Hamzah (bagian 8). Atas jawaban itu Rizki memutuskan `NV-DEC-057`: penutupan sistem mengikuti rantai `SupersededByCorrectionId`; `AdmissionCancelled` ditutup dengan alasan baru "admisi dibatalkan" (`NvwPatientCallCloseReason.AdmissionCancelled = 8`); koreksi ke bed lain ditutup "pasien pindah"; koreksi di bed yang sama tetap aktif. Diubah: `00-interview-decisions.md` (`NV-DEC-057`, `NV-AC-042`, catatan pada `NV-DEC-050`), state §5, kamus data R2.3, permission-audit R2 §9 (ketiganya `0.2.1`), `02-backend-architecture.md` R2.4 dan tabel enum, acceptance-test-matrix `NV-AC-042`, kartu `BE-NV-013` (Cakupan, AC-3, Kontrak) atas keputusan owner, `TLM-NV-002` bagian 2. Hash di atas diperbarui. `NV-FE-008` (letak menu) tidak ditolak Hamzah | **Ya** — kontrak `0.2.1`; revision blueprint tetap `2`. Source `BE-NV-013` disesuaikan di sesi yang sama |
 
 ## Pemicu impact scan
 

@@ -8,6 +8,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Enums
         Other = 4,
         CancelledByPatient = 5,
         PatientTransferred = 6,
-        PatientDischarged = 7
+        PatientDischarged = 7,
+        AdmissionCancelled = 8
     }
 }

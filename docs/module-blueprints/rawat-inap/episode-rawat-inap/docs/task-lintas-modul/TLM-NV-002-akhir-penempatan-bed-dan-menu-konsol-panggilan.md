@@ -9,8 +9,8 @@ modul_tujuan: rawat-inap
 submodul_tujuan: episode-rawat-inap
 pemilik_tujuan: Muhammad Hamzah
 tanggal: "2026-11-05"
-status: PEMBERITAHUAN — ditulis 2026-11-05, belum disampaikan ke Muhammad Hamzah; tidak ada permintaan perubahan kode
-keputusan_asal: [NV-DEC-046, NV-DEC-050, NV-DEC-052, NV-DEC-055, NV-DEC-056, NV-FE-008]
+status: DIJAWAB — ditulis 2026-11-05, disampaikan Rizki Gunawan dan dijawab Muhammad Hamzah 2026-11-09 (bagian 8); tidak ada permintaan perubahan kode
+keputusan_asal: [NV-DEC-046, NV-DEC-050, NV-DEC-052, NV-DEC-055, NV-DEC-056, NV-DEC-057, NV-FE-008]
 source_sha_backend: "0c6eab34 (rizkiG)"
 source_sha_frontend: "91a11b08f (RizkiV2)"
 task_terkait: [BE-NV-010, BE-NV-011, BE-NV-013, FE-NV-012]
@@ -51,13 +51,15 @@ Tambahan atas data yang sudah tercatat di `TLM-NV-001`.
 | Penempatan saat panggilan dibuat | `InpBedPlacement.Id` dan `EpisodeId`, disalin ke panggilan sebagai riwayat | Menandai panggilan milik penempatan mana; membaca inisial pasien di konsol lewat episode | Sekali per panggilan baru |
 | Akhir penempatan | `InpBedPlacement.EndDateTime` dan `EndReason` (enum `InpBedPlacementEndReason`) untuk panggilan yang masih aktif | Menutup panggilan otomatis saat pasien pindah atau pulang (`NV-DEC-050`, `052`) | Pemeriksaan berkala Nurse View tiap 30 detik, hanya atas panggilan yang masih aktif |
 
-**Arti `EndReason` yang dipakai Nurse View.** Ini pemetaan yang akan dibangun di `BE-NV-013`:
+**Arti `EndReason` yang dipakai Nurse View.** Pemetaan di `BE-NV-013`, sesudah diubah `NV-DEC-057` (2026-11-09) atas jawaban bagian 8. Pemeriksaan lebih dulu mengikuti `SupersededByCorrectionId` sampai baris penempatan terkini:
 
 | `EndReason` | Yang dilakukan Nurse View pada panggilan aktif | Alasan tercatat |
 |---|---|---|
 | `Transfer` | Ditutup sistem | "pasien pindah" |
 | `EpisodeClosed`, `PatientDeparted` | Ditutup sistem | "pasien pulang" |
-| `AdmissionCancelled`, `CorrectedEntry` | **Tidak** ditutup; panggilan tetap menunggu perawat | — |
+| `AdmissionCancelled` | Ditutup sistem | "admisi dibatalkan" |
+| `CorrectedEntry`, pengganti di bed lain | Ditutup sistem | "pasien pindah" |
+| `CorrectedEntry`, pengganti di bed yang sama | **Tidak** ditutup; dinilai ulang sampai pengganti berakhir | — |
 
 **Contoh.** Pukul 10.05.00 petugas admisi memindahkan pasien 331-C ke 402-B lewat layar Rawat
 Inap. Rawat Inap mengakhiri penempatan 331-C dengan `EndReason = Transfer`, seperti biasa, tanpa
@@ -117,6 +119,27 @@ sudah direstui lead (`NV-DEC-056`). Restu lead tidak menggantikan kabar ke pemil
 | Tanggal | Status | Catatan |
 |---|---|---|
 | 2026-11-05 | `PEMBERITAHUAN` | Ditulis `plan-module-delivery` Nurse View revision 2, sesuai `contracts/integration-contract.md` R2 §5. Belum disampaikan; Rizki Gunawan yang menyampaikannya ke Muhammad Hamzah. Sebaiknya disampaikan sebelum `BE-NV-013` dimulai, tetapi dokumen ini tidak menahan task mana pun |
+| 2026-11-09 | `PEMBERITAHUAN` | Pemetaan bagian 2 dibangun persis di `BE-NV-013` (status 🟡: source selesai, build dan uji runtime belum). Pemeriksaan hanya membaca `EndDateTime` dan `EndReason` penempatan milik panggilan aktif; tidak ada perubahan kode Rawat Inap. Dokumen ini masih belum disampaikan. Laporan: [`BE-NV-013.md`](../../../../nurse-view/task/report/backend/BE-NV-013.md) |
+| 2026-11-09 | `DIJAWAB` | Disampaikan Rizki Gunawan bersama sepuluh pertanyaan; dijawab Muhammad Hamzah hari yang sama (bagian 8). Dua jawaban berbeda dengan pemetaan bagian 2 (`AdmissionCancelled`, `CorrectedEntry` beda bed) dan menunggu keputusan Rizki Gunawan; pemetaan bagian 2 belum diubah |
+| 2026-11-09 | `DITINDAKLANJUTI` | Rizki Gunawan memutuskan `NV-DEC-057`: batal admisi dan koreksi ke bed lain menutup panggilan; rantai koreksi diikuti. Pemetaan bagian 2 diperbarui; source `BE-NV-013` disesuaikan. Tetap tanpa perubahan kode Rawat Inap |
+| 2026-11-09 | `DIUJI` | Uji `BE-NV-013` di DB dev bersama ✅ 9/9 `PASS`. Pasien 326-C ternyata wajib ruang isolasi dan tidak punya bed tujuan layak, sehingga atas keputusan Rizki Gunawan pasien yang dipindah diganti ke **325-A** (326-C hanya pembanding, tidak dipindah). 325-A dipindah ke 420-B (sekelas) pukul 11.52.03 WIB dan dikembalikan pukul 11.52.45 (singgah 42 detik); kedua bed dibersihkan dan diverifikasi siap lewat bed-management dan kembali ke keadaan semula. Sisa permanen: 2 baris penempatan `Transfer` pada episode 325-A, 2 outbox `BED_OCCUPIED`, 2 upaya pembersihan. Laporan: [`BE-NV-013.md`](../../../../nurse-view/task/report/backend/BE-NV-013.md) §5.3 |
 
 `dokter-rawat-inap`, `keperawatan`, dan `integrasi-billing` **tidak tersentuh** revision 2, sehingga
 tidak diberi dokumen.
+
+## 8. Jawaban Muhammad Hamzah — 2026-11-09
+
+Pertanyaan disampaikan Rizki Gunawan; jawaban dicatat sesuai isi yang diteruskan Rizki.
+
+| No | Pertanyaan | Jawaban | Tindak lanjut di Nurse View |
+|---:|---|---|---|
+| 1 | Arti `EndReason` | `Transfer` benar (pindah bed). `EpisodeClosed`, `PatientDeparted` benar (pulang/kepergian fisik). `CorrectedEntry` benar bersyarat: koreksi administratif (kelas/jam) di bed yang sama → panggilan tetap aktif; koreksi salah pilih bed (`CorrectedBedId` berbeda) → pasien secara fisik dipindah ke bed lain. `AdmissionCancelled` **keliru**: itu pembatalan admisi (pasien batal dirawat, episode dibatalkan, bed dilepas), pasien tidak menempati bed, sehingga panggilan wajib ditutup | Diputuskan Rizki Gunawan 2026-11-09 (`NV-DEC-057`): `AdmissionCancelled` ditutup dengan alasan baru "admisi dibatalkan"; koreksi ke bed lain ditutup "pasien pindah". Source mendukung jawaban ini: `InpEpisodeService.CancelAdmissionAsync` membatalkan episode `Admitted`, lalu `ReleaseBedHoldsAsync` mengakhiri penempatan dan melepas bed |
+| 2 | Rencana perubahan enum/`EndDateTime` | Tidak ada. Nilai 1–5 dan semantik `EndDateTime` stabil dan terkunci di kontrak | Tidak ada |
+| 3 | Kapan transfer dicatat | Saat pasien benar-benar pindah. Rencana pindah memakai reservasi (`InpBedReservation`), bukan API transfer | Menjawab sisi alur sistem `NV-UNK-006`; pengamatan lapangan `G-16` tetap milik kepala ruang |
+| 4 | Frekuensi koreksi di bed yang sama | Sangat jarang (hanya salah input data admisi). **Disarankan tetap ditambal** di Nurse View: baca penempatan aktif terkini, telusuri rantai `SupersededByCorrectionId`, atau ikat ke `EpisodeId` + `BedId` | Diputuskan Rizki Gunawan 2026-11-09 (`NV-DEC-057`): ditambal di `BE-NV-013` dengan mengikuti rantai `SupersededByCorrectionId` |
+| 5 | Butir menu "Konsol Panggilan Pasien" di grup Rawat Inap | Tidak keberatan; letak tingkat 1 grup "Rawat Inap" tepat untuk stasiun perawat bangsal | `NV-FE-008` tertutup; `FE-NV-012` memakai letak bagian 4 |
+| 6 | Cacat koreksi salah catat (`ApplyPlacementCorrectionCoreAsync`) | Sependapat, cacat nyata; belum ada di backlog, dicatat untuk dibuatkan tiket perbaikan | Milik tim Rawat Inap; Nurse View tidak memperbaiki |
+| 7 | Cara membebaskan bed yang tertahan | Belum ada cara resmi lewat aplikasi; saat ini hanya intervensi database (mengoreksi `InpBedReadiness` ke `WaitingCleaning` atau mereset kesiapan bed) | Koreksi penempatan tetap tidak dipakai untuk uji Nurse View |
+| 8 | Pasien 326-C untuk uji pindah pulang-balik | Tidak sedang dipakai tim Rawat Inap; boleh dipakai | Uji `BE-NV-013` boleh dijalankan |
+| 9 | Dampak ke Billing | Aman dari galat pembuatan folio. Tarif dihitung dari baris `InpBedPlacement`; pindah bolak-balik singkat (< 1 menit) dan/atau di kelas yang sama tidak membuat tagihan ganda, tetapi ketiga segmen tetap terlihat di rincian audit segmen kamar | Skrip uji memakai bed tujuan sekelas (`SameGrade`) |
+| 10 | Efek samping lain | Sensus dan papan bed dihitung langsung dari penempatan aktif, normal kembali begitu pasien kembali. Laporan pindah kamar menyimpan 2 baris riwayat permanen; wajar untuk DB dev | Dicatat di laporan uji `BE-NV-013` |

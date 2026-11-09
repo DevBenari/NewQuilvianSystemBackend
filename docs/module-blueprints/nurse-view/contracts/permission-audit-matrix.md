@@ -64,7 +64,7 @@ selama sistem berjalan.
 
 | Field | Nilai |
 |---|---|
-| `last_changed_in` | `0.2.0` · status `approved` — Rizki Gunawan, 2026-11-05 (`NV-DEC-055`) |
+| `last_changed_in` | `0.2.1` · status `approved` — Rizki Gunawan, 2026-11-09 (`NV-DEC-057`): alasan tutup sistem §9. Sebelumnya `0.2.0`, 2026-11-05 (`NV-DEC-055`) |
 | Owner | Rizki Gunawan · `approved_by` Rizki Gunawan · `approved_at` 2026-11-05 |
 | Traceability | `NV-DEC-034`, `035`, `040`, `041`, `043`, `044`, `049`, `053`; `AD-02`, `AD-06` |
 
@@ -114,7 +114,7 @@ Resource baru: `NurseViewBedTablet` (`Read`, `Create`, `Update`), `NurseViewPati
 | Perawat hadir | `NvwPatientCallEvent` `NurseArrived`; panggilan `IsBedsideConfirmed = true`, `ClosedByUserId` = pengklaim saat itu |
 | Tutup dari konsol | `NvwPatientCallEvent` `ClosedFromConsole` dengan alasan; `IsBedsideConfirmed = false` |
 | Batal oleh pasien | `NvwPatientCallEvent` `CancelledByPatient` |
-| Ditutup sistem | `NvwPatientCallEvent` `ClosedBySystem`, alasan pindah atau pulang |
+| Ditutup sistem | `NvwPatientCallEvent` `ClosedBySystem`, alasan pindah, pulang, atau admisi dibatalkan (`NV-DEC-057`) |
 | Ganti ambang | Pola interval TTV: baris lama `IsDelete` + `DeleteBy`, baris baru `CreateBy` + rujukan pengesahan + log |
 | Pembacaan tablet, konsol, strip | Tidak dicatat (GET); hanya `LastOnlineAt` tablet |
 

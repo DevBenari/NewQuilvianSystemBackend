@@ -66,7 +66,7 @@
 | `NV-AC-039` | **Gagal:** tablet terputus → "Panggilan belum terkirim — tekan bel di dinding"; tersambung → terkirim tepat satu kali | UAT tablet | Rekaman + jejak hanya satu `Pressed` |
 | `NV-AC-040` | Ambang kosong → item menunggu 10 menit tanpa warna | UAT layar | Tangkapan + `GET /patient-call-wait-thresholds` `IsConfigured = false` |
 | `NV-AC-041` | **Regresi:** perawat, Kiosk, display antrean, TV Nurse View login sesudah tablet ditambahkan → perilaku sama dengan `NV-AC-023`–`027` | UAT login | Rekaman login keempat akun |
-| `NV-AC-042` | Penempatan 331-C dikoreksi salah catat → panggilan tetap aktif; tablet terkunci untuk panggilan baru; "Perawat hadir" tetap bisa | UAT + HTTP | Rekaman + response `nurse-arrived` |
+| `NV-AC-042` | Penempatan 331-C dikoreksi salah catat di bed yang sama → panggilan tetap aktif; "Perawat hadir" tetap bisa. Batal admisi dan koreksi ke bed lain → `ClosedBySystem` (`NV-DEC-057`) | UAT + HTTP | Rekaman + response `nurse-arrived`; jejak `ClosedBySystem` |
 | `NV-AC-043` | Berkas `nurseCallContext.jsx` tidak ada dan tidak dirujuk | Pemeriksaan source | Hasil pencarian kosong |
 | `NV-AC-044` | **Gagal lalu berhasil:** tutup dari konsol tanpa alasan → `400`; dengan "Sudah ditangani, lupa konfirmasi di tablet" → selesai, "tidak dikonfirmasi di bed" | HTTP + layar | Dua response + jejak `ClosedFromConsole` |
 | `NV-AC-045` | **Gagal:** Batal pada panggilan diklaim atau Darurat → tombol tidak ada, permintaan langsung ditolak `409`; Batal panggilan biasa menunggu → `Cancelled` | HTTP + layar | Response `409` + response berhasil |

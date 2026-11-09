@@ -41,6 +41,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public static NvwResult<T> NotFound(string message) =>
             new(NvwResultKind.NotFound) { Code = NvwErrorCodes.NotFound, Message = message };
 
+        public static NvwResult<T> NotFound(string code, string message) =>
+            new(NvwResultKind.NotFound) { Code = code, Message = message };
+
         public static NvwResult<T> Conflict(string code, string message) =>
             new(NvwResultKind.Conflict) { Code = code, Message = message };
 
@@ -79,7 +82,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string TabletAlreadyInactive = "VAL-NV-25";
         public const string BedTabletUnavailable = "VAL-NV-26";
         public const string BedTabletInactiveLogin = "VAL-NV-27";
+        public const string BedNotOccupied = "VAL-NV-28";
+        public const string IdempotencyKeyInvalid = "VAL-NV-29";
+        public const string CallPriorityUnknown = "VAL-NV-30";
+        public const string CallCancelNotAllowed = "VAL-NV-31";
+        public const string NoActiveCall = "VAL-NV-32";
+        public const string CallAlreadyClaimed = "VAL-NV-33";
+        public const string CallTakeOverNotAllowed = "VAL-NV-34";
+        public const string CallReleaseNotOwner = "VAL-NV-35";
+        public const string CallCloseReasonInvalid = "VAL-NV-36";
+        public const string CallFinished = "VAL-NV-37";
+        public const string CallVersionMismatch = "VAL-NV-38";
+        public const string ConsoleFloorUnknown = "VAL-NV-39";
         public const string WaitThresholdInvalid = "VAL-NV-40";
+        public const string CallConsoleAccessDenied = "VAL-NV-41";
     }
 
     public static class NvwMessages
@@ -117,6 +133,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string TabletNotFound = "Tablet bed tidak ditemukan.";
         public const string BedTabletUnavailable = "Tablet ini tidak dapat dipakai. Hubungi IT.";
         public const string BedTabletInactive = "Tablet bed dinonaktifkan. Hubungi IT.";
+        public const string BedNotOccupied = "Bed ini belum berpenghuni. Bila butuh bantuan, tekan bel di dinding.";
+        public const string IdempotencyKeyInvalid = "Permintaan tidak lengkap. Coba tekan lagi.";
+        public const string CallPriorityUnknown = "Jenis panggilan tidak dikenal.";
+        public const string CallCancelNotAllowed = "Panggilan ini tidak bisa dibatalkan. Perawat sedang menuju.";
+        public const string NoActiveCall = "Tidak ada panggilan aktif di bed ini.";
+        public const string CallAlreadyClaimedFormat = "Panggilan sudah diambil {0}. Gunakan Ambil alih bila perlu.";
+        public const string CallTakeOverNotAllowed = "Panggilan ini tidak sedang diklaim perawat lain.";
+        public const string CallReleaseNotOwner = "Hanya perawat yang mengklaim yang bisa melepas panggilan ini.";
+        public const string CallCloseReasonRequired = "Pilih alasan menutup panggilan.";
+        public const string CallCloseNoteRequired = "Keterangan wajib diisi untuk alasan Lainnya (5–250 karakter).";
+        public const string CallFinished = "Panggilan ini sudah selesai.";
+        public const string CallVersionMismatch = "Panggilan sudah berubah. Daftar dimuat ulang.";
+        public const string CallNotFound = "Panggilan tidak ditemukan.";
+        public const string ConsoleFloorUnknown = "Lantai tidak dikenal. Pilih lantai dari daftar.";
+        public const string CallConsoleAccessDenied = "Anda tidak memiliki akses ke konsol panggilan.";
         public const string WaitThresholdRange = "Ambang kuning 1–240 menit dan ambang merah harus lebih besar, paling banyak 480 menit.";
     }
 }

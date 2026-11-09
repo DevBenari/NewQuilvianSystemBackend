@@ -199,20 +199,20 @@ flowchart LR
 
     subgraph backend["Prasyarat backend — backend-roadmap.md, Revision 2"]
         BENV009["✅ BE-NV-009<br/>API admin tablet bed"]:::luar
-        BENV010["🟡 BE-NV-010<br/>Login dan runtime akun tablet"]:::luar
-        BENV011["BE-NV-011<br/>Panggilan dari tablet"]:::luar
-        BENV012["BE-NV-012<br/>Konsol: daftar dan aksi perawat"]:::luar
-        BENV014["BE-NV-014<br/>Sinyal realtime dan grup hub"]:::luar
+        BENV010["✅ BE-NV-010<br/>Login dan runtime akun tablet"]:::luar
+        BENV011["✅ BE-NV-011<br/>Panggilan dari tablet"]:::luar
+        BENV012["✅ BE-NV-012<br/>Konsol: daftar dan aksi perawat"]:::luar
+        BENV014["🟡 BE-NV-014<br/>Sinyal realtime dan grup hub"]:::luar
         BENV015["BE-NV-015<br/>Strip TV dan penanda kartu"]:::luar
         BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::luar
     end
 
     FENV008["✅ FE-NV-008<br/>Daftar dan form Tablet Bed"]:::selesai
-    FENV009["FE-NV-009<br/>Login tablet ke layar tablet bed"]:::belum
-    FENV010["FE-NV-010<br/>Klien realtime panggilan"]:::belum
-    FENV011["FE-NV-011<br/>Layar tablet memanggil perawat"]:::belum
-    FENV012["FE-NV-012<br/>Konsol Panggilan dan menu"]:::belum
-    FENV013["FE-NV-013<br/>Bunyi Konsol Panggilan"]:::belum
+    FENV009["🟡 FE-NV-009<br/>Login tablet ke layar tablet bed"]:::sebagian
+    FENV010["🟡 FE-NV-010<br/>Klien realtime panggilan"]:::sebagian
+    FENV011["🟡 FE-NV-011<br/>Layar tablet memanggil perawat"]:::sebagian
+    FENV012["🟡 FE-NV-012<br/>Konsol Panggilan dan menu"]:::sebagian
+    FENV013["🟡 FE-NV-013<br/>Bunyi Konsol Panggilan"]:::sebagian
     FENV014["FE-NV-014<br/>Strip Panggilan Aktif di TV"]:::belum
     FENV015["✅ FE-NV-015<br/>Layar ambang lama menunggu"]:::selesai
 
@@ -271,11 +271,11 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
 | ✅ `FE-NV-008` | Daftar dan form Tablet Bed beserta butir menu | `FR-NV-033`–`035`; `NV-DEC-035`; `AD-01`–`04` | api §5 | Layar `nurse-view-devices` | Layar `FE-NVW-05`, `FE-NVW-06`, butir menu "Tablet Bed Nurse View" | `BE-NV-009` | Kartu | lint + uji layar | Kata sandi tersimpan di state/log / Rizki | Kartu |
-| `FE-NV-009` | Login tablet dialihkan ke layar tablet bed | `FR-NV-036`; `NV-DEC-030`, `046`, `056`; `G-09` | api §6 `/current` | Cabang `isNurseViewAccount`, kerangka `/nurse-view-display` | Lima berkas bersama + kerangka `/nurse-view-bed-tablet` | `BE-NV-010` | Kartu, termasuk regresi `NV-AC-041` | lint + login lima akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
-| `FE-NV-010` | Klien realtime panggilan pasien (task pendukung) | `FR-NV-048`; `NV-AC-028` | api §10 | `joinNurseViewFloor`, pola join ulang | Event + join/leave konsol dan tablet di `queue-realtime-client.js` | `BE-NV-014` | Kartu | lint + regresi TV papan | Regresi realtime layar lain / Rizki, syarat lead | Kartu |
-| `FE-NV-011` | Layar tablet: panggil, Darurat, batal, perawat hadir | `FR-NV-037`, `038`, `040`, `042`, `045`; `NV-DEC-037`–`039`, `041`, `046`, `050`, `054` | api §6, §10 | Kerangka `FE-NV-009`, klien `FE-NV-010` | Layar `FE-NVW-07` lengkap | `BE-NV-011`, `FE-NV-009`, `FE-NV-010` | Kartu | lint + uji tablet termasuk putus jaringan | Pasien mengira terkirim padahal belum / Rizki | Kartu |
-| `FE-NV-012` | Konsol Panggilan: lantai, daftar, aksi, menu, hapus prototipe | `FR-NV-039`, `041`, `049`, `050`, `052`; `NV-DEC-040`, `043`, `044`, `051`, `053`; `NV-FE-008` | api §7, §10 | `requiredPermission` menu, pita data basi, klien `FE-NV-010` | Layar `FE-NVW-08` tanpa bunyi; butir menu; hapus `nurseCallContext.jsx` | `BE-NV-012`, `FE-NV-010` | Kartu | lint + uji konsol dua perawat | Konsol untuk lantai salah / Rizki | Kartu |
-| `FE-NV-013` | Bunyi Konsol Panggilan | `FR-NV-051`; `NV-DEC-045`; `G-14` | api §7, §10 | `playArrivalSound`, deteksi autoplay layar antrean | Bunyi, nada Darurat, pengingat, tunda, "Aktifkan suara" | `FE-NV-012` | Kartu | lint + rekaman bersuara | Kelelahan alarm / Rizki | Kartu |
+| 🟡 `FE-NV-009` | Login tablet dialihkan ke layar tablet bed | `FR-NV-036`; `NV-DEC-030`, `046`, `056`; `G-09` | api §6 `/current` | Cabang `isNurseViewAccount`, kerangka `/nurse-view-display` | Lima berkas bersama + kerangka `/nurse-view-bed-tablet` | `BE-NV-010` | Kartu, termasuk regresi `NV-AC-041` | lint + login lima akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
+| 🟡 `FE-NV-010` | Klien realtime panggilan pasien (task pendukung) | `FR-NV-048`; `NV-AC-028` | api §10 | `joinNurseViewFloor`, pola join ulang | Event + join/leave konsol dan tablet di `queue-realtime-client.js` | `BE-NV-014` | Kartu | lint + regresi TV papan | Regresi realtime layar lain / Rizki, syarat lead | Kartu |
+| 🟡 `FE-NV-011` | Layar tablet: panggil, Darurat, batal, perawat hadir | `FR-NV-037`, `038`, `040`, `042`, `045`; `NV-DEC-037`–`039`, `041`, `046`, `050`, `054` | api §6, §10 | Kerangka `FE-NV-009`, klien `FE-NV-010` | Layar `FE-NVW-07` lengkap | `BE-NV-011`, `FE-NV-009`, `FE-NV-010` | Kartu | lint + uji tablet termasuk putus jaringan | Pasien mengira terkirim padahal belum / Rizki | Kartu |
+| 🟡 `FE-NV-012` | Konsol Panggilan: lantai, daftar, aksi, menu, hapus prototipe | `FR-NV-039`, `041`, `049`, `050`, `052`; `NV-DEC-040`, `043`, `044`, `051`, `053`; `NV-FE-008` | api §7, §10 | `requiredPermission` menu, pita data basi, klien `FE-NV-010` | Layar `FE-NVW-08` tanpa bunyi; butir menu; hapus `nurseCallContext.jsx` | `BE-NV-012`, `FE-NV-010` | Kartu | lint + uji konsol dua perawat | Konsol untuk lantai salah / Rizki | Kartu |
+| 🟡 `FE-NV-013` | Bunyi Konsol Panggilan | `FR-NV-051`; `NV-DEC-045`; `G-14` | api §7, §10 | `playArrivalSound`, deteksi autoplay layar antrean | Bunyi, nada Darurat, pengingat, tunda, "Aktifkan suara" | `FE-NV-012` | Kartu | lint + rekaman bersuara | Kelelahan alarm / Rizki | Kartu |
 | `FE-NV-014` | Strip Panggilan Aktif dan penanda kartu di TV | `FR-NV-046`–`048`; `NV-DEC-013`, `044`, `047`, `048` | api §9, §10 | Papan `FE-NV-005`/`007`, klien `FE-NV-010` | Strip di atas papan + penanda kartu | `BE-NV-015`, `FE-NV-010` | Kartu | lint + uji TV berjam | Regresi papan revision 1 / Rizki | Kartu |
 | ✅ `FE-NV-015` | Layar ambang lama menunggu beserta butir menu | `FR-NV-053`; `NV-DEC-048`; `G-15` | api §8 | Layar interval TTV `FE-NV-004` | Layar `FE-NVW-09`, butir menu "Ambang Panggilan Nurse View" | `BE-NV-016` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
 
@@ -299,11 +299,11 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Risiko/pemilik | Kata sandi tersimpan di state atau log / Rizki |
 | DoD | AC-1–6 terpetakan ke source; lint `0 errors`; rekaman alur buat → login → atur ulang → nonaktif; laporan `task/report/frontend/FE-NV-008.md` |
 
-#### FE-NV-009 — Login tablet dialihkan ke layar tablet bed
+#### 🟡 FE-NV-009 — Login tablet dialihkan ke layar tablet bed
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** AC 5/5 terpetakan ke source. Berkas bersama: `proxy.js` +26 (`lockNurseViewBedTabletAccount`, entri publik), `use-base-login.jsx` +33/−1 (cookie `isNurseViewBedTabletAccount`, pengalihan ke `/nurse-view-bed-tablet`), satu baris prefix di `root-layout-shell.jsx`, `auth-wrapper.jsx`, `session-activity-manager.jsx`; cabang Kiosk, display antrean, dan TV tidak disunting. Route `src/app/nurse-view-bed-tablet/`. `npx eslint` 0 error (1 warning lama `root-layout-shell.jsx:118`, baris yang tidak disentuh). Belum, atas permintaan Rizki (build dan uji ditunda): uji login lima akun dan rekamannya. Laporan: [`FE-NV-009.md`](../task/report/frontend/FE-NV-009.md) |
 | Gelombang | 1 · `MVP-6` · `EPIC NV-05` |
 | Outcome | Akun tablet bed yang login langsung masuk `/nurse-view-bed-tablet` tanpa sidebar dan tertahan di sana. Layar menampilkan kode bed dan nama kamar, atau "Bed belum berpenghuni". Akun lain tetap ke tujuan masing-masing |
 | Trace | `FR-NV-036`; `NV-DEC-030`, `032`, `046`, `056`; `NV-CAP-21`; `G-09`; `NV-AC-041`; `UAT-12`, `14`, `26`; state §6 (`Memuat`, `BedKosong`, `Ditolak`); `03-frontend-architecture.md` R2.7 |
@@ -317,11 +317,11 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Risiko/pemilik | **Regresi redirect seluruh aplikasi** / Rizki, syarat lead `NV-DEC-030`/`056`. Isi cabang Kiosk, display antrean, dan TV Nurse View **tidak disunting** |
 | DoD | AC-1–5 terpetakan ke source; lint `0 errors`; rekaman login lima akun; laporan `task/report/frontend/FE-NV-009.md` memuat diff ringkas tiap berkas bersama |
 
-#### FE-NV-010 — Klien realtime panggilan pasien
+#### 🟡 FE-NV-010 — Klien realtime panggilan pasien
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** AC-1 dan AC-2 terpetakan ke source: `queue-realtime-client.js` +124/−0 (event `NurseViewPatientCallChanged`, `joinNurseViewCallConsole`/`leave…` dengan lantai diingat, `joinNurseViewBedTablet`/`leave…`, join ulang, pembersihan di `stop`). `npx eslint` 0 error, 0 warning. Belum, atas permintaan Rizki: uji regresi TV papan (AC-3). Laporan: [`FE-NV-010.md`](../task/report/frontend/FE-NV-010.md) |
 | Gelombang | 1 · `MVP-8` · task pendukung |
 | Outcome | Klien realtime bersama mengenali sinyal `NurseViewPatientCallChanged` dan bisa bergabung ke grup konsol per lantai serta grup tablet, termasuk saat tersambung ulang, tanpa mengubah perilaku grup lain |
 | Alasan berdiri sendiri | Tablet, konsol, dan TV sama-sama butuh perubahan ini. Dengan satu task, diff `queue-realtime-client.js` cukup ditinjau sekali terhadap syarat lead (`NV-DEC-056`), dan ketiga task layar bisa berjalan paralel tanpa saling menyunting berkas yang sama |
@@ -335,11 +335,11 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Risiko/pemilik | Regresi realtime layar lain yang memakai klien yang sama (antrean, admisi, TV) / Rizki, syarat lead |
 | DoD | AC-1–3 terpetakan ke source; lint `0 errors`; regresi TV tercatat; laporan `task/report/frontend/FE-NV-010.md` |
 
-#### FE-NV-011 — Layar tablet: panggil perawat, Darurat, batal, perawat hadir
+#### 🟡 FE-NV-011 — Layar tablet: panggil perawat, Darurat, batal, perawat hadir
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** AC 6/6 terpetakan ke source: layar `/nurse-view-bed-tablet` (dua tombol besar, status dan lama menunggu dari jam server, Batal/Darurat sesuai `CanCancel`/`CanEscalate`, area "Perawat hadir — tahan 3 detik", pita gagal kirim dan terputus), kirim ulang idempoten dengan kunci sama, sinyal grup tablet + cadangan 15/60 detik. UI gate 7 elemen — REUSE 1, COMPOSE 3, WRAP 3, NEW 0. `npx eslint` 0 error, 0 warning. Belum, atas permintaan Rizki: uji layar ukuran tablet termasuk memutus jaringan. Laporan: [`FE-NV-011.md`](../task/report/frontend/FE-NV-011.md) |
 | Gelombang | 2 · `MVP-8` · `EPIC NV-06` |
 | Outcome | Pasien memanggil biasa atau Darurat, melihat status dan lama menunggu, dan membatalkan panggilan biasa yang belum diklaim. Perawat menahan "Perawat hadir" 3 detik. Bila gagal terkirim, tablet selalu menunjuk bel dinding |
 | Trace | `FR-NV-037`, `038`, `040`, `042`, `045`; `NV-DEC-037`, `038`, `039`, `041`, `046`, `050`, `054`; `NV-FE-009`, `010`; `G-09`, `G-13`; state §6; flowchart `04`, `05`; `03-frontend-architecture.md` R2.3 (`FE-NVW-07`), R2.5, R2.9 |
@@ -353,11 +353,11 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Risiko/pemilik | Pasien mengira panggilan terkirim padahal belum; ini menyangkut keselamatan, sehingga `GagalKirim` wajib selalu terlihat / Rizki. Perilaku tablet sungguhan (layar mati, mode kiosk) baru terjawab `NV-UNK-007` |
 | DoD | AC-1–6 terpetakan ke source; lint `0 errors`; rekaman tablet termasuk putus jaringan; laporan `task/report/frontend/FE-NV-011.md` |
 
-#### FE-NV-012 — Konsol Panggilan: pilih lantai, daftar, aksi, butir menu, hapus prototipe
+#### 🟡 FE-NV-012 — Konsol Panggilan: pilih lantai, daftar, aksi, butir menu, hapus prototipe
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** AC-1–9 terpetakan ke source: route konsol, pilih lantai diingat di PC, `DataTable` urutan backend, aksi dari `AvailableActions` dengan kunci dan toast `409`, dialog Tutup, pita data basi, butir menu Rawat Inap `NurseViewPatientCall : Read` (`menu-items.jsx` +7). UI gate 9 elemen — REUSE 8, COMPOSE 1, NEW 0. `npx eslint` 0 error, 0 warning. AC-10 sebagian: pencarian `nurseCallContext`/`NurseCallProvider` 0 temuan, tetapi penghapusan berkas ditolak pengaman sesi agent dan menunggu Rizki. Belum, atas permintaan Rizki: uji dua perawat + tablet. Laporan: [`FE-NV-012.md`](../task/report/frontend/FE-NV-012.md) |
 | Gelombang | 2 · `MVP-8` · `EPIC NV-06`, `NV-08` |
 | Outcome | Perawat membuka Konsol Panggilan dari grup Rawat Inap, memilih lantai yang diingat PC, melihat panggilan berurutan, lalu mengklaim, mengambil alih, melepas, atau menutup dengan alasan. Prototipe lama `nurseCallContext.jsx` terhapus |
 | Trace | `FR-NV-039`, `041`, `049`, `050`, `052`; `NV-DEC-040`, `043`, `044`, `051`, `053`; `NV-FE-008`; `NV-CAP-28`, `29`; state §7; flowchart `05`; `03-frontend-architecture.md` R2.2, R2.3 (`FE-NVW-08`), R2.5, R2.8, R2.9 |
@@ -371,11 +371,11 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Risiko/pemilik | Konsol dipakai untuk lantai yang salah → nama lantai wajib besar (`NV-DEC-043`) / Rizki. Memberi izin lewat layar Akses Role menimpa seluruh policy peran: salin, tambah, lalu pulihkan |
 | DoD | AC-1–10 terpetakan ke source; lint `0 errors`; rekaman konsol, TV, dan tablet bersamaan; laporan `task/report/frontend/FE-NV-012.md` mencatat hasil pencarian `import` prototipe |
 
-#### FE-NV-013 — Bunyi Konsol Panggilan
+#### 🟡 FE-NV-013 — Bunyi Konsol Panggilan
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** AC 3/3 terpetakan ke source: dingdong untuk panggilan biasa baru, nada Darurat Web Audio, pengingat 30 detik sesudah bunyi terakhir selama ada `Menunggu`, tunda 5 menit, tombol "Aktifkan suara" saat browser menahan bunyi. `npx eslint` 0 error, 0 warning. Belum, atas permintaan Rizki: rekaman video bersuara. Laporan: [`FE-NV-013.md`](../task/report/frontend/FE-NV-013.md) |
 | Gelombang | 3 · `MVP-8` · `EPIC NV-08` |
 | Outcome | Konsol berbunyi untuk setiap panggilan baru, memakai nada lain untuk Darurat, mengulang pengingat selama ada panggilan yang belum diklaim, senyap begitu semua diklaim, bisa menunda pengingat, dan menampilkan "Aktifkan suara" bila browser menahan bunyi |
 | Trace | `FR-NV-051`; `NV-DEC-045`; `NV-FE-007`, `010`; `G-14`; `NV-CAP-27`; state §7 (`SuaraDitahanBrowser`, `PengingatDitunda`); `03-frontend-architecture.md` R2.6 |
@@ -429,8 +429,8 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 
 | Butir | Kaitan frontend | Dilacak di | Status |
 |---|---|---|---|
-| Penghapusan `src/lib/helpers/nurseCallContext.jsx` (`NV-DEC-051`, `NV-AC-043`) | Cakupan (9) dan AC-10 `FE-NV-012` | `requirement-traceability.md` R2.1 baris `FR-NV-052` dan R2.6 | Belum dikerjakan; berkas masih ada di `91a11b08f` tanpa `import` dari berkas lain |
-| Kabar butir menu Konsol Panggilan di grup Rawat Inap (`NV-FE-008`) | Cakupan (8) `FE-NV-012` | `TLM-NV-002` bagian 4; `requirement-traceability.md` R2.7 | Ditulis 2026-11-05; belum disampaikan |
+| Penghapusan `src/lib/helpers/nurseCallContext.jsx` (`NV-DEC-051`, `NV-AC-043`) | Cakupan (9) dan AC-10 `FE-NV-012` | `requirement-traceability.md` R2.1 baris `FR-NV-052` dan R2.6 | 🟡 9 Nov 2026: pencarian `nurseCallContext`/`NurseCallProvider` di `src/` 0 temuan selain berkas itu sendiri; penghapusan ditolak pengaman sesi agent, menunggu Rizki (`git rm src/lib/helpers/nurseCallContext.jsx`) ([`FE-NV-012.md`](../task/report/frontend/FE-NV-012.md)) |
+| Kabar butir menu Konsol Panggilan di grup Rawat Inap (`NV-FE-008`) | Cakupan (8) `FE-NV-012` | `TLM-NV-002` bagian 4; `requirement-traceability.md` R2.7 | Disampaikan 2026-11-09; Hamzah tidak keberatan (`TLM-NV-002` bagian 8 no. 5) |
 | Uji tablet contoh (`NV-UNK-007`, bagian `G-16`) | Verifikasi `FE-NV-011` | `requirement-traceability.md` R2.8 | Belum diperiksa |
 
 ## Traceability

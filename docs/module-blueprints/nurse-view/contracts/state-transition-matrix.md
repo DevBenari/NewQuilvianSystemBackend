@@ -59,7 +59,7 @@ ulang login pada perangkat yang sama, mendapat kata sandi baru, dan status kemba
 
 | Field | Nilai |
 |---|---|
-| `last_changed_in` | `0.2.0` · status `approved` — Rizki Gunawan, 2026-11-05 (`NV-DEC-055`) |
+| `last_changed_in` | `0.2.1` · status `approved` — Rizki Gunawan, 2026-11-09 (`NV-DEC-057`): §5 penutupan sistem untuk batal admisi dan koreksi. Sebelumnya `0.2.0`, 2026-11-05 (`NV-DEC-055`) |
 | Owner | Rizki Gunawan · `approved_by` Rizki Gunawan · `approved_at` 2026-11-05 |
 | Traceability | `NV-DEC-035`, `038`–`041`, `046`, `050`, `052`–`054`; `NV-AC-029`–`045` |
 
@@ -96,7 +96,7 @@ Sama dengan perangkat display (§1), dengan satu tambahan: pemindahan bed.
 | `Claimed` | Diklaim | Seorang perawat menyatakan menangani; TV menampilkan "‹nama› menuju" |
 | `Handled` | Ditangani | Selesai oleh perawat: "Perawat hadir" di tablet (dikonfirmasi di bed) atau "Tutup panggilan" di konsol (tidak dikonfirmasi di bed) |
 | `Cancelled` | Dibatalkan | Pasien membatalkan panggilan biasa yang masih menunggu |
-| `ClosedBySystem` | Ditutup sistem | Pasien pindah atau pulang |
+| `ClosedBySystem` | Ditutup sistem | Pasien pindah, pulang, atau admisinya dibatalkan |
 
 `Handled`, `Cancelled`, dan `ClosedBySystem` adalah status akhir. Prioritas (`Normal`/`Emergency`)
 bukan status, tetapi tunduk pada aturan "hanya naik".
@@ -112,8 +112,9 @@ bukan status, tetapi tunduk pada aturan "hanya naik".
 | `Waiting`/`Claimed` | "Perawat hadir" ditahan 3 detik | `Handled` (`IsBedsideConfirmed = true`) | Tablet bed tempat panggilan dibuat; tetap bisa walau bed kini kosong (`NV-DEC-050`) | Ada panggilan aktif | `404` `VAL-NV-32` |
 | `Waiting`/`Claimed` | "Tutup panggilan" + alasan | `Handled` (`IsBedsideConfirmed = false`) | Pemegang izin | Alasan sah; "Lainnya" + keterangan 5–250 | `400` `VAL-NV-36` |
 | `Waiting`, prioritas `Normal` | "Batal" | `Cancelled` | Tablet bed | — | `409` `VAL-NV-31` |
-| `Waiting`/`Claimed` | Penempatan berakhir `Transfer` | `ClosedBySystem` ("pasien pindah") | Sistem, paling lambat 60 detik | — | — |
+| `Waiting`/`Claimed` | Penempatan berakhir `Transfer`, atau dikoreksi ke bed lain (`NV-DEC-057`) | `ClosedBySystem` ("pasien pindah") | Sistem, paling lambat 60 detik | — | — |
 | `Waiting`/`Claimed` | Penempatan berakhir `EpisodeClosed`/`PatientDeparted` | `ClosedBySystem` ("pasien pulang") | Sistem, paling lambat 60 detik | — | — |
+| `Waiting`/`Claimed` | Penempatan berakhir `AdmissionCancelled` (`NV-DEC-057`) | `ClosedBySystem` ("admisi dibatalkan") | Sistem, paling lambat 60 detik | — | — |
 
 #### Transisi yang tidak sah
 
@@ -125,7 +126,7 @@ bukan status, tetapi tunduk pada aturan "hanya naik".
 | `Claimed`, atau prioritas `Emergency` | "Batal" | `409` `VAL-NV-31` |
 | Prioritas `Emergency` | Turun menjadi `Normal` | Tidak tersedia (`G-13`) |
 | `Handled`/`Cancelled`/`ClosedBySystem` | Tindakan apa pun | `409` `VAL-NV-37`; panggilan selesai tidak dibuka ulang (`G-12`) |
-| `Waiting`/`Claimed` | Penempatan berakhir `AdmissionCancelled`/`CorrectedEntry` | **Tidak** ada perubahan; tetap menunggu perawat (`NV-DEC-050`) |
+| `Waiting`/`Claimed` | Penempatan dikoreksi di bed yang sama (kelas atau jam) | **Tidak** ada perubahan; pemeriksaan mengikuti penempatan pengganti dan menerapkan baris penutupan sistem di atas saat pengganti berakhir (`NV-DEC-050`, `057`) |
 | Mana pun | Klaim berakhir sendiri karena waktu | Tidak ada (`NV-DEC-040`) |
 
 **Contoh lengkap.** 305-A menekan "Panggil perawat" 10.00.00 (`Waiting`), lalu "Darurat"

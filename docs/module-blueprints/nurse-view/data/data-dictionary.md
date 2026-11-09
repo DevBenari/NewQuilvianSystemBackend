@@ -142,7 +142,7 @@ yang ada saat implementasi; DDL ini hanya menggambarkan bentuk.
 
 | Field | Nilai |
 |---|---|
-| `last_changed_in` | `0.2.0` · status `approved` — Rizki Gunawan, 2026-11-05 (`NV-DEC-055`) |
+| `last_changed_in` | `0.2.1` · status `approved` — Rizki Gunawan, 2026-11-09 (`NV-DEC-057`): pemetaan `EndReason` R2.3 dan nilai `NvwPatientCallCloseReason.AdmissionCancelled`. Sebelumnya `0.2.0`, 2026-11-05 (`NV-DEC-055`) |
 | Masukan | `02-backend-architecture.md` Revision 2; `00-interview-decisions.md` rev `5` (`NV-DEC-034`–`054`) |
 
 Kepala dokumen tetap berlaku: keempat tabel baru mewarisi `IdentityModel`, dan kolom auditnya
@@ -242,19 +242,21 @@ contoh). Panggilan 305-A ditekan 10.00.00. Pukul 10.02.30 item tanpa warna (2,5 
 
 | Tabel | Kolom | Dipakai untuk | Rujukan |
 |---|---|---|---|
-| `InpBedPlacement` | `Id`, `BedId`, `EpisodeId`, `EndDateTime`, `EndReason`, `IsDelete` | Penempatan aktif (`EndDateTime IS NULL`, unik per bed `IX_InpBedPlacement_BedId_Active`); akhir penempatan untuk pemeriksaan pindah/pulang | `Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs`; `Enums/InpBedPlacementEndReason.cs` |
+| `InpBedPlacement` | `Id`, `BedId`, `EpisodeId`, `EndDateTime`, `EndReason`, `SupersededByCorrectionId`, `IsDelete` | Penempatan aktif (`EndDateTime IS NULL`, unik per bed `IX_InpBedPlacement_BedId_Active`); akhir penempatan untuk pemeriksaan pindah/pulang | `Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs`; `Enums/InpBedPlacementEndReason.cs` |
 | `MstBed` | `Id`, `RoomId`, `BedCode`, `BedName`, `IsActive`, `IsDelete` | Label bed di tablet, strip, dan konsol | `Areas/HealthServices/MasterData/Models/MstBed.cs` |
 | `MstRoom` | `Id`, `RoomName`, `FloorCode`, `IsActive`, `IsDelete` | Lantai bed | `Areas/HealthServices/MasterData/Models/MstRoom.cs` |
 | `MstPatient` | `FullName`, `Gender`, `BirthDate` | Inisial, jenis kelamin, umur di konsol — dibaca di memori, langsung disamarkan | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs` |
 | `ApplicationUser` | `Id`, `DisplayName`, `UserName` | Akun tablet; nama perawat pengklaim | `Models/ApplicationUser.cs` |
 
-Pemetaan `EndReason` ke penutupan panggilan (`NV-DEC-050`):
+Pemetaan `EndReason` ke penutupan panggilan (`NV-DEC-050`, `057`). Pemeriksaan lebih dulu mengikuti `SupersededByCorrectionId` sampai baris penempatan terkini, lalu menilai baris itu:
 
 | `EndReason` | Panggilan aktif | Alasan tercatat |
 |---|---|---|
 | `Transfer` | Ditutup sistem | `PatientTransferred` ("pasien pindah") |
 | `EpisodeClosed`, `PatientDeparted` | Ditutup sistem | `PatientDischarged` ("pasien pulang") |
-| `AdmissionCancelled`, `CorrectedEntry` | **Tidak** ditutup | — ; menunggu perawat |
+| `AdmissionCancelled` | Ditutup sistem (`NV-DEC-057`) | `AdmissionCancelled` ("admisi dibatalkan") |
+| Baris terkini di **bed lain** (koreksi salah pilih bed) | Ditutup sistem (`NV-DEC-057`) | `PatientTransferred` ("pasien pindah") |
+| Baris terkini di bed yang sama dan masih aktif (koreksi kelas atau jam) | **Tidak** ditutup; dinilai ulang tiap putaran | — |
 
 ### R2.4 Skema DDL
 

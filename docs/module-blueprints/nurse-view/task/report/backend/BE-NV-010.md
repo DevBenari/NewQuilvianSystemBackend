@@ -15,9 +15,10 @@
 | Task mode | `BACKEND` — perintah Rizki 6 Nov 2026 ("mulai sekarang BE-NV-010"), target tulis `NewQuilvianSystemBackend` branch `rizkiG` |
 | Target tulis | `Areas/HealthServices/NurseViewManagement/**`, `Controllers/AuthController.cs`, `Constants/AuthorizationPolicies.cs`, `Program.cs` (restu `NV-DEC-056`), laporan ini, baris status roadmap dan traceability |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `13fa1c4d` (branch `rizkiG`, sejajar `origin/rizkiG`); perubahan belum di-commit |
-| Tanggal | 2026-11-06 |
-| Status | 🟡 **SEBAGIAN** — AC 5/5 terpetakan ke source; QBE Strict `PASS` (8 berkas, 0 violation, 0 review); baseline regresi login 12 skenario sudah direkam **sebelum** kode berjalan. **Belum:** `dotnet build` oleh Rizki, perbandingan regresi sesudah build (AC-1), dan uji runtime tablet no. 1–13 (AC-2 s.d. AC-5) |
+| Commit backend saat dikerjakan | `13fa1c4d` (branch `rizkiG`, sejajar `origin/rizkiG`); kode task ini masuk commit `589fb513` (Rizki, 6 Nov 2026 15.45) |
+| Commit backend saat diuji | `589fb513`, working tree bersih; DLL `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 7 Nov 2026 14.56 dan memuat `NvwBedTabletRuntimeController`, `NvwBedTabletContextService`, `NurseViewBedTabletAccess`, klaim `is_nurse_view_bed_tablet_account` |
+| Tanggal | 2026-11-06 (implementasi); 2026-11-08 (uji sesudah build) |
+| Status | ✅ **SELESAI 8 November 2026** — AC 5/5 terpetakan ke source dan terbukti runtime. QBE Strict `PASS` (8 berkas). Build oleh Rizki. Regresi login sesudah build **172/172** terhadap baseline yang direkam sebelum kode berjalan. Uji runtime tablet **13/13 `PASS`**. Log backend bersih dari kata sandi, token, dan identitas pasien. Riwayat: 🟡 SEBAGIAN 6 Nov 2026 sebelum build dan uji |
 
 ---
 
@@ -167,9 +168,12 @@ tidak aktif (`VAL-NV-26`), atau sesi lama (`NV-SESSION-STALE`).
 | Nol komentar baru; akhiran baris | Nol `//`/`/*` pada berkas baru dan pada baris tambahan berkas bersama; 8 berkas CRLF; `AuthController.cs` tetap ber-BOM; `Program.cs` tetap tanpa baris baru di akhir | `PASS` | `grep`, hitungan byte Node |
 | Baseline regresi login, direkam sebelum kode berjalan (backend `13fa1c4d`; DLL 10.56, rute tablet masih `404`) | 12 skenario: SuperAdmin, perawat, perawat ruangan, dokter, dokter kedua, admisi, LOKET, Kiosk `KSK-RSMMC-00009`, display antrean `QDD-RSMMC-00003`, TV `NVW-000002`, sandi salah, email tak dikenal. Per akun: status, pesan, auth, isi user, atribut cookie, klaim token, `/me`, `/permissions` (isi), lima probe policy, `/refresh` | `PASS` (terekam) | Rujukan: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-010-20261106/baseline-2026-11-06T04-31-22-400Z/` (11.31 WIB). Rekaman pertama `baseline-2026-11-06T04-20-41-467Z` (8 skenario) disimpan sebagai cadangan |
 | Uji pembanding terhadap baseline itu sendiri | 86/104 lolos pada rekaman pertama; 18 yang gagal tepat tiga cek per akun yang menuntut BE-NV-010 (klaim baru di login dan refresh, rute 404 → 403) | `PASS` (alat bekerja) | `bandingkan.mjs` |
-| `dotnet build` | Belum | `NOT RUN` | Milik Rizki |
-| Regresi login sesudah build (AC-1) | Belum | `NOT RUN` | `node rekam-login.mjs sesudah` lalu `node bandingkan.mjs <baseline> <sesudah>` |
-| Uji runtime tablet (AC-2 s.d. AC-5) | Belum | `NOT RUN` | `node uji-tablet.mjs <bedTerisi> <bedKosong>`, 13 cek |
+| `dotnet build` | Dijalankan Rizki (prompt sesi 8 Nov menyebut build 6 Nov 15.34; DLL di disk bertanggal 7 Nov 14.56, dari working tree bersih di `589fb513`). Backend dijalankan Rizki `dotnet run --no-build` 8 Nov 09.14 WIB; rute baru tanpa login → `401` | `PASS` menurut pernyataan Rizki; jumlah warning tidak dinyatakan | DLL memuat keempat simbol task ini (pemeriksaan byte agent) |
+| Regresi login sesudah build (AC-1, `NV-AC-041`) — 8 Nov 09.22 WIB | **172/172** (10 akun × 17 cek + 2 login gagal). Pemeriksaan agent langsung atas JSON mentah: pada **setiap** akun, beda klaim login dan refresh hanya `is_nurse_view_bed_tablet_account: null → "false"`; TV tambahan `nurse_view_session_stamp` (memang baru karena atur ulang); probe `bedTabletCurrent` `404 → 403`; probe lain, `/me`, `/permissions`, isi user, cookie, dan masa berlaku sama | `PASS` | `sesudah-2026-11-08T02-22-11-365Z/` + `perbandingan.json` |
+| Pra-cek bed uji (SELECT read-only, diulang tepat sebelum uji) | `BD-RSMMC-00028` (326-C, lantai 3): 1 penempatan aktif, 1 pasien, 0 tablet status 1/2, 0 panggilan aktif. `BD-RSMMC-00001` (BAYI-1-A, lantai 2): 0 penempatan aktif, 0 tablet status 1/2, 0 panggilan aktif. Nama dan No. RM pasien diteruskan ke skrip lewat env tanpa dicetak | `PASS` | `pra-cek.json`; skrip `cek-bed.mjs` |
+| Uji runtime tablet no. 1–13 (AC-2 s.d. AC-5) — 8 Nov 09.23–09.24 WIB | **13/13 `PASS`** — rincian di bawah | `PASS` | `tablet-2026-11-08T02-23-10-364Z/hasil.json`, `percobaan.json` (45 permintaan) |
+| Pemindaian log backend (`quilvian-backend-20261108.json`, 290 baris sehari) | Jendela A 100 permintaan HTTP, jendela B 45 (= 45 `percobaan.json`). Rute tablet di B: `200` ×4 (no. 3, 4, 8, 10), `403` ×6 (no. 6 ×4, 10, 11). Nol `Error`/`Fatal`. Penulisan di B hanya yang direncanakan (lihat di bawah). Kemunculan sandi env ketujuh akun, nama pasien, No. RM, pola sandi tablet `Nvt@…`, TV `Nvw@…`, reset kiosk/display `Uji…`, kedua sandi salah, ruas `password` berisi nilai, dan token JWT: **semuanya 0** | `PASS` | `pindai-log-agent.json` (skrip `pindai-log.mjs`) |
+| Keadaan DB sesudah uji (SELECT read-only) | `NVT-000011`, `NVT-000012` status 3 dengan alasan; 0 tablet status 1/2 dan 0 `NvwPatientCall` di kedua bed uji; policy jabatan uji 20 butir aktif, 0 butir `NurseViewBedTablet` | `PASS` | Kueri agent 8 Nov 09.25 WIB |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
 
@@ -225,18 +229,61 @@ baru:
 
 Kedua tablet uji dinonaktifkan dan policy jabatan uji dipulihkan di blok `finally`.
 
+### Hasil uji sesudah build — 8 November 2026
+
+Verifikasi developer oleh agent, bukan UAT. Putusan diambil dari JSON mentah dan log backend.
+
+**Bagian A — 172/172.** Lihat tabel verifikasi di atas.
+
+**Bagian B — 13/13 `PASS`.** Tablet uji `NVT-000011` (bed `BD-RSMMC-00028` 326-C, berpenghuni)
+dan `NVT-000012` (bed `BD-RSMMC-00001` BAYI-1-A, kosong), dibuat lewat API admin oleh aktor
+Perawat Ruangan berizin sementara.
+
+| No | Terukur |
+| ---: | --- |
+| 1 | `200`; `profileType` `NurseViewBedTablet`; 129.600 menit; klaim tablet `"true"`, id cocok, stempel ada; `is_nurse_view_account` `"false"`; tanpa `nurse_view_device_id` |
+| 2 | `200` "Login berhasil." tanpa koordinat |
+| 3 | `200` `{ deviceCode NVT-000011, bedCode BD-RSMMC-00028, bedName 326-C, roomName KELAS II 326, floorCode 3, isBedOccupied true, activeCall null, refreshIntervalSeconds 60, serverTimeUtc }`; nol kunci identitas; nama dan No. RM pasien bed itu tidak muncul |
+| 4 | `200` `{ NVT-000012, BD-RSMMC-00001, BAYI-1-A, R. Bayi, lantai 2, isBedOccupied false }` |
+| 5 | `/display-runtime/current` `403`, `/board` `403` |
+| 6 | TV `NVW-000002`, SuperAdmin, LOKET, perawat → `403` ×4 |
+| 7 | TV ke papannya sendiri `200` |
+| 8 | `LastOnlineAt` 02.23.18Z sebelum dan sesudah `GET` kedua (tidak ditulis ulang); `isOnline` true |
+| 9 | Refresh `200`, klaim tablet dan id tetap |
+| 10 | Atur ulang `200`; token lama `403` `NV-SESSION-STALE`; refresh token lama `401` "Sesi perangkat sudah tidak berlaku. Silakan login ulang."; login sandi baru `200`; `GET /current` `200` |
+| 11 | Nonaktif `200`; 30 detik kemudian `403` `VAL-NV-26` "Tablet ini tidak dapat dipakai. Hubungi IT." |
+| 12 | Refresh tablet nonaktif `401` "Tablet bed dinonaktifkan. Hubungi IT." |
+| 13 | Login sandi benar `401` "Tablet bed dinonaktifkan. Hubungi IT."; sandi salah `401` "Akun terkunci sementara karena terlalu banyak percobaan login gagal." |
+
+**Penulisan di log jendela B (02.23.10–02.24.14Z).** SuperAdmin: `POST role-access/policies` ×2
+(pasang izin sementara, pulihkan) dan `POST display-devices/{NVW-000002}/login/reset`
+(persiapan no. 6). Perawat Ruangan: `POST bed-tablets` ×2, `POST bed-tablets/{id}/login` ×2,
+`POST …/login/reset` ×1 (no. 10), `PATCH …/deactivate` ×2 (no. 11 dan pembersihan TB). Sisanya
+`POST /auth/login` dan `/auth/refresh`. Policy pulih identik: 20 → 20 butir.
+
+**Catatan pengamatan (bukan kegagalan).**
+
+- Login tablet nonaktif ditolak di cabang "akun terkunci", karena penonaktifan `BE-NV-009`
+  mengunci akun. Karena itu log mencatatnya sebagai `Login gagal. Akun terkunci.` dengan
+  `UserName` `nvt-000011`. Pesan khusus `Login tablet bed Nurse View gagal. Tablet …` di
+  `AuthController` hanya terpakai bila tablet tidak aktif tetapi akunnya tidak terkunci, dan uji
+  ini tidak melewatinya (`logLoginTabletGagal` 0). Tablet tetap terlacak lewat `UserName`.
+- AC-3 "akun Administrator" diwakili SuperAdmin, peran yang dibebaskan dari pemeriksaan di policy
+  lain. Policy tablet tidak punya jalan pintas peran, dan SuperAdmin ditolak `403`.
+
 ---
 
 ## 6. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 regresi login perawat, SuperAdmin/Administrator, Kiosk, display antrean, TV, satu login gagal; satu-satunya beda klaim `is_nurse_view_bed_tablet_account = false` | Terpetakan ke source; **regresi belum dibandingkan** | Resolver tablet hanya menambah klaim `false` untuk akun non-tablet; tidak ada cabang lama yang berubah (§3.2). Baseline sudah direkam |
-| AC-2 akun tablet `403` di `/display-runtime/current` dan `/board` | Terpetakan ke source; runtime belum | Policy `NurseViewDisplayRead` wajib `nurse_view_device_id`; token tablet tidak membawanya. Uji B no. 5 |
-| AC-3 akun TV dan Administrator `403` di `/bed-tablet-runtime/current` | Terpetakan ke source; runtime belum | Policy `NurseViewBedTabletAccess` wajib `nurse_view_bed_tablet_id`, tanpa jalan pintas peran. Uji B no. 6 |
-| AC-4 tablet dinonaktifkan → permintaan berikutnya `403`; login ulang sandi benar → pesan `AD-02` (`VAL-NV-27`) | Terpetakan ke source; runtime belum | `ResolveActiveTabletAsync` (status per permintaan); cabang terkunci `AuthController.Login`; `Refresh`. Uji B no. 11–13 |
-| AC-5 `GET /current` bed berpenghuni → `IsBedOccupied = true` tanpa identitas; bed kosong → `false` | Terpetakan ke source; runtime belum | `GetCurrentAsync`: DTO tanpa field identitas; penempatan aktif `EndDateTime == null && !IsDelete`. Uji B no. 3–4 |
-| DoD — regresi login lulus dan direkam | **Belum terpenuhi** | Menunggu build + bagian A |
+| AC-1 regresi login perawat, SuperAdmin/Administrator, Kiosk, display antrean, TV, satu login gagal; satu-satunya beda klaim `is_nurse_view_bed_tablet_account = false` | ✅ Terbukti 8 Nov 2026 | Source §3.2; bagian A 172/172, beda klaim hanya `is_nurse_view_bed_tablet_account = "false"` (plus stempel sesi TV karena atur ulang); sisi tablet uji B no. 1 |
+| AC-2 akun tablet `403` di `/display-runtime/current` dan `/board` | ✅ Terbukti 8 Nov 2026 | Policy `NurseViewDisplayRead` wajib `nurse_view_device_id`; uji B no. 5 `403`, `403`; no. 7 TV tetap `200` |
+| AC-3 akun TV dan Administrator `403` di `/bed-tablet-runtime/current` | ✅ Terbukti 8 Nov 2026 | Policy `NurseViewBedTabletAccess` tanpa jalan pintas peran; uji B no. 6 `403` ×4 (TV, SuperAdmin, LOKET, perawat); bagian A: `403` untuk sepuluh akun non-tablet |
+| AC-4 tablet dinonaktifkan → permintaan berikutnya `403`; login ulang sandi benar → pesan `AD-02` (`VAL-NV-27`) | ✅ Terbukti 8 Nov 2026 | Uji B no. 11 (`403` `VAL-NV-26` 30 detik sesudah nonaktif), no. 12 (refresh `401` `AD-02`), no. 13 (sandi benar `AD-02`, sandi salah pesan terkunci standar); no. 10 sesi lama |
+| AC-5 `GET /current` bed berpenghuni → `IsBedOccupied = true` tanpa identitas; bed kosong → `false` | ✅ Terbukti 8 Nov 2026 | Uji B no. 3 (`true`, nol kunci identitas, nama dan No. RM pasien tidak muncul), no. 4 (`false`) |
+| DoD — regresi login lulus dan direkam | Terpenuhi | Bagian A 172/172, rekaman `sesudah-2026-11-08T02-22-11-365Z/` |
+| DoD — build Rizki lulus | Terpenuhi | Backend `--no-build` berjalan dari DLL yang memuat kode task ini |
 | DoD — laporan memuat diff ringkas tiap berkas bersama | Terpenuhi | §3.2 |
 | DoD — QBE `PASS` | Terpenuhi | §5 |
 
@@ -259,8 +306,8 @@ dengan syarat `NV-DEC-030`) · branch `rizkiG`.
 | --- | --- |
 | Peringatan | Sesudah build, **jangan** menjalankan ulang `rekam-login.mjs baseline`: baseline harus berasal dari backend sebelum perubahan. Yang dijalankan hanya mode `sesudah` |
 | Masalah yang diketahui | `GET /current` membaca `ActiveCall` per bed, bukan per tablet, karena panggilan melekat pada bed (`NV-DEC-050`). Bila tablet lama sudah diganti saat panggilan masih aktif, tablet pengganti ikut menampilkan panggilan itu — perilaku yang diinginkan untuk "Perawat hadir" |
-| Risiko tersisa | **Regresi login seluruh sistem** sampai bagian A lulus (syarat lead). Token tablet berlaku 90 hari; mitigasinya pemeriksaan status dan stempel di setiap permintaan |
-| Perubahan sampingan | `NONE` |
-| Interupsi | Satu perintah pembersihan folder sementara ditolak pengaman sesi; perintah itu tidak perlu dan tidak dijalankan ulang |
-| Status Git | Perubahan task ini: `M Controllers/AuthController.cs`, `M Constants/AuthorizationPolicies.cs`, `M Program.cs`, `M Areas/HealthServices/NurseViewManagement/Services/NvwResult.cs`; `?? …/Controllers/NvwBedTabletRuntimeController.cs`, `?? …/DTOs/NvwBedTabletRuntimeDtos.cs`, `?? …/Services/NvwBedTabletContextService.cs`, `?? …/Services/NvwPatientCallQueryService.cs`; laporan ini dan baris status roadmap/traceability. Dokumen hasil uji `BE-NV-009`/`016` dari sesi yang sama juga masih `M` |
-| Langkah berikutnya | Rizki build → agent menjalankan bagian A dan B → ✅ bila lulus. Sesudah itu `BE-NV-011` |
+| Risiko tersisa | Regresi login seluruh sistem **sudah diuji** (bagian A 172/172), sehingga syarat lead untuk sisi backend terpenuhi. Sisi frontend tetap milik `FE-NV-009`. Token tablet berlaku 90 hari; mitigasinya pemeriksaan status dan stempel di setiap permintaan, terbukti pada uji B no. 10–12 |
+| Perubahan sampingan | Kode: `NONE`. Data di DB dev bersama akibat uji 8 Nov: (1) tablet `NVT-000011` dan `NVT-000012` dibuat lalu dinonaktifkan dengan alasan; (2) sandi `KSK-RSMMC-00009`, `QDD-RSMMC-00003`, dan TV `NVW-000002` diatur ulang (dua kali untuk TV). Sandinya hanya ada di memori skrip, sama dengan saat baseline. `NVW-000002` kini berstatus aktif dan pernah online; (3) policy jabatan uji diubah sementara lalu dipulihkan identik |
+| Interupsi | 6 Nov: satu perintah pembersihan folder sementara ditolak pengaman sesi; perintah itu tidak perlu dan tidak dijalankan ulang. 8 Nov: backend belum hidup di awal sesi, lalu dijalankan Rizki |
+| Status Git | Kode task ini sudah di-commit Rizki di `589fb513`. Perubahan sesi 8 Nov hanya dokumen: laporan ini, `backend-roadmap.md`, `frontend-roadmap.md`, `requirement-traceability.md`. Bukti uji ada di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-010-20261106/` (di-ignore git) |
+| Langkah berikutnya | `BE-NV-011` (panggilan dari tablet) dan `FE-NV-009` (login tablet ke layar tablet bed, regresi redirect lima akun) sekarang boleh dimulai |

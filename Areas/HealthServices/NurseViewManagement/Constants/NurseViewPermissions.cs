@@ -30,6 +30,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Constan
             public const string Resource = "NurseViewBedTablet";
         }
 
+        public static class PatientCall
+        {
+            public const string Resource = "NurseViewPatientCall";
+        }
+
         public static class PatientCallWaitThreshold
         {
             public const string Resource = "NurseViewPatientCallWaitThreshold";

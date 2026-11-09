@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
 {
@@ -31,6 +32,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
         public bool CanConfirmNurseArrived { get; set; }
         public bool IsActive { get; set; }
         public int Version { get; set; }
+    }
+
+    public class NvwTabletCallRequest
+    {
+        public NvwPatientCallPriority Priority { get; set; }
+    }
+
+    public class NvwTabletCallVersionRequest
+    {
+        [Required]
+        public int Version { get; set; }
+    }
+
+    public sealed class NvwTabletCallOutcome
+    {
+        public NvwTabletCallResponse Call { get; init; } = new();
+        public string DeviceCode { get; init; } = string.Empty;
+        public string BedCode { get; init; } = string.Empty;
+        public NvwPatientCallEventType? EventType { get; init; }
+        public bool IsReplay => EventType == null;
     }
 
     public sealed class NvwBedTabletLoginContext
