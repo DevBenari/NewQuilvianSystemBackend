@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Helpers;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
@@ -20,15 +21,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly InpBedManagementQueryService _bedQueries;
         private readonly NvwVitalSignIntervalService _intervals;
+        private readonly NvwPatientCallQueryService _calls;
 
         public NvwFloorBoardQueryService(
             ApplicationDbContext dbContext,
             InpBedManagementQueryService bedQueries,
-            NvwVitalSignIntervalService intervals)
+            NvwVitalSignIntervalService intervals,
+            NvwPatientCallQueryService calls)
         {
             _dbContext = dbContext;
             _bedQueries = bedQueries;
             _intervals = intervals;
+            _calls = calls;
         }
 
         public static string BoardStatusLabel(string statusCode) => statusCode switch
@@ -82,6 +86,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
             var allergicPatients = await LoadAllergicPatientsAsync(
                 occupants.Values.Select(x => x.PatientId).Distinct().ToList(),
                 cancellationToken);
+            var activeCallPriorities = await _calls.GetActivePriorityByBedAsync(floorCode, cancellationToken);
             var intervalByLevel = intervalSet.Items.ToDictionary(x => x.EwsRiskLevel, x => x.IntervalMinutes);
             var onDutyNurses = await LoadOnDutyNursesAsync(
                 projection.Units.Values
@@ -109,7 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
                         RosterAvailable = nursesOnDuty.Count > 0,
                         OnDutyNurses = nursesOnDuty,
                         Beds = ward
-                            .Select(row => BuildCard(row, episodeByBed, occupants, nurses, vitalSigns, highFallRisk, allergicPatients, intervalByLevel, nowUtc))
+                            .Select(row => BuildCard(row, episodeByBed, occupants, nurses, vitalSigns, highFallRisk, allergicPatients, intervalByLevel, activeCallPriorities, nowUtc))
                             .OrderByDescending(card => card.IsCritical)
                             .ThenBy(card => card.BedName, StringComparer.OrdinalIgnoreCase)
                             .ThenBy(card => card.BedCode, StringComparer.OrdinalIgnoreCase)
@@ -211,6 +216,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
             IReadOnlySet<Guid> highFallRisk,
             IReadOnlySet<Guid> allergicPatients,
             IReadOnlyDictionary<EwsRiskLevel, int> intervalByLevel,
+            IReadOnlyDictionary<Guid, NvwPatientCallPriority> activeCallPriorities,
             DateTime nowUtc)
         {
             var card = new NvwBedCardResponse
@@ -221,7 +227,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
                 RoomName = row.RoomName,
                 StatusCode = row.StatusCode,
                 StatusLabel = BoardStatusLabel(row.StatusCode),
-                IsNewbornBed = row.IsForNewborn
+                IsNewbornBed = row.IsForNewborn,
+                ActiveCallPriority = activeCallPriorities.TryGetValue(row.BedId, out var callPriority)
+                    ? (NvwPatientCallPriority?)callPriority
+                    : null
             };
 
             if (!episodeByBed.TryGetValue(row.BedId, out var episodeId) || !occupants.TryGetValue(episodeId, out var occupant))

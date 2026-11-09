@@ -52,6 +52,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
         public int Version { get; set; }
     }
 
+    public class NvwDisplayCallStripResponse
+    {
+        public string FloorCode { get; set; } = string.Empty;
+        public bool ThresholdsConfigured { get; set; }
+        public int TotalActive { get; set; }
+        public List<NvwDisplayCallStripItemResponse> Items { get; set; } = new();
+        public DateTime ServerTimeUtc { get; set; }
+    }
+
+    public class NvwDisplayCallStripItemResponse
+    {
+        public string BedCode { get; set; } = string.Empty;
+        public string BedName { get; set; } = string.Empty;
+        public string RoomName { get; set; } = string.Empty;
+        public NvwPatientCallPriority Priority { get; set; }
+        public string PriorityLabel { get; set; } = string.Empty;
+        public NvwPatientCallStatus CallStatus { get; set; }
+        public DateTime FirstPressedAt { get; set; }
+        public int WaitingSeconds { get; set; }
+        public string? ClaimedByName { get; set; }
+        public string WaitLevel { get; set; } = string.Empty;
+    }
+
     public class NvwPatientCallChangedEvent
     {
         public Guid CallId { get; set; }

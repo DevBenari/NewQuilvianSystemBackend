@@ -215,7 +215,7 @@ flowchart LR
     BENV012["✅ BE-NV-012<br/>Konsol: daftar dan aksi perawat"]:::selesai
     BENV013["✅ BE-NV-013<br/>Tutup otomatis saat pindah atau pulang"]:::selesai
     BENV014["🟡 BE-NV-014<br/>Sinyal realtime dan grup hub"]:::sebagian
-    BENV015["BE-NV-015<br/>Strip TV dan penanda kartu"]:::belum
+    BENV015["🟡 BE-NV-015<br/>Strip TV dan penanda kartu"]:::sebagian
     BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::selesai
 
     BENV008 --> BENV009
@@ -292,7 +292,7 @@ ringkas per berkas.
 | ✅ `BE-NV-012` | Konsol: daftar dan aksi perawat | `FR-NV-039`, `041`, `044`, `049`, `050`; `NV-DEC-038`, `040`, `043`, `044`, `053`; `AD-06` | `0.2.0` api §7 | `NvwPatientMasking`, `ApplicationUser.DisplayName`, service ambang (`BE-NV-016`) | Controller (6 endpoint) + query konsol + klaim/ambil alih/lepas/tutup; `VAL-NV-33`–`36`, `39` | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP dua akun perawat + paralel; pencarian identitas di JSON | Identitas bocor; klaim ganda / Rizki | Kartu |
 | ✅ `BE-NV-013` | Tutup otomatis saat pasien pindah atau pulang | `FR-NV-043`, `044`; `NV-DEC-046`, `050`, `052`, `057`; `AD-05` | `0.2.1` state §5 (`NV-DEC-057`), integration R2 §5 | Pola `AttendanceSchedulerHostedService`, enum `InpBedPlacementEndReason` | Reconciliation service + hosted service 30 detik | `BE-NV-011` | Kartu | Pindah/pulang pasien uji lewat layar Rawat Inap; ukur jeda lewat `SELECT` | Arti `EndReason` milik Rawat Inap → `TLM-NV-002` / Rizki | Kartu |
 | 🟡 `BE-NV-014` | Sinyal realtime panggilan dan grup hub | `FR-NV-048`; `NV-AC-028`; `NV-DEC-044`, `047`; `VAL-NV-41` | `0.2.0` api §10 | `NvwRealtimeService`, `QueueHub#JoinAdmissionQueueBoard`, `#JoinNurseViewFloor` | `NotifyPatientCallChangedAsync` + pemanggilnya; 4 method hub | `BE-NV-012`, `BE-NV-013` | Kartu | Uji hub TV + konsol + tablet | Regresi grup hub lain / Rizki, syarat lead | Kartu |
-| `BE-NV-015` | Strip TV dan penanda kartu | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048` | `0.2.0` api §9 | `NvwDisplayRuntimeController`, `NvwFloorBoardQueryService`, service ambang (`BE-NV-016`) | `GET /active-calls`, query strip, `ActiveCallPriority` di papan | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP akun TV dan tablet; perbandingan JSON `/board` | Identitas bocor di strip; regresi papan / Rizki | Kartu |
+| 🟡 `BE-NV-015` | Strip TV dan penanda kartu | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048` | `0.2.0` api §9 | `NvwDisplayRuntimeController`, `NvwFloorBoardQueryService`, service ambang (`BE-NV-016`) | `GET /active-calls`, query strip, `ActiveCallPriority` di papan | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP akun TV dan tablet; perbandingan JSON `/board` | Identitas bocor di strip; regresi papan / Rizki | Kartu |
 | ✅ `BE-NV-016` | API ambang lama menunggu | `FR-NV-053`; `NV-DEC-048`; `G-15` | `0.2.0` api §8 | Pola ganti-seluruh `NvwVitalSignIntervalService` | Service (termasuk `ResolveWaitLevel`) + controller + DTO; `VAL-NV-40` | `BE-NV-008` | Kartu | HTTP isi → ganti → cabut | Angka bawaan terselip / Rizki | Kartu |
 
 ### Kartu task revision 2
@@ -417,11 +417,11 @@ ringkas per berkas.
 | Risiko/pemilik | Regresi grup hub lain / Rizki, syarat lead `NV-DEC-030`/`056`. Kebocoran identitas lewat payload; dicegah AC-2 |
 | DoD | AC-1–6 terpetakan ke source; build Rizki lulus; log uji hub tersimpan; laporan `task/report/backend/BE-NV-014.md` |
 
-#### BE-NV-015 — Strip Panggilan Aktif dan penanda kartu di papan TV
+#### 🟡 BE-NV-015 — Strip Panggilan Aktif dan penanda kartu di papan TV
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** AC 6/6 terpetakan ke source. Source: `GET /display-runtime/active-calls` (`NvwDisplayRuntimeController.GetActiveCalls`, policy `NurseViewDisplayRead`, lantai dari perangkat); `NvwPatientCallQueryService.GetActiveForDisplayAsync` (Darurat dulu lalu paling lama menunggu, nol identitas pasien, label bed dan nama pengklaim dalam satu query) dan `GetActivePriorityByBedAsync`; `NvwFloorBoardQueryService` +1 query per lantai untuk `ActiveCallPriority`; DTO `NvwDisplayCallStripResponse`. QBE Strict `PASS` (5 berkas, 0 violation, 0 review); nol komentar; CRLF. Baseline `/board` build lama terekam (TV `NVW-000002`: 66 kartu, 0 kunci `activeCallPriority`; `/active-calls` `404`). Belum, sesuai urutan Rizki (uji sesudah `FE-NV-014` terbentuk): `dotnet build`, uji HTTP akun TV dan tablet, dan JSON `/board` pembanding sesudah build. `AUTOMATED TEST: NOT APPLICABLE`. Laporan: [`BE-NV-015.md`](../task/report/backend/BE-NV-015.md) |
 | Gelombang | 5 · `MVP-8` · `EPIC NV-07` |
 | Outcome | TV mendapat daftar panggilan aktif lantainya tanpa identitas pasien, dan kartu bed yang sedang memanggil membawa penanda prioritas |
 | Trace | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048`; `NV-AC-030`, `031`, `037` (sisi TV); `VAL-NV-14` × tablet pada `/active-calls`; `UAT-21`, `22`; `NFR-001`, `013`; `02-backend-architecture.md` R2.4.5 (`NvwFloorBoardQueryService`), R2.4.6 |

@@ -1,3 +1,5 @@
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Enums;
+
 namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
 {
     public class NvwFloorBoardResponse
@@ -42,6 +44,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
         public bool HasActiveAllergy { get; set; }
         public bool RequiresIsolation { get; set; }
         public bool IsolationMismatch { get; set; }
+        public NvwPatientCallPriority? ActiveCallPriority { get; set; }
     }
 
     public class NvwMaskedPatientResponse

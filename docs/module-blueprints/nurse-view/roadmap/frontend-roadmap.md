@@ -203,7 +203,7 @@ flowchart LR
         BENV011["✅ BE-NV-011<br/>Panggilan dari tablet"]:::luar
         BENV012["✅ BE-NV-012<br/>Konsol: daftar dan aksi perawat"]:::luar
         BENV014["🟡 BE-NV-014<br/>Sinyal realtime dan grup hub"]:::luar
-        BENV015["BE-NV-015<br/>Strip TV dan penanda kartu"]:::luar
+        BENV015["🟡 BE-NV-015<br/>Strip TV dan penanda kartu"]:::luar
         BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::luar
     end
 
@@ -213,7 +213,7 @@ flowchart LR
     FENV011["🟡 FE-NV-011<br/>Layar tablet memanggil perawat"]:::sebagian
     FENV012["🟡 FE-NV-012<br/>Konsol Panggilan dan menu"]:::sebagian
     FENV013["🟡 FE-NV-013<br/>Bunyi Konsol Panggilan"]:::sebagian
-    FENV014["FE-NV-014<br/>Strip Panggilan Aktif di TV"]:::belum
+    FENV014["🟡 FE-NV-014<br/>Strip Panggilan Aktif di TV"]:::sebagian
     FENV015["✅ FE-NV-015<br/>Layar ambang lama menunggu"]:::selesai
 
     BENV009 --> FENV008
@@ -276,7 +276,7 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | 🟡 `FE-NV-011` | Layar tablet: panggil, Darurat, batal, perawat hadir | `FR-NV-037`, `038`, `040`, `042`, `045`; `NV-DEC-037`–`039`, `041`, `046`, `050`, `054` | api §6, §10 | Kerangka `FE-NV-009`, klien `FE-NV-010` | Layar `FE-NVW-07` lengkap | `BE-NV-011`, `FE-NV-009`, `FE-NV-010` | Kartu | lint + uji tablet termasuk putus jaringan | Pasien mengira terkirim padahal belum / Rizki | Kartu |
 | 🟡 `FE-NV-012` | Konsol Panggilan: lantai, daftar, aksi, menu, hapus prototipe | `FR-NV-039`, `041`, `049`, `050`, `052`; `NV-DEC-040`, `043`, `044`, `051`, `053`; `NV-FE-008` | api §7, §10 | `requiredPermission` menu, pita data basi, klien `FE-NV-010` | Layar `FE-NVW-08` tanpa bunyi; butir menu; hapus `nurseCallContext.jsx` | `BE-NV-012`, `FE-NV-010` | Kartu | lint + uji konsol dua perawat | Konsol untuk lantai salah / Rizki | Kartu |
 | 🟡 `FE-NV-013` | Bunyi Konsol Panggilan | `FR-NV-051`; `NV-DEC-045`; `G-14` | api §7, §10 | `playArrivalSound`, deteksi autoplay layar antrean | Bunyi, nada Darurat, pengingat, tunda, "Aktifkan suara" | `FE-NV-012` | Kartu | lint + rekaman bersuara | Kelelahan alarm / Rizki | Kartu |
-| `FE-NV-014` | Strip Panggilan Aktif dan penanda kartu di TV | `FR-NV-046`–`048`; `NV-DEC-013`, `044`, `047`, `048` | api §9, §10 | Papan `FE-NV-005`/`007`, klien `FE-NV-010` | Strip di atas papan + penanda kartu | `BE-NV-015`, `FE-NV-010` | Kartu | lint + uji TV berjam | Regresi papan revision 1 / Rizki | Kartu |
+| 🟡 `FE-NV-014` | Strip Panggilan Aktif dan penanda kartu di TV | `FR-NV-046`–`048`; `NV-DEC-013`, `044`, `047`, `048` | api §9, §10 | Papan `FE-NV-005`/`007`, klien `FE-NV-010` | Strip di atas papan + penanda kartu | `BE-NV-015`, `FE-NV-010` | Kartu | lint + uji TV berjam | Regresi papan revision 1 / Rizki | Kartu |
 | ✅ `FE-NV-015` | Layar ambang lama menunggu beserta butir menu | `FR-NV-053`; `NV-DEC-048`; `G-15` | api §8 | Layar interval TTV `FE-NV-004` | Layar `FE-NVW-09`, butir menu "Ambang Panggilan Nurse View" | `BE-NV-016` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
 
 ### Kartu task revision 2
@@ -389,11 +389,11 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Risiko/pemilik | Kelelahan alarm bila pengingat terlalu rapat; kebijakan autoplay browser / Rizki |
 | DoD | AC-1–3 terpetakan ke source; lint `0 errors`; rekaman bersuara; laporan `task/report/frontend/FE-NV-013.md` |
 
-#### FE-NV-014 — Strip Panggilan Aktif dan penanda kartu di TV
+#### 🟡 FE-NV-014 — Strip Panggilan Aktif dan penanda kartu di TV
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 **SEBAGIAN 9 November 2026.** AC-1–6 terpetakan ke source: strip `nurse-view-call-strip.jsx` di atas papan dan di luar halaman, dimuat dari `GET /active-calls` saat awal, tiap 60 detik, saat `online`, saat hub tersambung ulang, dan **segera** saat `NurseViewPatientCallChanged` (papan tetap lewat jadwal 5 detik); kapasitas 5 + "+k lainnya"; item bed · lama menunggu (jam server) · jenis · pengklaim, tanpa identitas pasien; warna dari `WaitLevel`; penanda kartu "Memanggil"/"DARURAT" dari `activeCallPriority`; pita basi memakai data tertua papan/strip; tanpa suara. `npx eslint` 7 berkas 0 error, 0 warning; UI gate 6 elemen `COMPOSE` (keputusan `FE-NV-005`); grep anti-regresi bersih; fungsi murni 15/15. Belum: `npm run build` (port 3000 dipakai server Next Rizki), rekaman berjam TV, uji putus jaringan, dan regresi `FE-NV-005` L1–L8 / `FE-NV-007` — menunggu build backend `BE-NV-014`/`015`. `AUTOMATED TEST: SKIPPED (opsional)`. Laporan: [`FE-NV-014.md`](../task/report/frontend/FE-NV-014.md) |
 | Gelombang | 2 · `MVP-8` · `EPIC NV-07` |
 | Outcome | TV menampilkan strip panggilan aktif di atas papan yang tidak ikut berganti halaman, tanpa identitas pasien, dengan "+k lainnya" bila tidak muat. Kartu bed yang memanggil bertanda, dan TV tetap tanpa suara |
 | Trace | `FR-NV-046`, `047`, `048`; `NV-DEC-013`, `044`, `047`, `048`; `NV-FE-006`; `NV-FCT-001`, `002`; `03-frontend-architecture.md` R2.3 (`FE-NVW-04` tambahan), R2.5 |

@@ -150,6 +150,82 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
             });
         }
 
+        public async Task<NvwDisplayCallStripResponse> GetActiveForDisplayAsync(string deviceFloorCode, CancellationToken cancellationToken)
+        {
+            var floor = NvwDisplayDeviceService.NormalizeFloorCode(deviceFloorCode);
+            var threshold = await _thresholds.GetActiveAsync(cancellationToken);
+
+            var rows = await ActiveOnFloor(floor)
+                .OrderByDescending(x => x.Priority)
+                .ThenBy(x => x.FirstPressedAt)
+                .ThenBy(x => x.Id)
+                .Select(x => new
+                {
+                    BedCode = x.Bed != null ? x.Bed.BedCode : string.Empty,
+                    BedName = x.Bed != null ? x.Bed.BedName : string.Empty,
+                    RoomName = x.Bed != null && x.Bed.Room != null ? x.Bed.Room.RoomName : string.Empty,
+                    x.Priority,
+                    x.CallStatus,
+                    x.FirstPressedAt,
+                    ClaimerDisplayName = _dbContext.Users
+                        .Where(u => u.Id == x.ClaimedByUserId)
+                        .Select(u => u.DisplayName)
+                        .FirstOrDefault(),
+                    ClaimerUserName = _dbContext.Users
+                        .Where(u => u.Id == x.ClaimedByUserId)
+                        .Select(u => u.UserName)
+                        .FirstOrDefault()
+                })
+                .ToListAsync(cancellationToken);
+
+            var now = DateTime.UtcNow;
+            var items = rows.Select(x =>
+            {
+                var waitingSeconds = WaitingSeconds(x.FirstPressedAt, now);
+
+                return new NvwDisplayCallStripItemResponse
+                {
+                    BedCode = x.BedCode,
+                    BedName = x.BedName,
+                    RoomName = x.RoomName,
+                    Priority = x.Priority,
+                    PriorityLabel = PriorityLabel(x.Priority),
+                    CallStatus = x.CallStatus,
+                    FirstPressedAt = x.FirstPressedAt,
+                    WaitingSeconds = waitingSeconds,
+                    ClaimedByName = string.IsNullOrWhiteSpace(x.ClaimerDisplayName) ? x.ClaimerUserName : x.ClaimerDisplayName,
+                    WaitLevel = NvwPatientCallWaitThresholdService.ResolveWaitLevel(threshold, waitingSeconds)
+                };
+            }).ToList();
+
+            return new NvwDisplayCallStripResponse
+            {
+                FloorCode = floor,
+                ThresholdsConfigured = threshold.IsConfigured,
+                TotalActive = items.Count,
+                Items = items,
+                ServerTimeUtc = now
+            };
+        }
+
+        public async Task<Dictionary<Guid, NvwPatientCallPriority>> GetActivePriorityByBedAsync(string floorCode, CancellationToken cancellationToken)
+        {
+            var rows = await ActiveOnFloor(NvwDisplayDeviceService.NormalizeFloorCode(floorCode))
+                .Select(x => new { x.BedId, x.Priority })
+                .ToListAsync(cancellationToken);
+
+            return rows
+                .GroupBy(x => x.BedId)
+                .ToDictionary(x => x.Key, x => x.Max(y => y.Priority));
+        }
+
+        private IQueryable<NvwPatientCall> ActiveOnFloor(string floor) =>
+            _dbContext.NvwPatientCalls.AsNoTracking()
+                .Where(x =>
+                    x.FloorCode == floor &&
+                    !x.IsDelete &&
+                    (x.CallStatus == NvwPatientCallStatus.Waiting || x.CallStatus == NvwPatientCallStatus.Claimed));
+
         public async Task<bool> IsKnownFloorAsync(string? floorCode, CancellationToken cancellationToken)
         {
             var floor = NvwDisplayDeviceService.NormalizeFloorCode(floorCode);
