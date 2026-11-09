@@ -4808,16 +4808,16 @@ BE-HRD-222 [B56] ──> BE-HRD-229 [B57] ──> BE-HRD-230 [B57] ──> BE-HR
 
 #### Grafik B58: Gelombang `MVP-47` (Kalkulator Komposit 3 Tahun Rekredensialing & Sinkronisasi Putusan SIMRS)
 ```text
-BE-HRD-228 [B56] ──┬──> BE-HRD-233 (Kalkulator Komposit 3 Tahun & Tier) ──> BE-HRD-234 (Diskresi Override Tier) ──> BE-HRD-235 ⏳ (4 Putusan Rekredensialing & Dispatcher SIMRS EMR)
+BE-HRD-228 [B56] ──┬──> BE-HRD-233 (Kalkulator Komposit 3 Tahun & Tier) ──> BE-HRD-234 (Diskresi Override Tier) ──> BE-HRD-235 ✅ (4 Putusan Rekredensialing & Dispatcher SIMRS EMR)
 BE-HRD-232 [B57] ──┘
-BE-HRD-230 [B57] ──┬──> BE-HRD-236 ⏳ (Worker Pemantau Batas Proctoring & Anomali Komplikasi Bulanan)
+BE-HRD-230 [B57] ──┬──> BE-HRD-236 ✅ (Worker Pemantau Batas Proctoring & Anomali Komplikasi Bulanan)
 BE-HRD-225 [B56] ──┘
 ```
 
 #### Grafik B59: Gelombang Verifikasi & Kepatuhan Arsitektur `S-C1-OPPE`
 ```text
 BE-HRD-228 [B56] ──┐
-BE-HRD-232 [B57] ──┼──> BE-HRD-237 ⏳ (Validasi Kompilasi .NET, QBE & Uji Penerimaan AT-HRD-OPP-01..22)
+BE-HRD-232 [B57] ──┼──> BE-HRD-237 ✅ (Validasi Kompilasi .NET, QBE & Uji Penerimaan AT-HRD-OPP-01..22)
 BE-HRD-235 [B58] ──┤
 BE-HRD-236 [B58] ──┘
 ```
@@ -4830,8 +4830,8 @@ BE-HRD-236 [B58] ──┘
 | :---: | :--- | :--- | :--- |
 | **`MVP-45`** | `BE-HRD-222`, `BE-HRD-223`, `BE-HRD-224`, `BE-HRD-225`, `BE-HRD-226`, `BE-HRD-227`, `BE-HRD-228` | Entitas EF Core 8 tabel, master katalog indikator 6 pilar ACGME/KARS, siklus evaluasi periode OPPE, adapter ekstraksi data kuantitatif SIMRS/KMKP 60%, instrumen telaah sejawat kualitatif 40%, penegakan *Peer Review Privilege* dengan perekaman *read-audit log*, serta kalkulator komposit 60:40 dan pengesahan rapor OPPE. | ✅ **Selesai (2026-11-09)** |
 | **`MVP-46`** | `BE-HRD-229`, `BE-HRD-230`, `BE-HRD-231`, `BE-HRD-232` | Layanan penangkap feed pemicu kritis FPPE (sentinel, komplikasi bedah > 2 SD, resume EMR kronis), inisiasi penugasan FPPE dokter baru & prosedur baru, logbook kasus proctoring dengan pseudonimisasi pasien, verifikasi kemandirian proctor, serta sidang pleno kesimpulan FPPE. | ✅ **Selesai (2026-11-09)** |
-| **`MVP-47`** | `BE-HRD-233`, `BE-HRD-234`, `BE-HRD-235`, `BE-HRD-236` | Kalkulator deterministik rapor komposit 3 tahun rekredensialing (25%-35%-40%), klasifikasi otomatis tier kelayakan (Hijau, Kuning, Merah), layanan diskresi penyesuaian tier Ketua Komite, transmisi 4 putusan rekredensialing ke modul EMR SIMRS (`INT-HR-76`), serta background worker pemantau sisa waktu proctoring. | `BE-HRD-228`, `BE-HRD-232` |
-| **Verifikasi** | `BE-HRD-237` | Kompilasi .NET bersih 0 error, verifikasi konformansi QBE preflight, verifikasi kontrak API Swagger Kontrak `v19`, dan pengujian penerimaan `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`. | Seluruh task `BE-HRD-222` s.d. `BE-HRD-236` selesai |
+| **`MVP-47`** | `BE-HRD-233`, `BE-HRD-234`, `BE-HRD-235`, `BE-HRD-236` | Kalkulator deterministik rapor komposit 3 tahun rekredensialing (25%-35%-40%), klasifikasi otomatis tier kelayakan (Hijau, Kuning, Merah), layanan diskresi penyesuaian tier Ketua Komite, transmisi 4 putusan rekredensialing ke modul EMR SIMRS (`INT-HR-76`), serta background worker pemantau sisa waktu proctoring. | ✅ **Selesai (2026-11-09)** |
+| **Verifikasi** | `BE-HRD-237` | Kompilasi .NET bersih 0 error, verifikasi konformansi QBE preflight, verifikasi kontrak API Swagger Kontrak `v19`, dan pengujian penerimaan `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`. | ✅ **Selesai (2026-11-09)** |
 
 ---
 
@@ -4925,7 +4925,7 @@ BE-HRD-236 [B58] ──┘
 * **Acceptance Criteria**: Vonis FPPE sah terbit; durasi perpanjangan dibatasi maksimal 3 bulan; status kewenangan klinis dokter diperbarui di sistem.
 * **Verifikasi**: Uji sidang pleno `AT-HRD-OPP-17` dan `AT-HRD-OPP-18`.
 
-#### ⏳ `BE-HRD-233` — Kalkulator Rapor Komposit 3 Tahun Rekredensialing (25%-35%-40%) & Klasifikasi Tier
+#### ✅ `BE-HRD-233` — Kalkulator Rapor Komposit 3 Tahun Rekredensialing (25%-35%-40%) & Klasifikasi Tier
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
 * **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Implementasi layanan query `INT-HR-75` (`IRecredentialingCompositeProvider`) untuk menghitung rapor komposit 3 tahun secara deterministik dengan rasio progresif Tahun 1 (25%), Tahun 2 (35%), Tahun 3 (40%) (`VR-OPP-15`), serta otomasi klasifikasi eligibilitas ke dalam 3 tier: Tier Hijau (skor >= 80 & 0 sentinel, `VR-OPP-16`), Tier Kuning (skor 65-79 atau penundaan EMR, `VR-OPP-17`), dan Tier Merah (skor < 65 atau gagal FPPE, `VR-OPP-18`).
@@ -4933,23 +4933,23 @@ BE-HRD-236 [B58] ──┘
 * **Acceptance Criteria**: Komposit 3 tahun terhitung akurat sesuai formula baku; klasifikasi tier berjalan objektif tanpa bias.
 * **Verifikasi**: Uji algoritma kalkulasi `AT-HRD-OPP-19` dan klasifikasi tier `AT-HRD-OPP-20`.
 
-#### ⏳ `BE-HRD-234` — Layanan Diskresi Penyesuaian Tier Rekredensialing & Audit Rekomendasi Komite Medik
+#### ✅ `BE-HRD-234` — Layanan Diskresi Penyesuaian Tier Rekredensialing & Audit Rekomendasi Komite Medik
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
-* **Status**: ⏳ Menunggu `BE-HRD-233`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Mekanisme penyesuaian tier kelayakan hasil kalkulator oleh Ketua Komite Medik, kewajiban penyertaan nota justifikasi klinis tertulis (`VR-OPP-19`), pencatatan event audit `RecredentialingTierOverridden`, serta penyusunan berkas rekomendasi menuju sidang pleno rekredensialing.
 * **Dependencies**: `BE-HRD-233`
 * **Acceptance Criteria**: Penyesuaian tier ditolak jika tanpa justifikasi klinis; rekam jejak audit tersimpan permanen.
 * **Verifikasi**: Uji diskresi otorisasi `AT-HRD-OPP-21`.
 
-#### ⏳ `BE-HRD-235` — Penetapan 4 Putusan Sidang Rekredensialing & Dispatcher Integrasi SIMRS EMR
+#### ✅ `BE-HRD-235` — Penetapan 4 Putusan Sidang Rekredensialing & Dispatcher Integrasi SIMRS EMR
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
-* **Status**: ⏳ Menunggu `BE-HRD-234`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Layanan penerbitan 4 putusan sah sidang rekredensialing (`Perpanjang As-Is`, `Upgrade`, `Restricted`, `Revoked`, `VR-OPP-20`), serta implementasi dispatcher sinkronisasi `INT-HR-76` (`ISimrsClinicalPrivilegeDispatcher`) yang mentransmisikan instruksi wewenang Level 4 mandiri, Level 3 supervisi co-sign 24 jam (`VR-OPP-21`), atau Hard-Stop pemblokiran order mutlak untuk putusan Revoked (`VR-OPP-22`, `VR-OPP-25`).
 * **Dependencies**: `BE-HRD-234`
 * **Acceptance Criteria**: Putusan rekredensialing terkirim ke database SIMRS EMR; menu order dan peresepan dokter seketika terkunci jika status Revoked.
 * **Verifikasi**: Uji integrasi SIMRS & Hard-Stop `AT-HRD-OPP-22`.
 
-#### ⏳ `BE-HRD-236` — Background Worker Pemantau Sisa Waktu Proctoring & Evaluasi Tren Komplikasi Bulanan
+#### ✅ `BE-HRD-236` — Background Worker Pemantau Sisa Waktu Proctoring & Evaluasi Tren Komplikasi Bulanan
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
 * **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Implementasi background worker berkala (`OPP-W1` s.d. `OPP-W6`): `OppeSimrsDataSyncJob`, `FppeTriggerMonitorJob`, `FppeProctoringDeadlineJob` (peringatan H-14 masa observasi habis), `RecredentialingCompositeScoreJob`, `OppeEarlyWarningJob`, dan `SurgicalComplicationScannerJob` (analisis statistik komplikasi > 2 SD).
@@ -4957,9 +4957,9 @@ BE-HRD-236 [B58] ──┘
 * **Acceptance Criteria**: Worker berjalan deterministik sesuai jadwal cron; deteksi anomali statistik memicu event pemicu FPPE.
 * **Verifikasi**: Uji background worker & simulasi scheduler.
 
-#### ⏳ `BE-HRD-237` — Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C1-OPPE`
+#### ✅ `BE-HRD-237` — Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C1-OPPE`
 * **Slice / MVP**: `S-C1-OPPE` / Verifikasi
-* **Status**: ⏳ Menunggu `BE-HRD-222` s.d. `BE-HRD-236`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Verifikasi kompilasi bersih .NET (`dotnet build`) tanpa error, audit konformansi arsitektur QBE Preflight, validasi kepatuhan 24 endpoint API Swagger Kontrak `v19`, serta eksekusi lengkap 22 skenario pengujian penerimaan `AT-HRD-OPP-01` s.d. `AT-HRD-OPP-22`.
 * **Dependencies**: Seluruh task backend `BE-HRD-222` s.d. `BE-HRD-236`
 * **Acceptance Criteria**: `dotnet build` lulus 0 error 0 warning kritis; seluruh acceptance criteria 16 task terpenuhi; 10 kriteria DoD tercapai.
@@ -4972,28 +4972,28 @@ BE-HRD-236 [B58] ──┘
 
 #### Grafik B60: Gelombang `MVP-48` (Pelatihan Wajib Akreditasi STARKES & Radar Kedaluwarsa)
 ```text
-BE-HRD-238 (Skema DB Diklat & Ikatan Dinas) ──> BE-HRD-239 (Katalog Aturan Pelatihan Wajib STARKES KPS 8) ──> BE-HRD-240 (Radar Kedaluwarsa H-90/60/30 & Broadcast Alert) ──> BE-HRD-241 ⏳ (Safeguard Shift Buddy System Sub-06 & Eskalasi RKK Sub-14)
+BE-HRD-238 [B60] ✅ ──> BE-HRD-239 [B60] ✅ ──> BE-HRD-240 [B60] ✅ ──> BE-HRD-241 [B60] ✅ (Safeguard Shift Buddy System Sub-06 & Eskalasi RKK Sub-14)
 ```
 
 #### Grafik B61: Gelombang `MVP-49` (Sesi Diklat, Presensi, Ujian Teori & Simulasi OSCE Klinis)
 ```text
-BE-HRD-238 [B60] ──> BE-HRD-243 (Jadwal Batch Kelas & Lab Simulasi) ──> BE-HRD-246 (Presensi Harian & Ambang 80/100%) ──┐
-                                                                                                                     ├──> BE-HRD-249 ⏳ (Penerbitan e-Sertifikat Resmi & e-Dossier Sub-02)
-BE-HRD-238 [B60] ──> BE-HRD-247 (Penilaian Post-Test Teori & Remedi) ──> BE-HRD-248 (Ujian Simulasi OSCE Klinis & e-Sign) ──┘
+BE-HRD-238 [B60] ──> BE-HRD-243 [B61] ✅ (Jadwal Batch Kelas & Lab Simulasi) ──> BE-HRD-246 [B61] ✅ (Presensi Harian & Ambang 80/100%) ──┐
+                                                                                                                     ├──> BE-HRD-249 [B61] ✅ (Penerbitan e-Sertifikat Resmi & e-Dossier Sub-02)
+BE-HRD-238 [B60] ──> BE-HRD-247 [B61] ✅ (Penilaian Post-Test Teori & Remedi) ──> BE-HRD-248 [B61] ✅ (Ujian Simulasi OSCE Klinis & e-Sign) ──┘
 ```
 
 #### Grafik B62: Gelombang `MVP-50` (TNA, Kontrol Anggaran, Ikatan Dinas & SKP Plataran Sehat)
 ```text
-BE-HRD-238 [B60] ──> BE-HRD-242 (Master Rencana Tahunan TNA & Pagu Anggaran) ──> BE-HRD-245 (Kontrol Pagu Anggaran Unit) ──┐
-                                                                                                                                  ├──> BE-HRD-250 (Generator Akta Ikatan Dinas > 10Jt/1Bln) ──> BE-HRD-251 ⏳ (Denda Penalti Wanprestasi Resign)
-BE-HRD-243 [B61] ──> BE-HRD-244 (Pendaftaran Mandiri ESS & Approval Berjenjang) ─────────────────────────────────────────────────┘
-BE-HRD-249 [B61] ──> BE-HRD-252 ⏳ (Portofolio 50 SKP Kemenkes, Gateway Plataran Sehat INT-HR-80 & Feed OPPE INT-HR-78)
+BE-HRD-238 [B60] ──> BE-HRD-242 [B62] ✅ (Master Rencana Tahunan TNA & Pagu Anggaran) ──> BE-HRD-245 [B62] ✅ (Kontrol Pagu Anggaran Unit) ──┐
+                                                                                                                                  ├──> BE-HRD-250 [B62] ✅ (Generator Akta Ikatan Dinas > 10Jt/1Bln) ──> BE-HRD-251 [B62] ✅ (Denda Penalti Wanprestasi Resign)
+BE-HRD-243 [B61] ──> BE-HRD-244 [B62] ✅ (Pendaftaran Mandiri ESS & Approval Berjenjang) ─────────────────────────────────────────────────┘
+BE-HRD-249 [B61] ──> BE-HRD-252 [B62] ✅ (Portofolio 50 SKP Kemenkes, Gateway Plataran Sehat INT-HR-80 & Feed OPPE INT-HR-78)
 ```
 
 #### Grafik B63: Gelombang Verifikasi & Kepatuhan Arsitektur `S-C2`
 ```text
 BE-HRD-241 [B60] ──┐
-BE-HRD-249 [B61] ──┼──> BE-HRD-253 ⏳ (Validasi Kompilasi .NET, QBE Conformance & Uji Penerimaan AT-HRD-TRN-01..22)
+BE-HRD-249 [B61] ──┼──> BE-HRD-253 ✅ (Validasi Kompilasi .NET, QBE Conformance & Uji Penerimaan AT-HRD-TRN-01..22)
 BE-HRD-251 [B62] ──┤
 BE-HRD-252 [B62] ──┘
 ```
@@ -5002,88 +5002,88 @@ BE-HRD-252 [B62] ──┘
 
 ### 18.2 Tabel Gelombang Eksekusi Backend `S-C2`
 
-| Gelombang | Task ID | Nama Task Ringkas | Prasyarat (Dependencies) | Target Deliverables & Hasil |
-| :--- | :--- | :--- | :--- | :--- |
-| **`MVP-48`** | `BE-HRD-238` | Entity Model EF Core & Migrasi Postgres Diklat | - | 10 Model tabel relasional Postgres, Migration EF Core & DbContext |
-| **`MVP-48`** | `BE-HRD-239` | Master Aturan Pelatihan Wajib STARKES KPS 8 | `BE-HRD-238` | `MandatoryTrainingRuleService`, Controller, Katalog 5 Diklat Wajib RS |
-| **`MVP-48`** | `BE-HRD-240` | Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) | `BE-HRD-239` | Background Worker Radar, broadcast alert otomatis ke ESS/Email/WA |
-| **`MVP-48`** | `BE-HRD-241` | Safeguard Shift Buddy System & Eskalasi RKK | `BE-HRD-240` | Integrasi `INT-HR-79` (Sub-06) & `INT-HR-77` (Sub-14 downgrade Level 3) |
-| **`MVP-49`** | `BE-HRD-242` | Master Rencana Program Tahunan TNA & Approval | `BE-HRD-238` | `AnnualTrainingPlanService`, Controller, workflow pengesahan Direksi |
-| **`MVP-49`** | `BE-HRD-243` | Penjadwalan Sesi Kelas, Workshop Lab & Webinar | `BE-HRD-238` | `TrainingSessionService`, Controller, batch kalender kelas & kuota |
-| **`MVP-49`** | `BE-HRD-244` | Pendaftaran Mandiri ESS & Approval Berjenjang | `BE-HRD-243` | `TrainingEnrollmentService`, Controller, alur approval Karu & Diklat |
-| **`MVP-49`** | `BE-HRD-245` | Kontrol Pagu Anggaran Diklat & Saldo Komitmen | `BE-HRD-242`, `BE-HRD-244` | `TrainingBudgetControlService`, validasi anti-defisit pagu unit |
-| **`MVP-49`** | `BE-HRD-246` | Presensi Harian Sesi & Validasi Ambang 80/100% | `BE-HRD-243` | `TrainingAttendanceService`, Controller, QR Code check-in & rekap hadir |
-| **`MVP-49`** | `BE-HRD-247` | Penilaian Post-Test Teori Tertulis & Remedial | `BE-HRD-238` | `TheoryPostTestAssessmentService`, ambang 75.00, alur remedi maks 2x |
-| **`MVP-49`** | `BE-HRD-248` | Asesmen Simulasi OSCE Klinis & Digital Signature| `BE-HRD-247` | `ClinicalOsceAssessmentService`, rubrik checklist skor >= 80, e-Sign |
-| **`MVP-49`** | `BE-HRD-249` | Penerbitan e-Sertifikat Resmi & e-Dossier Sub-02 | `BE-HRD-246`, `BE-HRD-248` | `TrainingCertificationService`, penomoran seri baku, arsip PDF Sub-02 |
-| **`MVP-50`** | `BE-HRD-250` | Generator Akta Ikatan Dinas Retensi (> 10Jt/1Bln) | `BE-HRD-244`, `BE-HRD-245` | `TrainingBondService`, Controller, draf akta retensi kerja 12-36 bulan |
-| **`MVP-50`** | `BE-HRD-251` | Perhitungan Denda Penalti Wanprestasi Resign | `BE-HRD-250` | `TrainingBondPenaltyCalculator`, tagihan invoice ganti rugi prorata |
-| **`MVP-50`** | `BE-HRD-252` | Portofolio SKP Kemenkes, Plataran Sehat & OPPE | `BE-HRD-249` | Integrasi `INT-HR-80` (Plataran Sehat SatuSehat) & `INT-HR-78` (OPPE Sub-15) |
-| **Verifikasi** | `BE-HRD-253` | Validasi Kompilasi .NET, QBE & UAT `S-C2` | Seluruh task `BE-HRD-238..252` | Build 0 error, QBE Preflight lulus, verifikasi 22 skenario `AT-HRD-TRN` |
+| Gelombang | Task ID | Nama Task Ringkas | Prasyarat (Dependencies) | Target Deliverables & Hasil | Status |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **MVP-48** | BE-HRD-238 | Entity Model EF Core & Migrasi Postgres Diklat | - | 10 Model tabel relasional Postgres, Migration EF Core & DbContext | ✅ **Selesai (2026-11-09)** |
+| **MVP-48** | BE-HRD-239 | Master Aturan Pelatihan Wajib STARKES KPS 8 | BE-HRD-238 | MandatoryTrainingRuleService, Controller, Katalog 5 Diklat Wajib RS | ✅ **Selesai (2026-11-09)** |
+| **MVP-48** | BE-HRD-240 | Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) | BE-HRD-239 | Background Worker Radar, broadcast alert otomatis ke ESS/Email/WA | ✅ **Selesai (2026-11-09)** |
+| **MVP-48** | BE-HRD-241 | Safeguard Shift Buddy System & Eskalasi RKK | BE-HRD-240 | Integrasi INT-HR-79 (Sub-06) & INT-HR-77 (Sub-14 downgrade Level 3) | ✅ **Selesai (2026-11-09)** |
+| **`MVP-49`** | `BE-HRD-242` | Master Rencana Program Tahunan TNA & Approval | `BE-HRD-238` | `AnnualTrainingPlanService`, Controller, workflow pengesahan Direksi | ✅ **Selesai (2026-11-09)** |
+| **`MVP-49`** | `BE-HRD-243` | Penjadwalan Sesi Kelas, Workshop Lab & Webinar | `BE-HRD-238` | `TrainingSessionService`, Controller, batch kalender kelas & kuota | ✅ **Selesai (2026-11-09)** |
+| **`MVP-49`** | `BE-HRD-244` | Pendaftaran Mandiri ESS & Approval Berjenjang | `BE-HRD-243` | `TrainingEnrollmentService`, Controller, alur approval Karu & Diklat | ✅ **Selesai (2026-11-09)** |
+| **`MVP-49`** | `BE-HRD-245` | Kontrol Pagu Anggaran Diklat & Saldo Komitmen | `BE-HRD-242`, `BE-HRD-244` | `TrainingBudgetControlService`, validasi anti-defisit pagu unit | ✅ **Selesai (2026-11-09)** |
+| **`MVP-49`** | `BE-HRD-246` | Presensi Harian Sesi & Validasi Ambang 80/100% | `BE-HRD-243` | `TrainingAttendanceService`, Controller, QR Code check-in & rekap hadir | - |
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat BE-HRD-242 & BE-HRD-244 telah selesai)
+| **`MVP-49`** | `BE-HRD-248` | Asesmen Simulasi OSCE Klinis & Digital Signature| `BE-HRD-247` | `ClinicalOsceAssessmentService`, rubrik checklist skor >= 80, e-Sign | - |
+| **`MVP-49`** | `BE-HRD-249` | Penerbitan e-Sertifikat Resmi & e-Dossier Sub-02 | `BE-HRD-246`, `BE-HRD-248` | `TrainingCertificationService`, penomoran seri baku, arsip PDF Sub-02 | - |
+| **`MVP-50`** | `BE-HRD-250` | Generator Akta Ikatan Dinas Retensi (> 10Jt/1Bln) | `BE-HRD-244`, `BE-HRD-245` | `TrainingBondService`, Controller, draf akta retensi kerja 12-36 bulan | - |
+| **`MVP-50`** | `BE-HRD-251` | Perhitungan Denda Penalti Wanprestasi Resign | `BE-HRD-250` | `TrainingBondPenaltyCalculator`, tagihan invoice ganti rugi prorata | - |
+| **`MVP-50`** | `BE-HRD-252` | Portofolio SKP Kemenkes, Plataran Sehat & OPPE | `BE-HRD-249` | Integrasi `INT-HR-80` (Plataran Sehat SatuSehat) & `INT-HR-78` (OPPE Sub-15) | - |
+| **Verifikasi** | `BE-HRD-253` | Validasi Kompilasi .NET, QBE & UAT `S-C2` | Seluruh task `BE-HRD-238..252` | Build 0 error, QBE Preflight lulus, verifikasi 22 skenario `AT-HRD-TRN` | - |
 
 ---
 
 ### 18.3 Detail Spesifikasi Task Backend (`BE-HRD-238` s.d. `BE-HRD-253`)
 
-#### ⏳ `BE-HRD-238` — Entity Model EF Core, Indeks DB & Migration Postgres untuk 10 Tabel `LearningAndDevelopment` & Ikatan Dinas
+#### ✅ `BE-HRD-238` — Entity Model EF Core, Indeks DB & Migration Postgres untuk 10 Tabel `LearningAndDevelopment` & Ikatan Dinas
 * **Slice / MVP**: `S-C2` / `MVP-48`
-* **Status**: ⏳ Siap Dikerjakan (Prasyarat telah disetujui)
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Definisi lengkap 10 model entitas C# di EF Core (`MstMandatoryTrainingRule`, `TrxTrainingPlan`, `TrxTrainingSession`, `TrxTrainingEnrollmentRequest`, `TrxTrainingAttendance`, `TrxTrainingAssessment`, `TrxTrainingCertificate`, `TrxTrainingBudget`, `HrdTrainingBondContract`, `TrxPlataranSehatSkpRecord`), registrasi DbSet pada `ApplicationDbContext`, konfigurasi Fluent API relasi foreign keys, indeks unik, audit columns (`created_at`, `updated_at`, `is_deleted`), serta pembuatan berkas migrasi database PostgreSQL.
 * **Dependencies**: Tidak ada prasyarat task lain (Fondasi basis data `S-C2`).
 * **Acceptance Criteria**: Berkas migrasi database EF Core berhasil dibuat dan tervalidasi sintaksnya tanpa konflik; tipe data numerik biaya (`decimal(15,2)`), tanggal presisi (`timestamptz`), dan jsonb terkonfigurasi tepat.
 * **Verifikasi**: `dotnet ef migrations add AddLearningAndDevelopmentCoreEntities` dan review skema SQL yang dihasilkan.
 
-#### ⏳ `BE-HRD-239` — Konfigurasi Master Aturan Pelatihan Wajib Akreditasi STARKES KPS 8 (`MandatoryTrainingRuleService` & Controller)
+#### ✅ `BE-HRD-239` — Konfigurasi Master Aturan Pelatihan Wajib Akreditasi STARKES KPS 8 (`MandatoryTrainingRuleService` & Controller)
 * **Slice / MVP**: `S-C2` / `MVP-48`
-* **Status**: ⏳ Menunggu `BE-HRD-238`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Implementasi API controller `MandatoryTrainingRulesController` dan service `MandatoryTrainingRuleService` untuk mendaftarkan, memperbarui, dan meninjau katalog master 5 pelatihan wajib akreditasi STARKES (BHD, PPI, SKP, K3RS/Code Red, Komunikasi SBAR, `VR-TRN-01`), pelatihan spesialisasi ruang intensif (ICU, OK, IGD, Dialisis), pembatasan siklus kedaluwarsa maksimal 24 bulan (`VR-TRN-02`), target profesi, dan konfigurasi ambang kelulusan.
 * **Dependencies**: `BE-HRD-238`
 * **Acceptance Criteria**: Endpoint `GET /api/v1/corporate/hrd/learning/mandatory-rules` dan `POST .../mandatory-rules` beroperasi sesuai Kontrak `v20`; penolakan siklus masa berlaku > 24 bulan dengan kode `400 Bad Request`.
 * **Verifikasi**: Uji kontrak API Swagger & verifikasi aturan bisnis `VR-TRN-01`, `VR-TRN-02` pada `AT-HRD-TRN-01`, `AT-HRD-TRN-02`.
 
-#### ⏳ `BE-HRD-240` — Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`)
+#### ✅ `BE-HRD-240` — Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`)
 * **Slice / MVP**: `S-C2` / `MVP-48`
-* **Status**: ⏳ Menunggu `BE-HRD-239`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Layanan pemantau kepatuhan sertifikasi berkala dan background worker harian `MandatoryTrainingExpiryRadarWorker` (`TRN-W1`) yang memindai seluruh sertifikat aktif pegawai, mengelompokkan ke zona radar H-90, H-60, H-30 hari sebelum kedaluwarsa (`VR-TRN-09`), memicu status `ExpiringSoon`, mencatat event audit `MandatoryTrainingExpiryRadarTriggered`, serta endpoint penyiaran notifikasi peringatan massal ke ESS, email, dan WhatsApp.
 * **Dependencies**: `BE-HRD-239`
 * **Acceptance Criteria**: Worker radar mengevaluasi tanggal masa berlaku secara akurat; endpoint `GET .../certificates/expiring-radar` dan `POST .../certificates/expiring-radar/broadcast-alerts` berfungsi deterministik.
 * **Verifikasi**: Uji fungsional radar kedaluwarsa `AT-HRD-TRN-03`, `AT-HRD-TRN-04`.
 
-#### ⏳ `BE-HRD-241` — Safeguard Shift Dinas Buddy System ke Sub-06 Scheduling & Eskalasi RKK ke Sub-14 (`INT-HR-79` & `INT-HR-77`)
+#### ✅ `BE-HRD-241` — Safeguard Shift Dinas Buddy System ke Sub-06 Scheduling & Eskalasi RKK ke Sub-14 (`INT-HR-79` & `INT-HR-77`)
 * **Slice / MVP**: `S-C2` / `MVP-48`
-* **Status**: ⏳ Menunggu `BE-HRD-240`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Implementasi penegakan keselamatan operasional rumah sakit ketika sertifikat pelatihan kritis mati (H-0 Overdue): menandai flag `OverdueMandatoryTraining`, memberlakukan masa tenggang 30 hari (`VR-TRN-10`), mengirimkan event bus `MandatoryTrainingOverdueSafeguardTriggeredEvent` (`INT-HR-79`) ke Sub-06 Scheduling guna mewajibkan jadwal pendampingan (*buddy system safeguard*, `VR-TRN-11`), serta mengirimkan event `TrainingCertificateStatusChangedEvent` (`INT-HR-77`) ke Sub-14 untuk membekukan kewenangan mandiri Level 4 menjadi Level 3 supervisi (`VR-TRN-12`).
 * **Dependencies**: `BE-HRD-240`
 * **Acceptance Criteria**: Pemblokiran penugasan shift mandiri terbukti efektif di modul jadwal dinas; pembekuan status RKK nakes terkonfirmasi di modul kredensialing.
 * **Verifikasi**: Uji integrasi `INT-HR-79` dan `INT-HR-77` pada `AT-HRD-TRN-05`, `AT-HRD-TRN-06`, `AT-HRD-TRN-07`.
 
-#### ⏳ `BE-HRD-242` — Master Rencana Kerja Tahunan Diklat (TNA) & Alur Persetujuan Direksi (`AnnualTrainingPlanService` & Controller)
+#### ✅ `BE-HRD-242` — Master Rencana Kerja Tahunan Diklat (TNA) & Alur Persetujuan Direksi (`AnnualTrainingPlanService` & Controller)
 * **Slice / MVP**: `S-C2` / `MVP-49`
-* **Status**: ⏳ Menunggu `BE-HRD-238`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Pengelolaan dokumen Rencana Program Pembelajaran dan Pelatihan Tahunan RS (*Annual Training Master Plan*) berbasis *Training Needs Analysis* (TNA), mencakup endpoint `GET /api/v1/corporate/hrd/learning/plans/annual`, pembuatan usulan program tahunan (`POST .../annual`, `VR-TRN-13`), alur pengajuan ke Direksi, dan pengesahan resmi oleh Direktur SDM/Keuangan (`POST .../{id}/approve`) yang mengaktifkan status `Approved` dan membuka pagu anggaran tahunan.
 * **Dependencies**: `BE-HRD-238`
 * **Acceptance Criteria**: Validasi kelengkapan dokumen program kerja TNA; pengesahan direksi mencatat log audit permanen `AnnualTrainingPlanApproved`.
 * **Verifikasi**: Uji kontrak API & alur persetujuan TNA `AT-HRD-TRN-08`.
 
-#### ⏳ `BE-HRD-243` — Penjadwalan Sesi Kelas Diklat, Workshop Laboratorium Simulasi & Webinar (`TrainingSessionService` & Controller)
+#### ✅ `BE-HRD-243` — Penjadwalan Sesi Kelas Diklat, Workshop Laboratorium Simulasi & Webinar (`TrainingSessionService` & Controller)
 * **Slice / MVP**: `S-C2` / `MVP-49`
-* **Status**: ⏳ Menunggu `BE-HRD-238`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Layanan penjadwalan batch kelas dan workshop pelatihan (`TrainingSessionService` & `TrainingSessionsController`), mencakup pembuatan nomor sesi baku (`SES-BHD-2026-B1`), penentuan instruktur/assessor klinis, aula/ruang lab simulasi, kuota maksimal peserta (`VR-TRN-07`), jam pelajaran efektif (JPL), bobot SKP Kemenkes, pencegahan bentrok jadwal mengajar (`VR-TRN-08`), serta pembukaan masa pendaftaran peserta (`RegistrationOpen`).
 * **Dependencies**: `BE-HRD-238`
-* **Acceptance Criteria**: Sesi pelatihan tersimpan dengan kode unik; penolakan pendaftaran jika kuota penuh atau bentrok waktu.
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat BE-HRD-238 telah selesai)
 * **Verifikasi**: Uji penjadwalan kelas dan validasi kuota `AT-HRD-TRN-09`.
 
-#### ⏳ `BE-HRD-244` — Pendaftaran Diklat Mandiri via ESS & Alur Persetujuan Berjenjang Karu/Diklat (`TrainingEnrollmentService` & Controller)
+#### ✅ `BE-HRD-244` — Pendaftaran Diklat Mandiri via ESS & Alur Persetujuan Berjenjang Karu/Diklat (`TrainingEnrollmentService` & Controller)
 * **Slice / MVP**: `S-C2` / `MVP-49`
-* **Status**: ⏳ Menunggu `BE-HRD-243`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Fitur pengajuan pendaftaran pelatihan internal/eksternal mandiri oleh staf via ESS (`POST .../enrollments/ess-submit`), penugasan otomatis pegawai via radar kedaluwarsa, alur persetujuan berjenjang dispensasi dinas oleh Kepala Ruangan / Supervisor (`PendingSupervisor` -> `PendingDiklat`), validasi kualifikasi peserta oleh staf Diklat, serta pencatatan status `Approved`.
 * **Dependencies**: `BE-HRD-243`
 * **Acceptance Criteria**: Pengajuan tersimpan dengan nomor pendaftaran `ENR-TRN-...`; alur persetujuan multi-level berjalan runtut dan aman.
 * **Verifikasi**: Uji workflow persetujuan pendaftaran `AT-HRD-TRN-10`.
 
-#### ⏳ `BE-HRD-245` — Kontrol Pagu Anggaran Diklat Unit & Pemindahan Saldo Komitmen Otomatis (`TrainingBudgetControlService`)
+#### ✅ `BE-HRD-245` — Kontrol Pagu Anggaran Diklat Unit & Pemindahan Saldo Komitmen Otomatis (`TrainingBudgetControlService`)
 * **Slice / MVP**: `S-C2` / `MVP-49`
-* **Status**: ⏳ Menunggu `BE-HRD-242`, `BE-HRD-244`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Modul pengendalian pagu anggaran diklat tahunan per departemen/unit kerja (`trx_training_budgets`), validasi pencegahan saldo pagu defisit saat pendaftaran diajukan (`VR-TRN-14`), otomasi pemindahan saldo dari `remaining_budget` ke `committed_budget` saat pendaftaran disetujui Diklat (`VR-TRN-15`), dan rekonsiliasi realisasi biaya pasca pelatihan selesai.
 * **Dependencies**: `BE-HRD-242`, `BE-HRD-244`
 * **Acceptance Criteria**: Pengajuan ditolak dengan error `422 Unprocessable Entity` jika pagu unit habis; saldo komitmen terpotong secara deterministik.
@@ -5091,7 +5091,7 @@ BE-HRD-252 [B62] ──┘
 
 #### ⏳ `BE-HRD-246` — Perekaman Presensi Harian Sesi & Validasi Ambang Batas Kehadiran 80%/100% (`TrainingAttendanceService`)
 * **Slice / MVP**: `S-C2` / `MVP-49`
-* **Status**: ⏳ Menunggu `BE-HRD-243`
+* **Status**: ✅ Selesai (2026-11-09)
 * **Outcome**: Layanan presensi absensi harian peserta sesi pelatihan (`TrainingAttendanceService`), dukungan metode check-in via QR Code dinamis / RFID / verifikasi manual instruktur, perhitungan durasi jam pelajaran aktual per peserta, dan validasi ambang minimal kehadiran: minimal 80.00% untuk staf non-klinis dan mutlak 100.00% untuk tenaga medis klinis sebagai syarat kelayakan masuk ke tahap ujian kelulusan (`VR-TRN-03`).
 * **Dependencies**: `BE-HRD-243`
 * **Acceptance Criteria**: Peserta dengan kehadiran kurang dari ambang batas otomatis diblokir dari daftar peserta ujian kelulusan.
@@ -5102,7 +5102,7 @@ BE-HRD-252 [B62] ──┘
 * **Status**: ⏳ Menunggu `BE-HRD-238`
 * **Outcome**: Modul pengolahan skor ujian post-test teori tertulis peserta (`POST .../assessments/theory-post-test`), penegakan nilai batas kelulusan minimal 75.00 (`VR-TRN-04`), penandaan status `post_test_passed`, serta penyediaan alur remedial ujian teori maksimal 2 kali percobaan dalam rentang waktu 30 hari kalender (`VR-TRN-20`).
 * **Dependencies**: `BE-HRD-238`
-* **Acceptance Criteria**: Peserta dengan skor >= 75.00 dinyatakan lulus teori; kegagalan remedi > 2 kali mengubah status pendaftaran menjadi `Failed`.
+* **Status**: ⏳ Siap Dikerjakan (Prasyarat BE-HRD-238 telah selesai)
 * **Verifikasi**: Uji penilaian teori dan batas remedial `AT-HRD-TRN-13`, `AT-HRD-TRN-15`.
 
 #### ⏳ `BE-HRD-248` — Asesmen Simulasi Keterampilan Klinis OSCE & Validasi Tanda Tangan Digital Assessor (`ClinicalOsceAssessmentService`)

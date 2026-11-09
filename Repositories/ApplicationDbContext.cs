@@ -517,6 +517,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxTrainingCertificate> TrxTrainingCertificates { get; set; }
         public DbSet<TrxIndividualDevelopmentPlan> TrxIndividualDevelopmentPlans { get; set; }
         public DbSet<TrxTrainingBudget> TrxTrainingBudgets { get; set; }
+        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdTrainingBondContract> HrdTrainingBondContracts { get; set; }
+        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxPlataranSehatSkpRecord> TrxPlataranSehatSkpRecords { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - LEARNING AND DEVELOPMENT
 
         #region CORPORATE - HUMAN RESOURCE - PERFORMANCE MANAGEMENT

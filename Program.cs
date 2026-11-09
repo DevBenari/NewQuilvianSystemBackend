@@ -1397,6 +1397,21 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ISimrsClinicalPrivilegeDispatcher, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.SimrsClinicalPrivilegeDispatcher>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.FppeProctoringMonitoringWorker>();
 
+    // Slice S-C2 (Learning, Training & Competency Management) - MVP-48 (Mandatory Hospital Training STARKES KPS 8, Multi-Tier Expiry Radar, Buddy System & RKK Escalation)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IMandatoryTrainingRuleService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.MandatoryTrainingRuleService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingExpiryRadarService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingExpiryRadarService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Workers.MandatoryTrainingExpiryRadarWorker>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IAnnualTrainingPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.AnnualTrainingPlanService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingSessionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingSessionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingEnrollmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingEnrollmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingBudgetControlService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingBudgetControlService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingAttendanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingAttendanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITheoryPostTestAssessmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TheoryPostTestAssessmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IClinicalOsceAssessmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ClinicalOsceAssessmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingCertificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingCertificationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingBondingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingBondingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IPlataranSehatSkpService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.PlataranSehatSkpService>();
+
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
     builder.Services.AddScoped<DiscountPolicyService>();
