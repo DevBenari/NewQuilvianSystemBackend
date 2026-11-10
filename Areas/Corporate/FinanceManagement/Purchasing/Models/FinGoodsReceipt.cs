@@ -26,6 +26,20 @@ public sealed class FinGoodsReceipt : IdentityModel
 
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
+    // ---- Penampung data BLM (BE-FIN-142, Revisi 23, FIN-DES-128, data-dictionary 13.4) ----
+
+    /// <summary>Sistem asal dokumen: <see cref="FinPurchasingSourceSystems"/>. Dokumen lama bernilai QUILVIAN.</summary>
+    [Required, MaxLength(20)] public string SourceSystem { get; set; } = FinPurchasingSourceSystems.Quilvian;
+
+    /// <summary><c>ReceiveOrderId</c> milik BLM. Terisi jika dan hanya jika <see cref="SourceSystem"/> = BLM.</summary>
+    public Guid? ExternalReceiveOrderId { get; set; }
+
+    /// <summary>Waktu perubahan terakhir menurut BLM.</summary>
+    public DateTimeOffset? ExternalUpdatedAt { get; set; }
+
+    /// <summary>Waktu Quilvian terakhir menerapkan kiriman BLM.</summary>
+    public DateTimeOffset? LastSyncedAt { get; set; }
+
     public ICollection<FinGoodsReceiptItem> Items { get; set; } = new List<FinGoodsReceiptItem>();
     public ICollection<FinInvoiceExchange> InvoiceExchanges { get; set; } = new List<FinInvoiceExchange>();
 }

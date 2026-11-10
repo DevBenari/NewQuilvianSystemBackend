@@ -8044,6 +8044,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("ExternalReceiveOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ExternalUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("GRNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -8059,6 +8065,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<DateTimeOffset?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("PurchaseOrderId")
                         .HasColumnType("uuid");
 
@@ -8068,6 +8077,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SourceSystem")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("QUILVIAN");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -8092,8 +8108,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PurchaseOrderId")
                         .HasDatabaseName("IX_FinGoodsReceipt_PurchaseOrderId");
 
+                    b.HasIndex("SourceSystem", "ExternalReceiveOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinGoodsReceipt_SourceSystem_ExternalReceiveOrderId")
+                        .HasFilter("\"ExternalReceiveOrderId\" IS NOT NULL AND \"IsDelete\" = false");
+
                     b.ToTable("FinGoodsReceipt", "public", t =>
                         {
+                            t.HasCheckConstraint("CK_FinGoodsReceipt_ExternalIdentity", "(\"SourceSystem\" = 'BLM' AND \"ExternalReceiveOrderId\" IS NOT NULL) OR (\"SourceSystem\" <> 'BLM' AND \"ExternalReceiveOrderId\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_FinGoodsReceipt_SourceSystem", "\"SourceSystem\" IN ('QUILVIAN','BLM')");
+
                             t.HasCheckConstraint("CK_FinGoodsReceipt_Status", "\"Status\" IN ('RECEIVED','CANCELLED')");
                         });
                 });
@@ -8104,6 +8129,18 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("AcceptedBaseQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<decimal?>("BaseQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("BaseUomCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<string>("BatchNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -8113,6 +8150,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConditionCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
@@ -8130,6 +8171,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateOnly?>("ExpiredDate")
                         .HasColumnType("date");
+
+                    b.Property<Guid?>("ExternalReceiveOrderItemId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("GoodsReceiptId")
                         .HasColumnType("uuid");
@@ -8151,9 +8195,21 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("PurchaseOrderItemId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("QuantityPerBaseUnit")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
                     b.Property<decimal>("ReceivedQuantity")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("SourceQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("SourceUomCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -8163,13 +8219,27 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExternalReceiveOrderItemId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinGoodsReceiptItem_ExternalReceiveOrderItemId")
+                        .HasFilter("\"ExternalReceiveOrderItemId\" IS NOT NULL AND \"IsDelete\" = false");
+
                     b.HasIndex("GoodsReceiptId")
                         .HasDatabaseName("IX_FinGoodsReceiptItem_GoodsReceiptId");
 
                     b.HasIndex("PurchaseOrderItemId")
                         .HasDatabaseName("IX_FinGoodsReceiptItem_PurchaseOrderItemId");
 
-                    b.ToTable("FinGoodsReceiptItem", "public");
+                    b.ToTable("FinGoodsReceiptItem", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinGoodsReceiptItem_AcceptedBaseQuantity", "\"AcceptedBaseQuantity\" IS NULL OR (\"AcceptedBaseQuantity\" >= 0 AND \"AcceptedBaseQuantity\" <= \"BaseQuantity\" AND (\"ConditionCode\" = 'GOOD' OR \"AcceptedBaseQuantity\" = 0))");
+
+                            t.HasCheckConstraint("CK_FinGoodsReceiptItem_BlmFields", "(\"ExternalReceiveOrderItemId\" IS NULL AND \"ConditionCode\" IS NULL AND \"SourceQuantity\" IS NULL AND \"SourceUomCode\" IS NULL AND \"QuantityPerBaseUnit\" IS NULL AND \"BaseUomCode\" IS NULL AND \"BaseQuantity\" IS NULL AND \"AcceptedBaseQuantity\" IS NULL) OR (\"ExternalReceiveOrderItemId\" IS NOT NULL AND \"ConditionCode\" IS NOT NULL AND \"SourceQuantity\" IS NOT NULL AND \"SourceUomCode\" IS NOT NULL AND \"QuantityPerBaseUnit\" IS NOT NULL AND \"BaseUomCode\" IS NOT NULL AND \"BaseQuantity\" IS NOT NULL AND \"AcceptedBaseQuantity\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_FinGoodsReceiptItem_ConditionCode", "\"ConditionCode\" IS NULL OR \"ConditionCode\" IN ('GOOD','DAMAGED','PENDING_INSPECTION')");
+
+                            t.HasCheckConstraint("CK_FinGoodsReceiptItem_QuantityPerBaseUnit", "\"QuantityPerBaseUnit\" IS NULL OR \"QuantityPerBaseUnit\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinInvoiceExchange", b =>
@@ -8376,6 +8446,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("ExternalPurchaseOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ExternalUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -8385,6 +8461,9 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PONumber")
                         .IsRequired()
@@ -8400,6 +8479,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SourceSystem")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("QUILVIAN");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -8428,6 +8514,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinPurchaseOrder_PONumber")
                         .HasFilter("\"IsDelete\" = false");
 
+                    b.HasIndex("SourceSystem", "ExternalPurchaseOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchaseOrder_SourceSystem_ExternalPurchaseOrderId")
+                        .HasFilter("\"ExternalPurchaseOrderId\" IS NOT NULL AND \"IsDelete\" = false");
+
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_FinPurchaseOrder_Status");
 
@@ -8436,7 +8527,13 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.ToTable("FinPurchaseOrder", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_FinPurchaseOrder_ApprovalTier", "\"ApprovalTier\" IN ('TIER_1','TIER_2')");
+                            t.HasCheckConstraint("CK_FinPurchaseOrder_ApprovalTier", "\"ApprovalTier\" IN ('TIER_1','TIER_2','EXTERNAL')");
+
+                            t.HasCheckConstraint("CK_FinPurchaseOrder_ExternalIdentity", "(\"SourceSystem\" = 'BLM' AND \"ExternalPurchaseOrderId\" IS NOT NULL) OR (\"SourceSystem\" <> 'BLM' AND \"ExternalPurchaseOrderId\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_FinPurchaseOrder_ExternalTier", "(\"ApprovalTier\" = 'EXTERNAL' AND \"SourceSystem\" = 'BLM') OR (\"ApprovalTier\" <> 'EXTERNAL' AND \"SourceSystem\" <> 'BLM')");
+
+                            t.HasCheckConstraint("CK_FinPurchaseOrder_SourceSystem", "\"SourceSystem\" IN ('QUILVIAN','BLM')");
 
                             t.HasCheckConstraint("CK_FinPurchaseOrder_Status", "\"Status\" IN ('DRAFT','PENDING_APPROVAL','APPROVED','REJECTED','CANCELLED','PARTIALLY_RECEIVED','FULLY_RECEIVED','CLOSED')");
                         });
@@ -8447,6 +8544,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("BaseQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("BaseUomCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
@@ -8467,6 +8572,16 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExternalProductCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ExternalProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ExternalPurchaseOrderItemId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()
@@ -8499,6 +8614,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<decimal?>("QuantityPerBaseUnit")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("SourceUomCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<string>("Unit")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -8516,10 +8639,192 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExternalProductId")
+                        .HasDatabaseName("IX_FinPurchaseOrderItem_ExternalProductId")
+                        .HasFilter("\"ExternalProductId\" IS NOT NULL");
+
+                    b.HasIndex("ExternalPurchaseOrderItemId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchaseOrderItem_ExternalPurchaseOrderItemId")
+                        .HasFilter("\"ExternalPurchaseOrderItemId\" IS NOT NULL AND \"IsDelete\" = false");
+
                     b.HasIndex("PurchaseOrderId")
                         .HasDatabaseName("IX_FinPurchaseOrderItem_PurchaseOrderId");
 
-                    b.ToTable("FinPurchaseOrderItem", "public");
+                    b.ToTable("FinPurchaseOrderItem", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPurchaseOrderItem_BlmFields", "(\"ExternalPurchaseOrderItemId\" IS NULL AND \"ExternalProductId\" IS NULL AND \"SourceUomCode\" IS NULL AND \"QuantityPerBaseUnit\" IS NULL AND \"BaseUomCode\" IS NULL AND \"BaseQuantity\" IS NULL) OR (\"ExternalPurchaseOrderItemId\" IS NOT NULL AND \"ExternalProductId\" IS NOT NULL AND \"SourceUomCode\" IS NOT NULL AND \"QuantityPerBaseUnit\" IS NOT NULL AND \"BaseUomCode\" IS NOT NULL AND \"BaseQuantity\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_FinPurchaseOrderItem_QuantityPerBaseUnit", "\"QuantityPerBaseUnit\" IS NULL OR \"QuantityPerBaseUnit\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingExternalCancellation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelledBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ExternalDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GoodsReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("InboundMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OtherCategoryText")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("PurchaseOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("RejectionCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceSystem")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("BLM");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentType", "ExternalDocumentId")
+                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_Document");
+
+                    b.HasIndex("GoodsReceiptId")
+                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_GoodsReceiptId")
+                        .HasFilter("\"GoodsReceiptId\" IS NOT NULL");
+
+                    b.HasIndex("InboundMessageId");
+
+                    b.HasIndex("PurchaseOrderId")
+                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_PurchaseOrderId")
+                        .HasFilter("\"PurchaseOrderId\" IS NOT NULL");
+
+                    b.HasIndex("SourceSystem", "Direction", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_SourceDirectionEvent");
+
+                    b.HasIndex("Status", "NextAttemptAt")
+                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_Status");
+
+                    b.ToTable("FinPurchasingExternalCancellation", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_AttemptCount", "\"AttemptCount\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_Confirmed", "\"Status\" <> 'CONFIRMED' OR \"CancelledAt\" IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_Direction", "\"Direction\" IN ('OUTBOUND_REQUEST','INBOUND_NOTICE')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_DocumentType", "\"DocumentType\" IN ('PURCHASE_ORDER','GOODS_RECEIPT')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_Requester", "\"Direction\" <> 'OUTBOUND_REQUEST' OR \"RequestedByUserId\" IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_SourceSystem", "\"SourceSystem\" IN ('BLM')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_Status", "\"Status\" IN ('REQUESTED','SENT','CONFIRMED','REJECTED','FAILED')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingExternalCancellation_Target", "(\"DocumentType\" = 'PURCHASE_ORDER' AND \"PurchaseOrderId\" IS NOT NULL) OR (\"DocumentType\" = 'GOODS_RECEIPT' AND \"GoodsReceiptId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingIdempotencyRecord", b =>
@@ -8601,6 +8906,164 @@ namespace QuilvianSystemBackend.Migrations
                             t.HasCheckConstraint("CK_FinPurchasingIdempotencyRecord_Action", "\"Action\" IN ('Create','Submit','Approve','Cancel','Confirm')");
 
                             t.HasCheckConstraint("CK_FinPurchasingIdempotencyRecord_EntityType", "\"EntityType\" IN ('PurchaseOrder','GoodsReceipt','InvoiceExchange','PurchasingInvoice','SupplierReturn')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInboundMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AppliedGoodsReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AppliedPurchaseOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ExternalDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExternalDocumentNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProcessingStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("RECEIVED");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("SourceOccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceSystem")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("BLM");
+
+                    b.Property<string>("SourceVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppliedGoodsReceiptId")
+                        .HasDatabaseName("IX_FinPurchasingInboundMessage_AppliedGoodsReceiptId")
+                        .HasFilter("\"AppliedGoodsReceiptId\" IS NOT NULL");
+
+                    b.HasIndex("AppliedPurchaseOrderId")
+                        .HasDatabaseName("IX_FinPurchasingInboundMessage_AppliedPurchaseOrderId")
+                        .HasFilter("\"AppliedPurchaseOrderId\" IS NOT NULL");
+
+                    b.HasIndex("DocumentType", "ExternalDocumentId", "SourceOccurredAt")
+                        .HasDatabaseName("IX_FinPurchasingInboundMessage_Document");
+
+                    b.HasIndex("ProcessingStatus", "NextAttemptAt")
+                        .HasDatabaseName("IX_FinPurchasingInboundMessage_ProcessingStatus");
+
+                    b.HasIndex("SourceSystem", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchasingInboundMessage_SourceSystem_EventId");
+
+                    b.ToTable("FinPurchasingInboundMessage", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPurchasingInboundMessage_Applied", "\"ProcessingStatus\" <> 'APPLIED' OR (\"DocumentType\" = 'PURCHASE_ORDER' AND \"AppliedPurchaseOrderId\" IS NOT NULL AND \"AppliedGoodsReceiptId\" IS NULL) OR (\"DocumentType\" = 'GOODS_RECEIPT' AND \"AppliedGoodsReceiptId\" IS NOT NULL AND \"AppliedPurchaseOrderId\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_FinPurchasingInboundMessage_AttemptCount", "\"AttemptCount\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinPurchasingInboundMessage_DocumentType", "\"DocumentType\" IN ('PURCHASE_ORDER','GOODS_RECEIPT')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingInboundMessage_ProcessingStatus", "\"ProcessingStatus\" IN ('RECEIVED','APPLIED','WAITING_MAPPING','CONFLICT','REJECTED','SUPERSEDED')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingInboundMessage_SourceSystem", "\"SourceSystem\" IN ('BLM')");
                         });
                 });
 
@@ -8896,6 +9359,214 @@ namespace QuilvianSystemBackend.Migrations
                             t.HasCheckConstraint("CK_FinPurchasingInvoiceItemAllocation_Amount", "\"AllocatedAmount\" >= 0");
 
                             t.HasCheckConstraint("CK_FinPurchasingInvoiceItemAllocation_Quantity", "\"AllocatedQuantity\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingSupplierMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ExternalSupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExternalSupplierName")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceSystem")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("BLM");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceSystem", "ExternalSupplierId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchasingSupplierMap_SourceSystem_ExternalSupplierId")
+                        .HasFilter("\"IsActive\" = true AND \"IsDelete\" = false");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("IX_FinPurchasingSupplierMap_SupplierId");
+
+                    b.ToTable("FinPurchasingSupplierMap", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPurchasingSupplierMap_SourceSystem", "\"SourceSystem\" IN ('BLM')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingSyncConflict", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConflictType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DependentDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DependentDocumentType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("GoodsReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InboundMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("PurchaseOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolutionCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("OPEN");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoodsReceiptId")
+                        .HasDatabaseName("IX_FinPurchasingSyncConflict_GoodsReceiptId")
+                        .HasFilter("\"GoodsReceiptId\" IS NOT NULL");
+
+                    b.HasIndex("InboundMessageId", "ConflictType")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchasingSyncConflict_OpenPerMessageType")
+                        .HasFilter("\"Status\" = 'OPEN' AND \"IsDelete\" = false");
+
+                    b.HasIndex("PurchaseOrderId")
+                        .HasDatabaseName("IX_FinPurchasingSyncConflict_PurchaseOrderId")
+                        .HasFilter("\"PurchaseOrderId\" IS NOT NULL");
+
+                    b.HasIndex("Status", "ConflictType")
+                        .HasDatabaseName("IX_FinPurchasingSyncConflict_StatusConflictType");
+
+                    b.ToTable("FinPurchasingSyncConflict", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPurchasingSyncConflict_ConflictType", "\"ConflictType\" IN ('GR_CANCELLED_WITH_DEPENDENTS','PO_CANCELLED_WITH_DEPENDENTS','NUMBER_COLLISION','PAYLOAD_MISMATCH','CONVERSION_UNRESOLVED')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingSyncConflict_DependentId", "\"DependentDocumentType\" IS NULL OR \"DependentDocumentId\" IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_FinPurchasingSyncConflict_DependentType", "\"DependentDocumentType\" IS NULL OR \"DependentDocumentType\" IN ('INVOICE_EXCHANGE','PURCHASING_INVOICE','SUPPLIER_PAYABLE','PAYMENT')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingSyncConflict_ResolutionCode", "\"ResolutionCode\" IS NULL OR \"ResolutionCode\" IN ('ADJUSTMENT','REVERSAL','SUPPLIER_RETURN','SUPPLIER_CREDIT','NO_FINANCIAL_IMPACT')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingSyncConflict_Resolved", "\"Status\" <> 'RESOLVED' OR (\"ResolutionCode\" IS NOT NULL AND \"ResolvedByUserId\" IS NOT NULL AND \"ResolvedAt\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_FinPurchasingSyncConflict_Status", "\"Status\" IN ('OPEN','RESOLVED')");
+
+                            t.HasCheckConstraint("CK_FinPurchasingSyncConflict_Target", "\"PurchaseOrderId\" IS NOT NULL OR \"GoodsReceiptId\" IS NOT NULL");
                         });
                 });
 
@@ -115672,6 +116343,47 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PurchaseOrder");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingExternalCancellation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinGoodsReceipt", "GoodsReceipt")
+                        .WithMany()
+                        .HasForeignKey("GoodsReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInboundMessage", "InboundMessage")
+                        .WithMany()
+                        .HasForeignKey("InboundMessageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchaseOrder", "PurchaseOrder")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("GoodsReceipt");
+
+                    b.Navigation("InboundMessage");
+
+                    b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInboundMessage", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinGoodsReceipt", "AppliedGoodsReceipt")
+                        .WithMany()
+                        .HasForeignKey("AppliedGoodsReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchaseOrder", "AppliedPurchaseOrder")
+                        .WithMany()
+                        .HasForeignKey("AppliedPurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AppliedGoodsReceipt");
+
+                    b.Navigation("AppliedPurchaseOrder");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInvoice", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinInvoiceExchange", "InvoiceExchange")
@@ -115719,6 +116431,42 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("GoodsReceiptItem");
 
                     b.Navigation("PurchasingInvoiceItem");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingSupplierMap", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstSupplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingSyncConflict", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinGoodsReceipt", "GoodsReceipt")
+                        .WithMany()
+                        .HasForeignKey("GoodsReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInboundMessage", "InboundMessage")
+                        .WithMany()
+                        .HasForeignKey("InboundMessageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchaseOrder", "PurchaseOrder")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("GoodsReceipt");
+
+                    b.Navigation("InboundMessage");
+
+                    b.Navigation("PurchaseOrder");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinSupplierReturn", b =>

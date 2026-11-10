@@ -1676,3 +1676,24 @@ Kunjungan yang mewarisi pembayaran (bayi baru lahir) tidak melewati jalur ini da
 | Tabel outbox dan event bus | Catatan hasil unik per enrollment ditambah rekonsiliasi sudah mencukupi |
 | Notifikasi dorong | Pemilik memilih daftar kerja (`FIN-DEC-255`) |
 | Kartu keluarga otomatis | `FIN-DEC-241` |
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+```
+
+**Kontrak integrasi BLM ↔ Quilvian belum ditulis pada revisi ini.** Kolom penampung yang dikunci di sini wajib dihormati
+kontrak itu nanti, atau diubah lewat revisi bernomor:
+
+| Data per kiriman | Wajib | Dasar |
+|---|---|---|
+| `EventId` (≤ 100 karakter), waktu kejadian UTC, versi data bila ada | Ya | `FIN-DEC-261` |
+| ID dokumen BLM (`uuid`) dan nomor dokumen asli | Ya | `FIN-DEC-263` |
+| Per item PO: `PurchaseOrderItemId`, `ProductId`, `ProductExtCode` bila ada, nama, kategori, satuan PO, kuantitas, **isi per satuan dalam satuan dasar** (`MstProductConversion.QuantityPerUnit`; satuan dasar = 1), **kode satuan dasar** | Ya | `FIN-DEC-275`, `276` |
+| Per baris GR: `ReceivedOrderItemId`, `PurchaseOrderItemId`, kondisi (`Remarks`), kuantitas, satuan, **isi per satuan**, **kode satuan dasar** | Ya | `FIN-DEC-268`, `276` |
+
+Tanpa isi per satuan dan kode satuan dasar, kiriman menjadi konflik `CONVERSION_UNRESOLVED`. Syarat ini dicatat pada
+`FIN-OQ-141` untuk Tim BLM.
