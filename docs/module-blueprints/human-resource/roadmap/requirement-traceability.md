@@ -1460,31 +1460,31 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 
 | Kode Kebutuhan | Deskripsi Kebutuhan Bisnis K3RS & MCU | Task Backend Terkait | Task Frontend Terkait | Kontrak API Terkait | Acceptance Test Terkait | Status |
 |---|---|---|---|---|---|---|
-| `FR-OHS-01` | Registrasi berkas rekam kesehatan staf awal & riwayat medis | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-261`, `FE-HRD-264` | `POST /api/v1/hrd/health-records` | `AT-HRD-OHS-01` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-02` | Enkripsi AES-256 field medis klinis (ICD-10, rontgen, serologi) | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-262`, `FE-HRD-264` | `GET /api/v1/hrd/health-records/{id}` | `AT-HRD-OHS-01` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-03` | Pemisahan tampilan HR vs Klinis Dokter (HRD-DEC-176) | `BE-HRD-288`, `BE-HRD-289` | `FE-HRD-263`, `FE-HRD-264` | `GET /api/v1/hrd/health-records/summary` | `AT-HRD-OHS-02`, `AT-HRD-OHS-03` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-04` | Penilaian status kelaikan kerja (Fitness to Work) dokter Hiperkes | `BE-HRD-290` | `FE-HRD-264`, `FE-HRD-265` | `POST /api/v1/hrd/fitness-to-work` | `AT-HRD-OHS-04` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-05` | Penerbitan surat pembatasan tugas medis (Work Restriction) | `BE-HRD-291` | `FE-HRD-266` | `POST /api/v1/hrd/work-restrictions` | `AT-HRD-OHS-05` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-06` | Hard-Stop penjadwalan roster Sub-06 saat restriksi aktif (INT-HR-89) | `BE-HRD-291` | `FE-HRD-266`, `FE-HRD-275` | Event `WorkRestrictionEnforced` | `AT-HRD-OHS-06` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-07` | Asesmen kelaikan kembali bertugas penuh (Return-to-Work / RTW) | `BE-HRD-293` | `FE-HRD-267` | `POST /api/v1/hrd/return-to-work` | `AT-HRD-OHS-07` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-08` | Tombol panik darurat tertusuk jarum mobile ESS staf (< 5 detik) | `BE-HRD-294` | `FE-HRD-268`, `FE-HRD-269` | `POST /api/v1/hrd/needle-stick/emergency`| `AT-HRD-OHS-08` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-09` | Formulir triase darurat pajanan darah cito di IGD/K3RS < 1 jam | `BE-HRD-294` | `FE-HRD-268` | `POST /api/v1/hrd/needle-stick/triage` | `AT-HRD-OHS-08` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-10` | Fast-track resep terapi PPP/PEP < 4 jam ke Depo Farmasi (INT-HR-91) | `BE-HRD-295` | `FE-HRD-268` | `POST /api/v1/hrd/needle-stick/pep-order`| `AT-HRD-OHS-09` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-11` | Inisiasi otomatis protokol pemantauan serial bulan 1, 3, dan 6 | `BE-HRD-296` | `FE-HRD-268` | `GET /api/v1/hrd/surveillance/serial` | `AT-HRD-OHS-10` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-12` | Evaluasi akhir serologi bulan ke-6 & penutupan bebas infeksi | `BE-HRD-296` | `FE-HRD-268` | `PUT /api/v1/hrd/needle-stick/{id}/close` | `AT-HRD-OHS-11` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-13` | Penjadwalan paket MCU berkala massal atau perorangan | `BE-HRD-299` | `FE-HRD-272` | `POST /api/v1/hrd/mcu/schedule` | `AT-HRD-OHS-12` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-14` | Matriks penapisan MCU otomatis berbasis risiko ruangan kerja | `BE-HRD-288`, `BE-HRD-299` | `FE-HRD-272` | `GET /api/v1/hrd/mcu/hazard-packages` | `AT-HRD-OHS-12` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-15` | Integrasi unggah berkas hasil uji penunjang LIS & PACS terenkripsi | `BE-HRD-299` | `FE-HRD-272` | `POST /api/v1/hrd/mcu/{id}/upload-result`| `AT-HRD-OHS-01` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-16` | Digital signature dokter & status imutabel hasil MCU disahkan | `BE-HRD-290`, `BE-HRD-299` | `FE-HRD-265`, `FE-HRD-272` | `PUT /api/v1/hrd/mcu/{id}/sign` | `AT-HRD-OHS-13` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-17` | Registrasi log vaksinasi staf lengkap nomor batch & pabrikan | `BE-HRD-297` | `FE-HRD-270` | `POST /api/v1/hrd/vaccinations` | `AT-HRD-OHS-14` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-18` | Dasbor radar pemantauan imunitas staf akreditasi STARKES KPS | `BE-HRD-297` | `FE-HRD-270` | `GET /api/v1/hrd/vaccinations/radar` | `AT-HRD-OHS-15` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-19` | Tiket rujukan booster otomatis bagi titer Anti-HBs < 10 mIU/mL | `BE-HRD-297` | `FE-HRD-270` | `POST /api/v1/hrd/vaccinations/auto-booster`| `AT-HRD-OHS-15`, `AT-HRD-OHS-16` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-20` | Pemantauan dosis serap radiasi TLD & alarm batas ambang Bapeten | `BE-HRD-298` | `FE-HRD-271` | `POST /api/v1/hrd/surveillance/radiation`| `AT-HRD-OHS-17` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-21` | Registrasi kecelakaan kerja KAK/PAK, foto TKP & identifikasi korban | `BE-HRD-300` | `FE-HRD-273` | `POST /api/v1/hrd/injuries` | `AT-HRD-OHS-19` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-22` | Investigasi keselamatan K3RS, analisis akar masalah (RCA) & CAPA | `BE-HRD-300` | `FE-HRD-273` | `PUT /api/v1/hrd/injuries/{id}/capa` | `AT-HRD-OHS-19` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-23` | Generator formulir ekspor BPJS JKK Tahap I < 2x24 jam (INT-HR-90) | `BE-HRD-300` | `FE-HRD-274` | `POST /api/v1/hrd/injuries/{id}/bpjs-stage1`| `AT-HRD-OHS-18` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-24` | Pelacakan hari kerja hilang (LTI) sinkron ke presensi Sub-07 | `BE-HRD-300` | `FE-HRD-273` | `GET /api/v1/hrd/injuries/{id}/lti-sync` | `AT-HRD-OHS-20` | `✅ Backend Selesai (BE-HRD-286..301)` |
-| `FR-OHS-25` | Finalisasi klaim santunan biaya medis BPJS JKK Tahap II & kwitansi | `BE-HRD-300`, `BE-HRD-301` | `FE-HRD-274` | `POST /api/v1/hrd/injuries/{id}/bpjs-stage2`| `AT-HRD-OHS-21` | `✅ Backend Selesai (BE-HRD-286..301)` |
+| `FR-OHS-01` | Registrasi berkas rekam kesehatan staf awal & riwayat medis | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-261`, `FE-HRD-264` | `POST /api/v1/hrd/health-records` | `AT-HRD-OHS-01` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-02` | Enkripsi AES-256 field medis klinis (ICD-10, rontgen, serologi) | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-262`, `FE-HRD-264` | `GET /api/v1/hrd/health-records/{id}` | `AT-HRD-OHS-01` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-03` | Pemisahan tampilan HR vs Klinis Dokter (HRD-DEC-176) | `BE-HRD-288`, `BE-HRD-289` | `FE-HRD-263`, `FE-HRD-264` | `GET /api/v1/hrd/health-records/summary` | `AT-HRD-OHS-02`, `AT-HRD-OHS-03` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-04` | Penilaian status kelaikan kerja (Fitness to Work) dokter Hiperkes | `BE-HRD-290` | `FE-HRD-264`, `FE-HRD-265` | `POST /api/v1/hrd/fitness-to-work` | `AT-HRD-OHS-04` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-05` | Penerbitan surat pembatasan tugas medis (Work Restriction) | `BE-HRD-291` | `FE-HRD-266` | `POST /api/v1/hrd/work-restrictions` | `AT-HRD-OHS-05` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-06` | Hard-Stop penjadwalan roster Sub-06 saat restriksi aktif (INT-HR-89) | `BE-HRD-291` | `FE-HRD-266`, `FE-HRD-275` | Event `WorkRestrictionEnforced` | `AT-HRD-OHS-06` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-07` | Asesmen kelaikan kembali bertugas penuh (Return-to-Work / RTW) | `BE-HRD-293` | `FE-HRD-267` | `POST /api/v1/hrd/return-to-work` | `AT-HRD-OHS-07` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-08` | Tombol panik darurat tertusuk jarum mobile ESS staf (< 5 detik) | `BE-HRD-294` | `FE-HRD-268`, `FE-HRD-269` | `POST /api/v1/hrd/needle-stick/emergency`| `AT-HRD-OHS-08` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-09` | Formulir triase darurat pajanan darah cito di IGD/K3RS < 1 jam | `BE-HRD-294` | `FE-HRD-268` | `POST /api/v1/hrd/needle-stick/triage` | `AT-HRD-OHS-08` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-10` | Fast-track resep terapi PPP/PEP < 4 jam ke Depo Farmasi (INT-HR-91) | `BE-HRD-295` | `FE-HRD-268` | `POST /api/v1/hrd/needle-stick/pep-order`| `AT-HRD-OHS-09` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-11` | Inisiasi otomatis protokol pemantauan serial bulan 1, 3, dan 6 | `BE-HRD-296` | `FE-HRD-268` | `GET /api/v1/hrd/surveillance/serial` | `AT-HRD-OHS-10` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-12` | Evaluasi akhir serologi bulan ke-6 & penutupan bebas infeksi | `BE-HRD-296` | `FE-HRD-268` | `PUT /api/v1/hrd/needle-stick/{id}/close` | `AT-HRD-OHS-11` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-13` | Penjadwalan paket MCU berkala massal atau perorangan | `BE-HRD-299` | `FE-HRD-272` | `POST /api/v1/hrd/mcu/schedule` | `AT-HRD-OHS-12` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-14` | Matriks penapisan MCU otomatis berbasis risiko ruangan kerja | `BE-HRD-288`, `BE-HRD-299` | `FE-HRD-272` | `GET /api/v1/hrd/mcu/hazard-packages` | `AT-HRD-OHS-12` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-15` | Integrasi unggah berkas hasil uji penunjang LIS & PACS terenkripsi | `BE-HRD-299` | `FE-HRD-272` | `POST /api/v1/hrd/mcu/{id}/upload-result`| `AT-HRD-OHS-01` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-16` | Digital signature dokter & status imutabel hasil MCU disahkan | `BE-HRD-290`, `BE-HRD-299` | `FE-HRD-265`, `FE-HRD-272` | `PUT /api/v1/hrd/mcu/{id}/sign` | `AT-HRD-OHS-13` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-17` | Registrasi log vaksinasi staf lengkap nomor batch & pabrikan | `BE-HRD-297` | `FE-HRD-270` | `POST /api/v1/hrd/vaccinations` | `AT-HRD-OHS-14` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-18` | Dasbor radar pemantauan imunitas staf akreditasi STARKES KPS | `BE-HRD-297` | `FE-HRD-270` | `GET /api/v1/hrd/vaccinations/radar` | `AT-HRD-OHS-15` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-19` | Tiket rujukan booster otomatis bagi titer Anti-HBs < 10 mIU/mL | `BE-HRD-297` | `FE-HRD-270` | `POST /api/v1/hrd/vaccinations/auto-booster`| `AT-HRD-OHS-15`, `AT-HRD-OHS-16` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-20` | Pemantauan dosis serap radiasi TLD & alarm batas ambang Bapeten | `BE-HRD-298` | `FE-HRD-271` | `POST /api/v1/hrd/surveillance/radiation`| `AT-HRD-OHS-17` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-21` | Registrasi kecelakaan kerja KAK/PAK, foto TKP & identifikasi korban | `BE-HRD-300` | `FE-HRD-273` | `POST /api/v1/hrd/injuries` | `AT-HRD-OHS-19` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-22` | Investigasi keselamatan K3RS, analisis akar masalah (RCA) & CAPA | `BE-HRD-300` | `FE-HRD-273` | `PUT /api/v1/hrd/injuries/{id}/capa` | `AT-HRD-OHS-19` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-23` | Generator formulir ekspor BPJS JKK Tahap I < 2x24 jam (INT-HR-90) | `BE-HRD-300` | `FE-HRD-274` | `POST /api/v1/hrd/injuries/{id}/bpjs-stage1`| `AT-HRD-OHS-18` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-24` | Pelacakan hari kerja hilang (LTI) sinkron ke presensi Sub-07 | `BE-HRD-300` | `FE-HRD-273` | `GET /api/v1/hrd/injuries/{id}/lti-sync` | `AT-HRD-OHS-20` | `✅ Selesai Penuh (BE & FE Selesai)` |
+| `FR-OHS-25` | Finalisasi klaim santunan biaya medis BPJS JKK Tahap II & kwitansi | `BE-HRD-300`, `BE-HRD-301` | `FE-HRD-274` | `POST /api/v1/hrd/injuries/{id}/bpjs-stage2`| `AT-HRD-OHS-21` | `✅ Selesai Penuh (BE & FE Selesai)` |
 
 ---
 
@@ -1509,28 +1509,28 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 
 | Kode Pengujian | Target Komponen yang Diuji | Task Backend Terkait | Task Frontend Terkait | Status Pengujian |
 |---|---|---|---|---|
-| `AT-HRD-OHS-01` | Uji penyimpanan rekam medis klinis dalam bentuk ciphertext AES-256 | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-264` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-02` | Uji isolasi akses: Query HR Admin hanya menghasilkan status kelayakan kerja | `BE-HRD-288`, `BE-HRD-289` | `FE-HRD-263` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-03` | Uji akses mandiri staf membaca hasil MCU pribadinya via portal ESS | `BE-HRD-289` | `FE-HRD-264` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-04` | Uji validasi penolakan kelaikan kerja bila nomor STR/Hiperkes dokter tidak sah | `BE-HRD-290` | `FE-HRD-265` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-05` | Uji penerbitan surat restriksi tugas 'Fit with Restriction' masa maks 6 bulan | `BE-HRD-291` | `FE-HRD-266` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-06` | Uji penolakan keras (Hard-Stop) penyusunan jadwal shift Sub-06 saat restriksi aktif | `BE-HRD-291` | `FE-HRD-266`, `FE-HRD-275` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-07` | Uji asesmen Return-to-Work Fit yang secara instan membuka gembok roster Sub-06 | `BE-HRD-293` | `FE-HRD-267` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-08` | Uji sirene notifikasi cito < 5 detik tombol darurat tertusuk jarum di portal ESS | `BE-HRD-294` | `FE-HRD-268`, `FE-HRD-269` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-09` | Uji kepatuhan SLA pemberian Profilaksis Pasca Pajanan (PPP) < 4 jam dari insiden | `BE-HRD-295` | `FE-HRD-268` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-10` | Uji otomasi pembentukan 3 tonggak jadwal surveilans darah (Bulan 1, 3, dan 6) | `BE-HRD-296` | `FE-HRD-268` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-11` | Uji penutupan kasus insiden pajanan status sembuh non-reaktif pasca tes 6 bulan | `BE-HRD-296` | `FE-HRD-268` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-12` | Uji penapisan paket MCU otomatis berbasis profil bahaya ruangan kerja staf | `BE-HRD-288`, `BE-HRD-299` | `FE-HRD-272` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-13` | Uji imutabilitas hasil pemeriksaan kesehatan pasca pengesahan digital dokter K3RS | `BE-HRD-290`, `BE-HRD-299` | `FE-HRD-265`, `FE-HRD-272` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-14` | Uji validasi penolakan pencatatan vaksinasi jika nomor batch / pabrikan kosong | `BE-HRD-297` | `FE-HRD-270` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-15` | Uji deteksi otomatis titer Anti-HBs < 10 mIU/mL & penerbitan rujukan booster | `BE-HRD-297` | `FE-HRD-270` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-16` | Uji pengiriman notifikasi pengingat booster vaksinasi pada H-30 sebelum expired | `BE-HRD-297` | `FE-HRD-270` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-17` | Uji alarm peringatan dosis radiasi TLD melebihi batas kumulatif 20 mSv/tahun | `BE-HRD-298` | `FE-HRD-271` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-18` | Uji ekspor formulir pelaporan kecelakaan kerja BPJS JKK Tahap I dalam < 48 jam | `BE-HRD-300` | `FE-HRD-274` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-19` | Uji penyusunan BAP investigasi kecelakaan kerja minimal 2 personel & CAPA | `BE-HRD-300` | `FE-HRD-273` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-20` | Uji sinkronisasi akumulasi hari kerja hilang (LTI) dengan presensi izin sakit | `BE-HRD-300` | `FE-HRD-273` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-21` | Uji validasi kelengkapan berkas klaim reimbursement JKK BPJS Tahap II | `BE-HRD-300`, `BE-HRD-301` | `FE-HRD-274` | `✅ Terealisasi (S-C6 Backend Selesai)` |
-| `AT-HRD-OHS-22` | Uji generator laporan kepatuhan MCU dan vaksinasi standar akreditasi STARKES KPS | `BE-HRD-299`, `BE-HRD-301` | `FE-HRD-272` | `✅ Terealisasi (S-C6 Backend Selesai)` |
+| `AT-HRD-OHS-01` | Uji penyimpanan rekam medis klinis dalam bentuk ciphertext AES-256 | `BE-HRD-286`, `BE-HRD-289` | `FE-HRD-264` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-02` | Uji isolasi akses: Query HR Admin hanya menghasilkan status kelayakan kerja | `BE-HRD-288`, `BE-HRD-289` | `FE-HRD-263` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-03` | Uji akses mandiri staf membaca hasil MCU pribadinya via portal ESS | `BE-HRD-289` | `FE-HRD-264` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-04` | Uji validasi penolakan kelaikan kerja bila nomor STR/Hiperkes dokter tidak sah | `BE-HRD-290` | `FE-HRD-265` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-05` | Uji penerbitan surat restriksi tugas 'Fit with Restriction' masa maks 6 bulan | `BE-HRD-291` | `FE-HRD-266` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-06` | Uji penolakan keras (Hard-Stop) penyusunan jadwal shift Sub-06 saat restriksi aktif | `BE-HRD-291` | `FE-HRD-266`, `FE-HRD-275` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-07` | Uji asesmen Return-to-Work Fit yang secara instan membuka gembok roster Sub-06 | `BE-HRD-293` | `FE-HRD-267` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-08` | Uji sirene notifikasi cito < 5 detik tombol darurat tertusuk jarum di portal ESS | `BE-HRD-294` | `FE-HRD-268`, `FE-HRD-269` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-09` | Uji kepatuhan SLA pemberian Profilaksis Pasca Pajanan (PPP) < 4 jam dari insiden | `BE-HRD-295` | `FE-HRD-268` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-10` | Uji otomasi pembentukan 3 tonggak jadwal surveilans darah (Bulan 1, 3, dan 6) | `BE-HRD-296` | `FE-HRD-268` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-11` | Uji penutupan kasus insiden pajanan status sembuh non-reaktif pasca tes 6 bulan | `BE-HRD-296` | `FE-HRD-268` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-12` | Uji penapisan paket MCU otomatis berbasis profil bahaya ruangan kerja staf | `BE-HRD-288`, `BE-HRD-299` | `FE-HRD-272` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-13` | Uji imutabilitas hasil pemeriksaan kesehatan pasca pengesahan digital dokter K3RS | `BE-HRD-290`, `BE-HRD-299` | `FE-HRD-265`, `FE-HRD-272` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-14` | Uji validasi penolakan pencatatan vaksinasi jika nomor batch / pabrikan kosong | `BE-HRD-297` | `FE-HRD-270` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-15` | Uji deteksi otomatis titer Anti-HBs < 10 mIU/mL & penerbitan rujukan booster | `BE-HRD-297` | `FE-HRD-270` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-16` | Uji pengiriman notifikasi pengingat booster vaksinasi pada H-30 sebelum expired | `BE-HRD-297` | `FE-HRD-270` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-17` | Uji alarm peringatan dosis radiasi TLD melebihi batas kumulatif 20 mSv/tahun | `BE-HRD-298` | `FE-HRD-271` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-18` | Uji ekspor formulir pelaporan kecelakaan kerja BPJS JKK Tahap I dalam < 48 jam | `BE-HRD-300` | `FE-HRD-274` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-19` | Uji penyusunan BAP investigasi kecelakaan kerja minimal 2 personel & CAPA | `BE-HRD-300` | `FE-HRD-273` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-20` | Uji sinkronisasi akumulasi hari kerja hilang (LTI) dengan presensi izin sakit | `BE-HRD-300` | `FE-HRD-273` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-21` | Uji validasi kelengkapan berkas klaim reimbursement JKK BPJS Tahap II | `BE-HRD-300`, `BE-HRD-301` | `FE-HRD-274` | `✅ PASS (BE & FE Selesai Penuh)` |
+| `AT-HRD-OHS-22` | Uji generator laporan kepatuhan MCU dan vaksinasi standar akreditasi STARKES KPS | `BE-HRD-299`, `BE-HRD-301` | `FE-HRD-272` | `✅ PASS (BE & FE Selesai Penuh)` |
 
 ---
 
@@ -1575,8 +1575,8 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 | `FR-WF-21` | Pengiriman email ringkasan harian tiket pending pukul 07:00 (WF-W3) | `BE-HRD-314` | `FE-HRD-277` | Background Worker `WF-W3` | `AT-HRD-WF-15` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `FR-WF-22` | Resubmit draf revisi mandiri staf pasca pengembalian dalam 7 hari | `BE-HRD-315` | `FE-HRD-289` | `POST /api/v1/hrd/workflow/instances/{id}/resubmit` | `AT-HRD-WF-16` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `FR-WF-23` | Pembatalan otomatis tiket revisi yang diabaikan > 7 hari oleh WF-W6 | `BE-HRD-315` | `FE-HRD-289` | Background Worker `WF-W6` | `AT-HRD-WF-17` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `FR-WF-24` | Sinyal eksekusi idempoten ke modul transaksi hilir pasca approval (INT-HR-93) | `BE-HRD-316` | `FE-HRD-277` | Event Publisher `WorkflowApproved` | `AT-HRD-WF-18` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `FR-WF-25` | Prompt otomasi pembuatan delegasi Plh saat cuti pejabat disetujui (INT-HR-94) | `BE-HRD-316` | `FE-HRD-290` | Event Consumer `LeaveRequestApproved` | `AT-HRD-WF-19` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-24` | Sinyal eksekusi idempoten ke modul transaksi hilir pasca approval (INT-HR-93) | `BE-HRD-316` | `FE-HRD-277` | Event Publisher `WorkflowApproved` | `AT-HRD-WF-18` | 🟡 Sebagian 10 November 2026 — diteruskan ke `WorkflowReferenceLifecycleService` untuk 11 reference type; uji runtime `NOT RUN` ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
+| `FR-WF-25` | Prompt otomasi pembuatan delegasi Plh saat cuti pejabat disetujui (INT-HR-94) | `BE-HRD-316` | `FE-HRD-290` | Event Consumer `LeaveRequestApproved` | `AT-HRD-WF-19` | ⛔ Belum ada source 10 November 2026 — butuh penanda pejabat struktural dan gateway notifikasi `BE-HRD-314` ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
 
 ---
 
@@ -1618,8 +1618,8 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 | `AT-HRD-WF-15` | Uji pengiriman ringkasan harian (daily digest) permohonan pending pukul 07:00 pagi | `BE-HRD-314` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-16` | Uji perbaikan draf permohonan dan resubmit mandiri staf pasca pengembalian revisi | `BE-HRD-315` | `FE-HRD-289` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-17` | Uji pembatalan otomatis tiket permohonan yang tidak diperbaiki staf > 7 hari | `BE-HRD-315` | `FE-HRD-289` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `AT-HRD-WF-18` | Uji eksekusi transaksional idempoten ke modul hilir pasca persetujuan final | `BE-HRD-316` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `AT-HRD-WF-19` | Uji pemicu prompt otomatis penunjukan Plh saat pengajuan cuti pejabat disetujui | `BE-HRD-316` | `FE-HRD-290` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-18` | Uji eksekusi transaksional idempoten ke modul hilir pasca persetujuan final | `BE-HRD-316` | `FE-HRD-277` | 🟡 `NOT RUN` 10 November 2026 — kode siap, uji dengan akun approver belum dijalankan ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
+| `AT-HRD-WF-19` | Uji pemicu prompt otomatis penunjukan Plh saat pengajuan cuti pejabat disetujui | `BE-HRD-316` | `FE-HRD-290` | ⛔ `NOT RUN` 10 November 2026 — fitur `INT-HR-94` belum ada ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
 | `AT-HRD-WF-20` | Uji kepatuhan kontrak API Swagger 5 Tag 24 endpoint Kontrak v24 | `BE-HRD-317` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-21` | Uji kelengkapan pencatatan 14 event audit permanen dan digital signature hash | `BE-HRD-317` | `FE-HRD-280` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-22` | Uji kompilasi build produksi, audit linting frontend, dan QBE Conformance backend | `BE-HRD-317` | `FE-HRD-290` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |

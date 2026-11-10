@@ -13,99 +13,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
     /// <summary>
     /// Implementasi Layanan Master Aturan Pelatihan Wajib STARKES KPS 8 (VR-TRN-01, VR-TRN-02)
     /// </summary>
+    /// <remarks>
+    /// Remediasi 10 November 2026 (BE-HRD-239): daftar aturan dibaca hanya dari tabel <c>MstMandatoryTrainingRule</c>.
+    /// Lima aturan bawaan STARKES yang dulu ditempel dari daftar in-memory ber-GUID tetap kini disemai ke database oleh
+    /// <c>Seeders/MandatoryTrainingRuleSeeder</c> saat aplikasi mulai, sehingga layar menampilkan data yang benar-benar ada.
+    /// </remarks>
     public class MandatoryTrainingRuleService : IMandatoryTrainingRuleService
     {
-        private readonly ApplicationDbContext _context;
+        private const string DefaultTrainingCategory = "STARKES_MANDATORY";
+        private const decimal DefaultMinimumPassingScore = 75.00m;
 
-        // In-memory catalog seed untuk 5 Pelatihan Mandatori STARKES KPS 8 (VR-TRN-01)
-        private static readonly List<MandatoryTrainingRuleDto> _defaultStarkesRules = new()
-        {
-            new MandatoryTrainingRuleDto
-            {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111101"),
-                RuleCode = "MTR-STARKES-BHD",
-                RuleName = "Pelatihan Wajib Bantuan Hidup Dasar (BHD / Basic Life Support)",
-                TrainingCategory = "STARKES_MANDATORY",
-                TargetAudience = "Seluruh Pegawai RS (100%)",
-                RecurrenceMonths = 24,
-                GracePeriodDays = 30,
-                IsRequiredBeforeIndependentPractice = true,
-                IsRequiredForCredentialing = true,
-                RequiresPassingResult = true,
-                MinimumPassingScore = 75.00m,
-                OscePassingScore = 80.00m,
-                Description = "Standar KARS STARKES KPS 8: Seluruh staf medis dan non-medis wajib tersertifikasi BHD setiap 2 tahun.",
-                IsActive = true
-            },
-            new MandatoryTrainingRuleDto
-            {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111102"),
-                RuleCode = "MTR-STARKES-PPI",
-                RuleName = "Pelatihan Wajib Pencegahan & Pengendalian Infeksi (PPI / Hand Hygiene)",
-                TrainingCategory = "STARKES_MANDATORY",
-                TargetAudience = "Seluruh Pegawai RS (100%)",
-                RecurrenceMonths = 24,
-                GracePeriodDays = 30,
-                IsRequiredBeforeIndependentPractice = true,
-                IsRequiredForCredentialing = true,
-                RequiresPassingResult = true,
-                MinimumPassingScore = 75.00m,
-                OscePassingScore = 75.00m,
-                Description = "Standar KARS STARKES PPI: Kewaspadaan standar, isolasi, pembuangan limbah medis dan kebersihan tangan 5 momen.",
-                IsActive = true
-            },
-            new MandatoryTrainingRuleDto
-            {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111103"),
-                RuleCode = "MTR-STARKES-SKP",
-                RuleName = "Pelatihan Wajib 6 Sasaran Keselamatan Pasien (SKP / Patient Safety)",
-                TrainingCategory = "STARKES_MANDATORY",
-                TargetAudience = "Seluruh Pegawai RS (100%)",
-                RecurrenceMonths = 24,
-                GracePeriodDays = 30,
-                IsRequiredBeforeIndependentPractice = true,
-                IsRequiredForCredentialing = true,
-                RequiresPassingResult = true,
-                MinimumPassingScore = 75.00m,
-                OscePassingScore = 75.00m,
-                Description = "Standar KARS STARKES SKP: Identifikasi pasien, komunikasi efektif, keamanan obat high-alert, keselamatan operasi, pencegahan infeksi & jatuh.",
-                IsActive = true
-            },
-            new MandatoryTrainingRuleDto
-            {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111104"),
-                RuleCode = "MTR-STARKES-K3RS",
-                RuleName = "Pelatihan Wajib K3RS, Keselamatan Kerja & Penanggulangan Kebakaran (Code Red / APAR)",
-                TrainingCategory = "STARKES_MANDATORY",
-                TargetAudience = "Seluruh Pegawai RS (100%)",
-                RecurrenceMonths = 24,
-                GracePeriodDays = 30,
-                IsRequiredBeforeIndependentPractice = true,
-                IsRequiredForCredentialing = false,
-                RequiresPassingResult = true,
-                MinimumPassingScore = 75.00m,
-                OscePassingScore = 75.00m,
-                Description = "Standar KARS STARKES MFK: Tanggap darurat bencana alam, simulasi evakuasi dan penggunaan alat pemadam api ringan (APAR).",
-                IsActive = true
-            },
-            new MandatoryTrainingRuleDto
-            {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111105"),
-                RuleCode = "MTR-STARKES-SBAR",
-                RuleName = "Pelatihan Wajib Komunikasi Efektif Antar-Profesional (SBAR & TBAK)",
-                TrainingCategory = "STARKES_MANDATORY",
-                TargetAudience = "Seluruh Tenaga Medis, Keperawatan & Penunjang",
-                RecurrenceMonths = 24,
-                GracePeriodDays = 30,
-                IsRequiredBeforeIndependentPractice = true,
-                IsRequiredForCredentialing = true,
-                RequiresPassingResult = true,
-                MinimumPassingScore = 75.00m,
-                OscePassingScore = 80.00m,
-                Description = "Standar KARS STARKES SKP 2: Teknik komunikasi pelaporan klinis verbal SBAR (Situation, Background, Assessment, Recommendation) dan konfirmasi TBAK (Tulis, Baca, Konfirmasi).",
-                IsActive = true
-            }
-        };
+        private readonly ApplicationDbContext _context;
 
         public MandatoryTrainingRuleService(ApplicationDbContext context)
         {
@@ -115,45 +33,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         public async Task<List<MandatoryTrainingRuleDto>> GetMandatoryRulesAsync(CancellationToken cancellationToken = default)
         {
             var dbRules = await _context.MstMandatoryTrainingRules
+                .AsNoTracking()
+                .Include(r => r.TrainingCatalog)
+                    .ThenInclude(c => c!.TrainingCategory)
                 .Where(r => !r.IsDelete)
                 .OrderByDescending(r => r.Priority)
                 .ThenBy(r => r.RuleName)
                 .ToListAsync(cancellationToken);
 
-            var result = new List<MandatoryTrainingRuleDto>();
-
-            // Jika ada di database, petakan
-            foreach (var r in dbRules)
+            return dbRules.Select(r => new MandatoryTrainingRuleDto
             {
-                result.Add(new MandatoryTrainingRuleDto
-                {
-                    Id = r.Id,
-                    RuleCode = r.RuleCode,
-                    RuleName = r.RuleName,
-                    TrainingCategory = "STARKES_MANDATORY",
-                    TargetAudience = "Tenaga Kerja Rumah Sakit",
-                    RecurrenceMonths = r.RecurrenceMonths ?? 24,
-                    GracePeriodDays = r.GracePeriodDays,
-                    IsRequiredBeforeIndependentPractice = r.IsRequiredBeforeIndependentPractice,
-                    IsRequiredForCredentialing = r.IsRequiredForCredentialing,
-                    RequiresPassingResult = r.RequiresPassingResult,
-                    MinimumPassingScore = r.MinimumPassingScore ?? 75.00m,
-                    OscePassingScore = 80.00m,
-                    Description = r.Description,
-                    IsActive = r.IsActive
-                });
-            }
-
-            // Gabungkan dengan default STARKES mandatori jika belum ada
-            foreach (var def in _defaultStarkesRules)
-            {
-                if (!result.Any(x => x.RuleCode == def.RuleCode))
-                {
-                    result.Add(def);
-                }
-            }
-
-            return result;
+                Id = r.Id,
+                RuleCode = r.RuleCode,
+                RuleName = r.RuleName,
+                TrainingCategory = r.TrainingCatalog?.TrainingCategory?.TrainingCategoryCode ?? DefaultTrainingCategory,
+                TargetAudience = ResolveTargetAudience(r),
+                RecurrenceMonths = r.RecurrenceMonths ?? 24,
+                GracePeriodDays = r.GracePeriodDays,
+                IsRequiredBeforeIndependentPractice = r.IsRequiredBeforeIndependentPractice,
+                IsRequiredForCredentialing = r.IsRequiredForCredentialing,
+                RequiresPassingResult = r.RequiresPassingResult,
+                MinimumPassingScore = r.MinimumPassingScore ?? DefaultMinimumPassingScore,
+                // Tabel aturan belum menyimpan ambang OSCE terpisah; dipakai ambang kelulusan yang tersimpan, bukan konstanta karangan.
+                OscePassingScore = r.MinimumPassingScore ?? DefaultMinimumPassingScore,
+                Description = r.Description,
+                IsActive = r.IsActive
+            }).ToList();
         }
 
         public async Task<MandatoryTrainingRuleDto> CreateOrUpdateRuleAsync(
@@ -223,11 +128,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 IsRequiredBeforeIndependentPractice = existing.IsRequiredBeforeIndependentPractice,
                 IsRequiredForCredentialing = existing.IsRequiredForCredentialing,
                 RequiresPassingResult = existing.RequiresPassingResult,
-                MinimumPassingScore = existing.MinimumPassingScore ?? 75.00m,
+                MinimumPassingScore = existing.MinimumPassingScore ?? DefaultMinimumPassingScore,
                 OscePassingScore = request.OscePassingScore,
                 Description = existing.Description,
                 IsActive = existing.IsActive
             };
+        }
+
+        /// <summary>
+        /// Sasaran aturan diturunkan dari cakupan yang benar-benar tersimpan: aturan tanpa pembatas profesi, jabatan,
+        /// kategori, atau unit berlaku untuk seluruh pegawai.
+        /// </summary>
+        private static string ResolveTargetAudience(MstMandatoryTrainingRule rule)
+        {
+            var hasScope = rule.ProfessionId.HasValue || rule.PositionId.HasValue || rule.EmployeeCategoryId.HasValue
+                || rule.EmploymentTypeId.HasValue || rule.OrganizationUnitId.HasValue || rule.SpecializationId.HasValue;
+
+            return hasScope ? "Pegawai pada cakupan aturan" : "Seluruh Pegawai RS (100%)";
         }
     }
 }

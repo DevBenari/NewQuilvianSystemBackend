@@ -458,6 +458,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxMedicalServiceFeeCalculation> TrxMedicalServiceFeeCalculations { get; set; }
         public DbSet<TrxMedicalServiceFeePayment> TrxMedicalServiceFeePayments { get; set; }
         public DbSet<HrdRestitutionSetting> HrdRestitutionSettings { get; set; }
+        public DbSet<HrdPayslipPinLockout> HrdPayslipPinLockouts { get; set; }
+        public DbSet<HrdPayslipPinSession> HrdPayslipPinSessions { get; set; }
         public DbSet<TrxEmployeeRestitutionClaim> TrxEmployeeRestitutionClaims { get; set; }
         public DbSet<TrxPayrollRestitution> TrxPayrollRestitutions { get; set; }
         public DbSet<TrxPayrollDeductionSchedule> TrxPayrollDeductionSchedules { get; set; }
@@ -518,6 +520,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxIndividualDevelopmentPlan> TrxIndividualDevelopmentPlans { get; set; }
         public DbSet<TrxTrainingBudget> TrxTrainingBudgets { get; set; }
         public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdTrainingBondContract> HrdTrainingBondContracts { get; set; }
+        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdShiftBuddySafeguard> HrdShiftBuddySafeguards { get; set; }
         public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxPlataranSehatSkpRecord> TrxPlataranSehatSkpRecords { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - LEARNING AND DEVELOPMENT
 
@@ -543,6 +546,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxFppeCaseLog> TrxFppeCaseLogs { get; set; }
         public DbSet<TrxFppeEvaluationConclusion> TrxFppeEvaluationConclusions { get; set; }
         public DbSet<HrdClinicalPeerReviewAuditLog> HrdClinicalPeerReviewAuditLogs { get; set; }
+        public DbSet<HrdFppeTriggerEvent> HrdFppeTriggerEvents { get; set; }
+        public DbSet<HrdRecredentialingTierOverride> HrdRecredentialingTierOverrides { get; set; }
+        public DbSet<HrdRecredentialingVerdict> HrdRecredentialingVerdicts { get; set; }
+        public DbSet<HrdSimrsPrivilegeSyncLog> HrdSimrsPrivilegeSyncLogs { get; set; }
 
         // Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3, Kontrak v21)
         public DbSet<MstKpiMetricCatalog> MstKpiMetricCatalogs { get; set; }
@@ -601,6 +608,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxEmployeeDocumentRequest> TrxEmployeeDocumentRequests { get; set; }
         public DbSet<TrxEmployeeDocumentIssuance> TrxEmployeeDocumentIssuances { get; set; }
         public DbSet<HrdProfileChangeHistory> HrdProfileChangeHistories { get; set; }
+        public DbSet<HrdPinAttemptRecord> HrdPinAttemptRecords { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT

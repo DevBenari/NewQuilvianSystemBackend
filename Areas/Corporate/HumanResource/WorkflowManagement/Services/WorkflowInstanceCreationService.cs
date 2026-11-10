@@ -6,7 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services
@@ -25,15 +27,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         private readonly ApplicationDbContext _context;
         private readonly IWorkflowRoutingMatrixService _routingMatrixService;
         private readonly IAntiSelfApprovalGuardService _antiSelfApprovalGuard;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
         public WorkflowInstanceCreationService(
             ApplicationDbContext context,
             IWorkflowRoutingMatrixService routingMatrixService,
-            IAntiSelfApprovalGuardService antiSelfApprovalGuard)
+            IAntiSelfApprovalGuardService antiSelfApprovalGuard,
+            NumberSeriesAllocator numberAllocator)
         {
             _context = context;
             _routingMatrixService = routingMatrixService;
             _antiSelfApprovalGuard = antiSelfApprovalGuard;
+            _numberAllocator = numberAllocator;
         }
 
         public async Task<WorkflowInstanceV2ResponseDto> CreateInstanceAsync(CreateWorkflowInstanceRequestDto request, Guid currentUserId)
@@ -62,11 +67,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             var departmentId = applicant?.PrimaryDepartmentId ?? request.DepartmentId ?? Guid.Empty;
 
-            // Generate Centralized Workflow Number
+            // Nomor permohonan terpusat: urut harian dari provider bersama, bukan angka acak (QBE-CODE-003).
+            // Bentuk tetap WF-{TIPE}-{yyyyMMdd}-{urut}; nama tipe disisipkan sesudah alokasi karena awalan provider maksimal 15 karakter.
             var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
-            var randSuffix = new Random().Next(1000, 9999);
             var cleanType = request.RequestType.Trim().ToUpperInvariant().Replace(" ", "");
-            var workflowNumber = $"WF-{cleanType}-{dateStr}-{randSuffix}";
+            var allocatedWorkflowNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: WorkflowNumberSeries.InstanceKey,
+                Prefix: WorkflowNumberSeries.InstancePrefix,
+                ResetPolicy: WorkflowNumberSeries.InstanceResetPolicy,
+                SequenceDigits: WorkflowNumberSeries.InstanceDigits,
+                ActorUserId: currentUserId == Guid.Empty ? WorkflowNumberSeries.SystemFallbackUserId : currentUserId,
+                Instant: DateTimeOffset.UtcNow));
+            var workflowNumber = $"WF-{cleanType}-{dateStr}-{WorkflowNumberSeries.TrailingSequence(allocatedWorkflowNumber)}";
 
             // Resolve steps from dynamic routing matrix
             var stepConfigs = await _routingMatrixService.ResolveApprovalStepsAsync(

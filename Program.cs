@@ -1369,7 +1369,7 @@ try
     // Slice S-D4 (HR Service Management) - MVP-40 & MVP-41 (Profile Sync, Document Issuance 2-Tier, Anti-Manual Guard, PDF Rendering, E-Dossier & Anti-Brute-Force Rate Limiter)
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IWorkforceProfileSyncService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.WorkforceProfileSyncService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IEmployeeDocumentIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.EmployeeDocumentIssuanceService>();
-    builder.Services.AddSingleton<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IPinRateLimiterService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.PinRateLimiterService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IPinRateLimiterService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.PinRateLimiterService>(); // Scoped sejak 10 Nov 2026: penghitung PIN kini di tabel HrdPinAttemptRecord (BE-HRD-204)
 
     // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-42 (PSV Kemenkes/KKI & Radar Pemantau SIP 5 Tahun / Fail-Closed H-0)
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialVerificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialVerificationService>();
@@ -2546,6 +2546,8 @@ try
     if (runWebRuntime)
     {
         await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
+        // BE-HRD-239 (10 Nov 2026): 5 aturan pelatihan wajib STARKES KPS 8 dipindah dari daftar in-memory service ke data awal database.
+        await RunStartupSeederAsync("MandatoryTrainingRuleSeeder", () => MandatoryTrainingRuleSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("FinanceApprovalRoleSeeder", () => FinanceApprovalRoleSeeder.SeedAsync(app.Services));
         // Konsolidasi kode modul Farmasi WAJIB mendahului AccessMenuSeeder. Seeder registry

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +14,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     /// <summary>
     /// Implementasi Layanan Surveilans Bahaya Ruangan & Pemantauan Dosis Radiasi TLD (BE-HRD-298, VR-OHS-17)
     /// </summary>
+    /// <remarks>
+    /// Remediasi 10 November 2026: radar dosis kumulatif dihitung dari catatan dosis yang disimpan endpoint
+    /// <c>surveillance/radiation-dose</c> (kolom <c>MeasuredDoseMsv</c>), bukan lagi angka tetap 4,8 mSv / 1,2 mSv
+    /// untuk semua pekerja. Nama unit kerja diambil dari departemen utama pegawai.
+    /// </remarks>
     public class HazardSurveillanceService : IHazardSurveillanceService
     {
+        private const decimal QuarterlyThresholdMsv = 5.0m;   // Triwulanan > 5 mSv memicu alarm Bapeten (VR-OHS-17)
+        private const decimal YearlyThresholdMsv = 20.0m;     // NBD tahunan pekerja radiasi 20 mSv
+        private const decimal NearThresholdYearlyMsv = 15.0m;
+
+        // Cadangan untuk catatan lama yang dibuat sebelum kolom MeasuredDoseMsv ada: dosis dibaca dari teks hasil administratif.
+        private static readonly Regex LegacyDosePattern = new(@"Dosis Tercatat:\s*([\d]+(?:[.,]\d+)?)\s*mSv", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly IOccupationalHealthUnitOfWork _uow;
 
         public HazardSurveillanceService(IOccupationalHealthUnitOfWork uow)
@@ -28,7 +42,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {request.EmployeeId} tidak ditemukan.");
 
-            var isOverThreshold = request.DoseMsv > 5.0m; // Triwulanan > 5 mSv memicu alarm Bapeten (VR-OHS-17)
+            var isOverThreshold = request.DoseMsv > QuarterlyThresholdMsv;
 
             var surveillance = new TrxEmployeeHealthSurveillance
             {
@@ -41,7 +55,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 ScheduledDate = request.PeriodEnd,
                 CompletedDate = DateTime.UtcNow,
                 SurveillanceStatus = "Completed",
-                AdministrativeOutcome = $"Dosis Tercatat: {request.DoseMsv} mSv. Badge: {request.BadgeNumber ?? "TLD-STD"}. {(isOverThreshold ? "[PERINGATAN]: Melebihi ambang batas triwulanan 5 mSv!" : "Dalam batas aman.")}",
+                MeasuredDoseMsv = request.DoseMsv,
+                AdministrativeOutcome = $"Dosis Tercatat: {request.DoseMsv.ToString(CultureInfo.InvariantCulture)} mSv. Badge: {request.BadgeNumber ?? "TLD-STD"}. {(isOverThreshold ? "[PERINGATAN]: Melebihi ambang batas triwulanan 5 mSv!" : "Dalam batas aman.")}",
                 ClinicalFindingsRestricted = AesClinicalEncryptionHelper.Encrypt($"Pembacaan Lab: {request.ReaderLaboratoryName ?? "BATAN/BRIN"}. Dosis: {request.DoseMsv} mSv. Periode: {request.PeriodStart:dd/MM/yyyy} s.d. {request.PeriodEnd:dd/MM/yyyy}."),
                 IsCompliant = !isOverThreshold,
                 IsActive = true,
@@ -74,11 +89,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
 
             // Cari seluruh data surveilans radiasi tahun berjalan
             var surveillances = await _uow.HealthSurveillances
-                .Where(x => x.SurveillanceProgram.Contains("Radiasi") && x.ScheduledDate.Year == targetYear)
+                .Where(x => !x.IsDelete && x.SurveillanceProgram.Contains("Radiasi") && x.ScheduledDate.Year == targetYear)
                 .ToListAsync(cancellationToken);
 
             var empIds = surveillances.Select(x => x.EmployeeId).Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
-            var employees = await _uow.Employees.Where(x => empIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
+            var employees = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
+                .Where(x => empIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, cancellationToken);
 
             var list = new List<RadiationSurveillanceRadarDto>();
 
@@ -86,13 +104,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             {
                 employees.TryGetValue(empId, out var emp);
 
-                // Simulasi aggregasi kumulatif
-                var yearlyDose = 4.8m;
-                var quarterlyDose = 1.2m;
-                var isOverQuarter = quarterlyDose > 5.0m;
-                var isOverYear = yearlyDose > 20.0m;
+                var records = surveillances
+                    .Where(x => x.EmployeeId == empId)
+                    .Select(x => new { x.ScheduledDate, Dose = ResolveDose(x) })
+                    .Where(x => x.Dose.HasValue)
+                    .ToList();
 
-                if (isNearThresholdOnly == true && yearlyDose < 15.0m && !isOverQuarter)
+                // Dosis kumulatif tahunan = jumlah seluruh pembacaan TLD pada tahun target.
+                var yearlyDose = records.Sum(x => x.Dose!.Value);
+
+                // Dosis triwulanan = jumlah pembacaan pada triwulan terakhir yang punya catatan di tahun target.
+                var latestQuarter = records.Count > 0 ? records.Max(x => QuarterOf(x.ScheduledDate)) : 0;
+                var quarterlyDose = records.Where(x => QuarterOf(x.ScheduledDate) == latestQuarter).Sum(x => x.Dose!.Value);
+
+                var isOverQuarter = quarterlyDose > QuarterlyThresholdMsv;
+                var isOverYear = yearlyDose > YearlyThresholdMsv;
+
+                if (isNearThresholdOnly == true && yearlyDose < NearThresholdYearlyMsv && !isOverQuarter)
                     continue;
 
                 list.Add(new RadiationSurveillanceRadarDto
@@ -100,17 +128,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                     EmployeeId = empId,
                     EmployeeName = emp != null ? emp.FullName : "Pekerja Radiasi",
                     EmployeeNumber = emp?.EmployeeNumber ?? string.Empty,
-                    DepartmentName = "Instalasi Radiologi & Kedokteran Nuklir",
-                    QuarterlyDoseMsv = quarterlyDose,
-                    CumulativeYearlyDoseMsv = yearlyDose,
-                    MaxPermissibleYearlyDoseMsv = 20.0m,
+                    DepartmentName = emp?.PrimaryDepartment?.DepartmentName ?? "-",
+                    QuarterlyDoseMsv = Math.Round(quarterlyDose, 3),
+                    CumulativeYearlyDoseMsv = Math.Round(yearlyDose, 3),
+                    MaxPermissibleYearlyDoseMsv = YearlyThresholdMsv,
                     IsOverQuarterlyThreshold = isOverQuarter,
                     IsOverYearlyThreshold = isOverYear,
                     RotationRecommendation = isOverYear ? "RotasiWajibKeluarZonaRadiasi" : (isOverQuarter ? "EvaluasiTeknikPenyinaran" : "NormalDuty")
                 });
             }
 
-            return list;
+            return list
+                .OrderByDescending(x => x.CumulativeYearlyDoseMsv)
+                .ToList();
+        }
+
+        private static int QuarterOf(DateTime date) => ((date.Month - 1) / 3) + 1;
+
+        /// <summary>
+        /// Dosis dari kolom terukur; untuk catatan lama tanpa kolom itu, dibaca dari teks "Dosis Tercatat: x mSv".
+        /// </summary>
+        private static decimal? ResolveDose(TrxEmployeeHealthSurveillance record)
+        {
+            if (record.MeasuredDoseMsv.HasValue) return record.MeasuredDoseMsv.Value;
+            if (string.IsNullOrWhiteSpace(record.AdministrativeOutcome)) return null;
+
+            var match = LegacyDosePattern.Match(record.AdministrativeOutcome);
+            if (!match.Success) return null;
+
+            var raw = match.Groups[1].Value.Replace(',', '.');
+            return decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var dose) ? dose : null;
         }
     }
 }

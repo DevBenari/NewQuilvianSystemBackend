@@ -4,16 +4,20 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
 {
     public class WhistleblowerCaseService : IWhistleblowerCaseService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public WhistleblowerCaseService(IEmployeeRelationUnitOfWork uow)
+        public WhistleblowerCaseService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<WhistleblowerTicketReceiptDto> SubmitWhistleblowerCaseAsync(SubmitWhistleblowerRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -26,7 +30,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 throw new InvalidOperationException("Data pengaduan whistleblower wajib dienkripsi pada level payload sebelum dikirim ke server sesuai aturan VR-EMP-15.");
             }
 
-            var ticketNumber = $"WB-{DateTime.UtcNow:yyyyMM}-{Random.Shared.Next(1000, 9999)}";
+            // Nomor urut dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: WB-202611-0001
+            var ticketNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.Whistleblower,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.Whistleblower,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.Whistleblower,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
             var rawKey = $"{ticketNumber}:{Guid.NewGuid():N}";
             var keyHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawKey)));
 
@@ -116,6 +127,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 PageSize = safePageSize,
                 TotalPage = (int)Math.Ceiling((double)totalCount / Math.Max(1, safePageSize))
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }

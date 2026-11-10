@@ -35,7 +35,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         public double FinalCompositeScore { get; set; }
 
         /// <summary>
-        /// GreenFastTrack, YellowClarificationReview, RedPlenaryInvestigation
+        /// <c>true</c> bila ketiga skor tahunan tersedia (dari riwayat OPPE atau masukan simulasi). Bila <c>false</c>,
+        /// skor komposit dan tier belum dapat dihitung; tahun yang kosong tidak diisi angka karangan (remediasi 10 November 2026).
+        /// </summary>
+        public bool IsDataSufficient { get; set; } = true;
+
+        /// <summary>Jumlah rapor tahunan yang tersedia, 0 s.d. 3.</summary>
+        public int AvailableEvaluationYears { get; set; } = 3;
+
+        /// <summary>Nomor tahun (1, 2, 3) yang skornya belum tersedia.</summary>
+        public List<int> MissingEvaluationYears { get; set; } = new();
+
+        /// <summary>Penjelasan untuk pengguna bila data belum cukup; <c>null</c> bila lengkap.</summary>
+        public string? DataSufficiencyMessage { get; set; }
+
+        /// <summary>
+        /// GreenFastTrack, YellowClarificationReview, RedPlenaryInvestigation, atau InsufficientData bila riwayat OPPE belum cukup
         /// </summary>
         public string CalculatedTier { get; set; } = "GreenFastTrack";
 
@@ -49,6 +64,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             "GreenFastTrack" => "Tier Hijau - Rekomendasi Jalur Cepat (Fast-Track) Perpanjangan SPK Tanpa Hambatan",
             "YellowClarificationReview" => "Tier Kuning - Wajib Wawancara Klarifikasi KSM & Rencana Pembinaan",
             "RedPlenaryInvestigation" => "Tier Merah - Wajib Sidang Khusus Pleno Komite Terkait Pembatasan/Pencabutan Wewenang",
+            "InsufficientData" => "Data Belum Cukup - Rapor OPPE 3 tahun belum lengkap, tier belum dapat ditetapkan",
             _ => AssignedTier
         };
 

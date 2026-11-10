@@ -2,16 +2,20 @@ using QuilvianSystemBackend.Responses;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
 {
     public class EmployeeGrievanceService : IEmployeeGrievanceService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public EmployeeGrievanceService(IEmployeeRelationUnitOfWork uow)
+        public EmployeeGrievanceService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<GrievanceTicketResponseDto> SubmitGrievanceAsync(SubmitGrievanceRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -20,7 +24,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
 
             // VR-EMP-14: SLA penyelesaian target resolusi maksimal 14 hari kerja
             var targetResolutionDate = DateTime.UtcNow.AddDays(14);
-            var ticketNumber = $"GRV-{DateTime.UtcNow:yyyyMM}-{Random.Shared.Next(1000, 9999)}";
+            // Nomor urut dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: GRV-202611-0001
+            var ticketNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.Grievance,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.Grievance,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.Grievance,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
 
             var entity = new TrxEmployeeGrievance
             {
@@ -125,6 +136,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 ResolutionNotes = entity.ResolutionNotes,
                 CreatedAt = entity.CreateDateTime
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }

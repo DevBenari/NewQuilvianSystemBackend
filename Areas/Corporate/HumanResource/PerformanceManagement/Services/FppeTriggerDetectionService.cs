@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services
@@ -8,11 +9,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// <summary>
     /// Implementasi Layanan Pendeteksi Ambang Pemicu Kritis FPPE (INT-HR-74)
     /// </summary>
+    /// <remarks>
+    /// Remediasi 10 November 2026 (BE-HRD-229): event pemicu yang diterima dari modul lain disimpan di tabel
+    /// <c>HrdFppeTriggerEvent</c>, bukan <c>List</c> statis di memori proses yang hilang saat aplikasi di-restart.
+    /// Feed aktif menggabungkan event tersimpan 30 hari terakhir dengan hasil pemindaian dokter baru dan penugasan berbahaya.
+    /// </remarks>
     public class FppeTriggerDetectionService : IFppeTriggerDetectionService
     {
+        private const int ActiveFeedWindowDays = 30;
+
         private readonly ApplicationDbContext _context;
-        // In-memory feed cache for incoming real-time events in addition to DB scans
-        private static readonly List<FppeTriggerFeedDto> _runtimeFeedCache = new();
 
         public FppeTriggerDetectionService(ApplicationDbContext context)
         {
@@ -22,12 +28,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         public async Task<List<FppeTriggerFeedDto>> GetActiveTriggerFeedAsync(CancellationToken cancellationToken = default)
         {
             var result = new List<FppeTriggerFeedDto>();
+            var windowStart = DateTime.UtcNow.AddDays(-ActiveFeedWindowDays);
 
-            // 1. Sertakan feed dinamis dari runtime cache
-            lock (_runtimeFeedCache)
-            {
-                result.AddRange(_runtimeFeedCache.Where(f => f.DetectedAt >= DateTime.UtcNow.AddDays(-30)));
-            }
+            // 1. Sertakan event pemicu yang diterima dan tersimpan di database (30 hari terakhir)
+            var storedEvents = await _context.HrdFppeTriggerEvents
+                .AsNoTracking()
+                .Where(e => !e.IsDelete && e.DetectedAt >= windowStart)
+                .OrderByDescending(e => e.DetectedAt)
+                .ToListAsync(cancellationToken);
+
+            result.AddRange(storedEvents.Select(ToDto));
 
             // 2. Scan dokter aktif untuk mendeteksi potensi staf baru tanpa penugasan FPPE
             var activeDoctors = await _context.Set<MstDoctor>()
@@ -84,7 +94,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                         Severity = eng.TriggerSource == "SENTINEL_EVENT" ? "FATAL" : "ERROR",
                         IncidentDate = eng.StartDate,
                         Description = eng.InitialReasonJustification,
-                        MetricEvidence = eng.TriggerSource == "SENTINEL_EVENT" 
+                        MetricEvidence = eng.TriggerSource == "SENTINEL_EVENT"
                             ? "1 kejadian sentinel keselamatan pasien (KARS STARKES VR-OPP-05)."
                             : "Tingkat komplikasi bedah > 2 standar deviasi selama 3 bulan berturut-turut (VR-OPP-06).",
                         RecommendedAction = "Investigasi Kasus FPPE & Pendampingan Tindakan",
@@ -98,23 +108,63 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 .ToList();
         }
 
-        public Task<FppeTriggerFeedDto> ReceiveTriggerEventAsync(FppeTriggerFeedDto feedItem, CancellationToken cancellationToken = default)
+        public async Task<FppeTriggerFeedDto> ReceiveTriggerEventAsync(FppeTriggerFeedDto feedItem, CancellationToken cancellationToken = default)
         {
             if (feedItem == null) throw new ArgumentNullException(nameof(feedItem));
-
-            if (feedItem.TriggerId == Guid.Empty)
+            if (feedItem.WorkforceProfileId == Guid.Empty)
             {
-                feedItem.TriggerId = Guid.NewGuid();
+                throw new InvalidOperationException("Event pemicu FPPE wajib menunjuk profil tenaga kerja dokter yang sah.");
+            }
+            if (string.IsNullOrWhiteSpace(feedItem.TriggerType))
+            {
+                throw new InvalidOperationException("Jenis pemicu FPPE wajib diisi (SENTINEL_EVENT, ABNORMAL_COMPLICATION, EMR_DELINQUENCY, ETHICAL_DISCIPLINARY, NEW_STAFF_ONBOARDING, atau NEW_PRIVILEGE_REQUEST).");
             }
 
-            feedItem.DetectedAt = DateTime.UtcNow;
-
-            lock (_runtimeFeedCache)
+            var now = DateTime.UtcNow;
+            var entity = new HrdFppeTriggerEvent
             {
-                _runtimeFeedCache.Add(feedItem);
-            }
+                Id = feedItem.TriggerId == Guid.Empty ? Guid.NewGuid() : feedItem.TriggerId,
+                WorkforceProfileId = feedItem.WorkforceProfileId,
+                DoctorNameSnapshot = Truncate(feedItem.DoctorName, 200),
+                DoctorCodeSnapshot = Truncate(feedItem.DoctorCode, 50),
+                SpecializationSnapshot = Truncate(feedItem.Specialization, 150),
+                TriggerType = feedItem.TriggerType.Trim().ToUpperInvariant(),
+                Severity = string.IsNullOrWhiteSpace(feedItem.Severity) ? "WARNING" : feedItem.Severity.Trim().ToUpperInvariant(),
+                IncidentDate = feedItem.IncidentDate == default ? now : feedItem.IncidentDate,
+                Description = Truncate(feedItem.Description, 2000),
+                MetricEvidence = Truncate(feedItem.MetricEvidence, 2000),
+                RecommendedAction = Truncate(feedItem.RecommendedAction, 500),
+                DetectedAt = now,
+                CreateDateTime = now
+            };
 
-            return Task.FromResult(feedItem);
+            _context.HrdFppeTriggerEvents.Add(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return ToDto(entity);
+        }
+
+        private static FppeTriggerFeedDto ToDto(HrdFppeTriggerEvent e) => new()
+        {
+            TriggerId = e.Id,
+            WorkforceProfileId = e.WorkforceProfileId,
+            DoctorName = e.DoctorNameSnapshot ?? string.Empty,
+            DoctorCode = e.DoctorCodeSnapshot ?? string.Empty,
+            Specialization = e.SpecializationSnapshot ?? string.Empty,
+            TriggerType = e.TriggerType,
+            Severity = e.Severity,
+            IncidentDate = e.IncidentDate,
+            Description = e.Description ?? string.Empty,
+            MetricEvidence = e.MetricEvidence ?? string.Empty,
+            RecommendedAction = e.RecommendedAction ?? string.Empty,
+            DetectedAt = e.DetectedAt
+        };
+
+        private static string? Truncate(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            var trimmed = value.Trim();
+            return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
         }
     }
 }

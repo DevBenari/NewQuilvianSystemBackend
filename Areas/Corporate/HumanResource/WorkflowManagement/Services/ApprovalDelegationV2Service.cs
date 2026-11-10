@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services
@@ -21,10 +23,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
     public class ApprovalDelegationV2Service : IApprovalDelegationV2Service
     {
         private readonly ApplicationDbContext _context;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public ApprovalDelegationV2Service(ApplicationDbContext context)
+        public ApprovalDelegationV2Service(ApplicationDbContext context, NumberSeriesAllocator numberAllocator)
         {
             _context = context;
+            _numberAllocator = numberAllocator;
         }
 
         public async Task<ApprovalDelegationV2ResponseDto> CreateDelegationAsync(Guid principalEmployeeId, CreateApprovalDelegationRequestDto request)
@@ -50,9 +54,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 throw new InvalidOperationException("Pejabat pemberi atau penerima wewenang Plh tidak ditemukan di sistem");
             }
 
-            var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
-            var randSuffix = new Random().Next(100, 999);
-            var delegationNumber = $"SK-PLH-{dateStr}-{randSuffix}";
+            // Nomor SK Plh: urut harian dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: SK-PLH-20261110-0001.
+            // Kontrak pembuatan delegasi hanya membawa ID pegawai pemberi wewenang, sehingga stempel aktor deret memakai aktor sistem.
+            var delegationNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: WorkflowNumberSeries.DelegationKey,
+                Prefix: WorkflowNumberSeries.DelegationPrefix,
+                ResetPolicy: WorkflowNumberSeries.DelegationResetPolicy,
+                SequenceDigits: WorkflowNumberSeries.DelegationDigits,
+                ActorUserId: WorkflowNumberSeries.SystemFallbackUserId,
+                Instant: DateTimeOffset.UtcNow));
 
             var delegation = new TrxApprovalDelegation
             {

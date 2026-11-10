@@ -2,6 +2,8 @@ using QuilvianSystemBackend.Responses;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
@@ -9,10 +11,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
     public class EmployeeSeparationService : IEmployeeSeparationService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public EmployeeSeparationService(IEmployeeRelationUnitOfWork uow)
+        public EmployeeSeparationService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<SeparationResponseDto> InitiateSeparationAsync(InitiateSeparationRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -29,7 +33,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 }
             }
 
-            var separationNumber = $"SEP-{DateTime.UtcNow:yyyyMM}-{Random.Shared.Next(100, 999)}";
+            // Nomor urut dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: SEP-202611-0001
+            var separationNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.Separation,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.Separation,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.Separation,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
 
             var separation = new TrxEmployeeSeparation
             {
@@ -141,6 +152,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 Status = entity.SeparationStatus,
                 CreatedAt = entity.CreateDateTime
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }

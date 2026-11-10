@@ -46,6 +46,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             var instance = step.WorkflowInstance;
             if (instance == null) throw new InvalidOperationException("Instansi workflow tidak valid");
 
+            EnsureStepIsActionable(step, instance);
+
             // Validasi Anti Self-Approval (HRD-DEC-183 / VR-WF-02)
             _antiSelfApprovalGuard.ValidateAntiSelfApproval(instance.RequestedByEmployeeId ?? Guid.Empty, currentEmployeeId);
 
@@ -153,9 +155,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 instance.WorkflowStatus = "Approved";
                 instance.CompletedAt = now;
                 instance.FinalizedAt = now;
-
-                // Eksekusi downstream idempoten (Sub-08 Cuti, Sub-06 Roster, Sub-09 Lembur, dll.)
-                await _downstreamService.ExecuteDownstreamActionsAsync(instance);
             }
 
             // Audit Trail
@@ -170,6 +169,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             });
 
             await _context.SaveChangesAsync();
+
+            // WF-B8 / INT-HR-93: eksekusi hilir sesudah keputusan tersimpan, karena handler membaca
+            // instance dari database. Dijalankan juga pada tahapan antara, sama seperti mesin utama,
+            // supaya transaksi sumber mengikuti tahapan yang sedang berjalan.
+            await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
 
             return new WorkflowActionV2ResponseDto
             {
@@ -201,6 +205,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             if (step == null) throw new KeyNotFoundException("Tahapan persetujuan alur kerja tidak ditemukan");
             var instance = step.WorkflowInstance;
             if (instance == null) throw new InvalidOperationException("Instansi workflow tidak valid");
+
+            EnsureStepIsActionable(step, instance);
 
             _antiSelfApprovalGuard.ValidateAntiSelfApproval(instance.RequestedByEmployeeId ?? Guid.Empty, currentEmployeeId);
 
@@ -250,6 +256,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             await _context.SaveChangesAsync();
 
+            // WF-B8: penolakan juga diteruskan, supaya transaksi sumber (misalnya permohonan cuti)
+            // ikut berstatus ditolak dan tidak tertahan sebagai menunggu persetujuan.
+            await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
+
             return new WorkflowActionV2ResponseDto
             {
                 Success = true,
@@ -279,6 +289,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             if (step == null) throw new KeyNotFoundException("Tahapan persetujuan alur kerja tidak ditemukan");
             var instance = step.WorkflowInstance;
             if (instance == null) throw new InvalidOperationException("Instansi workflow tidak valid");
+
+            EnsureStepIsActionable(step, instance);
 
             var now = DateTime.UtcNow;
 
@@ -333,6 +345,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 ResultingStepStatus = "ReturnedForRevision",
                 ActionTimestamp = now
             };
+        }
+
+        private static readonly string[] ActionableStepStatuses =
+        {
+            WorkflowValueConstants.StepStatus.Pending,
+            WorkflowValueConstants.StepStatus.Available,
+            WorkflowValueConstants.StepStatus.InProgress
+        };
+
+        private static readonly string[] TerminalWorkflowStatuses =
+        {
+            WorkflowValueConstants.WorkflowStatus.Approved,
+            WorkflowValueConstants.WorkflowStatus.Rejected,
+            WorkflowValueConstants.WorkflowStatus.Cancelled,
+            WorkflowValueConstants.WorkflowStatus.Withdrawn,
+            WorkflowValueConstants.WorkflowStatus.Completed
+        };
+
+        /// <summary>
+        /// WF-B8: satu tahapan hanya boleh diputus sekali.
+        /// </summary>
+        /// <remarks>
+        /// Tanpa penjaga ini, tahapan terakhir yang sudah disetujui dapat disetujui lagi — misalnya
+        /// karena tombol ditekan dua kali — sehingga jejak aksi, riwayat status, dan eksekusi hilir
+        /// tercatat ganda. Permohonan yang sudah ditolak juga dapat "disetujui" sesudahnya.
+        /// <c>InProgress</c> diterima karena itulah status tahapan aktif pada instance yang dibuat
+        /// mesin workflow utama.
+        /// </remarks>
+        private static void EnsureStepIsActionable(TrxWorkflowStepInstance step, TrxWorkflowInstance instance)
+        {
+            var isTerminal = TerminalWorkflowStatuses.Contains(instance.WorkflowStatus, StringComparer.OrdinalIgnoreCase);
+            var isActiveStep = step.IsCurrentStep &&
+                               ActionableStepStatuses.Contains(step.StepStatus, StringComparer.OrdinalIgnoreCase);
+
+            if (isTerminal || !isActiveStep)
+            {
+                throw new InvalidOperationException("Tahapan persetujuan belum aktif atau sudah diproses.");
+            }
         }
 
         private static string ComputeSignatureHash(Guid employeeId, Guid stepId, string action, string pin)

@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Repositories;
@@ -26,11 +28,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<BenefitInHouseService> _logger;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public BenefitInHouseService(ApplicationDbContext dbContext, ILogger<BenefitInHouseService> logger)
+        public BenefitInHouseService(ApplicationDbContext dbContext, ILogger<BenefitInHouseService> logger, NumberSeriesAllocator numberAllocator)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _numberAllocator = numberAllocator;
         }
 
         public async Task<InHouseCoverageInquiryDto> InquireCoverageAsync(
@@ -306,6 +310,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             enrollment.UpdateDateTime = DateTime.UtcNow;
             enrollment.UpdateBy = actorUserId;
 
+            // Referensi koreksi: pakai nomor dari pemohon bila ada, selain itu nomor urut harian dari provider
+            // bersama (QBE-CODE-003), bukan angka acak. Bentuk: ADJ-20261110-0001
+            var referenceNumber = !string.IsNullOrWhiteSpace(request.ReferenceNumber)
+                ? request.ReferenceNumber
+                : await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                    SequenceKey: BenefitNumberSeries.LedgerAdjustmentKey,
+                    Prefix: BenefitNumberSeries.LedgerAdjustmentPrefix,
+                    ResetPolicy: BenefitNumberSeries.LedgerAdjustmentResetPolicy,
+                    SequenceDigits: BenefitNumberSeries.LedgerAdjustmentDigits,
+                    ActorUserId: actorUserId == Guid.Empty ? BenefitNumberSeries.SystemFallbackUserId : actorUserId,
+                    Instant: DateTimeOffset.UtcNow), cancellationToken);
+
             var movement = new HrdBenefitBalanceMovement
             {
                 Id = Guid.NewGuid(),
@@ -316,7 +332,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 Amount = request.AdjustmentAmount,
                 BalanceBefore = balanceBefore,
                 BalanceAfter = balanceAfter,
-                ReferenceNumber = request.ReferenceNumber ?? $"ADJ-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(100, 999)}",
+                ReferenceNumber = referenceNumber,
                 Description = $"Penyesuaian manual oleh HR: {request.Reason}",
                 ReasonText = request.Reason,
                 OccurredAt = DateTimeOffset.UtcNow,

@@ -1,22 +1,44 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
+using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services
 {
     /// <summary>
     /// Implementasi Dispatcher Sinkronisasi Wewenang Klinis ke Modul SIMRS EMR (INT-HR-76, VR-OPP-21, VR-OPP-22, VR-OPP-25)
     /// </summary>
+    /// <remarks>
+    /// Remediasi 10 November 2026 (BE-HRD-235):
+    /// <list type="bullet">
+    /// <item>Log pengiriman disimpan di tabel <c>HrdSimrsPrivilegeSyncLog</c>, bukan <c>ConcurrentBag</c> statis yang hilang saat restart.</item>
+    /// <item>Pengiriman hanya diterima untuk putusan yang benar-benar tersimpan di <c>HrdRecredentialingVerdict</c>.</item>
+    /// <item>Durasi (<c>LatencyMs</c>) diukur nyata memakai <see cref="Stopwatch"/>, bukan angka acak 25–65 ms.</item>
+    /// <item>Status dicatat <c>PENDING_INTEGRATION</c> dengan kode respons <c>202</c>: payload sudah dibentuk dan tersimpan,
+    /// tetapi pemanggilan ke modul EMR SIMRS menunggu keputusan pemilik tentang jalur integrasinya (tabel wewenang klinis
+    /// bersama atau API terpisah — Gelombang 2 <c>backend-unfinished-work.md</c>). Sebelumnya status <c>200 SUCCESS</c> dikarang.</item>
+    /// </list>
+    /// </remarks>
     public class SimrsClinicalPrivilegeDispatcher : ISimrsClinicalPrivilegeDispatcher
     {
-        private static readonly ConcurrentBag<SimrsPrivilegeSyncAuditLogDto> _syncLogs = new();
+        public const string StatusPendingIntegration = "PENDING_INTEGRATION";
+        private const int AcceptedStatusCode = 202;
 
-        public Task<SimrsPrivilegeSyncAuditLogDto> DispatchToSimrsAsync(
+        private readonly ApplicationDbContext _context;
+
+        public SimrsClinicalPrivilegeDispatcher(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<SimrsPrivilegeSyncAuditLogDto> DispatchToSimrsAsync(
             Guid verdictId,
             DispatchSimrsPrivilegeRequestDto request,
             CancellationToken cancellationToken = default)
@@ -29,7 +51,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 throw new InvalidOperationException("Payload transmisi ke SIMRS wajib memenuhi skema kontrak pertukaran data yang valid (VR-OPP-25).");
             }
 
-            // 2. Evaluasi Efek Wewenang & Hard-Stop
+            // 2. Putusan asal wajib ada di database — pengiriman tidak boleh menempel pada putusan yang tidak pernah disahkan
+            var verdictExists = await _context.HrdRecredentialingVerdicts
+                .AsNoTracking()
+                .AnyAsync(v => v.Id == verdictId && !v.IsDelete, cancellationToken);
+            if (!verdictExists)
+            {
+                throw new KeyNotFoundException($"Putusan rekredensialing {verdictId} tidak ditemukan. Sahkan putusan sidang lebih dulu sebelum mengirim wewenang ke SIMRS.");
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // 3. Evaluasi Efek Wewenang & Hard-Stop
             bool isHardStop;
             string syncMessage;
 
@@ -37,21 +70,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             {
                 // VR-OPP-22: Hard-Stop Blokir Order SIMRS untuk Revokasi / Penurunan Tingkat Mutlak
                 isHardStop = true;
-                syncMessage = "Akses peresepan obat keras dan penjadwalan tindakan operasi di modul SIMRS EMR diblokir total secara seketika (Hard-Stop Mutlak VR-OPP-22).";
+                syncMessage = "Instruksi Hard-Stop Mutlak (VR-OPP-22) tersimpan: akses peresepan obat keras dan penjadwalan tindakan operasi di modul SIMRS EMR harus diblokir total.";
             }
             else if (request.Level == 3)
             {
                 // VR-OPP-21: Level 3 Supervisi (Wajib Co-Signature 24 Jam)
                 isHardStop = false;
-                syncMessage = "Wewenang klinis disinkronkan ke SIMRS dengan status Level 3 Supervisi: Seluruh instruksi tindakan mewajibkan co-signature digital supervisor dalam 24 jam (VR-OPP-21).";
+                syncMessage = "Instruksi Level 3 Supervisi (VR-OPP-21) tersimpan: seluruh instruksi tindakan mewajibkan co-signature digital supervisor dalam 24 jam.";
             }
             else
             {
                 // Level 4: Mandiri Penuh
                 isHardStop = false;
-                syncMessage = "Wewenang klinis Level 4 Mandiri penuh berhasil disahkan dan aktif di SIMRS EMR.";
+                syncMessage = "Instruksi wewenang klinis Level 4 Mandiri penuh tersimpan untuk SIMRS EMR.";
             }
 
+            var dispatchedAt = DateTime.UtcNow;
             var payloadObject = new
             {
                 verdictId,
@@ -59,36 +93,62 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 tindakanId = request.TindakanId,
                 clinicalLevel = request.Level,
                 isHardStopBlocked = isHardStop,
-                timestamp = DateTime.UtcNow,
+                timestamp = dispatchedAt,
                 sourceModule = "Quilvian-Sub15-OPPE-Recred"
             };
 
             var payloadJson = JsonSerializer.Serialize(payloadObject);
 
-            var auditLog = new SimrsPrivilegeSyncAuditLogDto
+            // 4. Simpan log pengiriman. Pemanggilan nyata ke modul EMR SIMRS menunggu keputusan jalur integrasi (Gelombang 2).
+            var log = new HrdSimrsPrivilegeSyncLog
             {
                 Id = Guid.NewGuid(),
                 VerdictId = verdictId,
-                DoctorCode = request.DoctorCode,
+                DoctorCode = request.DoctorCode.Trim(),
                 TargetLevel = request.Level,
                 IsHardStopBlocked = isHardStop,
                 PayloadJson = payloadJson,
-                ResponseStatusCode = 200,
-                LatencyMs = Random.Shared.Next(25, 65),
-                DispatchedAt = DateTime.UtcNow,
-                Status = "SUCCESS",
-                Message = syncMessage
+                ResponseStatusCode = AcceptedStatusCode,
+                DispatchedAt = dispatchedAt,
+                Status = StatusPendingIntegration,
+                Message = $"{syncMessage} Pengiriman ke modul EMR SIMRS menunggu jalur integrasi yang ditetapkan pemilik (INT-HR-76).",
+                CreateDateTime = dispatchedAt
             };
 
-            _syncLogs.Add(auditLog);
+            _context.HrdSimrsPrivilegeSyncLogs.Add(log);
+            await _context.SaveChangesAsync(cancellationToken);
 
-            return Task.FromResult(auditLog);
+            stopwatch.Stop();
+            log.LatencyMs = stopwatch.ElapsedMilliseconds;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return ToDto(log);
         }
 
-        public Task<List<SimrsPrivilegeSyncAuditLogDto>> GetSyncAuditLogsAsync(CancellationToken cancellationToken = default)
+        public async Task<List<SimrsPrivilegeSyncAuditLogDto>> GetSyncAuditLogsAsync(CancellationToken cancellationToken = default)
         {
-            var logs = _syncLogs.OrderByDescending(l => l.DispatchedAt).ToList();
-            return Task.FromResult(logs);
+            var logs = await _context.HrdSimrsPrivilegeSyncLogs
+                .AsNoTracking()
+                .Where(l => !l.IsDelete)
+                .OrderByDescending(l => l.DispatchedAt)
+                .ToListAsync(cancellationToken);
+
+            return logs.Select(ToDto).ToList();
         }
+
+        private static SimrsPrivilegeSyncAuditLogDto ToDto(HrdSimrsPrivilegeSyncLog log) => new()
+        {
+            Id = log.Id,
+            VerdictId = log.VerdictId,
+            DoctorCode = log.DoctorCode,
+            TargetLevel = log.TargetLevel,
+            IsHardStopBlocked = log.IsHardStopBlocked,
+            PayloadJson = log.PayloadJson,
+            ResponseStatusCode = log.ResponseStatusCode,
+            LatencyMs = log.LatencyMs,
+            DispatchedAt = log.DispatchedAt,
+            Status = log.Status,
+            Message = log.Message ?? string.Empty
+        };
     }
 }

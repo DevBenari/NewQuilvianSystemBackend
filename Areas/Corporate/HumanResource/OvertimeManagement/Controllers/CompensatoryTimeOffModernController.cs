@@ -75,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         [ProducesResponseType(typeof(ApiResponse<CompensatoryExpirationRunResultDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> RunExpiry(CancellationToken cancellationToken = default)
         {
-            var result = await _expirationService.ExecuteExpirationRunAsync(cancellationToken);
+            var result = await _expirationService.ExecuteExpirationRunAsync(GetCurrentUserId(), cancellationToken);
             return Ok(ApiResponse<CompensatoryExpirationRunResultDto>.Ok(result, result.Message));
         }
 

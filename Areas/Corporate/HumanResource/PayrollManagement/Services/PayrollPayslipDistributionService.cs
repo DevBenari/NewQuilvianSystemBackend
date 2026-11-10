@@ -4,7 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System;
-using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,11 +23,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<PayrollPayslipDistributionService> _logger;
 
-        // Penyimpanan in-memory kegagalan autentikasi PIN dan stempel lockout (VR-PAY-22, PAY-B6)
-        private static readonly ConcurrentDictionary<Guid, (int FailedAttempts, DateTime? LockoutExpiresAt)> _lockouts = new();
-
-        // Penyimpanan token sesi PIN sensitif (berlaku 15 menit pasca verifikasi PIN sukses)
-        private static readonly ConcurrentDictionary<string, (Guid EmployeeId, DateTime ExpiresAt)> _activeSessions = new();
+        // Remediasi 10 November 2026 (BE-HRD-159): penghitung salah-PIN, penguncian 30 menit, dan sesi 15 menit kini disimpan
+        // di tabel HrdPayslipPinLockout dan HrdPayslipPinSession, bukan di memori proses yang hilang saat restart.
+        private const int MaxFailedAttempts = 3;
+        private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan SessionDuration = TimeSpan.FromMinutes(15);
 
         public PayrollPayslipDistributionService(
             ApplicationDbContext dbContext,
@@ -96,12 +96,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             var cleanPin = pin.Trim();
 
-            // 2. Evaluasi status lockout akun (VR-PAY-22, PAY-B6)
-            if (_lockouts.TryGetValue(employeeId, out var state) && state.LockoutExpiresAt.HasValue)
+            // 2. Evaluasi status lockout akun (VR-PAY-22, PAY-B6) — dibaca dari database, berlaku lintas restart dan instance
+            var lockout = await _dbContext.HrdPayslipPinLockouts
+                .FirstOrDefaultAsync(l => l.EmployeeKey == employeeId && !l.IsDelete, cancellationToken);
+
+            if (lockout != null && lockout.LockoutExpiresAt.HasValue)
             {
-                if (state.LockoutExpiresAt.Value > DateTime.UtcNow)
+                if (lockout.LockoutExpiresAt.Value > DateTime.UtcNow)
                 {
-                    var minutesRemaining = (int)Math.Ceiling((state.LockoutExpiresAt.Value - DateTime.UtcNow).TotalMinutes);
+                    var minutesRemaining = (int)Math.Ceiling((lockout.LockoutExpiresAt.Value - DateTime.UtcNow).TotalMinutes);
                     return new PayslipPinVerificationResultDto
                     {
                         IsSuccess = false,
@@ -113,7 +116,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 else
                 {
                     // Periode lockout telah berakhir, reset state
-                    _lockouts.TryRemove(employeeId, out _);
+                    _dbContext.HrdPayslipPinLockouts.Remove(lockout);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    lockout = null;
                 }
             }
 
@@ -143,11 +148,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             if (isValidPin)
             {
                 // Reset counter kegagalan
-                _lockouts.TryRemove(employeeId, out _);
+                if (lockout != null)
+                {
+                    _dbContext.HrdPayslipPinLockouts.Remove(lockout);
+                }
 
-                // Terbitkan token sesi rahasia valid selama 15 menit
-                var token = Guid.NewGuid().ToString("N");
-                _activeSessions[token] = (employeeId, DateTime.UtcNow.AddMinutes(15));
+                // Terbitkan token sesi rahasia valid selama 15 menit; hanya hash-nya yang disimpan
+                var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+                var issuedAt = DateTime.UtcNow;
+                _dbContext.HrdPayslipPinSessions.Add(new HrdPayslipPinSession
+                {
+                    Id = Guid.NewGuid(),
+                    TokenHash = HashToken(token),
+                    EmployeeKey = employeeId,
+                    IssuedAt = issuedAt,
+                    ExpiresAt = issuedAt.Add(SessionDuration),
+                    CreateDateTime = issuedAt
+                });
+                await _dbContext.SaveChangesAsync(cancellationToken);
 
                 _logger.LogInformation("Verifikasi PIN sekunder berhasil untuk Pegawai ID {EmpId}", employeeId);
 
@@ -162,16 +180,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             else
             {
                 // Catat kegagalan dan evaluasi penalti lockout
-                var currentFailures = 1;
-                if (_lockouts.TryGetValue(employeeId, out var existingState))
+                var now = DateTime.UtcNow;
+                if (lockout == null)
                 {
-                    currentFailures = existingState.FailedAttempts + 1;
+                    lockout = new HrdPayslipPinLockout
+                    {
+                        Id = Guid.NewGuid(),
+                        EmployeeKey = employeeId,
+                        FailedAttempts = 0,
+                        CreateDateTime = now
+                    };
+                    _dbContext.HrdPayslipPinLockouts.Add(lockout);
                 }
 
-                if (currentFailures >= 3)
+                var currentFailures = lockout.FailedAttempts + 1;
+                lockout.FailedAttempts = currentFailures;
+                lockout.LastFailedAt = now;
+                lockout.UpdateDateTime = now;
+
+                if (currentFailures >= MaxFailedAttempts)
                 {
-                    var lockoutUntil = DateTime.UtcNow.AddMinutes(30);
-                    _lockouts[employeeId] = (currentFailures, lockoutUntil);
+                    lockout.LockoutExpiresAt = now.Add(LockoutDuration);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
 
                     _logger.LogWarning("Pegawai ID {EmpId} terkena lockout akses slip gaji 30 menit akibat 3x salah PIN.", employeeId);
 
@@ -185,8 +215,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 }
                 else
                 {
-                    _lockouts[employeeId] = (currentFailures, null);
-                    var remaining = 3 - currentFailures;
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    var remaining = MaxFailedAttempts - currentFailures;
 
                     return new PayslipPinVerificationResultDto
                     {
@@ -204,7 +234,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             string pinToken,
             CancellationToken cancellationToken = default)
         {
-            ValidatePinSession(employeeId, pinToken);
+            await ValidatePinSessionAsync(employeeId, pinToken, cancellationToken);
 
             var slip = await _dbContext.TrxPayrollPayslips
                 .Include(p => p.PayrollRun)
@@ -353,7 +383,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             string pinToken,
             CancellationToken cancellationToken = default)
         {
-            ValidatePinSession(employeeId, pinToken);
+            await ValidatePinSessionAsync(employeeId, pinToken, cancellationToken);
 
             var slip = await _dbContext.TrxPayrollPayslips
                 .Include(p => p.PayrollRun)
@@ -393,15 +423,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             return (pdfBytes, fileName, "application/pdf");
         }
 
-        private static void ValidatePinSession(Guid employeeId, string pinToken)
+        private async Task ValidatePinSessionAsync(Guid employeeId, string pinToken, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(pinToken) ||
-                !_activeSessions.TryGetValue(pinToken.Trim(), out var session) ||
-                session.ExpiresAt < DateTime.UtcNow ||
-                session.EmployeeId != employeeId)
+            if (string.IsNullOrWhiteSpace(pinToken))
             {
                 throw new UnauthorizedAccessException("Sesi autentikasi PIN slip gaji tidak valid atau telah kedaluwarsa. Silakan masukkan PIN 6-digit Anda kembali.");
             }
+
+            var tokenHash = HashToken(pinToken.Trim());
+            var now = DateTime.UtcNow;
+            var isValid = await _dbContext.HrdPayslipPinSessions
+                .AsNoTracking()
+                .AnyAsync(s => s.TokenHash == tokenHash
+                            && s.EmployeeKey == employeeId
+                            && s.RevokedAt == null
+                            && !s.IsDelete
+                            && s.ExpiresAt > now, cancellationToken);
+
+            if (!isValid)
+            {
+                throw new UnauthorizedAccessException("Sesi autentikasi PIN slip gaji tidak valid atau telah kedaluwarsa. Silakan masukkan PIN 6-digit Anda kembali.");
+            }
+        }
+
+        private static string HashToken(string token)
+        {
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
         }
 
         /// <summary>

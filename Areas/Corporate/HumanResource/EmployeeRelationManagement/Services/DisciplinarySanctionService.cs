@@ -1,16 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
 {
     public class DisciplinarySanctionService : IDisciplinarySanctionService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public DisciplinarySanctionService(IEmployeeRelationUnitOfWork uow)
+        public DisciplinarySanctionService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<SanctionResponseDto> IssueSanctionAsync(IssueSanctionRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -70,7 +74,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 }
             }
 
-            var sanctionNumber = $"{request.SanctionLevel}/HRD/{DateTime.UtcNow:MM/yyyy}/{Random.Shared.Next(100, 999)}";
+            // Satu register SP per bulan untuk seluruh tingkat; bagian acak diganti nomor urut (QBE-CODE-003). Bentuk surat tetap: SP1/HRD/11/2026/0001
+            var allocatedSanction = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.Sanction,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.Sanction,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.Sanction,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
+            var sanctionNumber = $"{request.SanctionLevel}/HRD/{DateTime.UtcNow:MM/yyyy}/{EmployeeRelationNumberSeries.TrailingSequence(allocatedSanction)}";
 
             var entity = new TrxDisciplinarySanction
             {
@@ -158,6 +170,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 AppealResolution = entity.AppealResolution,
                 CreatedAt = entity.CreateDateTime
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }

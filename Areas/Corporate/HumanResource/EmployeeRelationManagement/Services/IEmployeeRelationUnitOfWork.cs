@@ -20,6 +20,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         IQueryable<MstEmployee> Employees { get; }
         IQueryable<MstWorkforceProfile> WorkforceProfiles { get; }
 
+        /// <summary>
+        /// Memetakan email petugas yang terautentikasi ke ID akun pengguna, untuk stempel aktor pada
+        /// deret nomor dokumen. Mengembalikan <c>null</c> bila email tidak dikenal.
+        /// </summary>
+        Task<Guid?> FindUserIdByEmailAsync(string? email, CancellationToken cancellationToken = default);
+
         Task AddIncidentReportAsync(TrxDisciplinaryIncidentReport incidentReport, CancellationToken cancellationToken = default);
         Task AddInvestigationRecordAsync(TrxDisciplinaryInvestigationRecord record, CancellationToken cancellationToken = default);
         Task AddSanctionAsync(TrxDisciplinarySanction sanction, CancellationToken cancellationToken = default);

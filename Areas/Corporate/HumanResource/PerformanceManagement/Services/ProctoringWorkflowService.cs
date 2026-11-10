@@ -3,7 +3,9 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Enums.HumanResource;
 using QuilvianSystemBackend.Repositories;
 
@@ -15,10 +17,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     public class ProctoringWorkflowService : IProctoringWorkflowService
     {
         private readonly ApplicationDbContext _context;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public ProctoringWorkflowService(ApplicationDbContext context)
+        public ProctoringWorkflowService(ApplicationDbContext context, NumberSeriesAllocator numberAllocator)
         {
             _context = context;
+            _numberAllocator = numberAllocator;
         }
 
         public async Task<FppeEngagementResponseDto> CreateEngagementAsync(CreateFppeEngagementRequestDto request, CancellationToken cancellationToken = default)
@@ -92,7 +96,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             }
 
             // 4. Pembentukan Penugasan FPPE
-            var engagementNumber = $"FPPE-{DateTime.UtcNow:yyyyMM}-{Random.Shared.Next(1000, 9999)}";
+            // Nomor urut bulanan dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: FPPE-202611-0001.
+            // Kontrak pembuatan penugasan belum membawa identitas pengguna, sehingga stempel aktor deret memakai aktor sistem.
+            var engagementNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: PerformanceNumberSeries.FppeEngagementKey,
+                Prefix: PerformanceNumberSeries.FppeEngagementPrefix,
+                ResetPolicy: PerformanceNumberSeries.FppeEngagementResetPolicy,
+                SequenceDigits: PerformanceNumberSeries.FppeEngagementDigits,
+                ActorUserId: PerformanceNumberSeries.SystemFallbackUserId,
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
 
             var engagement = new TrxFppeEngagement
             {

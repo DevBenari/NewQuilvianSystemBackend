@@ -1,16 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
 {
     public class DisciplinaryInvestigationService : IDisciplinaryInvestigationService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public DisciplinaryInvestigationService(IEmployeeRelationUnitOfWork uow)
+        public DisciplinaryInvestigationService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<InvestigationRecordResponseDto> InitiateInvestigationAsync(InitiateInvestigationRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -30,7 +34,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 throw new InvalidOperationException("Tim pemeriksa BAP minimal terdiri dari 2 orang independen tanpa konflik kepentingan sesuai aturan VR-EMP-04.");
             }
 
-            var bapNumber = $"BAP-HRD-{DateTime.UtcNow:yyyy}-{Random.Shared.Next(100, 999)}";
+            // Nomor urut tahunan dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: BAP-HRD-2026-0001
+            var bapNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.InvestigationBap,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.InvestigationBap,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.InvestigationBap,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
 
             var entity = new TrxDisciplinaryInvestigationRecord
             {
@@ -123,6 +134,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 Status = entity.Status,
                 CreatedAt = entity.CreateDateTime
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }

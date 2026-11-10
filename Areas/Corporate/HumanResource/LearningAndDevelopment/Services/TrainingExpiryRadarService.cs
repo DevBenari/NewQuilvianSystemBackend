@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -16,12 +15,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
     /// <summary>
     /// Implementasi Layanan Radar Kedaluwarsa Bertingkat H-90/60/30 & Pengamanan Shift Buddy System (VR-TRN-09..12)
     /// </summary>
+    /// <remarks>
+    /// Remediasi 10 November 2026 (BE-HRD-240, BE-HRD-241):
+    /// <list type="bullet">
+    /// <item>Radar dan portofolio hanya menampilkan sertifikat yang benar-benar ada di database. Empat staf fiktif ber-GUID tetap
+    /// dan dua sertifikat contoh yang dulu muncul saat data kosong dihapus.</item>
+    /// <item>Nama pelatihan dibaca dari catatan pelatihan atau jenis sertifikasi, bukan teks tetap.</item>
+    /// <item>Siaran peringatan melaporkan jumlah penerima yang sebenarnya dan <b>0</b> pengiriman, karena kanal notifikasi
+    /// (<c>BE-HRD-314</c>) belum tersedia. Sebelumnya dilaporkan "terkirim ke minimal 5 orang" tanpa mengirim apa pun.</item>
+    /// <item>Status pengamanan shift buddy system disimpan di tabel <c>HrdShiftBuddySafeguard</c>, bukan memori proses.</item>
+    /// </list>
+    /// </remarks>
     public class TrainingExpiryRadarService : ITrainingExpiryRadarService
     {
-        private readonly ApplicationDbContext _context;
+        private const string UnknownValue = "-";
 
-        // In-memory runtime tracking untuk status penegakan Buddy Safeguard per pegawai
-        private static readonly ConcurrentDictionary<Guid, ShiftBuddySafeguardResponseDto> _buddySafeguards = new();
+        private readonly ApplicationDbContext _context;
 
         public TrainingExpiryRadarService(ApplicationDbContext context)
         {
@@ -34,11 +43,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             var horizonDate = now.AddDays(90);
 
             var dbCertificates = await _context.TrxTrainingCertificates
+                .AsNoTracking()
                 .Include(c => c.WorkforceProfile)
                     .ThenInclude(p => p!.PrimaryDepartment)
-                .Where(c => c.IsActive && c.ExpiredDate.HasValue && c.ExpiredDate.Value <= horizonDate)
+                .Include(c => c.TrainingRecord)
+                .Include(c => c.CertificationType)
+                    .ThenInclude(t => t!.Profession)
+                .Where(c => c.IsActive && !c.IsDelete && c.ExpiredDate.HasValue && c.ExpiredDate.Value <= horizonDate)
                 .OrderBy(c => c.ExpiredDate)
                 .ToListAsync(cancellationToken);
+
+            var profileIds = dbCertificates.Select(c => c.WorkforceProfileId).Distinct().ToList();
+            var activeSafeguards = await _context.HrdShiftBuddySafeguards
+                .AsNoTracking()
+                .Where(s => s.IsActive && !s.IsDelete && profileIds.Contains(s.WorkforceProfileId))
+                .ToListAsync(cancellationToken);
+            var safeguardByProfile = activeSafeguards
+                .GroupBy(s => s.WorkforceProfileId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.ActivatedAt).First());
 
             var items = new List<CertificateExpiryRadarItemDto>();
 
@@ -52,31 +74,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 else if (daysLeft <= 60) radarZone = "RADAR_H60";
                 else radarZone = "RADAR_H90";
 
-                var isBuddyActive = _buddySafeguards.ContainsKey(cert.WorkforceProfileId);
+                safeguardByProfile.TryGetValue(cert.WorkforceProfileId, out var safeguard);
 
                 items.Add(new CertificateExpiryRadarItemDto
                 {
                     CertificateId = cert.Id,
                     WorkforceProfileId = cert.WorkforceProfileId,
-                    StaffName = cert.WorkforceProfile?.DisplayName ?? "Staf Terkait",
-                    StaffCode = cert.WorkforceProfile?.ProfileCode ?? "-",
-                    DepartmentName = cert.WorkforceProfile?.PrimaryDepartment?.DepartmentName ?? "Keperawatan",
-                    Profession = "Tenaga Kesehatan",
+                    StaffName = cert.WorkforceProfile?.DisplayName ?? UnknownValue,
+                    StaffCode = cert.WorkforceProfile?.ProfileCode ?? UnknownValue,
+                    DepartmentName = cert.WorkforceProfile?.PrimaryDepartment?.DepartmentName ?? UnknownValue,
+                    Profession = cert.CertificationType?.Profession?.ProfessionName ?? UnknownValue,
                     CertificateNumber = cert.CertificateNumber,
-                    TrainingName = "Pelatihan Wajib BHD & KPS 8",
+                    TrainingName = ResolveTrainingName(cert),
                     IssuedDate = cert.IssuedDate,
                     ExpiredDate = cert.ExpiredDate.Value,
                     DaysUntilExpiry = daysLeft,
                     RadarZone = radarZone,
-                    IsBuddySafeguardActive = isBuddyActive,
-                    IsRkkPrivilegeRestricted = isBuddyActive
+                    IsBuddySafeguardActive = safeguard?.IsBuddySystemEnforced ?? false,
+                    IsRkkPrivilegeRestricted = safeguard?.IsRkkRestrictedLevel3 ?? false
                 });
-            }
-
-            // Jika database baru kosong, berikan representasi data radar deterministik untuk evaluasi
-            if (items.Count == 0)
-            {
-                items.AddRange(GenerateBaselineRadarItems());
             }
 
             return new CertificateExpiryRadarSummaryDto
@@ -90,32 +106,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             };
         }
 
-        public Task<BroadcastExpiryAlertResponseDto> BroadcastAlertsAsync(
+        public async Task<BroadcastExpiryAlertResponseDto> BroadcastAlertsAsync(
             BroadcastExpiryAlertRequestDto request,
             CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            var baseline = GenerateBaselineRadarItems();
+            var summary = await GetExpiringRadarSummaryAsync(cancellationToken);
             var targetList = request.TargetZoneFilter switch
             {
-                "OVERDUE_ONLY" => baseline.Where(i => i.RadarZone == "OVERDUE_H0").ToList(),
-                "H30_AND_OVERDUE" => baseline.Where(i => i.RadarZone == "OVERDUE_H0" || i.RadarZone == "RADAR_H30_CRITICAL").ToList(),
-                _ => baseline
+                "OVERDUE_ONLY" => summary.Items.Where(i => i.RadarZone == "OVERDUE_H0").ToList(),
+                "H30_AND_OVERDUE" => summary.Items.Where(i => i.RadarZone == "OVERDUE_H0" || i.RadarZone == "RADAR_H30_CRITICAL").ToList(),
+                _ => summary.Items
             };
 
-            var count = targetList.Count > 0 ? targetList.Count : 5;
+            // Penerima dihitung per staf, bukan per sertifikat.
+            var recipientCount = targetList.Select(i => i.WorkforceProfileId).Distinct().Count();
+            var channels = request.DeliveryChannels ?? new List<string>();
 
-            var response = new BroadcastExpiryAlertResponseDto
+            // Kanal pengiriman (lonceng aplikasi, email, WhatsApp) belum tersedia — menunggu BE-HRD-314.
+            // Jumlah pengiriman dilaporkan apa adanya: nol.
+            return new BroadcastExpiryAlertResponseDto
             {
-                TotalRecipients = count,
-                SuccessfulDispatches = count,
-                DeliveryChannels = request.DeliveryChannels,
+                TotalRecipients = recipientCount,
+                SuccessfulDispatches = 0,
+                DeliveryChannels = channels,
                 DispatchedAt = DateTime.UtcNow,
-                Message = $"Notifikasi peringatan kedaluwarsa pelatihan wajib berhasil dibroadcast ke {count} staf melalui {string.Join(", ", request.DeliveryChannels)} (VR-TRN-09)."
+                Message = recipientCount == 0
+                    ? "Tidak ada staf dengan sertifikat pelatihan wajib pada zona radar yang dipilih."
+                    : $"Daftar penerima tersusun: {recipientCount} staf dengan {targetList.Count} sertifikat pada zona radar yang dipilih. Belum ada notifikasi yang terkirim karena kanal pengiriman ({(channels.Count > 0 ? string.Join(", ", channels) : "belum dipilih")}) belum tersedia di aplikasi (menunggu BE-HRD-314, VR-TRN-09)."
             };
-
-            return Task.FromResult(response);
         }
 
         public async Task<ShiftBuddySafeguardResponseDto> EnforceShiftBuddySafeguardAsync(
@@ -128,7 +148,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             var staffProfile = await _context.Set<MstWorkforceProfile>()
                 .FirstOrDefaultAsync(p => p.Id == staffId, cancellationToken);
 
-            var staffName = staffProfile?.DisplayName ?? "Tenaga Kesehatan Target";
+            if (staffProfile == null)
+            {
+                throw new KeyNotFoundException($"Profil tenaga kerja {staffId} tidak ditemukan.");
+            }
+
+            var staffName = staffProfile.DisplayName;
+            var now = DateTime.UtcNow;
 
             // Jika staf adalah dokter klinisi dan diminta restrict RKK ke Level 3 supervisi (INT-HR-77, VR-TRN-12)
             if (request.RestrictRkkToLevel3)
@@ -139,25 +165,53 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 if (doctor != null)
                 {
                     doctor.ClinicalPrivilegeStatus = ClinicalPrivilegeStatus.Suspended;
-                    doctor.UpdateDateTime = DateTime.UtcNow;
-                    await _context.SaveChangesAsync(cancellationToken);
+                    doctor.UpdateDateTime = now;
                 }
             }
 
-            var safeguardRecord = new ShiftBuddySafeguardResponseDto
+            // Satu pengamanan aktif per staf: yang lama ditutup (riwayat tetap ada), yang baru disimpan.
+            var previousSafeguards = await _context.HrdShiftBuddySafeguards
+                .Where(s => s.WorkforceProfileId == staffId && s.IsActive && !s.IsDelete)
+                .ToListAsync(cancellationToken);
+            foreach (var previous in previousSafeguards)
             {
+                previous.IsActive = false;
+                previous.ReleasedAt = now;
+                previous.UpdateDateTime = now;
+            }
+
+            var message = "Safeguard Shift Buddy System berhasil diaktifkan. Penugasan shift mandiri diblokir di Sub-06; staf wajib didampingi supervisor"
+                + (request.RestrictRkkToLevel3 ? " dan kewenangan mandiri RKK Level 4 diturunkan ke Level 3 supervisi." : ".");
+
+            var safeguard = new HrdShiftBuddySafeguard
+            {
+                Id = Guid.NewGuid(),
                 WorkforceProfileId = staffId,
-                StaffName = staffName,
+                StaffNameSnapshot = staffName,
                 IsOverdueFlagged = true,
                 GracePeriodDaysRemaining = 30, // Toleransi 30 hari kalender (VR-TRN-10)
                 IsBuddySystemEnforced = true, // Transmisi INT-HR-79 ke Sub-06 Scheduling (VR-TRN-11)
                 IsRkkRestrictedLevel3 = request.RestrictRkkToLevel3, // Transmisi INT-HR-77 ke Sub-14 (VR-TRN-12)
-                ActivatedAt = DateTime.UtcNow,
-                Message = "Safeguard Shift Buddy System berhasil diaktifkan. Penugasan shift mandiri diblokir di Sub-06; staf wajib didampingi supervisor dan kewenangan mandiri RKK Level 4 diturunkan ke Level 3 supervisi."
+                ActivatedAt = now,
+                IsActive = true,
+                Message = message,
+                CreateDateTime = now
             };
 
-            _buddySafeguards[staffId] = safeguardRecord;
-            return safeguardRecord;
+            _context.HrdShiftBuddySafeguards.Add(safeguard);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return new ShiftBuddySafeguardResponseDto
+            {
+                WorkforceProfileId = staffId,
+                StaffName = staffName,
+                IsOverdueFlagged = safeguard.IsOverdueFlagged,
+                GracePeriodDaysRemaining = safeguard.GracePeriodDaysRemaining,
+                IsBuddySystemEnforced = safeguard.IsBuddySystemEnforced,
+                IsRkkRestrictedLevel3 = safeguard.IsRkkRestrictedLevel3,
+                ActivatedAt = safeguard.ActivatedAt,
+                Message = message
+            };
         }
 
         public async Task<StaffCertificatePortfolioDto?> GetStaffPortfolioAsync(
@@ -171,6 +225,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             if (staffProfile == null) return null;
 
             var certs = await _context.TrxTrainingCertificates
+                .AsNoTracking()
+                .Include(c => c.TrainingRecord)
+                .Include(c => c.CertificationType)
                 .Where(c => c.WorkforceProfileId == staffId && !c.IsDelete)
                 .OrderByDescending(c => c.IssuedDate)
                 .ToListAsync(cancellationToken);
@@ -179,41 +236,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             {
                 CertificateId = c.Id,
                 CertificateNumber = c.CertificateNumber,
-                TrainingProgramName = "Sertifikasi Kompetensi Klinis",
-                Category = "STARKES_MANDATORY",
+                TrainingProgramName = ResolveTrainingName(c),
+                Category = c.CertificationType?.CertificationTypeCode ?? UnknownValue,
                 IssuedDate = c.IssuedDate,
                 ExpiredDate = c.ExpiredDate,
-                IssuerName = c.IssuerName ?? "Diklat RS Quilvian",
+                IssuerName = c.IssuerName ?? c.CertificationType?.IssuingAuthority ?? UnknownValue,
                 IsVerified = c.IsVerified,
                 CertificateUrl = c.CertificateFilePath
             }).ToList();
-
-            // Jika belum ada record certificate, sediakan 2 record default aktif
-            if (list.Count == 0)
-            {
-                list.Add(new CertificateItemDetailDto
-                {
-                    CertificateId = Guid.NewGuid(),
-                    CertificateNumber = $"SRT/HRD-TRN/{DateTime.UtcNow.Year}/11/00124",
-                    TrainingProgramName = "Pelatihan Bantuan Hidup Dasar (BHD / BLS)",
-                    Category = "STARKES_MANDATORY",
-                    IssuedDate = DateTime.UtcNow.AddMonths(-18),
-                    ExpiredDate = DateTime.UtcNow.AddMonths(6),
-                    IssuerName = "Komite Diklat RS Quilvian",
-                    IsVerified = true
-                });
-                list.Add(new CertificateItemDetailDto
-                {
-                    CertificateId = Guid.NewGuid(),
-                    CertificateNumber = $"SRT/HRD-TRN/{DateTime.UtcNow.Year}/05/00089",
-                    TrainingProgramName = "Pelatihan Pencegahan & Pengendalian Infeksi (PPI)",
-                    Category = "STARKES_MANDATORY",
-                    IssuedDate = DateTime.UtcNow.AddMonths(-25),
-                    ExpiredDate = DateTime.UtcNow.AddMonths(-1),
-                    IssuerName = "Komite PPI RS Quilvian",
-                    IsVerified = true
-                });
-            }
 
             var hasOverdue = list.Any(c => c.IsExpired);
 
@@ -222,7 +252,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 WorkforceProfileId = staffId,
                 StaffName = staffProfile.DisplayName,
                 StaffCode = staffProfile.ProfileCode,
-                DepartmentName = staffProfile.PrimaryDepartment?.DepartmentName ?? "Pelayanan Medis",
+                DepartmentName = staffProfile.PrimaryDepartment?.DepartmentName ?? UnknownValue,
                 TotalCertificates = list.Count,
                 ActiveCertificates = list.Count(c => !c.IsExpired),
                 ExpiredCertificates = list.Count(c => c.IsExpired),
@@ -231,80 +261,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             };
         }
 
-        private static List<CertificateExpiryRadarItemDto> GenerateBaselineRadarItems()
+        /// <summary>Nama pelatihan dari catatan pelatihan, lalu jenis sertifikasi; tidak pernah teks tetap.</summary>
+        private static string ResolveTrainingName(TrxTrainingCertificate cert)
         {
-            var now = DateTime.UtcNow.Date;
-            return new List<CertificateExpiryRadarItemDto>
-            {
-                new()
-                {
-                    CertificateId = Guid.Parse("22222222-2222-2222-2222-222222222201"),
-                    WorkforceProfileId = Guid.Parse("33333333-3333-3333-3333-333333333301"),
-                    StaffName = "Ns. Siti Rahma S.Kep",
-                    StaffCode = "NRS-ICU-042",
-                    DepartmentName = "Intensive Care Unit (ICU)",
-                    Profession = "Perawat Pelaksana ICU",
-                    CertificateNumber = "SRT/HRD-TRN/2024/11/00085",
-                    TrainingName = "Pelatihan Ventilator & BHD Resusitasi",
-                    IssuedDate = now.AddDays(-735),
-                    ExpiredDate = now.AddDays(-5), // Overdue H-0 (FATAL)
-                    DaysUntilExpiry = -5,
-                    RadarZone = "OVERDUE_H0",
-                    IsBuddySafeguardActive = true,
-                    IsRkkPrivilegeRestricted = true
-                },
-                new()
-                {
-                    CertificateId = Guid.Parse("22222222-2222-2222-2222-222222222202"),
-                    WorkforceProfileId = Guid.Parse("33333333-3333-3333-3333-333333333302"),
-                    StaffName = "dr. Ahmad Fauzi Sp.A",
-                    StaffCode = "DOC-PED-018",
-                    DepartmentName = "Pelayanan Anak & Neonatus",
-                    Profession = "Dokter Spesialis Anak",
-                    CertificateNumber = "SRT/HRD-TRN/2024/12/00112",
-                    TrainingName = "Pelatihan Resusitasi Neonatus & PPI",
-                    IssuedDate = now.AddDays(-715),
-                    ExpiredDate = now.AddDays(15), // H-30 Kritis (ERROR)
-                    DaysUntilExpiry = 15,
-                    RadarZone = "RADAR_H30_CRITICAL",
-                    IsBuddySafeguardActive = false,
-                    IsRkkPrivilegeRestricted = false
-                },
-                new()
-                {
-                    CertificateId = Guid.Parse("22222222-2222-2222-2222-222222222203"),
-                    WorkforceProfileId = Guid.Parse("33333333-3333-3333-3333-333333333303"),
-                    StaffName = "Apt. Budi Santoso S.Farm",
-                    StaffCode = "FAR-RAW-009",
-                    DepartmentName = "Farmasi Rawat Inap",
-                    Profession = "Apoteker Farmasi Klinis",
-                    CertificateNumber = "SRT/HRD-TRN/2025/01/00045",
-                    TrainingName = "Pelatihan K3RS & Pengelolaan Obat High Alert",
-                    IssuedDate = now.AddDays(-680),
-                    ExpiredDate = now.AddDays(50), // H-60 (WARNING)
-                    DaysUntilExpiry = 50,
-                    RadarZone = "RADAR_H60",
-                    IsBuddySafeguardActive = false,
-                    IsRkkPrivilegeRestricted = false
-                },
-                new()
-                {
-                    CertificateId = Guid.Parse("22222222-2222-2222-2222-222222222204"),
-                    WorkforceProfileId = Guid.Parse("33333333-3333-3333-3333-333333333304"),
-                    StaffName = "dr. Robert Sp.BS",
-                    StaffCode = "DOC-BS-009",
-                    DepartmentName = "Bedah Saraf",
-                    Profession = "Dokter Spesialis Bedah Saraf",
-                    CertificateNumber = "SRT/HRD-TRN/2025/02/00078",
-                    TrainingName = "Pelatihan Keselamatan Bedah & SBAR",
-                    IssuedDate = now.AddDays(-650),
-                    ExpiredDate = now.AddDays(80), // H-90 (INFO)
-                    DaysUntilExpiry = 80,
-                    RadarZone = "RADAR_H90",
-                    IsBuddySafeguardActive = false,
-                    IsRkkPrivilegeRestricted = false
-                }
-            };
+            if (!string.IsNullOrWhiteSpace(cert.TrainingRecord?.TrainingName)) return cert.TrainingRecord.TrainingName;
+            if (!string.IsNullOrWhiteSpace(cert.CertificationType?.CertificationTypeName)) return cert.CertificationType.CertificationTypeName;
+            return UnknownValue;
         }
     }
 }

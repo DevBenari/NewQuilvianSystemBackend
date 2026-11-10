@@ -313,7 +313,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             {
                 rawSecurityPin = !string.IsNullOrWhiteSpace(request.CustomSecurityPin)
                     ? request.CustomSecurityPin
-                    : Random.Shared.Next(1000, 9999).ToString();
+                    : RandomNumberGenerator.GetInt32(1000, 10000).ToString();
 
                 var salt = Guid.NewGuid().ToString("N");
                 var pinHash = HashPinWithSalt(rawSecurityPin, salt);
@@ -475,7 +475,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             var clientIpSafe = string.IsNullOrWhiteSpace(clientIp) ? "127.0.0.1" : clientIp;
 
             // VR-HRS-12: Proteksi Rate Limiting & Anti-Brute-Force PIN (Max 3 kali percobaan per 30 menit)
-            var rateLimitCheck = _rateLimiter.CheckRateLimit(request.VerificationHash, clientIpSafe);
+            var rateLimitCheck = await _rateLimiter.CheckRateLimitAsync(request.VerificationHash, clientIpSafe, cancellationToken);
             if (rateLimitCheck.IsBlocked)
             {
                 _logger.LogWarning("[RATE-LIMIT-LOCK] Percobaan akses PIN untuk hash {Hash} dari IP {Ip} ditolak: {Msg}",
@@ -500,7 +500,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
             if (string.IsNullOrWhiteSpace(issuance.SecurityPinHash) || !VerifyPin(request.SecurityPin, issuance.SecurityPinHash))
             {
-                _rateLimiter.RecordFailedAttempt(request.VerificationHash, clientIpSafe);
+                await _rateLimiter.RecordFailedAttemptAsync(request.VerificationHash, clientIpSafe, cancellationToken);
                 var remaining = rateLimitCheck.RemainingAttempts - 1;
 
                 _logger.LogWarning("[PIN-INVALID] Gagal verifikasi PIN dokumen {DocNum} dari IP {Ip}. Sisa kesempatan: {Remaining}",
@@ -517,7 +517,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             }
 
             // PIN Benar: Reset rate limiter attempts
-            _rateLimiter.ResetAttempts(request.VerificationHash, clientIpSafe);
+            await _rateLimiter.ResetAttemptsAsync(request.VerificationHash, clientIpSafe, cancellationToken);
 
             var bruto = issuance.SalaryBrutoAmount ?? 0m;
             var netto = issuance.SalaryNettoAmount ?? 0m;

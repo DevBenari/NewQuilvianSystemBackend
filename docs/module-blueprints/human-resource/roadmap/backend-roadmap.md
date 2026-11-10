@@ -5788,9 +5788,9 @@ BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-310 ✅ ─> BE-HRD-311 ✅
 BE-HRD-305 ✅ [B76] ─┬─> BE-HRD-314 ✅
 BE-HRD-309 ✅ [B77] ─┘
 BE-HRD-309 ✅ [B77] ────> BE-HRD-315 ✅
-BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-316 ✅
+BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-316 🟡
 BE-HRD-312 ✅ [B78] ─┘
-BE-HRD-302 ✅ s.d. BE-HRD-316 ✅ ───────> BE-HRD-317 ✅
+BE-HRD-302 ✅ s.d. BE-HRD-316 🟡 ───────> BE-HRD-317 ✅
 ```
 
 ---
@@ -5920,9 +5920,9 @@ BE-HRD-302 ✅ s.d. BE-HRD-316 ✅ ───────> BE-HRD-317 ✅
 * **Acceptance Criteria**: Staf dapat mengajukan ulang data revisi tanpa tiket baru; tiket yang kedaluwarsa 7 hari otomatis dibatalkan sistem.
 * **Verifikasi**: Uji alur resubmit draf revisi `AT-HRD-WF-16` dan pembatalan otomatis 7 hari `AT-HRD-WF-17`.
 
-#### ✅ `BE-HRD-316` — Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`)
+#### 🟡 `BE-HRD-316` — Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`)
 * **Slice / MVP**: `S-A7-V2` / Verifikasi
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 10 November 2026** (dikerjakan ulang; klaim ✅ 9 November 2026 dicabut karena service hanya berisi komentar). 2 dari 2 acceptance criteria terpenuhi di kode: keputusan V2 kini diteruskan ke `WorkflowReferenceLifecycleService.HandleAsync` sesudah tersimpan, dan tahapan yang sudah diproses ditolak. `dotnet build` 0 error (578 warning, sama dengan garis dasar); QBE Strict 2 berkas 0 violation. Belum terpenuhi: `INT-HR-94` (pengingat Plh) belum ada source; uji `AT-HRD-WF-18`/`AT-HRD-WF-19` `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-316.md)
 * **Outcome**: Layanan pemicu eksekusi transaksi domain hilir setelah permohonan berstatus `Approved` final (`INT-HR-93`). Mengirimkan sinyal idempoten untuk: pemotongan saldo cuti di Sub-08, pemutakhiran jadwal dinas di modul roster Sub-06, pencatatan lembur di Sub-09, dan pelepasan pencairan kasbon/klaim di Sub-11. Mengaktifkan prompt pembuatan delegasi Plh jika permohonan yang disetujui adalah cuti pejabat struktural (`INT-HR-94`).
 * **Dependencies**: `BE-HRD-309`, `BE-HRD-312`
 * **Acceptance Criteria**: Domain hilir terupdate seketika setelah persetujuan akhir; eksekusi ulang tidak menyebabkan duplikasi transaksi (idempoten).

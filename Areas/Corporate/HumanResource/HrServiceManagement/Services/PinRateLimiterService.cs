@@ -1,4 +1,6 @@
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Models;
+using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services
 {
@@ -10,37 +12,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         public string? BlockedMessage { get; set; }
     }
 
+    /// <summary>
+    /// Pembatas percobaan PIN pembukaan nominal surat finansial di portal verifikasi publik (VR-HRS-12, BE-HRD-204):
+    /// maksimal 3 kali salah per dokumen per alamat IP, lalu terkunci 30 menit.
+    /// </summary>
     public interface IPinRateLimiterService
     {
-        RateLimitCheckResult CheckRateLimit(string verificationHash, string clientIp);
-        void RecordFailedAttempt(string verificationHash, string clientIp);
-        void ResetAttempts(string verificationHash, string clientIp);
+        Task<RateLimitCheckResult> CheckRateLimitAsync(string verificationHash, string clientIp, CancellationToken cancellationToken = default);
+        Task RecordFailedAttemptAsync(string verificationHash, string clientIp, CancellationToken cancellationToken = default);
+        Task ResetAttemptsAsync(string verificationHash, string clientIp, CancellationToken cancellationToken = default);
     }
 
+    /// <summary>
+    /// Implementasi pembatas percobaan PIN yang penghitungnya disimpan di tabel <c>HrdPinAttemptRecord</c>.
+    /// </summary>
+    /// <remarks>
+    /// Sebelum 10 November 2026 penghitung disimpan di <c>ConcurrentDictionary</c> statis: penyerang yang terkunci cukup
+    /// menunggu aplikasi di-restart (atau permintaannya jatuh ke instance lain) untuk mencoba lagi. Kini penguncian
+    /// bertahan di database dan berlaku untuk seluruh instance.
+    /// </remarks>
     public class PinRateLimiterService : IPinRateLimiterService
     {
-        private class AttemptRecord
-        {
-            public int FailedCount { get; set; }
-            public DateTime? LockedUntilUtc { get; set; }
-            public DateTime LastAttemptUtc { get; set; }
-        }
-
-        private static readonly ConcurrentDictionary<string, AttemptRecord> AttemptTracker = new();
         private const int MaxFailedAttempts = 3;
         private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(30);
+
+        private readonly ApplicationDbContext _dbContext;
+
+        public PinRateLimiterService(ApplicationDbContext dbContext)
+        {
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        }
 
         private static string BuildKey(string verificationHash, string clientIp)
         {
             return $"{verificationHash.Trim().ToLowerInvariant()}_{clientIp.Trim()}";
         }
 
-        public RateLimitCheckResult CheckRateLimit(string verificationHash, string clientIp)
+        public async Task<RateLimitCheckResult> CheckRateLimitAsync(string verificationHash, string clientIp, CancellationToken cancellationToken = default)
         {
             var key = BuildKey(verificationHash, clientIp);
             var now = DateTime.UtcNow;
 
-            if (AttemptTracker.TryGetValue(key, out var record))
+            var record = await _dbContext.HrdPinAttemptRecords
+                .FirstOrDefaultAsync(x => x.AttemptKey == key && !x.IsDelete, cancellationToken);
+
+            if (record != null)
             {
                 if (record.LockedUntilUtc.HasValue)
                 {
@@ -55,12 +71,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                             BlockedMessage = $"Akses pembukaan PIN finansial diblokir sementara selama 30 menit karena salah memasukkan PIN sebanyak 3 kali berturut-turut (VR-HRS-12). Sisa waktu blokir: {Math.Ceiling(remaining.TotalMinutes)} menit."
                         };
                     }
-                    else
-                    {
-                        // Masa blokir 30 menit sudah habis, reset percobaan
-                        record.FailedCount = 0;
-                        record.LockedUntilUtc = null;
-                    }
+
+                    // Masa blokir 30 menit sudah habis, reset percobaan
+                    record.FailedCount = 0;
+                    record.LockedUntilUtc = null;
+                    record.UpdateDateTime = now;
+                    await _dbContext.SaveChangesAsync(cancellationToken);
                 }
 
                 return new RateLimitCheckResult
@@ -77,34 +93,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             };
         }
 
-        public void RecordFailedAttempt(string verificationHash, string clientIp)
+        public async Task RecordFailedAttemptAsync(string verificationHash, string clientIp, CancellationToken cancellationToken = default)
         {
             var key = BuildKey(verificationHash, clientIp);
             var now = DateTime.UtcNow;
 
-            AttemptTracker.AddOrUpdate(
-                key,
-                _ => new AttemptRecord
+            var record = await _dbContext.HrdPinAttemptRecords
+                .FirstOrDefaultAsync(x => x.AttemptKey == key && !x.IsDelete, cancellationToken);
+
+            if (record == null)
+            {
+                record = new HrdPinAttemptRecord
                 {
-                    FailedCount = 1,
-                    LastAttemptUtc = now
-                },
-                (_, existing) =>
-                {
-                    existing.FailedCount++;
-                    existing.LastAttemptUtc = now;
-                    if (existing.FailedCount >= MaxFailedAttempts)
-                    {
-                        existing.LockedUntilUtc = now.Add(LockoutDuration);
-                    }
-                    return existing;
-                });
+                    Id = Guid.NewGuid(),
+                    AttemptKey = key,
+                    VerificationHash = verificationHash.Trim().ToLowerInvariant(),
+                    ClientIp = clientIp.Trim(),
+                    FailedCount = 0,
+                    CreateDateTime = now
+                };
+                _dbContext.HrdPinAttemptRecords.Add(record);
+            }
+
+            record.FailedCount++;
+            record.LastAttemptUtc = now;
+            record.UpdateDateTime = now;
+            if (record.FailedCount >= MaxFailedAttempts)
+            {
+                record.LockedUntilUtc = now.Add(LockoutDuration);
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public void ResetAttempts(string verificationHash, string clientIp)
+        public async Task ResetAttemptsAsync(string verificationHash, string clientIp, CancellationToken cancellationToken = default)
         {
             var key = BuildKey(verificationHash, clientIp);
-            AttemptTracker.TryRemove(key, out _);
+            var records = await _dbContext.HrdPinAttemptRecords
+                .Where(x => x.AttemptKey == key && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            if (records.Count == 0) return;
+
+            _dbContext.HrdPinAttemptRecords.RemoveRange(records);
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }

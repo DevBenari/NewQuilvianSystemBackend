@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Repositories;
@@ -29,15 +31,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<BenefitEnrollmentService> _logger;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
         private static readonly Regex NikRegex = new(@"^[0-9]{16}$", RegexOptions.Compiled);
         private static readonly Regex BpjsKesRegex = new(@"^[0-9]{13}$", RegexOptions.Compiled);
         private static readonly Regex BpjsTkRegex = new(@"^[0-9]{11}$", RegexOptions.Compiled);
 
-        public BenefitEnrollmentService(ApplicationDbContext dbContext, ILogger<BenefitEnrollmentService> logger)
+        public BenefitEnrollmentService(ApplicationDbContext dbContext, ILogger<BenefitEnrollmentService> logger, NumberSeriesAllocator numberAllocator)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _numberAllocator = numberAllocator;
         }
 
         // =========================================================================
@@ -412,12 +416,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
             if (parentEnrollment == null)
             {
-                // Buat placeholder parent enrollment jika belum ada
+                // Buat placeholder parent enrollment jika belum ada. Nomor kepesertaan memakai deret yang sama
+                // dengan EmployeeBenefitEnrollmentService (BEN-000001), bukan angka acak (QBE-CODE-003).
+                var enrollmentNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                    SequenceKey: BenefitNumberSeries.EnrollmentKey,
+                    Prefix: BenefitNumberSeries.EnrollmentPrefix,
+                    ResetPolicy: BenefitNumberSeries.EnrollmentResetPolicy,
+                    SequenceDigits: BenefitNumberSeries.EnrollmentDigits,
+                    ActorUserId: actorUserId == Guid.Empty ? BenefitNumberSeries.SystemFallbackUserId : actorUserId,
+                    Instant: DateTimeOffset.UtcNow), cancellationToken);
+
                 parentEnrollment = new TrxEmployeeBenefitEnrollment
                 {
                     Id = enrollmentId,
                     WorkforceProfileId = workforceProfileId,
-                    EnrollmentNumber = $"ENR-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}",
+                    EnrollmentNumber = enrollmentNumber,
                     EnrollmentStatus = "Submitted",
                     EnrollmentDate = DateTime.UtcNow,
                     EffectiveStartDate = DateTime.UtcNow,

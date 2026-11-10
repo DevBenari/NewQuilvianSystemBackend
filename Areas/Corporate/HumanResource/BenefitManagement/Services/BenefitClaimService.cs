@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -27,13 +29,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<BenefitClaimService> _logger;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
         private static readonly Regex SepRegex = new(@"^[a-zA-Z0-9]{19}$", RegexOptions.Compiled);
 
-        public BenefitClaimService(ApplicationDbContext dbContext, ILogger<BenefitClaimService> logger)
+        public BenefitClaimService(ApplicationDbContext dbContext, ILogger<BenefitClaimService> logger, NumberSeriesAllocator numberAllocator)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _numberAllocator = numberAllocator;
         }
 
         public async Task<PagedResult<BenefitClaimSummaryDto>> GetClaimsPagedAsync(
@@ -238,7 +242,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             var enrollmentId = enrollment?.Id ?? Guid.NewGuid();
             var planId = enrollment?.BenefitPlanId ?? Guid.Empty;
 
-            var claimNumber = $"CLM-COB-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
+            // Nomor urut harian dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: CLM-COB-20261110-0001
+            var claimNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: BenefitNumberSeries.CobClaimKey,
+                Prefix: BenefitNumberSeries.CobClaimPrefix,
+                ResetPolicy: BenefitNumberSeries.CobClaimResetPolicy,
+                SequenceDigits: BenefitNumberSeries.CobClaimDigits,
+                ActorUserId: actorUserId == Guid.Empty ? BenefitNumberSeries.SystemFallbackUserId : actorUserId,
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
 
             var claim = new TrxBenefitClaim
             {

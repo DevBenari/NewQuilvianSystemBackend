@@ -2,16 +2,20 @@ using QuilvianSystemBackend.Responses;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
 {
     public class BipartiteForumService : IBipartiteForumService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public BipartiteForumService(IEmployeeRelationUnitOfWork uow)
+        public BipartiteForumService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<BipartiteForumResponseDto> ScheduleMeetingAsync(ScheduleBipartiteMeetingRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -24,7 +28,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 throw new InvalidOperationException("Forum perundingan Bipartit wajib dihadiri oleh perwakilan manajemen dan serikat secara sah sesuai aturan VR-EMP-17.");
             }
 
-            var registerNumber = $"BIP-{DateTime.UtcNow:yyyy}-{Random.Shared.Next(100, 999)}";
+            // Nomor urut tahunan dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: BIP-2026-0001
+            var registerNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.Bipartite,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.Bipartite,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.Bipartite,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
 
             var entity = new TrxBipartiteNegotiationForum
             {
@@ -149,6 +160,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 Status = entity.Status,
                 CreatedAt = entity.CreateDateTime
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }

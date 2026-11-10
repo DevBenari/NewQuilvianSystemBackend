@@ -1,16 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
 {
     public class DisciplinarySuspensionService : IDisciplinarySuspensionService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public DisciplinarySuspensionService(IEmployeeRelationUnitOfWork uow)
+        public DisciplinarySuspensionService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<SuspensionResponseDto> IssueSuspensionAsync(IssueSuspensionRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -24,7 +28,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 throw new InvalidOperationException("Masa skorsing investigasi tidak boleh melampaui batas maksimal 6 bulan kalender (180 hari) sesuai aturan VR-EMP-11.");
             }
 
-            var suspensionNumber = $"SKORS/HRD/{DateTime.UtcNow:yyyyMM}/{Random.Shared.Next(100, 999)}";
+            // Bagian acak diganti nomor urut bulanan dari provider bersama (QBE-CODE-003). Bentuk surat tetap: SKORS/HRD/202611/0001
+            var allocatedSuspension = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.Suspension,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.Suspension,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.Suspension,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
+            var suspensionNumber = $"SKORS/HRD/{DateTime.UtcNow:yyyyMM}/{EmployeeRelationNumberSeries.TrailingSequence(allocatedSuspension)}";
 
             var entity = new TrxDisciplinarySuspension
             {
@@ -97,6 +109,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 ReinstatementNotes = entity.ReinstatementNotes,
                 CreatedAt = entity.CreateDateTime
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }

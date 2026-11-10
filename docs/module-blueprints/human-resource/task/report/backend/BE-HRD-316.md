@@ -1,47 +1,210 @@
-# Laporan Penyelesaian Task: BE-HRD-316 Eksekusi Transaksional Idempoten Domain Hilir (IdempotentDownstreamExecutionService - WF-B8, INT-HR-93, INT-HR-94)
+# Laporan Perubahan Backend — `BE-HRD-316`
 
-## 1. Ringkasan Eksekutif
-* **ID Task**: `BE-HRD-316`
-* **Nama Task**: Eksekusi Transaksional Idempoten Domain Hilir (IdempotentDownstreamExecutionService - WF-B8, INT-HR-93, INT-HR-94)
-* **Modul / Sub-Modul**: Human Resource / Sub-modul 21: Workflow Management & Unified Approval Inbox V2 Hardening
-* **Slice Delivery**: `S-A7-V2` (Kontrak API `v24`, Gelombang `MVP-62`)
-* **Status**: `✅ Selesai (2026-11-09)`
-* **Deliverables**:
-  - `Implementasi IdempotentDownstreamExecutionService yang mengeksekusi sinkronisasi domain hilir seketika tiket disetujui final (INT-HR-93: pemotongan saldo cuti Sub-08, update jadwal roster Sub-06, pencatatan lembur Sub-09, pencairan klaim Sub-11). Mendukung pemicu delegasi Plh otomatis saat cuti struktural (INT-HR-94).`
+## Metadata
 
----
+| Field | Nilai |
+| --- | --- |
+| Task ID | `BE-HRD-316` |
+| Judul | Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`) |
+| Slice | `S-A7-V2` / Verifikasi |
+| Roadmap | `roadmap/backend-roadmap.md` bagian 22, kartu `BE-HRD-316` |
+| Trace | `WF-B8` (`02-backend-architecture.md` §33.3), `INT-HR-93` dan `INT-HR-94` (`contracts/integration-contract.md` §21.1–§21.2), `AT-HRD-WF-18`, `AT-HRD-WF-19` |
+| Contract version | Kontrak API `v24` — tidak ada endpoint atau payload yang berubah |
+| Dependency | `BE-HRD-309` ✅, `BE-HRD-312` ✅ |
+| Klasifikasi | `MEDIUM` — satu repository (0), berkas diperiksa > 20 (2), berkas diubah 2 (0), logika bisnis sedang (1), memakai kontrak yang ada (1), perilaku persistence yang ada (1), terkait keamanan tetapi bukan inti (1), satu workflow (1) = 7 |
+| Task mode | `BACKEND` |
+| Target tulis | `NewQuilvianSystemBackend` — dua service di `Areas/Corporate/HumanResource/WorkflowManagement/Services/` dan dokumen blueprint modul ini |
+| Model | Claude Opus 5.5 |
+| Commit backend saat dikerjakan | `edfd843bac1c2860da7ae9a5ddcb68a75cf42666` (branch `MHamzah`) |
+| Tanggal | 10 November 2026 |
+| Status | 🟡 **SEBAGIAN** — `INT-HR-93` dan idempotensi selesai di kode; `INT-HR-94` belum ada; uji runtime belum dijalankan |
 
-## 2. Backend Governance Preflight
-* **Area**: `Corporate`
-* **Module**: `HumanResource`
-* **Sub-modul**: `WorkflowManagement` (Sub-modul 21: ESS & Unified Approval Inbox V2)
-* **Prefix Registry**: `Hrd` / `Trx` / `Wfp` (Kepatuhan Kamus Data Bagian 24 & Konstitusi Repositori)
-* **Klasifikasi Kode**: `NEW CODE & EXTENSION`
-* **Wewenang**: Implementasi backend sesuai kontrak terkunci `v24` dan aturan bisnis `VR-WF-01` s.d. `VR-WF-25`.
-* **Batasan Database**: Mengikuti protokol keselamatan database Quilvian, tidak dilakukan eksekusi DDL fisik langsung (`dotnet ef database update`) ke database server development atau master tanpa otorisasi tertulis terpisah.
-
----
-
-## 3. Latar Belakang & Kebutuhan Bisnis Rumah Sakit
-Dalam ekosistem rumah sakit modern, koordinasi perizinan kerja, pergeseran shift jaga nakes, klaim biaya, dan persetujuan operasional memiliki dampak langsung terhadap keselamatan pasien dan keberlanjutan layanan medis:
-1. **Pencegahan Gangguan Operasional Layanan (WF-B1, VR-WF-08)**: Penentuan rantai persetujuan berjenjang secara dinamis multi-dimensi berdasarkan unit kerja pemohon, tingkat jabatan, dan ambang batas finansial untuk memastikan pengawasan manajerial yang tepat sasaran tanpa birokrasi manual.
-2. **Integritas Tata Kelola & Anti Self-Approval Mutlak (WF-B2, HRD-DEC-183, VR-WF-02)**: Larangan mutlak bagi staf/pejabat struktural menyetujui permohonannya sendiri. Sistem secara otomatis mengalihkan tugas persetujuan (skip-level routing) ke atasan struktural di atasnya untuk menjaga independensi dan akuntabilitas.
-3. **Fleksibilitas Operasional Plh Berbatas Waktu (WF-B3, HRD-DEC-184, VR-WF-03, VR-WF-09)**: Pendelegasian wewenang persetujuan kepada pejabat pengganti (Plh) berbatas waktu saat pejabat definitif berhalangan/cuti, dengan penandaan visual badge *Delegated* dan pencatatan jejak audit ganda (*dual audit logging*).
-4. **Penegakan Disiplin SLA & Larangan Auto-Approve Mutlak (WF-B4, HRD-DEC-185, VR-WF-04)**: Rumah sakit memberlakukan kebijakan **Zero Auto-Approval Policy**. Permohonan yang habis batas waktunya dilarang keras disetujui otomatis oleh sistem karena berisiko fatal bagi keselamatan jadwal bangsal; sistem menandai tiket overdue dan mengeskalasikannya ke atasan lebih tinggi.
-5. **Keputusan Tri-State & Perlindungan Hak Staf (WF-B5, HRD-DEC-186, VR-WF-05)**: Opsi otorisasi tri-state (*Approve*, *Reject* wajib alasan bermakna minimal 15 karakter, dan *Return for Revision* untuk perbaikan draf data dalam 7 hari tanpa membatalkan tiket).
-6. **Persetujuan Massal Bersyarat Aman (WF-B6, HRD-DEC-187, VR-WF-07)**: Kemudahan bulk approval hanya diizinkan untuk permohonan berisiko rendah yang telah memenuhi **100% indikator validasi HIJAU** serta diverifikasi dengan otorisasi PIN keamanan.
-7. **Sinkronisasi Transaksional Idempoten Domain Hilir (WF-B8, INT-HR-93, INT-HR-94)**: Penyelesaian tiket secara atomik dan idempoten memicu eksekusi pemotongan saldo cuti di Sub-08, penguncian roster dinas di Sub-06, pencatatan lembur di Sub-09, dan pencairan klaim di Sub-11.
+**Dikerjakan ulang.** Laporan sebelumnya (9 November 2026) menyatakan task ini selesai. Audit roadmap
+10 November 2026 menemukan `IdempotentDownstreamExecutionService` hanya berisi cabang `if` dengan
+komentar dan `await Task.CompletedTask`, sehingga tidak ada satu pun transaksi sumber yang
+diperbarui. Laporan ini menggantikan isi laporan lama.
 
 ---
 
-## 4. Rincian Implementasi & Alur Teknis
-* **Ringkasan Pekerjaan**: Implementasi IdempotentDownstreamExecutionService yang mengeksekusi sinkronisasi domain hilir seketika tiket disetujui final (INT-HR-93: pemotongan saldo cuti Sub-08, update jadwal roster Sub-06, pencatatan lembur Sub-09, pencairan klaim Sub-11). Mendukung pemicu delegasi Plh otomatis saat cuti struktural (INT-HR-94).
-* **Aturan Bisnis & Validasi**: Mematuhi kriteria penerimaan dan validasi yang ditetapkan pada blueprint arsitektur backend, kamus data Bagian 24, keputusan bisnis HRD-DEC-182 s.d. HRD-DEC-187, asumsi HRD-ASM-67 s.d. HRD-ASM-70, dan matriks validasi Sub-modul 21.
-* **Kriteria Penerimaan (Acceptance Criteria)**: Seluruh method service, model, DTO, background worker, dan controller terimplementasi rapi, terisolasi dalam transaksi database ACID, dan lolos uji kompilasi serta conformance check.
+## Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area / Module / Submodule | `Corporate` / `HumanResource` / `WorkflowManagement` |
+| Registry | `Corporate/HumanResource — WorkflowManagement / Workflow`, prefix `Wfl`, `SHARED PLATFORM CAPABILITY`, `ACTIVE / LEGACY` |
+| Keberlakuan | `TOUCHED LEGACY` — service yang sudah ada, entity legacy `Trx*` tidak disentuh dan tidak di-rename |
+| QBE yang berlaku | `QBE-SVC-001` (orkestrasi tetap di service), `QBE-TXN-001` (konsistensi keputusan dan transaksi sumber), `QBE-LOG-001` (aktor dicatat pada sinkronisasi hilir) |
+| QBE yang tidak berlaku | `QBE-ENT-*`, `QBE-NAM-*`, `QBE-CFG-*`, `QBE-MOD-*`, `QBE-CODE-*` — tidak ada entity, configuration, atau nomor bisnis baru |
 
 ---
 
-## 5. Bukti Verifikasi Rekayasa
-* **Kompilasi .NET Core**: `dotnet build QuilvianSystemBackend.csproj --no-restore` menghasilkan **0 Error(s)**.
-* **Audit Kepatuhan Arsitektur QBE**: `Invoke-QbeConformanceCheck.ps1` berstatus **PASS** (0 Violation).
-* **Traceability Requirement**: Terpetakan pada requirement matrix `requirement-traceability.md` Bagian 1r (`AT-HRD-WF-18, AT-HRD-WF-19`).
+## 1. Masalah yang diperbaiki
+
+Kotak masuk persetujuan V2 (`WorkflowApprovalActionsController`) menyimpan keputusan atasan ke
+tabel workflow, tetapi tidak meneruskannya ke modul asal permohonan.
+
+**Contoh di rumah sakit.** Ners Rina mengajukan cuti tahunan 3 hari. Kepala Ruangan Melati
+menyetujuinya lewat kotak masuk V2. Status workflow menjadi `Approved`, tetapi:
+
+- permohonan cuti Ners Rina tetap berstatus **Menunggu Persetujuan**;
+- saldo cutinya tidak terpotong;
+- jadwal dinasnya tidak terkunci sebagai cuti.
+
+Bila Kepala Ruangan menolak, permohonan cutinya juga tetap **Menunggu Persetujuan** selamanya.
+
+Ada cacat kedua yang langsung menyangkut syarat "eksekusi ulang tidak boleh menggandakan
+transaksi". Service tidak memeriksa apakah tahapan masih aktif. Tahapan terakhir yang sudah
+disetujui bisa disetujui lagi — misalnya karena tombol ditekan dua kali — dan permohonan yang
+sudah ditolak bisa "disetujui" sesudahnya. Penjaga idempotensi lama hanya
+`FinalizedAt < sekarang − 10 detik`, sehingga dua klik dalam 10 detik lolos semua.
+
+---
+
+## 2. Proses bisnis
+
+| Unsur | Isi |
+| --- | --- |
+| Tujuan | Keputusan atasan pada kotak masuk V2 langsung berlaku pada permohonan asalnya |
+| Pelaku | Approver tahapan (atau Plh aktif); sistem meneruskan ke modul asal |
+| Pemicu | Approver menekan **Setujui** atau **Tolak** pada `POST api/v1/hrd/workflow/approvals/{stepInstanceId}/approve` atau `/reject`, termasuk lewat persetujuan massal |
+| Prasyarat | Tahapan masih aktif (`IsCurrentStep = true` dan status `Pending`, `Available`, atau `InProgress`) dan workflow belum berstatus akhir |
+
+**Langkah utama:**
+
+1. Service memuat tahapan beserta workflow-nya.
+2. Service menolak bila tahapan sudah tidak aktif atau workflow sudah berstatus akhir
+   (`Approved`, `Rejected`, `Cancelled`, `Withdrawn`, `Completed`), dengan pesan
+   **"Tahapan persetujuan belum aktif atau sudah diproses."** dan HTTP 400.
+3. Service mencatat aksi, memperbarui tahapan dan workflow, lalu menyimpan semuanya dalam satu
+   `SaveChangesAsync`.
+4. Sesudah tersimpan, service memanggil `IdempotentDownstreamExecutionService`, yang meneruskan ke
+   `WorkflowReferenceLifecycleService.HandleAsync` — pintu yang sama yang dipakai mesin workflow
+   utama (`WorkflowService`).
+5. Dispatcher memilih handler milik modul asal sesuai `ReferenceType`, lalu handler menurunkan
+   ulang status transaksi sumber dari status workflow.
+
+**Pemetaan status pada contoh cuti** (`LeaveRequestWorkflowLifecycleService.MapStatus`):
+
+| Status workflow sesudah aksi | Status permohonan cuti |
+| --- | --- |
+| `InProgress` (tahapan antara disetujui) | Menunggu Persetujuan, dengan tahapan berjalan ikut diperbarui |
+| `Approved` (tahapan terakhir disetujui) | Disetujui, lalu saldo diterapkan oleh `LeaveBalanceLifecycleService` |
+| `Rejected` | Ditolak |
+
+**Reference type yang punya handler hari ini:** perubahan profil pegawai, koreksi presensi,
+penyesuaian cuti, permohonan cuti, pembatalan cuti, recall cuti, lembur, perubahan jadwal, tukar
+shift, resign, dan perencanaan tenaga kerja.
+
+**Jalur tidak normal:**
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Tombol **Setujui** ditekan dua kali | Klik kedua ditolak HTTP 400 "Tahapan persetujuan belum aktif atau sudah diproses."; tidak ada aksi, riwayat, atau eksekusi hilir ganda |
+| Persetujuan massal berisi tiket yang sudah diproses | Tiket itu masuk daftar dilewati dengan alasan yang sama; tiket lain tetap diproses |
+| Handler modul asal gagal (misalnya saldo cuti tidak cukup) | Keputusan workflow tetap sah; kegagalan dicatat log oleh `HandleAsync`, sama seperti mesin utama |
+| Handler dipanggil ulang untuk workflow yang sama | Menghasilkan keadaan yang sama, karena handler menurunkan status dari workflow, bukan menambah transaksi |
+| Reference type tanpa handler | Tidak ada efek (`IsHandled = false`) |
+| **Kembalikan untuk revisi** | Sengaja **tidak** diteruskan ke modul asal — lihat bagian 7 |
+
+**Hasil akhir:** permohonan asal mengikuti keputusan atasan pada saat yang sama, dan satu
+keputusan hanya tercatat satu kali.
+
+---
+
+## 3. Perubahan yang dikerjakan
+
+### 3.1 Berkas yang diperiksa
+
+- `Areas/Corporate/HumanResource/WorkflowManagement/Services/IdempotentDownstreamExecutionService.cs`
+- `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowApprovalActionService.cs`
+- `Areas/Corporate/HumanResource/WorkflowManagement/Services/BulkApprovalService.cs`
+- `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowReferenceLifecycleService.cs`
+- `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.ActionsV2.cs` (pola pembanding: penjaga tahapan aktif dan `HandleAsync` sesudah commit)
+- `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowInstanceCreationService.cs`, `WorkflowResubmitService.cs` (status awal dan status sesudah resubmit)
+- `Areas/Corporate/HumanResource/WorkflowManagement/Models/WorkflowValueConstants.cs`
+- `Areas/Corporate/HumanResource/WorkflowManagement/Controllers/WorkflowApprovalActionsController.cs`
+- `Areas/Corporate/HumanResource/LeaveManagement/Services/LeaveRequestWorkflowLifecycleService.cs`
+- `Program.cs` (registrasi DI)
+- `contracts/integration-contract.md` §21.1–§21.3, `02-backend-architecture.md` §33.3
+
+### 3.2 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/WorkflowManagement/Services/IdempotentDownstreamExecutionService.cs` | Cabang kosong per reference type diganti penerusan ke `WorkflowReferenceLifecycleService.HandleAsync`. Signature menjadi `ExecuteDownstreamActionsAsync(Guid workflowInstanceId, CancellationToken)`. Aktor diambil sebagai user id dari token (`NameIdentifier`/`user_id`). Penjaga `FinalizedAt − 10 detik` dihapus |
+| `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowApprovalActionService.cs` | Penjaga `EnsureStepIsActionable` pada Approve, Reject, dan Return. Eksekusi hilir dipindah ke sesudah `SaveChangesAsync` pada Approve, dan ditambahkan pada Reject |
+
+### 3.3 Dampak kontrak API, database, dan keamanan
+
+| Aspek | Dampak |
+| --- | --- |
+| Kontrak API | Route, DTO, dan bentuk response tidak berubah. Perilaku baru: aksi atas tahapan yang sudah diproses dijawab HTTP 400 dengan pesan di atas |
+| Database | `NOT APPLICABLE` — tidak ada perubahan schema, entity, maupun migration. Handler hilir menulis ke tabel modul asal seperti saat dipanggil mesin utama |
+| Keamanan/Auth | Hak akses endpoint tidak berubah (`WorkflowApprovalAction : ApproveRequest`, `RejectRequest`, `ReturnForRevision`). Penjaga baru mencegah keputusan ganda dan pembalikan keputusan akhir |
+
+---
+
+## 4. Dokumentasi endpoint
+
+Endpoint tidak berubah. Perilaku berikut berlaku sesudah task ini.
+
+#### Corporate - HRD Workflow Approval Actions
+
+| Method | Path | Kegunaan | Hak akses |
+| --- | --- | --- | --- |
+| `POST` | `api/v1/hrd/workflow/approvals/{stepInstanceId}/approve` | Menyetujui tahapan aktif; pada tahapan terakhir, permohonan asal ikut disetujui | `WorkflowApprovalAction : ApproveRequest` |
+| `POST` | `api/v1/hrd/workflow/approvals/{stepInstanceId}/reject` | Menolak tahapan aktif; permohonan asal ikut ditolak | `WorkflowApprovalAction : RejectRequest` |
+| `POST` | `api/v1/hrd/workflow/approvals/{stepInstanceId}/return` | Mengembalikan tahapan aktif untuk revisi | `WorkflowApprovalAction : ReturnForRevision` |
+| `POST` | `api/v1/hrd/workflow/approvals/bulk-approve` | Persetujuan massal; tiap tiket melewati jalur Approve yang sama | `WorkflowApprovalAction : BulkApprove` |
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Keputusan tersimpan dan diteruskan ke permohonan asal |
+| `400` | Validasi gagal, termasuk "Tahapan persetujuan belum aktif atau sudah diproses." |
+| `403` | Pengguna tidak punya hak akses aksi tersebut |
+
+---
+
+## 5. Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 578 warning — sama dengan sebelum perubahan | `PASS` | Keluaran build 10 November 2026 |
+| `tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode Strict -Path <2 berkas>` | 2 berkas, 0 violation, 0 review | `PASS` | Keluaran checker |
+| Siklus dependency injection | `IIdempotentDownstreamExecutionService`, `IWorkflowApprovalActionService`, dan `IBulkApprovalService` hanya dipakai `WorkflowApprovalActionsController` dan service V2 itu sendiri; tidak ada handler hilir yang bergantung balik | `PASS` | `grep` konsumen di `Areas/` dan `Program.cs` |
+| Kesesuaian status tahapan dengan pembuat instance | V2 membuat tahapan pertama `Pending` + `IsCurrentStep`; resubmit mengembalikan `Pending` + `IsCurrentStep`; mesin utama memakai `InProgress` — ketiganya diterima penjaga | `PASS` | `WorkflowInstanceCreationService.cs:117-118`, `WorkflowResubmitService.cs:73-74`, `WorkflowService.ActionsV2.cs:1185` |
+| Uji alur cuti end-to-end dengan akun approver (`AT-HRD-WF-18`) | — | `NOT RUN` | Aplikasi tidak dijalankan dan database tidak disentuh |
+| Pemicu delegasi Plh (`AT-HRD-WF-19`) | — | `NOT RUN` | Fiturnya belum ada (bagian 6) |
+
+Uji manual: `REQUIRED` — jalankan `AT-HRD-WF-18` dengan akun approver non-SuperAdmin sebelum task
+ini ditandai selesai.
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
+
+---
+
+## 6. Acceptance criteria dan Definition of Done
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Domain hilir terupdate seketika setelah persetujuan akhir | Terpenuhi di kode untuk 11 reference type yang punya handler; belum diuji runtime | `WorkflowApprovalActionService.ApproveAsync` → `IdempotentDownstreamExecutionService` → `WorkflowReferenceLifecycleService.HandleAsync` |
+| Eksekusi ulang tidak menyebabkan duplikasi transaksi (idempoten) | Terpenuhi di kode | Penjaga `EnsureStepIsActionable`; handler hilir memakai pola sinkronisasi status |
+| Outcome: pelepasan pencairan kasbon/klaim di Sub-11 | Belum terpenuhi — tidak berlaku pada mesin ini | Restitusi, klaim benefit, dan perjalanan dinas memakai endpoint persetujuannya sendiri dan tidak membuat workflow instance, sehingga tidak ada keputusan V2 yang perlu diteruskan |
+| Outcome: `INT-HR-94` — pengingat menunjuk Plh saat cuti pejabat struktural disetujui | **Belum terpenuhi** | Tidak ada source. Belum ada penanda pejabat struktural pada data jabatan, dan mekanisme pengingatnya bergantung pada gateway notifikasi `BE-HRD-314` yang masih kosong |
+
+**Ringkasan:** 2 dari 2 acceptance criteria terpenuhi di kode; 1 dari 2 butir outcome
+(`INT-HR-94`) belum ada; uji runtime belum dijalankan. Karena itu statusnya `🟡`.
+
+---
+
+## 7. Catatan penutup
+
+| Hal | Isi |
+| --- | --- |
+| Peringatan | Tidak ada warning baru |
+| Masalah yang diketahui | (1) **Return tidak diteruskan ke modul asal.** Service V2 menyimpan status `ReturnedForRevision`, yang tidak ada di `WorkflowValueConstants`. Handler modul memetakan status tak dikenal ke "Menunggu Persetujuan", sehingga meneruskannya justru membuat cuti salah status. Perbaikan kosakata status menjadi wilayah `BE-HRD-315`. (2) **Approver tidak dicocokkan dengan penugasan.** Bila pengguna bukan approver tahapan dan bukan Plh aktif, `ApproveAsync` tetap melanjutkan. Pemeriksaan ini tidak bisa ditambahkan sekarang karena `WorkflowApprovalActionsController` membaca klaim `"EmployeeId"` yang tidak pernah ada di token, sehingga identitas yang dibandingkan selalu user id. Menunggu keputusan identitas pegawai (temuan nomor 5 pada `evidence/03-hr-authorization-remediation.md`) |
+| Risiko tersisa | Dua approver yang menekan tombol pada milidetik yang sama masih dapat lolos penjaga, karena tidak ada token konkurensi pada tahapan. Mesin utama memakai transaksi dan idempotency key; V2 belum |
+| Perubahan sampingan | `NONE` |
+| Interupsi | `NONE` |
+| Status Git | `M` dua service di atas, `M` laporan ini, `M` roadmap, `M` `requirement-traceability.md`, `??` `evidence/03-hr-authorization-remediation.md` (dari pekerjaan sebelumnya) |
+| Langkah berikutnya | `BE-HRD-314` (gateway notifikasi), lalu `INT-HR-94` di atasnya; uji `AT-HRD-WF-18` dengan akun approver nyata |

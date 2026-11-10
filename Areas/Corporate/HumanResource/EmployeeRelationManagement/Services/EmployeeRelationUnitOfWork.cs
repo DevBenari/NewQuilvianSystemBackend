@@ -29,6 +29,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         public IQueryable<MstEmployee> Employees => _context.MstEmployees;
         public IQueryable<MstWorkforceProfile> WorkforceProfiles => _context.MstWorkforceProfiles;
 
+        public async Task<Guid?> FindUserIdByEmailAsync(string? email, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return null;
+            var normalized = email.Trim().ToUpperInvariant();
+            var userId = await _context.Users.AsNoTracking()
+                .Where(u => u.NormalizedEmail == normalized || u.NormalizedUserName == normalized)
+                .Select(u => (Guid?)u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            return userId;
+        }
+
         public async Task AddIncidentReportAsync(TrxDisciplinaryIncidentReport incidentReport, CancellationToken cancellationToken = default)
         {
             await _context.TrxDisciplinaryIncidentReports.AddAsync(incidentReport, cancellationToken);

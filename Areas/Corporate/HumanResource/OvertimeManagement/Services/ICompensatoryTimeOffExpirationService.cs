@@ -4,6 +4,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 {
     public interface ICompensatoryTimeOffExpirationService
     {
-        Task<CompensatoryExpirationRunResultDto> ExecuteExpirationRunAsync(CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Menghanguskan tiket CTO jalur modern yang sudah melewati masa berlaku 90 hari.
+        /// </summary>
+        /// <param name="actorUserId">Pengguna atau aktor sistem yang memicu eksekusi; dicatat pada mutasi buku besar.</param>
+        Task<CompensatoryExpirationRunResultDto> ExecuteExpirationRunAsync(Guid actorUserId, CancellationToken cancellationToken = default);
     }
 }

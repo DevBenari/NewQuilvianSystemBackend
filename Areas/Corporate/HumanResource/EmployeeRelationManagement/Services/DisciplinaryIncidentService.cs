@@ -2,16 +2,20 @@ using QuilvianSystemBackend.Responses;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services
 {
     public class DisciplinaryIncidentService : IDisciplinaryIncidentService
     {
         private readonly IEmployeeRelationUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public DisciplinaryIncidentService(IEmployeeRelationUnitOfWork uow)
+        public DisciplinaryIncidentService(IEmployeeRelationUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<IncidentReportResponseDto> ReportIncidentAsync(CreateIncidentReportRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
@@ -38,7 +42,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 }
             }
 
-            var incidentNumber = $"INC-{DateTime.UtcNow:yyyyMM}-{Random.Shared.Next(1000, 9999)}";
+            // Nomor urut dari provider bersama, bukan angka acak (QBE-CODE-003). Bentuk: INC-202611-0001
+            var incidentNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: EmployeeRelationNumberSeries.Keys.Incident,
+                Prefix: EmployeeRelationNumberSeries.Prefixes.Incident,
+                ResetPolicy: EmployeeRelationNumberSeries.ResetPolicies.Incident,
+                SequenceDigits: EmployeeRelationNumberSeries.SequenceDigits,
+                ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
 
             var entity = new TrxDisciplinaryIncidentReport
             {
@@ -169,6 +180,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                     CreatedAt = i.CreateDateTime
                 }).ToList()
             };
+        }
+
+        private async Task<Guid> ResolveActorUserIdAsync(string actorEmail, CancellationToken cancellationToken)
+        {
+            var userId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            return userId ?? EmployeeRelationNumberSeries.SystemFallbackUserId;
         }
     }
 }
