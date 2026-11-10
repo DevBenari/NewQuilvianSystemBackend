@@ -144,6 +144,38 @@ memakai tombol ikon "Keluar" sekali klik; Kiosk (disentuh pasien) memakai penjag
 
 Verifikasi: `npx eslint` 0 error, 0 warning; grep anti-regresi bersih; uji layar `uji-tombol-keluar.mjs` K2–K3 `PASS` — tombol di kanan atas (x 1043, y 50 pada 1280×800); sekali ketuk dan tahan 1,5 detik → tetap di tablet; tahan 3,6 detik → `/login`, cookie sesi terhapus; akun tetap bisa login lagi dengan kata sandi yang sama. Bukti `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-keluar-20261110/layar-2026-11-10T03-01-25-144Z/` (`Tablet-header-keluar.png`). Build produksi belum memuat perubahan ini.
 
+### 3.5 Revisi 10 November 2026 sore — join ulang grup hub tablet
+
+**Temuan.** Uji ulang tablet sesudah merge backend (15.14 WIB) gagal sekali di P4. Sari mengklaim (`200`),
+tetapi "‹nama› menuju" tidak tampil dalam 5 detik; tablet baru memuat `/current` 25 detik kemudian. Log
+backend 08:15:19.996 UTC mencatat `JoinNurseViewBedTablet` gagal karena Npgsql timeout DB dev, sementara
+WebSocket tetap tersambung. `joinTablet` menelan galat (`.catch(() => false)`) dan join ulang hanya dicoba
+bila status `disconnected`. Akibatnya tablet di luar grup `nurse-view-bed-tablet:{id}` sampai sambung
+ulang berikutnya, dan hanya muat ulang berkala (15–45 detik) yang menolong. Putaran ulang saat DB sehat:
+P4 0,13 detik. Rizki memilih memperbaikinya sekarang.
+
+**Perbaikan** (disetujui Rizki 10 Nov 2026):
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/hooks/nurse-view-bed-tablet/use-nurse-view-bed-tablet.jsx` | `realtimeJoinedRef` mencatat hasil join: benar hanya bila `joinNurseViewBedTablet()` berhasil, salah bila galat atau status selain `connected`. `realtimeJoiningRef` mencegah dua join bersamaan pada koneksi yang sama. Muat ulang berkala dan event `online` memanggil join lagi selama belum tergabung (sebelumnya hanya bila `disconnected`) |
+
+Pola yang sama dipasang di hook papan TV (`FE-NV-007` §3.4). Di server, `JoinNurseViewBedTablet` hanya
+membaca lalu `AddToGroupAsync`, jadi join ulang idempoten. Klien bersama `queue-realtime-client.js` tidak
+diubah. `UI GATE: PASS — tanpa elemen UI baru.`
+
+**Verifikasi.** `npx eslint` 2 hook: 0 error, 0 warning; CRLF. Uji `uji-join-ulang-20261110/uji-join-ulang.mjs`
+memakai Playwright `routeWebSocket`: join pertama dijawab galat tiruan dan koneksi tetap terbuka. Hasil 7/7
+`PASS` (15.50 WIB):
+- tablet join lagi 44,4 detik sesudah gagal, di koneksi yang sama, dan server menjawab berhasil;
+- Sari mengklaim → frame `Claimed` tiba sebelum respons HTTP klaim, "‹nama› menuju" tampil 0,14 detik;
+- 65 detik berikutnya tanpa join tambahan.
+
+Regresi `uji-tablet-layar.mjs` 11/11 (P4 0,11 detik, P10 44 detik). Putaran pertama uji join ulang 5/7
+karena skrip sendiri: `psql` sinkron saat DB lambat membekukan perantara WebSocket di proses yang sama
+±42 detik, lalu server menutup koneksi (`ClientTimeoutInterval`). Skrip diubah ke query asinkron. Build
+produksi belum memuat perubahan ini.
+
 ## 4. State yang ditangani di layar
 
 | State | Yang dilihat pengguna |
@@ -177,6 +209,8 @@ Realtime: `JoinNurseViewBedTablet` dan event `NurseViewPatientCallChanged` (`FE-
 | `npx eslint` seluruh berkas tablet | 0 error, 0 warning |
 | Grep anti-regresi (`ui-consistency-checklist` G) | Warna literal 0; `<button>` mentah 0; `<table>` 0; utility Bootstrap 0; `!important` 0. Typography: 36 deklarasi, semuanya pada elemen milik view (kelas yang dipasang ke `BaseButton` hanya berisi tata letak). Inline style: 1, lebar bilah progres yang dinamis |
 | Uji layar ukuran tablet dan putus jaringan (`uji-fe-nv-009-011-20261110/uji-tablet-layar.mjs`) | 11/11 lulus (putaran bersih) | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T02-27-14-957Z/` (JSON, tangkapan layar, rekaman video) |
+| Uji ulang sesudah merge backend (backend 14.41 dari DLL 14.37), 10 Nov sore | 15.14 WIB 10/11: P4 gagal saat `JoinNurseViewBedTablet` timeout DB → temuan §3.5. 15.19 WIB 11/11 (P4 0,13 detik) | `PASS` (putaran DB sehat) | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T08-14-12-391Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T08-19-28-642Z/` |
+| Revisi join ulang (§3.5): `uji-join-ulang.mjs` J1–J7, lalu regresi tablet | 7/7; regresi 11/11 | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-join-ulang-20261110/layar-2026-11-10T08-50-41-396Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T08-58-02-324Z/` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest.`
 `MANUAL TEST: PASS — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
@@ -199,5 +233,5 @@ Realtime: `JoinNurseViewBedTablet` dan event `NurseViewPatientCallChanged` (`FE-
 | Hal | Isi |
 | --- | --- |
 | Risiko | Pasien mengira panggilan terkirim padahal belum; pita gagal kirim tampil paling lambat 4 detik tanpa jawaban. Perilaku tablet sungguhan (layar mati, mode kiosk) menunggu `NV-UNK-007` |
-| Status Git | Sudah di-commit Rizki |
-| Langkah berikutnya | — |
+| Status Git | Sudah di-commit Rizki; revisi §3.5 di-commit dan di-push agent atas permintaan Rizki: `554e404d0` (`RizkiV2`) |
+| Langkah berikutnya | Rizki: build frontend yang memuat revisi §3.5 |

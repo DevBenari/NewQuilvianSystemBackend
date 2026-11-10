@@ -215,7 +215,7 @@ flowchart LR
     BENV012["✅ BE-NV-012<br/>Konsol: daftar dan aksi perawat"]:::selesai
     BENV013["✅ BE-NV-013<br/>Tutup otomatis saat pindah atau pulang"]:::selesai
     BENV014["✅ BE-NV-014<br/>Sinyal realtime dan grup hub"]:::selesai
-    BENV015["🟡 BE-NV-015<br/>Strip TV dan penanda kartu"]:::sebagian
+    BENV015["✅ BE-NV-015<br/>Strip TV dan penanda kartu"]:::selesai
     BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::selesai
 
     BENV008 --> BENV009
@@ -292,7 +292,7 @@ ringkas per berkas.
 | ✅ `BE-NV-012` | Konsol: daftar dan aksi perawat | `FR-NV-039`, `041`, `044`, `049`, `050`; `NV-DEC-038`, `040`, `043`, `044`, `053`; `AD-06` | `0.2.0` api §7 | `NvwPatientMasking`, `ApplicationUser.DisplayName`, service ambang (`BE-NV-016`) | Controller (6 endpoint) + query konsol + klaim/ambil alih/lepas/tutup; `VAL-NV-33`–`36`, `39` | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP dua akun perawat + paralel; pencarian identitas di JSON | Identitas bocor; klaim ganda / Rizki | Kartu |
 | ✅ `BE-NV-013` | Tutup otomatis saat pasien pindah atau pulang | `FR-NV-043`, `044`; `NV-DEC-046`, `050`, `052`, `057`; `AD-05` | `0.2.1` state §5 (`NV-DEC-057`), integration R2 §5 | Pola `AttendanceSchedulerHostedService`, enum `InpBedPlacementEndReason` | Reconciliation service + hosted service 30 detik | `BE-NV-011` | Kartu | Pindah/pulang pasien uji lewat layar Rawat Inap; ukur jeda lewat `SELECT` | Arti `EndReason` milik Rawat Inap → `TLM-NV-002` / Rizki | Kartu |
 | ✅ `BE-NV-014` | Sinyal realtime panggilan dan grup hub | `FR-NV-048`; `NV-AC-028`; `NV-DEC-044`, `047`; `VAL-NV-41` | `0.2.0` api §10 | `NvwRealtimeService`, `QueueHub#JoinAdmissionQueueBoard`, `#JoinNurseViewFloor` | `NotifyPatientCallChangedAsync` + pemanggilnya; 4 method hub | `BE-NV-012`, `BE-NV-013` | Kartu | Uji hub TV + konsol + tablet | Regresi grup hub lain / Rizki, syarat lead | Kartu |
-| 🟡 `BE-NV-015` | Strip TV dan penanda kartu | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048` | `0.2.0` api §9 | `NvwDisplayRuntimeController`, `NvwFloorBoardQueryService`, service ambang (`BE-NV-016`) | `GET /active-calls`, query strip, `ActiveCallPriority` di papan | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP akun TV dan tablet; perbandingan JSON `/board` | Identitas bocor di strip; regresi papan / Rizki | Kartu |
+| ✅ `BE-NV-015` | Strip TV dan penanda kartu | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048` | `0.2.0` api §9 | `NvwDisplayRuntimeController`, `NvwFloorBoardQueryService`, service ambang (`BE-NV-016`) | `GET /active-calls`, query strip, `ActiveCallPriority` di papan | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP akun TV dan tablet; perbandingan JSON `/board` | Identitas bocor di strip; regresi papan / Rizki | Kartu |
 | ✅ `BE-NV-016` | API ambang lama menunggu | `FR-NV-053`; `NV-DEC-048`; `G-15` | `0.2.0` api §8 | Pola ganti-seluruh `NvwVitalSignIntervalService` | Service (termasuk `ResolveWaitLevel`) + controller + DTO; `VAL-NV-40` | `BE-NV-008` | Kartu | HTTP isi → ganti → cabut | Angka bawaan terselip / Rizki | Kartu |
 
 ### Kartu task revision 2
@@ -417,11 +417,11 @@ ringkas per berkas.
 | Risiko/pemilik | Regresi grup hub lain / Rizki, syarat lead `NV-DEC-030`/`056`. Kebocoran identitas lewat payload; dicegah AC-2 |
 | DoD | AC-1–6 terpetakan ke source; build Rizki lulus; log uji hub tersimpan; laporan `task/report/backend/BE-NV-014.md` |
 
-#### 🟡 BE-NV-015 — Strip Panggilan Aktif dan penanda kartu di papan TV
+#### ✅ BE-NV-015 — Strip Panggilan Aktif dan penanda kartu di papan TV
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 **SEBAGIAN 10 November 2026.** perilaku terbukti runtime pagi ini (uji HTTP S1–S11 11/11, bersama uji hub `BE-NV-014`). Perbaikan otorisasi sesudah uji: CI integration gagal di invarian [2] `tools/authorization-verifier` karena `NvwDisplayRuntimeController` memakai `[AccessController]`/`[AccessAction]` tanpa `[AccessPermission]` (warisan `BE-NV-003`/`005`, lalu `GetActiveCalls` dari task ini). Atas persetujuan Rizki, `[AccessController]` dan ketiga `[AccessAction]` dibuang, policy `NurseViewDisplayRead` tetap (pola `NvwBedTabletRuntimeController`); konstanta `NurseViewPermissions.DisplayRuntime` dihapus. Diff −19/+0, QBE Strict `PASS` (2 berkas). Belum: `dotnet build` oleh Rizki, verifier otorisasi lokal, dan uji ulang singkat TV/tablet. Laporan: [`BE-NV-015.md`](../task/report/backend/BE-NV-015.md) |
+| Status | ✅ **SELESAI 10 November 2026.** AC 6/6 terbukti (AC-6 lewat penelusuran source sesuai kartu). Uji HTTP S1–S11 11/11 pagi (bersama uji hub `BE-NV-014`). Lalu revisi otorisasi: CI integration gagal di invarian [2] `tools/authorization-verifier` karena `NvwDisplayRuntimeController` memakai `[AccessController]`/`[AccessAction]` tanpa `[AccessPermission]`. Atas persetujuan Rizki keduanya dibuang, policy `NurseViewDisplayRead` tetap (pola `NvwBedTabletRuntimeController`), commit `5a7a0cf2`, masuk `rizkiG` lewat merge `160b1008`. Sesudah build Rizki (DLL 14.37), verifier otorisasi lokal `PASS` (pernyataan Rizki) dan uji ulang gabungan 14.44 WIB 20/20 `PASS`: TV `200` di `/board` dan `/active-calls`, tablet, Sari, dan DOKTER `403`; log nol rahasia dan token. Riwayat: 🟡 SEBAGIAN 10 Nov 2026 pagi. Laporan: [`BE-NV-015.md`](../task/report/backend/BE-NV-015.md) |
 | Gelombang | 5 · `MVP-8` · `EPIC NV-07` |
 | Outcome | TV mendapat daftar panggilan aktif lantainya tanpa identitas pasien, dan kartu bed yang sedang memanggil membawa penanda prioritas |
 | Trace | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048`; `NV-AC-030`, `031`, `037` (sisi TV); `VAL-NV-14` × tablet pada `/active-calls`; `UAT-21`, `22`; `NFR-001`, `013`; `02-backend-architecture.md` R2.4.5 (`NvwFloorBoardQueryService`), R2.4.6 |

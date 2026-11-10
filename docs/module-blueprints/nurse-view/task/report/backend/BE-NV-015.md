@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b83e8f05` (branch `rizkiG`; satu commit di atas `1e17628c`, hanya `requirement-traceability.md`); working tree bersih sebelum task |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 10 November 2026** — perilaku terbukti runtime pagi ini (uji HTTP S1–S11 11/11, bersama uji hub `BE-NV-014`). Perbaikan otorisasi sesudah uji: CI integration gagal di invarian [2] `tools/authorization-verifier` karena `NvwDisplayRuntimeController` memakai `[AccessController]`/`[AccessAction]` tanpa `[AccessPermission]` (warisan `BE-NV-003`/`005`, lalu `GetActiveCalls` dari task ini). Atas persetujuan Rizki, `[AccessController]` dan ketiga `[AccessAction]` dibuang, policy `NurseViewDisplayRead` tetap (pola `NvwBedTabletRuntimeController`); konstanta `NurseViewPermissions.DisplayRuntime` dihapus. Diff −19/+0, QBE Strict `PASS` (2 berkas). Belum: `dotnet build` oleh Rizki, verifier otorisasi lokal, dan uji ulang singkat TV/tablet |
+| Status | ✅ **SELESAI 10 November 2026** — AC 6/6 terbukti. Uji HTTP S1–S11 11/11 pagi ini (bersama uji hub `BE-NV-014`); lalu perbaikan otorisasi runtime TV (§3.4): `[AccessController]` dan ketiga `[AccessAction]` dibuang, policy `NurseViewDisplayRead` tetap, karena CI integration gagal di invarian [2] `tools/authorization-verifier`. Sesudah merge `160b1008` dan build Rizki (DLL 14.37), verifier otorisasi lokal `PASS` (pernyataan Rizki) dan uji ulang gabungan 14.44 WIB **20/20** `PASS`: TV `/board` dan `/active-calls` `200`, tablet `403`, Sari dan DOKTER `403`. Riwayat: 🟡 SEBAGIAN 10 Nov 2026 pagi, menunggu build, verifier, dan uji ulang sesudah perbaikan otorisasi |
 
 ---
 
@@ -143,6 +143,15 @@ startup tidak menangkapnya; verifier hanya berjalan di CI.
 | API dan frontend | Route, response, dan Swagger tag sama; frontend tidak merujuk resource itu |
 | Verifier | Himpunan fallback kembali sama dengan allowlist; controller Nurse View lain seimbang (`[AccessAction]` = `[AccessPermission]`) |
 
+**Bukti sesudah perbaikan.** Commit `5a7a0cf2` (isi sama dengan perbaikan Sukma `b7a4dd0c` di integration)
+masuk `rizkiG` lewat merge `160b1008`. Rizki membangun ulang (DLL Debug 10 Nov 14.37; tidak ada berkas
+`.cs`/`.csproj`/`appsettings` yang lebih baru dari DLL itu) dan menyatakan
+`verify-authorization.sh --configuration Release` `PASS`. Karena `bin/Release` tidak ada, verifier memakai DLL
+Debug yang sama dengan backend yang diuji. Backend dijalankan 14.41 ("Permission registry valid", 1.998
+identitas). Uji ulang 14.44 WIB 20/20 `PASS` (§5): akun TV mendapat `200` di `/board` dan `/active-calls`.
+Akun tablet, Sari, dan DOKTER mendapat `403`, jadi policy per method menggantikan `[AccessAction]` tanpa
+melonggarkan akses.
+
 ---
 
 ## 4. Dokumentasi endpoint
@@ -170,18 +179,29 @@ Pesan sukses strip: "Panggilan aktif lantai berhasil diambil."
 | --- | --- | --- | --- |
 | `Invoke-QbeConformanceCheck.ps1 -Mode Strict -Path <5 berkas>` (array path) | Files evaluated **5** · VIOLATION 0 · REVIEW 0 · INFO 0 · `Final result: PASS` | `PASS` | Keluaran checker 2026-11-09 |
 | Review diff/scope; nol komentar; akhiran baris | Hanya lima berkas Nurse View; `GetCurrent`, `GetBoard`, method konsol dan tablet tidak berubah; CRLF 86/81/342/442/106 baris, LF 0, tanpa BOM | `PASS` | `git diff`, hitungan byte Node |
-| Pasangan atribut akses | `GetActiveCalls`: `[AccessAction(P.Read …)]` + policy bernama, pola sama dengan dua action lain di controller ini (akun perangkat, tanpa `[AccessPermission]`) | `PASS` | Source |
+| Pasangan atribut akses | Semula `GetActiveCalls`: `[AccessAction(P.Read …)]` + policy bernama, meniru dua action lain di controller ini. Sejak revisi 10 Nov (§3.4): ketiga action hanya `[Authorize(Policy = NurseViewDisplayRead)]`, tanpa `[AccessController]`/`[AccessAction]` | `PASS` sesudah revisi | Source `NvwDisplayRuntimeController.cs` baris 19–76 |
 | Penelusuran source AC-1–6 | §6 | `PASS` | Source |
 | Baseline `/board` build lama (DLL 9 Nov 11.43, sebelum task ini) | TV `NVW-000002` lantai 3: `/current` `200`, `/board` `200` — 1 bangsal, 66 kartu, 4 kartu terisi (325-A, 325-B, 325-C, 326-C), **0** kartu berkunci `activeCallPriority`; `/active-calls` `404` | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-015-20261109/baseline-2026-11-09T07-52-25-718Z/` (`papan.json`, `strip.json`, `ringkas.json`), skrip `rekam-papan.mjs` |
 | `dotnet build` (oleh Rizki) | Berhasil menurut pernyataan Rizki 9 Nov 2026; agent memeriksa artefaknya: DLL 15.59 (source terakhir 14.49) memuat `GetActiveCalls`, `GetActiveForDisplayAsync`, `GetActivePriorityByBedAsync`, `NvwDisplayCallStripResponse`, `ActiveCallPriority` | `PASS` | Pernyataan Rizki; pencarian simbol di DLL |
 | Uji HTTP gabungan `uji-sinyal-strip.mjs` (akun TV lantai 3 dan 4, tablet, Sari, Dewi, DOKTER); perbandingan `/board` dengan baseline | S1–S11 11/11 lulus, 10 Nov 2026 08.44–08.45 WIB | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-014-015-20261110/hasil-2026-11-10T01-44-39-831Z/` |
 | `Invoke-QbeConformanceCheck.ps1 -Mode Strict` pada 2 berkas perbaikan otorisasi (10 Nov 2026) | Files evaluated **2** · VIOLATION 0 · REVIEW 0 · `PASS` | `PASS` | Keluaran checker |
-| `verify-authorization.sh --configuration Release` sesudah perbaikan | Butuh `dotnet`; dijalankan Rizki | `NOT RUN` | — |
-| `dotnet build` sesudah perbaikan otorisasi | Dijalankan Rizki | `NOT RUN` | — |
+| `dotnet build` sesudah merge `160b1008` (memuat perbaikan otorisasi) | Berhasil (Rizki); DLL Debug 10 Nov 14.37; tidak ada berkas source yang lebih baru dari DLL | `PASS` | Pernyataan Rizki; stempel waktu DLL; `find -newer` 0 berkas |
+| `verify-authorization.sh --configuration Release` sesudah perbaikan | `PASS` menurut pernyataan Rizki 10 Nov 2026 (dijalankan Rizki; agent tidak menjalankan `dotnet`) | `PASS` | Pernyataan Rizki |
+| Uji ulang `uji-sinyal-strip.mjs` sesudah perbaikan otorisasi (backend 14.41 dari DLL 14.37) | S1–S11 + H1–H9 **20/20**, 10 Nov 2026 14.44 WIB | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-014-015-20261110/hasil-2026-11-10T07-44-11-736Z/` |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
 
-Uji manual: `PASS` — uji HTTP 10 Nov 2026, S1–S11 11/11.
+Uji manual: `PASS` — uji HTTP 10 Nov 2026, S1–S11 11/11 (pagi) dan 20/20 gabungan sesudah perbaikan otorisasi (14.44 WIB).
+
+**Uji ulang sesudah perbaikan otorisasi — 10 November 2026 14.44 WIB** (skrip yang sama, tanpa perubahan;
+bukti `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-014-015-20261110/hasil-2026-11-10T07-44-11-736Z/`).
+Hasil S1–S11 sama dengan putaran pagi: 66 dan 66 kartu, nol beda nilai di luar field waktu; urutan
+326-C, 325-A, 325-B; `claimedByName` = nama Dewi; TV lantai 4 `totalActive` 0. 69 permintaan HTTP
+cocok dengan log backend. Log mencatat `display-runtime` sebagai berikut: TV `NVW-000002` `/board` `200` ×3
+dan `/active-calls` `200` ×6, TV `NVW-000001` `/active-calls` `200` ×1, tablet `NVT-000048` `403` di
+`/active-calls` dan `/board`, Sari dan DOKTER `403` di `/active-calls`. Pembersihan: nol panggilan aktif di
+lantai 3/4, empat tablet uji nonaktif, TTV uji dibatalkan, policy Sari (20) dan Dewi (36) pulih identik.
+Pindai log: nol rahasia, nol token; 10 baris `Error` = 10 penolakan hub yang memang diuji (sama dengan pagi).
 
 **Catatan baseline.** Perekaman baseline memerlukan atur ulang login TV `NVW-000002` oleh
 SuperAdmin (persiapan lewat aplikasi, pola uji `BE-NV-010`). Sebelumnya dipastikan lewat `SELECT`
@@ -223,13 +243,14 @@ uji nonaktif, policy dipulihkan identik, nol rahasia dan token di log.
 | AC-5 bagian lain `/board` tidak berubah | ✅ Terbukti 10 Nov 2026 | Uji S1: hanya `activeCallPriority` bertambah; nol beda nilai di luar field waktu |
 | AC-6 jumlah query `/board` dan `/active-calls` sama untuk 1 maupun 10 panggilan | ✅ Terpetakan ke source, sesuai cara verifikasi kartu | `/board` tepat +1 query di luar perulangan kartu; `/active-calls` satu query berisi label bed dan nama pengklaim + bacaan ambang; log SQL tidak dinyalakan |
 | DoD — AC-1–6 terpetakan ke source | Terpenuhi | Tabel ini |
-| DoD — build Rizki lulus | Terpenuhi 9 Nov 2026 | Pernyataan Rizki; DLL 15.59 memuat simbol baru |
-| DoD — JSON bukti tersimpan | Terpenuhi 10 Nov 2026 | Baseline 9 Nov + `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-014-015-20261110/hasil-2026-11-10T01-44-39-831Z/` |
+| DoD — build Rizki lulus | Terpenuhi 9 Nov 2026; diulang 10 Nov 14.37 sesudah perbaikan otorisasi | Pernyataan Rizki; DLL 15.59 memuat simbol baru; DLL 14.37 + verifier otorisasi `PASS` |
+| DoD — JSON bukti tersimpan | Terpenuhi 10 Nov 2026 | Baseline 9 Nov + `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-014-015-20261110/hasil-2026-11-10T01-44-39-831Z/` dan uji ulang `hasil-2026-11-10T07-44-11-736Z/` |
 | DoD — laporan | Terpenuhi | Berkas ini |
 
 **QBE yang berlaku dan dipatuhi:** `QBE-SVC-001` (bacaan di query service, controller tipis),
 `QBE-API-001` (rute dan envelope `ApiResponse<T>` mengikuti controller yang sama), `QBE-PERM-001`
-(policy perangkat + `[AccessAction]`, tanpa hardcode peran), `QBE-DTO-001` (response DTO, bukan
+(policy perangkat bernama yang terdaftar di `ApprovedAlternativeAuthorization`, tanpa hardcode peran;
+sejak revisi 10 Nov tanpa `[AccessAction]`), `QBE-DTO-001` (response DTO, bukan
 entity), `QBE-VAL-001` (lantai dari perangkat, bukan parameter). Tidak berlaku: `QBE-ENT-*`,
 `QBE-CFG-*`, `QBE-CODE-*`, `QBE-DB-*` (tanpa perubahan schema), `QBE-TXN-001` (hanya baca),
 `QBE-LOG-001` (GET tidak dicatat, permission-audit R2 §9), `QBE-PAGE-001` (strip satu lantai
@@ -250,5 +271,5 @@ tidak menghalangi (`QBE-MOD-002` tidak berlaku).
 | Risiko tersisa | Rendah. Regresi papan revision 1 terbukti tidak ada (S1); subquery nama pengklaim berjalan (S8). Hitungan query belum diukur dengan log SQL |
 | Perubahan sampingan | `NONE`. Atur ulang login TV `NVW-000002` untuk baseline adalah persiapan uji, bukan perubahan source |
 | Interupsi | `NONE` |
-| Status Git | Source sebelumnya di-commit Rizki (`7cff2991`, `4a6ac9a3`); perbaikan otorisasi `M` `NvwDisplayRuntimeController.cs`, `NurseViewPermissions.cs`; laporan dan roadmap `M` |
-| Langkah berikutnya | Rizki: `dotnet build`, lalu `bash ./tools/authorization-verifier/verify-authorization.sh --configuration Release` (harap `PASS`), jalankan backend, dan agent mengulang `uji-sinyal-strip.mjs` (TV `/current`, `/board`, `/active-calls` 200; tablet `403`) sebelum push |
+| Status Git | Source di-commit Rizki (`7cff2991`, `4a6ac9a3`); perbaikan otorisasi di-commit `5a7a0cf2` dan masuk `rizkiG` lewat merge `160b1008`; pembaruan status laporan dan roadmap 10 Nov sore di-commit dan di-push agent atas permintaan Rizki |
+| Langkah berikutnya | Rizki: PR `rizkiG` → `QuilvianIntegrationBackend`. Langkah "Verify authorization registry" di CI integration diharapkan `PASS`, karena `5a7a0cf2` belum ada di integration menurut ref lokal |
