@@ -4,11 +4,21 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/training/sessions/{sessionId:guid}/attendances")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Presensi Pelatihan",
+        AreaName = "Corporate",
+        ControllerName = "TrainingAttendance",
+        Description = "Check-in/check-out peserta sesi pelatihan dan kelayakan kelulusan kehadiran",
+        SortOrder = 14)]
     [Tags("Corporate - HRD Clinical Competency & OSCE Assessment")]
     [Authorize]
     public class TrainingAttendancesController : ControllerBase
@@ -21,6 +31,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("check-in")]
+        [AccessAction("Record", "Mencatat Presensi Pelatihan", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("TrainingAttendance", "Record")]
         public async Task<IActionResult> RecordCheckIn([FromRoute] Guid sessionId, [FromBody] RecordAttendanceCheckInRequestDto request)
         {
             try
@@ -40,6 +52,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("check-out")]
+        [AccessAction("Record", "Mencatat Presensi Pelatihan", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("TrainingAttendance", "Record")]
         public async Task<IActionResult> RecordCheckOut([FromRoute] Guid sessionId, [FromBody] RecordAttendanceCheckOutRequestDto request)
         {
             try
@@ -63,6 +77,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Presensi Pelatihan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingAttendance", "Read")]
         public async Task<IActionResult> GetAttendances([FromRoute] Guid sessionId)
         {
             try
@@ -77,6 +93,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("eligibility/{workforceProfileId:guid}")]
+        [AccessAction("Read", "Melihat Presensi Pelatihan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingAttendance", "Read")]
         public async Task<IActionResult> EvaluateStaffEligibility([FromRoute] Guid sessionId, [FromRoute] Guid workforceProfileId)
         {
             try
@@ -95,6 +113,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("eligibilities")]
+        [AccessAction("Read", "Melihat Presensi Pelatihan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingAttendance", "Read")]
         public async Task<IActionResult> EvaluateAllEligibilities([FromRoute] Guid sessionId)
         {
             try

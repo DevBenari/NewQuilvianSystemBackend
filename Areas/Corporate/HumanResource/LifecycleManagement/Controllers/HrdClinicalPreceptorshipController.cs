@@ -7,12 +7,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/human-resource/clinical-preceptorships")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LIFECYCLE_MANAGEMENT",
+        moduleName: "Human Resource Lifecycle Management",
+        displayName: "Preseptorship Klinis",
+        AreaName = "Corporate",
+        ControllerName = "WorkforcePreceptorship",
+        Description = "Pendampingan preseptor nakes baru dan pernyataan mandiri",
+        SortOrder = 33)]
     [Tags("HRD Clinical Preceptorships")]
     public class HrdClinicalPreceptorshipController : ControllerBase
     {
@@ -24,6 +34,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Preseptorship Klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforcePreceptorship", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] ClinicalPreceptorshipQuery query, CancellationToken cancellationToken)
         {
             var result = await _preceptorshipService.GetPagedAsync(query, User, cancellationToken);
@@ -31,6 +43,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Preseptorship Klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforcePreceptorship", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
             var result = await _preceptorshipService.GetByIdAsync(id, User, cancellationToken);
@@ -38,6 +52,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPut("{id}/preceptor")]
+        [AccessAction("Manage", "Mengelola Preseptorship Klinis", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforcePreceptorship", "Manage")]
         public async Task<IActionResult> ChangePreceptor(
             Guid id,
             [FromBody] ChangePreceptorRequest request,
@@ -53,6 +69,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/declare-independent")]
+        [AccessAction("Manage", "Mengelola Preseptorship Klinis", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforcePreceptorship", "Manage")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> DeclareIndependent(
             Guid id,
@@ -69,6 +87,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id}/evidence")]
+        [AccessAction("Read", "Melihat Preseptorship Klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforcePreceptorship", "Read")]
         public async Task<IActionResult> DownloadEvidence(Guid id, CancellationToken cancellationToken)
         {
             var (exists, stream, contentType, fileName) = await _preceptorshipService.DownloadEvidenceAsync(id, cancellationToken);

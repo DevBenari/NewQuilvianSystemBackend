@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -16,6 +17,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     [ApiController]
     [Route("api/v1/corporate/human-resource/recruitment/evaluations")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_RECRUITMENT",
+        moduleName: "Human Resource Recruitment",
+        displayName: "Evaluasi Kandidat",
+        AreaName = "Corporate",
+        ControllerName = "CandidateEvaluation",
+        Description = "Wawancara HR dan asesmen klinis kandidat",
+        SortOrder = 14)]
     [Tags("Corporate / Human Resource / Recruitment Management / Candidate Evaluation")]
     public sealed class CandidateEvaluationController : ControllerBase
     {
@@ -27,7 +36,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Evaluasi Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateEvaluation", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<CandidateEvaluationListItemResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged(
             [FromQuery] CandidateEvaluationQuery query,
@@ -38,7 +48,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet("{id:guid}")]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Evaluasi Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateEvaluation", "Read")]
         [ProducesResponseType(typeof(ApiResponse<CandidateEvaluationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(
@@ -50,7 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("schedule")]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("Evaluate", "Menilai Kandidat (HR)", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("CandidateEvaluation", "Evaluate")]
         [ProducesResponseType(typeof(ApiResponse<CandidateEvaluationResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -69,7 +81,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("{id:guid}/submit-hr")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Evaluate", "Menilai Kandidat (HR)", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("CandidateEvaluation", "Evaluate")]
         [ProducesResponseType(typeof(ApiResponse<CandidateEvaluationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -90,7 +103,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("{id:guid}/submit-clinical")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("EvaluateClinical", "Menilai Asesmen Klinis Kandidat", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("CandidateEvaluation", "EvaluateClinical")]
         [ProducesResponseType(typeof(ApiResponse<CandidateEvaluationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

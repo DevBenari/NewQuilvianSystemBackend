@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -16,6 +17,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     [ApiController]
     [Route("api/v1/corporate/human-resource/recruitment/offers/{offerId:guid}/approvals")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_RECRUITMENT",
+        moduleName: "Human Resource Recruitment",
+        displayName: "Persetujuan Penawaran Kerja",
+        AreaName = "Corporate",
+        ControllerName = "JobOfferApproval",
+        Description = "Persetujuan berjenjang penawaran kerja",
+        SortOrder = 16)]
     [Tags("Corporate / Human Resource / Recruitment Management / Job Offer Approval")]
     public sealed class JobOfferApprovalController : ControllerBase
     {
@@ -27,7 +36,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Persetujuan Penawaran", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("JobOfferApproval", "Read")]
         [ProducesResponseType(typeof(ApiResponse<JobOfferApprovalHistoryResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetApprovals(Guid offerId, CancellationToken cancellationToken)
@@ -37,7 +47,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("approve")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Approve", "Memutus Persetujuan Penawaran", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("JobOfferApproval", "Approve")]
         [ProducesResponseType(typeof(ApiResponse<JobOfferApprovalResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -53,7 +64,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("reject")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Approve", "Memutus Persetujuan Penawaran", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("JobOfferApproval", "Approve")]
         [ProducesResponseType(typeof(ApiResponse<JobOfferApprovalResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]

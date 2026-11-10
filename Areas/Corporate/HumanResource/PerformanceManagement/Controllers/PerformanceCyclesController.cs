@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/performance")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "Siklus, KPI & Sasaran Kinerja",
+        AreaName = "Corporate",
+        ControllerName = "PerformanceCycleGoal",
+        Description = "Siklus penilaian, katalog KPI, dan kaskade sasaran kerja individu",
+        SortOrder = 16)]
     [Tags("Corporate - HRD Performance Cycles & Goal Cascading")]
     public class PerformanceCyclesController : ControllerBase
     {
@@ -34,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan daftar riwayat siklus evaluasi kinerja tahunan dan jadwal tenggat waktu (VR-PRF-01)
         /// </summary>
         [HttpGet("cycles")]
+        [AccessAction("ViewCycle", "Melihat Siklus Kinerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PerformanceCycleGoal", "ViewCycle")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<PerformanceCycleDto>>), 200)]
         public async Task<IActionResult> GetCycles(CancellationToken cancellationToken = default)
@@ -46,6 +59,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Membuat dan membuka siklus penilaian kinerja baru (Tahunan / Semesteran) (VR-PRF-01)
         /// </summary>
         [HttpPost("cycles")]
+        [AccessAction("ManageCycle", "Mengelola Siklus Kinerja", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformanceCycleGoal", "ManageCycle")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PerformanceCycleDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -73,6 +88,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan master katalog metrik target KPI kuantitatif dan rubrik deskriptor Core Values BerAKHLAK
         /// </summary>
         [HttpGet("kpi-catalogs")]
+        [AccessAction("ViewMetric", "Melihat Katalog KPI", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("PerformanceCycleGoal", "ViewMetric")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<KpiMetricCatalogDto>>), 200)]
         public async Task<IActionResult> GetKpiCatalogs(
@@ -88,6 +105,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mendaftarkan atau mengubah master indikator target kinerja dan rubrik perilaku
         /// </summary>
         [HttpPost("kpi-catalogs")]
+        [AccessAction("ManageMetric", "Mengelola Katalog KPI", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PerformanceCycleGoal", "ManageMetric")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<KpiMetricCatalogDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -110,6 +129,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan rincian sasaran kerja target individu staf pada siklus aktif
         /// </summary>
         [HttpGet("goals/staff/{staffId}")]
+        [AccessAction("ViewGoal", "Melihat Sasaran Individu", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("PerformanceCycleGoal", "ViewGoal")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<PerformanceGoalDto>>), 200)]
         public async Task<IActionResult> GetGoalsByStaff(
@@ -125,6 +146,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menetapkan dan mengesahkan target sasaran individu yang diturunkan dari KPI instalasi (VR-PRF-02, VR-PRF-04)
         /// </summary>
         [HttpPost("goals/cascading")]
+        [AccessAction("ManageGoal", "Mengotorisasi Sasaran Kerja", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PerformanceCycleGoal", "ManageGoal")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<PerformanceGoalDto>>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]

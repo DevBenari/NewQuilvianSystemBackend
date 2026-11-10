@@ -8,12 +8,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/travel")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_BUSINESS_TRAVEL",
+        moduleName: "Human Resource Business Travel",
+        displayName: "Tarif & Kebijakan Perjalanan Dinas",
+        AreaName = "Corporate",
+        ControllerName = "TravelRatePolicy",
+        Description = "Matriks tarif uang harian, zonasi, dan radar keterlambatan settlement",
+        SortOrder = 14)]
     [Tags("Corporate - HRD Travel Rates & Policies")]
     public class TravelRatesAndPoliciesController : ControllerBase
     {
@@ -39,6 +49,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil matriks tarif baku lumpsum uang harian per zonasi &amp; grade (Kontrak v25)
         /// </summary>
         [HttpGet("rates")]
+        [AccessAction("ViewRate", "Melihat Tarif & Zonasi Dinas", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TravelRatePolicy", "ViewRate")]
         [ProducesResponseType(typeof(ApiResponse<List<TravelAllowanceRateResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetRates([FromQuery] Guid? zoneId, [FromQuery] Guid? gradeId)
         {
@@ -50,6 +62,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengonfigurasi tarif uang harian dinas (per diem) rumah sakit (Kontrak v25)
         /// </summary>
         [HttpPost("rates")]
+        [AccessAction("ManageRate", "Mengonfigurasi Tarif Dinas", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("TravelRatePolicy", "ManageRate")]
         [ProducesResponseType(typeof(ApiResponse<TravelAllowanceRateResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ConfigureRate([FromBody] ConfigureTravelRateDto dto)
@@ -70,6 +84,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil daftar zonasi tujuan perjalanan dinas (Zona 1, Zona 2, Zona 3) (Kontrak v25)
         /// </summary>
         [HttpGet("zones")]
+        [AccessAction("ViewRate", "Melihat Tarif & Zonasi Dinas", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TravelRatePolicy", "ViewRate")]
         [ProducesResponseType(typeof(ApiResponse<List<TravelDestinationZoneResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetZones()
         {
@@ -81,6 +97,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengunduh radar laporan pegawai menunggak settlement &gt; 7, 14, dan 30 hari (Kontrak v25)
         /// </summary>
         [HttpGet("overdue-reports")]
+        [AccessAction("MonitorOverdue", "Memantau Keterlambatan Settlement", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("TravelRatePolicy", "MonitorOverdue")]
         [ProducesResponseType(typeof(ApiResponse<List<TravelOverdueReportDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetOverdueReports([FromQuery] Guid? departmentId, [FromQuery] DateOnly? cutoffDate)
         {

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/credentialing/recredentialing")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "Rekredensialing Berbasis Mutu",
+        AreaName = "Corporate",
+        ControllerName = "RecredentialingQuality",
+        Description = "Scorecard komposit 3 tahun, override tier, putusan rekredensialing, dan kirim ke SIMRS",
+        SortOrder = 13)]
     [Tags("Corporate - HRD Recredentialing Quality & Composite Scorecard")]
     public class RecredentialingQualityController : ControllerBase
     {
@@ -34,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan kartu rapor komposit 3 tahunan (25%-35%-40%) dan rekomendasi tier kelayakan (INT-HR-75)
         /// </summary>
         [HttpGet("scorecards/{staffId:guid}")]
+        [AccessAction("Read", "Melihat Scorecard Rekredensialing", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RecredentialingQuality", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<RecredentialingScorecardDto>), 200)]
         public async Task<IActionResult> GetScorecard(
@@ -48,6 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menghitung kalkulasi komposit 3 tahun secara deterministik dari riwayat OPPE & insiden FPPE (VR-OPP-15..18)
         /// </summary>
         [HttpPost("scorecards/{staffId:guid}/calculate")]
+        [AccessAction("Decide", "Memutus Rekredensialing", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("RecredentialingQuality", "Decide")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<RecredentialingScorecardDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -69,6 +84,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Penyesuaian diskresi tier kelayakan oleh Ketua Komite Medik dengan justifikasi tertulis (VR-OPP-19)
         /// </summary>
         [HttpPost("scorecards/{staffId:guid}/override-tier")]
+        [AccessAction("Decide", "Memutus Rekredensialing", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("RecredentialingQuality", "Decide")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<RecredentialingScorecardDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -107,6 +124,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menerbitkan berita acara putusan sah sidang pleno rekredensialing (VR-OPP-20)
         /// </summary>
         [HttpPost("verdicts")]
+        [AccessAction("Decide", "Memutus Rekredensialing", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("RecredentialingQuality", "Decide")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<RecredVerdictResponseDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -142,6 +161,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mengirimkan instruksi pembaruan wewenang Level 1-4 ke modul EMR SIMRS (INT-HR-76, VR-OPP-21, VR-OPP-22, VR-OPP-25)
         /// </summary>
         [HttpPost("verdicts/{id:guid}/dispatch-simrs")]
+        [AccessAction("DispatchSimrs", "Mengirim Putusan ke SIMRS", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RecredentialingQuality", "DispatchSimrs")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<SimrsPrivilegeSyncAuditLogDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -174,6 +195,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan log riwayat transmisi sinkronisasi wewenang ke SIMRS EMR
         /// </summary>
         [HttpGet("simrs-sync/audit-logs")]
+        [AccessAction("ViewSyncAudit", "Melihat Log Sinkronisasi SIMRS", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("RecredentialingQuality", "ViewSyncAudit")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<SimrsPrivilegeSyncAuditLogDto>>), 200)]
         public async Task<IActionResult> GetSyncAuditLogs(CancellationToken cancellationToken = default)

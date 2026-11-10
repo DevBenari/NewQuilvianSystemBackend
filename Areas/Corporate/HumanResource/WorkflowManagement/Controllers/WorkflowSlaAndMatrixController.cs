@@ -7,12 +7,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/workflow")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_WORKFLOW",
+        moduleName: "Human Resource Workflow",
+        displayName: "Matriks Alur & SLA Workflow",
+        AreaName = "Corporate",
+        ControllerName = "WorkflowSlaMatrix",
+        Description = "Matriks alur persetujuan, radar SLA, eskalasi manual, dan laporan kepatuhan",
+        SortOrder = 24)]
     [Tags("Corporate - HRD Workflow SLA & Matrix Management")]
     public class WorkflowSlaAndMatrixController : ControllerBase
     {
@@ -38,6 +48,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil konfigurasi matriks alur persetujuan per unit kerja (FR-WF-02, HRD-DEC-182)
         /// </summary>
         [HttpGet("matrix")]
+        [AccessAction("ViewMatrix", "Melihat Matriks Alur Persetujuan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkflowSlaMatrix", "ViewMatrix")]
         [ProducesResponseType(typeof(ApiResponse<List<WorkflowMatrixResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMatrix(
             [FromQuery] Guid? departmentId,
@@ -51,6 +63,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Membuat atau memperbarui konfigurasi tahapan alur persetujuan dinamis (FR-WF-02)
         /// </summary>
         [HttpPost("matrix")]
+        [AccessAction("ConfigureMatrix", "Mengonfigurasi Matriks Alur Persetujuan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkflowSlaMatrix", "ConfigureMatrix")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowMatrixResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ConfigureMatrix([FromBody] ConfigureWorkflowMatrixRequestDto request)
@@ -70,6 +84,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil daftar permohonan yang telah melampaui batas waktu SLA (FR-WF-14, FR-WF-15)
         /// </summary>
         [HttpGet("sla/overdue")]
+        [AccessAction("ViewSlaOverdue", "Melihat Radar SLA Terlambat", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("WorkflowSlaMatrix", "ViewSlaOverdue")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<OverdueWorkflowItemDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetOverdue(
             [FromQuery] Guid? departmentId,
@@ -85,6 +101,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Melakukan intervensi eskalasi manual tiket macet ke atasan lebih tinggi (FR-WF-16)
         /// </summary>
         [HttpPost("sla/escalate/{id}")]
+        [AccessAction("ManualEscalate", "Mengeskalasi Permohonan Manual", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("WorkflowSlaMatrix", "ManualEscalate")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowInstanceV2ResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Escalate([FromRoute] Guid id, [FromBody] ManualEscalationRequestDto request)
@@ -109,6 +127,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengunduh laporan kepatuhan SLA kecepatan respon persetujuan rumah sakit (FR-WF-14)
         /// </summary>
         [HttpGet("sla/compliance-report")]
+        [AccessAction("ExportSlaReport", "Mengunduh Laporan Kepatuhan SLA", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("WorkflowSlaMatrix", "ExportSlaReport")]
         [ProducesResponseType(typeof(ApiResponse<SlaComplianceReportDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSlaComplianceReport(
             [FromQuery] DateTime? startDate,

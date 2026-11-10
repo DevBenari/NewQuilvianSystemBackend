@@ -3,11 +3,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/services")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_SERVICE_MANAGEMENT",
+        moduleName: "Human Resource Service Management",
+        displayName: "Katalog Layanan SDM",
+        AreaName = "Corporate",
+        ControllerName = "HrServiceCatalog",
+        Description = "Kategori layanan, tipe layanan dan SLA, serta master jenis dokumen",
+        SortOrder = 11)]
     [Tags("HR Services - Catalog & SLA")]
     [Authorize]
     public class HrServiceCatalogController : ControllerBase
@@ -25,6 +35,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil seluruh kategori layanan SDM yang aktif (FR-HRS-01)
         /// </summary>
         [HttpGet("categories")]
+        [AccessAction("Read", "Melihat Katalog Layanan SDM", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HrServiceCatalog", "Read")]
         public async Task<IActionResult> GetCategories([FromQuery] bool includeInactive = false, CancellationToken cancellationToken = default)
         {
             var categories = await _catalogService.GetActiveCategoriesAsync(includeInactive, cancellationToken);
@@ -35,6 +47,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil detail satu kategori layanan SDM berdasarkan ID
         /// </summary>
         [HttpGet("categories/{id:guid}")]
+        [AccessAction("Read", "Melihat Katalog Layanan SDM", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HrServiceCatalog", "Read")]
         public async Task<IActionResult> GetCategoryById(Guid id, CancellationToken cancellationToken = default)
         {
             var cat = await _catalogService.GetCategoryByIdAsync(id, cancellationToken);
@@ -46,6 +60,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Membuat master kategori layanan SDM baru (VR-HRS-03)
         /// </summary>
         [HttpPost("categories")]
+        [AccessAction("Create", "Membuat Katalog Layanan SDM", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("HrServiceCatalog", "Create")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> CreateCategory([FromBody] CreateHrServiceCategoryRequestDto request, CancellationToken cancellationToken = default)
         {
@@ -67,6 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Memperbarui konfigurasi kategori layanan SDM
         /// </summary>
         [HttpPut("categories/{id:guid}")]
+        [AccessAction("Update", "Mengubah Katalog Layanan SDM", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("HrServiceCatalog", "Update")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateHrServiceCategoryRequestDto request, CancellationToken cancellationToken = default)
         {
@@ -88,6 +106,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Menghapus kategori layanan SDM (soft-delete)
         /// </summary>
         [HttpDelete("categories/{id:guid}")]
+        [AccessAction("Delete", "Menghapus Katalog Layanan SDM", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessPermission("HrServiceCatalog", "Delete")]
         [Authorize(Roles = "SuperAdmin,HRManager")]
         public async Task<IActionResult> DeleteCategory(Guid id, CancellationToken cancellationToken = default)
         {
@@ -112,6 +132,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil daftar tipe layanan SDM dengan filter kategori
         /// </summary>
         [HttpGet("types")]
+        [AccessAction("Read", "Melihat Katalog Layanan SDM", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HrServiceCatalog", "Read")]
         public async Task<IActionResult> GetServiceTypes([FromQuery] Guid? categoryId = null, [FromQuery] bool activeOnly = true, CancellationToken cancellationToken = default)
         {
             var types = await _catalogService.GetServiceTypesAsync(categoryId, activeOnly, cancellationToken);
@@ -122,6 +144,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil detail satu tipe layanan SDM berdasarkan ID
         /// </summary>
         [HttpGet("types/{id:guid}")]
+        [AccessAction("Read", "Melihat Katalog Layanan SDM", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HrServiceCatalog", "Read")]
         public async Task<IActionResult> GetServiceTypeById(Guid id, CancellationToken cancellationToken = default)
         {
             var item = await _catalogService.GetServiceTypeByIdAsync(id, cancellationToken);
@@ -133,6 +157,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Membuat konfigurasi tipe layanan SDM baru lengkap dengan target durasi SLA
         /// </summary>
         [HttpPost("types")]
+        [AccessAction("Create", "Membuat Katalog Layanan SDM", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("HrServiceCatalog", "Create")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> CreateServiceType([FromBody] CreateHrServiceTypeRequestDto request, CancellationToken cancellationToken = default)
         {
@@ -154,6 +180,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Memperbarui konfigurasi tipe layanan SDM
         /// </summary>
         [HttpPut("types/{id:guid}")]
+        [AccessAction("Update", "Mengubah Katalog Layanan SDM", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("HrServiceCatalog", "Update")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> UpdateServiceType(Guid id, [FromBody] UpdateHrServiceTypeRequestDto request, CancellationToken cancellationToken = default)
         {
@@ -175,6 +203,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Menghapus tipe layanan SDM (soft-delete)
         /// </summary>
         [HttpDelete("types/{id:guid}")]
+        [AccessAction("Delete", "Menghapus Katalog Layanan SDM", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessPermission("HrServiceCatalog", "Delete")]
         [Authorize(Roles = "SuperAdmin,HRManager")]
         public async Task<IActionResult> DeleteServiceType(Guid id, CancellationToken cancellationToken = default)
         {
@@ -199,6 +229,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil daftar master template naskah dinas resmi rumah sakit
         /// </summary>
         [HttpGet("document-types")]
+        [AccessAction("Read", "Melihat Katalog Layanan SDM", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HrServiceCatalog", "Read")]
         public async Task<IActionResult> GetDocumentTypes([FromQuery] bool activeOnly = true, CancellationToken cancellationToken = default)
         {
             var types = await _catalogService.GetDocumentTypesAsync(activeOnly, cancellationToken);
@@ -209,6 +241,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil detail master template dokumen resmi berdasarkan ID
         /// </summary>
         [HttpGet("document-types/{id:guid}")]
+        [AccessAction("Read", "Melihat Katalog Layanan SDM", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HrServiceCatalog", "Read")]
         public async Task<IActionResult> GetDocumentTypeById(Guid id, CancellationToken cancellationToken = default)
         {
             var item = await _catalogService.GetDocumentTypeByIdAsync(id, cancellationToken);
@@ -220,6 +254,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mendaftarkan master template naskah dinas resmi baru
         /// </summary>
         [HttpPost("document-types")]
+        [AccessAction("Create", "Membuat Katalog Layanan SDM", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("HrServiceCatalog", "Create")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> CreateDocumentType([FromBody] CreateEmployeeDocumentTypeRequestDto request, CancellationToken cancellationToken = default)
         {

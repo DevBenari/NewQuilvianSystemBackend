@@ -8,12 +8,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/travel/requests")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_BUSINESS_TRAVEL",
+        moduleName: "Human Resource Business Travel",
+        displayName: "Permohonan Perjalanan Dinas (SPPD)",
+        AreaName = "Corporate",
+        ControllerName = "BusinessTravelRequest",
+        Description = "Pengajuan, perubahan draf, pembatalan, dan dokumen SPPD",
+        SortOrder = 10)]
     [Tags("Corporate - HRD Business Travel Requests")]
     public class BusinessTravelRequestsController : ControllerBase
     {
@@ -43,6 +53,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil daftar pengajuan SPPD dinas pegawai/tim (Kontrak v25)
         /// </summary>
         [HttpGet]
+        [AccessAction("Read", "Melihat Riwayat SPPD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BusinessTravelRequest", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<BusinessTravelResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetRequests(
             [FromQuery] string? status,
@@ -63,6 +75,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil detail lengkap SPPD, agenda rute, estimasi biaya, dan status approval (Kontrak v25)
         /// </summary>
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Riwayat SPPD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BusinessTravelRequest", "Read")]
         [ProducesResponseType(typeof(ApiResponse<BusinessTravelDetailResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetRequestById([FromRoute] Guid id)
@@ -82,6 +96,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mendaftarkan pengajuan perjalanan dinas baru (SPPD) via ESS (Kontrak v25)
         /// </summary>
         [HttpPost]
+        [AccessAction("Create", "Mengajukan Perjalanan Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("BusinessTravelRequest", "Create")]
         [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateRequest([FromBody] CreateBusinessTravelRequestDto dto)
@@ -102,6 +118,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Memperbarui draf pengajuan SPPD sebelum diajukan resmi (Kontrak v25)
         /// </summary>
         [HttpPut("{id}")]
+        [AccessAction("Update", "Mengubah Draf SPPD", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("BusinessTravelRequest", "Update")]
         [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UpdateRequest([FromRoute] Guid id, [FromBody] UpdateBusinessTravelRequestDto dto)
@@ -122,6 +140,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Membatalkan perjalanan dinas yang belum berjalan dengan alasan minimal 15 karakter (Kontrak v25)
         /// </summary>
         [HttpPut("{id}/cancel")]
+        [AccessAction("Cancel", "Membatalkan Perjalanan Dinas", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("BusinessTravelRequest", "Cancel")]
         [ProducesResponseType(typeof(ApiResponse<BusinessTravelResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CancelRequest([FromRoute] Guid id, [FromBody] CancelTravelRequestDto dto)
@@ -142,6 +162,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengunduh lembar surat tugas dan SPPD resmi ber-barcode untuk verifikasi fisik (Kontrak v25)
         /// </summary>
         [HttpGet("{id}/document-pdf")]
+        [AccessAction("Read", "Melihat Riwayat SPPD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BusinessTravelRequest", "Read")]
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DownloadDocumentPdf([FromRoute] Guid id)

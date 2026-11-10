@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/learning")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Pelatihan Wajib RS",
+        AreaName = "Corporate",
+        ControllerName = "MandatoryHospitalTraining",
+        Description = "Aturan pelatihan wajib, radar sertifikat kedaluwarsa, dan pengaman buddy shift",
+        SortOrder = 10)]
     [Tags("Corporate - HRD Mandatory Hospital Training & Certification")]
     public class MandatoryHospitalTrainingController : ControllerBase
     {
@@ -34,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         /// Menampilkan daftar katalog master pelatihan wajib akreditasi STARKES KPS 8 & masa berlaku (VR-TRN-01)
         /// </summary>
         [HttpGet("mandatory-rules")]
+        [AccessAction("Read", "Melihat Aturan & Radar Pelatihan Wajib", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MandatoryHospitalTraining", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<MandatoryTrainingRuleDto>>), 200)]
         public async Task<IActionResult> GetMandatoryRules(CancellationToken cancellationToken = default)
@@ -46,6 +59,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         /// Mendaftarkan aturan pelatihan wajib baru atau memperbarui masa berlaku/ambang kelulusan (VR-TRN-02)
         /// </summary>
         [HttpPost("mandatory-rules")]
+        [AccessAction("Manage", "Mengelola Aturan & Radar Pelatihan Wajib", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("MandatoryHospitalTraining", "Manage")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<MandatoryTrainingRuleDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -83,6 +98,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         /// Menampilkan dashboard radar staf berisiko kedaluwarsa pelatihan wajib (H-90, H-60, H-30, Overdue H-0) (VR-TRN-09)
         /// </summary>
         [HttpGet("certificates/expiring-radar")]
+        [AccessAction("Read", "Melihat Aturan & Radar Pelatihan Wajib", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MandatoryHospitalTraining", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<CertificateExpiryRadarSummaryDto>), 200)]
         public async Task<IActionResult> GetExpiringRadar(CancellationToken cancellationToken = default)
@@ -95,6 +112,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         /// Mengirimkan notifikasi peringatan perpanjangan diklat massal via WhatsApp/Email/ESS ke staf (VR-TRN-09)
         /// </summary>
         [HttpPost("certificates/expiring-radar/broadcast-alerts")]
+        [AccessAction("Manage", "Mengelola Aturan & Radar Pelatihan Wajib", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("MandatoryHospitalTraining", "Manage")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<BroadcastExpiryAlertResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -117,6 +136,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         /// Menandai flag Overdue dan menginstruksikan penugasan pendamping (buddy system) ke Sub-06 & pembekuan RKK ke Sub-14 (VR-TRN-10..12)
         /// </summary>
         [HttpPost("certificates/overdue/{staffId:guid}/shift-buddy-safeguard")]
+        [AccessAction("Manage", "Mengelola Aturan & Radar Pelatihan Wajib", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("MandatoryHospitalTraining", "Manage")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<ShiftBuddySafeguardResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -150,6 +171,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         /// Menampilkan seluruh portofolio sertifikat kompetensi dan status keaktifan milik staf
         /// </summary>
         [HttpGet("certificates/staff/{staffId:guid}")]
+        [AccessAction("Read", "Melihat Aturan & Radar Pelatihan Wajib", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MandatoryHospitalTraining", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<StaffCertificatePortfolioDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]

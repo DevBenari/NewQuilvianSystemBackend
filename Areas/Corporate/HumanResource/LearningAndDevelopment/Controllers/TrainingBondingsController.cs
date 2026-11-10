@@ -4,11 +4,21 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/training/bonding-contracts")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Ikatan Dinas Pelatihan",
+        AreaName = "Corporate",
+        ControllerName = "TrainingBonding",
+        Description = "Kontrak ikatan dinas pascapelatihan dan penalti pelanggaran",
+        SortOrder = 19)]
     [Tags("Corporate - HRD Training Enrollment & Budget Governance")]
     [Authorize]
     public class TrainingBondingsController : ControllerBase
@@ -21,6 +31,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost]
+        [AccessAction("Manage", "Mengelola Ikatan Dinas", AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("TrainingBonding", "Manage")]
         public async Task<IActionResult> GenerateContract([FromBody] GenerateBondContractRequestDto request)
         {
             try
@@ -44,6 +56,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("{contractId:guid}/process-breach-penalty")]
+        [AccessAction("Manage", "Mengelola Ikatan Dinas", AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("TrainingBonding", "Manage")]
         public async Task<IActionResult> ProcessBreachPenalty([FromRoute] Guid contractId, [FromBody] ProcessBreachPenaltyRequestDto request)
         {
             try
@@ -67,6 +81,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("{contractId:guid}")]
+        [AccessAction("Read", "Melihat Ikatan Dinas", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingBonding", "Read")]
         public async Task<IActionResult> GetById([FromRoute] Guid contractId)
         {
             try
@@ -85,6 +101,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("staff/{workforceProfileId:guid}")]
+        [AccessAction("Read", "Melihat Ikatan Dinas", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingBonding", "Read")]
         public async Task<IActionResult> GetByStaff([FromRoute] Guid workforceProfileId)
         {
             try
@@ -99,6 +117,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("active")]
+        [AccessAction("Read", "Melihat Ikatan Dinas", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingBonding", "Read")]
         public async Task<IActionResult> GetActiveContracts()
         {
             try

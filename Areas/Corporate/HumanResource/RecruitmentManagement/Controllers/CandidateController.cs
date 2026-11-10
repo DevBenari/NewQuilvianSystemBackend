@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -16,6 +17,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     [ApiController]
     [Route("api/v1/corporate/human-resource/recruitment/candidates")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_RECRUITMENT",
+        moduleName: "Human Resource Recruitment",
+        displayName: "Kandidat",
+        AreaName = "Corporate",
+        ControllerName = "Candidate",
+        Description = "Registrasi kandidat, lamaran lowongan, dan dokumen kandidat",
+        SortOrder = 12)]
     [Tags("Corporate / Human Resource / Recruitment Management / Candidate")]
     public sealed class CandidateController : ControllerBase
     {
@@ -27,7 +36,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Candidate", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<CandidateListItemResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged(
             [FromQuery] CandidateQuery query,
@@ -38,7 +48,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet("{id:guid}")]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Kandidat", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Candidate", "Read")]
         [ProducesResponseType(typeof(ApiResponse<CandidateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(
@@ -50,7 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("Create", "Mendaftarkan Kandidat", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("Candidate", "Create")]
         [ProducesResponseType(typeof(ApiResponse<CandidateResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
@@ -69,7 +81,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPut("{id:guid}")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Update", "Mengubah Data Kandidat", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("Candidate", "Update")]
         [ProducesResponseType(typeof(ApiResponse<CandidateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -89,7 +102,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("{id:guid}/apply")]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("Update", "Mengubah Data Kandidat", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("Candidate", "Update")]
         [ProducesResponseType(typeof(ApiResponse<CandidateApplicationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -110,7 +124,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("{id:guid}/documents")]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("UploadDocument", "Mengunggah Dokumen Kandidat", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("Candidate", "UploadDocument")]
         [ProducesResponseType(typeof(ApiResponse<CandidateDocumentResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

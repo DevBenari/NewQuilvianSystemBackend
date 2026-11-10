@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Controllers
 {
@@ -16,6 +18,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     /// </summary>
     [ApiController]
     [Route("api/v1/hrd/occupational-health")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_OCCUPATIONAL_HEALTH",
+        moduleName: "Human Resource Occupational Health",
+        displayName: "Vaksinasi & Imunitas Staf",
+        AreaName = "Corporate",
+        ControllerName = "StaffVaccination",
+        Description = "Log vaksinasi, titer antibodi, dan daftar recall booster staf",
+        SortOrder = 13)]
     [Tags("Corporate - HRD Staff Vaccination & Immunity Tracking")]
     public class StaffVaccinationsController : ControllerBase
     {
@@ -29,13 +40,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         private Guid GetCurrentUserId()
         {
             var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(raw, out var uid) ? uid : Guid.Parse("11111111-1111-1111-1111-111111111111");
+            if (Guid.TryParse(raw, out var uid) && uid != Guid.Empty)
+            {
+                return uid;
+            }
+
+            // Tidak memakai aktor cadangan: jejak audit tanpa identitas asli lebih berbahaya
+            // daripada permintaan yang ditolak.
+            throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
         /// <summary>
         /// Catat riwayat penyuntikan vaksin wajib nakes (batch, dosis, tanggal)
         /// </summary>
         [HttpPost("vaccinations")]
+        [AccessAction("RecordVaccination", "Mencatat Vaksinasi & Titer Staf", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("StaffVaccination", "RecordVaccination")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<VaccinationRecordDto>), 201)]
         public async Task<IActionResult> RecordVaccination([FromBody] RecordVaccinationRequestDto request, CancellationToken cancellationToken = default)
@@ -49,6 +69,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Riwayat vaksinasi lengkap seorang pegawai
         /// </summary>
         [HttpGet("vaccinations/employee/{employeeId:guid}")]
+        [AccessAction("Read", "Melihat Riwayat Vaksinasi Staf", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("StaffVaccination", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<VaccinationRecordDto>>), 200)]
         public async Task<IActionResult> GetEmployeeVaccinations(Guid employeeId, CancellationToken cancellationToken = default)
@@ -61,6 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Rekam hasil uji laboratorium titer antibodi protektif (anti-HBs)
         /// </summary>
         [HttpPost("vaccinations/titer-assessment")]
+        [AccessAction("RecordVaccination", "Mencatat Vaksinasi & Titer Staf", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("StaffVaccination", "RecordVaccination")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<HealthSurveillanceResponseDto>), 201)]
         public async Task<IActionResult> RecordAntibodyTiter([FromBody] RecordAntibodyTiterRequestDto request, CancellationToken cancellationToken = default)
@@ -74,6 +98,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Daftar nakes yang memerlukan vaksinasi booster atau ber-titer < 10 mIU/mL
         /// </summary>
         [HttpGet("vaccinations/booster-recall-list")]
+        [AccessAction("ViewImmunityRadar", "Melihat Radar Imunitas & Booster", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("StaffVaccination", "ViewImmunityRadar")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<NakesVaccinationRecallDto>>), 200)]
         public async Task<IActionResult> GetBoosterRecallList(

@@ -3,11 +3,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/credentialing/licenses")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_CREDENTIALING",
+        moduleName: "Human Resource Credentialing",
+        displayName: "Lisensi Profesi (STR/SIP)",
+        AreaName = "Corporate",
+        ControllerName = "ProfessionalLicense",
+        Description = "Registrasi dan perpanjangan STR/SIP, verifikasi sumber primer, dan radar kedaluwarsa",
+        SortOrder = 11)]
     [Tags("HR Credentialing - Professional Licenses & PSV Radar")]
     [Authorize]
     public class ProfessionalLicenseController : ControllerBase
@@ -36,6 +46,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Mendaftarkan lisensi nakes baru (STR Seumur Hidup / SIP 5 Tahun Faskes 1-3) (BE-HRD-210, VR-CRD-01)
         /// </summary>
         [HttpPost]
+        [AccessAction("Create", "Mendaftarkan Lisensi Profesi", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("ProfessionalLicense", "Create")]
         [ProducesResponseType(typeof(ProfessionalLicenseDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -72,6 +84,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Mengambil rincian data lisensi profesional beserta status radar kedaluwarsa
         /// </summary>
         [HttpGet("{id:guid}")]
+        [AccessAction("Read", "Melihat Lisensi Profesi", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("ProfessionalLicense", "Read")]
         [ProducesResponseType(typeof(ProfessionalLicenseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetLicenseDetail(
@@ -93,6 +107,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Mengambil seluruh lisensi profesi milik satu tenaga kerja spesifik
         /// </summary>
         [HttpGet("employee/{employeeId:guid}")]
+        [AccessAction("Read", "Melihat Lisensi Profesi", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("ProfessionalLicense", "Read")]
         [ProducesResponseType(typeof(List<ProfessionalLicenseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetLicensesByEmployee(
@@ -114,6 +130,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Melakukan audit Verifikasi Sumber Primer (PSV) ke portal KKI / SatuSehat SDMK Kemenkes (BE-HRD-208, VR-CRD-02)
         /// </summary>
         [HttpPost("{id:guid}/verify-psv")]
+        [AccessAction("VerifyPsv", "Memverifikasi Sumber Primer", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("ProfessionalLicense", "VerifyPsv")]
         [ProducesResponseType(typeof(PsvVerificationResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -147,6 +165,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Mengajukan perpanjangan lisensi SIP 5 tahun baru (BE-HRD-208)
         /// </summary>
         [HttpPost("{id:guid}/renew")]
+        [AccessAction("Renew", "Memperpanjang Lisensi Profesi", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("ProfessionalLicense", "Renew")]
         [ProducesResponseType(typeof(ProfessionalLicenseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -179,6 +199,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Mengambil radar pemantauan lisensi yang mendekati kedaluwarsa (H-90, H-60, H-30, H-7, ExpiredH0) (BE-HRD-209, CRD-B2)
         /// </summary>
         [HttpGet("radar/expiring")]
+        [AccessAction("Read", "Melihat Lisensi Profesi", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("ProfessionalLicense", "Read")]
         [ProducesResponseType(typeof(List<LicenseRadarAlertDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetExpiringRadarList(
             [FromQuery] string? radarLevel = null,
@@ -192,6 +214,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Pemicu on-demand eksekusi Fail-Closed untuk lisensi yang kedaluwarsa (H-0) (INT-HR-69, INT-HR-71)
         /// </summary>
         [HttpPost("radar/execute-fail-closed")]
+        [AccessAction("ExecuteFailClosed", "Menjalankan Penguncian Lisensi Kedaluwarsa", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("ProfessionalLicense", "ExecuteFailClosed")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> ExecuteFailClosed(
             CancellationToken cancellationToken = default)

@@ -3,10 +3,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Controllers
 {
     [ApiController]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_EMPLOYEE_RELATION",
+        moduleName: "Human Resource Employee Relation",
+        displayName: "Terminasi & Pesangon",
+        AreaName = "Corporate",
+        ControllerName = "EmployeeSeparation",
+        Description = "Pengajuan terminasi kerja, kalkulasi pesangon PP 35/2021, dan pengesahan keuangan",
+        SortOrder = 13)]
     [Tags("Corporate - HRD Employee Separation & PP35 Severance")]
     [Route("api/v1/hrd/separations")]
     public class EmployeeSeparationController : ControllerBase
@@ -23,11 +34,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost]
+        [AccessAction("Initiate", "Mengajukan Terminasi Kerja", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("EmployeeSeparation", "Initiate")]
         public async Task<IActionResult> InitiateSeparation([FromBody] InitiateSeparationRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _separationService.InitiateSeparationAsync(request, actorEmail, cancellationToken);
                 return StatusCode(201, ApiResponse<SeparationResponseDto>.Ok(result, "Proses terminasi dan checklist exit clearance 5 departemen berhasil diinisiasi."));
             }
@@ -42,6 +55,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Daftar Proses Terminasi", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("EmployeeSeparation", "Read")]
         public async Task<IActionResult> GetSeparations(
             [FromQuery] string? status,
             [FromQuery] string? separationReason,
@@ -62,11 +77,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("{separationId}/calculate-severance")]
+        [AccessAction("CalculateSeverance", "Menghitung Pesangon", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("EmployeeSeparation", "CalculateSeverance")]
         public async Task<IActionResult> CalculateSeverance(Guid separationId, [FromBody] CalculateSeveranceRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 request.SeparationId = separationId;
                 var result = await _severanceEngine.CalculateSeveranceAsync(request, actorEmail, cancellationToken);
                 return Ok(ApiResponse<SeveranceCalculationResponseDto>.Ok(result, "Kompensasi pesangon berhasil dihitung secara deterministik berdasar regulasi PP 35/2021."));
@@ -82,6 +99,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpGet("{separationId}/severance-breakdown")]
+        [AccessAction("ViewSeverance", "Melihat Rincian Pesangon", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("EmployeeSeparation", "ViewSeverance")]
         public async Task<IActionResult> GetSeveranceBreakdown(Guid separationId, CancellationToken cancellationToken)
         {
             try
@@ -100,11 +119,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("{separationId}/approve-severance")]
+        [AccessAction("ApproveSeveranceFinance", "Mengesahkan Pencairan Pesangon", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("EmployeeSeparation", "ApproveSeveranceFinance")]
         public async Task<IActionResult> ApproveSeverance(Guid separationId, [FromBody] ApproveSeveranceRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "cfo@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _severanceEngine.ApproveSeveranceAsync(separationId, request, actorEmail, cancellationToken);
                 return Ok(ApiResponse<SeveranceCalculationResponseDto>.Ok(result, "Pengesahan lembar pesangon oleh Direktur Keuangan berhasil dicatat."));
             }
@@ -116,6 +137,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return StatusCode(500, ApiResponse<SeveranceCalculationResponseDto>.Fail(500, ex.Message));
             }
+        }
+
+        /// <summary>
+        /// Nama pengguna yang sedang login untuk jejak aktor. Sengaja tidak memakai aktor cadangan:
+        /// permintaan tanpa identitas ditolak, bukan dicatat atas nama orang lain.
+        /// </summary>
+        private string ResolveActorName()
+        {
+            var actorName = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(actorName))
+            {
+                throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
+            }
+
+            return actorName;
         }
     }
 }

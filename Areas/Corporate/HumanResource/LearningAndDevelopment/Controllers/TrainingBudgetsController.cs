@@ -4,11 +4,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/learning/budgets")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Anggaran Pelatihan",
+        AreaName = "Corporate",
+        ControllerName = "TrainingBudget",
+        Description = "Alokasi, komitmen, dan realisasi pagu anggaran diklat per unit",
+        SortOrder = 18)]
     [Tags("Corporate - HRD Training Enrollment & Budget Governance")]
     [Authorize]
     public class TrainingBudgetsController : ControllerBase
@@ -25,6 +35,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("department/{departmentId}/status")]
+        [AccessAction("Read", "Melihat Anggaran Pelatihan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TrainingBudget", "Read")]
         [ProducesResponseType(typeof(ApiResponse<TrainingBudgetSummaryDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> GetDepartmentBudgetStatus(
@@ -50,6 +62,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("plan/{trainingPlanId}")]
+        [AccessAction("Read", "Melihat Anggaran Pelatihan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TrainingBudget", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<TrainingBudgetSummaryDto>>), 200)]
         public async Task<IActionResult> GetPlanBudgets(
             [FromRoute] Guid trainingPlanId,
@@ -68,6 +82,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("allocate")]
+        [AccessAction("Manage", "Mengelola Anggaran Pelatihan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("TrainingBudget", "Manage")]
         [ProducesResponseType(typeof(ApiResponse<TrainingBudgetSummaryDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         public async Task<IActionResult> AllocateBudget(
@@ -81,7 +97,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Manager";
+                var currentUser = ResolveActorName();
                 var allocated = await _budgetService.AllocateBudgetAsync(request, currentUser, cancellationToken);
 
                 return StatusCode(201, ApiResponse<TrainingBudgetSummaryDto>.Ok(allocated, "Pagu anggaran diklat berhasil dialokasikan."));
@@ -94,6 +110,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("commit")]
+        [AccessAction("Manage", "Mengelola Anggaran Pelatihan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("TrainingBudget", "Manage")]
         [ProducesResponseType(typeof(ApiResponse<DepartmentBudgetValidationResultDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<DepartmentBudgetValidationResultDto>), 422)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
@@ -108,7 +126,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var result = await _budgetService.ValidateAndCommitBudgetAsync(request, currentUser, cancellationToken);
 
                 if (!result.IsEligible)
@@ -130,6 +148,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("realize")]
+        [AccessAction("Manage", "Mengelola Anggaran Pelatihan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("TrainingBudget", "Manage")]
         [ProducesResponseType(typeof(ApiResponse<TrainingBudgetSummaryDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
@@ -144,7 +164,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Finance_Staff";
+                var currentUser = ResolveActorName();
                 var realized = await _budgetService.RealizeBudgetAsync(request, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<TrainingBudgetSummaryDto>.Ok(realized, "Realisasi pencairan biaya pelatihan berhasil dibukukan dan komitmen disesuaikan."));
@@ -158,6 +178,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 _logger.LogError(ex, "Gagal memproses realisasi anggaran diklat.");
                 return StatusCode(500, ApiResponse<string>.Fail(500, "Terjadi kesalahan internal saat membukukan realisasi anggaran diklat."));
             }
+        }
+
+        /// <summary>
+        /// Nama pengguna yang sedang login untuk jejak aktor. Sengaja tidak memakai aktor cadangan:
+        /// permintaan tanpa identitas ditolak, bukan dicatat atas nama orang lain.
+        /// </summary>
+        private string ResolveActorName()
+        {
+            var actorName = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(actorName))
+            {
+                throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
+            }
+
+            return actorName;
         }
     }
 }

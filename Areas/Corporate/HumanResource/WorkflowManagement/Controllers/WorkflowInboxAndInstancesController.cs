@@ -6,12 +6,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/workflow")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_WORKFLOW",
+        moduleName: "Human Resource Workflow",
+        displayName: "Kotak Masuk & Permohonan Workflow",
+        AreaName = "Corporate",
+        ControllerName = "WorkflowInboxInstance",
+        Description = "Kotak masuk persetujuan terpadu, rincian permohonan, pengajuan, dan pembatalan",
+        SortOrder = 20)]
     [Tags("Corporate - HRD Workflow Inbox & Instances")]
     public class WorkflowInboxAndInstancesController : ControllerBase
     {
@@ -44,6 +54,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil daftar permohonan persetujuan yang pending untuk approver login (FR-WF-03)
         /// </summary>
         [HttpGet("inbox")]
+        [AccessAction("ViewInbox", "Melihat Kotak Masuk Persetujuan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkflowInboxInstance", "ViewInbox")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<ApprovalInboxItemV2ResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetInbox(
             [FromQuery] string? status,
@@ -62,6 +74,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil ringkasan metrik kotak masuk (pending, urgent H-4 SLA, delegated) (FR-WF-04)
         /// </summary>
         [HttpGet("inbox/summary")]
+        [AccessAction("ViewInbox", "Melihat Kotak Masuk Persetujuan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkflowInboxInstance", "ViewInbox")]
         [ProducesResponseType(typeof(ApiResponse<ApprovalInboxSummaryV2ResponseDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetInboxSummary()
         {
@@ -74,6 +88,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil detail lengkap tiket permohonan, tahapan step, dan checklist validasi (FR-WF-01)
         /// </summary>
         [HttpGet("instances/{id}")]
+        [AccessAction("ViewInstanceDetail", "Melihat Rincian Permohonan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("WorkflowInboxInstance", "ViewInstanceDetail")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowInstanceDetailV2ResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetInstanceDetail([FromRoute] Guid id)
@@ -90,6 +106,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mendaftarkan dan memulai workflow persetujuan baru dari ESS (FR-WF-01)
         /// </summary>
         [HttpPost("instances")]
+        [AccessAction("CreateInstance", "Mengajukan Permohonan", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("WorkflowInboxInstance", "CreateInstance")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowInstanceV2ResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateInstance([FromBody] CreateWorkflowInstanceRequestDto request)
@@ -116,6 +134,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Membatalkan permohonan oleh pemohon sebelum tiket disetujui final (FR-WF-01)
         /// </summary>
         [HttpPut("instances/{id}/cancel")]
+        [AccessAction("CancelMyInstance", "Membatalkan Permohonan Sendiri", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("WorkflowInboxInstance", "CancelMyInstance")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowInstanceV2ResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CancelInstance([FromRoute] Guid id, [FromBody] CancelWorkflowRequestDto request)
@@ -136,6 +156,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil riwayat permohonan mandiri yang diajukan staf login di ESS (FR-WF-01)
         /// </summary>
         [HttpGet("my-requests")]
+        [AccessAction("ViewOwn", "Melihat Permohonan Sendiri", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("WorkflowInboxInstance", "ViewOwn")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<WorkflowInstanceV2ResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMyRequests(
             [FromQuery] string? status,

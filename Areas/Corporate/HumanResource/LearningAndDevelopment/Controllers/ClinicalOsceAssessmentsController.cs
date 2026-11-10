@@ -4,11 +4,21 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/training/sessions/{sessionId:guid}/assessments/clinical-osce")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Ujian Praktik Klinis (OSCE)",
+        AreaName = "Corporate",
+        ControllerName = "ClinicalOsceAssessment",
+        Description = "Penilaian OSCE peserta sesi pelatihan klinis",
+        SortOrder = 16)]
     [Tags("Corporate - HRD Clinical Competency & OSCE Assessment")]
     [Authorize]
     public class ClinicalOsceAssessmentsController : ControllerBase
@@ -21,6 +31,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost]
+        [AccessAction("Grade", "Menilai Ujian OSCE", AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("ClinicalOsceAssessment", "Grade")]
         public async Task<IActionResult> SubmitClinicalOsce([FromRoute] Guid sessionId, [FromBody] SubmitClinicalOsceRequestDto request)
         {
             try
@@ -44,6 +56,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("participants/{workforceProfileId:guid}")]
+        [AccessAction("Read", "Melihat Nilai OSCE", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("ClinicalOsceAssessment", "Read")]
         public async Task<IActionResult> GetParticipantOsce([FromRoute] Guid sessionId, [FromRoute] Guid workforceProfileId)
         {
             try
@@ -62,6 +76,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Nilai OSCE", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("ClinicalOsceAssessment", "Read")]
         public async Task<IActionResult> GetSessionOsces([FromRoute] Guid sessionId)
         {
             try

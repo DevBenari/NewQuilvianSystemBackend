@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Controllers
 {
@@ -16,6 +18,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     /// </summary>
     [ApiController]
     [Route("api/v1/hrd/occupational-health")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_OCCUPATIONAL_HEALTH",
+        moduleName: "Human Resource Occupational Health",
+        displayName: "Kedaruratan Tertusuk Jarum",
+        AreaName = "Corporate",
+        ControllerName = "NeedleStickEmergency",
+        Description = "Pelaporan CITO pajanan darah, PEP, dan surveilans serologi serial",
+        SortOrder = 12)]
     [Tags("Corporate - HRD Needle-Stick & Occupational Exposure Emergency")]
     public class NeedleStickEmergencyController : ControllerBase
     {
@@ -33,13 +44,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         private Guid GetCurrentUserId()
         {
             var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(raw, out var uid) ? uid : Guid.Parse("11111111-1111-1111-1111-111111111111");
+            if (Guid.TryParse(raw, out var uid) && uid != Guid.Empty)
+            {
+                return uid;
+            }
+
+            // Tidak memakai aktor cadangan: jejak audit tanpa identitas asli lebih berbahaya
+            // daripada permintaan yang ditolak.
+            throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
         /// <summary>
         /// Tombol Darurat ESS: Laporkan insiden tertusuk jarum suntik bekas cito
         /// </summary>
         [HttpPost("needle-stick/report-cito")]
+        [AccessAction("ReportNeedleStickEmergency", "Melaporkan Tertusuk Jarum (CITO)", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("NeedleStickEmergency", "ReportNeedleStickEmergency")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<NeedleStickReceiptDto>), 201)]
         public async Task<IActionResult> ReportNeedleStickCito([FromBody] ReportNeedleStickCitoRequestDto request, CancellationToken cancellationToken = default)
@@ -53,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Daftar antrean insiden tertusuk jarum dan status pemberian PEP
         /// </summary>
         [HttpGet("needle-stick")]
+        [AccessAction("Read", "Melihat Antrean & Radar Pajanan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("NeedleStickEmergency", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<NeedleStickIncidentDto>>), 200)]
         public async Task<IActionResult> GetNeedleStickQueue(
@@ -70,6 +92,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Rekam tindakan inisiasi Profilaksis Pasca Pajanan (PEP) < 4 jam
         /// </summary>
         [HttpPost("needle-stick/{incidentId:guid}/administer-pep")]
+        [AccessAction("PrescribePep", "Meresepkan Profilaksis Pasca Pajanan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("NeedleStickEmergency", "PrescribePep")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<NeedleStickIncidentDto>), 200)]
         public async Task<IActionResult> AdministerPep(Guid incidentId, [FromBody] AdministerPepRequestDto request, CancellationToken cancellationToken = default)
@@ -83,6 +107,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Catat hasil pemantauan tes darah berkala Bulan ke-1, 3, dan 6
         /// </summary>
         [HttpPost("exposures/{exposureId:guid}/serial-serology")]
+        [AccessAction("ManageSerialSurveillance", "Mengelola Surveilans Serologi Serial", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("NeedleStickEmergency", "ManageSerialSurveillance")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<OccupationalExposureDto>), 200)]
         public async Task<IActionResult> RecordSerialSerology(Guid exposureId, [FromBody] RecordSerologyFollowupRequestDto request, CancellationToken cancellationToken = default)
@@ -96,6 +122,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Radar pemantauan nakes yang sedang dalam jadwal kontrol serologi 6 bulan
         /// </summary>
         [HttpGet("exposures/radar-active")]
+        [AccessAction("Read", "Melihat Antrean & Radar Pajanan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("NeedleStickEmergency", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<ActiveExposureRadarSummaryDto>>), 200)]
         public async Task<IActionResult> GetActiveExposureRadar(CancellationToken cancellationToken = default)

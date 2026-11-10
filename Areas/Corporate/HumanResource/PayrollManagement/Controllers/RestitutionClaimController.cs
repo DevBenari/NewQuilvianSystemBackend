@@ -3,12 +3,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Controllers
 {
     [ApiController]
     [Route("api/hr-deductions")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PAYROLL_MANAGEMENT",
+        moduleName: "Human Resource Payroll Management",
+        displayName: "Klaim Restitusi Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "RestitutionClaim",
+        Description = "Klaim restitusi salah potong, persetujuan berjenjang, koreksi gaji, dan injeksi ke payroll",
+        SortOrder = 40)]
     public class RestitutionClaimController : ControllerBase
     {
         private readonly IRestitutionClaimService _claimService;
@@ -25,13 +35,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         private Guid GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(claim, out var uid) ? uid : Guid.Parse("11111111-1111-1111-1111-111111111111");
+            if (Guid.TryParse(claim, out var uid) && uid != Guid.Empty)
+            {
+                return uid;
+            }
+
+            // Tidak memakai aktor cadangan: jejak audit tanpa identitas asli lebih berbahaya
+            // daripada permintaan yang ditolak.
+            throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
         /// <summary>
         /// Mengambil sisa kuota plafon tahunan pegawai untuk kategori tertentu (VR-DED-10, DED-W2).
         /// </summary>
         [HttpGet("claims/quota")]
+        [AccessAction("ViewOwn", "Melihat Kuota Restitusi Sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RestitutionClaim", "ViewOwn")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> GetRemainingQuota(
             [FromQuery] Guid employeeId,
@@ -46,6 +65,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Pengajuan klaim restitusi mandiri oleh pegawai di portal ESS (filter kuitansi < 60 hari & upload nota).
         /// </summary>
         [HttpPost("claims")]
+        [AccessAction("Submit", "Mengajukan Klaim Restitusi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("RestitutionClaim", "Submit")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> SubmitClaim(
             [FromBody] SubmitRestitutionClaimRequestDto request,
@@ -60,6 +81,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Mengambil daftar klaim restitusi pegawai dengan filter kategori, status, dan cito.
         /// </summary>
         [HttpGet("claims")]
+        [AccessAction("Read", "Melihat Klaim Restitusi", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("RestitutionClaim", "Read")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> GetClaims(
             [FromQuery] RestitutionClaimFilterDto filter,
@@ -73,6 +96,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Mengambil detail satu berkas klaim restitusi berdasarkan ID.
         /// </summary>
         [HttpGet("claims/{id:guid}")]
+        [AccessAction("Read", "Melihat Klaim Restitusi", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("RestitutionClaim", "Read")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> GetClaimById(Guid id, CancellationToken cancellationToken)
         {
@@ -85,6 +110,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Persetujuan tingkat pertama oleh atasan langsung / Supervisor (DED-B8 Anti-Self-Approval).
         /// </summary>
         [HttpPost("claims/{id:guid}/approve-supervisor")]
+        [AccessAction("ApproveSupervisor", "Menyetujui Restitusi (Atasan)", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("RestitutionClaim", "ApproveSupervisor")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> ApproveBySupervisor(
             Guid id,
@@ -99,6 +126,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Review verifikasi keabsahan nota dan dokumen medis oleh HR C&B Reviewer (Tier-2).
         /// </summary>
         [HttpPost("claims/{id:guid}/review-hr")]
+        [AccessAction("ReviewHr", "Mereview Restitusi (HR)", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("RestitutionClaim", "ReviewHr")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> ReviewByHr(
             Guid id,
@@ -113,6 +142,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Pengesahan final klaim oleh HR Manager (Tier-3) dan pembentukan komponen restitusi payroll.
         /// </summary>
         [HttpPost("claims/{id:guid}/approve-final")]
+        [AccessAction("ApproveFinal", "Menyetujui Final Restitusi", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("RestitutionClaim", "ApproveFinal")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> FinalApprove(
             Guid id,
@@ -128,6 +159,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Penolakan klaim restitusi dengan kewajiban alasan penolakan audit minimal 15 karakter (VR-DED-22).
         /// </summary>
         [HttpPost("claims/{id:guid}/reject")]
+        [AccessAction("Reject", "Menolak Klaim Restitusi", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("RestitutionClaim", "Reject")]
         [Tags("HR Deductions - Restitution Claims")]
         public async Task<IActionResult> RejectClaim(
             Guid id,
@@ -143,6 +176,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Menerbitkan kompensasi salah potong masa lalu tanpa revisi slip lama berstatus non-pajak (PAY-B6, DED-B4, DED-B5).
         /// </summary>
         [HttpPost("restitutions/salary-correction")]
+        [AccessAction("Correct", "Mengoreksi Gaji", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("RestitutionClaim", "Correct")]
         [Tags("HR Deductions - Restitutions")]
         public async Task<IActionResult> CreateSalaryCorrection(
             [FromBody] CreateSalaryCorrectionRequestDto request,
@@ -157,6 +192,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Investigasi keluhan salah potong gaji oleh HR Payroll Officer dan penerbitan restitusi koreksi bebas PPh 21 (BE-HRD-171, DED-B5, HRD-ASM-33).
         /// </summary>
         [HttpPost("restitutions/grievance-investigation")]
+        [AccessAction("Correct", "Mengoreksi Gaji", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("RestitutionClaim", "Correct")]
         [Tags("HR Deductions - Restitutions")]
         public async Task<IActionResult> InvestigateAndResolveSalaryGrievance(
             [FromBody] SalaryGrievanceInvestigationRequestDto request,
@@ -171,6 +208,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Mengambil daftar komponen restitusi dan koreksi penggajian.
         /// </summary>
         [HttpGet("restitutions")]
+        [AccessAction("Read", "Melihat Klaim Restitusi", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("RestitutionClaim", "Read")]
         [Tags("HR Deductions - Restitutions")]
         public async Task<IActionResult> GetPayrollRestitutions(
             [FromQuery] Guid? employeeId,
@@ -186,6 +225,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// Injeksi otomatis seluruh komponen restitusi approved ke payroll run berjalan tgl 25 sebagai komponen non-pajak.
         /// </summary>
         [HttpPost("restitutions/inject-to-payroll/{payrollRunId:guid}")]
+        [AccessAction("InjectToPayroll", "Menginjeksi Restitusi ke Payroll", AccessType = AccessTypes.Update, SortOrder = 9)]
+        [AccessPermission("RestitutionClaim", "InjectToPayroll")]
         [Tags("HR Deductions - Restitutions")]
         public async Task<IActionResult> InjectApprovedRestitutions(
             Guid payrollRunId,

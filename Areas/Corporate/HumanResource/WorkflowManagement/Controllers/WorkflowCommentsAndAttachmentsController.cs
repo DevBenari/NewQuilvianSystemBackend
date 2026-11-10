@@ -8,12 +8,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/workflow/instances/{id}")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_WORKFLOW",
+        moduleName: "Human Resource Workflow",
+        displayName: "Komentar & Lampiran Workflow",
+        AreaName = "Corporate",
+        ControllerName = "WorkflowCommentAttachment",
+        Description = "Utas komentar klarifikasi dan lampiran pendukung permohonan",
+        SortOrder = 22)]
     [Tags("Corporate - HRD Workflow Comments & Attachments")]
     public class WorkflowCommentsAndAttachmentsController : ControllerBase
     {
@@ -35,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil riwayat percakapan thread dan catatan revisi permohonan (FR-WF-20)
         /// </summary>
         [HttpGet("comments")]
+        [AccessAction("ViewInstanceDetail", "Melihat Komentar & Lampiran", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkflowCommentAttachment", "ViewInstanceDetail")]
         [ProducesResponseType(typeof(ApiResponse<List<WorkflowCommentV2ResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetComments([FromRoute] Guid id)
         {
@@ -46,6 +58,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Menambahkan komentar klarifikasi baru pada tiket permohonan (FR-WF-20)
         /// </summary>
         [HttpPost("comments")]
+        [AccessAction("AddComment", "Menambahkan Komentar", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("WorkflowCommentAttachment", "AddComment")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowCommentV2ResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddComment([FromRoute] Guid id, [FromBody] AddWorkflowCommentRequestDto request)
@@ -70,6 +84,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengambil daftar berkas lampiran pendukung permohonan (FR-WF-20)
         /// </summary>
         [HttpGet("attachments")]
+        [AccessAction("ViewInstanceDetail", "Melihat Komentar & Lampiran", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkflowCommentAttachment", "ViewInstanceDetail")]
         [ProducesResponseType(typeof(ApiResponse<List<WorkflowAttachmentV2ResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAttachments([FromRoute] Guid id)
         {
@@ -81,6 +97,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         /// Mengunggah berkas lampiran pendukung baru (PDF/JPG maksimal 10MB) (FR-WF-20)
         /// </summary>
         [HttpPost("attachments")]
+        [AccessAction("UploadAttachment", "Mengunggah Lampiran", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("WorkflowCommentAttachment", "UploadAttachment")]
         [ProducesResponseType(typeof(ApiResponse<WorkflowAttachmentV2ResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UploadAttachment([FromRoute] Guid id, IFormFile file, [FromForm] string? description)

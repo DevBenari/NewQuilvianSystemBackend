@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -16,6 +17,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     [ApiController]
     [Route("api/v1/corporate/human-resource/recruitment/talent-pool")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_RECRUITMENT",
+        moduleName: "Human Resource Recruitment",
+        displayName: "Talent Pool",
+        AreaName = "Corporate",
+        ControllerName = "TalentPool",
+        Description = "Kandidat cadangan dan promosi jalur cepat",
+        SortOrder = 18)]
     [Tags("Corporate / Human Resource / Recruitment Management / Talent Pool")]
     public sealed class TalentPoolController : ControllerBase
     {
@@ -27,7 +36,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Talent Pool", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TalentPool", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<TalentPoolListItemResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged([FromQuery] TalentPoolQuery query, CancellationToken cancellationToken)
         {
@@ -36,7 +46,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet("{id:guid}")]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Talent Pool", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TalentPool", "Read")]
         [ProducesResponseType(typeof(ApiResponse<TalentPoolResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -46,7 +57,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("enroll")]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("Create", "Memasukkan ke Talent Pool", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("TalentPool", "Create")]
         [ProducesResponseType(typeof(ApiResponse<TalentPoolResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -58,7 +70,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("{id:guid}/fast-track-promote")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Promote", "Mempromosikan dari Talent Pool", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("TalentPool", "Promote")]
         [ProducesResponseType(typeof(ApiResponse<TalentPoolResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

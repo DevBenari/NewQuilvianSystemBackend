@@ -3,10 +3,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Controllers
 {
     [ApiController]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_EMPLOYEE_RELATION",
+        moduleName: "Human Resource Employee Relation",
+        displayName: "Disiplin & Sanksi Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "EmployeeDisciplinary",
+        Description = "Insiden tata tertib, investigasi BAP, sanksi SP, banding, dan skorsing pegawai",
+        SortOrder = 10)]
     [Tags("Corporate - HRD Employee Disciplinary & Just Culture")]
     [Route("api/v1/hrd/disciplinary")]
     public class EmployeeDisciplinaryController : ControllerBase
@@ -29,11 +40,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("incidents")]
+        [AccessAction("CreateIncident", "Melaporkan Insiden Disiplin", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("EmployeeDisciplinary", "CreateIncident")]
         public async Task<IActionResult> ReportIncident([FromBody] CreateIncidentReportRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _incidentService.ReportIncidentAsync(request, actorEmail, cancellationToken);
                 return StatusCode(201, ApiResponse<IncidentReportResponseDto>.Ok(result, "Laporan insiden berhasil dicatat dengan klasifikasi Just Culture."));
             }
@@ -48,6 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpGet("incidents")]
+        [AccessAction("ViewIncidents", "Melihat Laporan Insiden Disiplin", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("EmployeeDisciplinary", "ViewIncidents")]
         public async Task<IActionResult> GetIncidents(
             [FromQuery] Guid? employeeId,
             [FromQuery] string? justCultureClassification,
@@ -68,6 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpGet("incidents/{incidentId}")]
+        [AccessAction("ViewIncidents", "Melihat Laporan Insiden Disiplin", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("EmployeeDisciplinary", "ViewIncidents")]
         public async Task<IActionResult> GetIncidentById(Guid incidentId, CancellationToken cancellationToken)
         {
             try
@@ -86,11 +103,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("investigations")]
+        [AccessAction("ConductInvestigation", "Melaksanakan Investigasi Disiplin", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("EmployeeDisciplinary", "ConductInvestigation")]
         public async Task<IActionResult> InitiateInvestigation([FromBody] InitiateInvestigationRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _investigationService.InitiateInvestigationAsync(request, actorEmail, cancellationToken);
                 return StatusCode(201, ApiResponse<InvestigationRecordResponseDto>.Ok(result, "Berkas Berita Acara Pemeriksaan (BAP) formal berhasil diinisiasi."));
             }
@@ -109,11 +128,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPut("investigations/{investigationId}/findings")]
+        [AccessAction("ConductInvestigation", "Melaksanakan Investigasi Disiplin", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("EmployeeDisciplinary", "ConductInvestigation")]
         public async Task<IActionResult> RecordFindings(Guid investigationId, [FromBody] RecordBapFindingsRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _investigationService.RecordFindingsAsync(investigationId, request, actorEmail, cancellationToken);
                 return Ok(ApiResponse<InvestigationRecordResponseDto>.Ok(result, "Temuan BAP dan rekomendasi sanksi berhasil dicatat dan disahkan Direktur SDM."));
             }
@@ -132,11 +153,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("sanctions")]
+        [AccessAction("IssueSanction", "Menerbitkan Surat Peringatan", AccessType = AccessTypes.Create, SortOrder = 4)]
+        [AccessPermission("EmployeeDisciplinary", "IssueSanction")]
         public async Task<IActionResult> IssueSanction([FromBody] IssueSanctionRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _sanctionService.IssueSanctionAsync(request, actorEmail, cancellationToken);
                 return StatusCode(201, ApiResponse<SanctionResponseDto>.Ok(result, "Surat sanksi disiplin berhasil diterbitkan dan diarsipkan permanen."));
             }
@@ -151,6 +174,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpGet("sanctions/employee/{employeeId}")]
+        [AccessAction("ViewSanctions", "Melihat Riwayat Sanksi Pegawai", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("EmployeeDisciplinary", "ViewSanctions")]
         public async Task<IActionResult> GetSanctionsByEmployee(Guid employeeId, CancellationToken cancellationToken)
         {
             try
@@ -165,11 +190,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("sanctions/{sanctionId}/appeal")]
+        [AccessAction("AppealSanction", "Mengajukan Banding Sanksi", AccessType = AccessTypes.Create, SortOrder = 6)]
+        [AccessPermission("EmployeeDisciplinary", "AppealSanction")]
         public async Task<IActionResult> AppealSanction(Guid sanctionId, [FromBody] AppealSanctionRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _sanctionService.AppealSanctionAsync(sanctionId, request, actorEmail, cancellationToken);
                 return Ok(ApiResponse<SanctionAppealResponseDto>.Ok(result, result.Message));
             }
@@ -188,11 +215,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("suspensions")]
+        [AccessAction("IssueSuspension", "Menerbitkan Surat Skorsing", AccessType = AccessTypes.Create, SortOrder = 7)]
+        [AccessPermission("EmployeeDisciplinary", "IssueSuspension")]
         public async Task<IActionResult> IssueSuspension([FromBody] IssueSuspensionRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _suspensionService.IssueSuspensionAsync(request, actorEmail, cancellationToken);
                 return StatusCode(201, ApiResponse<SuspensionResponseDto>.Ok(result, "Surat penetapan skorsing investigasi (paid suspension) diterbitkan dan akses SIMRS dibekukan."));
             }
@@ -207,11 +236,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         }
 
         [HttpPost("suspensions/{suspensionId}/reinstate")]
+        [AccessAction("ManageSuspension", "Memulihkan Pegawai Diskorsing", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("EmployeeDisciplinary", "ManageSuspension")]
         public async Task<IActionResult> ReinstateEmployee(Guid suspensionId, [FromBody] ReinstateEmployeeRequestDto request, CancellationToken cancellationToken)
         {
             try
             {
-                var actorEmail = User?.Identity?.Name ?? "system@rs-mmc.co.id";
+                var actorEmail = ResolveActorName();
                 var result = await _suspensionService.ReinstateEmployeeAsync(suspensionId, request, actorEmail, cancellationToken);
                 return Ok(ApiResponse<SuspensionResponseDto>.Ok(result, "Skorsing berakhir, status pegawai dipulihkan dan akses SIMRS diaktifkan kembali."));
             }
@@ -223,6 +254,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 return StatusCode(500, ApiResponse<SuspensionResponseDto>.Fail(500, ex.Message));
             }
+        }
+
+        /// <summary>
+        /// Nama pengguna yang sedang login untuk jejak aktor. Sengaja tidak memakai aktor cadangan:
+        /// permintaan tanpa identitas ditolak, bukan dicatat atas nama orang lain.
+        /// </summary>
+        private string ResolveActorName()
+        {
+            var actorName = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(actorName))
+            {
+                throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
+            }
+
+            return actorName;
         }
     }
 }

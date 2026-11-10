@@ -3,11 +3,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/services/documents")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_SERVICE_MANAGEMENT",
+        moduleName: "Human Resource Service Management",
+        displayName: "Penerbitan Dokumen Kepegawaian",
+        AreaName = "Corporate",
+        ControllerName = "EmployeeDocumentIssuance",
+        Description = "Permohonan, pengesahan, penerbitan, unduhan, dan pencabutan surat resmi kepegawaian",
+        SortOrder = 10)]
     [Tags("HR Services - Document Issuance & Verification")]
     public class EmployeeDocumentIssuanceController : ControllerBase
     {
@@ -33,6 +44,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Pengajuan permohonan surat keterangan dinas resmi kepegawaian (Anti-Manual Guard Enforced - VR-HRS-06)
         /// </summary>
         [HttpPost("request")]
+        [AccessAction("Request", "Mengajukan Surat Kepegawaian", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("EmployeeDocumentIssuance", "Request")]
         [Authorize]
         public async Task<IActionResult> RequestDocument(
             [FromQuery] Guid workforceProfileId,
@@ -55,6 +68,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Persetujuan Tier 1 oleh Supervisor Kompensasi & Benefit untuk dokumen finansial (HRS-W4, VR-HRS-07, VR-HRS-08)
         /// </summary>
         [HttpPost("{id:guid}/cb-approve")]
+        [AccessAction("ApproveDraft", "Menyetujui Draf Surat (Supervisor C&B)", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("EmployeeDocumentIssuance", "ApproveDraft")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager,HRStaff")]
         public async Task<IActionResult> CbSupervisorApprove(
             Guid id,
@@ -77,6 +92,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Otorisasi Final & Penerbitan Surat Dinas Resmi oleh Manajer SDM / Direktur (Anti-Self-Approval Enforced - VR-HRS-08)
         /// </summary>
         [HttpPost("{id:guid}/authorize-issue")]
+        [AccessAction("Issue", "Mengesahkan & Menerbitkan Surat Resmi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("EmployeeDocumentIssuance", "Issue")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> FinalAuthorizeAndIssue(
             Guid id,
@@ -99,6 +116,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil antrean seluruh permohonan & penerbitan naskah dinas kepegawaian
         /// </summary>
         [HttpGet("queue")]
+        [AccessAction("Read", "Melihat Antrean Penerbitan Surat", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("EmployeeDocumentIssuance", "Read")]
         [Authorize]
         public async Task<IActionResult> GetIssuancesQueue(
             [FromQuery] string? status = null,
@@ -114,6 +133,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil rincian data penerbitan naskah dinas kepegawaian
         /// </summary>
         [HttpGet("{id:guid}")]
+        [AccessAction("Read", "Melihat Antrean Penerbitan Surat", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("EmployeeDocumentIssuance", "Read")]
         [Authorize]
         public async Task<IActionResult> GetIssuanceDetail(Guid id, CancellationToken cancellationToken = default)
         {
@@ -132,6 +153,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengunduh berkas fisik resmi naskah dinas kepegawaian
         /// </summary>
         [HttpGet("{id:guid}/download")]
+        [AccessAction("Download", "Mengunduh Dokumen Terbit", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("EmployeeDocumentIssuance", "Download")]
         [Authorize]
         public async Task<IActionResult> DownloadIssuedDocument(Guid id, CancellationToken cancellationToken = default)
         {
@@ -156,6 +179,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mencabut / membatalkan surat naskah dinas resmi dengan nomor BAP (Revocation)
         /// </summary>
         [HttpPost("{id:guid}/revoke")]
+        [AccessAction("Revoke", "Mencabut Dokumen Resmi", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("EmployeeDocumentIssuance", "Revoke")]
         [Authorize(Roles = "SuperAdmin,HRAdmin,HRManager")]
         public async Task<IActionResult> RevokeDocument(
             Guid id,

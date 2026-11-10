@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Controllers
 {
@@ -16,6 +18,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     [Route("api/v1/corporate/human-resource/lifecycle-management/probations")]
     [Route("api/v1/corporate/human-resource/probations")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LIFECYCLE_MANAGEMENT",
+        moduleName: "Human Resource Lifecycle Management",
+        displayName: "Masa Percobaan Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "WorkforceProbation",
+        Description = "Penilaian masa percobaan beserta bukti pendukung",
+        SortOrder = 32)]
     [Tags("Corporate / Human Resource / Lifecycle Management / Probation")]
     public class HrdProbationController : ControllerBase
     {
@@ -30,6 +40,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         /// Mengambil daftar masa percobaan (probation) dengan filter status, unit organisasi, jatuh tempo, tanggal berakhir, dan pencarian.
         /// </summary>
         [HttpGet]
+        [AccessAction("Read", "Melihat Masa Percobaan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceProbation", "Read")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(RecruitmentResult<PagedResult<HrdProbationResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged([FromQuery] HrdProbationQuery query, CancellationToken cancellationToken)
@@ -42,6 +54,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         /// Mengambil detail lengkap masa percobaan beserta seluruh riwayat penilaiannya (assessments).
         /// </summary>
         [HttpGet("{id:guid}")]
+        [AccessAction("Read", "Melihat Masa Percobaan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceProbation", "Read")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(RecruitmentResult<HrdProbationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(RecruitmentResult<object>), StatusCodes.Status404NotFound)]
@@ -58,6 +72,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         /// VR-ONB-57: Hanya 1 penilaian terbuka per masa percobaan.
         /// </summary>
         [HttpPost("{id:guid}/assessments")]
+        [AccessAction("Submit", "Mengajukan Penilaian Masa Percobaan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceProbation", "Submit")]
         [Consumes("multipart/form-data")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(RecruitmentResult<ProbationAssessmentResponse>), StatusCodes.Status201Created)]
@@ -86,6 +102,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         /// Memperbarui penilaian yang dikembalikan (Returned/Minta Revisi), lalu mengajukan ulang ke workflow T15.
         /// </summary>
         [HttpPut("{id:guid}/assessments/{assessmentId:guid}")]
+        [AccessAction("Submit", "Mengajukan Penilaian Masa Percobaan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceProbation", "Submit")]
         [Consumes("multipart/form-data")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(RecruitmentResult<ProbationAssessmentResponse>), StatusCodes.Status200OK)]
@@ -115,6 +133,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         /// Menarik pengajuan penilaian masa percobaan sebelum keputusan final ditetapkan oleh HRD.
         /// </summary>
         [HttpPost("{id:guid}/assessments/{assessmentId:guid}/withdraw")]
+        [AccessAction("Submit", "Mengajukan Penilaian Masa Percobaan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceProbation", "Submit")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(RecruitmentResult<ProbationAssessmentResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(RecruitmentResult<object>), StatusCodes.Status400BadRequest)]
@@ -133,6 +153,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         /// Mengunduh berkas dokumen bukti pendukung penilaian masa percobaan.
         /// </summary>
         [HttpGet("{id:guid}/assessments/{assessmentId:guid}/evidence")]
+        [AccessAction("Read", "Melihat Masa Percobaan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceProbation", "Read")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(RecruitmentResult<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DownloadEvidence(

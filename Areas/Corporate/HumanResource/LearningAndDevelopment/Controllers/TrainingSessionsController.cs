@@ -4,11 +4,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/learning/sessions")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Sesi Pelatihan",
+        AreaName = "Corporate",
+        ControllerName = "TrainingSession",
+        Description = "Jadwal sesi kelas pelatihan, pendaftaran, dan penyelesaian sesi",
+        SortOrder = 12)]
     [Tags("Corporate - HRD Clinical Competency & OSCE Assessment")]
     [Authorize]
     public class TrainingSessionsController : ControllerBase
@@ -25,6 +35,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Sesi Pelatihan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TrainingSession", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<TrainingSessionDto>>), 200)]
         public async Task<IActionResult> GetSessions(
             [FromQuery] Guid? trainingPlanId,
@@ -46,6 +58,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Sesi Pelatihan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("TrainingSession", "Read")]
         [ProducesResponseType(typeof(ApiResponse<TrainingSessionDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> GetSessionById([FromRoute] Guid id, CancellationToken cancellationToken)
@@ -68,6 +82,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost]
+        [AccessAction("Create", "Membuat Sesi Pelatihan", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("TrainingSession", "Create")]
         [ProducesResponseType(typeof(ApiResponse<TrainingSessionDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         [ProducesResponseType(typeof(ApiResponse<string>), 409)]
@@ -82,7 +98,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var created = await _sessionService.CreateSessionAsync(request, currentUser, cancellationToken);
 
                 return StatusCode(201, ApiResponse<TrainingSessionDto>.Ok(created, "Jadwal sesi kelas pelatihan berhasil dibuat dan pendaftaran dibuka."));
@@ -107,6 +123,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPut("{id}")]
+        [AccessAction("Update", "Mengubah Sesi Pelatihan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("TrainingSession", "Update")]
         [ProducesResponseType(typeof(ApiResponse<TrainingSessionDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
@@ -123,7 +141,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var updated = await _sessionService.UpdateSessionAsync(id, request, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<TrainingSessionDto>.Ok(updated, "Jadwal sesi kelas pelatihan berhasil diperbarui."));
@@ -148,13 +166,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("{id}/open-registration")]
+        [AccessAction("Manage", "Mengelola Status Sesi Pelatihan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("TrainingSession", "Manage")]
         [ProducesResponseType(typeof(ApiResponse<TrainingSessionDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> OpenRegistration([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var session = await _sessionService.OpenRegistrationAsync(id, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<TrainingSessionDto>.Ok(session, "Masa pendaftaran sesi pelatihan resmi DIBUKA."));
@@ -171,13 +191,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("{id}/close-registration")]
+        [AccessAction("Manage", "Mengelola Status Sesi Pelatihan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("TrainingSession", "Manage")]
         [ProducesResponseType(typeof(ApiResponse<TrainingSessionDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> CloseRegistration([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var session = await _sessionService.CloseRegistrationAsync(id, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<TrainingSessionDto>.Ok(session, "Masa pendaftaran sesi pelatihan resmi DITUTUP."));
@@ -194,13 +216,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("{id}/complete")]
+        [AccessAction("Manage", "Mengelola Status Sesi Pelatihan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("TrainingSession", "Manage")]
         [ProducesResponseType(typeof(ApiResponse<TrainingSessionDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> CompleteSession([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var session = await _sessionService.CompleteSessionAsync(id, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<TrainingSessionDto>.Ok(session, "Sesi pelatihan telah diselesaikan."));
@@ -217,6 +241,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpDelete("{id}")]
+        [AccessAction("Delete", "Menghapus Sesi Pelatihan", AccessType = AccessTypes.Delete, SortOrder = 5)]
+        [AccessPermission("TrainingSession", "Delete")]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         [ProducesResponseType(typeof(ApiResponse<string>), 422)]
@@ -224,7 +250,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         {
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var success = await _sessionService.DeleteSessionAsync(id, currentUser, cancellationToken);
 
                 if (!success)
@@ -243,6 +269,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 _logger.LogError(ex, "Gagal menghapus sesi pelatihan {SessionId}", id);
                 return StatusCode(500, ApiResponse<string>.Fail(500, "Terjadi kesalahan internal saat menghapus sesi pelatihan."));
             }
+        }
+
+        /// <summary>
+        /// Nama pengguna yang sedang login untuk jejak aktor. Sengaja tidak memakai aktor cadangan:
+        /// permintaan tanpa identitas ditolak, bukan dicatat atas nama orang lain.
+        /// </summary>
+        private string ResolveActorName()
+        {
+            var actorName = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(actorName))
+            {
+                throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
+            }
+
+            return actorName;
         }
     }
 }

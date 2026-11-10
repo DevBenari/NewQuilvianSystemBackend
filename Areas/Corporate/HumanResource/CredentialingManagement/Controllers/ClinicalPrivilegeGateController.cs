@@ -3,11 +3,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/clinical-privileges")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_CREDENTIALING",
+        moduleName: "Human Resource Credentialing",
+        displayName: "Gerbang Wewenang Klinis",
+        AreaName = "Corporate",
+        ControllerName = "ClinicalPrivilegeGate",
+        Description = "Validasi wewenang tindakan, co-sign, bypass darurat, dan kewenangan sementara",
+        SortOrder = 10)]
     [Tags("HR Credentialing - Real-Time SIMRS Gate & Emergency Override")]
     [Authorize]
     public class ClinicalPrivilegeGateController : ControllerBase
@@ -37,6 +47,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Memvalidasi status SIP aktif, SPK 3 tahun, dan derajat supervisi Level 1 Mandiri s.d. Level 4 Hard-Stop
         /// </summary>
         [HttpPost("validate-gate")]
+        [AccessAction("Validate", "Memvalidasi Wewenang Klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalPrivilegeGate", "Validate")]
         [ProducesResponseType(typeof(ClinicalPrivilegeGateValidationResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ValidateGate(
@@ -56,6 +68,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Persetujuan digital (Co-Signature) oleh dokter supervisor dalam tempo 24 jam (BE-HRD-217, VR-CRD-07)
         /// </summary>
         [HttpPost("co-sign")]
+        [AccessAction("CoSign", "Memberi Co-Sign Tindakan", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("ClinicalPrivilegeGate", "CoSign")]
         [ProducesResponseType(typeof(CoSignatureResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,6 +97,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Perekaman bypass darurat penyelamatan nyawa (Life-Saving Emergency Override) ke KMKP (BE-HRD-218, INT-HR-70)
         /// </summary>
         [HttpPost("emergency-override")]
+        [AccessAction("EmergencyOverride", "Menjalankan Bypass Darurat", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("ClinicalPrivilegeGate", "EmergencyOverride")]
         [ProducesResponseType(typeof(EmergencyOverrideLogDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -110,6 +126,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Audit dan putusan Komite Mutu & Keselamatan Pasien (KMKP) atas tindakan Life-Saving Override (BE-HRD-218)
         /// </summary>
         [HttpPost("emergency-overrides/review")]
+        [AccessAction("DecideKmkpAudit", "Menelaah Bypass Darurat (KMKP)", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("ClinicalPrivilegeGate", "DecideKmkpAudit")]
         [ProducesResponseType(typeof(EmergencyOverrideLogDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -137,6 +155,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Mengambil daftar seluruh log audit bypass darurat penyelamatan nyawa (Life-Saving Override) untuk KMKP
         /// </summary>
         [HttpGet("emergency-overrides")]
+        [AccessAction("Read", "Melihat Log Bypass Darurat", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("ClinicalPrivilegeGate", "Read")]
         [ProducesResponseType(typeof(List<EmergencyOverrideLogDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetEmergencyOverrideLogs(
             [FromQuery] bool? pendingOnly = null,
@@ -150,6 +170,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         /// Otorisasi fast-track kewenangan klinis sementara (Temporary Privilege) dokter tamu / darurat bencana (BE-HRD-219, HRD-DEC-150)
         /// </summary>
         [HttpPost("temporary-privilege")]
+        [AccessAction("GrantTemporary", "Menerbitkan Kewenangan Sementara", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("ClinicalPrivilegeGate", "GrantTemporary")]
         [ProducesResponseType(typeof(TemporaryPrivilegeResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

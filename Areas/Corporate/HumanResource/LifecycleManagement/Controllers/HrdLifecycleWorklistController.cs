@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Controllers
 {
@@ -14,6 +16,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     [Route("api/v1/corporate/human-resource/lifecycle-management/worklist")]
     [Route("api/v1/corporate/human-resource/worklist")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LIFECYCLE_MANAGEMENT",
+        moduleName: "Human Resource Lifecycle Management",
+        displayName: "Worklist Lifecycle Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "WorkforceLifecycleWorklist",
+        Description = "Daftar kerja lifecycle pegawai dan kelayakan penjadwalan",
+        SortOrder = 36)]
     [Tags("Corporate / Human Resource / Lifecycle Management / Lifecycle Worklist")]
     public class HrdLifecycleWorklistController : ControllerBase
     {
@@ -29,6 +39,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Worklist Lifecycle", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceLifecycleWorklist", "Read")]
         public async Task<IActionResult> GetWorklist([FromQuery] LifecycleWorklistQuery query, CancellationToken cancellationToken)
         {
             var result = await _worklistService.GetWorklistAsync(query, User, cancellationToken);
@@ -36,6 +48,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("counts")]
+        [AccessAction("Read", "Melihat Worklist Lifecycle", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceLifecycleWorklist", "Read")]
         public async Task<IActionResult> GetCounts(CancellationToken cancellationToken)
         {
             var result = await _worklistService.GetCountsAsync(User, cancellationToken);
@@ -43,6 +57,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("eligibility/{workforceProfileId:guid}")]
+        [AccessAction("Read", "Melihat Worklist Lifecycle", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceLifecycleWorklist", "Read")]
         public async Task<IActionResult> GetSchedulingEligibility(
             Guid workforceProfileId,
             [FromQuery] DateOnly? targetDate,

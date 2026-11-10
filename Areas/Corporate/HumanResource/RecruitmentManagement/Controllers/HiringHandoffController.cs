@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -16,6 +17,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     [ApiController]
     [Route("api/v1/corporate/human-resource/recruitment/handoffs")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_RECRUITMENT",
+        moduleName: "Human Resource Recruitment",
+        displayName: "Serah Terima Rekrutmen",
+        AreaName = "Corporate",
+        ControllerName = "HiringHandoff",
+        Description = "Serah terima kandidat diterima ke onboarding",
+        SortOrder = 19)]
     [Tags("Corporate / Human Resource / Recruitment Management / Hiring Handoff")]
     public sealed class HiringHandoffController : ControllerBase
     {
@@ -27,7 +36,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Serah Terima Rekrutmen", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HiringHandoff", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<HiringHandoffListItemResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged([FromQuery] HiringHandoffQuery query, CancellationToken cancellationToken)
         {
@@ -36,7 +46,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet("{id:guid}")]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Serah Terima Rekrutmen", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("HiringHandoff", "Read")]
         [ProducesResponseType(typeof(ApiResponse<HiringHandoffResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -46,7 +57,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("generate")]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("Execute", "Menjalankan Serah Terima Rekrutmen", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("HiringHandoff", "Execute")]
         [ProducesResponseType(typeof(ApiResponse<HiringHandoffResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -59,7 +71,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("{id:guid}/confirm-transfer")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Execute", "Menjalankan Serah Terima Rekrutmen", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("HiringHandoff", "Execute")]
         [ProducesResponseType(typeof(ApiResponse<HiringHandoffResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

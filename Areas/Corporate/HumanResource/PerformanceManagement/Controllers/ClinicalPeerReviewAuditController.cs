@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/clinical-performance/peer-review-audit")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "Audit Akses Peer Review Klinis",
+        AreaName = "Corporate",
+        ControllerName = "ClinicalPeerReviewAudit",
+        Description = "Pencatatan dan peninjauan log akses berkas peer review rahasia",
+        SortOrder = 10)]
     [Tags("Corporate - HRD Peer Review Confidentiality & Audit Log")]
     public class ClinicalPeerReviewAuditController : ControllerBase
     {
@@ -29,6 +40,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mencatat jejak audit permanen setiap kali dokumen telaah sejawat / performa klinis dibuka (VR-OPP-23)
         /// </summary>
         [HttpPost("log-access")]
+        [AccessAction("LogAccess", "Mencatat Akses Berkas Peer Review", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("ClinicalPeerReviewAudit", "LogAccess")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<ClinicalPeerReviewAuditLogDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -56,6 +69,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan log jejak audit akses dokumen konfidensial untuk kepatuhan hukum & komite etik
         /// </summary>
         [HttpGet("logs")]
+        [AccessAction("Read", "Melihat Log Akses Peer Review", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("ClinicalPeerReviewAudit", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<ClinicalPeerReviewAuditLogDto>>), 200)]
         public async Task<IActionResult> GetAuditLogs(

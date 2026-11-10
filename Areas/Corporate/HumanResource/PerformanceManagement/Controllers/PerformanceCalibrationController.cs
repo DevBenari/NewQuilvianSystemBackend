@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -14,6 +16,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/performance")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "Kalibrasi & Sengketa Nilai Kinerja",
+        AreaName = "Corporate",
+        ControllerName = "PerformanceCalibration",
+        Description = "Kurva distribusi, sidang kalibrasi, override skor, dan adjudikasi sanggahan",
+        SortOrder = 15)]
     [Tags("Corporate - HRD Performance Calibration & Dispute Resolution")]
     public class PerformanceCalibrationController : ControllerBase
     {
@@ -33,6 +44,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan sebaran kurva nilai aktual RS terhadap pedoman distribusi fleksibel (10-15% A, 70-80% B, 5-10% C/D) (PRF-B6)
         /// </summary>
         [HttpGet("calibration/distribution-matrix")]
+        [AccessAction("ViewCalibration", "Melihat Kurva Kalibrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PerformanceCalibration", "ViewCalibration")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<CalibrationDistributionMatrixDto>), 200)]
         public async Task<IActionResult> GetDistributionMatrix(
@@ -47,6 +60,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menjadwalkan dan membuka sidang pleno kalibrasi manajemen rumah sakit
         /// </summary>
         [HttpPost("calibration/sessions")]
+        [AccessAction("ManageCalibration", "Mengelola Sidang Kalibrasi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformanceCalibration", "ManageCalibration")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<CalibrationSessionDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -69,6 +84,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Penyesuaian skor kinerja pegawai oleh Komite Kalibrasi dengan kewajiban nota pertimbangan tertulis min 50 karakter (VR-PRF-05, VR-PRF-12)
         /// </summary>
         [HttpPost("calibration/override-score")]
+        [AccessAction("ManageCalibration", "Mengelola Sidang Kalibrasi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformanceCalibration", "ManageCalibration")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -91,6 +108,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Pengesahan final hasil kalibrasi nilai RS dan instruksi rilis massal ke portal ESS pegawai
         /// </summary>
         [HttpPost("calibration/sessions/{id}/finalize")]
+        [AccessAction("ManageCalibration", "Mengelola Sidang Kalibrasi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformanceCalibration", "ManageCalibration")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -116,6 +135,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Pengajuan sanggah banding nilai kinerja resmi oleh pegawai (maksimal H+7 pasca rilis nilai, VR-PRF-12, HRD-DEC-169)
         /// </summary>
         [HttpPost("disputes/submit")]
+        [AccessAction("SubmitDispute", "Mengajukan Sanggahan Nilai", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("PerformanceCalibration", "SubmitDispute")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<AppraisalDisputeDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -140,6 +161,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menerbitkan putusan final majelis banding Direktur SDM (maksimal H+14 kalender, VR-PRF-13)
         /// </summary>
         [HttpPost("disputes/{id}/adjudicate")]
+        [AccessAction("ManageDispute", "Mengadjudikasi Sanggahan Nilai", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PerformanceCalibration", "ManageDispute")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<AppraisalDisputeDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]

@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -16,6 +17,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     [ApiController]
     [Route("api/v1/corporate/human-resource/recruitment/mcu-clearance")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_RECRUITMENT",
+        moduleName: "Human Resource Recruitment",
+        displayName: "MCU Pra-Kerja",
+        AreaName = "Corporate",
+        ControllerName = "OccupationalHealthClearance",
+        Description = "Registrasi dan hasil MCU pra-kerja kandidat",
+        SortOrder = 17)]
     [Tags("Corporate / Human Resource / Recruitment Management / MCU Clearance")]
     public sealed class McuClearanceController : ControllerBase
     {
@@ -27,7 +36,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat MCU Pra-Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OccupationalHealthClearance", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<McuClearanceListItemResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged([FromQuery] McuClearanceQuery query, CancellationToken cancellationToken)
         {
@@ -36,7 +46,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet("{id:guid}")]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat MCU Pra-Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OccupationalHealthClearance", "Read")]
         [ProducesResponseType(typeof(ApiResponse<McuClearanceResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -46,7 +57,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("register")]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("Create", "Mendaftarkan MCU Pra-Kerja", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("OccupationalHealthClearance", "Create")]
         [ProducesResponseType(typeof(ApiResponse<McuClearanceResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -59,7 +71,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("{id:guid}/record-result")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Evaluate", "Mencatat Hasil MCU Pra-Kerja", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("OccupationalHealthClearance", "Evaluate")]
         [ProducesResponseType(typeof(ApiResponse<McuClearanceResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

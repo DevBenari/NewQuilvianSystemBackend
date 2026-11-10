@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Controllers
 {
@@ -14,6 +16,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     [Route("api/v1/corporate/human-resource/lifecycle-management/onboarding-access-requests")]
     [Route("api/v1/corporate/human-resource/onboarding-access-requests")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LIFECYCLE_MANAGEMENT",
+        moduleName: "Human Resource Lifecycle Management",
+        displayName: "Permintaan Akses Onboarding",
+        AreaName = "Corporate",
+        ControllerName = "WorkforceOnboardingAccessRequest",
+        Description = "Permintaan pembuatan akun aplikasi pegawai baru",
+        SortOrder = 35)]
     [Tags("Corporate / Human Resource / Lifecycle Management / Onboarding Access Request")]
     public class HrdOnboardingAccessRequestController : ControllerBase
     {
@@ -25,6 +35,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Permintaan Akses Onboarding", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceOnboardingAccessRequest", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] OnboardingAccessQuery query, CancellationToken cancellationToken)
         {
             var result = await _accessService.GetPagedAsync(query, User, cancellationToken);
@@ -32,6 +44,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Permintaan Akses Onboarding", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceOnboardingAccessRequest", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
             var result = await _accessService.GetByIdAsync(id, User, cancellationToken);
@@ -39,6 +53,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/complete")]
+        [AccessAction("Complete", "Menyelesaikan Permintaan Akses", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceOnboardingAccessRequest", "Complete")]
         public async Task<IActionResult> MarkCompleted(
             Guid id,
             [FromBody] CompleteAccessRequest request,
@@ -49,6 +65,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/retry")]
+        [AccessAction("Retry", "Mengulang Pembuatan Akun", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("WorkforceOnboardingAccessRequest", "Retry")]
         public async Task<IActionResult> RetryAccountCreation(
             Guid id,
             CancellationToken cancellationToken)

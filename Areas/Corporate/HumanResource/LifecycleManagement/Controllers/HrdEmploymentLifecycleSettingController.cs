@@ -18,6 +18,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     [ApiController]
     [Route("api/v1/corporate/human-resource/lifecycle-settings")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LIFECYCLE_MANAGEMENT",
+        moduleName: "Human Resource Lifecycle Management",
+        displayName: "Pengaturan Lifecycle Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "WorkforceLifecycleSetting",
+        Description = "Parameter lifecycle pegawai: masa percobaan, kontrak, dan onboarding",
+        SortOrder = 37)]
     [Tags("Corporate / Human Resource / Lifecycle Management / Settings")]
     public class HrdEmploymentLifecycleSettingController : ControllerBase
     {
@@ -32,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [ProducesResponseType(typeof(ApiResponse<HrdEmploymentLifecycleSettingResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Lifecycle Settings", Description = "Melihat pengaturan siklus kepegawaian", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LifecycleSettings", "Read")]
+        [AccessPermission("WorkforceLifecycleSetting", "Read")]
         public async Task<IActionResult> GetSettings(
             [FromQuery] Guid hospitalSiteId,
             CancellationToken cancellationToken)
@@ -51,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Update Lifecycle Settings", Description = "Memperbarui pengaturan siklus kepegawaian", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("LifecycleSettings", "Update")]
+        [AccessPermission("WorkforceLifecycleSetting", "Update")]
         public async Task<IActionResult> UpdateSettings(
             [FromQuery] Guid hospitalSiteId,
             [FromBody] UpdateEmploymentLifecycleSettingRequest request,

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/clinical-performance/oppe")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "Evaluasi Berkelanjutan OPPE",
+        AreaName = "Corporate",
+        ControllerName = "OppeOngoingEvaluation",
+        Description = "Periode dan indikator OPPE, rapor dokter, finalisasi, dan penilaian sejawat",
+        SortOrder = 12)]
     [Tags("Corporate - HRD OPPE Clinical Performance Evaluation")]
     public class OppeOngoingEvaluationController : ControllerBase
     {
@@ -30,6 +41,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mengambil master katalog indikator kinerja klinis OPPE 6 pilar ACGME/KARS
         /// </summary>
         [HttpGet("metric-catalogs")]
+        [AccessAction("ViewPeriod", "Melihat Periode & Indikator OPPE", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OppeOngoingEvaluation", "ViewPeriod")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<OppeMetricCatalogDto>>), 200)]
         public async Task<IActionResult> GetMetricCatalogs(
@@ -45,6 +58,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mendaftarkan indikator performa klinis baru atau mengatur ambang batas KSM
         /// </summary>
         [HttpPost("metric-catalogs")]
+        [AccessAction("ManagePeriod", "Mengelola Periode & Indikator OPPE", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("OppeOngoingEvaluation", "ManagePeriod")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<OppeMetricCatalogDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -75,6 +90,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan daftar siklus periode evaluasi kinerja klinis OPPE berkala
         /// </summary>
         [HttpGet("periods")]
+        [AccessAction("ViewPeriod", "Melihat Periode & Indikator OPPE", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OppeOngoingEvaluation", "ViewPeriod")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<OppeEvaluationPeriodDto>>), 200)]
         public async Task<IActionResult> GetPeriods(
@@ -89,6 +106,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Membuka siklus periode evaluasi OPPE baru dengan validasi rasio 60:40 (VR-OPP-01)
         /// </summary>
         [HttpPost("periods")]
+        [AccessAction("ManagePeriod", "Mengelola Periode & Indikator OPPE", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("OppeOngoingEvaluation", "ManagePeriod")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<OppeEvaluationPeriodDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -117,6 +136,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menginisiasi lembar draf evaluasi rapor OPPE untuk seluruh nakes pada periode aktif
         /// </summary>
         [HttpPost("periods/{id}/initiate-staff")]
+        [AccessAction("ManagePeriod", "Mengelola Periode & Indikator OPPE", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("OppeOngoingEvaluation", "ManagePeriod")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<int>), 200)]
         public async Task<IActionResult> InitiateStaff(
@@ -140,6 +161,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mengambil rincian lembar rapor OPPE staf dan skor per indikator 6 pilar
         /// </summary>
         [HttpGet("staff-evaluations/{id}")]
+        [AccessAction("ViewEvaluation", "Melihat Rapor OPPE", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("OppeOngoingEvaluation", "ViewEvaluation")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<OppeStaffEvaluationDto>), 200)]
         public async Task<IActionResult> GetStaffEvaluation(
@@ -161,6 +184,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menjalankan agregasi otomatis penarikan data indikator kuantitatif SIMRS/KMKP 60%
         /// </summary>
         [HttpPost("staff-evaluations/{id}/aggregate-simrs")]
+        [AccessAction("CalculateEvaluation", "Menghitung Agregasi Nilai OPPE", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("OppeOngoingEvaluation", "CalculateEvaluation")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<OppeStaffEvaluationDto>), 200)]
         public async Task<IActionResult> AggregateSimrs(
@@ -182,6 +207,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Pengesahan final rapor OPPE tahunan oleh Kepala KSM
         /// </summary>
         [HttpPost("staff-evaluations/{id}/finalize")]
+        [AccessAction("FinalizeEvaluation", "Mengesahkan Rapor OPPE", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("OppeOngoingEvaluation", "FinalizeEvaluation")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<OppeStaffEvaluationDto>), 200)]
         public async Task<IActionResult> FinalizeEvaluation(
@@ -204,6 +231,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Konfirmasi penerimaan dan pengakuan rapor OPPE oleh nakes via portal ESS
         /// </summary>
         [HttpPost("staff-evaluations/{id}/acknowledge")]
+        [AccessAction("AcknowledgeEvaluation", "Mengonfirmasi Rapor OPPE", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("OppeOngoingEvaluation", "AcknowledgeEvaluation")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<OppeStaffEvaluationDto>), 200)]
         public async Task<IActionResult> AcknowledgeEvaluation(
@@ -228,6 +257,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mengambil daftar berkas telaah sejawat kualitatif yang ditugaskan ke dokter evaluator
         /// </summary>
         [HttpGet("peer-reviews/assigned/{evaluatorId}")]
+        [AccessAction("AssessPeerReview", "Mengisi Penilaian Sejawat", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("OppeOngoingEvaluation", "AssessPeerReview")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<AssignedPeerReviewDto>>), 200)]
         public async Task<IActionResult> GetAssignedPeerReviews(
@@ -242,6 +273,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menyerahkan formulir skor Likert dan telaah kualitatif telaah sejawat (Anti-Self-Review VR-OPP-03)
         /// </summary>
         [HttpPost("peer-reviews/{id}/submit")]
+        [AccessAction("AssessPeerReview", "Mengisi Penilaian Sejawat", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("OppeOngoingEvaluation", "AssessPeerReview")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     /// </summary>
     [ApiController]
     [Route("api/v1/hrd/occupational-health")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_OCCUPATIONAL_HEALTH",
+        moduleName: "Human Resource Occupational Health",
+        displayName: "Restriksi Kerja & Kecelakaan Kerja",
+        AreaName = "Corporate",
+        ControllerName = "WorkRestrictionAndInjury",
+        Description = "Surat pembatasan tugas, return-to-work, laporan KAK/PAK, dan formulir BPJS JKK",
+        SortOrder = 14)]
     [Tags("Corporate - HRD Work Restriction & Injury BPJS JKK")]
     public class WorkRestrictionsAndInjuryController : ControllerBase
     {
@@ -35,13 +46,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         private Guid GetCurrentUserId()
         {
             var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(raw, out var uid) ? uid : Guid.Parse("11111111-1111-1111-1111-111111111111");
+            if (Guid.TryParse(raw, out var uid) && uid != Guid.Empty)
+            {
+                return uid;
+            }
+
+            // Tidak memakai aktor cadangan: jejak audit tanpa identitas asli lebih berbahaya
+            // daripada permintaan yang ditolak.
+            throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
         /// <summary>
         /// Terbitkan surat rekomendasi pembatasan tugas dinas medis (Work Restriction)
         /// </summary>
         [HttpPost("restrictions")]
+        [AccessAction("IssueWorkRestriction", "Menerbitkan Restriksi Kerja", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("WorkRestrictionAndInjury", "IssueWorkRestriction")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<WorkRestrictionDto>), 201)]
         public async Task<IActionResult> IssueWorkRestriction([FromBody] IssueWorkRestrictionRequestDto request, CancellationToken cancellationToken = default)
@@ -55,6 +75,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Endpoint verifikasi hard-stop jadwal roster dinas Sub-06 (INT-HR-89)
         /// </summary>
         [HttpGet("restrictions/validate-schedule/{employeeId:guid}")]
+        [AccessAction("Read", "Memeriksa Jadwal terhadap Restriksi", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("WorkRestrictionAndInjury", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<ScheduleValidationResultDto>), 200)]
         public async Task<IActionResult> ValidateSchedule(
@@ -72,6 +94,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Asesmen pemeriksaan fisik kelaikan kembali bekerja penuh oleh dokter K3RS
         /// </summary>
         [HttpPost("restrictions/{restrictionId:guid}/return-to-work")]
+        [AccessAction("AssessReturnToWork", "Menilai Kelaikan Kembali Bekerja", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("WorkRestrictionAndInjury", "AssessReturnToWork")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<ReturnToWorkAssessmentDto>), 200)]
         public async Task<IActionResult> RecordReturnToWork(Guid restrictionId, [FromBody] RecordReturnToWorkRequestDto request, CancellationToken cancellationToken = default)
@@ -85,6 +109,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Registrasi laporan insiden kecelakaan kerja (KAK/PAK) dan investigasi CAPA
         /// </summary>
         [HttpPost("injuries")]
+        [AccessAction("ReportOccupationalInjury", "Melaporkan Kecelakaan Kerja", AccessType = AccessTypes.Create, SortOrder = 4)]
+        [AccessPermission("WorkRestrictionAndInjury", "ReportOccupationalInjury")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<EmployeeInjuryResponseDto>), 201)]
         public async Task<IActionResult> ReportInjury([FromBody] ReportEmployeeInjuryRequestDto request, CancellationToken cancellationToken = default)
@@ -98,6 +124,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Generator berkas resmi pelaporan klaim JKK BPJS Ketenagakerjaan Tahap I/II
         /// </summary>
         [HttpGet("injuries/{injuryId:guid}/bpjs-jkk-form")]
+        [AccessAction("PrepareBpjsClaimStage1", "Menyiapkan Formulir BPJS JKK Tahap I", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("WorkRestrictionAndInjury", "PrepareBpjsClaimStage1")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<BpjsJkkClaimFormDto>), 200)]
         public async Task<IActionResult> GenerateBpjsForm(Guid injuryId, [FromQuery] int stage = 1, CancellationToken cancellationToken = default)

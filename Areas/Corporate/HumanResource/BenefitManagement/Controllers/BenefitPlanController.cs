@@ -3,12 +3,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Controllers
 {
     [ApiController]
     [Route("api/hr-benefits")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_BENEFIT_MANAGEMENT",
+        moduleName: "Human Resource Benefit Management",
+        displayName: "Paket & Kelayakan Benefit",
+        AreaName = "Corporate",
+        ControllerName = "BenefitPlanEligibility",
+        Description = "Paket manfaat 3 lapisan dan matriks kelayakan per grade staf",
+        SortOrder = 22)]
     public class BenefitPlanController : ControllerBase
     {
         private readonly IBenefitPlanService _benefitPlanService;
@@ -25,13 +35,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         private Guid GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(claim, out var uid) ? uid : Guid.Parse("11111111-1111-1111-1111-111111111111");
+            if (Guid.TryParse(claim, out var uid) && uid != Guid.Empty)
+            {
+                return uid;
+            }
+
+            // Tidak memakai aktor cadangan: jejak audit tanpa identitas asli lebih berbahaya
+            // daripada permintaan yang ditolak.
+            throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
         /// <summary>
         /// Mengambil daftar master paket manfaat rumah sakit (3-lapisan) dengan filter kategori dan pencarian (BE-HRD-177, FR-BEN-01).
         /// </summary>
         [HttpGet("plans")]
+        [AccessAction("Read", "Melihat Paket & Kelayakan Benefit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BenefitPlanEligibility", "Read")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> GetBenefitPlans(
             [FromQuery] BenefitPlanFilterDto filter,
@@ -45,6 +64,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengambil detail master paket manfaat berdasarkan ID (BE-HRD-177).
         /// </summary>
         [HttpGet("plans/{id:guid}")]
+        [AccessAction("Read", "Melihat Paket & Kelayakan Benefit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BenefitPlanEligibility", "Read")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> GetBenefitPlanById(
             Guid id,
@@ -59,6 +80,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Membuat master paket manfaat baru (BE-HRD-177, HRD-DEC-134).
         /// </summary>
         [HttpPost("plans")]
+        [AccessAction("Manage", "Mengelola Paket & Kelayakan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitPlanEligibility", "Manage")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> CreateBenefitPlan(
             [FromBody] CreateBenefitPlanRequestDto request,
@@ -73,6 +96,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Memperbarui konfigurasi master paket manfaat (BE-HRD-177).
         /// </summary>
         [HttpPut("plans/{id:guid}")]
+        [AccessAction("Manage", "Mengelola Paket & Kelayakan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitPlanEligibility", "Manage")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> UpdateBenefitPlan(
             Guid id,
@@ -88,6 +113,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Inisialisasi/penyemaian otomatis 4 master paket manfaat default rumah sakit dan matriks eligibilitas grade (BE-HRD-177).
         /// </summary>
         [HttpPost("plans/seed-defaults")]
+        [AccessAction("Manage", "Mengelola Paket & Kelayakan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitPlanEligibility", "Manage")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> SeedDefaultHospitalPlans(CancellationToken cancellationToken)
         {
@@ -99,6 +126,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengambil daftar aturan kelayakan grade untuk suatu paket manfaat (BE-HRD-178, FR-BEN-03).
         /// </summary>
         [HttpGet("plans/{planId:guid}/grade-eligibilities")]
+        [AccessAction("Read", "Melihat Paket & Kelayakan Benefit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BenefitPlanEligibility", "Read")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> GetGradeEligibilitiesByPlan(
             Guid planId,
@@ -112,6 +141,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Menambahkan aturan kelayakan grade kepegawaian staf pada paket manfaat (BE-HRD-178, FR-BEN-03, FR-BEN-04).
         /// </summary>
         [HttpPost("plans/{planId:guid}/grade-eligibilities")]
+        [AccessAction("Manage", "Mengelola Paket & Kelayakan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitPlanEligibility", "Manage")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> AddGradeEligibility(
             Guid planId,
@@ -128,6 +159,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Memperbarui aturan kelas kamar atau limit spesifik grade (BE-HRD-178).
         /// </summary>
         [HttpPut("grade-eligibilities/{id:guid}")]
+        [AccessAction("Manage", "Mengelola Paket & Kelayakan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitPlanEligibility", "Manage")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> UpdateGradeEligibility(
             Guid id,
@@ -143,6 +176,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Menghapus/menonaktifkan aturan kelayakan grade (BE-HRD-178).
         /// </summary>
         [HttpDelete("grade-eligibilities/{id:guid}")]
+        [AccessAction("Manage", "Mengelola Paket & Kelayakan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitPlanEligibility", "Manage")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> DeleteGradeEligibility(
             Guid id,
@@ -156,6 +191,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Evaluasi eligibilitas terpadu paket manfaat staf berdasarkan grade dan masa kerja probation (BE-HRD-180, AT-HRD-BEN-01, AT-HRD-BEN-02).
         /// </summary>
         [HttpPost("plans/evaluate-eligibility")]
+        [AccessAction("Read", "Melihat Paket & Kelayakan Benefit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BenefitPlanEligibility", "Read")]
         [Tags("HR Benefits - Plans & Eligibility")]
         public async Task<IActionResult> EvaluateEmployeePlanEligibility(
             [FromBody] EvaluateEmployeeBenefitEligibilityRequestDto request,

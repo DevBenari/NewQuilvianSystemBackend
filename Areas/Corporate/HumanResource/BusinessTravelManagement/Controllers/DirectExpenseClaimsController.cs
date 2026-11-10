@@ -8,12 +8,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/expenses/claims")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_BUSINESS_TRAVEL",
+        moduleName: "Human Resource Business Travel",
+        displayName: "Klaim Biaya Operasional",
+        AreaName = "Corporate",
+        ControllerName = "DirectExpenseClaim",
+        Description = "Klaim pengeluaran operasional non-perjalanan, verifikasi nota, dan pembayaran",
+        SortOrder = 13)]
     [Tags("Corporate - HRD Direct Non-Trip Expenses")]
     public class DirectExpenseClaimsController : ControllerBase
     {
@@ -43,6 +53,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil daftar pengajuan klaim biaya operasional non-trip staf (Kontrak v25)
         /// </summary>
         [HttpGet]
+        [AccessAction("Read", "Melihat Klaim Biaya Operasional", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DirectExpenseClaim", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<ExpenseClaimResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetClaims(
             [FromQuery] string? status,
@@ -61,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengajukan klaim penggantian biaya operasional langsung lapangan non-trip via ESS (Kontrak v25)
         /// </summary>
         [HttpPost]
+        [AccessAction("Create", "Mengajukan Klaim Biaya Operasional", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("DirectExpenseClaim", "Create")]
         [ProducesResponseType(typeof(ApiResponse<ExpenseClaimResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateClaim([FromBody] CreateExpenseClaimDto dto)
@@ -81,6 +95,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil detail rincian klaim non-trip dan bukti struk kuitansi (Kontrak v25)
         /// </summary>
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Klaim Biaya Operasional", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DirectExpenseClaim", "Read")]
         [ProducesResponseType(typeof(ApiResponse<ExpenseClaimDetailResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetClaimById([FromRoute] Guid id)
@@ -100,6 +116,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Verifikasi audit keabsahan kuitansi pembelian darurat oleh Finance (Kontrak v25)
         /// </summary>
         [HttpPost("{id}/verify")]
+        [AccessAction("Verify", "Memverifikasi Nota Klaim Operasional", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DirectExpenseClaim", "Verify")]
         [ProducesResponseType(typeof(ApiResponse<ExpenseClaimResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> VerifyClaim([FromRoute] Guid id, [FromBody] VerifyExpenseClaimDto dto)
@@ -120,6 +138,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Otorisasi pembayaran pencairan uang klaim ke rekening staf oleh Kasir RS (Kontrak v25)
         /// </summary>
         [HttpPost("{id}/pay")]
+        [AccessAction("Pay", "Mencairkan Klaim Biaya Operasional", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("DirectExpenseClaim", "Pay")]
         [ProducesResponseType(typeof(ApiResponse<ExpenseClaimResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> PayClaim([FromRoute] Guid id, [FromBody] PayExpenseClaimDto dto)

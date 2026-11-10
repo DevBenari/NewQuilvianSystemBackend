@@ -4,11 +4,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/learning/plans/annual")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Rencana Pelatihan Tahunan (TNA)",
+        AreaName = "Corporate",
+        ControllerName = "AnnualTrainingPlan",
+        Description = "Penyusunan, pengajuan, dan pengesahan rencana kerja pelatihan tahunan",
+        SortOrder = 11)]
     [Tags("Corporate - HRD Training Enrollment & Budget Governance")]
     [Authorize]
     public class AnnualTrainingPlansController : ControllerBase
@@ -25,6 +35,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Rencana Pelatihan Tahunan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("AnnualTrainingPlan", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<AnnualTrainingPlanDto>>), 200)]
         public async Task<IActionResult> GetAnnualPlans(
             [FromQuery] int? planYear,
@@ -45,6 +57,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Rencana Pelatihan Tahunan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("AnnualTrainingPlan", "Read")]
         [ProducesResponseType(typeof(ApiResponse<AnnualTrainingPlanDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         public async Task<IActionResult> GetAnnualPlanById([FromRoute] Guid id, CancellationToken cancellationToken)
@@ -67,6 +81,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost]
+        [AccessAction("Create", "Menyusun Rencana Pelatihan Tahunan", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("AnnualTrainingPlan", "Create")]
         [ProducesResponseType(typeof(ApiResponse<AnnualTrainingPlanDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         public async Task<IActionResult> CreateAnnualPlan(
@@ -80,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var created = await _planService.CreateAnnualPlanAsync(request, currentUser, cancellationToken);
 
                 return StatusCode(201, ApiResponse<AnnualTrainingPlanDto>.Ok(created, "Rencana program tahunan diklat (TNA) berhasil didaftarkan."));
@@ -97,6 +113,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPut("{id}")]
+        [AccessAction("Update", "Mengubah Rencana Pelatihan Tahunan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("AnnualTrainingPlan", "Update")]
         [ProducesResponseType(typeof(ApiResponse<AnnualTrainingPlanDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
@@ -113,7 +131,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var updated = await _planService.UpdateAnnualPlanAsync(id, request, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<AnnualTrainingPlanDto>.Ok(updated, "Rencana program tahunan diklat berhasil diperbarui."));
@@ -138,6 +156,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("{id}/submit")]
+        [AccessAction("Submit", "Mengajukan Rencana Pelatihan Tahunan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("AnnualTrainingPlan", "Submit")]
         [ProducesResponseType(typeof(ApiResponse<AnnualTrainingPlanDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         [ProducesResponseType(typeof(ApiResponse<string>), 422)]
@@ -148,7 +168,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         {
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var submitted = await _planService.SubmitAnnualPlanAsync(id, request, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<AnnualTrainingPlanDto>.Ok(submitted, "Rencana program kerja tahunan diklat (TNA) berhasil diajukan ke Direksi."));
@@ -169,6 +189,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("{id}/approve")]
+        [AccessAction("Approve", "Mengesahkan Rencana Pelatihan Tahunan", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("AnnualTrainingPlan", "Approve")]
         [ProducesResponseType(typeof(ApiResponse<AnnualTrainingPlanDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
@@ -185,7 +207,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Direktur_SDM";
+                var currentUser = ResolveActorName();
                 var approved = await _planService.ApproveAnnualPlanAsync(id, request, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<AnnualTrainingPlanDto>.Ok(approved, "Rencana program tahunan diklat resmi DISAHKAN oleh Direksi dan pagu anggaran tahunan dibuka."));
@@ -206,6 +228,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("{id}/reject")]
+        [AccessAction("Reject", "Menolak Rencana Pelatihan Tahunan", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("AnnualTrainingPlan", "Reject")]
         [ProducesResponseType(typeof(ApiResponse<AnnualTrainingPlanDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
@@ -222,7 +246,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Direktur_SDM";
+                var currentUser = ResolveActorName();
                 var rejected = await _planService.RejectAnnualPlanAsync(id, request, currentUser, cancellationToken);
 
                 return Ok(ApiResponse<AnnualTrainingPlanDto>.Ok(rejected, "Rencana program tahunan diklat dikembalikan ke status Draft untuk revisi."));
@@ -243,6 +267,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpDelete("{id}")]
+        [AccessAction("Delete", "Menghapus Rencana Pelatihan Tahunan", AccessType = AccessTypes.Delete, SortOrder = 7)]
+        [AccessPermission("AnnualTrainingPlan", "Delete")]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
         [ProducesResponseType(typeof(ApiResponse<string>), 422)]
@@ -250,7 +276,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         {
             try
             {
-                var currentUser = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Diklat_Admin";
+                var currentUser = ResolveActorName();
                 var success = await _planService.DeleteAnnualPlanAsync(id, currentUser, cancellationToken);
 
                 if (!success)
@@ -269,6 +295,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 _logger.LogError(ex, "Gagal menghapus rencana diklat {PlanId}", id);
                 return StatusCode(500, ApiResponse<string>.Fail(500, "Terjadi kesalahan internal saat menghapus rencana program diklat."));
             }
+        }
+
+        /// <summary>
+        /// Nama pengguna yang sedang login untuk jejak aktor. Sengaja tidak memakai aktor cadangan:
+        /// permintaan tanpa identitas ditolak, bukan dicatat atas nama orang lain.
+        /// </summary>
+        private string ResolveActorName()
+        {
+            var actorName = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(actorName))
+            {
+                throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
+            }
+
+            return actorName;
         }
     }
 }

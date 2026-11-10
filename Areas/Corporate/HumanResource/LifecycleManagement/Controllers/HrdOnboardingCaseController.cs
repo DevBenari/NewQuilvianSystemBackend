@@ -7,12 +7,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/human-resource/onboarding-cases")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LIFECYCLE_MANAGEMENT",
+        moduleName: "Human Resource Lifecycle Management",
+        displayName: "Kasus Onboarding Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "WorkforceOnboardingCase",
+        Description = "Checklist onboarding, kehadiran hari pertama, koordinator, dan kesiapan kerja",
+        SortOrder = 30)]
     [Tags("HRD Onboarding Cases")]
     public class HrdOnboardingCaseController : ControllerBase
     {
@@ -24,6 +34,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Kasus Onboarding", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceOnboardingCase", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] OnboardingCaseQuery query, CancellationToken cancellationToken)
         {
             var result = await _caseService.GetPagedAsync(query, User, cancellationToken);
@@ -31,6 +43,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("summary")]
+        [AccessAction("Read", "Melihat Kasus Onboarding", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceOnboardingCase", "Read")]
         public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
         {
             var result = await _caseService.GetSummaryAsync(User, cancellationToken);
@@ -38,6 +52,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Kasus Onboarding", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceOnboardingCase", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
             var result = await _caseService.GetByIdAsync(id, User, cancellationToken);
@@ -45,6 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/first-day-attendance")]
+        [AccessAction("CompleteItem", "Menyelesaikan Butir Onboarding", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceOnboardingCase", "CompleteItem")]
         public async Task<IActionResult> RecordFirstDayAttendance(
             Guid id,
             [FromBody] RecordFirstDayAttendanceRequest request,
@@ -55,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpDelete("{id}/first-day-attendance")]
+        [AccessAction("CompleteItem", "Menyelesaikan Butir Onboarding", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceOnboardingCase", "CompleteItem")]
         public async Task<IActionResult> CancelFirstDayAttendance(
             Guid id,
             CancellationToken cancellationToken)
@@ -64,6 +84,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/items/{itemId}/complete")]
+        [AccessAction("CompleteItem", "Menyelesaikan Butir Onboarding", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceOnboardingCase", "CompleteItem")]
         [Consumes("multipart/form-data", "application/json")]
         public async Task<IActionResult> CompleteItem(
             Guid id,
@@ -76,6 +98,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/items/{itemId}/uncomplete")]
+        [AccessAction("CompleteItem", "Menyelesaikan Butir Onboarding", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceOnboardingCase", "CompleteItem")]
         public async Task<IActionResult> UncompleteItem(
             Guid id,
             Guid itemId,
@@ -86,6 +110,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/check-automatic-items")]
+        [AccessAction("CompleteItem", "Menyelesaikan Butir Onboarding", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceOnboardingCase", "CompleteItem")]
         public async Task<IActionResult> CheckAutomaticItems(
             Guid id,
             CancellationToken cancellationToken)
@@ -95,6 +121,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPut("{id}/coordinator")]
+        [AccessAction("Reassign", "Mengganti Koordinator Onboarding", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("WorkforceOnboardingCase", "Reassign")]
         public async Task<IActionResult> ReassignCoordinator(
             Guid id,
             [FromBody] ReassignCoordinatorRequest request,
@@ -105,6 +133,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/declare-ready")]
+        [AccessAction("DeclareReady", "Menyatakan Siap Bekerja", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("WorkforceOnboardingCase", "DeclareReady")]
         public async Task<IActionResult> DeclareReadyForWork(
             Guid id,
             [FromBody] DeclareReadyForWorkRequest request,
@@ -115,6 +145,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id}/cancel-join")]
+        [AccessAction("CancelJoin", "Membatalkan Bergabung", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("WorkforceOnboardingCase", "CancelJoin")]
         public async Task<IActionResult> CancelJoin(
             Guid id,
             [FromBody] CancelOnboardingJoinRequest request,
@@ -125,6 +157,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id}/items/{itemId}/evidence")]
+        [AccessAction("Read", "Melihat Kasus Onboarding", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceOnboardingCase", "Read")]
         public async Task<IActionResult> DownloadItemEvidence(
             Guid id,
             Guid itemId,

@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Controllers
 {
@@ -19,6 +21,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     [Route("api/v1/corporate/hrd/benefits")]
     [Route("api/hr-benefits")]
     [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_BENEFIT_MANAGEMENT",
+        moduleName: "Human Resource Benefit Management",
+        displayName: "Kepesertaan & Tanggungan Benefit",
+        AreaName = "Corporate",
+        ControllerName = "BenefitEnrollment",
+        Description = "Kepesertaan benefit pegawai, nomor polis, verifikasi tanggungan, dan tanggungan mandiri",
+        SortOrder = 21)]
     [Tags("HR Benefits - Enrollments & Dependents")]
     public class BenefitEnrollmentController : ControllerBase
     {
@@ -32,7 +42,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         private Guid GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(claim, out var uid) ? uid : Guid.Parse("11111111-1111-1111-1111-111111111111");
+            if (Guid.TryParse(claim, out var uid) && uid != Guid.Empty)
+            {
+                return uid;
+            }
+
+            // Tidak memakai aktor cadangan: jejak audit tanpa identitas asli lebih berbahaya
+            // daripada permintaan yang ditolak.
+            throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
         private Guid GetCurrentWorkforceProfileId()
@@ -49,6 +66,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengambil daftar kepesertaan asuransi pegawai rumah sakit dengan filter status aktivasi (BE-HRD-182, FR-BEN-06).
         /// </summary>
         [HttpGet("enrollments")]
+        [AccessAction("Read", "Melihat Kepesertaan Benefit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BenefitEnrollment", "Read")]
         [ProducesResponseType(typeof(PagedResult<EmployeeEnrollmentListItemDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetEnrollments(
             [FromQuery] EmployeeEnrollmentListQuery query,
@@ -62,6 +81,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengambil detail kepesertaan asuransi pegawai beserta daftar tanggungan terdaftar (BE-HRD-182).
         /// </summary>
         [HttpGet("enrollments/{id:guid}")]
+        [AccessAction("Read", "Melihat Kepesertaan Benefit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BenefitEnrollment", "Read")]
         [ProducesResponseType(typeof(BenefitEnrollmentDetailDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetEnrollmentDetail(
@@ -83,6 +104,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengaktifkan paket lengkap BPJS Kesehatan/Swasta pasca-lulus masa percobaan 3 bulan (BE-HRD-182, BEN-B1, VR-BEN-13).
         /// </summary>
         [HttpPost("enrollments/{id:guid}/activate-probation")]
+        [AccessAction("Manage", "Mengelola Kepesertaan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitEnrollment", "Manage")]
         [ProducesResponseType(typeof(BenefitEnrollmentDetailDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -111,6 +134,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Memperbarui nomor kartu BPJS Kesehatan, BPJS Ketenagakerjaan, atau nomor polis swasta (BE-HRD-182, VR-BEN-09, VR-BEN-10).
         /// </summary>
         [HttpPut("enrollments/{id:guid}/policy-numbers")]
+        [AccessAction("Manage", "Mengelola Kepesertaan Benefit", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BenefitEnrollment", "Manage")]
         [ProducesResponseType(typeof(BenefitEnrollmentDetailDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -143,6 +168,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengambil antrean pendaftaran anggota keluarga ESS yang membutuhkan verifikasi dokumen HR (BE-HRD-184, FR-BEN-10).
         /// </summary>
         [HttpGet("dependents/pending-verification")]
+        [AccessAction("VerifyDependent", "Memverifikasi Tanggungan Keluarga", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("BenefitEnrollment", "VerifyDependent")]
         [ProducesResponseType(typeof(PagedResult<PendingDependentVerificationDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPendingDependentVerifications(
             [FromQuery] PendingDependentVerificationQuery query,
@@ -156,6 +183,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Persetujuan atau penolakan verifikasi berkas KK/Akta tanggungan keluarga oleh HR (BE-HRD-184, VR-BEN-25, AUDIT-BEN-05).
         /// </summary>
         [HttpPost("dependents/{id:guid}/verify")]
+        [AccessAction("VerifyDependent", "Memverifikasi Tanggungan Keluarga", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("BenefitEnrollment", "VerifyDependent")]
         [ProducesResponseType(typeof(BenefitDependentDetailDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -188,6 +217,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengambil daftar anggota keluarga yang terdaftar pada profil pegawai yang sedang login (BE-HRD-181, FR-BEN-07).
         /// </summary>
         [HttpGet("dependents/my-family")]
+        [AccessAction("ViewOwn", "Melihat Kepesertaan Sendiri", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("BenefitEnrollment", "ViewOwn")]
         [ProducesResponseType(typeof(List<EmployeeDependentSummaryDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMyFamilyDependents(CancellationToken cancellationToken)
         {
@@ -200,6 +231,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Mengambil ringkasan kuota tanggungan keluarga aktif dan sisa kuota (maks 1 pasangan + 3 anak) (BE-HRD-181, BEN-B2).
         /// </summary>
         [HttpGet("dependents/my-family/quota")]
+        [AccessAction("ViewOwn", "Melihat Kepesertaan Sendiri", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("BenefitEnrollment", "ViewOwn")]
         [ProducesResponseType(typeof(EmployeeFamilyQuotaSummaryDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMyFamilyQuota(CancellationToken cancellationToken)
         {
@@ -212,6 +245,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// Pegawai mendaftarkan pasangan sah atau anak melalui portal ESS berlampiran berkas kependudukan (BE-HRD-181, BE-HRD-183, BEN-B2, BEN-B3).
         /// </summary>
         [HttpPost("dependents/my-family")]
+        [AccessAction("ManageFamily", "Mendaftarkan Tanggungan Keluarga", AccessType = AccessTypes.Create, SortOrder = 5)]
+        [AccessPermission("BenefitEnrollment", "ManageFamily")]
         [ProducesResponseType(typeof(EmployeeDependentSummaryDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]

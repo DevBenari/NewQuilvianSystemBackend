@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/clinical-performance/fppe")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "Evaluasi Terfokus FPPE",
+        AreaName = "Corporate",
+        ControllerName = "FppeFocusedEvaluation",
+        Description = "Pemicu FPPE, penugasan proctoring, logbook kasus, dan putusan pleno",
+        SortOrder = 11)]
     [Tags("Corporate - HRD FPPE Incident & Focused Evaluation")]
     public class FppeFocusedEvaluationController : ControllerBase
     {
@@ -34,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan feed real-time indikator ambang batas kritis pemicu FPPE dari SIMRS/KMKP (INT-HR-74)
         /// </summary>
         [HttpGet("triggers/feed")]
+        [AccessAction("ViewTrigger", "Memantau Feed Pemicu FPPE", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("FppeFocusedEvaluation", "ViewTrigger")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<FppeTriggerFeedDto>>), 200)]
         public async Task<IActionResult> GetTriggerFeed(CancellationToken cancellationToken = default)
@@ -46,6 +59,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menerima webhook / event pemicu insiden keselamatan pasien asinkronus dari SIMRS/KMKP
         /// </summary>
         [HttpPost("triggers/incoming")]
+        [AccessAction("ReceiveTrigger", "Mencatat Event Pemicu FPPE", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("FppeFocusedEvaluation", "ReceiveTrigger")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<FppeTriggerFeedDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -68,6 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menginisiasi penugasan FPPE terarah (staf baru, prosedur baru, insiden) & menunjuk proctor senior
         /// </summary>
         [HttpPost("engagements")]
+        [AccessAction("CreateEngagement", "Membuat Penugasan FPPE", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("FppeFocusedEvaluation", "CreateEngagement")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<FppeEngagementResponseDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -103,6 +120,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan rincian penugasan FPPE, target kasus klinis, logbook tindakan, dan kesimpulan pleno
         /// </summary>
         [HttpGet("engagements/{id:guid}")]
+        [AccessAction("Read", "Melihat Penugasan FPPE", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("FppeFocusedEvaluation", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<FppeEngagementResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 404)]
@@ -125,6 +144,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menambahkan entri tindakan klinis terproctoring ke dalam logbook FPPE dokter berpseudonim (VR-OPP-11)
         /// </summary>
         [HttpPost("engagements/{id:guid}/case-logs")]
+        [AccessAction("AddCaseLog", "Mengisi Logbook Kasus FPPE", AccessType = AccessTypes.Create, SortOrder = 5)]
+        [AccessPermission("FppeFocusedEvaluation", "AddCaseLog")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<FppeCaseLogResponseDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -162,6 +183,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Verifikasi dan penilaian kemandirian tindakan kasus oleh Dokter Proctor pendamping (VR-OPP-12)
         /// </summary>
         [HttpPut("case-logs/{logId:guid}/verify")]
+        [AccessAction("VerifyCaseLog", "Memverifikasi Logbook Kasus FPPE", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("FppeFocusedEvaluation", "VerifyCaseLog")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<FppeCaseLogResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -201,6 +224,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Mengesahkan vonis sidang pleno Komite Medik atas kesimpulan FPPE (VR-OPP-13, VR-OPP-14)
         /// </summary>
         [HttpPost("engagements/{id:guid}/conclude")]
+        [AccessAction("ApproveConclusion", "Mengesahkan Putusan FPPE", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("FppeFocusedEvaluation", "ApproveConclusion")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<FppeConclusionResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -242,6 +267,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Memperbarui status kewenangan klinis staf di sistem dan transmisi sinkronisasi ke SIMRS EMR (INT-HR-76)
         /// </summary>
         [HttpPost("engagements/{id:guid}/sync-privilege")]
+        [AccessAction("SyncPrivilege", "Menyinkronkan Wewenang Klinis Hasil FPPE", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("FppeFocusedEvaluation", "SyncPrivilege")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<SyncFppePrivilegeResponseDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]

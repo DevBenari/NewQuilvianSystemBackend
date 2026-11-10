@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Controllers
 {
@@ -17,6 +18,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
     [ApiController]
     [Route("api/v1/corporate/human-resource/recruitment/screenings")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_RECRUITMENT",
+        moduleName: "Human Resource Recruitment",
+        displayName: "Seleksi Administrasi Kandidat",
+        AreaName = "Corporate",
+        ControllerName = "CandidateScreening",
+        Description = "Penyaringan berkas kandidat",
+        SortOrder = 13)]
     [Tags("Corporate / Human Resource / Recruitment Management / Candidate Screening")]
     public sealed class CandidateScreeningController : ControllerBase
     {
@@ -28,7 +37,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Seleksi Administrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateScreening", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<CandidateScreeningListItemResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged(
             [FromQuery] CandidateScreeningQuery query,
@@ -39,7 +49,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet("{id:guid}")]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Seleksi Administrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateScreening", "Read")]
         [ProducesResponseType(typeof(ApiResponse<CandidateScreeningResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(
@@ -51,7 +62,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost]
-        [AccessPermission("Recruitment", "Create")]
+        [AccessAction("Evaluate", "Menilai Seleksi Administrasi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("CandidateScreening", "Evaluate")]
         [ProducesResponseType(typeof(ApiResponse<CandidateScreeningResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -70,7 +82,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpPost("evaluate")]
-        [AccessPermission("Recruitment", "Update")]
+        [AccessAction("Evaluate", "Menilai Seleksi Administrasi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("CandidateScreening", "Evaluate")]
         [ProducesResponseType(typeof(ApiResponse<CandidateScreeningResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -88,7 +101,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagem
         }
 
         [HttpGet("candidates/{candidateId:guid}/documents")]
-        [AccessPermission("Recruitment", "Read")]
+        [AccessAction("Read", "Melihat Seleksi Administrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("CandidateScreening", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<CandidateDocumentResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDocuments(
             [FromRoute] Guid candidateId,

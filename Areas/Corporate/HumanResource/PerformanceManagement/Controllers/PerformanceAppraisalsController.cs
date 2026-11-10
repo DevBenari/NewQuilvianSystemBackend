@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/performance/appraisals")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "Penilaian Kinerja Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "PerformanceAppraisal",
+        Description = "Evaluasi mandiri, penilaian atasan, review lini kedua, dan konfirmasi hasil",
+        SortOrder = 14)]
     [Tags("Corporate - HRD Performance Appraisals & Multi-Level Review")]
     public class PerformanceAppraisalsController : ControllerBase
     {
@@ -29,6 +40,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan lembar kerja evaluasi kinerja mandiri pegawai yang sedang login (ESS)
         /// </summary>
         [HttpGet("my-appraisal")]
+        [AccessAction("ViewOwn", "Melihat Penilaian Kinerja Sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PerformanceAppraisal", "ViewOwn")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PerformanceAppraisalDto>), 200)]
         public async Task<IActionResult> GetMyAppraisal(
@@ -46,6 +59,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menyerahkan lembar refleksi diri evaluasi mandiri beserta unggahan dokumen bukti capaian (VR-PRF-22)
         /// </summary>
         [HttpPost("self-submit")]
+        [AccessAction("SelfAssess", "Mengisi Evaluasi Mandiri", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformanceAppraisal", "SelfAssess")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PerformanceAppraisalDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -70,6 +85,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan daftar lembar evaluasi staf bawahan yang menunggu penilaian atasan langsung (Karu)
         /// </summary>
         [HttpGet("subordinates")]
+        [AccessAction("ViewSubordinates", "Melihat Penilaian Kinerja Bawahan", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("PerformanceAppraisal", "ViewSubordinates")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<PerformanceAppraisalDto>>), 200)]
         public async Task<IActionResult> GetSubordinateAppraisals(
@@ -87,6 +104,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menginput skor resmi 60% KPI hasil kerja dan 40% perilaku Core Values BerAKHLAK oleh Karu (VR-PRF-03, VR-PRF-04, PRF-B4)
         /// </summary>
         [HttpPost("{id}/manager-assess")]
+        [AccessAction("ManagerAssess", "Menilai Kinerja Bawahan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PerformanceAppraisal", "ManagerAssess")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PerformanceAppraisalDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -112,6 +131,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Penelaahan dan otorisasi berkas evaluasi oleh atasan kedua (Kabid) sebelum kalibrasi (VR-PRF-04, PRF-B3)
         /// </summary>
         [HttpPost("{id}/second-line-review")]
+        [AccessAction("SecondLineReview", "Mereview Penilaian (Lini Kedua)", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("PerformanceAppraisal", "SecondLineReview")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PerformanceAppraisalDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -137,6 +158,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Konfirmasi penerimaan dan penandatanganan skor akhir resmi oleh pegawai via portal ESS
         /// </summary>
         [HttpPost("{id}/acknowledge")]
+        [AccessAction("Acknowledge", "Mengonfirmasi Hasil Penilaian", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PerformanceAppraisal", "Acknowledge")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PerformanceAppraisalDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]

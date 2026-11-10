@@ -5029,7 +5029,7 @@ Legenda:
 
 #### â ³ `FE-HRD-231` â€” Redux Slice State, Base Types & Service API Client Kontrak v21
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Siap Dikerjakan (Approved Roadmap Rev 19)
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembuatan Redux Toolkit slice `@/lib/redux/slices/performanceManagementSlice.ts`, pendefinisian antarmuka TypeScript untuk seluruh 10 entitas Performance & Clinical Career, pembuatan service client Axios `@/services/performanceManagementService.ts` yang mengikat 24 endpoint API Kontrak `v21`, penanganan caching terpusat, serta penanganan error response berstandar RFC 7807.
 * **Dependencies**: Tidak ada (Task pondasi Frontend `S-C3`).
 * **Acceptance Criteria**: State Redux terintegrasi ke store utama; service Axios mengeksekusi request HTTP ke seluruh 24 endpoint secara type-safe; penanganan error 400/404/422 menampilkan toast notification yang deskriptif.
@@ -5037,7 +5037,7 @@ Legenda:
 
 #### â ³ `FE-HRD-232` â€” Dashboard Kinerja & Karier Klinis Nakes (`FE-HRD-231`)
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Menunggu `FE-HRD-231`, `BE-HRD-257` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan layar dasbor utama pada rute `/hr/performance/dashboard` (Layar `FE-HRD-231`), menampilkan kartu metrik ringkasan siklus penilaian aktif, widget radar rata-rata capaian KPI per unit kerja/instalasi, diagram sebaran nilai komposit organisasi, feed aktivitas terbaru evaluasi kinerja, kartu peringatan kasus PIP aktif, dan tombol akses cepat ke katalog sasaran mutu.
 * **Dependencies**: `FE-HRD-231`, `BE-HRD-257` [BE].
 * **Acceptance Criteria**: Komponen visual ter-render responsif; metrik kartu selaras dengan data backend; badge peringatan PIP tampil jika terdapat kasus pembinaan aktif.
@@ -5045,7 +5045,7 @@ Legenda:
 
 #### â ³ `FE-HRD-233` â€” Katalog Indikator KPI & Core Values BerAKHLAK (`FE-HRD-232`)
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Menunggu `FE-HRD-231`, `BE-HRD-254` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan layar katalog indikator kinerja pada rute `/hr/performance/kpi-catalogs` (Layar `FE-HRD-232`), tabel master indikator kuantitatif rumah sakit (indikator pelayanan medis, keperawatan, penunjang, dan umum), kamus definisi operasional, formula perhitungan indikator, serta rubrik deskriptor 7 butir Core Values BerAKHLAK skala 1-5 dengan contoh perilaku spesifik lingkungan RS.
 * **Dependencies**: `FE-HRD-231`, `BE-HRD-254` [BE].
 * **Acceptance Criteria**: Tabel menampilkan seluruh katalog indikator kuantitatif dan Core Values BerAKHLAK; fitur pencarian dan filter per profesi berfungsi instan tanpa lag.
@@ -5053,7 +5053,7 @@ Legenda:
 
 #### â ³ `FE-HRD-234` â€” Siklus Kinerja & Cascading Sasaran Mutu Unit (`FE-HRD-233`)
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Menunggu `FE-HRD-231`, `BE-HRD-258` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan layar pengelolaan periode siklus kinerja pada rute `/hr/performance/cycles` (Layar `FE-HRD-233`), visualisasi hirarki pohon (*cascading tree view*) penurunan sasaran mutu dari target direksi -> instalasi/unit -> individu staf, status persetujuan atasan langsung (`Draft`, `Submitted`, `Approved`, `Locked`), dan tombol pemicu pembukaan modal input sasaran kerja.
 * **Dependencies**: `FE-HRD-231`, `BE-HRD-258` [BE].
 * **Acceptance Criteria**: Pohon cascading ter-render dinamis; status persetujuan atasan menampilkan badge status Quilvian; tombol input sasaran memicu pembukaan modal form.
@@ -5061,7 +5061,7 @@ Legenda:
 
 #### â ³ `FE-HRD-235` â€” Modal Input Sasaran Kerja Pegawai & Bobot Target (`KpiGoalFormModal`)
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Menunggu `FE-HRD-234`
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Komponen dialog modal `@/components/features/performance/KpiGoalFormModal.tsx` menggunakan `BaseFormControl` Quilvian, formulir pemilihan indikator KPI dari katalog, pengisian target angka/persentase, field numerik bobot persentase, penghitung akumulasi bobot live yang menampilkan peringatan warna merah jika total != 100.00% (`VR-PRF-04`), dan pembatasan input maksimal 10 butir KPI per pegawai (`VR-PRF-03`).
 * **Dependencies**: `FE-HRD-234`.
 * **Acceptance Criteria**: Form memblokir tombol submit jika akumulasi total bobot tidak sama persis dengan 100.00%; pesan kesalahan validasi tampil jelas di bawah field.
@@ -5069,7 +5069,7 @@ Legenda:
 
 #### â ³ `FE-HRD-236` â€” Portal Lembar Penilaian Berjenjang Tiga Tingkat (`FE-HRD-234`)
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Menunggu `FE-HRD-231`, `BE-HRD-259` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan layar penilaian kinerja resmi pada rute `/hr/performance/appraisals` (Layar `FE-HRD-234`), antarmuka adaptif dual-mode: Mode Staf Mandiri (*Self-Assessment*) dan Mode Atasan Langsung (Penilaian Karu & Penelaahan Kabid). Dilengkapi tabel realisasi target 60% KPI hasil kerja, kontrol slider nilai perilaku 40% Core Values BerAKHLAK (skala likert 1-5), kalkulator live nilai komposit dan predikat kinerja, serta alur penguncian bertahap tanpa bypass wewenang.
 * **Dependencies**: `FE-HRD-231`, `BE-HRD-259` [BE].
 * **Acceptance Criteria**: Atasan tidak dapat mengisi penilaian sebelum staf merampungkan self-assessment; kalkulator live memperbarui skor komposit 60:40 secara real-time saat slider BerAKHLAK digeser; tombol submit memicu konfirmasi tanda tangan digital.
@@ -5077,7 +5077,7 @@ Legenda:
 
 #### â ³ `FE-HRD-237` â€” Modal Peer Review Sejawat & Umpan Balik Kualitatif (`PeerReviewFeedbackModal`)
 * **Slice / MVP**: `S-C3` / `MVP-51`
-* **Status**: â ³ Menunggu `FE-HRD-236`
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Komponen dialog modal `@/components/features/performance/PeerReviewFeedbackModal.tsx`, formulir pengisian umpan balik rekan sejawat setara untuk penyusunan *Individual Development Plan* (IDP), textarea catatan observasi kekuatan (*Strengths*) dan area yang perlu ditingkatkan (*Improvement Areas*), sakelar opsi pengiriman anonim, serta label informasi penegasan bahwa ulasan ini tidak mempengaruhi skor komposit resmi pegawai (`VR-PRF-10`).
 * **Dependencies**: `FE-HRD-236`.
 * **Acceptance Criteria**: Form menyimpan ulasan rekan sejawat; label penjelas non-skor tampil mencolok; skor komposit pada lembar evaluasi terbukti tidak bergeser.
@@ -5085,7 +5085,7 @@ Legenda:
 
 #### â ³ `FE-HRD-238` â€” Konsol Sidang Kalibrasi Manajemen & Guiding Distribution (`FE-HRD-235`)
 * **Slice / MVP**: `S-C3` / `MVP-52`
-* **Status**: â ³ Menunggu `FE-HRD-236`, `BE-HRD-261` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan konsol sidang pleno kalibrasi pada rute `/hr/performance/calibration` (Layar `FE-HRD-235`), diagram visual kurva sebaran nilai komposit aktual seluruh pegawai rumah sakit terhadap pedoman sebaran fleksibel (*Guiding Distribution*: 10-15% A, 70-80% B, 5-10% C/D), tabel interaktif daftar seluruh pegawai beserta skor awal dan skor rekomendasi, tombol buka modal nota justifikasi override nilai, dan tombol aksi pengesahan pleno rilis nilai serentak ke portal ESS.
 * **Dependencies**: `FE-HRD-236`, `BE-HRD-261` [BE].
 * **Acceptance Criteria**: Diagram distribusi kurva fleksibel ter-render dinamis; deviasi sebaran di luar pedoman ditandai dengan warna highlight peringatan; rilis nilai serentak memerlukan konfirmasi PIN otorisasi direktur SDM.
@@ -5093,7 +5093,7 @@ Legenda:
 
 #### â ³ `FE-HRD-239` â€” Modal Nota Justifikasi Kalibrasi Manajemen (`CalibrationJustificationModal`)
 * **Slice / MVP**: `S-C3` / `MVP-52`
-* **Status**: â ³ Menunggu `FE-HRD-238`
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Komponen dialog modal `@/components/features/performance/CalibrationJustificationModal.tsx`, antarmuka penyesuaian skor oleh komite kalibrasi direksi, field skor awal (read-only), input skor hasil penyesuaian kalibrasi, textarea wajib nota justifikasi tertulis minimal 50 karakter (`VR-PRF-12`), serta pencatatan nama pimpinan sidang penanggung jawab koreksi.
 * **Dependencies**: `FE-HRD-238`.
 * **Acceptance Criteria**: Tombol simpan terkunci (*disabled*) jika panjang teks nota justifikasi < 50 karakter (`VR-PRF-13`); audit trail perubahan skor tercatat permanen.
@@ -5101,7 +5101,7 @@ Legenda:
 
 #### â ³ `FE-HRD-240` â€” Tata Kelola PIP 60 Hari Kalender & Logbook Mingguan Mentor (`FE-HRD-236`)
 * **Slice / MVP**: `S-C3` / `MVP-52`
-* **Status**: â ³ Menunggu `FE-HRD-239`, `BE-HRD-262` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan layar tata kelola program pembinaan kinerja pada rute `/hr/performance/pip` (Layar `FE-HRD-236`), dasbor pemantauan kasus aktif pegawai dengan skor komposit < 65.00, visual progress bar timeline 60 hari kalender, kartu profil mentor pendamping, badge peringatan merah pembekuan hak mutasi/promosi jabatan (`VR-PRF-16`), tabel daftar 8 sesi logbook mingguan, serta tombol buka modal logbook.
 * **Dependencies**: `FE-HRD-239`, `BE-HRD-262` [BE].
 * **Acceptance Criteria**: Seluruh staf dengan nilai < 65 otomatis muncul pada daftar PIP; timeline 60 hari menghitung sisa hari pembinaan secara akurat; indikator pembekuan mutasi aktif.
@@ -5109,7 +5109,7 @@ Legenda:
 
 #### â ³ `FE-HRD-241` â€” Modal Logbook Mingguan & Sidang Putusan PIP (`PipWeeklyLogbookModal`)
 * **Slice / MVP**: `S-C3` / `MVP-52`
-* **Status**: â ³ Menunggu `FE-HRD-240`, `BE-HRD-262` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Komponen dialog modal `@/components/features/performance/PipWeeklyLogbookModal.tsx`, formulir pengisian catatan mingguan mentor pembimbing (minimal 20 karakter, `VR-PRF-15`), tombol upload berkas bukti coaching, serta panel khusus sidang evaluasi hari ke-60 yang menyediakan 3 tombol radio putusan resmi: Lulus (kembali normal), Perpanjangan (maksimal 30 hari), atau Eskalasi HR Legal Hubungan Industrial.
 * **Dependencies**: `FE-HRD-240`, `BE-HRD-262` [BE].
 * **Acceptance Criteria**: Validasi form mewajibkan catatan mentor; panel putusan hari ke-60 hanya aktif jika seluruh 8 sesi logbook mingguan telah terisi lengkap.
@@ -5117,7 +5117,7 @@ Legenda:
 
 #### â ³ `FE-HRD-242` â€” Portofolio Kenaikan Jenjang Klinis Perawat/Nakes PK I-V (`FE-HRD-237`)
 * **Slice / MVP**: `S-C3` / `MVP-53`
-* **Status**: â ³ Menunggu `FE-HRD-231`, `BE-HRD-264` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan layar portofolio kenaikan jenjang karier profesional perawat klinis dan nakes pada rute `/hr/performance/clinical-ladder` (Layar `FE-HRD-237`), registri kenaikan jenjang (PK I s.d. PK V), visual badge gatekeeper verifikasi prasyarat administratif (Skor Kinerja >= 75.00 `VR-PRF-17`, Sertifikat Diklat/OSCE Sub-16 `VR-PRF-18`, Bebas Sentinel Sub-15 `VR-PRF-19`), viewer berkas logbook tindakan klinis, formulir rekomendasi Komite Keperawatan, dan form penerbitan SK Direktur Utama.
 * **Dependencies**: `FE-HRD-231`, `BE-HRD-264` [BE].
 * **Acceptance Criteria**: Tombol pengajuan terkunci jika salah satu prasyarat gatekeeper merah/tidak terpenuhi; viewer dokumen portofolio klinis berfungsi mulus.
@@ -5125,7 +5125,7 @@ Legenda:
 
 #### â ³ `FE-HRD-243` â€” Portal Pengajuan Sanggah Banding Nilai SLA 7/14 Hari (`FE-HRD-238`)
 * **Slice / MVP**: `S-C3` / `MVP-53`
-* **Status**: â ³ Menunggu `FE-HRD-231`, `BE-HRD-267` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Pembangunan layar portal sanggah banding nilai kinerja pada rute `/hr/performance/disputes` (Layar `FE-HRD-238`), antarmuka pegawai di ESS untuk mengajukan sanggahan nilai resmi pasca pengumuman kalibrasi, countdown visual batas waktu pengajuan (H+7 hari kalender, `VR-PRF-21`), form alasan keberatan, komponen upload dokumen bukti pembanding (`VR-PRF-22`), tabel pemantauan proses mediasi klarifikasi oleh HR Performance, serta timeline batas penyelesaian putusan majelis 14 hari kalender.
 * **Dependencies**: `FE-HRD-231`, `BE-HRD-267` [BE].
 * **Acceptance Criteria**: Form pengajuan terkunci otomatis dan menampilkan badge merah "Masa Sanggah Telah Berakhir" jika waktu telah melampaui H+7; upload bukti pembanding wajib disertakan sebelum submit.
@@ -5133,7 +5133,7 @@ Legenda:
 
 #### â ³ `FE-HRD-244` â€” Modal Putusan Majelis Banding Direktur SDM (`DisputeResolutionModal`)
 * **Slice / MVP**: `S-C3` / `MVP-53`
-* **Status**: â ³ Menunggu `FE-HRD-243`
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Komponen dialog modal `@/components/features/performance/DisputeResolutionModal.tsx`, antarmuka pimpinan sidang majelis banding Direktur SDM, ringkasan perbandingan nilai awal vs bukti keberatan staf, input amar putusan resmi majelis (Diterima dengan Perbaikan / Ditolak), input nilai komposit akhir terkoreksi, textarea pertimbangan majelis, serta penegakan batas waktu SLA penerbitan putusan maksimal 14 hari kalender (`VR-PRF-24`).
 * **Dependencies**: `FE-HRD-243`.
 * **Acceptance Criteria**: Putusan majelis tersimpan dengan tanda tangan digital Direktur SDM; nilai komposit pegawai di ESS otomatis terbarui sesuai amar putusan dan status lembar evaluasi kembali normal `Final`.
@@ -5141,7 +5141,7 @@ Legenda:
 
 #### â ³ `FE-HRD-245` â€” Verifikasi Menyeluruh Next.js App Router, Linting 0 Error & UAT Acceptance `S-C3`
 * **Slice / MVP**: `S-C3` / Verifikasi
-* **Status**: â ³ Menunggu `FE-HRD-232`, `FE-HRD-241`, `FE-HRD-242`, `FE-HRD-244`, `BE-HRD-269` [BE]
+* **Status**: ✅ Selesai (PASS - Verifikasi Mandiri & Build 0 Error)
 * **Outcome**: Eksekusi audit integritas frontend Next.js: pemeriksaan linting `npm run lint:errors` menghasilkan 0 error, build produksi `npm run build` sukses tanpa warning kritis, validasi konsistensi design tokens dan base components Quilvian, verifikasi kelancaran alur kerja UI ujung-ke-ujung (E2E), serta pengujian penerimaan terhadap 5 skenario UAT utama Sub-Modul 17.
 * **Dependencies**: Seluruh task frontend `FE-HRD-231` s.d. `FE-HRD-244` dan task verifikasi backend `BE-HRD-269`.
 * **Acceptance Criteria**: Linting lulus 0 error; build produksi Next.js standalone sukses; seluruh 8 layar dan 5 modal dialog beroperasi mulus; 5 skenario UAT terverifikasi lulus.

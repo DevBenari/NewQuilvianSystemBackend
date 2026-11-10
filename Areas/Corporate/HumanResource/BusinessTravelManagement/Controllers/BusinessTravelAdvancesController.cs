@@ -8,12 +8,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/travel/advances")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_BUSINESS_TRAVEL",
+        moduleName: "Human Resource Business Travel",
+        displayName: "Uang Muka Perjalanan Dinas",
+        AreaName = "Corporate",
+        ControllerName = "BusinessTravelAdvance",
+        Description = "Pengajuan, persetujuan, dan pencairan uang muka perjalanan dinas",
+        SortOrder = 11)]
     [Tags("Corporate - HRD Business Travel Advances")]
     public class BusinessTravelAdvancesController : ControllerBase
     {
@@ -48,6 +58,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil daftar permohonan uang muka kerja SPPD (Kontrak v25)
         /// </summary>
         [HttpGet]
+        [AccessAction("Read", "Melihat Uang Muka Dinas", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BusinessTravelAdvance", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<TravelAdvanceResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAdvances([FromQuery] string? status, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
@@ -59,6 +71,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengajukan uang muka perjalanan dinas (maksimal 80% dari pagu yang disetujui) (Kontrak v25)
         /// </summary>
         [HttpPost]
+        [AccessAction("Request", "Mengajukan Uang Muka Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("BusinessTravelAdvance", "Request")]
         [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateAdvance([FromBody] CreateTravelAdvanceRequestDto dto)
@@ -79,6 +93,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Persetujuan uang muka oleh Supervisor &amp; Finance Manager (Alur 2-Pintu VR-TRV-03) (Kontrak v25)
         /// </summary>
         [HttpPost("{id}/approve")]
+        [AccessAction("Approve", "Menyetujui Uang Muka Dinas", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("BusinessTravelAdvance", "Approve")]
         [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ApproveAdvance([FromRoute] Guid id, [FromBody] ApproveAdvanceRequestDto dto)
@@ -99,6 +115,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Konfirmasi pencairan dana uang muka oleh Kasir RS (voucher / transfer bank) (Kontrak v25)
         /// </summary>
         [HttpPost("{id}/disburse")]
+        [AccessAction("Disburse", "Mencairkan Uang Muka Dinas", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("BusinessTravelAdvance", "Disburse")]
         [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> DisburseAdvance([FromRoute] Guid id, [FromBody] DisburseAdvancePaymentDto dto)

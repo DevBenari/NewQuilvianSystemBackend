@@ -8,12 +8,22 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/v1/hrd/travel/settlements")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_BUSINESS_TRAVEL",
+        moduleName: "Human Resource Business Travel",
+        displayName: "Pertanggungjawaban Perjalanan Dinas",
+        AreaName = "Corporate",
+        ControllerName = "BusinessTravelSettlement",
+        Description = "Laporan pertanggungjawaban biaya, verifikasi kuitansi, dan penutupan selisih kas",
+        SortOrder = 12)]
     [Tags("Corporate - HRD Business Travel Settlements")]
     public class BusinessTravelSettlementsController : ControllerBase
     {
@@ -35,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil daftar pertanggungjawaban settlement biaya perjalanan dinas (Kontrak v25)
         /// </summary>
         [HttpGet]
+        [AccessAction("Read", "Melihat Pertanggungjawaban Dinas", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BusinessTravelSettlement", "Read")]
         [ProducesResponseType(typeof(ApiResponse<List<TravelSettlementResponseDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSettlements(
             [FromQuery] string? status,
@@ -50,6 +62,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengambil lembar komputasi rekonsiliasi uang muka vs pengeluaran riil nakes (Kontrak v25)
         /// </summary>
         [HttpGet("{id}")]
+        [AccessAction("Read", "Melihat Pertanggungjawaban Dinas", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BusinessTravelSettlement", "Read")]
         [ProducesResponseType(typeof(ApiResponse<TravelSettlementDetailResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSettlementById([FromRoute] Guid id)
@@ -69,6 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Mengajukan settlement biaya perjalanan dinas dan melampirkan kuitansi riil (Kontrak v25)
         /// </summary>
         [HttpPost]
+        [AccessAction("Submit", "Menyerahkan Pertanggungjawaban Dinas", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("BusinessTravelSettlement", "Submit")]
         [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SubmitSettlement([FromBody] SubmitTravelSettlementDto dto)
@@ -89,6 +105,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Verifikasi fisik bukti kuitansi oleh Tim Auditor Keuangan RS (Kontrak v25)
         /// </summary>
         [HttpPost("{id}/verify")]
+        [AccessAction("Verify", "Memverifikasi Kuitansi Dinas", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("BusinessTravelSettlement", "Verify")]
         [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> VerifySettlement([FromRoute] Guid id, [FromBody] VerifySettlementDto dto)
@@ -109,6 +127,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         /// Penyelesaian akhir kas: pencairan selisih kurang atau setor balik selisih lebih (Kontrak v25)
         /// </summary>
         [HttpPost("{id}/close")]
+        [AccessAction("Close", "Menutup Selisih Settlement Dinas", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("BusinessTravelSettlement", "Close")]
         [ProducesResponseType(typeof(ApiResponse<TravelSettlementResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CloseSettlement([FromRoute] Guid id, [FromBody] CloseSettlementDto dto)

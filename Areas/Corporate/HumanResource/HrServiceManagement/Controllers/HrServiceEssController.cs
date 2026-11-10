@@ -4,11 +4,21 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Controllers
 {
     [ApiController]
     [Route("api/v1/self-service/hr/services/tickets")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_SERVICE_MANAGEMENT",
+        moduleName: "Human Resource Service Management",
+        displayName: "Layanan Kepegawaian Mandiri (ESS)",
+        AreaName = "Corporate",
+        ControllerName = "HrServiceEss",
+        Description = "Pengajuan tiket layanan SDM oleh pegawai, utas klarifikasi, dan lampiran",
+        SortOrder = 13)]
     [Tags("HR Services - ESS Requests & My Documents")]
     [Authorize]
     public class HrServiceEssController : ControllerBase
@@ -33,6 +43,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengajukan tiket permohonan layanan SDM mandiri oleh pegawai melalui portal ESS (FR-HRS-06, HRS-B1)
         /// </summary>
         [HttpPost]
+        [AccessAction("CreateRequest", "Mengajukan Tiket Layanan Mandiri", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("HrServiceEss", "CreateRequest")]
         public async Task<IActionResult> SubmitTicket([FromBody] CreateHrServiceTicketRequestDto request, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -60,6 +72,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil daftar seluruh riwayat tiket permohonan layanan yang diajukan oleh pegawai yang sedang login (FR-HRS-08)
         /// </summary>
         [HttpGet("my-tickets")]
+        [AccessAction("ViewOwn", "Melihat Tiket Layanan Sendiri", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("HrServiceEss", "ViewOwn")]
         public async Task<IActionResult> GetMyTickets(CancellationToken cancellationToken = default)
         {
             var profileId = GetCurrentUserWorkforceProfileId();
@@ -76,6 +90,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil detail status tiket permohonan milik pegawai
         /// </summary>
         [HttpGet("{id:guid}")]
+        [AccessAction("ViewOwn", "Melihat Tiket Layanan Sendiri", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("HrServiceEss", "ViewOwn")]
         public async Task<IActionResult> GetMyTicketDetail(Guid id, CancellationToken cancellationToken = default)
         {
             var profileId = GetCurrentUserWorkforceProfileId();
@@ -89,6 +105,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil percakapan klarifikasi tiket (catatan internal analis disembunyikan secara otomatis)
         /// </summary>
         [HttpGet("{id:guid}/comments")]
+        [AccessAction("ViewOwn", "Melihat Tiket Layanan Sendiri", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("HrServiceEss", "ViewOwn")]
         public async Task<IActionResult> GetComments(Guid id, CancellationToken cancellationToken = default)
         {
             var comments = await _ticketService.GetCommentsAsync(id, isHrStaff: false, cancellationToken);
@@ -99,13 +117,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengirimkan pesan atau balasan klarifikasi berkas dari pegawai kepada analis SDM
         /// </summary>
         [HttpPost("{id:guid}/comments")]
+        [AccessAction("CreateRequest", "Mengajukan Tiket Layanan Mandiri", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("HrServiceEss", "CreateRequest")]
         public async Task<IActionResult> AddComment(Guid id, [FromBody] AddTicketCommentRequestDto request, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString();
             var authorGuid = Guid.TryParse(userIdString, out var guid) ? guid : Guid.Empty;
-            var authorName = User.Identity?.Name ?? "Pegawai ESS";
+            var authorName = ResolveActorName();
 
             try
             {
@@ -125,6 +145,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengambil daftar berkas lampiran pada tiket permohonan milik pegawai (BE-HRD-196)
         /// </summary>
         [HttpGet("{id:guid}/attachments")]
+        [AccessAction("ViewOwn", "Melihat Tiket Layanan Sendiri", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("HrServiceEss", "ViewOwn")]
         public async Task<IActionResult> GetAttachments(Guid id, CancellationToken cancellationToken = default)
         {
             var attachments = await _ticketService.GetAttachmentsAsync(id, isHrStaff: false, cancellationToken);
@@ -135,6 +157,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengunggah berkas lampiran pendukung atau berkas klarifikasi oleh pegawai (maks 5MB, format PDF/JPG/PNG/DOCX)
         /// </summary>
         [HttpPost("{id:guid}/attachments")]
+        [AccessAction("CreateRequest", "Mengajukan Tiket Layanan Mandiri", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("HrServiceEss", "CreateRequest")]
         public async Task<IActionResult> UploadAttachment(Guid id, IFormFile file, [FromForm] string? description, CancellationToken cancellationToken = default)
         {
             var profileId = GetCurrentUserWorkforceProfileId();
@@ -156,6 +180,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         /// Mengunduh berkas lampiran pada tiket milik pegawai
         /// </summary>
         [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
+        [AccessAction("ViewOwn", "Melihat Tiket Layanan Sendiri", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("HrServiceEss", "ViewOwn")]
         public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId, CancellationToken cancellationToken = default)
         {
             var profileId = GetCurrentUserWorkforceProfileId();
@@ -177,6 +203,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             {
                 return NotFound(new { message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Nama pengguna yang sedang login untuk jejak aktor. Sengaja tidak memakai aktor cadangan:
+        /// permintaan tanpa identitas ditolak, bukan dicatat atas nama orang lain.
+        /// </summary>
+        private string ResolveActorName()
+        {
+            var actorName = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(actorName))
+            {
+                throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
+            }
+
+            return actorName;
         }
     }
 }

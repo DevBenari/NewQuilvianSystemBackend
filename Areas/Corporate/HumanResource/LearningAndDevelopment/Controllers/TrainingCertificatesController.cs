@@ -4,11 +4,21 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Controllers
 {
     [ApiController]
     [Route("api/v1/corporate/hrd/training/certificates")]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LEARNING_DEVELOPMENT",
+        moduleName: "Human Resource Learning and Development",
+        displayName: "Sertifikat Pelatihan",
+        AreaName = "Corporate",
+        ControllerName = "TrainingCertificate",
+        Description = "Penerbitan dan verifikasi sertifikat pelatihan staf",
+        SortOrder = 17)]
     [Tags("Corporate - HRD Clinical Competency & OSCE Assessment")]
     [Authorize]
     public class TrainingCertificatesController : ControllerBase
@@ -21,6 +31,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpPost("issue")]
+        [AccessAction("Issue", "Menerbitkan Sertifikat Pelatihan", AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("TrainingCertificate", "Issue")]
         public async Task<IActionResult> IssueCertificate([FromBody] IssueCertificateRequestDto request)
         {
             try
@@ -44,6 +56,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("verify/{certificateNumber}")]
+        [AccessAction("Read", "Melihat Sertifikat Pelatihan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingCertificate", "Read")]
         [AllowAnonymous]
         public async Task<IActionResult> VerifyCertificate([FromRoute] string certificateNumber)
         {
@@ -63,6 +77,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("participants/{participantId:guid}")]
+        [AccessAction("Read", "Melihat Sertifikat Pelatihan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingCertificate", "Read")]
         public async Task<IActionResult> GetByParticipant([FromRoute] Guid participantId)
         {
             try
@@ -77,6 +93,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         }
 
         [HttpGet("staff/{workforceProfileId:guid}")]
+        [AccessAction("Read", "Melihat Sertifikat Pelatihan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("TrainingCertificate", "Read")]
         public async Task<IActionResult> GetByStaff([FromRoute] Guid workforceProfileId)
         {
             try

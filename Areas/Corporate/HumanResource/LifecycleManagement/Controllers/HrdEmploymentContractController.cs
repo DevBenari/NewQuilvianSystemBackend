@@ -18,6 +18,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     [ApiController]
     [Route("api/v1/corporate/human-resource/employment-contracts")]
     [Produces(MediaTypeNames.Application.Json)]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_LIFECYCLE_MANAGEMENT",
+        moduleName: "Human Resource Lifecycle Management",
+        displayName: "Kontrak Kerja Pegawai",
+        AreaName = "Corporate",
+        ControllerName = "WorkforceEmploymentContract",
+        Description = "Kontrak kerja, tanda tangan, keputusan perpanjangan, koreksi, dan dokumen kontrak",
+        SortOrder = 31)]
     [Tags("Corporate / Human Resource / Lifecycle Management / Employment Contracts")]
     public class HrdEmploymentContractController : ControllerBase
     {
@@ -29,6 +37,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmploymentContractResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaged([FromQuery] EmploymentContractQuery query, CancellationToken cancellationToken)
         {
@@ -37,6 +47,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id:guid}")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
         [ProducesResponseType(typeof(ApiResponse<EmploymentContractResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -46,6 +58,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id:guid}/print-data")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
         [ProducesResponseType(typeof(ApiResponse<EmploymentContractPrintDataResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetPrintData(Guid id, CancellationToken cancellationToken)
@@ -55,6 +69,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id:guid}/record-signed")]
+        [AccessAction("MarkSigned", "Mencatat Kontrak Ditandatangani", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("WorkforceEmploymentContract", "MarkSigned")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<EmploymentContractResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -69,6 +85,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id:guid}/download-scan")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DownloadScan(Guid id, CancellationToken cancellationToken)
@@ -85,6 +103,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         // --- BE-HRD-080: Keputusan Kontrak T16 & Batas 5 Tahun PKWT ---
 
         [HttpGet("{id:guid}/fixed-term-check")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
         [ProducesResponseType(typeof(ApiResponse<FixedTermCheckResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> FixedTermCheck(Guid id, CancellationToken cancellationToken)
         {
@@ -93,6 +113,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id:guid}/decisions")]
+        [AccessAction("SubmitDecision", "Mengajukan Keputusan Kontrak", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("WorkforceEmploymentContract", "SubmitDecision")]
         [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status201Created)]
         public async Task<IActionResult> SubmitDecision(
             Guid id,
@@ -104,6 +126,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id:guid}/decisions/{decisionId:guid}")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
         [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDecisionById(
             Guid id,
@@ -115,6 +139,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPut("{id:guid}/decisions/{decisionId:guid}")]
+        [AccessAction("SubmitDecision", "Mengajukan Keputusan Kontrak", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("WorkforceEmploymentContract", "SubmitDecision")]
         [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> UpdateDecision(
             Guid id,
@@ -127,6 +153,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpDelete("{id:guid}/decisions/{decisionId:guid}")]
+        [AccessAction("SubmitDecision", "Mengajukan Keputusan Kontrak", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("WorkforceEmploymentContract", "SubmitDecision")]
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         public async Task<IActionResult> WithdrawDecision(
             Guid id,
@@ -138,6 +166,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpPost("{id:guid}/decisions/{decisionId:guid}/notify")]
+        [AccessAction("RecordNotification", "Mencatat Pemberitahuan ke Pegawai", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("WorkforceEmploymentContract", "RecordNotification")]
         [ProducesResponseType(typeof(ApiResponse<ContractDecisionResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> RecordEmployeeNotified(
             Guid id,
@@ -152,6 +182,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         // --- BE-HRD-081: Koreksi Kontrak T17 ---
 
         [HttpPost("{id:guid}/corrections")]
+        [AccessAction("RequestCorrection", "Mengajukan Koreksi Kontrak", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("WorkforceEmploymentContract", "RequestCorrection")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<ContractCorrectionResponse>), StatusCodes.Status201Created)]
         public async Task<IActionResult> SubmitCorrection(
@@ -164,6 +196,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpGet("{id:guid}/corrections/{correctionId:guid}")]
+        [AccessAction("Read", "Melihat Kontrak Kerja", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceEmploymentContract", "Read")]
         [ProducesResponseType(typeof(ApiResponse<ContractCorrectionResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCorrectionById(
             Guid id,
@@ -175,6 +209,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         }
 
         [HttpDelete("{id:guid}/corrections/{correctionId:guid}")]
+        [AccessAction("RequestCorrection", "Mengajukan Koreksi Kontrak", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("WorkforceEmploymentContract", "RequestCorrection")]
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         public async Task<IActionResult> WithdrawCorrection(
             Guid id,
@@ -188,6 +224,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         // --- Scan Susulan Dokumen Kontrak Data Awal (VR-ONB-45) ---
 
         [HttpPost("{id:guid}/document")]
+        [AccessAction("UploadDocument", "Mengunggah Dokumen Kontrak", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("WorkforceEmploymentContract", "UploadDocument")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<EmploymentContractResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> UploadLegacyDocument(

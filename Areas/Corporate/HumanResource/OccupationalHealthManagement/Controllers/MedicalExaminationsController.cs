@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Controllers
 {
@@ -16,6 +18,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     /// </summary>
     [ApiController]
     [Route("api/v1/hrd/occupational-health")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_OCCUPATIONAL_HEALTH",
+        moduleName: "Human Resource Occupational Health",
+        displayName: "MCU & Surveilans Bahaya",
+        AreaName = "Corporate",
+        ControllerName = "OccupationalMedicalExamination",
+        Description = "Penjadwalan dan hasil MCU staf serta surveilans dosis radiasi",
+        SortOrder = 11)]
     [Tags("Corporate - HRD Medical Check-Up & Risk Surveillance")]
     public class MedicalExaminationsController : ControllerBase
     {
@@ -33,13 +44,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         private Guid GetCurrentUserId()
         {
             var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(raw, out var uid) ? uid : Guid.Parse("11111111-1111-1111-1111-111111111111");
+            if (Guid.TryParse(raw, out var uid) && uid != Guid.Empty)
+            {
+                return uid;
+            }
+
+            // Tidak memakai aktor cadangan: jejak audit tanpa identitas asli lebih berbahaya
+            // daripada permintaan yang ditolak.
+            throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
         /// <summary>
         /// Daftarkan jadwal pemeriksaan MCU tahunan/khusus berdasar risiko ruangan
         /// </summary>
         [HttpPost("mcu/schedule")]
+        [AccessAction("ScheduleMcu", "Menjadwalkan MCU Staf", AccessType = AccessTypes.Create, SortOrder = 1)]
+        [AccessPermission("OccupationalMedicalExamination", "ScheduleMcu")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<MedicalExaminationResponseDto>), 201)]
         public async Task<IActionResult> ScheduleMcu([FromBody] ScheduleMcuRequestDto request, CancellationToken cancellationToken = default)
@@ -53,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Daftar pelaksanaan MCU pegawai dengan filter risiko dan unit
         /// </summary>
         [HttpGet("mcu")]
+        [AccessAction("Read", "Melihat MCU & Radar Surveilans", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("OccupationalMedicalExamination", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<MedicalExaminationSummaryDto>>), 200)]
         public async Task<IActionResult> GetMcuList(
@@ -71,6 +93,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Catat hasil pemeriksaan fisik dan laboratorium terenkripsi oleh dokter
         /// </summary>
         [HttpPost("mcu/{examinationId:guid}/results")]
+        [AccessAction("UploadMcuResults", "Mengunggah Hasil MCU", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("OccupationalMedicalExamination", "UploadMcuResults")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<MedicalExaminationResponseDto>), 200)]
         public async Task<IActionResult> RecordMcuResults(Guid examinationId, [FromBody] RecordMcuResultsRequestDto request, CancellationToken cancellationToken = default)
@@ -84,6 +108,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Catat impor data dosis radiasi TLD bulanan staf radiologi (INT-HR-91)
         /// </summary>
         [HttpPost("surveillance/radiation-dose")]
+        [AccessAction("RecordHazardSurveillance", "Mencatat Surveilans Dosis Radiasi", AccessType = AccessTypes.Create, SortOrder = 4)]
+        [AccessPermission("OccupationalMedicalExamination", "RecordHazardSurveillance")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<HealthSurveillanceResponseDto>), 201)]
         public async Task<IActionResult> RecordRadiationDose([FromBody] RecordRadiationDoseRequestDto request, CancellationToken cancellationToken = default)
@@ -97,6 +123,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         /// Radar pemantauan akumulasi dosis radiasi staf radiologi terhadap batas 20 mSv
         /// </summary>
         [HttpGet("surveillance/radiation-radar")]
+        [AccessAction("Read", "Melihat MCU & Radar Surveilans", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("OccupationalMedicalExamination", "Read")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<RadiationSurveillanceRadarDto>>), 200)]
         public async Task<IActionResult> GetRadiationRadar(

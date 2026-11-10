@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -15,6 +17,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     [ApiController]
     [Route("api/v1/corporate/hrd/performance")]
+    [Authorize]
+    [AccessController(
+        moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
+        moduleName: "Human Resource Performance",
+        displayName: "PIP & Jenjang Karier Klinis",
+        AreaName = "Corporate",
+        ControllerName = "PerformancePipAndCareer",
+        Description = "Program perbaikan kinerja 60 hari dan sidang jenjang karier klinis",
+        SortOrder = 17)]
     [Tags("Corporate - HRD Performance Improvement Plan & Clinical Ladder")]
     public class PerformancePipAndCareerController : ControllerBase
     {
@@ -34,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menampilkan daftar pegawai yang sedang menjalani Program Peningkatan Kinerja (skor komposit < 65.00, VR-PRF-08)
         /// </summary>
         [HttpGet("pip/active-list")]
+        [AccessAction("ViewPip", "Melihat Daftar PIP Aktif", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PerformancePipAndCareer", "ViewPip")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<List<PipActiveSummaryDto>>), 200)]
         public async Task<IActionResult> GetActivePipList(CancellationToken cancellationToken = default)
@@ -46,6 +59,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menerbitkan kontrak pembinaan formal PIP 60 hari kalender, sasaran perbaikan, dan penugasan mentor (VR-PRF-08, PRF-B7)
         /// </summary>
         [HttpPost("pip/issue-contract")]
+        [AccessAction("ManagePip", "Mengelola Program PIP", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformancePipAndCareer", "ManagePip")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<PipActiveSummaryDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -68,6 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menginput catatan observasi monitoring mingguan (Minggu 1 s.d. 8) oleh mentor dan atasan (VR-PRF-09, VR-PRF-15)
         /// </summary>
         [HttpPost("pip/{id}/weekly-logs")]
+        [AccessAction("ManagePip", "Mengelola Program PIP", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformancePipAndCareer", "ManagePip")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -93,6 +110,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Menerbitkan putusan akhir sidang PIP (Lulus, Perpanjang 30 Hari, atau Eskalasi HR Legal, VR-PRF-10)
         /// </summary>
         [HttpPost("pip/{id}/final-verdict")]
+        [AccessAction("ManagePip", "Mengelola Program PIP", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("PerformancePipAndCareer", "ManagePip")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -125,6 +144,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Pengajuan kenaikan jenjang klinis nakes (PK I-V) via ESS dengan validasi gate KPI >= 75 (VR-PRF-14, PRF-B8)
         /// </summary>
         [HttpPost("clinical-ladder/apply")]
+        [AccessAction("ApplyClinicalCareer", "Mengajukan Jenjang Karier Klinis", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("PerformancePipAndCareer", "ApplyClinicalCareer")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<ClinicalCareerLadderDto>), 201)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
@@ -154,6 +175,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         /// Pengesahan rekomendasi sidang Komite Keperawatan dan sinkronisasi SK jenjang baru ke Sub-02/14 (INT-HR-83)
         /// </summary>
         [HttpPost("clinical-ladder/{id}/verdict")]
+        [AccessAction("ManageClinicalCareer", "Memutus Jenjang Karier Klinis", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PerformancePipAndCareer", "ManageClinicalCareer")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<ClinicalCareerLadderDto>), 200)]
         [ProducesResponseType(typeof(ApiResponse<string>), 400)]
