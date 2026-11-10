@@ -7648,7 +7648,7 @@ membangun, dan menerapkannya adalah wewenang terpisah yang belum diberikan (`FIN
 
 | Tabel | Isi minimum | Keterangan |
 |---|---|---|
-| `FinPurchasingSupplierMap` | **Kosong** saat rilis | Disengaja. Tanpa pemetaan, kiriman BLM berstatus `WAITING_MAPPING`, tidak hilang. Cara pengisian: `FIN-OQ-144` |
+| `FinPurchasingSupplierMap` | **Kosong** saat rilis | Disengaja. Tanpa pemetaan, kiriman BLM berstatus `WAITING_MAPPING`, tidak hilang. Cara pengisian: `FIN-OQ-144`, dijawab `FIN-DEC-281` dan dipersempit `FIN-DEC-287` (pemetaan memakai ID dan kode supplier BLM dengan konfirmasi petugas Finance; pencocokan otomatis NPWP ditunda sampai BLM menyediakan field pajak; layar dirancang di slice integrasi). Tabel menyimpan `ExternalSupplierId` dan `ExternalSupplierName`; perlu tidaknya kolom kode supplier BLM dipertimbangkan di slice integrasi |
 | Konversi satuan | **Tidak ada tabel** | Datang dari BLM bersama setiap item (`FIN-DES-134`) |
 | Konstanta sumber, kondisi, status | Di kode | Bukan tabel |
 
@@ -7714,9 +7714,9 @@ sebelum slice integrasi.
 
 | Pertanyaan | Memblokir slice ini? |
 |---|---|
-| `FIN-OQ-141` kontrak Tim BLM. **Syarat baru dari putaran 2:** setiap item PO dan GR yang dikirim BLM wajib membawa satuan asli, isi per satuan dalam satuan dasar produk (`QuantityPerUnit`; satuan dasar = 1), dan kode satuan dasar | Tidak untuk tabel. Memblokir integrasi |
-| `FIN-OQ-144` cara mengisi pemetaan supplier | Tidak |
-| `FIN-OQ-138` susunan menu, `FIN-OQ-143` retur fisik BLM | Tidak |
+| `FIN-OQ-141` kontrak Tim BLM. **Syarat baru dari putaran 2:** setiap item PO dan GR yang dikirim BLM wajib membawa satuan asli, isi per satuan dalam satuan dasar produk (`QuantityPerUnit`; satuan dasar = 1), dan kode satuan dasar. **Dijawab sebagian sisi Quilvian 10 November 2026** (`FIN-DEC-282`..`285`: HMAC-SHA256, kontrak usulan `1.0.0-DRAFT`, daftar field per item, aturan pembatalan); **tetap `OPEN`** sampai Tim BLM berkomitmen tertulis, kontrak disepakati, dan jadwal ditetapkan. **Audit teknis repository BLM 10 November 2026** (`FIN-DEC-289`..`291`): `PARTIALLY READY — DEVELOPMENT REQUIRED`; kesanggupan resmi belum ada | Tidak untuk tabel. Memblokir integrasi |
+| `FIN-OQ-144` cara mengisi pemetaan supplier — **dijawab** 10 November 2026 (`FIN-DEC-281`: konfirmasi petugas + layar pemeliharaan; bagian pencocokan otomatis NPWP **ditunda** oleh `FIN-DEC-287` karena master supplier BLM tidak punya field NPWP) | Tidak |
+| `FIN-OQ-138` susunan menu, `FIN-OQ-143` retur fisik BLM — **dijawab** 10 November 2026 (`FIN-DEC-279`: menu A/P tidak berubah, "Monitoring Purchasing" tetap; `FIN-DEC-280`: retur BLM hanya informasi, kredit hanya dari `FinanceSupplierReturnService`) | Tidak |
 | Persetujuan desain Revisi 23 putaran 2 | **Ya** untuk `plan-module-delivery` |
 
 | Risiko | Penanganan |

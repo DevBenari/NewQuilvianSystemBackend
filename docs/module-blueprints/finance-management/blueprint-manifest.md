@@ -21,6 +21,13 @@ revision_23_note: >
   NOT RUN). FIN-VAL-300..316, FR-FIN-272..284, EPIC FIN-26, gelombang MVP-19. Bagian: arsitektur W, frontend 27,
   PRD 96..105, kamus data 13, kontrak W, testing W, flowchart 05.
   FIN-DES-141 DIKONFIRMASI pemilik bersama persetujuan desain (9 November 2026).
+  Catatan 10 November 2026 (revisi TIDAK dinaikkan): FIN-OQ-138, 143, 144 dijawab pemilik (FIN-DEC-279..281, sisi
+  Quilvian); FIN-OQ-141 (Tim BLM) tetap OPEN dan menjadi satu-satunya penahan integrasi P0. Tanpa perubahan kontrak.
+  Pass kedua 10 November 2026: FIN-OQ-141 dijawab SEBAGIAN sisi Quilvian (FIN-DEC-282..288: HMAC-SHA256, kontrak usulan
+  BLM-QUILVIAN-PURCHASING/1.0.0-DRAFT, daftar field per item, aturan pembatalan, fakta BLM); tetap OPEN menunggu komitmen
+  tertulis, ratifikasi keamanan, kontrak, dan jadwal Tim BLM. FIN-DEC-281 (NPWP) dipersempit oleh FIN-DEC-287.
+  Pass ketiga 10 November 2026: hasil audit teknis repository BLM dicatat (FIN-DEC-289..291; penilaian PARTIALLY READY,
+  DEVELOPMENT REQUIRED; FIN-DEC-288 butir 1 dikoreksi). FIN-OQ-141 tetap OPEN. Tanpa perubahan kontrak.
   NOL source, NOL migration, NOL build. requirement_readiness: NOT_ASSESSED (alasan di W.13).
   domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN (alasan di arsitektur W).
 status_revision_23: approved
@@ -31,7 +38,7 @@ approval_revision_23: >
 approved_by_revision_23: Pemilik Finance (pengguna sesi)
 approved_at_revision_23: 2026-11-09
 roadmap_revision_23: >
-  REV-24 (9 November 2026): BE-FIN-142..147, FE-FIN-062..063. BE-FIN-144 (migration) tertahan wewenang migration.
+  REV-24 (9 November 2026): BE-FIN-142..147, FE-FIN-062..063. BE-FIN-142 dan 143 selesai (10 November 2026); BE-FIN-144 selesai dengan pengecualian (W.T1, W.T18, dan penerapan ke lingkungan lain ditunda atas keputusan pemilik); BE-FIN-145..147 🟡 (uji runtime belum).
 backend_commit_sha_revision_23: 8fb11705   # branch Yasmina; working tree berisi perubahan sesi 9 November yang belum di-commit
 frontend_commit_sha_revision_23: f0a756bf  # branch yasmina; idem
 blm_source_sha_revision_23: 08e8a9ae       # hanya dibaca

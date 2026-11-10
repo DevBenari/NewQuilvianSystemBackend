@@ -1754,9 +1754,20 @@ Path relatif terhadap base URL `FinanceGoodsReceiptsController` (`VERIFIED`).
 **Contoh respons 409:**
 
 ```json
-{ "success": false, "code": "PURCHASING_EXTERNAL_DOCUMENT",
-  "message": "Penerimaan barang untuk PO dari BLM dicatat di BLM. Perubahan dan pembatalannya juga dilakukan dari BLM." }
+{
+  "success": false,
+  "statusCode": 409,
+  "message": "Penerimaan barang untuk PO dari BLM dicatat di BLM. Perubahan dan pembatalannya juga dilakukan dari BLM.",
+  "data": null,
+  "errors": { "code": "PURCHASING_EXTERNAL_DOCUMENT" },
+  "timestamp": "2026-11-10T10:15:00"
+}
 ```
+
+Bentuk di atas adalah `ApiResponse<T>` standar yang dipakai semua endpoint: kode galat ada di `errors.code`, bukan di
+tingkat atas. Klien membaca `message` untuk ditampilkan dan `errors.code` bila perlu bercabang. Contoh sebelumnya
+(`code` di tingkat atas) **dikoreksi** pada 10 November 2026 atas keputusan pemilik (`FIN-DEC-292`); ini koreksi contoh,
+bukan perubahan perilaku, sehingga versi `FIN-API-1.13` tidak dinaikkan.
 
 ### W.2 `[Tags("Corporate / Finance Management / Purchasing / Purchase Order")]` — base URL `api/v1/corporate/finance-management/purchasing/purchase-orders`
 

@@ -2759,8 +2759,8 @@ Rincian di `testing/acceptance-test-matrix.md` bagian W.
 |---|---|---|
 | Persetujuan desain Revisi 23 putaran 2 | Product Owner Finance | **Selesai** 9 November 2026 |
 | Wewenang membangkitkan dan menerapkan migration serta menjalankan build | Product Owner dan pemilik database | **Memblokir DoD 7–8 dan rilis `MVP-19`**; tidak memblokir penulisan kode di branch kerja selama tidak dirilis |
-| `FIN-OQ-141`: kontrak Tim BLM, termasuk isi per satuan dan satuan dasar per item | Tim BLM | Tidak untuk `MVP-19` |
-| `FIN-OQ-144`: cara mengisi pemetaan supplier | Finance dan Tim BLM | Tidak |
+| `FIN-OQ-141`: kontrak Tim BLM, termasuk isi per satuan dan satuan dasar per item | Tim BLM | Tidak untuk `MVP-19`. **Dijawab sebagian sisi Quilvian** 10 November 2026 (`FIN-DEC-282`..`285`); tetap `OPEN` menunggu komitmen tertulis, kontrak, dan jadwal Tim BLM. Audit teknis BLM 10 November 2026: tersedia sebagian, perlu pengembangan (`FIN-DEC-289`..`291`) |
+| `FIN-OQ-144`: cara mengisi pemetaan supplier | Finance dan Tim BLM | Tidak. **Dijawab** 10 November 2026 (`FIN-DEC-281`), dipersempit `FIN-DEC-287` (NPWP ditunda) |
 
 ## 105. Catatan penyerahan
 

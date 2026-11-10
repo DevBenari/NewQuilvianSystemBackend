@@ -250,7 +250,8 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
         RequestedAt = purchaseOrder.RequestedAt,
         ApprovedByUserId = purchaseOrder.ApprovedByUserId,
         ApprovedAt = purchaseOrder.ApprovedAt,
-        RowVersion = purchaseOrder.RowVersion
+        RowVersion = purchaseOrder.RowVersion,
+        SourceSystem = purchaseOrder.SourceSystem
     };
 
     private static PurchaseOrderDetailResponse MapDetail(FinPurchaseOrder purchaseOrder)
@@ -269,6 +270,7 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
             ApprovedByUserId = mapped.ApprovedByUserId,
             ApprovedAt = mapped.ApprovedAt,
             RowVersion = mapped.RowVersion,
+            SourceSystem = mapped.SourceSystem,
             Items = purchaseOrder.Items.Select(x => new PurchaseOrderItemResponse
             {
                 Id = x.Id,

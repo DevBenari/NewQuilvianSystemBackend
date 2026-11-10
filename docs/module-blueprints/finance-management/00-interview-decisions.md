@@ -3449,3 +3449,186 @@ Tabel dampak pass 9 November 2026 sebelumnya (`FIN-DEC-258`) tetap berlaku, dita
 | Perbaikan `CreateAsync`/`UpdateAsync`/`CancelAsync` | Untuk dokumen BLM ketiganya **menolak** (409), karena `FIN-DEC-265` melarang membuat/mengubah GR BLM secara lokal. Normalisasi, koreksi, dan pembatalan GR BLM dijalankan penghitung bersama saat pengolah menerapkan kiriman BLM (`FIN-DES-141`, `142`) | **Ya**, saat persetujuan desain |
 | `RecomputePurchaseOrderStatus` | Cabang BLM memeriksa **per item** (rumus lama membandingkan total seluruh item, `02-backend-architecture.md` W.2 F9); cabang lama tidak berubah | Tidak |
 | Kolom `ConditionCode`/`AcceptedQuantity` untuk GR lama | Putaran 1 mengusulkan backfill; **dicabut**. Kolom BLM pada baris lama kosong | Tidak |
+
+
+---
+
+## Pass pencatatan (Amendment) — Jawaban pemilik atas `FIN-OQ-138`, `143`, `144`; `FIN-OQ-141` tetap `OPEN`, 10 November 2026
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `FIN-BP-001`, Revisi 23 putaran 2 (`approved` 9 November 2026). **Revisi tidak dinaikkan**: jawaban ini tidak mengubah arsitektur target, kontrak, atau dependency yang sudah disetujui; ia menutup pertanyaan terbuka yang hanya menahan slice integrasi (`POST-MVP`) |
+| Mode | Pencatatan atas jawaban pemilik (pengguna sesi) pada sesi 10 November 2026. Pemilik memilih jawaban dari opsi yang disajikan per pertanyaan. Bukan wawancara `grill-me` baru |
+| Sifat persetujuan | Dicatat `approved` **sisi Quilvian** oleh Product Owner. **Bukan komitmen Tim BLM**: butir yang membutuhkan Tim BLM diberi status terpisah di bawah |
+| Source SHA | Tidak ada perubahan source. Pemeriksaan fakta memakai bacaan statis source Backend saat ini (`MstSupplier.TaxNumber`, `FinPurchasingSupplierMap`) |
+| Yang tidak diubah | Kontrak yang sudah `approved` (`contracts/api-contract.md`, `validation-matrix.md`, `state-transition.md`), `FIN-DEC-094`, menu Transaksi A/P, source aplikasi, migration, task ID dan acceptance criteria roadmap |
+
+### Keputusan
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-279` | Decision | **`FIN-OQ-138` dijawab.** (a) Daftar menu Transaksi A/P pada bagian D dokumen hanya **pengelompokan fungsi**: nama dan susunan butir V1 **tidak diganti**, menu Transaksi A/P tidak diubah, dan `FIN-DEC-094` tidak disentuh lebih jauh daripada yang sudah dicatat. (b) Butir **"Monitoring Purchasing"** (ringkasan PO per status, sudah dibangun) **tetap berdiri sendiri** dan tidak digabung ke "Monitoring Sinkronisasi". **Akibat:** butir "Monitoring Sinkronisasi (BLM)" pada `FIN-DEC-266` adalah butir terpisah di grup Purchasing yang baru dibuat di slice integrasi, berdampingan dengan "Monitoring Purchasing"; peta menu 17.2 tidak perlu digambar ulang karena menu A/P tidak berubah. **Contoh:** petugas yang sudah memakai "Monitoring Purchasing" tetap menemukannya di tempat yang sama setelah "Monitoring Sinkronisasi" ada | Pengguna sesi (Product Owner Finance) | `approved` | Pengguna sesi, 10 November 2026 | Jawaban atas `FIN-OQ-138`; selaras `FIN-DEC-266` |
+| `FIN-DEC-280` | Decision | **`FIN-OQ-143` dijawab: retur fisik di BLM disinkronkan hanya sebagai informasi.** Kredit dan deposit retur **hanya** dibuat oleh `FinanceSupplierReturnService` di Quilvian. Data retur dari BLM tidak boleh memicu pembuatan kredit, deposit, atau jurnal; ia disimpan dan ditampilkan sebagai informasi pendamping agar kredit keuangan tidak dapat ganda. **Contoh:** BLM mencatat retur 5 unit ke supplier → Quilvian menyimpan keterangan retur itu; kredit supplier tetap muncul hanya bila petugas Finance membuat dan mengonfirmasi Retur Supplier di Quilvian. **Yang belum diketahui:** apakah BLM memang menangani retur fisik tidak dikonfirmasi; aturan ini berlaku bila ya. Bentuk data sinkronisasi retur dirancang di slice integrasi | Pengguna sesi (Product Owner Finance) | `approved` (sisi Quilvian) | Pengguna sesi, 10 November 2026 | Jawaban atas `FIN-OQ-143`; memperkuat `FIN-DEC-266` ("tanpa membuat kredit keuangan ganda") |
+| `FIN-DEC-281` | Decision | **`FIN-OQ-144` dijawab: pemetaan supplier BLM diisi lewat pencocokan otomatis berdasarkan NPWP dengan konfirmasi petugas, ditambah layar pemeliharaan untuk yang tidak cocok.** Impor berkas **tidak** dipilih. Pencocokan otomatis hanya mengusulkan; **tidak ada pemetaan yang berlaku sebelum petugas Finance mengonfirmasi**. Supplier tanpa NPWP, NPWP yang sama pada lebih dari satu supplier, atau tidak ada kecocokan, jatuh ke layar pemeliharaan. Tabel `FinPurchasingSupplierMap` tetap **kosong saat rilis** (`MVP-19`) dan kiriman tanpa pemetaan tetap berstatus `WAITING_MAPPING`. **Contoh:** BLM mengirim supplier ber-NPWP yang sama dengan satu supplier Quilvian → sistem mengusulkan pasangan itu → petugas menyetujui → kiriman yang menunggu diproses; bila NPWP kosong, petugas memilih supplier sendiri di layar. **Catatan fakta:** `MstSupplier.TaxNumber` ada tetapi opsional; ketersediaan dan keseragaman format NPWP pada data supplier BLM **`UNVERIFIED`** (repo BLM hanya dibaca). **Catatan "satuan":** pertanyaan menyebut "supplier dan satuan"; menurut `FIN-DEC-274` dan `FIN-DEC-276` tidak ada tabel pemetaan produk maupun satuan lokal (satuan dan isi per satuan datang sebagai snapshot per baris dari BLM), sehingga jawaban ini berlaku bagi pemetaan yang memang ada, yaitu supplier. Layar, API, dan aturan pencocokan dirancang di slice integrasi | Pengguna sesi (Product Owner Finance) | `approved` (sisi Quilvian) | Pengguna sesi, 10 November 2026 | Jawaban atas `FIN-OQ-144`; selaras `FIN-DEC-274`, `276` |
+
+### Pembaruan status Open Question
+
+| ID | Keadaan | Keterangan |
+|---|---|---|
+| `FIN-OQ-138` | **CLOSED** | `FIN-DEC-279` |
+| `FIN-OQ-141` | **`OPEN`** (tidak berubah) | Pada 10 November 2026 pemilik sesi tidak dapat menyatakan komitmen Tim BLM maupun memilih HMAC-SHA256 atau OAuth2 Client Credentials. Seluruh integrasi P0 tetap menunggu Tim BLM (`POST-MVP`). **Daftar yang dibawa ke Tim BLM bersama pertanyaan ini:** komitmen atas `FIN-DEC-261`, `262`, `264`, `268`; pilihan autentikasi; versi kontrak dan jadwal; kewajiban mengirim satuan asli, isi per satuan, dan kode satuan dasar pada setiap item (`02-backend-architecture.md` W); apakah BLM menangani retur fisik (`FIN-DEC-280`); dan ketersediaan serta format NPWP supplier (`FIN-DEC-281`) |
+| `FIN-OQ-143` | **CLOSED** (sisi Quilvian) | `FIN-DEC-280`. Sisa: fakta bahwa BLM menangani retur fisik atau tidak → daftar Tim BLM pada `FIN-OQ-141` |
+| `FIN-OQ-144` | **CLOSED** (sisi Quilvian) | `FIN-DEC-281`. Sisa: ketersediaan NPWP supplier di BLM → daftar Tim BLM pada `FIN-OQ-141` |
+
+Baris `FIN-OQ-138`, `143`, `144` pada tabel pass 9 November 2026 di atas **tidak diubah**; keadaan terkini adalah tabel ini (pola yang sama dengan pembaruan `FIN-OQ-142`).
+
+### Dampak pada dokumen lain
+
+| Dokumen | Keadaan |
+|---|---|
+| `03-frontend-architecture.md` §27.3 | Rujukan `FIN-OQ-144` dan `FIN-OQ-138` diberi keterangan sudah dijawab; daftar "belum dirancang" tidak berubah |
+| `02-backend-architecture.md` W (tabel pertanyaan, catatan `FinPurchasingSupplierMap`) | Keterangan dijawab ditambahkan; desain tabel tidak berubah |
+| `04-prd-to-mvp.md` §104 | Baris `FIN-OQ-144` diberi keterangan dijawab |
+| `roadmap/00`, `01`, `02` | Hanya kolom alasan "menunggu" pada `POST-MVP` dan "Yang Sengaja TIDAK Dibuat"; tidak ada task, dependency, atau acceptance criteria yang berubah |
+| `blueprint-manifest.md` | Satu kalimat catatan pada `revision_23_note`; revisi tetap 23 |
+| Kontrak (`api-contract`, `validation-matrix`, `state-transition`), `data-dictionary.md`, flowchart | **Tidak diubah.** Endpoint pemetaan NPWP, layar pemeliharaan, dan bentuk data retur adalah masukan slice integrasi, belum dirancang |
+
+**Langkah berikutnya yang disarankan:** satu-satunya penahan integrasi P0 adalah `FIN-OQ-141` (Tim BLM). Slice integrasi baru dapat dirancang oleh `design-business-module` setelah `FIN-OQ-141` dijawab; jawaban 138, 143, dan 144 sudah menjadi masukannya.
+
+
+---
+
+## Pass pencatatan (Amendment) — Jawaban pemilik atas `FIN-OQ-141`, `FIN-DEC-280`, `FIN-DEC-281`, 10 November 2026
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `FIN-BP-001`, Revisi 23 putaran 2 (`approved` 9 November 2026). **Revisi tidak dinaikkan**: tidak ada kontrak atau arsitektur yang sudah disetujui yang diubah. Kontrak BLM–Quilvian memang belum ditulis (`contracts/integration-contract.md`) dan menjadi tugas slice integrasi |
+| Mode | Pencatatan atas dokumen pengguna "Jawaban atas FIN-OQ-141, FIN-DEC-280, dan FIN-DEC-281" (tanggal analisis 10 November 2026). Bukan wawancara `grill-me` |
+| Sifat dokumen sumber | Analisis statis repository, bukan keputusan Tim BLM. Dokumen menyatakan sendiri: *"Belum ada konfirmasi formal Tim BLM, pengujian integrasi runtime, atau perubahan repository"*. Karena itu semua keputusan di bawah dicatat `approved` **sisi Quilvian** (Product Owner), dan **`FIN-OQ-141` tetap `OPEN`** |
+| Source SHA | Dokumen sumber: BLM `PurchasingSystemDeveloper` `08e8a9a`, Backend `Yasmina` `98a9140`, Frontend `yasmina` `ef8be65`. Sesi ini **tidak memeriksa ulang repository BLM**; temuan tentang BLM berlabel *dilaporkan dokumen pengguna, belum diperiksa ulang* |
+| Yang tidak diubah | Kontrak `approved` (`api-contract`, `integration-contract`, `validation-matrix`, `state-transition-matrix`), kamus data, flowchart, roadmap, task, laporan task, source, migration |
+
+### Keputusan
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-282` | Decision | **Autentikasi server-ke-server kontrak pertama: HMAC-SHA256 melalui HTTPS.** Alasan: BLM memakai autentikasi cookie untuk pengguna, Quilvian memakai JWT Bearer, dan tidak ada bukti kedua aplikasi memakai satu OAuth2 Authorization Server yang mendukung Client Credentials; HMAC dapat dipasang sebagai autentikasi khusus integrasi tanpa mengubah login pengguna. **Standar keamanan wajib:** (1) semua komunikasi HTTPS, HMAC **bukan** pengganti HTTPS; (2) setiap request membawa Key ID, timestamp, nonce, event ID, dan signature; (3) signature = HMAC-SHA256 atas *canonical request* (method, path, timestamp, nonce, hash isi); (4) penerima memverifikasi dengan perbandingan waktu-konstan; (5) timestamp kedaluwarsa atau nonce yang pernah dipakai ditolak; (6) kunci disimpan lewat secret management, bukan ditulis di kode; (7) kunci dapat dirotasi tanpa menghentikan integrasi; (8) kunci development, staging, dan production terpisah; (9) kiriman ulang event yang sah tidak membuat transaksi ganda; (10) identitas layanan dibatasi pada endpoint integrasi yang dibutuhkan. **Contoh:** kiriman yang sama dikirim ulang 10 menit kemudian dengan nonce lama → ditolak; event ID sama dengan nonce baru dan timestamp segar → diterima tetapi tidak membuat PO ganda. **Belum:** ratifikasi Security Owner dan Tim BLM | Pengguna sesi (Product Owner Finance) | `approved` (sisi Quilvian), **menunggu ratifikasi Security Owner dan Tim BLM sebelum dipakai** | Pengguna sesi, 10 November 2026 | Jawaban atas bagian pilihan autentikasi `FIN-OQ-141`; menurunkan `FIN-DEC-261` |
+| `FIN-DEC-283` | Decision | **Identitas dan cakupan kontrak integrasi pertama: `BLM-QUILVIAN-PURCHASING/1.0.0-DRAFT` — usulan, bukan versi yang sudah disepakati.** Versi `FIN-INTEGRATION` yang ada adalah kontrak Finance lintas domain dan **tidak** otomatis menjadi versi kontrak Purchasing BLM. **Cakupan v1:** PO Created/Approved/Updated/Cancelled; GR Created/Corrected/Cancelled; GET daftar dan detail PO/GR untuk rekonsiliasi; pemeriksaan ketergantungan AP sebelum pembatalan; identitas eksternal dokumen dan item; produk, satuan, konversi, dan kondisi penerimaan; event ID, versi dokumen, waktu kejadian, dan idempotency; autentikasi `FIN-DEC-282`; kontrak galat, retry, konflik, dan pemulihan. **Tahapan yang harus disepakati, semuanya belum:** persetujuan kontrak v1.0.0 (BLM dan Quilvian); endpoint PUSH/GET (Tim BLM); kontrak pembatalan dan pemeriksaan AP (Tim BLM dan BE Quilvian); payload satuan lengkap (Tim BLM); sandbox dan pengujian (kedua tim); SIT/UAT (BLM, Finance/AP, QA); rollout produksi (Product Owner dan DevOps). **Tidak ada dasar repository untuk menetapkan tanggal atas nama Tim BLM.** Tim BLM harus menetapkan PIC, versi final, tanggal penyelesaian kontrak, kesiapan sandbox, dan target SIT/UAT. Kontraknya sendiri ditulis di slice integrasi | Pengguna sesi (Product Owner Finance) | `approved` sebagai **usulan awal** (sisi Quilvian) | Pengguna sesi, 10 November 2026 | Jawaban atas bagian versi dan jadwal `FIN-OQ-141` |
+| `FIN-DEC-284` | Decision | **Data wajib per item PO dan GR yang dikirim BLM, sebelum integrasi PO/GR diaktifkan.** `externalPurchaseOrderItemId` (ID item PO BLM); `externalReceiveOrderItemId` (ID item GR, khusus GR); `externalProductId`; `productCode`; `sourceUomCode` (satuan transaksi); `sourceQuantity` (kuantitas asli); `baseUomCode` (kode satuan dasar produk); `baseUnitsPerSourceUnit` (isi satu satuan transaksi dalam satuan dasar); `conditionCode` (khusus GR); `documentVersion`. Rumus: `BaseQuantity = SourceQuantity × BaseUnitsPerSourceUnit`. **Kode satuan dasar harus ditetapkan eksplisit oleh BLM**; satuan ber-`QuantityPerUnit = 1` atau `MeasurementId` tidak boleh diasumsikan sebagai satuan dasar tanpa aturan terverifikasi. **Dilarang memakai faktor 1 sebagai pengganti nilai yang tidak ada.** Bila faktor atau kode satuan dasar tidak tersedia, Quilvian mencatat konflik `CONVERSION_UNRESOLVED` dan menahan penerapan dokumen terkait. **Contoh:** PO 1 BOX isi 12 PCS → 12 PCS; GR-1 6 PCS dan GR-2 6 PCS → `FULLY_RECEIVED` bila keduanya sah; GR-2 tanpa faktor → GR-2 tidak diterapkan dan PO tetap `PARTIALLY_RECEIVED`. **Selaras dengan yang sudah ada:** `FIN-DEC-276`, `FIN-DES-136`, `FIN-VAL-311` (tanpa nilai bawaan 1; `CONVERSION_UNRESOLVED`). **Yang baru:** daftar 10 field, `documentVersion`, dan aturan satuan dasar eksplisit. **Catatan penamaan:** nama di atas adalah nama kawat usulan kontrak draft; pemetaan ke kolom Quilvian (`QuantityPerBaseUnit`, `SourceUomCode`, `BaseUomCode`, dan seterusnya) ditetapkan saat kontrak ditulis | Pengguna sesi (Product Owner Finance) | `approved` (sisi Quilvian); kesanggupan Tim BLM menunggu | Pengguna sesi, 10 November 2026 | Jawaban atas bagian syarat data per item `FIN-OQ-141`; menguatkan `FIN-DEC-276` |
+| `FIN-DEC-285` | Decision | **Aturan pembatalan lintas sistem dan kegagalan komunikasi** (menegaskan `FIN-DEC-261`, `262`, `264`, `268`). (1) BLM tetap sumber utama PO dan GR; PO/GR dikirim lewat PUSH idempotent; API baca BLM tersedia untuk rekonsiliasi. (2) Pembatalan memakai validasi bisnis yang sama, baik dari pengguna BLM langsung maupun lewat integrasi. (3) **Baru:** sebelum membatalkan GR, **BLM wajib memperoleh hasil pemeriksaan ketergantungan AP dari Quilvian**. Artinya Quilvian harus menyediakan pemeriksaan yang dapat dipanggil BLM; ini **belum ada di kontrak mana pun** (`state-transition-matrix.md` hanya mencakup permintaan batal yang dimulai dari Quilvian) dan menjadi masukan slice integrasi. (4) GR yang sudah menjadi dasar invoice atau utang yang diakui ditolak untuk pembatalan normal. (5) Bila Quilvian tidak terjangkau, pembatalan dokumen terintegrasi **tidak boleh dianggap aman**; pakai status pending dan retry. (6) Bila pembatalan sudah terlanjur terjadi, catat konflik dan selesaikan lewat rekonsiliasi Finance; utang tidak dihapus otomatis. (7) Hanya barang yang diterima dan dinyatakan sah yang dihitung untuk penerimaan penuh. **Contoh:** pengguna BLM menekan batal pada GR yang sudah jadi dasar invoice Quilvian → BLM menanyakan pemeriksaan AP → Quilvian menjawab "ada invoice yang diakui" → pembatalan ditolak; bila jawaban tidak datang (Quilvian tidak terjangkau) → pembatalan menunggu dan diulang, bukan diloloskan | Pengguna sesi (Product Owner Finance) | `approved` (sisi Quilvian); implementasi di BLM menunggu | Pengguna sesi, 10 November 2026 | Jawaban atas komitmen `FIN-OQ-141`; selaras `FIN-DEC-262`, `264` |
+| `FIN-DEC-286` | Decision | **Penegasan `FIN-DEC-280` (retur fisik) dan fakta baru.** Aturan desain tetap: BLM tetap sumber utama retur barang bila prosesnya ada; Quilvian menerima informasinya sebagai rujukan operasional; retur fisik **tidak** langsung menghasilkan kredit keuangan; kredit dan deposit retur dibentuk lewat proses Finance/AP yang tervalidasi; koreksi AP, PPN, dan Accounting mengikuti transaksi keuangan yang sah. **Baru:** setiap retur fisik wajib punya **identitas sumber** agar tidak menghasilkan kredit ganda. **Fakta (dilaporkan dokumen pengguna):** kemampuan retur fisik BLM **tidak terbukti** — hanya ada template laporan `ProductReturn.frx` yang merujuk `WrhProductReturnDetail` dan prosedur `GetProductReturnDetailById`; tidak ditemukan model EF/DbSet maupun controller retur supplier; pembatalan GR yang ada bukan retur fisik. Tim BLM perlu menunjukkan model, endpoint, alur operasional, dan contoh transaksi yang benar-benar dipakai | Pengguna sesi (Product Owner Finance) | `approved` (sisi Quilvian); fakta BLM `OPEN` | Pengguna sesi, 10 November 2026 | Jawaban atas pertanyaan fakta `FIN-DEC-280`; memperkuat `FIN-DEC-266` |
+| `FIN-DEC-287` | Decision | **`FIN-DEC-281` direvisi sebagian: pencocokan otomatis berdasarkan NPWP ditunda.** Fakta baru (dilaporkan dokumen pengguna): `MstSupplier` BLM **tidak punya** field NPWP atau `TaxNumber` (field yang ada: `SupplierId`, `SupplierExtId`, `SupplierExtCode`, `SupplierCode`, `SupplierName`, `Ppn`, `Address`, `Email`, `IsActive`); keseragaman data aktual tidak terbukti. **Yang berlaku:** (1) pencocokan otomatis NPWP **tidak dipakai** sebelum BLM menyediakan field pajak dan kualitas datanya diaudit; (2) pemetaan utama memakai **ID dan kode supplier BLM dengan konfirmasi petugas Finance**, dilengkapi layar pemeliharaan; (3) NPWP tidak boleh diasumsikan unik dan valid hanya dari format teks; (4) nilai asli dipertahankan untuk audit dan dinormalisasi secara terpisah; (5) duplikasi, nilai kosong, dan ketidaksesuaian identitas diperiksa sebelum pencocokan berbasis NPWP diaktifkan; (6) perubahan identitas supplier berjejak audit. **Yang tidak berubah dari `FIN-DEC-281`:** tidak ada pemetaan berlaku sebelum dikonfirmasi petugas; `FinPurchasingSupplierMap` kosong saat rilis; kiriman tanpa pemetaan berstatus `WAITING_MAPPING`; impor berkas tidak dipilih. **Contoh:** BLM mengirim supplier `SupplierCode = "SUP-014"` → petugas Finance memilih supplier Quilvian yang sesuai di layar pemeliharaan dan mengonfirmasi → pasangan berlaku. **Catatan tabel:** `FinPurchasingSupplierMap` saat ini menyimpan `ExternalSupplierId` dan `ExternalSupplierName` saja, tanpa kode supplier BLM; perlu tidaknya kolom kode dipertimbangkan di slice integrasi, **tabel tidak diubah sekarang** | Pengguna sesi (Product Owner Finance) | `approved` (sisi Quilvian); **perlu konfirmasi pemilik** karena menyempitkan pilihan "Layar + otomatis NPWP" pada `FIN-DEC-281` | Pengguna sesi, 10 November 2026 (dokumen jawaban) | Jawaban atas pertanyaan fakta `FIN-DEC-281`; merevisi sebagian `FIN-DEC-281` |
+| `FIN-DEC-288` | Fact | **Temuan BLM lain (dilaporkan dokumen pengguna, belum diperiksa ulang oleh sesi ini; bacaan statis `08e8a9a`).** (1) Pembatalan PO/GR BLM masih lewat MVC, autentikasi pengguna, dan anti-forgery; belum ada jalur server-ke-server. (2) `BuildPOJsonAPI` mengirim satuan dan kuantitas tanpa faktor konversi dan tanpa kode satuan dasar per item. (3) `BuildGRNJsonAPI` memakai faktor konversi untuk hitungan internal tetapi tidak mengirim snapshot faktor dan kode satuan dasar. (4) Beberapa helper BLM memakai nilai bawaan `1` bila konversi tidak ditemukan — bertentangan dengan `FIN-DEC-284`. (5) `WrhReceiveOrderItem` tidak menyimpan `PurchaseOrderItemId` langsung; relasi item PO ada pada `PchPurchaseOrderReceipt`. (6) Kondisi barang disimpan lewat `Remarks`, belum ada kontrak penerimaan sah yang konsisten dengan Quilvian. (7) PUSH khusus Quilvian belum terbukti tersedia. (8) Sumber data konversi ada: `MstProduct.MeasurementId`, `MstProductConversion` (`ProductId`, `ToMeasurementId`, `QuantityPerUnit`), `MstMeasurement.MeasurementCode`/`MeasurementExtCode`. **Akibat:** BLM perlu perubahan pada payload, jalur pembatalan, dan penanganan kondisi sebelum integrasi dapat diaktifkan; perubahan di BLM dikerjakan Tim BLM | Pengguna sesi (dokumen jawaban) | Fakta — `UNVERIFIED` oleh sesi ini | Dicatat 10 November 2026 | Dokumen pengguna bagian 1, 4, 5, 6 |
+
+### Pembaruan status Open Question
+
+| ID | Keadaan | Keterangan |
+|---|---|---|
+| `FIN-OQ-141` | **`OPEN`** (dipersempit) | Bagian **dijawab sisi Quilvian**: pilihan autentikasi (`FIN-DEC-282`), identitas dan cakupan kontrak usulan (`FIN-DEC-283`), syarat data per item (`FIN-DEC-284`), aturan pembatalan (`FIN-DEC-285`). Bagian yang **masih terbuka** ada di tabel berikut |
+| `FIN-OQ-143` | **CLOSED** (sisi Quilvian) — tidak berubah | `FIN-DEC-280`, dipertegas `FIN-DEC-286`. Sisa: bukti kemampuan retur fisik BLM → tabel sisa di bawah |
+| `FIN-OQ-144` | **CLOSED** (sisi Quilvian) — **isinya direvisi sebagian** | `FIN-DEC-281` dipersempit `FIN-DEC-287` (NPWP ditunda). Sisa: field pajak dan kualitas data supplier BLM → tabel sisa di bawah |
+
+**Sisa `FIN-OQ-141` (yang menahan integrasi P0):**
+
+| Butir | Pemilik | Status |
+|---|---|---|
+| Komitmen tertulis Tim BLM atas `FIN-DEC-261`, `262`, `264`, `268`, termasuk pemeriksaan AP di semua jalur pembatalan (`FIN-DEC-285`) | Tim BLM | `OPEN` |
+| Ratifikasi HMAC-SHA256 (`FIN-DEC-282`) | Security Owner dan Tim BLM | `OPEN` |
+| Persetujuan kontrak `BLM-QUILVIAN-PURCHASING/1.0.0` (`FIN-DEC-283`) | Tim BLM dan Quilvian | `OPEN` |
+| PIC, tanggal penyelesaian kontrak, kesiapan sandbox, target SIT/UAT | Tim BLM | `OPEN` |
+| Kesanggupan payload satuan lengkap (`FIN-DEC-284`) | Tim BLM | `OPEN` |
+| Bukti alur retur fisik BLM (`FIN-DEC-286`) | Tim BLM | `OPEN` |
+| Field pajak pada master supplier BLM dan audit kualitas data (`FIN-DEC-287`) | Tim BLM dan Finance | `OPEN` |
+
+### Dampak pada dokumen lain
+
+| Dokumen | Keadaan |
+|---|---|
+| `02-backend-architecture.md` W (tabel pertanyaan, catatan `FinPurchasingSupplierMap`) | Keterangan dijawab sebagian ditambahkan; desain tabel tidak berubah |
+| `03-frontend-architecture.md` §27.3 | Catatan `FIN-OQ-144` disesuaikan dengan `FIN-DEC-287` |
+| `04-prd-to-mvp.md` §104 | Baris `FIN-OQ-141` dan `FIN-OQ-144` diberi keterangan |
+| `blueprint-manifest.md` | Satu kalimat catatan pada `revision_23_note`; revisi tetap 23 |
+| `contracts/integration-contract.md`, `api-contract.md`, `validation-matrix.md`, `state-transition-matrix.md`, `data/data-dictionary.md`, flowchart, `roadmap/**`, `task/report/**` | **Tidak diubah.** Pemeriksaan AP yang dapat dipanggil BLM, kontrak `1.0.0`, pemetaan nama field kawat, dan kemungkinan kolom kode supplier adalah masukan slice integrasi. Kolom "menunggu `FIN-OQ-141`" pada roadmap tetap benar |
+
+**Langkah berikutnya yang disarankan:** (1) konfirmasi pemilik atas `FIN-DEC-287` (NPWP ditunda); (2) bawa tabel sisa `FIN-OQ-141` ke Tim BLM dan Security Owner; (3) setelah komitmen dan kontrak disepakati, `design-business-module` untuk slice integrasi (penerima kiriman, autentikasi HMAC, pemeriksaan AP untuk BLM, layar pemetaan dan konflik).
+
+
+---
+
+## Pass pencatatan (Amendment) — Hasil audit teknis repository BLM atas `FIN-OQ-141`, 10 November 2026
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `FIN-BP-001`, Revisi 23 putaran 2 (`approved` 9 November 2026). **Revisi tidak dinaikkan**: tidak ada kontrak atau arsitektur yang sudah disetujui yang diubah |
+| Mode | Pencatatan atas dokumen pengguna "Hasil Audit Teknis Repository BLM terhadap Kebutuhan Integrasi BLM–Quilvian Purchasing" (tanggal audit 10 November 2026). Bukan wawancara `grill-me` |
+| Sifat dokumen sumber | **Analisis statis source BLM, bukan komitmen Tim BLM.** Dokumen menyatakan sendiri bahwa kesanggupan resmi harus dikonfirmasi pihak BLM, bahwa audit tidak menyentuh runtime, database transaksi, maupun produksi, dan menutup dengan status **`PARTIALLY READY — DEVELOPMENT REQUIRED`** serta "belum direkomendasikan untuk persetujuan integrasi produksi". Karena itu **`FIN-OQ-141` tetap `OPEN`** dan ketujuh butir tabel sisa tetap `OPEN`; yang diperbarui adalah dasar buktinya |
+| Source yang diaudit | BLM `DevBenari/PurchasingSystemRSMMCNew`, commit `08e8a9aef54da2765c75d4fc03a0915254677216`. Dokumen menulis branch **`master`**, sedangkan pass sebelumnya mencatat `PurchasingSystemDeveloper`; **commit yang sama (`08e8a9a`)**, hanya penamaan branch yang berbeda — sesi ini tidak memeriksa ulang repository BLM |
+| Label bukti | Semua temuan tentang BLM di bawah berlabel *dilaporkan dokumen pengguna, belum diperiksa ulang oleh sesi ini*, kecuali bila disebut lain |
+| Yang tidak diubah | Kontrak `approved`, kamus data, flowchart, roadmap, task, laporan task, source, migration |
+
+### Fakta
+
+| ID | Jenis | Rumusan | Pemilik | Status | Dicatat | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-289` | Fact | **Ringkasan audit BLM dan koreksi atas `FIN-DEC-288` butir (1).** BLM sudah punya fondasi Purchasing dan Warehousing: PO, approval PO, GR, pembatalan PO/GR, master supplier/produk/satuan/konversi, riwayat transaksi, dan integrasi server-ke-server dengan sistem eksternal AdMedika/Healthical (`simpanPO`, `simpanGRN`, `cancelPO`, `cancelGRN`). Yang **belum** ada untuk Quilvian: event ID dan idempotency, *transactional outbox*, API rekonsiliasi khusus, pemeriksaan faktur/utang sebelum membatalkan GR, kuantitas diterima sah berdasarkan kondisi barang, dan request signing HMAC per request. **Koreksi:** `FIN-DEC-288` butir (1) menyebut belum ada jalur server-ke-server untuk pembatalan. Audit ini menunjukkan pembatalan PO dan GR **sudah** dipanggil dari backend BLM ke Healthical (`cancelPO`, `cancelGRN`); yang belum ada adalah pengiriman ke **Quilvian**, dan jalurnya belum terpusat pada satu service (terikat pada action controller tertentu). Butir lain di `FIN-DEC-288` tidak dibantah. **Penilaian audit:** `PARTIALLY READY — DEVELOPMENT REQUIRED` | Dokumen pengguna (auditor tidak disebut) | Fakta — `UNVERIFIED` oleh sesi ini | 10 November 2026 | Dokumen audit; mengoreksi sebagian `FIN-DEC-288` |
+| `FIN-DEC-290` | Fact | **Risiko pada source BLM yang memengaruhi desain kita.** (1) **Respons pembatalan GR bisa menyesatkan:** pada sebagian jalur kegagalan komunikasi eksternal, `CancelReceiveOrder` mengembalikan `success = true` padahal fungsi keluar sebelum `SaveChangesAsync`, sehingga respons tidak selalu mencerminkan isi database. Tidak ada penundaan durable atau retry otomatis. (2) **Satuan tidak konsisten:** item PO mengisi `Measurement` dengan `MeasurementExtCode`, sedangkan beberapa proses GR mencari faktor konversi dengan `MeasurementName`; bila keduanya berbeda, pencarian gagal dan sebagian fungsi jatuh ke faktor `1` — bertentangan dengan `FIN-DEC-284`. (3) **Kondisi barang** hanya berupa string `Remarks` (tampilan penerimaan mengisi `KondisiBaik` lewat input tersembunyi); payload GRN dan penambahan stok memakai `QtyReceive` penuh tanpa memandang kondisi, sehingga barang rusak atau menunggu periksa ikut terhitung. (4) **Keamanan:** HMAC-SHA256 hanya ada di `AutoLoginHelper` untuk auto-login; integrasi Healthical memakai login lalu Bearer; belum ada request signing, nonce, perlindungan replay, maupun secret management khusus. Kredensial aktif tersimpan di konfigurasi repository (`appsettings.json`) dan auditor menyarankan **dirotasi dan dipindah ke secret manager** (nilainya tidak disalin ke blueprint). (5) **Retur supplier:** tidak ditemukan model, endpoint, atau halaman retur; `PchRequestItemCancellation` adalah pembatalan item Purchase Request, bukan retur; contoh transaksi nyata tidak dapat diberikan karena audit tanpa akses database. (6) **NPWP:** `MstSupplier` tidak punya field NPWP; `Ppn` bukan identitas pajak; kelengkapan data aktual tidak terukur. Field yang ada: `SupplierId`, `SupplierCode`, `SupplierName`, `SupplierExtId`, `SupplierExtCode`, `ContactPerson`, `TermOfPaymentId`, `LeadTimeId`, `Address`, `City`, `Telepon`, `Email`, `StampDuty`, `IsPKS`, `IsActive`. **Butir (4) dan (1) perlu diteruskan ke Security Owner dan Tim BLM** | Dokumen pengguna | Fakta — `UNVERIFIED` oleh sesi ini | 10 November 2026 | Dokumen audit bagian 1C, 1D, 2, 5, 6, 7; memperkuat `FIN-DEC-282`, `284`, `286`, `287` |
+| `FIN-DEC-291` | Fact | **Estimasi pekerjaan BLM dan jadwal usulan — perkiraan awal engineering pihak audit, bukan komitmen BLM.** P0: pemeriksaan pembatalan GR dengan *fail-closed* dan perbaikan respons **5–10** hari kerja; kode kualitas dan kuantitas diterima sah **3–6**; normalisasi satuan dan konversi **2–5**. P1: event, outbox, idempotency, retry **7–12**; GET daftar/detail PO/GR untuk rekonsiliasi **3–5**; HMAC dan secret management **3–6**. P2: field identitas pajak supplier **2–4**; retur supplier bila masuk scope **8–15**. Perluasan pembatalan PO/GR ke Quilvian **3–5**, di luar tabel prioritas. **Jadwal usulan** (T = awal pekerjaan setelah spesifikasi, penanggung jawab, dan dependensi utama disepakati): PIC saat kickoff; kontrak final T+5; sandbox T+10–15; SIT T+15–25; UAT T+20–30 hari kerja. **Pengamatan sesi ini:** penjumlahan P0 (**10–21** hari), P1 (**13–23** hari), dan perluasan pembatalan (**3–5** hari) adalah **26–49** hari kerja bila dikerjakan berurutan, lebih panjang daripada jadwal usulan sandbox dan SIT. Jadwalnya hanya masuk akal bila pekerjaan berjalan paralel oleh lebih dari satu pengembang; kewajarannya perlu diuji dengan Tim BLM sebelum dipakai sebagai target | Dokumen pengguna; pengamatan sesi ini | Fakta — `UNVERIFIED` | 10 November 2026 | Dokumen audit bagian 4 dan "Prioritas Pengembangan" |
+
+### Hasil audit per butir tabel sisa `FIN-OQ-141`
+
+Semua butir **tetap `OPEN`**: audit ini membuktikan kemampuan teknis, bukan kesanggupan resmi.
+
+| Butir | Temuan audit | Kesimpulan | Status butir |
+|---|---|---|---|
+| 1a PUSH, event ID, API baca | Dokumen PO/GR dan PUSH ke Healthical ada; event ID, idempotency, outbox, dan API rekonsiliasi khusus Quilvian belum terbukti | Tersedia sebagian, perlu pengembangan | `OPEN` |
+| 1b Pembatalan server-ke-server | Sudah ke Healthical; belum ke Quilvian dan belum terpusat | Tersedia sebagian, perlu perluasan | `OPEN` |
+| 1c Pemeriksaan AP sebelum batal GR | Belum ada; respons bisa menyesatkan; tanpa retry durable | **Belum memenuhi, prioritas kritis** | `OPEN` |
+| 1d Kuantitas sah berdasarkan kondisi | Hanya `Remarks`; stok dan payload memakai kuantitas penuh | Belum memenuhi | `OPEN` |
+| 2 Autentikasi HMAC-SHA256 | Ada untuk auto-login saja; request signing belum ada | Secara teknis dapat diterapkan; kesediaan resmi dan pengelola kunci belum diketahui | `OPEN` |
+| 3 Kontrak 1.0.0 | Belum ada dokumen atau implementasi; approver BLM belum diketahui | Dapat dibahas; belum ada persetujuan | `OPEN` |
+| 4 PIC dan jadwal | Tidak ada bukti di repository; hanya jadwal usulan (`FIN-DEC-291`) | Belum ditetapkan | `OPEN` |
+| 5 Sepuluh field per item | Auditor **tidak memegang Lampiran A dan B**, sehingga pemetaan final belum dilakukan; yang ada inventaris kandidat data (identitas PO/GR/item, supplier, produk, satuan, `MstProductConversion.QuantityPerUnit`, `QtyReceive`, harga). Tidak ada dasar teknis untuk menyatakan salah satu field mustahil | Sebagian besar komponen data ada; pemetaan menunggu lampiran | `OPEN` |
+| 6 Retur fisik | Tidak ditemukan implementasi | Belum dapat dikonfirmasi | `OPEN` |
+| 7 Field NPWP | Tidak ada pada model, form, maupun repository | Perlu pengembangan bila diwajibkan | `OPEN` |
+
+### Masukan untuk kontrak dan slice integrasi (bukan keputusan; tidak dibuat `FIN-OQ` baru)
+
+| No | Masukan | Dasar |
+|---|---|---|
+| a | **Kode kondisi barang tidak sama.** Quilvian menerima `GOOD`, `DAMAGED`, `PENDING_INSPECTION` (`FinGoodsReceiptConditionCodes`, check `CK_FinGoodsReceiptItem_ConditionCode`). Auditor menyarankan BLM memakai `ACCEPTED`, `DAMAGED`, `PENDING_INSPECTION`, `REJECTED`. Kontrak perlu memilih: menyelaraskan nama, atau memetakan `ACCEPTED` ke `GOOD`, serta menetapkan perlakuan `REJECTED` (Quilvian belum punya kode itu; kiriman dengan kode tak dikenal ditolak oleh check). Auditor sendiri menyebut nama final ditetapkan di kontrak | `FIN-DEC-268`, `FIN-DEC-290` |
+| b | **Identitas satuan** harus ditetapkan di kontrak (kode satuan mana yang dikirim: `MeasurementCode`, `MeasurementExtCode`, atau nama), karena BLM tidak konsisten. Quilvian membandingkan kode satuan setelah dipangkas dan diseragamkan huruf besar | `FIN-DEC-284`, `FIN-DEC-290` |
+| c | **Pembatalan sebaiknya dua fase.** Pemeriksaan yang hanya membaca status tidak cukup bila faktur bisa terbit di antara pemeriksaan dan pembatalan. Auditor menyarankan otorisasi pembatalan berupa token atau versi yang diverifikasi ulang secara atomik oleh Quilvian. Ini **menyempurnakan** `FIN-DEC-285` butir (3). Usulan endpoint `POST /api/integrations/blm/gr/{grId}/cancellation-check` adalah **usulan auditor, bukan endpoint yang ada**; bentuk akhirnya dirancang di slice integrasi | `FIN-DEC-285` |
+| d | **Kirim Lampiran A dan B ke BLM** agar pemetaan sepuluh field dapat diselesaikan (butir 5) dan kesediaan autentikasi dapat dijawab (butir 2) | Draf permintaan konfirmasi |
+| e | **Rekomendasi arsitektur auditor untuk sisi BLM:** *transactional outbox*, satu *domain service* pembatalan yang dipakai semua jalur, versioning event, dan **EventId unik di Quilvian** agar kiriman ulang tidak menggandakan data. Untuk BLM ini masukan, bukan keputusan Quilvian; butir EventId unik sejalan dengan `FinPurchasingInboundMessage` yang sudah ada | Dokumen audit "Rekomendasi Arsitektur" |
+
+### Pembaruan status Open Question
+
+| ID | Keadaan | Keterangan |
+|---|---|---|
+| `FIN-OQ-141` | **`OPEN`** — tidak berubah | Dasar bukti diperbarui oleh audit ini. Penilaian teknis: `PARTIALLY READY — DEVELOPMENT REQUIRED`. Tabel sisa tetap tujuh butir dan semuanya `OPEN` |
+| `FIN-OQ-143`, `FIN-OQ-144` | **CLOSED** (sisi Quilvian) — tidak berubah | Audit memperkuat `FIN-DEC-286` (retur tidak terbukti) dan `FIN-DEC-287` (tanpa NPWP di BLM) |
+
+### Dampak pada dokumen lain
+
+| Dokumen | Keadaan |
+|---|---|
+| `02-backend-architecture.md` W (baris `FIN-OQ-141`) | Satu keterangan audit ditambahkan |
+| `04-prd-to-mvp.md` §104 (baris `FIN-OQ-141`) | Satu keterangan audit ditambahkan |
+| `blueprint-manifest.md` | Satu kalimat catatan pada `revision_23_note`; revisi tetap 23 |
+| Kontrak, kamus data, flowchart, `roadmap/**`, `task/report/**`, source | **Tidak diubah.** Pemetaan kode kondisi, identitas satuan, dan protokol pembatalan dua fase adalah masukan kontrak yang akan ditulis di slice integrasi |
+
+**Langkah berikutnya yang disarankan:** (1) kirim Lampiran A dan B beserta draf permintaan ke Tim BLM, dan teruskan temuan kredensial (`FIN-DEC-290` butir 4) ke Security Owner dan Tim BLM; (2) minta Tim BLM menguji kewajaran jadwal terhadap estimasi (`FIN-DEC-291`); (3) setelah komitmen tertulis dan kontrak disepakati, `design-business-module` untuk slice integrasi dengan masukan a sampai e di atas.
+
+
+---
+
+## Pass pencatatan (Amendment) — Koreksi contoh respons 409 pada kontrak W.1, 10 November 2026
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `FIN-BP-001`, Revisi 23 putaran 2. **Revisi dan versi kontrak (`FIN-API-1.13`) tidak dinaikkan**: yang dikoreksi hanya contoh, bukan perilaku |
+| Mode | Pencatatan atas jawaban pemilik (pengguna sesi) pada pilihan "Koreksi contoh kontrak" |
+
+| ID | Jenis | Rumusan | Pemilik | Status | Disetujui | Dasar / Tautan |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-292` | Decision | **Contoh respons 409 pada `contracts/api-contract.md` W.1 dikoreksi mengikuti `ApiResponse<T>` standar:** `success`, `statusCode`, `message`, `data`, `errors.code = "PURCHASING_EXTERNAL_DOCUMENT"`, `timestamp`. Backend **tidak diubah**. Contoh lama menaruh `code` di tingkat atas, yang tidak pernah dihasilkan kode. **Akibat:** tidak ada perubahan di layar (hanya membaca `message`) maupun di backend; slice yang kelak bercabang berdasarkan kode membaca `errors.code` | Pengguna sesi (Product Owner Finance) | `approved` | Pengguna sesi, 10 November 2026 | Selisih yang dicatat di `BE-FIN-146.md` dan `FE-FIN-063.md`; tidak mengubah `FIN-VAL-315` |

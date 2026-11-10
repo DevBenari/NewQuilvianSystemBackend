@@ -1972,5 +1972,9 @@ Tidak ada tombol baru dan tidak ada butir hak akses baru. Warna, ikon, dan susun
 
 ### 27.3 Belum dirancang (slice berikutnya)
 
-Monitoring Sinkronisasi BLM, pemeliharaan pemetaan supplier (`FIN-OQ-144`), penyelesaian konflik oleh Finance,
-penyembunyian tombol buat/ubah/setujui untuk dokumen BLM, dan penempatan menunya (`FIN-OQ-138`).
+Monitoring Sinkronisasi BLM, pemeliharaan pemetaan supplier (`FIN-OQ-144`, dijawab `FIN-DEC-281` dan dipersempit
+`FIN-DEC-287`: pemetaan memakai ID dan kode supplier BLM dengan konfirmasi petugas ditambah layar pemeliharaan;
+pencocokan otomatis NPWP ditunda sampai BLM menyediakan field pajak), penyelesaian konflik oleh Finance, penyembunyian tombol
+buat/ubah/setujui untuk dokumen BLM, dan penempatan menunya (`FIN-OQ-138`, dijawab `FIN-DEC-279`: "Monitoring
+Purchasing" tetap berdiri sendiri, "Monitoring Sinkronisasi" butir terpisah di grup Purchasing, menu Transaksi A/P
+tidak berubah). Bentuk layarnya tetap belum dirancang.

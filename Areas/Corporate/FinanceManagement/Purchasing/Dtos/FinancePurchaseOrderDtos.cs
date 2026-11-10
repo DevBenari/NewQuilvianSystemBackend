@@ -47,6 +47,10 @@ public class PurchaseOrderResponse
     public Guid? ApprovedByUserId { get; set; }
     public DateTimeOffset? ApprovedAt { get; set; }
     public Guid RowVersion { get; set; }
+
+    /// <summary>Sistem asal dokumen: QUILVIAN (bawaan, dokumen lama dan buatan Quilvian) atau BLM
+    /// (BE-FIN-147, FIN-API-1.13 W.2).</summary>
+    public string SourceSystem { get; set; } = "QUILVIAN";
 }
 
 public sealed class PurchaseOrderDetailResponse : PurchaseOrderResponse
