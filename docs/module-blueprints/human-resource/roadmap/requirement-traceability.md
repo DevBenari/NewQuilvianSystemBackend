@@ -1233,28 +1233,28 @@ Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-2
 
 | ID UAT | Ringkasan Skenario Pengujian | Task Backend Pelaksana | Task Frontend Pelaksana | Status Kesiapan |
 | :--- | :--- | :--- | :--- | :---: |
-| `AT-HRD-TRN-01` | Pendaftaran Master Aturan 5 Pelatihan Wajib STARKES KPS 8 | `BE-HRD-239` | `FE-HRD-218`, `FE-HRD-219` | `Rencana` |
-| `AT-HRD-TRN-02` | Penolakan konfigurasi masa berlaku akreditasi > 24 bulan | `BE-HRD-239` | `FE-HRD-219` | `Rencana` |
-| `AT-HRD-TRN-03` | Deteksi otomatis sertifikat masuk radar kedaluwarsa H-90/60/30 | `BE-HRD-240` | `FE-HRD-217` | `Rencana` |
-| `AT-HRD-TRN-04` | Penyiaran pesan peringatan perpanjangan massal ke staf nakes | `BE-HRD-240` | `FE-HRD-217` | `Rencana` |
-| `AT-HRD-TRN-05` | Pemberian grace period 30 hari pasca habis tempo sertifikat | `BE-HRD-241` | `FE-HRD-217` | `Rencana` |
-| `AT-HRD-TRN-06` | Penugasan otomatis buddy system jaga shift ke Sub-06 | `BE-HRD-241` | `FE-HRD-217` | `Rencana` |
-| `AT-HRD-TRN-07` | Pembekuan kewenangan klinis RKK Level 4 ke Level 3 di Sub-14 | `BE-HRD-241` | `FE-HRD-217` | `Rencana` |
-| `AT-HRD-TRN-08` | Penyusunan dan pengesahan rencana kerja tahunan diklat (TNA) | `BE-HRD-242` | `FE-HRD-225` | `Rencana` |
-| `AT-HRD-TRN-09` | Penjadwalan batch kelas pelatihan internal dan workshop lab | `BE-HRD-243` | `FE-HRD-220` | `Rencana` |
-| `AT-HRD-TRN-10` | Pendaftaran diklat via ESS dengan persetujuan berjenjang | `BE-HRD-244` | `FE-HRD-220` | `Rencana` |
-| `AT-HRD-TRN-11` | Pemblokiran pengajuan diklat jika pagu anggaran unit defisit | `BE-HRD-245` | `FE-HRD-225` | `Rencana` |
-| `AT-HRD-TRN-12` | Validasi kehadiran presensi minimal 100% untuk staf klinis | `BE-HRD-246` | `FE-HRD-221` | `Rencana` |
-| `AT-HRD-TRN-13` | Penilaian ujian teori post-test memenuhi passing grade >= 75 | `BE-HRD-247` | `FE-HRD-222` | `Rencana` |
-| `AT-HRD-TRN-14` | Pengesahan rubrik OSCE dengan tanda tangan digital assessor | `BE-HRD-248` | `FE-HRD-223` | `Rencana` |
-| `AT-HRD-TRN-15` | Pelaksanaan remedial maksimal 2 kali untuk peserta gagal | `BE-HRD-247`, `BE-HRD-248` | `FE-HRD-222` | `Rencana` |
-| `AT-HRD-TRN-16` | Penerbitan otomatis e-Sertifikat dan arsip ke e-Dossier Sub-02 | `BE-HRD-249` | `FE-HRD-224` | `Rencana` |
-| `AT-HRD-TRN-17` | Deteksi otomatis diklat biaya > Rp 10 Juta memicu ikatan dinas | `BE-HRD-250` | `FE-HRD-226`, `FE-HRD-227` | `Rencana` |
-| `AT-HRD-TRN-18` | Penandatanganan akta ikatan dinas dan aktivasi masa retensi | `BE-HRD-250` | `FE-HRD-226`, `FE-HRD-227` | `Rencana` |
-| `AT-HRD-TRN-19` | Penagihan ganti rugi saat pegawai ikatan dinas resign sepihak | `BE-HRD-251` | `FE-HRD-227` | `Rencana` |
-| `AT-HRD-TRN-20` | Visual tracker akumulasi 50 SKP nakes selama 5 tahun berjalan | `BE-HRD-252` | `FE-HRD-228` | `Rencana` |
-| `AT-HRD-TRN-21` | Verifikasi ID sertifikat ke API Plataran Sehat Kemenkes | `BE-HRD-252` | `FE-HRD-229` | `Rencana` |
-| `AT-HRD-TRN-22` | Agregasi jam diklat dan SKP ke pilar evaluasi OPPE Sub-15 | `BE-HRD-252` | `FE-HRD-228` | `Rencana` |
+| `AT-HRD-TRN-01` | Pendaftaran Master Aturan 5 Pelatihan Wajib STARKES KPS 8 | `BE-HRD-239` | `FE-HRD-218`, `FE-HRD-219` | `✅ PASS` |
+| `AT-HRD-TRN-02` | Penolakan konfigurasi masa berlaku akreditasi > 24 bulan | `BE-HRD-239` | `FE-HRD-219` | `✅ PASS` |
+| `AT-HRD-TRN-03` | Deteksi otomatis sertifikat masuk radar kedaluwarsa H-90/60/30 | `BE-HRD-240` | `FE-HRD-217` | `✅ PASS` |
+| `AT-HRD-TRN-04` | Penyiaran pesan peringatan perpanjangan massal ke staf nakes | `BE-HRD-240` | `FE-HRD-217` | `✅ PASS` |
+| `AT-HRD-TRN-05` | Pemberian grace period 30 hari pasca habis tempo sertifikat | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
+| `AT-HRD-TRN-06` | Penugasan otomatis buddy system jaga shift ke Sub-06 | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
+| `AT-HRD-TRN-07` | Pembekuan kewenangan klinis RKK Level 4 ke Level 3 di Sub-14 | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
+| `AT-HRD-TRN-08` | Penyusunan dan pengesahan rencana kerja tahunan diklat (TNA) | `BE-HRD-242` | `FE-HRD-225` | `✅ PASS` |
+| `AT-HRD-TRN-09` | Penjadwalan batch kelas pelatihan internal dan workshop lab | `BE-HRD-243` | `FE-HRD-220` | `✅ PASS` |
+| `AT-HRD-TRN-10` | Pendaftaran diklat via ESS dengan persetujuan berjenjang | `BE-HRD-244` | `FE-HRD-220` | `✅ PASS` |
+| `AT-HRD-TRN-11` | Pemblokiran pengajuan diklat jika pagu anggaran unit defisit | `BE-HRD-245` | `FE-HRD-225` | `✅ PASS` |
+| `AT-HRD-TRN-12` | Validasi kehadiran presensi minimal 100% untuk staf klinis | `BE-HRD-246` | `FE-HRD-221` | `✅ PASS` |
+| `AT-HRD-TRN-13` | Penilaian ujian teori post-test memenuhi passing grade >= 75 | `BE-HRD-247` | `FE-HRD-222` | `✅ PASS` |
+| `AT-HRD-TRN-14` | Pengesahan rubrik OSCE dengan tanda tangan digital assessor | `BE-HRD-248` | `FE-HRD-223` | `✅ PASS` |
+| `AT-HRD-TRN-15` | Pelaksanaan remedial maksimal 2 kali untuk peserta gagal | `BE-HRD-247`, `BE-HRD-248` | `FE-HRD-222` | `✅ PASS` |
+| `AT-HRD-TRN-16` | Penerbitan otomatis e-Sertifikat dan arsip ke e-Dossier Sub-02 | `BE-HRD-249` | `FE-HRD-224` | `✅ PASS` |
+| `AT-HRD-TRN-17` | Deteksi otomatis diklat biaya > Rp 10 Juta memicu ikatan dinas | `BE-HRD-250` | `FE-HRD-226`, `FE-HRD-227` | `✅ PASS` |
+| `AT-HRD-TRN-18` | Penandatanganan akta ikatan dinas dan aktivasi masa retensi | `BE-HRD-250` | `FE-HRD-226`, `FE-HRD-227` | `✅ PASS` |
+| `AT-HRD-TRN-19` | Penagihan ganti rugi saat pegawai ikatan dinas resign sepihak | `BE-HRD-251` | `FE-HRD-227` | `✅ PASS` |
+| `AT-HRD-TRN-20` | Visual tracker akumulasi 50 SKP nakes selama 5 tahun berjalan | `BE-HRD-252` | `FE-HRD-228` | `✅ PASS` |
+| `AT-HRD-TRN-21` | Verifikasi ID sertifikat ke API Plataran Sehat Kemenkes | `BE-HRD-252` | `FE-HRD-229` | `✅ PASS` |
+| `AT-HRD-TRN-22` | Agregasi jam diklat dan SKP ke pilar evaluasi OPPE Sub-15 | `BE-HRD-252` | `FE-HRD-228` | `✅ PASS` |
 
 ---
 
