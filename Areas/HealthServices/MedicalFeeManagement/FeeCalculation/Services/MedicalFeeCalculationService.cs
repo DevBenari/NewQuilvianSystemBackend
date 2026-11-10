@@ -462,7 +462,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                     MdfServiceSourceDomains.Procedure,
                     MdfServiceSourceDomains.Laboratory,
                     MdfServiceSourceDomains.Adhoc,
-                    MdfServiceSourceDomains.AdhocCatalog
+                    MdfServiceSourceDomains.AdhocCatalog,
+                    MdfServiceSourceDomains.Optical
                 },
                 ResetButtonLabel = "Reset"
             };
@@ -502,7 +503,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 [MdfServiceSourceDomains.Procedure] = 0,
                 [MdfServiceSourceDomains.Laboratory] = 0,
                 [MdfServiceSourceDomains.Adhoc] = 0,
-                [MdfServiceSourceDomains.AdhocCatalog] = 0
+                [MdfServiceSourceDomains.AdhocCatalog] = 0,
+                [MdfServiceSourceDomains.Optical] = 0
             };
 
             int openCount = 0;

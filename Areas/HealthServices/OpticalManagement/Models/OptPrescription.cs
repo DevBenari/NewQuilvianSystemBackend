@@ -64,6 +64,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models
         /// <summary>Penanda concurrency (IsConcurrencyToken); naik setiap perubahan</summary>
         public int Version { get; set; } = 0;
 
+        /// <summary>Kunci dari header Idempotency-Key agar Simpan dua kali tidak membuat data ganda (OPT-DEC-077). Kosong pada baris lama.</summary>
+        public Guid? IdempotencyKey { get; set; }
+
         public ICollection<OptPrescriptionVersion> Versions { get; set; } = new List<OptPrescriptionVersion>();
     }
 }

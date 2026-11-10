@@ -3,7 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Blueprint ID | `nurse-view` · revision `1` · `approved` — Rizki Gunawan, 2026-10-28 (`NV-DEC-028`) |
-| `last_changed_in` | `0.1.0` |
+| `last_changed_in` | `0.1.2` (`NV-DEC-033`, 2026-11-03). Sebelumnya `0.1.0` |
 | Masukan | `02-backend-architecture.md` rev `1` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
@@ -74,7 +74,9 @@ Penghapusan bersifat penandaan melalui `IsDelete`, bukan penghapusan baris.
 | `TrxPatientAllergy` | `PatientId`, `AllergyStatus`, `IsDelete` | `.../ClinicalManagement/Models/TrxPatientAllergy.cs` |
 | `MstPatient` | `Id`, `FullName` **(Sensitif)**, `Gender`, `BirthDate` **(Sensitif)**, `MedicalRecordNumber` **(Sensitif, tidak dibaca)** | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs` |
 | `TrxShiftAssignment` | `RosterAssignmentId`, `OrganizationUnitId`, `ScheduledStartAt`, `ScheduledEndAt`, `AssignmentStatus`, `IsDayOff`, `WorkforceProfileId` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxShiftAssignment.cs` |
-| `TrxRosterAssignment` | `Id`, `ProfessionId` | `.../SchedulingManagement/Models/TrxRosterAssignment.cs` |
+| `TrxRosterAssignment` | `Id`, `ProfessionId`, `RosterPeriodId`, `IsActive` | `.../SchedulingManagement/Models/TrxRosterAssignment.cs` |
+| `TrxRosterPeriod` | `OrganizationUnitId` (cadangan unit, `NV-DEC-033`) | `.../SchedulingManagement/Models/TrxRosterPeriod.cs` |
+| `MstWorkforceProfile`, `MstEmployee`, `MstProfession`, `MstShift` | `DisplayName`; `ProfessionId` (cadangan profesi, `NV-DEC-033`); `ProfessionCode`, `ProfessionName`, `ProfessionGroup`, `IsClinicalProfession`; `ShiftName` | `Areas/Corporate/HumanResource/MasterData/**` |
 | `ApplicationUser` | `Id`, `UserName`, `UserCode`, `DisplayName`, `LockoutEnd` | `Models/ApplicationUser.cs` |
 
 **Catatan sensitif.** `FullName` dan `BirthDate` dibaca **hanya** di dalam

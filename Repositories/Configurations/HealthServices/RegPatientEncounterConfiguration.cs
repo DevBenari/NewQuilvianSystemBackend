@@ -16,6 +16,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.AdmissionTransferSourceType).HasMaxLength(20);
             entity.HasOne(x => x.SourceEncounter).WithMany()
                 .HasForeignKey(x => x.SourceEncounterId).OnDelete(DeleteBehavior.Restrict);
+
+            // Kunjungan asal rujukan internal (BE-OPT-003, OPT-DEC-037). Restrict: kunjungan asal yang masih
+            // ditunjuk tidak boleh terhapus fisik, karena jejak "resep ini lahir dari pemeriksaan mana" hilang.
+            entity.HasOne(x => x.ReferralSourceEncounter).WithMany()
+                .HasForeignKey(x => x.ReferralSourceEncounterId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.ReferralSourceEncounterId);
+
             entity.HasIndex(x => new { x.AdmissionTransferSourceType, x.AdmissionTransferId })
                 .IsUnique().HasFilter("\"AdmissionTransferId\" IS NOT NULL");
 

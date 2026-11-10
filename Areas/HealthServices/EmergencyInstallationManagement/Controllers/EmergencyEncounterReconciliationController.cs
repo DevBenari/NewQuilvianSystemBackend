@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Attributes;
@@ -42,6 +45,70 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _documentNumberService = documentNumberService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyEncounterReconciliationFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Encounter Reconciliation", Description = "Melihat metadata filter rekonsiliasi encounter IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyEncounterReconciliation", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyEncounterReconciliationFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyEncounterReconciliationDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "executedat", "runnumber" }
+            };
+
+            return Ok(ApiResponse<EmergencyEncounterReconciliationFilterMetadataResponse>.Ok(result, "Metadata filter rekonsiliasi encounter IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyEncounterReconciliationSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Encounter Reconciliation", Description = "Melihat ringkasan rekonsiliasi encounter IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyEncounterReconciliation", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgEncounterReconciliationRun>().AsNoTracking();
+
+            var summary = new EmergencyEncounterReconciliationSummaryResponse
+            {
+                TotalRuns = await query.CountAsync(cancellationToken),
+                ActiveRuns = await query.CountAsync(x => x.Status == EmergencyReconciliationRunStatus.Executed, cancellationToken),
+                ReversedRuns = await query.CountAsync(x => x.Status == EmergencyReconciliationRunStatus.Reversed, cancellationToken),
+                TotalReconciledEncounters = await query.SumAsync(x => x.CountK1 + x.CountK1Outpatient, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyEncounterReconciliationSummaryResponse>.Ok(summary, "Ringkasan rekonsiliasi encounter IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyEncounterReconciliationOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Encounter Reconciliation Options", Description = "Melihat pilihan rekonsiliasi encounter IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyEncounterReconciliation", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgEncounterReconciliationRun>().AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.RunNumber.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderByDescending(x => x.ExecutedAt)
+                .Take(100)
+                .Select(x => new EmergencyEncounterReconciliationOptionResponse
+                {
+                    Id = x.Id,
+                    RunNumber = x.RunNumber,
+                    ExecutedAt = x.ExecutedAt,
+                    IsReversed = x.Status == EmergencyReconciliationRunStatus.Reversed
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyEncounterReconciliationOptionResponse>>.Ok(items, "Pilihan rekonsiliasi encounter IGD berhasil diambil."));
+        }
         [HttpGet("preview")]
         [ProducesResponseType(typeof(ApiResponse<EmergencyEncounterReconciliationPreviewResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Encounter Reconciliation", Description = "Melihat pratinjau dan riwayat rekonsiliasi encounter IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

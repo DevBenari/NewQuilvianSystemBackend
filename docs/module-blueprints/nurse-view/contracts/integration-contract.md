@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 |---|---|
-| `last_changed_in` | `0.1.0` · status `approved` — Rizki Gunawan, 2026-10-28 (`NV-DEC-028`) |
+| `last_changed_in` | `0.1.2` · status `approved` — Rizki Gunawan, 2026-11-03 (`NV-DEC-033`). Sebelumnya `0.1.0`, 2026-10-28 (`NV-DEC-028`) |
 | Owner | Rizki Gunawan · `approved_by` Rizki Gunawan · `approved_at` 2026-10-28 |
 | Traceability | `NV-DEC-006`, `011`, `012`, `021`, `023`, `026`; `TLM-NV-001` keperawatan & episode |
 
@@ -20,7 +20,7 @@ Nurse View **tidak memanggil sistem luar**. Integrasi alat monitor pasien ditund
 | Clinical | TTV dan EWS | Query `TrxPatientVitalSign` per `InpEpisodeId` | "Belum ada TTV" | Muhammad Hamzah, `TLM-NV-001` keperawatan |
 | Clinical | Risiko jatuh | Query hasil instrumen `FallRiskScale` | Tanpa ikon | Idem |
 | Clinical | Alergi | Query `TrxPatientAllergy` aktif | Tanpa ikon | — |
-| HR | Perawat jaga | Query `TrxShiftAssignment` `Published` | "Roster shift ini belum tersedia" | — |
+| HR | Perawat jaga | Query `TrxShiftAssignment` `Published`; unit dan profesi cadangan dari periode roster dan data pegawai (`NV-DEC-033`) | "Roster shift ini belum tersedia" | — |
 | Patient | Nama, jenis kelamin, tanggal lahir | Query `MstPatient`, langsung disamarkan | "Umur –" | — |
 
 ## 2. Arah tulis

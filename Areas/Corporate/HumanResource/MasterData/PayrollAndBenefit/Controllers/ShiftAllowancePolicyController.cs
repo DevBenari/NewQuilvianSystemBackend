@@ -18,6 +18,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/shift-allowance-policies")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/shift-allowance-policies")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -27,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "ShiftAllowancePolicy",
         Description = "Corporate human resource master data shift allowance policy",
         SortOrder = 50)]
-    [Tags("Corporate / Human Resource / Master Data / Shift Allowance Policy")]
+    [Tags("Corporate / Payroll Management / Master Data / Shift Allowance Policy")]
     public class ShiftAllowancePolicyController : ControllerBase
     {
         private static readonly HashSet<string> AllowedMethods =

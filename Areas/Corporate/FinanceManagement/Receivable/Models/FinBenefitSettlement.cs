@@ -9,6 +9,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Mod
 /// Satu penutupan berkala atas piutang porsi manfaat yang ditanggung rumah sakit, untuk satu
 /// periode akuntansi dan satu penjamin internal (FIN-DES-102, FIN-DEC-178). Entity tersendiri —
 /// BUKAN FinReceipt (berarti uang diterima) dan BUKAN penghapusan buku.
+///
+/// LEGACY READ-ONLY: workflow Penutupan Benefit (preview, draf, persetujuan HRD, penerbitan, pembatalan, pelunasan internal) sudah
+/// DIHAPUS; Benefit RS Internal kini memakai Invoice AR (FinReceivableInvoiceBatch). Entity, konfigurasi, dan tabel DIPERTAHANKAN
+/// hanya sebagai riwayat/audit dokumen yang sudah pernah diterbitkan dan agar ModelSnapshot/migration tetap konsisten (tidak ada
+/// perubahan skema, tabel tidak dihapus). Tidak ada kode aplikasi yang menulis ke tabel ini lagi; jangan menambahkan penulisnya.
 /// </summary>
 [Table("FinBenefitSettlement", Schema = "public")]
 public sealed class FinBenefitSettlement : IdentityModel

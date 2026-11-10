@@ -56,14 +56,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
             LoggerService logger,
             string resource,
             string action,
-            Func<T, object>? payload = null)
+            Func<T, object>? payload = null,
+            Func<T, string>? logMessage = null)
         {
             if (result.IsSuccess && result.Value != null)
             {
                 await logger.InfoAsync(
                     LogCategory,
                     $"{resource}.{action}",
-                    successMessage,
+                    logMessage?.Invoke(result.Value) ?? successMessage,
                     new
                     {
                         Controller = resource,

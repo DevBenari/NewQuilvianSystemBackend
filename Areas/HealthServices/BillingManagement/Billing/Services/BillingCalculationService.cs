@@ -74,6 +74,25 @@ public class BillingCalculationService : IBillingCalculationService
             .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
 
+        // Invoice FINAL/CLOSED/dst.: kalkulasinya terkunci. Membuka halamannya (Pembayaran, Detail, Dokumen Kasir) bukan
+        // permintaan menghitung ulang, jadi pratinjau di sini = versi kalkulasi TERSIMPAN yang berlaku, murni baca. Sebelumnya
+        // CalculateAsync melempar "Hanya invoice OPEN yang dapat dihitung ulang." dan layar menampilkannya sebagai galat
+        // walau pengguna tidak meminta hitung ulang. Menghitung ulang sungguhan tetap hanya untuk invoice OPEN.
+        if (invoice.Status != BillingInvoiceStatuses.Open)
+        {
+            var stored = await _dbContext.BilCalculationVersions.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId && !x.IsDelete
+                        && x.VersionNo == invoice.CurrentCalculationVersion, cancellationToken)
+                ?? await _dbContext.BilCalculationVersions.AsNoTracking()
+                    .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+                    .OrderByDescending(x => x.VersionNo)
+                    .FirstOrDefaultAsync(cancellationToken)
+                ?? throw new BillingCalculationValidationException("Invoice belum memiliki hasil perhitungan tersimpan.");
+
+            var storedFunds = await GetInvoicePaymentPositionAsync(invoiceId, stored.PatientAmount, cancellationToken);
+            return MapResponse(stored, invoice.RowVersion, storedFunds.PaidAmount, storedFunds.RemainingAmount);
+        }
+
         return await CalculateAsync(
             invoiceId,
             new RecalculateInvoiceRequest

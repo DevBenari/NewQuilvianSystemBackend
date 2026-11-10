@@ -10,6 +10,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.DTOs.Auth;
 using QuilvianSystemBackend.Enums;
@@ -39,6 +41,7 @@ namespace QuilvianSystemBackend.Controllers
         private readonly LoggerService _loggerService;
         private readonly AccessPermissionService _accessPermissionService;
         private readonly IDataProtector _fingerprintProtector;
+        private readonly NvwDeviceContextService _nvwDeviceContextService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
@@ -49,7 +52,8 @@ namespace QuilvianSystemBackend.Controllers
             LanguageService languageService,
             LoggerService loggerService,
             AccessPermissionService accessPermissionService,
-            IDataProtectionProvider dataProtectionProvider)
+            IDataProtectionProvider dataProtectionProvider,
+            NvwDeviceContextService nvwDeviceContextService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -60,6 +64,7 @@ namespace QuilvianSystemBackend.Controllers
             _loggerService = loggerService;
             _accessPermissionService = accessPermissionService;
             _fingerprintProtector = dataProtectionProvider.CreateProtector("Quilvian.Fingerprint.Template.v1");
+            _nvwDeviceContextService = nvwDeviceContextService;
         }
 
         [HttpPost("login")]
@@ -149,9 +154,11 @@ namespace QuilvianSystemBackend.Controllers
 
             var kioskContext = await ResolveKioskLoginContextAsync(user);
             var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
+            var nurseViewContext = await ResolveNurseViewLoginContextAsync(user);
             var isDeviceLoginAccount =
                 kioskContext.IsKioskAccount ||
-                queueDisplayContext.IsQueueDisplayAccount;
+                queueDisplayContext.IsQueueDisplayAccount ||
+                nurseViewContext.IsNurseViewAccount;
 
             if (!isDeviceLoginAccount && user.AccessValidUntil.HasValue && user.AccessValidUntil.Value < DateTime.UtcNow)
             {
@@ -193,6 +200,16 @@ namespace QuilvianSystemBackend.Controllers
                         user.UserName
                     }
                 );
+
+                if (nurseViewContext.IsNurseViewAccount &&
+                    !nurseViewContext.CanLogin &&
+                    await _userManager.CheckPasswordAsync(user, request.Password))
+                {
+                    return Unauthorized(ApiResponse<object>.Fail(
+                        StatusCodes.Status401Unauthorized,
+                        nurseViewContext.BlockReason ?? NvwMessages.DeviceInactive
+                    ));
+                }
 
                 return Unauthorized(ApiResponse<object>.Fail(
                     StatusCodes.Status401Unauthorized,
@@ -280,6 +297,29 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
+            if (nurseViewContext.IsNurseViewAccount && !nurseViewContext.CanLogin)
+            {
+                await _loggerService.WarningAsync(
+                    "Auth",
+                    "Login",
+                    $"Login display Nurse View gagal. Perangkat {nurseViewContext.DeviceCode} tidak dapat digunakan.",
+                    new
+                    {
+                        user.Id,
+                        user.Email,
+                        user.UserName,
+                        nurseViewContext.DeviceId,
+                        nurseViewContext.DeviceCode,
+                        nurseViewContext.BlockReason
+                    }
+                );
+
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    nurseViewContext.BlockReason ?? NvwMessages.DeviceInactive
+                ));
+            }
+
             var geofenceValidation = isDeviceLoginAccount
                 ? GeofenceValidationResult.Bypassed("Device account bypass geolocation.")
                 : ValidateLoginGeofence(user, request);
@@ -348,9 +388,9 @@ namespace QuilvianSystemBackend.Controllers
                 }
 
                 var roles = await _userManager.GetRolesAsync(user);
-                var token = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
+                var token = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext, nurseViewContext);
 
-                SetAuthCookie(token, user, kioskContext, queueDisplayContext);
+                SetAuthCookie(token, user, kioskContext, queueDisplayContext, nurseViewContext);
 
                 await _loggerService.InfoAsync(
                     "Auth",
@@ -371,9 +411,9 @@ namespace QuilvianSystemBackend.Controllers
                 return Ok(ApiResponse<LoginDataResponse>.Ok(
                     new LoginDataResponse
                     {
-                        Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext),
+                        Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext, nurseViewContext),
                         Endpoints = new AuthEndpointResponse(),
-                        User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
+                        User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext)
                     },
                     _languageService.GetMessage(MessageKeys.AuthLoginSuccess)
                 ));
@@ -672,6 +712,7 @@ namespace QuilvianSystemBackend.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var kioskContext = await ResolveKioskLoginContextAsync(user);
             var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
+            var nurseViewContext = await ResolveNurseViewLoginContextAsync(user);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -691,7 +732,7 @@ namespace QuilvianSystemBackend.Controllers
             );
 
             return Ok(ApiResponse<UserLoginResponse>.Ok(
-                BuildUserResponse(user, roles, kioskContext, queueDisplayContext),
+                BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext),
                 "User profile berhasil diambil."
             ));
         }
@@ -765,9 +806,11 @@ namespace QuilvianSystemBackend.Controllers
 
             var kioskContext = await ResolveKioskLoginContextAsync(user);
             var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
+            var nurseViewContext = await ResolveNurseViewLoginContextAsync(user);
             var isDeviceLoginAccount =
                 kioskContext.IsKioskAccount ||
-                queueDisplayContext.IsQueueDisplayAccount;
+                queueDisplayContext.IsQueueDisplayAccount ||
+                nurseViewContext.IsNurseViewAccount;
 
             if (!isDeviceLoginAccount && user.AccessValidUntil.HasValue && user.AccessValidUntil.Value < DateTime.UtcNow)
             {
@@ -806,10 +849,29 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var newToken = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
+            if (nurseViewContext.IsNurseViewAccount && !nurseViewContext.CanLogin)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    nurseViewContext.BlockReason ?? NvwMessages.DeviceInactive
+                ));
+            }
 
-            SetAuthCookie(newToken, user, kioskContext, queueDisplayContext);
+            if (nurseViewContext.IsNurseViewAccount &&
+                !NvwDeviceContextService.IsCurrentSession(
+                    nurseViewContext.SessionStamp,
+                    User.FindFirstValue(NvwDeviceContextService.SessionStampClaim)))
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    NvwMessages.SessionStale
+                ));
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var newToken = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext, nurseViewContext);
+
+            SetAuthCookie(newToken, user, kioskContext, queueDisplayContext, nurseViewContext);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -826,9 +888,9 @@ namespace QuilvianSystemBackend.Controllers
             return Ok(ApiResponse<LoginDataResponse>.Ok(
                 new LoginDataResponse
                 {
-                    Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext),
+                    Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext, nurseViewContext),
                     Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
+                    User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext, nurseViewContext)
                 },
                 _languageService.GetMessage(MessageKeys.AuthSessionRefreshed)
             ));
@@ -1817,6 +1879,29 @@ namespace QuilvianSystemBackend.Controllers
             };
         }
 
+        private async Task<NvwDeviceLoginContext> ResolveNurseViewLoginContextAsync(ApplicationUser user)
+        {
+            try
+            {
+                return await _nvwDeviceContextService.ResolveLoginContextAsync(user.Id);
+            }
+            catch (Exception ex)
+            {
+                await _loggerService.ErrorAsync(
+                    "Auth",
+                    "NurseViewContext",
+                    $"Gagal membaca konteks perangkat Nurse View; akun diperlakukan sebagai akun biasa. Detail: {GetFullExceptionMessage(ex)}",
+                    ex,
+                    new
+                    {
+                        user.Id
+                    }
+                );
+
+                return NvwDeviceLoginContext.None();
+            }
+        }
+
         private static string BuildQueueDisplayRedirectPath(MstQueueDisplayDevice device)
         {
             var query = new List<string>
@@ -1876,7 +1961,8 @@ namespace QuilvianSystemBackend.Controllers
             ApplicationUser user,
             IList<string> roles,
             KioskLoginContext? kioskContext = null,
-            QueueDisplayLoginContext? queueDisplayContext = null)
+            QueueDisplayLoginContext? queueDisplayContext = null,
+            NvwDeviceLoginContext? nurseViewContext = null)
         {
             var jwtKey = _configuration["Jwt:Key"];
             var jwtIssuer = _configuration["Jwt:Issuer"];
@@ -1971,6 +2057,19 @@ namespace QuilvianSystemBackend.Controllers
                 claims.Add(new Claim("can_access_queue_display_runtime", "false"));
             }
 
+            if (nurseViewContext?.IsNurseViewAccount == true)
+            {
+                claims.Add(new Claim("is_nurse_view_account", "true"));
+                claims.Add(new Claim("profile_type", "NurseViewDevice"));
+                claims.Add(new Claim(NvwDeviceContextService.DeviceIdClaim, nurseViewContext.DeviceId?.ToString() ?? string.Empty));
+                claims.Add(new Claim("nurse_view_device_code", nurseViewContext.DeviceCode));
+                claims.Add(new Claim(NvwDeviceContextService.SessionStampClaim, nurseViewContext.SessionStamp));
+            }
+            else
+            {
+                claims.Add(new Claim("is_nurse_view_account", "false"));
+            }
+
             var effectiveRoles = roles
                 .Where(role => !string.IsNullOrWhiteSpace(role))
                 .Select(role => role.Trim())
@@ -1995,7 +2094,7 @@ namespace QuilvianSystemBackend.Controllers
                 claims.Add(new Claim("role", role));
             }
 
-            var expires = DateTime.UtcNow.AddMinutes(ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext));
+            var expires = DateTime.UtcNow.AddMinutes(ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext, nurseViewContext));
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
@@ -2019,10 +2118,11 @@ namespace QuilvianSystemBackend.Controllers
             string token,
             ApplicationUser user,
             KioskLoginContext? kioskContext = null,
-            QueueDisplayLoginContext? queueDisplayContext = null)
+            QueueDisplayLoginContext? queueDisplayContext = null,
+            NvwDeviceLoginContext? nurseViewContext = null)
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
-            var expireMinutes = ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext);
+            var expireMinutes = ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext, nurseViewContext);
 
             Response.Cookies.Append(
                 cookieName,
@@ -2072,7 +2172,8 @@ namespace QuilvianSystemBackend.Controllers
         private int ResolveJwtExpireMinutes(
             ApplicationUser user,
             KioskLoginContext? kioskContext = null,
-            QueueDisplayLoginContext? queueDisplayContext = null)
+            QueueDisplayLoginContext? queueDisplayContext = null,
+            NvwDeviceLoginContext? nurseViewContext = null)
         {
             if (kioskContext?.IsKioskAccount == true)
             {
@@ -2082,6 +2183,11 @@ namespace QuilvianSystemBackend.Controllers
             if (queueDisplayContext?.IsQueueDisplayAccount == true)
             {
                 return NormalizeDeviceExpireMinutes(queueDisplayContext.SessionExpireMinutes);
+            }
+
+            if (nurseViewContext?.IsNurseViewAccount == true)
+            {
+                return NormalizeDeviceExpireMinutes(null);
             }
 
             return GetJwtExpireMinutes();
@@ -2168,12 +2274,13 @@ namespace QuilvianSystemBackend.Controllers
         private AuthInfoResponse BuildAuthInfoResponse(
             ApplicationUser? user = null,
             KioskLoginContext? kioskContext = null,
-            QueueDisplayLoginContext? queueDisplayContext = null)
+            QueueDisplayLoginContext? queueDisplayContext = null,
+            NvwDeviceLoginContext? nurseViewContext = null)
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
             var expireMinutes = user == null
                 ? GetJwtExpireMinutes()
-                : ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext);
+                : ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext, nurseViewContext);
             var sameSite = GetConfiguredSameSiteMode();
             var secure = _configuration.GetValue<bool?>("AuthCookie:Secure") ?? true;
 
@@ -2194,7 +2301,8 @@ namespace QuilvianSystemBackend.Controllers
     ApplicationUser user,
     IList<string> roles,
     KioskLoginContext? kioskContext = null,
-    QueueDisplayLoginContext? queueDisplayContext = null)
+    QueueDisplayLoginContext? queueDisplayContext = null,
+    NvwDeviceLoginContext? nurseViewContext = null)
         {
             var hasWorkforceProfile = user.WorkforceProfileId.HasValue;
             var isKioskAccount = kioskContext?.IsKioskAccount == true;
@@ -2219,6 +2327,7 @@ namespace QuilvianSystemBackend.Controllers
             }
 
             var profileType =
+                nurseViewContext?.IsNurseViewAccount == true ? "NurseViewDevice" :
                 isQueueDisplayAccount ? "QueueDisplayDevice" :
                 isKioskAccount ? "KioskDevice" :
                 user.EmployeeId.HasValue ? "Employee" :

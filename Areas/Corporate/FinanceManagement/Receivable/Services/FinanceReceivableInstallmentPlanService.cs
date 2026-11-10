@@ -7,17 +7,21 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using Npgsql;
 using System.Data;
+using System.Text.RegularExpressions;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 
 /// <summary>
 /// Perjanjian pembayaran bertahap atas piutang manfaat karyawan (BE-FIN-093, FIN-DES-099,
-/// FIN-DEC-165/166). Mengajukan, menyetujui (maker-checker keras, membangkitkan jadwal angsuran),
-/// menolak, dan membatalkan. Menyetujui dan menolak adalah tindakan "pihak berwenang lain" —
-/// pengaju MUST NOT menyetujui pengajuannya sendiri, ditegakkan ganda: service (pesan jelas) dan
-/// CK_FinReceivableInstallmentPlan_MakerChecker (keras, tidak dapat dilewati walau administrator
-/// memberi satu peran kedua hak Create dan Approve — L.2.1, L.8.1).
+/// FIN-DEC-165/166). Mengajukan, menyetujui (membangkitkan jadwal angsuran), menolak, dan membatalkan.
+/// Menyetujui dan menolak dilakukan HRD. Aturan maker-checker kini berbasis izin: pemutus yang sama dengan pengaju
+/// hanya lolos dengan HrdInstallmentPlanApproval : SelfApprove (lihat EnsureCanDecideAsync). Constraint database
+/// CK_FinReceivableInstallmentPlan_MakerChecker ("ApprovedBy" &lt;&gt; "RequestedBy") dihapus oleh migration
+/// DropInstallmentPlanMakerCheckerConstraint; selama migration itu belum diterapkan ia tetap menolak PERSETUJUAN sendiri di
+/// database. IsSelfApprovalPersistenceReadyAsync membaca keadaan itu langsung dari katalog database (bukan flag konfigurasi),
+/// sehingga tidak bisa menyimpang dari skema yang sebenarnya.
 ///
 /// BE-FIN-093 TIDAK mencakup: penerimaan hasil potongan gaji dari HR (slice S3, tertahan
 /// FIN-OQ-091) dan transisi otomatis DISETUJUI -&gt; SELESAI yang bergantung padanya (L.1.7).
@@ -35,12 +39,50 @@ public sealed class FinanceReceivableInstallmentPlanService
     private readonly LoggerService _loggerService;
     private readonly FinanceReceivablePayrollSyncService _payrollSyncService;
 
+    private const string MakerCheckerConstraintName = "CK_FinReceivableInstallmentPlan_MakerChecker";
+
     public FinanceReceivableInstallmentPlanService(
-        ApplicationDbContext dbContext, LoggerService loggerService, FinanceReceivablePayrollSyncService payrollSyncService)
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        FinanceReceivablePayrollSyncService payrollSyncService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _payrollSyncService = payrollSyncService;
+    }
+
+    /// <summary>
+    /// Apakah database SAAT INI dapat menyimpan ApprovedBy = RequestedBy. Dibaca langsung dari katalog PostgreSQL (hanya
+    /// SELECT, tidak mengubah apa pun): siap bila CK_FinReceivableInstallmentPlan_MakerChecker sudah tidak ada pada tabel.
+    /// Gagal membaca katalog dianggap TIDAK siap (fail-closed), sehingga tombol/keputusan yang pasti ditolak database tidak
+    /// pernah ditawarkan. Tidak ada flag konfigurasi: skema, bukan niat, yang menentukan.
+    ///
+    /// Perubahan skema yang menyiapkannya: migration DropInstallmentPlanMakerCheckerConstraint men-DROP constraint tersebut.
+    /// Sampai migration itu DITERAPKAN pada database ini (dotnet ef database update), hasilnya tetap "belum siap". Larangan
+    /// pengaju menyetujui sendiri bagi akun tanpa SelfApprove tetap ditegakkan service (EnsureCanDecideAsync), bukan database.
+    /// </summary>
+    public async Task<bool> IsSelfApprovalPersistenceReadyAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var definitions = await _dbContext.Database.SqlQueryRaw<string>(
+                """
+                SELECT pg_get_constraintdef(c.oid) AS "Value"
+                FROM pg_constraint c
+                JOIN pg_class t ON t.oid = c.conrelid
+                JOIN pg_namespace n ON n.oid = t.relnamespace
+                WHERE c.conname = 'CK_FinReceivableInstallmentPlan_MakerChecker'
+                  AND t.relname = 'FinReceivableInstallmentPlan'
+                  AND n.nspname = 'public'
+                """).ToListAsync(cancellationToken);
+            return definitions.Count == 0;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            await _loggerService.WarningAsync(LogCategory, "InstallmentPlan.SelfApprovalReadiness",
+                $"Status constraint {MakerCheckerConstraintName} tidak dapat dibaca; persetujuan pengajuan sendiri dianggap belum siap. {exception.GetType().Name}");
+            return false;
+        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -174,6 +216,16 @@ public sealed class FinanceReceivableInstallmentPlanService
             query = query.Where(x => x.receivable.BenefitOwnerWorkforceProfileId == request.BenefitOwnerWorkforceProfileId.Value);
         if (!string.IsNullOrWhiteSpace(request.DeductionPeriod))
             query = query.Where(x => x.plan.FirstDeductionPeriod == request.DeductionPeriod);
+        if (request.StartDate.HasValue)
+        {
+            var fromUtc = FinanceBusinessDate.GetStartOfDayUtc(request.StartDate.Value);
+            query = query.Where(x => x.plan.RequestedAt >= fromUtc);
+        }
+        if (request.EndDate.HasValue)
+        {
+            var toExclusiveUtc = FinanceBusinessDate.GetStartOfDayUtc(request.EndDate.Value.AddDays(1));
+            query = query.Where(x => x.plan.RequestedAt < toExclusiveUtc);
+        }
         if (request.HasArrears.HasValue)
         {
             var wantArrears = request.HasArrears.Value;
@@ -241,7 +293,7 @@ public sealed class FinanceReceivableInstallmentPlanService
             PageNumber = request.PageNumber,
             PageSize = request.PageSize,
             TotalData = total,
-            TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
+            TotalPage = Math.Max(1, (int)Math.Ceiling(total / (double)request.PageSize)),
             Items = page.Select(x => MapList(
                 x.plan, x.receivable, names,
                 owners.Find(x.receivable.BenefitOwnerId, x.receivable.BenefitOwnerWorkforceProfileId),
@@ -292,7 +344,7 @@ public sealed class FinanceReceivableInstallmentPlanService
             .OrderBy(x => x.InstallmentNumber)
             .ToListAsync(cancellationToken);
 
-        var names = await GetUserNamesAsync(new Guid?[] { plan.RequestedBy, plan.ApprovedBy }, cancellationToken);
+        var names = await GetUserNamesAsync(new Guid?[] { plan.RequestedBy, plan.ApprovedBy, plan.RejectedBy }, cancellationToken);
         var baseResponse = Map(plan, receivable?.ReceivableNumber, names);
 
         WorkforceBenefitOwner? owner = null;
@@ -305,12 +357,71 @@ public sealed class FinanceReceivableInstallmentPlanService
             owner = owners.Find(receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId);
         }
 
+        // Konteks transaksi untuk pemutus: nomor billing dan pasien penerima layanan. Nomor RM di sini milik PASIEN
+        // (bisa tanggungan), bukan milik pemilik benefit.
+        string? invoiceNumber = null;
+        DateTimeOffset? invoiceDate = null;
+        var patients = new List<InstallmentPlanPatientResponse>();
+        if (receivable is not null)
+        {
+            if (receivable.InvoiceId.HasValue)
+            {
+                var invoiceId = receivable.InvoiceId.Value;
+                var invoice = await _dbContext.BilInvoices.AsNoTracking()
+                    .Where(x => x.Id == invoiceId)
+                    .Select(x => new { x.InvoiceNumber, x.InvoiceDate })
+                    .FirstOrDefaultAsync(cancellationToken);
+                invoiceNumber = invoice?.InvoiceNumber;
+                invoiceDate = invoice?.InvoiceDate;
+            }
+
+            var receivableId = receivable.Id;
+            patients = await (
+                from item in _dbContext.FinReceivableItems.AsNoTracking()
+                join p in _dbContext.MstPatients.AsNoTracking() on item.PatientId equals (Guid?)p.Id
+                where !item.IsDelete && item.ReceivableId == receivableId
+                select new InstallmentPlanPatientResponse
+                {
+                    PatientName = p.FullName,
+                    MedicalRecordNumber = p.MedicalRecordNumber,
+                    Amount = item.Amount
+                }).ToListAsync(cancellationToken);
+        }
+
+        var isPending = plan.Status == FinReceivableInstallmentPlanStatuses.Menunggu;
+        var (syncStatus, syncedCount, expectedCount, syncedIds) = await ReadPayrollSyncAsync(installments, cancellationToken);
+        var syncDetails = await BuildPayrollSyncDetailsAsync(plan, receivable, installments, syncedIds, cancellationToken);
+
         return new InstallmentPlanDetailResponse
         {
             BenefitRelationship = receivable?.BenefitRelationship,
             BenefitOwnerName = owner?.StaffName,
             BenefitOwnerEmployeeNumber = owner?.StaffNumber,
             BenefitOwnerType = owner?.OwnerType,
+            BenefitOwnerWorkforceProfileId = owner?.WorkforceProfileId ?? receivable?.BenefitOwnerWorkforceProfileId,
+            ReceivableStatus = receivable?.Status,
+            ReceivableOriginalAmount = receivable?.OriginalAmount ?? 0m,
+            InvoiceNumber = invoiceNumber,
+            InvoiceDate = invoiceDate,
+            Patients = patients,
+            RejectedByName = plan.RejectedBy.HasValue ? names.GetValueOrDefault(plan.RejectedBy.Value) : null,
+            RejectedAt = plan.RejectedAt,
+            ApprovalBlockers = isPending ? GetApprovalBlockers(plan, receivable) : new List<string>(),
+            SchedulePreview = isPending
+                ? BuildScheduleRows(plan).Select(row => new InstallmentResponse
+                {
+                    InstallmentNumber = row.Number,
+                    DeductionPeriod = row.Period,
+                    ScheduledAmount = row.Amount,
+                    OutstandingAmount = row.Amount,
+                    Status = FinReceivableInstallmentStatuses.Dijadwalkan
+                }).ToList()
+                : new List<InstallmentResponse>(),
+            PayrollSyncStatus = syncStatus,
+            PayrollSyncedCount = syncedCount,
+            PayrollExpectedCount = expectedCount,
+            PayrollSyncDetails = syncDetails,
+            SelfApprovalPersistenceReady = await IsSelfApprovalPersistenceReadyAsync(cancellationToken),
             ReceivableOutstandingAmount = receivable?.OutstandingAmount ?? 0m,
             Id = baseResponse.Id,
             PlanNumber = baseResponse.PlanNumber,
@@ -339,7 +450,11 @@ public sealed class FinanceReceivableInstallmentPlanService
     // ------------------------------------------------------------------------------------
 
     public async Task<InstallmentPlanDetailResponse> ApproveAsync(
-        Guid id, ApproveInstallmentPlanRequest request, Guid actorUserId, CancellationToken cancellationToken)
+        Guid id,
+        ApproveInstallmentPlanRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken,
+        bool canDecideOwnRequest = false)
     {
         IDbContextTransaction? transaction = null;
         try
@@ -351,59 +466,58 @@ public sealed class FinanceReceivableInstallmentPlanService
                 .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Perjanjian angsuran tidak ditemukan.");
 
+            if (actorUserId == Guid.Empty)
+                throw new InstallmentPlanValidationException("Identitas pengguna yang menyetujui tidak dapat ditentukan.");
+
             if (plan.Status != FinReceivableInstallmentPlanStatuses.Menunggu)
                 throw new InstallmentPlanConflictException(
                     $"Perjanjian berstatus {plan.Status} tidak dapat disetujui. Hanya perjanjian MENUNGGU yang dapat diputuskan.");
 
-            // FIN-VAL-234 lapis service — lapis keras CK_FinReceivableInstallmentPlan_MakerChecker
-            // tetap berlaku walau lolos di sini (L.2.1, L.8.1: tidak dapat dilewati administrator).
-            if (actorUserId == plan.RequestedBy)
-                throw new InstallmentPlanValidationException(
-                    "Anda tidak dapat menyetujui perjanjian yang Anda ajukan sendiri. Mintakan persetujuan kepada petugas berwenang lain.");
+            if (request.RowVersion.HasValue && request.RowVersion.Value != plan.RowVersion)
+                throw new InstallmentPlanConflictException(
+                    "Perjanjian telah diperbarui oleh pengguna lain sejak Anda membukanya. Muat ulang sebelum memutuskan.");
+
+            // FIN-VAL-234 diganti kebijakan berbasis izin: pemutus yang sama dengan pengaju hanya lolos bila memegang
+            // HrdInstallmentPlanApproval : SelfApprove (diputuskan controller lewat HasAccessAsync) DAN skema database sudah
+            // mendukung. ApprovedBy selalu aktor sebenarnya; tidak pernah dipalsukan agar lolos constraint.
+            await EnsureCanDecideAsync(plan, actorUserId, canDecideOwnRequest, isApproval: true, cancellationToken);
 
             var receivable = await _dbContext.FinReceivables
-                .SingleOrDefaultAsync(x => x.Id == plan.ReceivableId && !x.IsDelete, cancellationToken)
-                ?? throw new InvalidOperationException("Kartu piutang pemilik perjanjian ini tidak ditemukan.");
+                .SingleOrDefaultAsync(x => x.Id == plan.ReceivableId && !x.IsDelete, cancellationToken);
 
-            // FIN-VAL-233: total yang disepakati MUST sama dengan sisa piutang SAAT DISETUJUI.
-            if (plan.TotalAgreedAmount != receivable.OutstandingAmount)
-                throw new InstallmentPlanValidationException(
-                    $"Sisa piutang sudah berubah menjadi {receivable.OutstandingAmount:N2} sejak perjanjian diajukan. Ajukan ulang dengan angka yang benar.");
+            // Kelayakan diperiksa ULANG pada saat memutuskan: piutang masih manfaat karyawan yang berjalan, sisa tidak berubah
+            // (FIN-VAL-233: total disepakati MUST sama dengan sisa SAAT DISETUJUI), jumlah/nominal sah, dan periode potong
+            // pertama masih di depan bulan berjalan.
+            var blockers = GetApprovalBlockers(plan, receivable);
+            if (blockers.Count > 0 || receivable is null)
+                throw new InstallmentPlanValidationException(string.Join(" ", blockers));
 
             var now = DateTimeOffset.UtcNow;
-            var period = plan.FirstDeductionPeriod;
             var createdInstallments = new List<FinReceivableInstallment>(plan.InstallmentCount);
-            for (var number = 1; number <= plan.InstallmentCount; number++)
+            foreach (var row in BuildScheduleRows(plan))
             {
-                // L.1.4: pembulatan sisa jatuh pada baris TERAKHIR, bukan dibagi rata — jumlah
-                // seluruh baris jadwal MUST sama persis dengan TotalAgreedAmount.
-                var scheduled = number < plan.InstallmentCount
-                    ? plan.InstallmentAmount
-                    : plan.TotalAgreedAmount - plan.InstallmentAmount * (plan.InstallmentCount - 1);
-
                 var installment = new FinReceivableInstallment
                 {
                     PlanId = plan.Id,
-                    InstallmentNumber = number,
-                    DeductionPeriod = period,
-                    ScheduledAmount = scheduled,
+                    InstallmentNumber = row.Number,
+                    DeductionPeriod = row.Period,
+                    ScheduledAmount = row.Amount,
                     CarriedOverAmount = 0m,
                     PaidAmount = 0m,
-                    OutstandingAmount = scheduled,
+                    OutstandingAmount = row.Amount,
                     Status = FinReceivableInstallmentStatuses.Dijadwalkan,
                     CreateDateTime = DateTime.UtcNow,
                     CreateBy = actorUserId
                 };
                 _dbContext.FinReceivableInstallments.Add(installment);
                 createdInstallments.Add(installment);
-
-                period = AddMonths(period, 1);
             }
 
             plan.Status = FinReceivableInstallmentPlanStatuses.Disetujui;
             plan.ApprovedBy = actorUserId;
             plan.ApprovedAt = now;
-            if (!string.IsNullOrWhiteSpace(request.Notes)) plan.Notes = request.Notes;
+            // Catatan pemutus ditambahkan; catatan pengajuan Finance tidak ditimpa (belum ada kolom catatan keputusan terpisah).
+            if (!string.IsNullOrWhiteSpace(request.Notes)) plan.Notes = ComposeDecisionNotes(plan.Notes, request.Notes);
             plan.UpdateDateTime = DateTime.UtcNow;
             plan.UpdateBy = actorUserId;
             plan.RowVersion = Guid.NewGuid();
@@ -420,10 +534,16 @@ public sealed class FinanceReceivableInstallmentPlanService
                     await AuditAsync("Plan.PayrollSyncGap", plan.Id, actorUserId);
                 }
             }
+            else
+            {
+                // Pemilik tidak teridentifikasi: dulu tidak tercatat sama sekali. Kini tercatat sebagai gap; alasannya tampil di detail.
+                await AuditAsync("Plan.PayrollSyncGap", plan.Id, actorUserId);
+            }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
             await AuditAsync("Plan.Approved", plan.Id, actorUserId);
+            if (actorUserId == plan.RequestedBy) await AuditAsync("Plan.SelfDecision", plan.Id, actorUserId);
 
             return await GetDetailAsync(id, cancellationToken);
         }
@@ -442,32 +562,145 @@ public sealed class FinanceReceivableInstallmentPlanService
     // Tolak (FR-FIN-197)
     // ------------------------------------------------------------------------------------
 
-    public async Task<InstallmentPlanResponse> RejectAsync(
-        Guid id, RejectInstallmentPlanRequest request, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<InstallmentPlanDetailResponse> RejectAsync(
+        Guid id,
+        RejectInstallmentPlanRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken,
+        bool canDecideOwnRequest = false)
     {
-        var plan = await _dbContext.FinReceivableInstallmentPlans
-            .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Perjanjian angsuran tidak ditemukan.");
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            // Kunci yang sama dengan ApproveAsync/CancelAsync: setuju dan tolak yang bersamaan tidak boleh keduanya berhasil.
+            await AcquireLockAsync($"FIN_INSTALLMENT_PLAN_{id:N}", cancellationToken);
 
-        if (plan.Status != FinReceivableInstallmentPlanStatuses.Menunggu)
+            if (actorUserId == Guid.Empty)
+                throw new InstallmentPlanValidationException("Identitas pengguna yang menolak tidak dapat ditentukan.");
+            if (string.IsNullOrWhiteSpace(request.RejectionReason))
+                throw new InstallmentPlanValidationException("Alasan penolakan wajib diisi.");
+
+            var plan = await _dbContext.FinReceivableInstallmentPlans
+                .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Perjanjian angsuran tidak ditemukan.");
+
+            if (plan.Status != FinReceivableInstallmentPlanStatuses.Menunggu)
+                throw new InstallmentPlanConflictException(
+                    $"Perjanjian berstatus {plan.Status} tidak dapat ditolak. Hanya perjanjian MENUNGGU yang dapat diputuskan.");
+
+            if (request.RowVersion.HasValue && request.RowVersion.Value != plan.RowVersion)
+                throw new InstallmentPlanConflictException(
+                    "Perjanjian telah diperbarui oleh pengguna lain sejak Anda membukanya. Muat ulang sebelum memutuskan.");
+
+            // Kebijakan yang sama dengan persetujuan. Constraint database hanya mengunci ApprovedBy, sehingga menolak
+            // pengajuan sendiri dapat tersimpan begitu izin SelfApprove dipegang.
+            await EnsureCanDecideAsync(plan, actorUserId, canDecideOwnRequest, isApproval: false, cancellationToken);
+
+            var now = DateTimeOffset.UtcNow;
+            plan.Status = FinReceivableInstallmentPlanStatuses.Ditolak;
+            plan.RejectedBy = actorUserId;
+            plan.RejectedAt = now;
+            plan.RejectionReason = request.RejectionReason.Trim();
+            plan.UpdateDateTime = DateTime.UtcNow;
+            plan.UpdateBy = actorUserId;
+            plan.RowVersion = Guid.NewGuid();
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Plan.Rejected", plan.Id, actorUserId);
+            if (actorUserId == plan.RequestedBy) await AuditAsync("Plan.SelfDecision", plan.Id, actorUserId);
+
+            return await GetDetailAsync(id, cancellationToken);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Retry sinkron payroll — pemulihan bila payroll HR belum menerima jadwal saat persetujuan (periode/komponen HR belum
+    // dikonfigurasi). Memakai SyncAsync yang sama dan idempoten (upsert per angsuran), jadi tidak menggandakan input.
+    // Tidak mengubah status perjanjian, jadwal, ataupun saldo piutang.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<InstallmentPayrollSyncResultResponse> RetryPayrollSyncAsync(
+        Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_INSTALLMENT_PLAN_{id:N}", cancellationToken);
+
+            if (actorUserId == Guid.Empty)
+                throw new InstallmentPlanValidationException("Identitas pengguna yang menjalankan sinkron tidak dapat ditentukan.");
+
+            var plan = await _dbContext.FinReceivableInstallmentPlans
+                .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Perjanjian angsuran tidak ditemukan.");
+
+            if (plan.Status != FinReceivableInstallmentPlanStatuses.Disetujui)
+                throw new InstallmentPlanConflictException(
+                    $"Perjanjian berstatus {plan.Status}; sinkron payroll hanya untuk perjanjian DISETUJUI.");
+
+            var receivable = await _dbContext.FinReceivables.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == plan.ReceivableId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Kartu piutang pemilik perjanjian ini tidak ditemukan.");
+
+            if (!receivable.BenefitOwnerId.HasValue && !receivable.BenefitOwnerWorkforceProfileId.HasValue)
+                throw new InstallmentPlanValidationException("Pemilik benefit piutang ini tidak dikenali sehingga jadwal tidak dapat dikirim ke payroll.");
+
+            // Hanya angsuran DIJADWALKAN yang belum tersentuh hasil payroll. Angsuran yang sudah terbayar sebagian, tertunggak,
+            // terbayar, atau dibatalkan TIDAK dikirim ulang, supaya nominalnya tidak dipotong dua kali.
+            var pendingInstallments = await _dbContext.FinReceivableInstallments
+                .Where(x => !x.IsDelete && x.PlanId == plan.Id && x.Status == FinReceivableInstallmentStatuses.Dijadwalkan)
+                .OrderBy(x => x.InstallmentNumber)
+                .ToListAsync(cancellationToken);
+
+            var syncResult = new FinanceReceivablePayrollSyncResult();
+            if (pendingInstallments.Count > 0)
+            {
+                syncResult = await _payrollSyncService.SyncAsync(
+                    receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId, pendingInstallments, actorUserId, cancellationToken);
+            }
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync(syncResult.SkippedCount > 0 ? "Plan.PayrollSyncRetryGap" : "Plan.PayrollSyncRetried", plan.Id, actorUserId);
+
+            return new InstallmentPayrollSyncResultResponse
+            {
+                SyncedCount = syncResult.SyncedCount,
+                SkippedCount = syncResult.SkippedCount,
+                SkipReasons = syncResult.SkipReasons,
+                Plan = await GetDetailAsync(id, cancellationToken)
+            };
+        }
+        catch (Exception exception) when (IsTransientConcurrencyFailure(exception))
+        {
+            // Dua sinkron bersamaan (mis. dua perjanjian membuka run periode yang sama): transaksi serializable menggagalkan salah satunya.
+            // Tidak ada yang tersimpan; mengulang aman karena upsert idempoten.
+            await RollbackAsync(transaction);
             throw new InstallmentPlanConflictException(
-                $"Perjanjian berstatus {plan.Status} tidak dapat ditolak. Hanya perjanjian MENUNGGU yang dapat diputuskan.");
-
-        var now = DateTimeOffset.UtcNow;
-        plan.Status = FinReceivableInstallmentPlanStatuses.Ditolak;
-        plan.RejectedBy = actorUserId;
-        plan.RejectedAt = now;
-        plan.RejectionReason = request.RejectionReason;
-        plan.UpdateDateTime = DateTime.UtcNow;
-        plan.UpdateBy = actorUserId;
-        plan.RowVersion = Guid.NewGuid();
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        await AuditAsync("Plan.Rejected", plan.Id, actorUserId);
-
-        var receivable = await _dbContext.FinReceivables.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == plan.ReceivableId, cancellationToken);
-        return await MapAsync(plan, receivable, cancellationToken);
+                "Sinkron payroll bersamaan dengan proses lain pada periode yang sama. Tidak ada data yang tersimpan; coba Kirim Ulang sekali lagi.",
+                exception);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -541,6 +774,214 @@ public sealed class FinanceReceivableInstallmentPlanService
     // Infrastruktur bersama — pola sama persis dengan FinanceBillingIntakeService.
     // ------------------------------------------------------------------------------------
 
+    private const string PayrollInputSourceType = "FinanceReceivableInstallment";
+    private static readonly Regex PeriodPattern = new(@"^\d{4}-(0[1-9]|1[0-2])$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Alasan perjanjian MENUNGGU tidak dapat disetujui menurut data TERKINI. Dipakai ApproveAsync (menolak keputusan) dan
+    /// GetDetailAsync (memberi tahu pemutus sebelum menekan tombol) sehingga keduanya selalu sepakat.
+    /// </summary>
+    private static List<string> GetApprovalBlockers(FinReceivableInstallmentPlan plan, FinReceivable? receivable)
+    {
+        var blockers = new List<string>();
+        if (receivable is null || receivable.IsDelete)
+        {
+            blockers.Add("Kartu piutang pemilik perjanjian ini tidak ditemukan.");
+            return blockers;
+        }
+
+        if (receivable.DebtorType != FinReceivableDebtorTypes.EmployeeBenefit)
+            blockers.Add($"Piutang berjenis {receivable.DebtorType}; perjanjian angsuran hanya untuk piutang manfaat karyawan.");
+
+        if (receivable.Status is FinReceivableStatuses.Settled or FinReceivableStatuses.WrittenOff or FinReceivableStatuses.Cancelled)
+            blockers.Add($"Piutang berstatus {receivable.Status} sehingga tidak dapat diangsur.");
+
+        if (receivable.OutstandingAmount <= 0m)
+            blockers.Add("Sisa piutang sudah nol.");
+        else if (plan.TotalAgreedAmount != receivable.OutstandingAmount)
+            blockers.Add(
+                $"Sisa piutang sudah berubah menjadi {receivable.OutstandingAmount:N2} sejak perjanjian diajukan " +
+                $"(disepakati {plan.TotalAgreedAmount:N2}). Ajukan ulang dengan angka yang benar.");
+
+        if (plan.InstallmentCount is < 2 or > 60 || plan.InstallmentAmount <= 0m)
+            blockers.Add("Jumlah angsuran harus 2 sampai 60 dan nominal angsuran harus lebih dari nol.");
+
+        var currentPeriod = CurrentPeriod();
+        if (!PeriodPattern.IsMatch(plan.FirstDeductionPeriod ?? string.Empty)
+            || string.CompareOrdinal(plan.FirstDeductionPeriod, currentPeriod) <= 0)
+        {
+            blockers.Add(
+                $"Periode potong gaji pertama ({plan.FirstDeductionPeriod}) sudah berjalan atau terlewat. " +
+                $"Ajukan ulang dengan periode {AddMonths(currentPeriod, 1)} atau sesudahnya.");
+        }
+
+        return blockers;
+    }
+
+    /// <summary>
+    /// Satu-satunya perhitungan jadwal, dipakai persetujuan DAN pratinjau detail. L.1.4: pembulatan sisa jatuh pada baris
+    /// TERAKHIR — jumlah seluruh baris MUST sama persis dengan TotalAgreedAmount.
+    /// </summary>
+    private static List<(int Number, string Period, decimal Amount)> BuildScheduleRows(FinReceivableInstallmentPlan plan)
+    {
+        var rows = new List<(int Number, string Period, decimal Amount)>(plan.InstallmentCount);
+        var period = plan.FirstDeductionPeriod;
+        for (var number = 1; number <= plan.InstallmentCount; number++)
+        {
+            var scheduled = number < plan.InstallmentCount
+                ? plan.InstallmentAmount
+                : plan.TotalAgreedAmount - plan.InstallmentAmount * (plan.InstallmentCount - 1);
+            rows.Add((number, period, scheduled));
+            period = AddMonths(period, 1);
+        }
+        return rows;
+    }
+
+    /// <summary>Catatan keputusan ditambahkan setelah catatan pengajuan Finance (maks 500 karakter); catatan keputusan dipertahankan utuh lebih dulu.</summary>
+    private static string ComposeDecisionNotes(string? existing, string decisionNote)
+    {
+        const int maxLength = 500;
+        var decision = $"Catatan HRD: {decisionNote.Trim()}";
+        if (decision.Length >= maxLength) return decision[..maxLength];
+        if (string.IsNullOrWhiteSpace(existing)) return decision;
+
+        var room = maxLength - decision.Length - 3;
+        if (room <= 0) return decision;
+
+        var financeNote = existing.Length <= room ? existing : existing[..(room - 1)] + "…";
+        return $"{financeNote} | {decision}";
+    }
+
+    /// <summary>
+    /// Status penerimaan jadwal oleh payroll, dari baris input variabel payroll yang TERSIMPAN (SourceType + SourceId angsuran).
+    /// Bukan dari nilai balik sesaat saat persetujuan, jadi tetap benar ketika dibuka kemudian.
+    /// </summary>
+    private async Task<(string Status, int Synced, int Expected, HashSet<Guid> SyncedIds)> ReadPayrollSyncAsync(
+        IReadOnlyCollection<FinReceivableInstallment> installments, CancellationToken cancellationToken)
+    {
+        var expectedIds = installments
+            .Where(x => x.Status != FinReceivableInstallmentStatuses.Dibatalkan)
+            .Select(x => x.Id)
+            .ToList();
+        if (expectedIds.Count == 0) return (FinanceInstallmentPayrollSyncStatuses.NoSchedule, 0, 0, new HashSet<Guid>());
+
+        var syncedIds = await _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+            .Where(x => !x.IsDelete
+                && x.SourceType == PayrollInputSourceType
+                && x.SourceId != null
+                && expectedIds.Contains(x.SourceId.Value))
+            .Select(x => x.SourceId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var synced = syncedIds.Count;
+        var status = synced == 0
+            ? FinanceInstallmentPayrollSyncStatuses.NotSynced
+            : synced < expectedIds.Count
+                ? FinanceInstallmentPayrollSyncStatuses.Partial
+                : FinanceInstallmentPayrollSyncStatuses.Synced;
+        return (status, synced, expectedIds.Count, syncedIds.ToHashSet());
+    }
+
+    /// <summary>
+    /// Diagnosis per angsuran. SINKRON hanya bila input payroll BENAR-BENAR tersimpan (syncedIds, dibaca dari TrxPayrollVariableInput).
+    /// Untuk yang belum, alasan dihitung ulang dari prasyarat yang sama dengan sinkron (DiagnoseAsync, baca-saja) sehingga tidak
+    /// menyimpang dan tidak perlu disimpan. Tidak mengubah apa pun.
+    /// </summary>
+    private async Task<List<InstallmentPayrollSyncDetailResponse>> BuildPayrollSyncDetailsAsync(
+        FinReceivableInstallmentPlan plan,
+        FinReceivable? receivable,
+        IReadOnlyList<FinReceivableInstallment> installments,
+        HashSet<Guid> syncedIds,
+        CancellationToken cancellationToken)
+    {
+        var details = new List<InstallmentPayrollSyncDetailResponse>();
+        if (plan.Status is not (FinReceivableInstallmentPlanStatuses.Disetujui or FinReceivableInstallmentPlanStatuses.Selesai))
+            return details;
+
+        var open = installments
+            .Where(x => x.Status != FinReceivableInstallmentStatuses.Dibatalkan)
+            .OrderBy(x => x.InstallmentNumber)
+            .ToList();
+
+        var toDiagnose = open
+            .Where(x => !syncedIds.Contains(x.Id) && x.Status == FinReceivableInstallmentStatuses.Dijadwalkan)
+            .ToList();
+
+        var gaps = new Dictionary<Guid, PayrollSyncGap?>();
+        if (toDiagnose.Count > 0)
+        {
+            var diagnosis = await _payrollSyncService.DiagnoseAsync(
+                receivable?.BenefitOwnerId, receivable?.BenefitOwnerWorkforceProfileId, toDiagnose, cancellationToken);
+            foreach (var item in diagnosis.Items) gaps[item.InstallmentId] = item.Gap;
+        }
+
+        foreach (var installment in open)
+        {
+            var detail = new InstallmentPayrollSyncDetailResponse
+            {
+                InstallmentId = installment.Id,
+                InstallmentNumber = installment.InstallmentNumber,
+                DeductionPeriod = installment.DeductionPeriod
+            };
+
+            if (syncedIds.Contains(installment.Id))
+            {
+                detail.SyncStatus = FinanceInstallmentPayrollSyncStatuses.Synced;
+            }
+            else if (installment.Status != FinReceivableInstallmentStatuses.Dijadwalkan)
+            {
+                // Sudah memasuki proses potongan (sebagian/tertunggak/terbayar): tidak dikirim ulang agar tidak dipotong dua kali.
+                detail.SyncStatus = FinanceInstallmentPayrollSyncStatuses.NotApplicable;
+                detail.ReasonCode = FinanceInstallmentPayrollSyncReasonCodes.InstallmentNotScheduled;
+                detail.ReasonMessage = $"Angsuran berstatus {installment.Status}; jadwalnya tidak dikirim ulang ke payroll.";
+            }
+            else
+            {
+                detail.SyncStatus = FinanceInstallmentPayrollSyncStatuses.NotSynced;
+                if (gaps.TryGetValue(installment.Id, out var gap) && gap is not null)
+                {
+                    detail.ReasonCode = gap.Code;
+                    detail.ReasonMessage = gap.Message;
+                    detail.RequiredAction = gap.Action;
+                }
+                else
+                {
+                    detail.ReasonCode = FinanceInstallmentPayrollSyncReasonCodes.NotSent;
+                    detail.ReasonMessage = "Prasyarat payroll terpenuhi, tetapi jadwal angsuran ini belum tersimpan sebagai input payroll.";
+                    detail.RequiredAction = "HRD dapat menjalankan Kirim Ulang ke Payroll.";
+                }
+            }
+
+            details.Add(detail);
+        }
+
+        return details;
+    }
+
+    /// <summary>PostgreSQL 40001 (serialization_failure) atau 40P01 (deadlock_detected), di mana pun pada rantai pengecualian.</summary>
+    private static bool IsTransientConcurrencyFailure(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException { SqlState: "40001" or "40P01" }) return true;
+        }
+        return false;
+    }
+
+    private async Task SaveWithConcurrencyGuardAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new InstallmentPlanConflictException(
+                "Perjanjian telah diperbarui oleh pengguna lain. Muat ulang sebelum mencoba lagi.", exception);
+        }
+    }
+
     private async Task<IDbContextTransaction?> BeginTransactionAsync(CancellationToken cancellationToken)
     {
         if (!_dbContext.Database.IsRelational()) return null;
@@ -580,6 +1021,29 @@ public sealed class FinanceReceivableInstallmentPlanService
         var nextYear = total / 12;
         var nextMonth = total % 12 + 1;
         return $"{nextYear:D4}-{nextMonth:D2}";
+    }
+
+    /// <summary>
+    /// Satu-satunya kebijakan "siapa boleh memutuskan pengajuan siapa" untuk setujui dan tolak. Pemutus berbeda dari pengaju
+    /// selalu lolos (izin Approve/Reject sudah ditegakkan controller). Pemutus yang sama dengan pengaju butuh SelfApprove;
+    /// persetujuan sendiri tambahan butuh skema database yang sudah diselaraskan (IsSelfApprovalPersistenceReadyAsync).
+    /// </summary>
+    private async Task EnsureCanDecideAsync(
+        FinReceivableInstallmentPlan plan, Guid actorUserId, bool canDecideOwnRequest, bool isApproval, CancellationToken cancellationToken)
+    {
+        if (actorUserId != plan.RequestedBy) return;
+
+        if (!canDecideOwnRequest)
+            throw new InstallmentPlanForbiddenException(
+                "Anda adalah pengaju perjanjian ini. Memutuskan pengajuan sendiri memerlukan hak akses khusus " +
+                "\"Decide Own Installment Plan Request\" (HrdInstallmentPlanApproval : SelfApprove) yang diberikan administrator " +
+                "lewat Manajemen Role. Atau mintakan keputusan kepada petugas HRD lain.");
+
+        if (isApproval && !await IsSelfApprovalPersistenceReadyAsync(cancellationToken))
+            throw new InstallmentPlanValidationException(
+                "Persetujuan atas pengajuan sendiri belum dapat disimpan: constraint database " +
+                "CK_FinReceivableInstallmentPlan_MakerChecker masih aktif (migration DropInstallmentPlanMakerCheckerConstraint belum diterapkan). " +
+                "Mintakan persetujuan kepada petugas HRD lain, atau hubungi administrator sistem. Penolakan tetap dapat dilakukan.");
     }
 
     private Task AuditAsync(string action, Guid planId, Guid actorUserId) =>
@@ -679,4 +1143,6 @@ public sealed class FinanceReceivableInstallmentPlanService
 }
 
 public sealed class InstallmentPlanValidationException(string message) : Exception(message);
+/// <summary>Aktor tidak berwenang atas keputusan ini (izin khusus belum diberikan). Dipetakan controller ke 403.</summary>
+public sealed class InstallmentPlanForbiddenException(string message) : Exception(message);
 public sealed class InstallmentPlanConflictException(string message, Exception? innerException = null) : Exception(message, innerException);

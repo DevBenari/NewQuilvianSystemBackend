@@ -14,6 +14,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/allowance-types")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/allowance-types")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -23,7 +25,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "AllowanceType",
         Description = "Corporate human resource master data allowance type",
         SortOrder = 42)]
-    [Tags("Corporate / Human Resource / Master Data / Allowance Type")]
+    [Tags("Corporate / Payroll Management / Master Data / Allowance Type")]
     public class AllowanceTypeController : ControllerBase
     {
         private static readonly HashSet<string> AllowedCategories =

@@ -114,7 +114,9 @@ public sealed partial class BillingClinicalChargeBridgeService
             // BE-BKC-FIX-018 / K-06: fakta Bank Darah per tindakan (DEC-BD-016) diteruskan ke invoice.
             or BillingSourceContract.BloodBankSourceContext
             // BE-BKC-FIX-017 / K-04: pemakaian obat/BMHP tanpa resep, per butir.
-            or BillingSourceContract.DrugUsageSourceContext;
+            or BillingSourceContract.DrugUsageSourceContext
+            // BE-OPT-030 / OPT-APR-001: pemeriksaan refraksi dan barang pesanan Optik.
+            or BillingSourceContract.OpticalSourceContext;
 
     /// <summary>
     /// Meneruskan efek bila statusnya <c>Pending</c> atau <c>Failed</c>. Efek dengan status lain
@@ -201,7 +203,8 @@ public sealed partial class BillingClinicalChargeBridgeService
         if (domain is not (BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Laboratory
             or BillingBridgeSourceDomains.Radiology or BillingBridgeSourceDomains.Consultation
             or BillingBridgeSourceDomains.Pharmacy or BillingBridgeSourceDomains.OperatingRoom or BillingBridgeSourceDomains.EquipmentUsage
-            or BillingBridgeSourceDomains.BloodBank or BillingBridgeSourceDomains.Consumable))
+            or BillingBridgeSourceDomains.BloodBank or BillingBridgeSourceDomains.Consumable
+            or BillingBridgeSourceDomains.Optical))
             return SyncPlan.Done(SyncOutcome.StayPending(BillingBridgeCodes.SourcePendingSupport, $"Penerusan {domain} belum tersedia pada jembatan.", domain));
 
         var fact = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
@@ -217,8 +220,11 @@ public sealed partial class BillingClinicalChargeBridgeService
 
         // Tindakan, konsultasi, dan resep diidentifikasi oleh agregatnya; Lab dan Radiologi oleh
         // butirnya. Resep wajib memakai id resep karena clearance farmasi membacanya begitu.
+        // Optik (BE-OPT-030): pemeriksaan per agregat (SourceItemId-nya tindakan, sama untuk semua pemeriksaan),
+        // barang per baris pesanan.
         var detailId = domain is BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Consultation
             or BillingBridgeSourceDomains.Pharmacy or BillingBridgeSourceDomains.EquipmentUsage
+            || (domain == BillingBridgeSourceDomains.Optical && effect.EffectType == BillingSourceContract.OpticalExamChargeEffectType)
             ? fact.SourceAggregateId
             : fact.SourceItemId;
         if (detailId is null || detailId == Guid.Empty)
@@ -262,6 +268,15 @@ public sealed partial class BillingClinicalChargeBridgeService
             sourceStatus = isDispensed ? PharmacyDispensedStatus : PharmacyPrescribedStatus;
             // FIX-DOK-008: Resep rawat inap CPOE langsung disinkronkan ke running invoice / estimasi biaya
         }
+        else if (domain == BillingBridgeSourceDomains.Optical)
+        {
+            // BE-OPT-030: status barang Optik berjalan lewat revisi fakta yang sama, sehingga dibaca dari
+            // RuleSnapshot.milestone, bukan ditetapkan per domain. Nilai yang tidak dikenal tidak ditebak.
+            if (TryReadOpticalStatus(effect.EffectType, fact.RuleSnapshot) is not { } opticalStatus)
+                return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected,
+                    "Tahap pelayanan Optik pada fakta klinis tidak dikenali.", domain, detailId.Value.ToString("D")));
+            sourceStatus = opticalStatus;
+        }
 
         var invoice = await db.Set<BilInvoice>().AsNoTracking()
             .Where(x => x.EncounterId == encounter.Id && !x.IsDelete)
@@ -275,7 +290,7 @@ public sealed partial class BillingClinicalChargeBridgeService
             new BillingTariffResolutionRequest(
                 domain, fact.SourceAggregateId, fact.SourceItemId, fact.Quantity,
                 encounter.ClinicId, serviceClass.Id, DateTime.SpecifyKind(effect.OccurredAt, DateTimeKind.Utc),
-                dispensedQuantities),
+                dispensedQuantities, effect.EffectType),
             cancellationToken);
 
         switch (tariff.Kind)
@@ -693,6 +708,7 @@ public sealed partial class BillingClinicalChargeBridgeService
         BillingSourceContract.EquipmentUsageSourceContext => BillingBridgeSourceDomains.EquipmentUsage,
         BillingSourceContract.BloodBankSourceContext => BillingBridgeSourceDomains.BloodBank,
         BillingSourceContract.DrugUsageSourceContext => BillingBridgeSourceDomains.Consumable,
+        BillingSourceContract.OpticalSourceContext => BillingBridgeSourceDomains.Optical,
         _ => sourceContext.ToUpperInvariant()
     };
 
@@ -745,6 +761,38 @@ public sealed partial class BillingClinicalChargeBridgeService
             return false;
         }
     }
+
+    /// <summary>
+    /// Status sumber Optik dari <c>RuleSnapshot.milestone</c> (<c>INT-OPT-04</c>): pemeriksaan
+    /// <c>ExamFinalized</c> → <c>COMPLETED</c>; barang memakai nilai milestone itu sendiri bila termasuk
+    /// <see cref="BillingSourceContract.OpticalItemMilestones"/>. Selain itu <c>null</c>.
+    /// </summary>
+    internal static string? TryReadOpticalStatus(string? effectType, string? ruleSnapshot)
+    {
+        if (string.IsNullOrWhiteSpace(ruleSnapshot)) return null;
+        string? milestone;
+        try
+        {
+            using var document = JsonDocument.Parse(ruleSnapshot);
+            if (document.RootElement.ValueKind != JsonValueKind.Object
+                || !document.RootElement.TryGetProperty("milestone", out var element)
+                || element.ValueKind != JsonValueKind.String)
+                return null;
+            milestone = element.GetString();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        if (effectType == BillingSourceContract.OpticalExamChargeEffectType)
+            return milestone == BillingSourceContract.OpticalMilestoneExamFinalized ? OpticalExamCompletedStatus : null;
+        if (effectType == BillingSourceContract.OpticalItemChargeEffectType)
+            return milestone is not null && BillingSourceContract.OpticalItemMilestones.Contains(milestone) ? milestone : null;
+        return null;
+    }
+
+    private const string OpticalExamCompletedStatus = "COMPLETED";
 
     private static string MapBillableStatus(string domain) => domain switch
     {
@@ -839,6 +887,12 @@ public static class BillingBridgeSourceDomains
 
     /// <summary>Pemakaian obat/BMHP tanpa resep (<c>BE-BKC-FIX-017</c>); butirnya per baris pemakaian.</summary>
     public const string Consumable = "CONSUMABLE";
+
+    /// <summary>
+    /// Optik (<c>BE-OPT-030</c>): pemeriksaan refraksi per pemeriksaan, barang per baris pesanan. Status sumbernya
+    /// berasal dari fakta (<c>RuleSnapshot.milestone</c>), bukan tetap per domain.
+    /// </summary>
+    public const string Optical = "OPTICAL";
 }
 
 /// <summary>Keadaan penagihan satu sumber klinis, dibaca oleh modul produsen untuk ditampilkan.</summary>

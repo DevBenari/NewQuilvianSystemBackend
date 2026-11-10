@@ -47,6 +47,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _emergencySettingService = emergencySettingService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencySettingFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Setting", Description = "Melihat metadata filter pengaturan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencySetting", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencySettingFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencySettingDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "code", "name", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencySettingFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter pengaturan IGD berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencySettingSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Setting", Description = "Melihat ringkasan pengaturan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencySetting", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgSetting>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencySettingSummaryResponse
+            {
+                TotalSetting = await query.CountAsync(cancellationToken),
+                ActiveSetting = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveSetting = await query.CountAsync(x => !x.IsActive, cancellationToken),
+                DefaultSetting = await query.CountAsync(x => x.IsDefault, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencySettingSummaryResponse>.Ok(
+                summary,
+                "Ringkasan pengaturan IGD berhasil diambil."
+            ));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencySettingResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Setting", Description = "Melihat data pengaturan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

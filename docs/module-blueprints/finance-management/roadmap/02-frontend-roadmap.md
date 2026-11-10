@@ -1092,7 +1092,7 @@ flowchart LR
     B107["BE-FIN-107 ⛔ [BE]"]
     B109["BE-FIN-109 ⛔ [BE]"]
     B112["BE-FIN-112 ⛔ [BE]"]
-    B119["BE-FIN-119 ⛔ [BE]"]
+    B119["BE-FIN-119 ✅ [BE]"]
     F045["FE-FIN-045 ✅<br/>HR: enrollment benefit dan verifikasi keluarga"]
     F046["FE-FIN-046 ✅<br/>Registrasi: pilih pegawai dan keluarga, status terdaftar"]
     F047["FE-FIN-047 ✅<br/>Billing: pembagian dua porsi dan Berita Acara Koreksi"]
@@ -1329,3 +1329,98 @@ suite penuh memberi 3851 test, 3809 lulus, 42 gagal pada 28 berkas test yang tid
 | `FE-AP-07` — close PO, update TF/GR, mutasi pembalik, idempotensi retry | Menunggu `AUD-AP-02`, `05`, `06`, `09`, `10` di backend |
 | Migrasi form Invoice Supplier dan modal GR ke `BaseTextField`/`DataTable` | Di luar cakupan; modul Purchasing memakai pola Bootstrap lokal dan perubahan massal berisiko regresi |
 | Test e2e dan uji runtime otomatis | Tidak diminta; dev server dan browser tidak dinyalakan tanpa permintaan pemilik |
+
+
+---
+
+# AMENDMENT ROADMAP REV-23 — Benefit RS: Ajukan Benefit, Persetujuan yang Mengaktifkan, Sinkronisasi Kartu, dan Modal Daftarkan Penjamin Internal (Blueprint Revisi 22)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-23
+blueprint_revision: 22          # approved 2026-11-03
+roadmap_status: approved untuk dikerjakan; seluruh task frontend REV-23 selesai source & unit test (FE-FIN-056..FE-FIN-061 🟡)
+contract_versions: [FIN-API-1.12, FIN-PERM-1.13, FIN-VAL-1.14]
+decisions: [FIN-DEC-231..257]
+design: [FIN-DES-109..126]; frontend-architecture bagian 26 (SCR-BRS-01..06)
+requirements: [FR-FIN-261..271]
+source_sha_frontend: fa7eb8d7 (branch yasmina)
+source_sha_backend: ba312826 (branch Yasmina)
+task_range_frontend: FE-FIN-056..FE-FIN-061
+tanggal: 3 November 2026
+```
+
+**Legenda tanda status.** ✅ terbukti; 🟡 source ada, kriteria belum terbukti penuh; ⛔ prasyarat berupa keputusan atau
+gerbang belum terpenuhi; tanpa tanda = belum disentuh.
+
+## Grafik Urutan Dependency
+
+```text
+BE-FIN-129 🟡 [BE] ─> FE-FIN-056 🟡
+
+BE-FIN-130 🟡 [BE] ─> FE-FIN-057 🟡 ─┬─> FE-FIN-060 🟡
+                                   │
+BE-FIN-138 🟡 [BE] ────────────────┘
+
+FE-FIN-058 🟡
+
+BE-FIN-132 🟡 [BE] ─> FE-FIN-059 🟡
+
+BE-FIN-139 🟡 [BE] ─> FE-FIN-061 🟡
+```
+
+`[BE]` = task backend pada `01-backend-roadmap.md` bagian REV-23 (cermin baca-saja; tandanya disalin dari roadmap backend).
+
+**Pemeriksaan konsistensi.** Grafik memuat **6** pasangan prasyarat→task, sama dengan isi kolom `Dependency`: `FE-FIN-056` (1), `FE-FIN-057` (1),
+`FE-FIN-059` (1), `FE-FIN-060` (2), `FE-FIN-061` (1). `FE-FIN-058` tidak menunggu siapa pun. Setiap task frontend muncul tepat satu kali. Bebas siklus.
+
+## Tabel Gelombang Eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | — | `FE-FIN-058` 🟡 — Selesai 4 November 2026; modal pendaftaran penjamin IGD/RJ terintegrasi data HRD, tanpa employeeNumber bebas, banner kartu aktif & tombol [Pakai kartu] tanpa POST, galat 422 transparan, 4 unit test PASS, ESLint PASS ([laporan](../task/report/frontend/FE-FIN-058.md)) |
+| 1 | `BE-FIN-129` 🟡 [BE] | `FE-FIN-056` 🟡 — Selesai 4 November 2026; modal memanggil POST /submit atomik, tombol "Ajukan Benefit" & "Mengajukan...", proteksi double submit, toast & galat 422/409, 13 unit test PASS, ESLint PASS ([laporan](../task/report/frontend/FE-FIN-056.md)) |
+| 1 | `BE-FIN-130` 🟡 [BE] | `FE-FIN-057` 🟡 — Selesai 4 November 2026; toast approve langsung Aktif vs tanggal masa depan, tombol Aktifkan tersembunyi tanpa availableActions, subjudul "Menunggu tanggal mulai", 409 reload, 49 unit test PASS, ESLint PASS ([laporan](../task/report/frontend/FE-FIN-057.md)) |
+| 1 | `BE-FIN-132` 🟡 [BE] | `FE-FIN-059` 🟡 — Selesai 4 November 2026; tab Penjamin Perusahaan menampilkan status benefit hidup HR (Aktif/Belum berlaku/Kedaluwarsa/Belum aktif/Tidak layak/Belum tertaut/Tidak dapat dibaca), fail-closed HR_UNAVAILABLE, No. Enrollment, kartu non-internal tidak berubah, 3 unit test PASS, ESLint PASS ([laporan](../task/report/frontend/FE-FIN-059.md)) |
+| 2 | `BE-FIN-138` 🟡 [BE], `FE-FIN-057` 🟡 | `FE-FIN-060` 🟡 — Selesai 4 November 2026; chip kolom hanya untuk Active, saringan patientCardSyncStatus, panel sinkronisasi di detail, tombol Sinkronkan Ulang menurut availableActions, 400 tampil sebagai pesan transparan, 9 unit test PASS, ESLint PASS ([laporan](../task/report/frontend/FE-FIN-060.md)) |
+| 2 | `BE-FIN-139` 🟡 [BE] | `FE-FIN-061` 🟡 — Selesai 4 November 2026; layar daftar kerja sinkronisasi kartu benefit di route /health-services/patient-management/employee-benefit-card-syncs, 4 keadaan AC 1, privasi data pasien AC 2, menu Manajemen Pasien izin EmployeeBenefitCardSync:Read AC 3, 7 unit test PASS, ESLint PASS ([laporan](../task/report/frontend/FE-FIN-061.md)) |
+
+Kontrak `FIN-API-1.12` sudah approved, sehingga task frontend gelombang 1 boleh dikerjakan paralel dengan backend-nya memakai bentuk respons di
+`contracts/api-contract.md` bagian V; verifikasi akhirnya tetap menunggu endpoint backend tersedia.
+
+**Validasi frontend** (`AGENTS.md` frontend, `rules/frontend/test-policy.md`): `npm run lint:errors`, `npm run test:unit`, `npm run build`, dan
+verifikasi manual kontrol interaktif. **Pada sesi ini pemilik melarang `npm run build` dan `npm run dev`**; perintah itu dijalankan hanya atas
+instruksi eksplisit pemilik saat eksekusi task, dan sampai itu dilakukan task paling jauh berstatus 🟡. Test unit direkomendasikan untuk logika murni
+(payload, normalisasi galat), tidak diwajibkan.
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `FE-FIN-056` 🟡 | Petugas HR menekan **Ajukan Benefit** dan pengajuan langsung berstatus Diajukan | `FR-FIN-261`; `FIN-DEC-243`; `SCR-BRS-01` | `FIN-API-1.12` V.1 `POST /submit` | Modal, hook `use-employee-benefit-enrollment-list.js`, slice `employee-benefit-enrollment-slice.js`, penjaga `submitInFlightRef` | Label tombol dan teks memuat; thunk baru memanggil `POST /submit` (bukan Create lalu Submit); toast "berhasil diajukan dan menunggu persetujuan HRD"; galat 422/409 tampil apa adanya; perbarui `tests/unit/employee-benefit-enrollment-create-form.test.mjs:230` | `BE-FIN-129` [BE] | (1) Satu permintaan per klik; (2) tombol bertuliskan "Ajukan Benefit"; (3) daftar dimuat ulang dan menampilkan "Diajukan"; (4) galat Backend tampil tanpa diganti | `npm run lint:errors`; `npm run test:unit`; `npm run build` atas instruksi pemilik; uji manual klik ganda | Rendah. Pemilik: HR | AC 1–4; validasi lulus atau tercatat jujur |
+| `FE-FIN-057` 🟡 | Setelah HRD menekan Setujui, layar menunjukkan apakah benefit langsung Aktif atau menunggu tanggal mulai; tombol Aktifkan hanya muncul bila memang boleh | `FR-FIN-262`, `FR-FIN-263`; `FIN-DEC-234`, `235`; `SCR-BRS-03` | `FIN-API-1.12` V.1 approve/activate | Detail view, hook `use-employee-benefit-enrollment-detail.js`, `availableActions` | Toast berdasar `enrollmentStatus` respons; tombol aksi mengikuti `availableActions` dari Backend; kartu ringkasan "Disetujui" bersubjudul "Menunggu tanggal mulai"; 409 → muat ulang | `BE-FIN-130` 🟡 [BE] | (1) `Active` → "Disetujui dan diaktifkan"; (2) `Approved` → "aktif otomatis mulai {tanggal}"; (3) Aktifkan tersembunyi bila tidak ada di `availableActions`; (4) 422 syarat aktivasi tampil, status tetap Diajukan | Lint; unit; build atas instruksi; uji manual dua jalur | Rendah. Pemilik: HR | AC 1–4 |
+| `FE-FIN-058` 🟡 | Petugas Registrasi dapat mendaftarkan kartu Benefit Karyawan RS dengan memilih penerima dari HR, dan bila gagal melihat alasan sebenarnya | `FR-FIN-269`; `FIN-DEC-229`, `245`, `248`; `SCR-BRS-04` | `FIN-API-1.12` V.2 `POST /patient-company-guarantors`; `FIN-VAL-296`, `297` | `emergency-patient-payer-modal.jsx`, seksi internal `patient-company-guarantor-internal-benefit-section.jsx`, `patient-company-guarantor-editor-utils.jsx`, `buildPatientCompanyGuarantorPayload` | Mode internal saat penjamin bertanda internal: sembunyikan nomor kartu bebas dan masa aktif, tampilkan pemilih penerima dan anggota keluarga; payload canonical (`benefitOwnerWorkforceProfileId`, `familyMemberId?`); bila pasien punya kartu internal aktif → tampilkan dan jangan kirim; modal membaca galat berupa `Error` **atau** string; penjamin eksternal tidak berubah | — | (1) Payload membawa `benefitOwnerWorkforceProfileId`, tanpa `employeeNumber` bebas; (2) 422 Backend tampil apa adanya, bukan "Coba kembali"; (3) kartu internal aktif yang ada ditampilkan, tanpa POST; (4) alur asuransi dan penjamin eksternal tidak berubah, pada registrasi rawat jalan **dan** IGD | Lint; unit (payload dan normalisasi galat layak ditulis); build atas instruksi; uji manual kasus Gilang (ditolak dengan alasan NIK) | Sedang: modal dipakai dua alur registrasi. Pemilik: Registrasi | AC 1–4; validasi lulus ([laporan](../task/report/frontend/FE-FIN-058.md)) |
+| `FE-FIN-059` 🟡 | Tab Penjamin Perusahaan menunjukkan apakah Benefit RS pasien benar-benar aktif menurut HR | `FR-FIN-270`; `FIN-DEC-242`; `SCR-BRS-05` | `FIN-API-1.12` V.2 field `employeeBenefitStatus` | `patients-detail-view.jsx`, `use-master-data-patient-detail.jsx` | Kolom status benefit (Aktif / Belum berlaku / Kedaluwarsa / Belum aktif / Tidak layak / Tidak dapat dibaca), masa berlaku, nomor referensi untuk kartu internal; kartu lain tidak berubah | `BE-FIN-132` 🟡 [BE] | (1) Setiap `state` punya label; (2) `HR_UNAVAILABLE` tidak pernah tampil sebagai aktif; (3) kartu non-internal tampil seperti sekarang | Lint; build atas instruksi; uji manual | Rendah. Pemilik: Patient Management | AC 1–3; validasi lulus ([laporan](../task/report/frontend/FE-FIN-059.md)) |
+| `FE-FIN-060` 🟡 | HRD melihat status kartu pasien di daftar dan detail enrollment, dan dapat menekan Sinkronkan ulang | `FR-FIN-266`; `FIN-DEC-246`, `255`; `SCR-BRS-02`, `SCR-BRS-03` | `FIN-API-1.12` V.1 (field dan `POST /{id}/patient-card-sync`) | List view, `enrollment-table-columns.jsx`, detail view | Chip dan saringan `patientCardSyncStatus`; panel sinkronisasi di detail; tombol Sinkronkan ulang menurut `availableActions`; tanpa data pasien | `BE-FIN-138` 🟡 [BE], `FE-FIN-057` 🟡 | (1) Chip hanya untuk `Active`; (2) panel menampilkan alasan dan waktu; (3) tombol tersembunyi tanpa izin; (4) 400 tampil sebagai pesan | Lint: PASS; unit: PASS (9/9 test); build atas instruksi; uji manual | Rendah. Pemilik: HR | AC 1–4; validasi lulus ([laporan](../task/report/frontend/FE-FIN-060.md)) |
+| `FE-FIN-061` 🟡 | Petugas Registrasi punya daftar kerja kasus kartu Benefit RS yang menunggu atau ditahan | `FR-FIN-267`; `FIN-DEC-255`; `SCR-BRS-06` | `FIN-API-1.12` V.3 | Pola layar daftar berpaging yang sudah ada | Halaman baru di route `/health-services/patient-management/employee-benefit-card-syncs`, saringan status dan pencarian, ringkasan; butir menu di grup "Manajemen Pasien" dengan `requiredPermission { resource: "EmployeeBenefitCardSync", action: "Read" }` | `BE-FIN-139` 🟡 [BE] | (1) Empat keadaan (memuat, kosong, gagal, berisi) sesuai skema; (2) tidak ada data pasien; (3) butir menu terdaftar dan tersembunyi tanpa izin | Lint: PASS; unit: PASS (7/7 test); build atas instruksi; uji manual | Rendah. Pemilik: Registrasi | AC 1–3; validasi lulus ([laporan](../task/report/frontend/FE-FIN-061.md)) |
+
+## Traceability REV-23 Frontend
+
+| Requirement | Layar | Task frontend | Task backend | Bukti | Status |
+|---|---|---|---|---|---|
+| `FR-FIN-261` | `SCR-BRS-01` | `FE-FIN-056` 🟡 | `BE-FIN-129` 🟡 | Testing V.1.1, V.1.3 | 🟡 Selesai source & unit test ([laporan](../task/report/frontend/FE-FIN-056.md)) |
+| `FR-FIN-262`, `263` | `SCR-BRS-03` | `FE-FIN-057` 🟡 | `BE-FIN-130` 🟡 | V.2.1–V.2.3, V.2.7 | 🟡 Selesai source & unit test ([laporan](../task/report/frontend/FE-FIN-057.md)) |
+| `FR-FIN-269` | `SCR-BRS-04` | `FE-FIN-058` 🟡 | `BE-FIN-131` 🟡 (pesan; tidak menahan FE) | V.4.1–V.4.4 | 🟡 Selesai source & unit test ([laporan](../task/report/frontend/FE-FIN-058.md)) |
+| `FR-FIN-270` | `SCR-BRS-05` | `FE-FIN-059` 🟡 | `BE-FIN-132` 🟡 | V.4.6 | 🟡 Selesai source & unit test ([laporan](../task/report/frontend/FE-FIN-059.md)) |
+| `FR-FIN-266` | `SCR-BRS-02`, `03` | `FE-FIN-060` 🟡 | `BE-FIN-138` 🟡 | V.3.16 | 🟡 Selesai source & unit test ([laporan](../task/report/frontend/FE-FIN-060.md)) |
+| `FR-FIN-267` | `SCR-BRS-06` | `FE-FIN-061` 🟡 | `BE-FIN-139` 🟡 | V.3.15 | 🟡 Selesai source & unit test ([laporan](../task/report/frontend/FE-FIN-061.md)) |
+| `FR-FIN-264`, `265`, `268`, `271` | — | — (tanpa perubahan layar; pesan tampil lewat penanganan galat yang ada) | `BE-FIN-128`, `133..137`, `140`, `141` | Lihat roadmap backend | — |
+
+## Yang Sengaja TIDAK Dibuat
+
+| Hal | Alasan |
+|---|---|
+| Perubahan langkah pembayaran "Gunakan Benefit Karyawan" | Kontrak `internal-benefit-card` tidak berubah |
+| Penanganan khusus galat loket 422 | `FIN-DES-126`: jalur loket tetap 400 dengan pesan |
+| Jest, `@testing-library`, atau config test baru | `rules/frontend/test-policy.md` |
+| Penentuan nama dan urutan butir menu | `DEV_DISCRETION` |

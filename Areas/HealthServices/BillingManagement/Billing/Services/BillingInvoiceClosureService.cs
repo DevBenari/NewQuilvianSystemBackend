@@ -69,6 +69,74 @@ public sealed class BillingInvoiceClosureService
     }
 
     /// <summary>
+    /// Versi batch dari <see cref="CalculateOutstandingAsync(BilInvoice, BilCalculationVersion, CancellationToken)"/> untuk
+    /// daftar invoice: rumus yang SAMA (pembayaran teralokasi bersih + kelebihan alokasi - write-off PATIENT_AR - net
+    /// adjustment, write-off residual non-billable dikecualikan), dihitung dengan satu query per sumber alih-alih satu per
+    /// invoice. Hanya membaca. Kunci masukan: InvoiceId -> PatientAmount versi kalkulasi yang berlaku.
+    /// </summary>
+    public async Task<Dictionary<Guid, InvoiceBatchFundsPosition>> CalculateOutstandingBatchAsync(
+        IReadOnlyDictionary<Guid, decimal> patientAmountByInvoice,
+        CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, InvoiceBatchFundsPosition>();
+        if (patientAmountByInvoice.Count == 0) return result;
+        var ids = patientAmountByInvoice.Keys.ToList();
+
+        var paidByInvoice = (await _dbContext.BilPaymentAllocations.AsNoTracking()
+                .Where(x => x.TargetType == BillingAllocationTargetTypes.Invoice && ids.Contains(x.TargetId) && !x.IsDelete)
+                .Select(x => new { x.TargetId, x.Amount, x.ReversesAllocationId })
+                .ToListAsync(cancellationToken))
+            .GroupBy(x => x.TargetId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.ReversesAllocationId.HasValue ? -x.Amount : x.Amount));
+
+        var excessByInvoice = (await _dbContext.BilRefundableCredits.AsNoTracking()
+                .Where(x => ids.Contains(x.InvoiceId)
+                    && x.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess && !x.IsDelete)
+                .Select(x => new { x.InvoiceId, x.AvailableAmount })
+                .ToListAsync(cancellationToken))
+            .GroupBy(x => x.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.AvailableAmount));
+
+        var writeOffByInvoice = (await _dbContext.BilWriteOffCases.AsNoTracking()
+                .Where(x => ids.Contains(x.InvoiceId)
+                    && x.Status == BillingWriteOffCaseStatuses.Posted
+                    && x.Category == BillingWriteOffCategories.PatientAr && !x.IsDelete)
+                .Select(x => new { x.InvoiceId, x.Amount })
+                .ToListAsync(cancellationToken))
+            .GroupBy(x => x.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
+        var residualCaseIds = (await _dbContext.BilWriteOffCases.AsNoTracking()
+                .Where(x => ids.Contains(x.InvoiceId) && x.Category == BillingWriteOffCategories.NonBillableResidual)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        var adjustmentNetByInvoice = (await _dbContext.BilAdjustments.AsNoTracking()
+                .Where(x => ids.Contains(x.InvoiceId)
+                    && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete)
+                .Select(x => new { x.InvoiceId, x.Direction, x.Amount, x.ReversesWriteOffCaseId })
+                .ToListAsync(cancellationToken))
+            .Where(x => x.ReversesWriteOffCaseId == null || !residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value))
+            .GroupBy(x => x.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Direction == BillingAdjustmentDirections.Credit ? x.Amount : -x.Amount));
+
+        foreach (var (invoiceId, patientAmount) in patientAmountByInvoice)
+        {
+            var paid = paidByInvoice.GetValueOrDefault(invoiceId);
+            var outstanding = Math.Max(
+                patientAmount - paid
+                    + excessByInvoice.GetValueOrDefault(invoiceId)
+                    - writeOffByInvoice.GetValueOrDefault(invoiceId)
+                    - adjustmentNetByInvoice.GetValueOrDefault(invoiceId),
+                0m);
+            result[invoiceId] = new InvoiceBatchFundsPosition(paid, outstanding);
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Overload yang mencari versi kalkulasi current sendiri. Melempar
     /// <see cref="BillingInvoiceClosureValidationException"/> bila belum ada. Pemanggil yang
     /// butuh pesan bertipe domainnya sendiri MUST menangkap dan membungkus ulang pesannya,
@@ -163,6 +231,9 @@ public sealed class BillingInvoiceClosureService
 /// atau menulis audit sesudah commit (mengikuti pola
 /// BillingAllocationService.SettlementAllocationResult).
 /// </summary>
+/// <summary>Posisi dana invoice: pembayaran teralokasi bersih (uang masuk) dan sisa tagihan pasien kanonik.</summary>
+public readonly record struct InvoiceBatchFundsPosition(decimal PaidAmount, decimal OutstandingAmount);
+
 public readonly record struct InvoiceClosureChange(
     Guid InvoiceId,
     string StatusBefore,

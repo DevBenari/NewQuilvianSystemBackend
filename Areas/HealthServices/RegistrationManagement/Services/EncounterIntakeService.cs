@@ -129,7 +129,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             await ValidateReferralAsync(request, cancellationToken);
 
-            var paymentReference = await LoadPaymentSourceReferenceAsync(request, visit, cancellationToken);
+            await ValidateReferralSourceEncounterAsync(request, patient.Id, visit, cancellationToken);
+
+            var paymentReference = await LoadPaymentSourceReferenceAsync(request, visit, serviceUnit, cancellationToken);
 
             var patientClassId = await ResolveOutpatientPatientClassIdAsync(cancellationToken);
 
@@ -546,6 +548,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             }
         }
 
+        /// <summary>
+        /// Kunjungan asal rujukan internal (<c>INT-OPT-10</c>, <c>BE-OPT-003</c>). Kosong = tidak ada yang
+        /// diperiksa, sehingga pemanggil lama (Laboratorium, Radiologi, MCU) tidak berubah perilaku.
+        /// </summary>
+        private async Task ValidateReferralSourceEncounterAsync(
+            EncounterIntakeRequest request,
+            Guid patientId,
+            IntakeVisitProfile visit,
+            CancellationToken cancellationToken)
+        {
+            if (NormalizeNullableGuid(request.ReferralSourceEncounterId) is not { } sourceId)
+            {
+                return;
+            }
+
+            if (visit.EncounterType != EncounterType.Outpatient)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Tautan kunjungan asal rujukan hanya berlaku untuk kunjungan penunjang.");
+            }
+
+            var sourcePatientId = await _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .Where(x => x.Id == sourceId && !x.IsDelete)
+                .Select(x => (Guid?)x.PatientId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (sourcePatientId == null)
+            {
+                throw new EncounterIntakeValidationException("Kunjungan asal rujukan tidak ditemukan.");
+            }
+
+            // Tautan ke kunjungan pasien lain akan menempelkan riwayat pemeriksaan orang lain pada
+            // pasien ini — kesalahan identitas, bukan sekadar data salah.
+            if (sourcePatientId != patientId)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Kunjungan asal rujukan bukan milik pasien ini. Pilih kunjungan pasien yang sama.");
+            }
+        }
+
         /// <summary>Kartu sumber bayar yang dipilih: asuransi, atau kartu penjamin perusahaan.</summary>
         private sealed record PaymentReference(
             MstPatientInsurance? Insurance,
@@ -554,15 +597,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private async Task<PaymentReference> LoadPaymentSourceReferenceAsync(
             EncounterIntakeRequest request,
             IntakeVisitProfile visit,
+            MstServiceUnit serviceUnit,
             CancellationToken cancellationToken)
         {
             if (request.PaymentType == EncounterPaymentType.CompanyGuarantor)
             {
                 // Sama seperti jalur kiosk: Penjamin Perusahaan hanya diterima petugas admisi
                 // (RWI-ENC-PAYER-001 bagian 7), sehingga wewenangnya tidak ikut meluas ke sini.
-                // Satu-satunya pengecualian adalah check-in MCU di meja admisi MCU (INT-MCU-02,
-                // BE-MCU-013): peserta korporat datang atas tanggungan perusahaannya.
-                if (visit.EncounterType != EncounterType.MedicalCheckup)
+                // Pengecualiannya hanya dua: check-in MCU di meja admisi MCU (INT-MCU-02, BE-MCU-013),
+                // dan kunjungan unit Optik (OPT-DEC-078, OPT-APR-013, BE-OPT-061). Keduanya melayani
+                // peserta korporat yang datang atas tanggungan perusahaannya.
+                var isOpticalVisit = visit.EncounterType == EncounterType.Outpatient
+                    && serviceUnit.ServiceUnitType == ServiceUnitType.Optical;
+                if (visit.EncounterType != EncounterType.MedicalCheckup && !isOpticalVisit)
                 {
                     throw new EncounterIntakeValidationException(
                         "Penjamin perusahaan hanya dapat dipilih lewat pendaftaran loket.");
@@ -725,6 +772,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     ReferralNumber = NormalizeNullableText(request.ReferralNumber),
                     ReferralInstitutionId = NormalizeNullableGuid(request.ReferralInstitutionId),
                     ReferralDoctorId = NormalizeNullableGuid(request.ReferralDoctorId),
+                    ReferralSourceEncounterId = NormalizeNullableGuid(request.ReferralSourceEncounterId),
                     IsWalkIn = true,
 
                     // Pasien penunjang tidak mengantre dokter dan tidak menunggu skrining

@@ -1620,3 +1620,109 @@ Pass ini **tidak** menghasilkan arsitektur target atau pekerjaan implementasi. L
 1. Mengirim `evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md` kepada pemilik Billing, Registrasi, dan HR.
 2. `/grill-me` pass lanjutan untuk meninjau ulang empat keputusan di 21.6, **setelah** jawaban pemilik modul ada.
 3. `/design-business-module` untuk `EPIC FIN-04` hanya setelah blocker `FIN-OQ-087`, `091`, `092`, `095`, `096`, `097`, `098` tertutup.
+
+## 22. Impact scan terarah — Benefit RS: pengajuan, aktivasi, dan sinkronisasi penjamin pasien, 3 November 2026 (`ba312826` / `fa7eb8d7`)
+
+**Pemicu.** Pass `/grill-me` Amendment 3 November 2026 (`FIN-DEC-231`..`246`, lihat `00-interview-decisions.md`) menutup aturan bisnis, tetapi
+meninggalkan lima hal Unknown pada fakta source dan capability map ini sudah basi (judul berkas: backend `09101d05`; bagian terakhir: `46fa2a91` / `0ed37b5c4`).
+
+**Baseline dan staleness.** Bagian 1–21 **tidak** diaudit ulang. Hanya klaster Benefit RS yang diverifikasi pada SHA di judul. Backend branch `Yasmina`
+`ba312826`, frontend branch `yasmina` `fa7eb8d7`. SHA kedua repository **tidak berubah** selama pass ini. Commit frontend lama `5b1c9e0` sudah
+tidak ada di klon, sehingga diff frontend tidak dapat dibuat; semua bukti frontend diverifikasi langsung pada `fa7eb8d7`.
+
+**Working tree saat audit.** Frontend bersih. Backend hanya berubah pada berkas dokumentasi blueprint ini (`00-interview-decisions.md`, `01-existing-capability-map.md`);
+nol perubahan source. Tidak ada build, migration, server, atau akses basis data.
+
+**Batas audit.** Klaster **Actor/Workforce** (pemilik benefit, kelayakan), **Workflow/Status** (enrollment), **Identity/Master Owner** (pasien ↔ pegawai,
+penjamin internal), **Authorization/Audit** (izin baru), dan konsumen frontend: modal enrollment, detail enrollment, tab Penjamin Perusahaan, modal Daftarkan Penjamin.
+Tidak mengaudit ulang internal Billing, Finance AR, maupun Accounting.
+
+### 22.1 Penegasan dan koreksi atas klaim sebelumnya
+
+| No | Klaim sebelumnya | Hasil pass ini |
+|---|---|---|
+| K-1 | Pesan 422 Backend hilang sebelum sampai modal; titiknya belum diketahui | **Titik hilang ditemukan.** `requestJson` (`emergency-registration.service.js:120-141`) sudah membentuk `Error(payload.message)`. Thunk (`outpatient-registration-slice.jsx:194-205`, `emergency-registration-slice.jsx:162-176`) lalu memanggil `rejectWithValue(getApiErrorMessage(...))`, yaitu **string**. `handleSavePayer` memakai `.unwrap()` yang melempar string itu. Modal (`emergency-patient-payer-modal.jsx:427-431`) membaca `submitError?.message`, yang `undefined` pada string, sehingga teks fallback "Coba kembali" yang tampil. Ini bug kontrak antara thunk dan modal, terpisah dari 422 itu sendiri |
+| K-2 | Dokter tamu diterima karena "komentar dan daftar kebijakan tidak konsisten" | **Diperdalam.** Pelebaran itu **sengaja dibuat** pada commit `e5fc5888` (20 Okt 2026, judul commit tentang tabel refund pasien): menambah `GuestDoctor` ke `WorkforceBenefitOwnerPolicy`, ke `WorkforceBenefitOwnerResolver.LoadAsync`, dan menghapus filter `UserType` pada pencarian. Dua test tertanggal 19 Okt (`WorkforceBenefitOwnerAcceptanceTests.cs:150` `Resolver_GuestDoctor_IsNotAllowedByPolicy` dan `:240` `Search_…ButNotGuestDoctors_…`) **tidak diperbarui**, sehingga menurut pembacaan source keduanya kini gagal (tidak dijalankan: dilarang). `FIN-DEC-240` memulihkan perilaku asli |
+| K-3 | Pemeriksaan kunjungan tidak mencocokkan ulang identitas pasien | **Terkonfirmasi** untuk seluruh pemanggil: `PATIENT_IDENTITY_MISMATCH` hanya keluar dari `ResolveCardLinkAsync` (`PatientCompanyGuarantorController.cs:455,950`); jalur kunjungan (`PatientEncounterController.cs:2764`, `EncounterPaymentSourceService.cs:459`) hanya memanggil `ValidateCardForServiceAsync` |
+
+### 22.2 Peta kemampuan
+
+Status memakai tepat satu label dari kontrak bukti. Bukti berformat `path#simbol:baris@SHA`; backend `@ba312826`, frontend `@fa7eb8d7`.
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap / adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `FIN-CAP-086` | Ajukan Benefit: buat + ajukan satu operasi (`FIN-DEC-243`) | HR Benefit Management | `Areas/Corporate/HumanResource/BenefitManagement/Services/EmployeeBenefitEnrollmentService.cs#CreateAsync:289-368` (selalu `Draft`:341); `src/components/view/hr/benefit/employee-benefit-enrollment-create-modal.jsx:275`; `src/lib/hooks/hr/benefit/use-employee-benefit-enrollment-list.js#handleSubmitCreate:243-293` | Extend | Operasi gabungan memakai kunci dan cek duplikat yang sama dengan Create; FE hanya ganti label dan pesan. Test `tests/unit/employee-benefit-enrollment-create-form.test.mjs:230` meng-assert "Simpan Draft" dan harus diubah | Rendah; nomor enrollment dialokasikan di luar transaksi sehingga kegagalan menyisakan lompatan nomor (perilaku Create sekarang) |
+| `FIN-CAP-087` | Setujui + aktifkan satu transaksi (`FIN-DEC-234`) | HR Benefit Management | `…EnrollmentService.cs#TransitionAsync:490-525` (Serializable + `pg_advisory_xact_lock` + RowVersion), `#ApproveAsync:402`, `#ActivateAsync:419-470`; FE `src/lib/hooks/hr/benefit/use-employee-benefit-enrollment-detail.js:203-206` memanggil approve dan activate terpisah | Extend | Logika aktivasi tertanam di lambda `ActivateAsync` dan perlu diekstrak agar dipakai bersama. `ActivateAsync` tidak mengecek tanggal efektif. Memanggilnya dari dalam transaksi Approve membuka transaksi dan kunci ganda | Sedang; saldo awal ditetapkan di aktivasi, jadi jalur kedua yang lupa guard status akan mengatur ulang saldo |
+| `FIN-CAP-088` | Penjadwal aktivasi tanggal efektif (`FIN-DEC-235`) | HR Benefit Management | Tidak ada. Pola terdekat: `Areas/Corporate/FinanceManagement/BillingIntake/Services/FinanceEmployeeBenefitArIntakeSchedulerHostedService.cs` (98 baris; `BackgroundService`, `PeriodicTimer`, scope per putaran) dan `…SchedulerOptions.cs` (`Enabled=false` bawaan, `PollIntervalSeconds`, `MaxPerCycle`, `SystemActorUserId`); registrasi `Program.cs:1340-1346` | Missing | Perlu penjadwal baru; pola opsi dan scope dapat ditiru. Status `Expired` tidak pernah diisi kode mana pun | Sedang; bawaan `Enabled=false` berarti lupa menyalakan konfigurasi membuat enrollment masa depan tidak pernah aktif tanpa gejala |
+| `FIN-CAP-089` | Izin HRD menyetujui; izin baru "Sinkronkan ulang" (`FIN-DEC-233`, `246`) | HR Benefit Management dan Platform Authorization | `…Controllers/EmployeeBenefitEnrollmentController.cs#Approve:140-147` (`[AccessPermission("EmployeeBenefitEnrollment","Approve")]`); `Services/Security/PermissionRegistryDescriptor.cs` menurunkan identitas izin dari `[AccessPermission]`, `Seeders/AccessMenuSeeder.cs:39` mendaftarkannya | Ready to reuse | Izin baru cukup dideklarasikan lewat atribut pada endpoint baru, lalu dicentang di layar Akses Role. Kode saat ini sudah mengizinkan pengaju menyetujui sendiri, selaras dengan `FIN-DEC-233` | Rendah |
+| `FIN-CAP-090` | Pemilik benefit hanya karyawan dan dokter tetap (`FIN-DEC-240`) | HR Benefit Management | `…Services/WorkforceBenefitOwnerResolver.cs#LoadAsync:203-211` dan `#ConflictFor:266-270`; `…Constants/HrBenefitConstants.cs#WorkforceBenefitOwnerPolicy:159-170` (`GuestDoctor` ikut daftar; kebijakan itu tidak dipanggil di mana pun); commit `e5fc5888` | Repair | Mengembalikan penolakan `GuestDoctor` pada resolver; `AllowedUserTypes` perlu dipakai atau dihapus. Dua test 19 Okt sudah mengekspresikan perilaku yang diinginkan | Sedang; resolver dipakai Enrollment, Registrasi, Billing, dan Finance sehingga perubahan wajib diuji pada keempatnya |
+| `FIN-CAP-091` | Pencarian penerima benefit | HR Benefit Management | `…Services/EmployeeBenefitEligibilityService.cs#SearchWorkforceAsync:223-285` | Repair | Filter jenis SDM dihapus oleh `e5fc5888`; filter `IsCancel` ikut hilang (resolver tetap menyaringnya, sehingga SDM batal bisa tampil lalu gagal saat enrollment). Bila profil workforce tidak ada, baris diisi `WorkforceProfileId = e.Id`/`d.Id`, yaitu ID peran tampil sebagai ID pemilik | Sedang; gagal aman di resolver (`OWNER_NOT_FOUND`), tetapi membingungkan petugas |
+| `FIN-CAP-092` | Kelayakan benefit | HR Benefit Management | `…EligibilityService.cs#CheckAsync:34-155` (hanya `Active`, Medical, non-klaim, `Covers(periode)`, tanggungan Verified) | Ready to reuse | — | Rendah |
+| `FIN-CAP-093` | Master penjamin internal tunggal `SYS-RS-BENEFIT` (`FIN-DEC-236`) | Patient Management dan Administrator | `Areas/HealthServices/PatientManagement/MasterData/Controllers/PatientCompanyGuarantorController.cs#FindInternalBenefitCompanyAsync:1914`, `#ProvisionInternalBenefitCompanyAsync:1941`; indeks unik `UX_MstCompanyGuarantor_EmployeeBenefit` (`Repositories/Configurations/Global/MstCompanyGuarantorConfiguration.cs:157-161`) | Reuse with adapter | Kedua method `private` di controller; dipakai penjadwal atau layanan sinkronisasi harus diekstrak. Indeks unik menegakkan satu penjamin internal sehingga selaras dengan `FIN-DEC-236` | Rendah; `FIN-DEC-227` klausa jamak ditangguhkan |
+| `FIN-CAP-094` | Kartu otomatis saat registrasi (arah tarik) | Patient Management dan Registrasi | `…PatientCompanyGuarantorController.cs#EnsureInternalBenefitCard:628-774`; FE `src/components/view/health-services/registration-management/emergency-registration/payment-method-step.jsx:139-155`; `src/lib/services/health-services/registration-management/emergency-registration.service.js#ensurePatientInternalBenefitCard:575` | Ready to reuse | Memakai ulang kartu internal aktif (tidak ganda); hanya untuk hubungan `SELF`; tanggal berlaku sengaja kosong; butuh izin `CreateInternalBenefitCard`. Pencocokan identitas memakai `FIN-DEC-228` (NIK) karena petugas yang memilih pasien | Rendah |
+| `FIN-CAP-095` | Pemasangan otomatis HR → kartu pasien (`FIN-DEC-237`, `244`) | Registrasi / Patient Management | Tidak ada pencari pasien dari identitas pemilik benefit; tidak ada event atau outbox HR → Patient (outbox hanya di Finance, OperatingRoom, Inpatient). Data identitas lihat 22.3 | Missing | Perlu layanan sinkronisasi yang mencari pasien berdasarkan NIK + tanggal lahir, memanggil pembuatan kartu yang sama (`CreatePatientCompanyGuarantor`) dengan validasi `ResolveCardLinkAsync`, dan mencatat hasilnya | Tinggi; kartu yang salah pasien dapat dipakai pasien itu (`FIN-DEC-238`) |
+| `FIN-CAP-096` | Catatan hasil sinkronisasi per enrollment (`FIN-DEC-239`) | Belum ditentukan (`FIN-OQ-121`) | `MstPatientCompanyGuarantor.cs` tidak punya kolom enrollment, status, atau galat. Registry `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`: `Pat` (PatientManagement) dan `Fin` (FinanceManagement) `ACTIVE`; **HR BenefitManagement tidak terdaftar** (model lama `Trx*`/`Hrd*` adalah legacy) | Missing | Tabel baru diperlukan. Model di HR BenefitManagement terblokir `QBE-MOD-002` sampai terdaftar; `Pat` atau `Fin` sudah `ACTIVE`. Arah dependensi: `PatientWorkforceIdentityResolver` di Registrasi sudah memakai layanan HR, sehingga HR memanggil langsung sisi Patient akan menciptakan dependensi siklik; pemicu sebaiknya antarmuka atau event dari sisi HR dan orkestrator di sisi Registrasi/Patient | Sedang; kebutuhan schema dan migration oleh tim |
+| `FIN-CAP-097` | Tab Penjamin Perusahaan menampilkan Benefit RS dengan status HR hidup (`FIN-DEC-242`) | Patient Management | FE `src/lib/hooks/health-services/patient-management/master-data/patients/use-master-data-patient-detail.jsx:315-330,168-173` memanggil `GET /v1/health-services/patient-management/master-data/patient-company-guarantors?patientId=` **tanpa** `isActive`; thunk `master-data-patient-company-guarantor-slice.jsx:110`; BE `PatientCompanyGuarantorResponse` (`DTOs/PatientCompanyGuarantorDtos.cs`) | Extend | Respons tidak memuat status enrollment HR, status eligibility hidup, ID enrollment, maupun penanda penjamin internal. Kartu internal tanpa tanggal berlaku. Perlu kontrak baca tambahan (field atau endpoint) yang membaca HR saat dibuka. Daftar menampilkan kartu nonaktif juga | Sedang; membaca HR untuk setiap kartu internal menambah beban kueri per halaman |
+| `FIN-CAP-098` | Modal Daftarkan Penjamin untuk penjamin internal (`FIN-DEC-245`) | Registrasi | `src/utils/health-services/registration-management/emergency-management/emergency-registration.utils.js#buildPatientCompanyGuarantorPayload:1222-1240`; `…/emergency-registration/emergency-patient-payer-modal.jsx:359-366`; BE `RegistrationEmployeeBenefitLookupService.cs#ResolveCardLinkAsync:237-238` | Repair | Payload tidak membawa `benefitOwnerWorkforceProfileId`/`employeeId`/`familyMemberId`. Pemilih pemilik HR dan payload canonical sudah ada di form master-data (`src/utils/health-services/patient-management/master-data/patient-company-guarantor/patient-company-guarantor-editor-utils.jsx:103-113,168`; `…/add/patient-company-guarantor-internal-benefit-section.jsx`) | Rendah |
+| `FIN-CAP-099` | Pesan galat 422 spesifik sampai ke pengguna (`FIN-DEC-245`) | Registrasi | Rantai pada 22.1 K-1 | Repair | Pilih satu titik perbaikan kontrak: thunk menolak dengan objek ber-`message`, atau modal menangani string. Keduanya mempengaruhi slice IGD dan rawat jalan | Rendah |
+| `FIN-CAP-100` | Idempotensi, konkurensi, tanpa duplikasi | HR Benefit Management dan Patient Management | `…EnrollmentService.cs#CreateAsync:326-332` (kunci advisory per pegawai + plan, duplikat → 409), `#TransitionAsync`; `MstPatientCompanyGuarantorConfiguration.cs:219-234` (unik `PatientId+CompanyGuarantorId+EmployeeNumber`; satu primary aktif per pasien) | Ready to reuse | Approve atau Activate ulang ditolak 400 oleh `RequireStatus` (bukan sukses idempoten); saldo awal tidak dapat terulang karena Activate hanya dari `Approved`. Indeks unik kartu bergantung pada `EmployeeNumber` turunan HR; belum ada kunci unik per enrollment | Rendah |
+| `FIN-CAP-101` | Pemakaian plafon tidak terpengaruh | Billing dan HR Benefit Balance | `…Services/EmployeeBenefitBalanceService.cs#UseAsync:107-177` (hanya enrollment `Active`), `#ReturnAsync:233`; `Areas/HealthServices/BillingManagement/Billing/Services/BillingEmployeeBenefitSplitService.cs:164-219` | Ready to reuse | Mendukung `FIN-DEC-242`: tidak ada status `Expired` baru, karena `UseAsync` hanya menerima `Active` | Rendah |
+| `FIN-CAP-102` | Pemeriksaan kunjungan mencocokkan ulang identitas pasien vs pemilik kartu | Registrasi | `PatientEncounterController.cs:2764`, `EncounterPaymentSourceService.cs:459`, `RegistrationEmployeeBenefitLookupService.cs#ValidateCardForServiceAsync:336-352` | Unknown | Perlu keputusan manusia apakah pemeriksaan kunjungan diperketat (`FIN-DEC-238`). Bukan keputusan bisnis yang ditutup pass ini | Tinggi bila kartu terpasang otomatis tanpa petugas |
+| `FIN-CAP-103` | Test yang menjaga perilaku | Semua | BE `Tests/QuilvianSystemBackend.PharmacyTests/WorkforceBenefitOwnerAcceptanceTests.cs` (memuat test resolver, eligibility, saldo, Billing split; 2 test dokter tamu basi); FE `tests/unit/employee-benefit-enrollment-create-form.test.mjs`, `tests/unit/guarantor-workforce-owner.test.mjs` | Repair | Test dokter tamu menunggu `FIN-CAP-090`. Test label tombol harus diubah bersama `FIN-CAP-086`. Test untuk sinkronisasi belum ada. Hasil test tidak dijalankan pada pass ini | Sedang |
+
+### 22.3 Unknown yang ditutup pass ini
+
+| Unknown | Hasil |
+|---|---|
+| Sumber data tab Penjamin Perusahaan | Tertutup → `FIN-CAP-097` |
+| Titik hilangnya pesan 422 | Tertutup → 22.1 K-1, `FIN-CAP-099` |
+| Kesamaan format NIK dan tanggal lahir pasien vs HR | **Tertutup sebagian.** Fakta source: `MstPatient.IdentityNumber` teks bebas maks 50, hanya di-trim saat disimpan (`PatientController.cs:594,1024`), indeks **unik** pada string persis (`MstPatientConfiguration.cs:242-244`) sehingga dua pasien aktif tidak dapat memiliki string yang sama. `MstPatient.IdentityType` berisi KTP, NIK, KIA, Passport, SIM, dan lainnya (`PatientIdentityDocumentController.cs:38-48`) dan **tidak** diperiksa saat pencocokan. HR: `MstEmployee.IdentityNumber` wajib maks 16 dan unik; `MstDoctor.IdentityNumber` opsional maks 50 dan unik. `BirthDate` bertipe `date` di ketiganya (pasien nullable), jadi tidak ada risiko geser zona waktu. Resolver membandingkan angka-saja milik pasien dengan kolom HR apa adanya (`PatientWorkforceIdentityResolver.cs:150-166`). **Akibat bagi `FIN-DEC-237`:** "lebih dari satu pasien cocok" hanya mungkin lewat varian format (spasi atau titik) atau rantai merge; pasien dengan jenis tanda pengenal bukan KTP/NIK yang kebetulan berangka sama tidak tercegah |
+
+### 22.4 Unknown yang masih terbuka (butuh data atau keputusan manusia)
+
+| Hal | Pemilik penutup |
+|---|---|
+| Apakah ada NIK pasien atau HR yang memuat selain angka (spasi, titik, tanda hubung) pada data nyata; berapa banyak | Pemilik (agen tidak membaca basis data) |
+| Apakah sudah ada enrollment atas dokter tamu pada data nyata, dan apakah pelebaran `e5fc5888` memang dikehendaki saat itu | Pemilik HR |
+| Apakah pencocokan otomatis juga wajib `IdentityType` KTP/NIK | Keputusan pemilik pada `design-business-module` (usul) |
+| Apakah pemeriksaan kunjungan diperketat (`FIN-CAP-102`) | Pemilik Registrasi |
+| Hasil test dokter tamu dan test lain saat dijalankan | Tim pengembang (menjalankan test dilarang pada pass ini) |
+
+### 22.5 Kontrak as-is yang disentuh (gaya Swagger)
+
+**Tag `Corporate / Human Resource / Benefit Management / Employee Benefit Enrollment`** — rute dasar `api/v1/corporate/human-resource/benefit-management/employee-benefit-enrollments`
+
+| Metode dan rute | Izin | Perilaku sekarang |
+|---|---|---|
+| `POST /` | `EmployeeBenefitEnrollment : Create` | Membuat `Draft`; duplikat enrollment terbuka → 409; validasi → 422 |
+| `POST /{id}/submit` | `… : Submit` | `Draft` → `Submitted`; cek `RowVersion` |
+| `POST /{id}/approve` | `… : Approve` | `Submitted` → `Approved` saja; pengaju boleh menyetujui sendiri |
+| `POST /{id}/activate` | `… : Activate` | `Approved` → `Active`; tetapkan saldo awal; tidak cek tanggal efektif |
+| `POST /{id}/cancel` | `… : Cancel` | Dari status terbuka → `Cancelled`; alasan wajib |
+
+**Tag `Health Services / Patient Management / Master Data / Patient Company Guarantor`** — rute dasar `api/v1/health-services/patient-management/master-data/patient-company-guarantors`
+
+| Metode dan rute | Izin | Perilaku sekarang |
+|---|---|---|
+| `GET /?patientId=` | `KioskRead` / `PatientCompanyGuarantor : Read` | Daftar kartu pasien; tanpa status HR hidup |
+| `POST /` | `KioskRead` / `PatientCompanyGuarantor : Create` | Kartu internal wajib pemilik HR (`EMPLOYEE_REQUIRED` 422 bila kosong), cocokkan NIK (`PATIENT_IDENTITY_MISMATCH` 422) |
+| `POST /internal-benefit-card` | `PatientCompanyGuarantor : CreateInternalBenefitCard` | Pakai ulang atau buat kartu `SELF` dari benefit aktif |
+| `PATCH /{id}/status` | `PatientCompanyGuarantor : Update` | Ubah `IsActive`; menonaktifkan juga mencabut `IsPrimary` |
+
+### 22.6 Pemicu impact scan berikutnya
+
+Tandai peta ini basi dan lakukan impact scan terbatas bila:
+
+- `EmployeeBenefitEnrollmentService`, `WorkforceBenefitOwnerResolver`, `EmployeeBenefitEligibilityService`, `HrBenefitConstants`, `PatientCompanyGuarantorController`, `RegistrationEmployeeBenefitLookupService`, atau `PatientWorkforceIdentityResolver` berubah.
+- `MstPatientCompanyGuarantor` atau `MstPatient` mendapat kolom baru, atau indeks `UX_MstCompanyGuarantor_EmployeeBenefit` berubah.
+- Slice registrasi IGD atau rawat jalan, atau `emergency-patient-payer-modal.jsx`, berubah.
+- Backend atau frontend HEAD bergerak dari `ba312826` / `fa7eb8d7`.
+
+### 22.7 Handoff
+
+Pass ini **tidak** menghasilkan arsitektur target atau pekerjaan implementasi. Empat dari lima hal Unknown pada `00-interview-decisions.md` kini tertutup atau
+tertutup sebagian; yang tersisa butuh data nyata atau keputusan (22.4). Langkah berikutnya yang tersedia:
+
+1. `requirement-completeness-gate` untuk Benefit RS (melintasi HR, Patient, Registrasi, dan Billing).
+2. `hospital-domain-architect` (opsional; kemampuan melintasi lebih dari satu bounded context dan menyentuh billing).
+3. `design-business-module` untuk menyusun kontrak, schema yang dibutuhkan, dan penyelarasan `FIN-VAL-271`, setelah pemilik menjawab 22.4 (terutama `IdentityType` dan data dokter tamu).

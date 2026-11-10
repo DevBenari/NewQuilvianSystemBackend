@@ -6915,3 +6915,420 @@ Invariant dan batas:
 Uji: `FinanceEmployeeBenefitArAutoIntakeServiceTests` (7 uji, pengolah diganti tiruan agar yang diuji pemilihan dan batasnya; tidak dijalankan).
 
 **Prasyarat sebelum `Enabled = true`:** `dotnet build` dan kedua kelas uji lulus; akun layanan dibuat dan `SystemActorUserId` diisi; petugas yang memantau baris `ERROR` ditetapkan; nomor piutang (`IFinanceReceivableNumberGenerator`) dan outbox akuntansi sudah berjalan di lingkungan itu.
+## V. Amandemen 3 November 2026 (Revisi 22) — Benefit RS: Pengajuan Atomik, Persetujuan yang Mengaktifkan, Aktivasi Terjadwal, dan Sinkronisasi Penjamin Pasien
+
+```yaml
+last_changed_in: Revisi 22 (3 November 2026)
+status: approved   # 2026-11-03, pemilik (pengguna sesi)
+input_revision: 00-interview-decisions.md (FIN-DEC-231..257); 01-existing-capability-map.md bagian 22; requirement-completeness-assessment.md FIN-RCG-001 revision 2
+input_hash: dihitung di blueprint-manifest.md (artifact_hashes_revision_22)
+backend_commit_sha: ba312826
+frontend_commit_sha: fa7eb8d7
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
+domain_architecture_reason: >
+  hospital-domain-architect opsional dan tidak dijalankan. Batas konteks, pemilik data, dan arah dependensi
+  dapat diputuskan dari bukti yang sudah ada: registry prefix (Pat ACTIVE), preseden PatNewbornBirthSequence di
+  PatientManagement/MasterData, dan fakta bahwa Registrasi sudah bergantung pada layanan HR (FIN-CAP-096).
+  Tidak ada dampak keselamatan klinis (FIN-RCG-001 bagian 3).
+```
+
+> **Penomoran.** Manifest masih mencatat `revision: 20`, padahal bagian `T` (22 Oktober) dan kamus data bagian 11
+> (13 Oktober) sudah memakai label "Revisi 21". Agar tidak bertabrakan, amandemen ini memakai **Revisi 22**.
+> Catatan "usulan Revisi 21" pada `00-interview-decisions.md` (pass 3 November) dan `requirement-completeness-assessment.md`
+> merujuk ke amandemen yang sama ini.
+
+### V.1 Ringkasan untuk pembaca umum
+
+Hari ini pendaftaran benefit pegawai berhenti di status Draft, persetujuan HRD tidak mengaktifkan benefit, dan kartu
+penjamin "Benefit Karyawan RS" pada data pasien harus didaftarkan manual — dan form manualnya gagal (galat 422) karena
+tidak mengirim identitas pegawai dari HR. Amandemen ini membuat satu alur:
+
+1. Petugas HR menekan **Ajukan Benefit** → enrollment langsung berstatus **Diajukan** (satu langkah, tidak ada Draft sisa).
+2. HRD menekan **Setujui** → bila tanggal mulai berlaku sudah tiba, benefit **langsung Aktif** di transaksi yang sama;
+   bila belum, tetap **Disetujui** dan **penjadwal** mengaktifkannya pada tanggalnya.
+3. Sesudah aktif, sistem **mencari sendiri** rekam pasien yang terbukti orang yang sama (NIK + tanggal lahir + jenis
+   tanda pengenal KTP/NIK, tepat satu pasien) dan **memasang kartu** "Benefit Karyawan RS". Bila tidak yakin, sistem
+   **tidak menebak**: hasilnya "menunggu pasien" atau "ditahan untuk ditinjau".
+4. Petugas Registrasi melihat kartu itu di tab Penjamin Perusahaan beserta **status benefit yang dibaca langsung dari
+   HR**, dan saat pendaftaran kunjungan sistem **mencocokkan ulang** identitas pasien untuk kartu yang dipasang otomatis.
+
+Contoh: Rendy Saputra (karyawan, NIK 3201000100010001, lahir 5 Mei 1990) diajukan benefit "Medical Staf" mulai
+1 November. HRD menyetujui pada 3 November → langsung Aktif dengan saldo awal sesuai plafon plan. Sistem menemukan satu
+pasien ber-KTP 3201000100010001 lahir 5 Mei 1990 → kartu terpasang dengan nomor referensi enrollment `BEN000123`.
+Bila pasien yang ditemukan justru Gilang Mahendra dengan tanggal lahir 12 Agustus 1988, kartu **tidak** dipasang.
+
+### V.2 Batas konteks, pemilik, dan arah dependensi
+
+| Konteks | Pemilik | Yang dimilikinya dalam amandemen ini | Boleh bergantung pada |
+|---|---|---|---|
+| HR Benefit Management (`Areas/Corporate/HumanResource/BenefitManagement`) | HR | Enrollment, status, aktivasi, saldo awal, penjadwal aktivasi, **antarmuka pemberi tahu** perubahan enrollment | Workforce (HR). **Tidak** bergantung pada Patient Management secara langsung |
+| Patient Management (`Areas/HealthServices/PatientManagement/MasterData`) | Patient Management / Registrasi | Kartu penjamin pasien, **catatan hasil sinkronisasi** (baru), penyedia penjamin internal, daftar kerja Registrasi | HR Benefit Management lewat layanan baca yang sudah ada (resolver pemilik, kelayakan) |
+| Registration Management (`Areas/HealthServices/RegistrationManagement`) | Registrasi | Validasi kartu saat kunjungan didaftarkan atau penanggung diganti | HR (sudah), Patient Management (sudah) |
+| Billing | Billing | Tidak berubah; tetap membaca snapshot penanggung kunjungan dan kelayakan HR | — |
+
+**Arah dependensi (`FIN-DES-113`).** Registrasi dan Patient Management sudah memanggil layanan HR
+(`PatientWorkforceIdentityResolver` → `WorkforceBenefitOwnerResolver`). Bila HR juga memanggil kelas Patient Management
+secara langsung, kedua konteks saling bergantung. Karena itu HR **mendefinisikan antarmuka** di wilayahnya sendiri,
+dan Patient Management **mengimplementasikannya**. HR hanya mengenal antarmuka, tidak mengenal kelas Patient.
+
+```
+HR Benefit Management ──(memanggil antarmuka miliknya sendiri)──► IEmployeeBenefitPatientCardSync
+                                                                        ▲
+Patient Management  ──(mengimplementasikan)─────────────────────────────┘
+Patient Management  ──(membaca, sudah ada)──► WorkforceBenefitOwnerResolver, EmployeeBenefitEligibilityService
+```
+
+**Batas transaksi.**
+
+| Proses | Satu transaksi | Di luar transaksi itu |
+|---|---|---|
+| Ajukan Benefit (`S1`) | Buat enrollment langsung `Submitted` (kunci advisory per pemilik+plan, Serializable) | Alokasi nomor enrollment (aturan `QBE-CODE-002`, sama dengan Create sekarang) |
+| Setujui (`S2`) | `Submitted` → `Approved` → (bila tanggal tiba) `Active` + saldo awal, satu `TransitionAsync` | Pemanggilan sinkronisasi kartu **sesudah commit** |
+| Aktivasi terjadwal (`S3`) | Satu `TransitionAsync` per enrollment | Pemanggilan sinkronisasi sesudah commit |
+| Sinkronisasi kartu (`S5a`) | Satu transaksi per enrollment: kunci per enrollment dan per pasien, cari pasien, buat/pakai ulang kartu, tulis catatan hasil | — |
+| Batal (`S6`) | `CancelAsync` (tidak berubah) | Penonaktifan kartu sesudah commit, transaksi sendiri |
+
+**Rollback.** Kegagalan syarat aktivasi membatalkan seluruh persetujuan (`FIN-DEC-234`). Kegagalan sinkronisasi **tidak**
+membatalkan persetujuan atau aktivasi (`FIN-DEC-244`); ia dicatat sebagai "gagal sementara" dan diulang.
+
+### V.3 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang di sini |
+|---|---|:---:|---|
+| Enrollment benefit (`TrxEmployeeBenefitEnrollment`) | HR Benefit Management | Ya | Tidak — diperluas perilakunya, tanpa kolom baru |
+| Profil SDM, karyawan, dokter (`MstWorkforceProfile`, `MstEmployee`, `MstDoctor`) | HR Workforce | Ya (baca) | Tidak |
+| Pasien (`MstPatient`) | Patient Management | Ya (baca) | Tidak — tidak ada kolom tautan workforce baru |
+| Kartu penjamin pasien (`MstPatientCompanyGuarantor`) | Patient Management | Ya (tulis lewat jalur validasi yang sama) | Tidak — tanpa kolom baru |
+| Penjamin internal `SYS-RS-BENEFIT` (`MstCompanyGuarantor`) | Administrator Master Data | Ya (baca; dibuat bila belum ada) | Tidak |
+| **Catatan hasil sinkronisasi kartu** (`PatEmployeeBenefitCardSync`) | **Patient Management** (`Pat`) | Ya | **Ya, baru** — tidak ada tabel existing yang memuat status, alasan, dan tautan enrollment↔kartu (`FIN-CAP-096`) |
+| Snapshot penanggung kunjungan (`RegPatientEncounterGuarantor`) | Registration Management | Ya (dibaca validasi) | Tidak |
+| Saldo dan mutasi plafon (`HrdBenefitBalanceMovement`) | HR Benefit Balance | **Tidak disentuh** | Tidak |
+| Piutang, invoice, kwitansi | Finance dan Billing | **Tidak disentuh** | Tidak |
+
+### V.4 Keputusan desain agen (`draft`, menunggu persetujuan pemilik)
+
+| ID | Keputusan | Dasar | Alternatif yang ditolak |
+|---|---|---|---|
+| `FIN-DES-109` | **Ajukan Benefit** adalah endpoint baru `POST …/employee-benefit-enrollments/submit` yang membuat enrollment langsung `Submitted`. Dijaga `EmployeeBenefitEnrollment : Create`. Endpoint `POST /` (buat Draft) dan `POST /{id}/submit` tetap ada untuk Draft lama | `FIN-DEC-243`. Atribut `[AccessPermission]` hanya boleh satu per method (`AttributeUsage` tanpa `AllowMultiple`), sehingga usulan `FIN-GAP-001` (dua izin) diganti: siapa yang boleh membuat pengajuan baru boleh mengajukannya, karena "menyimpan = mengajukan" adalah maksud keputusan | Frontend memanggil Create lalu Submit (dilarang `FIN-DEC-243`); parameter `submit=true` pada `POST /` (mengubah arti endpoint lama diam-diam) |
+| `FIN-DES-110` | **Setujui** menjalankan aktivasi pada transaksi yang sama bila tanggal mulai (hari operasional WIB) ≤ hari ini. Logika aktivasi diekstrak dari lambda `ActivateAsync` menjadi satu method privat yang dipakai Setujui, Aktifkan manual, dan penjadwal. **Aktifkan manual menolak** enrollment yang tanggal mulainya masih di masa depan (`FIN-VAL-291`) | `FIN-DEC-234`, `235`; permintaan pemilik "jangan memaksakan Active lebih awal" | Memanggil `ActivateAsync` dari dalam Setujui (transaksi dan kunci ganda); dua transaksi berurutan (bisa Approved tanpa Active) |
+| `FIN-DES-111` | **Penjadwal aktivasi** `EmployeeBenefitActivationSchedulerHostedService` di HR, opsi `HumanResource:EmployeeBenefitActivationScheduler`, **mati bawaan**. Setiap putaran mengaktifkan enrollment `Approved` yang tanggal mulainya sudah tiba, satu per satu lewat jalur aktivasi yang sama, dengan akun layanan sistem. Enrollment yang seluruh periodenya sudah lewat **dilewati**, dicatat di log, dan tetap `Approved` | `FIN-DEC-235`; `FIN-OQ-127` (usulan); pola `FinanceEmployeeBenefitArIntakeSchedulerHostedService` | Mengaktifkan saat dibaca (menulis di GET); status baru `Expired` (`FIN-DEC-242`) |
+| `FIN-DES-112` | **Catatan hasil sinkronisasi** adalah entity operasional `PatEmployeeBenefitCardSync`, pemilik **Patient Management**, prefix `Pat` (`ACTIVE`), di `Areas/HealthServices/PatientManagement/MasterData/Models/` mengikuti preseden `PatNewbornBirthSequence`. **Usulan jawaban `FIN-OQ-121`**; pemilik registry mengonfirmasi bahwa baris "PatientManagement operational" mencakup folder ini | `FIN-DEC-239`; registry baris 25; `FIN-CAP-096` | Pemilik HR BenefitManagement (belum terdaftar, `QBE-MOD-002`); kolom baru pada kartu (kartu manual dan kartu lama ikut membawa kolom yang tidak relevan) |
+| `FIN-DES-113` | **Pemicu lintas konteks**: HR memanggil antarmuka `IEmployeeBenefitPatientCardSync` **sesudah commit**, dibungkus `try/catch` sehingga galat tidak pernah membatalkan atau menyembunyikan hasil persetujuan. **Ketahanan dijamin rekonsiliasi**, bukan outbox: penjadwal sinkronisasi memindai enrollment `Active` yang belum punya catatan atau catatannya perlu diulang. Bila server mati tepat sesudah commit, putaran berikutnya menemukannya | `FIN-DEC-244`; idempotensi lewat catatan unik per enrollment | Tabel outbox baru (dua tabel untuk satu fakta; catatan hasil sudah unik dan cukup sebagai keadaan tahan lama); menulis tabel Patient dari dalam transaksi HR (mengikat dua konteks) |
+| `FIN-DES-114` | **Ekstraksi `InternalBenefitCardService`** (Patient Management) dari `PatientCompanyGuarantorController`: mencari atau menyiapkan penjamin internal, memakai ulang kartu internal aktif, dan membuat kartu internal `SELF` **lewat `ResolveCardLinkAsync` yang sama**. Endpoint `internal-benefit-card` dan sinkronisasi memanggil layanan yang sama | `FIN-CAP-093`; `QBE-SVC-001` untuk kode baru | Menyalin logika ke layanan sinkronisasi (dua aturan pembuatan kartu yang bisa menyimpang) |
+| `FIN-DES-115` | **Algoritma pencocokan** (bagian V.8) | `FIN-DEC-237`, `250`, `251`, `249` | Mencocokkan nama; mencocokkan tanpa jenis tanda pengenal |
+| `FIN-DES-116` | **Lima status, kode alasan, dan jadwal ulang** (bagian V.9). Jeda ulang adalah `CONFIGURABLE_DEFAULT` | `FIN-DEC-239`, `246`, `253` | Status tambahan "dihentikan" (`FIN-GAP-014` cukup dengan aturan "enrollment tidak aktif → tidak diproses") |
+| `FIN-DES-117` | **Deteksi pencabutan**: catatan `SYNCED` yang kartunya kini nonaktif atau terhapus padahal enrollment masih `Active` diubah menjadi `REVOKED` oleh penjadwal; sesudah itu penjadwal tidak menyentuhnya | `FIN-DEC-253` | Menambah logika ke endpoint ubah status kartu (menyentuh controller legacy untuk hal yang dapat dideteksi) |
+| `FIN-DES-118` | **Batal**: sesudah `CancelAsync` commit, kartu yang tercatat dinonaktifkan (`IsActive = false`, `IsPrimary = false`), tidak dihapus. Catatan yang belum berhasil berhenti diproses karena enrollment tidak lagi `Active` | `FIN-DEC-242`, `FIN-GAP-014` | Menghapus kartu (riwayat hilang) |
+| `FIN-DES-119` | **Status benefit hidup pada daftar kartu**: respons daftar kartu penjamin pasien mendapat dua field tambahan untuk kartu internal, dihitung dari layanan HR baru `DescribeBenefitStateAsync`. Field lama tidak berubah (aditif) | `FIN-DEC-242`; `FIN-GAP-009`; `FIN-CAP-097` | Menyalin tanggal dan status ke kolom kartu (basi bila HR berubah) |
+| `FIN-DES-120` | **Daftar kerja Registrasi**: controller baru `EmployeeBenefitCardSyncController` (Patient Management), izin baru `EmployeeBenefitCardSync : Read`, hanya baca, tanpa identitas pasien | `FIN-DEC-255` | Menampilkan nama/RM pasien kandidat (ditolak pemilik) |
+| `FIN-DES-121` | **Ringkasan sinkronisasi pada enrollment HR** (daftar dan detail) dan endpoint **Sinkronkan ulang** `POST …/{id}/patient-card-sync`, izin baru `EmployeeBenefitEnrollment : SyncPatientCard` | `FIN-DEC-246`, `255` | Tombol di layar Patient (HRD tidak memegang layar itu) |
+| `FIN-DES-122` | **Cek ulang identitas saat kunjungan**: `ValidateCardForServiceAsync` menerima ID pasien dan ID kartu; bila kartu tercatat `SYNCED` pada catatan hasil sinkronisasi, identitas pasien (kanonik) dicocokkan ulang dengan pemilik memakai aturan V.8 butir 2–4 | `FIN-DEC-256`, `257` | Kolom penanda "otomatis" pada kartu |
+| `FIN-DES-123` | **Dokter tamu ditolak** di resolver (pakai `WorkforceBenefitOwnerPolicy` yang dibetulkan: hanya `Employee` dan `PermanentDoctor`) dan pencarian penerima (saring jenis SDM dan `IsCancel`; baris tanpa profil workforce tidak ditampilkan, ID peran **tidak pernah** dipakai sebagai ID pemilik) | `FIN-DEC-240`, `247`, `254`; `FIN-GAP-015` | Pengecualian untuk data lama (ditolak `FIN-DEC-254`) |
+| `FIN-DES-124` | **Pesan kelayakan per keadaan** dalam Bahasa Indonesia, kode alasan lama tetap (kompatibel) | `FIN-DEC-245` butir (6); `FIN-GAP-008` | Kode alasan baru di respons galat (mengubah envelope `ApiResponse.Fail`) |
+| `FIN-DES-125` | **Batas pemasangan massal**: penjadwal sinkronisasi hanya memproses enrollment yang **diaktifkan sejak `ActivationCutoffUtc`** (wajib diisi bila penjadwal dinyalakan). Enrollment yang sudah `Active` sebelum batas itu disinkronkan **per enrollment** lewat "Sinkronkan ulang" | Larangan pemilik "mengubah data pasien secara massal" | Menyapu semua enrollment `Active` saat penjadwal pertama kali dinyalakan |
+| `FIN-DES-126` | **Galat jalur loket** (`FIN-GAP-010`): **diputuskan pemilik 3 November 2026**: jalur buat kunjungan mempertahankan envelope 400 dengan pesan khusus; jalur ganti penanggung tetap 422 + kode | `FIN-DEC-256`, `257` | — |
+
+### V.5 Class diagram
+
+#### V.5.1 HR Benefit Management
+
+```mermaid
+classDiagram
+    class EmployeeBenefitEnrollmentController {
+        <<Diperbarui>>
+        +SubmitNew(CreateEmployeeBenefitEnrollmentRequest)
+        +Approve(id, EnrollmentTransitionRequest)
+        +Activate(id, EnrollmentTransitionRequest)
+        +SyncPatientCard(id)
+    }
+    class EmployeeBenefitEnrollmentService {
+        <<Diperbarui>>
+        +CreateAndSubmitAsync()
+        +ApproveAsync()
+        +ActivateAsync()
+        +ActivateDueAsync(id, systemActor)
+        +CancelAsync()
+        -ApplyActivationAsync(enrollment)
+    }
+    class EmployeeBenefitActivationSchedulerHostedService {
+        <<Baru>>
+    }
+    class EmployeeBenefitActivationSchedulerOptions {
+        <<Baru>>
+    }
+    class IEmployeeBenefitPatientCardSync {
+        <<Baru, antarmuka>>
+        +OnEnrollmentActivatedAsync(enrollmentId, actor)
+        +OnEnrollmentCancelledAsync(enrollmentId, actor)
+        +RequestResyncAsync(enrollmentId, actor)
+        +GetSummariesAsync(enrollmentIds)
+    }
+    class TrxEmployeeBenefitEnrollment {
+        <<Sudah ada>>
+    }
+    class WorkforceBenefitOwnerResolver {
+        <<Diperbarui>>
+    }
+    class EmployeeBenefitEligibilityService {
+        <<Diperbarui>>
+        +SearchWorkforceAsync()
+        +DescribeBenefitStateAsync()
+    }
+    EmployeeBenefitEnrollmentController --> EmployeeBenefitEnrollmentService
+    EmployeeBenefitEnrollmentService --> TrxEmployeeBenefitEnrollment
+    EmployeeBenefitEnrollmentService --> WorkforceBenefitOwnerResolver
+    EmployeeBenefitEnrollmentService ..> IEmployeeBenefitPatientCardSync : sesudah commit
+    EmployeeBenefitActivationSchedulerHostedService --> EmployeeBenefitEnrollmentService
+    EmployeeBenefitActivationSchedulerHostedService --> EmployeeBenefitActivationSchedulerOptions
+    EmployeeBenefitEligibilityService --> WorkforceBenefitOwnerResolver
+```
+
+#### V.5.2 Patient Management dan Registrasi
+
+```mermaid
+classDiagram
+    class EmployeeBenefitCardSyncService {
+        <<Baru>>
+        +OnEnrollmentActivatedAsync()
+        +OnEnrollmentCancelledAsync()
+        +RequestResyncAsync()
+        +GetSummariesAsync()
+        +RunReconciliationAsync()
+    }
+    class EmployeeBenefitCardSyncSchedulerHostedService {
+        <<Baru>>
+    }
+    class EmployeeBenefitCardSyncSchedulerOptions {
+        <<Baru>>
+    }
+    class PatEmployeeBenefitCardSync {
+        <<Baru>>
+        EnrollmentId
+        SyncStatus
+        ReasonCode
+        PatientCompanyGuarantorId
+    }
+    class InternalBenefitCardService {
+        <<Baru, ekstraksi>>
+        +FindOrProvisionInternalGuarantorAsync()
+        +FindActiveInternalCardsAsync(patientId)
+        +CreateSelfCardAsync()
+    }
+    class EmployeeBenefitCardSyncController {
+        <<Baru>>
+    }
+    class PatientCompanyGuarantorController {
+        <<Diperbarui>>
+    }
+    class RegistrationEmployeeBenefitLookupService {
+        <<Diperbarui>>
+        +ValidateCardForServiceAsync(…, patientId, cardId)
+    }
+    class MstPatientCompanyGuarantor {
+        <<Sudah ada>>
+    }
+    class MstPatient {
+        <<Sudah ada>>
+    }
+    EmployeeBenefitCardSyncService ..|> IEmployeeBenefitPatientCardSync
+    EmployeeBenefitCardSyncService --> PatEmployeeBenefitCardSync
+    EmployeeBenefitCardSyncService --> InternalBenefitCardService
+    EmployeeBenefitCardSyncSchedulerHostedService --> EmployeeBenefitCardSyncService
+    EmployeeBenefitCardSyncSchedulerHostedService --> EmployeeBenefitCardSyncSchedulerOptions
+    InternalBenefitCardService --> MstPatientCompanyGuarantor
+    InternalBenefitCardService --> RegistrationEmployeeBenefitLookupService : ResolveCardLinkAsync
+    PatEmployeeBenefitCardSync --> MstPatientCompanyGuarantor
+    PatEmployeeBenefitCardSync --> MstPatient
+    EmployeeBenefitCardSyncController --> EmployeeBenefitCardSyncService
+    PatientCompanyGuarantorController --> InternalBenefitCardService
+    RegistrationEmployeeBenefitLookupService --> PatEmployeeBenefitCardSync : baca, kenali kartu otomatis
+```
+
+### V.6 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Fungsi | Membuka transaksi | Dipanggil oleh |
+|---|---|---|---|---|---|
+| `EmployeeBenefitEnrollmentController` | Diperbarui | `Areas/Corporate/HumanResource/BenefitManagement/Controllers/EmployeeBenefitEnrollmentController.cs` | Tambah `SubmitNew` (`POST /submit`) dan `SyncPatientCard` (`POST /{id}/patient-card-sync`); `Approve` dan `Activate` tetap, perilakunya berubah | Tidak | Frontend HR |
+| `EmployeeBenefitEnrollmentService` | Diperbarui | `…/BenefitManagement/Services/EmployeeBenefitEnrollmentService.cs` | `CreateAndSubmitAsync`; `ApproveAsync` mengaktifkan bila tanggal tiba; `ActivateAsync` menolak tanggal masa depan; `ActivateDueAsync` untuk penjadwal; `ApplyActivationAsync` (ekstraksi); `AvailableActionsFor` menambah `SyncPatientCard` pada `Active` dan hanya menyertakan `Activate` untuk `Approved` yang tanggal mulainya sudah tiba; ringkasan sinkronisasi pada daftar dan detail lewat antarmuka | Ya, `TransitionAsync` (Serializable + advisory lock) | Controller, penjadwal |
+| `EmployeeBenefitActivationSchedulerHostedService` | Baru | `…/BenefitManagement/Services/EmployeeBenefitActivationSchedulerHostedService.cs` | Putaran berkala; satu scope per putaran; memanggil `ActivateDueAsync` per enrollment | Tidak (layanan yang membuka) | Host |
+| `EmployeeBenefitActivationSchedulerOptions` | Baru | `…/BenefitManagement/Services/EmployeeBenefitActivationSchedulerOptions.cs` | `Enabled`, `PollIntervalSeconds`, `MaxPerCycle`, `SystemActorUserId` | — | Penjadwal |
+| `IEmployeeBenefitPatientCardSync` | Baru | `…/BenefitManagement/Services/IEmployeeBenefitPatientCardSync.cs` | Antarmuka milik HR; HR tidak mengenal kelas Patient | — | Layanan enrollment |
+| `WorkforceBenefitOwnerResolver` | Diperbarui | `…/BenefitManagement/Services/WorkforceBenefitOwnerResolver.cs` | `GuestDoctor` → `OWNER_TYPE_NOT_ALLOWED`; memakai `WorkforceBenefitOwnerPolicy` | Tidak | Banyak modul |
+| `WorkforceBenefitOwnerPolicy` | Diperbarui | `…/BenefitManagement/Constants/HrBenefitConstants.cs` | `AllowedUserTypes` = `Employee`, `PermanentDoctor` | — | Resolver, pencarian |
+| `EmployeeBenefitEligibilityService` | Diperbarui | `…/BenefitManagement/Services/EmployeeBenefitEligibilityService.cs` | Pencarian menyaring jenis SDM dan `IsCancel`; pesan per keadaan (`FIN-DES-124`); method baru `DescribeBenefitStateAsync` (status benefit untuk tampilan) | Tidak | Registrasi, Patient |
+| `EmployeeBenefitEnrollmentDtos` | Diperbarui | `…/BenefitManagement/DTOs/EmployeeBenefitEnrollmentDtos.cs` | `PatientCardSyncSummaryResponse` (baru); `EmployeeBenefitEnrollmentListResponse.PatientCardSyncStatus`; `EmployeeBenefitEnrollmentResponse.PatientCardSync`; `EmployeeBenefitEnrollmentPagedQuery.PatientCardSyncStatus` | — | — |
+| `PatEmployeeBenefitCardSync` | Baru | `Areas/HealthServices/PatientManagement/MasterData/Models/PatEmployeeBenefitCardSync.cs` | Catatan hasil sinkronisasi per enrollment | — | Layanan sinkronisasi, validasi kunjungan |
+| `PatEmployeeBenefitCardSyncConfiguration` | Baru | `Repositories/Configurations/HealthServices/PatientManagement/PatEmployeeBenefitCardSyncConfiguration.cs` | Index, unique, FK `Restrict`, check constraint | — | EF Core |
+| `EmployeeBenefitCardSyncStatuses`, `EmployeeBenefitCardSyncReasonCodes` | Baru | `Areas/HealthServices/PatientManagement/MasterData/Enums/EmployeeBenefitCardSyncConstants.cs` | Konstanta string (pola konstanta string seperti `EmployeeBenefitEnrollmentStatuses`) | — | — |
+| `EmployeeBenefitCardSyncService` | Baru | `…/PatientManagement/MasterData/Services/EmployeeBenefitCardSyncService.cs` | Implementasi antarmuka HR; pencocokan; pembuatan/pemakaian ulang kartu; catatan hasil; rekonsiliasi; deteksi pencabutan; penonaktifan saat batal | Ya, satu per enrollment | HR (lewat antarmuka), penjadwal, controller daftar kerja |
+| `EmployeeBenefitCardSyncSchedulerHostedService` | Baru | `…/PatientManagement/MasterData/Services/EmployeeBenefitCardSyncSchedulerHostedService.cs` | Putaran rekonsiliasi | Tidak | Host |
+| `EmployeeBenefitCardSyncSchedulerOptions` | Baru | `…/PatientManagement/MasterData/Services/EmployeeBenefitCardSyncSchedulerOptions.cs` | `Enabled`, `PollIntervalSeconds`, `MaxPerCycle`, `SystemActorUserId`, `ActivationCutoffUtc`, jeda ulang | — | Penjadwal |
+| `InternalBenefitCardService` | Baru (ekstraksi) | `…/PatientManagement/MasterData/Services/InternalBenefitCardService.cs` | Logika yang kini privat di controller: penyedia `SYS-RS-BENEFIT`, kartu internal aktif pasien, pembuatan kartu `SELF` lewat `ResolveCardLinkAsync` | Ya (pembuatan kartu) atau ikut transaksi pemanggil | Controller kartu, layanan sinkronisasi |
+| `EmployeeBenefitCardSyncController` | Baru | `…/PatientManagement/MasterData/Controllers/EmployeeBenefitCardSyncController.cs` | Daftar kerja Registrasi, hanya baca | Tidak | Frontend Registrasi |
+| `EmployeeBenefitCardSyncDtos` | Baru | `…/PatientManagement/MasterData/DTOs/EmployeeBenefitCardSyncDtos.cs` | `EmployeeBenefitCardSyncPagedQuery`, `EmployeeBenefitCardSyncListResponse` | — | — |
+| `PatientCompanyGuarantorController` | Diperbarui (legacy disentuh) | `…/PatientManagement/MasterData/Controllers/PatientCompanyGuarantorController.cs` | `EnsureInternalBenefitCard` memanggil `InternalBenefitCardService`; daftar kartu mengisi status benefit hidup (`FIN-DES-119`). Akses `DbContext` langsung yang sudah ada **tidak** dirapikan pada task ini (utang teknis) | Tidak berubah | Frontend |
+| `PatientCompanyGuarantorDtos` | Diperbarui | `…/PatientManagement/MasterData/DTOs/PatientCompanyGuarantorDtos.cs` | `PatientCompanyGuarantorResponse` + `IsEmployeeBenefitGuarantor`, `EmployeeBenefitStatus` (objek, hanya kartu internal) | — | — |
+| `RegistrationEmployeeBenefitLookupService` | Diperbarui | `Areas/HealthServices/RegistrationManagement/Services/RegistrationEmployeeBenefitLookupService.cs` | `ValidateCardForServiceAsync` versi dengan `patientId` dan `patientCompanyGuarantorId`; cek ulang identitas untuk kartu otomatis | Tidak | `PatientEncounterController`, `EncounterPaymentSourceService` |
+| `PatientEncounterController` | Diperbarui (legacy disentuh) | `…/RegistrationManagement/Controllers/PatientEncounterController.cs` | `LoadValidPatientCompanyGuarantorAsync` meneruskan ID pasien dan ID kartu | Tidak berubah | — |
+| `EncounterPaymentSourceService` | Diperbarui | `…/RegistrationManagement/Services/EncounterPaymentSourceService.cs` | Meneruskan ID pasien dan ID kartu ke validasi | Tidak berubah | Billing, Rawat Inap |
+| `Program.cs` | Diperbarui | `Program.cs` | Registrasi `AddScoped` layanan baru, `IEmployeeBenefitPatientCardSync` → `EmployeeBenefitCardSyncService`, dua `Configure<Options>`, dua `AddHostedService` di blok hosted service yang sama dengan penjadwal Finance | — | — |
+
+### V.7 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/BenefitManagement/
+├── Constants/HrBenefitConstants.cs                              Diperbarui (WorkforceBenefitOwnerPolicy)
+├── Controllers/EmployeeBenefitEnrollmentController.cs           Diperbarui
+├── DTOs/EmployeeBenefitEnrollmentDtos.cs                        Diperbarui
+├── Models/TrxEmployeeBenefitEnrollment.cs                       Sudah ada — legacy Trx*, utang teknis, jangan ditiru
+└── Services/
+    ├── EmployeeBenefitEnrollmentService.cs                      Diperbarui
+    ├── EmployeeBenefitEligibilityService.cs                     Diperbarui
+    ├── WorkforceBenefitOwnerResolver.cs                         Diperbarui
+    ├── IEmployeeBenefitPatientCardSync.cs                       Baru
+    ├── EmployeeBenefitActivationSchedulerHostedService.cs       Baru
+    └── EmployeeBenefitActivationSchedulerOptions.cs             Baru
+
+Areas/HealthServices/PatientManagement/MasterData/
+├── Controllers/
+│   ├── PatientCompanyGuarantorController.cs                     Diperbarui — legacy: DbContext langsung, utang teknis
+│   └── EmployeeBenefitCardSyncController.cs                     Baru
+├── DTOs/
+│   ├── PatientCompanyGuarantorDtos.cs                           Diperbarui
+│   └── EmployeeBenefitCardSyncDtos.cs                           Baru
+├── Enums/EmployeeBenefitCardSyncConstants.cs                    Baru
+├── Models/PatEmployeeBenefitCardSync.cs                         Baru
+└── Services/
+    ├── InternalBenefitCardService.cs                            Baru (ekstraksi)
+    ├── EmployeeBenefitCardSyncService.cs                        Baru
+    ├── EmployeeBenefitCardSyncSchedulerHostedService.cs         Baru
+    └── EmployeeBenefitCardSyncSchedulerOptions.cs               Baru
+
+Areas/HealthServices/RegistrationManagement/
+├── Controllers/PatientEncounterController.cs                    Diperbarui — legacy disentuh minimal
+└── Services/
+    ├── RegistrationEmployeeBenefitLookupService.cs              Diperbarui
+    └── EncounterPaymentSourceService.cs                         Diperbarui
+
+Repositories/
+├── ApplicationDbContext.cs                                      Diperbarui (DbSet<PatEmployeeBenefitCardSync> PatEmployeeBenefitCardSyncs)
+└── Configurations/HealthServices/PatientManagement/
+    └── PatEmployeeBenefitCardSyncConfiguration.cs               Baru
+    # Catatan: MstPatientCompanyGuarantorConfiguration dan PatNewbornBirthSequenceConfiguration ada di
+    # Configurations/HealthServices/ (tanpa subfolder) — penyimpangan lama, tidak dipindah pada task ini.
+
+Migrations/<timestamp>_AddPatEmployeeBenefitCardSync.cs          Baru (dibuat tim, bukan agen)
+
+Tests/
+└── <proyek test yang ditetapkan saat plan-module-delivery>      Baru — catatan: WorkforceBenefitOwnerAcceptanceTests
+                                                                  saat ini tinggal di proyek PharmacyTests (penyimpangan lama)
+```
+
+### V.8 Algoritma pencocokan pasien (`FIN-DES-115`)
+
+Berlaku untuk pemasangan otomatis saja. Jalur manual tetap `FIN-DEC-228`.
+
+1. **Pemilik.** Resolver pemilik benefit harus menyatakan pemilik aktif dan berjenis yang diizinkan (karyawan atau
+   dokter tetap). Kelayakan HR pada hari ini harus `OK` untuk hubungan `SELF`.
+2. **Jenis tanda pengenal.** Hanya pasien dengan `IdentityType` `KTP` atau `NIK` (tanpa membedakan huruf besar kecil).
+3. **NIK.** Angka saja pada kedua sisi: spasi, titik, dan tanda hubung dibuang (`FIN-GAP-011`). Tidak ada pencocokan
+   sebagian.
+4. **Tanggal lahir.** Tanggal kalender sama persis. Kosong di salah satu sisi → tidak cocok.
+5. **Pasien kanonik.** Pasien yang sudah digabung ke pasien lain dibaca lewat pasien tujuannya; pasien terhapus atau
+   nonaktif tidak dihitung.
+6. **Jumlah.** Nol pasien → `WAITING_PATIENT`. Lebih dari satu → `ON_HOLD` (`MULTIPLE_MATCH`). Tepat satu → lanjut.
+7. **Kartu internal yang sudah ada pada pasien itu** (`FIN-DEC-251`):
+   - kartu aktif milik pemilik yang sama dan `SELF` → **pakai ulang**, `SYNCED`;
+   - kartu aktif milik pemilik lain → `ON_HOLD` (`OTHER_INTERNAL_CARD_EXISTS`);
+   - kartu aktif tanpa tautan HR → `ON_HOLD` (`LEGACY_UNLINKED_CARD`).
+8. **Buat kartu** lewat `InternalBenefitCardService.CreateSelfCardAsync`, yang tetap melewati `ResolveCardLinkAsync`
+   (kelayakan, NIK `FIN-DEC-228`, kode hubungan dari HR). Isi kartu sama dengan jalur `internal-benefit-card`:
+   tanggal berlaku kosong, `IsEligible = true`, `IsNeedGuaranteeLetter = false`, `IsNeedEmployeeVerification = false`,
+   `IsPrimary = true` **hanya bila** pasien belum punya kartu utama aktif. Tambahan: `LastEligibilityReferenceNumber`
+   diisi nomor enrollment (kolom yang sudah ada) agar tab menampilkan nomor referensi benefit.
+9. **Kunci.** Kunci advisory per enrollment dan per pasien di dalam transaksi, sehingga dua proses (penjadwal dan klik
+   HRD) tidak membuat dua kartu.
+
+Contoh: Rendy (KTP `3201 0001 0001 0001` di data pasien, lahir 5 Mei 1990) cocok dengan NIK HR `3201000100010001`
+lahir 5 Mei 1990 karena spasi dibuang. Pasien yang sama dengan jenis ID "SIM" → `WAITING_PATIENT`
+(`IDENTITY_TYPE_NOT_ALLOWED`).
+
+### V.9 Status catatan hasil sinkronisasi dan jadwal ulang (`FIN-DES-116`)
+
+| Status | Arti bagi petugas | Diulang otomatis | Alasan yang mungkin |
+|---|---|---|---|
+| `SYNCED` | Kartu terpasang atau dipakai ulang | Tidak | — |
+| `WAITING_PATIENT` | Belum ada pasien yang terbukti sama | Ya, sekali sehari (bawaan) | `NO_MATCH`, `IDENTITY_TYPE_NOT_ALLOWED`, `IDENTITY_DATA_INCOMPLETE` |
+| `ON_HOLD` | Ditahan untuk ditinjau Registrasi | **Tidak** (hanya Sinkronkan ulang) | `MULTIPLE_MATCH`, `OTHER_INTERNAL_CARD_EXISTS`, `LEGACY_UNLINKED_CARD` |
+| `FAILED_RETRYABLE` | Gagal sementara | Ya, dengan jeda bertambah: 15 menit, 1 jam, 6 jam, lalu 24 jam (bawaan) | `HR_UNAVAILABLE`, `INTERNAL_GUARANTOR_UNAVAILABLE`, `CARD_VALIDATION_REJECTED`, `UNEXPECTED_ERROR` |
+| `REVOKED` | Kartu dicabut Registrasi; tidak dipasang ulang otomatis | **Tidak** (hanya Sinkronkan ulang) | `CARD_REVOKED` |
+
+`CARD_VALIDATION_REJECTED` dipakai bila `ResolveCardLinkAsync` menolak padahal pencocokan lolos (misalnya kelayakan
+berubah di antara dua langkah); pesannya disimpan sebagai kode, bukan teks berisi data pribadi.
+
+Kode alasan tidak pernah memuat nama, nomor rekam medis, atau NIK (`FIN-DEC-255`).
+
+### V.10 Status model dan dampak migration
+
+| Model | Status | Perubahan | Dampak migration |
+|---|---|---|---|
+| `PatEmployeeBenefitCardSync` | **Baru** | Seluruh kolom (kamus data bagian 12) | Satu migration aditif |
+| `TrxEmployeeBenefitEnrollment` | Sudah ada | Tidak ada kolom baru; status `Active` dicapai dari `Approved` lewat Setujui atau penjadwal | Tidak ada |
+| `MstPatientCompanyGuarantor` | Sudah ada | Tidak ada kolom baru; `LastEligibilityReferenceNumber` (sudah ada) diisi nomor enrollment untuk kartu otomatis | Tidak ada |
+| `MstPatient`, `MstCompanyGuarantor`, `RegPatientEncounterGuarantor`, `MstWorkforceProfile` | Sudah ada | Tidak berubah | Tidak ada |
+
+### V.11 Rencana migration
+
+| Urutan | Nama | Isi | Tanpa mematikan layanan | Pengisian data lama | Langkah mundur |
+|---:|---|---|:---:|---|---|
+| 1 | `AddPatEmployeeBenefitCardSync` | Tabel baru, index, unique terfilter, FK `Restrict` ke enrollment, profil SDM, pasien, kartu; check constraint status | Ya (aditif, tanpa mengunci tabel yang ada) | **Tidak ada.** Enrollment lama tidak disapu (`FIN-DES-125`) | `Down` menghapus tabel; aman selama penjadwal sinkronisasi mati dan belum ada kartu yang bergantung pada catatan (kartu yang terlanjur dibuat tetap sah sebagai kartu internal biasa) |
+
+Migration dibuat dan dijalankan oleh tim pengembang. Agen tidak membuat maupun menjalankan migration.
+
+**Urutan rilis yang aman.** (1) migration; (2) kode dengan kedua penjadwal `Enabled = false`; (3) pemilik HR
+menyelesaikan `R-1` (data dokter tamu); (4) admin memberi izin baru lewat Akses Role; (5) nyalakan penjadwal aktivasi;
+(6) isi `ActivationCutoffUtc` lalu nyalakan penjadwal sinkronisasi. Mundur: matikan penjadwal; Setujui tetap
+mengaktifkan dan kartu yang sudah terpasang tetap sah.
+
+### V.12 Rencana data master dan konfigurasi awal
+
+| Master / konfigurasi | Isi minimum | Sumber nilai |
+|---|---|---|
+| Penjamin internal `SYS-RS-BENEFIT` | Satu baris `IsEmployeeBenefitGuarantor = true`, aktif, tanpa batas kontrak | Sudah ada atau disiapkan otomatis oleh `InternalBenefitCardService` (perilaku yang sudah ada) |
+| Izin baru | `EmployeeBenefitEnrollment : SyncPatientCard`, `EmployeeBenefitCardSync : Read` | Diturunkan otomatis dari atribut oleh `PermissionRegistryDescriptor` dan `AccessMenuSeeder`; **dicentang admin** pada Akses Role |
+| `HumanResource:EmployeeBenefitActivationScheduler` | `Enabled=false`, `PollIntervalSeconds=3600`, `MaxPerCycle=100`, `SystemActorUserId=<akun layanan>` | `CONFIGURABLE_DEFAULT`; akun layanan ditetapkan pemilik |
+| `PatientManagement:EmployeeBenefitCardSyncScheduler` | `Enabled=false`, `PollIntervalSeconds=900`, `MaxPerCycle=50`, `SystemActorUserId`, `ActivationCutoffUtc` (wajib bila `Enabled`), `RetryDelaysMinutes=[15,60,360,1440]`, `WaitingPatientRecheckHours=24` | `CONFIGURABLE_DEFAULT` |
+
+Tidak ada master baru. Status dan kode alasan adalah konstanta kode, bukan master yang dapat diubah, karena maknanya
+dipakai aturan bisnis.
+
+### V.13 Keamanan, privasi, dan pencatatan
+
+- Log dan audit hanya memuat `EnrollmentId`, `SyncId`, status, kode alasan, aktor. **Tidak** memuat NIK, nama, tanggal
+  lahir, atau nomor rekam medis (`QBE-LOG-001`).
+- Daftar kerja Registrasi dan ringkasan HRD tidak memuat identitas pasien kandidat (`FIN-DEC-255`).
+- Semua penolakan identitas gagal tertutup: bila HR tidak dapat dibaca, kartu tidak dipasang dan kunjungan tidak lolos
+  validasi kartu (perilaku sekarang dipertahankan).
+
+### V.14 Strategi test
+
+| Lapisan | Yang diuji | Catatan |
+|---|---|---|
+| Unit/integration xUnit (SQLite atau provider uji yang sudah dipakai proyek) | Ajukan atomik, Setujui+aktif, aktivasi gagal → tetap Submitted, Activate masa depan ditolak, penjadwal melewati periode lewat, dokter tamu ditolak, pencocokan (8 kasus V.8), lima status, pencabutan, batal, cek ulang kunjungan | Dua test dokter tamu yang ada (`WorkforceBenefitOwnerAcceptanceTests.cs:150`, `:240`) harus lulus kembali |
+| Konkurensi | Dua Setujui bersamaan; penjadwal dan Sinkronkan ulang bersamaan → satu kartu | Butuh PostgreSQL untuk advisory lock; di SQLite kunci dilewati, sehingga diuji di lingkungan staging |
+| Lintas modul | Resolver dipakai Enrollment, Registrasi, Billing split, Finance AR | Jalankan suite yang sudah ada untuk keempatnya |
+| Frontend `node:test` | Label tombol, payload modal internal, galat berupa string | Test `employee-benefit-enrollment-create-form.test.mjs:230` diperbarui |
+
+### V.15 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Kolom `WorkforceProfileId` pada `MstPatient` | Tautan disimpan per kartu; pasien bukan milik HR, dan satu pasien bisa terkait lebih dari satu pemilik (tanggungan) |
+| Kolom status sinkronisasi pada `MstPatientCompanyGuarantor` | Kartu manual dan kartu lama akan membawa kolom yang tidak bermakna; catatan terpisah unik per enrollment lebih jelas |
+| Tabel outbox / event bus | Catatan hasil yang unik per enrollment ditambah rekonsiliasi sudah tahan restart dan idempoten |
+| Status enrollment `Expired` yang diisi sistem | `FIN-DEC-242`; pemakaian plafon hanya menerima `Active` |
+| Master penjamin baru per enrollment | `FIN-DEC-236` |
+| Kartu keluarga otomatis | `FIN-DEC-241` (`LATER SLICE`) |
+| Endpoint yang mengubah 422 menjadi 200 | Larangan pemilik |
+| Pemanggilan Create lalu Submit dari Frontend | `FIN-DEC-243` |
+| Merapikan akses `DbContext` langsung di `PatientCompanyGuarantorController` | Di luar scope; menjadi task tersendiri dengan persetujuan arsitek backend |

@@ -1,12 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
@@ -44,6 +47,7 @@ public sealed class BillingSourceTariffResolver
             BillingBridgeSourceDomains.EquipmentUsage => await ResolveEquipmentUsageAsync(request, cancellationToken),
             BillingBridgeSourceDomains.BloodBank => await ResolveBloodBankAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Consumable => await ResolveConsumableAsync(request, cancellationToken),
+            BillingBridgeSourceDomains.Optical => await ResolveOpticalAsync(request, cancellationToken),
             _ => BillingTariffResolution.Pending(
                 BillingBridgeCodes.SourcePendingSupport,
                 $"Penetapan tarif untuk {request.SourceDomain} belum tersedia pada jembatan.")
@@ -125,6 +129,69 @@ public sealed class BillingSourceTariffResolver
             return BillingTariffResolution.Rejected(
                 BillingBridgeCodes.TariffNotFound,
                 "Tarif obat/alkes pemakaian ini belum tersedia pada tanggal pemakaian. Lengkapi tarif, lalu kirim ulang.");
+
+        return Build(tariff, request.FactQuantity is > 0 ? request.FactQuantity.Value : item.Quantity);
+    }
+
+    /// <summary>
+    /// Optik (<c>BE-OPT-030</c>, <c>INT-OPT-04</c>, <c>OPT-APR-001</c>/<c>011</c>). Jenis fakta menentukan sumber harga:
+    /// <list type="bullet">
+    /// <item>pemeriksaan refraksi — tarif tindakan <c>SourceItemId</c> ("Pemeriksaan Refraksi"), jumlah 1;</item>
+    /// <item>barang pesanan — tarif obat/alkes dari <c>DrugId</c> baris pesanan (<see cref="FindDrugTariffAsync"/>),
+    /// jumlah dari fakta atau baris.</item>
+    /// </list>
+    /// Optik tidak pernah menyimpan harga (<c>QBE-ENT-003</c>); harga selalu dibaca di sini pada tanggal pelayanan.
+    /// </summary>
+    private async Task<BillingTariffResolution> ResolveOpticalAsync(
+        BillingTariffResolutionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.EffectType == BillingSourceContract.OpticalExamChargeEffectType)
+        {
+            if (request.SourceItemId is not { } procedureId || procedureId == Guid.Empty)
+                return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound,
+                    "Tindakan pemeriksaan refraksi tidak dikenali pada fakta Optik.");
+
+            var examStatus = await _dbContext.Set<OptRefractionExam>().AsNoTracking()
+                .Where(x => x.Id == request.SourceAggregateId && !x.IsDelete)
+                .Select(x => (OptRefractionExamStatus?)x.Status)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (examStatus is null)
+                return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Pemeriksaan refraksi sumber tidak ditemukan.");
+            if (examStatus != OptRefractionExamStatus.Final)
+                return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected,
+                    "Pemeriksaan refraksi belum final; pemeriksaan yang belum final tidak ditagihkan.");
+
+            var examTariff = await FindTariffAsync(
+                null, procedureId, request.EncounterClinicId, request.PatientClassId, request.OccurredAt, cancellationToken);
+            return Build(examTariff, 1m);
+        }
+
+        if (request.EffectType != BillingSourceContract.OpticalItemChargeEffectType)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected, "Jenis fakta Optik tidak dikenali.");
+
+        if (request.SourceItemId is not { } itemId || itemId == Guid.Empty)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Baris pesanan Optik tidak dikenali.");
+
+        var item = await _dbContext.Set<OptOrderItem>().AsNoTracking()
+            .Where(x => x.Id == itemId && x.OrderId == request.SourceAggregateId && !x.IsDelete)
+            .Select(x => new { x.DrugId, x.Quantity, x.Order!.IsRemake })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (item is null)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Baris pesanan Optik sumber tidak ditemukan.");
+
+        // Remake garansi tidak ditagih (INT-OPT-04 "Tidak diterbitkan"). Optik memang tidak menerbitkannya;
+        // penjagaan ini memastikan fakta yang terlanjur terbit tidak menjadi tagihan.
+        if (item.IsRemake)
+            return BillingTariffResolution.NotBillable(BillingBridgeCodes.NotBillable,
+                "Pesanan remake garansi tidak ditagihkan.");
+
+        var tariff = await FindDrugTariffAsync(
+            null, item.DrugId, request.EncounterClinicId, request.PatientClassId, request.OccurredAt, cancellationToken);
+        if (tariff is null)
+            return BillingTariffResolution.Rejected(
+                BillingBridgeCodes.TariffNotFound,
+                "Tarif barang Optik ini belum tersedia pada tanggal pesanan. Lengkapi tarif, lalu kirim ulang.");
 
         return Build(tariff, request.FactQuantity is > 0 ? request.FactQuantity.Value : item.Quantity);
     }
@@ -619,7 +686,9 @@ public sealed record BillingTariffResolutionRequest(
     Guid? EncounterClinicId,
     Guid? PatientClassId,
     DateTime OccurredAt,
-    IReadOnlyDictionary<Guid, decimal>? DispensedQuantities = null);
+    IReadOnlyDictionary<Guid, decimal>? DispensedQuantities = null,
+    // Jenis fakta. Hanya dibaca sumber yang punya lebih dari satu jenis fakta (Optik, BE-OPT-030).
+    string? EffectType = null);
 
 public enum BillingTariffResolutionKind
 {

@@ -18,6 +18,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/workforce-profiles/{workforceProfileId:guid}/payroll-profile")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId:guid}/payroll-profile")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_PAYROLL_MANAGEMENT",
@@ -28,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         Description = "Corporate human resource workforce payroll profile",
         SortOrder = 1
     )]
-    [Tags("Corporate / Human Resource / Payroll Management / Payroll Profile")]
+    [Tags("Corporate / Payroll Management / Payroll Profile")]
     public class WfpPayrollController : ControllerBase
     {
         private static readonly HashSet<string> AllowedPayrollStatuses = new(StringComparer.OrdinalIgnoreCase)

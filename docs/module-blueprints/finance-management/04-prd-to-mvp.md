@@ -2444,3 +2444,205 @@ tercatat, saldo piutang dan angsuran berubah, tunggakan dilimpahkan. Berlaku **s
 1. Seluruh Revisi 20 berstatus **draft**; persetujuan tetap tindakan pemilik.
 2. Revisi 20 **mengoreksi dua bagian kontrak yang sudah disetujui** (`payrollRunId` opsional dan isian persetujuan). Mohon dinyatakan eksplisit saat persetujuan.
 3. Batas 2.000 baris per berkas adalah pilihan desain agen; dapat diubah saat persetujuan.
+
+---
+
+# Revisi 22 (3 November 2026) — Benefit RS: Pengajuan sampai Penjamin Pasien Siap Dipakai
+
+```yaml
+last_changed_in: FIN-MVP-1.16
+status: approved
+owner: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: 00-interview-decisions.md FIN-DEC-231..257; requirement-completeness-assessment.md FIN-RCG-001 rev 2;
+  02-backend-architecture.md V; 03-frontend-architecture.md 26; contracts V; testing V
+backend_commit_sha: ba312826
+frontend_commit_sha: fa7eb8d7
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN (alasan: 02-backend-architecture.md V)
+```
+
+## 83. Identitas dan ringkasan
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian V2 |
+| Modul | Finance Management (`FIN-BP-001`), titik sentuh HR Benefit, Patient Management, Registrasi |
+| Repository target | `NewQuilvianSystemBackend` (`Yasmina`), `QuilvianSystemFrontendDev` (`yasmina`) |
+| Cakupan satu baris | Benefit RS diajukan sekali, disetujui HRD, aktif sesuai tanggal efektif, dan kartu penjaminnya tersedia sendiri di data pasien yang terbukti orang yang sama |
+
+**Ringkasan eksekutif.** Hari ini karyawan dan dokter tetap yang sudah disetujui benefitnya tetap tidak bisa memakai
+Benefit RS di loket: enrollment berhenti di Draft, persetujuan HRD tidak mengaktifkan, dan kartu penjamin pasien harus
+didaftarkan manual — dan form manualnya gagal. Revisi ini menutup rantai itu tanpa mengorbankan keamanan identitas:
+kartu hanya dipasang ke pasien yang terbukti sama, dan dicek ulang saat kunjungan.
+
+## 84. Masalah produk dan visi
+
+| Kondisi sekarang | Bukti |
+|---|---|
+| "Simpan Draft" membuat Draft; Ajukan adalah langkah terpisah | `EmployeeBenefitEnrollmentService.CreateAsync` baris 341; capability map `FIN-CAP-086` |
+| Setujui tidak mengaktifkan; Aktifkan manual tanpa cek tanggal | `FIN-CAP-087` |
+| Tidak ada penjadwal; status `Expired` tidak pernah diisi | `FIN-CAP-088` |
+| Kartu internal pasien tidak pernah dibuat otomatis | `FIN-CAP-095` |
+| Modal Daftarkan Penjamin tidak mengirim identitas HR → 422; pesannya hilang | `FIN-CAP-098`, `099`; `FIN-DEC-248` |
+| Dokter tamu diterima sejak `e5fc5888` | `FIN-CAP-090`, `091`; `FIN-DEC-247` |
+
+**Visi (rantai data).** Enrollment HR (pemilik = `WorkforceProfileId`) → Active dengan saldo awal → catatan hasil
+sinkronisasi → kartu penjamin pasien (pasien kanonik, NIK + tanggal lahir + KTP/NIK) → snapshot penanggung kunjungan →
+Billing membaca plafon HR aktual.
+
+## 85. Batas MVP dan pelaku
+
+**Titik mulai.**
+1. Staf HR membuka modal Pendaftaran Benefit Pegawai Baru.
+2. Penerima adalah karyawan atau dokter tetap aktif di HR.
+
+**Titik akhir.**
+1. Kunjungan pasien terdaftar dengan kartu "Benefit Karyawan RS" tanpa pendaftaran kartu manual, atau sistem menyatakan
+   dengan jelas mengapa belum (menunggu pasien, ditahan, gagal sementara, dicabut).
+2. Billing membaca plafon HR seperti sekarang. Tidak ada piutang, kwitansi, atau pelunasan yang dibuat revisi ini.
+
+| Pelaku | Tanggung jawab di MVP |
+|---|---|
+| Staf HR | Mengajukan benefit |
+| HRD | Menyetujui, mengaktifkan manual bila perlu, membatalkan, Sinkronkan ulang |
+| Petugas Registrasi | Meninjau kasus menunggu/ditahan, mencabut kartu salah pasien, mendaftarkan kartu manual (termasuk keluarga) |
+| Kasir | Tidak berubah; ganti penanggung kini menolak kartu otomatis yang identitasnya berubah |
+| Sistem (akun layanan) | Aktivasi terjadwal, sinkronisasi, rekonsiliasi |
+
+## 86. Pemilihan kemampuan
+
+| Kemampuan `MUST HAVE` | ID kemampuan asal | Slice |
+|---|---|---|
+| Ajukan Benefit atomik | `FIN-CAP-086` | `S1` |
+| Setujui yang mengaktifkan | `FIN-CAP-087` | `S2` |
+| Aktivasi terjadwal | `FIN-CAP-088` | `S3` |
+| Hanya karyawan dan dokter tetap | `FIN-CAP-090`, `091` | `S4` |
+| Sinkronisasi kartu otomatis | `FIN-CAP-093`, `094`, `095`, `096`, `100` | `S5a` |
+| Status sinkronisasi untuk HRD dan Registrasi | `FIN-CAP-089`, `096` | `S5b` |
+| Batal dan pencabutan mengikuti | `FIN-CAP-096` | `S6` |
+| Modal Daftarkan Penjamin internal + 422 spesifik | `FIN-CAP-098`, `099` | `S7` |
+| Status benefit hidup di tab | `FIN-CAP-097` | `S8` |
+| Cek ulang identitas saat kunjungan | `FIN-CAP-102` | `S9` |
+
+| Ditunda | Alasan tidak memblokir | Pengganti selama MVP |
+|---|---|---|
+| Kartu keluarga otomatis | `FIN-DEC-241` | Petugas mendaftarkan kartu keluarga lewat Daftarkan Penjamin (pemilih HR + anggota keluarga) |
+| Pilihan kartu bila pasien punya lebih dari satu kartu internal (`FIN-OQ-128`) | Sinkronisasi tidak menciptakan keadaan itu (`FIN-DEC-251`) | Petugas memilih kartu di tabel penjamin langkah pembayaran |
+| Validasi kartu pada kunjungan warisan bayi baru lahir (`FIN-OQ-129`) | Perilaku lama, tidak diubah | Perilaku sekarang |
+| Pemasangan untuk enrollment yang aktif sebelum `ActivationCutoffUtc` | Larangan perubahan data pasien massal | Sinkronkan ulang per enrollment oleh HRD |
+
+## 87. Alur bisnis target
+
+1. Staf HR memilih penerima dari HR, program, dan tanggal, lalu menekan **Ajukan Benefit** → Diajukan.
+2. HRD menekan **Setujui** → Aktif bila tanggal mulai tiba; selain itu Disetujui.
+3. Pada tanggal mulai, penjadwal mengaktifkan enrollment yang Disetujui.
+4. Sesudah aktif, sistem mencari tepat satu pasien yang terbukti sama dan memasang atau memakai ulang kartu.
+5. Bila tidak yakin, hasilnya menunggu atau ditahan; Registrasi meninjau, HRD menekan Sinkronkan ulang.
+6. Petugas Registrasi melihat kartu dan status benefit hidup di tab Penjamin Perusahaan.
+7. Saat kunjungan didaftarkan, kartu otomatis dicek ulang identitasnya; bila cocok, kunjungan memakai benefit.
+8. Billing membaca plafon HR seperti sekarang.
+
+## 88. Epic dan functional requirement
+
+### EPIC FIN-25 — Benefit RS dari Pengajuan sampai Penjamin Pasien
+
+| FR | Requirement | Disposisi | Rujukan |
+|---|---|---|---|
+| `FR-FIN-261` | Ajukan Benefit membuat enrollment `Submitted` dalam satu operasi; tanpa Draft sisa saat gagal | `EXTEND` | `FIN-DES-109`; api V.1 |
+| `FR-FIN-262` | Setujui mengaktifkan dalam transaksi yang sama bila tanggal mulai tiba; kegagalan syarat membatalkan persetujuan | `EXTEND` | `FIN-DES-110` |
+| `FR-FIN-263` | Penjadwal mengaktifkan `Approved` pada tanggal mulai; Aktifkan manual menolak tanggal depan | `MISSING / NEW` | `FIN-DES-111`; `FIN-VAL-291` |
+| `FR-FIN-264` | Dokter tamu tidak dapat menjadi penerima di jalur mana pun | `EXTEND` (perbaikan) | `FIN-DES-123` |
+| `FR-FIN-265` | Sinkronisasi memasang kartu `SYS-RS-BENEFIT` hanya ke tepat satu pasien yang NIK, tanggal lahir, dan jenis ID KTP/NIK-nya cocok; kartu pemilik sama dipakai ulang; kartu orang lain ditahan | `MISSING / NEW` | `FIN-DES-112..116` |
+| `FR-FIN-266` | HRD melihat status sinkronisasi dan dapat Sinkronkan ulang | `MISSING / NEW` | `FIN-DES-121` |
+| `FR-FIN-267` | Registrasi punya daftar kerja kasus menunggu/ditahan tanpa data pasien | `MISSING / NEW` | `FIN-DES-120` |
+| `FR-FIN-268` | Batal menonaktifkan kartu tercatat; kartu yang dicabut tidak dipasang ulang otomatis | `MISSING / NEW` | `FIN-DES-117`, `118` |
+| `FR-FIN-269` | Modal Daftarkan Penjamin internal memakai pemilih HR dan payload canonical; galat 422 tampil spesifik | `EXTEND` (perbaikan) | `FIN-DES-124`; frontend 26 |
+| `FR-FIN-270` | Tab Penjamin Perusahaan menampilkan status dan masa berlaku benefit langsung dari HR | `EXTEND` | `FIN-DES-119` |
+| `FR-FIN-271` | Kunjungan dengan kartu otomatis menolak bila identitas pasien tidak lagi cocok | `EXTEND` | `FIN-DES-122`, `126` |
+
+Tidak ada FR berstatus `OPEN DECISION`. `FIN-DES-126` (envelope galat loket) adalah pilihan desain yang disetujui
+bersama dokumen ini, bukan keputusan bisnis yang menggantung.
+
+## 89. Model status, arsitektur, API, dan kewenangan
+
+| Topik | Rujukan |
+|---|---|
+| Model status enrollment dan catatan sinkronisasi | `contracts/state-transition-matrix.md` V.1, V.2. Invariant: tidak ada `Approved` yang gagal `Active` karena syarat; saldo awal sekali; kartu hanya ke tepat satu pasien terbukti |
+| Sasaran arsitektur (pakai ulang / perluas / baru) | `02-backend-architecture.md` V.3, V.6, V.7. Baru: `PatEmployeeBenefitCardSync`, dua penjadwal, satu controller, satu antarmuka |
+| Sasaran kemampuan API | `contracts/api-contract.md` V.1–V.4; endpoint baru berlabel **Rencana (belum tersedia)** |
+| Matriks kewenangan | `contracts/permission-audit-matrix.md` V.2–V.4; izin baru `EmployeeBenefitEnrollment : SyncPatientCard`, `EmployeeBenefitCardSync : Read` |
+
+## 90. Batas integrasi, billing, regulasi, dan non-fungsional
+
+| Batas | Isi |
+|---|---|
+| Billing dan Finance | Revisi ini **MUST NOT** memotong plafon, membuat Invoice, Finance AR, kwitansi, atau melunasi piutang; **MUST NOT** mengubah refill plafon bulanan atau angsuran |
+| Master pasien | **MUST NOT** membuat atau menggabung pasien |
+| Privasi | NIK, tanggal lahir, dan tautan pegawai↔pasien tidak masuk log; daftar kerja dan ringkasan HRD tanpa data pasien |
+| Atomicity | Ajukan dan Setujui+aktif masing-masing satu transaksi Serializable dengan kunci advisory |
+| Konkurensi | `RowVersion` pada enrollment dan catatan sinkronisasi; kunci per enrollment dan per pasien |
+| Ketahanan | Rekonsiliasi berkala; tidak ada pekerjaan hilang saat server mulai ulang |
+| Waktu | Tanggal operasional WIB (`AppDateTimeHelper`) untuk tanggal mulai dan tanggal pelayanan |
+| Koreksi | Batal dan pencabutan tidak menghapus apa pun |
+
+## 91. Skenario UAT
+
+Rincian dan buktinya di `testing/acceptance-test-matrix.md` bagian V.
+
+| Slice | Berhasil | Gagal |
+|---|---|---|
+| `S1` | V.1.1 Ajukan → Diajukan | V.1.2 program kosong ditolak, nol baris; V.1.3 klik ganda 409 |
+| `S2` | V.2.1 Setujui → Aktif | V.2.2 irisan periode → tetap Diajukan |
+| `S3` | V.2.3 penjadwal mengaktifkan pada tanggal mulai | V.2.7 Aktifkan manual sebelum tanggal ditolak |
+| `S4` | V.3.2 dokter tetap tanpa `EmployeeId` diterima | V.1.4 dokter tamu ditolak |
+| `S5a` | V.3.1 kartu terpasang sekali | V.3.4 Gilang tidak menerima kartu Rendy; V.3.7 kartu orang lain → ditahan |
+| `S5b` | V.3.15 daftar kerja berisi tanpa data pasien | V.3.15 tanpa izin 403 |
+| `S6` | V.3.12 batal menonaktifkan kartu | V.3.11 kartu dicabut tidak dipasang ulang |
+| `S7` | V.4.2 simpan dengan penerima HR | V.4.3 422 tampil spesifik |
+| `S8` | V.4.6 status Aktif tampil | V.4.6 HR tidak terbaca → tidak tampak aktif |
+| `S9` | V.4.9 kunjungan memakai kartu otomatis yang sah | V.4.7 identitas berubah → kartu ditolak |
+
+## 92. Definition of Done Revisi 22
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | Tombol "Ajukan Benefit" dan satu permintaan Ajukan | V.1.1; review diff FE |
+| 2 | Ajukan atomik, tanpa Draft sisa | V.1.2 |
+| 3 | Setujui mengaktifkan bila tanggal tiba; gagal syarat → tetap Diajukan | V.2.1, V.2.2 |
+| 4 | Tanggal depan tidak aktif sebelum waktunya | V.2.3, V.2.7 |
+| 5 | Saldo awal tidak pernah diatur ulang | V.2.5, V.2.9 |
+| 6 | Dokter tamu ditolak; test 19 Oktober lulus | V.1.4, V.4.11 |
+| 7 | Kartu hanya ke tepat satu pasien terbukti; tidak ada kartu ganda | V.3.1, V.3.4, V.3.7, V.3.8 |
+| 8 | Sinkronisasi gagal tidak membatalkan aktivasi; pulih otomatis | V.3.9, V.3.10 |
+| 9 | Batal dan pencabutan tidak menghapus | V.3.11, V.3.12 |
+| 10 | Modal Daftarkan Penjamin internal tanpa 422 palsu; 422 asli tampil spesifik | V.4.2, V.4.3 |
+| 11 | Tab menampilkan status benefit hidup | V.4.6 |
+| 12 | Kunjungan menolak kartu otomatis yang identitasnya berubah | V.4.7 |
+| 13 | Nol mutasi plafon, invoice, piutang, kwitansi | V.3.18 |
+| 14 | Butir menu `SCR-BRS-06` terdaftar dan terjaga izin | Review `menu-items.jsx` |
+| 15 | Migration `AddPatEmployeeBenefitCardSync` siap diterapkan tim | Laporan task; **NOT RUN** sampai pemilik meminta |
+| 16 | Syarat rilis `R-1`..`R-4` terpenuhi | Konfirmasi pemilik |
+
+## 93. Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+|---|---|---|
+| `MVP-17` | `S1`, `S2` (dengan titik panggil sinkronisasi berupa antarmuka tanpa implementasi aktif), `S4`, `S7`, `S8` | Tidak bergantung pada tabel baru; langsung menghapus Draft, mengaktifkan saat Setujui, dan memperbaiki 422 |
+| `MVP-18` | Migration; `S5a`, `S6`, `S9`, `S3`; `S5b` | Bergantung pada tabel catatan sinkronisasi (`R-3`); `S9` dan `S6` membaca catatan itu; `S3` dirilis bersama agar aktivasi terjadwal langsung memicu sinkronisasi |
+| `POST-MVP` | Kartu keluarga otomatis, `FIN-OQ-128`, `FIN-OQ-129` | Ditunda pemilik |
+
+## 94. Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Pemilik | Memblokir |
+|---|---|---|
+| `FIN-DES-126`: envelope galat jalur loket 400 (usulan) atau disamakan 422 | Registrasi | Tidak memblokir desain; wajib dipilih saat persetujuan, sebelum task `S9` |
+| `FIN-OQ-121`: konfirmasi registry bahwa `PatEmployeeBenefitCardSync` di `PatientManagement/MasterData` tercakup baris `Pat` | Pemilik registry | **Memblokir implementasi `MVP-18`** (`QBE-MOD-002`); tidak memblokir `MVP-17` |
+| `FIN-OQ-127`: enrollment `Approved` yang periodenya sudah lewat | HR | Tidak |
+| Syarat rilis `R-1` (data dokter tamu), `R-2` (format NIK) | HR, Registrasi | Memblokir rilis `S4` dan `S5a`, bukan development |
+
+## 95. Catatan penyerahan
+
+1. Seluruh Revisi 22 berstatus **draft**; persetujuan tetap tindakan pemilik.
+2. Revisi 22 **menggantikan** `FIN-VAL-271` dan butir uji `N.2.2` atas keputusan `FIN-DEC-233`. Mohon dinyatakan eksplisit saat persetujuan.
+3. Label "Revisi 21" sudah dipakai dua kali tanpa tercatat di manifest (kamus data bagian 11, arsitektur bagian T). Revisi ini memakai nomor 22; manifest dicatat ulang.
