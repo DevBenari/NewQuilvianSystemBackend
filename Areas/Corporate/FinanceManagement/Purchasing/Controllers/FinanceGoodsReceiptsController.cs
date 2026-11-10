@@ -162,7 +162,8 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
         PurchaseOrderId = goodsReceipt.PurchaseOrderId,
         ReceivedDate = goodsReceipt.ReceivedDate,
         Status = goodsReceipt.Status,
-        RowVersion = goodsReceipt.RowVersion
+        RowVersion = goodsReceipt.RowVersion,
+        SourceSystem = goodsReceipt.SourceSystem
     };
 
     private static GoodsReceiptDetailResponse MapDetail(FinGoodsReceipt goodsReceipt)
@@ -176,6 +177,7 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
             ReceivedDate = mapped.ReceivedDate,
             Status = mapped.Status,
             RowVersion = mapped.RowVersion,
+            SourceSystem = mapped.SourceSystem,
             Items = goodsReceipt.Items.Select(x => new GoodsReceiptItemResponse
             {
                 Id = x.Id,
@@ -183,7 +185,14 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
                 ReceivedQuantity = x.ReceivedQuantity,
                 BatchNumber = x.BatchNumber,
                 ExpiredDate = x.ExpiredDate,
-                Notes = x.Notes
+                Notes = x.Notes,
+                ConditionCode = x.ConditionCode,
+                SourceQuantity = x.SourceQuantity,
+                SourceUomCode = x.SourceUomCode,
+                QuantityPerBaseUnit = x.QuantityPerBaseUnit,
+                BaseUomCode = x.BaseUomCode,
+                BaseQuantity = x.BaseQuantity,
+                AcceptedBaseQuantity = x.AcceptedBaseQuantity
             }).ToList()
         };
     }
@@ -191,6 +200,9 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
     private IActionResult Failure(Exception exception) => exception switch
     {
         KeyNotFoundException => NotFound(ApiResponse<object>.Fail(404, exception.Message)),
+        // FIN-VAL-315: dokumen bersumber BLM; kode mesin dibawa pada errors.code (ApiResponse tidak punya field kode).
+        PurchasingExternalDocumentException => Conflict(ApiResponse<object>.Fail(409, exception.Message,
+            new { code = PurchasingExternalDocumentException.Code })),
         PurchasingForbiddenException => StatusCode(403, ApiResponse<object>.Fail(403, exception.Message)),
         PurchasingConflictException => Conflict(ApiResponse<object>.Fail(409, exception.Message)),
         PurchasingValidationException => UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)),
@@ -200,7 +212,7 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
 
     private static bool IsHandled(Exception exception) => exception is
         KeyNotFoundException or PurchasingForbiddenException or PurchasingConflictException
-        or PurchasingValidationException or PurchasingBadRequestException;
+        or PurchasingValidationException or PurchasingBadRequestException or PurchasingExternalDocumentException;
 
     private IActionResult Replay(PurchasingIdempotencyService.CachedResult cached) =>
         new ContentResult { StatusCode = cached.StatusCode, Content = cached.ResponseBody, ContentType = "application/json" };

@@ -539,6 +539,7 @@ Menjawab kebutuhan rekonsiliasi tutup buku bulanan Accounting (`accounting/evide
 | Rancangan backend | `FIN-DES-070`..`FIN-DES-073`, `02-backend-architecture.md` AMENDMENT REVISI 13 |
 | Wewenang UI | `FIN-DEC-094` adalah **approved product brief** — ia mengunci *layar mana yang berdiri sendiri* dan *butir menu mana yang ada*, karena bentuk itu sudah disetujui pengguna lewat UAT pada sistem produksi V1. Tata letak, warna, ikon, urutan visual, dan component library **tetap `DEV_DISCRETION`** |
 | Yang dicabut | Bagian 15 (submenu "Pembelian" menurut `FIN-DEC-060`) **tidak lagi berlaku** sebagai struktur menu. Isinya tetap dibaca sebagai riwayat, bukan sebagai ketetapan |
+| Penanda 9 November 2026 | `FIN-DEC-258` **menggantikan sebagian** `FIN-DEC-094`: butir Purchase Order dan Penerima Pesanan keluar dari grup Transaksi A/P ke grup baru **Purchasing** (Monitoring Purchasing, Pesanan Pembelian (PO), Penerimaan Barang). `FIN-DEC-266` menambah **Retur Supplier** ke grup yang sama dan menyebut butir **Monitoring Sinkronisasi (BLM)** yang belum dibangun. Bagian lain 17 tetap berlaku. Pohon pada 17.2 **belum digambar ulang** (tugas `design-business-module`); baca dua butir itu sebagai sudah pindah |
 
 ### 17.1 Apa yang berubah dari bagian 15, dan mengapa
 
@@ -562,6 +563,8 @@ pembongkaran:
 | Nol perhitungan uang di klien | Berlaku penuh, termasuk pada selisih klaim |
 
 ### 17.2 Peta butir menu — Keuangan
+
+> **Penanda 9 November 2026 (`FIN-DEC-258`).** Pada pohon di bawah, butir "Pembelian Pesanan" dan "Penerima Pesanan" di grup Transaksi A/P **sudah pindah** ke grup baru "Purchasing" yang sejajar dengan Transaksi A/P. Butir Retur (Retur Produk, Retur Pembelian Supplier) juga sudah pindah ke Purchasing menurut `FIN-DEC-266`. Rute, resource izin, dan action izin butir-butir itu tidak berubah. Butir A/P lain dan seluruh A/R tidak terpengaruh. Pohon sengaja dibiarkan apa adanya sebagai riwayat revisi 13 sampai digambar ulang.
 
 Berkas yang disunting saat implementasi: `src/utils/menu-sidebar/menu-items.jsx`. Resolver membaca
 `subMenu` pada tingkat 0 dan `subItems` pada grup di bawahnya.
@@ -1930,3 +1933,48 @@ Pendaftaran butir menu baru menjadi acceptance criteria task `SCR-BRS-06`. Berka
 | `tests/unit/employee-benefit-enrollment-create-form.test.mjs:230` | `assert.match(modal, /Simpan Draft/)` diganti menjadi `/Ajukan Benefit/` |
 | `tests/unit/guarantor-workforce-owner.test.mjs` | Tetap; ditambah kasus payload modal registrasi |
 | Baru | Modal membaca galat berupa string; daftar menampilkan chip sinkronisasi |
+
+## 27. Amandemen 9 November 2026 (Revisi 23) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W; contracts/api-contract.md bagian W
+```
+
+**Tidak ada layar atau butir menu baru.** Satu komponen yang ada mendapat kolom tambahan, dan dua tindakan memberi pesan
+baru untuk dokumen BLM. Untuk dokumen lama tampilan tidak berubah.
+
+### 27.1 Perubahan pada komponen yang ada
+
+| Komponen | Berkas | Perubahan | Sumber data |
+|---|---|---|---|
+| Panel jejak dokumen, bagian kemajuan item | `src/components/view/finance/purchasing/shared/purchasing-document-trail-panel.jsx` | Bila `sourceSystem = "BLM"`: kolom Dipesan, Diterima Sah, Menunggu Periksa, Rusak, dan Sisa dalam **satuan dasar** (contoh "12 PCS"), plus tanda "Konversi belum pasti" bila `isConversionResolved = false`. Bila `QUILVIAN`: kolom lama tanpa perubahan | `ItemProgress` (`contracts/api-contract.md` W.3) |
+| Tombol catat, ubah, batal GR | Layar PO dan GR yang ada | Untuk dokumen BLM, galat 409 `PURCHASING_EXTERNAL_DOCUMENT` ditampilkan memakai pesan dari backend apa adanya. Menyembunyikan tombol untuk dokumen BLM adalah slice penguncian berikutnya | `contracts/validation-matrix.md` `FIN-VAL-315` |
+
+### 27.2 Skema wilayah panel kemajuan item (PO BLM)
+
+```text
+┌ Kemajuan item ─────────────────────────────────────────────────────────────┐
+│ Produk     │ Dipesan │ Diterima sah │ Menunggu periksa │ Rusak │ Sisa      │
+│ Produk A   │ 12 PCS  │ 10 PCS       │ 2 PCS            │ 0 PCS │ 2 PCS     │
+│ Produk B ⚠ │ 24 PCS  │ —            │ —                │ —     │ —         │
+│ ⚠ Konversi satuan belum pasti. Penerimaan item ini belum dihitung.         │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|
+| Tabel kemajuan | Satu baris per item PO | "Belum ada penerimaan barang untuk PO ini." | Pesan galat jejak dokumen yang sudah ada |
+| Tanda konversi | Muncul bila ada item `isConversionResolved = false` | Tidak tampil | — |
+
+Tidak ada tombol baru dan tidak ada butir hak akses baru. Warna, ikon, dan susunan visual adalah `DEV_DISCRETION`.
+
+### 27.3 Belum dirancang (slice berikutnya)
+
+Monitoring Sinkronisasi BLM, pemeliharaan pemetaan supplier (`FIN-OQ-144`, dijawab `FIN-DEC-281` dan dipersempit
+`FIN-DEC-287`: pemetaan memakai ID dan kode supplier BLM dengan konfirmasi petugas ditambah layar pemeliharaan;
+pencocokan otomatis NPWP ditunda sampai BLM menyediakan field pajak), penyelesaian konflik oleh Finance, penyembunyian tombol
+buat/ubah/setujui untuk dokumen BLM, dan penempatan menunya (`FIN-OQ-138`, dijawab `FIN-DEC-279`: "Monitoring
+Purchasing" tetap berdiri sendiri, "Monitoring Sinkronisasi" butir terpisah di grup Purchasing, menu Transaksi A/P
+tidak berubah). Bentuk layarnya tetap belum dirancang.

@@ -866,6 +866,11 @@ namespace QuilvianSystemBackend.Repositories
         // BE-FIN-051, FIN-DES-006: ledger idempotensi bersama untuk kelima aggregate root
         // Purchasing di atas — menutup gap header Idempotency-Key yang dicatat FE-FIN-008.
         public DbSet<FinPurchasingIdempotencyRecord> FinPurchasingIdempotencyRecords { get; set; }
+        // BE-FIN-143 (Revisi 23): penampung data PO/GR dari BLM. Prefix Fin; folder Purchasing.
+        public DbSet<FinPurchasingInboundMessage> FinPurchasingInboundMessages { get; set; }
+        public DbSet<FinPurchasingSupplierMap> FinPurchasingSupplierMaps { get; set; }
+        public DbSet<FinPurchasingSyncConflict> FinPurchasingSyncConflicts { get; set; }
+        public DbSet<FinPurchasingExternalCancellation> FinPurchasingExternalCancellations { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
