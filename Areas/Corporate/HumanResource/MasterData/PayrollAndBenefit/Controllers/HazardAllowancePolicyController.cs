@@ -18,6 +18,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/hazard-allowance-policies")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/hazard-allowance-policies")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -27,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "HazardAllowancePolicy",
         Description = "Corporate human resource master data hazard allowance policy",
         SortOrder = 52)]
-    [Tags("Corporate / Human Resource / Master Data / Hazard Allowance Policy")]
+    [Tags("Corporate / Payroll Management / Master Data / Hazard Allowance Policy")]
     public class HazardAllowancePolicyController : ControllerBase
     {
         private static readonly HashSet<string> AllowedHazardLevels =

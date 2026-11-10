@@ -613,14 +613,17 @@ public sealed class FinanceReceiptService
                 throw new ReceivableValidationException("Penerimaan yang sudah dibalik tidak dapat dialokasikan — uangnya sudah tidak ada.");
 
             // Pemisahan AR: piutang benefit internal (porsi Benefit RS atas penjamin internal) adalah biaya RS sendiri dengan
-            // nol uang diterima. Ia hanya ditutup lewat Penutupan Benefit, TIDAK PERNAH oleh penerimaan uang.
+            // nol uang diterima. Alokasi umum dari modul Penerimaan ini tidak mengenal Invoice AR, sehingga tidak boleh menjadi jalan
+            // pintas: penyelesaiannya diproses Finance dari Detail Invoice AR (penyelesaian internal, atau penerimaan bank aktual
+            // yang tercatat lewat Invoice AR itu sendiri).
             var requestedReceivableIds = lines
                 .Where(l => l.ReceivableId.HasValue).Select(l => l.ReceivableId!.Value).Distinct().ToList();
             if (requestedReceivableIds.Count > 0
                 && await _dbContext.FinReceivables.AsNoTracking()
                     .AnyAsync(x => requestedReceivableIds.Contains(x.Id) && x.IsInternalBenefit && !x.IsDelete, cancellationToken))
                 throw new ReceivableValidationException(
-                    "Piutang benefit internal (porsi Benefit RS) tidak dapat dilunasi dengan penerimaan uang; tutup lewat Penutupan Benefit.");
+                    "Piutang benefit internal (porsi Benefit RS) tidak dapat dialokasikan dari modul Penerimaan. " +
+                    "Proses penyelesaiannya dari Detail Invoice AR Benefit RS Internal.");
 
             // FR-FIN-041: hanya uang alokasi yang dibandingkan ke sisa penerimaan — potongan
             // BUKAN uang penerimaan (FIN-VAL-121), sehingga tidak ikut dijumlahkan di sini.

@@ -453,12 +453,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         NewCardNumber: null);
                 }
 
-                // BE-FIN-106, FIN-DEC-204: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
+                // BE-FIN-106, FIN-DEC-204, BE-FIN-140, FIN-DEC-256: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
                 // anggota keluarganya terdaftar dan terverifikasi di HR pada tanggal pelayanan. Tanggal diteruskan
                 // apa adanya (bukan serviceDate yang sudah dipotong) agar hari operasional tidak bergeser.
+                // Untuk kartu hasil sinkronisasi otomatis, NIK, tanggal lahir, dan jenis ID dicocokkan ulang dengan data HR.
                 var benefitCheck = await _employeeBenefitLookup.ValidateCardForServiceAsync(
                     card.CompanyGuarantorId, card.BenefitOwnerWorkforceProfileId, card.EmployeeId, card.FamilyMemberId,
-                    command.ServiceDate, cancellationToken);
+                    command.ServiceDate, card.PatientId, card.Id, cancellationToken);
                 if (!benefitCheck.IsValid)
                 {
                     return new EncounterPaymentSourceSwitchResult(

@@ -3,22 +3,22 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `OPT-BP-001` |
-| Dokumen | `OPT-FE-ARCH` revision `1` — `approved` (Yoga Aji Pratama, 2026-11-03) |
+| Dokumen | `OPT-FE-ARCH` revision `2` — `approved` (Yoga Aji Pratama, 2026-11-06). r1 `approved` (Yoga Aji Pratama, 2026-11-03) |
 | Owner UI | Yoga Aji Pratama (`OPT-DEC-026`) |
-| Masukan | `00-interview-decisions.md` r4 bagian 6 (`OPT-FE-001`..`005`), `contracts/api-contract.md` `OPT-API-v1` |
+| Masukan | `00-interview-decisions.md` r9 bagian 6 (`OPT-FE-001`..`005`), `contracts/api-contract.md` `OPT-API-v1.2`, `05-screen-brief.md` |
 | Repository | `QuilvianSystemFrontendDev` (Next.js App Router, JavaScript/JSX, Redux, Axios) |
 | Acuan pola | Modul MCU v2: route `src/app/health-services/medical-checkup-management/`, view `src/components/view/health-services/medical-checkup-management/`, service `src/lib/services/health-services/medical-checkup-management/` |
 
 > **Batas wewenang.** Dokumen ini menetapkan *apa* yang harus bisa dilakukan setiap layar.
-> Menu, nama menu, daftar layar final, route, serta tab/modal/drawer **belum** ditetapkan. Semuanya
-> diusulkan di screen brief dan disetujui pemilik (`OPT-FE-001`, `002`). Detail visual dalam
+> Menu, nama menu, daftar layar final, route, serta tab/modal/drawer ditetapkan di [`05-screen-brief.md`](05-screen-brief.md),
+> yang disetujui Yoga Aji Pratama 2026-11-04 (`OPT-FE-001`, `002`, `OPT-DEC-061`..`075`). Detail visual dalam
 > konvensi proyek berstatus `DEV_DISCRETION` (`OPT-FE-004`).
 
 ## 1. Hierarki wewenang
 
 ```text
 keamanan/privasi/invariant (izin, status, data sensitif)
-  -> screen brief Optik yang disetujui (belum ada)
+  -> screen brief Optik yang disetujui (05-screen-brief.md)
   -> konvensi proyek (komponen dasar, pola MCU/Lab)
   -> DEV_DISCRETION
 ```
@@ -33,13 +33,13 @@ keamanan/privasi/invariant (izin, status, data sensitif)
 | `FE-OPT-N04` | Form pemeriksaan refraksi | RO, Sp.M | `refraction-exams` | Isi, simpan final, revisi (dengan alasan), batal draft |
 | `FE-OPT-N05` | Form resep kacamata/lensa kontak + salin resep luar | RO, Sp.M | `prescriptions` | Simpan, revisi, lewat rentang (Sp.M) |
 | `FE-OPT-N06` | Riwayat versi resep dan pemeriksaan | RO, Sp.M, petugas penjualan (baca) | detail beserta versi | Bandingkan versi |
-| `FE-OPT-N07` | Pesanan: pilih resep berlaku, pilih barang dari katalog, simpan & tagihkan | Petugas penjualan | `prescriptions/options`, `reference-data/item-catalog`, `orders` | Simpan draft, tagihkan, ajukan diskon (endpoint Billing) |
+| `FE-OPT-N07` | Pesanan: pilih resep berlaku, pilih barang dari katalog, simpan & tagihkan | Petugas penjualan | `prescriptions/options`, `reference-data/item-catalog`, `orders` | Simpan draft, tagihkan, ajukan diskon dengan kebijakan Optik saja (endpoint Billing, `OPT-DEC-079`) |
 | `FE-OPT-N08` | Status bayar dan kirim ke pengerjaan | Petugas penjualan | `orders/{id}/payment-status` | Kirim (tujuan + perkiraan jadi) |
 | `FE-OPT-N09` | Daftar pesanan: filter status, "perlu dihubungi", "terlambat" | Petugas penjualan, Kepala Optik | `GET orders/` | Tandai siap, serahkan, ajukan batal |
 | `FE-OPT-N10` | Penyerahan | Petugas penjualan | `orders/{id}` | Centang identitas, isi wakil, catatan *fitting*, serahkan |
 | `FE-OPT-N11` | Persetujuan batal dan tutup tidak diambil | Kepala Optik | pengajuan batal | Setujui/tolak, tutup |
 | `FE-OPT-N12` | Keluhan garansi | Petugas, RO/Sp.M, Kepala Optik | `warranty-claims` | Catat, periksa ulang, putuskan |
-| `FE-OPT-N13` | Katalog dan profil barang Optik | Admin Optik | `reference-data/item-catalog`, `item-profiles` | Ubah profil |
+| `FE-OPT-N13` | Katalog dan profil barang Optik | Admin Optik | `reference-data/item-catalog`, `item-profiles`, `master-data/drugs/options` | Daftarkan barang (`OPT-DEC-080`), ubah profil |
 | `FE-OPT-N14` | Pengaturan Optik | Admin Optik | `reference-data/settings` | Ubah (berlaku ke depan) |
 | `FE-OPT-N15` | Empat laporan | Kepala Optik, Admin Optik | `reports/*` | Saring periode |
 
@@ -69,15 +69,15 @@ keamanan/privasi/invariant (izin, status, data sensitif)
 | Galat `409` | Pesan backend, lalu muat ulang data (status/versi sudah berubah) |
 | Galat `503` | "Modul pendukung sedang tidak dapat dihubungi"; tombol coba lagi |
 | Data basi | Setiap aksi mengirim `ExpectedVersion`; sesudah aksi, detail dimuat ulang |
-| Klik ganda | Satu `Idempotency-Key` per niat aksi; tombol nonaktif selama permintaan berjalan |
+| Klik ganda | Satu `Idempotency-Key` per niat aksi; tombol nonaktif selama permintaan berjalan. Wajib dikirim pada `POST visits`, `prescriptions`, `prescriptions/external`, `orders`, dan `warranty-claims` (`OPT-DEC-077`). Daur kunci di `05-screen-brief.md` bagian 6 |
 | Cache | Daftar pesanan dan status bayar dimuat ulang sesudah aksi yang mengubah status; status bayar tidak di-cache lama karena berubah oleh kasir |
 
 ## 5. Matriks wewenang UI
 
 | ID | Area | Owner | Status | Allowed range |
 | --- | --- | --- | --- | --- |
-| `OPT-FE-001` | Menu, nama menu, daftar layar | Yoga Aji Pratama | `draft` — menunggu screen brief | Pola paritas Lab/Radiologi/MCU; menu sidebar didaftarkan di `src/utils/menu-sidebar/menu-items.jsx` dengan `requiredPermission` |
-| `OPT-FE-002` | Route, pembagian daftar/detail, tab/modal/drawer | Yoga Aji Pratama | `draft` | Usulan route dasar `src/app/health-services/optical-management/…` (mengikuti pola MCU); final di screen brief |
+| `OPT-FE-001` | Menu, nama menu, daftar layar | Yoga Aji Pratama | `approved` — `05-screen-brief.md`, 2026-11-04 | Pola paritas Lab/Radiologi/MCU; menu sidebar didaftarkan di `src/utils/menu-sidebar/menu-items.jsx` dengan `requiredPermission` |
+| `OPT-FE-002` | Route, pembagian daftar/detail, tab/modal/drawer | Yoga Aji Pratama | `approved` — `05-screen-brief.md`, 2026-11-04 | Usulan route dasar `src/app/health-services/optical-management/…` (mengikuti pola MCU); final di screen brief |
 | `OPT-FE-003` | Isian resep | Yoga Aji Pratama | `approved` (isi) | Tata letak `DEV_DISCRETION` |
 | `OPT-FE-004` | Warna, jarak, komponen dasar, urutan kolom | Developer | `DEV_DISCRETION` | Konvensi proyek |
 | `OPT-FE-005` | Tombol aksi status | Yoga Aji Pratama | `approved` (aturan) | Bagian 3 |

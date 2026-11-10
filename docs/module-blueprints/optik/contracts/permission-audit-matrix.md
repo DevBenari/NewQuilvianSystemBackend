@@ -2,9 +2,9 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `OPT-PERM-v1` — status `approved` (sisi Optik) |
+| `contract_version` | `OPT-PERM-v1.4` — status `approved` (sisi Optik), Yoga Aji Pratama 2026-11-06. Dasarnya: `OPT-PERM-v1.3` `approved` (sisi Optik), Yoga Aji Pratama 2026-11-06. Registri Optik tetap 45 endpoint, dan tidak ada izin baru di kode. Enam izin modul lain yang sudah ada dicantumkan di tabel peran (`OPT-DEC-085`); persetujuannya cukup Yoga Aji Pratama dan admin akses, dan pemilik modul diberi tahu (`OPT-DEC-086`) |
 | Owner | Yoga Aji Pratama; security: pemilik arsitektur backend |
-| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-11-03 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-11-06 untuk `v1.4`, `v1.3`, `v1.2`, dan `v1.1`; `v1` 2026-11-03 |
 | Konstanta | `Areas/HealthServices/OpticalManagement/Constants/OpticalPermissions.cs`, `ModuleCode = "HEALTH_SERVICE_OPTICAL_MANAGEMENT"`, `ModuleName = "Health Service Optical Management"`, `AreaName = "HealthServices"` |
 
 String disalin apa adanya ke `[AccessController(ControllerName = …)]`, `[AccessAction]`, dan
@@ -28,8 +28,8 @@ ulang utuh.
 | `GET prescriptions/`, `/{id}`, `/options` | `OptPrescription` | `Read` | `[AccessPermission("OptPrescription", "Read")]` | Tidak |
 | `POST prescriptions/`, `/external` | `OptPrescription` | `Create` | `[AccessPermission("OptPrescription", "Create")]` | Ya |
 | `POST prescriptions/{id}/revisions` | `OptPrescription` | `Revise` | `[AccessPermission("OptPrescription", "Revise")]` | Ya |
-| (syarat tambahan di dalam create/revise) | `OptPrescription` | `OverrideRange` | `[AccessPermission("OptPrescription", "OverrideRange")]` — dicek service, bukan atribut endpoint | Ya |
-| `GET orders/`, `/{id}`, `/{id}/payment-status` | `OptOrder` | `Read` | `[AccessPermission("OptOrder", "Read")]` | Tidak |
+| `GET prescriptions/range-override`; syarat tambahan di dalam create/revise | `OptPrescription` | `OverrideRange` | `[AccessPermission("OptPrescription", "OverrideRange")]` — dicek service, bukan atribut endpoint | Ya |
+| `GET orders/`, `/{id}`, `/{id}/payment-status`, `/{id}/price-preview` | `OptOrder` | `Read` | `[AccessPermission("OptOrder", "Read")]` | Tidak |
 | `POST orders/` | `OptOrder` | `Create` | `[AccessPermission("OptOrder", "Create")]` | Ya |
 | `PUT orders/{id}` | `OptOrder` | `Update` | `[AccessPermission("OptOrder", "Update")]` | Ya |
 | `POST orders/{id}/bill` | `OptOrder` | `Bill` | `[AccessPermission("OptOrder", "Bill")]` | Ya |
@@ -74,14 +74,27 @@ praktik berlaku.
 | `OptReferenceData : Update/UpdateSetting` | — | — | — | — | ✔ | — |
 | `OptReport : Read` | — | — | — | ✔ | ✔ | — |
 | `BillingDiscount : Create` (Billing) | — | — | ✔ | ✔ | — | — |
+| `DiscountPolicy : Read` (Billing), untuk daftar pilihan modal Ajukan Diskon (`OPT-DEC-079`) | — | — | ✔ | ✔ | — | — |
+| `Drug : Read` (Master Data), untuk pilihan barang Daftarkan Barang (`OPT-DEC-080`) | — | — | — | — | ✔ | — |
+| `Patient : Read` (Pasien), untuk mencari pasien saat mendaftar (`OPT-DEC-085`) | — | — | ✔ | ✔ | — | ✔ |
+| `PatientInsurance : Read` (Pasien), untuk memilih kartu asuransi (`OPT-DEC-085`) | — | — | ✔ | ✔ | — | ✔ |
+| `PatientCompanyGuarantor : Read` (Pasien), untuk memilih Kartu Penjamin Perusahaan (`OPT-DEC-085`) | — | — | ✔ | ✔ | — | ✔ |
+| `PatientEncounter : Read` (Registrasi), untuk memilih kunjungan asal rujukan (`OPT-DEC-085`) | — | — | ✔ | ✔ | — | ✔ |
+| `BillingInvoice : Read` (Billing), untuk harga dan diskon baris di detail pesanan (`OPT-DEC-085`) | ✘ | ✘ | ✔ | ✔ | — | — |
+| `Supplier : Read` (Administrator), untuk memilih lab lensa luar saat kirim ke pengerjaan (`OPT-DEC-085`) | — | — | ✔ | ✔ | — | — |
 
 "—" = tidak diatur keputusan; bawaan tidak diberikan (*fail-closed*).
+
+**Izin modul lain (`OPT-DEC-085`).** Baris bertanda modul di dalam kurung adalah izin yang sudah ada di modul itu; layar Optik memanggil endpoint-nya. Superadmin melewati pemeriksaan izin, sehingga kekurangan izin hanya terlihat dengan akun petugas (`OPT-AC-042`). **Contoh:** petugas penjualan tanpa `Patient : Read` membuka Daftarkan Kunjungan, lalu pencarian pasien dijawab `403`. Keenam izin terbaru cukup disetujui Yoga Aji Pratama dan diberikan admin akses, dan pemilik modul diberi tahu (`OPT-DEC-086`). Izin tulis lintas modul tidak termasuk.
+
+**RO dan Sp.M tanpa `BillingInvoice : Read`.** Rincian tagihan kunjungan tidak terbaca, dan bagian harga di detail pesanan menampilkan pesan penolakan. Status Bayar tetap tampil, karena `GET orders/{id}/payment-status` memakai `OptOrder : Read`: isinya bagian pasien, minimum uang muka, dan jumlah terbayar. **Contoh:** RO melihat bagian pasien Rp 1.050.000 dan terbayar Rp 525.000 pada pesanan itu, tetapi tidak melihat baris lain pada tagihan kunjungan.
 
 ## 3. Audit
 
 | Kejadian | Jejak tahan lama | Logger (teks pesan) |
 | --- | --- | --- |
 | Pemeriksaan final/revisi | `OptRefractionExamRevision` (pelaku, waktu, alasan) + snapshot izin | "OPT-EXM-… difinalkan oleh {aktor}" |
+| Kirim ulang tarif pemeriksaan oleh pekerja latar (`OPT-DEC-082`) | Fakta tagihan: pelaku `FinalizedBy`; `BillingFactEmittedAt` | "Tarif OPT-EXM-… dikirim ulang pekerja latar atas nama pemeriksa yang memfinalkan". Tanpa nilai ukur |
 | Resep dibuat/disalin/direvisi/lewat rentang | `OptPrescriptionVersion` | "OPT-RX-… versi {n} oleh {aktor}" |
 | Transisi pesanan | `OptOrderStatusHistory` | "OPT-ORD-… {dari} → {ke} oleh {aktor}" |
 | Pengajuan/keputusan batal | `OptOrderCancellation` | "Batal OPT-ORD-… {disetujui/ditolak} oleh {aktor}" |

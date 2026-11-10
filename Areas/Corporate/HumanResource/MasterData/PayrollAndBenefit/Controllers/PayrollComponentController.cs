@@ -18,6 +18,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/payroll-components")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/payroll-components")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -27,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "PayrollComponent",
         Description = "Corporate human resource master data payroll component",
         SortOrder = 41)]
-    [Tags("Corporate / Human Resource / Master Data / Payroll Component")]
+    [Tags("Corporate / Payroll Management / Master Data / Payroll Component")]
     public class PayrollComponentController : ControllerBase
     {
         private static readonly HashSet<string> AllowedComponentTypes = new(StringComparer.OrdinalIgnoreCase)

@@ -25,7 +25,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 public sealed class FinanceReceivableInstallmentPlansController : ControllerBase
 {
     private readonly FinanceReceivableInstallmentPlanService _service;
-    public FinanceReceivableInstallmentPlansController(FinanceReceivableInstallmentPlanService service) => _service = service;
+    private readonly FinanceInstallmentDeductionEvidenceService _evidenceService;
+
+    public FinanceReceivableInstallmentPlansController(
+        FinanceReceivableInstallmentPlanService service, FinanceInstallmentDeductionEvidenceService evidenceService)
+    {
+        _service = service;
+        _evidenceService = evidenceService;
+    }
 
     [HttpPost("receivables/{receivableId:guid}/installment-plans")]
     [AccessAction("Create", "Create Installment Plan", AccessType = AccessTypes.Create, SortOrder = 1)]
@@ -89,37 +96,44 @@ public sealed class FinanceReceivableInstallmentPlansController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
-    /// <summary>Menyetujui, membangkitkan seluruh jadwal angsuran sekaligus (FIN-VAL-233/234).</summary>
-    [HttpPost("receivable-installment-plans/{id:guid}/approve")]
-    [AccessAction("Approve", "Approve Installment Plan", AccessType = AccessTypes.Update, SortOrder = 3)]
-    [AccessPermission("FinanceReceivableInstallmentPlan", "Approve")]
-    [ProducesResponseType(typeof(ApiResponse<InstallmentPlanDetailResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveInstallmentPlanRequest request, CancellationToken cancellationToken)
+    /// <summary>
+    /// Jadwal angsuran beserta status hasil payroll dan bukti potong gaji per periode. Baca-saja: tidak mengubah saldo piutang.
+    /// Metadata bukti cukup dengan Read; isi berkasnya terpisah (ReadDeductionProof) karena laporan penggajian dapat memuat banyak pegawai.
+    /// </summary>
+    [HttpGet("receivable-installment-plans/{id:guid}/deduction-evidence")]
+    [AccessAction("Read", "Read Installment Plan", AccessType = AccessTypes.Read, SortOrder = 2)]
+    [AccessPermission("FinanceReceivableInstallmentPlan", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<InstallmentDeductionEvidenceOverviewResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDeductionEvidence(Guid id, CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _service.ApproveAsync(id, request, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<InstallmentPlanDetailResponse>.Ok(result, "Perjanjian angsuran disetujui dan jadwal angsuran diterbitkan."));
+            var result = await _evidenceService.GetOverviewAsync(id, cancellationToken);
+            return Ok(ApiResponse<InstallmentDeductionEvidenceOverviewResponse>.Ok(result, "Bukti potong gaji perjanjian angsuran berhasil diambil."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
-    [HttpPost("receivable-installment-plans/{id:guid}/reject")]
-    [AccessAction("Reject", "Reject Installment Plan", AccessType = AccessTypes.Update, SortOrder = 4)]
-    [AccessPermission("FinanceReceivableInstallmentPlan", "Reject")]
-    [ProducesResponseType(typeof(ApiResponse<InstallmentPlanResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Reject(Guid id, [FromBody] RejectInstallmentPlanRequest request, CancellationToken cancellationToken)
+    /// <summary>Membuka berkas bukti potong gaji. Hanya bukti yang terhubung ke perjanjian ini; bukan akses publik.</summary>
+    [HttpGet("receivable-installment-plans/{id:guid}/deduction-evidence/{proofId:guid}/file")]
+    [AccessAction("ReadDeductionProof", "Read Installment Deduction Proof File", AccessType = AccessTypes.Read, SortOrder = 6)]
+    [AccessPermission("FinanceReceivableInstallmentPlan", "ReadDeductionProof")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadDeductionEvidence(Guid id, Guid proofId, CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _service.RejectAsync(id, request, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<InstallmentPlanResponse>.Ok(result, "Perjanjian angsuran ditolak."));
+            var (stream, mediaType, fileName) = await _evidenceService.OpenFileAsync(id, proofId, CurrentUserId(), cancellationToken);
+            return File(stream, mediaType, fileName);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
+
+    // Persetujuan dan penolakan BUKAN lagi wewenang Finance: keduanya hanya lewat HrdInstallmentPlanApprovalController
+    // (permission HrdInstallmentPlanApproval : Approve / Reject). Endpoint Approve/Reject di controller ini dicabut
+    // agar tidak ada jalur kedua yang melewati otorisasi HRD. Finance tetap mengajukan, membaca, dan membatalkan.
 
     [HttpPost("receivable-installment-plans/{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Installment Plan", AccessType = AccessTypes.Update, SortOrder = 5)]

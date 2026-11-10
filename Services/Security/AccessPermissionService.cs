@@ -259,7 +259,8 @@ namespace QuilvianSystemBackend.Services.Security
                         .Select(x => new EffectivePermission(x.Resource, x.Action))
                         .OrderBy(x => x.Resource)
                         .ThenBy(x => x.Action)
-                        .ToList());
+                        .ToList(),
+                    UnrestrictedAccess: true);
             }
 
             var now = DateTime.UtcNow;

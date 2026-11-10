@@ -264,6 +264,47 @@ public sealed class ReceivableInvoiceBatchPaymentHistoryAllocationResponse
     public DateTimeOffset AllocatedAt { get; set; }
 }
 
+public static class ReceivableInvoiceBatchPaymentSources
+{
+    public const string BankAccount = "BANK_ACCOUNT";
+    public const string InternalSettlement = "INTERNAL_SETTLEMENT";
+}
+
+public static class ReceivableInvoiceBatchInternalSettlementKinds
+{
+    /// <summary>Penyelesaian internal yang diposting Finance dari Detail Invoice AR (alur saat ini).</summary>
+    public const string FinanceInternalSettlement = "FINANCE_INTERNAL_SETTLEMENT";
+
+    /// <summary>Penutupan Benefit lama (read-only historis): mutasi PELUNASAN-INTERNAL yang bukan berasal dari Invoice AR ini.</summary>
+    public const string LegacyBenefitClosure = "LEGACY_BENEFIT_CLOSURE";
+}
+
+/// <summary>
+/// Satu kejadian penyelesaian piutang Benefit RS Internal tanpa penerimaan kas/bank (mutasi PELUNASAN-INTERNAL). Bukan receipt:
+/// tidak punya nomor penerimaan, rekening, maupun kwitansi.
+/// </summary>
+public sealed class ReceivableInvoiceBatchInternalSettlementResponse
+{
+    public Guid SettlementKey { get; set; }
+    public string Kind { get; set; } = ReceivableInvoiceBatchInternalSettlementKinds.FinanceInternalSettlement;
+    public string KindLabel { get; set; } = string.Empty;
+    public string? ReferenceNumber { get; set; }
+    public string? Note { get; set; }
+    public DateTimeOffset SettledAt { get; set; }
+
+    /// <summary>Positif = piutang berkurang (penyelesaian); negatif = pembalikan.</summary>
+    public decimal Amount { get; set; }
+    public bool IsReversal { get; set; }
+    public List<ReceivableInvoiceBatchInternalSettlementAllocationResponse> Allocations { get; set; } = new();
+}
+
+public sealed class ReceivableInvoiceBatchInternalSettlementAllocationResponse
+{
+    public Guid ReceivableId { get; set; }
+    public string ReceivableNumber { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
+
 public sealed class ReceivableInvoiceBatchPaymentHistoryResponse
 {
     public Guid ReceiptId { get; set; }
@@ -286,6 +327,18 @@ public sealed class ReceivableInvoiceBatchPaymentHistoryResponse
 
 public sealed class ReceivableInvoiceBatchDetailResponse : ReceivableInvoiceBatchResponse
 {
+    /// <summary>True untuk Invoice AR piutang karyawan/dokter: dilunasi lewat potong gaji perjanjian angsuran, bukan kasir/bank.</summary>
+    public bool IsEmployeeBenefit { get; set; }
+
+    /// <summary>True untuk Invoice AR Benefit RS Internal (PAYER, IsInternalBenefit): tidak ada penerimaan kas dari pihak luar.</summary>
+    public bool IsInternalBenefit { get; set; }
+
+    /// <summary>Alasan pembayaran kasir/bank tidak ditawarkan (terisi bila IsEmployeeBenefit). Null = tidak diblokir karena jenis invoice.</summary>
+    public string? PaymentBlockedReason { get; set; }
+
+    /// <summary>Perjanjian angsuran terkini (MENUNGGU/DISETUJUI/SELESAI) atas piutang anggota invoice karyawan. Null = belum ada perjanjian.</summary>
+    public ReceivableInvoiceBatchInstallmentPlanResponse? InstallmentPlan { get; set; }
+
     public decimal TotalReceivable { get; set; }
     public decimal TotalAllocated { get; set; }
     public decimal TotalOutstanding { get; set; }
@@ -310,6 +363,21 @@ public sealed class ReceivableInvoiceBatchDetailResponse : ReceivableInvoiceBatc
 
     public List<ReceivableInvoiceBatchMemberResponse> Members { get; set; } = new();
     public List<ReceivableInvoiceBatchPaymentHistoryResponse> Payments { get; set; } = new();
+
+    /// <summary>
+    /// Penyelesaian piutang Benefit RS Internal tanpa receipt (mutasi PELUNASAN-INTERNAL), baik yang diposting Finance dari Invoice AR
+    /// ini maupun Penutupan Benefit lama (historis, read-only). Terpisah dari <see cref="Payments"/> yang hanya berisi receipt.
+    /// </summary>
+    public List<ReceivableInvoiceBatchInternalSettlementResponse> InternalSettlements { get; set; } = new();
+
+    /// <summary>Total bersih penyelesaian internal (penyelesaian dikurangi pembalikan) pada anggota batch.</summary>
+    public decimal TotalInternalSettled { get; set; }
+
+    /// <summary>
+    /// Terisi bila ada anggota bersaldo nol tetapi tidak ada mutasi pengurang saldo yang dapat ditelusuri. Status Lunas tidak diberikan
+    /// pada kondisi ini; Finance perlu merekonsiliasi.
+    /// </summary>
+    public string? SettlementTraceWarning { get; set; }
 }
 
 public static class ReceivableInvoiceBatchDocumentTypes
@@ -398,6 +466,11 @@ public sealed class ReceivableInvoiceBatchRecapPatientResponse
 
 public sealed class ReceivableInvoiceBatchDocumentResponse
 {
+    public bool IsEmployeeBenefit { get; set; }
+
+    /// <summary>Cara pelunasan yang dicetak pada dokumen. Untuk invoice karyawan: potong gaji sesuai perjanjian angsuran.</summary>
+    public string? PaymentInstruction { get; set; }
+
     public Guid BatchId { get; set; }
     public string BatchNumber { get; set; } = string.Empty;
     public string InvoiceNo => BatchNumber;
@@ -480,7 +553,13 @@ public sealed class PostReceivableInvoiceBatchPaymentAdminFee
 public sealed class PostReceivableInvoiceBatchPaymentRequest
 {
     [Required] public Guid ExpectedRowVersion { get; set; }
-    [MaxLength(30)] public string PaymentSource { get; set; } = "BANK_ACCOUNT";
+
+    /// <summary>
+    /// <see cref="ReceivableInvoiceBatchPaymentSources.BankAccount"/> (default; penerimaan kas/bank aktual) atau
+    /// <see cref="ReceivableInvoiceBatchPaymentSources.InternalSettlement"/> (hanya Invoice AR Benefit RS Internal; tanpa penerimaan
+    /// kas/bank, tanpa FinReceipt).
+    /// </summary>
+    [MaxLength(30)] public string PaymentSource { get; set; } = ReceivableInvoiceBatchPaymentSources.BankAccount;
     public Guid? BankAccountId { get; set; }
     public DateTimeOffset? PaymentDate { get; set; }
 
@@ -549,6 +628,15 @@ public sealed class PostReceivableInvoiceBatchPaymentResponse
     public Guid NewRowVersion { get; set; }
     public int AllocationsCount { get; set; }
     public ReceivableInvoiceBatchDetailResponse? BatchDetail { get; set; }
+
+    /// <summary><see cref="ReceivableInvoiceBatchPaymentSources"/> yang dipakai posting ini.</summary>
+    public string PaymentSource { get; set; } = ReceivableInvoiceBatchPaymentSources.BankAccount;
+
+    /// <summary>
+    /// Terisi untuk penyelesaian internal: kejadian ini tercatat di buku mutasi piutang, tetapi belum ada jurnal Accounting karena
+    /// kontrak akun (COA) penyelesaian internal belum diputuskan.
+    /// </summary>
+    public string? AccountingNote { get; set; }
 }
 
 // ====================================================================================
@@ -1009,3 +1097,16 @@ public sealed class ClaimManagementPagedResponse
 }
 
 
+
+/// <summary>Ringkasan perjanjian angsuran pada detail Invoice AR karyawan. Angka resmi tetap dibaca dari endpoint perjanjian.</summary>
+public sealed class ReceivableInvoiceBatchInstallmentPlanResponse
+{
+    public Guid Id { get; set; }
+    public string PlanNumber { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int InstallmentCount { get; set; }
+    public decimal InstallmentAmount { get; set; }
+    public decimal TotalAgreedAmount { get; set; }
+    public string FirstDeductionPeriod { get; set; } = string.Empty;
+    public DateTimeOffset? ApprovedAt { get; set; }
+}

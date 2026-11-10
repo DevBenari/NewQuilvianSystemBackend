@@ -6,12 +6,12 @@
 | --- | --- |
 | Produk | Quilvian SIMRS v2 |
 | Modul | Optik (`OPT`) — `OPT-BP-001` |
-| Dokumen | `OPT-PRD` revision `1` — `contract_version` `OPT-PRD-v1`, status `approved` (sisi Optik) |
+| Dokumen | `OPT-PRD` revision `5` — `contract_version` `OPT-PRD-v1.4`, status `approved` (sisi Optik), Yoga Aji Pratama 2026-11-06. Dasarnya: `OPT-PRD-v1.3` `approved` (sisi Optik), Yoga Aji Pratama 2026-11-06 |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-11-03 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-11-06 untuk `v1.4`, `v1.3`, `v1.2`, dan `v1.1`; `v1` 2026-11-03 |
 | Repository target | `NewQuilvianSystemBackend`, `QuilvianSystemFrontendDev` |
-| Commit SHA baseline | Backend `2a5094ca`, frontend `b6dd6c304` |
-| `input_revision` | `02-backend-architecture.md` r1, `03-frontend-architecture.md` r1, `erd/` r1, `contracts/*` v1, `03-domain-architecture.md` r1 (`DOMAIN_ARCHITECTURE_READY`), `00-interview-decisions.md` r4 |
+| Commit SHA baseline | `v1`: backend `2a5094ca`, frontend `b6dd6c304`. `v1.1`: backend `06e40fb7`, frontend `811f22159` |
+| `input_revision` | `02-backend-architecture.md` r4, `03-frontend-architecture.md` r2, `erd/` r3, `OPT-API-v1.4`, `OPT-VAL-v1.3`, `OPT-INT-v1.3`, `OPT-STATE-v1.1`, `OPT-PERM-v1.4`, `03-domain-architecture.md` r1 (`DOMAIN_ARCHITECTURE_READY`), `00-interview-decisions.md` r13 |
 | Cakupan | Optik milik RS untuk pasien umum, asuransi swasta, dan perusahaan: dari kunjungan dan pemeriksaan refraksi sampai kacamata diserahkan dan keluhan garansi ditangani |
 
 ## 2. Ringkasan eksekutif
@@ -61,9 +61,9 @@ bergaransi.
 | Admisi / petugas pendaftaran | Mendaftarkan kunjungan Optik |
 | Refraksionis Optisien (RO) | Pemeriksaan refraksi, resep, salin resep luar, pemeriksaan ulang keluhan |
 | Dokter Sp.M | Sama dengan RO, ditambah melewati rentang isian dengan alasan |
-| Petugas penjualan Optik | Pesanan, tagihkan, ajukan diskon, kirim ke pengerjaan, tandai siap, serahkan, ajukan batal, catat keluhan |
-| Kepala Optik | Setujui batal sesudah pengerjaan, setujui diskon di atas batas, tutup tidak diambil, putuskan keluhan |
-| Admin Optik | Profil barang dan pengaturan |
+| Petugas penjualan Optik | Pesanan, tagihkan, terapkan diskon Optik sampai 10%, kirim ke pengerjaan, tandai siap, serahkan, ajukan batal, catat keluhan |
+| Kepala Optik | Setujui batal sesudah pengerjaan, tutup tidak diambil, putuskan keluhan. Persetujuan diskon di atas 10% ditunda ke slice `OPT-APR-004` (`OPT-DEC-079`) |
+| Admin Optik | Daftarkan barang, profil barang, dan pengaturan |
 | Kasir (Billing) | Uang muka, pelunasan, finalisasi tagihan |
 
 ## 7. Pemilihan kemampuan MVP
@@ -81,7 +81,7 @@ bergaransi.
 | Kunjungan tidak tertutup selama pesanan berjalan | `OPT-CAP-24` | Wajib; tanpa ini kunjungan tertutup saat pasien lunas di awal |
 | Penyerahan, batal, tidak diambil | — (baru) | Wajib; titik akhir MVP |
 | Penjualan langsung | `OPT-CAP-16` | Wajib; omzet barang tanpa resep (`OPT-DEC-020`) |
-| Diskon sampai batas | `OPT-CAP-23` | Wajib; memakai Billing |
+| Diskon sampai 10% lewat kebijakan Optik | `OPT-CAP-23` | Wajib; memakai Billing. Hanya kebijakan bernilai tetap, disaring di layar (`OPT-DEC-079`) |
 | Keluhan garansi dan remake | — (baru) | Wajib; `OPT-DEC-015` |
 | Profil barang dan pengaturan | `OPT-CAP-14` | Wajib; tanpa ini katalog dan angka bawaan tidak ada |
 | Hasil ke Rekam Medis | `OPT-CAP-12` | Wajib; `OPT-DEC-024` |
@@ -94,7 +94,7 @@ bergaransi.
 | --- | --- | --- | --- |
 | Kacamata BPJS | `OPT-CAP-25`..`27` | Fondasi penjamin BPJS tidak ada di sistem dan modul Insurance `PARTIAL` (`OPT-DEC-030`) | Pasien BPJS dilayani sebagai pasien umum, atau klaim diproses manual di luar sistem |
 | Alokasi pembayaran per baris tagihan | `OPT-CAP-24` | Billing hanya mengalokasikan per tagihan; butuh fitur Billing (`OPT-APR-003`) | Aturan sementara: satu pesanan berpengerjaan belum lunas per kunjungan (`OPT-DEC-035`) |
-| Persetujuan diskon di atas batas dari layar Optik | `OPT-CAP-23` | Endpoint persetujuan Billing saat ini khusus diskon dokter (`OPT-APR-004`) | Diskon ≤ 10% langsung berlaku; di atas batas diproses Billing/kasir sampai persetujuan per `ApproverRole` tersedia |
+| Diskon di atas 10% dengan persetujuan Kepala Optik | `OPT-CAP-23` | Billing hanya mewajibkan persetujuan untuk diskon dokter, dan endpoint persetujuannya khusus diskon dokter (`OPT-APR-004`, `OPT-DEC-079`) | **Aturan pakai sementara:** (1) pemilik Billing hanya membuat kebijakan Optik paling tinggi 10%; (2) modal Ajukan Diskon hanya menampilkan kebijakan Optik; (3) penyaringan hanya di layar, dan risikonya diterima. Di atas 10% tidak punya jalur di sistem. **Contoh:** permintaan 15% ditolak petugas karena pilihannya tidak ada |
 | Uji coba dan kontrol lensa kontak | — | Ditunda pemilik (`OPT-DEC-022`) | Resep dan penjualan lensa kontak saja |
 | Pesan WhatsApp pengingat | — | Kanal pesan milik platform notifikasi | Daftar "perlu dihubungi" di layar pesanan |
 | Retur penjualan langsung | — | Bukan keputusan MVP (RCG `n3`) | Pengembalian dana lewat Billing-Kasir; stok dikoreksi Farmasi |
@@ -140,29 +140,36 @@ bergaransi.
 | `FR-OPT-002` | 00 | `ServiceUnitType.Optical = 11` tersedia, dan nilai lama tidak bergeser |
 | `FR-OPT-010` | 01 | Kunjungan Optik terbentuk lewat `EncounterIntakeService`; Optik tidak menulis `RegPatientEncounter` langsung |
 | `FR-OPT-011` | 01 | Kunjungan rujukan menyimpan kunjungan Poli Mata asal; asal milik pasien lain ditolak |
+| `FR-OPT-012` | 01 | Kunjungan unit Optik menerima Kartu Penjamin Perusahaan yang berlaku; kunjungan penunjang selain Optik dan MCU tetap ditolak (`OPT-DEC-078`). **Contoh:** kartu PT Contoh (samaran) tersimpan pada kunjungan Optik, dan ditolak pada kunjungan Laboratorium |
 | `FR-OPT-020` | 02 | Hanya RO/Sp.M dengan SIP berlaku (tanggal WIB) yang bisa memulai/memfinalkan. **Contoh:** SIP s.d. 31-10-2026 ditolak pada 03-11-2026 |
 | `FR-OPT-021` | 02 | Final menerbitkan tepat satu baris tarif pemeriksaan; dua revisi sesudahnya tidak menambah baris |
+| `FR-OPT-022` | 02 | Pemeriksaan final yang tarifnya belum tercatat masuk tagihan otomatis pada putaran berikutnya, tepat satu baris; sesudah tagihan final menjadi adjustment yang menunggu persetujuan Billing (`OPT-DEC-082`, `083`). **Contoh:** tindakan baru diatur sesudah 50 pemeriksaan; ke-50 tarif masuk tagihan bila tarifnya berlaku pada tanggal pemeriksaan |
 | `FR-OPT-030` | 03 | Isian di luar rentang `OPT-DEC-045` ditolak untuk RO dan diterima untuk Sp.M dengan alasan |
 | `FR-OPT-031` | 03 | Resep plus +1,00 / +0,50 × 90 tersimpan +1,50 / −0,50 × 180 beserta teks asli |
 | `FR-OPT-032` | 03 | Revisi resep terkunci ditolak `409`; resep > 12 bulan tidak bisa dipakai pesanan baru |
+| `FR-OPT-033` | 03 | Kiriman ulang `POST prescriptions` atau `POST prescriptions/external` dengan kunci sama mengembalikan resep pertama; tanpa kunci ditolak `400` (`OPT-DEC-077`). **Contoh:** Simpan ditekan lagi sesudah jaringan putus; resep tetap satu |
 | `FR-OPT-040` | 04 | Kirim ke pengerjaan ditolak bila terbayar < minimum. **Contoh:** bagian pasien Rp 1.050.000, terbayar Rp 500.000 → ditolak; Rp 525.000 → diterima |
 | `FR-OPT-041` | 04 | Pasien berpenjamin: minimum dari bagian pasien; bagian Rp 0 langsung diterima |
 | `FR-OPT-042` | 04 | Kirim memotong stok frame/lensa stok tepat sekali walau tombol ditekan dua kali |
 | `FR-OPT-043` | 04 | Pesanan kedua di kunjungan yang sama ditolak selama pesanan pertama berpengerjaan belum lunas |
+| `FR-OPT-044` | 04 | Kiriman ulang `POST orders` dengan kunci sama mengembalikan pesanan pertama; tanpa kunci ditolak `400` (`OPT-DEC-077`). **Contoh:** dua kali Simpan Draf, satu `OPT-ORD-RSMMC-000001` |
 | `FR-OPT-050` | 05 | Penjualan langsung: lunas lalu diserahkan; stok dipotong saat diserahkan; lensa kontak tanpa resep berlaku ditolak |
 | `FR-OPT-060` | 06 | Serah ditolak bila belum lunas atau identitas belum dicocokkan |
 | `FR-OPT-061` | 06 | Batal sesudah pengerjaan hanya lewat persetujuan Kepala Optik; frame dan lensa stok belum dipotong kembali ke stok dan barisnya batal; lensa custom tetap ditagih |
 | `FR-OPT-062` | 06 | `NotCollected` hanya sesudah 90 hari sejak siap; tetap ditagih; penyerahan susulan sesudah lunas |
 | `FR-OPT-070` | 07 | Keluhan hanya pada kunjungan baru atas pesanan `HandedOver`; status garansi dihitung dari snapshot |
 | `FR-OPT-071` | 07 | Remake disetujui → pesanan Rp 0 tanpa fakta tagihan, tertaut pesanan asal; paling banyak satu per keluhan |
+| `FR-OPT-072` | 07 | Kiriman ulang `POST warranty-claims` dengan kunci sama mengembalikan keluhan pertama; tanpa kunci ditolak `400` (`OPT-DEC-077`). **Contoh:** KLM-0001 dikirim dua kali; hanya ada satu keluhan pada pesanan itu |
 | `FR-OPT-080` | 08 | Dua pesanan berframe sama → dua baris tagihan terpisah |
 | `FR-OPT-081` | 08 | Pasien lunas di awal → tagihan tidak difinalisasi selama pesanan `InFabrication`/`ReadyForPickup`; difinalisasi setelah pesanan terakhir terminal dan lunas |
-| `FR-OPT-082` | 08 | Diskon ≤ 10% langsung tercatat di baris tagihan; di atas batas menunggu persetujuan |
+| `FR-OPT-082` | 08 | Kebijakan Optik sampai 10% langsung tercatat di baris tagihan. **Contoh:** 10% pada frame Rp 450.000 mengurangi Rp 45.000. Bagian "di atas batas menunggu persetujuan" **Dibatalkan** dari MVP, pindah ke slice `OPT-APR-004` (`OPT-DEC-079`) |
+| `FR-OPT-083` | 08 | Modal Ajukan Diskon hanya menampilkan kebijakan Optik. **Contoh:** promo 50% unit lain tidak tampil (`OPT-DEC-079`) |
 | `FR-OPT-090` | 09 | Rekam Medis menampilkan pemeriksaan dan resep versi terakhir tanpa harga |
 | `FR-OPT-091` | 09 | Medical Fee dapat menarik pemeriksaan final beserta pemeriksanya |
 | `FR-OPT-100` | 10 | Laporan pesanan terlambat menampilkan pesanan lewat perkiraan jadi dan `ReadyForPickup` > 30 hari |
 | `FR-OPT-110` | 11 | Barang Optik tidak muncul di peresepan dokter (`IsPrescribable = false`) |
 | `FR-OPT-111` | 11 | Ubah pengaturan tidak mengubah pesanan/resep yang sudah dibuat; perubahan tercatat nilai lama-baru |
+| `FR-OPT-112` | 11 | Daftarkan Barang memunculkan barang ber-`IsPrescribable = false` di katalog; barang ber-`IsPrescribable = true` tidak ada di pilihan; modal memperingatkan penimpaan profil (`OPT-DEC-080`) |
 
 ## 11. Model status yang diusulkan
 
@@ -185,7 +192,7 @@ Rinci di `contracts/state-transition-matrix.md`.
 
 ## 13. Sasaran kemampuan API
 
-Bagian dari `contracts/api-contract.md` (`OPT-API-v1`); semua **Rencana (belum tersedia)**.
+Bagian dari `contracts/api-contract.md` (`OPT-API-v1.4`). Seluruh endpoint sudah ada di kode; yang belum ada diberi label **Rencana (belum tersedia)** pada barisnya.
 
 ### Health Services / Optical Management / Opt Visit
 
@@ -193,8 +200,8 @@ Base URL: `api/v1/health-services/optical-management/visits`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/` | Daftar kunjungan Optik | `OptVisit : Read` | `OptVisitListQuery` | `PagedResult<OptVisitListItemResponse>` | `EPIC OPT-01` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Daftarkan kunjungan | `OptVisit : Create` | `OptVisitRegisterRequest` | `OptVisitListItemResponse` | `EPIC OPT-01` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar kunjungan Optik | `OptVisit : Read` | `OptVisitListQuery` | `PagedResult<OptVisitListItemResponse>` | `EPIC OPT-01` | Tersedia |
+| `POST` | `/` | Daftarkan kunjungan | `OptVisit : Create` | Header `Idempotency-Key` + `OptVisitRegisterRequest` | `OptVisitListItemResponse` | `EPIC OPT-01` | Tersedia, termasuk Penjamin Perusahaan (`BE-OPT-061`) |
 
 ### Health Services / Optical Management / Opt Refraction Exam
 
@@ -202,9 +209,9 @@ Base URL: `api/v1/health-services/optical-management/refraction-exams`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `POST` | `/` | Mulai pemeriksaan | `OptRefractionExam : Create` | `OptRefractionExamStartRequest` | `OptRefractionExamResponse` | `EPIC OPT-02` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/finalize` | Simpan final | `OptRefractionExam : Finalize` | `OptRefractionExamFinalizeRequest` | `OptRefractionExamResponse` | `EPIC OPT-02` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/revisions` | Revisi sesudah final | `OptRefractionExam : Revise` | `OptRefractionExamReviseRequest` | `OptRefractionExamResponse` | `EPIC OPT-02` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mulai pemeriksaan | `OptRefractionExam : Create` | `OptRefractionExamStartRequest` | `OptRefractionExamResponse` | `EPIC OPT-02` | Tersedia |
+| `POST` | `/{id}/finalize` | Simpan final | `OptRefractionExam : Finalize` | `OptRefractionExamFinalizeRequest` | `OptRefractionExamResponse` | `EPIC OPT-02` | Tersedia |
+| `POST` | `/{id}/revisions` | Revisi sesudah final | `OptRefractionExam : Revise` | `OptRefractionExamReviseRequest` | `OptRefractionExamResponse` | `EPIC OPT-02` | Tersedia |
 
 ### Health Services / Optical Management / Opt Prescription
 
@@ -212,9 +219,9 @@ Base URL: `api/v1/health-services/optical-management/prescriptions`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `POST` | `/` | Buat resep internal | `OptPrescription : Create` | `OptPrescriptionCreateRequest` | `OptPrescriptionResponse` | `EPIC OPT-03` | **Rencana (belum tersedia)** |
-| `POST` | `/external` | Salin resep luar | `OptPrescription : Create` | `OptPrescriptionCopyExternalRequest` | `OptPrescriptionResponse` | `EPIC OPT-03` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/revisions` | Revisi resep | `OptPrescription : Revise` | `OptPrescriptionReviseRequest` | `OptPrescriptionResponse` | `EPIC OPT-03` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Buat resep internal | `OptPrescription : Create` | Header `Idempotency-Key` + `OptPrescriptionCreateRequest` | `OptPrescriptionResponse` | `EPIC OPT-03` | Tersedia. Header wajib |
+| `POST` | `/external` | Salin resep luar | `OptPrescription : Create` | Header `Idempotency-Key` + `OptPrescriptionCopyExternalRequest` | `OptPrescriptionResponse` | `EPIC OPT-03` | Tersedia. Header wajib |
+| `POST` | `/{id}/revisions` | Revisi resep | `OptPrescription : Revise` | `OptPrescriptionReviseRequest` | `OptPrescriptionResponse` | `EPIC OPT-03` | Tersedia |
 
 ### Health Services / Optical Management / Opt Order
 
@@ -222,12 +229,12 @@ Base URL: `api/v1/health-services/optical-management/orders`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `POST` | `/` | Buat pesanan | `OptOrder : Create` | `OptOrderCreateRequest` | `OptOrderResponse` | `EPIC OPT-04` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/bill` | Simpan & tagihkan | `OptOrder : Bill` | `ExpectedVersion` | `OptOrderResponse` | `EPIC OPT-04`, `08` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/send-to-work` | Kirim ke pengerjaan | `OptOrder : SendToWork` | `OptOrderSendToWorkRequest` | `OptOrderResponse` | `EPIC OPT-04` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/hand-over` | Serahkan | `OptOrder : HandOver` | `OptOrderHandOverRequest` | `OptOrderResponse` | `EPIC OPT-05`, `06` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/cancellation-requests/{requestId}/decision` | Putuskan batal | `OptOrder : DecideCancel` | `OptOrderCancelDecisionRequest` | `OptOrderResponse` | `EPIC OPT-06` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/close-not-collected` | Tutup tidak diambil | `OptOrder : CloseNotCollected` | `OptOrderNotCollectedRequest` | `OptOrderResponse` | `EPIC OPT-06` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Buat pesanan | `OptOrder : Create` | Header `Idempotency-Key` + `OptOrderCreateRequest` | `OptOrderResponse` | `EPIC OPT-04` | Tersedia. Header wajib |
+| `POST` | `/{id}/bill` | Simpan & tagihkan | `OptOrder : Bill` | `ExpectedVersion` | `OptOrderResponse` | `EPIC OPT-04`, `08` | Tersedia |
+| `POST` | `/{id}/send-to-work` | Kirim ke pengerjaan | `OptOrder : SendToWork` | `OptOrderSendToWorkRequest` | `OptOrderResponse` | `EPIC OPT-04` | Tersedia |
+| `POST` | `/{id}/hand-over` | Serahkan | `OptOrder : HandOver` | `OptOrderHandOverRequest` | `OptOrderResponse` | `EPIC OPT-05`, `06` | Tersedia |
+| `POST` | `/{id}/cancellation-requests/{requestId}/decision` | Putuskan batal | `OptOrder : DecideCancel` | `OptOrderCancelDecisionRequest` | `OptOrderResponse` | `EPIC OPT-06` | Tersedia |
+| `POST` | `/{id}/close-not-collected` | Tutup tidak diambil | `OptOrder : CloseNotCollected` | `OptOrderNotCollectedRequest` | `OptOrderResponse` | `EPIC OPT-06` | Tersedia |
 
 ### Health Services / Optical Management / Opt Warranty Claim
 
@@ -235,8 +242,8 @@ Base URL: `api/v1/health-services/optical-management/warranty-claims`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `POST` | `/` | Catat keluhan | `OptWarrantyClaim : Create` | `OptWarrantyClaimCreateRequest` | `OptWarrantyClaimResponse` | `EPIC OPT-07` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/decision` | Putuskan keluhan | `OptWarrantyClaim : Decide` | `OptWarrantyClaimDecisionRequest` | `OptWarrantyClaimResponse` | `EPIC OPT-07` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Catat keluhan | `OptWarrantyClaim : Create` | Header `Idempotency-Key` + `OptWarrantyClaimCreateRequest` | `OptWarrantyClaimResponse` | `EPIC OPT-07` | Tersedia. Header wajib |
+| `POST` | `/{id}/decision` | Putuskan keluhan | `OptWarrantyClaim : Decide` | `OptWarrantyClaimDecisionRequest` | `OptWarrantyClaimResponse` | `EPIC OPT-07` | Tersedia |
 
 ### Health Services / Optical Management / Opt Reference Data
 
@@ -244,7 +251,7 @@ Base URL: `api/v1/health-services/optical-management/reference-data`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `PUT` | `/settings` | Ubah pengaturan | `OptReferenceData : UpdateSetting` | `OptSettingUpdateRequest` | `OptSettingResponse` | `EPIC OPT-11` | **Rencana (belum tersedia)** |
+| `PUT` | `/settings` | Ubah pengaturan | `OptReferenceData : UpdateSetting` | `OptSettingUpdateRequest` | `OptSettingResponse` | `EPIC OPT-11` | Tersedia |
 
 ### Health Services / Optical Management / Opt Report
 
@@ -252,7 +259,7 @@ Base URL: `api/v1/health-services/optical-management/reports`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/open-orders` | Pesanan terbuka dan terlambat | `OptReport : Read` | per tanggal | `OptOpenOrderReportResponse` | `EPIC OPT-10` | **Rencana (belum tersedia)** |
+| `GET` | `/open-orders` | Pesanan terbuka dan terlambat | `OptReport : Read` | per tanggal | `OptOpenOrderReportResponse` | `EPIC OPT-10` | Tersedia |
 
 ## 14. Matriks kewenangan
 
@@ -294,10 +301,11 @@ String persis dari `contracts/permission-audit-matrix.md`.
 | --- | --- |
 | `NFR-001` | Atomicity: perpindahan status pesanan, riwayat, kunci resep, dan mutasi stok berada dalam satu transaksi; gagal satu = gagal semua |
 | `NFR-002` | Concurrency: setiap aksi membawa `ExpectedVersion`; benturan → `409` |
-| `NFR-003` | Idempotensi: `Idempotency-Key` per aksi; kunci stok tetap per pesanan per item |
+| `NFR-003` | Idempotensi: kunci stok tetap per pesanan per item. Pada `POST visits` dan empat `POST` pembuat, `Idempotency-Key` wajib dan kiriman ulang mengembalikan data pertama (`OPT-DEC-077`). Pada tindakan atas data yang sudah ada, `ExpectedVersion` yang menahan efek ganda; kiriman ulang dijawab `409` (`OPT-DEC-081`) |
 | `NFR-004` | Audit: pelaku, waktu, alasan untuk setiap versi, transisi, pengajuan batal, dan perubahan pengaturan |
 | `NFR-005` | Otorisasi *fail-closed*: HR/Billing tidak menjawab → tindakan ditolak tanpa mengubah data |
 | `NFR-006` | Koreksi: tidak ada hapus; koreksi lewat versi atau status |
+| `NFR-008` | Pendapatan tidak tertinggal: tarif pemeriksaan yang belum tercatat dikirim ulang otomatis tanpa tagihan ganda, dan tindakan klinis tidak pernah tertahan olehnya (`OPT-DEC-082`) |
 | `NFR-007` | Waktu: simpan UTC; aturan tanggal (izin, berlaku resep, garansi, 90 hari) memakai tanggal WIB |
 
 ## 18. Skenario UAT
@@ -322,7 +330,7 @@ String persis dari `contracts/permission-audit-matrix.md`.
 | `UAT-16` | 07 | Berhasil | Diserahkan 10 hari lalu | Keluhan ukuran → periksa ulang → setujui | Remake Rp 0 tertaut pesanan asal |
 | `UAT-17` | 07 | Gagal | Diserahkan 31 hari lalu | Keluhan ukuran → setujui | Ditolak "di luar masa garansi" |
 | `UAT-18` | 08 | Berhasil | Pasien membayar lunas penuh saat pesan | Pesanan masih dikerjakan | Tagihan tetap terbuka; kunjungan belum ditutup |
-| `UAT-19` | 08 | Gagal | Diskon 15% (batas 10%) | Petugas mengajukan | Diskon menunggu persetujuan; tagihan belum berkurang |
+| ~~`UAT-19`~~ | 08 | **Dibatalkan dari MVP** | ~~Diskon 15% (batas 10%)~~ | ~~Petugas mengajukan~~ | Pindah ke slice `OPT-APR-004` (`OPT-DEC-079`). Nomor tidak dipakai ulang; jalur gagal Epic 08 diganti `UAT-28` |
 | `UAT-20` | 09 | Berhasil | Pemeriksaan dan resep final | Buka Rekam Medis pasien | Visus dan resep versi terakhir tampil tanpa harga |
 | `UAT-21` | 09 | Gagal | Pengguna tanpa izin Rekam Medis | Buka riwayat Optik di Rekam Medis | Ditolak oleh izin Rekam Medis |
 | `UAT-22` | 10 | Berhasil | Pesanan siap 35 hari | Buka laporan pesanan terbuka | Pesanan tampil di "perlu dihubungi" |
@@ -331,6 +339,18 @@ String persis dari `contracts/permission-audit-matrix.md`.
 | `UAT-25` | 11 | Gagal | Pengingat 30 | Admin isi batas tutup 20 | Ditolak "Batas tutup harus lebih lama…" |
 | `UAT-26` | 00 | Berhasil | Barang Optik terdaftar | Dokter mencari "frame" di peresepan | Tidak tampil |
 | `UAT-27` | 00 | Gagal | Migration diterapkan pada DB dev | Jalankan `Down` | Tabel Optik terhapus tanpa menyentuh tabel lain |
+| `UAT-28` | 08 | Gagal | Diskon Optik 10% dan promo 50% unit lain sama-sama aktif | Petugas membuka Ajukan Diskon; pelanggan meminta 15% | Hanya Diskon Optik 10% tampil; promo 50% dan 15% tidak ada di pilihan |
+| `UAT-29` | 08 | Berhasil | Frame Rp 450.000 sudah ditagihkan | Petugas memilih Diskon Optik 10% | Tagihan frame langsung berkurang Rp 45.000 |
+| `UAT-30` | 01 | Berhasil | Pasien punya kartu PT Contoh (samaran) yang berlaku | Admisi mendaftarkan kunjungan Optik dengan Penjamin Perusahaan | Kunjungan tersimpan; kasir membaca penjamin itu |
+| `UAT-31` | 01 | Gagal | Kartu yang sama | Daftarkan kunjungan Laboratorium dengan Penjamin Perusahaan | Ditolak "Penjamin perusahaan hanya dapat dipilih lewat pendaftaran loket." |
+| `UAT-32` | 04 | Berhasil | Jaringan putus sesudah pesanan tersimpan | Petugas menekan Simpan lagi dengan isi yang sama | Tetap satu pesanan; layar menampilkan pesanan itu |
+| `UAT-33` | 07 | Berhasil | Jaringan putus sesudah keluhan KLM-0001 tersimpan | Petugas menekan Simpan lagi dengan isi yang sama | Tetap satu keluhan; tidak ada dua remake gratis |
+| `UAT-34` | 11 | Berhasil | Frame FR-001 (samaran) `IsPrescribable = false` | Admin Optik menekan Daftarkan Barang, mengisi profil | Frame tampil di katalog dan bisa dipilih di form pesanan |
+| `UAT-35` | 11 | Gagal | Obat ber-`IsPrescribable = true` | Admin Optik mencarinya di Daftarkan Barang | Tidak ada di pilihan |
+| `UAT-36` | 02 | Berhasil | 3 pemeriksaan final tanpa tarif karena tindakan belum diatur | Master Data mengatur tindakan dan tarif berlaku sejak tanggal pemeriksaan; tunggu putaran berikutnya | Tiga tarif masuk tagihan masing-masing, satu baris per pemeriksaan; peringatan di layar hilang |
+| `UAT-37` | 02 | Gagal | Tagihan pemeriksaan sudah final, tarif Rp 75.000 baru terkirim | Tunggu putaran berikutnya | Total tagihan final tidak berubah; adjustment Rp 75.000 menunggu keputusan Billing |
+| `UAT-38` | 01 | Berhasil | Akun petugas penjualan dengan izin `OPT-PERM-v1.4`, bukan superadmin | Cari pasien, pilih Kartu Penjamin, daftarkan kunjungan | Kunjungan tersimpan tanpa `403` |
+| `UAT-39` | 04 | Gagal | Akun RO, pesanan sudah ditagihkan | Buka detail pesanan | Rincian tagihan ditolak dengan pesan server; Status Bayar tetap tampil |
 
 ## 19. Definition of Done
 
@@ -346,7 +366,12 @@ String persis dari `contracts/permission-audit-matrix.md`.
 | Pembatalan sesudah pengerjaan hanya dengan persetujuan | `UAT-15` |
 | Remake hanya dalam garansi dan tanpa tagihan | `UAT-16`, `UAT-17` |
 | Seluruh master MVP terisi | Rencana data master awal `02-backend-architecture.md` bagian 8 |
-| Persetujuan pemilik modul mitra tercatat | `OPT-APR-001`..`012` berstatus disetujui di decision log |
+| Persetujuan pemilik modul mitra tercatat | `OPT-APR-001`, `002`, `005`..`012`, `013`, `014`, `015` berstatus disetujui di decision log. `OPT-APR-003`, `004` berstatus `POST-MVP` |
+| Simpan dua kali tidak membuat resep, pesanan, atau keluhan ganda | `OPT-AC-035`, `UAT-32`, `UAT-33` |
+| Pasien perusahaan bisa dilayani dari kunjungan sampai uang muka | `UAT-30`, `OPT-AC-027` dengan penjamin sungguhan |
+| Diskon Optik hanya sampai 10% dan hanya kebijakan Optik yang tampil | `UAT-28`, `UAT-29` |
+| Tarif pemeriksaan yang tertinggal masuk tagihan atau menjadi adjustment, tanpa tagihan ganda | `UAT-36`, `UAT-37`, `OPT-AC-039` |
+| Layar Optik dipakai akun tiap peran, bukan superadmin | `UAT-38`, `UAT-39`, `OPT-AC-042` |
 | Seluruh baris `testing/acceptance-test-matrix.md` punya bukti | Laporan task per baris |
 
 ## 20. Urutan pengiriman dan pertanyaan terbuka
@@ -354,11 +379,11 @@ String persis dari `contracts/permission-audit-matrix.md`.
 | Gelombang | Isi | Syarat mulai |
 | --- | --- | --- |
 | `MVP-0` | `EPIC OPT-00`, `EPIC OPT-11` — registry, enum, permission, 12 model + migration, seeder, profil barang, pengaturan | Blueprint disetujui; `OPT-APR-005`, `006` |
-| `MVP-1` | `EPIC OPT-01`, `02`, `03`, `09` (pembaca RM) — kunjungan, pemeriksaan, resep | `MVP-0`; `OPT-APR-007`, `008`, `010` |
+| `MVP-1` | `EPIC OPT-01`, `02`, `03`, `09` (pembaca RM) — kunjungan, pemeriksaan, resep | `MVP-0`; `OPT-APR-007`, `008`, `010`. Penjamin Perusahaan: `OPT-APR-013` |
 | `MVP-2` | `EPIC OPT-08`, `04` — sumber tagihan + kebijakan finalisasi, pesanan, uang muka, pengerjaan, stok | `MVP-1`; `OPT-APR-001`, `002`, `011`, `012` |
-| `MVP-3` | `EPIC OPT-05`, `06` — penjualan langsung, serah, batal, tidak diambil; diskon sampai batas | `MVP-2`; `OPT-APR-004` (sebagian) |
+| `MVP-3` | `EPIC OPT-05`, `06` — penjualan langsung, serah, batal, tidak diambil; diskon sampai 10% | `MVP-2`; `OPT-APR-014`, `OPT-OQ-020` |
 | `MVP-4` | `EPIC OPT-07`, `09` (Medical Fee), `10` — garansi, remake, jasa medis, laporan | `MVP-3`; `OPT-APR-009` |
-| `POST-MVP` | Bagian 8: BPJS, alokasi per baris, persetujuan diskon per `ApproverRole`, lensa kontak lanjutan, WhatsApp, retur | Di luar rilis pertama |
+| `POST-MVP` | Bagian 8: BPJS, alokasi per baris, diskon di atas 10% dengan persetujuan (`UAT-19`, `OPT-APR-004`), lensa kontak lanjutan, WhatsApp, retur | Di luar rilis pertama |
 
 Tidak ada epic `OPEN DECISION` di gelombang mana pun.
 
@@ -366,13 +391,20 @@ Tidak ada epic `OPEN DECISION` di gelombang mana pun.
 
 | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
 | --- | --- | --- | :---: |
-| Persetujuan Billing: sumber `Optical`, kebijakan finalisasi, pembayaran sebagian sebagai uang muka, tarif pemeriksaan (`OPT-APR-001`, `002`, `011`, `012`) | Pemilik Billing | `MVP-2` tidak dapat dimulai | Ya |
-| Persetujuan Registrasi: kolom rujukan dan kunjungan terbuka lintas hari (`OPT-APR-008`, `010`) | Pemilik Registrasi/Rawat Jalan | `MVP-1` tidak dapat dimulai | Ya |
-| Persetujuan Master Data/Farmasi: kategori, depo, jenis dokumen stok, jenis unit (`OPT-APR-005`, `006`) | Pemilik Master Data/Farmasi | `MVP-0` tidak dapat dimulai | Ya |
-| Persetujuan Rekam Medis: jenis dokumen dan pembaca (`OPT-APR-007`) | Pemilik Rekam Medis | Bagian RM `MVP-1` tertahan | Ya |
-| Persetujuan Medical Fee: kelayakan RO atas jasa (`OPT-APR-009`) | Pemilik Medical Fee | Bagian Medical Fee `MVP-4` tertahan | Ya (hanya `MVP-4`) |
-| Konfirmasi rincian isian visus/autoref (`PROPOSED`, RCG `n1`) | Yoga + RO/Sp.M | Form pemeriksaan bisa berubah kolom | Ya (`MVP-1`) |
+| Persetujuan Registrasi: Penjamin Perusahaan pada kunjungan unit Optik (`OPT-APR-013`, `OPT-OQ-021`) | Muhammad Hamzah, disampaikan Yoga Aji Pratama | — | Terjawab (`OPT-DEC-084`, `OPT-EVD-003`) |
+| Persetujuan Billing: kebijakan Diskon Optik sampai 10% beserta penandanya (`OPT-APR-014`, `OPT-OQ-020`). Penanda: kode berawalan `OPT-` | Yasmina; Yoga Aji Pratama | — | Terjawab (`OPT-DEC-084`, `OPT-EVD-003`) |
+| Kode profesi RO, spesialisasi Sp.M, dan tindakan refraksi (`OPT-OQ-022`) | Yoga Aji Pratama; SDM; Master Data | Uji alur penuh tidak bisa berjalan | Ya, untuk uji alur (bukan desain) |
+| Tindakan atas data yang sudah ada (`bill`, `send-to-work`, dan sejenisnya) tidak membaca `Idempotency-Key` | Yoga Aji Pratama | — | Terjawab (`OPT-DEC-081`) |
+| Persetujuan Billing: adjustment tarif pemeriksaan terlambat masuk antrean persetujuan (`OPT-APR-015`) | Yasmina | — | Terjawab (`OPT-DEC-084`, `OPT-EVD-003`) |
+| Tarif untuk kunjungan tertutup tanpa tagihan membuat tagihan `OPEN` baru; apakah Billing menerimanya (`OPT-OQ-023`) | Yasmina; disampaikan Yoga Aji Pratama | Kasir melihat tagihan baru pada kunjungan yang sudah selesai | Tidak; disarankan dijawab sebelum rilis |
+| Apakah pemilik modul lain perlu menyetujui izin baca lintas modul (`OPT-OQ-024`) | Yoga Aji Pratama | — | Terjawab (`OPT-DEC-086`) |
+| Persetujuan Billing: sumber `Optical`, kebijakan finalisasi, pembayaran sebagian sebagai uang muka, tarif pemeriksaan (`OPT-APR-001`, `002`, `011`, `012`) | Pemilik Billing | `MVP-2` tidak dapat dimulai | Terjawab (`OPT-EVD-002`) |
+| Persetujuan Registrasi: kolom rujukan dan kunjungan terbuka lintas hari (`OPT-APR-008`, `010`) | Pemilik Registrasi/Rawat Jalan | `MVP-1` tidak dapat dimulai | Terjawab (`OPT-EVD-002`) |
+| Persetujuan Master Data/Farmasi: kategori, depo, jenis dokumen stok, jenis unit (`OPT-APR-005`, `006`) | Pemilik Master Data/Farmasi | `MVP-0` tidak dapat dimulai | Terjawab (`OPT-EVD-002`) |
+| Persetujuan Rekam Medis: jenis dokumen dan pembaca (`OPT-APR-007`) | Pemilik Rekam Medis | Bagian RM `MVP-1` tertahan | Terjawab (`OPT-EVD-002`) |
+| Persetujuan Medical Fee: kelayakan RO atas jasa (`OPT-APR-009`) | Pemilik Medical Fee | Bagian Medical Fee `MVP-4` tertahan | Terjawab (`OPT-EVD-002`) |
+| Konfirmasi rincian isian visus/autoref (`PROPOSED`, RCG `n1`) | Yoga + RO/Sp.M | Form pemeriksaan bisa berubah kolom | Terjawab (`OPT-DEC-057`, `059`) |
 | Konfirmasi rentang BC/DIA dan daftar atribut barang (`PROPOSED`) | Yoga + RO/Sp.M | Validasi lensa kontak dan katalog | Tidak |
 | Format nomor dokumen `OPT-EXM/RX/ORD/CLM-RSMMC-nnnnnn` | Yoga | Hanya label nomor | Tidak |
-| Profesi RO dan jenis izinnya di HR (`OPT-CAP-07`) | HR | Gerbang izin tak bisa diuji | Ya (`MVP-1`) |
-| Screen brief Optik (`OPT-FE-001`, `002`) | Yoga | Layar frontend tidak dapat dibangun | Ya (frontend) |
+| Profesi RO dan jenis izinnya di HR (`OPT-CAP-07`) | HR | Gerbang izin tak bisa diuji | Cara penentuan terjawab (`OPT-DEC-056`, `058`); kodenya menunggu `OPT-OQ-022` |
+| Screen brief Optik (`OPT-FE-001`, `002`) | Yoga | Layar frontend tidak dapat dibangun | Terjawab (`05-screen-brief.md`, `OPT-OQ-018`) |

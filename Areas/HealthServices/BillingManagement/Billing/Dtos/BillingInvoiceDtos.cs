@@ -205,6 +205,25 @@ public class InvoiceSummaryResponse
     public bool IsFullyPaid { get; set; }
     public decimal TotalPaidAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
+
+    // ---- Status penyelesaian tagihan (additive, backward-compatible). Authoritative dari Backend: dihitung dengan rumus
+    // sisa tagihan kanonik (BillingInvoiceClosureService) dan handoff piutang. TERPISAH dari Status siklus hidup invoice
+    // (OPEN/FINAL/CLOSED): CLOSED tidak otomatis berarti pasien membayar tunai.
+    // Salah satu BillingInvoiceSettlementOutcomes (PATIENT_DUE, PATIENT_PARTIAL, PATIENT_PAID, AWAITING_COMPLETION, COVERED_BY_PAYER, COVERED_BY_BENEFIT, DEFERRED_TO_RECEIVABLE, MIXED, NO_OBLIGATION, SETTLED_BY_WRITE_OFF, NOT_CALCULATED); kosong bila Backend lama/tanpa hasil perhitungan.
+    public string SettlementStatus { get; set; } = string.Empty;
+
+    // Kewajiban pasien menurut versi kalkulasi yang berlaku (PatientAmount), sebelum dikurangi pembayaran.
+    public decimal PatientPayableAmount { get; set; }
+
+    // Coverage NON-TUNAI menurut handoff piutang yang tercatat. Bukan kas yang diterima. Keempatnya terpisah supaya
+    // penjamin luar, Benefit RS internal, utang pegawai, dan piutang pasien tidak tercampur.
+    public decimal PayerCoverageAmount { get; set; }
+    public decimal InternalBenefitAmount { get; set; }
+    public decimal EmployeeReceivableAmount { get; set; }
+    public decimal PatientReceivableAmount { get; set; }
+
+    // OK / SHOULD_BE_CLOSED / SHOULD_BE_FINAL: status tersimpan vs sisa tagihan kanonik (diagnostik baca-saja untuk data lama).
+    public string ClosureDrift { get; set; } = "OK";
 }
 
 public sealed class InvoiceDetailResponse : InvoiceSummaryResponse

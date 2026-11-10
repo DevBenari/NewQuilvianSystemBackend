@@ -1581,3 +1581,98 @@ misalnya "Budi (pegawai, via telepon)". Bila Budi sendiri yang berobat, isian in
 | Menulis jadwal ke input variabel HR selama jembatan | Penggajian di luar sistem tidak membacanya (`FIN-DEC-219`); `BE-FIN-094` tetap untuk tahap mesin |
 | Koreksi lintas beberapa periode berurutan | Hanya angsuran yang berikutnya belum menerima hasil; selebihnya lewat penyesuaian piutang yang ada |
 | Peralihan mundur | Tidak boleh mundur ke periode yang sudah punya batch manual disahkan |
+
+## V. Revisi 22 (3 November 2026) — Integrasi HR Benefit ↔ Patient Management ↔ Registrasi
+
+```yaml
+last_changed_in: FIN-INTEGRATION-1.11
+status: approved
+owner: Pemilik HR, Registrasi, dan Finance (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: FIN-DEC-236..257; FIN-DES-111..122, 125
+compatibility: >
+  Internal satu aplikasi dan satu basis data; tidak ada sistem luar. Tidak ada perubahan pada kontrak Billing atau
+  Finance AR. Validasi kartu saat kunjungan menjadi lebih ketat untuk kartu hasil sinkronisasi saja.
+traceability: FIN-DEC-244 (sinkronisasi terpisah, tidak membatalkan aktivasi); FIN-DEC-239 (catatan tahan lama)
+```
+
+### V.1 Peta integrasi
+
+| No | Dari | Ke | Cara | Sinkron / asinkron | Kontrak |
+|---:|---|---|---|---|---|
+| I-1 | HR Benefit (Setujui, Aktifkan, penjadwal aktivasi) | Patient Management | Antarmuka `IEmployeeBenefitPatientCardSync.OnEnrollmentActivatedAsync` **sesudah commit** | Sinkron dalam request yang sama, gagal tidak menular | V.2 |
+| I-2 | HR Benefit (Batal) | Patient Management | `OnEnrollmentCancelledAsync` sesudah commit | Sama | V.2 |
+| I-3 | HR Benefit (Sinkronkan ulang) | Patient Management | `RequestResyncAsync` | Sinkron; hasil dikembalikan ke HRD | V.2 |
+| I-4 | HR Benefit (daftar dan detail) | Patient Management | `GetSummariesAsync(enrollmentIds)` (satu kueri untuk satu halaman) | Sinkron, hanya baca | V.2 |
+| I-5 | Penjadwal sinkronisasi (Patient) | HR Benefit | Membaca enrollment `Active`, resolver pemilik, kelayakan (layanan yang sudah ada) | Asinkron, berkala | V.3 |
+| I-6 | Patient Management (daftar kartu) | HR Benefit | `EmployeeBenefitEligibilityService.DescribeBenefitStateAsync` (baru, hanya baca) | Sinkron | V.4 |
+| I-7 | Registrasi (kunjungan, ganti penanggung) | Patient Management | Membaca catatan hasil sinkronisasi untuk mengenali kartu otomatis | Sinkron | V.5 |
+
+### V.2 Antarmuka `IEmployeeBenefitPatientCardSync` (milik HR, diimplementasikan Patient Management)
+
+| Method | Masukan | Keluaran | Idempoten | Bila gagal |
+|---|---|---|---|---|
+| `OnEnrollmentActivatedAsync` | `enrollmentId`, `actorUserId`, `triggerSource` (`ACTIVATION`/`SCHEDULER`) | `PatientCardSyncSummary` | Ya: catatan unik per enrollment; kartu sama tidak dibuat dua kali | HR menangkap galat, mencatat log tanpa data pribadi, dan mengembalikan respons persetujuan dengan `patientCardSync.status = FAILED_RETRYABLE` atau `NOT_STARTED`. Persetujuan dan aktivasi **tetap sah** |
+| `OnEnrollmentCancelledAsync` | `enrollmentId`, `actorUserId` | — | Ya: kartu yang sudah nonaktif dibiarkan | Penjadwal mengulang penonaktifan (V.3 langkah 4) |
+| `RequestResyncAsync` | `enrollmentId`, `actorUserId` | `PatientCardSyncSummary` | Ya: kartu aktif yang sama dipakai ulang | Dikembalikan apa adanya ke HRD (`FAILED_RETRYABLE` beserta alasan) |
+| `GetSummariesAsync` | daftar `enrollmentId` | ringkasan per enrollment | Hanya baca | Daftar HR tetap tampil; kolom penanda kosong dengan keterangan "status sinkronisasi tidak dapat dibaca" |
+
+Aturan pemanggilan:
+1. Dipanggil **di luar** transaksi HR (`FIN-DES-113`). Transaksi sinkronisasi dibuka oleh implementasi Patient.
+2. Batas waktu mengikuti batas request; tidak ada pemanggilan jaringan.
+3. HR **tidak** pernah membaca tabel `Pat*` secara langsung.
+
+### V.3 Penjadwal sinkronisasi — rekonsiliasi
+
+Setiap putaran (bawaan setiap 15 menit, paling banyak 50 enrollment):
+
+| Langkah | Yang dicari | Tindakan |
+|---:|---|---|
+| 1 | Enrollment Medical `Active`, pemilik karyawan atau dokter tetap, `ActivatedAt >= ActivationCutoffUtc`, **belum punya catatan** | Buat catatan dan jalankan pencocokan (`02-backend-architecture.md` V.8) |
+| 2 | Catatan `FAILED_RETRYABLE` atau `WAITING_PATIENT` yang `NextAttemptAt` sudah jatuh tempo dan enrollment-nya masih `Active` | Ulangi pencocokan |
+| 3 | Catatan `SYNCED` yang kartunya kini nonaktif atau terhapus, enrollment masih `Active` | Ubah menjadi `REVOKED` (`CARD_REVOKED`) |
+| 4 | Catatan `SYNCED` yang enrollment-nya `Cancelled` tetapi kartunya masih aktif | Nonaktifkan kartu |
+
+Catatan `ON_HOLD` dan `REVOKED` tidak pernah diproses otomatis. Penjadwal yang mati atau server yang dimulai ulang tidak
+menghilangkan pekerjaan: langkah 1 dan 2 menemukannya lagi pada putaran berikut. Dua instance server yang berjalan
+bersamaan dijaga kunci advisory per enrollment dan per pasien.
+
+**Batas pemasangan massal (`FIN-DES-125`).** Bila `Enabled = true` tetapi `ActivationCutoffUtc` kosong, penjadwal
+**tidak memproses apa pun** dan mencatat peringatan. Enrollment yang aktif sebelum batas disinkronkan per enrollment lewat
+Sinkronkan ulang.
+
+### V.4 Status benefit hidup untuk tab Penjamin Perusahaan
+
+`DescribeBenefitStateAsync(workforceProfileId, familyMemberId?, tanggal)` mengembalikan `state`, nomor enrollment, nama
+plan, periode, dan pesan. Dipanggil sekali per kartu internal pada halaman yang dibuka. Bila HR gagal dibaca →
+`HR_UNAVAILABLE`, kartu **tidak** ditampilkan aktif (`FIN-GAP-009`). Tidak memuat saldo.
+
+### V.5 Cek ulang identitas saat kunjungan
+
+`ValidateCardForServiceAsync` menerima tambahan `patientId` dan `patientCompanyGuarantorId`. Urutan:
+
+1. Pemeriksaan yang sudah ada (penjamin internal, tautan pemilik, kelayakan pada tanggal pelayanan).
+2. Bila ada catatan `SYNCED` yang menunjuk kartu ini → cocokkan ulang pasien kanonik dengan pemilik (V.8 butir 2–4).
+3. Tidak cocok → `Invalid("PATIENT_IDENTITY_MISMATCH", …)`. Pemanggil memetakan ke envelope jalurnya (loket 400 usulan,
+   ganti penanggung 422).
+
+Kunjungan yang mewarisi pembayaran (bayi baru lahir) tidak melewati jalur ini dan tidak dicakup (`FIN-OQ-129`).
+
+### V.6 Dampak kompatibilitas
+
+| Konsumen | Dampak |
+|---|---|
+| Billing (`BillingEmployeeBenefitSplitService`) | Tidak berubah; tetap membaca snapshot penanggung dan kelayakan HR |
+| Finance AR | Tidak berubah; tidak ada piutang, kwitansi, atau pelunasan yang dibuat |
+| Pemakaian dan pengembalian plafon | Tidak berubah; sinkronisasi tidak menyentuh saldo |
+| Kiosk dan check-in MCU | Tidak berubah; tetap tidak dapat memakai kartu internal |
+| Jalur `internal-benefit-card` | Kontrak sama; kartu yang dibuatnya dipakai ulang sinkronisasi bila pemilik sama dan pasien lolos pencocokan ketat |
+
+### V.7 Yang sengaja tidak dikontrakkan
+
+| Hal | Alasan |
+|---|---|
+| Tabel outbox dan event bus | Catatan hasil unik per enrollment ditambah rekonsiliasi sudah mencukupi |
+| Notifikasi dorong | Pemilik memilih daftar kerja (`FIN-DEC-255`) |
+| Kartu keluarga otomatis | `FIN-DEC-241` |

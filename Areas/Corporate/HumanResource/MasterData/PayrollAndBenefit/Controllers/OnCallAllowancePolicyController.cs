@@ -18,6 +18,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/on-call-allowance-policies")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/on-call-allowance-policies")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -27,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "OnCallAllowancePolicy",
         Description = "Corporate human resource master data on call allowance policy",
         SortOrder = 51)]
-    [Tags("Corporate / Human Resource / Master Data / On Call Allowance Policy")]
+    [Tags("Corporate / Payroll Management / Master Data / On Call Allowance Policy")]
     public class OnCallAllowancePolicyController : ControllerBase
     {
         private static readonly HashSet<string> AllowedMethods =

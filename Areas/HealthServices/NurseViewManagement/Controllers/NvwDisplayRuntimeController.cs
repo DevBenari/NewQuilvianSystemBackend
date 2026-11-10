@@ -8,6 +8,13 @@ using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Controllers
 {
+    /// <remarks>
+    /// Dipanggil akun perangkat Nurse View, sehingga memakai policy
+    /// <see cref="AuthorizationPolicies.NurseViewDisplayRead"/> tanpa <c>[AccessPermission]</c>
+    /// maupun <c>[AccessAction]</c>, sama seperti endpoint runtime display antrean admisi.
+    /// Memasang <c>[AccessAction]</c> tanpa <c>[AccessPermission]</c> membuatnya masuk himpunan
+    /// fallback kompatibilitas, yang tertutup untuk endpoint baru.
+    /// </remarks>
     [ApiController]
     [Authorize]
     [Route("api/v1/health-services/nurse-view-management/display-runtime")]

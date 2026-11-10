@@ -105,6 +105,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enu
         OpticalRefraction = 45,
 
         /// <summary>Resep kacamata atau lensa kontak Optik, termasuk salinan resep luar.</summary>
-        OpticalPrescription = 46
+        OpticalPrescription = 46,
+
+        // =====================================================================
+        // Rehab Medik — RHB-BP-001, BE-RHB-004, RHB-DEC-019 (persetujuan pemilik Rekam Medis
+        // Yoga Aji Pratama dinyatakan owner Rehab 2026-11-05; bukti tertulis RHB-OQ-012).
+        // Seluruhnya masuk JenisYangDitegakkan sejak awal, sehingga dokumen rehab yang sudah
+        // ditandatangani tidak pernah dapat disunting. Pembacanya (IMedicalRecordDocumentSource)
+        // didaftarkan pada BE-RHB-015; sebelum itu berkas menyatakannya "belum tersedia".
+        // =====================================================================
+
+        /// <summary>Asesmen medis awal Sp.KFR atau asesmen awal profesi rehab.</summary>
+        RehabAssessment = 47,
+
+        /// <summary>Program terapi rehab satu disiplin; setiap versi dokumen tersendiri.</summary>
+        RehabProgram = 48,
+
+        /// <summary>Catatan sesi terapi rehab.</summary>
+        RehabSession = 49,
+
+        /// <summary>Reasesmen dan keputusan rehab.</summary>
+        RehabProgressReview = 50,
+
+        /// <summary>Ringkasan akhir episode rehab.</summary>
+        RehabDischargeSummary = 51,
+
+        /// <summary>Edukasi rencana dan status persetujuan pasien/keluarga rehab.</summary>
+        RehabEducation = 52
     }
 }

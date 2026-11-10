@@ -38,6 +38,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.PaidByUser).WithMany().HasForeignKey(x => x.PaidByUserId).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.PaymentNumber).IsUnique().HasFilter("\"IsDelete\" = false");
+            entity.HasIndex(x => x.PayrollRunEmployeeId)
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false AND \"PaymentStatus\" IN ('Scheduled', 'Processing', 'Paid', 'PartiallyReversed')")
+                .HasDatabaseName("UX_TrxPayrollPayment_LiveInstruction");
             entity.HasIndex(x => new { x.PayrollRunEmployeeId, x.PaymentStatus, x.IsDelete });
             entity.HasIndex(x => new { x.PayrollRunId, x.PaymentStatus, x.ScheduledPaymentAt, x.IsDelete });
             entity.HasIndex(x => new { x.FinancePaymentId, x.GlHeaderId });

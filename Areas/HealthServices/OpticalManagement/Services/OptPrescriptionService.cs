@@ -298,6 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
         public const int DefaultPageSize = 25;
         public const int MaxPageSize = 100;
 
+        public const string IdempotencyKeyRequiredMessage = "Header Idempotency-Key wajib diisi agar Simpan dua kali tidak membuat resep ganda.";
         public const string NotFoundMessage = "Resep tidak ditemukan.";
         public const string LockedMessage = "Resep terkunci karena lensa sudah dipesan.";
         public const string RevisionReasonMessage = "Tuliskan alasan revisi.";
@@ -448,8 +449,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
         // ---------------------------------------------------------------- tindakan
 
         /// <summary>Resep internal dari pemeriksaan final. Satu resep per jenis per pemeriksaan; koreksi lewat revisi.</summary>
-        public async Task<OptResult<OptPrescriptionResponse>> CreateInternalAsync(OptPrescriptionCreateRequest request, Guid actorUserId, CancellationToken cancellationToken = default)
+        public async Task<OptResult<OptPrescriptionResponse>> CreateInternalAsync(OptPrescriptionCreateRequest request, Guid actorUserId, Guid? idempotencyKey, CancellationToken cancellationToken = default)
         {
+            var awal = await CheckIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (awal is not null)
+                return awal;
+
             if (request.RefractionExamId is not { } examId || examId == Guid.Empty || request.PrescriptionType is not { } type)
                 return OptResult<OptPrescriptionResponse>.Invalid(OptErrorCodes.InvalidRequest, "Pilih pemeriksaan dan jenis resep.");
 
@@ -490,12 +495,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 IssuedDate = today,
                 ValidityMonthsSnapshot = setting.PrescriptionValidityMonths,
                 ValidUntil = OptPrescriptionRules.ValidUntil(today, setting.PrescriptionValidityMonths),
+                IdempotencyKey = idempotencyKey,
             }, request, keputusan.OverrideReason, isTransposed: false, originalText: null, practitioner.Value!, actorUserId, cancellationToken);
         }
 
         /// <summary>Salin resep luar; silinder plus ditransposisi dan teks aslinya disimpan.</summary>
-        public async Task<OptResult<OptPrescriptionResponse>> CopyExternalAsync(OptPrescriptionCopyExternalRequest request, Guid actorUserId, CancellationToken cancellationToken = default)
+        public async Task<OptResult<OptPrescriptionResponse>> CopyExternalAsync(OptPrescriptionCopyExternalRequest request, Guid actorUserId, Guid? idempotencyKey, CancellationToken cancellationToken = default)
         {
+            var awal = await CheckIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (awal is not null)
+                return awal;
+
             if (request.EncounterId is not { } encounterId || encounterId == Guid.Empty || request.PrescriptionType is not { } type)
                 return OptResult<OptPrescriptionResponse>.Invalid(OptErrorCodes.InvalidRequest, "Pilih kunjungan dan jenis resep.");
 
@@ -555,6 +565,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 IssuedDate = issued,
                 ValidityMonthsSnapshot = setting.PrescriptionValidityMonths,
                 ValidUntil = OptPrescriptionRules.ValidUntil(issued, setting.PrescriptionValidityMonths),
+                IdempotencyKey = idempotencyKey,
             }, request, keputusan.OverrideReason, isTransposed, originalText, practitioner.Value!, actorUserId, cancellationToken);
         }
 
@@ -713,9 +724,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
             var gagal = await SignAsync(prescription, versi.Id, actorUserId, now, cancellationToken);
             if (gagal is not null)
                 return gagal;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Dua kiriman serentak berkunci sama: indeks unik menolak yang kalah, lalu data pemenangnya dikembalikan.
+                // Kegagalan lain tidak punya data pemenang, sehingga tetap diteruskan apa adanya.
+                _dbContext.ChangeTracker.Clear();
+                if (await FindReplayAsync(prescription.IdempotencyKey!.Value, cancellationToken) is { } pemenang)
+                    return pemenang;
+                throw;
+            }
 
             return OptResult<OptPrescriptionResponse>.Ok(await ProjectAsync(prescription, cancellationToken));
+        }
+
+        /// <summary>
+        /// Gerbang kunci idempoten (<c>OPT-DEC-077</c>), diperiksa paling awal agar kiriman ulang tidak ditolak oleh hasil
+        /// kiriman pertamanya sendiri. Kosong berarti lanjut membuat resep baru.
+        /// </summary>
+        private async Task<OptResult<OptPrescriptionResponse>?> CheckIdempotencyKeyAsync(Guid? idempotencyKey, CancellationToken cancellationToken)
+        {
+            if (idempotencyKey is not { } kunci || kunci == Guid.Empty)
+                return OptResult<OptPrescriptionResponse>.Invalid(OptErrorCodes.InvalidRequest, IdempotencyKeyRequiredMessage);
+
+            return await FindReplayAsync(kunci, cancellationToken);
+        }
+
+        private async Task<OptResult<OptPrescriptionResponse>?> FindReplayAsync(Guid kunci, CancellationToken cancellationToken)
+        {
+            var id = await _dbContext.OptPrescriptions.AsNoTracking()
+                .Where(x => x.IdempotencyKey == kunci)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (id is null)
+                return null;
+
+            var hasil = await GetDetailAsync(id.Value, cancellationToken);
+            if (hasil.Value is { } resep)
+                resep.IsReplay = true;
+            return hasil;
         }
 
         private static OptPrescriptionVersion BuildVersion(

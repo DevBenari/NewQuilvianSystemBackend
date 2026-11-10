@@ -855,3 +855,57 @@ atau `TERTUNGGAK` bila selisihnya negatif.
 | Lebih awal | Diizinkan (termasuk koreksi) | Ditolak |
 | Sama atau lebih akhir | Ditolak | Diizinkan |
 | Belum ada nilai | Diizinkan | Ditolak (mesin belum ada) |
+
+## V. Revisi 22 (3 November 2026) — Enrollment Benefit RS dan Catatan Hasil Sinkronisasi Kartu
+
+```yaml
+last_changed_in: FIN-STATE-1.11
+status: approved
+owner: Pemilik HR dan Registrasi (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: FIN-DEC-233..256; FIN-DES-110, 111, 116..118
+compatibility: Status enrollment tidak bertambah. Lintasan Submitted → Active (lewat Setujui) baru. Status catatan sinkronisasi baru seluruhnya.
+```
+
+### V.1 Enrollment benefit (`TrxEmployeeBenefitEnrollment.EnrollmentStatus`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (belum ada) | Ajukan Benefit | `Submitted` | `EmployeeBenefitEnrollment : Create` | Penerima sah dari HR (bukan dokter tamu), plan aktif, periode sah, tidak ada enrollment terbuka pada plan yang sama | 422 / 409; **tidak ada** baris tersimpan |
+| (belum ada) | Simpan Draft (endpoint lama) | `Draft` | `… : Create` | Sama | Sama |
+| `Draft` | Ajukan | `Submitted` | `… : Submit` | `rowVersion` cocok | 409 / 400 |
+| `Submitted` | Setujui, tanggal mulai ≤ hari ini | **`Active`** | `… : Approve` (pengaju boleh menyetujui sendiri, `FIN-DEC-233`) | Syarat aktivasi: plan punya batas plafon > 0; tidak beririsan dengan benefit Medical `Active` lain | 422; **status tetap `Submitted`**, tidak ada jejak disetujui (`FIN-DEC-234`) |
+| `Submitted` | Setujui, tanggal mulai > hari ini | `Approved` | `… : Approve` | `rowVersion` cocok | 409 |
+| `Approved` | Penjadwal, tanggal mulai ≤ hari ini dan periode belum lewat | `Active` | Akun layanan sistem | Syarat aktivasi sama | Tetap `Approved`; galat dicatat, dicoba putaran berikut |
+| `Approved` | Penjadwal, seluruh periode sudah lewat | **tetap `Approved`** | — | — | Dicatat di log; HRD membatalkan manual (`FIN-OQ-127`, usulan) |
+| `Approved` | Aktifkan manual, tanggal mulai ≤ hari ini | `Active` | `… : Activate` | Syarat aktivasi sama | 422 |
+| `Approved` | Aktifkan manual, tanggal mulai > hari ini | **ditolak** | — | — | 422 `FIN-VAL-291` |
+| `Active` | Setujui atau Aktifkan lagi | **ditolak** | — | — | 400; saldo awal **tidak** diatur ulang |
+| `Draft`, `Submitted`, `Approved`, `Active` | Batal | `Cancelled` | `… : Cancel` | Alasan wajib | 400 / 422 |
+| `Cancelled` | Tindakan apa pun | **ditolak** | — | — | 400 |
+| `Active` lewat tanggal akhir | (tidak ada transisi) | tetap `Active` | — | Masa berlaku dibaca dari tanggal; **tidak ada** status `Expired` yang diisi sistem (`FIN-DEC-242`) | — |
+
+### V.2 Catatan hasil sinkronisasi kartu (`PatEmployeeBenefitCardSync.SyncStatus`)
+
+| Dari status | Pemicu | Ke status | Siapa | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (belum ada) | Aktivasi berhasil, penjadwal, atau Sinkronkan ulang | `SYNCED` / `WAITING_PATIENT` / `ON_HOLD` / `FAILED_RETRYABLE` | Sistem; HRD untuk Sinkronkan ulang | Enrollment `Active`; untuk penjadwal, diaktifkan sejak `ActivationCutoffUtc` | Enrollment tidak `Active` → tidak dibuat; Sinkronkan ulang 400 |
+| `WAITING_PATIENT` | Penjadwal (jatuh tempo) atau Sinkronkan ulang | Salah satu dari empat hasil | Sistem / HRD | Enrollment `Active` | — |
+| `FAILED_RETRYABLE` | Penjadwal (jatuh tempo) atau Sinkronkan ulang | Salah satu dari empat hasil | Sistem / HRD | Enrollment `Active` | — |
+| `ON_HOLD` | Penjadwal | **tetap `ON_HOLD`** | — | Tidak diproses otomatis | — |
+| `ON_HOLD` | Sinkronkan ulang | Salah satu dari empat hasil | HRD | Biasanya sesudah Registrasi memperbaiki data atau mendaftarkan kartu manual | — |
+| `SYNCED` | Kartu dinonaktifkan atau dihapus petugas, enrollment masih `Active` | `REVOKED` | Sistem (deteksi oleh penjadwal) | — | — |
+| `SYNCED` | Sinkronkan ulang, kartu masih aktif | tetap `SYNCED` (tanpa perubahan) | HRD | Idempoten | — |
+| `REVOKED` | Penjadwal | **tetap `REVOKED`** | — | Tidak dipasang ulang otomatis (`FIN-DEC-253`) | — |
+| `REVOKED` | Sinkronkan ulang | Salah satu dari empat hasil | HRD | Sesudah data pasien dibetulkan | — |
+| `SYNCED` | Enrollment `Cancelled` | tetap `SYNCED`; **kartu dinonaktifkan** | Sistem | — | Bila penonaktifan gagal, penjadwal mengulangnya; kartu tetap tidak dapat dipakai karena kelayakan HR menolak |
+| `WAITING_PATIENT`, `ON_HOLD`, `FAILED_RETRYABLE` | Enrollment `Cancelled` | tidak berubah, **tidak diproses lagi** | — | `FIN-GAP-014` | — |
+
+### V.3 Kartu internal pasien (`MstPatientCompanyGuarantor.IsActive`) — titik sentuh
+
+| Dari | Tindakan | Ke | Siapa | Catatan |
+|---|---|---|---|---|
+| (belum ada) | Sinkronisasi memasang | `IsActive = true` | Sistem | Utama hanya bila pasien belum punya kartu utama aktif |
+| `IsActive = true` | Enrollment dibatalkan | `IsActive = false`, `IsPrimary = false` | Sistem | Tidak dihapus |
+| `IsActive = true` | Registrasi mencabut (jalur status yang sudah ada) | `IsActive = false` | `PatientCompanyGuarantor : Update` | Catatan menjadi `REVOKED` |

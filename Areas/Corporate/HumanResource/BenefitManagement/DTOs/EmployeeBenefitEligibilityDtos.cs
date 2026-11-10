@@ -111,4 +111,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         /// <summary>Apakah CoverageType plan pegawai mencakup hubungan ini (R.1.2).</summary>
         public bool CoveredByPlan { get; set; }
     }
+
+    /// <summary>
+    /// Status benefit hidup untuk tab Penjamin Perusahaan (FIN-DES-119, FIN-INTEGRATION-1.11 V.4).
+    /// </summary>
+    public sealed class EmployeeBenefitStatusResult
+    {
+        public string State { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string? EnrollmentNumber { get; set; }
+        public string? PlanName { get; set; }
+        public DateTime? EffectiveStartDate { get; set; }
+        public DateTime? EffectiveEndDate { get; set; }
+        public string? Message { get; set; }
+    }
 }

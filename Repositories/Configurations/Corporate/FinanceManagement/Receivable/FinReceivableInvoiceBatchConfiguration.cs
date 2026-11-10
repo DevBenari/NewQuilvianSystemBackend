@@ -10,7 +10,7 @@ public sealed class FinReceivableInvoiceBatchConfiguration : IEntityTypeConfigur
     {
         entity.ToTable("FinReceivableInvoiceBatch", "public", table =>
         {
-            table.HasCheckConstraint("CK_FinReceivableInvoiceBatch_DebtorType", "\"DebtorType\" = 'PAYER'");
+            table.HasCheckConstraint("CK_FinReceivableInvoiceBatch_DebtorType", "\"DebtorType\" IN ('PAYER','EMPLOYEE_BENEFIT')");
             table.HasCheckConstraint("CK_FinReceivableInvoiceBatch_Status", "\"Status\" IN ('DRAFT','ISSUED','PARTIALLY_PAID','PAID','CANCELLED')");
             table.HasCheckConstraint("CK_FinReceivableInvoiceBatch_ClaimStatus", "\"ClaimStatus\" IS NULL OR \"ClaimStatus\" IN ('SUBMITTED','PAYER_VERIFIED','APPROVED','CLOSED')");
         });

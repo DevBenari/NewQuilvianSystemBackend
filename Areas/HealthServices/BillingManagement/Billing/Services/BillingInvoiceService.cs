@@ -231,6 +231,10 @@ public sealed class BillingInvoiceService
                 .Where(x => companyGuarantorIds.Contains(x.Id))
                 .ToDictionaryAsync(x => x.Id, x => x.CompanyGuarantorName, cancellationToken);
 
+        // Status penyelesaian (terpisah dari status siklus hidup) dan posisi dana, dari sumber kanonik yang sama dengan
+        // penutupan invoice. Sebelumnya daftar ini tidak mengisi IsFullyPaid/PaymentStatus sehingga selalu terbaca BELUM_LUNAS.
+        var settlementByInvoice = await LoadSettlementSummariesAsync(pageInvoiceIds, cancellationToken);
+
         var items = page.Select(x =>
         {
             primaryGuarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
@@ -260,7 +264,9 @@ public sealed class BillingInvoiceService
                 ? claimInfo.ClaimMethod
                 : null;
 
-            return new InvoiceSummaryResponse
+            settlementByInvoice.TryGetValue(x.Id, out var settlementSummary);
+
+            var summaryResponse = new InvoiceSummaryResponse
             {
                 Id = x.Id,
                 EncounterId = x.EncounterId,
@@ -284,6 +290,23 @@ public sealed class BillingInvoiceService
                 ClaimMethod = claimMethod,
                 PrimaryPayerType = MapPrimaryPayerTypeCode(paymentType)
             };
+
+            if (settlementSummary is not null)
+            {
+                ApplySettlementSummary(summaryResponse, settlementSummary);
+                summaryResponse.TotalPaidAmount = settlementSummary.Paid;
+                summaryResponse.OutstandingAmount = settlementSummary.Outstanding;
+                // "Lunas" pada daftar = invoice sudah dilepas dari OPEN dan tidak ada sisa pasien. Invoice OPEN TIDAK pernah
+                // IsFullyPaid di sini: ia masih bisa diproses kasir (finalisasi), walau kewajiban pasiennya nol.
+                summaryResponse.IsFullyPaid = settlementSummary.HasCalculation
+                    && settlementSummary.InvoiceStatus != BillingInvoiceStatuses.Open
+                    && settlementSummary.Outstanding <= 0m;
+                summaryResponse.PaymentStatus = summaryResponse.IsFullyPaid
+                    ? "LUNAS"
+                    : (settlementSummary.Paid > 0m ? "SEBAGIAN" : "BELUM_LUNAS");
+            }
+
+            return summaryResponse;
         }).ToList();
 
         return new PagedResult<InvoiceSummaryResponse>
@@ -294,6 +317,127 @@ public sealed class BillingInvoiceService
             TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
             Items = items
         };
+    }
+
+    /// <summary>
+    /// Ringkasan penyelesaian satu invoice: fakta finansial kanonik yang dipakai <see cref="BillingSettlementStatusResolver"/>.
+    /// Coverage non-tunai (penjamin, Benefit RS, AR karyawan, piutang pasien) dibaca dari handoff piutang dan TIDAK
+    /// pernah dihitung sebagai uang masuk.
+    /// </summary>
+    private sealed record InvoiceSettlementSummary(
+        string InvoiceStatus,
+        bool HasCalculation,
+        decimal PatientPayable,
+        decimal Paid,
+        decimal Outstanding,
+        decimal PayerCoverage,
+        decimal InternalBenefit,
+        decimal EmployeeReceivable,
+        decimal PatientReceivable)
+    {
+        public string SettlementStatus => BillingSettlementStatusResolver.Resolve(new BillingSettlementFacts(
+            InvoiceStatus, HasCalculation, Paid, Outstanding, PayerCoverage, InternalBenefit, EmployeeReceivable, PatientReceivable));
+
+        public string ClosureDrift =>
+            BillingSettlementStatusResolver.ResolveClosureDrift(InvoiceStatus, HasCalculation, Outstanding);
+    }
+
+    /// <summary>
+    /// Memuat ringkasan penyelesaian untuk banyak invoice sekaligus (satu query per sumber, tanpa N+1). Hanya membaca.
+    /// Sisa tagihan memakai rumus kanonik BillingInvoiceClosureService; handoff yang sudah digantikan koreksi pemilik
+    /// manfaat (EMPLOYEE_BENEFIT) dikecualikan, sama dengan intake Finance, agar coverage tidak terhitung dua kali.
+    /// </summary>
+    private async Task<Dictionary<Guid, InvoiceSettlementSummary>> LoadSettlementSummariesAsync(
+        IReadOnlyCollection<Guid> invoiceIds, CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, InvoiceSettlementSummary>();
+        if (invoiceIds.Count == 0) return result;
+        var ids = invoiceIds.Distinct().ToList();
+
+        var invoices = await _dbContext.BilInvoices.AsNoTracking()
+            .Where(i => ids.Contains(i.Id))
+            .Select(i => new { i.Id, i.Status, i.CurrentCalculationVersion })
+            .ToListAsync(cancellationToken);
+
+        var calcByInvoice = (await _dbContext.BilCalculationVersions.AsNoTracking()
+                .Where(x => ids.Contains(x.InvoiceId) && !x.IsDelete)
+                .Select(x => new { x.InvoiceId, x.VersionNo, x.PatientAmount })
+                .ToListAsync(cancellationToken))
+            .ToLookup(x => x.InvoiceId);
+
+        var patientAmounts = new Dictionary<Guid, decimal>();
+        foreach (var invoice in invoices)
+        {
+            var versions = calcByInvoice[invoice.Id].ToList();
+            var chosen = versions.FirstOrDefault(v => v.VersionNo == invoice.CurrentCalculationVersion)
+                ?? versions.OrderByDescending(v => v.VersionNo).FirstOrDefault();
+            if (chosen != null) patientAmounts[invoice.Id] = chosen.PatientAmount;
+        }
+
+        Dictionary<Guid, InvoiceBatchFundsPosition> funds;
+        if (_closureService != null)
+        {
+            funds = await _closureService.CalculateOutstandingBatchAsync(patientAmounts, cancellationToken);
+        }
+        else
+        {
+            var paidByInvoice = (await _dbContext.BilPaymentAllocations.AsNoTracking()
+                    .Where(a => a.TargetType == BillingAllocationTargetTypes.Invoice && ids.Contains(a.TargetId) && !a.IsDelete)
+                    .Select(a => new { a.TargetId, a.Amount, a.ReversesAllocationId })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(a => a.TargetId)
+                .ToDictionary(g => g.Key, g => g.Sum(a => a.ReversesAllocationId.HasValue ? -a.Amount : a.Amount));
+            funds = patientAmounts.ToDictionary(
+                kv => kv.Key,
+                kv =>
+                {
+                    var paid = paidByInvoice.GetValueOrDefault(kv.Key);
+                    return new InvoiceBatchFundsPosition(paid, Math.Max(kv.Value - paid, 0m));
+                });
+        }
+
+        var handoffsByInvoice = (await _dbContext.BilArHandoffs.AsNoTracking()
+                .Where(h => !h.IsDelete && ids.Contains(h.InvoiceId)
+                    && !(h.DebtorType == BillingArDebtorTypes.EmployeeBenefit
+                        && _dbContext.BilHandoffAdjustments.Any(a => !a.IsDelete && a.ArHandoffId == h.Id
+                            && _dbContext.BilArHandoffs.Any(r => !r.IsDelete
+                                && r.CorrelationId == a.CorrelationId && r.Id != h.Id))))
+                .Select(h => new { h.InvoiceId, h.DebtorType, h.IsInternalBenefit, h.Amount })
+                .ToListAsync(cancellationToken))
+            .ToLookup(h => h.InvoiceId);
+
+        foreach (var invoice in invoices)
+        {
+            var hasCalculation = patientAmounts.TryGetValue(invoice.Id, out var patientPayable);
+            var position = funds.TryGetValue(invoice.Id, out var found) ? found : new InvoiceBatchFundsPosition(0m, 0m);
+            var handoffs = handoffsByInvoice[invoice.Id].ToList();
+
+            result[invoice.Id] = new InvoiceSettlementSummary(
+                invoice.Status,
+                hasCalculation,
+                hasCalculation ? patientPayable : 0m,
+                position.PaidAmount,
+                position.OutstandingAmount,
+                handoffs.Where(h => h.DebtorType == BillingArDebtorTypes.Payer && !h.IsInternalBenefit).Sum(h => h.Amount),
+                handoffs.Where(h => h.DebtorType == BillingArDebtorTypes.Payer && h.IsInternalBenefit).Sum(h => h.Amount),
+                handoffs.Where(h => h.DebtorType == BillingArDebtorTypes.EmployeeBenefit).Sum(h => h.Amount),
+                handoffs.Where(h => h.DebtorType == BillingArDebtorTypes.PatientGuarantor).Sum(h => h.Amount));
+        }
+
+        return result;
+    }
+
+    private static void ApplySettlementSummary(InvoiceSummaryResponse target, InvoiceSettlementSummary? summary)
+    {
+        if (summary is null) return;
+
+        target.SettlementStatus = summary.SettlementStatus;
+        target.PatientPayableAmount = summary.PatientPayable;
+        target.PayerCoverageAmount = summary.PayerCoverage;
+        target.InternalBenefitAmount = summary.InternalBenefit;
+        target.EmployeeReceivableAmount = summary.EmployeeReceivable;
+        target.PatientReceivableAmount = summary.PatientReceivable;
+        target.ClosureDrift = summary.ClosureDrift;
     }
 
     // Pola ILIKE "mengandung teks": karakter khusus pola di-escape dengan backslash, lalu dibungkus %.
@@ -490,6 +634,9 @@ public sealed class BillingInvoiceService
             .GroupBy(a => a.TargetId)
             .ToDictionary(g => g.Key, g => g.Sum(a => a.ReversesAllocationId.HasValue ? -a.Amount : a.Amount));
 
+        // Status penyelesaian per invoice (kas vs coverage non-tunai), dari sumber kanonik yang sama dengan Running Invoice.
+        var settlementByInvoice = await LoadSettlementSummariesAsync(invoiceIds, cancellationToken);
+
         var items = page.Select(x =>
         {
             guarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
@@ -539,6 +686,8 @@ public sealed class BillingInvoiceService
                 };
             }).ToList();
 
+            settlementByInvoice.TryGetValue(x.Id, out var settlementSummary);
+
             return new PaymentHistoryItemResponse
             {
                 Id = x.Id,
@@ -555,6 +704,13 @@ public sealed class BillingInvoiceService
                 OutstandingAmount = outstanding,
                 IsFullyPaid = isFullyPaid,
                 PaymentStatus = paymentStatus,
+                SettlementStatus = settlementSummary?.SettlementStatus ?? string.Empty,
+                PatientPayableAmount = settlementSummary?.PatientPayable ?? 0m,
+                PayerCoverageAmount = settlementSummary?.PayerCoverage ?? 0m,
+                InternalBenefitAmount = settlementSummary?.InternalBenefit ?? 0m,
+                EmployeeReceivableAmount = settlementSummary?.EmployeeReceivable ?? 0m,
+                PatientReceivableAmount = settlementSummary?.PatientReceivable ?? 0m,
+                ClosureDrift = settlementSummary?.ClosureDrift ?? "OK",
                 Tenders = historyTenders
             };
         }).ToList();
@@ -1156,6 +1312,12 @@ public sealed class BillingInvoiceService
         response.PaymentStatus = isFullyPaid
             ? "LUNAS"
             : (totalPaid > 0 ? "SEBAGIAN" : "BELUM_LUNAS");
+
+        // Status penyelesaian + coverage non-tunai (additive): rumus dan sumber sama dengan Running Invoice, sehingga daftar
+        // dan Halaman Pembayaran selalu sepakat. IsFullyPaid/PaymentStatus lama di atas tidak diubah (kompatibilitas).
+        var settlementByInvoice = await LoadSettlementSummariesAsync(new[] { id }, cancellationToken);
+        settlementByInvoice.TryGetValue(id, out var settlementSummary);
+        ApplySettlementSummary(response, settlementSummary);
 
         return response;
     }

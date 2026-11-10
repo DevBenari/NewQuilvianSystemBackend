@@ -56,6 +56,25 @@ public sealed class PaymentHistoryItemResponse
 
     public decimal OutstandingAmount { get; set; }
 
+    // ---- Status penyelesaian tagihan (additive, backward-compatible). Authoritative dari Backend: dihitung dengan rumus
+    // sisa tagihan kanonik (BillingInvoiceClosureService) dan handoff piutang. TERPISAH dari Status siklus hidup invoice
+    // (OPEN/FINAL/CLOSED): CLOSED tidak otomatis berarti pasien membayar tunai.
+    // Salah satu BillingSettlementStatuses; kosong bila Backend lama/tanpa hasil perhitungan.
+    public string SettlementStatus { get; set; } = string.Empty;
+
+    // Kewajiban pasien menurut versi kalkulasi yang berlaku (PatientAmount), sebelum dikurangi pembayaran.
+    public decimal PatientPayableAmount { get; set; }
+
+    // Coverage NON-TUNAI menurut handoff piutang yang tercatat. Bukan kas yang diterima. Ketiganya terpisah supaya
+    // penjamin luar, Benefit RS internal, dan utang pegawai tidak tercampur.
+    public decimal PayerCoverageAmount { get; set; }
+    public decimal InternalBenefitAmount { get; set; }
+    public decimal EmployeeReceivableAmount { get; set; }
+    public decimal PatientReceivableAmount { get; set; }
+
+    // OK / SHOULD_BE_CLOSED / SHOULD_BE_FINAL: status tersimpan vs sisa tagihan kanonik (diagnostik baca-saja untuk data lama).
+    public string ClosureDrift { get; set; } = "OK";
+
     // Seluruh tender SUCCEEDED milik invoice ini, diurutkan kronologis - frontend yang
     // menurunkan label "Angsuran N/M" (M = Count di sini), konsisten dengan logika yang sama
     // dipakai Kwitansi (satu sumber kebenaran, bukan dihitung ulang backend maupun frontend

@@ -92,11 +92,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Controlle
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
         [AccessAction(P.Create, "Create Opt Prescription", Description = "Membuat resep internal atau menyalin resep luar", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission(P.Prescription.Resource, P.Create)]
-        public async Task<IActionResult> Create([FromBody] OptPrescriptionCreateRequest request, CancellationToken cancellationToken = default) =>
+        public async Task<IActionResult> Create(
+            [FromBody] OptPrescriptionCreateRequest request,
+            [FromHeader(Name = "Idempotency-Key")] Guid? idempotencyKey,
+            CancellationToken cancellationToken = default) =>
             await OptHttp.RespondAsync(this,
-                await _service.CreateInternalAsync(request, OptHttp.ActorId(User), cancellationToken),
+                await _service.CreateInternalAsync(request, OptHttp.ActorId(User), idempotencyKey, cancellationToken),
                 "Resep tersimpan.", _logger, P.Prescription.Resource, P.Create,
-                x => $"{x.PrescriptionNumber} versi 1 dibuat oleh {x.Current?.AuthorName}{Override(x)}.");
+                x => x.IsReplay
+                    ? ReplayLog(x)
+                    : $"{x.PrescriptionNumber} versi 1 dibuat oleh {x.Current?.AuthorName}{Override(x)}.");
 
         [HttpPost("external")]
         [ProducesResponseType(typeof(ApiResponse<OptPrescriptionResponse>), StatusCodes.Status200OK)]
@@ -107,12 +112,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Controlle
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
         [AccessAction(P.Create, "Create Opt Prescription", Description = "Membuat resep internal atau menyalin resep luar", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission(P.Prescription.Resource, P.Create)]
-        public async Task<IActionResult> CopyExternal([FromBody] OptPrescriptionCopyExternalRequest request, CancellationToken cancellationToken = default) =>
+        public async Task<IActionResult> CopyExternal(
+            [FromBody] OptPrescriptionCopyExternalRequest request,
+            [FromHeader(Name = "Idempotency-Key")] Guid? idempotencyKey,
+            CancellationToken cancellationToken = default) =>
             await OptHttp.RespondAsync(this,
-                await _service.CopyExternalAsync(request, OptHttp.ActorId(User), cancellationToken),
+                await _service.CopyExternalAsync(request, OptHttp.ActorId(User), idempotencyKey, cancellationToken),
                 "Resep luar tersalin.", _logger, P.Prescription.Resource, P.Create,
-                x => $"{x.PrescriptionNumber} versi 1 disalin dari resep luar oleh {x.Current?.AuthorName}"
-                    + (x.Current?.IsTransposed == true ? " (ditransposisi ke silinder minus)" : string.Empty) + $"{Override(x)}.");
+                x => x.IsReplay
+                    ? ReplayLog(x)
+                    : $"{x.PrescriptionNumber} versi 1 disalin dari resep luar oleh {x.Current?.AuthorName}"
+                        + (x.Current?.IsTransposed == true ? " (ditransposisi ke silinder minus)" : string.Empty) + $"{Override(x)}.");
+
+        private static string ReplayLog(OptPrescriptionResponse x) =>
+            $"Pembuatan resep {x.PrescriptionNumber} diulang dengan kunci yang sama; tidak ada resep baru.";
 
         [HttpPost("{id:guid}/revisions")]
         [ProducesResponseType(typeof(ApiResponse<OptPrescriptionResponse>), StatusCodes.Status200OK)]

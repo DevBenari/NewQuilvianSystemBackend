@@ -1388,3 +1388,74 @@ Nilai `SortOrder` ditetapkan saat eksekusi mengikuti nomor urut kosong berikutny
 | Berkas dan bukti laporan penggajian | Disimpan lewat mekanisme bukti transaksi; **tidak** masuk log |
 | NIP dan nama pada baris batch | Sensitif; tidak masuk log |
 | `BilArHandoff.DeferredConsentGivenBy` | Sensitif (nama orang); tidak masuk log |
+
+## V. Revisi 22 (3 November 2026) — Benefit RS
+
+```yaml
+last_changed_in: FIN-PERM-1.13
+status: approved
+owner: Pemilik HR dan Registrasi (pengguna sesi); pemilik Akses Role
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: FIN-DEC-233, 246, 255, 256; FIN-DES-109, 120, 121
+compatibility: Dua butir izin baru. Tidak ada izin yang dihapus. FIN-VAL-271 (pemisahan pengaju/penyetuju) tidak lagi ditegakkan.
+```
+
+Pemetaan endpoint ke hak akses hidup di `api-contract.md` bagian V (kolom Hak akses), tidak diulang di sini.
+
+### V.1 Cara kerja hak akses (tidak berubah)
+
+| Unsur | Rujukan source |
+|---|---|
+| `[AccessPermission("Resource", "Action")]` satu per method (atribut tanpa `AllowMultiple`) | `Attributes/AccessPermissionAttribute.cs:30` |
+| Identitas izin diturunkan dari atribut | `Services/Security/PermissionRegistryDescriptor.cs` |
+| Baris izin didaftarkan otomatis saat aplikasi mulai | `Seeders/AccessMenuSeeder.cs:39` |
+| Pemberian izin ke peran | Layar Akses Role (admin mencentang) |
+
+### V.2 Butir izin baru
+
+| Resource | Action | Untuk | Catatan |
+|---|---|---|---|
+| `EmployeeBenefitEnrollment` | `SyncPatientCard` | Sinkronkan ulang kartu penjamin pasien | `[AccessAction("SyncPatientCard", "Sync Patient Card", AccessType = AccessTypes.Update)]` |
+| `EmployeeBenefitCardSync` | `Read` | Daftar kerja Registrasi | Resource baru pada `[AccessController]` controller baru |
+
+Endpoint Ajukan Benefit memakai butir yang sudah ada `EmployeeBenefitEnrollment : Create` (`FIN-DES-109`).
+
+### V.3 Peta peran
+
+| Peran rumah sakit | Butir hak akses |
+|---|---|
+| Staf HR (pengaju) | `EmployeeBenefitEnrollment : Read`, `Create`; `EmployeeBenefitLookup : Read` |
+| HRD (penyetuju) | `EmployeeBenefitEnrollment : Read`, `Approve`, `Activate`, `Cancel`, **`SyncPatientCard`** |
+| Petugas Registrasi | `PatientCompanyGuarantor : Read`, `Create`, `Update`, `CreateInternalBenefitCard`; `EmployeeBenefitLookup : Read`; **`EmployeeBenefitCardSync : Read`**; `PatientEncounter : Create` |
+| Kasir | `BillingInvoice : Update` (ganti penanggung; tidak berubah) |
+| Akun layanan sistem | Tidak memakai izin HTTP; aktor pada audit penjadwal |
+
+### V.4 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Penjaga aturan bisnis | Yang dijaganya | Yang **tidak** dijaganya | Risiko |
+|---|---|---|---|
+| Tidak ada pemisahan pengaju dan penyetuju (`FIN-DEC-233`) | — | Satu orang dapat mengajukan, menyetujui, dan mengaktifkan plafon | Diterima pemilik; diimbangi audit dua aktor |
+| Pencocokan ketat otomatis (`FIN-DEC-237`, `250`) | Kartu hanya ke pasien yang terbukti sama | Data pasien yang salah sejak awal (NIK dan tanggal lahir sama-sama salah ke orang lain) | Diimbangi cek ulang kunjungan dan pencabutan |
+| Cek ulang identitas saat kunjungan (`FIN-DEC-256`) | Perubahan identitas sesudah kartu terpasang | Kartu manual dan kartu lama; kunjungan yang mewarisi pembayaran (`FIN-OQ-129`) | Sengaja dibatasi pemilik |
+| Gagal tertutup bila HR tidak terbaca | Kartu tidak dipasang, kunjungan tidak lolos validasi kartu | — | Pasien tetap bisa didaftarkan sebagai Pasien Umum |
+
+### V.5 Audit dan jejak tahan lama
+
+| Kejadian | Lapisan | Payload yang boleh |
+|---|---|---|
+| `Enrollment.SubmittedNew`, `Enrollment.Approved`, `Enrollment.Activated` (termasuk oleh sistem), `Enrollment.ActivationSkipped`, `Enrollment.Cancelled` | `LoggerService.AuditAsync` (pola yang sudah ada) | `EnrollmentId`, status, `ActorUserId` |
+| `CardSync.Synced`, `CardSync.WaitingPatient`, `CardSync.OnHold`, `CardSync.Failed`, `CardSync.Revoked`, `CardSync.ManualResync`, `CardSync.CardDeactivatedOnCancel` | Audit + catatan `PatEmployeeBenefitCardSync` | `SyncId`, `EnrollmentId`, status, kode alasan, `ActorUserId` |
+| `VisitCard.RejectedIdentityMismatch` | Audit | `PatientCompanyGuarantorId`, kode alasan, `ActorUserId` |
+
+Pengecualian dari konvensi "GET tidak dicatat": tidak ada. Penjadwal (bukan HTTP) **wajib** mencatat ringkasan
+putaran: jumlah diproses, berhasil, ditahan, gagal.
+
+### V.6 Kolom sensitif dan masa simpan
+
+| Kolom | Alasan sensitif | Aturan |
+|---|---|---|
+| `MstPatient.IdentityNumber`, `BirthDate`; `MstEmployee/MstDoctor.IdentityNumber`, `BirthDate` | Identitas pribadi | **Tidak** masuk log, audit, atau pesan galat |
+| `PatEmployeeBenefitCardSync.PatientId`, `PatientCompanyGuarantorId` | Bersama pemilik benefit menyatakan seorang pegawai adalah pasien | Tidak dicatat bersama nama atau NIK pemilik; tidak tampil pada daftar kerja dan ringkasan HRD |
+
+Masa simpan catatan hasil sinkronisasi mengikuti enrollment (tidak dihapus; penandaan `IsDelete` bila enrollment dihapus).

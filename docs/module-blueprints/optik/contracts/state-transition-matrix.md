@@ -2,9 +2,9 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `OPT-STATE-v1` — status `approved` (sisi Optik) |
+| `contract_version` | `OPT-STATE-v1.1` — status `approved` (sisi Optik), Yoga Aji Pratama 2026-11-06. Dasarnya: `OPT-STATE-v1` `approved` (sisi Optik). Tidak ada status atau transisi baru; hanya memperjelas syarat dari laporan `BE-OPT-032` |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-11-03 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-11-06 untuk `v1.1`; `v1` 2026-11-03 |
 | `input_revision` | `03-domain-architecture.md` r1 bagian G; `00-interview-decisions.md` r4 |
 
 Penolakan memakai kode `409` bila status saat ini tidak mengizinkan, `403` bila pelaku tidak
@@ -56,6 +56,16 @@ berwenang, dan `400` bila isian kurang. Setiap transisi sah menulis satu baris
 | `InFabrication` sesudahnya | Ubah item / ganti versi resep | — | — | **Tidak sah** | `409` |
 | Pesanan remake | Simpan & tagihkan | — | — | **Tidak sah**: remake tidak menerbitkan tagihan; langsung `AwaitingDownPayment` → dikirim tanpa syarat uang muka | `409` |
 
+**Syarat tambahan dari pelaksanaan (laporan `BE-OPT-032`):**
+
+| Syarat | Contoh |
+| --- | --- |
+| Tindakan Buat lewat endpoint hanya untuk `Fabrication` dan `DirectSale` | Permintaan `Remake` ditolak `400` |
+| Lensa kontak dan lensa kacamata dalam satu pesanan ditolak, karena satu pesanan memakai satu versi resep | Lensa kacamata + lensa kontak ditolak |
+| Versi resep wajib versi terkini | Resep sudah v2, pilihan v1 ditolak |
+| Pengulangan transisi dicegah lewat keadaan dan `ExpectedVersion`, sedangkan pengulangan **Buat** dicegah lewat `Idempotency-Key` (`OPT-DEC-077`). Buat dengan kunci yang sudah dipakai tidak mengubah status apa pun, dan mengembalikan pesanan pertama | Buat dikirim dua kali: satu `Draft` |
+| Terbayar untuk syarat uang muka dihitung per tagihan kunjungan. Penahan `OPT-VAL-047` aktif bila ada pesanan berpengerjaan lain dan sisa tagihan di luar baris pesanan ini belum nol | Pesanan A belum lunas: pesanan B ditolak dikirim |
+
 **Pesanan remake** dibuat sistem saat keluhan disetujui. Statusnya `AwaitingDownPayment` dengan
 minimum uang muka Rp 0, sehingga langsung bisa dikirim ke pengerjaan. Ia mengikuti alur yang sama
 sampai `HandedOver`, tanpa fakta tagihan.
@@ -74,4 +84,4 @@ sampai `HandedOver`, tanpa fakta tagihan.
 ## 5. Jejak keputusan
 
 `OPT-DEC-007`, `010`, `011`, `015`, `016`, `018`, `019`, `020`, `023`, `028`, `035`, `038`, `041`,
-`042`, `043`, `044`, `046`, `047`, `048`, `049`.
+`042`, `043`, `044`, `046`, `047`, `048`, `049`, `077`.
