@@ -10,6 +10,13 @@ using P = QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Constan
 
 namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Controllers
 {
+    /// <remarks>
+    /// Dipanggil akun perangkat Nurse View, sehingga memakai policy
+    /// <see cref="AuthorizationPolicies.NurseViewDisplayRead"/> tanpa <c>[AccessPermission]</c>
+    /// maupun <c>[AccessAction]</c>, sama seperti endpoint runtime display antrean admisi.
+    /// Memasang <c>[AccessAction]</c> tanpa <c>[AccessPermission]</c> membuatnya masuk himpunan
+    /// fallback kompatibilitas, yang tertutup untuk endpoint baru.
+    /// </remarks>
     [ApiController]
     [Authorize]
     [Route("api/v1/health-services/nurse-view-management/display-runtime")]
@@ -40,7 +47,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
         [Authorize(Policy = AuthorizationPolicies.NurseViewDisplayRead)]
         [ProducesResponseType(typeof(ApiResponse<NvwDisplayRuntimeCurrentResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        [AccessAction(P.Read, "Read Nurse View Display Runtime", Description = "Melihat identitas perangkat Nurse View yang login", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetCurrent(CancellationToken cancellationToken = default) =>
             NvwHttp.Map(
                 this,
@@ -54,7 +60,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
         [Authorize(Policy = AuthorizationPolicies.NurseViewDisplayRead)]
         [ProducesResponseType(typeof(ApiResponse<NvwFloorBoardResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        [AccessAction(P.Read, "Read Nurse View Floor Board", Description = "Melihat papan lantai milik perangkat Nurse View yang login", AccessType = AccessTypes.Read, SortOrder = 2)]
         public async Task<IActionResult> GetBoard(CancellationToken cancellationToken = default)
         {
             var resolved = await _deviceContext.ResolveActiveDeviceAsync(
