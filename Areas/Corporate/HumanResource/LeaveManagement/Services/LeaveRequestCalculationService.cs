@@ -578,6 +578,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                 response.Errors.Add($"Jumlah cuti melebihi batas maksimum {policy.MaximumRequestDays.Value} hari per pengajuan.");
             }
 
+            // VR-LEV-11 / LEV-B7 / HRD-ASM-22: Batas maksimal cuti berurutan 12 hari untuk cuti tahunan
+            if ((string.Equals(leaveType.LeaveCategory, "Annual", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(leaveType.LeaveTypeCode, "ANNUAL", StringComparison.OrdinalIgnoreCase)) &&
+                response.RequestedDays > 12.0m)
+            {
+                response.Errors.Add("Pengajuan cuti tahunan berturut-turut melebihi batas maksimal 12 hari kerja tanpa dispensasi khusus Direktur RS (VR-LEV-11, LEV-B7, HRD-ASM-22).");
+            }
+
             if (response.RequestedDays <= 0)
             {
                 response.Errors.Add("Tidak ada hari kerja yang dapat dihitung pada rentang pengajuan.");
@@ -637,6 +645,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                 if (request.HalfDayPeriod != LeaveRequestValueConstants.HalfDayPeriod.FirstHalf &&
                     request.HalfDayPeriod != LeaveRequestValueConstants.HalfDayPeriod.SecondHalf)
                     response.Errors.Add("HalfDayPeriod harus FirstHalf atau SecondHalf.");
+
+                // VR-LEV-05: Fasilitas cuti setengah hari hanya berlaku untuk jenis Cuti Tahunan (HRD-ASM-20)
+                if (!string.Equals(leaveType.LeaveCategory, "Annual", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(leaveType.LeaveTypeCode, "ANNUAL", StringComparison.OrdinalIgnoreCase))
+                {
+                    response.Errors.Add("Fasilitas cuti setengah hari hanya berlaku untuk jenis Cuti Tahunan (VR-LEV-05, HRD-ASM-20).");
+                }
             }
 
             if (request.IsHourly)

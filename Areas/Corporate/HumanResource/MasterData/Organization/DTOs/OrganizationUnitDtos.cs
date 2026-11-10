@@ -49,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public Guid LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? ParentOrganizationUnitId { get; set; }
+        public Guid? DepartmentId { get; set; }
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
         public string UnitType { get; set; } = string.Empty;
@@ -82,6 +83,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? ParentOrganizationUnitId { get; set; }
+        public Guid? DepartmentId { get; set; }
         public string? UnitType { get; set; }
         public bool? IsOperationalUnit { get; set; }
         public bool? IsActive { get; set; }

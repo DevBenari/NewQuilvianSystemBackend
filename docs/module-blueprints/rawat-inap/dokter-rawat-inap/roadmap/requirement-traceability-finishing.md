@@ -3,7 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Berkas | `dokter-rawat-inap/roadmap/requirement-traceability-finishing.md` — revision `2` |
-| Status | Backend BE-RWI-160–164 ✅ 5 Oktober 2026. Frontend FE-RWI-173 s.d. 179 ✅ 6 Oktober 2026 (lint:errors 0 error, build lulus, 88 test unit dokter PASS, Playwright E2E 11/11 PASS); FE-RWI-172 tetap 🟡 berhenti aman (tombol perawat terkunci) |
+| Status | Backend BE-RWI-160–164 ✅ 5 Oktober 2026. Frontend FE-RWI-173 s.d. 179 ✅ 6 Oktober 2026 (lint:errors 0 error, build lulus, 88 test unit dokter PASS, Playwright E2E 11/11 PASS); FE-RWI-172 ✅ 9 November 2026 (uji nyata BE-RWI-104 berhasil) |
 | Blueprint | `RWI-BP-001` revision `8`, sub-modul `dokter-rawat-inap`, kontrak `0.7.0` `approved` 2026-10-02 (`RWI-DEC-221`) |
 | Roadmap | `backend-roadmap-finishing.md` revision `2` (`BE-RWI-160` s.d. `164`); `frontend-roadmap-finishing.md` revision `1` (`FE-RWI-172` s.d. `179`) |
 | Sumber requirement | `PRD-RWI-FINISHING-001` v`0.4` (rumusan FR); `04-prd-to-mvp.md` bagian 23; decision log revision `32` |
@@ -17,7 +17,7 @@
 
 | Requirement | Keputusan | Desain | Kontrak `0.7.0` | Task backend | Task frontend | Bukti verifikasi | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-RWF-030` Perawat memesan Lab/Radiologi atas instruksi dokter | `RWI-DEC-114`, `153`, `168` | Backend 12.1 | API 13.1 | `BE-RWI-104` ✅ (`backend-roadmap-v2.md`; regresi `NOT RUN`) | `FE-RWI-172` | Tombol perawat tetap terkunci aman `disabled={true}` sesuai klausul gerbang `RWI-DEC-168` karena probe runtime backend 401 tanpa sesi live | 🟡 Berhenti aman / Tombol terkunci |
+| `FR-RWF-030` Perawat memesan Lab/Radiologi atas instruksi dokter | `RWI-DEC-114`, `153`, `168` | Backend 12.1 | API 13.1 | `BE-RWI-104` ✅ (`backend-roadmap-v2.md`; regresi `NOT RUN`) | `FE-RWI-172` | 9 Nov 2026: pesanan perawat LAB-RSMMC-000001 ber-instruksi dr. Bagus masuk daftar order Lab (Requested, verifikasi Pending); tanpa dokter ditolak 400; klik ganda satu pesanan ([laporan](../task/report/frontend/FE-RWI-172.md)) | ✅ Selesai |
 | `FR-RWF-031` Konsultasi Gizi lewat modul Gizi | `RWI-DEC-171` | Backend 12.3–12.5 | API 13.2, 13.3 | `BE-RWI-161`, `BE-RWI-164` | `FE-RWI-174` | Source, build, 88 test unit dokter, dan Playwright E2E PASS: pesanan lewat adapter, peminta akun dokter login (`AC-RWF-032`, `UAT-RWF-07`) | ✅ Selesai |
 | `FR-RWF-032` Pesanan darah lewat modul Bank Darah | `RWI-DEC-171` | Backend 12.3–12.5 | API 13.2, 13.4 | `BE-RWI-162`, `BE-RWI-164` | `FE-RWI-174` | Source, build, 88 test unit dokter, dan Playwright E2E PASS: pesanan darah lewat adapter, komponen dari master, peminta dokter (`AC-RWF-033`, `UAT-RWF-08`) | ✅ Selesai |
 | `FR-RWF-033` Status dan hasil dibaca dari modul pemilik | `RWI-DEC-171` (7) | Backend 12.11 | Endpoint baca modul pemilik (sudah ada) | — (`EXISTING / REUSE`) | `FE-RWI-173`, `FE-RWI-174` | Source, build, dan Playwright E2E PASS: daftar pesanan & hasil dibaca langsung dari modul pemilik | ✅ Selesai |

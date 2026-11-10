@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
 
@@ -11,6 +11,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.ToTable("TrxOvertimeRealization", "public");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.RealizationNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.OvertimeCategory).HasMaxLength(50).HasDefaultValue("Planned").IsRequired();
+            entity.Property(x => x.EmergencyClinicalReferenceNo).HasMaxLength(100);
+            entity.Property(x => x.ClinicalActionSummary).HasMaxLength(2000);
+            entity.Property(x => x.CompensationType).HasMaxLength(50).HasDefaultValue("FinancialPayout").IsRequired();
+            entity.Property(x => x.IsMedicalDirectorEscalation).HasDefaultValue(false);
+            entity.Property(x => x.IsRetrospectiveAdjustment).HasDefaultValue(false);
             entity.Property(x => x.ActualStartDate).HasColumnType("date");
             entity.Property(x => x.ActualEndDate).HasColumnType("date");
             entity.Property(x => x.ActualStartAt).HasColumnType("timestamp with time zone").IsRequired(false);
@@ -51,10 +57,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.VerifiedByUser).WithMany().HasForeignKey(x => x.VerifiedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.PostedToPayrollByUser).WithMany().HasForeignKey(x => x.PostedToPayrollByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.CancelledByUser).WithMany().HasForeignKey(x => x.CancelledByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.MedicalDirectorApprovedBy).WithMany().HasForeignKey(x => x.MedicalDirectorApprovedById).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.RealizationNumber).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => new { x.OvertimeRequestId, x.RealizationVersion }).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => new { x.WorkforceProfileId, x.ActualStartDate, x.RealizationStatus, x.IsDelete });
+            entity.HasIndex(x => new { x.WorkforceProfileId, x.ActualStartDate, x.RealizationStatus }).HasDatabaseName("idx_ot_realization_emp_date");
             entity.HasIndex(x => new { x.PayrollPeriodId, x.IsPayrollPosted, x.IsDelete });
         }
     }

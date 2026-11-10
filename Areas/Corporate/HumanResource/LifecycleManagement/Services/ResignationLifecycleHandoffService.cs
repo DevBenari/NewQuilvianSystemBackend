@@ -352,6 +352,123 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
+        public async Task<ResignationServiceResult<ResignationHandoffResponse>> HandoffLifecycleSeparationAsync(
+            Guid workforceProfileId,
+            Guid? employeeId,
+            string separationType,
+            DateOnly lastWorkingDate,
+            string? reasonText,
+            string? notes,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+            var lastWorkingDateTime = lastWorkingDate.ToDateTime(TimeOnly.MinValue);
+
+            // 1. Cek idempoten: jika sudah ada pemisahan berstatus bukan delete dengan rujukan sama
+            var existingSeparation = await _dbContext.TrxEmployeeSeparations
+                .FirstOrDefaultAsync(x =>
+                    x.WorkforceProfileId == workforceProfileId &&
+                    x.SeparationType == separationType &&
+                    !x.IsDelete,
+                    cancellationToken);
+
+            if (existingSeparation != null)
+            {
+                return ResignationServiceResult<ResignationHandoffResponse>.Ok(
+                    new ResignationHandoffResponse
+                    {
+                        EmployeeSeparationId = existingSeparation.Id,
+                        SeparationNumber = existingSeparation.SeparationNumber,
+                        RequestStatus = existingSeparation.SeparationStatus
+                    },
+                    $"Pemisahan {separationType} sudah pernah dibuat sebelumnya.");
+            }
+
+            // 2. Buat TrxEmployeeSeparation
+            var separation = new TrxEmployeeSeparation
+            {
+                Id = Guid.NewGuid(),
+                SeparationNumber = GenerateNumber("SEP"),
+                WorkforceProfileId = workforceProfileId,
+                EmployeeId = employeeId,
+                SeparationType = separationType,
+                RequestDate = now,
+                ApprovedDate = now,
+                EffectiveSeparationDate = lastWorkingDateTime,
+                LastWorkingDate = lastWorkingDateTime,
+                SeparationStatus = "Approved",
+                ApprovedByUserId = actorUserId,
+                ReasonText = NormalizeText(reasonText) ?? $"Pemisahan {separationType}",
+                Notes = NormalizeText(notes),
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.TrxEmployeeSeparations.Add(separation);
+
+            // 3. Evaluasi Finance Clearance
+            bool isFinanceCleared = false;
+            if (employeeId.HasValue)
+            {
+                var financeClearance = await _financeClearanceService.GetAsync(employeeId.Value, cancellationToken);
+                isFinanceCleared = financeClearance.IsCleared;
+            }
+
+            // 4. Buat TrxExitClearance
+            var exitClearance = new TrxExitClearance
+            {
+                Id = Guid.NewGuid(),
+                ClearanceNumber = GenerateNumber("EXC"),
+                EmployeeSeparationId = separation.Id,
+                WorkforceProfileId = workforceProfileId,
+                EmployeeId = employeeId,
+                StartDate = now,
+                DueDate = lastWorkingDateTime,
+                ClearanceStatus = "Draft",
+                IsFinanceCleared = isFinanceCleared,
+                IsDepartmentCleared = false,
+                IsAssetCleared = false,
+                IsPayrollCleared = false,
+                IsItAccessCleared = false,
+                IsHrCleared = false,
+                TotalItem = 6,
+                ClearedItem = isFinanceCleared ? 1 : 0,
+                ProgressPercentage = isFinanceCleared ? Math.Round(1m / 6m * 100m, 2) : 0m,
+                Notes = $"Inisiasi exit clearance dari pemisahan {separationType} {separation.SeparationNumber}.",
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.TrxExitClearances.Add(exitClearance);
+
+            // 5. Notifikasi Finance jika employeeId tersedia
+            if (employeeId.HasValue)
+            {
+                await _separationNoticeService.ProcessNoticeAsync(new SeparationNoticeRequest
+                {
+                    EmployeeId = employeeId.Value,
+                    SeparationDate = lastWorkingDate,
+                    Reason = reasonText,
+                    SeparationId = separation.Id
+                }, cancellationToken);
+            }
+
+            // Simpan perubahan dalam transaksi pemanggil
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return ResignationServiceResult<ResignationHandoffResponse>.Ok(
+                new ResignationHandoffResponse
+                {
+                    EmployeeSeparationId = separation.Id,
+                    SeparationNumber = separation.SeparationNumber,
+                    RequestStatus = separation.SeparationStatus
+                },
+                $"Pemisahan {separationType} berhasil dibuat dan exit clearance dibuka.");
+        }
+
         private static string GenerateNumber(string prefix)
         {
             var value = $"{prefix}-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}";

@@ -24,7 +24,9 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
         AreaName = "SelfServices",
         ControllerName = "MyProfileChange",
         Description = "Employee self-service profile change request and generic workflow submission",
-        SortOrder = 9)]
+        SortOrder = 9,
+        VisibleInRoleAccess = false,
+        IsSystemOnly = true)]
     [Tags("Self Services / Human Resource / Profile Change")]
     public class EmployeeProfileChangeSelfServiceController : ControllerBase
     {
@@ -54,7 +56,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Melihat metadata pengajuan perubahan profil",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
-        [AccessPermission("MyProfileChange", "Read")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public IActionResult GetMetadata()
         {
             var metadata = _service.GetFilterMetadata();
@@ -77,7 +79,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Melihat ringkasan perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
-        [AccessPermission("MyProfileChange", "Read")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> GetSummary(
             CancellationToken cancellationToken)
         {
@@ -105,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Melihat daftar perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
-        [AccessPermission("MyProfileChange", "Read")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> GetPaged(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -154,7 +156,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Melihat detail perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
-        [AccessPermission("MyProfileChange", "Read")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> GetById(
             Guid id,
             CancellationToken cancellationToken)
@@ -177,7 +179,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Melihat workflow perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
-        [AccessPermission("MyProfileChange", "Read")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> GetWorkflow(
             Guid id,
             CancellationToken cancellationToken)
@@ -206,7 +208,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Membuat draft perubahan profil milik sendiri",
             AccessType = AccessTypes.Create,
             SortOrder = 2)]
-        [AccessPermission("MyProfileChange", "Create")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> Create(
             [FromBody] CreateEmployeeProfileChangeSelfServiceRequest request,
             CancellationToken cancellationToken)
@@ -241,7 +243,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Mengubah draft atau revisi perubahan profil milik sendiri",
             AccessType = AccessTypes.Update,
             SortOrder = 3)]
-        [AccessPermission("MyProfileChange", "Update")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> Update(
             Guid id,
             [FromBody] UpdateEmployeeProfileChangeSelfServiceRequest request,
@@ -281,7 +283,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Submit perubahan profil ke generic workflow",
             AccessType = AccessTypes.Update,
             SortOrder = 4)]
-        [AccessPermission("MyProfileChange", "Submit")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> Submit(
             Guid id,
             [FromBody] EmployeeProfileChangeSelfServiceSubmitRequest? request,
@@ -319,7 +321,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Membatalkan atau menarik perubahan profil",
             AccessType = AccessTypes.Update,
             SortOrder = 5)]
-        [AccessPermission("MyProfileChange", "Cancel")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> Cancel(
             Guid id,
             [FromBody] EmployeeProfileChangeWorkflowCancelRequest? request,
@@ -341,6 +343,136 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
                     cancellationToken));
         }
 
+        [HttpGet("current-profile")]
+        [ProducesResponseType(
+            typeof(ApiResponse<EmployeeCurrentProfileResponse>),
+            StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read My Profile Change",
+            Description = "Melihat data profil tenaga kerja saat ini untuk pengajuan perubahan",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1)]
+        // Self-service: access controlled via [Authorize], context & ownership
+        public async Task<IActionResult> GetCurrentProfile(
+            CancellationToken cancellationToken)
+        {
+            var contextResult = await ResolveContextAsync(cancellationToken);
+            if (contextResult.Error != null)
+                return contextResult.Error;
+
+            var result = await _service.GetCurrentProfileAsync(
+                contextResult.Context!.WorkforceProfileId!.Value,
+                cancellationToken);
+
+            return ToActionResult(result);
+        }
+
+        [HttpPost("{id:guid}/evidence")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(
+            typeof(ApiResponse<EmployeeProfileChangeResponse>),
+            StatusCodes.Status200OK)]
+        [AccessAction(
+            "Update",
+            "Upload My Profile Change Evidence",
+            Description = "Mengunggah berkas bukti perubahan profil milik sendiri",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3)]
+        // Self-service: access controlled via [Authorize], context & ownership
+        public async Task<IActionResult> UploadEvidence(
+            Guid id,
+            [FromForm] EmployeeProfileChangeEvidenceUploadRequest request,
+            CancellationToken cancellationToken)
+        {
+            var owned = await GetOwnedAsync(
+                id,
+                requireRequester: true,
+                cancellationToken: cancellationToken);
+
+            if (owned.Error != null)
+                return owned.Error;
+
+            return ToActionResult(
+                await _service.UploadEvidenceAsync(
+                    id,
+                    request.File,
+                    owned.Context!.UserId,
+                    cancellationToken));
+        }
+
+        [HttpGet("{id:guid}/evidence/download")]
+        [AccessAction(
+            "Read",
+            "Download My Profile Change Evidence",
+            Description = "Mengunduh berkas bukti perubahan profil milik sendiri",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1)]
+        // Self-service: access controlled via [Authorize], context & ownership
+        public async Task<IActionResult> DownloadEvidence(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var owned = await GetOwnedAsync(
+                id,
+                requireRequester: false,
+                cancellationToken: cancellationToken);
+
+            if (owned.Error != null)
+                return owned.Error;
+
+            var fileResult = await _service.GetRequestEvidenceFileAsync(
+                id,
+                cancellationToken);
+
+            if (!fileResult.Success || fileResult.Data == null)
+            {
+                return StatusCode(
+                    fileResult.StatusCode,
+                    ApiResponse<object>.Fail(fileResult.StatusCode, fileResult.Message));
+            }
+
+            var file = fileResult.Data;
+            var stream = new FileStream(
+                file.PhysicalPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+            return File(
+                stream,
+                file.ContentType,
+                file.FileName,
+                enableRangeProcessing: true);
+        }
+
+        [HttpDelete("{id:guid}/evidence")]
+        [AccessAction(
+            "Update",
+            "Delete My Profile Change Evidence",
+            Description = "Menghapus berkas bukti perubahan profil milik sendiri",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3)]
+        // Self-service: access controlled via [Authorize], context & ownership
+        public async Task<IActionResult> DeleteEvidence(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var owned = await GetOwnedAsync(
+                id,
+                requireRequester: true,
+                cancellationToken: cancellationToken);
+
+            if (owned.Error != null)
+                return owned.Error;
+
+            return ToActionResult(
+                await _service.DeleteEvidenceAsync(
+                    id,
+                    owned.Context!.UserId,
+                    cancellationToken));
+        }
+
         [HttpDelete("{id:guid}")]
         [AccessAction(
             "Delete",
@@ -348,7 +480,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             Description = "Menghapus draft perubahan profil milik sendiri",
             AccessType = AccessTypes.Delete,
             SortOrder = 6)]
-        [AccessPermission("MyProfileChange", "Delete")]
+        // Self-service: access controlled via [Authorize], context & ownership
         public async Task<IActionResult> Delete(
             Guid id,
             CancellationToken cancellationToken)

@@ -16,6 +16,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         private readonly ApplicationDbContext _dbContext;
         private readonly OvertimeActualCalculationService _calculationService;
         private readonly OvertimeCompensatoryExpiryService _expiryService;
+        private readonly ICompensatoryTimeOffExpirationService _modernExpirationService;
         private readonly OvertimeFinalReconciliationService _reconciliationService;
         private readonly OvertimePeriodService _periodService;
         private readonly OvertimeSchedulerOptions _options;
@@ -25,6 +26,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             ApplicationDbContext dbContext,
             OvertimeActualCalculationService calculationService,
             OvertimeCompensatoryExpiryService expiryService,
+            ICompensatoryTimeOffExpirationService modernExpirationService,
             OvertimeFinalReconciliationService reconciliationService,
             OvertimePeriodService periodService,
             IOptions<OvertimeSchedulerOptions> options,
@@ -33,6 +35,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             _dbContext = dbContext;
             _calculationService = calculationService;
             _expiryService = expiryService;
+            _modernExpirationService = modernExpirationService;
             _reconciliationService = reconciliationService;
             _periodService = periodService;
             _options = options.Value;
@@ -549,6 +552,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 response.SkippedCount += expiry.SkippedCount;
                 response.FailedCount += expiry.FailedCount;
                 response.Messages.AddRange(expiry.Messages.Take(50));
+
+                // BE-HRD-142 (remediasi 10 November 2026): tiket CTO yang dibuat jalur modern (CompensatoryTimeOffService,
+                // buku besar TrxLeaveBalanceLedger) tidak punya transaksi saldo sumber, sehingga dilewati mesin legacy di atas.
+                // Scheduler kini juga menjalankan CompensatoryTimeOffExpirationService supaya tiket itu ikut hangus otomatis
+                // pada H+90 — sebelumnya service ini hanya bisa dipicu manual dari controller.
+                var modernExpiry = await _modernExpirationService.ExecuteExpirationRunAsync(actorUserId, cancellationToken);
+                response.CandidateCount += modernExpiry.TotalProcessedTickets;
+                response.ProcessedCount += modernExpiry.TotalProcessedTickets;
+                response.SucceededCount += modernExpiry.ExpiredTicketsCount;
+                if (modernExpiry.ExpiredTicketsCount > 0) response.Messages.Add(modernExpiry.Message);
             }
 
             if (job.JobType == OvertimeValueConstants.SchedulerJobType.Reconcile ||

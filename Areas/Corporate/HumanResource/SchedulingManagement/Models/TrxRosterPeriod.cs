@@ -2,6 +2,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceA
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Models;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -43,7 +45,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public int TotalAssignmentCount { get; set; } = 0;
         public int TotalConflictCount { get; set; } = 0;
         public int BlockingConflictCount { get; set; } = 0;
+        public int WarningCount { get; set; } = 0;
         public bool IsValidationPassed { get; set; } = false;
+        public bool IsRecheckPassed { get; set; } = false;
         public bool IsPublished { get; set; } = false;
         public bool IsLocked { get; set; } = false;
         public bool IsActive { get; set; } = true;
@@ -58,6 +62,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public Guid? PublishedByUserId { get; set; }
         public DateTime? LockedAt { get; set; }
         public Guid? LockedByUserId { get; set; }
+        public DateTime? ClosedAt { get; set; }
+        public Guid? ClosedByUserId { get; set; }
 
         [Column(TypeName = "jsonb")]
         public string? ValidationSummaryJson { get; set; }
@@ -77,6 +83,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public ApplicationUser? ApprovedByUser { get; set; }
         public ApplicationUser? PublishedByUser { get; set; }
         public ApplicationUser? LockedByUser { get; set; }
+        public ApplicationUser? ClosedByUser { get; set; }
 
         public ICollection<TrxRosterAssignment> RosterAssignments { get; set; } = new List<TrxRosterAssignment>();
         public ICollection<TrxRosterApproval> RosterApprovals { get; set; } = new List<TrxRosterApproval>();

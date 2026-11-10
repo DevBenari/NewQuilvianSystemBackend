@@ -204,6 +204,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 credit.RemainingMinutes = 0;
                 credit.CompensatoryStatus = OvertimeValueConstants.CompensatoryStatus.Expired;
                 credit.ExpiredAt = now;
+                credit.IsExpired = true;      // disamakan dengan penanda yang dibaca jalur modern (BE-HRD-142)
+                credit.RemainingHours = 0;
                 credit.IsActive = false;
                 credit.UpdateDateTime = now;
                 credit.UpdateBy = actorUserId;

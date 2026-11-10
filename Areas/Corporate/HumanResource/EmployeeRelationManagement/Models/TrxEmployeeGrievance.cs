@@ -55,6 +55,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         public bool RequiresEnhancedAudit { get; set; } = true;
         public bool CanComplainantViewStatus { get; set; } = true;
 
+        // Sub-Modul 18 additions (Kamus Data 23.5)
+        public bool IsWhistleblowerCase { get; set; } = false;
+        public bool IsAnonymous { get; set; } = false;
+        public string? EncryptedReportPayload { get; set; }
+        [MaxLength(64)]
+        public string? Category { get; set; }
+        [MaxLength(128)]
+        public string? TargetUnit { get; set; }
+        [MaxLength(32)]
+        public string SeverityLevel { get; set; } = "Medium";
+        public DateTime? TargetResolutionDate { get; set; }
+        public string? ResolutionNotes { get; set; }
+
+        [NotMapped]
+        public Guid GrievanceId
+        {
+            get => Id;
+            set => Id = value;
+        }
+
+        [NotMapped]
+        public string TicketNumber
+        {
+            get => GrievanceNumber;
+            set => GrievanceNumber = value;
+        }
+
+        [NotMapped]
+        public string Status
+        {
+            get => GrievanceStatus;
+            set => GrievanceStatus = value;
+        }
+
         public string? AttachmentMetadataJson { get; set; }
 
         public DateTime? SubmittedAt { get; set; }

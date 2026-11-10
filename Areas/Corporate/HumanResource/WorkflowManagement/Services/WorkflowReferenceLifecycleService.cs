@@ -12,7 +12,9 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Mod
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Repositories;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services
 {
@@ -76,6 +78,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         public const string ResignationReferenceType =
             ResignationValueConstants.Workflow.ReferenceType;
+
+        public const string WorkforceStaffingStandardReferenceType =
+            WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceStaffingStandard;
+
+        public const string WorkforceInitialFormationBatchReferenceType =
+            WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceInitialFormationBatch;
+
+        public const string WorkforceManpowerPlanReferenceType =
+            WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceManpowerPlan;
+
+        public const string WorkforceHeadcountRequestReferenceType =
+            WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceHeadcountRequest;
+
+        public const string WorkforceHeadcountCancellationReferenceType =
+            WorkforcePlanningValueConstants.WorkflowReferenceTypes.WorkforceHeadcountCancellation;
 
         private static readonly HashSet<string> EmployeeProfileChangeReferenceAliases =
             new(StringComparer.OrdinalIgnoreCase)
@@ -166,6 +183,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 "RESIGNATION"
             };
 
+        private static readonly HashSet<string> WorkforceStaffingStandardReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                WorkforceStaffingStandardReferenceType,
+                "StaffingStandard",
+                "HrdStaffingStandard"
+            };
+
+        private static readonly HashSet<string> WorkforceInitialFormationBatchReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                WorkforceInitialFormationBatchReferenceType,
+                "InitialFormationBatch",
+                "HrdInitialFormationBatch"
+            };
+
+        private static readonly HashSet<string> WorkforceManpowerPlanReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                WorkforceManpowerPlanReferenceType,
+                "ManpowerPlan",
+                "HrdManpowerPlan"
+            };
+
+        private static readonly HashSet<string> WorkforceHeadcountRequestReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                WorkforceHeadcountRequestReferenceType,
+                "HeadcountRequest",
+                "HrdHeadcountRequest"
+            };
+
+        private static readonly HashSet<string> WorkforceHeadcountCancellationReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                WorkforceHeadcountCancellationReferenceType,
+                "HeadcountCancellation",
+                "HrdHeadcountRequestCancellation"
+            };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly EmployeeProfileChangeService _employeeProfileChangeService;
         private readonly AttendanceCorrectionWorkflowLifecycleService
@@ -186,6 +243,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             _shiftSwapWorkflowLifecycleService;
         private readonly ResignationWorkflowLifecycleService
             _resignationWorkflowLifecycleService;
+        private readonly IHrdWorkforcePlanningWorkflowIntegrationService
+            _workforcePlanningWorkflowIntegrationService;
         private readonly ILogger<WorkflowReferenceLifecycleService> _logger;
 
         public WorkflowReferenceLifecycleService(
@@ -209,6 +268,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 shiftSwapWorkflowLifecycleService,
             ResignationWorkflowLifecycleService
                 resignationWorkflowLifecycleService,
+            IHrdWorkforcePlanningWorkflowIntegrationService
+                workforcePlanningWorkflowIntegrationService,
             ILogger<WorkflowReferenceLifecycleService> logger)
         {
             _dbContext = dbContext;
@@ -231,6 +292,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 shiftSwapWorkflowLifecycleService;
             _resignationWorkflowLifecycleService =
                 resignationWorkflowLifecycleService;
+            _workforcePlanningWorkflowIntegrationService =
+                workforcePlanningWorkflowIntegrationService;
             _logger = logger;
         }
 
@@ -385,6 +448,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         cancellationToken);
             }
 
+            if (IsWorkforcePlanningReference(workflow.ReferenceType))
+            {
+                return await _workforcePlanningWorkflowIntegrationService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
             return new WorkflowReferenceLifecycleSynchronizationResult
             {
                 IsHandled = false,
@@ -394,6 +467,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             };
         }
 
+        public static bool IsWorkforcePlanningReference(string? referenceType)
+        {
+            return IsWorkforceStaffingStandardReference(referenceType) ||
+                   IsWorkforceInitialFormationBatchReference(referenceType) ||
+                   IsWorkforceManpowerPlanReference(referenceType) ||
+                   IsWorkforceHeadcountRequestReference(referenceType) ||
+                   IsWorkforceHeadcountCancellationReference(referenceType);
+        }
+
+        public static bool IsWorkforceStaffingStandardReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   WorkforceStaffingStandardReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsWorkforceInitialFormationBatchReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   WorkforceInitialFormationBatchReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsWorkforceManpowerPlanReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   WorkforceManpowerPlanReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsWorkforceHeadcountRequestReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   WorkforceHeadcountRequestReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsWorkforceHeadcountCancellationReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   WorkforceHeadcountCancellationReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
         public static bool IsEmployeeProfileChangeReference(string? referenceType)
         {
             return !string.IsNullOrWhiteSpace(referenceType) &&

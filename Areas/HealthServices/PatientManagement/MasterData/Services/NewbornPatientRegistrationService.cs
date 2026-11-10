@@ -209,15 +209,22 @@ public sealed class NewbornPatientRegistrationService
             var sequence = await _dbContext.PatNewbornBirthSequences
                 .SingleOrDefaultAsync(x => x.DeliveryCaseId == deliveryCase.Id, cancellationToken);
 
+            var maxExistingBirthOrder = await _dbContext.MstPatients
+                .IgnoreQueryFilters()
+                .Where(x => x.DeliveryCaseId == deliveryCase.Id && !x.IsDelete && x.BirthOrder.HasValue)
+                .Select(x => x.BirthOrder!.Value)
+                .DefaultIfEmpty(0)
+                .MaxAsync(cancellationToken);
+
             var now = DateTime.UtcNow;
-            var birthOrder = 1;
+            var birthOrder = Math.Max(maxExistingBirthOrder, sequence?.LastAllocatedBirthOrder ?? 0) + 1;
             if (sequence == null)
             {
                 sequence = new PatNewbornBirthSequence
                 {
                     Id = Guid.NewGuid(),
                     DeliveryCaseId = deliveryCase.Id,
-                    LastAllocatedBirthOrder = 1,
+                    LastAllocatedBirthOrder = birthOrder,
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
@@ -225,7 +232,6 @@ public sealed class NewbornPatientRegistrationService
             }
             else
             {
-                birthOrder = checked(sequence.LastAllocatedBirthOrder + 1);
                 sequence.LastAllocatedBirthOrder = birthOrder;
                 sequence.UpdateDateTime = now;
                 sequence.UpdateBy = actorUserId;
@@ -316,12 +322,28 @@ public sealed class NewbornPatientRegistrationService
                 NewbornRegistrationStatus.Conflict,
                 "Urutan kelahiran pada kasus persalinan ini sudah mencapai batas sistem.");
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
         {
             await transaction.RollbackAsync(cancellationToken);
+            var message = "Registrasi bayi berbenturan dengan permintaan lain. Muat ulang lalu periksa hasil registrasi.";
+            if (ex.InnerException is Npgsql.PostgresException pgEx)
+            {
+                if (pgEx.ConstraintName == "UX_MstPatient_DeliveryCase_BirthOrder")
+                {
+                    message = "Urutan kelahiran pada kasus persalinan ini berbenturan dengan pasien yang sudah terdaftar.";
+                }
+                else if (pgEx.ConstraintName == "UX_MstPatient_NewbornRegistrationKeyHash")
+                {
+                    message = "Kunci registrasi (Idempotency-Key) berbenturan dengan pendaftaran lain.";
+                }
+                else if (!string.IsNullOrWhiteSpace(pgEx.MessageText))
+                {
+                    message = $"Gagal menyimpan identitas bayi pada basis data: {pgEx.MessageText}";
+                }
+            }
             return new NewbornRegistrationResult(
                 NewbornRegistrationStatus.Conflict,
-                "Registrasi bayi berbenturan dengan permintaan lain. Muat ulang lalu periksa hasil registrasi.");
+                message);
         }
     }
 

@@ -43,10 +43,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Mode
         public Guid? AppliedByUserId { get; set; }
         public int CurrentStepOrder { get; set; } = 0;
 
+        public bool IsSubmittedOnBehalf { get; set; } = false;
+        public Guid? SubmittedByWorkforceProfileId { get; set; }
+        [MaxLength(500)]
+        public string? OnBehalfReason { get; set; }
+        public DateTime? OnBehalfNotifiedAt { get; set; }
+        [MaxLength(500)]
+        public string? EvidenceFilePath { get; set; }
+        [MaxLength(255)]
+        public string? EvidenceFileName { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
+        public MstWorkforceProfile? SubmittedByWorkforceProfile { get; set; }
         public MstWorkflowDefinition? WorkflowDefinition { get; set; }
         public MstRequestReason? RequestReason { get; set; }
         public ICollection<TrxEmployeeProfileChangeDetail> Details { get; set; } = new List<TrxEmployeeProfileChangeDetail>();

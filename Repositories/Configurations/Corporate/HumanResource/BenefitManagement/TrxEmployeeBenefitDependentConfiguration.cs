@@ -28,6 +28,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.SupportingDocumentJson).HasColumnType("jsonb");
             entity.Property(x => x.RequestedAt).HasColumnType("timestamp with time zone");
             entity.Property(x => x.VerifiedAt).HasColumnType("timestamp with time zone");
+            entity.Property(x => x.StudentVerificationExpiryDate).HasColumnType("timestamp with time zone");
+            entity.Property(x => x.NationalIdNumber).HasMaxLength(16);
+            entity.Property(x => x.FamilyCardNumber).HasMaxLength(16);
+            entity.Property(x => x.StudentVerificationLetterPath).HasMaxLength(255);
+            entity.Property(x => x.VerificationStatus).HasMaxLength(50);
+            entity.Property(x => x.RejectionReason).HasMaxLength(1000);
+            entity.Property(x => x.IsActiveStudent).HasDefaultValue(false);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
             entity.HasOne(x => x.EmployeeBenefitEnrollment)

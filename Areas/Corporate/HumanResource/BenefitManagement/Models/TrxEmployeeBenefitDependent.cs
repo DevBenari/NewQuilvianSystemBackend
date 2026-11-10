@@ -71,6 +71,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         [MaxLength(1000)]
         public string? VerificationNotes { get; set; }
 
+        [MaxLength(16)]
+        public string? NationalIdNumber { get; set; } // NIK 16 digit (VR-BEN-03)
+
+        [MaxLength(16)]
+        public string? FamilyCardNumber { get; set; } // Nomor KK 16 digit (VR-BEN-04)
+
+        public bool IsActiveStudent { get; set; } = false; // Mahasiswa aktif (VR-BEN-05..06)
+
+        [MaxLength(255)]
+        public string? StudentVerificationLetterPath { get; set; } // Surat dekanat (VR-BEN-07)
+
+        public DateTime? StudentVerificationExpiryDate { get; set; } // Batas akhir surat 31 Agustus (VR-BEN-08)
+
+        [MaxLength(50)]
+        public string? VerificationStatus { get; set; } = "Draft"; // Draft, Submitted, Verified, Rejected, ExpiredAgeLimit
+
+        [MaxLength(1000)]
+        public string? RejectionReason { get; set; } // Alasan penolakan minimal 15 char (VR-BEN-25)
+
         public bool IsActive { get; set; } = true;
 
         /// <summary>BE-FIN-103, FIN-API-1.10: token konkurensi optimistik, diganti service pada setiap perubahan.</summary>
