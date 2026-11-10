@@ -2717,6 +2717,14 @@ try
                 () => SeedDrugStorageLocationsAsync(app.Services));
         }
 
+        await RunStartupSeederAsync(
+            "WorkforcePlanningRuntimeDevSeeder",
+            () => WorkforcePlanningRuntimeDevSeeder.SeedAsync(app.Services));
+
+        await RunStartupSeederAsync(
+            "OnboardingRuntimeDevSeeder",
+            () => OnboardingRuntimeDevSeeder.SeedAsync(app.Services));
+
         // Seed Awal Saja
         // var icd10FolderPath = Path.Combine(
         //     app.Environment.ContentRootPath,

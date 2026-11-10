@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Enums;
@@ -755,6 +756,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
             if (seat.SeatStatus != HeadcountSeatStatus.Open && seat.SeatStatus != HeadcountSeatStatus.Frozen)
             {
                 return WorkforcePlanningResult<CancellationResponse>.Fail("Hanya kursi yang belum terisi (Open atau Frozen) yang dapat diajukan pembatalan.", 422);
+            }
+
+            // Validasi penjaga "tutup lowongan dulu" (VR-WFP-36 / HRD-DEC-071, BE-HRD-045)
+            var hasOpenVacancy = await _dbContext.HrdJobRequisitions
+                .Where(r => r.HeadcountRequestId == entity.Id && !r.IsDelete)
+                .Join(_dbContext.HrdJobVacancies.Where(v => !v.IsDelete && v.Status == JobVacancyStatus.Published),
+                      r => r.Id,
+                      v => v.RequisitionId,
+                      (r, v) => v)
+                .AnyAsync(cancellationToken);
+
+            if (hasOpenVacancy)
+            {
+                return WorkforcePlanningResult<CancellationResponse>.Fail(
+                    "Pembatalan kursi tidak dapat dilakukan karena masih terdapat lowongan kerja aktif. Tutup lowongan terlebih dahulu (VR-WFP-36).", 409);
             }
 
             if (string.IsNullOrWhiteSpace(request.Reason))

@@ -66,6 +66,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                     return WorkforcePlanningApplyResult.AlreadyFinal(previousStatus);
                 }
 
+                // Validasi pra-persetujuan VR-WFP-21 (BE-HRD-049):
+                // Finance tidak dapat menyetujui rencana yang masih memiliki baris RateUnavailable tanpa koreksi FinanceAdjustedTotal
+                if (plan.Lines.Any(l => l.CostStatus == CostCalculationStatus.RateUnavailable) && !plan.FinanceAdjustedTotal.HasValue)
+                {
+                    _logger.LogWarning("Persetujuan rencana {PlanNumber} ditolak karena terdapat baris dengan tarif belum tersedia tanpa koreksi Finance (VR-WFP-21).", plan.PlanNumber);
+                    return WorkforcePlanningApplyResult.Unhandled(
+                        "Persetujuan rencana kebutuhan tenaga tidak dapat diproses karena masih terdapat baris dengan tarif belum tersedia tanpa koreksi Finance (VR-WFP-21).");
+                }
+
                 await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {

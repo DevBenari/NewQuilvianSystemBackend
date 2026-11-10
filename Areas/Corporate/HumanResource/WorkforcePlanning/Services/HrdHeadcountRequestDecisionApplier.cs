@@ -121,6 +121,61 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.
                         }
                     }
 
+                    // Validasi sisa kursi (VR-WFP-23 / BE-HRD-049):
+                    // Jika AdditionalWithinFormation, pastikan sisa kursi formasi masih cukup pada persetujuan akhir
+                    if (entity.RequestType == HeadcountRequestType.AdditionalWithinFormation)
+                    {
+                        var effectiveDate = entity.RequiredStartDate;
+                        var effectiveDateTime = effectiveDate.ToDateTime(TimeOnly.MinValue);
+                        var formation = await _formationService.GetEffectiveFormationForPositionAsync(
+                            entity.OrganizationUnitId,
+                            entity.PositionId,
+                            effectiveDate,
+                            cancellationToken);
+
+                        decimal formationQty = formation?.FormationQuantity ?? 0m;
+                        var filledFte = (decimal)await _dbContext.WfpOrganizationAssignments
+                            .Where(a => !a.IsDelete &&
+                                        a.IsActive &&
+                                        a.OrganizationUnitId == entity.OrganizationUnitId &&
+                                        a.PositionId == entity.PositionId &&
+                                        a.IsPrimary &&
+                                        a.EffectiveStartDate <= effectiveDateTime &&
+                                        (!a.EffectiveEndDate.HasValue || a.EffectiveEndDate.Value >= effectiveDateTime))
+                            .CountAsync(cancellationToken);
+
+                        var claimedSeatsFte = (decimal)await _dbContext.HrdHeadcountRequestSeats
+                            .Where(s => !s.IsDelete &&
+                                        s.HeadcountRequestId != entity.Id &&
+                                        (s.SeatStatus == HeadcountSeatStatus.Open || s.SeatStatus == HeadcountSeatStatus.Linked) &&
+                                        s.HeadcountRequest != null &&
+                                        s.HeadcountRequest.OrganizationUnitId == entity.OrganizationUnitId &&
+                                        s.HeadcountRequest.PositionId == entity.PositionId)
+                            .CountAsync(cancellationToken);
+
+                        var availableRemaining = formationQty - filledFte - claimedSeatsFte;
+                        if (entity.RequestedQuantity > availableRemaining)
+                        {
+                            _logger.LogWarning("Persetujuan T11 permintaan {RequestNumber} ditolak karena sisa kursi formasi tidak mencukupi ({Available} < {Requested}). Permintaan dikembalikan (VR-WFP-23).",
+                                entity.RequestNumber, availableRemaining, entity.RequestedQuantity);
+
+                            entity.RequestStatus = HeadcountRequestStatus.Returned;
+                            entity.UpdateDateTime = now;
+                            entity.UpdateBy = context.ActorUserId;
+                            await _dbContext.SaveChangesAsync(cancellationToken);
+                            await transaction.CommitAsync(cancellationToken);
+
+                            return new WorkforcePlanningApplyResult
+                            {
+                                IsHandled = true,
+                                PreviousStatus = previousStatus,
+                                CurrentStatus = HeadcountRequestStatus.Returned.ToString(),
+                                StatusChanged = true,
+                                WarningMessage = "Sisa kursi formasi tidak lagi mencukupi; permintaan dikembalikan ke pemohon (VR-WFP-23)."
+                            };
+                        }
+                    }
+
                     // Kriteria 1: Set status ke ReadyForRecruitment
                     entity.RequestStatus = HeadcountRequestStatus.ReadyForRecruitment;
                     entity.ApprovedAt = now;

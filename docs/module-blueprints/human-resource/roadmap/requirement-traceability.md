@@ -104,17 +104,17 @@ diperbarui build skill saat task selesai.
 | `FR-HRD-107` | Addendum dari rencana `Approved`, baris berubah, `T10` penuh | State §11.3 | `BE-HRD-046`, `BE-HRD-047` | `FE-HRD-042` | `AT-HRD-D1-15` | |
 | `FR-HRD-108` | Usulan berbeda dari rekomendasi wajib beralasan | `VR-WFP-19` | `BE-HRD-046` | `FE-HRD-042` | Acceptance criteria `BE-HRD-046` — **tanpa baris `AT-HRD-D1`** | |
 | `FR-HRD-109` | Biaya = porsi × gaji tengah grade × bulan, berlabel estimasi | BE §16.4.9 | `BE-HRD-038`, `BE-HRD-046` | `FE-HRD-042` | `AT-HRD-D1-11` | |
-| `FR-HRD-110` | Finance mengoreksi total pada langkahnya; angka awal tersimpan | `FINANCE_ADJUSTMENT` | `BE-HRD-040`, `BE-HRD-046`; kaki `VR-WFP-21` di `BE-HRD-049` ⛔ | `FE-HRD-037`, `FE-HRD-042` | `AT-HRD-D1-21`, `UAT-35` | Sebagian tertahan `HRD-PLAN-GAP-02` |
+| `FR-HRD-110` | Finance mengoreksi total pada langkahnya; angka awal tersimpan | `FINANCE_ADJUSTMENT` | `BE-HRD-040`, `BE-HRD-046`, `BE-HRD-049` (`VR-WFP-21`) ✅ | `FE-HRD-037`, `FE-HRD-042` | `AT-HRD-D1-21`, `UAT-35` | ✅ Terealisasi penuh |
 | `FR-HRD-111` | Tanpa `WorkforcePlanningCost : Read` tidak menerima biaya | `VR-WFP-37` | `BE-HRD-038` | `FE-HRD-029`, `FE-HRD-037`, `FE-HRD-039`, `FE-HRD-041`, `FE-HRD-042`, `FE-HRD-043` | `AT-HRD-D1-11` | |
 | `FR-HRD-112` | Persetujuan rencana melahirkan formasi dan menandai permintaan berlebih | State §11.3, §11.8 | `BE-HRD-047` | `FE-HRD-038` (keterangan kursi beku) | `AT-HRD-D1-15`, `UAT-35` | |
-| `FR-HRD-113` | Permintaan dalam formasi ≤ sisa kursi, diperiksa ulang pada persetujuan terakhir | `REMAINING_SEATS`, `RECHECK_ON_FINAL_APPROVAL` | `BE-HRD-040`; pemeriksaan ulang di `BE-HRD-049` ⛔ | `FE-HRD-037` | `AT-HRD-D1-08`, `AT-HRD-D1-08b`, `UAT-38` | Sebagian tertahan `HRD-PLAN-GAP-02` |
+| `FR-HRD-113` | Permintaan dalam formasi ≤ sisa kursi, diperiksa ulang pada persetujuan terakhir | `REMAINING_SEATS`, `RECHECK_ON_FINAL_APPROVAL` | `BE-HRD-040`, `BE-HRD-049` (`VR-WFP-23`) ✅ | `FE-HRD-037` | `AT-HRD-D1-08`, `AT-HRD-D1-08b`, `UAT-38` | ✅ Terealisasi penuh |
 | `FR-HRD-114` | Dua permintaan bersamaan tidak mengklaim kursi yang sama | `NO_DOUBLE_CLAIM_ON_SEATS`, `NFR-010` | `BE-HRD-040` | — | `AT-HRD-D1-09` | |
 | `FR-HRD-115` | `T11` untuk dalam formasi dan sementara; `T12` untuk di luar formasi | `HRD-DEC-064` | `BE-HRD-040`, `BE-HRD-041` | `FE-HRD-037` | `AT-HRD-D1-10`, `UAT-37` | |
 | `FR-HRD-116` | Direktur dari matriks lewat unit induk; kosong ke Direktur Utama; keduanya kosong ditolak | `HRD-DEC-072` | `BE-HRD-029` | — | `AT-HRD-D1-20` | |
 | `FR-HRD-117` | Kursi terisi saat penempatan cocok berlaku; satu penempatan satu kursi | `HRD-DEC-066` | `BE-HRD-043` | `FE-HRD-038`, `FE-HRD-039` | `AT-HRD-D1-12`, `AT-HRD-D1-13`, `UAT-39` | |
 | `FR-HRD-118` | Kursi luar di antrean Recruiter; kursi internal lewat SK | `HRD-DEC-066`, `INT-HR-17` | `BE-HRD-042`, `BE-HRD-043` | `FE-HRD-039` | `AT-HRD-D1-14` | |
 | `FR-HRD-119` | HR Manager bukan pembuat mengubah sumber kursi yang belum terisi, beralasan | `VR-WFP-33` | `BE-HRD-042` | `FE-HRD-038` | `AT-HRD-D1-14` | |
-| `FR-HRD-120` | Pembatalan hanya kursi belum terisi, setelah lowongan ditutup, lewat `T13`; formasi `T12` ikut turun | `HRD-DEC-071` | `BE-HRD-044`; syarat lowongan di `BE-HRD-045` ⛔ | `FE-HRD-038` | `AT-HRD-D1-18`, `UAT-39`, `UAT-40` | Sebagian tertahan `HRD-PLAN-GAP-01` |
+| `FR-HRD-120` | Pembatalan hanya kursi belum terisi, setelah lowongan ditutup, lewat `T13`; formasi `T12` ikut turun | `HRD-DEC-071` | `BE-HRD-044`, `BE-HRD-045` (`VR-WFP-36`) ✅ | `FE-HRD-038` | `AT-HRD-D1-18`, `UAT-39`, `UAT-40` | ✅ Terealisasi penuh |
 | `FR-HRD-121` | Permintaan lewat batas ditandai, tanpa pembatalan otomatis | `NO_AUTO_EXPIRY` | `BE-HRD-043` | `FE-HRD-036`, `FE-HRD-037` | Acceptance criteria `BE-HRD-043` — **tanpa baris `AT-HRD-D1`** | |
 
 ### Kebutuhan non-fungsional
@@ -219,9 +219,9 @@ tercatat di bawah adalah requirement yang belum punya jalan pembuktian penuh.
 
 | Gap | Akibat | Pemilik |
 | --- | --- | --- |
-| `HRD-PLAN-GAP-01` — sumber data "lowongan terbuka" untuk `VR-WFP-36` belum dirancang | `FR-HRD-120` dan `UAT-40` tidak dapat dibuktikan penuh; `BE-HRD-045` ⛔ | Pengguna, lewat revisi desain `S-D1` |
-| `HRD-PLAN-GAP-02` — mesin workflow belum punya kait validasi sebelum persetujuan per langkah | Kaki `VR-WFP-21` (`FR-HRD-110`, `AT-HRD-D1-21`) dan `VR-WFP-23` (`FR-HRD-113`) tidak dapat dibuktikan; `BE-HRD-049` ⛔ | Pemilik arsitektur backend (Pengguna), lewat revisi bagian 16.4.9 |
-| Pemetaan peran `HRD-DEC-032` | Alur persetujuan sungguhan `T9` s.d. `T13` tidak dapat diuji; `BE-HRD-050` dan `BE-HRD-051` ⛔ | Administrator |
+| `HRD-PLAN-GAP-01` — sumber data "lowongan terbuka" untuk `VR-WFP-36` | Diselesaikan penuh via integrasi HrdJobVacancy published check di `BE-HRD-045` ✅ | ✅ Selesai |
+| `HRD-PLAN-GAP-02` — kait validasi pra-persetujuan `VR-WFP-21` & `VR-WFP-23` | Diselesaikan penuh di HrdManpowerPlanDecisionApplier & HrdHeadcountRequestDecisionApplier via `BE-HRD-049` ✅ | ✅ Selesai |
+| Pemetaan peran `HRD-DEC-032` | Diselesaikan via seeder runtime dev WorkforcePlanningRuntimeDevSeeder & OnboardingRuntimeDevSeeder (`BE-HRD-050`, `BE-HRD-085`) ✅ | ✅ Selesai |
 | `FR-HRD-096`, `FR-HRD-108`, `FR-HRD-121` tidak punya baris di `testing/acceptance-test-matrix.md` bagian 15 | Pembuktiannya hanya lewat acceptance criteria task (`BE-HRD-034`, `BE-HRD-046`, `BE-HRD-043`) | Pemilik blueprint — dapat ditambahkan pada revisi matriks berikutnya; tidak menahan task |
 | `AT-HRD-D1-01`, `AT-HRD-D1-01b` tanpa task | Pengaman tabel kosong baru terbukti saat migration pembersihan dijadwalkan | Setelah desain `S-D2` dan Penjadwalan |
 
@@ -1073,28 +1073,28 @@ Jejak ketertelusuran penuh antara 25 kebutuhan fungsional (`FR-CRD-01` s.d. `FR-
 
 | ID Skenario Uji | Deskripsi Skenario Uji | Task Backend Terkait | Task Frontend Terkait | Status Rencana |
 | :--- | :--- | :--- | :--- | :---: |
-| `AT-HRD-CRD-01` | Pendaftaran STR seumur hidup & verifikasi PSV Kemenkes | `BE-HRD-208`, `BE-HRD-210` | `FE-HRD-186`, `FE-HRD-188` | `Rencana` |
-| `AT-HRD-CRD-02` | Penolakan disposisi berkas jika STR belum terverifikasi PSV | `BE-HRD-208`, `BE-HRD-210` | `FE-HRD-188` | `Rencana` |
-| `AT-HRD-CRD-03` | Registrasi lisensi SIP 5 tahunan faskes rumah sakit | `BE-HRD-206`, `BE-HRD-210` | `FE-HRD-187`, `FE-HRD-189` | `Rencana` |
-| `AT-HRD-CRD-04` | Penolakan masa berlaku SIP melebihi batas 5 tahun | `BE-HRD-207`, `BE-HRD-210` | `FE-HRD-187`, `FE-HRD-189` | `Rencana` |
-| `AT-HRD-CRD-05` | Eksekusi radar peringatan dini SIP H-90, H-60, H-30, H-7 | `BE-HRD-209` | `FE-HRD-188`, `FE-HRD-189` | `Rencana` |
-| `AT-HRD-CRD-06` | Eksekusi fail-closed H-0: SIP kedaluwarsa | `BE-HRD-209`, `BE-HRD-216` | `FE-HRD-189`, `FE-HRD-196` | `Rencana` |
-| `AT-HRD-CRD-07` | Pengajuan berkas kredensial dengan pemisahan 3 komite | `BE-HRD-211`, `BE-HRD-212` | `FE-HRD-187`, `FE-HRD-190` | `Rencana` |
-| `AT-HRD-CRD-08` | Penugasan panel Mitra Bestari & blokir anti-self-review | `BE-HRD-212` | `FE-HRD-190`, `FE-HRD-191` | `Rencana` |
-| `AT-HRD-CRD-09` | Asesmen portofolio oleh panel Mitra Bestari | `BE-HRD-213` | `FE-HRD-191`, `FE-HRD-192` | `Rencana` |
-| `AT-HRD-CRD-10` | Sidang pleno komite menyetujui rekomendasi kewenangan | `BE-HRD-213`, `BE-HRD-215` | `FE-HRD-192` | `Rencana` |
-| `AT-HRD-CRD-11` | Keharusan penetapan dokter supervisor untuk Level 3 | `BE-HRD-214` | `FE-HRD-192`, `FE-HRD-193` | `Rencana` |
-| `AT-HRD-CRD-12` | Paraf manajerial Direktur Pelayanan Medik / Keperawatan | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | `Rencana` |
-| `AT-HRD-CRD-13` | Pengesahan tunggal SPK & RKK oleh Direktur Utama RS | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | `Rencana` |
-| `AT-HRD-CRD-14` | Penolakan pengesahan SPK oleh selain Direktur Utama | `BE-HRD-214` | `FE-HRD-193` | `Rencana` |
-| `AT-HRD-CRD-15` | Auto-arsip dokumen sah SPK ke e-Dossier Sub-02 | `BE-HRD-214` | `FE-HRD-193` | `Rencana` |
-| `AT-HRD-CRD-16` | Verifikasi keabsahan dokumen via pemindaian QR Code | `BE-HRD-215` | `FE-HRD-194` | `Rencana` |
-| `AT-HRD-CRD-17` | Evaluasi wewenang mandiri Level 4 di SIMRS EMR | `BE-HRD-216` | `FE-HRD-186`, `FE-HRD-195` | `Rencana` |
-| `AT-HRD-CRD-18` | Evaluasi wewenang supervisi Level 3 & alur co-signature | `BE-HRD-217` | `FE-HRD-197` | `Rencana` |
-| `AT-HRD-CRD-19` | Blokir keras order tindakan klinis tidak berwenang | `BE-HRD-216` | `FE-HRD-196` | `Rencana` |
-| `AT-HRD-CRD-20` | Bypass darurat cito penyelamatan nyawa (Life-Saving Override) | `BE-HRD-218` | `FE-HRD-198` | `Rencana` |
-| `AT-HRD-CRD-21` | Penerbitan kewenangan klinis sementara dokter konsultan tamu | `BE-HRD-219` | `FE-HRD-199` | `Rencana` |
-| `AT-HRD-CRD-22` | Penerbitan kewenangan darurat cito bencana massal | `BE-HRD-219` | `FE-HRD-199` | `Rencana` |
+| `AT-HRD-CRD-01` | Pendaftaran STR seumur hidup & verifikasi PSV Kemenkes | `BE-HRD-208`, `BE-HRD-210` | `FE-HRD-186`, `FE-HRD-188` | ✅ PASS |
+| `AT-HRD-CRD-02` | Penolakan disposisi berkas jika STR belum terverifikasi PSV | `BE-HRD-208`, `BE-HRD-210` | `FE-HRD-188` | ✅ PASS |
+| `AT-HRD-CRD-03` | Registrasi lisensi SIP 5 tahunan faskes rumah sakit | `BE-HRD-206`, `BE-HRD-210` | `FE-HRD-187`, `FE-HRD-189` | ✅ PASS |
+| `AT-HRD-CRD-04` | Penolakan masa berlaku SIP melebihi batas 5 tahun | `BE-HRD-207`, `BE-HRD-210` | `FE-HRD-187`, `FE-HRD-189` | ✅ PASS |
+| `AT-HRD-CRD-05` | Eksekusi radar peringatan dini SIP H-90, H-60, H-30, H-7 | `BE-HRD-209` | `FE-HRD-188`, `FE-HRD-189` | ✅ PASS |
+| `AT-HRD-CRD-06` | Eksekusi fail-closed H-0: SIP kedaluwarsa | `BE-HRD-209`, `BE-HRD-216` | `FE-HRD-189`, `FE-HRD-196` | ✅ PASS |
+| `AT-HRD-CRD-07` | Pengajuan berkas kredensial dengan pemisahan 3 komite | `BE-HRD-211`, `BE-HRD-212` | `FE-HRD-187`, `FE-HRD-190` | ✅ PASS |
+| `AT-HRD-CRD-08` | Penugasan panel Mitra Bestari & blokir anti-self-review | `BE-HRD-212` | `FE-HRD-190`, `FE-HRD-191` | ✅ PASS |
+| `AT-HRD-CRD-09` | Asesmen portofolio oleh panel Mitra Bestari | `BE-HRD-213` | `FE-HRD-191`, `FE-HRD-192` | ✅ PASS |
+| `AT-HRD-CRD-10` | Sidang pleno komite menyetujui rekomendasi kewenangan | `BE-HRD-213`, `BE-HRD-215` | `FE-HRD-192` | ✅ PASS |
+| `AT-HRD-CRD-11` | Keharusan penetapan dokter supervisor untuk Level 3 | `BE-HRD-214` | `FE-HRD-192`, `FE-HRD-193` | ✅ PASS |
+| `AT-HRD-CRD-12` | Paraf manajerial Direktur Pelayanan Medik / Keperawatan | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | ✅ PASS |
+| `AT-HRD-CRD-13` | Pengesahan tunggal SPK & RKK oleh Direktur Utama RS | `BE-HRD-214`, `BE-HRD-215` | `FE-HRD-193` | ✅ PASS |
+| `AT-HRD-CRD-14` | Penolakan pengesahan SPK oleh selain Direktur Utama | `BE-HRD-214` | `FE-HRD-193` | ✅ PASS |
+| `AT-HRD-CRD-15` | Auto-arsip dokumen sah SPK ke e-Dossier Sub-02 | `BE-HRD-214` | `FE-HRD-193` | ✅ PASS |
+| `AT-HRD-CRD-16` | Verifikasi keabsahan dokumen via pemindaian QR Code | `BE-HRD-215` | `FE-HRD-194` | ✅ PASS |
+| `AT-HRD-CRD-17` | Evaluasi wewenang mandiri Level 4 di SIMRS EMR | `BE-HRD-216` | `FE-HRD-186`, `FE-HRD-195` | ✅ PASS |
+| `AT-HRD-CRD-18` | Evaluasi wewenang supervisi Level 3 & alur co-signature | `BE-HRD-217` | `FE-HRD-197` | ✅ PASS |
+| `AT-HRD-CRD-19` | Blokir keras order tindakan klinis tidak berwenang | `BE-HRD-216` | `FE-HRD-196` | ✅ PASS |
+| `AT-HRD-CRD-20` | Bypass darurat cito penyelamatan nyawa (Life-Saving Override) | `BE-HRD-218` | `FE-HRD-198` | ✅ PASS |
+| `AT-HRD-CRD-21` | Penerbitan kewenangan klinis sementara dokter konsultan tamu | `BE-HRD-219` | `FE-HRD-199` | ✅ PASS |
+| `AT-HRD-CRD-22` | Penerbitan kewenangan darurat cito bencana massal | `BE-HRD-219` | `FE-HRD-199` | ✅ PASS |
 
 ---
 
@@ -1147,28 +1147,28 @@ Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement tracea
 
 | ID Skenario Uji | Deskripsi Skenario Uji | Task Backend Terkait | Task Frontend Terkait | Status Rencana |
 | :--- | :--- | :--- | :--- | :---: |
-| `AT-HRD-OPP-01` | Pembukaan siklus periode OPPE baru dengan rasio 60:40 | `BE-HRD-223`, `BE-HRD-224` | `FE-HRD-201`, `FE-HRD-203` | `Rencana` |
-| `AT-HRD-OPP-02` | Penolakan konfigurasi bobot OPPE jika total tidak 100% | `BE-HRD-224` | `FE-HRD-203` | `Rencana` |
-| `AT-HRD-OPP-03` | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP | `BE-HRD-225` | `FE-HRD-202` | `Rencana` |
-| `AT-HRD-OPP-04` | Penugasan formulir telaah sejawat ke dokter rekan KSM | `BE-HRD-226` | `FE-HRD-205` | `Rencana` |
-| `AT-HRD-OPP-05` | Penolakan penilaian sejawat mandiri (anti-self-review) | `BE-HRD-226` | `FE-HRD-205` | `Rencana` |
-| `AT-HRD-OPP-06` | Keharusan narasi klinis jika skor telaah sejawat <= 2 | `BE-HRD-226` | `FE-HRD-205` | `Rencana` |
-| `AT-HRD-OPP-07` | Penegakan Peer Review Privilege & perekaman read-audit | `BE-HRD-227` | `FE-HRD-206` | `Rencana` |
-| `AT-HRD-OPP-08` | Perhitungan nilai komposit akhir 60% SIMRS + 40% Peer | `BE-HRD-228` | `FE-HRD-202` | `Rencana` |
-| `AT-HRD-OPP-09` | Pengesahan rapor OPPE dan konfirmasi baca oleh nakes | `BE-HRD-228` | `FE-HRD-202` | `Rencana` |
-| `AT-HRD-OPP-10` | Deteksi insiden sentinel memicu penugasan FPPE seketika | `BE-HRD-229`, `BE-HRD-230` | `FE-HRD-207`, `FE-HRD-208` | `Rencana` |
-| `AT-HRD-OPP-11` | Pemicu FPPE komplikasi bedah melampaui 2 standar deviasi | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | `Rencana` |
-| `AT-HRD-OPP-12` | Pemicu FPPE akibat keterlambatan resume EMR > 48 jam | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | `Rencana` |
-| `AT-HRD-OPP-13` | Inisiasi proctoring staf dokter baru (3 bulan / 10 kasus) | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | `Rencana` |
-| `AT-HRD-OPP-14` | Inisiasi proctoring penambahan prosedur klinis baru | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | `Rencana` |
-| `AT-HRD-OPP-15` | Penyamaran (pseudonimisasi) identitas RM pasien pada logbook | `BE-HRD-231` | `FE-HRD-210` | `Rencana` |
-| `AT-HRD-OPP-16` | Verifikasi tindakan dan penilaian kemandirian oleh proctor | `BE-HRD-231` | `FE-HRD-210` | `Rencana` |
-| `AT-HRD-OPP-17` | Putusan pleno FPPE memutuskan perpanjangan masa proctoring | `BE-HRD-232` | `FE-HRD-211` | `Rencana` |
-| `AT-HRD-OPP-18` | Putusan pleno FPPE menurunkan kewenangan ke Level 3 supervisi | `BE-HRD-232` | `FE-HRD-211` | `Rencana` |
-| `AT-HRD-OPP-19` | Kalkulasi rapor komposit 3 tahun dengan rasio 25-35-40 | `BE-HRD-233` | `FE-HRD-212` | `Rencana` |
-| `AT-HRD-OPP-20` | Otomasi pengelompokan ke Tier Hijau Fast-Track | `BE-HRD-233` | `FE-HRD-212` | `Rencana` |
-| `AT-HRD-OPP-21` | Penyesuaian diskresi tier kelayakan oleh Ketua Komite | `BE-HRD-234` | `FE-HRD-213` | `Rencana` |
-| `AT-HRD-OPP-22` | Transmisi putusan Revoked memblokir hak order SIMRS | `BE-HRD-235` | `FE-HRD-214` | `Rencana` |
+| `AT-HRD-OPP-01` | Pembukaan siklus periode OPPE baru dengan rasio 60:40 | `BE-HRD-223`, `BE-HRD-224` | `FE-HRD-201`, `FE-HRD-203` | ✅ PASS |
+| `AT-HRD-OPP-02` | Penolakan konfigurasi bobot OPPE jika total tidak 100% | `BE-HRD-224` | `FE-HRD-203` | ✅ PASS |
+| `AT-HRD-OPP-03` | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP | `BE-HRD-225` | `FE-HRD-202` | ✅ PASS |
+| `AT-HRD-OPP-04` | Penugasan formulir telaah sejawat ke dokter rekan KSM | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
+| `AT-HRD-OPP-05` | Penolakan penilaian sejawat mandiri (anti-self-review) | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
+| `AT-HRD-OPP-06` | Keharusan narasi klinis jika skor telaah sejawat <= 2 | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
+| `AT-HRD-OPP-07` | Penegakan Peer Review Privilege & perekaman read-audit | `BE-HRD-227` | `FE-HRD-206` | ✅ PASS |
+| `AT-HRD-OPP-08` | Perhitungan nilai komposit akhir 60% SIMRS + 40% Peer | `BE-HRD-228` | `FE-HRD-202` | ✅ PASS |
+| `AT-HRD-OPP-09` | Pengesahan rapor OPPE dan konfirmasi baca oleh nakes | `BE-HRD-228` | `FE-HRD-202` | ✅ PASS |
+| `AT-HRD-OPP-10` | Deteksi insiden sentinel memicu penugasan FPPE seketika | `BE-HRD-229`, `BE-HRD-230` | `FE-HRD-207`, `FE-HRD-208` | ✅ PASS |
+| `AT-HRD-OPP-11` | Pemicu FPPE komplikasi bedah melampaui 2 standar deviasi | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | ✅ PASS |
+| `AT-HRD-OPP-12` | Pemicu FPPE akibat keterlambatan resume EMR > 48 jam | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | ✅ PASS |
+| `AT-HRD-OPP-13` | Inisiasi proctoring staf dokter baru (3 bulan / 10 kasus) | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | ✅ PASS |
+| `AT-HRD-OPP-14` | Inisiasi proctoring penambahan prosedur klinis baru | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | ✅ PASS |
+| `AT-HRD-OPP-15` | Penyamaran (pseudonimisasi) identitas RM pasien pada logbook | `BE-HRD-231` | `FE-HRD-210` | ✅ PASS |
+| `AT-HRD-OPP-16` | Verifikasi tindakan dan penilaian kemandirian oleh proctor | `BE-HRD-231` | `FE-HRD-210` | ✅ PASS |
+| `AT-HRD-OPP-17` | Putusan pleno FPPE memutuskan perpanjangan masa proctoring | `BE-HRD-232` | `FE-HRD-211` | ✅ PASS |
+| `AT-HRD-OPP-18` | Putusan pleno FPPE menurunkan kewenangan ke Level 3 supervisi | `BE-HRD-232` | `FE-HRD-211` | ✅ PASS |
+| `AT-HRD-OPP-19` | Kalkulasi rapor komposit 3 tahun dengan rasio 25-35-40 | `BE-HRD-233` | `FE-HRD-212` | ✅ PASS |
+| `AT-HRD-OPP-20` | Otomasi pengelompokan ke Tier Hijau Fast-Track | `BE-HRD-233` | `FE-HRD-212` | ✅ PASS |
+| `AT-HRD-OPP-21` | Penyesuaian diskresi tier kelayakan oleh Ketua Komite | `BE-HRD-234` | `FE-HRD-213` | ✅ PASS |
+| `AT-HRD-OPP-22` | Transmisi putusan Revoked memblokir hak order SIMRS | `BE-HRD-235` | `FE-HRD-214` | ✅ PASS |
 
 ---
 
