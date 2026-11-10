@@ -11,7 +11,7 @@
 | Trace | `FR-NV-048`; `NV-AC-028` (sisi klien); `03-frontend-architecture.md` R2.5, R2.7; integration-contract R2 §8 |
 | Contract version | `0.2.1` `approved` (`NV-DEC-057`); api §10 tidak berubah sejak `0.2.0` |
 | Wewenang UI | Tidak ada; berkas ini bukan tampilan |
-| Dependency | `BE-NV-014` 🟡 (source selesai 9 Nov 2026; build dan uji hub ditunda) |
+| Dependency | `BE-NV-014` ✅ (10 Nov 2026) |
 | Klasifikasi | `LIGHT` — skor 3: satu repository (0), berkas diperiksa 9–20 (1), berkas diubah 1 (0), logika sedang (1), kontrak yang sudah ada (1), tanpa database (0), keamanan tidak tersentuh (0), UI tidak ada (0) |
 | Task mode | `FRONTEND` — perintah Rizki 9 Nov 2026 ("lanjutkan BE-NV-014 lalu ke frontend … build dan pengujian belakangan") |
 | Target tulis | `src/lib/realtime/queue-realtime-client.js` (berkas bersama, restu `NV-DEC-056`) |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7d32e7cec` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `589fb513` + perubahan `BE-NV-014` belum di-commit (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC-1 dan AC-2 terpetakan ke source; `npx eslint` 0 error. Belum: uji regresi TV papan (AC-3), ditunda atas permintaan Rizki |
+| Status | ✅ **SELESAI 10 November 2026** — AC-1 dan AC-2 terpetakan ke source; AC-3 terbukti: skrip regresi TV `FE-NV-007` (F0–F5) dijalankan ulang tanpa perubahan, 6/6 `PASS` (join `JoinNurseViewFloor` tanpa argumen, muat ulang dari `NurseViewBoardChanged` ≤ 2 detik, jeda minimum 5 detik, sambung ulang dan join ulang, muat ulang 60 detik, satu-satunya method hub TV tetap `JoinNurseViewFloor`). AC-4 dibuktikan task pemakai (`FE-NV-011`, `012`, `014` lulus). `npx eslint` 0 error |
 
 ---
 
@@ -77,10 +77,10 @@ Tidak ada layar. Galat join diteruskan ke pemanggil (`Promise` ditolak), seperti
 | `npx eslint src/lib/realtime/queue-realtime-client.js` (bersama berkas lain) | 0 error, 0 warning |
 | `git diff --stat` | `124 insertions(+)`, 0 baris dihapus |
 | Nama method dan event dibandingkan dengan `QueueHub.cs` dan api §10 | Sama persis |
-| Uji regresi TV papan | `NOT RUN` — ditunda atas permintaan Rizki |
+| Uji regresi TV papan (`uji-nv-007-20261103/uji-layar-sinyal.mjs`, tanpa perubahan) | F0–F5 6/6 lulus | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-007-20261103/layar-2026-11-10T01-54-59-644Z/` (JSON per skenario, rekaman video) |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest; uji runtime ditunda atas permintaan Rizki.`
-`MANUAL TEST: NOT FEASIBLE — backend belum dibangun ulang untuk BE-NV-014; uji ditunda atas permintaan Rizki.`
+`MANUAL TEST: PASS — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
 
 ## 7. Acceptance criteria dan Definition of Done
 
@@ -88,15 +88,15 @@ Tidak ada layar. Galat join diteruskan ke pemanggil (`Promise` ditolak), seperti
 | --- | --- | --- |
 | AC-1 nama event, method hub, argumen sama dengan api §10 | ✅ Terpetakan ke source | §5 |
 | AC-2 diff hanya menambah | ✅ Terbukti | `git diff`: 0 baris dihapus |
-| AC-3 regresi TV papan | 🟡 Belum diuji | Ditunda |
+| AC-3 regresi TV papan | ✅ Terbukti 10 Nov 2026 | F0–F5 6/6; tiga TTV uji dibatalkan kembali |
 | AC-4 penerimaan sinyal di layar | Dibuktikan task pemakai (`FE-NV-011`, `012`, `014`) | — |
 | DoD — lint `0 errors` | Terpenuhi | §6 |
-| DoD — regresi TV tercatat | **Belum** | — |
+| DoD — regresi TV tercatat | Terpenuhi 10 Nov 2026 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-007-20261103/layar-2026-11-10T01-54-59-644Z/` |
 
 ## 8. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
 | Risiko | Regresi realtime layar lain yang memakai klien ini; diff hanya menambah, tetapi baru terbukti lewat uji |
-| Status Git | ` M src/lib/realtime/queue-realtime-client.js` |
-| Langkah berikutnya | Uji regresi TV papan bersama uji `BE-NV-014` |
+| Status Git | Sudah di-commit Rizki |
+| Langkah berikutnya | — |

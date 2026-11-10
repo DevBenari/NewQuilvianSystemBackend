@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7d32e7cec` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `589fb513` (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC 5/5 terpetakan ke source; `npx eslint` 0 error (1 warning lama di `root-layout-shell.jsx:118`, bukan baris task ini). Belum: uji login lima akun dan rekamannya, ditunda atas permintaan Rizki |
+| Status | ✅ **SELESAI 10 November 2026** — AC 5/5 terbukti di layar. Regresi login lima akun (SuperAdmin, perawat, LOKET, Kiosk, display antrean) sama dengan baseline `FE-NV-003` 2 Nov: tujuan, profil, sidebar, dan probe identik, kecuali `nurseViewCurrent` 404 → 403 dan dua klaim baru bernilai `false` (diharapkan). Uji layar tablet P1, P2, P8, P9, P10 `PASS` (putaran bersih 11/11). Perbaikan selama uji: P10 semula 63 detik (> 60) karena muat ulang tablet tanpa panggilan tiap 60 detik; batas atas `NURSE_VIEW_BED_TABLET_MAX_REFRESH_SECONDS` diturunkan 60 → 45 (`NV-FE-009` `DEV_DISCRETION`), sesudahnya 45 detik. `npx eslint` 0 error. Perubahan satu baris itu belum di-commit dan belum masuk build produksi |
 
 ---
 
@@ -92,27 +92,27 @@ tablet ada di laporan `FE-NV-011`.
 | --- | --- |
 | `npx eslint` lima berkas bersama + berkas baru | 0 error, 1 warning lama (`root-layout-shell.jsx:118`, `react-hooks/set-state-in-effect`, di baris yang tidak disentuh) |
 | Review diff berkas bersama | Sesuai §3.2 |
-| Uji login lima akun | `NOT RUN` — ditunda atas permintaan Rizki |
+| Uji login lima akun (`rekam-login.mjs sesudah`) dan uji layar tablet `uji-tablet-layar.mjs` | Login 5/5 sama dengan baseline; tablet 11/11 | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-003-20261102/sesudah-2026-11-10T02-29-40-958Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T02-27-14-957Z/` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest.`
-`MANUAL TEST: NOT FEASIBLE — uji ditunda atas permintaan Rizki ("build dan pengujian belakangan").`
+`MANUAL TEST: PASS — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
 
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 regresi redirect lima akun | 🟡 Terpetakan ke source; belum diuji | `redirectAfterLogin`; cabang lain tidak disentuh |
-| AC-2 tablet mengetik `/dashboard` → kembali; tanpa sidebar | 🟡 Terpetakan ke source | `lockNurseViewBedTabletAccount`; prefix shellless |
-| AC-3 jaringan putus tidak menghapus sesi | 🟡 Terpetakan ke source | Prefix di `auth-wrapper` dan `session-activity-manager` (pola TV) |
-| AC-4 tablet dinonaktifkan → login ≤ 60 detik | 🟡 Terpetakan ke source | Hook tablet: `403` → logout; cadangan 60 detik |
-| AC-5 tanpa identitas pasien; bed kosong → "Bed belum berpenghuni" | 🟡 Terpetakan ke source | `GET /current` tanpa identitas; teks bed kosong |
+| AC-1 regresi redirect lima akun | ✅ Terbukti 10 Nov 2026 | Perawat, SuperAdmin, LOKET → `/`; Kiosk → `/kiosk`; display → `/queue-display` (sama dengan baseline); TV → `/nurse-view-display` (uji strip T1); tablet → `/nurse-view-bed-tablet` (P1) |
+| AC-2 tablet mengetik `/dashboard` → kembali; tanpa sidebar | ✅ Terbukti 10 Nov 2026 | P1 tanpa sidebar; P2 `/dashboard`, `/nurse-view-display`, `/` → `/nurse-view-bed-tablet` |
+| AC-3 jaringan putus tidak menghapus sesi | ✅ Terbukti 10 Nov 2026 | P8: putus 12 detik → tetap di layar tablet, cookie sesi ada |
+| AC-4 tablet dinonaktifkan → login ≤ 60 detik | ✅ Terbukti 10 Nov 2026 sesudah perbaikan | P10: 45 detik (sebelumnya 63 detik dengan batas 60) |
+| AC-5 tanpa identitas pasien; bed kosong → "Bed belum berpenghuni" | ✅ Terbukti 10 Nov 2026 | P1 (nama, inisial, No. RM nol); P9 (301-A) |
 | DoD — lint 0 errors | Terpenuhi | §6 |
-| DoD — rekaman login lima akun | **Belum** | — |
+| DoD — rekaman login lima akun | Terpenuhi 10 Nov 2026 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-003-20261102/sesudah-2026-11-10T02-29-40-958Z/` (JSON + tangkapan layar) |
 
 ## 8. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
 | Risiko | **Regresi redirect seluruh aplikasi** (syarat lead `NV-DEC-030`/`056`) — baru terbukti lewat uji lima akun |
-| Status Git | ` M` lima berkas bersama; `??` berkas baru tablet |
-| Langkah berikutnya | Uji login lima akun dibandingkan dengan baseline `FE-NV-003` |
+| Status Git | Source sudah di-commit Rizki (`98d029d54`); perbaikan `nurse-view-bed-tablet-constants.jsx` (60 → 45) `M` |
+| Langkah berikutnya | Rizki meng-commit perbaikan satu baris dan membangun ulang frontend |

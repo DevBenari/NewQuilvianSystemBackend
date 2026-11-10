@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7d32e7cec` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `589fb513` + `BE-NV-011`–`014` belum di-commit (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC 6/6 terpetakan ke source; `npx eslint` 0 error, 0 warning; UI gate tanpa elemen `NEW`. Belum: uji layar ukuran tablet termasuk memutus jaringan, ditunda atas permintaan Rizki |
+| Status | ✅ **SELESAI 10 November 2026** — AC 6/6 terpetakan ke source; uji layar tablet 1280×800 11/11 `PASS` (putaran bersih): Siap dua tombol tanpa identitas; Batal hanya untuk biasa Menunggu; Darurat tanpa Batal; "‹nama› menuju" 0,84 detik sesudah klaim; tahan 1,5 detik tetap aktif, 3,6 detik → Ditangani; Wi-Fi diputus → "Panggilan belum terkirim — tekan bel di dinding", tersambung → tepat satu panggilan; bed kosong "Bed belum berpenghuni". Bagian AC-5 "area perawat tetap saat bed kosong dengan panggilan aktif" terpetakan ke source; bukti runtime dikecualikan seperti keputusan Rizki 9 Nov 2026 untuk kasus yang sama (`BE-NV-011`), karena keadaan itu hanya bisa dibuat lewat koreksi penempatan yang tidak dapat dipulihkan. Putaran sebelumnya: P1 gagal sekali karena DB dev timeout (`EXISTING / ENVIRONMENT ISSUE`, backend 500 sesudah 15 detik) |
 
 ---
 
@@ -121,6 +121,29 @@ dari `FirstPressedAt` dan selisih `ServerTimeUtc`, bukan jam tablet.
 - **B. `InformationAlert` apa adanya.** Konsisten dengan halaman staf, tetapi huruf terlalu kecil
   untuk pasien di bed dan alert bisa ditutup.
 
+### 3.4 Perubahan atas permintaan owner — tombol Keluar di tablet (10 November 2026)
+
+Rizki meminta tombol Keluar di pojok kanan atas layar tablet. Di luar acceptance criteria kartu;
+persetujuan lisan owner. Tablet dipegang pasien, jadi tombolnya harus **ditahan 3 detik** memakai
+`useNurseViewHoldAction` yang sama dengan "Perawat hadir". Penjaga klik ganda ala Kiosk tidak andal
+di layar sentuh.
+
+**Alasan bentuk penjaga.** Sesudah keluar, perangkat hanya bisa login lagi dengan kata sandinya, yang
+hanya ditampilkan sekali saat Buat Login / Atur Ulang Login. Preseden: display antrean (dilihat petugas)
+memakai tombol ikon "Keluar" sekali klik; Kiosk (disentuh pasien) memakai penjaga klik ganda.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/constants/nurse-view-bed-tablet/nurse-view-bed-tablet-constants.jsx` | Teks `logout` ("Keluar — tahan 3 detik"), `logoutHolding`, `logoutAria` |
+| `src/lib/hooks/nurse-view-bed-tablet/use-nurse-view-bed-tablet.jsx` | Mengembalikan `logout` (= `leaveToLogin` yang sudah ada) |
+| `src/components/view/nurse-view-bed-tablet/nurse-view-bed-tablet-logout-button.jsx` | **Baru** — `BaseButton` `secondary` `sm` + `FiLogOut` + hook tahan 3 detik, garis progres di bawah tombol |
+| `src/components/view/nurse-view-bed-tablet/nurse-view-bed-tablet-view.jsx` | Nama kamar dan tombol dibungkus `headerActions` |
+| `src/style/nurse-view-bed-tablet/nurse-view-bed-tablet.module.css` | `.headerActions`, `.logoutButton` (`touch-action: none`), `.logoutProgress`, `.logoutProgressFill` (token saja) |
+
+`UI GATE: 2 elemen — COMPOSE 2 (BaseButton + hook tahan, preseden "Perawat hadir"; wadah kanan header), NEW 0`.
+
+Verifikasi: `npx eslint` 0 error, 0 warning; grep anti-regresi bersih; uji layar `uji-tombol-keluar.mjs` K2–K3 `PASS` — tombol di kanan atas (x 1043, y 50 pada 1280×800); sekali ketuk dan tahan 1,5 detik → tetap di tablet; tahan 3,6 detik → `/login`, cookie sesi terhapus; akun tetap bisa login lagi dengan kata sandi yang sama. Bukti `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-keluar-20261110/layar-2026-11-10T03-01-25-144Z/` (`Tablet-header-keluar.png`). Build produksi belum memuat perubahan ini.
+
 ## 4. State yang ditangani di layar
 
 | State | Yang dilihat pengguna |
@@ -153,28 +176,28 @@ Realtime: `JoinNurseViewBedTablet` dan event `NurseViewPatientCallChanged` (`FE-
 | --- | --- |
 | `npx eslint` seluruh berkas tablet | 0 error, 0 warning |
 | Grep anti-regresi (`ui-consistency-checklist` G) | Warna literal 0; `<button>` mentah 0; `<table>` 0; utility Bootstrap 0; `!important` 0. Typography: 36 deklarasi, semuanya pada elemen milik view (kelas yang dipasang ke `BaseButton` hanya berisi tata letak). Inline style: 1, lebar bilah progres yang dinamis |
-| Uji layar ukuran tablet dan putus jaringan | `NOT RUN` — ditunda atas permintaan Rizki |
+| Uji layar ukuran tablet dan putus jaringan (`uji-fe-nv-009-011-20261110/uji-tablet-layar.mjs`) | 11/11 lulus (putaran bersih) | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T02-27-14-957Z/` (JSON, tangkapan layar, rekaman video) |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest.`
-`MANUAL TEST: NOT FEASIBLE — uji ditunda atas permintaan Rizki; backend BE-NV-014 juga belum dibangun ulang.`
+`MANUAL TEST: PASS — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
 
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 bed berpenghuni → `Siap` dua tombol, tanpa nama pasien | 🟡 Terpetakan ke source | `resolveTabletScreen`; `GET /current` tanpa identitas |
-| AC-2 Wi-Fi diputus → pesan bel; tersambung lagi → tepat satu panggilan | 🟡 Terpetakan ke source | Kirim ulang dengan kunci sama; `online` memicu kirim ulang |
-| AC-3 dilepas < 3 detik → tetap aktif; 3 detik → selesai | 🟡 Terpetakan ke source | `use-nurse-view-hold-action` |
-| AC-4 Batal hanya untuk biasa `Menunggu` | 🟡 Terpetakan ke source | `CanCancel` dari backend |
-| AC-5 bed kosong → tombol hilang, area perawat tetap | 🟡 Terpetakan ke source | Cabang `isBedOccupied` di panel panggilan |
-| AC-6 status berubah dalam hitungan detik sesudah klaim | 🟡 Terpetakan ke source | Sinyal grup tablet → muat ulang (jeda minimum 1 detik) |
+| AC-1 bed berpenghuni → `Siap` dua tombol, tanpa nama pasien | ✅ Terbukti 10 Nov 2026 | P1 |
+| AC-2 Wi-Fi diputus → pesan bel; tersambung lagi → tepat satu panggilan | ✅ Terbukti 10 Nov 2026 | P7: nol panggilan saat offline; satu panggilan, satu jejak `Pressed` sesudah online |
+| AC-3 dilepas < 3 detik → tetap aktif; 3 detik → selesai | ✅ Terbukti 10 Nov 2026 | P5: jejak `Pressed`, `Claimed`, `NurseArrived` |
+| AC-4 Batal hanya untuk biasa `Menunggu` | ✅ Terbukti 10 Nov 2026 | P3 (biasa: Batal → Dibatalkan), P4 (diklaim: tanpa Batal), P6 (Darurat: tanpa Batal) |
+| AC-5 bed kosong → tombol hilang, area perawat tetap | ✅ Bed kosong tanpa panggilan terbukti (P9); area perawat dengan panggilan aktif terpetakan ke source, bukti runtime dikecualikan seperti `BE-NV-011` | Cabang `isBedOccupied` di panel panggilan |
+| AC-6 status berubah dalam hitungan detik sesudah klaim | ✅ Terbukti 10 Nov 2026 | P4: 0,84 detik |
 | DoD — lint 0 errors | Terpenuhi | §6 |
-| DoD — rekaman tablet termasuk putus jaringan | **Belum** | — |
+| DoD — rekaman tablet termasuk putus jaringan | Terpenuhi 10 Nov 2026 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T02-27-14-957Z/` |
 
 ## 8. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
 | Risiko | Pasien mengira panggilan terkirim padahal belum; pita gagal kirim tampil paling lambat 4 detik tanpa jawaban. Perilaku tablet sungguhan (layar mati, mode kiosk) menunggu `NV-UNK-007` |
-| Status Git | `??` berkas baru tablet |
-| Langkah berikutnya | Uji layar di ukuran tablet, termasuk memutus jaringan, bersama uji `BE-NV-014` |
+| Status Git | Sudah di-commit Rizki |
+| Langkah berikutnya | — |

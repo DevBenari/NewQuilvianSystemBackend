@@ -11,7 +11,7 @@
 | Trace | `FR-NV-046`, `047`, `048`; `NV-DEC-013`, `038`, `044`, `047`, `048`; `NV-FE-006`; `NV-FCT-001`, `002`; `03-frontend-architecture.md` R2.3 (`FE-NVW-04` tambahan), R2.5 |
 | Contract version | `0.2.1` `approved` (`NV-DEC-057`); api §9 dan §10 tidak berubah sejak `0.2.0` (`NV-DEC-055`) |
 | Wewenang UI | `DEV_DISCRETION`: kapasitas strip (`NV-FE-006`), warna, dan bentuk penanda kartu. Isi item, privasi, urutan, dan TV tanpa suara milik owner (`NV-DEC-013`, `038`, `044`, `047`) |
-| Dependency | `BE-NV-015` 🟡 (source + QBE `PASS`, build belum), `FE-NV-010` 🟡. Dikerjakan sebelum keduanya ✅ atas urutan Rizki 9 Nov 2026 ("BE-NV-015 … lalu FE-NV-014"; uji dijalankan sesudah `FE-NV-014` terbentuk), sama dengan `FE-NV-011`–`013` |
+| Dependency | `BE-NV-015` ✅, `FE-NV-010` ✅ (10 Nov 2026) |
 | Klasifikasi | `MEDIUM` — skor 7: satu repository (0), berkas diperiksa > 20 (2), berkas diubah 8 (2), logika sedang — jadwal muat strip terpisah dari papan, pita data basi gabungan (1), kontrak baru yang sudah disetujui (1), keamanan berkaitan — privasi layar TV (1), UI satu layar (0) |
 | Task mode | `FRONTEND` — perintah Rizki 9 Nov 2026 |
 | Target tulis | `src/{components/view,lib/hooks,lib/services,lib/constants,utils,style}/nurse-view-display/`; laporan ini, baris status roadmap dan traceability di repo backend. Tanpa berkas bersama |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7dd08c585` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `b83e8f05` + perubahan `BE-NV-015` belum di-commit (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC-1–6 terpetakan ke source; `npx eslint` 7 berkas 0 error, 0 warning; UI gate 6 elemen seluruhnya `COMPOSE`; grep anti-regresi bersih; pemeriksaan fungsi murni 15/15. `npm run build` `PASS` 9 Nov 2026 menurut pernyataan Rizki — `.next/BUILD_ID` 16.05, `standalone` 16.06, chunk memuat `display-runtime/active-calls`; backend `BE-NV-014`/`015` juga sudah dibangun Rizki. Belum, dijadwalkan 10 Nov 2026 atas permintaan Rizki: uji layar TV berjam termasuk putus jaringan, dan regresi papan `FE-NV-005` L1–L8 / `FE-NV-007` |
+| Status | ✅ **SELESAI 10 November 2026** — AC-1–6 terbukti di layar TV 1920×1080 (`NVW-000003`). Strip T1–T11: tanpa panggilan strip tidak dirender; Darurat 326-C tampil 0,17 detik sesudah tekan saat TV di halaman 1; strip tetap di halaman 1–4, kartu 326-C bertanda Darurat di halaman 4; urutan Darurat dulu; "‹nama› menuju" 0,17 detik; tanpa inisial, umur, nama, No. RM; ambang kosong tanpa warna; 8 panggilan tiruan → 5 item + "+3 lainnya" dengan warna `Critical`/`Warning`; putus jaringan 150 detik → pita basi pada detik 119, pulih 0,5 detik sesudah online; strip hilang saat semua selesai; TV tanpa bunyi. Putaran akhir 10/11: T8 gagal karena race pembacaan skrip, dibuktikan oleh tangkapan layar putaran itu dan T8 `PASS` putaran sebelumnya. Regresi: `FE-NV-007` F0–F5 6/6; `FE-NV-005` L1–L8 43/44 cek, satu cek L2 gagal karena data (326-B kini Kosong, bukan Dipesan seperti keadaan uji 3 Nov). `npx eslint` 0 error; build `PASS` (Rizki) |
 
 ---
 
@@ -140,6 +140,27 @@ ulang (`base-component-decision-gate.md` Langkah 6).
 | 5 | Penanda kartu berupa label teks + bingkai | Huruf bulat seperti J/A/I | Huruf baru mudah tertukar dengan J/A/I |
 | 6 | Pita basi memakai data tertua antara papan dan strip | Hanya papan | Strip yang berhenti diperbarui tetap ketahuan |
 
+### 3.4 Perubahan atas permintaan owner — tombol Keluar di TV (10 November 2026)
+
+Rizki meminta tombol Keluar di pojok kanan atas layar TV. Di luar acceptance criteria kartu;
+persetujuan lisan owner. TV memakai **sekali klik**, mengikuti display antrean, karena TV
+dioperasikan petugas IT dengan tetikus, bukan oleh pasien.
+
+**Alasan bentuk penjaga.** Sesudah keluar, perangkat hanya bisa login lagi dengan kata sandinya, yang
+hanya ditampilkan sekali saat Buat Login / Atur Ulang Login. Preseden: display antrean (dilihat petugas)
+memakai tombol ikon "Keluar" sekali klik; Kiosk (disentuh pasien) memakai penjaga klik ganda.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/constants/nurse-view-display/nurse-view-display-constants.jsx` | `NURSE_VIEW_DISPLAY_TEXT` (`Keluar`, label aksesibilitas) |
+| `src/lib/hooks/nurse-view-display/use-nurse-view-floor-board.jsx` | Mengembalikan `logout` (= `leaveToLogin` yang sudah ada: hapus cookie perangkat, `LogoutUser`, ke `/login`) |
+| `src/components/view/nurse-view-display/nurse-view-floor-board-view.jsx` | Jam dan tombol dibungkus `headerActions`; `BaseButton` `secondary` `sm` + ikon `FiLogOut` |
+| `src/style/nurse-view-display/nurse-view-floor-board.module.css` | `.headerActions` (flex, token jarak) |
+
+`UI GATE: 2 elemen — REUSE 1 (BaseButton + FiLogOut, preseden display antrean), COMPOSE 1 (wadah kanan header), NEW 0`.
+
+Verifikasi: `npx eslint` 0 error, 0 warning; grep anti-regresi bersih; uji layar `uji-tombol-keluar.mjs` K1 `PASS` — tombol di kanan atas (x 1784, y 38 pada 1920×1080), sekali klik → `/login`, cookie sesi terhapus. Bukti `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-keluar-20261110/layar-2026-11-10T03-01-25-144Z/` (`TV-header-keluar.png`). Build produksi belum memuat perubahan ini.
+
 ---
 
 ## 4. State yang ditangani di layar
@@ -176,11 +197,11 @@ diikuti TV lewat `JoinNurseViewFloor`; tidak ada join baru.
 | Pemeriksaan fungsi murni strip dan penanda (skrip sekali pakai di scratchpad, bukan test repository) | 15/15: selisih jam server, urutan dari server, lama menunggu 0:20/1:00/0:40, jenis, "Dewi menuju", 8 panggilan → 5 tampil + "+3", `totalActive` > item, kosong, penanda `null`/`1`/`2` | `PASS` | Keluaran `cek-utils.mjs` |
 | Akhiran baris | 8 berkas CRLF, LF 0 | `PASS` | Hitungan byte Node |
 | `npm run build` (oleh Rizki) | Berhasil menurut pernyataan Rizki 9 Nov 2026; agent memeriksa artefaknya: `.next/BUILD_ID` 16.05 (source strip 15.03), `.next/standalone/server.js` 16.06 dan `static` tersalin (`postbuild`), tiga chunk memuat `display-runtime/active-calls`. Sebelumnya build agent dihentikan atas permintaan Rizki ("build semua nyaa saya yang jalankan") | `PASS` | Pernyataan Rizki; pemeriksaan `.next` |
-| Uji layar TV berjam, putus jaringan, regresi `FE-NV-005` L1–L8 dan `FE-NV-007` | Build backend dan frontend sudah ada; uji dijadwalkan 10 Nov 2026 atas permintaan Rizki | `NOT RUN` | — |
+| Uji layar TV berjam (`uji-fe-nv-014-20261110/uji-strip-tv.mjs`), regresi `FE-NV-007` F0–F5 dan `FE-NV-005` L1–L8 | Strip 10/11 (T8 race skrip; terbukti di layar dan putaran sebelumnya); F0–F5 6/6; L1–L8 43/44 cek (1 cek data) | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-014-20261110/layar-2026-11-10T02-06-54-206Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-014-20261110/layar-2026-11-10T02-01-53-601Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-007-20261103/layar-2026-11-10T01-54-59-644Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-005-20261103/layar-2026-11-10T02-31-41-519Z/` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest; ketentuan owner tanpa unit test.`
 
-`MANUAL TEST: NOT FEASIBLE — backend BE-NV-014/015 belum dibangun ulang; /active-calls masih 404 di server yang berjalan.`
+`MANUAL TEST: PASS — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
 
 **Rencana uji layar sesudah build backend** (TV `NVW-000003` lantai 3 atau peramban 1920×1080
 layar penuh, Playwright headed berjam; tablet bed lantai 3 lewat API):
@@ -206,15 +227,15 @@ layar penuh, Playwright headed berjam; tablet bed lantai 3 lewat API):
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 `NV-AC-031`/`UAT-21`: TV di halaman 1 dari 3; 331-C (halaman 3) memanggil → strip langsung menampilkan 331-C dan tidak ikut berganti halaman; kartu 331-C bertanda saat halaman 3 tampil | 🟡 Terpetakan ke source; runtime belum | Strip dirender di luar `segments` halaman (`nurse-view-floor-board-view.jsx`); `handlePatientCallChanged` memuat strip segera dan menjadwalkan papan; `CallMark` dari `activeCallPriority` |
-| AC-2 `NV-AC-028` sisi TV: panggilan 10.00.00 tampil sebelum 10.00.05 | 🟡 Terpetakan ke source; runtime belum | Event → `loadCallStrip()` tanpa jeda 5 detik; waktu = kirim hub + satu `GET` |
-| AC-3 `UAT-22`: melebihi kapasitas → "+k lainnya"; putus 3 menit → pita basi; tersambung → strip kembali | 🟡 Logika "+k" terbukti fungsi murni; runtime belum | `buildCallStripEntries` (5 + "+3" untuk 8); `staleSince` gabungan; muat ulang saat `connected` sesudah `reconnecting`, event `online`, dan tiap 60 detik |
-| AC-4 `NV-AC-037` sisi layar: tanpa inisial maupun nama di strip | 🟡 Terpetakan ke source; runtime belum | Entri strip hanya `bedLabel`, `typeLabel`, `claimLabel`, `waitText`, `waitLevel`; backend tidak mengirim field pasien |
-| AC-5 `NV-AC-040`: ambang kosong → tanpa warna | 🟡 Terpetakan ke source; runtime belum | `waitLevel = "None"` tidak dipetakan ke kelas nada (`WAIT_TONE` hanya `Warning`, `Critical`) |
-| AC-6 regresi papan `FE-NV-005` L1–L8 dan `FE-NV-007` tetap lulus | 🟡 Diff papan hanya menambah; runtime belum | Perubahan jalur papan: `scheduleRealtimeLoad` tetap; kartu kosong membungkus nomor bed dalam `cardTitle`; jam pita basi = tertua papan/strip |
+| AC-1 `NV-AC-031`/`UAT-21`: TV di halaman 1 dari 3; 331-C (halaman 3) memanggil → strip langsung menampilkan 331-C dan tidak ikut berganti halaman; kartu 331-C bertanda saat halaman 3 tampil | ✅ Terbukti 10 Nov 2026 | T2, T3: 326-C (halaman 4 dari 5) tampil di strip pada halaman 1; strip ada di halaman 1–4; kartu bertanda `2` |
+| AC-2 `NV-AC-028` sisi TV: panggilan 10.00.00 tampil sebelum 10.00.05 di jaringan dev normal (`NFR-008`) | ✅ Terbukti 10 Nov 2026 | T2: 0,17 detik; T5: 0,17 detik |
+| AC-3 `UAT-22`: melebihi kapasitas → "+k lainnya"; putus 3 menit → pita data basi; tersambung → strip kembali | ✅ Terbukti 10 Nov 2026 | T8 (+3 lainnya), T10 (putus 150 detik: pita detik 119, pulih 0,5 detik) |
+| AC-4 `NV-AC-037` sisi layar: tanpa inisial maupun nama di strip | ✅ Terbukti 10 Nov 2026 | T6: 4 inisial dan 3 umur diperiksa, nol muncul |
+| AC-5 `NV-AC-040`: ambang kosong → tanpa warna | ✅ Terbukti 10 Nov 2026 | T7 |
+| AC-6 regresi papan `FE-NV-005` L1–L8 dan `FE-NV-007` tetap lulus | ✅ Terbukti 10 Nov 2026 | F0–F5 6/6; L1–L8 43/44 cek, satu cek L2 gagal karena data berubah sejak 3 Nov |
 | DoD — AC-1–6 terpetakan ke source | Terpenuhi | Tabel ini |
 | DoD — lint `0 errors` | Terpenuhi | `npx eslint` 0 error, 0 warning |
-| DoD — rekaman berjam TV | **Belum** | Dijadwalkan 10 Nov 2026 |
+| DoD — rekaman berjam TV | Terpenuhi 10 Nov 2026 | Video `.webm` dan tangkapan layar berjam di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-014-20261110/layar-2026-11-10T02-06-54-206Z/` |
 | DoD — laporan | Terpenuhi | Berkas ini |
 
 ---
@@ -225,8 +246,8 @@ layar penuh, Playwright headed berjam; tablet bed lantai 3 lewat API):
 | --- | --- |
 | Peringatan | Server Next di port 3000 akan memakai kode ini bila berjalan dalam mode dev; dengan backend lama, `/active-calls` `404` sehingga strip tidak tampil dan papan tetap seperti sebelumnya |
 | Masalah yang diketahui | `WaitLevel` dihitung server saat respons; warna baru berpindah tingkat pada muat ulang berikutnya (≤ 60 detik atau saat ada sinyal), sama dengan konsol. Temuan di luar scope: `resolveServerOffsetMs`, `computeWaitingSeconds`, `formatWaitDuration`, `isEmergencyCall` tersalin di utilitas konsol dan tablet |
-| Dependency backend | `BE-NV-015` (endpoint strip, field kartu) dan `BE-NV-014` (sinyal) 🟡 — keduanya belum dibangun ulang, sehingga strip belum bisa tampil di runtime |
+| Dependency backend | `BE-NV-014`, `BE-NV-015` ✅ 10 Nov 2026 |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | `M` tujuh berkas §3.2, `??` `nurse-view-call-strip.jsx`. Berkas `M`/`??` lain (`row-action-menu.jsx`, `BaseModal.jsx`, `base-modal.module.css`, tabel dan modal disposisi IGD) milik pekerjaan lain dan tidak disentuh |
-| Langkah berikutnya | Rizki membangun ulang backend (`BE-NV-014`, `015`) dan menjalankannya; lalu uji tertunda dijalankan berurutan: uji hub `BE-NV-014`, uji HTTP `BE-NV-015`, uji layar §6 |
+| Status Git | Sudah di-commit Rizki (`98d029d54`) |
+| Langkah berikutnya | Rekaman bersuara `FE-NV-013` oleh Rizki; UAT `UAT-21`, `UAT-22` |

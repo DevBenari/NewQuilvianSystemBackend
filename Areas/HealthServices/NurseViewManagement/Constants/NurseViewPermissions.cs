@@ -20,11 +20,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Constan
             public const string Resource = "NurseViewVitalSignInterval";
         }
 
-        public static class DisplayRuntime
-        {
-            public const string Resource = "NurseViewDisplayRuntime";
-        }
-
         public static class BedTablet
         {
             public const string Resource = "NurseViewBedTablet";

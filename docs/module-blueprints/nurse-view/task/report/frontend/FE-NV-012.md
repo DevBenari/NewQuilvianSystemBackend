@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7d32e7cec` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `589fb513` + `BE-NV-012`–`014` belum di-commit (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 9 November 2026** — AC-1–9 terpetakan ke source; `npx eslint` 0 error, 0 warning; UI gate seluruhnya `REUSE`/`COMPOSE`. Belum: (1) AC-10 — penghapusan `nurseCallContext.jsx` ditolak pengaman sesi agent, menunggu Rizki; (2) uji layar dua perawat + tablet, ditunda atas permintaan Rizki |
+| Status | 🟡 **SEBAGIAN 10 November 2026** — AC-1–9 terbukti di layar: uji dua perawat (Sari, Dewi) + DOKTER + tablet, 10/11 `PASS`: panggilan baru tampil 0,27 detik; urutan 326-C, 325-A, 325-B; inisial · JK · umur tanpa nama/No. RM; ambil alih dan lepas; klaim bersamaan → satu pengklaim, yang kalah melihat pesan; Tutup wajib alasan dan keterangan; DOKTER tanpa butir menu dan "Akses Ditolak"; Sari memilih Lantai 4 dan mengklaim. Belum: AC-10 — `src/lib/helpers/nurseCallContext.jsx` masih ada (rujukan 0), menunggu `git rm` oleh Rizki. Catatan tampilan: `StatusBadge` menampilkan "… Menuju" (huruf kapital awal kata) |
 
 ---
 
@@ -148,27 +148,27 @@ Realtime: `JoinNurseViewCallConsole(floorCode)` / `LeaveNurseViewCallConsole` da
 | Grep anti-regresi | Warna literal 0; typography di CSS konsol 0; `<button>`/`<table>` mentah 0; Bootstrap 0; `!important` 0; inline style 0 |
 | Pencarian `nurseCallContext` / `NurseCallProvider` di `src/` selain berkas itu sendiri | **0 temuan** |
 | Penghapusan berkas prototipe | **Ditolak** pengaman sesi agent — belum terhapus |
-| Uji layar dua perawat + tablet | `NOT RUN` — ditunda atas permintaan Rizki |
+| Uji layar dua perawat + DOKTER + tablet (`uji-fe-nv-012-20261110/uji-konsol-layar.mjs`) | 10/11; satu-satunya gagal K10 = AC-10 | `PASS` untuk AC-1–9 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-10T02-25-30-975Z/` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest.`
-`MANUAL TEST: NOT FEASIBLE — uji ditunda atas permintaan Rizki; backend BE-NV-014 belum dibangun ulang.`
+`MANUAL TEST: PASS untuk AC-1–9 — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
 
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 urutan 331-C (Darurat), 305-A, 318-B | 🟡 Terpetakan ke source | Urutan backend dipertahankan (`sortLatestFirst={false}`) |
-| AC-2 di layar Dewi: Ambil alih; sesudahnya "Dewi menuju" | 🟡 Terpetakan ke source | Tombol dari `AvailableActions`; status dari `ClaimedByName` |
-| AC-3 Lepas → `Menunggu`, lama menunggu dari tekan pertama | 🟡 Terpetakan ke source | Lama menunggu dari `FirstPressedAt` + selisih jam server |
-| AC-4 klaim bersamaan → pesan `VAL-NV-33`/`38` + muat ulang | 🟡 Terpetakan ke source | `runAction`: toast pesan backend, `loadList` di `finally` |
-| AC-5 Tutup tanpa alasan / Lainnya tanpa keterangan ditolak | 🟡 Terpetakan ke source | `validateCloseForm` sebelum kirim; `400` backend sebagai cadangan |
-| AC-6 tanpa izin: butir menu tidak tampil, route ditolak; Sari tanpa roster bisa klaim lantai 4 | 🟡 Terpetakan ke source | `requiredPermission`; `AccessDeniedGate`; tanpa cek roster |
-| AC-7 hanya inisial · JK · umur | 🟡 Terpetakan ke source | `formatPatientLabel` dari `Patient` tersamar |
-| AC-8 ambang kosong → tanpa warna | 🟡 Terpetakan ke source | `resolveWaitBadgeStatus("None")` → teks biasa; info ambang |
-| AC-9 panggilan baru tampil dalam hitungan detik | 🟡 Terpetakan ke source | Sinyal grup konsol → muat ulang (jeda minimum 1 detik) |
-| AC-10 berkas prototipe tidak ada; pencarian 0 temuan | 🟡 **Sebagian** — pencarian 0 temuan; berkas belum terhapus | Penghapusan ditolak pengaman sesi; menunggu Rizki |
+| AC-1 urutan 331-C (Darurat), 305-A, 318-B | ✅ Terbukti 10 Nov 2026 | K2: 326-C, 325-A, 325-B |
+| AC-2 di layar Dewi: Ambil alih; sesudahnya "Dewi menuju" | ✅ Terbukti 10 Nov 2026 | K4 (label tampil "… Menuju" karena `StatusBadge`) |
+| AC-3 Lepas → `Menunggu`, lama menunggu dari tekan pertama | ✅ Terbukti 10 Nov 2026 | K5: 7 detik tampil vs 8 detik sejak tekan |
+| AC-4 klaim bersamaan → pesan `VAL-NV-33`/`38` + muat ulang | ✅ Terbukti 10 Nov 2026 | K6 |
+| AC-5 Tutup tanpa alasan / Lainnya tanpa keterangan ditolak | ✅ Terbukti 10 Nov 2026 | K7: alasan 4 + keterangan tersimpan |
+| AC-6 tanpa izin: butir menu tidak tampil, route ditolak; Sari tanpa roster bisa klaim lantai 4 | ✅ Terbukti 10 Nov 2026 | K8, K9 |
+| AC-7 hanya inisial · JK · umur | ✅ Terbukti 10 Nov 2026 | K3 |
+| AC-8 ambang kosong → tanpa warna | ✅ Terbukti 10 Nov 2026 | K1: info ambang belum disahkan; tanpa warna |
+| AC-9 panggilan baru tampil dalam hitungan detik | ✅ Terbukti 10 Nov 2026 | K2: 0,27 detik |
+| AC-10 berkas prototipe tidak ada; pencarian 0 temuan | 🟡 **Sebagian** — rujukan 0 (K10), berkas masih ada | Menunggu `git rm` oleh Rizki |
 | DoD — lint 0 errors | Terpenuhi | §6 |
-| DoD — rekaman konsol, TV, tablet bersamaan | **Belum** | — |
+| DoD — rekaman konsol, TV, tablet bersamaan | Terpenuhi 10 Nov 2026 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-10T02-25-30-975Z/` (konsol dua perawat + tablet); TV di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-014-20261110/layar-2026-11-10T02-06-54-206Z/` |
 
 ## 8. Catatan penutup
 
@@ -176,5 +176,5 @@ Realtime: `JoinNurseViewCallConsole(floorCode)` / `LeaveNurseViewCallConsole` da
 | --- | --- |
 | Butuh tindakan Rizki | Hapus prototipe: `git rm src/lib/helpers/nurseCallContext.jsx` (berkas ter-track Git, tidak dirujuk berkas lain). Agent tidak mencoba cara lain sesudah penolakan |
 | Risiko | Konsol dipakai untuk lantai yang salah → nama lantai tampil di judul `Hero`. Pemberian izin lewat Akses Role menimpa seluruh policy: salin, tambah, pulihkan |
-| Status Git | ` M src/utils/menu-sidebar/menu-items.jsx`; `??` berkas baru konsol |
-| Langkah berikutnya | Hapus prototipe; uji dua perawat + satu akun tanpa izin + tablet uji sesudah build backend `BE-NV-014` |
+| Status Git | Sudah di-commit Rizki; `nurseCallContext.jsx` masih ter-track |
+| Langkah berikutnya | Rizki `git rm src/lib/helpers/nurseCallContext.jsx`; sesudah itu task ini ✅ |
