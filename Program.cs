@@ -58,7 +58,9 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
@@ -1007,6 +1009,32 @@ try
     builder.Services.AddScoped<HmdUnitReadinessService>();
     builder.Services.AddScoped<HmdResourceService>();
     builder.Services.AddScoped<HmdCompetencyGateService>();
+
+    // RHB-BP-001. Service modul Rehab Medik, tanpa interface mengikuti pola modul terdekat
+    // (Hemodialisa). Controller Rehab menyerahkan CRUD dan orkestrasinya ke sini dan tidak pernah
+    // menyentuh ApplicationDbContext langsung (QBE-SVC-001).
+    // BE-RHB-004: pintu tunggal dokumen klinis rehab ke mesin keutuhan Rekam Medis.
+    builder.Services.AddScoped<RhbDocumentIntegrityGateway>();
+    // BE-RHB-005: konfigurasi layanan rehab (disiplin, profesi, tindakan, instrumen).
+    builder.Services.AddScoped<RhbConfigurationService>();
+    // BE-RHB-006: pilihan form rehab dan kewenangan profesi per disiplin.
+    builder.Services.AddScoped<RhbLookupService>();
+    builder.Services.AddScoped<RhbProfessionAuthority>();
+    // BE-RHB-007: permintaan rehab, disposisi, dan pembukaan episode.
+    builder.Services.AddScoped<RhbEpisodeService>();
+    builder.Services.AddScoped<RhbRequestService>();
+    builder.Services.AddScoped<RhbAssessmentService>();
+    builder.Services.AddScoped<RhbEducationService>();
+    builder.Services.AddScoped<RhbGoalService>();
+    builder.Services.AddScoped<RhbProgramService>();
+    builder.Services.AddScoped<RhbSessionService>();
+    // BE-RHB-013: handoff billing sesi (TrxPatientProcedure + fakta charge), persetujuan RHB-OQ-015.
+    builder.Services.AddScoped<RhbBillingHandoffService>();
+    builder.Services.AddScoped<RhbMeasurementRules>();
+    builder.Services.AddScoped<RhbProgressReviewService>();
+    builder.Services.AddScoped<RhbDischargeService>();
+    // BE-RHB-015: pembaca dokumen final Rehab Medik (jenis 47-52) untuk berkas RM, persetujuan pemilik RM RHB-DEC-019 / RHB-OQ-012.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, RhbMedicalRecordDocumentSource>();
 
     // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
     // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).
@@ -2386,6 +2414,11 @@ try
         // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
         // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
         await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
+
+        // RHB-BP-001, BE-RHB-005. Konfigurasi awal Rehab Medik: empat disiplin (seluruhnya tidak aktif
+        // dan tanpa profesi sampai admin memetakan profesi HR) serta peta jenis instrumen asesmen.
+        // Idempoten — baris yang sudah ada atau sudah dihapus admin tidak diisi ulang.
+        await RunStartupSeederAsync("RehabilitationMasterDataSeeder", () => RehabilitationMasterDataSeeder.SeedAsync(app.Services));
 
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah

@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -1285,6 +1286,32 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<HmdUnitReadinessDetail> HmdUnitReadinessDetails { get; set; }
         public DbSet<HmdSetting> HmdSettings { get; set; }
         #endregion HEMODIALYSIS MANAGEMENT
+
+        #region REHABILITATION MANAGEMENT
+        // RHB-BP-001, BE-RHB-001. 20 tabel Rhb* milik modul Rehab Medik (registry Rhb / ACTIVE,
+        // RHB-DEC-014). Pasien, kunjungan, tindakan bertarif, instrumen, serta keutuhan dokumen
+        // tetap milik modul pemiliknya; konfigurasi disiplin sengaja berprefix Rhb, bukan Mst.
+        public DbSet<RhbRequest> RhbRequests { get; set; }
+        public DbSet<RhbRequestDiscipline> RhbRequestDisciplines { get; set; }
+        public DbSet<RhbEpisode> RhbEpisodes { get; set; }
+        public DbSet<RhbEpisodeDiscipline> RhbEpisodeDisciplines { get; set; }
+        public DbSet<RhbAssessment> RhbAssessments { get; set; }
+        public DbSet<RhbMeasurement> RhbMeasurements { get; set; }
+        public DbSet<RhbGoal> RhbGoals { get; set; }
+        public DbSet<RhbProgram> RhbPrograms { get; set; }
+        public DbSet<RhbProgramIntervention> RhbProgramInterventions { get; set; }
+        public DbSet<RhbProgramGoal> RhbProgramGoals { get; set; }
+        public DbSet<RhbEducationRecord> RhbEducationRecords { get; set; }
+        public DbSet<RhbSession> RhbSessions { get; set; }
+        public DbSet<RhbSessionIntervention> RhbSessionInterventions { get; set; }
+        public DbSet<RhbProgressReview> RhbProgressReviews { get; set; }
+        public DbSet<RhbGoalReview> RhbGoalReviews { get; set; }
+        public DbSet<RhbDischargeSummary> RhbDischargeSummaries { get; set; }
+        public DbSet<RhbStatusHistory> RhbStatusHistories { get; set; }
+        public DbSet<RhbDiscipline> RhbDisciplines { get; set; }
+        public DbSet<RhbDisciplineProcedure> RhbDisciplineProcedures { get; set; }
+        public DbSet<RhbDisciplineInstrument> RhbDisciplineInstruments { get; set; }
+        #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT
         // MCU-BP-001, BE-MCU-002. 21 tabel Mcu* milik modul Medical Check-Up (registry Mcu / ACTIVE,
