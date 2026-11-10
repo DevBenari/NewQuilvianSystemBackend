@@ -186,3 +186,36 @@ Input: `RM-DA-001` bagian J. Seluruh integrasi **internal dan dalam proses**; no
 Pemanggilan tetap **di dalam transaksi penutupan** seperti hari ini. Parameter sumber bersifat
 opsional sehingga pemanggil yang belum diperbarui tetap terkompilasi; sumbernya tercatat
 `EncounterStatusPatch` sebagai bawaan sampai pemanggil diperbarui.
+
+
+---
+
+# Amandemen — Integration `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved`, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`). Persetujuan pemilik Optik dan Rehab Medik atas perubahan di foldernya **masih diperlukan** (lihat tabel di bawah) |
+| Input | Decision log revision `15`; capability map revision `4` |
+| Compatibility impact | Aditif. Satu pembaca uji baru; dua pembaca dokumen yang sudah hidup dicatat |
+
+## Pembaca tambahan
+
+| ID | Pembaca | Berkas di modul | Kontrak | Persetujuan pemilik modul | Kewajiban khusus |
+|---|---|---|---|---|---|
+| `INT-RM-10k` | `OptMedicalRecordDocumentSource` | `OpticalManagement/Services/` | `INT-RM-10` (hidup); padanan `INT-OPT-09` | Pembaca: **ada** — `OPT-DEC-050` (Yoga Aji Pratama, 3 November 2026). Perubahan penanda (`RM-DEC-084`): **diperlukan** dari pemilik Optik — Yoga Aji Pratama | Final = revisi/versi bertanda tangan; menampilkan versi terakhir; `isCorrected` = versi > 1 atau addendum koreksi |
+| `INT-RM-10l` | `RhbMedicalRecordDocumentSource` | `RehabilitationManagement/Services/` | `INT-RM-10` (hidup); padanan `INT-RHB-06` | Pembaca: `RHB-DEC-019`, dikuatkan `RM-DEC-079`. Probe dan penanda (`RM-DEC-087`, `DS-R5-04`): **diperlukan** dari pemilik Rehab Medik — Sukma Giri Pratama | Final = `RecordStatus = Final` dengan `SignedAt`; program = `ActivatedAt` |
+| `INT-RM-11c` | `RhbMedicalRecordDocumentSource` sebagai `IMedicalRecordCompletenessProbe` | `RehabilitationManagement/Services/` | `INT-RM-11` | Sama dengan baris di atas | `Criteria = [RehabClinicalDocument]`; `Conditions = []`; `ReportsPendingResults = false`; tidak menulis apa pun; tidak memeriksa izin modul Rehab |
+
+## Pemakai layanan keutuhan dari modul lain (dicatat, sudah hidup)
+
+| ID | Pemanggil | Operasi | Transaksi | Persetujuan |
+|---|---|---|---|---|
+| `INT-RM-16` | `OptRefractionExamService`, `OptPrescriptionService` | `RegisterAsync` (draf revisi 1), `RegisterSignedAsync` (revisi dan setiap versi resep), `MarkCancelledAsync`, `EnsureDraftStillOpenAsync` | Di transaksi pemanggil | `OPT-DEC-050`, `RM-DEC-079` |
+| `INT-RM-17` | `RhbDocumentIntegrityGateway` | `RegisterAsync`, `SignAsync`, `EnsureMutableAsync`, `MarkCancelledAsync` | Di transaksi pemanggil | `RHB-DEC-019`, `RM-DEC-079` |
+
+## Kegagalan
+
+| Keadaan | Perilaku |
+|---|---|
+| Probe Rehab galat atau lewat batas waktu sumber | Butir `RehabClinicalDocument` gagal dibaca → kunjungan `Tidak dapat dipastikan`, kekurangan `SourceUnavailable` "Sumber Rehabilitation …" (`RM-DEC-044`) |
+| Pembaca Optik/Rehab galat saat berkas dibuka | Bagian jenis 45–52 menampilkan pesan gangguan; bagian lain tetap terbuka (`RM-DEC-044`, sudah hidup) |

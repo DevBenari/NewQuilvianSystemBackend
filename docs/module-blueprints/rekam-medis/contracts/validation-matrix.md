@@ -165,3 +165,24 @@ Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`).
 | `VAL-RM-A10` | Profil | `ServiceUnitType` atau `EncounterType` bukan nilai enum sah | "Jenis kunjungan atau jenis unit tidak dikenal." | `400` |
 | `VAL-RM-A11` | Ringkasan berkala | `kind` tidak dikenal atau `date` tidak sah | "Jenis pencatatan atau tanggal tidak dikenal." | `400` |
 | `VAL-RM-A12` | Rincian dokumen | Jenis `PathologyAnatomyResult` | "Hasil Patologi Anatomi belum tersedia di berkas rekam medis." | `404` |
+
+
+---
+
+# Amandemen — Validation `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved`, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| Input | Decision log revision `15` |
+
+| ID | Aturan | Ditegakkan di | Kode | Pesan | Keputusan |
+|---|---|---|---|---|---|
+| `VAL-RM-B01` | Addendum `Correction` (termasuk `purpose` kosong) tidak diterima untuk `OpticalRefraction` dan `OpticalPrescription` | `ClinicalNoteAddendumService.CreateAsync`, sebelum pemeriksaan isi | `400` | "Koreksi dokumen Optik dibuat sebagai revisi di layar Optik." | `RM-DEC-084` |
+| `VAL-RM-B02` | `clinicType` hanya boleh terisi pada profil tanpa kondisi | Service profil **dan** CHECK `CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi` | `400` | "Jenis poli hanya dapat dipakai pada profil tanpa kondisi." | `RM-DEC-085` |
+| `VAL-RM-B03` | `clinicType` wajib nilai `ClinicType` yang terdefinisi | Service profil | `400` | "Jenis poli tidak dikenal." | `RM-DEC-085` |
+| `VAL-RM-B04` | Kunci `(encounterType, serviceUnitType, clinicType, condition)` unik di antara profil yang tidak dihapus; kosong dibandingkan sama | Service profil **dan** index unik `NULLS NOT DISTINCT` | `409` | "Profil untuk kombinasi ini sudah ada: {kode}." | Menggantikan bunyi `VAL-RM-A05` |
+
+Contoh `VAL-RM-B04`: profil `RJ-REHAB` (`Outpatient`, unit kosong, poli `Rehabilitation`, kondisi
+`None`) sudah ada; membuat `RJ-FISIO` dengan kunci yang sama → `409`. Membuat profil
+`Outpatient` + poli `Rehabilitation` + unit `Outpatient` tetap boleh karena unitnya berbeda.

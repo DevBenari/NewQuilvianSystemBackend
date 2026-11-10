@@ -1739,3 +1739,164 @@ pada decision log; kriteria terbukti uji; `AT-RM-44` lulus untuk modul itu.
 | Pembacaan berurutan lambat | Berkas lambat | Batas waktu `BE-21`; pilihan context per sumber dicatat sebagai lanjutan | Rekam medis |
 | Migration butuh instruksi terpisah | Task selesai kode tetapi belum berjalan di basis data | Dicatat per task | User |
 | PostgreSQL < 15 | Index `NULLS NOT DISTINCT` gagal | Index ekspresi `COALESCE` | Rekam medis |
+
+
+---
+
+# Roadmap revision 3 — Amandemen: Optik dan Rehab Medik
+
+```yaml
+module_id: RM-BP-001
+blueprint_revision: 5
+roadmap_revision: 3
+status: APPROVED_INPUTS   # seluruh masukan disahkan; task berstatus sendiri-sendiri
+owners:
+  product_domain: Yoga Aji Pratama
+  clinical_governance: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
+  api_authority: Yoga Aji Pratama
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-11-10        # RM-DEC-088
+input_revisions:
+  interview_decisions: 16        # RM-DEC-078–088
+  capability_map: 4              # RM-CAP-071–082
+  backend_architecture: 5 (bagian "Amandemen revision 5")
+  prd_to_mvp: bagian 21–26
+artifact_hashes:
+  interview_decisions: sha256:83ea0cc895849f21786a517e0e56172b02f377782f806caf248d2411dbf25c58
+  capability_map: sha256:73a74962185a991e87a5dadf1984e505d74f3347f612d666a084887035dbf995
+  # hash artefak revision 5 lainnya: blueprint-manifest.md bagian "Revision 5 — approved"
+contract_versions:
+  api: 0.3.0 (approved 2026-11-10)
+  state_transition: 0.3.0 (approved)
+  validation: 0.3.0 (approved)
+  integration: 0.3.0 (approved)
+  permission_audit: 0.3.0 (approved)
+source_commits:
+  backend: c7686f07 (branch yoga)
+  frontend: 3397211dd (branch YogaV2)
+```
+
+Bagian di atas garis ini (revision 1 dan 2) tetap berlaku dan **tidak** diubah. Bagian ini
+hanya menambah lima task backend untuk gelombang `MVP-7` dan `MVP-8`
+(`04-prd-to-mvp.md` bagian 26).
+
+**Handoff implementasi.** Setiap task di bawah dijalankan lewat `/build-module-backend` dengan
+task ID-nya. QBE preflight (Area, Module, prefix registry, applicability, rule ID) dan kesesuaian
+dengan `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` diselesaikan **pada waktu eksekusi** dari
+`AGENTS.md` backend, bukan di roadmap ini. Seluruh task menyentuh prefix yang sudah `ACTIVE`
+(`Mst`/`Mrc`, `Opt`, `Rhb`); tidak ada model persisted baru. Build memakai
+`-p:RunAnalyzers=False`; migration hanya dibuat, **tidak** dijalankan tanpa instruksi terpisah.
+
+## R3.1 Ringkasan task
+
+| Task | Gelombang | Epic | Ringkas | Status |
+|---|---|---|---|---|
+| `BE-42` | `MVP-7` | `RM-11` | Kunci jenis poli pada profil, pemilihan profil, migration, seeder `RJ-OPT` | **`SELESAI`** 10 November 2026 — 12 uji baru, seluruh project `237` lulus; migration dibuat, belum diterapkan; laporan `task/report/backend/BE-42.md` |
+| `BE-43` | `MVP-7` | `RM-10` | Addendum koreksi dokumen Optik ditolak; `isCorrectionAllowed` | **`SELESAI`** 10 November 2026 — 13 uji baru, seluruh project `250` lulus; laporan `task/report/backend/BE-43.md` |
+| `BE-44` | `MVP-7` | `RM-10` | Penanda "pernah diralat" Optik menghitung addendum koreksi | **`SELESAI`** 10 November 2026 — 4 uji baru, proyek Optik `297` lulus; laporan `task/report/backend/BE-44.md` |
+| `BE-45` | `MVP-8` | `RM-11` | Butir `RehabClinicalDocument`, probe dan penanda Rehab, seeder `RJ-REHAB`, uji pembaca Rehab | **`SELESAI`** 10 November 2026 — 14 uji baru, seluruh project `264` lulus; laporan `task/report/backend/BE-45.md` |
+| `BE-46` | `MVP-7`/`8` | — | Catatan rilis `0.3.0` dan keterangan Swagger | **`SELESAI`** 10 November 2026 — catatan rilis `0.3.0` (menunggu pengesahan), `ReleaseContractTests` 10 lulus, seluruh project `268`; laporan `task/report/backend/BE-46.md` |
+
+Urutan: `BE-42` dan `BE-43` paralel → `BE-44` begitu disetujui → `BE-45` sesudah `BE-42` dan
+persetujuan → `BE-46` menutup.
+
+## R3.2 Milestone B13 — Profil berpoli dan Optik (`MVP-7`)
+
+### `BE-42` — Kunci jenis poli pada profil dokumen wajib
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-42` |
+| **Status** | **`SELESAI`** — 10 November 2026, laporan `task/report/backend/BE-42.md`. `dotnet test` → `Passed: 237`, `Failed: 0` (12 uji baru). Migration `20261110043756_AddClinicTypeToMedicalRecordCompletenessProfile` dibuat, **belum diterapkan** |
+| **Outcome** | Kunjungan unit Optik dinilai dengan profil `RJ-OPT` tanpa butir; profil dapat dikunci per jenis poli, siap dipakai `RJ-REHAB` |
+| **Trace** | `RM-DEC-080`, `085`; `RM-CAP-071`, `073`, `078`; `FR-RM-082`, `FR-RM-086` |
+| **Kontrak** | API `0.3.0` B2; validation `VAL-RM-B02`–`B04`; state S-D tambahan; A5.6–A5.9.1 `02-backend-architecture.md` |
+| **Reuse** | `MedicalRecordCompletenessProfileService`, `MedicalRecordCompletenessService.PilihProfilDasar`, seeder profil, `TandaiPenilaianUlangAsync` |
+| **Scope** | `MasterData/Models/MstMedicalRecordCompletenessProfile.cs` (kolom `ClinicType`); configuration (index empat kolom, CHECK `ClinicTypeTanpaKondisi`); migration `AddClinicTypeToMedicalRecordCompletenessProfile`; DTO profil (`clinicType`, `clinicTypeName`, `clinicTypeOptions`); `MedicalRecordCompletenessProfileService` (validasi, saringan, opsi, label, kunci kembar); `MedicalRecordCompletenessProfileController` (`clinicType` pada `GET /`); `MedicalRecordCompletenessService` (proyeksi `ClinicType` kunjungan, urutan A5.9.1, `Profil`, `SidikProfil`, proyeksi daftar kerja); seeder (kunci empat kolom, `RJ-OPT`). **Tidak** menambah `RJ-REHAB` |
+| **Dependency** | — |
+| **Acceptance criteria** | 1) Seeder menambah `RJ-OPT`; dijalankan dua kali tetap satu. 2) Empat urutan A5.9.1 terbukti. 3) Kunjungan poli umum tetap memakai `RJ`, hasil identik dengan sebelum perubahan. 4) `VAL-RM-B02`, `B03` → `400`; `B04` → `409`. 5) Membuat profil lewat API menandai penilaian belum lengkap jatuh tempo (perilaku yang ada tetap). 6) Migration disiapkan dengan langkah mundur A5.7 |
+| **Verification** | `AT-RM-75`, `76`, `79`, `80`, `81`, `82`, `89`, `90`. Uji bentrok **wajib** `TegakkanKunciUnikAsync` (harness SQLite melepas index unik terfilter). Regresi seluruh `MedicalRecordTests` |
+| **Risk/owner** | Index lama harus dihapus sebelum index baru; nama index lama dibaca dari snapshot model. PostgreSQL ≥ 15 untuk `NULLS NOT DISTINCT` (devYoga 15.15). Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji; laporan `task/report/backend/BE-42.md`; migration dibuat, menunggu instruksi penerapan |
+
+### `BE-43` — Addendum koreksi dokumen Optik ditolak
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-43` |
+| **Status** | **`SELESAI`** — 10 November 2026, laporan `task/report/backend/BE-43.md`. `dotnet test` → `Passed: 250`, `Failed: 0` (13 uji baru) |
+| **Outcome** | Dokumen Optik hanya dikoreksi lewat versi baru di layar Optik; dokumen Optik `LockedUnsigned` tetap dapat disahkan |
+| **Trace** | `RM-DEC-079`, `084`; `RM-CAP-075`, `076`; `RM-CF-R4-01`; `FR-RM-083` |
+| **Kontrak** | API `0.3.0` B3; validation `VAL-RM-B01`; state S-E; A5.9.2 |
+| **Reuse** | `ClinicalNoteAddendumService.CreateAsync`/`ResolveAuthorityAsync`; pola penolakan `IntegrityGuardResult.Denied` |
+| **Scope** | `MedicalRecordManagement/Services/ClinicalNoteAddendumService.cs` (himpunan `KoreksiLewatRevisi`, penolakan sebelum pemeriksaan isi, `IsCorrectionAllowed`); `MedicalRecordManagement/DTOs/ClinicalNoteAuthorDelegationDtos.cs` (`AddendumAuthorityResponse.IsCorrectionAllowed`, bawaan `true`). Controller tidak berubah |
+| **Dependency** | — |
+| **Acceptance criteria** | 1) `Correction` (termasuk `purpose` kosong) pada jenis 45/46 berstatus `Signed` dan `LockedUnsigned` → `400` dengan pesan kontrak, nol baris tertulis. 2) `Attestation` pada jenis 45/46 `LockedUnsigned` oleh penulis → `201`. 3) `/authority` jenis 45/46 → `isCorrectionAllowed = false`; jenis lain → `true`. 4) Addendum koreksi CPPT dan dokumen Rehab tidak berubah perilakunya |
+| **Verification** | `AT-RM-91`, `92`; regresi `AT-RM-72`–`74` |
+| **Risk/owner** | Perubahan perilaku pada endpoint berjalan; wajib disebut catatan rilis (`BE-46`). Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji; laporan `task/report/backend/BE-43.md` |
+
+### `BE-44` — Penanda "pernah diralat" dokumen Optik
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-44` |
+| **Status** | **`SELESAI`** — 10 November 2026, laporan `task/report/backend/BE-44.md`. Proyek uji Optik → `Passed: 297`, `Failed: 0` (4 uji baru). Persetujuan `RM-DEC-089` |
+| **Outcome** | Addendum koreksi lama pada dokumen Optik tidak tersembunyi dari pembaca berkas |
+| **Trace** | `RM-DEC-084`; `RM-CAP-076`; `FR-RM-084` |
+| **Kontrak** | API `0.3.0` B1 (`isCorrected`); integration `INT-RM-10k`; A5.9.4 |
+| **Reuse** | Pembaca Optik yang sudah ada; tabel `MrcClinicalNoteAddendum` |
+| **Scope** | `OpticalManagement/Services/OptMedicalRecordDocumentSource.cs` — `IsCorrected = versi > 1` **atau** ada addendum `Correction` pada dokumen keutuhan versi mana pun milik dokumen itu (daftar dan rincian) |
+| **Dependency** | Persetujuan pemilik Optik. Tidak bergantung `BE-43` |
+| **Acceptance criteria** | 1) Versi 1 + satu addendum `Correction` → `isCorrected = true`. 2) Versi 1 + addendum `Attestation` saja → `false`. 3) Versi 2 tanpa addendum → `true` (perilaku yang ada). 4) Tanpa N+1: hitungan addendum satu kueri per halaman |
+| **Verification** | `AT-RM-77`, `78`; uji yang ada `Tests/QuilvianSystemBackend.OpticalTests/Be013MedicalRecordTests.cs` tetap lulus |
+| **Risk/owner** | Rendah. Pemilik: Optik (folder), rekam medis (aturan) |
+| **DoD** | Kriteria terbukti uji; laporan `task/report/backend/BE-44.md` |
+
+## R3.3 Milestone B14 — Poli Rehabilitasi Medik (`MVP-8`)
+
+### `BE-45` — Butir dokumen rehab dan probe Rehab
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-45` |
+| **Status** | **`SELESAI`** — 10 November 2026, laporan `task/report/backend/BE-45.md`. `dotnet test` → `Passed: 264`, `Failed: 0` (14 uji baru). Persetujuan `RM-DEC-090` |
+| **Outcome** | Kunjungan poli rehab dinilai dengan profil `RJ-REHAB`: lengkap bila ada asesmen, sesi, reasesmen, atau ringkasan akhir final; tidak pernah `Menunggu hasil` |
+| **Trace** | `RM-DEC-081`, `082`, `086`, `087`; `DS-R5-04`; `RM-CAP-074`, `079`, `081`; `FR-RM-087`–`089` |
+| **Kontrak** | API `0.3.0` B2 (opsi kriteria 17); integration `INT-RM-10l`, `INT-RM-11c`; A5.9.3, A5.9.4 |
+| **Reuse** | Pola probe `HmdMedicalRecordDocumentSource`; pendaftaran instance ganda `Program.cs:735-736`; harness `MedicalRecordTests` |
+| **Scope** | `MedicalRecordManagement/Enums/CompletenessCriterion.cs` (`RehabClinicalDocument = 17`) beserta label/keterangan di `MedicalRecordCompletenessProfileService`; `RehabilitationManagement/Services/RhbMedicalRecordDocumentSource.cs` (probe; penanda menghitung addendum `Correction` saja); `Program.cs` (daftarkan probe); seeder (`RJ-REHAB`); **uji baru** pembaca dan probe Rehab |
+| **Dependency** | `BE-42`; persetujuan pemilik Rehab Medik |
+| **Acceptance criteria** | 1) Asesmen, sesi, reasesmen, atau ringkasan akhir final pada kunjungan → butir terpenuhi. 2) Program saja, edukasi saja, draf, batal, atau dokumen kunjungan lain → tidak terpenuhi. 3) `PendingResults` selalu kosong. 4) Probe galat/lewat batas waktu → `Undetermined`. 5) Dokumen rehab yang hanya disahkan → `isCorrected = false`; dengan addendum koreksi → `true`. 6) `RJ-REHAB` terpasang lewat seeder bersama probe, idempoten. 7) Kunjungan poli rehab tanpa poli `Rehabilitation` di master tetap memakai `RJ` |
+| **Verification** | `AT-RM-83`–`88`; regresi `MedicalRecordTests`. Berkas uji baru di `Tests/` (diabaikan git) perlu `git add -f` |
+| **Risk/owner** | **Jangan** memasang `RJ-REHAB` tanpa probe: seluruh kunjungan poli rehab menjadi belum lengkap (`RM-CAP-074`). Pemilik: Rehab Medik (folder), rekam medis (aturan) |
+| **DoD** | Kriteria terbukti uji; laporan `task/report/backend/BE-45.md` |
+
+## R3.4 Penutup
+
+### `BE-46` — Catatan rilis `0.3.0` dan keterangan Swagger
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-46` |
+| **Status** | **`SELESAI`** — 10 November 2026, laporan `task/report/backend/BE-46.md`. Catatan rilis menunggu pengesahan pemilik API |
+| **Outcome** | Konsumen API tahu jenis 45–52, kolom `clinicType`, butir 17, dan penolakan addendum koreksi Optik |
+| **Trace** | `RM-DEC-088`; `RM-CAP-082` |
+| **Kontrak** | API `0.3.0` seluruhnya |
+| **Reuse** | Pola `BE-41` (`ReleaseContractTests`) |
+| **Scope** | `docs/module-blueprints/rekam-medis/catatan-rilis.md` bagian rilis `0.3.0`; keterangan `<summary>` pada **properti DTO** baru (bukan pada action controller) |
+| **Dependency** | `BE-42`, `BE-43`; `BE-44`, `BE-45` untuk bagian masing-masing |
+| **Acceptance criteria** | 1) Catatan rilis menyebut perubahan perilaku `VAL-RM-B01` dan urutan penerapan migration sesudah migration amandemen revision 4. 2) Properti `clinicType`, `isCorrectionAllowed` berketerangan di Swagger. 3) Tidak ada `<summary>` baru pada action controller |
+| **Verification** | `ReleaseContractTests` diperluas; tinjauan Swagger |
+| **Risk/owner** | Rendah. Pemilik: API owner |
+| **DoD** | Catatan rilis menunggu pengesahan pemilik API |
+
+## R3.5 Risiko amandemen revision 5
+
+| Risiko | Dampak | Penanganan | Pemilik |
+|---|---|---|---|
+| Persetujuan pemilik Rehab Medik tidak turun | `MVP-8` tertahan; kunjungan poli rehab tetap dinilai dengan `RJ` (keadaan sekarang) | `MVP-7` tetap jalan; `RJ-REHAB` tidak dipasang | Sukma Giri Pratama |
+| Poli rehab belum ada di master data (`RM-UN-R4-01`) | `RJ-REHAB` tidak pernah terpilih | Cek data sebelum `UAT-23` | Admin data |
+| Migration revision 4 belum diterapkan di luar devYoga | Migration `BE-42` gagal di lingkungan itu | Terapkan berurutan; dicatat `BE-46` | User |
+| Index lama bernama lain dari dugaan | Migration gagal | Nama dibaca dari snapshot model saat dibuat | Rekam medis |

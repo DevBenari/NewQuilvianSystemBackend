@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `RM-BP-001` |
-| `revision` | `3` — diperbarui 10 September 2026. **28 Oktober 2026:** keputusan amandemen sambungan seluruh modul disahkan (`RM-DEC-037`–`050`); desainnya belum dimulai, sehingga revision belum naik. Lihat bagian "Amandemen 28 Oktober 2026" |
+| `revision` | **10 November 2026: revision `5` `approved` (`RM-DEC-088`)** (Optik dan Rehab Medik, `RM-DEC-078`–`087`) — lihat bagian "Revision 5"; revision `4` `approved`. Catatan lama: `3` — diperbarui 10 September 2026. **28 Oktober 2026:** keputusan amandemen sambungan seluruh modul disahkan (`RM-DEC-037`–`050`); desainnya belum dimulai, sehingga revision belum naik. Lihat bagian "Amandemen 28 Oktober 2026" |
 | `status` | **`approved`** — disahkan Yoga Aji Pratama 26 Agustus 2026 (`RM-DEC-027`); kontrak API menyusul 27 Agustus 2026 (`RM-DEC-028`); amandemen sambungan Laboratorium 10 September 2026 (`RM-DEC-030`–`RM-DEC-036`). **Tidak ada lagi yang menunggu pengesahan** |
 | `module` | `rekam-medis` |
 | `design_snapshot_at` | `2026-08-24`; amandemen sambungan Laboratorium `2026-09-10` |
@@ -390,6 +390,65 @@ berkas pembaca di modul mereka masih menahan **gelombang** yang memuat modul itu
 **Catatan untuk blueprint MCU.** `RM-DEC-040` menutup `MCU-GAP-04` dari sisi rekam medis. Berkas
 `mcu/02-requirement-completeness-assessment.md` dan `mcu/04-prd-to-mvp.md` masih menyebutnya
 ditunda; penyelarasannya milik blueprint MCU dan **tidak** disunting pada amandemen ini.
+
+### Revision 5 — `approved` (10 November 2026) — Optik dan Rehab Medik
+
+| Field | Value |
+|---|---|
+| `revision` | **`5`** — **`approved`**, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`). Revision 4 tetap `approved` dan berlaku untuk cakupannya |
+| Scope | `RM-DEC-078`–`087`: sambungan Optik (2 jenis) dan Rehab Medik (6 jenis) dicatat; profil `RJ-OPT` tanpa butir; kunci jenis poli dan profil `RJ-REHAB`; probe Rehab; addendum koreksi Optik ditolak |
+| Snapshot | Backend **`c7686f07`** (branch `yoga`); frontend **`3397211dd`** (branch `YogaV2`) |
+| `input_revisions` | Decision log revision **`15`**; capability map revision **`4`**; `RM-DA-001` revision 1 dan `RM-RCG-001` revision 2 **tanpa pass baru** — amandemen hanya memperluas slice S-A3, S-A6, S-B1, S-B2, S-B3 yang sudah siap (alasan di `02-backend-architecture.md` "Gerbang masuk" revision 5) |
+| `input_hashes` | Decisions `sha256:90662bd2fa02e66ffe1fbcd8878515a9f74173344bf2879877da9a02e0e5dbab`; capability map `sha256:73a74962185a991e87a5dadf1984e505d74f3347f612d666a084887035dbf995` |
+| `contract_versions` | API, integration, state, validation, permission/audit **`0.3.0` `approved`** (`RM-DEC-088`). `0.2.0` tetap `approved`; `0.3.0` sekaligus melebur penyegaran status `0.2.1` yang tertunda |
+| `compatibility_impact` | **Aditif pada skema:** satu kolom boleh kosong (`MstMedicalRecordCompletenessProfile.ClinicType`), index unik kunci diganti empat kolom, satu CHECK. **Satu perubahan perilaku:** addendum koreksi pada dokumen Optik ditolak `400` (`VAL-RM-B01`). Nol perubahan tabel modul lain |
+| Usulan desain yang ikut disahkan | `DS-R5-04` — penanda "pernah diralat" dokumen Rehab hanya menghitung addendum koreksi, bukan pengesahan. **Disahkan** `RM-DEC-088` |
+| Decision log sesudah pengesahan | `sha256:83ea0cc895849f21786a517e0e56172b02f377782f806caf248d2411dbf25c58` (revision 16). `input_hashes` di atas tetap menunjuk masukan desain |
+
+Setiap artefak menerima bagian "Amandemen revision 5" di akhir berkas tanpa menimpa isi lama.
+Hash dihitung ulang `sha256sum` atas berkas di disk (LF) **sesudah penanda `approved` dipasang**, 10 November 2026:
+
+| Artifact | SHA-256 revision 5 |
+|---|---|
+| `02-backend-architecture.md` | `a223c93c173b60e94fb4c78f47d94fc7f04f1c4fd5becc96a9b2712293406b96` |
+| `03-frontend-architecture.md` | `758406852f1b8f184e8f469417bcf1da1307b89043fcc62ab46ddbd36c1fbc5a` |
+| `04-prd-to-mvp.md` | `85ead610a3b367c16b130334731543c6f9a7c20dfdea927ec2badf4d8ab9e417` |
+| `erd/00-context-erd.md` | `f9f3e7765b793180aa39fb5edff1451d323f13e2149c74e101cbeb15fc72bb8a` |
+| `erd/kelengkapan-berkas.md` | `42f4b7aa8428c30b2d88dac71124292cff605128e629e1363844daf4d9628db8` |
+| `erd/data-dictionary.md` | `314e883ebdb5dc380e9cf60df83ac84e4cc1077a715d77022beaa8ac651e9408` |
+| `contracts/api-contract.md` | `56dc74c9fcc587f5731cf84635b93d84a9b496ff8a5c68022df4b270a123bd34` |
+| `contracts/integration-contract.md` | `5c133720311e2d807523f31c4addcc0838379b2ba0846a1cf63d690fdaa3b2fc` |
+| `contracts/state-transition-matrix.md` | `2823e6bdbdc1f4add2cbdd4fa90f68fbc28ccf4054194ed65b85b04081863b5a` |
+| `contracts/validation-matrix.md` | `f2dd1f9e89fd0200f59ee00602630fe025af02e7219c8b998b42515ebf9edf8a` |
+| `contracts/permission-audit-matrix.md` | `c19290420a33b0fe0f46808ddc7b988d2fbc31fdc4943788039de130e5e80611` |
+| `testing/acceptance-test-matrix.md` | `11b93d795db0f2061c9fb892d14f54d7c3980c34a7b3db9b4f0007b2b75d33c4` |
+
+`erd/keutuhan-dokumen.md`, `erd/jejak-akses.md`, dan `03-domain-architecture.md` **tidak disunting**:
+tidak ada perubahan pada tabel keutuhan, jejak akses, maupun konsep domain.
+
+**Impact scan trigger tambahan:** `Areas/HealthServices/OpticalManagement/`,
+`Areas/HealthServices/RehabilitationManagement/`, `MasterData/Enums/ServiceUnitType.cs`,
+`MasterData/Enums/ClinicType.cs`, `MasterData/Models/MstClinic.cs`, serta berkas pada "Impact scan
+trigger revision 4" di `01-existing-capability-map.md`.
+
+**Yang menahan delivery:**
+
+| Butir | Pemilik | Menahan |
+|---|---|---|
+| ~~Pengesahan revision 5 dan kontrak `0.3.0` (termasuk `DS-R5-04`)~~ | Yoga Aji Pratama | **Selesai** 10 November 2026 (`RM-DEC-088`) |
+| Persetujuan perubahan di folder Optik (penanda "pernah diralat") | Yoga Aji Pratama selaku pemilik Optik | Bagian Optik `MVP-7` |
+| Persetujuan perubahan di folder Rehab (probe, penanda) | Sukma Giri Pratama | `MVP-8` |
+| Keberadaan poli rehab di master data (`RM-UN-R4-01`) | Admin data | `UAT-23` saja |
+
+**Roadmap revision 3 (10 November 2026)** — `roadmap/backend-roadmap.md` (`BE-42`–`BE-46`,
+`sha256:5a5fb311…`), `roadmap/frontend-roadmap.md` (`FE-16`–`FE-18`, `sha256:dd88fd06…`),
+`roadmap/requirement-traceability.md` (T3, `sha256:3d484bcd…`). Siap dimulai: `BE-42`, `BE-43`,
+`FE-16`, `FE-17`. Tertahan: `BE-44` (persetujuan pemilik Optik), `BE-45` (persetujuan pemilik Rehab
+Medik), `FE-18` (task backend dan data uji).
+
+**Keadaan delivery 10 November 2026:** seluruh backend revision 5 `SELESAI` — `BE-42`–`BE-46`. `MedicalRecordTests` 268 lulus, `OpticalTests` 297 lulus. Migration `20261110043756_AddClinicTypeToMedicalRecordCompletenessProfile` dibuat, **belum diterapkan**. Persetujuan folder: `RM-DEC-089` (Optik), `RM-DEC-090` (Rehab Medik). Catatan rilis `0.3.0` menunggu pengesahan. `FE-16`, `FE-17` `SELESAI`. **Migration `BE-42` diterapkan ke devYoga** 10 November 2026 (instruksi Yoga Aji Pratama; riwayat 387); `RJ-OPT`/`RJ-REHAB` terpasang lewat seeder. `FE-18`: `UAT-22` lulus; `UAT-20`/`21`/`23` menunggu migration Rehab (`AddRehabilitationManagement`, masih tertunda — tanpanya backend hanya dapat dinyalakan dengan `Seeders__ContinueOnFailure=true`) dan data Optik — `testing/uat-amandemen-0.3.0.md`.
+
+**Pembaruan 10 November 2026 sore (decision log revision 18, `RM-DEC-091`–`096`):** migration Rehab diterapkan ke devYoga (`RM-DEC-092`; riwayat 388, **nol tertunda**, backend start normal). Opsi jenis poli `Unknown` dikeluarkan dan ditolak (`RM-DEC-095`; penyegaran kontrak `0.3.1` untuk pass blueprint berikutnya). **`FE-18` `SELESAI`** pola `FE-15` (`RM-DEC-096`): `UAT-22` lulus nyata; `UAT-20`, `21`, `23` terbuka dan terlacak sampai master Optik dan Rehab disiapkan pemiliknya. **Seluruh task roadmap revision 3 kini `SELESAI`.**
 
 ---
 

@@ -273,3 +273,55 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | Dapat dimulai sekarang tanpa menunggu siapa pun | ~~`BE-21`, `BE-25`, `BE-37`, `BE-38`~~ — **seluruh backend amandemen `SELESAI` 2 November 2026**; **seluruh frontend amandemen `FE-10`–`FE-15` `SELESAI` 2 November 2026**. Kesiapan UAT: 7 dari 19 lulus terhadap backend nyata, 12 terbuka menunggu data uji (`testing/uat-amandemen-0.2.0.md`) |
 | Tertahan persetujuan modul | **Nol** — `BE-27`–`BE-35` disetujui 29 Oktober 2026 (`RM-DEC-067`–`075`) |
 | Keputusan bisnis yang masih memblokir | **Nol** |
+
+
+---
+
+# Roadmap revision 3 — Traceability amandemen Optik dan Rehab Medik
+
+```yaml
+roadmap_revision: 3
+blueprint_revision: 5 (approved, RM-DEC-088)
+contract_versions: { api: 0.3.0, state_transition: 0.3.0, validation: 0.3.0, integration: 0.3.0, permission_audit: 0.3.0 }   # seluruhnya approved
+input_revisions: { interview_decisions: 16, capability_map: 4 }
+source_commits: { backend: c7686f07, frontend: 3397211dd }
+```
+
+## T3.1 Requirement → task → uji
+
+| Requirement | Decision ID | Design | Contract | Backend task | Frontend task | Test | Status |
+|---|---|---|---|---|---|---|---|
+| `FR-RM-082` Kunjungan Optik dinilai `RJ-OPT` | `RM-DEC-080` | A5.8, A5.9.1 | API B2 | `BE-42` | — | `AT-RM-75`, `76`, `79`, `80`; `UAT-20` | **Backend selesai** (`BE-42`, 10 November 2026; `AT-RM-75`, `76`, `79`, `80` lulus); `UAT-20` belum |
+| `FR-RM-083` Addendum koreksi Optik ditolak | `RM-DEC-084` | A5.9.2 | API B3, `VAL-RM-B01`, state S-E | `BE-43` | — | `AT-RM-91`, `92` | **Backend selesai** (`BE-43`, 10 November 2026; `AT-RM-91`, `92` lulus) |
+| `FR-RM-084` Penanda Optik menghitung addendum koreksi | `RM-DEC-084` | A5.9.4 | API B1, `INT-RM-10k` | `BE-44` | — | `AT-RM-77`, `78` | **Backend selesai** (`BE-44`, 10 November 2026; `AT-RM-77`, `78` lulus) |
+| `FR-RM-085` Tombol koreksi Optik tidak digambar | `RM-DEC-084` | F5.2 | API B3 | `BE-43` | `FE-16` | `UAT-21` | Backend selesai (`BE-43`); **frontend selesai** (`FE-16`, E2E API tiruan); `UAT-21` terbuka dan terlacak (`RM-DEC-093`, `RM-DEC-096`) |
+| `FR-RM-086` Profil berpoli | `RM-DEC-085` | A5.9.1 | API B2, `VAL-RM-B02`–`B04` | `BE-42` | `FE-17` | `AT-RM-81`, `82`, `89`, `90`; `UAT-22` | **Backend selesai** (`BE-42`; `AT-RM-81`, `82`, `89`, `90` lulus — `90` lewat service, index PostgreSQL `NOT RUN`); `FE-17` belum |
+| `FR-RM-087` Kunjungan poli rehab | `RM-DEC-081`, `086` | A5.9.3 | `INT-RM-11c` | `BE-45` | — | `AT-RM-83`, `84`; `UAT-23` | **Backend selesai** (`BE-45`, 10 November 2026; `AT-RM-83`, `84` lulus); `UAT-23` terbuka dan terlacak (`RM-DEC-096`, `RM-FACT-037`: master Rehab belum siap) |
+| `FR-RM-088` Probe Rehab tanpa hasil tertunda | `RM-DEC-082`, `087` | A5.9.3 | `INT-RM-11c` | `BE-45` | — | `AT-RM-85`, `86` | **Backend selesai** (`BE-45`; `AT-RM-85`, `86` lulus) |
+| `FR-RM-089` Penanda Rehab tanpa pengesahan | `DS-R5-04` | A5.9.4 | API B1, `INT-RM-10l` | `BE-45` | — | `AT-RM-87`, `88` | **Backend selesai** (`BE-45`; `AT-RM-87`, `88` lulus) |
+| `FR-RM-090` Jenis poli di layar profil | `RM-DEC-085` | F5.2 | API B2 | `BE-42` | `FE-17` | `UAT-22` | Backend selesai (`BE-42`); **frontend selesai** (`FE-17`, E2E API tiruan); **`UAT-22` lulus** 10 November 2026 terhadap backend nyata |
+| Jenis 45–52 di linimasa | `RM-DEC-079` | F5.1 | API B1 | — (sudah hidup) | — (sudah hidup) | `UAT-20` | Hidup; `UAT-20` terbuka dan terlacak (`RM-DEC-096`): data Optik/Rehab belum dapat diadakan |
+| Catatan rilis `0.3.0` | `RM-DEC-088` | A5.11 | API `0.3.0` | `BE-46` | — | `ReleaseContractTests` | **Selesai** (`BE-46`; 10 uji lulus); catatan rilis menunggu pengesahan |
+
+## T3.2 Coverage gap
+
+| Celah | Sebab | Penanganan |
+|---|---|---|
+| `RM-AC-R14-04` (sesi rehab bertanda tangan ditolak diubah; koreksi lewat addendum) | Perilaku sudah hidup sejak `BE-RHB-004`, tanpa uji di proyek rekam medis | Dibuktikan `AT-RM-87` di dalam `BE-45` |
+| `UAT-23` | Bergantung data poli rehab di master (`RM-UN-R4-01`) | Cek kueri baca-saja sebelum `FE-18`; bila belum ada, dicatat terbuka |
+| `AT-RM-77` sisi revisi (versi 2) | Sudah hidup; uji ada di proyek Optik, bukan rekam medis | `BE-44` menjalankan ulang uji Optik |
+| Tinjauan komite medik atas pengecualian Optik (open question 24) | Di luar kewenangan kode | Tidak menahan; dicatat terbuka |
+
+## T3.3 Persetujuan pemilik modul
+
+| Folder | Task | Pemilik | Keadaan |
+|---|---|---|---|
+| `OpticalManagement/Services/` | `BE-44` | Yoga Aji Pratama (pemilik Optik) | **Disetujui** 10 November 2026 (`RM-DEC-089`) |
+| `RehabilitationManagement/Services/`, `Program.cs` (pendaftaran probe Rehab) | `BE-45` | Sukma Giri Pratama (pemilik Rehab Medik) | **Disetujui** 10 November 2026 (`RM-DEC-090`, disampaikan Yoga Aji Pratama) |
+| Seluruh task lain | `BE-42`, `BE-43`, `BE-46` | Rekam medis (Yoga Aji Pratama) | Tercakup `RM-DEC-088` |
+
+## T3.4 Ringkasan
+
+Delapan task baru: lima backend (`BE-42`–`BE-46`), tiga frontend (`FE-16`–`FE-18`). Siap dimulai
+sekarang: **`BE-42`, `BE-43`, `FE-16`, `FE-17`**. Tertahan persetujuan: `BE-44` (Optik),
+`BE-45` (Rehab). Seluruh 18 acceptance criteria revision 14/15 terpetakan ke uji.

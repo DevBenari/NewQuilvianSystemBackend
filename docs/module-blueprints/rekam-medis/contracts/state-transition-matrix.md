@@ -199,3 +199,39 @@ urutan prioritas `Undetermined` → `AwaitingResult` → `Incomplete` → `Compl
 | Aktif | Nonaktifkan | Nonaktif | `MedicalRecordCompletenessProfile : Update` | — | — |
 | Nonaktif | Aktifkan | Aktif | `MedicalRecordCompletenessProfile : Update` | Kunci tidak bentrok dengan profil aktif lain | `409` |
 | Aktif atau Nonaktif | Hapus | — | — | — | **Tidak sah.** Hanya nonaktif |
+
+
+---
+
+# Amandemen — State transition `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved`, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| Input | Decision log revision `15` |
+
+## S-E. Koreksi dokumen Optik (`RM-DEC-079`, `084`)
+
+Dokumen Optik tidak pernah berpindah status untuk dikoreksi. Koreksi menghasilkan **dokumen
+keutuhan baru** (versi baru), sedangkan dokumen lama tetap pada statusnya.
+
+| Dari | Aksi | Ke | Pelaku | Catatan |
+|---|---|---|---|---|
+| — | Pemeriksaan refraksi dimulai | `Draft` (revisi 1) | RO/Sp.M | Milik Optik |
+| `Draft` | Final | `Signed` | RO/Sp.M | |
+| `Draft` | Kunjungan tutup klinis | `LockedUnsigned` | Sistem | Sama dengan CPPT (`RM-DEC-003`) |
+| `Signed` | Revisi di layar Optik | Revisi lama tetap `Signed`; **revisi baru** lahir `Signed` | RO/Sp.M | Bukan transisi; dokumen baru |
+| `Signed` | Addendum koreksi | **Ilegal** — `400` `VAL-RM-B01` | — | |
+| `LockedUnsigned` | Addendum koreksi | **Ilegal** — `400` `VAL-RM-B01` | — | |
+| `LockedUnsigned` | Addendum pengesahan | Tetap `LockedUnsigned`; kekurangan tuntas | Penulis atau pengganti sah | S-C apa adanya |
+
+## S-D. Profil dokumen wajib — tambahan
+
+| Aksi | Syarat | Akibat |
+|---|---|---|
+| Membuat/mengubah profil berpoli | `condition = 0` | Penilaian belum lengkap jatuh tempo seketika (tidak berubah) |
+| Menonaktifkan `RJ-REHAB` | — | Kunjungan poli rehab kembali memakai `RJ` pada penilaian berikutnya |
+
+## S-B. Penilaian — tambahan
+
+Tidak ada keadaan baru. Probe Rehab tidak pernah menghasilkan `AwaitingResult`.

@@ -132,3 +132,16 @@ Dokumen modul lain — Laboratorium, Radiologi, IGD, Rawat Inap, Kamar Operasi, 
 Bank Darah, Farmasi, MCU — **tidak** digambar sebagai bagian ERD rekam medis. Rekam medis tidak
 menyimpan dan tidak memiliki tabel itu (`RM-DEC-038`); hubungannya kontrak baca
 `IMedicalRecordDocumentSource`, bukan relasi tabel.
+
+
+## Amandemen revision 5 — Optik dan Rehab Medik (`approved`, `RM-DEC-088`)
+
+Tidak ada konteks rekam medis baru. Dua modul sumber bertambah di sekeliling konteks yang sama:
+
+| Konteks luar | Hubungan dengan rekam medis | Status |
+|---|---|---|
+| `OpticalManagement` (Optik) | Sumber dokumen (`INT-RM-10k`); pemakai layanan keutuhan (`INT-RM-16`) | Existing — dicatat |
+| `RehabilitationManagement` (Rehab Medik) | Sumber dokumen (`INT-RM-10l`); probe kelengkapan (`INT-RM-11c`, baru); pemakai layanan keutuhan (`INT-RM-17`) | Existing; probe **Extend** |
+| Master Data — jenis poli (`MstClinic.ClinicType`) | Dibaca untuk pemilihan profil | Existing |
+
+ERD rinci: `erd/kelengkapan-berkas.md` bagian "Amandemen revision 5".

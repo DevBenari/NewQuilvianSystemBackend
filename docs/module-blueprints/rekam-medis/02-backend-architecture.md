@@ -1123,3 +1123,272 @@ terpisah per sumber — dicatat sebagai pilihan lanjutan, tidak dirancang sekara
 | Riwayat perubahan keadaan penilaian | `RM-DA-001` bagian I: cukup keadaan terakhir dan waktu pertama kali lengkap |
 | Event "dokumen final" dari modul sumber | Tidak ada di source; pemeriksaan berkala menggantikannya (`GAP-ARCH-RM-04`) |
 | Pembaca hasil Patologi Anatomi | `RM-DEC-058` |
+
+
+---
+
+# Amandemen revision 5 — Optik dan Rehab Medik
+
+| Field | Value |
+|---|---|
+| Blueprint revision | **`5` — `approved`**, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| Tanggal | 10 November 2026 |
+| Scope | `RM-DEC-078`–`087`: C1–C5 pada decision log revision 15 |
+| Input | Decision log revision `15`; capability map revision `4` (`RM-CAP-071`–`082`); `RM-DA-001` revision 1 dan `RM-RCG-001` revision 2 **tanpa pass baru** — lihat "Gerbang masuk" |
+| Source SHA | Backend `c7686f07` (branch `yoga`); frontend `3397211dd` (branch `YogaV2`) |
+| Yang tidak dirancang ulang | Bounded context, aggregate, ownership, lifecycle, billing, dan batas keselamatan dari `RM-DA-001`; desain rilis pertama dan revision 4 di atas tetap berlaku |
+
+**Gerbang masuk.** Amandemen ini tidak melahirkan bounded context, aggregate, atau konsep domain
+baru. Seluruh isinya memperluas slice yang sudah `DOMAIN_ARCHITECTURE_READY` pada `RM-DA-001`:
+
+| Slice `RM-DA-001` | Perluasan revision 5 |
+|---|---|
+| S-A3 Sumber pelayanan | Dua sumber baru: Optik dan Rehab Medik (sudah hidup di source, `RM-FACT-024`) |
+| S-A6 Penanda "pernah diralat" | Aturan penanda untuk dokumen Optik dan Rehab (`RM-DEC-084`) |
+| S-B1 Master dokumen wajib (`AGG-RM-04`) | Kunci jenis poli; profil `RJ-OPT` dan `RJ-REHAB`; satu kriteria baru |
+| S-B2 Penilaian kelengkapan (`AGG-RM-03`) | Pemilihan profil berpoli; probe Rehab |
+| S-B3 Addendum pengesahan | Addendum koreksi ditolak untuk jenis Optik; pengesahan tetap |
+
+Larangan pada handoff `RM-DA-001` tetap dipatuhi: makna final milik pemilik sumber, tanpa
+salinan isi, satu izin berkas, tutup klinis tidak berubah, kelengkapan tidak menahan apa pun.
+Bila pemilik menghendaki gerbang kelengkapan requirement dan arsitektur domain dijalankan ulang
+secara formal, revision 5 tetap `draft` sampai keduanya selesai.
+
+## A5.1 Bounded context dan batas transaksi
+
+| Context | Aggregate | Perubahan | Batas transaksi | Rollback |
+|---|---|---|---|---|
+| `BC-RM-02` Keutuhan | Addendum | Penolakan addendum koreksi untuk dua jenis Optik | Penolakan terjadi **sebelum** transaksi dibuka; tidak ada yang ditulis | — |
+| `BC-RM-03` Kelengkapan | `AGG-RM-04` Profil | Kolom kunci baru `ClinicType` | Satu transaksi per profil beserta butirnya (tidak berubah) | Seluruhnya batal |
+| `BC-RM-03` Kelengkapan | `AGG-RM-03` Penilaian | Pemilihan profil berpoli; satu probe baru | Pembacaan sumber tetap **sebelum** transaksi (tidak berubah) | Penilaian lama tetap |
+
+## A5.2 Tabel kepemilikan data
+
+Hanya baris yang bertambah atau berubah terhadap A4.2.
+
+| Kelompok data | Modul pemilik | Dipakai | Dibuat ulang di rekam medis |
+|---|---|:---:|---|
+| Jenis poli (`MstClinic.ClinicType`) | Master Data | Ya — dibaca lewat `RegPatientEncounter.ClinicId` | **Tidak**. Profil hanya menyimpan **nilai enum** jenis poli, bukan salinan poli |
+| Pemeriksaan refraksi dan resep optik, beserta versinya | Optik | Ya | **Tidak** — dibaca lewat `OptMedicalRecordDocumentSource` |
+| Asesmen, program, sesi, reasesmen, ringkasan akhir, edukasi rehab | Rehab Medik | Ya | **Tidak** — dibaca lewat `RhbMedicalRecordDocumentSource` |
+| Pesanan dan barang Optik | Optik | **Tidak** | Tidak (`RM-DEC-082`) |
+| Episode rehab dan jadwal sesi | Rehab Medik | **Tidak** | Tidak (`RM-DEC-081`) |
+| Profil dokumen wajib | Rekam Medis (master) | Ya | Sudah ada — **diperluas** (kolom `ClinicType`) |
+
+## A5.3 Class diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class MstMedicalRecordCompletenessProfile {
+        +Guid Id
+        +string Code
+        +EncounterType? EncounterType
+        +ServiceUnitType? ServiceUnitType
+        +ClinicType? ClinicType  «baru»
+        +CompletenessCondition Condition
+        +bool IsActive
+    }
+    class MedicalRecordCompletenessService {
+        -PilihProfilDasar(profil, jenisKunjungan, jenisUnit, jenisPoli) «diperbarui»
+    }
+    class IMedicalRecordCompletenessProbe {
+        <<interface>>
+        +Criteria
+        +ReportsPendingResults
+    }
+    class RhbMedicalRecordDocumentSource {
+        +Criteria = [RehabClinicalDocument] «baru»
+        +ReportsPendingResults = false «baru»
+    }
+    class ClinicalNoteAddendumService {
+        -KoreksiLewatRevisi : set «baru»
+        +ResolveAuthorityAsync() «diperbarui»
+        +CreateAsync() «diperbarui»
+    }
+    class OptMedicalRecordDocumentSource {
+        +IsCorrected = versi>1 atau addendum koreksi «diperbarui»
+    }
+    MedicalRecordCompletenessService --> MstMedicalRecordCompletenessProfile : memilih profil
+    MedicalRecordCompletenessService --> IMedicalRecordCompletenessProbe : memanggil
+    RhbMedicalRecordDocumentSource ..|> IMedicalRecordCompletenessProbe
+    ClinicalNoteAddendumService ..> OptMedicalRecordDocumentSource : jenis 45–46 ditolak koreksi
+```
+
+## A5.4 Penjelasan setiap class
+
+### Model, enum, configuration
+
+| Class | Status | Lokasi file | Perubahan |
+|---|---|---|---|
+| `MstMedicalRecordCompletenessProfile` | **Diperbarui** | `Areas/HealthServices/MasterData/Models/MstMedicalRecordCompletenessProfile.cs` | Kolom baru `ClinicType` (`ClinicType?`, boleh kosong) — kunci profil keempat (`RM-DEC-085`) |
+| `MstMedicalRecordCompletenessProfileConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/MedicalRecordManagement/MstMedicalRecordCompletenessProfileConfiguration.cs` | Index unik kunci menjadi `(EncounterType, ServiceUnitType, ClinicType, Condition)`, tetap `NULLS NOT DISTINCT` dan terfilter `"IsDelete" = false`. CHECK baru `CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi`: `"Condition" = 0 OR "ClinicType" IS NULL` |
+| `CompletenessCriterion` | **Diperbarui** | `Areas/HealthServices/MedicalRecordManagement/Enums/CompletenessCriterion.cs` | Nilai baru `RehabClinicalDocument = 17`. Nilai 1–16 tidak bergeser |
+| `ClinicType` | Sudah ada | `Areas/HealthServices/MasterData/Enums/ClinicType.cs` | Tidak berubah; dipakai sebagai tipe kolom |
+| `ClinicalDocumentKind` | Sudah ada | `.../MedicalRecordManagement/Enums/ClinicalDocumentKind.cs` | Nilai 45–52 sudah hidup (`RM-FACT-024`); revision 5 hanya mencatatnya di kontrak |
+
+### Service
+
+| Class | Status | Lokasi file | Fungsi utama yang berubah | Dipanggil oleh | Membuka transaksi |
+|---|---|---|---|---|---|
+| `MedicalRecordCompletenessService` | **Diperbarui** | `.../MedicalRecordManagement/Services/MedicalRecordCompletenessService.cs` | Proyeksi `Kunjungan` menambah `ClinicType?` dari `x.Clinic.ClinicType`; `PilihProfilDasar` memakai urutan A5.9.1; record `Profil` dan `SidikProfil` menyertakan `ClinicType`; proyeksi daftar kerja (baris ±645, ±685) ikut | Controller kelengkapan; pemeriksaan berkala | Ya, satu per kunjungan (tidak berubah) |
+| `MedicalRecordCompletenessProfileService` | **Diperbarui** | `Areas/HealthServices/MasterData/Services/MedicalRecordCompletenessProfileService.cs` | Validasi `VAL-RM-B02`–`B04`; saringan `clinicType`; `ClinicTypeOptions` pada metadata; `ClinicTypeLabel`; pemeriksaan kunci kembar menyertakan `ClinicType`; `TandaiPenilaianUlangAsync` tetap dipanggil | `MedicalRecordCompletenessProfileController` | Ya (tidak berubah) |
+| `ClinicalNoteAddendumService` | **Diperbarui** | `.../MedicalRecordManagement/Services/ClinicalNoteAddendumService.cs` | Himpunan statis `KoreksiLewatRevisi = { OpticalRefraction, OpticalPrescription }`. `CreateAsync` dengan `purpose = Correction` untuk jenis itu → `400` `VAL-RM-B01`, sebelum pemeriksaan lain. `ResolveAuthorityAsync` mengisi `IsCorrectionAllowed = false` untuk jenis itu; `IsAllowed` tetap bermakna "boleh menulis addendum" supaya pengesahan tidak ikut tertutup | `ClinicalNoteAddendumController`; layanan modul lain yang memanggil addendum | Ya, hanya bila lolos (tidak berubah) |
+| `OptMedicalRecordDocumentSource` | **Diperbarui** | `Areas/HealthServices/OpticalManagement/Services/OptMedicalRecordDocumentSource.cs` | `IsCorrected = nomor versi > 1` **atau** ada `MrcClinicalNoteAddendum` berjenis `Correction` pada dokumen keutuhan versi mana pun (`RM-DEC-084`) | Linimasa berkas | Tidak — baca saja |
+| `RhbMedicalRecordDocumentSource` | **Diperbarui** | `Areas/HealthServices/RehabilitationManagement/Services/RhbMedicalRecordDocumentSource.cs` | Memasang `IMedicalRecordCompletenessProbe`: `SourceModule = "Rehabilitation"`, `Criteria = [RehabClinicalDocument]`, `Conditions = []`, `ReportsPendingResults = false`. `ProbeAsync` menjawab A5.9.3. Penanda "pernah diralat" menghitung addendum `Correction` saja (`DS-R5-04`) | `MedicalRecordCompletenessService` | Tidak — baca saja |
+| `MedicalRecordCompletenessProfileSeeder` | **Diperbarui** | `Areas/HealthServices/MasterData/Seeders/MedicalRecordCompletenessProfileSeeder.cs` | Kunci idempoten menyertakan `ClinicType`; dua profil baru A5.8. **Tanpa** perubahan kunci, `RJ-REHAB` akan dilewati karena bertabrakan dengan `RJ` | Startup | Ya (tidak berubah) |
+
+### Controller dan DTO
+
+| Class | Status | Lokasi | Perubahan |
+|---|---|---|---|
+| `MedicalRecordCompletenessProfileController` | **Diperbarui** | `Areas/HealthServices/MasterData/Controllers/MedicalRecordCompletenessProfileController.cs` | `GET /` menerima `clinicType` opsional. Atribut akses **tidak berubah** |
+| `ClinicalNoteAddendumController` | Sudah ada | `.../MedicalRecordManagement/Controllers/ClinicalNoteAddendumController.cs` | Tidak berubah; kode status diteruskan dari service |
+| `MedicalRecordCompletenessProfileDtos` | **Diperbarui** | `Areas/HealthServices/MasterData/DTOs/MedicalRecordCompletenessProfileDtos.cs` | `CreateMedicalRecordCompletenessProfileRequest` dan `Update…Request`: `ClinicType?` (Create/Update). `ListItemResponse`: `ClinicType?`, `ClinicTypeName` (Response). `FilterMetadataResponse`: `ClinicTypeOptions` (Response) |
+| `AddendumAuthorityResponse` | **Diperbarui** | `.../MedicalRecordManagement/DTOs/ClinicalNoteAuthorDelegationDtos.cs:65` | `IsCorrectionAllowed` (`bool`, bawaan `true`) — Response |
+| `Program.cs` | **Diperbarui** | `Program.cs` sekitar baris 1037 | Daftarkan `RhbMedicalRecordDocumentSource` sebagai `IMedicalRecordCompletenessProbe` lewat instance yang sama (pola baris 713–714) |
+
+## A5.5 Arsitektur folder
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/
+│   ├── MasterData/
+│   │   ├── Controllers/MedicalRecordCompletenessProfileController.cs   Diperbarui
+│   │   ├── DTOs/MedicalRecordCompletenessProfileDtos.cs                Diperbarui
+│   │   ├── Models/MstMedicalRecordCompletenessProfile.cs               Diperbarui
+│   │   ├── Seeders/MedicalRecordCompletenessProfileSeeder.cs           Diperbarui
+│   │   └── Services/MedicalRecordCompletenessProfileService.cs         Diperbarui
+│   ├── MedicalRecordManagement/
+│   │   ├── DTOs/ClinicalNoteAuthorDelegationDtos.cs (AddendumAuthorityResponse)  Diperbarui
+│   │   ├── Enums/CompletenessCriterion.cs                              Diperbarui
+│   │   └── Services/
+│   │       ├── ClinicalNoteAddendumService.cs                          Diperbarui
+│   │       └── MedicalRecordCompletenessService.cs                     Diperbarui
+│   ├── OpticalManagement/Services/OptMedicalRecordDocumentSource.cs    Diperbarui  (folder Optik)
+│   └── RehabilitationManagement/Services/RhbMedicalRecordDocumentSource.cs  Diperbarui  (folder Rehab)
+├── Repositories/Configurations/HealthServices/MedicalRecordManagement/
+│   └── MstMedicalRecordCompletenessProfileConfiguration.cs             Diperbarui
+├── Migrations/<timestamp>_AddClinicTypeToMedicalRecordCompletenessProfile.cs   Baru
+├── Program.cs                                                          Diperbarui
+└── Tests/QuilvianSystemBackend.MedicalRecordTests/                     Uji baru (A5.10)
+```
+
+Penyimpangan yang sudah ada dan **tidak** dirapikan: model profil berada di `MasterData`, sedangkan
+configuration-nya di folder rekam medis (preseden `MstMedicalRecordAccessPurposeConfiguration`).
+
+## A5.6 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Index / constraint | Perilaku hapus |
+|---|---|---|---|---|
+| `MstMedicalRecordCompletenessProfile` | **Diperbarui** | **`ClinicType`** `integer NULL`, tanpa bawaan, nilai enum `ClinicType` | Index unik `IX_…_EncounterType_ServiceUnitType_ClinicType_Condition` menggantikan index tiga kolom; CHECK `ClinicTypeTanpaKondisi` baru | Tidak berubah (`Restrict` ke butir) |
+| `MstMedicalRecordCompletenessProfileItem` | Sudah ada | Nol. Nilai `Criterion = 17` mulai dipakai | — | — |
+| `MrcClinicalNoteAddendum`, `MrcClinicalDocumentIntegrity` | Sudah ada | Nol | — | — |
+| Tabel Optik dan Rehab | Sudah ada | **Nol** | — | — |
+
+## A5.7 Rencana migration
+
+| Urutan | Nama | Isi | Tanpa downtime | Data lama | Langkah mundur |
+|---:|---|---|:---:|---|---|
+| 1 | `AddClinicTypeToMedicalRecordCompletenessProfile` | Tambah kolom; hapus index unik tiga kolom; buat index unik empat kolom; tambah CHECK | **Ya** — tabel master berbaris belasan; kolom boleh kosong | Seluruh profil lama `ClinicType = NULL`, perilakunya identik (`RM-AC-R15-05`) | Hapus profil berpoli (`RJ-REHAB`) lebih dulu, lalu hapus CHECK, index empat kolom, kolom; pulihkan index tiga kolom. Tanpa menghapus `RJ-REHAB`, index lama gagal dibuat karena bentrok dengan `RJ` |
+
+Pembuatan dan eksekusi migration tetap memerlukan instruksi terpisah. Lingkungan selain devYoga
+belum menerima migration amandemen revision 4; migration ini harus menyusul **sesudahnya**.
+
+## A5.8 Rencana data master awal
+
+Ditambahkan lewat seeder (idempoten) dan sama-sama dapat dibuat lewat layar master.
+
+| Kode | Nama | Jenis kunjungan | Jenis unit | Jenis poli | Kondisi | Kriteria | Keputusan |
+|---|---|---|---|---|---|---|---|
+| `RJ-OPT` | Rawat Jalan Optik | `Outpatient` | `Optical` | (semua) | `None` | **Tanpa butir** | `RM-DEC-080` |
+| `RJ-REHAB` | Rawat Jalan Poli Rehabilitasi Medik | `Outpatient` | (semua) | `Rehabilitation` | `None` | `RehabClinicalDocument` | `RM-DEC-081`, `085`, `086` |
+
+**Catatan penilaian ulang.** Profil yang masuk lewat seeder tidak memicu `MarkIncompleteDueAsync`;
+kunjungan Optik/Rehab yang sudah dinilai `Belum lengkap` di devYoga tersusul paling lambat 24 jam
+(`RM-CAP-078`). Bila ingin seketika, buat kedua profil lewat layar master.
+
+**Urutan pemasangan.** `RJ-REHAB` masuk seeder **bersamaan** dengan probe Rehab (gelombang
+`MVP-8`, `04-prd-to-mvp.md` bagian 26), tidak lebih awal. Tanpa probe, butir
+`RehabClinicalDocument` tidak pernah terpenuhi dan setiap kunjungan poli rehab menjadi
+`Belum lengkap` (`RM-CAP-074`). `RJ-OPT` masuk pada `MVP-7`.
+
+## A5.9 Aturan yang dirancang
+
+### A5.9.1 Pemilihan profil dasar (`RM-DEC-085`)
+
+Untuk satu kunjungan, di antara profil aktif tanpa kondisi dengan jenis kunjungan yang sama,
+dipilih yang **pertama cocok** dari urutan berikut:
+
+| Urutan | Jenis poli profil | Jenis unit profil |
+|---:|---|---|
+| 1 | = jenis poli kunjungan | = jenis unit kunjungan |
+| 2 | = jenis poli kunjungan | (semua) |
+| 3 | (semua) | = jenis unit kunjungan |
+| 4 | (semua) | (semua) |
+
+Kunjungan tanpa poli (`ClinicId` kosong) atau poli berjenis `Unknown` hanya dapat cocok pada
+urutan 3 dan 4. **Contoh:** kunjungan Pak Budi ke poli rehab di unit Rawat Jalan → urutan 2 →
+`RJ-REHAB`. Kunjungan Pak Andi di unit Optik → urutan 3 → `RJ-OPT`. Kunjungan poli penyakit dalam
+→ urutan 4 → `RJ`.
+
+### A5.9.2 Addendum pada dokumen Optik (`RM-DEC-084`)
+
+| Keadaan dokumen Optik | `purpose` | Hasil |
+|---|---|---|
+| `Signed` | `Correction` | `400` `VAL-RM-B01`: "Koreksi dokumen Optik dibuat sebagai revisi di layar Optik." |
+| `LockedUnsigned` | `Correction` | `400` `VAL-RM-B01` (sama) |
+| `LockedUnsigned` | `Attestation` | Mengikuti S-C apa adanya (penulis atau pengganti sah) |
+| `Signed` | `Attestation` | `409` `VAL-RM-A01` (tidak berubah) |
+
+`GET /authority` untuk jenis Optik: `IsAllowed` menurut aturan penulis yang sudah ada,
+`IsCorrectionAllowed = false`, `Explanation` memuat arahan ke layar Optik.
+
+### A5.9.3 Probe Rehab (`RM-DEC-086`, `087`)
+
+`RehabClinicalDocument` terpenuhi bila **ada satu** baris berikut dengan `EncounterId` = kunjungan
+yang dinilai, `IsDelete = false`, `RecordStatus = Final`, dan `SignedAt` terisi:
+`RhbAssessment`, `RhbSession`, `RhbProgressReview`, `RhbDischargeSummary`. `RhbProgram` dan
+`RhbEducationRecord` tidak dihitung. Pasien dicocokkan lewat episode (`Episode.PatientId`),
+mengikuti pembaca yang sudah ada. Probe tidak pernah mengembalikan `PendingResults` dan tidak
+melaporkan kondisi. Gangguan atau lewat batas waktu → `Tidak dapat dipastikan` (`RM-DEC-044`).
+
+### A5.9.4 Penanda "pernah diralat" dokumen Optik dan Rehab
+
+| Sumber | Aturan revision 5 |
+|---|---|
+| Optik | `versi > 1` **atau** ada addendum `Correction` pada salah satu versi (`RM-DEC-084`) |
+| Rehab | Ada addendum `Correction`. **`DS-R5-04` — usulan desain, ikut pengesahan revision 5:** hari ini pembaca Rehab memakai `AddendumCount`, yang juga menghitung addendum pengesahan, sehingga catatan yang hanya *disahkan* ikut bertanda "pernah diralat". Pengesahan bukan ralat (`RM-DEC-049`) |
+
+## A5.10 Strategi uji
+
+| Lapisan | Uji | Catatan harness |
+|---|---|---|
+| Pemilihan profil | Empat urutan A5.9.1; profil lama tanpa poli tidak berubah hasilnya | — |
+| Master profil | `VAL-RM-B02`–`B04`; kunci kembar empat kolom | Harness SQLite melepas `IsUnique` pada index terfilter — wajib memakai `TegakkanKunciUnikAsync` agar uji bentrok tidak lulus sia-sia |
+| Addendum Optik | Empat baris A5.9.2; `IsCorrectionAllowed` | — |
+| Probe Rehab | Empat jenis terhitung, dua tidak; draf/batal tidak terhitung; tanpa hasil tertunda; gangguan → tidak dapat dipastikan | **Pembaca Rehab belum punya uji sama sekali** (`RM-CAP-081`); uji pembaca ditulis pada task yang sama |
+| Penanda Optik | Versi 1 + addendum koreksi lama → `IsCorrected = true` | Uji yang ada: `Tests/QuilvianSystemBackend.OpticalTests/Be013MedicalRecordTests.cs` |
+| Regresi | Seluruh `QuilvianSystemBackend.MedicalRecordTests` (225 uji per 2 November 2026) | Folder `Tests/` diabaikan git; berkas uji baru perlu `git add -f` |
+
+## A5.11 Penerapan dan langkah mundur
+
+1. Kode dan migration dipasang bersama; tanpa migration, kolom `ClinicType` tidak ada dan aplikasi
+   gagal membaca profil.
+2. Seeder menambah `RJ-OPT` saat startup (`MVP-7`), dan `RJ-REHAB` hanya bersama probe Rehab (`MVP-8`).
+3. Tidak ada perubahan perilaku untuk kunjungan di luar unit Optik dan poli rehab, kecuali
+   penolakan addendum koreksi Optik (dicatat pada catatan rilis).
+4. Mundur: nonaktifkan `RJ-OPT`/`RJ-REHAB` lewat layar (perilaku kembali ke profil `RJ`), lalu
+   kode dikembalikan; migration mundur mengikuti A5.7.
+
+## A5.12 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Jenis unit layanan baru "Rehabilitasi Medik" | Ditolak `RM-DEC-085`: menyentuh Master Data, Registrasi, antrean, jadwal, tagihan |
+| Profil kondisi "kunjungan memuat dokumen rehab" | Profil kondisi bersifat menambah; akan mengubah arti kondisi untuk seluruh sistem |
+| Probe Optik | `RM-DEC-082`: Optik tidak pernah membuat `Menunggu hasil`, dan profil `RJ-OPT` tanpa butir |
+| Butir dokumen wajib Optik (refraksi/resep) | `RM-DEC-080`: penegakan resep milik aturan pesanan Optik |
+| Penilaian Ringkasan Akhir Rehab per episode | `RM-DEC-081`: episode melintasi kunjungan; penilaian tetap per kunjungan |
+| Tabel salinan poli atau jenis poli di rekam medis | Pemilik jenis poli adalah Master Data; profil cukup menyimpan nilai enum |
+| Label "rujukan dari kunjungan X" di linimasa | `RM-DEC-083` |

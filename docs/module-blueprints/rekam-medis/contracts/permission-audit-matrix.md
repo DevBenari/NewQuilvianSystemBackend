@@ -230,3 +230,31 @@ kebijakan per departemen-posisi (`CONFIGURABLE_DEFAULT`, `RM-RCG-001`).
 Daftar kerja menampilkan nama pasien dan nama penulis, sehingga **izin
 `MedicalRecordCompleteness : Read` tidak boleh disamakan dengan `MedicalRecord : Read`** —
 pemegangnya ditetapkan tersendiri.
+
+
+---
+
+# Amandemen — Permission dan audit `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved`, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| Input | Decision log revision `15` |
+
+**Tidak ada izin baru.** Seluruh perubahan memakai izin yang sudah ada:
+
+| Kebutuhan | Izin | Keterangan |
+|---|---|---|
+| Membaca dokumen Optik dan Rehab di berkas | `MedicalRecord : Read` + pemeriksaan keperluan akses | `RM-DEC-040`; izin modul Optik/Rehab **tidak** diperiksa |
+| Mengelola profil berpoli | `MedicalRecordCompletenessProfile : Create` / `Update` | Tidak berubah |
+| Addendum pengesahan dokumen Optik/Rehab | `ClinicalNoteAddendum : Create` / `CreateAsSubstitute` | Tidak berubah |
+
+## Audit
+
+| Kejadian | Dicatat | Isi minimum |
+|---|---|---|
+| Profil berpoli dibuat/diubah/dinonaktifkan | Ya, jalur audit profil yang sudah ada | Kode profil, kunci sebelum-sesudah termasuk jenis poli, pelaku, waktu |
+| Addendum koreksi Optik ditolak `VAL-RM-B01` | **Tidak** | Konsisten dengan penolakan addendum lain; tidak ada yang ditulis |
+| Pembukaan berkas yang memuat dokumen Optik/Rehab | Satu baris jejak akses (`RM-DEC-034`) | Tidak berubah |
+
+`LoggerService.AuditAsync` mengabaikan objek `data`; isi audit wajib ditulis di teks pesan.

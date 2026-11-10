@@ -1,7 +1,143 @@
 # Catatan Rilis — Modul Rekam Medis
 
-> Berkas ini memuat dua rilis. **Rilis amandemen `0.2.0`** ada di atas; **rilis pertama `0.1.x`**
-> tetap utuh di bawahnya karena perilakunya masih berlaku.
+> Berkas ini memuat tiga rilis, terbaru di atas: **rilis amandemen `0.3.0`**, **rilis amandemen
+> `0.2.0`**, dan **rilis pertama `0.1.x`**. Rilis lama tetap utuh karena perilakunya masih berlaku.
+
+# Rilis amandemen `0.3.0` — Optik dan Rehab Medik
+
+| Field | Isi |
+|---|---|
+| Tanggal disusun | 10 November 2026 |
+| Disusun pada task | `BE-46` |
+| Kontrak | API, state, validation, integration, permission/audit **`0.3.0`** — disahkan 10 November 2026 (`RM-DEC-088`) |
+| Task yang dirilis | `BE-42`, `BE-43`, `BE-44`, `BE-45` — seluruhnya `SELESAI`; laporan per task di `task/report/backend/` |
+| Status catatan ini | **Menunggu pengesahan** pemilik API (Yoga Aji Pratama) — lihat bagian B8 |
+| Dampak skema | **Aditif.** Satu migration `20261110043756_AddClinicTypeToMedicalRecordCompletenessProfile`: satu kolom boleh kosong, index unik profil diganti empat kolom, satu CHECK. **Nol** perubahan pada tabel modul lain |
+| Dampak perilaku | Kunjungan unit Optik dan poli Rehabilitasi Medik dinilai dengan profilnya sendiri. **Satu penolakan baru:** addendum koreksi pada dokumen Optik (B1) |
+| Prasyarat penerapan | Migration amandemen `0.2.0` (`20261028070658_…`) **wajib** sudah diterapkan lebih dulu. Per 10 November 2026 baru devYoga yang menerimanya |
+
+> **BACA BAGIAN B1 LEBIH DULU.** Ia satu-satunya perubahan yang dapat membuat permintaan yang
+> kemarin berhasil kini ditolak.
+
+## B1. Perubahan perilaku pada endpoint yang sudah berjalan
+
+### B1.1 Addendum koreksi pada dokumen Optik ditolak
+
+`POST .../clinical-note-addendums/by-document/{documentKind}/{documentId}` dan `.../as-substitute`
+
+| | |
+|---|---|
+| **Sebelumnya** | Addendum koreksi diterima untuk jenis dokumen apa pun, termasuk Pemeriksaan Refraksi (`45`) dan Resep Optik (`46`). Addendum itu tersimpan tetapi dokumen **tidak** bertanda "pernah diralat" |
+| **Sekarang** | `purpose` koreksi — atau `purpose` kosong, yang bermakna koreksi — untuk jenis `45`/`46` ditolak **`400`**: "Koreksi dokumen Optik dibuat sebagai revisi di layar Optik." Nol baris ditulis |
+| **Yang tidak berubah** | Addendum **pengesahan** (`purpose = 2`) atas dokumen Optik yang terkunci tanpa tanda tangan tetap diterima. Koreksi CPPT, asesmen, dan dokumen Rehab tidak berubah |
+| **Alasan** | `RM-DEC-079`, `RM-DEC-084`: dokumen Optik dikoreksi lewat versi baru di layar Optik, supaya hanya ada satu jalur koreksi |
+| **Yang harus dilakukan klien** | Baca `isCorrectionAllowed` dari `GET .../authority/{documentKind}/{documentId}`; bila `false`, jangan tampilkan tombol koreksi. Layar berkas rekam medis menyesuaikan pada `FE-16` |
+
+**Contoh.** Rina (RO) mencoba menambah koreksi pada refraksi Ibu Sari yang sudah ditandatangani
+lewat layar berkas rekam medis → `400` berisi arahan. Rina membuat revisi 2 di layar Optik; berkas
+menampilkan versi 2 bertanda "pernah diralat".
+
+### B1.2 Penanda "pernah diralat" dokumen Rehab tidak lagi menghitung pengesahan
+
+Linimasa dan rincian dokumen jenis `47`–`52`. Sebelumnya catatan rehab yang hanya **disahkan**
+(addendum pengesahan) bertanda "pernah diralat". Sekarang hanya addendum **koreksi** yang menandai
+(`DS-R5-04`). Bagian "Riwayat addendum" pada rincian tetap menyebut jumlah seluruh addendum.
+
+### B1.3 Penanda "pernah diralat" dokumen Optik ikut menghitung addendum koreksi lama
+
+Dokumen Optik versi 1 yang sempat diberi addendum koreksi sebelum B1.1 berlaku kini bertanda
+"pernah diralat" (`BE-44`). Sebelumnya hanya nomor versi di atas 1 yang menandai.
+
+## B2. Yang baru di kontrak
+
+### B2.1 Health Services / Medical Record Management / Medical Record — jenis dokumen
+
+Tidak ada endpoint baru. Delapan nilai `ClinicalDocumentKind` yang sudah tampil sejak modul Optik
+dan Rehab Medik dipasang kini tercatat di kontrak:
+
+| Nilai | Nama | Modul | Cara koreksi |
+|---:|---|---|---|
+| 45 | `OpticalRefraction` — Pemeriksaan Refraksi | Optik | Versi baru di layar Optik |
+| 46 | `OpticalPrescription` — Resep Optik | Optik | Versi baru di layar Optik |
+| 47–52 | `RehabAssessment`, `RehabProgram`, `RehabSession`, `RehabProgressReview`, `RehabDischargeSummary`, `RehabEducation` | Rehab Medik | Addendum |
+
+### B2.2 Health Services / Master Data / Medical Record Completeness Profile
+
+Base URL: `api/v1/health-services/master-data/medical-record-completeness-profiles`
+
+| Method | Path | Yang bertambah | Hak akses |
+|---|---|---|---|
+| `GET` | `/filters/metadata` | `clinicTypeOptions[]`; isian formulir `clinicType`; parameter query `clinicType` | `MedicalRecordCompletenessProfile : Read` |
+| `GET` | `/` | Query `clinicType`; baris memuat `clinicType`, `clinicTypeName` | `MedicalRecordCompletenessProfile : Read` |
+| `GET` | `/criteria/options` | Opsi `17` `RehabClinicalDocument` — "Dokumen Rehab Medik" | `MedicalRecordCompletenessProfile : Read` |
+| `GET` | `/{id}` | `clinicType`, `clinicTypeName` | `MedicalRecordCompletenessProfile : Read` |
+| `POST` | `/` | Request `clinicType` (opsional) | `MedicalRecordCompletenessProfile : Create` |
+| `PUT` | `/{id}` | Request `clinicType` (opsional) | `MedicalRecordCompletenessProfile : Update` |
+
+Kode status baru: `400` "Jenis poli hanya dapat dipakai pada profil tanpa kondisi." (`VAL-RM-B02`);
+`400` "Jenis poli tidak dikenal." (`VAL-RM-B03`); `409` "Profil untuk kombinasi ini sudah ada: {kode}."
+(`VAL-RM-B04`).
+
+**Perubahan bunyi pesan.** Kunci kembar sebelumnya berbunyi "Profil untuk jenis kunjungan dan unit
+ini sudah ada." Kode statusnya tetap `409`; klien yang mencocokkan bunyi pesan perlu menyesuaikan.
+
+### B2.3 Health Services / Medical Record Management / Clinical Note Addendum
+
+| Method | Path | Yang bertambah |
+|---|---|---|
+| `GET` | `/authority/{documentKind}/{documentId}` | `isCorrectionAllowed` (`boolean`, bawaan `true`) |
+
+## B3. Kelengkapan berkas
+
+Urutan pemilihan profil dasar kini empat langkah: **poli + unit → poli → unit → umum**
+(`RM-DEC-085`). Profil lama tidak berjenis poli, sehingga hasil penilaian kunjungan di luar unit
+Optik dan poli Rehabilitasi Medik **tidak berubah**.
+
+| Profil baru (seeder) | Berlaku untuk | Dokumen wajib |
+|---|---|---|
+| `RJ-OPT` | Rawat Jalan di unit berjenis Optik | Tidak ada (`RM-DEC-080`) — lengkap bila seluruh dokumen Optik ditandatangani |
+| `RJ-REHAB` | Rawat Jalan di poli berjenis Rehabilitasi Medik | Satu asesmen, sesi terapi, reasesmen, atau ringkasan akhir Rehab yang final (`RM-DEC-081`, `086`) |
+
+Optik dan Rehab Medik **tidak** pernah membuat berkas `Menunggu hasil`: kacamata yang belum
+diserahkan bukan hasil klinis, dan sesi berikutnya terjadi di kunjungan lain (`RM-DEC-082`).
+
+## B4. Hak akses
+
+**Tidak ada izin baru.** Seluruh perubahan memakai izin yang sudah ada.
+
+## B5. Yang WAJIB disiapkan sebelum rilis dipakai
+
+| No | Persiapan | Pemilik |
+|---:|---|---|
+| 1 | Terapkan migration `20261110043756_AddClinicTypeToMedicalRecordCompletenessProfile` sesudah migration amandemen `0.2.0` | User, dengan instruksi terpisah |
+| 2 | Pastikan poli Rehabilitasi Medik ada di master poli dengan jenis **Rehabilitasi** (`ClinicType = 6`). Tanpa itu `RJ-REHAB` tidak pernah terpilih | Admin data |
+| 3 | Bila kunjungan Optik/Rehab yang sudah dinilai perlu dinilai ulang seketika, sentuh profil `RJ-OPT`/`RJ-REHAB` lewat layar master (simpan ulang). Tanpa itu penilaian ulang menyusul paling lambat 24 jam | Unit rekam medis |
+
+## B6. Yang TIDAK berubah
+
+- Profil dokumen wajib lama, kriteria 1–16, dan hasil penilaian kunjungan di luar unit Optik dan
+  poli Rehabilitasi Medik.
+- Aturan addendum untuk CPPT, asesmen, dan dokumen Rehab.
+- Seluruh endpoint linimasa, kelengkapan, dan jejak akses — bentuknya hanya bertambah.
+
+## B7. Keterangan di Swagger
+
+Keterangan rilis ini diletakkan pada **schema**, mengikuti A8: `clinicType` pada request dan respons
+profil, `clinicTypeOptions` pada metadata, dan `isCorrectionAllowed` pada respons kewenangan addendum.
+Tidak ada `<summary>` baru pada action controller. Keterangan itu dibuktikan terbit lewat uji
+`ReleaseContractTests`.
+
+## B8. Status persetujuan
+
+**Catatan rilis amandemen `0.3.0` belum disahkan.** Kontraknya sudah (`RM-DEC-088`); yang belum adalah
+pernyataan bahwa B1 dan B5 diterima untuk diumumkan kepada pemakai.
+
+| Peran | Nama | Tanggal setuju |
+|---|---|---|
+| Pemilik API | Yoga Aji Pratama | — |
+| Pemilik frontend | Yoga Aji Pratama | — |
+
+---
 
 # Rilis amandemen `0.2.0` — berkas lintas modul dan kelengkapan berkas
 

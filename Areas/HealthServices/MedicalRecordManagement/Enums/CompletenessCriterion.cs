@@ -39,6 +39,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enu
         AnesthesiaRecord = 13,
         SurgicalSafetyChecklist = 14,
         HemodialysisSessionSigned = 15,
-        TransfusionMonitoring = 16
+        TransfusionMonitoring = 16,
+
+        /// <summary>
+        /// Minimal satu dokumen Rehab Medik final pada kunjungan itu: asesmen, sesi terapi, reasesmen, atau
+        /// ringkasan akhir (`RM-DEC-081`, `RM-DEC-086`, `BE-45`). Dijawab probe Rehab. Program terapi dan
+        /// edukasi/persetujuan tidak memenuhi butir ini.
+        /// </summary>
+        RehabClinicalDocument = 17
     }
 }

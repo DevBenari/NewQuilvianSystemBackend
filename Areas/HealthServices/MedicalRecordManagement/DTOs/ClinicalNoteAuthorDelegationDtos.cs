@@ -78,5 +78,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
 
         /// <summary>Penjelasan yang dapat dibaca pengguna, baik saat berhak maupun tidak.</summary>
         public string Explanation { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Apakah addendum KOREKSI boleh dibuat pada jenis dokumen ini (`RM-DEC-084`, kontrak 0.3.0
+        /// B3). `false` untuk Pemeriksaan Refraksi dan Resep Optik, yang dikoreksi lewat versi baru di
+        /// layar Optik; addendum pengesahan tetap mengikuti `isAllowed`. Bawaan `true`, sehingga
+        /// klien yang belum membaca field ini tetap berperilaku seperti sebelumnya.
+        /// </summary>
+        public bool IsCorrectionAllowed { get; set; } = true;
     }
 }

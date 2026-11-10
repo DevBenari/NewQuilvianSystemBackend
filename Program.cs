@@ -1034,7 +1034,10 @@ try
     builder.Services.AddScoped<RhbProgressReviewService>();
     builder.Services.AddScoped<RhbDischargeService>();
     // BE-RHB-015: pembaca dokumen final Rehab Medik (jenis 47-52) untuk berkas RM, persetujuan pemilik RM RHB-DEC-019 / RHB-OQ-012.
-    builder.Services.AddScoped<IMedicalRecordDocumentSource, RhbMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<RhbMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<RhbMedicalRecordDocumentSource>());
+    // RM BE-45: probe kelengkapan poli Rehabilitasi Medik (RM-DEC-087), persetujuan pemilik Rehab Medik RM-DEC-090.
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<RhbMedicalRecordDocumentSource>());
 
     // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
     // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).

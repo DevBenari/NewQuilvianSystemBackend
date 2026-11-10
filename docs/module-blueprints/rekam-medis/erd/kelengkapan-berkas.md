@@ -181,3 +181,71 @@ CREATE TABLE public."MstMedicalRecordCompletenessProfileItem" (
 ALTER TABLE public."MrcClinicalNoteAddendum"
     ADD COLUMN "AddendumPurpose" integer NOT NULL DEFAULT 1;
 ```
+
+
+---
+
+## Amandemen revision 5 — kunci jenis poli (`approved`, `RM-DEC-088`)
+
+`RM-DEC-085`. Profil mendapat kunci keempat. Jenis poli kunjungan dibaca dari poli kunjungan,
+tidak disalin.
+
+```mermaid
+erDiagram
+    MstMedicalRecordCompletenessProfile ||--o{ MstMedicalRecordCompletenessProfileItem : "memuat"
+    MstClinic ||..o{ RegPatientEncounter : "poli kunjungan (Existing, Master Data / Registrasi)"
+    MstMedicalRecordCompletenessProfile {
+        uuid Id PK
+        varchar Code UK "terfilter IsDelete=false"
+        int EncounterType "null hanya bila Condition<>0"
+        int ServiceUnitType "null = semua unit"
+        int ClinicType "BARU, null = semua poli; hanya bila Condition=0"
+        int Condition
+        bool IsActive
+    }
+    MstMedicalRecordCompletenessProfileItem {
+        uuid Id PK
+        uuid ProfileId FK
+        int Criterion "17 = RehabClinicalDocument (baru)"
+    }
+    MstClinic {
+        uuid Id PK
+        int ClinicType "Rehabilitation = 6"
+        uuid ServiceUnitId FK
+    }
+    RegPatientEncounter {
+        uuid Id PK
+        uuid ServiceUnitId FK
+        uuid ClinicId FK "boleh kosong"
+        int EncounterType
+    }
+```
+
+| Entity | Status | Owner |
+|---|---|---|
+| `MstMedicalRecordCompletenessProfile` | **Extend** | Rekam Medis |
+| `MstMedicalRecordCompletenessProfileItem` | Existing (nilai baru) | Rekam Medis |
+| `MstClinic`, `RegPatientEncounter` | Existing, dibaca | Master Data, Registrasi |
+
+Tidak ada relasi FK antara profil dan `MstClinic`: profil menyimpan **jenis** poli, bukan poli
+tertentu, sehingga satu profil berlaku untuk seluruh poli berjenis sama.
+
+| Index / constraint | Kolom | Sifat |
+|---|---|---|
+| `IX_MstMedicalRecordCompletenessProfile_EncounterType_ServiceUnitType_ClinicType_Condition` | 4 kolom | Unik, `NULLS NOT DISTINCT`, `WHERE "IsDelete" = false`; **menggantikan** index tiga kolom |
+| `CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi` | `Condition`, `ClinicType` | `"Condition" = 0 OR "ClinicType" IS NULL` |
+| `CK_MstMedicalRecordCompletenessProfile_EncounterTypeWajib` | — | Tidak berubah |
+
+```sql
+ALTER TABLE public."MstMedicalRecordCompletenessProfile" ADD "ClinicType" integer NULL;
+DROP INDEX public."IX_MstMedicalRecordCompletenessProfile_EncounterType_ServiceUnitType_Condition";
+CREATE UNIQUE INDEX "IX_MstMedicalRecordCompletenessProfile_EncounterType_ServiceUnitType_ClinicType_Condition"
+    ON public."MstMedicalRecordCompletenessProfile" ("EncounterType", "ServiceUnitType", "ClinicType", "Condition")
+    NULLS NOT DISTINCT WHERE "IsDelete" = false;
+ALTER TABLE public."MstMedicalRecordCompletenessProfile"
+    ADD CONSTRAINT "CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi"
+    CHECK ("Condition" = 0 OR "ClinicType" IS NULL);
+```
+
+Nama index lama di atas mengikuti konvensi EF; nama sebenarnya dibaca dari snapshot model saat
+migration dibuat.

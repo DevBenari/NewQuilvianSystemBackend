@@ -566,3 +566,104 @@ sudah disahkan (`VAL-RM-A01`, `VAL-RM-A02`).
 | Kelengkapan | `RM-DEC-045`, `046`, `050`, `051`, `053`–`056`, `060` | `RM-CAP-036`–`040` | `AT-RM-56`–`AT-RM-68` |
 | Profil dokumen wajib | `RM-DEC-045`, `047`, `060`, `061` | `RM-CAP-038` | `AT-RM-69`–`AT-RM-71` |
 | Addendum `purpose` | `RM-DEC-049` | `RM-CAP-039` | `AT-RM-72`–`AT-RM-74` |
+
+
+---
+
+# Amandemen — API `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved` |
+| Owner | Yoga Aji Pratama (API owner, `RM-DEC-028`) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| `input_revision` | Decision log revision `15`; capability map revision `4` |
+| Compatibility impact | **Aditif** pada bentuk; **satu perubahan perilaku**: addendum koreksi pada dokumen Optik ditolak `400`. Klien `0.2.0` tetap berjalan; klien yang mengabaikan `isCorrectionAllowed` menerima `400` saat mencoba koreksi Optik |
+| Penyegaran status | Kontrak ini sekaligus melebur penyegaran status `0.2.1` yang tertunda: seluruh endpoint A1–A4 di atas **sudah tersedia** sejak 2 November 2026 (`BE-21`–`BE-41`), meskipun kolom statusnya masih tertulis "Rencana" |
+| Traceability | `RM-DEC-078`–`087`; `RM-CAP-071`–`082` |
+
+## B1. Health Services / Medical Record Management / Medical Record — jenis dokumen
+
+Tidak ada endpoint baru. Nilai `ClinicalDocumentKind` berikut **sudah tersedia** di linimasa,
+saringan `documentKinds`, dan metadata `documentKindOptions` sejak modul Optik dan Rehab Medik
+dipasang (`RM-FACT-024`); kontrak ini mencatatnya.
+
+| Nilai | Nama | Label | Modul | Tunduk keutuhan | Cara koreksi |
+|---:|---|---|---|:---:|---|
+| 45 | `OpticalRefraction` | Pemeriksaan Refraksi | Optical | Ya | Versi baru di layar Optik (`RM-DEC-079`, `084`) |
+| 46 | `OpticalPrescription` | Resep Optik | Optical | Ya | Versi baru di layar Optik |
+| 47 | `RehabAssessment` | Asesmen Rehab Medik | Rehabilitation | Ya | Addendum |
+| 48 | `RehabProgram` | Program Terapi Rehab | Rehabilitation | Ya | Addendum |
+| 49 | `RehabSession` | Sesi Terapi Rehab | Rehabilitation | Ya | Addendum |
+| 50 | `RehabProgressReview` | Reasesmen Rehab | Rehabilitation | Ya | Addendum |
+| 51 | `RehabDischargeSummary` | Ringkasan Akhir Rehab | Rehabilitation | Ya | Addendum |
+| 52 | `RehabEducation` | Edukasi dan Persetujuan Rehab | Rehabilitation | Ya | Addendum |
+
+Perubahan perilaku pada `isCorrected` (respons linimasa): A5.9.4 `02-backend-architecture.md`.
+Status: **Rencana (belum tersedia)** untuk perhitungan addendum koreksi.
+
+## B2. Health Services / Master Data / Medical Record Completeness Profile — diperbarui
+
+Base URL: `api/v1/health-services/master-data/medical-record-completeness-profiles`
+
+| Method | Path | Perubahan | Hak akses (tidak berubah) | Status |
+|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Respons menambah `clinicTypeOptions[]` (`value`, `name`, `label`) | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Query menambah `clinicType` (opsional); setiap baris menambah `clinicType`, `clinicTypeName` | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/criteria/options` | Menambah opsi `17` `RehabClinicalDocument` — "Dokumen Rehab Medik final (asesmen, sesi, reasesmen, atau ringkasan akhir)" | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Respons menambah `clinicType`, `clinicTypeName` | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Request menambah `clinicType` (opsional) | `MedicalRecordCompletenessProfile : Create` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Request menambah `clinicType` (opsional) | `MedicalRecordCompletenessProfile : Update` | **Rencana (belum tersedia)** |
+
+Field baru:
+
+| Field | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+|---|---|:---:|---|---|:---:|
+| `clinicType` (request) | `integer` (`ClinicType`) | Tidak | `null` = semua poli | Nilai enum terdefinisi (`VAL-RM-B03`); hanya bila `condition = 0` (`VAL-RM-B02`) | Tidak |
+| `clinicTypeName` (response) | `string` | — | "Semua poli" bila kosong | — | Tidak |
+
+Contoh request membuat profil poli rehab:
+
+```json
+{
+  "code": "RJ-REHAB",
+  "name": "Rawat Jalan Poli Rehabilitasi Medik",
+  "encounterType": 1,
+  "serviceUnitType": null,
+  "clinicType": 6,
+  "condition": 0,
+  "items": [ { "criterion": 17 } ]
+}
+```
+
+Kode status baru: `400` `VAL-RM-B02`, `VAL-RM-B03`; `409` `VAL-RM-B04` (kunci empat kolom kembar,
+menggantikan bunyi `VAL-RM-A05`).
+
+## B3. Health Services / Medical Record Management / Clinical Note Addendum — diperbarui
+
+Base URL: `api/v1/health-services/medical-record-management/clinical-note-addendums`
+
+| Method | Path | Perubahan | Hak akses (tidak berubah) | Status |
+|---|---|---|---|---|
+| `GET` | `/authority/{documentKind}/{documentId}` | Respons menambah `isCorrectionAllowed` (`boolean`). `false` untuk jenis 45 dan 46; `explanation` mengarahkan ke layar Optik | `ClinicalNoteAddendum : Read` | **Rencana (belum tersedia)** |
+| `POST` | `/by-document/{documentKind}/{documentId}` | `purpose = Correction` (atau kosong) untuk jenis 45/46 → `400` `VAL-RM-B01`. `Attestation` tidak berubah | `ClinicalNoteAddendum : Create` | **Rencana (belum tersedia)** |
+| `POST` | `/by-document/{documentKind}/{documentId}/as-substitute` | Sama | `ClinicalNoteAddendum : CreateAsSubstitute` | **Rencana (belum tersedia)** |
+
+Contoh respons `400`:
+
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Koreksi dokumen Optik dibuat sebagai revisi di layar Optik.",
+  "data": null
+}
+```
+
+## B4. Traceability `0.3.0`
+
+| Bagian | Keputusan | Kemampuan | Uji |
+|---|---|---|---|
+| B1 | `RM-DEC-079`, `084` | `RM-CAP-076`, `077`, `082` | `AT-RM-77`, `AT-RM-78` |
+| B2 | `RM-DEC-080`, `081`, `085`, `086` | `RM-CAP-071`, `073`, `074` | `AT-RM-75`, `76`, `79`–`83` |
+| B3 | `RM-DEC-084` | `RM-CAP-075`, `076` | `AT-RM-84`–`86` |

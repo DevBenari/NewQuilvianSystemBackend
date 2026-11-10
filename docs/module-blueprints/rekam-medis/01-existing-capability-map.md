@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RM-BP-001` |
-| Revision | `3` — **impact scan 28 Oktober 2026** untuk amandemen sambungan seluruh modul (bagian terakhir dokumen ini). Revision 2 di bawahnya dibiarkan utuh sebagai riwayat dan **basi** terhadap SHA terbaru |
+| Revision | **`4` — impact scan 10 November 2026** untuk amandemen Optik dan Rehab Medik (`RM-DEC-078`–`083`), SHA backend `c7686f07` / frontend `3397211dd`; bagian paling akhir dokumen ini. Sebelumnya `3` — impact scan 28 Oktober 2026 untuk amandemen sambungan seluruh modul. Revision 2 di bawahnya dibiarkan utuh sebagai riwayat dan **basi** terhadap SHA terbaru |
 | Mode | Revision 2: audit penuh. Revision 3: impact scan terbatas pada cakupan `RM-DEC-037`–`050` |
 | Revision 3 — SHA | Backend `363de34f` (branch `yoga`); frontend `f0a3b07b8` (branch `YogaV2`) |
 | Revision 3 — input keputusan | `00-interview-decisions.md` revision `7`, `sha256:59e46deb…`, seluruh `RM-DEC-037`–`050` `approved` |
@@ -665,3 +665,115 @@ Tandai bagian ini **stale** bila berkas berikut berubah:
 | `Areas/HealthServices/RadiologyManagement/Services/RadReportService.cs` | `RM-CAP-045`, `058` |
 | Model pada kelompok F dan G | Arti final, waktu final, dan penanda ralat |
 | `src/components/view/health-services/medical-record-management/medical-records/medical-record-scope-notices.jsx`, `medical-record-completeness-alert.jsx` | `RM-CAP-034`, `041` |
+
+
+---
+
+# Revision 4 — impact scan 10 November 2026 (amandemen Optik dan Rehab Medik)
+
+| Field | Value |
+|---|---|
+| Blueprint ID | `RM-BP-001` |
+| Revision peta | **`4`** — impact scan terbatas. Revision 1–3 di atas dibiarkan utuh sebagai riwayat |
+| Mode | Impact scan terbatas pada `RM-DEC-078` sampai `RM-DEC-083` dan open question 20–23 |
+| Backend | `NewQuilvianSystemBackend` / `c7686f079d8f2a0142da7e170b37bfe3bb362080` (branch `yoga`) |
+| Frontend | `QuilvianSystemFrontendDev` / `3397211dd079c4a19b0779a05c7bb920362ff986` (branch `YogaV2`) |
+| Input keputusan | `00-interview-decisions.md` revision `14`, `sha256:8cd874f1a2c3dde344cb16f7aebac7621fa295128c6f3f88fa8fbf24ab9a4b9c`; `RM-DEC-078`–`083` `approved` |
+| Kontrak yang berlaku | API `0.2.0` (`approved`, revision 4 blueprint). Belum memuat jenis dokumen 45–52 |
+| Sifat audit | **Read-only.** Tidak ada source aplikasi yang diubah |
+
+## Batas audit revision 4
+
+| No | Batas | Akibatnya |
+|---:|---|---|
+| 1 | Database tidak diperiksa | Tidak diketahui apakah poli Rehabilitasi Medik sudah ada di master, dan di unit layanan mana ia ditempatkan (`RM-CAP-073`) |
+| 2 | Runtime dan uji tidak dijalankan | Kesimpulan "siap dipakai" bertumpu pada pembacaan kode dan keberadaan berkas uji, bukan hasil uji |
+| 3 | Modul Optik dan Rehab hanya dibaca pada titik sentuhnya dengan Rekam Medis | Aturan internal keduanya tidak diaudit |
+
+## Journey yang ditelusuri
+
+**Kunjungan Optik.** `OptVisitService.RegisterAsync` membuat kunjungan `EncounterType.Outpatient`
+pada unit `ServiceUnitType.Optical` → `OptRefractionExamService` mendaftarkan revisi 1 sebagai
+dokumen keutuhan `Draft` saat pemeriksaan dimulai (baris 208), lalu menandatanganinya saat final
+→ setiap revisi dan setiap versi resep didaftarkan langsung bertanda tangan (`RegisterSignedAsync`)
+→ Billing memfinalisasi tagihan dan menutup kunjungan → `MedicalRecordCompletenessService` memilih
+profil menurut jenis kunjungan + jenis unit.
+
+**Kunjungan sesi Rehab.** Registrasi Rawat Jalan membuat kunjungan `Outpatient` ke poli
+`ClinicType.Rehabilitation` (unit layanan mengikuti poli) → `RhbSession` tertaut ke kunjungan hari
+itu → `RhbDocumentIntegrityGateway` mendaftarkan draf dan menandatangani lewat
+`ClinicalDocumentIntegrityService` → saat kunjungan ditutup, draf yang tersisa terkunci
+`LockedUnsigned` → penilaian kelengkapan memilih profil.
+
+## Capability register revision 4
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RM-CAP-071` | Profil tanpa dokumen wajib untuk unit Optik (`RM-DEC-080`) | Rekam Medis (master) | `BE/Areas/HealthServices/MasterData/Models/MstMedicalRecordCompletenessProfile.cs#summary@c7686f07` ("Profil TANPA butir sah"); `BE/.../Seeders/MedicalRecordCompletenessProfileSeeder.cs:48-49` (`RJ-LAB`, `RJ-RAD` berbutir kosong); `BE/.../Services/MedicalRecordCompletenessProfileService.cs:93-97`, `:546-560` (`Optical` diterima dan berlabel "Optik"); `BE/.../OpticalManagement/Services/OptVisitService.cs:75-84` | **Ready to reuse** | Hanya **data**: satu baris profil `Outpatient` + `Optical` tanpa butir. Bisa lewat `POST /api/v1/health-services/master-data/medical-record-completeness-profiles` atau satu baris seeder `RJ-OPT` untuk lingkungan baru | Rendah. Lihat `RM-CAP-078` soal penilaian ulang |
+| `RM-CAP-072` | Syarat 1 menangkap dokumen Optik/Rehab yang belum ditandatangani | Rekam Medis | `BE/.../MedicalRecordCompletenessService.cs#CatatanBelumDitandatanganiAsync:497-516@c7686f07` (tidak menyaring jenis); `OptRefractionExamService.cs:208`, `:465`; `OptPrescriptionService.cs:679` (resep langsung bertanda tangan, tidak pernah draf); `RhbDocumentIntegrityGateway.cs:69`, `:107` | **Ready to reuse** | — | Rendah |
+| `RM-CAP-073` | Mengenali poli Rehabilitasi Medik pada profil dokumen wajib (`RM-DEC-081`, open question 20) | Rekam Medis (kunci profil); Master Data (jenis unit/poli) | `MstMedicalRecordCompletenessProfile` hanya berkunci `EncounterType` + `ServiceUnitType` + `Condition`; `BE/.../MasterData/Enums/ServiceUnitType.cs` tanpa nilai rehabilitasi; `BE/.../MasterData/Enums/ClinicType.cs` `Rehabilitation = 6`; `RegPatientEncounter.ServiceUnitId`, `ClinicId`; `MstClinic.ServiceUnitId`; `MedicalRecordCompletenessService.PilihProfilDasar:408-413` | **Extend** | Kunci profil belum dapat membedakan poli rehab. Profil **kondisi** tidak cocok: ia berlaku **di atas** profil dasar, sehingga daftar Rawat Jalan biasa tetap dituntut (baris 286, 296). Pilihan desain pada closure question 2 | Sedang. Bergantung data poli rehab yang belum diperiksa (batas 1; rehab `C-07` `UNKNOWN`) |
+| `RM-CAP-074` | Butir "minimal satu dokumen rehab final" (`RM-DEC-081`) | Rekam Medis (butir); Rehab Medik (jawaban) | `BE/.../MedicalRecordManagement/Enums/CompletenessCriterion.cs` (16 nilai, tanpa rehab); `MedicalRecordCompletenessService.KriteriaGenerik:56-65` dan pemanggilan probe `:310-340` — butir di luar `KriteriaGenerik` **hanya** dapat dijawab `IMedicalRecordCompletenessProbe`; `RhbMedicalRecordDocumentSource.cs:29` (tanpa probe); `EncounterId` ada di `RhbAssessment`, `RhbSession`, `RhbProgressReview`, `RhbDischargeSummary`, `RhbEducationRecord`; `RhbProgram.AuthoredEncounterId` | **Extend** | Satu nilai `CompletenessCriterion` baru, dan pembaca Rehab memasang `IMedicalRecordCompletenessProbe` dengan `Criteria` = butir itu dan `ReportsPendingResults = false`. Lihat conflict `RM-CF-R4-02` | Sedang. Tanpa probe, butir itu tidak pernah terpenuhi dan setiap kunjungan poli rehab menjadi `Belum lengkap` |
+| `RM-CAP-075` | Penuntasan dokumen Optik/Rehab `LockedUnsigned` lewat addendum pengesahan (`RM-DEC-049`) | Rekam Medis | `BE/.../MedicalRecordManagement/Controllers/ClinicalNoteAddendumController.cs:180-207@c7686f07` (`by-document/{documentKind}/{documentId}` menerima jenis apa pun); `ClinicalNoteAddendumService.ResolveAuthorityAsync:56-110` | **Ready to reuse** | — | Rendah |
+| `RM-CAP-076` | Koreksi dokumen Optik **tidak** lewat addendum (`RM-DEC-079`) | Rekam Medis | Rute addendum yang sama menerima tujuan `Correction` untuk `OpticalRefraction`/`OpticalPrescription`; `OptMedicalRecordDocumentSource.cs:67`, `:86` menghitung "pernah diralat" dari nomor versi saja, **mengabaikan addendum**; frontend `medical-record-addendum-actions.jsx:92`, `:214-235` menggambar tombol koreksi menurut jawaban `/authority` saja | **Conflict** | Lihat `RM-CF-R4-01` | **Tinggi**. Addendum koreksi pada dokumen Optik tersimpan tetapi tidak membuat dokumen bertanda "pernah diralat" — koreksi klinis tidak terlihat pembaca berkas |
+| `RM-CAP-077` | Linimasa frontend menampilkan dan menyaring jenis 45–52 (open question 22) | Rekam Medis (frontend) | `FE/src/lib/hooks/health-services/medical-record-management/use-medical-record-timeline.js:228@3397211d` (daftar jenis dari metadata backend); `BE/.../MedicalRecordController.cs:96` (`SeluruhJenis` = seluruh nilai enum); `BE/.../MedicalRecordTimelineService.cs:2163-2170` (label); `FE/src/utils/.../medical-record-display-utils.js:304-308` (nama modul dari `sourceModule`) | **Ready to reuse** | Tidak ada daftar jenis yang ditulis tetap di frontend. Belum diuji di peramban untuk jenis 45–52 (batas 2) | Rendah |
+| `RM-CAP-078` | Penilaian ulang kunjungan lama sesudah profil baru dipasang (open question 23) | Rekam Medis | `BE/.../MedicalRecordCompletenessProfileService.cs#TandaiPenilaianUlangAsync:415-433@c7686f07` → `MedicalRecordCompletenessService.MarkIncompleteDueAsync:259`; putaran `RunRecheckRoundAsync:194-256`; seeder `MedicalRecordCompletenessProfileSeeder.cs:174-178` **tidak** memanggilnya | **Ready to reuse** | Profil yang dibuat lewat layar/API membuat semua penilaian belum lengkap jatuh tempo seketika. Profil yang masuk lewat seeder baru dinilai ulang pada jadwal `NextCheckAt` masing-masing (paling lambat 24 jam) | Rendah. Penilaian yang sudah `Complete` tidak dinilai ulang — tidak masalah, karena profil baru hanya **melonggarkan** |
+| `RM-CAP-079` | Optik dan Rehab tidak memicu `Menunggu hasil` (`RM-DEC-082`) | Rekam Medis | `OptMedicalRecordDocumentSource.cs:31` dan `RhbMedicalRecordDocumentSource.cs:29` tanpa probe | **Ready to reuse** | Bila `RM-CAP-074` memasang probe Rehab, `ReportsPendingResults` wajib `false` | Rendah |
+| `RM-CAP-080` | Rujukan internal tidak mengubah dokumen wajib (`RM-DEC-083`) | Registrasi | `RegPatientEncounter.ReferralSourceEncounterId`; tidak dirujuk satu pun berkas `MedicalRecordManagement` | **Ready to reuse** | — | Rendah |
+| `RM-CAP-081` | Uji otomatis pembaca Optik dan Rehab | Optik; Rehab Medik | `BE/Tests/QuilvianSystemBackend.OpticalTests/Be013MedicalRecordTests.cs@c7686f07`; tidak ada berkas uji yang merujuk `RhbMedicalRecordDocumentSource` di `Tests/` | **Missing** (Rehab) | Pembaca Rehab tanpa uji; pembaca Optik teruji di proyek Optik | Sedang. Probe baru (`RM-CAP-074`) akan menambah logika tanpa jaring uji |
+| `RM-CAP-082` | Kontrak blueprint memuat jenis 45–52, pembaca Optik/Rehab, dan butir baru | Rekam Medis (dokumen) | `contracts/api-contract.md` dan `contracts/integration-contract.md` revision 4 tidak menyebut Optik maupun Rehab | **Repair** | Penyegaran kontrak pada pass desain berikutnya | Sedang. Konsumen kontrak tidak tahu ada delapan jenis baru |
+
+## Conflict dan Unknown revision 4
+
+### Conflict
+
+| ID | Conflict | Sumber yang bertentangan | Pemilik keputusan |
+|---|---|---|---|
+| `RM-CF-R4-01` | Dokumen Optik dapat menerima **addendum koreksi**, padahal `RM-DEC-079` menetapkan koreksinya lewat versi baru. Addendum itu juga tidak tampil sebagai "pernah diralat" karena pembaca Optik hanya melihat nomor versi | `RM-DEC-079` ↔ `ClinicalNoteAddendumController` + `OptMedicalRecordDocumentSource.cs:67`, `:86` + tombol koreksi frontend | Clinical governance owner — closure question 1 |
+| `RM-CF-R4-02` | `RM-DEC-082` menyatakan pembaca Rehab "tidak perlu" memasang `IMedicalRecordCompletenessProbe`, sedangkan `RM-DEC-081` hanya dapat dijawab lewat probe | `RM-DEC-081` ↔ `RM-DEC-082`; `MedicalRecordCompletenessService.cs:56-65`, `:310-340` | **Bukan conflict bisnis.** Maksud `RM-DEC-082` (tidak ada "menunggu hasil") tetap. Yang perlu diluruskan hanya kalimat akibat teknisnya: probe Rehab dipasang untuk butir saja, `ReportsPendingResults = false`. Closure question 4 |
+
+### Unknown
+
+| ID | Unknown | Cara menutup |
+|---|---|---|
+| `RM-UN-R4-01` | Poli Rehabilitasi Medik sudah ada di master atau belum, dan berada di unit layanan apa (rehab `C-07`) | Kueri baca-saja ke devYoga/dev, atau ditanyakan ke admin data |
+| `RM-UN-R4-02` | Perilaku tampilan jenis 45–52 di layar linimasa nyata | Uji antarmuka sesudah ada data Optik/Rehab final di devYoga |
+
+## Jawaban open question 20–23
+
+| No | Jawaban | Status |
+|---:|---|---|
+| 20 | Kunci profil hari ini **tidak bisa** mengenali poli rehab (`RM-CAP-073`). Profil kondisi juga tidak cocok karena tidak menggantikan daftar Rawat Jalan biasa | Diteruskan ke closure question 2 |
+| 21 | **Ya**, profil tanpa butir sah dan sudah dipakai `RJ-LAB`/`RJ-RAD` (`RM-CAP-071`) | **Tertutup** |
+| 22 | **Ya**, linimasa mengambil daftar jenis dan label dari backend; tidak ada daftar yang ditulis tetap di frontend (`RM-CAP-077`) | **Tertutup** untuk kode; tampilan nyata `RM-UN-R4-02` |
+| 23 | **Ya**, bila profil dibuat lewat layar/API: semua penilaian belum lengkap jatuh tempo seketika. Lewat seeder: menunggu jadwal, paling lambat 24 jam (`RM-CAP-078`) | **Tertutup** |
+
+## Yang paling penting dari impact scan ini
+
+1. **Optik tinggal data.** Satu baris profil menyelesaikan `RM-DEC-080` tanpa kode, dan penilaian
+   ulang kunjungan lama berjalan sendiri bila profil dibuat lewat layar.
+2. **Rehab butuh kode di dua tempat**: kunci profil yang dapat mengenali poli rehab, dan probe
+   di pembaca Rehab untuk butir baru. Tanpa probe, aturan `RM-DEC-081` justru membuat setiap
+   kunjungan poli rehab `Belum lengkap`, lebih buruk dari keadaan sekarang.
+3. **Satu conflict keselamatan**: addendum koreksi pada dokumen Optik diterima tetapi tidak
+   terlihat sebagai "pernah diralat". Ini sudah berlaku hari ini, bukan risiko masa depan.
+
+## Closure questions revision 4
+
+| No | Pertanyaan | Dasar |
+|---:|---|---|
+| 1 | Addendum koreksi pada dokumen Optik: ditolak (pengesahan tetap boleh), diizinkan dan ditampilkan, atau dibiarkan seperti sekarang? | `RM-CF-R4-01`, `RM-CAP-076` |
+| 2 | Cara mengenali poli rehab: jenis unit layanan baru (pola Hemodialisa/Optik, perlu persetujuan Master Data dan penataan unit poli rehab), atau kunci profil ditambah jenis poli (`ClinicType`) milik Rekam Medis sendiri? | `RM-CAP-073`, open question 20 |
+| 3 | Dokumen rehab mana yang memenuhi butir `RM-DEC-081`: hanya sesi dan asesmen Sp.KFR (bunyi keputusan), atau keenam dokumen rehab final (reasesmen, edukasi, ringkasan akhir, program juga)? | `RM-CAP-074` |
+| 4 | Konfirmasi pelurusan akibat teknis `RM-DEC-082`: probe Rehab dipasang untuk butir saja, tanpa melaporkan hasil tertunda | `RM-CF-R4-02` |
+
+## Impact scan trigger revision 4
+
+| Berkas | Temuan |
+|---|---|
+| `Areas/HealthServices/MasterData/Models/MstMedicalRecordCompletenessProfile.cs`, `Services/MedicalRecordCompletenessProfileService.cs`, `Seeders/MedicalRecordCompletenessProfileSeeder.cs` | `RM-CAP-071`, `073`, `078` |
+| `Areas/HealthServices/MasterData/Enums/ServiceUnitType.cs`, `ClinicType.cs` | `RM-CAP-071`, `073` |
+| `Areas/HealthServices/MedicalRecordManagement/Enums/CompletenessCriterion.cs`, `Services/MedicalRecordCompletenessService.cs` | `RM-CAP-072`, `073`, `074` |
+| `Areas/HealthServices/MedicalRecordManagement/Controllers/ClinicalNoteAddendumController.cs`, `Services/ClinicalNoteAddendumService.cs` | `RM-CAP-075`, `076` |
+| `Areas/HealthServices/OpticalManagement/Services/OptMedicalRecordDocumentSource.cs`, `OptRefractionExamService.cs`, `OptPrescriptionService.cs`, `OptVisitService.cs` | `RM-CAP-071`, `072`, `076` |
+| `Areas/HealthServices/RehabilitationManagement/Services/RhbMedicalRecordDocumentSource.cs`, `RhbDocumentIntegrityGateway.cs`; model `Rhb*` yang memuat `EncounterId` | `RM-CAP-072`, `074`, `081` |
+| `src/components/view/health-services/medical-record-management/medical-records/medical-record-addendum-actions.jsx`, `src/lib/hooks/health-services/medical-record-management/use-medical-record-timeline.js` | `RM-CAP-076`, `077` |

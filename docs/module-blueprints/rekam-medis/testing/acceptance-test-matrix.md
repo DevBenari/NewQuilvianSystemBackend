@@ -241,3 +241,55 @@ Kolom "AC" menunjuk acceptance criteria pada `00-interview-decisions.md`. Jalur 
 | `AT-RM-72` | AC-37, `RM-DEC-049` | Penulis mengesahkan catatan `LockedUnsigned` | Integrasi | Addendum `Attestation` tersimpan; status tetap `LockedUnsigned`; rincian "tidak ditandatangani" hilang |
 | `AT-RM-73` | `VAL-RM-A01`, `A02` **(gagal)** | Pengesahan atas catatan `Signed`; pengesahan kedua | API | `409` dua-duanya |
 | `AT-RM-74` | `VAL-RM-A03` **(gagal)** | Pengguna lain tanpa jalur pengganti mencoba mengesahkan | API | `403` |
+
+
+---
+
+# Amandemen revision 5 — Uji penerimaan `AT-RM-75` sampai `AT-RM-92` (`approved`)
+
+Disahkan Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`).
+
+Kolom "AC" menunjuk acceptance criteria revision 14/15 pada `00-interview-decisions.md`. Jalur
+gagal diberi tanda **(gagal)**.
+
+## Profil dan penilaian Optik
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-75` | `RM-AC-R14-01`, `RM-DEC-080` | Kunjungan unit Optik, beli frame saja, tutup klinis | Integrasi (harness) | Profil `RJ-OPT`; keadaan `Complete`; tidak ada kekurangan asesmen/diagnosis/CPPT |
+| `AT-RM-76` | `RM-AC-R14-02` **(gagal)** | Refraksi masih draf saat tutup klinis | Integrasi | `Incomplete`; kekurangan `UnsignedDocument` jenis `OpticalRefraction` |
+| `AT-RM-77` | `RM-AC-R14-03` | Resep direvisi ke versi 2 | Integrasi | Linimasa versi 2, `isCorrected = true`; mengubah versi 1 ditolak `EnsureMutableAsync` |
+| `AT-RM-78` | `RM-AC-R15-03` | Dokumen Optik versi 1 dengan addendum `Correction` lama | Unit pembaca Optik | `isCorrected = true` |
+| `AT-RM-79` | `RM-AC-R14-07` | Kacamata `IN_WORK` sesudah tutup klinis, dokumen bertanda tangan | Integrasi | Keadaan bukan `AwaitingResult` |
+| `AT-RM-80` | `RM-AC-R14-08` | Kunjungan Optik ber-`ReferralSourceEncounterId` | Integrasi | Kekurangan kunjungan asal dan tujuan tidak bertambah |
+
+## Profil berpoli dan Rehab
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-81` | `RM-AC-R15-04`, A5.9.1 | Empat urutan pemilihan profil | Unit | Profil terpilih sesuai urutan |
+| `AT-RM-82` | `RM-AC-R15-05`, `RM-AC-R14-09` | Kunjungan poli umum sesudah migration | Integrasi | Profil `RJ`; hasil sama dengan sebelum migration |
+| `AT-RM-83` | `RM-AC-R14-05`, `RM-AC-R15-06` | Kunjungan poli rehab dengan (a) sesi final, (b) reasesmen saja, (c) ringkasan akhir saja | Integrasi | Ketiganya `Complete` tanpa CPPT/diagnosis |
+| `AT-RM-84` | `RM-AC-R14-06`, `RM-AC-R15-07` **(gagal)** | Kunjungan poli rehab (a) tanpa dokumen, (b) edukasi saja, (c) program saja, (d) sesi draf | Integrasi | `Incomplete`, rincian butir `RehabClinicalDocument`; (d) juga `UnsignedDocument` |
+| `AT-RM-85` | `RM-AC-R15-08` | Probe Rehab pada kunjungan dengan sesi berikutnya terjadwal | Unit probe | `PendingResults` kosong |
+| `AT-RM-86` | `RM-AC-R15-09` **(gagal)** | Probe Rehab dibuat galat/lewat batas waktu | Integrasi | `Undetermined`; kekurangan `SourceUnavailable` |
+| `AT-RM-87` | `RM-AC-R14-04` | Catatan sesi rehab bertanda tangan diubah, lalu dikoreksi lewat addendum | Integrasi | Ubah ditolak; addendum diterima; `isCorrected = true` |
+| `AT-RM-88` | `DS-R5-04` | Catatan rehab `LockedUnsigned` hanya disahkan | Unit pembaca Rehab | `isCorrected = false` |
+
+## Master dan addendum
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-89` | `VAL-RM-B02`, `B03` **(gagal)** | Profil berkondisi `Surgery` dengan `clinicType`; `clinicType = 999` | Integrasi controller | `400` dengan pesan kontrak |
+| `AT-RM-90` | `VAL-RM-B04` **(gagal)** | Profil kedua dengan kunci empat kolom yang sama | Integrasi; **wajib** `TegakkanKunciUnikAsync` | `409` |
+| `AT-RM-91` | `RM-AC-R15-01` **(gagal)** | Addendum `Correction` pada refraksi `Signed` dan `LockedUnsigned`; `GET /authority` | Integrasi controller | `400` `VAL-RM-B01`; `isCorrectionAllowed = false` |
+| `AT-RM-92` | `RM-AC-R15-02` | Addendum `Attestation` pada refraksi `LockedUnsigned` oleh penulis | Integrasi | `201`; kekurangan tuntas pada penilaian berikutnya |
+
+## Uji antarmuka (UAT)
+
+| ID | Skenario | Bukti |
+|---|---|---|
+| `UAT-20` | Berkas pasien berisi dokumen Optik dan Rehab final | Delapan jenis tampil berlabel benar; saringan jenis bekerja (`RM-UN-R4-02`) |
+| `UAT-21` | Dokumen Optik bertanda tangan dibuka | Tidak ada tombol koreksi; keterangan arahan ke layar Optik (`RM-FE-030`) |
+| `UAT-22` | Profil `RJ-REHAB` dibuat lewat layar; pilih kondisi "Operasi" | Jenis poli terkunci kosong (`RM-FE-032`) |
+| `UAT-23` | Kunjungan poli rehab dengan satu sesi final di daftar kerja | Tidak muncul sebagai belum lengkap. **Prasyarat:** poli rehab ada di master (`RM-UN-R4-01`) |
