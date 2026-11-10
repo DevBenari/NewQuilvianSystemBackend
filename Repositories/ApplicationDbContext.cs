@@ -4,7 +4,9 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Models;
@@ -689,6 +691,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
         public DbSet<MstCompanyGuarantorReimbursementRoute> MstCompanyGuarantorReimbursementRoutes { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
+        public DbSet<PatEmployeeBenefitCardSync> PatEmployeeBenefitCardSyncs { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
@@ -774,10 +777,13 @@ namespace QuilvianSystemBackend.Repositories
         // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
         public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
         public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
+        // Penghubung bukti potong gaji ke baris angsuran (berkas tetap di FinTransactionProof). Migration AddInstallmentDeductionEvidence.
+        public DbSet<FinReceivableInstallmentDeductionEvidence> FinReceivableInstallmentDeductionEvidences { get; set; }
         // BE-FIN-117, FIN-DES-106, FIN-DEC-220: batch hasil potongan gaji manual per periode.
         public DbSet<FinPayrollDeductionBatch> FinPayrollDeductionBatches { get; set; }
         public DbSet<FinPayrollDeductionBatchItem> FinPayrollDeductionBatchItems { get; set; }
-        // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
+        // LEGACY READ-ONLY (BE-FIN-092, FIN-DES-102): Penutupan Benefit dihapus; tabel dipertahankan sebagai riwayat/audit dan agar
+        // snapshot migration konsisten. Tidak ada kode yang menulis ke dua DbSet ini.
         public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
         public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }
         // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration
@@ -1015,6 +1021,9 @@ namespace QuilvianSystemBackend.Repositories
         // rawat-jalan Amendment RP (BE-RJP-005) — Reservasi Pasien Prioritas.
         public DbSet<RegPriorityReservation> RegPriorityReservations { get; set; }
         public DbSet<RegPriorityReservationHistory> RegPriorityReservationHistories { get; set; }
+        // rawat-jalan Cetak Antrean Admisi v1.1 — tiket antrean admisi anonim dari kiosk.
+        public DbSet<RegAdmissionTicket> RegAdmissionTickets { get; set; }
+        public DbSet<RegAdmissionTicketHistory> RegAdmissionTicketHistories { get; set; }
         public DbSet<RegEncounterReferral> RegEncounterReferrals { get; set; }
         public DbSet<RegEncounterReferralDocument> RegEncounterReferralDocuments { get; set; }
         public DbSet<RegEncounterReferralRevision> RegEncounterReferralRevisions { get; set; }
@@ -1352,6 +1361,32 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<HmdSetting> HmdSettings { get; set; }
         #endregion HEMODIALYSIS MANAGEMENT
 
+        #region REHABILITATION MANAGEMENT
+        // RHB-BP-001, BE-RHB-001. 20 tabel Rhb* milik modul Rehab Medik (registry Rhb / ACTIVE,
+        // RHB-DEC-014). Pasien, kunjungan, tindakan bertarif, instrumen, serta keutuhan dokumen
+        // tetap milik modul pemiliknya; konfigurasi disiplin sengaja berprefix Rhb, bukan Mst.
+        public DbSet<RhbRequest> RhbRequests { get; set; }
+        public DbSet<RhbRequestDiscipline> RhbRequestDisciplines { get; set; }
+        public DbSet<RhbEpisode> RhbEpisodes { get; set; }
+        public DbSet<RhbEpisodeDiscipline> RhbEpisodeDisciplines { get; set; }
+        public DbSet<RhbAssessment> RhbAssessments { get; set; }
+        public DbSet<RhbMeasurement> RhbMeasurements { get; set; }
+        public DbSet<RhbGoal> RhbGoals { get; set; }
+        public DbSet<RhbProgram> RhbPrograms { get; set; }
+        public DbSet<RhbProgramIntervention> RhbProgramInterventions { get; set; }
+        public DbSet<RhbProgramGoal> RhbProgramGoals { get; set; }
+        public DbSet<RhbEducationRecord> RhbEducationRecords { get; set; }
+        public DbSet<RhbSession> RhbSessions { get; set; }
+        public DbSet<RhbSessionIntervention> RhbSessionInterventions { get; set; }
+        public DbSet<RhbProgressReview> RhbProgressReviews { get; set; }
+        public DbSet<RhbGoalReview> RhbGoalReviews { get; set; }
+        public DbSet<RhbDischargeSummary> RhbDischargeSummaries { get; set; }
+        public DbSet<RhbStatusHistory> RhbStatusHistories { get; set; }
+        public DbSet<RhbDiscipline> RhbDisciplines { get; set; }
+        public DbSet<RhbDisciplineProcedure> RhbDisciplineProcedures { get; set; }
+        public DbSet<RhbDisciplineInstrument> RhbDisciplineInstruments { get; set; }
+        #endregion REHABILITATION MANAGEMENT
+
         #region MEDICAL CHECKUP MANAGEMENT
         // MCU-BP-001, BE-MCU-002. 21 tabel Mcu* milik modul Medical Check-Up (registry Mcu / ACTIVE,
         // MCU-GOV-001). Katalog, jadwal, order, hasil, resume, dan penyerahan; kunjungan, tagihan,
@@ -1396,6 +1431,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
         public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
         #endregion NURSE VIEW MANAGEMENT
+
+        #region OPTICAL MANAGEMENT
+        // OPT-BP-001, BE-OPT-002. 12 tabel Opt* milik modul Optik (registry Opt / ACTIVE 2026-11-03).
+        // Pemeriksaan refraksi, resep, pesanan, keluhan garansi, profil barang, dan pengaturan; kunjungan,
+        // stok, tagihan, dan barang tetap milik Registrasi, Farmasi, Billing, dan Master Data.
+        public DbSet<OptRefractionExam> OptRefractionExams { get; set; }
+        public DbSet<OptRefractionExamRevision> OptRefractionExamRevisions { get; set; }
+        public DbSet<OptPrescription> OptPrescriptions { get; set; }
+        public DbSet<OptPrescriptionVersion> OptPrescriptionVersions { get; set; }
+        public DbSet<OptOrder> OptOrders { get; set; }
+        public DbSet<OptOrderItem> OptOrderItems { get; set; }
+        public DbSet<OptOrderCancellation> OptOrderCancellations { get; set; }
+        public DbSet<OptOrderStatusHistory> OptOrderStatusHistories { get; set; }
+        public DbSet<OptWarrantyClaim> OptWarrantyClaims { get; set; }
+        public DbSet<OptItemProfile> OptItemProfiles { get; set; }
+        public DbSet<OptSetting> OptSettings { get; set; }
+        public DbSet<OptSettingRevision> OptSettingRevisions { get; set; }
+        #endregion OPTICAL MANAGEMENT
 
         #endregion HEALTH SERVICE
 

@@ -33,6 +33,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.S
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
@@ -58,8 +60,12 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
@@ -414,6 +420,7 @@ try
     // untuk service lain — di luar cakupan BE-FIN-093.
     builder.Services.AddScoped<FinancePatientRefundService>();
     builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    builder.Services.AddScoped<FinanceInstallmentDeductionEvidenceService>();
     // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
     builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
         builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));
@@ -421,10 +428,23 @@ try
     // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
     builder.Services.AddScoped<FinanceSubledgerMovementService>();
     builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
-    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run HR.
+    // Modul Payroll mandiri (Areas/Corporate/PayrollManagement): parameter kebijakan terversi (NEEDS CONFIRMATION), pola Configure<T>
+    // sama dengan FinanceReceivablePayrollSyncOptions. Nilai bawaan = perilaku sebelum Payroll dipisah dari HRD.
+    builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
+    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
-    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya di HR.
+    builder.Services.AddScoped<PayrollCalculationService>();
+    builder.Services.AddScoped<PayrollRunService>();
+    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya.
     builder.Services.AddScoped<PayrollRestitutionService>();
+    // Layanan modul Payroll (PAY-BE-03..10).
+    builder.Services.AddScoped<PayrollHrdImportService>();
+    builder.Services.AddScoped<PayrollCompensationService>();
+    builder.Services.AddScoped<PayrollEmployeeDeductionService>();
+    builder.Services.AddScoped<PayrollPaymentService>();
+    builder.Services.AddScoped<PayrollPayslipService>();
+    builder.Services.AddScoped<PayrollMedicalFeeIntakeService>();
+    builder.Services.AddScoped<PayrollReportService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).
@@ -436,7 +456,8 @@ try
     // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
     builder.Services.AddScoped<FinanceReceivableMigrationService>();
     builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
-    builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    // Penutupan Benefit dihapus; jaring pengaman plafon Benefit RS untuk piutang historis (idempoten, dipakai saat membuat Invoice AR).
+    builder.Services.AddScoped<FinanceBenefitAllowanceConsumptionService>();
     builder.Services.AddScoped<FinanceBillingArReportService>();
     builder.Services.AddScoped<FinanceReceivableAgingReportService>();
     builder.Services.AddScoped<FinanceSettlementService>();
@@ -540,6 +561,17 @@ try
             $"{OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple}.")
         .ValidateOnStart();
 
+    // rawat-jalan Cetak Antrean Admisi v1.1 — tiket antrean admisi anonim dari kiosk, Daftar
+    // Antrean Admisi, dan display admisi. Nomor admisi dari NumberSeriesAllocator (QBE-CODE-006).
+    builder.Services.AddOptions<AdmissionQueueOptions>()
+        .Bind(builder.Configuration.GetSection(AdmissionQueueOptions.SectionName))
+        .Validate(
+            options => options.IsValid(),
+            $"{AdmissionQueueOptions.SectionName}: kode dan awalan kelompok aktif wajib unik, awalan 1-5 huruf, " +
+            "dan kode loket aktif wajib unik.")
+        .ValidateOnStart();
+    builder.Services.AddScoped<AdmissionTicketService>();
+
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
 
@@ -561,6 +593,7 @@ try
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<RegistrationEmployeeBenefitLookupService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.InternalBenefitCardService>();
     builder.Services.AddScoped<IPatientWorkforceIdentityResolver, PatientWorkforceIdentityResolver>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>();
@@ -666,6 +699,14 @@ try
     builder.Services.AddScoped<MedicalRecordAccessReviewService>();
     builder.Services.AddScoped<MedicalRecordTimelineService>();
 
+    // BE-39 / RM-DEC-045, 046. Penilaian kelengkapan berkas per kunjungan. Penutupan klinis hanya
+    // menaruh id kunjungan di antrean memori; worker menilainya di luar transaksi penutupan.
+    builder.Services.AddScoped<MedicalRecordCompletenessService>();
+    builder.Services.AddSingleton<MedicalRecordCompletenessQueue>();
+    builder.Services.AddHostedService<MedicalRecordCompletenessQueueWorker>();
+    // BE-40 / GAP-ARCH-RM-04. Pemeriksaan berkala kunjungan yang belum lengkap (A4.13).
+    builder.Services.AddHostedService<MedicalRecordCompletenessRecheckHostedService>();
+
     // Pembaca sumber berkas rekam medis (INT-RM-10). Satu instance per scope dipakai untuk kedua
     // kontraknya, supaya pembaca dokumen dan pembaca uji kelengkapan tidak berbeda pendapat.
     // BE-22: ringkasan pencatatan berkala ClinicalManagement, milik rekam medis sendiri.
@@ -683,6 +724,28 @@ try
     builder.Services.AddScoped<McuMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
+    // BE-30: Rawat Inap, persetujuan pemilik RM-DEC-069.
+    builder.Services.AddScoped<InpMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    // BE-35: Farmasi, persetujuan pemilik RM-DEC-075. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, PhmMedicalRecordDocumentSource>();
+    // BE-34: Bank Darah, persetujuan pemilik proses BDRS RM-DEC-074. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, BbkMedicalRecordDocumentSource>();
+    // BE-33: Gizi, persetujuan pemilik RM-DEC-073. Tanpa kriteria kelengkapan, jadi bukan pembaca uji.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, GziMedicalRecordDocumentSource>();
+    // BE-32: Hemodialisa, persetujuan pemilik RM-DEC-072.
+    builder.Services.AddScoped<HmdMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
+    // BE-31: Kamar Operasi, persetujuan pemilik RM-DEC-071.
+    builder.Services.AddScoped<OprMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<OprMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<OprMedicalRecordDocumentSource>());
+    // BE-29: IGD, persetujuan pemilik RM-DEC-067.
+    builder.Services.AddScoped<EmgMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<EmgMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<EmgMedicalRecordDocumentSource>());
 
     // Patient Management — rekonsiliasi MRN Pilot RSMMC (BE-PAT-MIG-001), sementara, khusus Staging
     builder.Services.AddSingleton(RsmmcPilotApprovedBatchProfile.Canonical);
@@ -883,10 +946,17 @@ try
     // untuk kode DRG-RSMMC yang atomik dan durabel.
     builder.Services.AddScoped<DrugRegistrationService>();
 
+    // Kode display antrian QDD-RSMMC dialokasikan service ini lewat NumberSeriesAllocator,
+    // bukan oleh QueueDisplayDeviceController (QBE-CODE-002/006).
+    builder.Services.AddScoped<QueueDisplayDeviceCodeService>();
+
     // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
+
+    // BE-37 / RM-DEC-045. Master profil dokumen wajib kelengkapan berkas rekam medis.
+    builder.Services.AddScoped<MedicalRecordCompletenessProfileService>();
 
     // BE-RWI-055 / FR-KEP-010. Master batas waktu pengkajian beserta pemilihan kebijakan
     // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
@@ -944,6 +1014,57 @@ try
     builder.Services.AddScoped<HmdResourceService>();
     builder.Services.AddScoped<HmdCompetencyGateService>();
 
+    // RHB-BP-001. Service modul Rehab Medik, tanpa interface mengikuti pola modul terdekat
+    // (Hemodialisa). Controller Rehab menyerahkan CRUD dan orkestrasinya ke sini dan tidak pernah
+    // menyentuh ApplicationDbContext langsung (QBE-SVC-001).
+    // BE-RHB-004: pintu tunggal dokumen klinis rehab ke mesin keutuhan Rekam Medis.
+    builder.Services.AddScoped<RhbDocumentIntegrityGateway>();
+    // BE-RHB-005: konfigurasi layanan rehab (disiplin, profesi, tindakan, instrumen).
+    builder.Services.AddScoped<RhbConfigurationService>();
+    // BE-RHB-006: pilihan form rehab dan kewenangan profesi per disiplin.
+    builder.Services.AddScoped<RhbLookupService>();
+    builder.Services.AddScoped<RhbProfessionAuthority>();
+    // BE-RHB-007: permintaan rehab, disposisi, dan pembukaan episode.
+    builder.Services.AddScoped<RhbEpisodeService>();
+    builder.Services.AddScoped<RhbRequestService>();
+    builder.Services.AddScoped<RhbAssessmentService>();
+    builder.Services.AddScoped<RhbEducationService>();
+    builder.Services.AddScoped<RhbGoalService>();
+    builder.Services.AddScoped<RhbProgramService>();
+    builder.Services.AddScoped<RhbSessionService>();
+    // BE-RHB-013: handoff billing sesi (TrxPatientProcedure + fakta charge), persetujuan RHB-OQ-015.
+    builder.Services.AddScoped<RhbBillingHandoffService>();
+    builder.Services.AddScoped<RhbMeasurementRules>();
+    builder.Services.AddScoped<RhbProgressReviewService>();
+    builder.Services.AddScoped<RhbDischargeService>();
+    // BE-RHB-015: pembaca dokumen final Rehab Medik (jenis 47-52) untuk berkas RM, persetujuan pemilik RM RHB-DEC-019 / RHB-OQ-012.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, RhbMedicalRecordDocumentSource>();
+
+    // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
+    // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).
+    builder.Services.AddScoped<OptNumberService>();
+    builder.Services.AddScoped<OptPractitionerLicenseReader>();
+    // BE-OPT-005. Data referensi Optik: metadata, katalog + stok depo Optik, profil barang, pengaturan.
+    builder.Services.AddScoped<OptReferenceDataService>();
+    // BE-OPT-010. Kunjungan Optik lewat EncounterIntakeService (Registrasi tetap pemilik kunjungan).
+    builder.Services.AddScoped<OptVisitService>();
+    builder.Services.AddScoped<OptPractitionerGuard>();
+    // BE-OPT-031: tarif pemeriksaan refraksi sekali saat final lewat ClinicalMilestoneFactProducer.
+    builder.Services.AddScoped<OptBillingGateway>();
+    builder.Services.AddScoped<OptRefractionExamService>();
+    builder.Services.AddScoped<OptPrescriptionService>();
+    // BE-OPT-033: potong/kembali stok pesanan Optik lewat DrugStockService (jenis dokumen OpticalOrder, OPT-DEC-054/060).
+    builder.Services.AddScoped<OptStockGateway>();
+    // BE-OPT-032: pesanan Optik (draf, tagihkan per barang, batal awal) dan pembaca status bayar dari Billing.
+    builder.Services.AddScoped<OptOrderPaymentGate>();
+    builder.Services.AddScoped<OptOrderService>();
+    // BE-OPT-050: keluhan garansi dan remake tanpa tagihan.
+    builder.Services.AddScoped<OptWarrantyClaimService>();
+    // BE-OPT-052: empat laporan Optik (baca-saja).
+    builder.Services.AddScoped<OptReportService>();
+    // BE-OPT-013: pembaca Rekam Medis Optik (pemeriksaan refraksi + resep), persetujuan pemilik OPT-APR-007. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, OptMedicalRecordDocumentSource>();
+
     // MCU-BP-001, BE-MCU-004. Nomor order MCU-RSMMC- dan nomor impor MCU-IMP- lewat
     // NumberSeriesAllocator (QBE-CODE-006), bukan MAX + 1 seperti Lab/Rad.
     builder.Services.AddScoped<McuOrderNumberService>();
@@ -959,6 +1080,10 @@ try
     builder.Services.AddScoped<McuDeliveryService>();
 
     builder.Services.AddScoped<NvwDisplayDeviceService>();
+    builder.Services.AddScoped<NvwVitalSignIntervalService>();
+    builder.Services.AddScoped<NvwDeviceContextService>();
+    builder.Services.AddScoped<NvwFloorBoardQueryService>();
+    builder.Services.AddScoped<NvwRealtimeService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1181,6 +1306,10 @@ try
     // Resolver pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap); dipakai Enrollment,
     // Eligibility, Registrasi, Billing, dan Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.WorkforceBenefitOwnerResolver>();
+    // BE-FIN-135 (FIN-INTEGRATION-1.11 V.2, FIN-DES-113): implementasi penuh sinkronisasi kartu penjamin pasien otomatis.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IEmployeeBenefitPatientCardSync>(sp =>
+        sp.GetRequiredService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>());
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
@@ -1188,7 +1317,6 @@ try
     // Laporan HR baca-saja "Piutang Benefit Pegawai" (AR Karyawan dari Billing); nilai finansial tetap milik Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitReceivableReportService>();
     // Persetujuan penutupan benefit RS internal oleh HRD.
-    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.HrdBenefitSettlementApprovalService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
@@ -1671,6 +1799,11 @@ try
         builder.Services.Configure<McuNoShowOptions>(
             builder.Configuration.GetSection(McuNoShowOptions.SectionName));
         builder.Services.AddHostedService<McuNoShowHostedService>();
+        // optik BE-OPT-062: tarif pemeriksaan yang belum tercatat dikirim ulang otomatis. Saklar
+        // OpticalManagement:ExamChargeRetry:Enabled, bawaan menyala.
+        builder.Services.Configure<OptExamChargeRetryOptions>(
+            builder.Configuration.GetSection(OptExamChargeRetryOptions.SectionName));
+        builder.Services.AddHostedService<OptExamChargeRetryHostedService>();
         // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
         builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
@@ -1715,6 +1848,20 @@ try
         builder.Services.Configure<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerOptions>(
             builder.Configuration.GetSection(QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerOptions.SectionName));
         builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerHostedService>();
+
+        // BE-FIN-136 (FIN-INTEGRATION-1.11 V.3, FIN-DES-113, FIN-DES-117, FIN-DES-125):
+        // Penjadwal rekonsiliasi sinkronisasi kartu penjamin internal pasien (Benefit Karyawan RS).
+        // Dibangun MATI secara bawaan: Enabled = false. Memerlukan ActivationCutoffUtc bila dinyalakan.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerOptions>(
+            builder.Configuration.GetSection("PatientManagement:EmployeeBenefitCardSyncScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerHostedService>();
+
+        // BE-FIN-137 (FIN-STATE-1.11 V.1, FIN-DEC-235, FIN-DES-111, FIN-OQ-127):
+        // Penjadwal aktivasi otomatis benefit pegawai berstatus Approved yang tanggal mulai berlakunya sudah tiba.
+        // Dibangun MATI secara bawaan: Enabled = false.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerOptions>(
+            builder.Configuration.GetSection("HumanResource:EmployeeBenefitActivationScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerHostedService>();
     }
 
     builder.Services.AddAuthorization(options =>
@@ -1801,6 +1948,16 @@ try
                     user.HasClaim(claim => claim.Type == "queue_display_code" && !string.IsNullOrWhiteSpace(claim.Value)) ||
                     user.HasClaim(claim => claim.Type == "display_code" && !string.IsNullOrWhiteSpace(claim.Value));
             });
+        });
+
+        options.AddPolicy(AuthorizationPolicies.NurseViewDisplayRead, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+                context.User.HasClaim(claim =>
+                    claim.Type == NvwDeviceContextService.DeviceIdClaim &&
+                    !string.IsNullOrWhiteSpace(claim.Value)));
         });
     });
 
@@ -2128,6 +2285,64 @@ try
             "Seeder master lokasi penyimpanan obat selesai. Ditambahkan {Inserted}, dilewati {Skipped}.",
             result.Inserted,
             result.Skipped);
+    }
+
+    static async Task SeedPharmacyOpeningStockAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("PharmacyOpeningStockSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder stok Farmasi Rawat Jalan membutuhkan akun SuperAdmin.");
+        }
+
+        var result = await PharmacyOpeningStockSeeder.SeedAsync(
+            dbContext,
+            environment.EnvironmentName,
+            systemUserId,
+            ct: cancellationToken);
+
+        if (result.RefusedReason is not null)
+        {
+            logger.LogWarning("[PharmacyOpeningStock] {Reason}", result.RefusedReason);
+            return;
+        }
+
+        if (result.UnknownDrugCodes.Count > 0 || result.ExpiryConflicts.Count > 0)
+        {
+            logger.LogWarning(
+                "[PharmacyOpeningStock] Dilewati: {Unknown} kode obat tidak dikenal, {Conflict} batch berbeda kedaluwarsa.",
+                result.UnknownDrugCodes.Count,
+                result.ExpiryConflicts.Count);
+        }
+
+        logger.LogInformation(
+            "Seeder stok Farmasi Rawat Jalan selesai. Saldo baru {Balances}, batch baru {Batches}, " +
+            "kartu stok {Mutations}, dilewati {Skipped}, tautan Rawat Jalan {Linked}.",
+            result.BalancesCreated,
+            result.BatchesCreated,
+            result.MutationsCreated,
+            result.Skipped,
+            result.LinkedServiceUnit);
     }
 
     static async Task SeedOperatingRoomDemoAsync(
@@ -2604,10 +2819,25 @@ try
         // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
         await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
 
+        // RHB-BP-001, BE-RHB-005. Konfigurasi awal Rehab Medik: empat disiplin (seluruhnya tidak aktif
+        // dan tanpa profesi sampai admin memetakan profesi HR) serta peta jenis instrumen asesmen.
+        // Idempoten — baris yang sudah ada atau sudah dihapus admin tidak diisi ulang.
+        await RunStartupSeederAsync("RehabilitationMasterDataSeeder", () => RehabilitationMasterDataSeeder.SeedAsync(app.Services));
+
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah
         // diubah admin tidak ditimpa.
         await RunStartupSeederAsync("McuReferenceDataSeeder", () => McuReferenceDataSeeder.SeedAsync(app.Services));
+
+        // OPT-BP-001, BE-OPT-001/004. Satu unit layanan Optik (ServiceUnitType.Optical, SU-OPT-001) dan satu
+        // OptSetting bawaan. Idempoten; nilai yang sudah diubah admin tidak disentuh. Bila migration
+        // AddOpticalManagement belum diterapkan, pengaturan dilewati dengan peringatan (startup tidak mati).
+        await RunStartupSeederAsync("OptReferenceDataSeeder", () => OptReferenceDataSeeder.SeedAsync(app.Services));
+
+        // RM-BP-001, BE-37. Sebelas profil dokumen wajib awal (A4.8) — bukan SOP rumah sakit
+        // (RM-DEC-047). Idempoten; profil yang sudah diubah petugas rekam medis tidak ditimpa.
+        await RunStartupSeederAsync("MedicalRecordCompletenessProfileSeeder",
+            () => MedicalRecordCompletenessProfileSeeder.SeedAsync(app.Services));
 
         // Gerbang integritas permission (Phase A0).
         //
@@ -2726,6 +2956,18 @@ try
         await RunStartupSeederAsync(
             "OnboardingRuntimeDevSeeder",
             () => OnboardingRuntimeDevSeeder.SeedAsync(app.Services));
+
+        // Sesudah DrugStorageLocationSeeder karena saldonya ditempatkan di GDG-023 (RJ-DOC-DEC-091).
+        var runPharmacyOpeningStockSeed =
+            builder.Configuration.GetValue<bool>(
+                "Seeders:RunPharmacyOpeningStockSeed");
+
+        if (runPharmacyOpeningStockSeed)
+        {
+            await RunStartupSeederAsync(
+                "PharmacyOpeningStockSeeder",
+                () => SeedPharmacyOpeningStockAsync(app.Services, app.Environment));
+        }
 
         // Seed Awal Saja
         // var icd10FolderPath = Path.Combine(

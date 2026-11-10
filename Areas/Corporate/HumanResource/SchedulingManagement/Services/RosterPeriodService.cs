@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using System.Text.Json;
@@ -337,10 +338,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
                 if (shift == null) continue;
 
-                var startDateTime = shiftItem.ShiftDate.ToDateTime(shift.StartTime);
-                var endDateTime = shift.IsOvernight || shift.EndTime < shift.StartTime
+                var startDateTime = AppDateTimeHelper.ToUtc(shiftItem.ShiftDate.ToDateTime(shift.StartTime));
+                var endDateTime = AppDateTimeHelper.ToUtc(shift.IsOvernight || shift.EndTime < shift.StartTime
                     ? shiftItem.ShiftDate.AddDays(1).ToDateTime(shift.EndTime)
-                    : shiftItem.ShiftDate.ToDateTime(shift.EndTime);
+                    : shiftItem.ShiftDate.ToDateTime(shift.EndTime));
 
                 var isNight = shiftItem.IsNightShift || shift.IsNightShift;
                 var isOnCall = shiftItem.IsOnCall || shift.IsOnCall;

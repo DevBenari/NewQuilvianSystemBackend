@@ -98,6 +98,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 _ => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message))
             };
 
+        // rawat-jalan Cetak Antrean Admisi v1.1: diambil per request dengan alasan yang sama.
+        private AdmissionTicketService AdmissionTicketService =>
+            HttpContext.RequestServices.GetRequiredService<AdmissionTicketService>();
+
         private NewbornEncounterPaymentInheritanceService NewbornPaymentInheritance =>
             HttpContext.RequestServices.GetRequiredService<NewbornEncounterPaymentInheritanceService>();
         private readonly IConfiguration? _configuration;
@@ -849,6 +853,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     "Reservasi prioritas tidak dapat dilengkapi dari kiosk."));
             }
 
+            // rawat-jalan Cetak Antrean Admisi v1.1 (bagian 8.3): registrasi dari tiket admisi hanya
+            // oleh petugas loket, dari tiket yang sedang Dilayani dan belum tertaut kunjungan.
+            if (request.AdmissionTicketId == Guid.Empty)
+                request.AdmissionTicketId = null;
+
+            if (request.AdmissionTicketId is { } admissionTicketId)
+            {
+                if (logScope.EndsWith("ForKiosk", StringComparison.Ordinal))
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Tiket antrean admisi tidak dapat dipakai dari kiosk."));
+                }
+
+                if (request.PriorityReservationId.HasValue)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Tiket antrean admisi dan reservasi prioritas tidak dapat dipakai bersamaan."));
+                }
+
+                var admissionTicketError = await AdmissionTicketService.ValidateForRegistrationAsync(
+                    admissionTicketId,
+                    HttpContext.RequestAborted);
+
+                if (admissionTicketError != null)
+                {
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        admissionTicketError));
+                }
+            }
+
             var now = DateTime.UtcNow;
             var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
 
@@ -1068,10 +1105,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
+            RegAdmissionTicket? linkedAdmissionTicket = null;
+
             try
             {
                 var encounterId = Guid.NewGuid();
                 RegPatientEncounterGuarantor? inheritedPaymentSource = null;
+
+                // rawat-jalan Cetak Antrean Admisi v1.1 (bagian 10 butir 2, 6): tiket dikunci dan
+                // ditautkan di transaksi ini. Tiket yang sudah tertaut (Simpan ganda, retry) melempar
+                // AdmissionTicketConflictException sehingga kunjungan dan antrean poli tidak terbentuk.
+                if (request.AdmissionTicketId is { } linkedTicketId)
+                {
+                    linkedAdmissionTicket = await AdmissionTicketService.LinkRegistrationInTransactionAsync(
+                        linkedTicketId,
+                        encounterId,
+                        actorUserId,
+                        now,
+                        HttpContext.RequestAborted);
+                }
 
                 if (request.InheritedPaymentSourceId.HasValue &&
                     request.InheritedPaymentSourceId.Value != Guid.Empty)
@@ -1333,6 +1385,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     await _queueRealtimeService.NotifyPriorityReservationChangedAsync(changedReservation, eventCode, now);
                 }
 
+                if (linkedAdmissionTicket != null)
+                {
+                    await AdmissionTicketService.NotifyRegistrationLinkedAsync(linkedAdmissionTicket, now);
+                }
+
                 // Kegagalan notifikasi realtime tidak boleh mengubah transaksi database
                 // yang sudah berhasil commit menjadi response 500.
                 if (queue != null)
@@ -1424,6 +1481,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         }
                         : null,
                     IsFutureVisit = encounter.EncounterDate > operationalDate,
+                    AdmissionTicketId = linkedAdmissionTicket?.Id,
+                    AdmissionTicketDisplayNumber = linkedAdmissionTicket?.DisplayNumber,
                     IsQueueCreated = queue != null,
                     IsScreeningRequired = isScreeningRequired,
                     IsDoctorRequired = isDoctorRequired,
@@ -1473,6 +1532,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return Conflict(ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
                     referralConflict.Message));
+            }
+            catch (AdmissionTicketConflictException admissionTicketConflict)
+            {
+                // Tiket admisi berubah (sudah tertaut, ditutup, atau dibatalkan) sesudah diperiksa:
+                // tidak ada kunjungan maupun antrean poli internal yang tersimpan (UAT-07, UAT-12).
+                if (!transactionCommitted)
+                    await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    admissionTicketConflict.Message));
             }
             catch (PriorityReservationConflictException reservationConflict)
             {
@@ -1671,8 +1741,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             // penguncian gagal, perubahan status kunjungan ikut dibatalkan.
             if (request.EncounterStatus == EncounterStatus.Completed)
             {
+                // BE-28 / RM-DEC-068: sumber penutupan klinis jalur ini.
                 await _integrityService.LockOpenDocumentsForEncounterAsync(
-                    entity.Id, actorUserId, now, entity.CompletedAt ?? now);
+                    entity.Id, actorUserId, now, entity.CompletedAt ?? now,
+                    closureSource: QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.EncounterStatusPatch);
             }
 
             await _dbContext.SaveChangesAsync();
@@ -2686,15 +2758,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (null, "Penjamin perusahaan sudah kedaluwarsa pada tanggal kunjungan.");
             }
 
-            // BE-FIN-106, FIN-DEC-204: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
+            // BE-FIN-106, FIN-DEC-204, BE-FIN-140, FIN-DEC-256: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
             // anggota keluarganya terdaftar dan terverifikasi di HR pada tanggal kunjungan. Gagal tertutup
             // bila HR tidak dapat dibaca; petugas diarahkan mendaftarkan sebagai Pasien Umum.
+            // Untuk kartu hasil sinkronisasi otomatis, NIK, tanggal lahir, dan jenis ID dicocokkan ulang dengan data HR.
             var benefitCheck = await _employeeBenefitLookup.ValidateCardForServiceAsync(
                 companyGuarantor.CompanyGuarantorId,
                 companyGuarantor.BenefitOwnerWorkforceProfileId,
                 companyGuarantor.EmployeeId,
                 companyGuarantor.FamilyMemberId,
                 encounterDate,
+                patientId,
+                patientCompanyGuarantorId,
                 HttpContext?.RequestAborted ?? CancellationToken.None);
 
             if (!benefitCheck.IsValid)
@@ -3147,7 +3222,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var ids = actorIds.Where(x => x != Guid.Empty).Distinct().ToList();
             if (!ids.Any()) return new Dictionary<Guid, string?>();
 
-            return await _dbContext.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode }).ToDictionaryAsync(x => x.Id, x => x.Name);
+            return await _dbContext.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, Name = (string?)(x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode) }).ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
         private static PatientEncounterResponse MapResponse(

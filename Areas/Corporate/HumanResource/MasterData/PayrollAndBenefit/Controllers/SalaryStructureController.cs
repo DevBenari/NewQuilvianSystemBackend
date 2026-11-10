@@ -16,6 +16,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/salary-structures")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/salary-structures")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -25,7 +27,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "SalaryStructure",
         Description = "Corporate human resource master data salary structure",
         SortOrder = 41)]
-    [Tags("Corporate / Human Resource / Master Data / Salary Structure")]
+    [Tags("Corporate / Payroll Management / Master Data / Salary Structure")]
     public class SalaryStructureController : ControllerBase
     {
         private static readonly HashSet<string> AllowedPaymentFrequencies =

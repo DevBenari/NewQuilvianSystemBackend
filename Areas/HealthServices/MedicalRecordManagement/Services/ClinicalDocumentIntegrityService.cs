@@ -59,9 +59,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
     {
         private readonly ApplicationDbContext _dbContext;
 
-        public ClinicalDocumentIntegrityService(ApplicationDbContext dbContext)
+        /// <summary>Antrean penilaian kelengkapan pertama (`BE-39`). Kosong pada uji yang tidak membutuhkannya.</summary>
+        private readonly MedicalRecordCompletenessQueue? _completenessQueue;
+
+        public ClinicalDocumentIntegrityService(
+            ApplicationDbContext dbContext,
+            MedicalRecordCompletenessQueue? completenessQueue = null)
         {
             _dbContext = dbContext;
+            _completenessQueue = completenessQueue;
         }
 
         /// <summary>
@@ -88,6 +94,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// <see cref="EnsureMutableAsync"/> meloloskan setiap perubahan dan catatan tidak pernah
         /// benar-benar terkunci. Perubahan pada berkas milik Rekam Medis ini diizinkan pemilik
         /// modul Hemodialisa, Muhammad Hamzah, pada sesi 22 September 2026.
+        ///
+        /// `BE-OPT-013` (`OPT-BP-001`, `OPT-DEC-050`) menambahkan pemeriksaan refraksi dan resep
+        /// Optik. Setiap versinya didaftarkan sebagai dokumen tersendiri, sehingga revisi Optik
+        /// tidak pernah menyunting dokumen yang sudah tertanda tangan. Disetujui pemilik Rekam
+        /// Medis, Yoga Aji Pratama, pada 3 November 2026 (`OPT-APR-007`, `RM-DEC-027`).
+        ///
+        /// `BE-RHB-004` (`RHB-BP-001`, `RHB-DEC-019`) menambahkan enam dokumen Rehab Medik
+        /// (asesmen, program, sesi, reasesmen, ringkasan akhir, edukasi). Persetujuan pemilik
+        /// Rekam Medis dinyatakan owner Rehab Medik, Sukma Giri Pratama, pada 5 November 2026;
+        /// bukti tertulisnya dicatat terpisah (`RHB-OQ-012`).
         /// </summary>
         private static readonly HashSet<ClinicalDocumentKind> JenisYangDitegakkan =
         [
@@ -95,7 +111,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             ClinicalDocumentKind.Consultation,
             ClinicalDocumentKind.Assessment,
             ClinicalDocumentKind.Procedure,
-            ClinicalDocumentKind.HemodialysisSession
+            ClinicalDocumentKind.HemodialysisSession,
+            ClinicalDocumentKind.OpticalRefraction,
+            ClinicalDocumentKind.OpticalPrescription,
+            ClinicalDocumentKind.RehabAssessment,
+            ClinicalDocumentKind.RehabProgram,
+            ClinicalDocumentKind.RehabSession,
+            ClinicalDocumentKind.RehabProgressReview,
+            ClinicalDocumentKind.RehabDischargeSummary,
+            ClinicalDocumentKind.RehabEducation
         ];
 
         /// <summary>
@@ -456,6 +480,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            // BE-40: pemicu penilaian ulang kelengkapan. Hanya antrean memori — tanda tangan tidak
+            // menunggu penilaian dan tidak dapat gagal karenanya. Kunjungan yang belum tutup klinis
+            // dilepas begitu saja oleh worker.
+            _completenessQueue?.EnqueueReevaluation(keutuhan.EncounterId);
+
             return (IntegrityGuardResult.Allowed(), keutuhan);
         }
 
@@ -589,6 +618,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 closureSource,
                 KeUtc(nowUtc),
                 cancellationToken);
+
+            // BE-39 / RM-DEC-046: penilaian kelengkapan pertama TIDAK dijalankan di sini. Hanya id
+            // kunjungan yang ditaruh di antrean memori — tanpa basis data, tanpa galat — lalu
+            // dinilai di luar transaksi penutupan sesudah transaksinya di-commit.
+            _completenessQueue?.Enqueue(encounterId);
 
             var jumlahTerkunci = 0;
 

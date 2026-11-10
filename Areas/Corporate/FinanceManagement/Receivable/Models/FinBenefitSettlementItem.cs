@@ -13,9 +13,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Mod
 /// bukan di tabel ini. Constraint database untuk invarian "satu kartu piutang MUST NOT ditutup dua
 /// kali oleh pelunasan yang tidak dibatalkan" TIDAK dapat dibuat sebagai partial index lintas tabel
 /// pada EF Core/Postgres. Index biasa (non-unique) dipasang untuk performa kueri; penegakan
-/// invarian lintas tabel ini MUST dikerjakan di layer service (FinanceBenefitSettlementService,
-/// BE-FIN-099) lewat penguncian, mengikuti pola AcquireLockAsync yang sudah berjalan di
+/// invarian lintas tabel ini MUST dikerjakan di layer service (FinanceBenefitSettlementService, BE-FIN-099;
+/// service sudah dihapus, tabel LEGACY READ-ONLY) lewat penguncian, mengikuti pola AcquireLockAsync yang sudah berjalan di
 /// FinanceBillingIntakeService — bukan diselesaikan oleh task ini.
+///
+/// LEGACY READ-ONLY: lihat FinBenefitSettlement. Penutupan Benefit dihapus; baris ini hanya riwayat. Mutasi PELUNASAN-INTERNAL yang
+/// pernah ditulis untuk baris ini tetap di buku mutasi dan dapat diaudit.
 /// </summary>
 [Table("FinBenefitSettlementItem", Schema = "public")]
 public sealed class FinBenefitSettlementItem : IdentityModel

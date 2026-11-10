@@ -92,6 +92,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enu
         /// kembali sesudah dirilis (`RM-FACT-020`), sehingga ditahan dari berkas (`RM-DEC-058`).
         /// Nilai ini ada supaya berkas dapat menyatakannya "belum tersedia".
         /// </summary>
-        PathologyAnatomyResult = 44
+        PathologyAnatomyResult = 44,
+
+        // =====================================================================
+        // Optik — OPT-BP-001, BE-OPT-013, OPT-DEC-050 (OPT-APR-007, disetujui pemilik Rekam
+        // Medis). Setiap VERSI hasil ukur dan setiap VERSI resep adalah dokumen tersendiri:
+        // DocumentId = Id OptRefractionExamRevision / OptPrescriptionVersion. Keduanya masuk
+        // JenisYangDitegakkan, sehingga revisi menambah dokumen baru, bukan mengubah yang lama.
+        // =====================================================================
+
+        /// <summary>Pemeriksaan refraksi Optik (visus, autorefraktometer, koreksi subjektif).</summary>
+        OpticalRefraction = 45,
+
+        /// <summary>Resep kacamata atau lensa kontak Optik, termasuk salinan resep luar.</summary>
+        OpticalPrescription = 46,
+
+        // =====================================================================
+        // Rehab Medik — RHB-BP-001, BE-RHB-004, RHB-DEC-019 (persetujuan pemilik Rekam Medis
+        // Yoga Aji Pratama dinyatakan owner Rehab 2026-11-05; bukti tertulis RHB-OQ-012).
+        // Seluruhnya masuk JenisYangDitegakkan sejak awal, sehingga dokumen rehab yang sudah
+        // ditandatangani tidak pernah dapat disunting. Pembacanya (IMedicalRecordDocumentSource)
+        // didaftarkan pada BE-RHB-015; sebelum itu berkas menyatakannya "belum tersedia".
+        // =====================================================================
+
+        /// <summary>Asesmen medis awal Sp.KFR atau asesmen awal profesi rehab.</summary>
+        RehabAssessment = 47,
+
+        /// <summary>Program terapi rehab satu disiplin; setiap versi dokumen tersendiri.</summary>
+        RehabProgram = 48,
+
+        /// <summary>Catatan sesi terapi rehab.</summary>
+        RehabSession = 49,
+
+        /// <summary>Reasesmen dan keputusan rehab.</summary>
+        RehabProgressReview = 50,
+
+        /// <summary>Ringkasan akhir episode rehab.</summary>
+        RehabDischargeSummary = 51,
+
+        /// <summary>Edukasi rencana dan status persetujuan pasien/keluarga rehab.</summary>
+        RehabEducation = 52
     }
 }

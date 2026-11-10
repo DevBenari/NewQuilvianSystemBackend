@@ -4,6 +4,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Cons
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -34,16 +36,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         private readonly LoggerService _loggerService;
         private readonly NumberSeriesAllocator _numberAllocator;
         private readonly WorkforceBenefitOwnerResolver _ownerResolver;
+        private readonly IEmployeeBenefitPatientCardSync _patientCardSync;
 
         public EmployeeBenefitEnrollmentService(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             NumberSeriesAllocator numberAllocator,
+            IEmployeeBenefitPatientCardSync? patientCardSync = null,
             WorkforceBenefitOwnerResolver? ownerResolver = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _numberAllocator = numberAllocator;
+            _patientCardSync = patientCardSync ?? new NoOpEmployeeBenefitPatientCardSync();
             _ownerResolver = ownerResolver ?? new WorkforceBenefitOwnerResolver(dbContext);
         }
 
@@ -56,6 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             EnrollmentStatuses = EmployeeBenefitEnrollmentStatuses.All
                 .Select(x => new EnrollmentFilterOptionResponse { Value = x, Label = x }).ToList(),
             DependentStatuses = EmployeeBenefitDependentStatuses.All
+                .Select(x => new EnrollmentFilterOptionResponse { Value = x, Label = x }).ToList(),
+            PatientCardSyncStatuses = EmployeeBenefitCardSyncStatuses.All
                 .Select(x => new EnrollmentFilterOptionResponse { Value = x, Label = x }).ToList()
         };
 
@@ -91,6 +98,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             if (query.WorkforceProfileId.HasValue) source = source.Where(x => x.e.WorkforceProfileId == query.WorkforceProfileId.Value);
             if (query.BenefitPlanId.HasValue) source = source.Where(x => x.e.BenefitPlanId == query.BenefitPlanId.Value);
             if (!string.IsNullOrWhiteSpace(query.EnrollmentStatus)) source = source.Where(x => x.e.EnrollmentStatus == query.EnrollmentStatus);
+            if (!string.IsNullOrWhiteSpace(query.PatientCardSyncStatus))
+            {
+                var syncStatus = query.PatientCardSyncStatus.Trim();
+                if (string.Equals(syncStatus, EmployeeBenefitCardSyncStatuses.NotStarted, StringComparison.OrdinalIgnoreCase))
+                {
+                    source = source.Where(x => x.e.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
+                        && !_dbContext.PatEmployeeBenefitCardSyncs.Any(s => s.EmployeeBenefitEnrollmentId == x.e.Id && !s.IsDelete));
+                }
+                else
+                {
+                    source = source.Where(x => x.e.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
+                        && _dbContext.PatEmployeeBenefitCardSyncs.Any(s => s.EmployeeBenefitEnrollmentId == x.e.Id && !s.IsDelete && s.SyncStatus == syncStatus));
+                }
+            }
             if (query.StartDate.HasValue)
             {
                 var startUtc = AppDateTimeHelper.OperationalDateToUtc(query.StartDate.Value);
@@ -171,6 +192,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     ActiveDependentCount = x.ActiveDependentCount
                 };
             }).ToList();
+
+            var activeIds = items
+                .Where(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active)
+                .Select(x => x.Id)
+                .ToList();
+
+            if (activeIds.Count > 0)
+            {
+                try
+                {
+                    var summaries = await _patientCardSync.GetSummariesAsync(activeIds, cancellationToken);
+                    if (summaries != null)
+                    {
+                        foreach (var item in items.Where(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active))
+                        {
+                            item.PatientCardSyncStatus = summaries.TryGetValue(item.Id, out var s)
+                                ? s.Status
+                                : EmployeeBenefitCardSyncStatuses.NotStarted;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "GetPaged.CardSyncSummaries", "Gagal mengambil ringkasan status sinkronisasi kartu untuk daftar enrollment", ex);
+                }
+            }
 
             return new PagedResult<EmployeeBenefitEnrollmentListResponse>
             {
@@ -281,10 +328,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 ?? throw new KeyNotFoundException("Enrollment benefit tidak ditemukan.");
 
             var names = await GetUserNamesAsync(new Guid?[] { e.CreateBy, e.SubmittedByUserId, e.ApprovedByUserId, e.ActivatedByUserId, e.CancelledByUserId }, cancellationToken);
-            var history = new List<EnrollmentStatusHistoryResponse>
-            {
-                new() { Status = EmployeeBenefitEnrollmentStatuses.Draft, OccurredAt = e.CreateDateTime, ActorName = names.GetValueOrDefault(e.CreateBy) }
-            };
+            var history = new List<EnrollmentStatusHistoryResponse>();
+            // Enrollment yang langsung diajukan (CreateAndSubmitAsync) memakai satu cap waktu untuk pembuatan dan pengajuan;
+            // Draft tidak pernah ada sehingga tidak ditampilkan sebagai langkah riwayat.
+            var submittedAtCreation = e.SubmittedAt.HasValue && e.SubmittedAt.Value == e.CreateDateTime;
+            if (!submittedAtCreation)
+                history.Add(new() { Status = EmployeeBenefitEnrollmentStatuses.Draft, OccurredAt = e.CreateDateTime, ActorName = names.GetValueOrDefault(e.CreateBy) });
             if (e.SubmittedAt.HasValue) history.Add(new() { Status = EmployeeBenefitEnrollmentStatuses.Submitted, OccurredAt = e.SubmittedAt.Value, ActorName = NameOf(names, e.SubmittedByUserId) });
             if (e.ApprovedAt.HasValue) history.Add(new() { Status = EmployeeBenefitEnrollmentStatuses.Approved, OccurredAt = e.ApprovedAt.Value, ActorName = NameOf(names, e.ApprovedByUserId) });
             if (e.ActivatedAt.HasValue) history.Add(new() { Status = EmployeeBenefitEnrollmentStatuses.Active, OccurredAt = e.ActivatedAt.Value, ActorName = NameOf(names, e.ActivatedByUserId) });
@@ -296,8 +345,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         // Tulis
         // ------------------------------------------------------------------------------------
 
-        public async Task<EmployeeBenefitEnrollmentResponse> CreateAsync(
-            CreateEmployeeBenefitEnrollmentRequest request, Guid actorUserId, CancellationToken cancellationToken)
+        /// <summary>Membuat enrollment berstatus Draft (jalur lama; Draft historis tetap dapat diajukan lewat SubmitAsync).</summary>
+        public Task<EmployeeBenefitEnrollmentResponse> CreateAsync(
+            CreateEmployeeBenefitEnrollmentRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
+            CreateCoreAsync(request, actorUserId, submitImmediately: false, cancellationToken);
+
+        /// <summary>
+        /// Ajukan Benefit (BE-FIN-129, FIN-DEC-243, FIN-DES-109): membuat enrollment langsung berstatus Submitted dalam
+        /// SATU transaksi yang sama dengan pembuatan. Kunci advisory, cek enrollment terbuka, dan alokasi nomor memakai
+        /// inti yang sama dengan CreateAsync. Bila validasi gagal, tidak ada baris yang tersimpan, jadi tidak ada Draft sisa.
+        /// </summary>
+        public Task<EmployeeBenefitEnrollmentResponse> CreateAndSubmitAsync(
+            CreateEmployeeBenefitEnrollmentRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
+            CreateCoreAsync(request, actorUserId, submitImmediately: true, cancellationToken);
+
+        private async Task<EmployeeBenefitEnrollmentResponse> CreateCoreAsync(
+            CreateEmployeeBenefitEnrollmentRequest request, Guid actorUserId, bool submitImmediately, CancellationToken cancellationToken)
         {
             ValidatePeriod(request.EffectiveStartDate, request.EffectiveEndDate);
 
@@ -341,6 +404,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 if (hasOpen)
                     throw new EmployeeBenefitConflictException("Pegawai ini sudah punya enrollment yang masih berjalan pada plan yang sama.");
 
+                // Satu cap waktu untuk pembuatan dan pengajuan: riwayat status mengenali enrollment yang langsung
+                // diajukan dari kesamaan kedua waktu ini (tidak ada Draft yang pernah ada).
+                var now = DateTime.UtcNow;
                 var enrollment = new TrxEmployeeBenefitEnrollment
                 {
                     WorkforceProfileId = employee.WorkforceProfileId,
@@ -348,7 +414,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     EmployeeId = employee.EmployeeId,
                     BenefitPlanId = plan.Id,
                     EnrollmentNumber = enrollmentNumber,
-                    EnrollmentStatus = EmployeeBenefitEnrollmentStatuses.Draft,
+                    EnrollmentStatus = submitImmediately
+                        ? EmployeeBenefitEnrollmentStatuses.Submitted
+                        : EmployeeBenefitEnrollmentStatuses.Draft,
+                    SubmittedAt = submitImmediately ? now : null,
+                    SubmittedByUserId = submitImmediately ? actorUserId : null,
                     CoverageLevel = plan.CoverageType,
                     CurrencyCode = plan.CurrencyCode,
                     // Tanggal operasional dibaca sebagai jam dinding WIB lalu disimpan UTC (Npgsql timestamptz).
@@ -357,13 +427,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     EffectiveEndDate = ToUtcDate(request.EffectiveEndDate),
                     MaximumDependents = plan.MaximumDependents,
                     Notes = request.Notes,
-                    CreateDateTime = DateTime.UtcNow,
+                    CreateDateTime = now,
                     CreateBy = actorUserId
                 };
                 _dbContext.TrxEmployeeBenefitEnrollments.Add(enrollment);
                 await SaveChangesAsync("Pegawai ini sudah punya enrollment yang masih berjalan pada plan yang sama.", cancellationToken);
                 await CommitAsync(transaction, cancellationToken);
-                await AuditAsync("Enrollment.Created", enrollment.Id, actorUserId, enrollment.EnrollmentStatus);
+                await AuditAsync(submitImmediately ? "Enrollment.SubmittedNew" : "Enrollment.Created",
+                    enrollment.Id, actorUserId, enrollment.EnrollmentStatus);
                 return await MapDetailAsync(enrollment, actorUserId, cancellationToken);
             }
             catch
@@ -405,79 +476,264 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             }, cancellationToken);
 
         /// <summary>
-        /// SEMENTARA: pengaju boleh menyetujui pengajuannya sendiri (FIN-VAL-271 maker-checker dinonaktifkan,
-        /// service dan CK_TrxEmployeeBenefitEnrollment_MakerChecker) sampai ada keputusan bisnis tentang
-        /// persetujuan berjenjang. Pemulihan aturan membutuhkan perubahan service dan migration.
+        /// Persetujuan enrollment benefit oleh HRD (BE-FIN-130, FIN-DEC-233, FIN-DEC-234, FIN-DEC-235, FIN-DES-110).
+        /// - Pengaju boleh menyetujui pengajuannya sendiri (FIN-DEC-233, supersede FIN-VAL-271).
+        /// - Bila tanggal mulai berlaku sudah tiba (WIB <= hari ini WIB): langsung aktifkan dalam transaksi yang sama.
+        ///   Bila syarat aktivasi gagal, seluruh persetujuan batal (rollback; status tetap Submitted, ApprovedAt kosong, 422).
+        /// - Bila tanggal mulai di masa depan: status menjadi Approved (menunggu penjadwal BE-FIN-137 atau aktivasi manual).
+        /// - Sesudah commit, bila Active, memanggil sinkronisasi kartu pasien (FIN-DES-113).
         /// </summary>
         public Task<EmployeeBenefitEnrollmentResponse> ApproveAsync(
             Guid id, EnrollmentTransitionRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
-            TransitionAsync(id, request.RowVersion, actorUserId, "Enrollment.Approved", e =>
+            TransitionAsync(id, request.RowVersion, actorUserId, "Enrollment.Approved", async e =>
             {
                 RequireStatus(e, "disetujui", EmployeeBenefitEnrollmentStatuses.Submitted);
-                e.EnrollmentStatus = EmployeeBenefitEnrollmentStatuses.Approved;
-                e.ApprovedAt = DateTime.UtcNow;
+                var now = DateTime.UtcNow;
+                var today = AppDateTimeHelper.OperationalDateToUtc(AppDateTimeHelper.OperationalDate());
+                var hasArrived = !e.EffectiveStartDate.HasValue || e.EffectiveStartDate.Value <= today;
+
+                e.ApprovedAt = now;
                 e.ApprovedByUserId = actorUserId;
                 AppendNotes(e, request.Notes);
-                return Task.CompletedTask;
+
+                if (hasArrived)
+                {
+                    // Tanggal mulai sudah tiba -> langsung aktifkan di transaksi yang sama (FIN-DEC-234).
+                    await ApplyActivationAsync(e, actorUserId, cancellationToken);
+                }
+                else
+                {
+                    // Tanggal mulai di masa depan -> status Approved (FIN-DEC-235).
+                    e.EnrollmentStatus = EmployeeBenefitEnrollmentStatuses.Approved;
+                }
             }, cancellationToken);
 
         /// <summary>
-        /// FIN-VAL-249: satu enrollment layanan RS (Medical, bukan klaim) aktif per pegawai pada
-        /// periode yang berimpit. FIN-VAL-250: batas plafon plan wajib lebih dari nol. Saldo awal
-        /// pegawai sendiri = batas plafon plan (FIN-DEC-207).
+        /// Aktivasi manual enrollment benefit yang berstatus Approved (BE-FIN-130, FIN-VAL-291, FIN-DES-110).
+        /// Menolak bila tanggal mulai berlaku masih di masa depan (422 FIN-VAL-291).
+        /// Bila tanggal tiba, menerapkan aktivasi dan saldo awal = plafon plan.
+        /// Sesudah commit, memanggil sinkronisasi kartu pasien (FIN-DES-113).
         /// </summary>
         public Task<EmployeeBenefitEnrollmentResponse> ActivateAsync(
             Guid id, EnrollmentTransitionRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
             TransitionAsync(id, request.RowVersion, actorUserId, "Enrollment.Activated", async e =>
             {
                 RequireStatus(e, "diaktifkan", EmployeeBenefitEnrollmentStatuses.Approved);
-                await AcquireLockAsync($"HRD_BENEFIT_ENROLLMENT_ACTIVATE_{e.WorkforceProfileId:N}", cancellationToken);
 
-                var plan = await _dbContext.MstBenefitPlans.AsNoTracking()
-                    .SingleOrDefaultAsync(x => x.Id == e.BenefitPlanId && !x.IsDelete, cancellationToken)
-                    ?? throw new EmployeeBenefitValidationException("Plan benefit tidak ditemukan.");
-                if (!plan.CoverageLimitAmount.HasValue || plan.CoverageLimitAmount.Value <= 0)
-                    throw new EmployeeBenefitValidationException("Plan benefit ini belum memiliki batas plafon. Lengkapi plan terlebih dahulu.");
-
-                var type = await _dbContext.MstBenefitTypes.AsNoTracking()
-                    .SingleOrDefaultAsync(x => x.Id == plan.BenefitTypeId, cancellationToken);
-                var isMedical = type is not null && type.BenefitCategory == BenefitServiceCategories.Medical && !type.IsClaimBased;
-                if (isMedical)
+                var today = AppDateTimeHelper.OperationalDateToUtc(AppDateTimeHelper.OperationalDate());
+                if (e.EffectiveStartDate.HasValue && e.EffectiveStartDate.Value > today)
                 {
-                    var others = await (from o in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
-                                        join p in _dbContext.MstBenefitPlans.AsNoTracking() on o.BenefitPlanId equals p.Id
-                                        join t in _dbContext.MstBenefitTypes.AsNoTracking() on p.BenefitTypeId equals t.Id
-                                        where !o.IsDelete && o.Id != e.Id
-                                              && o.WorkforceProfileId == e.WorkforceProfileId
-                                              && o.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
-                                              && t.BenefitCategory == BenefitServiceCategories.Medical && !t.IsClaimBased
-                                        select new { o.EffectiveStartDate, o.EffectiveEndDate })
-                                       .ToListAsync(cancellationToken);
-                    if (others.Any(o => Overlaps(o.EffectiveStartDate, o.EffectiveEndDate, e.EffectiveStartDate, e.EffectiveEndDate)))
-                        throw new EmployeeBenefitValidationException("Pegawai ini sudah memiliki benefit layanan RS yang aktif pada periode tersebut.");
+                    var formattedDate = e.EffectiveStartDate.Value.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("id-ID"));
+                    throw new EmployeeBenefitValidationException(
+                        $"Benefit ini baru berlaku mulai {formattedDate}. Sistem mengaktifkannya otomatis pada tanggal itu.");
                 }
 
-                e.EnrollmentStatus = EmployeeBenefitEnrollmentStatuses.Active;
-                e.ActivatedAt = DateTime.UtcNow;
-                e.ActivatedByUserId = actorUserId;
-                e.CoverageLimitAmount = plan.CoverageLimitAmount.Value;
-                e.UsedAmount = 0m;
-                e.RemainingAmount = plan.CoverageLimitAmount.Value;
-                e.MaximumDependents = plan.MaximumDependents;
-                e.CoverageLevel = plan.CoverageType;
-                e.IsEligible = true;
-                e.PlanSnapshotJson = JsonSerializer.Serialize(new
-                {
-                    plan.BenefitPlanCode,
-                    plan.BenefitPlanName,
-                    plan.CoverageType,
-                    plan.CoverageLimitAmount,
-                    plan.MaximumDependents,
-                    BenefitCategory = type?.BenefitCategory,
-                    IsClaimBased = type?.IsClaimBased
-                });
+                await ApplyActivationAsync(e, actorUserId, cancellationToken);
                 AppendNotes(e, request.Notes);
             }, cancellationToken);
+
+        /// <summary>
+        /// Mengambil daftar ID enrollment berstatus Approved yang tanggal mulai berlakunya sudah tiba (EffectiveStartDate <= hari ini WIB)
+        /// untuk diproses oleh penjadwal aktivasi (BE-FIN-137, FIN-DES-111, FIN-DEC-235).
+        /// Memprioritaskan enrollment yang masih dalam masa berlaku sebelum enrollment yang periodenya sudah lewat.
+        /// </summary>
+        public async Task<List<Guid>> GetDueApprovedEnrollmentIdsAsync(int maxCount, CancellationToken cancellationToken)
+        {
+            var today = AppDateTimeHelper.OperationalDateToUtc(AppDateTimeHelper.OperationalDate());
+            return await _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
+                .Where(x => !x.IsDelete
+                            && x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Approved
+                            && (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value <= today))
+                .OrderByDescending(x => !x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today)
+                .ThenBy(x => x.EffectiveStartDate)
+                .ThenBy(x => x.CreateDateTime)
+                .Select(x => x.Id)
+                .Take(maxCount)
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Mengaktifkan satu enrollment berstatus Approved oleh penjadwal aktivasi sistem (BE-FIN-137, FIN-DES-111, FIN-DEC-235).
+        /// Memenuhi Acceptance Criteria 1–4:
+        /// 1. Tanggal tiba (EffectiveStartDate WIB <= hari ini) -> diaktifkan oleh akun layanan sistem (systemActorUserId), saldo awal = plafon plan.
+        /// 2. Periode lewat (EffectiveEndDate < hari ini) -> tetap Approved, catat log ActivationSkipped.
+        /// 3. Idempoten terhadap aktivasi manual: bila status sudah Active (mis. diklik HRD bersamaan), tepat satu aktivasi berhasil.
+        /// 4. Gagal syarat (mis. plafon belum diisi, tumpang tindih plan) -> tetap Approved, dicoba lagi pada siklus berikutnya.
+        /// </summary>
+        public async Task<(bool Success, string Outcome)> ActivateDueAsync(
+            Guid id, Guid systemActorUserId, CancellationToken cancellationToken)
+        {
+            IDbContextTransaction? transaction = null;
+            TrxEmployeeBenefitEnrollment? enrollment = null;
+            var today = AppDateTimeHelper.OperationalDateToUtc(AppDateTimeHelper.OperationalDate());
+            bool activated = false;
+
+            try
+            {
+                transaction = await BeginTransactionAsync(cancellationToken);
+                await AcquireLockAsync($"HRD_BENEFIT_ENROLLMENT_{id:N}", cancellationToken);
+
+                enrollment = await _dbContext.TrxEmployeeBenefitEnrollments
+                    .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+                if (enrollment is null)
+                {
+                    await RollbackAsync(transaction);
+                    return (false, "NOT_FOUND");
+                }
+
+                // AC 3: Idempoten bila sudah diaktifkan manual oleh petugas HRD tepat pada saat yang sama
+                if (enrollment.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active)
+                {
+                    await RollbackAsync(transaction);
+                    return (false, "ALREADY_ACTIVE");
+                }
+
+                if (enrollment.EnrollmentStatus != EmployeeBenefitEnrollmentStatuses.Approved)
+                {
+                    await RollbackAsync(transaction);
+                    return (false, "NOT_APPROVED");
+                }
+
+                // Periksa apakah tanggal mulai benar-benar sudah tiba
+                if (enrollment.EffectiveStartDate.HasValue && enrollment.EffectiveStartDate.Value > today)
+                {
+                    await RollbackAsync(transaction);
+                    return (false, "NOT_YET_DUE");
+                }
+
+                // AC 2: Periode lewat (EffectiveEndDate < hari ini) -> tetap Approved, catat log ActivationSkipped
+                if (enrollment.EffectiveEndDate.HasValue && enrollment.EffectiveEndDate.Value < today)
+                {
+                    await _loggerService.InfoAsync(
+                        LogCategory,
+                        "ActivationSkipped",
+                        $"Aktivasi enrollment dilewati karena seluruh periode benefit sudah lewat ({enrollment.EffectiveEndDate.Value:yyyy-MM-dd} < {today:yyyy-MM-dd}). EnrollmentId={enrollment.Id}, Status={enrollment.EnrollmentStatus}",
+                        new
+                        {
+                            EnrollmentId = enrollment.Id,
+                            enrollment.EffectiveStartDate,
+                            enrollment.EffectiveEndDate,
+                            Status = enrollment.EnrollmentStatus,
+                            Reason = "PERIOD_EXPIRED"
+                        });
+
+                    await RollbackAsync(transaction);
+                    return (false, "SKIPPED_PERIOD_EXPIRED");
+                }
+
+                // AC 1: Terapkan aktivasi oleh akun layanan sistem (saldo awal = plafon plan)
+                await ApplyActivationAsync(enrollment, systemActorUserId, cancellationToken);
+
+                enrollment.RowVersion = Guid.NewGuid();
+                enrollment.UpdateDateTime = DateTime.UtcNow;
+                enrollment.UpdateBy = systemActorUserId;
+
+                await SaveChangesAsync("Data enrollment diperbarui pihak lain saat aktivasi penjadwal.", cancellationToken);
+                await CommitAsync(transaction, cancellationToken);
+                await AuditAsync("Enrollment.ActivatedByScheduler", enrollment.Id, systemActorUserId, enrollment.EnrollmentStatus);
+                activated = true;
+            }
+            catch (EmployeeBenefitValidationException ex)
+            {
+                // AC 4: Gagal syarat (mis. plafon belum diisi, tumpang tindih plan) -> tetap Approved, dicoba lagi pada siklus berikutnya
+                await RollbackAsync(transaction);
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "ActivationFailedRequirements",
+                    $"Aktivasi enrollment {id} gagal syarat dan tetap Approved: {ex.Message}",
+                    new { EnrollmentId = id, Error = ex.Message });
+                return (false, "FAILED_REQUIREMENTS");
+            }
+            catch (Exception ex)
+            {
+                await RollbackAsync(transaction);
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "ActivateDue",
+                    $"Galat saat aktivasi otomatis enrollment {id} oleh penjadwal.",
+                    ex,
+                    new { EnrollmentId = id });
+                return (false, "ERROR");
+            }
+            finally
+            {
+                if (transaction is not null) await transaction.DisposeAsync();
+            }
+
+            // Pemicu integrasi ke sinkronisasi kartu pasien di luar transaksi HR (FIN-DES-113, FIN-INTEGRATION-1.11 V.2)
+            if (activated && enrollment is not null && enrollment.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active)
+            {
+                try
+                {
+                    await _patientCardSync.OnEnrollmentActivatedAsync(
+                        enrollment.Id, systemActorUserId, EmployeeBenefitCardSyncTriggerSources.Activation, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "OnEnrollmentActivated", "Gagal memanggil sinkronisasi kartu pasien sesudah aktivasi otomatis oleh penjadwal", ex);
+                }
+            }
+
+            return (true, "ACTIVATED");
+        }
+
+        /// <summary>
+        /// Logika aktivasi enrollment benefit pegawai (FIN-DES-110, FIN-DEC-234, FIN-VAL-250, FIN-VAL-249).
+        /// Diekstrak agar dapat dipakai bersama oleh ApproveAsync (bila tanggal mulai sudah tiba),
+        /// ActivateAsync manual, dan penjadwal aktivasi (BE-FIN-137).
+        /// Memvalidasi batas plafon plan (> 0), tidak adanya irisan benefit Medical aktif lain,
+        /// lalu menetapkan status Active, tanggal aktivasi, dan saldo awal = plafon plan.
+        /// </summary>
+        private async Task ApplyActivationAsync(
+            TrxEmployeeBenefitEnrollment e, Guid actorUserId, CancellationToken cancellationToken)
+        {
+            await AcquireLockAsync($"HRD_BENEFIT_ENROLLMENT_ACTIVATE_{e.WorkforceProfileId:N}", cancellationToken);
+
+            var plan = await _dbContext.MstBenefitPlans.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == e.BenefitPlanId && !x.IsDelete, cancellationToken)
+                ?? throw new EmployeeBenefitValidationException("Plan benefit tidak ditemukan.");
+            if (!plan.CoverageLimitAmount.HasValue || plan.CoverageLimitAmount.Value <= 0)
+                throw new EmployeeBenefitValidationException("Plan benefit ini belum memiliki batas plafon. Lengkapi plan terlebih dahulu.");
+
+            var type = await _dbContext.MstBenefitTypes.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == plan.BenefitTypeId, cancellationToken);
+            var isMedical = type is not null && type.BenefitCategory == BenefitServiceCategories.Medical && !type.IsClaimBased;
+            if (isMedical)
+            {
+                var others = await (from o in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
+                                    join p in _dbContext.MstBenefitPlans.AsNoTracking() on o.BenefitPlanId equals p.Id
+                                    join t in _dbContext.MstBenefitTypes.AsNoTracking() on p.BenefitTypeId equals t.Id
+                                    where !o.IsDelete && o.Id != e.Id
+                                          && o.WorkforceProfileId == e.WorkforceProfileId
+                                          && o.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
+                                          && t.BenefitCategory == BenefitServiceCategories.Medical && !t.IsClaimBased
+                                    select new { o.EffectiveStartDate, o.EffectiveEndDate })
+                                   .ToListAsync(cancellationToken);
+                if (others.Any(o => Overlaps(o.EffectiveStartDate, o.EffectiveEndDate, e.EffectiveStartDate, e.EffectiveEndDate)))
+                    throw new EmployeeBenefitValidationException("Pegawai ini sudah memiliki benefit layanan RS yang aktif pada periode tersebut.");
+            }
+
+            e.EnrollmentStatus = EmployeeBenefitEnrollmentStatuses.Active;
+            e.ActivatedAt = DateTime.UtcNow;
+            e.ActivatedByUserId = actorUserId;
+            e.CoverageLimitAmount = plan.CoverageLimitAmount.Value;
+            e.UsedAmount = 0m;
+            e.RemainingAmount = plan.CoverageLimitAmount.Value;
+            e.MaximumDependents = plan.MaximumDependents;
+            e.CoverageLevel = plan.CoverageType;
+            e.IsEligible = true;
+            e.PlanSnapshotJson = JsonSerializer.Serialize(new
+            {
+                plan.BenefitPlanCode,
+                plan.BenefitPlanName,
+                plan.CoverageType,
+                plan.CoverageLimitAmount,
+                plan.MaximumDependents,
+                BenefitCategory = type?.BenefitCategory,
+                IsClaimBased = type?.IsClaimBased
+            });
+        }
 
         public Task<EmployeeBenefitEnrollmentResponse> CancelAsync(
             Guid id, EnrollmentCancelRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
@@ -493,6 +749,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 return Task.CompletedTask;
             }, cancellationToken);
 
+        /// <summary>
+        /// Sinkronkan ulang kartu penjamin pasien secara manual oleh HRD (BE-FIN-138, FIN-DES-121, FIN-DEC-246, FIN-VAL-294).
+        /// Memvalidasi status Active (menolak status selain Active dengan 400 FIN-VAL-294),
+        /// memanggil integrasi Patient Management, mencatat audit trail, dan mengembalikan ringkasan status terbaru tanpa data pasien.
+        /// </summary>
+        public async Task<PatientCardSyncSummaryResponse> ResyncPatientCardAsync(
+            Guid id, Guid actorUserId, CancellationToken cancellationToken)
+        {
+            var enrollment = await _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Enrollment benefit tidak ditemukan.");
+
+            if (enrollment.EnrollmentStatus != EmployeeBenefitEnrollmentStatuses.Active)
+            {
+                throw new EmployeeBenefitTransitionException("Sinkronisasi kartu hanya dapat dijalankan untuk benefit yang sudah aktif.");
+            }
+
+            var result = await _patientCardSync.RequestResyncAsync(enrollment.Id, actorUserId, cancellationToken);
+            await AuditAsync("Enrollment.PatientCardResynced", enrollment.Id, actorUserId, enrollment.EnrollmentStatus);
+            return result;
+        }
+
         // ------------------------------------------------------------------------------------
         // Bantuan
         // ------------------------------------------------------------------------------------
@@ -502,12 +780,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             Func<TrxEmployeeBenefitEnrollment, Task> apply, CancellationToken cancellationToken)
         {
             IDbContextTransaction? transaction = null;
+            TrxEmployeeBenefitEnrollment enrollment;
             try
             {
                 transaction = await BeginTransactionAsync(cancellationToken);
                 await AcquireLockAsync($"HRD_BENEFIT_ENROLLMENT_{id:N}", cancellationToken);
 
-                var enrollment = await _dbContext.TrxEmployeeBenefitEnrollments
+                enrollment = await _dbContext.TrxEmployeeBenefitEnrollments
                     .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                     ?? throw new KeyNotFoundException("Enrollment benefit tidak ditemukan.");
                 if (enrollment.RowVersion != rowVersion)
@@ -521,7 +800,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 await SaveChangesAsync("Data sudah diperbarui petugas lain. Muat ulang lalu coba lagi.", cancellationToken);
                 await CommitAsync(transaction, cancellationToken);
                 await AuditAsync(auditAction, enrollment.Id, actorUserId, enrollment.EnrollmentStatus);
-                return await MapDetailAsync(enrollment, actorUserId, cancellationToken);
             }
             catch
             {
@@ -532,10 +810,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             {
                 if (transaction is not null) await transaction.DisposeAsync();
             }
+
+            // Integrasi di luar transaksi HR (FIN-DES-113, FIN-INTEGRATION-1.11 V.2).
+            PatientCardSyncSummaryResponse? cardSyncResult = null;
+            if (enrollment.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active)
+            {
+                try
+                {
+                    cardSyncResult = await _patientCardSync.OnEnrollmentActivatedAsync(
+                        enrollment.Id, actorUserId, EmployeeBenefitCardSyncTriggerSources.Activation, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "OnEnrollmentActivated", "Gagal memanggil sinkronisasi kartu pasien sesudah aktivasi", ex);
+                    cardSyncResult = new PatientCardSyncSummaryResponse
+                    {
+                        Status = EmployeeBenefitCardSyncStatuses.FailedRetryable,
+                        ReasonLabel = "Sinkronisasi kartu pasien tertunda karena galat sistem.",
+                        AttemptCount = 1,
+                        LastAttemptAt = DateTime.UtcNow
+                    };
+                }
+            }
+            else if (enrollment.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Cancelled)
+            {
+                try
+                {
+                    await _patientCardSync.OnEnrollmentCancelledAsync(enrollment.Id, actorUserId, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "OnEnrollmentCancelled", "Gagal memberitahu pembatalan enrollment ke sinkronisasi kartu pasien", ex);
+                }
+            }
+
+            return await MapDetailAsync(enrollment, actorUserId, cardSyncResult, cancellationToken);
         }
 
+        private Task<EmployeeBenefitEnrollmentResponse> MapDetailAsync(
+            TrxEmployeeBenefitEnrollment e, Guid actorUserId, CancellationToken cancellationToken) =>
+            MapDetailAsync(e, actorUserId, cardSyncOverride: null, cancellationToken);
+
         private async Task<EmployeeBenefitEnrollmentResponse> MapDetailAsync(
-            TrxEmployeeBenefitEnrollment e, Guid actorUserId, CancellationToken cancellationToken)
+            TrxEmployeeBenefitEnrollment e, Guid actorUserId, PatientCardSyncSummaryResponse? cardSyncOverride, CancellationToken cancellationToken)
         {
             var owners = await _ownerResolver.ResolveManyAsync(new[] { e.WorkforceProfileId }, cancellationToken);
             owners.TryGetValue(e.WorkforceProfileId, out var owner);
@@ -547,6 +864,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 .ToListAsync(cancellationToken);
             var names = await GetUserNamesAsync(new Guid?[] { e.SubmittedByUserId, e.ApprovedByUserId, e.ActivatedByUserId, e.CancelledByUserId }, cancellationToken);
             var today = AppDateTimeHelper.OperationalDateToUtc(AppDateTimeHelper.OperationalDate());
+
+            PatientCardSyncSummaryResponse? cardSync = cardSyncOverride;
+            if (cardSync is null && e.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active)
+            {
+                try
+                {
+                    var summaries = await _patientCardSync.GetSummariesAsync(new[] { e.Id }, cancellationToken);
+                    if (summaries != null && summaries.TryGetValue(e.Id, out var s))
+                    {
+                        cardSync = s;
+                    }
+                    else
+                    {
+                        cardSync = new PatientCardSyncSummaryResponse
+                        {
+                            Status = EmployeeBenefitCardSyncStatuses.NotStarted,
+                            ReasonLabel = "Belum disinkronkan."
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "MapDetail.CardSyncSummaries", "Gagal mengambil status sinkronisasi kartu untuk detail enrollment", ex);
+                    cardSync = new PatientCardSyncSummaryResponse
+                    {
+                        Status = EmployeeBenefitCardSyncStatuses.NotStarted,
+                        ReasonLabel = "Status sinkronisasi kartu tidak dapat dibaca."
+                    };
+                }
+            }
 
             return new EmployeeBenefitEnrollmentResponse
             {
@@ -576,6 +923,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 PlanCoverageLimitAmount = plan?.CoverageLimitAmount,
                 PlanMaximumDependents = plan?.MaximumDependents,
                 ActiveDependentCount = e.ActiveDependentCount,
+                PatientCardSyncStatus = cardSync?.Status,
+                PatientCardSync = cardSync,
                 BenefitCategory = type?.BenefitCategory,
                 IsClaimBased = type?.IsClaimBased ?? false,
                 IsMedicalServiceBenefit = type is not null && type.BenefitCategory == BenefitServiceCategories.Medical && !type.IsClaimBased,
@@ -648,13 +997,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     actions.AddRange(new[] { EmployeeBenefitActions.Update, EmployeeBenefitActions.Submit, EmployeeBenefitActions.Cancel });
                     break;
                 case EmployeeBenefitEnrollmentStatuses.Submitted:
-                    // Maker-checker (FIN-VAL-271) dinonaktifkan sementara: pengaju boleh menyetujui sendiri.
+                    // Pengaju boleh menyetujui pengajuannya sendiri (FIN-DEC-233).
                     actions.AddRange(new[] { EmployeeBenefitActions.Approve, EmployeeBenefitActions.Cancel });
                     break;
                 case EmployeeBenefitEnrollmentStatuses.Approved:
-                    actions.AddRange(new[] { EmployeeBenefitActions.Activate, EmployeeBenefitActions.Cancel });
+                    var today = AppDateTimeHelper.OperationalDateToUtc(AppDateTimeHelper.OperationalDate());
+                    var hasArrived = !e.EffectiveStartDate.HasValue || e.EffectiveStartDate.Value <= today;
+                    if (hasArrived)
+                    {
+                        actions.Add(EmployeeBenefitActions.Activate);
+                    }
+                    actions.Add(EmployeeBenefitActions.Cancel);
                     break;
                 case EmployeeBenefitEnrollmentStatuses.Active:
+                    actions.Add(EmployeeBenefitActions.SyncPatientCard);
                     actions.Add(EmployeeBenefitActions.Cancel);
                     break;
             }

@@ -162,8 +162,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             new HashSet<QuilvianSystemBackend.Enums.UserType>
             {
                 QuilvianSystemBackend.Enums.UserType.Employee,
-                QuilvianSystemBackend.Enums.UserType.PermanentDoctor,
-                QuilvianSystemBackend.Enums.UserType.GuestDoctor
+                QuilvianSystemBackend.Enums.UserType.PermanentDoctor
             };
     }
 
@@ -214,5 +213,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public const string Verify = "Verify";
         public const string Reject = "Reject";
         public const string End = "End";
+        public const string SyncPatientCard = "SyncPatientCard";
     }
 }

@@ -57,6 +57,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.ClosedByUser).WithMany().HasForeignKey(x => x.ClosedByUserId).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.RunNumber).IsUnique().HasFilter("\"IsDelete\" = false");
+            entity.HasIndex(x => x.PayrollPeriodId)
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false AND \"RunType\" = 'Regular' AND \"RunStatus\" NOT IN ('Cancelled', 'Reversed')")
+                .HasDatabaseName("UX_TrxPayrollRun_RegularPeriod");
             entity.HasIndex(x => new { x.PayrollPeriodId, x.RunType, x.IsDelete });
             entity.HasIndex(x => new { x.RunStatus, x.IsLocked, x.IsActive, x.IsDelete });
             entity.HasIndex(x => new { x.FinancePaymentBatchId, x.GlHeaderId });

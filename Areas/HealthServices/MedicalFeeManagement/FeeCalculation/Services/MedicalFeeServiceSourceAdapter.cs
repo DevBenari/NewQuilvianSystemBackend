@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalcula
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Enums;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Services
@@ -58,6 +59,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         {
             var startUtc = periodStart.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var endUtc = periodEnd.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+            // Batas sebagai DateTimeOffset UTC (offset 0, syarat Npgsql untuk timestamptz). Perbandingan DateTimeOffset memakai
+            // instan UTC, sehingga hasilnya sama dengan membandingkan .UtcDateTime, tetapi dapat diterjemahkan semua provider.
+            var startOffset = new DateTimeOffset(startUtc);
+            var endOffset = new DateTimeOffset(endUtc);
 
             _logger.LogInformation(
                 "Memulai penarikan layanan medis untuk periode {Start} s.d. {End}",
@@ -101,8 +106,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                             i.Status == BillingInvoiceItemStatuses.Active &&
                             (i.Invoice.Status == BillingInvoiceStatuses.Final || i.Invoice.Status == BillingInvoiceStatuses.Closed) &&
                             i.Invoice.InvoiceDate.HasValue &&
-                            i.Invoice.InvoiceDate.Value.UtcDateTime >= startUtc &&
-                            i.Invoice.InvoiceDate.Value.UtcDateTime <= endUtc)
+                            i.Invoice.InvoiceDate.Value >= startOffset &&
+                            i.Invoice.InvoiceDate.Value <= endOffset)
                 .ToListAsync(ct);
 
             // Indeks pencarian cepat Billing item: key = "{SourceDomain}_{SourceDetailId}"
@@ -127,6 +132,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 startUtc, endUtc, invoiceMap, primaryRole, ct);
             result.AddRange(labServices);
 
+            // 6b. Adaptasi pemeriksaan refraksi Optik (OPTICAL) — BE-OPT-051, OPT-DEC-055: RO dan Sp.M berhak jasa medis
+            var opticalServices = await ExtractOpticalExamServicesAsync(
+                startUtc, endUtc, invoiceMap, primaryRole, doctorByWorkforceMap, ct);
+            result.AddRange(opticalServices);
+
             // 7. Adaptasi Entri Bebas Kasir (ADHOC & ADHOC_CATALOG) — Terkunci MDF-INTEGRATION-1.1 §5 (BE-MDF-015)
             var adhocServices = ExtractAdhocBillingServices(
                 invoiceItems, primaryRole, roleByCodeMap, doctorByIdMap, periodStart, periodEnd);
@@ -136,8 +146,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             // Layanan Radiologi DIABAIKAN SEPENUHNYA — tidak ditarik, tidak dihitung, dan tidak dicatat ke unresolved.
 
             _logger.LogInformation(
-                "Penarikan layanan selesai. Total {Count} item diadaptasi (Kamar Operasi: {Opr}, Klinis: {Proc}, Lab: {Lab}, Adhoc: {Adhoc})",
-                result.Count, oprServices.Count, procedureServices.Count, labServices.Count, adhocServices.Count);
+                "Penarikan layanan selesai. Total {Count} item diadaptasi (Kamar Operasi: {Opr}, Klinis: {Proc}, Lab: {Lab}, Optik: {Optical}, Adhoc: {Adhoc})",
+                result.Count, oprServices.Count, procedureServices.Count, labServices.Count, opticalServices.Count, adhocServices.Count);
 
             return result;
         }
@@ -363,6 +373,107 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                     PayeeType = MdfPayeeTypes.Doctor,
                     PayeeReferenceId = payeeReferenceId,
                     PayeeName = proc.Doctor?.FullName ?? string.Empty,
+                    RoleId = primaryRole?.Id,
+                    RoleCode = primaryRole?.RoleCode,
+                    RoleName = primaryRole?.RoleName,
+                    IsPrimaryRole = true,
+                    UnresolvedReason = unresolvedReason,
+                    UnresolvedReasonDetail = unresolvedReasonDetail
+                });
+            }
+
+            return items;
+        }
+
+        // =====================================================================
+        // 6b. Sumber Optik (OPTICAL)
+        // =====================================================================
+
+        /// <summary>
+        /// Menarik pemeriksaan refraksi Optik yang final pada periode (<c>BE-OPT-051</c>, <c>INT-OPT-08</c>, <c>OPT-DEC-055</c>).
+        /// Satu pemeriksaan = satu layanan, berapa pun revisinya (revisi tidak menagih ulang, <c>OPT-DEC-047</c>).
+        /// Pelaksana = pemeriksa: Sp.M yang punya data dokter dibayar sebagai <c>Doctor</c>, RO sebagai <c>Workforce</c>
+        /// (pola anggota tim Kamar Operasi). Nilai dasar dari baris tagihan final <c>OPTICAL</c> pemeriksaan itu
+        /// (<c>SourceDetailId</c> = id pemeriksaan, <c>BE-OPT-030</c>); belum final → nilai 0, sama seperti Laboratorium.
+        /// </summary>
+        private async Task<List<AdaptedServiceItem>> ExtractOpticalExamServicesAsync(
+            DateTime startUtc,
+            DateTime endUtc,
+            Dictionary<string, BilInvoiceItem> invoiceMap,
+            MstMedicalFeeRole? primaryRole,
+            Dictionary<Guid, (Guid Id, string DoctorName)> doctorByWorkforceMap,
+            CancellationToken ct)
+        {
+            var items = new List<AdaptedServiceItem>();
+
+            var exams = await _dbContext.OptRefractionExams
+                .AsNoTracking()
+                .Where(x => !x.IsDelete &&
+                            x.Status == OptRefractionExamStatus.Final &&
+                            x.FinalizedAt.HasValue &&
+                            x.FinalizedAt.Value >= startUtc &&
+                            x.FinalizedAt.Value <= endUtc)
+                .Select(x => new { x.Id, x.ExamNumber, x.ExaminerWorkforceProfileId, FinalizedAt = x.FinalizedAt!.Value })
+                .ToListAsync(ct);
+
+            var workforceIds = exams.Select(x => x.ExaminerWorkforceProfileId).Distinct().ToList();
+            var workforceNames = await _dbContext.MstWorkforceProfiles
+                .AsNoTracking()
+                .Where(w => workforceIds.Contains(w.Id))
+                .ToDictionaryAsync(w => w.Id, w => w.DisplayName, ct);
+
+            foreach (var exam in exams)
+            {
+                var sourceDetailId = exam.Id.ToString();
+                var serviceDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(
+                    DateTime.SpecifyKind(exam.FinalizedAt, DateTimeKind.Utc), AsiaJakartaTimeZone));
+
+                invoiceMap.TryGetValue($"{MdfServiceSourceDomains.Optical}_{sourceDetailId}", out var invoiceItem);
+
+                Guid? payeeReferenceId = null;
+                var payeeType = MdfPayeeTypes.Workforce;
+                var payeeName = string.Empty;
+                if (exam.ExaminerWorkforceProfileId != Guid.Empty)
+                {
+                    if (doctorByWorkforceMap.TryGetValue(exam.ExaminerWorkforceProfileId, out var doc))
+                    {
+                        payeeType = MdfPayeeTypes.Doctor;
+                        payeeReferenceId = doc.Id;
+                        payeeName = doc.DoctorName;
+                    }
+                    else
+                    {
+                        payeeReferenceId = exam.ExaminerWorkforceProfileId;
+                        payeeName = workforceNames.GetValueOrDefault(exam.ExaminerWorkforceProfileId) ?? string.Empty;
+                    }
+                }
+
+                string? unresolvedReason = null;
+                string? unresolvedReasonDetail = null;
+                if (!payeeReferenceId.HasValue)
+                {
+                    unresolvedReason = MdfUnresolvedReasons.PerformerMissing;
+                    unresolvedReasonDetail = $"Pemeriksaan refraksi {exam.ExamNumber} belum memiliki pemeriksa.";
+                }
+                else if (primaryRole == null)
+                {
+                    unresolvedReason = MdfUnresolvedReasons.RoleUnmapped;
+                    unresolvedReasonDetail = "Peran utama (IsPrimaryRole = true) belum dikonfigurasi pada data induk peran jasa medis.";
+                }
+
+                items.Add(new AdaptedServiceItem
+                {
+                    SourceDomain = MdfServiceSourceDomains.Optical,
+                    SourceDetailId = sourceDetailId,
+                    InvoiceItemId = invoiceItem?.Id,
+                    TariffId = invoiceItem?.TariffId,
+                    TariffCategoryId = invoiceItem?.CategoryId,
+                    ServiceDescription = $"Pemeriksaan Refraksi {exam.ExamNumber}",
+                    ServiceDate = serviceDate,
+                    BaseAmount = invoiceItem != null ? invoiceItem.Quantity * invoiceItem.UnitPrice : 0m,
+                    PayeeType = payeeType,
+                    PayeeReferenceId = payeeReferenceId,
+                    PayeeName = payeeName,
                     RoleId = primaryRole?.Id,
                     RoleCode = primaryRole?.RoleCode,
                     RoleName = primaryRole?.RoleName,

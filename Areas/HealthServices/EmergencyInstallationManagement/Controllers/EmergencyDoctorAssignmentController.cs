@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -42,13 +45,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string LogCategory = "HealthServices.EmergencyInstallation";
 
         private readonly EmergencyDoctorAssignmentService _service;
+        private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
         public EmergencyDoctorAssignmentController(
             EmergencyDoctorAssignmentService service,
+            ApplicationDbContext dbContext,
             LoggerService loggerService)
         {
             _service = service;
+            _dbContext = dbContext;
             _loggerService = loggerService;
         }
 
@@ -58,6 +64,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// <remarks>
         /// Memisahkan jadwal praktek poli rawat jalan dari dokter jaga IGD.
         /// </remarks>
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDoctorAssignmentFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Doctor Assignment", Description = "Melihat metadata filter penugasan dokter IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDoctorAssignment", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyDoctorAssignmentFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyDoctorAssignmentDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "effectivefrom", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyDoctorAssignmentFilterMetadataResponse>.Ok(result, "Metadata filter penugasan dokter IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDoctorAssignmentSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Doctor Assignment", Description = "Melihat ringkasan penugasan dokter IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDoctorAssignment", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgDoctorAssignment>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyDoctorAssignmentSummaryResponse
+            {
+                TotalAssignment = await query.CountAsync(cancellationToken),
+                ActiveAssignment = await query.CountAsync(x => x.EffectiveTo == null, cancellationToken),
+                EndedAssignment = await query.CountAsync(x => x.EffectiveTo != null, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyDoctorAssignmentSummaryResponse>.Ok(summary, "Ringkasan penugasan dokter IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyDoctorAssignmentOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Doctor Assignment Options", Description = "Melihat pilihan penugasan dokter IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDoctorAssignment", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyVisitId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgDoctorAssignment>().AsNoTracking()
+                .Include(x => x.Doctor)
+                .Where(x => !x.IsDelete && x.EffectiveTo == null);
+
+            if (emergencyVisitId.HasValue && emergencyVisitId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyVisitId == emergencyVisitId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderByDescending(x => x.EffectiveFrom)
+                .Take(100)
+                .Select(x => new EmergencyDoctorAssignmentOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitId = x.EmergencyVisitId,
+                    DoctorId = x.DoctorId,
+                    DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
+                    AssignedAt = x.EffectiveFrom,
+                    IsActive = x.EffectiveTo == null
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyDoctorAssignmentOptionResponse>>.Ok(items, "Pilihan penugasan dokter IGD berhasil diambil."));
+        }
         [HttpGet("on-duty-doctors")]
         [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<EmergencyOnDutyDoctorResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Doctor Assignment", Description = "Melihat dokter jaga IGD aktif", AccessType = AccessTypes.Read, SortOrder = 1)]

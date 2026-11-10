@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -25,20 +27,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class QueueDisplayDeviceController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
-        private const string CodePrefix = "QDD-RSMMC-";
-        private const int CodeNumberLength = 5;
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly QueueDisplayDeviceCodeService _queueDisplayDeviceCodeService;
 
         public QueueDisplayDeviceController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            QueueDisplayDeviceCodeService queueDisplayDeviceCodeService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _userManager = userManager;
+            _queueDisplayDeviceCodeService = queueDisplayDeviceCodeService;
         }
 
         [HttpGet("filters/metadata")]
@@ -98,9 +101,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<QueueDisplayDeviceSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Queue Display Device", Description = "Melihat ringkasan display antrian", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("QueueDisplayDevice", "Read")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummary([FromQuery] string? displayScope = null)
         {
-            var q = BuildBaseQuery();
+            var q = ApplyDisplayScope(BuildBaseQuery(), displayScope);
             var result = new QueueDisplayDeviceSummaryResponse { TotalDevice = await q.CountAsync(), ActiveDevice = await q.CountAsync(x => x.IsActive), InactiveDevice = await q.CountAsync(x => !x.IsActive), VoiceCallingEnabledDevice = await q.CountAsync(x => x.EnableVoiceCalling), ShowPatientNameDevice = await q.CountAsync(x => x.ShowPatientName), WithPairingCodeDevice = await q.CountAsync(x => x.PairingCode != null && x.PairingCode != string.Empty), WithDeviceTokenDevice = await q.CountAsync(x => x.DeviceToken != null && x.DeviceToken != string.Empty) };
             return Ok(ApiResponse<QueueDisplayDeviceSummaryResponse>.Ok(result, "Ringkasan display antrian berhasil diambil."));
         }
@@ -119,6 +122,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] QueueDisplayLayoutType? layoutType,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
+            [FromQuery] string? displayScope,
             [FromQuery] string? sortBy = "displayName",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -132,6 +136,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
             var query = ApplyDateFilter(BuildBaseQuery(), dateRange);
             query = ApplyFilter(query, nurseStationClusterId, serviceUnitId, displayDeviceType, layoutType, isActive, search);
+            query = ApplyDisplayScope(query, displayScope);
             var totalData = await query.CountAsync();
             var entities = await ApplySorting(query, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             var actorNames = await GetActorNameMapAsync(entities.Select(x => x.CreateBy).Where(x => x != Guid.Empty));
@@ -173,7 +178,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var validation = await ValidateRequestAsync(null, request);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data display antrian tidak valid."));
             var now = DateTime.UtcNow; var actorUserId = GetCurrentUserId();
-            var entity = new MstQueueDisplayDevice { Id = Guid.NewGuid(), NurseStationClusterId = request.NurseStationClusterId, ServiceUnitId = request.ServiceUnitId, DisplayCode = await GenerateCodeAsync(), DisplayName = request.DisplayName.Trim(), DisplayDeviceType = request.DisplayDeviceType, LayoutType = request.LayoutType, LocationName = NormalizeNullableString(request.LocationName), FloorName = NormalizeNullableString(request.FloorName), RoomName = NormalizeNullableString(request.RoomName), IpAddress = NormalizeNullableString(request.IpAddress), MacAddress = NormalizeNullableString(request.MacAddress), PairingCode = NormalizeUpperNullableString(request.PairingCode), DeviceToken = NormalizeNullableString(request.DeviceToken), EnableVoiceCalling = request.EnableVoiceCalling, ShowPatientName = request.ShowPatientName, ShowDoctorName = request.ShowDoctorName, ShowClinicName = request.ShowClinicName, RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds), SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes), Description = NormalizeNullableString(request.Description), IsActive = true, CreateDateTime = now, CreateBy = actorUserId, IsDelete = false, IsCancel = false };
+            string displayCode;
+            try { displayCode = await _queueDisplayDeviceCodeService.AllocateDisplayCodeAsync(actorUserId); }
+            catch (NumberSeriesAllocationException) { return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kode display antrian gagal diterbitkan. Hubungi administrator sistem.")); }
+            var entity = new MstQueueDisplayDevice { Id = Guid.NewGuid(), NurseStationClusterId = ResolveClusterId(request), ServiceUnitId = request.ServiceUnitId, DisplayCode = displayCode, DisplayName = request.DisplayName.Trim(), DisplayDeviceType = request.DisplayDeviceType, LayoutType = request.LayoutType, LocationName = NormalizeNullableString(request.LocationName), FloorName = NormalizeNullableString(request.FloorName), RoomName = NormalizeNullableString(request.RoomName), IpAddress = NormalizeNullableString(request.IpAddress), MacAddress = NormalizeNullableString(request.MacAddress), PairingCode = NormalizeUpperNullableString(request.PairingCode), DeviceToken = NormalizeNullableString(request.DeviceToken), EnableVoiceCalling = request.EnableVoiceCalling, ShowPatientName = request.ShowPatientName, ShowDoctorName = request.ShowDoctorName, ShowClinicName = request.ShowClinicName, RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds), SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes), Description = NormalizeNullableString(request.Description), IsActive = true, CreateDateTime = now, CreateBy = actorUserId, IsDelete = false, IsCancel = false };
             entity.QueueAudienceMode = request.QueueAudienceMode ?? QueueDisplayAudienceMode.All; // RJ-DOC-DEC-058
             _dbContext.Set<MstQueueDisplayDevice>().Add(entity); await _dbContext.SaveChangesAsync();
             var result = new QueueDisplayDeviceCreateResponse { Id = entity.Id, DisplayCode = entity.DisplayCode, DisplayName = entity.DisplayName, SessionExpireMinutes = entity.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes), IsActive = entity.IsActive };
@@ -191,7 +199,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (entity == null) return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Display antrian tidak ditemukan."));
             var validation = await ValidateRequestAsync(id, request);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data display antrian tidak valid."));
-            entity.NurseStationClusterId = request.NurseStationClusterId; entity.ServiceUnitId = request.ServiceUnitId; entity.DisplayName = request.DisplayName.Trim(); entity.DisplayDeviceType = request.DisplayDeviceType; entity.LayoutType = request.LayoutType; entity.LocationName = NormalizeNullableString(request.LocationName); entity.FloorName = NormalizeNullableString(request.FloorName); entity.RoomName = NormalizeNullableString(request.RoomName); entity.IpAddress = NormalizeNullableString(request.IpAddress); entity.MacAddress = NormalizeNullableString(request.MacAddress); entity.PairingCode = NormalizeUpperNullableString(request.PairingCode); entity.DeviceToken = NormalizeNullableString(request.DeviceToken); entity.EnableVoiceCalling = request.EnableVoiceCalling; entity.ShowPatientName = request.ShowPatientName; entity.ShowDoctorName = request.ShowDoctorName; entity.ShowClinicName = request.ShowClinicName; entity.QueueAudienceMode = request.QueueAudienceMode ?? entity.QueueAudienceMode; entity.RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds); entity.SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes); entity.Description = NormalizeNullableString(request.Description); entity.IsActive = request.IsActive; entity.UpdateDateTime = DateTime.UtcNow; entity.UpdateBy = GetCurrentUserId(); await _dbContext.SaveChangesAsync();
+            entity.NurseStationClusterId = ResolveClusterId(request); entity.ServiceUnitId = request.ServiceUnitId; entity.DisplayName = request.DisplayName.Trim(); entity.DisplayDeviceType = request.DisplayDeviceType; entity.LayoutType = request.LayoutType; entity.LocationName = NormalizeNullableString(request.LocationName); entity.FloorName = NormalizeNullableString(request.FloorName); entity.RoomName = NormalizeNullableString(request.RoomName); entity.IpAddress = NormalizeNullableString(request.IpAddress); entity.MacAddress = NormalizeNullableString(request.MacAddress); entity.PairingCode = NormalizeUpperNullableString(request.PairingCode); entity.DeviceToken = NormalizeNullableString(request.DeviceToken); entity.EnableVoiceCalling = request.EnableVoiceCalling; entity.ShowPatientName = request.ShowPatientName; entity.ShowDoctorName = request.ShowDoctorName; entity.ShowClinicName = request.ShowClinicName; entity.QueueAudienceMode = request.QueueAudienceMode ?? entity.QueueAudienceMode; entity.RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds); entity.SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes); entity.Description = NormalizeNullableString(request.Description); entity.IsActive = request.IsActive; entity.UpdateDateTime = DateTime.UtcNow; entity.UpdateBy = GetCurrentUserId(); await _dbContext.SaveChangesAsync();
             return Ok(ApiResponse<object>.Ok(null, "Display antrian berhasil diperbarui."));
         }
 
@@ -698,6 +706,22 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         private IQueryable<MstQueueDisplayDevice> BuildBaseQuery() => _dbContext.Set<MstQueueDisplayDevice>().AsNoTracking().Include(x => x.NurseStationCluster).Include(x => x.ServiceUnit).Where(x => !x.IsDelete);
+        /// <summary>
+        /// Submenu Display Antrean: <c>service</c> = display perawat/dokter (selain layout Admisi),
+        /// <c>admission</c> = display Admisi Rawat Jalan. Kosong atau nilai lain = semua display.
+        /// </summary>
+        private static IQueryable<MstQueueDisplayDevice> ApplyDisplayScope(IQueryable<MstQueueDisplayDevice> q, string? displayScope)
+        {
+            var scope = displayScope?.Trim().ToLowerInvariant();
+
+            return scope switch
+            {
+                "admission" => q.Where(x => x.LayoutType == QueueDisplayLayoutType.AdmissionBoard),
+                "service" => q.Where(x => x.LayoutType != QueueDisplayLayoutType.AdmissionBoard),
+                _ => q
+            };
+        }
+
         private static IQueryable<MstQueueDisplayDevice> ApplyFilter(IQueryable<MstQueueDisplayDevice> q, Guid? clusterId, Guid? serviceUnitId, QueueDisplayDeviceType? deviceType, QueueDisplayLayoutType? layoutType, bool? isActive, string? search) { if (clusterId.HasValue && clusterId.Value != Guid.Empty) q = q.Where(x => x.NurseStationClusterId == clusterId.Value); if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty) q = q.Where(x => x.ServiceUnitId == serviceUnitId.Value); if (deviceType.HasValue) q = q.Where(x => x.DisplayDeviceType == deviceType.Value); if (layoutType.HasValue) q = q.Where(x => x.LayoutType == layoutType.Value); if (isActive.HasValue) q = q.Where(x => x.IsActive == isActive.Value); if (!string.IsNullOrWhiteSpace(search)) { var k = search.Trim().ToLower(); q = q.Where(x => x.DisplayCode.ToLower().Contains(k) || x.DisplayName.ToLower().Contains(k) || x.NurseStationCluster!.ClusterName.ToLower().Contains(k) || (x.LocationName != null && x.LocationName.ToLower().Contains(k)) || (x.FloorName != null && x.FloorName.ToLower().Contains(k)) || (x.RoomName != null && x.RoomName.ToLower().Contains(k)) || (x.IpAddress != null && x.IpAddress.ToLower().Contains(k)) || (x.MacAddress != null && x.MacAddress.ToLower().Contains(k)) || (x.PairingCode != null && x.PairingCode.ToLower().Contains(k)) || (x.Description != null && x.Description.ToLower().Contains(k))); } return q; }
         private static IOrderedQueryable<MstQueueDisplayDevice> ApplySorting(IQueryable<MstQueueDisplayDevice> q, string? sortBy, string? dir)
         {
@@ -723,8 +747,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 _ => d ? q.OrderByDescending(x => x.DisplayName).ThenByDescending(x => x.DisplayCode) : q.OrderBy(x => x.DisplayName).ThenBy(x => x.DisplayCode)
             };
         }
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid? excludeId, CreateQueueDisplayDeviceRequest r) { if (r.NurseStationClusterId == Guid.Empty) return (false, "Cluster wajib diisi."); if (string.IsNullOrWhiteSpace(r.DisplayName)) return (false, "Nama display wajib diisi."); if (!Enum.IsDefined(typeof(QueueDisplayDeviceType), r.DisplayDeviceType)) return (false, "Tipe device tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (!Enum.IsDefined(typeof(QueueDisplayLayoutType), r.LayoutType)) return (false, "Tipe layout tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (r.QueueAudienceMode.HasValue && !Enum.IsDefined(typeof(QueueDisplayAudienceMode), r.QueueAudienceMode.Value)) return (false, "Audience display tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (!await _dbContext.Set<MstNurseStationCluster>().AnyAsync(x => x.Id == r.NurseStationClusterId && !x.IsDelete)) return (false, "Cluster tidak ditemukan."); if (r.ServiceUnitId.HasValue && r.ServiceUnitId.Value != Guid.Empty && !await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit>().AnyAsync(x => x.Id == r.ServiceUnitId.Value && !x.IsDelete)) return (false, "Unit layanan tidak ditemukan."); var n = r.DisplayName.Trim().ToLower(); var dup = _dbContext.Set<MstQueueDisplayDevice>().Where(x => !x.IsDelete && x.DisplayName.ToLower() == n); if (excludeId.HasValue) dup = dup.Where(x => x.Id != excludeId.Value); if (await dup.AnyAsync()) return (false, "Nama display sudah digunakan."); var pairing = NormalizeUpperNullableString(r.PairingCode); if (!string.IsNullOrWhiteSpace(pairing)) { var p = _dbContext.Set<MstQueueDisplayDevice>().Where(x => !x.IsDelete && x.PairingCode != null && x.PairingCode.ToLower() == pairing.ToLower()); if (excludeId.HasValue) p = p.Where(x => x.Id != excludeId.Value); if (await p.AnyAsync()) return (false, "Pairing code sudah digunakan."); } if (r.SessionExpireMinutes.HasValue && r.SessionExpireMinutes.Value <= 0) return (false, "Masa aktif session display harus lebih dari 0 menit atau dikosongkan untuk memakai fallback default."); return (true, null); }
-        private async Task<string> GenerateCodeAsync() { var codes = await _dbContext.Set<MstQueueDisplayDevice>().IgnoreQueryFilters().AsNoTracking().Where(x => x.DisplayCode.StartsWith(CodePrefix)).Select(x => x.DisplayCode).ToListAsync(); var nums = codes.Select(x => x.Replace(CodePrefix, string.Empty)).Where(x => int.TryParse(x, out _)).Select(int.Parse).Where(x => x > 0).ToHashSet(); var next = 1; while (nums.Contains(next)) next++; return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0'); }
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid? excludeId, CreateQueueDisplayDeviceRequest r) { var isAdmissionBoard = r.LayoutType == QueueDisplayLayoutType.AdmissionBoard; if (!isAdmissionBoard && (!r.NurseStationClusterId.HasValue || r.NurseStationClusterId.Value == Guid.Empty)) return (false, "Cluster wajib diisi untuk display poli."); if (string.IsNullOrWhiteSpace(r.DisplayName)) return (false, "Nama display wajib diisi."); if (!Enum.IsDefined(typeof(QueueDisplayDeviceType), r.DisplayDeviceType)) return (false, "Tipe device tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (!Enum.IsDefined(typeof(QueueDisplayLayoutType), r.LayoutType)) return (false, "Tipe layout tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (r.QueueAudienceMode.HasValue && !Enum.IsDefined(typeof(QueueDisplayAudienceMode), r.QueueAudienceMode.Value)) return (false, "Audience display tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (!isAdmissionBoard && !await _dbContext.Set<MstNurseStationCluster>().AnyAsync(x => x.Id == r.NurseStationClusterId && !x.IsDelete)) return (false, "Cluster tidak ditemukan."); if (r.ServiceUnitId.HasValue && r.ServiceUnitId.Value != Guid.Empty && !await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit>().AnyAsync(x => x.Id == r.ServiceUnitId.Value && !x.IsDelete)) return (false, "Unit layanan tidak ditemukan."); var n = r.DisplayName.Trim().ToLower(); var dup = _dbContext.Set<MstQueueDisplayDevice>().Where(x => !x.IsDelete && x.DisplayName.ToLower() == n); if (excludeId.HasValue) dup = dup.Where(x => x.Id != excludeId.Value); if (await dup.AnyAsync()) return (false, "Nama display sudah digunakan."); var pairing = NormalizeUpperNullableString(r.PairingCode); if (!string.IsNullOrWhiteSpace(pairing)) { var p = _dbContext.Set<MstQueueDisplayDevice>().Where(x => !x.IsDelete && x.PairingCode != null && x.PairingCode.ToLower() == pairing.ToLower()); if (excludeId.HasValue) p = p.Where(x => x.Id != excludeId.Value); if (await p.AnyAsync()) return (false, "Pairing code sudah digunakan."); } if (r.SessionExpireMinutes.HasValue && r.SessionExpireMinutes.Value <= 0) return (false, "Masa aktif session display harus lebih dari 0 menit atau dikosongkan untuk memakai fallback default."); return (true, null); }
         private static QueueDisplayDeviceResponse MapResponse(MstQueueDisplayDevice e, IReadOnlyDictionary<Guid, string?> names) => new() { Id = e.Id, NurseStationClusterId = e.NurseStationClusterId, ClusterCode = e.NurseStationCluster?.ClusterCode, ClusterName = e.NurseStationCluster?.ClusterName, ServiceUnitId = e.ServiceUnitId, ServiceUnitCode = e.ServiceUnit?.ServiceUnitCode, ServiceUnitName = e.ServiceUnit?.ServiceUnitName, DisplayCode = e.DisplayCode, DisplayName = e.DisplayName, DisplayDeviceType = e.DisplayDeviceType, DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(e.DisplayDeviceType), LayoutType = e.LayoutType, LayoutTypeName = BuildLayoutTypeLabel(e.LayoutType), LocationName = e.LocationName, FloorName = e.FloorName, RoomName = e.RoomName, IpAddress = e.IpAddress, MacAddress = e.MacAddress, PairingCode = e.PairingCode, EnableVoiceCalling = e.EnableVoiceCalling, ShowPatientName = e.ShowPatientName, ShowDoctorName = e.ShowDoctorName, ShowClinicName = e.ShowClinicName, QueueAudienceMode = e.QueueAudienceMode, QueueAudienceModeName = BuildQueueAudienceModeLabel(e.QueueAudienceMode), RefreshIntervalSeconds = e.RefreshIntervalSeconds, SessionExpireMinutes = e.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(e.SessionExpireMinutes), LastOnlineDateTime = e.LastOnlineDateTime, IsActive = e.IsActive, CreateDateTime = e.CreateDateTime, CreateBy = e.CreateBy == Guid.Empty ? null : e.CreateBy, CreateByName = GetActorName(names, e.CreateBy) };
         private static QueueDisplayDeviceDetailResponse MapDetailResponse(MstQueueDisplayDevice e, IReadOnlyDictionary<Guid, string?> names) { var d = new QueueDisplayDeviceDetailResponse(); var b = MapResponse(e, names); foreach (var p in typeof(QueueDisplayDeviceResponse).GetProperties()) p.SetValue(d, p.GetValue(b)); d.DeviceToken = e.DeviceToken; d.Description = e.Description; d.UpdateDateTime = e.UpdateDateTime; d.UpdateBy = e.UpdateBy == Guid.Empty ? null : e.UpdateBy; d.UpdateByName = GetActorName(names, e.UpdateBy); return d; }
         private static QueueDisplayDeviceOptionResponse MapOptionResponse(MstQueueDisplayDevice e) => new() { Id = e.Id, NurseStationClusterId = e.NurseStationClusterId, ClusterName = e.NurseStationCluster?.ClusterName, DisplayCode = e.DisplayCode, DisplayName = e.DisplayName, DisplayDeviceType = e.DisplayDeviceType, DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(e.DisplayDeviceType), LayoutType = e.LayoutType, LayoutTypeName = BuildLayoutTypeLabel(e.LayoutType), SessionExpireMinutes = e.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(e.SessionExpireMinutes) };
@@ -778,7 +801,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
         private static string BuildDisplayDeviceTypeLabel(QueueDisplayDeviceType v) => v switch { QueueDisplayDeviceType.TvDisplay => "TV Display", QueueDisplayDeviceType.PlasmaDisplay => "Plasma Display", QueueDisplayDeviceType.TabletDisplay => "Tablet Display", QueueDisplayDeviceType.WebDisplay => "Web Display", QueueDisplayDeviceType.VoiceDisplay => "Voice Display", QueueDisplayDeviceType.Other => "Other", _ => v.ToString() };
         private static string BuildQueueAudienceModeLabel(QueueDisplayAudienceMode v) => v switch { QueueDisplayAudienceMode.All => "All", QueueDisplayAudienceMode.RegularOnly => "Regular Only", QueueDisplayAudienceMode.MemberOnly => "Member Only", _ => v.ToString() };
-        private static string BuildLayoutTypeLabel(QueueDisplayLayoutType v) => v switch { QueueDisplayLayoutType.ClusterBoard => "Cluster Board", QueueDisplayLayoutType.ClinicBoard => "Clinic Board", QueueDisplayLayoutType.DoctorBoard => "Doctor Board", QueueDisplayLayoutType.CallingBoard => "Calling Board", QueueDisplayLayoutType.SummaryBoard => "Summary Board", _ => v.ToString() };
+        /// <summary>Display Admisi Rawat Jalan tidak terikat cluster poli; cluster yang terkirim diabaikan.</summary>
+        private static Guid? ResolveClusterId(CreateQueueDisplayDeviceRequest request) =>
+            request.LayoutType == QueueDisplayLayoutType.AdmissionBoard || request.NurseStationClusterId == Guid.Empty
+                ? null
+                : request.NurseStationClusterId;
+
+        private static string BuildLayoutTypeLabel(QueueDisplayLayoutType v) => v switch { QueueDisplayLayoutType.ClusterBoard => "Cluster Board", QueueDisplayLayoutType.ClinicBoard => "Clinic Board", QueueDisplayLayoutType.DoctorBoard => "Doctor Board", QueueDisplayLayoutType.CallingBoard => "Calling Board", QueueDisplayLayoutType.SummaryBoard => "Summary Board", QueueDisplayLayoutType.AdmissionBoard => "Admisi Rawat Jalan", _ => v.ToString() };
 
 
         private async Task<ApplicationUser?> FindQueueDisplayLoginUserAsync(string displayCode)
@@ -948,16 +977,25 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var query = new List<string>
             {
                 $"queueDisplayDeviceId={Uri.EscapeDataString(device.Id.ToString())}",
-                $"displayCode={Uri.EscapeDataString(device.DisplayCode)}",
-                $"nurseStationClusterId={Uri.EscapeDataString(device.NurseStationClusterId.ToString())}"
+                $"displayCode={Uri.EscapeDataString(device.DisplayCode)}"
             };
+
+            if (device.NurseStationClusterId.HasValue)
+            {
+                query.Add($"nurseStationClusterId={Uri.EscapeDataString(device.NurseStationClusterId.Value.ToString())}");
+            }
 
             if (device.ServiceUnitId.HasValue && device.ServiceUnitId.Value != Guid.Empty)
             {
                 query.Add($"serviceUnitId={Uri.EscapeDataString(device.ServiceUnitId.Value.ToString())}");
             }
 
-            return "/queue-display?" + string.Join("&", query);
+            // Layout Admisi Rawat Jalan langsung membuka display antrean admisi.
+            var basePath = device.LayoutType == QueueDisplayLayoutType.AdmissionBoard
+                ? "/queue-display/admission"
+                : "/queue-display";
+
+            return basePath + "?" + string.Join("&", query);
         }
 
         private static string NormalizeLoginUserName(string? userName, string displayCode)
@@ -1139,7 +1177,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             {
                 new() { Name = "displayCode", Label = "Kode Display", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format QDD-RSMMC-00001.", Example = "QDD-RSMMC-00001", SortOrder = 1 },
                 new() { Name = "displayName", Label = "Nama Display", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 150, Example = "Display Lobby Utama", SortOrder = 2 },
-                new() { Name = "nurseStationClusterId", Label = "Cluster Nurse Station", Section = "Relasi", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", Description = "Cluster poli yang ditampilkan pada layar antrian.", SortOrder = 3 },
+                new() { Name = "nurseStationClusterId", Label = "Cluster Nurse Station", Section = "Relasi", InputType = "select", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "ConditionalRequired", Description = "Cluster poli yang ditampilkan pada layar antrian. Wajib kecuali layout Admisi Rawat Jalan.", SortOrder = 3 },
                 new() { Name = "serviceUnitId", Label = "Unit Layanan", Section = "Relasi", InputType = "select", Description = "Opsional. Batasi display ke unit layanan tertentu.", SortOrder = 4 },
                 new() { Name = "displayDeviceType", Label = "Tipe Device", Section = "Display", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "displayDeviceTypeOptions", SortOrder = 5 },
                 new() { Name = "layoutType", Label = "Tipe Layout", Section = "Display", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "layoutTypeOptions", SortOrder = 6 },

@@ -800,6 +800,18 @@ public sealed class BillingFinalizationService
                     "Bayar kelebihan plafon atau finalisasi dengan penangguhan AR Karyawan.");
         }
 
+        // Pemakaian plafon dicoba SEBELUM finalisasi: bila gagal, hanya catatan pemakaian yang tidak jadi (belum ada yang di-stage),
+        // uang pasien yang sudah diterima tidak terganggu, dan invoice tetap OPEN untuk finalisasi manual. Bila berhasil, panggilan
+        // di dalam finalisasi di bawah mengenalinya (kunci sama) sebagai ALREADY_APPLIED, jadi plafon tidak dipakai dua kali.
+        try
+        {
+            await ConsumeBenefitAllowanceAsync(invoice, splitResult, actorUserId, cancellationToken);
+        }
+        catch (BillingFinalizationValidationException exception)
+        {
+            return (false, $"Pembayaran berhasil, tetapi invoice belum dapat ditutup: {exception.Message}");
+        }
+
         var (record, closureChange) = await ExecuteInternalFinalizationAndClosureAsync(
             invoice,
             calculation,
@@ -898,8 +910,12 @@ public sealed class BillingFinalizationService
 
         if (_integrityService != null)
         {
+            // BE-28 / RM-DEC-070: sumber penutupan klinis jalur ini. Bila kunjungan sudah tutup
+            // klinis lewat jalur lain, baris lama dipertahankan — waktu tutup klinis tidak bergeser.
             await _integrityService.LockOpenDocumentsForEncounterAsync(
-                encounter.Id, actorUserId, occurredAt.UtcDateTime, encounter.CompletedAt, cancellationToken: cancellationToken);
+                encounter.Id, actorUserId, occurredAt.UtcDateTime, encounter.CompletedAt,
+                closureSource: QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.BillingFinalization,
+                cancellationToken: cancellationToken);
         }
 
         await _loggerService.AuditAsync(
@@ -975,6 +991,11 @@ public sealed class BillingFinalizationService
         string? patientArConsentGivenBy = null,
         string? patientArConsentNotes = null)
     {
+        // Plafon Benefit RS dipakai DI SINI, atomik dengan finalisasi (transaksi pemanggil), SEBELUM apa pun di-stage: bila plafon
+        // tidak dapat dipakai, pengecualian dilempar saat context belum berisi catatan finalisasi/handoff, sehingga tidak ada
+        // keadaan setengah jadi (lihat TryCompleteSettledInvoiceAsync yang menangkapnya tanpa menggagalkan pembayaran).
+        await ConsumeBenefitAllowanceAsync(invoice, employeeBenefitSplit, actorUserId, cancellationToken);
+
         var record = new BilFinalizationRecord
         {
             InvoiceId = invoice.Id,
@@ -1022,10 +1043,9 @@ public sealed class BillingFinalizationService
         await RecognizeUnappliedReferredAdminCreditAsync(
             invoice, calculation, calculationVersion, actorUserId, now, cancellationToken);
 
-        // Keputusan bisnis terbaru: Pemotongan plafon benefit pegawai TIDAK dilakukan saat finalisasi Billing.
-        // Billing hanya membentuk handoff dan AR Benefit RS Internal (FinReceivable IsInternalBenefit = true).
-        // Plafon baru dipotong oleh Finance saat persetujuan penerbitan penutupan benefit (FinanceBenefitSettlementService.PostAsync).
-        // (Lihat StageHandoffsForFinalizationAsync di atas).
+        // Penutupan Benefit dihapus: Benefit RS Internal memakai jalur AR/Invoice AR yang sama dengan penjamin lain. Pemakaian plafon
+        // kini dicatat saat finalisasi (ConsumeBenefitAllowanceAsync di awal method ini), keyed HandoffKey baris PAYER sehingga
+        // koreksi/pembatalan (ReturnBenefitBalanceAsync, BE-FIN-108) mengembalikannya dengan kunci yang sama.
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -1068,6 +1088,49 @@ public sealed class BillingFinalizationService
         }
 
         return (record, closureChange);
+    }
+
+    /// <summary>
+    /// Mencatat pemakaian plafon Benefit RS (porsi PAYER internal, P = min(C, S)) lewat EmployeeBenefitBalanceService. Idempoten:
+    /// kunci = HandoffKey baris PAYER (ditetapkan di sini bila belum ada, lalu dipakai persis oleh StageHandoffsForFinalizationAsync),
+    /// jadi percobaan ulang tidak memotong dua kali. Wajib berjalan di dalam transaksi pemanggil (UseAsync menolak tanpa transaksi).
+    /// Bukan kunjungan benefit atau porsi PAYER nol = tidak ada pemakaian.
+    /// </summary>
+    private async Task ConsumeBenefitAllowanceAsync(
+        BilInvoice invoice, EmployeeBenefitSplitCalculationResult? split, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        if (split is null || !split.IsEmployeeBenefitVisit || split.PayerAmount <= 0m) return;
+
+        if (_balanceService is null)
+            throw new BillingFinalizationValidationException(
+                "Layanan plafon benefit tidak tersedia sehingga pemakaian plafon tidak dapat dipastikan. Finalisasi dibatalkan agar plafon dan tagihan tidak berbeda.");
+
+        if (string.IsNullOrWhiteSpace(split.BenefitPersonKind) || !split.BenefitPersonId.HasValue)
+            throw new BillingFinalizationValidationException(
+                "Identitas kepesertaan benefit pegawai tidak lengkap sehingga plafon tidak dapat dipakai. Lengkapi kepesertaan benefit lalu finalisasi ulang.");
+
+        split.PayerHandoffKey ??= Guid.NewGuid();
+
+        var result = await _balanceService.UseAsync(new BenefitBalanceUseRequest
+        {
+            SourceHandoffKey = split.PayerHandoffKey.Value,
+            InvoiceId = invoice.Id,
+            BenefitPersonKind = split.BenefitPersonKind,
+            BenefitPersonId = split.BenefitPersonId.Value,
+            Amount = split.PayerAmount,
+            ActorUserId = actorUserId
+        }, cancellationToken);
+
+        if (string.Equals(result.Result, BenefitUseResults.Applied, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(result.Result, BenefitUseResults.AlreadyApplied, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (string.Equals(result.Result, BenefitUseResults.Insufficient, StringComparison.OrdinalIgnoreCase))
+            throw new BillingFinalizationValidationException(
+                result.Message ?? $"Sisa plafon benefit tidak mencukupi untuk porsi Benefit RS Rp {split.PayerAmount:N0}. Sisa saat ini Rp {result.RemainingAmount:N0}.");
+
+        throw new BillingFinalizationValidationException(
+            result.Message ?? $"Pemakaian plafon benefit tidak dapat dicatat: {result.Result}.");
     }
 
     private async Task<FinalizationPreviewResponse> BuildReadinessAsync(

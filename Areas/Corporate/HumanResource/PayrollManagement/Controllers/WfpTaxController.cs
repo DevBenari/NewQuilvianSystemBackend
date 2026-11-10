@@ -14,6 +14,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/workforce-profiles/{workforceProfileId:guid}/tax-profile")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId:guid}/tax-profile")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_PAYROLL_MANAGEMENT",
@@ -24,7 +26,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         Description = "Corporate human resource workforce tax profile",
         SortOrder = 2
     )]
-    [Tags("Corporate / Human Resource / Payroll Management / Tax Profile")]
+    [Tags("Corporate / Payroll Management / Tax Profile")]
     public class WfpTaxController : ControllerBase
     {
         private static readonly HashSet<string> AllowedTaxMethods = new(StringComparer.OrdinalIgnoreCase)

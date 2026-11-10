@@ -83,4 +83,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     public class UpdateEmergencyProcedureDetailRequest : CreateEmergencyProcedureDetailRequest
     {
     }
+
+    public class EmergencyProcedureDetailOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public EmergencyProcedureDetailType DetailType { get; set; }
+        public string? SkinTestResult { get; set; }
+        public string? TetanusToxoidResult { get; set; }
+    }
+
+    public class EmergencyProcedureDetailSummaryResponse
+    {
+        public int TotalProcedureDetail { get; set; }
+        public int ActiveProcedureDetail { get; set; }
+        public int InactiveProcedureDetail { get; set; }
+    }
+
+    public class EmergencyProcedureDetailDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public Guid? EmergencyVisitId { get; set; }
+        public Guid? PatientProcedureId { get; set; }
+        public EmergencyProcedureDetailType? DetailType { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "createdatetime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyProcedureDetailFilterMetadataResponse
+    {
+        public EmergencyProcedureDetailDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "createdatetime" };
+    }
 }

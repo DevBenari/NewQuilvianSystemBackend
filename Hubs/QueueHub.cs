@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Security;
@@ -38,15 +39,18 @@ namespace QuilvianSystemBackend.Hubs
         private readonly ApplicationDbContext _dbContext;
         private readonly AccessPermissionService _accessPermissionService;
         private readonly InpBedAccessService _bedAccess;
+        private readonly NvwDeviceContextService _nurseViewDeviceContext;
 
         public QueueHub(
             ApplicationDbContext dbContext,
             AccessPermissionService accessPermissionService,
-            InpBedAccessService bedAccess)
+            InpBedAccessService bedAccess,
+            NvwDeviceContextService nurseViewDeviceContext)
         {
             _dbContext = dbContext;
             _accessPermissionService = accessPermissionService;
             _bedAccess = bedAccess;
+            _nurseViewDeviceContext = nurseViewDeviceContext;
         }
 
         public async Task JoinInpatientBedSelection(Guid serviceUnitId)
@@ -103,6 +107,53 @@ namespace QuilvianSystemBackend.Hubs
         public async Task LeavePriorityReservationBoard()
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, QueueRealtimeService.PriorityReservationBoardGroupName);
+        }
+
+        /// <summary>
+        /// Group Daftar Antrean Admisi (rawat-jalan Cetak Antrean Admisi v1.1 bagian 8.2). Hak akses
+        /// ditentukan butir <c>AdmissionQueue : Read</c> di layar Akses Role. Akun layar display ditolak.
+        /// </summary>
+        public async Task JoinAdmissionQueueBoard()
+        {
+            RejectQueueDisplayDeviceAccount();
+
+            if (Context.User == null ||
+                !await _accessPermissionService.HasAccessAsync(Context.User, "AdmissionQueue", "Read"))
+            {
+                throw new HubException("Anda tidak memiliki akses ke daftar antrean admisi.");
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueBoardGroupName);
+        }
+
+        public async Task LeaveAdmissionQueueBoard()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueBoardGroupName);
+        }
+
+        /// <summary>
+        /// Group display antrean admisi (bagian 8.5). Payload hanya nomor admisi dan loket, sehingga
+        /// terbuka bagi akun perangkat display maupun pengguna yang berhak membaca antrean admisi.
+        /// </summary>
+        public async Task JoinAdmissionQueueDisplay()
+        {
+            var user = Context.User;
+            var isDisplayDevice =
+                user?.HasClaim("is_queue_display_account", "true") == true ||
+                user?.HasClaim("profile_type", "QueueDisplayDevice") == true;
+
+            if (!isDisplayDevice &&
+                (user == null || !await _accessPermissionService.HasAccessAsync(user, "AdmissionQueue", "Read")))
+            {
+                throw new HubException("Anda tidak memiliki akses ke display antrean admisi.");
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueDisplayGroupName);
+        }
+
+        public async Task LeaveAdmissionQueueDisplay()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, QueueRealtimeService.AdmissionQueueDisplayGroupName);
         }
 
         private const string DisplayAccountRejectedMessage =
@@ -333,6 +384,48 @@ namespace QuilvianSystemBackend.Hubs
                 EmergencyRealtimeService.EmergencyQueueGroupName
             );
         }
+
+        public async Task JoinNurseViewFloor()
+        {
+            var resolved = await _nurseViewDeviceContext.ResolveActiveDeviceAsync(
+                GetCurrentUserId(),
+                Context.User?.FindFirstValue(NvwDeviceContextService.SessionStampClaim),
+                Context.ConnectionAborted
+            );
+
+            if (!resolved.IsSuccess || resolved.Value == null)
+            {
+                throw new HubException(resolved.Message ?? NurseViewDeviceRejectedMessage);
+            }
+
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildFloorGroupName(resolved.Value.FloorCode),
+                Context.ConnectionAborted
+            );
+        }
+
+        public async Task LeaveNurseViewFloor()
+        {
+            var floorCode = await _nurseViewDeviceContext.FindFloorCodeAsync(
+                GetCurrentUserId(),
+                Context.ConnectionAborted
+            );
+
+            if (string.IsNullOrWhiteSpace(floorCode))
+            {
+                return;
+            }
+
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildFloorGroupName(floorCode),
+                Context.ConnectionAborted
+            );
+        }
+
+        private const string NurseViewDeviceRejectedMessage =
+            "Grup lantai Nurse View hanya untuk akun perangkat Nurse View yang aktif.";
 
         private async Task<List<Guid>> ResolveAccessibleNurseStationClusterIdsAsync()
         {

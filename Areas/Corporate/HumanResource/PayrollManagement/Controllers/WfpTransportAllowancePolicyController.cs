@@ -16,6 +16,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/transport-allowance-policies")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/payroll-management/transport-allowance-policies")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_PAYROLL_MANAGEMENT",
@@ -25,7 +27,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         ControllerName = "TransportAllowancePolicy",
         Description = "Corporate human resource transport allowance policy",
         SortOrder = 10)]
-    [Tags("Corporate / Human Resource / Payroll Management / Transport Allowance Policy")]
+    [Tags("Corporate / Payroll Management / Transport Allowance Policy")]
     public class WfpTransportAllowancePolicyController : ControllerBase
     {
         private static readonly HashSet<string> AllowedCalculationMethods =

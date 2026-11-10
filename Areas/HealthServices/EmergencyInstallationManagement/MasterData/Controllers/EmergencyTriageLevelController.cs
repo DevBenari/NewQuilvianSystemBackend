@@ -43,6 +43,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyTriageLevelFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage Level", Description = "Melihat metadata filter level triase IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyTriageLevel", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyTriageLevelFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyTriageLevelDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "level", "sequence", "code", "name", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyTriageLevelFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter level triase IGD berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyTriageLevelSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage Level", Description = "Melihat ringkasan level triase IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyTriageLevel", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgTriageLevel>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyTriageLevelSummaryResponse
+            {
+                TotalTriageLevel = await query.CountAsync(cancellationToken),
+                ActiveTriageLevel = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveTriageLevel = await query.CountAsync(x => !x.IsActive, cancellationToken),
+                AllowsTreatmentBeforeRegistrationCount = await query.CountAsync(x => x.AllowsTreatmentBeforeRegistration, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyTriageLevelSummaryResponse>.Ok(
+                summary,
+                "Ringkasan level triase IGD berhasil diambil."
+            ));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageLevelResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Triage Level", Description = "Melihat data master level triage IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

@@ -215,6 +215,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public string? AdmissionTransferSourceType { get; set; }
         public RegPatientEncounter? SourceEncounter { get; set; }
 
+        /// <summary>
+        /// Kunjungan asal <b>rujukan internal</b> — contoh kunjungan Poli Mata yang merujuk pasien ke Optik
+        /// (<c>OPT-DEC-037</c>, <c>INT-OPT-10</c>, <c>BE-OPT-003</c>). Wajib kunjungan milik pasien yang sama.
+        ///
+        /// Bukan <see cref="SourceEncounterId"/>: kolom itu bermakna kunjungan asal <b>transfer</b>, dan mencampur
+        /// keduanya merusak laporan transfer. Kosong untuk seluruh kunjungan lama dan kunjungan tanpa rujukan internal.
+        /// </summary>
+        public Guid? ReferralSourceEncounterId { get; set; }
+        public RegPatientEncounter? ReferralSourceEncounter { get; set; }
+
         // =========================
         // NAVIGATION
         // =========================

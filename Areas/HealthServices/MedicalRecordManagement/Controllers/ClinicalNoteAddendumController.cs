@@ -150,7 +150,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 DelegationId = x.DelegationId,
                 AddendumText = x.AddendumText,
                 CorrectionReason = x.CorrectionReason,
-                SignedAt = x.SignedAt
+                SignedAt = x.SignedAt,
+                Purpose = x.AddendumPurpose
             }).ToList();
 
             return Ok(ApiResponse<List<ClinicalNoteAddendumResponse>>.Ok(
@@ -245,7 +246,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 request.CorrectionReason,
                 deviceInfo: Request.Headers.UserAgent.ToString(),
                 ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
-                nowUtc: DateTime.UtcNow);
+                nowUtc: DateTime.UtcNow,
+                purpose: request.Purpose ?? ClinicalNoteAddendumPurpose.Correction);
 
             if (!hasil.IsAllowed || addendum == null)
             {
@@ -272,7 +274,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 sebagaiPengganti
                     ? "ClinicalNoteAddendum.CreateAsSubstitute"
                     : "ClinicalNoteAddendum.Create",
-                "Koreksi catatan klinis ditambahkan.",
+                addendum.AddendumPurpose == ClinicalNoteAddendumPurpose.Attestation
+                    ? $"Pengesahan catatan klinis {documentKind} {documentId} ditambahkan (addendum ke-{addendum.Sequence}); status catatan tetap LockedUnsigned."
+                    : "Koreksi catatan klinis ditambahkan.",
                 new { EntityId = addendum.Id, addendum.IntegrityId, addendum.Sequence });
 
             var nama = await AmbilNamaPenggunaAsync([addendum.AuthorUserId]);
@@ -288,12 +292,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 DelegationId = addendum.DelegationId,
                 AddendumText = addendum.AddendumText,
                 CorrectionReason = addendum.CorrectionReason,
-                SignedAt = addendum.SignedAt
+                SignedAt = addendum.SignedAt,
+                Purpose = addendum.AddendumPurpose
             };
 
             return StatusCode(StatusCodes.Status201Created,
                 ApiResponse<ClinicalNoteAddendumResponse>.Ok(
-                    response, "Koreksi berhasil ditambahkan."));
+                    response,
+                    addendum.AddendumPurpose == ClinicalNoteAddendumPurpose.Attestation
+                        ? "Pengesahan berhasil ditambahkan."
+                        : "Koreksi berhasil ditambahkan."));
         }
 
         /// <summary>

@@ -237,4 +237,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string SignatureStatement { get; set; } = string.Empty;
         public DateTime PrintedAt { get; set; }
     }
+
+    public class EmergencyAdmissionRequestOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public string RequestNumber { get; set; } = string.Empty;
+        public EmergencyAdmissionRequestStatus RequestStatus { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class EmergencyAdmissionRequestSummaryResponse
+    {
+        public int TotalAdmissionRequest { get; set; }
+        public int DraftAdmissionRequest { get; set; }
+        public int PendingSignatureAdmissionRequest { get; set; }
+        public int SignedAdmissionRequest { get; set; }
+        public int CancelledAdmissionRequest { get; set; }
+    }
+
+    public class EmergencyAdmissionRequestDefaultFilterResponse
+    {
+        public Guid? EmergencyVisitId { get; set; }
+        public string SortBy { get; set; } = "createdat";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyAdmissionRequestFilterMetadataResponse
+    {
+        public EmergencyAdmissionRequestDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "createdat", "requestnumber" };
+    }
 }

@@ -15,6 +15,9 @@
 
         // HMD-BP-001, BE-HMD-02. Unit cuci darah; nilai baru di ujung sehingga nilai lama tidak bergeser.
         Hemodialysis = 10,
+        // OPT-BP-001, BE-OPT-001 (OPT-DEC-032, disetujui Master Data OPT-DEC-053). Unit Optik; nilai baru di ujung
+        // sehingga nilai lama tidak bergeser. Disimpan sebagai int, tanpa migration.
+        Optical = 11,
         Other = 99
     }
 }

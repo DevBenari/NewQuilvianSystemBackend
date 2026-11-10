@@ -57,7 +57,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
-
     }
 
     public class UpdateEmergencyTriageLevelRequest : CreateEmergencyTriageLevelRequest
@@ -74,5 +73,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? ColorHex { get; set; }
         public EmergencyTriageSystem TriageSystem { get; set; }
         public int Sequence { get; set; }
+    }
+
+    public class EmergencyTriageLevelSummaryResponse
+    {
+        public int TotalTriageLevel { get; set; }
+        public int ActiveTriageLevel { get; set; }
+        public int InactiveTriageLevel { get; set; }
+        public int AllowsTreatmentBeforeRegistrationCount { get; set; }
+    }
+
+    public class EmergencyTriageLevelDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "level";
+        public string SortDirection { get; set; } = "asc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyTriageLevelFilterMetadataResponse
+    {
+        public EmergencyTriageLevelDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "level", "sequence", "code", "name", "createdatetime" };
     }
 }

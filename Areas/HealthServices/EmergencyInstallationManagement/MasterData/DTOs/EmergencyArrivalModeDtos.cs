@@ -36,7 +36,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public int Sequence { get; set; }
 
         public bool IsActive { get; set; } = true;
-
     }
 
     public class UpdateEmergencyArrivalModeRequest : CreateEmergencyArrivalModeRequest
@@ -49,5 +48,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public int Sequence { get; set; }
+    }
+
+    public class EmergencyArrivalModeSummaryResponse
+    {
+        public int TotalArrivalMode { get; set; }
+        public int ActiveArrivalMode { get; set; }
+        public int InactiveArrivalMode { get; set; }
+        public int AmbulanceArrivalMode { get; set; }
+        public int ReferralArrivalMode { get; set; }
+    }
+
+    public class EmergencyArrivalModeDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public bool? IsActive { get; set; }
+        public bool? IsAmbulance { get; set; }
+        public bool? IsReferral { get; set; }
+        public string SortBy { get; set; } = "sequence";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyArrivalModeFilterMetadataResponse
+    {
+        public EmergencyArrivalModeDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "sequence", "code", "name", "createdatetime" };
     }
 }
