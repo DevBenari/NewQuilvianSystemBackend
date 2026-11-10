@@ -255,25 +255,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             decimal totalCalculatedScore = 0m;
             decimal totalWeight = 0m;
+            var unavailableMetrics = new List<string>();
+
+            var periodStart = evaluation.Period?.StartDate ?? DateTime.UtcNow.AddYears(-1);
+            var periodEnd = evaluation.Period?.EndDate ?? DateTime.UtcNow;
 
             foreach (var metric in quantitativeMetrics)
             {
-                // Simulasi agregasi data terukur SIMRS / KMKP
-                decimal actualValue = metric.DataSourceType switch
+                // Remediasi Gelombang 2 (BE-HRD-225, INT-HR-73): nilai ditarik dari tabel pelayanan SIMRS di aplikasi ini,
+                // bukan konstanta. Indikator tanpa sumber data tidak dinilai dan dicatat apa adanya.
+                var extraction = await OppeSimrsMetricExtractor.ExtractAsync(
+                    _context, metric.DataSourceType, evaluation.WorkforceProfileId, periodStart, periodEnd, cancellationToken);
+
+                decimal actualValue = extraction.ActualValue ?? 0m;
+                decimal score = 0m;
+
+                if (extraction.IsDataAvailable)
                 {
-                    "SIMRS_VOLUME" => 120.00m,
-                    "SIMRS_EMR_COMPLETION" => 92.50m,
-                    "KMKP_INCIDENT" => 0.00m,
-                    _ => 88.00m
-                };
+                    // Skor ketercapaian target
+                    decimal ratio = metric.TargetStandardValue > 0 ? (actualValue / metric.TargetStandardValue) : 1.0m;
+                    if (ratio > 1.2m) ratio = 1.2m; // Cap maksimum ketercapaian 120%
+                    score = ratio * metric.MetricWeightPercentage;
 
-                // Skor ketercapaian target
-                decimal ratio = metric.TargetStandardValue > 0 ? (actualValue / metric.TargetStandardValue) : 1.0m;
-                if (ratio > 1.2m) ratio = 1.2m; // Cap maksimum ketercapaian 120%
-                decimal score = ratio * metric.MetricWeightPercentage;
+                    totalCalculatedScore += score;
+                    totalWeight += metric.MetricWeightPercentage;
+                }
+                else
+                {
+                    unavailableMetrics.Add(metric.MetricCode);
+                }
 
-                totalCalculatedScore += score;
-                totalWeight += metric.MetricWeightPercentage;
+                var evaluatorNote = extraction.IsDataAvailable
+                    ? $"Agregasi otomatis dari data pelayanan ({metric.DataSourceType}). {extraction.SourceDescription}"
+                    : $"DATA BELUM TERSEDIA ({metric.DataSourceType}): {extraction.SourceDescription} Indikator tidak ikut dinilai.";
 
                 var existingDetail = evaluation.EvaluationDetails
                     .FirstOrDefault(d => d.MetricCatalogId == metric.Id);
@@ -288,7 +302,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                         TargetValue = metric.TargetStandardValue,
                         ActualValue = actualValue,
                         ComputedScore = Math.Round(score, 2),
-                        EvaluatorNotes = $"Agregasi otomatis dari data interface {metric.DataSourceType}.",
+                        EvaluatorNotes = evaluatorNote,
+                        RawMetricEvidenceJson = extraction.EvidenceJson,
                         CreateDateTime = DateTime.UtcNow,
                         CreateBy = actorId,
                         IsDelete = false
@@ -299,13 +314,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 {
                     existingDetail.ActualValue = actualValue;
                     existingDetail.ComputedScore = Math.Round(score, 2);
+                    existingDetail.EvaluatorNotes = evaluatorNote;
+                    existingDetail.RawMetricEvidenceJson = extraction.EvidenceJson;
                     existingDetail.UpdateDateTime = DateTime.UtcNow;
                     existingDetail.UpdateBy = actorId;
                 }
             }
 
-            // Normalisasi skor kuantitatif ke batas maksimal 60.00
-            decimal normalizedQuantScore = totalWeight > 0 ? (totalCalculatedScore / totalWeight) * 60.00m : 50.00m;
+            // Normalisasi skor kuantitatif ke batas maksimal 60.00. Tanpa satu pun indikator berdata, skornya 0 — bukan 50 karangan.
+            decimal normalizedQuantScore = totalWeight > 0 ? (totalCalculatedScore / totalWeight) * 60.00m : 0.00m;
             if (normalizedQuantScore > 60.00m) normalizedQuantScore = 60.00m;
 
             evaluation.QuantitativeScore = Math.Round(normalizedQuantScore, 2);

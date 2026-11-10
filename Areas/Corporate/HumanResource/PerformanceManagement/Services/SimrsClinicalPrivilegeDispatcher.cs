@@ -6,8 +6,10 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
+using QuilvianSystemBackend.Enums.HumanResource;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services
@@ -16,20 +18,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// Implementasi Dispatcher Sinkronisasi Wewenang Klinis ke Modul SIMRS EMR (INT-HR-76, VR-OPP-21, VR-OPP-22, VR-OPP-25)
     /// </summary>
     /// <remarks>
-    /// Remediasi 10 November 2026 (BE-HRD-235):
-    /// <list type="bullet">
-    /// <item>Log pengiriman disimpan di tabel <c>HrdSimrsPrivilegeSyncLog</c>, bukan <c>ConcurrentBag</c> statis yang hilang saat restart.</item>
-    /// <item>Pengiriman hanya diterima untuk putusan yang benar-benar tersimpan di <c>HrdRecredentialingVerdict</c>.</item>
-    /// <item>Durasi (<c>LatencyMs</c>) diukur nyata memakai <see cref="Stopwatch"/>, bukan angka acak 25–65 ms.</item>
-    /// <item>Status dicatat <c>PENDING_INTEGRATION</c> dengan kode respons <c>202</c>: payload sudah dibentuk dan tersimpan,
-    /// tetapi pemanggilan ke modul EMR SIMRS menunggu keputusan pemilik tentang jalur integrasinya (tabel wewenang klinis
-    /// bersama atau API terpisah — Gelombang 2 <c>backend-unfinished-work.md</c>). Sebelumnya status <c>200 SUCCESS</c> dikarang.</item>
-    /// </list>
+    /// <para>
+    /// <b>Keputusan jalur integrasi (Gelombang 2, 10 November 2026).</b> SIMRS/EMR berjalan di aplikasi yang sama, dan
+    /// modul klinis (laboratorium, kamar operasi, gerbang kewenangan klinis) membaca tabel wewenang klinis bersama
+    /// <c>WfpClinicalPrivilege</c>. Karena itu dispatcher <b>menulis langsung</b> ke tabel itu, bukan memanggil API
+    /// terpisah: level 1–2 memblokir layanan klinis dan penjadwalan (hard-stop, VR-OPP-22), level 3 mewajibkan supervisi
+    /// (VR-OPP-21), level 4 memulihkan wewenang mandiri. Putusan <c>Revoked</c> yang sudah dieksekusi tidak dipulihkan
+    /// otomatis oleh level 4; pemulihannya lewat kredensialing ulang.
+    /// </para>
+    /// <para>
+    /// Remediasi 10 November 2026 (BE-HRD-235) sebelumnya: log disimpan di <c>HrdSimrsPrivilegeSyncLog</c>, latensi diukur
+    /// nyata, pengiriman hanya diterima untuk putusan yang tersimpan. Status log kini <c>SYNCED</c> (200) bila ada baris
+    /// wewenang yang diubah, atau <c>NO_PRIVILEGE_ROWS</c> (404) bila dokter belum punya baris wewenang klinis.
+    /// </para>
     /// </remarks>
     public class SimrsClinicalPrivilegeDispatcher : ISimrsClinicalPrivilegeDispatcher
     {
+        public const string StatusSynced = "SYNCED";
+        public const string StatusNoPrivilegeRows = "NO_PRIVILEGE_ROWS";
         public const string StatusPendingIntegration = "PENDING_INTEGRATION";
-        private const int AcceptedStatusCode = 202;
 
         private readonly ApplicationDbContext _context;
 
@@ -52,15 +59,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             }
 
             // 2. Putusan asal wajib ada di database — pengiriman tidak boleh menempel pada putusan yang tidak pernah disahkan
-            var verdictExists = await _context.HrdRecredentialingVerdicts
+            var verdict = await _context.HrdRecredentialingVerdicts
                 .AsNoTracking()
-                .AnyAsync(v => v.Id == verdictId && !v.IsDelete, cancellationToken);
-            if (!verdictExists)
+                .FirstOrDefaultAsync(v => v.Id == verdictId && !v.IsDelete, cancellationToken);
+            if (verdict == null)
             {
                 throw new KeyNotFoundException($"Putusan rekredensialing {verdictId} tidak ditemukan. Sahkan putusan sidang lebih dulu sebelum mengirim wewenang ke SIMRS.");
             }
 
             var stopwatch = Stopwatch.StartNew();
+            var now = DateTime.UtcNow;
 
             // 3. Evaluasi Efek Wewenang & Hard-Stop
             bool isHardStop;
@@ -68,38 +76,66 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             if (request.Level <= 2)
             {
-                // VR-OPP-22: Hard-Stop Blokir Order SIMRS untuk Revokasi / Penurunan Tingkat Mutlak
                 isHardStop = true;
-                syncMessage = "Instruksi Hard-Stop Mutlak (VR-OPP-22) tersimpan: akses peresepan obat keras dan penjadwalan tindakan operasi di modul SIMRS EMR harus diblokir total.";
+                syncMessage = "Instruksi Hard-Stop Mutlak (VR-OPP-22): akses peresepan obat keras dan penjadwalan tindakan operasi di modul SIMRS EMR diblokir total.";
             }
             else if (request.Level == 3)
             {
-                // VR-OPP-21: Level 3 Supervisi (Wajib Co-Signature 24 Jam)
                 isHardStop = false;
-                syncMessage = "Instruksi Level 3 Supervisi (VR-OPP-21) tersimpan: seluruh instruksi tindakan mewajibkan co-signature digital supervisor dalam 24 jam.";
+                syncMessage = "Instruksi Level 3 Supervisi (VR-OPP-21): seluruh instruksi tindakan mewajibkan co-signature digital supervisor dalam 24 jam.";
             }
             else
             {
-                // Level 4: Mandiri Penuh
                 isHardStop = false;
-                syncMessage = "Instruksi wewenang klinis Level 4 Mandiri penuh tersimpan untuk SIMRS EMR.";
+                syncMessage = "Instruksi wewenang klinis Level 4 Mandiri penuh diterapkan pada SIMRS EMR.";
             }
 
-            var dispatchedAt = DateTime.UtcNow;
+            // 4. Terapkan ke tabel wewenang klinis bersama yang dibaca modul klinis
+            var privilegesQuery = _context.WfpClinicalPrivileges
+                .Where(p => p.WorkforceProfileId == verdict.WorkforceProfileId && !p.IsDelete);
+            if (request.TindakanId.HasValue && request.TindakanId.Value != Guid.Empty)
+            {
+                privilegesQuery = privilegesQuery.Where(p => p.ClinicalPrivilegeCatalogId == request.TindakanId.Value || p.Id == request.TindakanId.Value);
+            }
+
+            var privileges = await privilegesQuery.ToListAsync(cancellationToken);
+            var affected = new List<object>();
+
+            foreach (var privilege in privileges)
+            {
+                var before = privilege.PrivilegeStatus;
+                ApplyLevel(privilege, request.Level, verdict, now);
+                affected.Add(new
+                {
+                    privilegeId = privilege.Id,
+                    privilegeCode = privilege.PrivilegeCode,
+                    statusBefore = before.ToString(),
+                    statusAfter = privilege.PrivilegeStatus.ToString(),
+                    privilege.IsClinicalServiceBlocked,
+                    privilege.IsSchedulingBlocked,
+                    privilege.IsSupervisionRequired
+                });
+            }
+
+            var hasRows = privileges.Count > 0;
+            var status = hasRows ? StatusSynced : StatusNoPrivilegeRows;
+            var statusCode = hasRows ? 200 : 404;
+
             var payloadObject = new
             {
                 verdictId,
+                verdict = verdict.Verdict,
+                workforceProfileId = verdict.WorkforceProfileId,
                 doctorCode = request.DoctorCode,
                 tindakanId = request.TindakanId,
                 clinicalLevel = request.Level,
                 isHardStopBlocked = isHardStop,
-                timestamp = dispatchedAt,
-                sourceModule = "Quilvian-Sub15-OPPE-Recred"
+                timestamp = now,
+                sourceModule = "Quilvian-Sub15-OPPE-Recred",
+                target = "WfpClinicalPrivilege",
+                affectedPrivileges = affected
             };
 
-            var payloadJson = JsonSerializer.Serialize(payloadObject);
-
-            // 4. Simpan log pengiriman. Pemanggilan nyata ke modul EMR SIMRS menunggu keputusan jalur integrasi (Gelombang 2).
             var log = new HrdSimrsPrivilegeSyncLog
             {
                 Id = Guid.NewGuid(),
@@ -107,12 +143,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 DoctorCode = request.DoctorCode.Trim(),
                 TargetLevel = request.Level,
                 IsHardStopBlocked = isHardStop,
-                PayloadJson = payloadJson,
-                ResponseStatusCode = AcceptedStatusCode,
-                DispatchedAt = dispatchedAt,
-                Status = StatusPendingIntegration,
-                Message = $"{syncMessage} Pengiriman ke modul EMR SIMRS menunggu jalur integrasi yang ditetapkan pemilik (INT-HR-76).",
-                CreateDateTime = dispatchedAt
+                PayloadJson = JsonSerializer.Serialize(payloadObject),
+                ResponseStatusCode = statusCode,
+                DispatchedAt = now,
+                Status = status,
+                Message = hasRows
+                    ? $"{syncMessage} {privileges.Count} baris wewenang klinis diperbarui."
+                    : $"{syncMessage} Namun dokter belum memiliki baris wewenang klinis (WfpClinicalPrivilege); tidak ada yang diubah. Terbitkan SPK/RKK lebih dulu.",
+                CreateDateTime = now
             };
 
             _context.HrdSimrsPrivilegeSyncLogs.Add(log);
@@ -134,6 +172,66 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 .ToListAsync(cancellationToken);
 
             return logs.Select(ToDto).ToList();
+        }
+
+        private static void ApplyLevel(WfpClinicalPrivilege privilege, int level, HrdRecredentialingVerdict verdict, DateTime now)
+        {
+            var reason = $"Putusan rekredensialing {verdict.Verdict} ({verdict.DecidedAt:yyyy-MM-dd}), level {level} (INT-HR-76).";
+
+            switch (level)
+            {
+                case 1:
+                    privilege.PrivilegeStatus = ClinicalPrivilegeStatus.Revoked;
+                    privilege.IsClinicalServiceBlocked = true;
+                    privilege.IsSchedulingBlocked = true;
+                    privilege.IsSupervisionRequired = false;
+                    privilege.RevokedAt = now;
+                    privilege.RevokedByUserId = verdict.ApprovedByCommitteeChairmanId;
+                    privilege.RevocationReason = reason;
+                    privilege.IsActive = false;
+                    break;
+                case 2:
+                    if (privilege.PrivilegeStatus != ClinicalPrivilegeStatus.Revoked)
+                    {
+                        privilege.PrivilegeStatus = ClinicalPrivilegeStatus.Suspended;
+                        privilege.SuspendedAt = now;
+                        privilege.SuspendedByUserId = verdict.ApprovedByCommitteeChairmanId;
+                        privilege.SuspensionReason = reason;
+                    }
+                    privilege.IsClinicalServiceBlocked = true;
+                    privilege.IsSchedulingBlocked = true;
+                    break;
+                case 3:
+                    if (privilege.PrivilegeStatus == ClinicalPrivilegeStatus.Suspended)
+                    {
+                        privilege.PrivilegeStatus = ClinicalPrivilegeStatus.Active;
+                        privilege.SuspendedAt = null;
+                    }
+                    if (privilege.PrivilegeStatus != ClinicalPrivilegeStatus.Revoked)
+                    {
+                        privilege.IsClinicalServiceBlocked = false;
+                        privilege.IsSchedulingBlocked = false;
+                        privilege.IsSupervisionRequired = true;
+                        privilege.Restrictions = reason + " Wajib co-signature supervisor dalam 24 jam (VR-OPP-21).";
+                    }
+                    break;
+                default:
+                    if (privilege.PrivilegeStatus == ClinicalPrivilegeStatus.Suspended)
+                    {
+                        privilege.PrivilegeStatus = ClinicalPrivilegeStatus.Active;
+                        privilege.SuspendedAt = null;
+                    }
+                    if (privilege.PrivilegeStatus != ClinicalPrivilegeStatus.Revoked)
+                    {
+                        privilege.IsClinicalServiceBlocked = false;
+                        privilege.IsSchedulingBlocked = false;
+                        privilege.IsSupervisionRequired = false;
+                    }
+                    break;
+            }
+
+            privilege.UpdateDateTime = now;
+            privilege.UpdateBy = verdict.ApprovedByCommitteeChairmanId;
         }
 
         private static SimrsPrivilegeSyncAuditLogDto ToDto(HrdSimrsPrivilegeSyncLog log) => new()

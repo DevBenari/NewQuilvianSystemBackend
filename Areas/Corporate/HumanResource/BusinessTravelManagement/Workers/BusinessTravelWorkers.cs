@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers
@@ -14,6 +16,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
     /// <summary>
     /// Worker TRV-W1: Pengingat Penyerahan Settlement Perjalanan Dinas H+3 &amp; H+5 (BE-HRD-328, VR-TRV-05)
     /// </summary>
+    /// <remarks>
+    /// Remediasi Gelombang 2 (10 November 2026): pengingat sebelumnya hanya ditulis ke log. Kini dikirim ke pusat
+    /// pemberitahuan dalam aplikasi untuk pegawai yang melakukan perjalanan (H+3 dan H+5), satu kali per SPPD per jendela.
+    /// </remarks>
     public class TravelAdvanceSettlementReminderWorker : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
@@ -35,11 +41,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
                     // Cari perjalanan dinas yang sudah selesai tapi settlement belum diajukan/selesai
                     var pendingTravels = await context.TrxBusinessTravelRequests
+                        .AsNoTracking()
                         .Include(r => r.Settlements)
                         .Where(r => r.IsActive && r.TravelStatus != "Completed" && r.TravelStatus != "Cancelled" && r.TravelStatus != "Rejected")
                         .Where(r => r.EndDate < today)
@@ -51,12 +59,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                         if (completedSettlement) continue;
 
                         var daysAfterReturn = today.DayNumber - travel.EndDate.DayNumber;
+                        if (daysAfterReturn != 3 && daysAfterReturn != 5) continue;
 
-                        if (daysAfterReturn == 3 || daysAfterReturn == 5)
+                        var sent = await notifier.NotifyWorkforceProfileAsync(
+                            travel.WorkforceProfileId,
+                            new HrdNotificationRequest(
+                                Title: $"Pengingat settlement SPPD {travel.TravelRequestNumber} (H+{daysAfterReturn})",
+                                Body: $"Perjalanan dinas {travel.TravelRequestNumber} berakhir pada {travel.EndDate:dd MMMM yyyy}. Pertanggungjawaban (settlement) belum diserahkan; batas waktunya 7 hari setelah kepulangan (VR-TRV-05). Lewat 14 hari, hak pembuatan SPPD baru dibekukan.",
+                                Category: HrdNotificationCategories.Travel,
+                                Priority: daysAfterReturn >= 5 ? HrdNotificationPriorities.High : HrdNotificationPriorities.Normal,
+                                DeepLinkUrl: $"/hrd/business-travel/requests/{travel.Id}/settlement",
+                                SourceModule: "Hrd.BusinessTravel.TRV-W1",
+                                ReferenceType: "TrxBusinessTravelRequest",
+                                ReferenceId: travel.Id,
+                                DedupKey: $"TRV-W1|{travel.Id:N}|H{daysAfterReturn}"),
+                            stoppingToken);
+
+                        if (sent > 0)
                         {
-                            _logger.LogWarning(
-                                "[TRV-W1 Peringatan H+{Days}] SPPD {Number} belum menyerahkan settlement pertanggungjawaban dinas (Batas SLA: 7 hari).",
-                                daysAfterReturn, travel.TravelRequestNumber);
+                            _logger.LogInformation("[TRV-W1 Peringatan H+{Days}] Pengingat settlement SPPD {Number} dikirim ke {Count} akun pegawai.", daysAfterReturn, travel.TravelRequestNumber, sent);
                         }
                     }
                 }
@@ -161,8 +182,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
     }
 
     /// <summary>
-    /// Worker TRV-W4: Sinkronisasi Kurs Tengah Bank Indonesia untuk Perjalanan Internasional (BE-HRD-333, HRD-ASM-72)
+    /// Worker TRV-W4: Sinkronisasi Kurs Perjalanan Internasional dari Master Kurs Keuangan (BE-HRD-333, HRD-ASM-72)
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Keputusan sumber kurs (Gelombang 2, 10 November 2026):</b> master kurs milik modul Keuangan
+    /// (<c>MstExchangeRate</c>, kurs tengah per tanggal) dipakai sebagai satu-satunya sumber, bukan pemanggilan API
+    /// Bank Indonesia yang belum tersedia. Petugas Keuangan memasukkan kurs tengah BI ke master itu; worker ini
+    /// menerapkannya ke butir klaim perjalanan dinas bermata uang asing yang belum dikonversi.
+    /// </para>
+    /// <para>
+    /// Untuk setiap <c>TrxTravelExpenseItem</c> berstatus <c>Draft</c> atau <c>Submitted</c> dengan mata uang selain
+    /// mata uang dasar dan <c>ExchangeRate</c> masih 1 (belum dikonversi), worker mengambil kurs tengah pada tanggal
+    /// transaksi (atau kurs terakhir sebelum tanggal itu) lalu mengisi <c>ExchangeRate</c> dan
+    /// <c>BaseCurrencyAmount</c>. Butir yang kursnya belum ada di master dilewati dan dilaporkan sebagai pemberitahuan
+    /// ke pemegang hak akses <c>TravelRatePolicy : ManageRate</c>.
+    /// </para>
+    /// </remarks>
     public class TravelCurrencyRateSyncWorker : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
@@ -182,7 +218,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             {
                 try
                 {
-                    _logger.LogInformation("[TRV-W4 Kurs BI] Kurs valuta asing perjalanan dinas disinkronisasikan (USD, EUR, SGD, MYR, SAR).");
+                    using var scope = _serviceProvider.CreateScope();
+                    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
+
+                    var result = await ApplyMasterRatesAsync(context, stoppingToken);
+
+                    if (result.Converted > 0)
+                    {
+                        _logger.LogInformation("[TRV-W4 Kurs] {Converted} butir klaim dinas dikonversi memakai kurs tengah master Keuangan.", result.Converted);
+                    }
+
+                    if (result.MissingCurrencies.Count > 0)
+                    {
+                        var missing = string.Join(", ", result.MissingCurrencies.OrderBy(x => x));
+                        await notifier.NotifyPermissionHoldersAsync(
+                            "TravelRatePolicy",
+                            "ManageRate",
+                            new HrdNotificationRequest(
+                                Title: "Kurs belum tersedia untuk klaim perjalanan dinas",
+                                Body: $"Sebanyak {result.Skipped} butir klaim perjalanan dinas bermata uang {missing} belum dapat dikonversi karena master kurs Keuangan belum memuat kurs tengah pada tanggal transaksinya (HRD-ASM-72). Mohon lengkapi master kurs.",
+                                Category: HrdNotificationCategories.Travel,
+                                Priority: HrdNotificationPriorities.Normal,
+                                DeepLinkUrl: "/finance/master/exchange-rates",
+                                SourceModule: "Hrd.BusinessTravel.TRV-W4",
+                                DedupKey: $"TRV-W4|MISSING|{missing}|{DateTime.UtcNow:yyyyMMdd}"),
+                            stoppingToken);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -192,6 +254,76 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 // Berjalan harian (setiap 24 jam)
                 await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
             }
+        }
+
+        private static async Task<(int Converted, int Skipped, HashSet<string> MissingCurrencies)> ApplyMasterRatesAsync(ApplicationDbContext context, CancellationToken ct)
+        {
+            var baseCurrencyCode = await context.MstCurrencies
+                .AsNoTracking()
+                .Where(c => c.IsBaseCurrency && c.IsActive && !c.IsDelete)
+                .Select(c => c.CurrencyCode)
+                .FirstOrDefaultAsync(ct) ?? "IDR";
+
+            var pendingItems = await context.TrxTravelExpenseItems
+                .Where(i => i.IsActive && !i.IsDelete
+                            && (i.ItemStatus == "Draft" || i.ItemStatus == "Submitted")
+                            && i.CurrencyCode != baseCurrencyCode
+                            && i.ExchangeRate == 1m)
+                .ToListAsync(ct);
+
+            var converted = 0;
+            var skipped = 0;
+            var missing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (pendingItems.Count == 0)
+            {
+                return (converted, skipped, missing);
+            }
+
+            var currencyCodes = pendingItems.Select(i => i.CurrencyCode.ToUpperInvariant()).Distinct().ToList();
+            var currencies = await context.MstCurrencies
+                .AsNoTracking()
+                .Where(c => currencyCodes.Contains(c.CurrencyCode.ToUpper()) && !c.IsDelete)
+                .Select(c => new { c.Id, Code = c.CurrencyCode.ToUpper() })
+                .ToListAsync(ct);
+            var currencyIds = currencies.Select(c => c.Id).ToList();
+
+            var rates = await context.MstExchangeRates
+                .AsNoTracking()
+                .Where(r => currencyIds.Contains(r.CurrencyId) && !r.IsDelete && r.MiddleRate > 0)
+                .Select(r => new { r.CurrencyId, r.RateDate, r.MiddleRate })
+                .ToListAsync(ct);
+
+            var now = DateTime.UtcNow;
+            foreach (var item in pendingItems)
+            {
+                var code = item.CurrencyCode.ToUpperInvariant();
+                var currency = currencies.FirstOrDefault(c => c.Code == code);
+                var rate = currency == null
+                    ? null
+                    : rates.Where(r => r.CurrencyId == currency.Id && r.RateDate <= item.ExpenseDate)
+                        .OrderByDescending(r => r.RateDate)
+                        .FirstOrDefault();
+
+                if (rate == null)
+                {
+                    skipped++;
+                    missing.Add(code);
+                    continue;
+                }
+
+                item.ExchangeRate = rate.MiddleRate;
+                item.BaseCurrencyAmount = Math.Round(item.ClaimedAmount * rate.MiddleRate, 2, MidpointRounding.AwayFromZero);
+                item.UpdateDateTime = now;
+                converted++;
+            }
+
+            if (converted > 0)
+            {
+                await context.SaveChangesAsync(ct);
+            }
+
+            return (converted, skipped, missing);
         }
     }
 

@@ -28,17 +28,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         private readonly IWorkflowRoutingMatrixService _routingMatrixService;
         private readonly IAntiSelfApprovalGuardService _antiSelfApprovalGuard;
         private readonly NumberSeriesAllocator _numberAllocator;
+        private readonly IUnifiedNotificationGatewayService _notificationGateway;
 
         public WorkflowInstanceCreationService(
             ApplicationDbContext context,
             IWorkflowRoutingMatrixService routingMatrixService,
             IAntiSelfApprovalGuardService antiSelfApprovalGuard,
-            NumberSeriesAllocator numberAllocator)
+            NumberSeriesAllocator numberAllocator,
+            IUnifiedNotificationGatewayService notificationGateway)
         {
             _context = context;
             _routingMatrixService = routingMatrixService;
             _antiSelfApprovalGuard = antiSelfApprovalGuard;
             _numberAllocator = numberAllocator;
+            _notificationGateway = notificationGateway;
         }
 
         public async Task<WorkflowInstanceV2ResponseDto> CreateInstanceAsync(CreateWorkflowInstanceRequestDto request, Guid currentUserId)
@@ -60,9 +63,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             if (applicant == null)
             {
-                applicant = await _context.MstEmployees
-                    .Include(e => e.PrimaryDepartment)
+                // Remediasi Gelombang 2: pemohon diturunkan dari akun yang login (EmployeeId atau profil tenaga kerja),
+                // bukan dari karyawan pertama di tabel seperti sebelumnya.
+                var account = await _context.Users.AsNoTracking()
+                    .Where(u => u.Id == currentUserId)
+                    .Select(u => new { u.EmployeeId, u.WorkforceProfileId })
                     .FirstOrDefaultAsync();
+                if (account != null)
+                {
+                    applicant = await _context.MstEmployees
+                        .Include(e => e.PrimaryDepartment)
+                        .FirstOrDefaultAsync(e => (account.EmployeeId != null && e.Id == account.EmployeeId)
+                                               || (account.WorkforceProfileId != null && e.WorkforceProfileId == account.WorkforceProfileId));
+                }
             }
 
             var departmentId = applicant?.PrimaryDepartmentId ?? request.DepartmentId ?? Guid.Empty;
@@ -182,6 +195,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             });
 
             await _context.SaveChangesAsync();
+
+            // WF-B7 / BE-HRD-314: approver tahapan pertama diberi tahu ada tiket baru di kotak persetujuannya
+            var firstAssignment = await _context.TrxWorkflowApproverAssignments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.WorkflowInstanceId == instance.Id && a.IsCurrentAssignment);
+            if (firstAssignment != null)
+            {
+                var notifTitle = "Permohonan baru menunggu persetujuan Anda";
+                var notifBody = $"Permohonan {instance.RequestNumber} ({request.RequestType}) diajukan oleh {applicant?.FullName ?? "pegawai"} dan menunggu persetujuan Anda. Batas SLA: {slaDeadline:dd MMM yyyy HH:mm} UTC.";
+                if (firstAssignment.ApproverEmployeeId.HasValue && firstAssignment.ApproverEmployeeId.Value != Guid.Empty)
+                {
+                    await _notificationGateway.SendInstantNotificationAsync(firstAssignment.ApproverEmployeeId.Value, notifTitle, notifBody);
+                }
+            }
 
             return new WorkflowInstanceV2ResponseDto
             {

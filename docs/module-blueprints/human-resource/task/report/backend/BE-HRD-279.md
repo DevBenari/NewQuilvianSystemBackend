@@ -95,3 +95,29 @@ Nomor tiket keluhan `GRV-{yyyyMM}-{acak 4 digit}`.
 - Temuan keamanan `GetMyTicketsAsync`/`SubmitGrievanceAsync` (kelompok G nomor 1–2) **tidak** disentuh — menunggu keputusan klaim identitas pegawai (Gelombang 2).
 - Perubahan sampingan: migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 CreateTable/26 DropTable di luar lingkup) **dibuang** dan diganti migration SQL manual; snapshot model yang ikut ter-commit pemilik dibiarkan karena sudah bercampur dengan merge cabang lain.
 - Status Git akhir sesi: berkas task sudah masuk HEAD lewat commit pemilik; sisa di working tree adalah penghapusan dua berkas scaffold dan satu berkas migration manual baru (lihat `git status --short` pada ringkasan sesi).
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (kepemilikan data dan eskalasi SLA)
+
+**Kelompok G nomor 1 dan 2 ditutup.** Keputusan identitas: pelapor diturunkan dari token (`workforce_profile_id` → `employee_id` → ID akun lewat `HrActorClaims`), bukan dari body atau query. `SubmitGrievance` mengisi `ComplainantWorkforceProfileId`, `ComplainantEmployeeId`, dan `ComplainantUserId` dari token; nilai `ComplainantEmployeeId` pada body diabaikan. `GET my-tickets` tidak lagi menerima `employeeId` dari query (**delta kontrak**: parameter dihapus) dan hanya mengembalikan tiket milik pengguna login; data lama yang terlanjur menyimpan ID akun tetap terbaca lewat `ComplainantUserId` dan dipetakan ulang oleh migration `20261111020000`.
+
+**Kelompok D:** `GrievanceSlaEscalationWorker` (`EMP-W3`) kini mengeskalasikan tiket yang melewati `TargetResolutionDate` (`VR-EMP-14`) ke pemegang hak akses `EmployeeGrievance : Mediate`, satu kali per tiket per hari.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `.../EmployeeRelationManagement/Controllers/EmployeeGrievanceController.cs` | `ResolveComplainant()` dari token; parameter `employeeId` dihapus |
+| `.../EmployeeRelationManagement/Services/IEmployeeGrievanceService.cs`, `EmployeeGrievanceService.cs` | Menerima `GrievanceComplainantIdentity`; filter kepemilikan |
+| `.../EmployeeRelationManagement/DTOs/EmployeeRelationDtos.cs` | Record `GrievanceComplainantIdentity` |
+| `.../EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs` | `EMP-W3` mengirim eskalasi |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Status 🟡: migration belum dijalankan (tabel pemberitahuan dan pemetaan ulang data lama); `AT-HRD-EMP-13` `NOT RUN`.

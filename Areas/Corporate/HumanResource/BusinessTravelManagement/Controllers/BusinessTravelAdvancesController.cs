@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManageme
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
@@ -43,15 +44,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
         private (Guid UserId, Guid EmployeeId, bool IsFinance) GetCurrentUserContext()
         {
-            var userClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var empClaim = User.FindFirst("EmployeeId")?.Value;
-
-            Guid.TryParse(userClaim, out var userId);
-            Guid.TryParse(empClaim, out var empId);
-
+            // Kolom WorkforceProfileId pada data perjalanan dinas diisi dari klaim workforce_profile_id → employee_id → ID akun
+            // (remediasi kelompok G, 10 November 2026). Penanda Finance masih dari nama peran: temuan lama, belum diubah.
+            var userId = User.GetUserId();
             var isFinance = User.IsInRole("Finance") || User.IsInRole("FinanceManager") || User.IsInRole("Admin");
 
-            return (userId, empId != Guid.Empty ? empId : userId, isFinance);
+            return (userId, User.ResolveWorkforceProfileId(), isFinance);
         }
 
         /// <summary>

@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Ser
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Controllers
 {
@@ -41,9 +42,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         private Guid GetCurrentEmployeeId()
         {
-            var claim = User.FindFirst("EmployeeId")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(claim, out var empId)) return empId;
-            return Guid.Empty;
+            // Workflow V2 memakai MstEmployee.Id: klaim employee_id → ID akun (remediasi kelompok G, 10 November 2026)
+            return User.ResolveEmployeeId();
         }
 
         /// <summary>

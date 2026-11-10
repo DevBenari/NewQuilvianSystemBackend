@@ -45,3 +45,27 @@ Dalam ekosistem rumah sakit modern, koordinasi perizinan kerja, pergeseran shift
 * **Kompilasi .NET Core**: `dotnet build QuilvianSystemBackend.csproj --no-restore` menghasilkan **0 Error(s)**.
 * **Audit Kepatuhan Arsitektur QBE**: `Invoke-QbeConformanceCheck.ps1` berstatus **PASS** (0 Violation).
 * **Traceability Requirement**: Terpetakan pada requirement matrix `requirement-traceability.md` Bagian 1r (`AT-HRD-WF-13`).
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (nasib worker persetujuan massal)
+
+**Keputusan yang diterapkan:** `BulkApprovalProcessingWorker` (`WF-W5`) **dihapus** beserta registrasinya di `Program.cs`. Alasannya dari bukti source: persetujuan massal sudah diproses langsung dan dilaporkan per tiket oleh endpoint `BulkApprove` (`BulkApprovalService`), sedangkan worker hanya berisi `Task.Delay(30 detik)` tanpa antrean. Menambah tabel antrean latar hanya menambah kerumitan tanpa manfaat bagi pengguna.
+
+**Yang berubah bagi pengguna:** status akhir tiap tiket dalam batch kini benar-benar sampai ke pemohon — `BulkApprovalService` memanggil `WorkflowApprovalActionService.ApproveAsync`, yang sesudah Gelombang 2 mengirim pemberitahuan "Permohonan disetujui" ke pemohon dan memberi tahu approver tahapan berikutnya (lihat `BE-HRD-314`).
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/WorkflowManagement/Workers/WorkflowV2Workers.cs` | Kelas `BulkApprovalProcessingWorker` dihapus; komentar keputusan ditambahkan |
+| `Program.cs` | Registrasi `AddHostedService<BulkApprovalProcessingWorker>` dihapus |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Acceptance criteria "antrean batch dieksekusi secara aman" terpenuhi oleh pemrosesan berurutan per tiket di endpoint (sudah ada); "status akhir tiap tiket dilaporkan akurat ke pemohon dan approver" terpenuhi di kode lewat pusat pemberitahuan, tetapi menunggu migration tabel `HrdNotification`; `AT-HRD-WF-13` `NOT RUN`. Status: 🟡.

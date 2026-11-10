@@ -95,3 +95,22 @@ Nomor terminasi `SEP-{yyyyMM}-{acak 3 digit}`.
 - Worker `PkwtContractExpiryRadarWorker` (kelompok D) **tidak** disentuh — menunggu kanal notifikasi `BE-HRD-314`.
 - Perubahan sampingan: migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 CreateTable/26 DropTable di luar lingkup) **dibuang** dan diganti migration SQL manual; snapshot model yang ikut ter-commit pemilik dibiarkan karena sudah bercampur dengan merge cabang lain.
 - Status Git akhir sesi: berkas task sudah masuk HEAD lewat commit pemilik; sisa di working tree adalah penghapusan dua berkas scaffold dan satu berkas migration manual baru (lihat `git status --short` pada ringkasan sesi).
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (worker hanya menulis log)
+
+`PkwtContractExpiryRadarWorker` (`EMP-W4`) kini mengirim pemberitahuan pada jendela H-60 dan H-30 sebelum tanggal berakhir kontrak (`EffectiveSeparationDate`) ke pegawai yang bersangkutan dan ke pemegang hak akses `EmployeeSeparation : Initiate`, satu kali per kontrak per jendela.
+
+Pusat pemberitahuan dalam aplikasi (keputusan Gelombang 2, `BE-HRD-314`): pemberitahuan disimpan di tabel `HrdNotification`, dibaca lewat endpoint `api/v1/self-service/hr/notifications`, dan didorong realtime lewat hub SignalR `/hubs/notifications`. Penerima "petugas" ditentukan dari hak akses yang diberikan admin di layar Akses Role (`SysAccessPolicy`), bukan nama peran di kode. Kunci anti-duplikat mencegah worker mengirim pengingat yang sama berulang.
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Status 🟡 sampai migration tabel `HrdNotification` dijalankan.

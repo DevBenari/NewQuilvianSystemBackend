@@ -56,3 +56,28 @@ Dalam operasional rumah sakit modern, koordinasi penugasan perjalanan dinas nake
 | Worker kurs BI `TravelCurrencyRateSyncWorker` (`TRV-W4`) berjalan | Worker hanya menulis log; kurs tidak pernah diambil (kelompok A, menunggu keputusan sumber kurs) |
 
 Status task diturunkan menjadi 🟡 pada roadmap sampai 5 endpoint tersisa dibuat dan sumber kurs diputuskan.
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (sumber kurs dan identitas pegawai)
+
+**Keputusan sumber kurs (`HRD-ASM-72`):** master kurs modul Keuangan (`MstExchangeRate`, kurs tengah per tanggal) menjadi satu-satunya sumber; tidak ada pemanggilan API Bank Indonesia. Petugas Keuangan memasukkan kurs tengah BI ke master, dan worker `TravelCurrencyRateSyncWorker` (`TRV-W4`) menerapkannya setiap hari ke butir klaim perjalanan dinas (`TrxTravelExpenseItem`) bermata uang asing yang belum dikonversi (`ExchangeRate = 1`): kurs tengah pada tanggal transaksi atau kurs terakhir sebelum tanggal itu mengisi `ExchangeRate` dan `BaseCurrencyAmount`. Contoh: butir hotel 120 USD tanggal 3 November, master kurs 3 November 15.800 → `BaseCurrencyAmount` 1.896.000. Butir yang kursnya belum ada dilewati dan pemegang hak akses `TravelRatePolicy : ManageRate` diberi tahu mata uang mana yang kurang.
+
+**Identitas pegawai (kelompok G nomor 5):** `BusinessTravelRequestsController`, `BusinessTravelAdvancesController`, dan `DirectExpenseClaimsController` kini membaca klaim `workforce_profile_id` (cadangan `employee_id`, lalu ID akun) lewat helper `HrActorClaims`, sehingga kolom `WorkforceProfileId` berisi profil pegawai, bukan ID akun. Baris lama yang terlanjur berisi ID akun dipetakan ulang oleh migration `20261111020000`. Penanda Finance pada `BusinessTravelAdvancesController` masih dari nama peran (temuan lama, tidak diubah).
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/BusinessTravelManagement/Workers/BusinessTravelWorkers.cs` | `TRV-W4` menerapkan kurs master; `TRV-W1` mengirim pengingat ke pegawai |
+| 3 controller perjalanan dinas | Helper klaim identitas |
+| `Shared/HumanResource/Helpers/HrActorClaims.cs` | Helper baru |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Masih 🟡: 5 dari 24 hak akses belum punya endpoint (koreksi 10 November 2026 tetap berlaku); `AT-HRD-TRV-22` `NOT RUN`.

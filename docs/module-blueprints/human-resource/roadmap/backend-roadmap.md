@@ -923,7 +923,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-222` | `S-C1-OPPE` · `MVP-45` | EF Core Entity Models & Database Migration Skema OPPE & FPPE (`S-C1-OPPE`) | ✅ | Disetujuinya Kontrak `v19` & Blueprint Rev 44 |
 | `BE-HRD-223` | `S-C1-OPPE` · `MVP-45` | Master Katalog Indikator OPPE 6 Pilar ACGME/KARS & Konfigurasi Ambang Batas KSM | ✅ | `BE-HRD-222` |
 | `BE-HRD-224` | `S-C1-OPPE` · `MVP-45` | Tata Kelola Periode Siklus OPPE Tahunan/Semesteran & Inisiasi Rapor Dokter | ✅ | `BE-HRD-223` |
-| `BE-HRD-225` | `S-C1-OPPE` · `MVP-45` | Layanan Ekstraksi & Agregasi Otomatis Data Indikator Kuantitatif SIMRS/KMKP 60% | ✅ | `BE-HRD-224` |
+| `BE-HRD-225` | `S-C1-OPPE` · `MVP-45` | Layanan Ekstraksi & Agregasi Otomatis Data Indikator Kuantitatif SIMRS/KMKP 60% | 🟡 | `BE-HRD-224` |
 | `BE-HRD-226` | `S-C1-OPPE` · `MVP-45` | Penugasan & Evaluasi Kualitatif Telaah Sejawat (Peer Review) 40% KSM | ✅ | `BE-HRD-224` |
 | `BE-HRD-227` | `S-C1-OPPE` · `MVP-45` | Penegakan Kerahasiaan Hak Istimewa Peer Review Privilege & Read-Audit Logging Tamper-Proof | ✅ | `BE-HRD-226` |
 | `BE-HRD-228` | `S-C1-OPPE` · `MVP-45` | Kalkulator Rapor Akhir Komposit OPPE 60:40 & Sidang Pengesahan Subkomite Mutu | ✅ | `BE-HRD-225`, `BE-HRD-227` |
@@ -934,7 +934,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-233` | `S-C1-OPPE` · `MVP-47` | Kalkulator Rapor Komposit 3 Tahun Rekredensialing (25%-35%-40%) & Klasifikasi Tier | ✅ | `BE-HRD-228`, `BE-HRD-232` |
 | `BE-HRD-234` | `S-C1-OPPE` · `MVP-47` | Layanan Diskresi Penyesuaian Tier Rekredensialing & Audit Rekomendasi Komite Medik | 🟡 | `BE-HRD-233` |
 | `BE-HRD-235` | `S-C1-OPPE` · `MVP-47` | Penetapan 4 Putusan Sidang Rekredensialing & Dispatcher Integrasi SIMRS EMR | 🟡 | `BE-HRD-234` |
-| `BE-HRD-236` | `S-C1-OPPE` · `MVP-47` | Background Worker Pemantau Sisa Waktu Proctoring & Evaluasi Tren Komplikasi Bulanan | ✅ | `BE-HRD-225`, `BE-HRD-230` |
+| `BE-HRD-236` | `S-C1-OPPE` · `MVP-47` | Background Worker Pemantau Sisa Waktu Proctoring & Evaluasi Tren Komplikasi Bulanan | 🟡 | `BE-HRD-225`, `BE-HRD-230` |
 | `BE-HRD-237` | `S-C1-OPPE` · Verifikasi | Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests `S-C1-OPPE` | 🟡 | Seluruh task backend `BE-HRD-222` s.d. `BE-HRD-236` |
 | `BE-HRD-238` | `S-C2` · `MVP-48` | Entity Model EF Core, Indeks DB & Migration Postgres untuk 10 Tabel `LearningAndDevelopment` & Ikatan Dinas | ✅ | Tidak ada prasyarat task lain (Fondasi basis data `S-C2`). |
 | `BE-HRD-239` | `S-C2` · `MVP-48` | Konfigurasi Master Aturan Pelatihan Wajib Akreditasi STARKES KPS 8 (`MandatoryTrainingRuleService` & Controller) | ✅ | `BE-HRD-238` |
@@ -966,7 +966,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-265` | `S-C3` · `MVP-53` | Integrasi Prasyarat Mutu Jenjang Klinis ke Sub-16 Diklat (INT-HR-81) & Sub-15 OPPE (INT-HR-82) | ✅ | `BE-HRD-264` |
 | `BE-HRD-266` | `S-C3` · `MVP-53` | Integrasi Sinkronisasi SK Jenjang Baru ke Sub-02 Profil Induk & Sub-14 Kredensialing (INT-HR-83) | ✅ | `BE-HRD-265` |
 | `BE-HRD-267` | `S-C3` · `MVP-53` | Service Tata Kelola Sanggah Banding Nilai Kinerja Pegawai (SLA 7/14 Hari, PerformanceDisputeService) | ✅ | `BE-HRD-261` |
-| `BE-HRD-268` | `S-C3` · Verifikasi | 4 Controller API Swagger Kontrak v21 & Registrasi 6 Background Workers (PRF-W1..W6) | ✅ | `BE-HRD-263`, `BE-HRD-266`, `BE-HRD-267`. |
+| `BE-HRD-268` | `S-C3` · Verifikasi | 4 Controller API Swagger Kontrak v21 & Registrasi 6 Background Workers (PRF-W1..W6) | 🟡 | `BE-HRD-263`, `BE-HRD-266`, `BE-HRD-267`. |
 | `BE-HRD-269` | `S-C3` · Verifikasi | Validasi Kompilasi .NET, QBE Conformance & Eksekusi Acceptance Tests S-C3 | ✅ | Seluruh task backend `BE-HRD-254` s.d. `BE-HRD-268`. |
 | `BE-HRD-270` | `S-C5` · `MVP-54` | DDL Basis Data PostgreSQL 10 Tabel & Migrasi EF Core Hubungan Industrial & Exit Clearance | ✅ | — |
 | `BE-HRD-271` | `S-C5` · `MVP-54` | Implementasi EF Core Repositories & Unit of Work Bounded Context Hubungan Industrial | ✅ | `BE-HRD-270` |
@@ -976,14 +976,14 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-275` | `S-C5` · `MVP-54` | Service Penerbitan Sanksi Surat Peringatan (SP 1-3 Masa 6 Bulan PP 35/2021) & Sanggah Banding (`DisciplinarySanctionService` & `EMP-B1`) | ✅ | `BE-HRD-274` |
 | `BE-HRD-276` | `S-C5` · `MVP-54` | Background Worker `DisciplinarySanctionExpiryWorker` (`EMP-W1`) Pembersihan SP H+180 Hari & Notifikasi H-14 | ✅ | `BE-HRD-275` |
 | `BE-HRD-277` | `S-C5` · `MVP-55` | Service Skorsing Upah Penuh (*Paid Suspension* 100% Upah) & Event Pembekuan Akses SIMRS (`INT-HR-88`) | ✅ | `BE-HRD-275` |
-| `BE-HRD-278` | `S-C5` · `MVP-55` | Background Worker `SuspensionPeriodMonitoringWorker` (`EMP-W2`) Batas Maksimal 6 Bulan Skorsing | ✅ | `BE-HRD-277` |
-| `BE-HRD-279` | `S-C5` · `MVP-55` | Service Kanal Pengaduan Staf (Grievance ESS) & Worker Pemantauan SLA 14 Hari (`EMP-W3`) | ✅ | `BE-HRD-275` |
+| `BE-HRD-278` | `S-C5` · `MVP-55` | Background Worker `SuspensionPeriodMonitoringWorker` (`EMP-W2`) Batas Maksimal 6 Bulan Skorsing | 🟡 | `BE-HRD-277` |
+| `BE-HRD-279` | `S-C5` · `MVP-55` | Service Kanal Pengaduan Staf (Grievance ESS) & Worker Pemantauan SLA 14 Hari (`EMP-W3`) | 🟡 | `BE-HRD-275` |
 | `BE-HRD-280` | `S-C5` · `MVP-55` | Service Whistleblowing Rahasia Terenkripsi Asimetris & Isolasi RBAC Kepatuhan (`WhistleblowerCaseService` & `EMP-B3`) | ✅ | `BE-HRD-275` |
 | `BE-HRD-281` | `S-C5` · `MVP-55` | Service Dokumentasi & Risalah Perundingan Forum Bipartit RS (LKS Bipartit / Serikat Pekerja) | ✅ | `BE-HRD-275` |
-| `BE-HRD-282` | `S-C5` · `MVP-56` | Service Pengajuan Terminasi (Resign 30 Hari, Kontrak, Pensiun, SP3) & Radar Kontrak `EMP-W4` | ✅ | `BE-HRD-277` |
+| `BE-HRD-282` | `S-C5` · `MVP-56` | Service Pengajuan Terminasi (Resign 30 Hari, Kontrak, Pensiun, SP3) & Radar Kontrak `EMP-W4` | 🟡 | `BE-HRD-277` |
 | `BE-HRD-283` | `S-C5` · `MVP-56` | Calculation Engine Kompensasi Hak Pesangon PP 35/2021 (UP, UPMK, UPH) & Approval CFO (`SeveranceCalculationEngine`) | ✅ | `BE-HRD-282` |
-| `BE-HRD-284` | `S-C5` · `MVP-56` | Service Pusat Kendali Exit Clearance 5 Departemen & Worker Pengingat Kliring `EMP-W5` | ✅ | `BE-HRD-282` |
-| `BE-HRD-285` | `S-C5` · Verifikasi | Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final Sub-10 (`INT-HR-87`), Worker Penutupan IAM `EMP-W6` & Audit Verifikasi E2E | ✅ | `BE-HRD-283`, `BE-HRD-284` |
+| `BE-HRD-284` | `S-C5` · `MVP-56` | Service Pusat Kendali Exit Clearance 5 Departemen & Worker Pengingat Kliring `EMP-W5` | 🟡 | `BE-HRD-282` |
+| `BE-HRD-285` | `S-C5` · Verifikasi | Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final Sub-10 (`INT-HR-87`), Worker Penutupan IAM `EMP-W6` & Audit Verifikasi E2E | 🟡 | `BE-HRD-283`, `BE-HRD-284` |
 | `BE-HRD-286` | `S-C6` · `MVP-57` | DDL 10 Tabel Postgres, Kolom Ciphertext AES-256 & EF Migration | ✅ | — |
 | `BE-HRD-287` | `S-C6` · `MVP-57` | EF Core Repositories & Unit of Work Context K3RS (`IOccupationalHealthUnitOfWork`) | ✅ | `BE-HRD-286` |
 | `BE-HRD-288` | `S-C6` · `MVP-57` | DTOs Request/Response, Model Mapping & FluentValidation Rules (`VR-OHS-01` s.d. `VR-OHS-10`) | ✅ | `BE-HRD-287` |
@@ -994,12 +994,12 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-293` | `S-C6` · `MVP-57` | Service Asesmen Kembali Bekerja (*Return-to-Work* / RTW) & Pembuka Gembok Roster (`ReturnToWorkService`) | ✅ | `BE-HRD-291` |
 | `BE-HRD-294` | `S-C6` · `MVP-58` | Service Tanggap Darurat Tertusuk Jarum & Sirene ESS Panic Button (`NeedleStickEmergencyService` - `INT-HR-91`) | ✅ | `BE-HRD-288` |
 | `BE-HRD-295` | `S-C6` · `MVP-58` | Service Fast-Track Resep Profilaksis Pasca Pajanan (PPP/PEP < 4 Jam) & Depo Farmasi Sub-12 | ✅ | `BE-HRD-294` |
-| `BE-HRD-296` | `S-C6` · `MVP-58` | Background Worker `SerialSurveillanceFollowUpWorker` (`OHS-W1`) Bulan 1, 3, dan 6 | ✅ | `BE-HRD-295` |
-| `BE-HRD-297` | `S-C6` · `MVP-58` | Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Pengingat Booster `OHS-W3` (`StaffVaccinationService`) | ✅ | `BE-HRD-288` |
+| `BE-HRD-296` | `S-C6` · `MVP-58` | Background Worker `SerialSurveillanceFollowUpWorker` (`OHS-W1`) Bulan 1, 3, dan 6 | 🟡 | `BE-HRD-295` |
+| `BE-HRD-297` | `S-C6` · `MVP-58` | Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Pengingat Booster `OHS-W3` (`StaffVaccinationService`) | 🟡 | `BE-HRD-288` |
 | `BE-HRD-298` | `S-C6` · `MVP-58` | Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm Batas Dosis `OHS-W5` (`HazardSurveillanceService`) | 🟡 | `BE-HRD-288` |
 | `BE-HRD-299` | `S-C6` · `MVP-59` | Service Pelaksanaan MCU Berkala Berbasis Profil Ruangan, Laporan STARKES & Worker `OHS-W4` (`MedicalExaminationService`) | ✅ | `BE-HRD-288` |
 | `BE-HRD-300` | `S-C6` · `MVP-59` | Service Registrasi Kecelakaan Kerja KAK/PAK, Olah TKP & Integrasi BPJS JKK (`INT-HR-90`) (`OccupationalInjuryService`) | ✅ | `BE-HRD-299` |
-| `BE-HRD-301` | `S-C6` · Verifikasi | Controller API Kontrak v23 5 Tag Swagger, Worker BPJS `OHS-W6` & Audit Verifikasi E2E | ✅ | Seluruh task backend `BE-HRD-286` s.d. `BE-HRD-300` |
+| `BE-HRD-301` | `S-C6` · Verifikasi | Controller API Kontrak v23 5 Tag Swagger, Worker BPJS `OHS-W6` & Audit Verifikasi E2E | 🟡 | Seluruh task backend `BE-HRD-286` s.d. `BE-HRD-300` |
 | `BE-HRD-302` | `S-A7-V2` · `MVP-60` | Skema Basis Data Postgres, Ekstensi Model `WorkflowManagement` & Migration EF Core | ✅ | `BE-HRD-003` [B1] |
 | `BE-HRD-303` | `S-A7-V2` · `MVP-60` | Resolusi Matriks Routing Dinamis Multi-Dimensi & Hirarki Jabatan Sub-02 (`WorkflowRoutingMatrixService` - `WF-B1`, `INT-HR-95`) | ✅ | `BE-HRD-302` |
 | `BE-HRD-304` | `S-A7-V2` · `MVP-60` | Instansiasi Tiket Workflow Permohonan ESS Mandiri & Validasi Entitas Asal (`WorkflowInstanceCreationService` - `VR-WF-01`) | ✅ | `BE-HRD-303` |
@@ -1011,8 +1011,8 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-310` | `S-A7-V2` · `MVP-62` | Mesin Penegakan Disiplin SLA, Larangan Auto-Approve & Worker Auto-Eskalasi `WF-W1` (`WorkflowSlaEnforcementService` - `WF-B4`, `HRD-DEC-185`, `VR-WF-04`) | ✅ | `BE-HRD-309` |
 | `BE-HRD-311` | `S-A7-V2` · `MVP-62` | Background Worker `WorkflowSlaEarlyWarningWorker` (`WF-W4`) Sirene Peringatan H-4 Jam SLA | ✅ | `BE-HRD-310` |
 | `BE-HRD-312` | `S-A7-V2` · `MVP-62` | Layanan Persetujuan Massal Bersyarat (*Conditional Bulk Approval*) & Validasi 100% Indikator Hijau (`BulkApprovalService` - `WF-B6`, `HRD-DEC-187`, `VR-WF-07`) | ✅ | `BE-HRD-309` |
-| `BE-HRD-313` | `S-A7-V2` · `MVP-62` | Background Worker `BulkApprovalProcessingWorker` (`WF-W5`) Pemrosesan Antrean Batch Aman | ✅ | `BE-HRD-312` |
-| `BE-HRD-314` | `S-A7-V2` · Verifikasi | Gateway Notifikasi Multikanal & Worker `DailyApprovalDigestWorker` (`WF-W3`) Pukul 07:00 Pagi (`UnifiedNotificationGatewayService` - `WF-B7`, `INT-HR-96`) | ✅ | `BE-HRD-305`, `BE-HRD-309` |
+| `BE-HRD-313` | `S-A7-V2` · `MVP-62` | Background Worker `BulkApprovalProcessingWorker` (`WF-W5`) Pemrosesan Antrean Batch Aman | 🟡 | `BE-HRD-312` |
+| `BE-HRD-314` | `S-A7-V2` · Verifikasi | Gateway Notifikasi Multikanal & Worker `DailyApprovalDigestWorker` (`WF-W3`) Pukul 07:00 Pagi (`UnifiedNotificationGatewayService` - `WF-B7`, `INT-HR-96`) | 🟡 | `BE-HRD-305`, `BE-HRD-309` |
 | `BE-HRD-315` | `S-A7-V2` · Verifikasi | Layanan Koreksi Draf Resubmit Mandiri Staf & Worker `ReturnedRequestExpiryWorker` (`WF-W6`) (`WorkflowResubmitService` - `VR-WF-06`) | ✅ | `BE-HRD-309` |
 | `BE-HRD-316` | `S-A7-V2` · Verifikasi | Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`) | 🟡 | `BE-HRD-309`, `BE-HRD-312` |
 | `BE-HRD-317` | `S-A7-V2` · Verifikasi | Controller API Kontrak v24 5 Tag Swagger, Kunci 24 Permissions & Audit Verifikasi E2E QBE Conformance | 🟡 | Seluruh task backend `BE-HRD-302` s.d. `BE-HRD-316` |
@@ -1026,7 +1026,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-325` | `S-D5` · `MVP-64` | Generator Berkas Digital Surat Tugas Resmi & SPPD Ber-Barcode Sah (`TravelDocumentGenerationService` - `VR-TRV-01`) | ✅ | `BE-HRD-320` |
 | `BE-HRD-326` | `S-D5` · `MVP-65` | Layanan Rekonsiliasi Settlement Pengeluaran Riil & Komputasi Selisih Kas (`TravelSettlementService` - `TRV-B4`, `HRD-DEC-191`) | ✅ | `BE-HRD-324`, `BE-HRD-325` |
 | `BE-HRD-327` | `S-D5` · `MVP-65` | Layanan Formulir Deklarasi Biaya Darurat Tanpa Kuitansi (Maks Rp 150rb / 10%) (`MissingReceiptDeclarationService` - `TRV-B5`, `HRD-DEC-192`, `VR-TRV-08`) | ✅ | `BE-HRD-326` |
-| `BE-HRD-328` | `S-D5` · `MVP-65` | Background Worker `TravelAdvanceSettlementReminderWorker` (`TRV-W1`) Pengingat H+3 & H+5 | ✅ | `BE-HRD-326` |
+| `BE-HRD-328` | `S-D5` · `MVP-65` | Background Worker `TravelAdvanceSettlementReminderWorker` (`TRV-W1`) Pengingat H+3 & H+5 | 🟡 | `BE-HRD-326` |
 | `BE-HRD-329` | `S-D5` · `MVP-65` | Background Worker `TravelSettlementOverdueWorker` (`TRV-W2`) Pembeku SPPD H+14 & Pemotong Payroll H+30 (`INT-HR-99`) | ✅ | `BE-HRD-326` |
 | `BE-HRD-330` | `S-D5` · Verifikasi | Layanan Pengajuan & Persetujuan Klaim Biaya Operasional Non-Trip (`DirectExpenseClaimService` - `TRV-B1`, `HRD-DEC-188`) | ✅ | `BE-HRD-318` |
 | `BE-HRD-331` | `S-D5` · Verifikasi | Layanan Verifikasi Struk Kasir & Pencairan Reimbursement Non-Trip (`ExpenseVerificationAndPaymentService` - `VR-TRV-16`, `VR-TRV-18`) | ✅ | `BE-HRD-330` |
@@ -4955,7 +4955,7 @@ BE-HRD-220 [B54] ─┘
 
 #### Grafik B56: Gelombang `MVP-45` (OPPE Evaluasi Kinerja Klinis & Kualitas SIMRS)
 ```text
-BE-HRD-222 ✅ (Skema DB OPPE/FPPE) ──> BE-HRD-223 ✅ (Katalog Indikator ACGME) ──> BE-HRD-224 ✅ (Periode Siklus OPPE) ──> BE-HRD-225 ✅ (Ekstraksi Kuantitatif SIMRS 60%) ──┐
+BE-HRD-222 ✅ (Skema DB OPPE/FPPE) ──> BE-HRD-223 ✅ (Katalog Indikator ACGME) ──> BE-HRD-224 ✅ (Periode Siklus OPPE) ──> BE-HRD-225 🟡 (Ekstraksi Kuantitatif SIMRS 60%) ──┐
                                                                                │                                                                                        │
                                                                                └──> BE-HRD-226 ✅ (Penugasan Peer Review 40%) ──> BE-HRD-227 ✅ (Privilege & Read-Audit) ──┴─> BE-HRD-228 ✅ (Kalkulator Komposit 60:40 & Sidang)
 ```
@@ -4969,7 +4969,7 @@ BE-HRD-222 [B56] ──> BE-HRD-229 🟡 [B57] ──> BE-HRD-230 ✅ [B57] ─�
 ```text
 BE-HRD-228 [B56] ──┬──> BE-HRD-233 ✅ (Kalkulator Komposit 3 Tahun & Tier) ──> BE-HRD-234 🟡 (Diskresi Override Tier) ──> BE-HRD-235 🟡 (4 Putusan Rekredensialing & Dispatcher SIMRS EMR)
 BE-HRD-232 [B57] ──┘
-BE-HRD-230 [B57] ──┬──> BE-HRD-236 ✅ (Worker Pemantau Batas Proctoring & Anomali Komplikasi Bulanan)
+BE-HRD-230 [B57] ──┬──> BE-HRD-236 🟡 (Worker Pemantau Batas Proctoring & Anomali Komplikasi Bulanan)
 BE-HRD-225 [B56] ──┘
 ```
 
@@ -5020,9 +5020,9 @@ BE-HRD-236 [B58] ──┘
 * **Acceptance Criteria**: Periode OPPE terbit status `Active`; draf rapor dokter terinisiasi otomatis; penolakan jika total bobot != 100% (`VR-OPP-01`).
 * **Verifikasi**: Uji fungsional `AT-HRD-OPP-01` dan uji negatif `AT-HRD-OPP-02`.
 
-#### ✅ `BE-HRD-225` — Layanan Ekstraksi & Agregasi Otomatis Data Indikator Kuantitatif SIMRS/KMKP 60%
+#### 🟡 `BE-HRD-225` — Layanan Ekstraksi & Agregasi Otomatis Data Indikator Kuantitatif SIMRS/KMKP 60%
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-45`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — konstanta 120/92,5/0/88 dan fallback 50 dihapus; `SIMRS_VOLUME`, `SIMRS_EMR_COMPLETION`, `SIMRS_FORMULARY`, `SIMRS_SSI` ditarik dari tabel pelayanan aplikasi (kunjungan, visite, resume pulang, resep, surveilans IDO) per dokter per periode; indikator tanpa sumber (`KMKP_INCIDENT`, clinical pathway) dilaporkan tidak tersedia dan tidak dinilai. **Belum**: tabel sumber KMKP/CP tidak ada; `AT-HRD-OPP-03` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-225.md)
 * **Outcome**: Implementasi adapter integrasi `INT-HR-73` (`IOppeSimrsMetricExtractorService`) untuk menarik data indikator kuantitatif dari SIMRS dan modul KMKP (volume tindakan, kepatuhan resume EMR 1x24 jam, kepatuhan Clinical Pathway, kepatuhan formularium RS, tingkat IDO), serta kalkulasi agregasi bobot kuantitatif 60%.
 * **Dependencies**: `BE-HRD-224`
 * **Acceptance Criteria**: Data kuantitatif SIMRS teragregasi secara otomatis; nilai skor tertimbang 60% terhitung presisi; penyimpanan raw JSON payload bukti audit.
@@ -5102,15 +5102,15 @@ BE-HRD-236 [B58] ──┘
 
 #### 🟡 `BE-HRD-235` — Penetapan 4 Putusan Sidang Rekredensialing & Dispatcher Integrasi SIMRS EMR
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
-* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — putusan dan log pengiriman kini di tabel `HrdRecredentialingVerdict`/`HrdSimrsPrivilegeSyncLog`, latensi diukur nyata, status jujur `PENDING_INTEGRATION 202`; **belum**: pemanggilan SIMRS EMR menunggu keputusan jalur integrasi (Gelombang 2), migration belum dijalankan, `AT-HRD-OPP-22` `NOT RUN`. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-235.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — dispatcher kini menulis ke tabel wewenang klinis bersama `WfpClinicalPrivilege` (level 1–2 blokir layanan/penjadwalan, 3 supervisi, 4 mandiri) yang dibaca resolver laboratorium dan kamar operasi; status log `SYNCED` 200 / `NO_PRIVILEGE_ROWS` 404 (keputusan jalur integrasi: tabel bersama, bukan API). **Belum**: migration `20261110050000` belum dijalankan; `AT-HRD-OPP-22` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-235.md)
 * **Outcome**: Layanan penerbitan 4 putusan sah sidang rekredensialing (`Perpanjang As-Is`, `Upgrade`, `Restricted`, `Revoked`, `VR-OPP-20`), serta implementasi dispatcher sinkronisasi `INT-HR-76` (`ISimrsClinicalPrivilegeDispatcher`) yang mentransmisikan instruksi wewenang Level 4 mandiri, Level 3 supervisi co-sign 24 jam (`VR-OPP-21`), atau Hard-Stop pemblokiran order mutlak untuk putusan Revoked (`VR-OPP-22`, `VR-OPP-25`).
 * **Dependencies**: `BE-HRD-234`
 * **Acceptance Criteria**: Putusan rekredensialing terkirim ke database SIMRS EMR; menu order dan peresepan dokter seketika terkunci jika status Revoked.
 * **Verifikasi**: Uji integrasi SIMRS & Hard-Stop `AT-HRD-OPP-22`.
 
-#### ✅ `BE-HRD-236` — Background Worker Pemantau Sisa Waktu Proctoring & Evaluasi Tren Komplikasi Bulanan
+#### 🟡 `BE-HRD-236` — Background Worker Pemantau Sisa Waktu Proctoring & Evaluasi Tren Komplikasi Bulanan
 * **Slice / MVP**: `S-C1-OPPE` / `MVP-47`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `OPP-W3` kini mengirim peringatan H-14/H-7/lewat tenggat ke proctor, dokter, dan pemegang `FppeFocusedEvaluation : ApproveConclusion`. **Belum**: migration `20261111020000` belum dijalankan; uji scheduler `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-236.md)
 * **Outcome**: Implementasi background worker berkala (`OPP-W1` s.d. `OPP-W6`): `OppeSimrsDataSyncJob`, `FppeTriggerMonitorJob`, `FppeProctoringDeadlineJob` (peringatan H-14 masa observasi habis), `RecredentialingCompositeScoreJob`, `OppeEarlyWarningJob`, dan `SurgicalComplicationScannerJob` (analisis statistik komplikasi > 2 SD).
 * **Dependencies**: `BE-HRD-225`, `BE-HRD-230`
 * **Acceptance Criteria**: Worker berjalan deterministik sesuai jadwal cron; deteksi anomali statistik memicu event pemicu FPPE.
@@ -5202,7 +5202,7 @@ BE-HRD-252 [B62] ──┘
 
 #### 🟡 `BE-HRD-240` — Engine Radar Kedaluwarsa Bertingkat (H-90/60/30) & Penyiaran Notifikasi Massal (`TrainingExpiryRadarService`)
 * **Slice / MVP**: `S-C2` / `MVP-48`
-* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — 4 staf fiktif, 2 sertifikat contoh, dan nama pelatihan tetap dihapus; siaran melaporkan penerima nyata dan 0 pengiriman; **belum**: pengiriman notifikasi menunggu `BE-HRD-314`. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-240.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — siaran radar kini benar-benar terkirim ke pusat pemberitahuan (satu per staf per hari) dan jumlah pengiriman dilaporkan nyata. **Belum**: migration `20261111020000` belum dijalankan; `AT-HRD-TRN-04` `NOT RUN`; kanal email/WhatsApp tidak tersedia. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-240.md)
 * **Outcome**: Layanan pemantau kepatuhan sertifikasi berkala dan background worker harian `MandatoryTrainingExpiryRadarWorker` (`TRN-W1`) yang memindai seluruh sertifikat aktif pegawai, mengelompokkan ke zona radar H-90, H-60, H-30 hari sebelum kedaluwarsa (`VR-TRN-09`), memicu status `ExpiringSoon`, mencatat event audit `MandatoryTrainingExpiryRadarTriggered`, serta endpoint penyiaran notifikasi peringatan massal ke ESS, email, dan WhatsApp.
 * **Dependencies**: `BE-HRD-239`
 * **Acceptance Criteria**: Worker radar mengevaluasi tanggal masa berlaku secara akurat; endpoint `GET .../certificates/expiring-radar` dan `POST .../certificates/expiring-radar/broadcast-alerts` berfungsi deterministik.
@@ -5340,7 +5340,7 @@ BE-HRD-261 [B65] ──> BE-HRD-267 ✅ (Tata Kelola Sanggah Banding Nilai SLA 7
 #### Grafik B67: Gelombang Verifikasi & Kepatuhan Arsitektur `S-C3`
 ```text
 BE-HRD-263 [B65] ──┐
-BE-HRD-266 [B66] ──┼──> BE-HRD-268 ✅ (Controller API Kontrak v21 & 6 Background Workers PRF-W1..W6) ──> BE-HRD-269 ✅ (Validasi Kompilasi .NET, QBE Conformance & Acceptance Tests S-C3)
+BE-HRD-266 [B66] ──┼──> BE-HRD-268 🟡 (Controller API Kontrak v21 & 6 Background Workers PRF-W1..W6) ──> BE-HRD-269 ✅ (Validasi Kompilasi .NET, QBE Conformance & Acceptance Tests S-C3)
 BE-HRD-267 [B66] ──┘
 ```
 
@@ -5491,9 +5491,9 @@ Legenda:
 * **Acceptance Criteria**: Pengajuan sanggahan melewati batas H+7 ditolak otomatis oleh sistem; status lembar penilaian terkunci sementara `Disputed` selama proses mediasi berlangsung; putusan majelis banding bersifat final dan mengikat.
 * **Verifikasi**: Uji SLA sanggah banding dan putusan majelis `AT-HRD-PRF-21`, `AT-HRD-PRF-22`.
 
-#### ✅ `BE-HRD-268` — 4 Controller API Swagger Kontrak v21 & Registrasi 6 Background Workers (PRF-W1..W6)
+#### 🟡 `BE-HRD-268` — 4 Controller API Swagger Kontrak v21 & Registrasi 6 Background Workers (PRF-W1..W6)
 * **Slice / MVP**: `S-C3` / Verifikasi
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `PRF-W3`, `PRF-W4`, `PRF-W6` kini mengirim pemberitahuan ke pemegang hak akses terkait dan mentor; `PRF-W5` yang sebelumnya kosong kini menghitung masa 3 tahun jenjang klinis (H-90 dan lewat). **Belum**: migration `20261111020000` belum dijalankan; uji scheduler `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-268.md)
 * **Outcome**: Implementasi seluruh 24 endpoint API pada 4 Controller ASP.NET Core beranotasi Swagger `[Tags("HRD - ...")]` sesuai Kontrak `v21`, penegakan atribut otorisasi 14 permission persis (`Permissions.Hrd.Performance.*`), pencatatan 14 action audit trails, serta registrasi 6 background workers berbasis `BackgroundService` (`PerformanceCycleStatusTransitionWorker`, `PerformanceGoalLockingWorker`, `PerformanceCalibrationDeadlineWorker`, `PerformancePipMilestoneMonitoringWorker`, `ClinicalCareerLadderExpiryWorker`, `PerformanceDisputeSlaEnforcementWorker`).
 * **Dependencies**: `BE-HRD-263`, `BE-HRD-266`, `BE-HRD-267`.
 * **Acceptance Criteria**: Seluruh 24 endpoint API terdaftar rapi pada Swagger UI dengan skema DTO yang valid; 6 background workers berjalan terisolasi di background sesuai jadwal cron/interval tanpa mengganggu alur HTTP request.
@@ -5531,12 +5531,12 @@ BE-HRD-275 [B68] ──┬──> BE-HRD-277 (Skorsing Upah Penuh Paid Suspensio
 #### Grafik B70: Gelombang `MVP-56` (Pemutusan Kerja PHK, Kalkulator Pesangon PP 35/2021 & Exit Clearance Multi-Departemen Pemblokir Payroll)
 ```text
 BE-HRD-277 [B69] ──┬──> BE-HRD-282 (Pengajuan PHK/Resign 30 Hari & Radar Kontrak PKWT EMP-W4) ──> BE-HRD-283 (Kalkulator Pesangon PP 35/2021 & Approval CFO)
-                   └──> BE-HRD-284 ✅ (Pusat Kendali Exit Clearance 5 Unit & Worker Pengingat Kliring EMP-W5)
+                   └──> BE-HRD-284 🟡 (Pusat Kendali Exit Clearance 5 Unit & Worker Pengingat Kliring EMP-W5)
 ```
 
 #### Grafik B71: Gelombang Verifikasi & Uji Integrasi End-to-End
 ```text
-BE-HRD-283 [B70] ──┬──> BE-HRD-285 ✅ (Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final INT-HR-87 & Verifikasi E2E)
+BE-HRD-283 [B70] ──┬──> BE-HRD-285 🟡 (Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final INT-HR-87 & Verifikasi E2E)
 BE-HRD-284 [B70] ──┘
 ```
 
@@ -5631,17 +5631,17 @@ BE-HRD-284 [B70] ──┘
 * **Acceptance Criteria**: Surat skorsing terbit dengan batas maksimal 6 bulan; event revokasi SIMRS terbit seketika; hak gaji pokok di Sub-10 tetap berjalan penuh.
 * **Verifikasi**: Uji paid suspension dan revokasi akses SIMRS `AT-HRD-EMP-11`, `AT-HRD-EMP-12`.
 
-#### ✅ `BE-HRD-278` — Background Worker `SuspensionPeriodMonitoringWorker` (`EMP-W2`) Batas Maksimal 6 Bulan Skorsing
+#### 🟡 `BE-HRD-278` — Background Worker `SuspensionPeriodMonitoringWorker` (`EMP-W2`) Batas Maksimal 6 Bulan Skorsing
 * **Slice / MVP**: `S-C5` / `MVP-55`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `EMP-W2` kini mengirim eskalasi hari ke-150 dan ke-180 ke pemegang hak akses `EmployeeDisciplinary : ManageSuspension` lewat pusat pemberitahuan (satu kali per skorsing per ambang), bukan hanya log. **Belum**: migration `20261111020000` belum dijalankan; uji ambang durasi `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-278.md)
 * **Outcome**: Layanan pemantauan durasi skorsing investigasi harian (`SuspensionPeriodMonitoringWorker`). Menghitung selisih hari berjalan sejak skorsing dimulai. Pada hari ke-150 (H-30 dari batas maksimal 180 hari / 6 bulan), worker menerbitkan alert eskalasi prioritas tinggi kepada Direktur Utama dan Direktur SDM untuk segera menetapkan keputusan sidang akhir (rehabilitasi atau penetapan PHK resmi).
 * **Dependencies**: `BE-HRD-277`
 * **Acceptance Criteria**: Alert eskalasi terbit otomatis pada hari ke-150; mencegah pelanggaran hukum akibat skorsing berlarut-larut melebihi 6 bulan kalender.
 * **Verifikasi**: Uji threshold durasi skorsing pada unit test worker.
 
-#### ✅ `BE-HRD-279` — Service Kanal Pengaduan Staf (Grievance ESS) & Worker Pemantauan SLA 14 Hari (`EMP-W3`)
+#### 🟡 `BE-HRD-279` — Service Kanal Pengaduan Staf (Grievance ESS) & Worker Pemantauan SLA 14 Hari (`EMP-W3`)
 * **Slice / MVP**: `S-C5` / `MVP-55`
-* **Status**: ✅ **SELESAI 10 November 2026 (dikerjakan ulang; sebelumnya ✅ 9 November 2026)** — nomor tiket keluhan kini urut (`GRV-202611-0001`); temuan kepemilikan data kelompok G tetap terbuka. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation; uji runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-279.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya ✅ 10 November 2026) — kelompok G nomor 1–2 ditutup: pelapor dan `my-tickets` dari klaim token (parameter `employeeId` dihapus — delta kontrak); `EMP-W3` kini mengeskalasikan tiket lewat SLA ke pemegang `EmployeeGrievance : Mediate`. **Belum**: migration `20261111020000` (tabel pemberitahuan dan pemetaan ulang data lama) belum dijalankan; `AT-HRD-EMP-13` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-279.md)
 * **Outcome**: Layanan penanganan keluhan hubungan kerja harian pegawai (*Grievance*) melalui portal ESS. Mengatur registrasi tiket keluhan, perutean ke atasan langsung, pencatatan hasil klarifikasi dan notulen mediasi damai. Didukung background worker `GrievanceSlaEscalationWorker` (`EMP-W3`) yang memantau batas waktu penyelesaian maksimal 14 hari kerja (`VR-EMP-14`) dan mengeskalasikan tiket ke Kepala Bagian SDM jika melewati batas waktu tanpa tanggapan.
 * **Dependencies**: `BE-HRD-275`
 * **Acceptance Criteria**: Tiket keluhan terdaftar dengan SLA target 14 hari kerja; eskalasi otomatis berjalan saat supervisor tidak menanggapi dalam 7 hari kerja.
@@ -5663,9 +5663,9 @@ BE-HRD-284 [B70] ──┘
 * **Acceptance Criteria**: Berkas Bipartit tersimpan dengan nomor register resmi; naskah Perjanjian Bersama terarsip aman sebagai referensi hukum hubungan industrial.
 * **Verifikasi**: Uji registrasi forum Bipartit pada `AT-HRD-EMP-16`.
 
-#### ✅ `BE-HRD-282` — Service Pengajuan Terminasi (Resign 30 Hari, Kontrak, Pensiun, SP3) & Radar Kontrak `EMP-W4`
+#### 🟡 `BE-HRD-282` — Service Pengajuan Terminasi (Resign 30 Hari, Kontrak, Pensiun, SP3) & Radar Kontrak `EMP-W4`
 * **Slice / MVP**: `S-C5` / `MVP-56`
-* **Status**: ✅ **SELESAI 10 November 2026 (dikerjakan ulang; sebelumnya ✅ 9 November 2026)** — nomor terminasi kini urut (`SEP-202611-0001`); worker radar PKWT kelompok D tetap menunggu `BE-HRD-314`. `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation; uji runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-282.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya ✅ 10 November 2026) — radar PKWT `EMP-W4` kini mengirim pemberitahuan H-60/H-30 ke pegawai dan pemegang `EmployeeSeparation : Initiate`. **Belum**: migration `20261111020000` belum dijalankan; uji radar `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-282.md)
 * **Outcome**: Layanan registrasi pengakhiran ikatan kerja pegawai untuk berbagai alasan (pengunduran diri sukarela dengan validasi pemberitahuan minimal 30 hari kalender sesuai `VR-EMP-19`, berakhirnya masa kontrak PKWT, pensiun normal, pelanggaran disiplin SP 3, pelanggaran berat mendesak, atau meninggal dunia). Terintegrasi dengan background worker `PkwtContractExpiryRadarWorker` (`EMP-W4`) yang memindai masa kontrak PKWT pada H-60 dan H-30.
 * **Dependencies**: `BE-HRD-277`
 * **Acceptance Criteria**: Pengajuan resign sukarela < 30 hari ditolak validasi; worker memindai kontrak PKWT yang akan habis dan menerbitkan notifikasi evaluasi.
@@ -5679,17 +5679,17 @@ BE-HRD-284 [B70] ──┘
 * **Acceptance Criteria**: Komponen pesangon terhitung akurat sesuai formula regulasi PP 35/2021; lembar pesangon terkunci dan dilarang disinkronkan ke payroll tanpa persetujuan Direktur Keuangan.
 * **Verifikasi**: Uji formula pesangon dan kompensasi PKWT `AT-HRD-EMP-18`, `AT-HRD-EMP-19`, `AT-HRD-EMP-20`.
 
-#### ✅ `BE-HRD-284` — Service Pusat Kendali Exit Clearance 5 Departemen & Worker Pengingat Kliring `EMP-W5`
+#### 🟡 `BE-HRD-284` — Service Pusat Kendali Exit Clearance 5 Departemen & Worker Pengingat Kliring `EMP-W5`
 * **Slice / MVP**: `S-C5` / `MVP-56`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `EMP-W5` kini mengirim pengingat harian per proses kliring ke pemegang `MultiDeptExitClearance : SignoffChecklist`. **Belum**: migration `20261111020000` belum dijalankan; uji pengingat `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-284.md)
 * **Outcome**: Layanan pengendalian proses exit clearance lintas departemen. Membuka berkas kliring digital yang memuat butir checklist dari 5 departemen (Unit Kerja, Umum/Aset, Farmasi/Alkes, Keuangan, IT) sesuai `VR-EMP-24`. Mengelola pencatatan serah terima fisik barang dan sisa piutang. Didukung background worker `ExitClearanceChecklistReminderWorker` (`EMP-W5`) yang mengirimkan notifikasi pengingat harian ke departemen yang masih pending menjelang tanggal efektif pengunduran diri.
 * **Dependencies**: `BE-HRD-282`
 * **Acceptance Criteria**: Seluruh butir checklist 5 departemen tercatat; pengingat otomatis terkirim ke verifikator departemen yang belum memberikan persetujuan.
 * **Verifikasi**: Uji inisiasi dan persetujuan checklist pada `AT-HRD-EMP-21`.
 
-#### ✅ `BE-HRD-285` — Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final Sub-10 (`INT-HR-87`), Worker Penutupan IAM `EMP-W6` & Audit Verifikasi E2E
+#### 🟡 `BE-HRD-285` — Controller API Kontrak v22 5 Tag Swagger, Hard-Block Payroll Final Sub-10 (`INT-HR-87`), Worker Penutupan IAM `EMP-W6` & Audit Verifikasi E2E
 * **Slice / MVP**: `S-C5` / Verifikasi
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `EMP-W6` kini mengunci akun aplikasi pegawai yang diskors (`IsActive = false`, `LockoutEnd`) dan memulihkannya saat skorsing berakhir, dengan jejak `HrdSuspensionAccessAction` dan pemberitahuan ke pemegang `EmployeeDisciplinary : ManageSuspension` (keputusan Gelombang 2: otomatis, bukan hanya memberi tahu admin IT). **Belum**: migration `20261111020000` belum dijalankan, `AT-HRD-EMP-22` `NOT RUN`; akses fisik kartu pintar di luar sistem. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-285.md)
 * **Outcome**: Implementasi seluruh 24 endpoint API pada 5 Controller ASP.NET Core beranotasi Swagger `[Tags("Corporate - HRD ...")]` sesuai Kontrak API `v22`. Mengimplementasikan service provider gerbang `IExitClearanceStatusProvider` yang secara ketat memblokir tombol rilis gaji terakhir (*final settlement run*) dan transfer dana pesangon di Sub-10 Payroll sebelum exit clearance berstatus `Completed` (`INT-HR-87`, `VR-EMP-25`). Mengonfigurasi worker `ItAccessRevocationSyncWorker` (`EMP-W6`) serta melakukan audit verifikasi kompilasi `dotnet build` dan kepatuhan QBE Conformance.
 * **Dependencies**: `BE-HRD-283`, `BE-HRD-284`
 * **Acceptance Criteria**: Seluruh 24 endpoint API terdaftar rapi pada Swagger UI; rilis payroll Sub-10 terblokir otomatis jika exit clearance belum tuntas 100%; `dotnet build` lulus 0 error.
@@ -5734,12 +5734,12 @@ BE-HRD-288 [B72] ─┬─> BE-HRD-294 ✅ (Service Tanggap Darurat Tertusuk Jar
                   │      │
                   │      └─> BE-HRD-295 ✅ (Service Fast-Track Resep Terapi PPP/PEP < 4 Jam & Farmasi Sub-12)
                   │             │
-                  │             └─> BE-HRD-296 ✅ (Worker SerialSurveillanceFollowUpWorker OHS-W1 Bulan 1-3-6)
+                  │             └─> BE-HRD-296 🟡 (Worker SerialSurveillanceFollowUpWorker OHS-W1 Bulan 1-3-6)
 ```
 
 #### Grafik B75: Radar Imunisasi STARKES, Bahaya Ruangan, MCU Berkala, Kecelakaan Kerja & Klaim BPJS JKK
 ```text
-BE-HRD-288 [B72] ─┬─> BE-HRD-297 ✅ (Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Booster OHS-W3)
+BE-HRD-288 [B72] ─┬─> BE-HRD-297 🟡 (Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Booster OHS-W3)
                   ├─> BE-HRD-298 🟡 (Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm OHS-W5)
                   ├─> BE-HRD-299 ✅ (Service Pelaksanaan MCU Berkala Berbasis Profil Ruangan & Worker OHS-W4)
                   │      │
@@ -5749,7 +5749,7 @@ BE-HRD-289 [B73] ─┤
 BE-HRD-290 [B73] ─┤
 BE-HRD-291 [B73] ─┤
 BE-HRD-293 [B73] ─┤
-BE-HRD-294 [B74] ─┼─> BE-HRD-301 ✅ (Controller API Kontrak v23 5 Tag Swagger, Worker OHS-W6 & Verifikasi E2E)
+BE-HRD-294 [B74] ─┼─> BE-HRD-301 🟡 (Controller API Kontrak v23 5 Tag Swagger, Worker OHS-W6 & Verifikasi E2E)
 BE-HRD-295 [B74] ─┤
 BE-HRD-296 [B74] ─┤
 BE-HRD-297 [B75] ─┤
@@ -5865,17 +5865,17 @@ BE-HRD-300 [B75] ─┘
 * **Acceptance Criteria**: Resep darurat PPP terbit otomatis tanpa antrean reguler farmasi; timestamp pemberian obat tercatat < 4 jam dari waktu insiden.
 * **Verifikasi**: Uji batas emas terapi PPP < 4 jam `AT-HRD-OHS-09`.
 
-#### ✅ `BE-HRD-296` — Background Worker `SerialSurveillanceFollowUpWorker` (`OHS-W1`) Bulan 1, 3, dan 6
+#### 🟡 `BE-HRD-296` — Background Worker `SerialSurveillanceFollowUpWorker` (`OHS-W1`) Bulan 1, 3, dan 6
 * **Slice / MVP**: `S-C6` / `MVP-58`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `OHS-W1` kini mengirim jadwal serologi serial jatuh tempo ke pegawai dan pemegang `NeedleStickEmergency : ManageSerialSurveillance`. **Belum**: migration `20261111020000` belum dijalankan; uji `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-296.md)
 * **Outcome**: Background worker terjadwal (`OHS-W1`) yang secara otomatis membuat dan mengelola 3 tahapan tonggak surveilans serologi serial darah staf pasca pajanan (tepat pada Bulan ke-1, Bulan ke-3, dan Bulan ke-6 sesuai `VR-OHS-11`). Mengirimkan tiket panggilan pemeriksaan lab berkala dan menutup kasus menjadi `ClosedSeronegative` jika evaluasi 6 bulan non-reaktif (`AT-HRD-OHS-11`).
 * **Dependencies**: `BE-HRD-295`
 * **Acceptance Criteria**: 3 jadwal surveilans serial terbuat otomatis di kalender staf; kasus otomatis ditutup jika tes akhir bulan ke-6 non-reaktif.
 * **Verifikasi**: Uji otomasi jadwal surveilans serial `AT-HRD-OHS-10` dan penutupan kasus bebas infeksi `AT-HRD-OHS-11`.
 
-#### ✅ `BE-HRD-297` — Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Pengingat Booster `OHS-W3` (`StaffVaccinationService`)
+#### 🟡 `BE-HRD-297` — Service Radar Imunisasi Staf, Log Batch Vaksin & Worker Pengingat Booster `OHS-W3` (`StaffVaccinationService`)
 * **Slice / MVP**: `S-C6` / `MVP-58`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `OHS-W3` kini mengirim pengingat booster H-30 dan pengingat terlewat ke pegawai dan pemegang `StaffVaccination : RecordVaccination`. **Belum**: migration `20261111020000` belum dijalankan; uji `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-297.md)
 * **Outcome**: Layanan buku vaksinasi elektronik staf rumah sakit. Memvalidasi kelengkapan nomor batch, pabrikan vaksin, tanggal kedaluwarsa, dan identitas vaksinator (`VR-OHS-14`). Mendeteksi kadar titer Anti-HBs kuantitatif < 10 mIU/mL dan menetapkan status `NonProtective` (`VR-OHS-15`). Dilengkapi background worker `VaccineBoosterReminderWorker` (`OHS-W3`) yang mengirimkan reminder booster pada H-30 sebelum masa proteksi berakhir (`VR-OHS-16`).
 * **Dependencies**: `BE-HRD-288`
 * **Acceptance Criteria**: Log vaksinasi tercatat lengkap dengan nomor batch sah; titer < 10 mIU/mL otomatis memicu tiket rujukan vaksinasi booster.
@@ -5883,7 +5883,7 @@ BE-HRD-300 [B75] ─┘
 
 #### 🟡 `BE-HRD-298` — Service Surveilans Bahaya Ruangan, TLD Radiasi & Worker Alarm Batas Dosis `OHS-W5` (`HazardSurveillanceService`)
 * **Slice / MVP**: `S-C6` / `MVP-58`
-* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — radar dosis dihitung dari kolom baru `MeasuredDoseMsv`, bukan angka tetap 4,8/1,2 mSv; **belum**: migration belum dijalankan, worker alarm masih hanya menulis log (kelompok D). `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-298.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — radar dosis dari kolom `MeasuredDoseMsv`; `OHS-W5` kini mengirim alarm kritis ke pegawai dan pemegang `OccupationalMedicalExamination : RecordHazardSurveillance`. **Belum**: migration `20261110050000` dan `20261111020000` belum dijalankan; uji `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-298.md)
 * **Outcome**: Layanan pemantauan bahaya spesifik lingkungan kerja rumah sakit (pembacaan dosis radiasi badge TLD kuartalan/tahunan, penapisan spirometri debu/gas, dan audiometri kebisingan CSSD/Genset). Dilengkapi background worker `RadiationDoseThresholdAlertWorker` (`OHS-W5`) yang memantau dosis radiasi kumulatif triwulanan (> 5 mSv) dan tahunan (> 20 mSv) sesuai regulasi Bapeten untuk memicu alarm peringatan dini dan rekomendasi rotasi kerja staf (`VR-OHS-17`).
 * **Dependencies**: `BE-HRD-288`
 * **Acceptance Criteria**: Rekaman dosis TLD tersimpan per periode; dosis melebihi ambang 20 mSv memicu alarm bahaya dan tiket rotasi dinas.
@@ -5905,9 +5905,9 @@ BE-HRD-300 [B75] ─┘
 * **Acceptance Criteria**: Laporan investigasi memuat matriks CAPA; formulir JKK Tahap I diekspor < 48 jam; hari kerja hilang (LTI) sinkron dengan absensi sakit.
 * **Verifikasi**: Uji ekspor formulir JKK Tahap I `AT-HRD-OHS-18`, investigasi K3RS `AT-HRD-OHS-19`, dan sinkronisasi LTI `AT-HRD-OHS-20`.
 
-#### ✅ `BE-HRD-301` — Controller API Kontrak v23 5 Tag Swagger, Worker BPJS `OHS-W6` & Audit Verifikasi E2E
+#### 🟡 `BE-HRD-301` — Controller API Kontrak v23 5 Tag Swagger, Worker BPJS `OHS-W6` & Audit Verifikasi E2E
 * **Slice / MVP**: `S-C6` / Verifikasi
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `OHS-W6` kini mengirim peringatan H-12 jam dan pelanggaran batas BPJS JKK 2x24 jam ke pemegang `WorkRestrictionAndInjury : PrepareBpjsClaimStage1`. **Belum**: migration `20261111020000` belum dijalankan; uji `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-301.md)
 * **Outcome**: Implementasi seluruh 24 endpoint API pada 5 Controller ASP.NET Core beranotasi Swagger `[Tags("Corporate - HRD ...")]` sesuai Kontrak API `v23`. Mengonfigurasi background worker `BPJSOccupationalInjuryFollowUpWorker` (`OHS-W6`) yang mengawal SLA pelaporan JKK, mengunci hak akses 24 permissions `Hrd.OccupationalHealth.*`, serta melakukan audit verifikasi menyeluruh kompilasi `dotnet build` 0 warning dan kepatuhan standar QBE Conformance.
 * **Dependencies**: Seluruh task backend `BE-HRD-286` s.d. `BE-HRD-300`
 * **Acceptance Criteria**: 24 endpoint API terdaftar rapi pada Swagger UI; seluruh permission dan audit event bekerja akuntabel; `dotnet build` lulus 0 error.
@@ -5941,13 +5941,13 @@ BE-HRD-304 ✅ [B76] ─> BE-HRD-306 ✅ ─┬─> BE-HRD-307 ✅ ─> BE-HRD-3
 ```text
 BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-310 ✅ ─> BE-HRD-311 ✅
                       │
-                      └─> BE-HRD-312 ✅ ─> BE-HRD-313 ✅
+                      └─> BE-HRD-312 ✅ ─> BE-HRD-313 🟡
 ```
 
 #### Grafik B79 — Notifikasi Multikanal, Resubmit Draf, Kontrak API v24 5 Tag Swagger & Verifikasi E2E (`BE-HRD-314` s.d. `BE-HRD-317`)
 
 ```text
-BE-HRD-305 ✅ [B76] ─┬─> BE-HRD-314 ✅
+BE-HRD-305 ✅ [B76] ─┬─> BE-HRD-314 🟡
 BE-HRD-309 ✅ [B77] ─┘
 BE-HRD-309 ✅ [B77] ────> BE-HRD-315 ✅
 BE-HRD-309 ✅ [B77] ─┬─> BE-HRD-316 🟡
@@ -6058,17 +6058,17 @@ BE-HRD-302 ✅ s.d. BE-HRD-316 🟡 ───────> BE-HRD-317 🟡
 * **Acceptance Criteria**: Otorisasi batch hanya dapat dieksekusi setelah memasukkan PIN keamanan sah; item berindikator risiko ditolak dari batch.
 * **Verifikasi**: Uji validasi persetujuan massal bersyarat `AT-HRD-WF-11` dan proteksi PIN `AT-HRD-WF-12`.
 
-#### ✅ `BE-HRD-313` — Background Worker `BulkApprovalProcessingWorker` (`WF-W5`) Pemrosesan Antrean Batch Aman
+#### 🟡 `BE-HRD-313` — Background Worker `BulkApprovalProcessingWorker` (`WF-W5`) Pemrosesan Antrean Batch Aman
 * **Slice / MVP**: `S-A7-V2` / `MVP-62`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — worker `BulkApprovalProcessingWorker` yang hanya berisi `Task.Delay` dihapus beserta registrasinya (keputusan: antrean latar tidak diperlukan, endpoint sudah memproses dan melaporkan per tiket); status akhir tiap tiket kini diberitahukan ke pemohon lewat pusat pemberitahuan. **Belum**: migration `20261111020000` belum dijalankan, `AT-HRD-WF-13` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-313.md)
 * **Outcome**: Background worker antrean latar belakang (`WF-W5`) yang mengeksekusi persetujuan massal secara terurut dan terisolasi per transaksi (*isolated transactional processing*). Mencegah deadlock basis data dan memastikan bahwa bila salah satu transaksi gagal, transaksi lain dalam batch tetap berhasil disetujui serta menghasilkan laporan eksekusi batch yang transparan.
 * **Dependencies**: `BE-HRD-312`
 * **Acceptance Criteria**: Antrean batch dieksekusi secara aman; status akhir tiap tiket dilaporkan akurat ke pemohon dan approver.
 * **Verifikasi**: Uji pemrosesan batch aman dan isolasi kegagalan `AT-HRD-WF-13`.
 
-#### ✅ `BE-HRD-314` — Gateway Notifikasi Multikanal & Worker `DailyApprovalDigestWorker` (`WF-W3`) Pukul 07:00 Pagi (`UnifiedNotificationGatewayService` - `WF-B7`, `INT-HR-96`)
+#### 🟡 `BE-HRD-314` — Gateway Notifikasi Multikanal & Worker `DailyApprovalDigestWorker` (`WF-W3`) Pukul 07:00 Pagi (`UnifiedNotificationGatewayService` - `WF-B7`, `INT-HR-96`)
 * **Slice / MVP**: `S-A7-V2` / Verifikasi
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — gateway kini mengirim ke pusat pemberitahuan dalam aplikasi (tabel `HrdNotification`, hub SignalR `/hubs/notifications`, endpoint `HrdNotification`); pemohon dan approver diberi tahu saat tiket diajukan, disetujui, ditolak, atau dikembalikan; ringkasan harian dijadwalkan 07:00 WIB dengan anti-duplikat. **Belum**: kanal email/push mobile/WhatsApp tidak tersedia di platform (keputusan Gelombang 2: kanal pertama lonceng aplikasi), migration `20261111020000` belum dijalankan, `AT-HRD-WF-14`/`AT-HRD-WF-15` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-314.md)
 * **Outcome**: Layanan orkestrasi notifikasi multikanal (Web push realtime SignalR, Push Notification mobile, dan Email). Mengirimkan sinyal instan saat tiket diajukan, dikembalikan untuk revisi, atau disetujui/ditolak. Dilengkapi worker `DailyApprovalDigestWorker` (`WF-W3`) yang berjalan setiap pukul 07:00 pagi untuk mengirimkan email ringkasan jumlah tiket pending yang menunggu tindakan atasan.
 * **Dependencies**: `BE-HRD-305`, `BE-HRD-309`
 * **Acceptance Criteria**: Notifikasi instan terkirim < 3 detik ke pemohon dan approver; ringkasan harian terkirim terjadwal tiap 07:00 pagi.
@@ -6084,7 +6084,7 @@ BE-HRD-302 ✅ s.d. BE-HRD-316 🟡 ───────> BE-HRD-317 🟡
 
 #### 🟡 `BE-HRD-316` — Eksekusi Transaksional Idempoten Domain Hilir (`IdempotentDownstreamExecutionService` - `WF-B8`, `INT-HR-93`, `INT-HR-94`)
 * **Slice / MVP**: `S-A7-V2` / Verifikasi
-* **Status**: 🟡 **SEBAGIAN 10 November 2026** (dikerjakan ulang; klaim ✅ 9 November 2026 dicabut karena service hanya berisi komentar). 2 dari 2 acceptance criteria terpenuhi di kode: keputusan V2 kini diteruskan ke `WorkflowReferenceLifecycleService.HandleAsync` sesudah tersimpan, dan tahapan yang sudah diproses ditolak. `dotnet build` 0 error (578 warning, sama dengan garis dasar); QBE Strict 2 berkas 0 violation. Belum terpenuhi: `INT-HR-94` (pengingat Plh) belum ada source; uji `AT-HRD-WF-18`/`AT-HRD-WF-19` `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-HRD-316.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — `INT-HR-94` kini ada: sesudah cuti disetujui penuh, pemohon yang tercatat manajer aktif (`WfpManagerAssignment.CanApproveRequests`) tanpa delegasi Plh yang menutup rentang cuti menerima pengingat wajib menunjuk Plh (satu kali per cuti). **Belum**: migration `20261111020000` belum dijalankan; `AT-HRD-WF-18`/`AT-HRD-WF-19` `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-316.md)
 * **Outcome**: Layanan pemicu eksekusi transaksi domain hilir setelah permohonan berstatus `Approved` final (`INT-HR-93`). Mengirimkan sinyal idempoten untuk: pemotongan saldo cuti di Sub-08, pemutakhiran jadwal dinas di modul roster Sub-06, pencatatan lembur di Sub-09, dan pelepasan pencairan kasbon/klaim di Sub-11. Mengaktifkan prompt pembuatan delegasi Plh jika permohonan yang disetujui adalah cuti pejabat struktural (`INT-HR-94`).
 * **Dependencies**: `BE-HRD-309`, `BE-HRD-312`
 * **Acceptance Criteria**: Domain hilir terupdate seketika setelah persetujuan akhir; eksekusi ulang tidak menyebabkan duplikasi transaksi (idempoten).
@@ -6125,7 +6125,7 @@ BE-HRD-320 ✅ [B80] ─┬─> BE-HRD-322 ✅ ─> BE-HRD-323 ✅ ─> BE-HRD-3
 
 ```text
 BE-HRD-324 ✅ [B81] ─┬─> BE-HRD-326 ✅ ─┬─> BE-HRD-327 ✅
-BE-HRD-325 ✅ [B81] ─┘                 ├─> BE-HRD-328 ✅
+BE-HRD-325 ✅ [B81] ─┘                 ├─> BE-HRD-328 🟡
                                         │
                                         └─> BE-HRD-329 ✅
 ```
@@ -6233,9 +6233,9 @@ BE-HRD-318 ✅ s.d. BE-HRD-332 ✅ ───────> BE-HRD-333 🟡
 * **Acceptance Criteria**: Deklarasi di atas plafon Rp 150rb atau > 10% total klaim otomatis ditolak sistem; alasan darurat terekam akuntabel.
 * **Verifikasi**: Uji batas deklarasi biaya darurat tanpa kuitansi `AT-HRD-TRV-12` dan validasi alasan darurat `AT-HRD-TRV-13`.
 
-#### ✅ `BE-HRD-328` — Background Worker `TravelAdvanceSettlementReminderWorker` (`TRV-W1`) Pengingat H+3 & H+5
+#### 🟡 `BE-HRD-328` — Background Worker `TravelAdvanceSettlementReminderWorker` (`TRV-W1`) Pengingat H+3 & H+5
 * **Slice / MVP**: `S-D5` / `MVP-65`
-* **Status**: ✅ Selesai (2026-11-09)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — `TRV-W1` kini mengirim pengingat H+3/H+5 ke pegawai yang belum menyerahkan settlement. **Belum**: migration `20261111020000` belum dijalankan; uji `NOT RUN`. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-328.md)
 * **Outcome**: Background worker terjadwal harian (`TRV-W1`) yang berjalan setiap pukul 08:00 pagi. Memindai perjalanan dinas yang telah melewati tanggal selesai (`EndDate`) namun belum menyerahkan settlement. Mengirimkan push notification dan email peringatan darurat kepada staf pada H+3 dan H+5 kepulangan dinas agar segera menyelesaikan pertanggungjawaban dalam batas SLA 7 hari kalender (`VR-TRV-05`).
 * **Dependencies**: `BE-HRD-326`
 * **Acceptance Criteria**: Notifikasi pengingat terkirim tepat waktu pada H+3 dan H+5 kepulangan staf; counter SLA berjalan akurat.
@@ -6275,7 +6275,7 @@ BE-HRD-318 ✅ s.d. BE-HRD-332 ✅ ───────> BE-HRD-333 🟡
 
 #### 🟡 `BE-HRD-333` — 5 Controller API Kontrak v25 (24 Endpoint Swagger), Worker Kurs BI `TRV-W4`, 24 Permissions & Audit Verifikasi E2E QBE Conformance
 * **Slice / MVP**: `S-D5` / Verifikasi
-* **Status**: 🟡 **SEBAGIAN 10 November 2026 (klaim ✅ 9 November 2026 diturunkan)** — klaim 24 hak akses dikoreksi: baru 19 aksi punya endpoint, 5 belum; worker kurs `TRV-W4` hanya menulis log (menunggu keputusan sumber kurs). `dotnet build` 0 error (606 warning); QBE Strict 58 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-333.md)
+* **Status**: 🟡 **SEBAGIAN 11 November 2026** (dikerjakan ulang; sebelumnya 🟡 10 November 2026) — worker kurs `TRV-W4` kini menerapkan kurs tengah master Keuangan (`MstExchangeRate`) ke butir klaim valuta asing yang belum dikonversi (keputusan sumber kurs `HRD-ASM-72`); identitas pegawai 3 controller perjalanan dinas dari klaim `workforce_profile_id` (kelompok G). **Belum**: 5 dari 24 hak akses belum punya endpoint, `AT-HRD-TRV-22` `NOT RUN`, migration `20261111020000` (pemetaan ulang data lama) belum dijalankan. `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation. Bukti: [laporan](../task/report/backend/BE-HRD-333.md)
 * **Outcome**: Implementasi seluruh 24 endpoint API pada 5 Controller ASP.NET Core beranotasi Swagger `[Tags("Corporate - HRD Business Travel ...")]` sesuai Kontrak API `v25`. Mengonfigurasi background worker harian `TravelCurrencyRateSyncWorker` (`TRV-W4`) untuk kurs BI, mengunci hak akses 24 permissions `Hrd.BusinessTravel.*` dan `Hrd.Expense.*`, mencatat 14 event audit permanen (`HRD_TRV_*`), serta melakukan audit verifikasi menyeluruh kompilasi `dotnet build` 0 warning dan kepatuhan standar QBE Conformance.
 * **Dependencies**: Seluruh task backend `BE-HRD-318` s.d. `BE-HRD-332`
 * **Acceptance Criteria**: 24 endpoint API terdaftar rapi pada Swagger UI; seluruh permission dan audit event bekerja akuntabel; `dotnet build` lulus 0 error.

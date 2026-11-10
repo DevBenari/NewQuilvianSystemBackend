@@ -22,15 +22,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         private readonly ApplicationDbContext _context;
         private readonly IAntiSelfApprovalGuardService _antiSelfApprovalGuard;
         private readonly IIdempotentDownstreamExecutionService _downstreamService;
+        private readonly IUnifiedNotificationGatewayService _notificationGateway;
 
         public WorkflowApprovalActionService(
             ApplicationDbContext context,
             IAntiSelfApprovalGuardService antiSelfApprovalGuard,
-            IIdempotentDownstreamExecutionService downstreamService)
+            IIdempotentDownstreamExecutionService downstreamService,
+            IUnifiedNotificationGatewayService notificationGateway)
         {
             _context = context;
             _antiSelfApprovalGuard = antiSelfApprovalGuard;
             _downstreamService = downstreamService;
+            _notificationGateway = notificationGateway;
         }
 
         public async Task<WorkflowActionV2ResponseDto> ApproveAsync(Guid stepInstanceId, ApproveActionRequestDto request, Guid currentEmployeeId)
@@ -175,6 +178,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             // supaya transaksi sumber mengikuti tahapan yang sedang berjalan.
             await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
 
+            // WF-B7 / BE-HRD-314: pemohon diberi tahu hasil tahapan; approver tahapan berikutnya diberi tahu ada tiket baru
+            await NotifyRequesterAsync(instance, nextStep != null
+                ? $"Permohonan {instance.RequestNumber} disetujui pada tahapan {step.StepNameSnapshot} dan diteruskan ke pejabat berikutnya."
+                : $"Permohonan {instance.RequestNumber} telah disetujui penuh.", "Permohonan disetujui");
+            if (nextStep != null)
+            {
+                await NotifyStepApproverAsync(instance, nextStep.Id);
+            }
+
             return new WorkflowActionV2ResponseDto
             {
                 Success = true,
@@ -260,6 +272,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             // ikut berstatus ditolak dan tidak tertahan sebagai menunggu persetujuan.
             await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
 
+            await NotifyRequesterAsync(instance, $"Permohonan {instance.RequestNumber} ditolak. Alasan: {request.RejectReason}", "Permohonan ditolak");
+
             return new WorkflowActionV2ResponseDto
             {
                 Success = true,
@@ -335,6 +349,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             await _context.SaveChangesAsync();
 
+            await NotifyRequesterAsync(instance, $"Permohonan {instance.RequestNumber} dikembalikan untuk perbaikan draf (batas 7 hari). Catatan: {request.RevisionNotes}", "Permohonan dikembalikan untuk revisi");
+
             return new WorkflowActionV2ResponseDto
             {
                 Success = true,
@@ -382,6 +398,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             if (isTerminal || !isActiveStep)
             {
                 throw new InvalidOperationException("Tahapan persetujuan belum aktif atau sudah diproses.");
+            }
+        }
+
+        /// <summary>WF-B7: pemberitahuan instan ke pemohon. Akun pemohon selalu tercatat pada instance (RequestedByUserId).</summary>
+        private async Task NotifyRequesterAsync(TrxWorkflowInstance instance, string message, string title)
+        {
+            if (instance.RequestedByUserId != Guid.Empty)
+            {
+                await _notificationGateway.SendInstantNotificationToUserAsync(
+                    instance.RequestedByUserId, title, message, $"/hrd/workflow/my-requests/{instance.Id}", instance.Id);
+            }
+            else if (instance.RequestedByEmployeeId.HasValue)
+            {
+                await _notificationGateway.SendInstantNotificationAsync(instance.RequestedByEmployeeId.Value, title, message);
+            }
+        }
+
+        /// <summary>WF-B7: pemberitahuan instan ke approver tahapan yang baru aktif.</summary>
+        private async Task NotifyStepApproverAsync(TrxWorkflowInstance instance, Guid stepInstanceId)
+        {
+            var assignment = await _context.TrxWorkflowApproverAssignments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.WorkflowStepInstanceId == stepInstanceId && a.AssignmentStatus == "Pending");
+            if (assignment == null) return;
+
+            var title = "Permohonan baru menunggu persetujuan Anda";
+            var message = $"Permohonan {instance.RequestNumber} ({instance.ReferenceType}) masuk ke kotak persetujuan Anda. Batas SLA: {assignment.DueAt:dd MMM yyyy HH:mm} UTC.";
+            if (assignment.ApproverEmployeeId.HasValue && assignment.ApproverEmployeeId.Value != Guid.Empty)
+            {
+                await _notificationGateway.SendInstantNotificationAsync(assignment.ApproverEmployeeId.Value, title, message);
+            }
+            else if (assignment.AssignedApproverUserId != Guid.Empty)
+            {
+                await _notificationGateway.SendInstantNotificationToUserAsync(assignment.AssignedApproverUserId, title, message, null, instance.Id);
             }
         }
 

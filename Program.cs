@@ -382,7 +382,8 @@ try
                     var requestPath = context.HttpContext.Request.Path;
 
                     if (!string.IsNullOrWhiteSpace(accessToken) &&
-                        requestPath.StartsWithSegments("/hubs/queues"))
+                        (requestPath.StartsWithSegments("/hubs/queues") ||
+                         requestPath.StartsWithSegments("/hubs/notifications")))
                     {
                         context.Token = accessToken;
                     }
@@ -1607,6 +1608,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowSlaEnforcementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowSlaEnforcementService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IBulkApprovalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.BulkApprovalService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IUnifiedNotificationGatewayService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.UnifiedNotificationGatewayService>();
+    // Remediasi Gelombang 2 (BE-HRD-314): pusat pemberitahuan dalam aplikasi HR (tabel HrdNotification + SignalR /hubs/notifications)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrdNotificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrdNotificationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowResubmitService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowResubmitService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IIdempotentDownstreamExecutionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IdempotentDownstreamExecutionService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowCommentAndAttachmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowCommentAndAttachmentService>();
@@ -1616,7 +1619,6 @@ try
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ApprovalDelegationExpiryWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.DailyApprovalDigestWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.WorkflowSlaEarlyWarningWorker>();
-    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.BulkApprovalProcessingWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ReturnedRequestExpiryWorker>();
 
     // Slice S-D5 (Business Travel & Expense Reimbursement) - MVP-63..65 (Kontrak v25)
@@ -3094,6 +3096,7 @@ try
     {
         app.MapControllers();
         app.MapHub<QueueHub>("/hubs/queues");
+        app.MapHub<HrNotificationHub>(HrNotificationHub.RoutePath);
     }
 
     app.Run();

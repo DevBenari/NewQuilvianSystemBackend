@@ -8,7 +8,7 @@ blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
 roadmap_revision: 14
 status: ACTIVE
-status_synced_at: "10 November 2026 — Gelombang 1 audit backend: 25 task dikerjakan ulang (bagian 1t), 3 task verifikasi diturunkan ke 🟡. Sebelumnya: 2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
+status_synced_at: "11 November 2026 — Gelombang 2 audit backend: 7 keputusan diambil sebagai asumsi eksplisit, 19 task dikerjakan ulang (bagian 1u), semuanya 🟡 menunggu migration 20261111020000. Sebelumnya: 10 November 2026 — Gelombang 1 audit backend: 25 task dikerjakan ulang (bagian 1t), 3 task verifikasi diturunkan ke 🟡. Sebelumnya: 2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
 planning_updated_at: "2026-11-06 - jejak S-C1-OPPE Evaluasi Praktik Profesional Berkelanjutan (OPPE), Penugasan Terfokus (FPPE) & Rapor Komposit Rekredensialing 3 Tahunan ditambahkan (bagian 1m): BE-HRD-222 s.d. BE-HRD-237, FE-HRD-201 s.d. FE-HRD-215; sebelumnya S-C1 (bagian 1l), S-D4 (bagian 1k), S-D3 (bagian 1j), S-B6 (bagian 1i), S-B5 (bagian 1h), S-B3 (bagian 1g), S-B2 (bagian 1f), S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
 generated_at: "2026-10-26"
 owners:
@@ -1149,7 +1149,7 @@ Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement tracea
 | :--- | :--- | :--- | :--- | :---: |
 | `AT-HRD-OPP-01` | Pembukaan siklus periode OPPE baru dengan rasio 60:40 | `BE-HRD-223`, `BE-HRD-224` | `FE-HRD-201`, `FE-HRD-203` | ✅ PASS |
 | `AT-HRD-OPP-02` | Penolakan konfigurasi bobot OPPE jika total tidak 100% | `BE-HRD-224` | `FE-HRD-203` | ✅ PASS |
-| `AT-HRD-OPP-03` | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP | `BE-HRD-225` | `FE-HRD-202` | ⛔ klaim PASS dicabut 10 November 2026 — kode masih konstanta (`backend-unfinished-work.md` kelompok B) |
+| `AT-HRD-OPP-03` | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP | `BE-HRD-225` | `FE-HRD-202` | 🟡 `NOT RUN` 11 November 2026 — konstanta dihapus; 4 tipe indikator ditarik dari tabel pelayanan aplikasi (`OppeSimrsMetricExtractor`), KMKP/clinical pathway dilaporkan tidak tersedia |
 | `AT-HRD-OPP-04` | Penugasan formulir telaah sejawat ke dokter rekan KSM | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
 | `AT-HRD-OPP-05` | Penolakan penilaian sejawat mandiri (anti-self-review) | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
 | `AT-HRD-OPP-06` | Keharusan narasi klinis jika skor telaah sejawat <= 2 | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
@@ -1168,7 +1168,7 @@ Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement tracea
 | `AT-HRD-OPP-19` | Kalkulasi rapor komposit 3 tahun dengan rasio 25-35-40 | `BE-HRD-233` | `FE-HRD-212` | ✅ PASS |
 | `AT-HRD-OPP-20` | Otomasi pengelompokan ke Tier Hijau Fast-Track | `BE-HRD-233` | `FE-HRD-212` | ✅ PASS |
 | `AT-HRD-OPP-21` | Penyesuaian diskresi tier kelayakan oleh Ketua Komite | `BE-HRD-234` | `FE-HRD-213` | 🟡 dikerjakan ulang 10 November 2026 (jejak audit kini di `HrdRecredentialingTierOverride`); uji belum dijalankan ulang |
-| `AT-HRD-OPP-22` | Transmisi putusan Revoked memblokir hak order SIMRS | `BE-HRD-235` | `FE-HRD-214` | ⛔ klaim PASS dicabut 10 November 2026 — dispatcher belum memanggil SIMRS (status `PENDING_INTEGRATION`), menunggu keputusan jalur integrasi |
+| `AT-HRD-OPP-22` | Transmisi putusan Revoked memblokir hak order SIMRS | `BE-HRD-235` | `FE-HRD-214` | 🟡 `NOT RUN` 11 November 2026 — dispatcher kini menulis ke `WfpClinicalPrivilege` yang dibaca resolver laboratorium/kamar operasi (hard-stop nyata); menunggu migration `20261110050000` |
 
 ---
 
@@ -1429,7 +1429,7 @@ Bagian ini mendokumentasikan pemetaan deterministik 100% tanpa celah antara kebu
 | `AT-HRD-EMP-10` | Alur sanggah banding sanksi SP maksimal 7 hari kerja dan putusan pembatalan | `BE-HRD-275` | `FE-HRD-252` | `✅ Terealisasi (S-C5 Selesai)` |
 | `AT-HRD-EMP-11` | Penetapan skorsing investigasi dengan jaminan upah penuh 100% Pasal 157A | `BE-HRD-277` | `FE-HRD-253` | `✅ Terealisasi (S-C5 Selesai)` |
 | `AT-HRD-EMP-12` | Pencabutan instan akses login SSO SIMRS/EMR dan kartu fisik saat skorsing | `BE-HRD-277`, `BE-HRD-285` | `FE-HRD-253` | `✅ Terealisasi (S-C5 Selesai)` |
-| `AT-HRD-EMP-13` | Pengiriman tiket keluhan hubungan kerja via ESS dan penegakan SLA 14 hari | `BE-HRD-279` | `FE-HRD-254` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-13` | Pengiriman tiket keluhan hubungan kerja via ESS dan penegakan SLA 14 hari | `BE-HRD-279` | `FE-HRD-254` | 🟡 `NOT RUN` 11 November 2026 — pelapor dan `my-tickets` dari token; eskalasi `EMP-W3` ke pemegang `EmployeeGrievance : Mediate`; menunggu migration `20261111020000` |
 | `AT-HRD-EMP-14` | Pengiriman laporan whistleblower anonim terenkripsi asimetris pada payload | `BE-HRD-280` | `FE-HRD-255` | `✅ Terealisasi (S-C5 Selesai)` |
 | `AT-HRD-EMP-15` | Isolasi akses baca tiket whistleblower dari atasan langsung pihak terlapor | `BE-HRD-280` | `FE-HRD-247`, `FE-HRD-255` | `✅ Terealisasi (S-C5 Selesai)` |
 | `AT-HRD-EMP-16` | Dokumentasi perundingan forum Bipartit RS dan arsip naskah Perjanjian Bersama | `BE-HRD-281` | `FE-HRD-256` | `✅ Terealisasi (S-C5 Selesai)` |
@@ -1438,7 +1438,7 @@ Bagian ini mendokumentasikan pemetaan deterministik 100% tanpa celah antara kebu
 | `AT-HRD-EMP-19` | Kalkulator pesangon pensiun (1.75x UP + 1x UPMK + UPH) sesuai masa kerja sah | `BE-HRD-283` | `FE-HRD-258` | `✅ Terealisasi (S-C5 Selesai)` |
 | `AT-HRD-EMP-20` | Persetujuan resmi lembar pesangon oleh Direktur Keuangan sebelum payroll lock | `BE-HRD-283` | `FE-HRD-258` | `✅ Terealisasi (S-C5 Selesai)` |
 | `AT-HRD-EMP-21` | Verifikasi digital checklist exit clearance 5 departemen secara berjenjang | `BE-HRD-284` | `FE-HRD-259`, `FE-HRD-260` | `✅ Terealisasi (S-C5 Selesai)` |
-| `AT-HRD-EMP-22` | Hard-block penolakan rilis payroll final Sub-10 sebelum clearance tuntas 100% | `BE-HRD-285` | `FE-HRD-260` | `✅ Terealisasi (S-C5 Selesai)` |
+| `AT-HRD-EMP-22` | Hard-block penolakan rilis payroll final Sub-10 sebelum clearance tuntas 100% | `BE-HRD-285` | `FE-HRD-260` | 🟡 `NOT RUN` 11 November 2026 — `EMP-W6` mengunci/memulihkan akun otomatis dengan jejak `HrdSuspensionAccessAction`; menunggu migration `20261111020000` |
 
 ---
 
@@ -1571,12 +1571,12 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 | `FR-WF-17` | Sirene notifikasi peringatan dini H-4 jam SLA oleh worker WF-W4 | `BE-HRD-311` | `FE-HRD-279` | Background Worker `WF-W4` | `AT-HRD-WF-10` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `FR-WF-18` | Validasi guard 100% indikator hijau untuk bulk approval (HRD-DEC-187) | `BE-HRD-312` | `FE-HRD-286` | `POST /api/v1/hrd/workflow/approvals/bulk-approve` | `AT-HRD-WF-11` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `FR-WF-19` | Eksekusi persetujuan massal aman ber-PIN dan pemrosesan antrean batch | `BE-HRD-312`, `BE-HRD-313` | `FE-HRD-286` | Background Worker `WF-W5` | `AT-HRD-WF-12`, `AT-HRD-WF-13` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `FR-WF-20` | Gateway notifikasi instan multikanal (Web push, Mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | `POST /api/v1/hrd/workflow/instances/{id}/comments` | `AT-HRD-WF-14` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `FR-WF-21` | Pengiriman email ringkasan harian tiket pending pukul 07:00 (WF-W3) | `BE-HRD-314` | `FE-HRD-277` | Background Worker `WF-W3` | `AT-HRD-WF-15` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `FR-WF-20` | Gateway notifikasi instan multikanal (Web push, Mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | `POST /api/v1/hrd/workflow/instances/{id}/comments` | `AT-HRD-WF-14` | 🟡 Sebagian 11 November 2026 — kanal dalam aplikasi terkirim; push mobile/email tidak tersedia |
+| `FR-WF-21` | Pengiriman email ringkasan harian tiket pending pukul 07:00 (WF-W3) | `BE-HRD-314` | `FE-HRD-277` | Background Worker `WF-W3` | `AT-HRD-WF-15` | 🟡 Sebagian 11 November 2026 — ringkasan 07:00 WIB terkirim ke pusat pemberitahuan (bukan email) |
 | `FR-WF-22` | Resubmit draf revisi mandiri staf pasca pengembalian dalam 7 hari | `BE-HRD-315` | `FE-HRD-289` | `POST /api/v1/hrd/workflow/instances/{id}/resubmit` | `AT-HRD-WF-16` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `FR-WF-23` | Pembatalan otomatis tiket revisi yang diabaikan > 7 hari oleh WF-W6 | `BE-HRD-315` | `FE-HRD-289` | Background Worker `WF-W6` | `AT-HRD-WF-17` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `FR-WF-24` | Sinyal eksekusi idempoten ke modul transaksi hilir pasca approval (INT-HR-93) | `BE-HRD-316` | `FE-HRD-277` | Event Publisher `WorkflowApproved` | `AT-HRD-WF-18` | 🟡 Sebagian 10 November 2026 — diteruskan ke `WorkflowReferenceLifecycleService` untuk 11 reference type; uji runtime `NOT RUN` ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
-| `FR-WF-25` | Prompt otomasi pembuatan delegasi Plh saat cuti pejabat disetujui (INT-HR-94) | `BE-HRD-316` | `FE-HRD-290` | Event Consumer `LeaveRequestApproved` | `AT-HRD-WF-19` | ⛔ Belum ada source 10 November 2026 — butuh penanda pejabat struktural dan gateway notifikasi `BE-HRD-314` ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
+| `FR-WF-25` | Prompt otomasi pembuatan delegasi Plh saat cuti pejabat disetujui (INT-HR-94) | `BE-HRD-316` | `FE-HRD-290` | Event Consumer `LeaveRequestApproved` | `AT-HRD-WF-19` | 🟡 Sebagian 11 November 2026 — `INT-HR-94` ada di kode, uji `NOT RUN` |
 
 ---
 
@@ -1613,13 +1613,13 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 | `AT-HRD-WF-10` | Uji pengiriman sirene notifikasi peringatan dini H-4 jam sebelum SLA terlewati | `BE-HRD-311` | `FE-HRD-279` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-11` | Uji proteksi bulk approval: penolakan otomatis item berisiko/bentrok dari batch | `BE-HRD-312` | `FE-HRD-286` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-12` | Uji verifikasi PIN keamanan 6-digit untuk otorisasi tunggal dan persetujuan massal | `BE-HRD-309`, `BE-HRD-312` | `FE-HRD-282`, `FE-HRD-286` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `AT-HRD-WF-13` | Uji pemrosesan batch aman berurutan dan isolasi kegagalan transaksi oleh WF-W5 | `BE-HRD-313` | `FE-HRD-286` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `AT-HRD-WF-14` | Uji integrasi pengiriman notifikasi multikanal (Web push, Push mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `AT-HRD-WF-15` | Uji pengiriman ringkasan harian (daily digest) permohonan pending pukul 07:00 pagi | `BE-HRD-314` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
+| `AT-HRD-WF-13` | Uji pemrosesan batch aman berurutan dan isolasi kegagalan transaksi oleh WF-W5 | `BE-HRD-313` | `FE-HRD-286` | 🟡 `NOT RUN` 11 November 2026 — worker `WF-W5` dihapus (persetujuan massal diproses dan dilaporkan per tiket di endpoint); pelaporan ke pemohon lewat pusat pemberitahuan menunggu migration `20261111020000` |
+| `AT-HRD-WF-14` | Uji integrasi pengiriman notifikasi multikanal (Web push, Push mobile, Email) | `BE-HRD-314` | `FE-HRD-277`, `FE-HRD-288` | 🟡 `NOT RUN` 11 November 2026 — notifikasi instan kini terkirim ke kanal dalam aplikasi (`HrdNotification` + SignalR); kanal push mobile/email tidak tersedia di platform; menunggu migration `20261111020000` |
+| `AT-HRD-WF-15` | Uji pengiriman ringkasan harian (daily digest) permohonan pending pukul 07:00 pagi | `BE-HRD-314` | `FE-HRD-277` | 🟡 `NOT RUN` 11 November 2026 — ringkasan harian kini dijadwalkan 07:00 WIB dan tersimpan di `HrdNotification` (anti-duplikat per approver per hari); menunggu migration `20261111020000` |
 | `AT-HRD-WF-16` | Uji perbaikan draf permohonan dan resubmit mandiri staf pasca pengembalian revisi | `BE-HRD-315` | `FE-HRD-289` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-17` | Uji pembatalan otomatis tiket permohonan yang tidak diperbaiki staf > 7 hari | `BE-HRD-315` | `FE-HRD-289` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
-| `AT-HRD-WF-18` | Uji eksekusi transaksional idempoten ke modul hilir pasca persetujuan final | `BE-HRD-316` | `FE-HRD-277` | 🟡 `NOT RUN` 10 November 2026 — kode siap, uji dengan akun approver belum dijalankan ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
-| `AT-HRD-WF-19` | Uji pemicu prompt otomatis penunjukan Plh saat pengajuan cuti pejabat disetujui | `BE-HRD-316` | `FE-HRD-290` | ⛔ `NOT RUN` 10 November 2026 — fitur `INT-HR-94` belum ada ([BE-HRD-316](../task/report/backend/BE-HRD-316.md)) |
+| `AT-HRD-WF-18` | Uji eksekusi transaksional idempoten ke modul hilir pasca persetujuan final | `BE-HRD-316` | `FE-HRD-277` | 🟡 `NOT RUN` 11 November 2026 — kode siap; uji dengan akun approver nyata belum dijalankan |
+| `AT-HRD-WF-19` | Uji pemicu prompt otomatis penunjukan Plh saat pengajuan cuti pejabat disetujui | `BE-HRD-316` | `FE-HRD-290` | 🟡 `NOT RUN` 11 November 2026 — `INT-HR-94` kini ada (`IdempotentDownstreamExecutionService.PromptOfficerLeaveDelegationAsync`); menunggu migration `20261111020000` dan akun uji |
 | `AT-HRD-WF-20` | Uji kepatuhan kontrak API Swagger 5 Tag 24 endpoint Kontrak v24 | `BE-HRD-317` | `FE-HRD-277` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-21` | Uji kelengkapan pencatatan 14 event audit permanen dan digital signature hash | `BE-HRD-317` | `FE-HRD-280` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
 | `AT-HRD-WF-22` | Uji kompilasi build produksi, audit linting frontend, dan QBE Conformance backend | `BE-HRD-317` | `FE-HRD-290` | `✅ Terealisasi (S-A7-V2 Backend Selesai)` |
@@ -1667,7 +1667,7 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 | `FR-TRV-21` | Pengajuan mandiri klaim biaya operasional non-trip (reagen cito, rapat) | `BE-HRD-330` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims` | `AT-HRD-TRV-17` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 | `FR-TRV-22` | Verifikasi fisik struk pembelian non-trip oleh Finance SLA < 48 jam | `BE-HRD-331` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims/{id}/verify` | `AT-HRD-TRV-18` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 | `FR-TRV-23` | Pembayaran reimbursement non-trip oleh Kasir RS ke rekening payroll | `BE-HRD-331` | `FE-HRD-303` | `POST /api/v1/hrd/expenses/claims/{id}/pay` | `AT-HRD-TRV-19` | `✅ Terealisasi (S-D5 Backend Selesai)` |
-| `FR-TRV-24` | Integrasi kurs tengah Bank Indonesia untuk konversi dinas luar negeri | `BE-HRD-333` | `FE-HRD-294` | Background Worker `TRV-W4` | `AT-HRD-TRV-22` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `FR-TRV-24` | Integrasi kurs tengah Bank Indonesia untuk konversi dinas luar negeri | `BE-HRD-333` | `FE-HRD-294` | Background Worker `TRV-W4` | `AT-HRD-TRV-22` | 🟡 Sebagian 11 November 2026 — kurs tengah dari master Keuangan `MstExchangeRate`, bukan API BI |
 | `FR-TRV-25` | Laporan analitik realisasi anggaran perjalanan dinas per departemen | `BE-HRD-333` | `FE-HRD-292`, `FE-HRD-293` | `GET /api/v1/hrd/travel/overdue-reports` | `AT-HRD-TRV-21` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 
 ---
@@ -1714,7 +1714,7 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 | `AT-HRD-TRV-19` | Uji pembayaran reimbursement non-trip oleh Kasir RS ke rekening staf | `BE-HRD-331` | `FE-HRD-303` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 | `AT-HRD-TRV-20` | Uji penolakan pengajuan SPPD akibat bentrok jadwal cuti tahunan Sub-08 | `BE-HRD-321` | `FE-HRD-296` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 | `AT-HRD-TRV-21` | Uji validasi pagu anggaran unit cost center dan peringatan over-budget | `BE-HRD-321` | `FE-HRD-293` | `✅ Terealisasi (S-D5 Backend Selesai)` |
-| `AT-HRD-TRV-22` | Uji kepatuhan 24 endpoint API Swagger Kontrak v25 & audit QBE Conformance | `BE-HRD-333` | `FE-HRD-305` | `✅ Terealisasi (S-D5 Backend Selesai)` |
+| `AT-HRD-TRV-22` | Uji kepatuhan 24 endpoint API Swagger Kontrak v25 & audit QBE Conformance | `BE-HRD-333` | `FE-HRD-305` | 🟡 `NOT RUN` 11 November 2026 — kurs dari master `MstExchangeRate` diterapkan `TRV-W4`; 5 dari 24 hak akses masih tanpa endpoint |
 
 ---
 
@@ -1763,3 +1763,20 @@ Dasar: [backend-unfinished-work.md](backend-unfinished-work.md) bagian 10. Selur
 Koreksi dokumen (kelompok H): `BE-HRD-237`, `BE-HRD-317`, dan `BE-HRD-333` diturunkan ke 🟡 pada roadmap dan laporannya diberi bagian koreksi bertanggal; klaim lulus `AT-HRD-OPP-03`, `AT-HRD-OPP-22`, dan `AT-HRD-TRN-04` dicabut pada tabel uji di atas.
 
 Verifikasi bersama seluruh baris: `dotnet build QuilvianSystemBackend.csproj` **0 error**, 606 warning (garis dasar sebelum sesi 578; selisih berasal dari merge cabang lain yang masuk HEAD pada sesi yang sama, bukan dari berkas task ini); `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 58 berkas yang disentuh: **0 VIOLATION, 0 REVIEW, PASS**; uji runtime `NOT RUN`; migration SQL idempoten `Migrations/20261110050000_AddHrdDurableAuditAndPinLockouts.cs` disiapkan; **belum dijalankan** ke database mana pun (wewenang pemilik, `dotnet ef database update`).
+
+### Bagian 1u: Jejak Pengerjaan Ulang Gelombang 2 Audit Backend (11 November 2026)
+
+Dasar: [backend-unfinished-work.md](backend-unfinished-work.md) bagian 10 (Gelombang 2) dan bagian 13. Pemilik meminta seluruh Gelombang 2 dikerjakan tuntas; tujuh keputusan yang semula menunggu pemilik diambil dari bukti source dan dicatat sebagai asumsi eksplisit pada laporan tiap task.
+
+| Keputusan | Pilihan yang diterapkan | Task yang terbuka | Status bukti |
+| --- | --- | --- | :---: |
+| Kanal dan pemilik notifikasi | Lonceng dalam aplikasi milik modul SDM (`HrdNotification` + SignalR `/hubs/notifications`); penerima jabatan dari hak akses Akses Role | `BE-HRD-314`, seluruh kelompok D (`278`, `279`, `282`, `284`, `268`, `236`, `296`, `297`, `298`, `301`, `328`), `BE-HRD-240`, `INT-HR-94` (`BE-HRD-316`) | 🟡 — kode selesai, migration `20261111020000` belum dijalankan, uji `NOT RUN` |
+| Cabut/pulihkan akses SIMRS | Otomatis: akun dinonaktifkan dan dikunci selama skorsing, dipulihkan saat berakhir, jejak `HrdSuspensionAccessAction` | `BE-HRD-285`, `BE-HRD-278` | 🟡 — migration belum dijalankan |
+| Sumber data SIMRS | Tabel pelayanan aplikasi (kunjungan, visite, resume pulang, resep, surveilans IDO); KMKP/clinical pathway tidak tersedia | `BE-HRD-225` | 🟡 — dua tipe tanpa sumber, uji `NOT RUN` |
+| Jalur integrasi wewenang klinis | Tulis langsung ke `WfpClinicalPrivilege` yang dibaca modul klinis | `BE-HRD-235` | 🟡 — migration `20261110050000` belum dijalankan |
+| Sumber kurs | Master kurs Keuangan `MstExchangeRate` (kurs tengah per tanggal) | `BE-HRD-333` | 🟡 — 5 endpoint hak akses masih kurang |
+| Worker persetujuan massal | Dihapus; pelaporan per tiket lewat pusat pemberitahuan | `BE-HRD-313` | 🟡 — migration belum dijalankan |
+| Maker-checker benefit | Tidak diubah: `FIN-DEC-233` (3 November 2026) menyatakan `FIN-VAL-271` superseded, pengaju boleh menyetujui sendiri | butir F `BE-HRD-032` pada audit | ✅ keputusan pemilik sudah ada |
+| Klaim identitas pegawai | `workforce_profile_id` untuk tabel berkolom `WorkforceProfileId`, `employee_id` untuk tabel `MstEmployee`; helper `HrActorClaims`; data lama dipetakan ulang migration | kelompok G nomor 1–6 (`BE-HRD-279`, `BE-HRD-317`, `BE-HRD-333`, controller benefit/ESS/kesehatan kerja/OPPE) | 🟡 — migration pemetaan ulang belum dijalankan |
+
+Verifikasi bersama seluruh baris: `dotnet build QuilvianSystemBackend.csproj` **0 error**, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh); `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas: **0 VIOLATION, 0 REVIEW, PASS**; uji runtime `NOT RUN`; migration SQL idempoten `Migrations/20261111020000_AddHrdNotificationAndSuspensionAccess.cs` disiapkan, belum dijalankan (wewenang pemilik).

@@ -41,3 +41,26 @@ Dalam tata kelola kepegawaian rumah sakit, kepatuhan hubungan industrial dan pem
 * **Kompilasi .NET Core**: `dotnet build QuilvianSystemBackend.csproj --no-restore` menghasilkan **0 Error(s)**.
 * **Audit Kepatuhan Arsitektur QBE**: `Invoke-QbeConformanceCheck.ps1` berstatus **PASS**.
 * **Traceability Requirement**: Terpetakan pada requirement matrix `requirement-traceability.md` Bagian 1p (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`).
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (worker hanya menulis log)
+
+`SuspensionPeriodMonitoringWorker` (`EMP-W2`) kini mengirim eskalasi ke pemegang hak akses `EmployeeDisciplinary : ManageSuspension` pada hari ke-150 (prioritas tinggi) dan hari ke-180 (prioritas kritis), satu kali per surat skorsing per ambang, lewat pusat pemberitahuan dalam aplikasi. Penerima bukan "Direktur Utama/Direktur SDM" yang ditulis di kode, melainkan siapa pun yang admin beri hak mengelola skorsing di layar Akses Role.
+
+Pusat pemberitahuan dalam aplikasi (keputusan Gelombang 2, `BE-HRD-314`): pemberitahuan disimpan di tabel `HrdNotification`, dibaca lewat endpoint `api/v1/self-service/hr/notifications`, dan didorong realtime lewat hub SignalR `/hubs/notifications`. Penerima "petugas" ditentukan dari hak akses yang diberikan admin di layar Akses Role (`SysAccessPolicy`), bukan nama peran di kode. Kunci anti-duplikat mencegah worker mengirim pengingat yang sama berulang.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs` | `EMP-W2` mengirim pemberitahuan berkunci anti-duplikat |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Status 🟡 sampai migration tabel `HrdNotification` dijalankan; uji ambang durasi `NOT RUN`.

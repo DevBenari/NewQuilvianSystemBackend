@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManageme
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
@@ -40,13 +41,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
         private (Guid UserId, Guid EmployeeId) GetCurrentUserContext()
         {
-            var userClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var empClaim = User.FindFirst("EmployeeId")?.Value;
-
-            Guid.TryParse(userClaim, out var userId);
-            Guid.TryParse(empClaim, out var empId);
-
-            return (userId, empId != Guid.Empty ? empId : userId);
+            // Kolom WorkforceProfileId pada klaim biaya diisi dari klaim workforce_profile_id → employee_id → ID akun
+            // (remediasi kelompok G, 10 November 2026).
+            return (User.GetUserId(), User.ResolveWorkforceProfileId());
         }
 
         /// <summary>

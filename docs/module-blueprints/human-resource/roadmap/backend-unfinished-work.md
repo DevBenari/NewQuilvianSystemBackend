@@ -57,10 +57,10 @@ tahu bila kebetulan membuka kotak masuknya.
 
 | Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
-| `BE-HRD-314` | Gateway notifikasi hanya berisi `await Task.CompletedTask`. Aplikasi belum punya tabel notifikasi, kanal real-time notifikasi, maupun pengirim email/WhatsApp. Ringkasan harian ke approver dihitung tetapi tidak dikirim ke mana pun | `WorkflowManagement/Services/UnifiedNotificationGatewayService.cs:26-31` | **Ya.** Kanal mana dulu: lonceng di aplikasi, email, atau WhatsApp? Notifikasi milik modul HR atau platform bersama? | Belum |
-| `BE-HRD-313` | `BulkApprovalProcessingWorker` hanya loop `Task.Delay(30 detik)` | `WorkflowManagement/Workers/WorkflowV2Workers.cs:188` | **Ya.** Persetujuan massal sudah diproses langsung di endpoint. Worker ini dihapus, atau diisi antrean? | Belum |
-| `BE-HRD-333` | `TravelCurrencyRateSyncWorker` (`TRV-W4`) hanya menulis log; kurs Bank Indonesia tidak pernah diambil | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:166` | **Ya.** Sumber kurs: API BI, input manual Keuangan, atau master kurs yang sudah ada? | Belum |
-| `BE-HRD-316` 🟡 | `INT-HR-94` belum ada: pengingat menunjuk Plh saat cuti pejabat struktural disetujui | [laporan BE-HRD-316](../task/report/backend/BE-HRD-316.md) bagian 6 | **Ya.** Data jabatan belum punya penanda "pejabat struktural"; pengingatnya butuh `BE-HRD-314` | Sebagian 10 Nov 2026 |
+| `BE-HRD-314` | Gateway notifikasi hanya berisi `await Task.CompletedTask`. Aplikasi belum punya tabel notifikasi, kanal real-time notifikasi, maupun pengirim email/WhatsApp. Ringkasan harian ke approver dihitung tetapi tidak dikirim ke mana pun | `WorkflowManagement/Services/UnifiedNotificationGatewayService.cs:26-31` | **Ya.** Kanal mana dulu: lonceng di aplikasi, email, atau WhatsApp? Notifikasi milik modul HR atau platform bersama? | 🟡 11 November 2026 — kanal pertama: lonceng dalam aplikasi (`HrdNotification` + SignalR), milik modul SDM; email/WhatsApp tidak tersedia; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-314.md)) |
+| `BE-HRD-313` | `BulkApprovalProcessingWorker` hanya loop `Task.Delay(30 detik)` | `WorkflowManagement/Workers/WorkflowV2Workers.cs:188` | **Ya.** Persetujuan massal sudah diproses langsung di endpoint. Worker ini dihapus, atau diisi antrean? | 🟡 11 November 2026 — worker dihapus; pelaporan per tiket lewat pusat pemberitahuan ([laporan](../task/report/backend/BE-HRD-313.md)) |
+| `BE-HRD-333` | `TravelCurrencyRateSyncWorker` (`TRV-W4`) hanya menulis log; kurs Bank Indonesia tidak pernah diambil | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:166` | **Ya.** Sumber kurs: API BI, input manual Keuangan, atau master kurs yang sudah ada? | 🟡 11 November 2026 — kurs dari master Keuangan `MstExchangeRate` diterapkan `TRV-W4`; 5 endpoint hak akses masih kurang ([laporan](../task/report/backend/BE-HRD-333.md)) |
+| `BE-HRD-316` 🟡 | `INT-HR-94` belum ada: pengingat menunjuk Plh saat cuti pejabat struktural disetujui | [laporan BE-HRD-316](../task/report/backend/BE-HRD-316.md) bagian 6 | **Ya.** Data jabatan belum punya penanda "pejabat struktural"; pengingatnya butuh `BE-HRD-314` | 🟡 11 November 2026 — `INT-HR-94` ada: pejabat = manajer aktif dengan bawahan; pengingat Plh lewat pusat pemberitahuan ([laporan](../task/report/backend/BE-HRD-316.md)) |
 
 ---
 
@@ -73,12 +73,12 @@ waspada. Radar surveilans tetap menampilkan **4,8 mSv** untuk semua pekerja, jad
 
 | Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
-| `BE-HRD-298` | Dosis kumulatif TLD selalu `yearlyDose = 4.8m` dan `quarterlyDose = 1.2m` | `OccupationalHealthManagement/Services/HazardSurveillanceService.cs:89-91` | Tidak — hitung dari catatan dosis yang disimpan endpoint `surveillance/radiation-dose` | 🟡 10 November 2026 — radar dihitung dari kolom `MeasuredDoseMsv`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-298.md)) |
+| `BE-HRD-298` | Dosis kumulatif TLD selalu `yearlyDose = 4.8m` dan `quarterlyDose = 1.2m` | `OccupationalHealthManagement/Services/HazardSurveillanceService.cs:89-91` | Tidak — hitung dari catatan dosis yang disimpan endpoint `surveillance/radiation-dose` | 🟡 11 November 2026 — alarm dosis ke pegawai dan pemegang `OccupationalMedicalExamination : RecordHazardSurveillance` ([laporan](../task/report/backend/BE-HRD-298.md)) |
 | `BE-HRD-240` | Bila database kosong, radar sertifikat menampilkan 4 staf fiktif ("Ns. Siti Rahma S.Kep", "dr. Ahmad Fauzi Sp.A", "dr. Robert Sp.BS") ber-GUID tetap. Broadcast melapor terkirim ke **minimal 5 orang** tanpa mengirim apa pun. Nama pelatihan di-hard-code | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:66`, `:79`, `:99`, `:107`, `:234-300` | Tidak — hapus data fiktif dan laporkan jumlah sebenarnya | 🟡 10 November 2026 — data fiktif dihapus, siaran melaporkan 0 pengiriman; pengiriman menunggu `BE-HRD-314` ([laporan](../task/report/backend/BE-HRD-240.md)) |
 | `BE-HRD-233` | Bila dokter belum punya riwayat OPPE, skor 3 tahun diisi 82,5 / 85,0 / 88,5 | `PerformanceManagement/Services/RecredentialingQualityService.cs:57-64` | Tidak — kembalikan "data belum cukup" | ✅ 10 November 2026 — data belum cukup dilaporkan apa adanya ([laporan](../task/report/backend/BE-HRD-233.md)) |
 | `BE-HRD-239` | Bila tabel aturan kosong, 5 aturan pelatihan wajib bawaan ber-GUID tetap tetap tampil (minor) | `LearningAndDevelopment/Services/MandatoryTrainingRuleService.cs:21` | Tidak — pindahkan ke seeder data awal | ✅ 10 November 2026 — dipindah ke `MandatoryTrainingRuleSeeder` ([laporan](../task/report/backend/BE-HRD-239.md)) |
-| `BE-HRD-225` | Metrik OPPE dari SIMRS berupa konstanta: volume 120, kelengkapan EMR 92,5, insiden KMKP 0, lainnya 88 | `PerformanceManagement/Services/OppeDataAggregationService.cs:261-267` | **Ya.** Dari tabel mana di SIMRS (klinis/rekam medis) angka ini diambil? | Belum |
-| `BE-HRD-235` | Pengiriman wewenang klinis ke SIMRS tidak memanggil SIMRS: status `200` dikarang dan latensi diambil acak 25–65 ms | `PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs:77` | **Ya.** SIMRS ada di aplikasi yang sama — cukup tulis ke tabel wewenang klinis, atau lewat API terpisah? | 🟡 10 November 2026 — status/latensi karangan dihapus, log tersimpan dengan status `PENDING_INTEGRATION`; pemanggilan SIMRS menunggu keputusan ([laporan](../task/report/backend/BE-HRD-235.md)) |
+| `BE-HRD-225` | Metrik OPPE dari SIMRS berupa konstanta: volume 120, kelengkapan EMR 92,5, insiden KMKP 0, lainnya 88 | `PerformanceManagement/Services/OppeDataAggregationService.cs:261-267` | **Ya.** Dari tabel mana di SIMRS (klinis/rekam medis) angka ini diambil? | 🟡 11 November 2026 — 4 tipe indikator ditarik dari tabel pelayanan aplikasi; KMKP dan clinical pathway tidak punya tabel sumber ([laporan](../task/report/backend/BE-HRD-225.md)) |
+| `BE-HRD-235` | Pengiriman wewenang klinis ke SIMRS tidak memanggil SIMRS: status `200` dikarang dan latensi diambil acak 25–65 ms | `PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs:77` | **Ya.** SIMRS ada di aplikasi yang sama — cukup tulis ke tabel wewenang klinis, atau lewat API terpisah? | 🟡 11 November 2026 — dispatcher menulis ke `WfpClinicalPrivilege` (tabel bersama yang dibaca modul klinis); migration `20261110050000` belum dijalankan ([laporan](../task/report/backend/BE-HRD-235.md)) |
 
 ---
 
@@ -116,18 +116,18 @@ masuk SIMRS dan membuka rekam medis pasien**.
 
 | Task | Worker | Bukti | Status perbaikan |
 |---|---|---|---|
-| `BE-HRD-285` ⚠️ | `ItAccessRevocationSyncWorker` — pencabutan akses SIMRS pegawai diskors (`EMP-W6`) | `EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs:249` | Belum |
-| `BE-HRD-278` | `SuspensionPeriodMonitoringWorker` — pemantau masa skorsing | `EmployeeRelationWorkers.cs:63` | Belum |
-| `BE-HRD-279` | `GrievanceSlaEscalationWorker` — eskalasi SLA mediasi keluhan 14 hari | `EmployeeRelationWorkers.cs:112` | Belum |
-| `BE-HRD-282` | `PkwtContractExpiryRadarWorker` — radar kontrak PKWT habis | `EmployeeRelationWorkers.cs:158` | Belum |
-| `BE-HRD-284` | `ExitClearanceChecklistReminderWorker` — pengingat checklist exit clearance | `EmployeeRelationWorkers.cs:204` | Belum |
-| `BE-HRD-268` | `PerformanceCalibrationDeadlineWorker`, `PerformancePipMilestoneMonitoringWorker`, `ClinicalCareerLadderExpiryWorker`, `PerformanceDisputeSlaEnforcementWorker` | `PerformanceManagement/Workers/PerformanceManagementWorkers.cs:129`, `:176`, `:226`, `:269` | Belum |
-| `BE-HRD-236` | `FppeProctoringMonitoringWorker` — tenggat proctoring FPPE | `PerformanceManagement/Workers/FppeProctoringMonitoringWorker.cs:17` | Belum |
-| `BE-HRD-296` | `SerialSurveillanceFollowUpWorker` — tindak lanjut serologi pajanan | `OccupationalHealthManagement/Workers/OccupationalHealthWorkers.cs:16` | Belum |
-| `BE-HRD-297` | `VaccineBoosterReminderWorker` — pengingat booster vaksin | `OccupationalHealthWorkers.cs:121` | Belum |
+| `BE-HRD-285` ⚠️ | `ItAccessRevocationSyncWorker` — pencabutan akses SIMRS pegawai diskors (`EMP-W6`) | `EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs:249` | 🟡 11 November 2026 — akun dikunci/dipulihkan otomatis, jejak `HrdSuspensionAccessAction`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-285.md)) |
+| `BE-HRD-278` | `SuspensionPeriodMonitoringWorker` — pemantau masa skorsing | `EmployeeRelationWorkers.cs:63` | 🟡 11 November 2026 — eskalasi hari ke-150/180 ke pemegang `EmployeeDisciplinary : ManageSuspension` ([laporan](../task/report/backend/BE-HRD-278.md)) |
+| `BE-HRD-279` | `GrievanceSlaEscalationWorker` — eskalasi SLA mediasi keluhan 14 hari | `EmployeeRelationWorkers.cs:112` | 🟡 11 November 2026 — eskalasi ke pemegang `EmployeeGrievance : Mediate` ([laporan](../task/report/backend/BE-HRD-279.md)) |
+| `BE-HRD-282` | `PkwtContractExpiryRadarWorker` — radar kontrak PKWT habis | `EmployeeRelationWorkers.cs:158` | 🟡 11 November 2026 — radar H-60/H-30 ke pegawai dan pemegang `EmployeeSeparation : Initiate` ([laporan](../task/report/backend/BE-HRD-282.md)) |
+| `BE-HRD-284` | `ExitClearanceChecklistReminderWorker` — pengingat checklist exit clearance | `EmployeeRelationWorkers.cs:204` | 🟡 11 November 2026 — pengingat harian per proses ke pemegang `MultiDeptExitClearance : SignoffChecklist` ([laporan](../task/report/backend/BE-HRD-284.md)) |
+| `BE-HRD-268` | `PerformanceCalibrationDeadlineWorker`, `PerformancePipMilestoneMonitoringWorker`, `ClinicalCareerLadderExpiryWorker`, `PerformanceDisputeSlaEnforcementWorker` | `PerformanceManagement/Workers/PerformanceManagementWorkers.cs:129`, `:176`, `:226`, `:269` | 🟡 11 November 2026 — keempat worker mengirim pemberitahuan; `PRF-W5` kini menghitung masa 3 tahun ([laporan](../task/report/backend/BE-HRD-268.md)) |
+| `BE-HRD-236` | `FppeProctoringMonitoringWorker` — tenggat proctoring FPPE | `PerformanceManagement/Workers/FppeProctoringMonitoringWorker.cs:17` | 🟡 11 November 2026 — peringatan H-14/H-7/lewat ke proctor, dokter, komite ([laporan](../task/report/backend/BE-HRD-236.md)) |
+| `BE-HRD-296` | `SerialSurveillanceFollowUpWorker` — tindak lanjut serologi pajanan | `OccupationalHealthManagement/Workers/OccupationalHealthWorkers.cs:16` | 🟡 11 November 2026 — jadwal serologi ke pegawai dan pemegang `NeedleStickEmergency : ManageSerialSurveillance` ([laporan](../task/report/backend/BE-HRD-296.md)) |
+| `BE-HRD-297` | `VaccineBoosterReminderWorker` — pengingat booster vaksin | `OccupationalHealthWorkers.cs:121` | 🟡 11 November 2026 — pengingat booster ke pegawai dan pemegang `StaffVaccination : RecordVaccination` ([laporan](../task/report/backend/BE-HRD-297.md)) |
 | `BE-HRD-298` | `RadiationDoseThresholdAlertWorker` — alarm ambang dosis radiasi | `OccupationalHealthWorkers.cs:222` | Belum |
-| `BE-HRD-301` | `BPJSOccupationalInjuryFollowUpWorker` — tindak lanjut klaim BPJS JKK | `OccupationalHealthWorkers.cs:269` | Belum |
-| `BE-HRD-328` | `TravelAdvanceSettlementReminderWorker` — pengingat settlement uang muka dinas | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:17` | Belum |
+| `BE-HRD-301` | `BPJSOccupationalInjuryFollowUpWorker` — tindak lanjut klaim BPJS JKK | `OccupationalHealthWorkers.cs:269` | 🟡 11 November 2026 — peringatan H-12 jam dan pelanggaran ke pemegang `WorkRestrictionAndInjury : PrepareBpjsClaimStage1` ([laporan](../task/report/backend/BE-HRD-301.md)) |
+| `BE-HRD-328` | `TravelAdvanceSettlementReminderWorker` — pengingat settlement uang muka dinas | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:17` | 🟡 11 November 2026 — pengingat H+3/H+5 ke pegawai ([laporan](../task/report/backend/BE-HRD-328.md)) |
 
 **Keputusan yang dibutuhkan:**
 
@@ -179,7 +179,7 @@ menjadi nomor urut, ditambah unique index sesuai `QBE-CODE-004`.
 
 | Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
-| `BE-HRD-032` | Pemisahan pengaju dan penyetuju pendaftaran benefit (`FIN-VAL-271`) dimatikan dengan catatan "SEMENTARA". Petugas bisa menyetujui pengajuannya sendiri | `BenefitManagement/Services/EmployeeBenefitEnrollmentService.cs:408`, `:651` | **Ya.** Boleh dinyalakan kembali sekarang? | Belum |
+| `BE-HRD-032` | Pemisahan pengaju dan penyetuju pendaftaran benefit (`FIN-VAL-271`) dimatikan dengan catatan "SEMENTARA". Petugas bisa menyetujui pengajuannya sendiri | `BenefitManagement/Services/EmployeeBenefitEnrollmentService.cs:408`, `:651` | **Ya.** Boleh dinyalakan kembali sekarang? | ✅ Tidak perlu perubahan — `FIN-DEC-233` (3 November 2026) menyatakan `FIN-VAL-271` superseded; pengaju boleh menyetujui sendiri dengan audit dua aktor terpisah. Catatan "SEMENTARA" sudah tidak ada di source |
 | `BE-HRD-142` | `CompensatoryTimeOffExpirationService` (kedaluwarsa jatah libur pengganti lembur 90 hari) hanya dipanggil dari controller. Scheduler masih memakai `OvertimeCompensatoryExpiryService` versi lama | `OvertimeManagement/Services/OvertimeSchedulerService.cs:18`, `:27`; `Program.cs:1295`, `:1315` | Tidak — samakan dengan service baru, atau tetapkan salah satu sebagai satu-satunya | ✅ 10 November 2026 — scheduler menjalankan kedua mesin ([laporan](../task/report/backend/BE-HRD-142.md)) |
 
 ---
@@ -193,12 +193,12 @@ bagian 8.
 
 | No | Lokasi | Masalah | Status perbaikan |
 |---:|---|---|---|
-| 1 | `EmployeeGrievanceController.GetMyTickets` | `employeeId` dari query — tiket keluhan orang lain bisa dibaca | Belum |
-| 2 | `EmployeeGrievanceController.SubmitGrievance` | Pelapor diisi dari body — keluhan bisa diajukan atas nama orang lain | Belum |
-| 3 | `HealthRecordsController.GetMyHealth` | `employeeId` dari query — profil kesehatan orang lain bisa dibaca | Belum |
-| 4 | `OppeOngoingEvaluationController.GetAssignedPeerReviews` | `evaluatorId` dari route — tugas telaah sejawat dokter lain bisa dilihat | Belum |
-| 5 | 10 controller Benefit, Perjalanan Dinas, ESS, Workflow V2 | Membaca klaim `"EmployeeId"`/`"WorkforceProfileId"` yang tidak ada di token; selalu jatuh ke ID akun. Juga menghalangi pemeriksaan "apakah penyetuju memang approver tahapan" di `WorkflowApprovalActionService` | Belum |
-| 6 | `HealthRecordsController.IsDoctorRole` | Peran dokter K3 ditulis langsung di kode (`IsInRole("DokterK3RS")`) | Belum |
+| 1 | `EmployeeGrievanceController.GetMyTickets` | `employeeId` dari query — tiket keluhan orang lain bisa dibaca | ✅ 11 November 2026 — identitas dari token (`HrActorClaims`), parameter `employeeId` dihapus |
+| 2 | `EmployeeGrievanceController.SubmitGrievance` | Pelapor diisi dari body — keluhan bisa diajukan atas nama orang lain | ✅ 11 November 2026 — pelapor dari token; body diabaikan |
+| 3 | `HealthRecordsController.GetMyHealth` | `employeeId` dari query — profil kesehatan orang lain bisa dibaca | ✅ 11 November 2026 — dari klaim `employee_id`, parameter query dihapus |
+| 4 | `OppeOngoingEvaluationController.GetAssignedPeerReviews` | `evaluatorId` dari route — tugas telaah sejawat dokter lain bisa dilihat | ✅ 11 November 2026 — evaluator dari klaim `workforce_profile_id`; route yang tidak cocok ditolak 403 |
+| 5 | 10 controller Benefit, Perjalanan Dinas, ESS, Workflow V2 | Membaca klaim `"EmployeeId"`/`"WorkforceProfileId"` yang tidak ada di token; selalu jatuh ke ID akun. Juga menghalangi pemeriksaan "apakah penyetuju memang approver tahapan" di `WorkflowApprovalActionService` | 🟡 11 November 2026 — klaim `workforce_profile_id`/`employee_id` lewat `HrActorClaims`; data lama dipetakan ulang oleh migration `20261111020000` (belum dijalankan) |
+| 6 | `HealthRecordsController.IsDoctorRole` | Peran dokter K3 ditulis langsung di kode (`IsInRole("DokterK3RS")`) | ✅ 11 November 2026 — diganti pemeriksaan hak akses `OccupationalHealthRecord : ViewClinicalDetail` via `AccessPermissionService` |
 
 **Satu keputusan membuka nomor 1–5:** data "milik saya" diturunkan dari klaim token
 **`employee_id`** atau **`workforce_profile_id`**? Untuk nomor 6: cukup memakai hak akses
@@ -272,3 +272,26 @@ bagian 8.
 **Peringatan untuk pemilik.** Selama sesi ini pemilik melakukan commit dan merge; commit `c44b48b1` ikut membawa migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 `CreateTable`, 26 `DropTable`, 24 `DropColumn`) beserta snapshot model yang diregenerasi. Migration itu **tidak boleh dijalankan**: isinya drift lama antara snapshot dan migration SQL manual slice sebelumnya, bukan perubahan task ini. Pada working tree kedua berkasnya sudah dihapus dan diganti migration SQL manual `20261110050000`; penghapusan itu perlu di-commit pemilik. Snapshot model di HEAD dibiarkan karena sudah bercampur dengan merge cabang lain.
 
 **Temuan baru di luar daftar (tidak dikerjakan):** `MandatoryTrainingRuleService.CreateOrUpdateRuleAsync` membuat aturan tanpa `TrainingCatalogId` yang wajib (akan gagal FK); `HazardSurveillanceService` masih membentuk `SurveillanceNumber` dari potongan GUID; `TrxWorkflowInstance.WorkflowNumber` belum punya index unik; PIN cadangan slip gaji `123456`/`000000`/`112233`/`654321` masih ada di kode.
+
+---
+
+## 13. Hasil Gelombang 2 (11 November 2026)
+
+Pemilik meminta Gelombang 2 dikerjakan seluruhnya tanpa sesi keputusan terpisah. Ketujuh keputusan diambil dari bukti source dan prinsip produk (sederhana, profesional, beban pengguna rendah), lalu dicatat sebagai **asumsi eksplisit** pada laporan tiap task. Pemilik dapat membalikkan setiap keputusan; kodenya terpisah per keputusan.
+
+| Keputusan | Yang diterapkan | Alasan dari bukti |
+|---|---|---|
+| Kanal notifikasi dan pemiliknya | Lonceng dalam aplikasi, milik modul SDM: tabel `HrdNotification`, endpoint `api/v1/self-service/hr/notifications`, hub SignalR `/hubs/notifications`. Penerima "petugas" dihitung dari hak akses di layar Akses Role, bukan nama peran di kode | Platform tidak punya tabel notifikasi, pengirim email, maupun WhatsApp; yang ada hanya SignalR. Kanal lain dicatat sebagai `RequestedChannel` |
+| Cabut/pulihkan akses SIMRS | Otomatis: akun pegawai diskors dinonaktifkan dan dikunci sampai akhir skorsing, dipulihkan saat berakhir (hanya akun yang dikunci sistem), jejak `HrdSuspensionAccessAction` | SIMRS ada di aplikasi ini; pemeriksaan hak akses per request hanya menerima akun aktif, jadi penonaktifan langsung memutus akses |
+| Sumber data SIMRS untuk metrik OPPE | Tabel pelayanan aplikasi: kunjungan, visite, resume pulang, resep, surveilans IDO. KMKP dan clinical pathway dilaporkan tidak tersedia | Tabel-tabel itu ada dan punya kolom dokter; tabel insiden pasien dan CP tidak ada |
+| Jalur integrasi wewenang klinis | Tulis langsung ke `WfpClinicalPrivilege` | Resolver laboratorium dan kamar operasi sudah membaca tabel itu; tidak ada API SIMRS terpisah |
+| Sumber kurs | Master kurs Keuangan `MstExchangeRate` | Master kurs sudah ada; API BI belum |
+| Worker persetujuan massal | Dihapus | Endpoint sudah memproses dan melaporkan per tiket |
+| Maker-checker benefit | Tidak diubah | `FIN-DEC-233` (3 November 2026) sudah memutuskan pengaju boleh menyetujui sendiri |
+| Klaim identitas pegawai | `workforce_profile_id` untuk tabel berkolom `WorkforceProfileId` (perjalanan dinas, benefit, ESS, keluhan); `employee_id` untuk tabel yang merujuk `MstEmployee` (workflow V2, kesehatan kerja); cadangan ID akun; helper `Shared/HumanResource/Helpers/HrActorClaims.cs`; data lama dipetakan ulang di migration | Token sudah memuat kedua klaim; tiap modul memakai kolom berbeda |
+
+**Verifikasi bersama:** `dotnet build QuilvianSystemBackend.csproj` **0 error**, 602 warning (garis dasar 606; tidak ada warning baru pada berkas yang disentuh); `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas: **0 VIOLATION, 0 REVIEW, PASS**; uji runtime `NOT RUN`; migration `Migrations/20261111020000_AddHrdNotificationAndSuspensionAccess.cs` (tabel `HrdNotification`, `HrdSuspensionAccessAction`, pemetaan ulang kolom identitas) disiapkan, **belum dijalankan**.
+
+**Delta kontrak API:** `GET /my-tickets` keluhan tidak lagi menerima `employeeId`; `GET my-health` tidak lagi menerima `employeeId`; `GET peer-reviews/assigned/{evaluatorId}` menolak 403 bila `evaluatorId` bukan pengguna login; endpoint baru pusat notifikasi (4 endpoint, controller `HrdNotification`); worker `WF-W5` dihapus.
+
+**Temuan baru di luar daftar (tidak dikerjakan):** `HealthRecordService.GetClinicalDetailAsync` masih mengisi golongan darah "O", rhesus "+", unit "Unit Kerja Terdaftar", dan nama dokter "Dokter Hiperkes RS" sebagai nilai tetap (data karangan); `BusinessTravelAdvancesController` masih menentukan petugas Finance dari nama peran; `WorkflowApprovalActionService` belum memeriksa bahwa penyetuju memang approver tahapan (kini dapat dikerjakan karena klaim `employee_id` sudah benar); `TravelSettlementOverdueWorker` (`TRV-W2`) potongan payroll H+30 masih hanya log.
