@@ -49,7 +49,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.DT
         public string? Notes { get; set; }
     }
 
-    public class TrxLeaveBalanceLedgerQueryRequest
+    public class LeaveBalanceLedgerFilterRequest
     {
         public Guid? WorkforceProfileId { get; set; }
         public Guid? LeaveTypeId { get; set; }

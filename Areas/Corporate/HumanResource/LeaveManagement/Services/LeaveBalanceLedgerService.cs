@@ -153,7 +153,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
         }
 
         public async Task<LeaveBalanceLedgerPagedResponse> GetPagedLedgerAsync(
-            TrxLeaveBalanceLedgerQueryRequest request,
+            LeaveBalanceLedgerFilterRequest request,
             CancellationToken cancellationToken = default)
         {
             var page = Math.Max(1, request.PageNumber);

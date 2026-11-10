@@ -99,7 +99,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
         [AccessAction("Read", "Read Leave Balance Ledger", Description = "Melihat daftar riwayat mutasi buku besar cuti", AccessType = AccessTypes.Read, SortOrder = 3)]
         [AccessPermission("LeaveBalanceLedger", "Read")]
         public async Task<IActionResult> GetPagedLedger(
-            [FromQuery] TrxLeaveBalanceLedgerQueryRequest request,
+            [FromQuery] LeaveBalanceLedgerFilterRequest request,
             CancellationToken cancellationToken = default)
         {
             var data = await _ledgerService.GetPagedLedgerAsync(request, cancellationToken);
