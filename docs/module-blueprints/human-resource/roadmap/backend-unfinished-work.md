@@ -73,12 +73,12 @@ waspada. Radar surveilans tetap menampilkan **4,8 mSv** untuk semua pekerja, jad
 
 | Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
-| `BE-HRD-298` | Dosis kumulatif TLD selalu `yearlyDose = 4.8m` dan `quarterlyDose = 1.2m` | `OccupationalHealthManagement/Services/HazardSurveillanceService.cs:89-91` | Tidak — hitung dari catatan dosis yang disimpan endpoint `surveillance/radiation-dose` | Belum |
-| `BE-HRD-240` | Bila database kosong, radar sertifikat menampilkan 4 staf fiktif ("Ns. Siti Rahma S.Kep", "dr. Ahmad Fauzi Sp.A", "dr. Robert Sp.BS") ber-GUID tetap. Broadcast melapor terkirim ke **minimal 5 orang** tanpa mengirim apa pun. Nama pelatihan di-hard-code | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:66`, `:79`, `:99`, `:107`, `:234-300` | Tidak — hapus data fiktif dan laporkan jumlah sebenarnya | Belum |
-| `BE-HRD-233` | Bila dokter belum punya riwayat OPPE, skor 3 tahun diisi 82,5 / 85,0 / 88,5 | `PerformanceManagement/Services/RecredentialingQualityService.cs:57-64` | Tidak — kembalikan "data belum cukup" | Belum |
-| `BE-HRD-239` | Bila tabel aturan kosong, 5 aturan pelatihan wajib bawaan ber-GUID tetap tetap tampil (minor) | `LearningAndDevelopment/Services/MandatoryTrainingRuleService.cs:21` | Tidak — pindahkan ke seeder data awal | Belum |
+| `BE-HRD-298` | Dosis kumulatif TLD selalu `yearlyDose = 4.8m` dan `quarterlyDose = 1.2m` | `OccupationalHealthManagement/Services/HazardSurveillanceService.cs:89-91` | Tidak — hitung dari catatan dosis yang disimpan endpoint `surveillance/radiation-dose` | 🟡 10 November 2026 — radar dihitung dari kolom `MeasuredDoseMsv`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-298.md)) |
+| `BE-HRD-240` | Bila database kosong, radar sertifikat menampilkan 4 staf fiktif ("Ns. Siti Rahma S.Kep", "dr. Ahmad Fauzi Sp.A", "dr. Robert Sp.BS") ber-GUID tetap. Broadcast melapor terkirim ke **minimal 5 orang** tanpa mengirim apa pun. Nama pelatihan di-hard-code | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:66`, `:79`, `:99`, `:107`, `:234-300` | Tidak — hapus data fiktif dan laporkan jumlah sebenarnya | 🟡 10 November 2026 — data fiktif dihapus, siaran melaporkan 0 pengiriman; pengiriman menunggu `BE-HRD-314` ([laporan](../task/report/backend/BE-HRD-240.md)) |
+| `BE-HRD-233` | Bila dokter belum punya riwayat OPPE, skor 3 tahun diisi 82,5 / 85,0 / 88,5 | `PerformanceManagement/Services/RecredentialingQualityService.cs:57-64` | Tidak — kembalikan "data belum cukup" | ✅ 10 November 2026 — data belum cukup dilaporkan apa adanya ([laporan](../task/report/backend/BE-HRD-233.md)) |
+| `BE-HRD-239` | Bila tabel aturan kosong, 5 aturan pelatihan wajib bawaan ber-GUID tetap tetap tampil (minor) | `LearningAndDevelopment/Services/MandatoryTrainingRuleService.cs:21` | Tidak — pindahkan ke seeder data awal | ✅ 10 November 2026 — dipindah ke `MandatoryTrainingRuleSeeder` ([laporan](../task/report/backend/BE-HRD-239.md)) |
 | `BE-HRD-225` | Metrik OPPE dari SIMRS berupa konstanta: volume 120, kelengkapan EMR 92,5, insiden KMKP 0, lainnya 88 | `PerformanceManagement/Services/OppeDataAggregationService.cs:261-267` | **Ya.** Dari tabel mana di SIMRS (klinis/rekam medis) angka ini diambil? | Belum |
-| `BE-HRD-235` | Pengiriman wewenang klinis ke SIMRS tidak memanggil SIMRS: status `200` dikarang dan latensi diambil acak 25–65 ms | `PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs:77` | **Ya.** SIMRS ada di aplikasi yang sama — cukup tulis ke tabel wewenang klinis, atau lewat API terpisah? | Belum |
+| `BE-HRD-235` | Pengiriman wewenang klinis ke SIMRS tidak memanggil SIMRS: status `200` dikarang dan latensi diambil acak 25–65 ms | `PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs:77` | **Ya.** SIMRS ada di aplikasi yang sama — cukup tulis ke tabel wewenang klinis, atau lewat API terpisah? | 🟡 10 November 2026 — status/latensi karangan dihapus, log tersimpan dengan status `PENDING_INTEGRATION`; pemanggilan SIMRS menunggu keputusan ([laporan](../task/report/backend/BE-HRD-235.md)) |
 
 ---
 
@@ -93,12 +93,12 @@ tier itu hilang — padahal itu jejak audit akreditasi.
 
 | Task | Data yang hilang | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
-| `BE-HRD-234` | Penyesuaian tier oleh komite (jejak audit) | `PerformanceManagement/Services/RecredentialingQualityService.cs:26` | Tidak | Belum |
-| `BE-HRD-235` | Putusan rekredensialing dan log pengiriman ke SIMRS | `RecredentialingQualityService.cs:27`, `SimrsClinicalPrivilegeDispatcher.cs:17` | Tidak | Belum |
-| `BE-HRD-229` | Feed pemicu FPPE yang diterima | `PerformanceManagement/Services/FppeTriggerDetectionService.cs:15` | Tidak | Belum |
-| `BE-HRD-241` | Status buddy system untuk staf yang sertifikatnya kedaluwarsa | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:24` | Tidak | Belum |
-| `BE-HRD-159` | Penguncian PIN slip gaji dan sesi gaji sensitif 15 menit. Penyerang yang terkunci karena salah PIN 3 kali bisa langsung mencoba lagi setelah restart | `PayrollManagement/Services/PayrollPayslipDistributionService.cs:27`, `:30` | Tidak | Belum |
-| `BE-HRD-204` | Penghitung salah-PIN untuk membuka nominal surat (anti brute-force, maksimal 3 kali per 30 menit) | `HrServiceManagement/Services/PinRateLimiterService.cs:29` | Tidak | Belum |
+| `BE-HRD-234` | Penyesuaian tier oleh komite (jejak audit) | `PerformanceManagement/Services/RecredentialingQualityService.cs:26` | Tidak | 🟡 10 November 2026 — tabel `HrdRecredentialingTierOverride`; migration `20261110050000` belum dijalankan ([laporan](../task/report/backend/BE-HRD-234.md)) |
+| `BE-HRD-235` | Putusan rekredensialing dan log pengiriman ke SIMRS | `RecredentialingQualityService.cs:27`, `SimrsClinicalPrivilegeDispatcher.cs:17` | Tidak | 🟡 10 November 2026 — tabel `HrdRecredentialingVerdict` dan `HrdSimrsPrivilegeSyncLog`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-235.md)) |
+| `BE-HRD-229` | Feed pemicu FPPE yang diterima | `PerformanceManagement/Services/FppeTriggerDetectionService.cs:15` | Tidak | 🟡 10 November 2026 — tabel `HrdFppeTriggerEvent`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-229.md)) |
+| `BE-HRD-241` | Status buddy system untuk staf yang sertifikatnya kedaluwarsa | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:24` | Tidak | 🟡 10 November 2026 — tabel `HrdShiftBuddySafeguard`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-241.md)) |
+| `BE-HRD-159` | Penguncian PIN slip gaji dan sesi gaji sensitif 15 menit. Penyerang yang terkunci karena salah PIN 3 kali bisa langsung mencoba lagi setelah restart | `PayrollManagement/Services/PayrollPayslipDistributionService.cs:27`, `:30` | Tidak | 🟡 10 November 2026 — tabel `HrdPayslipPinLockout`/`HrdPayslipPinSession`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-159.md)) |
+| `BE-HRD-204` | Penghitung salah-PIN untuk membuka nominal surat (anti brute-force, maksimal 3 kali per 30 menit) | `HrServiceManagement/Services/PinRateLimiterService.cs:29` | Tidak | 🟡 10 November 2026 — tabel `HrdPinAttemptRecord`, limiter Scoped; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-204.md)) |
 
 Perbaikan kelompok ini menambah tabel baru. File migration disiapkan bersama perubahannya, dan
 pemilik yang menjalankan `dotnet ef database update`.
@@ -150,24 +150,24 @@ bernomor `SP1/HRD/11/2026/482`. Yang satu menimpa arsip yang lain saat dicari be
 
 | Service | Dokumen | Task terkait | Bukti | Status perbaikan |
 |---|---|---|---|---|
-| `DisciplinaryIncidentService` | Laporan insiden disiplin | `BE-HRD-273` | `EmployeeRelationManagement/Services/DisciplinaryIncidentService.cs:41` | Belum |
-| `DisciplinaryInvestigationService` | BAP investigasi | `BE-HRD-274` | `DisciplinaryInvestigationService.cs:33` | Belum |
-| `DisciplinarySanctionService` | Surat Peringatan | `BE-HRD-275` | `DisciplinarySanctionService.cs:73` | Belum |
-| `DisciplinarySuspensionService` | Surat skorsing | `BE-HRD-277` | `DisciplinarySuspensionService.cs:27` | Belum |
-| `EmployeeGrievanceService` | Tiket keluhan | `BE-HRD-279` | `EmployeeGrievanceService.cs:23` | Belum |
-| `WhistleblowerCaseService` | Tiket whistleblower | `BE-HRD-280` | `WhistleblowerCaseService.cs:29` | Belum |
-| `BipartiteForumService` | Register forum bipartit | `BE-HRD-281` | `BipartiteForumService.cs:27` | Belum |
-| `EmployeeSeparationService` | Nomor terminasi | `BE-HRD-282` | `EmployeeSeparationService.cs:32` | Belum |
-| `BenefitClaimService` | Klaim COB | `BE-HRD-188` | `BenefitManagement/Services/BenefitClaimService.cs:241` | Belum |
-| `BenefitEnrollmentService` | Kepesertaan benefit | `BE-HRD-181` s.d. `BE-HRD-185` | `BenefitEnrollmentService.cs:420` | Belum |
-| `BenefitInHouseService` | Referensi koreksi plafon | `BE-HRD-186`, `BE-HRD-187` | `BenefitInHouseService.cs:319` | Belum |
-| `ProctoringWorkflowService` | Penugasan FPPE | `BE-HRD-230` s.d. `BE-HRD-232` | `PerformanceManagement/Services/ProctoringWorkflowService.cs:95` | Belum |
-| `WorkflowInstanceCreationService` | Nomor permohonan workflow | `BE-HRD-304` | `WorkflowManagement/Services/WorkflowInstanceCreationService.cs:67` | Belum |
-| `ApprovalDelegationV2Service` | Nomor delegasi Plh | `BE-HRD-307` | `WorkflowManagement/Services/ApprovalDelegationV2Service.cs:54` | Belum |
+| `DisciplinaryIncidentService` | Laporan insiden disiplin | `BE-HRD-273` | `EmployeeRelationManagement/Services/DisciplinaryIncidentService.cs:41` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-273.md)) |
+| `DisciplinaryInvestigationService` | BAP investigasi | `BE-HRD-274` | `DisciplinaryInvestigationService.cs:33` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-274.md)) |
+| `DisciplinarySanctionService` | Surat Peringatan | `BE-HRD-275` | `DisciplinarySanctionService.cs:73` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-275.md)) |
+| `DisciplinarySuspensionService` | Surat skorsing | `BE-HRD-277` | `DisciplinarySuspensionService.cs:27` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-277.md)) |
+| `EmployeeGrievanceService` | Tiket keluhan | `BE-HRD-279` | `EmployeeGrievanceService.cs:23` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-279.md)) |
+| `WhistleblowerCaseService` | Tiket whistleblower | `BE-HRD-280` | `WhistleblowerCaseService.cs:29` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-280.md)) |
+| `BipartiteForumService` | Register forum bipartit | `BE-HRD-281` | `BipartiteForumService.cs:27` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-281.md)) |
+| `EmployeeSeparationService` | Nomor terminasi | `BE-HRD-282` | `EmployeeSeparationService.cs:32` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-282.md)) |
+| `BenefitClaimService` | Klaim COB | `BE-HRD-188` | `BenefitManagement/Services/BenefitClaimService.cs:241` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-188.md)) |
+| `BenefitEnrollmentService` | Kepesertaan benefit | `BE-HRD-181` s.d. `BE-HRD-185` | `BenefitEnrollmentService.cs:420` | ✅ 10 November 2026 — memakai deret resmi `BEN-` ([laporan](../task/report/backend/BE-HRD-181.md)) |
+| `BenefitInHouseService` | Referensi koreksi plafon | `BE-HRD-186`, `BE-HRD-187` | `BenefitInHouseService.cs:319` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-186.md)) |
+| `ProctoringWorkflowService` | Penugasan FPPE | `BE-HRD-230` s.d. `BE-HRD-232` | `PerformanceManagement/Services/ProctoringWorkflowService.cs:95` | ✅ 10 November 2026 — index unik menunggu migration ([laporan](../task/report/backend/BE-HRD-230.md)) |
+| `WorkflowInstanceCreationService` | Nomor permohonan workflow | `BE-HRD-304` | `WorkflowManagement/Services/WorkflowInstanceCreationService.cs:67` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-304.md)) |
+| `ApprovalDelegationV2Service` | Nomor delegasi Plh | `BE-HRD-307` | `WorkflowManagement/Services/ApprovalDelegationV2Service.cs:54` | ✅ 10 November 2026 ([laporan](../task/report/backend/BE-HRD-307.md)) |
 
 **Tambahan keamanan:** PIN 4 digit untuk membuka nominal surat finansial dibuat dengan
 `Random.Shared`, bukan pembangkit acak kriptografis (`EmployeeDocumentIssuanceService.cs:316`,
-`BE-HRD-204`).
+`BE-HRD-204`). **Diperbaiki 10 November 2026**: kini `RandomNumberGenerator.GetInt32`.
 
 **Butuh keputusan? Tidak.** Proyek sudah punya `Areas/Corporate/HumanResource/LifecycleManagement/Services/HrdNumberSeriesService.cs`.
 Format awalan nomor yang sekarang dipakai tetap dipertahankan; yang diganti hanya bagian acaknya
@@ -180,7 +180,7 @@ menjadi nomor urut, ditambah unique index sesuai `QBE-CODE-004`.
 | Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
 | `BE-HRD-032` | Pemisahan pengaju dan penyetuju pendaftaran benefit (`FIN-VAL-271`) dimatikan dengan catatan "SEMENTARA". Petugas bisa menyetujui pengajuannya sendiri | `BenefitManagement/Services/EmployeeBenefitEnrollmentService.cs:408`, `:651` | **Ya.** Boleh dinyalakan kembali sekarang? | Belum |
-| `BE-HRD-142` | `CompensatoryTimeOffExpirationService` (kedaluwarsa jatah libur pengganti lembur 90 hari) hanya dipanggil dari controller. Scheduler masih memakai `OvertimeCompensatoryExpiryService` versi lama | `OvertimeManagement/Services/OvertimeSchedulerService.cs:18`, `:27`; `Program.cs:1295`, `:1315` | Tidak — samakan dengan service baru, atau tetapkan salah satu sebagai satu-satunya | Belum |
+| `BE-HRD-142` | `CompensatoryTimeOffExpirationService` (kedaluwarsa jatah libur pengganti lembur 90 hari) hanya dipanggil dari controller. Scheduler masih memakai `OvertimeCompensatoryExpiryService` versi lama | `OvertimeManagement/Services/OvertimeSchedulerService.cs:18`, `:27`; `Program.cs:1295`, `:1315` | Tidak — samakan dengan service baru, atau tetapkan salah satu sebagai satu-satunya | ✅ 10 November 2026 — scheduler menjalankan kedua mesin ([laporan](../task/report/backend/BE-HRD-142.md)) |
 
 ---
 
@@ -210,11 +210,11 @@ bagian 8.
 
 | No | Masalah | Lokasi di `backend-roadmap.md` | Status perbaikan |
 |---:|---|---|---|
-| 1 | Register status: kolom status `BE-HRD-079` dan `BE-HRD-104` s.d. `BE-HRD-130` kosong; `BE-HRD-146` s.d. `BE-HRD-175` kolom status dan ringkasan tertukar; `BE-HRD-176` s.d. `BE-HRD-333` (158 task) tidak tercantum | Tabel register, baris 700 s.d. 874 | Belum |
-| 2 | Tabel "Gerbang yang masih terbuka" masih mendaftar 5 gerbang, padahal task yang tertahan sudah ✅. `HRD-PLAN-GAP-01` sudah ditandai ✅ di baris 391 dan 601; `INT-HR-31` sudah dipakai `RosterValidationService`. `HRD-PLAN-GAP-02` dan `HRD-DEC-032` perlu dicek apakah benar sudah tertutup | Baris 674 s.d. 682 | Belum |
-| 3 | `BE-HRD-317` bertanda ✅ padahal dependensinya `BE-HRD-316` 🟡 | Kartu `BE-HRD-317` dan grafik B79 | Belum |
-| 4 | Laporan `BE-HRD-237` meluluskan uji `AT-HRD-OPP-03` (agregasi SIMRS otomatis), padahal kodenya hard-code (lihat `BE-HRD-225`) | `task/report/backend/BE-HRD-237.md` | Belum |
-| 5 | Laporan `BE-HRD-333` mengklaim 24 hak akses Perjalanan Dinas terkunci. Sesudah remediasi 10 November 2026 baru ada 19 aksi; 5 sisanya belum punya endpoint | `task/report/backend/BE-HRD-333.md` | Belum |
+| 1 | Register status: kolom status `BE-HRD-079` dan `BE-HRD-104` s.d. `BE-HRD-130` kosong; `BE-HRD-146` s.d. `BE-HRD-175` kolom status dan ringkasan tertukar; `BE-HRD-176` s.d. `BE-HRD-333` (158 task) tidak tercantum | Tabel register, baris 700 s.d. 874 | ✅ 10 November 2026 — register diisi, kolom dirapikan, 158 baris ditambahkan |
+| 2 | Tabel "Gerbang yang masih terbuka" masih mendaftar 5 gerbang, padahal task yang tertahan sudah ✅. `HRD-PLAN-GAP-01` sudah ditandai ✅ di baris 391 dan 601; `INT-HR-31` sudah dipakai `RosterValidationService`. `HRD-PLAN-GAP-02` dan `HRD-DEC-032` perlu dicek apakah benar sudah tertutup | Baris 674 s.d. 682 | ✅ 10 November 2026 — kelima gerbang ditandai tertutup dengan bukti task; `HRD-PLAN-GAP-02` dan `HRD-DEC-032` terbukti tertutup lewat laporan `BE-HRD-049`, `BE-HRD-050`, `BE-HRD-085` |
+| 3 | `BE-HRD-317` bertanda ✅ padahal dependensinya `BE-HRD-316` 🟡 | Kartu `BE-HRD-317` dan grafik B79 | ✅ 10 November 2026 — diturunkan ke 🟡 pada roadmap dan laporan |
+| 4 | Laporan `BE-HRD-237` meluluskan uji `AT-HRD-OPP-03` (agregasi SIMRS otomatis), padahal kodenya hard-code (lihat `BE-HRD-225`) | `task/report/backend/BE-HRD-237.md` | ✅ 10 November 2026 — klaim `AT-HRD-OPP-03` dicabut pada laporan dan traceability; task diturunkan ke 🟡 |
+| 5 | Laporan `BE-HRD-333` mengklaim 24 hak akses Perjalanan Dinas terkunci. Sesudah remediasi 10 November 2026 baru ada 19 aksi; 5 sisanya belum punya endpoint | `task/report/backend/BE-HRD-333.md` | ✅ 10 November 2026 — laporan diberi koreksi 19 aksi/5 belum; task diturunkan ke 🟡 |
 
 ---
 
@@ -253,3 +253,22 @@ bagian 8.
   diperiksa pada audit ini.
 - `BE-HRD-011`, `BE-HRD-016`, `BE-HRD-020`, dan `BE-HRD-021` tidak punya kartu sendiri karena
   direalisasikan lewat task slice lain. Itu bukan pekerjaan yang tertinggal.
+
+
+---
+
+## 12. Hasil Gelombang 1 (10 November 2026)
+
+| Urutan | Kelompok | Hasil |
+|---:|---|---|
+| 1 | E — 14 service | ✅ Seluruh angka acak diganti nomor urut dari `NumberSeriesAllocator` (provider bersama Platform, `QBE-CODE-003`/`006`). `HrdNumberSeriesService` **tidak** dipakai karena masih memakai Count+1. Awalan dan periode dipertahankan; placeholder kepesertaan benefit memakai deret resmi `BEN-`. Index unik `EngagementNumber` ditambahkan (migration). PIN 4 digit memakai `RandomNumberGenerator` |
+| 2 | C — 6 task | 🟡 Delapan tabel `Hrd*` baru menggantikan penyimpanan in-memory; kode selesai dan build lulus, **migration `20261110050000_AddHrdDurableAuditAndPinLockouts` belum dijalankan** (wewenang pemilik). Dispatcher SIMRS mencatat status jujur `PENDING_INTEGRATION` sampai jalur integrasi diputuskan |
+| 3 | B — 4 task | ✅ `BE-HRD-233`, `BE-HRD-239`; 🟡 `BE-HRD-298` (kolom dosis menunggu migration), `BE-HRD-240` (pengiriman menunggu `BE-HRD-314`) |
+| 4 | F — `BE-HRD-142` | ✅ Scheduler menjalankan kedua mesin penghangusan CTO |
+| 5 | H — 5 butir | ✅ Register, gerbang, dan tiga laporan dikoreksi; `BE-HRD-237`, `BE-HRD-317`, `BE-HRD-333` diturunkan ke 🟡 |
+
+**Verifikasi bersama:** `dotnet build QuilvianSystemBackend.csproj` **0 error**, 606 warning (garis dasar sebelum sesi 578; selisih berasal dari merge cabang lain yang masuk HEAD pada sesi yang sama, bukan dari berkas task ini); `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 58 berkas yang disentuh: **0 VIOLATION, 0 REVIEW, PASS**; uji runtime `NOT RUN`; migration SQL idempoten `Migrations/20261110050000_AddHrdDurableAuditAndPinLockouts.cs` disiapkan; **belum dijalankan** ke database mana pun (wewenang pemilik, `dotnet ef database update`).
+
+**Peringatan untuk pemilik.** Selama sesi ini pemilik melakukan commit dan merge; commit `c44b48b1` ikut membawa migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 `CreateTable`, 26 `DropTable`, 24 `DropColumn`) beserta snapshot model yang diregenerasi. Migration itu **tidak boleh dijalankan**: isinya drift lama antara snapshot dan migration SQL manual slice sebelumnya, bukan perubahan task ini. Pada working tree kedua berkasnya sudah dihapus dan diganti migration SQL manual `20261110050000`; penghapusan itu perlu di-commit pemilik. Snapshot model di HEAD dibiarkan karena sudah bercampur dengan merge cabang lain.
+
+**Temuan baru di luar daftar (tidak dikerjakan):** `MandatoryTrainingRuleService.CreateOrUpdateRuleAsync` membuat aturan tanpa `TrainingCatalogId` yang wajib (akan gagal FK); `HazardSurveillanceService` masih membentuk `SurveillanceNumber` dari potongan GUID; `TrxWorkflowInstance.WorkflowNumber` belum punya index unik; PIN cadangan slip gaji `123456`/`000000`/`112233`/`654321` masih ada di kode.

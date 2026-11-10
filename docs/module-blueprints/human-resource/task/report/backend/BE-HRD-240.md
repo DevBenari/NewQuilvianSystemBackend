@@ -123,3 +123,61 @@ Layanan `MandatoryTrainingExpiryRadarWorker` didaftarkan sebagai `IHostedService
 1. **Ketepatan Kategorisasi Zona Radar (`VR-TRN-09`, `AT-HRD-TRN-03`)**: ✅ Lulus. Perhitungan sisa hari secara presisi membedakan zona H-90, H-60, H-30, dan Overdue tanpa selisih hari.
 2. **Kesiapan Background Worker `TRN-W1`**: ✅ Lulus. Worker terdaftar di `Program.cs` dan beroperasi dengan penanganan error tangguh (*fault-tolerant*).
 3. **Penyebaran Alert Multi-Kanal (`AT-HRD-TRN-04`)**: ✅ Lulus. Pemanggilan siaran peringatan mencakup WhatsApp, Email, dan notifikasi banner ESS.
+
+
+---
+
+## Pengerjaan Ulang 10 November 2026 — Remediasi Gelombang 1 Audit Backend HR
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | [backend-unfinished-work.md](../../../roadmap/backend-unfinished-work.md) bagian 10 Gelombang 1, kelompok B — data karangan |
+| Task mode | `BACKEND` |
+| Model | Claude Fable 5.1 |
+| Commit backend saat dikerjakan | mulai `edfd843bac1c2860da7ae9a5ddcb68a75cf42666`; pemilik melakukan commit dan merge selama sesi (HEAD akhir `05325918`, branch `MHamzah`) |
+| Status sesudah pengerjaan ulang | 🟡 **SEBAGIAN 10 November 2026** (dikerjakan ulang; klaim ✅ 9 November 2026 diturunkan) |
+
+### Masalah yang ditemukan audit
+
+Bila database kosong, radar menampilkan 4 staf fiktif ber-GUID tetap ("Ns. Siti Rahma S.Kep", "dr. Ahmad Fauzi Sp.A", dan lainnya); portofolio staf tanpa sertifikat menampilkan 2 sertifikat contoh; nama pelatihan teks tetap; siaran peringatan melapor terkirim ke minimal 5 orang tanpa mengirim apa pun.
+
+### Perubahan yang dikerjakan
+
+- Seluruh data fiktif dihapus; radar dan portofolio hanya menampilkan sertifikat yang ada.
+- Nama pelatihan dibaca dari catatan pelatihan (`WfpTrainingRecord.TrainingName`) lalu jenis sertifikasi; profesi dari jenis sertifikasi; unit kerja dari departemen utama. Nilai yang tidak ada ditampilkan `-`.
+- Siaran peringatan menghitung penerima nyata (per staf) dan melaporkan **0 pengiriman** dengan pesan bahwa kanal notifikasi belum tersedia (`BE-HRD-314`).
+
+### Berkas yang berubah
+
+- `Areas/Corporate/HumanResource/LearningAndDevelopment/Services/TrainingExpiryRadarService.cs`
+
+### Verifikasi
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` **0 error**, 606 warning (garis dasar sebelum sesi 578; selisih berasal dari merge cabang lain yang masuk HEAD pada sesi yang sama, bukan dari berkas task ini) | 0 error | `PASS` |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 58 berkas yang disentuh: **0 VIOLATION, 0 REVIEW, PASS** | 0 temuan | `PASS` |
+| Review diff dan scope | hanya berkas di atas yang disentuh untuk task ini | `PASS` |
+| Uji runtime / API | tidak dijalankan pada sesi ini | `NOT RUN` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+### Acceptance criteria yang disentuh pengerjaan ulang
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Radar H-90/60/30 dari data nyata (VR-TRN-09) | Terpenuhi | data fiktif dihapus |
+| Siaran peringatan massal ke ESS/Email/WA | Belum terpenuhi | kanal notifikasi belum ada; jumlah dilaporkan apa adanya |
+
+### Yang belum terpenuhi
+
+- Pengiriman notifikasi menunggu `BE-HRD-314` (Gelombang 2).
+
+### Database dan migration
+
+`NOT APPLICABLE` — tidak ada perubahan skema untuk task ini.
+
+### Catatan penutup
+
+- Perubahan sampingan: migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 CreateTable/26 DropTable di luar lingkup) **dibuang** dan diganti migration SQL manual; snapshot model yang ikut ter-commit pemilik dibiarkan karena sudah bercampur dengan merge cabang lain.
+- Status Git akhir sesi: berkas task sudah masuk HEAD lewat commit pemilik; sisa di working tree adalah penghapusan dua berkas scaffold dan satu berkas migration manual baru (lihat `git status --short` pada ringkasan sesi).

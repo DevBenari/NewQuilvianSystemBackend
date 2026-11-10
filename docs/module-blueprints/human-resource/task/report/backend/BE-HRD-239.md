@@ -112,3 +112,60 @@ Sistem menolak secara mutlak setiap upaya pendaftaran aturan pelatihan wajib den
 1. **Penyediaan Katalog 5 Pelatihan Wajib (`VR-TRN-01`, `AT-HRD-TRN-01`)**: ✅ Lulus. Seluruh pelatihan dasar STARKES (BHD, PPI, SKP, K3RS, Komunikasi SBAR) dan peminatan intensif terakomodasi secara terstruktur.
 2. **Penegakan Batas Maksimal 24 Bulan (`VR-TRN-02`, `AT-HRD-TRN-02`)**: ✅ Lulus. Permintaan dengan masa berlaku > 24 bulan secara deterministik ditolak dengan status HTTP 400.
 3. **Audit Jejak Perubahan**: ✅ Lulus. Setiap penambahan dan pengubahan aturan mencatat username pembuat/pengubah serta stempel waktu presisi.
+
+
+---
+
+## Pengerjaan Ulang 10 November 2026 — Remediasi Gelombang 1 Audit Backend HR
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | [backend-unfinished-work.md](../../../roadmap/backend-unfinished-work.md) bagian 10 Gelombang 1, kelompok B — data karangan |
+| Task mode | `BACKEND` |
+| Model | Claude Fable 5.1 |
+| Commit backend saat dikerjakan | mulai `edfd843bac1c2860da7ae9a5ddcb68a75cf42666`; pemilik melakukan commit dan merge selama sesi (HEAD akhir `05325918`, branch `MHamzah`) |
+| Status sesudah pengerjaan ulang | ✅ **SELESAI 10 November 2026** (dikerjakan ulang) |
+
+### Masalah yang ditemukan audit
+
+Bila tabel aturan kosong, 5 aturan pelatihan wajib STARKES ber-GUID tetap ditempel dari daftar in-memory di service, sehingga layar menampilkan aturan yang tidak ada di database.
+
+### Perubahan yang dikerjakan
+
+- Daftar in-memory dihapus; service membaca hanya `MstMandatoryTrainingRule`.
+- Lima aturan STARKES dipindah ke seeder data awal `Seeders/MandatoryTrainingRuleSeeder.cs` (kategori `TRN-CAT-STARKES`, 5 katalog `TRN-STARKES-*`, 5 aturan `MTR-STARKES-*`), didaftarkan di `Program.cs` sesudah `DefaultWorkScheduleSeeder`. Idempoten: aturan yang sudah ada tidak ditimpa.
+- Kolom DTO yang dulu konstanta kini dibaca dari data: kategori dari katalog, sasaran dari cakupan aturan, dan `OscePassingScore` memakai ambang kelulusan yang tersimpan (tabel belum punya kolom OSCE terpisah).
+
+### Berkas yang berubah
+
+- `Areas/Corporate/HumanResource/LearningAndDevelopment/Services/MandatoryTrainingRuleService.cs`
+- `Seeders/MandatoryTrainingRuleSeeder.cs` (baru)
+- `Program.cs`
+
+### Verifikasi
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` **0 error**, 606 warning (garis dasar sebelum sesi 578; selisih berasal dari merge cabang lain yang masuk HEAD pada sesi yang sama, bukan dari berkas task ini) | 0 error | `PASS` |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 58 berkas yang disentuh: **0 VIOLATION, 0 REVIEW, PASS** | 0 temuan | `PASS` |
+| Review diff dan scope | hanya berkas di atas yang disentuh untuk task ini | `PASS` |
+| Uji runtime / API | tidak dijalankan pada sesi ini | `NOT RUN` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+### Acceptance criteria yang disentuh pengerjaan ulang
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Daftar aturan berasal dari database | Terpenuhi | tidak ada lagi data in-memory |
+| Lima aturan STARKES tersedia sebagai data awal | Terpenuhi di source | seeder berjalan saat aplikasi mulai; belum dijalankan pada sesi ini |
+
+### Database dan migration
+
+`NOT APPLICABLE` — tidak ada perubahan skema untuk task ini.
+
+### Catatan penutup
+
+- Temuan lama yang **tidak** diperbaiki (di luar lingkup): `CreateOrUpdateRuleAsync` membuat aturan baru tanpa mengisi `TrainingCatalogId` yang wajib, sehingga pembuatan aturan baru dari layar akan gagal pada FK. Perlu task tersendiri.
+- Perubahan sampingan: migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 CreateTable/26 DropTable di luar lingkup) **dibuang** dan diganti migration SQL manual; snapshot model yang ikut ter-commit pemilik dibiarkan karena sudah bercampur dengan merge cabang lain.
+- Status Git akhir sesi: berkas task sudah masuk HEAD lewat commit pemilik; sisa di working tree adalah penghapusan dua berkas scaffold dan satu berkas migration manual baru (lihat `git status --short` pada ringkasan sesi).

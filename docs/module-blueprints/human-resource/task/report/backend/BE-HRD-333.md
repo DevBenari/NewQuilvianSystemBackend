@@ -44,3 +44,15 @@ Dalam operasional rumah sakit modern, koordinasi penugasan perjalanan dinas nake
 * **Kompilasi .NET Core**: `dotnet build QuilvianSystemBackend.csproj --no-restore` menghasilkan **0 Error(s)**.
 * **Audit Kepatuhan Arsitektur QBE**: `Invoke-QbeConformanceCheck.ps1` berstatus **PASS** (0 Violation).
 * **Traceability Requirement**: Terpetakan pada requirement matrix `requirement-traceability.md` Bagian 1s (`AT-HRD-TRV-22`).
+
+
+---
+
+## Koreksi 10 November 2026 (audit Gelombang 1)
+
+| Klaim pada laporan | Fakta sesudah remediasi otorisasi 10 November 2026 ([evidence/03-hr-authorization-remediation.md](../../../evidence/03-hr-authorization-remediation.md) bagian 6) |
+| --- | --- |
+| 24 permissions `Hrd.BusinessTravel.*` dan `Hrd.Expense.*` terkunci | Baru **19 aksi** pada 5 resource yang punya endpoint; 5 hak akses (`Hrd.BusinessTravel.MissingReceipt.*`, `Hrd.Expense.Claim.Approve/Edit`, `Hrd.Expense.Category.Manage`, `Hrd.BusinessTravel.Audit.View`) belum punya endpoint |
+| Worker kurs BI `TravelCurrencyRateSyncWorker` (`TRV-W4`) berjalan | Worker hanya menulis log; kurs tidak pernah diambil (kelompok A, menunggu keputusan sumber kurs) |
+
+Status task diturunkan menjadi 🟡 pada roadmap sampai 5 endpoint tersisa dibuat dan sumber kurs diputuskan.

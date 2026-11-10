@@ -8,7 +8,7 @@ blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
 roadmap_revision: 14
 status: ACTIVE
-status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
+status_synced_at: "10 November 2026 — Gelombang 1 audit backend: 25 task dikerjakan ulang (bagian 1t), 3 task verifikasi diturunkan ke 🟡. Sebelumnya: 2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡; bukti pengerjaan ulang FE-HRD-022, FE-HRD-024, FE-HRD-025 ditautkan. Sebelumnya (2026-11-02): implementasi end-to-end Slice S-A1"
 planning_updated_at: "2026-11-06 - jejak S-C1-OPPE Evaluasi Praktik Profesional Berkelanjutan (OPPE), Penugasan Terfokus (FPPE) & Rapor Komposit Rekredensialing 3 Tahunan ditambahkan (bagian 1m): BE-HRD-222 s.d. BE-HRD-237, FE-HRD-201 s.d. FE-HRD-215; sebelumnya S-C1 (bagian 1l), S-D4 (bagian 1k), S-D3 (bagian 1j), S-B6 (bagian 1i), S-B5 (bagian 1h), S-B3 (bagian 1g), S-B2 (bagian 1f), S-B1 (bagian 1e), S-B4 (bagian 1d) dan S-C4-ONB (bagian 1c)"
 generated_at: "2026-10-26"
 owners:
@@ -1149,16 +1149,16 @@ Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement tracea
 | :--- | :--- | :--- | :--- | :---: |
 | `AT-HRD-OPP-01` | Pembukaan siklus periode OPPE baru dengan rasio 60:40 | `BE-HRD-223`, `BE-HRD-224` | `FE-HRD-201`, `FE-HRD-203` | ✅ PASS |
 | `AT-HRD-OPP-02` | Penolakan konfigurasi bobot OPPE jika total tidak 100% | `BE-HRD-224` | `FE-HRD-203` | ✅ PASS |
-| `AT-HRD-OPP-03` | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP | `BE-HRD-225` | `FE-HRD-202` | ✅ PASS |
+| `AT-HRD-OPP-03` | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP | `BE-HRD-225` | `FE-HRD-202` | ⛔ klaim PASS dicabut 10 November 2026 — kode masih konstanta (`backend-unfinished-work.md` kelompok B) |
 | `AT-HRD-OPP-04` | Penugasan formulir telaah sejawat ke dokter rekan KSM | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
 | `AT-HRD-OPP-05` | Penolakan penilaian sejawat mandiri (anti-self-review) | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
 | `AT-HRD-OPP-06` | Keharusan narasi klinis jika skor telaah sejawat <= 2 | `BE-HRD-226` | `FE-HRD-205` | ✅ PASS |
 | `AT-HRD-OPP-07` | Penegakan Peer Review Privilege & perekaman read-audit | `BE-HRD-227` | `FE-HRD-206` | ✅ PASS |
 | `AT-HRD-OPP-08` | Perhitungan nilai komposit akhir 60% SIMRS + 40% Peer | `BE-HRD-228` | `FE-HRD-202` | ✅ PASS |
 | `AT-HRD-OPP-09` | Pengesahan rapor OPPE dan konfirmasi baca oleh nakes | `BE-HRD-228` | `FE-HRD-202` | ✅ PASS |
-| `AT-HRD-OPP-10` | Deteksi insiden sentinel memicu penugasan FPPE seketika | `BE-HRD-229`, `BE-HRD-230` | `FE-HRD-207`, `FE-HRD-208` | ✅ PASS |
-| `AT-HRD-OPP-11` | Pemicu FPPE komplikasi bedah melampaui 2 standar deviasi | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | ✅ PASS |
-| `AT-HRD-OPP-12` | Pemicu FPPE akibat keterlambatan resume EMR > 48 jam | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | ✅ PASS |
+| `AT-HRD-OPP-10` | Deteksi insiden sentinel memicu penugasan FPPE seketika | `BE-HRD-229`, `BE-HRD-230` | `FE-HRD-207`, `FE-HRD-208` | 🟡 dikerjakan ulang 10 November 2026 (feed kini tersimpan di `HrdFppeTriggerEvent`); uji belum dijalankan ulang |
+| `AT-HRD-OPP-11` | Pemicu FPPE komplikasi bedah melampaui 2 standar deviasi | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | 🟡 dikerjakan ulang 10 November 2026; uji belum dijalankan ulang |
+| `AT-HRD-OPP-12` | Pemicu FPPE akibat keterlambatan resume EMR > 48 jam | `BE-HRD-229`, `BE-HRD-236` | `FE-HRD-207` | 🟡 dikerjakan ulang 10 November 2026; uji belum dijalankan ulang |
 | `AT-HRD-OPP-13` | Inisiasi proctoring staf dokter baru (3 bulan / 10 kasus) | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | ✅ PASS |
 | `AT-HRD-OPP-14` | Inisiasi proctoring penambahan prosedur klinis baru | `BE-HRD-230` | `FE-HRD-208`, `FE-HRD-209` | ✅ PASS |
 | `AT-HRD-OPP-15` | Penyamaran (pseudonimisasi) identitas RM pasien pada logbook | `BE-HRD-231` | `FE-HRD-210` | ✅ PASS |
@@ -1167,8 +1167,8 @@ Bagian ini memetakan seluruh rantai keterlacakan (*end-to-end requirement tracea
 | `AT-HRD-OPP-18` | Putusan pleno FPPE menurunkan kewenangan ke Level 3 supervisi | `BE-HRD-232` | `FE-HRD-211` | ✅ PASS |
 | `AT-HRD-OPP-19` | Kalkulasi rapor komposit 3 tahun dengan rasio 25-35-40 | `BE-HRD-233` | `FE-HRD-212` | ✅ PASS |
 | `AT-HRD-OPP-20` | Otomasi pengelompokan ke Tier Hijau Fast-Track | `BE-HRD-233` | `FE-HRD-212` | ✅ PASS |
-| `AT-HRD-OPP-21` | Penyesuaian diskresi tier kelayakan oleh Ketua Komite | `BE-HRD-234` | `FE-HRD-213` | ✅ PASS |
-| `AT-HRD-OPP-22` | Transmisi putusan Revoked memblokir hak order SIMRS | `BE-HRD-235` | `FE-HRD-214` | ✅ PASS |
+| `AT-HRD-OPP-21` | Penyesuaian diskresi tier kelayakan oleh Ketua Komite | `BE-HRD-234` | `FE-HRD-213` | 🟡 dikerjakan ulang 10 November 2026 (jejak audit kini di `HrdRecredentialingTierOverride`); uji belum dijalankan ulang |
+| `AT-HRD-OPP-22` | Transmisi putusan Revoked memblokir hak order SIMRS | `BE-HRD-235` | `FE-HRD-214` | ⛔ klaim PASS dicabut 10 November 2026 — dispatcher belum memanggil SIMRS (status `PENDING_INTEGRATION`), menunggu keputusan jalur integrasi |
 
 ---
 
@@ -1235,8 +1235,8 @@ Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-2
 | :--- | :--- | :--- | :--- | :---: |
 | `AT-HRD-TRN-01` | Pendaftaran Master Aturan 5 Pelatihan Wajib STARKES KPS 8 | `BE-HRD-239` | `FE-HRD-218`, `FE-HRD-219` | `✅ PASS` |
 | `AT-HRD-TRN-02` | Penolakan konfigurasi masa berlaku akreditasi > 24 bulan | `BE-HRD-239` | `FE-HRD-219` | `✅ PASS` |
-| `AT-HRD-TRN-03` | Deteksi otomatis sertifikat masuk radar kedaluwarsa H-90/60/30 | `BE-HRD-240` | `FE-HRD-217` | `✅ PASS` |
-| `AT-HRD-TRN-04` | Penyiaran pesan peringatan perpanjangan massal ke staf nakes | `BE-HRD-240` | `FE-HRD-217` | `✅ PASS` |
+| `AT-HRD-TRN-03` | Deteksi otomatis sertifikat masuk radar kedaluwarsa H-90/60/30 | `BE-HRD-240` | `FE-HRD-217` | 🟡 dikerjakan ulang 10 November 2026 (data fiktif dihapus); uji belum dijalankan ulang |
+| `AT-HRD-TRN-04` | Penyiaran pesan peringatan perpanjangan massal ke staf nakes | `BE-HRD-240` | `FE-HRD-217` | ⛔ klaim PASS dicabut 10 November 2026 — kanal notifikasi belum ada (`BE-HRD-314`); siaran melaporkan 0 pengiriman |
 | `AT-HRD-TRN-05` | Pemberian grace period 30 hari pasca habis tempo sertifikat | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
 | `AT-HRD-TRN-06` | Penugasan otomatis buddy system jaga shift ke Sub-06 | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
 | `AT-HRD-TRN-07` | Pembekuan kewenangan klinis RKK Level 4 ke Level 3 di Sub-14 | `BE-HRD-241` | `FE-HRD-217` | `✅ PASS` |
@@ -1724,3 +1724,42 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 - **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
 - **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
 - **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis perjalanan dinas dan pengeluaran operasional nakes, 6 keputusan otoritas perjalanan dinas (`HRD-DEC-188` s.d. `HRD-DEC-193`), 4 asumsi teknis (`HRD-ASM-71` s.d. `HRD-ASM-74`), 22 skenario acceptance tests (`AT-HRD-TRV-01` s.d. `AT-HRD-TRV-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`).
+
+
+---
+
+### Bagian 1t: Jejak Pengerjaan Ulang Gelombang 1 Audit Backend (10 November 2026)
+
+Dasar: [backend-unfinished-work.md](backend-unfinished-work.md) bagian 10. Seluruh task di bawah sudah pernah ditandai ✅ pada 9 November 2026; audit menemukan isinya kosong, dikarang, atau hanya di memori. Baris ini memutakhirkan bukti tanpa mengubah requirement.
+
+| Task Backend | Kelompok audit | Requirement yang terdampak | Hasil pengerjaan ulang | Status bukti | Laporan |
+| --- | --- | --- | --- | :---: | --- |
+| `BE-HRD-142` | F — logika tidak tersambung | `FR-OT-20` | scheduler kini menjalankan `CompensatoryTimeOffExpirationService` di samping mesin legacy sehingga tiket CTO jalur modern ikut hangus otomatis; aktor dicatat pada buku besar | ✅ | [BE-HRD-142](../task/report/backend/BE-HRD-142.md) |
+| `BE-HRD-159` | C — data penting hanya di memori | `FR-PAY-24` | penguncian PIN dan sesi 15 menit kini di tabel `HrdPayslipPinLockout`/`HrdPayslipPinSession`; **belum**: migration `20261110050000` belum dijalankan (wewenang pemilik), `AT-HRD-PAY-20` `NOT RUN` | 🟡 | [BE-HRD-159](../task/report/backend/BE-HRD-159.md) |
+| `BE-HRD-181` | E — nomor dokumen dari angka acak | `FR-BEN-07`..`09` | nomor kepesertaan placeholder memakai deret resmi `BEN-000001`, bukan `ENR-` acak | ✅ | [BE-HRD-181](../task/report/backend/BE-HRD-181.md) |
+| `BE-HRD-186` | E — nomor dokumen dari angka acak | `FR-BEN-11`..`14` | referensi koreksi plafon kini urut harian (`ADJ-20261110-0001`) bila pemohon tidak mengisi | ✅ | [BE-HRD-186](../task/report/backend/BE-HRD-186.md) |
+| `BE-HRD-188` | E — nomor dokumen dari angka acak | `FR-BEN-16`..`18` | nomor klaim COB kini urut harian (`CLM-COB-20261110-0001`) | ✅ | [BE-HRD-188](../task/report/backend/BE-HRD-188.md) |
+| `BE-HRD-204` | C — data penting hanya di memori | `FR-HRS-24` | penghitung salah-PIN kini di tabel `HrdPinAttemptRecord`, limiter Scoped dan asinkron, PIN memakai `RandomNumberGenerator`; **belum**: migration belum dijalankan, `AT-HRD-HRS-19` `NOT RUN` | 🟡 | [BE-HRD-204](../task/report/backend/BE-HRD-204.md) |
+| `BE-HRD-229` | C — data penting hanya di memori | `FR-OPP-16`, `FR-OPP-17` | feed pemicu FPPE kini di tabel `HrdFppeTriggerEvent`; **belum**: migration belum dijalankan, `AT-HRD-OPP-10` s.d. `12` `NOT RUN` | 🟡 | [BE-HRD-229](../task/report/backend/BE-HRD-229.md) |
+| `BE-HRD-230` | E — nomor dokumen dari angka acak | `FR-OPP-18` | nomor penugasan FPPE kini urut bulanan (`FPPE-202611-0001`) dan diberi index unik (migration belum dijalankan pemilik) | ✅ | [BE-HRD-230](../task/report/backend/BE-HRD-230.md) |
+| `BE-HRD-233` | B — data karangan | `FR-OPP-22`, `FR-OPP-23` | skor karangan 82,5/85,0/88,5 dihapus; riwayat OPPE yang belum cukup dilaporkan `IsDataSufficient = false` dan tier `InsufficientData` | ✅ | [BE-HRD-233](../task/report/backend/BE-HRD-233.md) |
+| `BE-HRD-234` | C — data penting hanya di memori | `FR-OPP-23` | penyesuaian tier kini di tabel `HrdRecredentialingTierOverride`; **belum**: migration belum dijalankan, `AT-HRD-OPP-21` `NOT RUN` | 🟡 | [BE-HRD-234](../task/report/backend/BE-HRD-234.md) |
+| `BE-HRD-235` | B/C — status karangan & data di memori | `FR-OPP-24`, `FR-OPP-25` | putusan dan log pengiriman kini di tabel `HrdRecredentialingVerdict`/`HrdSimrsPrivilegeSyncLog`, latensi diukur nyata, status jujur `PENDING_INTEGRATION 202`; **belum**: pemanggilan SIMRS EMR menunggu keputusan jalur integrasi (Gelombang 2), migration belum dijalankan, `AT-HRD-OPP-22` `NOT RUN` | 🟡 | [BE-HRD-235](../task/report/backend/BE-HRD-235.md) |
+| `BE-HRD-239` | B — data karangan | `FR-TRN-01`..`03` | 5 aturan STARKES dipindah ke `MandatoryTrainingRuleSeeder`; service hanya membaca database | ✅ | [BE-HRD-239](../task/report/backend/BE-HRD-239.md) |
+| `BE-HRD-240` | B — data karangan | `FR-TRN-04`, `FR-TRN-05` | 4 staf fiktif, 2 sertifikat contoh, dan nama pelatihan tetap dihapus; siaran melaporkan penerima nyata dan 0 pengiriman; **belum**: pengiriman notifikasi menunggu `BE-HRD-314` | 🟡 | [BE-HRD-240](../task/report/backend/BE-HRD-240.md) |
+| `BE-HRD-241` | C — data penting hanya di memori | `FR-TRN-05`..`07` | status buddy system kini di tabel `HrdShiftBuddySafeguard`; **belum**: migration belum dijalankan, `AT-HRD-TRN-06`/`07` `NOT RUN` | 🟡 | [BE-HRD-241](../task/report/backend/BE-HRD-241.md) |
+| `BE-HRD-273` | E — nomor dokumen dari angka acak | `FR-EMP` insiden disiplin | nomor insiden kini urut dari provider bersama (`INC-202611-0001`), bukan angka acak | ✅ | [BE-HRD-273](../task/report/backend/BE-HRD-273.md) |
+| `BE-HRD-274` | E — nomor dokumen dari angka acak | `FR-EMP` BAP | nomor BAP kini urut tahunan (`BAP-HRD-2026-0001`) | ✅ | [BE-HRD-274](../task/report/backend/BE-HRD-274.md) |
+| `BE-HRD-275` | E — nomor dokumen dari angka acak | `FR-EMP` SP 1-3 | nomor SP kini urut bulanan (`SP1/HRD/11/2026/0001`) | ✅ | [BE-HRD-275](../task/report/backend/BE-HRD-275.md) |
+| `BE-HRD-277` | E — nomor dokumen dari angka acak | `FR-EMP` skorsing | nomor skorsing kini urut bulanan (`SKORS/HRD/202611/0001`) | ✅ | [BE-HRD-277](../task/report/backend/BE-HRD-277.md) |
+| `BE-HRD-279` | E — nomor dokumen dari angka acak | `FR-EMP` keluhan | nomor tiket keluhan kini urut (`GRV-202611-0001`); temuan kepemilikan data kelompok G tetap terbuka | ✅ | [BE-HRD-279](../task/report/backend/BE-HRD-279.md) |
+| `BE-HRD-280` | E — nomor dokumen dari angka acak | `FR-EMP` whistleblower | nomor tiket whistleblower kini urut (`WB-202611-0001`) | ✅ | [BE-HRD-280](../task/report/backend/BE-HRD-280.md) |
+| `BE-HRD-281` | E — nomor dokumen dari angka acak | `FR-EMP` bipartit | nomor register bipartit kini urut tahunan (`BIP-2026-0001`) | ✅ | [BE-HRD-281](../task/report/backend/BE-HRD-281.md) |
+| `BE-HRD-282` | E — nomor dokumen dari angka acak | `FR-EMP` terminasi | nomor terminasi kini urut (`SEP-202611-0001`); worker radar PKWT kelompok D tetap menunggu `BE-HRD-314` | ✅ | [BE-HRD-282](../task/report/backend/BE-HRD-282.md) |
+| `BE-HRD-298` | B — data karangan | `FR-OHS` surveilans radiasi (`VR-OHS-17`) | radar dosis dihitung dari kolom baru `MeasuredDoseMsv`, bukan angka tetap 4,8/1,2 mSv; **belum**: migration belum dijalankan, worker alarm masih hanya menulis log (kelompok D) | 🟡 | [BE-HRD-298](../task/report/backend/BE-HRD-298.md) |
+| `BE-HRD-304` | E — nomor dokumen dari angka acak | `FR-WF` instansiasi tiket | nomor permohonan workflow kini urut harian (`WF-{TIPE}-20261110-0001`) | ✅ | [BE-HRD-304](../task/report/backend/BE-HRD-304.md) |
+| `BE-HRD-307` | E — nomor dokumen dari angka acak | `FR-WF` delegasi Plh | nomor SK Plh kini urut harian (`SK-PLH-20261110-0001`) | ✅ | [BE-HRD-307](../task/report/backend/BE-HRD-307.md) |
+
+Koreksi dokumen (kelompok H): `BE-HRD-237`, `BE-HRD-317`, dan `BE-HRD-333` diturunkan ke 🟡 pada roadmap dan laporannya diberi bagian koreksi bertanggal; klaim lulus `AT-HRD-OPP-03`, `AT-HRD-OPP-22`, dan `AT-HRD-TRN-04` dicabut pada tabel uji di atas.
+
+Verifikasi bersama seluruh baris: `dotnet build QuilvianSystemBackend.csproj` **0 error**, 606 warning (garis dasar sebelum sesi 578; selisih berasal dari merge cabang lain yang masuk HEAD pada sesi yang sama, bukan dari berkas task ini); `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 58 berkas yang disentuh: **0 VIOLATION, 0 REVIEW, PASS**; uji runtime `NOT RUN`; migration SQL idempoten `Migrations/20261110050000_AddHrdDurableAuditAndPinLockouts.cs` disiapkan; **belum dijalankan** ke database mana pun (wewenang pemilik, `dotnet ef database update`).
