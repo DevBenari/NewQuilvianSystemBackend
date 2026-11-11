@@ -120,7 +120,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         }
 
         [HttpPost("realizations/{realizationId:guid}/post")]
-        [AccessAction("Post", "Post Overtime Payroll Handoff", Description = "Membuat TrxPayrollOvertimeInput dan menandai sumber Overtime sudah diposting", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessAction("Post", "Post Overtime Payroll Handoff", Description = "Membuat PrlPayrollOvertimeInput dan menandai sumber Overtime sudah diposting", AccessType = AccessTypes.Create, SortOrder = 3)]
         [AccessPermission("OvertimePayrollHandoff", "Post")]
         public async Task<IActionResult> Post(
             Guid realizationId,

@@ -59,12 +59,12 @@ public sealed class PayrollHrdImportService
     public async Task<PayrollRunHrdReadinessResponse> GetReadinessAsync(
         Guid runId, PayrollHrdReadinessQuery query, CancellationToken cancellationToken)
     {
-        var run = await _dbContext.TrxPayrollRuns.AsNoTracking()
+        var run = await _dbContext.PrlPayrollRuns.AsNoTracking()
             .Include(x => x.PayrollPeriod)
             .SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
 
-        var employees = await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+        var employees = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
             .Where(x => x.PayrollRunId == runId && !x.IsDelete)
             .OrderBy(x => x.EmployeeNameSnapshot).ThenBy(x => x.Id)
             .Select(x => new { x.Id, x.WorkforceProfileId, x.EmployeeNumberSnapshot, x.EmployeeNameSnapshot, x.PayrollProfileId })
@@ -73,15 +73,15 @@ public sealed class PayrollHrdImportService
         var workforceIds = employees.Select(x => x.WorkforceProfileId).Distinct().ToList();
 
         var attendanceCounts = await CountByRunEmployeeAsync(
-            _dbContext.TrxPayrollAttendanceInputs.AsNoTracking()
+            _dbContext.PrlPayrollAttendanceInputs.AsNoTracking()
                 .Where(a => !a.IsDelete && a.IsActive && runEmployeeIds.Contains(a.PayrollRunEmployeeId))
                 .Select(a => a.PayrollRunEmployeeId), cancellationToken);
         var overtimeCounts = await CountByRunEmployeeAsync(
-            _dbContext.TrxPayrollOvertimeInputs.AsNoTracking()
+            _dbContext.PrlPayrollOvertimeInputs.AsNoTracking()
                 .Where(o => !o.IsDelete && o.IsActive && runEmployeeIds.Contains(o.PayrollRunEmployeeId))
                 .Select(o => o.PayrollRunEmployeeId), cancellationToken);
         var variableCounts = await CountByRunEmployeeAsync(
-            _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+            _dbContext.PrlPayrollVariableInputs.AsNoTracking()
                 .Where(v => !v.IsDelete && v.IsActive && runEmployeeIds.Contains(v.PayrollRunEmployeeId)
                     && (v.SourceType == null || v.SourceType != PayrollVariableInputSources.FinanceReceivableInstallment))
                 .Select(v => v.PayrollRunEmployeeId), cancellationToken);
@@ -173,7 +173,7 @@ public sealed class PayrollHrdImportService
     public async Task<PayrollHrdImportResponse> ImportAsync(
         Guid runId, PayrollHrdImportRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var run = await _dbContext.TrxPayrollRuns.AsNoTracking()
+        var run = await _dbContext.PrlPayrollRuns.AsNoTracking()
             .Include(x => x.PayrollPeriod)
             .SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
@@ -203,7 +203,7 @@ public sealed class PayrollHrdImportService
 
         // Run maju ke CollectingInput hanya bila ada sumber yang benar-benar berhasil diproses (bukan semuanya gagal).
         var anySucceeded = response.Sources.Any(s => s.Status is "Completed" or "CompletedWithIssues");
-        var tracked = await _dbContext.TrxPayrollRuns.SingleAsync(x => x.Id == runId, cancellationToken);
+        var tracked = await _dbContext.PrlPayrollRuns.SingleAsync(x => x.Id == runId, cancellationToken);
         if (anySucceeded && string.Equals(tracked.RunStatus, PayrollRunStatuses.Draft, StringComparison.OrdinalIgnoreCase))
         {
             tracked.RunStatus = PayrollRunStatuses.CollectingInput;

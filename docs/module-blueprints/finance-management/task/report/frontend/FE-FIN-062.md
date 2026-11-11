@@ -11,7 +11,7 @@
 | Trace | `FR-FIN-284`; `FIN-DEC-268`, `FIN-DEC-276`; `FIN-DES-139`; `03-frontend-architecture.md` §27.1–27.2 |
 | Contract version | `FIN-API-1.13` §W.3 (`PurchasingTrailItemProgress`) — approved 9 November 2026 (Revisi 23 putaran 2) |
 | Wewenang UI | Satu komponen yang sudah ada (panel jejak dokumen, bagian kemajuan item) mendapat kolom tambahan. Tidak ada layar, butir menu, tombol, atau hak akses baru. Warna, ikon, dan susunan visual `DEV_DISCRETION` (§27.2) |
-| Dependency | `BE-FIN-147` 🟡 — kontrak W.3 terkunci dan source backend ada; respons belum pernah dijalankan pada data nyata (basis data uji berisi 0 PO dan 0 GR) |
+| Dependency | `BE-FIN-147` ✅ — kontrak W.3 terkunci dan respons dijalankan pada data uji BLM milik pemilik (11 November 2026) |
 | Klasifikasi | `LIGHT` — satu panel yang sudah ada, satu fungsi format murni, dua blok konstanta; tanpa route, Redux, atau panggilan API baru |
 | Task mode | `FRONTEND MODE` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `yasmina`); di repository backend hanya laporan ini dan tanda status roadmap |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `ef8be65849c2e95869801f69cfafaa530ca74542` (perubahan task ini belum di-commit) |
 | Commit backend yang dijadikan rujukan | `98a9140ca81799d747821a4ee3695846b46f96e3` (perubahan `BE-FIN-142`..`147` masih di working tree backend) |
 | Tanggal | 10 November 2026 |
-| Status | 🟡 **Source, unit test, dan render statis selesai; belum terbukti di browser.** 14 unit test baru PASS, ESLint PASS. `npm run dev`/`build` tidak dijalankan (instruksi pemilik); verifikasi manual `NOT FEASIBLE`; respons backend W.3 belum pernah dijalankan pada data nyata |
+| Status | ✅ **Selesai dan terverifikasi di browser oleh pemilik pada data uji BLM (10–11 November 2026).** 14 unit test baru PASS, ESLint PASS, render statis PO lama identik dengan `HEAD`. Panel `UJI-BLM-W07` teramati lewat tangkapan layar pemilik (10 November); PO uji lain (`W00`, `W05`, `W06`, `W08`–`W12`) dan `UJI-LAMA-B` dinyatakan cocok oleh pemilik (pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar). Data berasal dari skrip uji pemilik, bukan kiriman BLM. `npm run dev`/`build` oleh agen tidak dijalankan |
 
 ---
 
@@ -133,9 +133,9 @@ Tidak ada endpoint baru. Panel membaca `itemProgress[]` dari respons jejak dokum
 | Render statis PO BLM: dua item (satu pasti, satu belum pasti) | Enam kolom; `12 PCS / 10 PCS / 2 PCS / 0 PCS / 2 PCS`; item kedua `24 PCS` lalu empat "—", lencana "Konversi belum pasti", peringatan tampil | `PASS` | Keluaran render |
 | Render statis PO BLM tanpa GR; dan dengan `GOODS_RECEIPTS` dibatasi | Kalimat "Belum ada penerimaan barang…" tampil pada kasus pertama dan **tidak** tampil pada kasus kedua | `PASS` | Keluaran render |
 | `npm run dev` / `npm run build` | Tidak dijalankan | `NOT RUN` | Instruksi pemilik: tanpa build dan dev server |
-| Render pada respons backend yang sebenarnya (W.3 dengan data nyata) | Tidak dapat dilakukan: basis data uji tidak memuat PO/GR dan `BE-FIN-147` belum dijalankan pada data nyata | `NOT RUN` | Laporan `BE-FIN-147.md` |
+| Panel pada respons backend yang sebenarnya (W.3; data uji BLM milik pemilik: 9 PO BLM dan 2 PO lama) | `UJI-BLM-W07`: Dipesan 12 PCS, Diterima sah 10 PCS, Menunggu periksa 2 PCS, Rusak 0 PCS, Sisa 2 PCS (tangkapan layar, 10 November). PO uji lain, termasuk `W00` (kalimat "Belum ada penerimaan barang…"), `W10` (lencana "Konversi belum pasti", empat sel "—", peringatan), dan `UJI-LAMA-B` (lima kolom lama): cocok dengan masukan skrip uji menurut pemilik (11 November) | `PASS` (pengamatan pemilik) | Tangkapan layar `W07`; pernyataan pemilik untuk sisanya |
 
-Uji manual: `NOT FEASIBLE` — tidak ada dev server/browser pada sesi ini; render statis di atas bukan pengganti pengamatan di browser (gaya `region-status-warning`, perilaku responsif tabel, dan tampilan peringatan belum dilihat langsung).
+Uji manual oleh agen: `NOT FEASIBLE` — tidak ada dev server/browser pada sesi agen. Uji manual oleh pemilik: `PASS` — dilakukan di browser pada server lokal (lihat baris di atas).
 
 AUTOMATED TEST: `node --no-warnings --import ./tests/helpers/register.mjs --test tests/unit/` — 14 test baru PASS; 42 kegagalan lama di modul lain tidak berubah.
 
@@ -157,11 +157,11 @@ AUTOMATED TEST: `node --no-warnings --import ./tests/helpers/register.mjs --test
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| (1) Bila `sourceSystem = "BLM"`: lima kolom satuan dasar sesuai skema §27.2 | Terpenuhi (source, unit test, render statis) | `BlmItemProgressTable`; test "baris BLM terselesaikan memuat lima kolom…"; render PO BLM |
-| (2) Item `isConversionResolved = false` bertanda dan menampilkan "—" | Terpenuhi (source, unit test, render statis) | Lencana + empat sel "—" + peringatan; tiga test konversi belum pasti. Jumlah parsial dari backend tidak ditampilkan |
-| (3) Bila `QUILVIAN`: kolom dan nilai lama tidak berubah | Terpenuhi | Render HTML identik dengan `HEAD` pada 4 kombinasi; `summarizeItemProgress` tidak diubah dan test lamanya lulus |
+| (1) Bila `sourceSystem = "BLM"`: lima kolom satuan dasar sesuai skema §27.2 | Terpenuhi (source, unit test, render statis, dan browser pada data uji) | `BlmItemProgressTable`; test "baris BLM terselesaikan memuat lima kolom…"; render PO BLM |
+| (2) Item `isConversionResolved = false` bertanda dan menampilkan "—" | Terpenuhi (source, unit test, render statis, dan browser pada `UJI-BLM-W10`) | Lencana + empat sel "—" + peringatan; tiga test konversi belum pasti. Jumlah parsial dari backend tidak ditampilkan |
+| (3) Bila `QUILVIAN`: kolom dan nilai lama tidak berubah | Terpenuhi (render identik dengan `HEAD` dan browser pada `UJI-LAMA-B`) | Render HTML identik dengan `HEAD` pada 4 kombinasi; `summarizeItemProgress` tidak diubah dan test lamanya lulus |
 | (4) Angka tidak dihitung ulang di klien, hanya diformat | Terpenuhi | Tidak ada operasi aritmetika pada angka satuan dasar; test "angka tidak dihitung ulang — sisa tetap nilai backend walau tidak sama dengan dipesan − diterima" |
-| DoD: kriteria 1–4 terbukti | **Sebagian** | Terbukti pada tingkat source, unit test, dan render statis; belum pada browser dan belum pada respons backend nyata |
+| DoD: kriteria 1–4 terbukti | Terpenuhi | Terbukti pada source, unit test, render statis, dan browser pada respons backend sebenarnya dengan data uji (10–11 November 2026) |
 | DoD: laporan `task/report/frontend/FE-FIN-062.md` | Terpenuhi | Berkas ini |
 
 ---
@@ -172,8 +172,8 @@ AUTOMATED TEST: `node --no-warnings --import ./tests/helpers/register.mjs --test
 | --- | --- |
 | Peringatan | Pesan "Belum ada penerimaan barang…" dalam §27.2 hanya disebut sebagai keadaan kosong tabel tanpa syarat pemicu. Karena jejak PO tidak membawa `sourceSystem` di tingkat PO (hanya per baris `itemProgress`), pemicunya ditafsirkan: PO BLM, daftar GR kosong, dan bagian GR tidak dibatasi hak akses. **Dikonfirmasi pemilik** pada 10 November 2026 (jawaban "boleh" atas tafsiran ini); blueprint §27.2 tidak diubah |
 | Masalah yang diketahui | (a) Kalimat ringkasan "Sisa belum diterima: X dari Y" pada blok lama **tidak** ditampilkan untuk cabang BLM, karena akan menjumlahkan angka satuan PO yang dibulatkan dan tidak ada di skema §27.2. (b) Komentar DTO backend menyebut besaran yang tidak pasti `null`, padahal penghitung mengisi jumlah parsial untuk kolom penerimaan; FE menyembunyikannya sesuai §27.2, tetapi sebaiknya kontrak W.3 menyatakan perilaku ini secara eksplisit. Tidak diubah di task ini |
-| Dependency backend | `BE-FIN-147` 🟡 — respons W.3 belum dijalankan pada data nyata; bila nama atau bentuk field berbeda saat dijalankan, tampilan BLM akan jatuh ke "—" atau ke cabang lama tanpa galat |
+| Dependency backend | `BE-FIN-147` ✅ — respons W.3 terbukti pada data uji; nama dan bentuk field cocok |
 | Perubahan sampingan | `NONE` di repository. Berkas sementara hanya di scratchpad sesi (pemuat render dan salinan `HEAD`); tidak ada yang ditambahkan ke repo selain empat berkas di §3.2 |
 | Interupsi | `NONE` |
 | Status Git | FE: `M purchasing-document-trail-panel.jsx`, `M purchasing-trail-constants.jsx`, `M purchasing-trail-utils.jsx`, `?? tests/unit/finance-purchasing-blm-item-progress.test.mjs`. Tidak ada stage/commit |
-| Langkah berikutnya | Pemilik: lihat panel pada PO BLM sungguhan setelah ada data (browser). Berikutnya `FE-FIN-063` (pesan 409 apa adanya) |
+| Langkah berikutnya | Tidak ada untuk task ini |

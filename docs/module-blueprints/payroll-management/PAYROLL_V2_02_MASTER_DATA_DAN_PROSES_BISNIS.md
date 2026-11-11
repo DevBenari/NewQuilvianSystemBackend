@@ -6,6 +6,7 @@
 | Tanggal | 2026-11-04 |
 | Acuan SHA | BE `b5fb6c251eafcd680ec35483732e3e72226e19f3` (+ perubahan lokal), FE `6a980d8c9dee0cae92c616fcd74f903ec0c67d73` (+ perubahan lokal) |
 | Label bukti | `REPOSITORY FACT`, `TARGET PROPOSAL`, `IMPLEMENTED`, `PARTIAL`, `BLOCKED`, `NEEDS CONFIRMATION` (arti di `PAYROLL_V2_01` bagian 0) |
+| Catatan penamaan (11 November 2026) | Nama entity `Trx*` dan `Wfp*` Payroll di dokumen ini adalah nama saat ditulis. Sejak `PAY-BE-12` dan `PAY-MIG-02` namanya `Prl*` (ganti awalan saja, mis. `TrxPayrollRun` menjadi `PrlPayrollRun`). Lihat `PAYROLL_V2_01` |
 
 Semua rumus dan contoh memakai data samaran. Nominal dalam Rupiah.
 
@@ -177,7 +178,7 @@ Rekening yang belum terverifikasi **tidak** menahan perhitungan; ia menjadi peri
 | `Submitted` | Sahkan | `Approved` (terkunci) | `PayrollRun : Approve` | Sesuai opsi pemisahan tugas; hasil potongan terkonfirmasi ke Finance |
 | `Draft`...`Submitted` | Batalkan | `Cancelled` | `PayrollRun : Cancel` | Alasan wajib; tidak untuk run yang sudah disahkan |
 | `Approved` | Kirim ke Finance | `SentToFinance` | `PayrollPayment : FinanceHandoff` | Run terkunci; semua penerima terbekukan; rekening terverifikasi (atau pengiriman sebagian diizinkan); idempoten |
-| `SentToFinance`/`PartiallyPaid` | Hasil bank masuk | `PartiallyPaid` atau `Paid` | Finance (ACK) | Nominal sama dengan instruksi |
+| `SentToFinance`/`PartiallyPaid` | Hasil bank masuk | `PartiallyPaid` atau `Paid` | Finance (ACK), atau petugas berwenang lewat konfirmasi manual (`PAY-FE-12`) | Nominal sama dengan instruksi |
 | `Paid` | Tutup | `Closed` | `PayrollRun : Close` | Semua instruksi berhasil |
 
 `Posted` ada di daftar status tetapi tidak dipakai (menunggu jalur jurnal). Pemetaan ke kosakata usulan prompt: `INPUT_READY` = `CollectingInput`, `REVIEWED` = `Submitted`, `APPROVED`+`LOCKED` = `Approved` dengan `IsLocked`.
@@ -196,7 +197,7 @@ Rekening yang belum terverifikasi **tidak** menahan perhitungan; ia menjadi peri
 ## 7. Proses 4 — Pembayaran dan slip gaji
 
 1. Penyetuju keuangan membuka **Pengiriman Pembayaran**, memilih run `Approved`, dan menekan **Kirim ke Finance**. Sistem membuat satu instruksi per penerima (nominal = gaji bersih setelah cicilan), berstatus `Scheduled`, dengan nomor `PAYI-<NomorRun>-<urut>`. Pengiriman ulang mengembalikan hasil pertama (tidak ada instruksi kedua).
-2. Finance mengirim hasil bank lewat endpoint ACK: `Paid` hanya bila referensi bank ada dan nominal sama dengan instruksi; `Failed` wajib beralasan. Hasil yang sama dikirim ulang → "Idempoten".
+2. Finance mengirim hasil bank lewat endpoint ACK (selama belum ada koneksi bank, petugas berwenang dapat memakai endpoint yang sama lewat layar Konfirmasi Pembayaran Manual, `PAY-FE-12`): `Paid` hanya bila referensi bank ada dan nominal sama dengan instruksi; `Failed` wajib beralasan. Hasil yang sama dikirim ulang → "Idempoten".
 3. Staf melihat **Riwayat Pembayaran**; instruksi gagal bisa **Coba Ulang** (instruksi baru, yang berhasil tidak ikut).
 4. Staf Payroll menekan **Buat Slip** lalu **Terbitkan Slip** pada **Slip Gaji Pegawai**. Slip dibuat dari snapshot beku dengan checksum; slip yang sudah terbit tidak dibuat ulang. Bawaan: slip terbit setelah pembayaran `Paid` (`NEEDS CONFIRMATION`).
 5. Pegawai membuka **Slip Gaji Saya**; setiap unduhan dicatat (jumlah dan waktu).
@@ -204,8 +205,8 @@ Rekening yang belum terverifikasi **tidak** menahan perhitungan; ia menjadi peri
 | Dari | Tindakan | Ke | Siapa |
 | --- | --- | --- | --- |
 | (baru) | Kirim ke Finance | Instruksi `Scheduled` | Staf Keuangan |
-| `Scheduled`/`Processing` | ACK berhasil | `Paid` | Finance |
-| `Scheduled`/`Processing` | ACK gagal | `Failed` | Finance |
+| `Scheduled`/`Processing` | ACK berhasil | `Paid` | Finance, atau petugas berwenang (manual) |
+| `Scheduled`/`Processing` | ACK gagal | `Failed` | Finance, atau petugas berwenang (manual) |
 | `Failed` | Coba ulang | instruksi baru `Scheduled` (yang lama tetap `Failed`) | Staf Keuangan |
 | `Paid` | Pembalikan | `PartiallyReversed`/`Reversed` | Proses koreksi |
 
@@ -233,14 +234,14 @@ Rekening yang belum terverifikasi **tidak** menahan perhitungan; ia menjadi peri
 | --- | --- | --- | --- |
 | `PolicyVersion` | `PAYROLL-POLICY-2026.11-DRAFT` | Tercatat pada setiap hasil hitung | `NEEDS CONFIRMATION` |
 | `AllowProfileSalaryFallback` | `false` | Tidak memakai gaji dari profil bila penetapan gaji tidak ada | - |
-| `ProrateFixedAllowances` | `true` | Tunjangan tetap ikut prorata | `NEEDS CONFIRMATION` |
-| `UnpaidLeaveDeductionEnabled` | `true` | Cuti tanpa gaji memotong gaji | `NEEDS CONFIRMATION` |
-| `RequireDifferentApprover` | `false` | Pengaju ≠ pengesah | `NEEDS CONFIRMATION` |
-| `InstallmentDefaultMaxNetSalaryPercentage` | `50` | Batas potong bila master tidak menentukan | `NEEDS CONFIRMATION` |
+| `ProrateFixedAllowances` | `true` | Tunjangan tetap ikut prorata | `DECIDED` (pemilik, 11 November 2026) |
+| `UnpaidLeaveDeductionEnabled` | `true` | Cuti tanpa gaji memotong gaji | `DECIDED` (pemilik, 11 November 2026) |
+| `RequireDifferentApprover` | `false` | Pengaju ≠ pengesah | `DECIDED` (pemilik, 11 November 2026) |
+| `InstallmentDefaultMaxNetSalaryPercentage` | `50` | Batas potong bila master tidak menentukan | `DECIDED` (pemilik, 11 November 2026) |
 | `AllowPartialFinanceHandoff` | `false` | Kirim hanya ke penerima yang rekeningnya terverifikasi | `NEEDS CONFIRMATION` |
-| `MedicalFeePayrollPathEnabled` | `false` | Jalur Payroll untuk jasa medis | `NEEDS CONFIRMATION` |
+| `MedicalFeePayrollPathEnabled` | `false` | Jalur Payroll untuk jasa medis | `DECIDED` (pemilik, 11 November 2026) |
 | `MedicalFeeComponentCode` | `MEDICAL_SERVICE_FEE` | Komponen penampung jasa medis di slip | - |
-| `PayslipPublishTrigger` | `PaymentPaid` | Kapan slip boleh terbit (`PaymentPaid` atau `RunApproved`) | `NEEDS CONFIRMATION` |
+| `PayslipPublishTrigger` | `PaymentPaid` | Kapan slip boleh terbit (`PaymentPaid` atau `RunApproved`) | `DECIDED` (pemilik, 11 November 2026) |
 
 ## 10. Relasi data
 

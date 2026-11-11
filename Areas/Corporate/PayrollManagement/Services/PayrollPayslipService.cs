@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
@@ -46,18 +46,18 @@ public sealed class PayrollPayslipService
     public Task<PayrollPayslipGenerateResponse> GenerateAsync(Guid runId, Guid actorUserId, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, PayrollTransactionRunner.RunLockKey(runId), async () =>
         {
-            var run = await _dbContext.TrxPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod)
+            var run = await _dbContext.PrlPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod)
                 .SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
             if (!PayrollRunStatuses.AllowsPayslipGeneration(run.RunStatus))
                 throw new PayrollInvalidTransitionException($"Slip hanya dapat dibuat dari payroll run yang sudah disahkan (saat ini {run.RunStatus}).");
 
-            var employees = await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+            var employees = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
                 .Include(x => x.Components)
                 .Where(x => x.PayrollRunId == runId && !x.IsDelete && x.IsFinalized)
                 .OrderBy(x => x.Id)
                 .ToListAsync(cancellationToken);
-            var existing = (await _dbContext.TrxPayrollPayslips.Where(x => x.PayrollRunId == runId && !x.IsDelete).ToListAsync(cancellationToken))
+            var existing = (await _dbContext.PrlPayrollPayslips.Where(x => x.PayrollRunId == runId && !x.IsDelete).ToListAsync(cancellationToken))
                 .ToDictionary(x => x.PayrollRunEmployeeId);
 
             var response = new PayrollPayslipGenerateResponse { PayrollRunId = run.Id, RunNumber = run.RunNumber, TotalEmployees = employees.Count };
@@ -73,7 +73,7 @@ public sealed class PayrollPayslipService
 
                 if (!existing.TryGetValue(employee.Id, out var payslip))
                 {
-                    payslip = new TrxPayrollPayslip
+                    payslip = new PrlPayrollPayslip
                     {
                         PayrollRunId = run.Id,
                         PayrollRunEmployeeId = employee.Id,
@@ -83,7 +83,7 @@ public sealed class PayrollPayslipService
                         CreateBy = actorUserId
                     };
                     Apply(payslip, run, employee, snapshot, json, checksum, actorUserId, now);
-                    _dbContext.TrxPayrollPayslips.Add(payslip);
+                    _dbContext.PrlPayrollPayslips.Add(payslip);
                     response.GeneratedCount++;
                     continue;
                 }
@@ -114,7 +114,7 @@ public sealed class PayrollPayslipService
         }, cancellationToken);
 
     private static void Apply(
-        TrxPayrollPayslip payslip, TrxPayrollRun run, TrxPayrollRunEmployee employee, PayrollPayslipSnapshot snapshot,
+        PrlPayrollPayslip payslip, PrlPayrollRun run, PrlPayrollRunEmployee employee, PayrollPayslipSnapshot snapshot,
         string json, string checksum, Guid actorUserId, DateTime now)
     {
         payslip.PayslipStatus = PayrollPayslipStatuses.Generated;
@@ -145,10 +145,10 @@ public sealed class PayrollPayslipService
     /// dihitung sebelum ada rincian komponen), selisihnya ditampilkan sebagai satu baris "tanpa rincian" supaya slip tetap
     /// menjumlah tepat ke total run dan tidak ada angka yang disembunyikan.
     /// </summary>
-    private PayrollPayslipSnapshot BuildSnapshot(TrxPayrollRun run, TrxPayrollRunEmployee employee, string payslipNumber)
+    private PayrollPayslipSnapshot BuildSnapshot(PrlPayrollRun run, PrlPayrollRunEmployee employee, string payslipNumber)
     {
         var live = employee.Components.Where(c => !c.IsDelete && c.Amount != 0m).OrderBy(c => c.SortOrder).ThenBy(c => c.ComponentCodeSnapshot).ToList();
-        PayrollPayslipLine ToLine(TrxPayrollEmployeeComponent c) => new()
+        PayrollPayslipLine ToLine(PrlPayrollEmployeeComponent c) => new()
         {
             Code = c.ComponentCodeSnapshot,
             Name = c.ComponentCodeSnapshot == InstallmentComponentCode ? "Potongan Cicilan Piutang RS" : c.ComponentNameSnapshot,
@@ -194,7 +194,7 @@ public sealed class PayrollPayslipService
         };
     }
 
-    private static bool IsType(TrxPayrollEmployeeComponent component, string type) =>
+    private static bool IsType(PrlPayrollEmployeeComponent component, string type) =>
         string.Equals(component.ComponentTypeSnapshot, type, StringComparison.OrdinalIgnoreCase);
 
     // ------------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ public sealed class PayrollPayslipService
     public Task<PayrollPayslipPublishResponse> PublishAsync(Guid runId, Guid actorUserId, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, PayrollTransactionRunner.RunLockKey(runId), async () =>
         {
-            var run = await _dbContext.TrxPayrollRuns.AsNoTracking().SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
+            var run = await _dbContext.PrlPayrollRuns.AsNoTracking().SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
             if (!PayrollRunStatuses.AllowsPayslipGeneration(run.RunStatus))
                 throw new PayrollInvalidTransitionException($"Slip hanya dapat diterbitkan dari payroll run yang sudah disahkan (saat ini {run.RunStatus}).");
@@ -213,14 +213,14 @@ public sealed class PayrollPayslipService
                 ? PayrollPayslipPublishTriggers.RunApproved
                 : PayrollPayslipPublishTriggers.PaymentPaid;
 
-            var payslips = await _dbContext.TrxPayrollPayslips
+            var payslips = await _dbContext.PrlPayrollPayslips
                 .Include(x => x.PayrollRunEmployee)
                 .Where(x => x.PayrollRunId == runId && !x.IsDelete)
                 .ToListAsync(cancellationToken);
             if (payslips.Count == 0)
                 throw new PayrollInvalidTransitionException("Belum ada slip yang dibuat untuk run ini; buat slip terlebih dahulu.");
 
-            var paidEmployees = (await _dbContext.TrxPayrollPayments.AsNoTracking()
+            var paidEmployees = (await _dbContext.PrlPayrollPayments.AsNoTracking()
                     .Where(p => p.PayrollRunId == runId && !p.IsDelete
                         && (p.PaymentStatus == PayrollPaymentStatuses.Paid || p.PaymentStatus == PayrollPaymentStatuses.PartiallyReversed))
                     .Select(p => p.PayrollRunEmployeeId).ToListAsync(cancellationToken)).ToHashSet();
@@ -268,10 +268,10 @@ public sealed class PayrollPayslipService
     public async Task<PagedResult<PayslipSummaryResponse>> GetByRunAsync(
         Guid runId, PayrollPayslipQuery query, bool includeAmounts, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.TrxPayrollRuns.AsNoTracking().AnyAsync(x => x.Id == runId && !x.IsDelete, cancellationToken);
+        var exists = await _dbContext.PrlPayrollRuns.AsNoTracking().AnyAsync(x => x.Id == runId && !x.IsDelete, cancellationToken);
         if (!exists) throw new KeyNotFoundException("Payroll run tidak ditemukan.");
 
-        var rows = _dbContext.TrxPayrollPayslips.AsNoTracking().Where(x => x.PayrollRunId == runId && !x.IsDelete);
+        var rows = _dbContext.PrlPayrollPayslips.AsNoTracking().Where(x => x.PayrollRunId == runId && !x.IsDelete);
         if (!string.IsNullOrWhiteSpace(query.Status)) rows = rows.Where(x => x.PayslipStatus == query.Status);
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -291,7 +291,7 @@ public sealed class PayrollPayslipService
         if (workforceProfileId is null)
             return new PagedResult<PayslipSummaryResponse> { PageNumber = pageNumber, PageSize = pageSize };
 
-        var rows = _dbContext.TrxPayrollPayslips.AsNoTracking()
+        var rows = _dbContext.PrlPayrollPayslips.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsEmployeeVisible
                 && (x.PayslipStatus == PayrollPayslipStatuses.Published || x.PayslipStatus == PayrollPayslipStatuses.Downloaded)
                 && x.PayrollRunEmployee!.WorkforceProfileId == workforceProfileId.Value);
@@ -300,7 +300,7 @@ public sealed class PayrollPayslipService
     }
 
     private async Task<PagedResult<PayslipSummaryResponse>> PageAsync(
-        IQueryable<TrxPayrollPayslip> rows, PayrollPayslipQuery query, bool includeAmounts, CancellationToken cancellationToken)
+        IQueryable<PrlPayrollPayslip> rows, PayrollPayslipQuery query, bool includeAmounts, CancellationToken cancellationToken)
     {
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
@@ -375,10 +375,10 @@ public sealed class PayrollPayslipService
     /// Memuat slip. Bila <paramref name="ownerUserId"/> diisi: hanya slip yang sudah diterbitkan dan milik pengguna itu; selain itu 404
     /// (tidak membedakan "bukan milik Anda" dari "tidak ada" agar keberadaan slip orang lain tidak bocor).
     /// </summary>
-    private async Task<TrxPayrollPayslip> LoadAuthorizedAsync(
+    private async Task<PrlPayrollPayslip> LoadAuthorizedAsync(
         Guid payslipId, Guid? ownerUserId, CancellationToken cancellationToken, bool tracking = false)
     {
-        var query = tracking ? _dbContext.TrxPayrollPayslips.AsQueryable() : _dbContext.TrxPayrollPayslips.AsNoTracking();
+        var query = tracking ? _dbContext.PrlPayrollPayslips.AsQueryable() : _dbContext.PrlPayrollPayslips.AsNoTracking();
         var payslip = await query
             .Include(x => x.PayrollRun).ThenInclude(r => r!.PayrollPeriod)
             .Include(x => x.PayrollRunEmployee)
@@ -397,7 +397,7 @@ public sealed class PayrollPayslipService
     private async Task<Guid?> ResolveWorkforceProfileIdAsync(Guid userId, CancellationToken cancellationToken) =>
         await _dbContext.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.WorkforceProfileId).FirstOrDefaultAsync(cancellationToken);
 
-    private static T MapSummary<T>(T target, TrxPayrollPayslip p, bool includeAmounts) where T : PayslipSummaryResponse
+    private static T MapSummary<T>(T target, PrlPayrollPayslip p, bool includeAmounts) where T : PayslipSummaryResponse
     {
         target.Id = p.Id;
         target.PayrollRunId = p.PayrollRunId;

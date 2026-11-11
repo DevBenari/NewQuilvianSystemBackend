@@ -7,7 +7,7 @@ public sealed class PayrollCompensationQuery
     /// <summary>Karyawan | Dokter.</summary>
     public string? PersonType { get; set; }
 
-    /// <summary>Active | Suspended | OnHold | Terminated (WfpPayroll.PayrollStatus).</summary>
+    /// <summary>Active | Suspended | OnHold | Terminated (PrlPayroll.PayrollStatus).</summary>
     public string? PayrollStatus { get; set; }
 
     /// <summary>Siap | Bermasalah — kesiapan data penghasilan untuk dihitung.</summary>

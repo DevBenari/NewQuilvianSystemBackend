@@ -1,7 +1,7 @@
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 
 /// <summary>
-/// Status siklus TrxPayrollRun.RunStatus. Kolom bertipe string, jadi tidak ada perubahan skema.
+/// Status siklus PrlPayrollRun.RunStatus. Kolom bertipe string, jadi tidak ada perubahan skema.
 /// Alur normal: Draft (run dibuka) -> CollectingInput (data HRD diimpor) -> Calculated (gaji dan potongan terhitung) -> Submitted
 /// (diajukan untuk review) -> Approved (disahkan; hasil potongan dikonfirmasi ke Finance dan run terkunci) -> SentToFinance
 /// (instruksi pembayaran dikirim) -> PartiallyPaid / Paid (hasil bank dari Finance) -> Closed. Dibatalkan hanya sebelum disahkan;
@@ -54,7 +54,7 @@ public static class PayrollRunStatuses
 }
 
 /// <summary>
-/// Status pembalikan potongan cicilan atas payroll run yang sudah disahkan (TrxPayrollReversal.ReversalStatus; kolom string, tanpa
+/// Status pembalikan potongan cicilan atas payroll run yang sudah disahkan (PrlPayrollReversal.ReversalStatus; kolom string, tanpa
 /// perubahan skema). Requested -> Approved (saldo piutang dipulihkan di Finance) atau Rejected. Kosakata "Approved" sama dengan
 /// alur restitusi yang sudah ada.
 /// </summary>

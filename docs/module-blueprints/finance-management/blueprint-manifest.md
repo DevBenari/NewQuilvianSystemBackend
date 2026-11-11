@@ -38,7 +38,7 @@ approval_revision_23: >
 approved_by_revision_23: Pemilik Finance (pengguna sesi)
 approved_at_revision_23: 2026-11-09
 roadmap_revision_23: >
-  REV-24 (9 November 2026): BE-FIN-142..147, FE-FIN-062..063. BE-FIN-142 dan 143 selesai (10 November 2026); BE-FIN-144 selesai dengan pengecualian (W.T1, W.T18, dan penerapan ke lingkungan lain ditunda atas keputusan pemilik); BE-FIN-145..147 🟡 (uji runtime belum).
+  REV-24 (9 November 2026): BE-FIN-142..147, FE-FIN-062..063. BE-FIN-142 dan 143 selesai (10 November 2026); BE-FIN-144 selesai dengan pengecualian (W.T1, W.T18, dan penerapan ke lingkungan lain ditunda atas keputusan pemilik); BE-FIN-147, FE-FIN-062, dan FE-FIN-063 selesai (✅, uji pemilik pada data uji, 11 November 2026); BE-FIN-145 dan 146 tetap 🟡 karena cabang status PO BLM belum dapat dijalankan (metode `RecomputeExternalPurchaseOrderStatus` belum punya pemanggil).
 backend_commit_sha_revision_23: 8fb11705   # branch Yasmina; working tree berisi perubahan sesi 9 November yang belum di-commit
 frontend_commit_sha_revision_23: f0a756bf  # branch yasmina; idem
 blm_source_sha_revision_23: 08e8a9ae       # hanya dibaca

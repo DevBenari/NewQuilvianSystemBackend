@@ -8,7 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyA
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Attributes;
@@ -404,11 +404,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 DateTimeKind.Utc
             );
 
-            var transportProfileQuery = _dbContext.Set<WfpTransportAllowance>()
+            var transportProfileQuery = _dbContext.Set<PrlTransportAllowance>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-            // WfpTransportAllowance versi Payroll Management tidak lagi menggunakan
+            // PrlTransportAllowance versi Payroll Management tidak lagi menggunakan
             // IsEligible dan IsNightTransportEligible.
             // Eligibility ditentukan dari status profile, periode efektif, dan policy aktif.
             var activeTransportProfileQuery = transportProfileQuery
@@ -630,7 +630,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                         u.EmployeeId == x.Id &&
                         u.UserType == UserType.Employee),
                     HasTransportAllowanceProfile = x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
+                        _dbContext.Set<PrlTransportAllowance>()
                             .Any(t =>
                                 t.WorkforceProfileId == x.WorkforceProfileId &&
                                 !t.IsDelete),
@@ -899,7 +899,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     EmergencyContactPhone = x.EmergencyContactPhone,
                     EmergencyContactAddress = x.EmergencyContactAddress,
                     HasTransportAllowanceProfile = x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
+                        _dbContext.Set<PrlTransportAllowance>()
                             .Any(t =>
                                 t.WorkforceProfileId == x.WorkforceProfileId &&
                                 !t.IsDelete),
@@ -1893,23 +1893,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                PayrollProfileCount = await _dbContext.Set<WfpPayroll>()
+                PayrollProfileCount = await _dbContext.Set<PrlPayroll>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                TaxProfileCount = await _dbContext.Set<WfpTax>()
+                TaxProfileCount = await _dbContext.Set<PrlTax>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                InsuranceProfileCount = await _dbContext.Set<WfpInsurance>()
+                InsuranceProfileCount = await _dbContext.Set<PrlInsurance>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                TransportAllowanceProfileCount = await _dbContext.Set<WfpTransportAllowance>()
+                TransportAllowanceProfileCount = await _dbContext.Set<PrlTransportAllowance>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                TransportAllowanceTransactionCount = await _dbContext.Set<WfpTransportAllowanceTransaction>()
+                TransportAllowanceTransactionCount = await _dbContext.Set<PrlTransportAllowanceTransaction>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 

@@ -18,7 +18,7 @@
 | Model | Claude Sonnet 5.5 |
 | Commit frontend saat dikerjakan | `ef8be6584` (perubahan task ini belum di-commit) |
 | Tanggal | 10 November 2026 |
-| Status | 🟡 **Selesai dikerjakan, menunggu pengamatan di layar oleh pemilik.** 13 unit test baru PASS, ESLint PASS, render panel diperiksa. `npm run dev`/`build` oleh agen tidak dijalankan. Naik ke ✅ setelah pemilik mencocokkan layar dengan tabel §6 |
+| Status | ✅ **Selesai dan terverifikasi di layar oleh pemilik (11 November 2026).** 13 unit test baru PASS, ESLint PASS, render panel diperiksa. Pemilik menjalankan aplikasi di server lokal dan menyatakan hasilnya cocok dengan tabel di §6 (pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar). `npm run dev`/`build` oleh agen tidak dijalankan |
 
 ---
 
@@ -124,10 +124,10 @@ Konstanta di `src/lib/constants/finance/purchasing/`, fungsi murni di `src/utils
 | Render sisi server panel jejak (`react-dom/server`) dengan data PO BLM, PO lama dengan `itemProgress`, dan PO lama tanpa `itemProgress` | BLM: `UJI-GR-W05-1 · Diterima 10 November 2026 • 1 baris`. Lama: `… • 1 baris • total qty 60` pada kedua kasus | `PASS` (render harness di luar repository) | Keluaran skrip |
 | Grep anti-regresi pada baris yang ditambah di dua view | Tidak ada `<button>`, `.btn`, `fw-*`, `fs-*`, warna literal, `!important`, `style={{}}`, atau `<table>` baru dari task ini | `PASS` | Keluaran `grep` pada `git diff` |
 | Rincian GR di dalam halaman detail PO (sel "Qty Diterima") | Belum dirender utuh karena komponen bergantung pada hook dan Redux; logika sel diuji sebagai fungsi murni dan JSX-nya hanya memanggil fungsi itu | `NOT FEASIBLE` oleh agen | Alasan di samping |
-| Pengamatan di layar oleh pemilik | **Menunggu.** Cocokkan dengan tabel di bawah | `NOT RUN` | — |
+| Pengamatan di layar oleh pemilik | Server lokal, 11 November 2026: hasil cocok dengan tabel di bawah | `PASS` (pengamatan pemilik) | Pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar |
 | `npm run dev` / `npm run build` | Tidak dijalankan | `NOT RUN` | Instruksi pemilik |
 
-### Yang harus tampil di layar (data uji pemilik)
+### Yang harus tampil di layar (data uji pemilik; dicocokkan pemilik pada 11 November 2026)
 
 Buka detail PO, klik "Lihat Rincian" pada GR yang disebut.
 
@@ -147,13 +147,13 @@ Buka detail PO, klik "Lihat Rincian" pada GR yang disebut.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| Rincian GR BLM menampilkan jumlah satuan dasar beserta satuannya | Terpenuhi pada source dan unit test; belum diamati di layar | Test "baris GR BLM menampilkan jumlah satuan dasar…" |
-| Kondisi bukan GOOD diberi keterangan "Menunggu periksa" atau "Rusak" | Terpenuhi pada source dan unit test; belum diamati di layar | Test "PENDING_INSPECTION dan DAMAGED…" |
+| Rincian GR BLM menampilkan jumlah satuan dasar beserta satuannya | Terpenuhi (source, unit test, dan pengamatan pemilik di layar) | Test "baris GR BLM menampilkan jumlah satuan dasar…" |
+| Kondisi bukan GOOD diberi keterangan "Menunggu periksa" atau "Rusak" | Terpenuhi (source, unit test, dan pengamatan pemilik di layar) | Test "PENDING_INSPECTION dan DAMAGED…" |
 | Subjudul jejak PO BLM tidak memuat "total qty" | Terpenuhi pada source, unit test, dan render | Test subjudul PO BLM; keluaran render |
 | GR lama dan PO lama tampil persis seperti sebelumnya | Terpenuhi pada source, unit test, dan render | Test "baris GR lama…", test "subjudul PO lama identik…", keluaran render |
 | Tidak ada kolom, komponen, atau CSS baru | Terpenuhi | Diff dan grep anti-regresi |
 | Tidak ada perhitungan atau konversi satuan di klien | Terpenuhi | Fungsi hanya memformat nilai dari backend |
-| Pengamatan di layar oleh pemilik | **Belum** | Tabel §6 |
+| Pengamatan di layar oleh pemilik | Terpenuhi | Pernyataan pemilik, 11 November 2026 (tabel §6) |
 
 ---
 
@@ -167,4 +167,4 @@ Buka detail PO, klik "Lihat Rincian" pada GR yang disebut.
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | FE: `M goods-receipt-constants.jsx`, `M purchasing-trail-utils.jsx`, `M purchasing-document-trail-panel.jsx`, `M purchase-order-detail-view.jsx`, `?? tests/unit/finance-purchasing-gr-base-quantity-display.test.mjs` (task ini), ditambah perubahan `FE-FIN-062`, `063`, dan `FIX-003` yang belum di-commit. Tidak ada stage/commit |
-| Langkah berikutnya | Pemilik mencocokkan layar dengan tabel §6, lalu laporan ini dinaikkan ke ✅. Roadmap tidak ditandai karena tidak ada baris roadmap resmi (pola `FIX`) |
+| Langkah berikutnya | Tidak ada. Roadmap tidak ditandai karena tidak ada baris roadmap resmi (pola `FIX`) |

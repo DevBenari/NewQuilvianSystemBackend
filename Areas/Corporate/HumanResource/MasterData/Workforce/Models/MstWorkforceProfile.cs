@@ -8,7 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
@@ -81,15 +81,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         public ICollection<WfpCredentialLicense> CredentialLicenses { get; set; }
             = new List<WfpCredentialLicense>();
 
-        public WfpTransportAllowance? TransportAllowance { get; set; }
+        public PrlTransportAllowance? TransportAllowance { get; set; }
 
-        public ICollection<WfpTransportAllowanceTransaction> TransportAllowanceTransactions { get; set; } = new List<WfpTransportAllowanceTransaction>();
+        public ICollection<PrlTransportAllowanceTransaction> TransportAllowanceTransactions { get; set; } = new List<PrlTransportAllowanceTransaction>();
 
-        public WfpPayroll? Payroll { get; set; }
+        public PrlPayroll? Payroll { get; set; }
 
-        public WfpTax? Tax { get; set; }
+        public PrlTax? Tax { get; set; }
 
-        public WfpInsurance? Insurance { get; set; }
+        public PrlInsurance? Insurance { get; set; }
 
         public ICollection<WfpWorkScheduleAssignment> WorkScheduleAssignments { get; set; } = new List<WfpWorkScheduleAssignment>();
 

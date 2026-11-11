@@ -6,7 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
@@ -247,22 +247,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceProfileMa
                             y.WorkforceProfileId == workforceProfileId &&
                             !y.IsDelete),
 
-                    HasPayroll = _dbContext.Set<WfpPayroll>()
+                    HasPayroll = _dbContext.Set<PrlPayroll>()
                         .Any(y =>
                             y.WorkforceProfileId == workforceProfileId &&
                             !y.IsDelete),
 
-                    HasTax = _dbContext.Set<WfpTax>()
+                    HasTax = _dbContext.Set<PrlTax>()
                         .Any(y =>
                             y.WorkforceProfileId == workforceProfileId &&
                             !y.IsDelete),
 
-                    HasInsurance = _dbContext.Set<WfpInsurance>()
+                    HasInsurance = _dbContext.Set<PrlInsurance>()
                         .Any(y =>
                             y.WorkforceProfileId == workforceProfileId &&
                             !y.IsDelete),
 
-                    HasTransportAllowance = _dbContext.Set<WfpTransportAllowance>()
+                    HasTransportAllowance = _dbContext.Set<PrlTransportAllowance>()
                         .Any(y =>
                             y.WorkforceProfileId == workforceProfileId &&
                             !y.IsDelete),
@@ -324,7 +324,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceProfileMa
                     x.IsActive &&
                     !x.IsDelete);
 
-            var isPayrollEligible = await _dbContext.Set<WfpPayroll>()
+            var isPayrollEligible = await _dbContext.Set<PrlPayroll>()
                 .AsNoTracking()
                 .AnyAsync(x =>
                     x.WorkforceProfileId == workforceProfileId &&

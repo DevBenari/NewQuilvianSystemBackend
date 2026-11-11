@@ -55,7 +55,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndEx
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
@@ -410,25 +410,25 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - EXPENSE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - PAYROLL MANAGEMENT
-        public DbSet<WfpPayroll> WfpPayrolls { get; set; }
-        public DbSet<WfpTax> WfpTaxes { get; set; }
-        public DbSet<WfpInsurance> WfpInsurances { get; set; }
-        public DbSet<WfpTransportAllowancePolicy> WfpTransportAllowancePolicies { get; set; }
-        public DbSet<WfpTransportAllowance> WfpTransportAllowances { get; set; }
-        public DbSet<WfpTransportAllowanceTransaction> WfpTransportAllowanceTransactions { get; set; }
-        public DbSet<TrxPayrollRun> TrxPayrollRuns { get; set; }
-        public DbSet<TrxPayrollRunEmployee> TrxPayrollRunEmployees { get; set; }
-        public DbSet<TrxPayrollEmployeeComponent> TrxPayrollEmployeeComponents { get; set; }
-        public DbSet<TrxPayrollAttendanceInput> TrxPayrollAttendanceInputs { get; set; }
-        public DbSet<TrxPayrollOvertimeInput> TrxPayrollOvertimeInputs { get; set; }
-        public DbSet<TrxPayrollVariableInput> TrxPayrollVariableInputs { get; set; }
-        public DbSet<TrxPayrollAdjustment> TrxPayrollAdjustments { get; set; }
-        public DbSet<TrxPayrollApproval> TrxPayrollApprovals { get; set; }
-        public DbSet<TrxPayrollPayment> TrxPayrollPayments { get; set; }
-        public DbSet<TrxPayrollPayslip> TrxPayrollPayslips { get; set; }
-        public DbSet<TrxPayrollReversal> TrxPayrollReversals { get; set; }
-        public DbSet<TrxMedicalServiceFeeCalculation> TrxMedicalServiceFeeCalculations { get; set; }
-        public DbSet<TrxMedicalServiceFeePayment> TrxMedicalServiceFeePayments { get; set; }
+        public DbSet<PrlPayroll> PrlPayrolls { get; set; }
+        public DbSet<PrlTax> PrlTaxes { get; set; }
+        public DbSet<PrlInsurance> PrlInsurances { get; set; }
+        public DbSet<PrlTransportAllowancePolicy> PrlTransportAllowancePolicies { get; set; }
+        public DbSet<PrlTransportAllowance> PrlTransportAllowances { get; set; }
+        public DbSet<PrlTransportAllowanceTransaction> PrlTransportAllowanceTransactions { get; set; }
+        public DbSet<PrlPayrollRun> PrlPayrollRuns { get; set; }
+        public DbSet<PrlPayrollRunEmployee> PrlPayrollRunEmployees { get; set; }
+        public DbSet<PrlPayrollEmployeeComponent> PrlPayrollEmployeeComponents { get; set; }
+        public DbSet<PrlPayrollAttendanceInput> PrlPayrollAttendanceInputs { get; set; }
+        public DbSet<PrlPayrollOvertimeInput> PrlPayrollOvertimeInputs { get; set; }
+        public DbSet<PrlPayrollVariableInput> PrlPayrollVariableInputs { get; set; }
+        public DbSet<PrlPayrollAdjustment> PrlPayrollAdjustments { get; set; }
+        public DbSet<PrlPayrollApproval> PrlPayrollApprovals { get; set; }
+        public DbSet<PrlPayrollPayment> PrlPayrollPayments { get; set; }
+        public DbSet<PrlPayrollPayslip> PrlPayrollPayslips { get; set; }
+        public DbSet<PrlPayrollReversal> PrlPayrollReversals { get; set; }
+        public DbSet<PrlMedicalServiceFeeCalculation> PrlMedicalServiceFeeCalculations { get; set; }
+        public DbSet<PrlMedicalServiceFeePayment> PrlMedicalServiceFeePayments { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - PAYROLL MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
