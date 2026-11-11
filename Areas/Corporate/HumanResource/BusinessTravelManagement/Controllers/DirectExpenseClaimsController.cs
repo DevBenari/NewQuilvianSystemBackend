@@ -110,6 +110,55 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         }
 
         /// <summary>
+        /// Mengubah klaim non-trip oleh pemohon aslinya selama belum diproses.
+        /// </summary>
+        [HttpPut("{id}")]
+        [AccessAction("Edit", "Mengubah Klaim Biaya Operasional", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("DirectExpenseClaim", "Edit")]
+        [ProducesResponseType(typeof(ApiResponse<ExpenseClaimResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> UpdateClaim([FromRoute] Guid id, [FromBody] CreateExpenseClaimDto dto)
+        {
+            try
+            {
+                var (userId, profileId) = GetCurrentUserContext();
+                var result = await _claimService.UpdateExpenseClaimAsync(id, dto, userId, profileId);
+                return Ok(ApiResponse<ExpenseClaimResponseDto>.Ok(result, "Klaim non-trip berhasil diubah"));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Persetujuan atasan atas klaim non-trip.
+        /// </summary>
+        [HttpPost("{id}/approve")]
+        [AccessAction("Approve", "Menyetujui Klaim Biaya Operasional", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("DirectExpenseClaim", "Approve")]
+        [ProducesResponseType(typeof(ApiResponse<ExpenseClaimResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ApproveClaim([FromRoute] Guid id, [FromBody] ApproveExpenseClaimDto dto)
+        {
+            try
+            {
+                var (userId, profileId) = GetCurrentUserContext();
+                var result = await _claimService.ApproveExpenseClaimAsync(id, dto, userId, profileId);
+                return Ok(ApiResponse<ExpenseClaimResponseDto>.Ok(result, "Klaim non-trip berhasil disetujui atasan"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<ExpenseClaimResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
         /// Verifikasi audit keabsahan kuitansi pembelian darurat oleh Finance (Kontrak v25)
         /// </summary>
         [HttpPost("{id}/verify")]

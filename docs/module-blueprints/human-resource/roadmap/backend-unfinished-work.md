@@ -59,7 +59,7 @@ tahu bila kebetulan membuka kotak masuknya.
 |---|---|---|---|---|
 | `BE-HRD-314` | Gateway notifikasi hanya berisi `await Task.CompletedTask`. Aplikasi belum punya tabel notifikasi, kanal real-time notifikasi, maupun pengirim email/WhatsApp. Ringkasan harian ke approver dihitung tetapi tidak dikirim ke mana pun | `WorkflowManagement/Services/UnifiedNotificationGatewayService.cs:26-31` | **Ya.** Kanal mana dulu: lonceng di aplikasi, email, atau WhatsApp? Notifikasi milik modul HR atau platform bersama? | 🟡 11 November 2026 — kanal pertama: lonceng dalam aplikasi (`HrdNotification` + SignalR), milik modul SDM; email/WhatsApp tidak tersedia; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-314.md)) |
 | `BE-HRD-313` | `BulkApprovalProcessingWorker` hanya loop `Task.Delay(30 detik)` | `WorkflowManagement/Workers/WorkflowV2Workers.cs:188` | **Ya.** Persetujuan massal sudah diproses langsung di endpoint. Worker ini dihapus, atau diisi antrean? | 🟡 11 November 2026 — worker dihapus; pelaporan per tiket lewat pusat pemberitahuan ([laporan](../task/report/backend/BE-HRD-313.md)) |
-| `BE-HRD-333` | `TravelCurrencyRateSyncWorker` (`TRV-W4`) hanya menulis log; kurs Bank Indonesia tidak pernah diambil | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:166` | **Ya.** Sumber kurs: API BI, input manual Keuangan, atau master kurs yang sudah ada? | 🟡 11 November 2026 — kurs dari master Keuangan `MstExchangeRate` diterapkan `TRV-W4`; 5 endpoint hak akses masih kurang ([laporan](../task/report/backend/BE-HRD-333.md)) |
+| `BE-HRD-333` | `TravelCurrencyRateSyncWorker` (`TRV-W4`) hanya menulis log; kurs Bank Indonesia tidak pernah diambil | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:166` | **Ya.** Sumber kurs: API BI, input manual Keuangan, atau master kurs yang sudah ada? | 🟡 11 November 2026 — kurs dari master Keuangan `MstExchangeRate` diterapkan `TRV-W4`; seluruh hak akses kini punya endpoint ([laporan](../task/report/backend/BE-HRD-333.md)) |
 | `BE-HRD-316` 🟡 | `INT-HR-94` belum ada: pengingat menunjuk Plh saat cuti pejabat struktural disetujui | [laporan BE-HRD-316](../task/report/backend/BE-HRD-316.md) bagian 6 | **Ya.** Data jabatan belum punya penanda "pejabat struktural"; pengingatnya butuh `BE-HRD-314` | 🟡 11 November 2026 — `INT-HR-94` ada: pejabat = manajer aktif dengan bawahan; pengingat Plh lewat pusat pemberitahuan ([laporan](../task/report/backend/BE-HRD-316.md)) |
 
 ---
@@ -322,3 +322,36 @@ Atas instruksi pemilik, seluruh migration tertunda dijalankan ke database pengem
 - 41 kolom wajib tanpa nilai bawaan ada di database tetapi tidak dikenal model, pada `HrdProbation`, `HrdProbationAssessment`, `HrdContractCorrection`, `HrdContractDecision`, `HrdClinicalPreceptorship`, `HrdClinicalPreceptorshipPreceptor`, `HrdInitialContractBatchRow`, `HrdOnboardingAccessRequest`, `MstOnboardingTemplate`, dan `MstOnboardingTemplateTask`. Penyimpanan baris baru ke tabel itu akan gagal sampai kolom lama dilonggarkan atau dihapus. Ini keputusan desain modul siklus kerja.
 - 6 foreign key pada kolom wajib baru sengaja tidak dibuat, karena nilai bawaan kolom tidak merujuk baris mana pun.
 - Perbandingan hanya memeriksa keberadaan tabel dan kolom, bukan tipe data.
+
+
+---
+
+## 15. Penuntasan temuan dan uji jalan (11 November 2026)
+
+| Temuan | Hasil |
+|---|---|
+| 41 kolom wajib lama yang tidak dikenal model | Dilonggarkan oleh migration `20261111040000_ResolveHrdSchemaResidualDrift`; kolomnya tidak dihapus |
+| Tipe kolom berbeda | `WfpContractHistory.SourceDocumentType`, `FixedTermSeriesStartDate`, dan `HrdInitialContractBatchRow.ContractNumber` diselaraskan. Dua kolom `text` lain dibiarkan karena lebih longgar dari model |
+| Index dan foreign key hilang | 174 index dan 181 foreign key ditambahkan, termasuk milik modul lain. Foreign key memakai `NOT VALID`, jadi hanya berlaku untuk data baru |
+| PIN cadangan slip gaji | Dihapus |
+| `TrainingCatalogId` aturan pelatihan | Terisi |
+| Nomor surveilans | Memakai `NumberSeriesAllocator` |
+| Data karangan kesehatan kerja | Golongan darah, rhesus, unit, dokter, diagnosis, hasil lab, dan daftar recall booster kini dari data nyata atau kosong |
+| Finance dari nama peran | Diganti hak akses `BusinessTravelAdvance : ApproveFinance` |
+| Penyetuju workflow V2 | Wajib approver tahapan atau Plh aktif |
+| Potongan payroll H+30 | Membuat jadwal potongan nyata |
+| 5 endpoint perjalanan dinas | Dibuat |
+
+**Galat yang hanya terlihat saat aplikasi dijalankan, sudah diperbaiki:**
+
+- `PerformanceGoalLockingWorker` gagal setiap siklus karena properti yang tidak dipetakan.
+- Pemulihan akun skorsing akan gagal karena `Id` tidak dipetakan.
+- `GET` dan `POST /leave/recalls` bentrok antara dua controller. Rute lama `LeaveRecallController` dipindah ke `/leave/recalls/lifecycle`.
+- Dokumen Swagger `corporate` dan `health-services` gagal dibuat. Rute `/api/v1/hrd` dan `/api/v1/self-service` kini juga tampil.
+
+**Yang belum selesai:**
+
+- `HumanResource:AttendanceScheduler:SystemActorUserId` masih kosong, sehingga job penjadwal presensi gagal. Nilainya konfigurasi lingkungan dan harus diisi pemilik.
+- Uji API dengan akun sungguhan belum dijalankan, jadi status task tetap 🟡.
+- Kanal email/WhatsApp tidak ada di platform, dan indikator KMKP serta clinical pathway tidak punya tabel sumber.
+- Kode lama lain masih memakai nama peran (`IsInRole`) dan nomor `Count + 1`, serta `FinanceDeductionSyncService` masih memuat data contoh. Ketiganya di luar daftar audit.

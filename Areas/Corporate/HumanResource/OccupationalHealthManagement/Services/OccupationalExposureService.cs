@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
 
@@ -15,10 +17,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     public class OccupationalExposureService : IOccupationalExposureService
     {
         private readonly IOccupationalHealthUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public OccupationalExposureService(IOccupationalHealthUnitOfWork uow)
+        public OccupationalExposureService(IOccupationalHealthUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<OccupationalExposureDto> RecordSerologyFollowupAsync(Guid exposureId, RecordSerologyFollowupRequestDto request, Guid doctorUserId, CancellationToken cancellationToken = default)
@@ -41,7 +45,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 WorkforceProfileId = exposure.WorkforceProfileId,
                 EmployeeId = exposure.EmployeeId,
                 OccupationalExposureId = exposure.Id,
-                SurveillanceNumber = $"SRV-SER-{exposure.ExposureDateTime:yyyyMM}-{request.FollowUpMonth}M",
+                SurveillanceNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: OccupationalHealthNumberSeries.SerologyKey,
+                Prefix: OccupationalHealthNumberSeries.SerologyPrefix,
+                ResetPolicy: OccupationalHealthNumberSeries.SerologyResetPolicy,
+                SequenceDigits: OccupationalHealthNumberSeries.SequenceDigits,
+                ActorUserId: doctorUserId == Guid.Empty ? OccupationalHealthNumberSeries.SystemFallbackUserId : doctorUserId,
+                Instant: DateTimeOffset.UtcNow), cancellationToken),
                 SurveillanceProgram = $"Surveilans Serologi Pasca Pajanan Darah Bulan ke-{request.FollowUpMonth}",
                 RiskFactor = "Biological Blood-Borne Pathogens (HIV/HBV/HCV)",
                 ScheduledDate = request.TestDate,
@@ -113,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 .ToListAsync(cancellationToken);
 
             var employeeIds = activeExposures.Select(x => x.EmployeeId).Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
-            var employees = await _uow.Employees.Where(x => employeeIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
+            var employees = await _uow.Employees.Include(x => x.PrimaryDepartment).Where(x => employeeIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
 
             var results = new List<ActiveExposureRadarSummaryDto>();
 
@@ -130,7 +140,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                     ExposureId = exp.Id,
                     EmployeeId = exp.EmployeeId ?? Guid.Empty,
                     EmployeeName = emp != null ? emp.FullName : "Pegawai RS",
-                    DepartmentName = "Unit Kerja Terdaftar",
+                    DepartmentName = emp?.PrimaryDepartment?.DepartmentName ?? "-",
                     ExposureDate = exp.ExposureDateTime,
                     MonthsElapsed = monthsElapsed,
                     NextMilestoneMonth = nextMilestone,

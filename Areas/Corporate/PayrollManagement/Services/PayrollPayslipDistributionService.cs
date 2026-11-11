@@ -123,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             // 3. Verifikasi keabsahan PIN terhadap data pegawai
-            // Standar RS: PIN bawaan adalah kombinasi tanggal lahir DDMMYY (HRD-ASM-30) atau master default PIN "123456" / "010100"
+            // Standar RS: PIN bawaan adalah kombinasi tanggal lahir DDMMYY (HRD-ASM-30).
             var isValidPin = false;
 
             var employee = await _dbContext.MstEmployees
@@ -136,12 +136,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 {
                     isValidPin = true;
                 }
-            }
-
-            // PIN fallback operasional atau testing dev
-            if (!isValidPin && (cleanPin == "123456" || cleanPin == "000000" || cleanPin == "112233" || cleanPin == "654321"))
-            {
-                isValidPin = true;
             }
 
             // 4. Penanganan hasil verifikasi

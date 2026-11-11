@@ -86,3 +86,10 @@ Masih 🟡: 5 dari 24 hak akses belum punya endpoint (koreksi 10 November 2026 t
 ## Pembaruan 11 November 2026 — Status Migration
 
 Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+
+## Pembaruan 11 November 2026 — Penuntasan Temuan
+
+Lima hak akses yang kurang kini punya endpoint: `POST /settlements/{id}/missing-receipts`, `POST /settlements/missing-receipts/{itemId}/approve`, `PUT /expenses/claims/{id}`, `POST /expenses/claims/{id}/approve`, `GET /travel/audit-logs`, dan master `expense-categories`. Log audit disusun dari cap waktu yang tersimpan karena modul tidak punya tabel audit. Pintu Finance uang muka kini memakai hak akses `BusinessTravelAdvance : ApproveFinance`. Potongan payroll H+30 kini benar-benar membuat `TrxPayrollDeductionSchedule`, satu kali per uang muka.
+
+`dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.

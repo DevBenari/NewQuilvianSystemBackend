@@ -1635,6 +1635,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IExpenseVerificationAndPaymentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ExpenseVerificationAndPaymentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAttendanceAndRosterLockService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAttendanceAndRosterLockService>();
 
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAuditTrailService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAuditTrailService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Services.ExpenseCategoryService>();
+
     // Slice S-D5: 4 Hosted Background Services (TRV-W1, TRV-W2, TRV-W4, RosterLockExpiry)
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelAdvanceSettlementReminderWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelSettlementOverdueWorker>();
@@ -2123,6 +2126,18 @@ try
             Description = $"Application Version {appVersion}"
         });
 
+        // Dua DTO bernama sama di modul berbeda membuat seluruh dokumen Swagger gagal dibuat.
+        // Nama pendek tetap dipakai; hanya tipe kedua yang bentrok diberi awalan namespace.
+        var defaultSchemaIdSelector = new Swashbuckle.AspNetCore.SwaggerGen.SchemaGeneratorOptions().SchemaIdSelector;
+        var schemaIdOwners = new System.Collections.Concurrent.ConcurrentDictionary<string, Type>();
+        options.CustomSchemaIds(type =>
+        {
+            var schemaId = defaultSchemaIdSelector(type);
+            return schemaIdOwners.GetOrAdd(schemaId, type) == type
+                ? schemaId
+                : $"{type.Namespace?.Replace('.', '_')}_{schemaId}";
+        });
+
         options.DocInclusionPredicate((docName, apiDesc) =>
         {
             var path = apiDesc.RelativePath?.ToLowerInvariant() ?? string.Empty;
@@ -2137,7 +2152,8 @@ try
                     path.StartsWith("api/v1/administrator"),
 
                 "corporate" =>
-                    path.StartsWith("api/v1/corporate"),
+                    path.StartsWith("api/v1/corporate") ||
+                    path.StartsWith("api/v1/hrd"),
 
                 "health-services" =>
                     path.StartsWith("api/v1/health-services") ||
@@ -2145,7 +2161,7 @@ try
                     path.StartsWith("api/v1/health-service"),
 
                 "self-services" =>
-                    path.StartsWith("api/v1/self-services") ||
+                    path.StartsWith("api/v1/self-service") ||
                     path.StartsWith("api/v1/selfservices") ||
                     path.StartsWith("api/v1/profile"),
 

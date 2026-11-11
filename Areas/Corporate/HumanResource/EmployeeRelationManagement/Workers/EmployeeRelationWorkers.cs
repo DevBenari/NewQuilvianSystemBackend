@@ -515,7 +515,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 var suspension = await db.TrxDisciplinarySuspensions
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(s => s.Id == openLock.SuspensionId, ct);
+                    .FirstOrDefaultAsync(s => s.SuspensionId == openLock.SuspensionId, ct);
 
                 var suspensionFinished = suspension == null
                     || suspension.Status != "Active"

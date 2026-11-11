@@ -67,3 +67,10 @@ Status 🟡 sampai migration tabel `HrdNotification` dijalankan.
 ## Pembaruan 11 November 2026 — Status Migration
 
 Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+
+## Pembaruan 11 November 2026 — Penuntasan Temuan
+
+Daftar recall booster kini dihitung dari dosis jatuh tempo dan titer terakhir yang tidak protektif. Sebelumnya setiap pegawai ditampilkan dengan titer 4,2 atau 8,5 yang dikarang.
+
+`dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.

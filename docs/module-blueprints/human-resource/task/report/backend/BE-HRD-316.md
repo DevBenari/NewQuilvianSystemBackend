@@ -238,3 +238,10 @@ Outcome `INT-HR-94` kini ada di kode; `AT-HRD-WF-18`/`AT-HRD-WF-19` tetap `NOT R
 ## Pembaruan 11 November 2026 — Status Migration
 
 Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+
+## Pembaruan 11 November 2026 — Penuntasan Temuan
+
+Penyetuju kini wajib approver yang ditugaskan pada tahapan atau Plh aktifnya; selain itu ditolak `403`.
+
+`dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.

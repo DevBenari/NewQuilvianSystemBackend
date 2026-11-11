@@ -63,6 +63,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var result = await _actionService.ApproveAsync(stepInstanceId, request, empId);
                 return Ok(ApiResponse<WorkflowActionV2ResponseDto>.Ok(result, result.Message));
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
@@ -89,6 +93,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var result = await _actionService.RejectAsync(stepInstanceId, request, empId);
                 return Ok(ApiResponse<WorkflowActionV2ResponseDto>.Ok(result, result.Message));
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
@@ -114,6 +122,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var empId = GetCurrentEmployeeId();
                 var result = await _actionService.ReturnForRevisionAsync(stepInstanceId, request, empId);
                 return Ok(ApiResponse<WorkflowActionV2ResponseDto>.Ok(result, result.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
             }
             catch (InvalidOperationException ex)
             {

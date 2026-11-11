@@ -28,10 +28,82 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
     public class BusinessTravelSettlementsController : ControllerBase
     {
         private readonly ITravelSettlementService _settlementService;
+        private readonly IMissingReceiptDeclarationService _missingReceiptService;
 
-        public BusinessTravelSettlementsController(ITravelSettlementService settlementService)
+        public BusinessTravelSettlementsController(ITravelSettlementService settlementService, IMissingReceiptDeclarationService missingReceiptService)
         {
             _settlementService = settlementService;
+            _missingReceiptService = missingReceiptService;
+        }
+
+        /// <summary>
+        /// Daftar deklarasi biaya darurat tanpa nota pada satu settlement.
+        /// </summary>
+        [HttpGet("{id}/missing-receipts")]
+        [AccessAction("Read", "Melihat Settlement Dinas", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BusinessTravelSettlement", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<List<MissingReceiptDeclarationDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMissingReceipts([FromRoute] Guid id)
+        {
+            try
+            {
+                var result = await _missingReceiptService.GetDeclarationsAsync(id);
+                return Ok(ApiResponse<List<MissingReceiptDeclarationDto>>.Ok(result, "Daftar deklarasi tanpa nota berhasil diambil"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<List<MissingReceiptDeclarationDto>>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Mengajukan deklarasi biaya darurat tanpa nota (VR-TRV-08, VR-TRV-09).
+        /// </summary>
+        [HttpPost("{id}/missing-receipts")]
+        [AccessAction("DeclareMissingReceipt", "Mengajukan Deklarasi Tanpa Nota", AccessType = AccessTypes.Create, SortOrder = 6)]
+        [AccessPermission("BusinessTravelSettlement", "DeclareMissingReceipt")]
+        [ProducesResponseType(typeof(ApiResponse<MissingReceiptDeclarationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> DeclareMissingReceipt([FromRoute] Guid id, [FromBody] MissingReceiptItemDto dto)
+        {
+            try
+            {
+                var result = await _missingReceiptService.DeclareAsync(id, dto, GetCurrentUserId());
+                return Ok(ApiResponse<MissingReceiptDeclarationDto>.Ok(result, "Deklarasi tanpa nota berhasil diajukan"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<MissingReceiptDeclarationDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<MissingReceiptDeclarationDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Menyetujui deklarasi biaya darurat tanpa nota; pengaju tidak boleh menyetujui deklarasinya sendiri.
+        /// </summary>
+        [HttpPost("missing-receipts/{itemId}/approve")]
+        [AccessAction("ApproveMissingReceipt", "Menyetujui Deklarasi Tanpa Nota", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("BusinessTravelSettlement", "ApproveMissingReceipt")]
+        [ProducesResponseType(typeof(ApiResponse<MissingReceiptDeclarationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ApproveMissingReceipt([FromRoute] Guid itemId)
+        {
+            try
+            {
+                var result = await _missingReceiptService.ApproveAsync(itemId, GetCurrentUserId());
+                return Ok(ApiResponse<MissingReceiptDeclarationDto>.Ok(result, "Deklarasi tanpa nota berhasil disetujui"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<MissingReceiptDeclarationDto>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<MissingReceiptDeclarationDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
         }
 
         private Guid GetCurrentUserId()

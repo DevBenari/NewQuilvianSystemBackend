@@ -1714,7 +1714,7 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 | `AT-HRD-TRV-19` | Uji pembayaran reimbursement non-trip oleh Kasir RS ke rekening staf | `BE-HRD-331` | `FE-HRD-303` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 | `AT-HRD-TRV-20` | Uji penolakan pengajuan SPPD akibat bentrok jadwal cuti tahunan Sub-08 | `BE-HRD-321` | `FE-HRD-296` | `✅ Terealisasi (S-D5 Backend Selesai)` |
 | `AT-HRD-TRV-21` | Uji validasi pagu anggaran unit cost center dan peringatan over-budget | `BE-HRD-321` | `FE-HRD-293` | `✅ Terealisasi (S-D5 Backend Selesai)` |
-| `AT-HRD-TRV-22` | Uji kepatuhan 24 endpoint API Swagger Kontrak v25 & audit QBE Conformance | `BE-HRD-333` | `FE-HRD-305` | 🟡 `NOT RUN` 11 November 2026 — kurs dari master `MstExchangeRate` diterapkan `TRV-W4`; 5 dari 24 hak akses masih tanpa endpoint |
+| `AT-HRD-TRV-22` | Uji kepatuhan 24 endpoint API Swagger Kontrak v25 & audit QBE Conformance | `BE-HRD-333` | `FE-HRD-305` | 🟡 `NOT RUN` 11 November 2026 — kurs dari master `MstExchangeRate` diterapkan `TRV-W4`; seluruh 24 hak akses kini punya endpoint |
 
 ---
 

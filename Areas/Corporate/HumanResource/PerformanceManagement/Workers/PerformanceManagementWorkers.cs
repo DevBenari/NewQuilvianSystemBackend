@@ -105,7 +105,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                         .ToListAsync(stoppingToken);
 
                     var unlockedGoals = await context.TrxPerformanceGoals
-                        .Where(x => !x.IsDelete && !x.IsLocked && pastCycles.Contains(x.PerformanceCycleId))
+                        .Where(x => !x.IsDelete && x.Status != "Approved_Locked" && pastCycles.Contains(x.PerformanceCycleId))
                         .ToListAsync(stoppingToken);
 
                     foreach (var goal in unlockedGoals)

@@ -80,3 +80,10 @@ Status 🟡: kode selesai, migration belum dijalankan, `AT-HRD-EMP-22` `NOT RUN`
 ## Pembaruan 11 November 2026 — Status Migration
 
 Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+
+## Pembaruan 11 November 2026 — Penuntasan Temuan
+
+Pemulihan akun skorsing diperbaiki: query memakai `SuspensionId`, karena `Id` tidak dipetakan ke database dan membuat pemulihan gagal.
+
+`dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.

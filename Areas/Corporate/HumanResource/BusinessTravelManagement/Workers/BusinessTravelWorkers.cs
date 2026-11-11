@@ -6,7 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using QuilvianSystemBackend.Repositories;
@@ -161,9 +164,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                             var adv = travel.AdvanceRequests.FirstOrDefault(a => a.AdvanceStatus == "Paid");
                             if (adv != null && adv.PaidAmount > 0)
                             {
-                                _logger.LogCritical(
-                                    "[TRV-W2 Potong Payroll INT-HR-99] Menerbitkan instruksi potongan payroll untuk SPPD {Number}, Piutang: {Amount:N0} IDR.",
-                                    travel.TravelRequestNumber, adv.PaidAmount);
+                                await ScheduleOverdueAdvanceDeductionAsync(scope.ServiceProvider, context, travel, adv, stl, stoppingToken);
                             }
                         }
                     }
@@ -178,6 +179,84 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 // Berjalan setiap 6 jam
                 await Task.Delay(TimeSpan.FromHours(6), stoppingToken);
             }
+        }
+
+        /// <summary>
+        /// VR-TRV-15 / INT-HR-99: membuat jadwal potongan piutang uang muka pada payroll, satu kali per uang muka.
+        /// Mesin potongan payroll menegakkan batas 50% gaji dan membawa sisanya ke periode berikut.
+        /// </summary>
+        private async Task ScheduleOverdueAdvanceDeductionAsync(
+            IServiceProvider services,
+            ApplicationDbContext context,
+            Models.TrxBusinessTravelRequest travel,
+            Models.TrxTravelAdvanceRequest advance,
+            Models.TrxTravelSettlement? settlement,
+            CancellationToken cancellationToken)
+        {
+            // Sesudah settlement diverifikasi, piutangnya hanya selisih lebih; sebelum itu seluruh uang muka.
+            var outstanding = settlement?.VerifiedAt != null ? settlement.EmployeeRefundAmount : advance.PaidAmount;
+            if (outstanding <= 0) return;
+
+            var externalReference = $"TRV-ADV-{advance.Id:N}";
+            var alreadyScheduled = await context.TrxPayrollDeductionSchedules
+                .AnyAsync(s => s.ExternalReferenceId == externalReference && !s.IsDelete, cancellationToken);
+            if (alreadyScheduled) return;
+
+            var employeeId = travel.EmployeeId ?? await context.MstEmployees.AsNoTracking()
+                .Where(e => e.WorkforceProfileId == travel.WorkforceProfileId && !e.IsDelete)
+                .Select(e => (Guid?)e.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (employeeId == null)
+            {
+                _logger.LogError("[TRV-W2] SPPD {Number} tidak punya data karyawan; potongan payroll tidak dapat dijadwalkan.", travel.TravelRequestNumber);
+                return;
+            }
+
+            var allocator = services.GetRequiredService<NumberSeriesAllocator>();
+            var scheduleNumber = await allocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: BusinessTravelNumberSeries.PayrollDeductionKey,
+                Prefix: BusinessTravelNumberSeries.PayrollDeductionPrefix,
+                ResetPolicy: BusinessTravelNumberSeries.PayrollDeductionResetPolicy,
+                SequenceDigits: BusinessTravelNumberSeries.SequenceDigits,
+                ActorUserId: BusinessTravelNumberSeries.SystemFallbackUserId,
+                Instant: DateTimeOffset.UtcNow), cancellationToken);
+
+            var now = DateTime.UtcNow;
+            context.TrxPayrollDeductionSchedules.Add(new TrxPayrollDeductionSchedule
+            {
+                Id = Guid.NewGuid(),
+                ScheduleNumber = scheduleNumber,
+                EmployeeId = employeeId.Value,
+                DeductionCategory = "KasbonPinjamanRS",
+                PriorityLevel = 2,
+                ExternalReferenceId = externalReference,
+                TotalLoanPrincipal = outstanding,
+                MonthlyInstallmentAmount = outstanding,
+                TotalInstallmentMonths = 1,
+                PaidInstallmentCount = 0,
+                RemainingPrincipal = outstanding,
+                StartDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+                ScheduleStatus = "Active",
+                AutoCarryOverOnCapExceeded = true,
+                CreateDateTime = now
+            });
+
+            var notifier = services.GetRequiredService<IHrdNotificationService>();
+            await notifier.NotifyWorkforceProfileAsync(
+                travel.WorkforceProfileId,
+                new HrdNotificationRequest(
+                    Title: $"Uang muka SPPD {travel.TravelRequestNumber} dijadwalkan potong gaji",
+                    Body: $"Settlement SPPD {travel.TravelRequestNumber} menunggak lebih dari 30 hari. Piutang {outstanding:N0} IDR dijadwalkan dipotong dari payroll (VR-TRV-15), dengan batas potongan 50% gaji per bulan.",
+                    Category: HrdNotificationCategories.Travel,
+                    Priority: HrdNotificationPriorities.Critical,
+                    DeepLinkUrl: $"/hrd/business-travel/requests/{travel.Id}/settlement",
+                    SourceModule: "Hrd.BusinessTravel.TRV-W2",
+                    ReferenceType: "TrxBusinessTravelRequest",
+                    ReferenceId: travel.Id,
+                    DedupKey: $"TRV-W2-DEDUCT|{advance.Id:N}"),
+                cancellationToken);
+
+            _logger.LogWarning("[TRV-W2 Potong Payroll INT-HR-99] Jadwal {Schedule} dibuat untuk SPPD {Number}, piutang {Amount:N0} IDR.", scheduleNumber, travel.TravelRequestNumber, outstanding);
         }
     }
 

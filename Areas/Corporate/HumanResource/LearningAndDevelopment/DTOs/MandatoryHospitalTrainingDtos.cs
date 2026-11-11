@@ -41,6 +41,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         [Required(ErrorMessage = "Kategori pelatihan wajib diisi.")]
         public string TrainingCategory { get; set; } = "STARKES_MANDATORY";
 
+        /// <summary>Katalog pelatihan yang diwajibkan. Bila kosong, katalog dicari atau dibuat dari nama aturan.</summary>
+        public Guid? TrainingCatalogId { get; set; }
+
         public string TargetAudience { get; set; } = "Seluruh Pegawai RS (100%)";
 
         /// <summary>
