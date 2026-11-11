@@ -205,6 +205,7 @@ flowchart LR
         BENV014["✅ BE-NV-014<br/>Sinyal realtime dan grup hub"]:::luar
         BENV015["✅ BE-NV-015<br/>Strip TV dan penanda kartu"]:::luar
         BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::luar
+        BENV017["🟡 BE-NV-017<br/>Peta lantai Monitor perawat"]:::luar
     end
 
     FENV008["✅ FE-NV-008<br/>Daftar dan form Tablet Bed"]:::selesai
@@ -215,6 +216,7 @@ flowchart LR
     FENV013["🟡 FE-NV-013<br/>Bunyi Konsol Panggilan"]:::sebagian
     FENV014["✅ FE-NV-014<br/>Strip Panggilan Aktif di TV"]:::selesai
     FENV015["✅ FE-NV-015<br/>Layar ambang lama menunggu"]:::selesai
+    FENV016["✅ FE-NV-016<br/>Monitor perawat"]:::selesai
 
     BENV009 --> FENV008
     BENV010 --> FENV009
@@ -228,6 +230,9 @@ flowchart LR
     BENV015 --> FENV014
     FENV010 --> FENV014
     BENV016 --> FENV015
+    BENV017 --> FENV016
+    FENV012 --> FENV016
+    FENV013 --> FENV016
 ```
 
 | Gelombang | Boleh mulai setelah | Task |
@@ -278,6 +283,7 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | 🟡 `FE-NV-013` | Bunyi Konsol Panggilan | `FR-NV-051`; `NV-DEC-045`; `G-14` | api §7, §10 | `playArrivalSound`, deteksi autoplay layar antrean | Bunyi, nada Darurat, pengingat, tunda, "Aktifkan suara" | `FE-NV-012` | Kartu | lint + rekaman bersuara | Kelelahan alarm / Rizki | Kartu |
 | ✅ `FE-NV-014` | Strip Panggilan Aktif dan penanda kartu di TV | `FR-NV-046`–`048`; `NV-DEC-013`, `044`, `047`, `048` | api §9, §10 | Papan `FE-NV-005`/`007`, klien `FE-NV-010` | Strip di atas papan + penanda kartu | `BE-NV-015`, `FE-NV-010` | Kartu | lint + uji TV berjam | Regresi papan revision 1 / Rizki | Kartu |
 | ✅ `FE-NV-015` | Layar ambang lama menunggu beserta butir menu | `FR-NV-053`; `NV-DEC-048`; `G-15` | api §8 | Layar interval TTV `FE-NV-004` | Layar `FE-NVW-09`, butir menu "Ambang Panggilan Nurse View" | `BE-NV-016` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
+| ✅ `FE-NV-016` | Monitor perawat (pengganti tampilan Konsol Panggilan) | `NV-DEC-058`; `NV-DEC-040`, `044`, `045`, `053` | api §7, §7a, §10 | Hook konsol `FE-NV-012`, bunyi `FE-NV-013`, klien realtime `FE-NV-010`, base component | Layar dan komponen Monitor perawat | `BE-NV-017`, `FE-NV-012`, `FE-NV-013` | Kartu | lint + uji layar | Identitas tampil penuh / Rizki | Kartu |
 
 ### Kartu task revision 2
 
@@ -424,6 +430,21 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 | Verifikasi | `npx eslint`; UI gate; uji layar oleh Rizki/Antigravity dengan angka contoh yang dicabut lagi sesudah uji (DB dev dipakai bersama) |
 | Risiko/pemilik | Angka bawaan terselip di form (`G-15`) / Rizki |
 | DoD | AC-1–5 terpetakan ke source; lint `0 errors`; tangkapan layar kosong dan terisi; laporan `task/report/frontend/FE-NV-015.md` |
+
+#### ✅ FE-NV-016 — Monitor perawat (pengganti tampilan Konsol Panggilan)
+
+| Field | Isi |
+|---|---|
+| Status | ✅ **SELESAI 11 November 2026** (`NV-DEC-058`) — AC 7/7 terbukti di layar dengan data nyata: uji `uji-monitor.mjs` 13/13 `PASS` (putaran bersih 14.29 WIB; Sari 1920×1080, Dewi 1280×800, DOKTER, empat tablet uji). Panggilan baru tampil 0,17 detik (Sari) dan 0,19 detik (Dewi), Darurat paling atas; nama lengkap dan No. RM pasien lantai 3–4 nol (12 nilai diperiksa); "Respons & tangani" → "Sedang ditangani" dan tablet menerima nama perawat; "Tandai selesai" → dialog alasan (alasan 4 + catatan tersimpan); bunyi biasa dan nada Darurat terpicu; regresi K1–K11 lulus. Temuan uji diperbaiki: join hub konsol tertahan saat React StrictMode menjalankan effect dua kali (sebelum perbaikan 8,33 detik; penanda join kini per koneksi). `npx eslint` 0 error 0 warning; `UI GATE: 11 elemen — REUSE 5, COMPOSE 3, WRAP 3, NEW 0`; `npm run build` `PASS` (11 Nov 14.44 WIB, 574 halaman). Di luar DoD dan masih terbuka: verifier otorisasi `BE-NV-017` (AC-6, Rizki), keputusan hapus `nurse-view-patient-call-console-table-columns.jsx`. Laporan: [`FE-NV-016.md`](../task/report/frontend/FE-NV-016.md) |
+| Outcome | Perawat di tablet/PC melihat peta kamar dan bed satu lantai sekaligus menangani panggilan, dengan tata letak rancangan Rizki ("Monitor perawat") |
+| Trace | `NV-DEC-058`; `NV-DEC-038`, `040`, `044`, `045`, `047`, `053`; `NV-AC-030`–`033`, `035`, `037`, `044` |
+| Kontrak | `0.2.2` api §7a (`GET /patient-calls/floor-board`); api §7 (`/floors`, `/active`, aksi); api §10 (sinyal) |
+| Reuse | `useNurseViewPatientCallConsole` (daftar, aksi, dialog Tutup, sinyal), `useNurseViewPatientCallSound` (`FE-NV-013`), `BaseButton`, `StatusBadge`, `ConfirmModal`/dialog Tutup, `ToastStack`, token desain |
+| Cakupan | (1) Route dan butir menu Konsol Panggilan tetap; tampilan diganti. (2) Komponen reusable: kepala layar (status suara, jam, layar penuh), kartu lantai, ringkasan, kartu kamar, petak bed, kartu panggilan aktif, legenda, tim jaga. (3) Peta lantai dari `floor-board`, digabung dengan panggilan dari `/active` per bed; dimuat ulang oleh sinyal dan cadangan 15 detik. (4) "Respons & tangani" = klaim; "Ambil alih", "Lepas" mengikuti `AvailableActions`; "Tandai selesai" membuka dialog Tutup beralasan |
+| Acceptance criteria | AC-1 tata letak sesuai rancangan (kepala, pemilih lantai, empat ringkasan, grid kamar, panel panggilan aktif, legenda, tim jaga). AC-2 identitas hanya inisial · JK · umur; nama lengkap dan No. RM nol. AC-3 panggilan baru tampil di panel dan petak bed ≤ 5 detik tanpa muat ulang manual, urutan Darurat dulu (`NV-AC-030`). AC-4 "Respons & tangani" mengklaim; petak bed dan panel berubah menjadi "Ditangani"; tablet pasien "… menuju". AC-5 "Tandai selesai" membuka dialog alasan wajib (`NV-DEC-053`). AC-6 bunyi `FE-NV-013` tetap. AC-7 regresi uji konsol K1–K11 (disesuaikan) lulus |
+| Verifikasi | `npx eslint`; UI gate; uji layar Playwright dua perawat + tablet; tangkapan layar dibandingkan rancangan |
+| Risiko/pemilik | Identitas tampil penuh; tumpang tindih dengan layar lama / Rizki |
+| DoD | AC-1–7 terbukti; laporan `task/report/frontend/FE-NV-016.md` |
 
 ### Pekerjaan pendamping yang dilacak
 

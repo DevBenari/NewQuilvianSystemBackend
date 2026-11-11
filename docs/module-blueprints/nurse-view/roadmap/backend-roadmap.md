@@ -217,6 +217,7 @@ flowchart LR
     BENV014["✅ BE-NV-014<br/>Sinyal realtime dan grup hub"]:::selesai
     BENV015["✅ BE-NV-015<br/>Strip TV dan penanda kartu"]:::selesai
     BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::selesai
+    BENV017["🟡 BE-NV-017<br/>Peta lantai untuk Monitor perawat"]:::sebagian
 
     BENV008 --> BENV009
     BENV009 --> BENV010
@@ -229,6 +230,8 @@ flowchart LR
     BENV016 --> BENV015
     BENV012 --> BENV014
     BENV013 --> BENV014
+    BENV012 --> BENV017
+    BENV015 --> BENV017
 ```
 
 | Gelombang | Boleh mulai setelah | Task |
@@ -294,6 +297,7 @@ ringkas per berkas.
 | ✅ `BE-NV-014` | Sinyal realtime panggilan dan grup hub | `FR-NV-048`; `NV-AC-028`; `NV-DEC-044`, `047`; `VAL-NV-41` | `0.2.0` api §10 | `NvwRealtimeService`, `QueueHub#JoinAdmissionQueueBoard`, `#JoinNurseViewFloor` | `NotifyPatientCallChangedAsync` + pemanggilnya; 4 method hub | `BE-NV-012`, `BE-NV-013` | Kartu | Uji hub TV + konsol + tablet | Regresi grup hub lain / Rizki, syarat lead | Kartu |
 | ✅ `BE-NV-015` | Strip TV dan penanda kartu | `FR-NV-046`, `047`; `NV-DEC-044`, `047`, `048` | `0.2.0` api §9 | `NvwDisplayRuntimeController`, `NvwFloorBoardQueryService`, service ambang (`BE-NV-016`) | `GET /active-calls`, query strip, `ActiveCallPriority` di papan | `BE-NV-011`, `BE-NV-016` | Kartu | HTTP akun TV dan tablet; perbandingan JSON `/board` | Identitas bocor di strip; regresi papan / Rizki | Kartu |
 | ✅ `BE-NV-016` | API ambang lama menunggu | `FR-NV-053`; `NV-DEC-048`; `G-15` | `0.2.0` api §8 | Pola ganti-seluruh `NvwVitalSignIntervalService` | Service (termasuk `ResolveWaitLevel`) + controller + DTO; `VAL-NV-40` | `BE-NV-008` | Kartu | HTTP isi → ganti → cabut | Angka bawaan terselip / Rizki | Kartu |
+| 🟡 `BE-NV-017` | Peta lantai untuk Monitor perawat | `NV-DEC-058`; `NV-DEC-044`, `043` | `0.2.2` api §7a | `NvwFloorBoardQueryService.GetBoardAsync`, `NvwPatientCallQueryService.IsKnownFloorAsync`, pola `NvwDisplayDeviceService.GetFloorsAsync` | `GET /patient-calls/floor-board` + DTO ringkasan lantai | `BE-NV-012`, `BE-NV-015` | Kartu | HTTP perawat/TV/tablet/DOKTER, lantai tak dikenal, identitas nol | Kebocoran identitas / Rizki | Kartu |
 
 ### Kartu task revision 2
 
@@ -450,6 +454,23 @@ ringkas per berkas.
 | Verifikasi | QBE saat eksekusi; review diff/scope; `dotnet build` oleh Rizki; uji HTTP berurutan AC-1 → AC-5 oleh Rizki/Antigravity; baris lama dilihat lewat `SELECT` read-only; AC-4 lewat penelusuran source dengan tiga contoh angka di atas |
 | Risiko/pemilik | Angka bawaan terselip di kode atau seed (`G-15`) / Rizki. Angka sah menunggu Komite Keperawatan (`NV-OQ-022`); uji memakai angka contoh dan ambangnya dicabut lagi sesudah uji karena DB dev dipakai bersama |
 | DoD | AC-1–5 terpetakan ke source; build Rizki lulus; uji HTTP tercatat; laporan `task/report/backend/BE-NV-016.md` |
+
+#### 🟡 BE-NV-017 — Peta lantai untuk Monitor perawat
+
+| Field | Isi |
+|---|---|
+| Status | 🟡 **SEBAGIAN 11 November 2026** (`NV-DEC-058`) — AC-1–5 terbukti: uji HTTP `uji-floor-board.mjs` 5/5 `PASS` sesudah build Rizki (DLL 13.15 WIB). Papan perawat = papan TV lantai 4 (0 beda di luar field waktu); `Floors` = `/floors`, jumlah Menunggu/Diklaim = DB sebelum tekan, sesudah tekan, dan sesudah klaim; DOKTER/TV/tablet `403`; `ZZ9` dan tanpa lantai `422` `VAL-NV-39`; nama lengkap dan No. RM nol; log backend 0 galat, 0 rahasia. QBE Strict `PASS` (3 berkas). Belum: AC-6 `verify-authorization.sh --configuration Release` (Rizki). Laporan: [`BE-NV-017.md`](../task/report/backend/BE-NV-017.md) |
+| Gelombang | Amendment 11 Nov sesudah `MVP-8` · `EPIC NV-07`, `NV-08` |
+| Outcome | Perawat yang membuka Monitor perawat (pengganti tampilan Konsol Panggilan) melihat peta kamar dan bed satu lantai, tim jaga, dan ringkasan tiap lantai tanpa akun TV |
+| Trace | `NV-DEC-058`; `NV-DEC-044` (identitas), `NV-DEC-043` (izin tanpa roster), `NV-DEC-008`; `VAL-NV-39` |
+| Kontrak | `0.2.2` api §7a (tambahan; §7 lain tidak berubah) |
+| Reuse | `NvwFloorBoardQueryService.GetBoardAsync(floorCode)` apa adanya (penyamaran, roster, `ActiveCallPriority`); `NvwPatientCallQueryService.IsKnownFloorAsync`; urutan lantai `NvwDisplayDeviceService.GetFloorsAsync` |
+| Cakupan | (1) `GET /patient-calls/floor-board?floorCode=` di `NvwPatientCallController`, `[AccessAction(Read)]` + `[AccessPermission(NurseViewPatientCall, Read)]`. (2) `NvwFloorBoardQueryService.GetNurseMonitorAsync`: validasi lantai, papan, ringkasan semua lantai (nama unit layanan, jumlah kamar dan bed, jumlah panggilan `Menunggu` dan `Diklaim`). (3) DTO `NvwNurseMonitorResponse`, `NvwNurseMonitorFloorResponse` |
+| Berkas bersama | — |
+| Acceptance criteria | AC-1 perawat berizin (Sari) → `200`, `Board` lantai 4 sama dengan `/display-runtime/board` TV lantai 4 pada saat yang sama (kecuali field waktu). AC-2 `Floors` memuat setiap lantai `/floors` dengan `WaitingCallCount`/`ClaimedCallCount` sesuai panggilan aktif. AC-3 DOKTER tanpa izin, akun TV, dan akun tablet → `403`. AC-4 lantai tidak dikenal → `422` `VAL-NV-39`. AC-5 respons tanpa nama lengkap dan No. RM pasien uji (`NV-DEC-044`). AC-6 verifier otorisasi `PASS` (tanpa fallback baru) |
+| Verifikasi | QBE Strict; review diff; `dotnet build` dan `verify-authorization.sh` oleh Rizki; uji HTTP oleh agent |
+| Risiko/pemilik | Kebocoran identitas; dicegah dengan memakai query papan TV apa adanya / Rizki |
+| DoD | AC-1–6 terbukti; laporan `task/report/backend/BE-NV-017.md` |
 
 ### Pekerjaan pendamping yang dilacak
 

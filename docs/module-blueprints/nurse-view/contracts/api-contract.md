@@ -259,6 +259,22 @@ ditemukan. `409` klaim pada panggilan yang sudah diklaim (`VAL-NV-33`), ambil al
 sah (`VAL-NV-34`), panggilan sudah selesai (`VAL-NV-37`), atau versi berubah (`VAL-NV-38`).
 `422` lantai tidak dikenal (`VAL-NV-39`).
 
+#### 7a. Peta lantai untuk Monitor perawat — kontrak `0.2.2` (`NV-DEC-058`, tambahan)
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/floor-board` | Papan satu lantai untuk akun perawat beserta ringkasan semua lantai | `NurseViewPatientCall : Read` | query `floorCode` (wajib) | `NvwNurseMonitorResponse` | **Rencana (`BE-NV-017`)** |
+
+| Class | Field |
+|---|---|
+| `NvwNurseMonitorResponse` | `Board` (`NvwFloorBoardResponse`, sama persis dengan `GET /display-runtime/board`), `Floors[]`, `ServerTimeUtc` |
+| `NvwNurseMonitorFloorResponse` | `FloorCode`, `FloorName`, `WardNames[]` (nama unit layanan kamar di lantai itu), `RoomCount`, `BedCount`, `WaitingCallCount`, `ClaimedCallCount` |
+
+`Board` memakai query papan TV apa adanya, jadi identitas pasien tetap inisial · jenis kelamin · umur
+(`NV-DEC-044`, `NV-DEC-008`), disamarkan di backend. `Floors` berurutan seperti `GET /floors`.
+Panggilan dan tombol aksi tetap dari `GET /active` dan endpoint aksi di atas; endpoint ini hanya baca.
+**Kode status.** `200` berhasil. `403` tidak punya hak akses. `422` lantai tidak dikenal (`VAL-NV-39`).
+
 ### 8. Health Services / Nurse View Management / Patient Call Wait Threshold
 
 Base URL: `api/v1/health-services/nurse-view-management/patient-call-wait-thresholds`

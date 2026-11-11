@@ -78,4 +78,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
         public string FloorCode { get; set; } = string.Empty;
         public DateTime OccurredAtUtc { get; set; }
     }
+
+    public class NvwNurseMonitorResponse
+    {
+        public NvwFloorBoardResponse Board { get; set; } = new();
+        public List<NvwNurseMonitorFloorResponse> Floors { get; set; } = new();
+        public DateTime ServerTimeUtc { get; set; }
+    }
+
+    public class NvwNurseMonitorFloorResponse
+    {
+        public string FloorCode { get; set; } = string.Empty;
+        public string FloorName { get; set; } = string.Empty;
+        public List<string> WardNames { get; set; } = new();
+        public int RoomCount { get; set; }
+        public int BedCount { get; set; }
+        public int WaitingCallCount { get; set; }
+        public int ClaimedCallCount { get; set; }
+    }
 }

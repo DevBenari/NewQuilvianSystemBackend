@@ -127,6 +127,83 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
             return board;
         }
 
+        /// <summary>
+        /// Monitor perawat (NV-DEC-058): papan lantai yang sama dengan TV untuk akun perawat, ditambah ringkasan
+        /// semua lantai untuk pemilih lantai. Identitas pasien tetap tersamar karena memakai GetBoardAsync apa adanya.
+        /// </summary>
+        public async Task<NvwResult<NvwNurseMonitorResponse>> GetNurseMonitorAsync(
+            string? floorCode,
+            CancellationToken cancellationToken)
+        {
+            var floor = NvwDisplayDeviceService.NormalizeFloorCode(floorCode);
+
+            if (!await _calls.IsKnownFloorAsync(floor, cancellationToken))
+                return NvwResult<NvwNurseMonitorResponse>.Rule(NvwErrorCodes.ConsoleFloorUnknown, NvwMessages.ConsoleFloorUnknown);
+
+            return NvwResult<NvwNurseMonitorResponse>.Ok(new NvwNurseMonitorResponse
+            {
+                Board = await GetBoardAsync(floor, cancellationToken),
+                Floors = await GetMonitorFloorsAsync(cancellationToken),
+                ServerTimeUtc = DateTime.UtcNow
+            });
+        }
+
+        private async Task<List<NvwNurseMonitorFloorResponse>> GetMonitorFloorsAsync(CancellationToken cancellationToken)
+        {
+            var rooms = await _dbContext.MstRooms.AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && x.FloorCode != null && x.FloorCode != string.Empty)
+                .Select(x => new { x.Id, x.FloorCode, x.ServiceUnitId })
+                .ToListAsync(cancellationToken);
+
+            var roomIds = rooms.Select(x => x.Id).ToList();
+            var bedCounts = await _dbContext.MstBeds.AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && roomIds.Contains(x.RoomId))
+                .GroupBy(x => x.RoomId)
+                .Select(g => new { RoomId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.RoomId, x => x.Count, cancellationToken);
+
+            var unitIds = rooms.Select(x => x.ServiceUnitId).Distinct().ToList();
+            var unitNames = await _dbContext.MstServiceUnits.AsNoTracking()
+                .Where(x => unitIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.ServiceUnitName })
+                .ToDictionaryAsync(x => x.Id, x => x.ServiceUnitName, cancellationToken);
+
+            var callCounts = await _dbContext.NvwPatientCalls.AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    (x.CallStatus == NvwPatientCallStatus.Waiting || x.CallStatus == NvwPatientCallStatus.Claimed))
+                .GroupBy(x => new { x.FloorCode, x.CallStatus })
+                .Select(g => new { g.Key.FloorCode, g.Key.CallStatus, Count = g.Count() })
+                .ToListAsync(cancellationToken);
+
+            int CountCalls(string floor, NvwPatientCallStatus status) =>
+                callCounts.Where(c => c.FloorCode == floor && c.CallStatus == status).Sum(c => c.Count);
+
+            return rooms
+                .GroupBy(x => NvwDisplayDeviceService.NormalizeFloorCode(x.FloorCode))
+                .Where(g => g.Key.Length > 0)
+                .Select(g => new NvwNurseMonitorFloorResponse
+                {
+                    FloorCode = g.Key,
+                    FloorName = FloorPlanRoomNaming.FloorName(g.Key),
+                    WardNames = g
+                        .Select(room => unitNames.GetValueOrDefault(room.ServiceUnitId)?.Trim())
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Select(name => name!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                        .ToList(),
+                    RoomCount = g.Count(),
+                    BedCount = g.Sum(room => bedCounts.GetValueOrDefault(room.Id)),
+                    WaitingCallCount = CountCalls(g.Key, NvwPatientCallStatus.Waiting),
+                    ClaimedCallCount = CountCalls(g.Key, NvwPatientCallStatus.Claimed)
+                })
+                .OrderBy(x => int.TryParse(x.FloorCode, out _) ? 0 : 1)
+                .ThenBy(x => int.TryParse(x.FloorCode, out var number) ? number : 0)
+                .ThenBy(x => x.FloorCode, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         private async Task<Dictionary<Guid, List<NvwOnDutyNurseResponse>>> LoadOnDutyNursesAsync(
             List<Guid> organizationUnitIds,
             DateTime nowUtc,

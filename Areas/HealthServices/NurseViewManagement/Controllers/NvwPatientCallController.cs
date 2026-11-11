@@ -28,6 +28,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
     {
         private readonly NvwPatientCallService _calls;
         private readonly NvwPatientCallQueryService _queries;
+        private readonly NvwFloorBoardQueryService _boards;
         private readonly NvwBedTabletService _tablets;
         private readonly AccessPermissionService _access;
         private readonly LoggerService _logger;
@@ -35,12 +36,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
         public NvwPatientCallController(
             NvwPatientCallService calls,
             NvwPatientCallQueryService queries,
+            NvwFloorBoardQueryService boards,
             NvwBedTabletService tablets,
             AccessPermissionService access,
             LoggerService logger)
         {
             _calls = calls;
             _queries = queries;
+            _boards = boards;
             _tablets = tablets;
             _access = access;
             _logger = logger;
@@ -68,6 +71,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
                     await _access.HasAccessAsync(User, P.PatientCall.Resource, P.Update),
                     cancellationToken),
                 "Daftar panggilan aktif berhasil diambil.");
+
+        [HttpGet("floor-board")]
+        [ProducesResponseType(typeof(ApiResponse<NvwNurseMonitorResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction(P.Read, "Read Nurse View Patient Call", Description = "Melihat peta kamar dan bed satu lantai di Monitor perawat", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission(P.PatientCall.Resource, P.Read)]
+        public async Task<IActionResult> GetFloorBoard([FromQuery] string? floorCode, CancellationToken cancellationToken = default) =>
+            NvwHttp.Map(
+                this,
+                await _boards.GetNurseMonitorAsync(floorCode, cancellationToken),
+                "Peta lantai berhasil diambil.");
 
         [HttpPost("{id:guid}/claim")]
         [ProducesResponseType(typeof(ApiResponse<NvwConsoleCallResponse>), StatusCodes.Status200OK)]
