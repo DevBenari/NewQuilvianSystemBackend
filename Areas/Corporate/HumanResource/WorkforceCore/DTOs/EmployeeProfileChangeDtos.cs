@@ -385,9 +385,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         // Konteks Organisasi & Jabatan (Read-Only)
         public string? DepartmentName { get; set; }
+        public string? PrimaryDepartmentName { get; set; }
         public string? PositionName { get; set; }
+        public string? PrimaryPositionName { get; set; }
         public string? OrganizationUnitName { get; set; }
         public string? WorkLocationName { get; set; }
+        public string? WorkLocation { get; set; }
+        public string? GradeLevel { get; set; }
+        public string? EmploymentType { get; set; }
+        public string? ProfessionType { get; set; }
+        public DateTime? JoinDate { get; set; }
+        public DateTime? ContractEndDate { get; set; }
+        public DateTime? CreateDateTime { get; set; }
+        public string? ProfilePhotoUrl { get; set; }
         public string? ManagerDisplayName { get; set; }
 
         // Info Pengajuan Aktif yang Belum Selesai (Bila Ada)
