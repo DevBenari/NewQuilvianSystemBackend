@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `761bfe9d` + perubahan yang belum di-commit |
 | Tanggal | 2026-10-13 |
-| Status | Selesai. Uji konkurensi sungguhan di PostgreSQL (`AT-12`) belum dijalankan |
+| Status | Selesai. `AT-12` (konkurensi di PostgreSQL 15 sungguhan) lulus 2026-11-11 — lihat §8 |
 
 ## Backend Governance Preflight
 
@@ -106,8 +106,8 @@ izin, 404 pasien tidak ada, 409 bertabrakan dengan membership yang ada.
 | `Controller_PostAdmin_200DenganDetail_Dan409DenganPesan` | 200 berisi detail, lalu 409 dengan pesan | `PASS` | idem |
 | `dotnet test` seluruh project | 106 lulus | `PASS` | Keluaran test |
 | QBE checker | 0 VIOLATION | `PASS` | Keluaran checker |
-| `AT-12` konkurensi di PostgreSQL | — | `NOT RUN` | Butuh menulis ke devYoga di luar transaksi yang bisa di-rollback. Bukti yang ada: index unik `UX_..._Patient_Pending` menolak baris kedua (laporan `BE-CRM-002` §8) dan kunci `pg_advisory_xact_lock` mengikuti pola `OutpatientQueueNumberAllocator` |
-| `AT-19` (403 tanpa izin), `AT-26` | — | `NOT RUN` / tercakup desain | `AT-19` butuh pipeline otorisasi berjalan. `AT-26`: DTO tidak punya field nomor member, jadi isian itu diabaikan model binder |
+| `AT-12` konkurensi di PostgreSQL | Satu sukses, satu 409, tepat satu Menunggu | `PASS` (2026-11-11, susulan — §8) | Semula `NOT RUN` 2026-10-13: butuh menulis ke devYoga di luar transaksi yang bisa di-rollback. Bukti yang ada: index unik `UX_..._Patient_Pending` menolak baris kedua (laporan `BE-CRM-002` §8) dan kunci `pg_advisory_xact_lock` mengikuti pola `OutpatientQueueNumberAllocator` |
+| `AT-19` (403 tanpa izin), `AT-26` | — | `AT-19` `PASS` 2026-11-11 (HTTP nyata, laporan `BE-CRM-015` §8) / tercakup desain | Semula `NOT RUN`: `AT-19` butuh pipeline otorisasi berjalan. `AT-26`: DTO tidak punya field nomor member, jadi isian itu diabaikan model binder |
 
 ## 6. Acceptance criteria dan Definition of Done
 
@@ -116,7 +116,7 @@ izin, 404 pasien tidak ada, 409 bertabrakan dengan membership yang ada.
 | `AT-01` | Terpenuhi | `PasienTidakAda_404` |
 | `AT-02` | Terpenuhi | `Daftar_Berhasil_...` |
 | `AT-11` | Terpenuhi | `MasihAktif_409_...` |
-| `AT-12` | **Belum terpenuhi** (sebagian: index terbukti, uji paralel belum) | Lihat §5 |
+| `AT-12` | Terpenuhi 2026-11-11 (semula sebagian: index terbukti, uji paralel belum) | §8 — tiga uji provider-real `PASS` |
 | `AT-20` | Terpenuhi | `TingkatCorporate_400` |
 | `AT-26` | Terpenuhi secara desain | DTO tanpa `memberNumber` |
 
@@ -131,3 +131,52 @@ izin, 404 pasien tidak ada, 409 bertabrakan dengan membership yang ada.
 | Interupsi | `NONE` |
 | Status Git | Berkas uji baru `MembershipRegisterTests.cs` diabaikan git (`/Tests/*`), perlu `git add -f`. Belum di-commit |
 | Langkah berikutnya | `BE-CRM-012` (perpanjangan dan upgrade), `BE-CRM-013` (batal, verifikasi, catatan, riwayat), `BE-CRM-014` (lookup) |
+
+## 8. Susulan 2026-11-11 — bukti `AT-12` di PostgreSQL 15 sungguhan
+
+`AT-12` ditutup tanpa menulis ke devYoga. Uji memakai harness yang sudah ada,
+`PostgresSekaliPakai`: setiap uji membuat basis data acak `pat_proof_*` berskema model EF aplikasi
+(`EnsureCreated`), lalu menghapusnya kembali. Servernya PostgreSQL 15.15 portabel yang dijalankan
+sementara di laptop (localhost, `max_locks_per_transaction=2048`). Sesudah uji server dimatikan dan
+datanya dihapus; kueri sebelum mematikan menunjukkan nol basis data `pat_proof_*` tersisa.
+
+| Field | Nilai |
+| --- | --- |
+| Task mode | `BACKEND`, khusus uji. Source aplikasi tidak berubah |
+| Berkas | `Tests/QuilvianSystemBackend.PatientManagementTests/MembershipRegisterPostgresSungguhanTests.cs` (baru, untracked — folder ini kini di-track git lewat pengecualian `!/Tests/QuilvianSystemBackend.PatientManagementTests/`, cukup `git add`) |
+| Keberlakuan QBE | Tidak ada; tidak ada source aplikasi yang disentuh |
+| Migration / database | Nol migration. Nol eksekusi ke devYoga maupun basis data bersama |
+
+### 8.1 Contoh
+
+Petugas A dan petugas B sama-sama menekan Simpan untuk Pak Andi, tingkat Gold, pada detik yang sama.
+Petugas A mendapat `MBR-000001` berstatus Menunggu Pembayaran. Petugas B mendapat 409 "Pasien ini
+sudah punya pendaftaran yang menunggu pembayaran (MBR-000001)." Tidak ada baris kedua, dan nomor
+`MBR-000002` tidak hangus.
+
+### 8.2 Hasil
+
+| Uji | Yang dibuktikan | Hasil |
+| --- | --- | --- |
+| `AT12_DuaDaftarBersamaan_SatuSukses_SatuDitolak409_TepatSatuMenunggu` | Sesi lain memegang kunci `pg_advisory_xact_lock(hashtext('PAT_MEMBERSHIP_<pasien>'))`; uji menunggu sampai **dua** sesi terlihat antre di `pg_locks`, baru kunci dilepas. Satu 200, satu 409 dengan pesan pemeriksaan Menunggu (`VAL-05`), bukan pesan pengaman index. Tepat satu baris Menunggu, dua riwayat (`REGISTERED`, `FEE_CHARGE_LINKED`), deret `PAT_MEMBERSHIP_NUMBER` = 1, satu permintaan tagihan | `PASS` |
+| `AT12_DelapanDaftarParalel_TepatSatuSukses_NomorTidakHangus` | Delapan permintaan dilepas serentak tanpa penahan: 1 × 200, 7 × 409, satu baris, deret = 1 | `PASS` |
+| `AT12_Kontrol_DuaPasienBerbedaBersamaan_KeduanyaSukses` | Kontrol: kunci per pasien tidak menahan pasien lain — dua pasien bersamaan sama-sama 200, `MBR-000001` dan `MBR-000002` | `PASS` |
+| Regresi uji Membership SQLite (`FullyQualifiedName~Membership`, tanpa `ProviderReal`) | Uji yang sudah ada tetap lulus | `PASS` 97/97 |
+| Build proyek uji asli | `BayiUji.cs:77` CS7036 (konstruktor `NewbornPatientRegistrationService` kini meminta `HospitalSiteProfileQueryService`) | `EXISTING / ENVIRONMENT ISSUE` — sudah gagal sejak 2026-10-25, bukan dari task ini. Uji dijalankan lewat salinan proyek yang menautkan seluruh berkas uji asli kecuali empat berkas uji bayi |
+
+Perintah (connection string ke server sekali pakai lokal, tanpa kredensial):
+
+```
+QUILVIAN_PG_PROOF_CONNECTION=<server PostgreSQL 15 sekali pakai> QUILVIAN_PG_PROOF_REQUIRED=1 \
+  dotnet test --filter "FullyQualifiedName~MembershipRegisterPostgresSungguhanTests" \
+  -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1
+```
+
+Hasil: `Total tests: 3, Passed: 3` (1,67 menit, termasuk pembuatan skema tiga kali).
+
+### 8.3 Sisa
+
+| Hal | Isi |
+| --- | --- |
+| Pengaman index unik `UX_..._Patient_Pending` | Tidak diuji ulang di sini (jalur itu hanya tercapai bila kunci terlewati); sudah terbukti di `BE-CRM-002` §8 |
+| Proyek uji asli | Tetap gagal kompilasi karena `BayiUji.cs` milik pemilik Patient Management; tidak diubah oleh task ini |
