@@ -17,11 +17,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.SubmissionDeadlineAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.PublicationPlannedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.RosterStatus).HasMaxLength(30).HasDefaultValue("Draft").IsRequired();
+            entity.Property(x => x.IsRecheckPassed).HasDefaultValue(false);
+            entity.Property(x => x.WarningCount).HasDefaultValue(0);
             entity.Property(x => x.ValidatedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.ApprovedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.PublishedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.LockedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.ClosedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.ValidationSummaryJson).HasColumnType("jsonb");
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
@@ -43,6 +46,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.PublishedByUser).WithMany().HasForeignKey(x => x.PublishedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.LockedByUser).WithMany().HasForeignKey(x => x.LockedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ClosedByUser).WithMany().HasForeignKey(x => x.ClosedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => x.RosterPeriodCode).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => new { x.HospitalSiteId, x.OrganizationUnitId, x.DepartmentId, x.PeriodStartDate, x.PeriodEndDate });
             entity.HasIndex(x => new { x.RosterStatus, x.IsActive, x.IsDelete });

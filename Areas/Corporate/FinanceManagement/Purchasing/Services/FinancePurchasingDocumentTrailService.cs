@@ -169,6 +169,7 @@ public sealed class FinancePurchasingDocumentTrailService
         // Kuantitas diterima per baris PO dan per GR — satu query tiap sumbu, bukan per baris.
         var receivedByPoItem = new Dictionary<Guid, decimal>();
         var receivedByGoodsReceipt = new Dictionary<Guid, (decimal Total, int Count)>();
+        Dictionary<Guid, ReceiptItemProgress>? externalProgressByItem = null;
         if (purchaseOrderId.HasValue)
         {
             var poId = purchaseOrderId.Value;
@@ -179,7 +180,13 @@ public sealed class FinancePurchasingDocumentTrailService
                     x.GoodsReceiptId,
                     x.PurchaseOrderItemId,
                     x.ReceivedQuantity,
-                    GoodsReceiptStatus = x.GoodsReceipt!.Status
+                    GoodsReceiptStatus = x.GoodsReceipt!.Status,
+                    // BE-FIN-147: kolom BLM, null untuk baris lama; hanya dipakai bila PO bersumber BLM.
+                    x.ConditionCode,
+                    x.BaseQuantity,
+                    x.AcceptedBaseQuantity,
+                    x.QuantityPerBaseUnit,
+                    x.BaseUomCode
                 })
                 .ToListAsync(cancellationToken);
 
@@ -191,6 +198,24 @@ public sealed class FinancePurchasingDocumentTrailService
                 if (row.GoodsReceiptStatus == FinGoodsReceiptStatuses.Cancelled) continue;
                 receivedByPoItem[row.PurchaseOrderItemId] =
                     receivedByPoItem.GetValueOrDefault(row.PurchaseOrderItemId) + row.ReceivedQuantity;
+            }
+
+            // BE-FIN-147 (FIN-DES-142): PO bersumber BLM dinilai per item dalam satuan dasar oleh penghitung
+            // bersama; GR CANCELLED dan baris terhapus disaring penghitung. PO lama tidak menyentuh cabang ini
+            // dan tetap memakai akumulasi lama di atas.
+            if (purchaseOrder is not null
+                && string.Equals(purchaseOrder.SourceSystem, FinPurchasingSourceSystems.Blm, StringComparison.Ordinal))
+            {
+                var orderItems = purchaseOrder.Items
+                    .Select(x => new ReceiptOrderItemInput(x.Id, x.BaseQuantity, x.QuantityPerBaseUnit, x.BaseUomCode))
+                    .ToList();
+                var lines = itemRows
+                    .Select(x => new ReceiptLineInput(
+                        x.PurchaseOrderItemId, x.GoodsReceiptStatus, false, x.ConditionCode,
+                        x.BaseQuantity, x.AcceptedBaseQuantity, x.QuantityPerBaseUnit, x.BaseUomCode))
+                    .ToList();
+                externalProgressByItem = PurchasingReceiptQuantityCalculator.Calculate(orderItems, lines)
+                    .Items.ToDictionary(x => x.PurchaseOrderItemId);
             }
         }
 
@@ -230,7 +255,7 @@ public sealed class FinancePurchasingDocumentTrailService
                     .Select(item =>
                     {
                         var received = receivedByPoItem.GetValueOrDefault(item.Id);
-                        return new PurchasingTrailItemProgress
+                        var progress = new PurchasingTrailItemProgress
                         {
                             PurchaseOrderItemId = item.Id,
                             ProductName = item.ProductName,
@@ -239,6 +264,23 @@ public sealed class FinancePurchasingDocumentTrailService
                             ReceivedQuantity = received,
                             RemainingQuantity = Math.Max(0m, item.Quantity - received)
                         };
+
+                        // BE-FIN-147: kolom satuan dasar hanya untuk PO bersumber BLM; PO lama membiarkannya null.
+                        if (externalProgressByItem is not null
+                            && externalProgressByItem.TryGetValue(item.Id, out var external))
+                        {
+                            progress.SourceSystem = FinPurchasingSourceSystems.Blm;
+                            progress.BaseUomCode = external.BaseUomCode;
+                            progress.OrderedBaseQuantity = external.OrderedBaseQuantity;
+                            progress.PhysicalBaseQuantity = external.PhysicalBaseQuantity;
+                            progress.AcceptedBaseQuantity = external.AcceptedBaseQuantity;
+                            progress.PendingInspectionBaseQuantity = external.PendingInspectionBaseQuantity;
+                            progress.DamagedBaseQuantity = external.DamagedBaseQuantity;
+                            progress.RemainingBaseQuantity = external.RemainingBaseQuantity;
+                            progress.IsConversionResolved = external.IsConversionResolved;
+                        }
+
+                        return progress;
                     })
                     .ToList();
             }

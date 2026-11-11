@@ -12,6 +12,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 {
     [ApiController]
     [Authorize]
+    [Route("api/corporate/human-resource/attendance/periods")]
     [Route("api/v1/corporate/human-resource/attendance/periods")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_ATTENDANCE",
@@ -21,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         ControllerName = "AttendancePeriod",
         Description = "Corporate human resource attendance period closing",
         SortOrder = 8)]
-    [Tags("Corporate / Human Resource / Attendance Management / Attendance Period")]
+    [Tags("HR Attendance - Period Management")]
     public class AttendancePeriodController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.AttendanceManagement";
@@ -182,6 +183,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var actor = GetCurrentUserId();
             if (actor == Guid.Empty) return Unauthorized(ApiResponse<object>.Fail(StatusCodes.Status401Unauthorized, "Identitas user login tidak valid."));
             return ToActionResult(await _service.CancelAsync(id, request, actor, cancellationToken));
+        }
+
+        [HttpGet("{id:guid}/reopen-logs")]
+        [AccessAction("Read", "Read Attendance Period Reopen Logs", Description = "Melihat riwayat pembukaan kembali periode presensi", AccessType = AccessTypes.Read, SortOrder = 9)]
+        [AccessPermission("AttendancePeriod", "Read")]
+        public async Task<IActionResult> GetReopenLogs(Guid id, CancellationToken cancellationToken = default)
+        {
+            var data = await _service.GetReopenLogsAsync(id, cancellationToken);
+            return Ok(ApiResponse<List<AttendancePeriodReopenLogResponse>>.Ok(data, "Riwayat buka kembali periode presensi berhasil diambil."));
         }
 
         [HttpDelete("{id:guid}")]

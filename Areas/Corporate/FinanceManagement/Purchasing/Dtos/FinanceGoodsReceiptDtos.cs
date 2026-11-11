@@ -24,6 +24,18 @@ public sealed class GoodsReceiptItemResponse
     public string? BatchNumber { get; set; }
     public DateOnly? ExpiredDate { get; set; }
     public string? Notes { get; set; }
+
+    // ---- Penampung data BLM (BE-FIN-147, Revisi 23, FIN-API-1.13 W.1). Seluruhnya null untuk baris GR lama
+    // dan GR buatan Quilvian. Kuantitas di bawah dalam SATUAN DASAR produk (kecuali SourceQuantity: satuan asli
+    // penerimaan); ReceivedQuantity di atas tetap kolom lama (untuk baris BLM: jumlah sah dalam satuan PO,
+    // dibulatkan 2 desimal hanya untuk tampilan, FIN-DES-140). Jangan dihitung ulang di klien.
+    public string? ConditionCode { get; set; }
+    public decimal? SourceQuantity { get; set; }
+    public string? SourceUomCode { get; set; }
+    public decimal? QuantityPerBaseUnit { get; set; }
+    public string? BaseUomCode { get; set; }
+    public decimal? BaseQuantity { get; set; }
+    public decimal? AcceptedBaseQuantity { get; set; }
 }
 
 public class GoodsReceiptResponse
@@ -34,6 +46,10 @@ public class GoodsReceiptResponse
     public DateOnly ReceivedDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid RowVersion { get; set; }
+
+    /// <summary>Sistem asal dokumen: QUILVIAN (bawaan, dokumen lama dan buatan Quilvian) atau BLM
+    /// (BE-FIN-147, FIN-API-1.13 W.1).</summary>
+    public string SourceSystem { get; set; } = "QUILVIAN";
 }
 
 public sealed class GoodsReceiptDetailResponse : GoodsReceiptResponse

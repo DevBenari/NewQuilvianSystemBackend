@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `2` |
-| Backend SHA | `ecdc135` |
-| Frontend SHA | `2a1cea784` |
-| Masukan | `00-interview-decisions.md` rev `3`, `01-existing-capability-map.md` rev `1.1` |
+| Revision | `3` — 3 November 2026: penutupan prasyarat `S-D1`, lihat bagian 4. Revision `2` tetap utuh di bawahnya |
+| Backend SHA | `ecdc135` untuk bagian 1–3; **`396c8363`** (branch `MHamzah`) untuk bagian 4 |
+| Frontend SHA | `2a1cea784` untuk bagian 1–3; **`9c4000724`** (branch `HamzahV2`) untuk bagian 4 |
+| Masukan | `00-interview-decisions.md` rev `3`, `01-existing-capability-map.md` rev `1.1`; bagian 4 memakai `00-interview-decisions.md` rev `17` bagian 32 |
 
 Dokumen ini menjawab satu pertanyaan: **apa yang harus siap lebih dulu sebelum sebuah fase boleh
 jalan.** Satu baris untuk satu prasyarat yang material.
@@ -80,8 +80,8 @@ policy, permission, validasi, SLA, dan eskalasi tetap milik masing-masing jenis 
 | Pemilik | Administrator / Identity |
 | Bukti | `BE@ecdc135 Shared/HumanResource/Services/HumanResourceContextService.cs` menurunkan konteks HR dari pengguna terautentikasi; `[AccessController]` dan `[AccessPermission]` dipakai 150 dari 150 controller HR |
 | Status kemampuan | `UNKNOWN` |
-| Dibutuhkan oleh | `HRD-PH-002` dan `HRD-PH-008` |
-| Dampak pemblokiran | Belum ada bukti bahwa HR dapat meminta pembuatan akun saat onboarding maupun pencabutan akses saat offboarding. Selama itu belum jelas, offboarding tidak dapat dinyatakan tuntas dari sisi keamanan |
+| Dibutuhkan oleh | `HRD-PH-002` dan `HRD-PH-008`; sejak 3 November 2026 juga **rilis** `S-D1` (`HRD-PH-007`) untuk pemetaan peran fungsional Finance / Anggaran, Direktur, dan Recruiter yang berstatus `MAPPING_REQUIRED` (`HRD-DEC-064`, `HRD-DEC-066`) |
+| Dampak pemblokiran | Belum ada bukti bahwa HR dapat meminta pembuatan akun saat onboarding maupun pencabutan akses saat offboarding. Selama itu belum jelas, offboarding tidak dapat dinyatakan tuntas dari sisi keamanan. Untuk `S-D1`, tanpa pemetaan peran, rantai `T10` dan `T12` tidak dapat diajukan (`UNRESOLVED_STEP_FAILS_CLOSED`); **desain tidak terhalang** |
 | Fase lain boleh jalan | **Ya.** Yang terdampak hanya bagian onboarding dan offboarding pada `S-C4` |
 | SHA sumber | `ecdc135` |
 | Tindakan berikutnya | Telusuri apakah ada kontrak antara HR dan Identity. Bila tidak ada, ini menjadi pertanyaan baru untuk pemilik Identity |
@@ -158,12 +158,13 @@ policy, permission, validasi, SLA, dan eskalasi tetap milik masing-masing jenis 
 | `HRD-PH-004` payroll sisi HR | `HRD-DEP-004` | **Sebagian.** Perhitungan ya, serah terima tidak |
 | `HRD-PH-005` kredensial dan kewenangan klinis | `HRD-DEP-005`, `HRD-DEP-007` | **Tidak** |
 | `HRD-PH-006` kesehatan kerja | `HRD-DEP-007` | **Tidak** |
-| `HRD-PH-007` domain yang diturunkan ulang | `HRD-Q-05` | **Tidak** |
+| `HRD-PH-007` domain yang diturunkan ulang | `HRD-Q-05` | **Sebagian sejak 3 November 2026.** `S-D1` **ya** untuk desain — `HRD-Q-05` ditutup untuk sepuluh tabel `WorkforcePlanning` lewat `HRD-DEC-059`, bukti pada bagian 4. `S-D2` s.d. `S-D5` **tidak** |
 | `HRD-PH-008` pengembangan orang | `HRD-DEP-003`, `HRD-DEP-006` | **Ya** |
 | `HRD-PH-009` ratchet penamaan saat disentuh | `HRD-DEP-001` | **Ya.** Bukan fase terjadwal; menempel pada task lain |
 
 Tujuh dari sembilan fase boleh jalan. Itu dasar mengapa status modul `PARTIAL` dan bukan
-`BLOCKED`.
+`BLOCKED`. Sejak 3 November 2026 `HRD-PH-007` juga boleh jalan **sebagian**, terbatas pada desain
+`S-D1`.
 
 ---
 
@@ -176,4 +177,51 @@ dipenuhi sebelum pekerjaan tertentu boleh dimulai.
 | --- | --- | --- | --- |
 | `HRD-PRE-001` | Registry mengenali `Hrd` dan `Wfp` lebih dulu | Pembuatan entity HR baru mana pun, dan setiap ratchet `S-E` | `HRD-DEC-019` dan `QBE-MOD-002` mensyaratkan prefix sudah terdaftar sebelum entity operasional dibuat |
 | `HRD-PRE-002` | Audit consumer selesai | Penghapusan alias route lama | `HRD-DEC-016` melarang mematikan route lama sebelum audit selesai dan masa deprecation berakhir. Lihat `HRD-Q-15` |
-| `HRD-PRE-003` | Isi tabel 67 entity yang benar-benar belum punya API diketahui | Seluruh `HRD-PH-007` | `HRD-Q-05`. Tanpa ini, penurunan ulang ERD berpotensi menghasilkan migration yang membuang data |
+| `HRD-PRE-003` | Isi tabel 67 entity yang benar-benar belum punya API diketahui | `HRD-PH-007`. **Sejak 3 November 2026 terpenuhi untuk sepuluh tabel `S-D1`** (bagian 4); tetap berlaku untuk `S-D2` s.d. `S-D5` | `HRD-Q-05`. Tanpa ini, penurunan ulang ERD berpotensi menghasilkan migration yang membuang data |
+
+---
+
+## 4. Penutupan prasyarat `S-D1` — 3 November 2026
+
+Bagian ini mencatat bukti yang disyaratkan aturan manifest sebelum `S-D1` (Perencanaan Tenaga
+Kerja) boleh naik dari `BLOCKED`. Satu-satunya prasyarat yang menahan `S-D1` adalah `HRD-PRE-003`
+/ `HRD-Q-05`: apakah sepuluh tabel `WorkforcePlanning` yang akan diturunkan ulang sudah berisi
+data, sehingga perubahan skema berisiko membuang data.
+
+### 4.1 Bukti
+
+| Bukti | Isi | Sumber |
+| --- | --- | --- |
+| Aplikasi tidak dapat menulis | Sepuluh model `WorkforcePlanning` tidak punya controller, service, maupun DTO. Satu-satunya model yang punya API, `MstWorkforceRequirement`, bukan bagian penurunan ulang | `HRD-TF-022`, `HRD-TF-023` @ BE `396c8363` |
+| Database dev kosong | Kesepuluh tabel berisi **0 baris** pada `QuilvianNewDevHamzah`, diperiksa read-only | `HRD-TF-024`, 2 November 2026 |
+| Staging dan produksi | Ada di pipeline (`dev-to-staging.yml`, `staging-to-production.yml`), tetapi connection string-nya tidak ada di repository sehingga tidak dapat diperiksa dari sesi audit | `HRD-TF-030` |
+| Pernyataan pemilik | Pengguna, sebagai pemilik teknis dan produk (`HRD-DEC-015`), menyatakan tidak ada impor manual atau skrip ke kesepuluh tabel itu | `HRD-DEC-059`, `approved` 2026-11-02 |
+| Pengaman sisa risiko | Setiap migration yang mengubah atau membuang kesepuluh tabel **MUST** berhenti bila tabelnya berisi data (`EMPTY_TABLE_GUARD`); rilis produksi lewat gerbang `database_ready` disertai hasil hitung baris (`PRODUCTION_GATE_CHECK`); pengaman **MUST NOT** dilewati (`NO_GUARD_BYPASS`) | `HRD-DEC-059` |
+
+### 4.2 Kesimpulan gerbang
+
+| Field | Isi |
+| --- | --- |
+| Prasyarat | `HRD-PRE-003` untuk sepuluh tabel `S-D1` |
+| Keadaan | **Terpenuhi bersyarat** |
+| Syarat yang membuatnya batal | Bila `EMPTY_TABLE_GUARD` berhenti di lingkungan mana pun, `HRD-DEC-059` kembali `draft` (`GUARD_FAILURE_REOPENS_DECISION`), dan `S-D1` kembali `BLOCKED` sampai pemetaan data lama ditambahkan ke desain |
+| Akibat pada status | `S-D1` boleh naik menjadi **`READY FOR DESIGN`**. Keputusan bisnis yang dibutuhkan desain sudah lengkap: `HRD-DEC-058` s.d. `HRD-DEC-071`, seluruhnya `approved` |
+| Yang **tidak** berubah | `HRD-Q-05` tetap terbuka untuk `S-D2` s.d. `S-D5`. `HRD-BLK-004` tetap berlaku bagi keempat slice itu |
+
+### 4.3 Kebergantungan `S-D1` yang tidak menghalangi desain
+
+Butir berikut lahir dari keputusan bagian 32 decision log. Semuanya memengaruhi **implementasi
+atau rilis**, bukan desain. Yang bersifat antar-slice di dalam modul HR dicatat di sini sebagai
+rujukan saja; urutan pengerjaannya disusun `plan-module-delivery` pada grafik dependency roadmap,
+bukan sebagai `HRD-DEP-*` baru.
+
+| Kebutuhan | Pemilik | Keadaan hari ini | Memengaruhi |
+| --- | --- | --- | --- |
+| Kolom porsi kerja pada penempatan | 02 Workforce Core | Belum ada (`HRD-TF-031`) | Implementasi hitungan tenaga tersedia (`HRD-DEC-061`) |
+| Isi master jenis tenaga yang nyata | 01 Master Data HR | Hanya nilai `Legacy` (`HRD-TF-031`) | Lapisan alih daya dan dokter mitra |
+| Penempatan jabatan pegawai yang ada | 02, batch `HRD-DEC-054` | 0 baris (`HRD-TF-028`) | Angka terisi; sebelum terisi tampil "data belum tersedia" |
+| Pemeriksaan roster terhadap standar, ringkasan kekurangan tenaga | 06 Penjadwalan (`HRD-DEC-026`, `HRD-DEC-058`) | Belum dirancang | Kontrak baca standar dan ringkasan |
+| Requisition dari antrean | 04 Rekrutmen (`S-D2`, `BLOCKED`) | Belum ada API | Diganti tautan manual sementara (`HRD-DEC-066`) |
+| Pemetaan peran Finance / Anggaran, Direktur, Recruiter | Administrator — `HRD-DEP-003` | `MAPPING_REQUIRED` | Rilis `T10`, `T12`, dan antrean Recruiter |
+| Penarikan otomatis angka beban dari data bed/kunjungan | Health Services — `HRD-DEP-005` | `MISSING` | `LATER SLICE`; rilis pertama memakai isian manual (`HRD-DEC-060`) |
+| Nilai kebijakan standar per unit | Pemilik kebijakan rumah sakit (`HRD-Q-01`) dan pemilik klinis | Belum ada | Isi standar sebelum dipakai produksi |

@@ -236,6 +236,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 .Select(x => new OrganizationUnitOptionResponse
                 {
                     Id = x.Id,
+                    DepartmentId = x.DepartmentId,
                     LegalEntityId = x.LegalEntityId,
                     HospitalSiteId = x.HospitalSiteId,
                     ParentOrganizationUnitId = x.ParentOrganizationUnitId,

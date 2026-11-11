@@ -931,3 +931,83 @@ mengikuti mekanisme yang sama begitu utang itu ditutup.
 Daftar kerja memuat nama pasien dan nama penulis. Ia **tidak** menampilkan isi dokumen; untuk
 membaca isi, petugas membuka berkas pasien lewat jalur rilis pertama, sehingga pemeriksaan
 keperluan akses dan jejak akses tetap berlaku.
+
+
+---
+
+# Amandemen revision 5 — Kontrak fungsional frontend (`approved`)
+
+Disahkan Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`).
+
+Input: `RM-DEC-078`–`087`; kontrak API `0.3.0` (`draft`); capability map revision 4. Frontend SHA
+`3397211dd`. Urutan kewenangan tetap: keamanan/privasi/invariant → brief UI yang disahkan →
+konvensi project → `DEV_DISCRETION`.
+
+## F5.1 Layar dan perubahannya
+
+| Layar | Status | Lokasi | Perubahan |
+|---|---|---|---|
+| Berkas pasien — linimasa | **Sudah ada, tidak diubah** | `src/components/view/health-services/medical-record-management/medical-records/` | Jenis 45–52 sudah tampil karena daftar jenis dan label diambil dari backend (`RM-CAP-077`). Hanya perlu diuji tampilannya (`UAT-20`) |
+| Berkas pasien — aksi addendum | **Diperbarui** | `medical-record-addendum-actions.jsx`, `src/utils/health-services/medical-record-management/medical-record-addendum-utils.js` | `RM-FE-030`, `RM-FE-031` |
+| Profil Dokumen Wajib | **Diperbarui** | `src/components/view/health-services/master-data/medical-record-completeness-profiles/medical-record-completeness-profile-view.jsx`, `src/lib/services/health-services/master-data/medical-record-completeness-profile.service.js`, `src/utils/health-services/medical-record-management/medical-record-completeness-profile-utils.js` | `RM-FE-032` |
+| Daftar kerja Kelengkapan Berkas | Sudah ada, tidak diubah | — | Nama profil, rincian "dokumen rehab belum ada", dan sumber `Rehabilitation` datang dari backend |
+
+Tidak ada menu atau route baru.
+
+## F5.2 Kebutuhan
+
+| ID | Kebutuhan | Kewenangan |
+|---|---|---|
+| `RM-FE-030` | Tombol koreksi **tidak digambar** bila `isCorrectionAllowed === false`; `explanation` dari server ditampilkan sebagai keterangan. Tombol "Sahkan isi catatan" tetap mengikuti `isAttestationApplicable` dan `isAllowed`. Bila field tidak ada (server lama), dianggap `true` | Invariant `RM-DEC-084` — terkunci |
+| `RM-FE-031` | Respons `400` `VAL-RM-B01` ditampilkan apa adanya dari server, form tetap terbuka, tanpa menghapus isian | Konvensi project |
+| `RM-FE-032` | Form profil menambah pilihan **Jenis poli** dari `clinicTypeOptions`, opsional, bertuliskan "Semua poli" bila kosong; **dikunci dan dikosongkan** bila kondisi ≠ "Tanpa kondisi" (`VAL-RM-B02`). Daftar profil menampilkan kolom jenis poli dan saringan `clinicType`. `409` `VAL-RM-B04` ditampilkan apa adanya | Isi field terkunci oleh kontrak; letak field, lebar kolom, dan bentuk saringan `DEV_DISCRETION` |
+
+## F5.3 Keadaan layar
+
+| Keadaan | Aksi addendum | Profil |
+|---|---|---|
+| Memuat `/authority` | Perilaku yang ada | — |
+| Dokumen Optik `Signed` | Tidak ada tombol; keterangan arahan ke layar Optik | — |
+| Dokumen Optik `LockedUnsigned` | Hanya "Sahkan isi catatan" | — |
+| Kirim ganda | Tombol terkunci selama permintaan (yang ada) | Tombol simpan terkunci (yang ada) |
+| `400`/`409` | Pesan server apa adanya | Pesan server apa adanya |
+
+## F5.4 Privasi
+
+Tidak ada data baru yang ditampilkan. Dokumen Optik dan Rehab tunduk pada aturan pembukaan berkas
+yang sudah ada (`MedicalRecord : Read`, keperluan akses, satu baris jejak akses).
+
+---
+
+# Amandemen revision 6 — Kontrak fungsional frontend (`approved`)
+
+Disahkan Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`).
+
+Input: `RM-DEC-097`–`107`; kontrak API `0.4.0` (`approved`); capability map revision 5. Frontend SHA
+`75b97ecad`. Urutan kewenangan tetap: keamanan/privasi/invariant → brief UI yang disahkan →
+konvensi project → `DEV_DISCRETION`.
+
+## F6.1 Layar dan perubahannya
+
+| Layar | Status | Lokasi | Perubahan |
+|---|---|---|---|
+| Berkas pasien — detail ringkasan pulang | **Sudah ada, tidak diubah** | `src/components/view/health-services/medical-record-management/medical-records/medical-record-document-panel.jsx` | Bagian "Rencana kontrol" tampil sendiri karena panel menggambar `sections` dari backend apa adanya (`:113`, `:194-199`; `RM-CAP-090`). Hanya diuji (`UAT-24`) |
+| Indikator ketepatan ringkasan pulang | **Tidak ada layar rekam medis** | — | `RM-DEC-101` menetapkan endpoint untuk HR. Layar pemakai (OPPE) milik modul HR |
+
+Tidak ada menu, route, service frontend, maupun state Redux baru di modul rekam medis.
+
+## F6.2 Kebutuhan
+
+| ID | Kebutuhan | Kewenangan |
+|---|---|---|
+| `RM-FE-033` | Panel detail tetap menggambar seluruh `sections` tanpa daftar label yang ditulis tetap, agar bagian baru dari backend tidak hilang | Invariant (tampilan berkas = dokumen sumber, `RM-DEC-104`) |
+
+## F6.3 Layar indikator — bila kelak diminta
+
+Bila pemilik kelak meminta layar indikator di rekam medis, permintaan itu memerlukan keputusan
+`RM-DEC` baru (menu, pemegang izin). Desain ini **tidak** menetapkan menu, route, maupun tata letak.
+
+## F6.4 Privasi
+
+Tidak ada data baru di layar rekam medis selain teks rencana kontrol, yang sudah tunduk pada aturan
+pembukaan berkas (`MedicalRecord : Read`, keperluan akses, satu baris jejak akses).

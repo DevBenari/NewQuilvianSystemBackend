@@ -20,8 +20,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
     ///
     /// <b>Seeder tidak pernah menimpa.</b> Profil yang kodenya sudah ada — termasuk yang sudah diubah
     /// atau dinonaktifkan petugas rekam medis — dilewati apa adanya. Profil yang kuncinya (jenis
-    /// kunjungan + jenis unit + kondisi) sudah dipakai profil buatan petugas juga dilewati, karena
-    /// satu kunci hanya boleh punya satu profil.
+    /// kunjungan + jenis unit + jenis poli + kondisi; jenis poli sejak `BE-42`) sudah dipakai profil
+    /// buatan petugas juga dilewati, karena satu kunci hanya boleh punya satu profil.
+    ///
+    /// <b>`RJ-REHAB` dipasang bersama probe Rehab (`BE-45`).</b> Tanpa probe, kriterianya tidak pernah
+    /// terpenuhi dan setiap kunjungan poli rehab menjadi belum lengkap (`RM-CAP-074`); keduanya karena itu
+    /// tidak boleh dipisahkan.
     ///
     /// <b>Id deterministik.</b> Id diturunkan dari kode profil, sehingga sama di setiap lingkungan.
     ///
@@ -39,7 +43,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
             EncounterType? EncounterType,
             ServiceUnitType? ServiceUnitType,
             CompletenessCondition Condition,
-            CompletenessCriterion[] Criteria);
+            CompletenessCriterion[] Criteria,
+            ClinicType? ClinicType = null);
 
         private static readonly SeedProfile[] Profiles =
         {
@@ -49,6 +54,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
             new("RJ-RAD", "Rawat Jalan Radiologi", EncounterType.Outpatient, ServiceUnitType.Radiology, CompletenessCondition.None, []),
             new("RJ-HD", "Rawat Jalan Hemodialisa", EncounterType.Outpatient, ServiceUnitType.Hemodialysis, CompletenessCondition.None,
                 [CompletenessCriterion.HemodialysisSessionSigned]),
+            // RM-DEC-080 (BE-42): unit Optik tanpa dokumen wajib, pola RJ-LAB/RJ-RAD.
+            new("RJ-OPT", "Rawat Jalan Optik", EncounterType.Outpatient, ServiceUnitType.Optical, CompletenessCondition.None, []),
+            // RM-DEC-081/085/086 (BE-45): poli Rehabilitasi Medik, unit apa pun; dijawab probe Rehab.
+            new("RJ-REHAB", "Rawat Jalan Poli Rehabilitasi Medik", EncounterType.Outpatient, null, CompletenessCondition.None,
+                [CompletenessCriterion.RehabClinicalDocument], ClinicType.Rehabilitation),
             new("TELE", "Telemedicine", EncounterType.Telemedicine, null, CompletenessCondition.None,
                 [CompletenessCriterion.DoctorNoteOrConsultation, CompletenessCriterion.PrimaryDiagnosis]),
             new("IGD", "Instalasi Gawat Darurat", EncounterType.Emergency, null, CompletenessCondition.None,
@@ -118,14 +128,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
             // dibandingkan dengan baris belum terhapus, sama dengan index uniknya.
             var ada = await db.Set<MstMedicalRecordCompletenessProfile>()
                 .AsNoTracking()
-                .Select(x => new { x.Id, x.Code, x.EncounterType, x.ServiceUnitType, x.Condition, x.IsDelete })
+                .Select(x => new { x.Id, x.Code, x.EncounterType, x.ServiceUnitType, x.ClinicType, x.Condition, x.IsDelete })
                 .ToListAsync(cancellationToken);
 
             var idAda = ada.Select(x => x.Id).ToHashSet();
             var kodeAda = ada.Select(x => x.Code.ToUpperInvariant()).ToHashSet();
             var kunciAda = ada
                 .Where(x => !x.IsDelete)
-                .Select(x => (x.EncounterType, x.ServiceUnitType, x.Condition))
+                .Select(x => (x.EncounterType, x.ServiceUnitType, x.ClinicType, x.Condition))
                 .ToHashSet();
 
             var sekarang = DateTime.UtcNow;
@@ -133,7 +143,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
             foreach (var profil in Profiles)
             {
                 var id = DeterministicId(profil.Code);
-                var kunci = (profil.EncounterType, profil.ServiceUnitType, profil.Condition);
+                var kunci = (profil.EncounterType, profil.ServiceUnitType, profil.ClinicType, profil.Condition);
 
                 if (idAda.Contains(id) || kodeAda.Contains(profil.Code) || kunciAda.Contains(kunci))
                 {
@@ -148,6 +158,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
                     Name = profil.Name,
                     EncounterType = profil.EncounterType,
                     ServiceUnitType = profil.ServiceUnitType,
+                    ClinicType = profil.ClinicType,
                     Condition = profil.Condition,
                     IsActive = true,
                     CreateDateTime = sekarang,

@@ -49,6 +49,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Mode
 
         public bool IsActive { get; set; } = true;
 
+        public Guid? PersonnelActionOrderId { get; set; }
+        public Guid? ApprovedByUserId { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+
+        public HrdPersonnelActionOrder? PersonnelActionOrder { get; set; }
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstLegalEntity? LegalEntity { get; set; }
         public MstHospitalSite? HospitalSite { get; set; }

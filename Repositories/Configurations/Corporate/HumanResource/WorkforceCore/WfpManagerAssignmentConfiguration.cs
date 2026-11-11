@@ -20,12 +20,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.Property(x => x.EffectiveStartDate).HasColumnType("date");
             builder.Property(x => x.EffectiveEndDate).HasColumnType("date");
             builder.Property(x => x.Description).HasMaxLength(500);
+            builder.HasOne(x => x.PersonnelActionOrder).WithMany().HasForeignKey(x => x.PersonnelActionOrderId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.WorkforceProfile).WithMany().HasForeignKey(x => x.WorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.ManagerWorkforceProfile).WithMany().HasForeignKey(x => x.ManagerWorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.OrganizationUnit).WithMany().HasForeignKey(x => x.OrganizationUnitId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.ManagerPosition).WithMany().HasForeignKey(x => x.ManagerPositionId).OnDelete(DeleteBehavior.Restrict);
             builder.HasIndex(x => new { x.ManagerWorkforceProfileId, x.IsActive });
+            builder.HasIndex(x => x.PersonnelActionOrderId);
             builder.HasIndex(x => new { x.WorkforceProfileId, x.EffectiveStartDate, x.EffectiveEndDate });
             builder.HasIndex(x => x.WorkforceProfileId).IsUnique().HasFilter("\"IsPrimaryManager\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
             builder.HasCheckConstraint("CK_WfpManagerAssignment_NotSelf", "\"WorkforceProfileId\" <> \"ManagerWorkforceProfileId\"");

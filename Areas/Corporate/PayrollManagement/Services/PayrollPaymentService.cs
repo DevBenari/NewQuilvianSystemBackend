@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
@@ -16,10 +16,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 /// Prinsip:
 /// - Hanya run yang sudah DISAHKAN (terkunci, seluruh penerima dibekukan) yang boleh mengirim instruksi. Satu instruksi hidup
 ///   (Scheduled/Processing/Paid) per penerima; kirim ulang tidak pernah membuat instruksi kedua untuk penerima yang sama
-///   (dijaga transaksi + advisory lock, dan indeks unik database pada TrxPayrollPayment).
+///   (dijaga transaksi + advisory lock, dan indeks unik database pada PrlPayrollPayment).
 /// - Rekening wajib terverifikasi. Kecuali kebijakan mengizinkan handoff sebagian, satu rekening bermasalah menahan SELURUH handoff.
-/// - Status Paid TIDAK PERNAH ditetapkan dari layar Payroll: hanya dari ACK hasil bank oleh Finance (nomor instruksi + bukti
-///   referensi bank + nominal yang sama persis). Gagal wajib beralasan; instruksi gagal dikirim ulang sebagai instruksi BARU.
+/// - Status Paid hanya lahir dari aksi ACK (nomor instruksi + bukti referensi + nominal yang sama persis dengan instruksi), dan
+///   aksi itu butuh izin Acknowledge yang diberikan admin lewat Akses Role: oleh Finance dengan hasil bank (sumber FINANCE_ACK)
+///   atau, selama belum ada koneksi bank, oleh petugas Payroll berwenang lewat konfirmasi manual (sumber MANUAL, PAY-BE-11).
+///   Gagal wajib beralasan; instruksi gagal dikirim ulang sebagai instruksi BARU.
 /// - Payroll tidak menulis ke tabel Finance/Accounting. Sisi Finance (jenis pembayaran PAYROLL, mapping COA, jurnal) adalah NEEDS
 ///   CONFIRMATION dan belum ada di Finance; Payroll menyediakan kontrak instruksi (GET) dan penerima ACK (POST) saja.
 /// </summary>
@@ -27,7 +29,11 @@ public sealed class PayrollPaymentService
 {
     public const string FinanceConsumptionNote =
         "NEEDS CONFIRMATION: Finance belum memiliki jenis pembayaran PAYROLL dan mapping COA gaji belum disahkan. Instruksi tersedia " +
-        "pada daftar ini; hasil bank diterima lewat ACK oleh pengguna Finance yang berwenang. Status Dibayar tidak pernah diubah dari layar Payroll.";
+        "pada daftar ini; hasil bank diterima lewat ACK oleh pengguna Finance yang berwenang atau, selama belum ada koneksi bank, lewat " +
+        "konfirmasi manual oleh petugas Payroll yang diberi izin Acknowledge (sumber MANUAL).";
+
+    /// <summary>Catatan instruksi Paid hasil konfirmasi manual (PAY-BE-11), diisi hanya bila Notes masih kosong; tanpa kolom baru.</summary>
+    private const string ManualPaidNote = "Dikonfirmasi manual (bukan hasil bank)";
 
     private const string LogCategory = "Corporate.PayrollManagement.Payment";
 
@@ -50,7 +56,7 @@ public sealed class PayrollPaymentService
         Guid runId, PayrollFinanceHandoffRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, PayrollTransactionRunner.RunLockKey(runId), async () =>
         {
-            var run = await _dbContext.TrxPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
+            var run = await _dbContext.PrlPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
 
             var inPaymentStage = PayrollRunStatuses.IsPaymentStage(run.RunStatus);
@@ -63,19 +69,19 @@ public sealed class PayrollPaymentService
                         $"Instruksi pembayaran hanya dapat dikirim dari payroll run yang sudah disahkan (saat ini {run.RunStatus}).");
             }
 
-            var employees = await _dbContext.TrxPayrollRunEmployees
+            var employees = await _dbContext.PrlPayrollRunEmployees
                 .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
                 .OrderBy(x => x.Id)
                 .ToListAsync(cancellationToken);
             if (employees.Any(e => !e.IsFinalized))
                 throw new PayrollInvalidTransitionException("Masih ada penerima yang belum dibekukan pada run ini; instruksi pembayaran belum dapat dikirim.");
 
-            var payments = await _dbContext.TrxPayrollPayments.Where(x => x.PayrollRunId == run.Id && !x.IsDelete).ToListAsync(cancellationToken);
+            var payments = await _dbContext.PrlPayrollPayments.Where(x => x.PayrollRunId == run.Id && !x.IsDelete).ToListAsync(cancellationToken);
             var bankIds = employees.Where(e => e.BankAccountId.HasValue).Select(e => e.BankAccountId!.Value).Distinct().ToList();
             var banks = await _dbContext.WfpBankAccounts.AsNoTracking().Where(b => bankIds.Contains(b.Id))
                 .ToDictionaryAsync(b => b.Id, cancellationToken);
 
-            var created = new List<TrxPayrollPayment>();
+            var created = new List<PrlPayrollPayment>();
             var skipped = new List<string>();
             var ordinal = 0;
             foreach (var employee in employees)
@@ -112,7 +118,7 @@ public sealed class PayrollPaymentService
                     "Tidak ada instruksi pembayaran yang dapat dikirim: tidak ada penerima dengan nominal bayar lebih dari nol.");
             }
 
-            _dbContext.TrxPayrollPayments.AddRange(created);
+            _dbContext.PrlPayrollPayments.AddRange(created);
             payments.AddRange(created);
             // Run baru pindah ke SentToFinance; run yang sudah di tahap pembayaran dihitung ulang statusnya (instruksi tambahan
             // yang belum dibayar mengembalikan Paid ke PartiallyPaid).
@@ -131,11 +137,11 @@ public sealed class PayrollPaymentService
 
     private sealed record PayeeBankSnapshot(Guid Id, string? BankName, string AccountNumber, string AccountHolderName);
 
-    private static TrxPayrollPayment NewPayment(
-        TrxPayrollRun run, TrxPayrollRunEmployee employee, PayeeBankSnapshot bank, int ordinal, int priorAttempts, Guid actorUserId)
+    private static PrlPayrollPayment NewPayment(
+        PrlPayrollRun run, PrlPayrollRunEmployee employee, PayeeBankSnapshot bank, int ordinal, int priorAttempts, Guid actorUserId)
     {
         var baseNumber = $"PAYI-{run.RunNumber}-{ordinal:D4}";
-        return new TrxPayrollPayment
+        return new PrlPayrollPayment
         {
             PayrollRunId = run.Id,
             PayrollRunEmployeeId = employee.Id,
@@ -156,7 +162,7 @@ public sealed class PayrollPaymentService
 
     /// <summary>Respons handoff: instruksi BARU bila ada, selain itu (replay) seluruh instruksi hidup yang sudah ada.</summary>
     private static PayrollFinanceHandoffResponse BuildResponse(
-        TrxPayrollRun run, List<TrxPayrollPayment> payments, List<TrxPayrollPayment> created, List<string> skipped, bool replay)
+        PrlPayrollRun run, List<PrlPayrollPayment> payments, List<PrlPayrollPayment> created, List<string> skipped, bool replay)
     {
         var reported = created.Count > 0 ? created : payments.Where(p => PayrollPaymentStatuses.IsLive(p.PaymentStatus)).ToList();
         return new PayrollFinanceHandoffResponse
@@ -180,13 +186,13 @@ public sealed class PayrollPaymentService
 
     public async Task<PayrollPaymentListResponse> GetPaymentsAsync(Guid runId, PayrollPaymentQuery query, CancellationToken cancellationToken)
     {
-        var run = await _dbContext.TrxPayrollRuns.AsNoTracking().SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
+        var run = await _dbContext.PrlPayrollRuns.AsNoTracking().SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
 
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
-        var all = await _dbContext.TrxPayrollPayments.AsNoTracking()
+        var all = await _dbContext.PrlPayrollPayments.AsNoTracking()
             .Where(x => x.PayrollRunId == runId && !x.IsDelete)
             .Select(x => new { x.PayrollRunEmployeeId, x.PaymentStatus, x.PaymentAmount, x.NetPaidAmount })
             .ToListAsync(cancellationToken);
@@ -200,9 +206,15 @@ public sealed class PayrollPaymentService
             TotalInstructionAmount = live.Sum(p => p.PaymentAmount),
             TotalPaidAmount = live.Sum(p => p.NetPaidAmount)
         };
+
+        // PAY-BE-11: potongan piutang yang sudah dikonfirmasi saat run disahkan, tetapi gaji penerimanya belum lunas atau gagal.
+        var deductionAttention = await PayrollSalaryPaymentStatusResolver.CountConfirmedDeductionAttentionAsync(_dbContext, runId, cancellationToken);
+        summary.ConfirmedDeductionPaymentPendingCount = deductionAttention.Pending;
+        summary.ConfirmedDeductionPaymentFailedCount = deductionAttention.Failed;
+
         var employeesWithLive = live.Select(p => p.PayrollRunEmployeeId).ToHashSet();
 
-        var rows = _dbContext.TrxPayrollPayments.AsNoTracking().Where(x => x.PayrollRunId == runId && !x.IsDelete);
+        var rows = _dbContext.PrlPayrollPayments.AsNoTracking().Where(x => x.PayrollRunId == runId && !x.IsDelete);
         if (!string.IsNullOrWhiteSpace(query.Status)) rows = rows.Where(x => x.PaymentStatus == query.Status);
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -261,14 +273,20 @@ public sealed class PayrollPaymentService
     }
 
     // ------------------------------------------------------------------------------------
-    // ACK hasil bank dari Finance
+    // ACK hasil pembayaran: hasil bank dari Finance (FINANCE_ACK) atau konfirmasi manual petugas berwenang (MANUAL)
     // ------------------------------------------------------------------------------------
 
     public Task<PayrollPaymentAcknowledgeResponse> AcknowledgeAsync(
         Guid runId, PayrollPaymentAcknowledgeRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, PayrollTransactionRunner.RunLockKey(runId), async () =>
         {
-            var run = await _dbContext.TrxPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
+            // PAY-BE-11: sumber divalidasi lebih dulu, sebelum data apa pun dibaca atau diubah. Kosong = FINANCE_ACK (perilaku lama).
+            var source = PayrollConfirmationSources.Normalize(request.ConfirmationSource)
+                ?? throw new PayrollRunValidationException(
+                    $"Sumber konfirmasi tidak dikenal. Gunakan {PayrollConfirmationSources.FinanceAck} atau {PayrollConfirmationSources.Manual}.");
+            var isManual = source == PayrollConfirmationSources.Manual;
+
+            var run = await _dbContext.PrlPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
             if (!PayrollRunStatuses.IsPaymentStage(run.RunStatus))
                 throw new PayrollInvalidTransitionException(
@@ -278,10 +296,10 @@ public sealed class PayrollPaymentService
             if (numbers.Any(string.IsNullOrEmpty) || numbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != numbers.Count)
                 throw new PayrollRunValidationException("Setiap item wajib memiliki nomor instruksi dan tidak boleh ada nomor yang dobel dalam satu pengiriman.");
 
-            var payments = await _dbContext.TrxPayrollPayments.Where(x => x.PayrollRunId == runId && !x.IsDelete).ToListAsync(cancellationToken);
+            var payments = await _dbContext.PrlPayrollPayments.Where(x => x.PayrollRunId == runId && !x.IsDelete).ToListAsync(cancellationToken);
             var byNumber = payments.ToDictionary(p => p.PaymentNumber, StringComparer.OrdinalIgnoreCase);
 
-            var response = new PayrollPaymentAcknowledgeResponse { PayrollRunId = run.Id };
+            var response = new PayrollPaymentAcknowledgeResponse { PayrollRunId = run.Id, ConfirmationSource = source };
             var now = DateTime.UtcNow;
             foreach (var item in request.Items)
             {
@@ -319,6 +337,8 @@ public sealed class PayrollPaymentService
                     payment.FinancePaymentId = item.FinancePaymentId ?? payment.FinancePaymentId;
                     payment.PaidAt = item.PaidAt ?? now;
                     payment.PaidByUserId = actorUserId;
+                    // Hanya konfirmasi manual yang menandai Notes; hasil bank Finance tidak berubah dari perilaku lama.
+                    if (isManual && string.IsNullOrWhiteSpace(payment.Notes)) payment.Notes = ManualPaidNote;
                     Touch(payment, actorUserId, now);
                     result.PaymentStatus = payment.PaymentStatus;
                     result.Outcome = "Diterapkan";
@@ -356,11 +376,13 @@ public sealed class PayrollPaymentService
                 await RecomputeRunPaymentStateAsync(run, payments, actorUserId, cancellationToken);
                 AddApproval(run, actorUserId, "PaymentAck", "Approved",
                     $"{response.AppliedCount} diterapkan, {response.IdempotentCount} idempoten, {response.RejectedCount} ditolak"
+                    + (isManual ? $" (sumber {source})" : string.Empty)
                     + (string.IsNullOrWhiteSpace(request.IdempotencyKey) ? string.Empty : $" (kunci {request.IdempotencyKey.Trim()})"));
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await _loggerService.AuditAsync(LogCategory, "PayrollRun.PaymentAcknowledged",
-                    $"Hasil pembayaran payroll run {run.RunNumber}: {response.AppliedCount} diterapkan, {response.RejectedCount} ditolak.",
-                    new { run.Id, response.AppliedCount, response.IdempotentCount, response.RejectedCount, request.IdempotencyKey, ActorUserId = actorUserId });
+                    $"Hasil pembayaran payroll run {run.RunNumber}: {response.AppliedCount} diterapkan, {response.RejectedCount} ditolak"
+                    + (isManual ? $" (sumber {source})." : "."),
+                    new { run.Id, response.AppliedCount, response.IdempotentCount, response.RejectedCount, request.IdempotencyKey, ConfirmationSource = source, ActorUserId = actorUserId });
             }
 
             response.RunStatus = run.RunStatus;
@@ -376,7 +398,7 @@ public sealed class PayrollPaymentService
         response.RejectedCount++;
     }
 
-    private static void Touch(TrxPayrollPayment payment, Guid actorUserId, DateTime now)
+    private static void Touch(PrlPayrollPayment payment, Guid actorUserId, DateTime now)
     {
         payment.UpdateDateTime = now;
         payment.UpdateBy = actorUserId;
@@ -389,12 +411,12 @@ public sealed class PayrollPaymentService
     public Task<PayrollFinanceHandoffResponse> RetryAsync(Guid runId, Guid paymentId, Guid actorUserId, CancellationToken cancellationToken) =>
         PayrollTransactionRunner.RunAsync(_dbContext, PayrollTransactionRunner.RunLockKey(runId), async () =>
         {
-            var run = await _dbContext.TrxPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
+            var run = await _dbContext.PrlPayrollRuns.SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
             if (!PayrollRunStatuses.IsPaymentStage(run.RunStatus))
                 throw new PayrollInvalidTransitionException("Instruksi hanya dapat dikirim ulang pada run yang sudah berada di tahap pembayaran.");
 
-            var payments = await _dbContext.TrxPayrollPayments.Where(x => x.PayrollRunId == runId && !x.IsDelete).ToListAsync(cancellationToken);
+            var payments = await _dbContext.PrlPayrollPayments.Where(x => x.PayrollRunId == runId && !x.IsDelete).ToListAsync(cancellationToken);
             var failed = payments.SingleOrDefault(p => p.Id == paymentId)
                 ?? throw new KeyNotFoundException("Instruksi pembayaran tidak ditemukan pada payroll run ini.");
             if (failed.PaymentStatus != PayrollPaymentStatuses.Failed)
@@ -402,7 +424,7 @@ public sealed class PayrollPaymentService
             if (payments.Any(p => p.PayrollRunEmployeeId == failed.PayrollRunEmployeeId && PayrollPaymentStatuses.IsLive(p.PaymentStatus)))
                 throw new PayrollRunConflictException("Penerima ini sudah memiliki instruksi pembayaran yang aktif.");
 
-            var employee = await _dbContext.TrxPayrollRunEmployees.SingleOrDefaultAsync(
+            var employee = await _dbContext.PrlPayrollRunEmployees.SingleOrDefaultAsync(
                 x => x.Id == failed.PayrollRunEmployeeId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Penerima pada instruksi ini tidak ditemukan.");
             var account = employee.BankAccountId.HasValue
@@ -416,7 +438,7 @@ public sealed class PayrollPaymentService
             var marker = failedNumber.LastIndexOf("-R", StringComparison.Ordinal);
             var baseNumber = marker > 0 && int.TryParse(failedNumber[(marker + 2)..], out _) ? failedNumber[..marker] : failedNumber;
             var attempts = payments.Count(p => p.PayrollRunEmployeeId == employee.Id);
-            var next = new TrxPayrollPayment
+            var next = new PrlPayrollPayment
             {
                 PayrollRunId = run.Id,
                 PayrollRunEmployeeId = employee.Id,
@@ -434,14 +456,14 @@ public sealed class PayrollPaymentService
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
             };
-            _dbContext.TrxPayrollPayments.Add(next);
+            _dbContext.PrlPayrollPayments.Add(next);
             payments.Add(next);
             await RecomputeRunPaymentStateAsync(run, payments, actorUserId, cancellationToken);
             AddApproval(run, actorUserId, "PaymentRetry", "Approved", $"{failed.PaymentNumber} -> {next.PaymentNumber}");
             await _dbContext.SaveChangesAsync(cancellationToken);
             await _loggerService.AuditAsync(LogCategory, "PayrollRun.PaymentRetried",
                 $"Instruksi {failed.PaymentNumber} dikirim ulang sebagai {next.PaymentNumber}.", new { run.Id, ActorUserId = actorUserId });
-            return BuildResponse(run, payments, new List<TrxPayrollPayment> { next }, new List<string>(), replay: false);
+            return BuildResponse(run, payments, new List<PrlPayrollPayment> { next }, new List<string>(), replay: false);
         }, cancellationToken);
 
     // ------------------------------------------------------------------------------------
@@ -450,14 +472,14 @@ public sealed class PayrollPaymentService
 
     /// <summary>Status run mengikuti hasil bank: Paid bila SEMUA penerima bernominal sudah dibayar, PartiallyPaid bila sebagian, selain itu SentToFinance.</summary>
     private async Task RecomputeRunPaymentStateAsync(
-        TrxPayrollRun run, List<TrxPayrollPayment> payments, Guid actorUserId, CancellationToken cancellationToken)
+        PrlPayrollRun run, List<PrlPayrollPayment> payments, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var payable = await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+        var payable = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
             .Where(x => x.PayrollRunId == run.Id && !x.IsDelete && x.PaymentAmount > 0m)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
 
-        bool IsSettled(TrxPayrollPayment p) =>
+        bool IsSettled(PrlPayrollPayment p) =>
             p.PaymentStatus == PayrollPaymentStatuses.Paid || p.PaymentStatus == PayrollPaymentStatuses.PartiallyReversed;
         var paidEmployees = payments.Where(IsSettled).Select(p => p.PayrollRunEmployeeId).ToHashSet();
         var paidCount = payable.Count(id => paidEmployees.Contains(id));
@@ -473,8 +495,8 @@ public sealed class PayrollPaymentService
         run.UpdateBy = actorUserId;
     }
 
-    private void AddApproval(TrxPayrollRun run, Guid actorUserId, string actionType, string status, string? comments) =>
-        _dbContext.TrxPayrollApprovals.Add(new TrxPayrollApproval
+    private void AddApproval(PrlPayrollRun run, Guid actorUserId, string actionType, string status, string? comments) =>
+        _dbContext.PrlPayrollApprovals.Add(new PrlPayrollApproval
         {
             PayrollRunId = run.Id,
             ApprovalLevel = "Payment",

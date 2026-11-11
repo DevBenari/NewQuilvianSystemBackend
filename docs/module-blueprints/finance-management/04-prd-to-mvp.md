@@ -2646,3 +2646,128 @@ Rincian dan buktinya di `testing/acceptance-test-matrix.md` bagian V.
 1. Seluruh Revisi 22 berstatus **draft**; persetujuan tetap tindakan pemilik.
 2. Revisi 22 **menggantikan** `FIN-VAL-271` dan butir uji `N.2.2` atas keputusan `FIN-DEC-233`. Mohon dinyatakan eksplisit saat persetujuan.
 3. Label "Revisi 21" sudah dipakai dua kali tanpa tercatat di manifest (kamus data bagian 11, arsitektur bagian T). Revisi ini memakai nomor 22; manifest dicatat ulang.
+
+
+---
+
+# Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: FIN-MVP-1.17 (putaran 2)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W; data/data-dictionary.md bagian 13
+```
+
+## 96. Identitas dan ringkasan
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian V2 |
+| Modul | Finance Management (`FIN-BP-001`), subdomain Purchasing |
+| Repository target | `NewQuilvianSystemBackend` (`Yasmina`); `QuilvianSystemFrontendDev` (`yasmina`), satu komponen |
+| Cakupan satu baris | Quilvian dapat menyimpan PO/GR kiriman BLM dengan identitas, snapshot produk, dan konversi satuan per produk, lalu menghitung penerimaan sah dan status PO dengan benar, tanpa mengubah dokumen lama |
+
+**Ringkasan eksekutif.** BLM akan menjadi sumber utama PO dan GR (`FIN-DEC-261`). Pemilik meminta tabel penampung lebih
+dulu, integrasinya menyusul. Revisi ini menambah penanda sumber, identitas BLM, snapshot konversi satuan per produk,
+kondisi barang, kotak masuk, pemetaan supplier, konflik, dan pembatalan eksternal; menambah penghitung penerimaan untuk PO
+BLM; dan membuat layanan GR menolak perubahan lokal atas dokumen BLM.
+
+## 97. Masalah produk dan batas MVP
+
+| Hal | Isi |
+|---|---|
+| Masalah | Tabel PO/GR tidak bisa membedakan dokumen BLM, tidak menyimpan identitas BLM, tidak mengenal barang rusak atau menunggu periksa, dan menjumlah kuantitas tanpa memperhatikan satuan. Contoh: PO 1 BOX berisi 12 PCS dengan GR 6 PCS akan terbaca "6 dari 1, sudah penuh" |
+| Titik mulai MVP | Migration `AddFinPurchasingBlmStaging` diterapkan ke database, lalu aplikasi baru diaktifkan |
+| Titik akhir MVP | Semua tabel dan constraint ada; dokumen lama tetap `QUILVIAN` dan berperilaku sama; penghitung memberi status benar untuk contoh pemilik (W.T5..W.T12); GR lokal atas dokumen BLM ditolak 409; panel kemajuan menampilkan satuan dasar untuk PO BLM |
+| Pelaku | Tidak ada pelaku baru |
+| Di luar MVP | Penerima kiriman BLM, autentikasi, pengolah, layar pemetaan dan konflik, Monitoring Sinkronisasi, penyembunyian tombol untuk dokumen BLM, gerbang Tukar Faktur, alokasi invoice multi-GR |
+
+## 98. Epic dan functional requirement
+
+**`EPIC FIN-26` — Penampung Data Purchasing BLM.** Disposisi: `EXTEND` dan `MISSING / NEW`.
+
+| ID | Requirement yang dapat diuji | Disposisi | Asal |
+|---|---|---|---|
+| `FR-FIN-272` | PO dan GR menyimpan sistem sumber; dokumen lama otomatis `QUILVIAN` | `EXTEND` | `FIN-DEC-265`, `FIN-DES-128` |
+| `FR-FIN-273` | PO, item PO, GR, dan item GR menyimpan identitas BLM unik per sistem sumber; baris GR dicocokkan ke item PO lewat identitas item BLM | `EXTEND` | `FIN-DEC-263`, `275` |
+| `FR-FIN-274` | Item PO BLM menyimpan ID dan kode produk BLM serta snapshot nama, kategori, satuan, kuantitas, isi per satuan, dan satuan dasar | `EXTEND` | `FIN-DEC-274`, `275`, `276` |
+| `FR-FIN-275` | Baris GR BLM menyimpan kondisi, kuantitas dan satuan asli, faktor konversi yang dipakai, hasil normalisasi, dan jumlah sah | `EXTEND` | `FIN-DEC-268`, `276` |
+| `FR-FIN-276` | Kotak masuk menyimpan setiap kiriman BLM dan menolak nomor kejadian ganda | `MISSING / NEW` | `FIN-DEC-261` |
+| `FR-FIN-277` | Pemetaan supplier BLM ke `MstSupplier`, satu aktif per supplier BLM | `MISSING / NEW` | `FIN-DEC-263` |
+| `FR-FIN-278` | Konversi satuan tidak dipelihara di Quilvian dan tidak pernah bernilai bawaan 1; konversi yang tidak pasti menjadi konflik `CONVERSION_UNRESOLVED` | `MISSING / NEW` | `FIN-DEC-276` |
+| `FR-FIN-279` | Konflik sinkronisasi tercatat beserta penyelesaiannya, tanpa pembalikan otomatis | `MISSING / NEW` | `FIN-DEC-264` |
+| `FR-FIN-280` | Pembatalan PO/GR lintas sistem tercatat dengan kategori, alasan, pelaku, dan status | `MISSING / NEW` | `FIN-DEC-262` |
+| `FR-FIN-281` | Dokumen lama: perilaku buat, ubah, batal GR dan status PO tidak berubah; field respons lama tidak berubah | `EXISTING / REUSE` | `FIN-DEC-277` |
+| `FR-FIN-282` | Status PO BLM dihitung dari jumlah sah ternormalisasi per item; `FULLY_RECEIVED` hanya bila setiap item terpenuhi dan semua konversi pasti | `MISSING / NEW` | `FIN-DEC-268`, `277`, `FIN-DES-142` |
+| `FR-FIN-283` | Buat, ubah, batal GR lewat Quilvian untuk dokumen BLM ditolak 409 | `EXTEND` | `FIN-DEC-265`, `FIN-DES-141` |
+| `FR-FIN-284` | Respons PO/GR dan kemajuan item memuat field tambahan; panel kemajuan menampilkan satuan dasar untuk PO BLM | `EXTEND` | `FIN-DEC-273`, `FIN-DES-139` |
+
+## 99. Arsitektur, status, dan kewenangan
+
+Arsitektur: `02-backend-architecture.md` W. Kolom: `data/data-dictionary.md` 13. Status: `contracts/state-transition-matrix.md`
+W (termasuk W.4 status PO BLM). Validasi: `FIN-VAL-300`..`316`. API: `contracts/api-contract.md` W. Tidak ada endpoint dan
+butir izin baru.
+
+## 100. Batas non-fungsional
+
+| Batas | Isi |
+|---|---|
+| Kompatibilitas | Field respons lama tetap; field baru boleh kosong |
+| Rilis | Satu paket: model, konfigurasi, migration dan `ModelSnapshot`, service, DTO, Frontend. Database dulu, lalu aplikasi (`FIN-DEC-273`) |
+| Presisi | Satuan dasar `numeric(18,6)`; pembagian ke satuan PO hanya untuk tampilan |
+| Riwayat | Snapshot produk dan konversi per baris; perubahan master BLM tidak mengubah PO/GR yang sudah tercatat |
+| Privasi | `PayloadJson` dan `CancelledBy` sensitif; tanpa data pasien |
+| Database | Migration aditif, tanpa backfill, dapat dimundurkan |
+
+## 101. Skenario UAT
+
+Rincian di `testing/acceptance-test-matrix.md` bagian W.
+
+| Kemampuan | Berhasil | Gagal |
+|---|---|---|
+| Dokumen lama | W.T1..W.T4 | — |
+| Penerimaan BLM | W.T5 (sebagian), W.T6 (penuh), W.T9 (GR dalam BOX) | W.T7 menunggu periksa, W.T8 rusak, W.T10 konversi tidak pasti, W.T12 satu item belum diterima |
+| Pembatalan | W.T11 | — |
+| Penjaga | — | W.T13 409; W.T14..W.T17 constraint |
+| Mundur | W.T18 | — |
+
+## 102. Definition of Done Revisi 23
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | Empat model diperbarui dan empat model baru sesuai kamus data 13 | Review diff |
+| 2 | Delapan konfigurasi EF memuat check, index, presisi, dan FK | Review diff |
+| 3 | Empat `DbSet` terdaftar | Review diff |
+| 4 | `PurchasingReceiptQuantityCalculator` dan cabang BLM `RecomputePurchaseOrderStatus` | Review diff; W.T5..W.T12 |
+| 5 | Penjaga 409 di `CreateAsync`, `UpdateAsync`, `CancelAsync` | W.T13 |
+| 6 | DTO dan `ItemProgress` mendapat field tambahan; panel kemajuan diperbarui | Review diff BE dan FE; W.T4 |
+| 7 | Migration dan `ModelSnapshot` dibangkitkan, direview, diterapkan pada database uji **atas wewenang terpisah** | W.T1, W.T2 |
+| 8 | `dotnet build` lulus **atas wewenang terpisah** | Keluaran build |
+| 9 | Langkah mundur teruji | W.T18 |
+| 10 | Laporan task tracked ada | `task/report/backend/<TASK-ID>.md` dan `task/report/frontend/<TASK-ID>.md` |
+
+## 103. Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+|---|---|---|
+| `MVP-19` | `FR-FIN-272`..`284` dalam satu paket rilis | Saling bergantung; model tanpa migration memecah query PO/GR (`FIN-DES-138`) |
+| `POST-MVP` | Integrasi BLM (penerima kiriman, autentikasi, pengolah), layar pemetaan dan konflik, Monitoring Sinkronisasi, penyembunyian tombol, gerbang Tukar Faktur, alokasi invoice multi-GR dalam satuan dasar | Menunggu `FIN-OQ-141` |
+
+## 104. Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Pemilik | Memblokir |
+|---|---|---|
+| Persetujuan desain Revisi 23 putaran 2 | Product Owner Finance | **Selesai** 9 November 2026 |
+| Wewenang membangkitkan dan menerapkan migration serta menjalankan build | Product Owner dan pemilik database | **Memblokir DoD 7–8 dan rilis `MVP-19`**; tidak memblokir penulisan kode di branch kerja selama tidak dirilis |
+| `FIN-OQ-141`: kontrak Tim BLM, termasuk isi per satuan dan satuan dasar per item | Tim BLM | Tidak untuk `MVP-19`. **Dijawab sebagian sisi Quilvian** 10 November 2026 (`FIN-DEC-282`..`285`); tetap `OPEN` menunggu komitmen tertulis, kontrak, dan jadwal Tim BLM. Audit teknis BLM 10 November 2026: tersedia sebagian, perlu pengembangan (`FIN-DEC-289`..`291`) |
+| `FIN-OQ-144`: cara mengisi pemetaan supplier | Finance dan Tim BLM | Tidak. **Dijawab** 10 November 2026 (`FIN-DEC-281`), dipersempit `FIN-DEC-287` (NPWP ditunda) |
+
+## 105. Catatan penyerahan
+
+1. Revisi 23 putaran 2 **disetujui** pemilik pada 9 November 2026 ("saya setujui, lakukan plan-module-delivery"), termasuk `FIN-DES-141`.
+2. Putaran 2 menerapkan `FIN-DEC-273`..`278`: tabel pemetaan produk dan pemetaan satuan **tidak dibuat**; konversi per
+   produk dari BLM disimpan per baris; dokumen lama tidak disentuh (putaran 1 sempat mengusulkan backfill, kini dicabut).
+3. `FIN-DES-141` memenuhi permintaan perbaikan `CreateAsync`/`UpdateAsync`/`CancelAsync` dengan **menolak** dokumen BLM,
+   karena `FIN-DEC-265` melarang membuat atau mengubah GR BLM secara lokal. Normalisasi dijalankan penghitung bersama
+   yang juga dipakai pengolah kiriman. Mohon dikonfirmasi saat persetujuan.
+4. `requirement-completeness-gate` tidak dijalankan untuk slice ini (alasan di W.13).

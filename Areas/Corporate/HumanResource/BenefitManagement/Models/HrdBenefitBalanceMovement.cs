@@ -50,6 +50,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         public Guid? ActorUserId { get; set; }
 
+        public Guid? WorkforceProfileId { get; set; }
+
+        public Guid? BenefitPlanId { get; set; }
+
+        [MaxLength(100)]
+        public string? ReferenceNumber { get; set; }
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
         public TrxEmployeeBenefitEnrollment? EmployeeBenefitEnrollment { get; set; }
         public TrxEmployeeBenefitDependent? EmployeeBenefitDependent { get; set; }
         public HrdBenefitBalanceMovement? ReversesMovement { get; set; }

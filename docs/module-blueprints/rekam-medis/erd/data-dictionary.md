@@ -524,3 +524,60 @@ Hanya kolom baru yang ditulis; kolom lain lihat bagian rilis pertama di atas.
 | `TrxPatientDiagnosis` | `EncounterId`, `IsPrimary`, `DiagnosisType`, `DiagnosisStatus` | `ClinicalManagement/Models/TrxPatientDiagnosis.cs` |
 | `TrxPatientIntegratedProgressNote` | `EncounterId`, `ProfessionType`, `IsCancel` | `ClinicalManagement/Models/TrxPatientIntegratedProgressNote.cs` |
 | Tabel sumber modul lain | Kolom final dan waktu final pada `02-backend-architecture.md` A4.10 | Model masing-masing modul |
+
+
+---
+
+# Amandemen revision 5 (`approved`, `RM-DEC-088`)
+
+## `MstMedicalRecordCompletenessProfile` — Diperbarui
+
+Hanya kolom yang bertambah. Kolom lain lihat bagian revision 4 di atas.
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Validasi | Sensitif | Contoh |
+|---|---|:---:|---|---|---|:---:|---|
+| `ClinicType` | `integer` (`ClinicType`) | Tidak | `NULL` = semua poli | — | Nilai enum terdefinisi; hanya bila `Condition = 0` (`VAL-RM-B02`, `B03`); bagian kunci unik (`VAL-RM-B04`) | Tidak | `6` (`Rehabilitation`) pada `RJ-REHAB` |
+
+## `MstMedicalRecordCompletenessProfileItem` — Sudah ada
+
+| Kolom kunci | Perubahan |
+|---|---|
+| `Criterion` | Nilai baru `17` = `RehabClinicalDocument`. File model tidak berubah |
+
+## Tabel sudah ada yang dibaca aturan revision 5
+
+| Tabel | Kolom yang dipakai | Aturan | File model |
+|---|---|---|---|
+| `MstClinic` | `Id`, `ClinicType` | Pemilihan profil berpoli (`RM-DEC-085`) | `Areas/HealthServices/MasterData/Models/MstClinic.cs` |
+| `RegPatientEncounter` | `ClinicId` | Sama | `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounter.cs` |
+| `RhbAssessment`, `RhbSession`, `RhbProgressReview`, `RhbDischargeSummary` | `EncounterId`, `RecordStatus`, `SignedAt`, `IsDelete`, `EpisodeId` | Probe `RehabClinicalDocument` (`RM-DEC-086`) | `Areas/HealthServices/RehabilitationManagement/Models/` |
+| `MrcClinicalNoteAddendum` | `IntegrityId`, `AddendumPurpose` | Penolakan koreksi Optik; penanda "pernah diralat" (`RM-DEC-084`, `DS-R5-04`) | `.../MedicalRecordManagement/Models/MrcClinicalNoteAddendum.cs` |
+| `OptRefractionExamRevision`, `OptPrescriptionVersion` | `RevisionNo`/`VersionNo` | Penanda "pernah diralat" Optik | `Areas/HealthServices/OpticalManagement/Models/` |
+
+Isi `RhbSession` dan dokumen rehab lain berisi data klinis pasien dan **sensitif**; tidak masuk
+log dan tidak dipakai sebagai contoh berisi data asli.
+
+# Amandemen revision 6 (`approved`, `RM-DEC-108`)
+
+**Tidak ada tabel baru maupun kolom yang berubah.** Tabel sudah ada yang dibaca aturan revision 6:
+
+| Tabel | Kolom yang dipakai | Aturan | Sensitif | File model |
+|---|---|---|:---:|---|
+| `InpEpisode` | `Id`, `EpisodeStatus`, `PhysicallyLeftAt`, `ClosedAt`, `IsDelete` | Jam mulai dan keikutsertaan baris (`RM-DEC-107`) | Tidak (waktu); **Ya** bila digabung identitas pasien | `Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs` |
+| `InpDischargeSummary` | `EpisodeId`, `SignedAt`, `SignedByDoctorId`, `FollowUpDate`, `FollowUpServiceUnitId`, `FollowUpDoctorId`, `IsDelete` | Jam selesai; dokter; rencana kontrol (`RM-DEC-102`, `104`, `105`) | **Ya** — isi ringkasan; kolom waktu dan dokter tidak sensitif secara terpisah | `.../InPatientManagement/Models/InpDischargeSummary.cs` |
+| `InpDischargeSummaryRevision` | `DischargeSummaryId`, `PreviousSignedAt`, `PreviousSignedByDoctorId`, `IsDelete` | Tanda tangan pertama (`RM-DEC-105`) | **Ya** — salinan isi; hanya kolom waktu/dokter yang dibaca | `.../InPatientManagement/Models/InpDischargeSummaryRevision.cs` |
+| `InpDoctorAssignment` | `EpisodeId`, `DoctorId`, `AssignmentRole`, `IsActive`, `EndDateTime`, `IsDelete` | DPJP aktif untuk ringkasan belum ditandatangani (`RM-DEC-106`) | Tidak | `.../InPatientManagement/Models/InpDoctorAssignment.cs` |
+| `MstDoctor` | `Id`, `FullName`, `WorkforceProfileId` | Baris indikator; teks rencana kontrol | Tidak | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstDoctor.cs` |
+| `MstServiceUnit` | `Id`, `ServiceUnitName` | Teks rencana kontrol | Tidak | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs` |
+
+## Field respons indikator (bukan kolom tersimpan)
+
+| Field | Tipe | Sensitif | Contoh |
+|---|---|:---:|---|
+| `doctorId`, `workforceProfileId` | `uuid?` | Tidak | — |
+| `doctorName` | `string` | Tidak | "dr. Contoh Satu" |
+| `assessedCount`, `within24h`, `between24And48h`, `over48h`, `unsignedBetween24And48h`, `unsignedOver48h`, `notYetDueCount` | `integer` | **Kinerja dokter** — hanya untuk pemegang `DischargeSummaryTimeliness : Read`; tidak masuk log selain jumlah item | `34` |
+| `generatedAt` | `timestamp` UTC | Tidak | `2026-11-01T05:00:00Z` |
+
+Isi ringkasan pulang tetap **sensitif**; tidak masuk log dan tidak dipakai sebagai contoh berisi
+data asli.

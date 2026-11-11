@@ -98,6 +98,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
         public int DetailCount { get; set; }
         public int PendingVerificationCount { get; set; }
         public int VerifiedVerificationCount { get; set; }
+        public bool IsSubmittedOnBehalf { get; set; }
+        public Guid? SubmittedByWorkforceProfileId { get; set; }
+        public string? OnBehalfReason { get; set; }
+        public DateTime? OnBehalfNotifiedAt { get; set; }
+        public string? EvidenceFilePath { get; set; }
+        public string? EvidenceFileName { get; set; }
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -318,5 +324,88 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 
         public static EmployeeProfileChangeServiceResult<T> Fail(int statusCode, string message) =>
             new() { Success = false, StatusCode = statusCode, Message = message };
+    }
+
+    public class CreateOnBehalfProfileChangeRequest : CreateEmployeeProfileChangeRequest
+    {
+        [Required, MaxLength(500)]
+        public string OnBehalfReason { get; set; } = string.Empty;
+
+        public IFormFile? EvidenceFile { get; set; }
+    }
+
+    public class EmployeeProfileChangeEvidenceUploadRequest
+    {
+        [Required]
+        public IFormFile File { get; set; } = null!;
+    }
+
+    public class EmployeeProfileChangeEvidenceFileResponse
+    {
+        public string PhysicalPath { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = "application/octet-stream";
+    }
+
+    public class EmployeeCurrentProfileResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+        public string WorkforceProfileCode { get; set; } = string.Empty;
+        public string WorkforceDisplayName { get; set; } = string.Empty;
+        public Guid EmployeeId { get; set; }
+        public string EmployeeNumber { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string? NickName { get; set; }
+        public string? BirthPlace { get; set; }
+        public DateTime? BirthDate { get; set; }
+        public string? Gender { get; set; }
+        public string? Religion { get; set; }
+        public string? MaritalStatus { get; set; }
+        public string? BloodType { get; set; }
+        public string? IdentityType { get; set; }
+        public string? IdentityNumber { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? WhatsAppNumber { get; set; }
+        public string? Email { get; set; }
+        public string? Address { get; set; }
+        public Guid? CountryId { get; set; }
+        public string? CountryName { get; set; }
+        public Guid? ProvinceId { get; set; }
+        public string? ProvinceName { get; set; }
+        public Guid? CityId { get; set; }
+        public string? CityName { get; set; }
+        public Guid? DistrictId { get; set; }
+        public string? DistrictName { get; set; }
+        public Guid? PostalCodeId { get; set; }
+        public string? PostalCodeNumber { get; set; }
+        public string? EmergencyContactName { get; set; }
+        public string? EmergencyContactRelation { get; set; }
+        public string? EmergencyContactPhone { get; set; }
+        public string? EmergencyContactAddress { get; set; }
+
+        // Konteks Organisasi & Jabatan (Read-Only)
+        public string? DepartmentName { get; set; }
+        public string? PositionName { get; set; }
+        public string? OrganizationUnitName { get; set; }
+        public string? WorkLocationName { get; set; }
+        public string? ManagerDisplayName { get; set; }
+
+        // Info Pengajuan Aktif yang Belum Selesai (Bila Ada)
+        public bool HasOpenRequest { get; set; }
+        public Guid? OpenRequestId { get; set; }
+        public string? OpenRequestNumber { get; set; }
+        public string? OpenRequestStatus { get; set; }
+        public string? OpenRequestCategory { get; set; }
+        public string? OpenRequestReasonText { get; set; }
+        public DateTime? OpenRequestSubmittedAt { get; set; }
+        public string? OpenRequestEvidenceFileName { get; set; }
+        public string? OpenRequestRevisionReason { get; set; }
+        public List<EmployeeProfileChangeDetailResponse> OpenRequestDetails { get; set; } = new();
+
+        // Metadata Validasi
+        public List<EmployeeProfileChangeAllowedFieldResponse> AllowedFields { get; set; } = new();
+        public List<string> SensitiveFields { get; set; } = new();
+        public int MaximumEvidenceFileSizeMb { get; set; } = 10;
+        public List<string> AllowedEvidenceExtensions { get; set; } = new();
     }
 }

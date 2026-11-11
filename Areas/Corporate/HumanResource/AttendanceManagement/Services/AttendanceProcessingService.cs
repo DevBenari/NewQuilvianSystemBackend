@@ -983,7 +983,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             daily.LateMinutes = 0;
             if (punch.FirstCheckIn != null && schedule.ScheduledStartAt.HasValue)
             {
-                var lateThreshold = schedule.ScheduledStartAt.Value.AddMinutes(schedule.LateCheckInGraceMinutes);
+                var graceMinutes = schedule.LateCheckInGraceMinutes > 0 ? schedule.LateCheckInGraceMinutes : 10;
+                var lateThreshold = schedule.ScheduledStartAt.Value.AddMinutes(graceMinutes);
                 if (punch.FirstCheckIn.EventAt > lateThreshold)
                 {
                     daily.LateMinutes = Math.Max(0, (int)Math.Floor((punch.FirstCheckIn.EventAt - schedule.ScheduledStartAt.Value).TotalMinutes));
@@ -1042,9 +1043,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 daily.IsAbsent = true;
                 daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Absent;
             }
+            else if (daily.OfficialDutyRequestId.HasValue)
+            {
+                daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.OnDuty;
+            }
             else if (daily.HasMissingPunch)
             {
-                daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Incomplete;
+                daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.IncompletePunch;
+                daily.IncompletePunchReason = "Hanya tercatat 1 tap (tap masuk/keluar tidak lengkap per HRD-DEC-106)";
             }
             else if (daily.IsLate)
             {

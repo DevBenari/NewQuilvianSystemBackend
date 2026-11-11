@@ -58,6 +58,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         [MaxLength(2000)]
         public string? FollowUpInstruction { get; set; }
 
+        /// <summary>
+        /// Tanggal kontrol poliklinik, format <c>yyyy-MM-dd</c> — <c>BE-RWI-256</c>. Bila diisi,
+        /// <see cref="FollowUpServiceUnitId"/> wajib diisi, dan tanggalnya tidak boleh sebelum
+        /// tanggal keputusan pulang.
+        /// </summary>
+        public DateOnly? FollowUpDate { get; set; }
+
+        /// <summary>Poliklinik tujuan kontrol; wajib bila tanggal kontrol diisi.</summary>
+        public Guid? FollowUpServiceUnitId { get; set; }
+
+        /// <summary>Dokter tujuan kontrol, opsional; wajib punya jadwal praktik di poliklinik itu.</summary>
+        public Guid? FollowUpDoctorId { get; set; }
+
         [MaxLength(250)]
         public string? ReferralDestination { get; set; }
 
@@ -129,6 +142,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public string? FollowUpInstruction { get; set; }
 
+        /// <summary>Rencana kontrol terstruktur — <c>BE-RWI-256</c>.</summary>
+        public DateOnly? FollowUpDate { get; set; }
+
+        public Guid? FollowUpServiceUnitId { get; set; }
+
+        public string? FollowUpServiceUnitName { get; set; }
+
+        public Guid? FollowUpDoctorId { get; set; }
+
+        public string? FollowUpDoctorName { get; set; }
+
         public string? ReferralDestination { get; set; }
 
         public string? ClinicalSummary { get; set; }
@@ -192,6 +216,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string? DischargeMedicationNote { get; set; }
 
         public string? FollowUpInstruction { get; set; }
+
+        /// <summary>Salinan rencana kontrol terstruktur versi sebelumnya — <c>BE-RWI-256</c>.</summary>
+        public DateOnly? FollowUpDate { get; set; }
+
+        public Guid? FollowUpServiceUnitId { get; set; }
+
+        public Guid? FollowUpDoctorId { get; set; }
 
         public string? ReferralDestination { get; set; }
 

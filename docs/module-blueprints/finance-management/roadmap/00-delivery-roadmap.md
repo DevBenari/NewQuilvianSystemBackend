@@ -1012,3 +1012,19 @@ diringkas ulang di berkas ini.
 **Pernyataan wajib pada setiap handoff.** Backend: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend
 dan `docs/engineering/`; `dotnet build` dan migration hanya atas instruksi eksplisit pemilik. Frontend: `npm run build`/`dev` hanya atas
 instruksi eksplisit pemilik. Tidak ada builder yang dijalankan oleh roadmap ini.
+
+
+---
+
+# REV-24 (9 November 2026) — Penampung Data PO/GR dari BLM, Blueprint Revisi 23 (approved)
+
+Rincian lengkap: `01-backend-roadmap.md` dan `02-frontend-roadmap.md` bagian REV-24.
+
+| Gelombang rilis | Backend | Frontend | Penahan |
+|---|---|---|---|
+| `MVP-19` (satu paket; database dulu, lalu aplikasi) | ✅ `BE-FIN-142` ([laporan](../task/report/backend/BE-FIN-142.md)), ✅ `BE-FIN-143` ([laporan](../task/report/backend/BE-FIN-143.md)), 🟡 `145` ([laporan](../task/report/backend/BE-FIN-145.md)), 🟡 `146` ([laporan](../task/report/backend/BE-FIN-146.md)), ✅ `147` ([laporan](../task/report/backend/BE-FIN-147.md)), ✅ `144` ([laporan](../task/report/backend/BE-FIN-144.md)) | ✅ `FE-FIN-062` ([laporan](../task/report/frontend/FE-FIN-062.md)), ✅ `063` ([laporan](../task/report/frontend/FE-FIN-063.md)) | Wewenang migration dan build dari pemilik (`FIN-DEC-273`) |
+| `POST-MVP` | Integrasi BLM, pemetaan supplier, konflik, Monitoring Sinkronisasi, gerbang Tukar Faktur, multi-GR | Layar terkait | `FIN-OQ-141` (satu-satunya yang masih `OPEN`); `138`, `143`, `144` dijawab 10 November 2026 (`FIN-DEC-279`..`281`) |
+
+**Pernyataan wajib pada setiap handoff.** Backend: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari
+`AGENTS.md` backend dan dokumen engineering canonical; `dotnet build` dan migration hanya atas instruksi eksplisit pemilik.
+Frontend: `npm run build`/`dev` hanya atas instruksi eksplisit pemilik. Tidak ada builder yang dijalankan oleh roadmap ini.

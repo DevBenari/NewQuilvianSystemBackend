@@ -4,7 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndB
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Data;
 using System.Text.Json;
@@ -88,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 }
 
                 var input = CreatePayrollInput(context, request, actorUserId);
-                _dbContext.TrxPayrollOvertimeInputs.Add(input);
+                _dbContext.PrlPayrollOvertimeInputs.Add(input);
                 EnsureSourceMarkedPosted(context, actorUserId, input.ImportedAt);
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -146,7 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                     }
                 }
 
-                var input = await _dbContext.TrxPayrollOvertimeInputs
+                var input = await _dbContext.PrlPayrollOvertimeInputs
                     .FirstOrDefaultAsync(x =>
                         !x.IsDelete &&
                         !x.IsCancel &&
@@ -190,7 +190,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                             Notes = "Repair reconciliation overtime payroll handoff.",
                             IdempotencyKey = request.IdempotencyKey
                         }, actorUserId);
-                        _dbContext.TrxPayrollOvertimeInputs.Add(input);
+                        _dbContext.PrlPayrollOvertimeInputs.Add(input);
                         EnsureSourceMarkedPosted(context, actorUserId, input.ImportedAt);
                         await _dbContext.SaveChangesAsync(cancellationToken);
                         repaired = true;
@@ -205,7 +205,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 await transaction.CommitAsync(cancellationToken);
                 var runEmployee = input == null
                     ? null
-                    : await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+                    : await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
                         .FirstOrDefaultAsync(x => x.Id == input.PayrollRunEmployeeId, cancellationToken);
 
                 return OvertimePayrollHandoffServiceResult<OvertimePayrollHandoffReconciliationResponse>.Ok(
@@ -261,7 +261,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                     return FailMutation(StatusCodes.Status409Conflict, periodGuard.Message);
                 }
 
-                var input = await _dbContext.TrxPayrollOvertimeInputs
+                var input = await _dbContext.PrlPayrollOvertimeInputs
                     .FirstOrDefaultAsync(x =>
                         !x.IsDelete &&
                         !x.IsCancel &&
@@ -277,11 +277,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                         "Payroll input tidak ditemukan; marker Overtime telah dikembalikan ke Verified.");
                 }
 
-                var runEmployee = await _dbContext.TrxPayrollRunEmployees
+                var runEmployee = await _dbContext.PrlPayrollRunEmployees
                     .FirstOrDefaultAsync(x => x.Id == input.PayrollRunEmployeeId && !x.IsDelete, cancellationToken);
                 var run = runEmployee == null
                     ? null
-                    : await _dbContext.TrxPayrollRuns
+                    : await _dbContext.PrlPayrollRuns
                         .FirstOrDefaultAsync(x => x.Id == runEmployee.PayrollRunId && !x.IsDelete, cancellationToken);
                 if (run == null)
                 {
@@ -299,7 +299,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                     return FailMutation(StatusCodes.Status409Conflict, "Payroll employee snapshot sudah final dan tidak dapat di-rollback.");
                 }
 
-                var hasGeneratedComponent = await _dbContext.TrxPayrollEmployeeComponents
+                var hasGeneratedComponent = await _dbContext.PrlPayrollEmployeeComponents
                     .AsNoTracking()
                     .AnyAsync(x =>
                         !x.IsDelete &&
@@ -353,7 +353,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                     AddIssue(context, "OVERTIME_PERIOD_CLOSED", periodGuard.Message);
             }
 
-            context.ExistingInput = await _dbContext.TrxPayrollOvertimeInputs
+            context.ExistingInput = await _dbContext.PrlPayrollOvertimeInputs
                 .FirstOrDefaultAsync(x =>
                     !x.IsDelete &&
                     !x.IsCancel &&
@@ -381,7 +381,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 return context;
             }
 
-            context.PayrollRun = await _dbContext.TrxPayrollRuns
+            context.PayrollRun = await _dbContext.PrlPayrollRuns
                 .FirstOrDefaultAsync(x => x.Id == request.PayrollRunId && !x.IsDelete && !x.IsCancel, cancellationToken);
             if (context.PayrollRun == null)
             {
@@ -419,7 +419,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 context.PayrollPeriod.HospitalSiteId != context.Realization.HospitalSiteId)
                 AddIssue(context, "HOSPITAL_SITE_MISMATCH", "Hospital site payroll period tidak sesuai dengan sumber Overtime.");
 
-            context.PayrollRunEmployee = await _dbContext.TrxPayrollRunEmployees
+            context.PayrollRunEmployee = await _dbContext.PrlPayrollRunEmployees
                 .FirstOrDefaultAsync(x =>
                     x.PayrollRunId == context.PayrollRun.Id &&
                     x.WorkforceProfileId == context.Realization.WorkforceProfileId &&
@@ -482,7 +482,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             return await query.FirstOrDefaultAsync(cancellationToken);
         }
 
-        private TrxPayrollOvertimeInput CreatePayrollInput(
+        private PrlPayrollOvertimeInput CreatePayrollInput(
             HandoffContext context,
             PostOvertimePayrollHandoffRequest request,
             Guid actorUserId)
@@ -521,7 +521,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 RateSnapshots = snapshots
             });
 
-            return new TrxPayrollOvertimeInput
+            return new PrlPayrollOvertimeInput
             {
                 Id = Guid.NewGuid(),
                 PayrollRunEmployeeId = context.PayrollRunEmployee!.Id,
@@ -627,7 +627,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         private static List<OvertimePayrollReadinessIssueResponse> BuildReconciliationIssues(
             TrxOvertimeRealization realization,
-            TrxPayrollOvertimeInput? input)
+            PrlPayrollOvertimeInput? input)
         {
             var issues = new List<OvertimePayrollReadinessIssueResponse>();
             if (input == null)
@@ -690,7 +690,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         private static OvertimePayrollHandoffMutationResponse MapMutation(
             HandoffContext context,
-            TrxPayrollOvertimeInput input,
+            PrlPayrollOvertimeInput input,
             bool existing,
             bool rolledBack) => new()
         {
@@ -714,7 +714,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         private static OvertimePayrollHandoffMutationResponse MapRollbackMutation(
             TrxOvertimeRealization realization,
-            TrxPayrollOvertimeInput? input) => new()
+            PrlPayrollOvertimeInput? input) => new()
         {
             OvertimeRealizationId = realization.Id,
             RealizationNumber = realization.RealizationNumber,
@@ -805,11 +805,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         {
             public TrxOvertimeRealization? Realization { get; set; }
             public WfpOvertimeRequest? Request { get; set; }
-            public TrxPayrollRun? PayrollRun { get; set; }
-            public TrxPayrollRunEmployee? PayrollRunEmployee { get; set; }
+            public PrlPayrollRun? PayrollRun { get; set; }
+            public PrlPayrollRunEmployee? PayrollRunEmployee { get; set; }
             public MstPayrollPeriod? PayrollPeriod { get; set; }
             public MstPayrollComponent? PayrollComponent { get; set; }
-            public TrxPayrollOvertimeInput? ExistingInput { get; set; }
+            public PrlPayrollOvertimeInput? ExistingInput { get; set; }
             public bool HasCompensatoryLeave { get; set; }
             public List<OvertimePayrollReadinessIssueResponse> Issues { get; set; } = new();
         }

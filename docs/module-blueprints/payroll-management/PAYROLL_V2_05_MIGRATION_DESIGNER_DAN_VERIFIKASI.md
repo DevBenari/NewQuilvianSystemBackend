@@ -6,6 +6,7 @@
 | Tanggal | 2026-11-04 |
 | Acuan SHA | BE `b5fb6c251eafcd680ec35483732e3e72226e19f3` (+ perubahan lokal), FE `6a980d8c9dee0cae92c616fcd74f903ec0c67d73` (+ perubahan lokal) |
 | Label bukti | `REPOSITORY FACT`, `TARGET PROPOSAL`, `IMPLEMENTED`, `PARTIAL`, `BLOCKED`, `NEEDS CONFIRMATION` |
+| Catatan penamaan (11 November 2026) | Bagian 1 sampai 8 menulis keadaan fase 1 dan memakai nama tabel lama (`TrxPayrollRun` dan seterusnya). Migration rename fase 2 (`PAY-MIG-02`) ada di **bagian 9**; setelah ia diterapkan, ganti `Trx*`/`Wfp*` Payroll dengan `Prl*` (ganti awalan saja) pada SQL di dokumen ini |
 
 ## 1. Pernyataan penting
 
@@ -163,6 +164,21 @@ Akibatnya: kompilasi C# **belum terbukti hijau** (build pemilik menemukan satu e
 - [ ] Build backend dan frontend hijau oleh pihak berwenang.
 - [ ] Pra-cek SQL bagian 5 kosong.
 - [ ] Pemilik repository memutuskan migration ini diterima atau dibatalkan (bagian 3.4).
-- [ ] Registry/pengecualian QBE untuk fase 2 diajukan (lihat `PAYROLL_V2_01` bagian 7), atau fase 2 ditunda.
+- [x] Registry fase 2: baris `Prl` ACTIVE ditulis ke registry repository pada 11 November 2026 (`PAY-BE-12`). Salinan registry pada suite skill menunggu disamakan pemilik.
 - [ ] Akses Role: beri izin baru (`PayrollCompensation`, `PayrollPayment`, `PayrollPayslip`, `MyPayslip`, `PayrollEmployeeDeduction`, `PayrollMedicalFeeIntake`, `PayrollReport`, dan aksi baru `PayrollRun`) kepada peran yang sesuai; tanpa itu menu tidak tampil.
 - [ ] Keputusan `NEEDS CONFIRMATION` (`PAYROLL_V2_01` bagian 8) dicatat pemilik proses.
+- [ ] Fase 2: `dotnet build`, `has-pending-model-changes`, lalu `PAY-MIG-02` diterapkan pada database uji dengan pra-cek dan pasca-cek (bagian 9).
+
+## 9. Fase 2: migration rename tabel ke `Prl*` (`PAY-MIG-02`, 11 November 2026)
+
+Pada fase 2 nama kelas **dan tabel** 19 entity Payroll berganti dari `Trx*`/`Wfp*` ke `Prl*` (`PAYROLL_V2_01` bagian 7.3). Pernyataan di bagian 2.1 bahwa pemindahan tidak memerlukan migration hanya berlaku untuk pemindahan namespace; penggantian nama tabel memerlukannya.
+
+| Hal | Isi |
+| --- | --- |
+| Berkas | `Migrations/20261111100000_RenamePayrollTrxAndWfpTablesToPrlPrefix.cs` dan `.Designer.cs`; `ApplicationDbContextModelSnapshot.cs` diperbarui |
+| Sifat | Seluruhnya `RENAME` (tanpa `DROP`/`CREATE`): 19 tabel, seluruh constraint (PK, unique, FK, CHECK), dan seluruh indeks bernama yang memuat nama tabel lama. Isi dan kolom tidak berubah. `Down` mengembalikan semuanya |
+| Cara mengganti nama | Dicari dari katalog PostgreSQL dengan pencocokan token (`(^|_)token(?=_|~|$)`), bukan substring, agar `Down` tidak salah memetakan `PrlPayroll` ke `WfpPayroll` pada nama `PrlPayrollRun`. Awalan tiga huruf diganti tiga huruf, jadi panjang nama dan titik potong `~` tidak berubah |
+| Bukti | Simulasi pada 10.499 nama: 10.499 dari 10.499 sama dengan nama yang diharapkan model baru; `Up` lalu `Down` kembali ke semula. **Bukan eksekusi PostgreSQL** |
+| Status | 🟡 ditulis dan lolos simulasi statis; **belum dijalankan terhadap database** (dilarang) |
+| Pra-cek, pasca-cek, uji `Down`/`Up` | Skrip siap pakai ada di [laporan `PAY-MIG-02`](task/report/backend/PAY-MIG-02.md) bagian 6. SQL pra-cek duplikasi di bagian 5 dokumen ini memakai nama tabel lama dan berlaku **sebelum** migration rename diterapkan |
+| Rilis | Satu paket: database (migration) lebih dulu, baru aplikasi. Aplikasi hasil build fase 2 gagal total terhadap database yang belum dimigrasi, dan sebaliknya |

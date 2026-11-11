@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models
 {
@@ -77,13 +77,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         [MaxLength(1000)]
         public string? Notes { get; set; }
 
+        [MaxLength(50)]
+        public string? BpjsKesehatanNumber { get; set; }
+
+        [MaxLength(50)]
+        public string? BpjsKetenagakerjaanNumber { get; set; }
+
+        [MaxLength(100)]
+        public string? PrivateInsurancePolicyNumber { get; set; }
+
+        public Guid? ProbationEvaluationId { get; set; }
+
+        public DateTime? TerminationDate { get; set; }
+
+        [MaxLength(255)]
+        public string? TerminationReason { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public TrxEmployeeBenefitEnrollment? EmployeeBenefitEnrollment { get; set; }
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstEmployee? Employee { get; set; }
         public MstBenefitPlan? BenefitPlan { get; set; }
-        public WfpInsurance? InsuranceProfile { get; set; }
+        public PrlInsurance? InsuranceProfile { get; set; }
         public ApplicationUser? VerifiedByUser { get; set; }
 
     }
