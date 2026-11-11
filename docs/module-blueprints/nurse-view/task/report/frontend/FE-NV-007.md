@@ -145,8 +145,8 @@ Payload event tidak dipakai untuk isi kartu; TV selalu memuat ulang `GET .../dis
 
 Bukti berada di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-007-20261103/`, kecuali yang disebut lain.
 
-**Regresi 10 November 2026** (putaran 08.54 WIB pada build backend 9 Nov 15.59; putaran sesudahnya pada
-backend 14.41 dari DLL 14.37 sesudah merge `160b1008`):
+**Regresi 10–11 November 2026** (putaran 08.54 WIB pada build backend 9 Nov 15.59; putaran 10 Nov sesudahnya pada
+backend 14.41 dari DLL 14.37 sesudah merge `160b1008`; putaran 11 Nov tertulis di barisnya):
 
 | Putaran | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
@@ -154,6 +154,7 @@ backend 14.41 dari DLL 14.37 sesudah merge `160b1008`):
 | 14.58 WIB, sebelum revisi | 3/6: F1, F2, F5 gagal. Npgsql timeout DB dev 07:59:15–08:02:30 UTC (38 kejadian, worker latar ikut gagal); `/board` `500` ×3; pembatalan TTV F2 `500` meninggalkan TTV kritis 325-B aktif. TTV itu dibatalkan lewat API (`bersih-ttv-20261110.mjs`, status 1 → 4) | `ENVIRONMENT ISSUE` | `layar-2026-11-10T07-58-31-417Z/`, `bersih-ttv-2026-11-10T08-04-47-833Z.json` |
 | 15.05 WIB, sebelum revisi, DB pulih | 6/6 | `PASS` | `layar-2026-11-10T08-05-05-698Z/` |
 | 15.53 WIB, sesudah revisi §3.4 | 6/6; F0 join awal sekali, F4 join ulang 0,02 detik | `PASS` | `layar-2026-11-10T08-53-37-423Z/` |
+| 11 Nov 08.31 WIB, sesudah build frontend 10 Nov 16.26 (memuat revisi), `next dev`, backend 08.21 | 6/6; uji join ulang 7/7 (TV join lagi 59,9 detik, strip 325-A 0,23 detik) | `PASS` | `layar-2026-11-11T01-31-01-989Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-join-ulang-20261110/layar-2026-11-11T01-26-35-577Z/` |
 
 **Riwayat putaran.** Dua putaran awal gagal karena asumsi skrip, dan produk tidak diubah:
 (1) skrip mengira hanya ada satu WebSocket, padahal Strict Mode `next dev` memasang efek dua kali dan penghitungnya ikut
@@ -194,5 +195,5 @@ sebelum simpan. Bukti resmi adalah putaran `01-53-36`.
 | Data uji | Pemesanan bed uji pasien E (326-B) sudah kedaluwarsa; bila regresi L2 ingin hijau lagi, pemesanan baru perlu dibuat lewat aplikasi. Sandi `NVW-000003` direset skrip |
 | Dependency backend | `BE-NV-007` ✅ |
 | Perubahan sampingan | Penambahan pada `queue-realtime-client.js` (berkas bersama, tanpa mengubah perilaku konsumen lain) dan satu pemecahan baris Prettier di hook |
-| Status Git | Tiga berkas frontend belum di-commit. Laporan ini ada di repo backend dan belum di-commit. Revisi §3.4 (10 Nov 2026): `use-nurse-view-floor-board.jsx` di-commit dan di-push agent atas permintaan Rizki, `554e404d0` (`RizkiV2`); build produksi belum |
+| Status Git | Tiga berkas frontend belum di-commit. Laporan ini ada di repo backend dan belum di-commit. Revisi §3.4 (10 Nov 2026): `use-nurse-view-floor-board.jsx` di-commit dan di-push agent atas permintaan Rizki, `554e404d0` (`RizkiV2`); masuk build frontend Rizki 10 Nov 16.26 WIB |
 | Langkah berikutnya | Commit oleh Rizki. Sisa modul: butir 🟡 `BE/FE-NV-005` (Morse, isolasi, `NV-AC-021`, keterbacaan ±3 m) dan `BE/FE-NV-006` (`NV-AC-009`, menunggu perbaikan HR) |

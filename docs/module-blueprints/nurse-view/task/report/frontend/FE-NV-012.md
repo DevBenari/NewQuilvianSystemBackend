@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7d32e7cec` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `589fb513` + `BE-NV-012`–`014` belum di-commit (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | 🟡 **SEBAGIAN 10 November 2026** — AC-1–9 terbukti di layar: uji dua perawat (Sari, Dewi) + DOKTER + tablet, 10/11 `PASS`: panggilan baru tampil 0,27 detik; urutan 326-C, 325-A, 325-B; inisial · JK · umur tanpa nama/No. RM; ambil alih dan lepas; klaim bersamaan → satu pengklaim, yang kalah melihat pesan; Tutup wajib alasan dan keterangan; DOKTER tanpa butir menu dan "Akses Ditolak"; Sari memilih Lantai 4 dan mengklaim. Belum: AC-10 — `src/lib/helpers/nurseCallContext.jsx` masih ada (rujukan 0), menunggu `git rm` oleh Rizki. Catatan tampilan: `StatusBadge` menampilkan "… Menuju" (huruf kapital awal kata) |
+| Status | 🟡 **SEBAGIAN 10 November 2026** — AC-1–9 terbukti di layar: uji dua perawat (Sari, Dewi) + DOKTER + tablet, 10/11 `PASS`: panggilan baru tampil 0,27 detik; urutan 326-C, 325-A, 325-B; inisial · JK · umur tanpa nama/No. RM; ambil alih dan lepas; klaim bersamaan → satu pengklaim, yang kalah melihat pesan; Tutup wajib alasan dan keterangan; DOKTER tanpa butir menu dan "Akses Ditolak"; Sari memilih Lantai 4 dan mengklaim. Belum: AC-10 — `src/lib/helpers/nurseCallContext.jsx` masih ada (rujukan 0), menunggu `git rm` oleh Rizki. Catatan tampilan: `StatusBadge` menampilkan "… Menuju" (huruf kapital awal kata). Revisi 11 Nov 2026: toast sukses aksi dihapus agar tidak menutupi tombol baris bawah (§3.4); uji ulang 10/11, hanya K10 |
 
 ---
 
@@ -114,6 +114,32 @@ layar). Definisi kolom di berkas `-table-columns.jsx` terpisah. `AccessDeniedGat
 - **B. `ConfirmModal requireReason`.** Hanya satu kotak alasan bebas; tidak bisa memaksa tiga
   pilihan alasan sesuai `NV-DEC-053`.
 
+### 3.4 Revisi 11 November 2026 — konsol tanpa toast sukses
+
+**Temuan** (diagnosis K6, §6): toast sukses setiap aksi baris muncul 3,5 detik di kanan bawah
+(`ToastStack` bawaan) dan menutupi tombol aksi baris bawah tabel. Perawat yang segera mengklik baris lain
+tertahan sampai toast hilang; dalam uji, klaim perawat lain masuk lebih dulu. Rizki meminta kekurangan ini
+dikerjakan (11 Nov 2026).
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/hooks/health-services/nurse-view-management/patient-call-console/use-nurse-view-patient-call-console.jsx` | `runAction` tidak lagi menambah toast sukses. Toast galat dan konflik `409` tetap, lalu daftar dimuat ulang (arsitektur R2: "`409` → pesan + muat ulang") |
+| `src/lib/constants/health-services/nurse-view-management/patient-call-console/patient-call-console-constants.jsx` | Hapus `actionSuccessTitle` dan `actionSuccess` (tidak dirujuk lagi) |
+
+Umpan balik sukses tetap terlihat di baris itu sendiri: "‹nama› menuju" sesudah Saya tangani/Ambil alih,
+`Menunggu` sesudah Lepas, baris hilang sesudah Tutup. Pilihan lain yang ditimbang, memindah toast ke kanan
+atas, ditolak karena saat daftar panjang digulir toast juga menutupi kolom Aksi baris teratas.
+`UI GATE: PASS — tanpa elemen UI baru; satu elemen dihapus.`
+
+**Verifikasi.** `npx eslint` 0 error, 0 warning; CRLF; rujukan `actionSuccess` 0. Uji konsol 11 Nov:
+- skrip lama `uji-konsol-layar-v1.mjs`, yang mengklik bersamaan tanpa menunggu toast: **10/11**, K6 lulus;
+- skrip v2: **10/11**, tanpa toast yang perlu ditunggu (0,006 detik);
+- log: kedua putaran mencatat dua `claim` bersamaan berselisih 1–5 ms (v1 Sari `409`, v2 Dewi `409`);
+- nol galat dan nol 5xx;
+- satu-satunya gagal K10 (berkas prototipe).
+
+Commit `7b9bea21a` (`RizkiV2`); build produksi belum memuat revisi ini.
+
 ## 4. State yang ditangani di layar
 
 | State | Yang dilihat pengguna |
@@ -149,7 +175,9 @@ Realtime: `JoinNurseViewCallConsole(floorCode)` / `LeaveNurseViewCallConsole` da
 | Pencarian `nurseCallContext` / `NurseCallProvider` di `src/` selain berkas itu sendiri | **0 temuan** |
 | Penghapusan berkas prototipe | **Ditolak** pengaman sesi agent — belum terhapus |
 | Uji layar dua perawat + DOKTER + tablet (`uji-fe-nv-012-20261110/uji-konsol-layar.mjs`) | 10/11; satu-satunya gagal K10 = AC-10 | `PASS` untuk AC-1–9 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-10T02-25-30-975Z/` |
-| Uji ulang sesudah merge backend (backend 14.41 dari DLL 14.37), 10 Nov 15.21 dan 15.24 WIB | 9/11 dua kali: K10 (AC-10, berkas masih ada) dan K6. K6 gagal karena skenario bersamaan tidak terjadi: log backend hanya mencatat **satu** `claim` (Dewi), klik Sari tidak terkirim (tombol tak bisa diklik ±30 detik, galatnya ditelan `.catch` skrip), dan tangkapan layar Sari menunjukkan baris sudah "Ambil alih". Sebab klik tidak terkirim belum dipastikan. Source konsol tidak berubah sejak putaran pagi (commit terakhir `7dd08c585`); bukti AC-4 tetap putaran pagi (dua `claim`, satu menang, toast di layar yang kalah). K1–K5, K7–K9, K11 lulus | `PASS` untuk AC-1–3, 5–9; AC-4 dari putaran pagi | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-10T08-21-31-891Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-10T08-24-12-138Z/` |
+| Uji ulang sesudah merge backend (backend 14.41 dari DLL 14.37), 10 Nov 15.21 dan 15.24 WIB | 9/11 dua kali: K10 (AC-10, berkas masih ada) dan K6. K6 gagal karena skenario bersamaan tidak terjadi: log backend hanya mencatat **satu** `claim` (Dewi), klik Sari tidak terkirim (tombol tak bisa diklik ±30 detik, galatnya ditelan `.catch` skrip), dan tangkapan layar Sari menunjukkan baris sudah "Ambil alih". Sebab klik tidak terkirim dipastikan 11 Nov (baris berikut). K1–K5, K7–K9, K11 lulus | `PASS` untuk AC-1–3, 5–9; AC-4 dari putaran pagi | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-10T08-21-31-891Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-10T08-24-12-138Z/` |
+| Uji ulang 11 Nov 2026 (backend 08.21 dari DLL 10 Nov 14.37, `next dev`) dan diagnosis K6 | 08.44 WIB 9/11 (K6, K10). Skrip v2 mencatat galat klik, bukan menelannya. Playwright melaporkan `toast-container bottom-0 end-0 … intercepts pointer events`: toast sukses "Saya tangani" Sari dari K4 (umur ±2,6 detik, hilang sesudah 3,5 detik) menutupi tombol baris 325-B di kanan bawah. Klik Sari tertahan, klaim Dewi masuk lebih dulu, lalu daftar Sari dimuat ulang dan tombol berganti "Ambil alih". Skrip v2 menunggu toast hilang (3,2 detik) lalu kedua klik terkirim dalam 0,05 detik. Hasil 08.49 WIB **10/11**: K6 `PASS`, log mencatat dua `claim` pada panggilan yang sama berselisih 1 ms (Dewi `200`, Sari `409`), Sari melihat pesan dan daftarnya menampilkan pengklaim. Satu-satunya gagal K10 (berkas masih ada) | `PASS` untuk AC-1–9 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-11T01-47-41-747Z/` (diagnosis), `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-11T01-49-44-735Z/`; skrip lama disimpan `uji-konsol-layar-v1.mjs` |
+| Sesudah revisi §3.4 (tanpa toast sukses), 11 Nov 09.05 dan 09.06 WIB | v1 (tanpa menunggu toast) 10/11 dan v2 10/11; K6 lulus di keduanya; log: dua `claim` bersamaan per putaran (selisih 1–5 ms, satu `200` satu `409`), nol galat, nol 5xx; hanya K10 gagal | `PASS` untuk AC-1–9 | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-11T02-05-43-344Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-012-20261110/layar-2026-11-11T02-06-22-658Z/` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest.`
 `MANUAL TEST: PASS untuk AC-1–9 — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
@@ -161,7 +189,7 @@ Realtime: `JoinNurseViewCallConsole(floorCode)` / `LeaveNurseViewCallConsole` da
 | AC-1 urutan 331-C (Darurat), 305-A, 318-B | ✅ Terbukti 10 Nov 2026 | K2: 326-C, 325-A, 325-B |
 | AC-2 di layar Dewi: Ambil alih; sesudahnya "Dewi menuju" | ✅ Terbukti 10 Nov 2026 | K4 (label tampil "… Menuju" karena `StatusBadge`) |
 | AC-3 Lepas → `Menunggu`, lama menunggu dari tekan pertama | ✅ Terbukti 10 Nov 2026 | K5: 7 detik tampil vs 8 detik sejak tekan |
-| AC-4 klaim bersamaan → pesan `VAL-NV-33`/`38` + muat ulang | ✅ Terbukti 10 Nov 2026 | K6 |
+| AC-4 klaim bersamaan → pesan `VAL-NV-33`/`38` + muat ulang | ✅ Terbukti 10 Nov 2026; diulang 11 Nov 2026 | K6 (11 Nov: Dewi `200`, Sari `409` berselisih 1 ms) |
 | AC-5 Tutup tanpa alasan / Lainnya tanpa keterangan ditolak | ✅ Terbukti 10 Nov 2026 | K7: alasan 4 + keterangan tersimpan |
 | AC-6 tanpa izin: butir menu tidak tampil, route ditolak; Sari tanpa roster bisa klaim lantai 4 | ✅ Terbukti 10 Nov 2026 | K8, K9 |
 | AC-7 hanya inisial · JK · umur | ✅ Terbukti 10 Nov 2026 | K3 |
@@ -177,5 +205,6 @@ Realtime: `JoinNurseViewCallConsole(floorCode)` / `LeaveNurseViewCallConsole` da
 | --- | --- |
 | Butuh tindakan Rizki | Hapus prototipe: `git rm src/lib/helpers/nurseCallContext.jsx` (berkas ter-track Git, tidak dirujuk berkas lain). Agent tidak mencoba cara lain sesudah penolakan |
 | Risiko | Konsol dipakai untuk lantai yang salah → nama lantai tampil di judul `Hero`. Pemberian izin lewat Akses Role menimpa seluruh policy: salin, tambah, pulihkan |
-| Status Git | Sudah di-commit Rizki; `nurseCallContext.jsx` masih ter-track |
+| Temuan UX (11 Nov 2026) | (1) Toast sukses menutupi tombol aksi baris bawah → **diperbaiki** (§3.4, commit `7b9bea21a`). (2) **Dicabut — keliru.** Catatan sebelumnya menyebut tabel berkedip "Mengambil data..." tiap muat ulang karena sinyal. Hook ternyata mengembalikan `listLoading: listLoading && !list`, dan `list` hanya dikosongkan saat ganti lantai atau `422`, sehingga baris tetap tampil selama muat ulang. Kesimpulan awal diambil dari kode `DataTable` tanpa membaca nilai yang dikirim hook |
+| Status Git | Sudah di-commit Rizki; revisi §3.4 di-commit dan di-push agent atas permintaan Rizki, `7b9bea21a` (`RizkiV2`); `nurseCallContext.jsx` masih ter-track |
 | Langkah berikutnya | Rizki `git rm src/lib/helpers/nurseCallContext.jsx`; sesudah itu task ini ✅ |

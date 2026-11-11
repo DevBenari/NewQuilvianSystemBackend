@@ -211,6 +211,7 @@ Realtime: `JoinNurseViewBedTablet` dan event `NurseViewPatientCallChanged` (`FE-
 | Uji layar ukuran tablet dan putus jaringan (`uji-fe-nv-009-011-20261110/uji-tablet-layar.mjs`) | 11/11 lulus (putaran bersih) | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T02-27-14-957Z/` (JSON, tangkapan layar, rekaman video) |
 | Uji ulang sesudah merge backend (backend 14.41 dari DLL 14.37), 10 Nov sore | 15.14 WIB 10/11: P4 gagal saat `JoinNurseViewBedTablet` timeout DB → temuan §3.5. 15.19 WIB 11/11 (P4 0,13 detik) | `PASS` (putaran DB sehat) | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T08-14-12-391Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T08-19-28-642Z/` |
 | Revisi join ulang (§3.5): `uji-join-ulang.mjs` J1–J7, lalu regresi tablet | 7/7; regresi 11/11 | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-join-ulang-20261110/layar-2026-11-10T08-50-41-396Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-10T08-58-02-324Z/` |
+| Uji ulang 11 Nov 2026 sesudah build frontend 10 Nov 16.26 (memuat `554e404d0`); diuji di `next dev`, backend 08.21 dari DLL 10 Nov 14.37 | Join ulang 7/7 (tablet join lagi 44,9 detik, sinyal `Claimed` sebelum respons klaim, "menuju" 0,63 detik); tablet 11/11 (P4 1,34 detik, P10 43 detik); sisa uji bersih | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-join-ulang-20261110/layar-2026-11-11T01-26-35-577Z/`, `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-009-011-20261110/layar-2026-11-11T01-29-02-689Z/` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest.`
 `MANUAL TEST: PASS — 10 Nov 2026. Diuji di `next dev` port 3000 dengan backend build 9 Nov 15.59 (`dotnet run --no-build`), peramban Edge headless.`
@@ -234,4 +235,4 @@ Realtime: `JoinNurseViewBedTablet` dan event `NurseViewPatientCallChanged` (`FE-
 | --- | --- |
 | Risiko | Pasien mengira panggilan terkirim padahal belum; pita gagal kirim tampil paling lambat 4 detik tanpa jawaban. Perilaku tablet sungguhan (layar mati, mode kiosk) menunggu `NV-UNK-007` |
 | Status Git | Sudah di-commit Rizki; revisi §3.5 di-commit dan di-push agent atas permintaan Rizki: `554e404d0` (`RizkiV2`) |
-| Langkah berikutnya | Rizki: build frontend yang memuat revisi §3.5 |
+| Langkah berikutnya | — (build frontend 10 Nov 16.26 WIB memuat revisi §3.5; uji ulang 11 Nov lulus) |

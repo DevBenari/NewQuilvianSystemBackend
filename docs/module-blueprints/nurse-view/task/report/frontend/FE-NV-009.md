@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `7d32e7cec` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `589fb513` (branch `rizkiG`) |
 | Tanggal | 2026-11-09 |
-| Status | ✅ **SELESAI 10 November 2026** — AC 5/5 terbukti di layar. Regresi login lima akun (SuperAdmin, perawat, LOKET, Kiosk, display antrean) sama dengan baseline `FE-NV-003` 2 Nov: tujuan, profil, sidebar, dan probe identik, kecuali `nurseViewCurrent` 404 → 403 dan dua klaim baru bernilai `false` (diharapkan). Uji layar tablet P1, P2, P8, P9, P10 `PASS` (putaran bersih 11/11). Perbaikan selama uji: P10 semula 63 detik (> 60) karena muat ulang tablet tanpa panggilan tiap 60 detik; batas atas `NURSE_VIEW_BED_TABLET_MAX_REFRESH_SECONDS` diturunkan 60 → 45 (`NV-FE-009` `DEV_DISCRETION`), sesudahnya 45 detik. `npx eslint` 0 error. Perubahan satu baris itu belum di-commit dan belum masuk build produksi |
+| Status | ✅ **SELESAI 10 November 2026** — AC 5/5 terbukti di layar. Regresi login lima akun (SuperAdmin, perawat, LOKET, Kiosk, display antrean) sama dengan baseline `FE-NV-003` 2 Nov: tujuan, profil, sidebar, dan probe identik, kecuali `nurseViewCurrent` 404 → 403 dan dua klaim baru bernilai `false` (diharapkan). Uji layar tablet P1, P2, P8, P9, P10 `PASS` (putaran bersih 11/11). Perbaikan selama uji: P10 semula 63 detik (> 60) karena muat ulang tablet tanpa panggilan tiap 60 detik; batas atas `NURSE_VIEW_BED_TABLET_MAX_REFRESH_SECONDS` diturunkan 60 → 45 (`NV-FE-009` `DEV_DISCRETION`), sesudahnya 45 detik. `npx eslint` 0 error. Perubahan satu baris itu di-commit `c5b71dc77` dan masuk build Rizki 10 Nov 16.26 WIB; uji ulang 11 Nov 2026 tablet 11/11, P10 43 detik |
 
 ---
 
