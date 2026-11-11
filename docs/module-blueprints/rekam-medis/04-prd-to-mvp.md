@@ -389,3 +389,174 @@ Billing: **nol dampak charge.**
 | Persetujuan menulis pembaca di folder setiap modul sumber | Pemilik masing-masing modul | Gelombang yang memuat modul itu tertahan; modul lain jalan | Ya, per gelombang |
 | Konfirmasi arti final disposisi IGD, asuhan gizi, catatan kelahiran (open question 17) | Pemilik IGD, Gizi, Kamar Operasi | Aturan sementara `RM-DEC-059` tetap berlaku | Tidak |
 | Buka-ulang laporan PA sesudah rilis (open question 18) | Yoga Aji Pratama (pemilik Laboratorium) | PA tetap di `POST-MVP` | Tidak |
+
+
+---
+
+# Amandemen revision 5 — Optik dan Rehab Medik (`approved`)
+
+Disahkan Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`).
+
+## 21. Batas amandemen
+
+**Titik mulai:** blueprint revision 5 dan kontrak `0.3.0` disahkan. **Titik akhir:** kunjungan
+unit Optik dan poli rehab dinilai dengan profilnya sendiri di devYoga, addendum koreksi dokumen
+Optik ditolak, dan `UAT-20`–`23` lulus.
+
+## 22. Kemampuan `MUST HAVE`
+
+| Kemampuan | ID asal | Disposisi |
+|---|---|---|
+| Profil tanpa butir untuk unit Optik | `RM-CAP-071` | `EXISTING / REUSE` — data saja |
+| Kunci jenis poli pada profil | `RM-CAP-073` | `EXTEND` |
+| Butir dan probe dokumen rehab | `RM-CAP-074` | `EXTEND` |
+| Penolakan addendum koreksi Optik | `RM-CAP-076` | `EXTEND` (menutup conflict) |
+| Uji pembaca Rehab | `RM-CAP-081` | `MISSING / NEW` |
+| Kontrak memuat jenis 45–52 | `RM-CAP-082` | `EXTEND` (dokumen) |
+
+Ditunda: tidak ada. Di luar amandemen: D1–D7 decision log revision 14.
+
+## 23. Epic dan functional requirement
+
+### `EPIC RM-10` — Optik di berkas dan kelengkapan
+
+> **FR-RM-082** — Kunjungan unit Optik dinilai dengan profil `RJ-OPT` tanpa butir. (`AT-RM-75`, `76`, `79`, `80`) — `EXISTING / REUSE`
+>
+> **FR-RM-083** — Addendum koreksi dokumen Optik ditolak; pengesahan tetap. (`AT-RM-91`, `92`) — `EXTEND`
+>
+> **FR-RM-084** — Dokumen Optik bertanda "pernah diralat" bila versi > 1 atau ada addendum koreksi lama. (`AT-RM-77`, `78`) — `EXTEND`
+>
+> **FR-RM-085** — Layar addendum tidak menggambar tombol koreksi untuk dokumen Optik. (`UAT-21`) — `EXTEND`
+
+### `EPIC RM-11` — Poli Rehabilitasi Medik dan profil berpoli
+
+> **FR-RM-086** — Profil dokumen wajib dapat dikunci per jenis poli, urutan poli → unit → umum. (`AT-RM-81`, `82`, `89`, `90`) — `EXTEND`
+>
+> **FR-RM-087** — Kunjungan poli rehab lengkap bila ada asesmen, sesi, reasesmen, atau ringkasan akhir final. (`AT-RM-83`, `84`) — `EXTEND`
+>
+> **FR-RM-088** — Probe Rehab tidak pernah melaporkan hasil tertunda; gangguannya tidak pernah dianggap lengkap. (`AT-RM-85`, `86`) — `EXTEND`
+>
+> **FR-RM-089** — Catatan rehab yang hanya disahkan tidak bertanda "pernah diralat" (`DS-R5-04`). (`AT-RM-87`, `88`) — `EXTEND`
+>
+> **FR-RM-090** — Layar profil memuat pilihan jenis poli. (`UAT-22`) — `EXTEND`
+
+## 24. Skenario UAT amandemen
+
+| Epic | Berhasil | Gagal |
+|---|---|---|
+| `RM-10` | `UAT-20`: dokumen Optik tampil; kunjungan beli frame lengkap | `UAT-21`: koreksi Optik tidak tersedia |
+| `RM-11` | `UAT-23`: kunjungan sesi rehab lengkap | `UAT-22`: jenis poli ditolak pada profil berkondisi |
+
+## 25. Definition of Done amandemen
+
+| Butir | Bukti |
+|---|---|
+| Migration `AddClinicTypeToMedicalRecordCompletenessProfile` dibuat dan diterapkan di devYoga | Daftar migration; instruksi terpisah |
+| `AT-RM-75`–`92` lulus; regresi `MedicalRecordTests` lulus | Keluaran `dotnet test` |
+| Uji pembaca dan probe Rehab ada | Berkas uji, `git add -f` |
+| `UAT-20`–`23` lulus di devYoga | Laporan UAT |
+| Persetujuan pemilik Rehab Medik dan Optik atas perubahan di foldernya tercatat | Baris `RM-DEC` baru |
+| Catatan rilis menyebut penolakan addendum koreksi Optik | `catatan-rilis.md` |
+
+## 26. Urutan pengiriman
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-7` | Kunci jenis poli + migration + seeder `RJ-OPT`/`RJ-REHAB`; penolakan addendum Optik; penanda Optik; layar profil dan aksi addendum | Revision 5 dan `0.3.0` disahkan; persetujuan pemilik Optik untuk penanda Optik |
+| `MVP-8` | Butir `RehabClinicalDocument`, probe dan penanda Rehab, uji pembaca Rehab | `MVP-7`; **persetujuan pemilik Rehab Medik (Sukma Giri Pratama)** |
+
+Sampai `MVP-8` selesai, profil `RJ-REHAB` **jangan diaktifkan**: tanpa probe, butirnya tidak
+pernah terpenuhi dan setiap kunjungan poli rehab menjadi belum lengkap (`RM-CAP-074`). Seeder
+`MVP-7` karena itu memasang `RJ-REHAB` hanya bersama `MVP-8`.
+
+| Pertanyaan | Siapa | Memblokir |
+|---|---|:---:|
+| Pengesahan revision 5 dan kontrak `0.3.0`, termasuk `DS-R5-04` | Yoga Aji Pratama | **Ya** |
+| Persetujuan perubahan di folder Rehab (`RM-DEC-087`, `DS-R5-04`) | Sukma Giri Pratama | Ya, `MVP-8` saja |
+| Persetujuan perubahan penanda di folder Optik | Yoga Aji Pratama (pemilik Optik) | Ya, sebagian `MVP-7` |
+| Poli rehab ada di master data (`RM-UN-R4-01`) | Admin data | Tidak — menahan `UAT-23` saja |
+
+---
+
+# Amandemen revision 6 — Indikator ringkasan pulang dan titik sentuh HR (`approved`)
+
+Disahkan Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`). Diturunkan dari `02-backend-architecture.md` bagian A6, kontrak `0.4.0`, dan
+`testing/acceptance-test-matrix.md` bagian revision 6.
+
+## 27. Batas amandemen
+
+**Titik mulai:** blueprint revision 6 dan kontrak `0.4.0` disahkan. **Titik akhir:** detail ringkasan
+pulang di berkas memuat rencana kontrol; endpoint indikator mengembalikan angka per dokter untuk
+periode yang diminta di devYoga; `AT-RM-93`–`108` dan `UAT-24` lulus; penolakan tanda tangan ulang
+terpasang **bila** pemilik Rawat Inap menyetujui.
+
+## 28. Kemampuan `MUST HAVE`
+
+| Kemampuan | ID asal | Disposisi |
+|---|---|---|
+| Rencana kontrol di detail berkas | `RM-CAP-090` | `EXTEND` |
+| Pembaca indikator di Rawat Inap | `RM-CAP-083`, `084`, `085`, `086` | `MISSING / NEW` |
+| Endpoint indikator, izin, audit | `RM-CAP-087`, `088`, `089` | `MISSING / NEW` |
+| Penolakan tanda tangan ulang | `RM-CAP-085` | `EXTEND` (modul Rawat Inap) |
+| Batas gerbang HR, log override, K3RS, akses | `RM-CAP-091`–`094` | `EXISTING / REUSE` — nol kode, dijaga uji arsitektur |
+
+**Ditunda:** layar indikator di rekam medis (tidak diminta; HR memakai API). Pengganti selama MVP:
+HR menarik API. Di luar amandemen: F1–F7 decision log revision 19.
+
+## 29. Epic dan functional requirement
+
+### `EPIC RM-12` — Indikator ketepatan ringkasan pulang untuk OPPE
+
+> **FR-RM-091** — Endpoint mengembalikan angka per dokter per periode tanpa identitas pasien. (`AT-RM-93`) — `MISSING / NEW`
+>
+> **FR-RM-092** — Hanya pemegang `DischargeSummaryTimeliness : Read` yang dapat menarik. (`AT-RM-94`) — `MISSING / NEW`
+>
+> **FR-RM-093** — Jam mulai keluar ruangan dengan cadangan tutup episode; tanda tangan sebelum keluar = 0 jam. (`AT-RM-99`–`101`) — `MISSING / NEW`
+>
+> **FR-RM-094** — Jam selesai = tanda tangan pertama yang terlacak. (`AT-RM-95`, `96`) — `MISSING / NEW`
+>
+> **FR-RM-095** — Ringkasan belum ditandatangani dihitung menurut lama tertunda atas DPJP aktif. (`AT-RM-97`, `98`, `103`) — `MISSING / NEW`
+>
+> **FR-RM-096** — Validasi query dan kegagalan sumber tidak menghasilkan angka sebagian. (`AT-RM-104`, `108`) — `MISSING / NEW`
+
+### `EPIC RM-13` — Ringkasan pulang di Rawat Inap dan berkas
+
+> **FR-RM-097** — Detail ringkasan pulang menampilkan rencana kontrol bila terisi. (`AT-RM-105`, `106`, `UAT-24`) — `EXTEND`
+>
+> **FR-RM-098** — Tanda tangan ulang tanpa sesi koreksi ditolak `409`. (`AT-RM-107`) — `EXTEND`, milik Rawat Inap
+
+## 30. Skenario UAT amandemen
+
+| Epic | Berhasil | Gagal |
+|---|---|---|
+| `RM-12` | Komite Medik menarik Oktober 2026 lewat Swagger devYoga; angka cocok dengan hitungan manual atas data uji | Pengguna tanpa izin menerima `403`; periode 367 hari menerima `400` |
+| `RM-13` | `UAT-24`: rencana kontrol tampil di berkas | Tanda tangan ulang ditolak `409` (setelah persetujuan Rawat Inap) |
+
+## 31. Definition of Done amandemen
+
+| Butir | Bukti |
+|---|---|
+| Persetujuan pemilik Rawat Inap atas `INT-RM-18`, `10m`, `19` tercatat | Baris `RM-DEC` baru |
+| `AT-RM-93`–`108` lulus; regresi `MedicalRecordTests` lulus | Keluaran `dotnet test` |
+| `UAT-24` lulus di devYoga | Laporan UAT |
+| Izin indikator terdaftar dan **tidak** terpasang ke jabatan mana pun secara bawaan | Layar pengaturan hak akses |
+| Catatan rilis menyebut penolakan tanda tangan ulang (bila dipasang) dan endpoint baru | `catatan-rilis.md` |
+| Pemilik HR menerima `INT-RM-20` atau penolakannya tercatat | Decision log HR atau rekam medis |
+
+## 32. Urutan pengiriman
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-9` | Rencana kontrol di berkas; penolakan tanda tangan ulang | Revision 6 dan `0.4.0` disahkan; **persetujuan pemilik Rawat Inap (Muhammad Hamzah)** |
+| `MVP-10` | Pembaca indikator (folder Rawat Inap), service, controller, izin, audit | `MVP-9` **tidak** wajib selesai; syarat sama: pengesahan dan persetujuan pemilik Rawat Inap untuk `INT-RM-18` |
+| `POST-MVP` | Pemasangan izin ke jabatan Komite Medik; pemakaian oleh HR | Penerimaan pemilik HR (open question 28) |
+
+Penolakan tanda tangan ulang **sebaiknya** dipasang sebelum atau bersama `MVP-10` agar
+`resignTrackingNote` hanya berlaku untuk data lama.
+
+| Pertanyaan | Siapa | Memblokir |
+|---|---|:---:|
+| ~~Pengesahan revision 6 dan kontrak `0.4.0`, termasuk `DS-R6-01`–`07`~~ | Yoga Aji Pratama | **Selesai** (`RM-DEC-108`) |
+| ~~Pengesahan pemakaian read model tanpa pass gerbang requirement dan arsitektur domain baru~~ | Yoga Aji Pratama | **Selesai** (`RM-DEC-108`) |
+| Persetujuan perubahan di folder Rawat Inap (`INT-RM-18`, `10m`, `19`) | Muhammad Hamzah | Ya, `MVP-9` dan `MVP-10` |
+| Penerimaan `INT-RM-20` dan temuan K3RS oleh HR | Pemilik HR | Tidak — menahan `POST-MVP` saja |

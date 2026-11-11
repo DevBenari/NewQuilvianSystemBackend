@@ -566,6 +566,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Resume pulang belum disusun.");
             }
 
+            // BE-48 / VAL-INP-RS01 (RM-DEC-105, persetujuan Rawat Inap RM-DEC-109): resume yang
+            // sudah ditandatangani tidak boleh ditandatangani ulang di luar sesi koreksi, karena
+            // SignedAt lama akan tertimpa tanpa salinan dan waktu tanda tangan pertama hilang.
+            // Di dalam sesi koreksi, salinan versi lama beserta PreviousSignedAt sudah dibuat
+            // saat isi diubah. Diperiksa sebelum GUARD-INP-03 supaya dokter lain tidak menerima
+            // pesan "bukan DPJP" untuk resume yang memang sudah final.
+            if (summary.SignedAt.HasValue
+                && await GetOpenCorrectionSessionAsync(episodeId, cancellationToken) == null)
+            {
+                return InpDischargeSummaryOperationResult.Conflict(
+                    "Resume sudah ditandatangani; ubah lewat sesi koreksi.");
+            }
+
             // GUARD-INP-03.
             if (!await _episodeService.IsActiveDoctorAsync(episode.Id, actorDoctorId, cancellationToken))
             {

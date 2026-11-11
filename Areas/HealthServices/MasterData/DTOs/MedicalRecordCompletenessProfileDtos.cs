@@ -48,6 +48,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public string ServiceUnitTypeName { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Jenis poli (`RM-DEC-085`). Kosong = semua poli. Profil berpoli menggantikan profil berunit
+        /// dan profil umum jenis kunjungan yang sama. Contoh: `6` (`Rehabilitation`) pada `RJ-REHAB`.
+        /// </summary>
+        public ClinicType? ClinicType { get; set; }
+
+        /// <summary>Label jenis poli; "Semua poli" bila kosong.</summary>
+        public string ClinicTypeName { get; set; } = string.Empty;
+
         public CompletenessCondition Condition { get; set; }
 
         public string ConditionName { get; set; } = string.Empty;
@@ -118,6 +127,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         /// <summary>Kosong = semua jenis unit.</summary>
         public ServiceUnitType? ServiceUnitType { get; set; }
 
+        /// <summary>
+        /// Jenis poli, dari `clinicTypeOptions`. Kosong = semua poli. Hanya boleh terisi bila
+        /// `condition` = 0 (`VAL-RM-B02`); nilai di luar katalog ditolak (`VAL-RM-B03`).
+        /// Contoh: `6` untuk profil poli Rehabilitasi Medik.
+        /// </summary>
+        public ClinicType? ClinicType { get; set; }
+
         public CompletenessCondition Condition { get; set; } = CompletenessCondition.None;
 
         /// <summary>Boleh kosong: profil tanpa kriteria berarti tidak ada dokumen dokter wajib.</summary>
@@ -134,6 +150,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public EncounterType? EncounterType { get; set; }
 
         public ServiceUnitType? ServiceUnitType { get; set; }
+
+        /// <summary>Jenis poli; aturan sama dengan permintaan membuat (`VAL-RM-B02`, `B03`).</summary>
+        public ClinicType? ClinicType { get; set; }
 
         public CompletenessCondition Condition { get; set; } = CompletenessCondition.None;
 
@@ -158,6 +177,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public MedicalRecordCompletenessProfileDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<MedicalRecordCompletenessProfileEnumOptionResponse> EncounterTypeOptions { get; set; } = new();
         public List<MedicalRecordCompletenessProfileEnumOptionResponse> ServiceUnitTypeOptions { get; set; } = new();
+
+        /// <summary>Pilihan jenis poli untuk saringan dan isian `clinicType` (`BE-42`).</summary>
+        public List<MedicalRecordCompletenessProfileEnumOptionResponse> ClinicTypeOptions { get; set; } = new();
         public List<MedicalRecordCompletenessProfileEnumOptionResponse> ConditionOptions { get; set; } = new();
         public List<MedicalRecordCompletenessProfileSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();

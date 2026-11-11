@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.Sources;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
@@ -26,6 +27,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
     /// <para>
     /// <b>Hanya dokumen final:</b> pemeriksaan berstatus <c>Final</c> (draf dan batal tidak terbaca) dan semua resep
     /// (resep final sejak dibuat). Baca saja, tanpa pelacakan entity, tanpa pemeriksaan izin Optik (<c>RM-DEC-040</c>).
+    /// </para>
+    /// <para>
+    /// <b>Pernah diralat</b> (<c>RM-DEC-084</c>, <c>BE-44</c>): nomor versi di atas 1, <b>atau</b> ada addendum koreksi pada
+    /// dokumen keutuhan versi mana pun. Addendum koreksi baru tidak lagi diterima untuk dokumen Optik (<c>BE-43</c>), tetapi
+    /// yang terlanjur tersimpan sebelumnya tetap harus terlihat. Addendum pengesahan bukan ralat dan tidak dihitung.
     /// </para>
     /// </remarks>
     public class OptMedicalRecordDocumentSource : IMedicalRecordDocumentSource
@@ -54,6 +60,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 var baris = Saring(await PemeriksaanAsync(query.PatientId, query.EncounterId, cancellationToken), query);
                 hasil.Totals[ClinicalDocumentKind.OpticalRefraction] = baris.Count;
                 var nama = await NamaAsync(baris.Select(x => x.Terakhir.RevisedByWorkforceProfileId), cancellationToken);
+                var dikoreksi = await VersiBerAddendumKoreksiAsync(
+                    ClinicalDocumentKind.OpticalRefraction, baris.SelectMany(x => x.Semua.Select(r => r.Id)), cancellationToken);
                 dokumen.AddRange(baris.Select(x => new MedicalRecordFinalDocumentDescriptor
                 {
                     Kind = ClinicalDocumentKind.OpticalRefraction,
@@ -64,7 +72,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                     DocumentNumber = x.Exam.ExamNumber,
                     Title = "Pemeriksaan Refraksi",
                     Summary = Potong(RingkasPemeriksaan(x.Terakhir, nama.GetValueOrDefault(x.Terakhir.RevisedByWorkforceProfileId))),
-                    IsCorrected = x.Terakhir.RevisionNo > 1,
+                    IsCorrected = x.Terakhir.RevisionNo > 1 || x.Semua.Any(r => dikoreksi.Contains(r.Id)),
                     AuthorUserId = x.Terakhir.RevisionNo == 1 ? x.Exam.FinalizedBy : x.Terakhir.CreateBy,
                 }));
             }
@@ -74,6 +82,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                 var baris = Saring(await ResepAsync(query.PatientId, query.EncounterId, cancellationToken), query);
                 hasil.Totals[ClinicalDocumentKind.OpticalPrescription] = baris.Count;
                 var nama = await NamaAsync(baris.Select(x => x.Terakhir.AuthorWorkforceProfileId), cancellationToken);
+                var dikoreksi = await VersiBerAddendumKoreksiAsync(
+                    ClinicalDocumentKind.OpticalPrescription, baris.SelectMany(x => x.Semua.Select(v => v.Id)), cancellationToken);
                 dokumen.AddRange(baris.Select(x => new MedicalRecordFinalDocumentDescriptor
                 {
                     Kind = ClinicalDocumentKind.OpticalPrescription,
@@ -83,7 +93,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                     DocumentNumber = x.Resep.PrescriptionNumber,
                     Title = JudulResep(x.Resep),
                     Summary = Potong(RingkasResep(x.Resep, x.Terakhir, nama.GetValueOrDefault(x.Terakhir.AuthorWorkforceProfileId))),
-                    IsCorrected = x.Terakhir.VersionNo > 1,
+                    IsCorrected = x.Terakhir.VersionNo > 1 || x.Semua.Any(v => dikoreksi.Contains(v.Id)),
                     AuthorUserId = x.Terakhir.CreateBy,
                 }));
             }
@@ -144,7 +154,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                     Title = "Pemeriksaan Refraksi",
                     FinalizedAt = WaktuVersi(x.Exam, versi),
                     OccurredAt = x.Exam.StartedAt,
-                    IsCorrected = versi.RevisionNo > 1,
+                    IsCorrected = versi.RevisionNo > 1
+                                  || (await VersiBerAddendumKoreksiAsync(ClinicalDocumentKind.OpticalRefraction, [versi.Id], cancellationToken)).Count > 0,
                     Sections = bagian,
                 };
             }
@@ -187,7 +198,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
                     DocumentNumber = r.PrescriptionNumber,
                     Title = JudulResep(r),
                     FinalizedAt = versi.AuthoredAt,
-                    IsCorrected = versi.VersionNo > 1,
+                    IsCorrected = versi.VersionNo > 1
+                                  || (await VersiBerAddendumKoreksiAsync(ClinicalDocumentKind.OpticalPrescription, [versi.Id], cancellationToken)).Count > 0,
                     Sections = bagian,
                 };
             }
@@ -250,6 +262,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services
 
         private static List<BarisResep> Saring(List<BarisResep> baris, MedicalRecordSourceQuery q) =>
             baris.Where(x => (!q.StartDate.HasValue || x.Waktu >= q.StartDate.Value) && (!q.EndDate.HasValue || x.Waktu <= q.EndDate.Value)).ToList();
+
+        /// <summary>
+        /// Id versi (= <c>DocumentId</c> dokumen keutuhan) yang punya addendum koreksi. Satu kueri untuk seluruh versi
+        /// pada satu halaman, supaya daftar tidak melahirkan satu kueri per baris.
+        /// </summary>
+        private async Task<HashSet<Guid>> VersiBerAddendumKoreksiAsync(
+            ClinicalDocumentKind kind, IEnumerable<Guid> versionIds, CancellationToken cancellationToken)
+        {
+            var ids = versionIds.Distinct().ToList();
+            if (ids.Count == 0)
+                return [];
+
+            var hasil = await _dbContext.Set<MrcClinicalDocumentIntegrity>().AsNoTracking()
+                .Where(k => k.DocumentKind == kind && ids.Contains(k.DocumentId) && !k.IsDelete
+                            && k.Addendums.Any(a => !a.IsDelete && a.AddendumPurpose == ClinicalNoteAddendumPurpose.Correction))
+                .Select(k => k.DocumentId)
+                .ToListAsync(cancellationToken);
+
+            return hasil.ToHashSet();
+        }
 
         private async Task<Dictionary<Guid, string>> NamaAsync(IEnumerable<Guid> workforceProfileIds, CancellationToken cancellationToken)
         {

@@ -9,7 +9,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
     /// <summary>
     /// Satu himpunan dokumen wajib untuk satu kunci (`AGG-RM-04`, `RM-DEC-045`, `RM-DEC-060`, `BE-37`).
     ///
-    /// Kunci = jenis kunjungan + jenis unit layanan (kosong = semua) + kondisi bersyarat. Profil
+    /// Kunci = jenis kunjungan + jenis unit layanan + jenis poli (keduanya kosong = semua; jenis poli
+    /// sejak `BE-42`) + kondisi bersyarat. Profil berpoli menggantikan profil berunit. Profil
     /// berunit menggantikan profil umum jenis kunjungan yang sama; profil kondisi berlaku di atas
     /// profil jenis kunjungan. Profil TANPA butir sah dan berarti "tidak ada dokumen dokter
     /// wajib" — dipakai Rawat Jalan unit Laboratorium dan Radiologi.
@@ -31,6 +32,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         /// <summary>Kosong = semua jenis unit.</summary>
         public ServiceUnitType? ServiceUnitType { get; set; }
+
+        /// <summary>
+        /// Jenis poli kunjungan (`RM-DEC-085`, `BE-42`). Kosong = semua poli. Hanya boleh terisi pada
+        /// profil tanpa kondisi. Profil berpoli menggantikan profil berunit dan profil umum untuk
+        /// jenis kunjungan yang sama. Menyimpan JENIS poli, bukan poli tertentu, sehingga tidak ada
+        /// relasi ke <c>MstClinic</c>.
+        /// </summary>
+        public ClinicType? ClinicType { get; set; }
 
         public CompletenessCondition Condition { get; set; } = CompletenessCondition.None;
 
