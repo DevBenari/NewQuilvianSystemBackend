@@ -556,3 +556,28 @@ Hanya kolom yang bertambah. Kolom lain lihat bagian revision 4 di atas.
 
 Isi `RhbSession` dan dokumen rehab lain berisi data klinis pasien dan **sensitif**; tidak masuk
 log dan tidak dipakai sebagai contoh berisi data asli.
+
+# Amandemen revision 6 (`approved`, `RM-DEC-108`)
+
+**Tidak ada tabel baru maupun kolom yang berubah.** Tabel sudah ada yang dibaca aturan revision 6:
+
+| Tabel | Kolom yang dipakai | Aturan | Sensitif | File model |
+|---|---|---|:---:|---|
+| `InpEpisode` | `Id`, `EpisodeStatus`, `PhysicallyLeftAt`, `ClosedAt`, `IsDelete` | Jam mulai dan keikutsertaan baris (`RM-DEC-107`) | Tidak (waktu); **Ya** bila digabung identitas pasien | `Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs` |
+| `InpDischargeSummary` | `EpisodeId`, `SignedAt`, `SignedByDoctorId`, `FollowUpDate`, `FollowUpServiceUnitId`, `FollowUpDoctorId`, `IsDelete` | Jam selesai; dokter; rencana kontrol (`RM-DEC-102`, `104`, `105`) | **Ya** — isi ringkasan; kolom waktu dan dokter tidak sensitif secara terpisah | `.../InPatientManagement/Models/InpDischargeSummary.cs` |
+| `InpDischargeSummaryRevision` | `DischargeSummaryId`, `PreviousSignedAt`, `PreviousSignedByDoctorId`, `IsDelete` | Tanda tangan pertama (`RM-DEC-105`) | **Ya** — salinan isi; hanya kolom waktu/dokter yang dibaca | `.../InPatientManagement/Models/InpDischargeSummaryRevision.cs` |
+| `InpDoctorAssignment` | `EpisodeId`, `DoctorId`, `AssignmentRole`, `IsActive`, `EndDateTime`, `IsDelete` | DPJP aktif untuk ringkasan belum ditandatangani (`RM-DEC-106`) | Tidak | `.../InPatientManagement/Models/InpDoctorAssignment.cs` |
+| `MstDoctor` | `Id`, `FullName`, `WorkforceProfileId` | Baris indikator; teks rencana kontrol | Tidak | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstDoctor.cs` |
+| `MstServiceUnit` | `Id`, `ServiceUnitName` | Teks rencana kontrol | Tidak | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs` |
+
+## Field respons indikator (bukan kolom tersimpan)
+
+| Field | Tipe | Sensitif | Contoh |
+|---|---|:---:|---|
+| `doctorId`, `workforceProfileId` | `uuid?` | Tidak | — |
+| `doctorName` | `string` | Tidak | "dr. Contoh Satu" |
+| `assessedCount`, `within24h`, `between24And48h`, `over48h`, `unsignedBetween24And48h`, `unsignedOver48h`, `notYetDueCount` | `integer` | **Kinerja dokter** — hanya untuk pemegang `DischargeSummaryTimeliness : Read`; tidak masuk log selain jumlah item | `34` |
+| `generatedAt` | `timestamp` UTC | Tidak | `2026-11-01T05:00:00Z` |
+
+Isi ringkasan pulang tetap **sensitif**; tidak masuk log dan tidak dipakai sebagai contoh berisi
+data asli.

@@ -475,3 +475,88 @@ pernah terpenuhi dan setiap kunjungan poli rehab menjadi belum lengkap (`RM-CAP-
 | Persetujuan perubahan di folder Rehab (`RM-DEC-087`, `DS-R5-04`) | Sukma Giri Pratama | Ya, `MVP-8` saja |
 | Persetujuan perubahan penanda di folder Optik | Yoga Aji Pratama (pemilik Optik) | Ya, sebagian `MVP-7` |
 | Poli rehab ada di master data (`RM-UN-R4-01`) | Admin data | Tidak — menahan `UAT-23` saja |
+
+---
+
+# Amandemen revision 6 — Indikator ringkasan pulang dan titik sentuh HR (`approved`)
+
+Disahkan Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`). Diturunkan dari `02-backend-architecture.md` bagian A6, kontrak `0.4.0`, dan
+`testing/acceptance-test-matrix.md` bagian revision 6.
+
+## 27. Batas amandemen
+
+**Titik mulai:** blueprint revision 6 dan kontrak `0.4.0` disahkan. **Titik akhir:** detail ringkasan
+pulang di berkas memuat rencana kontrol; endpoint indikator mengembalikan angka per dokter untuk
+periode yang diminta di devYoga; `AT-RM-93`–`108` dan `UAT-24` lulus; penolakan tanda tangan ulang
+terpasang **bila** pemilik Rawat Inap menyetujui.
+
+## 28. Kemampuan `MUST HAVE`
+
+| Kemampuan | ID asal | Disposisi |
+|---|---|---|
+| Rencana kontrol di detail berkas | `RM-CAP-090` | `EXTEND` |
+| Pembaca indikator di Rawat Inap | `RM-CAP-083`, `084`, `085`, `086` | `MISSING / NEW` |
+| Endpoint indikator, izin, audit | `RM-CAP-087`, `088`, `089` | `MISSING / NEW` |
+| Penolakan tanda tangan ulang | `RM-CAP-085` | `EXTEND` (modul Rawat Inap) |
+| Batas gerbang HR, log override, K3RS, akses | `RM-CAP-091`–`094` | `EXISTING / REUSE` — nol kode, dijaga uji arsitektur |
+
+**Ditunda:** layar indikator di rekam medis (tidak diminta; HR memakai API). Pengganti selama MVP:
+HR menarik API. Di luar amandemen: F1–F7 decision log revision 19.
+
+## 29. Epic dan functional requirement
+
+### `EPIC RM-12` — Indikator ketepatan ringkasan pulang untuk OPPE
+
+> **FR-RM-091** — Endpoint mengembalikan angka per dokter per periode tanpa identitas pasien. (`AT-RM-93`) — `MISSING / NEW`
+>
+> **FR-RM-092** — Hanya pemegang `DischargeSummaryTimeliness : Read` yang dapat menarik. (`AT-RM-94`) — `MISSING / NEW`
+>
+> **FR-RM-093** — Jam mulai keluar ruangan dengan cadangan tutup episode; tanda tangan sebelum keluar = 0 jam. (`AT-RM-99`–`101`) — `MISSING / NEW`
+>
+> **FR-RM-094** — Jam selesai = tanda tangan pertama yang terlacak. (`AT-RM-95`, `96`) — `MISSING / NEW`
+>
+> **FR-RM-095** — Ringkasan belum ditandatangani dihitung menurut lama tertunda atas DPJP aktif. (`AT-RM-97`, `98`, `103`) — `MISSING / NEW`
+>
+> **FR-RM-096** — Validasi query dan kegagalan sumber tidak menghasilkan angka sebagian. (`AT-RM-104`, `108`) — `MISSING / NEW`
+
+### `EPIC RM-13` — Ringkasan pulang di Rawat Inap dan berkas
+
+> **FR-RM-097** — Detail ringkasan pulang menampilkan rencana kontrol bila terisi. (`AT-RM-105`, `106`, `UAT-24`) — `EXTEND`
+>
+> **FR-RM-098** — Tanda tangan ulang tanpa sesi koreksi ditolak `409`. (`AT-RM-107`) — `EXTEND`, milik Rawat Inap
+
+## 30. Skenario UAT amandemen
+
+| Epic | Berhasil | Gagal |
+|---|---|---|
+| `RM-12` | Komite Medik menarik Oktober 2026 lewat Swagger devYoga; angka cocok dengan hitungan manual atas data uji | Pengguna tanpa izin menerima `403`; periode 367 hari menerima `400` |
+| `RM-13` | `UAT-24`: rencana kontrol tampil di berkas | Tanda tangan ulang ditolak `409` (setelah persetujuan Rawat Inap) |
+
+## 31. Definition of Done amandemen
+
+| Butir | Bukti |
+|---|---|
+| Persetujuan pemilik Rawat Inap atas `INT-RM-18`, `10m`, `19` tercatat | Baris `RM-DEC` baru |
+| `AT-RM-93`–`108` lulus; regresi `MedicalRecordTests` lulus | Keluaran `dotnet test` |
+| `UAT-24` lulus di devYoga | Laporan UAT |
+| Izin indikator terdaftar dan **tidak** terpasang ke jabatan mana pun secara bawaan | Layar pengaturan hak akses |
+| Catatan rilis menyebut penolakan tanda tangan ulang (bila dipasang) dan endpoint baru | `catatan-rilis.md` |
+| Pemilik HR menerima `INT-RM-20` atau penolakannya tercatat | Decision log HR atau rekam medis |
+
+## 32. Urutan pengiriman
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-9` | Rencana kontrol di berkas; penolakan tanda tangan ulang | Revision 6 dan `0.4.0` disahkan; **persetujuan pemilik Rawat Inap (Muhammad Hamzah)** |
+| `MVP-10` | Pembaca indikator (folder Rawat Inap), service, controller, izin, audit | `MVP-9` **tidak** wajib selesai; syarat sama: pengesahan dan persetujuan pemilik Rawat Inap untuk `INT-RM-18` |
+| `POST-MVP` | Pemasangan izin ke jabatan Komite Medik; pemakaian oleh HR | Penerimaan pemilik HR (open question 28) |
+
+Penolakan tanda tangan ulang **sebaiknya** dipasang sebelum atau bersama `MVP-10` agar
+`resignTrackingNote` hanya berlaku untuk data lama.
+
+| Pertanyaan | Siapa | Memblokir |
+|---|---|:---:|
+| ~~Pengesahan revision 6 dan kontrak `0.4.0`, termasuk `DS-R6-01`–`07`~~ | Yoga Aji Pratama | **Selesai** (`RM-DEC-108`) |
+| ~~Pengesahan pemakaian read model tanpa pass gerbang requirement dan arsitektur domain baru~~ | Yoga Aji Pratama | **Selesai** (`RM-DEC-108`) |
+| Persetujuan perubahan di folder Rawat Inap (`INT-RM-18`, `10m`, `19`) | Muhammad Hamzah | Ya, `MVP-9` dan `MVP-10` |
+| Penerimaan `INT-RM-20` dan temuan K3RS oleh HR | Pemilik HR | Tidak — menahan `POST-MVP` saja |

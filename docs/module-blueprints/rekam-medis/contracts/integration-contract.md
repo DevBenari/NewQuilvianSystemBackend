@@ -219,3 +219,48 @@ opsional sehingga pemanggil yang belum diperbarui tetap terkompilasi; sumbernya 
 |---|---|
 | Probe Rehab galat atau lewat batas waktu sumber | Butir `RehabClinicalDocument` gagal dibaca → kunjungan `Tidak dapat dipastikan`, kekurangan `SourceUnavailable` "Sumber Rehabilitation …" (`RM-DEC-044`) |
 | Pembaca Optik/Rehab galat saat berkas dibuka | Bagian jenis 45–52 menampilkan pesan gangguan; bagian lain tetap terbuka (`RM-DEC-044`, sudah hidup) |
+
+---
+
+# Amandemen — Integration `0.4.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.4.0`** — `approved`, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`). Persetujuan pemilik Rawat Inap atas `INT-RM-18`, `10m`, `19` **masih diperlukan** |
+| Input | Decision log revision `20`; capability map revision `5` |
+| Compatibility impact | Aditif. Satu pembaca baru di folder Rawat Inap; satu kontrak keluar ke HR; satu perluasan pembaca yang ada; satu permintaan perubahan perilaku ke Rawat Inap |
+
+## Pembaca dan perubahan di modul lain
+
+| ID | Pembaca/perubahan | Berkas di modul | Kontrak | Persetujuan pemilik modul | Kewajiban khusus |
+|---|---|---|---|---|---|
+| `INT-RM-18` | `InpDischargeSummaryTimelinessSource` sebagai `IDischargeSummaryTimelinessSource` | `InPatientManagement/Services/` | Baru (A6.9.1) | **Diperlukan** — Muhammad Hamzah, pemilik Rawat Inap (open question 27) | Baca saja; tidak memeriksa izin modul Rawat Inap; tidak mengembalikan identitas pasien; batas waktu baca mengikuti A4.14 |
+| `INT-RM-10m` | `InpMedicalRecordDocumentSource` — bagian "Rencana kontrol" | `InPatientManagement/Services/` | `INT-RM-10` (hidup) | **Diperlukan** — Muhammad Hamzah | Hanya menambah bagian tampilan; arti final ringkasan tidak berubah (`SignedAt != null`) |
+| `INT-RM-19` | Penolakan tanda tangan ulang di `InpDischargeService.SignSummaryAsync` | `InPatientManagement/Services/` | **Permintaan** rekam medis (`RM-DEC-105` bagian 1) | **Diperlukan** — Muhammad Hamzah. Bila ditolak, indikator tetap berjalan dengan batas `resignTrackingNote` | `409` sebelum isian diubah (A6.9.3) |
+
+## Kontrak keluar ke HR
+
+| ID | Arah | Mekanisme | Isi | Pemakai | Keadaan |
+|---|---|---|---|---|---|
+| `INT-RM-20` | Rekam medis → HR (OPPE/FPPE) | **Tarik** oleh HR lewat `GET .../discharge-summary-timeliness` (kontrak API `C1`) | Angka per dokter per periode; tanpa identitas pasien | Sub-modul 15 HR (`INT-HR-73`, `HRD-DEC-152`, `153`) | **Menunggu penerimaan pemilik HR** (open question 28). Kontrak HR `INT-HR-73` hari ini merencanakan "Direct Database View Read" (`RM-CF-R5-04`); pemakaian `INT-RM-20` menggantikan cara itu untuk indikator ringkasan pulang |
+
+Ambang pemicu FPPE (> 48 jam lebih dari 20% kasus dalam 2 bulan, `VR-OPP-07`) **milik HR** dan
+dihitung HR dari angka `INT-RM-20`. Rekam medis tidak mengirim pemicu `EMR_DELINQUENCY` ke
+`POST .../triggers/incoming`.
+
+## Pernyataan non-integrasi
+
+| ID | Sistem HR | Pernyataan | Keputusan |
+|---|---|---|---|
+| `INT-RM-N01` | Gerbang kewenangan klinis `INT-HR-69` (`IClinicalPrivilegeGateService`) | Tidak dipanggil rekam medis; tidak memengaruhi tanda tangan, penguncian, maupun kelengkapan | `RM-DEC-098` |
+| `INT-RM-N02` | `TrxClinicalPrivilegeEmergencyOverrideLog` | Tidak dibaca dan tidak ditampilkan di berkas | `RM-DEC-099` |
+| `INT-RM-N03` | Rekam kesehatan K3RS (`OccupationalHealthManagement`) | Tidak dibaca dan tidak ditautkan ke berkas. Kebutuhan jejak akses dan masa simpan setara diajukan ke pemilik HR (open question 28) | `RM-DEC-100` |
+| `INT-RM-N04` | Status kepegawaian dan unit kerja HR | Tidak dipanggil saat berkas dibuka; pengaruh hanya lewat status akun dan izin jabatan | `RM-DEC-103` |
+
+## Kegagalan
+
+| Keadaan | Perilaku |
+|---|---|
+| Pembaca indikator Rawat Inap galat atau lewat batas waktu | `GET .../discharge-summary-timeliness` mengembalikan `503` "Data Rawat Inap tidak dapat dibaca. Coba lagi." — **tidak pernah** angka sebagian. Audit tidak ditulis |
+| HR menarik periode yang masih berjalan | Angka sah tetapi dapat berubah; `dataNotes.periodStillChanging = true` |
+| Pembaca detail ringkasan galat | Perilaku `RM-DEC-044` yang ada; bagian lain berkas tetap terbuka |

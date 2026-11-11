@@ -258,3 +258,42 @@ pemegangnya ditetapkan tersendiri.
 | Pembukaan berkas yang memuat dokumen Optik/Rehab | Satu baris jejak akses (`RM-DEC-034`) | Tidak berubah |
 
 `LoggerService.AuditAsync` mengabaikan objek `data`; isi audit wajib ditulis di teks pesan.
+
+---
+
+# Amandemen — Permission dan audit `0.4.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.4.0`** — `approved`, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`) |
+| Input | Decision log revision `20` |
+
+## Izin baru
+
+| Endpoint | Resource | Action | Atribut persis | Menulis data |
+|---|---|---|---|:---:|
+| `GET /discharge-summary-timeliness/filters/metadata`, `GET /discharge-summary-timeliness` | `DischargeSummaryTimeliness` | `Read` | `[AccessPermission("DischargeSummaryTimeliness", "Read")]` | Tidak |
+
+Pendaftaran mengikuti bagian 7 (otomatis lewat `AccessMenuSeeder`). **Tidak dipasangkan** ke
+jabatan mana pun secara bawaan (`DS-R6-05`). Usulan pemegang, dipasang admin sesudah HR menerima
+kontrak: jabatan Komite Medik dan Subkomite Mutu Profesi.
+
+`DischargeSummaryTimeliness : Read` **tidak boleh disamakan** dengan
+`MedicalRecordCompleteness : Read`: yang pertama memperlihatkan kinerja dokter, yang kedua daftar
+kerja petugas rekam medis. Memegang satu tidak memberi yang lain.
+
+Izin yang **tidak** berubah: detail ringkasan pulang tetap `MedicalRecord : Read` + keperluan akses;
+tanda tangan ringkasan tetap izin Rawat Inap yang ada.
+
+## Audit
+
+| Kejadian | Dicatat | Isi minimum (di **teks pesan**, karena `AuditAsync` mengabaikan objek `data`) |
+|---|---|---|
+| Tarikan indikator berhasil | Ya, `LoggerService.AuditAsync` | Pelaku, periode, saringan `doctorId`/`workforceProfileId`, jumlah item, `generatedAt` |
+| Tarikan ditolak `400`/`403` | `403` dicatat filter izin yang ada; `400` tidak | — |
+| Tarikan gagal `503` | `ErrorAsync` | Periode, jenis galat — tanpa data klinis |
+| Bagian "Rencana kontrol" dibaca | Satu baris jejak akses berkas yang sudah ada (`RM-DEC-034`) | Tidak berubah |
+| Tanda tangan ulang ditolak `409` (Rawat Inap) | Mengikuti pola log Rawat Inap | Ditetapkan pemilik Rawat Inap |
+
+**Privasi.** Respons dan log indikator tidak memuat identitas pasien, nomor rekam medis,
+`encounterId`, `episodeId`, maupun isi ringkasan (`RM-DEC-101`).

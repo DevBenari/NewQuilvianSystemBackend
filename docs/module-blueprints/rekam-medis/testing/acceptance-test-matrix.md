@@ -293,3 +293,50 @@ gagal diberi tanda **(gagal)**.
 | `UAT-21` | Dokumen Optik bertanda tangan dibuka | Tidak ada tombol koreksi; keterangan arahan ke layar Optik (`RM-FE-030`) |
 | `UAT-22` | Profil `RJ-REHAB` dibuat lewat layar; pilih kondisi "Operasi" | Jenis poli terkunci kosong (`RM-FE-032`) |
 | `UAT-23` | Kunjungan poli rehab dengan satu sesi final di daftar kerja | Tidak muncul sebagai belum lengkap. **Prasyarat:** poli rehab ada di master (`RM-UN-R4-01`) |
+
+---
+
+# Amandemen revision 6 — Uji penerimaan `AT-RM-93` sampai `AT-RM-108` (`approved`)
+
+Disahkan Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`).
+
+Kolom "AC" menunjuk acceptance criteria revision 19/20 pada `00-interview-decisions.md`. Jalur gagal
+diberi tanda **(gagal)**. `RM-AC-R19-07` sudah `superseded` dan tidak diuji.
+
+## Indikator ketepatan ringkasan pulang
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-93` | `RM-AC-R19-04`, `RM-DEC-101` | Tarik Oktober 2026 untuk satu dokter | Integrasi controller | Angka per kolom sesuai data uji; JSON mentah tanpa `patientId`, `encounterId`, `episodeId`, nomor RM; satu baris audit dengan periode di teks pesan |
+| `AT-RM-94` | `RM-AC-R19-05` **(gagal)** | Pengguna tanpa `DischargeSummaryTimeliness : Read`; pengguna yang hanya punya `MedicalRecordCompleteness : Read` | Integrasi controller | `403` untuk keduanya |
+| `AT-RM-95` | `RM-AC-R19-06` | Pulang 09.00, tanda tangan 08.59 esok hari, lalu dikoreksi dan ditandatangani ulang 2 hari kemudian | Integrasi (harness) | `within24h`; tetap `within24h` sesudah koreksi |
+| `AT-RM-96` | `RM-AC-R20-02` | Tanda tangan, koreksi dalam sesi, tanda tangan ulang | Unit pembaca | Jam selesai = `PreviousSignedAt` versi terawal; dokter = penanda tangan pertama |
+| `AT-RM-97` | `RM-AC-R20-03` | Keluar 51 jam sebelum `waktuTarik`, belum ditandatangani | Unit pengelompokan | `over48h` dan `unsignedOver48h` naik satu, atas DPJP aktif |
+| `AT-RM-98` | `RM-AC-R20-04` | Keluar 4 jam sebelum `waktuTarik`, belum ditandatangani | Unit pengelompokan | Hanya `notYetDueCount`; tidak masuk `assessedCount` |
+| `AT-RM-99` | `RM-AC-R20-05` | Ditandatangani 2 jam sebelum keluar | Unit | `within24h`; `signedBeforeDepartureCount` naik |
+| `AT-RM-100` | `RM-AC-R20-06` | Episode ditutup, `PhysicallyLeftAt` kosong | Unit pembaca | Jam mulai `ClosedAt`; `closedAtFallbackCount` naik |
+| `AT-RM-101` | `RM-AC-R20-07` | Episode `DischargePending` tanpa kepergian; episode `Cancelled` | Unit pembaca | Keduanya tidak terbaca |
+| `AT-RM-102` | `DS-R6-07` | Selisih tepat 24:00:00 dan tepat 48:00:00 | Unit | `within24h` dan `between24And48h` |
+| `AT-RM-103` | `DS-R6-03` | Belum ditandatangani, tanpa DPJP aktif | Unit | Item `doctorId = null` "Tanpa DPJP aktif" di urutan terakhir |
+| `AT-RM-104` | `VAL-RM-C01`–`C04` **(gagal)**; `RM-AC-R19-08` | Periode kosong, terbalik, 367 hari, `pageSize = 0`; kunjungan Rawat Jalan/IGD dengan CPPT terlambat | Integrasi controller | `400` dengan pesan kontrak; Rawat Jalan/IGD tidak memengaruhi angka |
+| `AT-RM-108` | Integration "Kegagalan" **(gagal)** | Pembaca Rawat Inap dibuat galat | Integrasi | `503`; tidak ada angka sebagian; tidak ada audit |
+
+## Rencana kontrol dan tanda tangan ulang
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-105` | `RM-AC-R19-11` | Ringkasan dengan tanggal, poli, dokter; lalu tanggal + poli saja | Unit pembaca (`InpMedicalRecordDocumentSourceTests.cs`) | Bagian "Rencana kontrol" berisi teks A6.9.4 |
+| `AT-RM-106` | `RM-AC-R19-12` | Ringkasan tanpa rencana kontrol | Unit pembaca | Bagian tidak ada; status kelengkapan tidak berubah |
+| `AT-RM-107` | `RM-AC-R20-01` **(gagal)** | `PATCH .../summary/sign` pada ringkasan bertanda tangan tanpa sesi koreksi | Integrasi (lokasi uji milik Rawat Inap) | `409`; `SignedAt` tidak berubah. **Hanya dijalankan setelah persetujuan pemilik Rawat Inap** |
+
+## Batas yang dinyatakan
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| — | `RM-AC-R19-01`–`03`, `09`, `10` | Tidak ada perubahan kode | Uji arsitektur ringan (A6.10) + regresi `MedicalRecordTests` | Tidak ada rujukan tipe HR terlarang; akun nonaktif ditolak (`RM-CAP-094`, sudah hidup) |
+
+## Uji antarmuka (UAT)
+
+| ID | Skenario | Bukti |
+|---|---|---|
+| `UAT-24` | Berkas pasien Rawat Inap dengan rencana kontrol dibuka | Bagian "Rencana kontrol" tampil di panel detail tanpa perubahan frontend |

@@ -597,3 +597,52 @@ backend pasangannya. Tidak ada menu atau route baru. Linimasa tidak diubah (`RM-
 | **Acceptance criteria** | Setiap UAT lulus, atau dicatat terbuka beserta sebab dan bukti pengganti |
 | **Verification** | Uji visual lewat dev 3000; Playwright `--output` ke scratchpad |
 | **DoD** | Laporan kesiapan ditulis |
+
+---
+
+# Roadmap revision 4 — Amandemen frontend: rencana kontrol di berkas
+
+```yaml
+module_id: RM-BP-001
+blueprint_revision: 6
+roadmap_revision: 4
+status: APPROVED_INPUTS
+owners:
+  frontend_authority: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
+  product_domain: Yoga Aji Pratama
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-11-11        # RM-DEC-108
+input_revisions:
+  interview_decisions: 21
+  frontend_architecture: 6 (bagian "Amandemen revision 6", F6.1–F6.4)
+contract_versions:
+  api: 0.4.0 (approved, hash terkunci di blueprint-manifest.md)
+source_commits:
+  backend: 46a57def
+  frontend: 75b97ecad (branch YogaV2)
+```
+
+Revision 6 **tidak** menambah layar, menu, route, service, maupun state Redux di modul rekam medis
+(F6.1). Indikator dipakai HR lewat API; layar pemakainya milik modul HR. Satu-satunya pekerjaan
+frontend adalah memastikan bagian "Rencana kontrol" tampil lewat panel yang sudah ada.
+
+| Task | Gelombang | Ringkas | Pasangan backend | Status |
+|---|---|---|---|---|
+| `FE-19` | `MVP-9` | Penjaga dan uji tampilan "Rencana kontrol" | `BE-47` | **`SELESAI`** 11 November 2026 — 3 uji unit + 2 E2E API tiruan lulus; `UAT-24` data nyata terbuka dan terlacak (devYoga tanpa ringkasan pulang); laporan `task/report/frontend/FE-19.md` |
+
+## `FE-19` — Rencana kontrol tampil di berkas
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-19` |
+| **Outcome** | Bagian baru dari backend tampil di detail ringkasan pulang tanpa perubahan layar, dan tidak hilang bila kelak panel diubah |
+| **Trace** | `RM-DEC-104`; `RM-FE-033`; `FR-RM-097` |
+| **Kontrak** | API `0.4.0` C2 |
+| **Reuse** | `medical-record-document-panel.jsx` (`:113`, `:194-199`), `getMedicalRecordField` |
+| **Scope** | **Tanpa perubahan kode layar** bila panel memang menggambar seluruh `sections` apa adanya. Uji unit baru yang memastikan label yang tidak dikenal (misalnya "Rencana kontrol") tetap tergambar; bila logika itu berada di komponen, bukan util, uji ditulis pada lapisan yang dapat diuji project. `UAT-24` di devYoga |
+| **Dependency** | Uji unit: — . `UAT-24`: `BE-47` dan data uji ringkasan pulang berencana kontrol |
+| **Acceptance criteria** | 1) Panel menggambar seluruh `sections` dari server tanpa daftar label tetap. 2) `UAT-24`: bagian "Rencana kontrol" tampil berisi teks dari server. 3) Ringkasan tanpa rencana kontrol tidak menampilkan bagian kosong |
+| **Verification** | `node --import ./tests/helpers/register.mjs --test tests/unit/`; `UAT-24` lewat dev 3000 (data asli; CORS) dengan Playwright `--output` ke scratchpad |
+| **DEV_DISCRETION** | Tidak ada — tampilan mengikuti panel yang ada |
+| **DoD** | Kriteria terbukti; laporan `task/report/frontend/FE-19.md` |

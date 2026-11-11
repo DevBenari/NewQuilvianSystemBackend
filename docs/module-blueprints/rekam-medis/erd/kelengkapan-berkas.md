@@ -249,3 +249,59 @@ ALTER TABLE public."MstMedicalRecordCompletenessProfile"
 
 Nama index lama di atas mengikuti konvensi EF; nama sebenarnya dibaca dari snapshot model saat
 migration dibuat.
+
+## Amandemen revision 6 — indikator ketepatan ringkasan pulang (`approved`, `RM-DEC-108`)
+
+`RM-DEC-101`, `102`, `105`–`107`. **Read model tanpa tabel.** Seluruh entity di bawah `Existing`
+milik Rawat Inap atau HR, dibaca lewat `InpDischargeSummaryTimelinessSource` (Adapter/View, folder
+Rawat Inap). Rekam medis tidak menyimpan apa pun.
+
+```mermaid
+erDiagram
+    InpEpisode ||--o| InpDischargeSummary : "satu ringkasan per episode (unik EpisodeId)"
+    InpDischargeSummary ||--o{ InpDischargeSummaryRevision : "versi lama (sesi koreksi)"
+    InpEpisode ||--o{ InpDoctorAssignment : "penugasan DPJP"
+    MstDoctor ||--o{ InpDoctorAssignment : "dokter"
+    MstDoctor ||--o{ InpDischargeSummary : "SignedByDoctorId"
+    MstWorkforceProfile ||--|| MstDoctor : "WorkforceProfileId (wajib, 1-1)"
+    InpEpisode {
+        uuid Id PK
+        int EpisodeStatus "Cancelled dikecualikan"
+        timestamp PhysicallyLeftAt "jam mulai utama"
+        timestamp ClosedAt "jam mulai cadangan"
+    }
+    InpDischargeSummary {
+        uuid Id PK
+        uuid EpisodeId FK,UK
+        timestamp SignedAt "null = belum ditandatangani"
+        uuid SignedByDoctorId FK
+        date FollowUpDate "rencana kontrol"
+        uuid FollowUpServiceUnitId FK
+        uuid FollowUpDoctorId FK
+    }
+    InpDischargeSummaryRevision {
+        uuid Id PK
+        uuid DischargeSummaryId FK
+        timestamp PreviousSignedAt "kandidat tanda tangan pertama"
+        uuid PreviousSignedByDoctorId
+    }
+    InpDoctorAssignment {
+        uuid Id PK
+        uuid EpisodeId FK
+        uuid DoctorId FK
+        int AssignmentRole "Dpjp"
+        bool IsActive
+        timestamp EndDateTime "null = masih aktif"
+    }
+    MstDoctor {
+        uuid Id PK
+        varchar FullName
+        uuid WorkforceProfileId FK
+    }
+    MstWorkforceProfile {
+        uuid Id PK
+    }
+```
+
+Tidak ada PK/FK, index, unique constraint, perilaku hapus, maupun concurrency baru. Index tambahan
+hanya diajukan ke pemilik Rawat Inap bila kueri rentang terbukti lambat (A6.6).

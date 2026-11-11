@@ -706,6 +706,10 @@ try
     builder.Services.AddHostedService<MedicalRecordCompletenessQueueWorker>();
     // BE-40 / GAP-ARCH-RM-04. Pemeriksaan berkala kunjungan yang belum lengkap (A4.13).
     builder.Services.AddHostedService<MedicalRecordCompletenessRecheckHostedService>();
+    // BE-49 / RM-DEC-101. Indikator ketepatan ringkasan pulang untuk OPPE HR. Pembacanya
+    // (IDischargeSummaryTimelinessSource) didaftarkan Rawat Inap pada BE-50; selama belum ada,
+    // endpoint menjawab 503 sesuai integration 0.4.0 "Kegagalan".
+    builder.Services.AddScoped<DischargeSummaryTimelinessService>();
 
     // Pembaca sumber berkas rekam medis (INT-RM-10). Satu instance per scope dipakai untuk kedua
     // kontraknya, supaya pembaca dokumen dan pembaca uji kelengkapan tidak berbeda pendapat.
@@ -728,6 +732,9 @@ try
     builder.Services.AddScoped<InpMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    // BE-50: pembaca indikator ketepatan ringkasan pulang (INT-RM-18), persetujuan pemilik RM-DEC-109.
+    builder.Services.AddScoped<InpDischargeSummaryTimelinessSource>();
+    builder.Services.AddScoped<IDischargeSummaryTimelinessSource>(sp => sp.GetRequiredService<InpDischargeSummaryTimelinessSource>());
     // BE-35: Farmasi, persetujuan pemilik RM-DEC-075. Tanpa kriteria kelengkapan.
     builder.Services.AddScoped<IMedicalRecordDocumentSource, PhmMedicalRecordDocumentSource>();
     // BE-34: Bank Darah, persetujuan pemilik proses BDRS RM-DEC-074. Tanpa kriteria kelengkapan.

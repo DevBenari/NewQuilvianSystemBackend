@@ -1,7 +1,157 @@
 # Catatan Rilis — Modul Rekam Medis
 
-> Berkas ini memuat tiga rilis, terbaru di atas: **rilis amandemen `0.3.0`**, **rilis amandemen
-> `0.2.0`**, dan **rilis pertama `0.1.x`**. Rilis lama tetap utuh karena perilakunya masih berlaku.
+> Berkas ini memuat empat rilis, terbaru di atas: **rilis amandemen `0.4.0`**, **rilis amandemen
+> `0.3.0`**, **rilis amandemen `0.2.0`**, dan **rilis pertama `0.1.x`**. Rilis lama tetap utuh karena
+> perilakunya masih berlaku.
+
+# Rilis amandemen `0.4.0` — Indikator ringkasan pulang dan rencana kontrol
+
+| Field | Isi |
+|---|---|
+| Tanggal disusun | 11 November 2026 |
+| Disusun pada task | `BE-51` |
+| Kontrak | API, state, validation, integration, permission/audit **`0.4.0`** — disahkan 11 November 2026 (`RM-DEC-108`); melebur penyegaran `0.3.1` (`RM-DEC-095`) |
+| Task yang dirilis | `BE-47`, `BE-48`, `BE-49`, `BE-50` — seluruhnya `SELESAI`; laporan per task di `task/report/backend/` |
+| Persetujuan modul lain | Perubahan di folder Rawat Inap (`BE-47`, `BE-48`, `BE-50`): Muhammad Hamzah, disampaikan Yoga Aji Pratama (`RM-DEC-109`) |
+| Status catatan ini | **Disahkan** pemilik API, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-110`) — lihat bagian C9 |
+| Dampak skema | **Nol.** Tanpa migration, tanpa tabel atau kolom baru |
+| Dampak perilaku | **Satu penolakan baru di Rawat Inap:** tanda tangan ulang ringkasan pulang (C1). Satu bagian baru di rincian ringkasan pulang (C2). Satu grup endpoint dan satu izin baru (C3, C5) |
+| Prasyarat penerapan | Tidak ada migration. Rilis `0.3.0` sebaiknya sudah terpasang lebih dulu |
+
+> **BACA BAGIAN C1 LEBIH DULU.** Ia satu-satunya perubahan yang dapat membuat permintaan yang
+> kemarin berhasil kini ditolak.
+
+## C1. Perubahan perilaku pada endpoint yang sudah berjalan
+
+### C1.1 Ringkasan pulang yang sudah ditandatangani tidak dapat ditandatangani ulang di luar sesi koreksi
+
+`PATCH api/v1/health-services/inpatient-management/discharges/{episodeId}/summary/sign` (`BE-48`)
+
+| | |
+|---|---|
+| **Sebelumnya** | Ringkasan yang sudah ditandatangani dapat ditandatangani lagi kapan saja. Waktu dan dokter penanda tangan lama ditimpa tanpa salinan |
+| **Sekarang** | Bila ringkasan sudah ditandatangani **dan** tidak ada sesi koreksi yang terbuka → **`409`** "Resume sudah ditandatangani; ubah lewat sesi koreksi." Waktu tanda tangan tidak berubah |
+| **Yang tidak berubah** | Tanda tangan pertama kali; tanda tangan ulang **di dalam** sesi koreksi supervisor; penutupan episode; jalur supervisor |
+| **Urutan pemeriksaan** | Pemeriksaan ini mendahului pemeriksaan DPJP. Dokter yang bukan DPJP pada ringkasan yang sudah final menerima `409`, bukan `403` |
+| **Alasan** | `RM-DEC-105`: waktu tanda tangan pertama adalah dasar indikator ketepatan ringkasan pulang (C3) dan bukti klinis yang tidak boleh hilang |
+| **Yang harus dilakukan klien** | Layar Rawat Inap sudah menyembunyikan tombol tanda tangan untuk ringkasan yang bertanda tangan (`resolveDischargeSummaryAuthority`), sehingga pemakaian normal tidak terdampak. Klien lain cukup menampilkan pesan `409` apa adanya. Untuk mengubah ringkasan yang sudah final: minta supervisor membuka sesi koreksi |
+
+**Contoh.** dr. Bima menandatangani ringkasan Pak Andi 4 Oktober 10.00 WIB. Dua hari kemudian
+permintaan tanda tangan terkirim lagi dari tab lama → `409`; waktu tanda tangan tetap 4 Oktober 10.00.
+
+## C2. Rincian ringkasan pulang di berkas memuat rencana kontrol
+
+`GET api/v1/health-services/medical-record-management/medical-records/{patientId}/documents/DischargeSummary/{documentId}` (`BE-47`)
+
+Bentuk respons tidak berubah; `sections[]` bertambah satu butir **"Rencana kontrol"** tepat sesudah
+"Instruksi tindak lanjut", bila DPJP mengisi tanggal kontrol (`RM-DEC-104`):
+
+| Isian di ringkasan | Teks bagian |
+|---|---|
+| Tanggal + poli + dokter | `10-10-2026 — Poli Penyakit Dalam — dr. Maya` |
+| Tanggal + poli | `10-10-2026 — Poli Penyakit Dalam` |
+| Tanpa tanggal kontrol | Bagian tidak muncul |
+
+Penilaian kelengkapan berkas **tidak** berubah: rencana kontrol bukan dokumen wajib. Layar berkas
+menampilkannya tanpa perubahan frontend karena panel menggambar `sections` apa adanya.
+
+## C3. Endpoint baru
+
+### C3.1 Health Services / Medical Record Management / Discharge Summary Timeliness
+
+Base URL: `api/v1/health-services/medical-record-management/discharge-summary-timeliness`
+(`BE-49`, `BE-50`)
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/filters/metadata` | Definisi kolom indikator dan rentang periode maksimal (366 hari) | `DischargeSummaryTimeliness : Read` |
+| `GET` | `/` | Angka ketepatan tanda tangan ringkasan pulang Rawat Inap per dokter per periode, untuk OPPE/FPPE HR | `DischargeSummaryTimeliness : Read` |
+
+Query `GET /`: `periodFrom`, `periodTo` (wajib, `yyyy-MM-dd`, kalender WIB, inklusif), `doctorId`,
+`workforceProfileId`, `page` (bawaan 1), `pageSize` (bawaan 20, maks 100).
+
+Kode status: `200`; `400` (periode kosong, terbalik, lebih dari 366 hari, ukuran halaman di luar 1–100);
+`401`; `403`; `503` "Data Rawat Inap tidak dapat dibaca. Coba lagi." — **tidak pernah** angka sebagian.
+
+**Definisi yang dipakai** (`RM-DEC-102`, `105`–`107`):
+
+| Kolom | Arti |
+|---|---|
+| `within24h` | Ditandatangani paling lama 24 jam sesudah pasien keluar ruangan (cadangan: waktu tutup episode). Tanda tangan sebelum pasien keluar dihitung 0 jam |
+| `between24And48h` | Lebih dari 24 sampai 48 jam, **termasuk** ringkasan yang belum ditandatangani dan sudah tertunda selama itu |
+| `over48h` | Lebih dari 48 jam, termasuk yang belum ditandatangani |
+| `unsignedBetween24And48h`, `unsignedOver48h` | Bagian dari dua kolom di atas yang belum ditandatangani saat ditarik |
+| `notYetDueCount` | Belum ditandatangani dan baru tertunda 24 jam atau kurang — **tidak** masuk penyebut `assessedCount` |
+| Dokter | Penanda tangan **pertama**; ringkasan yang belum ditandatangani dibebankan ke DPJP aktif. Tanpa DPJP aktif → baris `doctorId = null` "Tanpa DPJP aktif", selalu terakhir |
+
+**Contoh** (ditarik 1 November 12.00 WIB). Ibu Sari keluar 30 Oktober 09.00, ringkasannya belum
+ditandatangani → `over48h` dan `unsignedOver48h` atas DPJP-nya. Pak Andi keluar 1 November 08.00, belum
+ditandatangani → `notYetDueCount`, tidak masuk penyebut.
+
+**Paging.** Respons memakai bentuk `PagedResult` project: `pageNumber`, `pageSize`, `totalData`,
+`totalPage`, `items`. Contoh di kontrak API `0.4.0` C1 masih menulis `page`/`totalCount`/`totalPages`;
+selisih ini dicatat sebagai **penyegaran kontrak `0.4.1`** tanpa perubahan perilaku, untuk pass blueprint
+berikutnya (artefak kontrak terkunci hash tidak disunting selama delivery).
+
+**Yang tidak pernah ada di respons maupun log:** identitas pasien, nomor rekam medis, kunjungan,
+episode, isi ringkasan (`RM-DEC-101`).
+
+## C4. Keterangan mutu data pada setiap tarikan
+
+| Field | Isi |
+|---|---|
+| `generatedAt` | Waktu tarik (UTC). Angka periode yang masih berjalan dapat berubah sampai seluruh ringkasan ditandatangani |
+| `dataNotes.periodStillChanging` | `true` bila masih ada ringkasan belum ditandatangani pada periode itu |
+| `dataNotes.closedAtFallbackCount` | Jumlah ringkasan yang jam mulainya memakai waktu tutup episode karena waktu keluar ruangan kosong |
+| `dataNotes.signedBeforeDepartureCount` | Jumlah ringkasan yang ditandatangani sebelum pasien keluar (dihitung 0 jam) |
+| `dataNotes.resignTrackingNote` | "Tanda tangan ulang tanpa sesi koreksi sebelum perbaikan Rawat Inap tidak terlacak; waktu tanda tangan pertama dapat tampak lebih lambat." — data sebelum C1 berlaku tidak dapat dipulihkan (`RM-DEC-105`) |
+
+## C5. Hak akses baru
+
+| Izin | Untuk | Keterangan |
+|---|---|---|
+| `DischargeSummaryTimeliness : Read` | Kedua endpoint C3.1 | Terdaftar otomatis saat aplikasi mulai. **Tidak** dipasangkan ke jabatan mana pun (`DS-R6-05`). Usulan pemegang: Komite Medik dan Subkomite Mutu Profesi — dipasang admin **sesudah** pemilik HR menerima kontrak `INT-RM-20` |
+
+Izin ini **tidak sama** dengan `MedicalRecordCompleteness : Read`: memegang salah satu tidak memberi
+yang lain.
+
+## C6. Penyegaran `0.3.1` yang dilebur
+
+Profil dokumen wajib berjenis poli `0` (`Unknown`, "Tidak diketahui") ditolak `400` "Jenis poli tidak
+dikenal." dan tidak lagi ditawarkan di `clinicTypeOptions` (`RM-DEC-095`). Saringan daftar dengan
+`clinicType=0` tetap sah.
+
+## C7. Yang WAJIB disiapkan sebelum rilis dipakai
+
+| No | Persiapan | Pemilik |
+|---:|---|---|
+| 1 | Beri tahu pengguna dan pengembang layar Rawat Inap tentang C1 | Muhammad Hamzah (pemilik Rawat Inap) |
+| 2 | Kirim kontrak `INT-RM-20` ke pemilik HR; pasang izin C5 ke jabatan hanya sesudah HR menerima | Yoga Aji Pratama; admin hak akses |
+| 3 | Uji tarikan indikator periode panjang di lingkungan dengan data nyata; bila lambat, ajukan index ke pemilik Rawat Inap lewat task terpisah | Rekam medis bersama Rawat Inap |
+
+## C8. Yang TIDAK berubah
+
+- Skema database, seluruh tabel rekam medis dan Rawat Inap.
+- Penilaian kelengkapan berkas, linimasa, jejak akses, dan addendum.
+- Tanda tangan ringkasan pulang pertama kali, sesi koreksi, dan penutupan episode Rawat Inap.
+- Gerbang kewenangan klinis HR, log override darurat, dan catatan K3RS **tidak** dibaca rekam medis
+  (`RM-DEC-098`–`100`).
+
+## C9. Keterangan di Swagger dan status persetujuan
+
+Keterangan rilis ini diletakkan pada **schema** (properti DTO indikator), mengikuti A8. Tidak ada
+`<summary>` baru pada action controller. Keterangan itu dibuktikan terbit lewat `ReleaseContractTests`.
+
+**Catatan rilis amandemen `0.4.0` disahkan** pemilik API, 11 November 2026 (`RM-DEC-110`): C1 dan C7 diterima
+untuk diumumkan kepada pemakai. Kontraknya disahkan lebih dulu (`RM-DEC-108`). Pernyataan pemilik Rawat Inap atas
+C1 dan C2 masih ditunggu; persetujuan folder Rawat Inap untuk perubahan kodenya sudah ada (`RM-DEC-109`).
+
+| Peran | Nama | Tanggal setuju |
+|---|---|---|
+| Pemilik API | Yoga Aji Pratama | 11 November 2026 (`RM-DEC-110`) |
+| Pemilik Rawat Inap (untuk C1, C2) | Muhammad Hamzah | — |
+
+---
 
 # Rilis amandemen `0.3.0` — Optik dan Rehab Medik
 
@@ -11,7 +161,7 @@
 | Disusun pada task | `BE-46` |
 | Kontrak | API, state, validation, integration, permission/audit **`0.3.0`** — disahkan 10 November 2026 (`RM-DEC-088`) |
 | Task yang dirilis | `BE-42`, `BE-43`, `BE-44`, `BE-45` — seluruhnya `SELESAI`; laporan per task di `task/report/backend/` |
-| Status catatan ini | **Menunggu pengesahan** pemilik API (Yoga Aji Pratama) — lihat bagian B8 |
+| Status catatan ini | **Disahkan** pemilik API, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-110`) — lihat bagian B8 |
 | Dampak skema | **Aditif.** Satu migration `20261110043756_AddClinicTypeToMedicalRecordCompletenessProfile`: satu kolom boleh kosong, index unik profil diganti empat kolom, satu CHECK. **Nol** perubahan pada tabel modul lain |
 | Dampak perilaku | Kunjungan unit Optik dan poli Rehabilitasi Medik dinilai dengan profilnya sendiri. **Satu penolakan baru:** addendum koreksi pada dokumen Optik (B1) |
 | Prasyarat penerapan | Migration amandemen `0.2.0` (`20261028070658_…`) **wajib** sudah diterapkan lebih dulu. Per 10 November 2026 baru devYoga yang menerimanya |
@@ -129,13 +279,13 @@ Tidak ada `<summary>` baru pada action controller. Keterangan itu dibuktikan ter
 
 ## B8. Status persetujuan
 
-**Catatan rilis amandemen `0.3.0` belum disahkan.** Kontraknya sudah (`RM-DEC-088`); yang belum adalah
-pernyataan bahwa B1 dan B5 diterima untuk diumumkan kepada pemakai.
+**Catatan rilis amandemen `0.3.0` disahkan** pemilik API, 11 November 2026 (`RM-DEC-110`): B1 dan B5 diterima
+untuk diumumkan kepada pemakai. Kontraknya disahkan lebih dulu (`RM-DEC-088`).
 
 | Peran | Nama | Tanggal setuju |
 |---|---|---|
-| Pemilik API | Yoga Aji Pratama | — |
-| Pemilik frontend | Yoga Aji Pratama | — |
+| Pemilik API | Yoga Aji Pratama | 11 November 2026 (`RM-DEC-110`) |
+| Pemilik frontend | Yoga Aji Pratama | 11 November 2026 (`RM-DEC-110`) |
 
 ---
 

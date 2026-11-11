@@ -145,3 +145,16 @@ Tidak ada konteks rekam medis baru. Dua modul sumber bertambah di sekeliling kon
 | Master Data — jenis poli (`MstClinic.ClinicType`) | Dibaca untuk pemilihan profil | Existing |
 
 ERD rinci: `erd/kelengkapan-berkas.md` bagian "Amandemen revision 5".
+
+## Amandemen revision 6 — titik sentuh HR dan Rawat Inap (`approved`, `RM-DEC-108`)
+
+Tidak ada konteks rekam medis baru dan tidak ada tabel baru. Hubungan dengan konteks luar:
+
+| Konteks luar | Hubungan dengan rekam medis | Status |
+|---|---|---|
+| `InPatientManagement` (Rawat Inap) | Sumber indikator ketepatan ringkasan pulang (`INT-RM-18`, pembaca baru); bagian "Rencana kontrol" (`INT-RM-10m`); permintaan penolakan tanda tangan ulang (`INT-RM-19`) | Existing; pembaca **Adapter/View** baru |
+| HR — Workforce (`MstDoctor.WorkforceProfileId`) | Kunci baris indikator | Existing |
+| HR — OPPE/FPPE | Pemakai indikator (`INT-RM-20`, tarik) | Existing di HR; kontrak **New** |
+| HR — Kredensial (gerbang `INT-HR-69`, log override), K3RS | **Tidak tersambung** (`INT-RM-N01`–`N03`) | — |
+
+ERD rinci: `erd/kelengkapan-berkas.md` bagian "Amandemen revision 6".

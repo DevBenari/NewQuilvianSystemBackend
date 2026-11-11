@@ -1392,3 +1392,293 @@ melaporkan kondisi. Gangguan atau lewat batas waktu → `Tidak dapat dipastikan`
 | Penilaian Ringkasan Akhir Rehab per episode | `RM-DEC-081`: episode melintasi kunjungan; penilaian tetap per kunjungan |
 | Tabel salinan poli atau jenis poli di rekam medis | Pemilik jenis poli adalah Master Data; profil cukup menyimpan nilai enum |
 | Label "rujukan dari kunjungan X" di linimasa | `RM-DEC-083` |
+
+---
+
+# Amandemen revision 6 — Indikator ketepatan ringkasan pulang dan titik sentuh HR (`approved`)
+
+| Field | Value |
+|---|---|
+| Blueprint revision | **`6` — `approved`**, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`). Revision 4 dan 5 di atas tetap `approved` untuk cakupannya |
+| Tanggal | 11 November 2026 |
+| Scope | `RM-DEC-097`–`107`: E1–E6 decision log revision 19, disempurnakan closure pass revision 20 |
+| Input | Decision log revision `20` (`sha256:0e8fe5f0dd17861a4d43a71279791c12b33c9726783b042800a5b355bad05f7e`); capability map revision `5` (`sha256:c69ed2f603f8a32e4d5b78190c77b974b5ef67802ffd461c3fb8452fed7e5b26`, `RM-CAP-083`–`095`); `RM-DA-001` revision 1 dan `RM-RCG-001` revision 2 **tanpa pass baru** — lihat "Gerbang masuk" |
+| Source SHA | Backend `46a57def` (branch `yoga`); frontend `75b97ecad` (branch `YogaV2`) — sama dengan capability map revision 5 |
+| Yang tidak dirancang ulang | Bounded context, aggregate, ownership, lifecycle, billing, dan batas keselamatan dari `RM-DA-001`; desain rilis pertama, revision 4, dan revision 5 tetap berlaku |
+
+**Gerbang masuk.** Revision 6 tidak melahirkan tabel, aggregate, atau status baru. Isinya:
+
+| Isi revision 6 | Slice `RM-DA-001` yang diperluas | Alasan tidak perlu pass domain baru |
+|---|---|---|
+| Rencana kontrol di detail ringkasan pulang (`RM-DEC-104`) | S-A3 Sumber pelayanan (pembaca Rawat Inap) | Menambah satu bagian tampilan pada pembaca yang sudah ada; makna final tidak berubah |
+| Indikator ketepatan ringkasan pulang (`RM-DEC-101`, `102`, `105`–`107`) | **Baru sebagai read model** di `BC-RM-03` Kelengkapan | Tanpa entity tersimpan dan tanpa transaksi. Pemilik data (Rawat Inap), pemilik definisi (rekam medis), dan pemakai (HR) sudah ditetapkan keputusan manusia, bukan dikarang desain |
+| Penolakan tanda tangan ulang (`RM-DEC-105` bagian 1) | Di luar rekam medis — permintaan ke Rawat Inap | Aturan internal Rawat Inap; desain ini hanya menuliskan kontrak yang diminta |
+| Non-integrasi gerbang HR, log override, K3RS (`RM-DEC-098`–`100`) | Tidak ada | Pernyataan batas; nol kode |
+
+**Penyimpangan yang wajib disadari pengesah.** Indikator adalah kemampuan **baru** yang tidak ada
+di daftar slice `RM-DA-001`. Desain ini memperlakukannya sebagai read model tanpa pass
+`/requirement-completeness-gate` dan `/hospital-domain-architect` baru, dengan alasan pada tabel di
+atas. **Pemilik menerima penyimpangan ini** saat mengesahkan revision 6 (`RM-DEC-108`).
+
+Larangan handoff `RM-DA-001` tetap dipatuhi: makna final milik pemilik sumber, tanpa salinan isi,
+tutup klinis tidak berubah, kelengkapan tidak menahan apa pun.
+
+## A6.1 Bounded context dan batas transaksi
+
+| Context | Aggregate | Perubahan | Batas transaksi | Rollback |
+|---|---|---|---|---|
+| `BC-RM-03` Kelengkapan | **Tidak ada** — read model indikator | Endpoint baca-saja menghitung dari data Rawat Inap saat diminta | **Tanpa transaksi tulis.** Satu kueri baca lewat pembaca Rawat Inap per permintaan | Tidak ada yang ditulis; satu baris log audit ditulis **sesudah** respons tersusun |
+| Rawat Inap (pemilik `Inp*`) | Ringkasan pulang | Penolakan tanda tangan ulang (permintaan, `RM-DEC-105`) | Penolakan sebelum `SaveChanges`; tidak ada yang ditulis | — |
+| `BC-RM-01` Berkas (sumber) | — | Bagian "Rencana kontrol" pada detail ringkasan pulang | Baca saja | — |
+
+## A6.2 Tabel kepemilikan data
+
+Hanya baris yang bertambah atau berubah terhadap A4.2 dan A5.2.
+
+| Kelompok data | Modul pemilik | Dipakai | Dibuat ulang di rekam medis |
+|---|---|:---:|---|
+| Episode Rawat Inap: `PhysicallyLeftAt`, `ClosedAt`, status | Rawat Inap | Ya — jam mulai indikator (`RM-DEC-107`) | **Tidak**. Dibaca lewat pembaca Rawat Inap |
+| Ringkasan pulang: `SignedAt`, `SignedByDoctorId`; versi `PreviousSignedAt`, `PreviousSignedByDoctorId` | Rawat Inap | Ya — jam selesai dan dokter (`RM-DEC-102`, `105`) | **Tidak** |
+| Penugasan DPJP (`InpDoctorAssignment`) | Rawat Inap | Ya — beban ringkasan belum ditandatangani (`RM-DEC-106`) | **Tidak** |
+| Rencana kontrol (`FollowUpDate`, poli, dokter) | Rawat Inap | Ya — tampilan berkas (`RM-DEC-104`) | **Tidak** |
+| Dokter dan profil HR (`MstDoctor.WorkforceProfileId`) | HR (Workforce) | Ya — kunci baris indikator | **Tidak** |
+| Angka indikator per dokter per periode | **Rekam Medis (definisi)** | Ya — dikirim ke HR | **Tidak disimpan.** Dihitung ulang setiap permintaan, karena angka periode berjalan dapat berubah (`RM-DEC-106`) |
+| Gerbang kewenangan klinis, co-signature | HR | **Tidak** (`RM-DEC-098`) | Tidak |
+| Log override darurat | HR / KMKP | **Tidak** (`RM-DEC-099`) | Tidak |
+| Rekam kesehatan pegawai K3RS | HR | **Tidak** (`RM-DEC-100`) | Tidak |
+| Status akun pengguna | Platform | Ya, lewat pemeriksaan izin yang sudah ada (`RM-CAP-094`) | Tidak |
+
+## A6.3 Class diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class DischargeSummaryTimelinessController {
+        <<baru>>
+        +GetFilterMetadata()
+        +GetAll(query)
+    }
+    class DischargeSummaryTimelinessService {
+        <<baru>>
+        +GetPagedAsync(query, actor)
+        -Kelompokkan(baris, waktuTarik)
+    }
+    class IDischargeSummaryTimelinessSource {
+        <<interface, baru>>
+        +ReadAsync(dariUtc, sampaiUtc, doctorId?, ct)
+    }
+    class InpDischargeSummaryTimelinessSource {
+        <<baru, folder Rawat Inap>>
+        +ReadAsync()
+    }
+    class InpMedicalRecordDocumentSource {
+        +ReadDetailAsync() «diperbarui: Rencana kontrol»
+    }
+    class InpDischargeService {
+        +SignSummaryAsync() «diperbarui: tolak tanda tangan ulang»
+    }
+    DischargeSummaryTimelinessController --> DischargeSummaryTimelinessService
+    DischargeSummaryTimelinessService --> IDischargeSummaryTimelinessSource
+    InpDischargeSummaryTimelinessSource ..|> IDischargeSummaryTimelinessSource
+```
+
+## A6.4 Penjelasan setiap class
+
+### Model, enum, configuration
+
+**Tidak ada model, enum, maupun configuration yang berubah.** Tidak ada migration.
+
+### Service dan pembaca
+
+| Class | Status | Lokasi file | Fungsi utama | Dipanggil oleh | Membuka transaksi |
+|---|---|---|---|---|---|
+| `IDischargeSummaryTimelinessSource` | **Baru** | `Areas/HealthServices/MedicalRecordManagement/Services/IDischargeSummaryTimelinessSource.cs` | Kontrak baca: satu baris per episode Rawat Inap yang jam mulainya jatuh di rentang. Baris memuat `EpisodeId` (internal, tidak keluar dari service), `StartAtUtc`, `StartSource` (`PhysicallyLeft`/`Closed`), `FirstSignedAtUtc?`, `FirstSignerDoctorId?`, `ActiveDpjpDoctorId?`. **Tidak** memuat pasien, nomor RM, maupun isi ringkasan | `DischargeSummaryTimelinessService` | — |
+| `InpDischargeSummaryTimelinessSource` | **Baru** | `Areas/HealthServices/InPatientManagement/Services/InpDischargeSummaryTimelinessSource.cs` (**folder Rawat Inap**) | Menjalankan aturan A6.9.1 dengan satu kueri baca (`AsNoTracking`) atas `InpEpisode`, `InpDischargeSummary`, `InpDischargeSummaryRevision`, `InpDoctorAssignment` | Service di atas | Tidak — baca saja |
+| `DischargeSummaryTimelinessService` | **Baru** | `Areas/HealthServices/MedicalRecordManagement/Services/DischargeSummaryTimelinessService.cs` | Validasi query (`VAL-RM-C01`–`C04`); memanggil pembaca; mengelompokkan per dokter menurut A6.9.2 dengan satu `waktuTarik` (UTC) untuk seluruh baris; menggabungkan `MstDoctor.FullName` dan `WorkforceProfileId`; menyusun keterangan mutu data; menulis audit. Galat atau lewat batas waktu pembaca → `503`, tanpa angka sebagian dan tanpa audit | Controller | **Tidak.** Audit ditulis lewat `LoggerService.AuditAsync` |
+| `InpMedicalRecordDocumentSource` | **Diperbarui** | `Areas/HealthServices/InPatientManagement/Services/InpMedicalRecordDocumentSource.cs` (**folder Rawat Inap**) | `ReadDetailAsync` jenis `DischargeSummary` memproyeksikan `FollowUpDate`, `FollowUpServiceUnit.ServiceUnitName`, `FollowUpDoctor.FullName`, lalu menambah bagian "Rencana kontrol" (A6.9.4) sesudah "Instruksi tindak lanjut" | Linimasa berkas | Tidak — baca saja |
+| `InpDischargeService` | **Diperbarui — permintaan ke Rawat Inap** | `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.cs` | `SignSummaryAsync`: bila `summary.SignedAt != null` **dan** tidak ada sesi koreksi terbuka (`GetOpenCorrectionSessionAsync`) → `Conflict` (`409`) "Resume sudah ditandatangani; ubah lewat sesi koreksi." **sebelum** isian diubah (A6.9.3) | `InpatientDischargeController` | Tidak berubah |
+
+### Controller dan DTO
+
+| Class | Status | Lokasi | Keterangan |
+|---|---|---|---|
+| `DischargeSummaryTimelinessController` | **Baru** | `Areas/HealthServices/MedicalRecordManagement/Controllers/DischargeSummaryTimelinessController.cs` | Route `api/v1/health-services/medical-record-management/discharge-summary-timeliness`; `[Tags("Health Services / Medical Record Management / Discharge Summary Timeliness")]`; `[AccessController(moduleCode: "HEALTH_SERVICE_MEDICAL_RECORD", ...)]` seperti controller rekam medis lain. `filters/metadata` dideklarasikan tepat sesudah konstruktor. Kedua endpoint `[AccessPermission("DischargeSummaryTimeliness", "Read")]` |
+| `DischargeSummaryTimelinessDtos` | **Baru** | `Areas/HealthServices/MedicalRecordManagement/DTOs/DischargeSummaryTimelinessDtos.cs` | `DischargeSummaryTimelinessPagedQuery` (PagedQuery): `PeriodFrom` (`DateOnly`), `PeriodTo` (`DateOnly`), `DoctorId?`, `WorkforceProfileId?`, `Page`, `PageSize`. `DischargeSummaryTimelinessPagedResult` (Response): `Items`, `Totals`, `PeriodFrom`, `PeriodTo`, `GeneratedAt`, `DataNotes`, paging. `DischargeSummaryTimelinessItem` (Response) dan `DischargeSummaryTimelinessDataNotes` (Response): rincian di kontrak API `C1`. `DischargeSummaryTimelinessFilterMetadataResponse` (Response): `BucketDefinitions`, `MaxPeriodDays` |
+| `InpatientDischargeController` | Sudah ada | `Areas/HealthServices/InPatientManagement/Controllers/InpatientDischargeController.cs` | Tidak berubah; `409` diteruskan lewat `FromSummaryFailure` yang ada |
+| `Program.cs` | **Diperbarui** | sekitar baris 728 | `AddScoped<InpDischargeSummaryTimelinessSource>()`, `AddScoped<IDischargeSummaryTimelinessSource>(sp => sp.GetRequiredService<InpDischargeSummaryTimelinessSource>())`, `AddScoped<DischargeSummaryTimelinessService>()` |
+
+## A6.5 Arsitektur folder
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/
+│   ├── MedicalRecordManagement/
+│   │   ├── Controllers/DischargeSummaryTimelinessController.cs         Baru
+│   │   ├── DTOs/DischargeSummaryTimelinessDtos.cs                      Baru
+│   │   └── Services/
+│   │       ├── IDischargeSummaryTimelinessSource.cs                    Baru
+│   │       └── DischargeSummaryTimelinessService.cs                    Baru
+│   └── InPatientManagement/Services/                                   (folder Rawat Inap — persetujuan pemilik)
+│       ├── InpDischargeSummaryTimelinessSource.cs                      Baru
+│       ├── InpMedicalRecordDocumentSource.cs                           Diperbarui
+│       └── InpDischargeService.cs                                      Diperbarui
+├── Program.cs                                                          Diperbarui
+└── Tests/QuilvianSystemBackend.MedicalRecordTests/                     Uji baru (A6.10)
+```
+
+Antarmuka pembaca berada di folder rekam medis dan implementasinya di folder pemilik data, sama
+dengan pola `IMedicalRecordDocumentSource` (`DC-RM-03`). Tidak ada penyimpangan baru.
+
+## A6.6 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Index / constraint | Perilaku hapus |
+|---|---|---|---|---|
+| `InpEpisode`, `InpDischargeSummary`, `InpDischargeSummaryRevision`, `InpDoctorAssignment` | Sudah ada | **Nol** — dibaca saja | Nol. Index yang ada pada `InpDischargeSummary.EpisodeId` (unik) dan `InpDischargeSummaryRevision.DischargeSummaryId` dipakai. **Usulan pemeriksaan saat implementasi:** bila kueri rentang `PhysicallyLeftAt`/`ClosedAt` lambat pada data nyata, index baru diajukan ke pemilik Rawat Inap lewat task terpisah, bukan diam-diam | — |
+| `MstDoctor`, `MstServiceUnit` | Sudah ada | Nol | — | — |
+| Tabel rekam medis | Sudah ada | **Nol** | — | — |
+
+## A6.7 Rencana migration
+
+**Tidak ada migration.** Revision 6 dapat dipasang dan ditarik kembali hanya dengan kode.
+
+## A6.8 Rencana data master awal
+
+**Tidak ada data master baru.** Izin `DischargeSummaryTimeliness : Read` terdaftar otomatis lewat
+`AccessMenuSeeder` saat aplikasi mulai, tetapi **tidak** dipasangkan ke jabatan mana pun
+(`DS-R6-05`). Pemasangan ke jabatan Komite Medik/Subkomite Mutu Profesi dilakukan admin lewat layar
+pengaturan hak akses sesudah pemilik HR menerima kontrak (open question 28).
+
+## A6.9 Aturan yang dirancang
+
+### A6.9.1 Baris yang dibaca (`InpDischargeSummaryTimelinessSource`)
+
+Satu baris untuk setiap episode Rawat Inap yang memenuhi **semua** syarat berikut:
+
+| Syarat | Bentuk | Keputusan |
+|---|---|---|
+| Episode tidak dihapus dan tidak batal | `IsDelete = false`, `EpisodeStatus ≠ Cancelled` | — |
+| Pasien sudah pulang | `PhysicallyLeftAt != null` **atau** `ClosedAt != null` | `RM-DEC-107`; `RM-AC-R20-07` |
+| Jam mulai | `StartAtUtc = PhysicallyLeftAt ?? ClosedAt`; `StartSource` = `PhysicallyLeft` atau `Closed` | `RM-DEC-107` |
+| Jam mulai jatuh di periode | `PeriodFrom 00:00 WIB ≤ StartAt < (PeriodTo + 1 hari) 00:00 WIB`, dikonversi ke UTC sebelum kueri | `RM-DEC-102` |
+
+Kolom baris:
+
+| Kolom | Isi | Keputusan |
+|---|---|---|
+| `FirstSignedAtUtc` | Nilai terkecil dari `InpDischargeSummaryRevision.PreviousSignedAt` (versi yang tidak dihapus) dan `InpDischargeSummary.SignedAt`; kosong bila ringkasan tidak ada atau belum pernah ditandatangani | `RM-DEC-105` |
+| `FirstSignerDoctorId` | Dokter pada sumber nilai terkecil itu: `PreviousSignedByDoctorId` versi terawal atau `SignedByDoctorId` (`DS-R6-04`). `Guid.Empty` pada versi dianggap kosong | `RM-DEC-102` |
+| `ActiveDpjpDoctorId` | Hanya bila belum ditandatangani: `InpDoctorAssignment` `AssignmentRole = Dpjp`, `IsActive`, `EndDateTime = null`, tidak dihapus | `RM-DEC-106` |
+
+### A6.9.2 Pengelompokan per dokter (`DischargeSummaryTimelinessService`)
+
+`waktuTarik` = satu `DateTime.UtcNow` yang diambil sekali per permintaan dan dikembalikan sebagai
+`generatedAt`.
+
+| Keadaan baris | Lama (jam) | Kolom | Dokter | Masuk penyebut `assessedCount` |
+|---|---|---|---|:---:|
+| Sudah ditandatangani | `max(0, FirstSignedAt − StartAt)` ≤ 24 | `within24h` | `FirstSignerDoctorId` | Ya |
+| Sudah ditandatangani | > 24 dan ≤ 48 | `between24And48h` | sama | Ya |
+| Sudah ditandatangani | > 48 | `over48h` | sama | Ya |
+| Belum ditandatangani | `waktuTarik − StartAt` ≤ 24 | `notYetDueCount` (bukan kolom penilaian) | `ActiveDpjpDoctorId` | **Tidak** |
+| Belum ditandatangani | > 24 dan ≤ 48 | `between24And48h` **dan** `unsignedBetween24And48h` | sama | Ya |
+| Belum ditandatangani | > 48 | `over48h` **dan** `unsignedOver48h` | sama | Ya |
+
+Batas tepat (`DS-R6-07`): tepat 24:00:00 masuk `within24h`; tepat 48:00:00 masuk
+`between24And48h`. Lama dihitung dalam satuan detik penuh, bukan pembulatan jam.
+
+Baris yang dokternya tidak dapat ditentukan (belum ditandatangani dan tanpa DPJP aktif) masuk satu
+item khusus `doctorId = null`, berlabel "Tanpa DPJP aktif" (`DS-R6-03`), agar tidak hilang dari
+hitungan.
+
+`DataNotes` (wajib, `RM-AC-R20-08`):
+
+| Field | Isi |
+|---|---|
+| `closedAtFallbackCount` | Jumlah baris berjam mulai `ClosedAt` (`RM-DEC-107`) |
+| `signedBeforeDepartureCount` | Jumlah baris yang ditandatangani sebelum jam mulai (dihitung 0 jam) |
+| `resignTrackingNote` | Teks tetap: "Tanda tangan ulang tanpa sesi koreksi sebelum <tanggal perbaikan Rawat Inap> tidak terlacak; waktu tanda tangan pertama dapat tampak lebih lambat." (`RM-DEC-105` bagian 3, `RM-UN-R5-02`) |
+| `periodStillChanging` | `true` bila ada baris belum ditandatangani pada periode itu (`RM-DEC-106`) |
+
+### A6.9.3 Penolakan tanda tangan ulang — permintaan ke Rawat Inap (`RM-DEC-105` bagian 1)
+
+| Keadaan ringkasan | Sesi koreksi terbuka | `PATCH .../discharges/{episodeId}/summary/sign` |
+|---|:---:|---|
+| Belum ditandatangani | — | Seperti sekarang |
+| Sudah ditandatangani | Tidak | **`409`** "Resume sudah ditandatangani; ubah lewat sesi koreksi." — `SignedAt` tidak berubah |
+| Sudah ditandatangani | Ya | Seperti sekarang (salinan versi sudah dibuat saat isi diubah) |
+
+Urutan pemeriksaan: episode ada → ringkasan ada → **pemeriksaan baru ini** → DPJP aktif (`GUARD-INP-03`) →
+isian wajib. Ditempatkan sebelum `GUARD-INP-03` supaya dokter lain tidak menerima pesan "bukan DPJP"
+untuk ringkasan yang memang sudah final. Perubahan ini milik Rawat Inap dan **hanya** dikerjakan
+setelah persetujuan pemiliknya, Muhammad Hamzah (open question 27).
+
+### A6.9.4 Bagian "Rencana kontrol" (`RM-DEC-104`)
+
+| Isian terisi | Teks bagian (`DS-R6-06`) |
+|---|---|
+| Tanggal + poli + dokter | `10-10-2026 — Poli Penyakit Dalam — dr. Maya` |
+| Tanggal + poli | `10-10-2026 — Poli Penyakit Dalam` |
+| Tidak ada tanggal | Bagian tidak ditambahkan (helper `Tambah` mengabaikan nilai kosong) |
+
+Format tanggal `dd-MM-yyyy` mengikuti `TulisWaktu` pada berkas yang sama, tanpa jam karena kolomnya
+`DateOnly`. Nama poli dari `MstServiceUnit.ServiceUnitName`, dokter dari `MstDoctor.FullName`.
+Rawat Inap mewajibkan tanggal dan poli terisi bersama (`ValidateFollowUpPlanAsync`), sehingga
+"poli tanpa tanggal" tidak perlu dirancang.
+
+### A6.9.5 Batas yang dinyatakan, tanpa kode
+
+| Keputusan | Yang dijaga |
+|---|---|
+| `RM-DEC-098` | Tidak ada rujukan ke `IClinicalPrivilegeGateService` dari `MedicalRecordManagement` |
+| `RM-DEC-099` | Tidak ada pembaca `TrxClinicalPrivilegeEmergencyOverrideLog` di daftar `IMedicalRecordDocumentSource` |
+| `RM-DEC-100` | Tidak ada pembaca `OccupationalHealthManagement` di daftar `IMedicalRecordDocumentSource` |
+| `RM-DEC-103` | Tidak ada panggilan ke HR saat berkas dibuka; akun nonaktif ditolak `AccessPermissionService` (`RM-CAP-094`) |
+
+Ketiga larangan pertama diuji sebagai uji arsitektur ringan (A6.10).
+
+## A6.10 Strategi uji
+
+| Lapisan | Uji | Catatan harness |
+|---|---|---|
+| Pembaca indikator Rawat Inap | Jam mulai `PhysicallyLeftAt`/`ClosedAt`; episode `DischargePending` tanpa keluar tidak terbaca; tanda tangan pertama dari versi; DPJP aktif | Harness SQLite: `DateOnly`/`DateTime` UTC disimpan teks — bandingkan rentang dalam UTC yang sudah dikonversi |
+| Pengelompokan | Seluruh baris A6.9.2 termasuk batas tepat 24:00:00 dan 48:00:00; `waktuTarik` disuntik, tidak memakai jam nyata | — |
+| Controller indikator | `VAL-RM-C01`–`C04`; `403` tanpa izin; respons tanpa `patientId`/`encounterId`/`episodeId` | Periksa JSON mentah, bukan DTO, agar field bocor tertangkap |
+| Rencana kontrol | Bagian muncul lengkap/sebagian/tidak muncul | Perluas `InpMedicalRecordDocumentSourceTests.cs` yang sudah ada |
+| Tanda tangan ulang (Rawat Inap) | Tiga baris A6.9.3 | Lokasi uji mengikuti pemilik Rawat Inap |
+| Uji arsitektur ringan | `MedicalRecordManagement` tidak merujuk tipe HR yang dilarang (A6.9.5) | Pindai tipe lewat refleksi atas assembly |
+| Regresi | Seluruh `QuilvianSystemBackend.MedicalRecordTests` (268 uji per 10 November 2026) | Folder `Tests/` diabaikan git; berkas uji baru perlu `git add -f` |
+
+## A6.11 Penerapan dan langkah mundur
+
+1. Tanpa migration. Rencana kontrol dan indikator dapat dipasang terpisah.
+2. Indikator tidak terlihat siapa pun sampai izinnya dipasangkan ke jabatan (A6.8).
+3. Penolakan tanda tangan ulang adalah **perubahan perilaku** di Rawat Inap; wajib masuk catatan rilis.
+4. Mundur: cabut izin indikator dari jabatan atau kembalikan kode. Tidak ada data yang perlu dipulihkan.
+
+## A6.12 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Tabel snapshot indikator per bulan | Angka periode berjalan sah berubah (`RM-DEC-106`); snapshot membuat dua kebenaran. Bila HR butuh angka beku, HR menyimpan hasil tarikannya sendiri beserta `generatedAt` |
+| Rekam medis mengirim pemicu `EMR_DELINQUENCY` ke `POST .../triggers/incoming` HR | `RM-DEC-101` memilih tarik oleh HR. Ambang FPPE (> 48 jam > 20% dalam 2 bulan) adalah aturan HR |
+| Persentase pada respons | `DS-R6-02`: respons memuat hitungan dan penyebut saja agar tidak ada sengketa pembulatan; rasio dihitung pemakai |
+| Rincian per pasien/episode | `RM-DEC-101`: wajib keputusan `RM-DEC` tersendiri lewat jalur akses beralasan |
+| Membaca tabel `Inp*` langsung dari service rekam medis | Melanggar pola `DC-RM-03`; pembaca berada di folder pemilik data |
+| Indikator untuk Rawat Jalan, IGD, laporan operasi | `RM-DEC-102` |
+| Status dokumen "menunggu co-signature" | `RM-DEC-098` |
+| Pembaca log override atau K3RS | `RM-DEC-099`, `RM-DEC-100` |
+| Menyimpan `FirstSignedAt` sebagai kolom baru di Rawat Inap | Tidak diputuskan pemilik; penolakan tanda tangan ulang (`RM-DEC-105`) membuat `SignedAt` tidak lagi tertimpa tanpa salinan, sehingga kolom baru tidak perlu |
+
+## A6.13 Usulan desain yang ikut pengesahan revision 6
+
+Usulan berikut lahir dari desain, bukan wawancara; seluruhnya **disahkan** bersama revision 6 (`RM-DEC-108`).
+
+| ID | Usulan | Alasan |
+|---|---|---|
+| `DS-R6-01` | Rentang periode maksimal 366 hari per tarikan (`VAL-RM-C03`) | OPPE tahunan cukup; mencegah kueri seluruh riwayat |
+| `DS-R6-02` | Respons tanpa persentase | Hindari sengketa pembulatan |
+| `DS-R6-03` | Baris "Tanpa DPJP aktif" (`doctorId = null`) | Ringkasan belum ditandatangani tanpa DPJP tetap terhitung |
+| `DS-R6-04` | Dokter yang dinilai = penanda tangan **pertama** | Konsisten dengan jam selesai `RM-DEC-105` |
+| `DS-R6-05` | Izin baru `DischargeSummaryTimeliness : Read`, tidak dipasangkan otomatis | Pemegang `MedicalRecordCompleteness : Read` (petugas rekam medis) tidak otomatis melihat kinerja dokter, dan sebaliknya |
+| `DS-R6-06` | Format teks "Rencana kontrol" A6.9.4 | Selaras dengan bagian lain pada detail yang sama |
+| `DS-R6-07` | Batas tepat 24/48 jam inklusif ke kolom lebih cepat | Mengikuti bunyi "≤ 24 jam" |

@@ -1880,7 +1880,7 @@ persetujuan → `BE-46` menutup.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-46` |
-| **Status** | **`SELESAI`** — 10 November 2026, laporan `task/report/backend/BE-46.md`. Catatan rilis menunggu pengesahan pemilik API |
+| **Status** | **`SELESAI`** — 10 November 2026, laporan `task/report/backend/BE-46.md`. Catatan rilis `0.3.0` **disahkan** 11 November 2026 (`RM-DEC-110`) |
 | **Outcome** | Konsumen API tahu jenis 45–52, kolom `clinicType`, butir 17, dan penolakan addendum koreksi Optik |
 | **Trace** | `RM-DEC-088`; `RM-CAP-082` |
 | **Kontrak** | API `0.3.0` seluruhnya |
@@ -1890,7 +1890,7 @@ persetujuan → `BE-46` menutup.
 | **Acceptance criteria** | 1) Catatan rilis menyebut perubahan perilaku `VAL-RM-B01` dan urutan penerapan migration sesudah migration amandemen revision 4. 2) Properti `clinicType`, `isCorrectionAllowed` berketerangan di Swagger. 3) Tidak ada `<summary>` baru pada action controller |
 | **Verification** | `ReleaseContractTests` diperluas; tinjauan Swagger |
 | **Risk/owner** | Rendah. Pemilik: API owner |
-| **DoD** | Catatan rilis menunggu pengesahan pemilik API |
+| **DoD** | Catatan rilis disahkan pemilik API (`RM-DEC-110`) |
 
 ## R3.5 Risiko amandemen revision 5
 
@@ -1900,3 +1900,168 @@ persetujuan → `BE-46` menutup.
 | Poli rehab belum ada di master data (`RM-UN-R4-01`) | `RJ-REHAB` tidak pernah terpilih | Cek data sebelum `UAT-23` | Admin data |
 | Migration revision 4 belum diterapkan di luar devYoga | Migration `BE-42` gagal di lingkungan itu | Terapkan berurutan; dicatat `BE-46` | User |
 | Index lama bernama lain dari dugaan | Migration gagal | Nama dibaca dari snapshot model saat dibuat | Rekam medis |
+
+---
+
+# Roadmap revision 4 — Amandemen: indikator ringkasan pulang dan titik sentuh HR
+
+```yaml
+module_id: RM-BP-001
+blueprint_revision: 6
+roadmap_revision: 4
+status: APPROVED_INPUTS   # seluruh masukan disahkan; task berstatus sendiri-sendiri
+owners:
+  product_domain: Yoga Aji Pratama
+  clinical_governance: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
+  api_authority: Yoga Aji Pratama
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-11-11        # RM-DEC-108
+input_revisions:
+  interview_decisions: 21        # RM-DEC-097–108
+  capability_map: 5              # RM-CAP-083–095
+  backend_architecture: 6 (bagian "Amandemen revision 6", A6.1–A6.13)
+  prd_to_mvp: bagian 27–32
+artifact_hashes:
+  interview_decisions: sha256:1f9aa1155d02b30c895c74fa86fca6254d406cdaae5c24a3f3cd3c119b9c37f6
+  capability_map: sha256:c69ed2f603f8a32e4d5b78190c77b974b5ef67802ffd461c3fb8452fed7e5b26
+  backend_architecture: sha256:8dbf6eca20363b40b92d9191bc85b08075df1f4547493216aa4482c53d9e7315
+  # hash artefak revision 6 lainnya: blueprint-manifest.md bagian "Revision 6 — approved"
+contract_versions:
+  api: 0.4.0 (approved 2026-11-11)
+  state_transition: 0.4.0 (approved)
+  validation: 0.4.0 (approved)
+  integration: 0.4.0 (approved)
+  permission_audit: 0.4.0 (approved)
+source_commits:
+  backend: 46a57def (branch yoga)
+  frontend: 75b97ecad (branch YogaV2)
+```
+
+Bagian di atas garis ini (revision 1–3) tetap berlaku dan **tidak** diubah. Bagian ini menambah lima
+task backend untuk gelombang `MVP-9` dan `MVP-10` (`04-prd-to-mvp.md` bagian 32).
+
+**Handoff implementasi.** Setiap task dijalankan lewat `/build-module-backend` dengan task ID-nya.
+QBE preflight (Area, Module, prefix registry, applicability, rule ID) dan kesesuaian dengan
+`docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` diselesaikan **pada waktu eksekusi** dari
+`AGENTS.md` backend, bukan di roadmap ini. **Tidak ada model persisted baru dan tidak ada
+migration**; seluruh task menyentuh folder dengan prefix yang sudah `ACTIVE` (`Mrc`, `Inp`). Build
+memakai `-p:RunAnalyzers=False`.
+
+## R4.1 Ringkasan task
+
+| Task | Gelombang | Epic | Ringkas | Folder | Status |
+|---|---|---|---|---|---|
+| `BE-47` | `MVP-9` | `RM-13` | Bagian "Rencana kontrol" pada detail ringkasan pulang | Rawat Inap | **`SELESAI`** 11 November 2026 — 1 uji baru, seluruh project `270` lulus; laporan `task/report/backend/BE-47.md` |
+| `BE-48` | `MVP-9` | `RM-13` | Penolakan tanda tangan ulang ringkasan pulang (`409`) | Rawat Inap | **`SELESAI`** 11 November 2026 — 5 uji baru, seluruh project `275` lulus; laporan `task/report/backend/BE-48.md` |
+| `BE-49` | `MVP-10` | `RM-12` | Kontrak pembaca, service pengelompokan, DTO, controller, izin, audit, uji arsitektur | Rekam medis | **`SELESAI`** 11 November 2026 — 16 uji baru, seluruh project `291` lulus; `403` HTTP `NOT RUN`; laporan `task/report/backend/BE-49.md` |
+| `BE-50` | `MVP-10` | `RM-12` | Pembaca `InpDischargeSummaryTimelinessSource` dan pendaftarannya | Rawat Inap | **`SELESAI`** 11 November 2026 — 6 uji baru, seluruh project `297` lulus; laporan `task/report/backend/BE-50.md` |
+| `BE-51` | `MVP-9`/`10` | — | Catatan rilis `0.4.0` dan keterangan Swagger | Rekam medis | **`SELESAI`** 11 November 2026 — 11 uji kontrak baru, seluruh project `308` lulus; catatan rilis disahkan (`RM-DEC-110`); laporan `task/report/backend/BE-51.md` |
+
+Urutan: `BE-49` dapat dimulai sekarang → begitu persetujuan turun, `BE-48` lebih dulu (supaya
+`resignTrackingNote` hanya berlaku untuk data lama), lalu `BE-47` dan `BE-50` paralel → `BE-51`
+menutup.
+
+**Pekerjaan yang tetap berjalan tanpa persetujuan Rawat Inap:** `BE-49` seluruhnya, termasuk uji
+pengelompokan dengan pembaca tiruan, dan bagian `BE-51` untuk endpoint indikator.
+
+## R4.2 Milestone B15 — Ringkasan pulang di Rawat Inap dan berkas (`MVP-9`)
+
+### `BE-47` — Rencana kontrol di detail berkas
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-47` |
+| **Status** | **`SELESAI`** — 11 November 2026, laporan `task/report/backend/BE-47.md`. `dotnet test` → `Passed: 270`, `Failed: 0` (1 uji baru, `AT-RM-105`/`106`). Persetujuan pemilik Rawat Inap `RM-DEC-109` (disampaikan Yoga Aji Pratama) |
+| **Outcome** | Pembaca berkas melihat tanggal, poli, dan dokter kontrol yang ditulis DPJP di ringkasan pulang |
+| **Trace** | `RM-DEC-104`; `DS-R6-06`; `RM-CAP-090`; `RM-FACT-045`; `FR-RM-097` |
+| **Kontrak** | API `0.4.0` C2; integration `INT-RM-10m`; A6.9.4 |
+| **Reuse** | `InpMedicalRecordDocumentSource.ReadDetailAsync`, helper `Tambah`, format `TulisWaktu`; navigasi `FollowUpServiceUnit`, `FollowUpDoctor` yang sudah ada |
+| **Scope** | `Areas/HealthServices/InPatientManagement/Services/InpMedicalRecordDocumentSource.cs` — proyeksi detail `DischargeSummary` menambah `FollowUpDate`, `FollowUpServiceUnit.ServiceUnitName`, `FollowUpDoctor.FullName`; bagian "Rencana kontrol" sesudah "Instruksi tindak lanjut". Daftar linimasa **tidak** berubah. Uji: perluas `Tests/QuilvianSystemBackend.MedicalRecordTests/InpMedicalRecordDocumentSourceTests.cs` |
+| **Dependency** | Persetujuan Muhammad Hamzah — **terpenuhi** (`RM-DEC-109`) |
+| **Acceptance criteria** | 1) Tanggal + poli + dokter → `"10-10-2026 — Poli Penyakit Dalam — dr. Maya"`. 2) Tanggal + poli → tanpa bagian dokter. 3) Tanpa tanggal → bagian tidak ada. 4) Status kelengkapan kunjungan tidak berubah. 5) Bagian lain dan urutannya tidak berubah |
+| **Verification** | `AT-RM-105`, `106`; regresi `MedicalRecordTests` |
+| **Risk/owner** | Rendah. Pemilik: Rawat Inap (folder), rekam medis (aturan tampilan) |
+| **DoD** | Kriteria terbukti uji; persetujuan tercatat sebagai `RM-DEC` baru; laporan `task/report/backend/BE-47.md` |
+
+### `BE-48` — Penolakan tanda tangan ulang ringkasan pulang
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-48` |
+| **Status** | **`SELESAI`** — 11 November 2026, laporan `task/report/backend/BE-48.md`. `dotnet test` → `Passed: 275`, `Failed: 0` (5 uji baru di `InpDischargeSignGuardTests.cs`). Persetujuan `RM-DEC-109` |
+| **Outcome** | Waktu tanda tangan pertama ringkasan pulang tidak lagi dapat tertimpa tanpa jejak |
+| **Trace** | `RM-DEC-105` bagian 1; `RM-CF-R5-01`; `RM-CAP-085`; `FR-RM-098` |
+| **Kontrak** | API `0.4.0` C3; validation `VAL-INP-RS01`; state S-F; integration `INT-RM-19`; A6.9.3 |
+| **Reuse** | `GetOpenCorrectionSessionAsync`, `InpDischargeSummaryOperationResult.Conflict`, `FromSummaryFailure` |
+| **Scope** | `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.cs` — `SignSummaryAsync`: sesudah ringkasan ditemukan dan **sebelum** `GUARD-INP-03`, bila `SignedAt != null` dan tidak ada sesi koreksi terbuka → `Conflict` "Resume sudah ditandatangani; ubah lewat sesi koreksi.". Controller tidak berubah. Uji di `Tests/QuilvianSystemBackend.MedicalRecordTests/` (preseden `ClosureSourcePerPathTests.cs`) kecuali pemilik Rawat Inap menetapkan lokasi lain |
+| **Dependency** | Persetujuan Muhammad Hamzah — **terpenuhi** (`RM-DEC-109`) |
+| **Acceptance criteria** | 1) Sudah bertanda tangan, tanpa sesi koreksi → `409`, `SignedAt`/`SignedByDoctorId` tidak berubah. 2) Sudah bertanda tangan, sesi koreksi terbuka → diterima seperti sekarang. 3) Belum bertanda tangan → seperti sekarang. 4) Dokter bukan DPJP pada ringkasan yang sudah final menerima `409`, bukan `403`. 5) Penutupan episode dan jalur supervisor tidak berubah |
+| **Verification** | `AT-RM-107`; regresi `ClosureSourcePerPathTests` dan seluruh `MedicalRecordTests` |
+| **Risk/owner** | **Perubahan perilaku** pada endpoint Rawat Inap yang berjalan: layar Rawat Inap yang menekan tanda tangan dua kali akan menerima `409`. Wajib disebut catatan rilis (`BE-51`) dan diberitahukan ke pemilik frontend Rawat Inap. Pemilik: Rawat Inap |
+| **DoD** | Kriteria terbukti uji; persetujuan tercatat; laporan `task/report/backend/BE-48.md` |
+
+## R4.3 Milestone B16 — Indikator ketepatan ringkasan pulang (`MVP-10`)
+
+### `BE-49` — Service, endpoint, izin, dan audit indikator
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-49` |
+| **Status** | **`SELESAI`** — 11 November 2026, laporan `task/report/backend/BE-49.md`. `dotnet test` → `Passed: 291`, `Failed: 0` (16 uji baru di `DischargeSummaryTimelinessTests.cs`). `403` lewat HTTP penuh terbukti di UAT `MVP-10` (`testing/uat-amandemen-0.4.0.md`). Endpoint menjawab `503` sampai `BE-50` (kini terpasang) |
+| **Outcome** | Pemegang izin dapat menarik angka ketepatan ringkasan pulang per dokter per periode tanpa identitas pasien |
+| **Trace** | `RM-DEC-101`, `102`, `105`–`107`; `DS-R6-01`–`05`, `07`; `RM-CAP-086`–`089`, `091`, `092`, `093`; `FR-RM-091`–`096` |
+| **Kontrak** | API `0.4.0` C1; validation `VAL-RM-C01`–`C04`; permission/audit `0.4.0`; integration `INT-RM-20`, `INT-RM-N01`–`N04`, "Kegagalan"; A6.4, A6.9.2, A6.9.5 |
+| **Reuse** | Pola `MedicalRecordCompletenessController` (`filters/metadata` sesudah konstruktor, `ValidateQuery`, `ApiResponse`, paging); `LoggerService.AuditAsync` (isi di teks pesan); `MstDoctor.WorkforceProfileId` |
+| **Scope** | **Baru:** `MedicalRecordManagement/Services/IDischargeSummaryTimelinessSource.cs` (kontrak baris A6.9.1); `MedicalRecordManagement/Services/DischargeSummaryTimelinessService.cs`; `MedicalRecordManagement/DTOs/DischargeSummaryTimelinessDtos.cs`; `MedicalRecordManagement/Controllers/DischargeSummaryTimelinessController.cs` (`[AccessPermission("DischargeSummaryTimeliness", "Read")]`). **Diperbarui:** `Program.cs` (service). Service menerima `IEnumerable<IDischargeSummaryTimelinessSource>`; **bila belum ada pembaca terdaftar**, `GET /` mengembalikan `503` sesuai kontrak "Kegagalan", sehingga task ini aman dipasang sebelum `BE-50`. `waktuTarik` diambil lewat `TimeProvider` (atau penyuntikan setara) agar uji tidak bergantung jam nyata. **Uji baru:** pengelompokan dengan pembaca tiruan; controller; uji arsitektur A6.9.5 |
+| **Dependency** | — |
+| **Acceptance criteria** | 1) Seluruh baris A6.9.2 termasuk batas tepat 24:00:00 dan 48:00:00. 2) `notYetDueCount` tidak masuk `assessedCount`. 3) Item "Tanpa DPJP aktif" (`doctorId = null`) selalu terakhir. 4) JSON mentah tidak memuat `patientId`, `encounterId`, `episodeId`, nomor RM. 5) `VAL-RM-C01`–`C04` → `400` berpesan kontrak; `doctorId` tak dikenal → hasil kosong, bukan `400`/`404`. 6) Tanpa izin, atau hanya `MedicalRecordCompleteness : Read` → `403`. 7) Satu baris audit per tarikan berhasil (periode, saringan, jumlah item, `generatedAt` di teks pesan); `503` tanpa audit dan tanpa angka sebagian. 8) `dataNotes` lengkap. 9) `MedicalRecordManagement` tidak merujuk `IClinicalPrivilegeGateService`, `TrxClinicalPrivilegeEmergencyOverrideLog`, maupun tipe `OccupationalHealthManagement` |
+| **Verification** | `AT-RM-93`, `94`, `97`, `98`, `102`, `103`, `104` (bagian validasi), `108`; uji arsitektur; regresi `MedicalRecordTests`. `AT-RM-95`, `96`, `99`–`101` dibuktikan bersama `BE-50` |
+| **Risk/owner** | Izin baru terdaftar otomatis tetapi **tidak** boleh dipasangkan ke jabatan oleh seeder (`DS-R6-05`). Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji; laporan `task/report/backend/BE-49.md`; berkas uji baru di `Tests/` di-`git add -f` oleh user |
+
+### `BE-50` — Pembaca indikator di Rawat Inap
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-50` |
+| **Status** | **`SELESAI`** — 11 November 2026, laporan `task/report/backend/BE-50.md`. `dotnet test` → `Passed: 297`, `Failed: 0` (6 uji baru di `InpDischargeSummaryTimelinessSourceTests.cs`). Endpoint indikator kini menjawab angka nyata. Persetujuan `RM-DEC-109` |
+| **Outcome** | Indikator membaca data Rawat Inap nyata lewat pemiliknya, tanpa salinan dan tanpa identitas pasien |
+| **Trace** | `RM-DEC-102`, `105`–`107`; `DS-R6-04`; `RM-CAP-083`–`086`; `FR-RM-093`–`095` |
+| **Kontrak** | Integration `INT-RM-18`; state S-F; A6.9.1 |
+| **Reuse** | Pola pembaca `InpMedicalRecordDocumentSource` (`AsNoTracking`, batas waktu A4.14); model `InpEpisode`, `InpDischargeSummary`, `InpDischargeSummaryRevision`, `InpDoctorAssignment` |
+| **Scope** | **Baru:** `Areas/HealthServices/InPatientManagement/Services/InpDischargeSummaryTimelinessSource.cs`. **Diperbarui:** `Program.cs` (dua pendaftaran, pola baris 728–729). Satu kueri baca per permintaan; rentang WIB dikonversi ke UTC sebelum kueri |
+| **Dependency** | `BE-49` (kontrak pembaca); persetujuan Muhammad Hamzah — **terpenuhi** (`RM-DEC-109`). Disarankan sesudah `BE-48` |
+| **Acceptance criteria** | 1) Jam mulai `PhysicallyLeftAt ?? ClosedAt` dengan `StartSource` benar. 2) Episode `Cancelled`, dihapus, atau `DischargePending` tanpa kepergian tidak terbaca. 3) Tanda tangan pertama = nilai terkecil `PreviousSignedAt` versi (tidak dihapus) dan `SignedAt`; `Guid.Empty` pada versi dianggap kosong. 4) DPJP aktif diambil hanya untuk yang belum ditandatangani. 5) Batas periode: `PeriodFrom 00:00 WIB` inklusif, `PeriodTo + 1 hari 00:00 WIB` eksklusif. 6) Tidak ada kolom pasien di baris |
+| **Verification** | `AT-RM-95`, `96`, `99`, `100`, `101`; uji ujung-ke-ujung controller dengan pembaca nyata pada harness. Harness SQLite menyimpan tanggal sebagai teks — rentang dibandingkan dalam UTC yang sudah dikonversi |
+| **Risk/owner** | Kinerja kueri rentang pada data nyata belum diukur; bila lambat, index diajukan ke pemilik Rawat Inap lewat task terpisah (A6.6), bukan diam-diam. Pemilik: Rawat Inap (folder), rekam medis (aturan) |
+| **DoD** | Kriteria terbukti uji; persetujuan tercatat; laporan `task/report/backend/BE-50.md` |
+
+## R4.4 Penutup
+
+### `BE-51` — Catatan rilis `0.4.0` dan keterangan Swagger
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-51` |
+| **Status** | **`SELESAI`** — 11 November 2026, laporan `task/report/backend/BE-51.md`. `ReleaseContractTests` 21 lulus; seluruh project `308` lulus. Catatan rilis `0.4.0` **disahkan** 11 November 2026 (`RM-DEC-110`). Selisih contoh paging kontrak C1 dicatat sebagai penyegaran `0.4.1` |
+| **Outcome** | Pemakai API (termasuk HR) tahu endpoint indikator, izinnya, batas datanya, dan perubahan perilaku tanda tangan ulang |
+| **Trace** | `RM-DEC-108`; `RM-DEC-095` (penyegaran `0.3.1` yang dilebur) |
+| **Kontrak** | API `0.4.0` seluruhnya |
+| **Reuse** | Pola `BE-41`/`BE-46` (`ReleaseContractTests`) |
+| **Scope** | `docs/module-blueprints/rekam-medis/catatan-rilis.md` bagian rilis `0.4.0`; keterangan `<summary>` pada **properti DTO** baru (bukan pada action controller) |
+| **Dependency** | `BE-49`; `BE-47`, `48`, `50` untuk bagiannya |
+| **Acceptance criteria** | 1) Catatan rilis menyebut: endpoint baru dan izinnya tidak terpasang otomatis; `resignTrackingNote`; perubahan perilaku `409` (bila `BE-48` dipasang); penyegaran `clinicType = 0`. 2) Properti DTO indikator berketerangan di Swagger. 3) Tidak ada `<summary>` baru pada action controller |
+| **Verification** | `ReleaseContractTests` diperluas; tinjauan Swagger |
+| **Risk/owner** | Rendah. Pemilik: API owner |
+| **DoD** | Catatan rilis disahkan pemilik API (`RM-DEC-110`); laporan `task/report/backend/BE-51.md` |
+
+## R4.5 Risiko amandemen revision 6
+
+| Risiko | Dampak | Penanganan | Pemilik |
+|---|---|---|---|
+| Persetujuan pemilik Rawat Inap tidak turun | `BE-47`, `48`, `50` tertahan; endpoint indikator menjawab `503` | `BE-49` tetap dipasang dan aman; catat di catatan rilis | Muhammad Hamzah |
+| `BE-48` ditolak | Tanda tangan pertama tetap dapat tertimpa | Indikator berjalan dengan `resignTrackingNote` (`RM-DEC-105` bagian 3) | Muhammad Hamzah |
+| HR membangun `IOppeSimrsMetricExtractorService` membaca tabel klinis langsung | Dua definisi "tepat waktu" | Open question 28; kirim kontrak `INT-RM-20` ke pemilik HR | Pemilik HR |
+| Izin indikator terpasang ke jabatan yang salah | Kinerja dokter terlihat pihak yang tidak berwenang | `DS-R6-05`: tidak dipasang otomatis; pemasangan oleh admin sesudah HR menerima | Yoga Aji Pratama |
+| Kueri rentang lambat pada data produksi | Tarikan lewat batas waktu → `503` | Ukur saat UAT; index lewat task terpisah | Rawat Inap |

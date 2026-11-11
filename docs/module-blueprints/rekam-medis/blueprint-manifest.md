@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `RM-BP-001` |
-| `revision` | **10 November 2026: revision `5` `approved` (`RM-DEC-088`)** (Optik dan Rehab Medik, `RM-DEC-078`–`087`) — lihat bagian "Revision 5"; revision `4` `approved`. Catatan lama: `3` — diperbarui 10 September 2026. **28 Oktober 2026:** keputusan amandemen sambungan seluruh modul disahkan (`RM-DEC-037`–`050`); desainnya belum dimulai, sehingga revision belum naik. Lihat bagian "Amandemen 28 Oktober 2026" |
+| `revision` | **11 November 2026: revision `6` `approved` (`RM-DEC-108`)** (indikator ringkasan pulang dan titik sentuh HR, `RM-DEC-097`–`107`) — lihat bagian "Revision 6"; **10 November 2026: revision `5` `approved` (`RM-DEC-088`)** (Optik dan Rehab Medik, `RM-DEC-078`–`087`) — lihat bagian "Revision 5"; revision `4` `approved`. Catatan lama: `3` — diperbarui 10 September 2026. **28 Oktober 2026:** keputusan amandemen sambungan seluruh modul disahkan (`RM-DEC-037`–`050`); desainnya belum dimulai, sehingga revision belum naik. Lihat bagian "Amandemen 28 Oktober 2026" |
 | `status` | **`approved`** — disahkan Yoga Aji Pratama 26 Agustus 2026 (`RM-DEC-027`); kontrak API menyusul 27 Agustus 2026 (`RM-DEC-028`); amandemen sambungan Laboratorium 10 September 2026 (`RM-DEC-030`–`RM-DEC-036`). **Tidak ada lagi yang menunggu pengesahan** |
 | `module` | `rekam-medis` |
 | `design_snapshot_at` | `2026-08-24`; amandemen sambungan Laboratorium `2026-09-10` |
@@ -449,6 +449,79 @@ Medik), `FE-18` (task backend dan data uji).
 **Keadaan delivery 10 November 2026:** seluruh backend revision 5 `SELESAI` — `BE-42`–`BE-46`. `MedicalRecordTests` 268 lulus, `OpticalTests` 297 lulus. Migration `20261110043756_AddClinicTypeToMedicalRecordCompletenessProfile` dibuat, **belum diterapkan**. Persetujuan folder: `RM-DEC-089` (Optik), `RM-DEC-090` (Rehab Medik). Catatan rilis `0.3.0` menunggu pengesahan. `FE-16`, `FE-17` `SELESAI`. **Migration `BE-42` diterapkan ke devYoga** 10 November 2026 (instruksi Yoga Aji Pratama; riwayat 387); `RJ-OPT`/`RJ-REHAB` terpasang lewat seeder. `FE-18`: `UAT-22` lulus; `UAT-20`/`21`/`23` menunggu migration Rehab (`AddRehabilitationManagement`, masih tertunda — tanpanya backend hanya dapat dinyalakan dengan `Seeders__ContinueOnFailure=true`) dan data Optik — `testing/uat-amandemen-0.3.0.md`.
 
 **Pembaruan 10 November 2026 sore (decision log revision 18, `RM-DEC-091`–`096`):** migration Rehab diterapkan ke devYoga (`RM-DEC-092`; riwayat 388, **nol tertunda**, backend start normal). Opsi jenis poli `Unknown` dikeluarkan dan ditolak (`RM-DEC-095`; penyegaran kontrak `0.3.1` untuk pass blueprint berikutnya). **`FE-18` `SELESAI`** pola `FE-15` (`RM-DEC-096`): `UAT-22` lulus nyata; `UAT-20`, `21`, `23` terbuka dan terlacak sampai master Optik dan Rehab disiapkan pemiliknya. **Seluruh task roadmap revision 3 kini `SELESAI`.**
+
+### Revision 6 — `approved` (11 November 2026) — indikator ringkasan pulang dan titik sentuh HR
+
+| Field | Value |
+|---|---|
+| `revision` | **`6`** — **`approved`**, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`). Revision 4 dan 5 tetap `approved` untuk cakupannya |
+| Scope | `RM-DEC-097`–`107`: rencana kontrol di berkas; indikator ketepatan ringkasan pulang untuk OPPE HR (read model, endpoint, izin, audit); permintaan penolakan tanda tangan ulang ke Rawat Inap; pernyataan non-integrasi gerbang HR, log override, K3RS |
+| Snapshot | Backend **`46a57def`** (branch `yoga`); frontend **`75b97ecad`** (branch `YogaV2`) |
+| `input_revisions` | Decision log revision **`20`**; capability map revision **`5`**; `RM-DA-001` revision 1 dan `RM-RCG-001` revision 2 **tanpa pass baru**. **Penyimpangan yang wajib disadari pengesah:** indikator adalah read model baru di luar daftar slice `RM-DA-001` (alasan di `02-backend-architecture.md` "Gerbang masuk" revision 6) |
+| `input_hashes` | Decisions `sha256:0e8fe5f0dd17861a4d43a71279791c12b33c9726783b042800a5b355bad05f7e`; capability map `sha256:c69ed2f603f8a32e4d5b78190c77b974b5ef67802ffd461c3fb8452fed7e5b26` |
+| `contract_versions` | API, integration, state, validation, permission/audit **`0.4.0` `approved`** (`RM-DEC-108`). Melebur penyegaran `0.3.1` (`RM-DEC-095`). `0.3.0` tetap `approved` |
+| `compatibility_impact` | **Nol perubahan skema, nol migration.** Aditif di rekam medis: satu grup endpoint, satu izin, satu bagian tampilan. **Satu perubahan perilaku di Rawat Inap** (bila disetujui pemiliknya): tanda tangan ulang ringkasan tanpa sesi koreksi → `409` |
+| Usulan desain yang ikut pengesahan | `DS-R6-01`–`07` (`02-backend-architecture.md` A6.13) — **disahkan** `RM-DEC-108`, bersama penerimaan read model tanpa pass gerbang baru |
+| Decision log sesudah pengesahan | `sha256:1f9aa1155d02b30c895c74fa86fca6254d406cdaae5c24a3f3cd3c119b9c37f6` (revision 21). `input_hashes` di atas tetap menunjuk masukan desain |
+
+Setiap artefak menerima bagian "Amandemen revision 6" di akhir berkas tanpa menimpa isi lama. Hash
+dihitung ulang `sha256sum` atas berkas di disk (LF) **sesudah penanda `approved` dipasang**, 11 November 2026:
+
+| Artifact | SHA-256 revision 6 |
+|---|---|
+| `02-backend-architecture.md` | `8dbf6eca20363b40b92d9191bc85b08075df1f4547493216aa4482c53d9e7315` |
+| `03-frontend-architecture.md` | `f069110dd55075c9bacbd542187cf807d514c60f906b12936db56855525a29c2` |
+| `04-prd-to-mvp.md` | `97a77f397050b095e336ae4a397e5d5889f710dfe666204c3f1ac58464cc6833` |
+| `erd/00-context-erd.md` | `fdf9c1a2f937a3866dd0ee688aff4247524078ef8a60eebc2f1a6a88ff6aeb60` |
+| `erd/kelengkapan-berkas.md` | `04e8da02a673b7a8498846d2e7c13578184ec3968649e381e621c5e173ac6730` |
+| `erd/data-dictionary.md` | `8cd984ea3fe6ce79858ae26056dd021f8351c14eaa1624d0a19da92c92e6fc58` |
+| `contracts/api-contract.md` | `0a51a38946ae80daf248976492468f06cde4add070cbced1f3d109ebccbfd4d4` |
+| `contracts/integration-contract.md` | `068988bd88e8730db94f0946c08c82ff0d3a8b899dcf268b838c30f664b15b11` |
+| `contracts/permission-audit-matrix.md` | `540954d743065f5fa22c9120c31e4551af987635d8c21f7ed501fc1a54d012c1` |
+| `contracts/validation-matrix.md` | `536ff10406fe6e78abf8337ad7c8d1a3a97613a16a289ffec84a04ba3a3a9ade` |
+| `contracts/state-transition-matrix.md` | `e3a4a5b6f216daee6dc189a8d3660f9d37fabe3fd8787d26bffff082d8e16709` |
+| `testing/acceptance-test-matrix.md` | `8bdfc390e7ace180f0a4b0bb8cb03f2750494107db2a3407461349401780cd03` |
+
+`erd/keutuhan-dokumen.md`, `erd/jejak-akses.md`, dan `03-domain-architecture.md` **tidak disunting**.
+
+**Impact scan trigger tambahan:** `Areas/HealthServices/InPatientManagement/Services/InpDischargeService*.cs`,
+`InpMedicalRecordDocumentSource.cs`, model `InpEpisode`, `InpDischargeSummary`,
+`InpDischargeSummaryRevision`, `InpDoctorAssignment`; `Areas/Corporate/HumanResource/CredentialingManagement/`,
+`OccupationalHealthManagement/`, `PerformanceManagement/` (terutama munculnya
+`IOppeSimrsMetricExtractorService`); `MstDoctorConfiguration.cs`; `Services/Security/AccessPermissionService.cs`.
+
+**Yang menahan delivery:**
+
+| Butir | Pemilik | Menahan |
+|---|---|---|
+| ~~Pengesahan revision 6 dan kontrak `0.4.0`, termasuk `DS-R6-01`–`07` dan pemakaian read model tanpa pass gerbang baru~~ | Yoga Aji Pratama | **Selesai** 11 November 2026 (`RM-DEC-108`) |
+
+**Roadmap revision 4 (11 November 2026)** — `roadmap/backend-roadmap.md` (`BE-47`–`BE-51`,
+`sha256:6eba3396…`), `roadmap/frontend-roadmap.md` (`FE-19`, `sha256:cedd7af7…`),
+`roadmap/requirement-traceability.md` (T4, `sha256:4148bfed…`). **Siap dimulai:** `BE-49`, uji unit
+`FE-19`, lalu `BE-51` sesudah `BE-49`. ~~**Tertahan persetujuan Muhammad Hamzah:** `BE-47`, `BE-48`,
+`BE-50`.~~ **Persetujuan folder Rawat Inap turun 11 November 2026** (`RM-DEC-109`, disampaikan Yoga
+Aji Pratama): `BE-47`, `BE-48` `READY`; `BE-50` `READY` sesudah `BE-49`. Roadmap sesudah pembaruan
+status: backend `sha256:d700b2d2…`, traceability `sha256:aa2a6ddf…`. Tidak ada migration.
+
+**Keadaan delivery 11 November 2026:** seluruh backend roadmap revision 4 **`SELESAI`** — `BE-47`
+(rencana kontrol), `BE-48` (tanda tangan ulang `409`), `BE-49` (endpoint indikator), `BE-50` (pembaca
+Rawat Inap), `BE-51` (catatan rilis `0.4.0`, **menunggu pengesahan**). `MedicalRecordTests` **308 lulus**,
+0 gagal. Nol migration. Laporan per task di `task/report/backend/`. Roadmap sesudah delivery: backend
+`sha256:3af7fead…`, traceability `sha256:e0260fe6…`, frontend `sha256:cedd7af7…` (tidak berubah). Yang
+tersisa: `FE-19`/`UAT-24`; UAT `MVP-10` di devYoga (`403` dengan akun tanpa izin, kinerja periode
+panjang); ~~pengesahan catatan rilis `0.4.0` dan `0.3.0`~~ (**disahkan** 11 November 2026, `RM-DEC-110`; rilis
+`0.2.0` tetap menunggu); penerimaan `INT-RM-20` oleh pemilik HR;
+**penyegaran kontrak `0.4.1`** (contoh paging C1 mengikuti `PagedResult`) pada pass blueprint berikutnya.
+
+**Pembaruan 11 November 2026 sore:** `FE-19` **`SELESAI`** (3 uji unit + 2 E2E API tiruan; `UAT-24` nyata
+terbuka karena `InpDischargeSummary` devYoga kosong). **UAT `MVP-10`** terhadap backend lokal + devYoga
+(`testing/uat-amandemen-0.4.0.md`): `401` tanpa sesi, `200` metadata dan tarikan (pembaca `BE-50` berjalan di
+PostgreSQL, bukan `503`), `400` keempat validasi, **`403` akun non-superadmin tanpa izin** (menutup `AT-RM-94`),
+audit satu baris per tarikan. Terbuka dan terlacak: angka berisi, kinerja volume nyata, `UAT-24` nyata, dan
+`409` tanda tangan ulang lewat HTTP — seluruhnya menunggu data Rawat Inap (devYoga: 0 episode).
+| Persetujuan perubahan di folder Rawat Inap (`INT-RM-18`, `10m`, `19`) | Muhammad Hamzah | `MVP-9`, `MVP-10` |
+| Penerimaan `INT-RM-20` dan temuan K3RS (`RM-CAP-093`) | Pemilik HR | `POST-MVP` saja |
 
 ---
 

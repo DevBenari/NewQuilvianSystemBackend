@@ -976,3 +976,38 @@ Tidak ada menu atau route baru.
 
 Tidak ada data baru yang ditampilkan. Dokumen Optik dan Rehab tunduk pada aturan pembukaan berkas
 yang sudah ada (`MedicalRecord : Read`, keperluan akses, satu baris jejak akses).
+
+---
+
+# Amandemen revision 6 — Kontrak fungsional frontend (`approved`)
+
+Disahkan Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`).
+
+Input: `RM-DEC-097`–`107`; kontrak API `0.4.0` (`approved`); capability map revision 5. Frontend SHA
+`75b97ecad`. Urutan kewenangan tetap: keamanan/privasi/invariant → brief UI yang disahkan →
+konvensi project → `DEV_DISCRETION`.
+
+## F6.1 Layar dan perubahannya
+
+| Layar | Status | Lokasi | Perubahan |
+|---|---|---|---|
+| Berkas pasien — detail ringkasan pulang | **Sudah ada, tidak diubah** | `src/components/view/health-services/medical-record-management/medical-records/medical-record-document-panel.jsx` | Bagian "Rencana kontrol" tampil sendiri karena panel menggambar `sections` dari backend apa adanya (`:113`, `:194-199`; `RM-CAP-090`). Hanya diuji (`UAT-24`) |
+| Indikator ketepatan ringkasan pulang | **Tidak ada layar rekam medis** | — | `RM-DEC-101` menetapkan endpoint untuk HR. Layar pemakai (OPPE) milik modul HR |
+
+Tidak ada menu, route, service frontend, maupun state Redux baru di modul rekam medis.
+
+## F6.2 Kebutuhan
+
+| ID | Kebutuhan | Kewenangan |
+|---|---|---|
+| `RM-FE-033` | Panel detail tetap menggambar seluruh `sections` tanpa daftar label yang ditulis tetap, agar bagian baru dari backend tidak hilang | Invariant (tampilan berkas = dokumen sumber, `RM-DEC-104`) |
+
+## F6.3 Layar indikator — bila kelak diminta
+
+Bila pemilik kelak meminta layar indikator di rekam medis, permintaan itu memerlukan keputusan
+`RM-DEC` baru (menu, pemegang izin). Desain ini **tidak** menetapkan menu, route, maupun tata letak.
+
+## F6.4 Privasi
+
+Tidak ada data baru di layar rekam medis selain teks rencana kontrol, yang sudah tunduk pada aturan
+pembukaan berkas (`MedicalRecord : Read`, keperluan akses, satu baris jejak akses).
