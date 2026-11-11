@@ -1,4 +1,6 @@
 using QuilvianSystemBackend.Models;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -48,6 +50,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Mode
 
         [MaxLength(500)]
         public string? Description { get; set; }
+
+        [MaxLength(50)]
+        public string? SourceDocumentType { get; set; }
+
+        public Guid? SourceDocumentId { get; set; }
+
+        public DateTime? FixedTermSeriesStartDate { get; set; }
+
+        [MaxLength(250)]
+        public string? DocumentFileName { get; set; }
+
+        [MaxLength(150)]
+        public string? DocumentContentType { get; set; }
+
+        public DateTime? SignedRecordedAt { get; set; }
+
+        public Guid? SignedRecordedByUserId { get; set; }
+
+        [ConcurrencyCheck]
+        public Guid RowVersion { get; set; } = Guid.NewGuid();
 
         public bool IsActive { get; set; } = true;
 

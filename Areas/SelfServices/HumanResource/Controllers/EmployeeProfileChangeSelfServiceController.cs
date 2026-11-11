@@ -341,6 +341,136 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
                     cancellationToken));
         }
 
+        [HttpGet("current-profile")]
+        [ProducesResponseType(
+            typeof(ApiResponse<EmployeeCurrentProfileResponse>),
+            StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read My Profile Change",
+            Description = "Melihat data profil tenaga kerja saat ini untuk pengajuan perubahan",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
+        public async Task<IActionResult> GetCurrentProfile(
+            CancellationToken cancellationToken)
+        {
+            var contextResult = await ResolveContextAsync(cancellationToken);
+            if (contextResult.Error != null)
+                return contextResult.Error;
+
+            var result = await _service.GetCurrentProfileAsync(
+                contextResult.Context!.WorkforceProfileId!.Value,
+                cancellationToken);
+
+            return ToActionResult(result);
+        }
+
+        [HttpPost("{id:guid}/evidence")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(
+            typeof(ApiResponse<EmployeeProfileChangeResponse>),
+            StatusCodes.Status200OK)]
+        [AccessAction(
+            "Update",
+            "Upload My Profile Change Evidence",
+            Description = "Mengunggah berkas bukti perubahan profil milik sendiri",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3)]
+        [AccessPermission("MyProfileChange", "Update")]
+        public async Task<IActionResult> UploadEvidence(
+            Guid id,
+            [FromForm] EmployeeProfileChangeEvidenceUploadRequest request,
+            CancellationToken cancellationToken)
+        {
+            var owned = await GetOwnedAsync(
+                id,
+                requireRequester: true,
+                cancellationToken: cancellationToken);
+
+            if (owned.Error != null)
+                return owned.Error;
+
+            return ToActionResult(
+                await _service.UploadEvidenceAsync(
+                    id,
+                    request.File,
+                    owned.Context!.UserId,
+                    cancellationToken));
+        }
+
+        [HttpGet("{id:guid}/evidence/download")]
+        [AccessAction(
+            "Read",
+            "Download My Profile Change Evidence",
+            Description = "Mengunduh berkas bukti perubahan profil milik sendiri",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
+        public async Task<IActionResult> DownloadEvidence(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var owned = await GetOwnedAsync(
+                id,
+                requireRequester: false,
+                cancellationToken: cancellationToken);
+
+            if (owned.Error != null)
+                return owned.Error;
+
+            var fileResult = await _service.GetRequestEvidenceFileAsync(
+                id,
+                cancellationToken);
+
+            if (!fileResult.Success || fileResult.Data == null)
+            {
+                return StatusCode(
+                    fileResult.StatusCode,
+                    ApiResponse<object>.Fail(fileResult.StatusCode, fileResult.Message));
+            }
+
+            var file = fileResult.Data;
+            var stream = new FileStream(
+                file.PhysicalPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+            return File(
+                stream,
+                file.ContentType,
+                file.FileName,
+                enableRangeProcessing: true);
+        }
+
+        [HttpDelete("{id:guid}/evidence")]
+        [AccessAction(
+            "Update",
+            "Delete My Profile Change Evidence",
+            Description = "Menghapus berkas bukti perubahan profil milik sendiri",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3)]
+        [AccessPermission("MyProfileChange", "Update")]
+        public async Task<IActionResult> DeleteEvidence(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var owned = await GetOwnedAsync(
+                id,
+                requireRequester: true,
+                cancellationToken: cancellationToken);
+
+            if (owned.Error != null)
+                return owned.Error;
+
+            return ToActionResult(
+                await _service.DeleteEvidenceAsync(
+                    id,
+                    owned.Context!.UserId,
+                    cancellationToken));
+        }
+
         [HttpDelete("{id:guid}")]
         [AccessAction(
             "Delete",

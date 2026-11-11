@@ -1728,3 +1728,58 @@ Contract version: `FIN-API-1.12` — status `draft`
 | `Health Services / Registration Management / Employee Benefit Lookup` | `api/v1/health-services/registration-management/employee-benefit-lookups` | `GET /workforce-profiles` | `EmployeeBenefitLookup : Read` (tidak berubah) | Dokter tamu dan SDM batal tidak lagi muncul (`FIN-DES-123`) |
 
 Transfer rawat inap memakai jalur yang sama dengan ganti penanggung (`InitializeAdmissionAsync` → `SwitchPaymentSourceAsync`) sehingga ikut berubah tanpa endpoint baru.
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+```
+
+**Tidak ada endpoint baru.** Endpoint yang sudah ada mendapat perubahan **tambahan** berikut. Klien lama tidak terdampak
+karena semua field baru boleh `null` atau bernilai bawaan, dan dokumen BLM belum ada sebelum integrasi.
+
+### W.1 `[Tags("Corporate / Finance Management / Purchasing / Goods Receipt")]` — base URL `api/v1/corporate/finance-management/purchasing/goods-receipts`
+
+| Method | Path | Perubahan | Hak akses | Kode status |
+|---|---|---|---|---|
+| `POST` | `/` | Ditolak bila PO bertanda `BLM` (`FIN-VAL-315`) | Tetap (`[AccessPermission("FinanceGoodsReceipt", "Create")]`) | Tambahan **409** `PURCHASING_EXTERNAL_DOCUMENT` |
+| `PUT` | `/{id}` | Ditolak bila GR bertanda `BLM` | Tetap (`"FinanceGoodsReceipt", "Update"`) | Tambahan **409** |
+| `POST` | `/{id}/cancel` | Ditolak bila GR bertanda `BLM` | Tetap (`"FinanceGoodsReceipt", "Cancel"`) | Tambahan **409** |
+| `GET` | `/`, `/{id}`, `/{id}/document-trail` | Respons: `sourceSystem`; item: `conditionCode`, `sourceQuantity`, `sourceUomCode`, `quantityPerBaseUnit`, `baseUomCode`, `baseQuantity`, `acceptedBaseQuantity` (semua `null` untuk GR lama) | Tetap | Tetap |
+
+Path relatif terhadap base URL `FinanceGoodsReceiptsController` (`VERIFIED`).
+
+**Contoh respons 409:**
+
+```json
+{
+  "success": false,
+  "statusCode": 409,
+  "message": "Penerimaan barang untuk PO dari BLM dicatat di BLM. Perubahan dan pembatalannya juga dilakukan dari BLM.",
+  "data": null,
+  "errors": { "code": "PURCHASING_EXTERNAL_DOCUMENT" },
+  "timestamp": "2026-11-10T10:15:00"
+}
+```
+
+Bentuk di atas adalah `ApiResponse<T>` standar yang dipakai semua endpoint: kode galat ada di `errors.code`, bukan di
+tingkat atas. Klien membaca `message` untuk ditampilkan dan `errors.code` bila perlu bercabang. Contoh sebelumnya
+(`code` di tingkat atas) **dikoreksi** pada 10 November 2026 atas keputusan pemilik (`FIN-DEC-292`); ini koreksi contoh,
+bukan perubahan perilaku, sehingga versi `FIN-API-1.13` tidak dinaikkan.
+
+### W.2 `[Tags("Corporate / Finance Management / Purchasing / Purchase Order")]` — base URL `api/v1/corporate/finance-management/purchasing/purchase-orders`
+
+| Method | Path | Perubahan | Kode status |
+|---|---|---|---|
+| `GET` | `/`, `/{id}` | Respons: `sourceSystem` (bawaan `QUILVIAN`) | Tetap |
+
+### W.3 Jejak dokumen (`ItemProgress`)
+
+`PurchasingTrailItemProgress` mendapat `sourceSystem`, `baseUomCode`, `orderedBaseQuantity`, `physicalBaseQuantity`,
+`acceptedBaseQuantity`, `pendingInspectionBaseQuantity`, `damagedBaseQuantity`, `remainingBaseQuantity`,
+`isConversionResolved`. Untuk PO lama semuanya `null` kecuali `sourceSystem = "QUILVIAN"`; `orderedQuantity`,
+`receivedQuantity`, `remainingQuantity` lama tetap ada dan tetap terisi.
+
+Endpoint penerima kiriman BLM, endpoint pemetaan supplier, dan endpoint konflik dirancang di slice integrasi.

@@ -1259,3 +1259,51 @@ Kolom **TC** merujuk ke daftar uji pada permintaan awal pemilik; **AC** ke accep
 | V.4.9 | `FR-FIN-269` | Pendaftaran pasien dengan kartu otomatis yang sah | Integration | Kartu dapat dipilih tanpa pendaftaran kartu manual; Billing tetap membaca plafon HR | AC-19 / TC-16, TC-22 |
 | V.4.10 | `FIN-VAL-298` | Pasien tidak layak memilih `SYS-RS-BENEFIT` | Integration | Ditolak dengan alasan tepat | TC-17 |
 | V.4.11 | `FR-FIN-264` | Uji resolver dokter tamu yang sudah ada | xUnit | `WorkforceBenefitOwnerAcceptanceTests` baris 150 dan 240 lulus | AC-23 |
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: FIN-TEST-1.16
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 02-backend-architecture.md bagian W; contracts/validation-matrix.md bagian W (putaran 2)
+automated_test: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)
+```
+
+Bukti diambil dari review diff, build, penerapan migration pada database uji, SQL, dan pemeriksaan manual. Build dan
+migration butuh wewenang terpisah (`FIN-DEC-273`). Baris BLM disisipkan lewat SQL pada database uji karena pengolah
+kiriman belum ada.
+
+### W.1 Dokumen lama tidak berubah
+
+| ID | Requirement | Skenario | Cara uji | Bukti yang diharapkan |
+|---|---|---|---|---|
+| W.T1 | `FIN-DES-138` | Aplikasi baru sesudah migration diterapkan | Manual | Daftar dan detail PO/GR lama 200; tidak ada galat kolom |
+| W.T2 | `FR-FIN-272`, `FIN-VAL-306` | Data lama sesudah migration | SQL | PO/GR lama `QUILVIAN`; semua kolom BLM pada item kosong |
+| W.T3 | `FR-FIN-281` | Buat, koreksi, batal GR lokal lewat layar yang ada | Manual | Perilaku dan status PO sama dengan sebelum migration; kolom BLM tetap kosong |
+| W.T4 | `FR-FIN-281` | Respons `GET` PO/GR lama | Bandingkan sebelum dan sesudah | Field lama sama persis; field baru `null` atau `QUILVIAN` |
+
+### W.2 Penerimaan BLM (baris disisipkan lewat SQL, status dihitung lewat penghitung)
+
+PO BLM: 1 BOX produk A, `QuantityPerBaseUnit = 12`, `BaseUomCode = PCS`, `BaseQuantity = 12`.
+
+| ID | Requirement | Skenario | Bukti yang diharapkan |
+|---|---|---|---|
+| W.T5 | `FR-FIN-282`, `FIN-VAL-316` | GR-1 6 PCS `GOOD` | Sah 6, sisa 6, status `PARTIALLY_RECEIVED`, `ReceivedQuantity` baris = 0.50 |
+| W.T6 | `FR-FIN-282` | GR-2 6 PCS `GOOD` | Sah 12, sisa 0, `FULLY_RECEIVED` |
+| W.T7 | `FIN-DEC-268` | GR-2 diganti 4 `GOOD` + 2 `PENDING_INSPECTION` | Sah 10, menunggu 2, `PARTIALLY_RECEIVED` |
+| W.T8 | `FIN-DEC-268` | Baris 2 `DAMAGED` | Sah tidak bertambah, rusak 2 |
+| W.T9 | `FR-FIN-282` | GR dalam satuan BOX: 1 BOX `GOOD`, `QuantityPerBaseUnit = 12` | Sah 12, `FULLY_RECEIVED` |
+| W.T10 | `FIN-VAL-311`, `316` | Baris GR dengan `BaseUomCode` berbeda dari item PO | Penghitung `IsConversionResolved = false`; status **bukan** `FULLY_RECEIVED` |
+| W.T11 | `FR-FIN-282` | GR-2 dibatalkan (`Status = CANCELLED`) lalu status dihitung ulang | Kembali `PARTIALLY_RECEIVED` |
+| W.T12 | `FR-FIN-282` | PO dua item; item 1 penuh, item 2 nol | `PARTIALLY_RECEIVED` (bukan penuh walau total satuan dasar besar) |
+
+### W.3 Penjaga dan constraint
+
+| ID | Requirement | Skenario | Bukti yang diharapkan |
+|---|---|---|---|
+| W.T13 | `FIN-VAL-315` | Buat GR untuk PO BLM; ubah dan batal GR BLM lewat endpoint `goods-receipts` | 409 `PURCHASING_EXTERNAL_DOCUMENT`; tidak ada baris berubah |
+| W.T14 | `FIN-VAL-301`, `303` | PO `BLM` tanpa ID eksternal; PO `BLM` dengan `TIER_1` | Ditolak check |
+| W.T15 | `FIN-VAL-302` | Dua PO `BLM` ber-ID eksternal sama | Ditolak index unik |
+| W.T16 | `FIN-VAL-305`, `306` | Baris GR BLM `DAMAGED` dengan sah > 0; sah > fisik; kolom BLM terisi sebagian; isi per satuan 0 | Ditolak check |
+| W.T17 | `FIN-VAL-308`, `309`, `312`, `313` | `EventId` ganda; `APPLIED` tanpa sasaran; konflik `RESOLVED` tanpa kode; pembatalan keluar tanpa pengguna | Ditolak |
+| W.T18 | Mundur | Langkah mundur migration pada database uji | Skema kembali; data lama utuh |

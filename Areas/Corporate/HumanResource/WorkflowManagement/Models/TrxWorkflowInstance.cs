@@ -54,6 +54,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public DateTime? CancelledAt { get; set; }
         public DateTime? WithdrawnAt { get; set; }
 
+        [MaxLength(30)]
+        public string PriorityLevel { get; set; } = "Normal";
+
+        public DateTime? SlaDeadline { get; set; }
+
+        public bool IsOverdue { get; set; } = false;
+
+        public bool IsDelegatedAction { get; set; } = false;
+
+        public Guid? OnBehalfOfEmployeeId { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? Amount { get; set; }
+
+        public int TotalSteps { get; set; } = 1;
+
+        public DateTime? FinalizedAt { get; set; }
+
         [MaxLength(100)]
         public string? RequestCorrelationId { get; set; }
 

@@ -57,8 +57,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public Guid? BenefitPlanId { get; set; }
         [MaxLength(30)] public string? EnrollmentStatus { get; set; }
         [MaxLength(30)] public string? PatientCardSyncStatus { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
         [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
-        [Range(1, 50)] public int PageSize { get; set; } = 10;
+        [Range(1, 100)] public int PageSize { get; set; } = 10;
     }
 
     /// <summary>

@@ -95,6 +95,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         [MaxLength(2000)]
         public string? Notes { get; set; }
 
+        [MaxLength(100)]
+        public string? SepBpjsNumber { get; set; } // Nomor SEP BPJS Kesehatan 19 digit (BEN-B5, VR-BEN-16..17)
+
+        [MaxLength(50)]
+        public string? ServiceType { get; set; } // Inpatient, Outpatient, Emergency
+
+        [MaxLength(150)]
+        public string? HospitalName { get; set; }
+
+        public decimal TotalHospitalBill { get; set; } = 0m;
+
+        public decimal PrimaryPayerCoveredAmount { get; set; } = 0m; // Ditanggung BPJS (INA-CBGs)
+
+        public decimal SecondaryClaimAmount { get; set; } = 0m; // Ditanggung Asuransi Swasta/RS
+
+        public decimal OutOfPocketExcessAmount { get; set; } = 0m; // Ekses biaya
+
+        public Guid? DependentId { get; set; } // Rujukan tanggungan bila klaim keluarga
+
+        public DateTime? SettledAt { get; set; }
+
+        [MaxLength(100)]
+        public string? SettlementReference { get; set; }
+
+        [MaxLength(1000)]
+        public string? RejectionReason { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public TrxEmployeeBenefitEnrollment? EmployeeBenefitEnrollment { get; set; }

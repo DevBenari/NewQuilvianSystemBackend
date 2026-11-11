@@ -28,18 +28,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             WriteIndented = false
         };
 
+        private const decimal MaxCarryForwardAllowedDays = 6.0m;
         private readonly ApplicationDbContext _dbContext;
         private readonly LeaveCarryForwardPolicyResolverService _policyResolver;
         private readonly ILogger<LeaveCarryForwardProcessorService> _logger;
+        private readonly LeaveBalanceLedgerService? _ledgerService;
 
         public LeaveCarryForwardProcessorService(
             ApplicationDbContext dbContext,
             LeaveCarryForwardPolicyResolverService policyResolver,
-            ILogger<LeaveCarryForwardProcessorService> logger)
+            ILogger<LeaveCarryForwardProcessorService> logger,
+            LeaveBalanceLedgerService? ledgerService = null)
         {
             _dbContext = dbContext;
             _policyResolver = policyResolver;
             _logger = logger;
+            _ledgerService = ledgerService;
         }
 
         public LeaveCarryForwardRunFilterMetadataResponse GetMetadata()
@@ -1895,6 +1899,265 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             return string.IsNullOrWhiteSpace(existing)
                 ? value.Trim()
                 : $"{existing}\n[{DateTime.UtcNow:O}] {value.Trim()}";
+        }
+
+        /// <summary>
+        /// Mengeksekusi penutupan saldo akhir tahun (31 Desember): membawa max 6 hari ke tahun berikutnya dan menghanguskan kelebihannya (BE-HRD-119, HRD-DEC-110).
+        /// </summary>
+        public async Task<CarryForwardRunResultDto> ExecuteYearEndCarryForwardAsync(
+            int sourceYear,
+            Guid? actorUserId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var nextYear = sourceYear + 1;
+            var now = DateTime.UtcNow;
+            var expiryDate = DateTime.SpecifyKind(new DateTime(nextYear, 6, 30, 23, 59, 59), DateTimeKind.Utc);
+
+            var annualLeaveType = await _dbContext.Set<MstLeaveType>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => !t.IsDelete && (t.LeaveTypeCode == "ANNUAL" || t.LeaveTypeName.Contains("Tahunan")), cancellationToken);
+            if (annualLeaveType == null)
+            {
+                return new CarryForwardRunResultDto
+                {
+                    TargetYear = nextYear,
+                    Message = "Master jenis cuti tahunan (ANNUAL) tidak ditemukan.",
+                    ExecutedAt = now
+                };
+            }
+
+            var activeWorkforces = await _dbContext.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile>()
+                .AsNoTracking()
+                .Where(w => !w.IsDelete && w.IsActive)
+                .Select(w => w.Id)
+                .ToListAsync(cancellationToken);
+
+            var processedCount = 0;
+            var carriedCount = 0;
+            var forfeitedCount = 0;
+            var totalCarriedDays = 0m;
+            var totalForfeitedDays = 0m;
+
+            foreach (var workforceId in activeWorkforces)
+            {
+                // Periksa apakah carry-forward tahun target sudah pernah diproses untuk pegawai ini
+                var alreadyProcessed = await _dbContext.Set<TrxLeaveBalanceLedger>()
+                    .AsNoTracking()
+                    .AnyAsync(l => l.WorkforceProfileId == workforceId &&
+                                   l.LeaveTypeId == annualLeaveType.Id &&
+                                   l.PeriodYear == nextYear &&
+                                   l.TransactionType == "CarryForward" &&
+                                   !l.IsDelete, cancellationToken);
+                if (alreadyProcessed)
+                {
+                    continue;
+                }
+
+                decimal remainingBalance = 0m;
+                if (_ledgerService != null)
+                {
+                    var summary = await _ledgerService.GetSummaryAsync(workforceId, annualLeaveType.Id, sourceYear, cancellationToken);
+                    remainingBalance = summary?.CurrentBalanceDays ?? 0m;
+                }
+
+                if (remainingBalance <= 0)
+                {
+                    continue;
+                }
+
+                processedCount++;
+
+                if (remainingBalance <= MaxCarryForwardAllowedDays)
+                {
+                    var carryForwardLedger = new TrxLeaveBalanceLedger
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkforceProfileId = workforceId,
+                        LeaveTypeId = annualLeaveType.Id,
+                        PeriodYear = nextYear,
+                        TransactionType = "CarryForward",
+                        AmountDays = remainingBalance,
+                        BalanceBefore = 0,
+                        BalanceAfter = remainingBalance,
+                        TransactionDate = now,
+                        ExpiryDate = expiryDate,
+                        IsForfeited = false,
+                        Notes = $"Saldo cuti bawaan dari tahun {sourceYear} sebesar +{remainingBalance:N1} hari (Kedaluwarsa 30 Juni {nextYear}, HRD-DEC-110).",
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId ?? Guid.Empty,
+                        UpdateDateTime = now,
+                        UpdateBy = actorUserId ?? Guid.Empty
+                    };
+                    _dbContext.Set<TrxLeaveBalanceLedger>().Add(carryForwardLedger);
+
+                    carriedCount++;
+                    totalCarriedDays += remainingBalance;
+                }
+                else
+                {
+                    var allowedCarry = MaxCarryForwardAllowedDays;
+                    var excessForfeit = remainingBalance - MaxCarryForwardAllowedDays;
+
+                    var forfeitLedger = new TrxLeaveBalanceLedger
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkforceProfileId = workforceId,
+                        LeaveTypeId = annualLeaveType.Id,
+                        PeriodYear = sourceYear,
+                        TransactionType = "Forfeiture",
+                        AmountDays = -excessForfeit,
+                        BalanceBefore = remainingBalance,
+                        BalanceAfter = remainingBalance - excessForfeit,
+                        TransactionDate = now,
+                        IsForfeited = true,
+                        Notes = $"Penghangusan kelebihan sisa cuti tahun {sourceYear} sebesar {excessForfeit:N1} hari di atas batas maksimal 6 hari (HRD-DEC-110).",
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId ?? Guid.Empty,
+                        UpdateDateTime = now,
+                        UpdateBy = actorUserId ?? Guid.Empty
+                    };
+                    _dbContext.Set<TrxLeaveBalanceLedger>().Add(forfeitLedger);
+
+                    var carryForwardLedger = new TrxLeaveBalanceLedger
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkforceProfileId = workforceId,
+                        LeaveTypeId = annualLeaveType.Id,
+                        PeriodYear = nextYear,
+                        TransactionType = "CarryForward",
+                        AmountDays = allowedCarry,
+                        BalanceBefore = 0,
+                        BalanceAfter = allowedCarry,
+                        TransactionDate = now,
+                        ExpiryDate = expiryDate,
+                        IsForfeited = false,
+                        Notes = $"Saldo cuti bawaan maksimal dari tahun {sourceYear} sebesar +{allowedCarry:N1} hari (Kedaluwarsa 30 Juni {nextYear}, HRD-DEC-110).",
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId ?? Guid.Empty,
+                        UpdateDateTime = now,
+                        UpdateBy = actorUserId ?? Guid.Empty
+                    };
+                    _dbContext.Set<TrxLeaveBalanceLedger>().Add(carryForwardLedger);
+
+                    carriedCount++;
+                    forfeitedCount++;
+                    totalCarriedDays += allowedCarry;
+                    totalForfeitedDays += excessForfeit;
+                }
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Carry-forward cuti tahun {SourceYear} ke {NextYear} selesai: {CarriedCount} staf diproses (+{TotalCarried} hari), {ForfeitedCount} staf terhanguskan (-{TotalForfeited} hari).",
+                sourceYear, nextYear, carriedCount, totalCarriedDays, forfeitedCount, totalForfeitedDays);
+
+            return new CarryForwardRunResultDto
+            {
+                TargetYear = nextYear,
+                ProcessedWorkforceCount = processedCount,
+                CarriedForwardCount = carriedCount,
+                TotalCarriedForwardDays = totalCarriedDays,
+                ForfeitedCount = forfeitedCount,
+                TotalForfeitedDays = totalForfeitedDays,
+                ExecutedAt = now,
+                Message = $"Proses penutupan akhir tahun {sourceYear} berhasil. Dialokasikan saldo bawaan ke {carriedCount} pegawai (+{totalCarriedDays:N1} hari) dan dihanguskan kelebihan saldo dari {forfeitedCount} pegawai (-{totalForfeitedDays:N1} hari)."
+            };
+        }
+
+        /// <summary>
+        /// Mengeksekusi penghangusan sisa kuota cuti bawaan (CarryForward) per 30 Juni (VR-LEV-13, HRD-DEC-110).
+        /// </summary>
+        public async Task<CarryForwardRunResultDto> ExecuteMidYearCarryForwardExpiryAsync(
+            int currentYear,
+            Guid? actorUserId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            var expiredCandidates = await _dbContext.Set<TrxLeaveBalanceLedger>()
+                .Where(l => l.PeriodYear == currentYear &&
+                            l.TransactionType == "CarryForward" &&
+                            !l.IsForfeited &&
+                            l.ExpiryDate.HasValue &&
+                            l.ExpiryDate.Value <= now &&
+                            !l.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            var processedCount = 0;
+            var forfeitedCount = 0;
+            var totalForfeitedDays = 0m;
+
+            foreach (var cf in expiredCandidates)
+            {
+                processedCount++;
+
+                var takenDays = await _dbContext.Set<TrxLeaveBalanceLedger>()
+                    .AsNoTracking()
+                    .Where(l => l.WorkforceProfileId == cf.WorkforceProfileId &&
+                                l.LeaveTypeId == cf.LeaveTypeId &&
+                                l.PeriodYear == currentYear &&
+                                l.TransactionType == "Taken" &&
+                                !l.IsDelete)
+                    .SumAsync(l => Math.Abs(l.AmountDays), cancellationToken);
+
+                var unconsumedCarryForward = Math.Max(0, cf.AmountDays - takenDays);
+
+                if (unconsumedCarryForward > 0 && _ledgerService != null)
+                {
+                    var summary = await _ledgerService.GetSummaryAsync(cf.WorkforceProfileId, cf.LeaveTypeId, currentYear, cancellationToken);
+                    var balanceBefore = summary?.CurrentBalanceDays ?? 0;
+                    var actualDeduct = Math.Min(balanceBefore, unconsumedCarryForward);
+
+                    if (actualDeduct > 0)
+                    {
+                        var forfeitLedger = new TrxLeaveBalanceLedger
+                        {
+                            Id = Guid.NewGuid(),
+                            WorkforceProfileId = cf.WorkforceProfileId,
+                            LeaveTypeId = cf.LeaveTypeId,
+                            PeriodYear = currentYear,
+                            TransactionType = "Forfeiture",
+                            AmountDays = -actualDeduct,
+                            BalanceBefore = balanceBefore,
+                            BalanceAfter = balanceBefore - actualDeduct,
+                            TransactionDate = now,
+                            IsForfeited = true,
+                            Notes = $"Kedaluwarsa otomatis sisa cuti bawaan tahun lalu per 30 Juni {currentYear} (-{actualDeduct:N1} hari, HRD-DEC-110).",
+                            IsActive = true,
+                            CreateDateTime = now,
+                            CreateBy = actorUserId ?? Guid.Empty,
+                            UpdateDateTime = now,
+                            UpdateBy = actorUserId ?? Guid.Empty
+                        };
+                        _dbContext.Set<TrxLeaveBalanceLedger>().Add(forfeitLedger);
+
+                        forfeitedCount++;
+                        totalForfeitedDays += actualDeduct;
+                    }
+                }
+
+                cf.IsForfeited = true;
+                cf.UpdateDateTime = now;
+                cf.UpdateBy = actorUserId ?? Guid.Empty;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Eksekusi kedaluwarsa cuti bawaan 30 Juni tahun {Year} selesai: {ForfeitedCount} staf terhanguskan (-{TotalForfeited} hari).",
+                currentYear, forfeitedCount, totalForfeitedDays);
+
+            return new CarryForwardRunResultDto
+            {
+                TargetYear = currentYear,
+                ProcessedWorkforceCount = processedCount,
+                ForfeitedCount = forfeitedCount,
+                TotalForfeitedDays = totalForfeitedDays,
+                ExecutedAt = now,
+                Message = $"Penghangusan kuota bawaan per 30 Juni {currentYear} berhasil diproses. Dihanguskan sisa saldo bawaan dari {forfeitedCount} pegawai (-{totalForfeitedDays:N1} hari)."
+            };
         }
     }
 }

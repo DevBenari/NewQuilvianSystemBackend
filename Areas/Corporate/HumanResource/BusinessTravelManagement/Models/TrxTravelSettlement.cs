@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Models;
@@ -58,6 +58,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
         [MaxLength(2000)]
         public string? SettlementNotes { get; set; }
+
+        public bool IsOverdue { get; set; } = false;
+        public DateTime? SettledAt { get; set; }
+        public DateTime? DefaultedAt { get; set; }
+
+        [MaxLength(100)]
+        public string? RefundVoucherNumber { get; set; }
+
+        [MaxLength(100)]
+        public string? PaymentOrRefundRef { get; set; }
+
+        [MaxLength(500)]
+        public string? ReceiptDocUrl { get; set; }
 
         public bool IsActive { get; set; } = true;
 

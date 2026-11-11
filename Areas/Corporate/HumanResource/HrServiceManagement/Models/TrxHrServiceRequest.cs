@@ -47,6 +47,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [MaxLength(30)]
         public string Priority { get; set; } = "Normal";
 
+        [MaxLength(30)]
+        public string PriorityTier { get; set; } = "Standar";
+
+        public int SlaTargetHours { get; set; } = 24;
+        public DateTime? SlaDeadlineUtc { get; set; }
+
+        [MaxLength(30)]
+        public string SlaStatus { get; set; } = "WithinSla";
+
+        public DateTime? SlaPausedAtUtc { get; set; }
+        public int TotalPausedMinutes { get; set; } = 0;
+
         [Required]
         [MaxLength(30)]
         public string SourceChannel { get; set; } = "Web";

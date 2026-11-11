@@ -17,17 +17,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
         private readonly LeaveRequestCalculationService _calculationService;
         private readonly WorkflowService _workflowService;
         private readonly LeaveCancellationWorkflowLifecycleService _lifecycleService;
+        private readonly LeaveBalanceLedgerService? _ledgerService;
 
         public LeaveCancellationService(
             ApplicationDbContext dbContext,
             LeaveRequestCalculationService calculationService,
             WorkflowService workflowService,
-            LeaveCancellationWorkflowLifecycleService lifecycleService)
+            LeaveCancellationWorkflowLifecycleService lifecycleService,
+            LeaveBalanceLedgerService? ledgerService = null)
         {
             _dbContext = dbContext;
             _calculationService = calculationService;
             _workflowService = workflowService;
             _lifecycleService = lifecycleService;
+            _ledgerService = ledgerService;
         }
 
         public async Task<LeaveRequestServiceResult<LeaveLifecyclePagedResponse<LeaveCancellationResponse>>> GetMyPagedAsync(
@@ -385,5 +388,120 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
 
         private static string GenerateNumber(string prefix) => $"{prefix}-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
         private static string? NullIfWhiteSpace(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        /// <summary>
+        /// Pembatalan mandiri cuti sebelum tanggal pelaksanaan dimulai (Pre-Leave Cancellation)
+        /// dengan pemulihan saldo 100% otomatis (HRD-ASM-21, VR-LEV-17, VR-LEV-19, VR-LEV-20, INT-HR-46).
+        /// </summary>
+        public async Task<LeaveRequestServiceResult<LeaveLifecycleActionResponse>> CancelPreLeaveAsync(
+            Guid leaveRequestId,
+            Guid actorUserId,
+            string cancellationReason,
+            CancellationToken cancellationToken = default)
+        {
+            var leave = await _dbContext.Set<WfpLeaveRequest>()
+                .Include(x => x.LeaveType)
+                .FirstOrDefaultAsync(x => x.Id == leaveRequestId && !x.IsDelete, cancellationToken);
+
+            if (leave == null)
+            {
+                return LeaveRequestServiceResult<LeaveLifecycleActionResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Permohonan cuti tidak ditemukan.");
+            }
+
+            // Validasi Pre-Leave: Hanya dapat dibatalkan jika hari ini < StartDate (VR-LEV-17, HRD-ASM-21)
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (today >= leave.StartDate)
+            {
+                return LeaveRequestServiceResult<LeaveLifecycleActionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pembatalan mandiri hanya dapat diajukan sebelum tanggal pelaksanaan cuti dimulai (VR-LEV-17, HRD-ASM-21).");
+            }
+
+            // Validasi Immutabilitas Cuti Selesai / Payroll Closed (VR-LEV-19, VR-LEV-20, LEV-B4, HRD-DEC-115)
+            if (leave.LeaveRequestStatus == "Completed" || leave.IsPayrollClosed)
+            {
+                return LeaveRequestServiceResult<LeaveLifecycleActionResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Operasi ditolak: Permohonan cuti telah selesai atau periode payroll telah ditutup (VR-LEV-19, VR-LEV-20, LEV-B4).");
+            }
+
+            var now = DateTime.UtcNow;
+            var prevStatus = leave.LeaveRequestStatus;
+            leave.LeaveRequestStatus = LeaveRequestValueConstants.Status.Cancelled;
+            leave.UpdateBy = actorUserId;
+            leave.UpdateDateTime = now;
+
+            decimal restoredDays = leave.CalculatedWorkingDays > 0 ? leave.CalculatedWorkingDays : leave.RequestedDays;
+
+            // Jika cuti sebelumnya telah disetujui (Approved) dan memotong saldo, pulihkan saldo 100% ke buku besar (CancellationRestore)
+            if (prevStatus == LeaveRequestValueConstants.Status.Approved &&
+                leave.LeaveType != null &&
+                leave.LeaveType.IsBalanceDeducted &&
+                _ledgerService != null)
+            {
+                var restoreResult = await _ledgerService.PostCancellationRestoreAsync(
+                    leave.Id,
+                    actorUserId,
+                    cancellationToken);
+
+                if (!restoreResult.Success)
+                {
+                    return LeaveRequestServiceResult<LeaveLifecycleActionResponse>.Fail(
+                        restoreResult.StatusCode,
+                        $"Gagal memulihkan saldo buku besar: {restoreResult.Message}");
+                }
+            }
+
+            // Pulihkan jadwal shift roster di Modul 06 dari OnLeave kembali ke Scheduled (INT-HR-46)
+            var shiftsInRange = await _dbContext.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models.TrxShiftAssignment>()
+                .Where(s => !s.IsDelete && !s.IsCancel &&
+                            s.WorkforceProfileId == leave.WorkforceProfileId &&
+                            s.ShiftDate >= leave.StartDate &&
+                            s.ShiftDate <= leave.EndDate)
+                .ToListAsync(cancellationToken);
+
+            foreach (var shift in shiftsInRange)
+            {
+                shift.HasLeaveConflict = false;
+                shift.AssignmentStatus = "Scheduled";
+                shift.UpdateBy = actorUserId;
+                shift.UpdateDateTime = now;
+            }
+
+            // Catat log TrxLeaveCancellationRequest
+            var cancellationRecord = new TrxLeaveCancellationRequest
+            {
+                Id = Guid.NewGuid(),
+                CancellationNumber = GenerateNumber("LCN-PRE"),
+                LeaveRequestId = leave.Id,
+                WorkforceProfileId = leave.WorkforceProfileId,
+                RequestedAt = now,
+                EffectiveCancellationDate = leave.StartDate,
+                RestoredDays = restoredDays,
+                CancellationReason = string.IsNullOrWhiteSpace(cancellationReason) ? "Pembatalan mandiri sebelum hari pelaksanaan (Pre-Leave)" : cancellationReason.Trim(),
+                CancellationStatus = LeaveLifecycleValueConstants.CancellationStatus.Applied,
+                RequestedByUserId = actorUserId,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            await _dbContext.Set<TrxLeaveCancellationRequest>().AddAsync(cancellationRecord, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return LeaveRequestServiceResult<LeaveLifecycleActionResponse>.Ok(
+                new LeaveLifecycleActionResponse
+                {
+                    Id = cancellationRecord.Id,
+                    LeaveRequestId = leave.Id,
+                    ReferenceNumber = cancellationRecord.CancellationNumber,
+                    ReferenceStatus = cancellationRecord.CancellationStatus,
+                    Message = $"Permohonan cuti {leave.RequestNumber} berhasil dibatalkan mandiri dan saldo dipulihkan 100% ({restoredDays} hari)."
+                },
+                "Pembatalan cuti pre-leave berhasil diproses.");
+        }
+
     }
 }

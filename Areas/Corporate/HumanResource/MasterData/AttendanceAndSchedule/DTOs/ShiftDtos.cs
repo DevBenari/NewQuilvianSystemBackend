@@ -393,7 +393,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
     }
     public class UpdateShiftRequest : CreateShiftRequest
     {
-        public bool IsActive
+        public new bool IsActive
         {
             get;
             set;

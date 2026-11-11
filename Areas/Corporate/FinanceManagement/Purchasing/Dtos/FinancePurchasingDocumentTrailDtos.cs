@@ -41,6 +41,22 @@ public sealed class PurchasingTrailItemProgress
     public decimal OrderedQuantity { get; set; }
     public decimal ReceivedQuantity { get; set; }
     public decimal RemainingQuantity { get; set; }
+
+    // ---- Kemajuan dalam SATUAN DASAR untuk PO bersumber BLM (BE-FIN-147, Revisi 23, FIN-API-1.13 W.3), dari
+    // PurchasingReceiptQuantityCalculator. Untuk PO lama seluruhnya null kecuali SourceSystem = QUILVIAN; tiga
+    // kolom lama di atas tetap terisi dengan rumus lama. Besaran yang tidak dapat dipastikan null, bukan 0.
+    public string SourceSystem { get; set; } = "QUILVIAN";
+    public string? BaseUomCode { get; set; }
+    public decimal? OrderedBaseQuantity { get; set; }
+    public decimal? PhysicalBaseQuantity { get; set; }
+    public decimal? AcceptedBaseQuantity { get; set; }
+    public decimal? PendingInspectionBaseQuantity { get; set; }
+    public decimal? DamagedBaseQuantity { get; set; }
+    public decimal? RemainingBaseQuantity { get; set; }
+
+    /// <summary>false bila ada baris GR yang konversinya tidak pasti pada item ini; PO tidak pernah
+    /// FULLY_RECEIVED dari data seperti itu (FIN-DEC-276).</summary>
+    public bool? IsConversionResolved { get; set; }
 }
 
 public sealed class PurchasingTrailGoodsReceipt

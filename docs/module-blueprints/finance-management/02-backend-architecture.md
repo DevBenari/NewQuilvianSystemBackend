@@ -7332,3 +7332,396 @@ dipakai aturan bisnis.
 | Endpoint yang mengubah 422 menjadi 200 | Larangan pemilik |
 | Pemanggilan Create lalu Submit dari Frontend | `FIN-DEC-243` |
 | Merapikan akses `DbContext` langsung di `PatientCompanyGuarantorController` | Di luar scope; menjadi task tersendiri dengan persetujuan arsitek backend |
+
+
+---
+
+## W. Amandemen 9 November 2026 (Revisi 23) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+scope: Entity penampung, identitas BLM, snapshot konversi satuan per produk, perhitungan penerimaan sah dan status PO,
+  penjaga dokumen BLM di layanan GR, field tambahan DTO, dan tampilan kemajuan item. Integrasi (penerima kiriman,
+  autentikasi server-ke-server, pengolah) DITUNDA.
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278, FIN-OQ-130..144; pass 9 November 2026)
+input_hash: lihat blueprint-manifest.md (input_hashes_revision_23)
+backend_commit_sha: 8fb11705   # branch Yasmina; working tree berisi perubahan sesi ini yang belum di-commit
+frontend_commit_sha: f0a756bf  # branch yasmina; idem
+blm_source_sha: 08e8a9ae       # PurchasingSystemDeveloper, hanya dibaca
+requirement_readiness: NOT_ASSESSED   # requirement-completeness-gate tidak dijalankan; lihat W.13
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
+domain_architecture_reason: >
+  Bukan kemampuan klinis dan tidak menyentuh billing pasien. Tabel PO/GR dimiliki Finance Purchasing (prefix Fin,
+  registry ACTIVE), supplier milik Administrator Master Data, dan BLM adalah sistem luar yang hanya dirujuk lewat
+  identitas eksternal dan snapshot.
+```
+
+**Riwayat putaran.** Putaran 1 (9 November 2026) mengusulkan tabel pemetaan satuan dengan faktor konversi dan kolom
+jumlah sah untuk semua GR. Putaran 2 menerapkan keputusan pemilik `FIN-DEC-273`..`278`: tabel pemetaan produk tidak
+dibuat, **faktor konversi diambil dari BLM per produk dan disimpan sebagai snapshot di setiap baris**, tabel pemetaan
+satuan **dihapus**, dokumen lama tidak disentuh, dan perhitungan status PO BLM memakai jumlah sah yang sudah dinormalisasi.
+
+### W.1 Ringkasan untuk pembaca umum
+
+BLM akan mengirim PO dan Penerimaan Barang (GR) ke Quilvian. Sebelum jalur kirimnya dibangun, Quilvian menyiapkan
+tempat menyimpannya dengan benar:
+
+1. **Penanda sumber** pada PO dan GR: `QUILVIAN` (dibuat di sini) atau `BLM`. Dokumen lama otomatis `QUILVIAN` dan
+   tetap dihitung dengan aturan lama.
+2. **Identitas BLM** pada PO, item PO, GR, dan item GR, supaya kiriman yang sama tidak membuat dokumen ganda dan setiap
+   baris GR menempel ke item PO yang benar.
+3. **Snapshot produk dan satuan** dari BLM pada setiap item: kode produk, satuan asli, isi per satuan, dan satuan dasar.
+4. **Kondisi barang** pada setiap baris GR BLM (Baik, Rusak, Menunggu Pemeriksaan) dan jumlah **diterima sah**.
+5. **Kotak masuk**, **pemetaan supplier**, **catatan konflik**, dan **catatan pembatalan eksternal**.
+6. **Penghitung penerimaan** yang menormalkan semua kuantitas BLM ke satuan dasar produk sebelum menentukan status PO.
+
+**Contoh (dari keputusan pemilik).** PO BLM memesan **1 BOX** produk A. Menurut BLM, 1 BOX produk A berisi 12 PCS, dan
+PCS adalah satuan dasar produk A.
+
+| Kejadian | Dipesan (satuan dasar) | Diterima sah (satuan dasar) | Sisa | Status PO |
+|---|---:|---:|---:|---|
+| PO diterapkan | 12 PCS | 0 | 12 | `APPROVED` |
+| GR-1: 6 PCS, kondisi Baik | 12 | 6 | 6 | `PARTIALLY_RECEIVED` |
+| GR-2: 6 PCS, kondisi Baik | 12 | 12 | 0 | `FULLY_RECEIVED` |
+| Bila GR-2 ternyata 4 Baik + 2 Menunggu Pemeriksaan | 12 | 10 | 2 | `PARTIALLY_RECEIVED` |
+| Bila kiriman GR-2 tidak membawa isi per satuan | 12 | 6 (GR-2 tidak diterapkan) | 6 | `PARTIALLY_RECEIVED`, konflik `CONVERSION_UNRESOLVED` |
+
+**Yang tidak dibuat di amandemen ini:** endpoint penerima kiriman, autentikasi, pengolah kiriman, layar pemetaan,
+layar konflik, Monitoring Sinkronisasi, gerbang penerimaan penuh di Tukar Faktur, dan alokasi invoice multi-GR.
+
+### W.2 Fakta source yang menjadi dasar desain (`VERIFIED`, bacaan statis)
+
+| No | Fakta | Bukti | Akibat pada desain |
+|---|---|---|---|
+| F1 | V2 **tidak punya master produk maupun master satuan Purchasing**. Item PO menyimpan teks `ProductCategory`, `ProductName`, `Unit` | `FinPurchaseOrderItem.cs` | Tanpa tabel pemetaan produk (`FIN-DES-135`, disetujui `FIN-DEC-274`) |
+| F2 | Supplier V2 adalah `MstSupplier` milik Administrator. Supplier BLM diisi dari API AdMedika dengan identitas BLM sendiri | `MstSupplier.cs`; BLM `ApiController.CreateSupplierApi` | Supplier tetap dipetakan (`FIN-DES-133`) |
+| F3 | BLM `MstProductConversion` = (`ProductId`, `ToMeasurementId` [contoh BOX, BOX200], `QuantityPerUnit` ["isi per box"], `Status`). Satuan dasar produk adalah `MstProduct.MeasurementId`. Item PO BLM menyimpan satuan sebagai teks `Measurement`, item GR sebagai teks `Measure`, dan keduanya bisa berbeda | BLM `Areas/MasterData/Models/MstProductConversion.cs`, `MstProduct.cs`, `MstMeasurement.cs` (dibaca lewat API GitHub, SHA `08e8a9ae`) | Normalisasi ke **satuan dasar produk** dengan isi per satuan yang disalin per baris (`FIN-DES-131`, `FIN-DES-134`) |
+| F4 | Kondisi barang BLM berupa teks `Remarks` per baris GR: "Good Condition, Damage & Pending Inspection" | BLM `WrhReceiveOrderItem.Remarks` | Kondisi per baris GR |
+| F5 | ID dokumen, item, dan produk BLM bertipe `Guid` | Model BLM | Kolom identitas eksternal `uuid` |
+| F6 | `FinPurchaseOrder` mewajibkan `SupplierId`, `RequestedByUserId`, `ApprovalTier` ∈ {`TIER_1`,`TIER_2`}. `PONumber` dan `GRNumber` unik global | Konfigurasi PO/GR | `FIN-DES-129`, `FIN-DES-130` |
+| F7 | Aplikasi **tidak** menjalankan `Database.Migrate()` saat start | Pencarian `Migrate(` di luar `Migrations/` | `FIN-OQ-142` ditutup; rilis satu paket (`FIN-DES-138`, disetujui `FIN-DEC-273`) |
+| F8 | Pola kotak keluar dan peta konfigurasi sudah ada (`FinAccountingEventOutbox`, `FinSubledgerControlAccountMap`) | `AccountingIntegration/Models/` | Kotak masuk dan pemetaan supplier meniru pola ini |
+| F9 | `FinanceGoodsReceiptService.RecomputePurchaseOrderStatus` membandingkan **total** dipesan dengan **total** diterima untuk seluruh item. Untuk GR lokal ini setara dengan pemeriksaan per item karena `CreateAsync`/`UpdateAsync` menolak penerimaan melebihi pesanan per item | `FinanceGoodsReceiptService.cs` baris ±438–460, ±131, ±354 | Untuk dokumen BLM, total satuan dasar lintas produk tidak bermakna; status BLM diperiksa **per item** (`FIN-DES-142`) |
+| F10 | `ReceivedQuantity` dipakai oleh `CreateAsync`, `UpdateAsync`, `CancelAsync` (penjumlahan per item), `FinancePurchasingDocumentTrailService` (`ItemProgress`), dan `PurchasingInvoiceAllocationPlanner` (sisa yang boleh ditagih) | Pencarian `ReceivedQuantity` di `Purchasing/` | Arti kolom ini **tidak diubah** untuk dokumen lama; dokumen BLM memakai kolom satuan dasar (`FIN-DES-140`) |
+| F11 | Registry: Finance, prefix `Fin`, `ACTIVE`; folder `Purchasing/` sudah memuat model PO/GR | Registry | Tabel baru prefix `Fin` di folder yang sama |
+
+### W.3 Keputusan desain
+
+| ID | Keputusan | Alasan | Alternatif yang ditolak |
+|---|---|---|---|
+| `FIN-DES-127` | Semua tabel baru memakai prefix `Fin` di `Areas/Corporate/FinanceManagement/Purchasing/` | F11 | Folder subdomain baru; prefix `Mst` untuk pemetaan |
+| `FIN-DES-128` | `SourceSystem` (`QUILVIAN` bawaan, `BLM`) pada **header** PO dan GR; check: `BLM` ⇔ identitas eksternal header terisi | Item mengikuti header | `SourceSystem` per item; boolean `IsFromBlm` |
+| `FIN-DES-129` | `PONumber`/`GRNumber` tetap unik global; nomor BLM disimpan apa adanya; tabrakan → konflik `NUMBER_COLLISION`, kiriman tidak diterapkan | Pencarian lewat nomor tidak boleh ambigu | Unik gabungan; akhiran pada nomor BLM |
+| `FIN-DES-130` | `ApprovalTier = EXTERNAL` untuk PO BLM (check diperluas), `RequestedByUserId = Guid.Empty`, `ApprovedAt` = waktu persetujuan BLM | Persetujuan terjadi di BLM | Memaksa `TIER_1` |
+| `FIN-DES-131` | **Baris GR BLM** menyimpan: identitas baris BLM, kondisi (`GOOD`, `DAMAGED`, `PENDING_INSPECTION`), kuantitas asli (`SourceQuantity`) dalam satuan asli (`SourceUomCode`), isi per satuan dalam satuan dasar (`QuantityPerBaseUnit`), kode satuan dasar (`BaseUomCode`), kuantitas fisik dalam satuan dasar (`BaseQuantity` = `SourceQuantity` × `QuantityPerBaseUnit`), dan jumlah sah dalam satuan dasar (`AcceptedBaseQuantity`). **Baris GR lama membiarkan semua kolom itu kosong** (check "semua atau tidak sama sekali") dan tetap memakai aturan lama | Keputusan pemilik `FIN-DEC-276`, `277`: snapshot konversi, normalisasi, jumlah sah, dokumen lama tidak diubah. Menyimpan isi per satuan per baris menjaga hitungan historis walau master BLM berubah | Putaran 1: `ConditionCode`/`AcceptedQuantity` wajib untuk semua baris dengan backfill dokumen lama (mengubah dokumen lama tanpa dasar kondisi yang sebenarnya) |
+| `FIN-DES-132` | Kotak masuk `FinPurchasingInboundMessage` menyimpan setiap kiriman dan sekaligus menjadi riwayat sinkronisasi; unik (`SourceSystem`, `EventId`) + `PayloadHash` | Pola kotak keluar Accounting | Tabel riwayat terpisah |
+| `FIN-DES-133` | Pemetaan supplier `FinPurchasingSupplierMap`: satu pemetaan aktif per supplier BLM → satu `MstSupplier` | F2 | Kolom BLM di `MstSupplier` |
+| `FIN-DES-134` | **Tabel pemetaan satuan dihapus.** Isi per satuan diambil dari BLM per produk (`MstProductConversion.QuantityPerUnit`; satuan dasar = faktor 1) dan dikirim BLM pada setiap item PO dan GR, lalu disalin ke baris. **Tidak ada nilai bawaan 1** bila data konversi tidak ada atau tidak sah | `FIN-DEC-276`: wajib konversi per produk dari BLM, dilarang faktor bawaan 1. Tabel pemetaan lokal akan menjadi sumber angka kedua yang bisa berselisih dengan BLM | Putaran 1: `FinPurchasingUomMap` dengan faktor yang dipelihara di Quilvian |
+| `FIN-DES-135` | Tabel pemetaan produk **tidak dibuat**; item PO menyimpan `ExternalProductId`, `ExternalProductCode`, dan snapshot nama, kategori, satuan, kuantitas | **Disetujui pemilik** (`FIN-DEC-274`) | Tabel `FinPurchasingProductMap` |
+| `FIN-DES-136` | Konflik `FinPurchasingSyncConflict`: `GR_CANCELLED_WITH_DEPENDENTS`, `PO_CANCELLED_WITH_DEPENDENTS`, `NUMBER_COLLISION`, `PAYLOAD_MISMATCH`, **`CONVERSION_UNRESOLVED`** (baru putaran 2). Satu konflik terbuka per (kiriman, jenis); penyelesaian memakai kode `FIN-DEC-264` | `FIN-DEC-264`; `FIN-DEC-276` ("ditandai sebagai masalah sinkronisasi") | Status di kotak masuk saja |
+| `FIN-DES-137` | `FinPurchasingExternalCancellation` = audit pembatalan lintas sistem sekaligus antrean permintaan batal | Tidak ada permintaan batal yang hilang | Kotak keluar generik |
+| `FIN-DES-138` | Model, konfigurasi, migration beserta `ModelSnapshot`, perubahan service, DTO, dan Frontend dirilis **satu paket**. Urutan deployment: **database dulu, lalu aplikasi** | **Disetujui pemilik** (`FIN-DEC-273`); F7 | Model lebih dulu, migration belakangan |
+| `FIN-DES-139` | **Tanpa endpoint baru.** Respons yang ada mendapat field **tambahan** yang boleh kosong (W.6); endpoint tulis GR menolak dokumen BLM (`FIN-DES-141`). Layar: kolom tambahan di panel kemajuan item hanya untuk PO BLM | `FIN-DEC-273` mencakup DTO dan Frontend dalam satu paket; field tambahan tidak memecah klien lama | Putaran 1: nol perubahan DTO (data BLM tidak akan terlihat sama sekali) |
+| `FIN-DES-140` | `ReceivedQuantity` dan `Quantity` (numeric 18,2) **tidak diubah arti maupun presisinya**. Untuk baris BLM: `FinGoodsReceiptItem.ReceivedQuantity` diisi jumlah **sah** dalam satuan PO, dibulatkan 2 desimal **hanya untuk tampilan dan kompatibilitas**. Seluruh perhitungan dokumen BLM (status, kemajuan, gerbang, alokasi invoice nanti) memakai kolom satuan dasar presisi 6 desimal | Melebarkan presisi kolom lama mengubah tampilan dokumen lama dan menyentuh tabel lama. Pembulatan awal dilarang `FIN-DEC-276`, jadi angka bulat hanya untuk tampilan | Melebarkan `ReceivedQuantity` ke (18,6); menyimpan jumlah fisik di `ReceivedQuantity` (alokasi invoice akan menagih barang rusak) |
+| `FIN-DES-141` | `FinanceGoodsReceiptService.CreateAsync`, `UpdateAsync`, dan `CancelAsync` **menolak** dokumen BLM dengan `409` (`PURCHASING_EXTERNAL_DOCUMENT`): GR BLM dibuat, dikoreksi, dan dibatalkan oleh BLM lalu diterapkan pengolah kiriman. Untuk dokumen lama, ketiganya **tidak berubah** | `FIN-DEC-265`: Quilvian tidak boleh membuat/mengubah PO/GR BLM secara lokal; pembatalan lewat BLM (`FIN-DEC-262`). Normalisasi yang diminta untuk `CreateAsync`/`UpdateAsync`/`CancelAsync` (`FIN-DEC-277`) dipenuhi oleh penghitung bersama (`FIN-DES-142`) yang dipakai pengolah kiriman saat menerapkan GR baru, koreksi, dan pembatalan dari BLM | Menormalkan di `CreateAsync` untuk GR BLM yang dibuat lokal (bertentangan dengan `FIN-DEC-265`) |
+| `FIN-DES-142` | Penghitung baru `PurchasingReceiptQuantityCalculator` (kelas tanpa akses database) menghitung per item PO BLM: dipesan, fisik, sah, menunggu periksa, rusak, sisa (semua satuan dasar), dan status `APPROVED`/`PARTIALLY_RECEIVED`/`FULLY_RECEIVED`. `FULLY_RECEIVED` **hanya** bila **setiap** item sah ≥ dipesan **dan** tidak ada baris yang konversinya tidak pasti. `RecomputePurchaseOrderStatus` memanggilnya untuk PO BLM dan tetap memakai rumus lama untuk PO lama | `FIN-DEC-268`, `276`, `277`; F9 | Menjumlah satuan dasar lintas produk (rumus lama untuk BLM) |
+
+### W.4 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai slice ini | Dibuat ulang? |
+|---|---|---|---|
+| PO, item PO, GR, item GR | Finance Purchasing | Ya, **Diperbarui** | Tidak |
+| Supplier (`MstSupplier`) | Administrator Master Data | Dirujuk FK dari pemetaan | **Tidak** |
+| Produk, satuan, dan konversi satuan | BLM (`MstProduct`, `MstMeasurement`, `MstProductConversion`) | Hanya identitas dan **snapshot per transaksi** | Tidak; tidak ada master produk/satuan Purchasing di V2 |
+| Master obat dan konversi satuan Health Services | Health Services | **Tidak disentuh** (`FIN-DEC-274`) | Tidak |
+| Kotak masuk, pemetaan supplier, konflik, pembatalan eksternal | Finance Purchasing | Ya, **Baru** | — |
+| Tukar Faktur, Purchasing Invoice, utang supplier | Finance Purchasing / AP | Dirujuk konflik tanpa FK | Tidak |
+| Data PO/GR asli | BLM | Disalin lewat kiriman | Quilvian menyimpan salinan; BLM sumber utama |
+
+### W.5 Class diagram
+
+**Dokumen PO/GR yang diperbarui**
+
+```mermaid
+classDiagram
+    class FinPurchaseOrder {
+        +Guid Id
+        +string PONumber
+        +string SourceSystem «baru»
+        +Guid? ExternalPurchaseOrderId «baru»
+        +DateTimeOffset? ExternalUpdatedAt «baru»
+        +DateTimeOffset? LastSyncedAt «baru»
+        +string ApprovalTier «nilai EXTERNAL»
+    }
+    class FinPurchaseOrderItem {
+        +Guid Id
+        +decimal Quantity
+        +string Unit
+        +Guid? ExternalPurchaseOrderItemId «baru»
+        +Guid? ExternalProductId «baru»
+        +string? ExternalProductCode «baru»
+        +string? SourceUomCode «baru»
+        +decimal? QuantityPerBaseUnit «baru»
+        +string? BaseUomCode «baru»
+        +decimal? BaseQuantity «baru»
+    }
+    class FinGoodsReceipt {
+        +Guid Id
+        +string GRNumber
+        +string SourceSystem «baru»
+        +Guid? ExternalReceiveOrderId «baru»
+        +DateTimeOffset? ExternalUpdatedAt «baru»
+        +DateTimeOffset? LastSyncedAt «baru»
+    }
+    class FinGoodsReceiptItem {
+        +Guid Id
+        +decimal ReceivedQuantity
+        +Guid? ExternalReceiveOrderItemId «baru»
+        +string? ConditionCode «baru»
+        +decimal? SourceQuantity «baru»
+        +string? SourceUomCode «baru»
+        +decimal? QuantityPerBaseUnit «baru»
+        +string? BaseUomCode «baru»
+        +decimal? BaseQuantity «baru»
+        +decimal? AcceptedBaseQuantity «baru»
+    }
+    class PurchasingReceiptQuantityCalculator {
+        «baru, tanpa database»
+        +Calculate(po, items, grItems) ReceiptProgress
+    }
+    FinPurchaseOrder "1" --> "*" FinPurchaseOrderItem
+    FinPurchaseOrder "1" --> "*" FinGoodsReceipt
+    FinGoodsReceipt "1" --> "*" FinGoodsReceiptItem
+    FinPurchaseOrderItem "1" --> "*" FinGoodsReceiptItem
+    PurchasingReceiptQuantityCalculator ..> FinPurchaseOrderItem : membaca
+    PurchasingReceiptQuantityCalculator ..> FinGoodsReceiptItem : membaca
+```
+
+**Penampung, pemetaan supplier, konflik, dan pembatalan (baru)**
+
+```mermaid
+classDiagram
+    class FinPurchasingInboundMessage {
+        +Guid Id
+        +string SourceSystem
+        +string EventId
+        +string EventType
+        +string DocumentType
+        +Guid ExternalDocumentId
+        +string PayloadJson
+        +string PayloadHash
+        +string ProcessingStatus
+        +Guid? AppliedPurchaseOrderId
+        +Guid? AppliedGoodsReceiptId
+    }
+    class FinPurchasingSupplierMap {
+        +Guid Id
+        +string SourceSystem
+        +Guid ExternalSupplierId
+        +Guid SupplierId
+        +bool IsActive
+    }
+    class FinPurchasingSyncConflict {
+        +Guid Id
+        +Guid InboundMessageId
+        +string ConflictType
+        +string Status
+        +string? ResolutionCode
+    }
+    class FinPurchasingExternalCancellation {
+        +Guid Id
+        +string Direction
+        +string DocumentType
+        +Guid ExternalDocumentId
+        +string CategoryCode
+        +string Reason
+        +string Status
+    }
+    class MstSupplier
+    class FinPurchaseOrder
+    class FinGoodsReceipt
+    FinPurchasingSupplierMap "*" --> "1" MstSupplier
+    FinPurchasingInboundMessage "*" --> "0..1" FinPurchaseOrder : diterapkan ke
+    FinPurchasingInboundMessage "*" --> "0..1" FinGoodsReceipt : diterapkan ke
+    FinPurchasingSyncConflict "*" --> "1" FinPurchasingInboundMessage
+    FinPurchasingSyncConflict "*" --> "0..1" FinPurchaseOrder
+    FinPurchasingSyncConflict "*" --> "0..1" FinGoodsReceipt
+    FinPurchasingExternalCancellation "*" --> "0..1" FinPurchaseOrder
+    FinPurchasingExternalCancellation "*" --> "0..1" FinGoodsReceipt
+    FinPurchasingExternalCancellation "*" --> "0..1" FinPurchasingInboundMessage : pemberitahuan BLM
+```
+
+### W.6 Penjelasan setiap class
+
+Kolom lengkap ada di `data/data-dictionary.md` bagian 13.
+
+| Class | Status | Lokasi file | Peran | Catatan |
+|---|---|---|---|---|
+| `FinPurchaseOrder` (+ `FinPurchasingSourceSystems`) | Diperbarui | `Areas/Corporate/FinanceManagement/Purchasing/Models/FinPurchaseOrder.cs` | Header PO | Empat kolom baru; check tier diperluas |
+| `FinPurchaseOrderItem` | Diperbarui | `.../Purchasing/Models/FinPurchaseOrderItem.cs` | Item PO | Tujuh kolom baru; check "semua atau tidak sama sekali" |
+| `FinGoodsReceipt` | Diperbarui | `.../Purchasing/Models/FinGoodsReceipt.cs` | Header GR | Empat kolom baru |
+| `FinGoodsReceiptItem` (+ `FinGoodsReceiptConditionCodes`) | Diperbarui | `.../Purchasing/Models/FinGoodsReceiptItem.cs` | Item GR | Delapan kolom baru; check "semua atau tidak sama sekali" |
+| Empat konfigurasi PO/GR | Diperbarui | `Repositories/Configurations/Corporate/FinanceManagement/Purchasing/Fin{PurchaseOrder,PurchaseOrderItem,GoodsReceipt,GoodsReceiptItem}Configuration.cs` | Konfigurasi EF | Check, index unik terfilter, presisi `(18, 6)` untuk kolom satuan dasar |
+| `FinPurchasingInboundMessage` | Baru | `.../Purchasing/Models/FinPurchasingInboundMessage.cs` | Kotak masuk dan riwayat | `EventType` tidak dibatasi check (menunggu `FIN-OQ-141`) |
+| `FinPurchasingSupplierMap` | Baru | `.../Purchasing/Models/FinPurchasingSupplierMap.cs` | Pemetaan supplier | FK `MstSupplier` `Restrict` |
+| `FinPurchasingSyncConflict` | Baru | `.../Purchasing/Models/FinPurchasingSyncConflict.cs` | Konflik | Dokumen turunan tanpa FK |
+| `FinPurchasingExternalCancellation` | Baru | `.../Purchasing/Models/FinPurchasingExternalCancellation.cs` | Audit dan antrean batal | — |
+| Empat konfigurasi tabel baru | Baru | `Repositories/Configurations/Corporate/FinanceManagement/Purchasing/<Nama>Configuration.cs` | Konfigurasi EF | — |
+| `ApplicationDbContext` | Diperbarui | `Repositories/ApplicationDbContext.cs` | Empat `DbSet` baru | `FinPurchasingInboundMessages`, `FinPurchasingSupplierMaps`, `FinPurchasingSyncConflicts`, `FinPurchasingExternalCancellations` |
+| `PurchasingReceiptQuantityCalculator` | Baru | `.../Purchasing/Services/PurchasingReceiptQuantityCalculator.cs` | Hitung kemajuan dan status PO BLM (`FIN-DES-142`) | Kelas tanpa database, tanpa transaksi. Dipakai `FinanceGoodsReceiptService`, `FinancePurchasingDocumentTrailService`, dan pengolah kiriman nanti. Didaftarkan `AddScoped` atau dipakai sebagai kelas statis (pilihan implementasi) |
+| `FinanceGoodsReceiptService` | Diperbarui | `.../Purchasing/Services/FinanceGoodsReceiptService.cs` | `CreateAsync`, `UpdateAsync`, `CancelAsync`: tolak dokumen BLM (`FIN-DES-141`). `RecomputePurchaseOrderStatus`: cabang BLM memakai penghitung; cabang lama tidak berubah | Transaksi yang ada tidak berubah |
+| `FinancePurchasingDocumentTrailService` | Diperbarui | `.../Purchasing/Services/FinancePurchasingDocumentTrailService.cs` | `ItemProgress` untuk PO BLM diisi dari penghitung | Untuk PO lama tetap rumus lama |
+| `PurchasingInvoiceAllocationPlanner` | **Tidak diubah** di slice ini | `.../Purchasing/Services/PurchasingInvoiceAllocationPlanner.cs` | Memakai `ReceivedQuantity`; untuk baris BLM berisi jumlah sah (`FIN-DES-140`) | Alokasi multi-GR BLM yang presisi memakai satuan dasar, dirancang di slice multi-GR (`FIN-DEC-269`) |
+| `PurchasingTrailItemProgress` | Diperbarui | `.../Purchasing/Dtos/FinancePurchasingDocumentTrailDtos.cs` | Tambahan: `SourceSystem`, `BaseUomCode`, `OrderedBaseQuantity`, `PhysicalBaseQuantity`, `AcceptedBaseQuantity`, `PendingInspectionBaseQuantity`, `DamagedBaseQuantity`, `RemainingBaseQuantity`, `IsConversionResolved` | Semua boleh `null` untuk PO lama |
+| `GoodsReceiptItemResponse` | Diperbarui | `.../Purchasing/Dtos/FinanceGoodsReceiptDtos.cs` | Tambahan: `ConditionCode`, `SourceQuantity`, `SourceUomCode`, `QuantityPerBaseUnit`, `BaseUomCode`, `BaseQuantity`, `AcceptedBaseQuantity` | Boleh `null` |
+| `GoodsReceiptResponse`, `PurchaseOrderResponse` | Diperbarui | `FinanceGoodsReceiptDtos.cs`, `FinancePurchaseOrderDtos.cs` | Tambahan `SourceSystem` | Bawaan `QUILVIAN` |
+| Controller | — | — | **Tidak ada controller baru**. Controller GR meneruskan `409` dari service | — |
+
+### W.7 Arsitektur folder
+
+```text
+Areas/Corporate/FinanceManagement/Purchasing/
+├── Models/
+│   ├── FinPurchaseOrder.cs                      Diperbarui (+ FinPurchasingSourceSystems)
+│   ├── FinPurchaseOrderItem.cs                  Diperbarui
+│   ├── FinGoodsReceipt.cs                       Diperbarui
+│   ├── FinGoodsReceiptItem.cs                   Diperbarui (+ FinGoodsReceiptConditionCodes)
+│   ├── FinPurchasingInboundMessage.cs           Baru
+│   ├── FinPurchasingSupplierMap.cs              Baru
+│   ├── FinPurchasingSyncConflict.cs             Baru
+│   └── FinPurchasingExternalCancellation.cs     Baru
+├── Dtos/
+│   ├── FinanceGoodsReceiptDtos.cs               Diperbarui (field tambahan)
+│   ├── FinancePurchaseOrderDtos.cs              Diperbarui (SourceSystem)
+│   └── FinancePurchasingDocumentTrailDtos.cs    Diperbarui (field tambahan)
+└── Services/
+    ├── PurchasingReceiptQuantityCalculator.cs   Baru
+    ├── FinanceGoodsReceiptService.cs            Diperbarui
+    └── FinancePurchasingDocumentTrailService.cs Diperbarui
+Repositories/
+├── ApplicationDbContext.cs                      Diperbarui (empat DbSet)
+└── Configurations/Corporate/FinanceManagement/Purchasing/
+    ├── FinPurchaseOrderConfiguration.cs         Diperbarui
+    ├── FinPurchaseOrderItemConfiguration.cs     Diperbarui
+    ├── FinGoodsReceiptConfiguration.cs          Diperbarui
+    ├── FinGoodsReceiptItemConfiguration.cs      Diperbarui
+    ├── FinPurchasingInboundMessageConfiguration.cs        Baru
+    ├── FinPurchasingSupplierMapConfiguration.cs           Baru
+    ├── FinPurchasingSyncConflictConfiguration.cs          Baru
+    └── FinPurchasingExternalCancellationConfiguration.cs  Baru
+Migrations/
+├── <timestamp>_AddFinPurchasingBlmStaging.cs    Rencana — TIDAK dibangkitkan otomatis
+└── ApplicationDbContextModelSnapshot.cs         Ikut diperbarui saat migration dibangkitkan
+QuilvianSystemFrontendDev/src/components/view/finance/purchasing/shared/
+└── purchasing-document-trail-panel.jsx          Diperbarui (kolom tambahan untuk PO BLM)
+```
+
+### W.8 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak migration |
+|---|---|---|---|
+| `FinPurchaseOrder` | Diperbarui | **Tambah:** `SourceSystem` varchar(20) NOT NULL bawaan `'QUILVIAN'`; `ExternalPurchaseOrderId` uuid NULL; `ExternalUpdatedAt` timestamptz NULL; `LastSyncedAt` timestamptz NULL. **Ubah:** `CK_FinPurchaseOrder_ApprovalTier` → `IN ('TIER_1','TIER_2','EXTERNAL')`. **Tambah check:** `CK_FinPurchaseOrder_SourceSystem`, `CK_FinPurchaseOrder_ExternalIdentity`, `CK_FinPurchaseOrder_ExternalTier`. **Tambah index:** unik terfilter (`SourceSystem`, `ExternalPurchaseOrderId`) | Bawaan konstan; baris lama `QUILVIAN` otomatis |
+| `FinPurchaseOrderItem` | Diperbarui | **Tambah:** `ExternalPurchaseOrderItemId` uuid NULL; `ExternalProductId` uuid NULL; `ExternalProductCode` varchar(100) NULL; `SourceUomCode` varchar(30) NULL; `QuantityPerBaseUnit` numeric(18,6) NULL; `BaseUomCode` varchar(30) NULL; `BaseQuantity` numeric(18,6) NULL. **Tambah check:** `CK_FinPurchaseOrderItem_BlmFields`, `CK_FinPurchaseOrderItem_QuantityPerBaseUnit`. **Tambah index:** unik terfilter `ExternalPurchaseOrderItemId` | Semua nullable; **tanpa backfill** |
+| `FinGoodsReceipt` | Diperbarui | **Tambah:** `SourceSystem`, `ExternalReceiveOrderId`, `ExternalUpdatedAt`, `LastSyncedAt` (sama dengan PO). **Tambah check** sumber dan identitas; **index** unik terfilter | Sama dengan PO |
+| `FinGoodsReceiptItem` | Diperbarui | **Tambah:** `ExternalReceiveOrderItemId` uuid NULL; `ConditionCode` varchar(30) NULL; `SourceQuantity` numeric(18,6) NULL; `SourceUomCode` varchar(30) NULL; `QuantityPerBaseUnit` numeric(18,6) NULL; `BaseUomCode` varchar(30) NULL; `BaseQuantity` numeric(18,6) NULL; `AcceptedBaseQuantity` numeric(18,6) NULL. **Tambah check:** `CK_FinGoodsReceiptItem_BlmFields`, `CK_FinGoodsReceiptItem_ConditionCode`, `CK_FinGoodsReceiptItem_AcceptedBaseQuantity`, `CK_FinGoodsReceiptItem_QuantityPerBaseUnit`. **Tambah index:** unik terfilter `ExternalReceiveOrderItemId` | Semua nullable; **tanpa backfill** |
+| `FinPurchasingInboundMessage` | Baru | Seluruh kolom (13.6) | Tabel baru |
+| `FinPurchasingSupplierMap` | Baru | Seluruh kolom (13.7) | Tabel baru, kosong |
+| `FinPurchasingSyncConflict` | Baru | Seluruh kolom (13.9) | Tabel baru |
+| `FinPurchasingExternalCancellation` | Baru | Seluruh kolom (13.10) | Tabel baru |
+
+### W.9 Rencana migration (rancangan; tidak dibangkitkan, tidak dijalankan)
+
+| Urutan | Langkah | Tanpa downtime? | Cara mundur |
+|---|---|---|---|
+| 1 | Tambah kolom pada empat tabel PO/GR (nullable, atau NOT NULL dengan bawaan konstan) | Ya; PostgreSQL tidak menulis ulang tabel | Drop kolom |
+| 2 | Ganti `CK_FinPurchaseOrder_ApprovalTier`; tambah semua check baru | Ya; baris lama lolos karena bertanda `QUILVIAN` dan kolom BLM kosong | Drop check baru; pasang ulang check tier lama (aman selama belum ada baris `EXTERNAL`) |
+| 3 | Index unik terfilter identitas eksternal | Ya | Drop index |
+| 4 | Empat tabel baru beserta FK `Restrict` | Ya | Drop tabel (urutan: konflik, pembatalan, kotak masuk, pemetaan supplier) |
+
+Nama migration usulan: `AddFinPurchasingBlmStaging`, satu migration, aditif, **tanpa backfill**. Berkas migration dan
+`ApplicationDbContextModelSnapshot.cs` harus konsisten satu sama lain. **Urutan rilis (`FIN-DES-138`, disetujui):**
+migration direview, lalu diterapkan ke database, lalu aplikasi versi baru diaktifkan. Membangkitkan migration,
+membangun, dan menerapkannya adalah wewenang terpisah yang belum diberikan (`FIN-DEC-273`).
+
+### W.10 Rencana data master awal
+
+| Tabel | Isi minimum | Keterangan |
+|---|---|---|
+| `FinPurchasingSupplierMap` | **Kosong** saat rilis | Disengaja. Tanpa pemetaan, kiriman BLM berstatus `WAITING_MAPPING`, tidak hilang. Cara pengisian: `FIN-OQ-144`, dijawab `FIN-DEC-281` dan dipersempit `FIN-DEC-287` (pemetaan memakai ID dan kode supplier BLM dengan konfirmasi petugas Finance; pencocokan otomatis NPWP ditunda sampai BLM menyediakan field pajak; layar dirancang di slice integrasi). Tabel menyimpan `ExternalSupplierId` dan `ExternalSupplierName`; perlu tidaknya kolom kode supplier BLM dipertimbangkan di slice integrasi |
+| Konversi satuan | **Tidak ada tabel** | Datang dari BLM bersama setiap item (`FIN-DES-134`) |
+| Konstanta sumber, kondisi, status | Di kode | Bukan tabel |
+
+### W.11 Aturan perhitungan penerimaan (`FIN-DES-142`)
+
+Berlaku **hanya** untuk PO bertanda `BLM`. PO lama memakai rumus lama tanpa perubahan.
+
+| Besaran per item PO | Rumus | Satuan |
+|---|---|---|
+| Dipesan | `FinPurchaseOrderItem.BaseQuantity` = `Quantity` × `QuantityPerBaseUnit` (disalin saat PO diterapkan) | Satuan dasar |
+| Fisik | Σ `BaseQuantity` baris GR yang menunjuk item ini, dari GR yang tidak `CANCELLED` dan tidak dihapus | Satuan dasar |
+| Sah | Σ `AcceptedBaseQuantity` dari baris yang sama | Satuan dasar |
+| Menunggu periksa | Σ `BaseQuantity` berkondisi `PENDING_INSPECTION` | Satuan dasar |
+| Rusak | Σ `BaseQuantity` berkondisi `DAMAGED` | Satuan dasar |
+| Sisa | maks(0, Dipesan − Sah) | Satuan dasar |
+
+**Rumus normalisasi pemilik** (`FIN-DEC-276`): `QtyDalamSatuanPO = QtyGR × (QuantityPerUnitGR / QuantityPerUnitPO)`.
+Desain ini menyimpan kedua sisi dalam satuan dasar, sehingga rumus pemilik terpenuhi tanpa pembagian dini:
+`Sah / QuantityPerBaseUnitPO` = kuantitas dalam satuan PO. Pembagian hanya dilakukan untuk tampilan.
+
+**Syarat konversi pasti.** Satu baris GR BLM dianggap pasti bila `QuantityPerBaseUnit > 0` dan `BaseUomCode` sama
+dengan `BaseUomCode` item PO yang ditunjuknya (aturan pemilik: rumus berlaku bila satuan dasarnya sama). Bila tidak
+pasti, pengolah kiriman **tidak menerapkan** GR itu dan membuat konflik `CONVERSION_UNRESOLVED`. Dengan begitu baris yang
+tersimpan selalu pasti, dan penghitung tetap memeriksa ulang serta mengembalikan `IsConversionResolved = false` bila
+menemukan baris yang tidak memenuhi.
+
+**Status PO BLM.**
+
+| Keadaan | Status |
+|---|---|
+| Sah = 0 untuk semua item | `APPROVED` |
+| **Setiap** item Sah ≥ Dipesan **dan** semua baris pasti | `FULLY_RECEIVED` |
+| Selain itu | `PARTIALLY_RECEIVED` |
+
+Status hanya dihitung ulang untuk PO berstatus `APPROVED`, `PARTIALLY_RECEIVED`, atau `FULLY_RECEIVED`, sama seperti
+rumus lama. Penerimaan melebihi pesanan pada PO BLM **tidak ditolak** (BLM sumber utama), tetapi tidak menambah apa
+pun di atas "penuh"; kelebihannya terlihat di kemajuan item.
+
+**Pembatalan dan koreksi GR BLM.** GR yang dibatalkan di BLM keluar dari semua jumlah di atas, lalu status dihitung
+ulang. Koreksi dari BLM menimpa baris GR yang sama (dicocokkan lewat `ExternalReceiveOrderItemId`), lalu status
+dihitung ulang. Bila GR itu sudah punya Tukar Faktur, invoice, utang, atau pembayaran, berlaku `FIN-DEC-264`.
+
+### W.12 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Tabel pemetaan produk | `FIN-DEC-274` |
+| Tabel pemetaan satuan dengan faktor lokal (`FinPurchasingUomMap`, putaran 1) | `FIN-DEC-276`: faktor dari BLM per produk; tabel lokal menjadi sumber angka kedua |
+| Salinan lokal master konversi BLM | Snapshot per baris sudah cukup untuk hitungan historis. Ditinjau ulang hanya bila BLM tidak dapat mengirim isi per satuan pada setiap item (`FIN-OQ-141`) |
+| `ConditionCode`/`AcceptedQuantity` untuk GR lama beserta backfill (putaran 1) | `FIN-DEC-277`: dokumen lama mempertahankan aturan lama; kondisi lama memang tidak pernah dicatat |
+| Melebarkan presisi `ReceivedQuantity`/`Quantity` | `FIN-DES-140` |
+| Tabel riwayat sinkronisasi terpisah, tabel percobaan, kotak keluar generik | Kotak masuk dan tabel pembatalan sudah menampung |
+| Kolom `SourceSystem` di item; lima kolom kuantitas tersimpan | Item mengikuti header; kuantitas diturunkan |
+| Kolom BLM di `MstSupplier` | Milik Administrator |
+| Kolom data faktur BLM (`InvoiceNumber`, `DueDate`, `StampDuty`, ongkos kirim) | Milik alur Tukar Faktur; tetap di kiriman |
+| Pencocokan produk lewat nama | Dilarang `FIN-DEC-275` |
+
+### W.13 Kesiapan requirement, pertanyaan terbuka, dan risiko
+
+`requirement-completeness-gate` **tidak dijalankan** untuk slice ini: keputusan bisnis diberikan eksplisit
+(`FIN-DEC-261`..`278`), slice tidak klinis, dan pertanyaan terbuka tidak menentukan bentuk tabel. Disarankan dijalankan
+sebelum slice integrasi.
+
+| Pertanyaan | Memblokir slice ini? |
+|---|---|
+| `FIN-OQ-141` kontrak Tim BLM. **Syarat baru dari putaran 2:** setiap item PO dan GR yang dikirim BLM wajib membawa satuan asli, isi per satuan dalam satuan dasar produk (`QuantityPerUnit`; satuan dasar = 1), dan kode satuan dasar. **Dijawab sebagian sisi Quilvian 10 November 2026** (`FIN-DEC-282`..`285`: HMAC-SHA256, kontrak usulan `1.0.0-DRAFT`, daftar field per item, aturan pembatalan); **tetap `OPEN`** sampai Tim BLM berkomitmen tertulis, kontrak disepakati, dan jadwal ditetapkan. **Audit teknis repository BLM 10 November 2026** (`FIN-DEC-289`..`291`): `PARTIALLY READY — DEVELOPMENT REQUIRED`; kesanggupan resmi belum ada | Tidak untuk tabel. Memblokir integrasi |
+| `FIN-OQ-144` cara mengisi pemetaan supplier — **dijawab** 10 November 2026 (`FIN-DEC-281`: konfirmasi petugas + layar pemeliharaan; bagian pencocokan otomatis NPWP **ditunda** oleh `FIN-DEC-287` karena master supplier BLM tidak punya field NPWP) | Tidak |
+| `FIN-OQ-138` susunan menu, `FIN-OQ-143` retur fisik BLM — **dijawab** 10 November 2026 (`FIN-DEC-279`: menu A/P tidak berubah, "Monitoring Purchasing" tetap; `FIN-DEC-280`: retur BLM hanya informasi, kredit hanya dari `FinanceSupplierReturnService`) | Tidak |
+| Persetujuan desain Revisi 23 putaran 2 | **Ya** untuk `plan-module-delivery` |
+
+| Risiko | Penanganan |
+|---|---|
+| Model dirilis sebelum migration → query PO/GR gagal | `FIN-DES-138`, urutan database dulu; uji `W.T1` |
+| Alokasi invoice untuk baris BLM memakai `ReceivedQuantity` yang dibulatkan 2 desimal | `ReceivedQuantity` BLM berisi jumlah **sah**, jadi barang rusak tidak tertagih. Selisih pembulatan untuk satuan pecahan (contoh 1 PCS dari BOX isi 12 = 0,083 BOX) ditangani di slice multi-GR dengan satuan dasar. Tukar Faktur PO BLM tidak mungkin terjadi sebelum integrasi |
+| `BaseUomCode` dibandingkan sebagai teks | Dibandingkan setelah dipangkas dan diseragamkan huruf besar; BLM sebaiknya mengirim `MeasurementCode`, bukan nama (`FIN-OQ-141`) |
+| Panjang kolom kategori/alasan batal BLM belum diketahui | Panjang usulan adalah asumsi; dicek saat kontrak diterima |

@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
@@ -171,6 +172,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
     /// <summary>Daftar pantau episode aktif tanpa perawat penanggung jawab, bertingkat.</summary>
     public class UnassignedNursePagedResult : PagedResult<CensusItemResponse>
+    {
+    }
+
+    /// <summary>
+    /// Query daftar pantau EWS per bangsal — <c>BE-RWI-255</c>, <c>FIX-KEP-015-04</c>.
+    /// </summary>
+    /// <remarks>
+    /// <c>MinimumRiskLevel</c> hanya mengenal dua nilai bermakna: <c>Critical</c> menyaring
+    /// golongan Kritis atau tanda vital kritis; nilai lain, termasuk kosong, berarti
+    /// <c>High</c> — golongan Tinggi ke atas atau yang ditandai server perlu lapor dokter.
+    /// </remarks>
+    public class InpatientEwsAlertQuery
+    {
+        public string? Search { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public EwsRiskLevel? MinimumRiskLevel { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 25;
+    }
+
+    /// <summary>
+    /// Satu pasien rawat inap aktif yang tanda vital <b>terakhirnya</b> berisiko Tinggi atau
+    /// Kritis, atau ditandai server perlu dilaporkan ke dokter.
+    /// </summary>
+    public class EwsAlertItemResponse
+    {
+        public Guid EpisodeId { get; set; }
+
+        public string EpisodeNumber { get; set; } = string.Empty;
+
+        public Guid PatientId { get; set; }
+
+        public string? PatientName { get; set; }
+
+        public string? MedicalRecordNumber { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public string? ServiceUnitName { get; set; }
+
+        public string? RoomName { get; set; }
+
+        public string? BedName { get; set; }
+
+        public Guid VitalSignId { get; set; }
+
+        public DateTime ObservationDateTime { get; set; }
+
+        public int? EarlyWarningScore { get; set; }
+
+        public EwsRiskLevel EwsRiskLevel { get; set; }
+
+        public bool IsCritical { get; set; }
+
+        public bool NeedDoctorNotification { get; set; }
+
+        public string? EwsMonitoringRecommendation { get; set; }
+
+        public string? ObservedByName { get; set; }
+    }
+
+    public class EwsAlertPagedResult : PagedResult<EwsAlertItemResponse>
     {
     }
 

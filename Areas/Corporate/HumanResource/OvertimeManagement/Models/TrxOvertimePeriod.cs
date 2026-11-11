@@ -18,6 +18,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
+        public DateOnly? CutoffDate { get; set; }
 
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
@@ -26,6 +27,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         [Required, MaxLength(30)]
         public string PeriodStatus { get; set; } = "Open";
+
+        [Column(TypeName = "decimal(6,2)")]
+        public decimal TotalCtoGrantedHours { get; set; } = 0;
+
+        public bool IsHandoffExecuted { get; set; } = false;
 
         public bool RequireAttendanceFinal { get; set; } = true;
         public bool RequireVerificationComplete { get; set; } = true;

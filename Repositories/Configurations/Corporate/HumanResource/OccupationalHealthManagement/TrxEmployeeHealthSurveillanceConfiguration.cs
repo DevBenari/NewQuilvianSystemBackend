@@ -17,6 +17,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.ReminderSentAt).HasColumnType("timestamp with time zone");
             entity.Property(x => x.IsCompliant).HasDefaultValue(false);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
+            entity.Property(x => x.MeasuredDoseMsv).HasPrecision(10, 3);
 
             entity.HasOne(x => x.WorkforceProfile)
                 .WithMany()

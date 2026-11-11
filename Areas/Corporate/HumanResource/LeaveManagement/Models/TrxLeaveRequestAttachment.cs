@@ -47,6 +47,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         [MaxLength(1000)]
         public string? VerificationNotes { get; set; }
 
+        /// <summary>
+        /// Penanda apakah lampiran adalah surat keterangan sakit resmi dokter (HRD-DEC-112).
+        /// </summary>
+        public bool IsMedicalCertificate { get; set; } = false;
+
+        /// <summary>
+        /// Penanda kerahasiaan berkas medis yang dimaskir dari atasan langsung (LEV-W3, VR-LEV-09).
+        /// </summary>
+        public bool IsConfidentialMedical { get; set; } = true;
+
+        [MaxLength(200)]
+        public string? DoctorName { get; set; }
+
+        [MaxLength(100)]
+        public string? DoctorSipNumber { get; set; }
+
+        [MaxLength(255)]
+        public string? FaskesName { get; set; }
+
+        [MaxLength(100)]
+        public string? MedicalDiagnosisIcd10 { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public WfpLeaveRequest? LeaveRequest { get; set; }

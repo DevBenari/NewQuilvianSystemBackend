@@ -46,6 +46,26 @@ public sealed class FinancePurchaseOrderService
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
+    /// <summary>
+    /// Jumlah PO per status untuk monitoring Purchasing. Hanya membaca; PO yang dihapus tidak dihitung. Progres
+    /// penerimaan per item TIDAK dihitung di sini: sudah disajikan oleh jejak dokumen
+    /// (FinancePurchasingDocumentTrailService.ItemProgress), sehingga tidak ada sumber angka kedua.
+    /// </summary>
+    public async Task<PurchaseOrderSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var rows = await _dbContext.FinPurchaseOrders.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .GroupBy(x => x.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        return new PurchaseOrderSummaryResponse
+        {
+            TotalPurchaseOrders = rows.Sum(x => x.Count),
+            CountByStatus = rows.ToDictionary(x => x.Status, x => x.Count)
+        };
+    }
+
     // ------------------------------------------------------------------------------------
     // Daftar PO — GET /, disaring supplier/status/tanggal (api-contract.md §B.1)
     // ------------------------------------------------------------------------------------

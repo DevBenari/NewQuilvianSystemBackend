@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
 
@@ -13,6 +13,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.VerificationType).HasMaxLength(40).HasDefaultValue("Supervisor").IsRequired();
             entity.Property(x => x.VerificationStatus).HasMaxLength(30).HasDefaultValue("Pending").IsRequired();
             entity.Property(x => x.ActionAt).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.BiometricCheckIn).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.BiometricCheckOut).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.BiometricExcessMinutes).HasDefaultValue(0);
+            entity.Property(x => x.VerifiedPayableMinutes).HasDefaultValue(0);
+            entity.Property(x => x.DiscrepancyReason).HasMaxLength(255);
+            entity.Property(x => x.ManualAdjustmentNotes).HasMaxLength(2000);
             entity.Property(x => x.VerifiedAmount).HasPrecision(18, 2);
             entity.Property(x => x.VerificationResultJson).HasColumnType("jsonb");
             entity.Property(x => x.Comments).HasMaxLength(2000);
@@ -29,10 +35,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.VerifierUser).WithMany().HasForeignKey(x => x.VerifierUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.VerifierWorkforceProfile).WithMany().HasForeignKey(x => x.VerifierWorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.RejectionReason).WithMany().HasForeignKey(x => x.RejectionReasonId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.VerifiedByHrAdmin).WithMany().HasForeignKey(x => x.VerifiedByHrAdminId).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => new { x.OvertimeRealizationId, x.VerificationOrder }).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => new { x.VerifierUserId, x.VerificationStatus, x.IsDelete });
             entity.HasIndex(x => new { x.VerifierWorkforceProfileId, x.VerificationStatus, x.IsDelete });
+            entity.HasIndex(x => new { x.VerificationStatus, x.IsAttendanceMatched, x.HasVariance }).HasDatabaseName("idx_ot_verification_state");
         }
     }
 }

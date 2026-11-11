@@ -1459,3 +1459,20 @@ putaran: jumlah diproses, berhasil, ditahan, gagal.
 | `PatEmployeeBenefitCardSync.PatientId`, `PatientCompanyGuarantorId` | Bersama pemilik benefit menyatakan seorang pegawai adalah pasien | Tidak dicatat bersama nama atau NIK pemilik; tidak tampil pada daftar kerja dan ringkasan HRD |
 
 Masa simpan catatan hasil sinkronisasi mengikuti enrollment (tidak dihapus; penandaan `IsDelete` bila enrollment dihapus).
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+```
+
+**Tidak ada butir izin baru.** Penolakan `409` untuk dokumen BLM (`FIN-VAL-315`) adalah aturan kelayakan data, bukan
+izin: pengguna yang berhak membuat GR lokal tetap berhak, tetapi tidak untuk dokumen BLM.
+
+**Jejak audit.** Semua tabel baru mewarisi `IdentityModel`. Kotak masuk tidak dihapus. Pemetaan lama dinonaktifkan,
+tidak ditimpa. Konflik mencatat siapa dan kapan menyelesaikan. Snapshot konversi per baris menjaga hitungan historis.
+
+**Kolom sensitif.** `FinPurchasingInboundMessage.PayloadJson` dan `FinPurchasingExternalCancellation.CancelledBy` dapat
+memuat identitas pegawai BLM; **MUST NOT** masuk custom logger. Tidak ada data pasien.

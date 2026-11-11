@@ -42,6 +42,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         [MaxLength(4000)]
         public string? ClinicalFindingsRestricted { get; set; }
 
+        /// <summary>
+        /// Dosis radiasi terukur (mSv) untuk surveilans TLD. Diisi sejak 10 November 2026 supaya radar dosis kumulatif
+        /// dihitung dari catatan nyata, bukan angka tetap (BE-HRD-298). Null untuk surveilans selain radiasi.
+        /// </summary>
+        public decimal? MeasuredDoseMsv { get; set; }
+
         public DateTime? ReminderSentAt { get; set; }
         public bool IsCompliant { get; set; } = false;
         public bool IsActive { get; set; } = true;

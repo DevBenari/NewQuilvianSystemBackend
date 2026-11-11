@@ -147,7 +147,86 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public bool IsValidationPassed { get; set; }
         public int TotalConflicts { get; set; }
         public int BlockingConflicts { get; set; }
+        public int WarningConflicts { get; set; }
         public List<string> ConflictMessages { get; set; } = new();
+        public List<string> WarningMessages { get; set; } = new();
+        public List<RosterValidationConflictItemDto> ConflictItems { get; set; } = new();
+    }
+
+    public class RosterValidationConflictItemDto
+    {
+        public Guid ShiftAssignmentId { get; set; }
+        public Guid WorkforceProfileId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
+        public DateOnly ShiftDate { get; set; }
+        public string RuleCode { get; set; } = string.Empty; // B1..B7, W1..W7
+        public string Severity { get; set; } = "BLOCKING"; // BLOCKING, WARNING
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class CopyPreviousRosterPeriodRequest
+    {
+        [Required(ErrorMessage = "SourceRosterPeriodId wajib diisi.")]
+        public Guid SourceRosterPeriodId { get; set; }
+    }
+
+    public class CopyPreviousRosterPeriodResponse
+    {
+        public bool Success { get; set; }
+        public int CopiedAssignmentsCount { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class PublishRosterPeriodRequest
+    {
+        public List<WarningReasonItemRequest>? WarningReasons { get; set; }
+    }
+
+    public class WarningReasonItemRequest
+    {
+        public string WarningCode { get; set; } = string.Empty;
+        public Guid? EmployeeId { get; set; }
+        public DateOnly? ShiftDate { get; set; }
+        public string? ShiftCode { get; set; }
+        public string ReasonCategory { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+
+    public class PublishRosterPeriodResponse
+    {
+        public Guid RosterPeriodId { get; set; }
+        public string Status { get; set; } = "Published";
+        public DateTime PublishedAt { get; set; }
+        public string PublishedBy { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class PopulateEligibleStaffResponse
+    {
+        public Guid RosterPeriodId { get; set; }
+        public int TotalStaffCount { get; set; }
+        public int AccompaniedStaffCount { get; set; }
+        public List<string> StaffNames { get; set; } = new();
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class ApplyShiftPatternRequest
+    {
+        [Required(ErrorMessage = "ShiftPatternId wajib dipilih.")]
+        public Guid ShiftPatternId { get; set; }
+
+        public List<Guid>? TargetWorkforceProfileIds { get; set; }
+
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
+    }
+
+    public class ApplyShiftPatternResponse
+    {
+        public bool Success { get; set; }
+        public int TotalAssignedShifts { get; set; }
+        public int AffectedStaffCount { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 
     public class ShiftReplacementResponse
@@ -186,6 +265,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string Reason { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Request penunjukan pengganti darurat langsung pasca-terbit (BE-HRD-095, HRD-DEC-101).
+    /// </summary>
+    public class DirectShiftReplacementRequest
+    {
+        [Required(ErrorMessage = "ReplacementEmployeeId wajib diisi.")]
+        public Guid ReplacementEmployeeId { get; set; }
+
+        [Required(ErrorMessage = "ReasonCategory wajib diisi."), MaxLength(100)]
+        public string ReasonCategory { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Notes wajib diisi."), MaxLength(1000)]
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Response konfirmasi ganti petugas langsung pasca-terbit (BE-HRD-095, BE-HRD-096).
+    /// </summary>
+    public class DirectShiftReplacementResponse
+    {
+        public Guid ShiftAssignmentId { get; set; }
+        public string RosterPeriodStatus { get; set; } = "Published";
+        public bool IsManualOverride { get; set; } = true;
+        public Guid AssignedToEmployeeId { get; set; }
+        public string AssignedToEmployeeName { get; set; } = string.Empty;
+        public Guid OriginalEmployeeId { get; set; }
+        public string OriginalEmployeeName { get; set; } = string.Empty;
+        public bool EffectiveImmediately { get; set; } = true;
+        public List<string> NotificationsDispatched { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Request koreksi mundur jadwal dinas staf (BE-HRD-097, HRD-DEC-102, VR-SCH-17).
+    /// </summary>
+    public class RetroactiveShiftCorrectionRequest
+    {
+        [Required(ErrorMessage = "NewShiftId wajib diisi.")]
+        public Guid NewShiftId { get; set; }
+
+        [Required(ErrorMessage = "ReasonCategory wajib diisi."), MaxLength(100)]
+        public string ReasonCategory { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Notes wajib diisi."), MaxLength(1000)]
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Response hasil koreksi mundur jadwal dinas staf (BE-HRD-097).
+    /// </summary>
+    public class RetroactiveShiftCorrectionResponse
+    {
+        public Guid ShiftAssignmentId { get; set; }
+        public bool IsRetroactive { get; set; } = true;
+        public int DaysBack { get; set; }
+        public bool AttendanceReevaluationTriggered { get; set; } = true;
+        public string Message { get; set; } = string.Empty;
+    }
+
     public class OnCallAssignmentResponse
     {
         public Guid Id { get; set; }
@@ -201,6 +338,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string AssignmentStatus { get; set; } = "Scheduled";
         public DateTime? ConfirmedAt { get; set; }
         public DateTime? ActivatedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public bool IsCalledIn { get; set; }
+        public DateTime? CallInTime { get; set; }
+        public DateTime? ArrivalTime { get; set; }
+        public int? ResponseMinutes { get; set; }
+        public bool? IsSlaMet { get; set; }
+        public Guid? CalledByUnitId { get; set; }
+        public string? CalledByUnitName { get; set; }
+        public string? CallNotes { get; set; }
         public string? Notes { get; set; }
     }
 
@@ -217,6 +363,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
         public Guid? ShiftId { get; set; }
 
+        public Guid? UnitId { get; set; }
+
         [Required]
         public DateTime StartAt { get; set; }
 
@@ -226,7 +374,72 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [Required, MaxLength(30)]
         public string OnCallRole { get; set; } = "Primary";
 
+        public int? ExpectedResponseMinutes { get; set; } = 30;
+
         [MaxLength(500)]
         public string? Notes { get; set; }
+    }
+
+    /// <summary>
+    /// Request pencatatan pemanggilan darurat cito dokter/staf siaga aktif (BE-HRD-100, HRD-DEC-103).
+    /// </summary>
+    public class RecordOnCallCallInRequest
+    {
+        [Required(ErrorMessage = "CallInTime wajib diisi.")]
+        public DateTime CallInTime { get; set; }
+
+        [Required(ErrorMessage = "ArrivalTime wajib diisi.")]
+        public DateTime ArrivalTime { get; set; }
+
+        public Guid? CalledByUnitId { get; set; }
+
+        [MaxLength(500)]
+        public string? CallNotes { get; set; }
+    }
+
+    /// <summary>
+    /// Response hasil pencatatan pemanggilan cito & evaluasi indikator SLA respon (BE-HRD-100).
+    /// </summary>
+    public class OnCallCallInResponse
+    {
+        public Guid OnCallAssignmentId { get; set; }
+        public Guid WorkforceProfileId { get; set; }
+        public string WorkforceDisplayName { get; set; } = string.Empty;
+        public DateTime CallInTime { get; set; }
+        public DateTime ArrivalTime { get; set; }
+        public int ResponseMinutes { get; set; }
+        public int ExpectedResponseMinutes { get; set; }
+        public bool IsSlaMet { get; set; }
+        public Guid? CalledByUnitId { get; set; }
+        public string? CalledByUnitName { get; set; }
+        public string? CallNotes { get; set; }
+        public string Status { get; set; } = "Active";
+        public string Message { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Response rekapitulasi data kompensasi siaga standby dan tiket panggil cito untuk modul Payroll & Lembur (BE-HRD-101, INT-HR-38).
+    /// </summary>
+    public class OnCallCompensationSummaryResponse
+    {
+        public Guid? RosterPeriodId { get; set; }
+        public int TotalOnCallShifts { get; set; }
+        public double TotalStandbyHours { get; set; }
+        public int TotalCallInCount { get; set; }
+        public int TotalSlaMetCount { get; set; }
+        public List<OnCallCompensationStaffItemDto> StaffItems { get; set; } = new();
+    }
+
+    public class OnCallCompensationStaffItemDto
+    {
+        public Guid WorkforceProfileId { get; set; }
+        public string WorkforceProfileCode { get; set; } = string.Empty;
+        public string WorkforceDisplayName { get; set; } = string.Empty;
+        public int OnCallShiftCount { get; set; }
+        public double StandbyHours { get; set; }
+        public int CallInCount { get; set; }
+        public int SlaMetCount { get; set; }
+        public int SlaBreachedCount { get; set; }
+        public int OvertimeMinutes { get; set; }
     }
 }

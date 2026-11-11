@@ -619,6 +619,140 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             return items;
         }
 
+        /// <summary>
+        /// Daftar pantau EWS per bangsal — <c>BE-RWI-255</c>, <c>FIX-KEP-015-04</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Yang dinilai hanya tanda vital terakhir yang sah per episode.</b> Penanda
+        /// <c>NeedDoctorNotification</c> pada pengukuran lama tidak pernah padam sendiri, jadi
+        /// pasien yang sudah membaik tidak boleh terus muncul karena pengukuran sebelumnya.
+        /// Pengukuran berstatus <c>Cancelled</c> atau <c>EnteredInError</c> dilewati, sehingga
+        /// pengukuran sah sebelumnya yang dipakai.
+        /// </para>
+        /// <para>
+        /// Golongan dan penanda dibaca apa adanya dari server
+        /// (<c>PatientVitalSignCalculation</c>); query ini tidak menghitung ulang skor. Hanya
+        /// episode <c>Admitted</c> dan <c>DischargePending</c> yang ikut, sehingga pasien IGD,
+        /// poliklinik, dan episode yang sudah ditutup tidak pernah tampil. Penyaringan dan
+        /// paginasi dikerjakan di memori seperti daftar pantau lain pada service ini, karena
+        /// jumlah episode aktif terbatas pada kapasitas tempat tidur.
+        /// </para>
+        /// </remarks>
+        public async Task<EwsAlertPagedResult> GetEwsAlertsPagedAsync(
+            InpatientEwsAlertQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new InpatientEwsAlertQuery();
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            var criticalOnly = query.MinimumRiskLevel == EwsRiskLevel.Critical;
+
+            IQueryable<InpEpisode> filtered = _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    (x.EpisodeStatus == InpEpisodeStatus.Admitted ||
+                     x.EpisodeStatus == InpEpisodeStatus.DischargePending));
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                filtered = filtered.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
+            }
+
+            var rows = await filtered
+                .Select(x => new
+                {
+                    x.Id,
+                    x.EpisodeNumber,
+                    x.PatientId,
+                    PatientName = x.Patient != null ? x.Patient.FullName : null,
+                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
+                    x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    RoomName = x.BedPlacements
+                        .Where(p => p.EndDateTime == null && !p.IsDelete)
+                        .Select(p => p.Room != null ? p.Room.RoomName : null)
+                        .FirstOrDefault(),
+                    BedName = x.BedPlacements
+                        .Where(p => p.EndDateTime == null && !p.IsDelete)
+                        .Select(p => p.Bed != null ? p.Bed.BedName : null)
+                        .FirstOrDefault(),
+                    Latest = _dbContext.Set<TrxPatientVitalSign>()
+                        .Where(v =>
+                            v.InpEpisodeId == x.Id &&
+                            !v.IsDelete &&
+                            v.IsActive &&
+                            v.VitalSignStatus != PatientVitalSignStatus.Cancelled &&
+                            v.VitalSignStatus != PatientVitalSignStatus.EnteredInError)
+                        .OrderByDescending(v => v.ObservationDateTime)
+                        .Select(v => new
+                        {
+                            v.Id,
+                            v.ObservationDateTime,
+                            v.EarlyWarningScore,
+                            v.EwsRiskLevel,
+                            v.IsCritical,
+                            v.NeedDoctorNotification,
+                            v.EwsMonitoringRecommendation,
+                            ObservedByName = v.ObservedByUser != null ? v.ObservedByUser.DisplayName : null
+                        })
+                        .FirstOrDefault()
+                })
+                .ToListAsync(cancellationToken);
+
+            var items = rows
+                .Where(x => x.Latest != null)
+                .Where(x => criticalOnly
+                    ? x.Latest!.EwsRiskLevel == EwsRiskLevel.Critical || x.Latest.IsCritical
+                    : x.Latest!.EwsRiskLevel >= EwsRiskLevel.High || x.Latest.NeedDoctorNotification)
+                .Select(x => new EwsAlertItemResponse
+                {
+                    EpisodeId = x.Id,
+                    EpisodeNumber = x.EpisodeNumber,
+                    PatientId = x.PatientId,
+                    PatientName = x.PatientName,
+                    MedicalRecordNumber = x.MedicalRecordNumber,
+                    ServiceUnitId = x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnitName,
+                    RoomName = x.RoomName,
+                    BedName = x.BedName,
+                    VitalSignId = x.Latest!.Id,
+                    ObservationDateTime = x.Latest.ObservationDateTime,
+                    EarlyWarningScore = x.Latest.EarlyWarningScore,
+                    EwsRiskLevel = x.Latest.EwsRiskLevel,
+                    IsCritical = x.Latest.IsCritical,
+                    NeedDoctorNotification = x.Latest.NeedDoctorNotification,
+                    EwsMonitoringRecommendation = x.Latest.EwsMonitoringRecommendation,
+                    ObservedByName = x.Latest.ObservedByName
+                })
+                .OrderByDescending(x => x.EwsRiskLevel)
+                .ThenByDescending(x => x.EarlyWarningScore ?? -1)
+                .ThenByDescending(x => x.ObservationDateTime)
+                .ToList();
+
+            return new EwsAlertPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = items.Count,
+                TotalPage = (int)Math.Ceiling(items.Count / (double)pageSize),
+                Items = items.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList()
+            };
+        }
+
         // =====================================================================
         // BE-RWI-029 — Empat daftar pantau dan laporan selisih
         // =====================================================================

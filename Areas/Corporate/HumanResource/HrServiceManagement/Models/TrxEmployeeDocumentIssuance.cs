@@ -22,6 +22,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         [MaxLength(80)]
         public string IssuanceNumber { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string OfficialDocumentNumber { get; set; } = string.Empty;
+
         public int VersionNumber { get; set; } = 1;
 
         [Required]
@@ -54,6 +57,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
         [MaxLength(1000)]
         public string? RevocationReason { get; set; }
+
+        [MaxLength(100)]
+        public string? RevocationBapNumber { get; set; }
+
+        [MaxLength(150)]
+        public string? SignerName { get; set; }
+
+        [MaxLength(150)]
+        public string? SignerTitle { get; set; }
+
+        [MaxLength(256)]
+        public string? SignerSignatureHash { get; set; }
+
+        [MaxLength(64)]
+        public string? VerificationHash { get; set; }
+
+        [MaxLength(500)]
+        public string? QrCodeImagePath { get; set; }
+
+        [MaxLength(500)]
+        public string? PdfFilePath { get; set; }
+
+        public bool IsFinancialSensitive { get; set; } = false;
+
+        [MaxLength(255)]
+        public string? SecurityPinHash { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? SalaryBrutoAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? SalaryNettoAmount { get; set; }
+
+        public Guid? PayrollPayslipId { get; set; }
+
+        [MaxLength(30)]
+        public string IssuanceStatus { get; set; } = "Active";
+
+        public Guid? EDossierDocumentId { get; set; }
 
         public string? DocumentSnapshotJson { get; set; }
         public bool IsActive { get; set; } = true;

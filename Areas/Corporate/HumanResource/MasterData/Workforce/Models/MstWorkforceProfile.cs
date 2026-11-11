@@ -102,7 +102,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         public ICollection<WfpClinicalPrivilege> ClinicalPrivileges { get; set; } = new List<WfpClinicalPrivilege>();
 
         public ICollection<WfpHealthRecord> HealthRecords { get; set; } = new List<WfpHealthRecord>();
-        public ICollection<WfpOnboardingChecklist> OnboardingChecklists { get; set; } = new List<WfpOnboardingChecklist>();
         public ICollection<WfpOffboardingChecklist> OffboardingChecklists { get; set; } = new List<WfpOffboardingChecklist>();
         public ICollection<WfpEmploymentHistory> EmploymentHistories { get; set; } = new List<WfpEmploymentHistory>();
         public ICollection<WfpContractHistory> ContractHistories { get; set; } = new List<WfpContractHistory>();

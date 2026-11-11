@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Capability-map revision | `1.1` — revisi `1.0` 27 Agustus 2026; revisi `1.1` hari yang sama **menarik `HRD-TF-001`** yang terbukti temuan palsu, dan menaikkan `HRD-CAP-26` dari `REPAIR` menjadi `READY TO REUSE` |
-| Status | `source-audited`. Dokumen ini **belum** menyatakan modul siap dibangun dan **belum** menyatakan siap produksi |
+| Capability-map revision | `1.3` — **revisi `1.3` (3 November 2026) menambah bagian 15: impact scan HR di luar Workforce Core dan Perencanaan Tenaga Kerja (`S-D1`) pada BE `26066c76` / FE `66b7e5600`.** Revisi `1.2` — **revisi `1.2` (2 November 2026) menambah bagian 14: impact scan terbatas Workforce Core & Employee 360 pada BE `396c8363` / FE `9c4000724`.** Revisi `1.1` — revisi `1.0` 27 Agustus 2026; revisi `1.1` hari yang sama **menarik `HRD-TF-001`** yang terbukti temuan palsu, dan menaikkan `HRD-CAP-26` dari `REPAIR` menjadi `READY TO REUSE` |
+| Status | `source-audited`. **Sejak revisi `1.3`, keadaan bukti setiap baris `HRD-CAP-01` s.d. `HRD-CAP-27` tercatat pada bagian 15.3** (14 `CURRENT`, 13 `STALE`); bagian 14 diperiksa ulang terbatas pada bagian 15.4; `S-D1` diaudit mendalam pada bagian 15.5 pada HEAD 3 November 2026. Dokumen ini **belum** menyatakan modul siap dibangun dan **belum** menyatakan siap produksi |
 | Tanggal audit | 27 Agustus 2026 (`Asia/Jakarta`) |
 | Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `0`, status `draft`, SHA-256 `f3e2a1633449210d69d1cd1e10cc11972670a2818563c5f53269caf33f005067` |
 | Decision ID yang dirujuk | `HRD-DEC-003`, `HRD-DEC-004`, `HRD-DEC-005`, `HRD-DEC-006`, `HRD-DEC-007`; pertanyaan `HRD-Q-01`, `HRD-Q-03`, `HRD-Q-05` |
@@ -598,3 +598,484 @@ berikutnya.
 - Tidak ada arsitektur target, ERD target, kontrak API target, maupun roadmap yang dibuat.
 - Cacat yang ditemukan hanya dicatat. `HRD-TF-002` sampai `HRD-TF-007` tidak diperbaiki. `HRD-TF-001` ditarik pada revisi `1.1` karena terbukti bukan temuan.
 - Isi data tidak diperiksa, sehingga `HRD-Q-05` tetap terbuka.
+
+---
+
+## 14. Impact Scan Terbatas — Workforce Core & Employee 360, 2 November 2026 (revisi `1.2`)
+
+| Field | Nilai |
+| --- | --- |
+| Mode | **Impact scan terbatas**. Hanya klaster yang disentuh slice `S-A1` dan keputusan `HRD-DEC-046` s.d. `HRD-DEC-057` |
+| Pemicu | Bagian 11 butir 1 dan 2: HEAD kedua repository sudah berpindah dari titik verifikasi terakhir. Ditambah amendment pass decision log bagian 31 |
+| Backend | Titik verifikasi terakhir `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` → HEAD `396c836380bba7cde722351c14c08e8b72535279` (branch `MHamzah`). Working tree jalur yang di-scan bersih |
+| Frontend | Titik verifikasi terakhir `fff76a1b394d4b247c70a04f106c8ec098c9696e` → HEAD `9c4000724da817200b92ae36db29f6914023c90d` (branch `HamzahV2`). Working tree jalur yang di-scan bersih |
+| Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md) revisi `16`, SHA-256 `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` (sesudah koreksi `HRD-TF-014` pada scan ini) |
+| Decision ID yang dirujuk | `HRD-DEC-011`, `HRD-DEC-012`, `HRD-DEC-031`, `HRD-DEC-033`, `HRD-DEC-034`, `HRD-DEC-036`, `HRD-DEC-046` s.d. `HRD-DEC-057` |
+| Contract version | `v5` menurut `blueprint-manifest.md`. Kontrak itu **belum** memuat keputusan `HRD-DEC-046` s.d. `HRD-DEC-057`; yang berlaku untuk keputusan baru hanya kontrak as-is pada bagian 14.6 |
+| Cara scan | `git diff` terbatas pada jalur di bawah, pembacaan statis controller/service/model, uji status HTTP ke backend lokal tanpa login (`curl`), dan hitung baris database read-only |
+| Batas tulis | Dokumen ini dan satu koreksi baris `HRD-TF-014` pada decision log. Tidak ada source aplikasi, build, migration, atau penulisan database |
+
+**Singkatan bukti bagian ini.** `BE@396c836` = `NewQuilvianSystemBackend` commit `396c8363`.
+`FE@9c40007` = `QuilvianSystemFrontendDev` commit `9c4000724`.
+
+### 14.1 Batas scan
+
+| Di-scan | Jalur |
+| --- | --- |
+| Backend | `Areas/Corporate/HumanResource/WorkforceCore/**`, `WorkforceProfileManagement/**`, `MasterData/Workforce/**`, `Areas/SelfServices/HumanResource/**` (perubahan data), titik sentuh `WorkflowManagement/**` dan `AttendanceManagement/**` (periode), `Services/Security/OrganizationAuthorizationProjectionService.cs`, `Shared/HumanResource/Services/HumanResourceContextService.cs`, konfigurasi EF jalur yang sama, `Tests/**` |
+| Frontend | `src/app/hr/workforce-core/**`, `src/components/view/hr/workforce-core/**`, `src/lib/services/hr/**`, `src/components/features/workforce/**`, `src/components/view/hr/master-data/employees/**`, `src/utils/menu-sidebar/menu-items.jsx` |
+
+**Tidak di-scan ulang:** domain HR lain pada bagian 4 (kehadiran, cuti, lembur, payroll,
+kredensial, dan seterusnya). Baris-baris itu kini berstatus **`STALE`**: buktinya dari `ecdc135` /
+`2a1cea7` dan belum diperiksa terhadap HEAD sekarang. Jangan memakainya sebagai bukti desain
+sebelum di-scan ulang.
+
+### 14.2 Perubahan sejak titik verifikasi terakhir
+
+**Backend — 8 berkas pada jalur yang di-scan berubah**, dari 4 commit. Yang material:
+
+| Commit | Perubahan | Akibat bagi Workforce Core |
+| --- | --- | --- |
+| `e1d11214` fix(security): establish authorization integrity foundation | `OrganizationAuthorizationProjectionService` baru. Setiap perubahan penempatan organisasi kini diselaraskan ke `AspNetUserOrganization`, yaitu cakupan unit yang boleh diakses pengguna. Fungsi `SyncUserPrimaryOrganizationAsync` di tiga controller master dihapus dan diganti panggilan ke service ini | **Penempatan organisasi kini menentukan hak akses.** Penempatan yang salah tanggal (`HRD-TF-013`) bukan lagi sekadar riwayat yang keliru; ia ikut menentukan unit mana yang dapat dibuka pengguna |
+| `6275ac34` feat(operating-room) | `EmployeeOptionResponse` menyertakan `WorkforceProfileId` | Modul lain mulai merujuk profil workforce, bukan Id pegawai — searah dengan `HRD-DEC-051` |
+| (task `BE-HRD-003`) | `WorkforceCoreCrossEmployeeController`, DTO, dan query service baru — 5 daftar lintas-pegawai dan 1 endpoint nominal gaji | Backend daftar lintas-pegawai sudah ada |
+
+**Frontend — 34 berkas pada jalur yang di-scan berubah.** Yang material: enam route
+`/hr/workforce-core/*` beserta view-nya, komponen daftar bersama, dan **tiga belas service HR baru**
+di `src/lib/services/hr/` (kotak masuk persetujuan, kehadiran, cuti, lembur, payroll, jadwal,
+pelatihan, kinerja, hubungan karyawan, benefit, exit clearance, workforce core, layanan mandiri).
+
+### 14.3 Kontrak Bukti Kemampuan — Workforce Core
+
+Lanjutan penomoran bagian 4. Setiap baris memakai tepat satu status dari bagian 3.
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-CAP-28` | Enam layar lintas-pegawai menampilkan data (`HRD-DEC-012`, `HRD-DEC-055`) | HR | `FE@9c40007 src/lib/services/hr/workforce-core-cross-employee-service.js:6` memanggil `/v1/hr/workforce-core/cross-employee`; `BE@396c836 .../WorkforceCoreCrossEmployeeController.cs:13` melayani `api/v1/corporate/human-resource/workforce-core`. Uji lokal: alamat frontend **404**, alamat backend **401**. `FE@9c40007 .../workforce-core-cross-employee-list-view.jsx:112-116` mengirim `description` ke `InformationAlert` yang membaca `message` (`information-alert.jsx:47-66`) | `REPAIR` | Ganti base URL; arahkan layar Perubahan Data ke daftar `employee-profile-changes` yang sudah ada; ganti prop `description` menjadi `message` | **Tinggi** — keenam layar tampak "kosong" tanpa pesan |
+| `HRD-CAP-29` | Backend daftar lintas-pegawai dengan label status baris (`HRD-DEC-055` `ROW_STATUS_LABEL`) | HR | `BE@396c836 .../WorkforceCoreCrossEmployeeController.cs:34-216`: 5 `GET` daftar + `GET salary-assignments/{id}/amount`; nominal gaji tidak dikirim (`HRD-DEC-033`) | `EXTEND` | Daftar sudah ada dan benar. Label **Menunggu persetujuan / Dijadwalkan** belum dapat dihasilkan karena penempatan organisasi, jabatan, dan atasan tidak punya kolom persetujuan | Sedang |
+| `HRD-CAP-30` | Tepat satu penempatan utama per jenis per tanggal (`HRD-DEC-049`) | HR | `BE@396c836 WfpPositionAssignmentController.cs:396-400` dan `WfpManagerAssignmentController.cs:373-378` menolak kembar persis pada periode beririsan; `ClearPrimaryAsync` membalik `IsPrimary` tanpa melihat tanggal; `WfpOrganizationAssignmentController.cs:412-413` hanya memeriksa nomor penugasan ganda | `EXTEND` | Tambah aturan satu-utama-per-tanggal, larangan lubang penempatan utama, dan penutupan otomatis per sehari sebelum. Jenis penugasan `Primary/Secondary/Acting/Temporary/Project/Functional` sudah ada (`WfpOrganizationAssignmentController.cs:36`) | Sedang |
+| `HRD-CAP-31` | Perubahan penempatan hanya lewat persetujuan (`HRD-DEC-031`, `HRD-DEC-047`) | HR | `BE@396c836` controller organisasi, jabatan, dan atasan menyediakan `PUT /{id}`, `PATCH /{id}/status`, `PATCH /{id}/primary`, `DELETE /{id}` yang langsung berlaku dengan hak `Update`/`Delete`, tanpa persetujuan | `CONFLICT` | Jalur ubah langsung bertentangan dengan keputusan mengikat. Desain harus menentukan nasib endpoint ini: dikunci, dijadikan koreksi berpersetujuan, atau dibatasi pada data yang belum berlaku | **Tinggi** |
+| `HRD-CAP-32` | Penempatan sebagai satu-satunya sumber unit/jabatan; kolom master hanya cerminan (`HRD-DEC-047`) | HR | `BE@396c836 EmployeeController.cs:1355-1356, 1416, 2157-2223` (`EnsureWorkforcePrimaryOrganizationAssignmentAsync`: tanggal mulai = `JoinDate`, penempatan lama tidak diberi tanggal akhir); pola sama `DoctorController.cs:1456`, `ExternalUserController.cs:1288`. `FE@9c40007 .../employees/form/employee-form-view.jsx` tidak ditemukan penguncian isian unit/jabatan pada mode ubah | `CONFLICT` | Form master hanya mengisi unit/jabatan saat pembuatan; cerminan `PrimaryDepartmentId`/`PrimaryPositionId` diisi sistem | **Tinggi** — sejak `e1d11214` ikut menentukan hak akses |
+| `HRD-CAP-33` | Penempatan masa depan mulai berlaku tepat pada tanggalnya (`HRD-DEC-047` `MIRROR_FOLLOWS_EFFECTIVE_DATE`, `HRD-DEC-048` `APPLY_ON_EFFECTIVE_DATE`) | Shared platform + HR | `BE@396c836 Services/Security/OrganizationAuthorizationProjectionService.cs:67-69` hanya menganggap penempatan sah bila `EffectiveStartDate <= now`; tetapi rekonsiliasi hanya dipanggil saat ada penulisan, dan `ReconcileAllAsync` (baris 78) **tidak dipanggil di mana pun**. Pola layanan terjadwal sudah ada: `AttendanceSchedulerHostedService`, `LeaveAccrualSchedulerHostedService` | `REUSE WITH ADAPTER` | Perlu proses terjadwal harian yang menerapkan dokumen peristiwa, memperbarui cerminan, dan menjalankan rekonsiliasi proyeksi | Sedang |
+| `HRD-CAP-34` | Hanya atasan utama yang menerima rute persetujuan (`HRD-DEC-049` `ONLY_PRIMARY_MANAGER_ROUTES_APPROVAL`) | HR | `BE@396c836 WorkflowManagement/Services/WorkflowService.cs:1938-1951` memilih atasan aktif dengan `CanApproveRequests`, lalu `OrderByDescending(IsPrimaryManager)` — **jatuh ke atasan tambahan** bila atasan utama tidak ada | `CONFLICT` | Pemilihan atasan wajib dibatasi pada atasan utama; perilaku saat atasan utama kosong mengikuti eskalasi sub-modul 21 | Sedang |
+| `HRD-CAP-35` | Dokumen peristiwa SK (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`) | HR | `BE@396c836 WorkforceCore/Models/TrxEmployeeTransfer.cs`, `TrxEmployeePromotion.cs`, `TrxEmployeeRotation.cs`, `TrxEmployeeDemotion.cs`, `TrxTemporaryAssignment.cs` beserta konfigurasi EF; **0** controller/service; **0** baris data | `MISSING` | Skema ada, perilaku tidak ada. Selisih skema terhadap keputusan: tidak ada kolom atasan asal/tujuan; tidak ada nomor SK maupun lampiran scan SK; `TrxEmployeePromotion` dan `TrxEmployeeDemotion` menyimpan `NewBaseSalary`, padahal `HRD-DEC-048` `SALARY_STAYS_SEPARATE` memisahkan gaji; kosakata status hanya bawaan `"Draft"`; satu peristiwa gabungan (mutasi + promosi) tersebar di dua tabel | Sedang |
+| `HRD-CAP-36` | Mesin persetujuan untuk dokumen peristiwa | Shared platform | `BE@396c836 WorkflowManagement/Services/WorkflowReferenceLifecycleService.cs:50-83` mendaftar jenis rujukan (perubahan data, cuti, lembur, resign, dan lain-lain); pola integrasi `WorkforceCore/Services/EmployeeProfileChangeWorkflowIntegrationService.cs`; kelima model `Trx*` sudah punya `WorkflowDefinitionId` | `REUSE WITH ADAPTER` | Daftarkan jenis rujukan baru dan service integrasi per pola perubahan data | Rendah |
+| `HRD-CAP-37` | Lampiran scan SK wajib (`HRD-DEC-056`) | HR | `BE@396c836 WorkflowManagement/Services/WorkflowFileStorageService.cs`; unggah dokumen `WorkforceCore/Controllers/WfpDocumentController.cs` (`IFormFile`) | `REUSE WITH ADAPTER` | Pola penyimpanan berkas sudah ada; perlu ditautkan ke dokumen peristiwa | Rendah |
+| `HRD-CAP-38` | Batas berlaku surut ke periode kehadiran terbuka (`HRD-DEC-050`) | HR | `BE@396c836 AttendanceManagement/Services/AttendanceCorrectionOnBehalfService.cs:94-98` memeriksa `HrdAttendancePeriod.PeriodStatus == Closed` untuk satu tanggal | `REUSE WITH ADAPTER` | Logikanya ada tetapi ditulis di dalam satu service; perlu diangkat menjadi pemeriksaan bersama agar dipakai saat pengajuan, persetujuan, dan penerapan | Rendah |
+| `HRD-CAP-39` | Satu nomor identitas = satu profil dengan peran jamak (`HRD-DEC-051`) | HR | Keunikan NIK per tabel saja: `MstEmployeeConfiguration.cs:144`, `MstDoctorConfiguration.cs:104`. Pembuatan selalu membuat profil baru: `EmployeeController.cs:1066`, `DoctorController.cs:1062`, `ExternalUserController.cs:921`. `MstWorkforceProfile.UserType` tunggal (`Enums/UserType.cs`: `Employee`, `PermanentDoctor`, `GuestDoctor`, `ExternalUser`, …). Fondasi peran jamak sudah ada: navigasi `Employee`, `Doctor`, `ExternalUser` pada `MstWorkforceProfile.cs:55-59`, dan overview sudah memisahkan `IsEmployee`/`IsDoctor`/`IsExternalUser` (`WorkforceDetailDtos.cs:41-43`) | `EXTEND` | Pemeriksaan keunikan lintas tabel; penautan ke profil yang ada; `UserType` tunggal dirancang ulang. Data: 0 NIK kembar lintas tabel; **14 profil yatim** — sebagian dibuat `OperatingRoomDemoSeeder.cs:167, 208, 256` | Sedang |
+| `HRD-CAP-40` | Data pribadi sensitif hanya lewat permohonan berbukti dengan verifikator berbeda (`HRD-DEC-052`) | HR | Ubah langsung tersedia: `WfpBankAccountController.cs:412` (`PUT`), `:641` (`PATCH verify` dengan hak `Update` yang sama, tanpa pemisahan peran); `WfpFamilyMemberController.cs:320`; `WfpDependentController.cs:332`. Katalog perubahan data hanya kolom `MstEmployee` dan `MstWorkforceProfile`, termasuk `IdentityNumber` dan `MaritalStatus` (`EmployeeProfileChangeService.cs` `BuildFieldKey`), **tanpa** rekening, keluarga, tanggungan, NPWP. `DecideVerificationAsync` tidak memeriksa verifikator ≠ pembuat. Permohonan hanya dibuat dari layanan mandiri (`Areas/SelfServices/HumanResource/Controllers/EmployeeProfileChangeSelfServiceController.cs:231`). Pola "atas nama" sudah ada di kehadiran: `AttendanceCorrectionOnBehalfService.cs` | `CONFLICT` | Kunci ubah langsung data sensitif; perluas katalog ke rekening, keluarga, tanggungan, NPWP; tambah pengajuan atas nama pegawai; tambah verifikator ≠ pembuat | **Tinggi** — rekening gaji dapat dialihkan satu orang |
+| `HRD-CAP-41` | Persetujuan penetapan gaji dengan penyetuju ≠ pembuat (`HRD-DEC-031`) | HR | `BE@396c836 WfpSalaryAssignmentController.cs:275-290`: `PATCH /{id}/approval` memakai hak `WfpSalaryAssignment : Update` yang sama dengan ubah, dan menyimpan `actor` tanpa membandingkan dengan `CreateBy` | `REPAIR` | Swa-setuju masih mungkin. Sudah tercatat pada decision log bagian 26.1 dan belum diperbaiki | **Tinggi** |
+| `HRD-CAP-42` | Employee 360 untuk HR | HR | `BE@396c836 WorkforceProfileManagement/Controllers/WorkforceDetailController.cs:43-50` `GET .../overview`, hak `WorkforceProfileOverview : Read`; isinya jumlah per bagian, bukan nilai. `RestrictedSections` adalah daftar tetap (baris 462-480), **tidak** bergantung pada hak pengguna | `REUSE WITH ADAPTER` | Untuk HR dapat dipakai. Penanda bagian rahasia perlu diturunkan dari hak akses pengguna, bukan daftar tetap | Rendah |
+| `HRD-CAP-43` | Employee 360 terbatas untuk atasan (`HRD-DEC-053`) | HR | Tidak ditemukan pembatasan "hanya bawahan langsung" pada overview maupun controller per profil. Bahan yang sudah ada: `Shared/HumanResource/Services/HumanResourceContextService.cs:472` `ResolveDirectReportsAsync` | `MISSING` | Perlu pemeriksaan bawahan langsung berbasis atasan utama yang berlaku hari ini, dan proyeksi bagian yang boleh dilihat | Sedang |
+| `HRD-CAP-44` | Batch data awal penempatan (`HRD-DEC-054`) | HR | Tidak ada impor batch di area HR. Pola impor Excel sudah ada di Finance: `FinanceReceivableMigrationService.cs:300`, `FinancePayrollDeductionBatchService.cs:1104` (`new XLWorkbook(stream)`, paket `ClosedXML` 0.105.1) | `MISSING` | Fitur belum ada; pola teknis bisa ditiru | Sedang |
+| `HRD-CAP-45` | Riwayat kepegawaian yang merujuk dokumen peristiwa (`HRD-DEC-048`) | HR | `BE@396c836 WorkforceCore/Models/WfpEmploymentHistory.cs` sudah punya `ReferenceType`, `ReferenceId`, nilai lama/baru unit, jabatan, grade, `ApprovedByUserId`, `FilePath`; 1 baris data | `READY TO REUSE` | Tidak ada kolom atasan lama/baru; cukup karena atasan dicatat di penempatannya sendiri | Rendah |
+| `HRD-CAP-46` | Kotak masuk persetujuan terpadu dapat dicapai frontend (titik sentuh `HRD-DEC-055` `APPROVAL_STAYS_IN_INBOX`) | HR, sub-modul 21 | `FE@9c40007 src/lib/services/hr/approval-inbox-service.js:6` memanggil `/v1/hr/workflow/approval-inbox` → **404**; `BE@396c836 WorkflowManagement/Controllers/ApprovalInboxController.cs:17` melayani `api/v1/corporate/human-resource/approval-inbox` → **401** | `REPAIR` | Di luar scope `S-A1`, tetapi menjadi prasyarat `HRD-DEC-055`. Lihat `HRD-TF-020` | **Tinggi** |
+| `HRD-CAP-47` | Bukti pengujian Workforce Core | HR | `BE@396c836 Tests/` berisi 4 proyek test (Nutrition, OperatingRoom, PatientManagement, Pharmacy); **tidak satu pun** menyentuh HR | `MISSING` | `HRD-CAP-27` masih berlaku untuk HR | **Tinggi** |
+
+### 14.4 Temuan baru yang perlu tindakan
+
+#### `HRD-TF-020` — Seluruh service HR frontend yang baru memanggil awalan API yang tidak ada
+
+| Field | Isi |
+| --- | --- |
+| Bukti | `FE@9c40007 src/lib/services/hr/`: **11 berkas** memanggil alamat berawalan `/v1/hr/...` — `approval-inbox-service.js`, `attendance-management-service.js`, `leave-admin-service.js`, `overtime-admin-service.js`, `payroll-integration-service.js`, `roster-scheduling-service.js`, `learning-development-service.js`, `performance-management-service.js`, `employee-relations-service.js`, `workforce-core-cross-employee-service.js`, dan `employee-self-service.js` (layanan mandiri cuti dan lembur, `/v1/hr/self-service/...`). Dua service lain sudah benar: benefit (`lib/constants/hr/benefit/employee-benefit-enrollment-constants.js:7`) dan exit clearance (`lib/constants/hr/exit-clearance/exit-clearance-constants.js:7`) memakai `/v1/corporate/human-resource/...`. `BE@396c836`: **0** route berawalan `api/v1/hr`. Uji lokal: `api/v1/hr/workflow/approval-inbox`, `api/v1/hr/leave`, `api/v1/hr/attendance` semuanya **404** |
+| Dampak | Bukan hanya enam layar Workforce Core. Layar HR lain yang dibangun lewat task `FE-HRD-*` dan memakai service ini kemungkinan besar juga tampil kosong atau gagal. **Belum diverifikasi per layar** karena di luar batas scan ini |
+| Klasifikasi | `REPAIR`, lintas sub-modul |
+| Tindak lanjut yang disarankan | `diagnose-module-issue` untuk seluruh layar HR yang memakai `src/lib/services/hr/**`, dan tinjau ulang status ✅ task `FE-HRD-*` pada roadmap (`HRD-TF-011`) |
+
+#### `HRD-TF-021` — Penempatan organisasi kini ikut menentukan hak akses unit
+
+| Field | Isi |
+| --- | --- |
+| Bukti | `BE@396c836` commit `e1d11214`; `WfpOrganizationAssignmentController.cs:39-63` memanggil `ReconcileWorkforceProfileAsync` setelah setiap perubahan |
+| Dampak | Setiap aturan penempatan pada `HRD-DEC-047` s.d. `HRD-DEC-050` kini juga aturan keamanan. Contoh: bila HR mengubah unit Rina lewat form master (`HRD-TF-013`), proyeksi hak akses Rina ikut berubah seketika, padahal perubahan itu belum disetujui siapa pun |
+| Klasifikasi | Fakta yang memperberat `HRD-CAP-31` dan `HRD-CAP-32` |
+
+### 14.5 Koreksi terhadap decision log
+
+| Butir | Sebelum | Sesudah | Bukti |
+| --- | --- | --- | --- |
+| `HRD-TF-014` | "Penempatan organisasi, jabatan, dan atasan tidak diperiksa sama sekali" | Jabatan dan atasan menolak **kembar persis** pada periode beririsan; organisasi tidak diperiksa; aturan satu-utama-per-tanggal belum ada | `BE@396c836 WfpPositionAssignmentController.cs:396-400`, `WfpManagerAssignmentController.cs:373-378` |
+
+Koreksi ini **tidak** mengubah `HRD-DEC-049`: aturan satu-utama-per-tanggal memang belum ada.
+
+### 14.6 Kontrak as-is yang disentuh
+
+Hanya endpoint yang relevan bagi keputusan bagian 31. Kode status umum: **401** berarti belum
+login; **403** berarti pengguna tidak punya hak akses untuk tindakan itu; **404** berarti data
+atau alamat tidak ditemukan.
+
+#### Corporate / Human Resource / Workforce Core / Cross-Employee Administration
+
+Base URL: `api/v1/corporate/human-resource/workforce-core`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/organization-assignments` | Daftar penempatan unit seluruh pegawai | `WfpOrganizationAssignment : ReadAll` | Query periode, unit, jabatan, jenis, utama, aktif, `search`, halaman | `PagedResult<WfpOrganizationAssignmentResponse>` |
+| `GET` | `/position-assignments` | Daftar penempatan jabatan seluruh pegawai | `WfpPositionAssignment : ReadAll` | Query serupa, ditambah `isActing`, `jobLevelId` | `PagedResult<WfpPositionAssignmentResponse>` |
+| `GET` | `/manager-assignments` | Daftar relasi atasan seluruh pegawai | `WfpManagerAssignment : ReadAll` | Query serupa, ditambah `managerProfileId`, `canApproveRequests` | `PagedResult<WfpManagerAssignmentResponse>` |
+| `GET` | `/employment-histories` | Daftar riwayat kepegawaian seluruh pegawai | `WfpEmploymentHistory : ReadAll` | Query periode, `historyType`, unit, jabatan | `PagedResult<WfpEmploymentHistoryResponse>` |
+| `GET` | `/salary-assignments` | Daftar penetapan gaji **tanpa nominal** | `WfpSalaryAssignment : ReadAll` | Query periode, struktur, grade, `isApproved` | `PagedResult<WfpSalaryAssignmentCrossEmployeeResponse>` |
+| `GET` | `/salary-assignments/{id}/amount` | Nominal satu penetapan gaji | `WfpSalaryAssignment : ViewAmount` | Path `id` | `WfpSalaryAmountResponse` |
+
+**Tidak ada** endpoint `employee-profile-changes` di grup ini. Daftar perubahan data lintas-pegawai
+ada di grup berikut.
+
+#### Corporate / Human Resource / Workforce Core / Employee Profile Change Administration
+
+Base URL: `api/v1/corporate/human-resource/employee-profile-changes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar permohonan perubahan data seluruh pegawai | `EmployeeProfileChange : Read` | Query saringan dan halaman | `PagedResult<EmployeeProfileChangeListResponse>` |
+| `GET` | `/{id}` | Detail satu permohonan | `EmployeeProfileChange : Read` | Path `id` | `EmployeeProfileChangeResponse` |
+| `POST` | `/{id}/start-verification` | Memulai verifikasi | `EmployeeProfileChange : Update` | Path `id` | `EmployeeProfileChangeResponse` |
+| `POST` | `/{id}/verifications/{verificationId}/decision` | Keputusan verifikasi — tidak memeriksa verifikator ≠ pembuat | `EmployeeProfileChange : Update` | Body keputusan, bukti berkas | `EmployeeProfileChangeResponse` |
+| `POST` | `/{id}/approve`, `/{id}/reject`, `/{id}/request-revision`, `/{id}/apply` | Setujui, tolak, minta revisi, terapkan | `EmployeeProfileChange : Update` | Path `id`, body alasan | `EmployeeProfileChangeResponse` / `EmployeeProfileChangeApplyResponse` |
+
+Contoh: permohonan berstatus `Approved` baru mengubah data pegawai setelah `POST /{id}/apply`.
+Selama itu, alamat lama tetap tampil (`AC-F01-06`).
+
+#### Corporate / Human Resource / Workforce Profile Management / Workforce Profile Overview
+
+Base URL: `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/overview`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Ringkasan Employee 360: identitas, peran, jumlah data per bagian, daftar bagian rahasia | `WorkforceProfileOverview : Read` | Path `workforceProfileId` | `WorkforceDetailResponse` |
+
+#### Corporate / Human Resource / Workforce Core / Salary Assignment
+
+Base URL: `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/salary-assignments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `PATCH` | `/{id}/approval` | Menyetujui atau membatalkan persetujuan penetapan gaji. **Pembuat dapat menyetujui sendiri** | `WfpSalaryAssignment : Update` | Body `IsApproved` | `object` |
+
+#### Corporate / Human Resource / Workforce Core / Bank Account
+
+Base URL: `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/bank-accounts`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `PUT` | `/{id}` | Mengubah rekening langsung — bertentangan dengan `HRD-DEC-052` | `WorkforceBankAccount : Update` | Body rekening | `object` |
+| `PATCH` | `/{id}/verify` | Menandai rekening terverifikasi — pemegang hak `Update` yang sama, tanpa pemisahan peran | `WorkforceBankAccount : Update` | Body `IsVerified` | `object` |
+
+#### Corporate / Human Resource / Workflow Management / Approval Inbox
+
+Base URL: `api/v1/corporate/human-resource/approval-inbox`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata`, `/summary`, `/` | Metadata saringan, ringkasan, dan daftar pengajuan yang menunggu pengguna | `ApprovalInbox : Read` | Query saringan | Lihat controller |
+
+Frontend memanggil grup ini di alamat yang salah (`HRD-CAP-46`).
+
+### 14.7 Ketidakcocokan frontend dan backend yang baru
+
+| ID | Ketidakcocokan | Sisi yang benar | Catatan |
+| --- | --- | --- | --- |
+| `HRD-MM-06` | Enam layar Workforce Core memanggil `/v1/hr/workforce-core/cross-employee/*` | Backend `api/v1/corporate/human-resource/workforce-core` | `HRD-CAP-28` |
+| `HRD-MM-07` | Layar Perubahan Data memanggil endpoint lintas-pegawai yang tidak ada | Backend `api/v1/corporate/human-resource/employee-profile-changes` | `HRD-CAP-28` |
+| `HRD-MM-08` | Sebelas service HR memakai awalan `/v1/hr/` | Backend `api/v1/corporate/human-resource/...` | `HRD-TF-020` |
+| `HRD-MM-09` | Form Master Data Pegawai masih bisa mengubah unit dan jabatan | Keputusan `HRD-DEC-047` | Frontend dan backend sama-sama perlu disesuaikan |
+
+### 14.8 Pertanyaan penutup
+
+Hanya hal yang tidak dapat dijawab source.
+
+| ID | Pertanyaan | Memblokir | Pemilik |
+| --- | --- | --- | --- |
+| `HRD-TQ-11` | Ke-14 profil yatim: data demo yang boleh dinonaktifkan, atau orang sungguhan yang perlu ditautkan? Setidaknya sebagian dibuat seeder demo kamar operasi | `IMPLEMENTATION` (pembersihan data) | Pemilik database |
+| `HRD-TQ-12` | `HRD-TF-020`: apakah awalan `/v1/hr/` memang disengaja menunggu alias backend, atau kekeliruan frontend? Source backend tidak memuat rencana alias apa pun; `HRD-DEC-016` hanya mengatur alias route master data | `IMPLEMENTATION` (cara perbaikan) | Pemilik teknis |
+
+Hal yang **dapat** diturunkan dari keputusan yang sudah ada dan diserahkan ke
+`design-business-module`, bukan ditanyakan ulang: nasib `NewBaseSalary` pada model promosi dan
+demosi (`HRD-DEC-048` `SALARY_STAYS_SEPARATE`), bentuk satu tabel atau lima tabel dokumen
+peristiwa, dan nasib endpoint ubah-langsung penempatan (`HRD-CAP-31`).
+
+### 14.9 Pemicu impact scan berikutnya
+
+Selain bagian 11, bagian 14 harus di-scan ulang bila:
+
+1. `396c8363` bukan lagi HEAD backend dan perubahannya menyentuh jalur bagian 14.1, atau
+   `Services/Security/OrganizationAuthorizationProjectionService.cs`;
+2. `9c4000724` bukan lagi HEAD frontend dan perubahannya menyentuh `src/lib/services/hr/**` atau
+   `src/components/view/hr/workforce-core/**`;
+3. `HRD-TF-020` diperbaiki, karena status `HRD-CAP-28` dan `HRD-CAP-46` berubah;
+4. `HRD-TQ-11` dijawab dan data profil yatim dibersihkan.
+
+### 14.10 Yang sengaja tidak dilakukan pada scan ini
+
+- Tidak ada source aplikasi yang diubah. `HRD-TF-020` dan seluruh `REPAIR` hanya dicatat.
+- Tidak ada login ke aplikasi. Uji HTTP hanya membedakan alamat yang ada (401) dan yang tidak ada
+  (404).
+- Domain HR di luar Workforce Core tidak di-scan ulang dan ditandai `STALE`.
+- Tidak ada arsitektur target, kontrak target, maupun roadmap yang dibuat.
+
+---
+
+## 15. Impact Scan — HR di luar Workforce Core dan Perencanaan Tenaga Kerja (`S-D1`), 3 November 2026 (revisi `1.3`)
+
+| Field | Nilai |
+| --- | --- |
+| Mode | **Impact scan terbatas**. Seluruh baris `HRD-CAP-01` s.d. `HRD-CAP-27` diklasifikasi dampaknya dari selisih source; audit mendalam hanya untuk `S-D1` dan titik sentuhnya, karena `S-D1` adalah slice berikutnya yang akan dirancang |
+| Pemicu | Bagian 11 butir 1–4 dan bagian 14.9 butir 1–3 seluruhnya terpenuhi: HEAD kedua repository berpindah; registry prefix berubah (`Wfp` didaftarkan); `HRD-Q-05` dijawab untuk `S-D1` lewat `HRD-DEC-059`; `HRD-TF-020` sebagian diperbaiki |
+| Backend | Titik verifikasi bagian 1–13 `e0ee42c` dan bagian 14 `396c8363` → HEAD **`26066c76e69b021f68b63b31bde2258cd9d1bb74`** (branch `MHamzah`). Keduanya leluhur HEAD. Working tree source bersih; yang berubah hanya dokumen blueprint |
+| Frontend | Titik verifikasi bagian 1–13 `fff76a1b39` dan bagian 14 `9c4000724` → HEAD **`66b7e5600e1707e4153ca07981ddef054856c8c9`** (branch `HamzahV2`). Keduanya leluhur HEAD |
+| Masukan bisnis | `00-interview-decisions.md` revisi `17`, bagian 32 (`HRD-DEC-058` s.d. `HRD-DEC-071`) |
+| Contract version | `v6` menurut manifest. Belum ada kontrak `S-D1`; yang berlaku untuk `S-D1` hanya kontrak as-is pada bagian 15.7 |
+| Cara scan | `git diff --name-status` terbatas pada jalur bagian 11, pembacaan statis controller/service/model, dan hitung baris database `QuilvianNewDevHamzah` read-only |
+| Batas tulis | Dokumen ini. Tidak ada source aplikasi, build, migration, maupun penulisan database |
+
+**Singkatan bukti bagian ini.** `BE@26066c7` = `NewQuilvianSystemBackend` commit `26066c76`.
+`FE@66b7e56` = `QuilvianSystemFrontendDev` commit `66b7e5600`.
+
+> **Peringatan data hidup.** Database dev sedang dipakai saat scan berlangsung. Pada 3 November
+> 2026 pagi, `WfpPositionAssignment` berubah dari 0 menjadi 3 baris di antara dua query, karena dua
+> batch penempatan awal dieksekusi. Angka baris pada bagian ini adalah potret saat diperiksa.
+
+### 15.1 Batas scan
+
+| Di-scan | Jalur |
+| --- | --- |
+| Backend — klasifikasi dampak | Seluruh jalur bagian 11 butir 1, ditambah `Services/Security/**` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` |
+| Backend — audit mendalam | `WorkforcePlanning/**`, `RecruitmentManagement/Models/TrxJobRequisition.cs`, `SchedulingManagement/**`, `MasterData/PayrollAndBenefit/**` (grade gaji), `MasterData/Organization/**`, `MasterData/Workforce/**`, `WorkforceCore/**` (penempatan, SK, batch awal), `WorkflowManagement/**`, `Migrations/**` (pola pengaman) |
+| Frontend — klasifikasi dampak | Seluruh jalur bagian 11 butir 2, ditambah `src/lib/services/hr/**` dan `src/components/view/hr/**` |
+| Frontend — audit mendalam | `src/lib/services/hr/**` (awalan alamat API), `src/utils/menu-sidebar/menu-items.jsx`, pencarian layar perencanaan tenaga |
+
+**Tidak diaudit mendalam:** isi perilaku Benefit, Payroll, Lifecycle, Kehadiran, dan Workforce Core
+di luar titik sentuh `S-D1`. Baris-baris itu diberi klasifikasi dampak, bukan dinilai ulang.
+
+### 15.2 Perubahan sejak titik verifikasi terakhir
+
+**Backend `e0ee42c..26066c76`, per domain HR:**
+
+| Domain | Berkas berubah | Yang material | Klasifikasi |
+| --- | ---: | --- | --- |
+| `WorkforceCore` | 27 | Implementasi `S-A1`: SK (`HrdPersonnelActionOrder`), batch penempatan awal, Employee 360, kolom persetujuan dan rujukan SK pada penempatan organisasi/jabatan | `CAPABILITY_IMPACT`, `PERSISTENCE_IMPACT` |
+| `BenefitManagement` | 22 | 4 controller dan 7 service baru | `CAPABILITY_IMPACT`, `PERSISTENCE_IMPACT` |
+| `MasterData` | 18 | Master shift/jadwal, jenis potongan, kunci unit/jabatan pada form Pegawai, profil rumah sakit | `CAPABILITY_IMPACT` |
+| `SchedulingManagement` | 8 | `RosterPeriodController`, `ShiftReplacementController`, `OnCallAssignmentController` baru | `CAPABILITY_IMPACT` |
+| `AttendanceManagement` | 8 | Koreksi kehadiran atas nama pegawai (`HRD-DEC-028`) | `CAPABILITY_IMPACT`, `PERSISTENCE_IMPACT` |
+| `PayrollManagement` | 6 | Restitusi dan potongan cicilan | `CAPABILITY_IMPACT` |
+| `LifecycleManagement` | 4 | `ExitClearanceController` baru | `CAPABILITY_IMPACT` |
+| `Services/Security` | 4 | Proyeksi hak akses unit, validator registry hak akses | `CAPABILITY_IMPACT` |
+| Registry prefix | 1 | Baris `Wfp` = *Workforce Profile* didaftarkan 28 Agustus 2026 | `DECISION_IMPACT` |
+| `WorkforcePlanning`, `RecruitmentManagement`, `LeaveManagement`, `OvertimeManagement`, `LearningAndDevelopment`, `PerformanceManagement`, `CredentialingManagement`, `OccupationalHealthManagement`, `EmployeeRelationManagement`, `HrServiceManagement`, `BusinessTravelManagement`, `ExpenseManagement`, `WorkflowManagement`, `Areas/SelfServices/HumanResource`, `Shared/HumanResource` | **0** | — | `NO_CAPABILITY_IMPACT` |
+
+**Frontend `fff76a1b39..66b7e5600`:** perubahan terbesar ada di `lib/constants/hr` (69 berkas),
+`lib/hooks/hr` (56), `view/hr/master-data` (24), `lib/services/hr` (16), serta route dan view
+`workforce-core` (masing-masing 13). Commit `66b7e5600` menambah dua berkas unit test Workforce Core.
+Tidak ada satu pun route, view, maupun service perencanaan tenaga.
+
+### 15.3 Dampak terhadap baris `HRD-CAP-01` s.d. `HRD-CAP-27`
+
+"Bukti" menyatakan apakah bukti lama bagian 4 masih dapat dipakai. `CURRENT` berarti jalur
+pemiliknya tidak berubah sejak `e0ee42c`/`fff76a1b39`.
+
+| ID | Kebutuhan | Status lama | Status sekarang | Bukti | Alasan |
+| --- | --- | --- | --- | --- | --- |
+| `HRD-CAP-01` | Master data HR | `READY TO REUSE` | `READY TO REUSE` | `STALE` sebagian | Master shift/jadwal, jenis potongan, dan form Pegawai berubah. Master yang dipakai `S-D1` diperiksa ulang pada 15.5 |
+| `HRD-CAP-02` | Profil pegawai dan berkas | `READY TO REUSE` | `READY TO REUSE` | `STALE` | Dicakup ulang bagian 14 dan 15.4 |
+| `HRD-CAP-03` | Menu Administrasi Kepegawaian | `REPAIR` | `REPAIR` | `STALE` | Menu dan route `workforce-core` berubah; tambah temuan `HRD-TF-036` |
+| `HRD-CAP-04` | Kehadiran dan koreksi | `EXTEND` | `EXTEND` | `STALE` | Penambahan koreksi atas nama; tidak ada yang dihapus |
+| `HRD-CAP-05` | Kehadiran layanan mandiri | `REPAIR` | `REPAIR` | `STALE` (FE) | Backend tidak berubah; 5 berkas route layanan mandiri frontend berubah |
+| `HRD-CAP-06` | Konteks pengguna layanan mandiri | `READY TO REUSE` | `READY TO REUSE` | `CURRENT` | — |
+| `HRD-CAP-07` | Cuti, izin, saldo | `EXTEND` | `EXTEND` | `CURRENT` (BE), `STALE` (FE) | Service frontend kini memakai awalan yang benar |
+| `HRD-CAP-08` | Lembur | `EXTEND` | `EXTEND` | `CURRENT` (BE), `STALE` (FE) | Service frontend masih memanggil awalan yang tidak ada — `HRD-TF-035` |
+| `HRD-CAP-09` | Penjadwalan, shift, tukar shift | `EXTEND` | `EXTEND` | `STALE` | Kini 6 controller. `TrxEmergencyStaffingRequest` tetap tanpa controller. Pemeriksaan roster belum membaca standar tenaga — `HRD-CAP-59` |
+| `HRD-CAP-10` | Payroll | `REUSE WITH ADAPTER` | `REUSE WITH ADAPTER` | `STALE` | Penambahan restitusi dan cicilan |
+| `HRD-CAP-11` | Benefit | `MISSING` | **`UNKNOWN`** | `STALE` | `MISSING` **terbantah**: 4 controller dan 7 service baru. Status sebenarnya baru dapat ditetapkan lewat audit penuh |
+| `HRD-CAP-12` | Kredensial dan kewenangan klinis | `EXTEND` | `EXTEND` | `CURRENT` | — |
+| `HRD-CAP-13` | OPPE dan FPPE | `MISSING` | `MISSING` | `CURRENT` | — |
+| `HRD-CAP-14` | Kompetensi dan pelatihan | `EXTEND` | `EXTEND` | `CURRENT` (BE), `STALE` (FE) | Service frontend memanggil awalan yang tidak ada — `HRD-TF-035` |
+| `HRD-CAP-15` | Manajemen kinerja | `EXTEND` | `EXTEND` | `CURRENT` (BE), `STALE` (FE) | Sama |
+| `HRD-CAP-16` | Kesehatan dan keselamatan kerja | `EXTEND` | `EXTEND` | `CURRENT` | — |
+| `HRD-CAP-17` | Lifecycle dan offboarding | `EXTEND` | `EXTEND` | `STALE` | Penambahan exit clearance |
+| `HRD-CAP-18` | Hubungan karyawan dan disiplin | `EXTEND` | `EXTEND` | `CURRENT` (BE domain), `STALE` (FE dan master) | Empat controller master hubungan karyawan di folder konfigurasi berubah (lihat `HRD-TF-004`); service frontend memanggil awalan yang tidak ada |
+| `HRD-CAP-19` | Perencanaan tenaga kerja | `MISSING` | `MISSING` | **`CURRENT`** | Tidak ada perubahan. Dirinci per kebutuhan `S-D1` pada 15.5 |
+| `HRD-CAP-20` | Rekrutmen dan hiring | `MISSING` | `MISSING` | `CURRENT` | — |
+| `HRD-CAP-21` | Layanan HR | `MISSING` | `MISSING` | `CURRENT` | — |
+| `HRD-CAP-22` | Perjalanan dinas | `MISSING` | `MISSING` | `CURRENT` | — |
+| `HRD-CAP-23` | Workflow bersama | `EXTEND` | `EXTEND` | `CURRENT` | — |
+| `HRD-CAP-24` | Antarmuka atasan dan kotak masuk | `MISSING` | **`REPAIR`** | `STALE` | Sudah digantikan `HRD-CAP-46`. Awalan alamat frontend kini benar; belum diuji end-to-end |
+| `HRD-CAP-25` | Layanan mandiri selain kehadiran | `EXTEND` | `EXTEND` | `STALE` (FE) | Service layanan mandiri frontend kini cocok dengan route backend `api/v1/self-services/human-resource/**` |
+| `HRD-CAP-26` | Hak akses dan jejak audit | `READY TO REUSE` | `READY TO REUSE` | `STALE` | Proyeksi hak akses unit dan validator registry hak akses baru |
+| `HRD-CAP-27` | Bukti pengujian | `MISSING` | `MISSING` | `STALE` | Backend: tetap tanpa proyek test HR; satu test kepemilikan benefit menumpang di proyek Pharmacy. Frontend: dua unit test Workforce Core baru |
+
+**Rekap:** 14 baris `CURRENT` (seluruhnya atau di sisi backend), 13 baris `STALE`. Dua status berubah:
+`HRD-CAP-11` menjadi `UNKNOWN` dan `HRD-CAP-24` menjadi `REPAIR`.
+
+### 15.4 Dampak terhadap bagian 14 (`HRD-CAP-28` s.d. `HRD-CAP-47`)
+
+Commit `S-A1` mengubah banyak berkas yang menjadi bukti bagian 14. Yang diperiksa ulang hanya baris
+yang menyangkut keputusan kunci atau titik sentuh `S-D1`. Sisanya **`STALE`** sampai
+`verify-module-readiness` menilai `S-A1`.
+
+| ID | Status bagian 14 | Status sekarang | Bukti | Catatan |
+| --- | --- | --- | --- | --- |
+| `HRD-CAP-28` | `REPAIR` | `REPAIR` — perlu uji ulang | `FE@66b7e56 workforce-core-cross-employee-service.js` memanggil `/v1/corporate/human-resource/workforce-core` dan `/employee-profile-changes` | Awalan sudah benar lewat `PLAN-REPAIR-HRD-001`; tampilan belum diuji |
+| `HRD-CAP-31` | `CONFLICT` | `CONFLICT` | `BE@26066c7` ketiga controller penempatan masih punya 4 endpoint ubah langsung masing-masing, tidak berubah sejak `396c8363` | — |
+| `HRD-CAP-32` | `CONFLICT` | `CONFLICT` — sebagian diperbaiki | `BE@26066c7 MasterData/Workforce/Controllers/EmployeeController.cs:1284` menolak perubahan unit/jabatan utama dan mengarahkan ke SK. `DoctorController` dan `ExternalUserController` **belum** punya kunci serupa; `EnsureWorkforcePrimaryOrganizationAssignmentAsync` masih ada di ketiganya | Pegawai sudah aman; Dokter dan Pengguna Eksternal belum |
+| `HRD-CAP-35` | `MISSING` | `REUSE WITH ADAPTER` untuk `S-D1` | `BE@26066c7 WorkforceCore/Controllers/HrdPersonnelActionOrderController.cs`: buat, ubah, lampiran, ajukan, setujui, tolak, batal; `HrdPersonnelActionOrderService.cs:361-364` menolak pembuat menyetujui SK-nya sendiri | Dipakai `S-D1` sebagai jalan kursi internal (`HRD-CAP-58`). Penilaian penuh `S-A1` tetap pada `verify-module-readiness` |
+| `HRD-CAP-41` | `REPAIR` | `REPAIR` | `WfpSalaryAssignmentController.cs` tidak berubah sejak `396c8363` | Swa-setuju gaji masih mungkin |
+| `HRD-CAP-44` | `MISSING` | **`CONFLICT`** | `BE@26066c7 HrdInitialPlacementBatchController.cs:132-142` hanya punya `POST {id}/execute` dengan hak `Update`; `HrdInitialPlacementBatchService.cs:471` mengisi `ApprovedByUserId` dengan pengguna yang mengeksekusi. Data: 2 batch `Executed`, keduanya pengaju = penyetuju | Lihat `HRD-TF-033`, `HRD-TF-034` |
+| `HRD-CAP-46` | `REPAIR` | `REPAIR` — perlu uji ulang | `FE@66b7e56 approval-inbox-service.js` kini memanggil `/v1/corporate/human-resource/approval-inbox` | Awalan sudah benar |
+| `HRD-CAP-47` | `MISSING` | `MISSING` (BE) | Sama dengan `HRD-CAP-27` | Frontend punya `tests/unit/workforce-core-cross-employee.test.mjs` dan `workforce-core-target-state.test.mjs` |
+
+### 15.5 Kontrak Bukti Kemampuan — Perencanaan Tenaga Kerja (`S-D1`)
+
+Lanjutan penomoran. Setiap baris memetakan satu kebutuhan dari keputusan `HRD-DEC-058` s.d.
+`HRD-DEC-071` ke bukti yang ada hari ini. Seluruh model `WorkforcePlanning` adalah **kandidat**
+menurut `HRD-DEC-004`, bukan jawaban.
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-CAP-48` | Standar kebutuhan tenaga berversi dengan tiga metode (`HRD-DEC-060`) | HR | `BE@26066c7 WorkforcePlanning/Models/MstStaffingStandard.cs` (`StandardType` `FixedHeadcount`/`WorkloadBased`/`RatioBased`/`ServiceCoverage`/`Custom`, `CoverageHoursPerDay`, tanggal berlaku) dan `MstStaffingRatio.cs` (`RoundingMethod`); 0 controller; 0 baris | `MISSING` | Skema kandidat belum punya faktor cadangan, angka beban per periode beserta sumbernya, rujukan pengesahan `T9`, maupun rincian hitung | Sedang |
+| `HRD-CAP-49` | Skill mix minimum per unit/shift sebagai aturan (`HRD-DEC-058`) | HR | `MstShiftSkillRequirement.cs` (`MinimumQualifiedHeadcount`, `CompetencyId`, `MinimumCompetencyLevel`, `IsMandatory`); 0 controller; dirujuk `TrxShiftAssignment.ShiftSkillRequirementId` | `MISSING` | Skema kandidat cukup dekat; perlu berada di bawah versi standar dan pengesahan `T9` | Rendah |
+| `HRD-CAP-50` | Formasi berversi, tidak dapat diedit langsung, bersumber dokumen (`HRD-DEC-062`) | HR | `MstPositionHeadcountPlan.cs` per jabatan per `PlanYear` dengan `PlanStatus` `Draft`/`Proposed`/`Approved`/`Closed`/`Cancelled`; 0 controller; 0 baris | `MISSING` | Kandidat bersiklus status padahal ber-prefix master; tidak ada nomor versi, rujukan dokumen sumber, maupun jaminan satu versi berlaku per tanggal (`HRD-TF-027`) | Sedang |
+| `HRD-CAP-51` | Rencana tahunan terkunci beserta addendum (`HRD-DEC-062`, `HRD-DEC-068`) | HR | `TrxAnnualManpowerPlan.cs` (status `Draft` s.d. `Cancelled`, `WorkflowDefinitionId`, `WorkflowInstanceId`, `ApprovedBudgetAmount`) dan `TrxManpowerPlanDetail.cs`; 0 controller | `MISSING` | Tidak ada konsep addendum maupun rujukan rencana induk | Sedang |
+| `HRD-CAP-52` | Potret gap terkunci saat pengajuan dan bulanan (`HRD-DEC-069`) | HR | `TrxStaffingGapAnalysis.cs` (`RequiredHeadcount`, `AvailableHeadcount`, `OnLeaveHeadcount`, `QualifiedHeadcount`, `GapSeverity`, `AnalysisSource`); 0 controller | `MISSING` | Kandidat belum punya lapisan `HRD-DEC-061` (porsi kerja, akan kosong, rangkap/Plt, alih daya, kelengkapan data), tanggal acuan, maupun rujukan dokumen yang dipotret | Sedang |
+| `HRD-CAP-53` | Tenaga tersedia dari penempatan utama per tanggal, dalam porsi kerja (`HRD-DEC-061`) | 02 Workforce Core | `BE@26066c7 WfpOrganizationAssignment.cs`, `WfpPositionAssignment.cs` kini punya `PersonnelActionOrderId`, `ApprovedByUserId`, `ApprovedAt`; `AssignmentType` jabatan `Substantive`/`Acting`/`Functional`/`Project`/`Temporary`. **Tidak ada kolom porsi kerja.** Data: 55 penempatan organisasi, 3 penempatan jabatan | `EXTEND` | Tambah porsi kerja (bawaan 1) di Workforce Core; isi master jenis tenaga (`MstWorkforceType` hanya 3 nilai `Legacy`) | Sedang |
+| `HRD-CAP-54` | Permintaan headcount dengan sisa kursi, rencana pemenuhan, dan pembatalan per kursi (`HRD-DEC-063`, `HRD-DEC-067`, `HRD-DEC-071`) | HR | `TrxHeadcountRequest.cs` (`RequestType` `Additional`/`Replacement`/`Temporary`/`Project`/`Seasonal`, `RequestedHeadcount`, `ApprovedHeadcount`, `FulfilledAt`, workflow); 0 controller | `MISSING` | Tidak ada tanda "di luar formasi", rujukan orang yang digantikan, rencana pemenuhan luar/internal, status per kursi, maupun tautan ke penempatan yang memenuhi | Sedang |
+| `HRD-CAP-55` | Rantai persetujuan `T9` s.d. `T12` (`HRD-DEC-064`) | Shared platform | `WorkflowManagement` tidak berubah sejak `e0ee42c`; pola pendaftaran jenis rujukan `WorkflowReferenceLifecycleService.cs` dan pola integrasi per domain (`HRD-CAP-36`); kandidat rencana dan permintaan sudah punya `WorkflowDefinitionId`/`WorkflowInstanceId` | `REUSE WITH ADAPTER` | Daftarkan empat jenis rujukan dan definisi alurnya | Rendah |
+| `HRD-CAP-56` | Peran Finance / Anggaran, Direktur, Recruiter (`HRD-DEC-064`, `HRD-DEC-066`) | Administrator | Peran di database dev: `Manajer Finance`, `SuperAdmin`, `Supervisor`, `Supervisor Finance`, `User`. Tidak ada peran HR, Direktur, maupun Recruiter. `Migrations/scripts/be-sec-014-post-seeder-hr-initial-grants.sql` menyebut `Manajer HR` dan `Staff HR`, tetapi berstatus **rancangan, belum dijalankan** | `MISSING` | Pemetaan peran tetap `MAPPING_REQUIRED` (`HRD-DEC-032`). Peran Finance yang sudah ada **MUST NOT** dianggap otomatis sama dengan peran fungsional Finance / Anggaran | Sedang |
+| `HRD-CAP-57` | Direktur yang membawahi unit dari struktur organisasi (`HRD-DEC-064` `DIRECTOR_FROM_ORG_STRUCTURE`) | 01 Master Data | `MasterData/Organization/Models/MstOrganizationUnit.cs`: `ParentOrganizationUnitId`, `UnitType`, `LevelNumber`. Data: 5 unit — 1 `Directorate`, 1 `Department`, 2 `Installation`, 1 `Unit` | `EXTEND` | Hierarki dan jenis direktorat dapat ditelusuri. **Siapa** direktur sebuah direktorat tidak dimodelkan: tidak ada kolom kepala unit | Sedang |
+| `HRD-CAP-58` | Kursi internal dipenuhi lewat SK (`HRD-DEC-067`) | 02 Workforce Core | `HrdPersonnelActionOrderController.cs` (ajukan, setujui, tolak, batal), anti swa-setuju `HrdPersonnelActionOrderService.cs:361-364`; penempatan menyimpan `PersonnelActionOrderId` | `REUSE WITH ADAPTER` | Perlu tautan SK atau penempatannya ke kursi permintaan headcount | Rendah |
+| `HRD-CAP-59` | Penjadwalan memeriksa roster terhadap standar dan mengirim ringkasan kekurangan (`HRD-DEC-058`) | 06 Penjadwalan | `SchedulingManagement/Controllers/RosterPeriodController.cs` punya `validate`, `publish`, `close`; `RosterPeriodService.cs:479-487` hanya memeriksa jeda istirahat minimum. Tidak ada rujukan ke `MstStaffingStandard`, `MstShiftSkillRequirement`, maupun `TrxDailyStaffingRequirement`. `TrxEmergencyStaffingRequest` tanpa controller | `MISSING` | Dirancang pada sisi Penjadwalan; `S-D1` hanya menyediakan kontrak baca standar | Sedang |
+| `HRD-CAP-60` | Biaya dari gaji tengah grade (`HRD-DEC-065`) | 01 Master Data | `MasterData/PayrollAndBenefit/Models/MstSalaryGrade.cs` (`MinimumSalary`, `MidpointSalary`, `MaximumSalary`, tanggal berlaku, `EmployeeGradeId`); `SalaryGradeController` (`SalaryGrade : Read`); tidak berubah sejak `e0ee42c`; 5 baris | `READY TO REUSE` | Baca saja | Rendah |
+| `HRD-CAP-61` | Batch formasi awal yang disetujui sekali, berdokumen sumber (`HRD-DEC-070`) | HR | Pola batch `HrdInitialPlacementBatch` (template, validasi, buat, eksekusi) dan lampiran `HrdPersonnelActionOrderAttachment` | `REUSE WITH ADAPTER` | **Jangan meniru cacat `HRD-TF-033`.** Batch formasi wajib punya langkah persetujuan oleh orang lain lewat `T10` dan lampiran wajib | Sedang |
+| `HRD-CAP-62` | Pengaman tabel kosong pada migration (`HRD-DEC-059` `EMPTY_TABLE_GUARD`) | HR | Preseden `Migrations/20260902072756_DropTableMstBillingCategory.cs:36-42, 74-80`: blok `DO $$ … IF EXISTS (…) THEN RAISE EXCEPTION … END IF; $$` sebelum membuang tabel | `READY TO REUSE` | Pola ditiru per tabel `WorkforcePlanning` | Rendah |
+| `HRD-CAP-63` | Requisition merujuk permintaan headcount (`HRD-DEC-066`) | 04 Rekrutmen | `RecruitmentManagement/Models/TrxJobRequisition.cs:21-23, 97` (`HeadcountRequestId`, `AnnualManpowerPlanId`, `ManpowerPlanDetailId`); 0 controller | `MISSING` | `S-D2` `BLOCKED`; sementara tautan manual dari penempatan ke permintaan | Sedang |
+| `HRD-CAP-64` | Pemisahan "persyaratan berkas" dari "kebutuhan jumlah tenaga" | 01 Master Data | `MstWorkforceRequirement` dilayani `WorkforceRequirementController` (kategori `Document`, `License`, `ClinicalPrivilege`, …); menu `FE@66b7e56 menu-items.jsx:251` berlabel **"Kebutuhan Tenaga Kerja"** | `CONFLICT` | Label menu tabrakan dengan sub-modul 03. Lihat `HRD-TF-036` | Sedang |
+| `HRD-CAP-65` | Layar perencanaan tenaga | HR | `FE@66b7e56`: tidak ada route, view, service, maupun item menu perencanaan tenaga | `MISSING` | — | Rendah |
+| `HRD-CAP-66` | Prefix dan registry untuk entity `S-D1` baru (`HRD-DEC-019`) | Registry | `BE@26066c7 docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:11` `Human Resource` / `Hrd`; `:12` `WorkforceCore / WorkforceProfileManagement` / `Wfp`; `:103` submodule HR lain yang memuat `Wfp*` diperlakukan legacy. Tidak ada baris khusus `WorkforcePlanning` | `UNKNOWN` | Belum terbukti apakah checker `tooling/qbe/Invoke-QbeConformanceCheck.ps1` mencocokkan `Areas/Corporate/HumanResource/WorkforcePlanning/` ke baris `Human Resource` / `Hrd`, atau menuntut baris tersendiri (`QBE-MOD-003`). Lihat `HRD-TQ-13` | Sedang |
+
+### 15.6 Temuan baru yang perlu tindakan
+
+#### `HRD-TF-033` — Batch penempatan awal disetujui sendiri oleh pengeksekusinya
+
+| Field | Isi |
+| --- | --- |
+| Bukti | `BE@26066c7 WorkforceCore/Controllers/HrdInitialPlacementBatchController.cs:132-142` — satu-satunya transisi adalah `POST {id}/execute` dengan hak `HrdInitialPlacementBatch : Update`. `WorkforceCore/Services/HrdInitialPlacementBatchService.cs:470-472` mengisi `BatchStatus = "Executed"`, `ApprovedByUserId = userId`, `ApprovedAt = now` tanpa membandingkan dengan pengaju. Data dev 3 November 2026: `BATCH-INIT-20261103-0001` dan `-0002`, keduanya **pengaju = penyetuju** |
+| Dampak | Bertentangan dengan `HRD-DEC-031` (penyetuju ≠ pembuat) dan `HRD-DEC-054` (batch disetujui sekali). Bandingkan dengan SK, yang sudah menolak swa-setuju (`HrdPersonnelActionOrderService.cs:361-364`) |
+| Klasifikasi | `CONFLICT` — milik `S-A1`, bukan `S-D1` |
+| Tindak lanjut | `diagnose-module-issue` untuk `S-A1`; tinjau ulang tanda selesai task batch pada roadmap (`HRD-TF-011`) |
+
+#### `HRD-TF-034` — Batch dengan baris gagal tetap dieksekusi dan dilaporkan sukses
+
+| Field | Isi |
+| --- | --- |
+| Bukti | Data dev: `BATCH-INIT-20261103-0001` tercatat `TotalRows 1`, `ValidatedRows 0`, `FailedRows 1`, tetapi `BatchStatus Executed` dengan ringkasan "Sukses menerapkan penempatan awal untuk 1 pegawai."; barisnya bertanda `IsValid = true`. `HrdInitialPlacementBatchService.cs:332-335` hanya menolak batch yang sudah `Executed` |
+| Dampak | Hitungan validasi dan hasil eksekusi tidak dapat dipercaya. Untuk `S-D1`, angka **terisi** bergantung pada penempatan hasil batch ini |
+| Klasifikasi | `REPAIR` — milik `S-A1` |
+| Tindak lanjut | Sama dengan `HRD-TF-033` |
+
+#### `HRD-TF-035` — Empat service HR frontend masih memanggil awalan API yang tidak ada
+
+| Field | Isi |
+| --- | --- |
+| Bukti | `FE@66b7e56 src/lib/services/hr/`: `employee-relations-service.js` (`/v1/hr/workforce-profile/disciplinary-actions`), `learning-development-service.js` (`/v1/hr/workforce-profile`), `overtime-admin-service.js` (`/v1/hr/overtime`), `performance-management-service.js` (`/v1/hr/workforce-profile/performance-reviews`). `BE@26066c7`: 0 route berawalan `api/v1/hr`; padanan backend ada di `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/...` dan `.../overtime-management/...` |
+| Dampak | Lanjutan `HRD-TF-020`. Dua belas service lain sudah diperbaiki lewat `PLAN-REPAIR-HRD-001`; empat ini belum, sehingga layar disiplin, pelatihan, lembur admin, dan kinerja kemungkinan masih gagal memuat |
+| Klasifikasi | `REPAIR` — lintas sub-modul, di luar `S-D1` |
+| Tindak lanjut | Lanjutkan `PLAN-REPAIR-HRD-001` lewat `diagnose-module-issue` |
+
+#### `HRD-TF-036` — Menu "Kebutuhan Tenaga Kerja" membuka master persyaratan berkas
+
+| Field | Isi |
+| --- | --- |
+| Bukti | `FE@66b7e56 src/utils/menu-sidebar/menu-items.jsx:251-254`: label "Kebutuhan Tenaga Kerja", key `corporateWorkforceRequirement`, tujuan `/hr/master-data/workforce-requirement`, yaitu master `MstWorkforceRequirement` (`HRD-TF-023`) |
+| Dampak | Begitu sub-modul 03 punya layar, pengguna akan melihat dua menu bermakna "kebutuhan tenaga" dengan isi yang sama sekali berbeda |
+| Klasifikasi | `CONFLICT` penamaan — pengubahan label adalah keputusan UI, bukan keputusan skill ini |
+| Tindak lanjut | Diputuskan saat desain frontend `S-D1` (`03-frontend-architecture.md`), dengan pengguna sebagai pemilik keputusan UI |
+
+#### `HRD-TF-037` — `Wfp` sudah terdaftar di registry, sehingga `HRD-DEP-001` dan `HRD-TF-002` usang
+
+| Field | Isi |
+| --- | --- |
+| Bukti | `BE@26066c7 docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:12, 52, 97-103, 122` — baris `Wfp` = *Workforce Profile* didaftarkan 28 Agustus 2026 |
+| Dampak | `01-prerequisite-readiness.md` `HRD-DEP-001` masih berstatus `REPAIR` dengan alasan "`Wfp` belum terdaftar", dan `HRD-TF-002` bagian 5 menyatakan 40 entity memakai prefix tidak terdaftar. Keduanya tidak lagi sesuai source |
+| Klasifikasi | Bukti untuk pembaruan status, bukan keputusan baru |
+| Tindak lanjut | `manage-module-blueprint` memperbarui `HRD-DEP-001` dengan bukti ini |
+
+### 15.7 Kontrak as-is yang disentuh `S-D1`
+
+Hanya endpoint yang akan dibaca atau ditiru `S-D1`. Seluruhnya ada pada `BE@26066c7`.
+
+#### Corporate / Human Resource / Master Data / Salary Grade
+
+| Metode | Path | Hak akses | Dipakai `S-D1` untuk |
+| --- | --- | --- | --- |
+| `GET` | `api/v1/corporate/human-resource/master-data/salary-grades` | `SalaryGrade : Read` | Mengambil gaji tengah grade untuk estimasi biaya (`HRD-DEC-065`) |
+| `GET` | `api/v1/corporate/human-resource/master-data/salary-grades/options` | `SalaryGrade : Read` | Pilihan grade pada baris rencana dan permintaan |
+| `GET` | `api/v1/corporate/human-resource/master-data/salary-grades/{id}` | `SalaryGrade : Read` | Detail satu grade |
+
+#### Corporate / Human Resource / Master Data / Workforce Requirement
+
+| Metode | Path | Hak akses | Catatan |
+| --- | --- | --- | --- |
+| `GET`, `POST`, `PUT`, `PATCH`, `DELETE` | `api/v1/corporate/human-resource/master-data/workforce-requirements/**` | `WorkforceRequirement : *` | Master persyaratan berkas. **`S-D1` MUST NOT memakainya** sebagai sumber kebutuhan jumlah tenaga (`HRD-TF-023`) |
+
+#### Corporate / Human Resource / Workforce Core / Personnel Action Order
+
+| Metode | Path | Hak akses | Dipakai `S-D1` untuk |
+| --- | --- | --- | --- |
+| `POST` | `api/v1/corporate/human-resource/personnel-action-orders` | `HrdPersonnelActionOrder : Create` | Membuat SK mutasi untuk kursi internal |
+| `POST` | `api/v1/corporate/human-resource/personnel-action-orders/{id}/submit` | `HrdPersonnelActionOrder : Update` | Mengajukan SK |
+| `POST` | `api/v1/corporate/human-resource/personnel-action-orders/{id}/approve` | `HrdPersonnelActionOrder : Update` | Menyetujui SK — menolak pembuatnya sendiri |
+| `POST` | `api/v1/corporate/human-resource/personnel-action-orders/{id}/cancel-request` | `HrdPersonnelActionOrder : Update` | Pembatalan SK sebelum berlaku (`HRD-DEC-057`); memicu perubahan rencana pemenuhan `HRD-DEC-067` |
+
+#### Corporate / Human Resource / Workforce Core / Initial Placement Batch
+
+| Metode | Path | Hak akses | Dipakai `S-D1` untuk |
+| --- | --- | --- | --- |
+| `GET` | `api/v1/corporate/human-resource/workforce-core/initial-batches/template` | `HrdInitialPlacementBatch : Read` | Pola templat impor batch formasi awal |
+| `POST` | `api/v1/corporate/human-resource/workforce-core/initial-batches/validate` | `HrdInitialPlacementBatch : Read` | Pola validasi baris sebelum disimpan |
+| `POST` | `api/v1/corporate/human-resource/workforce-core/initial-batches/{id}/execute` | `HrdInitialPlacementBatch : Update` | **Tidak ditiru** — tanpa langkah persetujuan (`HRD-TF-033`) |
+
+#### Corporate / Human Resource / Scheduling Management / Roster Periods
+
+| Metode | Path | Hak akses | Titik sentuh dengan `S-D1` |
+| --- | --- | --- | --- |
+| `POST` | `api/v1/corporate/human-resource/scheduling-management/roster-periods/{id}/validate` | `RosterPeriod : Update` | Tempat Penjadwalan kelak membaca standar `S-D1` (`HRD-CAP-59`) |
+| `POST` | `api/v1/corporate/human-resource/scheduling-management/roster-periods/{id}/publish` | `RosterPeriod : Update` | Sama |
+
+### 15.8 Ketidakcocokan frontend dan backend yang baru
+
+| ID | Frontend | Backend | Akibat |
+| --- | --- | --- | --- |
+| `HRD-TF-035` | Empat service memanggil `/v1/hr/...` | Route sebenarnya `api/v1/corporate/human-resource/...` | Layar terkait gagal memuat |
+| `HRD-TF-036` | Label menu "Kebutuhan Tenaga Kerja" | Master persyaratan berkas | Makna menu menyesatkan |
+
+### 15.9 Pertanyaan penutup
+
+Hanya hal yang tidak dapat dijawab source.
+
+| ID | Pertanyaan | Memblokir | Pemilik |
+| --- | --- | --- | --- |
+| `HRD-TQ-13` | Untuk entity `Hrd*` baru di folder `WorkforcePlanning`, cukupkah baris registry `Human Resource` / `Hrd`, atau perlu baris tersendiri sesuai `QBE-MOD-003`? | `IMPLEMENTATION` — sebelum file model pertama dibuat | Pemilik registry backend |
+| `HRD-TQ-14` | Siapa yang dianggap direktur sebuah direktorat: pemegang jabatan tertentu pada unit `Directorate`, atau kolom kepala unit baru? (`HRD-CAP-57`) | `DESIGN` untuk `DIRECTOR_FROM_ORG_STRUCTURE` | Pengguna |
+| `HRD-TQ-15` | Dua batch penempatan awal yang sudah dieksekusi dengan swa-setuju (`HRD-TF-033`) — dibiarkan sebagai data dev, atau diulang dengan persetujuan yang benar? | `IMPLEMENTATION` (data `S-A1`) | Pengguna / pemilik database |
+
+**Ditutup oleh bukti:** `HRD-TQ-12` — awalan `/v1/hr/` ternyata kekeliruan frontend. `PLAN-REPAIR-HRD-001`
+memperbaikinya di dua belas service (`approval-inbox-service.js` baris 4 menyebut `FIX-HRD-001-05`);
+empat sisanya dicatat `HRD-TF-035`.
+
+### 15.10 Pemicu impact scan berikutnya
+
+1. `26066c76` bukan lagi HEAD backend, dan perubahannya menyentuh jalur bagian 11 atau 15.1.
+2. `66b7e5600` bukan lagi HEAD frontend, dan perubahannya menyentuh jalur bagian 11 butir 2 atau
+   `src/lib/services/hr/**`.
+3. Desain `S-D1` ditulis. Baris `HRD-CAP-48` s.d. `HRD-CAP-66` dinilai ulang terhadap desain itu.
+4. `EMPTY_TABLE_GUARD` berhenti di lingkungan mana pun (`HRD-DEC-059`).
+5. `HRD-TF-033` s.d. `HRD-TF-035` diperbaiki.
+
+### 15.11 Yang sengaja tidak dilakukan pada scan ini
+
+- Tidak ada source aplikasi yang diubah. Seluruh `REPAIR` dan `CONFLICT` hanya dicatat.
+- Perilaku Benefit, Payroll, Lifecycle, dan Kehadiran tidak diaudit ulang; hanya diberi klasifikasi
+  dampak.
+- Klaim selesai `S-A1` tidak dinilai. Itu pekerjaan `verify-module-readiness`.
+- Checker QBE tidak dijalankan.
+- Tidak ada arsitektur target, kontrak target, maupun roadmap yang dibuat.
