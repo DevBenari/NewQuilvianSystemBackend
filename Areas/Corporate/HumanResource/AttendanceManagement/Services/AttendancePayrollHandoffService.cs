@@ -4,7 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.C
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Data;
 using System.Text.Json;
@@ -77,7 +77,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 TerminalPayrollRunStatuses = AttendancePayrollHandoffValueConstants.TerminalPayrollRunStatuses.ToList(),
-                HandoffRuleInfo = "Handoff hanya membuat atau memperbarui snapshot TrxPayrollAttendanceInput untuk employee yang sudah tersedia di payroll run.",
+                HandoffRuleInfo = "Handoff hanya membuat atau memperbarui snapshot PrlPayrollAttendanceInput untuk employee yang sudah tersedia di payroll run.",
                 LockRuleInfo = "Attendance daily dikunci setelah snapshot berhasil dibuat. MstPayrollPeriod tidak dikunci oleh endpoint ini karena lock periode payroll merupakan kewenangan proses finalisasi payroll."
             };
         }
@@ -90,7 +90,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             take = take <= 0 ? 100 : Math.Min(take, MaximumOptionTake);
 
             var query =
-                from run in _dbContext.Set<TrxPayrollRun>().AsNoTracking()
+                from run in _dbContext.Set<PrlPayrollRun>().AsNoTracking()
                 join period in _dbContext.Set<MstPayrollPeriod>().AsNoTracking()
                     on run.PayrollPeriodId equals period.Id
                 where !run.IsDelete && run.IsActive && !period.IsDelete && period.IsActive
@@ -189,13 +189,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 x.PayrollPeriodId.HasValue && x.PayrollPeriodId != context.Period.Id,
                 cancellationToken);
 
-            var inputQuery = _dbContext.Set<TrxPayrollAttendanceInput>()
+            var inputQuery = _dbContext.Set<PrlPayrollAttendanceInput>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && queries.PayrollRunEmployeeIds.Contains(x.PayrollRunEmployeeId));
 
             var distinctImportedEmployeeCount = await (
                     from input in inputQuery
-                    join runEmployee in _dbContext.Set<TrxPayrollRunEmployee>().AsNoTracking()
+                    join runEmployee in _dbContext.Set<PrlPayrollRunEmployee>().AsNoTracking()
                         on input.PayrollRunEmployeeId equals runEmployee.Id
                     select runEmployee.WorkforceProfileId)
                 .Distinct()
@@ -375,7 +375,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 var support = await LoadSupportDataAsync(context, targets, cancellationToken, trackingInputs: true);
                 var startedAt = DateTime.UtcNow;
                 var executionItems = new List<AttendancePayrollHandoffExecutionItemResponse>(targets.Count);
-                var validItems = new List<(HrdAttendanceDaily Daily, TrxPayrollRunEmployee RunEmployee, TrxPayrollAttendanceInput? ExistingInput)>();
+                var validItems = new List<(HrdAttendanceDaily Daily, PrlPayrollRunEmployee RunEmployee, PrlPayrollAttendanceInput? ExistingInput)>();
 
                 foreach (var daily in targets)
                 {
@@ -457,7 +457,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         continue;
                     }
 
-                    var input = existingInput ?? new TrxPayrollAttendanceInput
+                    var input = existingInput ?? new PrlPayrollAttendanceInput
                     {
                         Id = Guid.NewGuid(),
                         PayrollRunEmployeeId = item.RunEmployee.Id,
@@ -471,7 +471,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
                     if (existingInput == null)
                     {
-                        _dbContext.Set<TrxPayrollAttendanceInput>().Add(input);
+                        _dbContext.Set<PrlPayrollAttendanceInput>().Add(input);
                     }
 
                     daily.PayrollPeriodId = context.Period.Id;
@@ -573,7 +573,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             }
 
             var context = contextResult.Context;
-            var runEmployees = await _dbContext.Set<TrxPayrollRunEmployee>()
+            var runEmployees = await _dbContext.Set<PrlPayrollRunEmployee>()
                 .AsNoTracking()
                 .Where(x => x.PayrollRunId == payrollRunId && !x.IsDelete)
                 .Select(x => new { x.Id, x.WorkforceProfileId })
@@ -590,7 +590,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     x.IsLocked)
                 .ToListAsync(cancellationToken);
 
-            var inputRows = await _dbContext.Set<TrxPayrollAttendanceInput>()
+            var inputRows = await _dbContext.Set<PrlPayrollAttendanceInput>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && runEmployeeIds.Contains(x.PayrollRunEmployeeId))
                 .ToListAsync(cancellationToken);
@@ -767,11 +767,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             }
 
             var context = contextResult.Context;
-            var runEmployeeIds = _dbContext.Set<TrxPayrollRunEmployee>()
+            var runEmployeeIds = _dbContext.Set<PrlPayrollRunEmployee>()
                 .Where(x => x.PayrollRunId == payrollRunId && !x.IsDelete)
                 .Select(x => x.Id);
 
-            var importedDailyIds = _dbContext.Set<TrxPayrollAttendanceInput>()
+            var importedDailyIds = _dbContext.Set<PrlPayrollAttendanceInput>()
                 .Where(x => !x.IsDelete &&
                             runEmployeeIds.Contains(x.PayrollRunEmployeeId) &&
                             x.AttendanceDailyId.HasValue)
@@ -793,7 +793,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             if (request.RefreshChangedInput)
             {
-                var inputRows = await _dbContext.Set<TrxPayrollAttendanceInput>()
+                var inputRows = await _dbContext.Set<PrlPayrollAttendanceInput>()
                     .AsNoTracking()
                     .Where(x => !x.IsDelete &&
                                 runEmployeeIds.Contains(x.PayrollRunEmployeeId) &&
@@ -894,12 +894,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         "Rollback tidak diizinkan karena payroll run atau payroll period sudah dikunci/final.");
                 }
 
-                var runEmployeeIds = await _dbContext.Set<TrxPayrollRunEmployee>()
+                var runEmployeeIds = await _dbContext.Set<PrlPayrollRunEmployee>()
                     .Where(x => x.PayrollRunId == payrollRunId && !x.IsDelete)
                     .Select(x => x.Id)
                     .ToListAsync(cancellationToken);
 
-                var inputQuery = _dbContext.Set<TrxPayrollAttendanceInput>()
+                var inputQuery = _dbContext.Set<PrlPayrollAttendanceInput>()
                     .Where(x => !x.IsDelete && runEmployeeIds.Contains(x.PayrollRunEmployeeId));
 
                 if (request.AttendanceDailyIds != null && request.AttendanceDailyIds.Count > 0)
@@ -954,7 +954,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     .Where(x => dailyIds.Contains(x.Id) && !x.IsDelete)
                     .ToListAsync(cancellationToken);
 
-                var stillReferencedDailyIds = await _dbContext.Set<TrxPayrollAttendanceInput>()
+                var stillReferencedDailyIds = await _dbContext.Set<PrlPayrollAttendanceInput>()
                     .AsNoTracking()
                     .Where(x =>
                         !x.IsDelete &&
@@ -1024,7 +1024,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return ContextLoadResult.Fail(StatusCodes.Status400BadRequest, "PayrollRunId wajib diisi.");
             }
 
-            IQueryable<TrxPayrollRun> runQuery = _dbContext.Set<TrxPayrollRun>();
+            IQueryable<PrlPayrollRun> runQuery = _dbContext.Set<PrlPayrollRun>();
             IQueryable<MstPayrollPeriod> periodQuery = _dbContext.Set<MstPayrollPeriod>();
             if (!tracking)
             {
@@ -1072,14 +1072,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private ReadinessQueries BuildReadinessQueries(PayrollRunContext context)
         {
-            var runEmployees = _dbContext.Set<TrxPayrollRunEmployee>()
+            var runEmployees = _dbContext.Set<PrlPayrollRunEmployee>()
                 .AsNoTracking()
                 .Where(x => x.PayrollRunId == context.Run.Id && !x.IsDelete);
 
             var runEmployeeIds = runEmployees.Select(x => x.Id);
             var runWorkforceProfileIds = runEmployees.Select(x => x.WorkforceProfileId);
 
-            var eligiblePayrollProfileIds = _dbContext.Set<WfpPayroll>()
+            var eligiblePayrollProfileIds = _dbContext.Set<PrlPayroll>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.IsPayrollEligible)
                 .Select(x => x.WorkforceProfileId);
@@ -1095,7 +1095,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     x.ExceptionStatus != "Waived")
                 .Select(x => x.AttendanceDailyId);
 
-            var importedDailyIds = _dbContext.Set<TrxPayrollAttendanceInput>()
+            var importedDailyIds = _dbContext.Set<PrlPayrollAttendanceInput>()
                 .AsNoTracking()
                 .Where(x =>
                     !x.IsDelete &&
@@ -1287,14 +1287,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 .ToList();
             var dailyIds = dailies.Select(x => x.Id).Distinct().ToList();
 
-            var runEmployees = await _dbContext.Set<TrxPayrollRunEmployee>()
+            var runEmployees = await _dbContext.Set<PrlPayrollRunEmployee>()
                 .Where(x =>
                     x.PayrollRunId == context.Run.Id &&
                     workforceIds.Contains(x.WorkforceProfileId) &&
                     !x.IsDelete)
                 .ToListAsync(cancellationToken);
 
-            var payrollProfiles = await _dbContext.Set<WfpPayroll>()
+            var payrollProfiles = await _dbContext.Set<PrlPayroll>()
                 .AsNoTracking()
                 .Where(x => workforceIds.Contains(x.WorkforceProfileId) && !x.IsDelete)
                 .ToListAsync(cancellationToken);
@@ -1312,7 +1312,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 .ToListAsync(cancellationToken);
 
             var runEmployeeIds = runEmployees.Select(x => x.Id).ToList();
-            IQueryable<TrxPayrollAttendanceInput> inputQuery = _dbContext.Set<TrxPayrollAttendanceInput>()
+            IQueryable<PrlPayrollAttendanceInput> inputQuery = _dbContext.Set<PrlPayrollAttendanceInput>()
                 .Where(x => !x.IsDelete && runEmployeeIds.Contains(x.PayrollRunEmployeeId));
             if (!trackingInputs)
             {
@@ -1404,7 +1404,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             support.BlockingExceptionsByDailyId.TryGetValue(daily.Id, out var blockingExceptions);
             support.InputByAttendanceDailyId.TryGetValue(daily.Id, out var inputByDaily);
 
-            TrxPayrollAttendanceInput? existingInput = inputByDaily;
+            PrlPayrollAttendanceInput? existingInput = inputByDaily;
             if (existingInput == null && runEmployee != null)
             {
                 support.InputByRunEmployeeAndDate.TryGetValue(
@@ -1479,7 +1479,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 result.Status = AttendancePayrollHandoffValueConstants.ReadinessStatus.MissingPayrollRunEmployee;
                 result.Reasons.Add(Reason(
                     AttendancePayrollHandoffValueConstants.ReasonCode.MissingPayrollRunEmployee,
-                    "Workforce belum tersedia pada TrxPayrollRunEmployee untuk payroll run ini."));
+                    "Workforce belum tersedia pada PrlPayrollRunEmployee untuk payroll run ini."));
                 return result;
             }
 
@@ -1519,7 +1519,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return result;
         }
 
-        private static bool IsPayrollProfileEffective(WfpPayroll? payrollProfile, DateOnly attendanceDate)
+        private static bool IsPayrollProfileEffective(PrlPayroll? payrollProfile, DateOnly attendanceDate)
         {
             if (payrollProfile == null || payrollProfile.IsDelete || !payrollProfile.IsActive || !payrollProfile.IsPayrollEligible)
             {
@@ -1541,7 +1541,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static void ApplySnapshot(
-            TrxPayrollAttendanceInput input,
+            PrlPayrollAttendanceInput input,
             HrdAttendanceDaily daily,
             Guid payrollRunEmployeeId,
             Guid actorUserId,
@@ -1630,7 +1630,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private static bool HasSnapshotChanged(
             HrdAttendanceDaily daily,
-            TrxPayrollAttendanceInput input)
+            PrlPayrollAttendanceInput input)
         {
             return input.AttendanceDailyId != daily.Id ||
                    input.AttendanceDate != daily.AttendanceDate ||
@@ -1663,14 +1663,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 AttendanceStatus = daily.AttendanceStatus,
                 IsAttendanceCorrected = daily.IsCorrected,
                 AttendanceUpdatedAt = daily.UpdateDateTime,
-                Message = "Attendance ditandai sudah diproses payroll tetapi snapshot TrxPayrollAttendanceInput tidak ditemukan.",
+                Message = "Attendance ditandai sudah diproses payroll tetapi snapshot PrlPayrollAttendanceInput tidak ditemukan.",
                 SuggestedAction = "Jalankan endpoint repair atau execute untuk attendance ini."
             };
         }
 
         private static AttendancePayrollHandoffReconciliationItemResponse BuildChangedInputIssue(
             HrdAttendanceDaily daily,
-            TrxPayrollAttendanceInput input)
+            PrlPayrollAttendanceInput input)
         {
             return new AttendancePayrollHandoffReconciliationItemResponse
             {
@@ -1695,7 +1695,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static AttendancePayrollHandoffReconciliationItemResponse BuildOrphanInputIssue(
-            TrxPayrollAttendanceInput input,
+            PrlPayrollAttendanceInput input,
             IReadOnlyDictionary<Guid, Guid> runEmployeeProfileMap)
         {
             runEmployeeProfileMap.TryGetValue(input.PayrollRunEmployeeId, out var workforceProfileId);
@@ -1718,7 +1718,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private static AttendancePayrollHandoffReconciliationItemResponse BuildOutsidePeriodIssue(
             HrdAttendanceDaily daily,
-            TrxPayrollAttendanceInput input)
+            PrlPayrollAttendanceInput input)
         {
             return new AttendancePayrollHandoffReconciliationItemResponse
             {
@@ -1846,7 +1846,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private sealed class PayrollRunContext
         {
-            public TrxPayrollRun Run { get; set; } = null!;
+            public PrlPayrollRun Run { get; set; } = null!;
             public MstPayrollPeriod Period { get; set; } = null!;
             public DateOnly StartDate { get; set; }
             public DateOnly EndDate { get; set; }
@@ -1891,11 +1891,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private sealed class SupportData
         {
-            public Dictionary<Guid, TrxPayrollRunEmployee> RunEmployeeByWorkforceProfileId { get; set; } = new();
-            public Dictionary<Guid, WfpPayroll> PayrollProfileByWorkforceProfileId { get; set; } = new();
+            public Dictionary<Guid, PrlPayrollRunEmployee> RunEmployeeByWorkforceProfileId { get; set; } = new();
+            public Dictionary<Guid, PrlPayroll> PayrollProfileByWorkforceProfileId { get; set; } = new();
             public Dictionary<Guid, List<HrdAttendanceException>> BlockingExceptionsByDailyId { get; set; } = new();
-            public Dictionary<Guid, TrxPayrollAttendanceInput> InputByAttendanceDailyId { get; set; } = new();
-            public Dictionary<(Guid PayrollRunEmployeeId, DateOnly AttendanceDate), TrxPayrollAttendanceInput> InputByRunEmployeeAndDate { get; set; } = new();
+            public Dictionary<Guid, PrlPayrollAttendanceInput> InputByAttendanceDailyId { get; set; } = new();
+            public Dictionary<(Guid PayrollRunEmployeeId, DateOnly AttendanceDate), PrlPayrollAttendanceInput> InputByRunEmployeeAndDate { get; set; } = new();
         }
 
         private sealed class ReadinessEvaluation
@@ -1903,9 +1903,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public bool IsReady { get; set; }
             public string Status { get; set; } = AttendancePayrollHandoffValueConstants.ReadinessStatus.Ready;
             public int BlockingExceptionCount { get; set; }
-            public TrxPayrollRunEmployee? RunEmployee { get; set; }
-            public WfpPayroll? PayrollProfile { get; set; }
-            public TrxPayrollAttendanceInput? ExistingInput { get; set; }
+            public PrlPayrollRunEmployee? RunEmployee { get; set; }
+            public PrlPayroll? PayrollProfile { get; set; }
+            public PrlPayrollAttendanceInput? ExistingInput { get; set; }
             public List<AttendancePayrollHandoffReadinessReasonResponse> Reasons { get; set; } = new();
         }
     }

@@ -15,7 +15,8 @@ public sealed class PayrollFinanceHandoffRequest
 
 /// <summary>
 /// Hasil pengiriman instruksi pembayaran ke Finance. Instruksi dibuat satu per penerima (nominal = gaji bersih setelah cicilan) dan
-/// berstatus Scheduled; BELUM berarti dibayar. Status Paid hanya lahir dari ACK hasil bank oleh Finance.
+/// berstatus Scheduled; BELUM berarti dibayar. Status Paid lahir dari ACK: hasil bank yang dikirim Finance, atau (PAY-BE-11) konfirmasi
+/// manual oleh petugas berwenang selama belum ada koneksi bank (sumber MANUAL, lihat <see cref="PayrollPaymentAcknowledgeRequest"/>).
 /// </summary>
 public sealed class PayrollFinanceHandoffResponse
 {
@@ -101,6 +102,15 @@ public sealed class PayrollPaymentAcknowledgeRequest
 {
     /// <summary>Kunci korelasi/idempotensi dari Finance untuk satu pengiriman hasil (dicatat pada audit).</summary>
     [MaxLength(150)] public string? IdempotencyKey { get; set; }
+
+    /// <summary>
+    /// Sumber konfirmasi untuk SELURUH item dalam kiriman ini (PAY-BE-11): <c>FINANCE_ACK</c> (hasil bank dari Finance, bawaan bila
+    /// kosong) atau <c>MANUAL</c> (konfirmasi manual petugas berwenang selama belum ada koneksi bank). Tidak peka huruf besar-kecil.
+    /// Nilai lain ditolak (400) sebelum data berubah. Dicatat pada audit dan catatan persetujuan run; untuk item Paid hasil MANUAL,
+    /// <c>Notes</c> instruksi diisi "Dikonfirmasi manual (bukan hasil bank)" bila masih kosong.
+    /// </summary>
+    [MaxLength(20)] public string? ConfirmationSource { get; set; }
+
     public Guid? FinancePaymentBatchId { get; set; }
     [Required, MinLength(1), MaxLength(500)] public List<PayrollPaymentAcknowledgeItem> Items { get; set; } = new();
 }
@@ -119,6 +129,9 @@ public sealed class PayrollPaymentAcknowledgeResponse
 {
     public Guid PayrollRunId { get; set; }
     public string RunStatus { get; set; } = string.Empty;
+
+    /// <summary>Gema sumber konfirmasi yang dipakai (<c>FINANCE_ACK</c> atau <c>MANUAL</c>).</summary>
+    public string ConfirmationSource { get; set; } = string.Empty;
     public decimal TotalPaidAmount { get; set; }
     public int AppliedCount { get; set; }
     public int IdempotentCount { get; set; }

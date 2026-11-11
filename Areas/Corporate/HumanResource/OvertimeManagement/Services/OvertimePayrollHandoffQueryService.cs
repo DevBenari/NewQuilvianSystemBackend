@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -123,22 +123,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 .FirstOrDefaultAsync(x => x.Id == realizationId, cancellationToken);
             if (realization == null) return null;
 
-            var input = await _dbContext.TrxPayrollOvertimeInputs
+            var input = await _dbContext.PrlPayrollOvertimeInputs
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && !x.IsCancel && x.OvertimeRealizationId == realizationId)
                 .OrderByDescending(x => x.ImportedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            TrxPayrollRunEmployee? runEmployee = null;
-            TrxPayrollRun? run = null;
+            PrlPayrollRunEmployee? runEmployee = null;
+            PrlPayrollRun? run = null;
             if (input != null)
             {
-                runEmployee = await _dbContext.TrxPayrollRunEmployees
+                runEmployee = await _dbContext.PrlPayrollRunEmployees
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == input.PayrollRunEmployeeId && !x.IsDelete, cancellationToken);
                 if (runEmployee != null)
                 {
-                    run = await _dbContext.TrxPayrollRuns
+                    run = await _dbContext.PrlPayrollRuns
                         .AsNoTracking()
                         .FirstOrDefaultAsync(x => x.Id == runEmployee.PayrollRunId && !x.IsDelete, cancellationToken);
                 }
@@ -220,7 +220,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
             var realizations = await query.ToListAsync(cancellationToken);
             var realizationIds = realizations.Select(x => x.Id).ToList();
-            var inputs = await _dbContext.TrxPayrollOvertimeInputs
+            var inputs = await _dbContext.PrlPayrollOvertimeInputs
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && !x.IsCancel && x.OvertimeRealizationId.HasValue && realizationIds.Contains(x.OvertimeRealizationId.Value))
                 .OrderByDescending(x => x.ImportedAt)
@@ -230,13 +230,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                 .ToDictionary(x => x.Key, x => x.First());
 
             var runEmployeeIds = inputs.Select(x => x.PayrollRunEmployeeId).Distinct().ToList();
-            var runEmployees = await _dbContext.TrxPayrollRunEmployees
+            var runEmployees = await _dbContext.PrlPayrollRunEmployees
                 .AsNoTracking()
                 .Where(x => runEmployeeIds.Contains(x.Id) && !x.IsDelete)
                 .ToListAsync(cancellationToken);
             var runEmployeeMap = runEmployees.ToDictionary(x => x.Id);
             var runIds = runEmployees.Select(x => x.PayrollRunId).Distinct().ToList();
-            var runs = await _dbContext.TrxPayrollRuns
+            var runs = await _dbContext.PrlPayrollRuns
                 .AsNoTracking()
                 .Where(x => runIds.Contains(x.Id) && !x.IsDelete)
                 .ToListAsync(cancellationToken);
@@ -245,8 +245,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             var rows = realizations.Select(realization =>
             {
                 inputMap.TryGetValue(realization.Id, out var input);
-                TrxPayrollRunEmployee? runEmployee = null;
-                TrxPayrollRun? run = null;
+                PrlPayrollRunEmployee? runEmployee = null;
+                PrlPayrollRun? run = null;
                 if (input != null && runEmployeeMap.TryGetValue(input.PayrollRunEmployeeId, out var foundEmployee))
                 {
                     runEmployee = foundEmployee;
@@ -280,9 +280,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         private static OvertimePayrollHandoffListResponse MapList(
             TrxOvertimeRealization realization,
-            TrxPayrollOvertimeInput? input,
-            TrxPayrollRunEmployee? runEmployee,
-            TrxPayrollRun? run,
+            PrlPayrollOvertimeInput? input,
+            PrlPayrollRunEmployee? runEmployee,
+            PrlPayrollRun? run,
             bool hasCompensatoryLeave)
         {
             var handoffStatus = ResolveHandoffStatus(realization, input, hasCompensatoryLeave);
@@ -313,7 +313,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         private static string ResolveHandoffStatus(
             TrxOvertimeRealization realization,
-            TrxPayrollOvertimeInput? input,
+            PrlPayrollOvertimeInput? input,
             bool hasCompensatoryLeave)
         {
             if (hasCompensatoryLeave) return OvertimeValueConstants.PayrollHandoffStatus.CompensatoryLeave;

@@ -35,7 +35,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var run = await _dbContext.TrxPayrollRuns
+            var run = await _dbContext.PrlPayrollRuns
                 .Include(r => r.Employees)
                 .FirstOrDefaultAsync(r => r.Id == payrollRunId, cancellationToken);
 

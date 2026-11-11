@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `98a9140c` (working tree memuat pekerjaan `BE-FIN-142`..`145` yang belum di-commit; tidak ditimpa) |
 | Tanggal | 10 November 2026 |
-| Status | 🟡 **Source selesai; `dotnet build` berhasil menurut laporan pemilik (10 November 2026, keluaran build Release kemudian dilampirkan pemilik (10 November 2026): `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`).** Belum ada eksekusi runtime, kriteria 2 baru sebagian, dan selisih bentuk respons 409 dengan kontrak `W.1` sudah diputuskan pemilik pada 10 November 2026: contoh kontrak dikoreksi, kode tidak diubah (`FIN-DEC-292`) |
+| Status | 🟡 **Source selesai; `dotnet build` berhasil menurut laporan pemilik (10 November 2026, keluaran build Release kemudian dilampirkan pemilik (10 November 2026): `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`).** W.T3 dan W.T13 dijalankan pemilik pada server lokal dengan data uji dan hasilnya cocok (pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar); bentuk respons 409 sudah diputuskan pemilik (`FIN-DEC-292`). Tetap 🟡 hanya karena kriteria 2: metode BLM `RecomputeExternalPurchaseOrderStatus` belum punya pemanggil, sehingga cabang status PO BLM belum pernah dijalankan |
 
 ## Backend Governance Preflight
 
@@ -132,9 +132,11 @@ Base URL `api/v1/corporate/finance-management/purchasing/goods-receipts`. Hanya 
 | Pemetaan 409 dan kode | `Failure` dan `IsHandled` mengenali exception baru | `PASS` (review diff) | `FinanceGoodsReceiptsController.cs` |
 | Pemanggil lain `FinanceGoodsReceiptService` di kode aplikasi | Hanya satu controller | `PASS` | `grep` |
 | Kompilasi C# | Berhasil | `PASS` (laporan pemilik) | Pemilik, 10 November 2026; keluaran perintah dilampirkan kemudian oleh pemilik (build Release: `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`) |
-| Eksekusi runtime (W.T3, W.T13) | Belum. Migration sudah diterapkan (laporan pemilik), tetapi W.T3/W.T13 belum dijalankan | `NOT RUN` | Menunggu pengujian pemilik |
+| Eksekusi runtime (W.T13) | Pemilik mencoba Catat Penerimaan Barang, Koreksi, dan Batalkan pada `UJI-BLM-W05` (data uji): pesan 409 tampil sesuai kontrak. Hasil pemeriksaan ulang skrip 2 sesudahnya tidak dilampirkan terpisah | `PASS` (pengamatan pemilik) | Pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar |
+| Eksekusi runtime (W.T3) | Pemilik mencatat, mengoreksi, dan membatalkan GR lewat layar pada `UJI-LAMA-A` (PO lama): perilaku dan status PO sama seperti sebelum migration; kolom BLM tetap kosong | `PASS` (pengamatan pemilik) | Pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar |
+| Eksekusi runtime (cabang status PO BLM, kriteria 2) | Tidak dapat dijalankan: tidak ada pemanggil `RecomputeExternalPurchaseOrderStatus`, dan tambah/koreksi/batal GR untuk dokumen BLM ditolak 409; status PO BLM pada data uji disetel tangan | `NOT RUN` | Bagian 2 |
 
-Uji manual: `NOT APPLICABLE` pada task ini (dokumen BLM belum dapat ada sebelum migration diterapkan dan integrasi dibangun).
+Uji manual: dilakukan pemilik pada server lokal dengan data uji (W.T3 dan W.T13); bukan oleh agen.
 
 AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)
 
@@ -146,14 +148,14 @@ AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomati
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. Ketiga aksi menolak dokumen BLM dengan 409 dan pesan persis `FIN-VAL-315`, tanpa mengubah data | Terpenuhi menurut review; **belum dieksekusi** | Bagian 2; `PurchasingExternalDocumentException.DefaultMessage` memuat pesan persis kontrak |
+| 1. Ketiga aksi menolak dokumen BLM dengan 409 dan pesan persis `FIN-VAL-315`, tanpa mengubah data | Terpenuhi (review dan W.T13 pada runtime dengan data uji) | Bagian 2; `PurchasingExternalDocumentException.DefaultMessage` memuat pesan persis kontrak |
 | 2. `RecomputePurchaseOrderStatus` bercabang BLM vs QUILVIAN | Terpenuhi sebagian: **pagar** pada rumus lama dan **metode BLM terpisah** `RecomputeExternalPurchaseOrderStatus` ada; metode BLM belum punya pemanggil (menunggu pengolah kiriman) | Bagian 2 |
-| 3. Tidak ada perubahan perilaku untuk GR lama (W.T3) | Terpenuhi menurut review diff | 0 baris dihapus pada service |
+| 3. Tidak ada perubahan perilaku untuk GR lama (W.T3) | Terpenuhi (review diff dan W.T3 pada runtime dengan data uji) | 0 baris dihapus pada service |
 | DoD: laporan tracked | Terpenuhi | Berkas ini |
 | DoD: `dotnet build` | Terpenuhi (laporan pemilik) | Pemilik, 10 November 2026; keluaran perintah dilampirkan kemudian oleh pemilik (build Release: `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`) |
-| DoD: W.T13 pada runtime | **Belum terpenuhi** | Migration sudah diterapkan (laporan pemilik); W.T13 belum dijalankan |
+| DoD: W.T13 pada runtime | Terpenuhi | Pengamatan pemilik pada data uji (`UJI-BLM-W05`), 11 November 2026 |
 
-Status akhir **🟡**: build lulus (laporan pemilik), tetapi (1) kriteria 2 baru sebagian (metode BLM belum punya pemanggil), (2) W.T13 dan W.T3 belum dijalankan pada runtime, dan (3) bentuk respons 409 pada kontrak `W.1` sudah diputuskan pemilik pada 10 November 2026 (contoh kontrak dikoreksi, `FIN-DEC-292`), jadi bukan lagi alasan 🟡.
+Status akhir **🟡**: build lulus (laporan pemilik), W.T3 dan W.T13 terbukti pada runtime dengan data uji (11 November 2026), dan bentuk respons 409 pada kontrak `W.1` sudah diputuskan (`FIN-DEC-292`). Satu-satunya penahan adalah kriteria 2 yang baru sebagian: metode BLM `RecomputeExternalPurchaseOrderStatus` belum punya pemanggil, sehingga cabang status PO BLM belum pernah dijalankan.
 
 ---
 
@@ -169,4 +171,4 @@ Status akhir **🟡**: build lulus (laporan pemilik), tetapi (1) kriteria 2 baru
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `M` tiga berkas source; ditambah pekerjaan `BE-FIN-142`..`145` yang belum di-commit. Tidak ada berkas staged |
-| Langkah berikutnya | Setelah migration diterapkan, jalankan W.T3 dan W.T13; `FE-FIN-062`/`063` |
+| Langkah berikutnya | Cabang status PO BLM (kriteria 2) baru dapat dijalankan bila ada pemanggil `RecomputeExternalPurchaseOrderStatus`; sampai itu task ini tetap 🟡. `FE-FIN-062` dan `063` selesai |

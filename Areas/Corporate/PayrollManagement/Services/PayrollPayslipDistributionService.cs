@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -43,7 +44,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             CancellationToken cancellationToken = default)
         {
             // Query slip gaji milik pegawai yang sudah dirilis (IsEmployeeVisible = true, PayslipStatus = Published/Released)
-            var query = _dbContext.TrxPayrollPayslips
+            var query = _dbContext.PrlPayrollPayslips
                 .Include(p => p.PayrollRun)
                 .Include(p => p.PayrollRunEmployee)
                 .Where(p => p.IsEmployeeVisible &&
@@ -236,7 +237,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             await ValidatePinSessionAsync(employeeId, pinToken, cancellationToken);
 
-            var slip = await _dbContext.TrxPayrollPayslips
+            var slip = await _dbContext.PrlPayrollPayslips
                 .Include(p => p.PayrollRun)
                 .Include(p => p.PayrollRunEmployee)
                 .FirstOrDefaultAsync(p => p.Id == payslipId, cancellationToken);
@@ -252,12 +253,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 throw new UnauthorizedAccessException("Anda tidak memiliki wewenang untuk membuka slip gaji pegawai lain.");
             }
 
-            // Ambil rincian komponen slip gaji jika ada di TrxPayrollEmployeeComponent
+            // Ambil rincian komponen slip gaji jika ada di PrlPayrollEmployeeComponent
             var components = emp != null
-                ? await _dbContext.TrxPayrollEmployeeComponents
+                ? await _dbContext.PrlPayrollEmployeeComponents
                     .Where(c => c.PayrollRunEmployeeId == emp.Id && c.IsActive)
                     .ToListAsync(cancellationToken)
-                : new List<TrxPayrollEmployeeComponent>();
+                : new List<PrlPayrollEmployeeComponent>();
 
             var earnings = new List<PayslipItemLineDto>();
             var deductions = new List<PayslipItemLineDto>();
@@ -287,7 +288,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
             else
             {
-                // Fallback komponen sintetis berbasis snapshot TrxPayrollRunEmployee
+                // Fallback komponen sintetis berbasis snapshot PrlPayrollRunEmployee
                 earnings.Add(new PayslipItemLineDto
                 {
                     ComponentCode = "BASE_SALARY",
@@ -385,7 +386,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         {
             await ValidatePinSessionAsync(employeeId, pinToken, cancellationToken);
 
-            var slip = await _dbContext.TrxPayrollPayslips
+            var slip = await _dbContext.PrlPayrollPayslips
                 .Include(p => p.PayrollRun)
                 .Include(p => p.PayrollRunEmployee)
                 .FirstOrDefaultAsync(p => p.Id == payslipId, cancellationToken);
@@ -454,7 +455,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         /// <summary>
         /// Membentuk berkas PDF standar resmi slip gaji rumah sakit dengan stempel watermark konfidensial (VR-PAY-24).
         /// </summary>
-        private static byte[] GeneratePayslipPdfDocument(TrxPayrollPayslip slip, TrxPayrollRunEmployee? emp)
+        private static byte[] GeneratePayslipPdfDocument(PrlPayrollPayslip slip, PrlPayrollRunEmployee? emp)
         {
             var empNik = slip.EmployeeNumberSnapshot ?? "-";
             var deptName = slip.DepartmentNameSnapshot ?? "Umum";

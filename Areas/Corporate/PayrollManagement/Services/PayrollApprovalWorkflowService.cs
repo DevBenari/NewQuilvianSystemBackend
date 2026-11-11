@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -33,7 +34,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai Tier 1 Submit batch penggajian ID: {RunId} oleh Payroll Officer {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
 
             if (run == null)
@@ -73,7 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             run.UpdateDateTime = DateTime.UtcNow;
             run.UpdateBy = actorUserId;
 
-            var approvalEntry = new TrxPayrollApproval
+            var approvalEntry = new PrlPayrollApproval
             {
                 Id = Guid.NewGuid(),
                 PayrollRunId = run.Id,
@@ -89,7 +90,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 CreateDateTime = DateTime.UtcNow
             };
 
-            _context.TrxPayrollApprovals.Add(approvalEntry);
+            _context.PrlPayrollApprovals.Add(approvalEntry);
             await _context.SaveChangesAsync(cancellationToken);
 
             var actorUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == actorUserId, cancellationToken);
@@ -128,7 +129,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai Tier 2 Review batch penggajian ID: {RunId} oleh HR Manager {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
 
             if (run == null)
@@ -159,7 +160,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             run.UpdateDateTime = DateTime.UtcNow;
             run.UpdateBy = actorUserId;
 
-            var approvalEntry = new TrxPayrollApproval
+            var approvalEntry = new PrlPayrollApproval
             {
                 Id = Guid.NewGuid(),
                 PayrollRunId = run.Id,
@@ -175,7 +176,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 CreateDateTime = DateTime.UtcNow
             };
 
-            _context.TrxPayrollApprovals.Add(approvalEntry);
+            _context.PrlPayrollApprovals.Add(approvalEntry);
             await _context.SaveChangesAsync(cancellationToken);
 
             var actorUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == actorUserId, cancellationToken);
@@ -214,7 +215,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai Tier 3 Final Approval batch penggajian ID: {RunId} oleh Direktur {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
 
             if (run == null)
@@ -250,7 +251,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             run.UpdateDateTime = DateTime.UtcNow;
             run.UpdateBy = actorUserId;
 
-            var approvalEntry = new TrxPayrollApproval
+            var approvalEntry = new PrlPayrollApproval
             {
                 Id = Guid.NewGuid(),
                 PayrollRunId = run.Id,
@@ -266,7 +267,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 CreateDateTime = DateTime.UtcNow
             };
 
-            _context.TrxPayrollApprovals.Add(approvalEntry);
+            _context.PrlPayrollApprovals.Add(approvalEntry);
             await _context.SaveChangesAsync(cancellationToken);
 
             var actorUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == actorUserId, cancellationToken);
@@ -320,7 +321,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     "Alasan penolakan batch wajib minimal 15 karakter resmi untuk audit trail (PAY-B7, VR-PAY-16).");
             }
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
 
             if (run == null)
@@ -346,7 +347,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             run.UpdateDateTime = DateTime.UtcNow;
             run.UpdateBy = actorUserId;
 
-            var approvalEntry = new TrxPayrollApproval
+            var approvalEntry = new PrlPayrollApproval
             {
                 Id = Guid.NewGuid(),
                 PayrollRunId = run.Id,
@@ -362,7 +363,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 CreateDateTime = DateTime.UtcNow
             };
 
-            _context.TrxPayrollApprovals.Add(approvalEntry);
+            _context.PrlPayrollApprovals.Add(approvalEntry);
             await _context.SaveChangesAsync(cancellationToken);
 
             var actorUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == actorUserId, cancellationToken);
@@ -395,7 +396,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid runId,
             CancellationToken cancellationToken = default)
         {
-            var history = await _context.TrxPayrollApprovals
+            var history = await _context.PrlPayrollApprovals
                 .Include(a => a.ActualActionByUser)
                 .Where(a => a.PayrollRunId == runId && a.IsActive)
                 .OrderBy(a => a.StepOrder)

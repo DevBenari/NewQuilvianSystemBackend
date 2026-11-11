@@ -11,7 +11,7 @@
 | Trace | `FR-FIN-283`; `FIN-DEC-265`; `FIN-DES-141`; `FIN-VAL-315`; `03-frontend-architecture.md` §27.1 baris kedua |
 | Contract version | `FIN-API-1.13` §W.1 (respons 409) — approved 9 November 2026 (Revisi 23 putaran 2) |
 | Wewenang UI | Tidak ada perubahan tampilan. Pesan baru hanya berasal dari backend; tombol **tidak** disembunyikan (slice penguncian berikutnya) |
-| Dependency | `BE-FIN-146` 🟡 — source ada dan build lulus (laporan pemilik); respons 409 belum pernah dijalankan pada data BLM nyata |
+| Dependency | `BE-FIN-146` 🟡 — jalur 409 terbukti pada data uji BLM (W.T13, 11 November 2026). Penahan 🟡 pada task backend itu hanya kriteria 2 (status PO BLM belum punya pemanggil) dan tidak memengaruhi task ini |
 | Klasifikasi | `LIGHT` — verifikasi penanganan galat yang ada; tanpa perubahan source aplikasi |
 | Task mode | `FRONTEND MODE` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `yasmina`) — hanya satu berkas test baru; di repository backend hanya laporan ini dan tanda status roadmap |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `ef8be65849c2e95869801f69cfafaa530ca74542` (perubahan task ini belum di-commit) |
 | Commit backend yang dijadikan rujukan | `98a9140ca81799d747821a4ee3695846b46f96e3` (perubahan `BE-FIN-142`..`147` masih di working tree backend) |
 | Tanggal | 10 November 2026 |
-| Status | 🟡 **Verifikasi-saja: source aplikasi tidak perlu diubah, perilaku dikunci dengan 9 unit test (PASS).** Belum terbukti di browser dan pada respons 409 backend yang sebenarnya |
+| Status | ✅ **Selesai dan terverifikasi oleh pemilik (11 November 2026).** Verifikasi-saja: source aplikasi tidak perlu diubah, perilaku dikunci dengan 9 unit test (PASS). Pemilik mencoba Catat, Koreksi, dan Batalkan pada `UJI-BLM-W05` di server lokal dan menyatakan hasilnya cocok dengan panduan uji (pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar) |
 
 ---
 
@@ -117,9 +117,9 @@ Bentuk 409 yang benar-benar dihasilkan backend: `{"success":false,"statusCode":4
 | Seluruh `tests/unit/` | 4646 test, 4604 lulus, 42 gagal; daftar nama yang gagal identik dengan sebelum task ini (modul lain, mis. billing, IGD, RWI, HMD) | `EXISTING / ENVIRONMENT ISSUE` (0 baru) | Keluaran perintah; `diff` daftar nama |
 | `npx eslint --max-warnings 0` pada `use-purchase-order-detail.jsx` dan `purchase-order-detail-view.jsx` (tidak diubah task ini) | 1 peringatan `react-hooks/set-state-in-effect` di `use-purchase-order-detail.jsx:129` (`fetchDetail()` dalam `useEffect`); 0 galat | `EXISTING / ENVIRONMENT ISSUE` | Berkas tidak termodifikasi menurut `git status`; tidak diperbaiki karena di luar cakupan |
 | `npm run dev` / `npm run build` | Tidak dijalankan | `NOT RUN` | Instruksi pemilik |
-| 409 nyata dari backend pada PO BLM | Tidak dapat dilakukan: tidak ada PO/GR BLM di basis data uji dan penerima kiriman BLM belum dibuat | `NOT RUN` | Laporan `BE-FIN-146.md` |
+| 409 nyata dari backend pada PO BLM (W.T13) | Pemilik mencoba Catat Penerimaan Barang, Koreksi, dan Batalkan pada `UJI-BLM-W05` (data uji dari skrip pemilik); pesan backend tampil seperti yang dijanjikan panduan uji: "Penerimaan barang untuk PO dari BLM dicatat di BLM. Perubahan dan pembatalannya juga dilakukan dari BLM." Hasil pemeriksaan ulang skrip 2 sesudahnya tidak dilampirkan terpisah | `PASS` (pengamatan pemilik) | Pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar |
 
-Uji manual: `NOT FEASIBLE` — tidak ada dev server/browser dan tidak ada dokumen BLM yang bisa dipakai mencoba; tampilan kotak merah dan toast belum diamati langsung.
+Uji manual oleh agen: `NOT FEASIBLE` — tidak ada dev server/browser pada sesi agen. Uji manual oleh pemilik: `PASS` — kotak merah pada dialog dan toast diamati di browser pada server lokal (lihat baris di atas).
 
 AUTOMATED TEST: `node --no-warnings --import ./tests/helpers/register.mjs --test tests/unit/` — 9 test baru PASS; 42 kegagalan lama di modul lain tidak berubah.
 
@@ -136,7 +136,7 @@ AUTOMATED TEST: `node --no-warnings --import ./tests/helpers/register.mjs --test
 | (3) Tombol **tidak** disembunyikan di task ini | Terpenuhi | Tidak ada referensi `sourceSystem` di hook maupun view detail PO; kondisi tombol (`canRecordGoodsReceipt`, `canCorrectGoodsReceipt`, `gr.status !== "CANCELLED"`) tidak berubah |
 | DoD: penelusuran penanganan galat dan ESLint | Terpenuhi | Bagian 1 dan 6 |
 | DoD: laporan `task/report/frontend/FE-FIN-063.md` | Terpenuhi | Berkas ini |
-| DoD: terbukti pada respons backend yang sebenarnya | **Belum terpenuhi** | Menunggu dokumen BLM nyata (`BE-FIN-146` 🟡) dan pengamatan di browser |
+| DoD: terbukti pada respons backend yang sebenarnya | Terpenuhi | Pengamatan pemilik di browser pada data uji BLM (W.T13), 11 November 2026 |
 
 ---
 
@@ -146,8 +146,8 @@ AUTOMATED TEST: `node --no-warnings --import ./tests/helpers/register.mjs --test
 | --- | --- |
 | Peringatan | Contoh respons di `api-contract.md` §W.1 menaruh `code` di tingkat atas (`"code": "PURCHASING_EXTERNAL_DOCUMENT"`), sedangkan `ApiResponse` backend tidak punya properti `code` dan mengirimnya di `errors.code`. Layar ini hanya membaca `message`, jadi tidak terpengaruh. **Diputuskan pemilik 10 November 2026 (`FIN-DEC-292`)**: contoh kontrak dikoreksi menjadi `errors.code`, backend tidak diubah. Slice berikutnya yang ingin bercabang berdasarkan kode membaca `errors.code` |
 | Masalah yang diketahui | Peringatan ESLint lama di `use-purchase-order-detail.jsx:129`, tidak diperbaiki (di luar cakupan). Dua test membaca teks source sehingga akan gagal bila slice berikutnya mengubah bentuk penanganan galat itu; kegagalan itu disengaja sebagai tanda untuk meninjau ulang |
-| Dependency backend | `BE-FIN-146` 🟡 — 409 belum pernah dijalankan pada dokumen BLM nyata; bila backend mengubah teks pesan, layar akan mengikuti otomatis |
+| Dependency backend | `BE-FIN-146` 🟡 — 409 terbukti pada data uji (W.T13); yang menahan 🟡 hanya kriteria 2 pada task backend itu. Bila backend mengubah teks pesan, layar akan mengikuti otomatis |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | FE: `M purchasing-document-trail-panel.jsx`, `M purchasing-trail-constants.jsx`, `M purchasing-trail-utils.jsx` (dari `FE-FIN-062`); `?? tests/unit/finance-purchasing-blm-item-progress.test.mjs` (`FE-FIN-062`); `?? tests/unit/finance-purchasing-external-document-error.test.mjs` (task ini). Tidak ada stage/commit |
-| Langkah berikutnya | Pemilik: coba catat/koreksi/batalkan GR pada PO BLM sungguhan di browser setelah ada data. Slice berikutnya: menyembunyikan tombol buat/ubah/setujui untuk dokumen BLM (`FIN-OQ-138`) |
+| Langkah berikutnya | Tidak ada untuk task ini. Slice berikutnya (di luar task ini): menyembunyikan tombol buat/ubah/setujui untuk dokumen BLM (`FIN-OQ-138`) |

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
 using QuilvianSystemBackend.Repositories;
@@ -61,9 +61,9 @@ public sealed class PayrollInstallmentDeductionService
     // ------------------------------------------------------------------------------------
 
     public async Task<PayrollRunInstallmentDeductionSummaryResponse> CalculateRunAsync(
-        TrxPayrollRun run, Guid actorUserId, CancellationToken cancellationToken)
+        PrlPayrollRun run, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var employees = await _dbContext.TrxPayrollRunEmployees
+        var employees = await _dbContext.PrlPayrollRunEmployees
             .Include(x => x.Components)
             .Include(x => x.VariableInputs)
             .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
@@ -149,7 +149,7 @@ public sealed class PayrollInstallmentDeductionService
             }
             else
             {
-                _dbContext.TrxPayrollEmployeeComponents.Add(new TrxPayrollEmployeeComponent
+                _dbContext.PrlPayrollEmployeeComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     PayrollRunEmployeeId = employee.Id,
                     PayrollComponentId = input.PayrollComponentId,
@@ -184,9 +184,9 @@ public sealed class PayrollInstallmentDeductionService
     // ------------------------------------------------------------------------------------
 
     public async Task<PayrollRunInstallmentDeductionSummaryResponse> ConfirmRunAsync(
-        TrxPayrollRun run, Guid actorUserId, CancellationToken cancellationToken)
+        PrlPayrollRun run, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var employees = await _dbContext.TrxPayrollRunEmployees
+        var employees = await _dbContext.PrlPayrollRunEmployees
             .Include(x => x.Components)
             .Include(x => x.VariableInputs)
             .Where(x => x.PayrollRunId == run.Id && !x.IsDelete)
@@ -245,7 +245,7 @@ public sealed class PayrollInstallmentDeductionService
     // Pembantu
     // ------------------------------------------------------------------------------------
 
-    private static PlannedDeduction? ReadPlanned(TrxPayrollEmployeeComponent? component)
+    private static PlannedDeduction? ReadPlanned(PrlPayrollEmployeeComponent? component)
     {
         if (component is null || string.IsNullOrWhiteSpace(component.CalculationDetailJson)) return null;
         try { return JsonSerializer.Deserialize<PlannedDeduction>(component.CalculationDetailJson); }
@@ -253,7 +253,7 @@ public sealed class PayrollInstallmentDeductionService
     }
 
     /// <summary>Baris potongan cicilan pada slip untuk tampilan HRD: rencana dari hitung terakhir, dan apakah sudah dikonfirmasi ke Finance.</summary>
-    public static PayrollRunInstallmentLineResponse? ReadLine(TrxPayrollRunEmployee employee)
+    public static PayrollRunInstallmentLineResponse? ReadLine(PrlPayrollRunEmployee employee)
     {
         var input = employee.VariableInputs
             .FirstOrDefault(x => x.SourceType == InstallmentSourceType && !x.IsDelete && x.SourceId.HasValue);
@@ -268,7 +268,7 @@ public sealed class PayrollInstallmentDeductionService
     /// Baris potongan dari satu input angsuran dan komponen rencananya. Dipakai layar run, daftar potongan, dan rekonsiliasi supaya
     /// ketiganya membaca angka yang sama persis.
     /// </summary>
-    public static PayrollRunInstallmentLineResponse BuildLine(TrxPayrollVariableInput input, TrxPayrollEmployeeComponent? component)
+    public static PayrollRunInstallmentLineResponse BuildLine(PrlPayrollVariableInput input, PrlPayrollEmployeeComponent? component)
     {
         var planned = ReadPlanned(component);
         return new PayrollRunInstallmentLineResponse
@@ -285,7 +285,7 @@ public sealed class PayrollInstallmentDeductionService
         };
     }
 
-    private static PayrollRunInstallmentDeductionSummaryResponse NewSummary(TrxPayrollRun run, int employeeCount) => new()
+    private static PayrollRunInstallmentDeductionSummaryResponse NewSummary(PrlPayrollRun run, int employeeCount) => new()
     {
         PayrollRunId = run.Id,
         RunNumber = run.RunNumber,
@@ -294,7 +294,7 @@ public sealed class PayrollInstallmentDeductionService
     };
 
     private static void AddItem(
-        PayrollRunInstallmentDeductionSummaryResponse summary, TrxPayrollRunEmployee employee, PlannedDeduction planned, bool replay = false)
+        PayrollRunInstallmentDeductionSummaryResponse summary, PrlPayrollRunEmployee employee, PlannedDeduction planned, bool replay = false)
     {
         summary.TotalInstallmentsProcessed++;
         summary.TotalDueAmount += planned.DueAmount;

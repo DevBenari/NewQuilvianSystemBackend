@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -361,7 +362,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             CancellationToken cancellationToken = default)
         {
             // Verifikasi bahwa slip lampau yang terimbas valid dan final (PAY-B6, DED-B4)
-            var affectedRun = await _dbContext.TrxPayrollRuns
+            var affectedRun = await _dbContext.PrlPayrollRuns
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == request.AffectedPayrollRunId && !r.IsDelete, cancellationToken);
 
@@ -430,7 +431,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 throw new KeyNotFoundException($"Pegawai dengan ID {request.EmployeeId} tidak ditemukan.");
             }
 
-            var affectedRun = await _dbContext.TrxPayrollRuns
+            var affectedRun = await _dbContext.PrlPayrollRuns
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == request.AffectedPayrollRunId && !r.IsDelete, cancellationToken);
             if (affectedRun == null)
@@ -542,7 +543,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid userId,
             CancellationToken cancellationToken = default)
         {
-            var targetRun = await _dbContext.TrxPayrollRuns
+            var targetRun = await _dbContext.PrlPayrollRuns
                 .FirstOrDefaultAsync(r => r.Id == targetPayrollRunId && !r.IsDelete, cancellationToken);
 
             if (targetRun == null)
@@ -565,8 +566,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             foreach (var rst in pendingRestitutions)
             {
-                // Temukan TrxPayrollRunEmployee untuk pegawai ini pada run target
-                var runEmp = await _dbContext.TrxPayrollRunEmployees
+                // Temukan PrlPayrollRunEmployee untuk pegawai ini pada run target
+                var runEmp = await _dbContext.PrlPayrollRunEmployees
                     .FirstOrDefaultAsync(re => re.PayrollRunId == targetPayrollRunId &&
                                                (re.WorkforceProfileId == rst.EmployeeId || re.Id == rst.EmployeeId) &&
                                                !re.IsDelete, cancellationToken);
@@ -577,7 +578,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     var emp = await _dbContext.MstEmployees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == rst.EmployeeId, cancellationToken);
                     if (emp != null && emp.WorkforceProfileId != Guid.Empty)
                     {
-                        runEmp = await _dbContext.TrxPayrollRunEmployees
+                        runEmp = await _dbContext.PrlPayrollRunEmployees
                             .FirstOrDefaultAsync(re => re.PayrollRunId == targetPayrollRunId &&
                                                        re.WorkforceProfileId == emp.WorkforceProfileId &&
                                                        !re.IsDelete, cancellationToken);
@@ -591,7 +592,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                         ? "Restitusi Koreksi Salah Potong Periode Lampau"
                         : "Restitusi Reimbursement Klaim Kesehatan ESS";
 
-                    var component = new TrxPayrollEmployeeComponent
+                    var component = new PrlPayrollEmployeeComponent
                     {
                         Id = Guid.NewGuid(),
                         PayrollRunEmployeeId = runEmp.Id,
@@ -614,7 +615,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                         CreateBy = userId
                     };
 
-                    await _dbContext.TrxPayrollEmployeeComponents.AddAsync(component, cancellationToken);
+                    await _dbContext.PrlPayrollEmployeeComponents.AddAsync(component, cancellationToken);
 
                     // Tambahkan ke penghasilan kotor / net pay pegawai
                     runEmp.GrossPay += rst.Amount;

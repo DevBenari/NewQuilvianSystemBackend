@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
@@ -36,7 +36,7 @@ public sealed class PayrollCompensationService
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
         var today = DateTime.UtcNow.Date;
 
-        var profileQuery = _dbContext.WfpPayrolls.AsNoTracking().Where(x => !x.IsDelete && x.IsActive);
+        var profileQuery = _dbContext.PrlPayrolls.AsNoTracking().Where(x => !x.IsDelete && x.IsActive);
         if (!string.IsNullOrWhiteSpace(query.PayrollStatus))
             profileQuery = profileQuery.Where(x => x.PayrollStatus == query.PayrollStatus);
         var profiles = await profileQuery.ToListAsync(cancellationToken);
@@ -90,10 +90,10 @@ public sealed class PayrollCompensationService
                 .Where(b => !b.IsDelete && b.IsActive && pageWorkforceIds.Contains(b.WorkforceProfileId))
                 .ToListAsync(cancellationToken))
             .GroupBy(b => b.WorkforceProfileId).ToDictionary(g => g.Key, g => g.ToList());
-        var taxIds = (await _dbContext.WfpTaxes.AsNoTracking()
+        var taxIds = (await _dbContext.PrlTaxes.AsNoTracking()
                 .Where(t => !t.IsDelete && t.IsActive && pageWorkforceIds.Contains(t.WorkforceProfileId))
                 .Select(t => t.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
-        var insuranceIds = (await _dbContext.WfpInsurances.AsNoTracking()
+        var insuranceIds = (await _dbContext.PrlInsurances.AsNoTracking()
                 .Where(t => !t.IsDelete && t.IsActive && pageWorkforceIds.Contains(t.WorkforceProfileId))
                 .Select(t => t.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
 
@@ -117,7 +117,7 @@ public sealed class PayrollCompensationService
         Guid workforceProfileId, bool includeAmounts, CancellationToken cancellationToken)
     {
         var today = DateTime.UtcNow.Date;
-        var profiles = await _dbContext.WfpPayrolls.AsNoTracking()
+        var profiles = await _dbContext.PrlPayrolls.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.WorkforceProfileId == workforceProfileId)
             .ToListAsync(cancellationToken);
         var profile = profiles
@@ -138,11 +138,11 @@ public sealed class PayrollCompensationService
         var banks = await _dbContext.WfpBankAccounts.AsNoTracking()
             .Where(b => !b.IsDelete && b.IsActive && b.WorkforceProfileId == workforceProfileId)
             .ToListAsync(cancellationToken);
-        var tax = await _dbContext.WfpTaxes.AsNoTracking()
+        var tax = await _dbContext.PrlTaxes.AsNoTracking()
             .Where(t => !t.IsDelete && t.IsActive && t.WorkforceProfileId == workforceProfileId)
             .OrderByDescending(t => t.EffectiveStartDate)
             .FirstOrDefaultAsync(cancellationToken);
-        var hasInsurance = await _dbContext.WfpInsurances.AsNoTracking()
+        var hasInsurance = await _dbContext.PrlInsurances.AsNoTracking()
             .AnyAsync(t => !t.IsDelete && t.IsActive && t.WorkforceProfileId == workforceProfileId, cancellationToken);
 
         var detail = new PayrollCompensationDetailResponse();
@@ -194,7 +194,7 @@ public sealed class PayrollCompensationService
     }
 
     private static T BuildItem<T>(
-        T target, Person person, WfpPayroll profile, List<WfpSalaryAssignment> assignments, List<WfpBankAccount> banks,
+        T target, Person person, PrlPayroll profile, List<WfpSalaryAssignment> assignments, List<WfpBankAccount> banks,
         bool hasTax, bool hasInsurance, bool includeAmounts, DateTime today) where T : PayrollCompensationListItemResponse
     {
         var primaries = assignments.Where(a => !a.IsDelete && a.IsActive && a.IsPrimary)

@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -63,7 +64,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 .Where(e => e.EmployeePayrollStatus != "Reversed" && e.EmployeePayrollStatus != "Error")
                 .ToList();
 
-            var existingPayslips = await _dbContext.TrxPayrollPayslips
+            var existingPayslips = await _dbContext.PrlPayrollPayslips
                 .Where(p => p.PayrollRunId == run.Id)
                 .ToDictionaryAsync(p => p.PayrollRunEmployeeId, cancellationToken);
 
@@ -94,7 +95,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 }
                 else
                 {
-                    var newSlip = new TrxPayrollPayslip
+                    var newSlip = new PrlPayrollPayslip
                     {
                         Id = Guid.NewGuid(),
                         PayrollRunId = run.Id,
@@ -120,7 +121,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                         IsActive = true,
                         PublishedAt = DateTime.UtcNow
                     };
-                    _dbContext.TrxPayrollPayslips.Add(newSlip);
+                    _dbContext.PrlPayrollPayslips.Add(newSlip);
                 }
 
                 releasedCount++;
