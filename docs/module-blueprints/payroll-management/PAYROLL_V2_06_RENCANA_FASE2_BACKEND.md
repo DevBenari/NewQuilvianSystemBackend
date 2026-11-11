@@ -255,3 +255,15 @@ Status: 🟡 selesai secara statis. Pemilik memerintahkan "kerjakan fase 2 backe
 ### 11.4 Permintaan kepada pemilik
 
 Daftar bernomor ada pada laporan `PAY-BE-12` bagian 7 (build, `has-pending-model-changes`, QBE conformance, penerapan dan pasca-cek migration, uji layar HR dan Payroll, penyelarasan salinan registry suite, kategori log, bentuk commit).
+
+### 11.5 Perbaikan setelah kegagalan CI QBE (11 November 2026)
+
+CI QBE strict pada PR `Yasmina` menghasilkan 87 pelanggaran dan 12 `REVIEW`. **Hanya 4 pelanggaran (`QBE-CODE-002`) berasal dari fase 2**; 83 lainnya muncul karena commit merge `6cf61197` tidak membawa 39 commit `QuilvianIntegrationBackend` (tree identik dengan induk pertama), sehingga normalisasi Rekrutmen/Lifecycle HR milik pengembang lain tampak sebagai pelanggaran baru. Ringkasan perbaikan (rinci di `PAY-BE-12` bagian 8):
+
+| Hal | Isi |
+| --- | --- |
+| Merge | Dihitung ulang dengan benar (`fafd80c9` + `adfde228`), `merge.directoryRenames=false`; dua bentrok konten (snapshot dan `ApplicationDbContext.cs`), keduanya terbukti hanya rename di sisi Yasmina. Diff terhadap basis PR: 1.838 → 136 berkas |
+| Keputusan desain | Berkas Payroll Modern milik integrasi **tidak dipindah dan tidak diganti nama**; hanya rujukannya ke 19 entity fase 2 yang diperbarui. Hasilnya dua keluarga namespace Payroll (`HumanResource.PayrollManagement.*` milik integrasi, `Corporate.PayrollManagement.*` milik Payroll V2); menyatukannya adalah keputusan tim |
+| `QBE-CODE-002` | Dua pengecualian bertenggat (sampai 2027-03-31) untuk `WfpTransportAllowancePolicyController` dan `WfpTransportAllowanceTransactionController`; tindak lanjut `PAY-BE-13` memindahkan penomoran ke `NumberSeriesManagement` |
+| Bukti | Port checker tervalidasi mereproduksi laporan CI persis (1.096 berkas, 87/12), lalu pada hasil perbaikan: 111 berkas, 0 pelanggaran memblokir. Checker resmi dan `dotnet build` tetap oleh pemilik |
+| Selisih dari rencana | Rencana awal tidak memperkirakan dua hal: integrasi menaruh berkas Payroll Modern baru di folder HR yang dipindahkan fase 2 (46 saran pemindahan Git), dan pemindahan controller memicu `QBE-CODE-002` pada dua controller yang memuat pola `Generate*` |

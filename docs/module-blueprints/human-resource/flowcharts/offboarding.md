@@ -5,8 +5,8 @@
 | Blueprint ID | `HRD-BP-001` |
 | Jenis | Flowchart proses |
 | Slice | `S-C4` lifecycle dan offboarding |
-| Status | `draft` |
-| Kesiapan | `READY FOR DESIGN` |
+| Status | `designed` |
+| Kesiapan | `DESIGN_COMPLETE` — Diperluas mencakup seluruh alasan terminasi, kalkulator PP 35/2021 & exit clearance multi-departemen (`HRD-DEC-174`, `HRD-DEC-175`) |
 
 ---
 

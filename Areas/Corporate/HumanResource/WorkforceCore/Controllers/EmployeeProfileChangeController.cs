@@ -183,6 +183,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
 
 
 
+        [HttpPost("on-behalf")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(
+            typeof(ApiResponse<EmployeeProfileChangeResponse>),
+            StatusCodes.Status201Created)]
+        [ProducesResponseType(
+            typeof(ApiResponse<object>),
+            StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Create",
+            "Create On-Behalf Employee Profile Change",
+            Description = "Mengajukan permohonan perubahan profil atas nama pegawai lain",
+            AccessType = AccessTypes.Create,
+            SortOrder = 4)]
+        [AccessPermission("EmployeeProfileChange", "Create")]
+        public async Task<IActionResult> CreateOnBehalf(
+            [FromForm] CreateOnBehalfProfileChangeRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetCurrentUserId(out var actorUserId))
+            {
+                return UnauthorizedResponse();
+            }
+
+            var result = await _service.CreateOnBehalfDraftAsync(
+                request,
+                actorUserId,
+                cancellationToken);
+
+            return ToActionResult(result);
+        }
+
         [HttpPost("{id:guid}/start-verification")]
         [ProducesResponseType(
             typeof(ApiResponse<EmployeeProfileChangeResponse>),
@@ -263,6 +295,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 cancellationToken);
 
             if (!result.Success || result.Data == default)
+            {
+                return StatusCode(
+                    result.StatusCode,
+                    ApiResponse<object>.Fail(
+                        result.StatusCode,
+                        result.Message));
+            }
+
+            var file = result.Data;
+            var stream = new FileStream(
+                file.PhysicalPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+            return File(
+                stream,
+                file.ContentType,
+                file.FileName,
+                enableRangeProcessing: true);
+        }
+
+        [HttpGet("{id:guid}/evidence/download")]
+        [AccessAction(
+            "Read",
+            "Read Employee Profile Change Evidence",
+            Description = "Mengunduh berkas bukti pendukung permohonan employee profile change",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1)]
+        [AccessPermission("EmployeeProfileChange", "Read")]
+        public async Task<IActionResult> DownloadRequestEvidence(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _service.GetRequestEvidenceFileAsync(
+                id,
+                cancellationToken);
+
+            if (!result.Success || result.Data == null)
             {
                 return StatusCode(
                     result.StatusCode,

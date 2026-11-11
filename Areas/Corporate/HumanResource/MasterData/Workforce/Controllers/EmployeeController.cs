@@ -1276,6 +1276,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
+            // Guard HRD-DEC-047: Perubahan Unit Organisasi atau Jabatan Utama tidak boleh melalui Master Data form
+            if (entity.PrimaryDepartmentId != request.PrimaryDepartmentId || entity.PrimaryPositionId != request.PrimaryPositionId)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Perubahan Unit Organisasi atau Jabatan Utama tidak dapat dilakukan langsung melalui Master Data Pegawai. Perubahan struktur kepegawaian wajib diajukan melalui Surat Keputusan (SK) Kepegawaian (Personnel Action Order)."
+                ));
+            }
+
+            // Guard VR-ONB-33 (HRD-DEC-085 butir 2, HRD-DEC-096 butir 5): Lima isian kepegawaian dikunci bila pegawai telah memiliki riwayat kontrak
+            var hasContracts = await _dbContext.WfpContractHistories
+                .AnyAsync(c => c.WorkforceProfileId == entity.WorkforceProfileId && !c.IsDelete);
+
+            if (hasContracts)
+            {
+                var changedContractType = entity.ContractTypeId != request.ContractTypeId;
+                var changedEmploymentType = entity.EmploymentTypeId != request.EmploymentTypeId;
+                var changedEmploymentStatus = entity.EmploymentStatusId != request.EmploymentStatusId;
+                var changedJoinDate = entity.JoinDate.Date != request.JoinDate.Date;
+                var changedContractEndDate = entity.ContractEndDate?.Date != request.ContractEndDate?.Date;
+                var changedProbationEndDate = entity.ProbationEndDate?.Date != request.ProbationEndDate?.Date;
+
+                if (changedContractType || changedEmploymentType || changedEmploymentStatus || changedJoinDate || changedContractEndDate || changedProbationEndDate)
+                {
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Perubahan jenis kontrak, jenis kepegawaian, status kepegawaian, tanggal masuk, tanggal akhir kontrak, dan tanggal akhir masa percobaan dikelola secara terpusat melalui siklus kontrak (VR-ONB-33).",
+                        "EMPLOYMENT_FIELDS_MANAGED_BY_CONTRACT"
+                    ));
+                }
+            }
+
             var requiredValidation = ValidateRequiredEmployeeRequest(request);
 
             if (!requiredValidation.IsValid)

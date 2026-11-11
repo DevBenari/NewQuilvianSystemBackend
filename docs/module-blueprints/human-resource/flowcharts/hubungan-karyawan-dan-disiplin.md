@@ -5,8 +5,8 @@
 | Blueprint ID | `HRD-BP-001` |
 | Jenis | Flowchart proses |
 | Slice | `S-C5` hubungan karyawan dan kedisiplinan |
-| Status | `draft` |
-| Kesiapan | `READY FOR DESIGN` **untuk bentuk alurnya**; dua titik tetap `[OPEN]` |
+| Status | `designed` |
+| Kesiapan | `DESIGN_COMPLETE` — Seluruh titik terbuka telah ditutup resmi oleh `HRD-DEC-170` s.d. `HRD-DEC-173` |
 
 ---
 
@@ -15,12 +15,12 @@
 Bagaimana sebuah laporan insiden atau keluhan pegawai ditangani sampai menjadi tindakan
 kedisiplinan yang berlaku — atau ditutup tanpa tindakan.
 
-Dua hal sengaja tidak dijawab di sini karena pemiliknya belum memutuskan:
+Seluruh pertanyaan kebijakan bisnis telah disahkan resmi pada Pass Wawancara 18 (6 November 2026):
 
-| Pertanyaan | Pemilik | ID |
-| --- | --- | --- |
-| Apakah pemisahan peran diperlukan, sehingga seseorang tidak dapat menyetujui tindakan disiplin yang ia buat sendiri | Pemilik proses HR | `HRD-Q-51` |
-| Tingkatan izin khusus bagi data yang paling terbatas jangkauan pembacanya | Pemilik keamanan bersama pemilik proses | `HRD-Q-52` |
+| Pertanyaan | Pemilik | ID | Status Penutupan |
+| --- | --- | --- | --- |
+| Pemisahan peran & independensi pemeriksa BAP | Pemilik proses HR | `HRD-Q-51` | Ditutup `HRD-DEC-170` & `HRD-DEC-171` (tim BAP minimal 2 orang, pengesahan Direktur SDM) |
+| Izin khusus data rahasia & enkripsi | Pemilik keamanan / HR | `HRD-Q-52` | Ditutup `HRD-DEC-172` (enkripsi asimetris payload & role `Hrd.Disciplinary.WhistleblowerReview`) |
 
 **Ini bukan detail kecil.** Tanpa jawaban `HRD-Q-51`, seseorang dapat mengusulkan sekaligus
 menyetujui sanksi terhadap pegawai lain. Tanpa jawaban `HRD-Q-52`, tidak ada yang menetapkan

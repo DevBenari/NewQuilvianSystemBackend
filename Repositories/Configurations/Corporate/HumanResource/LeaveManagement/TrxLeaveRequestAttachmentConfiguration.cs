@@ -18,6 +18,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.VerificationStatus).HasMaxLength(30).HasDefaultValue("Pending").IsRequired();
             entity.Property(x => x.VerifiedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.VerificationNotes).HasMaxLength(1000);
+            entity.Property(x => x.IsMedicalCertificate).HasDefaultValue(false);
+            entity.Property(x => x.IsConfidentialMedical).HasDefaultValue(true);
+            entity.Property(x => x.DoctorName).HasMaxLength(200);
+            entity.Property(x => x.DoctorSipNumber).HasMaxLength(100);
+            entity.Property(x => x.FaskesName).HasMaxLength(255);
+            entity.Property(x => x.MedicalDiagnosisIcd10).HasMaxLength(100);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
             entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone").IsRequired(false);

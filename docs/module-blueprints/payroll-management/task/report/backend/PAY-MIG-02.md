@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `f2dd20a6` ditambah perubahan lokal yang belum di-commit |
 | Tanggal | 11 November 2026 |
-| Status | 🟡 **Tiga berkas ditulis dan lolos simulasi statis; belum dijalankan terhadap database.** Eksekusi, pra-cek, dan pasca-cek oleh pemilik pada database uji |
+| Status | 🟡 **Tiga berkas ditulis dan lolos simulasi statis; belum dijalankan terhadap database.** Eksekusi, pra-cek, dan pasca-cek oleh pemilik pada database uji. **Setelah merge integrasi (bagian 9):** snapshot dan Designer dibangun ulang dari snapshot integrasi, simulasi diulang pada 10.786 nama |
 
 ### Backend Governance Preflight
 
@@ -275,3 +275,19 @@ Status akhir **🟡**.
 | Interupsi | `NONE` |
 | Status Git | Dua berkas migration baru berstatus `??`; snapshot berstatus `M`. Tidak ada stage atau commit |
 | Langkah berikutnya | Pemilik: `dotnet build`, `has-pending-model-changes`, lalu 6.1 sampai 6.6 pada database uji |
+
+## 9. Pembaruan setelah merge integrasi (11 November 2026)
+
+Konteks: kegagalan CI QBE strict memperlihatkan bahwa `HEAD` belum memuat 39 commit `QuilvianIntegrationBackend`; penyebab dan perbaikannya ada di [`PAY-BE-12`](PAY-BE-12.md) bagian 8. Bagian ini mencatat dampaknya pada migration.
+
+| Hal | Isi |
+| --- | --- |
+| Migration baru dari integrasi sejak titik cabang `f2dd20a6` | Termasuk `20261105150000_AddPayrollV2CoreEntitiesAndIndices` dan `20261106153000_AddRestitutionAndPayrollDeductionSliceB6Core` (pengembang lain). Semuanya bertimestamp **lebih lama** dari `20261111100000`, sehingga `database update` menerapkannya lebih dulu, lalu migration rename ini |
+| Keterkaitan dengan 19 tabel | Dua migration itu membuat tabel baru yang memiliki **kunci asing ke `TrxPayrollRun` dan `TrxPayrollPayslip`** (mis. `FK_TrxPayrollVarianceAlert_TrxPayrollRun_PayrollRunId`, `FK_TrxPayrollRestitution_TrxPayrollPayslip_AffectedPayslipId`). Constraint itu ikut diganti namanya oleh blok SQL karena pencarian dilakukan dari katalog PostgreSQL dengan pencocokan token. Tidak ada perubahan pada migration |
+| Berkas migration `20261111100000_...cs` | **Tidak berubah** |
+| Snapshot | Basis diganti ke snapshot integrasi (perubahan Yasmina pada snapshot terbukti murni rename), lalu diganti nama: **nama lengkap 19 entity saja**, bukan seluruh namespace HR, karena entity Payroll Modern milik integrasi tetap bernama lengkap di namespace `...HumanResource.PayrollManagement.Models`. 0 nama lama tersisa; 106 kemunculan `Prl*`; 152.815 baris |
+| Designer | Dibangun ulang dari snapshot hasil: 7 baris berbeda (header saja). Memuat `Rhb*` seperti sebelumnya |
+| Simulasi nama migration, diulang | **10.786 nama** pada masing-masing snapshot (sebelumnya 10.499, tambahan dari entity integrasi). Setelah `Up`: **10.786 dari 10.786 sama** dengan nama yang diharapkan model baru. `Up` lalu `Down`: 10.786 dari 10.786 kembali. Nama terdampak **289** (sebelumnya 283; +6 FK entity integrasi), 67 di antaranya terpotong `~`. Tidak ada nama ganda, tidak ada sisa token lama |
+| Pra-cek 1c | Perkiraan nama yang akan diganti kini **289** (bukan 283). Selisih kecil terhadap database wajar |
+| Urutan penerapan di database uji | Pastikan `dotnet ef migrations list` menunjukkan seluruh migration integrasi tertunda; semuanya diterapkan berurutan. Karena migration integrasi menambah banyak tabel dan kolom, jalankan 6.1 sampai 6.6 pada salinan database yang sudah dicadangkan |
+| Status | 🟡 sama: belum dijalankan terhadap database |

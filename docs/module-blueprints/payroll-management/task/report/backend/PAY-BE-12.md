@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` (lintas repository hanya untuk dua berkas test frontend yang membaca source backend; lihat bagian 3.4) |
 | Target tulis | `NewQuilvianSystemBackend` branch `Yasmina` (tidak membuat dan tidak berpindah branch); laporan ini di `docs/module-blueprints/payroll-management/task/report/backend/` |
 | Model | Claude Sonnet 5.5 |
-| Commit backend saat dikerjakan | `f2dd20a6` ditambah perubahan lokal yang belum di-commit (PAY-BE-11, dokumen Payroll dan BLM) |
+| Commit backend saat dikerjakan | `f2dd20a6` ditambah perubahan lokal yang belum di-commit (PAY-BE-11, dokumen Payroll dan BLM). **Pengerjaan ulang setelah CI (bagian 8):** `6cf61197` (`dad`) |
 | Tanggal | 11 November 2026 |
-| Status | 🟡 **Source selesai dan lolos pemeriksaan statis; `dotnet build` dan eksekusi migration menunggu pemilik.** Tanpa build, kompilasi C# belum terbukti |
+| Status | 🟡 **Source selesai dan lolos pemeriksaan statis; `dotnet build` dan eksekusi migration menunggu pemilik.** Tanpa build, kompilasi C# belum terbukti. **Pengerjaan ulang (bagian 8):** kegagalan QBE strict di CI diperbaiki pada tingkat source (merge integrasi yang benar dan dua pengecualian bertenggat); hasilnya menunggu diterapkan ke working tree dan dijalankan ulang di CI oleh pemilik |
 
 ### Backend Governance Preflight
 
@@ -200,3 +200,78 @@ Status akhir **🟡**: seluruh kriteria terpenuhi pada tingkat source dan pemeri
 7. Bila proses tim memindahkan Designer lama ke `Migrations/History/`, jalankan skrip pemeliharaannya. `MigrationMetadata.g.cs` dibangkitkan tool dan tidak disentuh.
 8. Putuskan apakah kategori log `Corporate.HumanResource.PayrollManagement` (sembilan tempat) disamakan dengan modul baru. Perubahan ini memutus pencarian log lama, jadi sebaiknya dijadwalkan terpisah.
 9. Tentukan bentuk commit mengingat tumpang tindih dengan `PAY-BE-11` (bagian 3.6), dan apakah dua berkas test frontend dikerjakan lewat jalur skill frontend (bagian 3.4).
+
+> Daftar di atas ditulis sebelum CI dijalankan. Setelah kegagalan CI, bagian 8 menggantikan butir 3 dan menambah langkah menerapkan hasil perbaikan.
+
+## 8. Perbaikan setelah kegagalan CI QBE strict (11 November 2026)
+
+Pengerjaan ulang task yang sama atas laporan CI pemilik: `QBE Conformance`, mode `Strict`, `GitRange`, 1.096 berkas dievaluasi, **87 `VIOLATION` dan 12 `REVIEW`**. Basis PR adalah `origin/QuilvianIntegrationBackend` (`adfde228`).
+
+### 8.1 Asal temuan
+
+Dari 87 pelanggaran, **hanya 4 berasal dari fase 2**. Delapan puluh tiga lainnya (`QBE-NAM-001` dan `QBE-MOD-002` pada Rekrutmen dan Lifecycle HR) berasal dari keadaan Git, bukan dari kode Payroll.
+
+| Temuan | Jumlah | Asal | Bukti |
+| --- | ---: | --- | --- |
+| `QBE-NAM-001` pada model, `DbSet`, dan konfigurasi `Trx*` Rekrutmen dan Lifecycle | 57 | Bukan fase 2. Di integrasi folder Rekrutmen berisi 68 berkas hasil normalisasi (`Hrd*`); di `HEAD` folder yang sama masih berisi 20 berkas versi lama (`Trx*`, `Mst*`) | `git ls-tree` |
+| `QBE-MOD-002` pada model yang sama | 26 | Sama | Port checker |
+| `QBE-CODE-002` pada `WfpTransportAllowancePolicyController` (`GenerateCodeAsync`, baris 278 dan 687) dan `WfpTransportAllowanceTransactionController` (`GenerateTransactionNumberAsync`, baris 251 dan 671) | 4 | **Fase 2.** Pemindahan controller membuat seluruh barisnya dianggap kode baru | Port checker |
+| `QBE-SVC-001` (`REVIEW`, tidak memblokir) pada enam controller `Wfp*` | 12 | **Fase 2**, sebab sama | Port checker |
+
+**Penyebab 83 pelanggaran.** Commit `6cf61197` (`dad`) adalah commit merge dengan dua induk, `fafd80c9` dan `adfde228`, tetapi **pohon berkasnya identik dengan `fafd80c9`**. Akibatnya 39 commit dari `QuilvianIntegrationBackend` tercatat sebagai terintegrasi padahal isinya tidak ikut: dibanding basis PR, `HEAD` berbeda 1.838 berkas (676.737 baris terhapus), termasuk seluruh normalisasi Rekrutmen/Lifecycle dari pengembang lain. `dad` sudah ada di `origin/Yasmina`.
+
+**Kekeliruan pada pekerjaan fase 2 sebelumnya.** Verifikasi saya waktu itu mereplikasi aturan kepemilikan checker saja dan menandai checker resmi `NOT RUN`. Empat pelanggaran `QBE-CODE-002` dan dua belas `REVIEW` pada controller yang dipindah seharusnya sudah disebut sebagai risiko (pola `Generate*Number` di controller yang dipindah terlihat dari bacaan). Pada pengerjaan ulang ini port checker diperluas ke seluruh aturan yang diimplementasikan dan divalidasi lebih dulu (bagian 8.3).
+
+### 8.2 Yang dikerjakan
+
+| Langkah | Isi |
+| --- | --- |
+| Merge yang benar | Hasil merge tiga arah `fafd80c9` + `adfde228` (titik cabang `f2dd20a6`) dihitung dengan `git merge-tree`, dengan `merge.directoryRenames=false`. Bentrok yang tersisa **dua**, keduanya konten: `ApplicationDbContext.cs` dan `ApplicationDbContextModelSnapshot.cs`. Dengan pengaturan bawaan Git ada 49 bentrok, 46 di antaranya saran memindahkan berkas Payroll Modern milik integrasi ke folder baru (lihat keputusan desain di bawah) |
+| Dua bentrok konten | Perubahan Yasmina pada keduanya **terbukti murni penggantian nama** (dibalik, identik dengan `f2dd20a6`). Maka dipakai versi integrasi, lalu penggantian nama diterapkan ulang |
+| Rename pada kode integrasi | 22 berkas hasil merge masih memuat nama lama atau membutuhkan `using` baru: 4 entity Payroll Modern di folder HR (`TrxPayrollDeductionItem`, `TrxPayrollHandoffBatch`, `TrxPayrollRestitution`, `TrxPayrollVarianceAlert`, properti navigasinya bertipe entity yang kini `Prl*`), 15 service, 1 service HR (`EmployeeDocumentIssuanceService`), `ApplicationDbContext.cs`, dan snapshot. Di snapshot nama lengkap entity diganti **per 19 nama**, bukan per namespace, karena entity milik integrasi tetap bernama lengkap di namespace HR |
+| Designer | Dibangun ulang dari snapshot hasil (header saja yang berbeda dari snapshot: 7 baris) |
+| Pengecualian | Dua entri bertenggat di `docs/engineering/QBE_EXCEPTIONS.json`: `EXP-QBE-CODE-002-PRL-001` dan `EXP-QBE-CODE-002-PRL-002`, `Scope` per berkas, `ExpiresAt` 2027-03-31, `ApprovalReference` keputusan pemilik 2026-11-11. Penomoran dipindahkan ke `NumberSeriesManagement` oleh task lanjutan `PAY-BE-13` (belum dikerjakan) |
+
+**Keputusan desain (konservatif).** Berkas Payroll Modern milik integrasi (7 controller, 18 DTO, 11 model di folder HR, dan 41 service yang berada di folder Payroll tetapi mendeklarasikan namespace `...HumanResource.PayrollManagement.Services`) **tidak dipindahkan dan tidak diganti namanya**. Memindahkannya ke `Areas/Corporate/PayrollManagement` akan menundukkannya pada baris registry `Prl` dan memaksa rename entity dan tabel milik tim lain tanpa persetujuan mereka. Akibatnya setelah merge terdapat **dua keluarga namespace Payroll** (`...HumanResource.PayrollManagement.*` milik integrasi dan `...Corporate.PayrollManagement.*` milik Payroll V2). Menyatukannya adalah keputusan tim, bukan bagian task ini.
+
+### 8.3 Verifikasi
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| **Port checker QBE divalidasi** pada keadaan `dad` terhadap `adfde228` (aturan `NAM-001`, `CODE-002/003`, `SVC-001`, `ENT-001`, `CFG-001`, `MOD-002`; pembersih komentar/string, `-match` tidak peka huruf, pengecualian per berkas) | **Mereproduksi laporan CI persis**: 1.096 berkas, 47 pemindahan migration, 87 `VIOLATION` (`NAM-001` 57, `MOD-002` 26, `CODE-002` 4), 12 `REVIEW`, termasuk nomor baris 278/687/251/671 dan 280 sampai 294, 306 sampai 308, 312 pada `ApplicationDbContext.cs` | `PASS` (validasi port) |
+| Port yang sama pada hasil perbaikan | **111 berkas dievaluasi; 4 `VIOLATION` (semua `CODE-002`) tertutup dua pengecualian; 0 pelanggaran memblokir; 12 `REVIEW`; hasil `PASS`** | `PASS` (port; **bukan checker resmi**) |
+| Checker resmi `Invoke-QbeConformanceCheck.ps1` | Tidak dijalankan (`pwsh` tidak tersedia untuk agen). Pemilik menjalankannya ulang | `NOT RUN` |
+| Diff terhadap basis PR | **136 berkas** (sebelumnya 1.838), seluruhnya pekerjaan Yasmina: 56 diubah, 50 dipindah, 5 baru, dokumen. Tidak ada penghapusan berkas integrasi | `PASS` |
+| Setiap berkas `.cs` yang berbeda dari basis, dibalik penggantian namanya, dibandingkan dengan basis | 97 identik; 9 tidak identik, **semuanya berkas `PAY-BE-11`** (fitur yang memang berbeda dari basis) | `PASS` |
+| Nama lama 19 entity di luar `Migrations/` | 0 | `PASS` |
+| Snapshot hasil: nama lama, nama `Prl*`, entity integrasi | 0 nama lama; 106 kemunculan `Prl*` (100 dari fase 2 ditambah 6 FK entity integrasi ke tabel Payroll); entity integrasi tetap bernama lengkap di namespace HR; 152.815 baris, BOM utuh | `PASS` |
+| `using` pada seluruh source | Semua `using` ke namespace `PayrollManagement` merujuk namespace yang dideklarasikan. Empat `using` lain tak terdeklarasi adalah kondisi lama di luar Payroll (`Helpers`, `OperatingRoomCommandSupport`, dua di `Tests/`) | `PASS` |
+| Sepuluh berkas yang memakai nama `Prl*` tanpa `using` Models | Seluruhnya hanya memakai properti `DbSet` atau teks, tidak ada tipe | `PASS` |
+| Tipe bernama sama pada dua keluarga namespace Payroll | 0 | `PASS` |
+| Nama izin `[AccessController]` pada 22 controller di kedua folder | Semua unik; atribut akses enam controller `Wfp*` tetap identik | `PASS` |
+| `Program.cs`: registrasi layanan Payroll ganda | 0 | `PASS` |
+| Simulasi nama migration pada snapshot hasil | 10.786 dari 10.786 nama cocok setelah `Up`; `Up` lalu `Down` kembali ke semula; 289 nama terdampak (283 + 6 FK entity integrasi); lihat laporan `PAY-MIG-02` bagian 9 | `PASS` (simulasi) |
+| `dotnet build`, checker resmi, `has-pending-model-changes`, migration pada database | Tidak dijalankan | `NOT RUN` |
+
+### 8.4 Temuan yang tidak diubah
+
+1. **Dua `[Route]` kelas identik pada controller milik integrasi**: `api/hr-deductions` pada `PayrollDeductionScheduleController` dan `RestitutionClaimController`. Sudah ada di basis; bukan bagian pekerjaan ini. Bila verb dan sub-rute bertabrakan, ASP.NET Core akan menolak saat runtime. Mohon pemilik controller itu memeriksa.
+2. **Lima model Payroll Modern milik integrasi masih bernama `Trx*`** (`TrxPayrollDeductionItem`, `TrxPayrollDeductionSchedule`, `TrxPayrollHandoffBatch`, `TrxPayrollRestitution`, `TrxPayrollVarianceAlert`) dan berada di folder HR. Tidak dievaluasi checker karena tidak berubah terhadap basis, tetapi menjadi utang normalisasi `QBE-NAM-003` milik tim integrasi.
+3. Dua belas `REVIEW` `QBE-SVC-001` pada enam controller `Wfp*` (`ApplicationDbContext` di controller) tidak memblokir; menyelesaikannya berarti memindahkan akses data ke service Payroll, di luar lingkup.
+4. Kategori log, `Rhb*` pada Designer lama, dan dokumen audit lama: tetap seperti bagian 7.
+
+### 8.5 Cara menerapkan hasil
+
+Working tree dan index Anda **tidak diubah** pekerjaan ini. Hasil disimpan sebagai satu objek tree Git (dibangun lewat indeks sementara) yang menggabungkan: `HEAD` + 39 commit integrasi + perbaikan nama + pengecualian + dokumen. `git read-tree -u --reset` menimpa working tree, dan pengaman agen menolaknya, sehingga langkah ini dijalankan pemilik:
+
+```bash
+cd NewQuilvianSystemBackend
+git status                      # harus bersih (HEAD 6cf61197)
+git read-tree -u --reset <TREE> # TREE tertera pada pesan penyerahan; menimpa working tree
+git reset -q                    # index kembali ke HEAD: hasil tampil sebagai perubahan biasa
+git status --short | head       # tinjau
+git add -A && git commit        # hanya bila sudah yakin; satu commit koreksi di atas dad
+git push                        # tanpa --force
+```
+
+Untuk membatalkan sebelum commit: `git read-tree -u --reset HEAD`. Objek tree tidak dirujuk branch mana pun sehingga dapat dihapus `git gc` setelah masa tenggang; terapkan dalam beberapa hari.

@@ -33,6 +33,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
         public string DefaultLanguageCode { get; set; } = "id-ID";
 
         public int? DefaultValidityDays { get; set; }
+        public int ValidityPeriodDays { get; set; } = 90;
+
+        [MaxLength(100)]
+        public string NumberingPattern { get; set; } = "[KODE]/RSQ-SDM/[BULAN_ROMAWI]/[TAHUN]/[NO_URUT]";
+        public int LastSequenceNumber { get; set; } = 0;
+        public int CurrentYear { get; set; } = 2026;
+
+        public string? TemplateBodyHtml { get; set; }
+        public string? SupportedTokensJson { get; set; } = "[]";
+
+        public bool IsFinancialSensitive { get; set; } = false;
+        public bool RequiresCbApproval { get; set; } = false;
+
+        [MaxLength(150)]
+        public string AuthorizedSignerTitle { get; set; } = "Manajer Sumber Daya Manusia";
+
         public bool RequiresApproval { get; set; } = false;
         public bool RequiresDigitalSignature { get; set; } = false;
         public bool AllowsEmployeeDownload { get; set; } = true;

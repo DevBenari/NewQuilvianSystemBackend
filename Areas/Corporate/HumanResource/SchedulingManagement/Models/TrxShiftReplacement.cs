@@ -1,6 +1,7 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Models;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -13,6 +14,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
         [Required]
         public Guid ShiftAssignmentId { get; set; }
+
+        public Guid? RosterPeriodId { get; set; }
 
         [Required]
         public Guid OriginalWorkforceProfileId { get; set; }
@@ -31,8 +34,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         // Replacement, AbsenceCover, Emergency, LeaveCover, TrainingCover
 
         [Required]
+        [MaxLength(100)]
+        public string ReasonCategory { get; set; } = "Sakit Mendadak";
+
+        [Required]
         [MaxLength(1000)]
         public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
 
         [Required]
         [MaxLength(30)]
@@ -47,14 +57,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [MaxLength(1000)]
         public string? ApprovalNotes { get; set; }
 
+        public Guid? ExecutedByUserId { get; set; }
+        public DateTime? ExecutedAt { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public TrxShiftAssignment? ShiftAssignment { get; set; }
+        public TrxRosterPeriod? RosterPeriod { get; set; }
         public MstWorkforceProfile? OriginalWorkforceProfile { get; set; }
         public MstWorkforceProfile? ReplacementWorkforceProfile { get; set; }
         public MstRequestReason? RequestReason { get; set; }
         public MstRejectionReason? RejectionReason { get; set; }
         public MstWorkflowDefinition? WorkflowDefinition { get; set; }
         public ApplicationUser? ApprovedByUser { get; set; }
+        public ApplicationUser? ExecutedByUser { get; set; }
     }
 }

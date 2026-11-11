@@ -490,7 +490,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 "Cashier", "ResponsiblePersonDomicileAddress"
             });
 
-            // Diagnosis masuk dan dokter perujuk (RWI-DEC-254): surat terbit terbaru, lalu perujuk luar.
+            // Diagnosis masuk dan dokter perujuk (RWI-DEC-254, diamandemen 2026-11-02 oleh BE-RWI-257):
+            // surat terbit terbaru, lalu perujuk luar Registrasi, lalu perujuk luar yang dicatat admisi
+            // pada episode, selain itu garis kosong.
             string? referringDoctor = null;
             string? diagnosisAndPlan = null;
 
@@ -507,6 +509,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 referringDoctor = string.IsNullOrWhiteSpace(externalReferral.Value.InstitutionName)
                     ? externalReferral.Value.DoctorName
                     : $"{externalReferral.Value.DoctorName} ({externalReferral.Value.InstitutionName})";
+            }
+            else if (episode.IsAvailable && episode.Value != null &&
+                     !string.IsNullOrWhiteSpace(episode.Value.ExternalReferralDoctorName))
+            {
+                var doctorName = InpAdmissionText.Clean(episode.Value.ExternalReferralDoctorName);
+                var facilityName = InpAdmissionText.Clean(episode.Value.ExternalReferralFacilityName);
+                referringDoctor = string.IsNullOrWhiteSpace(facilityName)
+                    ? doctorName
+                    : $"{doctorName} ({facilityName})";
             }
 
             if (!letter.IsAvailable)

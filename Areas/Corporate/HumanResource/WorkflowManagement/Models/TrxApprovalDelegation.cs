@@ -29,6 +29,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         public Guid? RevokedByUserId { get; set; }
 
+        public Guid? PrincipalEmployeeId { get; set; }
+
+        public Guid? DelegateEmployeeId { get; set; }
+
+        [MaxLength(500)]
+        public string? DelegatedRequestTypes { get; set; }
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
         [Required]
         [MaxLength(60)]
         public string DelegationNumber { get; set; } = string.Empty;

@@ -16,6 +16,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 {
     [ApiController]
     [Authorize]
+    [Route("api/corporate/human-resource/attendance/raw-logs")]
     [Route("api/v1/corporate/human-resource/attendance/raw-logs")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_ATTENDANCE",
@@ -25,7 +26,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         ControllerName = "AttendanceRawLog",
         Description = "Corporate human resource attendance raw log ingestion and monitoring",
         SortOrder = 1)]
-    [Tags("Corporate / Human Resource / Attendance Management / Attendance Raw Log")]
+    [Tags("HR Attendance - Raw Logs")]
     public class AttendanceRawLogController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.AttendanceManagement";

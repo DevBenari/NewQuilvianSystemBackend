@@ -27,6 +27,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         public Guid? OriginalApproverWorkforceProfileId { get; set; }
 
+        public Guid? ApproverEmployeeId { get; set; }
+
+        public Guid? DelegatedEmployeeId { get; set; }
+
         [MaxLength(100)]
         public string? AssignedApproverRoleCode { get; set; }
 

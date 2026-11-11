@@ -470,6 +470,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 ApprovedByUserId = x.ApprovedByUserId,
                 ApprovedByUserName = x.ApprovedByUserId.HasValue ? GetActorName(actorNames, x.ApprovedByUserId.Value) : null,
                 ApprovedAt = x.ApprovedAt,
+                IsApproved = x.ApprovedAt.HasValue && x.ApprovedByUserId.HasValue,
                 IsActive = x.IsActive,
                 Description = x.Description,
                 CreateDateTime = x.CreateDateTime,

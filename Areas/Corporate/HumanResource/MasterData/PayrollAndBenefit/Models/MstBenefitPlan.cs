@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Models;
@@ -81,6 +82,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         public bool IsActive { get; set; } = true;
 
+        [MaxLength(50)]
+        public string BenefitCategory { get; set; } = "BPJS_Mandatory";
+        // 'BPJS_Mandatory', 'Private_Insurance', 'InHouse_HospitalCare' (HRD-DEC-134)
+
+        [MaxLength(50)]
+        public string CoverageTier { get; set; } = "Basic";
+        // 'Basic', 'Silver', 'Gold', 'Platinum', 'Executive'
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal HospitalDiscountPercentage { get; set; } = 0.00m;
+
+        public bool RequiresBPJSPrimaryCOB { get; set; } = true;
+
+        public int MinimumServiceMonths { get; set; } = 3;
+
         public MstBenefitType? BenefitType { get; set; }
 
         public MstLegalEntity? LegalEntity { get; set; }
@@ -95,5 +111,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         public ICollection<MstBenefitEligibilityRule> EligibilityRules { get; set; }
             = new List<MstBenefitEligibilityRule>();
+
+        public ICollection<HrdBenefitGradeEligibility> GradeEligibilities { get; set; }
+            = new List<HrdBenefitGradeEligibility>();
     }
 }

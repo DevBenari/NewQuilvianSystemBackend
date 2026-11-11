@@ -2,7 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Repositories;
@@ -267,6 +270,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ProcedureSummary = x.ProcedureSummary,
                     DischargeMedicationNote = x.DischargeMedicationNote,
                     FollowUpInstruction = x.FollowUpInstruction,
+                    FollowUpDate = x.FollowUpDate,
+                    FollowUpServiceUnitId = x.FollowUpServiceUnitId,
+                    FollowUpServiceUnitName = x.FollowUpServiceUnit != null ? x.FollowUpServiceUnit.ServiceUnitName : null,
+                    FollowUpDoctorId = x.FollowUpDoctorId,
+                    FollowUpDoctorName = x.FollowUpDoctor != null ? x.FollowUpDoctor.FullName : null,
                     ReferralDestination = x.ReferralDestination,
                     ClinicalSummary = x.ClinicalSummary,
                     ImportantFindingsSummary = x.ImportantFindingsSummary,
@@ -309,6 +317,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ProcedureSummary = x.ProcedureSummary,
                     DischargeMedicationNote = x.DischargeMedicationNote,
                     FollowUpInstruction = x.FollowUpInstruction,
+                    FollowUpDate = x.FollowUpDate,
+                    FollowUpServiceUnitId = x.FollowUpServiceUnitId,
+                    FollowUpDoctorId = x.FollowUpDoctorId,
                     ReferralDestination = x.ReferralDestination,
                     ClinicalSummary = x.ClinicalSummary,
                     ImportantFindingsSummary = x.ImportantFindingsSummary,
@@ -394,6 +405,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 return InpDischargeSummaryOperationResult.NotFound(
                     "Episode rawat inap tidak ditemukan.");
+            }
+
+            // BE-RWI-256 — rencana kontrol terstruktur divalidasi sebelum apa pun disimpan.
+            var followUpError = await ValidateFollowUpPlanAsync(episode, request, cancellationToken);
+
+            if (followUpError != null)
+            {
+                return InpDischargeSummaryOperationResult.Invalid(followUpError);
             }
 
             var existing = await _dbContext.Set<InpDischargeSummary>()
@@ -619,6 +638,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 ProcedureSummary = summary.ProcedureSummary,
                 DischargeMedicationNote = summary.DischargeMedicationNote,
                 FollowUpInstruction = summary.FollowUpInstruction,
+                // BE-RWI-256 — rencana kontrol terstruktur ikut disalin ke revisi.
+                FollowUpDate = summary.FollowUpDate,
+                FollowUpServiceUnitId = summary.FollowUpServiceUnitId,
+                FollowUpDoctorId = summary.FollowUpDoctorId,
                 ReferralDestination = summary.ReferralDestination,
                 ClinicalSummary = summary.ClinicalSummary,
                 // BE-RWI-085 — ketiga isian baru IKUT disalin. Tanpa ketiganya, setiap
@@ -662,6 +685,95 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Validasi rencana kontrol terstruktur — <c>BE-RWI-256</c>, <c>FIX-EPS-043-02</c>.
+        /// </summary>
+        /// <remarks>
+        /// Aturannya: bila tanggal kontrol diisi, poliklinik wajib diisi, dan sebaliknya; dokter
+        /// kontrol opsional tetapi hanya sah bersama poliklinik dan tanggal. Tanggal kontrol tidak
+        /// boleh sebelum tanggal keputusan pulang menurut jam dinding rumah sakit (zona bawaan
+        /// <c>Asia/Jakarta</c>). Contoh: keputusan pulang 2 November 2026 pukul 06.30 WIB
+        /// (1 November 23.30 UTC); kontrol 1 November ditolak, kontrol 2 atau 9 November diterima.
+        /// Poliklinik harus unit rawat jalan yang aktif, dan dokter harus punya jadwal praktik aktif
+        /// di poliklinik itu.
+        /// </remarks>
+        private async Task<string?> ValidateFollowUpPlanAsync(
+            InpEpisode episode,
+            UpsertDischargeSummaryRequest request,
+            CancellationToken cancellationToken)
+        {
+            var serviceUnitId = NormalizeId(request.FollowUpServiceUnitId);
+            var doctorId = NormalizeId(request.FollowUpDoctorId);
+
+            if (!request.FollowUpDate.HasValue && serviceUnitId == null && doctorId == null)
+            {
+                return null;
+            }
+
+            if (request.FollowUpDate.HasValue && serviceUnitId == null)
+            {
+                return "Poliklinik kontrol wajib dipilih bila tanggal kontrol diisi.";
+            }
+
+            if (!request.FollowUpDate.HasValue)
+            {
+                return "Tanggal kontrol wajib diisi bila poliklinik atau dokter kontrol dipilih.";
+            }
+
+            if (serviceUnitId == null)
+            {
+                return "Poliklinik kontrol wajib dipilih bila dokter kontrol dipilih.";
+            }
+
+            if (episode.DischargeDecidedAt.HasValue)
+            {
+                var timeZone = InpAdmissionText.ResolveTimeZone(null);
+                var decidedDate = DateOnly.FromDateTime(
+                    InpAdmissionText.ToLocal(episode.DischargeDecidedAt.Value, timeZone));
+
+                if (request.FollowUpDate.Value < decidedDate)
+                {
+                    return "Tanggal kontrol tidak boleh sebelum tanggal keputusan pulang.";
+                }
+            }
+
+            var isOutpatientUnit = await _dbContext.Set<MstServiceUnit>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == serviceUnitId.Value &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.ServiceUnitType == ServiceUnitType.Outpatient,
+                    cancellationToken);
+
+            if (!isOutpatientUnit)
+            {
+                return "Poliklinik kontrol tidak ditemukan atau bukan unit rawat jalan yang aktif.";
+            }
+
+            if (doctorId != null)
+            {
+                var hasSchedule = await _dbContext.Set<MstDoctorSchedule>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.DoctorId == doctorId.Value &&
+                        x.ServiceUnitId == serviceUnitId.Value &&
+                        !x.IsDelete &&
+                        x.IsActive,
+                        cancellationToken);
+
+                if (!hasSchedule)
+                {
+                    return "Dokter kontrol tidak punya jadwal praktik aktif di poliklinik yang dipilih.";
+                }
+            }
+
+            return null;
+        }
+
+        private static Guid? NormalizeId(Guid? value)
+            => value.HasValue && value.Value != Guid.Empty ? value : null;
+
         private static void ApplySummaryContent(
             InpDischargeSummary summary,
             UpsertDischargeSummaryRequest request)
@@ -671,6 +783,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             summary.ProcedureSummary = NormalizeText(request.ProcedureSummary);
             summary.DischargeMedicationNote = NormalizeText(request.DischargeMedicationNote);
             summary.FollowUpInstruction = NormalizeText(request.FollowUpInstruction);
+            summary.FollowUpDate = request.FollowUpDate;
+            summary.FollowUpServiceUnitId = NormalizeId(request.FollowUpServiceUnitId);
+            summary.FollowUpDoctorId = NormalizeId(request.FollowUpDoctorId);
             summary.ReferralDestination = NormalizeText(request.ReferralDestination);
             summary.ClinicalSummary = NormalizeText(request.ClinicalSummary);
             summary.ImportantFindingsSummary = NormalizeText(request.ImportantFindingsSummary);

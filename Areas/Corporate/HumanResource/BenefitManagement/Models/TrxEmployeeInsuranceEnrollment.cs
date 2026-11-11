@@ -77,6 +77,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         [MaxLength(1000)]
         public string? Notes { get; set; }
 
+        [MaxLength(50)]
+        public string? BpjsKesehatanNumber { get; set; }
+
+        [MaxLength(50)]
+        public string? BpjsKetenagakerjaanNumber { get; set; }
+
+        [MaxLength(100)]
+        public string? PrivateInsurancePolicyNumber { get; set; }
+
+        public Guid? ProbationEvaluationId { get; set; }
+
+        public DateTime? TerminationDate { get; set; }
+
+        [MaxLength(255)]
+        public string? TerminationReason { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public TrxEmployeeBenefitEnrollment? EmployeeBenefitEnrollment { get; set; }

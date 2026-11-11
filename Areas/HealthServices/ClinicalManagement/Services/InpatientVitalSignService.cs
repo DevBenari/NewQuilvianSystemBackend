@@ -101,6 +101,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     BMI = x.BMI,
                     EarlyWarningScore = x.EarlyWarningScore,
                     EwsRiskLevel = x.EwsRiskLevel,
+                    EwsMonitoringRecommendation = x.EwsMonitoringRecommendation,
+                    NeedDoctorNotification = x.NeedDoctorNotification,
                     IsAbnormal = x.IsAbnormal,
                     IsCritical = x.IsCritical,
                     IsExcludedFromChart = x.VitalSignStatus == PatientVitalSignStatus.Cancelled ||

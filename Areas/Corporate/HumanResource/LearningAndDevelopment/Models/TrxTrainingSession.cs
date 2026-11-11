@@ -82,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         public ApplicationUser? InstructorUser { get; set; }
 
         public ICollection<TrxTrainingParticipant> Participants { get; set; } = new List<TrxTrainingParticipant>();
+        public ICollection<TrxTrainingEnrollmentRequest> EnrollmentRequests { get; set; } = new List<TrxTrainingEnrollmentRequest>();
         public ICollection<TrxTrainingAttendance> Attendances { get; set; } = new List<TrxTrainingAttendance>();
         public ICollection<TrxTrainingAssessment> Assessments { get; set; } = new List<TrxTrainingAssessment>();
         public ICollection<TrxTrainingEvaluation> Evaluations { get; set; } = new List<TrxTrainingEvaluation>();

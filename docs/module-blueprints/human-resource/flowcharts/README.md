@@ -96,6 +96,15 @@ dengan menyunting salah satunya diam-diam.
 | [`manajemen-kinerja.md`](./manajemen-kinerja.md) | Siklus penilaian kinerja | `S-C3` | `READY FOR DESIGN` |
 | [`offboarding.md`](./offboarding.md) | Pengunduran diri sampai serah terima selesai | `S-C4` | `READY FOR DESIGN` |
 | [`hubungan-karyawan-dan-disiplin.md`](./hubungan-karyawan-dan-disiplin.md) | Laporan insiden sampai tindakan disiplin berlaku | `S-C5` | `READY FOR DESIGN` |
+| [`standar-kebutuhan-tenaga.md`](./standar-kebutuhan-tenaga.md) | Standar kebutuhan tenaga dari draf sampai berlaku, dan angka rekomendasi | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
+| [`formasi-dan-rencana-tahunan.md`](./formasi-dan-rencana-tahunan.md) | Batch formasi awal, rencana tahunan, dan addendum | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
+| [`permintaan-headcount.md`](./permintaan-headcount.md) | Permintaan headcount sampai setiap kursi terisi atau dibatalkan | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
+| [`rekrutmen-dan-seleksi.md`](./rekrutmen-dan-seleksi.md) | Requisition sampai serah terima ke onboarding | `S-D2` | `READY FOR DESIGN` — dicatat di daftar ini 4 November 2026 |
+| [`onboarding-dan-siap-kerja.md`](./onboarding-dan-siap-kerja.md) | Serah terima rekrutmen sampai siap kerja atau batal bergabung | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`masa-percobaan.md`](./masa-percobaan.md) | Masa percobaan PKWTT sampai lulus, lulus otomatis, atau tidak lulus | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`pendampingan-klinis.md`](./pendampingan-klinis.md) | Preceptor ditetapkan sampai siap mandiri | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`siklus-kontrak.md`](./siklus-kontrak.md) | Keputusan menjelang akhir PKWT, penahan jadwal, dan koreksi kontrak | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
+| [`batch-data-awal-kontrak.md`](./batch-data-awal-kontrak.md) | Kontrak pegawai lama lewat satu batch | `S-C4-ONB` | `READY FOR DESIGN` — ditambahkan 4 November 2026, `approved` 4 November 2026 |
 
 ### 5.1 Proses yang sengaja TIDAK dibuatkan flowchart
 
@@ -103,7 +112,7 @@ dengan menyunting salah satunya diam-diam.
 | --- | --- | --- |
 | Kredensial, kewenangan klinis, SPK/RKK, OPPE, FPPE | `S-C1` | `BLOCKED`. Menggambar alurnya berarti mengarang batas kewenangan praktik yang belum ditetapkan Komite Medik — `HRD-Q-08` |
 | Kesehatan dan keselamatan kerja staf | `S-C6` | `BLOCKED`. Aturan akses rekam kesehatan kerja belum disahkan K3RS — `HRD-DEC-010` masih `draft` |
-| Perencanaan tenaga kerja, rekrutmen, benefit, layanan HR | `S-D1` s.d. `S-D4` | `BLOCKED` oleh `HRD-Q-05`. Isi tabelnya belum diketahui |
+| Rekrutmen, benefit, layanan HR | `S-D2` s.d. `S-D4` | `BLOCKED` oleh `HRD-Q-05`. Isi tabelnya belum diketahui. Perencanaan tenaga kerja (`S-D1`) kini punya tiga berkas di atas |
 | Perjalanan dinas dan reimbursement | `S-D5` | `DEFERRED`, dan tetap terikat `HRD-Q-05` |
 
 Ketiadaan berkas untuk keempat kelompok di atas **bukan** kelalaian. Ia adalah batas yang

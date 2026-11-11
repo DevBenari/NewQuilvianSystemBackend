@@ -25,10 +25,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.Property(x => x.PeriodName).HasMaxLength(200).IsRequired();
             builder.Property(x => x.StartDate).HasColumnType("date");
             builder.Property(x => x.EndDate).HasColumnType("date");
+            builder.Property(x => x.CutoffDate).HasColumnType("date");
             builder.Property(x => x.PeriodStatus)
                 .HasMaxLength(30)
                 .HasDefaultValue(OvertimeValueConstants.PeriodStatus.Open)
                 .IsRequired();
+            builder.Property(x => x.TotalCtoGrantedHours)
+                .HasPrecision(6, 2)
+                .HasDefaultValue(0);
+            builder.Property(x => x.IsHandoffExecuted)
+                .HasDefaultValue(false);
+
             builder.Property(x => x.RequireAttendanceFinal).HasDefaultValue(true);
             builder.Property(x => x.RequireVerificationComplete).HasDefaultValue(true);
             builder.Property(x => x.RequireSettlementComplete).HasDefaultValue(true);
@@ -56,6 +63,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
             builder.HasIndex(x => new { x.StartDate, x.EndDate, x.PeriodStatus });
+            builder.HasIndex(x => new { x.StartDate, x.EndDate, x.PeriodStatus }).HasDatabaseName("idx_ot_period_lookup");
             builder.HasIndex(x => new { x.LegalEntityId, x.HospitalSiteId, x.OrganizationUnitId, x.DepartmentId, x.StartDate, x.EndDate });
             builder.HasIndex(x => new { x.PeriodStatus, x.ScheduledCloseAt, x.IsActive, x.IsDelete });
         }
