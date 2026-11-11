@@ -6,7 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
@@ -16,16 +16,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 
 /// <summary>
 /// BE-FIN-094, FIN-DEC-190, INT-FIN-HR-001 (02-backend-architecture.md §P.2). Menerbitkan jadwal
-/// angsuran yang disetujui sebagai <c>TrxPayrollVariableInput</c> milik HR Payroll, dipanggil DI
+/// angsuran yang disetujui sebagai <c>PrlPayrollVariableInput</c> milik HR Payroll, dipanggil DI
 /// DALAM transaksi persetujuan perjanjian (<c>FinanceReceivableInstallmentPlanService.ApproveAsync</c>),
 /// sesuai kontrak ("Waktu Tulis: Ditulis otomatis di dalam transaksi persetujuan perjanjian").
 ///
 /// ADAPTER SEMPIT (BE-FIN-094, wewenang cross-module eksplisit pengguna) — ditemukan saat task ini
-/// bahwa HR SAMA SEKALI belum punya service/controller yang membuka payroll run: TrxPayrollRun dan
-/// TrxPayrollRunEmployee hanya pernah DIBACA (LeavePayrollIntegrationService selalu mengasumsikan
+/// bahwa HR SAMA SEKALI belum punya service/controller yang membuka payroll run: PrlPayrollRun dan
+/// PrlPayrollRunEmployee hanya pernah DIBACA (LeavePayrollIntegrationService selalu mengasumsikan
 /// keduanya sudah ada, tidak pernah membuatnya). Baris jadwal instalmen bisa menunjuk periode
 /// berbulan-bulan ke depan, yang run-nya belum tentu dibuka HR saat perjanjian disetujui — karena
-/// itu service ini resolve-or-create TrxPayrollRun dan TrxPayrollRunEmployee dengan default
+/// itu service ini resolve-or-create PrlPayrollRun dan PrlPayrollRunEmployee dengan default
 /// konservatif (status Draft), BUKAN membangun mesin payroll run HR yang sesungguhnya (buka run,
 /// kumpulkan seluruh pegawai aktif, dst — itu epic tersendiri, di luar cakupan task ini).
 ///
@@ -264,7 +264,7 @@ public sealed class FinanceReceivablePayrollSyncService
                 .FirstOrDefaultAsync(cancellationToken);
             if (doctor is not null)
             {
-                var hasPayroll = await _dbContext.WfpPayrolls.AsNoTracking()
+                var hasPayroll = await _dbContext.PrlPayrolls.AsNoTracking()
                     .AnyAsync(x => x.WorkforceProfileId == profileId && !x.IsDelete && x.IsPayrollEligible, cancellationToken);
                 if (!hasPayroll)
                 {
@@ -378,9 +378,9 @@ public sealed class FinanceReceivablePayrollSyncService
     }
 
     /// <summary>Run Regular terbaru pada periode itu (dilacak hanya saat sinkron akan memakainya).</summary>
-    private async Task<TrxPayrollRun?> FindRunAsync(MstPayrollPeriod period, bool track, CancellationToken cancellationToken)
+    private async Task<PrlPayrollRun?> FindRunAsync(MstPayrollPeriod period, bool track, CancellationToken cancellationToken)
     {
-        var query = track ? _dbContext.TrxPayrollRuns.AsQueryable() : _dbContext.TrxPayrollRuns.AsNoTracking();
+        var query = track ? _dbContext.PrlPayrollRuns.AsQueryable() : _dbContext.PrlPayrollRuns.AsNoTracking();
         return await query
             .Where(x => !x.IsDelete && x.PayrollPeriodId == period.Id && x.RunType == "Regular"
                 && x.RunStatus != PayrollRunStatuses.Cancelled && x.RunStatus != PayrollRunStatuses.Reversed)
@@ -394,10 +394,10 @@ public sealed class FinanceReceivablePayrollSyncService
     /// Find-only. Baris pegawai pada payroll run dibuat HRD dari profil payroll aktif; Finance tidak membuat baris slip (tanpa gaji dan
     /// profil) sebagai jalan pintas.
     /// </summary>
-    private async Task<TrxPayrollRunEmployee?> FindRunEmployeeAsync(
-        TrxPayrollRun run, PayrollTarget employee, bool track, CancellationToken cancellationToken)
+    private async Task<PrlPayrollRunEmployee?> FindRunEmployeeAsync(
+        PrlPayrollRun run, PayrollTarget employee, bool track, CancellationToken cancellationToken)
     {
-        var query = track ? _dbContext.TrxPayrollRunEmployees.AsQueryable() : _dbContext.TrxPayrollRunEmployees.AsNoTracking();
+        var query = track ? _dbContext.PrlPayrollRunEmployees.AsQueryable() : _dbContext.PrlPayrollRunEmployees.AsNoTracking();
         return await query
             .Where(x => !x.IsDelete && x.PayrollRunId == run.Id && x.WorkforceProfileId == employee.WorkforceProfileId)
             .FirstOrDefaultAsync(cancellationToken);
@@ -452,17 +452,17 @@ public sealed class FinanceReceivablePayrollSyncService
     /// <summary>Upsert idempoten berbasis (PayrollRunEmployeeId, PayrollComponentId, SourceType, SourceId)
     /// — pola sama dengan UpsertVariableInputAsync pada LeavePayrollIntegrationService.</summary>
     private async Task UpsertVariableInputAsync(
-        TrxPayrollRunEmployee runEmployee, MstPayrollComponent component, FinReceivableInstallment installment,
+        PrlPayrollRunEmployee runEmployee, MstPayrollComponent component, FinReceivableInstallment installment,
         Guid actorUserId, CancellationToken cancellationToken)
     {
         const string sourceType = "FinanceReceivableInstallment";
 
-        var tracked = _dbContext.ChangeTracker.Entries<TrxPayrollVariableInput>()
+        var tracked = _dbContext.ChangeTracker.Entries<PrlPayrollVariableInput>()
             .Select(x => x.Entity)
             .FirstOrDefault(x => x.PayrollRunEmployeeId == runEmployee.Id && x.PayrollComponentId == component.Id
                 && x.SourceType == sourceType && x.SourceId == installment.Id && !x.IsDelete);
 
-        var existing = tracked ?? await _dbContext.TrxPayrollVariableInputs
+        var existing = tracked ?? await _dbContext.PrlPayrollVariableInputs
             .FirstOrDefaultAsync(x => x.PayrollRunEmployeeId == runEmployee.Id && x.PayrollComponentId == component.Id
                 && x.SourceType == sourceType && x.SourceId == installment.Id && !x.IsDelete, cancellationToken);
 
@@ -483,7 +483,7 @@ public sealed class FinanceReceivablePayrollSyncService
             return;
         }
 
-        _dbContext.TrxPayrollVariableInputs.Add(new TrxPayrollVariableInput
+        _dbContext.PrlPayrollVariableInputs.Add(new PrlPayrollVariableInput
         {
             PayrollRunEmployeeId = runEmployee.Id,
             PayrollComponentId = component.Id,

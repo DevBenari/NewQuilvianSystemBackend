@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
@@ -21,7 +21,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 ///   Bersih = Bruto - Potongan. Cicilan piutang dipotong SESUDAH ini oleh PayrollInstallmentDeductionService (urutan prioritas).
 ///
 /// Yang SENGAJA tidak dihitung otomatis karena belum disahkan pemilik kebijakan (NEEDS CONFIRMATION): rumus PPh 21 dan tarif/batas
-/// BPJS. Nilai pajak dan iuran diambil dari tetapan profil payroll (WfpPayroll.TaxAmount/InsuranceAmount), tidak ada persentase
+/// BPJS. Nilai pajak dan iuran diambil dari tetapan profil payroll (PrlPayroll.TaxAmount/InsuranceAmount), tidak ada persentase
 /// yang ditanam di kode.
 ///
 /// Berjalan di dalam transaksi pemanggil (PayrollRunService.CalculateAsync); tidak membuka transaksi dan tidak menyimpan perubahan.
@@ -76,11 +76,11 @@ public sealed class PayrollCalculationService
         unpaidLeaveDeductionEnabled = _policy.UnpaidLeaveDeductionEnabled,
         requireDifferentApprover = _policy.RequireDifferentApprover,
         installmentDefaultMaxNetSalaryPercentage = _policy.InstallmentDefaultMaxNetSalaryPercentage,
-        taxAndInsuranceSource = "WfpPayroll.TaxAmount/InsuranceAmount (tetapan profil; rumus PPh/BPJS belum disahkan)"
+        taxAndInsuranceSource = "PrlPayroll.TaxAmount/InsuranceAmount (tetapan profil; rumus PPh/BPJS belum disahkan)"
     });
 
     public async Task<CalculationResult> CalculateRunAsync(
-        TrxPayrollRun run, MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
+        PrlPayrollRun run, MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
     {
         var result = new CalculationResult();
 
@@ -89,7 +89,7 @@ public sealed class PayrollCalculationService
         var totalDays = (periodEnd - periodStart).Days + 1;
         if (totalDays <= 0) throw new PayrollRunValidationException("Rentang tanggal periode payroll tidak valid.");
 
-        var employees = await _dbContext.TrxPayrollRunEmployees
+        var employees = await _dbContext.PrlPayrollRunEmployees
             .Include(x => x.Components)
             .Include(x => x.VariableInputs).ThenInclude(v => v.PayrollComponent)
             .Include(x => x.AttendanceInputs)
@@ -102,7 +102,7 @@ public sealed class PayrollCalculationService
         var workforceIds = employees.Select(x => x.WorkforceProfileId).Distinct().ToList();
         var profileIds = employees.Where(x => x.PayrollProfileId.HasValue).Select(x => x.PayrollProfileId!.Value).Distinct().ToList();
 
-        var profiles = await _dbContext.WfpPayrolls.AsNoTracking()
+        var profiles = await _dbContext.PrlPayrolls.AsNoTracking()
             .Where(x => !x.IsDelete && profileIds.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, cancellationToken);
 
@@ -120,13 +120,13 @@ public sealed class PayrollCalculationService
             .GroupBy(x => x.WorkforceProfileId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var taxProfiles = (await _dbContext.WfpTaxes.AsNoTracking()
+        var taxProfiles = (await _dbContext.PrlTaxes.AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && workforceIds.Contains(x.WorkforceProfileId))
                 .ToListAsync(cancellationToken))
             .GroupBy(x => x.WorkforceProfileId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(t => t.EffectiveStartDate).First());
 
-        var insuranceProfiles = (await _dbContext.WfpInsurances.AsNoTracking()
+        var insuranceProfiles = (await _dbContext.PrlInsurances.AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && workforceIds.Contains(x.WorkforceProfileId))
                 .ToListAsync(cancellationToken))
             .GroupBy(x => x.WorkforceProfileId)
@@ -183,13 +183,13 @@ public sealed class PayrollCalculationService
     }
 
     private void CalculateEmployee(
-        TrxPayrollRunEmployee employee,
-        WfpPayroll? profile,
+        PrlPayrollRunEmployee employee,
+        PrlPayroll? profile,
         IdentityInfo? identity,
         List<WfpSalaryAssignment> assignmentList,
         List<WfpBankAccount> bankList,
-        WfpTax? taxProfile,
-        WfpInsurance? insuranceProfile,
+        PrlTax? taxProfile,
+        PrlInsurance? insuranceProfile,
         DateTime periodStart,
         DateTime periodEnd,
         int totalDays,
@@ -251,7 +251,7 @@ public sealed class PayrollCalculationService
                 {
                     baseAmount = profile.BaseSalary * payableDays / totalDays;
                     warnings.Add("Gaji pokok memakai kolom kompatibilitas profil payroll karena belum ada penetapan gaji yang disetujui.");
-                    segments.Add(new { assignmentId = (Guid?)null, baseSalary = profile.BaseSalary, startDate = windowStart, endDate = windowEnd, days = payableDays, source = "WfpPayroll" });
+                    segments.Add(new { assignmentId = (Guid?)null, baseSalary = profile.BaseSalary, startDate = windowStart, endDate = windowEnd, days = payableDays, source = "PrlPayroll" });
                 }
                 else
                 {
@@ -300,8 +300,8 @@ public sealed class PayrollCalculationService
         }
 
         // ---- Input variabel (insentif, jasa medis, denda, dst.) ----
-        var variableEarningLines = new List<(TrxPayrollVariableInput Input, decimal Amount, bool Taxable)>();
-        var variableDeductionLines = new List<(TrxPayrollVariableInput Input, decimal Amount)>();
+        var variableEarningLines = new List<(PrlPayrollVariableInput Input, decimal Amount, bool Taxable)>();
+        var variableDeductionLines = new List<(PrlPayrollVariableInput Input, decimal Amount)>();
         var draftInputs = 0;
         foreach (var input in employee.VariableInputs.Where(v => !v.IsDelete && v.IsActive
                      && !string.Equals(v.SourceType, PayrollVariableInputSources.FinanceReceivableInstallment, StringComparison.Ordinal)))
@@ -343,7 +343,7 @@ public sealed class PayrollCalculationService
             new { totalDays, payableDays, factor = Math.Round(factor, 6), segments });
         Add(PayrollEngineComponentCodes.FixedAllowance, "Tunjangan Tetap", TypeEarning, isProrated && _policy.ProrateFixedAllowances ? "Prorated" : "Fixed",
             "Master", profile.Id, fixedAllowance, true, isProrated && _policy.ProrateFixedAllowances, profile.TotalAllowance, 1m,
-            "tunjangan tetap profil x faktor prorata", new { source = "WfpPayroll.TotalAllowance", factor = Math.Round(factor, 6) });
+            "tunjangan tetap profil x faktor prorata", new { source = "PrlPayroll.TotalAllowance", factor = Math.Round(factor, 6) });
         Add(PayrollEngineComponentCodes.Overtime, "Lembur", TypeEarning, "Computed", "Overtime", null, overtimeAmount, true, false,
             overtimeAmount, overtime.Count, "jumlah nominal lembur terverifikasi HRD", new { items = overtime.Count, minutes = employee.OvertimeMinutes });
         Add(PayrollEngineComponentCodes.AttendanceAllowance, "Tunjangan Kehadiran", TypeEarning, "Computed", "Attendance", null,
@@ -370,10 +370,10 @@ public sealed class PayrollCalculationService
         // Pajak dan iuran memakai tipe "Tax"/"Insurance" (bukan "Deduction") supaya tidak terhitung ganda oleh layanan potongan cicilan,
         // yang menjumlahkan TotalTax + TotalEmployeeInsuranceContribution secara terpisah dari komponen bertipe Deduction.
         Add(PayrollEngineComponentCodes.Tax, "Pajak Penghasilan (PPh 21)", "Tax", "Fixed", "Tax", taxProfile?.Id, taxAmount, false, false,
-            taxAmount, 1m, "tetapan profil payroll", new { source = "WfpPayroll.TaxAmount", needsConfirmation = true });
+            taxAmount, 1m, "tetapan profil payroll", new { source = "PrlPayroll.TaxAmount", needsConfirmation = true });
         Add(PayrollEngineComponentCodes.InsuranceEmployee, "Iuran Karyawan (BPJS/Asuransi)", "Insurance", "Fixed", "Insurance",
             insuranceProfile?.Id, insuranceAmount, false, false, insuranceAmount, 1m, "tetapan profil payroll",
-            new { source = "WfpPayroll.InsuranceAmount", needsConfirmation = true });
+            new { source = "PrlPayroll.InsuranceAmount", needsConfirmation = true });
 
         foreach (var stale in employee.Components.Where(c => !c.IsDelete
                      && c.ComponentCodeSnapshot.StartsWith(PayrollEngineComponentCodes.Prefix, StringComparison.Ordinal)
@@ -456,14 +456,14 @@ public sealed class PayrollCalculationService
     }
 
     private void UpsertComponent(
-        TrxPayrollRunEmployee employee, Guid actorUserId, string code, string name, string type, string method, string sourceType,
+        PrlPayrollRunEmployee employee, Guid actorUserId, string code, string name, string type, string method, string sourceType,
         Guid? sourceId, decimal amount, bool taxable, bool prorated, decimal baseValue, decimal quantity, string? formula,
         string? detailJson, int sortOrder)
     {
         var existing = employee.Components.FirstOrDefault(c => !c.IsDelete && c.ComponentCodeSnapshot == code && c.SourceId == sourceId);
         if (existing is null)
         {
-            existing = new TrxPayrollEmployeeComponent
+            existing = new PrlPayrollEmployeeComponent
             {
                 PayrollRunEmployeeId = employee.Id,
                 ComponentCodeSnapshot = code,
@@ -471,7 +471,7 @@ public sealed class PayrollCalculationService
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
             };
-            _dbContext.TrxPayrollEmployeeComponents.Add(existing);
+            _dbContext.PrlPayrollEmployeeComponents.Add(existing);
         }
         else
         {

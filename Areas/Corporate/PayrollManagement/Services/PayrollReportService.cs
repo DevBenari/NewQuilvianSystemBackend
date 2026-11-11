@@ -35,14 +35,14 @@ public sealed class PayrollReportService
 
     public async Task<PayrollRecapResponse> GetRecapAsync(PayrollRecapQuery query, bool includeAmounts, CancellationToken cancellationToken)
     {
-        var runQuery = _dbContext.TrxPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod)
+        var runQuery = _dbContext.PrlPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod)
             .Where(x => !x.IsDelete && x.RunStatus != PayrollRunStatuses.Cancelled && x.RunStatus != PayrollRunStatuses.Reversed);
         if (query.PayrollRunId.HasValue) runQuery = runQuery.Where(x => x.Id == query.PayrollRunId.Value);
         if (query.PayrollPeriodId.HasValue) runQuery = runQuery.Where(x => x.PayrollPeriodId == query.PayrollPeriodId.Value);
         var runs = await runQuery.OrderByDescending(x => x.CreateDateTime).ToListAsync(cancellationToken);
         var runIds = runs.Select(r => r.Id).ToList();
 
-        var employeeQuery = _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+        var employeeQuery = _dbContext.PrlPayrollRunEmployees.AsNoTracking()
             .Where(e => !e.IsDelete && runIds.Contains(e.PayrollRunId));
         if (query.CostCenterId.HasValue) employeeQuery = employeeQuery.Where(e => e.CostCenterId == query.CostCenterId.Value);
         var employees = await employeeQuery
@@ -117,7 +117,7 @@ public sealed class PayrollReportService
         var employeeIds = employees.Select(e => e.Id).ToList();
         if (employeeIds.Count > 0)
         {
-            var components = await _dbContext.TrxPayrollEmployeeComponents.AsNoTracking()
+            var components = await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
                 .Where(c => !c.IsDelete && employeeIds.Contains(c.PayrollRunEmployeeId))
                 .GroupBy(c => new { c.ComponentCodeSnapshot, c.ComponentNameSnapshot, c.ComponentTypeSnapshot })
                 .Select(g => new
@@ -149,11 +149,11 @@ public sealed class PayrollReportService
 
     public async Task<PayrollReconciliationResponse> GetReconciliationAsync(Guid runId, CancellationToken cancellationToken)
     {
-        var run = await _dbContext.TrxPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod)
+        var run = await _dbContext.PrlPayrollRuns.AsNoTracking().Include(x => x.PayrollPeriod)
             .SingleOrDefaultAsync(x => x.Id == runId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
 
-        var employees = await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+        var employees = await _dbContext.PrlPayrollRunEmployees.AsNoTracking()
             .Include(x => x.Components)
             .Where(x => x.PayrollRunId == runId && !x.IsDelete)
             .ToListAsync(cancellationToken);
@@ -206,7 +206,7 @@ public sealed class PayrollReportService
         response.Checks.Add(componentCheck);
 
         // 3 dan 4. Gaji bersih = instruksi pembayaran = hasil bank.
-        var payments = await _dbContext.TrxPayrollPayments.AsNoTracking()
+        var payments = await _dbContext.PrlPayrollPayments.AsNoTracking()
             .Where(p => p.PayrollRunId == runId && !p.IsDelete)
             .Select(p => new { p.PaymentStatus, p.PaymentAmount, p.NetPaidAmount })
             .ToListAsync(cancellationToken);
@@ -246,6 +246,10 @@ public sealed class PayrollReportService
         // 5. Potongan cicilan piutang: yang dikonfirmasi payroll = yang tercatat terpotong di Finance (setelah pembalikan).
         response.Checks.Add(await BuildDeductionCheckAsync(employees.Select(e => e.Id).ToList(), cancellationToken));
 
+        // 5b. PAY-BE-11: potongan yang sudah dikonfirmasi saat run disahkan, tetapi gaji penerimanya belum lunas atau gagal.
+        response.Checks.Add(await BuildDeductionPaymentCheckAsync(
+            employees.ToDictionary(e => e.Id, e => (Name: e.EmployeeNameSnapshot, PaymentAmount: e.PaymentAmount)), cancellationToken));
+
         // 6. Event Accounting untuk Payroll: belum ada (mapping COA belum disahkan). Dilaporkan jujur, tidak diposting dari sini.
         var accountingEvents = await _dbContext.FinAccountingEventOutboxes.AsNoTracking()
             .CountAsync(e => !e.IsDelete && e.SourceModule == "Payroll" && e.SourceTransactionId == run.RunNumber, cancellationToken);
@@ -274,7 +278,7 @@ public sealed class PayrollReportService
             Title = "Potongan cicilan terkonfirmasi = nominal terpotong di Finance"
         };
 
-        var inputs = await _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+        var inputs = await _dbContext.PrlPayrollVariableInputs.AsNoTracking()
             .Include(x => x.PayrollRunEmployee)
             .Where(x => !x.IsDelete && runEmployeeIds.Contains(x.PayrollRunEmployeeId)
                 && x.SourceType == PayrollVariableInputSources.FinanceReceivableInstallment && x.SourceId != null)
@@ -287,7 +291,7 @@ public sealed class PayrollReportService
         }
 
         var inputIds = inputs.Select(i => i.Id).ToList();
-        var components = (await _dbContext.TrxPayrollEmployeeComponents.AsNoTracking()
+        var components = (await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
                 .Where(c => !c.IsDelete && c.ComponentCodeSnapshot == InstallmentComponentCode
                     && c.SourceId != null && inputIds.Contains(c.SourceId.Value))
                 .ToListAsync(cancellationToken))
@@ -296,7 +300,7 @@ public sealed class PayrollReportService
         var paidByInstallment = await _dbContext.FinReceivableInstallments.AsNoTracking()
             .Where(x => installmentIds.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => x.PaidAmount, cancellationToken);
-        var reversals = (await _dbContext.TrxPayrollReversals.AsNoTracking()
+        var reversals = (await _dbContext.PrlPayrollReversals.AsNoTracking()
                 .Where(r => !r.IsDelete && r.ReversalStatus == PayrollReversalStatuses.Approved && r.FinanceReversalId == null
                     && r.PayrollRunEmployeeId != null && runEmployeeIds.Contains(r.PayrollRunEmployeeId.Value))
                 .Select(r => new { r.PayrollRunEmployeeId, r.ReversalAmount })
@@ -333,6 +337,99 @@ public sealed class PayrollReportService
         check.Message = check.Status == PayrollReconciliationStatuses.Ok
             ? $"{confirmed} angsuran terkonfirmasi sama dengan nominal terpotong di Finance."
             : "Ada angsuran yang nominal terkonfirmasinya tidak sama dengan nominal terpotong di Finance.";
+        return check;
+    }
+
+    /// <summary>
+    /// PAY-BE-11. Potongan cicilan dikonfirmasi ke Finance saat run DISAHKAN (titik pengakuan tidak berubah). Pemeriksaan ini hanya
+    /// menandai potongan terkonfirmasi yang gaji penerimanya belum lunas: gagal atau dibalik → SELISIH; belum dikirim atau menunggu
+    /// hasil bank → INFO (menunggu, pola yang sama dengan INSTRUCTION_VS_PAID); semua lunas → OK. Nominal diambil dari komponen slip,
+    /// tidak dihitung ulang. Endpoint rekonsiliasi ini sudah menuntut izin ViewAmount, jadi nominal pada Details tidak bocor.
+    /// </summary>
+    private async Task<PayrollReconciliationCheckResponse> BuildDeductionPaymentCheckAsync(
+        IReadOnlyDictionary<Guid, (string Name, decimal PaymentAmount)> employees, CancellationToken cancellationToken)
+    {
+        var check = new PayrollReconciliationCheckResponse
+        {
+            Code = "AR_DEDUCTION_PAYMENT",
+            Title = "Potongan cicilan terkonfirmasi hanya untuk penerima yang gajinya sudah dibayar"
+        };
+
+        var runEmployeeIds = employees.Keys.ToList();
+        var inputs = await _dbContext.PrlPayrollVariableInputs.AsNoTracking()
+            .Where(x => !x.IsDelete && runEmployeeIds.Contains(x.PayrollRunEmployeeId)
+                && x.SourceType == PayrollVariableInputSources.FinanceReceivableInstallment && x.SourceId != null
+                && x.InputStatus == "Applied")
+            .Select(x => new { x.Id, x.PayrollRunEmployeeId })
+            .ToListAsync(cancellationToken);
+        if (inputs.Count == 0)
+        {
+            check.Status = PayrollReconciliationStatuses.Info;
+            check.Message = "Belum ada potongan cicilan yang dikonfirmasi ke Finance pada run ini, sehingga belum ada yang perlu dicocokkan dengan pembayaran gaji.";
+            return check;
+        }
+
+        var inputIds = inputs.Select(i => i.Id).ToList();
+        var amountByInput = (await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
+                .Where(c => !c.IsDelete && c.ComponentCodeSnapshot == InstallmentComponentCode
+                    && c.SourceId != null && inputIds.Contains(c.SourceId.Value))
+                .Select(c => new { SourceId = c.SourceId!.Value, c.Amount })
+                .ToListAsync(cancellationToken))
+            .GroupBy(c => c.SourceId).ToDictionary(g => g.Key, g => g.First().Amount);
+        var paymentAmounts = employees.ToDictionary(e => e.Key, e => e.Value.PaymentAmount);
+        var states = await PayrollSalaryPaymentStatusResolver.LoadAsync(_dbContext, runEmployeeIds, paymentAmounts, cancellationToken);
+
+        decimal expected = 0m, settled = 0m;
+        int failedCount = 0, pendingCount = 0;
+        var failedDetails = new List<string>();
+        var pendingDetails = new List<string>();
+        foreach (var input in inputs)
+        {
+            amountByInput.TryGetValue(input.Id, out var deduction);
+            employees.TryGetValue(input.PayrollRunEmployeeId, out var employee);
+            var status = states.TryGetValue(input.PayrollRunEmployeeId, out var state)
+                ? state.Status
+                : PayrollSalaryPaymentStatuses.NotSent;
+
+            expected += deduction;
+            if (PayrollSalaryPaymentStatuses.IsSettled(status))
+            {
+                settled += deduction;
+            }
+            else if (PayrollSalaryPaymentStatuses.IsFailedAttention(status))
+            {
+                failedCount++;
+                failedDetails.Add($"{employee.Name}: potongan Rp {deduction:N0} sudah dikonfirmasi, tetapi pembayaran gaji {(status == PayrollSalaryPaymentStatuses.Reversed ? "dibalik" : "gagal")}.");
+            }
+            else
+            {
+                pendingCount++;
+                pendingDetails.Add($"{employee.Name}: potongan Rp {deduction:N0} sudah dikonfirmasi, gaji {(status == PayrollSalaryPaymentStatuses.NotSent ? "belum dikirim ke Finance" : "menunggu hasil bank")}.");
+            }
+        }
+
+        check.Expected = expected;
+        check.Actual = settled;
+        check.Difference = settled - expected;
+        check.Details.AddRange(failedDetails.Concat(pendingDetails).Take(MaxDetails));
+
+        if (failedCount > 0)
+        {
+            check.Status = PayrollReconciliationStatuses.Mismatch;
+            check.Message = $"{failedCount} potongan sudah dikonfirmasi ke Finance untuk penerima yang pembayaran gajinya gagal atau dibalik; potongan tercatat tetapi gaji tidak sampai ke penerima"
+                + (pendingCount > 0 ? $". {pendingCount} potongan lain masih menunggu pembayaran gaji." : ".");
+        }
+        else if (pendingCount > 0)
+        {
+            check.Status = PayrollReconciliationStatuses.Info;
+            check.Message = $"{pendingCount} potongan sudah dikonfirmasi ke Finance tetapi gaji penerimanya belum lunas (belum dikirim atau menunggu hasil bank). Bukan selisih; tindak lanjuti sebelum periode ditutup.";
+        }
+        else
+        {
+            check.Status = PayrollReconciliationStatuses.Ok;
+            check.Message = $"{inputs.Count} potongan terkonfirmasi seluruhnya untuk penerima yang gajinya sudah dibayar atau tidak ada gaji yang harus dibayar.";
+        }
+
         return check;
     }
 

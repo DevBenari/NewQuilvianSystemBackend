@@ -187,7 +187,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid userId,
             CancellationToken cancellationToken = default)
         {
-            var runEmployees = await _dbContext.TrxPayrollRunEmployees
+            var runEmployees = await _dbContext.PrlPayrollRunEmployees
                 .Where(e => e.PayrollRunId == payrollRunId && !e.IsDelete)
                 .ToListAsync(cancellationToken);
 

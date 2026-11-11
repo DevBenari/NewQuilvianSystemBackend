@@ -2,6 +2,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models
 {
@@ -52,7 +53,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPayrollRun? PayrollRun { get; set; }
+        public PrlPayrollRun? PayrollRun { get; set; }
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public ApplicationUser? ResolvedByUser { get; set; }
     }

@@ -1110,6 +1110,26 @@
                            "ApprovedBy":  "Muhammad Hamzah",
                            "ApprovalReference":  "HRD-DEC-110",
                            "NoExpiryRationale":  "DTO query request dinormalkan bersamaan dengan model domain TrxLeaveBalanceLedger."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-CODE-002-PRL-001",
+                           "RuleId":  "QBE-CODE-002",
+                           "Scope":  "Areas/Corporate/PayrollManagement/Controllers/WfpTransportAllowancePolicyController.cs",
+                           "Reason":  "Controller legacy WfpTransportAllowancePolicyController (rute payroll-management/..., sudah ada sebelum fase 2) memuat GenerateCodeAsync yang membaca seluruh kode kebijakan lalu mengambil angka kosong terkecil. Berkas dipindah dari Areas/Corporate/HumanResource/PayrollManagement ke Areas/Corporate/PayrollManagement oleh PAY-BE-12 TANPA perubahan perilaku, sehingga checker GitRange menghitung seluruh barisnya sebagai kode baru. Pengecualian ini hanya untuk berkas ini dan bukan konvensi untuk kode baru; pembangkitan nomor dipindahkan ke NumberSeriesManagement oleh PAY-BE-13.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "yasmina04 (pemilik repository)",
+                           "ApprovalReference":  "PAY-BE-12, keputusan pemilik repository 2026-11-11; tindak lanjut PAY-BE-13",
+                           "ExpiresAt":  "2027-03-31T00:00:00Z"
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-CODE-002-PRL-002",
+                           "RuleId":  "QBE-CODE-002",
+                           "Scope":  "Areas/Corporate/PayrollManagement/Controllers/WfpTransportAllowanceTransactionController.cs",
+                           "Reason":  "Controller legacy WfpTransportAllowanceTransactionController (rute payroll-management/..., sudah ada sebelum fase 2) memuat GenerateTransactionNumberAsync yang membaca seluruh nomor transaksi lalu mengambil angka kosong terkecil. Berkas dipindah dari Areas/Corporate/HumanResource/PayrollManagement ke Areas/Corporate/PayrollManagement oleh PAY-BE-12 TANPA perubahan perilaku, sehingga checker GitRange menghitung seluruh barisnya sebagai kode baru. Pengecualian ini hanya untuk berkas ini dan bukan konvensi untuk kode baru; pembangkitan nomor dipindahkan ke NumberSeriesManagement oleh PAY-BE-13.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "yasmina04 (pemilik repository)",
+                           "ApprovalReference":  "PAY-BE-12, keputusan pemilik repository 2026-11-11; tindak lanjut PAY-BE-13",
+                           "ExpiresAt":  "2027-03-31T00:00:00Z"
                        }
                    ]
 }

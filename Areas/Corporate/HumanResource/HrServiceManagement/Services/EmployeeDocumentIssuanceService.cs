@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services
 {
@@ -76,7 +77,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             {
                 var targetEmployeeId = profile.Employee?.Id;
 
-                var latestPayslip = await _dbContext.TrxPayrollPayslips
+                var latestPayslip = await _dbContext.PrlPayrollPayslips
                     .Include(p => p.PayrollRunEmployee)
                     .Where(p => (p.PayrollRunEmployee.WorkforceProfileId == workforceProfileId ||
                                 (targetEmployeeId.HasValue && p.PayrollRunEmployee.EmployeeId == targetEmployeeId.Value))
@@ -522,10 +523,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             var bruto = issuance.SalaryBrutoAmount ?? 0m;
             var netto = issuance.SalaryNettoAmount ?? 0m;
 
-            TrxPayrollPayslip? payslip = null;
+            PrlPayrollPayslip? payslip = null;
             if (issuance.PayrollPayslipId.HasValue)
             {
-                payslip = await _dbContext.TrxPayrollPayslips
+                payslip = await _dbContext.PrlPayrollPayslips
                     .FirstOrDefaultAsync(p => p.Id == issuance.PayrollPayslipId.Value && !p.IsDelete, cancellationToken);
             }
 

@@ -156,6 +156,19 @@ public sealed class PayrollRunPaymentSummaryResponse
     public int FailedCount { get; set; }
     public decimal TotalInstructionAmount { get; set; }
     public decimal TotalPaidAmount { get; set; }
+
+    /// <summary>
+    /// PAY-BE-11. Jumlah potongan piutang yang SUDAH dikonfirmasi ke Finance (saat run disahkan) untuk penerima yang gajinya belum
+    /// dibayar: belum dikirim (<c>BELUM_DIKIRIM</c>) atau menunggu hasil bank (<c>MENUNGGU_BAYAR</c>). Satuannya potongan, bukan
+    /// penerima. Informasi, bukan selisih; titik pengakuan potongan tidak berubah.
+    /// </summary>
+    public int ConfirmedDeductionPaymentPendingCount { get; set; }
+
+    /// <summary>
+    /// PAY-BE-11. Jumlah potongan piutang yang sudah dikonfirmasi ke Finance untuk penerima yang pembayaran gajinya gagal
+    /// (<c>GAGAL</c>) atau dibalik (<c>DIBALIK</c>): potongan tercatat tetapi gaji tidak sampai ke penerima.
+    /// </summary>
+    public int ConfirmedDeductionPaymentFailedCount { get; set; }
 }
 
 /// <summary>Satu baris riwayat perpindahan status run (jejak audit dari persetujuan dan cap waktu aksi).</summary>

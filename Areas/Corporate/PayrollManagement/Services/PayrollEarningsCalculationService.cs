@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -29,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai kalkulasi penghasilan tetap batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .Include(r => r.Employees.Where(e => e.IsActive))
                     .ThenInclude(e => e.Components.Where(c => c.IsActive))
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
@@ -95,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var emp = await _context.TrxPayrollRunEmployees
+            var emp = await _context.PrlPayrollRunEmployees
                 .Include(e => e.Components.Where(c => c.IsActive))
                 .Include(e => e.PayrollRun)
                 .FirstOrDefaultAsync(e => e.Id == employeeRunId && e.PayrollRunId == runId && e.IsActive, cancellationToken);
@@ -123,7 +124,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         private PayrollEmployeeEarningsResultDto ProcessEmployeeFixedEarnings(
-            TrxPayrollRunEmployee emp,
+            PrlPayrollRunEmployee emp,
             Guid actorUserId)
         {
             // 1. Bersihkan komponen penghasilan tetap terdahulu
@@ -133,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             foreach (var comp in existingFixedComponents)
             {
-                _context.TrxPayrollEmployeeComponents.Remove(comp);
+                _context.PrlPayrollEmployeeComponents.Remove(comp);
             }
 
             // 2. Evaluasi Nominal Komponen Tetap
@@ -141,13 +142,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var functionalAlw = EvaluateFunctionalAllowance(emp.PositionNameSnapshot, emp.DepartmentNameSnapshot);
             var hazardAlw = EvaluateHazardAllowance(emp.DepartmentNameSnapshot, emp.PositionNameSnapshot);
 
-            var newComponents = new List<TrxPayrollEmployeeComponent>();
+            var newComponents = new List<PrlPayrollEmployeeComponent>();
             var componentSummary = new List<PayrollComponentSummaryDto>();
 
             // Komponen: Gaji Pokok
             if (emp.BaseSalary > 0)
             {
-                var baseComp = new TrxPayrollEmployeeComponent
+                var baseComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -182,7 +183,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen: Tunjangan Struktural / Jabatan
             if (structuralAlw > 0)
             {
-                var structComp = new TrxPayrollEmployeeComponent
+                var structComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -217,7 +218,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen: Tunjangan Fungsional Profesi Medis / Paramedis
             if (functionalAlw > 0)
             {
-                var funcComp = new TrxPayrollEmployeeComponent
+                var funcComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -252,7 +253,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen: Tunjangan Risiko Medis & Unit Berisiko Tinggi
             if (hazardAlw > 0)
             {
-                var hazComp = new TrxPayrollEmployeeComponent
+                var hazComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -284,7 +285,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 });
             }
 
-            _context.TrxPayrollEmployeeComponents.AddRange(newComponents);
+            _context.PrlPayrollEmployeeComponents.AddRange(newComponents);
 
             // 3. Akumulasi Total Komponen Tetap & Update Saldo Pegawai
             emp.TotalRecurringEarning = structuralAlw + functionalAlw + hazardAlw;

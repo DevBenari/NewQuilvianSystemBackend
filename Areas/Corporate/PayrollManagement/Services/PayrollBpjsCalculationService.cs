@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -33,7 +34,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai kalkulasi iuran BPJS Kesehatan dan BPJS Ketenagakerjaan untuk batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .Include(r => r.Employees.Where(e => e.IsActive))
                     .ThenInclude(e => e.Components.Where(c => c.IsActive))
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
@@ -99,7 +100,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var emp = await _context.TrxPayrollRunEmployees
+            var emp = await _context.PrlPayrollRunEmployees
                 .Include(e => e.Components.Where(c => c.IsActive))
                 .Include(e => e.PayrollRun)
                 .FirstOrDefaultAsync(e => e.Id == employeeRunId && e.PayrollRunId == runId && e.IsActive, cancellationToken);
@@ -152,7 +153,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         private EmployeeBpjsCalculationDto ProcessEmployeeBpjs(
-            TrxPayrollRunEmployee emp,
+            PrlPayrollRunEmployee emp,
             HrdPayrollSettingDto setting,
             Guid actorUserId)
         {
@@ -163,7 +164,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             foreach (var comp in existingInsuranceComponents)
             {
-                _context.TrxPayrollEmployeeComponents.Remove(comp);
+                _context.PrlPayrollEmployeeComponents.Remove(comp);
             }
 
             // 2. Tentukan Dasar Upah Pengenaan BPJS (Gaji Pokok + Tunjangan Tetap)
@@ -189,12 +190,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var bpjsJpEE = Math.Round(bpjsJpBase * (setting.BpjsJpEmployeeRate / 100m), 2, MidpointRounding.AwayFromZero);
             var bpjsJpER = Math.Round(bpjsJpBase * (setting.BpjsJpEmployerRate / 100m), 2, MidpointRounding.AwayFromZero);
 
-            var newComponents = new List<TrxPayrollEmployeeComponent>();
+            var newComponents = new List<PrlPayrollEmployeeComponent>();
 
             // Komponen: Potongan BPJS Kesehatan Pekerja (1%)
             if (bpjsKesEE > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -219,7 +220,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen: Potongan BPJS Ketenagakerjaan JHT Pekerja (2%)
             if (bpjsJhtEE > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -244,7 +245,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen: Potongan BPJS Ketenagakerjaan JP Pekerja (1%)
             if (bpjsJpEE > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -269,7 +270,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen Kontribusi RS: BPJS Kesehatan (4%)
             if (bpjsKesER > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -294,7 +295,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen Kontribusi RS: BPJS TK JKK (0.89%)
             if (bpjsJkkER > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -319,7 +320,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen Kontribusi RS: BPJS TK JKM (0.30%)
             if (bpjsJkmER > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -344,7 +345,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen Kontribusi RS: BPJS TK JHT (3.70%)
             if (bpjsJhtER > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -369,7 +370,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen Kontribusi RS: BPJS TK JP (2.00%)
             if (bpjsJpER > 0)
             {
-                newComponents.Add(new TrxPayrollEmployeeComponent
+                newComponents.Add(new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -391,7 +392,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 });
             }
 
-            _context.TrxPayrollEmployeeComponents.AddRange(newComponents);
+            _context.PrlPayrollEmployeeComponents.AddRange(newComponents);
 
             // 3. Update Saldo Pemotongan Pegawai
             emp.TotalEmployeeInsuranceContribution = bpjsKesEE + bpjsJhtEE + bpjsJpEE;

@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `98a9140c` (working tree memuat pekerjaan `BE-FIN-142`..`144` yang belum di-commit; tidak disentuh) |
 | Tanggal | 10 November 2026 |
-| Status | 🟡 **Source selesai; `dotnet build` berhasil menurut laporan pemilik (10 November 2026, keluaran build Release kemudian dilampirkan pemilik (10 November 2026): `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`).** Tetap 🟡 karena roadmap membatasi task ini paling jauh 🟡 sampai migration diterapkan dan W.T5–W.T12 dijalankan pada data nyata; logika ditelusuri lewat port Python (24 skenario sesuai), bukan eksekusi kode C# |
+| Status | 🟡 **Source selesai; `dotnet build` berhasil menurut laporan pemilik (10 November 2026, keluaran build Release kemudian dilampirkan pemilik (10 November 2026): `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`).** Angka per item W.T5–W.T12 (sah, menunggu periksa, rusak, sisa, konversi belum pasti) dijalankan pemilik lewat jejak dokumen pada data uji dan cocok (pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar; panel `UJI-BLM-W07` juga lewat tangkapan layar 10 November). Tetap 🟡 karena bagian **status PO BLM** dari W.T5–W.T12 belum dapat dijalankan: tidak ada pemanggil `RecomputeExternalPurchaseOrderStatus`, dan status PO pada data uji disetel tangan. Penelusuran status masih lewat port Python (24 skenario sesuai), bukan eksekusi kode C# |
 
 ## Backend Governance Preflight
 
@@ -124,9 +124,10 @@ Tidak ada perubahan pada `FinanceGoodsReceiptService`, `FinancePurchasingDocumen
 | Tidak ada pemanggil lain / tidak ada registrasi DI | Tidak ada | `PASS` | `grep` pada `Areas`, `Repositories`, `Program.cs` |
 | Penelusuran W.T5–W.T12 + kasus tepi | 24 dari 24 sesuai | `PASS` (penelusuran) | Port Python `port_calc.py` di scratchpad sesi (di luar repository). **Bukan uji atas kode C#** |
 | Kompilasi C# | Berhasil | `PASS` (laporan pemilik) | Pemilik, 10 November 2026; keluaran perintah dilampirkan kemudian oleh pemilik (build Release: `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`) |
-| Perilaku runtime (eksekusi kode C# dan data nyata) | Belum. Migration sudah diterapkan (laporan pemilik), tetapi W.T5–W.T12 belum dijalankan dengan baris BLM | `NOT RUN` | Menunggu pengujian pemilik |
+| Perilaku runtime: angka per item W.T5–W.T12 (kode C# lewat jejak dokumen, data uji BLM) | Pemilik membuka sembilan PO uji (`UJI-BLM-W00`, `W05`–`W12`) dan menyatakan angka panel cocok dengan skrip pembanding; `W07` juga lewat tangkapan layar (12 / 10 / 2 / 0 / 2 PCS) | `PASS` (pengamatan pemilik) | Pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar |
+| Perilaku runtime: status PO BLM (`PARTIALLY_RECEIVED`, `FULLY_RECEIVED`) pada W.T5–W.T12 | Tidak dapat dijalankan: tidak ada pemanggil `RecomputeExternalPurchaseOrderStatus`; status pada data uji disetel tangan | `NOT RUN` | Laporan `BE-FIN-146.md` |
 
-Uji manual: `NOT APPLICABLE` (belum ada alur yang memanggil penghitung).
+Uji manual: pemilik memeriksa angka per item lewat panel kemajuan PO uji (penghitung dipanggil oleh jejak dokumen, `BE-FIN-147`); jalur status belum punya pemanggil.
 
 AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)
 
@@ -143,11 +144,11 @@ AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomati
 | 3. `FULLY_RECEIVED` hanya bila setiap item sah ≥ dipesan dan semua konversi pasti | Terpenuhi | `Calculate`: `fullyReceived`; W.T10, W.T12 dan kasus baris tanpa item PO |
 | 4. Tidak ada nilai bawaan 1 | Terpenuhi | `NormalizeToBase` mengembalikan `null`; `IsLineResolved` menolak isi per satuan kosong atau ≤ 0 |
 | 5. Tidak mencocokkan lewat nama produk | Terpenuhi | Satu-satunya kunci pencocokan: `PurchaseOrderItemId`; tipe masukan tidak membawa nama produk |
-| 6. Contoh W.T5–W.T12 menghasilkan angka dan status yang tertulis | Terpenuhi menurut penelusuran; **belum dieksekusi pada kode C#** | Bagian 2 |
+| 6. Contoh W.T5–W.T12 menghasilkan angka dan status yang tertulis | Angka per item: terpenuhi (penelusuran dan eksekusi C# pada data uji, 11 November 2026). **Status PO:** terpenuhi menurut penelusuran; belum dieksekusi pada kode C# | Bagian 2 |
 | DoD: laporan tracked | Terpenuhi | Berkas ini |
 | DoD: `dotnet build` | Terpenuhi (laporan pemilik) | Pemilik, 10 November 2026; keluaran perintah dilampirkan kemudian oleh pemilik (build Release: `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`) |
 
-Status akhir **🟡**: kriteria 1–6 terpenuhi menurut review dan penelusuran, dan kompilasi lulus (laporan pemilik). Yang menahan ✅ adalah batas yang tertulis di roadmap ("paling jauh 🟡 sampai migration diterapkan"; migration kini sudah diterapkan menurut pemilik, tetapi buktinya belum): W.T5–W.T12 belum dijalankan pada data nyata di database uji, dan penelusuran memakai port Python, bukan kode C#.
+Status akhir **🟡**: kriteria 1–6 terpenuhi menurut review dan penelusuran, kompilasi lulus (laporan pemilik), migration sudah diterapkan, dan angka per item W.T5–W.T12 terbukti pada data uji (11 November 2026). Yang menahan ✅: bagian status PO BLM pada kriteria 3 dan 6 belum dapat dijalankan karena tidak ada pemanggil `RecomputeExternalPurchaseOrderStatus`; bagian itu masih bersandar pada penelusuran port Python, bukan eksekusi kode C#.
 
 ---
 
@@ -155,11 +156,11 @@ Status akhir **🟡**: kriteria 1–6 terpenuhi menurut review dan penelusuran, 
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Kelas ini belum dipanggil siapa pun; PO BLM belum ada. Dampak perilaku baru baru muncul setelah `BE-FIN-146` memanggilnya dan integrasi mengisi data BLM |
+| Peringatan | Kelas ini kini dipanggil jejak dokumen untuk PO BLM (`BE-FIN-147`), tetapi belum oleh jalur status (`RecomputeExternalPurchaseOrderStatus`, `BE-FIN-146`). Dokumen bersumber BLM di database saat ini hanya data uji |
 | Keputusan implementasi | (1) Kelas statis berisi fungsi murni (bukan service ber-scope): tidak perlu `Program.cs`, mudah ditinjau. (2) Baris yang tidak pasti **tidak dijumlahkan** sama sekali, bukan dijumlahkan sebagian, supaya tidak ada angka setengah benar. (3) Baris GR yang tidak menunjuk item PO dihitung sebagai ketidakpastian dan dilaporkan lewat `UnmatchedLineCount`. (4) Konsistensi `BaseQuantity` = `SourceQuantity` × isi per satuan **tidak** diperiksa ulang: kontrak W.11 hanya menuntut isi per satuan > 0 dan satuan dasar sama; pemeriksaan itu tugas pengolah kiriman saat menerapkan baris |
 | Masalah yang diketahui | (1) Penelusuran memakai port Python, bukan eksekusi C#; kesalahan sintaks atau perilaku pola `is not > 0m` pada `decimal?` baru terlihat saat build. (2) Satuan dibandingkan sebagai kode setelah dipangkas dan diseragamkan huruf besar; bila BLM mengirim nama satuan alih-alih kode, dua penulisan berbeda dianggap tidak sama dan menjadi `CONVERSION_UNRESOLVED` (sudah dicatat sebagai syarat kontrak di `FIN-OQ-141`) |
-| Risiko tersisa | Kompilasi lulus (laporan pemilik), tetapi perilaku logika C# belum dieksekusi; kemungkinan selisih antara port Python dan kode C# hanya hilang bila W.T5–W.T12 dijalankan. Rumus lama untuk PO lama tidak diubah (`FIN-DEC-277`), sehingga bug lamanya tetap ada untuk PO lama; ini disengaja |
+| Risiko tersisa | Kompilasi lulus (laporan pemilik) dan angka per item terbukti pada data uji (11 November 2026); kemungkinan selisih antara port Python dan kode C# tinggal pada jalur status PO BLM, yang belum dieksekusi. Rumus lama untuk PO lama tidak diubah (`FIN-DEC-277`), sehingga bug lamanya tetap ada untuk PO lama; ini disengaja |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `??` satu berkas source baru + laporan ini; ditambah pekerjaan `BE-FIN-142`..`144` yang belum di-commit. Tidak ada berkas staged |
-| Langkah berikutnya | Setelah migration diterapkan ke database uji: jalankan W.T5–W.T12 (baris BLM disisipkan lewat SQL), lalu task ini dapat ditandai ✅ |
+| Langkah berikutnya | Angka per item W.T5–W.T12 sudah dijalankan (11 November 2026). Penahan ✅ tinggal jalur status PO BLM: perlu pemanggil `RecomputeExternalPurchaseOrderStatus` agar dapat dijalankan |

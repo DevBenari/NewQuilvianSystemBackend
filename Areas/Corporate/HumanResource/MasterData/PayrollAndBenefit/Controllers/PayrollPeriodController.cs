@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -213,7 +213,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     Description = x.Description,
                     SortOrder = x.SortOrder,
                     IsActive = x.IsActive,
-                    WorkforcePayrollCount = _dbContext.Set<WfpPayroll>()
+                    WorkforcePayrollCount = _dbContext.Set<PrlPayroll>()
                         .Count(p => p.LastPayrollPeriodId == x.Id && !p.IsDelete),
                     CreateDateTime = x.CreateDateTime,
                     CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
@@ -337,7 +337,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     Description = x.Description,
                     SortOrder = x.SortOrder,
                     IsActive = x.IsActive,
-                    WorkforcePayrollCount = _dbContext.Set<WfpPayroll>()
+                    WorkforcePayrollCount = _dbContext.Set<PrlPayroll>()
                         .Count(p => p.LastPayrollPeriodId == x.Id && !p.IsDelete),
                     CreateDateTime = x.CreateDateTime,
                     CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
@@ -621,7 +621,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     "Payroll period yang terkunci tidak dapat dihapus."));
             }
 
-            var isUsed = await _dbContext.Set<WfpPayroll>()
+            var isUsed = await _dbContext.Set<PrlPayroll>()
                 .AsNoTracking()
                 .AnyAsync(x => x.LastPayrollPeriodId == id && !x.IsDelete);
 

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models
 {
@@ -99,7 +99,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstEmployee? Employee { get; set; }
         public MstBenefitPlan? BenefitPlan { get; set; }
-        public WfpInsurance? InsuranceProfile { get; set; }
+        public PrlInsurance? InsuranceProfile { get; set; }
         public ApplicationUser? VerifiedByUser { get; set; }
 
     }
