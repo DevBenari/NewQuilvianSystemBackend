@@ -205,7 +205,7 @@ flowchart LR
         BENV014["✅ BE-NV-014<br/>Sinyal realtime dan grup hub"]:::luar
         BENV015["✅ BE-NV-015<br/>Strip TV dan penanda kartu"]:::luar
         BENV016["✅ BE-NV-016<br/>API ambang lama menunggu"]:::luar
-        BENV017["🟡 BE-NV-017<br/>Peta lantai Monitor perawat"]:::luar
+        BENV017["✅ BE-NV-017<br/>Peta lantai Monitor perawat"]:::luar
     end
 
     FENV008["✅ FE-NV-008<br/>Daftar dan form Tablet Bed"]:::selesai
@@ -435,7 +435,7 @@ menyentuh berkas bersama wajib memuat diff ringkas per berkas.
 
 | Field | Isi |
 |---|---|
-| Status | ✅ **SELESAI 11 November 2026** (`NV-DEC-058`) — AC 7/7 terbukti di layar dengan data nyata: uji `uji-monitor.mjs` 13/13 `PASS` (putaran bersih 14.29 WIB; Sari 1920×1080, Dewi 1280×800, DOKTER, empat tablet uji). Panggilan baru tampil 0,17 detik (Sari) dan 0,19 detik (Dewi), Darurat paling atas; nama lengkap dan No. RM pasien lantai 3–4 nol (12 nilai diperiksa); "Respons & tangani" → "Sedang ditangani" dan tablet menerima nama perawat; "Tandai selesai" → dialog alasan (alasan 4 + catatan tersimpan); bunyi biasa dan nada Darurat terpicu; regresi K1–K11 lulus. Temuan uji diperbaiki: join hub konsol tertahan saat React StrictMode menjalankan effect dua kali (sebelum perbaikan 8,33 detik; penanda join kini per koneksi). `npx eslint` 0 error 0 warning; `UI GATE: 11 elemen — REUSE 5, COMPOSE 3, WRAP 3, NEW 0`; `npm run build` `PASS` (11 Nov 14.44 WIB, 574 halaman). Di luar DoD dan masih terbuka: verifier otorisasi `BE-NV-017` (AC-6, Rizki), keputusan hapus `nurse-view-patient-call-console-table-columns.jsx`. Laporan: [`FE-NV-016.md`](../task/report/frontend/FE-NV-016.md) |
+| Status | ✅ **SELESAI 11 November 2026** (`NV-DEC-058`) — AC 7/7 terbukti di layar dengan data nyata: uji `uji-monitor.mjs` 13/13 `PASS` (putaran bersih 14.29 WIB; Sari 1920×1080, Dewi 1280×800, DOKTER, empat tablet uji). Panggilan baru tampil 0,17 detik (Sari) dan 0,19 detik (Dewi), Darurat paling atas; nama lengkap dan No. RM pasien lantai 3–4 nol (12 nilai diperiksa); "Respons & tangani" → "Sedang ditangani" dan tablet menerima nama perawat; "Tandai selesai" → dialog alasan (alasan 4 + catatan tersimpan); bunyi biasa dan nada Darurat terpicu; regresi K1–K11 lulus. Temuan uji diperbaiki: join hub konsol tertahan saat React StrictMode menjalankan effect dua kali (sebelum perbaikan 8,33 detik; penanda join kini per koneksi). `npx eslint` 0 error 0 warning; `UI GATE: 11 elemen — REUSE 5, COMPOSE 3, WRAP 3, NEW 0`; `npm run build` `PASS` (574 halaman). Penyempurnaan atas perintah "jalankan semua": nama aksesibel tombol "Layar penuh Monitor perawat", berkas kolom tabel lama dihapus, grid dua kolom di 1280 dicoba lalu dibatalkan (petak bed terlalu sempit); uji ulang 15.00 WIB 13/13 `PASS`. Laporan: [`FE-NV-016.md`](../task/report/frontend/FE-NV-016.md) |
 | Outcome | Perawat di tablet/PC melihat peta kamar dan bed satu lantai sekaligus menangani panggilan, dengan tata letak rancangan Rizki ("Monitor perawat") |
 | Trace | `NV-DEC-058`; `NV-DEC-038`, `040`, `044`, `045`, `047`, `053`; `NV-AC-030`–`033`, `035`, `037`, `044` |
 | Kontrak | `0.2.2` api §7a (`GET /patient-calls/floor-board`); api §7 (`/floors`, `/active`, aksi); api §10 (sinyal) |

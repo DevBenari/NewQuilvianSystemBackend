@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `67c27010` (branch `rizkiG`) |
 | Tanggal | 2026-11-11 |
-| Status | 🟡 **SEBAGIAN 11 November 2026** — AC-1–5 terbukti lewat uji HTTP 5/5 `PASS` sesudah build Rizki (DLL 13.15 WIB); QBE Strict `PASS` (3 berkas). Belum: AC-6 `verify-authorization.sh --configuration Release` (dijalankan Rizki) |
+| Status | ✅ **SELESAI 11 November 2026** — AC 6/6: uji HTTP 5/5 `PASS` sesudah build Rizki (DLL 13.15 WIB); verifier otorisasi `PASS` (metadata gap 0, fallback 68 cocok persis, identitas wajib 24/24, endpoint telanjang baru 0); QBE Strict `PASS` (3 berkas) |
 
 ---
 
@@ -78,7 +78,7 @@ Pesan sukses: "Peta lantai berhasil diambil." `422` lantai tidak dikenal (`VAL-N
 | `Invoke-QbeConformanceCheck.ps1 -Mode Strict -Path <3 berkas>` (array path) | Files evaluated **3** · VIOLATION 0 · REVIEW 0 · INFO 0 · `Final result: PASS` | `PASS` | Keluaran checker 11 Nov 2026 |
 | Review diff/scope; akhiran baris | Hanya tiga berkas Nurse View; CRLF 99/519/150 baris, LF 0, tanpa BOM | `PASS` | `git diff`, hitungan byte Node |
 | `dotnet build` (oleh Rizki) | DLL baru 11 Nov 13.15 WIB; endpoint menjawab `200` | `PASS` | Laporan Rizki + waktu DLL |
-| `verify-authorization.sh --configuration Release` | Belum dijalankan (oleh Rizki) | `NOT RUN` | — |
+| `verify-authorization.sh --configuration Release` (oleh agent atas perintah Rizki "jalankan semua", 11 Nov 14.50 WIB) | `AUTHORIZATION VERIFIER: PASS`, exit 0. Modules 96, Resources 527, Actions 1998; [1] metadata gap 0; [2] fallback 68 cocok persis; [3] identitas kanonik tidak ganda; [4] identitas wajib 24/24; [5] endpoint bisnis telanjang 0 baru, 0 utang. Assembly Release belum ada, sehingga skrip memakai DLL Debug hasil build Rizki 13.15 WIB yang memuat endpoint ini. Hanya runner sementara yang dibangun; project utama tidak di-build | `PASS` | Keluaran skrip |
 | Uji HTTP `uji-floor-board.mjs` F1–F5 (11 Nov 14.15 WIB) | **5/5 `PASS`**, 25 permintaan (200/201/403/422 sesuai rencana) | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-be-nv-017-20261111/hasil-2026-11-11T07-15-52-642Z/` |
 | Pindai log backend selama uji | 40 baris; 0 `Error`; 0 kemunculan kata sandi, nama, atau No. RM; 0 token | `PASS` | `hasil.json` → `pindaiLog` |
 | Bersih-bersih | Panggilan uji 420-A ditutup (`200`), tablet uji dinonaktifkan (`200`); cek-sisa: tablet uji 0, policy Sari 22 dan Dewi 36 utuh | `PASS` | `hasil.json` → `bersihBersih`, `cek-sisa.mjs` |
@@ -109,7 +109,8 @@ dari keadaan awal dan hanya mensyaratkan bed 420-A bersih.
 | AC-3 DOKTER, TV, tablet → `403` | ✅ | F3 |
 | AC-4 lantai tak dikenal → `422` `VAL-NV-39` | ✅ | F4 |
 | AC-5 tanpa nama lengkap dan No. RM | ✅ | F5 |
-| AC-6 verifier otorisasi `PASS` | 🟡 Pasangan `[AccessAction]` + `[AccessPermission]` lengkap di source | Menunggu Rizki menjalankan verifier |
+| AC-6 verifier otorisasi `PASS` | ✅ | `AUTHORIZATION VERIFIER: PASS` (§5) |
+| DoD — AC-1–6 terbukti; laporan | Terpenuhi | Berkas ini |
 | DoD — laporan | Terpenuhi | Berkas ini |
 
 **QBE yang berlaku:** `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001`, `QBE-DTO-001`, `QBE-VAL-001`, `QBE-LOG-001`
@@ -126,5 +127,5 @@ repository yang berlaku. `QBE-MOD-002` tidak berlaku (tanpa entity baru).
 | --- | --- |
 | Peringatan | Konstruktor `NvwPatientCallController` bertambah satu dependensi; build akan langsung menunjukkan bila ada masalah DI |
 | Risiko tersisa | Rendah; identitas mengikuti papan TV |
-| Status Git | Di-commit 11 Nov 2026 atas perintah Rizki (branch `rizkiG`): tiga berkas source, laporan, kontrak, keputusan, roadmap; push belum |
-| Langkah berikutnya | Rizki: `verify-authorization.sh --configuration Release`; bila `PASS`, status task menjadi ✅. Uji layar `FE-NV-016` sudah memakai endpoint ini (13/13 `PASS`) |
+| Status Git | Di-commit dan di-push 11 Nov 2026 atas perintah Rizki (branch `rizkiG`): `7f5926d8` source + dokumen, lalu commit status selesai |
+| Langkah berikutnya | Merge ke branch integrasi oleh Rizki. Uji layar `FE-NV-016` sudah memakai endpoint ini (13/13 `PASS`) |

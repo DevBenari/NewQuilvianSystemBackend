@@ -9,12 +9,12 @@
 | Roadmap | `docs/module-blueprints/nurse-view/roadmap/frontend-roadmap.md` — kartu `FE-NV-016` |
 | Trace | `NV-DEC-058`; `NV-DEC-038`, `040`, `044`, `045`, `053`; `NV-AC-030`–`033`, `035`, `037`, `044` |
 | Contract version | api §7 (`0.2.0`), §7a (`0.2.2`, `GET /patient-calls/floor-board`), §10 |
-| Dependency | `BE-NV-017` 🟡 (dibangun Rizki 11 Nov 13.15 WIB, uji HTTP 5/5 `PASS`; verifier otorisasi menunggu Rizki), `FE-NV-012` ✅, `FE-NV-013` 🟡 (rekaman bersuara) |
+| Dependency | `BE-NV-017` ✅ (uji HTTP 5/5 `PASS`, verifier otorisasi `PASS`), `FE-NV-012` ✅, `FE-NV-013` 🟡 (rekaman bersuara) |
 | Wewenang UI | Rancangan "Monitor perawat" dari Rizki, disahkan `NV-DEC-058` (identitas inisial, Tandai selesai = dialog alasan, gantikan Konsol Panggilan) |
 | Task mode | `FRONTEND` — repository `QuilvianSystemFrontendDev` branch `RizkiV2` (HEAD `f7874c57c`) |
 | Model | Claude Opus 5.5 |
 | Tanggal | 2026-11-11 |
-| Status | ✅ **SELESAI 11 November 2026** — AC 7/7 terbukti: uji layar ujung-ke-ujung `uji-monitor.mjs` 13/13 `PASS` dengan data nyata (putaran bersih 14.29 WIB). Satu temuan uji diperbaiki (join hub konsol tertahan saat React StrictMode). `npx eslint` 0 error 0 warning; grep anti-regresi bersih; `npm run build` `PASS` (574 halaman). Di luar DoD dan masih terbuka: verifier `BE-NV-017` AC-6 (Rizki), keputusan hapus berkas kolom tabel lama |
+| Status | ✅ **SELESAI 11 November 2026** — AC 7/7 terbukti: uji layar ujung-ke-ujung `uji-monitor.mjs` 13/13 `PASS` dengan data nyata (putaran bersih terakhir 15.00 WIB, sesudah penyempurnaan tombol Layar penuh). Satu temuan uji diperbaiki (join hub konsol tertahan saat React StrictMode). Berkas kolom tabel lama dihapus (`git rm`, rujukan 0). `npx eslint` 0 error 0 warning; grep anti-regresi bersih; `npm run build` `PASS` (574 halaman) |
 
 ---
 
@@ -40,7 +40,7 @@ Konsol Panggilan (`FE-NV-012`) berupa Hero + filter lantai + tabel panggilan. Ri
 | Berkas | Perubahan |
 | --- | --- |
 | `src/components/view/health-services/nurse-view-management/patient-call-console/nurse-view-patient-call-console-view.jsx` | Ditulis ulang: merangkai komponen Monitor perawat; dialog Tutup, toast, peringatan basi/galat, dan bunyi dipakai ulang |
-| `.../patient-call-console/nurse-monitor/nurse-monitor-header.jsx` | **Baru** — kepala layar: ikon, judul, subjudul bangsal, status suara + tunda, jam server, tombol Layar penuh |
+| `.../patient-call-console/nurse-monitor/nurse-monitor-header.jsx` | **Baru** — kepala layar: ikon, judul, subjudul bangsal, status suara + tunda, jam server, tombol Layar penuh (teks "Layar penuh"; nama aksesibel dan tooltip "Layar penuh Monitor perawat" agar berbeda dari tombol navbar) |
 | `.../nurse-monitor/nurse-monitor-floor-selector.jsx` | **Baru** — kartu lantai (`BaseButton`) + lencana jumlah panggilan |
 | `.../nurse-monitor/nurse-monitor-summary.jsx` | **Baru** — empat petak ringkasan bernada warna |
 | `.../nurse-monitor/nurse-monitor-room-card.jsx` | **Baru** — kartu kamar + status panggilan kamar (`StatusBadge`) |
@@ -50,12 +50,13 @@ Konsol Panggilan (`FE-NV-012`) berupa Hero + filter lantai + tabel panggilan. Ri
 | `.../nurse-monitor/nurse-monitor-legend.jsx` | **Baru** — legenda status panggilan |
 | `src/lib/hooks/.../patient-call-console/use-nurse-view-patient-call-console.jsx` | Memuat `floor-board` (ganti lantai, cadangan 15 detik, Coba lagi); join ulang grup konsol bila join gagal saat tetap tersambung (pola `FE-NV-007`/`011` §3); penanda join yang sedang berjalan terikat pada koneksi + lantai (perbaikan temuan uji §6.2) |
 | `src/lib/hooks/.../patient-call-console/use-element-fullscreen.jsx` | **Baru** — layar penuh untuk wadah monitor (callback ref) |
-| `src/lib/constants/.../patient-call-console-constants.jsx` | Endpoint `floorBoard`, `NURSE_MONITOR_ACTION_LABEL`, `NURSE_MONITOR_BED_STATUS`, `NURSE_MONITOR_TEXT` |
+| `src/lib/constants/.../patient-call-console-constants.jsx` | Endpoint `floorBoard`, `NURSE_MONITOR_ACTION_LABEL`, `NURSE_MONITOR_BED_STATUS`, `NURSE_MONITOR_TEXT` (termasuk `fullscreenLabel`, `exitFullscreenLabel`) |
+| `.../patient-call-console/nurse-view-patient-call-console-table-columns.jsx` | **Dihapus** (`git rm` atas perintah Rizki "jalankan semua"; rujukan di `src` 0) |
 | `src/lib/services/.../patient-call-console-service.jsx` | `getPatientCallConsoleFloorBoard` |
 | `src/utils/.../patient-call-console/nurse-monitor-utils.jsx` | **Baru** — normalisasi respons, susun kamar/bed, gabung panggilan per bed, ringkasan, format jam/durasi |
 | `src/style/health-services/nurse-view-management/nurse-monitor.module.css` | **Baru** — gaya bertoken; ukuran baca jauh lewat `clamp()` lokal (preseden layar TV/tablet) |
 
-Tidak terpakai lagi: `nurse-view-patient-call-console-table-columns.jsx` (rujukan 0). Belum dihapus — menunggu persetujuan Rizki.
+Kolom tabel konsol lama (`nurse-view-patient-call-console-table-columns.jsx`) tidak terpakai sejak tampilan diganti dan sudah dihapus.
 
 ### 3.2 Kepatuhan arsitektur dan gerbang base component
 
@@ -112,9 +113,11 @@ pertama (`NV-DEC-040`), jam respons tampil di baris pengklaim; "Tandai selesai" 
 | Akhiran baris | Semua berkas baru/berubah CRLF, LF 0, tanpa BOM | `PASS` | Hitungan byte Node |
 | Pratinjau layar (`uji-fe-nv-016-20261111/pratinjau-monitor.mjs`): data papan asli lantai 4 lewat akun TV, respons `floor-board`/`active` dicegat, 2 panggilan tiruan (Darurat, biasa), akun perawat | 27 kamar, 43 bed, 2 kartu panggilan pada 1920×1080, 1366×900, 390×844; tanpa galat halaman; tanpa klik aksi | `PASS` (simulasi) | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-016-20261111/pratinjau-2026-11-11T04-28-40-050Z/` |
 | `npx eslint` hook sesudah perbaikan join | 0 error, 0 warning; CRLF 464, LF 0 | `PASS` | Keluaran perintah, hitungan byte Node |
+| Uji layar ujung-ke-ujung sesudah penyempurnaan tombol Layar penuh dan penghapusan berkas lama (11 Nov 15.00 WIB) | **13/13 `PASS`** (putaran 6; M1 kini juga memeriksa jumlah kolom kamar dan nama tombol) | `PASS` | `.../uji-fe-nv-016-20261111/layar-2026-11-11T08-00-45-350Z/` |
 | Uji layar ujung-ke-ujung `uji-monitor.mjs` M1–M13 (11 Nov 14.29 WIB) | **13/13 `PASS`** (putaran ketiga; dua putaran sebelumnya lihat §6.2) | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-016-20261111/layar-2026-11-11T07-29-41-793Z/` (14 tangkapan, 3 video, `hasil.json`, `percobaan.json`) |
 | Log backend selama uji | 166 baris; 0 `Error`; 0 respons 5xx; 0 token | `PASS` | `Logs/quilvian-backend-20261111.json` 07.29.41–07.30.40 UTC |
 | Bersih-bersih | 4 tablet uji dinonaktifkan, 3 panggilan sisa ditutup (`200`); policy Dewi dipulihkan identik (36 = 36); Sari tidak diubah (izin sudah tetap); cek-sisa: tablet uji 0, policy 22/36 | `PASS` | `hasil.json` → `bersihBersih`, `pemulihanPolicy` |
+| `npm run build` ulang sesudah penyempurnaan (11 Nov 15.01–15.06 WIB) | Compiled successfully in 2,9 menit; 574/574 halaman; route Monitor terbangun; exit 0 | `PASS` | `.next/BUILD_ID` 15.06.00 WIB |
 | `npm run build` (oleh agent atas perintah Rizki, 11 Nov 14.38–14.44 WIB; `next dev` Rizki tetap berjalan) | Compiled successfully in 5,8 menit; 574/574 halaman statis; route `/health-services/nurse-view-management/patient-call-console` terbangun; standalone siap; exit 0 | `PASS` | Log build, `.next/BUILD_ID` 14.43.54 WIB |
 
 `AUTOMATED TEST: SKIPPED (opsional) — repository tidak memakai Jest.`
@@ -152,6 +155,9 @@ tidak disentuh.
 | 2 (14.22 WIB) | 9/13; M3 gagal 8,33 detik | **Cacat source:** `reactStrictMode: true` membuat effect realtime berjalan–dibersihkan–berjalan lagi di `next dev`. Penanda join (`consoleJoiningRef`) hanya menyimpan lantai, sehingga join koneksi kedua dibatalkan oleh join koneksi pertama yang sudah dihentikan. Grup konsol baru di-join pada putaran 15 detik. Bukti log: `/hubs/queues` selesai 7 ms sesudah negotiate, negotiate berikutnya tepat 15 detik kemudian | Penanda join diikat pada `{ connection, floorCode }`. Penanda ini masuk dalam perubahan task ini; HEAD tidak terdampak |
 | 2 | M6, M7, M11 gagal | **Cacat skrip:** `innerText` mengikuti `text-transform` lencana ("Sedang Ditangani"); regex lencana lantai kehilangan backslash lewat heredoc. Tangkapan layar menunjukkan tampilan benar | Pencocokan tidak peka huruf; lencana dibaca dari `.region-status-label` |
 | 3 (14.29 WIB) | **13/13** | — | — |
+| 4 (14.55 WIB) | 13/13 dengan grid kamar 24,5rem | Percobaan dua kolom di 1280 (catatan UX §8). Tangkapan 1280 menunjukkan petak bed menyempit menjadi ±170 px: "Belum ada pasien" terpotong, "Tidak ada panggilan" dan "Darurat · Tunggu 00:02" terlipat | **Dibatalkan**, kembali ke 26rem (satu kolom di 1280, petak 379 px, teks utuh). Ukuran: `ukur-grid.mjs` (1280: wadah 811 px; 1366: 637 px; 1920: 1191 px; Layar penuh: 1433 px) |
+| 5 (14.58 WIB) | Berhenti sesudah M7 (7/7) | DB dev bersama timeout (psql `Connection timed out`), sehingga bersih-bersih di `finally` gagal: 3 panggilan dan 4 tablet uji tertinggal; policy Dewi tetap pulih lewat API | Dibersihkan lewat API saja (`bersihkan-sisa-api.mjs`): 3 panggilan ditutup Sari (alasan Lainnya, `200`), 4 tablet dinonaktifkan (`200`); cek-sisa bersih |
+| 6 (15.00 WIB) | **13/13** | Grid 26rem + nama aksesibel tombol Layar penuh | Kamar 2 kolom di 1920, 1 kolom di 1280, 3 kolom saat Layar penuh; tombol bernama "Layar penuh" di halaman tinggal satu (navbar); bersih-bersih semua `200`; policy Dewi identik |
 
 ## 7. Acceptance criteria dan Definition of Done
 
@@ -171,6 +177,6 @@ tidak disentuh.
 | Hal | Isi |
 | --- | --- |
 | Risiko | Halaman panjang pada lantai dengan banyak kamar satu bed (lantai 4: 27 kamar); filter kamar membantu |
-| Catatan UX (belum diubah, menunggu keputusan Rizki) | (1) Halaman memuat dua tombol berlabel sama "Layar penuh": milik navbar aplikasi (seluruh aplikasi) dan milik kepala Monitor (hanya monitor, sesuai rancangan). (2) Di lebar 1280 kartu kamar menjadi satu kolom karena lebar minimal 26rem; di 1920 dua kolom. Menurunkan lebar minimal ke sekitar 24rem memberi dua kolom di 1280, dengan konsekuensi petak bed lebih sempit |
-| Status Git | Di-commit 11 Nov 2026 atas perintah Rizki (frontend `RizkiV2`, laporan di backend `rizkiG`); push belum |
-| Langkah berikutnya | Rizki: verifier `BE-NV-017`, push; keputusan hapus `nurse-view-patient-call-console-table-columns.jsx` (rujukan 0) dan dua catatan UX di atas; commit bila diminta |
+| Catatan UX (diselesaikan 11 Nov atas perintah "jalankan semua") | (1) Dua tombol "Layar penuh" (navbar aplikasi dan kepala Monitor): teks tombol Monitor tetap sesuai rancangan, nama aksesibel dan tooltip menjadi "Layar penuh Monitor perawat". (2) Grid dua kolom di 1280 dicoba lalu dibatalkan karena petak bed terlalu sempit (§6.2 putaran 4). Satu kolom di 1280 dipertahankan, dengan filter kamar sebagai alat ringkas |
+| Status Git | Di-commit dan di-push 11 Nov 2026 atas perintah Rizki: frontend `RizkiV2` (`c3ecd1185` + commit penyempurnaan), laporan di backend `rizkiG` |
+| Langkah berikutnya | Merge ke branch integrasi oleh Rizki; rekaman bersuara `FE-NV-013` |
