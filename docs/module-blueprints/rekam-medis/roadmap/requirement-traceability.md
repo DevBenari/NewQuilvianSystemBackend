@@ -273,3 +273,128 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | Dapat dimulai sekarang tanpa menunggu siapa pun | ~~`BE-21`, `BE-25`, `BE-37`, `BE-38`~~ — **seluruh backend amandemen `SELESAI` 2 November 2026**; **seluruh frontend amandemen `FE-10`–`FE-15` `SELESAI` 2 November 2026**. Kesiapan UAT: 7 dari 19 lulus terhadap backend nyata, 12 terbuka menunggu data uji (`testing/uat-amandemen-0.2.0.md`) |
 | Tertahan persetujuan modul | **Nol** — `BE-27`–`BE-35` disetujui 29 Oktober 2026 (`RM-DEC-067`–`075`) |
 | Keputusan bisnis yang masih memblokir | **Nol** |
+
+
+---
+
+# Roadmap revision 3 — Traceability amandemen Optik dan Rehab Medik
+
+```yaml
+roadmap_revision: 3
+blueprint_revision: 5 (approved, RM-DEC-088)
+contract_versions: { api: 0.3.0, state_transition: 0.3.0, validation: 0.3.0, integration: 0.3.0, permission_audit: 0.3.0 }   # seluruhnya approved
+input_revisions: { interview_decisions: 16, capability_map: 4 }
+source_commits: { backend: c7686f07, frontend: 3397211dd }
+```
+
+## T3.1 Requirement → task → uji
+
+| Requirement | Decision ID | Design | Contract | Backend task | Frontend task | Test | Status |
+|---|---|---|---|---|---|---|---|
+| `FR-RM-082` Kunjungan Optik dinilai `RJ-OPT` | `RM-DEC-080` | A5.8, A5.9.1 | API B2 | `BE-42` | — | `AT-RM-75`, `76`, `79`, `80`; `UAT-20` | **Backend selesai** (`BE-42`, 10 November 2026; `AT-RM-75`, `76`, `79`, `80` lulus); `UAT-20` belum |
+| `FR-RM-083` Addendum koreksi Optik ditolak | `RM-DEC-084` | A5.9.2 | API B3, `VAL-RM-B01`, state S-E | `BE-43` | — | `AT-RM-91`, `92` | **Backend selesai** (`BE-43`, 10 November 2026; `AT-RM-91`, `92` lulus) |
+| `FR-RM-084` Penanda Optik menghitung addendum koreksi | `RM-DEC-084` | A5.9.4 | API B1, `INT-RM-10k` | `BE-44` | — | `AT-RM-77`, `78` | **Backend selesai** (`BE-44`, 10 November 2026; `AT-RM-77`, `78` lulus) |
+| `FR-RM-085` Tombol koreksi Optik tidak digambar | `RM-DEC-084` | F5.2 | API B3 | `BE-43` | `FE-16` | `UAT-21` | Backend selesai (`BE-43`); **frontend selesai** (`FE-16`, E2E API tiruan); `UAT-21` terbuka dan terlacak (`RM-DEC-093`, `RM-DEC-096`) |
+| `FR-RM-086` Profil berpoli | `RM-DEC-085` | A5.9.1 | API B2, `VAL-RM-B02`–`B04` | `BE-42` | `FE-17` | `AT-RM-81`, `82`, `89`, `90`; `UAT-22` | **Backend selesai** (`BE-42`; `AT-RM-81`, `82`, `89`, `90` lulus — `90` lewat service, index PostgreSQL `NOT RUN`); `FE-17` belum |
+| `FR-RM-087` Kunjungan poli rehab | `RM-DEC-081`, `086` | A5.9.3 | `INT-RM-11c` | `BE-45` | — | `AT-RM-83`, `84`; `UAT-23` | **Backend selesai** (`BE-45`, 10 November 2026; `AT-RM-83`, `84` lulus); `UAT-23` terbuka dan terlacak (`RM-DEC-096`, `RM-FACT-037`: master Rehab belum siap) |
+| `FR-RM-088` Probe Rehab tanpa hasil tertunda | `RM-DEC-082`, `087` | A5.9.3 | `INT-RM-11c` | `BE-45` | — | `AT-RM-85`, `86` | **Backend selesai** (`BE-45`; `AT-RM-85`, `86` lulus) |
+| `FR-RM-089` Penanda Rehab tanpa pengesahan | `DS-R5-04` | A5.9.4 | API B1, `INT-RM-10l` | `BE-45` | — | `AT-RM-87`, `88` | **Backend selesai** (`BE-45`; `AT-RM-87`, `88` lulus) |
+| `FR-RM-090` Jenis poli di layar profil | `RM-DEC-085` | F5.2 | API B2 | `BE-42` | `FE-17` | `UAT-22` | Backend selesai (`BE-42`); **frontend selesai** (`FE-17`, E2E API tiruan); **`UAT-22` lulus** 10 November 2026 terhadap backend nyata |
+| Jenis 45–52 di linimasa | `RM-DEC-079` | F5.1 | API B1 | — (sudah hidup) | — (sudah hidup) | `UAT-20` | Hidup; `UAT-20` terbuka dan terlacak (`RM-DEC-096`): data Optik/Rehab belum dapat diadakan |
+| Catatan rilis `0.3.0` | `RM-DEC-088` | A5.11 | API `0.3.0` | `BE-46` | — | `ReleaseContractTests` | **Selesai** (`BE-46`; 10 uji lulus); catatan rilis menunggu pengesahan |
+
+## T3.2 Coverage gap
+
+| Celah | Sebab | Penanganan |
+|---|---|---|
+| `RM-AC-R14-04` (sesi rehab bertanda tangan ditolak diubah; koreksi lewat addendum) | Perilaku sudah hidup sejak `BE-RHB-004`, tanpa uji di proyek rekam medis | Dibuktikan `AT-RM-87` di dalam `BE-45` |
+| `UAT-23` | Bergantung data poli rehab di master (`RM-UN-R4-01`) | Cek kueri baca-saja sebelum `FE-18`; bila belum ada, dicatat terbuka |
+| `AT-RM-77` sisi revisi (versi 2) | Sudah hidup; uji ada di proyek Optik, bukan rekam medis | `BE-44` menjalankan ulang uji Optik |
+| Tinjauan komite medik atas pengecualian Optik (open question 24) | Di luar kewenangan kode | Tidak menahan; dicatat terbuka |
+
+## T3.3 Persetujuan pemilik modul
+
+| Folder | Task | Pemilik | Keadaan |
+|---|---|---|---|
+| `OpticalManagement/Services/` | `BE-44` | Yoga Aji Pratama (pemilik Optik) | **Disetujui** 10 November 2026 (`RM-DEC-089`) |
+| `RehabilitationManagement/Services/`, `Program.cs` (pendaftaran probe Rehab) | `BE-45` | Sukma Giri Pratama (pemilik Rehab Medik) | **Disetujui** 10 November 2026 (`RM-DEC-090`, disampaikan Yoga Aji Pratama) |
+| Seluruh task lain | `BE-42`, `BE-43`, `BE-46` | Rekam medis (Yoga Aji Pratama) | Tercakup `RM-DEC-088` |
+
+## T3.4 Ringkasan
+
+Delapan task baru: lima backend (`BE-42`–`BE-46`), tiga frontend (`FE-16`–`FE-18`). Siap dimulai
+sekarang: **`BE-42`, `BE-43`, `FE-16`, `FE-17`**. Tertahan persetujuan: `BE-44` (Optik),
+`BE-45` (Rehab). Seluruh 18 acceptance criteria revision 14/15 terpetakan ke uji.
+
+---
+
+# Roadmap revision 4 — Traceability amandemen indikator ringkasan pulang dan titik sentuh HR
+
+```yaml
+roadmap_revision: 4
+blueprint_revision: 6 (approved, RM-DEC-108)
+contract_versions: { api: 0.4.0, state_transition: 0.4.0, validation: 0.4.0, integration: 0.4.0, permission_audit: 0.4.0 }   # seluruhnya approved
+input_revisions: { interview_decisions: 21, capability_map: 5 }
+source_commits: { backend: 46a57def, frontend: 75b97ecad }
+```
+
+## T4.1 Requirement → task → uji
+
+| Requirement | Decision ID | Design | Contract | Backend task | Frontend task | Test | Status |
+|---|---|---|---|---|---|---|---|
+| `FR-RM-091` Angka per dokter tanpa identitas pasien | `RM-DEC-101` | A6.4, A6.9.2 | API C1; `INT-RM-20` | `BE-49` | — | `AT-RM-93` | **Backend selesai** (`BE-49`, 11 November 2026; `AT-RM-93` lulus) |
+| `FR-RM-092` Hanya pemegang izin indikator | `RM-DEC-101`; `DS-R6-05` | A6.8 | Permission `0.4.0` | `BE-49` | — | `AT-RM-94` | **Backend selesai** (`BE-49`; atribut dan registri izin lulus; `403` HTTP terbukti di UAT `MVP-10` 11 November 2026) |
+| `FR-RM-093` Jam mulai dan tanda tangan sebelum keluar | `RM-DEC-107` | A6.9.1, A6.9.2 | API C1; state S-F | `BE-50` (pembaca), `BE-49` (pengelompokan) | — | `AT-RM-99`, `100`, `101` | **Backend selesai** (`BE-49` pengelompokan, `BE-50` pembaca, 11 November 2026; ketiganya lulus) |
+| `FR-RM-094` Tanda tangan pertama | `RM-DEC-105`; `DS-R6-04` | A6.9.1 | `INT-RM-18` | `BE-50` | — | `AT-RM-95`, `96` | **Backend selesai** (`BE-50`, 11 November 2026; keduanya lulus) |
+| `FR-RM-095` Belum ditandatangani menurut lama tertunda | `RM-DEC-106`; `DS-R6-03`, `07` | A6.9.2 | API C1 | `BE-49` | — | `AT-RM-97`, `98`, `102`, `103` | **Backend selesai** (`BE-49`; keempatnya lulus) |
+| `FR-RM-096` Validasi dan kegagalan sumber | `DS-R6-01` | A6.9.2 | `VAL-RM-C01`–`C04`; integration "Kegagalan" | `BE-49` | — | `AT-RM-104`, `108` | **Backend selesai** (`BE-49`; keduanya lulus) |
+| `FR-RM-097` Rencana kontrol di berkas | `RM-DEC-104`; `DS-R6-06` | A6.9.4, F6.2 | API C2; `INT-RM-10m` | `BE-47` | `FE-19` | `AT-RM-105`, `106`; `UAT-24` | **Backend selesai** (`BE-47`, 11 November 2026; `AT-RM-105`, `106` lulus); **frontend selesai** (`FE-19`, uji unit + E2E API tiruan); `UAT-24` data nyata terbuka dan terlacak (tabel `InpDischargeSummary` devYoga kosong) |
+| `FR-RM-098` Tanda tangan ulang ditolak | `RM-DEC-105` bagian 1 | A6.9.3 | API C3; `VAL-INP-RS01`; state S-F; `INT-RM-19` | `BE-48` | — | `AT-RM-107` | **Backend selesai** (`BE-48`, 11 November 2026; `AT-RM-107` dan 4 uji pendamping lulus) |
+| Batas gerbang HR, log override, K3RS | `RM-DEC-098`, `099`, `100` | A6.9.5 | `INT-RM-N01`–`N03` | `BE-49` (uji arsitektur) | — | Uji arsitektur `BE-49` | **Selesai** (uji arsitektur lulus) |
+| Akses lewat akun dan izin jabatan | `RM-DEC-103` | A6.9.5 | `INT-RM-N04` | — (sudah hidup, `RM-CAP-094`) | — | Regresi `MedicalRecordTests` | Hidup |
+| Catatan rilis `0.4.0` | `RM-DEC-108` | A6.11 | API `0.4.0` | `BE-51` | — | `ReleaseContractTests` | **Selesai** (`BE-51`, 11 November 2026; 21 uji lulus); catatan rilis menunggu pengesahan |
+
+## T4.2 Acceptance criteria decision log → uji
+
+| AC | Uji | Task |
+|---|---|---|
+| `RM-AC-R19-01`, `02`, `03` | Uji arsitektur; regresi | `BE-49` |
+| `RM-AC-R19-04` | `AT-RM-93` | `BE-49` |
+| `RM-AC-R19-05` | `AT-RM-94` | `BE-49` |
+| `RM-AC-R19-06` | `AT-RM-95` | `BE-50` |
+| ~~`RM-AC-R19-07`~~ | — (`superseded`) | — |
+| `RM-AC-R19-08` | `AT-RM-104` | `BE-49` |
+| `RM-AC-R19-09`, `10` | Regresi (`RM-CAP-094`) | — |
+| `RM-AC-R19-11`, `12` | `AT-RM-105`, `106`; `UAT-24` | `BE-47`, `FE-19` |
+| `RM-AC-R20-01` | `AT-RM-107` | `BE-48` |
+| `RM-AC-R20-02` | `AT-RM-96` | `BE-50` |
+| `RM-AC-R20-03`, `04` | `AT-RM-97`, `98` | `BE-49` |
+| `RM-AC-R20-05`, `06`, `07` | `AT-RM-99`, `100`, `101` | `BE-50` |
+| `RM-AC-R20-08` | `AT-RM-93` (`dataNotes`, `generatedAt`) | `BE-49` |
+
+## T4.3 Coverage gap
+
+| Celah | Sebab | Penanganan |
+|---|---|---|
+| `RM-AC-R19-09` (akun nonaktif ditolak) tanpa uji khusus di proyek rekam medis | Perilaku platform (`AccessPermissionService`), sudah hidup | Tidak ditambah uji; dicatat sebagai kemampuan `READY TO REUSE` (`RM-CAP-094`) |
+| Kinerja kueri rentang pada data nyata | Batas audit: database tidak diperiksa (`RM-UN-R5-01`) | Diukur saat UAT `MVP-10`; index lewat task terpisah |
+| Uji ujung-ke-ujung indikator dengan data Rawat Inap nyata | Bergantung `BE-50` dan persetujuan | UAT `MVP-10` (`04-prd-to-mvp.md` bagian 30) sesudah `BE-50` |
+| Penerimaan HR atas `INT-RM-20` | Di luar kewenangan rekam medis | Open question 28; menahan `POST-MVP` saja |
+| Temuan K3RS (`RM-CAP-093`) | Milik HR | Diserahkan ke pemilik HR; tidak ada task rekam medis |
+
+## T4.4 Persetujuan pemilik modul
+
+| Folder | Task | Pemilik | Keadaan |
+|---|---|---|---|
+| `InPatientManagement/Services/InpMedicalRecordDocumentSource.cs` | `BE-47` | Muhammad Hamzah | **Disetujui** 11 November 2026 (`RM-DEC-109`, disampaikan Yoga Aji Pratama) |
+| `InPatientManagement/Services/InpDischargeService.cs` | `BE-48` | Muhammad Hamzah | **Disetujui** (`RM-DEC-109`) |
+| `InPatientManagement/Services/InpDischargeSummaryTimelinessSource.cs` (baru), `Program.cs` (pendaftarannya) | `BE-50` | Muhammad Hamzah | **Disetujui** (`RM-DEC-109`) |
+| Folder rekam medis, `Program.cs` (service), `catatan-rilis.md` | `BE-49`, `BE-51` | Rekam medis (Yoga Aji Pratama) | Tercakup `RM-DEC-108` |
+| Frontend rekam medis | `FE-19` | Yoga Aji Pratama | Tercakup `RM-DEC-108` |
+
+## T4.5 Ringkasan
+
+Enam task baru: lima backend (`BE-47`–`BE-51`), satu frontend (`FE-19`). **Siap dimulai sekarang:
+`BE-49`, uji unit `FE-19`, lalu `BE-51` sesudah `BE-49`.** ~~Tertahan persetujuan Muhammad Hamzah:
+`BE-47`, `BE-48`, `BE-50`.~~ **Sejak 11 November 2026 ketiganya `READY`** (`RM-DEC-109`). Seluruh 19 acceptance criteria revision 19/20 yang berlaku terpetakan ke
+uji atau ke perilaku yang sudah hidup; `RM-AC-R19-07` `superseded`.

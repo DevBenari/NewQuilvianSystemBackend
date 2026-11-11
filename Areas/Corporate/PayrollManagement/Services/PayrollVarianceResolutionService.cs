@@ -111,7 +111,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid runId,
             CancellationToken cancellationToken = default)
         {
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
 
             if (run == null)

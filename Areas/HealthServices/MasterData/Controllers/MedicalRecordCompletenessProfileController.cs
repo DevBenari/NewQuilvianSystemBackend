@@ -96,9 +96,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] string? sortDirection,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
+            [FromQuery] ClinicType? clinicType = null,
             CancellationToken cancellationToken = default)
         {
-            var galat = MedicalRecordCompletenessProfileService.ValidateFilter(encounterType, serviceUnitType, condition);
+            var galat = MedicalRecordCompletenessProfileService.ValidateFilter(encounterType, serviceUnitType, condition, clinicType);
             if (galat != null)
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, galat));
 
@@ -112,7 +113,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 sortDirection,
                 pageNumber,
                 pageSize,
-                cancellationToken);
+                cancellationToken,
+                clinicType);
 
             return Ok(ApiResponse<MedicalRecordCompletenessProfilePagedResult>.Ok(
                 result,

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -29,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai kalkulasi pemotongan PPh 21 TER PMK 168/2023 untuk batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .Include(r => r.Employees.Where(e => e.IsActive))
                     .ThenInclude(e => e.Components.Where(c => c.IsActive))
@@ -52,8 +53,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var employees = run.Employees.ToList();
             var profileIds = employees.Select(e => e.WorkforceProfileId).Distinct().ToList();
 
-            // Ambil profil pajak master WfpTax untuk mengisi snapshot yang belum ada
-            var wfpTaxes = await _context.WfpTaxes
+            // Ambil profil pajak master PrlTax untuk mengisi snapshot yang belum ada
+            var wfpTaxes = await _context.PrlTaxes
                 .Where(t => profileIds.Contains(t.WorkforceProfileId) && t.IsActive)
                 .ToDictionaryAsync(t => t.WorkforceProfileId, cancellationToken);
 
@@ -103,7 +104,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var emp = await _context.TrxPayrollRunEmployees
+            var emp = await _context.PrlPayrollRunEmployees
                 .Include(e => e.Components.Where(c => c.IsActive))
                 .Include(e => e.PayrollRun)
                     .ThenInclude(r => r!.PayrollPeriod)
@@ -123,7 +124,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     $"Batch penggajian telah berstatus final dan tidak dapat diperbarui.");
             }
 
-            var taxProfile = await _context.WfpTaxes
+            var taxProfile = await _context.PrlTaxes
                 .FirstOrDefaultAsync(t => t.WorkforceProfileId == emp.WorkforceProfileId && t.IsActive, cancellationToken);
 
             var isDecemberAdjustment = (emp.PayrollRun.PayrollPeriod?.PeriodNumber == 12) ||
@@ -133,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             // Perbarui agregasi batch penggajian
             var run = emp.PayrollRun;
-            var allEmps = await _context.TrxPayrollRunEmployees
+            var allEmps = await _context.PrlPayrollRunEmployees
                 .Where(e => e.PayrollRunId == runId && e.IsActive)
                 .ToListAsync(cancellationToken);
 
@@ -151,8 +152,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         private EmployeePph21CalculationDto ProcessEmployeePph21(
-            TrxPayrollRunEmployee emp,
-            WfpTax? taxProfile,
+            PrlPayrollRunEmployee emp,
+            PrlTax? taxProfile,
             bool isDecemberAdjustment,
             Guid actorUserId)
         {
@@ -176,7 +177,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             foreach (var comp in existingTaxComponents)
             {
-                _context.TrxPayrollEmployeeComponents.Remove(comp);
+                _context.PrlPayrollEmployeeComponents.Remove(comp);
             }
 
             // 3. Tentukan Persentase Tarif Pajak TER Bulanan / Akhir Tahun
@@ -196,7 +197,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             // 4. Buat komponen rincian pemotongan PPh 21
-            var taxComp = new TrxPayrollEmployeeComponent
+            var taxComp = new PrlPayrollEmployeeComponent
             {
                 Id = Guid.NewGuid(),
                 PayrollRunEmployeeId = emp.Id,
@@ -220,7 +221,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 CreateDateTime = DateTime.UtcNow
             };
 
-            _context.TrxPayrollEmployeeComponents.Add(taxComp);
+            _context.PrlPayrollEmployeeComponents.Add(taxComp);
 
             // 5. Update Akumulasi Pajak, Potongan & Gaji Bersih Pegawai
             emp.TotalTax = pph21Amount;

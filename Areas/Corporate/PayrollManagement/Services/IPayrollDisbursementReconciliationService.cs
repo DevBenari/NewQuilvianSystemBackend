@@ -10,7 +10,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
     public interface IPayrollDisbursementReconciliationService
     {
         /// <summary>
-        /// Memproses callback konfirmasi pembayaran bank dari Finance: mengubah status batch ke Completed dan memicu pelepasan slip gaji digital ESS (TrxPayrollPayslip).
+        /// Memproses callback konfirmasi pembayaran bank dari Finance: mengubah status batch ke Completed dan memicu pelepasan slip gaji digital ESS (PrlPayrollPayslip).
         /// </summary>
         Task<FinanceConfirmationResultDto> ConfirmPaymentAsync(FinancePaymentConfirmationCommand command, CancellationToken cancellationToken = default);
 

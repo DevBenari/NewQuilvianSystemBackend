@@ -10,9 +10,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 
 /// <summary>
 /// Handoff pembayaran gaji ke Finance dan penerimaan hasil bank (CT-PAY-08, CT-PAY-09). Arketipe: sub-proses yang di-scope ke
-/// payroll run induknya (standar transaksi 2.3). Status Dibayar hanya lahir dari aksi Acknowledge oleh pengguna Finance yang diberi
-/// izin; tidak ada aksi di layar Payroll yang menandai pembayaran lunas. Sisi Finance (jenis pembayaran PAYROLL, COA, jurnal) adalah
-/// NEEDS CONFIRMATION dan dijelaskan apa adanya pada respons.
+/// payroll run induknya (standar transaksi 2.3). Status Dibayar hanya lahir dari aksi Acknowledge oleh pengguna yang diberi izin
+/// itu lewat Akses Role: Finance dengan hasil bank (ConfirmationSource FINANCE_ACK, bawaan) atau, selama belum ada koneksi bank,
+/// petugas Payroll berwenang lewat layar Konfirmasi Pembayaran Manual (ConfirmationSource MANUAL, PAY-BE-11). Aksi handoff dan
+/// Acknowledge sebaiknya dipegang orang berbeda pada produksi (pemisahan tugas; keputusan pemberian hak ada pada admin). Sisi
+/// Finance (jenis pembayaran PAYROLL, COA, jurnal) adalah NEEDS CONFIRMATION dan dijelaskan apa adanya pada respons.
 /// </summary>
 [ApiController]
 [Authorize]

@@ -165,3 +165,47 @@ Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`).
 | `VAL-RM-A10` | Profil | `ServiceUnitType` atau `EncounterType` bukan nilai enum sah | "Jenis kunjungan atau jenis unit tidak dikenal." | `400` |
 | `VAL-RM-A11` | Ringkasan berkala | `kind` tidak dikenal atau `date` tidak sah | "Jenis pencatatan atau tanggal tidak dikenal." | `400` |
 | `VAL-RM-A12` | Rincian dokumen | Jenis `PathologyAnatomyResult` | "Hasil Patologi Anatomi belum tersedia di berkas rekam medis." | `404` |
+
+
+---
+
+# Amandemen — Validation `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved`, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| Input | Decision log revision `15` |
+
+| ID | Aturan | Ditegakkan di | Kode | Pesan | Keputusan |
+|---|---|---|---|---|---|
+| `VAL-RM-B01` | Addendum `Correction` (termasuk `purpose` kosong) tidak diterima untuk `OpticalRefraction` dan `OpticalPrescription` | `ClinicalNoteAddendumService.CreateAsync`, sebelum pemeriksaan isi | `400` | "Koreksi dokumen Optik dibuat sebagai revisi di layar Optik." | `RM-DEC-084` |
+| `VAL-RM-B02` | `clinicType` hanya boleh terisi pada profil tanpa kondisi | Service profil **dan** CHECK `CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi` | `400` | "Jenis poli hanya dapat dipakai pada profil tanpa kondisi." | `RM-DEC-085` |
+| `VAL-RM-B03` | `clinicType` wajib nilai `ClinicType` yang terdefinisi | Service profil | `400` | "Jenis poli tidak dikenal." | `RM-DEC-085` |
+| `VAL-RM-B04` | Kunci `(encounterType, serviceUnitType, clinicType, condition)` unik di antara profil yang tidak dihapus; kosong dibandingkan sama | Service profil **dan** index unik `NULLS NOT DISTINCT` | `409` | "Profil untuk kombinasi ini sudah ada: {kode}." | Menggantikan bunyi `VAL-RM-A05` |
+
+Contoh `VAL-RM-B04`: profil `RJ-REHAB` (`Outpatient`, unit kosong, poli `Rehabilitation`, kondisi
+`None`) sudah ada; membuat `RJ-FISIO` dengan kunci yang sama → `409`. Membuat profil
+`Outpatient` + poli `Rehabilitation` + unit `Outpatient` tetap boleh karena unitnya berbeda.
+
+---
+
+# Amandemen — Validation `0.4.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.4.0`** — `approved`, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`) |
+| Input | Decision log revision `20` |
+
+| ID | Aturan | Ditegakkan di | Kode | Pesan | Keputusan |
+|---|---|---|---|---|---|
+| `VAL-RM-C01` | `periodFrom` dan `periodTo` wajib, format `yyyy-MM-dd` | `DischargeSummaryTimelinessService.ValidateQuery` | `400` | "Periode awal dan akhir wajib diisi." | `RM-DEC-102` |
+| `VAL-RM-C02` | `periodFrom` ≤ `periodTo` | Sama | `400` | "Periode awal tidak boleh sesudah periode akhir." | — |
+| `VAL-RM-C03` | Rentang `periodTo − periodFrom + 1` ≤ 366 hari | Sama | `400` | "Rentang periode paling lama 366 hari." | `DS-R6-01` |
+| `VAL-RM-C04` | `pageSize` 1–100; `page` ≥ 1 | Sama | `400` | "Ukuran halaman harus 1 sampai 100." | Konvensi paging |
+| `VAL-INP-RS01` | Ringkasan sudah bertanda tangan tanpa sesi koreksi terbuka tidak boleh ditandatangani ulang | `InpDischargeService.SignSummaryAsync` (**milik Rawat Inap**) | `409` | "Resume sudah ditandatangani; ubah lewat sesi koreksi." | `RM-DEC-105` bagian 1; menunggu pemilik Rawat Inap |
+
+`doctorId`/`workforceProfileId` yang tidak dikenal **tidak** ditolak: hasilnya kosong, agar
+endpoint tidak menjadi alat menebak keberadaan dokter.
+
+**Penyegaran `0.3.1` yang dilebur** (`RM-DEC-095`): `VAL-RM-B03` kini juga menolak `clinicType = 0`
+(`Unknown`) dengan pesan yang sama, "Jenis poli tidak dikenal."

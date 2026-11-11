@@ -1,8 +1,9 @@
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 
 /// <summary>
-/// TrxPayrollPayment.PaymentStatus (kolom string, tanpa perubahan skema). Scheduled = instruksi sudah dikirim ke Finance dan
-/// menunggu hasil bank; Paid hanya boleh ditetapkan lewat ACK Finance yang berwenang, tidak pernah dari layar Payroll.
+/// PrlPayrollPayment.PaymentStatus (kolom string, tanpa perubahan skema). Scheduled = instruksi sudah dikirim ke Finance dan
+/// menunggu hasil bank; Paid hanya boleh ditetapkan lewat aksi ACK oleh pemegang izin Acknowledge: hasil bank dari Finance, atau
+/// (PAY-BE-11) konfirmasi manual petugas Payroll berwenang selama belum ada koneksi bank (lihat PayrollConfirmationSources).
 /// </summary>
 public static class PayrollPaymentStatuses
 {
@@ -23,7 +24,7 @@ public static class PayrollPaymentStatuses
         || string.Equals(status, PartiallyReversed, StringComparison.OrdinalIgnoreCase);
 }
 
-/// <summary>TrxPayrollPayslip.PayslipStatus (kolom string, tanpa perubahan skema).</summary>
+/// <summary>PrlPayrollPayslip.PayslipStatus (kolom string, tanpa perubahan skema).</summary>
 public static class PayrollPayslipStatuses
 {
     public const string Draft = "Draft";
@@ -36,7 +37,7 @@ public static class PayrollPayslipStatuses
 
 /// <summary>
 /// Jalur pembayaran satu hak jasa medis. Tepat satu jalur aktif per sumber: PAYROLL (masuk slip gaji penerima payroll) atau
-/// FINANCE_AP (utang dokter di Finance AP). Disimpan sebagai klaim pada TrxPayrollVariableInput (SourceType = MdfServiceFee).
+/// FINANCE_AP (utang dokter di Finance AP). Disimpan sebagai klaim pada PrlPayrollVariableInput (SourceType = MdfServiceFee).
 /// </summary>
 public static class PayrollMedicalFeePaymentPaths
 {
@@ -60,7 +61,7 @@ public static class PayrollEngineComponentCodes
     public const string InsuranceEmployee = "PAY_INSURANCE_EMPLOYEE";
 }
 
-/// <summary>Nilai TrxPayrollVariableInput.SourceType yang dikenal modul Payroll.</summary>
+/// <summary>Nilai PrlPayrollVariableInput.SourceType yang dikenal modul Payroll.</summary>
 public static class PayrollVariableInputSources
 {
     public const string FinanceReceivableInstallment = "FinanceReceivableInstallment";

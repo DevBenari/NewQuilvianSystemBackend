@@ -113,7 +113,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     x.ServiceUnit != null ? (ServiceUnitType?)x.ServiceUnit.ServiceUnitType : null,
                     x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                     x.Patient != null ? x.Patient.MedicalRecordNumber : null,
-                    x.Patient != null ? x.Patient.FullName : null))
+                    x.Patient != null ? x.Patient.FullName : null,
+                    x.Clinic != null ? (ClinicType?)x.Clinic.ClinicType : null))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (kunjungan == null)
@@ -278,11 +279,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive)
                 .Select(x => new Profil(
-                    x.Code, x.EncounterType, x.ServiceUnitType, x.Condition,
+                    x.Code, x.EncounterType, x.ServiceUnitType, x.ClinicType, x.Condition,
                     x.Items.Where(i => i.IsActive && !i.IsDelete).Select(i => i.Criterion).ToList()))
                 .ToListAsync(cancellationToken);
 
-            var profilDasar = PilihProfilDasar(profilAktif, kunjungan.EncounterType, kunjungan.ServiceUnitType);
+            var profilDasar = PilihProfilDasar(profilAktif, kunjungan.EncounterType, kunjungan.ServiceUnitType, kunjungan.ClinicType);
             var profilKondisi = profilAktif.Where(x => x.Condition != CompletenessCondition.None).ToList();
 
             if (profilDasar == null)
@@ -399,18 +400,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         }
 
         /// <summary>
-        /// Profil berunit yang persis menggantikan profil umum jenis kunjungan yang sama; bila
-        /// keduanya tidak ada, <c>null</c> (`RuleNotFound`).
+        /// Profil dasar satu kunjungan, yang pertama cocok dari urutan A5.9.1 (`RM-DEC-085`, `BE-42`):
+        /// (1) poli dan unit sama; (2) poli sama, unit semua; (3) poli semua, unit sama; (4) keduanya
+        /// semua. Bila tidak ada, <c>null</c> (`RuleNotFound`).
         /// </summary>
+        /// <remarks>
+        /// Kunjungan tanpa poli hanya dapat cocok pada urutan 3 dan 4. Contoh: kunjungan poli
+        /// Rehabilitasi Medik di unit Rawat Jalan → urutan 2 → `RJ-REHAB`; kunjungan unit Optik →
+        /// urutan 3 → `RJ-OPT`; kunjungan poli penyakit dalam → urutan 4 → `RJ`.
+        /// </remarks>
         private static Profil? PilihProfilDasar(
             List<Profil> profil,
             EncounterType jenisKunjungan,
-            ServiceUnitType? jenisUnit)
+            ServiceUnitType? jenisUnit,
+            ClinicType? jenisPoli)
         {
             var dasar = profil.Where(x => x.Condition == CompletenessCondition.None && x.EncounterType == jenisKunjungan).ToList();
 
-            return dasar.FirstOrDefault(x => jenisUnit != null && x.ServiceUnitType == jenisUnit)
-                   ?? dasar.FirstOrDefault(x => x.ServiceUnitType == null);
+            // Poli berjenis Unknown diperlakukan seperti kunjungan tanpa poli (A5.9.1).
+            if (jenisPoli == ClinicType.Unknown)
+                jenisPoli = null;
+
+            return dasar.FirstOrDefault(x => jenisPoli != null && x.ClinicType == jenisPoli && jenisUnit != null && x.ServiceUnitType == jenisUnit)
+                   ?? dasar.FirstOrDefault(x => jenisPoli != null && x.ClinicType == jenisPoli && x.ServiceUnitType == null)
+                   ?? dasar.FirstOrDefault(x => x.ClinicType == null && jenisUnit != null && x.ServiceUnitType == jenisUnit)
+                   ?? dasar.FirstOrDefault(x => x.ClinicType == null && x.ServiceUnitType == null);
         }
 
         /// <summary>Urutan prioritas S-B: Undetermined → AwaitingResult → Incomplete → Complete.</summary>
@@ -644,6 +658,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     x.Encounter.EncounterType,
                     ServiceUnitType = x.Encounter.ServiceUnit != null ? (ServiceUnitType?)x.Encounter.ServiceUnit.ServiceUnitType : null,
                     ServiceUnitName = x.Encounter.ServiceUnit != null ? x.Encounter.ServiceUnit.ServiceUnitName : null,
+                    ClinicType = x.Encounter.Clinic != null ? (ClinicType?)x.Encounter.Clinic.ClinicType : null,
                     x.Encounter.EncounterStatus,
                     x.ClinicalClosure!.ClinicalClosedAt,
                     x.State,
@@ -662,7 +677,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             var profilAktif = await _dbContext.Set<MstMedicalRecordCompletenessProfile>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive)
-                .Select(x => new Profil(x.Code, x.EncounterType, x.ServiceUnitType, x.Condition, new List<CompletenessCriterion>()))
+                .Select(x => new Profil(x.Code, x.EncounterType, x.ServiceUnitType, x.ClinicType, x.Condition, new List<CompletenessCriterion>()))
                 .ToListAsync(cancellationToken);
 
             var detail = new MedicalRecordCompletenessDetailResponse
@@ -682,7 +697,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 EvaluatedAt = baris.EvaluatedAt,
                 FirstCompletedAt = baris.FirstCompletedAt,
                 IsPersisted = true,
-                ProfileCodes = PilihProfilDasar(profilAktif, baris.EncounterType, baris.ServiceUnitType) is { } dasar
+                ProfileCodes = PilihProfilDasar(profilAktif, baris.EncounterType, baris.ServiceUnitType, baris.ClinicType) is { } dasar
                     ? [dasar.Code]
                     : []
             };
@@ -944,12 +959,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             ServiceUnitType? ServiceUnitType,
             string? ServiceUnitName,
             string? MedicalRecordNumber,
-            string? PatientName);
+            string? PatientName,
+            ClinicType? ClinicType);
 
         private sealed record Profil(
             string Code,
             EncounterType? EncounterType,
             ServiceUnitType? ServiceUnitType,
+            ClinicType? ClinicType,
             CompletenessCondition Condition,
             List<CompletenessCriterion> Criteria);
 

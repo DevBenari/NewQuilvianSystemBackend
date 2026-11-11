@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -57,7 +58,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             // 2. Proteksi Anti-Duplikasi Periode Penggajian (VR-PAY-01)
-            var existingActiveRun = await _context.TrxPayrollRuns
+            var existingActiveRun = await _context.PrlPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .FirstOrDefaultAsync(r => r.IsActive
                     && r.RunType == command.RunType
@@ -117,14 +118,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var settingSnapshotJson = await _settingService.GetSettingSnapshotJsonAsync(cancellationToken);
 
             // 5. Generate Nomor Batch Unik Resmi (Format: PRUN-YYYYMM-XXX)
-            var currentMonthRunsCount = await _context.TrxPayrollRuns
+            var currentMonthRunsCount = await _context.PrlPayrollRuns
                 .CountAsync(r => r.CreateDateTime.Year == command.PeriodYear
                               && r.CreateDateTime.Month == command.PeriodMonth, cancellationToken);
 
             var runNumber = $"PRUN-{command.PeriodYear}{command.PeriodMonth:D2}-{(currentMonthRunsCount + 1):D3}";
 
-            // 6. Buat Entitas Master TrxPayrollRun
-            var payrollRun = new TrxPayrollRun
+            // 6. Buat Entitas Master PrlPayrollRun
+            var payrollRun = new PrlPayrollRun
             {
                 Id = Guid.NewGuid(),
                 PayrollPeriodId = period.Id,
@@ -166,12 +167,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 .GroupBy(s => s.WorkforceProfileId)
                 .ToDictionary(g => g.Key, g => g.First());
 
-            var runEmployees = new List<TrxPayrollRunEmployee>();
+            var runEmployees = new List<PrlPayrollRunEmployee>();
             foreach (var profile in activeProfiles)
             {
                 salaryMap.TryGetValue(profile.Id, out var salaryAss);
 
-                var runEmp = new TrxPayrollRunEmployee
+                var runEmp = new PrlPayrollRunEmployee
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunId = payrollRun.Id,
@@ -202,8 +203,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             payrollRun.TotalGrossPay = runEmployees.Sum(e => e.GrossPay);
             payrollRun.TotalNetPay = runEmployees.Sum(e => e.NetPay);
 
-            _context.TrxPayrollRuns.Add(payrollRun);
-            _context.TrxPayrollRunEmployees.AddRange(runEmployees);
+            _context.PrlPayrollRuns.Add(payrollRun);
+            _context.PrlPayrollRunEmployees.AddRange(runEmployees);
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -228,7 +229,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid runId,
             CancellationToken cancellationToken = default)
         {
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .Include(r => r.Employees.Where(e => e.IsActive))
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
@@ -280,7 +281,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         public async Task<List<PayrollRunSummaryDto>> GetAllPayrollRunsAsync(
             CancellationToken cancellationToken = default)
         {
-            var runs = await _context.TrxPayrollRuns
+            var runs = await _context.PrlPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .Where(r => r.IsActive)
                 .OrderByDescending(r => r.CreateDateTime)

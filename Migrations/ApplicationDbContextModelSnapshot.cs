@@ -52269,7 +52269,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxEmployeeRestitutionClaim", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxMedicalServiceFeeCalculation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -52447,10 +52447,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("WorkforceProfileId", "ServicePeriodStartDate", "ServicePeriodEndDate", "IsDelete");
 
-                    b.ToTable("TrxMedicalServiceFeeCalculation", "public");
+                    b.ToTable("PrlMedicalServiceFeeCalculation", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxMedicalServiceFeePayment", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeePayment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -52576,10 +52576,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollPaymentId", "FinancePaymentId", "GlHeaderId");
 
-                    b.ToTable("TrxMedicalServiceFeePayment", "public");
+                    b.ToTable("PrlMedicalServiceFeePayment", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollAdjustment", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAdjustment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -52745,10 +52745,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("SourceType", "SourceId", "IsDelete");
 
-                    b.ToTable("TrxPayrollAdjustment", "public");
+                    b.ToTable("PrlPayrollAdjustment", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollApproval", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollApproval", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -52870,10 +52870,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunId", "StepOrder", "AssignedApproverUserId", "IsDelete");
 
-                    b.ToTable("TrxPayrollApproval", "public");
+                    b.ToTable("PrlPayrollApproval", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollAttendanceInput", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAttendanceInput", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53011,7 +53011,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("AttendanceStatusSnapshot", "AttendanceDate", "IsDelete");
 
-                    b.ToTable("TrxPayrollAttendanceInput", "public");
+                    b.ToTable("PrlPayrollAttendanceInput", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollDeductionItem", b =>
@@ -53210,7 +53210,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPayrollDeductionSchedule", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollEmployeeComponent", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollEmployeeComponent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53366,7 +53366,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunEmployeeId", "ComponentCodeSnapshot", "SourceType", "SourceId", "IsDelete");
 
-                    b.ToTable("TrxPayrollEmployeeComponent", "public");
+                    b.ToTable("PrlPayrollEmployeeComponent", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollHandoffBatch", b =>
@@ -53472,7 +53472,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPayrollHandoffBatch", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollOvertimeInput", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollOvertimeInput", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53594,10 +53594,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunEmployeeId", "OvertimeDate", "IsDelete");
 
-                    b.ToTable("TrxPayrollOvertimeInput", "public");
+                    b.ToTable("PrlPayrollOvertimeInput", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayment", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53742,7 +53742,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunEmployeeId")
                         .IsUnique()
-                        .HasDatabaseName("UX_TrxPayrollPayment_LiveInstruction")
+                        .HasDatabaseName("UX_PrlPayrollPayment_LiveInstruction")
                         .HasFilter("\"IsDelete\" = false AND \"PaymentStatus\" IN ('Scheduled', 'Processing', 'Paid', 'PartiallyReversed')");
 
                     b.HasIndex("FinancePaymentId", "GlHeaderId");
@@ -53751,10 +53751,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunId", "PaymentStatus", "ScheduledPaymentAt", "IsDelete");
 
-                    b.ToTable("TrxPayrollPayment", "public");
+                    b.ToTable("PrlPayrollPayment", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayslip", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53940,7 +53940,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunId", "PayslipStatus", "IsEmployeeVisible", "IsDelete");
 
-                    b.ToTable("TrxPayrollPayslip", "public");
+                    b.ToTable("PrlPayrollPayslip", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRestitution", b =>
@@ -54042,7 +54042,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPayrollRestitution", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollReversal", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollReversal", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -54176,10 +54176,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunId", "ReversalStatus", "IsDelete");
 
-                    b.ToTable("TrxPayrollReversal", "public");
+                    b.ToTable("PrlPayrollReversal", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -54404,7 +54404,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollPeriodId")
                         .IsUnique()
-                        .HasDatabaseName("UX_TrxPayrollRun_RegularPeriod")
+                        .HasDatabaseName("UX_PrlPayrollRun_RegularPeriod")
                         .HasFilter("\"IsDelete\" = false AND \"RunType\" = 'Regular' AND \"RunStatus\" NOT IN ('Cancelled', 'Reversed')");
 
                     b.HasIndex("PostedByUserId");
@@ -54423,10 +54423,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("RunStatus", "IsLocked", "IsActive", "IsDelete");
 
-                    b.ToTable("TrxPayrollRun", "public");
+                    b.ToTable("PrlPayrollRun", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -54729,10 +54729,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("WorkforceProfileId", "IsFinalized", "IsDelete");
 
-                    b.ToTable("TrxPayrollRunEmployee", "public");
+                    b.ToTable("PrlPayrollRunEmployee", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollVariableInput", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollVariableInput", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -54863,7 +54863,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("SourceId")
                         .IsUnique()
-                        .HasDatabaseName("UX_TrxPayrollVariableInput_MedicalFeeClaim")
+                        .HasDatabaseName("UX_PrlPayrollVariableInput_MedicalFeeClaim")
                         .HasFilter("\"IsDelete\" = false AND \"SourceType\" = 'MdfServiceFee' AND \"SourceId\" IS NOT NULL AND \"InputStatus\" NOT IN ('Cancelled', 'Rejected')");
 
                     b.HasIndex("SubmittedByUserId");
@@ -54874,7 +54874,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollRunEmployeeId", "PayrollComponentId", "InputStatus", "IsDelete");
 
-                    b.ToTable("TrxPayrollVariableInput", "public");
+                    b.ToTable("PrlPayrollVariableInput", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollVarianceAlert", b =>
@@ -54984,7 +54984,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPayrollVarianceAlert", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpInsurance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55107,10 +55107,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IsBpjsKesehatanEnabled", "IsBpjsKetenagakerjaanEnabled", "IsPrivateInsuranceEnabled", "IsActive");
 
-                    b.ToTable("WfpInsurance", "public");
+                    b.ToTable("PrlInsurance", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpPayroll", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55297,10 +55297,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PayrollStatus", "IsPayrollEligible", "IsActive", "IsDelete");
 
-                    b.ToTable("WfpPayroll", "public");
+                    b.ToTable("PrlPayroll", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTax", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55424,10 +55424,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("TaxStatus", "TaxMethod", "IsActive", "IsDelete");
 
-                    b.ToTable("WfpTax", "public");
+                    b.ToTable("PrlTax", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55557,10 +55557,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("TransportAllowancePolicyId", "AllowanceStatus", "IsActive", "IsDelete");
 
-                    b.ToTable("WfpTransportAllowance", "public");
+                    b.ToTable("PrlTransportAllowance", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowancePolicy", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55702,10 +55702,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("LegalEntityId", "HospitalSiteId", "EmployeeGradeId", "IsActive", "IsDelete");
 
-                    b.ToTable("WfpTransportAllowancePolicy", "public");
+                    b.ToTable("PrlTransportAllowancePolicy", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowanceTransaction", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55845,7 +55845,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("TransportAllowanceId", "TransactionDate", "TransactionType", "IsDelete");
 
-                    b.ToTable("WfpTransportAllowanceTransaction", "public");
+                    b.ToTable("PrlTransportAllowanceTransaction", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdClinicalPeerReviewAuditLog", b =>
@@ -99541,6 +99541,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("ClinicType")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -99593,14 +99596,16 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.HasIndex("EncounterType", "ServiceUnitType", "Condition")
+                    b.HasIndex("EncounterType", "ServiceUnitType", "ClinicType", "Condition")
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("EncounterType", "ServiceUnitType", "Condition"), false);
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("EncounterType", "ServiceUnitType", "ClinicType", "Condition"), false);
 
                     b.ToTable("MstMedicalRecordCompletenessProfile", "public", t =>
                         {
+                            t.HasCheckConstraint("CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi", "\"Condition\" = 0 OR \"ClinicType\" IS NULL");
+
                             t.HasCheckConstraint("CK_MstMedicalRecordCompletenessProfile_EncounterTypeWajib", "\"Condition\" <> 0 OR \"EncounterType\" IS NOT NULL");
                         });
                 });
@@ -124780,7 +124785,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpInsurance", "InsuranceProfile")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", "InsuranceProfile")
                         .WithMany()
                         .HasForeignKey("InsuranceProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -124913,7 +124918,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PayrollPeriodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany()
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -132829,11 +132834,11 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpInsurance", "Insurance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", "Insurance")
                         .WithMany()
                         .HasForeignKey("InsuranceId");
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpPayroll", "Payroll")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", "Payroll")
                         .WithMany()
                         .HasForeignKey("PayrollId");
 
@@ -132847,11 +132852,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PrimaryPositionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTax", "Tax")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", "Tax")
                         .WithMany()
                         .HasForeignKey("TaxId");
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowance", "TransportAllowance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", "TransportAllowance")
                         .WithMany()
                         .HasForeignKey("TransportAllowanceId");
 
@@ -134250,7 +134255,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Supervisor");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxMedicalServiceFeeCalculation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
                         .WithMany()
@@ -134282,12 +134287,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PayrollPeriodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany()
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany()
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -134324,14 +134329,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxMedicalServiceFeePayment", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeePayment", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
                         .WithMany()
                         .HasForeignKey("BankAccountId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxMedicalServiceFeeCalculation", "MedicalServiceFeeCalculation")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", "MedicalServiceFeeCalculation")
                         .WithMany("Payments")
                         .HasForeignKey("MedicalServiceFeeCalculationId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134347,12 +134352,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PaymentSettlementMethodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayment", "PayrollPayment")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", "PayrollPayment")
                         .WithMany("MedicalServiceFeePayments")
                         .HasForeignKey("PayrollPaymentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany()
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -134370,7 +134375,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PayrollRunEmployee");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollAdjustment", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAdjustment", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "AppliedByUser")
                         .WithMany()
@@ -134387,12 +134392,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PayrollComponentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany("Adjustments")
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany("Adjustments")
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134437,7 +134442,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkflowDefinition");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollApproval", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollApproval", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ActualActionByUser")
                         .WithMany()
@@ -134464,7 +134469,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("DelegatedFromUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany("Approvals")
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134497,7 +134502,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkflowStep");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollAttendanceInput", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAttendanceInput", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
                         .WithMany()
@@ -134509,7 +134514,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ImportedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany("AttendanceInputs")
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134536,7 +134541,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany()
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134560,14 +134565,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollEmployeeComponent", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollEmployeeComponent", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
                         .WithMany()
                         .HasForeignKey("PayrollComponentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany("Components")
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134580,7 +134585,7 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollHandoffBatch", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany()
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134597,7 +134602,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TransferredByUser");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollOvertimeInput", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollOvertimeInput", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ImportedByUser")
                         .WithMany()
@@ -134614,7 +134619,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("OvertimeRequestId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany("OvertimeInputs")
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134629,7 +134634,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PayrollRunEmployee");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayment", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
                         .WithMany()
@@ -134646,13 +134651,13 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PaymentSettlementMethodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany("Payments")
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany("Payments")
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134669,20 +134674,20 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PayrollRunEmployee");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayslip", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "GeneratedByUser")
                         .WithMany()
                         .HasForeignKey("GeneratedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithOne("Payslip")
-                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayslip", "PayrollRunEmployeeId")
+                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", "PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany()
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134704,12 +134709,12 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRestitution", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "AffectedPayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "AffectedPayrollRun")
                         .WithMany()
                         .HasForeignKey("AffectedPayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayslip", "AffectedPayslip")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", "AffectedPayslip")
                         .WithMany()
                         .HasForeignKey("AffectedPayslipId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -134725,7 +134730,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "TargetPayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "TargetPayrollRun")
                         .WithMany()
                         .HasForeignKey("TargetPayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -134741,19 +134746,19 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TargetPayrollRun");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollReversal", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollReversal", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayment", "PayrollPayment")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", "PayrollPayment")
                         .WithMany("Reversals")
                         .HasForeignKey("PayrollPaymentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany()
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany("Reversals")
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134780,7 +134785,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ReversedByUser");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
                         .WithMany()
@@ -134854,7 +134859,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkflowDefinition");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
                         .WithMany()
@@ -134876,7 +134881,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("FinalizedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpInsurance", "InsuranceProfile")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", "InsuranceProfile")
                         .WithMany()
                         .HasForeignKey("InsuranceProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -134886,12 +134891,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("OrganizationAssignmentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpPayroll", "PayrollProfile")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", "PayrollProfile")
                         .WithMany("PayrollRunEmployees")
                         .HasForeignKey("PayrollProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany("Employees")
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134917,7 +134922,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("SnapshotFrozenByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTax", "TaxProfile")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", "TaxProfile")
                         .WithMany()
                         .HasForeignKey("TaxProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -134957,7 +134962,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollVariableInput", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollVariableInput", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
                         .WithMany()
@@ -134965,7 +134970,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany("VariableInputs")
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -134992,7 +134997,7 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollVarianceAlert", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", "PayrollRun")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
                         .WithMany()
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -135016,7 +135021,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpInsurance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
@@ -135027,7 +135032,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpPayroll", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
                         .WithMany()
@@ -135094,7 +135099,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTax", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
@@ -135105,7 +135110,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
                         .WithMany()
@@ -135122,7 +135127,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PayrollComponentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowancePolicy", "TransportAllowancePolicy")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", "TransportAllowancePolicy")
                         .WithMany("TransportAllowances")
                         .HasForeignKey("TransportAllowancePolicyId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -135144,7 +135149,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowancePolicy", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstEmployeeGrade", "EmployeeGrade")
                         .WithMany()
@@ -135175,7 +135180,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PayrollComponent");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowanceTransaction", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
                         .WithMany()
@@ -135191,7 +135196,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PayrollPeriodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", "PayrollRunEmployee")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
                         .WithMany()
                         .HasForeignKey("PayrollRunEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -135201,7 +135206,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PostedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowance", "TransportAllowance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", "TransportAllowance")
                         .WithMany("Transactions")
                         .HasForeignKey("TransportAllowanceId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -151766,7 +151771,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Realizations");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxMedicalServiceFeeCalculation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
                 {
                     b.Navigation("Payments");
                 });
@@ -151776,14 +151781,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("DeductionItems");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollPayment", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
                 {
                     b.Navigation("MedicalServiceFeePayments");
 
                     b.Navigation("Reversals");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRun", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
                 {
                     b.Navigation("Adjustments");
 
@@ -151796,7 +151801,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Reversals");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRunEmployee", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
                 {
                     b.Navigation("Adjustments");
 
@@ -151813,17 +151818,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("VariableInputs");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpPayroll", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
                 {
                     b.Navigation("PayrollRunEmployees");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
                 {
                     b.Navigation("Transactions");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.WfpTransportAllowancePolicy", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
                 {
                     b.Navigation("TransportAllowances");
                 });

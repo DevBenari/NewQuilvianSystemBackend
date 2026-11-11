@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Mod
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -32,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai penyerapan data lembur Sub-09 dan premi shift malam Sub-07 untuk batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .Include(r => r.Employees.Where(e => e.IsActive))
                     .ThenInclude(e => e.Components.Where(c => c.IsActive))
@@ -140,7 +141,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var emp = await _context.TrxPayrollRunEmployees
+            var emp = await _context.PrlPayrollRunEmployees
                 .Include(e => e.Components.Where(c => c.IsActive))
                 .Include(e => e.PayrollRun)
                 .FirstOrDefaultAsync(e => e.Id == employeeRunId && e.PayrollRunId == runId && e.IsActive, cancellationToken);
@@ -197,7 +198,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         private EmployeeVariableEarningSummaryDto ProcessEmployeeVariableEarnings(
-            TrxPayrollRunEmployee emp,
+            PrlPayrollRunEmployee emp,
             List<TrxOvertimeRealization> overtimes,
             List<HrdAttendanceDaily> nightAttendances,
             Guid payrollPeriodId,
@@ -210,7 +211,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             foreach (var comp in existingVariableComponents)
             {
-                _context.TrxPayrollEmployeeComponents.Remove(comp);
+                _context.PrlPayrollEmployeeComponents.Remove(comp);
             }
 
             // 2. Evaluasi Upah Sejam Lembur sesuai PP 35/2021: 1/173 x (Gaji Pokok + Tunjangan Tetap)
@@ -252,12 +253,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 ot.UpdateBy = actorUserId;
             }
 
-            var newComponents = new List<TrxPayrollEmployeeComponent>();
+            var newComponents = new List<PrlPayrollEmployeeComponent>();
 
             // Komponen: Uang Lembur Reguler PP 35/2021 (OT01)
             if (regularAmount > 0)
             {
-                var otRegularComp = new TrxPayrollEmployeeComponent
+                var otRegularComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -284,7 +285,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             // Komponen: Rapel Lembur Retrospektif (OT02)
             if (retroAmount > 0)
             {
-                var otRetroComp = new TrxPayrollEmployeeComponent
+                var otRetroComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -314,7 +315,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             if (nightShiftAllowance > 0)
             {
-                var shiftComp = new TrxPayrollEmployeeComponent
+                var shiftComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -338,7 +339,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 newComponents.Add(shiftComp);
             }
 
-            _context.TrxPayrollEmployeeComponents.AddRange(newComponents);
+            _context.PrlPayrollEmployeeComponents.AddRange(newComponents);
 
             // 4. Update Saldo Pegawai
             emp.OvertimeMinutes = regularMinutes + retroMinutes;

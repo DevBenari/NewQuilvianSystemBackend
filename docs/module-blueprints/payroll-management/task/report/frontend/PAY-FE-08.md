@@ -41,7 +41,7 @@ Staf keuangan membuka **Pengiriman Pembayaran**, menekan **Kirim ke Finance** pa
 | --- | --- |
 | `src/components/view/payroll/payment/*` | Modal pengiriman, riwayat, kolom |
 | `src/lib/hooks/payroll/use-payroll-run-dispatch.js, use-payroll-payment-history.js` | Hook |
-| `src/lib/services/payroll/payroll-payment-service.js` | Service (tanpa ACK) |
+| `src/lib/services/payroll/payroll-payment-service.js` | Service (tanpa ACK pada saat laporan ini; `acknowledge` ditambahkan oleh `PAY-FE-12`, 11 November 2026) |
 | `src/utils/payroll/payroll-payment-utils.js` | Normalisasi |
 
 ### 3.3 Kepatuhan arsitektur frontend
@@ -90,7 +90,7 @@ AUTOMATED TEST: `node --test` pada berkas tes di atas — PASS. Seluruh suite un
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | Monitoring per batch/pegawai | Terpenuhi (statis) | Ringkasan per run + tabel per penerima |
-| Gagal/parsial/berhasil | Sebagian | Status ditampilkan; berubah dari `Dijadwalkan` hanya setelah Finance mengirim ACK (⛔ sisi Finance) |
+| Gagal/parsial/berhasil | Sebagian | Status ditampilkan; berubah dari `Dijadwalkan` hanya setelah Finance mengirim ACK (⛔ sisi Finance); sejak `PAY-FE-12` juga lewat konfirmasi manual oleh petugas berwenang |
 
 ## 8. Catatan penutup
 

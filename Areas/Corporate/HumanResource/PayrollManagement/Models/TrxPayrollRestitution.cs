@@ -2,6 +2,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models
 {
@@ -44,8 +45,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
         public MstEmployee? Employee { get; set; }
         public TrxEmployeeRestitutionClaim? Claim { get; set; }
-        public TrxPayrollRun? AffectedPayrollRun { get; set; }
-        public TrxPayrollPayslip? AffectedPayslip { get; set; }
-        public TrxPayrollRun? TargetPayrollRun { get; set; }
+        public PrlPayrollRun? AffectedPayrollRun { get; set; }
+        public PrlPayrollPayslip? AffectedPayslip { get; set; }
+        public PrlPayrollRun? TargetPayrollRun { get; set; }
     }
 }

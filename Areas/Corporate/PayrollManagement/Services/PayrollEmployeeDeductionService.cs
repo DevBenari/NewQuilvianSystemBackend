@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
@@ -42,7 +42,7 @@ public sealed class PayrollEmployeeDeductionService
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
-        var inputs = _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+        var inputs = _dbContext.PrlPayrollVariableInputs.AsNoTracking()
             .Where(x => !x.IsDelete && x.SourceType == InstallmentSourceType && x.SourceId != null
                 && x.PayrollRunEmployee!.PayrollRun!.RunStatus != PayrollRunStatuses.Cancelled
                 && x.PayrollRunEmployee!.PayrollRun!.RunStatus != PayrollRunStatuses.Reversed);
@@ -90,7 +90,7 @@ public sealed class PayrollEmployeeDeductionService
     }
 
     private async Task<List<PayrollEmployeeDeductionItemResponse>> BuildItemsAsync(
-        List<TrxPayrollVariableInput> page, CancellationToken cancellationToken)
+        List<PrlPayrollVariableInput> page, CancellationToken cancellationToken)
     {
         if (page.Count == 0) return new List<PayrollEmployeeDeductionItemResponse>();
 
@@ -106,12 +106,19 @@ public sealed class PayrollEmployeeDeductionService
         var receivableNumbers = await _dbContext.FinReceivables.AsNoTracking()
             .Where(r => receivableIds.Contains(r.Id))
             .ToDictionaryAsync(r => r.Id, r => r.ReceivableNumber, cancellationToken);
-        var components = await _dbContext.TrxPayrollEmployeeComponents.AsNoTracking()
+        var components = await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
             .Where(c => !c.IsDelete && c.ComponentCodeSnapshot == InstallmentComponentCode
                 && c.SourceId != null && inputIds.Contains(c.SourceId.Value))
             .ToListAsync(cancellationToken);
         var componentByInput = components.GroupBy(c => c.SourceId!.Value).ToDictionary(g => g.Key, g => g.First());
         var reversedByEmployee = await ApprovedReversalsAsync(runEmployeeIds, cancellationToken);
+
+        // PAY-BE-11: status pembayaran gaji penerima (aturan tunggal di PayrollSalaryPaymentStatusResolver); hanya dibaca.
+        var paymentAmountByEmployee = page
+            .GroupBy(x => x.PayrollRunEmployeeId)
+            .ToDictionary(g => g.Key, g => g.First().PayrollRunEmployee!.PaymentAmount);
+        var salaryByEmployee = await PayrollSalaryPaymentStatusResolver.LoadAsync(
+            _dbContext, runEmployeeIds, paymentAmountByEmployee, cancellationToken);
 
         var result = new List<PayrollEmployeeDeductionItemResponse>(page.Count);
         foreach (var input in page)
@@ -130,6 +137,7 @@ public sealed class PayrollEmployeeDeductionService
             var receivableNumber = installment?.Plan is not null && receivableNumbers.TryGetValue(installment.Plan.ReceivableId, out var number)
                 ? number : string.Empty;
             reversedByEmployee.TryGetValue(employee.Id, out var reversed);
+            salaryByEmployee.TryGetValue(employee.Id, out var salaryPayment);
 
             result.Add(new PayrollEmployeeDeductionItemResponse
             {
@@ -159,7 +167,9 @@ public sealed class PayrollEmployeeDeductionService
                 FinancePaidAmount = installment?.PaidAmount ?? 0m,
                 FinanceOutstandingAmount = installment?.OutstandingAmount ?? 0m,
                 InstallmentStatus = installment?.Status ?? string.Empty,
-                ReversedAmount = reversed
+                ReversedAmount = reversed,
+                SalaryPaymentStatus = salaryPayment?.Status ?? string.Empty,
+                SalaryPaymentNumber = salaryPayment?.PaymentNumber
             });
         }
         return result;
@@ -181,7 +191,7 @@ public sealed class PayrollEmployeeDeductionService
     private async Task<Dictionary<Guid, decimal>> ApprovedReversalsAsync(List<Guid> runEmployeeIds, CancellationToken cancellationToken)
     {
         if (runEmployeeIds.Count == 0) return new Dictionary<Guid, decimal>();
-        var rows = await _dbContext.TrxPayrollReversals.AsNoTracking()
+        var rows = await _dbContext.PrlPayrollReversals.AsNoTracking()
             .Where(r => !r.IsDelete && r.ReversalStatus == PayrollReversalStatuses.Approved
                 && r.PayrollRunEmployeeId != null && runEmployeeIds.Contains(r.PayrollRunEmployeeId.Value)
                 && r.FinanceReversalId == null)
@@ -242,7 +252,7 @@ public sealed class PayrollEmployeeDeductionService
         if (installments.Count == 0) return response;
 
         var installmentIds = installments.Select(x => x.Id).ToList();
-        var inputs = await _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+        var inputs = await _dbContext.PrlPayrollVariableInputs.AsNoTracking()
             .Include(x => x.PayrollRunEmployee).ThenInclude(e => e!.PayrollRun)
             .Where(x => !x.IsDelete && x.SourceType == InstallmentSourceType && x.SourceId != null
                 && installmentIds.Contains(x.SourceId.Value)
@@ -257,8 +267,8 @@ public sealed class PayrollEmployeeDeductionService
 
         var inputIds = inputByInstallment.Values.Select(i => i.Id).ToList();
         var components = inputIds.Count == 0
-            ? new List<TrxPayrollEmployeeComponent>()
-            : await _dbContext.TrxPayrollEmployeeComponents.AsNoTracking()
+            ? new List<PrlPayrollEmployeeComponent>()
+            : await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
                 .Where(c => !c.IsDelete && c.ComponentCodeSnapshot == InstallmentComponentCode
                     && c.SourceId != null && inputIds.Contains(c.SourceId.Value))
                 .ToListAsync(cancellationToken);
@@ -266,6 +276,13 @@ public sealed class PayrollEmployeeDeductionService
 
         var runEmployeeIds = inputByInstallment.Values.Select(i => i.PayrollRunEmployeeId).Distinct().ToList();
         var reversedByEmployee = await ApprovedReversalsAsync(runEmployeeIds, cancellationToken);
+
+        // PAY-BE-11: status pembayaran gaji penerima (aturan tunggal di PayrollSalaryPaymentStatusResolver); hanya dibaca.
+        var paymentAmountByEmployee = inputByInstallment.Values
+            .GroupBy(i => i.PayrollRunEmployeeId)
+            .ToDictionary(g => g.Key, g => g.First().PayrollRunEmployee!.PaymentAmount);
+        var salaryByEmployee = await PayrollSalaryPaymentStatusResolver.LoadAsync(
+            _dbContext, runEmployeeIds, paymentAmountByEmployee, cancellationToken);
 
         var receivableIds = installments.Select(x => x.Plan!.ReceivableId).Distinct().ToList();
         var receivables = await _dbContext.FinReceivables.AsNoTracking()
@@ -324,6 +341,17 @@ public sealed class PayrollEmployeeDeductionService
                 item.PlannedDeduction = line.PlannedDeduction ?? 0m;
                 reversedByEmployee.TryGetValue(input.PayrollRunEmployeeId, out var reversed);
                 item.ReversedAmount = reversed;
+
+                // Status bayar gaji hanya informasi: tidak mengubah Code, DiscrepancyCount, maupun titik pengakuan potongan.
+                if (salaryByEmployee.TryGetValue(input.PayrollRunEmployeeId, out var salaryPayment))
+                {
+                    item.SalaryPaymentStatus = salaryPayment.Status;
+                    if (line.IsConfirmedToFinance)
+                    {
+                        if (PayrollSalaryPaymentStatuses.IsPendingAttention(salaryPayment.Status)) response.ConfirmedPaymentPendingCount++;
+                        else if (PayrollSalaryPaymentStatuses.IsFailedAttention(salaryPayment.Status)) response.ConfirmedPaymentFailedCount++;
+                    }
+                }
 
                 if (!line.IsCalculated && !line.IsConfirmedToFinance)
                 {
@@ -386,7 +414,7 @@ public sealed class PayrollEmployeeDeductionService
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
-        var adjustments = _dbContext.TrxPayrollAdjustments.AsNoTracking()
+        var adjustments = _dbContext.PrlPayrollAdjustments.AsNoTracking()
             .Where(a => !a.IsDelete && a.SourceType == "FinanceReceivableCorrection");
         if (query.PayrollPeriodId.HasValue)
             adjustments = adjustments.Where(a => a.PayrollRun!.PayrollPeriodId == query.PayrollPeriodId.Value);
@@ -408,8 +436,8 @@ public sealed class PayrollEmployeeDeductionService
 
         var sourceIds = rows.Where(a => a.SourceId.HasValue).Select(a => a.SourceId!.Value).Distinct().ToList();
         var reversals = sourceIds.Count == 0
-            ? new Dictionary<Guid, TrxPayrollReversal>()
-            : (await _dbContext.TrxPayrollReversals.AsNoTracking()
+            ? new Dictionary<Guid, PrlPayrollReversal>()
+            : (await _dbContext.PrlPayrollReversals.AsNoTracking()
                     .Where(r => !r.IsDelete && r.FinanceReversalId != null && sourceIds.Contains(r.FinanceReversalId.Value))
                     .ToListAsync(cancellationToken))
                 .GroupBy(r => r.FinanceReversalId!.Value).ToDictionary(g => g.Key, g => g.First());
@@ -417,7 +445,7 @@ public sealed class PayrollEmployeeDeductionService
         var items = rows.Select(a =>
         {
             var run = a.PayrollRun!;
-            TrxPayrollReversal? reversal = null;
+            PrlPayrollReversal? reversal = null;
             if (a.SourceId.HasValue) reversals.TryGetValue(a.SourceId.Value, out reversal);
             string placement;
             if (run.IsLocked || PayrollRunStatuses.IsFinalized(run.RunStatus)) placement = PayrollRestitutionPlacementStatuses.Locked;

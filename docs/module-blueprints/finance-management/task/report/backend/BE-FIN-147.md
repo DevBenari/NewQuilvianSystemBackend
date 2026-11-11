@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `98a9140c` (working tree memuat pekerjaan `BE-FIN-142`..`146` yang belum di-commit; tidak ditimpa) |
 | Tanggal | 10 November 2026 |
-| Status | 🟡 **Source selesai; `dotnet build` berhasil menurut laporan pemilik (10 November 2026, keluaran build Release kemudian dilampirkan pemilik (10 November 2026): `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`).** Perbandingan respons sebelum dan sesudah (W.T4) pada runtime belum dijalankan |
+| Status | ✅ **Source selesai; `dotnet build` berhasil menurut laporan pemilik (10 November 2026, keluaran build Release kemudian dilampirkan pemilik (10 November 2026): `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`).** W.T4 dan angka per item PO BLM dijalankan pemilik pada server lokal dengan data uji (pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar; panel `UJI-BLM-W07` juga lewat tangkapan layar 10 November). Data uji berasal dari skrip pemilik, bukan kiriman BLM |
 
 ## Backend Governance Preflight
 
@@ -131,13 +131,13 @@ Base URL `api/v1/corporate/finance-management/purchasing/purchase-orders`.
 | W.T4: field lama tidak berubah untuk dokumen lama | Pada tiga DTO: **0 baris dihapus**; pada service jejak dokumen hanya dua baris yang diubah, keduanya tanpa efek nilai (koma tambahan, `return new` → `var progress = new`); nilai `orderedQuantity`/`receivedQuantity`/`remainingQuantity` tetap dihitung oleh kode yang sama; kolom baru bernilai `null` atau `"QUILVIAN"` untuk PO lama | `PASS` (review diff) | `git diff` |
 | Tidak ada tabrakan nama variabel lokal pada `GetTrailAsync` | Tidak ada | `PASS` | `grep` |
 | Kompilasi C# | Berhasil | `PASS` (laporan pemilik) | Pemilik, 10 November 2026; keluaran perintah dilampirkan kemudian oleh pemilik (build Release: `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`) |
-| Eksekusi runtime (query EF yang diperluas, W.T4) | Belum. Migration sudah diterapkan (laporan pemilik), tetapi respons belum dibandingkan | `NOT RUN` | Menunggu pengujian pemilik |
+| Eksekusi runtime (query EF yang diperluas, W.T4) | Pemilik menjalankan aplikasi lokal pada data uji (9 PO BLM, 2 PO lama) dan menyatakan hasilnya cocok dengan panduan uji. Hasil yang diharapkan panduan: `UJI-LAMA-B` mengembalikan `itemProgress[0].sourceSystem = "QUILVIAN"`; `baseUomCode`, `orderedBaseQuantity`, `acceptedBaseQuantity`, `isConversionResolved` bernilai `null`; `orderedQuantity 100`, `receivedQuantity 60`, `remainingQuantity 40`. PO BLM mengembalikan angka satuan dasar yang cocok dengan skrip pembanding | `PASS` (pengamatan pemilik) | Pernyataan pemilik di server lokal, 11 November 2026, tanpa tangkapan layar; tangkapan layar hanya untuk `UJI-BLM-W07` |
 
-Uji manual: `NOT APPLICABLE` (dokumen BLM belum dapat ada sebelum migration diterapkan dan integrasi dibangun).
+Uji manual: dilakukan pemilik pada server lokal dengan data uji (lihat baris di atas); bukan oleh agen.
 
 AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)
 
-**Tidak dijalankan oleh agen (build dijalankan pemilik, lihat laporan pemilik di tabel):** semua perintah `dotnet`; perbandingan respons sebelum dan sesudah pada server hidup.
+**Tidak dijalankan oleh agen (build dijalankan pemilik, lihat laporan pemilik di tabel):** semua perintah `dotnet` dan server hidup (keduanya dijalankan oleh pemilik).
 
 ---
 
@@ -146,13 +146,13 @@ AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomati
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | 1. Field baru persis kontrak W, boleh `null` | Terpenuhi | Pencocokan nama dan tipe terhadap kontrak |
-| 2. Field lama tidak berubah nama/tipe/nilai untuk dokumen lama (W.T4) | Terpenuhi menurut review diff; **belum dibandingkan pada respons nyata** | Bagian 5 |
-| 3. `ItemProgress` PO BLM dari penghitung, PO lama rumus lama | Terpenuhi menurut review diff | Cabang `externalProgressByItem` hanya aktif untuk `SourceSystem = BLM` |
+| 2. Field lama tidak berubah nama/tipe/nilai untuk dokumen lama (W.T4) | Terpenuhi (review diff dan respons nyata pada data uji) | Bagian 5 |
+| 3. `ItemProgress` PO BLM dari penghitung, PO lama rumus lama | Terpenuhi (review diff; angka per item PO BLM cocok dengan skrip pembanding pada data uji) | Cabang `externalProgressByItem` hanya aktif untuk `SourceSystem = BLM` |
 | DoD: laporan tracked | Terpenuhi | Berkas ini |
 | DoD: `dotnet build` | Terpenuhi (laporan pemilik) | Pemilik, 10 November 2026; keluaran perintah dilampirkan kemudian oleh pemilik (build Release: `0 Error(s)`, `12 Warning(s)` (seluruhnya peringatan paket NU1902/NU1903 `SixLabors.ImageSharp` 3.1.11; tidak ada di folder Purchasing), `Build succeeded`) |
-| DoD: perbandingan respons W.T4 pada runtime | **Belum terpenuhi** | Migration sudah diterapkan (laporan pemilik); perbandingan belum dilakukan |
+| DoD: perbandingan respons W.T4 pada runtime | Terpenuhi | Pengamatan pemilik pada data uji, 11 November 2026 |
 
-Status akhir **🟡**: build lulus (laporan pemilik) dan kriteria 1–3 terpenuhi menurut review diff, tetapi W.T4 (perbandingan respons nyata) dan query EF yang diperluas belum dijalankan.
+Status akhir **✅**: build lulus (laporan pemilik), kriteria 1–3 terpenuhi menurut review diff, dan W.T4 serta query EF yang diperluas terbukti pada runtime dengan data uji (pernyataan pemilik, 11 November 2026).
 
 ---
 
@@ -162,8 +162,8 @@ Status akhir **🟡**: build lulus (laporan pemilik) dan kriteria 1–3 terpenuh
 | --- | --- |
 | Keputusan implementasi | (1) Query baris GR yang sudah ada **diperluas** (lima kolom) alih-alih menambah query kedua, supaya tidak ada perjalanan basis data tambahan; untuk dokumen lama kolomnya `NULL` dan tidak dipakai. (2) `receivedQuantity` lama untuk PO BLM tidak diganti dengan angka penghitung: ia tetap rumus lama (jumlah sah dalam satuan PO) sehingga klien lama tidak berubah |
 | Masalah yang diketahui | (1) Jejak dokumen `GoodsReceipts` (ringkasan per GR) dan item PO pada detail PO **tidak** memuat field BLM karena kontrak W tidak menyebutnya. (2) Setelah migration `BE-FIN-144` belum diterapkan, **semua** query PO/GR (termasuk jejak dokumen yang kini membaca lima kolom BLM) akan gagal; ini risiko yang sama dengan `BE-FIN-142` dan tercakup aturan rilis satu paket (`FIN-DES-138`) |
-| Risiko tersisa | Kompilasi lulus (laporan pemilik). Proyeksi anonim yang diperluas belum dijalankan pada EF dan basis data |
+| Risiko tersisa | Kompilasi lulus (laporan pemilik). Proyeksi anonim yang diperluas sudah dijalankan pada EF dan basis data lewat data uji pemilik (11 November 2026); belum ada pembanding dengan data produksi |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `M` enam berkas source (dua di antaranya juga disentuh `BE-FIN-146`); ditambah pekerjaan `BE-FIN-142`..`146` yang belum di-commit. Tidak ada berkas staged |
-| Langkah berikutnya | Setelah migration diterapkan ke database uji: bandingkan respons PO/GR lama sebelum dan sesudah (W.T4), lalu task ini dapat ditandai ✅; `FE-FIN-062`/`063` |
+| Langkah berikutnya | Tidak ada untuk task ini |

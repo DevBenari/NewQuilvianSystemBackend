@@ -1450,9 +1450,9 @@ tanda = belum disentuh. `[BE]` = task milik roadmap backend, digambar sebagai ce
 ## Grafik Urutan Dependency
 
 ```text
-BE-FIN-147 🟡 [BE] ─> FE-FIN-062 🟡
+BE-FIN-147 ✅ [BE] ─> FE-FIN-062 ✅
 
-BE-FIN-146 🟡 [BE] ─> FE-FIN-063 🟡
+BE-FIN-146 🟡 [BE] ─> FE-FIN-063 ✅
 ```
 
 **Pemeriksaan konsistensi.** **2** pasangan prasyarat→task, sama dengan kolom `Dependency`. Setiap task frontend muncul
@@ -1462,8 +1462,8 @@ tepat satu kali. Bebas siklus.
 
 | Gelombang | Boleh mulai setelah | Task |
 |---:|---|---|
-| 1 | `BE-FIN-147` 🟡 [BE] (kontrak W.3 sudah terkunci, sehingga FE boleh mulai memakai data contoh sebelum BE selesai) | `FE-FIN-062` 🟡 — Selesai 10 November 2026; panel kemajuan item PO BLM dalam satuan dasar, konversi belum pasti bertanda "—", PO QUILVIAN identik dengan HEAD; 14 unit test PASS, ESLint PASS; build/dev NOT RUN, uji manual NOT FEASIBLE, respons W.3 belum dijalankan pada data nyata ([laporan](../task/report/frontend/FE-FIN-062.md)) |
-| 1 | `BE-FIN-146` 🟡 [BE] | `FE-FIN-063` 🟡 — Selesai 10 November 2026 sebagai verifikasi-saja; penanganan galat yang ada sudah meneruskan `message` backend apa adanya pada catat, koreksi, dan batal GR, tanpa perubahan source aplikasi; 9 unit test pengunci PASS, ESLint PASS; build/dev NOT RUN, uji manual NOT FEASIBLE, 409 belum dijalankan pada dokumen BLM nyata ([laporan](../task/report/frontend/FE-FIN-063.md)) |
+| 1 | `BE-FIN-147` ✅ [BE] (kontrak W.3 sudah terkunci, sehingga FE boleh mulai memakai data contoh sebelum BE selesai) | `FE-FIN-062` ✅ — Selesai 10 November 2026 dan terverifikasi pemilik di browser pada data uji BLM (11 November 2026); panel kemajuan item PO BLM dalam satuan dasar, konversi belum pasti bertanda "—", PO QUILVIAN identik dengan HEAD; 14 unit test PASS, ESLint PASS; build/dev NOT RUN; respons W.3 terbukti pada data uji (pengamatan pemilik) ([laporan](../task/report/frontend/FE-FIN-062.md)) |
+| 1 | `BE-FIN-146` 🟡 [BE] | `FE-FIN-063` ✅ — Selesai 10 November 2026 sebagai verifikasi-saja dan terverifikasi pemilik di browser pada data uji BLM (11 November 2026); penanganan galat yang ada sudah meneruskan `message` backend apa adanya pada catat, koreksi, dan batal GR, tanpa perubahan source aplikasi; 9 unit test pengunci PASS, ESLint PASS; build/dev NOT RUN; 409 terbukti pada data uji BLM (W.T13, pengamatan pemilik) ([laporan](../task/report/frontend/FE-FIN-063.md)) |
 
 Kedua task ikut paket rilis `MVP-19` bersama backend.
 
@@ -1471,15 +1471,15 @@ Kedua task ikut paket rilis `MVP-19` bersama backend.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `FE-FIN-062` 🟡 | Petugas melihat kemajuan penerimaan PO BLM dalam satuan dasar (dipesan, diterima sah, menunggu periksa, rusak, sisa) dan tanda bila konversi belum pasti; PO lama tampil seperti sekarang | `FR-FIN-284`; `FIN-DEC-268`, `276`; `FIN-DES-139`; `03-frontend-architecture.md` 27.1–27.2 | `FIN-API-1.13` W.3 | `purchasing-document-trail-panel.jsx` (bagian `showItemProgress`) | `src/components/view/finance/purchasing/shared/purchasing-document-trail-panel.jsx` **Diperbarui**; util format angka satuan dasar bila belum ada | `BE-FIN-147` | (1) Bila `sourceSystem = "BLM"`: lima kolom satuan dasar sesuai skema 27.2; (2) item `isConversionResolved = false` bertanda dan menampilkan "—"; (3) bila `QUILVIAN`: kolom dan nilai lama tidak berubah; (4) angka tidak dihitung ulang di klien, hanya diformat | Unit test FE (node:test, pola `tests/unit`) untuk cabang BLM, lama, dan konversi belum pasti; ESLint; build hanya atas instruksi pemilik | Tampilan ganda bila komponen lain juga menampilkan kemajuan. Pemilik: Finance | Kriteria 1–4 terbukti; laporan `task/report/frontend/FE-FIN-062.md` |
-| `FE-FIN-063` 🟡 | Bila petugas mencoba mencatat, mengubah, atau membatalkan GR untuk dokumen BLM, layar menampilkan pesan backend apa adanya | `FR-FIN-283`; `FIN-DEC-265`; `FIN-DES-141` | `FIN-API-1.13` W.1 (409); `FIN-VAL-315` | Penanganan galat form GR di detail PO dan aksi batal GR yang ada | Penanganan galat pada view/hook GR yang ada **Diperbarui** hanya bila pesan backend belum ditampilkan apa adanya | `BE-FIN-146` | (1) Galat 409 `PURCHASING_EXTERNAL_DOCUMENT` menampilkan `message` backend; (2) tidak ada perubahan untuk galat lain; (3) tombol **tidak** disembunyikan di task ini (slice penguncian berikutnya) | Penelusuran penanganan galat; unit test FE bila kode berubah; ESLint | Bila penanganan galat sudah generik, task selesai sebagai verifikasi tanpa perubahan kode. Pemilik: Finance | Kriteria 1–3 terbukti; laporan tracked |
+| `FE-FIN-062` ✅ | Petugas melihat kemajuan penerimaan PO BLM dalam satuan dasar (dipesan, diterima sah, menunggu periksa, rusak, sisa) dan tanda bila konversi belum pasti; PO lama tampil seperti sekarang | `FR-FIN-284`; `FIN-DEC-268`, `276`; `FIN-DES-139`; `03-frontend-architecture.md` 27.1–27.2 | `FIN-API-1.13` W.3 | `purchasing-document-trail-panel.jsx` (bagian `showItemProgress`) | `src/components/view/finance/purchasing/shared/purchasing-document-trail-panel.jsx` **Diperbarui**; util format angka satuan dasar bila belum ada | `BE-FIN-147` | (1) Bila `sourceSystem = "BLM"`: lima kolom satuan dasar sesuai skema 27.2; (2) item `isConversionResolved = false` bertanda dan menampilkan "—"; (3) bila `QUILVIAN`: kolom dan nilai lama tidak berubah; (4) angka tidak dihitung ulang di klien, hanya diformat | Unit test FE (node:test, pola `tests/unit`) untuk cabang BLM, lama, dan konversi belum pasti; ESLint; build hanya atas instruksi pemilik | Tampilan ganda bila komponen lain juga menampilkan kemajuan. Pemilik: Finance | Kriteria 1–4 terbukti; laporan `task/report/frontend/FE-FIN-062.md` |
+| `FE-FIN-063` ✅ | Bila petugas mencoba mencatat, mengubah, atau membatalkan GR untuk dokumen BLM, layar menampilkan pesan backend apa adanya | `FR-FIN-283`; `FIN-DEC-265`; `FIN-DES-141` | `FIN-API-1.13` W.1 (409); `FIN-VAL-315` | Penanganan galat form GR di detail PO dan aksi batal GR yang ada | Penanganan galat pada view/hook GR yang ada **Diperbarui** hanya bila pesan backend belum ditampilkan apa adanya | `BE-FIN-146` | (1) Galat 409 `PURCHASING_EXTERNAL_DOCUMENT` menampilkan `message` backend; (2) tidak ada perubahan untuk galat lain; (3) tombol **tidak** disembunyikan di task ini (slice penguncian berikutnya) | Penelusuran penanganan galat; unit test FE bila kode berubah; ESLint | Bila penanganan galat sudah generik, task selesai sebagai verifikasi tanpa perubahan kode. Pemilik: Finance | Kriteria 1–3 terbukti; laporan tracked |
 
 ## Traceability REV-24 Frontend
 
 | Requirement | Layar | Task frontend | Task backend | Bukti | Status |
 |---|---|---|---|---|---|
-| `FR-FIN-284` | Panel jejak dokumen (detail PO) | `FE-FIN-062` 🟡 | 🟡 `BE-FIN-147` | W.T4; unit test FE | 🟡 Selesai source, unit test, dan render statis; belum terbukti di browser dan pada data nyata ([laporan](../task/report/frontend/FE-FIN-062.md)) |
-| `FR-FIN-283` | Form GR dan aksi batal GR | `FE-FIN-063` 🟡 | 🟡 `BE-FIN-146` | W.T13 | 🟡 Verifikasi-saja selesai (tanpa perubahan source aplikasi; 9 unit test pengunci); belum terbukti di browser dan pada dokumen BLM nyata ([laporan](../task/report/frontend/FE-FIN-063.md)) |
+| `FR-FIN-284` | Panel jejak dokumen (detail PO) | `FE-FIN-062` ✅ | ✅ `BE-FIN-147` | W.T4; unit test FE | ✅ Selesai; terbukti di browser pada data uji BLM (pemilik, 11 November 2026) ([laporan](../task/report/frontend/FE-FIN-062.md)) |
+| `FR-FIN-283` | Form GR dan aksi batal GR | `FE-FIN-063` ✅ | 🟡 `BE-FIN-146` | W.T13 | ✅ Verifikasi-saja selesai (tanpa perubahan source aplikasi; 9 unit test pengunci); 409 terbukti pada data uji BLM (pemilik, 11 November 2026); `BE-FIN-146` tetap 🟡 hanya karena kriteria 2 ([laporan](../task/report/frontend/FE-FIN-063.md)) |
 | `FR-FIN-272`..`282` | — | — (tanpa perubahan layar) | `BE-FIN-142`..`146` | Lihat roadmap backend | — |
 
 ## Yang Sengaja TIDAK Dibuat

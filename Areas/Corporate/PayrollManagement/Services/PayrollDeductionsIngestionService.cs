@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services
 {
@@ -34,7 +35,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai penyerapan potongan pinjaman koperasi & restitusi (Sub-modul 11) untuk batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .Include(r => r.Employees.Where(e => e.IsActive))
                     .ThenInclude(e => e.Components.Where(c => c.IsActive))
@@ -134,7 +135,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var emp = await _context.TrxPayrollRunEmployees
+            var emp = await _context.PrlPayrollRunEmployees
                 .Include(e => e.Components.Where(c => c.IsActive))
                 .Include(e => e.PayrollRun)
                     .ThenInclude(r => r!.PayrollPeriod)
@@ -176,7 +177,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             // Perbarui agregasi batch
             var run = emp.PayrollRun;
-            var allEmps = await _context.TrxPayrollRunEmployees
+            var allEmps = await _context.PrlPayrollRunEmployees
                 .Where(e => e.PayrollRunId == runId && e.IsActive)
                 .ToListAsync(cancellationToken);
 
@@ -216,7 +217,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         }
 
         private EmployeeDeductionSummaryDto ProcessEmployeeDeductions(
-            TrxPayrollRunEmployee emp,
+            PrlPayrollRunEmployee emp,
             List<TrxEmployeeLoanInstallment> activeInstallments,
             decimal maxLoanPercentage,
             string runNumber,
@@ -229,7 +230,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 
             foreach (var comp in existingLoanComponents)
             {
-                _context.TrxPayrollEmployeeComponents.Remove(comp);
+                _context.PrlPayrollEmployeeComponents.Remove(comp);
             }
 
             // 2. Evaluasi batas proteksi penghidupan layak pegawai (VR-PAY-25):
@@ -292,7 +293,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 var compCode = isKoperasi ? "DED_LOAN_KOP" : "DED_LOAN";
                 var loanName = inst.EmployeeLoan?.LoanNumber ?? "Pinjaman Karyawan";
 
-                var loanComp = new TrxPayrollEmployeeComponent
+                var loanComp = new PrlPayrollEmployeeComponent
                 {
                     Id = Guid.NewGuid(),
                     PayrollRunEmployeeId = emp.Id,
@@ -312,7 +313,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                     CreateDateTime = DateTime.UtcNow
                 };
 
-                _context.TrxPayrollEmployeeComponents.Add(loanComp);
+                _context.PrlPayrollEmployeeComponents.Add(loanComp);
                 deductionSummaryList.Add(new PayrollComponentSummaryDto
                 {
                     ComponentCode = compCode,

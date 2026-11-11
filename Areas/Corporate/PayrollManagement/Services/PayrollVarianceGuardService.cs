@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
                 "Memulai audit Payroll Variance Guard untuk batch penggajian ID: {RunId}. Actor: {ActorId}",
                 runId, actorUserId);
 
-            var run = await _context.TrxPayrollRuns
+            var run = await _context.PrlPayrollRuns
                 .Include(r => r.PayrollPeriod)
                 .Include(r => r.Employees.Where(e => e.IsActive))
                 .FirstOrDefaultAsync(r => r.Id == runId && r.IsActive, cancellationToken);
@@ -56,7 +56,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             var currentMonth = run.PayrollPeriod?.PeriodNumber ?? run.CreateDateTime.Month;
 
             // Kueri riwayat penggajian periode sebelumnya yang sudah disetujui/dibayarkan
-            var previousEmployeesHistory = await _context.TrxPayrollRunEmployees
+            var previousEmployeesHistory = await _context.PrlPayrollRunEmployees
                 .Include(e => e.PayrollRun)
                 .Where(e => profileIds.Contains(e.WorkforceProfileId)
                     && e.PayrollRunId != run.Id
