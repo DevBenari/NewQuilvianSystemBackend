@@ -21,7 +21,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
         private readonly LeaveRecallService _service;
         public LeaveRecallController(LeaveRecallService service) => _service = service;
 
-        [HttpGet]
+        // Rute dasar dipakai LeaveRecallWorkflowController (kontrak dan frontend); dua controller pada rute sama membuat permintaan gagal.
+        [HttpGet("lifecycle")]
         [AccessAction("Read", "Read Leave Recall", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LeaveRecall", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] LeaveLifecycleQueryRequest request, CancellationToken token)
@@ -33,7 +34,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
         public async Task<IActionResult> GetById(Guid id, CancellationToken token)
             => ToActionResult(await _service.GetByIdAsync(id, token));
 
-        [HttpPost]
+        [HttpPost("lifecycle")]
         [AccessAction("Create", "Create Leave Recall", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("LeaveRecall", "Create")]
         public async Task<IActionResult> Create([FromBody] CreateLeaveRecallRequest request, CancellationToken token)

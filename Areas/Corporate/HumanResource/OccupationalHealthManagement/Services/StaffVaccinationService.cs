@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
 using QuilvianSystemBackend.Responses;
@@ -16,10 +18,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     public class StaffVaccinationService : IStaffVaccinationService
     {
         private readonly IOccupationalHealthUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public StaffVaccinationService(IOccupationalHealthUnitOfWork uow)
+        public StaffVaccinationService(IOccupationalHealthUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<VaccinationRecordDto> RecordVaccinationAsync(RecordVaccinationRequestDto request, Guid recordedByUserId, CancellationToken cancellationToken = default)
@@ -123,7 +127,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 Id = Guid.NewGuid(),
                 WorkforceProfileId = employee.WorkforceProfileId,
                 EmployeeId = employee.Id,
-                SurveillanceNumber = $"TTR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}",
+                SurveillanceNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: OccupationalHealthNumberSeries.TiterKey,
+                Prefix: OccupationalHealthNumberSeries.TiterPrefix,
+                ResetPolicy: OccupationalHealthNumberSeries.TiterResetPolicy,
+                SequenceDigits: OccupationalHealthNumberSeries.SequenceDigits,
+                ActorUserId: recordedByUserId == Guid.Empty ? OccupationalHealthNumberSeries.SystemFallbackUserId : recordedByUserId,
+                Instant: DateTimeOffset.UtcNow), cancellationToken),
                 SurveillanceProgram = "Pemantauan Titer Antibodi Anti-HBs Kuantitatif",
                 RiskFactor = "Biological Hazard (Hepatitis B Transmission)",
                 ScheduledDate = request.TestDate,
@@ -158,27 +168,75 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
 
         public async Task<PagedResult<NakesVaccinationRecallDto>> GetBoosterRecallListAsync(string? vaccineType, Guid? departmentId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
         {
-            // Query pegawai yang butuh booster (NextDoseDate <= H+30 atau surveilans NonProtective)
-            var employees = await _uow.Employees
-                .Where(x => !x.IsDelete)
-                .OrderBy(x => x.EmployeeNumber)
+            // Daftar dihitung dari data nyata: dosis lanjutan yang jatuh tempo H+30 dan hasil titer terakhir yang tidak protektif.
+            var now = DateTime.UtcNow;
+            var horizon = now.AddDays(30);
+
+            var doseQuery = _uow.Vaccinations
+                .Where(x => !x.IsDelete && x.IsActive && x.EmployeeId != null && x.NextDoseDate != null && x.NextDoseDate <= horizon && x.VaccinationStatus != "Completed");
+            if (!string.IsNullOrWhiteSpace(vaccineType))
+            {
+                doseQuery = doseQuery.Where(x => x.VaccineType == vaccineType);
+            }
+            var dueDoses = await doseQuery.ToListAsync(cancellationToken);
+
+            var titerRows = await _uow.HealthSurveillances
+                .Where(x => !x.IsDelete && x.IsActive && x.EmployeeId != null && x.SurveillanceNumber.StartsWith(OccupationalHealthNumberSeries.TiterPrefix))
+                .ToListAsync(cancellationToken);
+            var lowTiters = titerRows
+                .GroupBy(x => x.EmployeeId!.Value)
+                .Select(g => g.OrderByDescending(x => x.CompletedDate ?? x.CreateDateTime).First())
+                .Where(x => !x.IsCompliant)
+                .ToList();
+
+            var employeeIds = dueDoses.Select(x => x.EmployeeId!.Value).Concat(lowTiters.Select(x => x.EmployeeId!.Value)).Distinct().ToList();
+            var employeeQuery = _uow.Employees.Include(x => x.PrimaryDepartment).Where(x => !x.IsDelete && employeeIds.Contains(x.Id));
+            if (departmentId.HasValue)
+            {
+                employeeQuery = employeeQuery.Where(x => x.PrimaryDepartmentId == departmentId.Value);
+            }
+            var employeeMap = await employeeQuery.ToDictionaryAsync(x => x.Id, cancellationToken);
+
+            var recalls = new List<NakesVaccinationRecallDto>();
+            foreach (var titer in lowTiters.Where(x => employeeMap.ContainsKey(x.EmployeeId!.Value)))
+            {
+                var e = employeeMap[titer.EmployeeId!.Value];
+                var match = System.Text.RegularExpressions.Regex.Match(titer.AdministrativeOutcome ?? string.Empty, @"Kadar Titer:\s*([\d]+(?:[.,]\d+)?)");
+                recalls.Add(new NakesVaccinationRecallDto
+                {
+                    EmployeeId = e.Id,
+                    EmployeeName = e.FullName,
+                    EmployeeNumber = e.EmployeeNumber ?? string.Empty,
+                    DepartmentName = e.PrimaryDepartment?.DepartmentName ?? "-",
+                    RecallReason = "LowAntiHbsTiter (< 10 mIU/mL)",
+                    LastKnownTiter = match.Success && decimal.TryParse(match.Groups[1].Value.Replace(',', '.'), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var titerValue) ? titerValue : null,
+                    DueDate = titer.CompletedDate,
+                    UrgencyLevel = "High"
+                });
+            }
+            foreach (var dose in dueDoses.Where(x => employeeMap.ContainsKey(x.EmployeeId!.Value)))
+            {
+                var e = employeeMap[dose.EmployeeId!.Value];
+                recalls.Add(new NakesVaccinationRecallDto
+                {
+                    EmployeeId = e.Id,
+                    EmployeeName = e.FullName,
+                    EmployeeNumber = e.EmployeeNumber ?? string.Empty,
+                    DepartmentName = e.PrimaryDepartment?.DepartmentName ?? "-",
+                    RecallReason = $"BoosterDue ({dose.VaccineName})",
+                    LastKnownTiter = null,
+                    DueDate = dose.NextDoseDate,
+                    UrgencyLevel = dose.NextDoseDate < now ? "High" : "Medium"
+                });
+            }
+
+            var totalCount = recalls.Count;
+            var dtos = recalls
+                .OrderByDescending(x => x.UrgencyLevel == "High")
+                .ThenBy(x => x.DueDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var totalCount = await _uow.Employees.CountAsync(x => !x.IsDelete, cancellationToken);
-
-            var dtos = employees.Select((e, idx) => new NakesVaccinationRecallDto
-            {
-                EmployeeId = e.Id,
-                EmployeeName = e.FullName,
-                EmployeeNumber = e.EmployeeNumber ?? string.Empty,
-                DepartmentName = "Unit Kerja Klinis",
-                RecallReason = idx % 2 == 0 ? "LowAntiHbsTiter (< 10 mIU/mL)" : "BoosterDueDatePassed (Jadwal Berkala 5 Tahun)",
-                LastKnownTiter = idx % 2 == 0 ? 4.2m : 8.5m,
-                DueDate = DateTime.UtcNow.AddDays(idx % 2 == 0 ? -10 : 15),
-                UrgencyLevel = idx % 2 == 0 ? "High" : "Medium"
-            }).ToList();
+                .ToList();
 
             var totalPage = (int)Math.Ceiling((double)totalCount / pageSize);
 

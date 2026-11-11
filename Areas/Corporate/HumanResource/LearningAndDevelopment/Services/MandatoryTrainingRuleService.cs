@@ -87,6 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 existing = new MstMandatoryTrainingRule
                 {
                     Id = Guid.NewGuid(),
+                    TrainingCatalogId = await ResolveTrainingCatalogIdAsync(request, cancellationToken),
                     RuleCode = request.RuleCode,
                     RuleName = request.RuleName.Trim(),
                     RecurrenceMonths = request.RecurrenceMonths,
@@ -133,6 +134,58 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 Description = existing.Description,
                 IsActive = existing.IsActive
             };
+        }
+
+        /// <summary>
+        /// Katalog wajib ada karena aturan merujuknya. Bila pemanggil tidak menyebutnya, dipakai katalog bernama sama
+        /// atau dibuat katalog baru pada kategori yang diminta.
+        /// </summary>
+        private async Task<Guid> ResolveTrainingCatalogIdAsync(CreateMandatoryTrainingRuleRequestDto request, CancellationToken cancellationToken)
+        {
+            if (request.TrainingCatalogId.HasValue)
+            {
+                var exists = await _context.MstTrainingCatalogs.AsNoTracking()
+                    .AnyAsync(c => c.Id == request.TrainingCatalogId.Value && !c.IsDelete, cancellationToken);
+                if (!exists) throw new ArgumentException("Katalog pelatihan tidak ditemukan.");
+                return request.TrainingCatalogId.Value;
+            }
+
+            var name = request.RuleName.Trim();
+            var matched = await _context.MstTrainingCatalogs.AsNoTracking()
+                .Where(c => !c.IsDelete && c.TrainingName == name)
+                .Select(c => (Guid?)c.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (matched.HasValue) return matched.Value;
+
+            var categoryText = request.TrainingCategory?.Trim();
+            var category = await _context.MstTrainingCategories
+                .Where(c => !c.IsDelete && (c.TrainingCategoryCode == categoryText || c.TrainingCategoryName == categoryText))
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? await _context.MstTrainingCategories
+                    .Where(c => !c.IsDelete && c.IsMandatoryCategory)
+                    .OrderBy(c => c.TrainingCategoryCode)
+                    .FirstOrDefaultAsync(cancellationToken)
+                ?? throw new ArgumentException("Kategori pelatihan belum tersedia. Buat kategori pelatihan lebih dulu.");
+
+            var now = DateTime.UtcNow;
+            var catalog = new MstTrainingCatalog
+            {
+                Id = Guid.NewGuid(),
+                TrainingCategoryId = category.Id,
+                TrainingCode = request.RuleCode.Trim(),
+                TrainingName = name,
+                TrainingType = "Internal",
+                DeliveryMethod = "Classroom",
+                ValidityMonths = request.RecurrenceMonths,
+                IsMandatory = true,
+                RequiresAssessment = request.RequiresPassingResult,
+                MinimumPassingScore = request.MinimumPassingScore,
+                Description = request.Description,
+                IsActive = true,
+                CreateDateTime = now
+            };
+            _context.MstTrainingCatalogs.Add(catalog);
+            return catalog.Id;
         }
 
         /// <summary>

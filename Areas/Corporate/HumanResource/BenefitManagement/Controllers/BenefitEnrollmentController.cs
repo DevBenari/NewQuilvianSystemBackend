@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Serv
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Controllers
 {
@@ -54,8 +55,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         private Guid GetCurrentWorkforceProfileId()
         {
-            var claim = User.FindFirst("WorkforceProfileId")?.Value ?? User.FindFirst("EmployeeId")?.Value;
-            return Guid.TryParse(claim, out var wfpId) ? wfpId : GetCurrentUserId();
+            // Klaim token yang sebenarnya: workforce_profile_id → employee_id → ID akun (remediasi kelompok G, 10 November 2026)
+            return User.ResolveWorkforceProfileId();
         }
 
         // =========================================================================

@@ -47,3 +47,43 @@ Dalam tata kelola kepegawaian rumah sakit, kepatuhan hubungan industrial dan pem
 * **Kompilasi .NET Core**: `dotnet build QuilvianSystemBackend.csproj --no-restore` menghasilkan **0 Error(s)**.
 * **Audit Kepatuhan Arsitektur QBE**: `Invoke-QbeConformanceCheck.ps1` berstatus **PASS**.
 * **Traceability Requirement**: Terpetakan pada requirement matrix `requirement-traceability.md` Bagian 1p (`AT-HRD-EMP-01` s.d. `AT-HRD-EMP-22`).
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (cabut/pulihkan akses SIMRS otomatis)
+
+**Masalah yang diperbaiki:** `ItAccessRevocationSyncWorker` (`EMP-W6`) hanya menulis log, sehingga perawat yang diskors tetap bisa masuk SIMRS dan membuka rekam medis.
+
+**Keputusan yang diterapkan:** sistem **mengunci dan memulihkan akses secara otomatis**, tanpa menunggu admin IT. Dasarnya: SIMRS/EMR berjalan di aplikasi ini dan pemeriksaan hak akses per request hanya menerima akun `IsActive`. Maka setiap 15 menit worker: (1) untuk skorsing `Active` dengan `IsSystemAccessRevoked`, menonaktifkan akun pegawai (`IsActive = false`, `LockoutEnd` sampai tanggal akhir skorsing) dan mencatat baris `Locked` di `HrdSuspensionAccessAction` beserta keadaan aktif semula; (2) untuk skorsing yang berakhir atau pegawai yang direhabilitasi, memulihkan **hanya** akun yang ia kunci sendiri ke keadaan semula dan mencatat `Restored`. Skorsing yang berujung PHK tidak memulihkan akses. Pemegang hak akses `EmployeeDisciplinary : ManageSuspension` diberi tahu setiap tindakan. Akses fisik kartu pintar berada di sistem gedung yang tidak terhubung dan tetap manual.
+
+Contoh: perawat A diskors 1–30 November. Paling lambat 15 menit sesudah surat skorsing aktif, akun A dinonaktifkan; request berikutnya ditolak pemeriksaan hak akses walaupun token lama masih dipegang. 1 Desember, atau saat HR mencatat rehabilitasi, akun A aktif kembali otomatis.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/HrdSuspensionAccessAction.cs` + konfigurasi EF | Jejak kunci/pulih per akun |
+| `.../EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs` | `EMP-W6` mengunci/memulihkan; `EMP-W2`..`W5` mengirim pemberitahuan |
+| `Repositories/ApplicationDbContext.cs` | `DbSet<HrdSuspensionAccessAction>` |
+| `Migrations/20261111020000_AddHrdNotificationAndSuspensionAccess.cs` | Tabel `HrdSuspensionAccessAction` |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Status 🟡: kode selesai, migration belum dijalankan, `AT-HRD-EMP-22` `NOT RUN`. Risiko: akun yang sudah nonaktif sebelum skorsing tidak dihidupkan saat pemulihan (disengaja).
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+
+## Pembaruan 11 November 2026 — Penuntasan Temuan
+
+Pemulihan akun skorsing diperbaiki: query memakai `SuspensionId`, karena `Id` tidak dipetakan ke database dan membuat pemulihan gagal.
+
+`dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.

@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
 
@@ -29,10 +31,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         private static readonly Regex LegacyDosePattern = new(@"Dosis Tercatat:\s*([\d]+(?:[.,]\d+)?)\s*mSv", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly IOccupationalHealthUnitOfWork _uow;
+        private readonly NumberSeriesAllocator _numberAllocator;
 
-        public HazardSurveillanceService(IOccupationalHealthUnitOfWork uow)
+        public HazardSurveillanceService(IOccupationalHealthUnitOfWork uow, NumberSeriesAllocator numberAllocator)
         {
             _uow = uow ?? throw new ArgumentNullException(nameof(uow));
+            _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
         public async Task<HealthSurveillanceResponseDto> RecordRadiationDoseAsync(RecordRadiationDoseRequestDto request, Guid recordedByUserId, CancellationToken cancellationToken = default)
@@ -49,7 +53,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 Id = Guid.NewGuid(),
                 WorkforceProfileId = employee.WorkforceProfileId,
                 EmployeeId = employee.Id,
-                SurveillanceNumber = $"RAD-{request.PeriodEnd:yyyyMM}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}",
+                SurveillanceNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
+                SequenceKey: OccupationalHealthNumberSeries.RadiationKey,
+                Prefix: OccupationalHealthNumberSeries.RadiationPrefix,
+                ResetPolicy: OccupationalHealthNumberSeries.RadiationResetPolicy,
+                SequenceDigits: OccupationalHealthNumberSeries.SequenceDigits,
+                ActorUserId: recordedByUserId == Guid.Empty ? OccupationalHealthNumberSeries.SystemFallbackUserId : recordedByUserId,
+                Instant: DateTimeOffset.UtcNow), cancellationToken),
                 SurveillanceProgram = "Pemantauan Dosis Radiasi Pekerja Radiasi (TLD Badge)",
                 RiskFactor = "Ionizing Radiation (X-Ray / CT / Cath Lab)",
                 ScheduledDate = request.PeriodEnd,

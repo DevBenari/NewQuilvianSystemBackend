@@ -170,6 +170,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
 
             _context.TrxTravelSettlements.Add(settlement);
 
+            // Butir tanpa nota disimpan supaya bisa disetujui atasan (Hrd.BusinessTravel.MissingReceipt.Approve).
+            await _missingReceiptService.StageItemsAsync(travel, dto.MissingReceipts ?? new List<MissingReceiptItemDto>(), currentUserId);
+
             // Update status SPPD
             travel.TravelStatus = "SettlementSubmitted";
             travel.UpdateBy = currentUserId;

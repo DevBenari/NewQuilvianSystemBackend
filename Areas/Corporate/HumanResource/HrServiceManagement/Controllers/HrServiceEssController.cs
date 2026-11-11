@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Se
 using System.Security.Claims;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Controllers
 {
@@ -32,11 +33,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
         private Guid GetCurrentUserWorkforceProfileId()
         {
-            var claim = User.FindFirst("WorkforceProfileId")?.Value 
-                     ?? User.FindFirst("EmployeeProfileId")?.Value
-                     ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            return Guid.TryParse(claim, out var guid) ? guid : Guid.Empty;
+            // Klaim token yang sebenarnya: workforce_profile_id → employee_id → ID akun (remediasi kelompok G, 10 November 2026)
+            return User.ResolveWorkforceProfileId();
         }
 
         /// <summary>

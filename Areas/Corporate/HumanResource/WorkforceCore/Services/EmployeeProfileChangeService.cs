@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -141,7 +142,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 [BuildFieldKey("MstEmployee", "EmergencyContactPhone")] =
                     new("MstEmployee", "EmergencyContact", "EmergencyContactPhone", "Telepon kontak darurat", "String", true),
                 [BuildFieldKey("MstEmployee", "EmergencyContactAddress")] =
-                    new("MstEmployee", "EmergencyContact", "EmergencyContactAddress", "Alamat kontak darurat", "String", false)
+                    new("MstEmployee", "EmergencyContact", "EmergencyContactAddress", "Alamat kontak darurat", "String", false),
+
+                // WfpAddress (Alamat Tambahan / Domisili)
+                [BuildFieldKey("WfpAddress", "AddressLine")] =
+                    new("WfpAddress", "Address", "AddressLine", "Alamat lengkap", "String", true),
+                [BuildFieldKey("WfpAddress", "AddressType")] =
+                    new("WfpAddress", "Address", "AddressType", "Tipe alamat", "String", true),
+                [BuildFieldKey("WfpAddress", "CountryId")] =
+                    new("WfpAddress", "Address", "CountryId", "Negara", "Guid", true),
+                [BuildFieldKey("WfpAddress", "ProvinceId")] =
+                    new("WfpAddress", "Address", "ProvinceId", "Provinsi", "Guid", true),
+                [BuildFieldKey("WfpAddress", "CityId")] =
+                    new("WfpAddress", "Address", "CityId", "Kota", "Guid", true),
+                [BuildFieldKey("WfpAddress", "DistrictId")] =
+                    new("WfpAddress", "Address", "DistrictId", "Kecamatan", "Guid", true),
+                [BuildFieldKey("WfpAddress", "PostalCodeId")] =
+                    new("WfpAddress", "Address", "PostalCodeId", "Kode pos", "Guid", true),
+                [BuildFieldKey("WfpAddress", "Description")] =
+                    new("WfpAddress", "Address", "Description", "Keterangan alamat", "String", false),
+
+                // WfpBankAccount (Rekening Bank Karyawan)
+                [BuildFieldKey("WfpBankAccount", "AccountNumber")] =
+                    new("WfpBankAccount", "BankAccount", "AccountNumber", "Nomor rekening", "String", true),
+                [BuildFieldKey("WfpBankAccount", "AccountHolderName")] =
+                    new("WfpBankAccount", "BankAccount", "AccountHolderName", "Nama pemilik rekening", "String", true),
+                [BuildFieldKey("WfpBankAccount", "BankName")] =
+                    new("WfpBankAccount", "BankAccount", "BankName", "Nama bank", "String", true),
+                [BuildFieldKey("WfpBankAccount", "BankBranch")] =
+                    new("WfpBankAccount", "BankAccount", "BankBranch", "Kantor cabang bank", "String", false),
+                [BuildFieldKey("WfpBankAccount", "AccountType")] =
+                    new("WfpBankAccount", "BankAccount", "AccountType", "Jenis rekening", "String", false),
+                [BuildFieldKey("WfpBankAccount", "Description")] =
+                    new("WfpBankAccount", "BankAccount", "Description", "Keterangan rekening", "String", false),
+
+                // WfpEmergencyContact (Kontak Darurat Tambahan)
+                [BuildFieldKey("WfpEmergencyContact", "FullName")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "FullName", "Nama kontak darurat", "String", true),
+                [BuildFieldKey("WfpEmergencyContact", "Relationship")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "Relationship", "Hubungan kontak darurat", "String", true),
+                [BuildFieldKey("WfpEmergencyContact", "PhoneNumber")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "PhoneNumber", "Nomor telepon darurat", "String", true),
+                [BuildFieldKey("WfpEmergencyContact", "Address")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "Address", "Alamat kontak darurat", "String", false),
+                [BuildFieldKey("WfpEmergencyContact", "Description")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "Description", "Keterangan kontak darurat", "String", false)
             };
 
         private readonly ApplicationDbContext _dbContext;
@@ -1295,7 +1340,25 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
             try
             {
                 foreach (var item in planResult.Data)
+                {
                     item.Property.SetValue(item.Target, item.ConvertedValue);
+
+                    if (item.Target is WfpAddress addr && !_dbContext.Set<WfpAddress>().Local.Any(x => x.Id == addr.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpAddress>().AnyAsync(x => x.Id == addr.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpAddress>().Add(addr);
+                    }
+                    else if (item.Target is WfpBankAccount bank && !_dbContext.Set<WfpBankAccount>().Local.Any(x => x.Id == bank.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpBankAccount>().AnyAsync(x => x.Id == bank.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpBankAccount>().Add(bank);
+                    }
+                    else if (item.Target is WfpEmergencyContact ec && !_dbContext.Set<WfpEmergencyContact>().Local.Any(x => x.Id == ec.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpEmergencyContact>().AnyAsync(x => x.Id == ec.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpEmergencyContact>().Add(ec);
+                    }
+                }
 
                 SynchronizeWorkforceProfile(employee, workforceProfile, planResult.Data);
 
@@ -1428,8 +1491,10 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
             string? deptName = null;
             string? posName = null;
             string? unitName = null;
-            string? locName = null;
+            string? locName = employee.WorkLocation;
             string? mgrName = null;
+            string? employmentTypeName = null;
+            string? professionTypeName = null;
 
             if (employee.PrimaryDepartmentId != Guid.Empty)
             {
@@ -1445,6 +1510,22 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                     .AsNoTracking()
                     .Where(x => x.Id == employee.PrimaryPositionId)
                     .Select(x => x.PositionName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.EmploymentTypeId != Guid.Empty)
+            {
+                employmentTypeName = await _dbContext.Set<MstEmploymentType>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.EmploymentTypeId)
+                    .Select(x => x.EmploymentTypeName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.ProfessionId.HasValue && employee.ProfessionId.Value != Guid.Empty)
+            {
+                professionTypeName = await _dbContext.Set<MstProfession>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.ProfessionId.Value)
+                    .Select(x => x.ProfessionName)
                     .FirstOrDefaultAsync(cancellationToken);
             }
 
@@ -1499,9 +1580,19 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 EmergencyContactAddress = employee.EmergencyContactAddress,
 
                 DepartmentName = deptName,
+                PrimaryDepartmentName = deptName,
                 PositionName = posName,
+                PrimaryPositionName = posName,
                 OrganizationUnitName = unitName,
                 WorkLocationName = locName,
+                WorkLocation = locName,
+                GradeLevel = employee.GradeLevel,
+                EmploymentType = employmentTypeName ?? employee.GradeLevel,
+                ProfessionType = professionTypeName,
+                JoinDate = employee.JoinDate,
+                ContractEndDate = employee.ContractEndDate,
+                CreateDateTime = employee.CreateDateTime,
+                ProfilePhotoUrl = "",
                 ManagerDisplayName = mgrName,
 
                 HasOpenRequest = openRequest != null,
@@ -1963,6 +2054,7 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
 
             var result = new List<TrxEmployeeProfileChangeDetail>();
             var index = 0;
+            var targetCache = new Dictionary<Guid, object>();
 
             foreach (var request in requests.OrderBy(x => x.SortOrder))
             {
@@ -1972,7 +2064,9 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                     workforceProfile,
                     employee,
                     request.TargetEntityName,
-                    request.TargetEntityId);
+                    request.TargetEntityId,
+                    _dbContext,
+                    targetCache);
 
                 if (!targetResult.Success || targetResult.Target == null)
                 {
@@ -2090,13 +2184,17 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                     "Workforce profile atau employee tidak ditemukan.");
             }
 
+            var targetCache = new Dictionary<Guid, object>();
+
             foreach (var detail in details)
             {
                 var targetResult = ResolveTarget(
                     workforceProfile,
                     employee,
                     detail.TargetEntityName,
-                    detail.TargetEntityId);
+                    detail.TargetEntityId,
+                    _dbContext,
+                    targetCache);
 
                 if (!targetResult.Success || targetResult.Target == null)
                 {
@@ -2158,6 +2256,7 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
             CancellationToken cancellationToken)
         {
             var plan = new List<ApplyPlanItem>();
+            var targetCache = new Dictionary<Guid, object>();
 
             foreach (var detail in details)
             {
@@ -2172,7 +2271,9 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                     workforceProfile,
                     employee,
                     detail.TargetEntityName,
-                    detail.TargetEntityId);
+                    detail.TargetEntityId,
+                    _dbContext,
+                    targetCache);
 
                 if (!targetResult.Success || targetResult.Target == null)
                 {
@@ -2505,7 +2606,9 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
             MstWorkforceProfile workforceProfile,
             MstEmployee employee,
             string? targetEntityName,
-            Guid? targetEntityId)
+            Guid? targetEntityId,
+            ApplicationDbContext? dbContext = null,
+            IDictionary<Guid, object>? instanceCache = null)
         {
             var normalizedName = NormalizeTargetEntityName(targetEntityName);
 
@@ -2540,9 +2643,111 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 return TargetResolution.Ok(employee, "MstEmployee", employee.Id);
             }
 
+            if (normalizedName == "WfpAddress")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpAddress cachedAddr)
+                {
+                    return TargetResolution.Ok(cachedAddr, "WfpAddress", targetId);
+                }
+
+                WfpAddress? address = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    address = dbContext.Set<WfpAddress>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (address == null)
+                {
+                    address = new WfpAddress
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = address;
+                }
+
+                return TargetResolution.Ok(address, "WfpAddress", address.Id);
+            }
+
+            if (normalizedName == "WfpBankAccount")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpBankAccount cachedBank)
+                {
+                    return TargetResolution.Ok(cachedBank, "WfpBankAccount", targetId);
+                }
+
+                WfpBankAccount? bank = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    bank = dbContext.Set<WfpBankAccount>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (bank == null)
+                {
+                    bank = new WfpBankAccount
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = bank;
+                }
+
+                return TargetResolution.Ok(bank, "WfpBankAccount", bank.Id);
+            }
+
+            if (normalizedName == "WfpEmergencyContact")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpEmergencyContact cachedContact)
+                {
+                    return TargetResolution.Ok(cachedContact, "WfpEmergencyContact", targetId);
+                }
+
+                WfpEmergencyContact? contact = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    contact = dbContext.Set<WfpEmergencyContact>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (contact == null)
+                {
+                    contact = new WfpEmergencyContact
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = contact;
+                }
+
+                return TargetResolution.Ok(contact, "WfpEmergencyContact", contact.Id);
+            }
+
             return TargetResolution.Fail(
                 StatusCodes.Status400BadRequest,
-                "Target entity hanya mendukung MstWorkforceProfile atau MstEmployee.");
+                $"Target entity {targetEntityName} tidak didukung untuk pengajuan profil.");
         }
 
         private static void SynchronizeWorkforceProfile(
@@ -2832,6 +3037,30 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 normalized.Equals("Employee", StringComparison.OrdinalIgnoreCase))
             {
                 return "MstEmployee";
+            }
+
+            if (normalized.Equals("WfpAddress", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpAddresses", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Address", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Addresses", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpAddress";
+            }
+
+            if (normalized.Equals("WfpBankAccount", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpBankAccounts", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("BankAccount", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("BankAccounts", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpBankAccount";
+            }
+
+            if (normalized.Equals("WfpEmergencyContact", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpEmergencyContacts", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("EmergencyContact", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("EmergencyContacts", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpEmergencyContact";
             }
 
             return normalized;
