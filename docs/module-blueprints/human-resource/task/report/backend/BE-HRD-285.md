@@ -75,3 +75,8 @@ Contoh: perawat A diskors 1–30 November. Paling lambat 15 menit sesudah surat 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
 Status 🟡: kode selesai, migration belum dijalankan, `AT-HRD-EMP-22` `NOT RUN`. Risiko: akun yang sudah nonaktif sebelum skorsing tidak dihidupkan saat pemulihan (disengaja).
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

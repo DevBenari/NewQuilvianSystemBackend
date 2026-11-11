@@ -57,7 +57,7 @@ tahu bila kebetulan membuka kotak masuknya.
 
 | Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
-| `BE-HRD-314` | Gateway notifikasi hanya berisi `await Task.CompletedTask`. Aplikasi belum punya tabel notifikasi, kanal real-time notifikasi, maupun pengirim email/WhatsApp. Ringkasan harian ke approver dihitung tetapi tidak dikirim ke mana pun | `WorkflowManagement/Services/UnifiedNotificationGatewayService.cs:26-31` | **Ya.** Kanal mana dulu: lonceng di aplikasi, email, atau WhatsApp? Notifikasi milik modul HR atau platform bersama? | 🟡 11 November 2026 — kanal pertama: lonceng dalam aplikasi (`HrdNotification` + SignalR), milik modul SDM; email/WhatsApp tidak tersedia; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-314.md)) |
+| `BE-HRD-314` | Gateway notifikasi hanya berisi `await Task.CompletedTask`. Aplikasi belum punya tabel notifikasi, kanal real-time notifikasi, maupun pengirim email/WhatsApp. Ringkasan harian ke approver dihitung tetapi tidak dikirim ke mana pun | `WorkflowManagement/Services/UnifiedNotificationGatewayService.cs:26-31` | **Ya.** Kanal mana dulu: lonceng di aplikasi, email, atau WhatsApp? Notifikasi milik modul HR atau platform bersama? | 🟡 11 November 2026 — kanal pertama: lonceng dalam aplikasi (`HrdNotification` + SignalR), milik modul SDM; email/WhatsApp tidak tersedia; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-314.md)) |
 | `BE-HRD-313` | `BulkApprovalProcessingWorker` hanya loop `Task.Delay(30 detik)` | `WorkflowManagement/Workers/WorkflowV2Workers.cs:188` | **Ya.** Persetujuan massal sudah diproses langsung di endpoint. Worker ini dihapus, atau diisi antrean? | 🟡 11 November 2026 — worker dihapus; pelaporan per tiket lewat pusat pemberitahuan ([laporan](../task/report/backend/BE-HRD-313.md)) |
 | `BE-HRD-333` | `TravelCurrencyRateSyncWorker` (`TRV-W4`) hanya menulis log; kurs Bank Indonesia tidak pernah diambil | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:166` | **Ya.** Sumber kurs: API BI, input manual Keuangan, atau master kurs yang sudah ada? | 🟡 11 November 2026 — kurs dari master Keuangan `MstExchangeRate` diterapkan `TRV-W4`; 5 endpoint hak akses masih kurang ([laporan](../task/report/backend/BE-HRD-333.md)) |
 | `BE-HRD-316` 🟡 | `INT-HR-94` belum ada: pengingat menunjuk Plh saat cuti pejabat struktural disetujui | [laporan BE-HRD-316](../task/report/backend/BE-HRD-316.md) bagian 6 | **Ya.** Data jabatan belum punya penanda "pejabat struktural"; pengingatnya butuh `BE-HRD-314` | 🟡 11 November 2026 — `INT-HR-94` ada: pejabat = manajer aktif dengan bawahan; pengingat Plh lewat pusat pemberitahuan ([laporan](../task/report/backend/BE-HRD-316.md)) |
@@ -78,7 +78,7 @@ waspada. Radar surveilans tetap menampilkan **4,8 mSv** untuk semua pekerja, jad
 | `BE-HRD-233` | Bila dokter belum punya riwayat OPPE, skor 3 tahun diisi 82,5 / 85,0 / 88,5 | `PerformanceManagement/Services/RecredentialingQualityService.cs:57-64` | Tidak — kembalikan "data belum cukup" | ✅ 10 November 2026 — data belum cukup dilaporkan apa adanya ([laporan](../task/report/backend/BE-HRD-233.md)) |
 | `BE-HRD-239` | Bila tabel aturan kosong, 5 aturan pelatihan wajib bawaan ber-GUID tetap tetap tampil (minor) | `LearningAndDevelopment/Services/MandatoryTrainingRuleService.cs:21` | Tidak — pindahkan ke seeder data awal | ✅ 10 November 2026 — dipindah ke `MandatoryTrainingRuleSeeder` ([laporan](../task/report/backend/BE-HRD-239.md)) |
 | `BE-HRD-225` | Metrik OPPE dari SIMRS berupa konstanta: volume 120, kelengkapan EMR 92,5, insiden KMKP 0, lainnya 88 | `PerformanceManagement/Services/OppeDataAggregationService.cs:261-267` | **Ya.** Dari tabel mana di SIMRS (klinis/rekam medis) angka ini diambil? | 🟡 11 November 2026 — 4 tipe indikator ditarik dari tabel pelayanan aplikasi; KMKP dan clinical pathway tidak punya tabel sumber ([laporan](../task/report/backend/BE-HRD-225.md)) |
-| `BE-HRD-235` | Pengiriman wewenang klinis ke SIMRS tidak memanggil SIMRS: status `200` dikarang dan latensi diambil acak 25–65 ms | `PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs:77` | **Ya.** SIMRS ada di aplikasi yang sama — cukup tulis ke tabel wewenang klinis, atau lewat API terpisah? | 🟡 11 November 2026 — dispatcher menulis ke `WfpClinicalPrivilege` (tabel bersama yang dibaca modul klinis); migration `20261110050000` belum dijalankan ([laporan](../task/report/backend/BE-HRD-235.md)) |
+| `BE-HRD-235` | Pengiriman wewenang klinis ke SIMRS tidak memanggil SIMRS: status `200` dikarang dan latensi diambil acak 25–65 ms | `PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs:77` | **Ya.** SIMRS ada di aplikasi yang sama — cukup tulis ke tabel wewenang klinis, atau lewat API terpisah? | 🟡 11 November 2026 — dispatcher menulis ke `WfpClinicalPrivilege` (tabel bersama yang dibaca modul klinis); migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-235.md)) |
 
 ---
 
@@ -93,12 +93,12 @@ tier itu hilang — padahal itu jejak audit akreditasi.
 
 | Task | Data yang hilang | Bukti | Butuh keputusan? | Status perbaikan |
 |---|---|---|---|---|
-| `BE-HRD-234` | Penyesuaian tier oleh komite (jejak audit) | `PerformanceManagement/Services/RecredentialingQualityService.cs:26` | Tidak | 🟡 10 November 2026 — tabel `HrdRecredentialingTierOverride`; migration `20261110050000` belum dijalankan ([laporan](../task/report/backend/BE-HRD-234.md)) |
-| `BE-HRD-235` | Putusan rekredensialing dan log pengiriman ke SIMRS | `RecredentialingQualityService.cs:27`, `SimrsClinicalPrivilegeDispatcher.cs:17` | Tidak | 🟡 10 November 2026 — tabel `HrdRecredentialingVerdict` dan `HrdSimrsPrivilegeSyncLog`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-235.md)) |
-| `BE-HRD-229` | Feed pemicu FPPE yang diterima | `PerformanceManagement/Services/FppeTriggerDetectionService.cs:15` | Tidak | 🟡 10 November 2026 — tabel `HrdFppeTriggerEvent`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-229.md)) |
-| `BE-HRD-241` | Status buddy system untuk staf yang sertifikatnya kedaluwarsa | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:24` | Tidak | 🟡 10 November 2026 — tabel `HrdShiftBuddySafeguard`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-241.md)) |
-| `BE-HRD-159` | Penguncian PIN slip gaji dan sesi gaji sensitif 15 menit. Penyerang yang terkunci karena salah PIN 3 kali bisa langsung mencoba lagi setelah restart | `PayrollManagement/Services/PayrollPayslipDistributionService.cs:27`, `:30` | Tidak | 🟡 10 November 2026 — tabel `HrdPayslipPinLockout`/`HrdPayslipPinSession`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-159.md)) |
-| `BE-HRD-204` | Penghitung salah-PIN untuk membuka nominal surat (anti brute-force, maksimal 3 kali per 30 menit) | `HrServiceManagement/Services/PinRateLimiterService.cs:29` | Tidak | 🟡 10 November 2026 — tabel `HrdPinAttemptRecord`, limiter Scoped; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-204.md)) |
+| `BE-HRD-234` | Penyesuaian tier oleh komite (jejak audit) | `PerformanceManagement/Services/RecredentialingQualityService.cs:26` | Tidak | 🟡 10 November 2026 — tabel `HrdRecredentialingTierOverride`; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-234.md)) |
+| `BE-HRD-235` | Putusan rekredensialing dan log pengiriman ke SIMRS | `RecredentialingQualityService.cs:27`, `SimrsClinicalPrivilegeDispatcher.cs:17` | Tidak | 🟡 10 November 2026 — tabel `HrdRecredentialingVerdict` dan `HrdSimrsPrivilegeSyncLog`; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-235.md)) |
+| `BE-HRD-229` | Feed pemicu FPPE yang diterima | `PerformanceManagement/Services/FppeTriggerDetectionService.cs:15` | Tidak | 🟡 10 November 2026 — tabel `HrdFppeTriggerEvent`; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-229.md)) |
+| `BE-HRD-241` | Status buddy system untuk staf yang sertifikatnya kedaluwarsa | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:24` | Tidak | 🟡 10 November 2026 — tabel `HrdShiftBuddySafeguard`; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-241.md)) |
+| `BE-HRD-159` | Penguncian PIN slip gaji dan sesi gaji sensitif 15 menit. Penyerang yang terkunci karena salah PIN 3 kali bisa langsung mencoba lagi setelah restart | `PayrollManagement/Services/PayrollPayslipDistributionService.cs:27`, `:30` | Tidak | 🟡 10 November 2026 — tabel `HrdPayslipPinLockout`/`HrdPayslipPinSession`; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-159.md)) |
+| `BE-HRD-204` | Penghitung salah-PIN untuk membuka nominal surat (anti brute-force, maksimal 3 kali per 30 menit) | `HrServiceManagement/Services/PinRateLimiterService.cs:29` | Tidak | 🟡 10 November 2026 — tabel `HrdPinAttemptRecord`, limiter Scoped; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-204.md)) |
 
 Perbaikan kelompok ini menambah tabel baru. File migration disiapkan bersama perubahannya, dan
 pemilik yang menjalankan `dotnet ef database update`.
@@ -116,7 +116,7 @@ masuk SIMRS dan membuka rekam medis pasien**.
 
 | Task | Worker | Bukti | Status perbaikan |
 |---|---|---|---|
-| `BE-HRD-285` ⚠️ | `ItAccessRevocationSyncWorker` — pencabutan akses SIMRS pegawai diskors (`EMP-W6`) | `EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs:249` | 🟡 11 November 2026 — akun dikunci/dipulihkan otomatis, jejak `HrdSuspensionAccessAction`; migration belum dijalankan ([laporan](../task/report/backend/BE-HRD-285.md)) |
+| `BE-HRD-285` ⚠️ | `ItAccessRevocationSyncWorker` — pencabutan akses SIMRS pegawai diskors (`EMP-W6`) | `EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs:249` | 🟡 11 November 2026 — akun dikunci/dipulihkan otomatis, jejak `HrdSuspensionAccessAction`; migration sudah dijalankan 11 November 2026 ([laporan](../task/report/backend/BE-HRD-285.md)) |
 | `BE-HRD-278` | `SuspensionPeriodMonitoringWorker` — pemantau masa skorsing | `EmployeeRelationWorkers.cs:63` | 🟡 11 November 2026 — eskalasi hari ke-150/180 ke pemegang `EmployeeDisciplinary : ManageSuspension` ([laporan](../task/report/backend/BE-HRD-278.md)) |
 | `BE-HRD-279` | `GrievanceSlaEscalationWorker` — eskalasi SLA mediasi keluhan 14 hari | `EmployeeRelationWorkers.cs:112` | 🟡 11 November 2026 — eskalasi ke pemegang `EmployeeGrievance : Mediate` ([laporan](../task/report/backend/BE-HRD-279.md)) |
 | `BE-HRD-282` | `PkwtContractExpiryRadarWorker` — radar kontrak PKWT habis | `EmployeeRelationWorkers.cs:158` | 🟡 11 November 2026 — radar H-60/H-30 ke pegawai dan pemegang `EmployeeSeparation : Initiate` ([laporan](../task/report/backend/BE-HRD-282.md)) |
@@ -295,3 +295,30 @@ Pemilik meminta Gelombang 2 dikerjakan seluruhnya tanpa sesi keputusan terpisah.
 **Delta kontrak API:** `GET /my-tickets` keluhan tidak lagi menerima `employeeId`; `GET my-health` tidak lagi menerima `employeeId`; `GET peer-reviews/assigned/{evaluatorId}` menolak 403 bila `evaluatorId` bukan pengguna login; endpoint baru pusat notifikasi (4 endpoint, controller `HrdNotification`); worker `WF-W5` dihapus.
 
 **Temuan baru di luar daftar (tidak dikerjakan):** `HealthRecordService.GetClinicalDetailAsync` masih mengisi golongan darah "O", rhesus "+", unit "Unit Kerja Terdaftar", dan nama dokter "Dokter Hiperkes RS" sebagai nilai tetap (data karangan); `BusinessTravelAdvancesController` masih menentukan petugas Finance dari nama peran; `WorkflowApprovalActionService` belum memeriksa bahwa penyetuju memang approver tahapan (kini dapat dikerjakan karena klaim `employee_id` sudah benar); `TravelSettlementOverdueWorker` (`TRV-W2`) potongan payroll H+30 masih hanya log.
+
+
+---
+
+## 14. Eksekusi migration (11 November 2026)
+
+Atas instruksi pemilik, seluruh migration tertunda dijalankan ke database pengembangan `QuilvianNewDevHamzah` dengan `dotnet ef database update`. Pernyataan "migration belum dijalankan" pada bagian 12 dan 13 sudah tidak berlaku. Status task tetap 🟡 karena uji penerimaan dengan akun sungguhan belum dijalankan.
+
+| Hal | Hasil |
+|---|---|
+| Migration diterapkan | 23: 21 yang tertunda (termasuk milik modul Optical, Rehabilitation, dan Fin Purchasing) ditambah 2 migration baru di bawah |
+| Migration tertunda sesudahnya | 0 |
+| Perbandingan model dan database | 996 tabel model ada semua; 0 kolom model yang hilang |
+
+**Perbaikan yang dibutuhkan agar berhasil:**
+
+| Berkas | Perubahan | Alasan |
+|---|---|---|
+| `Migrations/20261109160000_AddPerformanceManagementCoreEntities.cs` | Seed `ON CONFLICT ("MetricCode")` diberi `WHERE "IsDelete" = false` | Index unik `MetricCode` bersyarat, sehingga PostgreSQL menolak dengan galat `42P10` |
+| `Migrations/20261110040000_AddMissingHrdTablesFromModel.cs` (baru) | 15 tabel HR (OPPE, FPPE, SPK/RKK, dan lainnya) | Ada di model tetapi tidak pernah dibuat migration mana pun |
+| `Migrations/20261111030000_AlignHrdColumnsWithModel.cs` (baru) | 185 kolom pada 33 tabel HR, 17 index, 15 foreign key | Ada di model tetapi tidak ada di database, sehingga pembacaan entity akan gagal. Seluruh tabel itu kosong saat dijalankan |
+
+**Temuan yang tidak diubah:**
+
+- 41 kolom wajib tanpa nilai bawaan ada di database tetapi tidak dikenal model, pada `HrdProbation`, `HrdProbationAssessment`, `HrdContractCorrection`, `HrdContractDecision`, `HrdClinicalPreceptorship`, `HrdClinicalPreceptorshipPreceptor`, `HrdInitialContractBatchRow`, `HrdOnboardingAccessRequest`, `MstOnboardingTemplate`, dan `MstOnboardingTemplateTask`. Penyimpanan baris baru ke tabel itu akan gagal sampai kolom lama dilonggarkan atau dihapus. Ini keputusan desain modul siklus kerja.
+- 6 foreign key pada kolom wajib baru sengaja tidak dibuat, karena nilai bawaan kolom tidak merujuk baris mana pun.
+- Perbandingan hanya memeriksa keberadaan tabel dan kolom, bukan tipe data.

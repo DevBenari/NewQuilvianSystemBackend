@@ -81,3 +81,8 @@ Status task diturunkan menjadi 🟡 pada roadmap sampai 5 endpoint tersisa dibua
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
 Masih 🟡: 5 dari 24 hak akses belum punya endpoint (koreksi 10 November 2026 tetap berlaku); `AT-HRD-TRV-22` `NOT RUN`.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

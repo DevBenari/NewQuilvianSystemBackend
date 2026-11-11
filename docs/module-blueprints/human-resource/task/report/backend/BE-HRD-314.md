@@ -113,3 +113,8 @@ Hub SignalR: `/hubs/notifications`, pesan `notificationReceived` berisi `HrdNoti
 | `AT-HRD-WF-14`, `AT-HRD-WF-15` | `NOT RUN` | menunggu migration dan akun uji |
 
 Status: 🟡 sampai migration dijalankan dan uji dijalankan; kanal lain menjadi pekerjaan platform bersama bila kelak diputuskan.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

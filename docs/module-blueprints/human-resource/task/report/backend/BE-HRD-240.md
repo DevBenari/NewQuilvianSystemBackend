@@ -198,3 +198,8 @@ Butir yang tertunda pada 10 November 2026 ("pengiriman menunggu `BE-HRD-314`") d
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
 Status 🟡 sampai migration tabel `HrdNotification` dijalankan dan `AT-HRD-TRN-04` dijalankan.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

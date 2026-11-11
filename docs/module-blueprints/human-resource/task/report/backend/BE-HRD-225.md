@@ -132,3 +132,8 @@ Contoh: dr. B pada periode 2026 punya 240 kunjungan, 18 dari 20 resume tepat wak
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
 Status 🟡 (klaim ✅ 9 November 2026 diturunkan): empat tipe sumber nyata, dua tipe (KMKP, clinical pathway) menunggu tabel sumber; `AT-HRD-OPP-03` `NOT RUN`.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

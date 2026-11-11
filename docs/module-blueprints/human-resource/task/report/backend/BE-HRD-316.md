@@ -233,3 +233,8 @@ ini ditandai selesai.
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
 Outcome `INT-HR-94` kini ada di kode; `AT-HRD-WF-18`/`AT-HRD-WF-19` tetap `NOT RUN`; tabel pemberitahuan menunggu migration. Status tetap 🟡. Temuan lama "approver tidak dicocokkan dengan penugasan" kini dapat ditindaklanjuti karena controller V2 sudah membaca klaim `employee_id` (kelompok G), tetapi pemeriksaannya belum ditambahkan pada task ini.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

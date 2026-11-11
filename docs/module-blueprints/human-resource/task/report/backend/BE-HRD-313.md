@@ -69,3 +69,8 @@ Dalam ekosistem rumah sakit modern, koordinasi perizinan kerja, pergeseran shift
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
 Acceptance criteria "antrean batch dieksekusi secara aman" terpenuhi oleh pemrosesan berurutan per tiket di endpoint (sudah ada); "status akhir tiap tiket dilaporkan akurat ke pemohon dan approver" terpenuhi di kode lewat pusat pemberitahuan, tetapi menunggu migration tabel `HrdNotification`; `AT-HRD-WF-13` `NOT RUN`. Status: 🟡.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
