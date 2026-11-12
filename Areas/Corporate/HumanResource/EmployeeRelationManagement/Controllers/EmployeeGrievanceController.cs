@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Controllers
 {
@@ -41,7 +42,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             try
             {
                 var actorEmail = ResolveActorName();
-                var result = await _grievanceService.SubmitGrievanceAsync(request, actorEmail, cancellationToken);
+                var result = await _grievanceService.SubmitGrievanceAsync(request, actorEmail, ResolveComplainant(), cancellationToken);
                 return StatusCode(201, ApiResponse<GrievanceTicketResponseDto>.Ok(result, "Tiket keluhan kerja pegawai berhasil diajukan dengan target SLA 14 hari kerja."));
             }
             catch (Exception ex)
@@ -75,7 +76,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         [AccessAction("ViewOwn", "Melihat Tiket Keluhan Sendiri", AccessType = AccessTypes.Read, SortOrder = 3)]
         [AccessPermission("EmployeeGrievance", "ViewOwn")]
         public async Task<IActionResult> GetMyTickets(
-            [FromQuery] Guid employeeId,
             [FromQuery] string? status,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -83,7 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         {
             try
             {
-                var result = await _grievanceService.GetMyTicketsAsync(employeeId, status, page, pageSize, cancellationToken);
+                // Remediasi kelompok G nomor 1 (10 November 2026): identitas pelapor dari token, parameter employeeId dihapus.
+                var result = await _grievanceService.GetMyTicketsAsync(ResolveComplainant(), status, page, pageSize, cancellationToken);
                 return Ok(ApiResponse<PagedResult<GrievanceTicketSummaryDto>>.Ok(result, "Daftar tiket keluhan kerja berhasil dimuat."));
             }
             catch (Exception ex)
@@ -139,6 +140,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         /// Nama pengguna yang sedang login untuk jejak aktor. Sengaja tidak memakai aktor cadangan:
         /// permintaan tanpa identitas ditolak, bukan dicatat atas nama orang lain.
         /// </summary>
+        /// <summary>Identitas pelapor dari token (remediasi kelompok G, 10 November 2026): profil tenaga kerja, karyawan, dan akun.</summary>
+        private GrievanceComplainantIdentity ResolveComplainant()
+        {
+            return new GrievanceComplainantIdentity(User.ResolveWorkforceProfileId(), User.GetEmployeeId(), User.RequireUserId());
+        }
+
         private string ResolveActorName()
         {
             var actorName = User.Identity?.Name;

@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Controllers
 {
@@ -265,7 +266,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             [FromRoute] Guid evaluatorId,
             CancellationToken cancellationToken = default)
         {
-            var list = await _oppeService.GetAssignedPeerReviewsAsync(evaluatorId, cancellationToken);
+            // Remediasi kelompok G nomor 4 (10 November 2026): evaluator diturunkan dari profil tenaga kerja pengguna login.
+            // Nilai pada route dipertahankan demi kompatibilitas, tetapi harus sama dengan identitas pengguna.
+            var currentEvaluatorId = User.ResolveWorkforceProfileId();
+            if (evaluatorId != Guid.Empty && evaluatorId != currentEvaluatorId)
+            {
+                return StatusCode(403, ApiResponse<List<AssignedPeerReviewDto>>.Fail(403, "Daftar tugas telaah sejawat hanya dapat dilihat oleh dokter evaluator yang bersangkutan."));
+            }
+
+            var list = await _oppeService.GetAssignedPeerReviewsAsync(currentEvaluatorId, cancellationToken);
             return Ok(ApiResponse<List<AssignedPeerReviewDto>>.Ok(list, "Daftar tugas telaah sejawat berhasil diambil."));
         }
 

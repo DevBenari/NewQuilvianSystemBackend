@@ -95,3 +95,71 @@ Untuk mengatasi ancaman tersebut secara tuntas, task `BE-HRD-204` mengimplementa
 1. **Thread-Safe Concurrent Tracking**: Pelacakan tingkat kegagalan percobaan menggunakan `ConcurrentDictionary` berbasis memori yang sangat cepat, thread-safe, dan efisien tanpa membebani basis data PostgreSQL.
 2. **Kebal Timing-Attack**: Pembandingan PIN menggunakan algoritma `CryptographicOperations.FixedTimeEquals`.
 3. **Kompilasi Sukses**: Lulus kompilasi .NET dengan `0 Error(s)`.
+
+
+---
+
+## Pengerjaan Ulang 10 November 2026 — Remediasi Gelombang 1 Audit Backend HR
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | [backend-unfinished-work.md](../../../roadmap/backend-unfinished-work.md) bagian 10 Gelombang 1, kelompok C — data penting hanya di memori |
+| Task mode | `BACKEND` |
+| Model | Claude Fable 5.1 |
+| Commit backend saat dikerjakan | mulai `edfd843bac1c2860da7ae9a5ddcb68a75cf42666`; pemilik melakukan commit dan merge selama sesi (HEAD akhir `05325918`, branch `MHamzah`) |
+| Status sesudah pengerjaan ulang | 🟡 **SEBAGIAN 10 November 2026** (dikerjakan ulang; klaim ✅ 9 November 2026 diturunkan) |
+
+### Masalah yang ditemukan audit
+
+Penghitung salah-PIN pembukaan nominal surat finansial (maks 3 kali per 30 menit per dokumen per IP) disimpan di memori proses dan hilang saat restart. PIN 4 digit dibuat `Random.Shared`, bukan pembangkit acak kriptografis.
+
+### Perubahan yang dikerjakan
+
+- Tabel baru `HrdPinAttemptRecord`; `IPinRateLimiterService` menjadi asinkron (`CheckRateLimitAsync`, `RecordFailedAttemptAsync`, `ResetAttemptsAsync`) dan registrasinya diubah dari Singleton ke Scoped karena kini memakai `ApplicationDbContext`.
+- PIN 4 digit dibuat `RandomNumberGenerator.GetInt32(1000, 10000)`.
+
+### Berkas yang berubah
+
+- `Areas/Corporate/HumanResource/HrServiceManagement/Services/PinRateLimiterService.cs`
+- `Areas/Corporate/HumanResource/HrServiceManagement/Services/EmployeeDocumentIssuanceService.cs`
+- `Areas/Corporate/HumanResource/HrServiceManagement/Models/HrdPinAttemptRecord.cs` (baru)
+- `Repositories/Configurations/Corporate/HumanResource/HrServiceManagement/HrdPinAttemptRecordConfiguration.cs` (baru)
+- `Program.cs`
+- `Repositories/ApplicationDbContext.cs`
+- `Migrations/20261110050000_AddHrdDurableAuditAndPinLockouts.cs`
+
+### Verifikasi
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` **0 error**, 606 warning (garis dasar sebelum sesi 578; selisih berasal dari merge cabang lain yang masuk HEAD pada sesi yang sama, bukan dari berkas task ini) | 0 error | `PASS` |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 58 berkas yang disentuh: **0 VIOLATION, 0 REVIEW, PASS** | 0 temuan | `PASS` |
+| Review diff dan scope | hanya berkas di atas yang disentuh untuk task ini | `PASS` |
+| Uji runtime / API | tidak dijalankan pada sesi ini | `NOT RUN` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+### Acceptance criteria yang disentuh pengerjaan ulang
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Rate limiting 3x per 30 menit bertahan lintas restart dan instance | Terpenuhi di source | tabel `HrdPinAttemptRecord` dengan index unik `AttemptKey` |
+| PIN acak kriptografis | Terpenuhi | `RandomNumberGenerator` |
+
+### Yang belum terpenuhi
+
+- Migration belum dijalankan; `AT-HRD-HRS-19` `NOT RUN`.
+
+### Database dan migration
+
+Migration SQL idempoten `Migrations/20261110050000_AddHrdDurableAuditAndPinLockouts.cs` disiapkan; **belum dijalankan** ke database mana pun (wewenang pemilik, `dotnet ef database update`). Snapshot model EF tidak dipakai sebagai dasar migration ini karena sudah lama tidak sinkron dengan migration SQL manual slice sebelumnya (lihat catatan risiko).
+
+### Catatan penutup
+
+- Perubahan sampingan: migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 CreateTable/26 DropTable di luar lingkup) **dibuang** dan diganti migration SQL manual; snapshot model yang ikut ter-commit pemilik dibiarkan karena sudah bercampur dengan merge cabang lain.
+- Status Git akhir sesi: berkas task sudah masuk HEAD lewat commit pemilik; sisa di working tree adalah penghapusan dua berkas scaffold dan satu berkas migration manual baru (lihat `git status --short` pada ringkasan sesi).
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

@@ -280,3 +280,19 @@ menggambarkan perubahan keamanan di dalamnya; riwayat Git sengaja tidak diubah.
    per modul. Pengujian dengan SuperAdmin tidak membuktikan apa pun karena SuperAdmin melewati
    seluruh pemeriksaan.
 4. **Pemilik** memutuskan enam temuan pada bagian 8.
+
+
+---
+
+## 11. Penutupan temuan bagian 8 (11 November 2026, Gelombang 2)
+
+| No | Keputusan yang diterapkan | Perubahan | Status |
+|---:|---|---|---|
+| 1 | Identitas "milik saya" dari klaim token: `workforce_profile_id` → `employee_id` → ID akun (`HrActorClaims.ResolveWorkforceProfileId`) | `EmployeeGrievanceController.GetMyTickets` tanpa parameter `employeeId`; service memfilter per profil/karyawan/akun pelapor | ✅ |
+| 2 | Sama dengan nomor 1 | `SubmitGrievance` mengisi pelapor dari token; nilai pada body diabaikan | ✅ |
+| 3 | Modul kesehatan kerja memakai `MstEmployee.Id` → klaim `employee_id` (`HrActorClaims.ResolveEmployeeId`) | `HealthRecordsController.GetMyHealth` tanpa parameter query | ✅ |
+| 4 | Evaluator dari klaim `workforce_profile_id`; nilai route yang berbeda ditolak 403 (route dipertahankan untuk kompatibilitas) | `OppeOngoingEvaluationController.GetAssignedPeerReviews` | ✅ |
+| 5 | Sepuluh controller membaca klaim yang benar lewat helper bersama; tabel berkolom `WorkforceProfileId` (benefit, perjalanan dinas, ESS) memakai `ResolveWorkforceProfileId`, workflow V2 (`MstEmployee`) memakai `ResolveEmployeeId`. Data lama yang terlanjur berisi ID akun dipetakan ulang oleh migration `20261111020000` (perjalanan dinas, uang muka, klaim biaya, tiket ESS, keluhan) | `Shared/HumanResource/Helpers/HrActorClaims.cs` + 10 controller | 🟡 sampai migration dijalankan |
+| 6 | Hak membaca diagnosis dari hak akses `OccupationalHealthRecord : ViewClinicalDetail` lewat `AccessPermissionService.HasAccessAsync`, bukan nama peran | `HealthRecordsController.IsDoctorRole` dihapus | ✅ |
+
+Verifikasi: `dotnet build` 0 error (602 warning); QBE Strict 43 berkas 0 violation; uji runtime `NOT RUN`. Rinciannya pada [backend-unfinished-work.md](../roadmap/backend-unfinished-work.md) bagian 13.

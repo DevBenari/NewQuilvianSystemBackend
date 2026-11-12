@@ -45,3 +45,76 @@ Dalam ekosistem rumah sakit modern, koordinasi perizinan kerja, pergeseran shift
 * **Kompilasi .NET Core**: `dotnet build QuilvianSystemBackend.csproj --no-restore` menghasilkan **0 Error(s)**.
 * **Audit Kepatuhan Arsitektur QBE**: `Invoke-QbeConformanceCheck.ps1` berstatus **PASS** (0 Violation).
 * **Traceability Requirement**: Terpetakan pada requirement matrix `requirement-traceability.md` Bagian 1r (`AT-HRD-WF-14, AT-HRD-WF-15`).
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (keputusan kanal notifikasi)
+
+### Keputusan yang diterapkan
+
+Pemilik meminta Gelombang 2 dikerjakan tuntas tanpa sesi keputusan terpisah, sehingga keputusan diambil dari bukti source dan dicatat di sini sebagai asumsi eksplisit. Platform belum memiliki tabel notifikasi, pengirim email, maupun gateway WhatsApp; yang ada hanya SignalR untuk antrean. Maka **kanal pertama adalah lonceng di aplikasi** dan **pemiliknya modul SDM** (prefix `Hrd`, folder `HrServiceManagement`), bukan platform bersama. Kanal email/push mobile/WhatsApp dicatat sebagai `RequestedChannel` untuk jejak, tanpa pengiriman.
+
+### Masalah yang diperbaiki
+
+Sebelumnya `UnifiedNotificationGatewayService.SendInstantNotificationAsync` hanya berisi `await Task.CompletedTask`, dan ringkasan harian dihitung tetapi tidak dikirim ke mana pun. Contoh: perawat mengajukan cuti, atasan tidak menerima apa pun dan baru tahu bila kebetulan membuka kotak masuk.
+
+### Proses bisnis sesudah perubahan
+
+1. Staf mengajukan permohonan (V2) → approver tahapan pertama menerima pemberitahuan "Permohonan baru menunggu persetujuan Anda" berisi nomor tiket dan batas SLA.
+2. Approver menyetujui → pemohon menerima "Permohonan disetujui"; bila masih ada tahapan berikutnya, approver berikutnya diberi tahu.
+3. Approver menolak atau mengembalikan untuk revisi → pemohon menerima alasan atau catatan revisi.
+4. Setiap pukul 07:00 WIB worker `DailyApprovalDigestWorker` mengirim ringkasan jumlah tiket tertunda (dan yang mendesak) ke setiap approver, satu kali per hari (kunci anti-duplikat per approver per tanggal WIB).
+5. Pegawai membuka lonceng: `GET /api/v1/self-service/hr/notifications` (daftar), `GET .../unread-count` (lencana), `POST .../{id}/read` dan `POST .../read-all` (tandai dibaca). Bila browser terhubung ke `/hubs/notifications`, pemberitahuan baru muncul tanpa memuat ulang.
+
+### Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/HrServiceManagement/Models/HrdNotification.cs` + konfigurasi EF | Entitas pemberitahuan per penerima; index unik `DedupKey` (terfilter), index penerima/status |
+| `.../HrServiceManagement/Services/IHrdNotificationService.cs`, `HrdNotificationService.cs` | Kirim ke akun, profil tenaga kerja, karyawan, atau pemegang hak akses; daftar, hitung belum dibaca, tandai dibaca; dorongan SignalR |
+| `Hubs/HrNotificationHub.cs` | Hub `[Authorize]`, grup per akun `user:{id}` |
+| `.../HrServiceManagement/Controllers/HrdNotificationController.cs` | Endpoint pusat notifikasi, `[AccessController("HrdNotification")]`, aksi `ViewOwn` dan `MarkRead` |
+| `.../WorkflowManagement/Services/UnifiedNotificationGatewayService.cs` | Gateway kini menyalurkan ke pusat pemberitahuan; ringkasan harian anti-duplikat per tanggal WIB |
+| `.../WorkflowManagement/Workers/WorkflowV2Workers.cs` | `DailyApprovalDigestWorker` tidur sampai 07:00 WIB berikutnya |
+| `.../WorkflowManagement/Services/WorkflowApprovalActionService.cs`, `WorkflowInstanceCreationService.cs` | Pemberitahuan instan ke pemohon dan approver; pemohon tidak lagi jatuh ke "karyawan pertama di tabel" bila akun tidak punya `ApplicantEmployeeId` |
+| `Program.cs` | Registrasi `IHrdNotificationService`, pemetaan hub, `access_token` query untuk `/hubs/notifications` |
+| `Repositories/ApplicationDbContext.cs` | `DbSet<HrdNotification>` |
+| `Migrations/20261111020000_AddHrdNotificationAndSuspensionAccess.cs` | Tabel `HrdNotification` (SQL idempoten) |
+
+### Dokumentasi endpoint
+
+#### HR Services - Notification Center
+
+| Method | Path | Kegunaan | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/self-service/hr/notifications` | Daftar pemberitahuan milik saya (filter `unreadOnly`, `category`, paging) | `HrdNotification : ViewOwn` |
+| `GET` | `/api/v1/self-service/hr/notifications/unread-count` | Jumlah belum dibaca untuk lencana lonceng | `HrdNotification : ViewOwn` |
+| `POST` | `/api/v1/self-service/hr/notifications/{id}/read` | Tandai satu pemberitahuan sudah dibaca | `HrdNotification : MarkRead` |
+| `POST` | `/api/v1/self-service/hr/notifications/read-all` | Tandai semua sudah dibaca | `HrdNotification : MarkRead` |
+
+Hub SignalR: `/hubs/notifications`, pesan `notificationReceived` berisi `HrdNotificationDto`.
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+### Acceptance criteria sesudah pengerjaan ulang
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Notifikasi instan terkirim < 3 detik ke pemohon dan approver | Terpenuhi di kode untuk kanal dalam aplikasi (tulis tabel + dorongan SignalR dalam request yang sama); waktu nyata belum diukur | `WorkflowApprovalActionService.NotifyRequesterAsync/NotifyStepApproverAsync` |
+| Ringkasan harian terkirim terjadwal tiap 07:00 pagi | Terpenuhi di kode (jadwal WIB + anti-duplikat) | `DailyApprovalDigestWorker.DelayUntilNextDigest` |
+| Multikanal (web push, push mobile, email) | **Belum terpenuhi** — hanya kanal dalam aplikasi; kanal lain tidak ada di platform | keputusan Gelombang 2 |
+| `AT-HRD-WF-14`, `AT-HRD-WF-15` | `NOT RUN` | menunggu migration dan akun uji |
+
+Status: 🟡 sampai migration dijalankan dan uji dijalankan; kanal lain menjadi pekerjaan platform bersama bila kelak diputuskan.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

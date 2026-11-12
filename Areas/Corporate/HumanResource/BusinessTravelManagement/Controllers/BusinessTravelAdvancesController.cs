@@ -10,6 +10,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManageme
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Controllers
 {
@@ -30,28 +32,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         private readonly ITravelAdvanceRequestService _advanceRequestService;
         private readonly IAdvanceApprovalAndVoucherService _approvalService;
         private readonly IAdvanceDisbursementService _disbursementService;
+        private readonly AccessPermissionService _accessPermissionService;
 
         public BusinessTravelAdvancesController(
             ITravelAdvanceRequestService advanceRequestService,
             IAdvanceApprovalAndVoucherService approvalService,
-            IAdvanceDisbursementService disbursementService)
+            IAdvanceDisbursementService disbursementService,
+            AccessPermissionService accessPermissionService)
         {
+            _accessPermissionService = accessPermissionService;
             _advanceRequestService = advanceRequestService;
             _approvalService = approvalService;
             _disbursementService = disbursementService;
         }
 
-        private (Guid UserId, Guid EmployeeId, bool IsFinance) GetCurrentUserContext()
+        private (Guid UserId, Guid EmployeeId) GetCurrentUserContext()
         {
-            var userClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var empClaim = User.FindFirst("EmployeeId")?.Value;
-
-            Guid.TryParse(userClaim, out var userId);
-            Guid.TryParse(empClaim, out var empId);
-
-            var isFinance = User.IsInRole("Finance") || User.IsInRole("FinanceManager") || User.IsInRole("Admin");
-
-            return (userId, empId != Guid.Empty ? empId : userId, isFinance);
+            // Kolom WorkforceProfileId pada data perjalanan dinas diisi dari klaim workforce_profile_id → employee_id → ID akun
+            // (remediasi kelompok G, 10 November 2026).
+            return (User.GetUserId(), User.ResolveWorkforceProfileId());
         }
 
         /// <summary>
@@ -79,7 +78,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         {
             try
             {
-                var (userId, empId, _) = GetCurrentUserContext();
+                var (userId, empId) = GetCurrentUserContext();
                 var result = await _advanceRequestService.CreateAdvanceRequestAsync(dto, userId, empId);
                 return StatusCode(StatusCodes.Status201Created, ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Permohonan uang muka berhasil diajukan"));
             }
@@ -101,9 +100,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         {
             try
             {
-                var (userId, _, isFinance) = GetCurrentUserContext();
+                var (userId, _) = GetCurrentUserContext();
+                // Pintu Finance ditentukan hak akses di layar Akses Role, bukan nama peran di kode.
+                var isFinance = await _accessPermissionService.HasAccessAsync(User, "BusinessTravelAdvance", "ApproveFinance");
                 var result = await _approvalService.ApproveAdvanceAsync(id, dto, userId, isFinance);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Persetujuan uang muka berhasil dicatat"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<TravelAdvanceResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Persetujuan pintu Finance atas uang muka (VR-TRV-03); menerbitkan voucher kasir.
+        /// </summary>
+        [HttpPost("{id}/finance-approve")]
+        [AccessAction("ApproveFinance", "Menyetujui Uang Muka sebagai Finance", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("BusinessTravelAdvance", "ApproveFinance")]
+        [ProducesResponseType(typeof(ApiResponse<TravelAdvanceResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ApproveAdvanceFinance([FromRoute] Guid id, [FromBody] ApproveAdvanceRequestDto dto)
+        {
+            try
+            {
+                var (userId, _) = GetCurrentUserContext();
+                var result = await _approvalService.ApproveAdvanceAsync(id, dto, userId, true);
+                return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Persetujuan Finance atas uang muka berhasil dicatat"));
             }
             catch (Exception ex)
             {
@@ -123,7 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         {
             try
             {
-                var (userId, _, _) = GetCurrentUserContext();
+                var (userId, _) = GetCurrentUserContext();
                 var result = await _disbursementService.DisburseAdvanceAsync(id, dto, userId);
                 return Ok(ApiResponse<TravelAdvanceResponseDto>.Ok(result, "Pencairan dana uang muka berhasil dikonfirmasi kasir"));
             }
