@@ -1806,3 +1806,54 @@ Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 1 (`
 
 Verifikasi bersama seluruh baris: `npx eslint` atas berkas yang diubah **0 error**; `npm run build` **berhasil** (keluar 0, dijalankan sesudah perubahan source terakhir); `npm run test:unit` 4.671 test, 4.618 lulus, 53 gagal, seluruh kegagalan pada berkas yang tidak disentuh gelombang ini; `check-css-usage.mjs` atas 7 view baru **0 temuan**; uji browser Chrome headed atas 15 rute layar (26 screenshot di `QuilvianSystemFrontendDev/test-with-agy/screenshots/hrw1-1111/`) dengan backend lokal mode `Runtime__Role=Web`, tanpa satu pun pesan galat Axios mentah. Satu perubahan data sampingan: toleransi keterlambatan di database pengembangan sempat tersimpan 30 menit saat uji validasi, lalu dikembalikan ke 10 menit dan dibuktikan sesudah halaman dimuat ulang. Perubahan frontend belum di-commit.
 
+
+---
+
+### Bagian 1w: Matriks Keterlacakan Amandemen `A52` — Penjadwalan & Kehadiran untuk 12 menu `PRD-HRD-PK-001` (roadmap revisi `24`, kontrak `v26`)
+
+| Field | Nilai |
+| --- | --- |
+| Roadmap revisi | `24` |
+| Approval | Pengguna (`HRD-DEC-015`), 12 November 2026 — desain `A52` dan kontrak `v26` |
+| Masukan | Decision log revision `37` (SHA-256 `df3cf67a…`); capability map revisi `1.4` (SHA-256 `d260d20f…`); `02-backend-architecture.md` 35; `03-frontend-architecture.md` 31; `04-prd-to-mvp.md` 40; `testing/acceptance-test-matrix.md` 34 |
+| Source SHA | BE `a437ae42` (`yoga`); FE `6a5658269` (`YogaV2`) |
+| Status semua baris | `PLANNED` — belum ada bukti implementasi |
+
+| Requirement | Keputusan | Desain | Kontrak `v26` | Task backend | Task frontend | Bukti uji | Gelombang | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FR-PK-001` Migration amandemen | `HRD-DEC-195`, `198`, `200`–`202`, `205`, `211`, `212`, `217` | 35.6–35.7 | Kamus data 27 | `BE-HRD-334` 🟡 | — | Build `PASS`, `has-pending-model-changes` `PASS`, skrip SQL ditinjau ([laporan](../task/report/backend/BE-HRD-334.md)); uji kering `NOT RUN` | `MVP-66` | `IN PROGRESS` — migration dibuat, belum diterapkan |
+| `FR-PK-002` Cakupan unit | `HRD-DEC-194`, `206`, `208` | 35.9.1 | `VR-PK-06`, `VR-PK-27`; penanda `ManageAllUnits`, `ReadAllUnits` | `BE-HRD-335`, `BE-HRD-336` | `FE-HRD-306` | `AT-HRD-PK-09`, `-10`; `UAT-PK-01`, `-02` | `MVP-66` | `PLANNED` |
+| `FR-PK-003` Ganti Petugas pemeriksaan penuh | `HRD-DEC-195`, `099`, `100` | 35.9.2–35.9.3 | `replace` (Diubah); `VR-PK-03`–`05` | `BE-HRD-337`, `BE-HRD-338` | `FE-HRD-307` | `AT-HRD-PK-02`, `-03`, `-04`; `UAT-PK-04` | `MVP-67` | `PLANNED` |
+| `FR-PK-004` Riwayat per perubahan | `HRD-DEC-195`, `217` | 35.4.1, 35.9.3 | `revisions`; state 30.1 | `BE-HRD-338`, `BE-HRD-339`, `BE-HRD-340` | `FE-HRD-308` | `AT-HRD-PK-01`, `-07`, `-08`; `UAT-PK-03` | `MVP-67` | `PLANNED` |
+| `FR-PK-005` Roster tetap terbit saat ditambah | `HRD-DEC-195` | 35.9.3 | `assignments` (Diubah) | `BE-HRD-340` | `FE-HRD-307` | `AT-HRD-PK-05` | `MVP-67` | `PLANNED` |
+| `FR-PK-006` Hapus shift terbit | `HRD-DEC-195` | 35.9.3 | `shifts/{id}/remove`; `RosterPeriod : RemoveShift`; `VR-PK-07` | `BE-HRD-340` | `FE-HRD-307` | `AT-HRD-PK-06`; `UAT-PK-06` | `MVP-67` | `PLANNED` |
+| `FR-PK-007` `B3`, `B8`, `W6`, `W7` | `HRD-DEC-100`, `201`, `213` | 35.9.2 | `VR-PK-01`, `-02`, `-04`; `INT-HR-106`, `107` | `BE-HRD-337`, `BE-HRD-341` | `FE-HRD-307` | `AT-HRD-PK-11`–`14`, `-45`; `UAT-PK-05` | `MVP-67` | `PLANNED` |
+| `FR-PK-008` Belum Hadir / Tidak Ada Scan | `HRD-DEC-207` | 35.9.4 | State 30.6 | `BE-HRD-343` | `FE-HRD-310` | `AT-HRD-PK-19`–`21`; `UAT-PK-07` | `MVP-67` | `PLANNED` |
+| `FR-PK-009` Hari libur hanya jadwal tetap | `HRD-DEC-210` | 35.9.4 | State 30.6 | `BE-HRD-343` | `FE-HRD-310` | `AT-HRD-PK-28`; `UAT-PK-11` | `MVP-67` | `PLANNED` |
+| `FR-PK-010` Toleransi dan jendela dari setelan | `HRD-DEC-196`, `211`, `215`, `HRD-ASM-83` | 35.4.1, 35.10 | Settings (Diubah); `VR-PK-23`, `-30` | `BE-HRD-342` | `FE-HRD-309` | `AT-HRD-PK-24`, `-25`, `-27`; `UAT-PK-08` | `MVP-67` | `PLANNED` |
+| `FR-PK-011` Scan di luar jendela → pengecualian | `HRD-DEC-211` | 35.9.4 | — | `BE-HRD-343` | `FE-HRD-310` | `AT-HRD-PK-26` | `MVP-67` | `PLANNED` |
+| `FR-PK-012` Pratinjau dan konversi | `HRD-DEC-197`, `216`, `HRD-ASM-81` | 35.4.2 | `close-preview`, `close` (Diubah) | `BE-HRD-344` | `FE-HRD-311` | `AT-HRD-PK-22`, `-23`, `-31`; `UAT-PK-09` | `MVP-67` | `PLANNED` |
+| `FR-PK-013` Scan mesin tak terdaftar ditahan | `HRD-DEC-212` | 35.9.6 | Raw Logs (Diubah); state 30.7 | `BE-HRD-345` | `FE-HRD-312` | `AT-HRD-PK-29`; `UAT-PK-10` | `MVP-67` | `PLANNED` |
+| `FR-PK-014` Pendaftaran mesin melepas scan | `HRD-DEC-212` | 35.9.6 | `attendance-devices`; `VR-PK-26`; `INT-HR-103` | `BE-HRD-345`, `BE-HRD-346` | `FE-HRD-312` | `AT-HRD-PK-30`; `UAT-PK-10` | `MVP-67` | `PLANNED` |
+| `FR-PK-015` Master hari libur | `HRD-DEC-210` | 35.4.3 | `holidays`; `VR-PK-25` | `BE-HRD-347` | `FE-HRD-313` | `UAT-PK-11` | `MVP-67` | `PLANNED` |
+| `FR-PK-016` Jadwal Saya | `HRD-DEC-209`, `HRD-ASM-80` | 35.4.2 | `my-schedule`; `VR-PK-29` | `BE-HRD-348` | `FE-HRD-314` | `AT-HRD-PK-42`–`44`; `UAT-PK-12`, `-13` | `MVP-68` | `PLANNED` |
+| `FR-PK-017` Tujuh laporan | `HRD-DEC-206`, `HRD-ASM-79` | 35.4.2 | `reports/{reportCode}`; `VR-PK-27`, `-28` | `BE-HRD-349` | `FE-HRD-315` | `AT-HRD-PK-39`; `UAT-PK-14` | `MVP-68` | `PLANNED` |
+| `FR-PK-018` Ekspor tercatat | `HRD-DEC-206` | 35.11 | `reports/{reportCode}/export`; `AttendanceReport : Export` | `BE-HRD-350` | `FE-HRD-315` | `AT-HRD-PK-37`, `-38`; `UAT-PK-14`, `-15` | `MVP-68` | `PLANNED` |
+| `FR-PK-019`–`022` Siaga | `HRD-DEC-198`, `204`, `205`, `HRD-ASM-75`, `78` | 35.9.5 | `backups`, `calls`; state 30.2; `VR-PK-08`–`12`; `INT-HR-39`, `40` | `BE-HRD-352` | `FE-HRD-317` | `AT-HRD-PK-15`–`18` | `POST-MVP` | `PLANNED` |
+| `FR-PK-023`–`025` Dispensasi | `HRD-DEC-200`, `HRD-ASM-76` | 35.4.1 | `dispensations`; state 30.3; `VR-PK-13`–`17` | `BE-HRD-353`, `BE-HRD-354` | `FE-HRD-318` | `AT-HRD-PK-32`–`34` | `POST-MVP` | `PLANNED` |
+| `FR-PK-026`–`027` Tugas belajar | `HRD-DEC-201` | 35.4.1 | `study-assignments`; state 30.4; `VR-PK-18`, `-19` | `BE-HRD-355` | `FE-HRD-319` | `AT-HRD-PK-12` | `POST-MVP` | `PLANNED` |
+| `FR-PK-028`–`029` Gangguan mesin | `HRD-DEC-202`, `HRD-ASM-77` | 35.4.1 | `device-incidents`; state 30.5; `VR-PK-20`–`22` | `BE-HRD-356` | `FE-HRD-320` | `AT-HRD-PK-35`, `-36` | `POST-MVP` | `PLANNED` |
+| `FR-PK-030`–`031` Dashboard | `HRD-DEC-208` | 35.4.2 | `dashboard` | `BE-HRD-357` | `FE-HRD-321` | `AT-HRD-PK-40`, `-41` | `POST-MVP` | `PLANNED` |
+| Realisasi Jadwal (tampilan) | `HRD-DEC-195` butir 5 | `03-frontend-architecture.md` 31.1 | `revisions` | `BE-HRD-340` | `FE-HRD-322` | Uji browser `FE-HRD-322` | `POST-MVP` | `PLANNED` |
+| `FR-PK-032` Grup menu 12 menu | `HRD-DEC-214` | `03-frontend-architecture.md` 31.1 | — | `BE-HRD-359` ⛔ (bila `DSG-Q-02` memilih endpoint) | `FE-HRD-324` ⛔ | `AT-HRD-PK-46` | — | `BLOCKED` (`DSG-Q-01`, `DSG-Q-02`) |
+| Definition of Done MVP | — | `04-prd-to-mvp.md` 40.19 | `v26` | `BE-HRD-351` | `FE-HRD-316` | Seluruh uji MVP di atas | `Verifikasi` | `PLANNED` |
+| Definition of Done POST-MVP | — | — | `v26` | `BE-HRD-358` | `FE-HRD-323` | Uji `POST-MVP` di atas | `POST-MVP` | `PLANNED` |
+
+**Coverage gap:**
+
+| Gap | Sebab | Penanganan |
+| --- | --- | --- |
+| `AT-HRD-PK-46` (sidebar 12 menu) tidak punya task yang dapat dijalankan | `FE-HRD-324` terblokir `DSG-Q-01`/`DSG-Q-02` | Dibuka kembali begitu pengguna menjawab |
+| `FR-PK-026`–`027` hanya diuji lewat `AT-HRD-PK-12` (blokir roster); status harian "Tugas Belajar" tidak punya ID uji tersendiri | Matriks uji bagian 34 tidak memuat kasus status harian tugas belajar | `BE-HRD-355` menambah uji status harian di laporan task; matriks uji disegarkan pada revisi berikut |
+| Keputusan `HRD-DEC-203` ("Realisasi Jenis Tambahan" = realisasi jam lembur) tidak punya task | Tidak ada perubahan backend; hanya label menu | Tercakup `FE-HRD-324` |
+| Pertanyaan `DSG-Q-03` dan `DSG-Q-04` | Tidak memblokir | Dicatat di `04-prd-to-mvp.md` 40.20 |

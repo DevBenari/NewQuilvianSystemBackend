@@ -1602,3 +1602,99 @@ Seluruh perubahan siklus, penyesuaian skor kalibrasi, penerbitan kontrak pembina
 | `HRD_TRV_ROSTER_LOCK_APPLIED` | Pemasangan gembok hard-stop roster dinas bangsal | `EmployeeId`, `RestrictedDates`, `WardUnitId` | Keselamatan Pasien |
 | `HRD_EXP_CLAIM_SUBMITTED` | Staf mengajukan klaim operasional non-trip | `ExpenseClaimNumber`, `EmployeeId`, `TotalAmount`, `CategoryId`| Normal |
 | `HRD_EXP_CLAIM_PAID` | Kasir mencairkan klaim operasional non-trip | `ExpenseClaimNumber`, `PaidAmount`, `VoucherNumber`, `CashierId` | Finansial Kritis |
+
+---
+
+## 30. Matriks Hak Akses & Audit Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` — `approved` (pengguna, 12 November 2026) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+| Aturan string | Argumen pertama `[AccessPermission]` sama persis dengan `ControllerName`; argumen kedua sama dengan argumen pertama `[AccessAction]` (`evidence/03-hr-authorization-remediation.md` bagian 2.1) |
+| Selisih dengan kontrak `v10` | String `v10` bagian 14 (`HrdScheduling`, `HrdOnCall`, `HrdSchedulingSetting`) tidak dipakai kode. Kontrak `v26` memakai string kode yang berlaku |
+
+### 30.1 String hak akses
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+| --- | --- | --- | --- | :---: |
+| `GET roster-periods/{id}/revisions` | `RosterPeriod` | `Read` | `[AccessPermission("RosterPeriod", "Read")]` | Tidak |
+| `POST roster-periods/{id}/assignments` | `RosterPeriod` | `Create` | `[AccessPermission("RosterPeriod", "Create")]` | Ya |
+| `POST roster-periods/{id}/shifts/{shiftAssignmentId}/remove` | `RosterPeriod` | `RemoveShift` | `[AccessPermission("RosterPeriod", "RemoveShift")]` | Ya |
+| `POST shift-replacements/{id}/replace`, `/retroactive-correct` | `ShiftReplacement` | `Update` | `[AccessPermission("ShiftReplacement", "Update")]` | Ya |
+| `GET on-call-assignments/{id}/backups`, `/calls` | `OnCallAssignment` | `Read` | `[AccessPermission("OnCallAssignment", "Read")]` | Tidak |
+| `PUT on-call-assignments/{id}/backups` | `OnCallAssignment` | `ManageBackup` | `[AccessPermission("OnCallAssignment", "ManageBackup")]` | Ya |
+| `POST on-call-assignments/{id}/calls` dan `/calls/{callId}/accept`, `/decline`, `/expire`, `/complete` | `OnCallAssignment` | `RecordCall` | `[AccessPermission("OnCallAssignment", "RecordCall")]` | Ya |
+| `GET`/`PUT attendance-management/settings` | `AttendanceSetting` | `Read` / `Update` | `[AccessPermission("AttendanceSetting", "Read")]`, `[AccessPermission("AttendanceSetting", "Update")]` | `PUT` ya |
+| `GET attendance/dispensations`, `/{id}`, `/filters/metadata` | `AttendanceDispensation` | `Read` | `[AccessPermission("AttendanceDispensation", "Read")]` | Tidak |
+| `POST attendance/dispensations` | `AttendanceDispensation` | `Create` | `[AccessPermission("AttendanceDispensation", "Create")]` | Ya |
+| `POST attendance/dispensations/{id}/approve`, `/reject` | `AttendanceDispensation` | `Approve` | `[AccessPermission("AttendanceDispensation", "Approve")]` | Ya |
+| `GET self-services/.../attendance-dispensations` | `MyAttendanceDispensation` | `Read` | `[AccessPermission("MyAttendanceDispensation", "Read")]` | Tidak |
+| `POST self-services/.../attendance-dispensations` | `MyAttendanceDispensation` | `Create` | `[AccessPermission("MyAttendanceDispensation", "Create")]` | Ya |
+| `POST self-services/.../attendance-dispensations/{id}/cancel` | `MyAttendanceDispensation` | `Cancel` | `[AccessPermission("MyAttendanceDispensation", "Cancel")]` | Ya |
+| `GET attendance/study-assignments`, `/{id}` | `StudyAssignment` | `Read` | `[AccessPermission("StudyAssignment", "Read")]` | Tidak |
+| `POST attendance/study-assignments` | `StudyAssignment` | `Create` | `[AccessPermission("StudyAssignment", "Create")]` | Ya |
+| `PUT attendance/study-assignments/{id}` | `StudyAssignment` | `Update` | `[AccessPermission("StudyAssignment", "Update")]` | Ya |
+| `POST attendance/study-assignments/{id}/cancel` | `StudyAssignment` | `Cancel` | `[AccessPermission("StudyAssignment", "Cancel")]` | Ya |
+| `GET attendance/device-incidents` | `AttendanceDeviceIncident` | `Read` | `[AccessPermission("AttendanceDeviceIncident", "Read")]` | Tidak |
+| `POST attendance/device-incidents` | `AttendanceDeviceIncident` | `Create` | `[AccessPermission("AttendanceDeviceIncident", "Create")]` | Ya |
+| `POST attendance/device-incidents/{id}/cancel` | `AttendanceDeviceIncident` | `Cancel` | `[AccessPermission("AttendanceDeviceIncident", "Cancel")]` | Ya |
+| `GET self-services/.../attendance-corrections/device-incident-options` | `MyAttendanceCorrection` | `Read` | `[AccessPermission("MyAttendanceCorrection", "Read")]` | Tidak |
+| `GET master-data/holidays*` | `Holiday` | `Read` | `[AccessPermission("Holiday", "Read")]` | Tidak |
+| `POST master-data/holidays` | `Holiday` | `Create` | `[AccessPermission("Holiday", "Create")]` | Ya |
+| `PUT`/`PATCH master-data/holidays/{id}` | `Holiday` | `Update` | `[AccessPermission("Holiday", "Update")]` | Ya |
+| `DELETE master-data/holidays/{id}` | `Holiday` | `Delete` | `[AccessPermission("Holiday", "Delete")]` | Ya |
+| `GET master-data/attendance-devices*` | `AttendanceDevice` | `Read` | `[AccessPermission("AttendanceDevice", "Read")]` | Tidak |
+| `POST master-data/attendance-devices` | `AttendanceDevice` | `Create` | `[AccessPermission("AttendanceDevice", "Create")]` | Ya |
+| `PUT`/`PATCH master-data/attendance-devices/{id}` | `AttendanceDevice` | `Update` | `[AccessPermission("AttendanceDevice", "Update")]` | Ya |
+| `DELETE master-data/attendance-devices/{id}` | `AttendanceDevice` | `Delete` | `[AccessPermission("AttendanceDevice", "Delete")]` | Ya |
+| `GET attendance/dashboard*` | `AttendanceDashboard` | `Read` | `[AccessPermission("AttendanceDashboard", "Read")]` | Tidak |
+| `GET attendance/reports/{reportCode}` | `AttendanceReport` | `Read` | `[AccessPermission("AttendanceReport", "Read")]` | Tidak |
+| `GET attendance/reports/{reportCode}/export` | `AttendanceReport` | `Export` | `[AccessPermission("AttendanceReport", "Export")]` | **Ya** — pengecualian aturan "GET tidak dicatat", karena `HRD-DEC-206` mewajibkan setiap ekspor tercatat |
+| `GET self-services/.../my-schedule`, `/unit-roster` | `MySchedule` | `Read` | `[AccessPermission("MySchedule", "Read")]` | Tidak |
+
+**Penanda tanpa endpoint** (`[assembly: AccessExplicitPermission(...)]`):
+
+| Resource | Action | Arti |
+| --- | --- | --- |
+| `RosterPeriod` | `ManageAllUnits` | Mengelola roster semua unit |
+| `AttendanceReport` | `ReadAllUnits` | Membaca dashboard, laporan, roster, dan dispensasi semua unit |
+
+### 30.2 Matriks peran dan tindakan
+
+| Tindakan | Kepala Unit | Kepala Bidang | Admin HRD | Petugas IT | Unit pemanggil siaga | Pegawai |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Ubah roster terbit (Ganti Petugas, tambah, hapus, koreksi ≤ 3 hari) | Unit sendiri | 403 | Bila diberi `ManageAllUnits` | 403 | 403 | 403 |
+| Lihat Riwayat Revisi | Unit sendiri | Unit di bawahnya | Semua (`ReadAllUnits`) | 403 | 403 | 403 |
+| Kelola cadangan siaga | Unit sendiri (staf penunjang) | 403 | Ya | 403 | 403 | 403 |
+| Catat panggilan dan jawaban siaga | Ya | 403 | Ya | 403 | Ya | 403 |
+| Ajukan dispensasi | Atas nama pegawai unitnya | 403 | 403 | 403 | 403 | Untuk diri sendiri |
+| Setujui/tolak dispensasi | Bila tercatat sebagai atasan langsung | Bila atasan langsung | 403 | 403 | 403 | 403 |
+| Catat tugas belajar | 403 | 403 | Ya | 403 | 403 | 403 |
+| Catat gangguan mesin | 403 | 403 | Ya | Ya | 403 | 403 |
+| Kelola daftar mesin | 403 | 403 | 403 | Ya | 403 | 403 |
+| Kelola hari libur | 403 | 403 | Ya | 403 | 403 | 403 |
+| Dashboard dan laporan | Unit sendiri | Unit di bawahnya | Semua | 403 | 403 | 403 |
+| Ekspor laporan | Unit sendiri | Unit di bawahnya | Semua | 403 | 403 | 403 |
+| Jadwal Saya | Ya | Ya | Ya | Ya | Ya | Ya |
+| Penempatan sementara (penugasan tambahan) | 403 | 403 | Ya (hak `WfpOrganizationAssignment` yang ada) | 403 | 403 | 403 |
+
+Auditor, petugas payroll, dan direksi dapat diberi `AttendanceReport : Read`/`Export` dan
+`ReadAllUnits` sesuai kebutuhan (`HRD-ASM-79`).
+
+### 30.3 Jejak audit
+
+Ditulis lewat `LoggerService.AuditAsync`. **Isi ditulis di teks pesan**, karena metode itu tidak
+menyimpan objek payload. Kolom bertanda sensitif pada kamus data bagian 27 tidak pernah masuk.
+
+| Kejadian | Isi teks pesan | Tidak boleh dimuat |
+| --- | --- | --- |
+| Perubahan roster terbit | Jenis perubahan, ID shift, tanggal, ID pegawai sebelum/sesudah, kategori alasan, pelaku | `ReasonNote` |
+| Catat/jawab/kedaluwarsa/selesai panggilan siaga | ID penugasan, ID panggilan, status baru, pelaku, jam | `CallReason`, `DeclineReason` |
+| Dispensasi diajukan/disetujui/ditolak/dibatalkan | ID dispensasi, ID pegawai, tanggal, status baru, pelaku | `Reason` |
+| Tugas belajar dicatat/diubah/dibatalkan | ID, ID pegawai, tanggal mulai/selesai, pelaku | — |
+| Gangguan mesin dicatat/dibatalkan | ID kejadian, ID mesin, rentang jam, pelaku | — |
+| Mesin didaftarkan/diaktifkan | ID mesin, jumlah scan tertahan yang dilepas, pelaku | — |
+| Setelan kehadiran diubah | Nilai lama dan baru toleransi serta jendela, pelaku | — |
+| **Ekspor laporan** | Kode laporan, filter (unit, rentang tanggal, status), jumlah baris, pelaku, waktu | Isi baris |

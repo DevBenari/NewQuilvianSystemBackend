@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Capability-map revision | `1.3` — **revisi `1.3` (3 November 2026) menambah bagian 15: impact scan HR di luar Workforce Core dan Perencanaan Tenaga Kerja (`S-D1`) pada BE `26066c76` / FE `66b7e5600`.** Revisi `1.2` — **revisi `1.2` (2 November 2026) menambah bagian 14: impact scan terbatas Workforce Core & Employee 360 pada BE `396c8363` / FE `9c4000724`.** Revisi `1.1` — revisi `1.0` 27 Agustus 2026; revisi `1.1` hari yang sama **menarik `HRD-TF-001`** yang terbukti temuan palsu, dan menaikkan `HRD-CAP-26` dari `REPAIR` menjadi `READY TO REUSE` |
-| Status | `source-audited`. **Sejak revisi `1.3`, keadaan bukti setiap baris `HRD-CAP-01` s.d. `HRD-CAP-27` tercatat pada bagian 15.3** (14 `CURRENT`, 13 `STALE`); bagian 14 diperiksa ulang terbatas pada bagian 15.4; `S-D1` diaudit mendalam pada bagian 15.5 pada HEAD 3 November 2026. Dokumen ini **belum** menyatakan modul siap dibangun dan **belum** menyatakan siap produksi |
+| Capability-map revision | `1.4` — **revisi `1.4` (12 November 2026) menambah bagian 16: impact scan Penjadwalan (`S-B4`) dan Kehadiran (`S-B1`) untuk 12 menu `PRD-HRD-PK-001` dan keputusan `HRD-DEC-194` s.d. `HRD-DEC-214`, pada BE `a437ae42` / FE `6a5658269`; baris baru `HRD-CAP-67` s.d. `HRD-CAP-91`, pertanyaan penutup `HRD-CQ-01` s.d. `HRD-CQ-04`.** Revisi `1.3` — **revisi `1.3` (3 November 2026) menambah bagian 15: impact scan HR di luar Workforce Core dan Perencanaan Tenaga Kerja (`S-D1`) pada BE `26066c76` / FE `66b7e5600`.** Revisi `1.2` — **revisi `1.2` (2 November 2026) menambah bagian 14: impact scan terbatas Workforce Core & Employee 360 pada BE `396c8363` / FE `9c4000724`.** Revisi `1.1` — revisi `1.0` 27 Agustus 2026; revisi `1.1` hari yang sama **menarik `HRD-TF-001`** yang terbukti temuan palsu, dan menaikkan `HRD-CAP-26` dari `REPAIR` menjadi `READY TO REUSE` |
+| Status | `source-audited`. **Untuk area 12 menu Penjadwalan & Kehadiran, bacaan yang berlaku adalah bagian 16 (revisi `1.4`, BE `a437ae42` / FE `6a5658269`).** **Sejak revisi `1.3`, keadaan bukti setiap baris `HRD-CAP-01` s.d. `HRD-CAP-27` tercatat pada bagian 15.3** (14 `CURRENT`, 13 `STALE`); bagian 14 diperiksa ulang terbatas pada bagian 15.4; `S-D1` diaudit mendalam pada bagian 15.5 pada HEAD 3 November 2026. Dokumen ini **belum** menyatakan modul siap dibangun dan **belum** menyatakan siap produksi |
 | Tanggal audit | 27 Agustus 2026 (`Asia/Jakarta`) |
 | Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `0`, status `draft`, SHA-256 `f3e2a1633449210d69d1cd1e10cc11972670a2818563c5f53269caf33f005067` |
 | Decision ID yang dirujuk | `HRD-DEC-003`, `HRD-DEC-004`, `HRD-DEC-005`, `HRD-DEC-006`, `HRD-DEC-007`; pertanyaan `HRD-Q-01`, `HRD-Q-03`, `HRD-Q-05` |
@@ -1079,3 +1079,299 @@ empat sisanya dicatat `HRD-TF-035`.
 - Klaim selesai `S-A1` tidak dinilai. Itu pekerjaan `verify-module-readiness`.
 - Checker QBE tidak dijalankan.
 - Tidak ada arsitektur target, kontrak target, maupun roadmap yang dibuat.
+
+---
+
+## 16. Impact Scan — Penjadwalan (`S-B4`) dan Kehadiran (`S-B1`) sesudah Amendment Pass bagian 52, 12 November 2026 (revisi `1.4`)
+
+### 16.1 Batas scan
+
+| Field | Nilai |
+| --- | --- |
+| Mode | **Impact scan terbatas.** Hanya kemampuan yang disentuh 12 menu `PRD-HRD-PK-001` dan keputusan `HRD-DEC-194` s.d. `HRD-DEC-214` |
+| Backend | `NewQuilvianSystemBackend` commit `a437ae42` (branch `yoga`) |
+| Frontend | `QuilvianSystemFrontendDev` commit `6a5658269` (branch `YogaV2`) |
+| Masukan bisnis | `00-interview-decisions.md` revision `36` (bagian 52), SHA-256 `f2cbab3243055a6359399d16190210e2e1f7b453fb4bbb5fc3aa3d222ec2b174` |
+| Kontrak yang berlaku | `contract_versions: v25` pada manifest; `contract_status_s_b1` dan `contract_status_s_b4` = `approved` |
+| Cara audit | Pembacaan statis model, service, controller, rute, atribut hak akses, service frontend, view, dan menu sidebar. **Tidak** ada build, tidak ada eksekusi database, tidak ada perubahan source |
+| Batas tulis | Hanya dokumen ini |
+
+**Cara membaca bukti.** `BE@a437ae42 path:baris` berarti berkas di repository
+`NewQuilvianSystemBackend` pada commit `a437ae42`, baris tersebut. `FE@6a5658269` untuk
+`QuilvianSystemFrontendDev`. Path backend dimulai dari `Areas/Corporate/HumanResource/` bila
+tidak disebut lain.
+
+### 16.2 Jawaban pertanyaan audit bagian 52.7
+
+#### (1) Riwayat Ganti Petugas terhadap `HRD-DEC-195`
+
+**Fakta.**
+
+- Ganti Petugas langsung menyimpan satu baris `TrxShiftReplacement` berisi petugas asal,
+  petugas pengganti, kategori alasan, alasan, pelaku, dan waktu
+  (`BE@a437ae42 SchedulingManagement/Services/ShiftReplacementService.cs:387-410`).
+- Petugas asal diambil dari `OriginalEmployeeId ?? WorkforceProfileId`
+  (`ShiftReplacementService.cs:369`). Artinya, pada penggantian kedua, kolom "petugas asal"
+  berisi **petugas rencana awal**, bukan petugas tepat sebelumnya.
+- Koreksi mundur (`POST /{id}/retroactive-correct`) **menimpa** shift, jam mulai, dan jam
+  selesai, lalu hanya menulis teks `OverrideReason`. Nilai lama **tidak disimpan** di tabel mana
+  pun; `OldShiftId` hanya dikirim ke pemroses kehadiran (`ShiftReplacementService.cs:502-534`).
+- Status periode dipaksa `Published` sesudah penggantian (`ShiftReplacementService.cs:382`).
+
+**Contoh.** Roster 14 Februari: Budi diganti Tono pukul 19.00, lalu Tono diganti Andi pukul 20.00.
+Baris riwayat kedua tertulis "Budi → Andi", sehingga "Tono → Andi" hanya bisa disimpulkan dari
+urutan baris. Bila keesokan harinya Sari mengoreksi mundur shift Andi dari Malam ke Siang, tidak
+ada baris riwayat yang mencatat jadwal lama "Malam".
+
+**Kesimpulan.** `Extend`. Butir 3 `HRD-DEC-195` (nilai sebelum dan sesudah per perubahan) belum
+terpenuhi untuk koreksi mundur, dan "petugas sebelum" perlu diturunkan dari urutan baris.
+
+#### (2) Label status harian untuk satu scan dan nol scan, serta isi pratinjau tutup periode
+
+**Fakta.**
+
+- Satu scan → `IncompletePunch` dengan alasan "Hanya tercatat 1 tap"
+  (`AttendanceManagement/Services/AttendanceProcessingService.cs:1050-1053`). Ini cocok dengan
+  "Belum Lengkap" pada `HRD-DEC-197`; yang perlu hanya label tampilan.
+- Nol scan pada hari kerja yang jadwalnya terbaca → **langsung `Absent`** begitu diproses, tanpa
+  memeriksa apakah shift sudah selesai (`AttendanceProcessingService.cs:1041-1045`). Tidak ada
+  status "Belum Hadir" maupun "Tidak Ada Scan" di daftar konstanta
+  (`AttendanceManagement/Constants/AttendanceValueConstants.cs:36-48`).
+- Tutup periode mengubah setiap `IncompletePunch` menjadi `Absent` **tanpa membaca** setelan
+  `AutoConvertIncompleteToAbsent` (`AttendanceManagement/Services/AttendancePeriodService.cs:363-371`).
+  Setelan itu, bersama `GracePeriodMinutes` dan `MaxBackdatedCorrectionDays`, tidak dibaca di
+  mana pun selain service setelannya sendiri.
+- Pratinjau tutup periode hanya memberi **jumlah** hari `IncompletePunch` dan peringatan, bukan
+  daftar nama, tanggal, dan unit (`AttendancePeriodService.cs:677`, `:742`, `:767`).
+
+**Contoh.** Shift Pagi Budi 10 Februari 07.00–14.00. Bila pemrosesan berjalan pukul 09.00 dan
+Budi belum scan, rekapnya sudah `Absent`. Menurut `HRD-DEC-207`, seharusnya "Belum Hadir".
+
+**Kesimpulan.** `Repair` untuk nol scan (`HRD-DEC-207`) dan setelan konversi yang diabaikan;
+`Extend` untuk daftar pratinjau (`HRD-DEC-197` butir 3).
+
+#### (3) Pemasangan scan ke shift dan scan di luar jendela
+
+**Fakta.**
+
+- Jendela pengambilan scan dihitung dari jadwal: mulai `max(240 menit, EarlyCheckInMinutes)`
+  sebelum shift, berakhir `max(480 menit, LateCheckOutMinutes)` sesudah shift atau batas kerja
+  maksimum kebijakan (`AttendanceProcessingService.cs:20-21`, `:1516-1545`). Angka 240 dan 480
+  **ditulis mati** di kode.
+- `EarlyCheckInMinutes` dan `LateCheckOutMinutes` berasal dari `MstGracePeriodPolicy` yang
+  ditautkan lewat `MstAttendancePolicy` per jadwal kerja atau global
+  (`AttendanceManagement/Services/AttendanceScheduleResolverService.cs:472-545`).
+- Scan di luar jendela **tidak** diambil dan tetap berstatus terbuka di log mesin. Scan itu
+  **tidak** dibuatkan baris `HrdAttendanceException`; daftar pengecualian yang ada hanya
+  `ScheduleMismatch`, `ScheduleConflict`, `MissingCheckIn`, `MissingCheckOut`, `Absent`, `Late`,
+  `EarlyLeave`, `ExcessiveWorkHours`, `OutsideGeofence`, dan `DuplicatePunch`
+  (`AttendanceProcessingService.cs:1087-1240`).
+- **Toleransi terlambat** dibaca dari `MstGracePeriodPolicy.LateCheckInGraceMinutes`, dengan
+  angka cadangan 10 yang ditulis mati bila kebijakan kosong (`AttendanceProcessingService.cs:986`).
+  Setelan `HrdAttendanceSetting.GracePeriodMinutes` **tidak dipakai** pemrosesan.
+
+**Contoh.** Admin HRD mengubah toleransi di layar setelan dari 10 menjadi 15 menit. Rina scan
+07.12 untuk shift 07.00. Pemrosesan tetap memakai 10 menit (cadangan kode), sehingga Rina
+tercatat terlambat 12 menit.
+
+**Kesimpulan.** `Conflict` antara mekanisme kebijakan per jadwal kerja di kode dan `HRD-DEC-196`/
+`HRD-DEC-211` (satu angka untuk seluruh rumah sakit). `Repair` untuk angka tertanam dan scan di
+luar jendela yang tidak masuk daftar pengecualian.
+
+#### (4) Penempatan sementara dan pemeriksaan `B3`
+
+**Fakta.**
+
+- Penempatan pegawai ke unit disimpan di `WfpOrganizationAssignment` milik sub-modul 02, dengan
+  jenis `Primary`, `Secondary`, `Acting`, **`Temporary`**, `Project`, `Functional`, tanggal
+  berlaku, dan tautan surat perintah `PersonnelActionOrderId`
+  (`WorkforceCore/Models/WfpOrganizationAssignment.cs:33-56`; API
+  `WorkforceCore/Controllers/WfpOrganizationAssignmentController.cs:23`).
+- "Isi pegawai otomatis" roster mengambil **semua** penempatan aktif pada unit periode, tanpa
+  membedakan jenis (`SchedulingManagement/Services/RosterPeriodService.cs:457-466`).
+- `RosterValidationService` **tidak** memuat pemeriksaan `B3`. Kode yang ada: `B1`, `B2`, `B4`,
+  `B5`, `B6`, `B7`, `W1`, `W4`, `W5`; `W2` dan `W3` ada tanpa kode aturan
+  (`SchedulingManagement/Services/RosterValidationService.cs:110-450`). `W6` dan `W7` juga tidak
+  ada.
+- `WfpWorkScheduleAssignment.IsTemporary` hanya dipakai resolver kehadiran untuk mendahulukan
+  jadwal tetap sementara (`AttendanceScheduleResolverService.cs:346`), bukan untuk roster.
+
+**Contoh.** Tono punya penempatan `Primary` di ICU dan `Temporary` di HCU 1–14 Maret. Isi pegawai
+otomatis roster ICU Maret dan roster HCU Maret sama-sama memasukkan Tono, dan tidak ada
+pemeriksaan yang menolak Tono dijadwalkan di ICU pada 5 Maret.
+
+**Kesimpulan.** `Reuse with adapter` untuk data penempatan (`Temporary` sudah ada). `Missing`
+untuk `B3`, dan aturan pengisian otomatis perlu menyaring unit asal selama penempatan sementara.
+
+#### (5) Scan dari mesin tak terdaftar
+
+**Fakta.**
+
+- Untuk sumber `Device`, scan tanpa identitas mesin ditolak (kode 400). Scan dengan identitas
+  mesin yang tidak ditemukan atau tidak aktif ditolak **dengan kode 404 dan tidak disimpan**
+  (`AttendanceManagement/Services/AttendanceRawLogService.cs:771-830`).
+- `MstAttendanceDevice` punya `DbSet` (`Repositories/ApplicationDbContext.cs:162`), tetapi
+  **tidak punya controller** dan **tidak punya seeder**.
+- Kiriman ganda dikenali lewat penanda `IsDuplicate` dan `EventHash`
+  (`AttendanceRawLogService.cs:1301`; `Models/HrdAttendanceRawLog.cs:61`).
+
+**Contoh.** Mesin GDB-01 belum terdaftar dan mengirim 50 scan. Kelima puluh scan ditolak kode 404
+dan hilang dari server. Menurut `HRD-DEC-212`, scan itu seharusnya disimpan dan ditahan.
+
+**Kesimpulan.** `Repair` untuk perlakuan scan mesin asing. `Missing` untuk API daftar mesin. Isi
+tabel mesin di database `Unknown` karena tidak diperiksa (butuh izin eksekusi database).
+
+### 16.3 Kontrak Bukti Kemampuan — 12 menu `PRD-HRD-PK-001`
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-CAP-67` | M03 susun, isi otomatis, salin, pola, periksa, terbit, tutup roster | HR (`S-B4`) | `BE@a437ae42 SchedulingManagement/Controllers/RosterPeriodController.cs:34-176` (hak akses `RosterPeriod`); `FE@6a5658269 src/app/hr/scheduling/roster/page.jsx`, `src/lib/services/hr/roster-scheduling-service.js` | `Extend` | Alur sesuai `HRD-DEC-194`; pemeriksaan belum lengkap (lihat `HRD-CAP-68`) | Sedang |
+| `HRD-CAP-68` | Pemeriksaan roster `B1`–`B8`, `W1`–`W7` | HR (`S-B4`) | `RosterValidationService.cs:110-450` | `Extend` | Tidak ada `B3`, `W6`, `W7`, `B8`; `W2`/`W3` tanpa kode aturan | **Tinggi** — pegawai mutasi atau tugas belajar bisa terjadwal |
+| `HRD-CAP-69` | Ganti Petugas langsung dengan pemeriksaan sama seperti terbit | HR (`S-B4`) | `ShiftReplacementService.cs:269-442`; `ShiftReplacementController.cs` `POST /{id}/replace` (`ShiftReplacement : Update`) | `Repair` | Tidak memanggil `RosterValidationService`; hanya memeriksa tabrakan, cuti, siap kerja, kontrak; **status kesiapan gagal dibaca dilewati** (seharusnya `B6` menolak); tanpa `B3`, `B7`, `W1`–`W7` | **Tinggi** — keselamatan pasien (`B7`) |
+| `HRD-CAP-70` | Riwayat Revisi per perubahan (`HRD-DEC-195`) | HR (`S-B4`) | `Models/TrxShiftReplacement.cs:13-73`; `ShiftReplacementService.cs:369`, `:502-534` | `Extend` | Koreksi mundur tidak menyimpan nilai lama; "petugas asal" = rencana awal | Sedang |
+| `HRD-CAP-71` | Tukar shift dan ubah jadwal oleh pegawai | HR (`S-B4`) | `Areas/SelfServices/HumanResource/Controllers/ShiftSwapSelfServiceController.cs`, `ScheduleChangeSelfServiceController.cs`; `FE@6a5658269 src/lib/services/hr/employee-self-service.js:92-107` | `Reuse with adapter` | Tanpa uji otomatis; jalur persetujuan belum diuji ujung ke ujung pada scan ini | Rendah |
+| `HRD-CAP-72` | Siaga, panggilan, cadangan (`HRD-DEC-198`, `204`, `205`) | HR (`S-B4`) | `OnCallAssignmentService.cs:391-462` (`POST /{id}/call-in`, `OnCallAssignment : Update`); `Models/TrxOnCallAssignment.cs:25-68`; `FE@6a5658269 src/app/hr/scheduling/on-call/page.jsx` | `Extend` | Satu penugasan hanya menyimpan satu panggilan (ditimpa), dicatat sekaligus dengan jam tiba; belum ada catatan panggilan, status jawab, cadangan, batas jawab per jenis siaga. Status tetap `Active` sudah sesuai `HRD-DEC-103` | Sedang |
+| `HRD-CAP-73` | Status harian: Belum Hadir, Tidak Ada Scan, Belum Lengkap, hari libur | HR (`S-B1`) | `AttendanceProcessingService.cs:1024-1070`; `AttendanceScheduleResolverService.cs:205-221`, `:447-469` | `Repair` | Nol scan langsung `Absent` (`HRD-DEC-207`); hari libur dipasang juga untuk pegawai roster sehingga pegawai roster yang tidak datang berstatus `Holiday` (`HRD-DEC-210` butir 3) | **Tinggi** — tuduhan alpa palsu dan alpa yang tersamar |
+| `HRD-CAP-74` | Jendela scan satu untuk RS + scan di luar jendela masuk pengecualian (`HRD-DEC-211`) | HR (`S-B1`) | `AttendanceProcessingService.cs:20-21`, `:676-712`, `:1516-1545` | `Repair` | Angka 240/480 tertanam; scan di luar jendela tidak masuk daftar pengecualian | Sedang |
+| `HRD-CAP-75` | Toleransi terlambat tunggal (`HRD-DEC-196`) | HR (`S-B1`) | `AttendanceProcessingService.cs:986`; `AttendanceScheduleResolverService.cs:472-545`; `AttendanceSettingService.cs:184-193` | `Conflict` | Kode membaca kebijakan per jadwal kerja (`MstGracePeriodPolicy`) dengan cadangan 10; setelan tunggal tidak dipakai | **Tinggi** — angka di layar setelan tidak berpengaruh |
+| `HRD-CAP-76` | Tutup periode, pratinjau, buka kembali (`HRD-DEC-197`, `199`) | HR (`S-B1`) | `AttendancePeriodController.cs:125-188` (`AttendancePeriod : Read/Close/Reopen`); `AttendancePeriodService.cs:297-415`, `:634-767`; `FE@6a5658269 src/lib/services/hr/attendance-management-service.js` (`getPeriodClosePreview`, `closePeriod`, `reopenPeriod`) | `Extend` | Pratinjau hanya jumlah; konversi mengabaikan setelan; belum menampilkan scan mesin tertahan (`HRD-ASM-81`) | Sedang |
+| `HRD-CAP-77` | Log mesin dan daftar mesin (`HRD-DEC-212`) | HR + IT | `AttendanceRawLogController.cs:146-239` (`AttendanceRawLog : Create/Update`); `AttendanceRawLogService.cs:771-830` | `Repair` | Scan mesin asing ditolak 404 dan hilang; tidak ada API daftar mesin; isi tabel mesin `Unknown` | **Tinggi** — scan pegawai bisa hilang tanpa jejak |
+| `HRD-CAP-78` | Koreksi presensi dan kejadian gangguan mesin (`HRD-DEC-202`) | HR (`S-B1`) | `AttendanceCorrectionController.cs`, `AttendanceCorrectionMonitoringController.cs`; ESS `src/app/self-services/human-resource/attendance-correction/page.jsx`; koreksi atas nama pegawai `attendance-management-service.js` `createOnBehalfCorrection` | `Extend` | Koreksi ada; konsep kejadian gangguan belum ada | Sedang |
+| `HRD-CAP-79` | Dispensasi (`HRD-DEC-200`) | HR (`S-B1`) | Tidak ditemukan konsep ini (`HRD-TF-065`) | `Missing` | Seluruhnya baru | Rendah |
+| `HRD-CAP-80` | Tugas belajar memblokir roster (`HRD-DEC-201`) | HR | Tidak ditemukan konsep ini (`HRD-TF-065`) | `Missing` | Seluruhnya baru, termasuk `B8` | Sedang |
+| `HRD-CAP-81` | Penugasan tambahan (`HRD-DEC-213`) | HR (02 + `S-B4`) | `WorkforceCore/Models/WfpOrganizationAssignment.cs:33-56`; `RosterPeriodService.cs:457-466` | `Reuse with adapter` | Pakai jenis `Temporary`; isi otomatis perlu menyaring unit asal; `B3` belum ada | Sedang |
+| `HRD-CAP-82` | Master hari libur (`HRD-DEC-210`) | HR | `MasterData/AttendanceAndSchedule/Models/MstHoliday.cs`; `ApplicationDbContext.cs:161`; dibaca resolver `AttendanceScheduleResolverService.cs:447-469` | `Extend` | Tidak ada API, layar, maupun seeder | Sedang |
+| `HRD-CAP-83` | Laporan dan ekspor M12 (`HRD-DEC-206`) | HR | Tidak ditemukan endpoint laporan/ekspor (`HRD-TF-061`) | `Missing` | Seluruhnya baru, termasuk log ekspor | Sedang |
+| `HRD-CAP-84` | Dashboard M01 (`HRD-DEC-208`) | HR | Ringkasan per modul ada: `AttendanceDailyController` `GET /summary`, `RosterPeriodController` `GET /summary`; tidak ada dashboard gabungan | `Extend` | Perlu agregasi per cakupan unit | Sedang |
+| `HRD-CAP-85` | Jadwal Saya (`HRD-DEC-209`) | HR (ESS) | `FE@6a5658269 src/lib/services/hr/employee-self-service.js:88` melempar galat; layar `src/app/self-services/human-resource/schedule/page.jsx` ada | `Missing` | Endpoint server belum ada; layar menunggu | Sedang |
+| `HRD-CAP-86` | M08 cuti, izin pulang cepat, dinas luar | HR (`S-B1`, `S-B2`) | Cuti: `LeaveManagement/Controllers/**` 17 controller + `src/app/hr/leave/**`; izin pulang cepat `EarlyLeavePermissionController.cs`; dinas luar `OfficialDutyRequestController.cs` | `Extend` | Izin pulang cepat dan dinas luar belum punya layar frontend | Sedang |
+| `HRD-CAP-87` | M09 lembur | HR (`S-B3`) | `OvertimeManagement/Controllers/**` 17 controller; `FE@6a5658269 src/components/view/hr/overtime/overtime-approvals-view.jsx:13-38` | `Extend` | Layar persetujuan memakai data contoh tertanam dan `currentUserId = "USER-SUPERVISOR-01"` | **Tinggi** — layar tampak bekerja tetapi bukan data nyata |
+| `HRD-CAP-88` | M10 kebutuhan tenaga | HR (`S-D1`) | `WorkforcePlanning/Controllers/HrdStaffingGapController.cs`, `HrdStaffingStandardController.cs`; pencarian `workforce-planning/staffing-` pada `FE@6a5658269 src/` tanpa hasil | `Extend` | Backend ada, layar belum | Sedang |
+| `HRD-CAP-89` | Grup menu 12 menu (`HRD-DEC-214`) | HR (FE) | `FE@6a5658269 src/utils/menu-sidebar/menu-items.jsx:675-947` (entri `/hr/attendance`, `/hr/scheduling/*`, `/hr/leave/*`, `/hr/overtime/*`) | `Extend` | Entri tersebar di beberapa grup; perlu disusun ulang tanpa mengubah route | Rendah |
+| `HRD-CAP-90` | Pemberitahuan perubahan jadwal dan siaga | Shared HR | `ShiftReplacementService.cs:414-429` (teks saja); `BE-HRD-314` 🟡 | `Extend` | Bergantung kanal lonceng `BE-HRD-314` | Sedang |
+| `HRD-CAP-91` | Bukti pengujian penjadwalan dan kehadiran | HR | `BE@a437ae42 Tests/` tanpa proyek uji HR; `FE@6a5658269 tests/unit/` tanpa uji roster, siaga, atau kehadiran | `Missing` | Tidak ada jaring pengaman untuk perbaikan `HRD-CAP-69`, `73`, `75`, `77` | **Tinggi** |
+
+**Rekap status (25 baris):** `Reuse with adapter` 2, `Extend` 13, `Repair` 4, `Conflict` 1, `Missing` 5,
+`Ready to reuse` 0, `Unknown` 0 (isi database dicatat terpisah pada 16.6).
+
+### 16.4 Temuan yang perlu tindakan
+
+| No | Temuan | Dampak di rumah sakit | Keputusan terkait |
+| ---: | --- | --- | --- |
+| 1 | Ganti Petugas melewati pemeriksaan bila status kesiapan gagal dibaca, dan tidak memeriksa `B7` | Perawat berstatus Didampingi bisa dijadikan pengganti di shift tanpa perawat Mandiri | `HRD-DEC-099` butir 6, `HRD-DEC-100`, `HRD-DEC-195` |
+| 2 | Nol scan langsung `Absent` saat diproses | Kepala Unit melihat pegawai alpa pada pukul 09.00 padahal shift belum selesai | `HRD-DEC-207` |
+| 3 | Hari libur dipasang untuk pegawai roster | Perawat ICU yang tidak datang pada 17 Agustus tercatat `Holiday`, bukan dicek kehadirannya | `HRD-DEC-210` |
+| 4 | Toleransi, setelan konversi, dan batas koreksi di layar setelan tidak dibaca pemrosesan | HRD mengubah angka di layar tetapi hasil hitung tidak berubah | `HRD-DEC-196`, `HRD-DEC-197` |
+| 5 | Scan mesin asing ditolak dan hilang | Scan pegawai Gedung B hari pertama mesin baru dipasang tidak bisa dipulihkan | `HRD-DEC-212` |
+| 6 | Koreksi mundur tanpa nilai lama | Auditor tidak bisa melihat jadwal sebelum koreksi | `HRD-DEC-195` |
+| 7 | Layar persetujuan lembur berisi data contoh | Supervisor mengira persetujuan tersimpan padahal tidak | Di luar scope bagian 52; dicatat untuk `S-B3` |
+
+### 16.5 Kontrak as-is yang disentuh
+
+Kode status yang mungkin muncul pada tabel di bawah: 400 isian salah; 403 tidak punya hak akses
+atau periode terkunci; 404 data tidak ditemukan (untuk log mesin: mesin tidak terdaftar); 409
+bentrok data (mis. satu identitas mesin cocok ke dua mesin aktif); 422 aturan bisnis menolak
+(mis. pengganti sedang cuti).
+
+#### HR Scheduling - Roster Period
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/roster-periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/populate-staff` | Mengisi daftar pegawai roster dari penempatan unit | `RosterPeriod : Create` | - | Ringkasan pegawai terisi |
+| `POST` | `/{id}/validate` | Menjalankan pemeriksaan blokir dan peringatan | `RosterPeriod : Update` | - | Hasil pemeriksaan per pegawai |
+| `POST` | `/{id}/publish` | Menerbitkan roster (memeriksa ulang) | `RosterPeriod : Update` | Alasan peringatan | Detail periode |
+| `POST` | `/{id}/close` | Menutup roster | `RosterPeriod : Update` | - | Detail periode |
+
+#### HR Scheduling - Shift Assignment & Replacement
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/shift-replacements`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/replace` | Ganti Petugas langsung pada roster terbit | `ShiftReplacement : Update` | Pengganti, kategori alasan, catatan | `DirectShiftReplacementResponse` |
+| `POST` | `/{id}/retroactive-correct` | Koreksi mundur jadwal | `ShiftReplacement : Update` | Shift baru, kategori alasan, catatan | `RetroactiveShiftCorrectionResponse` |
+
+#### HR Scheduling - On-Call Management
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/on-call-assignments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/call-in` | Mencatat satu pemanggilan beserta jam tiba | `OnCallAssignment : Update` | Jam panggil, jam tiba | `OnCallCallInResponse` |
+| `GET` | `/active-doctors` | Daftar dokter siaga aktif (dibaca Laboratorium, `INT-HR-39`) | `OnCallAssignment : Read` | Query | Daftar siaga aktif |
+
+#### HR Attendance - Period Management
+
+Base URL: `api/v1/corporate/human-resource/attendance/periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/close-preview` | Pratinjau sebelum tutup | `AttendancePeriod : Read` | - | `AttendancePeriodClosePreviewResponse` (jumlah, bukan daftar) |
+| `POST` | `/{id}/close` | Menutup periode dan mengubah `IncompletePunch` → `Absent` | `AttendancePeriod : Close` | Catatan | `AttendancePeriodActionResponse` |
+| `POST` | `/{id}/reopen` | Membuka kembali periode darurat | `AttendancePeriod : Reopen` | Alasan | `AttendancePeriodActionResponse` |
+
+#### HR Attendance - Raw Logs
+
+Base URL: `api/v1/corporate/human-resource/attendance/raw-logs`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Menerima satu scan | `AttendanceRawLog : Create` | Data scan | Detail log |
+| `POST` | `/batch` | Menerima banyak scan sekaligus | `AttendanceRawLog : Create` | Daftar scan | Hasil per baris |
+| `POST` | `/{id}/retry` | Mencocokkan ulang identitas pegawai | `AttendanceRawLog : Update` | - | Detail log |
+
+#### HR Attendance - Settings
+
+Base URL: `api/v1/corporate/human-resource/attendance-management/settings`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Membaca setelan kehadiran | `AttendanceSetting : Read` | - | Setelan |
+| `PUT` | `/` | Mengubah toleransi, batas koreksi, lampiran, konversi | `AttendanceSetting : Update` | Setelan | Setelan |
+
+Catatan: nilai `GracePeriodMinutes`, `MaxBackdatedCorrectionDays`, dan
+`AutoConvertIncompleteToAbsent` tersimpan lewat endpoint ini, tetapi tidak dibaca pemrosesan
+(16.2 butir 2 dan 3).
+
+### 16.6 Ketidakcocokan dan hal yang belum diketahui
+
+| Jenis | Isi | Bukti |
+| --- | --- | --- |
+| Dokumen basi | `roadmap/frontend-unfinished-work.md` (audit `FE@d09dc74`) mencatat `FE-HRD-088`–`101` belum dikerjakan, padahal `FE@6a5658269` sudah punya monitoring harian, drawer log mesin, pratinjau/tutup/buka kembali periode, koreksi atas nama pegawai, dan setelan | `src/components/view/hr/attendance/attendance-monitoring-view.jsx`, `RawPunchAuditDrawer.jsx`, `attendance-settings-view.jsx`; commit `c8a07c169` "gelombang 1" |
+| Frontend menunggu backend | Jadwal Saya melempar galat karena endpoint belum ada | `employee-self-service.js:88` |
+| `Unknown` — isi database | Apakah `MstAttendancePolicy`, `MstGracePeriodPolicy`, `MstAttendanceDevice`, dan `MstHoliday` sudah berisi data di devYoga atau server dev. Menentukan apakah toleransi sekarang 10 (cadangan kode) atau angka kebijakan, dan apakah scan sumber `Device` selama ini selalu ditolak | Tidak diperiksa; butuh izin eksekusi database baca-saja |
+
+### 16.7 Pertanyaan penutup untuk `/grill-me`
+
+Pertanyaan berikut tidak dijawab di sini. Semuanya menunggu keputusan pengguna.
+
+| ID | Pertanyaan | Mengapa perlu diputuskan | Memblokir |
+| --- | --- | --- | --- |
+| `HRD-CQ-01` | Kode sudah punya kebijakan toleransi dan jendela per jadwal kerja (`MstAttendancePolicy` + `MstGracePeriodPolicy`), sedangkan `HRD-DEC-196`/`211` memilih satu angka di setelan. Mekanisme per jadwal kerja dihentikan pemakaiannya (setelan menjadi satu-satunya sumber), atau setelan menjadi nilai bawaan yang boleh ditimpa kebijakan per jadwal? | `HRD-CAP-75` `Conflict`; pilihan kedua berarti meninjau ulang `HRD-DEC-196` | `DESIGN` |
+| `HRD-CQ-02` | Setelan `AutoConvertIncompleteToAbsent` saat ini diabaikan. Bila HRD mematikannya, apa yang terjadi pada hari "Belum Lengkap" saat periode ditutup: tetap `IncompletePunch` dan diteruskan ke payroll, atau periode tidak boleh ditutup? Atau setelan ini dihapus dan konversi selalu terjadi? | `HRD-DEC-197` butir 4 menyebut "selama setelan menyala" tanpa menetapkan perilaku saat mati | `DESIGN` |
+| `HRD-CQ-03` | Apakah koreksi mundur jadwal (`HRD-DEC-102`) juga wajib masuk Riwayat Revisi dengan nilai sebelum dan sesudah, sama seperti Ganti Petugas? | `HRD-DEC-195` butir 1 menyebut Ganti Petugas, tambah, dan hapus shift, tanpa menyebut koreksi mundur | `DESIGN` |
+| `HRD-CQ-04` | Bolehkah agen membaca isi tabel master kehadiran (`MstAttendancePolicy`, `MstGracePeriodPolicy`, `MstAttendanceDevice`, `MstHoliday`) di devYoga lewat kueri baca-saja? | Menutup `Unknown` 16.6 sebelum desain memilih jalur migrasi data | `DESIGN` (perlu izin, bukan keputusan bisnis) |
+
+### 16.8 Pemicu impact scan berikutnya
+
+- Ada commit baru pada `SchedulingManagement/**`, `AttendanceManagement/**`, atau
+  `WorkforceCore/Models/WfpOrganizationAssignment.cs`.
+- Ada migration baru yang menyentuh tabel `Trx*Roster*`, `TrxShift*`, `TrxOnCallAssignment`,
+  `HrdAttendance*`, atau `Mst*Attendance*`.
+- Ada perubahan pada `src/lib/services/hr/attendance-management-service.js`,
+  `roster-scheduling-service.js`, `on-call-service.js`, `employee-self-service.js`, atau
+  `src/utils/menu-sidebar/menu-items.jsx`.
+- Jawaban `HRD-CQ-01` s.d. `HRD-CQ-04`.
+
+### 16.9 Yang sengaja tidak dilakukan pada scan ini
+
+- Tidak ada build, tidak ada uji, tidak ada eksekusi database.
+- Tidak ada desain target, tabel baru, maupun endpoint baru. Kebutuhan yang `Missing` hanya
+  dicatat.
+- Aturan internal cuti (`S-B2`), lembur (`S-B3`), dan kebutuhan tenaga (`S-D1`) tidak diaudit
+  ulang; hanya titik sentuhnya dengan 12 menu.
+- Baris `HRD-CAP-01` s.d. `HRD-CAP-66` tidak diklasifikasi ulang. Baris yang tumpang tindih
+  (`HRD-CAP-04`, `05`, `07`, `08`, `09`) untuk area 12 menu digantikan bacaannya oleh
+  `HRD-CAP-67` s.d. `HRD-CAP-91`.

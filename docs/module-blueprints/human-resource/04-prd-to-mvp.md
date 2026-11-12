@@ -4025,3 +4025,479 @@ Sistem ini dirancang untuk:
 8. **Penegakan Sanksi Settlement Berjalan:** Pembekuan SPPD pada H+14 dan pemotongan payroll pada H+30 tereksekusi otomatis.
 9. **Kepatuhan Kontrak API v25:** Seluruh 24 endpoint API lulus uji Swagger dengan respon HTTP standar.
 10. **Kualitas Kode Standar Industri:** Kompilasi backend lulus `dotnet build` 0 warning dan frontend lulus `npm run lint:errors` & `npm run build` 0 error.
+
+---
+
+## 40. PRD → MVP Amandemen `S-B4`/`S-B1` — Penjadwalan & Kehadiran sesuai 12 menu Notion (`A52`, kontrak `v26`)
+
+### 40.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk | Quilvian V2 — Modul Human Resource |
+| Modul / slice | `human-resource` — amandemen `S-B4` Penjadwalan dan `S-B1` Kehadiran |
+| Status | `approved` — pengguna, 12 November 2026 ("Setujui apa adanya"); `DSG-Q-01` s.d. `DSG-Q-04` tetap terbuka dan tidak memblokir `MUST HAVE` |
+| Repository target | `NewQuilvianSystemBackend` (`a437ae42`, branch `yoga`), `QuilvianSystemFrontendDev` (`6a5658269`, branch `YogaV2`) |
+| `input_revision` | `00-interview-decisions.md` revision `37` (SHA-256 `df3cf67a…`); capability map revisi `1.4` (SHA-256 `d260d20f…`); `02-backend-architecture.md` bagian 35; kontrak `v26` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` (preseden bagian 19; tanpa konsep klinis baru) |
+| Ringkasan cakupan | Memperbaiki perilaku penjadwalan dan kehadiran yang melanggar keputusan, menambah Riwayat Revisi, Jadwal Saya, laporan, dan kemampuan baru dari 12 menu `PRD-HRD-PK-001` |
+
+### 40.2 Ringkasan eksekutif
+
+Kepala Ruangan, HRD, dan pegawai butuh satu jadwal resmi yang perubahannya tercatat, kehadiran
+yang tidak menuduh alpa sebelum waktunya, dan rekap bulanan yang dapat dipertanggungjawabkan.
+Sebagian besar sistemnya sudah dibangun, tetapi enam perilaku melanggar keputusan yang sudah
+disetujui, dan beberapa kemampuan yang diminta Notion belum ada. Amandemen ini menutup celah itu
+tanpa membangun ulang yang sudah berjalan.
+
+### 40.3 Masalah produk
+
+| Kondisi sekarang | Bukti |
+| --- | --- |
+| Ganti Petugas tidak menjalankan pemeriksaan lengkap; status kesiapan yang gagal dibaca malah dilewati | Capability map `HRD-CAP-69`; `ShiftReplacementService.cs:269-442` |
+| Menambah penugasan pada roster terbit menurunkan roster ke `Draft` | `RosterPeriodService.cs:391` |
+| Koreksi mundur tidak menyimpan jadwal lama | `HRD-CAP-70` |
+| Pegawai tanpa scan langsung `Absent` sebelum shift selesai | `HRD-CAP-73`; `AttendanceProcessingService.cs:1041-1045` |
+| Hari libur membuat pegawai roster yang tidak datang tercatat `Holiday` | `HRD-CAP-73` |
+| Angka toleransi di layar setelan tidak berpengaruh | `HRD-CAP-75`, `HRD-TF-068` |
+| Scan dari mesin yang belum terdaftar ditolak dan hilang; daftar mesin tidak bisa dikelola | `HRD-CAP-77`, `HRD-TF-069` |
+| Pegawai tidak bisa melihat jadwalnya sendiri | `HRD-CAP-85`; `employee-self-service.js:88` |
+| Tidak ada laporan maupun ekspor | `HRD-CAP-83` |
+| Yang sudah ada dan dipakai ulang: periode roster, pemeriksaan `B1`/`B2`/`B4`–`B7`, tukar shift, siaga, log mesin, rekap harian, koreksi, tutup/buka periode, cuti, lembur | `HRD-CAP-67`, `71`, `72`, `76`, `78`, `86`, `87` |
+
+### 40.4 Visi produk
+
+1. Kepala Unit menerbitkan roster yang lolos pemeriksaan.
+2. Setiap perubahan sesudah terbit langsung berlaku, lolos pemeriksaan yang sama, dan tercatat
+   di Riwayat Revisi.
+3. Pegawai melihat jadwal resminya di Jadwal Saya.
+4. Mesin absen terdaftar; scan masuk ke log tanpa ada yang hilang.
+5. Rekap harian menampilkan status yang jujur: "Belum Hadir", "Tidak Ada Scan", "Belum
+   Lengkap", bukan alpa sebelum waktunya.
+6. HRD menutup periode setelah melihat daftar yang akan menjadi `Absent`.
+7. Laporan bulanan diekspor ke Excel per cakupan unit, dan setiap ekspor tercatat.
+
+### 40.5 Batas MVP
+
+**Titik mulai:**
+
+1. Roster unit bergiliran sudah dapat disusun dan diterbitkan (sudah ada).
+2. Pegawai sudah punya penempatan unit dan atasan langsung di Workforce Core.
+3. Setelan kehadiran RSMMC ada (`HRD-TF-067`).
+
+**Titik akhir:**
+
+1. Satu unit bergiliran menjalankan roster satu bulan, termasuk Ganti Petugas, tambah/hapus
+   shift, dan koreksi mundur, dengan Riwayat Revisi lengkap.
+2. Scan dari mesin terdaftar diproses dengan toleransi dan jendela dari setelan.
+3. HRD menutup periode kehadiran bulan itu sesudah meninjau pratinjau berisi daftar.
+4. Kepala Unit dan HRD mengekspor laporan kehadiran bulan itu sesuai cakupan unitnya.
+5. Pegawai unit itu melihat jadwalnya di Jadwal Saya.
+
+### 40.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab dalam MVP |
+| --- | --- |
+| Kepala Unit | Menerbitkan dan mengubah roster unitnya, membaca laporan unitnya |
+| Kepala Bidang | Membaca roster, Riwayat Revisi, dan laporan unit di bawahnya |
+| Admin HRD | Setelan kehadiran, hari libur, tutup periode, laporan semua unit |
+| Petugas IT | Mendaftarkan mesin absen |
+| Pegawai | Melihat Jadwal Saya |
+
+### 40.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+| --- | --- | --- |
+| Cakupan unit di server | `HRD-CAP-67`, `HRD-CAP-84` | Wajib; tanpa ini Kepala Unit dapat mengubah unit lain dan laporan bocor lintas unit |
+| Ganti Petugas dengan pemeriksaan penuh | `HRD-CAP-69` | Wajib; keselamatan pasien (`B7`) dan `B6` gagal tertutup |
+| Pemeriksaan `B3`, `B8`, `W6`, `W7` | `HRD-CAP-68` | Wajib; tanpa `B3` pegawai mutasi tetap terjadwal |
+| Riwayat Revisi, tambah/hapus shift tanpa turun ke `Draft` | `HRD-CAP-70`, `HRD-CAP-67` | Wajib; syarat audit perubahan |
+| Status harian jujur dan hari libur hanya untuk jadwal tetap | `HRD-CAP-73` | Wajib; tanpa ini pegawai dituduh alpa |
+| Toleransi dan jendela dari setelan | `HRD-CAP-74`, `HRD-CAP-75` | Wajib; tanpa ini setelan HRD tidak berlaku |
+| Pratinjau tutup berisi daftar, konversi tanpa syarat setelan | `HRD-CAP-76` | Wajib; syarat penutupan yang dapat dipertanggungjawabkan |
+| Daftar mesin dan scan tertahan | `HRD-CAP-77` | Wajib; tanpa ini scan mesin hilang |
+| Master hari libur | `HRD-CAP-82` | Wajib; tanpa ini pegawai kantor "Tidak Ada Scan" pada tanggal merah |
+| Jadwal Saya | `HRD-CAP-85` | Wajib; pegawai tidak punya jalan lain melihat jadwal resmi di aplikasi |
+| Laporan dan ekspor | `HRD-CAP-83` | Wajib; titik akhir MVP |
+
+### 40.8 Kemampuan yang ditunda
+
+| Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Cadangan siaga dan catatan panggilan | `HRD-CAP-72` | Tidak memblokir satu bulan roster-kehadiran-tutup-laporan; endpoint `call-in` lama tetap mencatat panggilan dan jam tiba | Endpoint `call-in` lama; cadangan dikoordinasikan lewat telepon seperti sekarang |
+| Dispensasi | `HRD-CAP-79` | Butuh alur persetujuan baru; keterlambatan beralasan masih dapat diluruskan lewat koreksi presensi | Koreksi presensi dengan lampiran |
+| Tugas belajar | `HRD-CAP-80` | Jumlah pegawai tugas belajar sedikit dan diketahui Kepala Unit; tidak ada data yang hilang bila ditunda | Kepala Unit tidak menjadwalkan pegawai itu; kehadirannya dikoreksi HRD atas nama |
+| Kejadian gangguan mesin | `HRD-CAP-78` | Koreksi biasa dengan lampiran tetap tersedia | Koreksi presensi dengan lampiran foto/berita acara gangguan |
+| Dashboard | `HRD-CAP-84` | Data harian sudah terbaca di layar monitoring `/hr/attendance` | Layar monitoring harian yang ada |
+| Grup menu 12 menu | `HRD-CAP-89` | Menunggu `DSG-Q-01` dan `DSG-Q-02`; menu lama tetap menjangkau semua layar MVP | Sidebar SDM yang ada |
+
+### 40.9 Alur bisnis target (`FLOW-PK-MVP-001`)
+
+1. Admin HRD mengisi hari libur tahun berjalan dan meninjau setelan toleransi serta jendela scan.
+2. Petugas IT mendaftarkan mesin absen; scan yang sempat tertahan ikut diproses.
+3. Kepala Unit ICU menerbitkan roster Februari.
+4. Selama Februari Kepala Unit mengganti petugas, menambah, menghapus, dan mengoreksi mundur
+   shift; setiap perubahan lolos pemeriksaan dan tercatat di Riwayat Revisi.
+5. Pegawai ICU melihat jadwalnya di Jadwal Saya.
+6. Mesin mengirim scan; rekap harian menampilkan status jujur.
+7. Pada tanggal 20, HRD membuka pratinjau tutup periode, meninjau daftar "Belum Lengkap" dan
+   "Tidak Ada Scan", lalu menutup periode.
+8. Kepala Unit dan HRD mengekspor Laporan Kehadiran, Keterlambatan, dan Ketidakhadiran Februari.
+
+**Jalur tidak normal:** pemeriksaan blokir menolak perubahan (422); dua petugas mengubah shift
+yang sama (409); Kepala Bidang mencoba mengubah (403); setelan tidak terbaca (pemrosesan `Error`,
+diproses ulang); mesin belum terdaftar (scan tertahan, tidak hilang).
+
+### 40.10 Epic dan functional requirement
+
+#### `EPIC HRD-109` — Fondasi data dan cakupan unit (`MUST HAVE`)
+
+Disposisi: `MISSING / NEW` (tabel, penanda hak akses, `HrdUnitScopeService`), `EXTEND` (tiga
+kolom).
+
+> **FR-PK-001 — Migration amandemen.** Migration `AddSchedulingAttendanceAmendmentA52` membuat
+> enam tabel dan tiga kolom pada `02-backend-architecture.md` 35.6 tanpa mengubah kolom lama.
+> **Contoh:** sesudah migration, baris setelan RSMMC berisi `ScanWindowBeforeMinutes = 240` dan
+> `ScanWindowAfterMinutes = 480`, dan hasil hitung kehadiran tanggal kemarin tidak berubah bila
+> diproses ulang.
+
+> **FR-PK-002 — Cakupan kelola dan baca.** Sistem menolak dengan 403 setiap permintaan tulis
+> roster di luar cakupan kelola dan setiap permintaan baca di luar cakupan baca.
+> **Contoh:** Sari (ICU) mengubah roster HCU → 403; Pak Dodi (induk ICU/HCU) membaca roster HCU →
+> 200, mengubahnya → 403.
+
+#### `EPIC HRD-110` — Perubahan roster terbit dan Riwayat Revisi (`MUST HAVE`)
+
+Disposisi: `EXTEND` (`ShiftReplacementService`, `RosterValidationService`, `RosterPeriodService`),
+`MISSING / NEW` (`HrdShiftAssignmentRevision`, endpoint hapus shift dan riwayat).
+
+> **FR-PK-003 — Ganti Petugas dengan pemeriksaan penuh.** Ganti Petugas menjalankan `B1`–`B8`
+> dan `W1`–`W7`; `B6` menolak bila kesiapan tidak terbaca.
+> **Contoh:** pengganti Didampingi pada shift tanpa Mandiri → 422 `B7`, tidak ada perubahan.
+
+> **FR-PK-004 — Riwayat per perubahan.** Setiap Ganti Petugas, tambah, hapus, dan koreksi mundur
+> menulis satu baris riwayat dengan nilai sebelum dan sesudah dalam transaksi yang sama.
+> **Contoh:** Budi → Tono 19.04, lalu Tono → Andi 20.10: dua baris, baris kedua menulis Tono
+> sebagai petugas sebelumnya.
+
+> **FR-PK-005 — Roster tetap terbit.** Menambah penugasan pada roster `Published` tidak mengubah
+> status menjadi `Draft`.
+> **Contoh:** tambah shift Pagi 20 Feb untuk Rina pada roster terbit → status tetap
+> `Published`, riwayat `AddShift`.
+
+> **FR-PK-006 — Hapus shift terbit.** Kepala Unit menghapus satu shift dengan alasan wajib.
+> **Contoh:** hapus shift Siang 21 Feb Tono tanpa alasan → 400; dengan alasan → shift
+> `IsCancel`, riwayat `RemoveShift`.
+
+> **FR-PK-007 — Pemeriksaan tambahan.** `B3` (penempatan, termasuk penempatan sementara di unit
+> lain), `B8` (tugas belajar), `W6` (kuota dari standar `S-D1`), `W7` (skill-mix).
+> **Contoh:** standar ICU 3 per shift, Malam 10 Feb berisi 2 → peringatan `W6`.
+
+#### `EPIC HRD-111` — Status harian dan tutup periode yang jujur (`MUST HAVE`)
+
+Disposisi: `EXTEND`.
+
+> **FR-PK-008 — Belum Hadir dan Tidak Ada Scan.** Tanpa scan: `NotYetPresent` sebelum jam
+> selesai shift, `NoScan` sesudahnya; tidak pernah `Absent` sebelum tutup periode.
+> **Contoh:** shift 07.00–14.00 tanpa scan: pukul 09.00 "Belum Hadir", pukul 14.05 "Tidak Ada
+> Scan".
+
+> **FR-PK-009 — Hari libur hanya untuk jadwal tetap.**
+> **Contoh:** 17 Agt: Andi (jadwal tetap) `Holiday`; Sari (roster) tanpa scan `NoScan`.
+
+> **FR-PK-010 — Toleransi dan jendela dari setelan.**
+> **Contoh:** toleransi diubah 10 → 15; scan 07.12 untuk shift 07.00 tepat waktu.
+
+> **FR-PK-011 — Scan di luar jendela menjadi pengecualian.**
+> **Contoh:** jendela 240 menit; scan 02.30 untuk shift 07.00 → pengecualian `OutsideScanWindow`.
+
+> **FR-PK-012 — Pratinjau dan konversi.** Pratinjau memuat daftar nama, unit, tanggal yang
+> akan menjadi `Absent` dan jumlah scan tertahan; tutup selalu mengonversi `IncompletePunch`,
+> `Incomplete`, dan `NoScan`.
+> **Contoh:** pratinjau menampilkan "Rina — ICU — 10 Feb — Belum Lengkap"; sesudah tutup menjadi
+> `Absent`.
+
+#### `EPIC HRD-112` — Mesin absen dan hari libur (`MUST HAVE`)
+
+Disposisi: `EXTEND` (`AttendanceRawLogService`), `MISSING / NEW` (API mesin dan hari libur).
+
+> **FR-PK-013 — Scan mesin tak terdaftar ditahan.**
+> **Contoh:** 50 scan dari GDB-01 yang belum terdaftar tersimpan `AwaitingDeviceRegistration`;
+> tidak ada respons 404.
+
+> **FR-PK-014 — Pendaftaran mesin melepas scan tertahan.**
+> **Contoh:** GDB-01 didaftarkan pukul 10.00 → 50 scan diproses, status pegawai terisi.
+
+> **FR-PK-015 — Master hari libur.** Admin HRD menambah, mengubah, menonaktifkan hari libur
+> pada kalender kerja.
+> **Contoh:** tanggal di luar rentang kalender kerja 2027 → 400.
+
+#### `EPIC HRD-113` — Jadwal Saya (`MUST HAVE`)
+
+Disposisi: `MISSING / NEW` (endpoint), `EXTEND` (layar yang ada).
+
+> **FR-PK-016 — Jadwal sendiri dan roster unit.**
+> **Contoh:** Rina melihat Pagi 15 Feb dan Malam 18 Feb bertanda "Berubah"; di roster unit, Budi
+> yang cuti tampil "Libur"; roster Maret `Draft` tidak tampil.
+
+#### `EPIC HRD-114` — Laporan dan ekspor (`MUST HAVE`)
+
+Disposisi: `MISSING / NEW`.
+
+> **FR-PK-017 — Tujuh laporan dengan cakupan unit.**
+> **Contoh:** Kepala Unit ICU membuka Laporan Keterlambatan Februari: hanya pegawai ICU, dengan
+> label "periode masih terbuka" sebelum tanggal 20.
+
+> **FR-PK-018 — Ekspor Excel tercatat.**
+> **Contoh:** ekspor berisi 18 baris sama dengan layar; satu log berisi pelaku, waktu, kode
+> laporan, filter, jumlah baris; ekspor unit HCU oleh Kepala Unit ICU → 403.
+
+#### `EPIC HRD-115` — Cadangan siaga dan catatan panggilan (`POST-MVP`)
+
+Disposisi: `MISSING / NEW` (`HrdOnCallBackup`, `HrdOnCallCall`), `EXTEND` (`MstOnCallType`).
+FR: `FR-PK-019` catat panggilan dan jawaban; `FR-PK-020` kedaluwarsa sesudah batas jawab dan
+cadangan berikutnya; `FR-PK-021` ringkasan dari panggilan diterima pertama; `FR-PK-022` status
+penugasan tidak berubah. Rincian di `contracts/state-transition-matrix.md` 30.2.
+
+#### `EPIC HRD-116` — Dispensasi (`POST-MVP`)
+
+Disposisi: `MISSING / NEW`. FR: `FR-PK-023` ajukan/catat atas nama; `FR-PK-024` setujui hanya
+oleh atasan langsung yang ditetapkan server; `FR-PK-025` mengurangi menit terlambat tanpa
+mengubah log mesin.
+
+#### `EPIC HRD-117` — Tugas belajar (`POST-MVP`)
+
+Disposisi: `MISSING / NEW`. FR: `FR-PK-026` catat/ubah/batal dengan alasan; `FR-PK-027` status
+harian "Tugas Belajar". Pemeriksaan `B8` sudah masuk `FR-PK-007` dan aktif begitu data tersedia.
+
+#### `EPIC HRD-118` — Kejadian gangguan mesin (`POST-MVP`)
+
+Disposisi: `MISSING / NEW`, `EXTEND` (koreksi). FR: `FR-PK-028` catat kejadian tanpa membuat
+log; `FR-PK-029` koreksi merujuk kejadian tanpa lampiran bila jam di dalam rentang.
+
+#### `EPIC HRD-119` — Dashboard kehadiran (`POST-MVP`)
+
+Disposisi: `MISSING / NEW`. FR: `FR-PK-030` lima kartu per cakupan, dihitung saat dibuka;
+`FR-PK-031` setiap angka sama dengan jumlah baris rinciannya.
+
+#### `EPIC HRD-120` — Grup menu 12 menu Notion (`OPEN DECISION`)
+
+Disposisi: `OPEN DECISION` — menunggu `DSG-Q-01` dan `DSG-Q-02`. FR: `FR-PK-032` grup 12 menu,
+58 submenu, dua label dibetulkan, route lama tidak berubah. Tidak masuk gelombang mana pun.
+
+### 40.11 Model status yang diusulkan
+
+Rujukan lengkap: `contracts/state-transition-matrix.md` bagian 30.
+
+| Objek | Status | Invariant utama |
+| --- | --- | --- |
+| Periode roster | `Draft` → `Published` → `Closed` | Perubahan sesudah terbit tidak menurunkan ke `Draft`; `Closed` terkunci mutlak |
+| Rekap harian | `NotYetPresent`, `NoScan`, `IncompletePunch`, `Present`, `Late`, `EarlyLeave`, `Holiday` (jadwal tetap), `StudyAssignment`, ... → `Absent` hanya saat tutup | Tidak ada `Absent` sebelum tutup periode |
+| Log mesin | `AwaitingDeviceRegistration` → `Pending` → `Matched`/`Processed` | Tidak ada scan yang dibuang |
+| Panggilan siaga (`POST-MVP`) | `Sent` → `Accepted`/`Declined`/`Expired` → `Completed` | Status penugasan siaga tidak berubah |
+| Dispensasi (`POST-MVP`) | `Submitted` → `Approved`/`Rejected`/`Cancelled` | Penyetuju ≠ pegawai |
+
+### 40.12 Sasaran arsitektur
+
+| Kelompok | Isi | Rujukan |
+| --- | --- | --- |
+| Dipakai ulang | Roster, tukar shift, siaga, log mesin, rekap, koreksi, tutup/buka periode, penempatan sementara, atasan langsung, standar `S-D1`, `HrdNotification`, `LoggerService`, ClosedXML | 35.2 |
+| Diperluas | `HrdAttendanceSetting`, `MstOnCallType`, `HrdAttendanceCorrectionRequest`, sembilan service | 35.4 |
+| Baru | Enam tabel, `HrdUnitScopeService`, sembilan controller, dua penanda hak akses | 35.4, 35.5 |
+
+### 40.13 Sasaran kemampuan API
+
+Bagian dari `contracts/api-contract.md` bagian 32; tidak melebihinya. Hanya endpoint epic
+`MUST HAVE` yang dicantumkan.
+
+#### HR Scheduling - Roster Period
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/roster-periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/assignments` | Tambah penugasan tanpa turun ke `Draft` | `RosterPeriod : Create` | Penugasan + alasan | Detail penugasan | `EPIC HRD-110` | **Diubah** |
+| `POST` | `/{id}/shifts/{shiftAssignmentId}/remove` | Hapus shift terbit | `RosterPeriod : RemoveShift` | `RemovePublishedShiftRequest` | `ShiftRevisionResponse` | `EPIC HRD-110` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/revisions` | Riwayat Revisi | `RosterPeriod : Read` | Query | `PagedResult<ShiftRevisionResponse>` | `EPIC HRD-110` | **Rencana (belum tersedia)** |
+
+#### HR Scheduling - Shift Assignment & Replacement
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/shift-replacements`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/replace` | Ganti Petugas dengan pemeriksaan penuh dan riwayat | `ShiftReplacement : Update` | + `ExpectedWorkforceProfileId`, `WarningReasons[]` | + `RevisionId`, `Warnings[]` | `EPIC HRD-110` | **Diubah** |
+| `POST` | `/{id}/retroactive-correct` | Koreksi mundur dengan riwayat | `ShiftReplacement : Update` | Tetap | + `RevisionId` | `EPIC HRD-110` | **Diubah** |
+
+#### HR Attendance - Settings
+
+Base URL: `api/v1/corporate/human-resource/attendance-management/settings`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` / `PUT` | `/` | Setelan dengan jendela scan, tanpa pilihan konversi | `AttendanceSetting : Read` / `: Update` | Setelan | Setelan | `EPIC HRD-111` | **Diubah** |
+
+#### HR Attendance - Period Management
+
+Base URL: `api/v1/corporate/human-resource/attendance/periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/close-preview` | Pratinjau berisi daftar dan jumlah scan tertahan | `AttendancePeriod : Read` | — | Diperluas | `EPIC HRD-111` | **Diubah** |
+| `POST` | `/{id}/close` | Konversi tanpa syarat setelan | `AttendancePeriod : Close` | Tetap | Tetap | `EPIC HRD-111` | **Diubah** |
+
+#### HR Attendance - Raw Logs
+
+Base URL: `api/v1/corporate/human-resource/attendance/raw-logs`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/`, `/batch` | Scan mesin tak terdaftar ditahan, bukan 404 | `AttendanceRawLog : Create` | Tetap | Status per baris | `EPIC HRD-112` | **Diubah** |
+
+#### Corporate / Human Resource / Master Data / Attendance Device
+
+Base URL: `api/v1/corporate/human-resource/master-data/attendance-devices`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/`, `/unregistered`, `/{id}` | Daftar, mesin tak dikenal, detail | `AttendanceDevice : Read` | Query | Daftar/detail | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Daftarkan mesin dan lepas scan tertahan | `AttendanceDevice : Create` | `CreateAttendanceDeviceRequest` | `AttendanceDeviceResponse` | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+| `PUT` / `PATCH` | `/{id}`, `/{id}/status` | Ubah, aktif/nonaktif | `AttendanceDevice : Update` | DTO | `AttendanceDeviceResponse` | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id}` | Tandai terhapus | `AttendanceDevice : Delete` | — | — | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+
+#### Corporate / Human Resource / Master Data / Holiday
+
+Base URL: `api/v1/corporate/human-resource/master-data/holidays`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata`, `/`, `/{id}` | Baca | `Holiday : Read` | Query | Daftar/detail | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Tambah | `Holiday : Create` | `CreateHolidayRequest` | `HolidayResponse` | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+| `PUT` / `PATCH` | `/{id}`, `/{id}/status` | Ubah, aktif/nonaktif | `Holiday : Update` | DTO | `HolidayResponse` | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id}` | Tandai terhapus | `Holiday : Delete` | — | — | `EPIC HRD-112` | **Rencana (belum tersedia)** |
+
+#### Self Services / Human Resource / My Schedule
+
+Base URL: `api/v1/self-services/human-resource/my-schedule`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/`, `/unit-roster` | Jadwal sendiri dan roster unit | `MySchedule : Read` | Query | `List<MyScheduleDayResponse>`, `MyUnitRosterResponse` | `EPIC HRD-113` | **Rencana (belum tersedia)** |
+
+#### Corporate / Human Resource / Attendance Management / Attendance Report
+
+Base URL: `api/v1/corporate/human-resource/attendance/reports`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{reportCode}` | Tampilkan laporan | `AttendanceReport : Read` | Query | `PagedResult<AttendanceReportRow>` | `EPIC HRD-114` | **Rencana (belum tersedia)** |
+| `GET` | `/{reportCode}/export` | Ekspor `.xlsx` tercatat | `AttendanceReport : Export` | Query | Berkas | `EPIC HRD-114` | **Rencana (belum tersedia)** |
+
+### 40.14 Matriks kewenangan
+
+Rujukan string persis: `contracts/permission-audit-matrix.md` bagian 30.1. Untuk MVP:
+
+| Peran | String yang diberikan |
+| --- | --- |
+| Kepala Unit | `RosterPeriod : Read/Create/Update/RemoveShift`, `ShiftReplacement : Update`, `AttendanceReport : Read/Export`, `MySchedule : Read` |
+| Kepala Bidang | `RosterPeriod : Read`, `AttendanceReport : Read/Export`, `MySchedule : Read` |
+| Admin HRD | `AttendanceSetting : Read/Update`, `AttendancePeriod : Read/Close/Reopen`, `Holiday : Read/Create/Update/Delete`, `AttendanceReport : Read/Export/ReadAllUnits`, `MySchedule : Read` |
+| Petugas HR Scheduling (bila ada) | `RosterPeriod : ManageAllUnits` beserta aksi roster |
+| Petugas IT | `AttendanceDevice : Read/Create/Update/Delete` |
+| Pegawai | `MySchedule : Read` |
+
+Cakupan unit diperiksa server (35.9.1); hak di atas tidak memberi akses unit lain.
+
+### 40.15 Batas integrasi dan billing
+
+| Tidak dibuat oleh amandemen ini | Pemilik |
+| --- | --- |
+| Rupiah gaji, tunjangan shift, uang lembur | `S-B5` Payroll, `S-B3` Lembur |
+| Kontrak siaga ke Laboratorium | Tetap `INT-HR-39` tanpa perubahan |
+| Standar ketenagaan dan kompetensi | `S-D1`, `S-C2` (hanya dibaca) |
+| Penempatan pegawai | Workforce Core (hanya dibaca, ditambah pemberitahuan) |
+| Pemberitahuan ke HP, email, WhatsApp | Belum tersedia (`BE-HRD-314`); hanya lonceng dalam aplikasi |
+| Billing pasien | Tidak tersentuh |
+
+### 40.16 Guardrail regulasi
+
+1. Alasan sakit, surat dokter, dan diagnosis tidak tampil di laporan, ekspor, dashboard, roster
+   unit, maupun log (`HRD-DEC-112`, `HRD-DEC-206`).
+2. Alasan panggilan siaga dilarang memuat identitas pasien (`POST-MVP`).
+3. Jejak perubahan jadwal dan ekspor laporan wajib tersimpan untuk audit akreditasi dan
+   sengketa ketenagakerjaan.
+4. Angka jeda istirahat dan hari kerja berturut-turut tetap dari setelan HRD (`HRD-DEC-099`); cek
+   regulasi `HRD-Q-106` tetap milik HRD.
+
+### 40.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan | Bukti |
+| --- | --- | --- |
+| `NFR-PK-01` | Perubahan roster dan riwayatnya atomik | `AT-HRD-PK-01`, `AT-HRD-PK-02` |
+| `NFR-PK-02` | Dua pengubah bersamaan: satu menang, satu 409 | `AT-HRD-PK-04` |
+| `NFR-PK-03` | Cakupan unit diperiksa server, termasuk ekspor | `AT-HRD-PK-09`, `AT-HRD-PK-38` |
+| `NFR-PK-04` | Tidak ada angka tertanam untuk toleransi dan jendela | `AT-HRD-PK-24`, `AT-HRD-PK-25` |
+| `NFR-PK-05` | Shift lintas tengah malam dihitung sampai jam selesai hari berikutnya | `AT-HRD-PK-21` |
+| `NFR-PK-06` | Tidak ada scan yang dibuang | `AT-HRD-PK-29` |
+| `NFR-PK-07` | Ekspor dibatasi 92 hari agar tetap cepat | `VR-PK-28` |
+| `NFR-PK-08` | Koreksi tidak mengubah log mesin | `AT-HRD-PK-36` |
+
+### 40.18 Skenario UAT
+
+| ID | Epic | Kondisi awal | Langkah | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-PK-01` | `HRD-109` | Akun Sari (Kepala Unit ICU) | Buka roster HCU dan coba ubah | Ditolak "Anda tidak berwenang mengubah roster unit ini" |
+| `UAT-PK-02` | `HRD-109` | Akun Pak Dodi (Kepala Bidang) | Buka roster ICU, lalu coba Ganti Petugas | Roster terbaca; Ganti Petugas ditolak |
+| `UAT-PK-03` | `HRD-110` | Roster ICU Februari terbit | Ganti Budi dengan Tono pada Malam 14 Feb, alasan Sakit Mendadak | Tono terjadwal; roster tetap terbit; Riwayat Revisi memuat satu baris |
+| `UAT-PK-04` | `HRD-110` (gagal) | Rina berstatus Didampingi, shift Malam 18 Feb tanpa perawat Mandiri | Jadikan Rina pengganti pada shift itu | Ditolak dengan pesan `B7`; jadwal tidak berubah |
+| `UAT-PK-05` | `HRD-110` (gagal) | Tono penempatan sementara di HCU 1–14 Mar | Jadwalkan Tono di ICU 5 Mar | Ditolak "Tono ditempatkan di HCU 1–14 Maret 2027" |
+| `UAT-PK-06` | `HRD-110` | Roster terbit | Hapus shift Siang 21 Feb Tono dengan alasan | Shift hilang dari roster; Riwayat Revisi bertanda Hapus Shift; roster tetap terbit |
+| `UAT-PK-07` | `HRD-111` | Budi shift 07.00–14.00, belum scan | Buka rekap pukul 09.00 dan 14.05 | "Belum Hadir" lalu "Tidak Ada Scan"; tidak ada "Alpa" |
+| `UAT-PK-08` | `HRD-111` (gagal) | Admin HRD mengubah toleransi ke 15 menit | Rina scan 07.12 untuk shift 07.00 | Tepat waktu (bukti setelan berlaku); dengan toleransi lama 10 akan terlambat |
+| `UAT-PK-09` | `HRD-111` | Periode Februari, Rina "Belum Lengkap" 10 Feb | Buka pratinjau, lalu Tutup | Pratinjau menampilkan Rina; sesudah tutup statusnya Absent |
+| `UAT-PK-10` | `HRD-112` (gagal → pulih) | Mesin GDB-01 belum terdaftar | Pegawai scan pukul 07.00; IT mendaftarkan GDB-01 pukul 10.00 | Sebelum 10.00 pegawai "Belum Hadir" dan scan tertahan; sesudahnya status terisi tanpa scan ulang |
+| `UAT-PK-11` | `HRD-112` | 17 Agt libur nasional tercatat | Andi (jadwal kantor) dan Sari (roster) tidak scan | Andi "Libur Nasional"; Sari "Tidak Ada Scan" |
+| `UAT-PK-12` | `HRD-113` | Roster ICU Februari terbit, Maret masih draft | Rina buka Jadwal Saya | Februari tampil; Maret tidak tampil; cuti Budi tampil "Libur" |
+| `UAT-PK-13` | `HRD-113` (gagal) | Akun Rina | Panggil API jadwal dengan ID pegawai lain | Data orang lain tidak pernah dikirim |
+| `UAT-PK-14` | `HRD-114` | Periode Februari ditutup | Sari ekspor Laporan Keterlambatan ICU | Berkas Excel hanya ICU; jumlah baris sama dengan layar; ekspor tercatat |
+| `UAT-PK-15` | `HRD-114` (gagal) | Akun Sari | Ekspor laporan HCU | Ditolak; tidak ada berkas |
+
+### 40.19 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Migration `AddSchedulingAttendanceAmendmentA52` diterapkan di devYoga dan `Down()` teruji di salinan | Laporan task `EPIC HRD-109` |
+| Kepala Unit tidak dapat mengubah roster unit lain dan tidak dapat mengekspor unit lain | `UAT-PK-01`, `UAT-PK-15`, `AT-HRD-PK-09`, `AT-HRD-PK-38` |
+| Setiap perubahan roster terbit tercatat dengan nilai sebelum dan sesudah | `UAT-PK-03`, `UAT-PK-06`, `AT-HRD-PK-07` |
+| Ganti Petugas menolak `B7` dan `B6` | `UAT-PK-04`, `AT-HRD-PK-03` |
+| Roster tidak pernah turun ke `Draft` karena perubahan sesudah terbit | `AT-HRD-PK-05` |
+| Tidak ada status Alpa sebelum tutup periode | `UAT-PK-07`, `AT-HRD-PK-19` |
+| Setelan toleransi dan jendela berlaku | `UAT-PK-08`, `AT-HRD-PK-25` |
+| Tidak ada scan mesin yang hilang | `UAT-PK-10`, `AT-HRD-PK-29` |
+| Hari libur tahun berjalan dan seluruh mesin absen sudah dimasukkan | Rencana data master awal 35.8; tangkapan layar daftar |
+| Hak akses baru sudah diberikan ke jabatan sesuai 40.14 | Ekspor layar Akses Role |
+| Jadwal Saya menampilkan jadwal terbit tanpa data orang lain | `UAT-PK-12`, `UAT-PK-13` |
+| Laporan ekspor sama dengan layar dan tercatat | `UAT-PK-14`, `AT-HRD-PK-37` |
+| Kontrak Lab `INT-HR-39` tidak berubah | `AT-HRD-PK-15` |
+
+### 40.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+| --- | --- | --- |
+| `MVP-66` | `EPIC HRD-109` — migration, konstanta, cakupan unit, penanda hak akses | Desain bagian 35 dan kontrak `v26` disetujui |
+| `MVP-67` | `EPIC HRD-110`, `EPIC HRD-111`, `EPIC HRD-112` | `MVP-66` selesai |
+| `MVP-68` | `EPIC HRD-113`, `EPIC HRD-114` | `MVP-67` selesai |
+| `POST-MVP` | `EPIC HRD-115` s.d. `EPIC HRD-119` | Di luar rilis pertama amandemen |
+| — | `EPIC HRD-120` | Tidak dijadwalkan sampai `DSG-Q-01` dan `DSG-Q-02` dijawab |
+
+**Pertanyaan terbuka sebelum development lock:**
+
+| ID | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| --- | --- | :---: | --- | :---: |
+| `DSG-Q-01` | Empat belas submenu Notion jatuh ke layar yang sama dengan submenu lain atau berupa aksi di dalam layar (`03-frontend-architecture.md` 31.1). Pilihannya: (a) submenu itu menuju layar yang sama dengan tab atau filter berbeda, dianggap entri berbeda; (b) submenu itu tidak ditampilkan dan cukup diwakili submenu induknya; (c) dibuat layar terpisah untuk masing-masing | Pengguna | `EPIC HRD-120` tidak dapat dimulai | Ya, hanya untuk `EPIC HRD-120` (bukan `MUST HAVE`) |
+| `DSG-Q-02` | Submenu "Penugasan Tambahan" butuh daftar penempatan sementara lintas pegawai, sedangkan endpoint yang ada per pegawai. Dibuatkan endpoint daftar baca baru, atau submenu menuju layar surat perintah personel `/hr/personnel-action-orders`? | Pengguna | `EPIC HRD-120` | Ya, hanya untuk `EPIC HRD-120` |
+| `DSG-Q-03` | String hak akses kontrak `v10` (`HrdScheduling`, `HrdOnCall`) tidak dipakai kode. Ditandai `superseded` oleh `v26`? | Pengguna | Dokumen kontrak lama tetap menyesatkan pembaca | Tidak |
+| `DSG-Q-04` | Batas rentang laporan dan ekspor 92 hari (`VR-PK-28`) diterima? | Pengguna | Angka bisa diubah saat implementasi | Tidak |
+
+Tidak ada pertanyaan yang memblokir epic `MUST HAVE`. Dokumen ini boleh diteruskan ke
+`/plan-module-delivery` **sesudah** pengguna menyetujui desain bagian 35 dan kontrak `v26`.
