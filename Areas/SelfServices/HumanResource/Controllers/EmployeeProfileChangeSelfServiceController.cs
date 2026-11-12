@@ -24,9 +24,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
         AreaName = "SelfServices",
         ControllerName = "MyProfileChange",
         Description = "Employee self-service profile change request and generic workflow submission",
-        SortOrder = 9,
-        VisibleInRoleAccess = false,
-        IsSystemOnly = true)]
+        SortOrder = 9)]
     [Tags("Self Services / Human Resource / Profile Change")]
     public class EmployeeProfileChangeSelfServiceController : ControllerBase
     {
@@ -55,10 +53,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Read My Profile Change",
             Description = "Melihat metadata pengajuan perubahan profil",
             AccessType = AccessTypes.Read,
-            SortOrder = 1,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
         public IActionResult GetMetadata()
         {
             var metadata = _service.GetFilterMetadata();
@@ -80,10 +76,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Read My Profile Change",
             Description = "Melihat ringkasan perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
-            SortOrder = 1,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
         public async Task<IActionResult> GetSummary(
             CancellationToken cancellationToken)
         {
@@ -110,10 +104,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Read My Profile Change",
             Description = "Melihat daftar perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
-            SortOrder = 1,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -161,10 +153,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Read My Profile Change",
             Description = "Melihat detail perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
-            SortOrder = 1,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
         public async Task<IActionResult> GetById(
             Guid id,
             CancellationToken cancellationToken)
@@ -186,10 +176,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Read My Profile Change Workflow",
             Description = "Melihat workflow perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
-            SortOrder = 1,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
         public async Task<IActionResult> GetWorkflow(
             Guid id,
             CancellationToken cancellationToken)
@@ -217,10 +205,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Create My Profile Change",
             Description = "Membuat draft perubahan profil milik sendiri",
             AccessType = AccessTypes.Create,
-            SortOrder = 2,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 2)]
+        [AccessPermission("MyProfileChange", "Create")]
         public async Task<IActionResult> Create(
             [FromBody] CreateEmployeeProfileChangeSelfServiceRequest request,
             CancellationToken cancellationToken)
@@ -254,10 +240,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Update My Profile Change",
             Description = "Mengubah draft atau revisi perubahan profil milik sendiri",
             AccessType = AccessTypes.Update,
-            SortOrder = 3,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 3)]
+        [AccessPermission("MyProfileChange", "Update")]
         public async Task<IActionResult> Update(
             Guid id,
             [FromBody] UpdateEmployeeProfileChangeSelfServiceRequest request,
@@ -296,10 +280,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Submit My Profile Change",
             Description = "Submit perubahan profil ke generic workflow",
             AccessType = AccessTypes.Update,
-            SortOrder = 4,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 4)]
+        [AccessPermission("MyProfileChange", "Submit")]
         public async Task<IActionResult> Submit(
             Guid id,
             [FromBody] EmployeeProfileChangeSelfServiceSubmitRequest? request,
@@ -336,10 +318,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Cancel My Profile Change",
             Description = "Membatalkan atau menarik perubahan profil",
             AccessType = AccessTypes.Update,
-            SortOrder = 5,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 5)]
+        [AccessPermission("MyProfileChange", "Cancel")]
         public async Task<IActionResult> Cancel(
             Guid id,
             [FromBody] EmployeeProfileChangeWorkflowCancelRequest? request,
@@ -370,10 +350,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Read My Profile Change",
             Description = "Melihat data profil tenaga kerja saat ini untuk pengajuan perubahan",
             AccessType = AccessTypes.Read,
-            SortOrder = 1,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
         public async Task<IActionResult> GetCurrentProfile(
             CancellationToken cancellationToken)
         {
@@ -398,10 +376,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Upload My Profile Change Evidence",
             Description = "Mengunggah berkas bukti perubahan profil milik sendiri",
             AccessType = AccessTypes.Update,
-            SortOrder = 3,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 3)]
+        [AccessPermission("MyProfileChange", "Update")]
         public async Task<IActionResult> UploadEvidence(
             Guid id,
             [FromForm] EmployeeProfileChangeEvidenceUploadRequest request,
@@ -429,10 +405,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Download My Profile Change Evidence",
             Description = "Mengunduh berkas bukti perubahan profil milik sendiri",
             AccessType = AccessTypes.Read,
-            SortOrder = 1,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 1)]
+        [AccessPermission("MyProfileChange", "Read")]
         public async Task<IActionResult> DownloadEvidence(
             Guid id,
             CancellationToken cancellationToken)
@@ -476,10 +450,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Delete My Profile Change Evidence",
             Description = "Menghapus berkas bukti perubahan profil milik sendiri",
             AccessType = AccessTypes.Update,
-            SortOrder = 3,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 3)]
+        [AccessPermission("MyProfileChange", "Update")]
         public async Task<IActionResult> DeleteEvidence(
             Guid id,
             CancellationToken cancellationToken)
@@ -505,10 +477,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
             "Delete My Profile Change",
             Description = "Menghapus draft perubahan profil milik sendiri",
             AccessType = AccessTypes.Delete,
-            SortOrder = 6,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true)]
-        // Self-service: access controlled via [Authorize], context & ownership
+            SortOrder = 6)]
+        [AccessPermission("MyProfileChange", "Delete")]
         public async Task<IActionResult> Delete(
             Guid id,
             CancellationToken cancellationToken)
