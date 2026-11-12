@@ -23,32 +23,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public IQueryable<TrxPerformanceCycle> PerformanceCycles => 
-            _context.TrxPerformanceCycles.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformanceCycle> PerformanceCycles => 
+            _context.HrdPerformanceCycles.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxPerformanceGoal> PerformanceGoals => 
-            _context.TrxPerformanceGoals.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformanceGoal> PerformanceGoals => 
+            _context.HrdPerformanceGoals.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxPerformanceAppraisal> PerformanceAppraisals => 
-            _context.TrxPerformanceAppraisals.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformanceAppraisal> PerformanceAppraisals => 
+            _context.HrdPerformanceAppraisals.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxPerformanceAppraisalDetail> PerformanceAppraisalDetails => 
-            _context.TrxPerformanceAppraisalDetails.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformanceAppraisalDetail> PerformanceAppraisalDetails => 
+            _context.HrdPerformanceAppraisalDetails.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxPerformanceCalibrationSession> PerformanceCalibrationSessions => 
-            _context.TrxPerformanceCalibrationSessions.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformanceCalibrationSession> PerformanceCalibrationSessions => 
+            _context.HrdPerformanceCalibrationSessions.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxPerformanceImprovementPlan> PerformanceImprovementPlans => 
-            _context.TrxPerformanceImprovementPlans.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformanceImprovementPlan> PerformanceImprovementPlans => 
+            _context.HrdPerformanceImprovementPlans.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxPerformancePipActionLog> PerformancePipActionLogs => 
-            _context.TrxPerformancePipActionLogs.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformancePipActionLog> PerformancePipActionLogs => 
+            _context.HrdPerformancePipActionLogs.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxClinicalCareerLadderReview> ClinicalCareerLadderReviews => 
-            _context.TrxClinicalCareerLadderReviews.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdClinicalCareerLadderReview> ClinicalCareerLadderReviews => 
+            _context.HrdClinicalCareerLadderReviews.AsNoTracking().Where(x => !x.IsDelete);
 
-        public IQueryable<TrxPerformanceAppraisalDispute> PerformanceAppraisalDisputes => 
-            _context.TrxPerformanceAppraisalDisputes.AsNoTracking().Where(x => !x.IsDelete);
+        public IQueryable<HrdPerformanceAppraisalDispute> PerformanceAppraisalDisputes => 
+            _context.HrdPerformanceAppraisalDisputes.AsNoTracking().Where(x => !x.IsDelete);
 
         public IQueryable<MstKpiMetricCatalog> KpiMetricCatalogs => 
             _context.MstKpiMetricCatalogs.AsNoTracking().Where(x => !x.IsDelete);

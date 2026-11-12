@@ -40,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                     var now = DateTime.UtcNow;
 
                     // Cari sanksi aktif yang sudah melewati valid_until
-                    var expiredSanctions = await db.TrxDisciplinarySanctions
+                    var expiredSanctions = await db.HrdDisciplinarySanctions
                         .Where(x => x.Status == "Active" && x.ValidUntil <= now)
                         .ToListAsync(stoppingToken);
 
@@ -102,7 +102,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                     var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
                     var now = DateTime.UtcNow;
 
-                    var activeSuspensions = await db.TrxDisciplinarySuspensions
+                    var activeSuspensions = await db.HrdDisciplinarySuspensions
                         .AsNoTracking()
                         .Where(x => x.Status == "Active")
                         .ToListAsync(stoppingToken);
@@ -127,7 +127,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                                 Priority: isOverMaximum ? HrdNotificationPriorities.Critical : HrdNotificationPriorities.High,
                                 DeepLinkUrl: $"/hrd/employee-relations/suspensions/{suspension.Id}",
                                 SourceModule: "Hrd.EmployeeRelation.EMP-W2",
-                                ReferenceType: nameof(TrxDisciplinarySuspension),
+                                ReferenceType: nameof(HrdDisciplinarySuspension),
                                 ReferenceId: suspension.Id,
                                 DedupKey: $"EMP-W2|{suspension.Id:N}|{(isOverMaximum ? "D180" : "D150")}"),
                             stoppingToken);
@@ -323,7 +323,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                     var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
                     var today = DateTime.UtcNow.Date;
 
-                    var pendingChecklists = await db.TrxExitClearanceChecklists
+                    var pendingChecklists = await db.HrdExitClearanceChecklists
                         .AsNoTracking()
                         .Include(x => x.ClearanceProcess)
                         .Where(x => x.Status == "Pending" && x.ClearanceProcess != null && x.ClearanceProcess.OverallClearanceStatus == "InProgress")
@@ -345,7 +345,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                                 Priority: HrdNotificationPriorities.Normal,
                                 DeepLinkUrl: $"/hrd/employee-relations/exit-clearance/{group.Key}",
                                 SourceModule: "Hrd.EmployeeRelation.EMP-W5",
-                                ReferenceType: nameof(TrxExitClearanceProcess),
+                                ReferenceType: nameof(HrdExitClearanceProcess),
                                 ReferenceId: group.Key,
                                 DedupKey: $"EMP-W5|{group.Key:N}|{today:yyyyMMdd}"),
                             stoppingToken);
@@ -422,7 +422,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         private async Task LockActiveSuspensionsAsync(ApplicationDbContext db, IHrdNotificationService notifier, CancellationToken ct)
         {
             var now = DateTime.UtcNow;
-            var activeSuspensions = await db.TrxDisciplinarySuspensions
+            var activeSuspensions = await db.HrdDisciplinarySuspensions
                 .AsNoTracking()
                 .Where(x => x.Status == "Active" && x.IsSystemAccessRevoked && !x.IsDelete)
                 .ToListAsync(ct);
@@ -478,7 +478,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                             Priority: HrdNotificationPriorities.High,
                             DeepLinkUrl: $"/hrd/employee-relations/suspensions/{suspension.Id}",
                             SourceModule: "Hrd.EmployeeRelation.EMP-W6",
-                            ReferenceType: nameof(TrxDisciplinarySuspension),
+                            ReferenceType: nameof(HrdDisciplinarySuspension),
                             ReferenceId: suspension.Id,
                             DedupKey: $"EMP-W6-LOCK|{suspension.Id:N}|{user.Id:N}"),
                         ct);
@@ -513,7 +513,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
 
             foreach (var openLock in openLocks)
             {
-                var suspension = await db.TrxDisciplinarySuspensions
+                var suspension = await db.HrdDisciplinarySuspensions
                     .AsNoTracking()
                     .FirstOrDefaultAsync(s => s.SuspensionId == openLock.SuspensionId, ct);
 
@@ -559,7 +559,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                         Priority: HrdNotificationPriorities.Normal,
                         DeepLinkUrl: $"/hrd/employee-relations/suspensions/{openLock.SuspensionId}",
                         SourceModule: "Hrd.EmployeeRelation.EMP-W6",
-                        ReferenceType: nameof(TrxDisciplinarySuspension),
+                        ReferenceType: nameof(HrdDisciplinarySuspension),
                         ReferenceId: openLock.SuspensionId,
                         DedupKey: $"EMP-W6-RESTORE|{openLock.SuspensionId:N}|{user.Id:N}|{openLock.ActionAt:yyyyMMddHHmm}"),
                     ct);

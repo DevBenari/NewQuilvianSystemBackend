@@ -77,7 +77,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         public WfpOrganizationAssignment? OrganizationAssignment { get; set; }
         public ApplicationUser? ManagerUser { get; set; }
         public WfpPerformanceReview? PerformanceReview { get; set; }
-        public TrxPerformanceCycle? PerformanceCycle { get; set; }
+        public HrdPerformanceCycle? PerformanceCycle { get; set; }
         public MstWorkflowDefinition? WorkflowDefinition { get; set; }
         public ApplicationUser? SubmittedByUser { get; set; }
         public ApplicationUser? ApprovedByUser { get; set; }

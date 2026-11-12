@@ -66,7 +66,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
         public async Task<CalibrationSessionDto> CreateSessionAsync(CreateCalibrationSessionRequestDto dto, Guid createdBy, CancellationToken cancellationToken = default)
         {
-            var session = new TrxPerformanceCalibrationSession
+            var session = new HrdPerformanceCalibrationSession
             {
                 Id = Guid.NewGuid(),
                 PerformanceCycleId = dto.PerformanceCycleId,
@@ -155,7 +155,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
                         if (!hasPip)
                         {
-                            var pip = new TrxPerformanceImprovementPlan
+                            var pip = new HrdPerformanceImprovementPlan
                             {
                                 Id = Guid.NewGuid(),
                                 PerformanceAppraisalId = app.Id,

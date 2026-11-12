@@ -8,7 +8,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<MstOppeMetricCatalog> builder)
         {
-            builder.ToTable("mst_oppe_metric_catalogs", "public");
+            builder.ToTable("MstOppeMetricCatalog", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime)

@@ -99,7 +99,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         #region 2. EVALUATION PERIOD
         public async Task<List<OppeEvaluationPeriodDto>> GetEvaluationPeriodsAsync(int? year = null, CancellationToken cancellationToken = default)
         {
-            var query = _context.TrxOppeEvaluationPeriods.AsNoTracking().Where(p => !p.IsDelete);
+            var query = _context.HrdOppeEvaluationPeriods.AsNoTracking().Where(p => !p.IsDelete);
 
             if (year.HasValue)
             {
@@ -111,7 +111,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             var result = new List<OppeEvaluationPeriodDto>();
             foreach (var p in list)
             {
-                var staffCount = await _context.TrxOppeStaffEvaluations
+                var staffCount = await _context.HrdOppeStaffEvaluations
                     .CountAsync(s => s.PeriodId == p.Id && !s.IsDelete, cancellationToken);
 
                 result.Add(new OppeEvaluationPeriodDto
@@ -144,14 +144,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 throw new InvalidOperationException($"Validasi VR-OPP-01 Gagal: Total bobot kuantitatif ({request.QuantitativeWeightPercentage}%) + kualitatif ({request.QualitativeWeightPercentage}%) wajib tepat 100.00%.");
             }
 
-            var exists = await _context.TrxOppeEvaluationPeriods
+            var exists = await _context.HrdOppeEvaluationPeriods
                 .AnyAsync(p => p.PeriodCode == request.PeriodCode && !p.IsDelete, cancellationToken);
             if (exists)
             {
                 throw new InvalidOperationException($"Periode evaluasi dengan kode '{request.PeriodCode}' sudah ada.");
             }
 
-            var period = new TrxOppeEvaluationPeriod
+            var period = new HrdOppeEvaluationPeriod
             {
                 Id = Guid.NewGuid(),
                 PeriodCode = request.PeriodCode.ToUpperInvariant(),
@@ -168,7 +168,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 IsDelete = false
             };
 
-            await _context.TrxOppeEvaluationPeriods.AddAsync(period, cancellationToken);
+            await _context.HrdOppeEvaluationPeriods.AddAsync(period, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
             return new OppeEvaluationPeriodDto
@@ -189,7 +189,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
         public async Task<int> InitiateStaffEvaluationsForPeriodAsync(Guid periodId, Guid initiatorId, CancellationToken cancellationToken = default)
         {
-            var period = await _context.TrxOppeEvaluationPeriods
+            var period = await _context.HrdOppeEvaluationPeriods
                 .FirstOrDefaultAsync(p => p.Id == periodId && !p.IsDelete, cancellationToken);
             if (period == null) throw new KeyNotFoundException("Periode OPPE tidak ditemukan.");
 
@@ -202,12 +202,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             var createdCount = 0;
             foreach (var doc in doctors)
             {
-                var alreadyExists = await _context.TrxOppeStaffEvaluations
+                var alreadyExists = await _context.HrdOppeStaffEvaluations
                     .AnyAsync(s => s.PeriodId == periodId && s.WorkforceProfileId == doc.Id && !s.IsDelete, cancellationToken);
 
                 if (!alreadyExists)
                 {
-                    var staffEval = new TrxOppeStaffEvaluation
+                    var staffEval = new HrdOppeStaffEvaluation
                     {
                         Id = Guid.NewGuid(),
                         PeriodId = periodId,
@@ -223,7 +223,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                         IsDelete = false
                     };
 
-                    await _context.TrxOppeStaffEvaluations.AddAsync(staffEval, cancellationToken);
+                    await _context.HrdOppeStaffEvaluations.AddAsync(staffEval, cancellationToken);
                     createdCount++;
                 }
             }
@@ -240,7 +240,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         #region 3. AGREGASI DATA KUANTITATIF SIMRS 60%
         public async Task<OppeStaffEvaluationDto> AggregateSimrsQuantitativeMetricsAsync(Guid staffEvaluationId, Guid actorId, CancellationToken cancellationToken = default)
         {
-            var evaluation = await _context.TrxOppeStaffEvaluations
+            var evaluation = await _context.HrdOppeStaffEvaluations
                 .Include(s => s.Period)
                 .Include(s => s.EvaluationDetails)
                 .FirstOrDefaultAsync(s => s.Id == staffEvaluationId && !s.IsDelete, cancellationToken);
@@ -294,7 +294,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
                 if (existingDetail == null)
                 {
-                    var detail = new TrxOppeStaffEvaluationDetail
+                    var detail = new HrdOppeStaffEvaluationDetail
                     {
                         Id = Guid.NewGuid(),
                         StaffEvaluationId = evaluation.Id,
@@ -308,7 +308,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                         CreateBy = actorId,
                         IsDelete = false
                     };
-                    await _context.TrxOppeStaffEvaluationDetails.AddAsync(detail, cancellationToken);
+                    await _context.HrdOppeStaffEvaluationDetails.AddAsync(detail, cancellationToken);
                 }
                 else
                 {
@@ -341,7 +341,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         public async Task<List<AssignedPeerReviewDto>> GetAssignedPeerReviewsAsync(Guid evaluatorWorkforceProfileId, CancellationToken cancellationToken = default)
         {
             // Ambil rapor staf yang sedang berstatus DRAFT atau EVALUATED_KSM di mana dokter evaluator bukan diri sendiri (VR-OPP-03)
-            var evaluations = await _context.TrxOppeStaffEvaluations
+            var evaluations = await _context.HrdOppeStaffEvaluations
                 .Include(s => s.Period)
                 .AsNoTracking()
                 .Where(s => !s.IsDelete && s.WorkforceProfileId != evaluatorWorkforceProfileId)
@@ -370,7 +370,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            var evaluation = await _context.TrxOppeStaffEvaluations
+            var evaluation = await _context.HrdOppeStaffEvaluations
                 .Include(s => s.EvaluationDetails)
                 .FirstOrDefaultAsync(s => s.Id == staffEvaluationId && !s.IsDelete, cancellationToken);
 
@@ -406,7 +406,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
                 if (existingDetail == null)
                 {
-                    var detail = new TrxOppeStaffEvaluationDetail
+                    var detail = new HrdOppeStaffEvaluationDetail
                     {
                         Id = Guid.NewGuid(),
                         StaffEvaluationId = evaluation.Id,
@@ -419,7 +419,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                         CreateBy = request.EvaluatorWorkforceProfileId,
                         IsDelete = false
                     };
-                    await _context.TrxOppeStaffEvaluationDetails.AddAsync(detail, cancellationToken);
+                    await _context.HrdOppeStaffEvaluationDetails.AddAsync(detail, cancellationToken);
                 }
                 else
                 {
@@ -452,7 +452,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         #region 5. COMPOSITE SCORE & LIFECYCLE FINALIZATION
         public async Task<OppeStaffEvaluationDto> GetStaffEvaluationByIdAsync(Guid staffEvaluationId, CancellationToken cancellationToken = default)
         {
-            var evaluation = await _context.TrxOppeStaffEvaluations
+            var evaluation = await _context.HrdOppeStaffEvaluations
                 .Include(s => s.Period)
                 .Include(s => s.EvaluationDetails)
                     .ThenInclude(d => d.MetricCatalog)
@@ -510,7 +510,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            var evaluation = await _context.TrxOppeStaffEvaluations
+            var evaluation = await _context.HrdOppeStaffEvaluations
                 .FirstOrDefaultAsync(s => s.Id == staffEvaluationId && !s.IsDelete, cancellationToken);
 
             if (evaluation == null) throw new KeyNotFoundException("Rapor evaluasi OPPE staf tidak ditemukan.");
@@ -530,7 +530,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            var evaluation = await _context.TrxOppeStaffEvaluations
+            var evaluation = await _context.HrdOppeStaffEvaluations
                 .FirstOrDefaultAsync(s => s.Id == staffEvaluationId && !s.IsDelete, cancellationToken);
 
             if (evaluation == null) throw new KeyNotFoundException("Rapor evaluasi OPPE staf tidak ditemukan.");
@@ -551,7 +551,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             return await GetStaffEvaluationByIdAsync(evaluation.Id, cancellationToken);
         }
 
-        private static void RecalculateCompositeScore(TrxOppeStaffEvaluation evaluation)
+        private static void RecalculateCompositeScore(HrdOppeStaffEvaluation evaluation)
         {
             // Formula baku OPP-B1: (Kuantitatif 60% maks + Kualitatif 40% maks) = 100%
             evaluation.FinalCompositeScore = evaluation.QuantitativeScore + evaluation.QualitativeScore;

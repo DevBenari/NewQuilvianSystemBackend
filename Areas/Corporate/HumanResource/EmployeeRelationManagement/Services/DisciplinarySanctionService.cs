@@ -84,7 +84,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 Instant: DateTimeOffset.UtcNow), cancellationToken);
             var sanctionNumber = $"{request.SanctionLevel}/HRD/{DateTime.UtcNow:MM/yyyy}/{EmployeeRelationNumberSeries.TrailingSequence(allocatedSanction)}";
 
-            var entity = new TrxDisciplinarySanction
+            var entity = new HrdDisciplinarySanction
             {
                 SanctionId = Guid.NewGuid(),
                 InvestigationId = request.InvestigationId,
@@ -153,7 +153,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             };
         }
 
-        private static SanctionResponseDto MapToDto(TrxDisciplinarySanction entity)
+        private static SanctionResponseDto MapToDto(HrdDisciplinarySanction entity)
         {
             return new SanctionResponseDto
             {

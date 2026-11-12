@@ -48,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             foreach (var doc in activeDoctors)
             {
-                var existingEngagement = await _context.TrxFppeEngagements
+                var existingEngagement = await _context.HrdFppeEngagements
                     .AnyAsync(e => e.WorkforceProfileId == doc.WorkforceProfileId && e.TriggerSource == "NEW_STAFF", cancellationToken);
 
                 if (!existingEngagement && !result.Any(r => r.WorkforceProfileId == doc.WorkforceProfileId && r.TriggerType == "NEW_STAFF_ONBOARDING"))
@@ -72,7 +72,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             }
 
             // 3. Scan penugasan FPPE yang sedang aktif dengan pemicu bahaya (SENTINEL_EVENT, ABNORMAL_COMPLICATION)
-            var activeDangerousEngagements = await _context.TrxFppeEngagements
+            var activeDangerousEngagements = await _context.HrdFppeEngagements
                 .Where(e => e.Status == "ACTIVE" && (e.TriggerSource == "SENTINEL_EVENT" || e.TriggerSource == "ABNORMAL_COMPLICATION"))
                 .ToListAsync(cancellationToken);
 
