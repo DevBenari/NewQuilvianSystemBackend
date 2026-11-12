@@ -48,6 +48,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Mode
         [MaxLength(500)]
         public string? Description { get; set; }
 
+        public Guid? PersonnelActionOrderId { get; set; }
+
+        public HrdPersonnelActionOrder? PersonnelActionOrder { get; set; }
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstSalaryStructure? SalaryStructure { get; set; }
         public MstSalaryGrade? SalaryGrade { get; set; }

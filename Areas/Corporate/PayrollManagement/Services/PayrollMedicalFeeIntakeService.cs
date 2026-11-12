@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
@@ -21,7 +21,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 /// 2. Payroll hanya mengklaim hasil jasa yang BELUM memiliki catatan penyerahan Finance AP dalam status apa pun. Saat ini persetujuan
 ///    periode Medical Fee otomatis membuat penyerahan AP untuk setiap hasil jasa, sehingga klaim praktis tidak mungkin sampai Medical
 ///    Fee memutuskan penerima payroll tidak diserahkan ke AP (perubahan itu milik Medical Fee dan belum dilakukan).
-/// 3. Klaim dicatat sebagai TrxPayrollVariableInput (SourceType = MdfServiceFee, SourceId = hasil jasa) dan dijaga indeks unik
+/// 3. Klaim dicatat sebagai PrlPayrollVariableInput (SourceType = MdfServiceFee, SourceId = hasil jasa) dan dijaga indeks unik
 ///    database sehingga satu hasil jasa tidak dapat diklaim dua kali.
 /// Perlakuan PPh 21 atas jasa medis BELUM dihitung otomatis (NEEDS CONFIRMATION).
 /// </summary>
@@ -74,7 +74,7 @@ public sealed class PayrollMedicalFeeIntakeService
             .ToListAsync(cancellationToken);
 
         var feeIds = rows.Select(x => x.Id).ToList();
-        var claims = (await _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+        var claims = (await _dbContext.PrlPayrollVariableInputs.AsNoTracking()
                 .Include(x => x.PayrollRunEmployee).ThenInclude(e => e!.PayrollRun)
                 .Where(x => !x.IsDelete && x.SourceType == PayrollVariableInputSources.MedicalServiceFee
                     && x.SourceId != null && feeIds.Contains(x.SourceId.Value)
@@ -84,7 +84,7 @@ public sealed class PayrollMedicalFeeIntakeService
 
         var payees = await ResolvePayeesAsync(rows, cancellationToken);
         var payeeWorkforceIds = payees.Values.Select(v => v.WorkforceProfileId).Distinct().ToList();
-        var payrollWorkforceIds = (await _dbContext.WfpPayrolls.AsNoTracking()
+        var payrollWorkforceIds = (await _dbContext.PrlPayrolls.AsNoTracking()
                 .Where(p => !p.IsDelete && p.IsActive && p.IsPayrollEligible && p.PayrollStatus == "Active"
                     && payeeWorkforceIds.Contains(p.WorkforceProfileId))
                 .Select(p => p.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
@@ -210,7 +210,7 @@ public sealed class PayrollMedicalFeeIntakeService
 
         return PayrollTransactionRunner.RunAsync(_dbContext, PayrollTransactionRunner.RunLockKey(request.PayrollRunId), async () =>
         {
-            var run = await _dbContext.TrxPayrollRuns.SingleOrDefaultAsync(x => x.Id == request.PayrollRunId && !x.IsDelete, cancellationToken)
+            var run = await _dbContext.PrlPayrollRuns.SingleOrDefaultAsync(x => x.Id == request.PayrollRunId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Payroll run tidak ditemukan.");
             if (run.IsLocked || !PayrollRunStatuses.AcceptsInputs(run.RunStatus))
                 throw new PayrollInvalidTransitionException($"Payroll run {run.RunNumber} berstatus {run.RunStatus} dan tidak lagi menerima input.");
@@ -226,7 +226,7 @@ public sealed class PayrollMedicalFeeIntakeService
                 .Include(x => x.Period).Include(x => x.FinanceHandoff)
                 .Where(x => ids.Contains(x.Id) && !x.IsDelete)
                 .ToDictionaryAsync(x => x.Id, cancellationToken);
-            var existingClaims = (await _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+            var existingClaims = (await _dbContext.PrlPayrollVariableInputs.AsNoTracking()
                     .Include(x => x.PayrollRunEmployee)
                     .Where(x => !x.IsDelete && x.SourceType == PayrollVariableInputSources.MedicalServiceFee
                         && x.SourceId != null && ids.Contains(x.SourceId.Value)
@@ -234,7 +234,7 @@ public sealed class PayrollMedicalFeeIntakeService
                     .ToListAsync(cancellationToken))
                 .GroupBy(x => x.SourceId!.Value).ToDictionary(g => g.Key, g => g.First());
             var payees = await ResolvePayeesAsync(fees.Values.ToList(), cancellationToken);
-            var runEmployees = await _dbContext.TrxPayrollRunEmployees
+            var runEmployees = await _dbContext.PrlPayrollRunEmployees
                 .Where(x => x.PayrollRunId == run.Id && !x.IsDelete).ToListAsync(cancellationToken);
 
             var response = new PayrollMedicalFeeIntakeResponse { PayrollRunId = run.Id, RunNumber = run.RunNumber, TaxNote = TaxNote };
@@ -267,7 +267,7 @@ public sealed class PayrollMedicalFeeIntakeService
                 if (fee.FinalAmount <= 0m)
                 { Reject(response, result, "Nilai akhir jasa tidak positif."); continue; }
 
-                var input = new TrxPayrollVariableInput
+                var input = new PrlPayrollVariableInput
                 {
                     PayrollRunEmployeeId = runEmployee.Id,
                     PayrollComponentId = component.Id,
@@ -290,7 +290,7 @@ public sealed class PayrollMedicalFeeIntakeService
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
-                _dbContext.TrxPayrollVariableInputs.Add(input);
+                _dbContext.PrlPayrollVariableInputs.Add(input);
                 result.Outcome = "Diklaim";
                 result.InputNumber = input.InputNumber;
                 result.Message = "Diklaim ke jalur PAYROLL; akan masuk penghasilan saat run dihitung.";

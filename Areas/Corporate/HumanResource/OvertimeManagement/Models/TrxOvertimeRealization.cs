@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -33,6 +33,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public Guid? AttendanceDailyId { get; set; }
 
         public int RealizationVersion { get; set; } = 1;
+
+        [MaxLength(50)]
+        public string OvertimeCategory { get; set; } = "Planned";
+
+        [MaxLength(100)]
+        public string? EmergencyClinicalReferenceNo { get; set; }
+
+        [MaxLength(2000)]
+        public string? ClinicalActionSummary { get; set; }
+
+        [MaxLength(50)]
+        public string CompensationType { get; set; } = "FinancialPayout";
+
+        public bool IsMedicalDirectorEscalation { get; set; } = false;
+
+        public Guid? MedicalDirectorApprovedById { get; set; }
+
+        public bool IsRetrospectiveAdjustment { get; set; } = false;
+
         public DateOnly ActualStartDate { get; set; }
         public DateOnly ActualEndDate { get; set; }
         public DateTime? ActualStartAt { get; set; }
@@ -100,6 +119,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public ApplicationUser? VerifiedByUser { get; set; }
         public ApplicationUser? PostedToPayrollByUser { get; set; }
         public ApplicationUser? CancelledByUser { get; set; }
+        public MstWorkforceProfile? MedicalDirectorApprovedBy { get; set; }
 
         public ICollection<TrxOvertimeRealizationDetail> Details { get; set; }
             = new List<TrxOvertimeRealizationDetail>();

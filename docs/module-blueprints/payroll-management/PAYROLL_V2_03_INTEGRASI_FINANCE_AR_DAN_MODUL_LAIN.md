@@ -6,6 +6,7 @@
 | Tanggal | 2026-11-04 |
 | Acuan SHA | BE `b5fb6c251eafcd680ec35483732e3e72226e19f3` (+ perubahan lokal), FE `6a980d8c9dee0cae92c616fcd74f903ec0c67d73` (+ perubahan lokal) |
 | Label bukti | `REPOSITORY FACT`, `TARGET PROPOSAL`, `IMPLEMENTED`, `PARTIAL`, `BLOCKED`, `NEEDS CONFIRMATION` |
+| Catatan penamaan (11 November 2026) | Nama entity `Trx*` dan `Wfp*` Payroll di dokumen ini adalah nama saat ditulis. Sejak `PAY-BE-12` dan `PAY-MIG-02` namanya `Prl*` (ganti awalan saja, mis. `TrxPayrollVariableInput` menjadi `PrlPayrollVariableInput`). Lihat `PAYROLL_V2_01` |
 
 ## 1. Prinsip yang dijaga
 
@@ -73,11 +74,13 @@ sequenceDiagram
 
 `REPOSITORY FACT`: uji statis `payroll-installment-deduction-guards.test.mjs` (6 uji) memastikan: hitung tidak memanggil Finance; konfirmasi hanya dari pengesahan run; run yang diajukan/disahkan/dibatalkan tidak menerima hitung ulang; tidak ada eksekusi manual per pegawai; potongan melebihi sisa piutang ditolak bersih.
 
-### 2.3 Titik pengakuan pelunasan — `NEEDS CONFIRMATION`
+### 2.3 Titik pengakuan pelunasan — `DECIDED` (pemilik, 11 November 2026; persetujuan Finance/Accounting masih diperlukan)
 
 Prompt meminta pengakuan pelunasan mengikuti peristiwa settlement resmi (mis. konfirmasi jurnal atau pembayaran). Perilaku sekarang: hasil potongan dikonfirmasi ke Finance **saat run disahkan** (`Approved`), bukan saat dibayar. Alasan: potongan piutang adalah offset terhadap gaji yang sudah terhitung dan terkunci; pembayaran bank hanya memengaruhi gaji bersih. Risiko: bila run disahkan lalu pembayaran gagal total, potongan sudah tercatat. Mitigasi tersedia: pembalikan (bagian 3) memulihkan saldo dengan persetujuan.
 
 Pilihan bagi Finance/Accounting (`TARGET PROPOSAL`): (A) tetap saat disahkan; (B) saat bayar pertama berhasil; (C) saat jurnal gaji diposting. Memilih B atau C memerlukan perubahan titik panggil `ConfirmRunAsync`; layar dan kontrak tidak berubah.
+
+**Keputusan pemilik, 11 November 2026:** pilihan **A** (tetap saat run disahkan), ditambah pengecekan pembayaran: penanda status bayar pada layar potongan piutang dan rekonsiliasi, serta peringatan bila run sudah disahkan tetapi pembayaran belum lunas atau gagal (`PAY-BE-11`, `PAY-FE-13`). Pembalikan otomatis dan pengakuan dua tahap tidak dipilih; pembalikan tetap lewat alur beralasan yang sudah ada.
 
 ### 2.4 Batasan yang diketahui
 

@@ -64,6 +64,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         [MaxLength(128)]
         public string? ReceiptChecksum { get; set; }
 
+        public bool IsMissingReceiptDeclared { get; set; } = false;
+
+        [MaxLength(1000)]
+        public string? MissingReceiptReason { get; set; }
+
+        public Guid? MissingReceiptApprovedBy { get; set; }
+
         [Required, MaxLength(30)]
         public string ItemStatus { get; set; } = "Draft";
         // Draft, Submitted, Verified, Approved, Rejected, NeedRevision.

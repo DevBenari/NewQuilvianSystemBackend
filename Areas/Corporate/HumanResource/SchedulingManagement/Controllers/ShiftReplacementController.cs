@@ -11,16 +11,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 {
     [ApiController]
     [Authorize]
+    [Route("api/corporate/human-resource/scheduling/shift-assignments")]
+    [Route("api/corporate/human-resource/scheduling/shift-replacements")]
     [Route("api/v1/corporate/human-resource/scheduling-management/shift-replacements")]
+    [Route("api/v1/corporate/human-resource/scheduling-management/shift-assignments")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_SCHEDULING_MANAGEMENT",
         moduleName: "Human Resource Scheduling Management",
         displayName: "Shift Replacement Administration",
         AreaName = "Corporate",
         ControllerName = "ShiftReplacement",
-        Description = "Pencatatan dan persetujuan penggantian shift mendadak staf rumah sakit",
+        Description = "Pencatatan, persetujuan dan eksekusi penggantian staf darurat langsung serta koreksi mundur jadwal",
         SortOrder = 23)]
-    [Tags("Corporate / Human Resource / Scheduling Management / Shift Replacements")]
+    [Tags("HR Scheduling - Shift Assignment & Replacement")]
     public class ShiftReplacementController : ControllerBase
     {
         private readonly ShiftReplacementService _service;
@@ -73,6 +76,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         {
             if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
             return ToActionResult(await _service.ApproveReplacementAsync(id, userId, notes, cancellationToken));
+        }
+
+        /// <summary>
+        /// Ganti Petugas Langsung Pasca-Terbit oleh Kepala Unit (BE-HRD-095, BE-HRD-096, HRD-DEC-101).
+        /// </summary>
+        [HttpPost("{id:guid}/replace")]
+        [AccessAction("Update", "Direct Replace Shift Staff", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("ShiftReplacement", "Update")]
+        public async Task<IActionResult> DirectReplace(
+            Guid id,
+            [FromBody] DirectShiftReplacementRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return ToActionResult(await _service.ExecuteDirectReplacementAsync(id, request, userId, cancellationToken));
+        }
+
+        /// <summary>
+        /// Koreksi mundur jadwal dinas staf maksimal 3 hari kalender ke belakang (BE-HRD-097, HRD-DEC-102, VR-SCH-17).
+        /// </summary>
+        [HttpPut("{id:guid}/retroactive-correct")]
+        [HttpPost("{id:guid}/retroactive-correct")]
+        [AccessAction("Update", "Retroactive Shift Correction", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("ShiftReplacement", "Update")]
+        public async Task<IActionResult> RetroactiveCorrect(
+            Guid id,
+            [FromBody] RetroactiveShiftCorrectionRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return ToActionResult(await _service.RetroactiveCorrectionAsync(id, request, userId, cancellationToken));
         }
 
         private IActionResult ToActionResult<T>(SchedulingRequestServiceResult<T> result)

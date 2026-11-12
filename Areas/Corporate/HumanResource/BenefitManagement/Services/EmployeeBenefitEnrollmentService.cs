@@ -112,6 +112,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                         && _dbContext.PatEmployeeBenefitCardSyncs.Any(s => s.EmployeeBenefitEnrollmentId == x.e.Id && !s.IsDelete && s.SyncStatus == syncStatus));
                 }
             }
+            if (query.StartDate.HasValue)
+            {
+                var startUtc = AppDateTimeHelper.OperationalDateToUtc(query.StartDate.Value);
+                source = source.Where(x => (x.e.EffectiveStartDate ?? x.e.EnrollmentDate) >= startUtc);
+            }
+            if (query.EndDate.HasValue)
+            {
+                var endExclusiveUtc = AppDateTimeHelper.OperationalDateToUtc(query.EndDate.Value).AddDays(1);
+                source = source.Where(x => (x.e.EffectiveStartDate ?? x.e.EnrollmentDate) < endExclusiveUtc);
+            }
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
                 var keyword = query.Search.Trim().ToLower();
@@ -121,7 +131,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     || (x.doc != null && (x.doc.DoctorNumber.ToLower().Contains(keyword) || x.doc.FullName.ToLower().Contains(keyword))));
             }
 
-            var pageSize = Math.Clamp(query.PageSize, 1, 50);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
             var pageNumber = Math.Max(query.PageNumber, 1);
             var total = await source.CountAsync(cancellationToken);
             var rows = await source

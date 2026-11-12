@@ -41,6 +41,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public Guid? PayrollPeriodId { get; set; }
         public Guid? AttendancePeriodId { get; set; }
 
+        public Guid? EarlyLeavePermissionId { get; set; }
+        public Guid? OfficialDutyRequestId { get; set; }
+
+        [MaxLength(500)]
+        public string? IncompletePunchReason { get; set; }
+
         public DateOnly AttendanceDate { get; set; }
 
         [Required]
@@ -124,6 +130,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstPayrollPeriod? PayrollPeriod { get; set; }
         public HrdAttendancePeriod? AttendancePeriod { get; set; }
         public HrdAttendance? Attendance { get; set; }
+
+        [ForeignKey(nameof(EarlyLeavePermissionId))]
+        public HrdEarlyLeavePermission? EarlyLeavePermission { get; set; }
+
+        [ForeignKey(nameof(OfficialDutyRequestId))]
+        public HrdOfficialDutyRequest? OfficialDutyRequest { get; set; }
 
         public ICollection<HrdAttendanceRawLog> RawLogs { get; set; }
             = new List<HrdAttendanceRawLog>();

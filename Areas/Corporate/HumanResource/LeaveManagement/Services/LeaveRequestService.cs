@@ -26,19 +26,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
         private readonly LeaveRequestReservationService _reservationService;
         private readonly WorkflowService _workflowService;
         private readonly WorkflowFileStorageService _fileStorageService;
+        private readonly SafeStaffingCoverageGuard? _coverageGuard;
 
         public LeaveRequestService(
             ApplicationDbContext dbContext,
             LeaveRequestCalculationService calculationService,
             LeaveRequestReservationService reservationService,
             WorkflowService workflowService,
-            WorkflowFileStorageService fileStorageService)
+            WorkflowFileStorageService fileStorageService,
+            SafeStaffingCoverageGuard? coverageGuard = null)
         {
             _dbContext = dbContext;
             _calculationService = calculationService;
             _reservationService = reservationService;
             _workflowService = workflowService;
             _fileStorageService = fileStorageService;
+            _coverageGuard = coverageGuard;
         }
 
         public LeaveRequestFilterMetadataResponse GetMetadata() =>
@@ -412,6 +415,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             if (!calculation.Data.IsValid)
                 return LeaveRequestServiceResult<LeaveRequestActionResponse>.Fail(StatusCodes.Status400BadRequest, string.Join(" | ", calculation.Data.Errors));
 
+            // VR-LEV-22: Nomor telepon darurat wajib diisi
+            if (string.IsNullOrWhiteSpace(request.ContactNumberDuringLeave))
+            {
+                return LeaveRequestServiceResult<LeaveRequestActionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Nomor telepon kontak darurat yang dapat dihubungi selama cuti wajib diisi (VR-LEV-22).");
+            }
+
+            // VR-LEV-10: Penolakan tabrakan dengan jadwal dinas shift aktif terbit (LEV-B2)
+            if (calculation.Data.HasRosterConflict)
+            {
+                return LeaveRequestServiceResult<LeaveRequestActionResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Anda telah terdaftar dinas shift pada roster terbit. Koordinasikan ganti petugas sebelum mengajukan cuti (VR-LEV-10, LEV-B2).");
+            }
+
+            // Evaluasi ketersediaan staf kuota pelayanan 24/7 (INT-HR-45, HRD-DEC-111)
+            bool hasCoverageWarning = false;
+            string? coverageWarningDetails = null;
+            if (_coverageGuard != null)
+            {
+                var coverageEval = await _coverageGuard.EvaluateLeaveRequestCoverageAsync(
+                    actor.Data.WorkforceProfileId, request.StartDate, request.EndDate, cancellationToken);
+                hasCoverageWarning = coverageEval.IsWarningTriggered;
+                if (coverageEval.IsWarningTriggered)
+                {
+                    coverageWarningDetails = coverageEval.AdvisoryMessage;
+                }
+            }
+
             var entity = new WfpLeaveRequest
             {
                 Id = Guid.NewGuid(),
@@ -449,6 +482,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                 HandoverNotes = NullIfWhiteSpace(request.HandoverNotes),
                 RequiresReplacement = calculation.Data.RequiresReplacement,
                 HasRosterConflict = calculation.Data.HasRosterConflict,
+                HasStaffingCoverageWarning = hasCoverageWarning,
+                CoverageWarningDetails = coverageWarningDetails,
                 BalanceSimulationJson = calculation.Data.CalculationSnapshotJson,
                 RosterImpactJson = JsonSerializer.Serialize(calculation.Data.Days),
                 ValidationResultJson = SerializeValidation(calculation.Data),

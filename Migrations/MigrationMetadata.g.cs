@@ -1782,4 +1782,292 @@ namespace QuilvianSystemBackend.Migrations
     partial class AddNewbornAdmissionContext
     {
     }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261014094349_AddRadOrderRequiresPreparation")]
+    partial class AddRadOrderRequiresPreparation
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261014100000_FixClearanceReasonCodeReevaluatedByCashier")]
+    partial class FixClearanceReasonCodeReevaluatedByCashier
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261014150000_AddFinancingChoiceAndEmployeeBenefitDeferralFields")]
+    partial class AddFinancingChoiceAndEmployeeBenefitDeferralFields
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261015033258_AddRadOrderAssignment")]
+    partial class AddRadOrderAssignment
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261015043017_AddRadOrderImage")]
+    partial class AddRadOrderImage
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261015050322_AddEmergencyAnamnesisAndBodyMap")]
+    partial class AddEmergencyAnamnesisAndBodyMap
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261015054457_AddRadReportTemplateAndFilmPrint")]
+    partial class AddRadReportTemplateAndFilmPrint
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261015073353_AddInpatientDepositPaymentOrder")]
+    partial class AddInpatientDepositPaymentOrder
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261015075431_DropEncounterRescheduleHistory")]
+    partial class DropEncounterRescheduleHistory
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016035829_AddFloorPlanLocationToMstRoom")]
+    partial class AddFloorPlanLocationToMstRoom
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016041113_AddCareDependencyToInpEpisode")]
+    partial class AddCareDependencyToInpEpisode
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016042242_AddMstFloorPlanImportRun")]
+    partial class AddMstFloorPlanImportRun
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016043218_AddEncounterReferralSourceType")]
+    partial class AddEncounterReferralSourceType
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016043649_DropGenderFlagsFromRoomAndBed")]
+    partial class DropGenderFlagsFromRoomAndBed
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016062203_AddDoctorCertificatePatientDependencyLevel")]
+    partial class AddDoctorCertificatePatientDependencyLevel
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016064300_AddPatientDependencyLevelToAdmissionRequest")]
+    partial class AddPatientDependencyLevelToAdmissionRequest
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016080745_ReviseNewbornAdmissionFlow")]
+    partial class ReviseNewbornAdmissionFlow
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016090645_AddEmgPreArrivalReservation")]
+    partial class AddEmgPreArrivalReservation
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016110000_AddRadOrderPhotoNumber")]
+    partial class AddRadOrderPhotoNumber
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261016144037_AddOutpatientPriorityReservation")]
+    partial class AddOutpatientPriorityReservation
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261017031500_AddReferredAdminCreditAndSupersededItemReview")]
+    partial class AddReferredAdminCreditAndSupersededItemReview
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261017040000_BackfillTransferOriginEncounterLinks")]
+    partial class BackfillTransferOriginEncounterLinks
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261017085614_SyncCalculationVersionAdminCreditAndSupersededItemReviewIndex")]
+    partial class SyncCalculationVersionAdminCreditAndSupersededItemReviewIndex
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261019090000_AddMembershipFeeCharge")]
+    partial class AddMembershipFeeCharge
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261019100000_AddWorkforceBenefitOwnerIdentity")]
+    partial class AddWorkforceBenefitOwnerIdentity
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261019110000_AddWorkforceBenefitOwnerConstraints")]
+    partial class AddWorkforceBenefitOwnerConstraints
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261020084310_AddLabTransitionHistoryActionOccurredAtIndex")]
+    partial class AddLabTransitionHistoryActionOccurredAtIndex
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261020120000_AddFinancePatientRefundQueue")]
+    partial class AddFinancePatientRefundQueue
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261021073245_AddMedicalCheckupManagement")]
+    partial class AddMedicalCheckupManagement
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261021082302_AddPriorityReservationHistoryVisitDates")]
+    partial class AddPriorityReservationHistoryVisitDates
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261021100000_DropEnrollmentMakerCheckerConstraint")]
+    partial class DropEnrollmentMakerCheckerConstraint
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261022021727_AddCoveringMcuOrderToLabRadOrders")]
+    partial class AddCoveringMcuOrderToLabRadOrders
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261022081149_AddBillingRefundCaseItem")]
+    partial class AddBillingRefundCaseItem
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261022120000_SeparateBenefitExcessPaymentAndInternalBenefitAr")]
+    partial class SeparateBenefitExcessPaymentAndInternalBenefitAr
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261022130000_MakeTransferHandoverPlacementsNullable")]
+    partial class MakeTransferHandoverPlacementsNullable
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261023035602_AddRegPatientGeneralConsent")]
+    partial class AddRegPatientGeneralConsent
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261023062116_AddInpEpisodeExternalReferral")]
+    partial class AddInpEpisodeExternalReferral
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261026030735_AddOprBirthEventAndInpEpisodeSurgicalFields")]
+    partial class AddOprBirthEventAndInpEpisodeSurgicalFields
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261026031429_PersempitIndeksCatatanDokterPerKunjungan")]
+    partial class PersempitIndeksCatatanDokterPerKunjungan
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261026120000_AddPurchasingApBlmComponents")]
+    partial class AddPurchasingApBlmComponents
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261026130000_AddMedicalFeeMasterData")]
+    partial class AddMedicalFeeMasterData
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261026140000_AddMedicalFeeCalculation")]
+    partial class AddMedicalFeeCalculation
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261026150000_AddBilInvoiceItemPerformerAndDoctorShareTrace")]
+    partial class AddBilInvoiceItemPerformerAndDoctorShareTrace
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261027104500_AddOnBehalfFieldsToAttendanceCorrectionRequest")]
+    partial class AddOnBehalfFieldsToAttendanceCorrectionRequest
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261028022135_AddPurchasingApAllocationAndMedicalFeeFinanceHandoff")]
+    partial class AddPurchasingApAllocationAndMedicalFeeFinanceHandoff
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261028070658_AddMedicalRecordCompletenessFoundation")]
+    partial class AddMedicalRecordCompletenessFoundation
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261028082048_AddNurseViewManagement")]
+    partial class AddNurseViewManagement
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261102050639_AddStructuredFollowUpToInpDischargeSummary")]
+    partial class AddStructuredFollowUpToInpDischargeSummary
+    {
+    }
 }

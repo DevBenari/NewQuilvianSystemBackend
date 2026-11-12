@@ -865,7 +865,7 @@ public sealed class FinanceReceivableInstallmentPlanService
             .ToList();
         if (expectedIds.Count == 0) return (FinanceInstallmentPayrollSyncStatuses.NoSchedule, 0, 0, new HashSet<Guid>());
 
-        var syncedIds = await _dbContext.TrxPayrollVariableInputs.AsNoTracking()
+        var syncedIds = await _dbContext.PrlPayrollVariableInputs.AsNoTracking()
             .Where(x => !x.IsDelete
                 && x.SourceType == PayrollInputSourceType
                 && x.SourceId != null
@@ -884,7 +884,7 @@ public sealed class FinanceReceivableInstallmentPlanService
     }
 
     /// <summary>
-    /// Diagnosis per angsuran. SINKRON hanya bila input payroll BENAR-BENAR tersimpan (syncedIds, dibaca dari TrxPayrollVariableInput).
+    /// Diagnosis per angsuran. SINKRON hanya bila input payroll BENAR-BENAR tersimpan (syncedIds, dibaca dari PrlPayrollVariableInput).
     /// Untuk yang belum, alasan dihitung ulang dari prasyarat yang sama dengan sinkron (DiagnoseAsync, baca-saja) sehingga tidak
     /// menyimpang dan tidak perlu disimpan. Tidak mengubah apa pun.
     /// </summary>

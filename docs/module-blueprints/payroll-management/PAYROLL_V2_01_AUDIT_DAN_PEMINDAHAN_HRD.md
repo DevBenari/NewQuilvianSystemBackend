@@ -9,6 +9,7 @@
 | Frontend | `DevBenari/QuilvianSystemFrontendDev`, branch `yasmina` |
 | Status pekerjaan | Perubahan lokal belum di-commit, tidak ada `git add`/commit/push, tidak ada `dotnet build`, `dotnet ef`, `npm run build`, `npm run dev`, atau server yang dijalankan |
 | Dokumen pendamping | `PAYROLL_V2_02` (proses bisnis), `PAYROLL_V2_03` (integrasi), `PAYROLL_V2_04` (kontrak dan task), `PAYROLL_V2_05` (migration dan verifikasi) |
+| Catatan penamaan (11 November 2026) | Nama entity `Trx*` dan `Wfp*` Payroll pada dokumen ini dan `PAYROLL_V2_02` sampai `06` adalah nama pada saat bagian itu ditulis. Sejak fase 2 (`PAY-BE-12`, `PAY-MIG-02`) 19 entity itu bernama `Prl*`: hanya awalan yang diganti, sisa nama tetap (`TrxPayrollRun` menjadi `PrlPayrollRun`, `WfpTax` menjadi `PrlTax`, `DbSet` `WfpTaxes` menjadi `PrlTaxes`). Nama controller, DTO, rute, dan izin `Wfp*` tidak berubah |
 
 ## 0. Cara membaca label bukti
 
@@ -103,13 +104,13 @@ Yang **belum** bisa dianggap selesai dan harus diputuskan pihak berwenang tercan
 | `DTOs/PayrollRunDtos.cs` | `DTOs/PayrollRunDtos.cs` (diperluas) | controller, service, `FinanceBillingIntakeService` | namespace baru | `IMPLEMENTED` |
 | `DTOs/PayrollRestitutionDtos.cs`, `DTOs/PayrollInstallmentDeductionDtos.cs` | `DTOs/...` | sama | namespace baru | `IMPLEMENTED` |
 | `Models/PayrollRunStatuses.cs` | `Constants/PayrollRunStatuses.cs` (diperluas) | `FinanceReceivablePayrollSyncService` | `using ...PayrollManagement.Constants` | `IMPLEMENTED` |
-| `Models/Trx*.cs` (13), `Models/Wfp*.cs` (6) | **tetap** | seluruh modul | - | `PARTIAL` — fase 2 (bagian 7) |
-| `Controllers/Wfp*Controller.cs` (6) | **tetap**, ditambah rute `api/v1/corporate/payroll-management/...` | frontend | rute lama tetap | `IMPLEMENTED` (rute ganda) |
+| `Models/Trx*.cs` (13), `Models/Wfp*.cs` (6) | **dipindah (fase 2, 11 November 2026)** ke `Models/Prl*.cs` (19 berkas, kelas dan tabel `Prl*`) | seluruh modul | nama tipe dan namespace diganti di 34 berkas lain; migration `PAY-MIG-02` | `IMPLEMENTED` (statis; `PAY-BE-12`) |
+| `Controllers/Wfp*Controller.cs` (6) | **dipindah (fase 2)** ke `Controllers/`; nama kelas, rute, dan atribut akses tidak berubah; rute `api/v1/corporate/payroll-management/...` tetap | frontend | rute lama tetap | `IMPLEMENTED` (rute ganda; statis) |
 | `.../MasterData/PayrollAndBenefit/Controllers/*` (10 master) | **tetap**, ditambah rute `api/v1/corporate/payroll-management/master-data/...` | frontend master | rute lama tetap | `IMPLEMENTED` (rute ganda) |
 | `.../WorkforceCore/Controllers/WfpSalaryAssignmentController.cs` | **tetap**, ditambah rute `payroll-management/workforce-profiles/{id}/salary-assignments` | - | rute lama tetap | `IMPLEMENTED` |
-| `Repositories/Configurations/.../PayrollManagement/*` | **tetap** (+3 indeks unik) | EF | - | `IMPLEMENTED` |
+| `Repositories/Configurations/.../PayrollManagement/*` | **dipindah (fase 2)** ke `Repositories/Configurations/Corporate/PayrollManagement/` (`PrlXConfiguration`, +3 indeks unik) | EF | - | `IMPLEMENTED` (statis) |
 
-Catatan: memindah namespace tidak mengubah nama tabel atau kolom, sehingga **tidak** memerlukan migration. Migration hanya dibuat untuk tiga indeks unik baru (`PAYROLL_V2_05`).
+Catatan: memindah namespace tidak mengubah nama tabel atau kolom, sehingga **tidak** memerlukan migration. Migration pada fase 1 hanya dibuat untuk tiga indeks unik baru (`PAYROLL_V2_05`). **Pembaruan 11 November 2026:** pada fase 2 nama kelas **dan tabel** ikut berganti ke `Prl*`, sehingga migration rename `PAY-MIG-02` dibuat (`PAYROLL_V2_05` bagian 9).
 
 ### 5.2 Kode baru di modul Payroll (tidak ada di lokasi lama)
 
@@ -244,7 +245,19 @@ grep -rl "HumanResource.PayrollManagement" --include='*.cs' . \
 
 Frontend fase 2 serupa: memindahkan `src/components/view/hr/master-data/<entitas>/`, hook, konstanta, util, dan slice 10 entitas master ke `.../payroll/master-data/<entitas>/` dan memperbarui impor. Perubahan ini kosmetik (tidak mengubah perilaku) dan **tidak** dilakukan sekarang karena aturan repository melarang penataan ulang folder besar tanpa permintaan, dan build tidak boleh dijalankan untuk membuktikannya.
 
+### 7.3 Keputusan fase 2 (jawaban pemilik, 11 November 2026)
+
+| No | Hal | Keputusan pemilik | Status eksekusi |
+| ---: | --- | --- | --- |
+| 1 | Registry | Daftarkan `Corporate / PayrollManagement / Payroll`, awalan `Prl`, lifecycle **`ACTIVE`**. `PLANNED` ditolak karena registry menyatakan `PLANNED` hanya memberi wewenang penamaan, sedangkan `ACTIVE` yang mencabut penghalang `QBE-MOD-002` atas pemindahan entity | **Selesai (11 November 2026):** baris `Prl` ACTIVE dan satu catatan perubahan ditulis ke registry repository (`PAY-BE-12`). Salinan registry pada suite skill menunggu disamakan pemilik |
+| 2 | 13 entity `Trx*` | Nama kelas **dan tabel** diganti ke `Prl*` lewat migration `RenameTable` non-destruktif (`QBE-NAM-003`, `QBE-DB-002`). Pengecualian QBE per berkas tidak diperlukan | **Selesai secara statis** (`PAY-BE-12`, `PAY-MIG-02`): source dan migration ditulis. `dotnet build` dan eksekusi migration menunggu pemilik |
+| 3 | 6 entity `Wfp*` | Ikut pindah ke modul Payroll dan **diganti ke `Prl*`** (kelas dan tabel), sehingga seluruh 19 entity pindah. Catatan agen: pilihan ini berbeda dari rekomendasi agen (`Wfp*` tetap bernama `Wfp`), dan pengecekan dampak menemukan bahwa lima dari enam entity itu adalah properti navigasi agregat inti HR `MstWorkforceProfile` (`PAYROLL_V2_06` bagian 3). Konfirmasi ulang disarankan sebelum eksekusi | **Selesai secara statis** dalam paket yang sama dengan butir 2, atas instruksi pemilik "kerjakan fase 2 backend" (11 November 2026); konfirmasi ulang yang disarankan tidak diminta. `Wfp` tidak lagi memiliki entity Payroll pada registry |
+| 4 | Frontend | Pindahkan view, hook, konstanta, util, dan slice 10 entitas master sekaligus ke `payroll/master-data` | **Selesai secara statis** (`PAY-FE-11`); build dan layar menunggu pemilik |
+| 5 | Cara eksekusi | "Catat keputusan + kerjakan frontend; backend jadi rencana": source backend, registry, dan migration belum disentuh sampai rencana ditinjau | **Terlampaui:** pemilik kemudian memerintahkan "kerjakan fase 2 backend" (11 November 2026); lihat butir 1 sampai 3 dan `PAYROLL_V2_06` bagian 11 |
+
 ## 8. Keputusan bisnis yang belum disahkan (`NEEDS CONFIRMATION`)
+
+> **Pembaruan 11 November 2026:** sembilan butir pada tabel di bawah sudah dijawab pemilik; keputusannya ada di bagian 8.1. Tabel ini dipertahankan sebagai riwayat perilaku sementara sebelum keputusan.
 
 | No | Hal | Perilaku sementara di kode | Parameter |
 | ---: | --- | --- | --- |
@@ -257,6 +270,32 @@ Frontend fase 2 serupa: memindahkan `src/components/view/hr/master-data/<entitas
 | 7 | Aturan akses slip gaji | Slip terbit setelah pembayaran berhasil dikonfirmasi bank | `PayslipPublishTrigger` (`PaymentPaid`; alternatif `RunApproved`) |
 | 8 | PPh 21 dan BPJS | Memakai nilai tetapan pada profil pajak/iuran pegawai; tidak ada rumus tarif tertanam | - |
 | 9 | Prorata dan potongan cuti tanpa gaji | Prorata per hari kalender; cuti tanpa gaji dipotong sesuai hari | `ProrateFixedAllowances` (`true`), `UnpaidLeaveDeductionEnabled` (`true`) |
+
+### 8.1 Keputusan pemilik, 11 November 2026
+
+Dicatat dari jawaban pemilik pada sesi ini. Butir 2 menyangkut titik pengakuan resmi di Finance, yang tetap perlu disetujui Finance/Accounting; butir 3 sebaiknya dipastikan HR atau bagian hukum.
+
+| No | Hal | Keputusan | Dampak pada kode |
+| ---: | --- | --- | --- |
+| 1 | Alur approval | Satu langkah; pengaju **boleh sama** dengan pengesah (`RequireDifferentApprover = false`). Approval berjenjang lebih dari satu penyetuju tidak dibuat sekarang | Tidak ada |
+| 2 | Titik pengakuan pelunasan piutang | **Pilihan A**: tetap saat run disahkan. Ditambah pengecekan: (a) penanda status bayar pada layar potongan piutang dan rekonsiliasi (terkonfirmasi, belum, gagal); (b) peringatan bila run sudah disahkan tetapi pembayaran belum lunas atau gagal. Tidak dipilih: usulan pembalikan otomatis, dan pengakuan dua tahap | `PAY-BE-11`, `PAY-FE-13` |
+| 3 | Batas potong | Tetap 50% (`InstallmentDefaultMaxNetSalaryPercentage`); master jenis potongan boleh menetapkan lebih rendah | Tidak ada |
+| 4 | Jalur honor dokter | Honor medik (jasa medis) berlaku pada tenaga medis dan dihitung serta dibayar lewat Finance AP; jalur Payroll tetap nonaktif (`MedicalFeePayrollPathEnabled = false`). Dokter yang memiliki gaji tetap tetap digaji lewat Payroll seperti pegawai lain | Tidak ada (sesuai perilaku sekarang) |
+| 5 | Bank/penyedia pencairan | Tetap tanpa integrasi bank dari Payroll. Konfirmasi hasil bayar dilakukan manual lewat layar baru | `PAY-FE-12` |
+| 6 | Pemetaan COA | Tetap tanpa jurnal; rekonsiliasi tetap menandai event akuntansi "Belum Tersedia" | Tidak ada |
+| 7 | Akses slip gaji | Kebijakan tetap `PaymentPaid` (slip terbit setelah pembayaran terkonfirmasi). Karena belum ada koneksi bank, **konfirmasi pembayaran manual** (nomor referensi atau bukti transfer, nominal sama dengan instruksi, tercatat atas nama petugas) menjadi jalur konfirmasi, juga saat pengujian | `PAY-FE-12`, `PAY-BE-11` |
+| 8 | PPh 21 dan BPJS | Tetap memakai nilai tetapan pada profil pajak dan iuran pegawai; tidak ada rumus tarif tertanam | Tidak ada |
+| 9 | Prorata dan cuti tanpa gaji | Tetap: prorata per hari kalender, tunjangan tetap ikut prorata, cuti tanpa gaji memotong per hari | Tidak ada |
+
+Parameter yang **belum** ditanyakan dan tetap `NEEDS CONFIRMATION`: `PolicyVersion` (masih `...-DRAFT`) dan `AllowPartialFinanceHandoff`.
+
+**Rancangan singkat tiga task baru** (belum dikerjakan; tercatat di register `PAYROLL_V2_04`):
+
+| Task | Isi |
+| --- | --- |
+| `PAY-FE-12` Layar Konfirmasi Pembayaran Manual (**dikerjakan secara statis 11 November 2026**, [laporan](task/report/frontend/PAY-FE-12.md); satu atau beberapa instruksi ditafsirkan satuan per baris dan massal per payroll run) | Pada layar Pembayaran Gaji, petugas berhak (`PayrollPayment : Acknowledge`) memilih satu atau beberapa instruksi berstatus `Dijadwalkan` atau `Diproses`, mengisi nomor referensi atau bukti transfer (wajib) dan tanggal bayar; nominal terkunci sama dengan instruksi. Opsi "Tandai gagal" mewajibkan alasan. Memakai endpoint ACK yang sudah ada (`POST payroll-runs/{runId}/payments/acknowledge`) dengan kunci idempotensi. Setelah `Paid`, tombol Terbitkan Slip tidak lagi menahan penerima itu. Membalik keputusan `PAY-FE-08` yang menyatakan layar ACK sengaja tidak ada |
+| `PAY-BE-11` Penanda sumber konfirmasi dan status bayar potongan | (a) Permintaan ACK (satu nilai untuk seluruh item dalam satu kiriman; **dikerjakan 11 November 2026**, [laporan](task/report/backend/PAY-BE-11.md)) diberi penanda sumber `MANUAL` atau `FINANCE_ACK` (bawaan `FINANCE_ACK`) yang dicatat pada audit; (b) daftar dan ringkasan potongan piutang membawa status pembayaran gaji penerima terkait; (c) rekonsiliasi menambah temuan "run disahkan, pembayaran belum lunas" dan "run disahkan, pembayaran gagal" beserta jumlahnya |
+| `PAY-FE-13` Penanda dan peringatan (**dikerjakan secara statis 11 November 2026**, [laporan](task/report/frontend/PAY-FE-13.md)) | Layar potongan piutang dan rekonsiliasi menampilkan status bayar per penerima; layar run dan Riwayat Pembayaran menampilkan peringatan bila ada temuan di atas |
 
 ## 9. Batas pembuktian
 

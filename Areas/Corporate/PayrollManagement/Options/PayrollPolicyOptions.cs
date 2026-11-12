@@ -14,7 +14,7 @@ public sealed class PayrollPolicyOptions
     public string PolicyVersion { get; set; } = "PAYROLL-POLICY-2026.11-DRAFT";
 
     /// <summary>
-    /// Bila true, gaji pokok boleh memakai kolom kompatibilitas pada profil payroll (WfpPayroll.BaseSalary) saat pegawai belum
+    /// Bila true, gaji pokok boleh memakai kolom kompatibilitas pada profil payroll (PrlPayroll.BaseSalary) saat pegawai belum
     /// memiliki penetapan gaji yang disetujui. Bawaan false: gaji hanya dari penetapan gaji yang disetujui dan efektif.
     /// </summary>
     public bool AllowProfileSalaryFallback { get; set; } = false;

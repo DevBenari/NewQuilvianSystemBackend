@@ -2,7 +2,7 @@ using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models
 {
@@ -59,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         public TrxEmployeeLoan? EmployeeLoan { get; set; }
         public MstPayrollPeriod? PayrollPeriod { get; set; }
-        public TrxPayrollRunEmployee? PayrollRunEmployee { get; set; }
+        public PrlPayrollRunEmployee? PayrollRunEmployee { get; set; }
         public MstPayrollComponent? PayrollComponent { get; set; }
         public ApplicationUser? PaidByUser { get; set; }
         public ApplicationUser? PostedByUser { get; set; }

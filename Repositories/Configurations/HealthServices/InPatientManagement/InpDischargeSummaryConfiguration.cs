@@ -42,6 +42,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
                 .WithMany()
                 .HasForeignKey(x => x.SignedByDoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // BE-RWI-256 / FIX-EPS-043-02 — rencana kontrol terstruktur, seluruhnya nullable.
+            builder.HasIndex(x => x.FollowUpDate);
+
+            builder.HasOne(x => x.FollowUpServiceUnit)
+                .WithMany()
+                .HasForeignKey(x => x.FollowUpServiceUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.FollowUpDoctor)
+                .WithMany()
+                .HasForeignKey(x => x.FollowUpDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

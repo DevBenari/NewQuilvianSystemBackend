@@ -23,10 +23,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Se
     /// <para>
     /// Kepemilikan pasien selalu diperiksa lewat episode (<c>RhbEpisode.PatientId</c>);
     /// <see cref="ReadDetailAsync"/> mengembalikan <c>null</c> untuk dokumen pasien lain. "Pernah diralat" =
-    /// baris keutuhan RM punya addendum.
+    /// baris keutuhan RM punya addendum <b>koreksi</b>; addendum pengesahan bukan ralat (`DS-R5-04`, `BE-45`).
+    /// </para>
+    /// <para>
+    /// <b>Probe kelengkapan</b> (`RM-DEC-086`, `RM-DEC-087`, `BE-45`, persetujuan pemilik Rehab Medik
+    /// `RM-DEC-090`): hanya menjawab butir <see cref="CompletenessCriterion.RehabClinicalDocument"/>, tanpa kondisi
+    /// dan <b>tanpa</b> hasil tertunda — sesi rehab berikutnya terjadi di kunjungan lain (`RM-DEC-082`).
     /// </para>
     /// </remarks>
-    public class RhbMedicalRecordDocumentSource : IMedicalRecordDocumentSource
+    public class RhbMedicalRecordDocumentSource : IMedicalRecordDocumentSource, IMedicalRecordCompletenessProbe
     {
         private const int SummaryMaxLength = 300;
 
@@ -40,6 +45,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Se
         public string SourceModule => "Rehab Medik";
 
         public IReadOnlyCollection<ClinicalDocumentKind> Kinds { get; } = RhbDocumentIntegrityGateway.RehabDocumentKinds;
+
+        public IReadOnlyCollection<CompletenessCriterion> Criteria { get; } = [CompletenessCriterion.RehabClinicalDocument];
+
+        public IReadOnlyCollection<CompletenessCondition> Conditions { get; } = [];
+
+        /// <summary>Selalu <c>false</c>: Rehab tidak pernah membuat berkas "Menunggu hasil" (`RM-DEC-082`).</summary>
+        public bool ReportsPendingResults => false;
+
+        // =====================================================================
+        // Probe kelengkapan
+        // =====================================================================
+
+        /// <summary>
+        /// Butir terpenuhi bila ada SATU asesmen, sesi, reasesmen, atau ringkasan akhir berstatus <c>Final</c> dengan
+        /// <c>SignedAt</c> terisi, tertaut ke kunjungan yang dinilai dan ke episode pasien yang sama. Program dan edukasi
+        /// tidak dihitung (`RM-DEC-086`). Berhenti pada jenis pertama yang ditemukan.
+        /// </summary>
+        public async Task<MedicalRecordCompletenessProbeResult> ProbeAsync(
+            MedicalRecordCompletenessProbeQuery query,
+            CancellationToken cancellationToken)
+        {
+            var hasil = new MedicalRecordCompletenessProbeResult();
+            if (!query.Criteria.Contains(CompletenessCriterion.RehabClinicalDocument))
+                return hasil;
+
+            var kunjungan = query.EncounterId;
+            var pasien = query.PatientId;
+            var final = RehabRecordStatus.Final;
+
+            var ada = await _dbContext.RhbSessions.AsNoTracking().AnyAsync(x => !x.IsDelete && x.EncounterId == kunjungan
+                          && x.RecordStatus == final && x.SignedAt != null && x.Episode!.PatientId == pasien, cancellationToken)
+                      || await _dbContext.RhbAssessments.AsNoTracking().AnyAsync(x => !x.IsDelete && x.EncounterId == kunjungan
+                          && x.RecordStatus == final && x.SignedAt != null && x.Episode!.PatientId == pasien, cancellationToken)
+                      || await _dbContext.RhbProgressReviews.AsNoTracking().AnyAsync(x => !x.IsDelete && x.EncounterId == kunjungan
+                          && x.RecordStatus == final && x.SignedAt != null && x.Episode!.PatientId == pasien, cancellationToken)
+                      || await _dbContext.RhbDischargeSummaries.AsNoTracking().AnyAsync(x => !x.IsDelete && x.EncounterId == kunjungan
+                          && x.RecordStatus == final && x.SignedAt != null && x.Episode!.PatientId == pasien, cancellationToken);
+
+            if (ada)
+                hasil.SatisfiedCriteria.Add(CompletenessCriterion.RehabClinicalDocument);
+
+            return hasil;
+        }
 
         /// <summary>Baris final bersama semua jenis, sebelum diubah menjadi deskriptor RM.</summary>
         private sealed class FinalRow
@@ -77,7 +125,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Se
                 var items = await (query.NewestFirst ? rows.OrderByDescending(x => x.FinalizedAt) : rows.OrderBy(x => x.FinalizedAt))
                     .Take(query.Limit)
                     .ToListAsync(cancellationToken);
-                var addenda = await AddendumCountsAsync(kind, items.Select(x => x.Id).ToList(), cancellationToken);
+                var dikoreksi = await CorrectedIdsAsync(kind, items.Select(x => x.Id).ToList(), cancellationToken);
 
                 page.Items.AddRange(items.Select(x => new MedicalRecordFinalDocumentDescriptor
                 {
@@ -89,7 +137,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Se
                     DocumentNumber = x.Number,
                     Title = Title(kind, x),
                     Summary = Cut(Summary(kind, x)),
-                    IsCorrected = addenda.TryGetValue(x.Id, out var count) && count > 0,
+                    IsCorrected = dikoreksi.Contains(x.Id),
                     AuthorUserId = x.AuthorUserId
                 }));
             }
@@ -258,7 +306,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Se
                 Title = Title(kind, row),
                 FinalizedAt = row.FinalizedAt,
                 OccurredAt = row.OccurredAt,
-                IsCorrected = count > 0,
+                IsCorrected = (await CorrectedIdsAsync(kind, [row.Id], cancellationToken)).Count > 0,
                 Sections = sections
             };
         }
@@ -366,6 +414,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Se
             ClinicalDocumentKind.RehabEducation => Join(RhbEducationService.ConsentName((RehabConsentStatus)row.Variant), row.Text1),
             _ => null
         };
+
+        /// <summary>
+        /// Id dokumen yang punya addendum KOREKSI (`DS-R5-04`). Addendum pengesahan atas catatan yang terkunci tanpa
+        /// tanda tangan menyatakan isinya benar, bukan meralatnya, sehingga tidak dihitung. Satu kueri per halaman.
+        /// </summary>
+        private async Task<HashSet<Guid>> CorrectedIdsAsync(ClinicalDocumentKind kind, List<Guid> ids, CancellationToken cancellationToken)
+        {
+            if (ids.Count == 0)
+                return [];
+
+            var hasil = await _dbContext.MrcClinicalDocumentIntegrities.AsNoTracking()
+                .Where(k => k.DocumentKind == kind && ids.Contains(k.DocumentId) && !k.IsDelete
+                            && k.Addendums.Any(a => !a.IsDelete && a.AddendumPurpose == ClinicalNoteAddendumPurpose.Correction))
+                .Select(k => k.DocumentId)
+                .ToListAsync(cancellationToken);
+
+            return hasil.ToHashSet();
+        }
 
         private Task<Dictionary<Guid, int>> AddendumCountsAsync(ClinicalDocumentKind kind, List<Guid> ids, CancellationToken cancellationToken) =>
             _dbContext.MrcClinicalDocumentIntegrities.AsNoTracking()

@@ -59,6 +59,20 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
         return Ok(ApiResponse<PagedResult<PurchaseOrderResponse>>.Ok(mapped, "Daftar Purchase Order berhasil diambil."));
     }
 
+    /// <summary>
+    /// Ringkasan jumlah PO per status untuk monitoring Purchasing. Hanya membaca; memakai izin baca PO yang sama
+    /// dengan daftar PO, tidak menambah aksi izin baru. Rute <c>summary</c> tidak bentrok dengan <c>{id:guid}</c>.
+    /// </summary>
+    [HttpGet("summary")]
+    [AccessAction("Read", "Read Purchase Order", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchaseOrder", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseOrderSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
+    {
+        var summary = await _service.GetSummaryAsync(cancellationToken);
+        return Ok(ApiResponse<PurchaseOrderSummaryResponse>.Ok(summary, "Ringkasan Purchase Order berhasil diambil."));
+    }
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Purchase Order", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinancePurchaseOrder", "Read")]
@@ -236,7 +250,8 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
         RequestedAt = purchaseOrder.RequestedAt,
         ApprovedByUserId = purchaseOrder.ApprovedByUserId,
         ApprovedAt = purchaseOrder.ApprovedAt,
-        RowVersion = purchaseOrder.RowVersion
+        RowVersion = purchaseOrder.RowVersion,
+        SourceSystem = purchaseOrder.SourceSystem
     };
 
     private static PurchaseOrderDetailResponse MapDetail(FinPurchaseOrder purchaseOrder)
@@ -255,6 +270,7 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
             ApprovedByUserId = mapped.ApprovedByUserId,
             ApprovedAt = mapped.ApprovedAt,
             RowVersion = mapped.RowVersion,
+            SourceSystem = mapped.SourceSystem,
             Items = purchaseOrder.Items.Select(x => new PurchaseOrderItemResponse
             {
                 Id = x.Id,

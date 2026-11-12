@@ -234,6 +234,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         [Required, MaxLength(500)]
         public string OnBehalfReason { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? EvidenceFilePath { get; set; }
+
+        [MaxLength(255)]
+        public string? EvidenceFileName { get; set; }
+
+        [MaxLength(100)]
+        public string? EvidenceContentType { get; set; }
+
         public List<Guid> ExceptionIds { get; set; } = new();
 
         [MinLength(1)]

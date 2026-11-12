@@ -977,3 +977,34 @@ compatibility: FIN-VAL-271 (pengaju ≠ penyetuju) digantikan FIN-DEC-233 dan ti
 | Tidak ada enrollment | Pesan `ENROLLMENT_NOT_ACTIVE` yang sudah ada |
 
 Nama status tidak lagi ditampilkan dalam Bahasa Inggris. Kode alasan tidak berubah agar pemanggil lama tetap bekerja.
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+```
+
+| ID | Objek | Aturan | Lapisan | Akibat bila dilanggar |
+|---|---|---|---|---|
+| `FIN-VAL-300` | PO, GR | `SourceSystem` ∈ {`QUILVIAN`, `BLM`} | Database | Simpan ditolak |
+| `FIN-VAL-301` | PO, GR | Identitas eksternal header terisi **jika dan hanya jika** `SourceSystem = 'BLM'` | Database | Simpan ditolak |
+| `FIN-VAL-302` | PO, item PO, GR, item GR | Identitas eksternal unik per sistem sumber | Database (index unik terfilter) | Simpan ditolak; pengolah memperlakukannya sebagai pembaruan dokumen yang sama |
+| `FIN-VAL-303` | PO | `ApprovalTier = 'EXTERNAL'` **jika dan hanya jika** `SourceSystem = 'BLM'` | Database | Simpan ditolak |
+| `FIN-VAL-304` | Item GR | `ConditionCode` ∈ {`GOOD`, `DAMAGED`, `PENDING_INSPECTION`} bila terisi | Database | Simpan ditolak |
+| `FIN-VAL-305` | Item GR | `0 <= AcceptedBaseQuantity <= BaseQuantity`; `AcceptedBaseQuantity = 0` bila kondisi bukan `GOOD` | Database | Simpan ditolak |
+| `FIN-VAL-306` | Item PO, item GR | Kolom BLM semuanya kosong atau semuanya terisi (`CK_*_BlmFields`); `QuantityPerBaseUnit > 0` bila terisi | Database | Simpan ditolak. Baris lama otomatis memenuhi (semua kosong) |
+| `FIN-VAL-307` | GR BLM | GR `BLM` hanya menunjuk PO `BLM`; baris GR dicocokkan ke item PO lewat `ExternalPurchaseOrderItemId`, **tidak pernah** lewat nama produk | Layanan integrasi | Kiriman `REJECTED` (`PO_SOURCE_MISMATCH`, `PO_ITEM_NOT_FOUND`) |
+| `FIN-VAL-308` | Kotak masuk | `EventId` unik per `SourceSystem`; hash sama → ulangan; hash beda → `PAYLOAD_MISMATCH` | Database + layanan integrasi | Tidak ada dokumen ganda |
+| `FIN-VAL-309` | Kotak masuk | `APPLIED` ⇒ tepat satu sasaran sesuai `DocumentType`; `AttemptCount >= 0` | Database | Simpan ditolak |
+| `FIN-VAL-310` | Pemetaan supplier | Satu pemetaan aktif per supplier BLM | Database | Simpan ditolak |
+| `FIN-VAL-311` | Konversi satuan | Setiap item PO dan GR BLM wajib membawa isi per satuan `> 0` dan satuan dasar; satuan dasar baris GR = satuan dasar item PO. **Tidak ada nilai bawaan 1** | Layanan integrasi | Kiriman `CONFLICT` jenis `CONVERSION_UNRESOLVED`; GR tidak diterapkan; PO tidak menjadi `FULLY_RECEIVED` |
+| `FIN-VAL-312` | Konflik | Satu konflik `OPEN` per (kiriman, jenis); `RESOLVED` wajib kode, pelaku, waktu; minimal satu dari PO/GR terisi | Database | Simpan ditolak |
+| `FIN-VAL-313` | Pembatalan eksternal | FK lokal sesuai `DocumentType`; `OUTBOUND_REQUEST` wajib `RequestedByUserId`; `CONFIRMED` wajib `CancelledAt`; `EventId` unik per (sumber, arah) | Database | Simpan ditolak |
+| `FIN-VAL-314` | PO/GR BLM | Nomor BLM yang sudah dipakai dokumen lain tidak menimpa dan tidak diberi akhiran | Layanan integrasi | `CONFLICT` jenis `NUMBER_COLLISION` |
+| `FIN-VAL-315` | GR lewat API Quilvian | `POST /`, `PUT /{id}`, `POST /{id}/cancel` pada `purchasing/goods-receipts` untuk dokumen `BLM` ditolak | Layanan (`FinanceGoodsReceiptService`) | **409** `PURCHASING_EXTERNAL_DOCUMENT`, pesan: "Penerimaan barang untuk PO dari BLM dicatat di BLM. Perubahan dan pembatalannya juga dilakukan dari BLM." |
+| `FIN-VAL-316` | Status PO BLM | `FULLY_RECEIVED` hanya bila setiap item jumlah sah ≥ dipesan (satuan dasar) dan semua konversi pasti | Layanan (penghitung) | Status tetap `PARTIALLY_RECEIVED` |
+
+Penomoran: `FIN-VAL-300`..`316` baru pada revisi ini. Putaran 2 mengganti isi `305`, `306`, `311` (versi putaran 1 tidak
+pernah disetujui) dan menambah `315`, `316`.

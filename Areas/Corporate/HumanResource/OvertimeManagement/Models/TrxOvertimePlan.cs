@@ -37,6 +37,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         [Required, MaxLength(40)]
         public string PlanStatus { get; set; } = "Draft";
 
+        [MaxLength(50)]
+        public string CompensationType { get; set; } = "FinancialPayout";
+
+        public bool IsEmergencyEscalation { get; set; } = false;
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? WeeklyQuotaHoursAtPlan { get; set; }
+
         public DateTime? ValidatedAt { get; set; }
         public Guid? ValidatedByUserId { get; set; }
         public DateTime? PublishedAt { get; set; }

@@ -60,6 +60,16 @@ public sealed class PayrollEmployeeDeductionItemResponse
     public decimal FinanceOutstandingAmount { get; set; }
     public string InstallmentStatus { get; set; } = string.Empty;
     public decimal ReversedAmount { get; set; }
+
+    /// <summary>
+    /// PAY-BE-11. Status pembayaran GAJI penerima pada run ini (bukan status potongan): BELUM_DIKIRIM | MENUNGGU_BAYAR | LUNAS |
+    /// GAGAL | DIBALIK | TIDAK_ADA_PEMBAYARAN (<c>PayrollSalaryPaymentStatuses</c>). Potongan yang <c>IsConfirmedToFinance</c> tetapi
+    /// bukan LUNAS perlu ditindaklanjuti. Hanya informasi; tidak mengubah pengakuan potongan di Finance.
+    /// </summary>
+    public string SalaryPaymentStatus { get; set; } = string.Empty;
+
+    /// <summary>Nomor instruksi pembayaran yang menentukan <see cref="SalaryPaymentStatus"/> (bukan nomor rekening); kosong bila belum ada instruksi.</summary>
+    public string? SalaryPaymentNumber { get; set; }
 }
 
 public sealed class PayrollDeductionReconcileRequest
@@ -87,6 +97,12 @@ public sealed class PayrollDeductionReconciliationItemResponse
     public decimal ExpectedFinancePaid { get; set; }
     public decimal FinancePaidAmount { get; set; }
     public decimal FinanceOutstandingAmount { get; set; }
+
+    /// <summary>
+    /// PAY-BE-11. Status pembayaran gaji penerima pada run angsuran ini (<c>PayrollSalaryPaymentStatuses</c>); kosong bila angsuran
+    /// belum masuk run (NOT_IN_RUN). Bukan temuan selisih: <c>Code</c> dan <c>DiscrepancyCount</c> tidak memperhitungkannya.
+    /// </summary>
+    public string SalaryPaymentStatus { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -108,6 +124,16 @@ public sealed class PayrollDeductionReconciliationResponse
     public decimal TotalFinancePaidAmount { get; set; }
     public decimal TotalFinanceOutstandingAmount { get; set; }
     public int DiscrepancyCount { get; set; }
+
+    /// <summary>
+    /// PAY-BE-11. Jumlah angsuran berstatus TERKONFIRMASI (potongan sudah dikonfirmasi ke Finance) yang gaji penerimanya belum dibayar
+    /// (BELUM_DIKIRIM atau MENUNGGU_BAYAR). Informasi; tidak masuk <see cref="DiscrepancyCount"/>.
+    /// </summary>
+    public int ConfirmedPaymentPendingCount { get; set; }
+
+    /// <summary>PAY-BE-11. Jumlah angsuran TERKONFIRMASI yang gaji penerimanya GAGAL atau DIBALIK. Tidak masuk <see cref="DiscrepancyCount"/>.</summary>
+    public int ConfirmedPaymentFailedCount { get; set; }
+
     public Dictionary<string, int> CountByCode { get; set; } = new();
     public List<PayrollDeductionReconciliationItemResponse> Items { get; set; } = new();
     public DateTime GeneratedAt { get; set; }

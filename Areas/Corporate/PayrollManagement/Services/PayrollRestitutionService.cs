@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
@@ -13,8 +13,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 /// BE-FIN-111 (Revisi 21, EPIC FIN-04, FIN-DEC-195, FIN-INTEGRATION-1.8 §P.6 butir 3).
 /// Layanan restitusi salah potong cicilan piutang RS di HR Payroll:
 /// 1. Mengembalikan potongan yang terlanjur diambil dari pegawai yang salah ke slip gaji periode berikutnya (AC 1).
-/// 2. Menghasilkan TrxPayrollAdjustment (tipe 'Add', status 'Approved') dan TrxPayrollEmployeeComponent (tipe 'Earning').
-/// 3. Menghubungkan pembalikan dengan TrxPayrollReversal menunjuk FinanceReversalId.
+/// 2. Menghasilkan PrlPayrollAdjustment (tipe 'Add', status 'Approved') dan PrlPayrollEmployeeComponent (tipe 'Earning').
+/// 3. Menghubungkan pembalikan dengan PrlPayrollReversal menunjuk FinanceReversalId.
 /// 4. Finance TIDAK mengeluarkan kas manual untuk restitusi ini (AC 2, FIN-DEC-195).
 /// 5. Menjamin sifat idempoten per SourceId/CorrelationId jika event dikirim berulang (AC 3).
 ///
@@ -53,17 +53,17 @@ public sealed class PayrollRestitutionService
         }
 
         // AC 3: Idempotency check berbasis (SourceType, SourceId)
-        var existingAdjustment = await _dbContext.TrxPayrollAdjustments
+        var existingAdjustment = await _dbContext.PrlPayrollAdjustments
             .Include(a => a.PayrollRun)
                 .ThenInclude(r => r!.PayrollPeriod)
             .FirstOrDefaultAsync(a => a.SourceType == request.SourceType && a.SourceId == request.SourceId && !a.IsDelete, cancellationToken);
 
         if (existingAdjustment is not null)
         {
-            var existingReversal = await _dbContext.TrxPayrollReversals
+            var existingReversal = await _dbContext.PrlPayrollReversals
                 .FirstOrDefaultAsync(r => r.FinanceReversalId == request.SourceId && !r.IsDelete, cancellationToken);
 
-            var existingRunEmployee = await _dbContext.TrxPayrollRunEmployees
+            var existingRunEmployee = await _dbContext.PrlPayrollRunEmployees
                 .FirstOrDefaultAsync(e => e.Id == existingAdjustment.PayrollRunEmployeeId && !e.IsDelete, cancellationToken);
 
             return new PayrollRestitutionResponse
@@ -110,7 +110,7 @@ public sealed class PayrollRestitutionService
         var targetPeriod = await ResolveTargetPeriodAsync(request.TargetPeriodCode, cancellationToken)
             ?? throw new PayrollRunConflictException("Periode penggajian berikutnya tidak ditemukan untuk alokasi restitusi.");
 
-        TrxPayrollRun? run = null;
+        PrlPayrollRun? run = null;
         for (var hop = 0; hop < MaxPeriodHops && run is null; hop++)
         {
             run = await ResolveOrCreateRunAsync(targetPeriod, request.ActorUserId, cancellationToken);
@@ -123,11 +123,11 @@ public sealed class PayrollRestitutionService
             throw new PayrollRunConflictException(
                 "Payroll run periode tujuan sudah tidak menerima penyesuaian dan tidak ada periode berikutnya. Buka periode berikutnya lalu ulangi restitusi.");
 
-        // Resolve or create TrxPayrollRunEmployee
+        // Resolve or create PrlPayrollRunEmployee
         var runEmployee = await ResolveOrCreateRunEmployeeAsync(run, employee, request.ActorUserId, cancellationToken);
 
-        // AC 1: Buat TrxPayrollAdjustment bertipe 'Add'
-        var adjustment = new TrxPayrollAdjustment
+        // AC 1: Buat PrlPayrollAdjustment bertipe 'Add'
+        var adjustment = new PrlPayrollAdjustment
         {
             PayrollRunId = run.Id,
             PayrollRunEmployeeId = runEmployee.Id,
@@ -152,10 +152,10 @@ public sealed class PayrollRestitutionService
             CreateDateTime = DateTime.UtcNow,
             CreateBy = request.ActorUserId
         };
-        _dbContext.TrxPayrollAdjustments.Add(adjustment);
+        _dbContext.PrlPayrollAdjustments.Add(adjustment);
 
-        // AC 1 & AC 2: Buat TrxPayrollReversal menunjuk FinanceReversalId (tanpa kas keluar manual Finance)
-        var reversal = new TrxPayrollReversal
+        // AC 1 & AC 2: Buat PrlPayrollReversal menunjuk FinanceReversalId (tanpa kas keluar manual Finance)
+        var reversal = new PrlPayrollReversal
         {
             PayrollRunId = run.Id,
             PayrollRunEmployeeId = runEmployee.Id,
@@ -173,10 +173,10 @@ public sealed class PayrollRestitutionService
             CreateDateTime = DateTime.UtcNow,
             CreateBy = request.ActorUserId
         };
-        _dbContext.TrxPayrollReversals.Add(reversal);
+        _dbContext.PrlPayrollReversals.Add(reversal);
 
-        // AC 1: Tambahkan TrxPayrollEmployeeComponent penambah gaji pada slip pegawai bulan depan
-        var component = new TrxPayrollEmployeeComponent
+        // AC 1: Tambahkan PrlPayrollEmployeeComponent penambah gaji pada slip pegawai bulan depan
+        var component = new PrlPayrollEmployeeComponent
         {
             PayrollRunEmployeeId = runEmployee.Id,
             SourceType = "Adjustment",
@@ -199,7 +199,7 @@ public sealed class PayrollRestitutionService
             CreateDateTime = DateTime.UtcNow,
             CreateBy = request.ActorUserId
         };
-        _dbContext.TrxPayrollEmployeeComponents.Add(component);
+        _dbContext.PrlPayrollEmployeeComponents.Add(component);
 
         // Penjaga hitung ulang: nominal restitusi sudah menjadi komponen non-mesin yang dihitung SEKALI oleh mesin kalkulasi saat
         // run dihitung. Total TIDAK dimutasi di sini (itu akan menggandakan nominal pada hitung ulang). Run yang sudah dihitung
@@ -274,7 +274,7 @@ public sealed class PayrollRestitutionService
     }
 
     private Task<bool> HasPayrollProfileAsync(Guid workforceProfileId, CancellationToken cancellationToken) =>
-        _dbContext.WfpPayrolls.AsNoTracking()
+        _dbContext.PrlPayrolls.AsNoTracking()
             .AnyAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete && x.IsPayrollEligible, cancellationToken);
 
     /// <summary>
@@ -283,17 +283,17 @@ public sealed class PayrollRestitutionService
     public async Task<PayrollRestitutionResponse?> GetRestitutionBySourceIdAsync(
         Guid sourceId, CancellationToken cancellationToken)
     {
-        var adjustment = await _dbContext.TrxPayrollAdjustments
+        var adjustment = await _dbContext.PrlPayrollAdjustments
             .Include(a => a.PayrollRun)
                 .ThenInclude(r => r!.PayrollPeriod)
             .FirstOrDefaultAsync(a => a.SourceId == sourceId && !a.IsDelete, cancellationToken);
 
         if (adjustment is null) return null;
 
-        var reversal = await _dbContext.TrxPayrollReversals
+        var reversal = await _dbContext.PrlPayrollReversals
             .FirstOrDefaultAsync(r => r.FinanceReversalId == sourceId && !r.IsDelete, cancellationToken);
 
-        var runEmployee = await _dbContext.TrxPayrollRunEmployees
+        var runEmployee = await _dbContext.PrlPayrollRunEmployees
             .FirstOrDefaultAsync(e => e.Id == adjustment.PayrollRunEmployeeId && !e.IsDelete, cancellationToken);
 
         return new PayrollRestitutionResponse
@@ -352,15 +352,15 @@ public sealed class PayrollRestitutionService
     /// penampung (Draft) agar kewajiban restitusi tetap tercatat. Mengembalikan null bila run Regular aktifnya sudah tidak menerima input
     /// (diajukan/disahkan/terkunci) sehingga pemanggil pindah ke periode berikutnya. Tidak pernah membuat run Regular kedua.
     /// </summary>
-    private async Task<TrxPayrollRun?> ResolveOrCreateRunAsync(MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
+    private async Task<PrlPayrollRun?> ResolveOrCreateRunAsync(MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var tracked = _dbContext.ChangeTracker.Entries<TrxPayrollRun>()
+        var tracked = _dbContext.ChangeTracker.Entries<PrlPayrollRun>()
             .Select(x => x.Entity)
             .FirstOrDefault(x => x.PayrollPeriodId == period.Id && x.RunType == "Regular" && !x.IsDelete
                 && !x.IsLocked && PayrollRunStatuses.AcceptsInputs(x.RunStatus));
         if (tracked is not null) return tracked;
 
-        var activeRegular = await _dbContext.TrxPayrollRuns
+        var activeRegular = await _dbContext.PrlPayrollRuns
             .Where(x => !x.IsDelete && x.PayrollPeriodId == period.Id && x.RunType == "Regular"
                 && x.RunStatus != PayrollRunStatuses.Cancelled && x.RunStatus != PayrollRunStatuses.Reversed)
             .OrderByDescending(x => x.CreateDateTime)
@@ -368,7 +368,7 @@ public sealed class PayrollRestitutionService
         if (activeRegular is not null)
             return !activeRegular.IsLocked && PayrollRunStatuses.AcceptsInputs(activeRegular.RunStatus) ? activeRegular : null;
 
-        var run = new TrxPayrollRun
+        var run = new PrlPayrollRun
         {
             PayrollPeriodId = period.Id,
             LegalEntityId = period.LegalEntityId,
@@ -386,7 +386,7 @@ public sealed class PayrollRestitutionService
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId
         };
-        _dbContext.TrxPayrollRuns.Add(run);
+        _dbContext.PrlPayrollRuns.Add(run);
         return run;
     }
 
@@ -396,21 +396,21 @@ public sealed class PayrollRestitutionService
             .OrderBy(x => x.StartDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-    private async Task<TrxPayrollRunEmployee> ResolveOrCreateRunEmployeeAsync(
-        TrxPayrollRun run, PayrollPerson employee, Guid actorUserId, CancellationToken cancellationToken)
+    private async Task<PrlPayrollRunEmployee> ResolveOrCreateRunEmployeeAsync(
+        PrlPayrollRun run, PayrollPerson employee, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var tracked = _dbContext.ChangeTracker.Entries<TrxPayrollRunEmployee>()
+        var tracked = _dbContext.ChangeTracker.Entries<PrlPayrollRunEmployee>()
             .Select(x => x.Entity)
             .FirstOrDefault(x => x.PayrollRunId == run.Id && x.WorkforceProfileId == employee.WorkforceProfileId && !x.IsDelete);
         if (tracked is not null) return tracked;
 
-        var existing = await _dbContext.TrxPayrollRunEmployees
+        var existing = await _dbContext.PrlPayrollRunEmployees
             .Include(x => x.Components)
             .Include(x => x.Adjustments)
             .FirstOrDefaultAsync(x => !x.IsDelete && x.PayrollRunId == run.Id && x.WorkforceProfileId == employee.WorkforceProfileId, cancellationToken);
         if (existing is not null) return existing;
 
-        var runEmployee = new TrxPayrollRunEmployee
+        var runEmployee = new PrlPayrollRunEmployee
         {
             PayrollRunId = run.Id,
             WorkforceProfileId = employee.WorkforceProfileId,
@@ -422,7 +422,7 @@ public sealed class PayrollRestitutionService
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId
         };
-        _dbContext.TrxPayrollRunEmployees.Add(runEmployee);
+        _dbContext.PrlPayrollRunEmployees.Add(runEmployee);
         return runEmployee;
     }
 }

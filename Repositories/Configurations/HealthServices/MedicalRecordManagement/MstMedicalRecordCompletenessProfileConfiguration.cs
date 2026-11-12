@@ -19,6 +19,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Medic
                 t.HasCheckConstraint(
                     "CK_MstMedicalRecordCompletenessProfile_EncounterTypeWajib",
                     "\"Condition\" <> 0 OR \"EncounterType\" IS NOT NULL");
+
+                // VAL-RM-B02 (BE-42): jenis poli hanya pada profil tanpa kondisi.
+                t.HasCheckConstraint(
+                    "CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi",
+                    "\"Condition\" = 0 OR \"ClinicType\" IS NULL");
             });
 
             builder.HasKey(x => x.Id);
@@ -30,9 +35,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Medic
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 
-            // VAL-RM-A05: satu profil per kunci. Kolom kosong dibandingkan sebagai sama
-            // (NULLS NOT DISTINCT, PostgreSQL 15+; devYoga 15.15).
-            builder.HasIndex(x => new { x.EncounterType, x.ServiceUnitType, x.Condition })
+            // VAL-RM-B04 (menggantikan bunyi VAL-RM-A05, BE-42): satu profil per kunci empat kolom.
+            // Kolom kosong dibandingkan sebagai sama (NULLS NOT DISTINCT, PostgreSQL 15+; devYoga 15.15).
+            builder.HasIndex(x => new { x.EncounterType, x.ServiceUnitType, x.ClinicType, x.Condition })
                 .IsUnique()
                 .AreNullsDistinct(false)
                 .HasFilter("\"IsDelete\" = false");

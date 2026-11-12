@@ -17,6 +17,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         [MaxLength(50)]
         public string AdjustmentNumber { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Nomor dokumen audit resmi / SK Direksi (wajib per HRD-DEC-115, BE-HRD-117).
+        /// </summary>
+        [MaxLength(100)]
+        public string? AuditDocumentNumber { get; set; }
+
         [Required]
         public Guid WorkforceProfileId { get; set; }
 
@@ -149,5 +155,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
 
         public ICollection<TrxLeaveBalanceTransaction> BalanceTransactions { get; set; }
             = new List<TrxLeaveBalanceTransaction>();
+
+        public ICollection<TrxLeaveBalanceLedger> BalanceLedgers { get; set; }
+            = new List<TrxLeaveBalanceLedger>();
     }
 }

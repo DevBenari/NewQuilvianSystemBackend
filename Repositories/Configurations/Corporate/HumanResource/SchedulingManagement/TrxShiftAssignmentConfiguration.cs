@@ -16,6 +16,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.AssignmentType).HasMaxLength(30).HasDefaultValue("Regular").IsRequired();
             entity.Property(x => x.AssignmentStatus).HasMaxLength(30).HasDefaultValue("Draft").IsRequired();
             entity.Property(x => x.AssignmentSource).HasMaxLength(30).HasDefaultValue("Roster");
+            entity.Property(x => x.IsManualOverride).HasDefaultValue(false);
+            entity.Property(x => x.IsAccompanied).HasDefaultValue(false);
             entity.Property(x => x.ValidatedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.ValidationResultJson).HasColumnType("jsonb");
             entity.Property(x => x.OverrideReason).HasMaxLength(1000);
@@ -29,6 +31,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.IsCancel).HasDefaultValue(false);
             entity.HasOne(x => x.RosterAssignment).WithMany(x => x.ShiftAssignments).HasForeignKey(x => x.RosterAssignmentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.WorkforceProfile).WithMany().HasForeignKey(x => x.WorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.OriginalEmployee).WithMany().HasForeignKey(x => x.OriginalEmployeeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PreceptorEmployee).WithMany().HasForeignKey(x => x.PreceptorEmployeeId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.WorkSchedule).WithMany().HasForeignKey(x => x.WorkScheduleId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.Shift).WithMany().HasForeignKey(x => x.ShiftId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.HospitalSite).WithMany().HasForeignKey(x => x.HospitalSiteId).OnDelete(DeleteBehavior.Restrict);
@@ -44,6 +48,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => new { x.RosterAssignmentId, x.ShiftDate, x.AssignmentStatus });
             entity.HasIndex(x => new { x.HospitalSiteId, x.OrganizationUnitId, x.DepartmentId, x.ShiftDate, x.ShiftId });
             entity.HasIndex(x => new { x.HasBlockingConflict, x.IsValidationPassed, x.IsDelete });
+            entity.HasIndex(x => new { x.ShiftDate, x.AssignmentStatus, x.IsDelete });
         }
     }
 }

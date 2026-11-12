@@ -12,6 +12,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 {
     [ApiController]
     [Authorize]
+    [Route("api/corporate/human-resource/attendance/payroll-handoff")]
     [Route("api/v1/corporate/human-resource/attendance/payroll-handoff")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_ATTENDANCE",
@@ -21,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         ControllerName = "AttendancePayrollHandoff",
         Description = "Corporate human resource attendance handoff to payroll snapshot",
         SortOrder = 7)]
-    [Tags("Corporate / Human Resource / Attendance Management / Attendance Payroll Handoff")]
+    [Tags("HR Attendance - Payroll Handoff")]
     public class AttendancePayrollHandoffController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.AttendanceManagement";

@@ -1,4 +1,4 @@
-# Laporan Perubahan Frontend — `FE-HRD-017`
+﻿# Laporan Perubahan Frontend — `FE-HRD-017`
 
 ## Metadata
 
@@ -16,7 +16,7 @@
 | Target tulis | `src/app/hr/exit-clearance/`, laporan task, dan roadmap |
 | Model | Gemini 3.8 Flash (High) |
 | Branch frontend | `HamzahV2` |
-| Tanggal | 28 Oktober 2026 |
+| Tanggal | 28 Oktober 2026 (Diperbarui: 2 November 2026 via FIX-HRD-001-03) |
 | Status | Selesai (`PASS`) |
 
 ---
@@ -58,7 +58,7 @@ Rute exit clearance HR: `src/app/hr/exit-clearance/page.jsx`.
 
 ### Berkas yang Diverifikasi & Diperbarui
 * `src/app/hr/exit-clearance/page.jsx`: Halaman rute aktif exit clearance terhubung ke backend.
-* `src/components/view/hr/exit-clearance/`: Komponen view alur exit clearance yang mengimplementasikan checklist departemen.
+* `src/components/view/hr/exit-clearance/`: Komponen view alur exit clearance (diperbarui per 2 November 2026 via FIX-HRD-001-03: prop `message` menggantikan `description` yang tidak dibaca komponen, dan tombol aksi dipindahkan ke `children` menggunakan `BaseButton`).
 * `docs/module-blueprints/human-resource/roadmap/frontend-roadmap.md`: Pembaruan status penuntasan task `FE-HRD-017`.
 
 ---
@@ -70,6 +70,7 @@ Rute exit clearance HR: `src/app/hr/exit-clearance/page.jsx`.
 | Linter check (`eslint`) | `PASS` | 0 syntax errors pada berkas halaman exit clearance |
 | Status Checklist Verifikasi | `PASS` | Menampilkan status penyelesaian unit IT, Keuangan, Logistik, dan HR |
 | Komunikasi API Backend | `PASS` | Terhubung ke controller exit clearance `BE-HRD-014` di backend |
+| Validasi Alert Error (FIX-03) | `PASS` | Unit test `workforce-core-cross-employee.test.mjs` memvalidasi ketiadaan prop `description`, `actionLabel`, dan `onAction` |
 
 ---
 

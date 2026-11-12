@@ -7,7 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Data;
 using System.Text.Json;
@@ -84,7 +84,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
         {
             take = Math.Clamp(take, 1, 200);
             var query =
-                from run in _dbContext.Set<TrxPayrollRun>().AsNoTracking()
+                from run in _dbContext.Set<PrlPayrollRun>().AsNoTracking()
                 join period in _dbContext.Set<MstPayrollPeriod>().AsNoTracking()
                     on run.PayrollPeriodId equals period.Id
                 where !run.IsDelete && run.IsActive && !period.IsDelete && period.IsActive
@@ -207,7 +207,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             var encashments = await BuildEncashmentQuery(context)
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
-            var variableInputCount = await _dbContext.Set<TrxPayrollVariableInput>()
+            var variableInputCount = await _dbContext.Set<PrlPayrollVariableInput>()
                 .AsNoTracking()
                 .CountAsync(x =>
                     !x.IsDelete &&
@@ -793,7 +793,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                         string.Join(" ", blocking));
                 }
 
-                var runEmployees = await _dbContext.Set<TrxPayrollRunEmployee>()
+                var runEmployees = await _dbContext.Set<PrlPayrollRunEmployee>()
                     .Where(x => x.PayrollRunId == payrollRunId && !x.IsDelete)
                     .ToListAsync(cancellationToken);
                 var runEmployeeIds = runEmployees.Select(x => x.Id).ToList();
@@ -804,7 +804,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
 
                 if (request.IncludeAttendanceLeaveDays)
                 {
-                    var inputs = await _dbContext.Set<TrxPayrollAttendanceInput>()
+                    var inputs = await _dbContext.Set<PrlPayrollAttendanceInput>()
                         .Where(x =>
                             !x.IsDelete &&
                             runEmployeeIds.Contains(x.PayrollRunEmployeeId) &&
@@ -828,7 +828,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
 
                 if (request.IncludeVariableInputs)
                 {
-                    var variableInputs = await _dbContext.Set<TrxPayrollVariableInput>()
+                    var variableInputs = await _dbContext.Set<PrlPayrollVariableInput>()
                         .Where(x =>
                             !x.IsDelete &&
                             runEmployeeIds.Contains(x.PayrollRunEmployeeId) &&
@@ -934,7 +934,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                 return ContextLoadResult.Fail(StatusCodes.Status400BadRequest, "PayrollRunId wajib diisi.");
             }
 
-            IQueryable<TrxPayrollRun> runQuery = _dbContext.Set<TrxPayrollRun>();
+            IQueryable<PrlPayrollRun> runQuery = _dbContext.Set<PrlPayrollRun>();
             IQueryable<MstPayrollPeriod> periodQuery = _dbContext.Set<MstPayrollPeriod>();
             if (!tracking)
             {
@@ -1019,7 +1019,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             CancellationToken cancellationToken)
         {
             var workforceIds = groups.Select(x => x.WorkforceProfileId).Distinct().ToList();
-            IQueryable<TrxPayrollRunEmployee> employeeQuery = _dbContext.Set<TrxPayrollRunEmployee>()
+            IQueryable<PrlPayrollRunEmployee> employeeQuery = _dbContext.Set<PrlPayrollRunEmployee>()
                 .Where(x => x.PayrollRunId == context.Run.Id && !x.IsDelete);
             if (workforceIds.Count > 0)
             {
@@ -1032,7 +1032,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             var runEmployees = await employeeQuery.ToListAsync(cancellationToken);
             var runEmployeeIds = runEmployees.Select(x => x.Id).ToList();
 
-            IQueryable<TrxPayrollAttendanceInput> inputQuery = _dbContext.Set<TrxPayrollAttendanceInput>()
+            IQueryable<PrlPayrollAttendanceInput> inputQuery = _dbContext.Set<PrlPayrollAttendanceInput>()
                 .Where(x => !x.IsDelete && runEmployeeIds.Contains(x.PayrollRunEmployeeId));
             if (!tracking)
             {
@@ -1040,7 +1040,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             }
             var inputs = await inputQuery.ToListAsync(cancellationToken);
 
-            IQueryable<TrxPayrollVariableInput> variableQuery = _dbContext.Set<TrxPayrollVariableInput>()
+            IQueryable<PrlPayrollVariableInput> variableQuery = _dbContext.Set<PrlPayrollVariableInput>()
                 .Where(x => !x.IsDelete && runEmployeeIds.Contains(x.PayrollRunEmployeeId));
             if (!tracking)
             {
@@ -1260,7 +1260,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
         private async Task<LeavePayrollIntegrationExecutionItemResponse> UpsertVariableInputAsync(
             PayrollContext context,
             SupportData support,
-            TrxPayrollRunEmployee runEmployee,
+            PrlPayrollRunEmployee runEmployee,
             MstPayrollComponent component,
             string sourceType,
             Guid sourceId,
@@ -1280,7 +1280,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
 
             if (existing == null)
             {
-                existing = await _dbContext.Set<TrxPayrollVariableInput>()
+                existing = await _dbContext.Set<PrlPayrollVariableInput>()
                     .FirstOrDefaultAsync(x =>
                         x.PayrollRunEmployeeId == runEmployee.Id &&
                         x.PayrollComponentId == component.Id &&
@@ -1317,7 +1317,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             var previousQuantity = existing?.Quantity ?? 0;
             if (existing == null)
             {
-                existing = new TrxPayrollVariableInput
+                existing = new PrlPayrollVariableInput
                 {
                     Id = Guid.NewGuid(),
                     InputNumber = GenerateVariableInputNumber(),
@@ -1396,10 +1396,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                 return 0;
             }
 
-            var employees = await _dbContext.Set<TrxPayrollRunEmployee>()
+            var employees = await _dbContext.Set<PrlPayrollRunEmployee>()
                 .Where(x => ids.Contains(x.Id) && !x.IsDelete)
                 .ToListAsync(cancellationToken);
-            var totals = await _dbContext.Set<TrxPayrollAttendanceInput>()
+            var totals = await _dbContext.Set<PrlPayrollAttendanceInput>()
                 .AsNoTracking()
                 .Where(x => ids.Contains(x.PayrollRunEmployeeId) && !x.IsDelete)
                 .GroupBy(x => x.PayrollRunEmployeeId)
@@ -1757,7 +1757,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
 
         private sealed class PayrollContext
         {
-            public TrxPayrollRun Run { get; set; } = null!;
+            public PrlPayrollRun Run { get; set; } = null!;
             public MstPayrollPeriod Period { get; set; } = null!;
             public DateOnly StartDate { get; set; }
             public DateOnly EndDate { get; set; }
@@ -1809,12 +1809,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
 
         private sealed class SupportData
         {
-            public List<TrxPayrollRunEmployee> RunEmployees { get; set; } = new();
-            public List<TrxPayrollAttendanceInput> Inputs { get; set; } = new();
-            public List<TrxPayrollVariableInput> VariableInputs { get; set; } = new();
+            public List<PrlPayrollRunEmployee> RunEmployees { get; set; } = new();
+            public List<PrlPayrollAttendanceInput> Inputs { get; set; } = new();
+            public List<PrlPayrollVariableInput> VariableInputs { get; set; } = new();
             public List<Guid> RunEmployeeIds { get; set; } = new();
-            public Dictionary<Guid, TrxPayrollRunEmployee> RunEmployeeByWorkforceId { get; set; } = new();
-            public Dictionary<(Guid PayrollRunEmployeeId, DateOnly AttendanceDate), TrxPayrollAttendanceInput> InputByRunEmployeeAndDate { get; set; } = new();
+            public Dictionary<Guid, PrlPayrollRunEmployee> RunEmployeeByWorkforceId { get; set; } = new();
+            public Dictionary<(Guid PayrollRunEmployeeId, DateOnly AttendanceDate), PrlPayrollAttendanceInput> InputByRunEmployeeAndDate { get; set; } = new();
         }
 
         private sealed class Evaluation
@@ -1822,13 +1822,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
             public bool CanWrite { get; set; }
             public string Status { get; set; } = string.Empty;
             public string Message { get; set; } = string.Empty;
-            public TrxPayrollRunEmployee? RunEmployee { get; set; }
-            public TrxPayrollAttendanceInput? Input { get; set; }
+            public PrlPayrollRunEmployee? RunEmployee { get; set; }
+            public PrlPayrollAttendanceInput? Input { get; set; }
 
             public static Evaluation Fail(
                 string status,
                 string message,
-                TrxPayrollRunEmployee? runEmployee = null)
+                PrlPayrollRunEmployee? runEmployee = null)
             {
                 return new Evaluation
                 {

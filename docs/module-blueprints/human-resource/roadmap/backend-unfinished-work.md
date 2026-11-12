@@ -1,0 +1,255 @@
+# Human Resource — Pekerjaan Backend yang Belum Selesai
+
+| Field | Nilai |
+|---|---|
+| Jenis dokumen | Daftar kerja hasil audit — **bukan** pengganti roadmap. Status resmi tetap di [backend-roadmap.md](backend-roadmap.md) |
+| Dasar | Audit implementasi roadmap backend HR terhadap source, 10 November 2026 |
+| Commit yang diaudit | `edfd843bac1c2860da7ae9a5ddcb68a75cf42666` (branch `MHamzah`), ditambah perubahan `BE-HRD-316` yang belum di-commit |
+| Cakupan | `BE-HRD-001` s.d. `BE-HRD-333`, source di `Areas/Corporate/HumanResource`, `Areas/SelfServices/HumanResource`, dan `Shared/HumanResource` |
+| Pembaca | Pemilik modul HR dan developer backend HR |
+
+---
+
+## 1. Ringkasan
+
+Roadmap menandai **333 dari 333 task** selesai (✅), kecuali `BE-HRD-316` yang diturunkan ke 🟡 pada
+10 November 2026. Audit menemukan sebagian task **belum benar-benar bekerja**. Source-nya ada dan
+build-nya lulus, tetapi isinya kosong, memakai angka karangan, menyimpan data hanya di memori, atau
+hanya menulis log.
+
+| Kelompok | Isi | Jumlah | Butuh keputusan pemilik? |
+|---|---|---:|---|
+| A | Kode kosong | 4 task | Ya, 3 dari 4 |
+| B | Data karangan atau hard-code | 6 task | 2 task ya, 4 task tidak |
+| C | Data penting hanya di memori server | 6 task | Tidak |
+| D | Worker yang hanya menulis log | 12 task (17 worker) | Ya — sebagian besar menunggu notifikasi |
+| E | Nomor dokumen dari angka acak | 14 service | Tidak |
+| F | Logika dimatikan atau tidak tersambung | 2 task | 1 ya, 1 tidak |
+| G | Sisa remediasi keamanan | 6 temuan | Ya — satu keputusan identitas |
+| H | Ketidaksesuaian dokumen roadmap | 5 butir | Tidak |
+
+**Yang sudah dikerjakan pada audit ini** (tidak dimasukkan ke daftar di bawah):
+
+- Remediasi otorisasi 74 controller dan 440 endpoint — lihat
+  [evidence/03-hr-authorization-remediation.md](../evidence/03-hr-authorization-remediation.md).
+- `BE-HRD-316` 🟡 — keputusan kotak masuk V2 kini diteruskan ke modul asal. Sisanya ada di kelompok A.
+
+### 1.1 Cara membaca kolom "Butuh keputusan?"
+
+- **Tidak** — developer bisa langsung mengerjakan memakai pola yang sudah ada di source.
+- **Ya** — ada pilihan bisnis atau infrastruktur yang harus diputuskan pemilik modul lebih dulu.
+  Pertanyaannya ditulis di kolom itu.
+
+### 1.2 Cara memperbarui dokumen ini
+
+Bila sebuah butir sudah diperbaiki, isi kolom **Status perbaikan** dengan tanggal dan tautan
+laporan task, lalu tandai status task-nya di roadmap seperti biasa. Jangan menghapus barisnya.
+
+---
+
+## 2. Kelompok A — Kode kosong
+
+Method atau worker-nya ada, tetapi tidak melakukan apa pun.
+
+**Contoh di rumah sakit.** Perawat mengajukan cuti, atasannya punya tiket menunggu, tetapi tidak
+ada satu pun pemberitahuan yang terkirim. Tidak lewat aplikasi, email, maupun WhatsApp. Atasan baru
+tahu bila kebetulan membuka kotak masuknya.
+
+| Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
+|---|---|---|---|---|
+| `BE-HRD-314` | Gateway notifikasi hanya berisi `await Task.CompletedTask`. Aplikasi belum punya tabel notifikasi, kanal real-time notifikasi, maupun pengirim email/WhatsApp. Ringkasan harian ke approver dihitung tetapi tidak dikirim ke mana pun | `WorkflowManagement/Services/UnifiedNotificationGatewayService.cs:26-31` | **Ya.** Kanal mana dulu: lonceng di aplikasi, email, atau WhatsApp? Notifikasi milik modul HR atau platform bersama? | Belum |
+| `BE-HRD-313` | `BulkApprovalProcessingWorker` hanya loop `Task.Delay(30 detik)` | `WorkflowManagement/Workers/WorkflowV2Workers.cs:188` | **Ya.** Persetujuan massal sudah diproses langsung di endpoint. Worker ini dihapus, atau diisi antrean? | Belum |
+| `BE-HRD-333` | `TravelCurrencyRateSyncWorker` (`TRV-W4`) hanya menulis log; kurs Bank Indonesia tidak pernah diambil | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:166` | **Ya.** Sumber kurs: API BI, input manual Keuangan, atau master kurs yang sudah ada? | Belum |
+| `BE-HRD-316` 🟡 | `INT-HR-94` belum ada: pengingat menunjuk Plh saat cuti pejabat struktural disetujui | [laporan BE-HRD-316](../task/report/backend/BE-HRD-316.md) bagian 6 | **Ya.** Data jabatan belum punya penanda "pejabat struktural"; pengingatnya butuh `BE-HRD-314` | Sebagian 10 Nov 2026 |
+
+---
+
+## 3. Kelompok B — Data karangan atau hard-code
+
+Layar menampilkan angka atau orang yang tidak pernah ada di database, seolah-olah data asli.
+
+**Contoh di rumah sakit.** Radiografer menerima dosis radiasi 6 mSv dalam setahun — di atas ambang
+waspada. Radar surveilans tetap menampilkan **4,8 mSv** untuk semua pekerja, jadi tidak ada alarm.
+
+| Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
+|---|---|---|---|---|
+| `BE-HRD-298` | Dosis kumulatif TLD selalu `yearlyDose = 4.8m` dan `quarterlyDose = 1.2m` | `OccupationalHealthManagement/Services/HazardSurveillanceService.cs:89-91` | Tidak — hitung dari catatan dosis yang disimpan endpoint `surveillance/radiation-dose` | Belum |
+| `BE-HRD-240` | Bila database kosong, radar sertifikat menampilkan 4 staf fiktif ("Ns. Siti Rahma S.Kep", "dr. Ahmad Fauzi Sp.A", "dr. Robert Sp.BS") ber-GUID tetap. Broadcast melapor terkirim ke **minimal 5 orang** tanpa mengirim apa pun. Nama pelatihan di-hard-code | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:66`, `:79`, `:99`, `:107`, `:234-300` | Tidak — hapus data fiktif dan laporkan jumlah sebenarnya | Belum |
+| `BE-HRD-233` | Bila dokter belum punya riwayat OPPE, skor 3 tahun diisi 82,5 / 85,0 / 88,5 | `PerformanceManagement/Services/RecredentialingQualityService.cs:57-64` | Tidak — kembalikan "data belum cukup" | Belum |
+| `BE-HRD-239` | Bila tabel aturan kosong, 5 aturan pelatihan wajib bawaan ber-GUID tetap tetap tampil (minor) | `LearningAndDevelopment/Services/MandatoryTrainingRuleService.cs:21` | Tidak — pindahkan ke seeder data awal | Belum |
+| `BE-HRD-225` | Metrik OPPE dari SIMRS berupa konstanta: volume 120, kelengkapan EMR 92,5, insiden KMKP 0, lainnya 88 | `PerformanceManagement/Services/OppeDataAggregationService.cs:261-267` | **Ya.** Dari tabel mana di SIMRS (klinis/rekam medis) angka ini diambil? | Belum |
+| `BE-HRD-235` | Pengiriman wewenang klinis ke SIMRS tidak memanggil SIMRS: status `200` dikarang dan latensi diambil acak 25–65 ms | `PerformanceManagement/Services/SimrsClinicalPrivilegeDispatcher.cs:77` | **Ya.** SIMRS ada di aplikasi yang sama — cukup tulis ke tabel wewenang klinis, atau lewat API terpisah? | Belum |
+
+---
+
+## 4. Kelompok C — Data penting hanya di memori server
+
+Data disimpan di variabel `static`, bukan di database. Semua hilang setiap kali aplikasi restart
+atau di-deploy ulang, dan tidak terbagi bila aplikasi berjalan lebih dari satu instance.
+
+**Contoh di rumah sakit.** Komite medik menurunkan tier rekredensialing seorang dokter dan
+mencatat alasannya. Server di-restart malam itu untuk pembaruan. Besok paginya catatan penyesuaian
+tier itu hilang — padahal itu jejak audit akreditasi.
+
+| Task | Data yang hilang | Bukti | Butuh keputusan? | Status perbaikan |
+|---|---|---|---|---|
+| `BE-HRD-234` | Penyesuaian tier oleh komite (jejak audit) | `PerformanceManagement/Services/RecredentialingQualityService.cs:26` | Tidak | Belum |
+| `BE-HRD-235` | Putusan rekredensialing dan log pengiriman ke SIMRS | `RecredentialingQualityService.cs:27`, `SimrsClinicalPrivilegeDispatcher.cs:17` | Tidak | Belum |
+| `BE-HRD-229` | Feed pemicu FPPE yang diterima | `PerformanceManagement/Services/FppeTriggerDetectionService.cs:15` | Tidak | Belum |
+| `BE-HRD-241` | Status buddy system untuk staf yang sertifikatnya kedaluwarsa | `LearningAndDevelopment/Services/TrainingExpiryRadarService.cs:24` | Tidak | Belum |
+| `BE-HRD-159` | Penguncian PIN slip gaji dan sesi gaji sensitif 15 menit. Penyerang yang terkunci karena salah PIN 3 kali bisa langsung mencoba lagi setelah restart | `PayrollManagement/Services/PayrollPayslipDistributionService.cs:27`, `:30` | Tidak | Belum |
+| `BE-HRD-204` | Penghitung salah-PIN untuk membuka nominal surat (anti brute-force, maksimal 3 kali per 30 menit) | `HrServiceManagement/Services/PinRateLimiterService.cs:29` | Tidak | Belum |
+
+Perbaikan kelompok ini menambah tabel baru. File migration disiapkan bersama perubahannya, dan
+pemilik yang menjalankan `dotnet ef database update`.
+
+---
+
+## 5. Kelompok D — Worker yang hanya menulis log
+
+Worker berjalan sesuai jadwal dan menemukan kasus yang perlu ditindaklanjuti, tetapi hanya
+menulis `LogWarning`. Tidak ada data yang berubah dan tidak ada orang yang diberi tahu.
+
+**Contoh di rumah sakit.** Seorang perawat diskors. `ItAccessRevocationSyncWorker` seharusnya
+mencabut akses SIMRS-nya. Worker itu hanya menulis log, sehingga **perawat yang diskors tetap bisa
+masuk SIMRS dan membuka rekam medis pasien**.
+
+| Task | Worker | Bukti | Status perbaikan |
+|---|---|---|---|
+| `BE-HRD-285` ⚠️ | `ItAccessRevocationSyncWorker` — pencabutan akses SIMRS pegawai diskors (`EMP-W6`) | `EmployeeRelationManagement/Workers/EmployeeRelationWorkers.cs:249` | Belum |
+| `BE-HRD-278` | `SuspensionPeriodMonitoringWorker` — pemantau masa skorsing | `EmployeeRelationWorkers.cs:63` | Belum |
+| `BE-HRD-279` | `GrievanceSlaEscalationWorker` — eskalasi SLA mediasi keluhan 14 hari | `EmployeeRelationWorkers.cs:112` | Belum |
+| `BE-HRD-282` | `PkwtContractExpiryRadarWorker` — radar kontrak PKWT habis | `EmployeeRelationWorkers.cs:158` | Belum |
+| `BE-HRD-284` | `ExitClearanceChecklistReminderWorker` — pengingat checklist exit clearance | `EmployeeRelationWorkers.cs:204` | Belum |
+| `BE-HRD-268` | `PerformanceCalibrationDeadlineWorker`, `PerformancePipMilestoneMonitoringWorker`, `ClinicalCareerLadderExpiryWorker`, `PerformanceDisputeSlaEnforcementWorker` | `PerformanceManagement/Workers/PerformanceManagementWorkers.cs:129`, `:176`, `:226`, `:269` | Belum |
+| `BE-HRD-236` | `FppeProctoringMonitoringWorker` — tenggat proctoring FPPE | `PerformanceManagement/Workers/FppeProctoringMonitoringWorker.cs:17` | Belum |
+| `BE-HRD-296` | `SerialSurveillanceFollowUpWorker` — tindak lanjut serologi pajanan | `OccupationalHealthManagement/Workers/OccupationalHealthWorkers.cs:16` | Belum |
+| `BE-HRD-297` | `VaccineBoosterReminderWorker` — pengingat booster vaksin | `OccupationalHealthWorkers.cs:121` | Belum |
+| `BE-HRD-298` | `RadiationDoseThresholdAlertWorker` — alarm ambang dosis radiasi | `OccupationalHealthWorkers.cs:222` | Belum |
+| `BE-HRD-301` | `BPJSOccupationalInjuryFollowUpWorker` — tindak lanjut klaim BPJS JKK | `OccupationalHealthWorkers.cs:269` | Belum |
+| `BE-HRD-328` | `TravelAdvanceSettlementReminderWorker` — pengingat settlement uang muka dinas | `BusinessTravelManagement/Workers/BusinessTravelWorkers.cs:17` | Belum |
+
+**Keputusan yang dibutuhkan:**
+
+1. Sebagian besar worker ini seharusnya **memberi tahu seseorang**, jadi menunggu kanal notifikasi
+   dari `BE-HRD-314`.
+2. `BE-HRD-285` dan `BE-HRD-278` juga butuh aturan: **apakah sistem boleh mencabut akses SIMRS
+   dan memulihkannya kembali secara otomatis** saat skorsing dimulai dan berakhir, atau cukup
+   memberi tahu admin IT?
+
+---
+
+## 6. Kelompok E — Nomor dokumen dari angka acak
+
+Nomor dokumen resmi dibuat dari tanggal ditambah angka acak 3–4 digit. Dua dokumen bisa mendapat
+nomor yang sama. Urutannya juga tidak berurutan, padahal surat resmi seperti SP dan skorsing
+menuntut penomoran berurutan. Ini juga melanggar `QBE-CODE-003`.
+
+**Contoh di rumah sakit.** Dua Surat Peringatan diterbitkan pada bulan yang sama. Keduanya bisa
+bernomor `SP1/HRD/11/2026/482`. Yang satu menimpa arsip yang lain saat dicari berdasarkan nomor.
+
+| Service | Dokumen | Task terkait | Bukti | Status perbaikan |
+|---|---|---|---|---|
+| `DisciplinaryIncidentService` | Laporan insiden disiplin | `BE-HRD-273` | `EmployeeRelationManagement/Services/DisciplinaryIncidentService.cs:41` | Belum |
+| `DisciplinaryInvestigationService` | BAP investigasi | `BE-HRD-274` | `DisciplinaryInvestigationService.cs:33` | Belum |
+| `DisciplinarySanctionService` | Surat Peringatan | `BE-HRD-275` | `DisciplinarySanctionService.cs:73` | Belum |
+| `DisciplinarySuspensionService` | Surat skorsing | `BE-HRD-277` | `DisciplinarySuspensionService.cs:27` | Belum |
+| `EmployeeGrievanceService` | Tiket keluhan | `BE-HRD-279` | `EmployeeGrievanceService.cs:23` | Belum |
+| `WhistleblowerCaseService` | Tiket whistleblower | `BE-HRD-280` | `WhistleblowerCaseService.cs:29` | Belum |
+| `BipartiteForumService` | Register forum bipartit | `BE-HRD-281` | `BipartiteForumService.cs:27` | Belum |
+| `EmployeeSeparationService` | Nomor terminasi | `BE-HRD-282` | `EmployeeSeparationService.cs:32` | Belum |
+| `BenefitClaimService` | Klaim COB | `BE-HRD-188` | `BenefitManagement/Services/BenefitClaimService.cs:241` | Belum |
+| `BenefitEnrollmentService` | Kepesertaan benefit | `BE-HRD-181` s.d. `BE-HRD-185` | `BenefitEnrollmentService.cs:420` | Belum |
+| `BenefitInHouseService` | Referensi koreksi plafon | `BE-HRD-186`, `BE-HRD-187` | `BenefitInHouseService.cs:319` | Belum |
+| `ProctoringWorkflowService` | Penugasan FPPE | `BE-HRD-230` s.d. `BE-HRD-232` | `PerformanceManagement/Services/ProctoringWorkflowService.cs:95` | Belum |
+| `WorkflowInstanceCreationService` | Nomor permohonan workflow | `BE-HRD-304` | `WorkflowManagement/Services/WorkflowInstanceCreationService.cs:67` | Belum |
+| `ApprovalDelegationV2Service` | Nomor delegasi Plh | `BE-HRD-307` | `WorkflowManagement/Services/ApprovalDelegationV2Service.cs:54` | Belum |
+
+**Tambahan keamanan:** PIN 4 digit untuk membuka nominal surat finansial dibuat dengan
+`Random.Shared`, bukan pembangkit acak kriptografis (`EmployeeDocumentIssuanceService.cs:316`,
+`BE-HRD-204`).
+
+**Butuh keputusan? Tidak.** Proyek sudah punya `Areas/Corporate/HumanResource/LifecycleManagement/Services/HrdNumberSeriesService.cs`.
+Format awalan nomor yang sekarang dipakai tetap dipertahankan; yang diganti hanya bagian acaknya
+menjadi nomor urut, ditambah unique index sesuai `QBE-CODE-004`.
+
+---
+
+## 7. Kelompok F — Logika dimatikan atau tidak tersambung
+
+| Task | Masalah | Bukti | Butuh keputusan? | Status perbaikan |
+|---|---|---|---|---|
+| `BE-HRD-032` | Pemisahan pengaju dan penyetuju pendaftaran benefit (`FIN-VAL-271`) dimatikan dengan catatan "SEMENTARA". Petugas bisa menyetujui pengajuannya sendiri | `BenefitManagement/Services/EmployeeBenefitEnrollmentService.cs:408`, `:651` | **Ya.** Boleh dinyalakan kembali sekarang? | Belum |
+| `BE-HRD-142` | `CompensatoryTimeOffExpirationService` (kedaluwarsa jatah libur pengganti lembur 90 hari) hanya dipanggil dari controller. Scheduler masih memakai `OvertimeCompensatoryExpiryService` versi lama | `OvertimeManagement/Services/OvertimeSchedulerService.cs:18`, `:27`; `Program.cs:1295`, `:1315` | Tidak — samakan dengan service baru, atau tetapkan salah satu sebagai satu-satunya | Belum |
+
+---
+
+## 8. Kelompok G — Sisa remediasi keamanan
+
+Keenam temuan ini menyangkut **kepemilikan data**: pengguna bisa membaca data milik orang lain
+dengan mengganti ID di alamat API. Rinciannya ada di
+[evidence/03-hr-authorization-remediation.md](../evidence/03-hr-authorization-remediation.md)
+bagian 8.
+
+| No | Lokasi | Masalah | Status perbaikan |
+|---:|---|---|---|
+| 1 | `EmployeeGrievanceController.GetMyTickets` | `employeeId` dari query — tiket keluhan orang lain bisa dibaca | Belum |
+| 2 | `EmployeeGrievanceController.SubmitGrievance` | Pelapor diisi dari body — keluhan bisa diajukan atas nama orang lain | Belum |
+| 3 | `HealthRecordsController.GetMyHealth` | `employeeId` dari query — profil kesehatan orang lain bisa dibaca | Belum |
+| 4 | `OppeOngoingEvaluationController.GetAssignedPeerReviews` | `evaluatorId` dari route — tugas telaah sejawat dokter lain bisa dilihat | Belum |
+| 5 | 10 controller Benefit, Perjalanan Dinas, ESS, Workflow V2 | Membaca klaim `"EmployeeId"`/`"WorkforceProfileId"` yang tidak ada di token; selalu jatuh ke ID akun. Juga menghalangi pemeriksaan "apakah penyetuju memang approver tahapan" di `WorkflowApprovalActionService` | Belum |
+| 6 | `HealthRecordsController.IsDoctorRole` | Peran dokter K3 ditulis langsung di kode (`IsInRole("DokterK3RS")`) | Belum |
+
+**Satu keputusan membuka nomor 1–5:** data "milik saya" diturunkan dari klaim token
+**`employee_id`** atau **`workforce_profile_id`**? Untuk nomor 6: cukup memakai hak akses
+`OccupationalHealthRecord : ViewClinicalDetail` yang sudah ada?
+
+---
+
+## 9. Kelompok H — Ketidaksesuaian dokumen roadmap
+
+| No | Masalah | Lokasi di `backend-roadmap.md` | Status perbaikan |
+|---:|---|---|---|
+| 1 | Register status: kolom status `BE-HRD-079` dan `BE-HRD-104` s.d. `BE-HRD-130` kosong; `BE-HRD-146` s.d. `BE-HRD-175` kolom status dan ringkasan tertukar; `BE-HRD-176` s.d. `BE-HRD-333` (158 task) tidak tercantum | Tabel register, baris 700 s.d. 874 | Belum |
+| 2 | Tabel "Gerbang yang masih terbuka" masih mendaftar 5 gerbang, padahal task yang tertahan sudah ✅. `HRD-PLAN-GAP-01` sudah ditandai ✅ di baris 391 dan 601; `INT-HR-31` sudah dipakai `RosterValidationService`. `HRD-PLAN-GAP-02` dan `HRD-DEC-032` perlu dicek apakah benar sudah tertutup | Baris 674 s.d. 682 | Belum |
+| 3 | `BE-HRD-317` bertanda ✅ padahal dependensinya `BE-HRD-316` 🟡 | Kartu `BE-HRD-317` dan grafik B79 | Belum |
+| 4 | Laporan `BE-HRD-237` meluluskan uji `AT-HRD-OPP-03` (agregasi SIMRS otomatis), padahal kodenya hard-code (lihat `BE-HRD-225`) | `task/report/backend/BE-HRD-237.md` | Belum |
+| 5 | Laporan `BE-HRD-333` mengklaim 24 hak akses Perjalanan Dinas terkunci. Sesudah remediasi 10 November 2026 baru ada 19 aksi; 5 sisanya belum punya endpoint | `task/report/backend/BE-HRD-333.md` | Belum |
+
+---
+
+## 10. Urutan kerja yang disarankan
+
+### Gelombang 1 — bisa langsung dikerjakan, tanpa keputusan baru
+
+| Urutan | Kelompok | Task | Alasan urutan |
+|---:|---|---|---|
+| 1 | E | 14 service | Paling banyak, polanya seragam, dan memakai `HrdNumberSeriesService` yang sudah ada |
+| 2 | C | `BE-HRD-159`, `204`, `229`, `234`, `235`, `241` | Dua di antaranya pengaman PIN gaji dan surat; sisanya jejak audit akreditasi |
+| 3 | B | `BE-HRD-298`, `240`, `233`, `239` | Menghapus data karangan dari layar |
+| 4 | F | `BE-HRD-142` | Satu perubahan kecil pada scheduler |
+| 5 | H | 5 butir | Merapikan roadmap sesudah gelombang 1 selesai |
+
+### Gelombang 2 — sesudah pemilik memutuskan
+
+| Keputusan | Membuka |
+|---|---|
+| Kanal notifikasi dan pemilik fitur notifikasi | `BE-HRD-314`, lalu seluruh kelompok D dan `INT-HR-94` |
+| Aturan cabut/pulihkan akses SIMRS otomatis | `BE-HRD-285`, `BE-HRD-278` |
+| Sumber data SIMRS untuk metrik dan wewenang klinis | `BE-HRD-225`, `BE-HRD-235` |
+| Sumber kurs | `BE-HRD-333` |
+| Nasib worker persetujuan massal | `BE-HRD-313` |
+| Menyalakan kembali maker-checker benefit | `BE-HRD-032` |
+| Klaim identitas pegawai (`employee_id` atau `workforce_profile_id`) | Kelompok G nomor 1–5 |
+
+---
+
+## 11. Yang tidak termasuk daftar ini
+
+- **Tidak adanya project test otomatis bukan kekurangan.** `rules/backend/TEST_POLICY.md` melarang
+  membuatnya kecuali pemilik memintanya. Yang tetap dicatat adalah laporan yang mengklaim uji
+  `AT-HRD-*` lulus tanpa bukti (kelompok H).
+- Migration yang belum diterapkan ke database dan pengujian runtime dengan akun sungguhan belum
+  diperiksa pada audit ini.
+- `BE-HRD-011`, `BE-HRD-016`, `BE-HRD-020`, dan `BE-HRD-021` tidak punya kartu sendiri karena
+  direalisasikan lewat task slice lain. Itu bukan pekerjaan yang tertinggal.
