@@ -328,9 +328,70 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 "Detail workflow instance berhasil diambil.");
         }
 
-        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CreateAsync(
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CreateAsync(
             CreateWorkflowInstanceRequest request,
+            CancellationToken cancellationToken = default) =>
+            CreateCoreAsync(request, null, cancellationToken);
+
+        /// <summary>
+        /// BE-PBJ-005 (PBJ-DEC-038): membuat lalu mengajukan instance <b>atas nama</b> pemohon yang
+        /// bukan pengguna login, untuk dokumen yang dikirim ke approval oleh petugas lain. Contoh:
+        /// Tim Pengadaan menyelesaikan verifikasi PR, tetapi pemohon instance tetap pengusul PR,
+        /// sehingga jenjang dipilih dari unit pengusul dan penjaga anti-setujui-sendiri melindungi
+        /// pengusul.
+        /// </summary>
+        /// <remarks>
+        /// Hanya untuk dipanggil service server (tidak ada endpoint). Idempoten per
+        /// <c>request.IdempotencyKey</c> (wajib diisi): pemanggilan ulang mengembalikan instance yang
+        /// sama, dan instance yang sudah diajukan tidak diajukan ulang. Pembuatan dan pengajuan
+        /// tetap memakai transaksi milik masing-masing; pemanggil menyimpan dokumennya sesudahnya
+        /// dan boleh mengulang dengan aman bila penyimpanan dokumen gagal.
+        /// </remarks>
+        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CreateAndSubmitOnBehalfAsync(
+            CreateWorkflowInstanceRequest request,
+            Guid requesterUserId,
             CancellationToken cancellationToken = default)
+        {
+            if (requesterUserId == Guid.Empty)
+            {
+                return WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pemohon workflow wajib diisi.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request?.IdempotencyKey))
+            {
+                return WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Idempotency key wajib diisi untuk pengajuan atas nama pemohon.");
+            }
+
+            var created = await CreateCoreAsync(request, requesterUserId, cancellationToken);
+            if (!created.Success || created.Data == null)
+            {
+                return created;
+            }
+
+            if (!string.Equals(
+                    created.Data.WorkflowStatus,
+                    WorkflowValueConstants.WorkflowStatus.Draft,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                // Pemanggilan ulang: instance sudah diajukan sebelumnya.
+                return created;
+            }
+
+            return await SubmitCoreAsync(
+                created.Data.Id,
+                new WorkflowSubmitRequest { IdempotencyKey = request.IdempotencyKey.Trim() + ":submit" },
+                requesterUserId,
+                cancellationToken);
+        }
+
+        private async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> CreateCoreAsync(
+            CreateWorkflowInstanceRequest request,
+            Guid? onBehalfOfUserId,
+            CancellationToken cancellationToken)
         {
             var validationMessage = ValidateCreateRequest(request);
             if (validationMessage != null)
@@ -343,7 +404,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             HumanResourceUserContextDto actorContext;
             try
             {
-                actorContext = await _humanResourceContextService.GetCurrentAsync(cancellationToken);
+                actorContext = onBehalfOfUserId.HasValue
+                    ? await _humanResourceContextService.GetByUserIdAsync(onBehalfOfUserId.Value, cancellationToken)
+                    : await _humanResourceContextService.GetCurrentAsync(cancellationToken);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -439,6 +502,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 .ThenBy(x => x.StepCode)
                 .ToListAsync(cancellationToken);
 
+            var requestContext = WorkflowRequestContext.Parse(request.RequestContext);
+
+            // BE-PBJ-001 (PBJ-DEC-030): langkah ber-ActivationConditionCode hanya dibuat bila
+            // permohonan membawa kode yang sama di RequestContext.conditionCodes. Langkah tanpa
+            // kode — seluruh langkah yang sudah ada — selalu dibuat seperti sebelumnya.
+            workflowSteps = workflowSteps
+                .Where(x => requestContext.IsStepActivated(x.ActivationConditionCode))
+                .ToList();
+
             if (workflowSteps.Count == 0)
             {
                 return WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
@@ -497,7 +569,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 _dbContext.Set<TrxWorkflowInstance>().Add(instance);
 
-                var requestContext = WorkflowRequestContext.Parse(request.RequestContext);
                 var stepInstances = new List<TrxWorkflowStepInstance>();
                 var unitAncestorChain = await GetOrganizationUnitAncestorChainAsync(
                     actorContext.OrganizationUnitId,
@@ -683,10 +754,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             }
         }
 
-        public async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> SubmitAsync(
+        public Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> SubmitAsync(
             Guid workflowInstanceId,
             WorkflowSubmitRequest? request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default) =>
+            SubmitCoreAsync(workflowInstanceId, request, null, cancellationToken);
+
+        private async Task<WorkflowServiceResult<WorkflowInstanceDetailResponse>> SubmitCoreAsync(
+            Guid workflowInstanceId,
+            WorkflowSubmitRequest? request,
+            Guid? onBehalfOfUserId,
+            CancellationToken cancellationToken)
         {
             if (workflowInstanceId == Guid.Empty)
             {
@@ -698,7 +776,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             HumanResourceUserContextDto actorContext;
             try
             {
-                actorContext = await _humanResourceContextService.GetCurrentAsync(cancellationToken);
+                actorContext = onBehalfOfUserId.HasValue
+                    ? await _humanResourceContextService.GetByUserIdAsync(onBehalfOfUserId.Value, cancellationToken)
+                    : await _humanResourceContextService.GetCurrentAsync(cancellationToken);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -3353,6 +3433,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             public Guid? EmploymentTypeId { get; private set; }
 
+            /// <summary>
+            /// Kode kondisi dari <c>conditionCodes</c> (BE-PBJ-001). Kosong bila tidak dikirim.
+            /// </summary>
+            public IReadOnlySet<string> ConditionCodes { get; private set; } =
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>
+            /// Langkah tanpa kode kondisi selalu aktif; langkah ber-kode aktif hanya bila
+            /// kodenya ada pada <see cref="ConditionCodes"/>.
+            /// </summary>
+            public bool IsStepActivated(string? activationConditionCode)
+            {
+                return string.IsNullOrWhiteSpace(activationConditionCode) ||
+                       ConditionCodes.Contains(activationConditionCode.Trim());
+            }
+
             public static WorkflowRequestContext Parse(JsonElement? element)
             {
                 var result = new WorkflowRequestContext();
@@ -3384,8 +3480,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 result.EmploymentTypeId = ReadGuid(
                     element.Value,
                     "employmentTypeId");
+                result.ConditionCodes = ReadStringSet(
+                    element.Value,
+                    "conditionCodes");
 
                 return result;
+            }
+
+            private static IReadOnlySet<string> ReadStringSet(
+                JsonElement element,
+                params string[] names)
+            {
+                var values = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (!names.Any(x => string.Equals(
+                        x,
+                        property.Name,
+                        StringComparison.OrdinalIgnoreCase)) ||
+                        property.Value.ValueKind != JsonValueKind.Array)
+                    {
+                        continue;
+                    }
+
+                    foreach (var item in property.Value.EnumerateArray())
+                    {
+                        if (item.ValueKind != JsonValueKind.String)
+                        {
+                            continue;
+                        }
+
+                        var value = item.GetString()?.Trim();
+
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            values.Add(value);
+                        }
+                    }
+                }
+
+                return values;
             }
 
             private static decimal? ReadDecimal(

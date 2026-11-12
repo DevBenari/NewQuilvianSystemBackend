@@ -5,6 +5,9 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -1391,6 +1394,22 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RhbDiscipline> RhbDisciplines { get; set; }
         public DbSet<RhbDisciplineProcedure> RhbDisciplineProcedures { get; set; }
         public DbSet<RhbDisciplineInstrument> RhbDisciplineInstruments { get; set; }
+
+        // Pengadaan Barang & Jasa (PBJ-BP-001, prefix Prc — PBJ-DEC-035). BE-PBJ-002: riwayat dokumen bersama.
+        public DbSet<PrcDocumentHistory> PrcDocumentHistories { get; set; }
+
+        // BE-PBJ-003: master Pengadaan.
+        public DbSet<MstProcurementType> MstProcurementTypes { get; set; }
+        public DbSet<MstProcurementItemCategory> MstProcurementItemCategories { get; set; }
+        public DbSet<MstProcurementFundSource> MstProcurementFundSources { get; set; }
+        public DbSet<MstProcurementItem> MstProcurementItems { get; set; }
+
+        // BE-PBJ-004: lampiran dokumen Pengadaan.
+        public DbSet<PrcAttachment> PrcAttachments { get; set; }
+
+        // BE-PBJ-006: permintaan pengadaan (PR) beserta barisnya.
+        public DbSet<PrcPurchaseRequest> PrcPurchaseRequests { get; set; }
+        public DbSet<PrcPurchaseRequestLine> PrcPurchaseRequestLines { get; set; }
         #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT
