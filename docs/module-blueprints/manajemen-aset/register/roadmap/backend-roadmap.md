@@ -30,9 +30,9 @@ diminta.
 Grafik dipotong menjadi dua blok karena lebar; `BE-AST-006` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-BE-AST-001 ─> BE-AST-002 ─> BE-AST-003 ─┬─> BE-AST-004 ─> BE-AST-005 ─> BE-AST-006
-                                        │
-                    BE-AST-014 [NLI] ───┘
+BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ─> BE-AST-005 ─> BE-AST-006
+                                                 │
+                    BE-AST-014 [NLI] ────────────┘
 ```
 
 ```text
@@ -67,7 +67,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
-| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | belum dikerjakan |
+| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | 🟡 `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` s.d. `BE-AST-006` belum dikerjakan |
 | `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | belum dikerjakan |
 
 ## Tabel task
@@ -90,28 +90,28 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `BE-AST-001` — Pendaftaran registry `AssetManagement` / `Ast`
+### ✅ `BE-AST-001` — Pendaftaran registry `AssetManagement` / `Ast`
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 12 November 2026.** Ketiga acceptance criteria terbukti: enam baris `Ast` `ACTIVE` + kepanjangan + catatan perubahan (diff 8 insertions, 0 deletions); harness fungsi asli `Resolve-RegistryOwnership` 13/13 kasus sesuai (kelima submodule → `Ast`, `MasterData` → `Mst`, `Trx*` ditolak, folder belum terdaftar ambigu, Finance/Payroll tanpa regresi); baseline HEAD membuktikan `AstAsset` sebelumnya ditolak. QBE checker WorkingTree `PASS` dengan `Files evaluated: 0` (bukan bukti, tidak ada `.cs`). `dotnet build` `NOT APPLICABLE` (nol source). Di-commit dan di-push ke `origin/rizkiG` 12 November 2026 atas perintah Rizki, bersama `BE-AST-002` dan `BE-AST-003`. Laporan: [`BE-AST-001.md`](../task/report/backend/BE-AST-001.md) |
 | Cakupan | Enam baris registry pada `02-module-map.md` bagian 1 + baris catatan perubahan; pemeriksaan bahwa `AssetManagement/MasterData` tercakup baris `Mst` tanpa ambiguitas (preseden `PatientRefund`) |
 | Acceptance criteria | 1. Enam baris `Ast` ada dengan Area, Owner, Category `BUSINESS DOMAIN / MODULE`, Lifecycle `ACTIVE`. 2. Catatan perubahan menyebut `AST-DEC-004` dan penyetujunya. 3. QBE checker menyelesaikan kepemilikan `Areas/Corporate/AssetManagement/Register/Models/AstAsset.cs` (berkas contoh) tanpa ambiguitas |
 | Catatan | Bila pemilik registry bukan Rizki, task berhenti dan meminta persetujuan pemilik itu |
 
-### `BE-AST-002` — Model, enum, dan configuration delapan master
+### ✅ `BE-AST-002` — Model, enum, dan configuration delapan master
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 12 November 2026.** `dotnet build` dijalankan Rizki dan berhasil: DLL 14:44:25 WIB, sesudah suntingan terakhir 14:24:42 WIB, memuat 20 dari 20 penanda (8 model, 8 configuration, 2 namespace, 2 DbSet); jumlah warning tidak dilaporkan. Di-commit dan di-push ke `origin/rizkiG` atas perintah Rizki. **Riwayat — sebelumnya 🟡 SEBAGIAN 12 November 2026:** keempat acceptance criteria terpetakan ke source: 8 model `Mst*` di `Areas/Corporate/AssetManagement/MasterData/Models/`, 8 configuration di `Repositories/Configurations/Corporate/AssetManagement/MasterData/`, 8 DbSet di `ApplicationDbContext` (+15 baris, 0 dihapus); nol enum karena kamus §2 tidak memuat kolom enum. QBE checker WorkingTree ReportOnly dan Strict `PASS` dengan `Files evaluated: 17`, 0 temuan; harness fungsi asli checker 8/8 entity (`IdentityModel`, configuration, DbSet, pemilik `Mst`) dan 4/4 kontrol negatif; pencocokan statis kamus §2 243 pemeriksaan 0 gagal (uji mutasi menangkap 4 dari 4 mutasi). Butir DoD `V-BE` **`dotnet restore` + `dotnet build` belum terpenuhi** — menunggu build oleh Rizki; validitas model EF terbukti paling lambat pada `BE-AST-004`. Tanpa migration, tanpa perubahan database, belum di-commit. Laporan: [`BE-AST-002.md`](../task/report/backend/BE-AST-002.md) |
 | Cakupan | 8 berkas `Mst*` di `Areas/Corporate/AssetManagement/MasterData/Models/`; configuration di `Repositories/Configurations/Corporate/AssetManagement/MasterData/`; DbSet |
 | Acceptance criteria | 1. Kolom, panjang, index unik, dan FK sesuai `data/data-dictionary.md` §2. 2. `InventoryCode` maks 11. 3. Tidak ada `SortOrder`. 4. Semua FK `Restrict` |
 
-### `BE-AST-003` — Model, enum, dan configuration dua belas tabel transaksi
+### ✅ `BE-AST-003` — Model, enum, dan configuration dua belas tabel transaksi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 12 November 2026.** `dotnet build` dijalankan Rizki dan berhasil: DLL 15:11:35 WIB, sesudah suntingan terakhir 15:02:55 WIB, memuat 44 dari 44 penanda (12 model, 12 configuration, 14 enum, 2 namespace, 2 DbSet, 2 tipe master); jumlah warning tidak dilaporkan. Di-commit dan di-push ke `origin/rizkiG` atas perintah Rizki. **Riwayat — sebelumnya 🟡 SEBAGIAN 12 November 2026:** keempat acceptance criteria terpetakan ke source: 12 model `Ast*` di `Areas/Corporate/AssetManagement/Register/Models/`, 14 enum di `Register/Enums/AssetRegisterEnums.cs`, 12 configuration di `Repositories/Configurations/Corporate/AssetManagement/Register/`, 12 DbSet (+19 baris `ApplicationDbContext`, 0 dihapus). Unik parsial `IX_AstAssetPlacement_Current`, `IX_AstConditionReport_Open`, `IX_AstAsset_InventoryNumber` persis DDL kamus §4; `RowVersion` token tepat pada 5 tabel; 18 properti enum `HasConversion<int>()`. QBE checker ReportOnly dan Strict `PASS` dengan `Files evaluated: 42`, 0 temuan; harness fungsi asli checker 12/12 entity dan 6/6 kontrol negatif; pencocokan statis kamus §3 + DDL §4 + enum §5.4 1030 pemeriksaan 0 gagal atas 173 kolom (uji mutasi menangkap 8 dari 8 mutasi). Butir DoD `V-BE` **`dotnet restore` + `dotnet build` belum terpenuhi** — menunggu build oleh Rizki; validitas model EF terbukti paling lambat pada `BE-AST-004`. Tanpa migration, tanpa perubahan database, belum di-commit. Laporan: [`BE-AST-003.md`](../task/report/backend/BE-AST-003.md) |
 | Cakupan | 12 model `Ast*`, 14 enum (`02-backend-architecture.md` §5.4), configuration, DbSet |
 | Acceptance criteria | 1. Kolom sesuai data dict §3. 2. Unique parsial: penempatan berjalan per aset, laporan kondisi terbuka per aset, nomor inventaris bila tidak null. 3. `RowVersion` token konkurensi pada aset, penyerahan, laporan kondisi, pemanfaatan, batch impor. 4. Enum `HasConversion<int>()` |
 

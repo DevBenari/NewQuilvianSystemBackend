@@ -13,9 +13,9 @@ test **bukan** gap (`rules/backend/TEST_POLICY.md`).
 
 | Requirement | Decision / aturan | Desain | Task BE | Task FE | Verifikasi | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| Registry `Ast` | `AST-DEC-004` | `02-module-map.md` §1 | `BE-AST-001` | — | QBE | — | belum |
-| `CAP-02.1`–`02.6`, `CAP-EXT-05` master | `AST-DEC-006`, `026`, `034`; `AST-DES-014`, `015` | arsitektur §4.1 | `BE-AST-002`, `004`, `006` | `FE-AST-001`, `002` | `AT-REG-34`, `35` | — | belum |
-| `CAP-03.1` pencatatan | `AST-DEC-006..008`, `043` | state §1 | `BE-AST-003`, `007` | `FE-AST-003` | `AT-REG-01`, `30`, `31`, `33`; `UAT-REG-01`, `02` | — | belum |
+| Registry `Ast` | `AST-DEC-004` | `02-module-map.md` §1 | `BE-AST-001` ✅ | — | QBE (harness `Resolve-RegistryOwnership` 13/13) | [`BE-AST-001.md`](../task/report/backend/BE-AST-001.md) | ✅ 2026-11-12 |
+| `CAP-02.1`–`02.6`, `CAP-EXT-05` master | `AST-DEC-006`, `026`, `034`; `AST-DES-014`, `015` | arsitektur §4.1 | `BE-AST-002` ✅, `004`, `006` | `FE-AST-001`, `002` | `AT-REG-34`, `35`; `BE-AST-002`: QBE `Files evaluated: 17` `PASS`, kamus §2 243/0, `dotnet build` Rizki berhasil | [`BE-AST-002.md`](../task/report/backend/BE-AST-002.md) | 🟡 2026-11-12 — `BE-AST-002` ✅ (model master); `BE-AST-004`, `006` belum |
+| `CAP-03.1` pencatatan | `AST-DEC-006..008`, `043` | state §1 | `BE-AST-003` ✅, `007` | `FE-AST-003` | `AT-REG-01`, `30`, `31`, `33`; `UAT-REG-01`, `02`; `BE-AST-003`: QBE `Files evaluated: 42` `PASS`, kamus §3 1030/0, `dotnet build` Rizki berhasil | [`BE-AST-003.md`](../task/report/backend/BE-AST-003.md) | 🟡 2026-11-12 — `BE-AST-003` ✅ (tabel register); `BE-AST-007` belum |
 | `CAP-03.2` data perolehan | `AST-DEC-008`, `AST-DES-002` | data dict §3.1 | `BE-AST-007` | `FE-AST-004` | `AT-REG-02` | — | belum |
 | `CAP-03.3` nomor inventaris | `AST-DEC-009`, `033`; `AST-DES-014` | integration `INT-REG-10` | `BE-AST-005`, `007` | `FE-AST-003` | `AT-REG-01`, `11`, `32` | — | belum |
 | `CAP-03.4` label | `AST-DEC-010` | `INT-REG-11` | `BE-AST-008` | `FE-AST-005` | `AT-REG-13` | — | belum |
