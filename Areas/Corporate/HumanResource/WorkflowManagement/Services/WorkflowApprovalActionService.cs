@@ -22,15 +22,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         private readonly ApplicationDbContext _context;
         private readonly IAntiSelfApprovalGuardService _antiSelfApprovalGuard;
         private readonly IIdempotentDownstreamExecutionService _downstreamService;
+        private readonly IUnifiedNotificationGatewayService _notificationGateway;
 
         public WorkflowApprovalActionService(
             ApplicationDbContext context,
             IAntiSelfApprovalGuardService antiSelfApprovalGuard,
-            IIdempotentDownstreamExecutionService downstreamService)
+            IIdempotentDownstreamExecutionService downstreamService,
+            IUnifiedNotificationGatewayService notificationGateway)
         {
             _context = context;
             _antiSelfApprovalGuard = antiSelfApprovalGuard;
             _downstreamService = downstreamService;
+            _notificationGateway = notificationGateway;
         }
 
         public async Task<WorkflowActionV2ResponseDto> ApproveAsync(Guid stepInstanceId, ApproveActionRequestDto request, Guid currentEmployeeId)
@@ -52,22 +55,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             _antiSelfApprovalGuard.ValidateAntiSelfApproval(instance.RequestedByEmployeeId ?? Guid.Empty, currentEmployeeId);
 
             // Validasi hak otorisasi (apakah approver langsung atau Plh aktif)
-            var assignment = step.ApproverAssignments.FirstOrDefault(a => a.AssignmentStatus == "Pending");
-            Guid? onBehalfOf = null;
-            if (assignment != null && assignment.ApproverEmployeeId != currentEmployeeId)
-            {
-                // Cek delegasi Plh
-                var delegation = await _context.TrxApprovalDelegations
-                    .Where(d => d.DelegateEmployeeId == currentEmployeeId &&
-                                d.PrincipalEmployeeId == assignment.ApproverEmployeeId &&
-                                d.IsActive)
-                    .FirstOrDefaultAsync();
-
-                if (delegation != null)
-                {
-                    onBehalfOf = assignment.ApproverEmployeeId;
-                }
-            }
+            var assignment = FindActionableAssignment(step);
+            var onBehalfOf = await EnsureActorIsAssignedApproverAsync(assignment, currentEmployeeId);
 
             // Hitung hash tanda tangan digital
             var sigHash = ComputeSignatureHash(currentEmployeeId, stepInstanceId, "APPROVE", request.PinSignature);
@@ -175,6 +164,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             // supaya transaksi sumber mengikuti tahapan yang sedang berjalan.
             await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
 
+            // WF-B7 / BE-HRD-314: pemohon diberi tahu hasil tahapan; approver tahapan berikutnya diberi tahu ada tiket baru
+            await NotifyRequesterAsync(instance, nextStep != null
+                ? $"Permohonan {instance.RequestNumber} disetujui pada tahapan {step.StepNameSnapshot} dan diteruskan ke pejabat berikutnya."
+                : $"Permohonan {instance.RequestNumber} telah disetujui penuh.", "Permohonan disetujui");
+            if (nextStep != null)
+            {
+                await NotifyStepApproverAsync(instance, nextStep.Id);
+            }
+
             return new WorkflowActionV2ResponseDto
             {
                 Success = true,
@@ -209,6 +207,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             EnsureStepIsActionable(step, instance);
 
             _antiSelfApprovalGuard.ValidateAntiSelfApproval(instance.RequestedByEmployeeId ?? Guid.Empty, currentEmployeeId);
+            await EnsureActorIsAssignedApproverAsync(FindActionableAssignment(step), currentEmployeeId);
 
             var now = DateTime.UtcNow;
             var sigHash = ComputeSignatureHash(currentEmployeeId, stepInstanceId, "REJECT", request.PinSignature);
@@ -233,7 +232,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             step.IsCurrentStep = false;
             step.RejectedActionCount += 1;
 
-            var assignment = step.ApproverAssignments.FirstOrDefault(a => a.AssignmentStatus == "Pending");
+            var assignment = FindActionableAssignment(step);
             if (assignment != null)
             {
                 assignment.AssignmentStatus = "Rejected";
@@ -260,6 +259,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             // ikut berstatus ditolak dan tidak tertahan sebagai menunggu persetujuan.
             await _downstreamService.ExecuteDownstreamActionsAsync(instance.Id);
 
+            await NotifyRequesterAsync(instance, $"Permohonan {instance.RequestNumber} ditolak. Alasan: {request.RejectReason}", "Permohonan ditolak");
+
             return new WorkflowActionV2ResponseDto
             {
                 Success = true,
@@ -284,6 +285,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             var step = await _context.TrxWorkflowStepInstances
                 .Include(s => s.WorkflowInstance)
+                .Include(s => s.ApproverAssignments)
                 .FirstOrDefaultAsync(s => s.Id == stepInstanceId);
 
             if (step == null) throw new KeyNotFoundException("Tahapan persetujuan alur kerja tidak ditemukan");
@@ -291,6 +293,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             if (instance == null) throw new InvalidOperationException("Instansi workflow tidak valid");
 
             EnsureStepIsActionable(step, instance);
+            await EnsureActorIsAssignedApproverAsync(FindActionableAssignment(step), currentEmployeeId);
 
             var now = DateTime.UtcNow;
 
@@ -335,6 +338,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
             await _context.SaveChangesAsync();
 
+            await NotifyRequesterAsync(instance, $"Permohonan {instance.RequestNumber} dikembalikan untuk perbaikan draf (batas 7 hari). Catatan: {request.RevisionNotes}", "Permohonan dikembalikan untuk revisi");
+
             return new WorkflowActionV2ResponseDto
             {
                 Success = true,
@@ -345,6 +350,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 ResultingStepStatus = "ReturnedForRevision",
                 ActionTimestamp = now
             };
+        }
+
+        private static TrxWorkflowApproverAssignment? FindActionableAssignment(TrxWorkflowStepInstance step)
+        {
+            return step.ApproverAssignments.FirstOrDefault(a => ActionableStepStatuses.Contains(a.AssignmentStatus, StringComparer.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Hanya approver yang ditugaskan pada tahapan atau Plh aktifnya yang boleh memutus. Mengembalikan pejabat asal bila aktor adalah Plh.
+        /// </summary>
+        /// <remarks>
+        /// Penugasan dicocokkan lewat ID karyawan. Penugasan dari mesin workflow utama hanya mengisi akun approver,
+        /// sehingga pada keadaan itu yang dicocokkan akun pengguna.
+        /// </remarks>
+        private async Task<Guid?> EnsureActorIsAssignedApproverAsync(TrxWorkflowApproverAssignment? assignment, Guid currentEmployeeId)
+        {
+            if (assignment == null)
+            {
+                throw new UnauthorizedAccessException("Tahapan ini tidak memiliki penugasan approver yang aktif.");
+            }
+
+            if (assignment.ApproverEmployeeId.HasValue && assignment.ApproverEmployeeId.Value != Guid.Empty)
+            {
+                if (assignment.ApproverEmployeeId.Value == currentEmployeeId) return null;
+
+                var isDelegate = await _context.TrxApprovalDelegations
+                    .AnyAsync(d => d.DelegateEmployeeId == currentEmployeeId &&
+                                   d.PrincipalEmployeeId == assignment.ApproverEmployeeId &&
+                                   d.IsActive);
+                if (isDelegate) return assignment.ApproverEmployeeId;
+            }
+            else
+            {
+                var isAssignedAccount = await _context.Users.AsNoTracking()
+                    .AnyAsync(u => u.Id == assignment.AssignedApproverUserId && (u.Id == currentEmployeeId || u.EmployeeId == currentEmployeeId));
+                if (isAssignedAccount) return null;
+            }
+
+            throw new UnauthorizedAccessException("Anda bukan approver yang ditugaskan pada tahapan ini dan tidak memegang delegasi Plh yang aktif.");
         }
 
         private static readonly string[] ActionableStepStatuses =
@@ -382,6 +426,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             if (isTerminal || !isActiveStep)
             {
                 throw new InvalidOperationException("Tahapan persetujuan belum aktif atau sudah diproses.");
+            }
+        }
+
+        /// <summary>WF-B7: pemberitahuan instan ke pemohon. Akun pemohon selalu tercatat pada instance (RequestedByUserId).</summary>
+        private async Task NotifyRequesterAsync(TrxWorkflowInstance instance, string message, string title)
+        {
+            if (instance.RequestedByUserId != Guid.Empty)
+            {
+                await _notificationGateway.SendInstantNotificationToUserAsync(
+                    instance.RequestedByUserId, title, message, $"/hrd/workflow/my-requests/{instance.Id}", instance.Id);
+            }
+            else if (instance.RequestedByEmployeeId.HasValue)
+            {
+                await _notificationGateway.SendInstantNotificationAsync(instance.RequestedByEmployeeId.Value, title, message);
+            }
+        }
+
+        /// <summary>WF-B7: pemberitahuan instan ke approver tahapan yang baru aktif.</summary>
+        private async Task NotifyStepApproverAsync(TrxWorkflowInstance instance, Guid stepInstanceId)
+        {
+            var assignment = await _context.TrxWorkflowApproverAssignments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.WorkflowStepInstanceId == stepInstanceId && a.AssignmentStatus == "Pending");
+            if (assignment == null) return;
+
+            var title = "Permohonan baru menunggu persetujuan Anda";
+            var message = $"Permohonan {instance.RequestNumber} ({instance.ReferenceType}) masuk ke kotak persetujuan Anda. Batas SLA: {assignment.DueAt:dd MMM yyyy HH:mm} UTC.";
+            if (assignment.ApproverEmployeeId.HasValue && assignment.ApproverEmployeeId.Value != Guid.Empty)
+            {
+                await _notificationGateway.SendInstantNotificationAsync(assignment.ApproverEmployeeId.Value, title, message);
+            }
+            else if (assignment.AssignedApproverUserId != Guid.Empty)
+            {
+                await _notificationGateway.SendInstantNotificationToUserAsync(assignment.AssignedApproverUserId, title, message, null, instance.Id);
             }
         }
 

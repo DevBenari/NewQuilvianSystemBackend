@@ -10,8 +10,14 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers
 {
+    // Remediasi Gelombang 2 (10 November 2026):
+    // - WF-W3 kini benar-benar mengirim ringkasan ke pusat pemberitahuan dan dijadwalkan pada pukul 07:00 WIB.
+    // - WF-W5 (BulkApprovalProcessingWorker) dihapus: persetujuan massal sudah diproses langsung dan dilaporkan per
+    //   tiket oleh endpoint BulkApprove (BulkApprovalService), sehingga worker yang hanya berisi Task.Delay(30 detik)
+    //   tidak punya pekerjaan. Status akhir tiap tiket diberitahukan ke pemohon lewat WorkflowApprovalActionService.
+
     /// <summary>
-    /// WF-W1: Background Worker Pemindai Batas Waktu SLA & Auto-Eskalasi (BE-HRD-310, HRD-DEC-185, VR-WF-04)
+    /// WF-W1: Background Worker Pemindai Batas Waktu SLA &amp; Auto-Eskalasi (BE-HRD-310, HRD-DEC-185, VR-WF-04)
     /// </summary>
     public class WorkflowSlaEscalationWorker : BackgroundService
     {
@@ -105,10 +111,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
     }
 
     /// <summary>
-    /// WF-W3: Background Worker Ringkasan Harian Permohonan Tertunda Atasan Pukul 07:00 Pagi (BE-HRD-314, WF-B7, INT-HR-96)
+    /// WF-W3: Background Worker Ringkasan Harian Permohonan Tertunda Atasan Pukul 07:00 WIB (BE-HRD-314, WF-B7, INT-HR-96)
     /// </summary>
+    /// <remarks>
+    /// Worker tidur sampai pukul 07:00 WIB berikutnya, mengirim ringkasan lewat gateway (kunci anti-duplikat per approver
+    /// per tanggal menahan pengiriman ganda bila aplikasi di-restart pada hari yang sama), lalu tidur lagi 24 jam.
+    /// </remarks>
     public class DailyApprovalDigestWorker : BackgroundService
     {
+        private static readonly TimeSpan WibOffset = TimeSpan.FromHours(7);
+        private static readonly TimeSpan DigestTimeOfDay = TimeSpan.FromHours(7);
+
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DailyApprovalDigestWorker> _logger;
 
@@ -120,24 +133,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("DailyApprovalDigestWorker (WF-W3) dimulai. Menyiapkan ringkasan persetujuan 07:00 pagi.");
+            _logger.LogInformation("DailyApprovalDigestWorker (WF-W3) dimulai. Ringkasan persetujuan dikirim setiap pukul 07:00 WIB.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                var delay = DelayUntilNextDigest(DateTime.UtcNow);
+                _logger.LogInformation("WF-W3: Ringkasan berikutnya dalam {Delay}.", delay);
+                await Task.Delay(delay, stoppingToken);
+
                 try
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var notifService = scope.ServiceProvider.GetRequiredService<IUnifiedNotificationGatewayService>();
-                    await notifService.SendApprovalDigestAsync();
+                    var notified = await notifService.SendApprovalDigestAsync();
+                    _logger.LogInformation("WF-W3: Ringkasan harian terkirim ke {Count} approver.", notified);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "WF-W3: Kesalahan saat mengirimkan ringkasan harian persetujuan.");
                 }
-
-                // Berjalan setiap 12 jam
-                await Task.Delay(TimeSpan.FromHours(12), stoppingToken);
             }
+        }
+
+        /// <summary>Jeda sampai pukul 07:00 WIB berikutnya; minimal satu menit agar tidak berputar cepat.</summary>
+        internal static TimeSpan DelayUntilNextDigest(DateTime utcNow)
+        {
+            var nowWib = utcNow + WibOffset;
+            var nextWib = nowWib.Date + DigestTimeOfDay;
+            if (nextWib <= nowWib)
+            {
+                nextWib = nextWib.AddDays(1);
+            }
+
+            var delay = nextWib - nowWib;
+            return delay < TimeSpan.FromMinutes(1) ? TimeSpan.FromMinutes(1) : delay;
         }
     }
 
@@ -178,30 +207,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 // Berjalan periodik setiap 30 menit
                 await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
-            }
-        }
-    }
-
-    /// <summary>
-    /// WF-W5: Background Worker Pemrosesan Antrean Persetujuan Massal Latar Belakang (BE-HRD-313, WF-B6, HRD-DEC-187)
-    /// </summary>
-    public class BulkApprovalProcessingWorker : BackgroundService
-    {
-        private readonly ILogger<BulkApprovalProcessingWorker> _logger;
-
-        public BulkApprovalProcessingWorker(ILogger<BulkApprovalProcessingWorker> logger)
-        {
-            _logger = logger;
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            _logger.LogInformation("BulkApprovalProcessingWorker (WF-W5) dimulai. Memantau antrean batch persetujuan massal.");
-
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                // Standby worker untuk pemrosesan batch antrean asinkronus jika antrean masuk
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
         }
     }

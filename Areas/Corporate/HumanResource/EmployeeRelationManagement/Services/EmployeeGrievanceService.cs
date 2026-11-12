@@ -18,9 +18,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             _numberAllocator = numberAllocator ?? throw new ArgumentNullException(nameof(numberAllocator));
         }
 
-        public async Task<GrievanceTicketResponseDto> SubmitGrievanceAsync(SubmitGrievanceRequestDto request, string actorEmail, CancellationToken cancellationToken = default)
+        public async Task<GrievanceTicketResponseDto> SubmitGrievanceAsync(SubmitGrievanceRequestDto request, string actorEmail, GrievanceComplainantIdentity complainant, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
+            if (complainant == null || complainant.WorkforceProfileId == Guid.Empty) throw new UnauthorizedAccessException("Identitas pelapor pada token tidak valid.");
 
             // VR-EMP-14: SLA penyelesaian target resolusi maksimal 14 hari kerja
             var targetResolutionDate = DateTime.UtcNow.AddDays(14);
@@ -37,8 +38,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             {
                 Id = Guid.NewGuid(),
                 GrievanceNumber = ticketNumber,
-                ComplainantEmployeeId = request.ComplainantEmployeeId,
-                ComplainantWorkforceProfileId = request.ComplainantEmployeeId ?? Guid.Empty,
+                // Remediasi kelompok G nomor 2 (10 November 2026): pelapor dari token, bukan dari body.
+                ComplainantEmployeeId = complainant.EmployeeId,
+                ComplainantWorkforceProfileId = complainant.WorkforceProfileId,
+                ComplainantUserId = complainant.UserId,
                 GrievanceType = request.Category.Trim(),
                 Category = request.Category.Trim(),
                 Subject = $"Pengaduan Kategori {request.Category}",
@@ -59,11 +62,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             return MapToDto(entity);
         }
 
-        public async Task<PagedResult<GrievanceTicketSummaryDto>> GetMyTicketsAsync(Guid employeeId, string? status, int page, int pageSize, CancellationToken cancellationToken = default)
+        public async Task<PagedResult<GrievanceTicketSummaryDto>> GetMyTicketsAsync(GrievanceComplainantIdentity complainant, string? status, int page, int pageSize, CancellationToken cancellationToken = default)
         {
+            if (complainant == null) throw new ArgumentNullException(nameof(complainant));
+            var workforceProfileId = complainant.WorkforceProfileId;
+            var employeeId = complainant.EmployeeId;
+            var userId = complainant.UserId;
+
+            // Remediasi kelompok G nomor 1: hanya tiket milik pengguna login; data lama yang menyimpan ID akun tetap terbaca lewat ComplainantUserId.
             var query = _uow.Grievances
                 .AsNoTracking()
-                .Where(x => x.ComplainantEmployeeId == employeeId && !x.IsWhistleblowerCase);
+                .Where(x => !x.IsWhistleblowerCase
+                            && (x.ComplainantWorkforceProfileId == workforceProfileId
+                                || (employeeId != null && x.ComplainantEmployeeId == employeeId)
+                                || x.ComplainantUserId == userId
+                                || x.ComplainantWorkforceProfileId == userId));
 
             if (!string.IsNullOrWhiteSpace(status))
             {

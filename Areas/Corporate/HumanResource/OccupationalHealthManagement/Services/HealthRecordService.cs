@@ -24,6 +24,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         public async Task<HealthRecordClinicalDetailDto> GetClinicalDetailAsync(Guid employeeId, bool isDoctor, CancellationToken cancellationToken = default)
         {
             var employee = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
                 .FirstOrDefaultAsync(x => x.Id == employeeId, cancellationToken);
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {employeeId} tidak ditemukan.");
@@ -41,12 +42,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 EmployeeId = employee.Id,
                 EmployeeName = employee.FullName,
                 EmployeeNumber = employee.EmployeeNumber ?? string.Empty,
-                DepartmentName = "Unit Kerja Terdaftar",
-                BloodType = "O",
-                Rhesus = "+",
+                DepartmentName = employee.PrimaryDepartment?.DepartmentName ?? "-",
+                BloodType = DescribeBloodGroup(employee.BloodType),
+                Rhesus = DescribeRhesus(employee.BloodType),
                 CurrentFitnessStatus = latestFitness?.FitnessStatus ?? (record?.IsFitToWork == true ? "Fit" : "ReviewRequired"),
                 LastAssessmentDate = latestFitness?.AssessmentDate ?? record?.RecordDate ?? DateTime.UtcNow,
-                AssessedByDoctorName = latestFitness?.AssessedByProvider ?? "Dokter Hiperkes RS"
+                AssessedByDoctorName = latestFitness?.AssessedByProvider ?? "-"
             };
 
             // Aturan VR-OHS-02 & HRD-DEC-176: Akses data klinis diagnosis hanya untuk dokter berwenang
@@ -61,17 +62,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             {
                 var rawClinical = latestFitness?.ClinicalBasisRestricted ?? record?.ClinicalSummaryRestricted ?? string.Empty;
                 result.DecryptedClinicalHistory = AesClinicalEncryptionHelper.Decrypt(rawClinical);
-                result.DiagnosisIcd10 = new List<string> { "Z57.8 (Occupational exposure to other risk factors)" };
-                result.SensitiveLabFindings = new List<string> { "Anti-HBs Titer: Terverifikasi", "HbA1c: 5.6%", "SGOT/SGPT: Normal" };
-                result.MedicalAlerts = new List<string> { "Wajib APD Lengkap di Ruang Isolasi/Radiologi" };
+                // Diagnosis dan hasil lab belum punya kolom terstruktur; yang tersedia adalah ringkasan klinis terenkripsi di atas.
+                result.DiagnosisIcd10 = new List<string>();
+                result.SensitiveLabFindings = new List<string>();
+                result.MedicalAlerts = new List<string>();
             }
 
             return result;
         }
 
+        private static string DescribeBloodGroup(QuilvianSystemBackend.Enums.BloodType bloodType)
+        {
+            var name = bloodType.ToString();
+            return bloodType == QuilvianSystemBackend.Enums.BloodType.Unknown
+                ? "-"
+                : name.Replace("Positive", string.Empty).Replace("Negative", string.Empty);
+        }
+
+        private static string DescribeRhesus(QuilvianSystemBackend.Enums.BloodType bloodType)
+        {
+            var name = bloodType.ToString();
+            return name.EndsWith("Positive") ? "+" : name.EndsWith("Negative") ? "-" : "-";
+        }
+
         public async Task<EmployeeFitnessSummaryDto> GetFitnessSummaryAsync(Guid employeeId, CancellationToken cancellationToken = default)
         {
             var employee = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
                 .FirstOrDefaultAsync(x => x.Id == employeeId, cancellationToken);
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {employeeId} tidak ditemukan.");
@@ -90,14 +107,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 EmployeeId = employee.Id,
                 EmployeeName = employee.FullName,
                 EmployeeNumber = employee.EmployeeNumber ?? string.Empty,
-                DepartmentName = "Unit Kerja Terdaftar",
+                DepartmentName = employee.PrimaryDepartment?.DepartmentName ?? "-",
                 FitnessStatus = latestFitness?.FitnessStatus ?? "Fit",
                 ValidUntil = latestFitness?.EffectiveEndDate ?? DateTime.UtcNow.AddMonths(12),
                 HasActiveRestriction = activeRestriction != null,
                 RestrictionDirectives = activeRestriction?.AdministrativeInstruction ?? latestFitness?.AdministrativeRestrictionSummary,
                 IsSchedulingAllowed = latestFitness?.IsSchedulingAllowed ?? true,
                 IsClinicalDutyAllowed = latestFitness?.IsClinicalDutyAllowed ?? true,
-                AssessedByDoctor = latestFitness?.AssessedByProvider ?? "Dokter Hiperkes RS",
+                AssessedByDoctor = latestFitness?.AssessedByProvider ?? "-",
                 LastAssessedDate = latestFitness?.AssessmentDate ?? DateTime.UtcNow
             };
         }
@@ -105,6 +122,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         public async Task<EmployeeFitnessSummaryDto> UpdateFitnessStatusAsync(Guid employeeId, UpdateFitnessStatusRequestDto dto, Guid updatedBy, CancellationToken cancellationToken = default)
         {
             var employee = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
                 .FirstOrDefaultAsync(x => x.Id == employeeId, cancellationToken);
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {employeeId} tidak ditemukan.");
@@ -147,6 +165,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         public async Task<MyHealthProfileDto> GetMyHealthProfileAsync(Guid employeeId, CancellationToken cancellationToken = default)
         {
             var employee = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
                 .FirstOrDefaultAsync(x => x.Id == employeeId, cancellationToken);
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {employeeId} tidak ditemukan.");

@@ -99541,6 +99541,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("ClinicType")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -99593,14 +99596,16 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.HasIndex("EncounterType", "ServiceUnitType", "Condition")
+                    b.HasIndex("EncounterType", "ServiceUnitType", "ClinicType", "Condition")
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("EncounterType", "ServiceUnitType", "Condition"), false);
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("EncounterType", "ServiceUnitType", "ClinicType", "Condition"), false);
 
                     b.ToTable("MstMedicalRecordCompletenessProfile", "public", t =>
                         {
+                            t.HasCheckConstraint("CK_MstMedicalRecordCompletenessProfile_ClinicTypeTanpaKondisi", "\"Condition\" = 0 OR \"ClinicType\" IS NULL");
+
                             t.HasCheckConstraint("CK_MstMedicalRecordCompletenessProfile_EncounterTypeWajib", "\"Condition\" <> 0 OR \"EncounterType\" IS NOT NULL");
                         });
                 });

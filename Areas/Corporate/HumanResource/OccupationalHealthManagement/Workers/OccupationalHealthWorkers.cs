@@ -6,10 +6,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers
 {
+    // Remediasi Gelombang 2 (10 November 2026, kelompok D backend-unfinished-work.md):
+    // OHS-W1, OHS-W3, OHS-W5, dan OHS-W6 sebelumnya hanya menulis log. Kini temuan diteruskan ke pusat
+    // pemberitahuan dalam aplikasi (IHrdNotificationService) — ke pegawai yang bersangkutan dan ke petugas K3RS
+    // yang hak aksesnya ditentukan admin lewat layar Akses Role — dengan kunci anti-duplikat.
+
     /// <summary>
     /// Worker Pemantauan Surveilans Serologi Serial Darah Pasca Pajanan Bulan ke-1, 3, dan 6 (OHS-W1, BE-HRD-296)
     /// </summary>
@@ -36,17 +43,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     var now = DateTime.UtcNow;
                     var pendingExposures = await context.TrxOccupationalExposures
-                        .Where(x => !x.IsDelete && x.IsActive && x.ExposureStatus == "UnderSurveillance" && x.FollowUpRequired)
+                        .AsNoTracking()
+                        .Where(x => !x.IsDelete && x.IsActive && x.ExposureStatus == "UnderSurveillance" && x.FollowUpRequired
+                                    && x.FollowUpDate.HasValue && x.FollowUpDate.Value <= now)
                         .ToListAsync(stoppingToken);
 
                     foreach (var exp in pendingExposures)
                     {
-                        if (exp.FollowUpDate.HasValue && now >= exp.FollowUpDate.Value)
+                        var request = new HrdNotificationRequest(
+                            Title: $"Jadwal pemeriksaan serologi serial kasus pajanan {exp.ExposureNumber}",
+                            Body: $"Jadwal surveilans serologi serial untuk kasus pajanan {exp.ExposureNumber} jatuh pada {exp.FollowUpDate:dd MMMM yyyy}. Mohon jadwalkan pengambilan darah dan catat hasilnya pada rekam surveilans.",
+                            Category: HrdNotificationCategories.OccupationalHealth,
+                            Priority: HrdNotificationPriorities.High,
+                            DeepLinkUrl: $"/hrd/occupational-health/exposures/{exp.Id}",
+                            SourceModule: "Hrd.OccupationalHealth.OHS-W1",
+                            ReferenceType: "TrxOccupationalExposure",
+                            ReferenceId: exp.Id,
+                            DedupKey: $"OHS-W1|{exp.Id:N}|{exp.FollowUpDate:yyyyMMdd}");
+
+                        var sentStaff = await notifier.NotifyPermissionHoldersAsync("NeedleStickEmergency", "ManageSerialSurveillance", request, stoppingToken);
+                        var sentEmployee = await notifier.NotifyWorkforceProfileAsync(exp.WorkforceProfileId, request, stoppingToken);
+
+                        if (sentStaff + sentEmployee > 0)
                         {
-                            _logger.LogInformation("Jadwal surveilans serial tercapai untuk kasus pajanan {Number}. Tiket pemeriksaan diterbitkan.", exp.ExposureNumber);
+                            _logger.LogInformation("OHS-W1: Jadwal serologi serial {Number} dikirim ke {Staff} petugas dan {Emp} akun pegawai.", exp.ExposureNumber, sentStaff, sentEmployee);
                         }
                     }
                 }
@@ -141,15 +165,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
-                    var reminderHorizon = DateTime.UtcNow.AddDays(30);
+                    var now = DateTime.UtcNow;
+                    var reminderHorizon = now.AddDays(30);
                     var upcomingDoses = await context.TrxEmployeeVaccinations
+                        .AsNoTracking()
                         .Where(x => !x.IsDelete && x.IsActive && x.NextDoseDate.HasValue && x.NextDoseDate.Value <= reminderHorizon && x.VaccinationStatus != "Completed")
                         .ToListAsync(stoppingToken);
 
                     foreach (var dose in upcomingDoses)
                     {
-                        _logger.LogInformation("Notifikasi booster H-30 dikirim untuk vaksinasi {Number} ({VaccineName}).", dose.VaccinationNumber, dose.VaccineName);
+                        var daysLeft = (int)(dose.NextDoseDate!.Value.Date - now.Date).TotalDays;
+                        var isOverdue = daysLeft < 0;
+                        var request = new HrdNotificationRequest(
+                            Title: isOverdue
+                                ? $"Booster {dose.VaccineName} sudah terlewat"
+                                : $"Booster {dose.VaccineName} dijadwalkan {daysLeft} hari lagi",
+                            Body: isOverdue
+                                ? $"Dosis lanjutan vaksin {dose.VaccineName} (nomor {dose.VaccinationNumber}) seharusnya diberikan pada {dose.NextDoseDate:dd MMMM yyyy} dan belum tercatat. Mohon segera jadwalkan agar perlindungan imunisasi tidak terputus."
+                                : $"Dosis lanjutan vaksin {dose.VaccineName} (nomor {dose.VaccinationNumber}) jatuh tempo pada {dose.NextDoseDate:dd MMMM yyyy}. Mohon jadwalkan kunjungan ke klinik K3RS.",
+                            Category: HrdNotificationCategories.OccupationalHealth,
+                            Priority: isOverdue ? HrdNotificationPriorities.High : HrdNotificationPriorities.Normal,
+                            DeepLinkUrl: $"/hrd/occupational-health/vaccinations/{dose.Id}",
+                            SourceModule: "Hrd.OccupationalHealth.OHS-W3",
+                            ReferenceType: "TrxEmployeeVaccination",
+                            ReferenceId: dose.Id,
+                            DedupKey: $"OHS-W3|{dose.Id:N}|{dose.NextDoseDate:yyyyMMdd}|{(isOverdue ? "OVERDUE" : "H30")}");
+
+                        var sentEmployee = await notifier.NotifyWorkforceProfileAsync(dose.WorkforceProfileId, request, stoppingToken);
+                        var sentStaff = await notifier.NotifyPermissionHoldersAsync("StaffVaccination", "RecordVaccination", request, stoppingToken);
+
+                        if (sentEmployee + sentStaff > 0)
+                        {
+                            _logger.LogInformation("OHS-W3: Pengingat booster {Number} ({VaccineName}) dikirim ke {Emp} akun pegawai dan {Staff} petugas.", dose.VaccinationNumber, dose.VaccineName, sentEmployee, sentStaff);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -198,7 +248,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                     {
                         mcu.AdministrativeStatus = "Overdue";
                         mcu.UpdateDateTime = DateTime.UtcNow;
-                        _logger.LogWarning("Jadwal MCU {Number} terlambat lebih dari 7 hari. Notifikasi peringatan dikirim.", mcu.ExaminationNumber);
+                        _logger.LogWarning("Jadwal MCU {Number} terlambat lebih dari 7 hari. Status diubah menjadi Overdue.", mcu.ExaminationNumber);
                     }
 
                     if (overdueMcus.Any())
@@ -242,15 +292,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     // Pantau rekaman surveilans radiasi dengan outcome peringatan
                     var highDoseCases = await context.TrxEmployeeHealthSurveillances
+                        .AsNoTracking()
                         .Where(x => !x.IsDelete && x.IsActive && x.SurveillanceProgram.Contains("Radiasi") && !x.IsCompliant)
                         .ToListAsync(stoppingToken);
 
                     foreach (var highDose in highDoseCases)
                     {
-                        _logger.LogWarning("ALARM K3RS RADIASI: Kasus {Number} melebihi ambang batas dosis keselamatan kerja.", highDose.SurveillanceNumber);
+                        var doseText = highDose.MeasuredDoseMsv.HasValue ? $"{highDose.MeasuredDoseMsv.Value:0.###} mSv" : "dosis tidak tercatat";
+                        var request = new HrdNotificationRequest(
+                            Title: $"Alarm dosis radiasi: kasus {highDose.SurveillanceNumber}",
+                            Body: $"Rekaman surveilans radiasi {highDose.SurveillanceNumber} ({doseText}) dinyatakan tidak memenuhi ambang keselamatan kerja. Mohon tinjau rotasi tugas pekerja radiasi dan tindak lanjut medis K3RS.",
+                            Category: HrdNotificationCategories.OccupationalHealth,
+                            Priority: HrdNotificationPriorities.Critical,
+                            DeepLinkUrl: $"/hrd/occupational-health/surveillance/{highDose.Id}",
+                            SourceModule: "Hrd.OccupationalHealth.OHS-W5",
+                            ReferenceType: "TrxEmployeeHealthSurveillance",
+                            ReferenceId: highDose.Id,
+                            DedupKey: $"OHS-W5|{highDose.Id:N}");
+
+                        var sentStaff = await notifier.NotifyPermissionHoldersAsync("OccupationalMedicalExamination", "RecordHazardSurveillance", request, stoppingToken);
+                        var sentEmployee = await notifier.NotifyWorkforceProfileAsync(highDose.WorkforceProfileId, request, stoppingToken);
+
+                        if (sentStaff + sentEmployee > 0)
+                        {
+                            _logger.LogWarning("OHS-W5: Alarm dosis radiasi {Number} dikirim ke {Staff} petugas dan {Emp} akun pegawai.", highDose.SurveillanceNumber, sentStaff, sentEmployee);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -289,9 +359,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     var now = DateTime.UtcNow;
                     var pendingInjuries = await context.TrxEmployeeInjuries
+                        .AsNoTracking()
                         .Where(x => !x.IsDelete && x.IsActive && x.InjuryStatus == "Reported")
                         .ToListAsync(stoppingToken);
 
@@ -299,14 +371,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                     {
                         var deadline = injury.InjuryDateTime.AddHours(48);
                         var hoursLeft = (deadline - now).TotalHours;
+                        if (hoursLeft > 12) continue;
 
-                        if (hoursLeft <= 0)
+                        var isBreached = hoursLeft <= 0;
+                        var request = new HrdNotificationRequest(
+                            Title: isBreached
+                                ? $"Batas pelaporan BPJS JKK terlewati: {injury.InjuryNumber}"
+                                : $"Batas pelaporan BPJS JKK tersisa {hoursLeft:F0} jam: {injury.InjuryNumber}",
+                            Body: isBreached
+                                ? $"Laporan kecelakaan kerja {injury.InjuryNumber} sudah melewati batas pelaporan tahap I BPJS Ketenagakerjaan 2x24 jam (INT-HR-90). Segera siapkan klaim tahap I beserta alasan keterlambatan untuk menghindari sanksi."
+                                : $"Laporan kecelakaan kerja {injury.InjuryNumber} harus dilaporkan ke BPJS Ketenagakerjaan sebelum {deadline:dd MMMM yyyy HH:mm} UTC. Mohon siapkan klaim tahap I sekarang.",
+                            Category: HrdNotificationCategories.OccupationalHealth,
+                            Priority: isBreached ? HrdNotificationPriorities.Critical : HrdNotificationPriorities.High,
+                            DeepLinkUrl: $"/hrd/occupational-health/injuries/{injury.Id}",
+                            SourceModule: "Hrd.OccupationalHealth.OHS-W6",
+                            ReferenceType: "TrxEmployeeInjury",
+                            ReferenceId: injury.Id,
+                            DedupKey: $"OHS-W6|{injury.Id:N}|{(isBreached ? "BREACH" : "H12")}");
+
+                        var sent = await notifier.NotifyPermissionHoldersAsync("WorkRestrictionAndInjury", "PrepareBpjsClaimStage1", request, stoppingToken);
+                        if (sent > 0)
                         {
-                            _logger.LogError("PERINGATAN SANKSI BPJS JKK: Laporan insiden {Number} telah melewati batas pelaporan 2x24 jam!", injury.InjuryNumber);
-                        }
-                        else if (hoursLeft <= 12)
-                        {
-                            _logger.LogWarning("URGENT SLA BPJS: Laporan insiden {Number} tersisa {Hours:F1} jam sebelum batas pelaporan Tahap I berakhir.", injury.InjuryNumber, hoursLeft);
+                            _logger.LogWarning("OHS-W6: Peringatan SLA BPJS {Number} ({Stage}) dikirim ke {Count} petugas.", injury.InjuryNumber, isBreached ? "terlewati" : "H-12 jam", sent);
                         }
                     }
                 }

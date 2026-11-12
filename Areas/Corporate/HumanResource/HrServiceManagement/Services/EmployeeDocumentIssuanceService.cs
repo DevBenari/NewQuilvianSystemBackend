@@ -54,6 +54,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                 throw new InvalidOperationException($"Profil pegawai dengan ID {workforceProfileId} tidak ditemukan.");
             }
 
+            var targetProfileId = (request.RequestedForWorkforceProfileId.HasValue && request.RequestedForWorkforceProfileId.Value != Guid.Empty)
+                ? request.RequestedForWorkforceProfileId.Value
+                : workforceProfileId;
+
+            var targetProfile = targetProfileId == workforceProfileId
+                ? profile
+                : await _dbContext.MstWorkforceProfiles
+                    .Include(x => x.Employee)
+                    .Include(x => x.PrimaryDepartment)
+                    .Include(x => x.PrimaryPosition)
+                    .Include(x => x.UserAccount)
+                    .FirstOrDefaultAsync(x => x.Id == targetProfileId && !x.IsDelete, cancellationToken);
+
+            if (targetProfile == null)
+            {
+                throw new InvalidOperationException($"Profil pegawai tujuan dengan ID {targetProfileId} tidak ditemukan.");
+            }
+
             var docType = await _dbContext.MstEmployeeDocumentTypes
                 .FirstOrDefaultAsync(x => x.Id == request.EmployeeDocumentTypeId && !x.IsDelete, cancellationToken);
 
@@ -75,11 +93,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             // INT-HR-56 & VR-HRS-06: Anti-Manual Guard Penarikan Gaji Otomatis dari Sub-10 Payroll
             if (isFinancial)
             {
-                var targetEmployeeId = profile.Employee?.Id;
+                var targetEmployeeId = targetProfile.Employee?.Id;
 
                 var latestPayslip = await _dbContext.PrlPayrollPayslips
                     .Include(p => p.PayrollRunEmployee)
-                    .Where(p => (p.PayrollRunEmployee.WorkforceProfileId == workforceProfileId ||
+                    .Where(p => (p.PayrollRunEmployee.WorkforceProfileId == targetProfileId ||
                                 (targetEmployeeId.HasValue && p.PayrollRunEmployee.EmployeeId == targetEmployeeId.Value))
                              && (p.PayslipStatus == "Published" || p.PayslipStatus == "Finalized" || p.PayslipStatus == "Generated")
                              && !p.IsDelete)
@@ -88,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
 
                 if (latestPayslip == null)
                 {
-                    _logger.LogWarning("[ANTI-MANUAL-GUARD] Penolakan pengajuan surat finansial untuk pegawai {ProfileCode}: Data slip gaji final Sub-10 tidak ditemukan (VR-HRS-06).", profile.ProfileCode);
+                    _logger.LogWarning("[ANTI-MANUAL-GUARD] Penolakan pengajuan surat finansial untuk pegawai {ProfileCode}: Data slip gaji final Sub-10 tidak ditemukan (VR-HRS-06).", targetProfile.ProfileCode);
                     throw new InvalidOperationException(
                         "Data slip gaji resmi Sub-10 Payroll belum tersedia untuk karyawan ini. " +
                         "Sesuai regulasi rumah sakit (VR-HRS-06), penerbitan Surat Keterangan Penghasilan/KPR dilarang menggunakan input manual dan hanya dapat diproses setelah slip gaji berstatus Finalized/Published diterbitkan.");
@@ -99,7 +117,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                 payslipId = latestPayslip.Id;
 
                 _logger.LogInformation("[INT-HR-56] Menarik otomatis slip gaji final ID {PayslipId} untuk {ProfileCode}. Bruto: {Bruto}, Netto: {Netto}",
-                    payslipId, profile.ProfileCode, salaryBruto, salaryNetto);
+                    payslipId, targetProfile.ProfileCode, salaryBruto, salaryNetto);
             }
 
             var now = DateTime.UtcNow;
@@ -111,8 +129,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                 Id = Guid.NewGuid(),
                 EmployeeDocumentTypeId = docType.Id,
                 RequestedByWorkforceProfileId = workforceProfileId,
-                RequestedForWorkforceProfileId = request.RequestedForWorkforceProfileId ?? workforceProfileId,
-                RequestedForEmployeeId = profile.Employee?.Id,
+                RequestedForWorkforceProfileId = targetProfileId,
+                RequestedForEmployeeId = targetProfile.Employee?.Id,
                 RequestedByUserId = requestedByUserId,
                 DocumentRequestNumber = reqNumber,
                 RequestStatus = isFinancial ? "PendingCbApproval" : (docType.RequiresApproval ? "PendingAuthorization" : "Approved"),
@@ -135,13 +153,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             {
                 Id = Guid.NewGuid(),
                 EmployeeDocumentRequestId = docRequest.Id,
-                WorkforceProfileId = workforceProfileId,
-                EmployeeId = profile.Employee?.Id,
+                WorkforceProfileId = targetProfileId,
+                EmployeeId = targetProfile.Employee?.Id,
                 IssuedByUserId = requestedByUserId,
                 IssuanceNumber = issuanceNumber,
                 OfficialDocumentNumber = string.Empty, // Di-generate saat otorisasi resmi
                 VersionNumber = 1,
-                DocumentFileName = $"{docType.DocumentTypeCode}_{profile.ProfileCode}_{now:yyyyMMdd}.pdf",
+                DocumentFileName = $"{docType.DocumentTypeCode}_{targetProfile.ProfileCode}_{now:yyyyMMdd}.pdf",
                 DocumentFilePath = string.Empty,
                 ContentType = "application/pdf",
                 IssuedAt = now,
@@ -162,7 +180,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             _logger.LogInformation("[HRS-W4-REQ] Permohonan dokumen {DocType} berhasil diajukan dengan nomor {ReqNum}. Status: {Status}",
                 docType.DocumentTypeCode, reqNumber, issuance.IssuanceStatus);
 
-            return MapToDto(issuance, docRequest, profile, docType);
+            return MapToDto(issuance, docRequest, targetProfile, docType);
         }
 
         #endregion
@@ -791,10 +809,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
             string signerTitle,
             DateTime issuedDate)
         {
+            bool isAssignment = (docType.DocumentCategory != null && (
+                                docType.DocumentCategory.Contains("Duty", StringComparison.OrdinalIgnoreCase) ||
+                                docType.DocumentCategory.Contains("Assignment", StringComparison.OrdinalIgnoreCase) ||
+                                docType.DocumentCategory.Contains("Tugas", StringComparison.OrdinalIgnoreCase))) ||
+                                (docType.DocumentTypeCode != null && (
+                                docType.DocumentTypeCode.Contains("TUGAS", StringComparison.OrdinalIgnoreCase) ||
+                                docType.DocumentTypeCode.Contains("DUTY", StringComparison.OrdinalIgnoreCase) ||
+                                docType.DocumentTypeCode.Contains("SPT", StringComparison.OrdinalIgnoreCase)));
+
             var template = docType.TemplateBodyHtml;
             if (string.IsNullOrWhiteSpace(template))
             {
-                template = GetDefaultHospitalLetterTemplate(issuance.IsFinancialSensitive);
+                template = isAssignment
+                    ? GetDefaultAssignmentLetterTemplate()
+                    : GetDefaultHospitalLetterTemplate(issuance.IsFinancialSensitive);
             }
 
             var empName = issuance.WorkforceProfile?.DisplayName ?? "Pegawai";
@@ -826,6 +855,71 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagemen
                 .Replace("[JABATAN_PENANDATANGAN]", signerTitle)
                 .Replace("[KOTA_RS]", "Jakarta")
                 .Replace("[VERIFIKASI_URL]", verificationUrl);
+        }
+
+        private static string GetDefaultAssignmentLetterTemplate()
+        {
+            return $@"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'/>
+    <title>Surat Perintah Tugas Resmi RS Quilvian</title>
+    <style>
+        body {{ font-family: 'Times New Roman', serif; margin: 40px; color: #1e293b; line-height: 1.6; }}
+        .header {{ text-align: center; border-bottom: 3px double #0284c7; padding-bottom: 10px; margin-bottom: 25px; }}
+        .header h2 {{ margin: 0; color: #0f172a; font-size: 22px; text-transform: uppercase; }}
+        .header p {{ margin: 2px 0; font-size: 13px; color: #64748b; }}
+        .doc-title {{ text-align: center; margin: 20px 0; }}
+        .doc-title h3 {{ margin: 0; text-decoration: underline; font-size: 18px; }}
+        .doc-title p {{ margin: 3px 0; font-size: 14px; font-weight: bold; }}
+        .content {{ font-size: 14px; text-align: justify; }}
+        .meta-table {{ width: 100%; margin: 15px 0 20px 30px; font-size: 14px; }}
+        .meta-table td {{ padding: 4px 8px; vertical-align: top; }}
+        .footer {{ margin-top: 40px; width: 100%; }}
+        .signature-box {{ float: right; width: 280px; text-align: center; font-size: 14px; }}
+        .verification {{ float: left; width: 250px; font-size: 11px; color: #64748b; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 4px; }}
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h2>Rumah Sakit Quilvian Utama</h2>
+        <p>Jl. Kesehatan Medika Raya No. 42, Jakarta Pusat | Telp: (021) 555-0199 | info@quilvian.co.id</p>
+    </div>
+    <div class='doc-title'>
+        <h3>SURAT PERINTAH TUGAS</h3>
+        <p>Nomor: [NOMOR_SURAT]</p>
+    </div>
+    <div class='content'>
+        <p>Yang bertanda tangan di bawah ini menerbitkan Surat Perintah Tugas kepada personel berikut:</p>
+        <table class='meta-table'>
+            <tr><td style='width: 200px;'>Nama Lengkap</td><td>: <strong>[NAMA_LENGKAP]</strong></td></tr>
+            <tr><td>Nomor Induk Pegawai (NIP)</td><td>: [NIP]</td></tr>
+            <tr><td>Jabatan</td><td>: [JABATAN]</td></tr>
+            <tr><td>Unit Kerja / Departemen</td><td>: [UNIT_KERJA]</td></tr>
+            <tr><td>Uraian Tugas & Tujuan</td><td>: [KEPERLUAN]</td></tr>
+        </table>
+        <p><strong>Ketentuan Pelaksanaan:</strong></p>
+        <ol style='margin-left: 20px; font-size: 14px;'>
+            <li>Melaksanakan penugasan resmi dengan penuh tanggung jawab sesuai etika profesi dan SOP Rumah Sakit Quilvian Utama.</li>
+            <li>Melaporkan bukti kehadiran dan hasil pelaksanaan tugas dinas kepada pimpinan unit kerja setelah masa penugasan selesai.</li>
+        </ol>
+        <p>Demikian Surat Perintah Tugas ini dibuat untuk dilaksanakan dan dipergunakan sebagaimana mestinya.</p>
+    </div>
+    <div class='footer'>
+        <div class='verification'>
+            <p style='margin: 0 0 4px 0; font-weight: bold;'>Verifikasi Keaslian Dokumen:</p>
+            <p style='margin: 0;'>Pindai QR Code atau akses tautan resmi SIMRS Quilvian: [VERIFIKASI_URL]</p>
+        </div>
+        <div class='signature-box'>
+            <p>[KOTA_RS], [TANGGAL_SURAT]<br/><strong>[JABATAN_PENANDATANGAN]</strong></p>
+            <div style='height: 60px;'></div>
+            <p style='text-decoration: underline; font-weight: bold; margin: 0;'>[NAMA_PENANDATANGAN]</p>
+            <p style='margin: 0; font-size: 12px; color: #0284c7;'>[Telah Ditandatangani Secara Digital]</p>
+        </div>
+        <div style='clear: both;'></div>
+    </div>
+</body>
+</html>";
         }
 
         private static string GetDefaultHospitalLetterTemplate(bool isFinancial)

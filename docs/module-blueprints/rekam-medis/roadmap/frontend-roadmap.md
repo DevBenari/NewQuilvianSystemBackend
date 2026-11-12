@@ -515,3 +515,134 @@ keenam task frontend tidak diubah di sini.
 | **Acceptance criteria** | Setiap UAT bertanda lulus atau dicatat terbuka beserta sebabnya (mis. sumber tertahan persetujuan modul) |
 | **Verification** | E2E standalone; laporan UAT |
 | **DoD** | Laporan kesiapan masuk `testing/` |
+
+
+---
+
+# Roadmap revision 3 — Amandemen frontend: Optik dan Rehab Medik
+
+```yaml
+module_id: RM-BP-001
+blueprint_revision: 5
+roadmap_revision: 3
+status: APPROVED_INPUTS
+owners:
+  frontend_authority: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
+  product_domain: Yoga Aji Pratama
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-11-10        # RM-DEC-088
+input_revisions:
+  interview_decisions: 16
+  frontend_architecture: 5 (bagian "Amandemen revision 5", F5.1–F5.4)
+contract_versions:
+  api: 0.3.0 (approved, hash terkunci di blueprint-manifest.md)
+source_commits:
+  backend: c7686f07
+  frontend: 3397211dd (branch YogaV2)
+```
+
+Kontrak `0.3.0` sudah disahkan dan hash-nya terkunci, sehingga `FE-16` dan `FE-17` **boleh
+dikerjakan paralel** dengan backend memakai API tiruan; penyelesaian akhirnya menunggu task
+backend pasangannya. Tidak ada menu atau route baru. Linimasa tidak diubah (`RM-CAP-077`).
+
+| Task | Gelombang | Ringkas | Pasangan backend | Status |
+|---|---|---|---|---|
+| `FE-16` | `MVP-7` | Aksi addendum mengikuti `isCorrectionAllowed` | `BE-43` | **`SELESAI`** 10 November 2026 — unit dan E2E API tiruan lulus; laporan `task/report/frontend/FE-16.md` |
+| `FE-17` | `MVP-7` | Jenis poli di layar Profil Dokumen Wajib | `BE-42` | **`SELESAI`** 10 November 2026 — unit dan E2E API tiruan lulus; laporan `task/report/frontend/FE-17.md` |
+| `FE-18` | `MVP-7`/`8` | Uji antarmuka amandemen `0.3.0` | `BE-42`–`BE-45` | **`SELESAI`** 10 November 2026 (`RM-DEC-096`, pola `FE-15`) — `UAT-22` lulus nyata; `UAT-20`, `21`, `23` terbuka dan terlacak (master Optik/Rehab belum siap); laporan `task/report/frontend/FE-18.md`, `testing/uat-amandemen-0.3.0.md` |
+
+## `FE-16` — Aksi addendum untuk dokumen Optik
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-16` |
+| **Outcome** | Pengguna tidak ditawari koreksi yang pasti ditolak; dokumen Optik `LockedUnsigned` tetap dapat disahkan |
+| **Trace** | `RM-DEC-084`; `RM-FE-030`, `RM-FE-031`; `FR-RM-085` |
+| **Kontrak** | API `0.3.0` B3 (`isCorrectionAllowed`, `VAL-RM-B01`) |
+| **Reuse** | `medical-record-addendum-actions.jsx`, `readAddendumAuthority`, `isAttestationApplicable` |
+| **Scope** | `src/components/view/health-services/medical-record-management/medical-records/medical-record-addendum-actions.jsx`; `src/utils/health-services/medical-record-management/medical-record-addendum-utils.js` |
+| **Dependency** | Selesai akhir: `BE-43` |
+| **Acceptance criteria** | 1) `isCorrectionAllowed === false` → tombol koreksi tidak digambar, `explanation` tampil. 2) Field tidak ada → diperlakukan `true`. 3) Dokumen Optik `LockedUnsigned` → hanya "Sahkan isi catatan". 4) `400` dari server tampil apa adanya, isian form tidak hilang |
+| **Verification** | Uji unit util (`node --import ./tests/helpers/register.mjs --test tests/unit/`); E2E API tiruan; `UAT-21` |
+| **DEV_DISCRETION** | Letak dan gaya keterangan arahan |
+| **DoD** | Kriteria terbukti; laporan `task/report/frontend/FE-16.md` |
+
+## `FE-17` — Jenis poli pada Profil Dokumen Wajib
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-17` |
+| **Outcome** | Pengelola master dapat membuat profil khusus poli, misalnya poli Rehabilitasi Medik |
+| **Trace** | `RM-DEC-085`; `RM-FE-032`; `FR-RM-090` |
+| **Kontrak** | API `0.3.0` B2; `VAL-RM-B02`–`B04` |
+| **Reuse** | Layar `FE-13` |
+| **Scope** | `src/components/view/health-services/master-data/medical-record-completeness-profiles/medical-record-completeness-profile-view.jsx`; `src/lib/services/health-services/master-data/medical-record-completeness-profile.service.js`; `src/utils/health-services/medical-record-management/medical-record-completeness-profile-utils.js` |
+| **Dependency** | Selesai akhir: `BE-42` |
+| **Acceptance criteria** | 1) Pilihan jenis poli dari `clinicTypeOptions`, kosong = "Semua poli". 2) Kondisi selain "Tanpa kondisi" → jenis poli dikunci dan dikosongkan. 3) Kolom dan saringan jenis poli pada daftar. 4) `400`/`409` tampil apa adanya. 5) Kriteria 17 tampil dari `/criteria/options` tanpa kode tambahan |
+| **Verification** | Uji unit util; E2E API tiruan; `UAT-22` |
+| **DEV_DISCRETION** | Letak field, lebar kolom, bentuk saringan |
+| **DoD** | Kriteria terbukti; laporan `task/report/frontend/FE-17.md` |
+
+## `FE-18` — Uji antarmuka amandemen `0.3.0`
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-18` |
+| **Outcome** | Bukti layar nyata untuk dokumen Optik/Rehab di berkas, aksi addendum, profil berpoli, dan daftar kerja |
+| **Trace** | `RM-DEC-078`–`088`; `RM-UN-R4-02` |
+| **Kontrak** | API `0.3.0` |
+| **Scope** | `UAT-20`–`23` terhadap backend nyata (devYoga). Laporan kesiapan `testing/uat-amandemen-0.3.0.md` |
+| **Dependency** | `BE-42`, `BE-43`, `FE-16`, `FE-17`; `UAT-23` juga `BE-45` dan poli rehab di master (`RM-UN-R4-01`); data uji Optik dan Rehab final |
+| **Acceptance criteria** | Setiap UAT lulus, atau dicatat terbuka beserta sebab dan bukti pengganti |
+| **Verification** | Uji visual lewat dev 3000; Playwright `--output` ke scratchpad |
+| **DoD** | Laporan kesiapan ditulis |
+
+---
+
+# Roadmap revision 4 — Amandemen frontend: rencana kontrol di berkas
+
+```yaml
+module_id: RM-BP-001
+blueprint_revision: 6
+roadmap_revision: 4
+status: APPROVED_INPUTS
+owners:
+  frontend_authority: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
+  product_domain: Yoga Aji Pratama
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-11-11        # RM-DEC-108
+input_revisions:
+  interview_decisions: 21
+  frontend_architecture: 6 (bagian "Amandemen revision 6", F6.1–F6.4)
+contract_versions:
+  api: 0.4.0 (approved, hash terkunci di blueprint-manifest.md)
+source_commits:
+  backend: 46a57def
+  frontend: 75b97ecad (branch YogaV2)
+```
+
+Revision 6 **tidak** menambah layar, menu, route, service, maupun state Redux di modul rekam medis
+(F6.1). Indikator dipakai HR lewat API; layar pemakainya milik modul HR. Satu-satunya pekerjaan
+frontend adalah memastikan bagian "Rencana kontrol" tampil lewat panel yang sudah ada.
+
+| Task | Gelombang | Ringkas | Pasangan backend | Status |
+|---|---|---|---|---|
+| `FE-19` | `MVP-9` | Penjaga dan uji tampilan "Rencana kontrol" | `BE-47` | **`SELESAI`** 11 November 2026 — 3 uji unit + 2 E2E API tiruan lulus; `UAT-24` data nyata terbuka dan terlacak (devYoga tanpa ringkasan pulang); laporan `task/report/frontend/FE-19.md` |
+
+## `FE-19` — Rencana kontrol tampil di berkas
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-19` |
+| **Outcome** | Bagian baru dari backend tampil di detail ringkasan pulang tanpa perubahan layar, dan tidak hilang bila kelak panel diubah |
+| **Trace** | `RM-DEC-104`; `RM-FE-033`; `FR-RM-097` |
+| **Kontrak** | API `0.4.0` C2 |
+| **Reuse** | `medical-record-document-panel.jsx` (`:113`, `:194-199`), `getMedicalRecordField` |
+| **Scope** | **Tanpa perubahan kode layar** bila panel memang menggambar seluruh `sections` apa adanya. Uji unit baru yang memastikan label yang tidak dikenal (misalnya "Rencana kontrol") tetap tergambar; bila logika itu berada di komponen, bukan util, uji ditulis pada lapisan yang dapat diuji project. `UAT-24` di devYoga |
+| **Dependency** | Uji unit: — . `UAT-24`: `BE-47` dan data uji ringkasan pulang berencana kontrol |
+| **Acceptance criteria** | 1) Panel menggambar seluruh `sections` dari server tanpa daftar label tetap. 2) `UAT-24`: bagian "Rencana kontrol" tampil berisi teks dari server. 3) Ringkasan tanpa rencana kontrol tidak menampilkan bagian kosong |
+| **Verification** | `node --import ./tests/helpers/register.mjs --test tests/unit/`; `UAT-24` lewat dev 3000 (data asli; CORS) dengan Playwright `--output` ke scratchpad |
+| **DEV_DISCRETION** | Tidak ada — tampilan mengikuti panel yang ada |
+| **DoD** | Kriteria terbukti; laporan `task/report/frontend/FE-19.md` |

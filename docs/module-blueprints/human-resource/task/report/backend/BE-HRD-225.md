@@ -96,3 +96,44 @@
 ## 5. Verifikasi Kompilasi & Konformansi
 * **Status Kompilasi C#**: Lolos kompilasi dengan **`0 Error(s)`**.
 * **Keamanan Perhitungan**: Menerapkan pemotongan batas (*capping*) maksimum 120% pada rasio ketercapaian target untuk mencegah distorsi ekstrem akibat lonjakan kasus tunggal.
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (sumber data SIMRS untuk metrik OPPE)
+
+**Masalah yang diperbaiki:** `AggregateSimrsQuantitativeMetricsAsync` mengisi konstanta (volume 120; kelengkapan EMR 92,5; insiden 0; lainnya 88) dan, bila tidak ada indikator, skor kuantitatif 50 — semuanya karangan.
+
+**Keputusan sumber data (`INT-HR-73`):** SIMRS berjalan di aplikasi ini, sehingga indikator ditarik langsung dari tabel pelayanan per dokter (`MstDoctor` yang terhubung ke profil tenaga kerja) dalam rentang periode evaluasi, oleh `OppeSimrsMetricExtractor`:
+
+| Tipe sumber katalog | Sumber nyata | Nilai |
+| --- | --- | --- |
+| `SIMRS_VOLUME` | `RegPatientEncounter` (bukan draf/batal/tidak hadir) + `CliPhysicianVisit` (tidak batal) | jumlah kunjungan dan visite |
+| `SIMRS_EMR_COMPLETION` | `InpDischargeSummary` yang ditandatangani dokter vs `InpEpisode.DischargeDecidedAt` | % resume ditandatangani dalam 24 jam |
+| `SIMRS_FORMULARY` | `PhmPrescription` dokter (bukan draf/batal) → `PhmPrescriptionItem.IsFormularySnapshot` | % butir sesuai formularium |
+| `SIMRS_SSI` / `SIMRS_IDO` | `OprCase` operator utama → `CliSurgicalSiteSurveillance` dengan infeksi tercatat | % kasus operasi berinfeksi |
+| `KMKP_INCIDENT`, clinical pathway, tipe lain | **tidak ada tabel sumber di aplikasi** | tidak dinilai |
+
+Indikator tanpa data (termasuk dokter tanpa data pelayanan pada periode itu) dicatat `DATA BELUM TERSEDIA` pada catatan evaluator, bukti mentahnya disimpan di `RawMetricEvidenceJson`, dan bobotnya tidak ikut dihitung. Tanpa satu pun indikator berdata, skor kuantitatif 0, bukan 50.
+
+Contoh: dr. B pada periode 2026 punya 240 kunjungan, 18 dari 20 resume tepat waktu (90%), dan 95% butir resep formularium. Indikator volume (target 200) tercapai 120% → skor penuh dengan cap 1,2; kelengkapan EMR 90/85 → 1,06; formularium 95/90 → 1,06. Indikator insiden KMKP dilaporkan tidak tersedia dan tidak ikut dinilai.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/PerformanceManagement/Services/OppeSimrsMetricExtractor.cs` | Penarik data per tipe sumber (baru) |
+| `.../PerformanceManagement/Services/OppeDataAggregationService.cs` | Memakai ekstraktor; indikator tanpa data dikecualikan; fallback 50 dihapus |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Status 🟡 (klaim ✅ 9 November 2026 diturunkan): empat tipe sumber nyata, dua tipe (KMKP, clinical pathway) menunggu tabel sumber; `AT-HRD-OPP-03` `NOT RUN`.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.

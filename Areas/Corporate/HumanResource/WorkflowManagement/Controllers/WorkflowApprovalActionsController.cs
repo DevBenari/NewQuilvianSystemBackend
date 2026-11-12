@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Ser
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Controllers
 {
@@ -41,9 +42,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         private Guid GetCurrentEmployeeId()
         {
-            var claim = User.FindFirst("EmployeeId")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(claim, out var empId)) return empId;
-            return Guid.Empty;
+            // Workflow V2 memakai MstEmployee.Id: klaim employee_id → ID akun (remediasi kelompok G, 10 November 2026)
+            return User.ResolveEmployeeId();
         }
 
         /// <summary>
@@ -62,6 +62,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var empId = GetCurrentEmployeeId();
                 var result = await _actionService.ApproveAsync(stepInstanceId, request, empId);
                 return Ok(ApiResponse<WorkflowActionV2ResponseDto>.Ok(result, result.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
             }
             catch (InvalidOperationException ex)
             {
@@ -89,6 +93,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var result = await _actionService.RejectAsync(stepInstanceId, request, empId);
                 return Ok(ApiResponse<WorkflowActionV2ResponseDto>.Ok(result, result.Message));
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status400BadRequest, ex.Message));
@@ -114,6 +122,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 var empId = GetCurrentEmployeeId();
                 var result = await _actionService.ReturnForRevisionAsync(stepInstanceId, request, empId);
                 return Ok(ApiResponse<WorkflowActionV2ResponseDto>.Ok(result, result.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<WorkflowActionV2ResponseDto>.Fail(StatusCodes.Status403Forbidden, ex.Message));
             }
             catch (InvalidOperationException ex)
             {

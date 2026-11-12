@@ -92,7 +92,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 .ToListAsync(cancellationToken);
 
             var empIds = items.Select(x => x.EmployeeId).Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
-            var employees = await _uow.Employees.Where(x => empIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
+            var employees = await _uow.Employees.Include(x => x.PrimaryDepartment).Where(x => empIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
 
             var dtos = items.Select(m => new MedicalExaminationSummaryDto
             {
@@ -104,7 +104,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 EmployeeNumber = m.EmployeeId.HasValue && employees.TryGetValue(m.EmployeeId.Value, out var e)
                     ? e.EmployeeNumber ?? string.Empty
                     : string.Empty,
-                DepartmentName = "Unit Kerja Terdaftar",
+                DepartmentName = m.EmployeeId.HasValue && employees.TryGetValue(m.EmployeeId.Value, out var deptEmployee) ? deptEmployee.PrimaryDepartment?.DepartmentName ?? "-" : "-",
                 ExaminationNumber = m.ExaminationNumber,
                 ExaminationType = m.ExaminationType,
                 ScheduledAt = m.ScheduledAt,

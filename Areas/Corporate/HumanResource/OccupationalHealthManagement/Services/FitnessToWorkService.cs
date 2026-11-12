@@ -30,6 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             }
 
             var employee = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
                 .FirstOrDefaultAsync(x => x.Id == employeeId, cancellationToken);
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {employeeId} tidak ditemukan.");
@@ -82,7 +83,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 EmployeeId = employee.Id,
                 EmployeeName = employee.FullName,
                 EmployeeNumber = employee.EmployeeNumber ?? string.Empty,
-                DepartmentName = "Unit Kerja Terdaftar",
+                DepartmentName = employee.PrimaryDepartment?.DepartmentName ?? "-",
                 FitnessStatus = newAssessment.FitnessStatus,
                 ValidUntil = newAssessment.EffectiveEndDate ?? DateTime.UtcNow.AddMonths(12),
                 HasActiveRestriction = newAssessment.WorkRestrictionRequired,
@@ -97,6 +98,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         public async Task<EmployeeFitnessSummaryDto> GetLatestAssessmentAsync(Guid employeeId, CancellationToken cancellationToken = default)
         {
             var employee = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
                 .FirstOrDefaultAsync(x => x.Id == employeeId, cancellationToken);
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {employeeId} tidak ditemukan.");
@@ -111,14 +113,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 EmployeeId = employee.Id,
                 EmployeeName = employee.FullName,
                 EmployeeNumber = employee.EmployeeNumber ?? string.Empty,
-                DepartmentName = "Unit Kerja Terdaftar",
+                DepartmentName = employee.PrimaryDepartment?.DepartmentName ?? "-",
                 FitnessStatus = latest?.FitnessStatus ?? "Fit",
                 ValidUntil = latest?.EffectiveEndDate ?? DateTime.UtcNow.AddMonths(12),
                 HasActiveRestriction = latest?.WorkRestrictionRequired ?? false,
                 RestrictionDirectives = latest?.AdministrativeRestrictionSummary,
                 IsSchedulingAllowed = latest?.IsSchedulingAllowed ?? true,
                 IsClinicalDutyAllowed = latest?.IsClinicalDutyAllowed ?? true,
-                AssessedByDoctor = latest?.AssessedByProvider ?? "Dokter Hiperkes RS",
+                AssessedByDoctor = latest?.AssessedByProvider ?? "-",
                 LastAssessedDate = latest?.AssessmentDate ?? DateTime.UtcNow
             };
         }
@@ -126,6 +128,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         public async Task<List<EmployeeFitnessSummaryDto>> GetAssessmentHistoryAsync(Guid employeeId, CancellationToken cancellationToken = default)
         {
             var employee = await _uow.Employees
+                .Include(x => x.PrimaryDepartment)
                 .FirstOrDefaultAsync(x => x.Id == employeeId, cancellationToken);
             if (employee == null)
                 throw new KeyNotFoundException($"Pegawai dengan ID {employeeId} tidak ditemukan.");
@@ -140,14 +143,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
                 EmployeeId = employee.Id,
                 EmployeeName = employee.FullName,
                 EmployeeNumber = employee.EmployeeNumber ?? string.Empty,
-                DepartmentName = "Unit Kerja Terdaftar",
+                DepartmentName = employee.PrimaryDepartment?.DepartmentName ?? "-",
                 FitnessStatus = h.FitnessStatus,
                 ValidUntil = h.EffectiveEndDate ?? DateTime.UtcNow,
                 HasActiveRestriction = h.WorkRestrictionRequired,
                 RestrictionDirectives = h.AdministrativeRestrictionSummary,
                 IsSchedulingAllowed = h.IsSchedulingAllowed,
                 IsClinicalDutyAllowed = h.IsClinicalDutyAllowed,
-                AssessedByDoctor = h.AssessedByProvider ?? "Dokter Hiperkes RS",
+                AssessedByDoctor = h.AssessedByProvider ?? "-",
                 LastAssessedDate = h.AssessmentDate
             }).ToList();
         }

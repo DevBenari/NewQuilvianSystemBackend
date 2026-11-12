@@ -382,7 +382,8 @@ try
                     var requestPath = context.HttpContext.Request.Path;
 
                     if (!string.IsNullOrWhiteSpace(accessToken) &&
-                        requestPath.StartsWithSegments("/hubs/queues"))
+                        (requestPath.StartsWithSegments("/hubs/queues") ||
+                         requestPath.StartsWithSegments("/hubs/notifications")))
                     {
                         context.Token = accessToken;
                     }
@@ -706,6 +707,10 @@ try
     builder.Services.AddHostedService<MedicalRecordCompletenessQueueWorker>();
     // BE-40 / GAP-ARCH-RM-04. Pemeriksaan berkala kunjungan yang belum lengkap (A4.13).
     builder.Services.AddHostedService<MedicalRecordCompletenessRecheckHostedService>();
+    // BE-49 / RM-DEC-101. Indikator ketepatan ringkasan pulang untuk OPPE HR. Pembacanya
+    // (IDischargeSummaryTimelinessSource) didaftarkan Rawat Inap pada BE-50; selama belum ada,
+    // endpoint menjawab 503 sesuai integration 0.4.0 "Kegagalan".
+    builder.Services.AddScoped<DischargeSummaryTimelinessService>();
 
     // Pembaca sumber berkas rekam medis (INT-RM-10). Satu instance per scope dipakai untuk kedua
     // kontraknya, supaya pembaca dokumen dan pembaca uji kelengkapan tidak berbeda pendapat.
@@ -728,6 +733,9 @@ try
     builder.Services.AddScoped<InpMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    // BE-50: pembaca indikator ketepatan ringkasan pulang (INT-RM-18), persetujuan pemilik RM-DEC-109.
+    builder.Services.AddScoped<InpDischargeSummaryTimelinessSource>();
+    builder.Services.AddScoped<IDischargeSummaryTimelinessSource>(sp => sp.GetRequiredService<InpDischargeSummaryTimelinessSource>());
     // BE-35: Farmasi, persetujuan pemilik RM-DEC-075. Tanpa kriteria kelengkapan.
     builder.Services.AddScoped<IMedicalRecordDocumentSource, PhmMedicalRecordDocumentSource>();
     // BE-34: Bank Darah, persetujuan pemilik proses BDRS RM-DEC-074. Tanpa kriteria kelengkapan.
@@ -1038,7 +1046,10 @@ try
     builder.Services.AddScoped<RhbProgressReviewService>();
     builder.Services.AddScoped<RhbDischargeService>();
     // BE-RHB-015: pembaca dokumen final Rehab Medik (jenis 47-52) untuk berkas RM, persetujuan pemilik RM RHB-DEC-019 / RHB-OQ-012.
-    builder.Services.AddScoped<IMedicalRecordDocumentSource, RhbMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<RhbMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<RhbMedicalRecordDocumentSource>());
+    // RM BE-45: probe kelengkapan poli Rehabilitasi Medik (RM-DEC-087), persetujuan pemilik Rehab Medik RM-DEC-090.
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<RhbMedicalRecordDocumentSource>());
 
     // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
     // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).
@@ -1607,6 +1618,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowSlaEnforcementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowSlaEnforcementService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IBulkApprovalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.BulkApprovalService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IUnifiedNotificationGatewayService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.UnifiedNotificationGatewayService>();
+    // Remediasi Gelombang 2 (BE-HRD-314): pusat pemberitahuan dalam aplikasi HR (tabel HrdNotification + SignalR /hubs/notifications)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrdNotificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrdNotificationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowResubmitService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowResubmitService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IIdempotentDownstreamExecutionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IdempotentDownstreamExecutionService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowCommentAndAttachmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowCommentAndAttachmentService>();
@@ -1616,7 +1629,6 @@ try
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ApprovalDelegationExpiryWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.DailyApprovalDigestWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.WorkflowSlaEarlyWarningWorker>();
-    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.BulkApprovalProcessingWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ReturnedRequestExpiryWorker>();
 
     // Slice S-D5 (Business Travel & Expense Reimbursement) - MVP-63..65 (Kontrak v25)
@@ -1632,6 +1644,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IDirectExpenseClaimService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.DirectExpenseClaimService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IExpenseVerificationAndPaymentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ExpenseVerificationAndPaymentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAttendanceAndRosterLockService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAttendanceAndRosterLockService>();
+
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAuditTrailService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAuditTrailService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Services.ExpenseCategoryService>();
 
     // Slice S-D5: 4 Hosted Background Services (TRV-W1, TRV-W2, TRV-W4, RosterLockExpiry)
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelAdvanceSettlementReminderWorker>();
@@ -2121,6 +2136,18 @@ try
             Description = $"Application Version {appVersion}"
         });
 
+        // Dua DTO bernama sama di modul berbeda membuat seluruh dokumen Swagger gagal dibuat.
+        // Nama pendek tetap dipakai; hanya tipe kedua yang bentrok diberi awalan namespace.
+        var defaultSchemaIdSelector = new Swashbuckle.AspNetCore.SwaggerGen.SchemaGeneratorOptions().SchemaIdSelector;
+        var schemaIdOwners = new System.Collections.Concurrent.ConcurrentDictionary<string, Type>();
+        options.CustomSchemaIds(type =>
+        {
+            var schemaId = defaultSchemaIdSelector(type);
+            return schemaIdOwners.GetOrAdd(schemaId, type) == type
+                ? schemaId
+                : $"{type.Namespace?.Replace('.', '_')}_{schemaId}";
+        });
+
         options.DocInclusionPredicate((docName, apiDesc) =>
         {
             var path = apiDesc.RelativePath?.ToLowerInvariant() ?? string.Empty;
@@ -2135,7 +2162,8 @@ try
                     path.StartsWith("api/v1/administrator"),
 
                 "corporate" =>
-                    path.StartsWith("api/v1/corporate"),
+                    path.StartsWith("api/v1/corporate") ||
+                    path.StartsWith("api/v1/hrd"),
 
                 "health-services" =>
                     path.StartsWith("api/v1/health-services") ||
@@ -2143,7 +2171,7 @@ try
                     path.StartsWith("api/v1/health-service"),
 
                 "self-services" =>
-                    path.StartsWith("api/v1/self-services") ||
+                    path.StartsWith("api/v1/self-service") ||
                     path.StartsWith("api/v1/selfservices") ||
                     path.StartsWith("api/v1/profile"),
 
@@ -3094,6 +3122,7 @@ try
     {
         app.MapControllers();
         app.MapHub<QueueHub>("/hubs/queues");
+        app.MapHub<HrNotificationHub>(HrNotificationHub.RoutePath);
     }
 
     app.Run();
