@@ -8,7 +8,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<HrdTrainingBondContract> builder)
         {
-            builder.ToTable("hrd_training_bond_contracts", "public");
+            builder.ToTable("HrdTrainingBondContract", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime)

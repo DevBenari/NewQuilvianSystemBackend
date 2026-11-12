@@ -63,7 +63,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             await _uow.AddSeparationAsync(separation, cancellationToken);
 
             // Inisiasi Exit Clearance Process otomatis untuk 5 Departemen (VR-EMP-24)
-            var clearance = new TrxExitClearanceProcess
+            var clearance = new HrdExitClearanceProcess
             {
                 ClearanceProcessId = Guid.NewGuid(),
                 SeparationId = separation.Id,
@@ -75,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 CreateDateTime = DateTime.UtcNow
             };
 
-            var standardChecklists = new List<TrxExitClearanceChecklist>
+            var standardChecklists = new List<HrdExitClearanceChecklist>
             {
                 new() { ChecklistId = Guid.NewGuid(), ClearanceProcessId = clearance.ClearanceProcessId, DepartmentType = "WorkUnitHandover", ItemName = "Serah Terima Tugas, Kunci Ruangan & Dokumen Kerja Unit", IsReturned = false, Status = "Pending", CreateDateTime = DateTime.UtcNow },
                 new() { ChecklistId = Guid.NewGuid(), ClearanceProcessId = clearance.ClearanceProcessId, DepartmentType = "GeneralAffairsAsset", ItemName = "Pengembalian ID Card, Seragam Kerja & Kendaraan Operasional", IsReturned = false, Status = "Pending", CreateDateTime = DateTime.UtcNow },

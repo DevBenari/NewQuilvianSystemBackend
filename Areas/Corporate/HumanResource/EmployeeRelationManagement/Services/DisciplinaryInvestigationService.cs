@@ -43,7 +43,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
                 Instant: DateTimeOffset.UtcNow), cancellationToken);
 
-            var entity = new TrxDisciplinaryInvestigationRecord
+            var entity = new HrdDisciplinaryInvestigationRecord
             {
                 InvestigationId = Guid.NewGuid(),
                 IncidentReportId = request.IncidentReportId,
@@ -117,7 +117,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             return record == null ? null : MapToDto(record);
         }
 
-        private static InvestigationRecordResponseDto MapToDto(TrxDisciplinaryInvestigationRecord entity)
+        private static InvestigationRecordResponseDto MapToDto(HrdDisciplinaryInvestigationRecord entity)
         {
             return new InvestigationRecordResponseDto
             {

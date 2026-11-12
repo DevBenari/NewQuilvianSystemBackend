@@ -49,7 +49,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 ? dto.StartDate.AddDays(60) 
                 : dto.EndDate;
 
-            var pip = new TrxPerformanceImprovementPlan
+            var pip = new HrdPerformanceImprovementPlan
             {
                 Id = Guid.NewGuid(),
                 PerformanceAppraisalId = dto.AppraisalId,
@@ -106,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             if (pip == null)
                 throw new KeyNotFoundException($"Kontrak pembinaan PIP ID {pipId} tidak ditemukan.");
 
-            var log = new TrxPerformancePipActionLog
+            var log = new HrdPerformancePipActionLog
             {
                 Id = Guid.NewGuid(),
                 PerformanceImprovementPlanId = pipId,
