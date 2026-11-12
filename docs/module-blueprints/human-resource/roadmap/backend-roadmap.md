@@ -6308,16 +6308,16 @@ dan eksekusi database tetap memerlukan instruksi terpisah dari pengguna.
 #### Grafik B84 — Fondasi data, konstanta, dan cakupan unit (`MVP-66`)
 
 ```text
-BE-HRD-334 🟡 ─┬─> BE-HRD-335 ⬜
-               └─> BE-HRD-336 ⬜
+BE-HRD-334 🟡 ─┬─> BE-HRD-335 ✅
+               └─> BE-HRD-336 🟡
 ```
 
 #### Grafik B85 — Perubahan roster terbit dan Riwayat Revisi (`MVP-67`, `EPIC HRD-110`)
 
 ```text
-BE-HRD-335 ⬜ [B84] ─> BE-HRD-337 ⬜ ─┬─> BE-HRD-338 ⬜ ─┬─> BE-HRD-339 ⬜
-BE-HRD-336 ⬜ [B84] ─────────────────┘                  └─> BE-HRD-340 ⬜
-BE-HRD-337 ⬜ ─────────────────────────────────────────────> BE-HRD-341 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-337 🟡 ─┬─> BE-HRD-338 🟡 ─┬─> BE-HRD-339 ⬜
+BE-HRD-336 🟡 [B84] ─────────────────┘                  └─> BE-HRD-340 ⬜
+BE-HRD-337 🟡 ─────────────────────────────────────────────> BE-HRD-341 ⬜
 ```
 
 `BE-HRD-336` juga prasyarat langsung `BE-HRD-340` (pemeriksaan cakupan pada hapus shift dan
@@ -6326,8 +6326,8 @@ daftar riwayat).
 #### Grafik B86 — Status harian, tutup periode, mesin absen, hari libur (`MVP-67`, `EPIC HRD-111`/`112`)
 
 ```text
-BE-HRD-335 ⬜ [B84] ─> BE-HRD-342 ⬜ ─> BE-HRD-343 ⬜ ─> BE-HRD-344 ⬜
-BE-HRD-335 ⬜ [B84] ─> BE-HRD-345 ⬜ ─> BE-HRD-346 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-342 ⬜ ─> BE-HRD-343 ⬜ ─> BE-HRD-344 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-345 ⬜ ─> BE-HRD-346 ⬜
 BE-HRD-334 ⬜ [B84] ─> BE-HRD-347 ⬜
 ```
 
@@ -6335,7 +6335,7 @@ BE-HRD-334 ⬜ [B84] ─> BE-HRD-347 ⬜
 
 ```text
 BE-HRD-343 ⬜ [B86] ─> BE-HRD-348 ⬜
-BE-HRD-336 ⬜ [B84] ─┬─> BE-HRD-349 ⬜ ─> BE-HRD-350 ⬜
+BE-HRD-336 🟡 [B84] ─┬─> BE-HRD-349 ⬜ ─> BE-HRD-350 ⬜
 BE-HRD-344 ⬜ [B86] ─┘
 BE-HRD-334 ⬜ s.d. BE-HRD-350 ⬜ ─────────> BE-HRD-351 ⬜
 ```
@@ -6343,11 +6343,11 @@ BE-HRD-334 ⬜ s.d. BE-HRD-350 ⬜ ─────────> BE-HRD-351 ⬜
 #### Grafik B88 — `POST-MVP` dan task terblokir
 
 ```text
-BE-HRD-335 ⬜ [B84] ─> BE-HRD-352 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-352 ⬜
 BE-HRD-343 ⬜ [B86] ─┬─> BE-HRD-353 ⬜ ─> BE-HRD-354 ⬜
                      ├─> BE-HRD-355 ⬜
                      └─> BE-HRD-356 ⬜
-BE-HRD-336 ⬜ [B84] ─> BE-HRD-357 ⬜
+BE-HRD-336 🟡 [B84] ─> BE-HRD-357 ⬜
 BE-HRD-352 ⬜ s.d. BE-HRD-357 ⬜ ─> BE-HRD-358 ⬜
 {DSG-Q-02} ─> BE-HRD-359 ⛔
 ```
@@ -6384,8 +6384,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `dotnet ef migrations script` ditinjau; uji kering naik → turun → `ROLLBACK` di devYoga **hanya atas instruksi pengguna**; `AT-HRD-PK-24` belum berlaku (perilaku baru di `BE-HRD-342`).
 * **Risiko**: Migration out-of-order dengan branch lain — dicek dengan `migrations list` sebelum diterapkan.
 
-#### ⬜ `BE-HRD-335` — Konstanta nilai dan penanda hak akses tanpa endpoint
+#### ✅ `BE-HRD-335` — Konstanta nilai dan penanda hak akses tanpa endpoint
 * **Slice / MVP**: `A52` / `MVP-66` / `EPIC HRD-109`
+* **Status**: ✅ Selesai (2026-11-12) — konstanta 35.4.4 dan penanda `RosterPeriod : ManageAllUnits` terpasang, terbaca `BuildFromAssembly`; `AttendanceReport : ReadAllUnits` dipindah ke `BE-HRD-349` karena resource-nya belum ada (sesuai Risiko). Startup Development menunggu penerapan migration `BE-HRD-334`. Laporan: [BE-HRD-335](../task/report/backend/BE-HRD-335.md)
 * **Outcome**: Status, jenis perubahan, kode aturan, dan dua penanda `ManageAllUnits`/`ReadAllUnits` tersedia sebagai satu sumber.
 * **Requirement/decision**: `FR-PK-002`; 35.4.3–35.4.4
 * **Kontrak**: `v26` — `permission-audit-matrix.md` 30.1
@@ -6396,8 +6397,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: Pembacaan `PermissionRegistryDescriptor.BuildFromAssembly`; startup Development.
 * **Risiko**: Penanda yang menunjuk resource belum ada ditolak keras saat startup — `AttendanceReport` baru ada di `BE-HRD-349`, jadi penanda `ReadAllUnits` dideklarasikan bersama `BE-HRD-349` bila registri menolak lebih awal.
 
-#### ⬜ `BE-HRD-336` — `HrdUnitScopeService` dan penerapan cakupan pada endpoint roster
+#### 🟡 `BE-HRD-336` — `HrdUnitScopeService` dan penerapan cakupan pada endpoint roster
 * **Slice / MVP**: `A52` / `MVP-66` / `EPIC HRD-109`
+* **Status**: 🟡 Sebagian (2026-11-12) — `HrdUnitScopeService` dan pemeriksaan cakupan pada seluruh aksi tulis serta baca `RosterPeriodService`/`ShiftReplacementService` selesai; 15/15 uji harness SQLite lulus (contoh Sari/Pak Dodi, tiga tingkat, gagal tertutup, penanda). `AT-HRD-PK-09`/`-10` dengan akun non-superadmin di devYoga menunggu data penempatan berjabatan (devYoga: 0) dan penerapan migration `BE-HRD-334`. Laporan: [BE-HRD-336](../task/report/backend/BE-HRD-336.md)
 * **Outcome**: Server menolak 403 tulis di luar cakupan kelola dan baca di luar cakupan baca.
 * **Requirement/decision**: `FR-PK-002`; `HRD-DEC-194`, `206`, `208`; `INV-A52-08`; 35.9.1
 * **Kontrak**: `v26` — `api-contract.md` 32 (Roster Period "semua tulis"), `validation-matrix.md` `VR-PK-06`, `VR-PK-27`
@@ -6408,8 +6410,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-09`, `AT-HRD-PK-10` dengan akun non-superadmin.
 * **Risiko**: Data penempatan berjabatan belum lengkap di devYoga — siapkan data uji; superadmin menutupi 403.
 
-#### ⬜ `BE-HRD-337` — `RosterValidationService`: `B3`, `B8`, `W6`, `W7`, kode `W2`/`W3`, `ValidateSingleShiftAsync`
+#### 🟡 `BE-HRD-337` — `RosterValidationService`: `B3`, `B8`, `W6`, `W7`, kode `W2`/`W3`, `ValidateSingleShiftAsync`
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Status**: 🟡 Sebagian (2026-11-12) — evaluator bersama untuk validasi periode dan `ValidateSingleShiftAsync` (tanpa simpan) selesai; `B3`, `B8`, `W6`, `W7` dan kode `W2`/`W3` terpasang; keterangan `InfoMessages` (aditif). 24/24 uji harness SQLite lulus, termasuk kontrol negatif. `AT-HRD-PK-11`–`14` lewat API di devYoga menunggu migration `BE-HRD-334` (tabel `HrdStudyAssignment`) dan data uji. Laporan: [BE-HRD-337](../task/report/backend/BE-HRD-337.md)
 * **Outcome**: Pemeriksaan roster lengkap sesuai `HRD-DEC-099`/`100`/`201`/`213` dan dapat dipanggil untuk satu shift.
 * **Requirement/decision**: `FR-PK-007`; 35.9.2
 * **Kontrak**: `v26` — `VR-PK-01`, `VR-PK-02`, `VR-PK-04`
@@ -6420,8 +6423,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-11`, `AT-HRD-PK-12`, `AT-HRD-PK-13`, `AT-HRD-PK-14`.
 * **Risiko**: Kinerja pemeriksaan satu bulan penuh untuk unit besar — query per periode, bukan per shift.
 
-#### ⬜ `BE-HRD-338` — `ShiftRevisionRecorder` dan perbaikan Ganti Petugas
+#### 🟡 `BE-HRD-338` — `ShiftRevisionRecorder` dan perbaikan Ganti Petugas
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Status**: 🟡 Sebagian (2026-11-12) — `ShiftRevisionRecorder` dan Ganti Petugas baru selesai: pemeriksaan penuh lewat `ValidateSingleShiftAsync` (422 + `errors` berkode), alasan per kode peringatan, `B6` gagal tertutup, pembaruan bersyarat + riwayat + jejak dalam satu transaksi (409 untuk yang kalah), pemberitahuan sesudah commit. 35/35 uji harness lulus termasuk kontrol negatif. `AT-HRD-PK-01`–`04` lewat API di devYoga menunggu migration `BE-HRD-334`. Laporan: [BE-HRD-338](../task/report/backend/BE-HRD-338.md)
 * **Outcome**: Ganti Petugas menjalankan pemeriksaan penuh, `B6` gagal tertutup, menulis riwayat dalam satu transaksi, menolak 409 bila petugas sudah berubah.
 * **Requirement/decision**: `FR-PK-003`, `FR-PK-004`; `HRD-DEC-195`; `INV-A52-01`, `INV-A52-03`
 * **Kontrak**: `v26` — `api-contract.md` 32 `POST /{id}/replace` (**Diubah**), `VR-PK-03`, `VR-PK-05`, `VR-PK-07`
@@ -6558,7 +6562,7 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Requirement/decision**: `FR-PK-017`; `HRD-DEC-206`, `HRD-ASM-79`
 * **Kontrak**: `v26` — `Attendance Report` `GET /{reportCode}`; `AttendanceReport : Read`; `VR-PK-27`, `VR-PK-28`
 * **Reuse**: `HrdAttendanceDaily`, `TrxShiftAssignment`, cuti `S-B2`, lembur `S-B3` (baca), `HrdUnitScopeService`
-* **Cakupan**: `AttendanceManagement/Services/AttendanceReportService.cs`, `Controllers/AttendanceReportController.cs`, `DTOs/AttendanceReportDtos.cs`
+* **Cakupan**: `AttendanceManagement/Services/AttendanceReportService.cs`, `Controllers/AttendanceReportController.cs`, `DTOs/AttendanceReportDtos.cs`; penanda `AttendanceReport : ReadAllUnits` di `AttendanceManagement/AttendanceExplicitPermissions.cs` (dipindah dari `BE-HRD-335`, karena registri menolak penanda sebelum resource `AttendanceReport` lahir)
 * **Dependencies**: `BE-HRD-336`, `BE-HRD-344`
 * **Acceptance Criteria**: Kolom sakit hanya "Sakit"; tidak ada lampiran/diagnosis; rentang > 92 hari 400.
 * **Verifikasi**: `AT-HRD-PK-39`; uji 403 lintas unit.

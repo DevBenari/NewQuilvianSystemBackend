@@ -9,6 +9,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string Message { get; private set; } = string.Empty;
         public T? Data { get; private set; }
 
+        // Rincian kegagalan untuk ApiResponse.Errors, misalnya daftar temuan pemeriksaan roster berkode.
+        public object? Errors { get; private set; }
+
         public static SchedulingRequestServiceResult<T> Ok(
             T? data,
             string message,
@@ -25,13 +28,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
         public static SchedulingRequestServiceResult<T> Fail(
             int statusCode,
-            string message)
+            string message,
+            object? errors = null)
         {
             return new SchedulingRequestServiceResult<T>
             {
                 Success = false,
                 StatusCode = statusCode,
-                Message = message
+                Message = message,
+                Errors = errors
             };
         }
     }

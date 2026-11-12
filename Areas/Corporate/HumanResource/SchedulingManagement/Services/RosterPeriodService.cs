@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -22,13 +23,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         private readonly IRosterValidationService _rosterValidationService;
         private readonly IHrdEmploymentReadinessReadService _readinessService;
         private readonly ILogger<RosterPeriodService> _logger;
+        private readonly HrdUnitScopeService _unitScopeService;
+
+        // VR-PK-06 dan VR-PK-27 (kontrak v26).
+        private const string ManageScopeDeniedMessage = "Anda tidak berwenang mengubah roster unit ini.";
+        private const string ReadScopeDeniedMessage = "Anda tidak berwenang melihat data unit ini.";
 
         public RosterPeriodService(
             ApplicationDbContext context,
             IRosterValidationService rosterValidationService,
             IHrdEmploymentReadinessReadService readinessService,
-            ILogger<RosterPeriodService> logger)
+            ILogger<RosterPeriodService> logger,
+            HrdUnitScopeService unitScopeService)
         {
+            _unitScopeService = unitScopeService ?? throw new ArgumentNullException(nameof(unitScopeService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _rosterValidationService = rosterValidationService ?? throw new ArgumentNullException(nameof(rosterValidationService));
             _readinessService = readinessService ?? throw new ArgumentNullException(nameof(readinessService));
@@ -37,9 +45,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
         public async Task<RosterPeriodSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken = default)
         {
-            var periods = await _context.TrxRosterPeriods
-                .AsNoTracking()
-                .Where(p => p.IsActive)
+            var periods = await ApplyReadScope(
+                    _context.TrxRosterPeriods.AsNoTracking().Where(p => p.IsActive),
+                    await _unitScopeService.GetReadScopeAsync(cancellationToken))
                 .ToListAsync(cancellationToken);
 
             return new RosterPeriodSummaryResponse
@@ -66,6 +74,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 .Include(p => p.OrganizationUnit)
                 .Where(p => p.IsActive)
                 .AsQueryable();
+
+            query = ApplyReadScope(query, await _unitScopeService.GetReadScopeAsync(cancellationToken));
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -145,6 +155,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 return SchedulingRequestServiceResult<RosterPeriodDetailResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     $"Periode roster dengan ID '{id}' tidak ditemukan.");
+            }
+
+            if (!(await _unitScopeService.GetReadScopeAsync(cancellationToken)).Contains(period.OrganizationUnitId))
+            {
+                return SchedulingRequestServiceResult<RosterPeriodDetailResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ReadScopeDeniedMessage);
             }
 
             var detail = new RosterPeriodDetailResponse
@@ -228,6 +245,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     "Tanggal akhir periode tidak boleh lebih awal dari tanggal mulai.");
             }
 
+            if (!await CanManageUnitAsync(req.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<RosterPeriodResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
+            }
+
             var nextSeq = await _context.TrxRosterPeriods.CountAsync(cancellationToken) + 1;
             var code = $"ROST-{DateTime.UtcNow:yyyyMM}-{nextSeq:D4}";
 
@@ -295,6 +319,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 return SchedulingRequestServiceResult<RosterAssignmentResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     $"Periode roster dengan ID '{rosterPeriodId}' tidak ditemukan.");
+            }
+
+            if (!await CanManageUnitAsync(period.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<RosterAssignmentResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
             }
 
             if (period.IsLocked || period.RosterStatus == "Closed")
@@ -447,6 +478,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     $"Periode roster dengan ID '{rosterPeriodId}' tidak ditemukan.");
             }
 
+            if (!await CanManageUnitAsync(period.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<PopulateEligibleStaffResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
+            }
+
             if (period.IsLocked || period.RosterStatus == "Closed")
             {
                 return SchedulingRequestServiceResult<PopulateEligibleStaffResponse>.Fail(
@@ -595,6 +633,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     $"Periode roster target dengan ID '{targetRosterPeriodId}' tidak ditemukan.");
             }
 
+            if (!await CanManageUnitAsync(targetPeriod.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<CopyPreviousRosterPeriodResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
+            }
+
             if (targetPeriod.IsLocked || targetPeriod.RosterStatus == "Closed")
             {
                 return SchedulingRequestServiceResult<CopyPreviousRosterPeriodResponse>.Fail(
@@ -613,6 +658,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 return SchedulingRequestServiceResult<CopyPreviousRosterPeriodResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     $"Periode sumber dengan ID '{req.SourceRosterPeriodId}' tidak ditemukan.");
+            }
+
+            if (!(await _unitScopeService.GetReadScopeAsync(cancellationToken)).Contains(sourcePeriod.OrganizationUnitId))
+            {
+                return SchedulingRequestServiceResult<CopyPreviousRosterPeriodResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ReadScopeDeniedMessage);
             }
 
             if (!sourcePeriod.RosterAssignments.Any())
@@ -730,6 +782,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 return SchedulingRequestServiceResult<ApplyShiftPatternResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     $"Periode roster dengan ID '{rosterPeriodId}' tidak ditemukan.");
+            }
+
+            if (!await CanManageUnitAsync(period.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<ApplyShiftPatternResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
             }
 
             if (period.IsLocked || period.RosterStatus == "Closed")
@@ -894,6 +953,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             Guid currentUserId,
             CancellationToken cancellationToken = default)
         {
+            var periodUnit = await _context.TrxRosterPeriods
+                .AsNoTracking()
+                .Where(p => p.Id == id && p.IsActive)
+                .Select(p => new { p.OrganizationUnitId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (periodUnit != null && !await CanManageUnitAsync(periodUnit.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<RosterValidationResultResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
+            }
+
             var result = await _rosterValidationService.ValidateRosterPeriodAsync(id, currentUserId, cancellationToken);
 
             return SchedulingRequestServiceResult<RosterValidationResultResponse>.Ok(
@@ -924,6 +996,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     $"Periode roster dengan ID '{id}' tidak ditemukan.");
             }
 
+            if (!await CanManageUnitAsync(period.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<PublishRosterPeriodResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
+            }
+
             if (period.IsLocked || period.RosterStatus == "Closed")
             {
                 return SchedulingRequestServiceResult<PublishRosterPeriodResponse>.Fail(
@@ -931,7 +1010,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     "Periode roster telah ditutup dan dikunci mutlak dari seluruh penerbitan ulang (HRD-DEC-102).");
             }
 
-            // 1. Recheck Otomatis Mesin Validasi B1-B7 & W1-W5 (HRD-DEC-098, HRD-TF-052 a)
+            // 1. Recheck Otomatis Mesin Validasi B1-B8 & W1-W7 (HRD-DEC-098, HRD-TF-052 a)
             var valResult = await _rosterValidationService.ValidateRosterPeriodAsync(id, currentUserId, cancellationToken);
 
             if (valResult.BlockingConflicts > 0)
@@ -942,7 +1021,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
                 return SchedulingRequestServiceResult<PublishRosterPeriodResponse>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
-                    $"Penerbitan roster ditolak: ditemukan {valResult.BlockingConflicts} konflik keselamatan dinas (B1–B7). Selesaikan seluruh konflik sebelum menerbitkan.");
+                    $"Penerbitan roster ditolak: ditemukan {valResult.BlockingConflicts} konflik keselamatan dinas (B1–B8). Selesaikan seluruh konflik sebelum menerbitkan.");
             }
 
             // 2. Evaluasi Peringatan W1-W5: Harus Ada Alasan Konfirmasi Resmi
@@ -953,7 +1032,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 {
                     return SchedulingRequestServiceResult<PublishRosterPeriodResponse>.Fail(
                         StatusCodes.Status422UnprocessableEntity,
-                        $"Penerbitan roster memerlukan alasan konfirmasi resmi untuk seluruh {valResult.WarningConflicts} peringatan waktu kerja (W1–W5). Diterima {reasonsCount} alasan.");
+                        $"Penerbitan roster memerlukan alasan konfirmasi resmi untuk seluruh {valResult.WarningConflicts} peringatan jadwal (W1–W7). Diterima {reasonsCount} alasan.");
                 }
             }
 
@@ -1033,6 +1112,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                 return SchedulingRequestServiceResult<RosterPeriodResponse>.Fail(
                     StatusCodes.Status404NotFound,
                     $"Periode roster dengan ID '{id}' tidak ditemukan.");
+            }
+
+            if (!await CanManageUnitAsync(period.OrganizationUnitId, cancellationToken))
+            {
+                return SchedulingRequestServiceResult<RosterPeriodResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ManageScopeDeniedMessage);
             }
 
             // Penutupan periode yang masih berstatus Draft ditolak (menutup bug HRD-TF-052 d)
@@ -1128,6 +1214,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         {
             public int Day { get; set; }
             public MstShift? Shift { get; set; }
+        }
+
+        private async Task<bool> CanManageUnitAsync(Guid? organizationUnitId, CancellationToken cancellationToken) =>
+            (await _unitScopeService.GetManageScopeAsync(cancellationToken)).Contains(organizationUnitId);
+
+        // Periode tanpa unit hanya terbaca oleh cakupan semua unit (gagal tertutup).
+        private static IQueryable<TrxRosterPeriod> ApplyReadScope(IQueryable<TrxRosterPeriod> query, HrdUnitScope scope)
+        {
+            if (scope.IsAllUnits)
+            {
+                return query;
+            }
+
+            var unitIds = scope.UnitIds.ToList();
+            return query.Where(p => p.OrganizationUnitId.HasValue && unitIds.Contains(p.OrganizationUnitId.Value));
         }
     }
 }

@@ -150,18 +150,56 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public int WarningConflicts { get; set; }
         public List<string> ConflictMessages { get; set; } = new();
         public List<string> WarningMessages { get; set; } = new();
+
+        /// <summary>
+        /// Keterangan yang bukan peringatan, misalnya "Kuota unit belum ditetapkan" saat unit belum punya
+        /// standar ketenagaan aktif (W6/W7 tidak diperiksa). Tidak dihitung dan tidak butuh alasan saat terbit.
+        /// </summary>
+        public List<string> InfoMessages { get; set; } = new();
+
         public List<RosterValidationConflictItemDto> ConflictItems { get; set; } = new();
     }
 
     public class RosterValidationConflictItemDto
     {
         public Guid ShiftAssignmentId { get; set; }
+
+        /// <summary>Kosong (Guid nol) untuk temuan tingkat slot shift seperti W6 dan W7.</summary>
         public Guid WorkforceProfileId { get; set; }
+
         public string StaffName { get; set; } = string.Empty;
         public DateOnly ShiftDate { get; set; }
-        public string RuleCode { get; set; } = string.Empty; // B1..B7, W1..W7
+        public string RuleCode { get; set; } = string.Empty; // B1..B8, W1..W7
         public string Severity { get; set; } = "BLOCKING"; // BLOCKING, WARNING
         public string Message { get; set; } = string.Empty;
+    }
+
+    // Masukan internal pemeriksaan satu shift (RosterValidationService.ValidateSingleShiftAsync).
+    public class RosterSingleShiftValidationRequest
+    {
+        public Guid RosterPeriodId { get; set; }
+
+        // Shift yang sedang diubah (Ganti Petugas/koreksi); kosong untuk shift tambahan baru.
+        public Guid? ShiftAssignmentId { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+        public Guid? PositionId { get; set; }
+        public Guid? ShiftId { get; set; }
+        public DateOnly ShiftDate { get; set; }
+        public DateTime ScheduledStartAt { get; set; }
+        public DateTime ScheduledEndAt { get; set; }
+        public bool IsNightShift { get; set; }
+        public bool IsDayOff { get; set; }
+    }
+
+    public class RosterSingleShiftValidationResult
+    {
+        public Guid RosterPeriodId { get; set; }
+        public bool IsPassed { get; set; }
+        public int BlockingConflicts { get; set; }
+        public int WarningConflicts { get; set; }
+        public List<RosterValidationConflictItemDto> Items { get; set; } = new();
+        public List<string> InfoMessages { get; set; } = new();
     }
 
     public class CopyPreviousRosterPeriodRequest
@@ -273,11 +311,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [Required(ErrorMessage = "ReplacementEmployeeId wajib diisi.")]
         public Guid ReplacementEmployeeId { get; set; }
 
-        [Required(ErrorMessage = "ReasonCategory wajib diisi."), MaxLength(100)]
+        /// <summary>
+        /// Kategori alasan, misalnya "Sakit Mendadak" atau "Lainnya". Maksimal 50 karakter, sama dengan kolom Riwayat Revisi.
+        /// </summary>
+        [Required(ErrorMessage = "ReasonCategory wajib diisi."), MaxLength(50)]
         public string ReasonCategory { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Catatan alasan. Dapat memuat kondisi kesehatan pegawai; tidak ditulis ke log.
+        /// </summary>
         [Required(ErrorMessage = "Notes wajib diisi."), MaxLength(1000)]
         public string Notes { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Petugas yang terlihat di layar saat Ganti Petugas dibuka. Bila petugas saat ini sudah berbeda,
+        /// permintaan ditolak 409 (VR-PK-05). Opsional sampai FE-HRD-307 rilis; tanpa nilai ini perlindungan
+        /// tabrakan tetap berlaku terhadap petugas yang dibaca server.
+        /// </summary>
+        public Guid? ExpectedWorkforceProfileId { get; set; }
+
+        /// <summary>
+        /// Alasan untuk setiap peringatan W1–W7 dari pemeriksaan pengganti; satu butir per kode peringatan
+        /// (WarningCode + ReasonCategory). Peringatan tanpa alasan menolak 422 (VR-PK-04).
+        /// </summary>
+        public List<WarningReasonItemRequest>? WarningReasons { get; set; }
     }
 
     /// <summary>
@@ -294,6 +351,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string OriginalEmployeeName { get; set; } = string.Empty;
         public bool EffectiveImmediately { get; set; } = true;
         public List<string> NotificationsDispatched { get; set; } = new();
+
+        /// <summary>Baris Riwayat Revisi yang ditulis dalam transaksi yang sama (HRD-DEC-195).</summary>
+        public Guid RevisionId { get; set; }
+
+        /// <summary>Peringatan W1–W7 yang diterima dengan alasan.</summary>
+        public List<RosterValidationConflictItemDto> Warnings { get; set; } = new();
+
+        /// <summary>Keterangan pemeriksaan, misalnya "Kuota unit belum ditetapkan".</summary>
+        public List<string> InfoMessages { get; set; } = new();
     }
 
     /// <summary>
