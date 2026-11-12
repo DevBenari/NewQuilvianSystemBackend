@@ -384,6 +384,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                     "Leave execution sudah direversal.");
             }
 
+            // LEV-B4 / VR-LEV-19 / VR-LEV-20 / HRD-DEC-115: Penutupan celah keamanan /reverse untuk cuti Completed atau PayrollClosed
+            if (execution.LeaveRequest.LeaveRequestStatus == LeaveRequestValueConstants.Status.Completed ||
+                execution.LeaveRequest.IsPayrollClosed)
+            {
+                _logger.LogWarning("LEAVE_REVERSE_ATTEMPT_BLOCKED: Percobaan pembalikan ilegal cuti {LeaveRequestId} oleh user {UserId}. Status: {Status}, PayrollClosed: {IsClosed}",
+                    leaveRequestId, actorUserId, execution.LeaveRequest.LeaveRequestStatus, execution.LeaveRequest.IsPayrollClosed);
+
+                return LeaveRequestServiceResult<LeaveExecutionActionResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Operasi ditolak: Permohonan cuti telah selesai atau periode payroll telah ditutup (VR-LEV-19, VR-LEV-20, LEV-B4, HRD-DEC-115). Pembalikan langsung dilarang.");
+            }
+
             var effectiveDate = request.EffectiveDate ?? execution.StartDate;
             var targets = execution.AttendanceIntegrations
                 .Where(x =>

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
 
@@ -14,6 +14,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.EarnedDate).HasColumnType("date");
             entity.Property(x => x.EffectiveStartDate).HasColumnType("date");
             entity.Property(x => x.ExpiryDate).HasColumnType("date").IsRequired(false);
+            entity.Property(x => x.GrantedDays).HasPrecision(4, 1).HasDefaultValue(0);
+            entity.Property(x => x.RemainingHours).HasPrecision(5, 2).HasDefaultValue(0);
+            entity.Property(x => x.IsExpired).HasDefaultValue(false);
             entity.Property(x => x.ConversionRate).HasPrecision(10, 4);
             entity.Property(x => x.CompensatoryStatus).HasMaxLength(30).HasDefaultValue("Pending").IsRequired();
             entity.Property(x => x.GeneratedAt).HasColumnType("timestamp with time zone").IsRequired(false);
@@ -39,6 +42,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
 
             entity.HasIndex(x => x.CreditNumber).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => new { x.WorkforceProfileId, x.CompensatoryStatus, x.ExpiryDate, x.IsDelete });
+            entity.HasIndex(x => new { x.WorkforceProfileId, x.ExpiryDate, x.IsExpired }).HasDatabaseName("idx_cto_emp_expiry");
             entity.HasIndex(x => new { x.OvertimeRealizationId, x.IsDelete });
         }
     }

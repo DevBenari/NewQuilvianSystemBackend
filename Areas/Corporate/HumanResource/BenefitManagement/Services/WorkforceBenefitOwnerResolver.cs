@@ -190,7 +190,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
                 string ownerType;
                 RoleRow primary;
-                if (profile.UserType == UserType.Employee)
+                if (!WorkforceBenefitOwnerPolicy.AllowedUserTypes.Contains(profile.UserType))
+                {
+                    // Kompatibilitas legacy: hanya berlaku bila resolver dipanggil lewat jalur EmployeeId (ResolveByEmployeeAsync)
+                    // dan baris MstEmployee memang ada di basis data.
+                    if (legacyEmployeeCompat && employee is not null)
+                    {
+                        ownerType = WorkforceBenefitOwnerTypes.Employee;
+                        primary = employee;
+                    }
+                    else
+                    {
+                        result[profile.Id] = WorkforceOwnerResolution.Fail(
+                            BenefitEligibilityReasonCodes.OwnerTypeNotAllowed,
+                            "Jenis SDM ini tidak termasuk penerima benefit kesehatan menurut kebijakan HR.");
+                        continue;
+                    }
+                }
+                else if (profile.UserType == UserType.Employee)
                 {
                     if (employee is null)
                     {
@@ -200,29 +217,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     ownerType = WorkforceBenefitOwnerTypes.Employee;
                     primary = employee;
                 }
-                else if (profile.UserType == UserType.PermanentDoctor || profile.UserType == UserType.GuestDoctor)
+                else if (profile.UserType == UserType.PermanentDoctor)
                 {
                     if (doctor is null)
                     {
                         result[profile.Id] = ConflictFor(profile.UserType);
                         continue;
                     }
-                    ownerType = WorkforceBenefitOwnerTypes.Doctor;
-                    primary = doctor;
-                }
-                else if (legacyEmployeeCompat && employee is not null)
-                {
-                    // Kontrak lama berbasis EmployeeId: baris MstEmployee tetap peran karyawan (perilaku sebelumnya).
-                    ownerType = WorkforceBenefitOwnerTypes.Employee;
-                    primary = employee;
-                }
-                else if (employee is not null)
-                {
-                    ownerType = WorkforceBenefitOwnerTypes.Employee;
-                    primary = employee;
-                }
-                else if (doctor is not null)
-                {
                     ownerType = WorkforceBenefitOwnerTypes.Doctor;
                     primary = doctor;
                 }
@@ -265,7 +266,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         private static WorkforceOwnerResolution ConflictFor(UserType userType) => WorkforceOwnerResolution.Fail(
             BenefitEligibilityReasonCodes.OwnerIdentityConflict,
-            (userType == UserType.PermanentDoctor || userType == UserType.GuestDoctor)
+            userType == UserType.PermanentDoctor
                 ? "Profil SDM berjenis dokter tetapi data dokternya tidak ditemukan di HR."
                 : "Profil SDM berjenis karyawan tetapi data karyawannya tidak ditemukan di HR.");
 

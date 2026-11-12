@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -78,6 +79,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Mo
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 #pragma warning disable CS8618 // DbSet properties are initialized by Entity Framework Core.
 
 namespace QuilvianSystemBackend.Repositories
@@ -234,6 +236,10 @@ namespace QuilvianSystemBackend.Repositories
 
         #region CORPORATE - HUMAN RESOURCE - WORKFORCE CORE
         public DbSet<WfpOrganizationAssignment> WfpOrganizationAssignments { get; set; }
+        public DbSet<HrdPersonnelActionOrder> HrdPersonnelActionOrders { get; set; }
+        public DbSet<HrdPersonnelActionOrderAttachment> HrdPersonnelActionOrderAttachments { get; set; }
+        public DbSet<HrdInitialPlacementBatch> HrdInitialPlacementBatches { get; set; }
+        public DbSet<HrdInitialPlacementBatchRow> HrdInitialPlacementBatchRows { get; set; }
         public DbSet<WfpBankAccount> WfpBankAccounts { get; set; }
         public DbSet<WfpDocument> WfpDocuments { get; set; }
         public DbSet<WfpEducation> WfpEducations { get; set; }
@@ -268,47 +274,63 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxStaffingGapAnalysis> TrxStaffingGapAnalyses { get; set; }
         public DbSet<TrxDailyStaffingRequirement> TrxDailyStaffingRequirements { get; set; }
         public DbSet<TrxWorkforceAllocation> TrxWorkforceAllocations { get; set; }
+
+        // S-D1 Workforce Planning Core (BE-HRD-017)
+        public DbSet<HrdStaffingStandard> HrdStaffingStandards { get; set; }
+        public DbSet<HrdStaffingStandardLine> HrdStaffingStandardLines { get; set; }
+        public DbSet<HrdStaffingSkillMixRule> HrdStaffingSkillMixRules { get; set; }
+        public DbSet<HrdStaffingWorkloadInput> HrdStaffingWorkloadInputs { get; set; }
+        public DbSet<HrdWorkforcePlanningSetting> HrdWorkforcePlanningSettings { get; set; }
+        public DbSet<HrdPositionFormation> HrdPositionFormations { get; set; }
+        public DbSet<HrdInitialFormationBatch> HrdInitialFormationBatches { get; set; }
+        public DbSet<HrdInitialFormationBatchRow> HrdInitialFormationBatchRows { get; set; }
+        public DbSet<HrdManpowerPlan> HrdManpowerPlans { get; set; }
+        public DbSet<HrdManpowerPlanLine> HrdManpowerPlanLines { get; set; }
+        public DbSet<HrdHeadcountRequest> HrdHeadcountRequests { get; set; }
+        public DbSet<HrdHeadcountRequestSeat> HrdHeadcountRequestSeats { get; set; }
+        public DbSet<HrdHeadcountRequestCancellation> HrdHeadcountRequestCancellations { get; set; }
+        public DbSet<HrdFulfilmentPlanChange> HrdFulfilmentPlanChanges { get; set; }
+        public DbSet<HrdStaffingGapSnapshot> HrdStaffingGapSnapshots { get; set; }
+        public DbSet<HrdStaffingGapSnapshotLine> HrdStaffingGapSnapshotLines { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - WORKFORCE PLANNING
 
         #region CORPORATE - HUMAN RESOURCE - RECRUITMENT MANAGEMENT
-        public DbSet<MstRecruitmentSource> MstRecruitmentSources { get; set; }
-        public DbSet<MstRecruitmentStage> MstRecruitmentStages { get; set; }
-        public DbSet<MstCandidateStatus> MstCandidateStatuses { get; set; }
-        public DbSet<MstInterviewTemplate> MstInterviewTemplates { get; set; }
-        public DbSet<MstAssessmentMethod> MstAssessmentMethods { get; set; }
-        public DbSet<TrxJobRequisition> TrxJobRequisitions { get; set; }
-        public DbSet<TrxJobRequisitionApproval> TrxJobRequisitionApprovals { get; set; }
-        public DbSet<TrxJobVacancy> TrxJobVacancies { get; set; }
-        public DbSet<TrxCandidate> TrxCandidates { get; set; }
-        public DbSet<TrxCandidateApplication> TrxCandidateApplications { get; set; }
-        public DbSet<TrxCandidateDocument> TrxCandidateDocuments { get; set; }
-        public DbSet<TrxCandidateScreening> TrxCandidateScreenings { get; set; }
-        public DbSet<TrxCandidateAssessment> TrxCandidateAssessments { get; set; }
-        public DbSet<TrxCandidateInterview> TrxCandidateInterviews { get; set; }
-        public DbSet<TrxInterviewEvaluation> TrxInterviewEvaluations { get; set; }
-        public DbSet<TrxReferenceCheck> TrxReferenceChecks { get; set; }
-        public DbSet<TrxBackgroundCheck> TrxBackgroundChecks { get; set; }
-        public DbSet<TrxPreEmploymentMedicalCheck> TrxPreEmploymentMedicalChecks { get; set; }
-        public DbSet<TrxJobOffer> TrxJobOffers { get; set; }
-        public DbSet<TrxCandidateHiring> TrxCandidateHirings { get; set; }
+        public DbSet<HrdJobRequisition> HrdJobRequisitions { get; set; }
+        public DbSet<HrdJobVacancy> HrdJobVacancies { get; set; }
+        public DbSet<HrdCandidate> HrdCandidates { get; set; }
+        public DbSet<HrdCandidateApplication> HrdCandidateApplications { get; set; }
+        public DbSet<HrdCandidateDocument> HrdCandidateDocuments { get; set; }
+        public DbSet<HrdCandidateScreening> HrdCandidateScreenings { get; set; }
+        public DbSet<HrdCandidateEvaluation> HrdCandidateEvaluations { get; set; }
+        public DbSet<HrdJobOffer> HrdJobOffers { get; set; }
+        public DbSet<HrdJobOfferApproval> HrdJobOfferApprovals { get; set; }
+        public DbSet<HrdPreEmploymentMedicalCheck> HrdPreEmploymentMedicalChecks { get; set; }
+        public DbSet<HrdTalentPool> HrdTalentPools { get; set; }
+        public DbSet<HrdCandidateHiringHandoff> HrdCandidateHiringHandoffs { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - RECRUITMENT MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - LIFECYCLE MANAGEMENT
-        public DbSet<WfpOnboardingChecklist> WfpOnboardingChecklists { get; set; }
-        public DbSet<WfpOnboardingTask> WfpOnboardingTasks { get; set; }
         public DbSet<WfpOffboardingChecklist> WfpOffboardingChecklists { get; set; }
         public DbSet<WfpOffboardingTask> WfpOffboardingTasks { get; set; }
         public DbSet<MstOnboardingTemplate> MstOnboardingTemplates { get; set; }
         public DbSet<MstOnboardingTemplateTask> MstOnboardingTemplateTasks { get; set; }
         public DbSet<MstOffboardingTemplate> MstOffboardingTemplates { get; set; }
         public DbSet<MstOffboardingTemplateTask> MstOffboardingTemplateTasks { get; set; }
-        public DbSet<TrxEmployeeOnboarding> TrxEmployeeOnboardings { get; set; }
-        public DbSet<TrxEmployeeOnboardingTask> TrxEmployeeOnboardingTasks { get; set; }
-        public DbSet<TrxProbationReview> TrxProbationReviews { get; set; }
+        public DbSet<HrdOnboardingCase> HrdOnboardingCases { get; set; }
+        public DbSet<HrdOnboardingCaseItem> HrdOnboardingCaseItems { get; set; }
+        public DbSet<HrdOnboardingAccessRequest> HrdOnboardingAccessRequests { get; set; }
+        public DbSet<HrdContractDecision> HrdContractDecisions { get; set; }
+        public DbSet<HrdContractCorrection> HrdContractCorrections { get; set; }
+        public DbSet<HrdInitialContractBatch> HrdInitialContractBatches { get; set; }
+        public DbSet<HrdInitialContractBatchRow> HrdInitialContractBatchRows { get; set; }
+        public DbSet<HrdProbation> HrdProbations { get; set; }
+        public DbSet<HrdProbationAssessment> HrdProbationAssessments { get; set; }
+        public DbSet<HrdClinicalPreceptorship> HrdClinicalPreceptorships { get; set; }
+        public DbSet<HrdClinicalPreceptorshipPreceptor> HrdClinicalPreceptorshipPreceptors { get; set; }
+        public DbSet<HrdEmploymentLifecycleSetting> HrdEmploymentLifecycleSettings { get; set; }
         public DbSet<TrxEmployeeSeparation> TrxEmployeeSeparations { get; set; }
         public DbSet<TrxResignationRequest> TrxResignationRequests { get; set; }
         public DbSet<TrxRetirement> TrxRetirements { get; set; }
-        public DbSet<TrxContractNonRenewal> TrxContractNonRenewals { get; set; }
         public DbSet<TrxTermination> TrxTerminations { get; set; }
         public DbSet<TrxExitClearance> TrxExitClearances { get; set; }
         public DbSet<TrxAssetReturn> TrxAssetReturns { get; set; }
@@ -332,9 +354,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<HrdMissingAttendance> HrdMissingAttendances { get; set; }
         public DbSet<HrdBusinessTripAttendance> HrdBusinessTripAttendances { get; set; }
         public DbSet<HrdRemoteAttendance> HrdRemoteAttendances { get; set; }
+        public DbSet<HrdAttendanceSetting> HrdAttendanceSettings { get; set; }
+        public DbSet<HrdEarlyLeavePermission> HrdEarlyLeavePermissions { get; set; }
+        public DbSet<HrdOfficialDutyRequest> HrdOfficialDutyRequests { get; set; }
+        public DbSet<HrdAttendancePeriodReopenLog> HrdAttendancePeriodReopenLogs { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - SCHEDULING MANAGEMENT
+        public DbSet<HrdSchedulingSetting> HrdSchedulingSettings { get; set; }
         public DbSet<WfpWorkScheduleAssignment> WfpWorkScheduleAssignments { get; set; }
         public DbSet<WfpScheduleChangeRequest> WfpScheduleChangeRequests { get; set; }
         public DbSet<WfpShiftSwapRequest> WfpShiftSwapRequests { get; set; }
@@ -366,6 +393,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxCompensatoryLeave> TrxCompensatoryLeaves { get; set; }
         public DbSet<TrxLeaveExecution> TrxLeaveExecutions { get; set; }
         public DbSet<TrxLeaveAttendanceIntegration> TrxLeaveAttendanceIntegrations { get; set; }
+        public DbSet<TrxLeaveBalanceLedger> TrxLeaveBalanceLedgers { get; set; }
+        public DbSet<TrxLeaveRecallRequest> TrxLeaveRecallRequests { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - LEAVE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OVERTIME MANAGEMENT
@@ -409,28 +438,40 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - EXPENSE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - PAYROLL MANAGEMENT
-        public DbSet<WfpPayroll> WfpPayrolls { get; set; }
-        public DbSet<WfpTax> WfpTaxes { get; set; }
-        public DbSet<WfpInsurance> WfpInsurances { get; set; }
-        public DbSet<WfpTransportAllowancePolicy> WfpTransportAllowancePolicies { get; set; }
-        public DbSet<WfpTransportAllowance> WfpTransportAllowances { get; set; }
-        public DbSet<WfpTransportAllowanceTransaction> WfpTransportAllowanceTransactions { get; set; }
-        public DbSet<TrxPayrollRun> TrxPayrollRuns { get; set; }
-        public DbSet<TrxPayrollRunEmployee> TrxPayrollRunEmployees { get; set; }
-        public DbSet<TrxPayrollEmployeeComponent> TrxPayrollEmployeeComponents { get; set; }
-        public DbSet<TrxPayrollAttendanceInput> TrxPayrollAttendanceInputs { get; set; }
-        public DbSet<TrxPayrollOvertimeInput> TrxPayrollOvertimeInputs { get; set; }
-        public DbSet<TrxPayrollVariableInput> TrxPayrollVariableInputs { get; set; }
-        public DbSet<TrxPayrollAdjustment> TrxPayrollAdjustments { get; set; }
-        public DbSet<TrxPayrollApproval> TrxPayrollApprovals { get; set; }
-        public DbSet<TrxPayrollPayment> TrxPayrollPayments { get; set; }
-        public DbSet<TrxPayrollPayslip> TrxPayrollPayslips { get; set; }
-        public DbSet<TrxPayrollReversal> TrxPayrollReversals { get; set; }
-        public DbSet<TrxMedicalServiceFeeCalculation> TrxMedicalServiceFeeCalculations { get; set; }
-        public DbSet<TrxMedicalServiceFeePayment> TrxMedicalServiceFeePayments { get; set; }
+        public DbSet<PrlPayroll> PrlPayrolls { get; set; }
+        public DbSet<PrlTax> PrlTaxes { get; set; }
+        public DbSet<PrlInsurance> PrlInsurances { get; set; }
+        public DbSet<PrlTransportAllowancePolicy> PrlTransportAllowancePolicies { get; set; }
+        public DbSet<PrlTransportAllowance> PrlTransportAllowances { get; set; }
+        public DbSet<PrlTransportAllowanceTransaction> PrlTransportAllowanceTransactions { get; set; }
+        public DbSet<PrlPayrollRun> PrlPayrollRuns { get; set; }
+        public DbSet<PrlPayrollRunEmployee> PrlPayrollRunEmployees { get; set; }
+        public DbSet<HrdPayrollSetting> HrdPayrollSettings { get; set; }
+        public DbSet<TrxPayrollVarianceAlert> TrxPayrollVarianceAlerts { get; set; }
+        public DbSet<TrxPayrollHandoffBatch> TrxPayrollHandoffBatches { get; set; }
+        public DbSet<PrlPayrollEmployeeComponent> PrlPayrollEmployeeComponents { get; set; }
+        public DbSet<PrlPayrollAttendanceInput> PrlPayrollAttendanceInputs { get; set; }
+        public DbSet<PrlPayrollOvertimeInput> PrlPayrollOvertimeInputs { get; set; }
+        public DbSet<PrlPayrollVariableInput> PrlPayrollVariableInputs { get; set; }
+        public DbSet<PrlPayrollAdjustment> PrlPayrollAdjustments { get; set; }
+        public DbSet<PrlPayrollApproval> PrlPayrollApprovals { get; set; }
+        public DbSet<PrlPayrollPayment> PrlPayrollPayments { get; set; }
+        public DbSet<PrlPayrollPayslip> PrlPayrollPayslips { get; set; }
+        public DbSet<PrlPayrollReversal> PrlPayrollReversals { get; set; }
+        public DbSet<PrlMedicalServiceFeeCalculation> PrlMedicalServiceFeeCalculations { get; set; }
+        public DbSet<PrlMedicalServiceFeePayment> PrlMedicalServiceFeePayments { get; set; }
+        public DbSet<HrdRestitutionSetting> HrdRestitutionSettings { get; set; }
+        public DbSet<HrdPayslipPinLockout> HrdPayslipPinLockouts { get; set; }
+        public DbSet<HrdPayslipPinSession> HrdPayslipPinSessions { get; set; }
+        public DbSet<TrxEmployeeRestitutionClaim> TrxEmployeeRestitutionClaims { get; set; }
+        public DbSet<TrxPayrollRestitution> TrxPayrollRestitutions { get; set; }
+        public DbSet<TrxPayrollDeductionSchedule> TrxPayrollDeductionSchedules { get; set; }
+        public DbSet<TrxPayrollDeductionItem> TrxPayrollDeductionItems { get; set; }
+        public DbSet<TrxCashierDisbursementVoucher> TrxCashierDisbursementVouchers { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - PAYROLL MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
+        public DbSet<HrdBenefitGradeEligibility> HrdBenefitGradeEligibilities { get; set; }
         public DbSet<TrxEmployeeBenefitEnrollment> TrxEmployeeBenefitEnrollments { get; set; }
         public DbSet<TrxEmployeeBenefitDependent> TrxEmployeeBenefitDependents { get; set; }
         public DbSet<HrdBenefitBalanceMovement> HrdBenefitBalanceMovements { get; set; }
@@ -444,6 +485,9 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - CREDENTIALING MANAGEMENT
+        public DbSet<MstCredentialingCommittee> MstCredentialingCommittees { get; set; }
+        public DbSet<TrxSpkRkkIssuance> TrxSpkRkkIssuances { get; set; }
+        public DbSet<TrxClinicalPrivilegeEmergencyOverrideLog> TrxClinicalPrivilegeEmergencyOverrideLogs { get; set; }
         public DbSet<WfpCertification> WfpCertifications { get; set; }
         public DbSet<WfpCredentialLicense> WfpCredentialLicenses { get; set; }
         public DbSet<WfpClinicalPrivilege> WfpClinicalPrivileges { get; set; }
@@ -478,6 +522,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxTrainingCertificate> TrxTrainingCertificates { get; set; }
         public DbSet<TrxIndividualDevelopmentPlan> TrxIndividualDevelopmentPlans { get; set; }
         public DbSet<TrxTrainingBudget> TrxTrainingBudgets { get; set; }
+        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdTrainingBondContract> HrdTrainingBondContracts { get; set; }
+        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdShiftBuddySafeguard> HrdShiftBuddySafeguards { get; set; }
+        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxPlataranSehatSkpRecord> TrxPlataranSehatSkpRecords { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - LEARNING AND DEVELOPMENT
 
         #region CORPORATE - HUMAN RESOURCE - PERFORMANCE MANAGEMENT
@@ -492,6 +539,30 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPerformanceCheckIn> TrxPerformanceCheckIns { get; set; }
         public DbSet<TrxCalibrationSession> TrxCalibrationSessions { get; set; }
         public DbSet<TrxPerformanceImprovementPlan> TrxPerformanceImprovementPlans { get; set; }
+
+        // Sub-Modul 15: OPPE & FPPE (Clinical Performance Evaluation)
+        public DbSet<MstOppeMetricCatalog> MstOppeMetricCatalogs { get; set; }
+        public DbSet<TrxOppeEvaluationPeriod> TrxOppeEvaluationPeriods { get; set; }
+        public DbSet<TrxOppeStaffEvaluation> TrxOppeStaffEvaluations { get; set; }
+        public DbSet<TrxOppeStaffEvaluationDetail> TrxOppeStaffEvaluationDetails { get; set; }
+        public DbSet<TrxFppeEngagement> TrxFppeEngagements { get; set; }
+        public DbSet<TrxFppeCaseLog> TrxFppeCaseLogs { get; set; }
+        public DbSet<TrxFppeEvaluationConclusion> TrxFppeEvaluationConclusions { get; set; }
+        public DbSet<HrdClinicalPeerReviewAuditLog> HrdClinicalPeerReviewAuditLogs { get; set; }
+        public DbSet<HrdFppeTriggerEvent> HrdFppeTriggerEvents { get; set; }
+        public DbSet<HrdRecredentialingTierOverride> HrdRecredentialingTierOverrides { get; set; }
+        public DbSet<HrdRecredentialingVerdict> HrdRecredentialingVerdicts { get; set; }
+        public DbSet<HrdSimrsPrivilegeSyncLog> HrdSimrsPrivilegeSyncLogs { get; set; }
+
+        // Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3, Kontrak v21)
+        public DbSet<MstKpiMetricCatalog> MstKpiMetricCatalogs { get; set; }
+        public DbSet<TrxPerformanceGoal> TrxPerformanceGoals { get; set; }
+        public DbSet<TrxPerformanceAppraisal> TrxPerformanceAppraisals { get; set; }
+        public DbSet<TrxPerformanceAppraisalDetail> TrxPerformanceAppraisalDetails { get; set; }
+        public DbSet<TrxPerformanceCalibrationSession> TrxPerformanceCalibrationSessions { get; set; }
+        public DbSet<TrxPerformancePipActionLog> TrxPerformancePipActionLogs { get; set; }
+        public DbSet<TrxClinicalCareerLadderReview> TrxClinicalCareerLadderReviews { get; set; }
+        public DbSet<TrxPerformanceAppraisalDispute> TrxPerformanceAppraisalDisputes { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - PERFORMANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OCCUPATIONAL HEALTH MANAGEMENT
@@ -520,6 +591,15 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxDisciplinaryCase> TrxDisciplinaryCases { get; set; }
         public DbSet<TrxDisciplinaryDecision> TrxDisciplinaryDecisions { get; set; }
         public DbSet<HrdEmployeeRecognition> HrdEmployeeRecognitions { get; set; }
+        public DbSet<TrxDisciplinaryIncidentReport> TrxDisciplinaryIncidentReports { get; set; }
+        public DbSet<TrxDisciplinaryInvestigationRecord> TrxDisciplinaryInvestigationRecords { get; set; }
+        public DbSet<TrxDisciplinarySanction> TrxDisciplinarySanctions { get; set; }
+        public DbSet<TrxDisciplinarySuspension> TrxDisciplinarySuspensions { get; set; }
+        public DbSet<HrdSuspensionAccessAction> HrdSuspensionAccessActions { get; set; }
+        public DbSet<TrxBipartiteNegotiationForum> TrxBipartiteNegotiationForums { get; set; }
+        public DbSet<TrxSeveranceCalculation> TrxSeveranceCalculations { get; set; }
+        public DbSet<TrxExitClearanceProcess> TrxExitClearanceProcesses { get; set; }
+        public DbSet<TrxExitClearanceChecklist> TrxExitClearanceChecklists { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - EMPLOYEE RELATION MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
@@ -531,6 +611,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxHrServiceRequestAttachment> TrxHrServiceRequestAttachments { get; set; }
         public DbSet<TrxEmployeeDocumentRequest> TrxEmployeeDocumentRequests { get; set; }
         public DbSet<TrxEmployeeDocumentIssuance> TrxEmployeeDocumentIssuances { get; set; }
+        public DbSet<HrdProfileChangeHistory> HrdProfileChangeHistories { get; set; }
+        public DbSet<HrdPinAttemptRecord> HrdPinAttemptRecords { get; set; }
+        public DbSet<HrdNotification> HrdNotifications { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT
@@ -611,6 +694,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
         public DbSet<MstCompanyGuarantorReimbursementRoute> MstCompanyGuarantorReimbursementRoutes { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
+        public DbSet<PatEmployeeBenefitCardSync> PatEmployeeBenefitCardSyncs { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
@@ -696,10 +780,13 @@ namespace QuilvianSystemBackend.Repositories
         // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
         public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
         public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
+        // Penghubung bukti potong gaji ke baris angsuran (berkas tetap di FinTransactionProof). Migration AddInstallmentDeductionEvidence.
+        public DbSet<FinReceivableInstallmentDeductionEvidence> FinReceivableInstallmentDeductionEvidences { get; set; }
         // BE-FIN-117, FIN-DES-106, FIN-DEC-220: batch hasil potongan gaji manual per periode.
         public DbSet<FinPayrollDeductionBatch> FinPayrollDeductionBatches { get; set; }
         public DbSet<FinPayrollDeductionBatchItem> FinPayrollDeductionBatchItems { get; set; }
-        // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
+        // LEGACY READ-ONLY (BE-FIN-092, FIN-DES-102): Penutupan Benefit dihapus; tabel dipertahankan sebagai riwayat/audit dan agar
+        // snapshot migration konsisten. Tidak ada kode yang menulis ke dua DbSet ini.
         public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
         public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }
         // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration
@@ -782,6 +869,11 @@ namespace QuilvianSystemBackend.Repositories
         // BE-FIN-051, FIN-DES-006: ledger idempotensi bersama untuk kelima aggregate root
         // Purchasing di atas — menutup gap header Idempotency-Key yang dicatat FE-FIN-008.
         public DbSet<FinPurchasingIdempotencyRecord> FinPurchasingIdempotencyRecords { get; set; }
+        // BE-FIN-143 (Revisi 23): penampung data PO/GR dari BLM. Prefix Fin; folder Purchasing.
+        public DbSet<FinPurchasingInboundMessage> FinPurchasingInboundMessages { get; set; }
+        public DbSet<FinPurchasingSupplierMap> FinPurchasingSupplierMaps { get; set; }
+        public DbSet<FinPurchasingSyncConflict> FinPurchasingSyncConflicts { get; set; }
+        public DbSet<FinPurchasingExternalCancellation> FinPurchasingExternalCancellations { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
@@ -1277,6 +1369,32 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<HmdSetting> HmdSettings { get; set; }
         #endregion HEMODIALYSIS MANAGEMENT
 
+        #region REHABILITATION MANAGEMENT
+        // RHB-BP-001, BE-RHB-001. 20 tabel Rhb* milik modul Rehab Medik (registry Rhb / ACTIVE,
+        // RHB-DEC-014). Pasien, kunjungan, tindakan bertarif, instrumen, serta keutuhan dokumen
+        // tetap milik modul pemiliknya; konfigurasi disiplin sengaja berprefix Rhb, bukan Mst.
+        public DbSet<RhbRequest> RhbRequests { get; set; }
+        public DbSet<RhbRequestDiscipline> RhbRequestDisciplines { get; set; }
+        public DbSet<RhbEpisode> RhbEpisodes { get; set; }
+        public DbSet<RhbEpisodeDiscipline> RhbEpisodeDisciplines { get; set; }
+        public DbSet<RhbAssessment> RhbAssessments { get; set; }
+        public DbSet<RhbMeasurement> RhbMeasurements { get; set; }
+        public DbSet<RhbGoal> RhbGoals { get; set; }
+        public DbSet<RhbProgram> RhbPrograms { get; set; }
+        public DbSet<RhbProgramIntervention> RhbProgramInterventions { get; set; }
+        public DbSet<RhbProgramGoal> RhbProgramGoals { get; set; }
+        public DbSet<RhbEducationRecord> RhbEducationRecords { get; set; }
+        public DbSet<RhbSession> RhbSessions { get; set; }
+        public DbSet<RhbSessionIntervention> RhbSessionInterventions { get; set; }
+        public DbSet<RhbProgressReview> RhbProgressReviews { get; set; }
+        public DbSet<RhbGoalReview> RhbGoalReviews { get; set; }
+        public DbSet<RhbDischargeSummary> RhbDischargeSummaries { get; set; }
+        public DbSet<RhbStatusHistory> RhbStatusHistories { get; set; }
+        public DbSet<RhbDiscipline> RhbDisciplines { get; set; }
+        public DbSet<RhbDisciplineProcedure> RhbDisciplineProcedures { get; set; }
+        public DbSet<RhbDisciplineInstrument> RhbDisciplineInstruments { get; set; }
+        #endregion REHABILITATION MANAGEMENT
+
         #region MEDICAL CHECKUP MANAGEMENT
         // MCU-BP-001, BE-MCU-002. 21 tabel Mcu* milik modul Medical Check-Up (registry Mcu / ACTIVE,
         // MCU-GOV-001). Katalog, jadwal, order, hasil, resume, dan penyerahan; kunjungan, tagihan,
@@ -1374,6 +1492,12 @@ namespace QuilvianSystemBackend.Repositories
         {
             StampEpisodeVersions();
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+            optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         }
 
         protected override void OnModelCreating(ModelBuilder builder)

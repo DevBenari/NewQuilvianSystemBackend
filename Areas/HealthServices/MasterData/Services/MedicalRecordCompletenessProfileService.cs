@@ -23,8 +23,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
     ///
     /// Empat aturan melekat di sini:
     ///
-    /// 1. Satu kunci, satu profil (`VAL-RM-A05`). Kunci = jenis kunjungan + jenis unit + kondisi;
-    ///    kolom kosong berarti "semua" dan dibandingkan sebagai nilai yang sama. Kode profil juga unik.
+    /// 1. Satu kunci, satu profil (`VAL-RM-B04`, menggantikan bunyi `VAL-RM-A05`). Kunci = jenis
+    ///    kunjungan + jenis unit + jenis poli (`BE-42`, `RM-DEC-085`) + kondisi; kolom kosong
+    ///    berarti "semua" dan dibandingkan sebagai nilai yang sama. Kode profil juga unik. Jenis poli
+    ///    hanya boleh terisi pada profil tanpa kondisi (`VAL-RM-B02`).
     /// 2. Profil tanpa kondisi wajib menyebut jenis kunjungan (`VAL-RM-A04`).
     /// 3. Kriteria hanya dipilih dari katalog <see cref="CompletenessCriterion"/> (`VAL-RM-A06`) dan
     ///    tidak boleh kembar (`VAL-RM-A07`). Profil tanpa kriteria sah (`RM-DEC-060`).
@@ -44,11 +46,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
 
         // Bunyi pesan mengikuti validation matrix amandemen 0.2.0.
         public const string EncounterTypeRequiredMessage = "Pilih jenis kunjungan untuk profil ini.";
-        public const string DuplicateKeyMessage = "Profil untuk jenis kunjungan dan unit ini sudah ada.";
+        // VAL-RM-B04 (kontrak 0.3.0). Bila kode profil yang bentrok diketahui, pesan menyebutnya.
+        public const string DuplicateKeyMessage = "Profil untuk kombinasi ini sudah ada.";
         public const string UnknownCriterionMessage = "Kriteria tidak dikenal.";
         public const string DuplicateCriterionMessage = "Kriteria yang sama tidak boleh dipilih dua kali.";
         public const string UnknownTypeMessage = "Jenis kunjungan atau jenis unit tidak dikenal.";
         public const string UnknownConditionMessage = "Kondisi tidak dikenal.";
+        public const string UnknownClinicTypeMessage = "Jenis poli tidak dikenal.";
+        public const string ClinicTypeWithConditionMessage = "Jenis poli hanya dapat dipakai pada profil tanpa kondisi.";
 
         private readonly ApplicationDbContext _dbContext;
 
@@ -88,7 +93,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
         public static string? ValidateFilter(
             EncounterType? encounterType,
             ServiceUnitType? serviceUnitType,
-            CompletenessCondition? condition)
+            CompletenessCondition? condition,
+            ClinicType? clinicType = null)
         {
             if ((encounterType.HasValue && !Enum.IsDefined(encounterType.Value))
                 || (serviceUnitType.HasValue && !Enum.IsDefined(serviceUnitType.Value)))
@@ -96,6 +102,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
 
             if (condition.HasValue && !Enum.IsDefined(condition.Value))
                 return UnknownConditionMessage;
+
+            // VAL-RM-B03 (BE-42).
+            if (clinicType.HasValue && !Enum.IsDefined(clinicType.Value))
+                return UnknownClinicTypeMessage;
 
             return null;
         }
@@ -110,7 +120,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             string? sortDirection,
             int pageNumber,
             int pageSize,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            ClinicType? clinicType = null)
         {
             pageNumber = pageNumber < 1 ? 1 : pageNumber;
             pageSize = pageSize < 1 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
@@ -138,6 +149,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             if (condition.HasValue)
                 query = query.Where(x => x.Condition == condition.Value);
 
+            if (clinicType.HasValue)
+                query = query.Where(x => x.ClinicType == clinicType.Value);
+
             var menurun = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
             query = (sortBy?.Trim().ToLowerInvariant()) switch
@@ -160,6 +174,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                     x.Name,
                     x.EncounterType,
                     x.ServiceUnitType,
+                    x.ClinicType,
                     x.Condition,
                     CriterionCount = x.Items.Count(i => i.IsActive && !i.IsDelete),
                     x.IsActive,
@@ -183,6 +198,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                     EncounterTypeName = EncounterTypeLabel(x.EncounterType),
                     ServiceUnitType = x.ServiceUnitType,
                     ServiceUnitTypeName = ServiceUnitTypeLabel(x.ServiceUnitType),
+                    ClinicType = x.ClinicType,
+                    ClinicTypeName = ClinicTypeLabel(x.ClinicType),
                     Condition = x.Condition,
                     ConditionName = ConditionLabel(x.Condition),
                     CriterionCount = x.CriterionCount,
@@ -231,7 +248,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             if (string.IsNullOrWhiteSpace(request.Code))
                 return Failed(MedicalRecordCompletenessProfileStatus.Invalid, "Kode profil wajib diisi.");
 
-            var gagal = Validate(request.Name, request.EncounterType, request.ServiceUnitType, request.Condition, request.Items);
+            var gagal = Validate(request.Name, request.EncounterType, request.ServiceUnitType, request.ClinicType, request.Condition, request.Items);
             if (gagal != null)
                 return gagal;
 
@@ -240,8 +257,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             if (await KodeTerpakaiAsync(kode, cancellationToken))
                 return Failed(MedicalRecordCompletenessProfileStatus.Conflict, DuplicateCodeMessage(kode));
 
-            if (await KunciTerpakaiAsync(request.EncounterType, request.ServiceUnitType, request.Condition, excludeId: null, cancellationToken))
-                return Failed(MedicalRecordCompletenessProfileStatus.Conflict, DuplicateKeyMessage);
+            var kodeBentrok = await KunciTerpakaiAsync(
+                request.EncounterType, request.ServiceUnitType, request.ClinicType, request.Condition, excludeId: null, cancellationToken);
+            if (kodeBentrok != null)
+                return Failed(MedicalRecordCompletenessProfileStatus.Conflict, DuplicateKeyMessageFor(kodeBentrok));
 
             var sekarang = DateTime.UtcNow;
             var profil = new MstMedicalRecordCompletenessProfile
@@ -251,6 +270,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 Name = request.Name.Trim(),
                 EncounterType = request.EncounterType,
                 ServiceUnitType = request.ServiceUnitType,
+                ClinicType = request.ClinicType,
                 Condition = request.Condition,
                 IsActive = true,
                 CreateDateTime = sekarang,
@@ -311,12 +331,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             if (profil == null)
                 return Failed(MedicalRecordCompletenessProfileStatus.NotFound, NotFoundMessage);
 
-            var gagal = Validate(request.Name, request.EncounterType, request.ServiceUnitType, request.Condition, request.Items);
+            var gagal = Validate(request.Name, request.EncounterType, request.ServiceUnitType, request.ClinicType, request.Condition, request.Items);
             if (gagal != null)
                 return gagal;
 
-            if (await KunciTerpakaiAsync(request.EncounterType, request.ServiceUnitType, request.Condition, excludeId: id, cancellationToken))
-                return Failed(MedicalRecordCompletenessProfileStatus.Conflict, DuplicateKeyMessage);
+            var kodeBentrok = await KunciTerpakaiAsync(
+                request.EncounterType, request.ServiceUnitType, request.ClinicType, request.Condition, excludeId: id, cancellationToken);
+            if (kodeBentrok != null)
+                return Failed(MedicalRecordCompletenessProfileStatus.Conflict, DuplicateKeyMessageFor(kodeBentrok));
 
             var sebelum = Uraian(profil);
             var sekarang = DateTime.UtcNow;
@@ -324,6 +346,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             profil.Name = request.Name.Trim();
             profil.EncounterType = request.EncounterType;
             profil.ServiceUnitType = request.ServiceUnitType;
+            profil.ClinicType = request.ClinicType;
             profil.Condition = request.Condition;
             profil.UpdateDateTime = sekarang;
             profil.UpdateBy = actorUserId;
@@ -447,6 +470,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 ServiceUnitTypeOptions = Enum.GetValues<ServiceUnitType>()
                     .Select(x => Opsi((int)x, x.ToString(), ServiceUnitTypeLabel(x)))
                     .ToList(),
+                // RM-DEC-095: Unknown tidak ditawarkan — profil berjenis itu tidak pernah terpilih (A5.9.1).
+                ClinicTypeOptions = Enum.GetValues<ClinicType>()
+                    .Where(x => x != ClinicType.Unknown)
+                    .Select(x => Opsi((int)x, x.ToString(), ClinicTypeLabel(x)))
+                    .ToList(),
                 ConditionOptions = Enum.GetValues<CompletenessCondition>()
                     .Select(x => Opsi((int)x, x.ToString(), ConditionLabel(x)))
                     .ToList(),
@@ -466,6 +494,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                     new() { Name = "encounterType", Type = "integer", Description = "Jenis kunjungan, dari encounterTypeOptions.", Example = "1" },
                     new() { Name = "serviceUnitType", Type = "integer", Description = "Jenis unit layanan, dari serviceUnitTypeOptions.", Example = "4" },
                     new() { Name = "condition", Type = "integer", Description = "Kondisi bersyarat, dari conditionOptions. 0 = tanpa kondisi.", Example = "0" },
+                    new() { Name = "clinicType", Type = "integer", Description = "Jenis poli, dari clinicTypeOptions.", Example = "6" },
                     new() { Name = "sortBy", Type = "string", Description = "Kolom pengurutan. Bawaannya code.", Example = "code" },
                     new() { Name = "sortDirection", Type = "string", Description = "Arah pengurutan, asc atau desc.", Example = "asc" },
                     new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman, dimulai dari 1.", Example = "1" },
@@ -519,10 +548,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             });
             isian.Add(new()
             {
+                Name = "clinicType", Label = "Jenis Poli", Section = "Kunci", InputType = "select",
+                OptionsSource = "clinicTypeOptions",
+                Description = "Kosong = semua poli. Hanya untuk profil tanpa kondisi. Profil berpoli menggantikan profil berunit dan profil umum jenis kunjungan yang sama.",
+                Example = "6", SortOrder = 6
+            });
+            isian.Add(new()
+            {
                 Name = "items", Label = "Dokumen Wajib", Section = "Kriteria", InputType = "multiselect",
                 OptionsSource = "/criteria/options",
                 Description = "Kriteria dari katalog. Boleh kosong: berarti tidak ada dokumen dokter yang dituntut.",
-                Example = "[{\"criterion\":4}]", SortOrder = 6
+                Example = "[{\"criterion\":4}]", SortOrder = 7
             });
 
             return isian;
@@ -561,6 +597,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             _ => "Tidak diketahui"
         };
 
+        public static string ClinicTypeLabel(ClinicType? jenis) => jenis switch
+        {
+            null => "Semua poli",
+            ClinicType.General => "Umum",
+            ClinicType.Specialist => "Spesialis",
+            ClinicType.SubSpecialist => "Subspesialis",
+            ClinicType.Dental => "Gigi",
+            ClinicType.MaternalChild => "Kesehatan Ibu dan Anak",
+            ClinicType.Rehabilitation => "Rehabilitasi Medik",
+            ClinicType.MedicalCheckup => "Medical Check Up",
+            ClinicType.Other => "Lainnya",
+            _ => "Tidak diketahui"
+        };
+
         public static string ConditionLabel(CompletenessCondition kondisi) => kondisi switch
         {
             CompletenessCondition.None => "Tanpa kondisi",
@@ -588,6 +638,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             CompletenessCriterion.SurgicalSafetyChecklist => "Daftar tilik keselamatan operasi",
             CompletenessCriterion.HemodialysisSessionSigned => "Catatan sesi hemodialisa ditandatangani",
             CompletenessCriterion.TransfusionMonitoring => "Monitoring transfusi",
+            CompletenessCriterion.RehabClinicalDocument => "Dokumen Rehab Medik",
             _ => kriteria.ToString()
         };
 
@@ -610,6 +661,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             CompletenessCriterion.SurgicalSafetyChecklist => "Setiap kasus operasi yang selesai punya daftar tilik keselamatan fase Sign In, Time Out, dan Sign Out yang berstatus selesai.",
             CompletenessCriterion.HemodialysisSessionSigned => "Setiap sesi hemodialisa yang selesai sudah ditandatangani.",
             CompletenessCriterion.TransfusionMonitoring => "Setiap monitoring transfusi yang tidak dibatalkan berstatus selesai.",
+            CompletenessCriterion.RehabClinicalDocument => "Ada asesmen, sesi terapi, reasesmen, atau ringkasan akhir Rehab Medik yang sudah final pada kunjungan ini.",
             _ => string.Empty
         };
 
@@ -628,18 +680,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             string? name,
             EncounterType? encounterType,
             ServiceUnitType? serviceUnitType,
+            ClinicType? clinicType,
             CompletenessCondition condition,
             IReadOnlyCollection<MedicalRecordCompletenessProfileItemRequest>? items)
         {
             if (string.IsNullOrWhiteSpace(name))
                 return Failed(MedicalRecordCompletenessProfileStatus.Invalid, "Nama profil wajib diisi.");
 
-            var galatSaringan = ValidateFilter(encounterType, serviceUnitType, condition);
+            var galatSaringan = ValidateFilter(encounterType, serviceUnitType, condition, clinicType);
             if (galatSaringan != null)
                 return Failed(MedicalRecordCompletenessProfileStatus.Invalid, galatSaringan);
 
             if (condition == CompletenessCondition.None && encounterType == null)
                 return Failed(MedicalRecordCompletenessProfileStatus.Invalid, EncounterTypeRequiredMessage);
+
+            // VAL-RM-B03 dipertajam RM-DEC-095 (kontrak 0.3.1): Unknown ditolak saat menyimpan, karena
+            // kunjungan berpoli Unknown diperlakukan tanpa poli dan profilnya tidak pernah terpilih.
+            if (clinicType == ClinicType.Unknown)
+                return Failed(MedicalRecordCompletenessProfileStatus.Invalid, UnknownClinicTypeMessage);
+
+            // VAL-RM-B02: profil kondisi berlaku di atas profil dasar, jadi tidak dapat dikunci per poli.
+            if (condition != CompletenessCondition.None && clinicType != null)
+                return Failed(MedicalRecordCompletenessProfileStatus.Invalid, ClinicTypeWithConditionMessage);
 
             var kriteria = (items ?? []).Select(x => x?.Criterion).ToList();
 
@@ -683,9 +745,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 .AsNoTracking()
                 .AnyAsync(x => !x.IsDelete && x.Code.ToUpper() == kode, cancellationToken);
 
-        private Task<bool> KunciTerpakaiAsync(
+        /// <summary>Kode profil lain yang sudah memakai kunci yang sama, atau <c>null</c> bila bebas.</summary>
+        private Task<string?> KunciTerpakaiAsync(
             EncounterType? encounterType,
             ServiceUnitType? serviceUnitType,
+            ClinicType? clinicType,
             CompletenessCondition condition,
             Guid? excludeId,
             CancellationToken cancellationToken)
@@ -696,16 +760,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 .Where(x => !x.IsDelete
                             && x.Condition == condition
                             && (encounterType == null ? x.EncounterType == null : x.EncounterType == encounterType)
-                            && (serviceUnitType == null ? x.ServiceUnitType == null : x.ServiceUnitType == serviceUnitType));
+                            && (serviceUnitType == null ? x.ServiceUnitType == null : x.ServiceUnitType == serviceUnitType)
+                            && (clinicType == null ? x.ClinicType == null : x.ClinicType == clinicType));
 
             if (excludeId.HasValue)
                 query = query.Where(x => x.Id != excludeId.Value);
 
-            return query.AnyAsync(cancellationToken);
+            return query.Select(x => (string?)x.Code).FirstOrDefaultAsync(cancellationToken);
         }
 
         private static string DuplicateCodeMessage(string kode)
             => $"Kode profil {kode} sudah dipakai profil lain.";
+
+        /// <summary>`VAL-RM-B04`: "Profil untuk kombinasi ini sudah ada: {kode}."</summary>
+        public static string DuplicateKeyMessageFor(string kode)
+            => $"Profil untuk kombinasi ini sudah ada: {kode}.";
 
         /// <summary>Keadaan profil dalam satu kalimat, untuk jejak sebelum-sesudah.</summary>
         private static string Uraian(MstMedicalRecordCompletenessProfile profil)
@@ -718,7 +787,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
 
             // Kutip tunggal: kutip ganda di-escape logger menjadi \" sehingga sulit dibaca di log.
             return $"nama '{profil.Name}', jenis kunjungan {EncounterTypeLabel(profil.EncounterType)}, "
-                   + $"jenis unit {ServiceUnitTypeLabel(profil.ServiceUnitType)}, kondisi {ConditionLabel(profil.Condition)}, "
+                   + $"jenis unit {ServiceUnitTypeLabel(profil.ServiceUnitType)}, jenis poli {ClinicTypeLabel(profil.ClinicType)}, "
+                   + $"kondisi {ConditionLabel(profil.Condition)}, "
                    + $"status {StatusLabel(profil.IsActive)}, kriteria [{(kriteria.Count == 0 ? "tanpa kriteria" : string.Join(", ", kriteria))}]";
         }
 
@@ -745,6 +815,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 EncounterTypeName = EncounterTypeLabel(profil.EncounterType),
                 ServiceUnitType = profil.ServiceUnitType,
                 ServiceUnitTypeName = ServiceUnitTypeLabel(profil.ServiceUnitType),
+                ClinicType = profil.ClinicType,
+                ClinicTypeName = ClinicTypeLabel(profil.ClinicType),
                 Condition = profil.Condition,
                 ConditionName = ConditionLabel(profil.Condition),
                 CriterionCount = butir.Count,

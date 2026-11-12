@@ -97,6 +97,11 @@ public sealed class FinanceGoodsReceiptService
                 .SingleOrDefaultAsync(x => x.Id == purchaseOrderId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Purchase Order tidak ditemukan.");
 
+            // FIN-VAL-315 (BE-FIN-146): GR untuk PO bersumber BLM dicatat di BLM, bukan di sini. Ditolak SEBELUM
+            // ada yang diubah; transaksi digulung oleh catch di bawah.
+            if (IsExternal(purchaseOrder.SourceSystem))
+                throw new PurchasingExternalDocumentException();
+
             // state-transition-matrix.md §B.2: hanya PO APPROVED/PARTIALLY_RECEIVED yang boleh
             // menerima GR baru — FULLY_RECEIVED sengaja TIDAK termasuk (tidak ada sisa kuantitas).
             if (purchaseOrder.Status is not (FinPurchaseOrderStatuses.Approved or FinPurchaseOrderStatuses.PartiallyReceived))
@@ -197,6 +202,11 @@ public sealed class FinanceGoodsReceiptService
             var goodsReceipt = await _dbContext.FinGoodsReceipts
                 .SingleOrDefaultAsync(x => x.Id == goodsReceiptId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Tanda Terima Barang tidak ditemukan.");
+
+            // FIN-VAL-315 (BE-FIN-146): pembatalan GR bersumber BLM dilakukan di BLM (FIN-DEC-262). Dicek sebelum
+            // RowVersion supaya versi basi tidak menutupi penyebab sebenarnya, dan sebelum transaksi dibuka.
+            if (IsExternal(goodsReceipt.SourceSystem))
+                throw new PurchasingExternalDocumentException();
 
             EnsureCurrent(goodsReceipt.RowVersion, expectedRowVersion);
 
@@ -305,6 +315,10 @@ public sealed class FinanceGoodsReceiptService
                 .Include(x => x.Items.Where(item => !item.IsDelete))
                 .SingleOrDefaultAsync(x => x.Id == goodsReceiptId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Tanda Terima Barang tidak ditemukan.");
+
+            // FIN-VAL-315 (BE-FIN-146): koreksi GR bersumber BLM dilakukan di BLM lalu diterapkan pengolah kiriman.
+            if (IsExternal(goodsReceipt.SourceSystem))
+                throw new PurchasingExternalDocumentException();
 
             EnsureCurrent(goodsReceipt.RowVersion, expectedRowVersion);
 
@@ -440,6 +454,14 @@ public sealed class FinanceGoodsReceiptService
         IReadOnlyDictionary<Guid, decimal> receivedByItem,
         Guid actorUserId)
     {
+        // BE-FIN-146 (FIN-DES-142): rumus di bawah menjumlah ReceivedQuantity mentah lintas item dan HANYA benar
+        // untuk PO lokal. Status PO bersumber BLM tidak boleh pernah dihitung dari jumlah ini (satuan bisa
+        // berbeda, kondisi barang tidak dikenal); ia dihitung oleh RecomputeExternalPurchaseOrderStatus. Jalur
+        // lokal sudah menolak dokumen BLM lebih awal, jadi pagar ini tidak terjangkau; bila suatu hari
+        // terjangkau, gagal keras (transaksi digulung) lebih baik daripada menulis status yang salah.
+        if (IsExternal(purchaseOrder.SourceSystem))
+            throw new InvalidOperationException("Status Purchase Order bersumber BLM tidak boleh dihitung dengan rumus lokal.");
+
         if (purchaseOrder.Status is not (FinPurchaseOrderStatuses.Approved
             or FinPurchaseOrderStatuses.PartiallyReceived or FinPurchaseOrderStatuses.FullyReceived))
             return;
@@ -460,6 +482,37 @@ public sealed class FinanceGoodsReceiptService
         purchaseOrder.UpdateBy = actorUserId;
         purchaseOrder.RowVersion = Guid.NewGuid();
     }
+
+    /// <summary>
+    /// Cabang BLM (BE-FIN-146, FIN-DES-142): menghitung ulang status PO bersumber BLM dari jumlah SAH ternormalisasi
+    /// per item lewat <see cref="PurchasingReceiptQuantityCalculator"/>. Dipanggil pengolah kiriman BLM saat
+    /// menerapkan, mengoreksi, atau membatalkan GR (slice integrasi); belum ada pemanggil pada jalur lokal karena
+    /// jalur lokal menolak dokumen BLM. <paramref name="goodsReceipts"/> wajib memuat <c>Items</c>. Hanya
+    /// menyetel <c>Status</c> bila berubah, dan hanya untuk PO berstatus APPROVED/PARTIALLY_RECEIVED/FULLY_RECEIVED,
+    /// sama seperti jalur lokal.
+    /// </summary>
+    internal static void RecomputeExternalPurchaseOrderStatus(
+        FinPurchaseOrder purchaseOrder,
+        IEnumerable<FinGoodsReceipt> goodsReceipts,
+        Guid actorUserId)
+    {
+        var progress = PurchasingReceiptQuantityCalculator.CalculateForPurchaseOrder(purchaseOrder, goodsReceipts)
+            ?? throw new InvalidOperationException("Penghitung penerimaan BLM hanya berlaku untuk Purchase Order bersumber BLM.");
+
+        if (purchaseOrder.Status is not (FinPurchaseOrderStatuses.Approved
+            or FinPurchaseOrderStatuses.PartiallyReceived or FinPurchaseOrderStatuses.FullyReceived))
+            return;
+
+        if (progress.Status == purchaseOrder.Status) return;
+
+        purchaseOrder.Status = progress.Status;
+        purchaseOrder.UpdateDateTime = DateTime.UtcNow;
+        purchaseOrder.UpdateBy = actorUserId;
+        purchaseOrder.RowVersion = Guid.NewGuid();
+    }
+
+    private static bool IsExternal(string sourceSystem) =>
+        string.Equals(sourceSystem, FinPurchasingSourceSystems.Blm, StringComparison.Ordinal);
 
     private static string GenerateGrNumber()
     {

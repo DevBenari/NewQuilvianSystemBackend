@@ -43,6 +43,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyProcedureDetailFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Procedure Detail", Description = "Melihat metadata filter detail tindakan khusus IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyProcedureDetail", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyProcedureDetailFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyProcedureDetailDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyProcedureDetailFilterMetadataResponse>.Ok(result, "Metadata filter detail tindakan khusus IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyProcedureDetailSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Procedure Detail", Description = "Melihat ringkasan detail tindakan khusus IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyProcedureDetail", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgProcedureDetail>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyProcedureDetailSummaryResponse
+            {
+                TotalProcedureDetail = await query.CountAsync(cancellationToken),
+                ActiveProcedureDetail = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveProcedureDetail = await query.CountAsync(x => !x.IsActive, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyProcedureDetailSummaryResponse>.Ok(summary, "Ringkasan detail tindakan khusus IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyProcedureDetailOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Procedure Detail Options", Description = "Melihat pilihan detail tindakan khusus IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyProcedureDetail", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyVisitId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgProcedureDetail>().AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive);
+
+            if (emergencyVisitId.HasValue && emergencyVisitId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyVisitId == emergencyVisitId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x =>
+                    (x.SkinTestResult != null && x.SkinTestResult.ToLower().Contains(keyword)) ||
+                    (x.TetanusToxoidResult != null && x.TetanusToxoidResult.ToLower().Contains(keyword)));
+            }
+
+            var items = await query.OrderByDescending(x => x.CreateDateTime)
+                .Take(100)
+                .Select(x => new EmergencyProcedureDetailOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitId = x.EmergencyVisitId,
+                    DetailType = x.DetailType,
+                    SkinTestResult = x.SkinTestResult,
+                    TetanusToxoidResult = x.TetanusToxoidResult
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyProcedureDetailOptionResponse>>.Ok(items, "Pilihan detail tindakan khusus IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyProcedureDetailResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Procedure Detail", Description = "Melihat data detail tindakan khusus IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

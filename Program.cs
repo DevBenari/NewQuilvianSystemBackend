@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
@@ -32,6 +33,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.S
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Options;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
@@ -57,7 +60,9 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
@@ -267,6 +272,7 @@ try
         options.UseNpgsql(
             builder.Configuration.GetConnectionString("DefaultConnection")
         );
+        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     });
 
     // Factory konteks, dipakai NumberSeriesAllocator untuk membuka koneksi dan transaksinya
@@ -285,6 +291,7 @@ try
             options.UseNpgsql(
                 builder.Configuration.GetConnectionString("DefaultConnection")
             );
+            options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         },
         lifetime: ServiceLifetime.Scoped);
 
@@ -375,7 +382,8 @@ try
                     var requestPath = context.HttpContext.Request.Path;
 
                     if (!string.IsNullOrWhiteSpace(accessToken) &&
-                        requestPath.StartsWithSegments("/hubs/queues"))
+                        (requestPath.StartsWithSegments("/hubs/queues") ||
+                         requestPath.StartsWithSegments("/hubs/notifications")))
                     {
                         context.Token = accessToken;
                     }
@@ -413,6 +421,7 @@ try
     // untuk service lain — di luar cakupan BE-FIN-093.
     builder.Services.AddScoped<FinancePatientRefundService>();
     builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    builder.Services.AddScoped<FinanceInstallmentDeductionEvidenceService>();
     // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
     builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
         builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));
@@ -420,10 +429,23 @@ try
     // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
     builder.Services.AddScoped<FinanceSubledgerMovementService>();
     builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
-    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run HR.
+    // Modul Payroll mandiri (Areas/Corporate/PayrollManagement): parameter kebijakan terversi (NEEDS CONFIRMATION), pola Configure<T>
+    // sama dengan FinanceReceivablePayrollSyncOptions. Nilai bawaan = perilaku sebelum Payroll dipisah dari HRD.
+    builder.Services.Configure<PayrollPolicyOptions>(builder.Configuration.GetSection(PayrollPolicyOptions.SectionName));
+    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
-    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya di HR.
+    builder.Services.AddScoped<PayrollCalculationService>();
+    builder.Services.AddScoped<PayrollRunService>();
+    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya.
     builder.Services.AddScoped<PayrollRestitutionService>();
+    // Layanan modul Payroll (PAY-BE-03..10).
+    builder.Services.AddScoped<PayrollHrdImportService>();
+    builder.Services.AddScoped<PayrollCompensationService>();
+    builder.Services.AddScoped<PayrollEmployeeDeductionService>();
+    builder.Services.AddScoped<PayrollPaymentService>();
+    builder.Services.AddScoped<PayrollPayslipService>();
+    builder.Services.AddScoped<PayrollMedicalFeeIntakeService>();
+    builder.Services.AddScoped<PayrollReportService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).
@@ -435,7 +457,8 @@ try
     // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
     builder.Services.AddScoped<FinanceReceivableMigrationService>();
     builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
-    builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    // Penutupan Benefit dihapus; jaring pengaman plafon Benefit RS untuk piutang historis (idempoten, dipakai saat membuat Invoice AR).
+    builder.Services.AddScoped<FinanceBenefitAllowanceConsumptionService>();
     builder.Services.AddScoped<FinanceBillingArReportService>();
     builder.Services.AddScoped<FinanceReceivableAgingReportService>();
     builder.Services.AddScoped<FinanceSettlementService>();
@@ -571,6 +594,7 @@ try
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<RegistrationEmployeeBenefitLookupService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.InternalBenefitCardService>();
     builder.Services.AddScoped<IPatientWorkforceIdentityResolver, PatientWorkforceIdentityResolver>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>();
@@ -683,6 +707,10 @@ try
     builder.Services.AddHostedService<MedicalRecordCompletenessQueueWorker>();
     // BE-40 / GAP-ARCH-RM-04. Pemeriksaan berkala kunjungan yang belum lengkap (A4.13).
     builder.Services.AddHostedService<MedicalRecordCompletenessRecheckHostedService>();
+    // BE-49 / RM-DEC-101. Indikator ketepatan ringkasan pulang untuk OPPE HR. Pembacanya
+    // (IDischargeSummaryTimelinessSource) didaftarkan Rawat Inap pada BE-50; selama belum ada,
+    // endpoint menjawab 503 sesuai integration 0.4.0 "Kegagalan".
+    builder.Services.AddScoped<DischargeSummaryTimelinessService>();
 
     // Pembaca sumber berkas rekam medis (INT-RM-10). Satu instance per scope dipakai untuk kedua
     // kontraknya, supaya pembaca dokumen dan pembaca uji kelengkapan tidak berbeda pendapat.
@@ -705,6 +733,9 @@ try
     builder.Services.AddScoped<InpMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    // BE-50: pembaca indikator ketepatan ringkasan pulang (INT-RM-18), persetujuan pemilik RM-DEC-109.
+    builder.Services.AddScoped<InpDischargeSummaryTimelinessSource>();
+    builder.Services.AddScoped<IDischargeSummaryTimelinessSource>(sp => sp.GetRequiredService<InpDischargeSummaryTimelinessSource>());
     // BE-35: Farmasi, persetujuan pemilik RM-DEC-075. Tanpa kriteria kelengkapan.
     builder.Services.AddScoped<IMedicalRecordDocumentSource, PhmMedicalRecordDocumentSource>();
     // BE-34: Bank Darah, persetujuan pemilik proses BDRS RM-DEC-074. Tanpa kriteria kelengkapan.
@@ -991,6 +1022,35 @@ try
     builder.Services.AddScoped<HmdResourceService>();
     builder.Services.AddScoped<HmdCompetencyGateService>();
 
+    // RHB-BP-001. Service modul Rehab Medik, tanpa interface mengikuti pola modul terdekat
+    // (Hemodialisa). Controller Rehab menyerahkan CRUD dan orkestrasinya ke sini dan tidak pernah
+    // menyentuh ApplicationDbContext langsung (QBE-SVC-001).
+    // BE-RHB-004: pintu tunggal dokumen klinis rehab ke mesin keutuhan Rekam Medis.
+    builder.Services.AddScoped<RhbDocumentIntegrityGateway>();
+    // BE-RHB-005: konfigurasi layanan rehab (disiplin, profesi, tindakan, instrumen).
+    builder.Services.AddScoped<RhbConfigurationService>();
+    // BE-RHB-006: pilihan form rehab dan kewenangan profesi per disiplin.
+    builder.Services.AddScoped<RhbLookupService>();
+    builder.Services.AddScoped<RhbProfessionAuthority>();
+    // BE-RHB-007: permintaan rehab, disposisi, dan pembukaan episode.
+    builder.Services.AddScoped<RhbEpisodeService>();
+    builder.Services.AddScoped<RhbRequestService>();
+    builder.Services.AddScoped<RhbAssessmentService>();
+    builder.Services.AddScoped<RhbEducationService>();
+    builder.Services.AddScoped<RhbGoalService>();
+    builder.Services.AddScoped<RhbProgramService>();
+    builder.Services.AddScoped<RhbSessionService>();
+    // BE-RHB-013: handoff billing sesi (TrxPatientProcedure + fakta charge), persetujuan RHB-OQ-015.
+    builder.Services.AddScoped<RhbBillingHandoffService>();
+    builder.Services.AddScoped<RhbMeasurementRules>();
+    builder.Services.AddScoped<RhbProgressReviewService>();
+    builder.Services.AddScoped<RhbDischargeService>();
+    // BE-RHB-015: pembaca dokumen final Rehab Medik (jenis 47-52) untuk berkas RM, persetujuan pemilik RM RHB-DEC-019 / RHB-OQ-012.
+    builder.Services.AddScoped<RhbMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<RhbMedicalRecordDocumentSource>());
+    // RM BE-45: probe kelengkapan poli Rehabilitasi Medik (RM-DEC-087), persetujuan pemilik Rehab Medik RM-DEC-090.
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<RhbMedicalRecordDocumentSource>());
+
     // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
     // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).
     builder.Services.AddScoped<OptNumberService>();
@@ -1000,8 +1060,19 @@ try
     // BE-OPT-010. Kunjungan Optik lewat EncounterIntakeService (Registrasi tetap pemilik kunjungan).
     builder.Services.AddScoped<OptVisitService>();
     builder.Services.AddScoped<OptPractitionerGuard>();
+    // BE-OPT-031: tarif pemeriksaan refraksi sekali saat final lewat ClinicalMilestoneFactProducer.
+    builder.Services.AddScoped<OptBillingGateway>();
     builder.Services.AddScoped<OptRefractionExamService>();
     builder.Services.AddScoped<OptPrescriptionService>();
+    // BE-OPT-033: potong/kembali stok pesanan Optik lewat DrugStockService (jenis dokumen OpticalOrder, OPT-DEC-054/060).
+    builder.Services.AddScoped<OptStockGateway>();
+    // BE-OPT-032: pesanan Optik (draf, tagihkan per barang, batal awal) dan pembaca status bayar dari Billing.
+    builder.Services.AddScoped<OptOrderPaymentGate>();
+    builder.Services.AddScoped<OptOrderService>();
+    // BE-OPT-050: keluhan garansi dan remake tanpa tagihan.
+    builder.Services.AddScoped<OptWarrantyClaimService>();
+    // BE-OPT-052: empat laporan Optik (baca-saja).
+    builder.Services.AddScoped<OptReportService>();
     // BE-OPT-013: pembaca Rekam Medis Optik (pemeriksaan refraksi + resep), persetujuan pemilik OPT-APR-007. Tanpa kriteria kelengkapan.
     builder.Services.AddScoped<IMedicalRecordDocumentSource, OptMedicalRecordDocumentSource>();
 
@@ -1020,6 +1091,10 @@ try
     builder.Services.AddScoped<McuDeliveryService>();
 
     builder.Services.AddScoped<NvwDisplayDeviceService>();
+    builder.Services.AddScoped<NvwVitalSignIntervalService>();
+    builder.Services.AddScoped<NvwDeviceContextService>();
+    builder.Services.AddScoped<NvwFloorBoardQueryService>();
+    builder.Services.AddScoped<NvwRealtimeService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1039,6 +1114,10 @@ try
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforceCoreCrossEmployeeQueryService>();
+    // Workforce Core - Unified SK Kepegawaian, Employee 360, & Initial Batch Placement (BE-HRD-024..027)
+    builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
+    builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();
+    builder.Services.AddScoped<IHrdInitialPlacementBatchService, HrdInitialPlacementBatchService>();
     builder.Services.AddScoped<WorkflowService>();
     builder.Services.AddScoped<WorkflowFileStorageService>();
     builder.Services.AddScoped<WorkflowCommentService>();
@@ -1048,6 +1127,167 @@ try
     builder.Services.AddScoped<WorkflowReferenceLifecycleService>();
     builder.Services.AddScoped<EmployeeProfileChangeWorkflowIntegrationService>();
 
+    // BE-HRD-030: Layanan Integrasi Persetujuan Workflow S-D1 Perencanaan Tenaga Kerja
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningWorkflowIntegrationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningWorkflowIntegrationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningWorkflowIntegrationService>();
+
+    // BE-HRD-031: Pengaturan Kebijakan Perencanaan Tenaga Kerja Rumah Sakit
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningSettingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSettingService>();
+
+    // BE-HRD-032: Buku Formasi Berversi dan Penulis Tunggal Formasi
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdPositionFormationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdPositionFormationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdPositionFormationService>();
+
+    // BE-HRD-033: Batch Formasi Awal dan Penerap Keputusan T10
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdInitialFormationBatchService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchDecisionApplier>();
+
+    // BE-HRD-034: Isian Angka Beban Manual
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingWorkloadService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingWorkloadService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingWorkloadService>();
+
+    // BE-HRD-035: Standar Kebutuhan Tenaga, Angka Rekomendasi, dan Pengesahan T9
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingRecommendationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingRecommendationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingRecommendationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingStandardService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingStandardDecisionApplier>();
+
+    // BE-HRD-036: Scheduler Perencanaan dan Aktivasi Standar pada Tanggal Berlaku
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningSchedulerService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerService>();
+
+    // BE-HRD-037: Gap Tenaga Langsung per Unit x Jabatan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingGapCalculationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapCalculationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapCalculationService>();
+
+    // BE-HRD-038: Estimasi Biaya dari Gaji Tengah Grade dan Penyamaran Biaya
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningCostService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningCostService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningCostService>();
+
+    // BE-HRD-039: Potret Gap Pengajuan dan API Baca Potret
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdStaffingGapSnapshotService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapSnapshotService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdStaffingGapSnapshotService>();
+
+    // BE-HRD-040: Permintaan Headcount: Draf, Kursi, Sisa Kursi, Pengajuan, Tarik Kembali, Koreksi Finance
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdHeadcountRequestService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountRequestService>();
+
+    // BE-HRD-041: Keputusan Akhir T11/T12 Permintaan Headcount
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountRequestDecisionApplier>();
+
+    // BE-HRD-044: Penerap Keputusan T13 Pembatalan Kursi
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountCancellationDecisionApplier>();
+
+    // BE-HRD-047: Penerap Keputusan T10 Rencana Formasi dan Addendum
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdManpowerPlanDecisionApplier>();
+
+    // BE-HRD-042: Antrean Recruiter dan Perubahan Rencana Pemenuhan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdRecruitmentQueueService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdRecruitmentQueueService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdRecruitmentQueueService>();
+
+    // BE-HRD-043: Tautan Pemenuhan Kursi dan Langkah Harian Scheduler Permintaan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdHeadcountFulfilmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountFulfilmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdHeadcountFulfilmentService>();
+
+    // BE-HRD-046: Rencana Tahunan dan Addendum: Draf, Hitung Ulang, Pengajuan T10, Koreksi Finance
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdManpowerPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdManpowerPlanService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdManpowerPlanService>();
+
+    // Slice S-D2: Rekrutmen & Hiring (RecruitmentManagement) - MVP-11
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobRequisitionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobRequisitionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobRequisitionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobVacancyService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobVacancyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobVacancyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ICandidateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateService>();
+
+    // Slice S-D2: Rekrutmen & Hiring (RecruitmentManagement) - MVP-12
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ICandidateScreeningService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateScreeningService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateScreeningService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ICandidateEvaluationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateEvaluationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.CandidateEvaluationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobOfferService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferService>();
+
+    // Slice S-D2: Rekrutmen & Hiring (RecruitmentManagement) - MVP-13
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IJobOfferApprovalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferApprovalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.JobOfferApprovalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IMcuClearanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.McuClearanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.McuClearanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.ITalentPoolService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.TalentPoolService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.TalentPoolService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.IHiringHandoffService, QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Services.HiringHandoffService>();
+
+    // Slice S-C4-ONB: Onboarding & Manajemen Siklus Kontrak Pegawai (MVP-14)
+    // BE-HRD-065: Sinkronisasi 5 Isian Kepegawaian & Penulisan Kontrak Satu Pintu
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IEmployeeEmploymentRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpContractHistoryWriteService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
+
+    // BE-HRD-066: Pembuatan Akun Pengguna Pegawai Tersentral
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IEmployeeUserAccountService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.EmployeeUserAccountService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.EmployeeUserAccountService>();
+
+    // BE-HRD-067: Penempatan & Gaji Awal Pegawai Baru
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpNewHireAssignmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpNewHireAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpNewHireAssignmentService>();
+
+    // BE-HRD-068: Integrasi Alur Persetujuan Modul 09 T15-T18
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentLifecycleWorkflowIntegrationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowIntegrationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleWorkflowIntegrationService>();
+
+    // BE-HRD-069: Number Series, Attachment & Pengaturan Siklus Kepegawaian
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdNumberSeriesService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdNumberSeriesService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdNumberSeriesService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdLifecycleAttachmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleAttachmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleAttachmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentLifecycleSettingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSettingService>();
+
+    // BE-HRD-070: Template Onboarding Tiga Lapis
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdOnboardingTemplateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingTemplateService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingTemplateService>();
+
+    // BE-HRD-071: Masa Percobaan dari Jenis Kontrak
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdProbationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdProbationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdProbationService>();
+
+    // BE-HRD-072: Kontrak Pertama Draf, Cetak, dan Tanda Tangan
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentContractService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentContractService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentContractService>();
+
+    // BE-HRD-074: Kasus Onboarding dari Serah Terima
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdOnboardingCaseService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingCaseService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingCaseService>();
+
+    // BE-HRD-073: Pendampingan Klinis
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdClinicalPreceptorshipService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdClinicalPreceptorshipService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdClinicalPreceptorshipService>();
+
+    // BE-HRD-077: Permintaan Akun dan Akses Kerja
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdOnboardingAccessService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingAccessService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdOnboardingAccessService>();
+
+    // BE-HRD-082: Batch Data Awal Kontrak T18
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdInitialContractBatchService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdInitialContractBatchService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdInitialContractBatchService>();
+
+    // BE-HRD-083: Scheduler Harian Siklus Kontrak dan Butir Otomatis
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentLifecycleSchedulerService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSchedulerService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSchedulerService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentLifecycleSchedulerHostedService>();
+
+    // BE-HRD-084: Kesiapan Penjadwalan & Lifecycle Worklist
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdEmploymentReadinessReadService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentReadinessReadService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdEmploymentReadinessReadService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.IHrdLifecycleWorklistService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleWorklistService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.HrdLifecycleWorklistService>();
+
     builder.Services.AddScoped<ScheduleChangeService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();
@@ -1056,9 +1296,15 @@ try
     builder.Services.AddScoped<ShiftSwapWorkflowIntegrationService>();
 
     // BE-HRD-009: Engine Roster Shift 24/7, Penggantian Shift & Penugasan Siaga On-Call
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ISchedulingSettingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.SchedulingSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.SchedulingSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.IRosterValidationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterValidationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterValidationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.RosterPeriodService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftReplacementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftAssignmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCompensationHandoffService>();
 
     builder.Services.AddScoped<ResignationRequestService>();
     builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
@@ -1071,6 +1317,10 @@ try
     // Resolver pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap); dipakai Enrollment,
     // Eligibility, Registrasi, Billing, dan Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.WorkforceBenefitOwnerResolver>();
+    // BE-FIN-135 (FIN-INTEGRATION-1.11 V.2, FIN-DES-113): implementasi penuh sinkronisasi kartu penjamin pasien otomatis.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IEmployeeBenefitPatientCardSync>(sp =>
+        sp.GetRequiredService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncService>());
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
@@ -1078,12 +1328,12 @@ try
     // Laporan HR baca-saja "Piutang Benefit Pegawai" (AR Karyawan dari Billing); nilai finansial tetap milik Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitReceivableReportService>();
     // Persetujuan penutupan benefit RS internal oleh HRD.
-    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.HrdBenefitSettlementApprovalService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceSettingService>();
     builder.Services.AddScoped<AttendanceDailyQueryService>();
     builder.Services.AddScoped<AttendanceCorrectionWorkflowLifecycleService>();
     builder.Services.AddScoped<AttendanceCorrectionService>();
@@ -1094,6 +1344,9 @@ try
         builder.Configuration.GetSection("HumanResource:AttendanceScheduler"));
     builder.Services.AddScoped<AttendancePeriodService>();
     builder.Services.AddScoped<AttendanceSchedulerService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.EarlyLeavePermissionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.OfficialDutyRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceScheduleMutationConsumer>();
 
     // CORPORATE - ACCOUNTING MANAGEMENT
     // Satu baris per service modul, sesuai 02-backend-architecture.md bagian 6. Pemanggilan
@@ -1116,6 +1369,7 @@ try
         builder.Configuration.GetSection("Accounting:AccountingEventScheduler"));
     builder.Services.AddScoped<AccAccountingEventService>();
 
+    builder.Services.AddScoped<LeaveBalanceLedgerService>();
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
     builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
@@ -1133,6 +1387,11 @@ try
         builder.Configuration.GetSection("HumanResource:LeaveCarryForwardScheduler"));
     builder.Services.AddScoped<LeaveRequestCalculationService>();
     builder.Services.AddScoped<LeaveRequestReservationService>();
+    builder.Services.AddScoped<SafeStaffingCoverageGuard>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ISafeStaffingQueryService>(
+        sp => sp.GetRequiredService<SafeStaffingCoverageGuard>());
+    builder.Services.AddScoped<MedicalCertificateVerificationService>();
+    builder.Services.AddScoped<LeaveApprovalService>();
     builder.Services.AddScoped<LeaveRequestAttachmentService>();
     builder.Services.AddScoped<LeaveRequestService>();
     builder.Services.AddScoped<LeaveRequestBalanceLifecycleService>();
@@ -1152,6 +1411,8 @@ try
     builder.Services.AddScoped<LeaveCancellationService>();
     builder.Services.AddScoped<LeaveRecallService>();
     builder.Services.AddScoped<LeaveFinalReconciliationService>();
+    builder.Services.AddScoped<LeaveRecallWorkflowService>();
+    builder.Services.AddScoped<LeavePayrollReconciliationService>();
     builder.Services.AddScoped<OvertimePolicyResolverService>();
     builder.Services.AddScoped<OvertimeRateResolverService>();
     builder.Services.AddScoped<OvertimePlanQueryService>();
@@ -1179,6 +1440,220 @@ try
     builder.Services.AddScoped<OvertimeSelfServiceContextService>();
     builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
     builder.Services.AddScoped<OvertimeSelfServiceService>();
+
+    // Slice S-B3 (Overtime Management) - MVP-27, MVP-28 & MVP-29
+    builder.Services.AddSingleton<IOvertimeSettingService, OvertimeSettingService>();
+    builder.Services.AddScoped<IOvertimeQuotaEnforcementGuard, OvertimeQuotaEnforcementGuard>();
+    builder.Services.AddScoped<IOvertimePlanService, OvertimePlanService>();
+    builder.Services.AddScoped<IMedicalDirectorOvertimeEscalationService, MedicalDirectorOvertimeEscalationService>();
+    builder.Services.AddScoped<IOvertimeApprovalWorkflowService, OvertimeApprovalWorkflowService>();
+    builder.Services.AddScoped<IOvertimeRealizationService, OvertimeRealizationService>();
+    builder.Services.AddScoped<IOvertimeBiometricVerificationService, OvertimeBiometricVerificationService>();
+    builder.Services.AddScoped<IOvertimeDiscrepancyService, OvertimeDiscrepancyService>();
+    builder.Services.AddScoped<ICompensatoryTimeOffService, CompensatoryTimeOffService>();
+    builder.Services.AddScoped<ICompensatoryTimeOffExpirationService, CompensatoryTimeOffExpirationService>();
+    builder.Services.AddScoped<IOvertimePeriodManagementService, OvertimePeriodManagementService>();
+    builder.Services.AddScoped<IOvertimePayrollHandoffModernService, OvertimePayrollHandoffModernService>();
+
+    // Slice S-B5 (Payroll Management) - MVP-30
+    builder.Services.AddScoped<IPayrollSettingService, PayrollSettingService>();
+    builder.Services.AddScoped<IPayrollPreconditionGateService, PayrollPreconditionGateService>();
+    builder.Services.AddScoped<IPayrollRunInitializationService, PayrollRunInitializationService>();
+    builder.Services.AddScoped<IPayrollEarningsCalculationService, PayrollEarningsCalculationService>();
+    builder.Services.AddScoped<IPayrollOvertimeAndShiftIngestionService, PayrollOvertimeAndShiftIngestionService>();
+    builder.Services.AddScoped<IPayrollBpjsCalculationService, PayrollBpjsCalculationService>();
+    builder.Services.AddScoped<IPayrollTaxCalculationService, PayrollTaxCalculationService>();
+
+    // Slice S-B5 (Payroll Management) - MVP-31
+    builder.Services.AddScoped<IPayrollDeductionsIngestionService, PayrollDeductionsIngestionService>();
+    builder.Services.AddScoped<IPayrollVarianceGuardService, PayrollVarianceGuardService>();
+    builder.Services.AddScoped<IPayrollVarianceResolutionService, PayrollVarianceResolutionService>();
+    builder.Services.AddScoped<IPayrollApprovalWorkflowService, PayrollApprovalWorkflowService>();
+
+    // Slice S-B5 (Payroll Management) - MVP-32 (Finance Handoff, Webhook Reconciler, ESS Payslips)
+    builder.Services.AddScoped<IPayrollFinanceHandoffService, PayrollFinanceHandoffService>();
+    builder.Services.AddScoped<IPayrollDisbursementReconciliationService, PayrollDisbursementReconciliationService>();
+    builder.Services.AddScoped<IPayrollPayslipDistributionService, PayrollPayslipDistributionService>();
+
+    // Slice S-B6 (Restitution & Deduction Integration) - MVP-33 (Settings, Finance Sync, Deduction Engine)
+    builder.Services.AddScoped<IRestitutionSettingService, RestitutionSettingService>();
+    builder.Services.AddScoped<IFinanceDeductionSyncService, FinanceDeductionSyncService>();
+    builder.Services.AddScoped<IPayrollDeductionEngineService, PayrollDeductionEngineService>();
+
+    // Slice S-B6 (Restitution & Deduction Integration) - MVP-34 (Claims, Approvals, Salary Correction & Payroll Injection)
+    builder.Services.AddScoped<IRestitutionClaimService, RestitutionClaimService>();
+
+    // Slice S-B6 (Restitution & Deduction Integration) - MVP-35 (Cashier Voucher Disbursement & Exit Clearance Receivables)
+    builder.Services.AddScoped<ICashierVoucherDisbursementService, CashierVoucherDisbursementService>();
+    builder.Services.AddScoped<IExitClearanceReceivableService, ExitClearanceReceivableService>();
+
+    // Slice S-D3 (Benefit Management) - MVP-36 (Plans, Eligibility & Grade Rules)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitPlanService>();
+    // Slice S-D3 (Benefit Management) - MVP-37 (Insurance Enrollments, ESS Dependents & Verification)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitEnrollmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitEnrollmentService>();
+    // Slice S-D3 (Benefit Management) - MVP-38 (In-House Healthcare & Balance Ledger)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitInHouseService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitInHouseService>();
+    // Slice S-D3 (Benefit Management) - MVP-38 (COB Claims, Settlement & Exit Clearance)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.IBenefitClaimService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.BenefitClaimService>();
+    // Slice S-D3 (Benefit Management) - Verifikasi (Year-End Benefit Expiry Background Worker)
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.YearEndBenefitExpiryWorker>();
+
+    // Slice S-D4 (HR Service Management) - MVP-39 (Auto-Numbering Gapless, Catalog & Tickets)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IDocumentAutoNumberingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.DocumentAutoNumberingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrServiceCatalogService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrServiceCatalogService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrServiceTicketService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrServiceTicketService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrServiceSlaEngine, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrServiceSlaEngine>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Workers.HrServiceSlaMonitoringWorker>();
+
+    // Slice S-D4 (HR Service Management) - MVP-40 & MVP-41 (Profile Sync, Document Issuance 2-Tier, Anti-Manual Guard, PDF Rendering, E-Dossier & Anti-Brute-Force Rate Limiter)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IWorkforceProfileSyncService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.WorkforceProfileSyncService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IEmployeeDocumentIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.EmployeeDocumentIssuanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IPinRateLimiterService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.PinRateLimiterService>(); // Scoped sejak 10 Nov 2026: penghitung PIN kini di tabel HrdPinAttemptRecord (BE-HRD-204)
+
+    // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-42 (PSV Kemenkes/KKI & Radar Pemantau SIP 5 Tahun / Fail-Closed H-0)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialVerificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialVerificationService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Workers.LicenseExpiryMonitoringWorker>();
+
+    // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-43 (Master 3 Komite, Panel Mitra Bestari, Sidang Pleno & Pengesahan SPK-RKK Dirut)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingCommitteeService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingCommitteeService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ICredentialingWorkflowService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.CredentialingWorkflowService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ISpkRkkIssuanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.SpkRkkIssuanceService>();
+
+    // Slice S-C1 (Credentialing, License & Clinical Privilege) - MVP-44 (Gate SIMRS INT-HR-69, Co-Signature, Life-Saving Override & SPK 3-Year Expiry Monitor)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.IClinicalPrivilegeGateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services.ClinicalPrivilegeGateService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Workers.SpkRkkExpiryMonitoringWorker>();
+
+    // Slice S-C1-OPPE (OPPE, FPPE & Recredentialing) - MVP-45 (Clinical Performance Evaluation, ACGME 6 Pillars, SIMRS 60:40 & Read-Audit)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IOppeDataAggregationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.OppeDataAggregationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IClinicalPeerReviewAuditService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ClinicalPeerReviewAuditService>();
+
+    // Slice S-C1-OPPE (OPPE, FPPE & Recredentialing) - MVP-46 (FPPE Triggers, Proctoring Workflow, Case Logbook & Plenary Session)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IFppeTriggerDetectionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.FppeTriggerDetectionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IProctoringWorkflowService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ProctoringWorkflowService>();
+
+    // Slice S-C1-OPPE (OPPE, FPPE & Recredentialing) - MVP-47 (3-Year Recred Composite, Tier Classification, SIMRS Dispatcher & Proctoring Worker)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IRecredentialingCompositeProvider, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.RecredentialingQualityService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ISimrsClinicalPrivilegeDispatcher, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.SimrsClinicalPrivilegeDispatcher>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.FppeProctoringMonitoringWorker>();
+
+    // Slice S-C2 (Learning, Training & Competency Management) - MVP-48 (Mandatory Hospital Training STARKES KPS 8, Multi-Tier Expiry Radar, Buddy System & RKK Escalation)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IMandatoryTrainingRuleService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.MandatoryTrainingRuleService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingExpiryRadarService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingExpiryRadarService>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Workers.MandatoryTrainingExpiryRadarWorker>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IAnnualTrainingPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.AnnualTrainingPlanService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingSessionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingSessionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingEnrollmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingEnrollmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingBudgetControlService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingBudgetControlService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingAttendanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingAttendanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITheoryPostTestAssessmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TheoryPostTestAssessmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IClinicalOsceAssessmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ClinicalOsceAssessmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingCertificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingCertificationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.ITrainingBondingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.TrainingBondingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.IPlataranSehatSkpService, QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Services.PlataranSehatSkpService>();
+    // Slice S-C3 (Performance Management & Clinical Career) - MVP-51..53 (Kontrak v21)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceUnitOfWork, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceUnitOfWork>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceCycleService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceCycleService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceGoalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceGoalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceAppraisalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceAppraisalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceCalibrationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceCalibrationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceDisputeService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceDisputeService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IPerformanceImprovementPlanService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.PerformanceImprovementPlanService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.IClinicalCareerLadderService, QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Services.ClinicalCareerLadderService>();
+
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceCycleTransitionWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceGoalLockingWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceCalibrationDeadlineWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformancePipMilestoneMonitoringWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.ClinicalCareerLadderExpiryWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Workers.PerformanceDisputeSlaEnforcementWorker>();
+
+    // Slice S-C5 (Hubungan Industrial & Terminasi / Exit Clearance) - MVP-54..56 (Kontrak v22)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IEmployeeRelationUnitOfWork, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.EmployeeRelationUnitOfWork>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinaryIncidentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinaryIncidentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinaryInvestigationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinaryInvestigationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinarySanctionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinarySanctionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IDisciplinarySuspensionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.DisciplinarySuspensionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IEmployeeGrievanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.EmployeeGrievanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IWhistleblowerCaseService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.WhistleblowerCaseService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IBipartiteForumService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.BipartiteForumService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IEmployeeSeparationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.EmployeeSeparationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.ISeveranceCalculationEngine, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.SeveranceCalculationEngine>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IExitClearanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.ExitClearanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.IExitClearanceStatusProvider, QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Services.ExitClearanceService>();
+
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.DisciplinarySanctionExpiryWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.SuspensionPeriodMonitoringWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.GrievanceSlaEscalationWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.PkwtContractExpiryRadarWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.ExitClearanceChecklistReminderWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Workers.ItAccessRevocationSyncWorker>();
+
+    // Slice S-C6 (Occupational Health & Staff Safety / K3RS & Medical Check-Up) - MVP-57..59 (Kontrak v23)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalHealthUnitOfWork, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalHealthUnitOfWork>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IHealthRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.HealthRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IFitnessToWorkService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.FitnessToWorkService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IWorkRestrictionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.WorkRestrictionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IReturnToWorkService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.ReturnToWorkService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.INeedleStickEmergencyService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.NeedleStickEmergencyService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalExposureService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalExposureService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IStaffVaccinationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.StaffVaccinationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IHazardSurveillanceService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.HazardSurveillanceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IMedicalExaminationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.MedicalExaminationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.IOccupationalInjuryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Services.OccupationalInjuryService>();
+
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.SerialSurveillanceFollowUpWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.WorkRestrictionExpirationWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.VaccineBoosterReminderWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.McuComplianceScheduleWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.RadiationDoseThresholdAlertWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Workers.BPJSOccupationalInjuryFollowUpWorker>();
+
+    // Slice S-A7-V2 (Employee Self-Service & Unified Approval Inbox V2 Hardening) - MVP-60..62 (Kontrak v24)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowRoutingMatrixService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowRoutingMatrixService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowInstanceCreationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowInstanceCreationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IApprovalInboxQueryService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.ApprovalInboxQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IAntiSelfApprovalGuardService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.AntiSelfApprovalGuardService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IApprovalDelegationV2Service, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.ApprovalDelegationV2Service>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowApprovalActionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowApprovalActionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowSlaEnforcementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowSlaEnforcementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IBulkApprovalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.BulkApprovalService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IUnifiedNotificationGatewayService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.UnifiedNotificationGatewayService>();
+    // Remediasi Gelombang 2 (BE-HRD-314): pusat pemberitahuan dalam aplikasi HR (tabel HrdNotification + SignalR /hubs/notifications)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrdNotificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrdNotificationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowResubmitService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowResubmitService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IIdempotentDownstreamExecutionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IdempotentDownstreamExecutionService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowCommentAndAttachmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowCommentAndAttachmentService>();
+
+    // Slice S-A7-V2: 6 Hosted Background Services (WF-W1..WF-W6)
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.WorkflowSlaEscalationWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ApprovalDelegationExpiryWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.DailyApprovalDigestWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.WorkflowSlaEarlyWarningWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ReturnedRequestExpiryWorker>();
+
+    // Slice S-D5 (Business Travel & Expense Reimbursement) - MVP-63..65 (Kontrak v25)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IMstTravelAllowanceRateService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.MstTravelAllowanceRateService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelBudgetAndConflictValidationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelBudgetAndConflictValidationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IBusinessTravelRequestService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.BusinessTravelRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAdvanceRequestService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAdvanceRequestService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IAdvanceApprovalAndVoucherService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.AdvanceApprovalAndVoucherService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IAdvanceDisbursementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.AdvanceDisbursementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelDocumentGenerationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelDocumentGenerationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IMissingReceiptDeclarationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.MissingReceiptDeclarationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelSettlementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelSettlementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IDirectExpenseClaimService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.DirectExpenseClaimService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IExpenseVerificationAndPaymentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ExpenseVerificationAndPaymentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAttendanceAndRosterLockService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAttendanceAndRosterLockService>();
+
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAuditTrailService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAuditTrailService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Services.ExpenseCategoryService>();
+
+    // Slice S-D5: 4 Hosted Background Services (TRV-W1, TRV-W2, TRV-W4, RosterLockExpiry)
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelAdvanceSettlementReminderWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelSettlementOverdueWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelCurrencyRateSyncWorker>();
+    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelRosterLockExpiryWorker>();
+
 
     //billing - master data
     builder.Services.AddScoped<AdministrationFeePolicyService>();
@@ -1339,6 +1814,11 @@ try
         builder.Services.Configure<McuNoShowOptions>(
             builder.Configuration.GetSection(McuNoShowOptions.SectionName));
         builder.Services.AddHostedService<McuNoShowHostedService>();
+        // optik BE-OPT-062: tarif pemeriksaan yang belum tercatat dikirim ulang otomatis. Saklar
+        // OpticalManagement:ExamChargeRetry:Enabled, bawaan menyala.
+        builder.Services.Configure<OptExamChargeRetryOptions>(
+            builder.Configuration.GetSection(OptExamChargeRetryOptions.SectionName));
+        builder.Services.AddHostedService<OptExamChargeRetryHostedService>();
         // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
         builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
@@ -1378,6 +1858,25 @@ try
         builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
         builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
+
+        // BE-HRD-036: Scheduler Perencanaan Tenaga Kerja (Workforce Planning)
+        builder.Services.Configure<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerOptions>(
+            builder.Configuration.GetSection(QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerOptions.SectionName));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSchedulerHostedService>();
+
+        // BE-FIN-136 (FIN-INTEGRATION-1.11 V.3, FIN-DES-113, FIN-DES-117, FIN-DES-125):
+        // Penjadwal rekonsiliasi sinkronisasi kartu penjamin internal pasien (Benefit Karyawan RS).
+        // Dibangun MATI secara bawaan: Enabled = false. Memerlukan ActivationCutoffUtc bila dinyalakan.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerOptions>(
+            builder.Configuration.GetSection("PatientManagement:EmployeeBenefitCardSyncScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.EmployeeBenefitCardSyncSchedulerHostedService>();
+
+        // BE-FIN-137 (FIN-STATE-1.11 V.1, FIN-DEC-235, FIN-DES-111, FIN-OQ-127):
+        // Penjadwal aktivasi otomatis benefit pegawai berstatus Approved yang tanggal mulai berlakunya sudah tiba.
+        // Dibangun MATI secara bawaan: Enabled = false.
+        builder.Services.Configure<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerOptions>(
+            builder.Configuration.GetSection("HumanResource:EmployeeBenefitActivationScheduler"));
+        builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitActivationSchedulerHostedService>();
     }
 
     builder.Services.AddAuthorization(options =>
@@ -1464,6 +1963,16 @@ try
                     user.HasClaim(claim => claim.Type == "queue_display_code" && !string.IsNullOrWhiteSpace(claim.Value)) ||
                     user.HasClaim(claim => claim.Type == "display_code" && !string.IsNullOrWhiteSpace(claim.Value));
             });
+        });
+
+        options.AddPolicy(AuthorizationPolicies.NurseViewDisplayRead, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+                context.User.HasClaim(claim =>
+                    claim.Type == NvwDeviceContextService.DeviceIdClaim &&
+                    !string.IsNullOrWhiteSpace(claim.Value)));
         });
     });
 
@@ -1627,6 +2136,18 @@ try
             Description = $"Application Version {appVersion}"
         });
 
+        // Dua DTO bernama sama di modul berbeda membuat seluruh dokumen Swagger gagal dibuat.
+        // Nama pendek tetap dipakai; hanya tipe kedua yang bentrok diberi awalan namespace.
+        var defaultSchemaIdSelector = new Swashbuckle.AspNetCore.SwaggerGen.SchemaGeneratorOptions().SchemaIdSelector;
+        var schemaIdOwners = new System.Collections.Concurrent.ConcurrentDictionary<string, Type>();
+        options.CustomSchemaIds(type =>
+        {
+            var schemaId = defaultSchemaIdSelector(type);
+            return schemaIdOwners.GetOrAdd(schemaId, type) == type
+                ? schemaId
+                : $"{type.Namespace?.Replace('.', '_')}_{schemaId}";
+        });
+
         options.DocInclusionPredicate((docName, apiDesc) =>
         {
             var path = apiDesc.RelativePath?.ToLowerInvariant() ?? string.Empty;
@@ -1641,7 +2162,8 @@ try
                     path.StartsWith("api/v1/administrator"),
 
                 "corporate" =>
-                    path.StartsWith("api/v1/corporate"),
+                    path.StartsWith("api/v1/corporate") ||
+                    path.StartsWith("api/v1/hrd"),
 
                 "health-services" =>
                     path.StartsWith("api/v1/health-services") ||
@@ -1649,7 +2171,7 @@ try
                     path.StartsWith("api/v1/health-service"),
 
                 "self-services" =>
-                    path.StartsWith("api/v1/self-services") ||
+                    path.StartsWith("api/v1/self-service") ||
                     path.StartsWith("api/v1/selfservices") ||
                     path.StartsWith("api/v1/profile"),
 
@@ -2267,6 +2789,8 @@ try
     if (runWebRuntime)
     {
         await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
+        // BE-HRD-239 (10 Nov 2026): 5 aturan pelatihan wajib STARKES KPS 8 dipindah dari daftar in-memory service ke data awal database.
+        await RunStartupSeederAsync("MandatoryTrainingRuleSeeder", () => MandatoryTrainingRuleSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("FinanceApprovalRoleSeeder", () => FinanceApprovalRoleSeeder.SeedAsync(app.Services));
         // Konsolidasi kode modul Farmasi WAJIB mendahului AccessMenuSeeder. Seeder registry
@@ -2322,6 +2846,11 @@ try
         // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
         // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
         await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
+
+        // RHB-BP-001, BE-RHB-005. Konfigurasi awal Rehab Medik: empat disiplin (seluruhnya tidak aktif
+        // dan tanpa profesi sampai admin memetakan profesi HR) serta peta jenis instrumen asesmen.
+        // Idempoten — baris yang sudah ada atau sudah dihapus admin tidak diisi ulang.
+        await RunStartupSeederAsync("RehabilitationMasterDataSeeder", () => RehabilitationMasterDataSeeder.SeedAsync(app.Services));
 
         // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah
@@ -2447,6 +2976,14 @@ try
                 "DrugStorageLocationSeeder",
                 () => SeedDrugStorageLocationsAsync(app.Services));
         }
+
+        await RunStartupSeederAsync(
+            "WorkforcePlanningRuntimeDevSeeder",
+            () => WorkforcePlanningRuntimeDevSeeder.SeedAsync(app.Services));
+
+        await RunStartupSeederAsync(
+            "OnboardingRuntimeDevSeeder",
+            () => OnboardingRuntimeDevSeeder.SeedAsync(app.Services));
 
         // Sesudah DrugStorageLocationSeeder karena saldonya ditempatkan di GDG-023 (RJ-DOC-DEC-091).
         var runPharmacyOpeningStockSeed =
@@ -2585,6 +3122,7 @@ try
     {
         app.MapControllers();
         app.MapHub<QueueHub>("/hubs/queues");
+        app.MapHub<HrNotificationHub>(HrNotificationHub.RoutePath);
     }
 
     app.Run();

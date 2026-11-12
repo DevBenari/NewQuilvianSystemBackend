@@ -2758,15 +2758,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (null, "Penjamin perusahaan sudah kedaluwarsa pada tanggal kunjungan.");
             }
 
-            // BE-FIN-106, FIN-DEC-204: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
+            // BE-FIN-106, FIN-DEC-204, BE-FIN-140, FIN-DEC-256: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
             // anggota keluarganya terdaftar dan terverifikasi di HR pada tanggal kunjungan. Gagal tertutup
             // bila HR tidak dapat dibaca; petugas diarahkan mendaftarkan sebagai Pasien Umum.
+            // Untuk kartu hasil sinkronisasi otomatis, NIK, tanggal lahir, dan jenis ID dicocokkan ulang dengan data HR.
             var benefitCheck = await _employeeBenefitLookup.ValidateCardForServiceAsync(
                 companyGuarantor.CompanyGuarantorId,
                 companyGuarantor.BenefitOwnerWorkforceProfileId,
                 companyGuarantor.EmployeeId,
                 companyGuarantor.FamilyMemberId,
                 encounterDate,
+                patientId,
+                patientCompanyGuarantorId,
                 HttpContext?.RequestAborted ?? CancellationToken.None);
 
             if (!benefitCheck.IsValid)
@@ -3219,7 +3222,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var ids = actorIds.Where(x => x != Guid.Empty).Distinct().ToList();
             if (!ids.Any()) return new Dictionary<Guid, string?>();
 
-            return await _dbContext.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode }).ToDictionaryAsync(x => x.Id, x => x.Name);
+            return await _dbContext.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, Name = (string?)(x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode) }).ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
         private static PatientEncounterResponse MapResponse(

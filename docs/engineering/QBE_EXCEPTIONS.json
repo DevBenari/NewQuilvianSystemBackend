@@ -1,35 +1,1135 @@
-{
-  "schemaVersion": "1.0",
-  "exceptions": [
-    {
-      "ExceptionId": "EXP-QBE-MOD-002-PAT-001",
-      "RuleId": "QBE-MOD-002",
-      "Scope": "Areas/HealthServices/PatientManagement/MasterData/Models/PatNewbornBirthSequence.cs",
-      "Reason": "Entity operasional pencacah urutan kelahiran bayi (BE-RWI-245) menggunakan prefix Pat sesuai domain PatientManagement namun bertempat di folder legacy MasterData berdampingan dengan PatientController.",
-      "Status": "ACTIVE",
-      "ApprovedBy": "Muhammad Hamzah",
-      "ApprovalReference": "BE-RWI-245",
-      "NoExpiryRationale": "Model persisted pencacah urutan bayi obstetri ditempatkan di folder PatientManagement/MasterData mengikuti struktur controller pasien eksisting."
-    },
-    {
-      "ExceptionId": "EXP-QBE-MOD-002-MDF-001",
-      "RuleId": "QBE-MOD-002",
-      "Scope": "Areas/HealthServices/MedicalFeeManagement/MasterData/Models/MdfSharingAgreement.cs",
-      "Reason": "Entity operasional kesepakatan tarif sharing medis (BE-MDF-005) menggunakan prefix Mdf sesuai domain MedicalFeeManagement namun ditempatkan di sub-folder MasterData sesuai blueprint MDF-DES-001.",
-      "Status": "ACTIVE",
-      "ApprovedBy": "Yasmin",
-      "ApprovalReference": "BE-MDF-005",
-      "NoExpiryRationale": "Model persisted kesepakatan tarif ditempatkan di folder MedicalFeeManagement/MasterData mengikuti struktur blueprint MF-BP-001 revisi 1."
-    },
-    {
-      "ExceptionId": "EXP-QBE-MOD-002-MDF-002",
-      "RuleId": "QBE-MOD-002",
-      "Scope": "Areas/HealthServices/MedicalFeeManagement/MasterData/Models/MdfSharingRule.cs",
-      "Reason": "Entity operasional baris aturan tarif sharing medis (BE-MDF-005) menggunakan prefix Mdf sesuai domain MedicalFeeManagement namun ditempatkan di sub-folder MasterData sesuai blueprint MDF-DES-001.",
-      "Status": "ACTIVE",
-      "ApprovedBy": "Yasmin",
-      "ApprovalReference": "BE-MDF-005",
-      "NoExpiryRationale": "Model persisted aturan tarif sharing ditempatkan di folder MedicalFeeManagement/MasterData mengikuti struktur blueprint MF-BP-001 revisi 1."
-    }
-  ]
+﻿{
+    "schemaVersion":  "1.0",
+    "exceptions":  [
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAT-001",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/HealthServices/PatientManagement/MasterData/Models/PatNewbornBirthSequence.cs",
+                           "Reason":  "Entity operasional pencacah urutan kelahiran bayi (BE-RWI-245) menggunakan prefix Pat sesuai domain PatientManagement namun bertempat di folder legacy MasterData berdampingan dengan PatientController.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "BE-RWI-245",
+                           "NoExpiryRationale":  "Model persisted pencacah urutan bayi obstetri ditempatkan di folder PatientManagement/MasterData mengikuti struktur controller pasien eksisting."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-MDF-001",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/HealthServices/MedicalFeeManagement/MasterData/Models/MdfSharingAgreement.cs",
+                           "Reason":  "Entity operasional kesepakatan tarif sharing medis (BE-MDF-005) menggunakan prefix Mdf sesuai domain MedicalFeeManagement namun ditempatkan di sub-folder MasterData sesuai blueprint MDF-DES-001.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Yasmin",
+                           "ApprovalReference":  "BE-MDF-005",
+                           "NoExpiryRationale":  "Model persisted kesepakatan tarif ditempatkan di folder MedicalFeeManagement/MasterData mengikuti struktur blueprint MF-BP-001 revisi 1."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-MDF-002",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/HealthServices/MedicalFeeManagement/MasterData/Models/MdfSharingRule.cs",
+                           "Reason":  "Entity operasional baris aturan tarif sharing medis (BE-MDF-005) menggunakan prefix Mdf sesuai domain MedicalFeeManagement namun ditempatkan di sub-folder MasterData sesuai blueprint MDF-DES-001.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Yasmin",
+                           "ApprovalReference":  "BE-MDF-005",
+                           "NoExpiryRationale":  "Model persisted aturan tarif sharing ditempatkan di folder MedicalFeeManagement/MasterData mengikuti struktur blueprint MF-BP-001 revisi 1."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAT-002",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/HealthServices/PatientManagement/MasterData/Models/PatEmployeeBenefitCardSync.cs",
+                           "Reason":  "Entity operasional catatan hasil sinkronisasi kartu pasien benefit pegawai (BE-FIN-133, FIN-DES-112) menggunakan prefix Pat sesuai domain PatientManagement namun bertempat di folder legacy MasterData berdampingan dengan PatientController, mengikuti preseden PatNewbornBirthSequence (EXP-QBE-MOD-002-PAT-001).",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "FIN-OQ-121",
+                           "NoExpiryRationale":  "Model persisted catatan sinkronisasi kartu ditempatkan di folder PatientManagement/MasterData mengikuti preseden PatNewbornBirthSequence dan keputusan desain FIN-DES-112 pada blueprint finance-management."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-HRD-DBCONTEXT",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/ApplicationDbContext.cs",
+                           "Reason":  "Pendaftaran DbSet untuk entitas operasional Human Resource berprefix legacy Trx mengikuti nama model domain eksisting.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-164",
+                           "NoExpiryRationale":  "DbSet Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-HRD-WFP-001",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/WorkforceCore/Models/HrdInitialPlacementBatch.cs",
+                           "Reason":  "Entity operasional batch penempatan awal pegawai (BE-HRD-246, HRD-DEC-210) menggunakan prefix Hrd sesuai domain Human Resource namun bertempat di subfolder WorkforceCore.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "BE-HRD-246",
+                           "NoExpiryRationale":  "Model persisted ditempatkan di subfolder WorkforceCore mengikuti struktur folder modul personalia eksisting."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-HRD-WFP-002",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/WorkforceCore/Models/HrdPersonnelActionOrder.cs",
+                           "Reason":  "Entity operasional surat perintah aksi personalia / SK mutasi-rotasi (BE-HRD-247, HRD-DEC-211) menggunakan prefix Hrd sesuai domain Human Resource namun bertempat di subfolder WorkforceCore.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "BE-HRD-247",
+                           "NoExpiryRationale":  "Model persisted ditempatkan di subfolder WorkforceCore mengikuti struktur folder modul personalia eksisting."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-HRD-WFP-003",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/WorkforceCore/Models/HrdPersonnelActionOrderAttachment.cs",
+                           "Reason":  "Entity lampiran berkas surat perintah aksi personalia (BE-HRD-247) menggunakan prefix Hrd sesuai domain Human Resource namun bertempat di subfolder WorkforceCore.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "BE-HRD-247",
+                           "NoExpiryRationale":  "Model persisted ditempatkan di subfolder WorkforceCore mengikuti struktur folder modul personalia eksisting."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-HRD-MST-001",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/CredentialingManagement/Models/MstCredentialingCommittee.cs",
+                           "Reason":  "Entity data induk komite kredensial tenaga medis/keperawatan (BE-HRD-283, CRD-B3) menggunakan prefix Mst sesuai kategori data induk namun bertempat di subfolder CredentialingManagement.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "BE-HRD-283",
+                           "NoExpiryRationale":  "Model data induk modul SDM ditempatkan berdampingan dengan entitas operasional submodul terkait."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-HRD-MST-002",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/MstKpiMetricCatalog.cs",
+                           "Reason":  "Entity data induk katalog metrik KPI pegawai (BE-HRD-254, HRD-DEC-164) menggunakan prefix Mst sesuai kategori data induk namun bertempat di subfolder PerformanceManagement.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "BE-HRD-254",
+                           "NoExpiryRationale":  "Model data induk modul SDM ditempatkan berdampingan dengan entitas operasional submodul terkait."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-HRD-MST-003",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/MstOppeMetricCatalog.cs",
+                           "Reason":  "Entity data induk katalog metrik evaluasi praktik profesional OPPE (BE-HRD-255, HRD-DEC-165) menggunakan prefix Mst sesuai kategori data induk namun bertempat di subfolder PerformanceManagement.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "BE-HRD-255",
+                           "NoExpiryRationale":  "Model data induk modul SDM ditempatkan berdampingan dengan entitas operasional submodul terkait."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CRD-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/CredentialingManagement/Models/TrxClinicalPrivilegeEmergencyOverrideLog.cs",
+                           "Reason":  "Entity operasional TrxClinicalPrivilegeEmergencyOverrideLog menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxClinicalPrivilegeEmergencyOverrideLog\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "CRD-B3",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-CRD-01",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/CredentialingManagement/Models/TrxClinicalPrivilegeEmergencyOverrideLog.cs",
+                           "Reason":  "Entity operasional TrxClinicalPrivilegeEmergencyOverrideLog berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "CRD-B3",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CRD-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/CredentialingManagement/Models/TrxSpkRkkIssuance.cs",
+                           "Reason":  "Entity operasional TrxSpkRkkIssuance menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxSpkRkkIssuance\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "CRD-B3",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-CRD-02",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/CredentialingManagement/Models/TrxSpkRkkIssuance.cs",
+                           "Reason":  "Entity operasional TrxSpkRkkIssuance berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "CRD-B3",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxBipartiteNegotiationForum.cs",
+                           "Reason":  "Entity operasional TrxBipartiteNegotiationForum menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxBipartiteNegotiationForum\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-180",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-01",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxBipartiteNegotiationForum.cs",
+                           "Reason":  "Entity operasional TrxBipartiteNegotiationForum berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-180",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinaryIncidentReport.cs",
+                           "Reason":  "Entity operasional TrxDisciplinaryIncidentReport menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxDisciplinaryIncidentReport\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-181",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-02",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinaryIncidentReport.cs",
+                           "Reason":  "Entity operasional TrxDisciplinaryIncidentReport berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-181",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-03",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinaryInvestigationRecord.cs",
+                           "Reason":  "Entity operasional TrxDisciplinaryInvestigationRecord menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxDisciplinaryInvestigationRecord\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-182",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-03",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinaryInvestigationRecord.cs",
+                           "Reason":  "Entity operasional TrxDisciplinaryInvestigationRecord berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-182",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-04",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinarySanction.cs",
+                           "Reason":  "Entity operasional TrxDisciplinarySanction menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxDisciplinarySanction\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-183",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-04",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinarySanction.cs",
+                           "Reason":  "Entity operasional TrxDisciplinarySanction berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-183",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-05",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinarySuspension.cs",
+                           "Reason":  "Entity operasional TrxDisciplinarySuspension menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxDisciplinarySuspension\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-184",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-05",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxDisciplinarySuspension.cs",
+                           "Reason":  "Entity operasional TrxDisciplinarySuspension berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-184",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-06",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxExitClearanceChecklist.cs",
+                           "Reason":  "Entity operasional TrxExitClearanceChecklist menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxExitClearanceChecklist\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-185",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-06",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxExitClearanceChecklist.cs",
+                           "Reason":  "Entity operasional TrxExitClearanceChecklist berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-185",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-07",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxExitClearanceProcess.cs",
+                           "Reason":  "Entity operasional TrxExitClearanceProcess menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxExitClearanceProcess\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-186",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-07",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxExitClearanceProcess.cs",
+                           "Reason":  "Entity operasional TrxExitClearanceProcess berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-186",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-ERM-08",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxSeveranceCalculation.cs",
+                           "Reason":  "Entity operasional TrxSeveranceCalculation menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxSeveranceCalculation\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-187",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-ERM-08",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/EmployeeRelationManagement/Models/TrxSeveranceCalculation.cs",
+                           "Reason":  "Entity operasional TrxSeveranceCalculation berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-187",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-LND-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/LearningAndDevelopment/Models/TrxPlataranSehatSkpRecord.cs",
+                           "Reason":  "Entity operasional TrxPlataranSehatSkpRecord menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPlataranSehatSkpRecord\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "INT-HR-80",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-LND-01",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/LearningAndDevelopment/Models/TrxPlataranSehatSkpRecord.cs",
+                           "Reason":  "Entity operasional TrxPlataranSehatSkpRecord berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "INT-HR-80",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-LVM-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/LeaveManagement/Models/TrxLeaveBalanceLedger.cs",
+                           "Reason":  "Entity operasional TrxLeaveBalanceLedger menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxLeaveBalanceLedger\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-110",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-LVM-01",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/LeaveManagement/Models/TrxLeaveBalanceLedger.cs",
+                           "Reason":  "Entity operasional TrxLeaveBalanceLedger berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-110",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-LVM-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/LeaveManagement/Models/TrxLeaveRecallRequest.cs",
+                           "Reason":  "Entity operasional TrxLeaveRecallRequest menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxLeaveRecallRequest\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-111",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-LVM-02",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/LeaveManagement/Models/TrxLeaveRecallRequest.cs",
+                           "Reason":  "Entity operasional TrxLeaveRecallRequest berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-111",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PAY-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxCashierDisbursementVoucher.cs",
+                           "Reason":  "Entity operasional TrxCashierDisbursementVoucher menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxCashierDisbursementVoucher\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-140",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAY-01",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxCashierDisbursementVoucher.cs",
+                           "Reason":  "Entity operasional TrxCashierDisbursementVoucher berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-140",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PAY-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxEmployeeRestitutionClaim.cs",
+                           "Reason":  "Entity operasional TrxEmployeeRestitutionClaim menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxEmployeeRestitutionClaim\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-141",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAY-02",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxEmployeeRestitutionClaim.cs",
+                           "Reason":  "Entity operasional TrxEmployeeRestitutionClaim berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-141",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PAY-03",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollDeductionItem.cs",
+                           "Reason":  "Entity operasional TrxPayrollDeductionItem menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPayrollDeductionItem\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-142",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAY-03",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollDeductionItem.cs",
+                           "Reason":  "Entity operasional TrxPayrollDeductionItem berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-142",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PAY-04",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollDeductionSchedule.cs",
+                           "Reason":  "Entity operasional TrxPayrollDeductionSchedule menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPayrollDeductionSchedule\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-143",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAY-04",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollDeductionSchedule.cs",
+                           "Reason":  "Entity operasional TrxPayrollDeductionSchedule berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-143",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PAY-05",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollHandoffBatch.cs",
+                           "Reason":  "Entity operasional TrxPayrollHandoffBatch menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPayrollHandoffBatch\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-144",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAY-05",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollHandoffBatch.cs",
+                           "Reason":  "Entity operasional TrxPayrollHandoffBatch berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-144",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PAY-06",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollRestitution.cs",
+                           "Reason":  "Entity operasional TrxPayrollRestitution menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPayrollRestitution\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-145",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAY-06",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollRestitution.cs",
+                           "Reason":  "Entity operasional TrxPayrollRestitution berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-145",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PAY-07",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollVarianceAlert.cs",
+                           "Reason":  "Entity operasional TrxPayrollVarianceAlert menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPayrollVarianceAlert\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-146",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PAY-07",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PayrollManagement/Models/TrxPayrollVarianceAlert.cs",
+                           "Reason":  "Entity operasional TrxPayrollVarianceAlert berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-146",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxClinicalCareerLadderReview.cs",
+                           "Reason":  "Entity operasional TrxClinicalCareerLadderReview menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxClinicalCareerLadderReview\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-164",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-01",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxClinicalCareerLadderReview.cs",
+                           "Reason":  "Entity operasional TrxClinicalCareerLadderReview berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-164",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxFppeCaseLog.cs",
+                           "Reason":  "Entity operasional TrxFppeCaseLog menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxFppeCaseLog\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-165",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-02",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxFppeCaseLog.cs",
+                           "Reason":  "Entity operasional TrxFppeCaseLog berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-165",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-03",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxFppeEngagement.cs",
+                           "Reason":  "Entity operasional TrxFppeEngagement menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxFppeEngagement\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-166",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-03",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxFppeEngagement.cs",
+                           "Reason":  "Entity operasional TrxFppeEngagement berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-166",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-04",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxFppeEvaluationConclusion.cs",
+                           "Reason":  "Entity operasional TrxFppeEvaluationConclusion menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxFppeEvaluationConclusion\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-167",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-04",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxFppeEvaluationConclusion.cs",
+                           "Reason":  "Entity operasional TrxFppeEvaluationConclusion berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-167",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-05",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxOppeEvaluationPeriod.cs",
+                           "Reason":  "Entity operasional TrxOppeEvaluationPeriod menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxOppeEvaluationPeriod\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-168",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-05",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxOppeEvaluationPeriod.cs",
+                           "Reason":  "Entity operasional TrxOppeEvaluationPeriod berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-168",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-06",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxOppeStaffEvaluation.cs",
+                           "Reason":  "Entity operasional TrxOppeStaffEvaluation menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxOppeStaffEvaluation\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-169",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-06",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxOppeStaffEvaluation.cs",
+                           "Reason":  "Entity operasional TrxOppeStaffEvaluation berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-169",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-07",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxOppeStaffEvaluationDetail.cs",
+                           "Reason":  "Entity operasional TrxOppeStaffEvaluationDetail menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxOppeStaffEvaluationDetail\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-170",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-07",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxOppeStaffEvaluationDetail.cs",
+                           "Reason":  "Entity operasional TrxOppeStaffEvaluationDetail berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-170",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-08",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceAppraisal.cs",
+                           "Reason":  "Entity operasional TrxPerformanceAppraisal menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPerformanceAppraisal\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-171",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-08",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceAppraisal.cs",
+                           "Reason":  "Entity operasional TrxPerformanceAppraisal berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-171",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-09",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceAppraisalDetail.cs",
+                           "Reason":  "Entity operasional TrxPerformanceAppraisalDetail menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPerformanceAppraisalDetail\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-172",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-09",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceAppraisalDetail.cs",
+                           "Reason":  "Entity operasional TrxPerformanceAppraisalDetail berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-172",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-10",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceAppraisalDispute.cs",
+                           "Reason":  "Entity operasional TrxPerformanceAppraisalDispute menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPerformanceAppraisalDispute\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-173",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-10",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceAppraisalDispute.cs",
+                           "Reason":  "Entity operasional TrxPerformanceAppraisalDispute berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-173",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-11",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceCalibrationSession.cs",
+                           "Reason":  "Entity operasional TrxPerformanceCalibrationSession menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPerformanceCalibrationSession\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-174",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-11",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceCalibrationSession.cs",
+                           "Reason":  "Entity operasional TrxPerformanceCalibrationSession berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-174",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-12",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceGoal.cs",
+                           "Reason":  "Entity operasional TrxPerformanceGoal menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPerformanceGoal\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-175",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-12",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformanceGoal.cs",
+                           "Reason":  "Entity operasional TrxPerformanceGoal berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-175",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-PRF-13",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformancePipActionLog.cs",
+                           "Reason":  "Entity operasional TrxPerformancePipActionLog menggunakan prefix legacy Trx sesuai skema tabel fisik database eksisting public.\"TrxPerformancePipActionLog\".",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-176",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-MOD-002-PRF-13",
+                           "RuleId":  "QBE-MOD-002",
+                           "Scope":  "Areas/Corporate/HumanResource/PerformanceManagement/Models/TrxPerformancePipActionLog.cs",
+                           "Reason":  "Entity operasional TrxPerformancePipActionLog berprefix legacy Trx bertempat di modul Human Resource sesuai blueprint arsitektur.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-176",
+                           "NoExpiryRationale":  "Model persisted Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-CRD-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/CredentialingManagement/TrxClinicalPrivilegeEmergencyOverrideLogConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxClinicalPrivilegeEmergencyOverrideLogConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "CRD-B3",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-CRD-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/CredentialingManagement/TrxSpkRkkIssuanceConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxSpkRkkIssuanceConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "CRD-B3",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxBipartiteNegotiationForumConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxBipartiteNegotiationForumConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-180",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxDisciplinaryIncidentReportConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxDisciplinaryIncidentReportConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-181",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-03",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxDisciplinaryInvestigationRecordConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxDisciplinaryInvestigationRecordConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-182",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-04",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxDisciplinarySanctionConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxDisciplinarySanctionConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-183",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-05",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxDisciplinarySuspensionConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxDisciplinarySuspensionConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-184",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-06",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxExitClearanceChecklistConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxExitClearanceChecklistConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-185",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-07",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxExitClearanceProcessConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxExitClearanceProcessConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-186",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-ERM-08",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/EmployeeRelationManagement/TrxSeveranceCalculationConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxSeveranceCalculationConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-187",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-LND-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/LearningAndDevelopment/TrxPlataranSehatSkpRecordConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPlataranSehatSkpRecordConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "INT-HR-80",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-LVM-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/LeaveManagement/TrxLeaveBalanceLedgerConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxLeaveBalanceLedgerConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-110",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-LVM-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/LeaveManagement/TrxLeaveRecallRequestConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxLeaveRecallRequestConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-111",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PAY-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PayrollManagement/TrxCashierDisbursementVoucherConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxCashierDisbursementVoucherConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-140",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PAY-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PayrollManagement/TrxEmployeeRestitutionClaimConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxEmployeeRestitutionClaimConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-141",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PAY-03",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PayrollManagement/TrxPayrollDeductionItemConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPayrollDeductionItemConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-142",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PAY-04",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PayrollManagement/TrxPayrollDeductionScheduleConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPayrollDeductionScheduleConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-143",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PAY-05",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PayrollManagement/TrxPayrollHandoffBatchConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPayrollHandoffBatchConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-144",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PAY-06",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PayrollManagement/TrxPayrollRestitutionConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPayrollRestitutionConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-145",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PAY-07",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PayrollManagement/TrxPayrollVarianceAlertConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPayrollVarianceAlertConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-146",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxClinicalCareerLadderReviewConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxClinicalCareerLadderReviewConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-164",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-02",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxFppeCaseLogConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxFppeCaseLogConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-165",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-03",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxFppeEngagementConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxFppeEngagementConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-166",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-04",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxFppeEvaluationConclusionConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxFppeEvaluationConclusionConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-167",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-05",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxOppeEvaluationPeriodConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxOppeEvaluationPeriodConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-168",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-06",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxOppeStaffEvaluationConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxOppeStaffEvaluationConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-169",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-07",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxOppeStaffEvaluationDetailConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxOppeStaffEvaluationDetailConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-170",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-08",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxPerformanceAppraisalConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPerformanceAppraisalConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-171",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-09",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxPerformanceAppraisalDetailConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPerformanceAppraisalDetailConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-172",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-10",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxPerformanceAppraisalDisputeConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPerformanceAppraisalDisputeConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-173",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-11",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxPerformanceCalibrationSessionConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPerformanceCalibrationSessionConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-174",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-12",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxPerformanceGoalConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPerformanceGoalConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-175",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-CFG-PRF-13",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Repositories/Configurations/Corporate/HumanResource/PerformanceManagement/TrxPerformancePipActionLogConfiguration.cs",
+                           "Reason":  "Konfigurasi pemetaan entitas EF Core TrxPerformancePipActionLogConfiguration mengikuti nama entitas model eksisting berprefix legacy Trx.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-176",
+                           "NoExpiryRationale":  "Konfigurasi pemetaan Trx* dipertahankan sampai jadwal pelaksanaan normalisasi skema legacy serentak."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-NAM-001-DTO-LVM-01",
+                           "RuleId":  "QBE-NAM-001",
+                           "Scope":  "Areas/Corporate/HumanResource/LeaveManagement/DTOs/LeaveBalanceLedgerDtos.cs",
+                           "Reason":  "DTO query request pencarian buku besar mutasi saldo cuti TrxLeaveBalanceLedgerQueryRequest berprefix legacy Trx mengikuti nama entitas model eksisting.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "Muhammad Hamzah",
+                           "ApprovalReference":  "HRD-DEC-110",
+                           "NoExpiryRationale":  "DTO query request dinormalkan bersamaan dengan model domain TrxLeaveBalanceLedger."
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-CODE-002-PRL-001",
+                           "RuleId":  "QBE-CODE-002",
+                           "Scope":  "Areas/Corporate/PayrollManagement/Controllers/WfpTransportAllowancePolicyController.cs",
+                           "Reason":  "Controller legacy WfpTransportAllowancePolicyController (rute payroll-management/..., sudah ada sebelum fase 2) memuat GenerateCodeAsync yang membaca seluruh kode kebijakan lalu mengambil angka kosong terkecil. Berkas dipindah dari Areas/Corporate/HumanResource/PayrollManagement ke Areas/Corporate/PayrollManagement oleh PAY-BE-12 TANPA perubahan perilaku, sehingga checker GitRange menghitung seluruh barisnya sebagai kode baru. Pengecualian ini hanya untuk berkas ini dan bukan konvensi untuk kode baru; pembangkitan nomor dipindahkan ke NumberSeriesManagement oleh PAY-BE-13.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "yasmina04 (pemilik repository)",
+                           "ApprovalReference":  "PAY-BE-12, keputusan pemilik repository 2026-11-11; tindak lanjut PAY-BE-13",
+                           "ExpiresAt":  "2027-03-31T00:00:00Z"
+                       },
+                       {
+                           "ExceptionId":  "EXP-QBE-CODE-002-PRL-002",
+                           "RuleId":  "QBE-CODE-002",
+                           "Scope":  "Areas/Corporate/PayrollManagement/Controllers/WfpTransportAllowanceTransactionController.cs",
+                           "Reason":  "Controller legacy WfpTransportAllowanceTransactionController (rute payroll-management/..., sudah ada sebelum fase 2) memuat GenerateTransactionNumberAsync yang membaca seluruh nomor transaksi lalu mengambil angka kosong terkecil. Berkas dipindah dari Areas/Corporate/HumanResource/PayrollManagement ke Areas/Corporate/PayrollManagement oleh PAY-BE-12 TANPA perubahan perilaku, sehingga checker GitRange menghitung seluruh barisnya sebagai kode baru. Pengecualian ini hanya untuk berkas ini dan bukan konvensi untuk kode baru; pembangkitan nomor dipindahkan ke NumberSeriesManagement oleh PAY-BE-13.",
+                           "Status":  "ACTIVE",
+                           "ApprovedBy":  "yasmina04 (pemilik repository)",
+                           "ApprovalReference":  "PAY-BE-12, keputusan pemilik repository 2026-11-11; tindak lanjut PAY-BE-13",
+                           "ExpiresAt":  "2027-03-31T00:00:00Z"
+                       }
+                   ]
 }

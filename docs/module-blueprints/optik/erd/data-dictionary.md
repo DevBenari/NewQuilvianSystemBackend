@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `OPT-BP-001` |
-| Revision | `1` — `draft` |
-| Sumber | `02-backend-architecture.md` (`OPT-BE-ARCH` r1) |
+| Revision | `3` — `approved`, Yoga Aji Pratama 2026-11-06. Hanya label yang berubah dari r2: kolom `IdempotencyKey` kini tersedia |
+| Sumber | `02-backend-architecture.md` (`OPT-BE-ARCH` r3) |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
 `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`,
@@ -17,6 +17,20 @@ Kolom bertanda **Sensitif = Ya** tidak boleh masuk custom logger, tidak boleh di
 contoh berisi data asli, dan perlu ditinjau masking-nya pada response DTO. Seluruh enum disimpan
 sebagai `integer` (`HasConversion<int>()`). Seluruh waktu disimpan UTC; perbandingan tanggal
 bisnis (masa berlaku resep, izin, garansi) memakai tanggal kalender WIB.
+
+## Penyimpanan kunci kiriman ganda (`OPT-DEC-077`)
+
+`OptPrescription`, `OptOrder`, dan `OptWarrantyClaim` mendapat satu kolom `IdempotencyKey` beserta indeks unik terfilter. Bentuk ini mengikuti
+pola yang sudah dipakai `TrxHrServiceRequest` dan `FinPatientRefundRequest`, dan kuncinya ikut tersimpan dalam transaksi yang sama dengan data.
+
+| Hal | Isi |
+| --- | --- |
+| Boleh kosong | Ya. Baris lama tidak punya kunci, dan pesanan remake dibuat sistem tanpa kiriman layar |
+| Cakupan unik | Per tabel. Resep internal dan resep luar berbagi kolom yang sama |
+| Sensitif | Tidak. Isinya Guid acak tanpa data pasien |
+| Contoh | Dedi menyimpan pesanan dengan kunci `3f2a…` (samaran), lalu jaringan putus dan ia menekan Simpan lagi. Baris `OptOrder` tetap satu, dan kunci `3f2a…` menunjuk pesanan `OPT-ORD-RSMMC-000001` |
+
+Alternatif yang ditolak tercatat di `02-backend-architecture.md` bagian 12.
 
 ## Daftar tabel
 
@@ -62,7 +76,7 @@ Lokasi model: `Areas/HealthServices/OpticalManagement/Models/OptRefractionExam.c
 | `StartedAt` | `DateTime` | Ya | waktu server | — | — | — | Tidak | Waktu mulai |
 | `FinalizedAt` | `DateTime?` | Tidak | — | Index bersama `PatientId` | — | — | Tidak | Waktu disimpan final |
 | `FinalizedBy` | `Guid?` | Tidak | — | — | — | — | Tidak | Akun yang menyimpan final |
-| `BillingFactEmittedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Terisi sekali saat fakta tarif pemeriksaan diterima Billing; mencegah tagih ulang (`OPT-DEC-042`, `047`) |
+| `BillingFactEmittedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Terisi sekali saat producer mencatat fakta tarif pemeriksaan; mencegah tagih ulang (`OPT-DEC-042`, `047`). Kosong pada pemeriksaan `Final` berarti tarif belum tercatat, dan pekerja latar mengirimnya ulang (`OPT-DEC-082`). **Contoh:** tindakan belum diatur saat final, sehingga kolom kosong sampai tindakan diatur |
 | `CancelReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib bila `Cancelled` |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Penanda concurrency (`IsConcurrencyToken`); naik setiap perubahan |
 
@@ -75,14 +89,14 @@ Lokasi model: `Areas/HealthServices/OpticalManagement/Models/OptRefractionExamRe
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `RefractionExamId` | `Guid` | Ya | — | UK bersama `RevisionNo` | FK ke `OptRefractionExam` | Restrict | Tidak | Induk pemeriksaan |
 | `RevisionNo` | `int` | Ya | — | UK bersama `RefractionExamId` | — | — | Tidak | 1, 2, 3 … |
-| `VisusDistanceUncorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh tanpa koreksi, mata kanan; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
-| `VisusDistanceUncorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh tanpa koreksi, mata kiri; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
-| `VisusDistanceCorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh dengan koreksi, mata kanan; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
-| `VisusDistanceCorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh dengan koreksi, mata kiri; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
-| `VisusNearUncorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat tanpa koreksi, mata kanan; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
-| `VisusNearUncorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat tanpa koreksi, mata kiri; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
-| `VisusNearCorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat dengan koreksi, mata kanan; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
-| `VisusNearCorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat dengan koreksi, mata kiri; notasi Snellen, contoh `6/12` (`PROPOSED` RCG `n1`) |
+| `VisusDistanceUncorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh tanpa koreksi, mata kanan; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
+| `VisusDistanceUncorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh tanpa koreksi, mata kiri; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
+| `VisusDistanceCorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh dengan koreksi, mata kanan; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
+| `VisusDistanceCorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus jauh dengan koreksi, mata kiri; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
+| `VisusNearUncorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat tanpa koreksi, mata kanan; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
+| `VisusNearUncorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat tanpa koreksi, mata kiri; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
+| `VisusNearCorrectedOd` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat dengan koreksi, mata kanan; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
+| `VisusNearCorrectedOs` | `string(10)?` | Tidak | — | — | — | — | **Ya** | Visus dekat dengan koreksi, mata kiri; notasi `n/n`, `1/~`, atau `0`, contoh `6/12` (disahkan `OPT-DEC-057`, `059`) |
 | `AutorefOdSph` | `decimal(5,2)?` | Tidak | — | — | — | — | **Ya** | Autorefraktometer SPH mata kanan |
 | `AutorefOdCyl` | `decimal(5,2)?` | Tidak | — | — | — | — | **Ya** | Autorefraktometer CYL, notasi minus |
 | `AutorefOdAxis` | `int?` | Tidak | — | — | — | — | **Ya** | Autorefraktometer AXIS 0..180 |
@@ -126,6 +140,7 @@ Lokasi model: `Areas/HealthServices/OpticalManagement/Models/OptPrescription.cs`
 | `CurrentVersionNo` | `int` | Ya | `1` | — | — | — | Tidak | Versi terakhir |
 | `LockedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Terisi saat pesanan yang memakai resep masuk pengerjaan (`OPT-DEC-007`) |
 | `LockedByOrderId` | `Guid?` | Tidak | — | — | rujukan logis ke `OptOrder` (tanpa FK fisik agar tak berputar) | — | Tidak | Pesanan pertama yang mengunci |
+| `IdempotencyKey` | `Guid?` | Tidak | — | UK terfilter (tidak kosong) | — | — | Tidak | `OPT-DEC-077`. Kunci dari header `Idempotency-Key`. Dipakai `POST prescriptions` dan `POST prescriptions/external` |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Penanda concurrency (`IsConcurrencyToken`); naik setiap perubahan |
 
 ## `OptPrescriptionVersion` — Baru
@@ -201,6 +216,7 @@ Lokasi model: `Areas/HealthServices/OpticalManagement/Models/OptOrder.cs`. Confi
 | `CancelledAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Saat `Cancelled` |
 | `IsRemake` | `bool` | Ya | `false` | — | — | — | Tidak | Pesanan remake Rp 0 (`OPT-DEC-015`) |
 | `ParentOrderId` | `Guid?` | Tidak | — | Index | FK ke `OptOrder` | Restrict | Tidak | Pesanan asal, wajib untuk remake |
+| `IdempotencyKey` | `Guid?` | Tidak | — | UK terfilter (tidak kosong) | — | — | Tidak | `OPT-DEC-077`. Kunci dari header `Idempotency-Key`. Dipakai `POST orders`. Kosong pada pesanan remake |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Penanda concurrency (`IsConcurrencyToken`); naik setiap perubahan |
 
 ## `OptOrderItem` — Baru
@@ -276,6 +292,7 @@ Lokasi model: `Areas/HealthServices/OpticalManagement/Models/OptWarrantyClaim.cs
 | `DecidedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu keputusan |
 | `DecisionReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib bila ditolak |
 | `RemakeOrderId` | `Guid?` | Tidak | — | UK terfilter (tidak kosong) | FK ke `OptOrder` | Restrict | Tidak | Pesanan remake yang lahir; paling banyak satu |
+| `IdempotencyKey` | `Guid?` | Tidak | — | UK terfilter (tidak kosong) | — | — | Tidak | `OPT-DEC-077`. Kunci dari header `Idempotency-Key`. Dipakai `POST warranty-claims`. Mencegah dua keluhan, yang bisa berujung dua remake gratis |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Penanda concurrency (`IsConcurrencyToken`); naik setiap perubahan |
 
 ## `OptItemProfile` — Baru
@@ -495,6 +512,7 @@ CREATE TABLE public."OptRefractionExamRevision" (
     CONSTRAINT "FK_OptRefractionExamRevision_MstWorkforceProfile_RevisedByWorkforceProfileId"
         FOREIGN KEY ("RevisedByWorkforceProfileId") REFERENCES public."MstWorkforceProfile" ("Id") ON DELETE RESTRICT
 );
+CREATE INDEX "IX_OptRefractionExamRevision_RevisedByWorkforceProfileId" ON public."OptRefractionExamRevision" ("RevisedByWorkforceProfileId"); -- index FK otomatis EF (BE-OPT-002)
 CREATE UNIQUE INDEX "UX_OptRefractionExamRevision_RefractionExamId_RevisionNo" ON public."OptRefractionExamRevision" ("RefractionExamId", "RevisionNo");
 ```
 
@@ -517,6 +535,7 @@ CREATE TABLE public."OptPrescription" (
     "LockedAt"                timestamp    ,
     "LockedByOrderId"         uuid         ,
     "Version"                 integer       NOT NULL,
+    "IdempotencyKey"          uuid         ,  -- OPT-DEC-077
     -- kolom audit IdentityModel tidak ditulis ulang di sini
 
     CONSTRAINT "PK_OptPrescription" PRIMARY KEY ("Id"),
@@ -531,6 +550,7 @@ CREATE UNIQUE INDEX "UX_OptPrescription_PrescriptionNumber" ON public."OptPrescr
 CREATE INDEX "IX_OptPrescription_PatientId_ValidUntil" ON public."OptPrescription" ("PatientId", "ValidUntil");
 CREATE INDEX "IX_OptPrescription_EncounterId" ON public."OptPrescription" ("EncounterId");
 CREATE INDEX "IX_OptPrescription_RefractionExamId" ON public."OptPrescription" ("RefractionExamId");
+CREATE UNIQUE INDEX "UX_OptPrescription_IdempotencyKey" ON public."OptPrescription" ("IdempotencyKey") WHERE "IdempotencyKey" IS NOT NULL; -- OPT-DEC-077
 ```
 
 ```sql
@@ -612,6 +632,7 @@ CREATE TABLE public."OptOrder" (
     "IsRemake"                           boolean       NOT NULL,
     "ParentOrderId"                      uuid         ,
     "Version"                            integer       NOT NULL,
+    "IdempotencyKey"                     uuid         ,  -- OPT-DEC-077
     -- kolom audit IdentityModel tidak ditulis ulang di sini
 
     CONSTRAINT "PK_OptOrder" PRIMARY KEY ("Id"),
@@ -635,6 +656,8 @@ CREATE INDEX "IX_OptOrder_PatientId" ON public."OptOrder" ("PatientId");
 CREATE INDEX "IX_OptOrder_PrescriptionId" ON public."OptOrder" ("PrescriptionId");
 CREATE INDEX "IX_OptOrder_ParentOrderId" ON public."OptOrder" ("ParentOrderId");
 CREATE INDEX "IX_OptOrder_ExternalLabSupplierId" ON public."OptOrder" ("ExternalLabSupplierId");
+CREATE INDEX "IX_OptOrder_PrescriptionVersionId" ON public."OptOrder" ("PrescriptionVersionId"); -- index FK otomatis EF (BE-OPT-002)
+CREATE UNIQUE INDEX "UX_OptOrder_IdempotencyKey" ON public."OptOrder" ("IdempotencyKey") WHERE "IdempotencyKey" IS NOT NULL; -- OPT-DEC-077
 ```
 
 ```sql
@@ -726,6 +749,7 @@ CREATE TABLE public."OptWarrantyClaim" (
     "DecisionReason"                varchar(500) ,
     "RemakeOrderId"                 uuid         ,
     "Version"                       integer       NOT NULL,
+    "IdempotencyKey"                uuid         ,  -- OPT-DEC-077
     -- kolom audit IdentityModel tidak ditulis ulang di sini
 
     CONSTRAINT "PK_OptWarrantyClaim" PRIMARY KEY ("Id"),
@@ -744,6 +768,9 @@ CREATE UNIQUE INDEX "UX_OptWarrantyClaim_ClaimNumber" ON public."OptWarrantyClai
 CREATE INDEX "IX_OptWarrantyClaim_OrderId" ON public."OptWarrantyClaim" ("OrderId");
 CREATE INDEX "IX_OptWarrantyClaim_EncounterId" ON public."OptWarrantyClaim" ("EncounterId");
 CREATE UNIQUE INDEX "UX_OptWarrantyClaim_RemakeOrderId" ON public."OptWarrantyClaim" ("RemakeOrderId") WHERE "RemakeOrderId" IS NOT NULL;
+CREATE INDEX "IX_OptWarrantyClaim_ExaminedByWorkforceProfileId" ON public."OptWarrantyClaim" ("ExaminedByWorkforceProfileId"); -- index FK otomatis EF (BE-OPT-002)
+CREATE INDEX "IX_OptWarrantyClaim_ReexamRefractionExamId" ON public."OptWarrantyClaim" ("ReexamRefractionExamId"); -- index FK otomatis EF (BE-OPT-002)
+CREATE UNIQUE INDEX "UX_OptWarrantyClaim_IdempotencyKey" ON public."OptWarrantyClaim" ("IdempotencyKey") WHERE "IdempotencyKey" IS NOT NULL; -- OPT-DEC-077
 ```
 
 ```sql
@@ -819,6 +846,7 @@ CREATE INDEX "IX_OptSettingRevision_SettingId_ChangedAt" ON public."OptSettingRe
 -- RegPatientEncounter: hanya perubahan. Bukan skrip untuk dijalankan.
 ALTER TABLE public."RegPatientEncounter" ADD "ReferralSourceEncounterId" uuid NULL;
 CREATE INDEX "IX_RegPatientEncounter_ReferralSourceEncounterId" ON public."RegPatientEncounter" ("ReferralSourceEncounterId");
-ALTER TABLE public."RegPatientEncounter" ADD CONSTRAINT "FK_RegPatientEncounter_RegPatientEncounter_ReferralSourceEncounterId"
+-- Nama FK lengkap 68 karakter melebihi batas PostgreSQL 63, sehingga EF memotongnya (BE-OPT-003).
+ALTER TABLE public."RegPatientEncounter" ADD CONSTRAINT "FK_RegPatientEncounter_RegPatientEncounter_ReferralSourceEncou~"
     FOREIGN KEY ("ReferralSourceEncounterId") REFERENCES public."RegPatientEncounter" ("Id") ON DELETE RESTRICT;
 ```

@@ -31,6 +31,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public decimal? BMI { get; set; }
         public int? EarlyWarningScore { get; set; }
         public EwsRiskLevel EwsRiskLevel { get; set; }
+        /// <summary>Anjuran pemantauan dari server menurut golongan EWS — BE-RWI-255 untuk FE-RWI-283.</summary>
+        public string? EwsMonitoringRecommendation { get; set; }
+        /// <summary>Penanda "perlu lapor dokter" yang disetel server saat simpan — BE-RWI-255 untuk FE-RWI-283.</summary>
+        public bool NeedDoctorNotification { get; set; }
         public bool IsAbnormal { get; set; }
         public bool IsCritical { get; set; }
         public bool IsExcludedFromChart { get; set; }

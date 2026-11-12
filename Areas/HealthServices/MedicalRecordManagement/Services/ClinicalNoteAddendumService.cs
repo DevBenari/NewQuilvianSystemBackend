@@ -61,6 +61,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             DateTime nowUtc,
             CancellationToken cancellationToken = default)
         {
+            var kewenangan = await ResolveAuthorityCoreAsync(
+                documentKind, documentId, actorUserId, actorHasSubstituteAuthority, nowUtc, cancellationToken);
+
+            // RM-DEC-084 (BE-43): dokumen Optik dikoreksi lewat versi baru, bukan addendum. IsAllowed
+            // tetap menurut aturan penulis, supaya addendum pengesahan atas dokumen Optik yang
+            // terkunci tanpa tanda tangan tidak ikut tertutup (RM-DEC-049).
+            if (KoreksiLewatRevisi.Contains(documentKind))
+            {
+                kewenangan.IsCorrectionAllowed = false;
+                kewenangan.Explanation = kewenangan.IsAllowed
+                    ? OptikRevisiMessage + " Pengesahan catatan yang terkunci tanpa tanda tangan tetap dapat dibuat di sini."
+                    : kewenangan.Explanation;
+            }
+
+            return kewenangan;
+        }
+
+        /// <summary>
+        /// Jenis dokumen yang dikoreksi lewat versi baru di modul pemiliknya, bukan addendum
+        /// (`RM-DEC-079`, `RM-DEC-084`, `VAL-RM-B01`). Hanya dua jenis Optik; modul lain yang ingin
+        /// memakai cara ini memerlukan keputusan `RM-DEC` tersendiri.
+        /// </summary>
+        public static readonly IReadOnlySet<ClinicalDocumentKind> KoreksiLewatRevisi = new HashSet<ClinicalDocumentKind>
+        {
+            ClinicalDocumentKind.OpticalRefraction,
+            ClinicalDocumentKind.OpticalPrescription
+        };
+
+        /// <summary>Bunyi `VAL-RM-B01` (kontrak 0.3.0).</summary>
+        public const string OptikRevisiMessage = "Koreksi dokumen Optik dibuat sebagai revisi di layar Optik.";
+
+        private async Task<AddendumAuthorityResponse> ResolveAuthorityCoreAsync(
+            ClinicalDocumentKind documentKind,
+            Guid documentId,
+            Guid actorUserId,
+            bool actorHasSubstituteAuthority,
+            DateTime nowUtc,
+            CancellationToken cancellationToken)
+        {
             var keutuhan = await _integrityService.FindAsync(documentKind, documentId, cancellationToken);
 
             if (keutuhan == null)
@@ -207,6 +246,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             {
                 return (IntegrityGuardResult.Denied(
                     StatusCodes.Status400BadRequest, "Maksud addendum tidak dikenal."), null);
+            }
+
+            // VAL-RM-B01 (BE-43): diperiksa sebelum isi, supaya pengguna langsung diarahkan ke layar
+            // Optik tanpa lebih dulu diminta melengkapi isian yang toh akan ditolak.
+            if (purpose == ClinicalNoteAddendumPurpose.Correction && KoreksiLewatRevisi.Contains(documentKind))
+            {
+                return (IntegrityGuardResult.Denied(
+                    StatusCodes.Status400BadRequest, OptikRevisiMessage), null);
             }
 
             if (string.IsNullOrWhiteSpace(addendumText))

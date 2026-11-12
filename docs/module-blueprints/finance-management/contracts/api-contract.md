@@ -1609,3 +1609,177 @@ Contract version: `FIN-API-1.11` — status `approved`. Pola mengikuti `DirectPa
 | Respons serah terima | + `DeferredConsentGivenBy` pada baris `EMPLOYEE_BENEFIT` |
 
 **Kode status tambahan:** `422` nama pemberi persetujuan kosong padahal wajib (`FIN-VAL-289`). Status: **Rencana (belum tersedia)**.
+
+## V. Revisi 22 (3 November 2026) — Benefit RS: Pengajuan, Persetujuan, Sinkronisasi Penjamin Pasien
+
+```yaml
+last_changed_in: FIN-API-1.12
+status: approved
+owner: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: 00-interview-decisions.md FIN-DEC-231..257; 02-backend-architecture.md bagian V
+compatibility: >
+  Aditif. Tidak ada endpoint yang dihapus atau diganti namanya. Dua endpoint berubah PERILAKU (approve, activate)
+  dan satu jalur validasi kunjungan menolak lebih banyak kasus. Field baru pada respons hanya ditambahkan.
+traceability: FIN-DEC-233..256; FIN-DES-109..126; FR-FIN-261..271
+```
+
+Semua respons memakai pembungkus `ApiResponse<T>` (`ApiResponse<T>.Ok(data, pesan)` / `ApiResponse<object>.Fail(kode, pesan)`).
+
+### V.1 `[Tags("Corporate / Human Resource / Benefit Management / Employee Benefit Enrollment")]`
+
+Base URL: `api/v1/corporate/human-resource/benefit-management/employee-benefit-enrollments`
+Contract version: `FIN-API-1.12` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/submit` | **Ajukan Benefit**: membuat enrollment langsung `Submitted` dalam satu transaksi (`FIN-DES-109`) | `EmployeeBenefitEnrollment : Create` | `CreateEmployeeBenefitEnrollmentRequest` (sama dengan `POST /`) | `201` `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/approve` | Setujui; **mengaktifkan** di transaksi yang sama bila tanggal mulai sudah tiba (`FIN-DES-110`) | `EmployeeBenefitEnrollment : Approve` | `EnrollmentTransitionRequest` (`rowVersion`, `notes`) | `200` `ApiResponse<EmployeeBenefitEnrollmentResponse>` dengan `enrollmentStatus` `Active` atau `Approved`, plus `patientCardSync` | Sudah ada — **perilaku berubah (Rencana)** |
+| `POST` | `/{id}/activate` | Aktifkan manual (cadangan penjadwal); **menolak** tanggal mulai di masa depan | `EmployeeBenefitEnrollment : Activate` | `EnrollmentTransitionRequest` | `200` `ApiResponse<EmployeeBenefitEnrollmentResponse>` | Sudah ada — **perilaku berubah (Rencana)** |
+| `POST` | `/{id}/patient-card-sync` | **Sinkronkan ulang** kartu penjamin pasien (`FIN-DES-121`) | `EmployeeBenefitEnrollment : SyncPatientCard` | tanpa body | `200` `ApiResponse<PatientCardSyncSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar enrollment; **query baru** `patientCardSyncStatus`; **field baru** per baris | `EmployeeBenefitEnrollment : Read` | `EmployeeBenefitEnrollmentPagedQuery` | `200` `ApiResponse<PagedResult<EmployeeBenefitEnrollmentListResponse>>` | Sudah ada — **aditif (Rencana)** |
+| `GET` | `/{id}` | Detail; **field baru** `patientCardSync`; `availableActions` dapat memuat `SyncPatientCard` | `EmployeeBenefitEnrollment : Read` | — | `200` `ApiResponse<EmployeeBenefitEnrollmentResponse>` | Sudah ada — **aditif (Rencana)** |
+
+`POST /`, `PUT /{id}`, `POST /{id}/submit`, `POST /{id}/cancel` **tidak berubah** dan tetap melayani Draft lama.
+
+**DTO baru/diubah**
+
+| DTO | Jenis | Field |
+|---|---|---|
+| `PatientCardSyncSummaryResponse` (baru) | Response | `status` (`SYNCED`/`WAITING_PATIENT`/`ON_HOLD`/`FAILED_RETRYABLE`/`REVOKED`/`NOT_STARTED`), `reasonCode`, `reasonLabel` (teks Indonesia), `attemptCount`, `lastAttemptAt`, `nextAttemptAt`, `syncedAt`. **Tidak** memuat ID, nama, atau RM pasien |
+| `EmployeeBenefitEnrollmentListResponse` (diubah) | Response | + `patientCardSyncStatus` (`string?`; `null` bila enrollment belum `Active`) |
+| `EmployeeBenefitEnrollmentResponse` (diubah) | Response | + `patientCardSync` (`PatientCardSyncSummaryResponse?`) |
+| `EmployeeBenefitEnrollmentPagedQuery` (diubah) | PagedQuery | + `patientCardSyncStatus` (`string?`) |
+
+`NOT_STARTED` adalah nilai tampilan untuk enrollment `Active` yang belum punya catatan (misalnya diaktifkan sebelum
+`ActivationCutoffUtc`); ia bukan nilai yang disimpan.
+
+**Kode status dan artinya**
+
+| Kode | Arti bagi pengguna |
+|---|---|
+| `201` | Pengajuan tersimpan dan langsung berstatus Diajukan |
+| `200` | Persetujuan atau aktivasi berhasil; baca `enrollmentStatus` (Aktif atau Disetujui) dan `patientCardSync` |
+| `400` | Tindakan tidak sah untuk status sekarang (misalnya menyetujui yang sudah Aktif; sinkronkan ulang yang belum Aktif) |
+| `403` | Tidak punya hak akses tindakan ini |
+| `404` | Enrollment tidak ditemukan |
+| `409` | Data diubah petugas lain (`rowVersion` lama) atau sudah ada pengajuan terbuka pada plan yang sama |
+| `422` | Isian tidak lolos aturan: penerima, plan, tanggal, dokter tamu, syarat aktivasi, atau aktivasi sebelum tanggal mulai |
+
+Contoh respons `POST /{id}/approve` ketika tanggal mulai sudah tiba:
+
+```json
+{
+  "success": true,
+  "message": "Enrollment benefit disetujui dan diaktifkan.",
+  "data": {
+    "id": "a1b2…",
+    "enrollmentNumber": "BEN000123",
+    "enrollmentStatus": "Active",
+    "rowVersion": "9f3c…",
+    "patientCardSync": { "status": "SYNCED", "reasonCode": null, "reasonLabel": "Kartu terpasang", "attemptCount": 1 }
+  }
+}
+```
+
+### V.2 `[Tags("Health Services / Patient Management / Master Data / Patient Company Guarantor")]`
+
+Base URL: `api/v1/health-services/patient-management/master-data/patient-company-guarantors`
+Contract version: `FIN-API-1.12` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/`, `/kiosk`, `/admin` | Daftar kartu pasien; **field baru** status benefit hidup untuk kartu internal (`FIN-DES-119`) | `KioskRead` / `PatientCompanyGuarantor : Read` (tidak berubah) | Query sama | `200` `ApiResponse<PagedResult<PatientCompanyGuarantorResponse>>` | Sudah ada — **aditif (Rencana)** |
+| `GET` | `/{id}`, `/admin/{id}` | Detail kartu; field baru yang sama | `PatientCompanyGuarantor : Read` | — | `200` `ApiResponse<PatientCompanyGuarantorDetailResponse>` | Sudah ada — **aditif (Rencana)** |
+| `POST` | `/`, `/kiosk`, `/admin` | Daftarkan kartu. Untuk penjamin internal, Frontend **wajib** mengirim `benefitOwnerWorkforceProfileId` (dan `familyMemberId` bila keluarga). Pesan 422 per keadaan (`FIN-DES-124`) | Tidak berubah | `CreatePatientCompanyGuarantorRequest` (tidak berubah) | Tidak berubah | Sudah ada — **pesan berubah** |
+| `POST` | `/internal-benefit-card` | Gunakan Benefit Karyawan saat registrasi. Kontrak tidak berubah; isi dipindah ke `InternalBenefitCardService` | `PatientCompanyGuarantor : CreateInternalBenefitCard` | `EnsureInternalBenefitCardRequest` | Tidak berubah | Sudah ada |
+
+**Field baru pada `PatientCompanyGuarantorResponse` dan `PatientCompanyGuarantorDetailResponse`**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `isEmployeeBenefitGuarantor` | `bool` | Penjamin kartu bertanda internal |
+| `employeeBenefitStatus` | objek atau `null` | Hanya untuk kartu internal. `state` (`ACTIVE`, `NOT_YET_EFFECTIVE`, `ENDED`, `NOT_ACTIVE`, `NOT_ELIGIBLE`, `HR_UNAVAILABLE`, `NOT_LINKED`), `label` (Indonesia), `enrollmentNumber`, `planName`, `effectiveStartDate`, `effectiveEndDate`, `message`. Tidak memuat saldo plafon |
+
+Contoh: kartu Rendy pada 2 November setelah benefit berakhir 31 Oktober →
+`"employeeBenefitStatus": { "state": "ENDED", "label": "Kedaluwarsa", "enrollmentNumber": "BEN000123", "effectiveEndDate": "2026-10-31" }`.
+
+### V.3 `[Tags("Health Services / Patient Management / Master Data / Employee Benefit Card Sync")]`
+
+Base URL: `api/v1/health-services/patient-management/master-data/employee-benefit-card-syncs`
+Contract version: `FIN-API-1.12` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar kerja Registrasi (`FIN-DES-120`) | `EmployeeBenefitCardSync : Read` | `EmployeeBenefitCardSyncPagedQuery`: `status` (boleh lebih dari satu; bawaan `WAITING_PATIENT,ON_HOLD`), `search` (nomor enrollment, nama atau nomor staf pemilik), `pageNumber`, `pageSize` | `200` `ApiResponse<PagedResult<EmployeeBenefitCardSyncListResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Jumlah per status | `EmployeeBenefitCardSync : Read` | — | `200` `ApiResponse<EmployeeBenefitCardSyncSummaryResponse>` | **Rencana (belum tersedia)** |
+
+`EmployeeBenefitCardSyncListResponse`: `syncId`, `enrollmentId`, `enrollmentNumber`, `ownerName`, `ownerStaffNumber`,
+`ownerType` (`EMPLOYEE`/`DOCTOR`), `planName`, `status`, `reasonCode`, `reasonLabel`, `attemptCount`, `lastAttemptAt`.
+**Tidak** memuat data pasien. Kode `400` bila `status` tidak dikenal (`FIN-VAL-299`).
+
+### V.4 Endpoint yang perilaku validasinya berubah (tanpa perubahan bentuk) — `S9`
+
+| Tag | Base URL | Method dan path | Hak akses | Perubahan |
+|---|---|---|---|---|
+| `Health Services / Registration Management / Patient Encounter` | `api/v1/health-services/registration-management/patient-encounters` | `POST /admin`, `POST /`, `POST /kiosk` | `PatientEncounter : Create` / `KioskRead` (tidak berubah) | Kartu hasil sinkronisasi yang identitas pasiennya tidak lagi cocok ditolak. Envelope: **400** dengan pesan (`FIN-DES-126`, usulan; pemilik memilih) |
+| `Health Services / Billing Management / Billing / Invoices` | `api/v1/health-services/billing-management/billing/invoices` | `PUT /{id}/payment-source` | `BillingInvoice : Update` (tidak berubah) | Sama; **422** dengan kode `PATIENT_IDENTITY_MISMATCH` (envelope jalur ini sudah 422) |
+| `Health Services / Registration Management / Employee Benefit Lookup` | `api/v1/health-services/registration-management/employee-benefit-lookups` | `GET /workforce-profiles` | `EmployeeBenefitLookup : Read` (tidak berubah) | Dokter tamu dan SDM batal tidak lagi muncul (`FIN-DES-123`) |
+
+Transfer rawat inap memakai jalur yang sama dengan ganti penanggung (`InitializeAdmissionAsync` → `SwitchPaymentSourceAsync`) sehingga ikut berubah tanpa endpoint baru.
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+```
+
+**Tidak ada endpoint baru.** Endpoint yang sudah ada mendapat perubahan **tambahan** berikut. Klien lama tidak terdampak
+karena semua field baru boleh `null` atau bernilai bawaan, dan dokumen BLM belum ada sebelum integrasi.
+
+### W.1 `[Tags("Corporate / Finance Management / Purchasing / Goods Receipt")]` — base URL `api/v1/corporate/finance-management/purchasing/goods-receipts`
+
+| Method | Path | Perubahan | Hak akses | Kode status |
+|---|---|---|---|---|
+| `POST` | `/` | Ditolak bila PO bertanda `BLM` (`FIN-VAL-315`) | Tetap (`[AccessPermission("FinanceGoodsReceipt", "Create")]`) | Tambahan **409** `PURCHASING_EXTERNAL_DOCUMENT` |
+| `PUT` | `/{id}` | Ditolak bila GR bertanda `BLM` | Tetap (`"FinanceGoodsReceipt", "Update"`) | Tambahan **409** |
+| `POST` | `/{id}/cancel` | Ditolak bila GR bertanda `BLM` | Tetap (`"FinanceGoodsReceipt", "Cancel"`) | Tambahan **409** |
+| `GET` | `/`, `/{id}`, `/{id}/document-trail` | Respons: `sourceSystem`; item: `conditionCode`, `sourceQuantity`, `sourceUomCode`, `quantityPerBaseUnit`, `baseUomCode`, `baseQuantity`, `acceptedBaseQuantity` (semua `null` untuk GR lama) | Tetap | Tetap |
+
+Path relatif terhadap base URL `FinanceGoodsReceiptsController` (`VERIFIED`).
+
+**Contoh respons 409:**
+
+```json
+{
+  "success": false,
+  "statusCode": 409,
+  "message": "Penerimaan barang untuk PO dari BLM dicatat di BLM. Perubahan dan pembatalannya juga dilakukan dari BLM.",
+  "data": null,
+  "errors": { "code": "PURCHASING_EXTERNAL_DOCUMENT" },
+  "timestamp": "2026-11-10T10:15:00"
+}
+```
+
+Bentuk di atas adalah `ApiResponse<T>` standar yang dipakai semua endpoint: kode galat ada di `errors.code`, bukan di
+tingkat atas. Klien membaca `message` untuk ditampilkan dan `errors.code` bila perlu bercabang. Contoh sebelumnya
+(`code` di tingkat atas) **dikoreksi** pada 10 November 2026 atas keputusan pemilik (`FIN-DEC-292`); ini koreksi contoh,
+bukan perubahan perilaku, sehingga versi `FIN-API-1.13` tidak dinaikkan.
+
+### W.2 `[Tags("Corporate / Finance Management / Purchasing / Purchase Order")]` — base URL `api/v1/corporate/finance-management/purchasing/purchase-orders`
+
+| Method | Path | Perubahan | Kode status |
+|---|---|---|---|
+| `GET` | `/`, `/{id}` | Respons: `sourceSystem` (bawaan `QUILVIAN`) | Tetap |
+
+### W.3 Jejak dokumen (`ItemProgress`)
+
+`PurchasingTrailItemProgress` mendapat `sourceSystem`, `baseUomCode`, `orderedBaseQuantity`, `physicalBaseQuantity`,
+`acceptedBaseQuantity`, `pendingInspectionBaseQuantity`, `damagedBaseQuantity`, `remainingBaseQuantity`,
+`isConversionResolved`. Untuk PO lama semuanya `null` kecuali `sourceSystem = "QUILVIAN"`; `orderedQuantity`,
+`receivedQuantity`, `remainingQuantity` lama tetap ada dan tetap terisi.
+
+Endpoint penerima kiriman BLM, endpoint pemetaan supplier, dan endpoint konflik dirancang di slice integrasi.

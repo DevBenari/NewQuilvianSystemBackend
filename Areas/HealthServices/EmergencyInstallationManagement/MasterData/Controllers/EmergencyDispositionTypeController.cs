@@ -42,6 +42,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDispositionTypeFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Disposition Type", Description = "Melihat metadata filter tipe disposisi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDispositionType", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyDispositionTypeFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyDispositionTypeDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "sequence", "code", "name", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyDispositionTypeFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter tipe disposisi IGD berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDispositionTypeSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Disposition Type", Description = "Melihat ringkasan tipe disposisi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDispositionType", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgDispositionType>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyDispositionTypeSummaryResponse
+            {
+                TotalDispositionType = await query.CountAsync(cancellationToken),
+                ActiveDispositionType = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveDispositionType = await query.CountAsync(x => !x.IsActive, cancellationToken),
+                RequiresDestinationServiceUnit = await query.CountAsync(x => x.RequiresDestinationServiceUnit, cancellationToken),
+                RequiresReferralFacility = await query.CountAsync(x => x.RequiresReferralFacility, cancellationToken),
+                ClosesEmergencyVisit = await query.CountAsync(x => x.ClosesEmergencyVisit, cancellationToken),
+                RequiresAdmissionRequest = await query.CountAsync(x => x.RequiresAdmissionRequest, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyDispositionTypeSummaryResponse>.Ok(
+                summary,
+                "Ringkasan tipe disposisi IGD berhasil diambil."
+            ));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyDispositionTypeResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Disposition Type", Description = "Melihat data master tindak lanjut IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

@@ -3,14 +3,15 @@
 | Field | Nilai |
 | --- | --- |
 | Konteks | `BC-OPT-02` Optik — Pesanan & Layanan Purna |
-| Revision | `1` — `draft` |
-| Keputusan | `OPT-DEC-010`, `013`, `015`, `016`, `018`, `019`, `020`, `028`, `029`, `034`, `035`, `038`, `041`, `043`, `044`, `048`, `049` |
+| Revision | `3` — `approved`, Yoga Aji Pratama 2026-11-06. Hanya label yang berubah dari r2: kolom `IdempotencyKey` kini tersedia |
+| Keputusan | `OPT-DEC-010`, `013`, `015`, `016`, `018`, `019`, `020`, `028`, `029`, `034`, `035`, `038`, `041`, `043`, `044`, `048`, `049`, `077` |
 
 ```mermaid
 erDiagram
     OptOrder {
         uuid Id PK
         varchar OrderNumber UK "OPT-ORD-..."
+        uuid IdempotencyKey UK "kirim ganda"
         uuid EncounterId FK "milik Registrasi"
         uuid PatientId FK
         int OrderKind "Fabrication/DirectSale/Remake"
@@ -60,6 +61,7 @@ erDiagram
     OptWarrantyClaim {
         uuid Id PK
         varchar ClaimNumber UK "OPT-CLM-..."
+        uuid IdempotencyKey UK "kirim ganda"
         uuid OrderId FK "pesanan asal"
         uuid EncounterId FK "kunjungan keluhan"
         int ComplaintType

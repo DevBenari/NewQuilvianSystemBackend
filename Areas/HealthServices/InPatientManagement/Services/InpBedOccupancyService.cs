@@ -44,7 +44,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     {
         /// <summary>Alasan tidak layak yang lebih tepat daripada <c>BED_NOT_READY</c> (FIX-EPS-040-16).</summary>
         private static readonly HashSet<string> SpecificUnavailableCodes =
-            ["BED_INACTIVE", "BED_CLOSED", "BED_RESERVED_BY_OTHER", "BED_OCCUPIED_BY_OTHER"];
+            ["BED_INACTIVE", "BED_CLOSED", "BED_RESERVED_BY_OTHER", "BED_OCCUPIED_BY_OTHER", "SERVICE_UNIT_REGISTRATION_UNAVAILABLE"];
 
         private readonly ApplicationDbContext _dbContext;
         private readonly InpBedMutationCoordinator _bedCoordinator;
@@ -1691,6 +1691,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (context == InpPlacementContext.Reservation && !bed.IsReservable)
             {
                 result.Add(1, "BED_NOT_RESERVABLE", "Tempat tidur ini tidak dapat dipesan.", 422);
+            }
+
+            if (context == InpPlacementContext.Reservation && room.ServiceUnit != null && !room.ServiceUnit.IsAvailableForRegistration)
+            {
+                result.Add(1, "SERVICE_UNIT_REGISTRATION_UNAVAILABLE", "Unit layanan untuk kamar ini sedang tidak tersedia untuk registrasi rawat inap.", 422);
             }
 
             // --- Aturan 2 dan 3: tempat tidur tidak dipegang episode lain -----------------

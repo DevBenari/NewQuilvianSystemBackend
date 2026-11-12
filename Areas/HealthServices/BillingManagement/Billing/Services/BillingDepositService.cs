@@ -570,7 +570,8 @@ public sealed class BillingDepositService
         Guid idempotencyKey,
         Guid actorUserId,
         CancellationToken cancellationToken,
-        bool deferAudit = false)
+        bool deferAudit = false,
+        bool requireBankTransferDetails = false)
     {
         ValidateTopUpRequest(encounterId, request, idempotencyKey);
         var payloadHash = ComputeTopUpPayloadHash(encounterId, request);
@@ -638,6 +639,9 @@ public sealed class BillingDepositService
                 paymentMethod.IsMembership, paymentMethod.IsNeedReferenceNumber,
                 paymentMethod.IsNeedApproval, paymentMethod.IsNeedAttachment,
                 paymentMethod.PaymentMethodName, request.ReferenceNumber);
+            await EnsureBankTransferDetailsAsync(
+                paymentMethod, request.PaymentMethodAccountId, request.ReferenceNumber,
+                requireBankTransferDetails, cancellationToken);
             BilCashierShift? cashierShift = null;
             if (paymentMethod.IsCash)
             {
@@ -1011,6 +1015,57 @@ public sealed class BillingDepositService
         if (needsReference && string.IsNullOrWhiteSpace(referenceNumber))
             throw new BillingDepositValidationException(
                 $"Metode {paymentMethodName} mewajibkan nomor referensi / nomor transaksi.");
+    }
+
+    /// <summary>
+    /// Syarat penerimaan transfer bank pada deposit. Rekening penerima berasal dari master rekening metode
+    /// pembayaran (<c>MstPaymentMethodAccount</c>), yaitu entitas yang sama dengan yang dibaca riwayat deposit,
+    /// kwitansi, dan serah-terima ke Finance lewat <c>PaymentMethodAccountId</c>; ID rekening master lain
+    /// (mis. <c>MstBankAccount</c> milik Finance) tidak pernah diterima di kolom ini.
+    ///
+    /// - Jalur kasir (<paramref name="requireForBankTransfer"/>) pada metode berflag transfer bank:
+    ///   rekening tujuan WAJIB dipilih dan nomor referensi transfer WAJIB diisi. Referensi hanya dicatat sebagai
+    ///   catatan kasir; tidak ada klaim verifikasi bank otomatis, konfirmasi penerimaan dana tetap oleh kasir.
+    /// - Rekening yang diisi (jalur apa pun) harus milik metode itu, aktif, belum dihapus, dan datanya lengkap.
+    /// - Jalur yang tidak membawa rekening (mis. penerimaan saat admisi transfer) tidak diwajibkan apa pun.
+    /// Pesan kesalahan tidak memuat nomor rekening.
+    /// </summary>
+    private async Task EnsureBankTransferDetailsAsync(
+        MstPaymentMethod paymentMethod,
+        Guid? paymentMethodAccountId,
+        string? referenceNumber,
+        bool requireForBankTransfer,
+        CancellationToken cancellationToken)
+    {
+        if (requireForBankTransfer && paymentMethod.IsBankTransfer)
+        {
+            if (!paymentMethodAccountId.HasValue)
+                throw new BillingDepositValidationException(
+                    "Rekening bank tujuan rumah sakit wajib dipilih untuk pembayaran transfer bank.");
+            if (string.IsNullOrWhiteSpace(referenceNumber))
+                throw new BillingDepositValidationException(
+                    $"Metode {paymentMethod.PaymentMethodName} mewajibkan nomor referensi transfer.");
+        }
+
+        if (!paymentMethodAccountId.HasValue)
+            return;
+
+        var account = await _dbContext.MstPaymentMethodAccounts.AsNoTracking()
+            .Where(a => a.Id == paymentMethodAccountId.Value
+                && a.PaymentMethodId == paymentMethod.Id
+                && a.IsActive
+                && !a.IsDelete)
+            .Select(a => new { a.BankName, a.AccountNumber, a.AccountHolderName })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (account is null)
+            throw new BillingDepositValidationException(
+                "Rekening bank tujuan rumah sakit tidak valid atau tidak aktif.");
+
+        if (string.IsNullOrWhiteSpace(account.BankName)
+            || string.IsNullOrWhiteSpace(account.AccountNumber)
+            || string.IsNullOrWhiteSpace(account.AccountHolderName))
+            throw new BillingDepositValidationException(
+                "Data rekening bank tujuan belum lengkap di master data (bank, nomor rekening, atau nama pemilik). Hubungi admin master data.");
     }
 
     private async Task<(bool IsEligible, string? Reason)> ResolveTopUpEligibilityAsync(

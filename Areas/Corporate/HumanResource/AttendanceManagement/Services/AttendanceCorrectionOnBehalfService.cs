@@ -143,6 +143,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 OnBehalfNotifiedAt = now,
                 RequestedByUserId = hrActorUserId,
                 RequestedByWorkforceProfileId = hrWorkforceProfileId,
+                EvidenceFilePath = request.EvidenceFilePath,
+                EvidenceFileName = request.EvidenceFileName,
+                EvidenceContentType = request.EvidenceContentType,
                 CreateBy = hrActorUserId,
                 CreateDateTime = now,
                 IsActive = true

@@ -38,6 +38,18 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasDefaultValue(OvertimeValueConstants.PlanStatus.Draft)
                 .IsRequired();
 
+            entity.Property(x => x.CompensationType)
+                .HasMaxLength(50)
+                .HasDefaultValue("FinancialPayout")
+                .IsRequired();
+
+            entity.Property(x => x.IsEmergencyEscalation)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.WeeklyQuotaHoursAtPlan)
+                .HasPrecision(5, 2)
+                .IsRequired(false);
+
             entity.Property(x => x.ValidatedAt)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
@@ -150,6 +162,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 x.PlanStatus,
                 x.IsDelete
             });
+
+            entity.HasIndex(x => new
+            {
+                x.OrganizationUnitId,
+                x.PlanStartDate,
+                x.PlanStatus
+            }).HasDatabaseName("idx_ot_plan_date_unit");
         }
     }
 }

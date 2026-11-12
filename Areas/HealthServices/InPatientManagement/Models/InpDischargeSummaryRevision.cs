@@ -35,6 +35,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(2000)]
         public string? FollowUpInstruction { get; set; }
 
+        /// <summary>Salinan tanggal kontrol versi sebelumnya — <c>BE-RWI-256</c>.</summary>
+        public DateOnly? FollowUpDate { get; set; }
+
+        /// <summary>Salinan poliklinik kontrol versi sebelumnya; salinan riwayat, tanpa relasi.</summary>
+        public Guid? FollowUpServiceUnitId { get; set; }
+
+        /// <summary>Salinan dokter kontrol versi sebelumnya; salinan riwayat, tanpa relasi.</summary>
+        public Guid? FollowUpDoctorId { get; set; }
+
         [MaxLength(250)]
         public string? ReferralDestination { get; set; }
 

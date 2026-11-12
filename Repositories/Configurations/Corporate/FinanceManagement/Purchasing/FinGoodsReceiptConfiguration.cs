@@ -11,6 +11,10 @@ public sealed class FinGoodsReceiptConfiguration : IEntityTypeConfiguration<FinG
         entity.ToTable("FinGoodsReceipt", "public", table =>
         {
             table.HasCheckConstraint("CK_FinGoodsReceipt_Status", "\"Status\" IN ('RECEIVED','CANCELLED')");
+            table.HasCheckConstraint("CK_FinGoodsReceipt_SourceSystem", "\"SourceSystem\" IN ('QUILVIAN','BLM')");
+            // FIN-VAL-301: identitas eksternal terisi jika dan hanya jika sumbernya BLM.
+            table.HasCheckConstraint("CK_FinGoodsReceipt_ExternalIdentity",
+                "(\"SourceSystem\" = 'BLM' AND \"ExternalReceiveOrderId\" IS NOT NULL) OR (\"SourceSystem\" <> 'BLM' AND \"ExternalReceiveOrderId\" IS NULL)");
         });
         entity.HasKey(x => x.Id);
 
@@ -18,6 +22,10 @@ public sealed class FinGoodsReceiptConfiguration : IEntityTypeConfiguration<FinG
         entity.Property(x => x.ReceivedDate).HasColumnType("date");
         entity.Property(x => x.Status).HasMaxLength(20).IsRequired().HasDefaultValue(FinGoodsReceiptStatuses.Received);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
+
+        entity.Property(x => x.SourceSystem).HasMaxLength(20).IsRequired().HasDefaultValue(FinPurchasingSourceSystems.Quilvian);
+        entity.Property(x => x.ExternalUpdatedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.LastSyncedAt).HasColumnType("timestamp with time zone");
 
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
         entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
@@ -34,5 +42,10 @@ public sealed class FinGoodsReceiptConfiguration : IEntityTypeConfiguration<FinG
 
         entity.HasIndex(x => x.GRNumber).IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinGoodsReceipt_GRNumber");
         entity.HasIndex(x => x.PurchaseOrderId).HasDatabaseName("IX_FinGoodsReceipt_PurchaseOrderId");
+        // FIN-VAL-302: satu GR BLM hanya boleh masuk satu kali.
+        entity.HasIndex(x => new { x.SourceSystem, x.ExternalReceiveOrderId })
+            .IsUnique()
+            .HasFilter("\"ExternalReceiveOrderId\" IS NOT NULL AND \"IsDelete\" = false")
+            .HasDatabaseName("IX_FinGoodsReceipt_SourceSystem_ExternalReceiveOrderId");
     }
 }

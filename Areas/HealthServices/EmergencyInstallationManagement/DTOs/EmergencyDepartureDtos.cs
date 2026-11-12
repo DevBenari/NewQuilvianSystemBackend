@@ -338,4 +338,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [MaxLength(1000)]
         public string? RejectionReason { get; set; }
     }
+
+    public class EmergencyDepartureOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public EmergencyPhysicalStatus PhysicalStatus { get; set; }
+        public EmergencyHandoverStatus HandoverStatus { get; set; }
+        public DateTime RequestedAt { get; set; }
+    }
+
+    public class EmergencyDepartureSummaryResponse
+    {
+        public int TotalDeparture { get; set; }
+        public int PendingDeparture { get; set; }
+        public int DepartedCount { get; set; }
+        public int ArrivedCount { get; set; }
+        public int HandoverAcceptedCount { get; set; }
+        public int HandoverRejectedCount { get; set; }
+    }
+
+    public class EmergencyDepartureDefaultFilterResponse
+    {
+        public Guid? EmergencyVisitId { get; set; }
+        public EmergencyPhysicalStatus? PhysicalStatus { get; set; }
+        public EmergencyHandoverStatus? HandoverStatus { get; set; }
+        public Guid? ToServiceUnitId { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyDepartureFilterMetadataResponse
+    {
+        public EmergencyDepartureDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "requestedat", "createdatetime" };
+    }
 }

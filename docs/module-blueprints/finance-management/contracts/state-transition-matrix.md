@@ -855,3 +855,121 @@ atau `TERTUNGGAK` bila selisihnya negatif.
 | Lebih awal | Diizinkan (termasuk koreksi) | Ditolak |
 | Sama atau lebih akhir | Ditolak | Diizinkan |
 | Belum ada nilai | Diizinkan | Ditolak (mesin belum ada) |
+
+## V. Revisi 22 (3 November 2026) — Enrollment Benefit RS dan Catatan Hasil Sinkronisasi Kartu
+
+```yaml
+last_changed_in: FIN-STATE-1.11
+status: approved
+owner: Pemilik HR dan Registrasi (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: FIN-DEC-233..256; FIN-DES-110, 111, 116..118
+compatibility: Status enrollment tidak bertambah. Lintasan Submitted → Active (lewat Setujui) baru. Status catatan sinkronisasi baru seluruhnya.
+```
+
+### V.1 Enrollment benefit (`TrxEmployeeBenefitEnrollment.EnrollmentStatus`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (belum ada) | Ajukan Benefit | `Submitted` | `EmployeeBenefitEnrollment : Create` | Penerima sah dari HR (bukan dokter tamu), plan aktif, periode sah, tidak ada enrollment terbuka pada plan yang sama | 422 / 409; **tidak ada** baris tersimpan |
+| (belum ada) | Simpan Draft (endpoint lama) | `Draft` | `… : Create` | Sama | Sama |
+| `Draft` | Ajukan | `Submitted` | `… : Submit` | `rowVersion` cocok | 409 / 400 |
+| `Submitted` | Setujui, tanggal mulai ≤ hari ini | **`Active`** | `… : Approve` (pengaju boleh menyetujui sendiri, `FIN-DEC-233`) | Syarat aktivasi: plan punya batas plafon > 0; tidak beririsan dengan benefit Medical `Active` lain | 422; **status tetap `Submitted`**, tidak ada jejak disetujui (`FIN-DEC-234`) |
+| `Submitted` | Setujui, tanggal mulai > hari ini | `Approved` | `… : Approve` | `rowVersion` cocok | 409 |
+| `Approved` | Penjadwal, tanggal mulai ≤ hari ini dan periode belum lewat | `Active` | Akun layanan sistem | Syarat aktivasi sama | Tetap `Approved`; galat dicatat, dicoba putaran berikut |
+| `Approved` | Penjadwal, seluruh periode sudah lewat | **tetap `Approved`** | — | — | Dicatat di log; HRD membatalkan manual (`FIN-OQ-127`, usulan) |
+| `Approved` | Aktifkan manual, tanggal mulai ≤ hari ini | `Active` | `… : Activate` | Syarat aktivasi sama | 422 |
+| `Approved` | Aktifkan manual, tanggal mulai > hari ini | **ditolak** | — | — | 422 `FIN-VAL-291` |
+| `Active` | Setujui atau Aktifkan lagi | **ditolak** | — | — | 400; saldo awal **tidak** diatur ulang |
+| `Draft`, `Submitted`, `Approved`, `Active` | Batal | `Cancelled` | `… : Cancel` | Alasan wajib | 400 / 422 |
+| `Cancelled` | Tindakan apa pun | **ditolak** | — | — | 400 |
+| `Active` lewat tanggal akhir | (tidak ada transisi) | tetap `Active` | — | Masa berlaku dibaca dari tanggal; **tidak ada** status `Expired` yang diisi sistem (`FIN-DEC-242`) | — |
+
+### V.2 Catatan hasil sinkronisasi kartu (`PatEmployeeBenefitCardSync.SyncStatus`)
+
+| Dari status | Pemicu | Ke status | Siapa | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (belum ada) | Aktivasi berhasil, penjadwal, atau Sinkronkan ulang | `SYNCED` / `WAITING_PATIENT` / `ON_HOLD` / `FAILED_RETRYABLE` | Sistem; HRD untuk Sinkronkan ulang | Enrollment `Active`; untuk penjadwal, diaktifkan sejak `ActivationCutoffUtc` | Enrollment tidak `Active` → tidak dibuat; Sinkronkan ulang 400 |
+| `WAITING_PATIENT` | Penjadwal (jatuh tempo) atau Sinkronkan ulang | Salah satu dari empat hasil | Sistem / HRD | Enrollment `Active` | — |
+| `FAILED_RETRYABLE` | Penjadwal (jatuh tempo) atau Sinkronkan ulang | Salah satu dari empat hasil | Sistem / HRD | Enrollment `Active` | — |
+| `ON_HOLD` | Penjadwal | **tetap `ON_HOLD`** | — | Tidak diproses otomatis | — |
+| `ON_HOLD` | Sinkronkan ulang | Salah satu dari empat hasil | HRD | Biasanya sesudah Registrasi memperbaiki data atau mendaftarkan kartu manual | — |
+| `SYNCED` | Kartu dinonaktifkan atau dihapus petugas, enrollment masih `Active` | `REVOKED` | Sistem (deteksi oleh penjadwal) | — | — |
+| `SYNCED` | Sinkronkan ulang, kartu masih aktif | tetap `SYNCED` (tanpa perubahan) | HRD | Idempoten | — |
+| `REVOKED` | Penjadwal | **tetap `REVOKED`** | — | Tidak dipasang ulang otomatis (`FIN-DEC-253`) | — |
+| `REVOKED` | Sinkronkan ulang | Salah satu dari empat hasil | HRD | Sesudah data pasien dibetulkan | — |
+| `SYNCED` | Enrollment `Cancelled` | tetap `SYNCED`; **kartu dinonaktifkan** | Sistem | — | Bila penonaktifan gagal, penjadwal mengulangnya; kartu tetap tidak dapat dipakai karena kelayakan HR menolak |
+| `WAITING_PATIENT`, `ON_HOLD`, `FAILED_RETRYABLE` | Enrollment `Cancelled` | tidak berubah, **tidak diproses lagi** | — | `FIN-GAP-014` | — |
+
+### V.3 Kartu internal pasien (`MstPatientCompanyGuarantor.IsActive`) — titik sentuh
+
+| Dari | Tindakan | Ke | Siapa | Catatan |
+|---|---|---|---|---|
+| (belum ada) | Sinkronisasi memasang | `IsActive = true` | Sistem | Utama hanya bila pasien belum punya kartu utama aktif |
+| `IsActive = true` | Enrollment dibatalkan | `IsActive = false`, `IsPrimary = false` | Sistem | Tidak dihapus |
+| `IsActive = true` | Registrasi mencabut (jalur status yang sudah ada) | `IsActive = false` | `PatientCompanyGuarantor : Update` | Catatan menjadi `REVOKED` |
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+```
+
+Pengolah kiriman belum dibangun (slice integrasi). Matriks ini mengunci arti setiap status. Bagian W.4 berlaku
+**sekarang** karena dijalankan `FinanceGoodsReceiptService`.
+
+### W.1 Kotak masuk (`FinPurchasingInboundMessage.ProcessingStatus`)
+
+| Dari | Ke | Pemicu | Syarat | Akhir? |
+|---|---|---|---|---|
+| — | `RECEIVED` | Kiriman BLM disimpan | `EventId` belum ada untuk `SourceSystem` itu | Tidak |
+| `RECEIVED` | `APPLIED` | Pengolah menerapkan ke PO/GR | Supplier terpetakan; setiap item membawa konversi pasti; tidak ada konflik; tidak lebih lama dari `ExternalUpdatedAt` dokumen | **Ya** |
+| `RECEIVED` | `WAITING_MAPPING` | Supplier BLM belum dipetakan | `LastErrorCode = SUPPLIER_NOT_MAPPED`; `NextAttemptAt` diisi | Tidak |
+| `RECEIVED`, `WAITING_MAPPING` | `CONFLICT` | Tabrakan nomor; isi berbeda untuk `EventId` sama; pembatalan BLM atas dokumen yang punya turunan AP; **konversi satuan tidak pasti** | Satu konflik `OPEN` dibuat di transaksi yang sama | Tidak |
+| `RECEIVED`, `WAITING_MAPPING` | `SUPERSEDED` | Kiriman lebih lama dari yang sudah diterapkan | `SourceOccurredAt` < `ExternalUpdatedAt` dokumen | **Ya** |
+| `RECEIVED`, `WAITING_MAPPING` | `REJECTED` | Kiriman tidak sah (contoh: kondisi barang di luar tiga nilai, GR untuk PO yang bukan BLM) | `LastErrorCode` diisi | **Ya** |
+| `WAITING_MAPPING` | `APPLIED` | Diulang setelah supplier dipetakan | Sama dengan `RECEIVED` → `APPLIED` | **Ya** |
+| `CONFLICT` | `APPLIED` | Diolah ulang setelah konflik `RESOLVED` | Konflik terkait `RESOLVED` | **Ya** |
+| `CONFLICT` | `REJECTED` | Finance memutuskan kiriman tidak diterapkan | Konflik terkait `RESOLVED` | **Ya** |
+
+**Terlarang:** dari `APPLIED`, `SUPERSEDED`, `REJECTED` ke status apa pun. Kiriman ulang dengan `EventId` dan
+`PayloadHash` sama tidak membuat baris baru (idempoten). Untuk konflik `CONVERSION_UNRESOLVED`, perbaikan yang wajar
+adalah BLM mengirim kiriman **baru** yang konversinya lengkap; kiriman lama lalu `REJECTED` dan konflik `RESOLVED` dengan
+`NO_FINANCIAL_IMPACT`.
+
+### W.2 Konflik (`FinPurchasingSyncConflict.Status`)
+
+| Dari | Ke | Pemicu | Syarat |
+|---|---|---|---|
+| — | `OPEN` | Pengolah menemukan konflik | Belum ada konflik `OPEN` dengan kiriman dan jenis sama |
+| `OPEN` | `RESOLVED` | Finance mencatat penyelesaian | `ResolutionCode`, `ResolvedByUserId`, `ResolvedAt` terisi. Koreksi keuangan dicatat di modulnya sendiri (`FIN-DEC-264`) |
+
+### W.3 Pembatalan eksternal (`FinPurchasingExternalCancellation.Status`)
+
+| Arah | Dari | Ke | Pemicu | Syarat |
+|---|---|---|---|---|
+| `OUTBOUND_REQUEST` | — | `REQUESTED` | Pengguna Quilvian meminta batal | Pemeriksaan ketergantungan AP lolos di transaksi yang sama. Bila gagal, tidak ada baris dan pengguna menerima penolakan |
+| `OUTBOUND_REQUEST` | `REQUESTED`, `FAILED` | `SENT` | Terkirim ke BLM | `AttemptCount` naik |
+| `OUTBOUND_REQUEST` | `REQUESTED`, `SENT` | `FAILED` | Gagal kirim | `NextAttemptAt` diisi |
+| `OUTBOUND_REQUEST` | `SENT` | `CONFIRMED` | BLM mengirim status akhir "dibatalkan" | `CancelledAt`, `InboundMessageId` terisi |
+| `OUTBOUND_REQUEST` | `SENT` | `REJECTED` | BLM menolak | `RejectionCode` terisi |
+| `INBOUND_NOTICE` | — | `CONFIRMED` | BLM memberi tahu pembatalan di BLM | `CancelledAt`, `InboundMessageId` terisi |
+
+Status PO/GR di Quilvian baru `CANCELLED` setelah `CONFIRMED` (tidak ada keberhasilan semu).
+
+### W.4 Status PO bersumber BLM (`FinPurchaseOrder.Status`)
+
+Dihitung `PurchasingReceiptQuantityCalculator` setiap kali GR BLM diterapkan, dikoreksi, atau dibatalkan. Hanya berlaku
+untuk PO berstatus `APPROVED`, `PARTIALLY_RECEIVED`, `FULLY_RECEIVED`.
+
+| Ke | Syarat |
+|---|---|
+| `APPROVED` | Jumlah sah nol untuk semua item |
+| `FULLY_RECEIVED` | **Setiap** item: jumlah sah (satuan dasar) ≥ dipesan (satuan dasar), **dan** semua baris GR berkonversi pasti |
+| `PARTIALLY_RECEIVED` | Selain dua keadaan di atas |
+
+`FULLY_RECEIVED` dapat kembali menjadi `PARTIALLY_RECEIVED` atau `APPROVED` bila GR BLM dibatalkan atau dikoreksi turun.
+PO lama tetap memakai rumus lama (total dipesan vs total diterima). Contoh angka: `02-backend-architecture.md` W.1.

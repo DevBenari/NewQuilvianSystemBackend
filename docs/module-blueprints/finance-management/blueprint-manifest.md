@@ -6,7 +6,135 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 20
+revision: 23
+revision_23_note: >
+  Revisi 23 (9 November 2026) adalah /design-business-module untuk PENAMPUNG data PO/GR dari BLM ("buat entity
+  penampungnya terlebih dahulu, integrasinya nanti"). PUTARAN 2 (hari yang sama) menerapkan keputusan pemilik
+  FIN-DEC-273..278: FIN-OQ-142 ditutup dan FIN-DES-138 disetujui (satu paket rilis, database dulu lalu aplikasi);
+  FIN-DES-135 disetujui (tanpa tabel mapping produk); konversi satuan WAJIB per produk dari BLM dan disimpan sebagai
+  snapshot per baris, sehingga tabel mapping UOM putaran 1 DICABUT; dokumen lama tidak disentuh (backfill putaran 1 dicabut).
+  Desain FIN-DES-127..142. Empat tabel diperbarui (FinPurchaseOrder, FinPurchaseOrderItem, FinGoodsReceipt,
+  FinGoodsReceiptItem) dan empat tabel baru (FinPurchasingInboundMessage, FinPurchasingSupplierMap,
+  FinPurchasingSyncConflict, FinPurchasingExternalCancellation). Penghitung baru PurchasingReceiptQuantityCalculator;
+  FinanceGoodsReceiptService menolak dokumen BLM (409) dan menghitung status PO BLM per item; DTO mendapat field
+  tambahan; satu komponen FE (panel kemajuan item). Satu migration usulan AddFinPurchasingBlmStaging (NOT GENERATED,
+  NOT RUN). FIN-VAL-300..316, FR-FIN-272..284, EPIC FIN-26, gelombang MVP-19. Bagian: arsitektur W, frontend 27,
+  PRD 96..105, kamus data 13, kontrak W, testing W, flowchart 05.
+  FIN-DES-141 DIKONFIRMASI pemilik bersama persetujuan desain (9 November 2026).
+  Catatan 10 November 2026 (revisi TIDAK dinaikkan): FIN-OQ-138, 143, 144 dijawab pemilik (FIN-DEC-279..281, sisi
+  Quilvian); FIN-OQ-141 (Tim BLM) tetap OPEN dan menjadi satu-satunya penahan integrasi P0. Tanpa perubahan kontrak.
+  Pass kedua 10 November 2026: FIN-OQ-141 dijawab SEBAGIAN sisi Quilvian (FIN-DEC-282..288: HMAC-SHA256, kontrak usulan
+  BLM-QUILVIAN-PURCHASING/1.0.0-DRAFT, daftar field per item, aturan pembatalan, fakta BLM); tetap OPEN menunggu komitmen
+  tertulis, ratifikasi keamanan, kontrak, dan jadwal Tim BLM. FIN-DEC-281 (NPWP) dipersempit oleh FIN-DEC-287.
+  Pass ketiga 10 November 2026: hasil audit teknis repository BLM dicatat (FIN-DEC-289..291; penilaian PARTIALLY READY,
+  DEVELOPMENT REQUIRED; FIN-DEC-288 butir 1 dikoreksi). FIN-OQ-141 tetap OPEN. Tanpa perubahan kontrak.
+  NOL source, NOL migration, NOL build. requirement_readiness: NOT_ASSESSED (alasan di W.13).
+  domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN (alasan di arsitektur W).
+status_revision_23: approved
+approval_revision_23: >
+  APPROVED 9 November 2026 oleh pemilik (pengguna sesi), lewat jawaban eksplisit "saya setujui, lakukan plan-module-delivery"
+  atas desain Revisi 23 putaran 2, termasuk FIN-DES-141 (penjaga 409 untuk dokumen BLM pada CreateAsync/UpdateAsync/CancelAsync).
+  Persetujuan ini TIDAK memberi wewenang membangkitkan atau menerapkan migration, maupun menjalankan build (FIN-DEC-273).
+approved_by_revision_23: Pemilik Finance (pengguna sesi)
+approved_at_revision_23: 2026-11-09
+roadmap_revision_23: >
+  REV-24 (9 November 2026): BE-FIN-142..147, FE-FIN-062..063. BE-FIN-142 dan 143 selesai (10 November 2026); BE-FIN-144 selesai dengan pengecualian (W.T1, W.T18, dan penerapan ke lingkungan lain ditunda atas keputusan pemilik); BE-FIN-147, FE-FIN-062, dan FE-FIN-063 selesai (✅, uji pemilik pada data uji, 11 November 2026); BE-FIN-145 dan 146 tetap 🟡 karena cabang status PO BLM belum dapat dijalankan (metode `RecomputeExternalPurchaseOrderStatus` belum punya pemanggil).
+backend_commit_sha_revision_23: 8fb11705   # branch Yasmina; working tree berisi perubahan sesi 9 November yang belum di-commit
+frontend_commit_sha_revision_23: f0a756bf  # branch yasmina; idem
+blm_source_sha_revision_23: 08e8a9ae       # hanya dibaca
+impact_scan_revision_23: >
+  SHA berubah sejak revisi 22 (ba312826 / fa7eb8d7). Impact scan terbatas pada Areas/Corporate/FinanceManagement/Purchasing
+  (model, konfigurasi, FinanceGoodsReceiptService, FinancePurchasingDocumentTrailService, PurchasingInvoiceAllocationPlanner,
+  DTO), Repositories/ApplicationDbContext.cs, pencarian Migrate(), dan komponen FE purchasing-document-trail-panel.jsx.
+  Area lain tidak diaudit.
+contract_versions_revision_23:
+  api-contract: FIN-API-1.13 — draft. Bagian W (tanpa endpoint baru; field tambahan dan 409)
+  state-transition-matrix: FIN-STATE-1.12 — draft. Bagian W (termasuk W.4 status PO BLM)
+  validation-matrix: FIN-VAL-1.15 — draft. Bagian W (FIN-VAL-300..316)
+  integration-contract: FIN-INTEGRATION-1.12 — draft. Bagian W (data wajib kiriman BLM; kontrak belum ditulis)
+  permission-audit-matrix: FIN-PERM-1.14 — draft. Bagian W (tanpa izin baru)
+  acceptance-test-matrix: FIN-TEST-1.16 — draft. Bagian W
+  prd-to-mvp: FIN-MVP-1.17 — draft. Bagian 96..105
+input_hashes_revision_23:
+  note: SHA256 dipotong 16 karakter.
+  00-interview-decisions.md: a02e3fa2ff119bbf
+  01-existing-capability-map.md: 0cfaa2cb5418f2c2
+artifact_hashes_revision_23:
+  note: SHA256 dipotong 16 karakter, dihitung sesudah putaran 2 ditulis (9 November 2026).
+  02-backend-architecture.md: 7325224138088411
+  03-frontend-architecture.md: 8d6d6cf997c78b6f
+  04-prd-to-mvp.md: ae2de484a2c8f428
+  data/data-dictionary.md: 94f40bc482731cae
+  contracts/api-contract.md: e14f3e8a2c7dba11
+  contracts/state-transition-matrix.md: 4fb76e093df19378
+  contracts/validation-matrix.md: a8152cfba7871d85
+  contracts/integration-contract.md: e71699adc8e8e4a5
+  contracts/permission-audit-matrix.md: b0cb35dc03fa1a71
+  testing/acceptance-test-matrix.md: 87c04c3e8a0855e7
+  flowcharts/00-alur-utama.md: d02eff61457a3ac7
+  flowcharts/05-alur-penampungan-po-gr-blm.md: 0ff2acddec8ca79a
+revision_22_note: >
+  Revisi 22 (3 November 2026) adalah /design-business-module untuk amandemen Benefit RS: Ajukan Benefit atomik,
+  Setujui yang mengaktifkan, aktivasi terjadwal, dokter tamu ditolak, sinkronisasi kartu SYS-RS-BENEFIT ke pasien
+  yang terbukti sama, daftar kerja Registrasi, status benefit hidup di tab Penjamin Perusahaan, dan cek ulang identitas
+  saat kunjungan. STATUS: SELURUHNYA draft. Masukan: FIN-DEC-231..257, FIN-RCG-001 rev 2, capability map bagian 22.
+  Desain FIN-DES-109..126. Tabel baru PatEmployeeBenefitCardSync (Patient Management, prefix Pat); tanpa kolom baru pada
+  tabel yang sudah ada; satu migration usulan AddPatEmployeeBenefitCardSync (NOT RUN). FIN-VAL-290..299, FR-FIN-261..271,
+  EPIC FIN-25, gelombang MVP-17 dan MVP-18. Bagian baru: arsitektur V, frontend 26, PRD 83..95, kamus data 12,
+  kontrak V, testing V, flowchart 04. FIN-VAL-271 dan uji N.2.2 digantikan FIN-DEC-233.
+  NOL source, NOL migration, NOL build. domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN (alasan di arsitektur V).
+revision_21_note: >
+  DRIFT yang ditemukan 3 November 2026: label "Revisi 21" sudah dipakai dua kali tanpa tercatat di manifest
+  (data/data-dictionary.md bagian 11, 13 Oktober 2026, penanda penjamin internal; 02-backend-architecture.md bagian T,
+  22 Oktober 2026, pemisahan AR benefit internal). Bagian U (27 Oktober 2026) juga tanpa nomor revisi. Ketiganya tidak
+  diaudit ulang oleh Revisi 22. Catatan "usulan Revisi 21" pada 00-interview-decisions.md (pass 3 November) dan
+  requirement-completeness-assessment.md merujuk ke Revisi 22 ini.
+status_revision_22: approved
+approval_revision_22: >
+  APPROVED 3 November 2026 oleh pemilik Finance, HR, dan Registrasi (pengguna sesi), lewat jawaban eksplisit
+  "Setujui Revisi 22 seluruhnya" pada /plan-module-delivery: arsitektur V, frontend 26, PRD 83..95, kamus data 12,
+  kelima kontrak bagian V, testing V, flowchart 04, serta pilihan desain FIN-DES-109 (izin Create untuk Ajukan),
+  FIN-DES-112 (tabel di Patient Management prefix Pat), FIN-DES-125 (batas ActivationCutoffUtc), dan penggantian
+  FIN-VAL-271 beserta uji N.2.2. FIN-DES-126 DIPUTUSKAN pemilik: jalur loket mempertahankan 400 dengan pesan khusus.
+  BELUM tercakup persetujuan ini: konfirmasi pemilik registry bahwa folder PatientManagement/MasterData dan prefix Pat
+  mencakup PatEmployeeBenefitCardSync (FIN-OQ-121) — memblokir implementasi tabel baru, bukan desain.
+approved_by_revision_22: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at_revision_22: 2026-11-03
+roadmap_revision_22: >
+  REV-23 (3 November 2026): BE-FIN-128..141, FE-FIN-056..061. BE-FIN-133 dan turunannya tertahan FIN-OQ-121 (registry).
+  Catatan: "REV-22" pada roadmap adalah revisi roadmap Finance AP (26 Oktober), bukan blueprint revisi 22.
+backend_commit_sha_revision_22: ba312826
+frontend_commit_sha_revision_22: fa7eb8d7
+contract_versions_revision_22:
+  api-contract: FIN-API-1.12 — approved 2026-11-03. Bagian V
+  state-transition-matrix: FIN-STATE-1.11 — approved 2026-11-03. Bagian V
+  validation-matrix: FIN-VAL-1.14 — approved 2026-11-03. Bagian V (FIN-VAL-290..299; FIN-VAL-271 superseded)
+  integration-contract: FIN-INTEGRATION-1.11 — approved 2026-11-03. Bagian V
+  permission-audit-matrix: FIN-PERM-1.13 — approved 2026-11-03. Bagian V
+  acceptance-test-matrix: FIN-TEST-1.15 — approved 2026-11-03. Bagian V
+  prd-to-mvp: FIN-MVP-1.16 — approved 2026-11-03. Bagian 83..95
+input_hashes_revision_22:
+  note: SHA256 dipotong 16 karakter, dihitung sebelum manifest ini ditulis.
+  00-interview-decisions.md: b9b8f03f11767fd9
+  01-existing-capability-map.md: 0cfaa2cb5418f2c2
+  requirement-completeness-assessment.md: 50686e37358739ad
+artifact_hashes_revision_22:
+  note: SHA256 dipotong 16 karakter, dihitung ulang sesudah persetujuan dicatat dan roadmap REV-23 ditulis (3 November 2026).
+  02-backend-architecture.md: fb63fd01f9a36d4c
+  03-frontend-architecture.md: f3dbe0eb8ddcd29a
+  04-prd-to-mvp.md: 3fa78c20b2eb6006
+  data/data-dictionary.md: b0ea0caa2ae41a55
+  contracts/api-contract.md: 447400d3685a9bfe
+  contracts/state-transition-matrix.md: c8ac9ca733264988
+  contracts/validation-matrix.md: a424e4346a07a29a
+  contracts/integration-contract.md: 02e6d803468c3727
+  contracts/permission-audit-matrix.md: 57b875bcd2438968
+  testing/acceptance-test-matrix.md: 3403c423fa2a5a33
+  flowcharts/00-alur-utama.md: c5856050b9a13313
+  flowcharts/04-alur-benefit-rs-pengajuan-sinkronisasi.md: f3bb420df63a4474
+  roadmap/00-delivery-roadmap.md: f5ac9e54fee88e0e
+  roadmap/01-backend-roadmap.md: 24071bdcaf894a03
+  roadmap/02-frontend-roadmap.md: e0e49921cdc0f820
 blueprint_shape: SINGLE
 blueprint_shape_decided_by: USER_CONFIRMED
 blueprint_shape_decision: FIN-DEC-161

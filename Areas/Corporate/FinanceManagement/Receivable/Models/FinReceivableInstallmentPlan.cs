@@ -39,7 +39,7 @@ public sealed class FinReceivableInstallmentPlan : IdentityModel
     public Guid RequestedBy { get; set; }
     public DateTimeOffset RequestedAt { get; set; }
 
-    /// <summary>MUST NOT sama dengan RequestedBy (CK_FinReceivableInstallmentPlan_MakerChecker).</summary>
+    /// <summary>UserId pemutus yang sebenarnya. Dapat sama dengan RequestedBy hanya bila pemutus memegang HrdInstallmentPlanApproval : SelfApprove (ditegakkan service, bukan CHECK database).</summary>
     public Guid? ApprovedBy { get; set; }
     public DateTimeOffset? ApprovedAt { get; set; }
 

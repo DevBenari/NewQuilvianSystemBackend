@@ -357,8 +357,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         period)
                     .ToListAsync(cancellationToken);
 
+                var convertedIncompleteCount = 0;
                 foreach (var daily in dailies)
                 {
+                    // VR-ATT-16 / HRD-DEC-106: Konversi otomatis IncompletePunch yang belum dikoreksi menjadi Absent
+                    if (daily.AttendanceStatus == AttendanceValueConstants.AttendanceStatus.IncompletePunch)
+                    {
+                        daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Absent;
+                        daily.IsAbsent = true;
+                        daily.IsPresent = false;
+                        daily.PayableWorkMinutes = 0;
+                        daily.ActualWorkMinutes = 0;
+                        daily.IncompletePunchReason = "Konversi otomatis penutupan periode (VR-ATT-16 / HRD-DEC-106: IncompletePunch diubah menjadi Absent)";
+                        convertedIncompleteCount++;
+                    }
+
                     daily.AttendancePeriodId = period.Id;
                     daily.IsLocked = true;
                     daily.UpdateDateTime = now;
@@ -386,9 +399,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         PreviousStatus = previousStatus,
                         CurrentStatus = period.PeriodStatus,
                         AffectedAttendanceDailyCount = dailies.Count,
+                        ConvertedIncompleteToAbsentCount = convertedIncompleteCount,
                         ActionAt = now
                     },
-                    "Attendance period berhasil ditutup dan attendance daily berhasil dikunci.");
+                    $"Attendance period berhasil ditutup. Dikunci {dailies.Count} rekaman absensi dan dikonversi {convertedIncompleteCount} IncompletePunch menjadi Absent.");
             }
             catch (Exception ex)
             {
@@ -404,9 +418,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(request.Reason))
+            // VR-ATT-18 / VR-ATT-20 / HRD-DEC-108: Alasan reopen wajib minimal 15 karakter
+            if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length < 15)
             {
-                return AttendancePeriodSchedulerServiceResult<AttendancePeriodActionResponse>.Fail(StatusCodes.Status400BadRequest, "Alasan reopen wajib diisi.");
+                return AttendancePeriodSchedulerServiceResult<AttendancePeriodActionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan pembukaan kembali periode wajib diisi minimal 15 karakter (VR-ATT-18 / HRD-DEC-108).");
             }
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
@@ -428,14 +445,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     .Where(x => x.AttendancePeriodId == period.Id && !x.IsDelete)
                     .ToListAsync(cancellationToken);
 
-                var payrollLinked = dailies.Count(x =>
+                // HRD-DEC-108 / INT-HR-43: Bila serah terima data ke payroll sudah pernah dieksekusi,
+                // aksi Reopen otomatis memicu rollback serah terima payroll (status ReopenedPendingResync)
+                var isRollbackExecuted = false;
+                string? rollbackNotes = null;
+                var payrollLinkedDailies = dailies.Where(x =>
                     x.PayrollPeriodId.HasValue ||
-                    x.PayrollInputStatus == AttendanceValueConstants.PayrollInputStatus.Processed);
-                if (payrollLinked > 0)
+                    x.PayrollInputStatus == AttendanceValueConstants.PayrollInputStatus.Processed).ToList();
+
+                if (payrollLinkedDailies.Count > 0)
                 {
-                    return AttendancePeriodSchedulerServiceResult<AttendancePeriodActionResponse>.Fail(
-                        StatusCodes.Status409Conflict,
-                        $"Terdapat {payrollLinked} attendance yang sudah terhubung ke payroll. Jalankan rollback Attendance Payroll Handoff terlebih dahulu.");
+                    foreach (var pDaily in payrollLinkedDailies)
+                    {
+                        pDaily.PayrollInputStatus = "ReopenedPendingResync";
+                        pDaily.PayrollPeriodId = null;
+                        pDaily.PayrollProcessedAt = null;
+                    }
+                    isRollbackExecuted = true;
+                    rollbackNotes = $"Otomatis di-rollback oleh pembukaan kembali periode {period.PeriodCode} ({payrollLinkedDailies.Count} rekaman presensi disetel ke ReopenedPendingResync, INT-HR-43).";
+                    _logger.LogWarning("Pembukaan kembali periode {PeriodCode} memicu rollback serah terima payroll untuk {Count} rekaman.", period.PeriodCode, payrollLinkedDailies.Count);
                 }
 
                 var activeJobs = await _dbContext.Set<HrdAttendanceSchedulerJob>()
@@ -456,6 +484,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 }
 
                 var previousStatus = period.PeriodStatus;
+                var previousClosedAt = period.ClosedAt;
+                var previousClosedByUserId = period.ClosedByUserId;
+
                 period.PeriodStatus = AttendanceValueConstants.AttendancePeriodStatus.Reopened;
                 period.ReopenedAt = now;
                 period.ReopenedByUserId = actorUserId;
@@ -463,6 +494,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 period.ReopenCount += 1;
                 period.UpdateDateTime = now;
                 period.UpdateBy = actorUserId;
+
+                // BE-HRD-114 / HRD-DEC-108: Simpan rekam audit pembukaan kembali periode ke HrdAttendancePeriodReopenLog
+                var reopenLog = new HrdAttendancePeriodReopenLog
+                {
+                    Id = Guid.NewGuid(),
+                    AttendancePeriodId = period.Id,
+                    ReopenedByUserId = actorUserId,
+                    ReopenedAt = now,
+                    ReopenReason = request.Reason.Trim(),
+                    PreviousClosedAt = previousClosedAt,
+                    PreviousClosedByUserId = previousClosedByUserId,
+                    IsRollbackPayrollExecuted = isRollbackExecuted,
+                    RollbackPayrollNotes = rollbackNotes,
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    UpdateDateTime = now,
+                    UpdateBy = actorUserId
+                };
+                _dbContext.Set<HrdAttendancePeriodReopenLog>().Add(reopenLog);
+
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
@@ -474,9 +526,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         PreviousStatus = previousStatus,
                         CurrentStatus = period.PeriodStatus,
                         AffectedAttendanceDailyCount = dailies.Count,
+                        IsRollbackPayrollExecuted = isRollbackExecuted,
+                        RollbackPayrollNotes = rollbackNotes,
                         ActionAt = now
                     },
-                    "Attendance period berhasil dibuka kembali.");
+                    isRollbackExecuted
+                        ? $"Attendance period berhasil dibuka kembali dan {payrollLinkedDailies.Count} serah terima payroll di-rollback (ReopenedPendingResync)."
+                        : "Attendance period berhasil dibuka kembali.");
             }
             catch (Exception ex)
             {
@@ -617,8 +673,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     ActiveCorrectionStatuses.Contains(x.RequestStatus),
                     cancellationToken);
 
+            var incompleteDaily = await dailyQuery.CountAsync(x =>
+                x.AttendanceStatus == AttendanceValueConstants.AttendanceStatus.IncompletePunch,
+                cancellationToken);
+
+            var pendingEarlyLeave = await _dbContext.Set<HrdEarlyLeavePermission>()
+                .AsNoTracking()
+                .CountAsync(x =>
+                    !x.IsDelete &&
+                    dailyIdsQuery.Contains(x.AttendanceDailyId) &&
+                    (x.Status == "Submitted" || x.Status == "Draft" || x.Status == "Pending"),
+                    cancellationToken);
+
             var startUtc = DateTime.SpecifyKind(period.StartDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
             var endUtcExclusive = DateTime.SpecifyKind(period.EndDate.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
+
+            var pendingOfficialDuty = await _dbContext.Set<HrdOfficialDutyRequest>()
+                .AsNoTracking()
+                .CountAsync(x =>
+                    !x.IsDelete &&
+                    x.StartAt < endUtcExclusive &&
+                    x.EndAt >= startUtc &&
+                    (x.Status == "Submitted" || x.Status == "Draft" || x.Status == "Pending"),
+                    cancellationToken);
             var rawQuery = _dbContext.Set<HrdAttendanceRawLog>().AsNoTracking().Where(x => !x.IsDelete && x.EventAt >= startUtc && x.EventAt < endUtcExclusive);
             if (period.HospitalSiteId.HasValue)
             {
@@ -659,7 +736,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             AddIssue(issues, "UNPROCESSED_ATTENDANCE", "Critical", "Masih terdapat attendance yang belum selesai diproses.", unprocessedDaily, unprocessedDaily > 0);
             AddIssue(issues, "PENDING_PAYROLL_HANDOFF", "Critical", "Masih terdapat attendance payroll eligible yang belum dikirim ke payroll.", pendingPayroll, pendingPayroll > 0);
             AddIssue(issues, "PAYROLL_BLOCKING_EXCEPTION", "Critical", "Masih terdapat attendance exception yang memblokir payroll.", blockingException, blockingException > 0);
-            AddIssue(issues, "ACTIVE_CORRECTION_REQUEST", "Critical", "Masih terdapat attendance correction request aktif.", activeCorrection, activeCorrection > 0);
+            AddIssue(issues, "ACTIVE_CORRECTION_REQUEST", "Critical", "Masih terdapat permohonan koreksi presensi aktif/pending (VR-ATT-15).", activeCorrection, activeCorrection > 0);
+            AddIssue(issues, "PENDING_EARLY_LEAVE_PERMISSION", "Critical", "Masih terdapat permohonan izin pulang cepat yang belum disetujui.", pendingEarlyLeave, pendingEarlyLeave > 0);
+            AddIssue(issues, "PENDING_OFFICIAL_DUTY_REQUEST", "Critical", "Masih terdapat permohonan dinas luar yang belum disetujui.", pendingOfficialDuty, pendingOfficialDuty > 0);
+            AddIssue(issues, "INCOMPLETE_PUNCH_ATTENDANCE", "Warning", "Terdapat absensi IncompletePunch yang belum dikoreksi; otomatis dikonversi ke Absent saat periode ditutup (VR-ATT-16 / HRD-DEC-106).", incompleteDaily, false);
             AddIssue(issues, "PENDING_RAW_LOG", "Warning", "Masih terdapat raw log Pending, Matched, atau Error pada periode ini.", pendingRawLog, pendingRawLog > 0);
             AddIssue(issues, "RUNNING_PROCESSING", "Critical", "Masih terdapat attendance processing run aktif.", runningProcessing, runningProcessing > 0);
             AddIssue(issues, "RUNNING_SCHEDULER_JOB", "Critical", "Masih terdapat scheduler job aktif.", runningScheduler, runningScheduler > 0);
@@ -684,6 +764,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 RunningProcessingRun = runningProcessing,
                 RunningSchedulerJob = runningScheduler,
                 LinkedToOtherPeriod = linkedToOtherPeriod,
+                IncompletePunchDailyCount = incompleteDaily,
+                PendingEarlyLeavePermissionCount = pendingEarlyLeave,
+                PendingOfficialDutyRequestCount = pendingOfficialDuty,
                 ValidatedAt = DateTime.UtcNow,
                 Issues = issues
             };
@@ -884,6 +967,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 Count = count,
                 IsBlocking = isBlocking
             });
+        }
+
+        public async Task<List<AttendancePeriodReopenLogResponse>> GetReopenLogsAsync(
+            Guid attendancePeriodId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Set<HrdAttendancePeriodReopenLog>()
+                .AsNoTracking()
+                .Where(x => x.AttendancePeriodId == attendancePeriodId && !x.IsDelete)
+                .OrderByDescending(x => x.ReopenedAt)
+                .Select(x => new AttendancePeriodReopenLogResponse
+                {
+                    Id = x.Id,
+                    AttendancePeriodId = x.AttendancePeriodId,
+                    PeriodCode = x.AttendancePeriod != null ? x.AttendancePeriod.PeriodCode : string.Empty,
+                    ReopenedByUserId = x.ReopenedByUserId,
+                    ReopenedByUserName = x.ReopenedByUser != null ? x.ReopenedByUser.DisplayName ?? x.ReopenedByUser.UserName ?? x.ReopenedByUser.Email : null,
+                    ReopenedAt = x.ReopenedAt,
+                    ReopenReason = x.ReopenReason,
+                    PreviousClosedAt = x.PreviousClosedAt,
+                    PreviousClosedByUserId = x.PreviousClosedByUserId,
+                    PreviousClosedByUserName = x.PreviousClosedByUser != null ? x.PreviousClosedByUser.DisplayName ?? x.PreviousClosedByUser.UserName ?? x.PreviousClosedByUser.Email : null,
+                    IsRollbackPayrollExecuted = x.IsRollbackPayrollExecuted,
+                    RollbackPayrollNotes = x.RollbackPayrollNotes,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .ToListAsync(cancellationToken);
         }
     }
 }

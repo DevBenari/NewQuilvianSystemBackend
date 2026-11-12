@@ -305,7 +305,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
     }
     public class UpdateWorkScheduleRequest : CreateWorkScheduleRequest
     {
-        public bool IsActive
+        public new bool IsActive
         {
             get;
             set;

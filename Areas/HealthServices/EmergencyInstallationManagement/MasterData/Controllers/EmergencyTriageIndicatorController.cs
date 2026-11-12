@@ -42,6 +42,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyTriageIndicatorFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage Indicator", Description = "Melihat metadata filter indikator triase IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyTriageIndicator", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyTriageIndicatorFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyTriageIndicatorDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "sequence", "code", "name", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyTriageIndicatorFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter indikator triase IGD berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyTriageIndicatorSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage Indicator", Description = "Melihat ringkasan indikator triase IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyTriageIndicator", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgTriageIndicator>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyTriageIndicatorSummaryResponse
+            {
+                TotalIndicator = await query.CountAsync(cancellationToken),
+                ActiveIndicator = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveIndicator = await query.CountAsync(x => !x.IsActive, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyTriageIndicatorSummaryResponse>.Ok(
+                summary,
+                "Ringkasan indikator triase IGD berhasil diambil."
+            ));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageIndicatorResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Triage Indicator", Description = "Melihat data master indikator triage IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

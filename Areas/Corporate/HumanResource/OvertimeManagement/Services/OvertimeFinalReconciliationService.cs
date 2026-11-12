@@ -160,7 +160,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
             var payrollInputs = realizationIds.Count == 0
                 ? new List<PayrollInputRow>()
-                : await _dbContext.TrxPayrollOvertimeInputs
+                : await _dbContext.PrlPayrollOvertimeInputs
                     .AsNoTracking()
                     .Where(x => !x.IsDelete && !x.IsCancel &&
                         x.OvertimeRealizationId.HasValue &&

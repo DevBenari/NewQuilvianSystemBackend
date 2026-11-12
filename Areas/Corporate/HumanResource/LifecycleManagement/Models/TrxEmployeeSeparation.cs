@@ -37,6 +37,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         [MaxLength(2000)] public string? ReasonText { get; set; }
         [MaxLength(2000)] public string? Notes { get; set; }
         public bool IsActive { get; set; } = true;
+
+        // Sub-Modul 18 additions (Kamus Data 23.7)
+        public DateTime? NoticeDate { get; set; }
+        [MaxLength(512)]
+        public string? ResignationLetterUrl { get; set; }
+        [MaxLength(128)]
+        public string? TerminationDecisionNumber { get; set; }
+        [MaxLength(32)]
+        public string ApprovalStatus { get; set; } = "Pending";
+
+        [NotMapped]
+        public Guid SeparationId
+        {
+            get => Id;
+            set => Id = value;
+        }
+
+        [NotMapped]
+        public string SeparationReason
+        {
+            get => SeparationType;
+            set => SeparationType = value;
+        }
+
+        [NotMapped]
+        public DateTime EffectiveDate
+        {
+            get => EffectiveSeparationDate;
+            set => EffectiveSeparationDate = value;
+        }
+
+        [NotMapped]
+        public string Status
+        {
+            get => SeparationStatus;
+            set => SeparationStatus = value;
+        }
+
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstEmployee? Employee { get; set; }
         public MstTerminationReason? TerminationReason { get; set; }

@@ -178,6 +178,7 @@ Syarat: redirect Kiosk (`/kiosk`) dan display antrean (`/queue-display`) di `pro
 | `src/proxy.js` | Konstanta `NURSE_VIEW_DISPLAY_PATH = "/nurse-view-display"`; akun bercookie `isNurseViewAccount` dialihkan ke sana dan dicegah membuka route lain |
 | `src/lib/hooks/auth/use-base-login.jsx` | Mengenali klaim/response akun perangkat Nurse View dan menyetel cookie `isNurseViewAccount` |
 | `src/utils/menu-sidebar/menu-items.jsx` | Dua butir menu (bagian 2) |
+| `src/components/providers/root-layout-shell.jsx`, `src/components/ui/auth-wrapper.jsx`, `src/components/providers/session-activity-manager.jsx` | Masing-masing satu baris `"/nurse-view-display"` pada daftar prefix, persis seperti `/queue-display` (`NV-DEC-032`) |
 
 ## 8. Kewenangan UI
 

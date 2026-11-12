@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -16,6 +16,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/salary-structures")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/salary-structures")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -25,7 +27,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "SalaryStructure",
         Description = "Corporate human resource master data salary structure",
         SortOrder = 41)]
-    [Tags("Corporate / Human Resource / Master Data / Salary Structure")]
+    [Tags("Corporate / Payroll Management / Master Data / Salary Structure")]
     public class SalaryStructureController : ControllerBase
     {
         private static readonly HashSet<string> AllowedPaymentFrequencies =
@@ -260,7 +262,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 IsDefault = entity.IsDefault,
                 SortOrder = entity.SortOrder,
                 IsActive = entity.IsActive,
-                WorkforcePayrollCount = await _dbContext.Set<WfpPayroll>()
+                WorkforcePayrollCount = await _dbContext.Set<PrlPayroll>()
                     .CountAsync(x => x.SalaryStructureId == id && !x.IsDelete, cancellationToken),
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
@@ -425,7 +427,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(404, "Salary structure tidak ditemukan."));
 
-            var isUsed = await _dbContext.Set<WfpPayroll>()
+            var isUsed = await _dbContext.Set<PrlPayroll>()
                 .AnyAsync(x => x.SalaryStructureId == id && !x.IsDelete, cancellationToken);
 
             if (isUsed)
@@ -489,7 +491,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 IsDefault = x.IsDefault,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                WorkforcePayrollCount = _dbContext.Set<WfpPayroll>()
+                WorkforcePayrollCount = _dbContext.Set<PrlPayroll>()
                     .Count(p => p.SalaryStructureId == x.Id && !p.IsDelete),
                 CreateDateTime = x.CreateDateTime,
                 CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,

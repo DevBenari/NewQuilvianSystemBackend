@@ -34,6 +34,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.IsDefault).HasDefaultValue(false);
             entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
+            entity.Property(x => x.BenefitCategory).HasMaxLength(50).HasDefaultValue("BPJS_Mandatory");
+            entity.Property(x => x.CoverageTier).HasMaxLength(50).HasDefaultValue("Basic");
+            entity.Property(x => x.HospitalDiscountPercentage).HasPrecision(5, 2).HasDefaultValue(0.00m);
+            entity.Property(x => x.RequiresBPJSPrimaryCOB).HasDefaultValue(true);
+            entity.Property(x => x.MinimumServiceMonths).HasDefaultValue(3);
 
             ConfigureAuditFields(entity);
 

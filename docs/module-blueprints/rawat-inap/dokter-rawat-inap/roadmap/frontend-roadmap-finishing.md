@@ -4,7 +4,7 @@
 |---|---|
 | Roadmap | `dokter-rawat-inap/roadmap/frontend-roadmap-finishing.md` — revision `1` |
 | Blueprint | `RWI-BP-001` revision `8`, sub-modul `dokter-rawat-inap`, kontrak **`0.7.0` `approved`** 2026-10-02 lewat `RWI-DEC-221` |
-| Status roadmap | **`APPROVED`** — 6 Oktober 2026: Seluruh task FE-RWI-173 s.d. FE-RWI-179 selesai penuh (✅); FE-RWI-172 tetap berhenti aman sebagai 🟡 dengan tombol perawat terkunci sesuai gerbang klausul RWI-DEC-168. Build sukses, lint sukses, unit test 88/88 PASS, E2E Playwright 11/11 PASS. |
+| Status roadmap | **`APPROVED`** — 6 Oktober 2026: Seluruh task FE-RWI-173 s.d. FE-RWI-179 selesai penuh (✅); FE-RWI-172 ✅ 9 November 2026 setelah uji nyata `BE-RWI-104` berhasil (gerbang RWI-DEC-168 terpenuhi). Build sukses, lint sukses, unit test 88/88 PASS, E2E Playwright 11/11 PASS. |
 | Ditulis | 2 Oktober 2026 oleh `plan-module-delivery` |
 | Masukan dan hash approval | `03-frontend-architecture.md` bagian 11 (`b0de9bd5…`), `contracts/api-contract.md` bagian 13 (`bab898df…`), `testing/acceptance-test-matrix.md` bagian 15 (`e7c6da47…`); untuk laci Pasca Operasi `episode-rawat-inap` `03-frontend-architecture.md` 13.4.4 (`e31154bd…`). Hash lengkap pada `../blueprint-manifest.md` bagian 10 |
 | Keputusan | `RWI-DEC-108`, `114`, `153`, `165`, `168`, `171`, `188`, `213`, `218`, `219`, `221`; gate `1.10` dan koreksi 19.12 (`DEC-INP-019`, IMP-RWF-05) |
@@ -82,7 +82,7 @@ Kode frontend `f74758af5` memuat lima cacat implementasi di ruang kerja dokter. 
 ```text
 BE-RWI-104 ✅ [V2] ──────────────┐
                                  │
-BE-RWI-163 [BE] ─┬─> FE-RWI-173 ─┴─> FE-RWI-172
+BE-RWI-163 [BE] ─┬─> FE-RWI-173 ─┴─> FE-RWI-172 ✅
                  │
                  └──────────────────────┬─> FE-RWI-176
                                         │
@@ -105,7 +105,7 @@ Pasangan: 9. `FE-RWI-174` cukup menunggu `BE-RWI-164`, karena `BE-RWI-164` sudah
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-172` 🟡 | Perawat memesan Lab/Radiologi atas instruksi dokter, dengan tanggungan dan perkiraan harga | `FR-RWF-030`, `034`, `036`; `RWI-DEC-114`, `153`, `168`, `218`; `UAT-RWF-04`, `36` | `0.7.0` FE 11.1 `FE-DOK-18`; API 13.1, 13.2 | Form Lab/Rad hasil `FE-RWI-173`; `nursing-ancillary-section.jsx` | Lepas kunci tombol; isian dokter pemberi instruksi | `FE-RWI-173`, `BE-RWI-104` ✅ [V2] | Kartu | Kartu | Regresi `BE-RWI-104` `NOT RUN` / Muhammad Hamzah | Kartu |
+| `FE-RWI-172` ✅ | Perawat memesan Lab/Radiologi atas instruksi dokter, dengan tanggungan dan perkiraan harga | `FR-RWF-030`, `034`, `036`; `RWI-DEC-114`, `153`, `168`, `218`; `UAT-RWF-04`, `36` | `0.7.0` FE 11.1 `FE-DOK-18`; API 13.1, 13.2 | Form Lab/Rad hasil `FE-RWI-173`; `nursing-ancillary-section.jsx` | Lepas kunci tombol; isian dokter pemberi instruksi | `FE-RWI-173`, `BE-RWI-104` ✅ [V2] | Kartu | Kartu | Regresi `BE-RWI-104` `NOT RUN` / Muhammad Hamzah | Kartu |
 | `FE-RWI-173` ✅ | Form Lab/Radiologi dokter tanpa harga tetap dan tanpa katalog contoh | `FR-RWF-033`, `034`; `RWI-DEC-108`, `218`, `219`; `RWI-AC-335`, `337`; IMP-RWF-05 | FE 11.4, 11.5 `FE-DOK-13`; API 13.2 | Form dan keranjang `FE-RWI-144` | Cabut katalog contoh dan harga 120.000; pakai `coverage-status` | `BE-RWI-163` [BE] | Kartu | Kartu | Gerbang rilis / Muhammad Hamzah | Kartu |
 | `FE-RWI-174` ✅ | Konsultasi Gizi dan Bank Darah lewat adapter dari ruang kerja dokter dan perawat | `FR-RWF-031` s.d. `033`, `036` s.d. `038`; `RWI-DEC-171`, `188`, `219`; `UAT-RWF-07`, `08`, `30`; IMP-RWF-01, 02 | FE 11.3 `FE-DOK-17`; API 13.2 | Form `FE-RWI-145`; master komponen darah | Kirim lewat adapter; peminta benar; komponen dari master; pasang di menu perawat | `BE-RWI-164` [BE] | Kartu | Kartu | Gerbang rilis; hak `BloodComponent : Read` bagi peran bangsal / Muhammad Hamzah | Kartu |
 | `FE-RWI-175` ✅ | Daftar "Perlu Diverifikasi" dokter memuat enam sumber | `FR-RWF-037`; `RWI-DEC-188`, `191`; `AC-RWF-035`; `NFR-RWF-11` | FE 11.3 `FE-DOK-15`; API 13.3, 13.4 | `physician-needs-review-view.jsx`, `use-physician-review-worklist.js` | Tambah sumber gizi, darah, diet; dimuat terpisah | `BE-RWI-161` [BE], `BE-RWI-162` [BE], `BE-RWI-166` [KEP] | Kartu | Kartu | Enam permission verifikasi / Muhammad Hamzah | Kartu |
@@ -146,11 +146,11 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 ## Kartu task
 
-### `FE-RWI-172` — Pesanan Lab dan Radiologi oleh perawat
+### ✅ `FE-RWI-172` — Pesanan Lab dan Radiologi oleh perawat
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 Prasyarat runtime BE-RWI-104 belum terbukti; probe Lab HTTP 401 tanpa sesi. Tombol perawat tetap terkunci. [Laporan](../task/report/frontend/FE-RWI-172.md) |
+| **Status** | ✅ **SELESAI 9 November 2026.** Uji nyata `BE-RWI-104` berhasil: pesanan perawat LAB-RSMMC-000001 (dokter pemberi instruksi dr. Bagus Purnama Sanjaya) masuk daftar order Laboratorium berstatus Requested dengan verifikasi instruksi Pending. AC 1, 2, 3, 4, 6 terbukti di layar/endpoint; AC 5 terbukti di data dan source (layar dokter butuh akun dokter). Sesi ini mencabut katalog contoh ber-ID palsu di modal Lab/Radiologi perawat (RWI-DEC-218/219), menambah status tanggungan dan perkiraan harga (AC 4), dan merapikan placeholder, lokasi, serta DPJP pada modal. `eslint` exit 0; test modal 10/10; `check-css-usage` 0 temuan; build lulus. Data uji: prosedur PR-RSMMC-00045 dibuat lewat API master karena katalog Lab DB dev kosong. [Laporan](../task/report/frontend/FE-RWI-172.md) |
 | **Outcome** | Perawat memesan Lab dan Radiologi dari menu Penunjang Medis ruang kerja perawat atas instruksi dokter berpenugasan, lengkap dengan status tanggungan dan perkiraan harga per pemeriksaan |
 | **Requirement/decision** | `FR-RWF-030`, `034`, `036`; `RWI-DEC-114`, `153`, `168`, `218`; `AC-RWF-030`, `031`; `RWI-AC-337`; `UAT-RWF-04`, `UAT-RWF-36` |
 | **Kontrak** | `0.7.0`: frontend 11.1, 11.2 (`FE-DOK-18`); API 13.1 (`POST lab-orders`, `POST rad-orders`), 13.2 (`coverage-status`); validasi `VAL-RWF-65` |
@@ -333,5 +333,5 @@ Browser terkontrol terbaru PASS 9/9. FE-RWI-178 dilanjutkan atas instruksi terba
    - `FE-RWI-177`: ✅ Selesai
    - `FE-RWI-178`: ✅ Selesai
    - `FE-RWI-179` (IMP-RWF-03): ✅ Selesai
-   - `FE-RWI-172`: 🟡 Berhenti Aman / Terkunci (tombol pemesanan perawat tetap terkunci `disabled={true}` sesuai klausul gerbang `RWI-DEC-168` sampai probe runtime modul Lab live diverifikasi).
+   - `FE-RWI-172`: ✅ Selesai 9 November 2026 — gerbang `RWI-DEC-168` tertutup: pesanan Lab perawat ber-instruksi terbukti masuk daftar order Laboratorium (LAB-RSMMC-000001).
 

@@ -557,3 +557,334 @@ Model: `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGu
 | `FamilyMemberIdSnapshot` | `Guid?` | Tidak | `NULL` | Tidak | Snapshot ID anggota keluarga HR saat kunjungan didaftarkan |
 | `BenefitRelationshipSnapshot` | `string(50)?` | Tidak | `NULL` | Tidak | Snapshot hubungan benefit saat kunjungan didaftarkan |
 
+
+## 12. Perubahan Skema Revisi 22 — Catatan Hasil Sinkronisasi Kartu Benefit RS
+
+```yaml
+last_changed_in: Revisi 22 (3 November 2026)
+status: approved   # 2026-11-03, pemilik (pengguna sesi)
+input_revision: 00-interview-decisions.md (FIN-DEC-231..257); 02-backend-architecture.md bagian V
+input_hash: lihat blueprint-manifest.md (artifact_hashes_revision_22)
+```
+
+Seluruh tabel mewarisi `IdentityModel` (sepuluh kolom audit dan penandaan hapus/batal); kolom itu tidak diulang di bawah.
+
+### 12.1 Status tabel dan pemilik
+
+| Tabel | Status | Modul pemilik | Model |
+|---|---|---|---|
+| `public."PatEmployeeBenefitCardSync"` | **Baru** | Patient Management (`Pat`) | `Areas/HealthServices/PatientManagement/MasterData/Models/PatEmployeeBenefitCardSync.cs` |
+| `public."TrxEmployeeBenefitEnrollment"` | Sudah ada | HR Benefit Management | `Areas/Corporate/HumanResource/BenefitManagement/Models/TrxEmployeeBenefitEnrollment.cs` |
+| `public."MstPatientCompanyGuarantor"` | Sudah ada | Patient Management | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientCompanyGuarantor.cs` |
+| `public."MstPatient"` | Sudah ada | Patient Management | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs` |
+| `public."MstCompanyGuarantor"` | Sudah ada | Administrator Master Data | `Areas/Administrator/MasterData/Models/MstCompanyGuarantor.cs` |
+| `public."MstWorkforceProfile"`, `"MstEmployee"`, `"MstDoctor"` | Sudah ada | HR Workforce | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/` |
+
+**Tidak ada kolom baru pada tabel yang sudah ada.**
+
+### 12.2 `PatEmployeeBenefitCardSync` (Baru)
+
+Satu baris per enrollment benefit. Menyimpan hasil terakhir pemasangan kartu "Benefit Karyawan RS" ke pasien yang
+terbukti sama dengan pemilik benefit (`FIN-DEC-237`, `239`, `250`, `251`, `253`).
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | |
+| `EmployeeBenefitEnrollmentId` | `uuid` | Ya | — | — | **Unik** terfilter `"IsDelete" = false` | FK → `TrxEmployeeBenefitEnrollment.Id`, `Restrict` | Tidak | Satu catatan per enrollment; dasar idempotensi |
+| `WorkforceProfileId` | `uuid` | Ya | — | — | Index | FK → `MstWorkforceProfile.Id`, `Restrict` | Tidak | Pemilik benefit, disalin dari enrollment saat catatan dibuat |
+| `SyncStatus` | `varchar` | Ya | — | 30 | Index gabungan (`SyncStatus`, `NextAttemptAt`) | — | Tidak | `SYNCED`, `WAITING_PATIENT`, `ON_HOLD`, `FAILED_RETRYABLE`, `REVOKED` (check constraint) |
+| `ReasonCode` | `varchar` | Bersyarat | `NULL` | 50 | — | — | Tidak | Wajib untuk `WAITING_PATIENT`, `ON_HOLD`, `FAILED_RETRYABLE`, `REVOKED`; kosong untuk `SYNCED`. Hanya kode, tidak pernah teks berisi data pribadi |
+| `AttemptCount` | `integer` | Ya | `0` | — | — | — | Tidak | ≥ 0 (check constraint). Naik pada setiap percobaan |
+| `LastAttemptAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | UTC |
+| `NextAttemptAt` | `timestamptz` | Tidak | `NULL` | — | Lihat index `SyncStatus` | — | Tidak | Diisi hanya untuk `WAITING_PATIENT` dan `FAILED_RETRYABLE` |
+| `PatientId` | `uuid` | Bersyarat | `NULL` | — | Index terfilter `IS NOT NULL` | FK → `MstPatient.Id`, `Restrict` | **Ya** | Pasien yang kartunya dipasang. Wajib untuk `SYNCED` dan `REVOKED`. Bersama `WorkforceProfileId` menyatakan bahwa seorang pegawai adalah pasien RS; **tidak boleh** masuk log |
+| `PatientCompanyGuarantorId` | `uuid` | Bersyarat | `NULL` | — | **Unik** terfilter `IS NOT NULL AND "IsDelete" = false` | FK → `MstPatientCompanyGuarantor.Id`, `Restrict` | **Ya** | Kartu yang dipasang atau dipakai ulang. Wajib untuk `SYNCED` dan `REVOKED`. Dipakai validasi kunjungan untuk mengenali kartu otomatis (`FIN-DEC-256`) |
+| `SyncedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | Terakhir kali berhasil |
+| `RevokedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | Saat pencabutan terdeteksi |
+| `LastTriggerSource` | `varchar` | Ya | — | 30 | — | — | Tidak | `ACTIVATION`, `SCHEDULER`, `MANUAL_RESYNC`, `CANCEL` (check constraint) |
+| `LastTriggeredByUserId` | `uuid` | Tidak | `NULL` | — | — | Tanpa FK (pola kolom aktor `CreateBy`) | Tidak | Aktor manusia untuk `MANUAL_RESYNC`, akun layanan untuk `SCHEDULER` |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Token konkurensi optimistik, diganti layanan pada setiap perubahan (pola `TrxEmployeeBenefitEnrollment.RowVersion`) |
+
+Check constraint:
+
+| Nama | Aturan |
+|---|---|
+| `CK_PatEmployeeBenefitCardSync_Status` | `SyncStatus` ∈ lima nilai di atas |
+| `CK_PatEmployeeBenefitCardSync_TriggerSource` | `LastTriggerSource` ∈ empat nilai di atas |
+| `CK_PatEmployeeBenefitCardSync_CardLink` | `SyncStatus` ∈ (`SYNCED`, `REVOKED`) ⇔ `PatientCompanyGuarantorId IS NOT NULL AND PatientId IS NOT NULL` |
+| `CK_PatEmployeeBenefitCardSync_Reason` | `SyncStatus = 'SYNCED'` ⇔ `ReasonCode IS NULL` |
+| `CK_PatEmployeeBenefitCardSync_AttemptCount` | `AttemptCount >= 0` |
+
+Contoh isi (data fiktif, bukan data asli):
+
+| Kolom | Rendy, berhasil | Pegawai X, ditahan |
+|---|---|---|
+| `SyncStatus` | `SYNCED` | `ON_HOLD` |
+| `ReasonCode` | `NULL` | `MULTIPLE_MATCH` |
+| `AttemptCount` | `1` | `2` |
+| `PatientCompanyGuarantorId` | `5c1e…` | `NULL` |
+| `LastTriggerSource` | `ACTIVATION` | `MANUAL_RESYNC` |
+
+### 12.3 Kolom kunci tabel yang sudah ada dan dipakai aturan bisnis amandemen ini
+
+| Tabel | Kolom | Dipakai untuk |
+|---|---|---|
+| `TrxEmployeeBenefitEnrollment` | `Id`, `WorkforceProfileId`, `EnrollmentNumber`, `EnrollmentStatus`, `EffectiveStartDate`, `EffectiveEndDate`, `SubmittedAt`, `SubmittedByUserId`, `ApprovedAt`, `ApprovedByUserId`, `ActivatedAt`, `ActivatedByUserId`, `CoverageLimitAmount`, `UsedAmount`, `RemainingAmount`, `RowVersion` | Ajukan atomik, Setujui+aktif, penjadwal, batas `ActivationCutoffUtc` (dibandingkan dengan `ActivatedAt`) |
+| `MstPatientCompanyGuarantor` | `Id`, `PatientId`, `CompanyGuarantorId`, `EmployeeNumber`, `BenefitOwnerWorkforceProfileId`, `BenefitOwnerType`, `FamilyMemberId`, `BenefitRelationship`, `IsActive`, `IsPrimary`, `LastEligibilityReferenceNumber` | Pakai ulang kartu, penahanan, pencabutan, nomor referensi benefit (`LastEligibilityReferenceNumber` = nomor enrollment untuk kartu otomatis) |
+| `MstPatient` | `Id`, `IdentityType`, `IdentityNumber` (Sensitif), `BirthDate` (Sensitif), `MergedToPatientId`, `IsActive` | Pencocokan otomatis dan cek ulang kunjungan |
+| `MstCompanyGuarantor` | `Id`, `CompanyGuarantorCode`, `IsEmployeeBenefitGuarantor`, `IsActive`, `ContractStartDate`, `ContractEndDate` | Penjamin internal tunggal (`FIN-DEC-236`) |
+| `MstWorkforceProfile` | `Id`, `UserType`, `IsActive` | Dokter tamu ditolak (`FIN-DEC-240`) |
+| `MstEmployee`, `MstDoctor` | `WorkforceProfileId`, `IdentityNumber` (Sensitif), `BirthDate` (Sensitif), `IsActive`, `ResignDate`, `IsCancel` | Identitas pemilik untuk pencocokan |
+
+**Koreksi catatan lama (bagian 11.2).** Baris `EmployeeId` di bagian 11.2 menyebut kolom itu wajib untuk penjamin
+internal. Sejak migration `20261019100000_AddWorkforceBenefitOwnerIdentity`, kartu internal sah dengan
+`BenefitOwnerWorkforceProfileId` saja (dokter tetap tidak punya `EmployeeId`), sesuai
+`CK_MstPatientCompanyGuarantor_BenefitLink`. Bagian 11.2 tidak disunting; catatan ini yang berlaku.
+
+### 12.4 Skema DDL (dokumentasi bentuk)
+
+> **Peringatan.** Bagian ini dokumentasi bentuk yang diharapkan dari configuration EF Core, **bukan** skrip untuk
+> dijalankan. Skema dibuat oleh migration EF yang ditulis tim pengembang.
+
+```sql
+CREATE TABLE public."PatEmployeeBenefitCardSync" (
+    "Id"                          uuid         NOT NULL PRIMARY KEY,
+    "EmployeeBenefitEnrollmentId" uuid         NOT NULL REFERENCES public."TrxEmployeeBenefitEnrollment"("Id") ON DELETE RESTRICT,
+    "WorkforceProfileId"          uuid         NOT NULL REFERENCES public."MstWorkforceProfile"("Id") ON DELETE RESTRICT,
+    "SyncStatus"                  varchar(30)  NOT NULL,
+    "ReasonCode"                  varchar(50)  NULL,
+    "AttemptCount"                integer      NOT NULL DEFAULT 0,
+    "LastAttemptAt"               timestamptz  NULL,
+    "NextAttemptAt"               timestamptz  NULL,
+    "PatientId"                   uuid         NULL REFERENCES public."MstPatient"("Id") ON DELETE RESTRICT,
+    "PatientCompanyGuarantorId"   uuid         NULL REFERENCES public."MstPatientCompanyGuarantor"("Id") ON DELETE RESTRICT,
+    "SyncedAt"                    timestamptz  NULL,
+    "RevokedAt"                   timestamptz  NULL,
+    "LastTriggerSource"           varchar(30)  NOT NULL,
+    "LastTriggeredByUserId"       uuid         NULL,
+    "RowVersion"                  uuid         NOT NULL,
+    -- sepuluh kolom IdentityModel tidak ditulis ulang
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_Status"
+        CHECK ("SyncStatus" IN ('SYNCED','WAITING_PATIENT','ON_HOLD','FAILED_RETRYABLE','REVOKED')),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_TriggerSource"
+        CHECK ("LastTriggerSource" IN ('ACTIVATION','SCHEDULER','MANUAL_RESYNC','CANCEL')),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_CardLink"
+        CHECK (("SyncStatus" IN ('SYNCED','REVOKED')) = ("PatientCompanyGuarantorId" IS NOT NULL AND "PatientId" IS NOT NULL)),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_Reason"
+        CHECK (("SyncStatus" = 'SYNCED') = ("ReasonCode" IS NULL)),
+    CONSTRAINT "CK_PatEmployeeBenefitCardSync_AttemptCount" CHECK ("AttemptCount" >= 0)
+);
+
+CREATE UNIQUE INDEX "UX_PatEmployeeBenefitCardSync_Enrollment"
+    ON public."PatEmployeeBenefitCardSync" ("EmployeeBenefitEnrollmentId") WHERE "IsDelete" = false;
+CREATE UNIQUE INDEX "UX_PatEmployeeBenefitCardSync_Card"
+    ON public."PatEmployeeBenefitCardSync" ("PatientCompanyGuarantorId")
+    WHERE "PatientCompanyGuarantorId" IS NOT NULL AND "IsDelete" = false;
+CREATE INDEX "IX_PatEmployeeBenefitCardSync_Due"
+    ON public."PatEmployeeBenefitCardSync" ("SyncStatus", "NextAttemptAt");
+CREATE INDEX "IX_PatEmployeeBenefitCardSync_WorkforceProfile"
+    ON public."PatEmployeeBenefitCardSync" ("WorkforceProfileId");
+CREATE INDEX "IX_PatEmployeeBenefitCardSync_Patient"
+    ON public."PatEmployeeBenefitCardSync" ("PatientId") WHERE "PatientId" IS NOT NULL;
+```
+
+
+## 13. Perubahan Skema Revisi 23 — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+input_hash: lihat blueprint-manifest.md (input_hashes_revision_23)
+```
+
+Seluruh tabel mewarisi `IdentityModel` (sepuluh kolom audit dan penandaan hapus/batal); kolom itu tidak diulang di bawah.
+Semua waktu disimpan UTC (`timestamptz`). Tidak ada kolom berisi data pasien di bagian ini. Kolom kuantitas satuan dasar
+memakai `numeric(18,6)` supaya tidak ada pembulatan dini (`FIN-DEC-276`); kolom lama `numeric(18,2)` tidak diubah.
+
+### 13.1 Status tabel dan pemilik
+
+| Tabel | Status | Modul pemilik | Model |
+|---|---|---|---|
+| `public."FinPurchaseOrder"` | **Diperbarui** | Finance Purchasing | `Areas/Corporate/FinanceManagement/Purchasing/Models/FinPurchaseOrder.cs` |
+| `public."FinPurchaseOrderItem"` | **Diperbarui** | Finance Purchasing | `.../Purchasing/Models/FinPurchaseOrderItem.cs` |
+| `public."FinGoodsReceipt"` | **Diperbarui** | Finance Purchasing | `.../Purchasing/Models/FinGoodsReceipt.cs` |
+| `public."FinGoodsReceiptItem"` | **Diperbarui** | Finance Purchasing | `.../Purchasing/Models/FinGoodsReceiptItem.cs` |
+| `public."FinPurchasingInboundMessage"` | **Baru** | Finance Purchasing | `.../Purchasing/Models/FinPurchasingInboundMessage.cs` |
+| `public."FinPurchasingSupplierMap"` | **Baru** | Finance Purchasing | `.../Purchasing/Models/FinPurchasingSupplierMap.cs` |
+| `public."FinPurchasingSyncConflict"` | **Baru** | Finance Purchasing | `.../Purchasing/Models/FinPurchasingSyncConflict.cs` |
+| `public."FinPurchasingExternalCancellation"` | **Baru** | Finance Purchasing | `.../Purchasing/Models/FinPurchasingExternalCancellation.cs` |
+| `public."MstSupplier"` | Sudah ada | Administrator Master Data | `Areas/Administrator/MasterData/Models/MstSupplier.cs`, kunci `Id`. **Tidak diubah** |
+
+Tidak ada tabel pemetaan produk (`FIN-DEC-274`) dan tidak ada tabel pemetaan satuan (`FIN-DEC-276`).
+
+### 13.2 `FinPurchaseOrder` (Diperbarui) — kolom baru dan kolom kunci
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | — | — | PK | — | Tidak | Sudah ada |
+| `PONumber` | `varchar` | Ya | — | 50 | Unik global terfilter `"IsDelete" = false` (tetap) | — | Tidak | Sudah ada. PO BLM memakai nomor asli BLM (`FIN-DEC-263`); tabrakan → `NUMBER_COLLISION` |
+| `Status` | `varchar` | Ya | `'DRAFT'` | 30 | Index | — | Tidak | Sudah ada. Untuk PO BLM dihitung penghitung penerimaan (`02-backend-architecture.md` W.11) |
+| `ApprovalTier` | `varchar` | Ya | — | 10 | — | — | Tidak | Sudah ada. Check diganti `IN ('TIER_1','TIER_2','EXTERNAL')`. Check baru `CK_FinPurchaseOrder_ExternalTier`: `EXTERNAL` **jika dan hanya jika** `SourceSystem = 'BLM'` |
+| `SourceSystem` | `varchar` | Ya | `'QUILVIAN'` | 20 | Bagian index unik identitas | — | Tidak | **Baru.** `QUILVIAN` atau `BLM` (`CK_FinPurchaseOrder_SourceSystem`) |
+| `ExternalPurchaseOrderId` | `uuid` | Bersyarat | `NULL` | — | Unik (`SourceSystem`, `ExternalPurchaseOrderId`) terfilter `IS NOT NULL AND "IsDelete" = false` | Tanpa FK | Tidak | **Baru.** `PurchaseOrderId` BLM. `CK_FinPurchaseOrder_ExternalIdentity`: terisi ⇔ `BLM` |
+| `ExternalUpdatedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | **Baru.** Waktu perubahan terakhir menurut BLM; kiriman yang lebih lama ditandai `SUPERSEDED` |
+| `LastSyncedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | **Baru.** Waktu Quilvian terakhir menerapkan kiriman |
+
+PO BLM: `RequestedByUserId = Guid.Empty`, `ApprovalTier = 'EXTERNAL'`, `ApprovedAt` = waktu persetujuan BLM.
+
+### 13.3 `FinPurchaseOrderItem` (Diperbarui)
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id`, `PurchaseOrderId` | `uuid` | Ya | — | — | PK, index | FK → `FinPurchaseOrder.Id` (tetap) | Tidak | Sudah ada |
+| `ProductCategory`, `ProductName` | `varchar(100)`, `varchar(300)` | Ya | — | — | — | — | Tidak | Sudah ada. Untuk PO BLM: **snapshot** kategori dan nama saat PO diterima, tidak berubah walau master BLM berubah (`FIN-DEC-275`) |
+| `Unit` | `varchar(30)` | Ya | — | — | — | — | Tidak | Sudah ada. Untuk PO BLM: nama satuan PO dari BLM, snapshot |
+| `Quantity` | `numeric(18,2)` | Ya | — | — | — | — | Tidak | Sudah ada. Untuk PO BLM: kuantitas dalam satuan PO, snapshot |
+| `ExternalPurchaseOrderItemId` | `uuid` | Bersyarat | `NULL` | — | Unik terfilter `IS NOT NULL AND "IsDelete" = false` | Tanpa FK | Tidak | **Baru.** `PurchaseOrderItemId` BLM; satu-satunya kunci pencocokan baris GR ke item PO (`FIN-DEC-275`) |
+| `ExternalProductId` | `uuid` | Bersyarat | `NULL` | — | Index terfilter `IS NOT NULL` | Tanpa FK | Tidak | **Baru.** `ProductId` BLM |
+| `ExternalProductCode` | `varchar` | Tidak | `NULL` | 100 | — | — | Tidak | **Baru.** `ProductExtCode` BLM bila ada. Panjang 100 adalah asumsi |
+| `SourceUomCode` | `varchar` | Bersyarat | `NULL` | 30 | — | — | Tidak | **Baru.** Kode satuan PO asli dari BLM (contoh `BOX`) |
+| `QuantityPerBaseUnit` | `numeric(18,6)` | Bersyarat | `NULL` | — | — | — | Tidak | **Baru.** Isi satu satuan PO dalam satuan dasar produk, snapshot dari `MstProductConversion.QuantityPerUnit` BLM (satuan dasar = 1). Check `> 0` bila terisi. **Tidak pernah diisi 1 sebagai tebakan** |
+| `BaseUomCode` | `varchar` | Bersyarat | `NULL` | 30 | — | — | Tidak | **Baru.** Kode satuan dasar produk menurut BLM (`MstProduct.MeasurementId` → `MeasurementCode`, contoh `PCS`) |
+| `BaseQuantity` | `numeric(18,6)` | Bersyarat | `NULL` | — | — | — | Tidak | **Baru.** `Quantity × QuantityPerBaseUnit`, dihitung saat PO diterapkan |
+
+Check `CK_FinPurchaseOrderItem_BlmFields`: `ExternalPurchaseOrderItemId`, `ExternalProductId`, `SourceUomCode`,
+`QuantityPerBaseUnit`, `BaseUomCode`, dan `BaseQuantity` **semuanya kosong** (item lama) **atau semuanya terisi** (item BLM).
+`ExternalProductCode` dikecualikan karena boleh kosong di BLM.
+
+**Contoh:** item BLM 1 BOX produk A → `Quantity = 1`, `Unit = "Box"`, `SourceUomCode = "BOX"`, `QuantityPerBaseUnit = 12`,
+`BaseUomCode = "PCS"`, `BaseQuantity = 12`.
+
+### 13.4 `FinGoodsReceipt` (Diperbarui)
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | — | — | PK | — | Tidak | Sudah ada |
+| `GRNumber` | `varchar` | Ya | — | 50 | Unik global terfilter (tetap) | — | Tidak | Sudah ada. Nomor asli BLM untuk GR BLM |
+| `PurchaseOrderId` | `uuid` | Ya | — | — | Index | FK → `FinPurchaseOrder.Id` (tetap) | Tidak | Sudah ada. GR BLM hanya menunjuk PO BLM (`FIN-VAL-307`) |
+| `Status` | `varchar` | Ya | `'RECEIVED'` | 20 | Index | — | Tidak | Sudah ada (`RECEIVED`, `CANCELLED`). GR BLM menjadi `CANCELLED` hanya lewat pemberitahuan/konfirmasi BLM |
+| `SourceSystem` | `varchar` | Ya | `'QUILVIAN'` | 20 | Bagian index unik | — | Tidak | **Baru** |
+| `ExternalReceiveOrderId` | `uuid` | Bersyarat | `NULL` | — | Unik (`SourceSystem`, `ExternalReceiveOrderId`) terfilter | Tanpa FK | Tidak | **Baru.** `ReceiveOrderId` BLM; check terisi ⇔ `BLM` |
+| `ExternalUpdatedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | **Baru** |
+| `LastSyncedAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | **Baru** |
+
+### 13.5 `FinGoodsReceiptItem` (Diperbarui)
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id`, `GoodsReceiptId`, `PurchaseOrderItemId` | `uuid` | Ya | — | — | PK, index | FK (tetap) | Tidak | Sudah ada. Untuk baris BLM, `PurchaseOrderItemId` ditentukan dari `ExternalPurchaseOrderItemId` kiriman, **bukan** dari nama produk |
+| `ReceivedQuantity` | `numeric(18,2)` | Ya | — | — | — | — | Tidak | Sudah ada; arti untuk GR lama **tidak berubah**. Untuk baris BLM: jumlah **sah** dalam satuan PO (`AcceptedBaseQuantity / QuantityPerBaseUnit` item PO), dibulatkan 2 desimal **hanya untuk tampilan dan kompatibilitas** (`FIN-DES-140`) |
+| `ExternalReceiveOrderItemId` | `uuid` | Bersyarat | `NULL` | — | Unik terfilter `IS NOT NULL AND "IsDelete" = false` | Tanpa FK | Tidak | **Baru.** `ReceivedOrderItemId` BLM |
+| `ConditionCode` | `varchar` | Bersyarat | `NULL` | 30 | — | — | Tidak | **Baru.** `GOOD`, `DAMAGED`, `PENDING_INSPECTION`. Dari `Remarks` BLM: "Good Condition" → `GOOD`, "Damage" → `DAMAGED`, "Pending Inspection" → `PENDING_INSPECTION`; teks lain → kiriman ditolak |
+| `SourceQuantity` | `numeric(18,6)` | Bersyarat | `NULL` | — | — | — | Tidak | **Baru.** Kuantitas asli penerimaan (`QtyReceive` BLM) dalam satuan asli |
+| `SourceUomCode` | `varchar` | Bersyarat | `NULL` | 30 | — | — | Tidak | **Baru.** Satuan asli penerimaan (`Measure` BLM) |
+| `QuantityPerBaseUnit` | `numeric(18,6)` | Bersyarat | `NULL` | — | — | — | Tidak | **Baru.** Faktor konversi yang dipakai: isi satu satuan asli dalam satuan dasar, snapshot dari BLM. Check `> 0` |
+| `BaseUomCode` | `varchar` | Bersyarat | `NULL` | 30 | — | — | Tidak | **Baru.** Wajib sama dengan `BaseUomCode` item PO (diperiksa pengolah; bila beda → `CONVERSION_UNRESOLVED`) |
+| `BaseQuantity` | `numeric(18,6)` | Bersyarat | `NULL` | — | — | — | Tidak | **Baru.** Hasil normalisasi: `SourceQuantity × QuantityPerBaseUnit` (jumlah fisik dalam satuan dasar) |
+| `AcceptedBaseQuantity` | `numeric(18,6)` | Bersyarat | `NULL` | — | — | — | Tidak | **Baru.** Jumlah diterima sah dalam satuan dasar setelah pemeriksaan kondisi |
+
+Check `CK_FinGoodsReceiptItem_BlmFields`: kedelapan kolom baru **semuanya kosong** (baris lama) **atau semuanya terisi**
+(baris BLM). Check `CK_FinGoodsReceiptItem_ConditionCode`: nilai dalam daftar bila terisi. Check
+`CK_FinGoodsReceiptItem_AcceptedBaseQuantity`: `0 <= AcceptedBaseQuantity <= BaseQuantity`, dan `AcceptedBaseQuantity = 0`
+bila `ConditionCode <> 'GOOD'`. Check `CK_FinGoodsReceiptItem_QuantityPerBaseUnit`: `> 0` bila terisi.
+
+**Contoh baris BLM:** GR-1 menerima 6 PCS produk A, kondisi Baik → `SourceQuantity = 6`, `SourceUomCode = "PCS"`,
+`QuantityPerBaseUnit = 1`, `BaseUomCode = "PCS"`, `BaseQuantity = 6`, `AcceptedBaseQuantity = 6`, `ReceivedQuantity = 0.50`
+(6 ÷ 12, dalam BOX, untuk tampilan). Perhitungan status memakai `6`, bukan `0.50`.
+
+Rumus kemajuan dan status per item PO BLM ada di `02-backend-architecture.md` W.11.
+
+### 13.6 `FinPurchasingInboundMessage` (Baru) — kotak masuk dan riwayat sinkronisasi
+
+Satu baris per kiriman BLM, disimpan apa adanya sebelum diolah (`FIN-DES-132`).
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | |
+| `SourceSystem` | `varchar` | Ya | `'BLM'` | 20 | Bagian unik (`SourceSystem`, `EventId`) | — | Tidak | Check `IN ('BLM')`; `QUILVIAN` tidak masuk kotak masuk |
+| `EventId` | `varchar` | Ya | — | 100 | **Unik** (`SourceSystem`, `EventId`) | — | Tidak | Nomor kejadian dari BLM; dasar idempotensi |
+| `EventType` | `varchar` | Ya | — | 50 | — | — | Tidak | Kode jenis kejadian dari BLM (contoh usulan: `PO_UPSERTED`, `GR_UPSERTED`, `PO_CANCELLED`, `GR_CANCELLED`). **Tidak** dibatasi check constraint sampai kontrak BLM pasti (`FIN-OQ-141`) |
+| `DocumentType` | `varchar` | Ya | — | 30 | Index gabungan (`DocumentType`, `ExternalDocumentId`, `SourceOccurredAt`) | — | Tidak | `PURCHASE_ORDER` atau `GOODS_RECEIPT` (check) |
+| `ExternalDocumentId` | `uuid` | Ya | — | — | Lihat index di atas | Tanpa FK | Tidak | `PurchaseOrderId` atau `ReceiveOrderId` BLM |
+| `ExternalDocumentNumber` | `varchar` | Tidak | `NULL` | 50 | — | — | Tidak | Nomor dokumen BLM, untuk pencarian petugas |
+| `SourceVersion` | `varchar` | Tidak | `NULL` | 50 | — | — | Tidak | Versi data dari BLM bila dikirim; format menunggu kontrak |
+| `SourceOccurredAt` | `timestamptz` | Ya | — | — | Lihat index | — | Tidak | Waktu kejadian menurut BLM |
+| `ReceivedAt` | `timestamptz` | Ya | `CURRENT_TIMESTAMP` | — | — | — | Tidak | Waktu Quilvian menerima |
+| `PayloadJson` | `text` | Ya | — | — | — | — | **Ya** | Isi kiriman utuh. Dapat memuat identitas dan nama pegawai BLM; **MUST NOT** masuk custom logger dan tidak dipakai sebagai contoh berisi data asli |
+| `PayloadHash` | `varchar` | Ya | — | 64 | — | — | Tidak | SHA-256 heksadesimal dari `PayloadJson`. `EventId` sama dengan hash berbeda → konflik `PAYLOAD_MISMATCH` |
+| `ProcessingStatus` | `varchar` | Ya | `'RECEIVED'` | 30 | Index gabungan (`ProcessingStatus`, `NextAttemptAt`) | — | Tidak | `RECEIVED`, `APPLIED`, `WAITING_MAPPING`, `CONFLICT`, `REJECTED`, `SUPERSEDED` (check). Transisi: `contracts/state-transition-matrix.md` bagian W |
+| `AttemptCount` | `integer` | Ya | `0` | — | — | — | Tidak | ≥ 0 (check) |
+| `LastAttemptAt` | `timestamptz` | Tidak | `NULL` | — | — | — | Tidak | |
+| `NextAttemptAt` | `timestamptz` | Tidak | `NULL` | — | Lihat index | — | Tidak | Hanya untuk `WAITING_MAPPING` (pemetaan supplier belum ada) |
+| `LastErrorCode` | `varchar` | Tidak | `NULL` | 50 | — | — | Tidak | Kode saja (contoh `SUPPLIER_NOT_MAPPED`, `PO_NOT_FOUND`, `CONVERSION_MISSING`, `BASE_UOM_MISMATCH`), tanpa teks berisi data |
+| `AppliedPurchaseOrderId` | `uuid` | Tidak | `NULL` | — | Index terfilter `IS NOT NULL` | FK → `FinPurchaseOrder.Id`, `Restrict` | Tidak | Terisi saat `APPLIED` untuk kiriman PO |
+| `AppliedGoodsReceiptId` | `uuid` | Tidak | `NULL` | — | Index terfilter `IS NOT NULL` | FK → `FinGoodsReceipt.Id`, `Restrict` | Tidak | Terisi saat `APPLIED` untuk kiriman GR |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | Concurrency token | — | Tidak | Mencegah dua pengolah menerapkan kiriman yang sama bersamaan |
+
+Check `CK_FinPurchasingInboundMessage_Applied`: `ProcessingStatus = 'APPLIED'` ⇒ tepat satu dari `AppliedPurchaseOrderId`
+dan `AppliedGoodsReceiptId` terisi, sesuai `DocumentType`.
+
+**Retensi.** Baris kotak masuk tidak dihapus (riwayat audit). Kebijakan pengarsipan menunggu volume nyata.
+
+### 13.7 `FinPurchasingSupplierMap` (Baru)
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | |
+| `SourceSystem` | `varchar` | Ya | `'BLM'` | 20 | Bagian unik | — | Tidak | Check `IN ('BLM')` |
+| `ExternalSupplierId` | `uuid` | Ya | — | — | **Unik** (`SourceSystem`, `ExternalSupplierId`) terfilter `"IsActive" = true AND "IsDelete" = false` | Tanpa FK | Tidak | `SupplierId` BLM |
+| `ExternalSupplierName` | `varchar` | Tidak | `NULL` | 300 | — | — | Tidak | Nama di BLM saat dipetakan, untuk membantu petugas memeriksa |
+| `SupplierId` | `uuid` | Ya | — | — | Index | FK → `MstSupplier.Id`, `Restrict` | Tidak | Supplier V2. Boleh dirujuk lebih dari satu baris pemetaan |
+| `IsActive` | `boolean` | Ya | `true` | — | Bagian filter unik | — | Tidak | Pemetaan lama dinonaktifkan, tidak ditimpa, supaya jejak tetap ada |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | Concurrency token | — | Tidak | |
+
+### 13.8 (Dihapus pada putaran 2)
+
+`FinPurchasingUomMap` tidak dibuat (`FIN-DEC-276`). Nomor bagian dipertahankan agar rujukan lain tidak bergeser.
+
+### 13.9 `FinPurchasingSyncConflict` (Baru)
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | |
+| `InboundMessageId` | `uuid` | Ya | — | — | **Unik** (`InboundMessageId`, `ConflictType`) terfilter `"Status" = 'OPEN' AND "IsDelete" = false` | FK → `FinPurchasingInboundMessage.Id`, `Restrict` | Tidak | Kiriman yang memicu konflik |
+| `ConflictType` | `varchar` | Ya | — | 50 | Index (`Status`, `ConflictType`) | — | Tidak | `GR_CANCELLED_WITH_DEPENDENTS`, `PO_CANCELLED_WITH_DEPENDENTS`, `NUMBER_COLLISION`, `PAYLOAD_MISMATCH`, `CONVERSION_UNRESOLVED` (check). `CONVERSION_UNRESOLVED`: isi per satuan tidak ada, tidak sah (≤ 0), atau satuan dasar GR berbeda dari satuan dasar item PO (`FIN-DEC-276`) |
+| `PurchaseOrderId` | `uuid` | Tidak | `NULL` | — | Index terfilter | FK → `FinPurchaseOrder.Id`, `Restrict` | Tidak | |
+| `GoodsReceiptId` | `uuid` | Tidak | `NULL` | — | Index terfilter | FK → `FinGoodsReceipt.Id`, `Restrict` | Tidak | |
+| `DependentDocumentType` | `varchar` | Tidak | `NULL` | 30 | — | — | Tidak | `INVOICE_EXCHANGE`, `PURCHASING_INVOICE`, `SUPPLIER_PAYABLE`, `PAYMENT` (check bila terisi) |
+| `DependentDocumentId` | `uuid` | Bersyarat | `NULL` | — | — | **Tanpa FK** (jenis beragam) | Tidak | Wajib bila `DependentDocumentType` terisi (check) |
+| `Status` | `varchar` | Ya | `'OPEN'` | 20 | Lihat index | — | Tidak | `OPEN`, `RESOLVED` (check) |
+| `ResolutionCode` | `varchar` | Bersyarat | `NULL` | 30 | — | — | Tidak | `ADJUSTMENT`, `REVERSAL`, `SUPPLIER_RETURN`, `SUPPLIER_CREDIT`, `NO_FINANCIAL_IMPACT` (check). Wajib bila `RESOLVED` |
+| `ResolutionNote` | `varchar` | Tidak | `NULL` | 1000 | — | — | Tidak | Catatan petugas Finance; tanpa data pribadi |
+| `ResolvedByUserId` | `uuid` | Bersyarat | `NULL` | — | — | — | Tidak | Wajib bila `RESOLVED` |
+| `ResolvedAt` | `timestamptz` | Bersyarat | `NULL` | — | — | — | Tidak | Wajib bila `RESOLVED` |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | Concurrency token | — | Tidak | |
+
+Check `CK_FinPurchasingSyncConflict_Target`: minimal satu dari `PurchaseOrderId` dan `GoodsReceiptId` terisi.
+
+### 13.10 `FinPurchasingExternalCancellation` (Baru)
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index / unik | Relasi dan perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | — | Tidak | |
+| `SourceSystem` | `varchar` | Ya | `'BLM'` | 20 | Bagian unik | — | Tidak | Check `IN ('BLM')` |
+| `Direction` | `varchar` | Ya | — | 20 | — | — | Tidak | `OUTBOUND_REQUEST` (Quilvian meminta) atau `INBOUND_NOTICE` (BLM memberi tahu) (check) |
+| `DocumentType` | `varchar` | Ya | — | 30 | Index (`DocumentType`, `ExternalDocumentId`) | — | Tidak | `PURCHASE_ORDER` atau `GOODS_RECEIPT` (check) |
+| `ExternalDocumentId` | `uuid` | Ya | — | — | Lihat index | Tanpa FK | Tidak | `PurchaseOrderId` atau `ReceiveOrderId` BLM |
+| `PurchaseOrderId` | `uuid` | Bersyarat | `NULL` | — | Index terfilter | FK → `FinPurchaseOrder.Id`, `Restrict` | Tidak | Wajib bila `DocumentType = 'PURCHASE_ORDER'` |
+| `GoodsReceiptId` | `uuid` | Bersyarat | `NULL` | — | Index terfilter | FK → `FinGoodsReceipt.Id`, `Restrict` | Tidak | Wajib bila `DocumentType = 'GOODS_RECEIPT'` |
+| `EventId` | `varchar` | Ya | — | 100 | **Unik** (`SourceSystem`, `Direction`, `EventId`) | — | Tidak | Untuk `OUTBOUND_REQUEST` dibuat Quilvian; untuk `INBOUND_NOTICE` dari BLM |
+| `CategoryCode` | `varchar` | Ya | — | 50 | — | — | Tidak | Sejajar `PchHistoryCancelPurchaseOrder.CategoryCode` BLM. Panjang asumsi |
+| `CategoryName` | `varchar` | Ya | — | 100 | — | — | Tidak | Panjang asumsi |
+| `OtherCategoryText` | `varchar` | Tidak | `NULL` | 300 | — | — | Tidak | Diisi bila kategori "lainnya" |
+| `Reason` | `varchar` | Ya | — | 1000 | — | — | Tidak | Alasan batal; tanpa data pribadi |
+| `RequestedByUserId` | `uuid` | Bersyarat | `NULL` | — | — | — | Tidak | Pengguna Quilvian; wajib untuk `OUTBOUND_REQUEST` |
+| `CancelledBy` | `varchar` | Tidak | `NULL` | 100 | — | — | **Ya** | Identitas pelaku menurut BLM (`CancelOrderById`). Tidak masuk custom logger |
+| `CancelledAt` | `timestamptz` | Bersyarat | `NULL` | — | — | — | Tidak | Wajib bila `CONFIRMED` |
+| `Status` | `varchar` | Ya | — | 20 | Index (`Status`, `NextAttemptAt`) | — | Tidak | `REQUESTED`, `SENT`, `CONFIRMED`, `REJECTED`, `FAILED` (check). `INBOUND_NOTICE` langsung `CONFIRMED` |
+| `RejectionCode` | `varchar` | Tidak | `NULL` | 50 | — | — | Tidak | Kode penolakan BLM, atau `AP_DEPENDENCY` bila ditolak pemeriksaan Quilvian sendiri |
+| `AttemptCount` | `integer` | Ya | `0` | — | — | — | Tidak | ≥ 0 |
+| `NextAttemptAt` | `timestamptz` | Tidak | `NULL` | — | Lihat index | — | Tidak | Hanya untuk `REQUESTED`/`FAILED` |
+| `InboundMessageId` | `uuid` | Tidak | `NULL` | — | — | FK → `FinPurchasingInboundMessage.Id`, `Restrict` | Tidak | Kiriman BLM yang mengonfirmasi atau memberi tahu pembatalan |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | Concurrency token | — | Tidak | |

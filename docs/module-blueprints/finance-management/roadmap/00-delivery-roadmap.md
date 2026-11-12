@@ -996,3 +996,35 @@ flowchart TD
 | 4 | **Pemisahan Karyawan Saat Masih Berpiutang:** Pegawai keluar sebelum piutang lunas. | Risiko gagal bayar piutang RS | Prosedur exit clearance `BE-FIN-096` dan `FE-FIN-041` mendeteksi saldo aktif; bila ada piutang, status `MEMILIKI_TANGGUNGAN` mencegah surat bebas tanggungan terbit hingga kompensasi pesangon diperhitungkan. |
 | 5 | **Koreksi Salah Orang:** Petugas Registrasi salah memilih pegawai pada kartu penjamin. | Data riwayat piutang pegawai yang salah | Dilarang edit debitur langsung (`FIN-DEC-187`). Koreksi wajib melalui pembatalan serah terima di Billing, penerbitan reversal `BE-FIN-097`, penyesuaian kartu piutang lama, dan penerbitan kartu baru untuk pegawai yang sah. |
 
+
+---
+
+# REV-23 (3 November 2026) — Benefit RS, Blueprint Revisi 22 (approved)
+
+Rincian lengkap: `01-backend-roadmap.md` dan `02-frontend-roadmap.md` bagian REV-23. Bagian REV-19..REV-22 roadmap backend/frontend tidak
+diringkas ulang di berkas ini.
+
+| Gelombang rilis | Backend | Frontend | Penahan |
+|---|---|---|---|
+| `MVP-17` | `BE-FIN-128`, `129`, `130`, `131`, `132`, `134` (+ `137` opsional) | `FE-FIN-056`, `057`, `058`, `059` | Rilis `BE-FIN-128` menunggu `R-1` (data dokter tamu) |
+| `MVP-18` | `BE-FIN-133` ⛔, `135`, `136`, `138`..`141` (+ `137` bila ditahan) | `FE-FIN-060`, `061` | `FIN-OQ-121` (registry), wewenang migration, `R-2`, `R-4` |
+
+**Pernyataan wajib pada setiap handoff.** Backend: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend
+dan `docs/engineering/`; `dotnet build` dan migration hanya atas instruksi eksplisit pemilik. Frontend: `npm run build`/`dev` hanya atas
+instruksi eksplisit pemilik. Tidak ada builder yang dijalankan oleh roadmap ini.
+
+
+---
+
+# REV-24 (9 November 2026) — Penampung Data PO/GR dari BLM, Blueprint Revisi 23 (approved)
+
+Rincian lengkap: `01-backend-roadmap.md` dan `02-frontend-roadmap.md` bagian REV-24.
+
+| Gelombang rilis | Backend | Frontend | Penahan |
+|---|---|---|---|
+| `MVP-19` (satu paket; database dulu, lalu aplikasi) | ✅ `BE-FIN-142` ([laporan](../task/report/backend/BE-FIN-142.md)), ✅ `BE-FIN-143` ([laporan](../task/report/backend/BE-FIN-143.md)), 🟡 `145` ([laporan](../task/report/backend/BE-FIN-145.md)), 🟡 `146` ([laporan](../task/report/backend/BE-FIN-146.md)), ✅ `147` ([laporan](../task/report/backend/BE-FIN-147.md)), ✅ `144` ([laporan](../task/report/backend/BE-FIN-144.md)) | ✅ `FE-FIN-062` ([laporan](../task/report/frontend/FE-FIN-062.md)), ✅ `063` ([laporan](../task/report/frontend/FE-FIN-063.md)) | Wewenang migration dan build dari pemilik (`FIN-DEC-273`) |
+| `POST-MVP` | Integrasi BLM, pemetaan supplier, konflik, Monitoring Sinkronisasi, gerbang Tukar Faktur, multi-GR | Layar terkait | `FIN-OQ-141` (satu-satunya yang masih `OPEN`); `138`, `143`, `144` dijawab 10 November 2026 (`FIN-DEC-279`..`281`) |
+
+**Pernyataan wajib pada setiap handoff.** Backend: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari
+`AGENTS.md` backend dan dokumen engineering canonical; `dotnet build` dan migration hanya atas instruksi eksplisit pemilik.
+Frontend: `npm run build`/`dev` hanya atas instruksi eksplisit pemilik. Tidak ada builder yang dijalankan oleh roadmap ini.

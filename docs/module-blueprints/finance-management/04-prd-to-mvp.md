@@ -2444,3 +2444,330 @@ tercatat, saldo piutang dan angsuran berubah, tunggakan dilimpahkan. Berlaku **s
 1. Seluruh Revisi 20 berstatus **draft**; persetujuan tetap tindakan pemilik.
 2. Revisi 20 **mengoreksi dua bagian kontrak yang sudah disetujui** (`payrollRunId` opsional dan isian persetujuan). Mohon dinyatakan eksplisit saat persetujuan.
 3. Batas 2.000 baris per berkas adalah pilihan desain agen; dapat diubah saat persetujuan.
+
+---
+
+# Revisi 22 (3 November 2026) — Benefit RS: Pengajuan sampai Penjamin Pasien Siap Dipakai
+
+```yaml
+last_changed_in: FIN-MVP-1.16
+status: approved
+owner: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: 00-interview-decisions.md FIN-DEC-231..257; requirement-completeness-assessment.md FIN-RCG-001 rev 2;
+  02-backend-architecture.md V; 03-frontend-architecture.md 26; contracts V; testing V
+backend_commit_sha: ba312826
+frontend_commit_sha: fa7eb8d7
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN (alasan: 02-backend-architecture.md V)
+```
+
+## 83. Identitas dan ringkasan
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian V2 |
+| Modul | Finance Management (`FIN-BP-001`), titik sentuh HR Benefit, Patient Management, Registrasi |
+| Repository target | `NewQuilvianSystemBackend` (`Yasmina`), `QuilvianSystemFrontendDev` (`yasmina`) |
+| Cakupan satu baris | Benefit RS diajukan sekali, disetujui HRD, aktif sesuai tanggal efektif, dan kartu penjaminnya tersedia sendiri di data pasien yang terbukti orang yang sama |
+
+**Ringkasan eksekutif.** Hari ini karyawan dan dokter tetap yang sudah disetujui benefitnya tetap tidak bisa memakai
+Benefit RS di loket: enrollment berhenti di Draft, persetujuan HRD tidak mengaktifkan, dan kartu penjamin pasien harus
+didaftarkan manual — dan form manualnya gagal. Revisi ini menutup rantai itu tanpa mengorbankan keamanan identitas:
+kartu hanya dipasang ke pasien yang terbukti sama, dan dicek ulang saat kunjungan.
+
+## 84. Masalah produk dan visi
+
+| Kondisi sekarang | Bukti |
+|---|---|
+| "Simpan Draft" membuat Draft; Ajukan adalah langkah terpisah | `EmployeeBenefitEnrollmentService.CreateAsync` baris 341; capability map `FIN-CAP-086` |
+| Setujui tidak mengaktifkan; Aktifkan manual tanpa cek tanggal | `FIN-CAP-087` |
+| Tidak ada penjadwal; status `Expired` tidak pernah diisi | `FIN-CAP-088` |
+| Kartu internal pasien tidak pernah dibuat otomatis | `FIN-CAP-095` |
+| Modal Daftarkan Penjamin tidak mengirim identitas HR → 422; pesannya hilang | `FIN-CAP-098`, `099`; `FIN-DEC-248` |
+| Dokter tamu diterima sejak `e5fc5888` | `FIN-CAP-090`, `091`; `FIN-DEC-247` |
+
+**Visi (rantai data).** Enrollment HR (pemilik = `WorkforceProfileId`) → Active dengan saldo awal → catatan hasil
+sinkronisasi → kartu penjamin pasien (pasien kanonik, NIK + tanggal lahir + KTP/NIK) → snapshot penanggung kunjungan →
+Billing membaca plafon HR aktual.
+
+## 85. Batas MVP dan pelaku
+
+**Titik mulai.**
+1. Staf HR membuka modal Pendaftaran Benefit Pegawai Baru.
+2. Penerima adalah karyawan atau dokter tetap aktif di HR.
+
+**Titik akhir.**
+1. Kunjungan pasien terdaftar dengan kartu "Benefit Karyawan RS" tanpa pendaftaran kartu manual, atau sistem menyatakan
+   dengan jelas mengapa belum (menunggu pasien, ditahan, gagal sementara, dicabut).
+2. Billing membaca plafon HR seperti sekarang. Tidak ada piutang, kwitansi, atau pelunasan yang dibuat revisi ini.
+
+| Pelaku | Tanggung jawab di MVP |
+|---|---|
+| Staf HR | Mengajukan benefit |
+| HRD | Menyetujui, mengaktifkan manual bila perlu, membatalkan, Sinkronkan ulang |
+| Petugas Registrasi | Meninjau kasus menunggu/ditahan, mencabut kartu salah pasien, mendaftarkan kartu manual (termasuk keluarga) |
+| Kasir | Tidak berubah; ganti penanggung kini menolak kartu otomatis yang identitasnya berubah |
+| Sistem (akun layanan) | Aktivasi terjadwal, sinkronisasi, rekonsiliasi |
+
+## 86. Pemilihan kemampuan
+
+| Kemampuan `MUST HAVE` | ID kemampuan asal | Slice |
+|---|---|---|
+| Ajukan Benefit atomik | `FIN-CAP-086` | `S1` |
+| Setujui yang mengaktifkan | `FIN-CAP-087` | `S2` |
+| Aktivasi terjadwal | `FIN-CAP-088` | `S3` |
+| Hanya karyawan dan dokter tetap | `FIN-CAP-090`, `091` | `S4` |
+| Sinkronisasi kartu otomatis | `FIN-CAP-093`, `094`, `095`, `096`, `100` | `S5a` |
+| Status sinkronisasi untuk HRD dan Registrasi | `FIN-CAP-089`, `096` | `S5b` |
+| Batal dan pencabutan mengikuti | `FIN-CAP-096` | `S6` |
+| Modal Daftarkan Penjamin internal + 422 spesifik | `FIN-CAP-098`, `099` | `S7` |
+| Status benefit hidup di tab | `FIN-CAP-097` | `S8` |
+| Cek ulang identitas saat kunjungan | `FIN-CAP-102` | `S9` |
+
+| Ditunda | Alasan tidak memblokir | Pengganti selama MVP |
+|---|---|---|
+| Kartu keluarga otomatis | `FIN-DEC-241` | Petugas mendaftarkan kartu keluarga lewat Daftarkan Penjamin (pemilih HR + anggota keluarga) |
+| Pilihan kartu bila pasien punya lebih dari satu kartu internal (`FIN-OQ-128`) | Sinkronisasi tidak menciptakan keadaan itu (`FIN-DEC-251`) | Petugas memilih kartu di tabel penjamin langkah pembayaran |
+| Validasi kartu pada kunjungan warisan bayi baru lahir (`FIN-OQ-129`) | Perilaku lama, tidak diubah | Perilaku sekarang |
+| Pemasangan untuk enrollment yang aktif sebelum `ActivationCutoffUtc` | Larangan perubahan data pasien massal | Sinkronkan ulang per enrollment oleh HRD |
+
+## 87. Alur bisnis target
+
+1. Staf HR memilih penerima dari HR, program, dan tanggal, lalu menekan **Ajukan Benefit** → Diajukan.
+2. HRD menekan **Setujui** → Aktif bila tanggal mulai tiba; selain itu Disetujui.
+3. Pada tanggal mulai, penjadwal mengaktifkan enrollment yang Disetujui.
+4. Sesudah aktif, sistem mencari tepat satu pasien yang terbukti sama dan memasang atau memakai ulang kartu.
+5. Bila tidak yakin, hasilnya menunggu atau ditahan; Registrasi meninjau, HRD menekan Sinkronkan ulang.
+6. Petugas Registrasi melihat kartu dan status benefit hidup di tab Penjamin Perusahaan.
+7. Saat kunjungan didaftarkan, kartu otomatis dicek ulang identitasnya; bila cocok, kunjungan memakai benefit.
+8. Billing membaca plafon HR seperti sekarang.
+
+## 88. Epic dan functional requirement
+
+### EPIC FIN-25 — Benefit RS dari Pengajuan sampai Penjamin Pasien
+
+| FR | Requirement | Disposisi | Rujukan |
+|---|---|---|---|
+| `FR-FIN-261` | Ajukan Benefit membuat enrollment `Submitted` dalam satu operasi; tanpa Draft sisa saat gagal | `EXTEND` | `FIN-DES-109`; api V.1 |
+| `FR-FIN-262` | Setujui mengaktifkan dalam transaksi yang sama bila tanggal mulai tiba; kegagalan syarat membatalkan persetujuan | `EXTEND` | `FIN-DES-110` |
+| `FR-FIN-263` | Penjadwal mengaktifkan `Approved` pada tanggal mulai; Aktifkan manual menolak tanggal depan | `MISSING / NEW` | `FIN-DES-111`; `FIN-VAL-291` |
+| `FR-FIN-264` | Dokter tamu tidak dapat menjadi penerima di jalur mana pun | `EXTEND` (perbaikan) | `FIN-DES-123` |
+| `FR-FIN-265` | Sinkronisasi memasang kartu `SYS-RS-BENEFIT` hanya ke tepat satu pasien yang NIK, tanggal lahir, dan jenis ID KTP/NIK-nya cocok; kartu pemilik sama dipakai ulang; kartu orang lain ditahan | `MISSING / NEW` | `FIN-DES-112..116` |
+| `FR-FIN-266` | HRD melihat status sinkronisasi dan dapat Sinkronkan ulang | `MISSING / NEW` | `FIN-DES-121` |
+| `FR-FIN-267` | Registrasi punya daftar kerja kasus menunggu/ditahan tanpa data pasien | `MISSING / NEW` | `FIN-DES-120` |
+| `FR-FIN-268` | Batal menonaktifkan kartu tercatat; kartu yang dicabut tidak dipasang ulang otomatis | `MISSING / NEW` | `FIN-DES-117`, `118` |
+| `FR-FIN-269` | Modal Daftarkan Penjamin internal memakai pemilih HR dan payload canonical; galat 422 tampil spesifik | `EXTEND` (perbaikan) | `FIN-DES-124`; frontend 26 |
+| `FR-FIN-270` | Tab Penjamin Perusahaan menampilkan status dan masa berlaku benefit langsung dari HR | `EXTEND` | `FIN-DES-119` |
+| `FR-FIN-271` | Kunjungan dengan kartu otomatis menolak bila identitas pasien tidak lagi cocok | `EXTEND` | `FIN-DES-122`, `126` |
+
+Tidak ada FR berstatus `OPEN DECISION`. `FIN-DES-126` (envelope galat loket) adalah pilihan desain yang disetujui
+bersama dokumen ini, bukan keputusan bisnis yang menggantung.
+
+## 89. Model status, arsitektur, API, dan kewenangan
+
+| Topik | Rujukan |
+|---|---|
+| Model status enrollment dan catatan sinkronisasi | `contracts/state-transition-matrix.md` V.1, V.2. Invariant: tidak ada `Approved` yang gagal `Active` karena syarat; saldo awal sekali; kartu hanya ke tepat satu pasien terbukti |
+| Sasaran arsitektur (pakai ulang / perluas / baru) | `02-backend-architecture.md` V.3, V.6, V.7. Baru: `PatEmployeeBenefitCardSync`, dua penjadwal, satu controller, satu antarmuka |
+| Sasaran kemampuan API | `contracts/api-contract.md` V.1–V.4; endpoint baru berlabel **Rencana (belum tersedia)** |
+| Matriks kewenangan | `contracts/permission-audit-matrix.md` V.2–V.4; izin baru `EmployeeBenefitEnrollment : SyncPatientCard`, `EmployeeBenefitCardSync : Read` |
+
+## 90. Batas integrasi, billing, regulasi, dan non-fungsional
+
+| Batas | Isi |
+|---|---|
+| Billing dan Finance | Revisi ini **MUST NOT** memotong plafon, membuat Invoice, Finance AR, kwitansi, atau melunasi piutang; **MUST NOT** mengubah refill plafon bulanan atau angsuran |
+| Master pasien | **MUST NOT** membuat atau menggabung pasien |
+| Privasi | NIK, tanggal lahir, dan tautan pegawai↔pasien tidak masuk log; daftar kerja dan ringkasan HRD tanpa data pasien |
+| Atomicity | Ajukan dan Setujui+aktif masing-masing satu transaksi Serializable dengan kunci advisory |
+| Konkurensi | `RowVersion` pada enrollment dan catatan sinkronisasi; kunci per enrollment dan per pasien |
+| Ketahanan | Rekonsiliasi berkala; tidak ada pekerjaan hilang saat server mulai ulang |
+| Waktu | Tanggal operasional WIB (`AppDateTimeHelper`) untuk tanggal mulai dan tanggal pelayanan |
+| Koreksi | Batal dan pencabutan tidak menghapus apa pun |
+
+## 91. Skenario UAT
+
+Rincian dan buktinya di `testing/acceptance-test-matrix.md` bagian V.
+
+| Slice | Berhasil | Gagal |
+|---|---|---|
+| `S1` | V.1.1 Ajukan → Diajukan | V.1.2 program kosong ditolak, nol baris; V.1.3 klik ganda 409 |
+| `S2` | V.2.1 Setujui → Aktif | V.2.2 irisan periode → tetap Diajukan |
+| `S3` | V.2.3 penjadwal mengaktifkan pada tanggal mulai | V.2.7 Aktifkan manual sebelum tanggal ditolak |
+| `S4` | V.3.2 dokter tetap tanpa `EmployeeId` diterima | V.1.4 dokter tamu ditolak |
+| `S5a` | V.3.1 kartu terpasang sekali | V.3.4 Gilang tidak menerima kartu Rendy; V.3.7 kartu orang lain → ditahan |
+| `S5b` | V.3.15 daftar kerja berisi tanpa data pasien | V.3.15 tanpa izin 403 |
+| `S6` | V.3.12 batal menonaktifkan kartu | V.3.11 kartu dicabut tidak dipasang ulang |
+| `S7` | V.4.2 simpan dengan penerima HR | V.4.3 422 tampil spesifik |
+| `S8` | V.4.6 status Aktif tampil | V.4.6 HR tidak terbaca → tidak tampak aktif |
+| `S9` | V.4.9 kunjungan memakai kartu otomatis yang sah | V.4.7 identitas berubah → kartu ditolak |
+
+## 92. Definition of Done Revisi 22
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | Tombol "Ajukan Benefit" dan satu permintaan Ajukan | V.1.1; review diff FE |
+| 2 | Ajukan atomik, tanpa Draft sisa | V.1.2 |
+| 3 | Setujui mengaktifkan bila tanggal tiba; gagal syarat → tetap Diajukan | V.2.1, V.2.2 |
+| 4 | Tanggal depan tidak aktif sebelum waktunya | V.2.3, V.2.7 |
+| 5 | Saldo awal tidak pernah diatur ulang | V.2.5, V.2.9 |
+| 6 | Dokter tamu ditolak; test 19 Oktober lulus | V.1.4, V.4.11 |
+| 7 | Kartu hanya ke tepat satu pasien terbukti; tidak ada kartu ganda | V.3.1, V.3.4, V.3.7, V.3.8 |
+| 8 | Sinkronisasi gagal tidak membatalkan aktivasi; pulih otomatis | V.3.9, V.3.10 |
+| 9 | Batal dan pencabutan tidak menghapus | V.3.11, V.3.12 |
+| 10 | Modal Daftarkan Penjamin internal tanpa 422 palsu; 422 asli tampil spesifik | V.4.2, V.4.3 |
+| 11 | Tab menampilkan status benefit hidup | V.4.6 |
+| 12 | Kunjungan menolak kartu otomatis yang identitasnya berubah | V.4.7 |
+| 13 | Nol mutasi plafon, invoice, piutang, kwitansi | V.3.18 |
+| 14 | Butir menu `SCR-BRS-06` terdaftar dan terjaga izin | Review `menu-items.jsx` |
+| 15 | Migration `AddPatEmployeeBenefitCardSync` siap diterapkan tim | Laporan task; **NOT RUN** sampai pemilik meminta |
+| 16 | Syarat rilis `R-1`..`R-4` terpenuhi | Konfirmasi pemilik |
+
+## 93. Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+|---|---|---|
+| `MVP-17` | `S1`, `S2` (dengan titik panggil sinkronisasi berupa antarmuka tanpa implementasi aktif), `S4`, `S7`, `S8` | Tidak bergantung pada tabel baru; langsung menghapus Draft, mengaktifkan saat Setujui, dan memperbaiki 422 |
+| `MVP-18` | Migration; `S5a`, `S6`, `S9`, `S3`; `S5b` | Bergantung pada tabel catatan sinkronisasi (`R-3`); `S9` dan `S6` membaca catatan itu; `S3` dirilis bersama agar aktivasi terjadwal langsung memicu sinkronisasi |
+| `POST-MVP` | Kartu keluarga otomatis, `FIN-OQ-128`, `FIN-OQ-129` | Ditunda pemilik |
+
+## 94. Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Pemilik | Memblokir |
+|---|---|---|
+| `FIN-DES-126`: envelope galat jalur loket 400 (usulan) atau disamakan 422 | Registrasi | Tidak memblokir desain; wajib dipilih saat persetujuan, sebelum task `S9` |
+| `FIN-OQ-121`: konfirmasi registry bahwa `PatEmployeeBenefitCardSync` di `PatientManagement/MasterData` tercakup baris `Pat` | Pemilik registry | **Memblokir implementasi `MVP-18`** (`QBE-MOD-002`); tidak memblokir `MVP-17` |
+| `FIN-OQ-127`: enrollment `Approved` yang periodenya sudah lewat | HR | Tidak |
+| Syarat rilis `R-1` (data dokter tamu), `R-2` (format NIK) | HR, Registrasi | Memblokir rilis `S4` dan `S5a`, bukan development |
+
+## 95. Catatan penyerahan
+
+1. Seluruh Revisi 22 berstatus **draft**; persetujuan tetap tindakan pemilik.
+2. Revisi 22 **menggantikan** `FIN-VAL-271` dan butir uji `N.2.2` atas keputusan `FIN-DEC-233`. Mohon dinyatakan eksplisit saat persetujuan.
+3. Label "Revisi 21" sudah dipakai dua kali tanpa tercatat di manifest (kamus data bagian 11, arsitektur bagian T). Revisi ini memakai nomor 22; manifest dicatat ulang.
+
+
+---
+
+# Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: FIN-MVP-1.17 (putaran 2)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W; data/data-dictionary.md bagian 13
+```
+
+## 96. Identitas dan ringkasan
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian V2 |
+| Modul | Finance Management (`FIN-BP-001`), subdomain Purchasing |
+| Repository target | `NewQuilvianSystemBackend` (`Yasmina`); `QuilvianSystemFrontendDev` (`yasmina`), satu komponen |
+| Cakupan satu baris | Quilvian dapat menyimpan PO/GR kiriman BLM dengan identitas, snapshot produk, dan konversi satuan per produk, lalu menghitung penerimaan sah dan status PO dengan benar, tanpa mengubah dokumen lama |
+
+**Ringkasan eksekutif.** BLM akan menjadi sumber utama PO dan GR (`FIN-DEC-261`). Pemilik meminta tabel penampung lebih
+dulu, integrasinya menyusul. Revisi ini menambah penanda sumber, identitas BLM, snapshot konversi satuan per produk,
+kondisi barang, kotak masuk, pemetaan supplier, konflik, dan pembatalan eksternal; menambah penghitung penerimaan untuk PO
+BLM; dan membuat layanan GR menolak perubahan lokal atas dokumen BLM.
+
+## 97. Masalah produk dan batas MVP
+
+| Hal | Isi |
+|---|---|
+| Masalah | Tabel PO/GR tidak bisa membedakan dokumen BLM, tidak menyimpan identitas BLM, tidak mengenal barang rusak atau menunggu periksa, dan menjumlah kuantitas tanpa memperhatikan satuan. Contoh: PO 1 BOX berisi 12 PCS dengan GR 6 PCS akan terbaca "6 dari 1, sudah penuh" |
+| Titik mulai MVP | Migration `AddFinPurchasingBlmStaging` diterapkan ke database, lalu aplikasi baru diaktifkan |
+| Titik akhir MVP | Semua tabel dan constraint ada; dokumen lama tetap `QUILVIAN` dan berperilaku sama; penghitung memberi status benar untuk contoh pemilik (W.T5..W.T12); GR lokal atas dokumen BLM ditolak 409; panel kemajuan menampilkan satuan dasar untuk PO BLM |
+| Pelaku | Tidak ada pelaku baru |
+| Di luar MVP | Penerima kiriman BLM, autentikasi, pengolah, layar pemetaan dan konflik, Monitoring Sinkronisasi, penyembunyian tombol untuk dokumen BLM, gerbang Tukar Faktur, alokasi invoice multi-GR |
+
+## 98. Epic dan functional requirement
+
+**`EPIC FIN-26` — Penampung Data Purchasing BLM.** Disposisi: `EXTEND` dan `MISSING / NEW`.
+
+| ID | Requirement yang dapat diuji | Disposisi | Asal |
+|---|---|---|---|
+| `FR-FIN-272` | PO dan GR menyimpan sistem sumber; dokumen lama otomatis `QUILVIAN` | `EXTEND` | `FIN-DEC-265`, `FIN-DES-128` |
+| `FR-FIN-273` | PO, item PO, GR, dan item GR menyimpan identitas BLM unik per sistem sumber; baris GR dicocokkan ke item PO lewat identitas item BLM | `EXTEND` | `FIN-DEC-263`, `275` |
+| `FR-FIN-274` | Item PO BLM menyimpan ID dan kode produk BLM serta snapshot nama, kategori, satuan, kuantitas, isi per satuan, dan satuan dasar | `EXTEND` | `FIN-DEC-274`, `275`, `276` |
+| `FR-FIN-275` | Baris GR BLM menyimpan kondisi, kuantitas dan satuan asli, faktor konversi yang dipakai, hasil normalisasi, dan jumlah sah | `EXTEND` | `FIN-DEC-268`, `276` |
+| `FR-FIN-276` | Kotak masuk menyimpan setiap kiriman BLM dan menolak nomor kejadian ganda | `MISSING / NEW` | `FIN-DEC-261` |
+| `FR-FIN-277` | Pemetaan supplier BLM ke `MstSupplier`, satu aktif per supplier BLM | `MISSING / NEW` | `FIN-DEC-263` |
+| `FR-FIN-278` | Konversi satuan tidak dipelihara di Quilvian dan tidak pernah bernilai bawaan 1; konversi yang tidak pasti menjadi konflik `CONVERSION_UNRESOLVED` | `MISSING / NEW` | `FIN-DEC-276` |
+| `FR-FIN-279` | Konflik sinkronisasi tercatat beserta penyelesaiannya, tanpa pembalikan otomatis | `MISSING / NEW` | `FIN-DEC-264` |
+| `FR-FIN-280` | Pembatalan PO/GR lintas sistem tercatat dengan kategori, alasan, pelaku, dan status | `MISSING / NEW` | `FIN-DEC-262` |
+| `FR-FIN-281` | Dokumen lama: perilaku buat, ubah, batal GR dan status PO tidak berubah; field respons lama tidak berubah | `EXISTING / REUSE` | `FIN-DEC-277` |
+| `FR-FIN-282` | Status PO BLM dihitung dari jumlah sah ternormalisasi per item; `FULLY_RECEIVED` hanya bila setiap item terpenuhi dan semua konversi pasti | `MISSING / NEW` | `FIN-DEC-268`, `277`, `FIN-DES-142` |
+| `FR-FIN-283` | Buat, ubah, batal GR lewat Quilvian untuk dokumen BLM ditolak 409 | `EXTEND` | `FIN-DEC-265`, `FIN-DES-141` |
+| `FR-FIN-284` | Respons PO/GR dan kemajuan item memuat field tambahan; panel kemajuan menampilkan satuan dasar untuk PO BLM | `EXTEND` | `FIN-DEC-273`, `FIN-DES-139` |
+
+## 99. Arsitektur, status, dan kewenangan
+
+Arsitektur: `02-backend-architecture.md` W. Kolom: `data/data-dictionary.md` 13. Status: `contracts/state-transition-matrix.md`
+W (termasuk W.4 status PO BLM). Validasi: `FIN-VAL-300`..`316`. API: `contracts/api-contract.md` W. Tidak ada endpoint dan
+butir izin baru.
+
+## 100. Batas non-fungsional
+
+| Batas | Isi |
+|---|---|
+| Kompatibilitas | Field respons lama tetap; field baru boleh kosong |
+| Rilis | Satu paket: model, konfigurasi, migration dan `ModelSnapshot`, service, DTO, Frontend. Database dulu, lalu aplikasi (`FIN-DEC-273`) |
+| Presisi | Satuan dasar `numeric(18,6)`; pembagian ke satuan PO hanya untuk tampilan |
+| Riwayat | Snapshot produk dan konversi per baris; perubahan master BLM tidak mengubah PO/GR yang sudah tercatat |
+| Privasi | `PayloadJson` dan `CancelledBy` sensitif; tanpa data pasien |
+| Database | Migration aditif, tanpa backfill, dapat dimundurkan |
+
+## 101. Skenario UAT
+
+Rincian di `testing/acceptance-test-matrix.md` bagian W.
+
+| Kemampuan | Berhasil | Gagal |
+|---|---|---|
+| Dokumen lama | W.T1..W.T4 | — |
+| Penerimaan BLM | W.T5 (sebagian), W.T6 (penuh), W.T9 (GR dalam BOX) | W.T7 menunggu periksa, W.T8 rusak, W.T10 konversi tidak pasti, W.T12 satu item belum diterima |
+| Pembatalan | W.T11 | — |
+| Penjaga | — | W.T13 409; W.T14..W.T17 constraint |
+| Mundur | W.T18 | — |
+
+## 102. Definition of Done Revisi 23
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | Empat model diperbarui dan empat model baru sesuai kamus data 13 | Review diff |
+| 2 | Delapan konfigurasi EF memuat check, index, presisi, dan FK | Review diff |
+| 3 | Empat `DbSet` terdaftar | Review diff |
+| 4 | `PurchasingReceiptQuantityCalculator` dan cabang BLM `RecomputePurchaseOrderStatus` | Review diff; W.T5..W.T12 |
+| 5 | Penjaga 409 di `CreateAsync`, `UpdateAsync`, `CancelAsync` | W.T13 |
+| 6 | DTO dan `ItemProgress` mendapat field tambahan; panel kemajuan diperbarui | Review diff BE dan FE; W.T4 |
+| 7 | Migration dan `ModelSnapshot` dibangkitkan, direview, diterapkan pada database uji **atas wewenang terpisah** | W.T1, W.T2 |
+| 8 | `dotnet build` lulus **atas wewenang terpisah** | Keluaran build |
+| 9 | Langkah mundur teruji | W.T18 |
+| 10 | Laporan task tracked ada | `task/report/backend/<TASK-ID>.md` dan `task/report/frontend/<TASK-ID>.md` |
+
+## 103. Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+|---|---|---|
+| `MVP-19` | `FR-FIN-272`..`284` dalam satu paket rilis | Saling bergantung; model tanpa migration memecah query PO/GR (`FIN-DES-138`) |
+| `POST-MVP` | Integrasi BLM (penerima kiriman, autentikasi, pengolah), layar pemetaan dan konflik, Monitoring Sinkronisasi, penyembunyian tombol, gerbang Tukar Faktur, alokasi invoice multi-GR dalam satuan dasar | Menunggu `FIN-OQ-141` |
+
+## 104. Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Pemilik | Memblokir |
+|---|---|---|
+| Persetujuan desain Revisi 23 putaran 2 | Product Owner Finance | **Selesai** 9 November 2026 |
+| Wewenang membangkitkan dan menerapkan migration serta menjalankan build | Product Owner dan pemilik database | **Memblokir DoD 7–8 dan rilis `MVP-19`**; tidak memblokir penulisan kode di branch kerja selama tidak dirilis |
+| `FIN-OQ-141`: kontrak Tim BLM, termasuk isi per satuan dan satuan dasar per item | Tim BLM | Tidak untuk `MVP-19`. **Dijawab sebagian sisi Quilvian** 10 November 2026 (`FIN-DEC-282`..`285`); tetap `OPEN` menunggu komitmen tertulis, kontrak, dan jadwal Tim BLM. Audit teknis BLM 10 November 2026: tersedia sebagian, perlu pengembangan (`FIN-DEC-289`..`291`) |
+| `FIN-OQ-144`: cara mengisi pemetaan supplier | Finance dan Tim BLM | Tidak. **Dijawab** 10 November 2026 (`FIN-DEC-281`), dipersempit `FIN-DEC-287` (NPWP ditunda) |
+
+## 105. Catatan penyerahan
+
+1. Revisi 23 putaran 2 **disetujui** pemilik pada 9 November 2026 ("saya setujui, lakukan plan-module-delivery"), termasuk `FIN-DES-141`.
+2. Putaran 2 menerapkan `FIN-DEC-273`..`278`: tabel pemetaan produk dan pemetaan satuan **tidak dibuat**; konversi per
+   produk dari BLM disimpan per baris; dokumen lama tidak disentuh (putaran 1 sempat mengusulkan backfill, kini dicabut).
+3. `FIN-DES-141` memenuhi permintaan perbaikan `CreateAsync`/`UpdateAsync`/`CancelAsync` dengan **menolak** dokumen BLM,
+   karena `FIN-DEC-265` melarang membuat atau mengubah GR BLM secara lokal. Normalisasi dijalankan penghitung bersama
+   yang juga dipakai pengolah kiriman. Mohon dikonfirmasi saat persetujuan.
+4. `requirement-completeness-gate` tidak dijalankan untuk slice ini (alasan di W.13).

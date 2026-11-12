@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Optic
             builder.HasIndex(x => new { x.PatientId, x.ValidUntil }).HasDatabaseName("IX_OptPrescription_PatientId_ValidUntil");
             builder.HasIndex(x => x.EncounterId).HasDatabaseName("IX_OptPrescription_EncounterId");
             builder.HasIndex(x => x.RefractionExamId).HasDatabaseName("IX_OptPrescription_RefractionExamId");
+            builder.HasIndex(x => x.IdempotencyKey).IsUnique().HasFilter("\"IdempotencyKey\" IS NOT NULL").HasDatabaseName("UX_OptPrescription_IdempotencyKey");
 
             builder.HasOne<MstPatient>()
                 .WithMany()

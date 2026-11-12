@@ -20,6 +20,7 @@
 | Integrasi piutang manfaat karyawan end-to-end | [01-alur-piutang-manfaat-karyawan-end-to-end.md](01-alur-piutang-manfaat-karyawan-end-to-end.md) | `S1`, `S3`, `S4b`, `S5`, `S6` | 18 |
 | Plafon benefit pasien keluarga: mendaftar, menagih, mengoreksi | [02-alur-plafon-benefit-pasien-keluarga.md](02-alur-plafon-benefit-pasien-keluarga.md) | Celah implementasi `REV-19` (`S1`, `S5`) | 19 |
 | Jembatan manual potong gaji sampai mesin payroll aktif | [03-alur-jembatan-manual-potong-gaji.md](03-alur-jembatan-manual-potong-gaji.md) | `S3` (jembatan, `FIN-DEC-215`) | 20 |
+| Penampungan PO/GR dari BLM dan GR dibatalkan setelah utang diakui | [05-alur-penampungan-po-gr-blm.md](05-alur-penampungan-po-gr-blm.md) | `EPIC FIN-26` (arti tabel penampung; pengolah belum dibangun) | 23 |
 
 ## Rumpun yang BELUM punya flowchart
 
@@ -42,3 +43,16 @@ Sampai alur pokok modul digambar, urutan langkah per proses terbaca dari tiga te
 pertama di atas, matriks perpindahan status pada `contracts/state-transition-matrix.md`, dan skenario UAT
 pada `04-prd-to-mvp.md`. Relasi antar entity terbaca dari class diagram pada
 `02-backend-architecture.md`, dan kontrak kolomnya dari `data/data-dictionary.md`.
+
+## Tambahan Revisi 22 (3 November 2026) — Benefit RS
+
+Alur pengajuan, persetujuan, aktivasi, dan sinkronisasi kartu Benefit Karyawan RS ke pasien digambar lengkap beserta
+jalur gagalnya di `04-alur-benefit-rs-pengajuan-sinkronisasi.md`. Jalur normalnya: Staf HR **Ajukan Benefit** → HRD
+**Setujui** → benefit **Aktif** (langsung atau pada tanggal mulai) → sistem **memasang kartu** ke pasien yang terbukti
+sama → petugas Registrasi **memakai kartu** saat pendaftaran kunjungan → kasir membaca plafon HR seperti sekarang.
+
+## Tambahan Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+Arti tabel penampung digambar di `05-alur-penampungan-po-gr-blm.md`: kiriman BLM disimpan di kotak masuk → diperiksa
+ulangan, keusangan, dan pemetaan → diterapkan menjadi PO/GR bersumber BLM, atau menunggu pemetaan, atau menjadi konflik
+yang ditinjau Finance. Pengolah otomatisnya belum dibangun; revisi ini hanya menyiapkan tabelnya.

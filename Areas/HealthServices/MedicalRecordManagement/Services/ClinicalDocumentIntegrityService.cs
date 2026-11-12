@@ -99,6 +99,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// Optik. Setiap versinya didaftarkan sebagai dokumen tersendiri, sehingga revisi Optik
         /// tidak pernah menyunting dokumen yang sudah tertanda tangan. Disetujui pemilik Rekam
         /// Medis, Yoga Aji Pratama, pada 3 November 2026 (`OPT-APR-007`, `RM-DEC-027`).
+        ///
+        /// `BE-RHB-004` (`RHB-BP-001`, `RHB-DEC-019`) menambahkan enam dokumen Rehab Medik
+        /// (asesmen, program, sesi, reasesmen, ringkasan akhir, edukasi). Persetujuan pemilik
+        /// Rekam Medis dinyatakan owner Rehab Medik, Sukma Giri Pratama, pada 5 November 2026;
+        /// bukti tertulisnya dicatat terpisah (`RHB-OQ-012`).
         /// </summary>
         private static readonly HashSet<ClinicalDocumentKind> JenisYangDitegakkan =
         [
@@ -108,7 +113,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             ClinicalDocumentKind.Procedure,
             ClinicalDocumentKind.HemodialysisSession,
             ClinicalDocumentKind.OpticalRefraction,
-            ClinicalDocumentKind.OpticalPrescription
+            ClinicalDocumentKind.OpticalPrescription,
+            ClinicalDocumentKind.RehabAssessment,
+            ClinicalDocumentKind.RehabProgram,
+            ClinicalDocumentKind.RehabSession,
+            ClinicalDocumentKind.RehabProgressReview,
+            ClinicalDocumentKind.RehabDischargeSummary,
+            ClinicalDocumentKind.RehabEducation
         ];
 
         /// <summary>

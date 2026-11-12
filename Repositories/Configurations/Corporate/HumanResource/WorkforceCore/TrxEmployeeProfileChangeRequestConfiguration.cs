@@ -25,6 +25,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.Property(x => x.RejectedAt).HasColumnType("timestamp with time zone");
             builder.Property(x => x.AppliedAt).HasColumnType("timestamp with time zone");
             builder.Property(x => x.Description).HasMaxLength(500);
+            builder.HasOne(x => x.SubmittedByWorkforceProfile).WithMany().HasForeignKey(x => x.SubmittedByWorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.WorkforceProfile).WithMany().HasForeignKey(x => x.WorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.WorkflowDefinition).WithMany().HasForeignKey(x => x.WorkflowDefinitionId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.RequestReason).WithMany().HasForeignKey(x => x.RequestReasonId).OnDelete(DeleteBehavior.Restrict);

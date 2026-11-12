@@ -128,9 +128,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
 
-        public DateTime? TglKajian { get; set; }
-        public string? KajianUtamaPengkajian { get; set; }
-        public string? DiagnosaSaatIni { get; set; }
+        public new DateTime? TglKajian { get; set; }
+        public new string? KajianUtamaPengkajian { get; set; }
+        public new string? DiagnosaSaatIni { get; set; }
 
         /// <summary>Keadaan penilaian nyeri — <c>BE-RWI-110</c>/<c>BE-RWI-111</c>.</summary>
         public PainAssessmentState PainAssessmentState { get; set; }

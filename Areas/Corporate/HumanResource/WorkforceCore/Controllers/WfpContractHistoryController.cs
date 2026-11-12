@@ -403,6 +403,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             [FromBody] CreateWfpContractHistoryRequest request,
             CancellationToken cancellationToken)
         {
+            return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Kontrak dikelola lewat menu Onboarding & Kontrak.",
+                "CONTRACT_MANAGED_BY_LIFECYCLE"));
             if (!await WorkforceProfileExistsAsync(workforceProfileId, cancellationToken))
             {
                 return NotFound(ApiResponse<object>.Fail(
@@ -506,6 +510,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             [FromBody] UpdateWfpContractHistoryRequest request,
             CancellationToken cancellationToken)
         {
+            return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Kontrak dikelola lewat menu Onboarding & Kontrak.",
+                "CONTRACT_MANAGED_BY_LIFECYCLE"));
             var entity = await _dbContext.Set<WfpContractHistory>()
                 .FirstOrDefaultAsync(x =>
                     x.Id == id &&
@@ -608,6 +616,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             [FromBody] UpdateWfpContractHistoryStatusRequest request,
             CancellationToken cancellationToken)
         {
+            return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Kontrak dikelola lewat menu Onboarding & Kontrak.",
+                "CONTRACT_MANAGED_BY_LIFECYCLE"));
             var entity = await _dbContext.Set<WfpContractHistory>()
                 .FirstOrDefaultAsync(x =>
                     x.Id == id &&
@@ -705,6 +717,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             [FromBody] SetWfpContractHistoryCurrentRequest request,
             CancellationToken cancellationToken)
         {
+            return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Kontrak dikelola lewat menu Onboarding & Kontrak.",
+                "CONTRACT_MANAGED_BY_LIFECYCLE"));
             var entity = await _dbContext.Set<WfpContractHistory>()
                 .FirstOrDefaultAsync(x =>
                     x.Id == id &&
@@ -780,6 +796,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             Guid id,
             CancellationToken cancellationToken)
         {
+            return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict,
+                "Kontrak dikelola lewat menu Onboarding & Kontrak.",
+                "CONTRACT_MANAGED_BY_LIFECYCLE"));
             var entity = await _dbContext.Set<WfpContractHistory>()
                 .FirstOrDefaultAsync(x =>
                     x.Id == id &&

@@ -39,6 +39,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
 
         public DateTime ExpiredDate { get; set; }
 
+        public bool IsLifetimeStr { get; set; } = false;
+
+        public bool IsPsvVerified { get; set; } = false;
+        public DateTime? PsvVerifiedAt { get; set; }
+
+        [MaxLength(500)]
+        public string? PsvVerificationUrl { get; set; }
+
+        [MaxLength(100)]
+        public string? PsvVerificationSource { get; set; }
+
+        public string? PsvAuditLogJson { get; set; }
+
+        [MaxLength(10)]
+        public string? SipFaskesPracticeNumber { get; set; }
+
+        [MaxLength(200)]
+        public string? SipFaskesName { get; set; }
+
+        [MaxLength(30)]
+        public string ExpiryRadarStatus { get; set; } = "Normal";
+
         public CredentialVerificationStatus VerificationStatus { get; set; }
 
         public bool IsPrimary { get; set; } = false;

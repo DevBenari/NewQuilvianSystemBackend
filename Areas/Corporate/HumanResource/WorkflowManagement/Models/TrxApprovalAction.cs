@@ -30,6 +30,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         public Guid? DelegatedFromWorkforceProfileId { get; set; }
 
+        public Guid? ActionEmployeeId { get; set; }
+
+        public Guid? OnBehalfOfEmployeeId { get; set; }
+
+        [MaxLength(256)]
+        public string? DigitalSignatureHash { get; set; }
+
+        [MaxLength(2000)]
+        public string? ReasonComment { get; set; }
+
         public Guid? ActionReasonId { get; set; }
 
         [MaxLength(50)]

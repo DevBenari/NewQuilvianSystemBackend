@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
@@ -42,8 +45,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             "Contact",
             "Address",
             "Identity",
-            "EmergencyContact"
+            "EmergencyContact",
+            "Multiple"
         };
+
+        private static readonly HashSet<string> SensitiveFields =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                "IdentityNumber",
+                "IdentityType",
+                "MaritalStatus",
+                "FullName",
+                "BirthPlace",
+                "BirthDate"
+            };
 
         private static readonly string[] VerificationStatuses =
         {
@@ -127,7 +142,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 [BuildFieldKey("MstEmployee", "EmergencyContactPhone")] =
                     new("MstEmployee", "EmergencyContact", "EmergencyContactPhone", "Telepon kontak darurat", "String", true),
                 [BuildFieldKey("MstEmployee", "EmergencyContactAddress")] =
-                    new("MstEmployee", "EmergencyContact", "EmergencyContactAddress", "Alamat kontak darurat", "String", false)
+                    new("MstEmployee", "EmergencyContact", "EmergencyContactAddress", "Alamat kontak darurat", "String", false),
+
+                // WfpAddress (Alamat Tambahan / Domisili)
+                [BuildFieldKey("WfpAddress", "AddressLine")] =
+                    new("WfpAddress", "Address", "AddressLine", "Alamat lengkap", "String", true),
+                [BuildFieldKey("WfpAddress", "AddressType")] =
+                    new("WfpAddress", "Address", "AddressType", "Tipe alamat", "String", true),
+                [BuildFieldKey("WfpAddress", "CountryId")] =
+                    new("WfpAddress", "Address", "CountryId", "Negara", "Guid", true),
+                [BuildFieldKey("WfpAddress", "ProvinceId")] =
+                    new("WfpAddress", "Address", "ProvinceId", "Provinsi", "Guid", true),
+                [BuildFieldKey("WfpAddress", "CityId")] =
+                    new("WfpAddress", "Address", "CityId", "Kota", "Guid", true),
+                [BuildFieldKey("WfpAddress", "DistrictId")] =
+                    new("WfpAddress", "Address", "DistrictId", "Kecamatan", "Guid", true),
+                [BuildFieldKey("WfpAddress", "PostalCodeId")] =
+                    new("WfpAddress", "Address", "PostalCodeId", "Kode pos", "Guid", true),
+                [BuildFieldKey("WfpAddress", "Description")] =
+                    new("WfpAddress", "Address", "Description", "Keterangan alamat", "String", false),
+
+                // WfpBankAccount (Rekening Bank Karyawan)
+                [BuildFieldKey("WfpBankAccount", "AccountNumber")] =
+                    new("WfpBankAccount", "BankAccount", "AccountNumber", "Nomor rekening", "String", true),
+                [BuildFieldKey("WfpBankAccount", "AccountHolderName")] =
+                    new("WfpBankAccount", "BankAccount", "AccountHolderName", "Nama pemilik rekening", "String", true),
+                [BuildFieldKey("WfpBankAccount", "BankName")] =
+                    new("WfpBankAccount", "BankAccount", "BankName", "Nama bank", "String", true),
+                [BuildFieldKey("WfpBankAccount", "BankBranch")] =
+                    new("WfpBankAccount", "BankAccount", "BankBranch", "Kantor cabang bank", "String", false),
+                [BuildFieldKey("WfpBankAccount", "AccountType")] =
+                    new("WfpBankAccount", "BankAccount", "AccountType", "Jenis rekening", "String", false),
+                [BuildFieldKey("WfpBankAccount", "Description")] =
+                    new("WfpBankAccount", "BankAccount", "Description", "Keterangan rekening", "String", false),
+
+                // WfpEmergencyContact (Kontak Darurat Tambahan)
+                [BuildFieldKey("WfpEmergencyContact", "FullName")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "FullName", "Nama kontak darurat", "String", true),
+                [BuildFieldKey("WfpEmergencyContact", "Relationship")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "Relationship", "Hubungan kontak darurat", "String", true),
+                [BuildFieldKey("WfpEmergencyContact", "PhoneNumber")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "PhoneNumber", "Nomor telepon darurat", "String", true),
+                [BuildFieldKey("WfpEmergencyContact", "Address")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "Address", "Alamat kontak darurat", "String", false),
+                [BuildFieldKey("WfpEmergencyContact", "Description")] =
+                    new("WfpEmergencyContact", "EmergencyContact", "Description", "Keterangan kontak darurat", "String", false)
             };
 
         private readonly ApplicationDbContext _dbContext;
@@ -336,6 +395,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     AppliedAt = x.AppliedAt,
                     CurrentStepOrder = x.CurrentStepOrder,
                     DetailCount = x.Details.Count(d => !d.IsDelete),
+                    IsSubmittedOnBehalf = x.IsSubmittedOnBehalf,
+                    SubmittedByWorkforceProfileId = x.SubmittedByWorkforceProfileId,
+                    OnBehalfReason = x.OnBehalfReason,
+                    OnBehalfNotifiedAt = x.OnBehalfNotifiedAt,
+                    EvidenceFilePath = x.EvidenceFilePath,
+                    EvidenceFileName = x.EvidenceFileName,
                     PendingVerificationCount = x.Verifications.Count(v => !v.IsDelete && v.VerificationStatus == "Pending"),
                     VerifiedVerificationCount = x.Verifications.Count(v => !v.IsDelete && v.VerificationStatus == "Verified"),
                     Description = x.Description,
@@ -414,7 +479,149 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 "Detail permintaan perubahan profil berhasil diambil.");
         }
 
-        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CreateDraftAsync(
+                public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CreateOnBehalfDraftAsync(
+            CreateOnBehalfProfileChangeRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUser = await _dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == actorUserId, cancellationToken);
+
+            var validation = await ValidateHeaderAndDetailsAsync(
+                request.WorkforceProfileId,
+                request.WorkflowDefinitionId,
+                request.RequestReasonId,
+                request.RequestCategory,
+                request.Details,
+                cancellationToken);
+
+            if (!validation.Success)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    validation.StatusCode,
+                    validation.Message);
+            }
+
+            var hasOpenRequest = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.WorkforceProfileId == request.WorkforceProfileId &&
+                    !x.IsDelete &&
+                    (x.RequestStatus == "Draft" ||
+                     x.RequestStatus == "Submitted" ||
+                     x.RequestStatus == "UnderVerification" ||
+                     x.RequestStatus == "NeedRevision" ||
+                     x.RequestStatus == "Approved"),
+                    cancellationToken);
+
+            if (hasOpenRequest)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Workforce profile masih memiliki permintaan perubahan profil yang belum selesai.");
+            }
+
+            string? evidenceStoragePath = null;
+            string? originalFileName = null;
+            if (request.EvidenceFile != null && request.EvidenceFile.Length > 0)
+            {
+                var fileValidation = ValidateEvidenceFile(request.EvidenceFile);
+                if (!fileValidation.Success)
+                {
+                    return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                        fileValidation.StatusCode,
+                        fileValidation.Message);
+                }
+
+                var ext = Path.GetExtension(request.EvidenceFile.FileName).ToLowerInvariant();
+                var uniqueName = $"{Guid.NewGuid():N}{ext}";
+                var relPath = Path.Combine("Uploads", "ProfileChanges", uniqueName).Replace('\\', '/');
+                var physPath = Path.Combine(Directory.GetCurrentDirectory(), "Storage", relPath);
+                var dir = Path.GetDirectoryName(physPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                using (var stream = new FileStream(physPath, FileMode.Create))
+                {
+                    await request.EvidenceFile.CopyToAsync(stream, cancellationToken);
+                }
+                evidenceStoragePath = relPath;
+                originalFileName = request.EvidenceFile.FileName;
+            }
+
+            var now = DateTime.UtcNow;
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await AcquireRequestNumberLockAsync(cancellationToken);
+
+                var entity = new TrxEmployeeProfileChangeRequest
+                {
+                    Id = Guid.NewGuid(),
+                    WorkforceProfileId = request.WorkforceProfileId,
+                    WorkflowDefinitionId = NormalizeGuid(request.WorkflowDefinitionId),
+                    RequestReasonId = NormalizeGuid(request.RequestReasonId),
+                    RequestNumber = await GenerateRequestNumberAsync(cancellationToken),
+                    RequestCategory = NormalizeCategory(request.RequestCategory),
+                    RequestStatus = "Draft",
+                    RequestReasonText = NormalizeText(request.RequestReasonText),
+                    RequestedByUserId = actorUserId,
+                    IsSubmittedOnBehalf = true,
+                    SubmittedByWorkforceProfileId = actorUser?.WorkforceProfileId,
+                    OnBehalfReason = NormalizeText(request.OnBehalfReason),
+                    OnBehalfNotifiedAt = now,
+                    EvidenceFilePath = evidenceStoragePath,
+                    EvidenceFileName = originalFileName,
+                    CurrentStepOrder = 0,
+                    Description = NormalizeText(request.Description),
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.Set<TrxEmployeeProfileChangeRequest>().Add(entity);
+
+                var detailsResult = await BuildDetailEntitiesAsync(
+                    entity.Id,
+                    request.WorkforceProfileId,
+                    request.Details,
+                    actorUserId,
+                    now,
+                    cancellationToken);
+
+                if (!detailsResult.Success || detailsResult.Data == null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                        detailsResult.StatusCode,
+                        detailsResult.Message);
+                }
+
+                _dbContext.Set<TrxEmployeeProfileChangeDetail>().AddRange(detailsResult.Data);
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "EmployeeProfileChange.CreateOnBehalfDraft",
+                    "Membuat draft perubahan profil pegawai atas nama.");
+
+                return await GetByIdAsync(entity.Id, cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CreateDraftAsync(
             CreateEmployeeProfileChangeRequest request,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
@@ -654,6 +861,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     "Permintaan belum memiliki detail perubahan.");
             }
 
+            var hasSensitiveField = activeDetails.Any(x => SensitiveFields.Contains(x.FieldName));
+            if (hasSensitiveField && string.IsNullOrWhiteSpace(entity.EvidenceFilePath))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Dokumen bukti wajib diunggah untuk perubahan data identitas / data sensitif.");
+            }
+
             var refreshResult = await RefreshAndValidateDetailOldValuesAsync(
                 entity.WorkforceProfileId,
                 activeDetails,
@@ -751,6 +966,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     "Verifikasi hanya dapat dimulai dari status Submitted.");
             }
 
+            if (entity.RequestedByUserId == actorUserId || (entity.IsSubmittedOnBehalf && entity.CreateBy == actorUserId))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Pemohon atau staf yang mengajukan permohonan atas nama tidak boleh memulai verifikasi permohonannya sendiri.");
+            }
+
             entity.RequestStatus = "UnderVerification";
             entity.CurrentStepOrder = 2;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -794,6 +1016,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             if (entity == null)
                 return NotFoundResult();
+
+            if (entity.RequestedByUserId == actorUserId || (entity.IsSubmittedOnBehalf && entity.CreateBy == actorUserId))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Pemohon atau staf yang mengajukan permohonan atas nama tidak boleh memverifikasi permohonannya sendiri.");
+            }
 
             if (entity.RequestStatus != "UnderVerification")
             {
@@ -916,6 +1145,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             if (entity == null)
                 return NotFoundResult();
+
+            if (entity.RequestedByUserId == actorUserId || (entity.IsSubmittedOnBehalf && entity.CreateBy == actorUserId))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Pemohon atau staf yang mengajukan permohonan atas nama tidak boleh menyetujui permohonannya sendiri.");
+            }
 
             if (entity.RequestStatus != "UnderVerification")
             {
@@ -1104,7 +1340,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             try
             {
                 foreach (var item in planResult.Data)
+                {
                     item.Property.SetValue(item.Target, item.ConvertedValue);
+
+                    if (item.Target is WfpAddress addr && !_dbContext.Set<WfpAddress>().Local.Any(x => x.Id == addr.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpAddress>().AnyAsync(x => x.Id == addr.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpAddress>().Add(addr);
+                    }
+                    else if (item.Target is WfpBankAccount bank && !_dbContext.Set<WfpBankAccount>().Local.Any(x => x.Id == bank.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpBankAccount>().AnyAsync(x => x.Id == bank.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpBankAccount>().Add(bank);
+                    }
+                    else if (item.Target is WfpEmergencyContact ec && !_dbContext.Set<WfpEmergencyContact>().Local.Any(x => x.Id == ec.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpEmergencyContact>().AnyAsync(x => x.Id == ec.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpEmergencyContact>().Add(ec);
+                    }
+                }
 
                 SynchronizeWorkforceProfile(employee, workforceProfile, planResult.Data);
 
@@ -1158,6 +1412,361 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>> GetCurrentProfileAsync(
+            Guid workforceProfileId,
+            CancellationToken cancellationToken = default)
+        {
+            var workforce = await _dbContext.Set<MstWorkforceProfile>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete, cancellationToken);
+
+            if (workforce == null)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan.");
+            }
+
+            var employee = await _dbContext.Set<MstEmployee>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete, cancellationToken);
+
+            if (employee == null)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Data karyawan untuk workforce profile ini belum terhubung.");
+            }
+
+            string? countryName = null;
+            string? provinceName = null;
+            string? cityName = null;
+            string? districtName = null;
+            string? postalCodeNumber = null;
+
+            if (employee.CountryId.HasValue && employee.CountryId.Value != Guid.Empty)
+            {
+                countryName = await _dbContext.Set<MstCountry>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.CountryId.Value)
+                    .Select(x => x.CountryName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.ProvinceId.HasValue && employee.ProvinceId.Value != Guid.Empty)
+            {
+                provinceName = await _dbContext.Set<MstProvince>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.ProvinceId.Value)
+                    .Select(x => x.ProvinceName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.CityId.HasValue && employee.CityId.Value != Guid.Empty)
+            {
+                cityName = await _dbContext.Set<MstCity>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.CityId.Value)
+                    .Select(x => x.CityName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.DistrictId.HasValue && employee.DistrictId.Value != Guid.Empty)
+            {
+                districtName = await _dbContext.Set<MstDistrict>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.DistrictId.Value)
+                    .Select(x => x.DistrictName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.PostalCodeId.HasValue && employee.PostalCodeId.Value != Guid.Empty)
+            {
+                postalCodeNumber = await _dbContext.Set<MstPostalCode>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.PostalCodeId.Value)
+                    .Select(x => x.PostalCode)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            string? deptName = null;
+            string? posName = null;
+            string? unitName = null;
+            string? locName = employee.WorkLocation;
+            string? mgrName = null;
+            string? employmentTypeName = null;
+            string? professionTypeName = null;
+
+            if (employee.PrimaryDepartmentId != Guid.Empty)
+            {
+                deptName = await _dbContext.Set<MstDepartment>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.PrimaryDepartmentId)
+                    .Select(x => x.DepartmentName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.PrimaryPositionId != Guid.Empty)
+            {
+                posName = await _dbContext.Set<MstPosition>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.PrimaryPositionId)
+                    .Select(x => x.PositionName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.EmploymentTypeId != Guid.Empty)
+            {
+                employmentTypeName = await _dbContext.Set<MstEmploymentType>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.EmploymentTypeId)
+                    .Select(x => x.EmploymentTypeName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            if (employee.ProfessionId.HasValue && employee.ProfessionId.Value != Guid.Empty)
+            {
+                professionTypeName = await _dbContext.Set<MstProfession>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == employee.ProfessionId.Value)
+                    .Select(x => x.ProfessionName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var openRequest = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                .AsNoTracking()
+                .Include(x => x.Details.Where(d => !d.IsDelete))
+                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete &&
+                            (x.RequestStatus == "Draft" ||
+                             x.RequestStatus == "Submitted" ||
+                             x.RequestStatus == "UnderVerification" ||
+                             x.RequestStatus == "NeedRevision" ||
+                             x.RequestStatus == "Approved"))
+                .OrderByDescending(x => x.CreateDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var metadata = GetFilterMetadata();
+
+            var response = new EmployeeCurrentProfileResponse
+            {
+                WorkforceProfileId = workforce.Id,
+                WorkforceProfileCode = workforce.ProfileCode,
+                WorkforceDisplayName = workforce.DisplayName,
+                EmployeeId = employee.Id,
+                EmployeeNumber = employee.EmployeeNumber,
+                FullName = employee.FullName,
+                NickName = employee.NickName,
+                BirthPlace = employee.BirthPlace,
+                BirthDate = employee.BirthDate,
+                Gender = employee.Gender.ToString(),
+                Religion = employee.Religion.ToString(),
+                MaritalStatus = employee.MaritalStatus.ToString(),
+                BloodType = employee.BloodType.ToString(),
+                IdentityType = employee.IdentityType,
+                IdentityNumber = employee.IdentityNumber,
+                PhoneNumber = employee.PhoneNumber ?? workforce.PhoneNumber,
+                WhatsAppNumber = employee.WhatsAppNumber ?? workforce.WhatsAppNumber,
+                Email = employee.Email ?? workforce.Email,
+                Address = employee.Address,
+                CountryId = employee.CountryId,
+                CountryName = countryName,
+                ProvinceId = employee.ProvinceId,
+                ProvinceName = provinceName,
+                CityId = employee.CityId,
+                CityName = cityName,
+                DistrictId = employee.DistrictId,
+                DistrictName = districtName,
+                PostalCodeId = employee.PostalCodeId,
+                PostalCodeNumber = postalCodeNumber,
+                EmergencyContactName = employee.EmergencyContactName,
+                EmergencyContactRelation = employee.EmergencyContactRelation,
+                EmergencyContactPhone = employee.EmergencyContactPhone,
+                EmergencyContactAddress = employee.EmergencyContactAddress,
+
+                DepartmentName = deptName,
+                PrimaryDepartmentName = deptName,
+                PositionName = posName,
+                PrimaryPositionName = posName,
+                OrganizationUnitName = unitName,
+                WorkLocationName = locName,
+                WorkLocation = locName,
+                GradeLevel = employee.GradeLevel,
+                EmploymentType = employmentTypeName ?? employee.GradeLevel,
+                ProfessionType = professionTypeName,
+                JoinDate = employee.JoinDate,
+                ContractEndDate = employee.ContractEndDate,
+                CreateDateTime = employee.CreateDateTime,
+                ProfilePhotoUrl = "",
+                ManagerDisplayName = mgrName,
+
+                HasOpenRequest = openRequest != null,
+                OpenRequestId = openRequest?.Id,
+                OpenRequestNumber = openRequest?.RequestNumber,
+                OpenRequestStatus = openRequest?.RequestStatus,
+                OpenRequestCategory = openRequest?.RequestCategory,
+                OpenRequestReasonText = openRequest?.RequestReasonText,
+                OpenRequestSubmittedAt = openRequest?.SubmittedAt,
+                OpenRequestEvidenceFileName = openRequest?.EvidenceFileName,
+                OpenRequestRevisionReason = openRequest?.Description,
+                OpenRequestDetails = openRequest?.Details?
+                    .Select(d => new EmployeeProfileChangeDetailResponse
+                    {
+                        Id = d.Id,
+                        FieldGroup = d.FieldGroup,
+                        FieldName = d.FieldName,
+                        OldValue = d.OldValue,
+                        NewValue = d.NewValue,
+                        ValueType = d.ValueType,
+                        TargetEntityName = d.TargetEntityName,
+                        TargetEntityId = d.TargetEntityId,
+                        RequiresVerification = d.RequiresVerification,
+                        DetailStatus = d.DetailStatus,
+                        SortOrder = d.SortOrder,
+                        Description = d.Description
+                    }).ToList() ?? new(),
+
+                AllowedFields = metadata.AllowedFields,
+                SensitiveFields = SensitiveFields.ToList(),
+                MaximumEvidenceFileSizeMb = metadata.MaximumEvidenceFileSizeMb,
+                AllowedEvidenceExtensions = metadata.AllowedEvidenceExtensions
+            };
+
+            return EmployeeProfileChangeServiceResult<EmployeeCurrentProfileResponse>.Ok(
+                response,
+                "Data profil karyawan berhasil diambil.");
+        }
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> UploadEvidenceAsync(
+            Guid requestId,
+            IFormFile file,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var validation = ValidateEvidenceFile(file);
+            if (!validation.Success)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    validation.StatusCode,
+                    validation.Message);
+            }
+
+            var entity = await FindRequestForUpdateAsync(requestId, cancellationToken);
+            if (entity == null)
+                return NotFoundResult();
+
+            if (entity.RequestStatus != "Draft" && entity.RequestStatus != "NeedRevision")
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Bukti hanya dapat diunggah pada status Draft atau NeedRevision.");
+            }
+
+            var oldEvidencePath = entity.EvidenceFilePath;
+            var newEvidencePath = await SaveEvidenceFileAsync(
+                entity.WorkforceProfileId,
+                entity.Id,
+                file,
+                cancellationToken);
+
+            entity.EvidenceFilePath = newEvidencePath;
+            entity.EvidenceFileName = file.FileName;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            DeletePhysicalFile(oldEvidencePath);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmployeeProfileChange.UploadEvidence",
+                "Mengunggah berkas bukti perubahan profil.",
+                new { requestId, fileName = file.FileName });
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> DeleteEvidenceAsync(
+            Guid requestId,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await FindRequestForUpdateAsync(requestId, cancellationToken);
+            if (entity == null)
+                return NotFoundResult();
+
+            if (entity.RequestStatus != "Draft" && entity.RequestStatus != "NeedRevision")
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Bukti hanya dapat dihapus pada status Draft atau NeedRevision.");
+            }
+
+            var oldEvidencePath = entity.EvidenceFilePath;
+            entity.EvidenceFilePath = null;
+            entity.EvidenceFileName = null;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            DeletePhysicalFile(oldEvidencePath);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmployeeProfileChange.DeleteEvidence",
+                "Menghapus berkas bukti perubahan profil.",
+                new { requestId });
+
+            return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+
+        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>> GetRequestEvidenceFileAsync(
+            Guid requestId,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == requestId && !x.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Permintaan perubahan profil tidak ditemukan.");
+            }
+
+            if (string.IsNullOrWhiteSpace(entity.EvidenceFilePath))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "File bukti pendukung belum diunggah.");
+            }
+
+            var physicalPath = ResolvePhysicalPath(entity.EvidenceFilePath);
+
+            if (!File.Exists(physicalPath))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "File bukti pendukung tidak ditemukan pada storage.");
+            }
+
+            var extension = Path.GetExtension(physicalPath).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+
+            var fileName = string.IsNullOrWhiteSpace(entity.EvidenceFileName)
+                ? Path.GetFileName(physicalPath)
+                : entity.EvidenceFileName;
+
+            return EmployeeProfileChangeServiceResult<EmployeeProfileChangeEvidenceFileResponse>.Ok(
+                new EmployeeProfileChangeEvidenceFileResponse
+                {
+                    PhysicalPath = physicalPath,
+                    FileName = fileName,
+                    ContentType = contentType
+                },
+                "File bukti permohonan berhasil ditemukan.");
         }
 
         public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CancelAsync(
@@ -1445,6 +2054,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             var result = new List<TrxEmployeeProfileChangeDetail>();
             var index = 0;
+            var targetCache = new Dictionary<Guid, object>();
 
             foreach (var request in requests.OrderBy(x => x.SortOrder))
             {
@@ -1454,7 +2064,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     workforceProfile,
                     employee,
                     request.TargetEntityName,
-                    request.TargetEntityId);
+                    request.TargetEntityId,
+                    _dbContext,
+                    targetCache);
 
                 if (!targetResult.Success || targetResult.Target == null)
                 {
@@ -1572,13 +2184,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     "Workforce profile atau employee tidak ditemukan.");
             }
 
+            var targetCache = new Dictionary<Guid, object>();
+
             foreach (var detail in details)
             {
                 var targetResult = ResolveTarget(
                     workforceProfile,
                     employee,
                     detail.TargetEntityName,
-                    detail.TargetEntityId);
+                    detail.TargetEntityId,
+                    _dbContext,
+                    targetCache);
 
                 if (!targetResult.Success || targetResult.Target == null)
                 {
@@ -1640,6 +2256,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             CancellationToken cancellationToken)
         {
             var plan = new List<ApplyPlanItem>();
+            var targetCache = new Dictionary<Guid, object>();
 
             foreach (var detail in details)
             {
@@ -1654,7 +2271,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     workforceProfile,
                     employee,
                     detail.TargetEntityName,
-                    detail.TargetEntityId);
+                    detail.TargetEntityId,
+                    _dbContext,
+                    targetCache);
 
                 if (!targetResult.Success || targetResult.Target == null)
                 {
@@ -1987,7 +2606,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             MstWorkforceProfile workforceProfile,
             MstEmployee employee,
             string? targetEntityName,
-            Guid? targetEntityId)
+            Guid? targetEntityId,
+            ApplicationDbContext? dbContext = null,
+            IDictionary<Guid, object>? instanceCache = null)
         {
             var normalizedName = NormalizeTargetEntityName(targetEntityName);
 
@@ -2022,9 +2643,111 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 return TargetResolution.Ok(employee, "MstEmployee", employee.Id);
             }
 
+            if (normalizedName == "WfpAddress")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpAddress cachedAddr)
+                {
+                    return TargetResolution.Ok(cachedAddr, "WfpAddress", targetId);
+                }
+
+                WfpAddress? address = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    address = dbContext.Set<WfpAddress>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (address == null)
+                {
+                    address = new WfpAddress
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = address;
+                }
+
+                return TargetResolution.Ok(address, "WfpAddress", address.Id);
+            }
+
+            if (normalizedName == "WfpBankAccount")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpBankAccount cachedBank)
+                {
+                    return TargetResolution.Ok(cachedBank, "WfpBankAccount", targetId);
+                }
+
+                WfpBankAccount? bank = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    bank = dbContext.Set<WfpBankAccount>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (bank == null)
+                {
+                    bank = new WfpBankAccount
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = bank;
+                }
+
+                return TargetResolution.Ok(bank, "WfpBankAccount", bank.Id);
+            }
+
+            if (normalizedName == "WfpEmergencyContact")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpEmergencyContact cachedContact)
+                {
+                    return TargetResolution.Ok(cachedContact, "WfpEmergencyContact", targetId);
+                }
+
+                WfpEmergencyContact? contact = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    contact = dbContext.Set<WfpEmergencyContact>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (contact == null)
+                {
+                    contact = new WfpEmergencyContact
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = contact;
+                }
+
+                return TargetResolution.Ok(contact, "WfpEmergencyContact", contact.Id);
+            }
+
             return TargetResolution.Fail(
                 StatusCodes.Status400BadRequest,
-                "Target entity hanya mendukung MstWorkforceProfile atau MstEmployee.");
+                $"Target entity {targetEntityName} tidak didukung untuk pengajuan profil.");
         }
 
         private static void SynchronizeWorkforceProfile(
@@ -2090,6 +2813,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 AppliedByUserName = GetActorName(actorNames, entity.AppliedByUserId),
                 CurrentStepOrder = entity.CurrentStepOrder,
                 DetailCount = entity.Details.Count(x => !x.IsDelete),
+                IsSubmittedOnBehalf = entity.IsSubmittedOnBehalf,
+                SubmittedByWorkforceProfileId = entity.SubmittedByWorkforceProfileId,
+                OnBehalfReason = entity.OnBehalfReason,
+                OnBehalfNotifiedAt = entity.OnBehalfNotifiedAt,
+                EvidenceFilePath = entity.EvidenceFilePath,
+                EvidenceFileName = entity.EvidenceFileName,
                 PendingVerificationCount = entity.Verifications.Count(x =>
                     !x.IsDelete &&
                     x.VerificationStatus == "Pending"),
@@ -2310,6 +3039,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 return "MstEmployee";
             }
 
+            if (normalized.Equals("WfpAddress", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpAddresses", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Address", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Addresses", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpAddress";
+            }
+
+            if (normalized.Equals("WfpBankAccount", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpBankAccounts", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("BankAccount", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("BankAccounts", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpBankAccount";
+            }
+
+            if (normalized.Equals("WfpEmergencyContact", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpEmergencyContacts", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("EmergencyContact", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("EmergencyContacts", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpEmergencyContact";
+            }
+
             return normalized;
         }
 
@@ -2368,6 +3121,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 "Address" => "Alamat",
                 "Identity" => "Identitas",
                 "EmergencyContact" => "Kontak darurat",
+                "Multiple" => "Multi-kategori",
                 _ => value
             };
         }

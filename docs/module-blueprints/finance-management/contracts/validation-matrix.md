@@ -931,3 +931,80 @@ input_hash: 1e01c38b9f7c5f62   # SHA-256 (16 karakter pertama) berkas ini sebelu
 | Revisi 19 | `FIN-VAL-249`..`271` | 23 |
 | Revisi 20 | `FIN-VAL-272`..`289` | 18 |
 | **Total Akumulatif** | `FIN-VAL-230`..`289` | **60** |
+
+## V. Revisi 22 (3 November 2026) — Benefit RS
+
+```yaml
+last_changed_in: FIN-VAL-1.14
+status: approved
+owner: Pemilik HR dan Registrasi (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: FIN-DEC-233..256; FIN-DES-109..126
+compatibility: FIN-VAL-271 (pengaju ≠ penyetuju) digantikan FIN-DEC-233 dan tidak lagi berlaku; aturan lain aditif.
+```
+
+### V.1 Aturan yang digantikan
+
+| Aturan | Keadaan | Pengganti |
+|---|---|---|
+| `FIN-VAL-271` Penyetuju enrollment harus berbeda dari pengaju (403) | **superseded** | `FIN-DEC-233`: pengaju boleh menyetujui sendiri; audit mencatat kedua aktor |
+
+### V.2 Aturan baru
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-290` | Ajukan Benefit | Penerima, program, tanggal pendaftaran, atau tanggal mulai kosong; tanggal akhir sebelum tanggal mulai | Pesan yang sudah ada per field, misalnya "Penerima benefit wajib dipilih." | 422 |
+| `FIN-VAL-291` | Aktifkan manual | Tanggal mulai berlaku masih di masa depan | "Benefit ini baru berlaku mulai 1 Desember 2026. Sistem mengaktifkannya otomatis pada tanggal itu." | 422 |
+| `FIN-VAL-292` | Setujui (tanggal mulai sudah tiba) | Syarat aktivasi gagal | Pesan syarat yang sudah ada, misalnya "Pegawai ini sudah memiliki benefit layanan RS yang aktif pada periode tersebut." Status tetap Diajukan | 422 |
+| `FIN-VAL-293` | Ajukan, Setujui, kelayakan, pencarian | Penerima adalah dokter tamu | "Jenis SDM ini tidak termasuk penerima benefit kesehatan menurut kebijakan HR." | 422 `OWNER_TYPE_NOT_ALLOWED` |
+| `FIN-VAL-294` | Sinkronkan ulang | Enrollment tidak `Active` | "Sinkronisasi kartu hanya dapat dijalankan untuk benefit yang sudah aktif." | 400 |
+| `FIN-VAL-295` | Pendaftaran kunjungan dan ganti penanggung, kartu hasil sinkronisasi | NIK, tanggal lahir, atau jenis tanda pengenal pasien tidak lagi cocok dengan pemilik | "Identitas pasien tidak lagi sesuai dengan pemilik Benefit Karyawan RS pada kartu ini. Kartu tidak dapat dipakai; daftarkan sebagai Pasien Umum atau minta Registrasi meninjau kartunya." | 400 (loket, usulan `FIN-DES-126`) / 422 `PATIENT_IDENTITY_MISMATCH` (ganti penanggung) |
+| `FIN-VAL-296` | Modal Daftarkan Penjamin, penjamin internal | Penerima benefit belum dipilih dari pencarian HR | Frontend menahan pengiriman: "Pilih penerima benefit dari data HR." Backend tetap menolak dengan pesan `EMPLOYEE_REQUIRED` yang sudah ada | 422 |
+| `FIN-VAL-297` | Modal Daftarkan Penjamin, penjamin internal | Pasien sudah punya kartu internal aktif | Frontend tidak mengirim: "Pasien sudah memiliki kartu Benefit Karyawan RS yang aktif." Backend tetap menolak duplikat dengan aturan yang sudah ada | — / 400 |
+| `FIN-VAL-298` | Pembuatan kartu internal dan tab | Benefit belum dapat dipakai | Pesan per keadaan (tabel V.3) | 422 `ENROLLMENT_NOT_ACTIVE` (kode lama, pesan baru) |
+| `FIN-VAL-299` | Daftar kerja Registrasi | Nilai `status` tidak dikenal | "Status sinkronisasi tidak dikenal." | 400 |
+
+### V.3 Pesan kelayakan per keadaan (`FIN-DES-124`)
+
+| Keadaan enrollment pemilik | Pesan |
+|---|---|
+| Draft | "Pengajuan benefit BEN000123 belum diajukan ke HRD." |
+| Submitted | "Pengajuan benefit BEN000123 sedang menunggu persetujuan HRD." |
+| Approved, belum tanggal mulai | "Benefit BEN000123 sudah disetujui dan baru berlaku mulai 1 Desember 2026." |
+| Active, belum tanggal mulai | "Benefit Medical Staf baru berlaku mulai 1 Desember 2026." |
+| Active, sudah berakhir | "Masa berlaku benefit Medical Staf berakhir 31 Oktober 2026." |
+| Tidak ada enrollment | Pesan `ENROLLMENT_NOT_ACTIVE` yang sudah ada |
+
+Nama status tidak lagi ditampilkan dalam Bahasa Inggris. Kode alasan tidak berubah agar pemanggil lama tetap bekerja.
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W
+```
+
+| ID | Objek | Aturan | Lapisan | Akibat bila dilanggar |
+|---|---|---|---|---|
+| `FIN-VAL-300` | PO, GR | `SourceSystem` ∈ {`QUILVIAN`, `BLM`} | Database | Simpan ditolak |
+| `FIN-VAL-301` | PO, GR | Identitas eksternal header terisi **jika dan hanya jika** `SourceSystem = 'BLM'` | Database | Simpan ditolak |
+| `FIN-VAL-302` | PO, item PO, GR, item GR | Identitas eksternal unik per sistem sumber | Database (index unik terfilter) | Simpan ditolak; pengolah memperlakukannya sebagai pembaruan dokumen yang sama |
+| `FIN-VAL-303` | PO | `ApprovalTier = 'EXTERNAL'` **jika dan hanya jika** `SourceSystem = 'BLM'` | Database | Simpan ditolak |
+| `FIN-VAL-304` | Item GR | `ConditionCode` ∈ {`GOOD`, `DAMAGED`, `PENDING_INSPECTION`} bila terisi | Database | Simpan ditolak |
+| `FIN-VAL-305` | Item GR | `0 <= AcceptedBaseQuantity <= BaseQuantity`; `AcceptedBaseQuantity = 0` bila kondisi bukan `GOOD` | Database | Simpan ditolak |
+| `FIN-VAL-306` | Item PO, item GR | Kolom BLM semuanya kosong atau semuanya terisi (`CK_*_BlmFields`); `QuantityPerBaseUnit > 0` bila terisi | Database | Simpan ditolak. Baris lama otomatis memenuhi (semua kosong) |
+| `FIN-VAL-307` | GR BLM | GR `BLM` hanya menunjuk PO `BLM`; baris GR dicocokkan ke item PO lewat `ExternalPurchaseOrderItemId`, **tidak pernah** lewat nama produk | Layanan integrasi | Kiriman `REJECTED` (`PO_SOURCE_MISMATCH`, `PO_ITEM_NOT_FOUND`) |
+| `FIN-VAL-308` | Kotak masuk | `EventId` unik per `SourceSystem`; hash sama → ulangan; hash beda → `PAYLOAD_MISMATCH` | Database + layanan integrasi | Tidak ada dokumen ganda |
+| `FIN-VAL-309` | Kotak masuk | `APPLIED` ⇒ tepat satu sasaran sesuai `DocumentType`; `AttemptCount >= 0` | Database | Simpan ditolak |
+| `FIN-VAL-310` | Pemetaan supplier | Satu pemetaan aktif per supplier BLM | Database | Simpan ditolak |
+| `FIN-VAL-311` | Konversi satuan | Setiap item PO dan GR BLM wajib membawa isi per satuan `> 0` dan satuan dasar; satuan dasar baris GR = satuan dasar item PO. **Tidak ada nilai bawaan 1** | Layanan integrasi | Kiriman `CONFLICT` jenis `CONVERSION_UNRESOLVED`; GR tidak diterapkan; PO tidak menjadi `FULLY_RECEIVED` |
+| `FIN-VAL-312` | Konflik | Satu konflik `OPEN` per (kiriman, jenis); `RESOLVED` wajib kode, pelaku, waktu; minimal satu dari PO/GR terisi | Database | Simpan ditolak |
+| `FIN-VAL-313` | Pembatalan eksternal | FK lokal sesuai `DocumentType`; `OUTBOUND_REQUEST` wajib `RequestedByUserId`; `CONFIRMED` wajib `CancelledAt`; `EventId` unik per (sumber, arah) | Database | Simpan ditolak |
+| `FIN-VAL-314` | PO/GR BLM | Nomor BLM yang sudah dipakai dokumen lain tidak menimpa dan tidak diberi akhiran | Layanan integrasi | `CONFLICT` jenis `NUMBER_COLLISION` |
+| `FIN-VAL-315` | GR lewat API Quilvian | `POST /`, `PUT /{id}`, `POST /{id}/cancel` pada `purchasing/goods-receipts` untuk dokumen `BLM` ditolak | Layanan (`FinanceGoodsReceiptService`) | **409** `PURCHASING_EXTERNAL_DOCUMENT`, pesan: "Penerimaan barang untuk PO dari BLM dicatat di BLM. Perubahan dan pembatalannya juga dilakukan dari BLM." |
+| `FIN-VAL-316` | Status PO BLM | `FULLY_RECEIVED` hanya bila setiap item jumlah sah ≥ dipesan (satuan dasar) dan semua konversi pasti | Layanan (penghitung) | Status tetap `PARTIALLY_RECEIVED` |
+
+Penomoran: `FIN-VAL-300`..`316` baru pada revisi ini. Putaran 2 mengganti isi `305`, `306`, `311` (versi putaran 1 tidak
+pernah disetujui) dan menambah `315`, `316`.

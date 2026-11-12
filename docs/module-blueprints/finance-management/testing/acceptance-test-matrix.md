@@ -1182,3 +1182,128 @@ Data contoh samaran.
 |---|---|---|---|
 | `O.5.1` | Wajib untuk non-pegawai | Anak berobat, utang Rp 400.000, nama kosong | Ditolak `422` (`FIN-VAL-289`) |
 | `O.5.2` | Tidak wajib untuk pegawai sendiri | Pegawai berobat, utang Rp 400.000, nama kosong | Diterima |
+
+## V. Revisi 22 (3 November 2026) — Benefit RS
+
+```yaml
+last_changed_in: FIN-TEST-1.15
+status: approved
+owner: Pemilik HR, Registrasi, dan Finance (pengguna sesi)
+approved_by: Pemilik Finance, HR, dan Registrasi (pengguna sesi)
+approved_at: 2026-11-03
+input_revision: 00-interview-decisions.md AC-01..AC-25; permintaan pemilik TC-01..TC-22
+compatibility: Butir N.2.2 (pengaju menyetujui sendiri ditolak 403) superseded oleh V.2.4.
+```
+
+Kolom **TC** merujuk ke daftar uji pada permintaan awal pemilik; **AC** ke acceptance criteria di `00-interview-decisions.md`.
+
+### V.1 Pengajuan (`S1`)
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan | AC / TC |
+|---|---|---|---|---|---|
+| V.1.1 | `FR-FIN-261` | Isian lengkap, tekan Ajukan Benefit | Integration + FE | Satu enrollment `Submitted`, `SubmittedAt`/`SubmittedByUserId` terisi, daftar menampilkan "Diajukan" | AC-01 / TC-01 |
+| V.1.2 | `FIN-VAL-290` | Program Benefit kosong | Integration | 422; **nol** baris enrollment | AC-02 / TC-02 |
+| V.1.3 | `FR-FIN-261` | Ajukan dua kali cepat | Integration (PostgreSQL) | Satu enrollment; permintaan kedua 409 | AC-03 / TC-03 |
+| V.1.4 | `FIN-VAL-293` | Penerima dokter tamu | Integration | 422 `OWNER_TYPE_NOT_ALLOWED` | AC-23 |
+| V.1.5 | `FR-FIN-261` | Draft lama tetap dapat diajukan lewat tombol Ajukan di detail | Integration | `POST /{id}/submit` tetap 200 | — |
+
+### V.2 Persetujuan dan aktivasi (`S2`, `S3`)
+
+| ID | Requirement | Skenario | Jenis test | Bukti | AC / TC |
+|---|---|---|---|---|---|
+| V.2.1 | `FR-FIN-262` | Setujui, tanggal mulai sudah tiba | Integration | `Active`, `ApprovedAt` dan `ActivatedAt` terisi, `CoverageLimitAmount` = plafon plan, `UsedAmount = 0`, ringkasan sinkronisasi ada di respons | AC-04 / TC-04 |
+| V.2.2 | `FIN-VAL-292` | Setujui, irisan periode dengan benefit Medical aktif | Integration | 422; status tetap `Submitted`; `ApprovedAt` kosong | AC-05 |
+| V.2.3 | `FR-FIN-263` | Setujui dengan tanggal mulai masa depan; penjadwal berjalan pada tanggalnya | Integration (jam tiruan) | `Approved` lalu `Active`; `ActivatedByUserId` = akun layanan; kartu belum ada sebelum tanggal | AC-06 / TC-05 |
+| V.2.4 | `FIN-DEC-233` | Pengaju menyetujui sendiri | Integration | Diizinkan; `SubmittedByUserId` = `ApprovedByUserId`, keduanya tercatat | AC-09 |
+| V.2.5 | `FR-FIN-262` | Setujui atau Aktifkan diulang pada enrollment `Active` | Integration | 400; saldo tidak berubah | AC-07 / TC-11, TC-20 |
+| V.2.6 | `FR-FIN-262` | Dua HRD menyetujui bersamaan | Integration (PostgreSQL) | Satu 200, satu 409; satu kali aktivasi | AC-08 |
+| V.2.7 | `FIN-VAL-291` | Aktifkan manual sebelum tanggal mulai | Integration | 422; tetap `Approved` | — |
+| V.2.8 | `FIN-OQ-127` | Penjadwal menemukan `Approved` yang seluruh periodenya sudah lewat | Integration | Tidak diaktifkan; log `ActivationSkipped` | — |
+| V.2.9 | `FR-FIN-262` | Penjadwal dan Aktifkan manual bersamaan | Integration (PostgreSQL) | Satu kali `Active`; saldo awal sekali | TC-11 |
+
+### V.3 Sinkronisasi kartu (`S5a`, `S5b`, `S6`)
+
+| ID | Requirement | Skenario | Jenis test | Bukti | AC / TC |
+|---|---|---|---|---|---|
+| V.3.1 | `FR-FIN-265` | Karyawan; tepat satu pasien KTP, NIK dan tanggal lahir sama | Integration | Satu kartu `SYS-RS-BENEFIT`, `LastEligibilityReferenceNumber` = nomor enrollment, catatan `SYNCED` | AC-10 / TC-06 |
+| V.3.2 | `FR-FIN-265` | Dokter tetap tanpa `EmployeeId` | Integration | Kartu dengan `BenefitOwnerWorkforceProfileId`, `EmployeeId` kosong | AC-10 / TC-07, TC-19 |
+| V.3.3 | `FR-FIN-265` | Tidak ada pasien cocok | Integration | `WAITING_PATIENT` `NO_MATCH`; nol pasien baru | AC-13 / TC-08 |
+| V.3.4 | `FIN-DEC-237` | Enrollment Rendy; pasien Gilang dengan NIK sama tetapi tanggal lahir berbeda | Integration | Tidak ada kartu pada Gilang; `WAITING_PATIENT` | AC-12 / TC-09 |
+| V.3.5 | `FIN-DEC-250` | NIK dan tanggal lahir sama, jenis ID "SIM" | Integration | `WAITING_PATIENT` `IDENTITY_TYPE_NOT_ALLOWED`; setelah jenis dibetulkan dan Sinkronkan ulang → `SYNCED` | AC-20 |
+| V.3.6 | `FIN-DES-115` | NIK pasien bertanda spasi atau titik | Unit | Cocok setelah dinormalkan | — |
+| V.3.7 | `FIN-DEC-251` | Pasien sudah punya kartu internal untuk pemilik lain | Integration | `ON_HOLD` `OTHER_INTERNAL_CARD_EXISTS`; tidak ada kartu dibuat; `IsPrimary` kartu lain tidak berubah | AC-21 |
+| V.3.8 | `FIN-DEC-251` | Pasien sudah punya kartu internal milik pemilik yang sama | Integration | Dipakai ulang; tetap satu kartu | AC-15 / TC-10 |
+| V.3.9 | `FIN-DEC-244` | Pembacaan HR gagal saat sinkronisasi | Integration (tiruan galat) | Persetujuan tetap `Active`; catatan `FAILED_RETRYABLE`; putaran berikut berhasil tanpa kartu ganda | AC-14 / TC-12 |
+| V.3.10 | `FIN-DES-113` | Server mati sesudah commit persetujuan, sebelum sinkronisasi | Integration | Putaran rekonsiliasi berikut membuat catatan dan kartu | TC-12 |
+| V.3.11 | `FIN-DEC-253` | Registrasi menonaktifkan kartu salah pasien | Integration | `REVOKED`; putaran berikut tidak memasang ulang; Sinkronkan ulang memasang setelah data benar | AC-22 |
+| V.3.12 | `FIN-DEC-242` | Enrollment dibatalkan | Integration | Kartu `IsActive = false`, tidak terhapus; snapshot kunjungan lama utuh | AC-16 / TC-14, TC-21 |
+| V.3.13 | `FIN-DES-125` | Penjadwal dinyalakan tanpa `ActivationCutoffUtc` | Integration | Tidak ada yang diproses; peringatan log | — |
+| V.3.14 | `FIN-DES-125` | Enrollment `Active` sebelum batas | Integration | Tidak disentuh penjadwal; Sinkronkan ulang memprosesnya | — |
+| V.3.15 | `FR-FIN-267` | Daftar kerja Registrasi | Integration + FE | Tanpa izin → 403; berisi pemilik dan alasan, **tanpa** data pasien | AC-24 |
+| V.3.16 | `FIN-VAL-294` | Sinkronkan ulang pada enrollment `Approved` | Integration | 400 | — |
+| V.3.17 | `FR-FIN-265` | Pasien punya asuransi eksternal dan penjamin perusahaan lain | Integration | Keduanya tidak berubah | AC-15 / TC-13 |
+| V.3.18 | `FIN-DEC-244` | Approval dan sinkronisasi | Integration | Nol mutasi plafon, nol invoice, nol piutang, nol kwitansi | AC-18 |
+
+### V.4 Registrasi dan Patient Management (`S7`, `S8`, `S9`)
+
+| ID | Requirement | Skenario | Jenis test | Bukti | AC / TC |
+|---|---|---|---|---|---|
+| V.4.1 | `FR-FIN-269` | Pilih `SYS-RS-BENEFIT` pada modal | FE | Isian nomor kartu bebas dan masa aktif hilang; pemilih penerima HR tampil | AC-17 |
+| V.4.2 | `FR-FIN-269` | Simpan dengan penerima dari HR yang NIK-nya cocok | FE + Integration | Payload membawa `benefitOwnerWorkforceProfileId`; 200 | AC-17 |
+| V.4.3 | `FR-FIN-269` | Backend menolak 422 | FE | Pesan Backend tampil apa adanya; **bukan** "Coba kembali" | AC-17 / TC-18 |
+| V.4.4 | `FIN-VAL-297` | Pasien sudah punya kartu internal aktif | FE | Kartu yang ada ditampilkan; tidak ada POST | AC-17 / TC-10 |
+| V.4.5 | `FIN-VAL-298` | Pemilik masih menunggu HRD | Integration | Pesan "…sedang menunggu persetujuan HRD." | TC-18 |
+| V.4.6 | `FR-FIN-270` | Tab pada kartu aktif, belum mulai, berakhir, HR tidak terbaca | Integration + FE | `ACTIVE` / `NOT_YET_EFFECTIVE` / `ENDED` / `HR_UNAVAILABLE`; tidak pernah tampak aktif palsu | AC-16 / TC-15 |
+| V.4.7 | `FR-FIN-271` | Kunjungan dengan kartu otomatis, NIK pasien diubah | Integration | Loket ditolak (400 usulan); ganti penanggung 422 `PATIENT_IDENTITY_MISMATCH`; pendaftaran tetap bisa sebagai Pasien Umum | AC-25 |
+| V.4.8 | `FR-FIN-271` | Kunjungan dengan kartu manual lama | Integration | Tidak dicek ulang (perilaku sekarang) | AC-25 |
+| V.4.9 | `FR-FIN-269` | Pendaftaran pasien dengan kartu otomatis yang sah | Integration | Kartu dapat dipilih tanpa pendaftaran kartu manual; Billing tetap membaca plafon HR | AC-19 / TC-16, TC-22 |
+| V.4.10 | `FIN-VAL-298` | Pasien tidak layak memilih `SYS-RS-BENEFIT` | Integration | Ditolak dengan alasan tepat | TC-17 |
+| V.4.11 | `FR-FIN-264` | Uji resolver dokter tamu yang sudah ada | xUnit | `WorkforceBenefitOwnerAcceptanceTests` baris 150 dan 240 lulus | AC-23 |
+
+## W. Revisi 23 (9 November 2026) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: FIN-TEST-1.16
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 02-backend-architecture.md bagian W; contracts/validation-matrix.md bagian W (putaran 2)
+automated_test: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)
+```
+
+Bukti diambil dari review diff, build, penerapan migration pada database uji, SQL, dan pemeriksaan manual. Build dan
+migration butuh wewenang terpisah (`FIN-DEC-273`). Baris BLM disisipkan lewat SQL pada database uji karena pengolah
+kiriman belum ada.
+
+### W.1 Dokumen lama tidak berubah
+
+| ID | Requirement | Skenario | Cara uji | Bukti yang diharapkan |
+|---|---|---|---|---|
+| W.T1 | `FIN-DES-138` | Aplikasi baru sesudah migration diterapkan | Manual | Daftar dan detail PO/GR lama 200; tidak ada galat kolom |
+| W.T2 | `FR-FIN-272`, `FIN-VAL-306` | Data lama sesudah migration | SQL | PO/GR lama `QUILVIAN`; semua kolom BLM pada item kosong |
+| W.T3 | `FR-FIN-281` | Buat, koreksi, batal GR lokal lewat layar yang ada | Manual | Perilaku dan status PO sama dengan sebelum migration; kolom BLM tetap kosong |
+| W.T4 | `FR-FIN-281` | Respons `GET` PO/GR lama | Bandingkan sebelum dan sesudah | Field lama sama persis; field baru `null` atau `QUILVIAN` |
+
+### W.2 Penerimaan BLM (baris disisipkan lewat SQL, status dihitung lewat penghitung)
+
+PO BLM: 1 BOX produk A, `QuantityPerBaseUnit = 12`, `BaseUomCode = PCS`, `BaseQuantity = 12`.
+
+| ID | Requirement | Skenario | Bukti yang diharapkan |
+|---|---|---|---|
+| W.T5 | `FR-FIN-282`, `FIN-VAL-316` | GR-1 6 PCS `GOOD` | Sah 6, sisa 6, status `PARTIALLY_RECEIVED`, `ReceivedQuantity` baris = 0.50 |
+| W.T6 | `FR-FIN-282` | GR-2 6 PCS `GOOD` | Sah 12, sisa 0, `FULLY_RECEIVED` |
+| W.T7 | `FIN-DEC-268` | GR-2 diganti 4 `GOOD` + 2 `PENDING_INSPECTION` | Sah 10, menunggu 2, `PARTIALLY_RECEIVED` |
+| W.T8 | `FIN-DEC-268` | Baris 2 `DAMAGED` | Sah tidak bertambah, rusak 2 |
+| W.T9 | `FR-FIN-282` | GR dalam satuan BOX: 1 BOX `GOOD`, `QuantityPerBaseUnit = 12` | Sah 12, `FULLY_RECEIVED` |
+| W.T10 | `FIN-VAL-311`, `316` | Baris GR dengan `BaseUomCode` berbeda dari item PO | Penghitung `IsConversionResolved = false`; status **bukan** `FULLY_RECEIVED` |
+| W.T11 | `FR-FIN-282` | GR-2 dibatalkan (`Status = CANCELLED`) lalu status dihitung ulang | Kembali `PARTIALLY_RECEIVED` |
+| W.T12 | `FR-FIN-282` | PO dua item; item 1 penuh, item 2 nol | `PARTIALLY_RECEIVED` (bukan penuh walau total satuan dasar besar) |
+
+### W.3 Penjaga dan constraint
+
+| ID | Requirement | Skenario | Bukti yang diharapkan |
+|---|---|---|---|
+| W.T13 | `FIN-VAL-315` | Buat GR untuk PO BLM; ubah dan batal GR BLM lewat endpoint `goods-receipts` | 409 `PURCHASING_EXTERNAL_DOCUMENT`; tidak ada baris berubah |
+| W.T14 | `FIN-VAL-301`, `303` | PO `BLM` tanpa ID eksternal; PO `BLM` dengan `TIER_1` | Ditolak check |
+| W.T15 | `FIN-VAL-302` | Dua PO `BLM` ber-ID eksternal sama | Ditolak index unik |
+| W.T16 | `FIN-VAL-305`, `306` | Baris GR BLM `DAMAGED` dengan sah > 0; sah > fisik; kolom BLM terisi sebagian; isi per satuan 0 | Ditolak check |
+| W.T17 | `FIN-VAL-308`, `309`, `312`, `313` | `EventId` ganda; `APPLIED` tanpa sasaran; konflik `RESOLVED` tanpa kode; pembatalan keluar tanpa pengguna | Ditolak |
+| W.T18 | Mundur | Langkah mundur migration pada database uji | Skema kembali; data lama utuh |

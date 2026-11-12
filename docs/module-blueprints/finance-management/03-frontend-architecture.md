@@ -539,6 +539,7 @@ Menjawab kebutuhan rekonsiliasi tutup buku bulanan Accounting (`accounting/evide
 | Rancangan backend | `FIN-DES-070`..`FIN-DES-073`, `02-backend-architecture.md` AMENDMENT REVISI 13 |
 | Wewenang UI | `FIN-DEC-094` adalah **approved product brief** — ia mengunci *layar mana yang berdiri sendiri* dan *butir menu mana yang ada*, karena bentuk itu sudah disetujui pengguna lewat UAT pada sistem produksi V1. Tata letak, warna, ikon, urutan visual, dan component library **tetap `DEV_DISCRETION`** |
 | Yang dicabut | Bagian 15 (submenu "Pembelian" menurut `FIN-DEC-060`) **tidak lagi berlaku** sebagai struktur menu. Isinya tetap dibaca sebagai riwayat, bukan sebagai ketetapan |
+| Penanda 9 November 2026 | `FIN-DEC-258` **menggantikan sebagian** `FIN-DEC-094`: butir Purchase Order dan Penerima Pesanan keluar dari grup Transaksi A/P ke grup baru **Purchasing** (Monitoring Purchasing, Pesanan Pembelian (PO), Penerimaan Barang). `FIN-DEC-266` menambah **Retur Supplier** ke grup yang sama dan menyebut butir **Monitoring Sinkronisasi (BLM)** yang belum dibangun. Bagian lain 17 tetap berlaku. Pohon pada 17.2 **belum digambar ulang** (tugas `design-business-module`); baca dua butir itu sebagai sudah pindah |
 
 ### 17.1 Apa yang berubah dari bagian 15, dan mengapa
 
@@ -562,6 +563,8 @@ pembongkaran:
 | Nol perhitungan uang di klien | Berlaku penuh, termasuk pada selisih klaim |
 
 ### 17.2 Peta butir menu — Keuangan
+
+> **Penanda 9 November 2026 (`FIN-DEC-258`).** Pada pohon di bawah, butir "Pembelian Pesanan" dan "Penerima Pesanan" di grup Transaksi A/P **sudah pindah** ke grup baru "Purchasing" yang sejajar dengan Transaksi A/P. Butir Retur (Retur Produk, Retur Pembelian Supplier) juga sudah pindah ke Purchasing menurut `FIN-DEC-266`. Rute, resource izin, dan action izin butir-butir itu tidak berubah. Butir A/P lain dan seluruh A/R tidak terpengaruh. Pohon sengaja dibiarkan apa adanya sebagai riwayat revisi 13 sampai digambar ulang.
 
 Berkas yang disunting saat implementasi: `src/utils/menu-sidebar/menu-items.jsx`. Resolver membaca
 `subMenu` pada tingkat 0 dan `subItems` pada grup di bawahnya.
@@ -1768,3 +1771,210 @@ input_contracts: FIN-API-1.11 (draft); FIN-PERM-1.12 (draft)
 | Hasil hanya lewat unggah berkas | **Keputusan terkunci** (`FIN-DEC-221`) | Tidak ada form input per angsuran |
 | Angka terutang dan total | **Invariant sistem** | Dari backend; tidak dihitung di klien |
 | Rute, tata letak, nama butir menu | `DEV_DISCRETION` | Mengikuti design system Quilvian |
+
+## 26. Amandemen 3 November 2026 (Revisi 22) — Ajukan Benefit, Persetujuan yang Mengaktifkan, Sinkronisasi Kartu, dan Modal Daftarkan Penjamin Internal
+
+```yaml
+last_changed_in: Revisi 22 (3 November 2026)
+status: approved   # 2026-11-03, pemilik (pengguna sesi)
+input_revision: 00-interview-decisions.md FIN-DEC-231..257; 02-backend-architecture.md bagian V
+input_contracts: FIN-API-1.12 (draft); FIN-PERM-1.13 (draft); FIN-VAL-1.14 (draft)
+frontend_commit_sha: fa7eb8d7
+task_frontend: ditetapkan plan-module-delivery
+```
+
+### 26.1 Kewenangan UI
+
+| Lapisan | Yang mengikat di sini |
+|---|---|
+| Keamanan, privasi, invariant | Tidak ada data pasien pada daftar kerja dan ringkasan HRD (`FIN-DEC-255`); Frontend **tidak** memanggil Create lalu Submit (`FIN-DEC-243`); tombol yang tidak berhak disembunyikan; pesan Backend tidak diganti teks umum (`FIN-DEC-245`) |
+| Brief produk yang disetujui | Label tombol "Ajukan Benefit"; penjamin internal memakai pemilih penerima HR, bukan nomor kartu bebas (`FIN-DEC-229`, `245`) |
+| Konvensi proyek | Komponen dasar yang sudah dipakai layar terkait (`BaseButton`, `BaseSelectField`, `InformationAlert`), Redux slice dan service yang sudah ada |
+| `DEV_DISCRETION` | Nama dan urutan butir menu, ikon, letak panel sinkronisasi pada detail, warna chip status, bentuk kolom tab |
+
+### 26.2 Kebutuhan layar
+
+| ID layar | Layar | Status | Pemilik | Berkas Frontend yang ada |
+|---|---|---|---|---|
+| `SCR-BRS-01` | Modal Pendaftaran Benefit Pegawai Baru | Diperbarui | HR | `src/components/view/hr/benefit/employee-benefit-enrollment-create-modal.jsx`, hook `use-employee-benefit-enrollment-list.js` |
+| `SCR-BRS-02` | Daftar enrollment benefit | Diperbarui | HR | `employee-benefit-enrollment-list-view.jsx`, `enrollment-table-columns.jsx` |
+| `SCR-BRS-03` | Detail enrollment benefit | Diperbarui | HR | `employee-benefit-enrollment-detail-view.jsx`, hook `use-employee-benefit-enrollment-detail.js` |
+| `SCR-BRS-04` | Modal Daftarkan Penjamin (registrasi rawat jalan dan IGD) | Diperbarui | Registrasi | `…/emergency-registration/emergency-patient-payer-modal.jsx`, `emergency-registration.utils.js#buildPatientCompanyGuarantorPayload` |
+| `SCR-BRS-05` | Tab Penjamin Perusahaan pada Informasi Pasien | Diperbarui | Patient Management | `…/patients/detail/patients-detail-view.jsx`, hook `use-master-data-patient-detail.jsx` |
+| `SCR-BRS-06` | Daftar kerja sinkronisasi kartu Benefit RS | **Baru** | Registrasi | — |
+
+### 26.3 Peta butir menu
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Enrollment Benefit Pegawai | 1 | Grup Human Resource (sudah ada) | `/hr/benefit/enrollments` | `SCR-BRS-02` | `EmployeeBenefitEnrollment : Read` | Sudah ada |
+| Sinkronisasi Kartu Benefit (nama `DEV_DISCRETION`) | 1 | "Manajemen Pasien" (`healthServicesPatientManagement`) | usulan `/health-services/patient-management/employee-benefit-card-syncs` | `SCR-BRS-06` | `EmployeeBenefitCardSync : Read` (`requiredPermission`) | **Baru** |
+
+Layar tanpa butir menu:
+
+| Layar | Dinyatakan sebagai | Jalan masuk |
+|---|---|---|
+| `SCR-BRS-01` | Layar anak | Tombol pendaftaran baru pada `SCR-BRS-02` |
+| `SCR-BRS-03` | Layar anak | Baris pada `SCR-BRS-02` |
+| `SCR-BRS-04` | Layar anak | Tombol "+ Daftarkan Penjamin Baru" pada langkah pembayaran registrasi rawat jalan dan IGD |
+| `SCR-BRS-05` | Layar anak | Tab pada detail pasien (menu "Manajemen Pasien → Master Data → Pasien") |
+
+Pendaftaran butir menu baru menjadi acceptance criteria task `SCR-BRS-06`. Berkas: `src/utils/menu-sidebar/menu-items.jsx`.
+
+### 26.4 Skema fitur per layar
+
+#### `SCR-BRS-01` Modal Pendaftaran Benefit
+
+```text
++- Pendaftaran Benefit Pegawai Baru ------------------------- SCR-BRS-01 -+
+| [Penerima Benefit (Karyawan / Dokter tetap)  v cari HR]                 |
+| [Program Benefit v]                                                     |
+| [Tanggal Pendaftaran] [Mulai Berlaku] [Selesai Berlaku (opsional)]      |
+| [Catatan]                                                               |
+| galat Backend -> InformationAlert berisi pesan Backend apa adanya       |
+|                                         [Batal]  [Ajukan Benefit]       |
++-------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Penerima | Karyawan dan dokter tetap aktif (tanpa dokter tamu) | `GET …/employee-benefit-lookups/workforce-profiles` | `EmployeeBenefitLookup : Read` | "Tidak ada karyawan atau dokter tetap aktif yang cocok." |
+| Tombol Ajukan Benefit | Kirim satu permintaan | `POST …/employee-benefit-enrollments/submit` | `EmployeeBenefitEnrollment : Create` | 422 → pesan per field dan di alert; 409 → "Pegawai ini sudah punya pengajuan yang masih berjalan pada program yang sama." |
+| Toast berhasil | "Pengajuan benefit BEN000123 berhasil diajukan dan menunggu persetujuan HRD." | Respons | — | — |
+
+#### `SCR-BRS-02` Daftar enrollment
+
+```text
++- Daftar Enrollment Benefit ---------------------------------- SCR-BRS-02 -+
+| [cari] [Status v] [Sinkronisasi kartu v]                                  |
+| No. | Penerima | Program | Status | Kartu pasien (chip) | Sisa plafon     |
+| memuat -> kerangka baris; kosong -> "Belum ada enrollment pada saringan."  |
+| gagal -> "Data gagal dimuat." [Coba lagi]                                  |
++---------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Chip kartu pasien | Terpasang / Menunggu pasien / Ditahan / Gagal sementara / Dicabut / Belum disinkronkan; hanya untuk `Active` | `patientCardSyncStatus` pada `GET …/employee-benefit-enrollments` | `EmployeeBenefitEnrollment : Read` | `null` → tidak ada chip |
+| Saringan sinkronisasi | Nilai yang sama | query `patientCardSyncStatus` | sama | — |
+| Kartu ringkasan "Disetujui" | Subjudul menjadi "Menunggu tanggal mulai" (bukan "Siap diaktifkan") | `GET …/summary` | sama | — |
+
+#### `SCR-BRS-03` Detail enrollment
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Tombol Setujui | Satu tombol; hasil dibaca dari `enrollmentStatus` respons: toast "Disetujui dan diaktifkan" bila `Active`, "Disetujui; aktif otomatis mulai {tanggal}" bila `Approved` | `POST /{id}/approve` | `… : Approve` | 422 → pesan syarat aktivasi tampil, status tetap Diajukan |
+| Tombol Aktifkan | Tampil **hanya** bila `availableActions` memuatnya (Backend menyertakannya untuk `Approved` yang tanggal mulainya sudah tiba) | `POST /{id}/activate` | `… : Activate` | 422 `FIN-VAL-291` |
+| Panel kartu pasien | Status, alasan (`reasonLabel`), jumlah percobaan, waktu terakhir; **tanpa** data pasien | `patientCardSync` pada `GET /{id}` | `… : Read` | `NOT_STARTED` → "Benefit aktif sebelum sinkronisasi otomatis berlaku. Tekan Sinkronkan ulang." |
+| Tombol Sinkronkan ulang | Tampil bila `availableActions` memuat `SyncPatientCard` | `POST /{id}/patient-card-sync` | `… : SyncPatientCard` | 400 → "Sinkronisasi kartu hanya dapat dijalankan untuk benefit yang sudah aktif." |
+
+#### `SCR-BRS-04` Modal Daftarkan Penjamin
+
+```text
++- Daftarkan Penjamin ----------------------------------------- SCR-BRS-04 -+
+| Jenis: (Asuransi) (Perusahaan/Corporate)                                   |
+| Perusahaan: [Benefit Karyawan RS (SYS-RS-BENEFIT) v]                        |
+| -- bila penjamin internal --------------------------------------------- -- |
+| [Penerima benefit dari HR  v cari]   [Anggota keluarga v (opsional)]       |
+| Nomor dan masa berlaku diisi dari HR (tidak diketik)                       |
+| -- bila pasien sudah punya kartu internal aktif ----------------------- -- |
+| "Pasien sudah memiliki kartu Benefit Karyawan RS yang aktif." [Pakai kartu] |
+|                                              [Batal] [Simpan Penjamin]     |
++----------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Pemilih penerima | Pakai ulang komponen seksi internal pada form master data (`patient-company-guarantor-internal-benefit-section.jsx`) dan utilitas `patient-company-guarantor-editor-utils.jsx` | `GET …/employee-benefit-lookups/workforce-profiles`, `…/{workforceProfileId}/family-members` | `EmployeeBenefitLookup : Read` | Belum dipilih → tombol Simpan menolak dengan "Pilih penerima benefit dari data HR." |
+| Simpan | Payload canonical: `companyGuarantorId`, `benefitOwnerWorkforceProfileId`, `familyMemberId?`; **tanpa** `employeeNumber` bebas | `POST …/patient-company-guarantors` (rute staf yang sudah dipakai) | Tidak berubah | 422 → pesan Backend apa adanya |
+| Penanganan galat | Modal membaca pesan dari `Error` **atau** string (thunk `rejectWithValue` mengirim string) | — | — | Teks "Coba kembali" hanya bila benar-benar tidak ada pesan |
+| Penjamin eksternal | Tidak berubah | — | — | — |
+
+#### `SCR-BRS-05` Tab Penjamin Perusahaan
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Baris kartu internal | Nama penjamin, penerima, program, **status benefit dari HR** (Aktif / Belum berlaku / Kedaluwarsa / Belum aktif / Tidak layak / Tidak dapat dibaca), masa berlaku, nomor referensi | `GET …/patient-company-guarantors?patientId=` (`employeeBenefitStatus`, `lastEligibilityReferenceNumber`) | `PatientCompanyGuarantor : Read` / `KioskRead` | `HR_UNAVAILABLE` → "Status benefit tidak dapat dibaca dari HR saat ini." |
+| Baris kartu lain | Tidak berubah | sama | sama | — |
+| Jumlah pada tab | Jumlah kartu dari respons (aktif dan nonaktif, seperti sekarang) | sama | sama | Kosong → "Belum ada penjamin perusahaan." |
+
+#### `SCR-BRS-06` Daftar kerja sinkronisasi kartu
+
+```text
++- Sinkronisasi Kartu Benefit RS ------------------------------ SCR-BRS-06 -+
+| [cari no. enrollment / nama / NIP]   [Status v: Menunggu, Ditahan]         |
+| No. Enrollment | Pemilik | Jenis | Program | Status | Alasan | Terakhir    |
+| memuat -> kerangka baris                                                   |
+| kosong -> "Tidak ada kartu yang menunggu atau ditahan."                    |
+| gagal  -> "Data gagal dimuat." [Coba lagi]                                 |
++- Halaman 1 dari n ------------------------- [< Sebelumnya] [Berikutnya >] -+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Tabel | Pemilik benefit dan alasan umum, **tanpa** data pasien | `GET …/employee-benefit-card-syncs` | `EmployeeBenefitCardSync : Read` | Lihat gambar |
+| Ringkasan | Jumlah per status | `GET …/employee-benefit-card-syncs/summary` | sama | Gagal → ringkasan disembunyikan, tabel tetap |
+| Tindakan | Tidak ada tombol tulis. Petugas memperbaiki data pasien atau mendaftarkan kartu lewat layar yang sudah ada, lalu meminta HRD Sinkronkan ulang | — | — | — |
+
+### 26.5 Penanganan keadaan
+
+| Keadaan | Penanganan |
+|---|---|
+| Pengiriman ganda | Penjaga `submitInFlightRef` yang sudah ada dipertahankan; Backend menolak duplikat 409. Penjaga React bukan satu-satunya pertahanan |
+| Data basi | Setujui, Aktifkan, Batal mengirim `rowVersion`; 409 → muat ulang detail dan tampilkan "Data sudah diperbarui petugas lain." |
+| Sesudah Setujui | Muat ulang detail dan daftar; tampilkan `enrollmentStatus` dan `patientCardSync` dari respons, bukan tebakan |
+| Galat 422 | Selalu pesan Backend; tidak diganti teks umum (`FIN-DEC-245`, `FIN-DEC-248`) |
+| Galat 5xx | "Terjadi kesalahan sistem. Coba lagi beberapa saat." |
+
+### 26.6 Test Frontend yang terdampak
+
+| Test | Perubahan |
+|---|---|
+| `tests/unit/employee-benefit-enrollment-create-form.test.mjs:230` | `assert.match(modal, /Simpan Draft/)` diganti menjadi `/Ajukan Benefit/` |
+| `tests/unit/guarantor-workforce-owner.test.mjs` | Tetap; ditambah kasus payload modal registrasi |
+| Baru | Modal membaca galat berupa string; daftar menampilkan chip sinkronisasi |
+
+## 27. Amandemen 9 November 2026 (Revisi 23) — Penampung Data PO/GR dari BLM
+
+```yaml
+last_changed_in: Revisi 23 putaran 2 (9 November 2026)
+status: approved   # 2026-11-09, pemilik (pengguna sesi), termasuk FIN-DES-141
+input_revision: 00-interview-decisions.md (FIN-DEC-258..278); 02-backend-architecture.md bagian W; contracts/api-contract.md bagian W
+```
+
+**Tidak ada layar atau butir menu baru.** Satu komponen yang ada mendapat kolom tambahan, dan dua tindakan memberi pesan
+baru untuk dokumen BLM. Untuk dokumen lama tampilan tidak berubah.
+
+### 27.1 Perubahan pada komponen yang ada
+
+| Komponen | Berkas | Perubahan | Sumber data |
+|---|---|---|---|
+| Panel jejak dokumen, bagian kemajuan item | `src/components/view/finance/purchasing/shared/purchasing-document-trail-panel.jsx` | Bila `sourceSystem = "BLM"`: kolom Dipesan, Diterima Sah, Menunggu Periksa, Rusak, dan Sisa dalam **satuan dasar** (contoh "12 PCS"), plus tanda "Konversi belum pasti" bila `isConversionResolved = false`. Bila `QUILVIAN`: kolom lama tanpa perubahan | `ItemProgress` (`contracts/api-contract.md` W.3) |
+| Tombol catat, ubah, batal GR | Layar PO dan GR yang ada | Untuk dokumen BLM, galat 409 `PURCHASING_EXTERNAL_DOCUMENT` ditampilkan memakai pesan dari backend apa adanya. Menyembunyikan tombol untuk dokumen BLM adalah slice penguncian berikutnya | `contracts/validation-matrix.md` `FIN-VAL-315` |
+
+### 27.2 Skema wilayah panel kemajuan item (PO BLM)
+
+```text
+┌ Kemajuan item ─────────────────────────────────────────────────────────────┐
+│ Produk     │ Dipesan │ Diterima sah │ Menunggu periksa │ Rusak │ Sisa      │
+│ Produk A   │ 12 PCS  │ 10 PCS       │ 2 PCS            │ 0 PCS │ 2 PCS     │
+│ Produk B ⚠ │ 24 PCS  │ —            │ —                │ —     │ —         │
+│ ⚠ Konversi satuan belum pasti. Penerimaan item ini belum dihitung.         │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|
+| Tabel kemajuan | Satu baris per item PO | "Belum ada penerimaan barang untuk PO ini." | Pesan galat jejak dokumen yang sudah ada |
+| Tanda konversi | Muncul bila ada item `isConversionResolved = false` | Tidak tampil | — |
+
+Tidak ada tombol baru dan tidak ada butir hak akses baru. Warna, ikon, dan susunan visual adalah `DEV_DISCRETION`.
+
+### 27.3 Belum dirancang (slice berikutnya)
+
+Monitoring Sinkronisasi BLM, pemeliharaan pemetaan supplier (`FIN-OQ-144`, dijawab `FIN-DEC-281` dan dipersempit
+`FIN-DEC-287`: pemetaan memakai ID dan kode supplier BLM dengan konfirmasi petugas ditambah layar pemeliharaan;
+pencocokan otomatis NPWP ditunda sampai BLM menyediakan field pajak), penyelesaian konflik oleh Finance, penyembunyian tombol
+buat/ubah/setujui untuk dokumen BLM, dan penempatan menunya (`FIN-OQ-138`, dijawab `FIN-DEC-279`: "Monitoring
+Purchasing" tetap berdiri sendiri, "Monitoring Sinkronisasi" butir terpisah di grup Purchasing, menu Transaksi A/P
+tidak berubah). Bentuk layarnya tetap belum dirancang.

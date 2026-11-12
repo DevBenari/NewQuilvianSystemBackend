@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/state-transition-matrix.md` |
-| `contract_version` | `v5` |
-| `last_changed_in` | `v5` |
+| `contract_version` | `v6` |
+| `last_changed_in` | `v7` — bagian 11 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v6` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
-| `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `00-interview-decisions.md` revision `15`; `flows/` 15 berkas |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `approved_by` / `approved_at` | **Hanya bagian 11** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
+| `input_revision` | `00-interview-decisions.md` revision `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`); `flows/` 15 berkas |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada nilai status yang dihapus. Satu nilai baru ditambahkan pada kosakata jenis pengecualian kehadiran |
 
@@ -656,6 +656,30 @@ menegakkannya. Ini `IMPLEMENTATION_WORK` turunan `HRD-DEC-038`.
 
 ## 6. Administrasi Kepegawaian
 
+### 6.0 Dokumen Peristiwa Kepegawaian (SK Mutasi/Promosi/Rotasi/Demosi) — `HrdPersonnelActionOrder` (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`)
+
+Nilai status: `Draft`, `PendingApproval` (Menunggu persetujuan), `Scheduled` (Dijadwalkan), `Applied` (Berlaku), `Rejected` (Ditolak), `Cancelled` (Dibatalkan).
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | Ajukan untuk persetujuan | `PendingApproval` | HR Admin pembuat | Nomor SK dan berkas scan SK resmi bertandatangan wajib terunggah (`HRD-DEC-056`); tanggal efektif memenuhi aturan periode terbuka (`HRD-DEC-050`) | Ditolak 400 jika scan SK belum ada; ditolak 409 jika tanggal efektif pada periode tertutup `[DECISION]` |
+| `PendingApproval` | Setujui (tanggal di masa depan) | `Scheduled` | HR Manager / `CorporateHr` | **Penyetuju MUST berbeda dari pembuat SK** (`HRD-DEC-031`, `HRD-DEC-056`); periode kehadiran masih terbuka saat persetujuan | Ditolak 403 bila pembuat menyetujui sendiri; ditolak 409 bila periode kehadiran sudah tertutup `[DECISION]` |
+| `PendingApproval` | Setujui (berlaku surut) | `Applied` | HR Manager / `CorporateHr` | Tanggal efektif sudah lewat tetapi masih berada dalam periode kehadiran yang terbuka (`HRD-DEC-050`); alasan surut terisi | Ditolak 409 bila periode tertutup `[DECISION]` |
+| `PendingApproval` | Tolak | `Rejected` | HR Manager / `CorporateHr` | Penyetuju berbeda dari pembuat; alasan penolakan wajib diisi | Ditolak 400 bila alasan kosong; ditolak 403 bila swa-tolak |
+| `Scheduled` | Tanggal efektif tiba | `Applied` | Sistem (job terjadwal) | Tanggal server mencapai `EffectiveDate`. Sistem menutup penempatan lama per H-1 dan membuka penempatan baru (`HRD-DEC-048`, `HRD-DEC-049`) | Tercatat di log eksekusi sistem `[DECISION]` |
+| `Scheduled` | Ajukan pembatalan | `Cancelled` | Diajukan HR Admin; disetujui HR Manager | Hanya boleh dibatalkan sebelum tanggal berlaku tiba (`HRD-DEC-057`); alasan pembatalan wajib diisi; penyetuju batal != pengaju batal | Ditolak bila tanggal berlaku sudah tiba `[DECISION]` |
+| `Applied` | Batalkan | — **DITOLAK KERAS** | — | Dokumen yang sudah berlaku **MUST NOT** dibatalkan (`HRD-DEC-057`). Pemulihan keadaan wajib menerbitkan Dokumen SK baru | Ditolak 409 `[DECISION]` |
+
+**Perpindahan yang tidak sah dan harus ditolak (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`):**
+
+| Dari | Ke | Alasan ditolak |
+| --- | --- | --- |
+| `Draft` | `Scheduled` atau `Applied` langsung | Melewati persetujuan pejabat berwenang meniadakan pemisahan peran |
+| `PendingApproval` | `Scheduled` oleh pembuat sendiri | Pelanggaran fatal pemisahan peran (`APPROVER_MUST_DIFFER_FROM_CREATOR`) |
+| `Draft` | `PendingApproval` tanpa lampiran scan SK | Scan SK resmi bertandatangan adalah syarat legal mutasi/promosi (`HRD-DEC-056`) |
+| `Applied` | `Cancelled` | Pembatalan hanya sah sebelum tanggal berlaku. Setelah berlaku, buat SK baru (`HRD-DEC-057`) |
+| `Rejected` atau `Cancelled` | mana pun | Keadaan akhir. Perubahan baru memerlukan pembuatan dokumen SK baru |
+
 ### 6.1 Permohonan perubahan data pegawai — `EmployeeProfileChangeService.RequestStatuses`
 
 Nilai: `Draft`, `Submitted`, `UnderVerification`, `NeedRevision`, `Approved`, `Rejected`,
@@ -669,7 +693,8 @@ maupun `Expired`.
 
 | Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
 | --- | --- | --- | --- | --- | --- |
-| `Draft` | Ajukan | `Submitted` | Pegawai pemilik data | Sekurang-kurangnya satu rincian perubahan diisi | `[VOCAB]` — guard per-edge belum diverifikasi |
+| `Draft` | Ajukan mandiri | `Submitted` | Pegawai pemilik data | Sekurang-kurangnya satu rincian perubahan diisi; bukti wajib untuk data sensitif (`HRD-DEC-052`) | Ditolak 400 bila bukti kosong pada data sensitif `[DECISION]` |
+| `Draft` | Ajukan atas nama pegawai | `Submitted` | HR Admin atas nama pegawai | Alasan pengajuan atas nama wajib diisi; berkas bukti wajib untuk data sensitif (`HRD-DEC-052`) | Ditolak 400 bila alasan atas nama atau bukti kosong `[DECISION]` |
 | `Submitted` | Mulai verifikasi | `UnderVerification` | Pemegang `EmployeeProfileChange : Update` | — | `[VOCAB]` |
 | `UnderVerification` | Setujui | `Approved` | Pemegang `EmployeeProfileChange : Update` | Seluruh verifikasi yang wajib sudah diputuskan | `[VOCAB]` |
 | `UnderVerification` | Minta perbaikan | `NeedRevision` | Pemegang `EmployeeProfileChange : Update` | Alasan wajib diisi | `[VOCAB]` |
@@ -769,13 +794,21 @@ Nilai: `Pending`, `Verified`, `Rejected`, `NeedRevision`.
 
 ### 6.3 Penempatan dan penetapan gaji
 
-**Tidak berstatus.** Yang berlaku adalah **tanggal mulai berlaku**, bukan status `[EXISTING]`.
+Catatan penempatan dan penetapan gaji berlaku per tanggal efektif (`HRD-DEC-047`) setelah status persetujuannya disetujui (`HRD-DEC-031`).
 
-Penetapan gaji punya kolom status persetujuan dan endpoint `PATCH {id}/approval`, tetapi **jalur
-persetujuan berjenjangnya tidak terbukti ada** `[OPEN]` — `HRD-Q-19`.
+- **Jalur persetujuan** (`HRD-Q-19` tertutup lewat `HRD-DEC-031`, `HRD-DEC-048`, `HRD-DEC-056`): wajib mengikuti rantai persetujuan pola T8; pembuat dilarang menyetujui pengajuannya sendiri.
+- **Berlaku surut** (`HRD-Q-18` tertutup lewat `HRD-DEC-050`): tanggal efektif berlaku surut hanya diterima jika masih berada di dalam periode kehadiran yang masih terbuka. Pengajuan ditolak sistem jika periode kehadiran sudah ditutup.
 
-**Perilaku bila penetapan gaji berlaku surut ke periode payroll yang sudah tertutup** masih
-`[OPEN]` — `HRD-Q-18`. Ini penting karena berpotensi mengubah gaji yang sudah dibayarkan.
+### 6.4 Batch Data Awal Penempatan Kepegawaian — `HrdInitialPlacementBatch` (`HRD-DEC-054`)
+
+Nilai status: `Draft`, `Validated`, `Submitted`, `Approved`, `Rejected`.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | Validasi berkas baris | `Validated` | Sistem / HR Admin | Seluruh baris lolos aturan: tepat 1 unit utama, tanpa duplikat, tanpa lubang, pegawai belum pernah masuk batch (`ONCE_PER_EMPLOYEE`) | Status tetap `Draft`; daftar baris salah ditampilkan untuk diperbaiki |
+| `Validated` | Ajukan batch | `Submitted` | HR Admin pengunggah | `FailedRows == 0` | Ditolak 400 bila masih ada baris gagal validasi |
+| `Submitted` | Setujui sekali | `Approved` | HR Manager / `CorporateHr` | **Penyetuju MUST berbeda dari pengunggah** (`HRD-DEC-031`). Persetujuan berlaku untuk seluruh baris | Ditolak 403 bila disetujui pembuatnya sendiri |
+| `Submitted` | Tolak batch | `Rejected` | HR Manager / `CorporateHr` | Alasan penolakan wajib diisi | Ditolak 400 bila alasan kosong |
 
 ---
 
@@ -964,3 +997,1511 @@ Tabel ini adalah daftar pekerjaan pengerasan, disusun berdasarkan besar akibatny
 Status untuk kredensial, kewenangan klinis, kesehatan kerja staf, perencanaan tenaga kerja,
 rekrutmen, benefit, tiket HR, perjalanan dinas, dan reimbursement **tidak** ditulis di sini.
 Seluruhnya `BLOCKED` atau `DEFERRED`.
+
+---
+
+## 11. Perencanaan Tenaga Kerja — `S-D1` (`last_changed_in` `v7`, 3 November 2026)
+
+Seluruh transisi di bawah **belum ada di kode**. Nama status sama persis dengan enum pada
+`02-backend-architecture.md` 16.4.11 dan dipakai apa adanya pada `flowcharts/`. Keputusan dari
+kotak masuk persetujuan diteruskan ke domain oleh `HrdWorkforcePlanningWorkflowIntegrationService`;
+setiap langkah `AllowSelfApproval = false`, sehingga pembuat tidak pernah muncul sebagai penyetuju
+(`WorkflowService.cs:543-556`).
+
+### 11.1 Standar kebutuhan tenaga — `HrdStaffingStandard` (`T9`)
+
+Nilai status: `Draft`, `Submitted`, `Returned`, `Rejected`, `Scheduled`, `Active`, `Superseded`, `Cancelled`.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat draf versi baru | `Draft` | HR Admin atau Kepala Unit | Tidak ada draf lain yang terbuka untuk unit itu | `409` |
+| `Draft`, `Returned` | Ajukan | `Submitted` | Pembuat | Minimal satu baris; setiap baris lengkap untuk metodenya; faktor cadangan dan pembulatan dipilih; tanggal berlaku ≥ hari ini; penyetuju langkah 2 dapat ditemukan | `422`; `400` bila penyetuju tidak ditemukan |
+| `Submitted` | Setujui langkah terakhir, tanggal berlaku di masa depan | `Scheduled` | Direktur yang membawahi unit (`HRD-DEC-072`) | Langkah 1 HR Manager sudah disetujui | — |
+| `Submitted` | Setujui langkah terakhir, tanggal berlaku hari ini | `Active` | Sama | Sama; versi aktif sebelumnya menjadi `Superseded` | — |
+| `Scheduled` | Tanggal berlaku tiba | `Active` | Sistem | Versi aktif sebelumnya menjadi `Superseded` dengan `EffectiveEndDate` H-1 | Dicatat log scheduler |
+| `Active` | Versi penggantinya aktif | `Superseded` | Sistem | — | — |
+| `Submitted` | Kembalikan | `Returned` | Penyetuju langkah mana pun | Alasan wajib | `400` |
+| `Submitted` | Tolak | `Rejected` | Penyetuju langkah mana pun | Alasan wajib | `400` |
+| `Draft`, `Returned` | Batalkan | `Cancelled` | Pembuat atau HR Manager | — | — |
+
+**Perpindahan yang tidak sah:**
+
+| Dari | Ke | Alasan ditolak |
+| --- | --- | --- |
+| `Draft` | `Active` | Standar tanpa pengesahan `T9` **MUST NOT** dipakai hitungan maupun Penjadwalan |
+| `Active`, `Scheduled`, `Superseded` | diubah isinya | Versi yang sudah disahkan dikunci; perubahan = versi baru |
+| `Superseded` | `Active` | Versi lama tidak dihidupkan kembali; buat versi baru |
+| `Submitted` | `Scheduled` oleh pembuatnya sendiri | `APPROVER_MUST_DIFFER_FROM_CREATOR` |
+
+### 11.2 Batch formasi awal — `HrdInitialFormationBatch` (`T10`)
+
+Nilai status: `Draft`, `Submitted`, `Returned`, `Rejected`, `Applied`, `Cancelled`.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Draft`, `Returned` | Ajukan | `Submitted` | HR Admin pembuat | `InvalidRows = 0`; scan dokumen sumber terunggah; tidak ada baris unit × jabatan yang sudah punya formasi atau sudah ada di batch lain yang belum `Rejected`/`Cancelled` | `422` |
+| `Submitted` | Setujui langkah terakhir | `Applied` | Direktur Utama | HR Manager dan Finance sudah menyetujui; versi 1 formasi lahir untuk setiap baris dalam satu transaksi | Seluruhnya batal bila satu baris gagal |
+| `Submitted` | Kembalikan / Tolak | `Returned` / `Rejected` | Penyetuju langkah mana pun | Alasan wajib | `400` |
+| `Draft`, `Returned` | Batalkan | `Cancelled` | Pembuat | — | — |
+
+**Tidak sah:** `Draft` → `Applied` tanpa `T10` (cacat `HRD-TF-033` yang tidak boleh ditiru);
+`Submitted` dengan baris tidak valid (cacat `HRD-TF-034`); `Applied` → apa pun — koreksi lewat addendum.
+
+### 11.3 Rencana tahunan dan addendum — `HrdManpowerPlan` (`T10`)
+
+Nilai status: `Draft`, `Submitted`, `Returned`, `Rejected`, `Approved`, `Cancelled`.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat rencana tahunan | `Draft` | HR Admin | Belum ada rencana tahunan aktif untuk rumah sakit dan tahun yang sama | `409` |
+| — | Buat addendum | `Draft` | HR Admin | Rencana induk berstatus `Approved` | `422` |
+| `Draft`, `Returned` | Hitung ulang | tetap | HR Admin | — | — |
+| `Draft`, `Returned` | Ajukan | `Submitted` | HR Admin pembuat | Setiap baris punya grade; baris yang usulannya berbeda dari rekomendasi punya alasan; addendum memuat sekurang-kurangnya satu baris; potret gap tersimpan | `422` |
+| `Submitted` | Koreksi Finance | tetap `Submitted` | Penyetuju langkah Finance yang sedang aktif | Alasan wajib; angka awal tetap tersimpan | `403` bila bukan penyetuju langkah aktif |
+| `Submitted` | Setujui langkah Finance | tetap `Submitted` | Finance | Tidak ada baris "tarif belum tersedia" tanpa koreksi Finance (`FINANCE_ADJUSTMENT`) | `422` |
+| `Submitted` | Setujui langkah terakhir | `Approved` | Direktur Utama | Versi formasi baru per baris; permintaan berjalan yang kini melebihi formasi ditandai | Seluruhnya batal bila satu baris gagal |
+| `Submitted` | Kembalikan / Tolak | `Returned` / `Rejected` | Penyetuju langkah mana pun | Alasan wajib | `400` |
+| `Draft`, `Returned` | Batalkan | `Cancelled` | Pembuat | — | — |
+
+**Tidak sah:** `Approved` → diubah atau dibuka kembali (`APPROVED_PLAN_LOCKED`); addendum dari
+rencana yang belum `Approved`; `Approved` → `Cancelled`.
+
+### 11.4 Permintaan headcount — `HrdHeadcountRequest` (`T11`, `T12`)
+
+Nilai status: `Draft`, `Submitted`, `Returned`, `Rejected`, `Withdrawn`, `ReadyForRecruitment`, `PartiallyFulfilled`, `Fulfilled`, `Closed`.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Draft`, `Returned` | Ajukan | `Submitted` | Kepala Unit pembuat | Jumlah kursi luar + internal = jumlah kursi; kursi pengganti merujuk orang berstatus akan kosong atau sudah keluar; jenis dalam formasi tidak melebihi sisa kursi; jenis sementara punya alasan dan tanggal akhir; jenis di luar formasi punya alasan; potret gap tersimpan. Rantai `T11` untuk `Replacement`, `AdditionalWithinFormation`, `Temporary`; `T12` untuk `AdditionalBeyondFormation` | `422` |
+| `Submitted` | Setujui langkah terakhir `T11` | `ReadyForRecruitment` | HR Manager | Sisa kursi diperiksa ulang (`RECHECK_ON_FINAL_APPROVAL`) | `409`; permintaan otomatis menjadi `Returned` agar Kepala Unit menyesuaikan jumlah (`VR-WFP-23`) |
+| `Submitted` | Setujui langkah terakhir `T12` | `ReadyForRecruitment` | Direktur yang membawahi unit | Versi formasi baru lahir dalam transaksi yang sama | Seluruhnya batal bila gagal |
+| `Submitted` | Kembalikan / Tolak | `Returned` / `Rejected` | Penyetuju langkah mana pun | Alasan wajib | `400` |
+| `Draft`, `Submitted`, `Returned` | Tarik kembali | `Withdrawn` | Pembuat | Belum ada persetujuan terakhir | `409` bila sudah `ReadyForRecruitment` |
+| `ReadyForRecruitment` | Kursi pertama terpenuhi, masih ada kursi `Open`/`Linked`/`Frozen` | `PartiallyFulfilled` | Sistem | — | — |
+| `ReadyForRecruitment`, `PartiallyFulfilled` | Seluruh kursi `Fulfilled` | `Fulfilled` | Sistem | — | — |
+| `ReadyForRecruitment`, `PartiallyFulfilled` | Seluruh kursi `Fulfilled` atau `Cancelled`, sekurang-kurangnya satu `Cancelled` | `Closed` | Sistem | — | — |
+
+**Tidak sah:** `Draft` → `ReadyForRecruitment` tanpa persetujuan; `ReadyForRecruitment` →
+`Withdrawn` (gunakan pembatalan kursi `T13`); `Fulfilled`/`Closed` → apa pun; jenis permintaan
+diubah sesudah diajukan.
+
+### 11.5 Kursi permintaan — `HrdHeadcountRequestSeat`
+
+Nilai status: `Open`, `Linked`, `Fulfilled`, `Frozen`, `Cancelled`.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Open` | Tautkan penempatan atau SK | `Linked` | HR Admin atau Recruiter | Permintaan `ReadyForRecruitment`/`PartiallyFulfilled`; unit dan jabatan cocok; penempatan utama; penempatan/SK belum menautkan kursi lain; kursi internal hanya ke SK, kursi luar ke penempatan | `422`; `409` bila sudah dipakai kursi lain |
+| `Linked` | Tanggal mulai penempatan tiba | `Fulfilled` | Sistem | Penempatan aktif pada tanggal itu | — |
+| `Linked` | Lepas tautan | `Open` | HR Admin atau Recruiter | Penempatan belum berlaku | `409` |
+| `Linked` | SK yang ditautkan dibatalkan | `Open` | Sistem | SK berstatus `Cancelled` | — |
+| `Open`, `Linked` | Permintaan menjadi melebihi formasi setelah addendum | `Frozen` | Sistem | Kursi itu di luar formasi baru | — |
+| `Frozen` | Persetujuan `T12` baru menambah formasi | `Open` | Sistem | — | — |
+| `Open`, `Frozen` | Pembatalan `T13` disetujui | `Cancelled` | HR Manager lewat kotak masuk | Tidak ada lowongan terbuka untuk kursi itu (`CLOSE_VACANCY_FIRST`) | `409` |
+
+**Tidak sah:** `Fulfilled` → `Cancelled` atau `Open` (`ONLY_UNFILLED_SEATS`); `Fulfilled` → ubah
+sumber pemenuhan (`PLAN_CHANGE_RESPECTS_FULFILLED`); `Frozen` muncul di antrean Recruiter.
+
+### 11.6 Pembatalan kursi — `HrdHeadcountRequestCancellation` (`T13`)
+
+Nilai status: `Submitted`, `Approved`, `Rejected`.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan pembatalan | `Submitted` | Kepala Unit atau HR | Kursi yang dipilih `Open` atau `Frozen`; alasan wajib | `422` |
+| `Submitted` | Setujui | `Approved` | HR Manager, bukan pengaju | Kursi → `Cancelled`; bila permintaan berasal dari `T12`, versi formasi turun sebanyak porsi kursi yang dibatalkan (`T12_CANCEL_REDUCES_FORMATION`) | Seluruhnya batal bila gagal |
+| `Submitted` | Tolak | `Rejected` | HR Manager | Alasan wajib; kursi kembali tanpa tanda pembatalan | `400` |
+
+### 11.7 Formasi, potret, dan pengaturan
+
+| Entity | Transisi yang sah | Yang tidak sah |
+| --- | --- | --- |
+| `HrdPositionFormation` | Ditulis sekali oleh sistem; `EffectiveEndDate` diisi saat versi baru lahir | Setiap pengubahan nilai lain, penghapusan, atau penulisan oleh pengguna (`NO_DIRECT_FORMATION_EDIT`) |
+| `HrdStaffingGapSnapshot` | Ditulis sekali | Setiap pengubahan atau penghapusan (`SNAPSHOT_IMMUTABLE`); menulis potret `Monthly` untuk bulan lampau — wajib `Reconstructed` (`MISSED_SNAPSHOT_NOT_FAKED`) |
+| `HrdWorkforcePlanningSetting` | Diubah HR Manager dengan alasan | Diubah peran lain |
+
+### 11.8 Penandaan otomatis yang tidak mengubah status
+
+| Penanda | Menyala ketika | Padam ketika |
+| --- | --- | --- |
+| `IsOverFormationAfterAddendum` | Addendum atau rencana disetujui dan kursi permintaan berjalan kini melebihi formasi | Kursi berlebih dibatalkan atau `T12` baru disetujui |
+| `IsOverdue` | Permintaan `ReadyForRecruitment`/`PartiallyFulfilled` melewati `OverdueRequestThresholdDays` sejak siap direkrut | Permintaan `Fulfilled` atau `Closed`. **Tidak** membatalkan apa pun (`NO_AUTO_EXPIRY`) |
+
+
+---
+
+## 12. Rekrutmen dan Hiring — `S-D2` (`last_changed_in` `v8`, 3 November 2026)
+
+Seluruh transisi status pada bagian ini diturunkan langsung dari `00-interview-decisions.md` bagian 33 (`HRD-DEC-073` s.d. `HRD-DEC-080`).
+
+### 12.1 Transisi Siklus Requisition (`HrdJobRequisition`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Requisition | `DRAFT` | HR Recruiter | Menunjuk `HeadcountRequestId` aktif yang memiliki sisa kuota kursi luar > 0 (`HRD-DEC-073`) | `422 Unprocessable` |
+| `DRAFT` | Ajukan Requisition | `SUBMITTED` | HR Recruiter | Kuota kursi diminta <= sisa alokasi formasi luar | `400 Bad Request` |
+| `SUBMITTED` | Setujui Requisition | `APPROVED` | HR Manager | Penyetuju bukan pembuat | `403 Forbidden` |
+| `APPROVED` | Semua kursi terpenuhi | `FULFILLED` | Sistem | `FulfilledSeats == RequestedSeats` melalui penyerahan onboarding | Dicatat audit log |
+| `APPROVED` | Batalkan kursi | `CANCELLED` | HR Manager | Lowongan terkait wajib berstatus `CLOSED` lebih dulu (`HRD-DEC-071`) | `409 Conflict` |
+
+### 12.2 Transisi Lowongan Kerja (`HrdJobVacancy`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Lowongan | `DRAFT` | HR Recruiter | Requisition induk berstatus `APPROVED` | `400 Bad Request` |
+| `DRAFT` | Publikasikan | `PUBLISHED` | HR Recruiter | Tanggal penutupan >= tanggal publikasi | `422 Unprocessable` |
+| `PUBLISHED` | Kuota kursi terpenuhi | `CLOSED` | Sistem / HR | Seluruh kursi terpenuhi atau tanggal penutupan terlewati | Dicatat scheduler |
+| `DRAFT`, `PUBLISHED` | Batalkan Lowongan | `CANCELLED` | HR Manager | Pelamar aktif diberi notifikasi pembatalan | `400 Bad Request` |
+
+### 12.3 Transisi Berkas Lamaran (`HrdCandidateApplication`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Submit Lamaran | `APPLIED` | Pelamar / HR | NIK KTP valid dan berkas wajib terunggah | `422 Unprocessable` |
+| `APPLIED` | Penapisan Berkas | `SCREENING` | Sistem / HR | Dokumen terverifikasi | — |
+| `SCREENING` | Lolos Administrasi | `ASSESSMENT` | HR Recruiter | Posisi klinis: nomor STR aktif & belum kadaluwarsa (`HRD-DEC-076`) | `422 Auto-Reject` bila STR mati |
+| `SCREENING` | Gagal Administrasi | `REJECTED` | Sistem / HR | STR kadaluwarsa atau ijazah tidak sesuai | — |
+| `ASSESSMENT` | Lolos Evaluasi | `OFFER_STAGE` | HR & Unit | Rekomendasi HR = RECOMMENDED dan Unit != NOT_RECOMMENDED (`HRD-DEC-077`) | `403 Veto Mutlak` bila Unit menolak |
+| `ASSESSMENT` | Veto Unit Klinis | `REJECTED` | Sistem | Unit memberi nilai `NOT_RECOMMENDED` | `Kunci Otomatis` |
+| `ASSESSMENT` | Kuota Penuh (Cadangan) | `TALENT_POOL` | Sistem | Lolos uji klinis tetapi kuota habis (`HRD-DEC-080`) | Otomatis masuk Talent Pool |
+| `OFFER_STAGE` | Offer Definitif | `HIRED` | HR Manager | MCU kelaikan fisik = `FIT` (`HRD-DEC-078`) | — |
+
+### 12.4 Transisi Surat Penawaran Kerja (`HrdJobOffer`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Draf Offer | `DRAFT` | HR Recruiter | Kandidat berstatus `OFFER_STAGE` | `400 Bad Request` |
+| `DRAFT` | Ajukan Persetujuan | `PENDING_APPROVAL` | HR Recruiter | Paket upah tervalidasi terhadap master `SalaryGrade` | `422 Unprocessable` |
+| `PENDING_APPROVAL` | Standar Disetujui | `APPROVED` | Kepala Unit & HR | Upah <= plafon grade maksimum (Rantai `T13`) | `403 Forbidden` |
+| `PENDING_APPROVAL` | Eskalasi Disetujui | `APPROVED` | Finance & Dirut | Upah > plafon grade maksimum (Rantai `T14`) (`HRD-DEC-079`) | `403 Wajib Dirut` |
+| `APPROVED` | Kirim ke Pelamar | `SENT` | HR Recruiter | Klausul syarat kelaikan MCU tercantum jelas | — |
+| `SENT` | Pelamar Setuju Bersyarat | `CONDITIONAL_ACCEPTED` | Pelamar | Menandatangani kesepakatan gaji bersyarat MCU | Menjadwalkan MCU |
+| `SENT` | Pelamar Menolak | `REJECTED` | Pelamar | Kursi kembali dibuka; memicu notifikasi Talent Pool | — |
+| `CONDITIONAL_ACCEPTED` | MCU Pra-Kerja FIT | `FINAL_ACCEPTED` | Tim MCU / K3RS | Dokter K3RS menginput status kelaikan `FIT` (`HRD-DEC-078`) | — |
+| `CONDITIONAL_ACCEPTED` | MCU Pra-Kerja UNFIT | `RESCINDED` | Sistem | Hasil MCU permanen unfit; offer otomatis batal demi hukum | `Batal Otomatis` |
+
+### 12.5 Transisi Talent Pool (`HrdTalentPool`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi |
+| --- | --- | --- | --- | --- |
+| — | Masuk Talent Pool | `ACTIVE` | Sistem | Pelamar lolos uji klinis tapi kuota habis; masa aktif 6 bulan (`HRD-DEC-080`) |
+| `ACTIVE` | Promosi Cepat Kursi Batal | `PROMOTED` | HR Recruiter | Kursi requisition lowongan terkait kembali terbuka (*Offer Rejected / No-Show*) |
+| `ACTIVE` | Masa Berlaku Habis | `EXPIRED` | Sistem | Tanggal hari ini > `ExpiryDate` (6 bulan terlampaui) |
+
+### 12.6 Transisi Ilegal yang Ditolak Keras (*Fail-Closed Invariants*)
+
+1. **`ILLEGAL_CLINICAL_SCREENING_PASS`**: Mengubah status lamaran posisi klinis ke `ASSESSMENT` tanpa nomor STR yang sah atau dengan tanggal STR kadaluwarsa $
+ightarrow$ **Ditolak Keras (422 Unprocessable)**.
+2. **`ILLEGAL_OVERRIDE_CLINICAL_VETO`**: Mengubah status pelamar ke `OFFER_STAGE` bila formulir evaluasi Kepala Unit berisi rekomendasi `NOT_RECOMMENDED` $
+ightarrow$ **Ditolak Keras (403 Forbidden - Veto Mutlak Pasien Safety)**.
+3. **`ILLEGAL_OFFER_WITHOUT_DIRUT`**: Mengirim surat penawaran dengan nilai gaji di atas plafon grade tanpa persetujuan Direktur Utama $
+ightarrow$ **Ditolak Keras (403 Forbidden)**.
+4. **`ILLEGAL_FINAL_HIRE_WITHOUT_FIT_MCU`**: Melakukan serah terima onboarding sebelum status kelaikan MCU dari tim dokter K3RS bernilai `FIT` $
+ightarrow$ **Ditolak Keras (422 Unprocessable)**.
+
+
+---
+
+## 13. Onboarding dan Kontrak Kerja — `S-C4-ONB` (`last_changed_in` `v9`, 4 November 2026)
+
+Status `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-04, beserta kelima pilihan desain (`HRD-DEC-096`). Jawaban pemilik: "setujui semua ya dan kerjakan". Seluruh perpindahan di bawah **belum ditegakkan di kode**. Nama status sama persis
+dengan enum pada `02-backend-architecture.md` 18.4.12; nama bisnisnya ditulis di kolom keterangan
+flowchart. Kolom "Bila dilanggar" menyebut kode dan aturan validasi.
+
+### 13.1 Kasus onboarding — `HrdOnboardingCase.CaseStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Serahkan ke Onboarding (di 04) | `InProgress` | HR Manager lewat 04 | Tawaran `FinalAccepted`, kelaikan `Fit`/`FitWithRestrictions`, profil `PENDING_ONBOARDING` | `422` `VR-ONB-02`; serah terima kedua mengembalikan kasus yang sama (`VR-ONB-01`) |
+| `InProgress` | Nyatakan Siap Kerja | `Completed` | Petugas HRD (`DeclareReady`) | Seluruh butir wajib `Completed`; penyetuju berbeda dari pemilih atasan langsung | `422` `VR-ONB-11`, `VR-ONB-12` |
+| `InProgress` | Batal Bergabung | `Cancelled` | Petugas HRD (`CancelJoin`) | `FirstDayAttendedOn` kosong; alasan dan catatan diisi | `422` `VR-ONB-13`; `400` `VR-ONB-14` |
+| `Completed` | apa pun | — | — | — | `422` `VR-ONB-16`: kasus selesai tidak dapat diubah. Keluarnya pegawai lewat pengunduran diri (20) |
+| `Cancelled` | apa pun | — | — | — | `422` `VR-ONB-16`. Pegawai yang kembali melamar melalui rekrutmen ulang (`HRD-DEC-075`) |
+| `InProgress` | Batal Bergabung sesudah hadir hari pertama | — | — | — | `422` `VR-ONB-13` |
+
+### 13.2 Butir checklist — `HrdOnboardingCaseItem.ItemStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Pending` | Centang butir HRD | `Completed` | Petugas HRD | Kasus `InProgress`; `ResponsibleRole = Hrd`; bukti ada bila wajib bukti | `422` `VR-ONB-03`, `VR-ONB-05` |
+| `Pending` | Centang butir unit | `Completed` | Kepala Unit dalam cakupan | Kasus `InProgress`; `ResponsibleRole = UnitHead`; orang terpilih sah untuk butir pemilihan | `404` `VR-ONB-04`; `422` `VR-ONB-07`, `VR-ONB-08` |
+| `Pending` | Pemeriksaan otomatis terpenuhi | `Completed` | Sistem | Sumber otomatis terpenuhi (`02-backend-architecture.md` 18.9.8) | — |
+| `Completed` | Pemeriksaan otomatis tidak lagi terpenuhi (sertifikat kedaluwarsa sebelum siap kerja) | `Pending` | Sistem | Kasus masih `InProgress` | — |
+| `Completed` | Batal centang | `Pending` | Penanggung jawab butir | Kasus `InProgress`; butir bukan otomatis; untuk `FIRST_DAY_ATTENDANCE` hanya selama kontrak pertama `Draft`; untuk `PRECEPTOR_ASSIGNED` pendampingan ikut kembali kosong | `422` `VR-ONB-10` |
+| apa pun | Centang tangan butir otomatis | — | — | — | `422` `VR-ONB-06` |
+
+### 13.3 Kontrak kerja — `WfpContractHistory.ContractStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Kasus onboarding terbentuk | `Draft` (`HistoryType = Initial`) | Sistem | Tawaran memuat jenis dan lama kontrak (`HRD-DEC-095`) | Serah terima batal |
+| — | Keputusan Perpanjang atau Pegawai Tetap disetujui | `Draft` (`Renewal` / `Conversion`) | Sistem | `T16` disetujui | — |
+| — | Batch data awal diterapkan | `Active` (`InitialData`) | Sistem | `T18` disetujui | — |
+| `Draft` | Tandai Sudah Ditandatangani | `Active` | Petugas HRD (`MarkSigned`) | Scan diunggah | `422` `VR-ONB-30` |
+| `Draft` (`Initial`) | Tawaran direvisi di 04 | `Cancelled`; draf baru `Draft` | Sistem | Revisi tawaran disetujui | — |
+| `Draft` (`Initial`) | Batal Bergabung | `Cancelled` | Sistem | `VR-ONB-13` terpenuhi | — |
+| `Active` | Tanggal mulai kontrak lanjutan tiba | `Completed`; lanjutan menjadi `IsCurrent` | Sistem (scheduler) | Kontrak lanjutan `Active` | — |
+| `Active` | Tanggal berakhir lewat, Tidak Diperpanjang disetujui | `Ended` | Sistem (scheduler) | — | — |
+| `Active` | Tanggal berakhir lewat tanpa lanjutan bertanda tangan | `LapsedWithoutDecision` | Sistem (scheduler) | Tidak ada Tidak Diperpanjang yang disetujui | — |
+| `LapsedWithoutDecision` | Kontrak lanjutan ditandatangani | `Completed`; lanjutan `Active` dan `IsCurrent` | Petugas HRD | `T16` disetujui lebih dulu | — |
+| `LapsedWithoutDecision` | Tidak Diperpanjang disetujui | `Ended` | Sistem | — | — |
+| `Active` | Koreksi disetujui | `Active` (isi diperbarui) | Petugas HRD lain lewat `T17` | `VR-ONB-41` s.d. `VR-ONB-44` | — |
+| `Active`, `Draft`, `LapsedWithoutDecision` | Ubah langsung lewat endpoint 02 | — | — | — | `409` `VR-ONB-32` |
+| apa pun | Diperpanjang otomatis atau diakhiri otomatis tanpa keputusan | — | — | — | Tidak ada jalurnya (`NO_AUTOMATIC_OUTCOME`) |
+
+### 13.4 Masa percobaan — `HrdProbation.ProbationStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Kontrak PKWTT pertama ditandatangani | `Running` | Sistem | `IsProbationApplicable`, `HistoryType = Initial` | Tidak dibuat untuk PKWT maupun `Conversion` |
+| `Running` | Ajukan hasil | `AwaitingDecision` | Atasan langsung atau Kepala Unit | Sebelum `EndDate`; tidak ada penilaian terbuka | `422` `VR-ONB-55`; `409` `VR-ONB-56` |
+| `AwaitingDecision` | Minta Revisi atau Tolak di kotak masuk | `Running` | Petugas HRD | — | — |
+| `AwaitingDecision` | Setujui hasil Lulus | `Passed` | Petugas HRD bukan pengaju | Paling lambat `EndDate` | `422` `VR-ONB-58` |
+| `AwaitingDecision` | Setujui hasil Tidak Lulus | `Failed`; serah terima ke 20 | Petugas HRD bukan pengaju | Paling lambat `EndDate` | `422` `VR-ONB-58` |
+| `Running`, `AwaitingDecision` | Hari sesudah `EndDate` tanpa hasil disetujui | `PassedAutomatically` | Sistem | — | — |
+| `Passed`, `PassedAutomatically`, `Failed` | apa pun | — | — | — | `422` |
+| apa pun | Perpanjang masa percobaan | — | — | — | `405` `VR-ONB-59` |
+
+### 13.5 Penilaian masa percobaan — `HrdProbationAssessment.AssessmentStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan | `Submitted` | Atasan langsung atau Kepala Unit | `VR-ONB-55` s.d. `VR-ONB-57` | `400`/`409`/`422` |
+| `Submitted` | Minta Revisi | `Returned` | Petugas HRD | Catatan revisi wajib | `400` |
+| `Returned` | Ubah dan ajukan ulang | `Submitted` | Pengaju | Sebelum `EndDate` | `422` `VR-ONB-55` |
+| `Submitted` | Tolak | `Rejected` | Petugas HRD | Alasan wajib | `400` |
+| `Submitted` | Setujui | `Approved` | Petugas HRD bukan pengaju | Sebelum atau pada `EndDate` | `422` `VR-ONB-58` |
+| `Submitted`, `Returned` | Tarik | `Withdrawn` | Pengaju | — | — |
+| `Submitted`, `Returned` | Masa percobaan lulus otomatis | `ClosedOnExpiry` | Sistem | — | Instance workflow ikut dibatalkan |
+
+### 13.6 Keputusan kontrak dan koreksi kontrak — `ContractDecisionStatus`, `ContractCorrectionStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan keputusan | `Submitted` | Atasan langsung atau Kepala Unit | Kontrak PKWT `Active`/`LapsedWithoutDecision`; tidak ada keputusan terbuka; batas 5 tahun | `422` `VR-ONB-35`, `VR-ONB-36`; `409` `VR-ONB-37` |
+| — | Ajukan koreksi | `Submitted` | Petugas HRD (`RequestCorrection`) | Kontrak `Active`; scan dan alasan; tidak ada koreksi terbuka | `400`/`422` `VR-ONB-41` s.d. `VR-ONB-44`; `409` `VR-ONB-43` |
+| `Submitted` | Minta Revisi | `Returned` | Petugas HRD | — | — |
+| `Returned` | Ubah dan ajukan ulang | `Submitted` | Pengaju | Aturan pengajuan diperiksa ulang | Sama dengan pengajuan |
+| `Submitted` | Tolak | `Rejected` | Petugas HRD | Alasan wajib | — |
+| `Submitted` | Setujui | `Approved` | Petugas HRD bukan pengaju (`AllowSelfApproval = false`) | — | Ditolak mesin persetujuan |
+| `Submitted`, `Returned` | Tarik | `Withdrawn` | Pengaju | — | — |
+| `Approved` | apa pun selain catat pemberitahuan | — | — | — | `422` |
+
+### 13.7 Pendampingan klinis — `HrdClinicalPreceptorship.PreceptorshipStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Butir `PRECEPTOR_ASSIGNED` dicentang | `PreceptorAssigned` | Kepala Unit dalam cakupan | Preceptor sah (`VR-ONB-08`) | `422` |
+| `PreceptorAssigned` | Butir dibatalkan centangnya | dihapus-tandai | Kepala Unit | Kasus `InProgress` | — |
+| `PreceptorAssigned` | Siap kerja dinyatakan | `Accompanied` | Sistem | — | — |
+| `PreceptorAssigned` | Batal bergabung | `Cancelled` | Sistem | — | — |
+| `PreceptorAssigned`, `Accompanied` | Ganti preceptor | tetap | Kepala Unit | Preceptor sah; alasan wajib | `400`/`422` `VR-ONB-62` |
+| `Accompanied` | Siap Mandiri | `Independent` | Kepala Unit | Lampiran wajib | `422` `VR-ONB-60` |
+| `PreceptorAssigned`, `Independent` | Siap Mandiri | — | — | — | `422` `VR-ONB-61` |
+
+### 13.8 Batch data awal kontrak — `HrdInitialContractBatch.BatchStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Simpan | `Draft` | Petugas HRD | — | — |
+| `Draft`, `Returned` | Ajukan | `Submitted` | Petugas HRD | `InvalidRows = 0` | `422` `VR-ONB-69` |
+| `Submitted` | Minta Revisi | `Returned` | Petugas HRD lain | — | — |
+| `Submitted` | Tolak | `Rejected` | Petugas HRD lain | — | — |
+| `Submitted` | Setujui | `Applied` | Petugas HRD lain | Pemeriksaan ulang baris lolos pada saat diterapkan | Ditolak; batch tetap `Submitted` dengan pesan per baris |
+| `Draft`, `Returned` | Batalkan | `Cancelled` | Petugas HRD | — | — |
+
+### 13.9 Status kepegawaian pegawai baru — `MstEmployee.EmploymentStatusId`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Serah terima 04 | `PENDING_ONBOARDING` | Sistem (04) | `HRD-DEC-075` | — |
+| `PENDING_ONBOARDING` | Nyatakan Siap Kerja | `ACTIVE` | Petugas HRD | `VR-ONB-11`, `VR-ONB-12` | `422` |
+| `PENDING_ONBOARDING` | Batal Bergabung | `CANCELLED_JOIN` | Petugas HRD | `VR-ONB-13` | `422` |
+| `PENDING_ONBOARDING` | Diubah lewat form master pegawai | — | — | — | `409` `VR-ONB-33` |
+
+
+---
+
+## 14. Matriks Transisi Status Slice `S-B4` — Penjadwalan, Roster, dan On-Call (`last_changed_in` `v10`, 4 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — Siap diajukan untuk approval pengguna |
+| `contract_version` | `v10` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `20`, bagian 36 (`HRD-DEC-097` s.d. `HRD-DEC-103`) |
+| Tanggal | 2026-11-04 |
+
+### 14.1 Status Periode Roster — `TrxRosterPeriod.Status`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Roster Periode | `Draft` | Kepala Unit / HR Scheduling | Unit bertipe shift bergiliran (`HRD-DEC-097`) | `422` bila unit jam kantor |
+| `Draft` | Periksa Jadwal | `Validation` | Kepala Unit | Minimal 1 shift terisi | `400` bila kotak kosong semua |
+| `Draft`, `Validation` | Terbitkan Roster | `Published` | Kepala Unit | Validasi ulang lolos: `BlockingConflictCount == 0` dan seluruh `WarningCount` terisi alasan (`HRD-DEC-098`) | `422` ditolak jika ada `B1`–`B7` atau ada `W` tanpa alasan |
+| `Published` | Tambah/Ganti Shift | `Published` | Kepala Unit | Validasi pengganti lolos `B1`–`B7` dan alasan wajib (`HRD-DEC-101`) | Status **MUST NOT** turun ke `Draft` (`HRD-TF-052` b); ditolak bila `B` |
+| `Published` | Tutup Periode (*Close*) | `Closed` | Tim Payroll HRD | Periode berstatus `Published` dan tanggal akhir telah terlewati (`HRD-DEC-102`) | `422` bila status masih `Draft` (`HRD-TF-052` d) |
+| `Draft` | Tutup Periode | — | — | Dilarang keras menutup periode yang belum terbit | `400` status `Draft` tidak boleh ditutup |
+| `Closed` | Koreksi / Tambah Shift | — | — | Periode berstatus terkunci mutlak (*read-only*) | `403` / `409` periode terkunci mutlak |
+
+### 14.2 Status Penugasan Shift — `TrxShiftAssignment.Status`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | Roster Diterbitkan | `Published` | Sistem (otomatis saat terbit) | Periode roster menjadi `Published` | — |
+| `Published` | Ganti Petugas Mendadak | `Published` | Kepala Unit | Staf pengganti lolos validasi `B1`–`B7`, alasan terisi; set `IsManualOverride = true` | `422` bila pengganti cuti/bentrok |
+| `Published` | Hapus / Bebastugas Shift | `Cancelled` | Kepala Unit | Alasan penghapusan shift wajib | `400` bila tanpa alasan |
+| `Published` | Jam Shift Berakhir | `Completed` | Sistem (otomatis modul 07) | Waktu shift selesai dan tap kehadiran terverifikasi | — |
+
+### 14.3 Status Penugasan Siaga (On-Call) — `TrxOnCallAssignment.Status`
+
+Menutup bug kontrak Lab `HRD-TF-053` dan `LAB-DEC-111` (`HRD-DEC-103`).
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Jadwal Siaga | `Scheduled` | Kepala Unit (staf) / Pelayanan Medis (dokter) | Jam mulai < jam selesai; staf tidak cuti dan tidak bentrok | `422` bila jam tidak valid |
+| `Scheduled` | Konfirmasi Siaga | `Confirmed` | Dokter / Staf Siaga | Mengonfirmasi kesiapan siaga dari akun | — |
+| `Scheduled`, `Confirmed` | Jam Siaga Dimulai | `Active` | Sistem (otomatis berbasis waktu) | Waktu sekarang berada dalam rentang `StartTime` s.d. `EndTime` | — |
+| `Active` | Pemanggilan Cito (*Call-In*) | `Active` | Unit Pemanggil (Lab/IGD/OK) | Status **tetap `Active`** agar dibaca `LabConfirmingDoctorResolver`; atribut call-in dicatat | `400` bila jam panggilan tidak valid |
+| `Active` | Jam Siaga Berakhir | `Completed` | Sistem (otomatis berbasis waktu) | Waktu sekarang melewati `EndTime` | — |
+| `Scheduled`, `Confirmed` | Batalkan Penugasan | `Cancelled` | Kepala Unit / Pelayanan Medis | Alasan pembatalan siaga wajib | `400` bila tanpa alasan |
+
+### 14.4 Status Penggantian Shift — `TrxShiftReplacement.Status`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Konfirmasi Ganti Petugas | `Applied` | Kepala Unit | Staf pengganti lolos evaluasi `B1`–`B7` (`HRD-DEC-101`) | Langsung aktif; `422` bila bentrok |
+| `Applied` | Pembatalan Penggantian | `Reverted` | Kepala Unit | Dibuat transaksi pemulihan baru ke staf asal (`HRD-ASM-12`) | Jejak audit mutasi tetap utuh |
+
+
+---
+
+## 15. Bagian `S-B1` — Matriks Transisi Status Kehadiran dan Presensi Staf Rumah Sakit (Sub-modul 07, `last_changed_in` `v11`, 4 November 2026)
+
+### 15.1 Siklus Hidup Kehadiran Harian (`AttendanceDailyStatus`)
+
+| Status Awal | Aksi / Peristiwa | Status Akhir | Aktor / Pemicu | Kondisi & Validasi |
+| --- | --- | --- | --- | --- |
+| `Scheduled` | Tap masuk tepat waktu (<= toleransi) & tap pulang valid | `Present` | Sistem (Schedule Resolver) | Seluruh tap biometrik valid dan jam kerja terpenuhi (`HRD-DEC-105`) |
+| `Scheduled` | Tap masuk melebihi batas toleransi keterlambatan | `Late` | Sistem (Schedule Resolver) | `ActualCheckIn > ScheduledStart + GracePeriod` (`HRD-DEC-105`) |
+| `Scheduled` | Hanya ada 1 tap tunggal (masuk saja / pulang saja) | `IncompletePunch` | Sistem (Schedule Resolver) | Status sementara; memicu notifikasi pengingat ke ESS (`HRD-DEC-106`) |
+| `IncompletePunch`| Permohonan koreksi presensi disetujui atasan | `Present` | Atasan Langsung / HR | Jam masuk/pulang riil tervalidasi dan jam kerja sah dihitung |
+| `IncompletePunch`| Periode presensi ditutup tanpa ada koreksi | `Absent` | Sistem (Period Close Guard) | Otomatis mangkir tanpa jam kerja terhitung (`HRD-DEC-106`) |
+| `Scheduled` | Tidak ada tap masuk maupun pulang sama sekali | `Absent` | Sistem (Schedule Resolver) | Pegawai tidak hadir tanpa surat izin yang sah |
+| `Scheduled` | Surat tugas dinas luar disetujui atasan | `OnDuty` | Atasan Langsung | Penugasan ambulans, kurir lab, workshop, atau home care (`HRD-DEC-109`) |
+
+### 15.2 Siklus Hidup Izin Pulang Cepat (`EarlyLeavePermissionStatus`)
+
+| Status Awal | Aksi / Peristiwa | Status Akhir | Aktor / Pemicu | Kondisi & Validasi |
+| --- | --- | --- | --- | --- |
+| — | Pegawai mengisi formulir izin pulang darurat | `Draft` | Pegawai pemohon | Alasan mendesak dan rencana jam keluar terisi |
+| `Draft` | Pegawai menekan Kirim Permohonan | `Submitted` | Pegawai pemohon | Masuk ke antrean persetujuan atasan langsung |
+| `Submitted` | Atasan langsung menyetujui izin | `Approved` | Atasan Langsung | Pengecualian pulang cepat berstatus `Waived` tanpa potong cuti (`HRD-DEC-107`) |
+| `Submitted` | Atasan langsung menolak izin | `Rejected` | Atasan Langsung | Wajib mengisi alasan penolakan; pegawai wajib dinas penuh |
+
+### 15.3 Siklus Hidup Periode Presensi Bulanan (`AttendancePeriodStatus`)
+
+| Status Awal | Aksi / Peristiwa | Status Akhir | Aktor / Pemicu | Kondisi & Validasi |
+| --- | --- | --- | --- | --- |
+| `Open` | HR Officer mengeksekusi tutup buku bulanan | `Closed` | HR Attendance Officer | Wajib tidak ada koreksi pending (`HRD-DEC-108`); sisa 1 tap jadi Absent |
+| `Closed` | HR Manager membuka kembali periode darurat | `Reopened` | HR Manager / Kadiv HR | Wajib alasan audit; memicu rollback serah terima payroll bila sudah Executed |
+| `Reopened` | HR Officer menutup kembali pasca-koreksi darurat | `Closed` | HR Attendance Officer | Data terkunci kembali dan siap diserahterimakan ulang ke payroll |
+
+
+---
+
+## 16. Bagian `S-B2` — Matriks Transisi Status Cuti & Izin Pegawai Rumah Sakit (Sub-modul 08, `last_changed_in` `v12`, 4 November 2026)
+
+Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, dan larangan transisi ilegal untuk entitas **Cuti & Izin Pegawai Rumah Sakit**, mencakup siklus permohonan cuti, siklus pemanggilan darurat (*Leave Recall*), dan penutupan periode payroll.
+
+### 16.1 Matriks Transisi Status Permohonan Cuti (`LeaveRequestStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Terhadap Saldo / Ledger |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | `WaitingApproval` | `SubmitRequest` | Pegawai (ESS) | Saldo mencukupi (`LEV-B1`), shift di roster tidak bentrok (`LEV-B2`), surat dokter valid jika $\ge 2$ hari (`LEV-B3`) | Memesan kuota saldo (*reserved*) pada ledger |
+| `WaitingApproval` | `Approved` | `ApproveRequest` | Atasan Langsung | Disetujui atasan; jika ada warning kuota, wajib mengisi catatan mitigasi (`HRD-DEC-111`) | Mengonversi kuota terpesan menjadi debit pemotongan tetap (`Taken`) |
+| `WaitingApproval` | `Rejected` | `RejectRequest` | Atasan Langsung | Atasan menolak dengan alasan operasional yang sah | Melepaskan kuota saldo yang terpesan (saldo utuh) |
+| `WaitingApproval` | `NeedRevision` | `RequestRevision` | Atasan Langsung | Atasan meminta pegawai menyesuaikan tanggal permohonan | Kuota tetap terpesan sementara sampai pegawai merespon |
+| `WaitingApproval` | `Cancelled` | `CancelRequest` | Pegawai (ESS) | Pegawai membatalkan permohonan yang belum sempat diproses atasan | Melepaskan kuota saldo terpesan (saldo utuh) |
+| `NeedRevision` | `WaitingApproval` | `ResubmitRequest` | Pegawai (ESS) | Pegawai memperbaiki tanggal dan mengirim ulang | Menyesuaikan perhitungan hari kerja efektif |
+| `NeedRevision` | `Cancelled` | `CancelRequest` | Pegawai (ESS) | Pegawai membatalkan pengajuan daripada merevisi | Melepaskan kuota saldo terpesan |
+| `Approved` | `Active` | `StartLeave` | Sistem (Scheduler) | Tanggal mulai cuti telah tiba (pukul 00:00:00 WIB) | Status dinas di presensi harian otomatis ditandai `OnLeave` |
+| `Approved` | `Cancelled` | `PreLeaveCancel` | Pegawai (ESS) & Atasan | Permohonan dibatalkan sebelum tanggal mulai berjalan (`HRD-ASM-21`) | Memposting mutasi kredit `CancellationRestore` (+100% hari cuti) |
+| `Active` | `Completed` | `CompleteLeave` | Sistem (Scheduler) | Tanggal selesai cuti telah berakhir | Memvalidasi kepulangan staf; cuti siap direkonsiliasi payroll |
+| `Active` | `Recalled` | `ExecuteRecall` | HR Manager | Pemanggilan dinas darurat RS disetujui (`HRD-DEC-113`) | Memposting mutasi kredit `RecallRestore` (+sisa hari cuti batal dinikmati) |
+| `Completed` | **ILLEGAL** (`Reversed`) | `ReverseLeave` via `/reverse` | Siapapun | **DITOLAK KERAS (HTTP 409 Conflict)** per `HRD-DEC-115` menutup celah `HRD-Q-35` | Tidak ada perubahan; pembalikan langsung dilarang |
+| `Completed` | `Completed` | `AdjustBalance` via Adjustment | HR Manager | Koreksi historis resmi dengan nomor SK audit audit trail (`HRD-DEC-115`) | Memposting penyesuaian resmi pada `TrxLeaveAdjustment` |
+
+### 16.2 Matriks Transisi Status Pemanggilan Kembali Darurat (`LeaveRecallStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| — | `RequestedByHeadUnit` | `InitiateRecall` | Kepala Ruangan | Cuti berstatus `Active`; kondisi darurat KLB/bencana/ICU (`HRD-DEC-113`) | Menerbitkan nomor tiket usulan recall |
+| `RequestedByHeadUnit` | `ApprovedByHrManager` | `ApproveRecall` | HR Manager | Verifikasi kelayakan darurat oleh HR Manager (`HRD-DEC-024` / `HRD-Q-36`) | Tiket disetujui, siap dieksekusi sistem |
+| `RequestedByHeadUnit` | `Rejected` | `RejectRecall` | HR Manager | Ditolak HR jika darurat dapat ditangani sumber daya lain | Tiket ditutup; pegawai melanjutkan cuti normal |
+| `ApprovedByHrManager` | `Executed` | `ExecuteRestore` | Sistem | Transaksi atomik restore saldo dan update roster | 1. Posting `RecallRestore` pada ledger.<br>2. Status shift di Roster 06 berubah aktif.<br>3. Status cuti induk menjadi `Recalled`. |
+
+### 16.3 Matriks Transisi Status Rekonsiliasi Akhir Cuti (`LeaveReconciliationStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Open` | `Reconciled` | `RunReconciliation` | HR Leave Officer | Evaluasi seluruh cuti bulan berjalan; cuti pending ditandai retrospektif | Mengunci seluruh cuti yang selesai dalam periode tersebut |
+| `Reconciled` | `PayrollClosed` | `CloseLeavePeriod` | HR Payroll Officer | Serah terima data ke payroll tuntas; periode penggajian dikunci | Mengunci mutlak seluruh permohonan (`IsPayrollClosed = true`) |
+
+
+---
+
+## 17. Bagian `S-B3` — Matriks Transisi Status Administrasi Lembur Pegawai Rumah Sakit (Sub-modul 09, `last_changed_in` `v13`, 4 November 2026)
+
+Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, dan larangan transisi ilegal untuk entitas **Lembur Pegawai Rumah Sakit**, mencakup siklus SPKL rencana, realisasi darurat cito, verifikasi biometrik, saldo CTO, dan periode penggajian.
+
+### 17.1 Matriks Transisi Status SPKL Pra-Dinas (`OvertimePlanStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | `WaitingApproval` | `SubmitPlan` | Staf / Ka. Ruangan | Jam mulai > waktu submit (`OT-B1`); kuota PP 35 aman (`OT-B4`) | Mengirimkan notifikasi ke kotak masuk approver |
+| `WaitingApproval` | `Approved` | `ApprovePlan` | Kepala Ruangan | Memvalidasi kebutuhan riil operasional unit (`HRD-DEC-120`) | Menandai rencana siap dinas (`ApprovedForWork`) |
+| `WaitingApproval` | `Rejected` | `RejectPlan` | Kepala Ruangan | Ditolak dengan alasan operasional sah | Pengajuan dihentikan; notifikasi alasan dikirim ke pemohon |
+| `WaitingApproval` | `Cancelled` | `CancelPlan` | Staf Pemohon | Membatalkan rencana sebelum dinas disetujui | Tiket SPKL ditutup |
+| `Approved` | `Cancelled` | `PreWorkCancel` | Staf / Atasan | Pembatalan lembur sebelum jam mulai dinas tiba | Status dinas dibatalkan; kuota mingguan dipulihkan |
+| `Approved` | `Realized` | `RealizeOvertime` | Pegawai Pelaksana | Pekerjaan dinas selesai; pegawai mengisi realisasi | Membuka rekaman `TrxOvertimeRealization` |
+| `Approved` | **ILLEGAL** (`Modified`) | `EditPlanTime` | Siapapun | **DITOLAK KERAS**; perubahan jam wajib membuat SPKL baru | Integritas rencana terproteksi |
+
+### 17.2 Matriks Transisi Status Klaim Realisasi Lembur (`OvertimeRealizationStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | `WaitingUnitApproval` | `SubmitRealization` | Pegawai Pelaksana | Jika cito medis, wajib nomor RM & <= H+1 kerja (`OT-B2`, `OT-B3`) | Masuk kotak masuk persetujuan Kepala Ruangan |
+| `WaitingUnitApproval` | `WaitingMedicalDirectorEscalation` | `EscalateToDirector` | Sistem | Klaim cito melebihi kuota 4 jam/hari atau 18 jam/minggu | Dialihkan ke kotak masuk Direktur Pelayanan Medik |
+| `WaitingUnitApproval` | `PendingVerification` | `ApproveRealization` | Kepala Ruangan | Tindakan lembur divalidasi sah oleh unit | Masuk antrean verifikasi presensi biometrik Sub-modul 07 |
+| `WaitingMedicalDirectorEscalation` | `PendingVerification` | `ApproveEscalation` | Direktur Medis | Otorisasi dispensasi darurat keselamatan pasien disetujui | Tercatat audit dispensasi; lanjut ke verifikasi biometrik |
+| `WaitingMedicalDirectorEscalation` | `Rejected` | `RejectEscalation` | Direktur Medis | Tindakan darurat dinilai tidak sah / elektif | Klaim ditolak mutlak dari kompensasi |
+| `PendingVerification` | `ApprovedForPayroll` | `CompleteVerification` | Sistem / HR Admin | Tap biometrik cocok (`AutoVerified`) atau manual adjust sah | Jam lembur sah terkunci; siap handoff / posting CTO |
+| `PendingVerification` | `Rejected` | `RejectDiscrepancy` | HR Admin | Bukti fisik absensi dinilai fiktif setelah investigasi | Klaim ditolak dari rekonsiliasi payroll |
+
+### 17.3 Matriks Transisi Status Verifikasi Presensi Biometrik (`OvertimeVerificationStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `PendingVerification` | `AutoVerified` | `RunBiometricCheck` | Engine Sistem | Tap mesin ada & deviasi <= 30 menit dari form SPKL | Menghitung durasi sah berdasar *min-duration rule* |
+| `PendingVerification` | `FlaggedDiscrepancy`| `RunBiometricCheck` | Engine Sistem | Deviasi > 30 menit atau tap mesin tidak ditemukan | Menahan klaim dari payroll; masuk antrean investigasi HR |
+| `FlaggedDiscrepancy` | `ManuallyAdjusted` | `ResolveDiscrepancy`| HR Admin | Bukti logbook fisik ruangan sah terunggah | Memperbarui `VerifiedPayableMinutes` sah berdasar bukti |
+| `FlaggedDiscrepancy` | `RejectedDiscrepancy`| `RejectDiscrepancy`| HR Admin | Pegawai tidak dapat membuktikan kehadiran fisik dinas | Jam lembur bernilai 0 menit; status ditolak |
+
+### 17.4 Matriks Transisi Status Saldo Cuti Pengganti (`CompensatoryTimeOffStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| — | `Active` | `GrantCto` | Sistem | SPKL disetujui dengan pilihan opsi CTO (`HRD-DEC-118`) | Memposting mutasi kredit ke `TrxLeaveBalanceLedger` (08) |
+| `Active` | `PartiallyUsed` | `TakeCtoLeave` | Pegawai & Cuti 08 | Pegawai mengambil cuti jenis CTO sebagian durasi | Mengurangi `RemainingHours` pada tiket CTO |
+| `Active` | `FullyUsed` | `TakeCtoLeave` | Pegawai & Cuti 08 | Seluruh sisa jam CTO telah habis digunakan dinas | Tiket CTO ditandai selesai |
+| `Active` | `Expired` | `ExpireCtoRunner` | Background Scheduler | Tanggal saat ini > `ExpiryDate` (H+90 hari kalender) | Sisa jam hangus mutlak tanpa ganti rugi uang tunai |
+
+### 17.5 Matriks Transisi Status Periode Penggajian Lembur (`OvertimePeriodStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor | Kondisi & Validasi | Efek Samping Sistem |
+| --- | --- | --- | --- | --- | --- |
+| `Open` | `CutoffLocked` | `LockCutoff` | HR Payroll / Scheduler| Tanggal cut-off bulanan (tgl 20) tiba (`HRD-DEC-121`) | Mengunci snapshot immutable; klaim pending diberi status retrospektif |
+| `CutoffLocked` | `Reconciled` | `RunReconciliation` | HR Payroll Officer | Seluruh klaim siap bayar & rapel lampau direkapitulasi | Berkas rekap lembur siap serah terima |
+| `Reconciled` | `Closed` | `ExecuteHandoff` | HR Payroll Officer | Serah terima data ke modul 10 Payroll sukses | Status periode ditutup mutlak (`Closed`); dilarang modifikasi |
+
+---
+
+## 18. Bagian `S-B5` — Matriks Transisi Status Penggajian Pegawai Rumah Sakit (Sub-modul 10, `last_changed_in` `v14`, 5 November 2026)
+
+Bagian ini mendefinisikan aturan siklus hidup, kondisi pemicu, aktor berwenang, serta larangan transisi ilegal untuk entitas **Penggajian Pegawai Rumah Sakit**, mencakup siklus payroll run, penanganan variansi anomali, serah terima berkas ke Finance, dan rilis slip gaji mandiri ESS.
+
+### 18.1 Matriks Transisi Status Siklus Payroll (`PayrollRunStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `None` | `Draft` | `InitializeRun` | Payroll Officer | Periode Sub-07, 08, 09 berstatus `Closed/Reconciled` (`PAY-B1`) | Membuat rekaman `TrxPayrollRun` dan snapshot input waktu kerja |
+| `Draft` | `Calculating` | `ExecuteCalculation` | Payroll Officer | Snapshot masukan lengkap | Memulai kalkulasi agregat formula pendapatan dan potongan |
+| `Calculating` | `Review` | `CalculationCompleted`| Mesin Sistem | Pipeline perhitungan selesai 100% | Evaluasi deviasi Net Pay vs bulan lalu; terbitkan `VarianceAlert` |
+| `Review` | `WaitingHrReview` | `SubmitForReview` | Payroll Officer | Seluruh `VarianceAlert` telah memiliki catatan justifikasi (`PAY-B3`) | Status dialihkan ke kotak masuk HR Manager; draf dikunci dari edit |
+| `WaitingHrReview` | `WaitingFinalApproval`| `ApproveHrReview` | HR Manager | Audit administratif sampling selesai; *anti-self-approval* (`PAY-B4`)| Dialihkan ke kotak masuk Direktur SDM & Keuangan |
+| `WaitingHrReview` | `Draft` | `RequestRevision` | HR Manager | Ditemukan kekeliruan perhitungan atau penugasan komponen | Status dikembalikan ke Draf; Payroll Officer menerima notifikasi revisi |
+| `WaitingFinalApproval`| `ApprovedFinal` | `AuthorizeFinal` | Direktur SDM / Keuangan| Otorisasi penguncian permanen; *anti-self-approval* (`PAY-B4`)| Transaksi dikunci permanen (`IsLocked = true`); angka immutable |
+| `WaitingFinalApproval`| `Draft` | `RejectFinal` | Direktur SDM / Keuangan| Direksi menolak angka beban penggajian | Dikembalikan ke draf untuk rekonsiliasi ulang |
+| `ApprovedFinal` | `HandoffReady` | `GenerateHandoff` | Sistem | Paket serah terima ber-checksum SHA-256 berhasil dibentuk | Terbit rekaman `TrxPayrollHandoffBatch`; berkas dikirim ke Finance |
+| `HandoffReady` | `NeedCorrection` | `FinanceRejectionCallback`| Departemen Keuangan| Finance menolak batch resmi dengan alasan tertulis (`PAY-B7`) | Kunci data dibuka terkendali; audit trail rollback dicatat |
+| `NeedCorrection`| `Calculating` | `Recalculate` | Payroll Officer | Data rekening/komponen telah diperbaiki | Menghitung ulang dan memulai alur persetujuan dari awal |
+| `HandoffReady` | `Closed` | `PaymentConfirmed` | Departemen Keuangan| Finance mengonfirmasi seluruh transfer perbankan selesai | Run ditutup permanen; memicu rilis slip gaji digital ke portal ESS |
+| `ApprovedFinal` | **ILLEGAL** (`Draft`)| `DirectUnlock` | Siapapun | **DITOLAK KERAS**; pembukaan kunci tanpa penolakan Finance dilarang | Integritas audit kepatuhan GCG terproteksi |
+
+### 18.2 Matriks Transisi Status Deteksi Variansi Anomali (`VarianceAlertStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `None` | `Unresolved` | `DetectVariance` | Mesin Sistem | Deviasi gaji bersih $\ge 20\%$ atau selisih $\ge$ Rp 2.000.000 | Baris pegawai ditandai badge kuning/merah; pengajuan run terkunci |
+| `Unresolved` | `Justified` | `SaveJustification` | Payroll Officer | Input teks alasan formal minimal 15 karakter | Rekaman justifikasi tersimpan; flag terselesaikan sementara |
+| `Justified` | `Approved` | `ApproveReview` | HR Manager | HR Manager memvalidasi bukti lembur cito/potongan sah | Status variansi resmi disetujui untuk audit |
+| `Justified` | `Unresolved` | `RejectJustification`| HR Manager | Alasan tidak memadai atau bukti belum valid | Payroll Officer wajib melengkapi bukti atau mengoreksi data asal |
+
+### 18.3 Matriks Transisi Status Berkas Serah Terima Finance (`FinanceHandoffStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `PendingHandoff` | `Dispatched` | `DispatchBatch` | Sistem / HR Officer | Run berstatus `ApprovedFinal` & checksum SHA-256 valid | Berkas terenkripsi diserahkan ke sistem Keuangan |
+| `Dispatched` | `AcknowledgedByFinance`| `AcknowledgeReceipt`| Staf Finance | Finance menerima berkas dan memeriksa rekening bank | Notifikasi tanda terima tercatat pada dasbor handoff |
+| `Dispatched` / `Acknowledged` | `PaymentConfirmed` | `ConfirmPaymentSuccess`| Kasir / Treasury Finance| Transfer kliring bank sukses diselesaikan | Memicu pembukaan rilis slip gaji ESS (`HRD-DEC-127`) |
+| `Dispatched` / `Acknowledged` | `RejectedByFinance` | `RejectBatch` | Manajer Finance | Kendala likuiditas kas atau kesalahan fatal rekening bank | Status run diturunkan ke `NeedCorrection` untuk rollback terkendali |
+
+### 18.4 Matriks Transisi Status Slip Gaji Mandiri ESS (`PayslipStatus`)
+
+| Status Awal | Status Tujuan | Pemicu / Aksi | Aktor Berwenang | Kondisi & Validasi | Efek Samping Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `None` | `Draft` | `GeneratePayslipRecords`| Mesin Sistem | Perhitungan gaji run selesai | Rekaman slip gaji terbuat di database (belum terlihat di ESS) |
+| `Draft` | `Published` | `LockFinalRun` | Sistem | Run berstatus `ApprovedFinal` | Rincian angka slip gaji terkunci permanen |
+| `Published` | `ReleasedToEss` | `TriggerRelease` | Sistem / Penjadwal | Tanggal sistem $\ge 25$ atau status `PaymentConfirmed` | Slip gaji aktif di ESS pegawai berstatus siap buka dengan PIN |
+| `ReleasedToEss` | `TemporarilyLocked`| `FailPinThreeTimes` | Sistem Keamanan | Pegawai salah input PIN $\ge 3$ kali berturut-turut | Akses menu slip gaji dibekukan selama 30 menit demi keamanan |
+| `TemporarilyLocked`| `ReleasedToEss` | `ResetPin` / `Timeout`| Pegawai / Sistem | Masa penalti 30 menit berakhir atau reset PIN sukses | Pegawai dapat mencoba kembali verifikasi PIN |
+| `ReleasedToEss` | `Archived` | `AnnualArchive` | Sistem | Periode tahun kalender telah ditutup resmi | Dokumen slip gaji dipindahkan ke arsip historis |
+
+## 19. Bagian `S-B6` — Matriks Transisi Status Restitusi & Pemotongan Penggajian Pegawai Rumah Sakit (Sub-modul 11, `last_changed_in` `v15`, 5 November 2026)
+
+Bagian ini mendefinisikan matriks transisi status siklus hidup untuk **Sub-modul 11 (Restitution & Payroll Deduction Integration — Slice `S-B6`)**, mengunci seluruh status legal, aktor pengubah, pra-kondisi, transisi ilegal terlarang, serta konsekuensi integritas pada penggajian dan kasir rumah sakit.
+
+---
+
+### 19.1 Matriks Status Klaim Restitusi Pegawai (`RestitutionClaimStatus`)
+
+Entitas: `trx_employee_restitution_claims`  
+Status Legal: `Draft`, `Submitted`, `SupervisorApproved`, `HrReviewed`, `Approved`, `Rejected`, `QueuedForPayroll`, `ProcessedInPayroll`, `VoucherIssued`, `DisbursedViaCashier`, `Closed`
+
+| Status Asal | Status Tujuan | Aktor Pelaksana | Aksi / Trigger Pemicu | Pra-Kondisi yang Wajib Terpenuhi | Efek Samping / Mutasi Data Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Pegawai di ESS | Klik *"Klaim Baru"* di ESS | Pegawai aktif, masa kerja memenuhi syarat golongan | Sistem membuat baris draf klaim kosong |
+| `Draft` | `Submitted` | Pegawai di ESS | Klik *"Submit Klaim"* | Dokumen kuitansi asli terunggah, sisa kuota mencukupi | Sistem mengunci kuota berjalan, kirim notifikasi ke Atasan |
+| `Submitted` | `SupervisorApproved` | Atasan Langsung | Klik *"Setujui"* di ESS Task | Atasan bukan diri pemohon (*Anti-Self-Approval*) | Notifikasi dialihkan ke antrean verifikasi HR C&B |
+| `Submitted` | `Rejected` | Atasan Langsung | Klik *"Tolak"* di ESS Task | Wajib mengisi alasan penolakan tertulis | Saldo plafon yang dikunci dikembalikan utuh ke pegawai |
+| `SupervisorApproved` | `HrReviewed` | HR C&B Officer | Verifikasi Nota & Approval | Nota kuitansi asli fisik/scan legalisir sah terbukti valid | Berkas siap diajukan ke meja Manajer SDM |
+| `SupervisorApproved` | `Rejected` | HR C&B Officer | Tolak Verifikasi Nota | Kuitansi palsu, buram, atau tidak berstempel | Berkas ditolak, alasan tercatat permanen di audit log |
+| `HrReviewed` | `Approved` | Manajer SDM | Otorisasi Akhir Manajer | Kuota anggaran departemen dan plafon grade valid | Status sah `Approved`, siap dialirkan ke kanal pencairan |
+| `HrReviewed` | `Rejected` | Manajer SDM | Penolakan Akhir | Alasan tertulis manajer diisi | Klaim gugur, pegawai menerima pemberitahuan resmi |
+| `Approved` | `QueuedForPayroll` | Sistem Penggajian | Siklus Bulanan Normal | Klaim non-cito, tgl approved $\le$ tgl 20 bulan berjalan | Menerbitkan entitas `TrxPayrollRestitution` untuk slip gaji tgl 25 |
+| `Approved` | `VoucherIssued` | Direktur Medis / SDM | Klik *"Terbitkan Voucher Cito"* | Berkas ber-tag `IsCitoEmergency == true` (nakes IGD cito) | Menerbitkan entitas `TrxCashierDisbursementVoucher` ber-token |
+| `QueuedForPayroll` | `ProcessedInPayroll` | Payroll Calculation Engine | Eksekusi Penggajian Bulanan | Payroll Run berjalan mengikutsertakan komponen restitusi | Komponen masuk slip gaji sebagai tunjangan non-pajak |
+| `ProcessedInPayroll` | `Closed` | Payroll Final Handoff | Gaji Ditransfer (tgl 25) | Handoff ke Finance berstatus disahkan (*Approved*) | Siklus klaim ditutup permanen (*Closed*) |
+| `VoucherIssued` | `DisbursedViaCashier`| Petugas Kasir RS 24/7 | Validasi QR & Serahkan Kas | Token valid di kasir, waktu belum lewat 48 jam | **Flag DisbursedViaCashier terkunci mutlak dari payroll tgl 25** |
+| `VoucherIssued` | `Expired` | Cron Job Sistem Kasir | Waktu > 48 jam sejak terbit | Voucher belum divalidasi kasir dalam 48 jam | Voucher hangus, klaim dikembalikan ke antrean approval normal |
+| `DisbursedViaCashier` | `Closed` | Sistem Kasir RS | Berkas Tanda Terima Kasir | Uang tunai diserahkan dan nomor kuitansi kasir tercatat | Siklus klaim ditutup permanen (*Closed*) |
+
+#### Transisi Ilegal yang Dilarang Keras (`RestitutionClaimStatus`):
+1. **`Draft` $
+ightarrow$ `Approved`:** Dilarang keras memintas jenjang persetujuan atasan dan verifikasi HR C&B.
+2. **`DisbursedViaCashier` $
+ightarrow$ `QueuedForPayroll`:** **FATAL FINANSIAL.** Klaim yang telah dicairkan tunai di kasir RS haram dimasukkan ke antrean slip gaji bulanan karena akan menimbulkan kerugian rumah sakit berupa pencairan dana ganda.
+3. **`ProcessedInPayroll` $
+ightarrow$ `VoucherIssued`:** **FATAL FINANSIAL.** Komponen yang sudah masuk slip gaji bulanan dilarang diterbitkan voucher kasir cito.
+4. **`Rejected` $
+ightarrow$ `Approved`:** Berkas klaim yang ditolak tidak boleh diaktifkan langsung; pemohon wajib membuat tiket draf baru dengan bukti perbaikan.
+
+---
+
+### 19.2 Matriks Status Jadwal Angsuran Pemotongan (`DeductionScheduleStatus`)
+
+Entitas: `trx_payroll_deduction_schedules`  
+Status Legal: `Active`, `Paused`, `Completed`, `Cancelled`, `ClearedAtSeparation`
+
+| Status Asal | Status Tujuan | Aktor Pelaksana | Aksi / Trigger Pemicu | Pra-Kondisi yang Wajib Terpenuhi | Efek Samping / Mutasi Data Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Active` | Finance Sync (`INT-HR-55`) | Penarikan Data Cicilan H-3 | Kontrak pinjaman sah di Finance atau memo ganti rugi | Jadwal aktif terbaca oleh mesin pemotongan tgl 20 |
+| `Active` | `Paused` | HR Payroll Manager | Klik *"Jeda Cicilan"* | Memo resmi penundaan akibat force majeure/bencana | Cicilan tidak ditagihkan pada periode bulan berjalan |
+| `Paused` | `Active` | HR Payroll Manager | Klik *"Lanjutkan Cicilan"* | Masa jeda berakhir | Cicilan kembali aktif masuk antrean pemotongan bulanan |
+| `Active` | `Completed` | Payroll Calculation Engine | Angsuran Terakhir Terpotong | Nilai `RemainingPrincipal <= 0` | Jadwal selesai, kirim notifikasi pelunasan ke Finance |
+| `Active` | `ClearedAtSeparation`| Exit Clearance Sub-20 | Pegawai Mengundurkan Diri / PHK | Formulir penutupan akhir kerja terbit | Seluruh sisa pokok dikonsolidasikan ke slip penutupan |
+| `Active` | `Cancelled` | Petugas Finance | Pembatalan Kontrak Pinjaman | Memo pembatalan sah dari Departemen Keuangan | Jadwal dimatikan permanen |
+
+---
+
+### 19.3 Matriks Status Eksekusi Pemotongan Periode (`DeductionItemStatus`)
+
+Entitas: `trx_payroll_deduction_items`  
+Status Legal: `Pending`, `DeductedInFull`, `PartiallyDeducted`, `DeferredDueToSalaryCap`, `Cancelled`
+
+| Status Asal | Status Tujuan | Aktor Pelaksana | Aksi / Trigger Pemicu | Pra-Kondisi yang Wajib Terpenuhi | Efek Samping / Mutasi Data Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Pending` | Mesin Penggajian (tgl 20) | Inisiasi Komponen Potongan | Jadwal cicilan berstatus `Active` | Baris kalkulasi siap diuji terhadap plafon 50% |
+| `Pending` | `DeductedInFull` | Payroll Engine | Eksekusi Potong Penuh | Akumulasi potongan $\le$ 50% dari Gross Pay | Tagihan dipotong penuh pada slip gaji berjalan |
+| `Pending` | `PartiallyDeducted` | Payroll Engine | Eksekusi Pemangkasan Parsial | Prioritas tagihan menyerap sisa kuota 50% terakhir | Sebagian terpotong di slip, sisanya masuk `deferred_amount` |
+| `Pending` | `DeferredDueToSalaryCap` | Payroll Engine | Penundaan Penuh Tagihan | Sisa kuota batas 50% habis oleh prioritas lebih tinggi | Tagihan tidak dipotong, dijadwalkan ulang ke bulan depan |
+| `Pending` | `Cancelled` | Payroll Engine | Pembatalan Siklus Payroll | Siklus penggajian dibatalkan/di-rollback | Nilai pemotongan dibatalkan dan tidak memotong gaji |
+
+---
+
+### 19.4 Matriks Status Voucher Kasir Cito Darurat (`CashierVoucherStatus`)
+
+Entitas: `trx_cashier_disbursement_vouchers`  
+Status Legal: `Issued`, `ClaimedAtCashier`, `DisbursedViaCashier`, `Expired`, `Cancelled`
+
+| Status Asal | Status Tujuan | Aktor Pelaksana | Aksi / Trigger Pemicu | Pra-Kondisi yang Wajib Terpenuhi | Efek Samping / Mutasi Data Sistem |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Issued` | Direktur Medis / SDM | Klik *"Terbitkan Voucher Cito"* | Klaim darurat medis nakes telah diotorisasi | Voucher aktif dengan masa berlaku 48 jam & token SHA-256 |
+| `Issued` | `ClaimedAtCashier` | Petugas Kasir RS | Petugas Kasir Scan QR Code | Token valid di sistem kasir, waktu belum kedaluwarsa | Layar kasir menampilkan data nominal dan nama penerima |
+| `ClaimedAtCashier` | `DisbursedViaCashier` | Petugas Kasir RS | Kasir Serahkan Uang Tunai | Uang tunai diserahkan, bukti kuitansi kasir dicetak | Status sah disbursed, flag klaim dikunci permanen |
+| `Issued` | `Expired` | Cron Job Otomatis | Waktu Melewati 48 Jam | Voucher tidak diklaim di loket kasir dalam 48 jam | Voucher hangus, klaim darurat dialihkan ke prosedur normal |
+| `Issued` | `Cancelled` | Pejabat Penerbit Voucher | Klik *"Batalkan Voucher"* | Ditemukan kekeliruan data sebelum dicairkan di kasir | Voucher dinonaktifkan di sistem kasir |
+
+
+---
+
+## 20. Matriks Transisi Status Sub-Modul 12 (Slice S-D3 Benefit Management)
+
+Bagian ini mendefinisikan matriks perpindahan status (*state-transition matrix*) untuk siklus kepesertaan asuransi pegawai, verifikasi tanggungan keluarga inti, penyelesaian klaim koordinasi manfaat (COB), dan mutasi buku besar plafon internal RS pada **Sub-Modul 12 (Benefit Management — Slice `S-D3`)**.
+
+---
+
+### 20.1 Transisi Status Kepesertaan Asuransi (`EnrollmentStatus`)
+
+Enum: `Draft`, `PendingActivation`, `Active`, `Suspended`, `Terminated`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Pegawai baru terdaftar di HRD | Data NIP terbentuk di Sub-Modul 02 | Record kepesertaan dibuat dalam status persiapan | `System` |
+| `Draft` | `Active` | Event H+0 Onboarding (`S-C4-ONB`) | Khusus program BPJS Ketenagakerjaan (JKK & JKM) | Jaminan perlindungan risiko kecelakaan kerja nakes aktif | `System` |
+| `Draft` | `PendingActivation` | Penahanan masa percobaan 3 bulan | Paket BPJS Kesehatan, Asuransi Swasta, Plafon RS | Fasilitas kesehatan komersial ditahan selama evaluasi | `System` |
+| `PendingActivation` | `Active` | Event `OnProbationPassed` Sub-05 | Staf dinyatakan lulus evaluasi masa percobaan 3 bulan | Paket kesehatan aktif penuh, generate alokasi saldo plafon | `HR_Benefit_Enrollment:Manage` |
+| `Active` | `Suspended` | Pegawai Cuti di Luar Tanggungan | SK Cuti Tidak Berbayar disetujui (Sub-08) | Penonaktifan sementara hak klaim & subsidi RS | `HR_Benefit_Enrollment:Manage` |
+| `Suspended` | `Active` | Pegawai Kembali Aktif Bertugas | SK Reaktivasi Kepegawaian terbit | Pemulihan hak manfaat dan sisa plafon berjalan | `HR_Benefit_Enrollment:Manage` |
+| `Active` / `Suspended` | `Terminated` | Tanggal Efektif Keluar (Resign/PHK)| `EffectiveTerminationDate` tercapai via Sub-20 | Blokir permanen seluruh fasilitas, terbitkan surat mutasi BPJS | `System / ExitClearance` |
+
+**Transisi Ilegal:**
+- `Terminated` -> `Active` (DILARANG: Pegawai yang telah keluar tidak boleh diaktifkan kembali secara langsung; wajib melalui proses onboarding baru jika bergabung kembali).
+- `PendingActivation` -> `Active` tanpa bukti kelulusan masa percobaan (`ProbationPassed`).
+
+---
+
+### 20.2 Transisi Status Verifikasi Tanggungan Keluarga (`DependentVerificationStatus`)
+
+Enum: `Draft`, `Submitted`, `Verified`, `Rejected`, `ExpiredAgeLimit`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Pegawai menginput data anggota keluarga | Paket benefit pegawai berstatus `Active` | Draft tersimpan di ESS mandiri pegawai | `ESS_Benefit:ManageFamily` |
+| `Draft` | `Submitted` | Submit pendaftaran dari ESS | Lampiran KK & Akta Nikah/Lahir lengkap terunggah | Masuk antrean verifikasi fisik HR Benefit Officer | `ESS_Benefit:ManageFamily` |
+| `Submitted` | `Verified` | Persetujuan oleh HR Benefit Officer | NIK valid, data sesuai KK asli, kuota memenuhi | Tanggungan aktif dan berhak menerima subsidi kesehatan | `HR_Benefit_Dependent:Verify` |
+| `Submitted` | `Rejected` | Penolakan oleh HR Benefit Officer | Dokumen buram, NIK tidak cocok, atau kuota habis | Status ditolak dengan catatan alasan perbaikan di ESS | `HR_Benefit_Dependent:Verify` |
+| `Rejected` | `Submitted` | Pegawai mengunggah perbaikan dokumen | Dokumen revisi diunggah ulang | Pengajuan masuk kembali ke antrean verifikasi HR | `ESS_Benefit:ManageFamily` |
+| `Verified` | `ExpiredAgeLimit`| Anak genap berusia 21 th / 25 th | Lewat 31 Agustus tanpa surat kuliah mahasiswa aktif | Hak pertanggungan anak otomatis dinonaktifkan oleh cron job | `System (Cron Job)` |
+
+**Transisi Ilegal:**
+- `ExpiredAgeLimit` -> `Verified` tanpa pengunggahan Surat Keterangan Mahasiswa Aktif dekanat kampus yang valid (`student_verification_letter_path`).
+- Submit pendaftaran tanggungan yang melanggar batas maksimal kuota 1 pasangan atau 3 anak.
+
+---
+
+### 20.3 Transisi Status Klaim Koordinasi Manfaat COB (`BenefitClaimStatus`)
+
+Enum: `Draft`, `Submitted`, `UnderVerification`, `Approved`, `Rejected`, `Settled`, `Cancelled`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Pegawai membuka form klaim COB di ESS | Pasien nakes/tanggungan telah selesai perawatan | Form klaim disiapkan | `ESS_Benefit:SubmitClaim` |
+| `Draft` | `Submitted` | Pegawai men-submit pengajuan klaim | Nomor SEP BPJS terisi valid, dokumen kwitansi terlampir | Notifikasi klaim baru masuk ke meja kerja C&B | `ESS_Benefit:SubmitClaim` |
+| `Submitted` | `UnderVerification`| HR Benefit Officer mulai audit klaim | Dokumen fisik dan digital mulai diperiksa | Status dikunci agar tidak diubah sepihak oleh pegawai | `HR_Benefit_Claim:View` |
+| `UnderVerification`| `Approved` | Verifikasi selesai & klaim disetujui | Biaya sesuai polis asuransi sekunder & indikasi medis | Nominal santunan disetujui, siap proses transfer | `HR_Benefit_Claim:Settle` |
+| `UnderVerification`| `Rejected` | Klaim ditolak verifikator | Obat kosmetik non-medis atau tanpa nomor SEP BPJS | Klaim digugurkan dengan penjelasan penolakan | `HR_Benefit_Claim:Settle` |
+| `Approved` | `Settled` | Pembayaran santunan ditransfer / cair | Kuitansi pelunasan tagihan selisih terbit | Klaim tuntas (*Closed*), ekses dialihkan ke Sub-11 bila ada | `HR_Benefit_Claim:Settle` |
+| `Draft` / `Submitted`| `Cancelled` | Pembatalan pengajuan oleh pegawai | Belum masuk tahap verifikasi HR | Pengajuan ditarik dari antrean | `ESS_Benefit:SubmitClaim` |
+
+**Transisi Ilegal:**
+- `Submitted` -> `Approved` tanpa melalui verifikasi keabsahan nomor SEP BPJS Kesehatan (`sep_bpjs_number`).
+- `Settled` -> `Draft` atau `Cancelled` (Klaim yang telah dibayarkan santunannya tidak boleh dibatalkan secara sepihak).
+
+
+---
+
+## 21. Matriks Transisi Status Sub-Modul 13 (Slice S-D4 HR Service Management & Request — Layanan Administrasi, Helpdesk SDM & Penerbitan Dokumen Kepegawaian RS)
+
+Bagian ini mendefinisikan seluruh matriks transisi status (*state-transition matrix*), aturan alur hidup (*lifecycle*), prasyarat (*pre-conditions*), dampak sistem (*post-conditions*), serta larangan transisi ilegal (*illegal transitions*) untuk agregat utama **Sub-Modul 13 (Slice `S-D4`)**.
+
+---
+
+### 21.1 Transisi Status Tiket Layanan SDM (`HrServiceRequestStatus`)
+
+Enum: `Draft`, `Submitted`, `InReview`, `WaitingStaffResponse`, `Approved`, `Rejected`, `InProgress`, `Resolved`, `Closed`, `Cancelled`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Pegawai membuka form tiket di ESS | Staf aktif di `mst_workforce_profiles` | Form inisiasi tiket disiapkan | `ESS_Service:CreateRequest` |
+| `Draft` | `Submitted` | Staf men-submit tiket permohonan | Form lengkap & berkas wajib terunggah | Timer SLA mulai berjalan, tiket masuk antrean analis | `ESS_Service:CreateRequest` |
+| `Submitted` | `InReview` | Analis HR mengklaim tiket | Analis memiliki wewenang kategori layanan | Status berpindah ke meja kerja analis terpilih | `HR_Service_Ticket:Process` |
+| `InReview` | `WaitingStaffResponse` | Analis meminta kelengkapan berkas | Berkas lampiran kurang lengkap atau buram | Timer SLA ditangguhkan (*paused*), staf menerima notif | `HR_Service_Ticket:Process` |
+| `WaitingStaffResponse` | `InReview` | Staf mengunggah berkas revisi | Staf mengirim balasan klarifikasi di ESS | Timer SLA kembali berjalan (*resumed*) | `ESS_Service:CreateRequest` |
+| `InReview` | `Approved` | Analis menyetujui permohonan | Berkas sah & memenuhi ketentuan SOP | Tiket diteruskan ke pemutakhiran data atau draf surat | `HR_Service_Ticket:Process` |
+| `InReview` | `Rejected` | Analis menolak permohonan | Pengajuan tidak berdasar atau melanggar aturan | Alasan penolakan dicatat, tiket berakhir | `HR_Service_Ticket:Process` |
+| `Approved` | `InProgress` | Eksekusi tindak lanjut permohonan | Butuh proses lanjutan (cetak surat / sinkronisasi DB) | Menandakan proses sedang berjalan di sistem | `HR_Service_Ticket:Process` |
+| `InProgress` | `Resolved` | Pekerjaan selesai tuntas | Surat terbit atau data profil ter-update | Notifikasi tiket selesai terkirim ke staf pemohon | `HR_Service_Ticket:Process` |
+| `Resolved` | `Closed` | Staf mengonfirmasi / auto-close 7 hari | Tiket telah berstatus Resolved | Tiket diarsipkan secara permanen | `ESS_Service:CreateRequest` / `System` |
+| `Draft` / `Submitted` | `Cancelled` | Staf membatalkan permohonan | Tiket belum mulai diproses oleh analis HR | Tiket ditarik dari antrean operasional | `ESS_Service:CreateRequest` |
+
+**Transisi Ilegal:**
+- `Draft` -> `Resolved` langsung tanpa melalui status `Submitted` dan `InReview`.
+- `Closed` -> `InReview` (Tiket yang telah ditutup tidak dapat dibuka kembali; staf wajib membuat tiket baru).
+- `Submitted` -> `Resolved` tanpa pencatatan ringkasan resolusi resmi (`resolution_summary`).
+
+---
+
+### 21.2 Transisi Status Pemantauan SLA Tiket (`HrServiceSlaStatus`)
+
+Enum: `WithinSla`, `Warning75`, `Overdue`, `Escalated`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `WithinSla` | Tiket disubmit dan timer SLA aktif | Tiket berstatus `Submitted` | Deadline jam kerja dihitung dan dikunci | `System (SLA Engine)` |
+| `WithinSla` | `Warning75` | Timer mencapai 75% target durasi SLA | Tiket belum berstatus `Resolved` atau `Closed` | Alert kuning dikirim ke Supervisor HRD | `System (Monitoring Worker)` |
+| `WithinSla` / `Warning75` | `Overdue` | Timer melewati 100% target durasi SLA | Tiket belum terselesaikan saat deadline tiba | Tiket ditandai merah, KPI helpdesk berkurang | `System (Monitoring Worker)` |
+| `Overdue` | `Escalated` | Tiket overdue tidak direspons dalam 2 jam | Berstatus Overdue tanpa pergerakan analis | Notifikasi eskalasi dikirim ke Manajer SDM | `System (Monitoring Worker)` |
+| `Warning75` / `Overdue` | `WithinSla` | Status tiket diubah ke `WaitingStaffResponse` | Klarifikasi resmi diminta ke staf pemohon | Timer dipause dan status SLA di-hold | `HR_Service_Ticket:Process` |
+
+**Transisi Ilegal:**
+- `Overdue` -> `WithinSla` secara manual tanpa adanya penangguhan waktu sah melalui status klarifikasi (`WaitingStaffResponse`).
+- Reset timer SLA saat re-assign tiket ke analis lain (Deadline awal wajib tetap dipertahankan).
+
+---
+
+### 21.3 Transisi Status Persetujuan Surat Resmi (`DocumentApprovalStatus`)
+
+Enum: `Submitted`, `CbApproved`, `Authorized`, `Rejected`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Submitted` | Draf surat resmi digenerate dari tiket | Data profil pemohon valid | Draf surat masuk antrean persetujuan | `System (Document Engine)` |
+| `Submitted` | `CbApproved` | Supervisor C&B menyetujui draf gaji | Khusus surat finansial (`is_financial_sensitive`) | Nilai gaji final Sub-10 diverifikasi akurat | `HR_Document:Issue` |
+| `Submitted` / `CbApproved` | `Authorized` | Pejabat berwenang menandatangani draf | Dokumen telah memenuhi syarat otorisasi | Nomor seri gapless diterbitkan & QR di-generate | `HR_Document:Issue` |
+| `Submitted` / `CbApproved` | `Rejected` | Pejabat menolak draf surat | Terdapat kesalahan tujuan surat atau format | Draf dibatalkan dengan catatan revisi | `HR_Document:Issue` |
+
+**Transisi Ilegal:**
+- `Submitted` -> `Authorized` untuk dokumen finansial tanpa melalui persetujuan Supervisor C&B (`CbApproved`).
+- Otorisasi mandiri oleh pejabat yang bersangkutan terhadap surat atas nama dirinya sendiri (*Anti-Self-Approval*).
+
+---
+
+### 21.4 Transisi Status Dokumen Resmi Terbit (`OfficialDocumentIssuanceStatus`)
+
+Enum: `Active`, `Expired`, `Revoked`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Active` | Dokumen resmi diterbitkan (Status: Issued) | Ditandatangani digital & nomor seri diterbitkan | Dokumen sah, QR publik aktif, tersimpan di e-Dossier | `HR_Document:Issue` |
+| `Active` | `Expired` | Tanggal kalender melewati `valid_until_date` | Masa berlaku 90 hari habis | Portal publik menampilkan status Expired | `System (Daily Job)` |
+| `Active` / `Expired` | `Revoked` | Perintah pencabutan oleh Manajer SDM / Legal | Terdapat Nomor BAP dan alasan pembatalan sah | Dokumen dicabut, portal publik menampilkan banner merah | `HR_Document:Revoke` |
+
+**Transisi Ilegal:**
+- `Revoked` -> `Active` (Dokumen yang telah dicabut keabsahannya tidak boleh diaktifkan kembali).
+- Penghapusan fisik berkas dokumen status `Active` atau `Revoked` dari basis data (*Hard Delete prohibited*).
+
+
+---
+
+## 22. Matriks Transisi Status Sub-Modul 14 (Slice `S-C1` Credentialing, License & Clinical Privilege)
+
+Bagian ini mendefinisikan seluruh matriks transisi status (*state transition matrix*), kondisi prasyarat (*pre-conditions*), dan dampak sistem (*post-conditions*) untuk entitas kredensialing tenaga medis, lisensi legalitas STR/SIP, penerbitan dokumen sah SPK-RKK oleh Direktur Utama, serta kewenangan klinis aktif pada **Sub-Modul 14 (Slice `S-C1`)**.
+
+---
+
+### 22.1 Transisi Status Berkas Kredensial (`CredentialingApplicationStatus`)
+
+Enum: `Draft`, `Submitted`, `UnderPsv`, `PeerReview`, `PlenaryReview`, `Approved`, `Rejected`, `Cancelled`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Nakes membuka form permohonan kredensial | Staf klinis terdaftar di `mst_workforce_profiles` | Form wizard inisiasi disiapkan dengan auto-lock komite profesi | `Credential_Application:Create` |
+| `Draft` | `Submitted` | Nakes men-submit berkas permohonan | Nomor STR & SIP terisi, file ijazah & sertifikat terunggah (`VR-CRD-01`) | Berkas masuk antrean sekretariat komite, nomor aplikasi gapless terbit | `Credential_Application:Create` |
+| `Submitted` | `UnderPsv` | Petugas mengambil berkas untuk verifikasi | Staf sekretariat mengunci berkas | Status berkas berubah, timer verifikasi PSV aktif | `Credential_Verification:Execute` |
+| `UnderPsv` | `PeerReview` | Petugas menyelesaikan verifikasi PSV Kemenkes | `is_psv_verified = true`, URL bukti PSV tersimpan (`VR-CRD-02`) | Berkas didisposisikan ke panel Mitra Bestari (min 2 reviewer) | `Committee_Review:Assign` |
+| `UnderPsv` | `Rejected` | Hasil PSV menyatakan dokumen palsu / tidak sah | Bukti verifikasi KKI/SatuSehat tidak valid | Berkas ditolak permanen, peringatan fraud dikirim ke Direktur Medis | `Credential_Verification:Execute` |
+| `PeerReview` | `PlenaryReview` | Seluruh reviewer menyerahkan rekomendasi | Minimal 2 reviewer menyelesaikan asesmen portofolio (`HRD-ASM-44`) | Berkas diagendakan dalam jadwal Sidang Pleno Komite | `Peer_Review:Assess` |
+| `PlenaryReview` | `Approved` | Sidang pleno komite menyetujui rekomendasi | Berita acara sidang ditandatangani Ketua Komite | Draf SPK dan lampiran RKK digenerate sistem | `Committee_Review:Approve` |
+| `PlenaryReview` | `Rejected` | Sidang pleno menolak permohonan klinis | Alasan klinis objektif dicatat dalam risalah sidang | Notifikasi penolakan & saran pembinaan dikirimkan ke nakes | `Committee_Review:Approve` |
+
+---
+
+### 22.2 Transisi Status Lisensi STR & SIP (`CredentialLicenseStatus`)
+
+Enum: `PendingPsv`, `Active`, `ExpiringSoon`, `Expired`, `Revoked`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `PendingPsv` | Nakes mendaftarkan STR / SIP baru | Nomor lisensi dan instansi penerbit diinput | Berkas menunggu audit keabsahan primer staf kredensialing | `Credential_License:Create` |
+| `PendingPsv` | `Active` | Staf kredensialing memverifikasi PSV KKI | Hasil cek portal SatuSehat SDMK valid & terverifikasi | Lisensi aktif; scheduler radar pemantau SIP didaftarkan | `Credential_Verification:Execute` |
+| `Active` | `ExpiringSoon` | Background worker mendeteksi H-90 kedaluwarsa | Sisa masa berlaku SIP <= 90 hari | Radar peringatan kuning dikirim via email, WA, dan ESS | `System_Scheduler` |
+| `ExpiringSoon` | `Active` | Nakes mengunggah perpanjangan SIP sah baru | SIP baru diverifikasi keabsahannya oleh staf | Timer kedaluwarsa diperbarui 5 tahun ke depan | `Credential_Verification:Execute` |
+| `ExpiringSoon` | `Expired` | Jam 00:00 tanggal jatuh tempo tercapai (H-0) | Belum ada SIP perpanjangan terverifikasi | Fail-closed: Akun SIMRS dinonaktifkan & jadwal Sub-06 diblokir (`CRD-B2`) | `System_Scheduler` |
+| `Active` / `ExpiringSoon` | `Revoked` | Dinas Kesehatan mencabut izin praktik dokter | Surat resmi pencabutan SIP dari Dinkes diterima | Lisensi dinonaktifkan permanen, seluruh wewenang klinis dicabut | `Credential_License:Revoke` |
+
+---
+
+### 22.3 Transisi Status Dokumen Sah SPK-RKK (`SpkRkkIssuanceStatus`)
+
+Enum: `Draft`, `PendingParaf`, `PendingDirectorSignature`, `Active`, `ExpiringSoon`, `Expired`, `Suspended`, `Revoked`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Sistem meng-generate draf pasca-pleno komite | Rekomendasi Ketua Komite sah berstatus disetujui | Format template SPK/RKK terisi butir kewenangan klinis | `Spk_Rkk:Create` |
+| `Draft` | `PendingParaf` | Sekretariat mengajukan draf ke Direktur Medis | Seluruh butir Level 3 memiliki nama supervisor terdaftar | Dokumen masuk meja review Direktur Pelayanan Medik | `Spk_Rkk:Create` |
+| `PendingParaf` | `PendingDirectorSignature` | Direktur Pelayanan membubuhkan paraf | Telaah kesesuaian kebutuhan operasional RS disetujui | Dokumen masuk meja otorisasi Direktur Utama RS | `Spk_Rkk:ParafDirector` |
+| `PendingDirectorSignature` | `Active` | Direktur Utama membubuhkan e-Sign sah | Kredensial digital e-Sign Direktur Utama tervalidasi | SPK-RKK resmi aktif, QR Code terbit, arsip otomatis ke e-Dossier | `Spk_Rkk:SignDirector` |
+| `Active` | `ExpiringSoon` | Worker mendeteksi H-90 masa berlaku 3 tahun | Sisa masa berlaku SPK <= 90 hari | Radar rekredensialing kuning aktif, draf rekredensialing dibuat H-60 | `System_Scheduler` |
+| `ExpiringSoon` | `Suspended` | Tanggal jatuh tempo 3 tahun tercapai tanpa SPK baru | Proses rekredensialing belum rampung pada H-0 | Seluruh wewenang klinis mandiri ditangguhkan, order wajib supervisi | `System_Scheduler` |
+| `Active` / `Suspended` | `Revoked` | Komite Medik menjatuhkan sanksi disiplin etik berat | BAP pencabutan kewenangan ditandatangani Dirut | Dokumen SPK dicabut, barcode verifikasi publik menampilkan status REVOKED | `Spk_Rkk:RevokeDirector` |
+
+---
+
+### 22.4 Transisi Status Kewenangan Klinis Aktif (`ClinicalPrivilegeStatus`)
+
+Enum: `GrantedIndependent`, `GrantedSupervised`, `Suspended`, `Revoked`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `GrantedIndependent` | SPK resmi disahkan Dirut dengan Level 4 | Butir tindakan disetujui mandiri oleh pleno & Dirut | Diizinkan eksekusi order mandiri di SIMRS tanpa co-signature | `Spk_Rkk:SignDirector` |
+| `[None]` | `GrantedSupervised` | SPK resmi disahkan Dirut dengan Level 3 | Dokter supervisor terdaftar di database | Order di SIMRS memerlukan co-signature supervisor dalam 24 jam | `Spk_Rkk:SignDirector` |
+| `GrantedIndependent` | `Suspended` | SIP kedaluwarsa atau masa SPK 3 tahun habis | Trigger event `OnSipExpired` atau `OnSpkExpired` | Dokter tidak dapat melakukan order tindakan mandiri di SIMRS | `System_Scheduler` |
+| `Suspended` | `GrantedIndependent` | SPK baru hasil rekredensialing diterbitkan | Berkas rekredensialing disahkan kembali oleh Dirut | Hak pelayanan mandiri dipulihkan seketika pada SIMRS | `Spk_Rkk:SignDirector` |
+
+---
+
+## 23. Matriks Transisi Status Sub-Modul 15: OPPE, FPPE & Recredentialing (`S-C1-OPPE`)
+
+### 23.1 Transisi Status Siklus Periode OPPE (`OppeEvaluationPeriodStatus`)
+
+Enum: `Draft`, `Active`, `EvaluationClosed`, `Finalized`, `Cancelled`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Sekretariat Komite Medik membuat periode OPPE baru | Tahun dan siklus (Semester 1, Semester 2, Tahunan) diisi valid | Matriks indikator KSM dan bobot default (60:40) dipetakan | `Oppe_Period:Manage` |
+| `Draft` | `Active` | Ketua Subkomite Mutu Profesi membuka periode evaluasi | Matriks indikator KSM lengkap dengan target ambang batas | Jadwal background sync SIMRS dijadwalkan; form peer review dibuka | `Oppe_Period:Manage` |
+| `Active` | `EvaluationClosed` | Batas akhir waktu entri penilaian sejawat tercapai | Jadwal cutoff periode berakhir atau ditutup manual oleh admin | Entri baru peer review dikunci (*read-only*); kalkulator komposit dijalankan | `Oppe_Period:Manage` |
+| `EvaluationClosed` | `Finalized` | Sidang Subkomite Mutu Profesi mengesahkan seluruh rapor | Seluruh rapor dokter berstatus `Completed` atau terverifikasi | Status periode dikunci permanen (`is_locked = TRUE`), rapor siap disinkronkan ke recredentialing | `Oppe_Period:Manage` |
+| `Draft` / `Active` | `Cancelled` | Pembatalan darurat periode oleh Direksi / Komite Medik | Alasan pembatalan resmi tercatat dalam sistem | Seluruh draf evaluasi dibatalkan, logbook diarsipkan | `Oppe_Period:Manage` |
+
+---
+
+### 23.2 Transisi Status Rapor Individu OPPE Dokter (`OppeStaffEvaluationStatus`)
+
+Enum: `Draft`, `InReview`, `Completed`, `Acknowledged`, `Disputed`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Draft` | Background worker menginisiasi rapor seluruh dokter aktif | Periode OPPE berstatus `Active` | Berkas rapor terbentuk dengan target indikator spesifik KSM | `System_Worker` |
+| `Draft` | `InReview` | Integrasi SIMRS menarik data kuantitatif / Peer review masuk | Data indikator SIMRS terisi & penugasan peer review terkirim | Sistem menghitung skor parsial sementara; alert dini menyala jika di bawah target | `System_Worker` / `Oppe_Evaluation:Calculate` |
+| `InReview` | `Completed` | Subkomite Mutu menyetujui komposit 60% SIMRS + 40% Peer | Seluruh indikator terisi dan skor komposit terhitung | Rapor resmi terbit, notifikasi dikirim ke portal dokter untuk dibaca | `Oppe_Evaluation:Finalize` |
+| `Completed` | `Acknowledged` | Dokter menekan konfirmasi baca di portal mandiri | Dokter telah meninjau rincian nilai dan catatan komite | Rapor tercatat sah telah diketahui nakes, siap menjadi arsip e-Dossier | `Staff:SelfPortal` |
+| `Completed` | `Disputed` | Dokter mengajukan sanggahan nilai indikator tertentu | Diajukan dalam tempo maksimal 7 hari kalender pasca-terbit | Berkas masuk daftar klarifikasi Subkomite Mutu Profesi | `Staff:SelfPortal` |
+| `Disputed` | `Completed` | Klarifikasi selesai dikaji bersama Ketua KSM | Berita acara penyesuaian/penetapan ulang nilai disetujui | Nilai komposit diperbarui, status dikembalikan ke Completed | `Oppe_Evaluation:Finalize` |
+
+---
+
+### 23.3 Transisi Status Penugasan FPPE Terarah (`FppeEngagementStatus`)
+
+Enum: `Initiated`, `InProgress`, `Extended`, `UnderReview`, `Concluded`, `Aborted`.
+
+| Status Awal | Status Tujuan | Event / Trigger | Prasyarat (Pre-conditions) | Dampak Sistem (Post-conditions) | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[None]` | `Initiated` | Pemicu kritis terdeteksi (sentinel, komplikasi > 2 SD, staf baru) | Insiden terverifikasi atau nakes baru selesai kredensialing awal | Penugasan FPPE terbentuk; draf proctoring logbook disiapkan | `Fppe_Engagement:Create` |
+| `Initiated` | `InProgress` | Ketua Komite Medik menetapkan Dokter Proctor pendamping | Surat tugas proctor diterbitkan dengan target kasus (10 / 5) | Akses entri logbook kasus dibuka bagi dokter & proctor | `Fppe_Engagement:Create` |
+| `InProgress` | `Extended` | Masa observasi habis namun target kasus belum cukup | Evaluasi proctor merekomendasikan penambahan durasi observasi | Durasi diperpanjang maksimal 3 bulan; target kasus disesuaikan | `Fppe_Engagement:Create` |
+| `InProgress` / `Extended` | `UnderReview` | Target kasus klinis tercapai & seluruh logbook diverifikasi proctor | Logbook kasus lengkap dan diverifikasi proctor | Jadwal sidang pleno Subkomite Mutu Profesi diagendakan | `System_Worker` / `Fppe_CaseLog:Verify` |
+| `UnderReview` | `Concluded` | Sidang pleno mengesahkan vonis akhir FPPE | Berita acara putusan sidang ditandatangani Ketua Komite | Putusan FPPE mengupdate status RKK tenaga medis (Lolos/Supervisi/Cabut) | `Fppe_Conclusion:Approve` |
+| `Initiated` / `InProgress` | `Aborted` | Investigasi kasus menemukan dokter tidak bersalah / mutasi | Keputusan resmi Ketua Komite Medik dengan justifikasi | Penugasan FPPE ditutup tanpa catatan pelanggaran | `Fppe_Engagement:Create` |
+
+---
+
+### 23.4 Klasifikasi Tier Kelayakan Rekredensialing (`RecredentialingEligibilityTier`)
+
+Enum: `GreenFastTrack`, `YellowClarificationReview`, `RedPlenaryInvestigation`.
+
+| Klasifikasi Tier | Kriteria Ambang Batas Komposit & Insiden | Prosedur Sidang Rekredensialing | Dampak Terhadap Wewenang Klinis SIMRS |
+| :--- | :--- | :--- | :--- |
+| **Tier Hijau** (*Fast-Track*) | Skor komposit 3 tahun >= 80.0 DAN nol (0) insiden sentinel | Rekomendasi perpanjangan instan tanpa wawancara mendalam | Perpanjangan SPK/RKK wewenang Level 4 Mandiri disahkan otomatis |
+| **Tier Kuning** (*Clarification*) | Skor komposit 3 tahun 65.0 s.d. 79.9 ATAU keterlambatan EMR > 20% | Wawancara klarifikasi oleh KSM & penandatanganan komitmen perbaikan | Perpanjangan bersyarat dengan audit kepatuhan per 6 bulan |
+| **Tier Merah** (*Plenary Investigation*) | Skor komposit 3 tahun < 65.0 ATAU pernah gagal FPPE / etik | Sidang investigasi khusus pleno Komite Medik lengkap | Penurunan wewenang ke Level 3 Supervisi atau pencabutan wewenang |
+
+## 24. Matriks Transisi Status Sub-Modul 16: Learning, Training & Competency (Slice S-C2)
+
+Matriks transisi status ini mengatur siklus hidup entitas operasional pembelajaran, sertifikasi kompetensi klinis nakes, kontrol rencana kerja tahunan diklat, dan akta ikatan dinas retensi tenaga kerja rumah sakit.
+
+### 24.1 Siklus Hidup Rencana Diklat Tahunan (`TrainingPlanStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Buat Rencana Kerja TNA
+    Draft --> Submitted : Ajukan ke Direktur SDM
+    Submitted --> Approved : Disetujui Pimpinan
+    Submitted --> Draft : Dikembalikan untuk Revisi
+    Approved --> Active : Tahun Fiskal Berjalan
+    Active --> Closed : Tutup Buku & Evaluasi Akhir
+    Draft --> Cancelled : Batalkan Rencana
+    Submitted --> Cancelled : Ditolak / Dibatalkan
+    Active --> Cancelled : Penghentian Program
+    Closed --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pembuatan draf rencana kerja tahunan diklat | Tim Diklat menginput usulan program pelatihan dan estimasi biaya per departemen. | `Training_Plan:Create` |
+| `Draft` | `Submitted` | Pengajuan dokumen rencana kerja | Seluruh rincian program dan estimasi anggaran telah lengkap diisi (`VR-TRN-13`). | `Training_Plan:Create` |
+| `Submitted` | `Approved` | Pengesahan oleh Direktur / Manajer SDM | Verifikasi kelayakan alokasi pagu terhadap rencana kerja rumah sakit (`VR-TRN-14`). | `Training_Plan:Approve` |
+| `Submitted` | `Draft` | Pengembalian berkas pengusulan | Terdapat ketidaksesuaian estimasi biaya atau target pelatihan yang perlu direvisi. | `Training_Plan:Approve` |
+| `Approved` | `Active` | Awal tahun anggaran fiskal | Tahun berjalan aktif, sesi-sesi pelatihan turunan program dapat dijadwalkan. | `Training_Plan:Manage` |
+| `Active` | `Closed` | Akhir tahun anggaran berjalan | Seluruh sesi telah selesai dan realisasi anggaran final telah diaudit. | `Training_Plan:Manage` |
+| `Draft` / `Submitted` / `Active` | `Cancelled` | Pembatalan rencana kerja tahunan | Pembatalan resmi akibat restrukturisasi atau keputusan direksi. | `Training_Plan:Approve` |
+
+---
+
+### 24.2 Siklus Hidup Sesi Kelas & Workshop Pelatihan (`TrainingSessionStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scheduled : Jadwalkan Sesi Kelas
+    Scheduled --> RegistrationOpen : Buka Kuota Pendaftaran
+    RegistrationOpen --> InProgress : Buka Sesi & Presensi
+    InProgress --> AssessmentPhase : Sesi Selesai, Mulai Ujian
+    AssessmentPhase --> Completed : Nilai Masuk & Sertifikat Terbit
+    Scheduled --> Cancelled : Batalkan Jadwal
+    RegistrationOpen --> Cancelled : Kuota Tidak Terpenuhi
+    Completed --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Scheduled` | Penyusunan jadwal sesi pelatihan | Diklat menetapkan judul, tanggal, kuota, instruktur, dan tempat/link virtual. | `Training_Session:Manage` |
+| `Scheduled` | `RegistrationOpen` | Pembukaan periode pendaftaran peserta | Tanggal pendaftaran aktif, form ESS staf dan penugasan atasan dibuka (`VR-TRN-07`). | `Training_Session:Manage` |
+| `RegistrationOpen` | `InProgress` | Hari pelaksanaan materi dimulai | Tanggal mulai tercapai, kuota minimal terpenuhi, absensi presensi dibuka. | `Training_Session:Manage` |
+| `InProgress` | `AssessmentPhase` | Penyampaian materi diklat selesai | Seluruh hari sesi terlaksana, peserta memenuhi syarat kehadiran masuk ke ujian (`VR-TRN-03`). | `Training_Session:Manage` |
+| `AssessmentPhase` | `Completed` | Penilaian selesai & sertifikat diterbitkan | Seluruh peserta tuntas dinilai (post-test teori & simulasi OSCE klinis). | `Training_Session:Manage` |
+| `Scheduled` / `RegistrationOpen` | `Cancelled` | Pembatalan penyelenggaraan sesi | Kuota minimal peserta tidak tercapai atau kendala force majeure instruktur. | `Training_Session:Manage` |
+
+---
+
+### 24.3 Siklus Hidup Pendaftaran Peserta Diklat (`TrainingEnrollmentStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Input Pendaftaran (ESS/Admin)
+    Draft --> PendingSupervisor : Ajukan Pendaftaran
+    PendingSupervisor --> PendingDiklat : Disetujui Kepala Ruangan
+    PendingSupervisor --> Rejected : Ditolak Atasan
+    PendingDiklat --> Approved : Divalidasi Diklat & Anggaran
+    PendingDiklat --> Rejected : Ditolak Diklat
+    Approved --> InTraining : Sesi Dimulai & Presensi
+    InTraining --> Completed : Lulus Presensi & Ujian OSCE
+    InTraining --> Failed : Tidak Lulus Presensi / Asesmen
+    Approved --> Cancelled : Pembatalan Mandiri / Dinas
+    Completed --> [*]
+    Failed --> [*]
+    Rejected --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pengisian form registrasi diklat | Staf mengentri pengajuan diklat via ESS atau staf Diklat menugaskan via radar. | `Training_Enrollment:Submit` |
+| `Draft` | `PendingSupervisor` | Penyerahan berkas pendaftaran | Staf mengajukan dispensasi dinas ke atasan langsung/kepala ruangan. | `Training_Enrollment:Submit` |
+| `PendingSupervisor` | `PendingDiklat` | Persetujuan atasan langsung | Atasan menyetujui jadwal dispensasi tidak mengganggu kontinuitas dinas unit. | `Training_Enrollment:Approve` |
+| `PendingDiklat` | `Approved` | Verifikasi tim Diklat | Diklat memvalidasi kecukupan sisa pagu anggaran dan ketersediaan kuota kelas (`VR-TRN-15`). | `Training_Enrollment:Approve` |
+| `PendingSupervisor` / `PendingDiklat` | `Rejected` | Penolakan pendaftaran | Alasan penolakan dicatat (anggaran habis, jadwal bentrok kritis dinas, dsb). | `Training_Enrollment:Approve` |
+| `Approved` | `InTraining` | Check-in pertama sesi pelatihan | Peserta hadir dan mencatatkan presensi absensi pada hari pertama kelas. | `Training_Session:Manage` |
+| `InTraining` | `Completed` | Kelulusan evaluasi komprehensif | Kehadiran >= 80% (umum) / 100% (klinis) DAN lulus teori (>=75) serta OSCE (>=80) (`VR-TRN-04`). | `Training_Assessment:Grade` |
+| `InTraining` | `Failed` | Gagal evaluasi / absen melampaui batas | Kehadiran kurang dari ambang atau gagal remedial teori dan OSCE. | `Training_Assessment:Grade` |
+| `Approved` | `Cancelled` | Pembatalan keikutsertaan | Pembatalan diajukan sebelum sesi dimulai karena rotasi darurat dinas. | `Training_Enrollment:Submit` |
+
+---
+
+### 24.4 Siklus Hidup Sertifikat Kompetensi & Radar Kedaluwarsa (`TrainingCertificateStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Generate Sertifikat Pasca Kelulusan
+    Draft --> Active : Verifikasi & Terbitkan e-Sertifikat
+    Active --> ExpiringSoon : Masuk Radar H-90, H-60, H-30
+    ExpiringSoon --> Active : Perpanjangan Sukses (Sertifikat Baru)
+    ExpiringSoon --> Expired : Melewati Tanggal Kedaluwarsa (H-0)
+    Expired --> Active : Mengikuti Pelatihan Ulang & Lulus
+    Active --> Revoked : Dicabut Komite Etik / Medik
+    Revoked --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Kelulusan asesmen peserta diklat | Sistem men-generate draft sertifikat dengan nomor seri resmi unik. | `Training_Certificate:Issue` |
+| `Draft` | `Active` | Pengesahan & penerbitan sertifikat | Tanda tangan digital pejabat Diklat dibubuhkan, auto-arsip ke e-Dossier Sub-02 (`INT-HR-72`). | `Training_Certificate:Issue` |
+| `Active` | `ExpiringSoon` | Evaluasi worker radar harian | Tanggal kedaluwarsa berada dalam rentang <= 90 hari sebelum habis tempo (`TRN-W1`). | Sistem / Worker |
+| `ExpiringSoon` | `Active` | Perpanjangan diklat tepat waktu | Pegawai telah menyelesaikan kelas penyegaran dan sertifikat baru diterbitkan. | `Training_Certificate:Issue` |
+| `ExpiringSoon` | `Expired` | Tanggal hari ini > tanggal kedaluwarsa | Sertifikat mati; memicu status Overdue dan pengamanan jadwal shift *buddy system* (`INT-HR-79`). | Sistem / Worker |
+| `Expired` | `Active` | Staf mengikuti retifikasi/pelatihan ulang | Staf lulus pelatihan penyegaran dan sertifikat baru diaktifkan. | `Training_Certificate:Issue` |
+| `Active` | `Revoked` | Pencabutan izin kompetensi khusus | Komite Medik / Keperawatan mencabut sertifikat akibat malpraktik / pelanggaran disiplin. | `Training_Mandatory:Manage` |
+
+---
+
+### 24.5 Siklus Hidup Perjanjian Ikatan Dinas & Retensi Pegawai (`TrainingBondStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Inisiasi Akta Ikatan Dinas (> Rp 10 Jt / > 1 Bln)
+    Draft --> PendingSigning : Ajukan Penandatanganan Kontrak
+    PendingSigning --> Active : Penandatanganan Selesai & Diklat Tuntas
+    Active --> Completed : Masa Retensi Kerja Berakhir Normal
+    Active --> BreachPenalized : Resign Sepihak / Pelanggaran Disiplin
+    Active --> Discharged : Pembebasan Khusus Direksi
+    Completed --> [*]
+    BreachPenalized --> [*]
+    Discharged --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Deteksi pendaftaran diklat berbiaya tinggi | Biaya pelatihan > Rp 10.000.000 atau durasi > 30 hari kalender (`VR-TRN-16`). | `Training_Bond:Manage` |
+| `Draft` | `PendingSigning` | Pengajuan draf akta ke staf dan direksi | Dokumen klausul masa retensi (12 - 36 bulan) dan formula denda dicantumkan. | `Training_Bond:Manage` |
+| `PendingSigning` | `Active` | Penandatanganan meterai & diklat selesai | Berkas PDF akta ditandatangani dan diunggah; masa retensi resmi berjalan sejak tanggal selesai diklat. | `Training_Bond:Manage` |
+| `Active` | `Completed` | Masa retensi terpenuhi penuh | Staf setia mengabdi hingga tanggal `end_date` tanpa pemutusan hubungan kerja. | Sistem / Worker |
+| `Active` | `BreachPenalized` | Pegawai mengundurkan diri sepihak | Staf mengajukan resign sebelum ikatan selesai; tagihan penalti ganti rugi diterbitkan otomatis (`VR-TRN-17`). | `Training_Bond:Manage` |
+| `Active` | `Discharged` | Pelepasan ikatan dinas khusus | Kebijakan direksi atas pertimbangan kemanusiaan (misal cacat permanen, sakit kritis menahun). | `Training_Bond:Manage` |
+
+## 25. Matriks Transisi Status Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3)
+
+Matriks transisi status ini mengatur siklus hidup entitas operasional penilaian kinerja pegawai rumah sakit, evaluasi berjenjang tiga tingkat, sidang pleno kalibrasi, program pembinaan kinerja PIP 60 hari, jenjang karier klinis perawat/nakes, serta sengketa sanggah banding nilai.
+
+### 25.1 Siklus Hidup Periode Kinerja (`PerformanceCycleStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Buat Siklus Kinerja Baru
+    Draft --> Active : Buka Periode & Cascading Target
+    Active --> InReview : Batas Waktu Target Lewat, Mulai Penilaian
+    InReview --> Calibrating : Seluruh Penilaian Selesai, Mulai Sidang
+    Calibrating --> Closed : Nilai Resmi Disahkan & Dirilis
+    Draft --> Cancelled : Batalkan Siklus
+    Active --> Cancelled : Pembatalan Darurat
+    Closed --> [*]
+    Cancelled --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pembuatan draf siklus evaluasi kerja | HR Performance menetapkan tahun evaluasi dan tanggal tenggat waktu (`VR-PRF-01`). | `Performance_Cycle:Manage` |
+| `Draft` | `Active` | Pembukaan resmi periode kinerja | Tanggal mulai tercapai, sasaran target instalasi siap di-cascading ke staf. | `Performance_Cycle:Manage` |
+| `Active` | `InReview` | Akhir periode kerja yang dinilai | Portal pengisian lembar evaluasi (self & manager) resmi dibuka. | Sistem / Worker |
+| `InReview` | `Calibrating` | Tenggat waktu atasan kedua selesai | Seluruh berkas review terkumpul, matriks kurva lonceng sebaran nilai digenerate. | Sistem / Worker |
+| `Calibrating` | `Closed` | Pengesahan sidang pleno kalibrasi | Direktur SDM menutup sidang pleno, skor akhir dikunci dan dirilis ke ESS (`VR-PRF-06`). | `Performance_Calibration:Manage` |
+| `Draft` / `Active` | `Cancelled` | Pembatalan siklus kerja | Pembatalan resmi akibat bencana darurat atau restrukturisasi total institusi. | `Performance_Cycle:Manage` |
+
+---
+
+### 25.2 Siklus Hidup Lembar Rapor Evaluasi Kinerja Pegawai (`PerformanceAppraisalStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Inisiasi Lembar Evaluasi
+    Draft --> SelfSubmitted : Pegawai Submit Self-Assessment di ESS
+    SelfSubmitted --> ManagerAssessed : Karu Input Skor 60% KPI + 40% Perilaku
+    ManagerAssessed --> SecondLineReviewed : Kabid Menyetujui & Otorisasi Berkas
+    SecondLineReviewed --> InCalibration : Masuk ke Antrean Sidang Kalibrasi
+    InCalibration --> FinalApproved : Komite Kalibrasi Mengesahkan Nilai
+    FinalApproved --> Disputed : Pegawai Mengajukan Sanggahan Banding (H+7)
+    Disputed --> FinalApproved : Putusan Majelis Banding Selesai
+    FinalApproved --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Pembukaan fase penilaian siklus | Sistem men-generate lembar kerja evaluasi untuk seluruh pegawai aktif unit. | Sistem / Worker |
+| `Draft` | `SelfSubmitted` | Pegawai menyerahkan evaluasi mandiri | Pegawai mengisi refleksi diri dan mengunggah dokumen bukti di ESS. | `Performance_Appraisal:SelfAssess` |
+| `SelfSubmitted` | `ManagerAssessed` | Penilaian oleh atasan langsung (Karu) | Karu mengisi seluruh butir nilai 60% KPI dan 40% Core Values BerAKHLAK (`VR-PRF-03`). | `Performance_Appraisal:ManagerAssess` |
+| `ManagerAssessed` | `SecondLineReviewed` | Penelaahan oleh atasan kedua (Kabid) | Kabid memeriksa konsistensi skor antar ruangan dan menyetujui berkas (`VR-PRF-04`). | `Performance_Appraisal:SecondLineReview` |
+| `SecondLineReviewed`| `InCalibration` | Sidang kalibrasi dibuka | Seluruh berkas unit dikompilasi ke dalam matriks sebaran nilai komite. | Sistem / Worker |
+| `InCalibration` | `FinalApproved` | Komite kalibrasi mengesahkan skor | Skor akhir komposit ditetapkan (dengan/tanpa override notes) dan dirilis ke ESS. | `Performance_Calibration:Manage` |
+| `FinalApproved` | `Disputed` | Pengajuan sanggah banding oleh pegawai | Pegawai mengajukan sanggahan resmi dalam rentang maksimal 7 hari kalender (`VR-PRF-12`). | `Performance_Dispute:Submit` |
+| `Disputed` | `FinalApproved` | Penetapan putusan sidang banding | Direktur SDM menerbitkan putusan final dan skor akhir diperbarui (`VR-PRF-13`). | `Performance_Dispute:Manage` |
+
+---
+
+### 25.3 Siklus Hidup Program Peningkatan Kinerja (`PerformancePipStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Nilai Terkalibrasi < 65 Memicu PIP
+    Draft --> Active : Kontrak Ditandatangani Pegawai & Mentor
+    Active --> Extended : Putusan Sidang Hari Ke-60: Perpanjangan 30 Hari
+    Active --> Completed : Putusan Sidang: Target Tercapai / Lulus
+    Extended --> Completed : Target Tercapai pada Masa Perpanjangan
+    Active --> Failed : Putusan Sidang: Gagal / Tidak Ada Perbaikan
+    Extended --> Failed : Tetap Gagal Pasca Perpanjangan
+    Active --> Terminated : Pegawai Mengundurkan Diri Sepihak
+    Completed --> [*]
+    Failed --> [*]
+    Terminated --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Deteksi skor akhir < 65.00 | Sistem menerbitkan draf kontrak pembinaan formal PIP 60 hari kalender (`VR-PRF-08`). | Sistem / Worker |
+| `Draft` | `Active` | Penandatanganan kontrak komitmen | Pegawai, atasan, dan mentor menyetujui target perbaikan; masa 60 hari berjalan. | `Performance_Pip:Manage` |
+| `Active` | `Completed` | Evaluasi akhir hari ke-60 lulus | Staf membuktikan pencapaian target perbaikan; status kinerja kembali normal. | `Performance_Pip:Manage` |
+| `Active` | `Extended` | Evaluasi hari ke-60: perpanjangan | Tren perbaikan positif parsial, komite memberi tambahan waktu maks 30 hari (`VR-PRF-10`). | `Performance_Pip:Manage` |
+| `Extended` | `Completed` | Evaluasi pasca perpanjangan lulus | Staf menuntaskan target pada masa 30 hari tambahan; status normal kembali. | `Performance_Pip:Manage` |
+| `Active` / `Extended` | `Failed` | Evaluasi akhir tidak memenuhi target | Staf gagal menunjukkan perbaikan; berkas dieskalasi ke HR Legal / Komite Etik. | `Performance_Pip:Manage` |
+| `Active` | `Terminated` | Pengunduran diri saat PIP | Pegawai mengundurkan diri sepihak sebelum masa pembinaan 60 hari selesai. | `Performance_Pip:Manage` |
+
+---
+
+### 25.4 Siklus Hidup Review Jenjang Karier Klinis Nakes (`ClinicalLadderStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Ajukan Kenaikan Jenjang di ESS
+    Draft --> Submitted : Serahkan Portofolio & Logbook Kasus
+    Submitted --> EligibilityVerified : Gate Sistem Memvalidasi Prasyarat
+    Submitted --> Rejected : Skor KPI < 75 / Sertifikat Mati
+    EligibilityVerified --> Audited : Asesor Komite Selesai Audit Dokumen
+    Audited --> CommitteePlenary : Sidang Pleno Komite Keperawatan
+    CommitteePlenary --> Approved : SK Kenaikan Jenjang Diterbitkan Direksi
+    CommitteePlenary --> Rejected : Komite Menolak / Menunda Kenaikan
+    Approved --> [*]
+    Rejected --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Draft` | Nakes membuat draf pengajuan jenjang | Nakes memilih jenjang target (misal PK II ke PK III) di portal ESS. | `Clinical_Career:Apply` |
+| `Draft` | `Submitted` | Pengunggahan logbook kasus klinis | Nakes melampirkan portofolio tindakan mandiri dan sertifikat pendukung. | `Clinical_Career:Apply` |
+| `Submitted` | `EligibilityVerified`| Validasi otomatis service gate | Skor kinerja >= 75, sertifikat kompetensi Sub-16 aktif, bebas sentinel Sub-15 (`VR-PRF-14`).| Sistem / Gate |
+| `Submitted` | `Rejected` | Kegagalan gate prasyarat sistem | Skor kinerja < 75 atau sertifikat kritis expired; pengajuan ditolak seketika (*fail-closed*).| Sistem / Gate |
+| `EligibilityVerified`| `Audited` | Audit portofolio oleh asesor klinis | Asesor memverifikasi kecukupan kuota kasus tindakan mandiri perawat. | `Clinical_Career:Manage` |
+| `Audited` | `CommitteePlenary` | Sidang pleno Komite Keperawatan | Komite membahas kelayakan etika dan kompetensi klinis nakes pemohon. | `Clinical_Career:Manage` |
+| `CommitteePlenary` | `Approved` | Pengesahan SK Direktur Utama | SK Penetapan Jenjang Klinis terbit; otomatis mutasi level Sub-02 dan RKK Sub-14 (`INT-HR-83`).| `Clinical_Career:Manage` |
+| `CommitteePlenary` | `Rejected` | Putusan penundaan / penolakan komite | Rekomendasi penundaan 6 bulan atau retensi jenjang berjalan dengan pembinaan. | `Clinical_Career:Manage` |
+
+---
+
+### 25.5 Siklus Hidup Sengketa Sanggah Banding Nilai Kinerja (`AppraisalDisputeStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Submitted : Pegawai Input Sanggahan (H+7 Pasca Rilis)
+    Submitted --> MediationPhase : Berkas Bukti Lengkap, Mulai Mediasi HR
+    Submitted --> Rejected : Melebihi Batas Waktu 7 Hari / Tanpa Bukti
+    MediationPhase --> Resolved : Kesepakatan di Mediasi (Revisi Skor Disetujui)
+    MediationPhase --> PlenaryReview : Mediasi Buntu, Eskalasi ke Majelis Banding
+    PlenaryReview --> Resolved : Putusan Final Komite Diterbitkan (Maks H+14)
+    Resolved --> [*]
+    Rejected --> [*]
+```
+
+| Status Asal | Status Tujuan | Pemicu (Trigger) / Aksi | Kondisi & Aturan Bisnis | Hak Akses |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `Submitted` | Pengajuan sanggahan oleh pegawai | Pegawai mengentri keberatan dan melampirkan berkas bukti pembanding di ESS (`VR-PRF-12`). | `Performance_Dispute:Submit` |
+| `Submitted` | `Rejected` | Penolakan pendaftaran sanggahan | Diajukan melampaui batas H+7 atau tidak melampaui bukti dokumen pembanding. | `Performance_Dispute:Manage` |
+| `Submitted` | `MediationPhase` | Penerimaan berkas oleh HRD | Tim HR Performance menjadwalkan klarifikasi tertutup antara penilai dan pemohon. | `Performance_Dispute:Manage` |
+| `MediationPhase` | `Resolved` | Kesepakatan mediasi damai | Penilai dan pemohon sepakat koreksi skor; berita acara mediasi disahkan HRD. | `Performance_Dispute:Manage` |
+| `MediationPhase` | `PlenaryReview` | Ketidaksepakatan di mediasi | Sengketa berlanjut dan dieskalasi ke Komite Kalibrasi / Direktur SDM. | `Performance_Dispute:Manage` |
+| `PlenaryReview` | `Resolved` | Putusan final majelis banding | Putusan final diterbitkan dalam batas waktu 14 hari kalender; sengketa ditutup resmi (`VR-PRF-13`). | `Performance_Dispute:Manage` |
+
+
+---
+
+## 26. Matriks Transisi Status Sub-Modul 18: Hubungan Industrial & Terminasi (Slice `S-C5`)
+
+### 26.1 Siklus Hidup Laporan Kasus Disiplin (`DisciplinaryCaseStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Reported : Insiden Dilaporkan
+    Reported --> Investigating : BAP Pemeriksaan Dibuka
+    Investigating --> ResolvedNoSanction : Human Error / Pembinaan Tanpa SP
+    Investigating --> SanctionRecommended : Bukti Reckless Misconduct Sah
+    SanctionRecommended --> SanctionIssued : Surat Sanksi SP Diterbitkan Direktur SDM
+    ResolvedNoSanction --> [*]
+    SanctionIssued --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Reported` | Buka Berkas Pemeriksaan | `Investigating` | Nomor BAP terbit; tim pemeriksa ditunjuk | HR Legal / Supervisor |
+| `Investigating` | Rekomendasikan Pembinaan | `ResolvedNoSanction` | Klasifikasi Just Culture = `HumanError`; diarahkan ke Diklat Sub-16 | Tim Pemeriksa BAP |
+| `Investigating` | Tetapkan Dugaan Pelanggaran | `SanctionRecommended` | Bukti Reckless Misconduct sah; nomor audit KMKP ada jika kasus klinis | Tim Pemeriksa BAP |
+| `SanctionRecommended` | Sahkan Penerbitan Sanksi | `SanctionIssued` | Ditandatangani Direktur SDM; `ValidUntil = IssuedDate + 6 Months` | Direktur SDM |
+
+---
+
+### 26.2 Siklus Hidup Surat Peringatan (`DisciplinarySanctionStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Active` | Masa Berlaku Berakhir | `Expired` | Mencapai `ValidUntil` (6 bulan kalender); tidak ada pelanggaran baru | `SpExpirationWorker` (`EMP-W1`) |
+| `Active` | Banding Dikabulkan | `RevokedOnAppeal` | Putusan sidang sanggah banding Direksi menyatakan sanksi gugur | Direktur Utama / Komite Etik |
+| `Active` | Pelanggaran Berulang | `Escalated` | Pegawai melakukan pelanggaran baru sebelum 6 bulan; naik ke SP lebih tinggi | Direktur SDM |
+
+---
+
+### 26.3 Siklus Hidup Skorsing Masa Investigasi (`DisciplinarySuspensionStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Surat Penetapan Skorsing | `Active` | Dugaan pelanggaran berat; hak upah 100% aktif; akses SSO SIMRS dicabut | Direktur Utama |
+| `Active` | Rehabilitasi Pegawai | `CompletedReinstated` | Hasil investigasi membuktikan staf tidak bersalah; akun SIMRS diaktifkan lagi | Direktur Utama |
+| `Active` | Putusan Pemutusan Kerja | `EscalatedToTermination` | BAP membuktikan pelanggaran berat; berkas dialihkan ke pemutusan hubungan kerja | Direktur Utama |
+
+---
+
+### 26.4 Siklus Hidup Pengaduan Keluhan & Whistleblowing (`GrievanceTicketStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Submitted` | Verifikasi Tiket | `UnderReview` | Diterima oleh Supervisor atau Tim Kepatuhan (jika whistleblower) | Supervisor / Tim Kepatuhan |
+| `UnderReview` | Jadwalkan Klarifikasi | `MediationScheduled` | Para pihak dipanggil untuk mediasi dalam batas SLA 14 hari kerja | Mediasi HR |
+| `MediationScheduled`| Capai Kesepakatan | `Resolved` | Berita acara mediasi ditandatangani kedua belah pihak | Mediasi HR |
+| `UnderReview` | Perselisihan Buntu | `EscalatedToBipartite` | Mediasi internal gagal; dinaikkan ke forum perundingan Bipartit resmi | Manajer SDM |
+| `Resolved` | Penutupan Kasus | `Closed` | Rekomendasi perbaikan terlaksana penuh | Staf Pelapor / HR |
+
+---
+
+### 26.5 Siklus Hidup Pemutusan Hubungan Kerja (`EmployeeSeparationStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Initiated` | Validasi Perhitungan Hak | `CalculationApproved` | Lembar pesangon PP 35/2021 disahkan Direktur Keuangan | Direktur Keuangan |
+| `CalculationApproved`| Buka Kliring Aset | `ClearanceInProgress` | Berkas exit clearance 5 departemen diinisiasi | HR Offboarding |
+| `ClearanceInProgress`| Kliring Lengkap & Payroll Unlock | `FinalizedCompleted` | Seluruh 5 unit berstatus `Approved`; rilis gaji akhir terbuka di Sub-10 | Direktur SDM |
+| `Initiated` / `ClearanceInProgress` | Pembatalan Pengunduran Diri | `Cancelled` | Permohonan pembatalan disetujui Direktur SDM sebelum tanggal efektif | Direktur SDM |
+
+---
+
+### 26.6 Siklus Hidup Proses Exit Clearance (`ExitClearanceProcessStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `InProgress` | Terdeteksi Tanggungan Tertunda | `BlockedOutstanding` | H-1 efektif masih ada alat medis, laptop, atau utang yang belum diselesaikan | `ExitClearanceReminderWorker` |
+| `InProgress` / `BlockedOutstanding`| Seluruh Unit Menyetujui | `Completed` | 5 unit kerja (Unit, Aset, Farmasi, Keuangan, IT) menyetujui secara digital | Sistem / Head of HR |
+
+
+---
+
+## 27. Sub-Modul 19: Occupational Health & Staff Safety (K3RS & Medical Check-Up) — Slice `S-C6`
+
+### 27.1 Siklus Hidup Penilaian Kelayakan Kerja Staf (`FitnessToWorkStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scheduled: Registrasi MCU / Rujukan K3RS
+    Scheduled --> InExamination: Staf Datang & Sampel Diambil
+    InExamination --> MedicalReview: Hasil Lab & Radiologi Terunggah
+    MedicalReview --> Fit: Dokter K3RS Menilai Sehat Tanpa Catatan
+    MedicalReview --> FitWithRestriction: Dokter K3RS Menetapkan Pembatasan Kerja
+    MedicalReview --> TemporarilyUnfit: Butuh Istirahat Sakit / Pengobatan
+    MedicalReview --> PermanentlyUnfit: Cacat Total / Kontraindikasi Permanen
+    FitWithRestriction --> MedicalReview: Evaluasi Ulang Masa Pembatasan Selesai
+    TemporarilyUnfit --> MedicalReview: Masa Pemulihan Selesai / Asesmen RTW
+    PermanentlyUnfit --> EscalatedToSeparation: Rekomendasi Pensiun Medis Sub-18
+    Fit --> [*]
+    EscalatedToSeparation --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Registrasi MCU / Pemeriksaan | `Scheduled` | Pegawai terdaftar dalam jadwal pemeriksaan berkala atau rujukan insiden | Staf Admin K3RS |
+| `Scheduled` | Kehadiran Staf & Input Klinis | `InExamination` | Pegawai hadir, tanda vital dicatat, sampel lab/rontgen diambil | Perawat K3RS |
+| `InExamination`| Seluruh Hasil Penunjang Masuk | `MedicalReview` | Seluruh hasil lab serologi, rontgen, spirometri, audiometri terunggah lengkap | Dokter K3RS |
+| `MedicalReview`| Putusan Sehat Penuh | `Fit` | Tidak ditemukan kontraindikasi medis terhadap profil risiko ruangan kerja | Dokter K3RS Bersertifikat |
+| `MedicalReview`| Putusan Sehat dengan Catatan | `FitWithRestriction` | Ditemukan batasan fisik/medis; dokumen pembatasan tugas wajib diterbitkan | Dokter K3RS Bersertifikat |
+| `MedicalReview`| Putusan Tidak Laik Sementara | `TemporarilyUnfit` | Staf menderita penyakit menular aktif atau cedera akut yang butuh pemulihan | Dokter K3RS Bersertifikat |
+| `MedicalReview`| Putusan Tidak Laik Permanen | `PermanentlyUnfit` | Kondisi fisik/kognitif permanen yang membahayakan keselamatan pasien/diri | Komite Medis K3RS |
+| `FitWithRestriction` / `TemporarilyUnfit` | Asesmen Kembali Bekerja (RTW) | `MedicalReview` | Staf menjalani evaluasi ulang pasca masa pemulihan atau masa restriksi | Dokter K3RS Bersertifikat |
+| `PermanentlyUnfit` | Rekomendasi Pensiun Dini Medis | `EscalatedToSeparation` | Asesmen permanen disahkan; diteruskan ke Sub-18 PHK pasal uzur medis | Direktur SDM & K3RS |
+
+---
+
+### 27.2 Siklus Hidup Pembatasan Tugas Medis Staf (`WorkRestrictionStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Penerbitan Surat Pembatasan | `Active` | Ditandatangani Dokter K3RS; hard-stop terpasang otomatis ke roster Sub-06 | Dokter K3RS Bersertifikat |
+| `Active` | Masa Berlaku Berakhir Normal | `Expired` | Tanggal akhir pembatasan terlewati tanpa permohonan perpanjangan | Worker `OHS-W2` |
+| `Active` | Evaluasi Lanjutan & Perpanjangan | `Extended` | Asesmen klinis ulang menyatakan kondisi belum pulih sempurna | Dokter K3RS Bersertifikat |
+| `Active` | Pemulihan Dini & Pencabutan | `RevokedEarly` | Staf pulih lebih cepat dari perkiraan; surat pencabutan diterbitkan | Dokter K3RS Bersertifikat |
+| `Active` / `Extended` | Asesmen Kembali Kerja Penuh (RTW) | `CompletedCleared` | Uji kelaikan RTW lulus; seluruh gembok restriksi roster Sub-06 dilepas | Dokter K3RS Bersertifikat |
+
+---
+
+### 27.3 Siklus Hidup Tanggap Darurat Tertusuk Jarum & Pajanan Okupasional (`NeedleStickIncidentStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> ReportedEmergency: Staf Tekan Tombol Darurat ESS
+    ReportedEmergency --> TriageAssessed: Triase Cito IGD / K3RS (< 1 Jam)
+    TriageAssessed --> PEPPrescribed: Evaluasi Risiko Tinggi & Terapi PPP (< 4 Jam)
+    TriageAssessed --> SurveillanceOnly: Evaluasi Risiko Rendah Tanpa PPP
+    PEPPrescribed --> BaselineSerologyTaken: Sampel Staf & Pasien Sumber Diambil
+    SurveillanceOnly --> BaselineSerologyTaken: Sampel Baseline Diambil
+    BaselineSerologyTaken --> SurveillanceActive: Pemantauan Serial Bulan 1, 3, 6
+    SurveillanceActive --> ClosedSeronegative: Evaluasi Akhir Bulan ke-6 Non-Reaktif
+    SurveillanceActive --> EscalatedSeroconverted: Terjadi Serokonversi Reaktif (Tertular)
+    ClosedSeronegative --> [*]
+    EscalatedSeroconverted --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Laporan Tombol Darurat ESS | `ReportedEmergency` | Dilaporkan staf via ESS; sirene notifikasi cito terkirim ke K3RS & PPI | Staf Medis Terpajan |
+| `ReportedEmergency` | Triase Medis Cito Darurat | `TriageAssessed` | Staf diperiksa di IGD/K3RS dalam batas SLA < 1 jam sejak laporan | Dokter Jaga IGD / K3RS |
+| `TriageAssessed`| Peresepan Profilaksis Pasca Pajanan | `PEPPrescribed` | Pajanan darah pasien sumber HIV/HBV; obat ARV/HBIG diberikan < 4 jam | Dokter K3RS & Farmasi |
+| `TriageAssessed`| Pajanan Risiko Rendah (Tanpa PPP) | `SurveillanceOnly` | Jarum steril / jarum bersih tanpa darah pasien infeksius | Dokter K3RS |
+| `PEPPrescribed` / `SurveillanceOnly` | Pengambilan Darah Baseline | `BaselineSerologyTaken` | Darah staf (HBsAg, Anti-HBs, Anti-HCV, Anti-HIV) & pasien sumber diambil | Analis Lab & K3RS |
+| `BaselineSerologyTaken` | Inisiasi Protokol Pemantauan Serial | `SurveillanceActive` | Jadwal reminder otomatis bulan ke-1, ke-3, dan ke-6 terbit di kalender ESS | Worker `OHS-W1` |
+| `SurveillanceActive` | Pemantauan 6 Bulan Bersih | `ClosedSeronegative` | Hasil serologi bulan ke-6 terbukti non-reaktif (staf dinyatakan sembuh) | Dokter K3RS & PPI |
+| `SurveillanceActive` | Terjadi Serokonversi Reaktif | `EscalatedSeroconverted` | Hasil lab berubah menjadi reaktif; dialihkan ke pengobatan penyakit kerja PAK | Komite Medis K3RS |
+
+---
+
+### 27.4 Siklus Hidup Pelaksanaan MCU Staf (`MedicalExaminationStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `Scheduled` | Konfirmasi Registrasi Staf | `RegisteredArrived` | Staf tiba di lokasi pemeriksaan K3RS; barcode pemeriksaan dicetak | Staf Admin K3RS |
+| `RegisteredArrived` | Pengambilan Sampel & Radiologi | `SampleCollected` | Darah, urine, dahak diambil; rontgen/audiometri selesai dilaksanakan | Tenaga Medis MCU |
+| `SampleCollected` | Hasil Penunjang Terbit | `ResultsUploaded` | Seluruh hasil LIS/PACS terunggah ke berkas terenkripsi | Analis Lab / Radiografer |
+| `ResultsUploaded` | Telaah Rekomendasi Dokter K3RS | `DoctorReview` | Dokter K3RS menyusun kesimpulan kelaikan dan anjuran kesehatan | Dokter K3RS |
+| `DoctorReview` | Pengesahan & Publikasi Status | `CompletedPublished` | Sertifikat kelaikan kerja dirilis ke HR; berkas medis terkunci AES-256 | Dokter K3RS Bersertifikat |
+| `Scheduled` | Staf Tidak Hadir MCU | `NoShowExpired` | Tanggal pemeriksaan terlewati tanpa kehadiran staf; SP peringatan MCU terbit | Worker `OHS-W4` |
+
+---
+
+### 27.5 Siklus Hidup Penanganan Kecelakaan Kerja & Klaim JKK BPJS (`OccupationalInjuryStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Laporan Insiden Kecelakaan Kerja | `Reported` | Laporan KAK dibuat; detail TKP, saksi, dan kondisi korban terdata | Staf Korban / Atasan |
+| `Reported` | Investigasi K3RS & Verifikasi TKP | `Investigating` | Tim K3RS melakukan olah TKP, analisis akar masalah (RCA), dan susun CAPA | Tim K3RS RS |
+| `Investigating`| Pelaporan BPJS Ketenagakerjaan Tahap I | `BPJSClaimStage1Submitted`| Formulir JKK Tahap I terkirim ke portal BPJS dalam batas waktu < 2x24 jam | Petugas Klaim HR K3RS |
+| `BPJSClaimStage1Submitted` | Perawatan Medis & Rehabilitasi | `MedicalTreatmentOngoing` | Korban menjalani rawat inap/jalan; pemantauan hari kerja hilang (LTI) | Tim Medis & K3RS |
+| `MedicalTreatmentOngoing` | Asesmen Kesiapan Bekerja Kembali | `ReturnToWorkAssessed` | Dokter K3RS menerbitkan sertifikat RTW kelaikan kerja kembali bertugas | Dokter K3RS |
+| `ReturnToWorkAssessed` | Pengajuan Klaim Akhir Tahap II | `BPJSClaimStage2Finalized` | Kuitansi pengobatan, surat sembuh/cacat diserahkan ke BPJS Ketenagakerjaan | Petugas Klaim HR K3RS |
+| `BPJSClaimStage2Finalized` | Penutupan Kasus Kecelakaan | `Closed` | Pembayaran klaim JKK BPJS diterima; laporan akhir K3RS diarsipkan | Manajer SDM & K3RS |
+
+
+---
+
+## 28. Sub-Modul 21: Employee Self-Service (ESS) & Unified Approval Inbox (V2 Hardening) — Slice `S-A7-V2`
+
+### 28.1 Siklus Hidup Tiket Permohonan Terpadu (`WorkflowInstanceStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: Staf Membuka Formulir ESS
+    Draft --> Submitted: Staf Menekan Ajukan
+    Submitted --> UnderReview: Tiket Masuk Inbox Approver Step 1
+    UnderReview --> ReturnedForRevision: Approver Meminta Perbaikan Data
+    ReturnedForRevision --> Resubmitted: Staf Mengedit & Mengajukan Ulang
+    Resubmitted --> UnderReview: Kembali Masuk Inbox Approver Terkait
+    UnderReview --> Approved: Seluruh Tahapan Persetujuan Selesai
+    UnderReview --> Rejected: Salah Satu Approver Menolak Permohonan
+    Draft --> Cancelled: Staf Membatalkan Draf Permohonan
+    Submitted --> Cancelled: Staf Menarik Kembali Sebelum Diproses
+    UnderReview --> EscalatedDueToTimeout: Batas Waktu SLA Terlewati
+    EscalatedDueToTimeout --> UnderReview: Diambil Alih Atasan Lebih Tinggi
+    Approved --> [*]
+    Rejected --> [*]
+    Cancelled --> [*]
+```
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Buka Formulir ESS | `Draft` | Pengisian data awal permohonan mandiri di portal ESS | Staf Pemohon |
+| `Draft` | Kirim Permohonan Resmi | `Submitted` | Seluruh data wajib terisi; matriks alur persetujuan terbentuk | Staf Pemohon |
+| `Submitted` | Penugasan Tiket ke Approver | `UnderReview` | Tiket berhasil masuk ke antrean inbox approver tahapan aktif | Workflow Engine |
+| `UnderReview` | Permintaan Klarifikasi / Koreksi | `ReturnedForRevision` | Approver memberikan catatan revisi minimal 10 karakter | Approver Ditugaskan |
+| `ReturnedForRevision` | Perbaikan & Kirim Ulang | `Resubmitted` | Staf memperbarui data atau mengunggah lampiran pengganti | Staf Pemohon |
+| `Resubmitted`| Penugasan Ulang ke Approver | `UnderReview` | Tiket kembali ke inbox approver yang meminta revisi | Workflow Engine |
+| `UnderReview` | Persetujuan Tahapan Terakhir | `Approved` | Seluruh step approver menyetujui; memicu eksekusi domain hilir | Approver Final |
+| `UnderReview` | Penolakan Permohonan | `Rejected` | Approver menolak disertai alasan penolakan wajib minimal 15 karakter | Approver Ditugaskan |
+| `Submitted` / `Draft` | Pembatalan Mandiri | `Cancelled` | Permohonan ditarik oleh pemohon sebelum keputusan diambil | Staf Pemohon |
+| `UnderReview` | Batas Waktu SLA Terlewati | `EscalatedDueToTimeout` | Tiket belum direspon melewati batas `SlaDeadline` | Worker `WF-W1` |
+| `EscalatedDueToTimeout` | Ambil Alih Wewenang | `UnderReview` | Atasan tingkat di atasnya menerima wewenang eskalasi | Atasan Tingkat Atas |
+
+---
+
+### 28.2 Siklus Hidup Tahapan Persetujuan Berjenjang (`WorkflowStepStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Inisiasi Step | `Pending` | Tahapan menunggu penyelesaian dari tahapan sebelumnya | Workflow Engine |
+| `Pending` | Tahapan Sebelumnya Lolos | `InReview` | Tahapan menjadi aktif dan masuk ke inbox approver terkait | Workflow Engine |
+| `InReview` | Keputusan Persetujuan | `Approved` | Approver sah menekan setuju dengan verifikasi PIN | Approver / Plh |
+| `InReview` | Keputusan Penolakan | `Rejected` | Approver menolak; tahapan berikutnya otomatis dibatalkan | Approver / Plh |
+| `InReview` | Pemohon Self-Approval | `SkippedSelfApproval` | Pemohon adalah approver definitif; step dialihkan ke atasan | Engine `WF-B2` |
+
+---
+
+### 28.3 Siklus Hidup Pendelegasian Wewenang / Plh (`ApprovalDelegationStatus`)
+
+| Status Awal | Event / Aksi Pemicu | Status Tujuan | Syarat Transisi (Guard Conditions) | Wewenang Aktor |
+|---|---|---|---|---|
+| `[*] ` | Registrasi Surat Kuasa Plh | `Scheduled` | Didaftarkan sebelum tanggal `StartDate` tiba | Pejabat Definitif |
+| `Scheduled` / `[*] ` | Tanggal Mulai Berlaku | `Active` | Tanggal hari ini `>= StartDate` dan `<= EndDate` | Worker `WF-W2` |
+| `Active` | Tanggal Akhir Terlewati | `Expired` | Tanggal hari ini `> EndDate`; hak wewenang Plh dicabut otomatis | Worker `WF-W2` |
+| `Active` / `Scheduled` | Pencabutan Dini Wewenang | `RevokedEarly` | Pejabat definitif kembali aktif lebih cepat dari rencana | Pejabat Definitif |
+
+
+---
+
+## 29. Matriks Transisi Status Sub-Modul 13: Perjalanan Dinas & Manajemen Biaya Operasional (Business Travel & Expense Management) — Slice `S-D5`
+
+### 29.1 Siklus Hidup Permohonan SPPD (`BusinessTravelStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Inisiasi Formulir SPPD
+    Draft --> Submitted : Diajukan oleh Pegawai
+    Submitted --> Approved : Disetujui Atasan, HR & Direksi
+    Submitted --> Rejected : Ditolak (Alasan Tertulis)
+    Draft --> Cancelled : Dibatalkan Pemohon
+    Submitted --> Cancelled : Dibatalkan Sebelum Tanggal Berangkat
+    Approved --> InTravel : Tanggal Mulai Dinas Tercapai
+    InTravel --> WaitingSettlement : Tanggal Dinas Selesai (Kembali ke RS)
+    WaitingSettlement --> Completed : Laporan Settlement Selesai & Ditutup
+    Completed --> [*]
+    Rejected --> [*]
+    Cancelled --> [*]
+```
+
+### 29.2 Siklus Hidup Uang Muka Kerja (`TravelAdvanceStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Pengajuan Uang Muka (Maks 80%)
+    Draft --> Submitted : Dikirim ke Finance
+    Submitted --> Approved : Disetujui Finance Manager
+    Submitted --> Rejected : Ditolak (Anggaran Tidak Tersedia)
+    Approved --> Paid : Kasir Mencairkan Dana Transfer/Tunai
+    Paid --> Settled : Rekonsiliasi Settlement Selesai
+    Settled --> [*]
+```
+
+### 29.3 Siklus Hidup Pertanggungjawaban Biaya (`TravelSettlementStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Pegawai Mengisi Pengeluaran Riil
+    Draft --> Submitted : Diserahkan dalam SLA <= 7 Hari
+    Submitted --> Verified : Verifikasi Fisik Kuitansi oleh Keuangan
+    Verified --> Settled : Selisih Diselesaikan Kasir RS
+    Submitted --> Defaulted : Menunggak > 30 Hari (Potong Payroll)
+    Defaulted --> Settled : Terpotong Otomatis di Slip Gaji
+    Settled --> [*]
+```
+
+### 29.4 Siklus Hidup Klaim Pengeluaran Non-Trip (`ExpenseClaimStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : Catat Pembelian Operasional Darurat
+    Draft --> Submitted : Diajukan dengan Lampiran Bukti
+    Submitted --> Approved : Disetujui Kepala Unit Kerja
+    Approved --> Verified : Diverifikasi Staf Finance
+    Verified --> Paid : Dicairkan oleh Kasir RS
+    Submitted --> Rejected : Ditolak (Bukan Beban RS)
+    Paid --> [*]
+    Rejected --> [*]
+```

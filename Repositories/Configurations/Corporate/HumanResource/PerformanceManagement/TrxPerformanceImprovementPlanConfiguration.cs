@@ -8,26 +8,30 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<TrxPerformanceImprovementPlan> entity)
         {
-            entity.ToTable("TrxPerformanceImprovementPlan", "public");
+            entity.ToTable("trx_performance_improvement_plans", "public");
             entity.HasKey(x => x.Id);
 
+            entity.Property(x => x.PipNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.StartDate).HasColumnType("timestamp with time zone");
             entity.Property(x => x.EndDate).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.EmployeeAcknowledgedAt).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.ApprovedAt).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.ProgressPercentage).HasPrecision(5, 2);
+            entity.Property(x => x.ActionPlanSummary).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired().HasDefaultValue("Draft");
+            entity.Property(x => x.FinalVerdict).HasMaxLength(30);
+
             entity.Property(x => x.ObjectivesJson).HasColumnType("jsonb");
             entity.Property(x => x.ActionPlanJson).HasColumnType("jsonb");
             entity.Property(x => x.SuccessMetricsJson).HasColumnType("jsonb");
-            entity.Property(x => x.CheckInFrequencyDays).HasDefaultValue(30);
-            entity.Property(x => x.ProgressPercentage).HasDefaultValue(0m);
-            entity.Property(x => x.IsEmployeeAcknowledged).HasDefaultValue(false);
+            entity.Property(x => x.ProgressPercentage).HasColumnType("decimal(5,2)").HasDefaultValue(0m);
+            entity.Property(x => x.Outcome).HasMaxLength(100);
+            entity.Property(x => x.OutcomeNote).HasMaxLength(3000);
+            entity.Property(x => x.EmployeeAcknowledgedAt).HasColumnType("timestamp with time zone");
+            entity.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone");
+            entity.Property(x => x.ApprovedAt).HasColumnType("timestamp with time zone");
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
-            entity.HasOne(x => x.PerformanceCycle)
+            entity.HasOne(x => x.PerformanceAppraisal)
                 .WithMany()
-                .HasForeignKey(x => x.PerformanceCycleId)
+                .HasForeignKey(x => x.PerformanceAppraisalId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.WorkforceProfile)
@@ -35,41 +39,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasForeignKey(x => x.WorkforceProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(x => x.Employee)
+            entity.HasOne(x => x.MentorWorkforceProfile)
                 .WithMany()
-                .HasForeignKey(x => x.EmployeeId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.ManagerUser)
-                .WithMany()
-                .HasForeignKey(x => x.ManagerUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.PerformanceReview)
-                .WithMany()
-                .HasForeignKey(x => x.PerformanceReviewId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.WorkflowDefinition)
-                .WithMany()
-                .HasForeignKey(x => x.WorkflowDefinitionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.SubmittedByUser)
-                .WithMany()
-                .HasForeignKey(x => x.SubmittedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.ApprovedByUser)
-                .WithMany()
-                .HasForeignKey(x => x.ApprovedByUserId)
+                .HasForeignKey(x => x.MentorWorkforceProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.PipNumber)
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 
-            entity.HasIndex(x => new { x.WorkforceProfileId, x.PipStatus, x.StartDate });
+            entity.HasIndex(x => x.PerformanceAppraisalId);
+            entity.HasIndex(x => x.WorkforceProfileId);
+            entity.HasIndex(x => x.MentorWorkforceProfileId);
+            entity.HasIndex(x => x.Status);
 
             ConfigureIdentity(entity);
         }

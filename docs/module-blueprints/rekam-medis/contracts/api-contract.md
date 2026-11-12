@@ -566,3 +566,247 @@ sudah disahkan (`VAL-RM-A01`, `VAL-RM-A02`).
 | Kelengkapan | `RM-DEC-045`, `046`, `050`, `051`, `053`–`056`, `060` | `RM-CAP-036`–`040` | `AT-RM-56`–`AT-RM-68` |
 | Profil dokumen wajib | `RM-DEC-045`, `047`, `060`, `061` | `RM-CAP-038` | `AT-RM-69`–`AT-RM-71` |
 | Addendum `purpose` | `RM-DEC-049` | `RM-CAP-039` | `AT-RM-72`–`AT-RM-74` |
+
+
+---
+
+# Amandemen — API `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved` |
+| Owner | Yoga Aji Pratama (API owner, `RM-DEC-028`) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| `input_revision` | Decision log revision `15`; capability map revision `4` |
+| Compatibility impact | **Aditif** pada bentuk; **satu perubahan perilaku**: addendum koreksi pada dokumen Optik ditolak `400`. Klien `0.2.0` tetap berjalan; klien yang mengabaikan `isCorrectionAllowed` menerima `400` saat mencoba koreksi Optik |
+| Penyegaran status | Kontrak ini sekaligus melebur penyegaran status `0.2.1` yang tertunda: seluruh endpoint A1–A4 di atas **sudah tersedia** sejak 2 November 2026 (`BE-21`–`BE-41`), meskipun kolom statusnya masih tertulis "Rencana" |
+| Traceability | `RM-DEC-078`–`087`; `RM-CAP-071`–`082` |
+
+## B1. Health Services / Medical Record Management / Medical Record — jenis dokumen
+
+Tidak ada endpoint baru. Nilai `ClinicalDocumentKind` berikut **sudah tersedia** di linimasa,
+saringan `documentKinds`, dan metadata `documentKindOptions` sejak modul Optik dan Rehab Medik
+dipasang (`RM-FACT-024`); kontrak ini mencatatnya.
+
+| Nilai | Nama | Label | Modul | Tunduk keutuhan | Cara koreksi |
+|---:|---|---|---|:---:|---|
+| 45 | `OpticalRefraction` | Pemeriksaan Refraksi | Optical | Ya | Versi baru di layar Optik (`RM-DEC-079`, `084`) |
+| 46 | `OpticalPrescription` | Resep Optik | Optical | Ya | Versi baru di layar Optik |
+| 47 | `RehabAssessment` | Asesmen Rehab Medik | Rehabilitation | Ya | Addendum |
+| 48 | `RehabProgram` | Program Terapi Rehab | Rehabilitation | Ya | Addendum |
+| 49 | `RehabSession` | Sesi Terapi Rehab | Rehabilitation | Ya | Addendum |
+| 50 | `RehabProgressReview` | Reasesmen Rehab | Rehabilitation | Ya | Addendum |
+| 51 | `RehabDischargeSummary` | Ringkasan Akhir Rehab | Rehabilitation | Ya | Addendum |
+| 52 | `RehabEducation` | Edukasi dan Persetujuan Rehab | Rehabilitation | Ya | Addendum |
+
+Perubahan perilaku pada `isCorrected` (respons linimasa): A5.9.4 `02-backend-architecture.md`.
+Status: **Rencana (belum tersedia)** untuk perhitungan addendum koreksi.
+
+## B2. Health Services / Master Data / Medical Record Completeness Profile — diperbarui
+
+Base URL: `api/v1/health-services/master-data/medical-record-completeness-profiles`
+
+| Method | Path | Perubahan | Hak akses (tidak berubah) | Status |
+|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Respons menambah `clinicTypeOptions[]` (`value`, `name`, `label`) | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Query menambah `clinicType` (opsional); setiap baris menambah `clinicType`, `clinicTypeName` | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/criteria/options` | Menambah opsi `17` `RehabClinicalDocument` — "Dokumen Rehab Medik final (asesmen, sesi, reasesmen, atau ringkasan akhir)" | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Respons menambah `clinicType`, `clinicTypeName` | `MedicalRecordCompletenessProfile : Read` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Request menambah `clinicType` (opsional) | `MedicalRecordCompletenessProfile : Create` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Request menambah `clinicType` (opsional) | `MedicalRecordCompletenessProfile : Update` | **Rencana (belum tersedia)** |
+
+Field baru:
+
+| Field | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+|---|---|:---:|---|---|:---:|
+| `clinicType` (request) | `integer` (`ClinicType`) | Tidak | `null` = semua poli | Nilai enum terdefinisi (`VAL-RM-B03`); hanya bila `condition = 0` (`VAL-RM-B02`) | Tidak |
+| `clinicTypeName` (response) | `string` | — | "Semua poli" bila kosong | — | Tidak |
+
+Contoh request membuat profil poli rehab:
+
+```json
+{
+  "code": "RJ-REHAB",
+  "name": "Rawat Jalan Poli Rehabilitasi Medik",
+  "encounterType": 1,
+  "serviceUnitType": null,
+  "clinicType": 6,
+  "condition": 0,
+  "items": [ { "criterion": 17 } ]
+}
+```
+
+Kode status baru: `400` `VAL-RM-B02`, `VAL-RM-B03`; `409` `VAL-RM-B04` (kunci empat kolom kembar,
+menggantikan bunyi `VAL-RM-A05`).
+
+## B3. Health Services / Medical Record Management / Clinical Note Addendum — diperbarui
+
+Base URL: `api/v1/health-services/medical-record-management/clinical-note-addendums`
+
+| Method | Path | Perubahan | Hak akses (tidak berubah) | Status |
+|---|---|---|---|---|
+| `GET` | `/authority/{documentKind}/{documentId}` | Respons menambah `isCorrectionAllowed` (`boolean`). `false` untuk jenis 45 dan 46; `explanation` mengarahkan ke layar Optik | `ClinicalNoteAddendum : Read` | **Rencana (belum tersedia)** |
+| `POST` | `/by-document/{documentKind}/{documentId}` | `purpose = Correction` (atau kosong) untuk jenis 45/46 → `400` `VAL-RM-B01`. `Attestation` tidak berubah | `ClinicalNoteAddendum : Create` | **Rencana (belum tersedia)** |
+| `POST` | `/by-document/{documentKind}/{documentId}/as-substitute` | Sama | `ClinicalNoteAddendum : CreateAsSubstitute` | **Rencana (belum tersedia)** |
+
+Contoh respons `400`:
+
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Koreksi dokumen Optik dibuat sebagai revisi di layar Optik.",
+  "data": null
+}
+```
+
+## B4. Traceability `0.3.0`
+
+| Bagian | Keputusan | Kemampuan | Uji |
+|---|---|---|---|
+| B1 | `RM-DEC-079`, `084` | `RM-CAP-076`, `077`, `082` | `AT-RM-77`, `AT-RM-78` |
+| B2 | `RM-DEC-080`, `081`, `085`, `086` | `RM-CAP-071`, `073`, `074` | `AT-RM-75`, `76`, `79`–`83` |
+| B3 | `RM-DEC-084` | `RM-CAP-075`, `076` | `AT-RM-84`–`86` |
+
+---
+
+# Amandemen — API `0.4.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.4.0`** — `approved`, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`) |
+| Owner | Yoga Aji Pratama (API owner, `RM-DEC-028`) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`) |
+| `input_revision` | Decision log revision `20` (`sha256:0e8fe5f0…`); capability map revision `5` (`sha256:c69ed2f6…`) |
+| Compatibility impact | **Aditif** untuk rekam medis: satu grup endpoint baru; satu bagian baru pada `sections` detail ringkasan pulang. **Satu perubahan perilaku di Rawat Inap** (bukan endpoint rekam medis): `PATCH .../summary/sign` ringkasan yang sudah bertanda tangan tanpa sesi koreksi → `409`. Klien `0.3.x` tetap berjalan |
+| Penyegaran yang dilebur | `0.3.1` (`RM-DEC-095`): `clinicType = 0` (`Unknown`) ditolak `400` "Jenis poli tidak dikenal." dan tidak muncul di `clinicTypeOptions`; seluruh endpoint B1–B3 di atas **sudah tersedia** sejak 10 November 2026 (`BE-42`–`BE-46`) |
+| Traceability | `RM-DEC-097`–`107`; `RM-CAP-083`–`095`; `DS-R6-01`–`07` |
+
+## C1. Health Services / Medical Record Management / Discharge Summary Timeliness — baru
+
+`[Tags("Health Services / Medical Record Management / Discharge Summary Timeliness")]`
+
+Base URL: `api/v1/health-services/medical-record-management/discharge-summary-timeliness`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Kode status | Status |
+|---|---|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Definisi kolom indikator dan batas rentang periode | `[AccessPermission("DischargeSummaryTimeliness", "Read")]` | — | `ApiResponse<DischargeSummaryTimelinessFilterMetadataResponse>` | `200`, `401`, `403` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Angka ketepatan tanda tangan ringkasan pulang Rawat Inap per dokter per periode, untuk OPPE/FPPE | `[AccessPermission("DischargeSummaryTimeliness", "Read")]` | Query `DischargeSummaryTimelinessPagedQuery` | `ApiResponse<DischargeSummaryTimelinessPagedResult>` | `200`, `400`, `401`, `403`, `503` (data Rawat Inap tidak dapat dibaca; tidak pernah angka sebagian) | **Rencana (belum tersedia)** |
+
+### Query `GET /`
+
+| Field | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+|---|---|:---:|---|---|:---:|
+| `periodFrom` | `string` (`yyyy-MM-dd`, tanggal WIB) | Ya | — | `VAL-RM-C01`, `C02`, `C03` | Tidak |
+| `periodTo` | `string` (`yyyy-MM-dd`, tanggal WIB, inklusif) | Ya | — | `VAL-RM-C01`, `C02`, `C03` | Tidak |
+| `doctorId` | `uuid` | Tidak | semua dokter | Bila diisi, hanya dokter itu | Tidak |
+| `workforceProfileId` | `uuid` | Tidak | semua | Dicocokkan lewat `MstDoctor.WorkforceProfileId` | Tidak |
+| `page` | `integer` | Tidak | `1` | ≥ 1 | Tidak |
+| `pageSize` | `integer` | Tidak | `20` | 1–100 (`VAL-RM-C04`) | Tidak |
+
+Urutan item: `over48h` menurun, lalu nama dokter; item "Tanpa DPJP aktif" selalu terakhir.
+
+### Response `GET /`
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `periodFrom`, `periodTo` | `string` (tanggal) | Gema query |
+| `generatedAt` | `string` (UTC, ISO 8601) | Waktu penarikan; dasar hitungan ringkasan yang belum ditandatangani (`RM-DEC-106`) |
+| `items[]` | array | Satu item per dokter |
+| `items[].doctorId` | `uuid?` | `null` = "Tanpa DPJP aktif" (`DS-R6-03`) |
+| `items[].workforceProfileId` | `uuid?` | Kunci profil HR (`RM-CAP-087`) |
+| `items[].doctorName` | `string` | `MstDoctor.FullName`, atau "Tanpa DPJP aktif" |
+| `items[].assessedCount` | `integer` | Penyebut: seluruh baris selain `notYetDueCount` |
+| `items[].within24h` | `integer` | Ditandatangani ≤ 24 jam |
+| `items[].between24And48h` | `integer` | > 24 dan ≤ 48 jam, termasuk yang belum ditandatangani |
+| `items[].over48h` | `integer` | > 48 jam, termasuk yang belum ditandatangani |
+| `items[].unsignedBetween24And48h` | `integer` | Bagian dari `between24And48h` yang belum ditandatangani |
+| `items[].unsignedOver48h` | `integer` | Bagian dari `over48h` yang belum ditandatangani |
+| `items[].notYetDueCount` | `integer` | Belum ditandatangani dan ≤ 24 jam; **tidak** masuk penyebut |
+| `totals` | objek | Jumlah seluruh dokter dengan field yang sama (tanpa `doctorId`) |
+| `dataNotes.closedAtFallbackCount` | `integer` | Baris berjam mulai waktu tutup episode (`RM-DEC-107`) |
+| `dataNotes.signedBeforeDepartureCount` | `integer` | Baris ditandatangani sebelum pasien keluar (dihitung 0 jam) |
+| `dataNotes.periodStillChanging` | `boolean` | Ada ringkasan belum ditandatangani pada periode ini |
+| `dataNotes.resignTrackingNote` | `string` | Keterangan batas pelacakan tanda tangan ulang (`RM-DEC-105`) |
+| `page`, `pageSize`, `totalCount`, `totalPages` | paging | Konvensi paging project |
+
+**Tidak pernah ada di respons:** `patientId`, nomor rekam medis, nama pasien, `encounterId`,
+`episodeId`, isi ringkasan (`RM-DEC-101`).
+
+Contoh respons `200` (data contoh, bukan data asli):
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Indikator ketepatan ringkasan pulang berhasil diambil.",
+  "data": {
+    "periodFrom": "2026-10-01",
+    "periodTo": "2026-10-31",
+    "generatedAt": "2026-11-01T05:00:00Z",
+    "items": [
+      {
+        "doctorId": "6f1c…",
+        "workforceProfileId": "a2b9…",
+        "doctorName": "dr. Contoh Satu",
+        "assessedCount": 40,
+        "within24h": 34,
+        "between24And48h": 4,
+        "over48h": 2,
+        "unsignedBetween24And48h": 0,
+        "unsignedOver48h": 1,
+        "notYetDueCount": 1
+      }
+    ],
+    "totals": { "assessedCount": 40, "within24h": 34, "between24And48h": 4, "over48h": 2, "unsignedBetween24And48h": 0, "unsignedOver48h": 1, "notYetDueCount": 1 },
+    "dataNotes": {
+      "closedAtFallbackCount": 3,
+      "signedBeforeDepartureCount": 29,
+      "periodStillChanging": true,
+      "resignTrackingNote": "Tanda tangan ulang tanpa sesi koreksi sebelum perbaikan Rawat Inap tidak terlacak; waktu tanda tangan pertama dapat tampak lebih lambat."
+    },
+    "page": 1, "pageSize": 20, "totalCount": 1, "totalPages": 1
+  }
+}
+```
+
+Contoh respons `400`:
+
+```json
+{ "success": false, "statusCode": 400, "message": "Rentang periode paling lama 366 hari.", "data": null }
+```
+
+### Response `GET /filters/metadata`
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `bucketDefinitions[]` | array `{ code, label, description }` | `within24h` "≤ 24 jam"; `between24And48h` "24–48 jam"; `over48h` "> 48 jam"; `notYetDue` "Belum jatuh tempo" — beserta keterangan jam mulai dan jam selesai |
+| `maxPeriodDays` | `integer` | `366` (`DS-R6-01`) |
+
+## C2. Health Services / Medical Record Management / Medical Record — detail ringkasan pulang
+
+Base URL: `api/v1/health-services/medical-record-management/medical-records`
+
+| Method | Path | Perubahan | Hak akses (tidak berubah) | Status |
+|---|---|---|---|---|
+| `GET` | `/{patientId}/documents/{documentKind}/{documentId}` dengan `documentKind = DischargeSummary` | `sections[]` menambah bagian `"Rencana kontrol"` bila tanggal kontrol terisi (A6.9.4) | `MedicalRecord : Read` + keperluan akses | **Rencana (belum tersedia)** |
+
+Bentuk respons tidak berubah; hanya isi `sections` bertambah satu butir `{ "label": "Rencana kontrol", "value": "10-10-2026 — Poli Penyakit Dalam — dr. Maya" }`.
+
+## C3. Inpatient Discharge — permintaan perubahan perilaku (milik Rawat Inap)
+
+Dicatat agar pemakai kontrak tahu; **bukan** endpoint rekam medis dan hanya berlaku setelah pemilik
+Rawat Inap menyetujui (open question 27).
+
+| Method | Path | Perubahan | Kode status baru | Status |
+|---|---|---|---|---|
+| `PATCH` | `api/v1/health-services/inpatient-management/discharges/{episodeId}/summary/sign` (sudah ada, `InpatientDischargeController.cs:227`) | Ringkasan sudah bertanda tangan dan tidak ada sesi koreksi terbuka → ditolak | `409` "Resume sudah ditandatangani; ubah lewat sesi koreksi." | **Rencana (belum tersedia)** — menunggu pemilik Rawat Inap |
+
+## C4. Traceability `0.4.0`
+
+| Bagian | Keputusan | Kemampuan | Uji |
+|---|---|---|---|
+| C1 | `RM-DEC-101`, `102`, `105`–`107` | `RM-CAP-083`–`089` | `AT-RM-93`–`104`, `AT-RM-108` |
+| C2 | `RM-DEC-104` | `RM-CAP-090` | `AT-RM-105`, `106` |
+| C3 | `RM-DEC-105` bagian 1 | `RM-CAP-085` | `AT-RM-107` |
+| Penyegaran `0.3.1` | `RM-DEC-095` | — | Uji `BE-46` yang sudah ada |

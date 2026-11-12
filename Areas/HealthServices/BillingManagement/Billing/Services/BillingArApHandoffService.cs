@@ -104,7 +104,7 @@ public sealed class BillingArApHandoffService
                     FinalizationRecord = finalizationRecord,
                     DebtorType = BillingArDebtorTypes.Payer,
                     DebtorReferenceId = employeeBenefitSplit.CompanyGuarantorId,
-                    // Biaya yang ditanggung RS sendiri (penjamin internal), bukan piutang pihak luar: ditutup lewat Penutupan Benefit.
+                    // Biaya yang ditanggung RS sendiri (penjamin internal), bukan piutang pihak luar. Tetap PAYER + IsInternalBenefit agar dapat dibedakan; ditagihkan lewat Invoice AR yang sama dengan penjamin lain.
                     IsInternalBenefit = true,
                     Amount = payerAmount,
                     DueDate = invoice.InvoiceDate,

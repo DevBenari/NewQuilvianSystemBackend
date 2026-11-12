@@ -199,3 +199,66 @@ urutan prioritas `Undetermined` → `AwaitingResult` → `Incomplete` → `Compl
 | Aktif | Nonaktifkan | Nonaktif | `MedicalRecordCompletenessProfile : Update` | — | — |
 | Nonaktif | Aktifkan | Aktif | `MedicalRecordCompletenessProfile : Update` | Kunci tidak bentrok dengan profil aktif lain | `409` |
 | Aktif atau Nonaktif | Hapus | — | — | — | **Tidak sah.** Hanya nonaktif |
+
+
+---
+
+# Amandemen — State transition `0.3.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.3.0`** — `approved`, Yoga Aji Pratama, 10 November 2026 (`RM-DEC-088`) |
+| Input | Decision log revision `15` |
+
+## S-E. Koreksi dokumen Optik (`RM-DEC-079`, `084`)
+
+Dokumen Optik tidak pernah berpindah status untuk dikoreksi. Koreksi menghasilkan **dokumen
+keutuhan baru** (versi baru), sedangkan dokumen lama tetap pada statusnya.
+
+| Dari | Aksi | Ke | Pelaku | Catatan |
+|---|---|---|---|---|
+| — | Pemeriksaan refraksi dimulai | `Draft` (revisi 1) | RO/Sp.M | Milik Optik |
+| `Draft` | Final | `Signed` | RO/Sp.M | |
+| `Draft` | Kunjungan tutup klinis | `LockedUnsigned` | Sistem | Sama dengan CPPT (`RM-DEC-003`) |
+| `Signed` | Revisi di layar Optik | Revisi lama tetap `Signed`; **revisi baru** lahir `Signed` | RO/Sp.M | Bukan transisi; dokumen baru |
+| `Signed` | Addendum koreksi | **Ilegal** — `400` `VAL-RM-B01` | — | |
+| `LockedUnsigned` | Addendum koreksi | **Ilegal** — `400` `VAL-RM-B01` | — | |
+| `LockedUnsigned` | Addendum pengesahan | Tetap `LockedUnsigned`; kekurangan tuntas | Penulis atau pengganti sah | S-C apa adanya |
+
+## S-D. Profil dokumen wajib — tambahan
+
+| Aksi | Syarat | Akibat |
+|---|---|---|
+| Membuat/mengubah profil berpoli | `condition = 0` | Penilaian belum lengkap jatuh tempo seketika (tidak berubah) |
+| Menonaktifkan `RJ-REHAB` | — | Kunjungan poli rehab kembali memakai `RJ` pada penilaian berikutnya |
+
+## S-B. Penilaian — tambahan
+
+Tidak ada keadaan baru. Probe Rehab tidak pernah menghasilkan `AwaitingResult`.
+
+---
+
+# Amandemen — State transition `0.4.0` (`approved`)
+
+| Field | Value |
+|---|---|
+| `contract_version` | **`0.4.0`** — `approved`, Yoga Aji Pratama, 11 November 2026 (`RM-DEC-108`) |
+| Input | Decision log revision `20` |
+
+Rekam medis **tidak** menambah keadaan. Indikator adalah hitungan, bukan status. Bagian ini mencatat
+transisi milik Rawat Inap yang dipakai indikator dan satu transisi yang diminta menjadi ilegal.
+
+## S-F. Tanda tangan ringkasan pulang (milik Rawat Inap; dibaca indikator)
+
+| Dari | Aksi | Ke | Pelaku | Catatan |
+|---|---|---|---|---|
+| Belum ada | Susun ringkasan (episode `DischargePending`) | Draf, `SignedAt` kosong | DPJP aktif | `GUARD-INP-03` |
+| Draf | Tanda tangan | Bertanda tangan, `SignedAt` terisi | DPJP aktif | Jam selesai indikator |
+| Bertanda tangan | Tanda tangan lagi **tanpa** sesi koreksi | **Ilegal — `409`** `VAL-INP-RS01` | — | **Diminta** (`RM-DEC-105`); hari ini masih diterima dan menimpa `SignedAt` |
+| Bertanda tangan | Ubah isi dalam sesi koreksi | Versi lama tersalin (`PreviousSignedAt`); `SignedAt` tetap | Supervisor | Sudah ada |
+| Bertanda tangan, sesi koreksi terbuka | Tanda tangan lagi | `SignedAt` diperbarui | DPJP aktif | Indikator tetap memakai `PreviousSignedAt` terawal |
+| `DischargePending` | Catat kepergian | `PhysicallyLeftAt` terisi | Petugas ruangan | Jam mulai indikator |
+| `DischargePending` | Tutup episode (syarat `SUMMARY_SIGNED` tak dapat ditembus) | `Closed`, `ClosedAt` | Petugas | Jam mulai cadangan bila `PhysicallyLeftAt` kosong |
+
+Ringkasan pulang **tidak pernah** `LockedUnsigned`: tidak terdaftar di registri keutuhan, dan
+penutupan menuntut tanda tangan (`RM-CF-R5-02`, `RM-DEC-106`).

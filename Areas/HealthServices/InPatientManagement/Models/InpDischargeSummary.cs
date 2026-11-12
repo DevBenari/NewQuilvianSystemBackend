@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -29,6 +30,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         [MaxLength(2000)]
         public string? FollowUpInstruction { get; set; }
+
+        /// <summary>
+        /// Tanggal kontrol poliklinik — rencana kontrol terstruktur <c>BE-RWI-256</c>
+        /// (<c>FIX-EPS-043-02</c>).
+        /// </summary>
+        /// <remarks>
+        /// Ketiga isian rencana kontrol nullable: resume lama hanya punya teks
+        /// <see cref="FollowUpInstruction"/>, dan teks itu tetap dipakai sebagai catatan tindak
+        /// lanjut. Bila tanggal diisi, poliklinik wajib diisi, dan sebaliknya.
+        /// </remarks>
+        public DateOnly? FollowUpDate { get; set; }
+
+        /// <summary>Poliklinik tujuan kontrol; unit layanan berjenis rawat jalan.</summary>
+        public Guid? FollowUpServiceUnitId { get; set; }
+
+        /// <summary>Dokter tujuan kontrol, opsional; wajib punya jadwal praktik di poliklinik itu.</summary>
+        public Guid? FollowUpDoctorId { get; set; }
 
         [MaxLength(250)]
         public string? ReferralDestination { get; set; }
@@ -90,6 +108,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         public InpEpisode? Episode { get; set; }
 
         public MstDoctor? SignedByDoctor { get; set; }
+
+        public MstServiceUnit? FollowUpServiceUnit { get; set; }
+
+        public MstDoctor? FollowUpDoctor { get; set; }
 
         public ICollection<InpDischargeSummaryRevision> Revisions { get; set; } = new List<InpDischargeSummaryRevision>();
     }

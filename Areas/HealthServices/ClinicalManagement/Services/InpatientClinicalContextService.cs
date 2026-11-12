@@ -421,7 +421,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 externalProfession.ProfessionName.Trim());
         }
 
-        private static string MapCpptProfessionType(
+        internal static string MapCpptProfessionType(
             string? professionCode,
             string? professionName,
             string? professionGroup)

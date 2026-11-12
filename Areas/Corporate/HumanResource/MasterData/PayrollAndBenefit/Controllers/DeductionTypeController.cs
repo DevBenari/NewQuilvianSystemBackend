@@ -19,6 +19,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/payroll-management/master-data/deduction-types")]
+    // Alias kompatibilitas: rute di bawah ini adalah rute sebelum Payroll dipisah dari HRD; dihapus bertahap setelah seluruh consumer berpindah.
     [Route("api/v1/corporate/human-resource/master-data/deduction-types")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -28,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         ControllerName = "DeductionType",
         Description = "Corporate human resource master data deduction type",
         SortOrder = 43)]
-    [Tags("Corporate / Human Resource / Master Data / Deduction Type")]
+    [Tags("Corporate / Payroll Management / Master Data / Deduction Type")]
     public class DeductionTypeController : ControllerBase
     {
 

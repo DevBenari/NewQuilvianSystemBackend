@@ -6,7 +6,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -15,16 +16,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 
 /// <summary>
 /// BE-FIN-094, FIN-DEC-190, INT-FIN-HR-001 (02-backend-architecture.md §P.2). Menerbitkan jadwal
-/// angsuran yang disetujui sebagai <c>TrxPayrollVariableInput</c> milik HR Payroll, dipanggil DI
+/// angsuran yang disetujui sebagai <c>PrlPayrollVariableInput</c> milik HR Payroll, dipanggil DI
 /// DALAM transaksi persetujuan perjanjian (<c>FinanceReceivableInstallmentPlanService.ApproveAsync</c>),
 /// sesuai kontrak ("Waktu Tulis: Ditulis otomatis di dalam transaksi persetujuan perjanjian").
 ///
 /// ADAPTER SEMPIT (BE-FIN-094, wewenang cross-module eksplisit pengguna) — ditemukan saat task ini
-/// bahwa HR SAMA SEKALI belum punya service/controller yang membuka payroll run: TrxPayrollRun dan
-/// TrxPayrollRunEmployee hanya pernah DIBACA (LeavePayrollIntegrationService selalu mengasumsikan
+/// bahwa HR SAMA SEKALI belum punya service/controller yang membuka payroll run: PrlPayrollRun dan
+/// PrlPayrollRunEmployee hanya pernah DIBACA (LeavePayrollIntegrationService selalu mengasumsikan
 /// keduanya sudah ada, tidak pernah membuatnya). Baris jadwal instalmen bisa menunjuk periode
 /// berbulan-bulan ke depan, yang run-nya belum tentu dibuka HR saat perjanjian disetujui — karena
-/// itu service ini resolve-or-create TrxPayrollRun dan TrxPayrollRunEmployee dengan default
+/// itu service ini resolve-or-create PrlPayrollRun dan PrlPayrollRunEmployee dengan default
 /// konservatif (status Draft), BUKAN membangun mesin payroll run HR yang sesungguhnya (buka run,
 /// kumpulkan seluruh pegawai aktif, dst — itu epic tersendiri, di luar cakupan task ini).
 ///
@@ -42,15 +43,18 @@ public sealed class FinanceReceivablePayrollSyncService
     private readonly LoggerService _loggerService;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
     private readonly FinanceReceivablePayrollSyncOptions _options;
+    private readonly FinanceReceivableInvoiceBatchStatusSynchronizer _batchStatusSynchronizer;
 
     public FinanceReceivablePayrollSyncService(
         ApplicationDbContext dbContext, LoggerService loggerService, FinanceSubledgerMovementService subledgerMovementService,
-        IOptions<FinanceReceivablePayrollSyncOptions> options)
+        IOptions<FinanceReceivablePayrollSyncOptions> options,
+        FinanceReceivableInvoiceBatchStatusSynchronizer batchStatusSynchronizer)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _subledgerMovementService = subledgerMovementService;
         _options = options.Value;
+        _batchStatusSynchronizer = batchStatusSynchronizer;
     }
 
     /// <summary>
@@ -74,30 +78,172 @@ public sealed class FinanceReceivablePayrollSyncService
     /// hanya disinkronkan bila HR benar-benar memiliki profil payroll aktif untuknya; bila tidak, tidak ada input
     /// potongan fiktif yang dibuat dan alasannya dicatat pada <c>SkipReasons</c>.
     /// </summary>
-    public async Task<FinanceReceivablePayrollSyncResult> SyncAsync(
+    public Task<FinanceReceivablePayrollSyncResult> SyncAsync(
         Guid? benefitOwnerId,
         Guid? workforceProfileId,
         IReadOnlyList<FinReceivableInstallment> installments,
         Guid actorUserId,
+        CancellationToken cancellationToken) =>
+        EvaluateAsync(benefitOwnerId, workforceProfileId, installments, actorUserId, apply: true, cancellationToken);
+
+    /// <summary>
+    /// Diagnosis BACA-SAJA: memeriksa prasyarat yang SAMA persis dengan sinkron (konfigurasi, pemilik, komponen, periode, run) tanpa
+    /// membuat atau mengubah apa pun. Hasilnya per angsuran: <c>Gap</c> terisi bila ada prasyarat yang gagal; kosong berarti angsuran
+    /// itu layak dikirim. Dipakai detail perjanjian supaya alasan "Belum Sinkron" selalu mencerminkan keadaan terkini.
+    /// </summary>
+    public Task<FinanceReceivablePayrollSyncResult> DiagnoseAsync(
+        Guid? benefitOwnerId,
+        Guid? workforceProfileId,
+        IReadOnlyList<FinReceivableInstallment> installments,
+        CancellationToken cancellationToken) =>
+        EvaluateAsync(benefitOwnerId, workforceProfileId, installments, Guid.Empty, apply: false, cancellationToken);
+
+    /// <summary>
+    /// Satu jalur untuk sinkron dan diagnosis, supaya alasan yang ditampilkan tidak pernah menyimpang dari yang dipakai sinkron.
+    /// <paramref name="apply"/> = false tidak menambah entitas apa pun ke change tracker.
+    /// </summary>
+    private async Task<FinanceReceivablePayrollSyncResult> EvaluateAsync(
+        Guid? benefitOwnerId,
+        Guid? workforceProfileId,
+        IReadOnlyList<FinReceivableInstallment> installments,
+        Guid actorUserId,
+        bool apply,
         CancellationToken cancellationToken)
     {
         var result = new FinanceReceivablePayrollSyncResult();
+
+        void SkipAll(PayrollSyncGap gap)
+        {
+            foreach (var installment in installments)
+                result.Items.Add(new FinanceReceivablePayrollSyncItemResult(installment.Id, installment.InstallmentNumber, installment.DeductionPeriod, false, gap));
+            result.SkipReasons.Add(gap.Message);
+            result.SkippedCount = installments.Count;
+        }
+
         if (!_options.Enabled)
         {
-            result.SkipReasons.Add("Sinkron payroll dimatikan lewat konfigurasi (FinanceReceivablePayrollSync:Enabled = false).");
-            result.SkippedCount = installments.Count;
+            SkipAll(new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.Disabled,
+                "Sinkron payroll dimatikan lewat konfigurasi (FinanceReceivablePayrollSync:Enabled = false).",
+                "Aktifkan konfigurasi Finance:ReceivablePayrollSync:Enabled (administrator sistem), lalu Kirim Ulang ke Payroll."));
             return result;
         }
 
-        // benefitOwnerId = FinReceivable.BenefitOwnerId, secara logis menunjuk MstEmployee.Id
-        // (data-dictionary.md §7: "Memetakan NIP ke BenefitOwnerId", FIN-DEC-196/199) — BUKAN
-        // WorkforceProfileId langsung, berbeda dari field yang disebut kontrak INT-FIN-HR-001
-        // P.2 (temuan drift lain, dicatat laporan task).
+        var (target, ownerGap) = await ResolveTargetAsync(benefitOwnerId, workforceProfileId, cancellationToken);
+        if (target is null)
+        {
+            SkipAll(ownerGap!);
+            return result;
+        }
+
+        var (component, componentGap) = await ResolveComponentAsync(cancellationToken);
+        if (component is null)
+        {
+            SkipAll(componentGap!);
+            return result;
+        }
+
+        foreach (var installment in installments)
+        {
+            var (period, periodGap) = await ResolvePeriodWithGapAsync(installment.DeductionPeriod, cancellationToken);
+            if (period is null)
+            {
+                result.Items.Add(new FinanceReceivablePayrollSyncItemResult(installment.Id, installment.InstallmentNumber, installment.DeductionPeriod, false, periodGap));
+                result.SkipReasons.Add($"{periodGap!.Message} Angsuran ke-{installment.InstallmentNumber} dilewati.");
+                result.SkippedCount++;
+                continue;
+            }
+
+            // Payroll run adalah milik HRD: Finance TIDAK membuat run maupun baris pegawai. Tanpa run yang valid, angsuran berstatus
+            // "Menunggu Payroll Run" dan ditarik otomatis saat HRD membuka run periode itu.
+            var existingRun = await FindRunAsync(period, track: apply, cancellationToken);
+            if (existingRun is null)
+            {
+                var awaitingGap = new PayrollSyncGap(
+                    FinanceInstallmentPayrollSyncReasonCodes.AwaitingPayrollRun,
+                    $"Menunggu Payroll Run: HRD belum membuat payroll run periode {FormatPeriodLabel(installment.DeductionPeriod)}.",
+                    "HRD perlu membuka dan menghitung payroll run periode ini. Jadwal angsuran ditarik otomatis ke run; tidak ada run yang dibuat dari Finance.");
+                result.Items.Add(new FinanceReceivablePayrollSyncItemResult(installment.Id, installment.InstallmentNumber, installment.DeductionPeriod, false, awaitingGap));
+                result.SkipReasons.Add($"{awaitingGap.Message} Angsuran ke-{installment.InstallmentNumber} dilewati.");
+                result.SkippedCount++;
+                continue;
+            }
+
+            // Run yang terkunci, sudah diajukan, atau sudah disahkan tidak menerima input baru: dilewati dengan alasan, bukan ditulis diam-diam.
+            if (existingRun.IsLocked || !PayrollRunStatuses.AcceptsInputs(existingRun.RunStatus))
+            {
+                var lockedGap = new PayrollSyncGap(
+                    FinanceInstallmentPayrollSyncReasonCodes.RunLocked,
+                    $"Payroll run periode {FormatPeriodLabel(installment.DeductionPeriod)} tidak menerima input baru ({existingRun.RunNumber}, status {existingRun.RunStatus}).",
+                    "HRD perlu mengembalikan run ke tahap hitung (tolak/kembalikan) sebelum disahkan, lalu Kirim Ulang ke Payroll. Run yang sudah disahkan dikoreksi lewat pembalikan.");
+                result.Items.Add(new FinanceReceivablePayrollSyncItemResult(installment.Id, installment.InstallmentNumber, installment.DeductionPeriod, false, lockedGap));
+                result.SkipReasons.Add($"{lockedGap.Message} Angsuran ke-{installment.InstallmentNumber} dilewati.");
+                result.SkippedCount++;
+                continue;
+            }
+
+            var runEmployee = await FindRunEmployeeAsync(existingRun, target, track: apply, cancellationToken);
+            if (runEmployee is null)
+            {
+                var notInRunGap = new PayrollSyncGap(
+                    FinanceInstallmentPayrollSyncReasonCodes.EmployeeNotInRun,
+                    $"{target.Name} ({target.Number}) tidak termasuk dalam payroll run {existingRun.RunNumber}; tidak ada baris slip fiktif yang dibuat.",
+                    "HRD perlu memastikan pegawai memiliki profil payroll aktif dan eligible pada periode ini, lalu Kirim Ulang ke Payroll.");
+                result.Items.Add(new FinanceReceivablePayrollSyncItemResult(installment.Id, installment.InstallmentNumber, installment.DeductionPeriod, false, notInRunGap));
+                result.SkipReasons.Add($"{notInRunGap.Message} Angsuran ke-{installment.InstallmentNumber} dilewati.");
+                result.SkippedCount++;
+                continue;
+            }
+
+            if (!apply)
+            {
+                // Layak dikirim; belum ada yang ditulis pada mode diagnosis.
+                result.Items.Add(new FinanceReceivablePayrollSyncItemResult(installment.Id, installment.InstallmentNumber, installment.DeductionPeriod, false, null));
+                continue;
+            }
+
+            await UpsertVariableInputAsync(runEmployee, component, installment, actorUserId, cancellationToken);
+            result.Items.Add(new FinanceReceivablePayrollSyncItemResult(installment.Id, installment.InstallmentNumber, installment.DeductionPeriod, true, null));
+            result.SyncedCount++;
+        }
+
+        if (apply && result.SkipReasons.Count > 0)
+        {
+            await _loggerService.AuditAsync(LogCategory, "Sync.PartialGap",
+                $"Sinkron payroll sebagian terlewat. BenefitOwnerId={benefitOwnerId} Disinkron={result.SyncedCount} Dilewati={result.SkippedCount}",
+                new
+                {
+                    BenefitOwnerId = benefitOwnerId, WorkforceProfileId = workforceProfileId, result.SyncedCount, result.SkippedCount,
+                    result.SkipReasons,
+                    ReasonCodes = result.Items.Where(x => x.Gap is not null).Select(x => x.Gap!.Code).Distinct().ToList()
+                });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// benefitOwnerId = FinReceivable.BenefitOwnerId, secara logis menunjuk MstEmployee.Id (data-dictionary.md §7, FIN-DEC-196/199)
+    /// — BUKAN WorkforceProfileId langsung. Pemilik tanpa data karyawan (dokter tetap): slip dibangun dari identitas Workforce dan
+    /// hanya bila HR memiliki profil payroll aktif untuknya; tanpa itu tidak ada potongan fiktif yang dibuat.
+    /// </summary>
+    private async Task<(PayrollTarget? Target, PayrollSyncGap? Gap)> ResolveTargetAsync(
+        Guid? benefitOwnerId, Guid? workforceProfileId, CancellationToken cancellationToken)
+    {
+        var hasOwnerId = benefitOwnerId.HasValue && benefitOwnerId.Value != Guid.Empty;
+        if (!hasOwnerId && !workforceProfileId.HasValue)
+        {
+            return (null, new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.OwnerNotIdentified,
+                "Pemilik benefit piutang ini tidak teridentifikasi (BenefitOwnerId dan WorkforceProfileId kosong) sehingga jadwal tidak dapat dikirim ke payroll.",
+                "Finance perlu melengkapi pemilik benefit pada kartu piutang, lalu HRD melakukan Kirim Ulang ke Payroll."));
+        }
+
         MstEmployee? employee = null;
-        if (benefitOwnerId.HasValue && benefitOwnerId.Value != Guid.Empty)
+        if (hasOwnerId)
         {
             employee = await _dbContext.MstEmployees.AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == benefitOwnerId.Value && !x.IsDelete, cancellationToken);
+                .SingleOrDefaultAsync(x => x.Id == benefitOwnerId!.Value && !x.IsDelete, cancellationToken);
         }
         if (employee is null && workforceProfileId.HasValue)
         {
@@ -106,14 +252,10 @@ public sealed class FinanceReceivablePayrollSyncService
                 .SingleOrDefaultAsync(x => x.WorkforceProfileId == profileId && !x.IsDelete, cancellationToken);
         }
 
-        // Pemilik tanpa data karyawan (dokter tetap): slip dibangun dari identitas Workforce dan hanya bila payroll
-        // dikonfigurasi HR. Tanpa itu tidak ada potongan gaji yang dibuat (tidak ada MstEmployee atau payroll palsu).
-        PayrollTarget? target = null;
         if (employee is not null)
-        {
-            target = new PayrollTarget(employee.WorkforceProfileId, employee.Id, employee.EmployeeNumber, employee.FullName);
-        }
-        else if (workforceProfileId.HasValue)
+            return (new PayrollTarget(employee.WorkforceProfileId, employee.Id, employee.EmployeeNumber, employee.FullName), null);
+
+        if (workforceProfileId.HasValue)
         {
             var profileId = workforceProfileId.Value;
             var doctor = await _dbContext.MstDoctors.AsNoTracking()
@@ -122,64 +264,106 @@ public sealed class FinanceReceivablePayrollSyncService
                 .FirstOrDefaultAsync(cancellationToken);
             if (doctor is not null)
             {
-                var hasPayroll = await _dbContext.WfpPayrolls.AsNoTracking()
+                var hasPayroll = await _dbContext.PrlPayrolls.AsNoTracking()
                     .AnyAsync(x => x.WorkforceProfileId == profileId && !x.IsDelete && x.IsPayrollEligible, cancellationToken);
                 if (!hasPayroll)
                 {
-                    result.SkipReasons.Add(
+                    return (null, new PayrollSyncGap(
+                        FinanceInstallmentPayrollSyncReasonCodes.DoctorProfileMissing,
                         $"Dokter {doctor.FullName} ({doctor.DoctorNumber}) belum memiliki profil payroll yang dikonfigurasi di HR — " +
-                        "potongan gaji tidak dibuat. Gunakan mekanisme pembayaran piutang lain bila proses bisnis mengizinkan.");
-                    result.SkippedCount = installments.Count;
-                    return result;
+                        "potongan gaji tidak dibuat.",
+                        "HRD perlu melengkapi profil payroll dokter (eligible), lalu Kirim Ulang. Bila tidak berlaku, gunakan mekanisme pembayaran piutang lain."));
                 }
-                target = new PayrollTarget(profileId, null, doctor.DoctorNumber, doctor.FullName);
+                return (new PayrollTarget(profileId, null, doctor.DoctorNumber, doctor.FullName), null);
             }
         }
 
-        if (target is null)
+        return (null, new PayrollSyncGap(
+            FinanceInstallmentPayrollSyncReasonCodes.EmployeeNotFound,
+            $"Profil pegawai atau dokter untuk BenefitOwnerId {benefitOwnerId} / WorkforceProfileId {workforceProfileId} tidak ditemukan di data HR.",
+            "Periksa identitas pemilik benefit pada kartu piutang dan data pegawai/dokter di HR, lalu Kirim Ulang ke Payroll."));
+    }
+
+    /// <summary>
+    /// Komponen potongan dicari lewat kode yang dikonfigurasi dan MUST aktif berjenis Deduction. Jenis lain dianggap salah
+    /// konfigurasi (komponen Earning akan MENAMBAH gaji, bukan memotongnya) dan tidak dipakai. Finance tidak pernah membuatnya.
+    /// </summary>
+    private async Task<(MstPayrollComponent? Component, PayrollSyncGap? Gap)> ResolveComponentAsync(CancellationToken cancellationToken)
+    {
+        var code = _options.PayrollComponentCode;
+        var candidates = await _dbContext.MstPayrollComponents.AsNoTracking()
+            .Where(x => x.PayrollComponentCode == code && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        if (candidates.Count == 0)
         {
-            result.SkipReasons.Add($"Profil pegawai atau dokter untuk BenefitOwnerId {benefitOwnerId} / WorkforceProfileId {workforceProfileId} tidak ditemukan — nol baris disinkron.");
-            result.SkippedCount = installments.Count;
-            return result;
+            return (null, new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.ComponentNotFound,
+                $"Komponen payroll '{code}' belum dikonfigurasi di Master Komponen Payroll (MstPayrollComponent).",
+                $"HRD perlu membuat komponen payroll dengan kode '{code}' berjenis Deduction pada master data payroll, lalu Kirim Ulang ke Payroll."));
         }
 
-        var component = await _dbContext.MstPayrollComponents.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.PayrollComponentCode == _options.PayrollComponentCode && !x.IsDelete, cancellationToken);
+        var component = candidates.FirstOrDefault(x => x.IsActive);
         if (component is null)
         {
-            result.SkipReasons.Add(
-                $"Komponen payroll '{_options.PayrollComponentCode}' belum dikonfigurasi di MstPayrollComponent — " +
-                "HR MUST membuatnya dulu (jenis Deduction) sebelum sinkron dapat berjalan. Nol baris disinkron.");
-            result.SkippedCount = installments.Count;
-            return result;
+            return (null, new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.ComponentInactive,
+                $"Komponen payroll '{code}' ada tetapi tidak aktif.",
+                $"HRD perlu mengaktifkan komponen '{code}' pada master data payroll, lalu Kirim Ulang ke Payroll."));
         }
 
-        foreach (var installment in installments)
+        if (!string.Equals(component.ComponentType, "Deduction", StringComparison.OrdinalIgnoreCase))
         {
-            var period = await ResolvePeriodAsync(installment.DeductionPeriod, cancellationToken);
-            if (period is null)
-            {
-                result.SkipReasons.Add(
-                    $"Periode payroll '{installment.DeductionPeriod}' belum dikonfigurasi HR (MstPayrollPeriod) — angsuran ke-{installment.InstallmentNumber} dilewati.");
-                result.SkippedCount++;
-                continue;
-            }
-
-            var run = await ResolveOrCreateRunAsync(period, actorUserId, cancellationToken);
-            var runEmployee = await ResolveOrCreateRunEmployeeAsync(run, target, actorUserId, cancellationToken);
-
-            await UpsertVariableInputAsync(runEmployee, component, installment, actorUserId, cancellationToken);
-            result.SyncedCount++;
+            return (null, new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.ComponentNotDeduction,
+                $"Komponen payroll '{code}' berjenis '{component.ComponentType}', bukan Deduction, sehingga tidak dapat dipakai untuk potongan gaji.",
+                $"HRD perlu mengubah jenis komponen '{code}' menjadi Deduction (atau mengoreksi kode komponen pada konfigurasi), lalu Kirim Ulang ke Payroll."));
         }
 
-        if (result.SkipReasons.Count > 0)
+        return (component, null);
+    }
+
+    /// <summary>Find-only — MstPayrollPeriod adalah kalender HR, Finance tidak membuatnya. Periode nonaktif/terkunci tidak menerima input.</summary>
+    private async Task<(MstPayrollPeriod? Period, PayrollSyncGap? Gap)> ResolvePeriodWithGapAsync(
+        string periodText, CancellationToken cancellationToken)
+    {
+        var period = await ResolvePeriodAsync(periodText, cancellationToken);
+        var label = FormatPeriodLabel(periodText);
+
+        if (period is null)
         {
-            await _loggerService.AuditAsync(LogCategory, "Sync.PartialGap",
-                $"Sinkron payroll sebagian terlewat. BenefitOwnerId={benefitOwnerId} Disinkron={result.SyncedCount} Dilewati={result.SkippedCount}",
-                new { BenefitOwnerId = benefitOwnerId, WorkforceProfileId = workforceProfileId, result.SyncedCount, result.SkippedCount, result.SkipReasons });
+            return (null, new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.PeriodNotFound,
+                $"Periode Payroll {label} belum dikonfigurasi (MstPayrollPeriod, jenis Monthly).",
+                $"HRD perlu membuat master Periode Payroll {label} (jenis Monthly), lalu Kirim Ulang ke Payroll."));
         }
+        if (!period.IsActive)
+        {
+            return (null, new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.PeriodInactive,
+                $"Periode Payroll {label} ada tetapi tidak aktif.",
+                $"HRD perlu mengaktifkan Periode Payroll {label}, lalu Kirim Ulang ke Payroll."));
+        }
+        if (period.IsLocked)
+        {
+            return (null, new PayrollSyncGap(
+                FinanceInstallmentPayrollSyncReasonCodes.PeriodLocked,
+                $"Periode Payroll {label} sudah terkunci.",
+                $"HRD perlu membuka kunci Periode Payroll {label} atau menangani potongan angsuran ini secara terpisah, lalu Kirim Ulang."));
+        }
+        return (period, null);
+    }
 
-        return result;
+    /// <summary>"2026-12" -> "Desember 2026" (bahasa Indonesia, tanpa bergantung pada budaya server).</summary>
+    private static string FormatPeriodLabel(string period)
+    {
+        string[] months =
+        {
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        };
+        if (period.Length >= 7 && int.TryParse(period[..4], out var year) && int.TryParse(period[5..7], out var month) && month is >= 1 and <= 12)
+            return $"{months[month - 1]} {year}";
+        return period;
     }
 
     /// <summary>Find-only — MstPayrollPeriod adalah kalender HR, Finance tidak membuatnya.</summary>
@@ -193,81 +377,92 @@ public sealed class FinanceReceivablePayrollSyncService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    /// <summary>Resolve-or-create — Draf minimal per periode, bukan proses buka-run HR sesungguhnya.</summary>
-    private async Task<TrxPayrollRun> ResolveOrCreateRunAsync(MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
+    /// <summary>Run Regular terbaru pada periode itu (dilacak hanya saat sinkron akan memakainya).</summary>
+    private async Task<PrlPayrollRun?> FindRunAsync(MstPayrollPeriod period, bool track, CancellationToken cancellationToken)
     {
-        var existing = await _dbContext.TrxPayrollRuns
-            .Where(x => !x.IsDelete && x.PayrollPeriodId == period.Id && x.RunType == "Regular")
+        var query = track ? _dbContext.PrlPayrollRuns.AsQueryable() : _dbContext.PrlPayrollRuns.AsNoTracking();
+        return await query
+            .Where(x => !x.IsDelete && x.PayrollPeriodId == period.Id && x.RunType == "Regular"
+                && x.RunStatus != PayrollRunStatuses.Cancelled && x.RunStatus != PayrollRunStatuses.Reversed)
             .OrderByDescending(x => x.CreateDateTime)
             .FirstOrDefaultAsync(cancellationToken);
-        if (existing is not null) return existing;
-
-        var run = new TrxPayrollRun
-        {
-            PayrollPeriodId = period.Id,
-            LegalEntityId = period.LegalEntityId,
-            HospitalSiteId = period.HospitalSiteId,
-            RunNumber = GenerateRunNumber(),
-            RunType = "Regular",
-            RunStatus = "Draft",
-            CurrencyCode = _options.CurrencyCode,
-            PeriodStartDateSnapshot = period.StartDate,
-            PeriodEndDateSnapshot = period.EndDate,
-            CreateDateTime = DateTime.UtcNow,
-            CreateBy = actorUserId
-        };
-        _dbContext.TrxPayrollRuns.Add(run);
-        return run;
     }
 
-    /// <summary>Resolve-or-create — snapshot nama/NIP diisi dari MstEmployee saat baris dibuat.</summary>
     private sealed record PayrollTarget(Guid WorkforceProfileId, Guid? EmployeeId, string Number, string Name);
 
-    private async Task<TrxPayrollRunEmployee> ResolveOrCreateRunEmployeeAsync(
-        TrxPayrollRun run, PayrollTarget employee, Guid actorUserId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Find-only. Baris pegawai pada payroll run dibuat HRD dari profil payroll aktif; Finance tidak membuat baris slip (tanpa gaji dan
+    /// profil) sebagai jalan pintas.
+    /// </summary>
+    private async Task<PrlPayrollRunEmployee?> FindRunEmployeeAsync(
+        PrlPayrollRun run, PayrollTarget employee, bool track, CancellationToken cancellationToken)
     {
-        // run.Id bisa belum tersimpan (baris baru, belum SaveChangesAsync) — cari di change
-        // tracker dulu sebelum menduplikasi pencarian ke database untuk run yang baru dibuat.
-        var tracked = _dbContext.ChangeTracker.Entries<TrxPayrollRunEmployee>()
-            .Select(x => x.Entity)
-            .FirstOrDefault(x => x.PayrollRunId == run.Id && x.WorkforceProfileId == employee.WorkforceProfileId && !x.IsDelete);
-        if (tracked is not null) return tracked;
-
-        var existing = await _dbContext.TrxPayrollRunEmployees
+        var query = track ? _dbContext.PrlPayrollRunEmployees.AsQueryable() : _dbContext.PrlPayrollRunEmployees.AsNoTracking();
+        return await query
             .Where(x => !x.IsDelete && x.PayrollRunId == run.Id && x.WorkforceProfileId == employee.WorkforceProfileId)
             .FirstOrDefaultAsync(cancellationToken);
-        if (existing is not null) return existing;
+    }
 
-        var runEmployee = new TrxPayrollRunEmployee
+    /// <summary>
+    /// Menarik jadwal angsuran periode run ke baris pegawai pada run HRD yang SUDAH ada (arah tarik, bukan dorong). Hanya angsuran
+    /// DIJADWALKAN dari perjanjian DISETUJUI, dan hanya untuk periode sejak peralihan (AutomaticFromPeriod); periode sebelum
+    /// peralihan tetap lewat Potong Gaji Manual Finance supaya kedua jalur tidak memproses angsuran yang sama. Idempoten: input
+    /// variabel di-upsert per angsuran. Dipanggil di dalam transaksi pemanggil; tidak menyimpan perubahan sendiri.
+    /// </summary>
+    public async Task<FinanceReceivablePayrollSyncResult> SyncScheduledForRunAsync(
+        MstPayrollPeriod period, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var aggregate = new FinanceReceivablePayrollSyncResult();
+        var periodCode = $"{period.FiscalYear:D4}-{period.PeriodNumber:D2}";
+
+        var cutover = await _dbContext.MstPayrollDeductionCutovers.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken);
+        if (cutover is not null && string.CompareOrdinal(periodCode, cutover.AutomaticFromPeriod) < 0) return aggregate;
+
+        var scheduled = await _dbContext.FinReceivableInstallments
+            .Include(x => x.Plan)
+            .Where(x => !x.IsDelete
+                && x.DeductionPeriod == periodCode
+                && x.Status == FinReceivableInstallmentStatuses.Dijadwalkan
+                && x.Plan != null && !x.Plan.IsDelete
+                && x.Plan.Status == FinReceivableInstallmentPlanStatuses.Disetujui)
+            .ToListAsync(cancellationToken);
+        if (scheduled.Count == 0) return aggregate;
+
+        var receivableIds = scheduled.Select(x => x.Plan!.ReceivableId).Distinct().ToList();
+        var owners = await _dbContext.FinReceivables.AsNoTracking()
+            .Where(r => receivableIds.Contains(r.Id))
+            .Select(r => new { r.Id, r.BenefitOwnerId, r.BenefitOwnerWorkforceProfileId })
+            .ToDictionaryAsync(r => r.Id, cancellationToken);
+
+        foreach (var group in scheduled.GroupBy(x => x.Plan!.ReceivableId))
         {
-            PayrollRunId = run.Id,
-            WorkforceProfileId = employee.WorkforceProfileId,
-            EmployeeId = employee.EmployeeId,
-            EmployeePayrollStatus = "Pending",
-            CurrencyCode = _options.CurrencyCode,
-            EmployeeNumberSnapshot = employee.Number,
-            EmployeeNameSnapshot = employee.Name,
-            CreateDateTime = DateTime.UtcNow,
-            CreateBy = actorUserId
-        };
-        _dbContext.TrxPayrollRunEmployees.Add(runEmployee);
-        return runEmployee;
+            owners.TryGetValue(group.Key, out var owner);
+            var partial = await EvaluateAsync(
+                owner?.BenefitOwnerId, owner?.BenefitOwnerWorkforceProfileId, group.ToList(), actorUserId, apply: true, cancellationToken);
+            aggregate.SyncedCount += partial.SyncedCount;
+            aggregate.SkippedCount += partial.SkippedCount;
+            aggregate.SkipReasons.AddRange(partial.SkipReasons);
+            aggregate.Items.AddRange(partial.Items);
+        }
+
+        return aggregate;
     }
 
     /// <summary>Upsert idempoten berbasis (PayrollRunEmployeeId, PayrollComponentId, SourceType, SourceId)
     /// — pola sama dengan UpsertVariableInputAsync pada LeavePayrollIntegrationService.</summary>
     private async Task UpsertVariableInputAsync(
-        TrxPayrollRunEmployee runEmployee, MstPayrollComponent component, FinReceivableInstallment installment,
+        PrlPayrollRunEmployee runEmployee, MstPayrollComponent component, FinReceivableInstallment installment,
         Guid actorUserId, CancellationToken cancellationToken)
     {
         const string sourceType = "FinanceReceivableInstallment";
 
-        var tracked = _dbContext.ChangeTracker.Entries<TrxPayrollVariableInput>()
+        var tracked = _dbContext.ChangeTracker.Entries<PrlPayrollVariableInput>()
             .Select(x => x.Entity)
             .FirstOrDefault(x => x.PayrollRunEmployeeId == runEmployee.Id && x.PayrollComponentId == component.Id
                 && x.SourceType == sourceType && x.SourceId == installment.Id && !x.IsDelete);
 
-        var existing = tracked ?? await _dbContext.TrxPayrollVariableInputs
+        var existing = tracked ?? await _dbContext.PrlPayrollVariableInputs
             .FirstOrDefaultAsync(x => x.PayrollRunEmployeeId == runEmployee.Id && x.PayrollComponentId == component.Id
                 && x.SourceType == sourceType && x.SourceId == installment.Id && !x.IsDelete, cancellationToken);
 
@@ -276,6 +471,10 @@ public sealed class FinanceReceivablePayrollSyncService
 
         if (existing is not null)
         {
+            // Input yang sudah keluar dari Draft (sudah diproses/disetujui payroll) tidak disentuh lagi: kirim ulang tidak boleh
+            // mengubah angka yang sudah dipakai perhitungan gaji.
+            if (!string.Equals(existing.InputStatus, "Draft", StringComparison.OrdinalIgnoreCase)) return;
+
             existing.Amount = amount;
             existing.Quantity = 1m;
             existing.Rate = amount;
@@ -284,7 +483,7 @@ public sealed class FinanceReceivablePayrollSyncService
             return;
         }
 
-        _dbContext.TrxPayrollVariableInputs.Add(new TrxPayrollVariableInput
+        _dbContext.PrlPayrollVariableInputs.Add(new PrlPayrollVariableInput
         {
             PayrollRunEmployeeId = runEmployee.Id,
             PayrollComponentId = component.Id,
@@ -302,12 +501,6 @@ public sealed class FinanceReceivablePayrollSyncService
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId
         });
-    }
-
-    private static string GenerateRunNumber()
-    {
-        var candidate = $"RUN-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
-        return candidate.Length <= 50 ? candidate : candidate[..50];
     }
 
     private static string GenerateVariableInputNumber() =>
@@ -424,6 +617,15 @@ public sealed class FinanceReceivablePayrollSyncService
         var receivable = await ResolveReceivableAsync(installment, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
+        // Sisa piutang Finance bisa lebih kecil daripada sisa angsuran bila ada pembayaran langsung, penyesuaian, atau write-off
+        // setelah perjanjian disetujui (jadwal tidak ikut menyesuaikan). Tanpa guard ini potongan lolos pemeriksaan angsuran di atas
+        // lalu gagal sebagai pelanggaran CK_FinReceivable_Outstanding saat SaveChanges (500 dan transaksi batch/run gagal tanpa
+        // penjelasan). Ditolak bersih sebelum ada perubahan apa pun; rekonsiliasi dilakukan oleh petugas.
+        if (deductedAmount > receivable.OutstandingAmount)
+            throw new PayrollResultValidationException(
+                $"Nominal potongan {deductedAmount:N2} melebihi sisa piutang Finance {receivable.OutstandingAmount:N2} untuk {receivable.ReceivableNumber}. " +
+                "Kemungkinan ada pembayaran langsung atau penyesuaian lain setelah perjanjian disetujui; rekonsiliasi diperlukan sebelum potongan dicatat.");
+
         if (deductedAmount > 0)
         {
             var balanceBefore = receivable.OutstandingAmount;
@@ -489,6 +691,8 @@ public sealed class FinanceReceivablePayrollSyncService
             }
         }
 
+        // Invoice AR piutang karyawan (bila sudah dibuat) mengikuti saldo piutang: ISSUED -> PARTIALLY_PAID -> PAID. Tanpa batch = tanpa efek.
+        await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(new[] { receivable.Id }, actorUserId, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
         await _loggerService.AuditAsync(LogCategory, "Result.Processed",
             $"Hasil potongan payroll dicatat. InstallmentId={installment.Id} Status={request.Status} Deducted={deductedAmount:N2}",
@@ -511,6 +715,11 @@ public sealed class FinanceReceivablePayrollSyncService
     /// Menerapkan selisih (positif POTONGAN-GAJI, negatif PEMBALIKAN-POTONGAN-GAJI), menyesuaikan saldo kartu piutang
     /// dan angsuran, serta menyesuaikan CarriedOverAmount angsuran berikutnya bila belum menerima hasil.
     /// Tidak membuka transaksi sendiri agar dapat dipanggil di dalam transaksi atomik batch pengesahan koreksi.
+    ///
+    /// <paramref name="fromPayrollRun"/> membedakan dua jalur yang tidak boleh tumpang tindih (satu jalur per periode):
+    /// koreksi MANUAL (batch koreksi Finance) hanya untuk periode sebelum peralihan; koreksi dari PAYROLL RUN HRD (pembalikan
+    /// bertanda tangan atas hasil yang sudah disahkan) hanya untuk periode sejak peralihan. Koreksi bersifat idempoten karena
+    /// dihitung dari selisih terhadap nominal terpotong saat ini.
     /// </summary>
     public async Task<PayrollResultResponse> ApplyCorrectionCoreAsync(
         Guid installmentId,
@@ -518,7 +727,8 @@ public sealed class FinanceReceivablePayrollSyncService
         string newResultStatus,
         Guid actorUserId,
         string? notes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool fromPayrollRun = false)
     {
         var installment = await _dbContext.FinReceivableInstallments
             .Include(x => x.Plan)
@@ -528,10 +738,15 @@ public sealed class FinanceReceivablePayrollSyncService
         // FIN-VAL-286: Koreksi manual untuk periode >= peralihan mesin ditolak
         var cutover = await _dbContext.MstPayrollDeductionCutovers.AsNoTracking()
             .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken);
-        if (cutover is not null && string.CompareOrdinal(installment.DeductionPeriod, cutover.AutomaticFromPeriod) >= 0)
+        if (!fromPayrollRun && cutover is not null && string.CompareOrdinal(installment.DeductionPeriod, cutover.AutomaticFromPeriod) >= 0)
         {
             throw new PayrollResultValidationException(
                 $"Periode {installment.DeductionPeriod} sudah ditangani mesin payroll; pencatatan manual tidak diizinkan.");
+        }
+        if (fromPayrollRun && cutover is not null && string.CompareOrdinal(installment.DeductionPeriod, cutover.AutomaticFromPeriod) < 0)
+        {
+            throw new PayrollResultValidationException(
+                $"Periode {installment.DeductionPeriod} masih memakai pencatatan manual; koreksinya lewat batch koreksi Finance.");
         }
 
         // FIN-VAL-285: Angsuran berikutnya pada perjanjian yang sama MUST belum menerima hasil (AC 2)
@@ -661,6 +876,8 @@ public sealed class FinanceReceivablePayrollSyncService
                 ? FinReceivableInstallmentStatuses.TerbayarSebagian
                 : FinReceivableInstallmentStatuses.Tertunggak;
 
+        await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(new[] { receivable.Id }, actorUserId, cancellationToken);
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         await _loggerService.AuditAsync(LogCategory, "Correction.Processed",
@@ -712,6 +929,43 @@ public sealed class FinanceReceivablePayrollSyncResult
     public int SyncedCount { get; set; }
     public int SkippedCount { get; set; }
     public List<string> SkipReasons { get; set; } = new();
+
+    /// <summary>Hasil per angsuran (aditif; SkipReasons tetap ada untuk pemanggil lama).</summary>
+    public List<FinanceReceivablePayrollSyncItemResult> Items { get; set; } = new();
+}
+
+/// <summary>Satu angsuran: Synced = input payroll ditulis pada pemanggilan ini; Gap = prasyarat yang gagal (null bila layak/berhasil).</summary>
+public sealed record FinanceReceivablePayrollSyncItemResult(
+    Guid InstallmentId, int InstallmentNumber, string DeductionPeriod, bool Synced, PayrollSyncGap? Gap);
+
+/// <summary>Alasan yang dapat ditindaklanjuti: kode stabil, pesan untuk pengguna, dan tindakan yang diperlukan.</summary>
+public sealed record PayrollSyncGap(string Code, string Message, string Action);
+
+/// <summary>Kode alasan sinkron payroll. Nilainya dihasilkan validasi, bukan ditulis ke setiap respons secara tetap.</summary>
+public static class FinanceInstallmentPayrollSyncReasonCodes
+{
+    public const string Disabled = "PAYROLL_SYNC_DISABLED";
+    public const string OwnerNotIdentified = "PAYROLL_OWNER_NOT_IDENTIFIED";
+    public const string EmployeeNotFound = "PAYROLL_EMPLOYEE_NOT_FOUND";
+    public const string DoctorProfileMissing = "PAYROLL_DOCTOR_PROFILE_MISSING";
+    public const string ComponentNotFound = "PAYROLL_COMPONENT_NOT_FOUND";
+    public const string ComponentInactive = "PAYROLL_COMPONENT_INACTIVE";
+    public const string ComponentNotDeduction = "PAYROLL_COMPONENT_NOT_DEDUCTION";
+    public const string PeriodNotFound = "PAYROLL_PERIOD_NOT_FOUND";
+    public const string PeriodInactive = "PAYROLL_PERIOD_INACTIVE";
+    public const string PeriodLocked = "PAYROLL_PERIOD_LOCKED";
+    public const string RunLocked = "PAYROLL_RUN_LOCKED";
+
+    /// <summary>HRD belum membuat payroll run periode itu. Finance tidak pernah membuat run; jadwal ditarik otomatis saat HRD membuka run.</summary>
+    public const string AwaitingPayrollRun = "PAYROLL_AWAITING_RUN";
+
+    /// <summary>Run ada, tetapi pegawai tidak termasuk dalam run (mis. tidak punya profil payroll aktif pada periode itu).</summary>
+    public const string EmployeeNotInRun = "PAYROLL_EMPLOYEE_NOT_IN_RUN";
+
+    /// <summary>Semua prasyarat terpenuhi tetapi input belum tersimpan (belum pernah dikirim, atau pengiriman terdahulu tidak tersimpan).</summary>
+    public const string NotSent = "PAYROLL_NOT_SENT";
+
+    public const string InstallmentNotScheduled = "INSTALLMENT_NOT_SCHEDULED";
 }
 
 public sealed class PayrollResultValidationException(string message) : Exception(message);

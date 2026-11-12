@@ -159,6 +159,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         r.DischargeMedicationNote,
                         r.EducationSummary,
                         r.FollowUpInstruction,
+                        r.FollowUpDate,
+                        PoliKontrol = r.FollowUpServiceUnit != null ? r.FollowUpServiceUnit.ServiceUnitName : null,
+                        DokterKontrol = r.FollowUpDoctor != null ? r.FollowUpDoctor.FullName : null,
                         r.ReferralDestination,
                         Dokter = r.SignedByDoctor != null ? r.SignedByDoctor.FullName : null,
                         Revisi = _dbContext.InpDischargeSummaryRevisions.Count(v => v.DischargeSummaryId == r.Id && !v.IsDelete)
@@ -178,6 +181,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 Tambah(bagian, "Obat pulang", x.DischargeMedicationNote);
                 Tambah(bagian, "Edukasi", x.EducationSummary);
                 Tambah(bagian, "Instruksi tindak lanjut", x.FollowUpInstruction);
+                // `RM-DEC-104` / `BE-47`: rencana kontrol terstruktur (`BE-RWI-256`) ditampilkan
+                // apa adanya; tanpa tanggal kontrol, bagian ini tidak ada. Tidak menyentuh kelengkapan.
+                Tambah(bagian, "Rencana kontrol", x.FollowUpDate.HasValue
+                    ? Gabung(
+                        x.FollowUpDate.Value.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture),
+                        x.PoliKontrol,
+                        x.DokterKontrol)
+                    : null);
                 Tambah(bagian, "Rujukan", x.ReferralDestination);
                 Tambah(bagian, "Ditandatangani", Gabung(TulisWaktu(x.SignedAt), x.Dokter));
                 Tambah(bagian, "Riwayat koreksi", x.Revisi > 0 ? $"{x.Revisi} kali dikoreksi" : null);

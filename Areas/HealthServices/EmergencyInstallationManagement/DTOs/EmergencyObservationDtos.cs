@@ -72,4 +72,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [MaxLength(2000)]
         public string? Notes { get; set; }
     }
+
+    public class EmergencyObservationOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public string? ObservationLocation { get; set; }
+        public EmergencyObservationStatus ObservationStatus { get; set; }
+        public DateTime StartDateTime { get; set; }
+    }
+
+    public class EmergencyObservationSummaryResponse
+    {
+        public int TotalObservation { get; set; }
+        public int ActiveObservation { get; set; }
+        public int PlannedObservation { get; set; }
+        public int InProgressObservation { get; set; }
+        public int CompletedObservation { get; set; }
+        public int DiscontinuedObservation { get; set; }
+    }
+
+    public class EmergencyObservationDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public Guid? EmergencyVisitId { get; set; }
+        public EmergencyObservationStatus? ObservationStatus { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "startdatetime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyObservationFilterMetadataResponse
+    {
+        public EmergencyObservationDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "startdatetime", "createdatetime" };
+    }
 }

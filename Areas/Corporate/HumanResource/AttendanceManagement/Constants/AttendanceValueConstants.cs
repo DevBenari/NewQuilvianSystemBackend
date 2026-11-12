@@ -39,6 +39,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public const string Late = "Late";
             public const string EarlyLeave = "EarlyLeave";
             public const string Incomplete = "Incomplete";
+            public const string IncompletePunch = "IncompletePunch";
+            public const string OnDuty = "OnDuty";
             public const string Holiday = "Holiday";
             public const string RestDay = "RestDay";
             public const string Leave = "Leave";

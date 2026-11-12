@@ -196,6 +196,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.DTOs
 
         public OptPrescriptionVersionResponse? Current { get; set; }
 
+        /// <summary>Benar bila jawaban ini berasal dari kunci idempoten yang sudah dipakai (tombol Simpan ditekan dua kali). Tidak disimpan.</summary>
+        public bool IsReplay { get; set; }
+
         /// <summary>Seluruh versi, terlama dulu. Hanya diisi pada detail.</summary>
         public List<OptPrescriptionVersionResponse> Versions { get; set; } = new();
     }
