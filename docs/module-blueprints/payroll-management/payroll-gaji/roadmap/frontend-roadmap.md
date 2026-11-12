@@ -32,30 +32,30 @@ tanpa Jest. Bukti: lint, build, checklist konsistensi UI, dan langkah uji manual
 ## Grafik Urutan Dependency
 
 ```text
-PAY-FE-14
+PAY-FE-14 🟡
 
-PAY-FE-15
+PAY-FE-15 🟡
 
-PAY-BE-15 [BE] ─┬─> PAY-FE-16
-                │
-PAY-BE-16 [BE] ─┘
+PAY-BE-15 🟡 [BE] ─┬─> PAY-FE-16
+                   │
+PAY-BE-16 🟡 [BE] ─┘
 
-PAY-BE-19 [BE] ─┬─> PAY-FE-17 ─┬─> PAY-FE-19
-                │              │
-PAY-BE-20 [BE] ─┘              │
-                               │
-PAY-BE-23 [BE] ────────────────┘
+PAY-BE-19 🟡 [BE] ─┬─> PAY-FE-17 ─┬─> PAY-FE-19
+                   │              │
+PAY-BE-20 🟡 [BE] ─┘              │
+                                  │
+PAY-BE-23 🟡 [BE] ────────────────┘
 
-PAY-BE-21 [BE] ─> PAY-FE-18
+PAY-BE-21 🟡 [BE] ─> PAY-FE-18
 
-PAY-BE-22 [BE] ─> PAY-FE-20
+PAY-BE-22 🟡 [BE] ─> PAY-FE-20
 ```
 
 `[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja; tandanya disalin dari sana.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — (endpoint transport sudah ada) | `PAY-FE-14`, `PAY-FE-15` — boleh paralel, bisa mulai sekarang |
+| 1 | — (endpoint transport sudah ada) | `PAY-FE-14` 🟡, `PAY-FE-15` 🟡 — boleh paralel, bisa mulai sekarang |
 | 1 | `PAY-BE-15` dan `PAY-BE-16` | `PAY-FE-16` — menunggu kedua task backend |
 | 1 | `PAY-BE-19` dan `PAY-BE-20` | `PAY-FE-17` — menunggu kedua task backend |
 | 1 | `PAY-BE-21` | `PAY-FE-18` — menunggu task backend |
@@ -75,8 +75,8 @@ run yang sama.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `PAY-FE-14` | Kebijakan transport dapat diatur | FR-PGJ-020; PRL-DEC-46 | `PGJ-C1` | 9 endpoint `TransportAllowancePolicy`; standar master data | `FE-PGJ-09` + butir menu | — | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
-| `PAY-FE-15` | Transport pegawai dapat diatur | FR-PGJ-021 | `PGJ-C1` | Endpoint `WorkforceTransportAllowance` | `FE-PGJ-10` + tombol masuk | — | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
+| `PAY-FE-14` 🟡 | Kebijakan transport dapat diatur | FR-PGJ-020; PRL-DEC-46 | `PGJ-C1` | 9 endpoint `TransportAllowancePolicy`; standar master data | `FE-PGJ-09` + butir menu | — | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
+| `PAY-FE-15` 🟡 | Transport pegawai dapat diatur | FR-PGJ-021 | `PGJ-C1` | Endpoint `WorkforceTransportAllowance` | `FE-PGJ-10` + tombol masuk | — | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
 | `PAY-FE-16` | Tunjangan tetap struktur dapat dikelola | FR-PGJ-001–003, 010, 011 | `PGJ-C1` | Detail struktur yang ada | `FE-PGJ-01` | `PAY-BE-15`, `PAY-BE-16` | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
 | `PAY-FE-17` | Penghasilan variabel dikelola per run | FR-PGJ-030–036 | `PGJ-C1` | Detail run yang ada | `FE-PGJ-02`, `FE-PGJ-03` + tombol masuk | `PAY-BE-19`, `PAY-BE-20` | Kartu | Lint, build, uji manual | Impor besar / Yasmin | Kartu |
 | `PAY-FE-18` | Simulasi dapat dijalankan | FR-PGJ-040–042 | `PGJ-C1` | Opsi periode yang ada | `FE-PGJ-04` + butir menu | `PAY-BE-21` | Kartu | Lint, build, uji manual | — / Yasmin | Kartu |
@@ -85,11 +85,11 @@ run yang sama.
 
 ## Kartu task
 
-### `PAY-FE-14` — Kebijakan Tunjangan Transportasi
+### `PAY-FE-14` 🟡 — Kebijakan Tunjangan Transportasi
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — fitur master data `transport-allowance-policy` (7 berkas source + 5 route) ditulis mengikuti standar master data dengan rujukan `hazard-allowance-policy`; reducer dan butir menu "Tunjangan Transportasi" (`TransportAllowancePolicy : Read`) terdaftar; tombol Tambah/Perbarui/Hapus dijaga `Create`/`Update`/`Delete`; keterangan `CALC-02` di form dan detail (`InformationAlert` lewat `afterHero`, `UI GATE` 0 NEW). ESLint 0 galat (2 peringatan warisan rujukan); uji unit Payroll lolos; suite penuh 4.753/4.800 lolos, 47 gagal tanpa yang baru (2 berkas menu dibuktikan gagal juga pada HEAD); skrip pemeriksa utils `PASS`. Belum terpenuhi: `npm run build` (`NOT RUN` atas instruksi pemilik), uji manual langkah 1–8 (`MANUAL TEST: NOT FEASIBLE` oleh agen). Laporan: [`PAY-FE-14.md`](../task/report/frontend/PAY-FE-14.md) |
 | Outcome | Petugas dapat mengelola kebijakan transport dari menu Payroll |
 | Requirement/decision | FR-PGJ-020; PRL-DEC-46; `03-frontend-architecture.md` bagian 3.6 |
 | Reuse | Sembilan endpoint `TransportAllowancePolicy` yang sudah ada; standar fitur master data frontend (rujukan `hr/master-data/job-level`) |
@@ -100,11 +100,11 @@ run yang sama.
 | Risiko/pemilik | Controller transport memakai pengecualian `QBE-CODE-002` bertenggat (`PAY-BE-13`); tidak mempengaruhi layar. Pemilik: Yasmin |
 | DoD | Kriteria terbukti, butir menu terdaftar, laporan ditulis |
 
-### `PAY-FE-15` — Tunjangan Transportasi pegawai
+### `PAY-FE-15` 🟡 — Tunjangan Transportasi pegawai
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — layar anak `/payroll/workforce-compensations/[id]/transport-allowance` (daftar, ringkasan, modal tambah/ubah, hapus) dan tombol "Tunjangan Transportasi" di detail Profil Penggajian ditulis dengan pola Payroll V2; peringatan `CALC-01` tampil di form sebelum simpan dan di atas daftar untuk data lama yang ganda; tombol dijaga `WorkforceTransportAllowance : Read/Create/Update/Delete`; `UI GATE` seluruhnya `REUSE`. ESLint 0 galat (3 peringatan pola Payroll V2); suite unit 4.753/4.800 lolos, 47 kegagalan identik dengan baseline `PAY-FE-14`; skrip pemeriksa irisan dan payload `PASS`. Selisih: backend menolak tunjangan kedua per pegawai, jadi tombol Tambah dinonaktifkan dengan penjelasan. Belum terpenuhi: `npm run build` (`NOT RUN` atas instruksi pemilik), uji manual langkah 1–8 (`MANUAL TEST: NOT FEASIBLE` oleh agen). Laporan: [`PAY-FE-15.md`](../task/report/frontend/PAY-FE-15.md) |
 | Outcome | Petugas dapat menetapkan tunjangan transport per pegawai |
 | Requirement/decision | FR-PGJ-021; `03-frontend-architecture.md` bagian 3.6 |
 | Reuse | Endpoint `WorkforceTransportAllowance`; detail Profil Penggajian `/payroll/workforce-compensations/[id]` |

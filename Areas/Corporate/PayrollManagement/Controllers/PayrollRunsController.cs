@@ -33,11 +33,16 @@ public sealed class PayrollRunsController : ControllerBase
 {
     private readonly PayrollRunService _service;
     private readonly PayrollHrdImportService _hrdImportService;
+    private readonly PayrollSimulationService _simulationService;
 
-    public PayrollRunsController(PayrollRunService service, PayrollHrdImportService hrdImportService)
+    public PayrollRunsController(
+        PayrollRunService service,
+        PayrollHrdImportService hrdImportService,
+        PayrollSimulationService simulationService)
     {
         _service = service;
         _hrdImportService = hrdImportService;
+        _simulationService = simulationService;
     }
 
     private Guid CurrentUserId() => PayrollControllerSupport.CurrentUserId(User);
@@ -75,6 +80,16 @@ public sealed class PayrollRunsController : ControllerBase
     public async Task<IActionResult> GetPeriodOptions(CancellationToken cancellationToken) =>
         Ok(ApiResponse<List<PayrollRunPeriodOptionResponse>>.Ok(await _service.GetPeriodOptionsAsync(cancellationToken), "Periode payroll berhasil dimuat."));
 
+    /// <summary>
+    /// PAY-BE-21: hitung percobaan satu periode tanpa menyimpan apa pun (SIM-01..03). Tidak mengimpor HR, tidak menyentuh Finance,
+    /// dan tidak menerbitkan nomor; lihat Notes pada respons.
+    /// </summary>
+    [HttpPost("simulations")]
+    [AccessAction("Simulate", "Simulate Payroll Run", Description = "Menghitung percobaan payroll satu periode tanpa menyimpan data", AccessType = AccessTypes.Read, SortOrder = 21)]
+    [AccessPermission("PayrollRun", "Simulate")]
+    public Task<IActionResult> Simulate([FromBody] PayrollSimulationRequest request, CancellationToken cancellationToken) =>
+        Run(() => _simulationService.SimulateAsync(request, CurrentUserId(), cancellationToken), "Simulasi payroll selesai. Tidak ada data yang disimpan.");
+
     [HttpGet("period-overview")]
     [AccessAction("ReadPeriodOverview", "Read Payroll Run Period Overview", AccessType = AccessTypes.Read, SortOrder = 10)]
     [AccessPermission("PayrollRun", "ReadPeriodOverview")]
@@ -86,6 +101,13 @@ public sealed class PayrollRunsController : ControllerBase
     [AccessPermission("PayrollRun", "ReadDetail")]
     public Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken) =>
         Run(() => _service.GetByIdAsync(id, cancellationToken), "Detail payroll run berhasil dimuat.");
+
+    /// <summary>PAY-BE-23: rekap lembur terverifikasi HR yang diimpor ke run, per pegawai per tanggal (baca-saja, PRL-DEC-42).</summary>
+    [HttpGet("{id:guid}/overtime-inputs")]
+    [AccessAction("Read", "Read Payroll Run", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("PayrollRun", "Read")]
+    public Task<IActionResult> GetOvertimeInputs(Guid id, [FromQuery] PayrollRunOvertimeInputQuery query, CancellationToken cancellationToken) =>
+        Run(() => _service.GetOvertimeInputsAsync(id, query, cancellationToken), "Rekap lembur payroll run berhasil dimuat.");
 
     [HttpGet("{id:guid}/status-history")]
     [AccessAction("ReadStatusHistory", "Read Payroll Run Status History", AccessType = AccessTypes.Read, SortOrder = 16)]

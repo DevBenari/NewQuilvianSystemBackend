@@ -54,4 +54,21 @@ public sealed class PayrollReportsController : ControllerBase
     [AccessPermission("PayrollReport", "ViewAmount")]
     public Task<IActionResult> GetReconciliation([FromQuery] Guid payrollRunId, CancellationToken cancellationToken) =>
         PayrollControllerSupport.RunAsync(() => _service.GetReconciliationAsync(payrollRunId, cancellationToken), "Rekonsiliasi penggajian berhasil dimuat.");
+
+    /// <summary>
+    /// PAY-BE-22: beban gaji per Cost Center per komponen dari run yang sudah disahkan (pengganti menu Jurnal). Memuat nominal,
+    /// sehingga dijaga ViewAmount. Tanpa run disahkan: hasil kosong dengan keterangan RPT-01.
+    /// </summary>
+    [HttpGet("expense-summary")]
+    [AccessAction("ViewAmount", "View Payroll Reconciliation", AccessType = AccessTypes.Read, SortOrder = 2)]
+    [AccessPermission("PayrollReport", "ViewAmount")]
+    public Task<IActionResult> GetExpenseSummary([FromQuery] PayrollExpenseSummaryQuery query, CancellationToken cancellationToken) =>
+        PayrollControllerSupport.RunAsync(() => _service.GetExpenseSummaryAsync(query, cancellationToken), "Laporan beban gaji berhasil dimuat.");
+
+    /// <summary>PAY-BE-22: PPh 21 dan iuran BPJS pegawai dari run yang sudah disahkan, sumber tetapan profil. Dijaga ViewAmount.</summary>
+    [HttpGet("tax-contribution")]
+    [AccessAction("ViewAmount", "View Payroll Reconciliation", AccessType = AccessTypes.Read, SortOrder = 2)]
+    [AccessPermission("PayrollReport", "ViewAmount")]
+    public Task<IActionResult> GetTaxContribution([FromQuery] PayrollTaxContributionQuery query, CancellationToken cancellationToken) =>
+        PayrollControllerSupport.RunAsync(() => _service.GetTaxContributionAsync(query, cancellationToken), "Laporan PPh dan BPJS berhasil dimuat.");
 }
