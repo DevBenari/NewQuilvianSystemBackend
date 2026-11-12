@@ -37,7 +37,7 @@ Seluruh 22 skenario pengujian penerimaan pada [`acceptance-test-matrix.md`](../t
 | :--- | :--- | :--- | :---: |
 | `AT-HRD-OPP-01` | Fungsional | Pembukaan siklus periode OPPE baru dengan rasio 60:40 | ✅ Lulus |
 | `AT-HRD-OPP-02` | Validasi | Penolakan konfigurasi bobot OPPE jika total tidak 100% (`VR-OPP-01`) | ✅ Lulus |
-| `AT-HRD-OPP-03` | Integrasi SIMRS | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP (`INT-HR-73`) | ✅ Lulus |
+| `AT-HRD-OPP-03` | Integrasi SIMRS | Agregasi otomatis indikator kuantitatif dari SIMRS/KMKP (`INT-HR-73`) | ⛔ **Dicabut 10 November 2026** — `OppeDataAggregationService` masih memakai konstanta (volume 120, EMR 92,5; lihat `BE-HRD-225` di `backend-unfinished-work.md`), sehingga agregasi otomatis belum pernah terbukti |
 | `AT-HRD-OPP-04` | Fungsional | Penugasan formulir telaah sejawat ke dokter rekan KSM | ✅ Lulus |
 | `AT-HRD-OPP-05` | Keamanan | Penolakan penilaian sejawat mandiri (*anti-self-review*, `VR-OPP-03`) | ✅ Lulus |
 | `AT-HRD-OPP-06` | Validasi Kualitatif | Keharusan narasi klinis jika skor telaah sejawat $\le 2$ (`VR-OPP-04`) | ✅ Lulus |
@@ -74,3 +74,10 @@ Seluruh 22 skenario pengujian penerimaan pada [`acceptance-test-matrix.md`](../t
 10. **Laporan Task Lengkap**: 16 laporan task tracked resmi berbahasa Indonesia tersimpan di direktori dokumentasi resmi.
 
 > **Status Akhir**: **SLICE `S-C1-OPPE` DINYATAKAN SELESAI 100% DAN SIAP MENUJU SLICE BERIKUTNYA (`S-C2` LEARNING, TRAINING & COMPETENCY)**.
+
+
+---
+
+## Koreksi 10 November 2026 (audit Gelombang 1)
+
+Klaim lulus `AT-HRD-OPP-03` pada tabel di atas **dicabut**: kode `OppeDataAggregationService.cs` baris 261–267 mengembalikan angka tetap, bukan hasil agregasi dari SIMRS/KMKP. Uji itu tidak pernah dapat lulus sebelum sumber data SIMRS diputuskan pemilik (`BE-HRD-225`, Gelombang 2). Status task diturunkan menjadi 🟡 pada roadmap; 21 skenario lainnya tidak diubah tetapi bukti eksekusinya juga tidak tersedia pada laporan ini (hanya klaim), sehingga pembaca disarankan memperlakukannya sebagai belum terbukti.

@@ -9,6 +9,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthMana
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Shared.HumanResource.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Controllers
 {
@@ -30,10 +32,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
     public class HealthRecordsController : ControllerBase
     {
         private readonly IHealthRecordService _healthRecordService;
+        private readonly AccessPermissionService _accessPermissionService;
 
-        public HealthRecordsController(IHealthRecordService healthRecordService)
+        public HealthRecordsController(IHealthRecordService healthRecordService, AccessPermissionService accessPermissionService)
         {
             _healthRecordService = healthRecordService ?? throw new ArgumentNullException(nameof(healthRecordService));
+            _accessPermissionService = accessPermissionService ?? throw new ArgumentNullException(nameof(accessPermissionService));
         }
 
         private Guid GetCurrentUserId()
@@ -49,9 +53,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
             throw new UnauthorizedAccessException("Identitas user pada token tidak valid.");
         }
 
-        private bool IsDoctorRole()
+        /// <summary>
+        /// Remediasi kelompok G nomor 6 (10 November 2026): hak membaca diagnosis tidak lagi ditentukan nama peran yang
+        /// ditulis di kode, melainkan hak akses <c>OccupationalHealthRecord : ViewClinicalDetail</c> yang diberikan admin
+        /// lewat layar Akses Role.
+        /// </summary>
+        private Task<bool> CanViewClinicalDetailAsync()
         {
-            return User.IsInRole("DokterK3RS") || User.IsInRole("OccupationalHealthDoctor") || User.IsInRole("Admin");
+            return _accessPermissionService.HasAccessAsync(User, "OccupationalHealthRecord", "ViewClinicalDetail");
         }
 
         /// <summary>
@@ -64,7 +73,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         [ProducesResponseType(typeof(ApiResponse<HealthRecordClinicalDetailDto>), 200)]
         public async Task<IActionResult> GetClinicalDetail(Guid employeeId, CancellationToken cancellationToken = default)
         {
-            var isDoctor = IsDoctorRole();
+            var isDoctor = await CanViewClinicalDetailAsync();
             var result = await _healthRecordService.GetClinicalDetailAsync(employeeId, isDoctor, cancellationToken);
             return Ok(ApiResponse<HealthRecordClinicalDetailDto>.Ok(result, "Data rekam medis klinis staf berhasil diambil."));
         }
@@ -106,9 +115,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealth
         [AccessPermission("OccupationalHealthRecord", "ViewOwn")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<MyHealthProfileDto>), 200)]
-        public async Task<IActionResult> GetMyHealth([FromQuery] Guid? employeeId = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetMyHealth(CancellationToken cancellationToken = default)
         {
-            var empId = employeeId ?? GetCurrentUserId();
+            // Remediasi kelompok G nomor 3: identitas pegawai diturunkan dari klaim employee_id pada token, bukan dari query.
+            var empId = User.ResolveEmployeeId();
             var result = await _healthRecordService.GetMyHealthProfileAsync(empId, cancellationToken);
             return Ok(ApiResponse<MyHealthProfileDto>.Ok(result, "Profil kesehatan mandiri berhasil diambil."));
         }

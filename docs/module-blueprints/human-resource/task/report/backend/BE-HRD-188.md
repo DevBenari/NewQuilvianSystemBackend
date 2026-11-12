@@ -87,3 +87,55 @@ Grup Swagger Tag: `[Tags("HR Benefits - COB Claims & Settlement")]`
 ## 6. Verifikasi & Integritas Bukti
 * **Kompilasi C#**: Bebas error dan peringatan tipe data.
 * **Kepatuhan Audit**: Sesuai dengan aturan pelaporan klaim sekunder rumah sakit dan terhubung langsung ke log audit `[AUDIT-BEN-08]`.
+
+---
+
+## Pengerjaan Ulang 10 November 2026 — Remediasi Gelombang 1 Audit Backend HR
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | [backend-unfinished-work.md](../../../roadmap/backend-unfinished-work.md) bagian 10 Gelombang 1, kelompok E — nomor dokumen dari angka acak |
+| Task mode | `BACKEND` |
+| Model | Claude Fable 5.1 |
+| Commit backend saat dikerjakan | mulai `edfd843bac1c2860da7ae9a5ddcb68a75cf42666`; pemilik melakukan commit dan merge selama sesi (HEAD akhir `05325918`, branch `MHamzah`) |
+| Status sesudah pengerjaan ulang | ✅ **SELESAI 10 November 2026** (dikerjakan ulang) |
+
+### Masalah yang ditemukan audit
+
+Nomor klaim COB `CLM-COB-{yyyyMMdd}-{acak 4 digit}` memakai `new Random()`.
+
+### Perubahan yang dikerjakan
+
+- Deret `HRD_BENEFIT_COB_CLAIM`, reset harian, 4 digit; bentuk `CLM-COB-20261110-0001`. Aktor deret = `actorUserId` pemohon (cadangan aktor sistem).
+- Definisi deret Benefit dikumpulkan di `BenefitManagement/Constants/BenefitNumberSeries.cs`.
+
+### Berkas yang berubah
+
+- `Areas/Corporate/HumanResource/BenefitManagement/Services/BenefitClaimService.cs`
+- `Areas/Corporate/HumanResource/BenefitManagement/Constants/BenefitNumberSeries.cs` (baru)
+
+### Verifikasi
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` **0 error**, 606 warning (garis dasar sebelum sesi 578; selisih berasal dari merge cabang lain yang masuk HEAD pada sesi yang sama, bukan dari berkas task ini) | 0 error | `PASS` |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 58 berkas yang disentuh: **0 VIOLATION, 0 REVIEW, PASS** | 0 temuan | `PASS` |
+| Review diff dan scope | hanya berkas di atas yang disentuh untuk task ini | `PASS` |
+| Uji runtime / API | tidak dijalankan pada sesi ini | `NOT RUN` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+### Acceptance criteria yang disentuh pengerjaan ulang
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| Nomor klaim COB unik dan berurutan | Terpenuhi | index unik berfilter `ClaimNumber` sudah ada |
+
+### Database dan migration
+
+`NOT APPLICABLE` — tidak ada perubahan skema untuk task ini.
+
+### Catatan penutup
+
+- Perubahan sampingan: migration hasil scaffold otomatis `20261110044224_AddHrdDurableAuditAndPinLockouts` (14.620 baris, 79 CreateTable/26 DropTable di luar lingkup) **dibuang** dan diganti migration SQL manual; snapshot model yang ikut ter-commit pemilik dibiarkan karena sudah bercampur dengan merge cabang lain.
+- Status Git akhir sesi: berkas task sudah masuk HEAD lewat commit pemilik; sisa di working tree adalah penghapusan dua berkas scaffold dan satu berkas migration manual baru (lihat `git status --short` pada ringkasan sesi).

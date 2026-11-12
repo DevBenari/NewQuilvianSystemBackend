@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -31,10 +33,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
         private const string UnknownValue = "-";
 
         private readonly ApplicationDbContext _context;
+        private readonly IHrdNotificationService _notificationService;
 
-        public TrainingExpiryRadarService(ApplicationDbContext context)
+        public TrainingExpiryRadarService(ApplicationDbContext context, IHrdNotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         public async Task<CertificateExpiryRadarSummaryDto> GetExpiringRadarSummaryAsync(CancellationToken cancellationToken = default)
@@ -124,17 +128,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             var recipientCount = targetList.Select(i => i.WorkforceProfileId).Distinct().Count();
             var channels = request.DeliveryChannels ?? new List<string>();
 
-            // Kanal pengiriman (lonceng aplikasi, email, WhatsApp) belum tersedia — menunggu BE-HRD-314.
-            // Jumlah pengiriman dilaporkan apa adanya: nol.
+            // Remediasi Gelombang 2 (BE-HRD-240 → BE-HRD-314): siaran benar-benar dikirim ke pusat pemberitahuan dalam aplikasi,
+            // satu pemberitahuan per staf per hari berisi seluruh sertifikatnya yang masuk zona radar. Kanal lain yang diminta
+            // (email, WhatsApp) dicatat sebagai jejak karena belum tersedia di platform.
+            var today = DateTime.UtcNow.Date;
+            var requestedChannel = channels.Count > 0 ? string.Join(",", channels) : "InApp";
+            var successfulDispatches = 0;
+
+            foreach (var staffGroup in targetList.GroupBy(i => i.WorkforceProfileId))
+            {
+                var certificates = staffGroup.OrderBy(i => i.ExpiredDate).ToList();
+                var hasOverdue = certificates.Any(c => c.RadarZone == "OVERDUE_H0");
+                var lines = certificates.Select(c => $"{c.TrainingName} (berlaku s.d. {c.ExpiredDate:dd MMM yyyy}{(c.DaysUntilExpiry < 0 ? ", sudah kedaluwarsa" : $", {c.DaysUntilExpiry} hari lagi")})");
+                var body = $"Sertifikat pelatihan wajib Anda perlu diperbarui: {string.Join("; ", lines)}. Hubungi Diklat untuk jadwal pelatihan ulang (VR-TRN-09).";
+
+                successfulDispatches += await _notificationService.NotifyWorkforceProfileAsync(
+                    staffGroup.Key,
+                    new HrdNotificationRequest(
+                        Title: hasOverdue ? "Sertifikat pelatihan wajib Anda sudah kedaluwarsa" : "Sertifikat pelatihan wajib Anda akan kedaluwarsa",
+                        Body: body.Length > 2000 ? body[..2000] : body,
+                        Category: HrdNotificationCategories.Training,
+                        Priority: hasOverdue ? HrdNotificationPriorities.High : HrdNotificationPriorities.Normal,
+                        DeepLinkUrl: "/self-service/training/my-certificates",
+                        SourceModule: "Hrd.LearningAndDevelopment.Radar",
+                        DedupKey: $"TRN-RADAR|{staffGroup.Key:N}|{request.TargetZoneFilter}|{today:yyyyMMdd}",
+                        RequestedChannel: requestedChannel.Length > 30 ? requestedChannel[..30] : requestedChannel),
+                    cancellationToken);
+            }
+
             return new BroadcastExpiryAlertResponseDto
             {
                 TotalRecipients = recipientCount,
-                SuccessfulDispatches = 0,
+                SuccessfulDispatches = successfulDispatches,
                 DeliveryChannels = channels,
                 DispatchedAt = DateTime.UtcNow,
                 Message = recipientCount == 0
                     ? "Tidak ada staf dengan sertifikat pelatihan wajib pada zona radar yang dipilih."
-                    : $"Daftar penerima tersusun: {recipientCount} staf dengan {targetList.Count} sertifikat pada zona radar yang dipilih. Belum ada notifikasi yang terkirim karena kanal pengiriman ({(channels.Count > 0 ? string.Join(", ", channels) : "belum dipilih")}) belum tersedia di aplikasi (menunggu BE-HRD-314, VR-TRN-09)."
+                    : $"{successfulDispatches} pemberitahuan dalam aplikasi terkirim ke {recipientCount} staf ({targetList.Count} sertifikat). Staf yang sudah menerima siaran hari ini atau belum punya akun aktif tidak dihitung. Kanal email/WhatsApp belum tersedia di platform."
             };
         }
 

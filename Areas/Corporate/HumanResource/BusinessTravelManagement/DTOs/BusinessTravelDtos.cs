@@ -217,6 +217,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         public string EmergencyReason { get; set; } = string.Empty;
     }
 
+    public class MissingReceiptDeclarationDto
+    {
+        public Guid Id { get; set; }
+        public Guid TravelExpenseCategoryId { get; set; }
+        public DateOnly ExpenseDate { get; set; }
+        public string ExpenseDescription { get; set; } = string.Empty;
+        public decimal ClaimedAmount { get; set; }
+        public string EmergencyReason { get; set; } = string.Empty;
+        public string ItemStatus { get; set; } = string.Empty;
+        public Guid DeclaredByUserId { get; set; }
+        public Guid? ApprovedByUserId { get; set; }
+    }
+
+    public class TravelAuditEventDto
+    {
+        public Guid BusinessTravelRequestId { get; set; }
+        public string TravelRequestNumber { get; set; } = string.Empty;
+        public string EventType { get; set; } = string.Empty;
+        public DateTime OccurredAt { get; set; }
+        public Guid? ActorUserId { get; set; }
+        public string Detail { get; set; } = string.Empty;
+    }
+
     public class SubmitTravelSettlementDto
     {
         [Required]
@@ -322,6 +345,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         public string ClaimType { get; set; } = "WorkPurchase"; // General, Medical, WorkPurchase, Transportation
 
         public List<CreateExpenseClaimItemDto> Items { get; set; } = new List<CreateExpenseClaimItemDto>();
+    }
+
+    public class ApproveExpenseClaimDto
+    {
+        [Range(0, double.MaxValue)]
+        public decimal? ApprovedAmount { get; set; }
+
+        [MaxLength(2000)]
+        public string? ApprovalNote { get; set; }
     }
 
     public class VerifyExpenseClaimDto

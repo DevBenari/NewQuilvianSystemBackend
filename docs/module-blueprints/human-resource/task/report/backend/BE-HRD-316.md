@@ -208,3 +208,40 @@ ini ditandai selesai.
 | Interupsi | `NONE` |
 | Status Git | `M` dua service di atas, `M` laporan ini, `M` roadmap, `M` `requirement-traceability.md`, `??` `evidence/03-hr-authorization-remediation.md` (dari pekerjaan sebelumnya) |
 | Langkah berikutnya | `BE-HRD-314` (gateway notifikasi), lalu `INT-HR-94` di atasnya; uji `AT-HRD-WF-18` dengan akun approver nyata |
+
+## Pengerjaan Ulang 11 November 2026 — Remediasi Gelombang 2 (`INT-HR-94`)
+
+**Masalah yang ditutup:** butir outcome `INT-HR-94` (pengingat menunjuk Plh saat cuti pejabat struktural disetujui) belum punya source karena data jabatan tidak punya penanda "pejabat struktural" dan gateway notifikasi masih kosong.
+
+**Keputusan yang diterapkan:** "pejabat" diturunkan dari bukti yang ada — pemohon cuti yang tercatat sebagai manajer aktif dengan wewenang menyetujui permohonan minimal satu bawahan (`WfpManagerAssignment.CanApproveRequests`). Tidak ada penanda baru pada data jabatan.
+
+**Proses:** persetujuan final V2 → `IdempotentDownstreamExecutionService` meneruskan ke modul cuti (sudah ada) → bila reference type-nya cuti, status `Approved`, pemohon adalah manajer aktif, dan belum ada `TrxApprovalDelegation` aktif yang menutup rentang cuti → pejabat menerima pemberitahuan prioritas tinggi "Cuti Anda disetujui — tunjuk Plh" dengan tautan ke layar pembuatan delegasi (satu kali per permohonan cuti). Kegagalan pengingat tidak membatalkan keputusan yang sudah sah.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/Corporate/HumanResource/WorkflowManagement/Services/IdempotentDownstreamExecutionService.cs` | Metode `PromptOfficerLeaveDelegationAsync` (`INT-HR-94`); konstruktor menerima `ApplicationDbContext`, `IHrdNotificationService`, `ILogger` |
+
+### Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | 0 error, 602 warning (garis dasar sebelum sesi 606; tidak ada warning baru pada berkas yang disentuh) | `PASS` | keluaran build 11 November 2026 |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` atas 43 berkas Gelombang 2 | 0 VIOLATION, 0 REVIEW | `PASS` | laporan checker in-process |
+| Uji runtime / API dengan akun sungguhan | tidak dijalankan | `NOT RUN` | lingkungan database dan migration belum disiapkan pemilik |
+| Migration `20261111020000_AddHrdNotificationAndSuspensionAccess` | disiapkan (SQL idempoten `IF NOT EXISTS`), **belum dijalankan** | `NOT RUN` | wewenang pemilik: `dotnet ef database update` |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+Outcome `INT-HR-94` kini ada di kode; `AT-HRD-WF-18`/`AT-HRD-WF-19` tetap `NOT RUN`; tabel pemberitahuan menunggu migration. Status tetap 🟡. Temuan lama "approver tidak dicocokkan dengan penugasan" kini dapat ditindaklanjuti karena controller V2 sudah membaca klaim `employee_id` (kelompok G), tetapi pemeriksaannya belum ditambahkan pada task ini.
+
+
+## Pembaruan 11 November 2026 — Status Migration
+
+Migration task ini sudah dijalankan ke database pengembangan `QuilvianNewDevHamzah` (`dotnet ef database update`, 0 migration tertunda). Pernyataan "migration belum dijalankan" pada bagian di atas sudah tidak berlaku. Uji penerimaan dengan akun sungguhan tetap `NOT RUN`, jadi statusnya tetap 🟡 bila bagian di atas menyatakan demikian. Rincian ada di `roadmap/backend-unfinished-work.md` bagian 14.
+
+
+## Pembaruan 11 November 2026 — Penuntasan Temuan
+
+Penyetuju kini wajib approver yang ditugaskan pada tahapan atau Plh aktifnya; selain itu ditolak `403`.
+
+`dotnet build` 0 error, 602 warning. QBE Strict `PASS`. Aplikasi dijalankan pada 11 November 2026: seluruh worker berjalan tanpa galat query dan lima dokumen Swagger berhasil dibuat. Uji API dengan akun sungguhan `NOT RUN`.

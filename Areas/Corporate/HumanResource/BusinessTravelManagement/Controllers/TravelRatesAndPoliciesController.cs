@@ -29,11 +29,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
     {
         private readonly IMstTravelAllowanceRateService _rateService;
         private readonly ITravelSettlementService _settlementService;
+        private readonly ITravelAuditTrailService _auditTrailService;
 
         public TravelRatesAndPoliciesController(
             IMstTravelAllowanceRateService rateService,
-            ITravelSettlementService settlementService)
+            ITravelSettlementService settlementService,
+            ITravelAuditTrailService auditTrailService)
         {
+            _auditTrailService = auditTrailService;
             _rateService = rateService;
             _settlementService = settlementService;
         }
@@ -104,6 +107,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         {
             var reports = await _settlementService.GetOverdueReportAsync(departmentId, cutoffDate);
             return Ok(ApiResponse<List<TravelOverdueReportDto>>.Ok(reports, $"Total {reports.Count} pegawai dengan tunggakan settlement terdeteksi"));
+        }
+
+        /// <summary>
+        /// Log audit transaksi perjalanan dinas untuk auditor internal.
+        /// </summary>
+        [HttpGet("audit-logs")]
+        [AccessAction("ViewAudit", "Melihat Log Audit Perjalanan Dinas", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("TravelRatePolicy", "ViewAudit")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<TravelAuditEventDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAuditLogs([FromQuery] Guid? travelRequestId, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+        {
+            var result = await _auditTrailService.GetAuditTrailAsync(travelRequestId, from, to, pageNumber, pageSize);
+            return Ok(ApiResponse<PagedResult<TravelAuditEventDto>>.Ok(result, "Log audit perjalanan dinas berhasil diambil"));
         }
     }
 }

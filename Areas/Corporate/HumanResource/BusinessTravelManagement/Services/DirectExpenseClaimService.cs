@@ -15,6 +15,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
             Guid? workforceProfileId, string? status, Guid? categoryId, DateOnly? startDate, DateOnly? endDate, int pageNumber, int pageSize);
         Task<ExpenseClaimDetailResponseDto> GetExpenseClaimByIdAsync(Guid id);
         Task<ExpenseClaimResponseDto> CreateExpenseClaimAsync(CreateExpenseClaimDto dto, Guid currentUserId, Guid currentWorkforceProfileId);
+        Task<ExpenseClaimResponseDto> UpdateExpenseClaimAsync(Guid id, CreateExpenseClaimDto dto, Guid currentUserId, Guid currentWorkforceProfileId);
+        Task<ExpenseClaimResponseDto> ApproveExpenseClaimAsync(Guid id, ApproveExpenseClaimDto dto, Guid currentUserId, Guid currentWorkforceProfileId);
     }
 
     public class DirectExpenseClaimService : IDirectExpenseClaimService
@@ -111,7 +113,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 CostCenterId = c.CostCenterId,
                 CostCenterName = c.CostCenter?.CostCenterName,
                 CreatedAt = c.CreateDateTime,
-                Items = c.Items.Select(i => new CreateExpenseClaimItemDto
+                Items = c.Items.Where(i => !i.IsDelete).Select(i => new CreateExpenseClaimItemDto
                 {
                     ExpenseCategoryId = i.ExpenseCategoryId,
                     ExpenseDate = i.TransactionDate,
@@ -123,6 +125,153 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
                 }).ToList()
             };
         }
+
+        /// <summary>
+        /// Mengubah klaim oleh pemohon aslinya selama belum diproses atasan atau Finance (Hrd.Expense.Claim.Edit).
+        /// </summary>
+        public async Task<ExpenseClaimResponseDto> UpdateExpenseClaimAsync(Guid id, CreateExpenseClaimDto dto, Guid currentUserId, Guid currentWorkforceProfileId)
+        {
+            if (dto.Items == null || !dto.Items.Any())
+            {
+                throw new InvalidOperationException("Pengajuan klaim non-trip wajib memiliki minimal 1 rincian item pengeluaran");
+            }
+
+            var claim = await _context.TrxExpenseClaims.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == id && !c.IsDelete)
+                ?? throw new KeyNotFoundException("Klaim pengeluaran operasional non-trip tidak ditemukan");
+
+            if (claim.WorkforceProfileId != currentWorkforceProfileId)
+            {
+                throw new UnauthorizedAccessException("Klaim hanya dapat diubah oleh pemohon aslinya.");
+            }
+
+            if (claim.ClaimStatus != "Draft" && claim.ClaimStatus != "Submitted")
+            {
+                throw new InvalidOperationException($"Klaim berstatus {claim.ClaimStatus} tidak dapat diubah lagi.");
+            }
+
+            var now = DateTime.UtcNow;
+            var defaultCategoryId = await _context.MstExpenseCategories.AsNoTracking().Where(c => !c.IsDelete && c.IsActive).Select(c => (Guid?)c.Id).FirstOrDefaultAsync();
+
+            foreach (var old in claim.Items.Where(i => !i.IsDelete))
+            {
+                old.IsDelete = true;
+                old.IsActive = false;
+                old.DeleteBy = currentUserId;
+                old.DeleteDateTime = now;
+            }
+
+            var line = 1;
+            foreach (var itemDto in dto.Items)
+            {
+                var categoryId = itemDto.ExpenseCategoryId ?? defaultCategoryId
+                    ?? throw new InvalidOperationException("Pilih kategori biaya untuk setiap rincian klaim.");
+                _context.TrxExpenseClaimItems.Add(new TrxExpenseClaimItem
+                {
+                    Id = Guid.NewGuid(),
+                    ExpenseClaimId = claim.Id,
+                    ExpenseCategoryId = categoryId,
+                    CostCenterId = dto.CostCenterId,
+                    LineNumber = line++,
+                    TransactionDate = itemDto.ExpenseDate,
+                    Description = itemDto.ExpenseDescription,
+                    MerchantName = itemDto.MerchantName,
+                    MerchantTaxNumber = itemDto.ReceiptNumber,
+                    ClaimedAmount = itemDto.ClaimedAmount,
+                    ApprovedAmount = itemDto.ClaimedAmount,
+                    CurrencyCode = "IDR",
+                    RequiresReceipt = true,
+                    HasReceipt = !string.IsNullOrWhiteSpace(itemDto.ReceiptFilePath),
+                    ItemStatus = "Submitted",
+                    IsActive = true,
+                    CreateBy = currentUserId,
+                    CreateDateTime = now
+                });
+            }
+
+            var total = dto.Items.Sum(i => i.ClaimedAmount);
+            claim.ClaimTitle = dto.ClaimTitle;
+            claim.ClaimDescription = dto.ClaimDescription;
+            claim.ClaimType = dto.ClaimType;
+            claim.DepartmentId = dto.DepartmentId;
+            claim.CostCenterId = dto.CostCenterId;
+            claim.TotalClaimedAmount = total;
+            claim.TotalApprovedAmount = total;
+            claim.UpdateBy = currentUserId;
+            claim.UpdateDateTime = now;
+
+            await _context.SaveChangesAsync();
+            return ToResponse(claim);
+        }
+
+        /// <summary>
+        /// Persetujuan atasan atas klaim sebelum diverifikasi Finance (Hrd.Expense.Claim.Approve).
+        /// </summary>
+        public async Task<ExpenseClaimResponseDto> ApproveExpenseClaimAsync(Guid id, ApproveExpenseClaimDto dto, Guid currentUserId, Guid currentWorkforceProfileId)
+        {
+            var claim = await _context.TrxExpenseClaims.FirstOrDefaultAsync(c => c.Id == id && !c.IsDelete)
+                ?? throw new KeyNotFoundException("Klaim pengeluaran operasional non-trip tidak ditemukan");
+
+            if (claim.ClaimStatus != "Submitted")
+            {
+                throw new InvalidOperationException($"Hanya klaim berstatus Submitted yang dapat disetujui atasan. Status saat ini: {claim.ClaimStatus}.");
+            }
+
+            if (claim.WorkforceProfileId == currentWorkforceProfileId)
+            {
+                throw new InvalidOperationException("Pemohon tidak boleh menyetujui klaimnya sendiri.");
+            }
+
+            var now = DateTime.UtcNow;
+            var approved = dto.ApprovedAmount ?? claim.TotalClaimedAmount;
+            if (approved > claim.TotalClaimedAmount)
+            {
+                throw new InvalidOperationException("Nilai disetujui tidak boleh melebihi nilai yang diklaim.");
+            }
+
+            claim.ClaimStatus = "ManagerApproved";
+            claim.TotalApprovedAmount = approved;
+            claim.CurrentApprovalStep = 1;
+            claim.ApprovalNotes = dto.ApprovalNote;
+            claim.UpdateBy = currentUserId;
+            claim.UpdateDateTime = now;
+
+            _context.TrxExpenseApprovals.Add(new TrxExpenseApproval
+            {
+                Id = Guid.NewGuid(),
+                ExpenseClaimId = claim.Id,
+                StepOrder = 1,
+                ApprovalLevel = "Supervisor",
+                ActualActionByUserId = currentUserId,
+                ApprovalStatus = "Approved",
+                ActionType = "Approve",
+                ApprovedAmount = approved,
+                ActionAt = now,
+                Comments = dto.ApprovalNote,
+                IsActive = true,
+                CreateBy = currentUserId,
+                CreateDateTime = now
+            });
+
+            await _context.SaveChangesAsync();
+            return ToResponse(claim);
+        }
+
+        private static ExpenseClaimResponseDto ToResponse(TrxExpenseClaim claim) => new()
+        {
+            Id = claim.Id,
+            ClaimNumber = claim.ClaimNumber,
+            WorkforceProfileId = claim.WorkforceProfileId,
+            EmployeeName = "Pegawai Pemohon",
+            ClaimTitle = claim.ClaimTitle,
+            ClaimType = claim.ClaimType,
+            ClaimDate = claim.ClaimDate,
+            TotalClaimedAmount = claim.TotalClaimedAmount,
+            TotalApprovedAmount = claim.TotalApprovedAmount,
+            TotalPaidAmount = claim.TotalPaidAmount,
+            CurrencyCode = claim.CurrencyCode,
+            ClaimStatus = claim.ClaimStatus,
+            CreatedAt = claim.CreateDateTime
+        };
 
         public async Task<ExpenseClaimResponseDto> CreateExpenseClaimAsync(CreateExpenseClaimDto dto, Guid currentUserId, Guid currentWorkforceProfileId)
         {

@@ -45,3 +45,10 @@ Dalam ekosistem rumah sakit modern, koordinasi perizinan kerja, pergeseran shift
 * **Kompilasi .NET Core**: `dotnet build QuilvianSystemBackend.csproj --no-restore` menghasilkan **0 Error(s)**.
 * **Audit Kepatuhan Arsitektur QBE**: `Invoke-QbeConformanceCheck.ps1` berstatus **PASS** (0 Violation).
 * **Traceability Requirement**: Terpetakan pada requirement matrix `requirement-traceability.md` Bagian 1r (`AT-HRD-WF-20, AT-HRD-WF-21, AT-HRD-WF-22`).
+
+
+---
+
+## Koreksi 10 November 2026 (audit Gelombang 1)
+
+Task verifikasi ini bergantung pada seluruh `BE-HRD-302` s.d. `BE-HRD-316`. Pada 10 November 2026 `BE-HRD-316` diturunkan ke 🟡 (`INT-HR-94` belum ada; `AT-HRD-WF-18`/`19` `NOT RUN`), sehingga verifikasi ujung-ke-ujung slice belum dapat disebut selesai. Status task ini diturunkan menjadi 🟡 pada roadmap; tidak ada perubahan kode pada task ini.

@@ -496,4 +496,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         public decimal TotalOutstandingLiability { get; set; }
         public string Message { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Identitas pelapor keluhan yang diturunkan dari token pengguna login (remediasi kelompok G, 10 November 2026).
+    /// </summary>
+    /// <param name="WorkforceProfileId">Profil tenaga kerja pelapor (klaim workforce_profile_id, dengan cadangan employee_id lalu ID akun).</param>
+    /// <param name="EmployeeId">Data karyawan pelapor bila ada (klaim employee_id).</param>
+    /// <param name="UserId">Akun pelapor.</param>
+    public sealed record GrievanceComplainantIdentity(Guid WorkforceProfileId, Guid? EmployeeId, Guid UserId);
 }

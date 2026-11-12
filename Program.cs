@@ -382,7 +382,8 @@ try
                     var requestPath = context.HttpContext.Request.Path;
 
                     if (!string.IsNullOrWhiteSpace(accessToken) &&
-                        requestPath.StartsWithSegments("/hubs/queues"))
+                        (requestPath.StartsWithSegments("/hubs/queues") ||
+                         requestPath.StartsWithSegments("/hubs/notifications")))
                     {
                         context.Token = accessToken;
                     }
@@ -1617,6 +1618,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowSlaEnforcementService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowSlaEnforcementService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IBulkApprovalService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.BulkApprovalService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IUnifiedNotificationGatewayService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.UnifiedNotificationGatewayService>();
+    // Remediasi Gelombang 2 (BE-HRD-314): pusat pemberitahuan dalam aplikasi HR (tabel HrdNotification + SignalR /hubs/notifications)
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.IHrdNotificationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Services.HrdNotificationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowResubmitService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowResubmitService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IIdempotentDownstreamExecutionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IdempotentDownstreamExecutionService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.IWorkflowCommentAndAttachmentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services.WorkflowCommentAndAttachmentService>();
@@ -1626,7 +1629,6 @@ try
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ApprovalDelegationExpiryWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.DailyApprovalDigestWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.WorkflowSlaEarlyWarningWorker>();
-    builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.BulkApprovalProcessingWorker>();
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Workers.ReturnedRequestExpiryWorker>();
 
     // Slice S-D5 (Business Travel & Expense Reimbursement) - MVP-63..65 (Kontrak v25)
@@ -1642,6 +1644,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IDirectExpenseClaimService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.DirectExpenseClaimService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.IExpenseVerificationAndPaymentService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ExpenseVerificationAndPaymentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAttendanceAndRosterLockService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAttendanceAndRosterLockService>();
+
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.ITravelAuditTrailService, QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Services.TravelAuditTrailService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Services.ExpenseCategoryService>();
 
     // Slice S-D5: 4 Hosted Background Services (TRV-W1, TRV-W2, TRV-W4, RosterLockExpiry)
     builder.Services.AddHostedService<QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Workers.TravelAdvanceSettlementReminderWorker>();
@@ -2131,6 +2136,18 @@ try
             Description = $"Application Version {appVersion}"
         });
 
+        // Dua DTO bernama sama di modul berbeda membuat seluruh dokumen Swagger gagal dibuat.
+        // Nama pendek tetap dipakai; hanya tipe kedua yang bentrok diberi awalan namespace.
+        var defaultSchemaIdSelector = new Swashbuckle.AspNetCore.SwaggerGen.SchemaGeneratorOptions().SchemaIdSelector;
+        var schemaIdOwners = new System.Collections.Concurrent.ConcurrentDictionary<string, Type>();
+        options.CustomSchemaIds(type =>
+        {
+            var schemaId = defaultSchemaIdSelector(type);
+            return schemaIdOwners.GetOrAdd(schemaId, type) == type
+                ? schemaId
+                : $"{type.Namespace?.Replace('.', '_')}_{schemaId}";
+        });
+
         options.DocInclusionPredicate((docName, apiDesc) =>
         {
             var path = apiDesc.RelativePath?.ToLowerInvariant() ?? string.Empty;
@@ -2145,7 +2162,8 @@ try
                     path.StartsWith("api/v1/administrator"),
 
                 "corporate" =>
-                    path.StartsWith("api/v1/corporate"),
+                    path.StartsWith("api/v1/corporate") ||
+                    path.StartsWith("api/v1/hrd"),
 
                 "health-services" =>
                     path.StartsWith("api/v1/health-services") ||
@@ -2153,7 +2171,7 @@ try
                     path.StartsWith("api/v1/health-service"),
 
                 "self-services" =>
-                    path.StartsWith("api/v1/self-services") ||
+                    path.StartsWith("api/v1/self-service") ||
                     path.StartsWith("api/v1/selfservices") ||
                     path.StartsWith("api/v1/profile"),
 
@@ -3104,6 +3122,7 @@ try
     {
         app.MapControllers();
         app.MapHub<QueueHub>("/hubs/queues");
+        app.MapHub<HrNotificationHub>(HrNotificationHub.RoutePath);
     }
 
     app.Run();
