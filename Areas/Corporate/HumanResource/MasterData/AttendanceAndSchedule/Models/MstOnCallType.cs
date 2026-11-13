@@ -22,6 +22,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
 
         public int ResponseTimeMinutes { get; set; } = 0;
 
+        /// <summary>
+        /// Batas menjawab telepon panggilan sebelum boleh ditandai kedaluwarsa (HRD-DEC-205).
+        /// Berbeda dari ResponseTimeMinutes yang merupakan target tiba.
+        /// </summary>
+        public int AnswerTimeoutMinutes { get; set; } = 10;
+
         public int MinimumCallHours { get; set; } = 0;
 
         public int MaximumCallHours { get; set; } = 24;

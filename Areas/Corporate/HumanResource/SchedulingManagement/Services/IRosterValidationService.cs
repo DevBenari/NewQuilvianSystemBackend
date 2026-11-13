@@ -12,9 +12,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             Guid currentUserId,
             CancellationToken cancellationToken = default);
 
-        Task<RosterValidationConflictItemDto?> ValidateSingleShiftAsync(
-            Guid shiftAssignmentId,
-            Guid currentUserId,
+        /// <summary>
+        /// Memeriksa satu shift calon (Ganti Petugas, tambah shift, tukar shift) dengan aturan yang sama
+        /// dengan terbit, tanpa menyimpan apa pun. Null bila periode roster tidak ditemukan.
+        /// </summary>
+        Task<RosterSingleShiftValidationResult?> ValidateSingleShiftAsync(
+            RosterSingleShiftValidationRequest request,
             CancellationToken cancellationToken = default);
     }
 }

@@ -1289,3 +1289,49 @@ Matriks aturan validasi ini memuat 25 aturan penegakan integritas bisnis (`VR-PR
 | `VR-TRV-23` | `TrxBusinessTravelParticipant.WorkforceProfileId` | Seluruh peserta dinas rombongan wajib pegawai aktif dan tidak memiliki bentrok jadwal | Ditolak `400 Bad Request` ("Salah satu peserta memiliki bentrok jadwal dinas lain") |
 | `VR-TRV-24` | `TrxBusinessTravelRequest.CurrencyCode` | Mata uang selain IDR wajib menyertakan nilai kurs tengah BI pada tanggal pengajuan | Ditolak `400 Bad Request` ("Kurs konversi valuta asing tidak ditemukan") |
 | `VR-TRV-25` | `TrxBusinessTravelRequest.WorkflowInstanceId` | SPPD wajib terhubung ke engine workflow terpadu Sub-21 untuk audit multi-jenjang | Ditolak `500 Internal Error` ("Gagal menginisiasi workflow terpadu persetujuan dinas") |
+
+---
+
+## 31. Matriks Validasi Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` — `approved` (pengguna, 12 November 2026) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-PK-01` | Ganti Petugas, tambah shift, terbit | Pegawai tidak punya penempatan aktif di unit roster pada tanggal shift, atau punya penempatan sementara di unit lain (`B3`) | "Tono ditempatkan di HCU 1–14 Maret 2027" | 422 |
+| `VR-PK-02` | Sama | Pegawai sedang tugas belajar (`B8`) | "Dewi sedang tugas belajar 1 Agustus 2027 – 31 Juli 2029" | 422 |
+| `VR-PK-03` | Sama | Status kesiapan kerja tidak terbaca (`B6`) | "Status kesiapan pegawai tidak dapat dibaca. Coba lagi atau hubungi HRD" | 422 |
+| `VR-PK-04` | Sama | Ada peringatan `W1`–`W7` tanpa alasan dipilih | "Pilih alasan untuk setiap peringatan sebelum menyimpan" | 422 |
+| `VR-PK-05` | Ganti Petugas | Petugas saat ini berbeda dari `ExpectedWorkforceProfileId` | "Shift ini baru saja diubah orang lain. Muat ulang lalu coba lagi" | 409 |
+| `VR-PK-06` | Tambah/hapus/ganti/koreksi | Unit roster di luar cakupan kelola | "Anda tidak berwenang mengubah roster unit ini" | 403 |
+| `VR-PK-07` | Hapus shift, Ganti Petugas | `ReasonCategory` atau `ReasonNote` kosong | "Alasan perubahan wajib diisi" | 400 |
+| `VR-PK-08` | Daftar cadangan siaga | Urutan ganda, pegawai ganda, atau cadangan = siaga utama | "Urutan cadangan dan nama cadangan tidak boleh ganda atau sama dengan siaga utama" | 422 |
+| `VR-PK-09` | Catat panggilan | Penugasan tidak `Active`, atau pegawai bukan siaga utama/cadangan penugasan itu | "Pegawai ini tidak sedang siaga pada penugasan tersebut" | 422 |
+| `VR-PK-10` | Kedaluwarsa | Batas jawab jenis siaga belum lewat | "Batas jawab 10 menit belum lewat sejak panggilan 02.10" | 422 |
+| `VR-PK-11` | Tolak panggilan | Alasan kosong | "Alasan penolakan wajib diisi" | 400 |
+| `VR-PK-12` | Selesai panggilan | `ArrivedAt` < `CalledAt` | "Jam tiba tidak boleh lebih awal dari jam panggil" | 400 |
+| `VR-PK-13` | Dispensasi | `EndAt` ≤ `StartAt` | "Jam selesai harus sesudah jam mulai" | 400 |
+| `VR-PK-14` | Dispensasi | Tanggal lebih lama dari batas mundur setelan | "Dispensasi hanya bisa diajukan sampai 3 hari ke belakang" | 422 |
+| `VR-PK-15` | Dispensasi | Periode kehadiran sudah ditutup | "Periode kehadiran Februari 2027 sudah ditutup" | 403 |
+| `VR-PK-16` | Dispensasi | Atasan langsung tidak ditemukan | "Atasan langsung Anda belum ditetapkan. Hubungi HRD" | 422 |
+| `VR-PK-17` | Setujui dispensasi | Pengguna bukan penyetuju yang ditetapkan, atau sama dengan pegawai | "Anda tidak berwenang memutuskan dispensasi ini" | 403 |
+| `VR-PK-18` | Tugas belajar | Tumpang tindih dengan tugas belajar aktif lain | "Pegawai sudah punya tugas belajar aktif pada rentang ini" | 422 |
+| `VR-PK-19` | Tugas belajar | `EndDate` < `StartDate`, atau ubah/batal tanpa alasan | "Tanggal selesai harus sesudah tanggal mulai" / "Alasan perubahan wajib diisi" | 400 |
+| `VR-PK-20` | Gangguan mesin | `EndAt` ≤ `StartAt` | "Jam selesai gangguan harus sesudah jam mulai" | 400 |
+| `VR-PK-21` | Koreksi dengan gangguan | Kejadian `Cancelled` | "Kejadian gangguan ini sudah dibatalkan" | 422 |
+| `VR-PK-22` | Koreksi dengan gangguan | Jam yang diajukan di luar rentang gangguan dan tanpa lampiran | "Jam di luar rentang gangguan wajib disertai lampiran" | 422 |
+| `VR-PK-23` | Setelan kehadiran | `GracePeriodMinutes` di luar 0–60, `ScanWindowBeforeMinutes` di luar 0–720, `ScanWindowAfterMinutes` di luar 0–960 | "Nilai toleransi atau jendela scan di luar batas" | 400 |
+| `VR-PK-24` | Jenis siaga | `AnswerTimeoutMinutes` di luar 1–120 | "Batas jawab harus 1 sampai 120 menit" | 400 |
+| `VR-PK-25` | Hari libur | `EndDate` < `StartDate`, atau tanggal di luar rentang kalender kerja | "Tanggal libur harus berada di dalam kalender kerja yang dipilih" | 400 |
+| `VR-PK-26` | Mesin absen | Kode, nomor seri, atau ID eksternal dipakai mesin aktif lain | "Identitas mesin sudah dipakai mesin lain" | 409 |
+| `VR-PK-27` | Dashboard, laporan, ekspor | Unit diminta di luar cakupan baca | "Anda tidak berwenang melihat data unit ini" | 403 |
+| `VR-PK-28` | Laporan dan ekspor | Rentang tanggal lebih dari 92 hari | "Rentang laporan paling lama 92 hari" | 400 |
+| `VR-PK-29` | Jadwal Saya | Rentang di luar `HRD-ASM-80` | "Jadwal yang dapat dilihat: 3 bulan ke belakang sampai bulan depan" | 400 |
+| `VR-PK-30` | Pemrosesan kehadiran | Setelan kehadiran tidak terbaca | Status pemrosesan `Error` "Setelan kehadiran tidak terbaca" | — |
+
+`VR-PK-28` adalah batas teknis untuk menjaga kinerja ekspor, bukan keputusan bisnis; angkanya
+dapat diubah owner saat approval desain.

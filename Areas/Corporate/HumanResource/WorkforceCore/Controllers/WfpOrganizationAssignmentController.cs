@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Attributes;
@@ -37,12 +38,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
+        private readonly TemporaryPlacementRosterImpactService _temporaryPlacementImpact;
 
         public WfpOrganizationAssignmentController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            OrganizationAuthorizationProjectionService authorizationProjection)
+            OrganizationAuthorizationProjectionService authorizationProjection,
+            TemporaryPlacementRosterImpactService temporaryPlacementImpact)
         {
+            _temporaryPlacementImpact = temporaryPlacementImpact;
             _dbContext = dbContext;
             _loggerService = loggerService;
             _authorizationProjection = authorizationProjection;
@@ -243,6 +247,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 _dbContext.Set<WfpOrganizationAssignment>().Add(entity);
                 await _dbContext.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
+                // INT-HR-104 / HRD-ASM-82: tidak pernah melempar galat; roster tidak diubah.
+                await _temporaryPlacementImpact.NotifyOriginUnitsAsync(entity.Id, ct);
                 await _loggerService.InfoAsync(LogCategory, "WfpOrganizationAssignment.Create", "Organization assignment berhasil dibuat.", new { entity.Id, entity.WorkforceProfileId, entity.DepartmentId, entity.PositionId, entity.IsPrimary });
                 await SyncAuthorizationProjectionAsync(workforceProfileId, ct);
                 return Ok(ApiResponse<object>.Ok(new { entity.Id }, "Organization assignment berhasil dibuat."));
@@ -290,6 +296,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 entity.UpdateBy = actor;
                 await _dbContext.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
+                // INT-HR-104 / HRD-ASM-82: tidak pernah melempar galat; roster tidak diubah.
+                await _temporaryPlacementImpact.NotifyOriginUnitsAsync(entity.Id, ct);
                 await SyncAuthorizationProjectionAsync(workforceProfileId, ct);
                 return Ok(ApiResponse<object>.Ok(null, "Organization assignment berhasil diperbarui."));
             }

@@ -47,6 +47,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
     /// </summary>
     public class AttendanceSettingService
     {
+        public const string DefaultHospitalCode = "RSMMC";
+        public const string SettingUnreadableMessage = "Setelan kehadiran tidak terbaca";
+
+        // Batas nilai setelan (VR-PK-23).
+        private const int MaxGracePeriodMinutes = 60;
+        private const int MaxScanWindowBeforeMinutes = 720;
+        private const int MaxScanWindowAfterMinutes = 960;
+
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AttendanceSettingService> _logger;
 
@@ -75,10 +83,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 {
                     Id = Guid.NewGuid(),
                     HospitalCode = code,
-                    GracePeriodMinutes = 10,
-                    MaxBackdatedCorrectionDays = 3,
-                    RequireAttachmentForCorrection = true,
-                    AutoConvertIncompleteToAbsent = true,
                     IsActive = true,
                     CreateDateTime = DateTime.UtcNow
                 };
@@ -95,7 +99,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 GracePeriodMinutes = setting.GracePeriodMinutes,
                 MaxBackdatedCorrectionDays = setting.MaxBackdatedCorrectionDays,
                 RequireAttachmentForCorrection = setting.RequireAttachmentForCorrection,
-                AutoConvertIncompleteToAbsent = setting.AutoConvertIncompleteToAbsent,
+                ScanWindowBeforeMinutes = setting.ScanWindowBeforeMinutes,
+                ScanWindowAfterMinutes = setting.ScanWindowAfterMinutes,
                 IsActive = setting.IsActive,
                 CreatedAt = setting.CreateDateTime,
                 CreatedBy = setting.CreateBy,
@@ -116,12 +121,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         {
             var code = string.IsNullOrWhiteSpace(hospitalCode) ? "RSMMC" : hospitalCode.Trim().ToUpperInvariant();
 
-            // Validasi batas kewajaran nilai (VR-ATT-17, VR-ATT-18)
-            if (req.GracePeriodMinutes < 0 || req.GracePeriodMinutes > 60)
+            // VR-PK-23: toleransi dan jendela scan harus di dalam batas.
+            if (!IsWithin(req.GracePeriodMinutes, MaxGracePeriodMinutes) ||
+                (req.ScanWindowBeforeMinutes.HasValue && !IsWithin(req.ScanWindowBeforeMinutes.Value, MaxScanWindowBeforeMinutes)) ||
+                (req.ScanWindowAfterMinutes.HasValue && !IsWithin(req.ScanWindowAfterMinutes.Value, MaxScanWindowAfterMinutes)))
             {
                 return AttendanceSettingServiceResult<AttendanceSettingResponse>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Toleransi keterlambatan (GracePeriodMinutes) harus berada dalam rentang 0 hingga 60 menit (VR-ATT-17).");
+                    "Nilai toleransi atau jendela scan di luar batas.");
             }
 
             if (req.MaxBackdatedCorrectionDays < 1 || req.MaxBackdatedCorrectionDays > 30)
@@ -149,14 +156,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             setting.GracePeriodMinutes = req.GracePeriodMinutes;
             setting.MaxBackdatedCorrectionDays = req.MaxBackdatedCorrectionDays;
             setting.RequireAttachmentForCorrection = req.RequireAttachmentForCorrection;
-            setting.AutoConvertIncompleteToAbsent = req.AutoConvertIncompleteToAbsent;
+            // HRD-DEC-216: pilihan konversi otomatis tidak lagi diterima maupun dipakai. Jendela yang tidak dikirim
+            // (layar lama) mempertahankan nilai tersimpan.
+            if (req.ScanWindowBeforeMinutes.HasValue) setting.ScanWindowBeforeMinutes = req.ScanWindowBeforeMinutes.Value;
+            if (req.ScanWindowAfterMinutes.HasValue) setting.ScanWindowAfterMinutes = req.ScanWindowAfterMinutes.Value;
             setting.UpdateDateTime = DateTime.UtcNow;
             setting.UpdateBy = currentUserId;
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Parameter presensi rumah sakit '{Code}' diperbarui oleh user {UserId}. GracePeriod: {Grace}m, MaxBackdated: {Back}d",
-                code, currentUserId, req.GracePeriodMinutes, req.MaxBackdatedCorrectionDays);
+            _logger.LogInformation("Parameter presensi rumah sakit '{Code}' diperbarui oleh user {UserId}. GracePeriod: {Grace}m, ScanWindow: {Before}/{After}m, MaxBackdated: {Back}d",
+                code, currentUserId, setting.GracePeriodMinutes, setting.ScanWindowBeforeMinutes, setting.ScanWindowAfterMinutes, req.MaxBackdatedCorrectionDays);
 
             var response = new AttendanceSettingResponse
             {
@@ -165,7 +175,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 GracePeriodMinutes = setting.GracePeriodMinutes,
                 MaxBackdatedCorrectionDays = setting.MaxBackdatedCorrectionDays,
                 RequireAttachmentForCorrection = setting.RequireAttachmentForCorrection,
-                AutoConvertIncompleteToAbsent = setting.AutoConvertIncompleteToAbsent,
+                ScanWindowBeforeMinutes = setting.ScanWindowBeforeMinutes,
+                ScanWindowAfterMinutes = setting.ScanWindowAfterMinutes,
                 IsActive = setting.IsActive,
                 CreatedAt = setting.CreateDateTime,
                 CreatedBy = setting.CreateBy,
@@ -179,19 +190,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         /// <summary>
-        /// Mengambil nilai toleransi keterlambatan aktif dalam menit (default 10 menit per HRD-DEC-105).
+        /// Toleransi terlambat dan jendela scan yang berlaku (HRD-DEC-215, HRD-DEC-211). Satu-satunya sumber bagi
+        /// pemrosesan kehadiran. Gagal bila setelan tidak ada, tidak dapat dibaca, atau nilainya di luar batas
+        /// VR-PK-23 — tidak pernah memakai angka cadangan (HRD-ASM-83).
         /// </summary>
-        public async Task<int> GetEffectiveGracePeriodMinutesAsync(
-            string hospitalCode = "RSMMC",
+        public async Task<AttendanceSettingServiceResult<AttendanceRuleSetting>> GetRequiredSettingAsync(
+            string hospitalCode = DefaultHospitalCode,
             CancellationToken cancellationToken = default)
         {
-            var code = string.IsNullOrWhiteSpace(hospitalCode) ? "RSMMC" : hospitalCode.Trim().ToUpperInvariant();
-            var setting = await _context.HrdAttendanceSettings
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.HospitalCode == code && s.IsActive && !s.IsDelete, cancellationToken);
+            var code = string.IsNullOrWhiteSpace(hospitalCode) ? DefaultHospitalCode : hospitalCode.Trim().ToUpperInvariant();
+            try
+            {
+                var setting = await _context.HrdAttendanceSettings
+                    .AsNoTracking()
+                    .Where(s => s.HospitalCode == code && s.IsActive && !s.IsDelete)
+                    .Select(s => new AttendanceRuleSetting(s.GracePeriodMinutes, s.ScanWindowBeforeMinutes, s.ScanWindowAfterMinutes))
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            return setting?.GracePeriodMinutes ?? 10;
+                if (setting == null ||
+                    !IsWithin(setting.GracePeriodMinutes, MaxGracePeriodMinutes) ||
+                    !IsWithin(setting.ScanWindowBeforeMinutes, MaxScanWindowBeforeMinutes) ||
+                    !IsWithin(setting.ScanWindowAfterMinutes, MaxScanWindowAfterMinutes))
+                {
+                    return AttendanceSettingServiceResult<AttendanceRuleSetting>.Fail(StatusCodes.Status422UnprocessableEntity, SettingUnreadableMessage);
+                }
+
+                return AttendanceSettingServiceResult<AttendanceRuleSetting>.Ok(setting);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Setelan kehadiran {Code} gagal dibaca.", code);
+                return AttendanceSettingServiceResult<AttendanceRuleSetting>.Fail(StatusCodes.Status503ServiceUnavailable, SettingUnreadableMessage);
+            }
         }
+
+        private static bool IsWithin(int value, int max) => value >= 0 && value <= max;
 
         /// <summary>
         /// Mengambil batas maksimal hari toleransi koreksi tanggal mundur (default 3 hari per HRD-DEC-102).
@@ -208,4 +241,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return setting?.MaxBackdatedCorrectionDays ?? 3;
         }
     }
+
+    /// <summary>
+    /// Angka setelan kehadiran yang dipakai pemrosesan: toleransi terlambat dan jendela scan (menit).
+    /// </summary>
+    public sealed record AttendanceRuleSetting(int GracePeriodMinutes, int ScanWindowBeforeMinutes, int ScanWindowAfterMinutes);
 }

@@ -33,9 +33,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public bool RequireAttachmentForCorrection { get; set; } = true;
 
         /// <summary>
-        /// Konversi otomatis sisa 1 tap (IncompletePunch) menjadi Mangkir (Absent) saat tutup periode (HRD-DEC-106).
+        /// Usang sejak HRD-DEC-216: konversi saat tutup periode selalu terjadi. Kolom dibiarkan agar
+        /// rollback aman; tidak dibaca dan tidak dikirim lewat DTO. Dihapus pada task perapian terpisah.
         /// </summary>
         public bool AutoConvertIncompleteToAbsent { get; set; } = true;
+
+        /// <summary>
+        /// Scan masuk diterima mulai sekian menit sebelum jam mulai shift (HRD-DEC-211, HRD-DEC-215).
+        /// </summary>
+        public int ScanWindowBeforeMinutes { get; set; } = 240;
+
+        /// <summary>
+        /// Scan pulang diterima sampai sekian menit sesudah jam selesai shift (HRD-DEC-211, HRD-DEC-215).
+        /// </summary>
+        public int ScanWindowAfterMinutes { get; set; } = 480;
 
         public bool IsActive { get; set; } = true;
     }

@@ -1055,3 +1055,62 @@ Matriks pengujian penerimaan (*User Acceptance Testing* - UAT) ini memuat 22 ske
    Perawat ICU mendampingi evakuasi ambulans pasien rujukan ke pulau seberang. Terjadi kebutuhan sewa perahu penyeberangan darurat malam hari Rp 120.000 tanpa kuitansi. Staf mengisi formulir *Declaration of Missing Receipts* disertai kronologi medis darurat. Atasan langsung mengesahkan deklarasi karena nominal < Rp 150.000 dan < 10% total klaim. Biaya diganti penuh oleh rumah sakit.
 5. **UAT-TRV-05: Penggantian Biaya Operasional Non-Trip Lapangan (*Direct Expense Claim*):**  
    Analis laboratorium membeli reagen golongan darah langka secara cito di apotek rekanan Rp 350.000 menggunakan uang pribadi karena stok gudang kosong saat operasi darurat. Staf membuat klaim non-trip di portal ESS dengan foto struk resmi. Kepala Unit Lab menyetujui, Finance memverifikasi, dan Kasir mencairkan uang tunai reimbursement dalam waktu < 24 jam.
+
+---
+
+## 34. Matriks Uji Penerimaan Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Status | `approved` — pengguna, 12 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35; kontrak `v26` |
+| Akun uji | Wajib memakai akun **non-superadmin** untuk seluruh uji 403 (superadmin menutupi kegagalan hak akses) |
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `AT-HRD-PK-01` | `HRD-DEC-195`, `INV-A52-01` | Sari mengganti Budi dengan Tono pada roster ICU terbit | API + basis data | Roster tetap `Published`, nomor versi sama, satu baris riwayat `Replacement` Budi → Tono |
+| `AT-HRD-PK-02` | `HRD-DEC-195` (jalur gagal) | Ganti Petugas dengan pengganti berstatus Didampingi pada shift tanpa perawat Mandiri | API | 422 kode `B7`; tidak ada perubahan dan tidak ada baris riwayat |
+| `AT-HRD-PK-03` | `INV-A52-03` (jalur gagal) | Layanan kesiapan kerja dibuat gagal, lalu Ganti Petugas | Unit service | 422 kode `B6`; perubahan ditolak, bukan dilewati |
+| `AT-HRD-PK-04` | `HRD-DEC-195` (konkurensi) | Dua permintaan Ganti Petugas pada shift yang sama dengan `ExpectedWorkforceProfileId` sama | API | Satu berhasil, satu 409; satu baris riwayat |
+| `AT-HRD-PK-05` | `HRD-DEC-195`, perbaikan `RosterPeriodService.cs:391` | Tambah shift pada roster terbit | API | Status tetap `Published`; baris riwayat `AddShift` |
+| `AT-HRD-PK-06` | `HRD-DEC-195` | Hapus shift dari roster terbit tanpa alasan | API | 400; dengan alasan → shift `IsCancel`, riwayat `RemoveShift` |
+| `AT-HRD-PK-07` | `HRD-DEC-217` | Koreksi mundur Andi 14 Feb Malam → Siang pada 16 Feb | API + basis data | Riwayat `RetroactiveCorrection` berisi shift dan jam lama serta baru; rekap 14 Feb dihitung ulang |
+| `AT-HRD-PK-08` | `INV-A52-02` (jalur gagal) | Coba ubah atau hapus baris riwayat lewat API | API | Tidak ada endpoint (404/405) |
+| `AT-HRD-PK-09` | `HRD-DEC-194`, `VR-PK-06` (jalur gagal) | Kepala Bidang mencoba Ganti Petugas di roster ICU | API, akun non-superadmin | 403 |
+| `AT-HRD-PK-10` | `HRD-DEC-194` | Kepala Bidang membaca roster ICU, HCU, Bangsal Anak | API | 200 untuk ketiganya; 403 untuk unit di luar bidangnya |
+| `AT-HRD-PK-11` | `HRD-DEC-213`, `VR-PK-01` (jalur gagal) | Tono `Temporary` HCU 1–14 Mar; Sari menjadwalkan Tono di ICU 5 Mar | API | 422 kode `B3`; pada 15 Mar berhasil |
+| `AT-HRD-PK-12` | `HRD-DEC-201`, `VR-PK-02` (jalur gagal) | Dewi tugas belajar; dijadwalkan 3 Agt 2027 | API | 422 kode `B8` |
+| `AT-HRD-PK-13` | `HRD-DEC-100` `W6` | Standar ICU 3 per shift; Malam 10 Feb berisi 2 | API | Peringatan `W6`; terbit hanya bila alasan dipilih |
+| `AT-HRD-PK-14` | `HRD-DEC-100` `W6` (tanpa standar) | Unit tanpa standar ketenagaan aktif | API | Tidak ada peringatan `W6`; keterangan "Kuota unit belum ditetapkan" |
+| `AT-HRD-PK-15` | `HRD-DEC-198`, `INV-A52-04` | Catat panggilan dr. Andi, bersedia, tiba | API + uji kontrak Lab | Tiga transisi tercatat; `AssignmentStatus` tetap `Active`; `INT-HR-39` tetap mengembalikan dr. Andi |
+| `AT-HRD-PK-16` | `HRD-DEC-205`, `VR-PK-10` (jalur gagal) | Tandai kedaluwarsa 5 menit sesudah panggilan, batas jawab 10 menit | API | 422; sesudah 10 menit berhasil dan respons memuat cadangan 1 |
+| `AT-HRD-PK-17` | `HRD-DEC-205` | Cadangan habis sesudah semua menolak | API | Pesan "Hubungi Kepala Unit pemilik jadwal siaga" |
+| `AT-HRD-PK-18` | `HRD-ASM-75` | Panggilan pertama ditolak, panggilan kedua (cadangan) diterima dan tiba 25 menit | API | Ringkasan penugasan: dipanggil = ya, menit respons 25 |
+| `AT-HRD-PK-19` | `HRD-DEC-207` | Budi shift 07.00–14.00 tanpa scan: cek pukul 09.00 dan 14.05 | Unit service | `NotYetPresent` lalu `NoScan`; tidak dihitung Alpa |
+| `AT-HRD-PK-20` | `HRD-DEC-207` | Scan Budi dari mesin tiba pukul 16.00 | Unit service | Status berubah ke `Present`/`Late` tanpa campur tangan |
+| `AT-HRD-PK-21` | `HRD-DEC-207`, `HRD-DEC-104` | Andi Malam 21.00–07.00, cek pukul 02.00 | Unit service | `NotYetPresent`, bukan `NoScan` |
+| `AT-HRD-PK-22` | `HRD-DEC-216`, `HRD-DEC-197` | Tutup periode dengan 1 `IncompletePunch`, 1 `NoScan`, 1 `Incomplete` lama | API + basis data | Ketiganya `Absent`; pratinjau sebelumnya memuat ketiganya dengan nama, unit, tanggal |
+| `AT-HRD-PK-23` | `HRD-DEC-216` (jalur gagal) | Set kolom `AutoConvertIncompleteToAbsent = false` langsung di basis data uji, lalu tutup | Unit service | Konversi tetap terjadi |
+| `AT-HRD-PK-24` | `HRD-DEC-215`, `INV-A52-05` | Ubah toleransi 10 → 15; Rina scan 07.12 | Unit service | Tepat waktu |
+| `AT-HRD-PK-25` | `HRD-DEC-215` (jalur gagal) | Isi `MstGracePeriodPolicy` dengan 30 menit | Unit service | Tidak berpengaruh; tetap 15 dari setelan |
+| `AT-HRD-PK-26` | `HRD-DEC-211` | Jendela 240/480; scan 02.30 untuk shift 07.00 | Unit service | Tidak dipasangkan; pengecualian `OutsideScanWindow`; log mesin tetap |
+| `AT-HRD-PK-27` | `HRD-ASM-83` (jalur gagal) | Setelan kehadiran dihapus dari basis data uji, lalu proses | Unit service | Pemrosesan `Error`; tidak ada status dihitung dengan angka cadangan |
+| `AT-HRD-PK-28` | `HRD-DEC-210` | 17 Agt libur nasional: Andi (jadwal tetap) dan Sari (roster) tanpa scan | Unit service | Andi `Holiday`; Sari `NoScan` |
+| `AT-HRD-PK-29` | `HRD-DEC-212`, `INV-A52-06` | Kirim 50 scan dari GDB-01 yang belum terdaftar | API | 50 baris tersimpan `AwaitingDeviceRegistration`; tidak ada 404 |
+| `AT-HRD-PK-30` | `HRD-DEC-212` | Daftarkan GDB-01 | API + basis data | 50 scan berubah `Pending`, diproses, status pegawai terisi |
+| `AT-HRD-PK-31` | `HRD-ASM-81` | Pratinjau tutup saat masih ada scan tertahan | API | `HeldDeviceScanCount` > 0; tutup tetap diizinkan |
+| `AT-HRD-PK-32` | `HRD-DEC-200` | Sari ajukan dispensasi 07.00–07.40; atasan menyetujui | API | Terlambat 0 menit; log mesin tetap 07.40 |
+| `AT-HRD-PK-33` | `HRD-ASM-76`, `VR-PK-17` (jalur gagal) | Kepala Unit menyetujui dispensasinya sendiri | API | 403 |
+| `AT-HRD-PK-34` | `HRD-ASM-76`, `VR-PK-14` (jalur gagal) | Ajukan dispensasi 5 hari ke belakang (batas 3) | API | 422 |
+| `AT-HRD-PK-35` | `HRD-DEC-202`, `HRD-ASM-77` | Gangguan 06.30–09.00; koreksi 06.50 tanpa lampiran dan koreksi 09.30 tanpa lampiran | API | Pertama diterima untuk diputuskan; kedua 422 |
+| `AT-HRD-PK-36` | `HRD-DEC-202`, `INV-A52-07` | Catat kejadian gangguan | Basis data | Jumlah baris log mesin tidak berubah |
+| `AT-HRD-PK-37` | `HRD-DEC-206` | Kepala Unit ICU mengekspor Laporan Keterlambatan ICU | API + berkas | Berkas `.xlsx` hanya ICU; jumlah baris = tabel layar; satu log ekspor berisi filter |
+| `AT-HRD-PK-38` | `HRD-DEC-206`, `INV-A52-08` (jalur gagal) | Kepala Unit ICU mengekspor unit HCU lewat API langsung | API | 403; tidak ada berkas |
+| `AT-HRD-PK-39` | `HRD-DEC-206` | Laporan Ketidakhadiran memuat pegawai sakit | Berkas | Hanya tertulis "Sakit"; tidak ada kolom lampiran atau diagnosis |
+| `AT-HRD-PK-40` | `HRD-DEC-208` | Buka dashboard ICU pukul 09.00 | API | Angka kartu = jumlah baris daftar rincian; jam hitung tampil |
+| `AT-HRD-PK-41` | `HRD-DEC-208` (jalur gagal) | Pegawai biasa membuka dashboard | API | 403 |
+| `AT-HRD-PK-42` | `HRD-DEC-209` | Rina membuka Jadwal Saya dan roster unit | API | Roster `Draft` tidak tampil; cuti Budi tampil "Libur" tanpa alasan |
+| `AT-HRD-PK-43` | `HRD-DEC-209` (jalur gagal) | Rina meminta jadwal pegawai lain lewat API | API | Tidak ada parameter pegawai; identitas dari sesi; data orang lain tidak pernah dikirim |
+| `AT-HRD-PK-44` | `HRD-ASM-80` (jalur gagal) | Rina meminta jadwal 6 bulan lalu | API | 400 |
+| `AT-HRD-PK-45` | `HRD-ASM-82` | Admin HRD mencatat Tono `Temporary` HCU sesudah roster ICU terbit | API | Pemberitahuan ke Sari; roster ICU tidak berubah |
+| `AT-HRD-PK-46` | `HRD-DEC-214` | Buka sidebar grup "Penjadwalan & Kehadiran" | Browser | 12 menu, 58 submenu, dua label dibetulkan, route lama tetap terbuka |

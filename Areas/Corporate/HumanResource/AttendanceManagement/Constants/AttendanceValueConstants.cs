@@ -29,6 +29,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public const string Duplicate = "Duplicate";
             public const string Rejected = "Rejected";
             public const string Error = "Error";
+
+            // Scan dari mesin yang belum terdaftar ditahan, bukan ditolak (HRD-DEC-212).
+            public const string AwaitingDeviceRegistration = "AwaitingDeviceRegistration";
         }
 
         public static class AttendanceStatus
@@ -46,6 +49,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public const string Leave = "Leave";
             public const string BusinessTrip = "BusinessTrip";
             public const string Remote = "Remote";
+
+            // Status sementara sebelum periode ditutup (HRD-DEC-197/207, HRD-DEC-216).
+            public const string NotYetPresent = "NotYetPresent";
+            public const string NoScan = "NoScan";
+
+            public const string StudyAssignment = "StudyAssignment";
         }
 
         public static class AttendanceProcessingStatus
@@ -120,6 +129,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public const string ScheduleConflict = "ScheduleConflict";
             public const string ExcessiveWorkHours = "ExcessiveWorkHours";
             public const string Unknown = "Unknown";
+
+            // Scan di luar jendela sebelum/sesudah shift (HRD-DEC-211).
+            public const string OutsideScanWindow = "OutsideScanWindow";
         }
 
         public static class AttendanceExceptionStatus
@@ -226,6 +238,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             public const string CompletedWithErrors = "CompletedWithErrors";
             public const string RetryScheduled = "RetryScheduled";
             public const string Failed = "Failed";
+            public const string Cancelled = "Cancelled";
+        }
+
+        public static class DispensationType
+        {
+            public const string LateArrival = "LateArrival";
+            public const string EarlyDeparture = "EarlyDeparture";
+        }
+
+        public static class DispensationStatus
+        {
+            public const string Submitted = "Submitted";
+            public const string Approved = "Approved";
+            public const string Rejected = "Rejected";
+            public const string Cancelled = "Cancelled";
+        }
+
+        public static class StudyAssignmentStatus
+        {
+            public const string Active = "Active";
+            public const string Cancelled = "Cancelled";
+        }
+
+        public static class DeviceIncidentStatus
+        {
+            public const string Active = "Active";
             public const string Cancelled = "Cancelled";
         }
     }
