@@ -65,7 +65,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             var h14Threshold = now.AddDays(14);
 
             // Cari penugasan FPPE aktif yang batas waktunya tersisa <= 14 hari
-            var expiringEngagements = await context.TrxFppeEngagements
+            var expiringEngagements = await context.HrdFppeEngagements
                 .AsNoTracking()
                 .Where(e => (e.Status == "ACTIVE" || e.Status == "EXTENDED") && e.TargetEndDate <= h14Threshold && !e.IsDelete)
                 .ToListAsync(stoppingToken);
@@ -88,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     Priority: isOverdue ? HrdNotificationPriorities.Critical : HrdNotificationPriorities.High,
                     DeepLinkUrl: $"/hrd/performance/fppe/engagements/{eng.Id}",
                     SourceModule: "Hrd.Performance.OPP-W3",
-                    ReferenceType: nameof(TrxFppeEngagement),
+                    ReferenceType: nameof(HrdFppeEngagement),
                     ReferenceId: eng.Id,
                     DedupKey: $"OPP-W3|{eng.Id:N}|{stage}");
 

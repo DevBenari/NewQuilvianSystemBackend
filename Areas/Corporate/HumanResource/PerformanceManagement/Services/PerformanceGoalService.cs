@@ -79,10 +79,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             }
 
             // Tambahkan sasaran kerja baru
-            var newGoals = new List<TrxPerformanceGoal>();
+            var newGoals = new List<HrdPerformanceGoal>();
             foreach (var item in dto.Goals)
             {
-                var goal = new TrxPerformanceGoal
+                var goal = new HrdPerformanceGoal
                 {
                     Id = Guid.NewGuid(),
                     PerformanceCycleId = dto.PerformanceCycleId,

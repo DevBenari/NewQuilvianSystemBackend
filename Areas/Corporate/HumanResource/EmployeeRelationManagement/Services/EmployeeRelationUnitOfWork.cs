@@ -16,16 +16,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public IQueryable<TrxDisciplinaryIncidentReport> IncidentReports => _context.TrxDisciplinaryIncidentReports;
-        public IQueryable<TrxDisciplinaryInvestigationRecord> InvestigationRecords => _context.TrxDisciplinaryInvestigationRecords;
-        public IQueryable<TrxDisciplinarySanction> Sanctions => _context.TrxDisciplinarySanctions;
-        public IQueryable<TrxDisciplinarySuspension> Suspensions => _context.TrxDisciplinarySuspensions;
+        public IQueryable<HrdDisciplinaryIncidentReport> IncidentReports => _context.HrdDisciplinaryIncidentReports;
+        public IQueryable<HrdDisciplinaryInvestigationRecord> InvestigationRecords => _context.HrdDisciplinaryInvestigationRecords;
+        public IQueryable<HrdDisciplinarySanction> Sanctions => _context.HrdDisciplinarySanctions;
+        public IQueryable<HrdDisciplinarySuspension> Suspensions => _context.HrdDisciplinarySuspensions;
         public IQueryable<TrxEmployeeGrievance> Grievances => _context.TrxEmployeeGrievances;
-        public IQueryable<TrxBipartiteNegotiationForum> BipartiteForums => _context.TrxBipartiteNegotiationForums;
+        public IQueryable<HrdBipartiteNegotiationForum> BipartiteForums => _context.HrdBipartiteNegotiationForums;
         public IQueryable<TrxEmployeeSeparation> Separations => _context.TrxEmployeeSeparations;
-        public IQueryable<TrxSeveranceCalculation> SeveranceCalculations => _context.TrxSeveranceCalculations;
-        public IQueryable<TrxExitClearanceProcess> ExitClearances => _context.TrxExitClearanceProcesses;
-        public IQueryable<TrxExitClearanceChecklist> ExitClearanceChecklists => _context.TrxExitClearanceChecklists;
+        public IQueryable<HrdSeveranceCalculation> SeveranceCalculations => _context.HrdSeveranceCalculations;
+        public IQueryable<HrdExitClearanceProcess> ExitClearances => _context.HrdExitClearanceProcesses;
+        public IQueryable<HrdExitClearanceChecklist> ExitClearanceChecklists => _context.HrdExitClearanceChecklists;
         public IQueryable<MstEmployee> Employees => _context.MstEmployees;
         public IQueryable<MstWorkforceProfile> WorkforceProfiles => _context.MstWorkforceProfiles;
 
@@ -40,24 +40,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             return userId;
         }
 
-        public async Task AddIncidentReportAsync(TrxDisciplinaryIncidentReport incidentReport, CancellationToken cancellationToken = default)
+        public async Task AddIncidentReportAsync(HrdDisciplinaryIncidentReport incidentReport, CancellationToken cancellationToken = default)
         {
-            await _context.TrxDisciplinaryIncidentReports.AddAsync(incidentReport, cancellationToken);
+            await _context.HrdDisciplinaryIncidentReports.AddAsync(incidentReport, cancellationToken);
         }
 
-        public async Task AddInvestigationRecordAsync(TrxDisciplinaryInvestigationRecord record, CancellationToken cancellationToken = default)
+        public async Task AddInvestigationRecordAsync(HrdDisciplinaryInvestigationRecord record, CancellationToken cancellationToken = default)
         {
-            await _context.TrxDisciplinaryInvestigationRecords.AddAsync(record, cancellationToken);
+            await _context.HrdDisciplinaryInvestigationRecords.AddAsync(record, cancellationToken);
         }
 
-        public async Task AddSanctionAsync(TrxDisciplinarySanction sanction, CancellationToken cancellationToken = default)
+        public async Task AddSanctionAsync(HrdDisciplinarySanction sanction, CancellationToken cancellationToken = default)
         {
-            await _context.TrxDisciplinarySanctions.AddAsync(sanction, cancellationToken);
+            await _context.HrdDisciplinarySanctions.AddAsync(sanction, cancellationToken);
         }
 
-        public async Task AddSuspensionAsync(TrxDisciplinarySuspension suspension, CancellationToken cancellationToken = default)
+        public async Task AddSuspensionAsync(HrdDisciplinarySuspension suspension, CancellationToken cancellationToken = default)
         {
-            await _context.TrxDisciplinarySuspensions.AddAsync(suspension, cancellationToken);
+            await _context.HrdDisciplinarySuspensions.AddAsync(suspension, cancellationToken);
         }
 
         public async Task AddGrievanceAsync(TrxEmployeeGrievance grievance, CancellationToken cancellationToken = default)
@@ -65,9 +65,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             await _context.TrxEmployeeGrievances.AddAsync(grievance, cancellationToken);
         }
 
-        public async Task AddBipartiteForumAsync(TrxBipartiteNegotiationForum forum, CancellationToken cancellationToken = default)
+        public async Task AddBipartiteForumAsync(HrdBipartiteNegotiationForum forum, CancellationToken cancellationToken = default)
         {
-            await _context.TrxBipartiteNegotiationForums.AddAsync(forum, cancellationToken);
+            await _context.HrdBipartiteNegotiationForums.AddAsync(forum, cancellationToken);
         }
 
         public async Task AddSeparationAsync(TrxEmployeeSeparation separation, CancellationToken cancellationToken = default)
@@ -75,24 +75,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             await _context.TrxEmployeeSeparations.AddAsync(separation, cancellationToken);
         }
 
-        public async Task AddSeveranceCalculationAsync(TrxSeveranceCalculation calculation, CancellationToken cancellationToken = default)
+        public async Task AddSeveranceCalculationAsync(HrdSeveranceCalculation calculation, CancellationToken cancellationToken = default)
         {
-            await _context.TrxSeveranceCalculations.AddAsync(calculation, cancellationToken);
+            await _context.HrdSeveranceCalculations.AddAsync(calculation, cancellationToken);
         }
 
-        public async Task AddExitClearanceProcessAsync(TrxExitClearanceProcess process, CancellationToken cancellationToken = default)
+        public async Task AddExitClearanceProcessAsync(HrdExitClearanceProcess process, CancellationToken cancellationToken = default)
         {
-            await _context.TrxExitClearanceProcesses.AddAsync(process, cancellationToken);
+            await _context.HrdExitClearanceProcesses.AddAsync(process, cancellationToken);
         }
 
-        public async Task AddExitClearanceChecklistAsync(TrxExitClearanceChecklist checklist, CancellationToken cancellationToken = default)
+        public async Task AddExitClearanceChecklistAsync(HrdExitClearanceChecklist checklist, CancellationToken cancellationToken = default)
         {
-            await _context.TrxExitClearanceChecklists.AddAsync(checklist, cancellationToken);
+            await _context.HrdExitClearanceChecklists.AddAsync(checklist, cancellationToken);
         }
 
-        public async Task AddExitClearanceChecklistsRangeAsync(IEnumerable<TrxExitClearanceChecklist> checklists, CancellationToken cancellationToken = default)
+        public async Task AddExitClearanceChecklistsRangeAsync(IEnumerable<HrdExitClearanceChecklist> checklists, CancellationToken cancellationToken = default)
         {
-            await _context.TrxExitClearanceChecklists.AddRangeAsync(checklists, cancellationToken);
+            await _context.HrdExitClearanceChecklists.AddRangeAsync(checklists, cancellationToken);
         }
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

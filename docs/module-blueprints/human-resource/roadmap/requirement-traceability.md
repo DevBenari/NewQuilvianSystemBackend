@@ -86,19 +86,19 @@ diperbarui build skill saat task selesai.
 
 | FR | Perilaku | Desain | Task backend | Task frontend | Bukti yang diharapkan | Status |
 | --- | --- | --- | --- | --- | --- | :---: |
-| `FR-HRD-092` | Standar per unit berversi, satu versi berlaku per tanggal | BE §16.4.1; State §11.1 | `BE-HRD-035` ✅, `BE-HRD-036` | `FE-HRD-033`, `FE-HRD-034` | `AT-HRD-D1-04`, `UAT-29` | BE-035 selesai |
+| `FR-HRD-092` | Standar per unit berversi, satu versi berlaku per tanggal | BE §16.4.1; State §11.1 | `BE-HRD-035` ✅, `BE-HRD-036` | `FE-HRD-033`, `FE-HRD-034` | `AT-HRD-D1-04`, `UAT-29` | 🟡 FE source selesai; [R26](../task/report/frontend/FE-HRD-R26.md) |
 | `FR-HRD-093` | Tiga metode; Analisis Beban Kerja ditolak | BE §16.4.1; `VR-WFP-02` | `BE-HRD-035` ✅ | `FE-HRD-034` | `AT-HRD-D1-02b` | BE selesai |
 | `FR-HRD-094` | Rekomendasi beserta rincian (ICU → 32) | BE §16.9 | `BE-HRD-035` ✅ | `FE-HRD-034` | `AT-HRD-D1-02`, `UAT-29` | BE selesai |
 | `FR-HRD-095` | Standar hanya dipakai setelah `T9` | State §11.1 | `BE-HRD-035` ✅, `BE-HRD-036`, `BE-HRD-037` | `FE-HRD-034` | `AT-HRD-D1-03`, `AT-HRD-D1-04` | BE-035 selesai |
-| `FR-HRD-096` | Angka beban beserta sumber; isian ganda ditolak | BE §16.4.2; `VR-WFP-08`, `VR-WFP-09` | `BE-HRD-034` ✅ | `FE-HRD-032` | Acceptance criteria `BE-HRD-034` — **tanpa baris `AT-HRD-D1`** | BE selesai |
+| `FR-HRD-096` | Angka beban beserta sumber; isian ganda ditolak | BE §16.4.2; `VR-WFP-08`, `VR-WFP-09` | `BE-HRD-034` ✅ | `FE-HRD-032` | Acceptance criteria `BE-HRD-034` — **tanpa baris `AT-HRD-D1`** | 🟡 FE source selesai; [R26](../task/report/frontend/FE-HRD-R26.md) |
 | `FR-HRD-097` | Penjadwalan membaca standar berlaku | `INT-HR-13` | `BE-HRD-035` ✅ | — | `AT-HRD-D1-19` | BE selesai |
 | `FR-HRD-098` | Formasi tidak dapat diubah; method tulis `405` | BE §16.4.3; `VR-WFP-10` | `BE-HRD-032` | `FE-HRD-030` 🟡 | `AT-HRD-D1-06` | FE [030](../task/report/frontend/FE-HRD-030.md) 🟡 (11 Nov 2026) |
 | `FR-HRD-099` | Setiap versi menyimpan dokumen sumber, penyetuju, waktu | BE §16.4.3 | `BE-HRD-032`, `BE-HRD-033`, `BE-HRD-041`, `BE-HRD-044`, `BE-HRD-047` | `FE-HRD-030` 🟡 | `AT-HRD-D1-17` | FE [030](../task/report/frontend/FE-HRD-030.md) 🟡 (11 Nov 2026) |
 | `FR-HRD-100` | Versi terakhir berlaku sampai digantikan | `FORMATION_CARRIES_FORWARD` | `BE-HRD-032` | `FE-HRD-030` 🟡 | `AT-HRD-D1-07` | FE [030](../task/report/frontend/FE-HRD-030.md) 🟡 (11 Nov 2026) |
 | `FR-HRD-101` | Batch formasi awal: scan wajib, tanpa baris gagal, `T10` oleh orang lain, sekali per unit × jabatan | BE §16.4.4; State §11.2 | `BE-HRD-033` | `FE-HRD-031` 🟡 | `AT-HRD-D1-17`, `UAT-31`, `UAT-32` | FE [031](../task/report/frontend/FE-HRD-031.md) 🟡 (11 Nov 2026) |
-| `FR-HRD-102` | Gap per tanggal acuan dalam porsi kerja, hanya penempatan utama | BE §16.9 | `BE-HRD-037` | `FE-HRD-035` | `AT-HRD-D1-05`, `UAT-33` | |
-| `FR-HRD-103` | Tiga gap: permanen, sementara, kompetensi | BE §16.9 | `BE-HRD-037` | `FE-HRD-035` | `UAT-33` | |
-| `FR-HRD-104` | Data belum ada tampil "data belum tersedia", bukan 0 | `UNKNOWN_IS_NOT_ZERO` | `BE-HRD-037`, `BE-HRD-038`, `BE-HRD-039` | `FE-HRD-029` ✅, `FE-HRD-035`, `FE-HRD-040`, `FE-HRD-043` | `AT-HRD-D1-05b`, `UAT-33` | FE [029](../task/report/frontend/FE-HRD-029.md) ✅; task FE lain belum (11 Nov 2026) |
+| `FR-HRD-102` | Gap per tanggal acuan dalam porsi kerja, hanya penempatan utama | BE §16.9 | `BE-HRD-037` | `FE-HRD-035` | `AT-HRD-D1-05`, `UAT-33` | 🟡 FE source selesai; [R26](../task/report/frontend/FE-HRD-R26.md) |
+| `FR-HRD-103` | Tiga gap: permanen, sementara, kompetensi | BE §16.9 | `BE-HRD-037` | `FE-HRD-035` | `UAT-33` | 🟡 FE source selesai; [R26](../task/report/frontend/FE-HRD-R26.md) |
+| `FR-HRD-104` | Data belum ada tampil "data belum tersedia", bukan 0 | `UNKNOWN_IS_NOT_ZERO` | `BE-HRD-037`, `BE-HRD-038`, `BE-HRD-039` | `FE-HRD-029` ✅, `FE-HRD-035`, `FE-HRD-040`, `FE-HRD-043` | `AT-HRD-D1-05b`, `UAT-33` | 🟡 `FE-HRD-035` mempertahankan `null`; [R26](../task/report/frontend/FE-HRD-R26.md) |
 | `FR-HRD-105` | Potret saat diajukan dan akhir bulan; tidak dapat diubah; bulan terlewat tidak diisi diam-diam | BE §16.4.7; State §11.7 | `BE-HRD-039`, `BE-HRD-048` | `FE-HRD-040` | `AT-HRD-D1-16`, `AT-HRD-D1-16b`, `UAT-34` | |
 | `FR-HRD-106` | Satu rencana tahunan per tahun; `Approved` terkunci | State §11.3 | `BE-HRD-046` | `FE-HRD-041`, `FE-HRD-042` | `AT-HRD-D1-15`, `UAT-36` | |
 | `FR-HRD-107` | Addendum dari rencana `Approved`, baris berubah, `T10` penuh | State §11.3 | `BE-HRD-046`, `BE-HRD-047` | `FE-HRD-042` | `AT-HRD-D1-15` | |
@@ -448,6 +448,8 @@ diperbarui build skill saat task selesai.
 ---
 
 ## 1c. Jejak `S-C4-ONB` Onboarding dan Kontrak Kerja (sub-modul 05) — requirement ke task dan bukti
+
+**Bukti repair frontend 12 November 2026.** `FE-HRD-R25` 🟡 memigrasikan layar `FE-HRD-059` s.d. `FE-HRD-073` ke data server, permission ketat, dan base component; lint, build, serta CSS gate lulus. Uji browser dan endpoint unggah/template batch masih terbuka. [Laporan R25](../task/report/frontend/FE-HRD-R25.md).
 
 Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetujui pemilik. Seluruh
 baris di bawah **belum punya bukti implementasi**: task-nya baru direncanakan. Kolom status

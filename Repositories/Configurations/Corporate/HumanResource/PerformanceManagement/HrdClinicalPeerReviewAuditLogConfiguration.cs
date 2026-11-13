@@ -8,7 +8,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<HrdClinicalPeerReviewAuditLog> builder)
         {
-            builder.ToTable("hrd_clinical_peer_review_audit_logs", "public");
+            builder.ToTable("HrdClinicalPeerReviewAuditLog", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime)

@@ -30,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
 
         public Guid SuspensionId { get; set; }
 
-        /// <summary>Pegawai yang diskors (<c>MstEmployee.Id</c>, sama dengan <c>TrxDisciplinarySuspension.EmployeeId</c>).</summary>
+        /// <summary>Pegawai yang diskors (<c>MstEmployee.Id</c>, sama dengan <c>HrdDisciplinarySuspension.EmployeeId</c>).</summary>
         public Guid EmployeeId { get; set; }
 
         /// <summary>Akun aplikasi yang dikunci atau dipulihkan.</summary>
@@ -50,6 +50,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         [MaxLength(500)]
         public string? Notes { get; set; }
 
-        public TrxDisciplinarySuspension? Suspension { get; set; }
+        public HrdDisciplinarySuspension? Suspension { get; set; }
     }
 }
