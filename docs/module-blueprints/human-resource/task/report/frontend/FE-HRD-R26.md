@@ -40,7 +40,8 @@
 | --- | --- |
 | ESLint berkas R26 dan menu | Lulus, 0 error/warning |
 | CSS usage checker pada 4 view | `OK — 4 berkas diperiksa, 0 temuan` |
-| `npm run build` | Lulus; 808 halaman dihasilkan |
+| `npm run build` | Lulus pada verifikasi akhir; 813 halaman dihasilkan dan standalone runtime siap |
+| `npm run test:unit` | Gagal karena issue existing lintas modul dan test yang merujuk file lama/hilang; tidak menunjuk view R25–R29 |
 | Uji browser akun berhak/tidak berhak | `VISUAL CHECK: NOT FEASIBLE` — tidak ada alat browser pada sesi ini |
 
 ## Acceptance criteria

@@ -54,10 +54,11 @@ Kontrak diverifikasi langsung terhadap controller dan DTO lifecycle backend. Con
 | `npx eslint src/components/view/hr/lifecycle ...` | PASS — 0 error |
 | `npm run lint:errors` | PASS — exit 0, tidak ada error |
 | `node .../check-css-usage.mjs <8 view yang berubah>` | PASS — 8 berkas, 0 temuan |
-| `npm run build` | PASS — compiled 86 detik, 805 halaman dibangkitkan, standalone runtime siap |
+| `npm run build` | PASS — verifikasi akhir lintas R25–R29 menghasilkan 813 halaman dan standalone runtime siap |
+| `npm run test:unit` | FAIL — issue existing lintas modul dan test yang merujuk file lama/hilang; tidak menunjuk view R25–R29 |
 | Pemeriksaan data contoh/inline style pada view lifecycle | PASS untuk view yang dimigrasikan pada R25 |
 | Uji browser dan screenshot | `VISUAL CHECK: NOT FEASIBLE` — tool kontrol browser tidak tersedia pada sesi ini |
-| Test otomatis baru | SKIPPED (opsional) — perubahan adalah komposisi layar dan kontrak API, bukan logika murni terisolasi |
+| Test otomatis baru | Tidak ditambahkan; suite unit existing telah dijalankan dan hasil non-hijau dicatat di atas |
 
 ## 5. Acceptance criteria
 

@@ -1826,7 +1826,7 @@ FE-HRD-167 [F44] ───┴─────────────────
 
 ### `FE-HRD-041` — Layar Daftar Rencana Tahunan dan Addendum
 * **Slice / MVP**: `S-D1` / `MVP-10`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R27` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Daftar rencana tahunan dan addendum telah diimplementasikan lewat `FE-HRD-R27`; endpoint pembatalan belum tersedia. Bukti: [FE-HRD-R27.md](../task/report/frontend/FE-HRD-R27.md).
 * **Outcome**: HR, Finance, dan Direktur melihat rencana tahunan beserta addendumnya, statusnya, dan total estimasi biaya bagi yang berhak.
 * **Requirement/decision**: `FR-HRD-106`, `FR-HRD-111`, `VR-WFP-15`, `03-frontend-architecture.md` bagian 12.3.5 (`FE-HRD-104`).
 * **Kontrak**: API v7 bagian 13 grup `Manpower Plan` (`GET /`, `POST /`, `GET /filters/metadata`).
@@ -1844,7 +1844,7 @@ FE-HRD-167 [F44] ───┴─────────────────
 
 ### `FE-HRD-042` — Layar Penyusun dan Detail Rencana
 * **Slice / MVP**: `S-D1` / `MVP-10`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R27` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Penyusun/detail, kalkulasi, Finance, dan potret gap telah diimplementasikan lewat `FE-HRD-R27`; uji browser/peran belum dijalankan. Bukti: [FE-HRD-R27.md](../task/report/frontend/FE-HRD-R27.md).
 * **Outcome**: HR Admin menyusun rencana per baris unit × jabatan, menekan "Hitung ulang" untuk mengisi formasi saat ini, rekomendasi, dan biaya, menulis alasan bila usulan berbeda dari rekomendasi, lalu mengajukan. Rencana yang sudah disetujui hanya baca dan menawarkan "Buat addendum". Finance pada langkahnya mengisi koreksi biaya beserta alasan; angka awal tetap terlihat di sampingnya.
 * **Requirement/decision**: `HRD-DEC-062`, `HRD-DEC-065`, `HRD-DEC-068`, `HRD-DEC-069`; `FR-HRD-107` s.d. `FR-HRD-111`; `VR-WFP-16` s.d. `VR-WFP-21`; `UAT-35`, `UAT-36`; `03-frontend-architecture.md` bagian 12.3.3 (`FE-HRD-105`).
 * **Kontrak**: API v7 bagian 13 grup `Manpower Plan` (`GET /{id}`, `PUT /{id}`, `POST /{id}/addenda`, `POST /{id}/recalculate`, `POST /{id}/submit`, `POST /{id}/cancel`, `POST /{id}/finance-adjustment`, `GET /{id}/gap-snapshots`); `GET .../staffing-gaps` untuk angka sekarang.
@@ -2791,7 +2791,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-092` — Layar Rekapitulasi & Penutupan Periode Absensi (`FE-HRD-145` `/hr/attendance/periods`)
 * **Slice / MVP**: `S-B1` / `MVP-23`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R29` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Layar periode dan aksi penutupan telah diimplementasikan lewat `FE-HRD-R29`; DTO belum menyediakan seluruh metrik rekap yang diminta. Bukti: [FE-HRD-R29.md](../task/report/frontend/FE-HRD-R29.md).
 * **Outcome**: Layar monitoring periode bulanan absensi HR: rekap total jam kerja riil, total jam dinas luar, total potongan keterlambatan, status periode (`Open`, `Closed`), dan aksi tutup periode.
 * **Requirement/decision**: `HRD-DEC-108`, `03-frontend-architecture.md` 16.3.2.
 * **Kontrak**: API Contract `v11` `/periods`, State Transition `v11` 15.3.
@@ -2809,7 +2809,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-093` — Komponen Dialog Guard Penutupan Periode & Peringatan Koreksi Pending (`PeriodClosingGuardModal.jsx`)
 * **Slice / MVP**: `S-B1` / `MVP-23`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R29` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Guard koreksi pending dan peringatan konversi `IncompletePunch` telah diimplementasikan lewat `FE-HRD-R29`; uji browser belum dijalankan. Bukti: [FE-HRD-R29.md](../task/report/frontend/FE-HRD-R29.md).
 * **Outcome**: Modal konfirmasi penutupan periode dengan guard ketat: jika ada koreksi pending, tombol ditolak dan memunculkan daftar pengajuan yang memblokir (`VR-ATT-15`); jika bersih, menampilkan peringatan konversi `IncompletePunch` ke `Absent`.
 * **Requirement/decision**: `HRD-DEC-106`, `HRD-DEC-108`, `03-frontend-architecture.md` 16.3.2.
 * **Kontrak**: Validation Matrix `v11` `VR-ATT-15`, `VR-ATT-16`.
@@ -2826,7 +2826,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-094` — Komponen Modal Buka Kembali Periode Darurat HR Manager (`PeriodEmergencyReopenModal.jsx`)
 * **Slice / MVP**: `S-B1` / `MVP-23`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R29` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Modal buka kembali, izin berbasis permission, validasi alasan, dan peringatan rollback telah diimplementasikan lewat `FE-HRD-R29`; uji browser/peran belum dijalankan. Bukti: [FE-HRD-R29.md](../task/report/frontend/FE-HRD-R29.md).
 * **Outcome**: Modal khusus peran HR Manager untuk membuka kembali periode tertutup: input alasan pembukaan wajib (min 15 karakter) dan peringatan keras potensi *rollback* data serah terima penggajian.
 * **Requirement/decision**: `HRD-DEC-108`, `03-frontend-architecture.md` 16.3.2.
 * **Kontrak**: API Contract `v11` `/reopen`.
@@ -2844,7 +2844,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-095` — Layar Monitoring & Koreksi Presensi On-Behalf HR (`FE-HRD-146` `/hr/attendance/corrections`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R28` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Monitoring koreksi telah diimplementasikan lewat `FE-HRD-R28`; kontrak respons belum membedakan jalur ESS dan kuasa HR secara eksplisit. Bukti: [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md).
 * **Outcome**: Layar bagi tim HR untuk memantau seluruh permohonan koreksi absensi yang diajukan mandiri via ESS maupun yang diajukan on-behalf oleh HR, lengkap dengan saringan status dan penanda initiator.
 * **Requirement/decision**: `HRD-DEC-028`, `03-frontend-architecture.md` 16.3.3.
 * **Kontrak**: API Contract `v11` `/corrections`.
@@ -2861,7 +2861,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-096` — Komponen Modal Aksi Koreksi Presensi Kuasa HR (`OnBehalfCorrectionModal.jsx`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R28` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: ⛔ Terblokir kontrak backend. DTO mewajibkan metadata bukti, tetapi endpoint unggah bukti kuasa HR belum tersedia; modal tidak dibuat dengan alur semu. Bukti: [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md).
 * **Outcome**: Modal form pengajuan koreksi presensi atas nama pegawai: pemilih staf, pemilih tanggal presensi, input jam masuk/keluar baru, input alasan wajib, dan kontrol upload surat pernyataan/bukti kendala ESS.
 * **Requirement/decision**: `HRD-DEC-028`, `03-frontend-architecture.md` 16.3.3.
 * **Kontrak**: Validation Matrix `v11` `VR-ATT-05`, `VR-ATT-06`.
@@ -2879,7 +2879,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-097` — Layar Pengelolaan Izin Pulang Cepat Non-Deductible (`FE-HRD-147` `/hr/attendance/early-leave`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R28` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Layar monitoring dan detail izin pulang cepat telah diimplementasikan lewat `FE-HRD-R28`; jam tap aktual tidak tersedia dalam DTO. Bukti: [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md).
 * **Outcome**: Layar monitoring perizinan pulang cepat staf: daftar pengajuan, jam rencana keluar, jam aktual mesin, status persetujuan, dan status waiver dispensasi keterlambatan/kehadiran.
 * **Requirement/decision**: `HRD-DEC-107`, `HRD-Q-47`, `03-frontend-architecture.md` 16.3.4.
 * **Kontrak**: API Contract `v11` `/early-leave`.
@@ -2897,7 +2897,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-098` — Layar Pengelolaan Surat Penugasan Dinas Luar Rumah Sakit (`FE-HRD-148` `/hr/attendance/official-duty`)
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R28` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Sebagian. Layar monitoring surat tugas, status, dan lampiran telah diimplementasikan lewat `FE-HRD-R28`; uji browser belum dijalankan. Bukti: [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md).
 * **Outcome**: Layar pencatatan dan monitoring surat dinas luar medis/non-medis: daftar surat penugasan ambulans rujukan, kurir lab cito, workshop/diklat, home care, serta status verifikasi atasan.
 * **Requirement/decision**: `HRD-DEC-109`, `03-frontend-architecture.md` 16.3.5.
 * **Kontrak**: API Contract `v11` `/official-duty`.
@@ -2933,7 +2933,7 @@ Ditambahkan pada revision 7, 4 November 2026, sesudah desain `S-C4-ONB` disetuju
 
 ### `FE-HRD-100` — Penyelarasan Portal Layanan Mandiri Karyawan ESS untuk Absensi & Perizinan Presensi
 * **Slice / MVP**: `S-B1` / `MVP-22`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R28` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: ⛔ Terblokir kontrak backend. Endpoint self-service untuk izin pulang cepat dan klaim dinas luar tidak ditemukan, sehingga ekstensi ESS tidak dibuat dengan data semu. Bukti: [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md).
 * **Outcome**: Pembaruan layar ESS presensi pegawai (`/self-services/human-resource/attendance`): notifikasi pengingat bila terjadi `IncompletePunch`, form permohonan izin pulang cepat mandiri, dan form klaim surat dinas luar.
 * **Requirement/decision**: `HRD-DEC-106`, `HRD-DEC-107`, `HRD-DEC-109`, `03-frontend-architecture.md` 16.4.
 * **Kontrak**: API Contract `v11` `/self-services/attendance/**`.

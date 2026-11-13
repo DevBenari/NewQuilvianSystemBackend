@@ -1031,7 +1031,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Enam dari tujuh kriteria R25 terpetakan ke source; `npm run lint:errors` exit 0, `npm run build` exit 0 (805 halaman), dan CSS gate 8 berkas/0 temuan. Uji browser belum dapat dijalankan dan endpoint unggah/template batch belum tersedia. Bukti: [laporan](../task/report/frontend/FE-HRD-R25.md).
+* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Enam dari tujuh kriteria R25 terpetakan ke source; lint lulus, build final lintas R25–R29 menghasilkan 813 halaman, dan CSS gate 8 berkas/0 temuan. Uji browser belum dapat dijalankan dan endpoint unggah/template batch belum tersedia. Bukti: [laporan](../task/report/frontend/FE-HRD-R25.md).
 
 #### 🟡 `FE-HRD-R26` — Bangun `S-D1` MVP-8: Angka Beban, Standar, Gap
 * **Slice / Gelombang**: S-D1 / 2
@@ -1046,7 +1046,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
-* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Empat layar dan menu tersambung ke kontrak backend; ESLint 0 error/warning, build 808 halaman, CSS gate 4 berkas/0 temuan. Uji browser dengan akun berhak/tidak berhak belum dapat dijalankan. Bukti: [laporan](../task/report/frontend/FE-HRD-R26.md).
+* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Empat layar dan menu tersambung ke kontrak backend; ESLint 0 error/warning, build final lintas R25–R29 menghasilkan 813 halaman, dan CSS gate 4 berkas/0 temuan. Uji browser dengan akun berhak/tidak berhak belum dapat dijalankan. Bukti: [laporan](../task/report/frontend/FE-HRD-R26.md).
 
 #### 🟡 `FE-HRD-R27` — Bangun `S-D1` MVP-10: Rencana Tahunan
 * **Slice / Gelombang**: S-D1 / 2
@@ -1559,8 +1559,8 @@ bagian yang disebut, source frontend `d09dc74da`, dan source backend `f751f8ca`.
 | FE-HRD-038 | S-D1 | Belum | Belum dikerjakan | tidak | Aksi kursi pada detail permintaan: tautkan/lepas, ubah rencana pemenuhan, batalkan kursi |
 | FE-HRD-039 | S-D1 | Belum | Belum dikerjakan | tidak | Layar Antrean Rekrutmen beserta dialog tautan pemenuhan |
 | FE-HRD-040 | S-D1 | Belum | Belum dikerjakan | tidak | Panel potret gap pada Pemantauan Gap Tenaga |
-| FE-HRD-041 | S-D1 | Belum | Belum dikerjakan | tidak | Layar Daftar Rencana Tahunan dan Addendum |
-| FE-HRD-042 | S-D1 | Belum | Belum dikerjakan | tidak | Layar Penyusun dan Detail Rencana |
+| FE-HRD-041 | S-D1 | Sebagian | Tersambung API | ada | Daftar Rencana Tahunan dan Addendum; endpoint pembatalan belum tersedia ([R27](../task/report/frontend/FE-HRD-R27.md)) |
+| FE-HRD-042 | S-D1 | Sebagian | Tersambung API | ada | Penyusun dan Detail Rencana; menunggu uji browser/peran ([R27](../task/report/frontend/FE-HRD-R27.md)) |
 | FE-HRD-043 | S-D1 | Belum | Belum dikerjakan | tidak | Verifikasi menu, hak akses, dan keterjangkauan seluruh layar S-D1 |
 | FE-HRD-044 | S-D2 | Selesai | Tersambung API | ada | Layar Antrean & Permintaan Requisition |
 | FE-HRD-045 | S-D2 | Selesai | Tersambung API | ada | Layar Detail & Draf Requisition |
@@ -1610,15 +1610,15 @@ bagian yang disebut, source frontend `d09dc74da`, dan source backend `f751f8ca`.
 | FE-HRD-089 | S-B1 | Belum | Belum dikerjakan | tidak | Redux Slice State Management Presensi Harian & Periode (attendanceSlice.js) |
 | FE-HRD-090 | S-B1 | Belum | Belum dikerjakan | tidak | Layar Dasbor Administrasi & Monitoring Presensi Harian (FE-HRD-144 /hr/attendance) |
 | FE-HRD-091 | S-B1 | Belum | Belum dikerjakan | tidak | Komponen Drawer Riwayat Log Mesin Biometrik Mentah (RawPunchAuditDrawer.jsx) |
-| FE-HRD-092 | S-B1 | Belum | Belum dikerjakan | tidak | Layar Rekapitulasi & Penutupan Periode Absensi (FE-HRD-145 /hr/attendance/periods) |
-| FE-HRD-093 | S-B1 | Belum | Belum dikerjakan | tidak | Komponen Dialog Guard Penutupan Periode & Peringatan Koreksi Pending (PeriodClosingGuardMo |
-| FE-HRD-094 | S-B1 | Belum | Belum dikerjakan | tidak | Komponen Modal Buka Kembali Periode Darurat HR Manager (PeriodEmergencyReopenModal.jsx) |
-| FE-HRD-095 | S-B1 | Belum | Belum dikerjakan | tidak | Layar Monitoring & Koreksi Presensi On-Behalf HR (FE-HRD-146 /hr/attendance/corrections) |
-| FE-HRD-096 | S-B1 | Belum | Belum dikerjakan | tidak | Komponen Modal Aksi Koreksi Presensi Kuasa HR (OnBehalfCorrectionModal.jsx) |
-| FE-HRD-097 | S-B1 | Belum | Belum dikerjakan | tidak | Layar Pengelolaan Izin Pulang Cepat Non-Deductible (FE-HRD-147 /hr/attendance/early-leave) |
-| FE-HRD-098 | S-B1 | Belum | Belum dikerjakan | tidak | Layar Pengelolaan Surat Penugasan Dinas Luar Rumah Sakit (FE-HRD-148 /hr/attendance/offici |
+| FE-HRD-092 | S-B1 | Sebagian | Tersambung API | ada | Layar Rekapitulasi & Penutupan Periode; metrik DTO belum lengkap ([R29](../task/report/frontend/FE-HRD-R29.md)) |
+| FE-HRD-093 | S-B1 | Sebagian | Tersambung API | ada | Guard Penutupan Periode & Peringatan Koreksi Pending ([R29](../task/report/frontend/FE-HRD-R29.md)) |
+| FE-HRD-094 | S-B1 | Sebagian | Tersambung API | ada | Modal Buka Kembali Periode Darurat HR Manager ([R29](../task/report/frontend/FE-HRD-R29.md)) |
+| FE-HRD-095 | S-B1 | Sebagian | Tersambung API | ada | Monitoring koreksi; penanda jalur ESS/kuasa belum eksplisit di DTO ([R28](../task/report/frontend/FE-HRD-R28.md)) |
+| FE-HRD-096 | S-B1 | Terblokir | Kontrak backend belum lengkap | tidak | Endpoint unggah bukti kuasa HR belum tersedia ([R28](../task/report/frontend/FE-HRD-R28.md)) |
+| FE-HRD-097 | S-B1 | Sebagian | Tersambung API | ada | Pengelolaan Izin Pulang Cepat; jam tap aktual belum tersedia di DTO ([R28](../task/report/frontend/FE-HRD-R28.md)) |
+| FE-HRD-098 | S-B1 | Sebagian | Tersambung API | ada | Pengelolaan Surat Penugasan Dinas Luar ([R28](../task/report/frontend/FE-HRD-R28.md)) |
 | FE-HRD-099 | S-B1 | Belum | Belum dikerjakan | tidak | Layar Pengaturan Parameter Presensi & Toleransi Waktu HR (FE-HRD-149 /hr/attendance/settin |
-| FE-HRD-100 | S-B1 | Belum | Belum dikerjakan | tidak | Penyelarasan Portal Layanan Mandiri Karyawan ESS untuk Absensi & Perizinan Presensi |
+| FE-HRD-100 | S-B1 | Terblokir | Kontrak backend belum tersedia | tidak | Endpoint self-service izin pulang cepat/dinas luar tidak ditemukan ([R28](../task/report/frontend/FE-HRD-R28.md)) |
 | FE-HRD-101 | S-B1 | Belum | Belum dikerjakan | tidak | Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar S-B1 |
 | FE-HRD-102 | S-B2 | Selesai | Non-layar | ada | Service Client API Cuti, Perizinan, dan Redux State Management (leave-service.js, leaveSli |
 | FE-HRD-103 | S-B2 | Selesai | Tersambung API | ada | Komponen Metrik Kartu Saldo & Progress Bar Pemakaian Cuti Tahunan (LeaveBalanceMetricCards |

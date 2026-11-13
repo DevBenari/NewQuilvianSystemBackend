@@ -11,6 +11,6 @@ Rute daftar dan detail `/hr/workforce-planning/manpower-plans` telah dibuat. Fit
 
 UI GATE: seluruh elemen `REUSE/COMPOSE` dari Hero, DataFilter, DataTable, base form controls, ConfirmModal, StatusBadge, resource selector, dan HrPanel; tidak ada base component baru.
 
-Verifikasi: ESLint target 0 error/warning, CSS gate 2 berkas/0 temuan, dan build penuh lulus 813 halaman. `VISUAL CHECK: NOT FEASIBLE` karena sesi tidak memiliki alat browser.
+Verifikasi: ESLint target 0 error/warning, CSS gate 2 berkas/0 temuan, dan build final lulus 813 halaman dengan standalone runtime siap. `npm run test:unit` dijalankan tetapi gagal karena issue existing lintas modul dan test yang merujuk file lama/hilang; tidak ada kegagalan yang menunjuk view R25–R29. `VISUAL CHECK: NOT FEASIBLE` karena sesi tidak memiliki alat browser.
 
 Keterbatasan backend: kartu meminta cancel, tetapi `HrdManpowerPlanController` tidak mempunyai endpoint cancel. Respons juga tidak menyediakan `availableActions` langkah workflow Finance; frontend membatasi lewat status dan permission, lalu backend tetap menjadi guard akhir. Perubahan belum di-commit/push.

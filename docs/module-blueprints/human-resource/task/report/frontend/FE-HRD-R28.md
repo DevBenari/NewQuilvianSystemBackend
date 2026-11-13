@@ -9,6 +9,6 @@
 
 Ditambahkan layar/menu admin Koreksi Presensi, Izin Pulang Cepat `[TIDAK MEMOTONG CUTI]`, dan Dinas Luar dengan data API nyata, status, pagination, detail persetujuan, label `OnDuty Disetujui`, serta tautan lampiran bila tersedia. Service attendance diperluas untuk monitoring koreksi dan izin pulang cepat.
 
-UI GATE: `REUSE/COMPOSE`; tidak ada base component baru. ESLint target lulus, CSS gate 3 berkas/0 temuan, build penuh lulus 813 halaman. `VISUAL CHECK: NOT FEASIBLE`.
+UI GATE: `REUSE/COMPOSE`; tidak ada base component baru. ESLint target lulus, CSS gate 3 berkas/0 temuan, dan build final lulus 813 halaman dengan standalone runtime siap. `npm run test:unit` dijalankan tetapi gagal karena issue existing lintas modul dan test yang merujuk file lama/hilang; tidak ada kegagalan yang menunjuk view R25–R29. `VISUAL CHECK: NOT FEASIBLE`.
 
 Belum dapat dipenuhi aman: backend koreksi kuasa menerima `AttendanceDailyId` dan metadata path berkas, tetapi tidak menyediakan endpoint unggah bukti; DTO daftar monitoring juga tidak memberi penanda eksplisit ESS vs HR-kuasa. Ekstensi ESS `FE-HRD-100` belum dipasang karena kontrak self-service untuk dua pengajuan tersebut tidak tersedia. Perubahan belum di-commit/push.
