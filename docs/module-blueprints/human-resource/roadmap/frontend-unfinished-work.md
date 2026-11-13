@@ -619,8 +619,8 @@ yang boleh diberikan adalah `READY_WITH_CONDITIONS`, dengan pemilik dan mitigasi
 | `FE-HRD-R27` | 2 | S-D1 | Bangun `S-D1` MVP-10: Rencana Tahunan | `FE-HRD-041`, `042` | `FE-HRD-R12` | 🟡 source/build lulus; endpoint cancel dan availableActions Finance tidak ada. [Laporan](../task/report/frontend/FE-HRD-R27.md) |
 | `FE-HRD-R28` | 2 | S-B1 | Bangun `S-B1` MVP-22: Koreksi, Izin, Dinas Luar | `FE-HRD-095`–`098`, `100` | `FE-HRD-R13` | 🟡 tiga layar admin aktif; upload koreksi kuasa dan ekstensi ESS terblokir kontrak. [Laporan](../task/report/frontend/FE-HRD-R28.md) |
 | `FE-HRD-R29` | 2 | S-B1 | Bangun `S-B1` MVP-23: Penutupan Periode | `FE-HRD-092`–`094` | `FE-HRD-R13` | 🟡 guard tutup/buka aktif; metrik rekap tidak tersedia di DTO. [Laporan](../task/report/frontend/FE-HRD-R29.md) |
-| `FE-HRD-R30` | 3 | S-C1 | Kredensial bagian 2: komite, direktur, registri | `FE-HRD-191`–`195`, `198`, `199` | `FE-HRD-R18` | Belum |
-| `FE-HRD-R31` | 3 | S-D4 | Layanan SDM bagian 2: ESS, surat, verifikasi publik | `FE-HRD-178`–`184` | `FE-HRD-R19` | Belum |
+| `FE-HRD-R30` | 3 | S-C1 | Kredensial bagian 2: komite, direktur, registri | `FE-HRD-191`–`195`, `198`, `199` | `FE-HRD-R18` | 🟡 KMKP dan create fast-track memakai API nyata; enam alur terblokir endpoint/DTO. [Laporan](../task/report/frontend/FE-HRD-R30.md) |
+| `FE-HRD-R31` | 3 | S-D4 | Layanan SDM bagian 2: ESS, surat, verifikasi publik | `FE-HRD-178`–`184` | `FE-HRD-R19` | 🟡 alur utama memakai API nyata; preview draf dan diff pra-resolve terblokir kontrak. [Laporan](../task/report/frontend/FE-HRD-R31.md) |
 | `FE-HRD-R32` | 3 | S-C1-OPPE | OPPE bagian 2: FPPE dan rekredensial | `FE-HRD-207`–`214` | `FE-HRD-R20` | Belum |
 | `FE-HRD-R33` | 3 | S-A7-V2 | Persetujuan bagian 2: delegasi, matriks, ESS | `FE-HRD-284`–`289` | `FE-HRD-R21` | Belum |
 | `FE-HRD-R34` | 3 | S-D5 | Perjalanan Dinas bagian 2: uang muka, settlement, klaim | `FE-HRD-298`–`304` | `FE-HRD-R22` | Belum |
@@ -1093,7 +1093,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Definition of Done**: `DoD`
 * **Status**: 🟡 **SEBAGIAN 12 November 2026.** Guard tutup, issue pemblokir, dan buka darurat terpasang; metrik rekap kartu tidak ada di DTO dan uji browser belum tersedia. [Laporan](../task/report/frontend/FE-HRD-R29.md).
 
-#### `FE-HRD-R30` — Kredensial bagian 2: komite, direktur, registri
+#### 🟡 `FE-HRD-R30` — Kredensial bagian 2: komite, direktur, registri
 * **Slice / Gelombang**: S-C1 / 3
 * **Task asal**: `FE-HRD-191`–`195`, `198`, `199`
 * **Outcome**: Alur komite sampai SPK dan RKK berjalan dengan data nyata.
@@ -1106,6 +1106,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: keselamatan klinis. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 13 November 2026.** Audit KMKP dan penerbitan fast-track tersambung ke API nyata; seluruh data contoh pada delapan view dihapus. Peer review, pleno, Direktur, verifikasi publik, registri global, dan radar rekredensialing menunggu endpoint/DTO backend. ESLint target dan CSS gate lulus; build 813 halaman. [Laporan](../task/report/frontend/FE-HRD-R30.md).
 
 #### `FE-HRD-R31` — Layanan SDM bagian 2: ESS, surat, verifikasi publik
 * **Slice / Gelombang**: S-D4 / 3
@@ -1120,6 +1121,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: privasi gaji. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 13 November 2026.** Katalog/pengajuan/lampiran ESS, antrean analis, persetujuan dan penerbitan surat, revokasi, serta verifikasi publik PIN telah memakai API nyata. Backend belum menyediakan pratinjau PDF draf dan DTO diff perubahan profil sebelum status `Resolved`; uji browser/peran belum tersedia. ESLint target 0 error/warning, CSS gate 0 temuan, build 814 halaman. [Laporan](../task/report/frontend/FE-HRD-R31.md).
 
 #### `FE-HRD-R32` — OPPE bagian 2: FPPE dan rekredensial
 * **Slice / Gelombang**: S-C1-OPPE / 3
