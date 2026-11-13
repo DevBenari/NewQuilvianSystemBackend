@@ -25,6 +25,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
             entity.Property(x => x.AttachmentPath).HasMaxLength(500);
             entity.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.VerifiedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.ApprovedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.RejectedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.DecisionReason).HasMaxLength(500);
             entity.Property(x => x.Notes).HasMaxLength(1000);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
             ConfigureIdentity(entity);
@@ -33,6 +36,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.PayrollMan
             entity.HasOne(x => x.PayrollComponent).WithMany().HasForeignKey(x => x.PayrollComponentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.SubmittedByUser).WithMany().HasForeignKey(x => x.SubmittedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.VerifiedByUser).WithMany().HasForeignKey(x => x.VerifiedByUserId).OnDelete(DeleteBehavior.Restrict);
+            // Kontrak PGJ-C1 (data-dictionary 2.2): penyetuju/penolak SetNull agar jejak input tetap ada bila akun dihapus.
+            entity.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedByUserId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(x => x.RejectedByUser).WithMany().HasForeignKey(x => x.RejectedByUserId).OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(x => x.InputNumber).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => x.SourceId)

@@ -57,6 +57,15 @@ public sealed class PayrollPolicyOptions
     /// <c>PaymentPaid</c> = setelah pembayaran terkonfirmasi lunas; <c>RunApproved</c> = sejak run disahkan.
     /// </summary>
     public string PayslipPublishTrigger { get; set; } = PayrollPayslipPublishTriggers.PaymentPaid;
+
+    /// <summary>
+    /// Masa peralihan tunjangan tetap (PRL-DEC-04, PGJ-C1). Bila true dan Struktur Gaji penetapan belum memuat baris tunjangan,
+    /// mesin hitung memakai PrlPayroll.TotalAllowance beserta peringatan. Dimatikan setelah data struktur lengkap (DEC-PRL-015).
+    /// </summary>
+    public bool AllowProfileAllowanceFallback { get; set; } = true;
+
+    /// <summary>Batas jumlah pegawai per permintaan simulasi penggajian (PRL-DEC-32, validasi SIM-02).</summary>
+    public int SimulationMaxEmployees { get; set; } = 50;
 }
 
 public static class PayrollPayslipPublishTriggers

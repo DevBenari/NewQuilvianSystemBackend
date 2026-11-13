@@ -344,6 +344,29 @@ public sealed class PayrollRunPeriodOverviewResponse
     public List<PayrollPeriodInstallmentResponse> Items { get; set; } = new();
 }
 
+/// <summary>PAY-BE-23 (PGJ-C1, PRL-DEC-42): saringan rekap lembur terverifikasi yang diimpor ke run.</summary>
+public sealed class PayrollRunOvertimeInputQuery
+{
+    /// <summary>Nama atau nomor pegawai.</summary>
+    public string? Search { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
+
+/// <summary>Satu baris lembur terverifikasi HR yang diimpor ke run (snapshot PrlPayrollOvertimeInput). Nominal sensitif.</summary>
+public sealed class PayrollRunOvertimeInputResponse
+{
+    public Guid Id { get; set; }
+    public Guid PayrollRunEmployeeId { get; set; }
+    public string EmployeeNumber { get; set; } = string.Empty;
+    public string EmployeeName { get; set; } = string.Empty;
+    public DateOnly OvertimeDate { get; set; }
+    public int VerifiedMinutes { get; set; }
+    public decimal RateMultiplier { get; set; }
+    public decimal HourlyRate { get; set; }
+    public decimal OvertimeAmount { get; set; }
+}
+
 public sealed class PayrollRunValidationException(string message) : Exception(message);
 
 public sealed class PayrollRunConflictException(string message) : Exception(message);

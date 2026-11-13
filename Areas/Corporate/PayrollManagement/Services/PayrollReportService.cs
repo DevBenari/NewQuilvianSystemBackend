@@ -144,6 +144,246 @@ public sealed class PayrollReportService
     }
 
     // ------------------------------------------------------------------------------------
+    // PAY-BE-22: laporan beban gaji per Cost Center dan laporan PPh/BPJS (PGJ-C1, PRL-DEC-27/33/41)
+    // ------------------------------------------------------------------------------------
+
+    private const string NoApprovedRunNote = "Belum ada run yang disahkan pada periode ini.";
+    private const int MaxReportPageSize = 200;
+
+    /// <summary>Run yang sudah disahkan dan belum dibalik: hasilnya final dan menjadi dasar pembukuan Finance.</summary>
+    private static readonly string[] ApprovedRunStatuses =
+    {
+        PayrollRunStatuses.Approved, PayrollRunStatuses.SentToFinance, PayrollRunStatuses.PartiallyPaid,
+        PayrollRunStatuses.Paid, PayrollRunStatuses.Posted, PayrollRunStatuses.Closed
+    };
+
+    /// <summary>Jenis komponen yang membentuk GrossPay (sama dengan mesin hitung: Earning dan Benefit).</summary>
+    private static readonly HashSet<string> EarningComponentTypes = new(StringComparer.OrdinalIgnoreCase) { "Earning", "Benefit" };
+
+    /// <summary>Jenis komponen yang membentuk TotalDeduction (pajak, iuran, potongan termasuk cicilan).</summary>
+    private static readonly HashSet<string> DeductionComponentTypes = new(StringComparer.OrdinalIgnoreCase) { "Deduction", "Tax", "Insurance" };
+
+    private sealed record ApprovedRunInfo(Guid Id, string RunNumber, string? PolicySnapshotJson);
+
+    /// <summary>Beban gaji per Cost Center per komponen dari run yang sudah disahkan. Pengganti menu Jurnal; bukan jurnal akuntansi.</summary>
+    public async Task<PayrollExpenseSummaryResponse> GetExpenseSummaryAsync(PayrollExpenseSummaryQuery query, CancellationToken cancellationToken)
+    {
+        var (periodCode, runs) = await LoadApprovedRunsAsync(query.PayrollPeriodId, query.PayrollRunId, cancellationToken);
+        var response = new PayrollExpenseSummaryResponse
+        {
+            PeriodCode = periodCode,
+            RunNumbers = runs.Select(r => r.RunNumber).ToList()
+        };
+
+        // RPT-01: bukan galat, hasil kosong dengan keterangan.
+        if (runs.Count == 0)
+        {
+            response.Note = NoApprovedRunNote;
+            return response;
+        }
+
+        var runIds = runs.Select(r => r.Id).ToList();
+        var employeeQuery = _dbContext.PrlPayrollRunEmployees.AsNoTracking()
+            .Where(e => !e.IsDelete && runIds.Contains(e.PayrollRunId));
+        if (query.CostCenterId.HasValue) employeeQuery = employeeQuery.Where(e => e.CostCenterId == query.CostCenterId.Value);
+
+        var employees = await employeeQuery
+            .Select(e => new { e.Id, e.CostCenterId, e.CostCenterCodeSnapshot, e.CostCenterNameSnapshot, e.GrossPay, e.TotalDeduction })
+            .ToListAsync(cancellationToken);
+        var employeeIds = employees.Select(e => e.Id).ToList();
+
+        var components = employeeIds.Count == 0
+            ? new List<(Guid EmployeeId, string Code, string Name, string Type, decimal Amount)>()
+            : (await _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
+                    .Where(c => !c.IsDelete && employeeIds.Contains(c.PayrollRunEmployeeId))
+                    .Select(c => new { c.PayrollRunEmployeeId, c.ComponentCodeSnapshot, c.ComponentNameSnapshot, c.ComponentTypeSnapshot, c.Amount })
+                    .ToListAsync(cancellationToken))
+                .Select(c => (EmployeeId: c.PayrollRunEmployeeId, Code: c.ComponentCodeSnapshot, Name: c.ComponentNameSnapshot,
+                    Type: c.ComponentTypeSnapshot, Amount: c.Amount))
+                .ToList();
+
+        // Label Cost Center dari snapshot run (dibekukan saat disahkan); master hanya cadangan bila snapshot kosong.
+        var missingIds = employees.Where(e => e.CostCenterId.HasValue && string.IsNullOrWhiteSpace(e.CostCenterNameSnapshot))
+            .Select(e => e.CostCenterId!.Value).Distinct().ToList();
+        var masterCostCenters = missingIds.Count == 0
+            ? new Dictionary<Guid, (string Code, string Name)>()
+            : await _dbContext.MstCostCenters.AsNoTracking()
+                .Where(c => missingIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id, c => (Code: c.CostCenterCode, Name: c.CostCenterName), cancellationToken);
+
+        var costCenterOf = employees.ToDictionary(e => e.Id, e =>
+        {
+            if (!string.IsNullOrWhiteSpace(e.CostCenterNameSnapshot))
+                return (Code: e.CostCenterCodeSnapshot ?? string.Empty, Name: e.CostCenterNameSnapshot!);
+            if (e.CostCenterId.HasValue && masterCostCenters.TryGetValue(e.CostCenterId.Value, out var master))
+                return (Code: master.Code, Name: master.Name);
+            return (Code: string.Empty, Name: "Tanpa Cost Center");
+        });
+
+        response.Rows = components
+            .GroupBy(c => (CostCenter: costCenterOf[c.EmployeeId], c.Code, c.Name, c.Type))
+            .Select(g => new PayrollExpenseSummaryRowResponse
+            {
+                CostCenterCode = g.Key.CostCenter.Code,
+                CostCenterName = g.Key.CostCenter.Name,
+                ComponentCode = g.Key.Code,
+                ComponentName = g.Key.Name,
+                ComponentType = g.Key.Type,
+                EmployeeCount = g.Select(x => x.EmployeeId).Distinct().Count(),
+                Amount = g.Sum(x => x.Amount)
+            })
+            .OrderBy(r => r.CostCenterName).ThenBy(r => r.CostCenterCode)
+            .ThenBy(r => EarningComponentTypes.Contains(r.ComponentType) ? 0 : DeductionComponentTypes.Contains(r.ComponentType) ? 1 : 2)
+            .ThenBy(r => r.ComponentName).ThenBy(r => r.ComponentCode)
+            .ToList();
+
+        response.TotalEarning = response.Rows.Where(r => EarningComponentTypes.Contains(r.ComponentType)).Sum(r => r.Amount);
+        response.TotalDeduction = response.Rows.Where(r => DeductionComponentTypes.Contains(r.ComponentType)).Sum(r => r.Amount);
+
+        var notes = new List<string>
+        {
+            $"Dari {runs.Count} run yang sudah disahkan. Laporan ini dasar pembukuan Finance, bukan jurnal akuntansi."
+        };
+        var otherTypes = response.Rows.Select(r => r.ComponentType)
+            .Where(t => !EarningComponentTypes.Contains(t) && !DeductionComponentTypes.Contains(t))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (otherTypes.Count > 0)
+            notes.Add($"Baris berjenis {string.Join(", ", otherTypes)} ditampilkan, tetapi tidak masuk total penghasilan maupun potongan.");
+
+        // Kriteria 1: jumlah baris = total penghasilan dan potongan pegawai run. Selisih tidak dihitung ulang, hanya dilaporkan.
+        if (Math.Abs(response.TotalEarning - employees.Sum(e => e.GrossPay)) > Tolerance
+            || Math.Abs(response.TotalDeduction - employees.Sum(e => e.TotalDeduction)) > Tolerance)
+            notes.Add("Jumlah baris berbeda dengan total pegawai run. Periksa layar Rekonsiliasi run yang bersangkutan.");
+
+        response.Note = string.Join(" ", notes);
+        return response;
+    }
+
+    /// <summary>PPh 21 dan iuran BPJS pegawai yang dipakai run yang sudah disahkan, beserta sumbernya (tetapan profil).</summary>
+    public async Task<PayrollTaxContributionPagedResult> GetTaxContributionAsync(PayrollTaxContributionQuery query, CancellationToken cancellationToken)
+    {
+        var (periodCode, runs) = await LoadApprovedRunsAsync(query.PayrollPeriodId, query.PayrollRunId, cancellationToken);
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, MaxReportPageSize);
+        var result = new PayrollTaxContributionPagedResult { PageNumber = pageNumber, PageSize = pageSize, PeriodCode = periodCode };
+
+        // RPT-01
+        if (runs.Count == 0)
+        {
+            result.Note = NoApprovedRunNote;
+            return result;
+        }
+
+        var runIds = runs.Select(r => r.Id).ToList();
+        var employeeQuery = _dbContext.PrlPayrollRunEmployees.AsNoTracking()
+            .Where(e => !e.IsDelete && runIds.Contains(e.PayrollRunId));
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var term = query.Search.Trim().ToLower();
+            employeeQuery = employeeQuery.Where(e =>
+                e.EmployeeNameSnapshot.ToLower().Contains(term)
+                || (e.EmployeeNumberSnapshot != null && e.EmployeeNumberSnapshot.ToLower().Contains(term)));
+        }
+
+        var taxCodes = new[] { PayrollEngineComponentCodes.Tax, PayrollEngineComponentCodes.InsuranceEmployee };
+        var componentQuery = _dbContext.PrlPayrollEmployeeComponents.AsNoTracking()
+            .Where(c => !c.IsDelete && taxCodes.Contains(c.ComponentCodeSnapshot)
+                && employeeQuery.Select(e => e.Id).Contains(c.PayrollRunEmployeeId));
+
+        result.TotalData = await employeeQuery.CountAsync(cancellationToken);
+        result.TotalPage = (int)Math.Ceiling(result.TotalData / (double)pageSize);
+        var totals = await componentQuery
+            .GroupBy(c => c.ComponentCodeSnapshot)
+            .Select(g => new { Code = g.Key, Amount = g.Sum(x => x.Amount) })
+            .ToListAsync(cancellationToken);
+        result.TotalTaxAmount = totals.Where(t => t.Code == PayrollEngineComponentCodes.Tax).Sum(t => t.Amount);
+        result.TotalInsuranceEmployeeAmount = totals.Where(t => t.Code == PayrollEngineComponentCodes.InsuranceEmployee).Sum(t => t.Amount);
+
+        var page = await employeeQuery
+            .OrderBy(e => e.EmployeeNameSnapshot).ThenBy(e => e.EmployeeNumberSnapshot).ThenBy(e => e.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize)
+            .Select(e => new { e.Id, e.PayrollRunId, e.EmployeeNumberSnapshot, e.EmployeeNameSnapshot, e.CostCenterNameSnapshot })
+            .ToListAsync(cancellationToken);
+        var pageIds = page.Select(e => e.Id).ToList();
+        var pageAmounts = await componentQuery
+            .Where(c => pageIds.Contains(c.PayrollRunEmployeeId))
+            .GroupBy(c => new { c.PayrollRunEmployeeId, c.ComponentCodeSnapshot })
+            .Select(g => new { g.Key.PayrollRunEmployeeId, g.Key.ComponentCodeSnapshot, Amount = g.Sum(x => x.Amount) })
+            .ToListAsync(cancellationToken);
+
+        var runById = runs.ToDictionary(r => r.Id);
+        var policyVersionByRun = runs.ToDictionary(r => r.Id, r => ReadPolicyVersion(r.PolicySnapshotJson));
+        decimal AmountOf(Guid employeeId, string code) =>
+            pageAmounts.Where(a => a.PayrollRunEmployeeId == employeeId && a.ComponentCodeSnapshot == code).Sum(a => a.Amount);
+
+        result.Items = page.Select(e => new PayrollTaxContributionRowResponse
+        {
+            RunNumber = runById[e.PayrollRunId].RunNumber,
+            EmployeeNumber = e.EmployeeNumberSnapshot ?? string.Empty,
+            EmployeeName = e.EmployeeNameSnapshot,
+            CostCenterName = string.IsNullOrWhiteSpace(e.CostCenterNameSnapshot) ? "Tanpa Cost Center" : e.CostCenterNameSnapshot!,
+            TaxAmount = AmountOf(e.Id, PayrollEngineComponentCodes.Tax),
+            InsuranceEmployeeAmount = AmountOf(e.Id, PayrollEngineComponentCodes.InsuranceEmployee),
+            Source = PayrollTaxContributionSources.ProfileFixed,
+            PolicyVersion = policyVersionByRun[e.PayrollRunId]
+        }).ToList();
+
+        result.Note = "PPh 21 dan iuran BPJS pegawai memakai nilai tetapan profil payroll, karena rumus resmi belum disahkan.";
+        return result;
+    }
+
+    /// <summary>Periode dan run yang sudah disahkan untuk filter laporan. Salah satu filter wajib (400 bila keduanya kosong).</summary>
+    private async Task<(string PeriodCode, List<ApprovedRunInfo> Runs)> LoadApprovedRunsAsync(
+        Guid? periodId, Guid? runId, CancellationToken cancellationToken)
+    {
+        if (!periodId.HasValue && !runId.HasValue)
+            throw new ArgumentException("Pilih periode penggajian atau payroll run.");
+
+        var runQuery = _dbContext.PrlPayrollRuns.AsNoTracking()
+            .Where(x => !x.IsDelete && ApprovedRunStatuses.Contains(x.RunStatus));
+        if (runId.HasValue) runQuery = runQuery.Where(x => x.Id == runId.Value);
+        if (periodId.HasValue) runQuery = runQuery.Where(x => x.PayrollPeriodId == periodId.Value);
+        var runs = await runQuery
+            .OrderBy(x => x.ApprovedAt).ThenBy(x => x.RunNumber)
+            .Select(x => new ApprovedRunInfo(x.Id, x.RunNumber, x.PolicySnapshotJson))
+            .ToListAsync(cancellationToken);
+
+        var effectivePeriodId = periodId;
+        if (!effectivePeriodId.HasValue)
+        {
+            effectivePeriodId = await _dbContext.PrlPayrollRuns.AsNoTracking()
+                .Where(x => x.Id == runId!.Value && !x.IsDelete)
+                .Select(x => (Guid?)x.PayrollPeriodId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        var periodCode = effectivePeriodId.HasValue
+            ? await _dbContext.MstPayrollPeriods.AsNoTracking()
+                .Where(p => p.Id == effectivePeriodId.Value)
+                .Select(p => p.PayrollPeriodCode)
+                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty
+            : string.Empty;
+
+        return (periodCode, runs);
+    }
+
+    private static string ReadPolicyVersion(string? policySnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(policySnapshotJson)) return string.Empty;
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(policySnapshotJson);
+            return document.RootElement.TryGetProperty("policyVersion", out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
+                ? value.GetString() ?? string.Empty
+                : string.Empty;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return string.Empty;
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // Rekonsiliasi satu run
     // ------------------------------------------------------------------------------------
 
