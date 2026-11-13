@@ -1305,6 +1305,7 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftReplacementService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftAssignmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftRevisionRecorder>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.TemporaryPlacementRosterImpactService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallAssignmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCompensationHandoffService>();
 

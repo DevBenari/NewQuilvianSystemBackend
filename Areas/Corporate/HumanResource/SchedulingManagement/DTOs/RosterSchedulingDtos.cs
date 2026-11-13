@@ -103,6 +103,80 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string? Notes { get; set; }
 
         public List<RosterShiftItemRequest> Shifts { get; set; } = new();
+
+        /// <summary>
+        /// Kategori alasan, wajib bila roster sudah terbit (masuk Riwayat Revisi "Tambah Shift"). Maksimal 50 karakter.
+        /// </summary>
+        [MaxLength(50)]
+        public string? ReasonCategory { get; set; }
+
+        /// <summary>
+        /// Catatan alasan, wajib bila roster sudah terbit. Tidak ditulis ke log.
+        /// </summary>
+        [MaxLength(1000)]
+        public string? ReasonNote { get; set; }
+
+        /// <summary>
+        /// Alasan untuk setiap kode peringatan W1–W7 dari pemeriksaan shift tambahan pada roster terbit (VR-PK-04).
+        /// </summary>
+        public List<WarningReasonItemRequest>? WarningReasons { get; set; }
+    }
+
+    /// <summary>
+    /// Hapus satu shift dari roster terbit (HRD-DEC-195). Kedua alasan wajib (VR-PK-07).
+    /// </summary>
+    public class RemovePublishedShiftRequest
+    {
+        /// <summary>
+        /// Kategori alasan, misalnya "Pegawai cuti mendadak". Maksimal 50 karakter.
+        /// </summary>
+        [MaxLength(50)]
+        public string ReasonCategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Catatan alasan. Masuk Riwayat Revisi; tidak ditulis ke log.
+        /// </summary>
+        [MaxLength(1000)]
+        public string ReasonNote { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Satu baris Riwayat Revisi roster terbit (HRD-DEC-195, HRD-DEC-217). Hanya dapat dibaca.
+    /// </summary>
+    public class ShiftRevisionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid ShiftAssignmentId { get; set; }
+        public Guid RosterPeriodId { get; set; }
+        public DateOnly ShiftDate { get; set; }
+
+        /// <summary>
+        /// Replacement, RetroactiveCorrection, AddShift, atau RemoveShift.
+        /// </summary>
+        public string ChangeType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Label Bahasa Indonesia: Ganti Petugas, Koreksi Mundur, Tambah Shift, Hapus Shift.
+        /// </summary>
+        public string ChangeTypeLabel { get; set; } = string.Empty;
+
+        public Guid? PreviousWorkforceProfileId { get; set; }
+        public string? PreviousWorkforceName { get; set; }
+        public Guid? NewWorkforceProfileId { get; set; }
+        public string? NewWorkforceName { get; set; }
+        public Guid? PreviousShiftId { get; set; }
+        public string? PreviousShiftName { get; set; }
+        public Guid? NewShiftId { get; set; }
+        public string? NewShiftName { get; set; }
+        public DateTime? PreviousStartAt { get; set; }
+        public DateTime? PreviousEndAt { get; set; }
+        public DateTime? NewStartAt { get; set; }
+        public DateTime? NewEndAt { get; set; }
+        public string ReasonCategory { get; set; } = string.Empty;
+        public string ReasonNote { get; set; } = string.Empty;
+        public Guid ChangedByUserId { get; set; }
+        public string? ChangedByName { get; set; }
+        public DateTime ChangedAt { get; set; }
     }
 
     public class RosterAssignmentResponse
@@ -122,6 +196,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public string? ValidationResultJson { get; set; }
         public string? Notes { get; set; }
         public List<ShiftAssignmentItemResponse> ShiftAssignments { get; set; } = new();
+
+        /// <summary>
+        /// Baris Riwayat Revisi "Tambah Shift" yang ditulis saat shift ditambahkan ke roster terbit; kosong untuk roster draf.
+        /// </summary>
+        public List<Guid> RevisionIds { get; set; } = new();
+
+        /// <summary>
+        /// Peringatan W1–W7 yang diterima beserta alasannya saat menambah shift ke roster terbit.
+        /// </summary>
+        public List<RosterValidationConflictItemDto> Warnings { get; set; } = new();
+
+        /// <summary>
+        /// Keterangan, misalnya "Kuota unit belum ditetapkan".
+        /// </summary>
+        public List<string> InfoMessages { get; set; } = new();
     }
 
     public class ShiftAssignmentItemResponse
@@ -370,9 +459,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         [Required(ErrorMessage = "NewShiftId wajib diisi.")]
         public Guid NewShiftId { get; set; }
 
-        [Required(ErrorMessage = "ReasonCategory wajib diisi."), MaxLength(100)]
+        /// <summary>
+        /// Kategori alasan, misalnya "Salah catat". Maksimal 50 karakter, sama dengan kolom Riwayat Revisi.
+        /// </summary>
+        [Required(ErrorMessage = "ReasonCategory wajib diisi."), MaxLength(50)]
         public string ReasonCategory { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Catatan alasan. Masuk Riwayat Revisi; tidak ditulis ke log.
+        /// </summary>
         [Required(ErrorMessage = "Notes wajib diisi."), MaxLength(1000)]
         public string Notes { get; set; } = string.Empty;
     }
@@ -385,7 +480,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         public Guid ShiftAssignmentId { get; set; }
         public bool IsRetroactive { get; set; } = true;
         public int DaysBack { get; set; }
+
+        /// <summary>
+        /// Benar bila kehadiran tanggal itu berhasil dihitung ulang. Salah bila hitung ulang gagal (rekapnya
+        /// ditandai ReprocessRequired) atau periode kehadirannya sudah ditutup.
+        /// </summary>
         public bool AttendanceReevaluationTriggered { get; set; } = true;
+
+        /// <summary>
+        /// Baris Riwayat Revisi "Koreksi Mundur" yang mencatat shift dan jam sebelum serta sesudah (HRD-DEC-217).
+        /// </summary>
+        public Guid RevisionId { get; set; }
+
         public string Message { get; set; } = string.Empty;
     }
 

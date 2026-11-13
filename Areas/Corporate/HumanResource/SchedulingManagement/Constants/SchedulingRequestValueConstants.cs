@@ -58,6 +58,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             public const string RetroactiveCorrection = "RetroactiveCorrection";
             public const string AddShift = "AddShift";
             public const string RemoveShift = "RemoveShift";
+
+            public static string Label(string changeType) => changeType switch
+            {
+                Replacement => "Ganti Petugas",
+                RetroactiveCorrection => "Koreksi Mundur",
+                AddShift => "Tambah Shift",
+                RemoveShift => "Hapus Shift",
+                _ => changeType
+            };
         }
 
         public static class OnCallCallStatus

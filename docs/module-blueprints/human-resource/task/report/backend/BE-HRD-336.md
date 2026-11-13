@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `9cc8097c` (branch `yoga`) + perubahan `BE-HRD-335` yang belum di-commit |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 Sebagian — kode selesai dan terbukti lewat harness; uji dengan akun non-superadmin di devYoga menunggu data penempatan berjabatan dan migration `BE-HRD-334` |
+| Status | 🟡 Sebagian — kode selesai dan terbukti lewat harness. Migration `BE-HRD-334` sudah diterapkan ke devYoga (13 November 2026); uji dengan akun non-superadmin masih menunggu akun berpenempatan berjabatan (Kepala Unit/Kepala Bidang) beserta sandinya |
 
 ### Backend Governance Preflight
 
@@ -150,7 +150,7 @@ yang sama di unit dalam cakupan lolos dan berhenti di kode lain (404/400/200/201
 | Contoh 35.9.1 terpenuhi (Sari ICU, Pak Dodi bidang) | Terpenuhi di harness | Bagian 5 |
 | Hierarki unit bertingkat tiga terbaca | Terpenuhi di harness | Bidang → Bangsal Anak → Anak Isolasi |
 | Pengguna tanpa penempatan berjabatan dan tanpa penanda mendapat cakupan kosong | Terpenuhi di harness | Uji gagal tertutup |
-| `AT-HRD-PK-09`/`-10` dengan akun non-superadmin | **Belum** | Menunggu data dan migration (bagian 5) |
+| `AT-HRD-PK-09`/`-10` dengan akun non-superadmin | **Belum** | Migration sudah diterapkan (13 November 2026). Masih menunggu akun non-superadmin yang diberi penempatan berjabatan beserta hak akses `RosterPeriod`/`ShiftReplacement`; roster uji ICU `ROST-202611-0002` sudah tersedia (lihat `BE-HRD-337`) |
 | DoD umum: build lulus, tanpa angka tertanam, tanpa kolom sensitif di log | Terpenuhi | Tidak ada log baru |
 
 ---

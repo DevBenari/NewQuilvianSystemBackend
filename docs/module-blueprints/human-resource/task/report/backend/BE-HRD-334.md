@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `a437ae42` (branch `yoga`) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 Sebagian — source dan berkas migration selesai serta tervalidasi; migration **belum diterapkan** ke database mana pun, sehingga uji kering dan satu kriteria terima masih menunggu |
+| Status | ✅ Selesai (13 November 2026) — migration diuji kering lalu diterapkan ke devYoga atas instruksi pengguna (riwayat 412 → 413); seluruh kriteria terima terpenuhi. Server dev bersama dan database lain belum |
 
 ### Backend Governance Preflight
 
@@ -119,12 +119,14 @@ sehingga hasil hitung kehadiran tidak berubah sampai Admin HRD mengubah setelan.
 | Verifikasi drift baca-saja ke devYoga (`default_transaction_read_only=on`) | 147 operasi drift sudah sesuai skema devYoga; 0 perubahan nyata tertunda; kedua migration SDM 11 November tercatat di riwayat | `PASS` | Keluaran skrip `verify-drift.js` |
 | Jumlah definisi tabel di snapshot | 995 → 1003 (6 A52 + 2 tabel drift yang sudah ada di devYoga) | `PASS` | Hitung `b.ToTable(` pada `HEAD` dan working tree |
 | Pemindaian rahasia pada berkas yang berubah | Tidak ditemukan | `PASS` | Pencarian pola password/connection string/key |
-| Uji kering migration naik → turun → `ROLLBACK` di devYoga | — | `NOT RUN` | Eksekusi database tidak diberi wewenang pada task ini |
+| Uji kering migration naik → turun → `ROLLBACK` di devYoga (13 November 2026, atas instruksi pengguna) | Riwayat 412 → 413 → 412; tabel 1076 → 1082 → 1076; 6 tabel dan 4 kolom muncul lalu hilang; sidik md5 isi `MstOnCallType`, `HrdAttendanceSetting`, `HrdAttendanceCorrectionRequest` identik sebelum dan sesudah turun | `PASS` | Keluaran `a52.js dry` |
+| `migrations list` sebelum penerapan | Hanya migration ini yang `(Pending)`, di ujung urutan (tanpa out-of-order) | `PASS` | Keluaran perintah |
+| Penerapan ke devYoga (`COMMIT`) | Riwayat 413, nol tertunda; baris setelan RSMMC berisi `ScanWindowBeforeMinutes` 240 / `ScanWindowAfterMinutes` 480; FK `DeviceIncidentId` tervalidasi | `PASS` | Keluaran `a52.js apply` dan `verify` |
+| Startup backend lokal sesudah penerapan | `/health` 200; tanpa `42P01`/`42703`. Galat `AttendanceScheduler:SystemActorUserId belum dikonfigurasi` sudah ada sebelumnya | `PASS` | `be.log` sesi |
 
-Uji manual: `NOT APPLICABLE`.
-
-**Tidak dijalankan:** penerapan dan uji kering migration ke devYoga — menunggu instruksi
-terpisah pengguna, sesuai `CLAUDE.md` dan `DATABASE_RULES.md`.
+Uji manual: `NOT APPLICABLE`. Uji API `A52` yang memakai tabel ini tercatat di laporan
+`BE-HRD-337` dan `BE-HRD-338`. Uji tersebut sempat terhadang cacat DEFAULT kolom lama yang
+diperbaiki lewat [BE-HRD-FIX-001](BE-HRD-FIX-001.md).
 
 ---
 
@@ -135,8 +137,8 @@ terpisah pengguna, sesuai `CLAUDE.md` dan `DATABASE_RULES.md`.
 | `Up()` hanya `CREATE TABLE`/`ADD COLUMN`/index/FK | Terpenuhi | Ringkasan skrip SQL (bagian 5); `CHECK` termasuk definisi `CREATE TABLE` |
 | Seluruh FK `Restrict` | Terpenuhi | Configuration baru dan `HrdAttendanceCorrectionRequestConfiguration.cs`; skrip SQL `ON DELETE RESTRICT` |
 | Unique index `HrdOnCallBackup` tersaring `IsDelete = false` | Terpenuhi | `HrdOnCallBackupConfiguration.cs`; skrip SQL `CREATE UNIQUE INDEX ... WHERE "IsDelete" = FALSE` |
-| `Down()` membalik seluruhnya | Terpenuhi menurut pemeriksaan isi; belum dijalankan | `Down()` berisi lepas FK, hapus 6 tabel, hapus index, hapus 4 kolom |
-| Pemrosesan kehadiran tanggal lama menghasilkan status yang sama sebelum dan sesudah migration | **Belum terpenuhi** | Butuh migration diterapkan; nilai bawaan 240/480 sama dengan konstanta kode sekarang (`AttendanceProcessingService.cs:20-21`) |
+| `Down()` membalik seluruhnya | Terpenuhi | Uji kering naik → turun di devYoga (bagian 5) |
+| Pemrosesan kehadiran tanggal lama menghasilkan status yang sama sebelum dan sesudah migration | Terpenuhi | Belum ada kode yang membaca `ScanWindowBeforeMinutes`/`AfterMinutes` (baru dibaca di `BE-HRD-342`); pemrosesan tetap memakai konstanta 240/480 (`AttendanceProcessingService.cs:20-21`), dan baris setelan sesudah migration bernilai sama |
 | DoD umum: build lulus, tanpa angka bisnis tertanam baru, kolom sensitif tidak masuk log | Terpenuhi | Bagian 5; nilai bawaan berasal dari desain 35.7/35.8 dan dapat diubah lewat setelan/master |
 
 ---
@@ -151,4 +153,4 @@ terpisah pengguna, sesuai `CLAUDE.md` dan `DATABASE_RULES.md`.
 | Perubahan sampingan | `NONE` — perubahan snapshot adalah keluaran migration yang diizinkan pengguna |
 | Interupsi | `NONE` |
 | Status Git | 21 berkas source/migration task ini (8 diubah, 14 baru termasuk 2 berkas migration); 17 berkas blueprint dari pass sebelumnya. Tidak ada stage atau commit |
-| Langkah berikutnya | (a) Bila diizinkan: uji kering migration di devYoga (naik → turun → `ROLLBACK`), lalu penerapan. (b) `BE-HRD-335` — konstanta nilai dan penanda hak akses |
+| Langkah berikutnya | (a) Terapkan migration ini ke server dev bersama bersama `BE-HRD-FIX-001`. (b) `BE-HRD-335` — konstanta nilai dan penanda hak akses (sudah selesai) |

@@ -2,14 +2,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using System.Text.Json;
@@ -26,6 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         private readonly IRosterValidationService _rosterValidationService;
         private readonly ShiftRevisionRecorder _revisionRecorder;
         private readonly IUnifiedNotificationGatewayService _notificationGateway;
+        private readonly ISchedulingSettingService _settingService;
 
         // VR-PK-03, VR-PK-04, VR-PK-05, VR-PK-06 (kontrak v26).
         private const string ManageScopeDeniedMessage = "Anda tidak berwenang mengubah roster unit ini.";
@@ -41,8 +46,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             HrdUnitScopeService unitScopeService,
             IRosterValidationService rosterValidationService,
             ShiftRevisionRecorder revisionRecorder,
-            IUnifiedNotificationGatewayService notificationGateway)
+            IUnifiedNotificationGatewayService notificationGateway,
+            ISchedulingSettingService settingService)
         {
+            _settingService = settingService ?? throw new ArgumentNullException(nameof(settingService));
             _rosterValidationService = rosterValidationService ?? throw new ArgumentNullException(nameof(rosterValidationService));
             _revisionRecorder = revisionRecorder ?? throw new ArgumentNullException(nameof(revisionRecorder));
             _notificationGateway = notificationGateway ?? throw new ArgumentNullException(nameof(notificationGateway));
@@ -629,18 +636,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     "Periode roster telah ditutup dan dikunci mutlak dari seluruh koreksi (HRD-DEC-102).");
             }
 
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (period == null)
+            {
+                return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Periode roster untuk shift ini tidak ditemukan.");
+            }
+
+            // VR-PK-07: alasan wajib; kategori harus muat di kolom Riwayat Revisi.
+            var reasonCategory = req.ReasonCategory?.Trim() ?? string.Empty;
+            var reasonNote = req.Notes?.Trim() ?? string.Empty;
+            if (reasonCategory.Length == 0 || reasonNote.Length == 0)
+            {
+                return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan perubahan wajib diisi.");
+            }
+
+            if (reasonCategory.Length > ShiftRevisionRecorder.ReasonCategoryMaxLength)
+            {
+                return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Kategori alasan maksimal {ShiftRevisionRecorder.ReasonCategoryMaxLength} karakter.");
+            }
+
+            // HRD-DEC-102 (tetap berlaku menurut HRD-DEC-217 butir 4): batas hari dibaca dari setelan penjadwalan,
+            // dihitung terhadap tanggal operasional WIB, bukan tanggal UTC.
+            var settingResult = await _settingService.GetSettingAsync(period.HospitalSiteId ?? Guid.Empty, cancellationToken);
+            var windowDays = (settingResult.Data ?? new SchedulingSettingResponse()).RetroactiveCorrectionWindowDays;
+            var today = DateOnly.FromDateTime(AppDateTimeHelper.OperationalDate());
             var daysBack = today.DayNumber - shiftAssignment.ShiftDate.DayNumber;
 
-            // Toleransi koreksi mundur mandiri Kepala Unit dibatasi maksimal 3 hari kalender ke belakang (VR-SCH-17 / HRD-DEC-102)
-            if (daysBack > 3)
+            if (daysBack > windowDays)
             {
                 return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
                     StatusCodes.Status422UnprocessableEntity,
-                    $"Koreksi mundur jadwal pada tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} ({daysBack} hari yang lalu) ditolak. Batas toleransi koreksi mundur mandiri Kepala Unit adalah maksimal 3 hari kalender ke belakang (VR-SCH-17 / HRD-DEC-102). Silakan hubungi Tim HRD.");
+                    $"Koreksi mundur jadwal pada tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} ({daysBack} hari yang lalu) ditolak. Batas toleransi koreksi mundur mandiri Kepala Unit adalah maksimal {windowDays} hari kalender ke belakang (VR-SCH-17 / HRD-DEC-102). Silakan hubungi Tim HRD.");
             }
 
             var newShift = await _context.MstShifts
+                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == req.NewShiftId && s.IsActive, cancellationToken);
 
             if (newShift == null)
@@ -650,69 +685,203 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
                     $"Master shift tujuan dengan ID '{req.NewShiftId}' tidak ditemukan.");
             }
 
-            var newStart = shiftAssignment.ShiftDate.ToDateTime(newShift.StartTime);
-            var newEnd = newShift.IsOvernight || newShift.EndTime < newShift.StartTime
+            // Jam shift adalah jam dinding WIB; disimpan sebagai UTC seperti saat shift ditambahkan ke roster.
+            var newStart = AppDateTimeHelper.ToUtc(shiftAssignment.ShiftDate.ToDateTime(newShift.StartTime));
+            var newEnd = AppDateTimeHelper.ToUtc(newShift.IsOvernight || newShift.EndTime < newShift.StartTime
                 ? shiftAssignment.ShiftDate.AddDays(1).ToDateTime(newShift.EndTime)
-                : shiftAssignment.ShiftDate.ToDateTime(newShift.EndTime);
+                : shiftAssignment.ShiftDate.ToDateTime(newShift.EndTime));
 
             var paidMinutes = newShift.PaidWorkMinutes > 0
                 ? newShift.PaidWorkMinutes
                 : (int)(newEnd - newStart).TotalMinutes - newShift.BreakDurationMinutes;
             if (paidMinutes < 0) paidMinutes = 0;
 
+            // Nilai sebelum koreksi, untuk pembaruan bersyarat dan Riwayat Revisi (HRD-DEC-217 butir 2).
+            var workforceProfileId = shiftAssignment.WorkforceProfileId;
             var oldShiftId = shiftAssignment.ShiftId;
-            shiftAssignment.ShiftId = newShift.Id;
-            shiftAssignment.ScheduledStartAt = newStart;
-            shiftAssignment.ScheduledEndAt = newEnd;
-            shiftAssignment.PlannedWorkMinutes = paidMinutes;
-            shiftAssignment.BreakDurationMinutes = newShift.BreakDurationMinutes;
-            shiftAssignment.IsNightShift = newShift.IsNightShift;
-            shiftAssignment.IsOnCall = newShift.IsOnCall;
-            shiftAssignment.IsDayOff = newShift.IsOffShift;
-            shiftAssignment.IsManualOverride = true;
-            shiftAssignment.OverrideReason = $"[KOREKSI MUNDUR - {req.ReasonCategory.Trim()}] {req.Notes.Trim()}";
-            shiftAssignment.AssignmentSource = "RetroactiveCorrection";
+            var oldStart = shiftAssignment.ScheduledStartAt;
+            var oldEnd = shiftAssignment.ScheduledEndAt;
+            var overrideReason = $"[KOREKSI MUNDUR - {reasonCategory}] {reasonNote}";
+            var now = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            HrdShiftAssignmentRevision revision;
+            await using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
+            {
+                // Pembaruan bersyarat: hanya berhasil bila shift di basis data masih sama dengan yang dibaca, sehingga
+                // perubahan lain yang terjadi di antaranya tidak tertimpa diam-diam dan riwayat memuat nilai lama yang benar.
+                var updated = await _context.TrxShiftAssignments
+                    .Where(s =>
+                        s.Id == shiftAssignment.Id &&
+                        s.IsActive &&
+                        s.WorkforceProfileId == workforceProfileId &&
+                        s.ShiftId == oldShiftId &&
+                        s.ScheduledStartAt == oldStart &&
+                        s.ScheduledEndAt == oldEnd)
+                    .ExecuteUpdateAsync(set => set
+                        .SetProperty(s => s.ShiftId, newShift.Id)
+                        .SetProperty(s => s.ScheduledStartAt, newStart)
+                        .SetProperty(s => s.ScheduledEndAt, newEnd)
+                        .SetProperty(s => s.PlannedWorkMinutes, paidMinutes)
+                        .SetProperty(s => s.BreakDurationMinutes, newShift.BreakDurationMinutes)
+                        .SetProperty(s => s.IsNightShift, newShift.IsNightShift)
+                        .SetProperty(s => s.IsOnCall, newShift.IsOnCall)
+                        .SetProperty(s => s.IsDayOff, newShift.IsOffShift)
+                        .SetProperty(s => s.IsManualOverride, true)
+                        .SetProperty(s => s.OverrideReason, overrideReason)
+                        .SetProperty(s => s.AssignmentSource, "RetroactiveCorrection")
+                        .SetProperty(s => s.UpdateBy, currentUserId)
+                        .SetProperty(s => s.UpdateDateTime, now),
+                        cancellationToken);
 
-            // Memicu sinyal event rekalkulasi kehadiran (INT-HR-36 / INT-HR-41)
-            _logger.LogInformation("Event INT-HR-36 / INT-HR-41: RetroactiveShiftCorrectedEvent dipicu untuk pegawai {WorkforceProfileId} pada tanggal {ShiftDate} ke shift {ShiftName}.",
-                shiftAssignment.WorkforceProfileId, shiftAssignment.ShiftDate, newShift.ShiftName);
+                if (updated == 0)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        ShiftChangedByOthersMessage);
+                }
 
+                revision = _revisionRecorder.Record(new HrdShiftAssignmentRevision
+                {
+                    ShiftAssignmentId = shiftAssignment.Id,
+                    RosterPeriodId = period.Id,
+                    ShiftDate = shiftAssignment.ShiftDate,
+                    ChangeType = SchedulingRequestValueConstants.ShiftRevisionChangeType.RetroactiveCorrection,
+                    PreviousWorkforceProfileId = workforceProfileId,
+                    NewWorkforceProfileId = workforceProfileId,
+                    PreviousShiftId = oldShiftId,
+                    NewShiftId = newShift.Id,
+                    PreviousStartAt = oldStart,
+                    PreviousEndAt = oldEnd,
+                    NewStartAt = newStart,
+                    NewEndAt = newEnd,
+                    ReasonCategory = reasonCategory,
+                    ReasonNote = reasonNote,
+                    ChangedByUserId = currentUserId,
+                    ChangedAt = now,
+                });
+
+                // Shift yang dimuat tidak ikut disimpan; perubahannya sudah ditulis lewat pembaruan bersyarat.
+                _context.Entry(shiftAssignment).State = EntityState.Unchanged;
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            // Hitung ulang kehadiran sesudah commit (INT-HR-101). Kegagalannya tidak membatalkan koreksi;
+            // rekap tanggal itu ditandai ReprocessRequired (02-backend-architecture.md 35.10).
+            var reprocessed = false;
+            var attendancePeriodClosed = false;
+            string recalculationNote;
             try
             {
-                var attendanceConsumer = _serviceProvider.GetService<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceScheduleMutationConsumer>();
-                if (attendanceConsumer != null)
+                var attendanceConsumer = _serviceProvider.GetService<AttendanceScheduleMutationConsumer>();
+                if (attendanceConsumer == null)
                 {
-                    await attendanceConsumer.ConsumeRetroactiveShiftCorrectionAsync(new QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.RetroactiveShiftCorrectedPayload
+                    recalculationNote = "Layanan hitung ulang kehadiran tidak tersedia.";
+                }
+                else
+                {
+                    var result = await attendanceConsumer.ConsumeRetroactiveShiftCorrectionAsync(new RetroactiveShiftCorrectedPayload
                     {
                         ShiftAssignmentId = shiftAssignment.Id,
-                        WorkforceProfileId = shiftAssignment.WorkforceProfileId,
+                        WorkforceProfileId = workforceProfileId,
                         ShiftDate = shiftAssignment.ShiftDate,
                         OldShiftId = oldShiftId,
                         NewShiftId = newShift.Id,
                         TriggeredByUserId = currentUserId,
-                        Reason = req.Notes
+                        Reason = reasonCategory
                     }, cancellationToken);
+
+                    attendancePeriodClosed = result.IsPeriodClosed;
+                    recalculationNote = result.IsPeriodClosed
+                        ? "Periode kehadiran tanggal ini sudah ditutup; kehadiran tidak dihitung ulang."
+                        : result.Message;
+
+                    // Hitung ulang yang berjalan tetapi berakhir Error (misalnya jadwal tidak terselesaikan) juga
+                    // kegagalan; Error → ReprocessRequired adalah transisi sistem yang sah (state matrix 30.x).
+                    reprocessed = result.Success && !await _context.HrdAttendanceDailies
+                        .AsNoTracking()
+                        .AnyAsync(d =>
+                            d.WorkforceProfileId == workforceProfileId &&
+                            d.AttendanceDate == shiftAssignment.ShiftDate &&
+                            !d.IsDelete &&
+                            d.ProcessingStatus == AttendanceValueConstants.AttendanceProcessingStatus.Error,
+                            cancellationToken);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Gagal memicu rekalkulasi absensi otomatis INT-HR-41 untuk pegawai {WorkforceProfileId}", shiftAssignment.WorkforceProfileId);
+                _logger.LogError(ex, "Hitung ulang kehadiran sesudah koreksi mundur shift {ShiftId} tanggal {ShiftDate} gagal.",
+                    shiftAssignment.Id, shiftAssignment.ShiftDate);
+                recalculationNote = "Hitung ulang kehadiran gagal.";
             }
+
+            var markedForReprocess = false;
+            if (!reprocessed && !attendancePeriodClosed)
+            {
+                markedForReprocess = await MarkAttendanceReprocessRequiredAsync(
+                    workforceProfileId, shiftAssignment.ShiftDate, currentUserId, cancellationToken);
+            }
+
+            _logger.LogInformation(
+                "Koreksi mundur shift {ShiftId} tanggal {ShiftDate} ke {NewShift}; riwayat {RevisionId}; hitung ulang {Reprocessed}; ditandai proses ulang {Marked}.",
+                shiftAssignment.Id, shiftAssignment.ShiftDate, newShift.ShiftName, revision.Id, reprocessed, markedForReprocess);
+
+            var message = reprocessed
+                ? $"Jadwal shift tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} berhasil dikoreksi ke '{newShift.ShiftName}' dan kehadiran dihitung ulang."
+                : markedForReprocess
+                    ? $"Jadwal shift tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} berhasil dikoreksi ke '{newShift.ShiftName}'. Hitung ulang kehadiran belum berhasil; rekap tanggal itu ditandai perlu diproses ulang."
+                    : $"Jadwal shift tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} berhasil dikoreksi ke '{newShift.ShiftName}'. {recalculationNote}";
 
             var response = new RetroactiveShiftCorrectionResponse
             {
                 ShiftAssignmentId = shiftAssignment.Id,
                 IsRetroactive = daysBack > 0,
                 DaysBack = daysBack > 0 ? daysBack : 0,
-                AttendanceReevaluationTriggered = true,
-                Message = $"Jadwal shift tanggal {shiftAssignment.ShiftDate:yyyy-MM-dd} berhasil dikoreksi ke '{newShift.ShiftName}' dan evaluasi ulang absensi otomatis dijalankan (INT-HR-36)."
+                AttendanceReevaluationTriggered = reprocessed,
+                RevisionId = revision.Id,
+                Message = message
             };
 
             return SchedulingRequestServiceResult<RetroactiveShiftCorrectionResponse>.Ok(
                 response,
                 response.Message);
+        }
+
+        /// <summary>
+        /// Menandai rekap harian pegawai pada tanggal itu ReprocessRequired. Konteks dibersihkan lebih dulu karena
+        /// hitung ulang yang gagal dapat meninggalkan entitas setengah berubah di konteks yang sama.
+        /// </summary>
+        private async Task<bool> MarkAttendanceReprocessRequiredAsync(
+            Guid workforceProfileId,
+            DateOnly attendanceDate,
+            Guid currentUserId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                _context.ChangeTracker.Clear();
+                var now = DateTime.UtcNow;
+                var marked = await _context.HrdAttendanceDailies
+                    .Where(d => d.WorkforceProfileId == workforceProfileId && d.AttendanceDate == attendanceDate && !d.IsDelete)
+                    .ExecuteUpdateAsync(set => set
+                        .SetProperty(d => d.ProcessingStatus, AttendanceValueConstants.AttendanceProcessingStatus.ReprocessRequired)
+                        // Pesan pemrosesan sebelumnya (misalnya "Schedule belum terselesaikan") dipertahankan di belakang.
+                        .SetProperty(d => d.ProcessingMessage, d =>
+                            ("Jadwal dikoreksi mundur; hitung ulang otomatis gagal, perlu diproses ulang. " + (d.ProcessingMessage ?? string.Empty))
+                                .Substring(0, 1000))
+                        .SetProperty(d => d.UpdateBy, currentUserId)
+                        .SetProperty(d => d.UpdateDateTime, now),
+                        cancellationToken);
+                return marked > 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Gagal menandai rekap kehadiran {WorkforceProfileId} tanggal {Date} perlu diproses ulang.",
+                    workforceProfileId, attendanceDate);
+                return false;
+            }
         }
 
         // Shift tanpa unit (periode maupun shift) hanya boleh diubah oleh cakupan semua unit.

@@ -6308,16 +6308,16 @@ dan eksekusi database tetap memerlukan instruksi terpisah dari pengguna.
 #### Grafik B84 — Fondasi data, konstanta, dan cakupan unit (`MVP-66`)
 
 ```text
-BE-HRD-334 🟡 ─┬─> BE-HRD-335 ✅
+BE-HRD-334 ✅ ─┬─> BE-HRD-335 ✅
                └─> BE-HRD-336 🟡
 ```
 
 #### Grafik B85 — Perubahan roster terbit dan Riwayat Revisi (`MVP-67`, `EPIC HRD-110`)
 
 ```text
-BE-HRD-335 ✅ [B84] ─> BE-HRD-337 🟡 ─┬─> BE-HRD-338 🟡 ─┬─> BE-HRD-339 ⬜
-BE-HRD-336 🟡 [B84] ─────────────────┘                  └─> BE-HRD-340 ⬜
-BE-HRD-337 🟡 ─────────────────────────────────────────────> BE-HRD-341 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-337 ✅ ─┬─> BE-HRD-338 🟡 ─┬─> BE-HRD-339 ✅
+BE-HRD-336 🟡 [B84] ─────────────────┘                  └─> BE-HRD-340 ✅
+BE-HRD-337 ✅ ─────────────────────────────────────────────> BE-HRD-341 ✅
 ```
 
 `BE-HRD-336` juga prasyarat langsung `BE-HRD-340` (pemeriksaan cakupan pada hapus shift dan
@@ -6326,9 +6326,9 @@ daftar riwayat).
 #### Grafik B86 — Status harian, tutup periode, mesin absen, hari libur (`MVP-67`, `EPIC HRD-111`/`112`)
 
 ```text
-BE-HRD-335 ✅ [B84] ─> BE-HRD-342 ⬜ ─> BE-HRD-343 ⬜ ─> BE-HRD-344 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-342 ✅ ─> BE-HRD-343 ⬜ ─> BE-HRD-344 ⬜
 BE-HRD-335 ✅ [B84] ─> BE-HRD-345 ⬜ ─> BE-HRD-346 ⬜
-BE-HRD-334 ⬜ [B84] ─> BE-HRD-347 ⬜
+BE-HRD-334 ✅ [B84] ─> BE-HRD-347 ⬜
 ```
 
 #### Grafik B87 — Jadwal Saya, laporan, ekspor, verifikasi (`MVP-68`, `Verifikasi`)
@@ -6337,7 +6337,7 @@ BE-HRD-334 ⬜ [B84] ─> BE-HRD-347 ⬜
 BE-HRD-343 ⬜ [B86] ─> BE-HRD-348 ⬜
 BE-HRD-336 🟡 [B84] ─┬─> BE-HRD-349 ⬜ ─> BE-HRD-350 ⬜
 BE-HRD-344 ⬜ [B86] ─┘
-BE-HRD-334 ⬜ s.d. BE-HRD-350 ⬜ ─────────> BE-HRD-351 ⬜
+BE-HRD-334 ✅ s.d. BE-HRD-350 ⬜ ─────────> BE-HRD-351 ⬜
 ```
 
 #### Grafik B88 — `POST-MVP` dan task terblokir
@@ -6371,9 +6371,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 `task/report/backend/<ID>.md`, tidak ada angka bisnis tertanam, kolom sensitif kamus data bagian
 27 tidak masuk log.
 
-#### 🟡 `BE-HRD-334` — Model, configuration, dan migration `AddSchedulingAttendanceAmendmentA52`
+#### ✅ `BE-HRD-334` — Model, configuration, dan migration `AddSchedulingAttendanceAmendmentA52`
 * **Slice / MVP**: `A52` / `MVP-66` / `EPIC HRD-109`
-* **Status**: 🟡 Sebagian (2026-11-12) — source dan berkas migration `20261112043425_AddSchedulingAttendanceAmendmentA52` selesai, build lulus, snapshot selaras model; migration **belum diterapkan**, uji kering dan kriteria "status hasil hitung tidak berubah" menunggu instruksi eksekusi database. Laporan: [BE-HRD-334](../task/report/backend/BE-HRD-334.md)
+* **Status**: ✅ Selesai (2026-11-13) — migration `20261112043425_AddSchedulingAttendanceAmendmentA52` diuji kering (naik → turun → `ROLLBACK`, sidik md5 identik) lalu diterapkan ke devYoga atas instruksi pengguna (riwayat 412 → 413); kriteria "status hasil hitung tidak berubah" terpenuhi karena kolom jendela scan belum dibaca kode sampai `BE-HRD-342`. Server dev bersama belum. Laporan: [BE-HRD-334](../task/report/backend/BE-HRD-334.md)
 * **Outcome**: Enam tabel baru dan tiga kolom baru tersedia tanpa mengubah perilaku yang ada.
 * **Requirement/decision**: `FR-PK-001`; `HRD-DEC-195`, `198`, `200`, `201`, `202`, `205`, `211`, `212`, `217`
 * **Kontrak**: `v26` — kamus data bagian 27, `02-backend-architecture.md` 35.6–35.7
@@ -6399,7 +6399,7 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 
 #### 🟡 `BE-HRD-336` — `HrdUnitScopeService` dan penerapan cakupan pada endpoint roster
 * **Slice / MVP**: `A52` / `MVP-66` / `EPIC HRD-109`
-* **Status**: 🟡 Sebagian (2026-11-12) — `HrdUnitScopeService` dan pemeriksaan cakupan pada seluruh aksi tulis serta baca `RosterPeriodService`/`ShiftReplacementService` selesai; 15/15 uji harness SQLite lulus (contoh Sari/Pak Dodi, tiga tingkat, gagal tertutup, penanda). `AT-HRD-PK-09`/`-10` dengan akun non-superadmin di devYoga menunggu data penempatan berjabatan (devYoga: 0) dan penerapan migration `BE-HRD-334`. Laporan: [BE-HRD-336](../task/report/backend/BE-HRD-336.md)
+* **Status**: 🟡 Sebagian (2026-11-12) — `HrdUnitScopeService` dan pemeriksaan cakupan pada seluruh aksi tulis serta baca `RosterPeriodService`/`ShiftReplacementService` selesai; 15/15 uji harness SQLite lulus (contoh Sari/Pak Dodi, tiga tingkat, gagal tertutup, penanda). `AT-HRD-PK-09`/`-10` dengan akun non-superadmin di devYoga menunggu akun berpenempatan berjabatan (devYoga: 0) beserta sandinya; migration `BE-HRD-334` sudah diterapkan (2026-11-13). Laporan: [BE-HRD-336](../task/report/backend/BE-HRD-336.md)
 * **Outcome**: Server menolak 403 tulis di luar cakupan kelola dan baca di luar cakupan baca.
 * **Requirement/decision**: `FR-PK-002`; `HRD-DEC-194`, `206`, `208`; `INV-A52-08`; 35.9.1
 * **Kontrak**: `v26` — `api-contract.md` 32 (Roster Period "semua tulis"), `validation-matrix.md` `VR-PK-06`, `VR-PK-27`
@@ -6410,9 +6410,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-09`, `AT-HRD-PK-10` dengan akun non-superadmin.
 * **Risiko**: Data penempatan berjabatan belum lengkap di devYoga — siapkan data uji; superadmin menutupi 403.
 
-#### 🟡 `BE-HRD-337` — `RosterValidationService`: `B3`, `B8`, `W6`, `W7`, kode `W2`/`W3`, `ValidateSingleShiftAsync`
+#### ✅ `BE-HRD-337` — `RosterValidationService`: `B3`, `B8`, `W6`, `W7`, kode `W2`/`W3`, `ValidateSingleShiftAsync`
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
-* **Status**: 🟡 Sebagian (2026-11-12) — evaluator bersama untuk validasi periode dan `ValidateSingleShiftAsync` (tanpa simpan) selesai; `B3`, `B8`, `W6`, `W7` dan kode `W2`/`W3` terpasang; keterangan `InfoMessages` (aditif). 24/24 uji harness SQLite lulus, termasuk kontrol negatif. `AT-HRD-PK-11`–`14` lewat API di devYoga menunggu migration `BE-HRD-334` (tabel `HrdStudyAssignment`) dan data uji. Laporan: [BE-HRD-337](../task/report/backend/BE-HRD-337.md)
+* **Status**: ✅ Selesai (2026-11-13) — evaluator bersama untuk validasi periode dan `ValidateSingleShiftAsync` (tanpa simpan) selesai; `B3`, `B8`, `W6`, `W7` dan kode `W2`/`W3` terpasang; keterangan `InfoMessages` (aditif). 24/24 uji harness SQLite lulus, termasuk kontrol negatif. `AT-HRD-PK-11`–`14` lulus lewat API devYoga dengan data uji `UJI-A52` (roster `ROST-202611-0002`), sesudah penghadang 500 tambah shift diperbaiki di `BE-HRD-FIX-001`. Laporan: [BE-HRD-337](../task/report/backend/BE-HRD-337.md)
 * **Outcome**: Pemeriksaan roster lengkap sesuai `HRD-DEC-099`/`100`/`201`/`213` dan dapat dipanggil untuk satu shift.
 * **Requirement/decision**: `FR-PK-007`; 35.9.2
 * **Kontrak**: `v26` — `VR-PK-01`, `VR-PK-02`, `VR-PK-04`
@@ -6425,7 +6425,8 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 
 #### 🟡 `BE-HRD-338` — `ShiftRevisionRecorder` dan perbaikan Ganti Petugas
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
-* **Status**: 🟡 Sebagian (2026-11-12) — `ShiftRevisionRecorder` dan Ganti Petugas baru selesai: pemeriksaan penuh lewat `ValidateSingleShiftAsync` (422 + `errors` berkode), alasan per kode peringatan, `B6` gagal tertutup, pembaruan bersyarat + riwayat + jejak dalam satu transaksi (409 untuk yang kalah), pemberitahuan sesudah commit. 35/35 uji harness lulus termasuk kontrol negatif. `AT-HRD-PK-01`–`04` lewat API di devYoga menunggu migration `BE-HRD-334`. Laporan: [BE-HRD-338](../task/report/backend/BE-HRD-338.md)
+* **Status**: 🟡 Sebagian (2026-11-12) — `ShiftRevisionRecorder` dan Ganti Petugas baru selesai: pemeriksaan penuh lewat `ValidateSingleShiftAsync` (422 + `errors` berkode), alasan per kode peringatan, `B6` gagal tertutup, pembaruan bersyarat + riwayat + jejak dalam satu transaksi (409 untuk yang kalah), pemberitahuan sesudah commit. 35/35 uji harness lulus termasuk kontrol negatif. Lewat API devYoga (2026-11-13) `AT-HRD-PK-01` (Budi → Tono → Andi, roster tetap `Published` versi 1) dan `-04` (basi 409; serentak 200 + 409, satu riwayat) lulus; `-03` bermetode unit service. Tersisa `-02` lewat API: devYoga tidak punya pegawai Didampingi (rantai onboarding kosong). Laporan: [BE-HRD-338](../task/report/backend/BE-HRD-338.md)
+* **Perbaikan terkait**: `BE-HRD-FIX-001` ✅ (2026-11-13) — migration `20261113050000_AddMissingHrdColumnDefaults` memasang 16 DEFAULT kolom yang ada di model tetapi hilang di database (penyebab 500 pada tambah shift roster); diterapkan ke devYoga. Laporan: [BE-HRD-FIX-001](../task/report/backend/BE-HRD-FIX-001.md)
 * **Outcome**: Ganti Petugas menjalankan pemeriksaan penuh, `B6` gagal tertutup, menulis riwayat dalam satu transaksi, menolak 409 bila petugas sudah berubah.
 * **Requirement/decision**: `FR-PK-003`, `FR-PK-004`; `HRD-DEC-195`; `INV-A52-01`, `INV-A52-03`
 * **Kontrak**: `v26` — `api-contract.md` 32 `POST /{id}/replace` (**Diubah**), `VR-PK-03`, `VR-PK-05`, `VR-PK-07`
@@ -6436,8 +6437,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-01`, `AT-HRD-PK-02`, `AT-HRD-PK-03`, `AT-HRD-PK-04`.
 * **Risiko**: Konsumen frontend lama belum mengirim `ExpectedWorkforceProfileId` — field opsional sampai `FE-HRD-307` rilis, lalu wajib.
 
-#### ⬜ `BE-HRD-339` — Koreksi mundur dengan riwayat dan pemicu hitung ulang
+#### ✅ `BE-HRD-339` — Koreksi mundur dengan riwayat dan pemicu hitung ulang
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Status**: ✅ Selesai (2026-11-13) — koreksi mundur menulis riwayat `RetroactiveCorrection` (shift dan jam lama/baru) dalam satu transaksi bersama pembaruan bersyarat (409 bila shift berubah); jam disimpan UTC dari jam dinding WIB; batas hari dibaca dari setelan `RetroactiveCorrectionWindowDays` terhadap tanggal WIB; hitung ulang yang gagal, tidak tersedia, atau berakhir `Error` menandai rekap `ReprocessRequired`. Harness 45/45 termasuk kontrol negatif; `AT-HRD-PK-07` lulus lewat API devYoga (jalur berhasil dan gagal). Temuan: terbit ulang roster sesudah tambah shift gagal 500 (versi publikasi kembar — cakupan `BE-HRD-340`). Laporan: [BE-HRD-339](../task/report/backend/BE-HRD-339.md)
 * **Outcome**: Koreksi mundur menyimpan shift dan jam lama serta baru, dan rekap harian dihitung ulang.
 * **Requirement/decision**: `HRD-DEC-217`, `HRD-DEC-102`; `INT-HR-101`
 * **Kontrak**: `v26` — `POST /{id}/retroactive-correct` (**Diubah**)
@@ -6448,8 +6450,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-07`.
 * **Risiko**: Rendah.
 
-#### ⬜ `BE-HRD-340` — Tambah shift tanpa turun ke `Draft`, hapus shift terbit, endpoint Riwayat Revisi
+#### ✅ `BE-HRD-340` — Tambah shift tanpa turun ke `Draft`, hapus shift terbit, endpoint Riwayat Revisi
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Status**: ✅ Selesai (2026-11-13) — tambah shift pada roster terbit tidak lagi turun ke `Draft`: alasan wajib, pemeriksaan penuh `B1`–`B8`/`W1`–`W7` (422 berkode), riwayat `AddShift` dalam satu transaksi, versi tetap; `POST /{id}/shifts/{shiftAssignmentId}/remove` (`RosterPeriod : RemoveShift`) menandai shift batal dengan riwayat `RemoveShift` (409 bila berubah); `GET /{id}/revisions` hanya baca dengan cakupan baca dan filter; tambah shift pindah ke `RosterPeriod : Create` sesuai matriks 30.1. Harness 59/59 termasuk kontrol negatif; `AT-HRD-PK-05`, `-06`, `-08` lulus lewat API devYoga. Temuan: terbit pada roster yang sudah terbit masih 500, tiga endpoint penyusunan masih `RosterAssignment : Create`, `INT-HR-101` untuk tambah/hapus/Ganti Petugas belum punya task. Laporan: [BE-HRD-340](../task/report/backend/BE-HRD-340.md)
 * **Outcome**: Roster terbit tetap `Published` saat ditambah/dihapus shift; riwayat dapat dibaca per periode.
 * **Requirement/decision**: `FR-PK-005`, `FR-PK-006`; `HRD-DEC-195`; perbaikan `RosterPeriodService.cs:391`
 * **Kontrak**: `v26` — `POST /{id}/assignments` (**Diubah**), `POST /{id}/shifts/{shiftAssignmentId}/remove`, `GET /{id}/revisions`; `RosterPeriod : RemoveShift`
@@ -6460,8 +6463,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-05`, `AT-HRD-PK-06`, `AT-HRD-PK-08`.
 * **Risiko**: Perilaku `Draft` lama mungkin diandalkan layar penyusunan — periksa konsumen `roster-scheduling-service.js` sebelum mengubah.
 
-#### ⬜ `BE-HRD-341` — Pemberitahuan dampak penempatan sementara ke Kepala Unit asal
+#### ✅ `BE-HRD-341` — Pemberitahuan dampak penempatan sementara ke Kepala Unit asal
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Status**: ✅ Selesai (2026-11-13) — `TemporaryPlacementRosterImpactService` dipanggil sesudah commit pada `Create`/`Update` penempatan: shift pegawai di roster terbit unit lain dalam rentang `Temporary` memicu pemberitahuan ke Kepala Unit pemilik roster (penempatan berjabatan berlaku hari ini), berkunci dedup per rentang; tidak pernah melempar dan tidak mengubah roster. Harness 65/65 termasuk kontrol negatif; `AT-HRD-PK-45` lulus lewat API devYoga (pemberitahuan ke Kepala Unit ICU uji, sidik roster identik). Laporan: [BE-HRD-341](../task/report/backend/BE-HRD-341.md)
 * **Outcome**: Penempatan `Temporary` yang menimpa jadwal terbit unit asal memicu pemberitahuan; roster tidak berubah otomatis.
 * **Requirement/decision**: `HRD-DEC-213`, `HRD-ASM-82`; `INT-HR-104`
 * **Kontrak**: `v26` — efek samping `organization-assignments` (**Diubah**)
@@ -6472,8 +6476,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-45`.
 * **Risiko**: Menyentuh controller milik sub-modul 02 — perubahan dibatasi satu pemanggilan sesudah simpan.
 
-#### ⬜ `BE-HRD-342` — Setelan kehadiran sebagai satu-satunya sumber toleransi dan jendela
+#### ✅ `BE-HRD-342` — Setelan kehadiran sebagai satu-satunya sumber toleransi dan jendela
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Status**: ✅ Selesai (2026-11-13) — `GetRequiredSettingAsync` menjadi satu-satunya sumber toleransi terlambat dan jendela scan; konstanta 240/480 dan cadangan 10 dihapus; resolver tidak lagi membaca keduanya dari `MstGracePeriodPolicy`; setelan tak terbaca/di luar batas → rekap `Error` "Setelan kehadiran tidak terbaca" tanpa angka cadangan; Settings GET/PUT memuat jendela, tanpa `AutoConvertIncompleteToAbsent`, validasi `VR-PK-23` (jendela opsional di PUT agar layar lama tidak mengosongkannya). Harness 72/72 termasuk kontrol negatif (`AT-HRD-PK-24`, `-25`, `-27` unit service); kontrak Settings dan pemrosesan diperiksa lewat API devYoga (setelan dikembalikan 10/240/480). Laporan: [BE-HRD-342](../task/report/backend/BE-HRD-342.md)
 * **Outcome**: Pemrosesan membaca toleransi dan jendela dari setelan; angka 10/240/480 tertanam dihapus; setelan tak terbaca → pemrosesan `Error`.
 * **Requirement/decision**: `FR-PK-010`; `HRD-DEC-196`, `211`, `215`, `216`, `HRD-ASM-83`; `INV-A52-05`
 * **Kontrak**: `v26` — Settings `GET`/`PUT` (**Diubah**), `VR-PK-23`, `VR-PK-30`

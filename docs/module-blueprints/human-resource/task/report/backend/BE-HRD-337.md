@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `9cc8097c` (branch `yoga`) + perubahan `BE-HRD-335`/`336` yang belum di-commit |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 Sebagian — kode selesai dan terbukti lewat harness; uji API di devYoga menunggu migration `BE-HRD-334` dan data uji |
+| Status | ✅ Selesai (13 November 2026) — kode terbukti lewat harness dan lewat API devYoga (`AT-HRD-PK-11`–`14` lulus sesudah migration `BE-HRD-334` dan `BE-HRD-FIX-001` diterapkan) |
 
 ### Backend Governance Preflight
 
@@ -157,7 +157,18 @@ Contoh potongan respons:
 | — `W2` berkode; `B6` gagal tertutup tetap berlaku | Sesuai | `PASS` | Dua uji |
 | — Satu shift: `B3`/`B8` sama dengan terbit; Ganti Petugas menilai slot tanpa petugas lama (`W7`); perpanjangan rangkaian → `W2` pada calon; `B1` tabrakan; periode tak ada → null; tidak menyimpan apa pun | Sesuai | `PASS` | Tiga uji |
 | Kontrol negatif: logika "penempatan sementara mengalahkan utama" dirusak sementara, backend dibangun ulang, harness dijalankan | Tepat 2 uji `B3` gagal; kode dikembalikan (dibandingkan byte demi byte), dibangun ulang, 24/24 lulus lagi | `PASS` | Keluaran `dotnet test` |
-| `AT-HRD-PK-11`–`14` lewat API di devYoga | — | `NOT RUN` | Tabel `HrdStudyAssignment` belum ada di devYoga (migration `BE-HRD-334` belum diterapkan) dan data standar/penempatan sementara belum ada; menyiapkannya butuh eksekusi database |
+| `AT-HRD-PK-14` lewat API devYoga (13 November 2026), sebelum standar ICU ada: `POST roster-periods/{id}/validate` | 200; 0 blokir, 0 peringatan, 0 `W6`; `infoMessages` = "Kuota unit belum ditetapkan" | `PASS` | `at-log.jsonl` |
+| `AT-HRD-PK-13` lewat API devYoga: standar ICU 3 Perawat per shift (April 2027), Malam 10 April berisi 2 | Validasi: 1 `W6` WARNING dengan pesan "… berisi 2 Perawat Rawat Inap, kurang dari kuota 3 per shift". Terbit tanpa alasan → 422 "… seluruh 1 peringatan … Diterima 0 alasan". Terbit dengan alasan `W6` → 200, periode `Published` | `PASS` | `at-log.jsonl` |
+| `AT-HRD-PK-11` lewat API devYoga: Tono `Temporary` IGD 1–14 Maret 2027 (IGD menggantikan HCU yang tidak ada di devYoga), Ganti Petugas ke Tono | 5 Maret → 422, `errors` = `B3/BLOCKING`, pesan "VR-PK-01 (B3): Raka Firmansyah ditempatkan di Instalasi Gawat Darurat 1–14 Maret 2027."; tanpa riwayat. 15 Maret → 200, satu riwayat Indra → Tono | `PASS` | `at-log.jsonl` |
+| `AT-HRD-PK-12` lewat API devYoga: Dewi tugas belajar 1 Agustus – 31 Desember 2027, Ganti Petugas 3 Agustus | 422, `errors` = `B8/BLOCKING`, pesan "VR-PK-02 (B8): Putri Handayani sedang tugas belajar 1 Agustus – 31 Desember 2027."; tanpa riwayat | `PASS` | `at-log.jsonl` |
+
+Data uji devYoga bertanda `UJI-A52`: roster `ROST-202611-0002` (ICU, 1 Februari – 31 Agustus 2027);
+shift master "Pagi (UJI-A52)" dan "Malam (UJI-A52)"; penempatan `Secondary` ICU untuk lima profil
+tanpa akun login (Bagas Saputra = Budi, Raka Firmansyah = Tono, Arif Maulana = Andi, Indra Setiawan,
+Putri Handayani = Dewi) ditambah `Temporary` IGD untuk Tono; standar `UJI-A52-STD-ICU` versi 901;
+tugas belajar `UJI-A52/SK-TB/2027`. Standar dan tugas belajar disisipkan langsung ke database karena
+standar aktif hanya lewat workflow dan tugas belajar belum punya endpoint (`BE-HRD-34x`). Uji API ini
+semula terhadang 500 pada tambah shift roster; penyebabnya diperbaiki di [BE-HRD-FIX-001](BE-HRD-FIX-001.md).
 
 ---
 
@@ -165,10 +176,10 @@ Contoh potongan respons:
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| Penempatan `Temporary` di unit lain mengalahkan penempatan utama (`B3`) | Terpenuhi di harness | Bagian 5 |
-| `B8` tidak dapat diturunkan | Terpenuhi | Selalu `BLOCKING`; tidak membaca setelan eskalasi |
-| Tanpa standar aktif, `W6`/`W7` memberi keterangan, bukan peringatan | Terpenuhi di harness | `InfoMessages` |
-| `AT-HRD-PK-11`–`14` lewat API | **Belum** | Menunggu migration dan data |
+| Penempatan `Temporary` di unit lain mengalahkan penempatan utama (`B3`) | Terpenuhi | Harness dan API devYoga (`AT-HRD-PK-11`) |
+| `B8` tidak dapat diturunkan | Terpenuhi | Selalu `BLOCKING`; tidak membaca setelan eskalasi; API devYoga (`AT-HRD-PK-12`) |
+| Tanpa standar aktif, `W6`/`W7` memberi keterangan, bukan peringatan | Terpenuhi | Harness dan API devYoga (`AT-HRD-PK-14`) |
+| `AT-HRD-PK-11`–`14` lewat API | Terpenuhi | Bagian 5, 13 November 2026 |
 | DoD umum: build lulus, tanpa angka tertanam, tanpa kolom sensitif di log | Terpenuhi | Batas kuota dibaca dari standar ketenagaan; batas `W1`–`W3` dari setelan |
 
 ---
@@ -183,4 +194,4 @@ Contoh potongan respons:
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | 4 berkas source task ini (semua diubah) di atas perubahan `BE-HRD-335`/`336` yang belum di-commit; 2 dokumen roadmap/traceability; laporan ini. Tidak ada stage atau commit |
-| Langkah berikutnya | (a) Bila diizinkan: terapkan migration `BE-HRD-334`, siapkan data uji (standar ICU, penempatan sementara, tugas belajar), lalu jalankan `AT-HRD-PK-09`–`14` lewat API. (b) `BE-HRD-338` — `ShiftRevisionRecorder` dan perbaikan Ganti Petugas (memakai `ValidateSingleShiftAsync`) |
+| Langkah berikutnya | (a) `AT-HRD-PK-09`/`-10` (milik `BE-HRD-336`) masih butuh akun non-superadmin berpenempatan berjabatan. (b) `BE-HRD-338` — `ShiftRevisionRecorder` dan perbaikan Ganti Petugas (memakai `ValidateSingleShiftAsync`) |

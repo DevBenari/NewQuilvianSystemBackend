@@ -22,10 +22,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         };
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly AttendanceSettingService _attendanceSettingService;
 
-        public AttendanceScheduleResolverService(ApplicationDbContext dbContext)
+        public AttendanceScheduleResolverService(ApplicationDbContext dbContext, AttendanceSettingService attendanceSettingService)
         {
             _dbContext = dbContext;
+            _attendanceSettingService = attendanceSettingService ?? throw new ArgumentNullException(nameof(attendanceSettingService));
         }
 
         public AttendanceScheduleResolverMetadataResponse GetMetadata()
@@ -219,6 +221,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             await ResolveCalendarAndHolidayAsync(response, workDate, cancellationToken);
             await ResolveAttendancePolicyAsync(response, cancellationToken);
+            await ApplyAttendanceSettingAsync(response, cancellationToken);
             CalculateAttendanceWindows(response);
             BuildResolutionSnapshot(response);
 
@@ -539,10 +542,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             response.GracePeriodPolicyId = policy.GracePeriodPolicy.Id;
             response.GracePeriodPolicyCode = policy.GracePeriodPolicy.GracePeriodPolicyCode;
             response.GracePeriodPolicyName = policy.GracePeriodPolicy.GracePeriodPolicyName;
-            response.EarlyCheckInMinutes = Math.Max(0, policy.GracePeriodPolicy.EarlyCheckInMinutes);
-            response.LateCheckInGraceMinutes = Math.Max(0, policy.GracePeriodPolicy.LateCheckInGraceMinutes);
+            // HRD-DEC-215: toleransi terlambat dan jendela scan TIDAK dibaca dari kebijakan ini (lihat
+            // ApplyAttendanceSettingAsync). Toleransi pulang cepat berada di luar keputusan itu dan tetap dari kebijakan.
             response.EarlyCheckOutGraceMinutes = Math.Max(0, policy.GracePeriodPolicy.EarlyCheckOutGraceMinutes);
-            response.LateCheckOutMinutes = Math.Max(0, policy.GracePeriodPolicy.LateCheckOutMinutes);
+        }
+
+        /// <summary>
+        /// Toleransi terlambat dan jendela scan dari setelan kehadiran rumah sakit (HRD-DEC-215, HRD-DEC-211).
+        /// Bila setelan tidak terbaca, angka dibiarkan nol dan peringatan ditambahkan; pemrosesan kehadiran sendiri
+        /// menolak menghitung tanpa setelan (HRD-ASM-83).
+        /// </summary>
+        private async Task ApplyAttendanceSettingAsync(
+            AttendanceScheduleResolutionResponse response,
+            CancellationToken cancellationToken)
+        {
+            var setting = await _attendanceSettingService.GetRequiredSettingAsync(cancellationToken: cancellationToken);
+            if (!setting.Success || setting.Data == null)
+            {
+                response.EarlyCheckInMinutes = 0;
+                response.LateCheckInGraceMinutes = 0;
+                response.LateCheckOutMinutes = 0;
+                response.Warnings.Add($"{AttendanceSettingService.SettingUnreadableMessage}; toleransi dan jendela scan tidak dihitung.");
+                return;
+            }
+
+            response.EarlyCheckInMinutes = setting.Data.ScanWindowBeforeMinutes;
+            response.LateCheckInGraceMinutes = setting.Data.GracePeriodMinutes;
+            response.LateCheckOutMinutes = setting.Data.ScanWindowAfterMinutes;
         }
 
         private async Task<TimeZoneResolution> ResolveTimeZoneForSiteAsync(
