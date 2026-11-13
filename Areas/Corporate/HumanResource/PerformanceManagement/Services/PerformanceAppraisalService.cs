@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             if (appraisal == null)
             {
                 // Create draft if not exists
-                appraisal = new TrxPerformanceAppraisal
+                appraisal = new HrdPerformanceAppraisal
                 {
                     Id = Guid.NewGuid(),
                     PerformanceCycleId = cycleId,
@@ -54,7 +54,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             if (appraisal == null)
             {
-                appraisal = new TrxPerformanceAppraisal
+                appraisal = new HrdPerformanceAppraisal
                 {
                     Id = Guid.NewGuid(),
                     PerformanceCycleId = dto.PerformanceCycleId,
@@ -96,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     throw new ArgumentException("Penilaian mandiri dengan skor maksimal (5.0) wajib melampirkan URL dokumen bukti capaian yang sah (VR-PRF-22).");
                 }
 
-                var detail = new TrxPerformanceAppraisalDetail
+                var detail = new HrdPerformanceAppraisalDetail
                 {
                     Id = Guid.NewGuid(),
                     PerformanceAppraisalId = appraisal.Id,
@@ -291,7 +291,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             return "SANGAT_KURANG";
         }
 
-        private async Task<PerformanceAppraisalDto> MapToDtoAsync(TrxPerformanceAppraisal app, CancellationToken cancellationToken)
+        private async Task<PerformanceAppraisalDto> MapToDtoAsync(HrdPerformanceAppraisal app, CancellationToken cancellationToken)
         {
             var cycle = await _uow.PerformanceCycles.FirstOrDefaultAsync(x => x.Id == app.PerformanceCycleId, cancellationToken);
             var details = await _uow.PerformanceAppraisalDetails

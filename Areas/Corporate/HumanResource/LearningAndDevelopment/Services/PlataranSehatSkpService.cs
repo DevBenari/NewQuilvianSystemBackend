@@ -36,7 +36,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
             var parsedUserGuid = Guid.TryParse(currentUserId, out var uGuid) ? uGuid : Guid.Empty;
             bool isVerifiedPlataran = !string.IsNullOrWhiteSpace(request.PlataranSehatCertificateId);
 
-            var record = new TrxPlataranSehatSkpRecord
+            var record = new HrdPlataranSehatSkpRecord
             {
                 Id = Guid.NewGuid(),
                 WorkforceProfileId = request.WorkforceProfileId,
@@ -55,7 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 CreateBy = parsedUserGuid
             };
 
-            await _context.Set<TrxPlataranSehatSkpRecord>().AddAsync(record);
+            await _context.Set<HrdPlataranSehatSkpRecord>().AddAsync(record);
             await _context.SaveChangesAsync();
 
             return new PlataranSehatSkpRecordDto
@@ -89,7 +89,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 throw new KeyNotFoundException($"Profil tenaga kerja ID '{workforceProfileId}' tidak ditemukan.");
             }
 
-            var records = await _context.Set<TrxPlataranSehatSkpRecord>()
+            var records = await _context.Set<HrdPlataranSehatSkpRecord>()
                 .Where(r => r.WorkforceProfileId == workforceProfileId && !r.IsDelete)
                 .OrderByDescending(r => r.ActivityDate)
                 .ToListAsync();
@@ -148,7 +148,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
                 throw new KeyNotFoundException($"Profil tenaga kerja ID '{workforceProfileId}' tidak ditemukan.");
             }
 
-            var unSyncedRecords = await _context.Set<TrxPlataranSehatSkpRecord>()
+            var unSyncedRecords = await _context.Set<HrdPlataranSehatSkpRecord>()
                 .Where(r => r.WorkforceProfileId == workforceProfileId && !r.IsSyncedToOppe && !r.IsDelete)
                 .ToListAsync();
 
@@ -180,7 +180,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
 
         public async Task<PlataranSehatSkpRecordDto> VerifyPlataranSehatAsync(Guid skpRecordId, string currentUserId)
         {
-            var record = await _context.Set<TrxPlataranSehatSkpRecord>()
+            var record = await _context.Set<HrdPlataranSehatSkpRecord>()
                 .Include(r => r.WorkforceProfile)
                 .FirstOrDefaultAsync(r => r.Id == skpRecordId && !r.IsDelete);
 

@@ -7,7 +7,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// <summary>
     /// Master Pustaka Indikator Mutu OPPE (6 Pilar ACGME / KARS)
     /// </summary>
-    [Table("mst_oppe_metric_catalogs", Schema = "public")]
+    [Table("MstOppeMetricCatalog", Schema = "public")]
     public class MstOppeMetricCatalog : IdentityModel
     {
         [Key]

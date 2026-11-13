@@ -38,7 +38,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 }
             }
 
-            var dispute = new TrxPerformanceAppraisalDispute
+            var dispute = new HrdPerformanceAppraisalDispute
             {
                 Id = Guid.NewGuid(),
                 PerformanceAppraisalId = appraisal.Id,

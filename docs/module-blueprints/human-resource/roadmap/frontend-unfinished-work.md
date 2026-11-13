@@ -455,7 +455,7 @@ FE-HRD-R08 ✅ ─> FE-HRD-R21 ─> FE-HRD-R33
 
 FE-HRD-R09 ✅ ─> FE-HRD-R22 ─> FE-HRD-R34
 
-FE-HRD-R10 🟡 ─> FE-HRD-R25
+FE-HRD-R10 🟡 ─> FE-HRD-R25 🟡
 
 FE-HRD-R11 ✅ ─┬─> FE-HRD-R23 ─> FE-HRD-R35
                │
@@ -465,13 +465,13 @@ FE-HRD-R11 ✅ ─┬─> FE-HRD-R23 ─> FE-HRD-R35
 ### Grafik G2 — Layar yang belum dikerjakan (`S-D1`, `S-B1`)
 
 ```text
-FE-HRD-R12 🟡 ─┬─> FE-HRD-R26 ─> FE-HRD-R36 ─┬─> FE-HRD-R42
+FE-HRD-R12 🟡 ─┬─> FE-HRD-R26 🟡 ─> FE-HRD-R36 ─┬─> FE-HRD-R42
                │                             │
-               └─> FE-HRD-R27 ───────────────┘
+               └─> FE-HRD-R27 🟡 ────────────┘
 
-FE-HRD-R13 🟡 ─┬─> FE-HRD-R28 ─┬─> FE-HRD-R43
+FE-HRD-R13 🟡 ─┬─> FE-HRD-R28 🟡 ─┬─> FE-HRD-R43
                │               │
-               └─> FE-HRD-R29 ─┘
+               └─> FE-HRD-R29 🟡 ─┘
 ```
 
 ### Grafik G3 — Verifikasi dan audit akhir
@@ -499,7 +499,7 @@ FE-HRD-R17 [G1] ─┴─┐
                    │
 FE-HRD-R24 [G1] ───┴─┐
                      │
-FE-HRD-R25 [G1] ─────┴─┐
+FE-HRD-R25 🟡 [G1] ──┴─┐
                        │
 FE-HRD-R37 [G1] ───────┴─┐
                          │
@@ -614,11 +614,11 @@ yang boleh diberikan adalah `READY_WITH_CONDITIONS`, dengan pemilik dan mitigasi
 | `FE-HRD-R22` | 2 | S-D5 | Perjalanan Dinas bagian 1: dasbor, tarif, SPPD | `FE-HRD-292`–`297` | `FE-HRD-R09` | Belum |
 | `FE-HRD-R23` | 2 | S-B3 | Lembur bagian 1: pengajuan dan persetujuan ruangan | `FE-HRD-117`–`120` | `FE-HRD-R11` | Belum |
 | `FE-HRD-R24` | 2 | S-D3 | Benefit: sambung sisa dan migrasi | `FE-HRD-161`, `167`, `168`, `170` | `FE-HRD-R11` | Belum |
-| `FE-HRD-R25` | 2 | S-C4-ONB | Onboarding dan Kontrak: migrasi | `FE-HRD-059`–`073` | `FE-HRD-R10` | Belum |
-| `FE-HRD-R26` | 2 | S-D1 | Bangun `S-D1` MVP-8: Angka Beban, Standar, Gap | `FE-HRD-032`–`035` | `FE-HRD-R12` | Belum |
-| `FE-HRD-R27` | 2 | S-D1 | Bangun `S-D1` MVP-10: Rencana Tahunan | `FE-HRD-041`, `042` | `FE-HRD-R12` | Belum |
-| `FE-HRD-R28` | 2 | S-B1 | Bangun `S-B1` MVP-22: Koreksi, Izin, Dinas Luar | `FE-HRD-095`–`098`, `100` | `FE-HRD-R13` | Belum |
-| `FE-HRD-R29` | 2 | S-B1 | Bangun `S-B1` MVP-23: Penutupan Periode | `FE-HRD-092`–`094` | `FE-HRD-R13` | Belum |
+| `FE-HRD-R25` | 2 | S-C4-ONB | Onboarding dan Kontrak: migrasi | `FE-HRD-059`–`073` | `FE-HRD-R10` | 🟡 source, lint, build, dan CSS gate lulus; menunggu uji browser serta endpoint unggah batch. [Laporan](../task/report/frontend/FE-HRD-R25.md) |
+| `FE-HRD-R26` | 2 | S-D1 | Bangun `S-D1` MVP-8: Angka Beban, Standar, Gap | `FE-HRD-032`–`035` | `FE-HRD-R12` | 🟡 source, lint, build, CSS gate lulus; menunggu uji browser/peran. [Laporan](../task/report/frontend/FE-HRD-R26.md) |
+| `FE-HRD-R27` | 2 | S-D1 | Bangun `S-D1` MVP-10: Rencana Tahunan | `FE-HRD-041`, `042` | `FE-HRD-R12` | 🟡 source/build lulus; endpoint cancel dan availableActions Finance tidak ada. [Laporan](../task/report/frontend/FE-HRD-R27.md) |
+| `FE-HRD-R28` | 2 | S-B1 | Bangun `S-B1` MVP-22: Koreksi, Izin, Dinas Luar | `FE-HRD-095`–`098`, `100` | `FE-HRD-R13` | 🟡 tiga layar admin aktif; upload koreksi kuasa dan ekstensi ESS terblokir kontrak. [Laporan](../task/report/frontend/FE-HRD-R28.md) |
+| `FE-HRD-R29` | 2 | S-B1 | Bangun `S-B1` MVP-23: Penutupan Periode | `FE-HRD-092`–`094` | `FE-HRD-R13` | 🟡 guard tutup/buka aktif; metrik rekap tidak tersedia di DTO. [Laporan](../task/report/frontend/FE-HRD-R29.md) |
 | `FE-HRD-R30` | 3 | S-C1 | Kredensial bagian 2: komite, direktur, registri | `FE-HRD-191`–`195`, `198`, `199` | `FE-HRD-R18` | Belum |
 | `FE-HRD-R31` | 3 | S-D4 | Layanan SDM bagian 2: ESS, surat, verifikasi publik | `FE-HRD-178`–`184` | `FE-HRD-R19` | Belum |
 | `FE-HRD-R32` | 3 | S-C1-OPPE | OPPE bagian 2: FPPE dan rekredensial | `FE-HRD-207`–`214` | `FE-HRD-R20` | Belum |
@@ -1018,7 +1018,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
 
-#### `FE-HRD-R25` — Onboarding dan Kontrak: migrasi
+#### 🟡 `FE-HRD-R25` — Onboarding dan Kontrak: migrasi
 * **Slice / Gelombang**: S-C4-ONB / 2
 * **Task asal**: `FE-HRD-059`–`073`
 * **Outcome**: Tampilan seragam dan prop benar.
@@ -1031,8 +1031,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Enam dari tujuh kriteria R25 terpetakan ke source; `npm run lint:errors` exit 0, `npm run build` exit 0 (805 halaman), dan CSS gate 8 berkas/0 temuan. Uji browser belum dapat dijalankan dan endpoint unggah/template batch belum tersedia. Bukti: [laporan](../task/report/frontend/FE-HRD-R25.md).
 
-#### `FE-HRD-R26` — Bangun `S-D1` MVP-8: Angka Beban, Standar, Gap
+#### 🟡 `FE-HRD-R26` — Bangun `S-D1` MVP-8: Angka Beban, Standar, Gap
 * **Slice / Gelombang**: S-D1 / 2
 * **Task asal**: `FE-HRD-032`–`035`
 * **Outcome**: HR melihat gap tenaga per unit dan jabatan.
@@ -1045,8 +1046,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Empat layar dan menu tersambung ke kontrak backend; ESLint 0 error/warning, build 808 halaman, CSS gate 4 berkas/0 temuan. Uji browser dengan akun berhak/tidak berhak belum dapat dijalankan. Bukti: [laporan](../task/report/frontend/FE-HRD-R26.md).
 
-#### `FE-HRD-R27` — Bangun `S-D1` MVP-10: Rencana Tahunan
+#### 🟡 `FE-HRD-R27` — Bangun `S-D1` MVP-10: Rencana Tahunan
 * **Slice / Gelombang**: S-D1 / 2
 * **Task asal**: `FE-HRD-041`, `042`
 * **Outcome**: Rencana tenaga tahunan dapat disusun.
@@ -1059,8 +1061,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Daftar, penyusun, addendum, kalkulasi, biaya estimasi, Finance, dan potret gap terpasang; endpoint cancel/availableActions Finance serta uji browser belum tersedia. [Laporan](../task/report/frontend/FE-HRD-R27.md).
 
-#### `FE-HRD-R28` — Bangun `S-B1` MVP-22: Koreksi, Izin, Dinas Luar
+#### 🟡 `FE-HRD-R28` — Bangun `S-B1` MVP-22: Koreksi, Izin, Dinas Luar
 * **Slice / Gelombang**: S-B1 / 2
 * **Task asal**: `FE-HRD-095`–`098`, `100`
 * **Outcome**: HR mengelola koreksi presensi dan perizinan.
@@ -1073,8 +1076,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Tiga layar admin aktif; modal koreksi kuasa berkas dan ekstensi ESS belum aman karena kontrak backend. [Laporan](../task/report/frontend/FE-HRD-R28.md).
 
-#### `FE-HRD-R29` — Bangun `S-B1` MVP-23: Penutupan Periode
+#### 🟡 `FE-HRD-R29` — Bangun `S-B1` MVP-23: Penutupan Periode
 * **Slice / Gelombang**: S-B1 / 2
 * **Task asal**: `FE-HRD-092`–`094`
 * **Outcome**: Periode presensi dapat ditutup dan dibuka kembali.
@@ -1087,6 +1091,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: dampak ke gaji. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 12 November 2026.** Guard tutup, issue pemblokir, dan buka darurat terpasang; metrik rekap kartu tidak ada di DTO dan uji browser belum tersedia. [Laporan](../task/report/frontend/FE-HRD-R29.md).
 
 #### `FE-HRD-R30` — Kredensial bagian 2: komite, direktur, registri
 * **Slice / Gelombang**: S-C1 / 3

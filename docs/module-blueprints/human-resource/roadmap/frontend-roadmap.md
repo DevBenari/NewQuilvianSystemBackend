@@ -657,17 +657,17 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-029` | `S-D1` · `MVP-7` | Fondasi layar `S-D1`: grup menu, konstanta endpoint, util tampilan, dan layar Pengaturan Perencanaan (`FE-HRD-109`) | ✅ | `FE-HRD-021` ✅, `BE-HRD-031` [BE] | [FE-HRD-029.md](../task/report/frontend/FE-HRD-029.md) |
 | `FE-HRD-030` | `S-D1` · `MVP-7` | Layar Formasi Jabatan baca saja beserta riwayat versi (`FE-HRD-101`) | 🟡 | `FE-HRD-029`, `BE-HRD-032` [BE] | [FE-HRD-030.md](../task/report/frontend/FE-HRD-030.md) |
 | `FE-HRD-031` | `S-D1` · `MVP-7` | Layar Batch Formasi Awal dan detailnya (`FE-HRD-102`, `FE-HRD-103`) | 🟡 | `FE-HRD-029`, `BE-HRD-033` [BE] | [FE-HRD-031.md](../task/report/frontend/FE-HRD-031.md) |
-| `FE-HRD-032` | `S-D1` · `MVP-8` | Layar Angka Beban (`FE-HRD-100`) | | `FE-HRD-029`, `BE-HRD-034` [BE] | — |
-| `FE-HRD-033` | `S-D1` · `MVP-8` | Layar Daftar Standar Kebutuhan Tenaga (`FE-HRD-98`) | | `FE-HRD-029`, `BE-HRD-035` [BE] | — |
-| `FE-HRD-034` | `S-D1` · `MVP-8` | Layar Penyusun dan Detail Standar beserta rekomendasi (`FE-HRD-99`) | | `FE-HRD-032`, `FE-HRD-033` | — |
-| `FE-HRD-035` | `S-D1` · `MVP-8` | Layar Pemantauan Gap Tenaga — gap langsung (`FE-HRD-97`) | | `FE-HRD-029`, `BE-HRD-037` [BE] | — |
+| `FE-HRD-032` | `S-D1` · `MVP-8` | Layar Angka Beban (`FE-HRD-100`) | 🟡 | `FE-HRD-029`, `BE-HRD-034` [BE] | [FE-HRD-R26.md](../task/report/frontend/FE-HRD-R26.md) |
+| `FE-HRD-033` | `S-D1` · `MVP-8` | Layar Daftar Standar Kebutuhan Tenaga (`FE-HRD-98`) | 🟡 | `FE-HRD-029`, `BE-HRD-035` [BE] | [FE-HRD-R26.md](../task/report/frontend/FE-HRD-R26.md) |
+| `FE-HRD-034` | `S-D1` · `MVP-8` | Layar Penyusun dan Detail Standar beserta rekomendasi (`FE-HRD-99`) | 🟡 | `FE-HRD-032`, `FE-HRD-033` | [FE-HRD-R26.md](../task/report/frontend/FE-HRD-R26.md) |
+| `FE-HRD-035` | `S-D1` · `MVP-8` | Layar Pemantauan Gap Tenaga — gap langsung (`FE-HRD-97`) | 🟡 | `FE-HRD-029`, `BE-HRD-037` [BE] | [FE-HRD-R26.md](../task/report/frontend/FE-HRD-R26.md) |
 | `FE-HRD-036` | `S-D1` · `MVP-9` | Layar Daftar Permintaan Headcount (`FE-HRD-106`) | | `FE-HRD-029`, `BE-HRD-040` [BE] | — |
 | `FE-HRD-037` | `S-D1` · `MVP-9` | Form dan Detail Permintaan Headcount (`FE-HRD-107`) serta tombol "Ajukan" di Pemantauan Gap | | `FE-HRD-035`, `FE-HRD-036` | — |
 | `FE-HRD-038` | `S-D1` · `MVP-9` | Aksi kursi pada detail permintaan: tautkan/lepas, ubah rencana pemenuhan, batalkan kursi | | `FE-HRD-037`, `FE-HRD-039`, `BE-HRD-044` [BE] | — |
 | `FE-HRD-039` | `S-D1` · `MVP-9` | Layar Antrean Rekrutmen beserta dialog tautan pemenuhan (`FE-HRD-108`) | | `FE-HRD-029`, `BE-HRD-042` [BE], `BE-HRD-043` [BE] | — |
 | `FE-HRD-040` | `S-D1` · `MVP-9` | Panel potret gap pada Pemantauan Gap Tenaga | | `FE-HRD-035`, `BE-HRD-039` [BE] | — |
-| `FE-HRD-041` | `S-D1` · `MVP-10` | Layar Daftar Rencana Tahunan dan Addendum (`FE-HRD-104`) | | `FE-HRD-029`, `BE-HRD-046` [BE] | — |
-| `FE-HRD-042` | `S-D1` · `MVP-10` | Layar Penyusun dan Detail Rencana (`FE-HRD-105`) | | `FE-HRD-041` | — |
+| `FE-HRD-041` | `S-D1` · `MVP-10` | Layar Daftar Rencana Tahunan dan Addendum (`FE-HRD-104`) | 🟡 | `FE-HRD-029`, `BE-HRD-046` [BE] | [FE-HRD-R27.md](../task/report/frontend/FE-HRD-R27.md) |
+| `FE-HRD-042` | `S-D1` · `MVP-10` | Layar Penyusun dan Detail Rencana (`FE-HRD-105`) | 🟡 | `FE-HRD-041` | [FE-HRD-R27.md](../task/report/frontend/FE-HRD-R27.md) |
 | `FE-HRD-043` | `S-D1` · Verifikasi | Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-D1` | | `FE-HRD-030`, `FE-HRD-031`, `FE-HRD-034`, `FE-HRD-038`, `FE-HRD-039`, `FE-HRD-040`, `FE-HRD-042` | — |
 | `FE-HRD-044` | `S-D2` · `MVP-11` | Layar Antrean & Permintaan Requisition (`FE-HRD-110`, `/hr/recruitment/requisitions`) | ✅ | `BE-HRD-052` ✅ [BE] | [FE-HRD-044.md](../task/report/frontend/FE-HRD-044.md) |
 | `FE-HRD-045` | `S-D2` · `MVP-11` | Layar Detail & Draf Requisition (`FE-HRD-111`, `/hr/recruitment/requisitions/[id]`) | ✅ | `FE-HRD-044` ✅ | [FE-HRD-045.md](../task/report/frontend/FE-HRD-045.md) |
@@ -717,15 +717,15 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-089` | `S-B1` · `MVP-21` | State management Redux presensi harian, pengecualian, dan koreksi | 🟡 | `FE-HRD-088` | [FE-HRD-089.md](../task/report/frontend/FE-HRD-089.md) |
 | `FE-HRD-090` | `S-B1` · `MVP-21` | Layar `FE-HRD-144` — Monitoring Presensi Harian Staf Unit | 🟡 | `FE-HRD-089`, `BE-HRD-106` [BE] | [FE-HRD-090.md](../task/report/frontend/FE-HRD-090.md) |
 | `FE-HRD-091` | `S-B1` · `MVP-21` | Drawer Riwayat Log Biometrik Mentah (*Immutable Raw Log Viewer*) | ✅ | `FE-HRD-090`, `BE-HRD-107` [BE] | [FE-HRD-091.md](../task/report/frontend/FE-HRD-091.md) |
-| `FE-HRD-092` | `S-B1` · `MVP-23` | Layar `FE-HRD-148` — Penutupan Periode Kehadiran & Sinkronisasi Payroll |  | `FE-HRD-089`, `BE-HRD-115` [BE] | — |
-| `FE-HRD-093` | `S-B1` · `MVP-23` | Dialog Guard Penutupan Periode (Blokir Koreksi Pending & Peringatan 1 Tap) |  | `FE-HRD-092`, `BE-HRD-113` [BE] | — |
-| `FE-HRD-094` | `S-B1` · `MVP-23` | Modal Buka Kembali Periode Darurat (Reopen Period) HR Manager & Payroll Rollback |  | `FE-HRD-092`, `BE-HRD-114` [BE] | — |
-| `FE-HRD-095` | `S-B1` · `MVP-22` | Layar `FE-HRD-145` — Manajemen & Persetujuan Koreksi Kehadiran |  | `FE-HRD-089`, `BE-HRD-110` [BE] | — |
-| `FE-HRD-096` | `S-B1` · `MVP-22` | Modal Kuasa HR Koreksi Presensi On-Behalf (Jejak Inisiator & Bukti Wajib) |  | `FE-HRD-095`, `BE-HRD-110` [BE] | — |
-| `FE-HRD-097` | `S-B1` · `MVP-22` | Layar `FE-HRD-146` — Permohonan & Persetujuan Izin Pulang Cepat Non-Deductible |  | `FE-HRD-089`, `BE-HRD-108` [BE] | — |
-| `FE-HRD-098` | `S-B1` · `MVP-22` | Layar `FE-HRD-147` — Surat Tugas Dinas Luar & Home Care (GPS & Foto Kunjungan) |  | `FE-HRD-089`, `BE-HRD-109` [BE] | — |
+| `FE-HRD-092` | `S-B1` · `MVP-23` | Layar `FE-HRD-148` — Penutupan Periode Kehadiran & Sinkronisasi Payroll | 🟡 | `FE-HRD-089`, `BE-HRD-115` [BE] | [FE-HRD-R29.md](../task/report/frontend/FE-HRD-R29.md) |
+| `FE-HRD-093` | `S-B1` · `MVP-23` | Dialog Guard Penutupan Periode (Blokir Koreksi Pending & Peringatan 1 Tap) | 🟡 | `FE-HRD-092`, `BE-HRD-113` [BE] | [FE-HRD-R29.md](../task/report/frontend/FE-HRD-R29.md) |
+| `FE-HRD-094` | `S-B1` · `MVP-23` | Modal Buka Kembali Periode Darurat (Reopen Period) HR Manager & Payroll Rollback | 🟡 | `FE-HRD-092`, `BE-HRD-114` [BE] | [FE-HRD-R29.md](../task/report/frontend/FE-HRD-R29.md) |
+| `FE-HRD-095` | `S-B1` · `MVP-22` | Layar `FE-HRD-145` — Manajemen & Persetujuan Koreksi Kehadiran | 🟡 | `FE-HRD-089`, `BE-HRD-110` [BE] | [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md) |
+| `FE-HRD-096` | `S-B1` · `MVP-22` | Modal Kuasa HR Koreksi Presensi On-Behalf (Jejak Inisiator & Bukti Wajib) | ⛔ | `FE-HRD-095`, `BE-HRD-110` [BE] | Backend belum menyediakan unggah bukti; [R28](../task/report/frontend/FE-HRD-R28.md) |
+| `FE-HRD-097` | `S-B1` · `MVP-22` | Layar `FE-HRD-146` — Permohonan & Persetujuan Izin Pulang Cepat Non-Deductible | 🟡 | `FE-HRD-089`, `BE-HRD-108` [BE] | [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md) |
+| `FE-HRD-098` | `S-B1` · `MVP-22` | Layar `FE-HRD-147` — Surat Tugas Dinas Luar & Home Care (GPS & Foto Kunjungan) | 🟡 | `FE-HRD-089`, `BE-HRD-109` [BE] | [FE-HRD-R28.md](../task/report/frontend/FE-HRD-R28.md) |
 | `FE-HRD-099` | `S-B1` · `MVP-21` | Layar `FE-HRD-149` — Pengaturan Kebijakan Presensi HR (Toleransi & Batas Hari) | ✅ | `FE-HRD-088`, `BE-HRD-105` [BE] | [FE-HRD-099.md](../task/report/frontend/FE-HRD-099.md) |
-| `FE-HRD-100` | `S-B1` · `MVP-22` | Penyelarasan Portal ESS untuk Absensi & Perizinan Presensi |  | `FE-HRD-088`, `FE-HRD-006` [F3] | — |
+| `FE-HRD-100` | `S-B1` · `MVP-22` | Penyelarasan Portal ESS untuk Absensi & Perizinan Presensi | ⛔ | `FE-HRD-088`, `FE-HRD-006` [F3] | Kontrak self-service belum tersedia; [R28](../task/report/frontend/FE-HRD-R28.md) |
 | `FE-HRD-101` | `S-B1` · Verifikasi | Verifikasi menu, hak akses peran, dan keterjangkauan seluruh layar S-B1 |  | `FE-HRD-091`, `FE-HRD-093`, `FE-HRD-094`, `FE-HRD-096`, `FE-HRD-097`, `FE-HRD-098`, `FE-HRD-099`, `FE-HRD-100` | — |
 | `FE-HRD-102` | `S-B2` · `MVP-24` | API service client, tipe TypeScript & Redux slice cuti | ✅ | `FE-HRD-007` ✅, `BE-HRD-120` [BE] | [FE-HRD-102.md](../task/report/frontend/FE-HRD-102.md) |
 | `FE-HRD-103` | `S-B2` · `MVP-24` | Komponen metrik kartu saldo & progress bar pemakaian cuti tahunan | ✅ | `FE-HRD-102` ✅ | [FE-HRD-103.md](../task/report/frontend/FE-HRD-103.md) |
@@ -1649,7 +1649,7 @@ FE-HRD-167 [F44] ───┴─────────────────
 
 ### `FE-HRD-032` — Layar Angka Beban
 * **Slice / MVP**: `S-D1` / `MVP-8`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R26` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Source selesai 12 November 2026; lint, build, dan CSS gate lulus, menunggu uji browser/peran. [Laporan R26](../task/report/frontend/FE-HRD-R26.md).
 * **Outcome**: Kepala Unit atau HR mengisi dan memperbaiki angka beban langsung di layar daftar, misalnya "7 pasien ICU terisi per hari, Januari–Maret 2027, sumber: rekap sensus harian".
 * **Requirement/decision**: `HRD-DEC-060`, `FR-HRD-096`, `VR-WFP-08`, `VR-WFP-09`, `VR-WFP-38`, `03-frontend-architecture.md` bagian 12.3.5 (`FE-HRD-100`).
 * **Kontrak**: API v7 bagian 13 grup `Staffing Workload`.
@@ -1668,7 +1668,7 @@ FE-HRD-167 [F44] ───┴─────────────────
 
 ### `FE-HRD-033` — Layar Daftar Standar Kebutuhan Tenaga
 * **Slice / MVP**: `S-D1` / `MVP-8`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R26` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Source selesai 12 November 2026; lint, build, dan CSS gate lulus, menunggu uji browser/peran. [Laporan R26](../task/report/frontend/FE-HRD-R26.md).
 * **Outcome**: HR dan Kepala Unit melihat seluruh versi standar per unit beserta statusnya, dan dapat membuat versi baru.
 * **Requirement/decision**: `FR-HRD-092`, `VR-WFP-01`, `03-frontend-architecture.md` bagian 12.3.5 (`FE-HRD-98`).
 * **Kontrak**: API v7 bagian 13 grup `Staffing Standard` (`GET /`, `POST /`, `GET /filters/metadata`).
@@ -1686,7 +1686,7 @@ FE-HRD-167 [F44] ───┴─────────────────
 
 ### `FE-HRD-034` — Layar Penyusun dan Detail Standar beserta rekomendasi
 * **Slice / MVP**: `S-D1` / `MVP-8`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R26` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Source selesai 12 November 2026; lint, build, dan CSS gate lulus, menunggu uji browser/peran. [Laporan R26](../task/report/frontend/FE-HRD-R26.md).
 * **Outcome**: Penyusun standar mengisi baris jabatan menurut metodenya, memilih sendiri faktor cadangan dan cara pembulatan, mengisi skill mix per shift, dan melihat angka rekomendasi beserta rinciannya. Contoh rincian yang tampil: "Perawat Pelaksana: 7 ÷ 1 × 1 = 7 per shift; 7 × 3 = 21; 21 × 1,5 = 31,5 → 32".
 * **Requirement/decision**: `HRD-DEC-060`, `FR-HRD-093` s.d. `FR-HRD-095`, `VR-WFP-02` s.d. `VR-WFP-07`, `UAT-29`, `UAT-30`, `03-frontend-architecture.md` bagian 12.3.2 (`FE-HRD-99`).
 * **Kontrak**: API v7 bagian 13 grup `Staffing Standard` (`GET /{id}`, `PUT /{id}`, `GET /{id}/recommendation`, `POST /{id}/submit`, `POST /{id}/cancel`, `GET /filters/metadata`).
@@ -1707,7 +1707,7 @@ FE-HRD-167 [F44] ───┴─────────────────
 
 ### `FE-HRD-035` — Layar Pemantauan Gap Tenaga — gap langsung
 * **Slice / MVP**: `S-D1` / `MVP-8`
-* **Status**: Belum dikerjakan. Prasyarat backend sudah ✅ menurut audit 11 November 2026; dijadwalkan lewat `FE-HRD-R26` pada [frontend-unfinished-work.md](frontend-unfinished-work.md).
+* **Status**: 🟡 Source selesai 12 November 2026; lint, build, dan CSS gate lulus, menunggu uji browser/peran. [Laporan R26](../task/report/frontend/FE-HRD-R26.md).
 * **Outcome**: HR dan Kepala Unit melihat lapisan tenaga dan tiga gap per unit × jabatan pada tanggal acuan. Sel yang datanya belum ada tertulis miring "data belum tersedia", dan baris yang belum lengkap diberi penanda. Contoh `UAT-33`: Budi paruh waktu terhitung 0,5, Sari yang Plt tidak dihitung, kolom cuti panjang "data belum tersedia".
 * **Requirement/decision**: `HRD-DEC-061` (`UNKNOWN_IS_NOT_ZERO`), `FR-HRD-102` s.d. `FR-HRD-104`, `AT-HRD-D1-05b` (bagian layar), `UAT-33`, `03-frontend-architecture.md` bagian 12.3.1 (`FE-HRD-97`).
 * **Kontrak**: API v7 bagian 13 grup `Staffing Gap` (`GET /`).

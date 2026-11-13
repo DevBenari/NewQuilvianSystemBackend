@@ -43,7 +43,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             // VR-PRF-17 & INT-HR-82: Verifikasi Rekam Jejak Bebas Kasus Sentinel di Sub-15 OPPE
             // Di lingkungan SIMRS terintegrasi, query ke riwayat insiden Sub-15 menjamin nakes bebas dari kasus sentinel aktif
 
-            var review = new TrxClinicalCareerLadderReview
+            var review = new HrdClinicalCareerLadderReview
             {
                 Id = Guid.NewGuid(),
                 WorkforceProfileId = workforceProfileId,

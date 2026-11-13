@@ -7,7 +7,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// <summary>
     /// Tabel Log Audit Keamanan Akses Rahasia Telaah Sejawat (Peer Review Read-Audit Log)
     /// </summary>
-    [Table("hrd_clinical_peer_review_audit_logs", Schema = "public")]
+    [Table("HrdClinicalPeerReviewAuditLog", Schema = "public")]
     public class HrdClinicalPeerReviewAuditLog : IdentityModel
     {
         [Key]

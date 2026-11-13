@@ -8514,16 +8514,16 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinPurchaseOrder_PONumber")
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.HasIndex("SourceSystem", "ExternalPurchaseOrderId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinPurchaseOrder_SourceSystem_ExternalPurchaseOrderId")
-                        .HasFilter("\"ExternalPurchaseOrderId\" IS NOT NULL AND \"IsDelete\" = false");
-
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_FinPurchaseOrder_Status");
 
                     b.HasIndex("SupplierId")
                         .HasDatabaseName("IX_FinPurchaseOrder_SupplierId");
+
+                    b.HasIndex("SourceSystem", "ExternalPurchaseOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchaseOrder_SourceSystem_ExternalPurchaseOrderId")
+                        .HasFilter("\"ExternalPurchaseOrderId\" IS NOT NULL AND \"IsDelete\" = false");
 
                     b.ToTable("FinPurchaseOrder", "public", t =>
                         {
@@ -8787,9 +8787,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentType", "ExternalDocumentId")
-                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_Document");
-
                     b.HasIndex("GoodsReceiptId")
                         .HasDatabaseName("IX_FinPurchasingExternalCancellation_GoodsReceiptId")
                         .HasFilter("\"GoodsReceiptId\" IS NOT NULL");
@@ -8800,12 +8797,15 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinPurchasingExternalCancellation_PurchaseOrderId")
                         .HasFilter("\"PurchaseOrderId\" IS NOT NULL");
 
-                    b.HasIndex("SourceSystem", "Direction", "EventId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_SourceDirectionEvent");
+                    b.HasIndex("DocumentType", "ExternalDocumentId")
+                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_Document");
 
                     b.HasIndex("Status", "NextAttemptAt")
                         .HasDatabaseName("IX_FinPurchasingExternalCancellation_Status");
+
+                    b.HasIndex("SourceSystem", "Direction", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchasingExternalCancellation_SourceDirectionEvent");
 
                     b.ToTable("FinPurchasingExternalCancellation", "public", t =>
                         {
@@ -9043,15 +9043,15 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinPurchasingInboundMessage_AppliedPurchaseOrderId")
                         .HasFilter("\"AppliedPurchaseOrderId\" IS NOT NULL");
 
-                    b.HasIndex("DocumentType", "ExternalDocumentId", "SourceOccurredAt")
-                        .HasDatabaseName("IX_FinPurchasingInboundMessage_Document");
-
                     b.HasIndex("ProcessingStatus", "NextAttemptAt")
                         .HasDatabaseName("IX_FinPurchasingInboundMessage_ProcessingStatus");
 
                     b.HasIndex("SourceSystem", "EventId")
                         .IsUnique()
                         .HasDatabaseName("IX_FinPurchasingInboundMessage_SourceSystem_EventId");
+
+                    b.HasIndex("DocumentType", "ExternalDocumentId", "SourceOccurredAt")
+                        .HasDatabaseName("IX_FinPurchasingInboundMessage_Document");
 
                     b.ToTable("FinPurchasingInboundMessage", "public", t =>
                         {
@@ -9432,13 +9432,13 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("IX_FinPurchasingSupplierMap_SupplierId");
+
                     b.HasIndex("SourceSystem", "ExternalSupplierId")
                         .IsUnique()
                         .HasDatabaseName("IX_FinPurchasingSupplierMap_SourceSystem_ExternalSupplierId")
                         .HasFilter("\"IsActive\" = true AND \"IsDelete\" = false");
-
-                    b.HasIndex("SupplierId")
-                        .HasDatabaseName("IX_FinPurchasingSupplierMap_SupplierId");
 
                     b.ToTable("FinPurchasingSupplierMap", "public", t =>
                         {
@@ -9540,14 +9540,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinPurchasingSyncConflict_GoodsReceiptId")
                         .HasFilter("\"GoodsReceiptId\" IS NOT NULL");
 
+                    b.HasIndex("PurchaseOrderId")
+                        .HasDatabaseName("IX_FinPurchasingSyncConflict_PurchaseOrderId")
+                        .HasFilter("\"PurchaseOrderId\" IS NOT NULL");
+
                     b.HasIndex("InboundMessageId", "ConflictType")
                         .IsUnique()
                         .HasDatabaseName("IX_FinPurchasingSyncConflict_OpenPerMessageType")
                         .HasFilter("\"Status\" = 'OPEN' AND \"IsDelete\" = false");
-
-                    b.HasIndex("PurchaseOrderId")
-                        .HasDatabaseName("IX_FinPurchasingSyncConflict_PurchaseOrderId")
-                        .HasFilter("\"PurchaseOrderId\" IS NOT NULL");
 
                     b.HasIndex("Status", "ConflictType")
                         .HasDatabaseName("IX_FinPurchasingSyncConflict_StatusConflictType");
@@ -13613,7 +13613,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -13622,16 +13624,24 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsRollbackPayrollExecuted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime?>("PreviousClosedAt")
                         .HasColumnType("timestamp with time zone");
@@ -14224,7 +14234,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<bool>("AutoConvertIncompleteToAbsent")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
@@ -14236,7 +14248,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -14245,7 +14259,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("GracePeriodMinutes")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(10);
 
                     b.Property<string>("HospitalCode")
                         .IsRequired()
@@ -14253,19 +14269,29 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("MaxBackdatedCorrectionDays")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
 
                     b.Property<bool>("RequireAttachmentForCorrection")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -14274,6 +14300,8 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HospitalCode");
 
                     b.ToTable("HrdAttendanceSetting", "public");
                 });
@@ -14448,7 +14476,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -14457,16 +14487,24 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDeductible")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Reason")
                         .IsRequired()
@@ -14482,8 +14520,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Draft");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -14675,7 +14715,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -14697,13 +14739,19 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(10,8)");
@@ -14724,8 +14772,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Draft");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -14739,6 +14789,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedByWorkforceId");
+
+                    b.HasIndex("AssignmentOrderNumber");
 
                     b.HasIndex("WorkforceProfileId");
 
@@ -18886,7 +18938,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -18899,24 +18953,34 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("MinimumPeerReviewersCount")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
 
                     b.Property<Guid?>("SecretaryWorkforceProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("SubCommitteeCredentialName")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Sub-Komite Kredensial");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -18927,6 +18991,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChairpersonWorkforceProfileId");
+
+                    b.HasIndex("CommitteeCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("SecretaryWorkforceProfileId");
 
@@ -19308,7 +19376,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -19320,16 +19390,24 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsReviewedByKmkp")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("KmkpReviewNotes")
                         .HasMaxLength(2000)
@@ -19337,8 +19415,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<string>("KmkpVerdict")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("PendingReview");
 
                     b.Property<DateTime>("OverrideAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -19384,6 +19464,8 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PrivilegeItemCode");
 
                     b.HasIndex("ReviewedByUserId");
 
@@ -20693,8 +20775,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<string>("ClinicalPrivilegeType")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Regular");
 
                     b.Property<Guid?>("CommitteeId")
                         .HasColumnType("uuid");
@@ -20703,7 +20787,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid?>("CredentialingApplicationId")
                         .HasColumnType("uuid");
@@ -20729,24 +20815,32 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsSignedByDirectorGeneral")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsSuspended")
                         .HasColumnType("boolean");
 
                     b.Property<string>("IssuanceStatus")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Active");
 
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
@@ -20823,6 +20917,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("CredentialingApplicationId");
 
                     b.HasIndex("DirectorGeneralUserId");
+
+                    b.HasIndex("RkkNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("SpkNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("WorkforceProfileId");
 
@@ -21588,6 +21690,544 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("WfpCredentialLicense", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdBipartiteNegotiationForum", b =>
+                {
+                    b.Property<Guid>("ForumId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("forum_id");
+
+                    b.Property<string>("AgendaDescription")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("agenda_description");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisputeType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("dispute_type");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("JointAgreementDocumentUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("joint_agreement_document_url");
+
+                    b.Property<string>("ManagementRepresentatives")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("management_representatives");
+
+                    b.Property<DateTime>("MeetingDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("meeting_date");
+
+                    b.Property<string>("MinutesOfMeeting")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("minutes_of_meeting");
+
+                    b.Property<string>("RegisterNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("register_number");
+
+                    b.Property<string>("RegistrationDisnakerNumber")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("registration_disnaker_number");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Scheduled")
+                        .HasColumnName("status");
+
+                    b.Property<string>("UnionRepresentatives")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("union_representatives");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ForumId");
+
+                    b.HasIndex("DisputeType");
+
+                    b.HasIndex("RegisterNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("HrdBipartiteNegotiationForum", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryIncidentReport", b =>
+                {
+                    b.Property<Guid>("IncidentReportId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_report_id");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("category");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTime>("IncidentDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("incident_date");
+
+                    b.Property<string>("IncidentLocation")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("incident_location");
+
+                    b.Property<string>("IncidentNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("incident_number");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("JustCultureClassification")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("HumanError")
+                        .HasColumnName("just_culture_classification");
+
+                    b.Property<string>("KmkpAuditReferenceNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("kmkp_audit_reference_number");
+
+                    b.Property<Guid?>("ReporterEmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reporter_employee_id");
+
+                    b.Property<string>("ReporterType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("reporter_type");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Reported")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("IncidentReportId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("IncidentNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("HrdDisciplinaryIncidentReport", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryInvestigationRecord", b =>
+                {
+                    b.Property<Guid>("InvestigationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("investigation_id");
+
+                    b.Property<string>("BapNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("bap_number");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EmployeeDefenseStatement")
+                        .HasColumnType("text")
+                        .HasColumnName("employee_defense_statement");
+
+                    b.Property<string>("EvidenceDocumentUrls")
+                        .HasColumnType("text")
+                        .HasColumnName("evidence_document_urls");
+
+                    b.Property<DateTime>("HearingDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hearing_date");
+
+                    b.Property<Guid>("IncidentReportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_report_id");
+
+                    b.Property<string>("InvestigationFindings")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("investigation_findings");
+
+                    b.Property<string>("InvestigatorNames")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("investigator_names");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RecommendedAction")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("recommended_action");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Draft")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WitnessStatements")
+                        .HasColumnType("text")
+                        .HasColumnName("witness_statements");
+
+                    b.HasKey("InvestigationId");
+
+                    b.HasIndex("BapNumber")
+                        .IsUnique();
+
+                    b.HasIndex("IncidentReportId");
+
+                    b.ToTable("HrdDisciplinaryInvestigationRecord", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinarySanction", b =>
+                {
+                    b.Property<Guid>("SanctionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("sanction_id");
+
+                    b.Property<string>("AppealEvidenceUrls")
+                        .HasColumnType("text")
+                        .HasColumnName("appeal_evidence_urls");
+
+                    b.Property<string>("AppealResolution")
+                        .HasColumnType("text")
+                        .HasColumnName("appeal_resolution");
+
+                    b.Property<string>("AppealStatement")
+                        .HasColumnType("text")
+                        .HasColumnName("appeal_statement");
+
+                    b.Property<DateTime?>("AppealedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("appealed_at");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<Guid?>("InvestigationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("investigation_id");
+
+                    b.Property<bool>("IsAppealed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_appealed");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("IssuedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_date");
+
+                    b.Property<string>("SanctionLevel")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("sanction_level");
+
+                    b.Property<string>("SanctionNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sanction_number");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Active")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ValidUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until");
+
+                    b.Property<string>("ViolationDescription")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("violation_description");
+
+                    b.HasKey("SanctionId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("InvestigationId");
+
+                    b.HasIndex("SanctionNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("ValidUntil");
+
+                    b.ToTable("HrdDisciplinarySanction", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinarySuspension", b =>
+                {
+                    b.Property<Guid>("SuspensionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("suspension_id");
+
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actual_end_date");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<DateTime>("ExpectedEndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expected_end_date");
+
+                    b.Property<Guid>("InvestigationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("investigation_id");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPhysicalAccessRevoked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_physical_access_revoked");
+
+                    b.Property<bool>("IsSystemAccessRevoked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_system_access_revoked");
+
+                    b.Property<string>("ReinstatementNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("reinstatement_notes");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Active")
+                        .HasColumnName("status");
+
+                    b.Property<string>("SuspensionNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("suspension_number");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WagePaymentStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("PaidFull")
+                        .HasColumnName("wage_payment_status");
+
+                    b.HasKey("SuspensionId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("ExpectedEndDate");
+
+                    b.HasIndex("InvestigationId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SuspensionNumber")
+                        .IsUnique();
+
+                    b.ToTable("HrdDisciplinarySuspension", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdEmployeeRecognition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -21750,17 +22390,112 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("HrdEmployeeRecognition", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxBipartiteNegotiationForum", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdExitClearanceChecklist", b =>
                 {
-                    b.Property<Guid>("ForumId")
+                    b.Property<Guid>("ChecklistId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("forum_id");
+                        .HasColumnName("checklist_id");
 
-                    b.Property<string>("AgendaDescription")
-                        .IsRequired()
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved_by_user_id");
+
+                    b.Property<string>("ApproverNotes")
                         .HasColumnType("text")
-                        .HasColumnName("agenda_description");
+                        .HasColumnName("approver_notes");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ClearanceProcessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("clearance_process_id");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DepartmentType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("department_type");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsReturned")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_returned");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("item_name");
+
+                    b.Property<decimal>("OutstandingLiabilityAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("outstanding_liability_amount");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Pending")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ChecklistId");
+
+                    b.HasIndex("ClearanceProcessId");
+
+                    b.HasIndex("DepartmentType");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("HrdExitClearanceChecklist", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdExitClearanceProcess", b =>
+                {
+                    b.Property<Guid>("ClearanceProcessId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("clearance_process_id");
+
+                    b.Property<DateTime?>("ActualCompletionDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actual_completion_date");
 
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
@@ -21780,11 +22515,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DisputeType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("dispute_type");
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<string>("FinalizationNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("finalization_notes");
+
+                    b.Property<DateTime>("InitiatedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("initiated_date");
 
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
@@ -21792,48 +22533,27 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("JointAgreementDocumentUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("joint_agreement_document_url");
+                    b.Property<bool>("IsFinalPayrollUnlocked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_final_payroll_unlocked");
 
-                    b.Property<string>("ManagementRepresentatives")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("management_representatives");
-
-                    b.Property<DateTime>("MeetingDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("meeting_date");
-
-                    b.Property<string>("MinutesOfMeeting")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("minutes_of_meeting");
-
-                    b.Property<string>("RegisterNumber")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("register_number");
-
-                    b.Property<string>("RegistrationDisnakerNumber")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("registration_disnaker_number");
-
-                    b.Property<string>("Status")
+                    b.Property<string>("OverallClearanceStatus")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
-                        .HasDefaultValue("Scheduled")
-                        .HasColumnName("status");
+                        .HasDefaultValue("InProgress")
+                        .HasColumnName("overall_clearance_status");
 
-                    b.Property<string>("UnionRepresentatives")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("union_representatives");
+                    b.Property<Guid>("SeparationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("separation_id");
+
+                    b.Property<DateTime>("TargetCompletionDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("target_completion_date");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -21841,16 +22561,216 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("ForumId");
+                    b.HasKey("ClearanceProcessId");
 
-                    b.HasIndex("DisputeType");
+                    b.HasIndex("EmployeeId");
 
-                    b.HasIndex("RegisterNumber")
-                        .IsUnique();
+                    b.HasIndex("OverallClearanceStatus");
+
+                    b.HasIndex("SeparationId");
+
+                    b.ToTable("HrdExitClearanceProcess", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdSeveranceCalculation", b =>
+                {
+                    b.Property<Guid>("CalculationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("calculation_id");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<decimal>("BaseMonthlyWage")
+                        .HasColumnType("numeric(14,2)")
+                        .HasColumnName("base_monthly_wage");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FinanceApprovalNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("finance_approval_notes");
+
+                    b.Property<bool>("IsApprovedByFinanceDirector")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_approved_by_finance_director");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("RightsCompensationAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("rights_compensation_amount");
+
+                    b.Property<decimal>("SeparationAllowanceAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("separation_allowance_amount");
+
+                    b.Property<Guid>("SeparationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("separation_id");
+
+                    b.Property<decimal>("ServiceAwardAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("service_award_amount");
+
+                    b.Property<int>("ServiceMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("service_months");
+
+                    b.Property<int>("ServiceYears")
+                        .HasColumnType("integer")
+                        .HasColumnName("service_years");
+
+                    b.Property<decimal>("SeverancePayAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("severance_pay_amount");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Draft")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TaxDeduction")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("tax_deduction");
+
+                    b.Property<decimal>("TotalSeveranceGross")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_severance_gross");
+
+                    b.Property<decimal>("TotalSeveranceNet")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_severance_net");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CalculationId");
+
+                    b.HasIndex("SeparationId");
 
                     b.HasIndex("Status");
 
-                    b.ToTable("trx_bipartite_negotiation_forums", "public");
+                    b.ToTable("HrdSeveranceCalculation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdSuspensionAccessAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ActionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LockoutUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("SuspensionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("WasActiveBefore")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("SuspensionId", "UserId", "ActionType")
+                        .HasDatabaseName("IX_HrdSuspensionAccessAction_Suspension_User_Action");
+
+                    b.ToTable("HrdSuspensionAccessAction", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryCase", b =>
@@ -22159,441 +23079,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("DisciplinaryCaseId", "DecisionDate");
 
                     b.ToTable("TrxDisciplinaryDecision", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryIncidentReport", b =>
-                {
-                    b.Property<Guid>("IncidentReportId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("incident_report_id");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("category");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("employee_id");
-
-                    b.Property<DateTime>("IncidentDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("incident_date");
-
-                    b.Property<string>("IncidentLocation")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("incident_location");
-
-                    b.Property<string>("IncidentNumber")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("incident_number");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("JustCultureClassification")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("HumanError")
-                        .HasColumnName("just_culture_classification");
-
-                    b.Property<string>("KmkpAuditReferenceNumber")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("kmkp_audit_reference_number");
-
-                    b.Property<Guid?>("ReporterEmployeeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reporter_employee_id");
-
-                    b.Property<string>("ReporterType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("reporter_type");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("Reported")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("IncidentReportId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("IncidentNumber")
-                        .IsUnique();
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("trx_disciplinary_incident_reports", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryInvestigationRecord", b =>
-                {
-                    b.Property<Guid>("InvestigationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("investigation_id");
-
-                    b.Property<string>("BapNumber")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("bap_number");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EmployeeDefenseStatement")
-                        .HasColumnType("text")
-                        .HasColumnName("employee_defense_statement");
-
-                    b.Property<string>("EvidenceDocumentUrls")
-                        .HasColumnType("text")
-                        .HasColumnName("evidence_document_urls");
-
-                    b.Property<DateTime>("HearingDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("hearing_date");
-
-                    b.Property<Guid>("IncidentReportId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("incident_report_id");
-
-                    b.Property<string>("InvestigationFindings")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("investigation_findings");
-
-                    b.Property<string>("InvestigatorNames")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("investigator_names");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("RecommendedAction")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("recommended_action");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("Draft")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WitnessStatements")
-                        .HasColumnType("text")
-                        .HasColumnName("witness_statements");
-
-                    b.HasKey("InvestigationId");
-
-                    b.HasIndex("BapNumber")
-                        .IsUnique();
-
-                    b.HasIndex("IncidentReportId");
-
-                    b.ToTable("trx_disciplinary_investigation_records", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinarySanction", b =>
-                {
-                    b.Property<Guid>("SanctionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("sanction_id");
-
-                    b.Property<string>("AppealEvidenceUrls")
-                        .HasColumnType("text")
-                        .HasColumnName("appeal_evidence_urls");
-
-                    b.Property<string>("AppealResolution")
-                        .HasColumnType("text")
-                        .HasColumnName("appeal_resolution");
-
-                    b.Property<string>("AppealStatement")
-                        .HasColumnType("text")
-                        .HasColumnName("appeal_statement");
-
-                    b.Property<DateTime?>("AppealedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("appealed_at");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("employee_id");
-
-                    b.Property<Guid?>("InvestigationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("investigation_id");
-
-                    b.Property<bool>("IsAppealed")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_appealed");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("IssuedDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("issued_date");
-
-                    b.Property<string>("SanctionLevel")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("sanction_level");
-
-                    b.Property<string>("SanctionNumber")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("sanction_number");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("Active")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ValidUntil")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("valid_until");
-
-                    b.Property<string>("ViolationDescription")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("violation_description");
-
-                    b.HasKey("SanctionId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("InvestigationId");
-
-                    b.HasIndex("SanctionNumber")
-                        .IsUnique();
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("ValidUntil");
-
-                    b.ToTable("trx_disciplinary_sanctions", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinarySuspension", b =>
-                {
-                    b.Property<Guid>("SuspensionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("suspension_id");
-
-                    b.Property<DateTime?>("ActualEndDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actual_end_date");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("employee_id");
-
-                    b.Property<DateTime>("ExpectedEndDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expected_end_date");
-
-                    b.Property<Guid>("InvestigationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("investigation_id");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPhysicalAccessRevoked")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_physical_access_revoked");
-
-                    b.Property<bool>("IsSystemAccessRevoked")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_system_access_revoked");
-
-                    b.Property<string>("ReinstatementNotes")
-                        .HasColumnType("text")
-                        .HasColumnName("reinstatement_notes");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("Active")
-                        .HasColumnName("status");
-
-                    b.Property<string>("SuspensionNumber")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("suspension_number");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WagePaymentStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("PaidFull")
-                        .HasColumnName("wage_payment_status");
-
-                    b.HasKey("SuspensionId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("ExpectedEndDate");
-
-                    b.HasIndex("InvestigationId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("SuspensionNumber")
-                        .IsUnique();
-
-                    b.ToTable("trx_disciplinary_suspensions", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxEmployeeGrievance", b =>
@@ -22958,188 +23443,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxEmployeeIncidentReport", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxExitClearanceChecklist", b =>
-                {
-                    b.Property<Guid>("ChecklistId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("checklist_id");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("approved_at");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("approved_by_user_id");
-
-                    b.Property<string>("ApproverNotes")
-                        .HasColumnType("text")
-                        .HasColumnName("approver_notes");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ClearanceProcessId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("clearance_process_id");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DepartmentType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("department_type");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsReturned")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_returned");
-
-                    b.Property<string>("ItemName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("item_name");
-
-                    b.Property<decimal>("OutstandingLiabilityAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("outstanding_liability_amount");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("Pending")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("ChecklistId");
-
-                    b.HasIndex("ClearanceProcessId");
-
-                    b.HasIndex("DepartmentType");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("trx_exit_clearance_checklists", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxExitClearanceProcess", b =>
-                {
-                    b.Property<Guid>("ClearanceProcessId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("clearance_process_id");
-
-                    b.Property<DateTime?>("ActualCompletionDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actual_completion_date");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("employee_id");
-
-                    b.Property<string>("FinalizationNotes")
-                        .HasColumnType("text")
-                        .HasColumnName("finalization_notes");
-
-                    b.Property<DateTime>("InitiatedDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("initiated_date");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsFinalPayrollUnlocked")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_final_payroll_unlocked");
-
-                    b.Property<string>("OverallClearanceStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("InProgress")
-                        .HasColumnName("overall_clearance_status");
-
-                    b.Property<Guid>("SeparationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("separation_id");
-
-                    b.Property<DateTime>("TargetCompletionDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("target_completion_date");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("ClearanceProcessId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("OverallClearanceStatus");
-
-                    b.HasIndex("SeparationId");
-
-                    b.ToTable("trx_exit_clearance_processes", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxInvestigationEvidence", b =>
                 {
                     b.Property<Guid>("Id")
@@ -23269,132 +23572,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("WorkplaceInvestigationId", "EvidenceType");
 
                     b.ToTable("TrxInvestigationEvidence", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxSeveranceCalculation", b =>
-                {
-                    b.Property<Guid>("CalculationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("calculation_id");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("approved_at");
-
-                    b.Property<decimal>("BaseMonthlyWage")
-                        .HasColumnType("numeric(14,2)")
-                        .HasColumnName("base_monthly_wage");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FinanceApprovalNotes")
-                        .HasColumnType("text")
-                        .HasColumnName("finance_approval_notes");
-
-                    b.Property<bool>("IsApprovedByFinanceDirector")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_approved_by_finance_director");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<decimal>("RightsCompensationAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("rights_compensation_amount");
-
-                    b.Property<decimal>("SeparationAllowanceAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("separation_allowance_amount");
-
-                    b.Property<Guid>("SeparationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("separation_id");
-
-                    b.Property<decimal>("ServiceAwardAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("service_award_amount");
-
-                    b.Property<int>("ServiceMonths")
-                        .HasColumnType("integer")
-                        .HasColumnName("service_months");
-
-                    b.Property<int>("ServiceYears")
-                        .HasColumnType("integer")
-                        .HasColumnName("service_years");
-
-                    b.Property<decimal>("SeverancePayAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("severance_pay_amount");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("Draft")
-                        .HasColumnName("status");
-
-                    b.Property<decimal>("TaxDeduction")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("tax_deduction");
-
-                    b.Property<decimal>("TotalSeveranceGross")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("total_severance_gross");
-
-                    b.Property<decimal>("TotalSeveranceNet")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(14,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("total_severance_net");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("CalculationId");
-
-                    b.HasIndex("SeparationId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("trx_severance_calculations", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxWorkplaceInvestigation", b =>
@@ -24988,6 +25165,129 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxExpenseVerification", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Models.HrdNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DedupKey")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("DeepLinkUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPushedRealtime")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RecipientWorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RequestedChannel")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("SourceModule")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DedupKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_hrd_notification_dedup_key")
+                        .HasFilter("\"DedupKey\" IS NOT NULL");
+
+                    b.HasIndex("ReferenceType", "ReferenceId")
+                        .HasDatabaseName("IX_HrdNotification_Reference");
+
+                    b.HasIndex("RecipientUserId", "IsRead", "DeliveredAt")
+                        .HasDatabaseName("IX_HrdNotification_Recipient_IsRead_DeliveredAt");
+
+                    b.ToTable("HrdNotification", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Models.HrdPinAttemptRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -26444,6 +26744,109 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxHrServiceRequestComment", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdPlataranSehatSkpRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ActivityDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ActivityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvidenceDocumentUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSyncedToOppe")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVerifiedByPlataranSehat")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("OppeSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OrganizerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PlataranSehatCertificateId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("PlataranSehatVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SkpCategory")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Pembelajaran");
+
+                    b.Property<decimal>("SkpPoints")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(6,2)")
+                        .HasDefaultValue(1.00m);
+
+                    b.Property<Guid?>("TrainingCertificateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.ToTable("HrdPlataranSehatSkpRecord", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdShiftBuddySafeguard", b =>
                 {
                     b.Property<Guid>("Id")
@@ -26549,8 +26952,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<string>("BondStatus")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("ACTIVE");
 
                     b.Property<string>("BreachReason")
                         .HasMaxLength(1000)
@@ -26577,7 +26982,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -26590,26 +26997,38 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<decimal>("HospitalFinancedAmount")
-                        .HasColumnType("decimal(15,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(15,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<bool>("IsBreached")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("PenaltyInvoiceNumber")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
                     b.Property<int>("RetentionPeriodMonths")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(12);
 
                     b.Property<decimal>("TotalTrainingCost")
-                        .HasColumnType("decimal(15,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(15,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<Guid?>("TrainingEnrollmentRequestId")
                         .HasColumnType("uuid");
@@ -26633,9 +27052,13 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ContractNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
                     b.HasIndex("WorkforceProfileId");
 
-                    b.ToTable("hrd_training_bond_contracts", "public");
+                    b.ToTable("HrdTrainingBondContract", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxIndividualDevelopmentPlan", b =>
@@ -26789,95 +27212,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("WorkforceProfileId", "PlanStatus", "PlanStartDate");
 
                     b.ToTable("TrxIndividualDevelopmentPlan", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxPlataranSehatSkpRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ActivityDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ActivityName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EvidenceDocumentUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSyncedToOppe")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVerifiedByPlataranSehat")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("OppeSyncedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("OrganizerName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("PlataranSehatCertificateId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("PlataranSehatVerifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SkpCategory")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("SkpPoints")
-                        .HasColumnType("decimal(6,2)");
-
-                    b.Property<Guid?>("TrainingCertificateId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.ToTable("trx_plataran_sehat_skp_records", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxTrainingAssessment", b =>
@@ -52356,751 +52690,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxEmployeeRestitutionClaim", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CalculatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CalculatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CalculationDetailJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("CalculationNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("CalculationStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<decimal>("DeductionAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DoctorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("FeePercentage")
-                        .HasPrecision(9, 4)
-                        .HasColumnType("numeric(9,4)");
-
-                    b.Property<decimal>("GrossFeeAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("GrossServiceAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("NetFeeAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<decimal>("PaidAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("PayrollComponentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollPeriodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollRunId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("PostedToPayrollAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly>("ServicePeriodEndDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly>("ServicePeriodStartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("SourceSummaryJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<decimal>("TaxAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("VerifiedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("CalculatedByUserId");
-
-                    b.HasIndex("CalculationNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("DoctorId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("PayrollComponentId");
-
-                    b.HasIndex("PayrollRunId");
-
-                    b.HasIndex("VerifiedByUserId");
-
-                    b.HasIndex("PayrollPeriodId", "CalculationStatus", "IsDelete");
-
-                    b.HasIndex("PayrollRunEmployeeId", "CalculationStatus", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "ServicePeriodStartDate", "ServicePeriodEndDate", "IsDelete");
-
-                    b.ToTable("PrlMedicalServiceFeeCalculation", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeePayment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("BankAccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("FinancePaymentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("GlHeaderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("MedicalServiceFeeCalculationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PaidByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("PaymentAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("PaymentNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PaymentReferenceNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("PaymentSettlementMethodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<Guid?>("PayrollPaymentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ScheduledPaymentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BankAccountId");
-
-                    b.HasIndex("PaidByUserId");
-
-                    b.HasIndex("PaymentNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("PaymentSettlementMethodId");
-
-                    b.HasIndex("PayrollRunEmployeeId");
-
-                    b.HasIndex("MedicalServiceFeeCalculationId", "PaymentStatus", "IsDelete");
-
-                    b.HasIndex("PayrollPaymentId", "FinancePaymentId", "GlHeaderId");
-
-                    b.ToTable("PrlMedicalServiceFeePayment", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAdjustment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AdjustmentNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("AdjustmentStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<string>("AdjustmentType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Add");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("AppliedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("AppliedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ApprovalNotes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid?>("PayrollComponentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PayrollRunId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid?>("RejectionReasonId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("RequestReasonId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SourceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SourceType")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("SubmittedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("SubmittedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("WorkflowDefinitionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("WorkflowInstanceId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdjustmentNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("AppliedByUserId");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("PayrollComponentId");
-
-                    b.HasIndex("RejectionReasonId");
-
-                    b.HasIndex("RequestReasonId");
-
-                    b.HasIndex("SubmittedByUserId");
-
-                    b.HasIndex("WorkflowDefinitionId");
-
-                    b.HasIndex("PayrollRunEmployeeId", "PayrollComponentId", "IsDelete");
-
-                    b.HasIndex("PayrollRunId", "AdjustmentStatus", "IsDelete");
-
-                    b.HasIndex("SourceType", "SourceId", "IsDelete");
-
-                    b.ToTable("PrlPayrollAdjustment", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollApproval", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ActionAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ActionType")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid?>("ActualActionByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ActualActionByWorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ApprovalLevel")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("Payroll");
-
-                    b.Property<string>("ApprovalStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Pending");
-
-                    b.Property<Guid?>("AssignedApproverUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("AssignedApproverWorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Comments")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid?>("DelegatedFromUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelegated")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("PayrollRunId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("RejectionReasonId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("StepOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("WorkflowStepId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActualActionByUserId");
-
-                    b.HasIndex("ActualActionByWorkforceProfileId");
-
-                    b.HasIndex("AssignedApproverWorkforceProfileId");
-
-                    b.HasIndex("DelegatedFromUserId");
-
-                    b.HasIndex("RejectionReasonId");
-
-                    b.HasIndex("WorkflowStepId");
-
-                    b.HasIndex("PayrollRunId", "ApprovalStatus", "IsDelete");
-
-                    b.HasIndex("AssignedApproverUserId", "ApprovalStatus", "IsActive", "IsDelete");
-
-                    b.HasIndex("PayrollRunId", "StepOrder", "AssignedApproverUserId", "IsDelete");
-
-                    b.ToTable("PrlPayrollApproval", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAttendanceInput", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AbsentDays")
-                        .HasPrecision(9, 2)
-                        .HasColumnType("numeric(9,2)");
-
-                    b.Property<int>("ActualWorkMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("AttendanceAllowanceAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("AttendanceDailyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateOnly>("AttendanceDate")
-                        .HasColumnType("date");
-
-                    b.Property<decimal>("AttendanceDeductionAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("AttendanceSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("AttendanceStatusSnapshot")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Present");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EarlyLeaveMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("ImportedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ImportedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsBusinessTravel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsCorrectionApplied")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsHoliday")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsRestDay")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("LateMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("OvertimeMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("PaidLeaveDays")
-                        .HasPrecision(9, 2)
-                        .HasColumnType("numeric(9,2)");
-
-                    b.Property<int>("PayableWorkMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("ScheduledWorkMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("UnpaidLeaveDays")
-                        .HasPrecision(9, 2)
-                        .HasColumnType("numeric(9,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ImportedByUserId");
-
-                    b.HasIndex("PayrollRunEmployeeId", "AttendanceDate")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("AttendanceDailyId", "IsCorrectionApplied", "IsDelete");
-
-                    b.HasIndex("AttendanceStatusSnapshot", "AttendanceDate", "IsDelete");
-
-                    b.ToTable("PrlPayrollAttendanceInput", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollDeductionItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -53297,165 +52886,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPayrollDeductionSchedule", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollEmployeeComponent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("BaseAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("CalculationDetailJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("CalculationMethodSnapshot")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Fixed");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ComponentCodeSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ComponentNameSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("ComponentTypeSnapshot")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Earning");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("EmployerAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("FormulaSnapshot")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDisplayedOnPayslip")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsManual")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsProrated")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTaxable")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid?>("PayrollComponentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Percentage")
-                        .HasPrecision(9, 4)
-                        .HasColumnType("numeric(9,4)");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("SourceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SourceType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("Master");
-
-                    b.Property<decimal>("TaxableAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PayrollComponentId", "ComponentTypeSnapshot", "IsDelete");
-
-                    b.HasIndex("PayrollRunEmployeeId", "SortOrder", "IsDelete");
-
-                    b.HasIndex("PayrollRunEmployeeId", "ComponentCodeSnapshot", "SourceType", "SourceId", "IsDelete");
-
-                    b.ToTable("PrlPayrollEmployeeComponent", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollHandoffBatch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -53559,477 +52989,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPayrollHandoffBatch", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollOvertimeInput", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("ActualMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ApprovedMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CalculationSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EligibleMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("HourlyRate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime>("ImportedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ImportedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<decimal>("OvertimeAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateOnly>("OvertimeDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid?>("OvertimeRealizationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("OvertimeRequestId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("OvertimeStatusSnapshot")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Verified");
-
-                    b.Property<Guid>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("RateMultiplier")
-                        .HasPrecision(9, 4)
-                        .HasColumnType("numeric(9,4)");
-
-                    b.Property<int>("RequestedMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("VerifiedMinutes")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ImportedByUserId");
-
-                    b.HasIndex("OvertimeRealizationId");
-
-                    b.HasIndex("OvertimeRequestId");
-
-                    b.HasIndex("PayrollRunEmployeeId", "OvertimeRealizationId")
-                        .IsUnique()
-                        .HasFilter("\"OvertimeRealizationId\" IS NOT NULL AND \"IsDelete\" = false");
-
-                    b.HasIndex("OvertimeStatusSnapshot", "OvertimeDate", "IsDelete");
-
-                    b.HasIndex("PayrollRunEmployeeId", "OvertimeDate", "IsDelete");
-
-                    b.ToTable("PrlPayrollOvertimeInput", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("BankAccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BankAccountNumberSnapshot")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("BankNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("FinancePaymentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("GlHeaderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("NetPaidAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PaidByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PayeeNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("PaymentAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("PaymentNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PaymentReferenceNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("PaymentSettlementMethodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<Guid>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PayrollRunId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("PostedToFinanceAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("PostedToGlAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("ReversedAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("ScheduledPaymentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BankAccountId");
-
-                    b.HasIndex("PaidByUserId");
-
-                    b.HasIndex("PaymentNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("PaymentSettlementMethodId");
-
-                    b.HasIndex("PayrollRunEmployeeId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_PrlPayrollPayment_LiveInstruction")
-                        .HasFilter("\"IsDelete\" = false AND \"PaymentStatus\" IN ('Scheduled', 'Processing', 'Paid', 'PartiallyReversed')");
-
-                    b.HasIndex("FinancePaymentId", "GlHeaderId");
-
-                    b.HasIndex("PayrollRunEmployeeId", "PaymentStatus", "IsDelete");
-
-                    b.HasIndex("PayrollRunId", "PaymentStatus", "ScheduledPaymentAt", "IsDelete");
-
-                    b.ToTable("PrlPayrollPayment", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("BaseSalary")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ContentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DepartmentNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("DownloadCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("EmployeeNameSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("EmployeeNumberSnapshot")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("FileChecksum")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("FileName")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("FilePath")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("FirstDownloadedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("GeneratedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("GeneratedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("GrossPay")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsEmployeeVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSnapshotFrozen")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastDownloadedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("NetPay")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PayrollRunId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PayslipNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PayslipSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("PayslipStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<DateTime>("PeriodEndDateSnapshot")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("PeriodStartDateSnapshot")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PositionNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("PublishedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PublishedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("TotalDeduction")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalEarning")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalTax")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("VersionNumber")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GeneratedByUserId");
-
-                    b.HasIndex("PayrollRunEmployeeId")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("PayslipNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("PublishedByUserId");
-
-                    b.HasIndex("FileChecksum", "IsDelete");
-
-                    b.HasIndex("PayrollRunId", "PayslipStatus", "IsEmployeeVisible", "IsDelete");
-
-                    b.ToTable("PrlPayrollPayslip", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRestitution", b =>
                 {
                     b.Property<Guid>("Id")
@@ -54127,861 +53086,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("idx_payroll_restitution_emp_target");
 
                     b.ToTable("TrxPayrollRestitution", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollReversal", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("FinanceReversalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid?>("OriginalGlHeaderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollPaymentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PayrollRunId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("PostedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PostedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("ReversalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("ReversalGlHeaderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReversalNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ReversalReason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("ReversalStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<string>("ReversalType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Full");
-
-                    b.Property<DateTime?>("ReversedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReversedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PayrollRunEmployeeId");
-
-                    b.HasIndex("PostedByUserId");
-
-                    b.HasIndex("ReversalNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("ReversedByUserId");
-
-                    b.HasIndex("OriginalGlHeaderId", "ReversalGlHeaderId");
-
-                    b.HasIndex("PayrollPaymentId", "ReversalStatus", "IsDelete");
-
-                    b.HasIndex("PayrollRunId", "ReversalStatus", "IsDelete");
-
-                    b.ToTable("PrlPayrollReversal", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("AttendanceCutoffDateSnapshot")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("CalculatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CalculatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CalculationStartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ClosedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ConfigurationSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("ErrorEmployeeCount")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("FinancePaymentBatchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("GlHeaderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("HospitalSiteId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsLocked")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("LegalEntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("LockedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LockedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime?>("PaymentDateSnapshot")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("PayrollPeriodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("PeriodEndDateSnapshot")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("PeriodStartDateSnapshot")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PolicySnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<DateTime?>("PostedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PostedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("ProcessedEmployeeCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("RunNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("RunStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<string>("RunType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Regular");
-
-                    b.Property<DateTime?>("SubmittedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("SubmittedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("TotalBaseSalary")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalDeduction")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalEarning")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalEmployeeContribution")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("TotalEmployeeCount")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("TotalEmployerContribution")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalGrossPay")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalNetPay")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalPaidAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalTax")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ValidationSummaryJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<DateTime?>("VariableInputCutoffDateSnapshot")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("WorkflowDefinitionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("WorkflowInstanceId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("CalculatedByUserId");
-
-                    b.HasIndex("ClosedByUserId");
-
-                    b.HasIndex("HospitalSiteId");
-
-                    b.HasIndex("LegalEntityId");
-
-                    b.HasIndex("LockedByUserId");
-
-                    b.HasIndex("PayrollPeriodId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_PrlPayrollRun_RegularPeriod")
-                        .HasFilter("\"IsDelete\" = false AND \"RunType\" = 'Regular' AND \"RunStatus\" NOT IN ('Cancelled', 'Reversed')");
-
-                    b.HasIndex("PostedByUserId");
-
-                    b.HasIndex("RunNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("SubmittedByUserId");
-
-                    b.HasIndex("WorkflowDefinitionId");
-
-                    b.HasIndex("FinancePaymentBatchId", "GlHeaderId");
-
-                    b.HasIndex("PayrollPeriodId", "RunType", "IsDelete");
-
-                    b.HasIndex("RunStatus", "IsLocked", "IsActive", "IsDelete");
-
-                    b.ToTable("PrlPayrollRun", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AbsentDays")
-                        .HasPrecision(9, 2)
-                        .HasColumnType("numeric(9,2)");
-
-                    b.Property<int>("ActualWorkMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("BankAccountHolderSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("BankAccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BankAccountNumberSnapshot")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("BankNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("BaseSalary")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("CalculationResultJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CostCenterCodeSnapshot")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("CostCenterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CostCenterNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DepartmentNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("EarlyLeaveMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("EmployeeGradeSnapshot")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("EmployeeNameSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("EmployeeNumberSnapshot")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("EmployeePayrollStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Pending");
-
-                    b.Property<string>("EmployeeSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<DateTime?>("FinalizedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("FinalizedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("GrossPay")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("InsuranceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("InsuranceSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsFinalized")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSnapshotFrozen")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("LateMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("NetPay")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<string>("NpwpNumberSnapshot")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid?>("OrganizationAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("OvertimeMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("PaidLeaveDays")
-                        .HasPrecision(9, 2)
-                        .HasColumnType("numeric(9,2)");
-
-                    b.Property<decimal>("PaymentAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("PayrollProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PayrollRunId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PositionNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("SalaryAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SalaryGradeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SalarySnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid?>("SalaryStructureId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("ScheduledWorkMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("SnapshotFrozenAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("SnapshotFrozenByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("TaxProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("TaxSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("TaxStatusSnapshot")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("TotalAttendanceAllowance")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalBenefit")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalDeduction")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalEmployeeInsuranceContribution")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalEmployerInsuranceContribution")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalOvertimeAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalRecurringEarning")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalTax")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalTransportAllowance")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalVariableEarning")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("UnpaidLeaveDays")
-                        .HasPrecision(9, 2)
-                        .HasColumnType("numeric(9,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ValidationResultJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BankAccountId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("FinalizedByUserId");
-
-                    b.HasIndex("InsuranceProfileId");
-
-                    b.HasIndex("OrganizationAssignmentId");
-
-                    b.HasIndex("PayrollProfileId");
-
-                    b.HasIndex("SalaryAssignmentId");
-
-                    b.HasIndex("SalaryGradeId");
-
-                    b.HasIndex("SalaryStructureId");
-
-                    b.HasIndex("SnapshotFrozenByUserId");
-
-                    b.HasIndex("TaxProfileId");
-
-                    b.HasIndex("PayrollRunId", "WorkforceProfileId")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("CostCenterId", "PayrollRunId", "IsDelete");
-
-                    b.HasIndex("PayrollRunId", "EmployeePayrollStatus", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "IsFinalized", "IsDelete");
-
-                    b.ToTable("PrlPayrollRunEmployee", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollVariableInput", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AttachmentPath")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<string>("DecisionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly>("InputDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("InputNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("InputStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<string>("InputType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Manual");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid>("PayrollComponentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RejectedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SourceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SourceType")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("SubmittedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("SubmittedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("VerifiedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("InputNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("PayrollComponentId");
-
-                    b.HasIndex("RejectedByUserId");
-
-                    b.HasIndex("SourceId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_PrlPayrollVariableInput_MedicalFeeClaim")
-                        .HasFilter("\"IsDelete\" = false AND \"SourceType\" = 'MdfServiceFee' AND \"SourceId\" IS NOT NULL AND \"InputStatus\" NOT IN ('Cancelled', 'Rejected')");
-
-                    b.HasIndex("SubmittedByUserId");
-
-                    b.HasIndex("VerifiedByUserId");
-
-                    b.HasIndex("SourceType", "SourceId", "IsDelete");
-
-                    b.HasIndex("PayrollRunEmployeeId", "PayrollComponentId", "InputStatus", "IsDelete");
-
-                    b.ToTable("PrlPayrollVariableInput", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollVarianceAlert", b =>
@@ -55091,41 +53195,33 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPayrollVarianceAlert", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdClinicalCareerLadderReview", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("BpjsEmploymentEmployeeRate")
-                        .HasPrecision(9, 4)
-                        .HasColumnType("numeric(9,4)");
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("BpjsEmploymentEmployerRate")
-                        .HasPrecision(9, 4)
-                        .HasColumnType("numeric(9,4)");
-
-                    b.Property<decimal>("BpjsHealthEmployeeRate")
-                        .HasPrecision(9, 4)
-                        .HasColumnType("numeric(9,4)");
-
-                    b.Property<decimal>("BpjsHealthEmployerRate")
-                        .HasPrecision(9, 4)
-                        .HasColumnType("numeric(9,4)");
-
-                    b.Property<string>("BpjsKesehatanNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("BpjsKetenagakerjaanNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ClinicalExperienceYears")
+                        .HasColumnType("decimal(4,1)");
+
+                    b.Property<string>("CommitteeNotes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CommitteeRecommendation")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
@@ -55135,32 +53231,28 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("CurrentClinicalLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                    b.Property<string>("FinalStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Submitted");
 
-                    b.Property<DateTime?>("EffectiveEndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EffectiveStartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
+                    b.Property<bool>("FreeFromSentinelIncident")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
-
-                    b.Property<bool>("IsBpjsKesehatanEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsBpjsKetenagakerjaanEnabled")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()
@@ -55172,24 +53264,32 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsPrivateInsuranceEnabled")
-                        .HasColumnType("boolean");
+                    b.Property<bool>("MeetsClinicalCompetency")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
-                    b.Property<decimal>("PrivateInsuranceEmployeeContribution")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<bool>("MeetsPerformanceThreshold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
-                    b.Property<decimal>("PrivateInsuranceEmployerContribution")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<string>("NewSkNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
 
-                    b.Property<string>("PrivateInsuranceNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<Guid>("PerformanceAppraisalId")
+                        .HasColumnType("uuid");
 
-                    b.Property<string>("PrivateInsuranceProvider")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<string>("ReviewNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TargetClinicalLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -55202,757 +53302,19 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BpjsKesehatanNumber")
-                        .HasFilter("\"BpjsKesehatanNumber\" IS NOT NULL AND \"IsDelete\" = false");
+                    b.HasIndex("ApprovedBy");
 
-                    b.HasIndex("BpjsKetenagakerjaanNumber")
-                        .HasFilter("\"BpjsKetenagakerjaanNumber\" IS NOT NULL AND \"IsDelete\" = false");
+                    b.HasIndex("FinalStatus");
 
-                    b.HasIndex("WorkforceProfileId")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
+                    b.HasIndex("PerformanceAppraisalId");
 
-                    b.HasIndex("IsBpjsKesehatanEnabled", "IsBpjsKetenagakerjaanEnabled", "IsPrivateInsuranceEnabled", "IsActive");
-
-                    b.ToTable("PrlInsurance", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("BankAccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("BaseSalary")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CostCenterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime?>("EffectiveEndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EffectiveStartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("GrossSalary")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("InsuranceAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsConfidential")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsPayrollEligible")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastCalculatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastPayrollPeriodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("NetSalary")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("OrganizationAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PaymentFrequency")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Monthly");
-
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("BankTransfer");
-
-                    b.Property<string>("PayrollGroupCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PayrollNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PayrollStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Active");
-
-                    b.Property<Guid?>("SalaryAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SalaryGradeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SalaryStructureId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("TaxAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalAllowance")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalDeduction")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BankAccountId");
-
-                    b.HasIndex("CostCenterId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("LastPayrollPeriodId");
-
-                    b.HasIndex("OrganizationAssignmentId");
-
-                    b.HasIndex("PayrollNumber")
-                        .IsUnique()
-                        .HasFilter("\"PayrollNumber\" IS NOT NULL AND \"IsDelete\" = false");
-
-                    b.HasIndex("SalaryAssignmentId");
-
-                    b.HasIndex("SalaryGradeId");
-
-                    b.HasIndex("SalaryStructureId");
-
-                    b.HasIndex("WorkforceProfileId")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
-
-                    b.HasIndex("PayrollStatus", "IsPayrollEligible", "IsActive", "IsDelete");
-
-                    b.ToTable("PrlPayroll", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AnnualNonTaxableIncome")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime?>("EffectiveEndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EffectiveStartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("HasPreviousEmployer")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsEmployerBorneTax")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsNpwpRegistered")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTaxResident")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("NpwpNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("PreviousEmployerTaxPaid")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("PreviousEmployerTaxableIncome")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("TaxCountryCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("ID");
-
-                    b.Property<string>("TaxMethod")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Gross");
-
-                    b.Property<string>("TaxOfficeCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("TaxStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("TK/0");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NpwpNumber")
-                        .HasFilter("\"NpwpNumber\" IS NOT NULL AND \"IsDelete\" = false");
-
-                    b.HasIndex("WorkforceProfileId")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("TaxStatus", "TaxMethod", "IsActive", "IsDelete");
-
-                    b.ToTable("PrlTax", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AccruedAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("AllowanceStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Active");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("IDR");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime?>("EffectiveEndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EffectiveStartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("MaximumMonthlyAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("MonthlyAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("OrganizationAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("PaidAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("PayrollComponentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("PerAttendanceAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("RemainingAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("TransportAllowancePolicyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("UsedAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("OrganizationAssignmentId");
-
-                    b.HasIndex("PayrollComponentId");
-
-                    b.HasIndex("WorkforceProfileId")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
-
-                    b.HasIndex("TransportAllowancePolicyId", "AllowanceStatus", "IsActive", "IsDelete");
-
-                    b.ToTable("PrlTransportAllowance", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CalculationMethod")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("FixedMonthly");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<decimal>("DailyLimitAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime?>("EffectiveEndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EffectiveStartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("EmployeeGradeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("FixedMonthlyAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("HospitalSiteId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IncludeBusinessTravelDay")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IncludeHoliday")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IncludePaidLeaveDay")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsAttendanceBased")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsIncludedInPayroll")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsProrated")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTaxable")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("LegalEntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("MinimumAttendanceMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("MonthlyLimitAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("PayrollComponentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("PerAttendanceAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("PolicyCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PolicyName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeGradeId");
-
-                    b.HasIndex("HospitalSiteId");
-
-                    b.HasIndex("PayrollComponentId");
-
-                    b.HasIndex("PolicyCode")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
-
-                    b.HasIndex("LegalEntityId", "HospitalSiteId", "EmployeeGradeId", "IsActive", "IsDelete");
-
-                    b.ToTable("PrlTransportAllowancePolicy", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("AttendanceDailyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("BalanceAfterTransaction")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid?>("MstWorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollPeriodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PayrollRunEmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("PostedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PostedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid?>("SourceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SourceType")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateOnly>("TransactionDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("TransactionNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("TransactionStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<string>("TransactionType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Accrual");
-
-                    b.Property<Guid>("TransportAllowanceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AttendanceDailyId");
-
-                    b.HasIndex("MstWorkforceProfileId");
-
-                    b.HasIndex("PayrollRunEmployeeId");
-
-                    b.HasIndex("PostedByUserId");
-
-                    b.HasIndex("TransactionNumber")
+                    b.HasIndex("ReviewNumber")
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("WorkforceProfileId");
 
-                    b.HasIndex("PayrollPeriodId", "TransactionStatus", "IsDelete");
-
-                    b.HasIndex("TransportAllowanceId", "TransactionDate", "TransactionType", "IsDelete");
-
-                    b.ToTable("PrlTransportAllowanceTransaction", "public");
+                    b.ToTable("HrdClinicalCareerLadderReview", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdClinicalPeerReviewAuditLog", b =>
@@ -55985,7 +53347,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -55995,8 +53359,189 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("127.0.0.1");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecordType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("OPPE_REPORT");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccessedWorkforceProfileId");
+
+                    b.HasIndex("RecordType", "RecordId");
+
+                    b.ToTable("HrdClinicalPeerReviewAuditLog", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeCaseLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ComplicationDescription")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("CriticalDecisionScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FppeEngagementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("HasComplication")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("HrdFppeEngagementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVerifiedByProctor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("ObservedIndependenceLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
+
+                    b.Property<DateTime>("ProcedureDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProcedurePerformed")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ProctorFeedbackNotes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProctorVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SimrsPatientEpisodeId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("TechnicalSkillScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FppeEngagementId");
+
+                    b.HasIndex("HrdFppeEngagementId");
+
+                    b.ToTable("HrdFppeCaseLog", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeEngagement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssignedProctorWorkforceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CompletedCaseCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EngagementNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("InitialReasonJustification")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
@@ -56004,10 +53549,24 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid>("RecordId")
+                    b.Property<Guid?>("PrivilegeCatalogId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("RecordType")
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("TargetCaseCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("TargetEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TriggerSource")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -56018,9 +53577,93 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
-                    b.ToTable("hrd_clinical_peer_review_audit_logs", "public");
+                    b.HasIndex("EngagementNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("HrdFppeEngagement", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeEvaluationConclusion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApprovedByCommitteeChairmanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("FinalizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FppeEngagementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PlenaryReviewSummary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecommendedAction")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("GRANT_INDEPENDENT");
+
+                    b.Property<string>("RemediationPlan")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SignatureHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FppeEngagementId");
+
+                    b.ToTable("HrdFppeEvaluationConclusion", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeTriggerEvent", b =>
@@ -56115,6 +53758,1218 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("WorkforceProfileId", "TriggerType");
 
                     b.ToTable("HrdFppeTriggerEvent", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeEvaluationPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EvaluationYear")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PeriodCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PeriodName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<decimal>("QualitativeWeightPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(40.00m);
+
+                    b.Property<decimal>("QuantitativeWeightPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(60.00m);
+
+                    b.Property<int>("Semester")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("OPEN");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PeriodCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("HrdOppeEvaluationPeriod", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeStaffEvaluation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CommitteeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EvaluatorKsmHeadId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EvaluatorRecommendationNotes")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("FinalCompositeScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0.00m);
+
+                    b.Property<bool>("IsAcknowledgedByStaff")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PerformanceGrade")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("C");
+
+                    b.Property<Guid>("PeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("QualitativeScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0.00m);
+
+                    b.Property<decimal>("QuantitativeScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0.00m);
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PeriodId");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.ToTable("HrdOppeStaffEvaluation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeStaffEvaluationDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ActualValue")
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ComputedScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvaluatorNotes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("HrdOppeStaffEvaluationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("MetricCatalogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RawMetricEvidenceJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("StaffEvaluationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TargetValue")
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HrdOppeStaffEvaluationId");
+
+                    b.HasIndex("MetricCatalogId");
+
+                    b.HasIndex("StaffEvaluationId");
+
+                    b.ToTable("HrdOppeStaffEvaluationDetail", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("BehaviorScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("CalibrationNotes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EmployeeAcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("FinalCompositeScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("FirstLineManagerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal?>("KpiScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ManagerFeedbackNotes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PerformanceBand")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("PerformanceCycleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("PreCalibrationScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid?>("SecondLineManagerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinalCompositeScore");
+
+                    b.HasIndex("FirstLineManagerId");
+
+                    b.HasIndex("PerformanceBand");
+
+                    b.HasIndex("SecondLineManagerId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.HasIndex("PerformanceCycleId", "WorkforceProfileId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("HrdPerformanceAppraisal", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisalDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ComponentType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvaluatorNotes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EvidenceDocumentUrl")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<decimal?>("FinalScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ItemTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("ManagerScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("MetricOrCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("PerformanceAppraisalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("SelfScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeightPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentType");
+
+                    b.HasIndex("PerformanceAppraisalId");
+
+                    b.ToTable("HrdPerformanceAppraisalDetail", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisalDispute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("AdjustedCompositeScore")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DisputeDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisputeNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DisputedComponent")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("EvidenceDocumentUrl")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("FinalVerdict")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("GrievanceReason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MediationNotes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PerformanceAppraisalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Submitted");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerdictDeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DecidedBy");
+
+                    b.HasIndex("DisputeNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PerformanceAppraisalId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.ToTable("HrdPerformanceAppraisalDispute", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCalibrationSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActualDistributionJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CompletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GuidingDistributionJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MinutesOfMeetingUrl")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("PerformanceCycleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("SessionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SessionNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Scheduled");
+
+                    b.Property<int>("TotalEmployeesCalibrated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("TotalOverridesApplied")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompletedBy");
+
+                    b.HasIndex("PerformanceCycleId");
+
+                    b.HasIndex("SessionNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("HrdPerformanceCalibrationSession", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowEmployeeViewFinalResult")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("CalibrationDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CompletedEmployee")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CycleCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CycleConfigurationJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("CycleTitle")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("CycleType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("EnablePeerFeedback")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EvaluationYear")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("GoalSettingDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("HospitalSiteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("LegalEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ManagerAppraisalDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ManagerAssessmentDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("MasterPerformanceCycleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OrganizationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PerformanceTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PopulationSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PublishedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RatingScaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("RequireSelfAssessment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("SelfAppraisalDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SelfAssessmentDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<int>("TotalEmployee")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WorkflowDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("CycleCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("HospitalSiteId");
+
+                    b.HasIndex("LegalEntityId");
+
+                    b.HasIndex("MasterPerformanceCycleId");
+
+                    b.HasIndex("OrganizationUnitId");
+
+                    b.HasIndex("PerformanceTemplateId");
+
+                    b.HasIndex("PublishedByUserId");
+
+                    b.HasIndex("RatingScaleId");
+
+                    b.HasIndex("WorkflowDefinitionId");
+
+                    b.HasIndex("EvaluationYear", "Status");
+
+                    b.HasIndex("StartDate", "EndDate");
+
+                    b.ToTable("HrdPerformanceCycle", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceGoal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("AchievementPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("ActualValue")
+                        .HasColumnType("decimal(15,2)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GoalDescription")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("KpiMetricCatalogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PerformanceCycleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<decimal>("TargetValue")
+                        .HasColumnType("decimal(15,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeightPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("KpiMetricCatalogId");
+
+                    b.HasIndex("PerformanceCycleId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.ToTable("HrdPerformanceGoal", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceImprovementPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionPlanJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ActionPlanSummary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CheckInFrequencyDays")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EmployeeAcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FinalVerdict")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsEmployeeAcknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ManagerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MentorWorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ObjectivesJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("OutcomeNote")
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<Guid>("PerformanceAppraisalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PerformanceCycleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PerformanceReviewId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PipNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("ProgressPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SuccessMetricsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VerdictNotes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("WorkflowDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MentorWorkforceProfileId");
+
+                    b.HasIndex("PerformanceAppraisalId");
+
+                    b.HasIndex("PerformanceCycleId");
+
+                    b.HasIndex("PipNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.ToTable("HrdPerformanceImprovementPlan", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformancePipActionLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DeficienciesObserved")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsTargetOnTrack")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("LogDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LoggedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MentorFeedback")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PipId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProgressSummary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("WeekNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LoggedBy");
+
+                    b.HasIndex("PipId");
+
+                    b.HasIndex("PipId", "WeekNumber");
+
+                    b.ToTable("HrdPerformancePipActionLog", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdRecredentialingTierOverride", b =>
@@ -56467,7 +55322,7 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.ToTable("mst_kpi_metric_catalogs", "public");
+                    b.ToTable("MstKpiMetricCatalog", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.MstOppeMetricCatalog", b =>
@@ -56491,12 +55346,16 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("DataSourceType")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("SIMRS_VOLUME");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -56505,13 +55364,19 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("MetricCode")
                         .IsRequired()
@@ -56524,15 +55389,21 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.Property<decimal>("MetricWeightPercentage")
-                        .HasColumnType("decimal(5,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(10.00m);
 
                     b.Property<string>("SpecialtyGroup")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("ALL");
 
                     b.Property<decimal>("TargetStandardValue")
-                        .HasColumnType("decimal(8,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(8,2)")
+                        .HasDefaultValue(85.00m);
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -56542,7 +55413,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("mst_oppe_metric_catalogs", "public");
+                    b.HasIndex("MetricCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstOppeMetricCatalog", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxCalibrationSession", b =>
@@ -56668,128 +55543,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PerformanceCycleId", "DepartmentId", "ScheduledStartAt");
 
                     b.ToTable("TrxCalibrationSession", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxClinicalCareerLadderReview", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("ClinicalExperienceYears")
-                        .HasColumnType("decimal(4,1)");
-
-                    b.Property<string>("CommitteeNotes")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CommitteeRecommendation")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CurrentClinicalLevel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FinalStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Submitted");
-
-                    b.Property<bool>("FreeFromSentinelIncident")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("MeetsClinicalCompetency")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("MeetsPerformanceThreshold")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("NewSkNumber")
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
-
-                    b.Property<Guid>("PerformanceAppraisalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReviewNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("TargetClinicalLevel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedBy");
-
-                    b.HasIndex("FinalStatus");
-
-                    b.HasIndex("PerformanceAppraisalId");
-
-                    b.HasIndex("ReviewNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.ToTable("trx_clinical_career_ladder_reviews", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", b =>
@@ -57097,244 +55850,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxEmployeeKpiTarget", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeCaseLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ComplicationDescription")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CriticalDecisionScore")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("FppeEngagementId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("HasComplication")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVerifiedByProctor")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ObservedIndependenceLevel")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("ProcedureDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ProcedurePerformed")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ProctorFeedbackNotes")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("ProctorVerifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SimrsPatientEpisodeId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("TechnicalSkillScore")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FppeEngagementId");
-
-                    b.ToTable("trx_fppe_case_logs", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeEngagement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AssignedProctorWorkforceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CompletedCaseCount")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EngagementNumber")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("InitialReasonJustification")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("PrivilegeCatalogId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<int>("TargetCaseCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("TargetEndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("TriggerSource")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EngagementNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.ToTable("trx_fppe_engagements", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeEvaluationConclusion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ApprovedByCommitteeChairmanId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("FinalizedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("FppeEngagementId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PlenaryReviewSummary")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("RecommendedAction")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("RemediationPlan")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SignatureHash")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FppeEngagementId");
-
-                    b.ToTable("trx_fppe_evaluation_conclusions", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxManagerAssessment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -57440,229 +55955,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("TrxManagerAssessment", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeEvaluationPeriod", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EvaluationYear")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PeriodCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PeriodName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<decimal>("QualitativeWeightPercentage")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal>("QuantitativeWeightPercentage")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<int>("Semester")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("trx_oppe_evaluation_periods", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeStaffEvaluation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("AcknowledgedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CommitteeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("EvaluatorKsmHeadId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("EvaluatorRecommendationNotes")
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("FinalCompositeScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<bool>("IsAcknowledgedByStaff")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PerformanceGrade")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid>("PeriodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("QualitativeScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal>("QuantitativeScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PeriodId");
-
-                    b.ToTable("trx_oppe_staff_evaluations", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeStaffEvaluationDetail", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("ActualValue")
-                        .HasColumnType("decimal(8,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("ComputedScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EvaluatorNotes")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("MetricCatalogId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RawMetricEvidenceJson")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("StaffEvaluationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("TargetValue")
-                        .HasColumnType("decimal(8,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MetricCatalogId");
-
-                    b.HasIndex("StaffEvaluationId");
-
-                    b.ToTable("trx_oppe_staff_evaluation_details", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPeerFeedback", b =>
@@ -57776,413 +56068,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPeerFeedback", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisal", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("BehaviorScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<string>("CalibrationNotes")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EmployeeAcknowledgedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal?>("FinalCompositeScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<Guid>("FirstLineManagerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal?>("KpiScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<string>("ManagerFeedbackNotes")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PerformanceBand")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid>("PerformanceCycleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("PreCalibrationScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<Guid?>("SecondLineManagerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FinalCompositeScore");
-
-                    b.HasIndex("FirstLineManagerId");
-
-                    b.HasIndex("PerformanceBand");
-
-                    b.HasIndex("SecondLineManagerId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.HasIndex("PerformanceCycleId", "WorkforceProfileId")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.ToTable("trx_performance_appraisals", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisalDetail", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ComponentType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EvaluatorNotes")
-                        .HasColumnType("text");
-
-                    b.Property<string>("EvidenceDocumentUrl")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<decimal?>("FinalScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("ItemTitle")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal?>("ManagerScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<string>("MetricOrCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("PerformanceAppraisalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("SelfScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("WeightPercentage")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ComponentType");
-
-                    b.HasIndex("PerformanceAppraisalId");
-
-                    b.ToTable("trx_performance_appraisal_details", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisalDispute", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("AdjustedCompositeScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid?>("DecidedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("DisputeDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DisputeNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("DisputedComponent")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("EvidenceDocumentUrl")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<string>("FinalVerdict")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("GrievanceReason")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("MediationNotes")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PerformanceAppraisalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Submitted");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("VerdictDeliveredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DecidedBy");
-
-                    b.HasIndex("DisputeNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("PerformanceAppraisalId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.ToTable("trx_performance_appraisal_disputes", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCalibrationSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ActualDistributionJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CompletedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("GuidingDistributionJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("MinutesOfMeetingUrl")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<Guid>("PerformanceCycleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("SessionDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SessionNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Scheduled");
-
-                    b.Property<int>("TotalEmployeesCalibrated")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<int>("TotalOverridesApplied")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompletedBy");
-
-                    b.HasIndex("PerformanceCycleId");
-
-                    b.HasIndex("SessionNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("trx_performance_calibration_sessions", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCheckIn", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58283,541 +56168,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PerformanceCycleId", "WorkforceProfileId", "CheckInDate");
 
                     b.ToTable("TrxPerformanceCheckIn", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("AllowEmployeeViewFinalResult")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("CalibrationDeadline")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ClosedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("CompletedEmployee")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("CycleCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("CycleConfigurationJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("CycleTitle")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("CycleType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("EnablePeerFeedback")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EvaluationYear")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("GoalSettingDeadline")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("HospitalSiteId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid?>("LegalEntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ManagerAppraisalDeadline")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ManagerAssessmentDeadline")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("MasterPerformanceCycleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("OrganizationUnitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PerformanceTemplateId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PopulationSnapshotJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<DateTime?>("PublishedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PublishedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("RatingScaleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("RequireSelfAssessment")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<DateTime>("SelfAppraisalDeadline")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("SelfAssessmentDeadline")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<int>("TotalEmployee")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("WorkflowDefinitionId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClosedByUserId");
-
-                    b.HasIndex("CycleCode")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("HospitalSiteId");
-
-                    b.HasIndex("LegalEntityId");
-
-                    b.HasIndex("MasterPerformanceCycleId");
-
-                    b.HasIndex("OrganizationUnitId");
-
-                    b.HasIndex("PerformanceTemplateId");
-
-                    b.HasIndex("PublishedByUserId");
-
-                    b.HasIndex("RatingScaleId");
-
-                    b.HasIndex("WorkflowDefinitionId");
-
-                    b.HasIndex("EvaluationYear", "Status");
-
-                    b.HasIndex("StartDate", "EndDate");
-
-                    b.ToTable("trx_performance_cycles", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceGoal", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("AchievementPercentage")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal?>("ActualValue")
-                        .HasColumnType("decimal(15,2)");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("GoalDescription")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("KpiMetricCatalogId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PerformanceCycleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<decimal>("TargetValue")
-                        .HasColumnType("decimal(15,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("WeightPercentage")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedBy");
-
-                    b.HasIndex("KpiMetricCatalogId");
-
-                    b.HasIndex("PerformanceCycleId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.ToTable("trx_performance_goals", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceImprovementPlan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ActionPlanJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("ActionPlanSummary")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CheckInFrequencyDays")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EmployeeAcknowledgedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FinalVerdict")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsEmployeeAcknowledged")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("ManagerUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("MentorWorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ObjectivesJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Outcome")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("OutcomeNote")
-                        .HasMaxLength(3000)
-                        .HasColumnType("character varying(3000)");
-
-                    b.Property<Guid>("PerformanceAppraisalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PerformanceCycleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PerformanceReviewId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PipNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("ProgressPercentage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(5,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<DateTime?>("SubmittedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("SubmittedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SuccessMetricsJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("VerdictNotes")
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("WorkflowDefinitionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MentorWorkforceProfileId");
-
-                    b.HasIndex("PerformanceAppraisalId");
-
-                    b.HasIndex("PerformanceCycleId");
-
-                    b.HasIndex("PipNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.ToTable("trx_performance_improvement_plans", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformancePipActionLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("DeficienciesObserved")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsTargetOnTrack")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<DateTime>("LogDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("LoggedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("MentorFeedback")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PipId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ProgressSummary")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("WeekNumber")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LoggedBy");
-
-                    b.HasIndex("PipId");
-
-                    b.HasIndex("PipId", "WeekNumber");
-
-                    b.ToTable("trx_performance_pip_action_logs", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxSelfAssessment", b =>
@@ -70068,6 +67418,3100 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("WorkforceProfileId", "AllocationDate", "ShiftId", "IsActive");
 
                     b.ToTable("TrxWorkforceAllocation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BpjsEmploymentEmployeeRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<decimal>("BpjsEmploymentEmployerRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<decimal>("BpjsHealthEmployeeRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<decimal>("BpjsHealthEmployerRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<string>("BpjsKesehatanNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("BpjsKetenagakerjaanNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBpjsKesehatanEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsBpjsKetenagakerjaanEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPrivateInsuranceEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("PrivateInsuranceEmployeeContribution")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("PrivateInsuranceEmployerContribution")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("PrivateInsuranceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PrivateInsuranceProvider")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BpjsKesehatanNumber")
+                        .HasFilter("\"BpjsKesehatanNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("BpjsKetenagakerjaanNumber")
+                        .HasFilter("\"BpjsKetenagakerjaanNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("WorkforceProfileId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("IsBpjsKesehatanEnabled", "IsBpjsKetenagakerjaanEnabled", "IsPrivateInsuranceEnabled", "IsActive");
+
+                    b.ToTable("PrlInsurance", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CalculatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CalculatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CalculationDetailJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("CalculationNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CalculationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<decimal>("DeductionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("FeePercentage")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<decimal>("GrossFeeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("GrossServiceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("NetFeeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("PayrollComponentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollPeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PostedToPayrollAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("ServicePeriodEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("ServicePeriodStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SourceSummaryJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CalculatedByUserId");
+
+                    b.HasIndex("CalculationNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("PayrollComponentId");
+
+                    b.HasIndex("PayrollRunId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.HasIndex("PayrollPeriodId", "CalculationStatus", "IsDelete");
+
+                    b.HasIndex("PayrollRunEmployeeId", "CalculationStatus", "IsDelete");
+
+                    b.HasIndex("WorkforceProfileId", "ServicePeriodStartDate", "ServicePeriodEndDate", "IsDelete");
+
+                    b.ToTable("PrlMedicalServiceFeeCalculation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeePayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FinancePaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GlHeaderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("MedicalServiceFeeCalculationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PaidByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("PaymentNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("PaymentSettlementMethodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<Guid?>("PayrollPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ScheduledPaymentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("PaidByUserId");
+
+                    b.HasIndex("PaymentNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PaymentSettlementMethodId");
+
+                    b.HasIndex("PayrollRunEmployeeId");
+
+                    b.HasIndex("MedicalServiceFeeCalculationId", "PaymentStatus", "IsDelete");
+
+                    b.HasIndex("PayrollPaymentId", "FinancePaymentId", "GlHeaderId");
+
+                    b.ToTable("PrlMedicalServiceFeePayment", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("GrossSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("InsuranceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsConfidential")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPayrollEligible")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastCalculatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastPayrollPeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("NetSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("OrganizationAssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PaymentFrequency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Monthly");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("BankTransfer");
+
+                    b.Property<string>("PayrollGroupCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PayrollNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PayrollStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<Guid?>("SalaryAssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SalaryGradeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SalaryStructureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalAllowance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalDeduction")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("LastPayrollPeriodId");
+
+                    b.HasIndex("OrganizationAssignmentId");
+
+                    b.HasIndex("PayrollNumber")
+                        .IsUnique()
+                        .HasFilter("\"PayrollNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("SalaryAssignmentId");
+
+                    b.HasIndex("SalaryGradeId");
+
+                    b.HasIndex("SalaryStructureId");
+
+                    b.HasIndex("WorkforceProfileId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
+
+                    b.HasIndex("PayrollStatus", "IsPayrollEligible", "IsActive", "IsDelete");
+
+                    b.ToTable("PrlPayroll", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAdjustment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdjustmentNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("AdjustmentStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<string>("AdjustmentType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Add");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("AppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AppliedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovalNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("PayrollComponentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("RejectionReasonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RequestReasonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WorkflowDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdjustmentNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("AppliedByUserId");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("PayrollComponentId");
+
+                    b.HasIndex("RejectionReasonId");
+
+                    b.HasIndex("RequestReasonId");
+
+                    b.HasIndex("SubmittedByUserId");
+
+                    b.HasIndex("WorkflowDefinitionId");
+
+                    b.HasIndex("PayrollRunEmployeeId", "PayrollComponentId", "IsDelete");
+
+                    b.HasIndex("PayrollRunId", "AdjustmentStatus", "IsDelete");
+
+                    b.HasIndex("SourceType", "SourceId", "IsDelete");
+
+                    b.ToTable("PrlPayrollAdjustment", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ActionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ActionType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("ActualActionByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ActualActionByWorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovalLevel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Payroll");
+
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<Guid?>("AssignedApproverUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedApproverWorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Comments")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid?>("DelegatedFromUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelegated")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RejectionReasonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("StepOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WorkflowStepId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActualActionByUserId");
+
+                    b.HasIndex("ActualActionByWorkforceProfileId");
+
+                    b.HasIndex("AssignedApproverWorkforceProfileId");
+
+                    b.HasIndex("DelegatedFromUserId");
+
+                    b.HasIndex("RejectionReasonId");
+
+                    b.HasIndex("WorkflowStepId");
+
+                    b.HasIndex("PayrollRunId", "ApprovalStatus", "IsDelete");
+
+                    b.HasIndex("AssignedApproverUserId", "ApprovalStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("PayrollRunId", "StepOrder", "AssignedApproverUserId", "IsDelete");
+
+                    b.ToTable("PrlPayrollApproval", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAttendanceInput", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AbsentDays")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("numeric(9,2)");
+
+                    b.Property<int>("ActualWorkMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("AttendanceAllowanceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("AttendanceDailyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("AttendanceDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("AttendanceDeductionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("AttendanceSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("AttendanceStatusSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Present");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EarlyLeaveMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ImportedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBusinessTravel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCorrectionApplied")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHoliday")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRestDay")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LateMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("OvertimeMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PaidLeaveDays")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("numeric(9,2)");
+
+                    b.Property<int>("PayableWorkMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ScheduledWorkMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnpaidLeaveDays")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("numeric(9,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportedByUserId");
+
+                    b.HasIndex("PayrollRunEmployeeId", "AttendanceDate")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("AttendanceDailyId", "IsCorrectionApplied", "IsDelete");
+
+                    b.HasIndex("AttendanceStatusSnapshot", "AttendanceDate", "IsDelete");
+
+                    b.ToTable("PrlPayrollAttendanceInput", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollEmployeeComponent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("BaseAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("CalculationDetailJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("CalculationMethodSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Fixed");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ComponentCodeSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ComponentNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ComponentTypeSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Earning");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("EmployerAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("FormulaSnapshot")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDisplayedOnPayslip")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsManual")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsProrated")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTaxable")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("PayrollComponentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Percentage")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Master");
+
+                    b.Property<decimal>("TaxableAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayrollComponentId", "ComponentTypeSnapshot", "IsDelete");
+
+                    b.HasIndex("PayrollRunEmployeeId", "SortOrder", "IsDelete");
+
+                    b.HasIndex("PayrollRunEmployeeId", "ComponentCodeSnapshot", "SourceType", "SourceId", "IsDelete");
+
+                    b.ToTable("PrlPayrollEmployeeComponent", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollOvertimeInput", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ActualMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApprovedMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CalculationSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EligibleMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("HourlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ImportedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal>("OvertimeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateOnly>("OvertimeDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("OvertimeRealizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OvertimeRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OvertimeStatusSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Verified");
+
+                    b.Property<Guid>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("RateMultiplier")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<int>("RequestedMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VerifiedMinutes")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportedByUserId");
+
+                    b.HasIndex("OvertimeRealizationId");
+
+                    b.HasIndex("OvertimeRequestId");
+
+                    b.HasIndex("PayrollRunEmployeeId", "OvertimeRealizationId")
+                        .IsUnique()
+                        .HasFilter("\"OvertimeRealizationId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("OvertimeStatusSnapshot", "OvertimeDate", "IsDelete");
+
+                    b.HasIndex("PayrollRunEmployeeId", "OvertimeDate", "IsDelete");
+
+                    b.ToTable("PrlPayrollOvertimeInput", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BankAccountNumberSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BankNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FinancePaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GlHeaderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("NetPaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PaidByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayeeNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("PaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("PaymentNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("PaymentSettlementMethodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<Guid>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PostedToFinanceAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("PostedToGlAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ReversedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("ScheduledPaymentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("PaidByUserId");
+
+                    b.HasIndex("PaymentNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PaymentSettlementMethodId");
+
+                    b.HasIndex("PayrollRunEmployeeId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PrlPayrollPayment_LiveInstruction")
+                        .HasFilter("\"IsDelete\" = false AND \"PaymentStatus\" IN ('Scheduled', 'Processing', 'Paid', 'PartiallyReversed')");
+
+                    b.HasIndex("FinancePaymentId", "GlHeaderId");
+
+                    b.HasIndex("PayrollRunEmployeeId", "PaymentStatus", "IsDelete");
+
+                    b.HasIndex("PayrollRunId", "PaymentStatus", "ScheduledPaymentAt", "IsDelete");
+
+                    b.ToTable("PrlPayrollPayment", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DepartmentNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("DownloadCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EmployeeNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EmployeeNumberSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FileChecksum")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FilePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("FirstDownloadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("GeneratedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("GrossPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsEmployeeVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSnapshotFrozen")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastDownloadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("NetPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayslipNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PayslipSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("PayslipStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<DateTime>("PeriodEndDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PeriodStartDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PositionNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PublishedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalDeduction")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalEarning")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalTax")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GeneratedByUserId");
+
+                    b.HasIndex("PayrollRunEmployeeId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PayslipNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PublishedByUserId");
+
+                    b.HasIndex("FileChecksum", "IsDelete");
+
+                    b.HasIndex("PayrollRunId", "PayslipStatus", "IsEmployeeVisible", "IsDelete");
+
+                    b.ToTable("PrlPayrollPayslip", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollReversal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FinanceReversalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("OriginalGlHeaderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PostedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ReversalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("ReversalGlHeaderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReversalNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ReversalReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ReversalStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<string>("ReversalType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Full");
+
+                    b.Property<DateTime?>("ReversedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReversedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayrollRunEmployeeId");
+
+                    b.HasIndex("PostedByUserId");
+
+                    b.HasIndex("ReversalNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ReversedByUserId");
+
+                    b.HasIndex("OriginalGlHeaderId", "ReversalGlHeaderId");
+
+                    b.HasIndex("PayrollPaymentId", "ReversalStatus", "IsDelete");
+
+                    b.HasIndex("PayrollRunId", "ReversalStatus", "IsDelete");
+
+                    b.ToTable("PrlPayrollReversal", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AttendanceCutoffDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CalculatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CalculatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CalculationStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConfigurationSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ErrorEmployeeCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("FinancePaymentBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GlHeaderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("HospitalSiteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LegalEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("LockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LockedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("PaymentDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PayrollPeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PeriodEndDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PeriodStartDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PolicySnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PostedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ProcessedEmployeeCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RunNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RunStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<string>("RunType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Regular");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalBaseSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalDeduction")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalEarning")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalEmployeeContribution")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TotalEmployeeCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalEmployerContribution")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalGrossPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalNetPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalPaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalTax")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValidationSummaryJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("VariableInputCutoffDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WorkflowDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CalculatedByUserId");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("HospitalSiteId");
+
+                    b.HasIndex("LegalEntityId");
+
+                    b.HasIndex("LockedByUserId");
+
+                    b.HasIndex("PayrollPeriodId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PrlPayrollRun_RegularPeriod")
+                        .HasFilter("\"IsDelete\" = false AND \"RunType\" = 'Regular' AND \"RunStatus\" NOT IN ('Cancelled', 'Reversed')");
+
+                    b.HasIndex("PostedByUserId");
+
+                    b.HasIndex("RunNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("SubmittedByUserId");
+
+                    b.HasIndex("WorkflowDefinitionId");
+
+                    b.HasIndex("FinancePaymentBatchId", "GlHeaderId");
+
+                    b.HasIndex("PayrollPeriodId", "RunType", "IsDelete");
+
+                    b.HasIndex("RunStatus", "IsLocked", "IsActive", "IsDelete");
+
+                    b.ToTable("PrlPayrollRun", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AbsentDays")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("numeric(9,2)");
+
+                    b.Property<int>("ActualWorkMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BankAccountHolderSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BankAccountNumberSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BankNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("CalculationResultJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CostCenterCodeSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CostCenterNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DepartmentNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("EarlyLeaveMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EmployeeGradeSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EmployeeNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EmployeeNumberSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("EmployeePayrollStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("EmployeeSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("FinalizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FinalizedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("GrossPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("InsuranceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InsuranceSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFinalized")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSnapshotFrozen")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LateMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("NetPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("NpwpNumberSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("OrganizationAssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("OvertimeMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PaidLeaveDays")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("numeric(9,2)");
+
+                    b.Property<decimal>("PaymentAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("PayrollProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PositionNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("SalaryAssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SalaryGradeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SalarySnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("SalaryStructureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ScheduledWorkMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SnapshotFrozenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SnapshotFrozenByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TaxProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TaxSnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TaxStatusSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("TotalAttendanceAllowance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalBenefit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalDeduction")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalEmployeeInsuranceContribution")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalEmployerInsuranceContribution")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalOvertimeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalRecurringEarning")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalTax")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalTransportAllowance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalVariableEarning")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UnpaidLeaveDays")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("numeric(9,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValidationResultJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("FinalizedByUserId");
+
+                    b.HasIndex("InsuranceProfileId");
+
+                    b.HasIndex("OrganizationAssignmentId");
+
+                    b.HasIndex("PayrollProfileId");
+
+                    b.HasIndex("SalaryAssignmentId");
+
+                    b.HasIndex("SalaryGradeId");
+
+                    b.HasIndex("SalaryStructureId");
+
+                    b.HasIndex("SnapshotFrozenByUserId");
+
+                    b.HasIndex("TaxProfileId");
+
+                    b.HasIndex("PayrollRunId", "WorkforceProfileId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("CostCenterId", "PayrollRunId", "IsDelete");
+
+                    b.HasIndex("PayrollRunId", "EmployeePayrollStatus", "IsDelete");
+
+                    b.HasIndex("WorkforceProfileId", "IsFinalized", "IsDelete");
+
+                    b.ToTable("PrlPayrollRunEmployee", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollVariableInput", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AttachmentPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("InputDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("InputNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("InputStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<string>("InputType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Manual");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("PayrollComponentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RejectedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("InputNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PayrollComponentId");
+
+                    b.HasIndex("RejectedByUserId");
+
+                    b.HasIndex("SourceId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PrlPayrollVariableInput_MedicalFeeClaim")
+                        .HasFilter("\"IsDelete\" = false AND \"SourceType\" = 'MdfServiceFee' AND \"SourceId\" IS NOT NULL AND \"InputStatus\" NOT IN ('Cancelled', 'Rejected')");
+
+                    b.HasIndex("SubmittedByUserId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.HasIndex("SourceType", "SourceId", "IsDelete");
+
+                    b.HasIndex("PayrollRunEmployeeId", "PayrollComponentId", "InputStatus", "IsDelete");
+
+                    b.ToTable("PrlPayrollVariableInput", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AnnualNonTaxableIncome")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("HasPreviousEmployer")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsEmployerBorneTax")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsNpwpRegistered")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTaxResident")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NpwpNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("PreviousEmployerTaxPaid")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("PreviousEmployerTaxableIncome")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("TaxCountryCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("ID");
+
+                    b.Property<string>("TaxMethod")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Gross");
+
+                    b.Property<string>("TaxOfficeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TaxStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("TK/0");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NpwpNumber")
+                        .HasFilter("\"NpwpNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("WorkforceProfileId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("TaxStatus", "TaxMethod", "IsActive", "IsDelete");
+
+                    b.ToTable("PrlTax", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AccruedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("AllowanceStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("IDR");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("MaximumMonthlyAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MonthlyAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("OrganizationAssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("PayrollComponentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PerAttendanceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("RemainingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("TransportAllowancePolicyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("UsedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationAssignmentId");
+
+                    b.HasIndex("PayrollComponentId");
+
+                    b.HasIndex("WorkforceProfileId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
+
+                    b.HasIndex("TransportAllowancePolicyId", "AllowanceStatus", "IsActive", "IsDelete");
+
+                    b.ToTable("PrlTransportAllowance", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CalculationMethod")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("FixedMonthly");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("DailyLimitAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EmployeeGradeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("FixedMonthlyAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("HospitalSiteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IncludeBusinessTravelDay")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludeHoliday")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludePaidLeaveDay")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAttendanceBased")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsIncludedInPayroll")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsProrated")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTaxable")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LegalEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("MinimumAttendanceMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("MonthlyLimitAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("PayrollComponentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PerAttendanceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("PolicyCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PolicyName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeGradeId");
+
+                    b.HasIndex("HospitalSiteId");
+
+                    b.HasIndex("PayrollComponentId");
+
+                    b.HasIndex("PolicyCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsDelete");
+
+                    b.HasIndex("LegalEntityId", "HospitalSiteId", "EmployeeGradeId", "IsActive", "IsDelete");
+
+                    b.ToTable("PrlTransportAllowancePolicy", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("AttendanceDailyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BalanceAfterTransaction")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("MstWorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollPeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollRunEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PostedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateOnly>("TransactionDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("TransactionNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TransactionStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Accrual");
+
+                    b.Property<Guid>("TransportAllowanceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttendanceDailyId");
+
+                    b.HasIndex("MstWorkforceProfileId");
+
+                    b.HasIndex("PayrollRunEmployeeId");
+
+                    b.HasIndex("PostedByUserId");
+
+                    b.HasIndex("TransactionNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.HasIndex("PayrollPeriodId", "TransactionStatus", "IsDelete");
+
+                    b.HasIndex("TransportAllowanceId", "TransactionDate", "TransactionType", "IsDelete");
+
+                    b.ToTable("PrlTransportAllowanceTransaction", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilAdjustment", b =>
@@ -124152,17 +124596,18 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendancePeriod", "AttendancePeriod")
                         .WithMany()
                         .HasForeignKey("AttendancePeriodId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PreviousClosedByUser")
                         .WithMany()
-                        .HasForeignKey("PreviousClosedByUserId");
+                        .HasForeignKey("PreviousClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ReopenedByUser")
                         .WithMany()
                         .HasForeignKey("ReopenedByUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("AttendancePeriod");
@@ -124392,18 +124837,19 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ApprovedByWorkforce")
                         .WithMany()
-                        .HasForeignKey("ApprovedByWorkforceId");
+                        .HasForeignKey("ApprovedByWorkforceId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
                         .WithMany()
                         .HasForeignKey("AttendanceDailyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
                         .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("ApprovedByWorkforce");
@@ -124477,12 +124923,13 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ApprovedByWorkforce")
                         .WithMany()
-                        .HasForeignKey("ApprovedByWorkforceId");
+                        .HasForeignKey("ApprovedByWorkforceId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
                         .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("ApprovedByWorkforce");
@@ -125908,11 +126355,13 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ChairpersonWorkforceProfile")
                         .WithMany()
-                        .HasForeignKey("ChairpersonWorkforceProfileId");
+                        .HasForeignKey("ChairpersonWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "SecretaryWorkforceProfile")
                         .WithMany()
-                        .HasForeignKey("SecretaryWorkforceProfileId");
+                        .HasForeignKey("SecretaryWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ChairpersonWorkforceProfile");
 
@@ -126048,16 +126497,18 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ReviewedByUser")
                         .WithMany()
-                        .HasForeignKey("ReviewedByUserId");
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "WitnessUser")
                         .WithMany()
-                        .HasForeignKey("WitnessUserId");
+                        .HasForeignKey("WitnessUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
                         .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("ReviewedByUser");
@@ -126488,7 +126939,8 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models.MstCredentialingCommittee", "Committee")
                         .WithMany("SpkRkkIssuances")
-                        .HasForeignKey("CommitteeId");
+                        .HasForeignKey("CommitteeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models.TrxCredentialingApplication", "CredentialingApplication")
                         .WithMany()
@@ -126501,7 +126953,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
                         .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Committee");
@@ -126717,6 +127169,38 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryInvestigationRecord", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryIncidentReport", "IncidentReport")
+                        .WithMany("InvestigationRecords")
+                        .HasForeignKey("IncidentReportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("IncidentReport");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinarySanction", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryInvestigationRecord", "Investigation")
+                        .WithMany("Sanctions")
+                        .HasForeignKey("InvestigationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Investigation");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinarySuspension", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryInvestigationRecord", "Investigation")
+                        .WithMany("Suspensions")
+                        .HasForeignKey("InvestigationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Investigation");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdEmployeeRecognition", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
@@ -126775,6 +127259,28 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("OrganizationAssignment");
 
                     b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdExitClearanceChecklist", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdExitClearanceProcess", "ClearanceProcess")
+                        .WithMany("Checklists")
+                        .HasForeignKey("ClearanceProcessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClearanceProcess");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdSuspensionAccessAction", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinarySuspension", "Suspension")
+                        .WithMany()
+                        .HasForeignKey("SuspensionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Suspension");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryCase", b =>
@@ -126874,38 +127380,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("RejectionReason");
 
                     b.Navigation("RequestReason");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryInvestigationRecord", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryIncidentReport", "IncidentReport")
-                        .WithMany("InvestigationRecords")
-                        .HasForeignKey("IncidentReportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("IncidentReport");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinarySanction", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryInvestigationRecord", "Investigation")
-                        .WithMany("Sanctions")
-                        .HasForeignKey("InvestigationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Investigation");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinarySuspension", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryInvestigationRecord", "Investigation")
-                        .WithMany("Suspensions")
-                        .HasForeignKey("InvestigationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Investigation");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxEmployeeGrievance", b =>
@@ -127018,17 +127492,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("SubjectEmployee");
 
                     b.Navigation("SubjectWorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxExitClearanceChecklist", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxExitClearanceProcess", "ClearanceProcess")
-                        .WithMany("Checklists")
-                        .HasForeignKey("ClearanceProcessId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ClearanceProcess");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxInvestigationEvidence", b =>
@@ -127939,6 +128402,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("HrServiceRequest");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdPlataranSehatSkpRecord", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("WorkforceProfile");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdShiftBuddySafeguard", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
@@ -127955,7 +128429,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
                         .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("WorkforceProfile");
@@ -127983,7 +128457,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("OrganizationAssignmentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
                         .WithMany()
                         .HasForeignKey("PerformanceCycleId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -128024,17 +128498,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("SubmittedByUser");
 
                     b.Navigation("WorkflowDefinition");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxPlataranSehatSkpRecord", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("WorkforceProfile");
                 });
@@ -134381,278 +134844,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Supervisor");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CalculatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CalculatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
-                        .WithMany()
-                        .HasForeignKey("PayrollComponentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "PayrollPeriod")
-                        .WithMany()
-                        .HasForeignKey("PayrollPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany()
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
-                        .WithMany()
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
-                        .WithMany()
-                        .HasForeignKey("VerifiedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("CalculatedByUser");
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("PayrollComponent");
-
-                    b.Navigation("PayrollPeriod");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("PayrollRunEmployee");
-
-                    b.Navigation("VerifiedByUser");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeePayment", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
-                        .WithMany()
-                        .HasForeignKey("BankAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", "MedicalServiceFeeCalculation")
-                        .WithMany("Payments")
-                        .HasForeignKey("MedicalServiceFeeCalculationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PaidByUser")
-                        .WithMany()
-                        .HasForeignKey("PaidByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Models.MstPaymentSettlementMethod", "PaymentSettlementMethod")
-                        .WithMany()
-                        .HasForeignKey("PaymentSettlementMethodId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", "PayrollPayment")
-                        .WithMany("MedicalServiceFeePayments")
-                        .HasForeignKey("PayrollPaymentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany()
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("BankAccount");
-
-                    b.Navigation("MedicalServiceFeeCalculation");
-
-                    b.Navigation("PaidByUser");
-
-                    b.Navigation("PaymentSettlementMethod");
-
-                    b.Navigation("PayrollPayment");
-
-                    b.Navigation("PayrollRunEmployee");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAdjustment", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "AppliedByUser")
-                        .WithMany()
-                        .HasForeignKey("AppliedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
-                        .WithMany()
-                        .HasForeignKey("PayrollComponentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany("Adjustments")
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
-                        .WithMany("Adjustments")
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRejectionReason", "RejectionReason")
-                        .WithMany()
-                        .HasForeignKey("RejectionReasonId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRequestReason", "RequestReason")
-                        .WithMany()
-                        .HasForeignKey("RequestReasonId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
-                        .WithMany()
-                        .HasForeignKey("SubmittedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowDefinition", "WorkflowDefinition")
-                        .WithMany()
-                        .HasForeignKey("WorkflowDefinitionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("AppliedByUser");
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("PayrollComponent");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("PayrollRunEmployee");
-
-                    b.Navigation("RejectionReason");
-
-                    b.Navigation("RequestReason");
-
-                    b.Navigation("SubmittedByUser");
-
-                    b.Navigation("WorkflowDefinition");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollApproval", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ActualActionByUser")
-                        .WithMany()
-                        .HasForeignKey("ActualActionByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ActualActionByWorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("ActualActionByWorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "AssignedApproverUser")
-                        .WithMany()
-                        .HasForeignKey("AssignedApproverUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "AssignedApproverWorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("AssignedApproverWorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "DelegatedFromUser")
-                        .WithMany()
-                        .HasForeignKey("DelegatedFromUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
-                        .WithMany("Approvals")
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRejectionReason", "RejectionReason")
-                        .WithMany()
-                        .HasForeignKey("RejectionReasonId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowStep", "WorkflowStep")
-                        .WithMany()
-                        .HasForeignKey("WorkflowStepId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ActualActionByUser");
-
-                    b.Navigation("ActualActionByWorkforceProfile");
-
-                    b.Navigation("AssignedApproverUser");
-
-                    b.Navigation("AssignedApproverWorkforceProfile");
-
-                    b.Navigation("DelegatedFromUser");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("RejectionReason");
-
-                    b.Navigation("WorkflowStep");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAttendanceInput", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
-                        .WithMany()
-                        .HasForeignKey("AttendanceDailyId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ImportedByUser")
-                        .WithMany()
-                        .HasForeignKey("ImportedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany("AttendanceInputs")
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AttendanceDaily");
-
-                    b.Navigation("ImportedByUser");
-
-                    b.Navigation("PayrollRunEmployee");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollDeductionItem", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollDeductionSchedule", "DeductionSchedule")
@@ -134691,24 +134882,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollEmployeeComponent", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
-                        .WithMany()
-                        .HasForeignKey("PayrollComponentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany("Components")
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("PayrollComponent");
-
-                    b.Navigation("PayrollRunEmployee");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollHandoffBatch", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
@@ -134726,111 +134899,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PayrollRun");
 
                     b.Navigation("TransferredByUser");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollOvertimeInput", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ImportedByUser")
-                        .WithMany()
-                        .HasForeignKey("ImportedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimeRealization", "OvertimeRealization")
-                        .WithMany()
-                        .HasForeignKey("OvertimeRealizationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.WfpOvertimeRequest", "OvertimeRequest")
-                        .WithMany()
-                        .HasForeignKey("OvertimeRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany("OvertimeInputs")
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ImportedByUser");
-
-                    b.Navigation("OvertimeRealization");
-
-                    b.Navigation("OvertimeRequest");
-
-                    b.Navigation("PayrollRunEmployee");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
-                        .WithMany()
-                        .HasForeignKey("BankAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PaidByUser")
-                        .WithMany()
-                        .HasForeignKey("PaidByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Models.MstPaymentSettlementMethod", "PaymentSettlementMethod")
-                        .WithMany()
-                        .HasForeignKey("PaymentSettlementMethodId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany("Payments")
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
-                        .WithMany("Payments")
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BankAccount");
-
-                    b.Navigation("PaidByUser");
-
-                    b.Navigation("PaymentSettlementMethod");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("PayrollRunEmployee");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "GeneratedByUser")
-                        .WithMany()
-                        .HasForeignKey("GeneratedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithOne("Payslip")
-                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", "PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
-                        .WithMany()
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PublishedByUser")
-                        .WithMany()
-                        .HasForeignKey("PublishedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("GeneratedByUser");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("PayrollRunEmployee");
-
-                    b.Navigation("PublishedByUser");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollRestitution", b =>
@@ -134872,269 +134940,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TargetPayrollRun");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollReversal", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", "PayrollPayment")
-                        .WithMany("Reversals")
-                        .HasForeignKey("PayrollPaymentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany()
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
-                        .WithMany("Reversals")
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PostedByUser")
-                        .WithMany()
-                        .HasForeignKey("PostedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ReversedByUser")
-                        .WithMany()
-                        .HasForeignKey("ReversedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("PayrollPayment");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("PayrollRunEmployee");
-
-                    b.Navigation("PostedByUser");
-
-                    b.Navigation("ReversedByUser");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CalculatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CalculatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ClosedByUser")
-                        .WithMany()
-                        .HasForeignKey("ClosedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstHospitalSite", "HospitalSite")
-                        .WithMany()
-                        .HasForeignKey("HospitalSiteId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstLegalEntity", "LegalEntity")
-                        .WithMany()
-                        .HasForeignKey("LegalEntityId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "LockedByUser")
-                        .WithMany()
-                        .HasForeignKey("LockedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "PayrollPeriod")
-                        .WithMany()
-                        .HasForeignKey("PayrollPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PostedByUser")
-                        .WithMany()
-                        .HasForeignKey("PostedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
-                        .WithMany()
-                        .HasForeignKey("SubmittedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowDefinition", "WorkflowDefinition")
-                        .WithMany()
-                        .HasForeignKey("WorkflowDefinitionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("CalculatedByUser");
-
-                    b.Navigation("ClosedByUser");
-
-                    b.Navigation("HospitalSite");
-
-                    b.Navigation("LegalEntity");
-
-                    b.Navigation("LockedByUser");
-
-                    b.Navigation("PayrollPeriod");
-
-                    b.Navigation("PostedByUser");
-
-                    b.Navigation("SubmittedByUser");
-
-                    b.Navigation("WorkflowDefinition");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
-                        .WithMany()
-                        .HasForeignKey("BankAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstCostCenter", "CostCenter")
-                        .WithMany()
-                        .HasForeignKey("CostCenterId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "FinalizedByUser")
-                        .WithMany()
-                        .HasForeignKey("FinalizedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", "InsuranceProfile")
-                        .WithMany()
-                        .HasForeignKey("InsuranceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
-                        .WithMany()
-                        .HasForeignKey("OrganizationAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", "PayrollProfile")
-                        .WithMany("PayrollRunEmployees")
-                        .HasForeignKey("PayrollProfileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
-                        .WithMany("Employees")
-                        .HasForeignKey("PayrollRunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpSalaryAssignment", "SalaryAssignment")
-                        .WithMany()
-                        .HasForeignKey("SalaryAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryGrade", "SalaryGrade")
-                        .WithMany()
-                        .HasForeignKey("SalaryGradeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryStructure", "SalaryStructure")
-                        .WithMany()
-                        .HasForeignKey("SalaryStructureId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SnapshotFrozenByUser")
-                        .WithMany()
-                        .HasForeignKey("SnapshotFrozenByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", "TaxProfile")
-                        .WithMany()
-                        .HasForeignKey("TaxProfileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BankAccount");
-
-                    b.Navigation("CostCenter");
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("FinalizedByUser");
-
-                    b.Navigation("InsuranceProfile");
-
-                    b.Navigation("OrganizationAssignment");
-
-                    b.Navigation("PayrollProfile");
-
-                    b.Navigation("PayrollRun");
-
-                    b.Navigation("SalaryAssignment");
-
-                    b.Navigation("SalaryGrade");
-
-                    b.Navigation("SalaryStructure");
-
-                    b.Navigation("SnapshotFrozenByUser");
-
-                    b.Navigation("TaxProfile");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollVariableInput", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
-                        .WithMany()
-                        .HasForeignKey("PayrollComponentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany("VariableInputs")
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RejectedByUser")
-                        .WithMany()
-                        .HasForeignKey("RejectedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
-                        .WithMany()
-                        .HasForeignKey("SubmittedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
-                        .WithMany()
-                        .HasForeignKey("VerifiedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("PayrollComponent");
-
-                    b.Navigation("PayrollRunEmployee");
-
-                    b.Navigation("RejectedByUser");
-
-                    b.Navigation("SubmittedByUser");
-
-                    b.Navigation("VerifiedByUser");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollVarianceAlert", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
@@ -135161,274 +134966,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
-                        .WithMany()
-                        .HasForeignKey("BankAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstCostCenter", "CostCenter")
-                        .WithMany()
-                        .HasForeignKey("CostCenterId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "LastPayrollPeriod")
-                        .WithMany()
-                        .HasForeignKey("LastPayrollPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
-                        .WithMany()
-                        .HasForeignKey("OrganizationAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpSalaryAssignment", "SalaryAssignment")
-                        .WithMany()
-                        .HasForeignKey("SalaryAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryGrade", "SalaryGrade")
-                        .WithMany()
-                        .HasForeignKey("SalaryGradeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryStructure", "SalaryStructure")
-                        .WithMany()
-                        .HasForeignKey("SalaryStructureId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BankAccount");
-
-                    b.Navigation("CostCenter");
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("LastPayrollPeriod");
-
-                    b.Navigation("OrganizationAssignment");
-
-                    b.Navigation("SalaryAssignment");
-
-                    b.Navigation("SalaryGrade");
-
-                    b.Navigation("SalaryStructure");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
-                        .WithMany()
-                        .HasForeignKey("OrganizationAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
-                        .WithMany()
-                        .HasForeignKey("PayrollComponentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", "TransportAllowancePolicy")
-                        .WithMany("TransportAllowances")
-                        .HasForeignKey("TransportAllowancePolicyId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("OrganizationAssignment");
-
-                    b.Navigation("PayrollComponent");
-
-                    b.Navigation("TransportAllowancePolicy");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstEmployeeGrade", "EmployeeGrade")
-                        .WithMany()
-                        .HasForeignKey("EmployeeGradeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstHospitalSite", "HospitalSite")
-                        .WithMany()
-                        .HasForeignKey("HospitalSiteId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstLegalEntity", "LegalEntity")
-                        .WithMany()
-                        .HasForeignKey("LegalEntityId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
-                        .WithMany()
-                        .HasForeignKey("PayrollComponentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("EmployeeGrade");
-
-                    b.Navigation("HospitalSite");
-
-                    b.Navigation("LegalEntity");
-
-                    b.Navigation("PayrollComponent");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
-                        .WithMany()
-                        .HasForeignKey("AttendanceDailyId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", null)
-                        .WithMany("TransportAllowanceTransactions")
-                        .HasForeignKey("MstWorkforceProfileId");
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "PayrollPeriod")
-                        .WithMany()
-                        .HasForeignKey("PayrollPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
-                        .WithMany()
-                        .HasForeignKey("PayrollRunEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PostedByUser")
-                        .WithMany()
-                        .HasForeignKey("PostedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", "TransportAllowance")
-                        .WithMany("Transactions")
-                        .HasForeignKey("TransportAllowanceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AttendanceDaily");
-
-                    b.Navigation("PayrollPeriod");
-
-                    b.Navigation("PayrollRunEmployee");
-
-                    b.Navigation("PostedByUser");
-
-                    b.Navigation("TransportAllowance");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdSimrsPrivilegeSyncLog", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdRecredentialingVerdict", "Verdict")
-                        .WithMany("SyncLogs")
-                        .HasForeignKey("VerdictId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Verdict");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxCalibrationSession", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstDepartment", "Department")
-                        .WithMany()
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "FacilitatorUser")
-                        .WithMany()
-                        .HasForeignKey("FacilitatorUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "FinalizedByUser")
-                        .WithMany()
-                        .HasForeignKey("FinalizedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "OrganizationUnit")
-                        .WithMany()
-                        .HasForeignKey("OrganizationUnitId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
-                        .WithMany("CalibrationSessions")
-                        .HasForeignKey("PerformanceCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Department");
-
-                    b.Navigation("FacilitatorUser");
-
-                    b.Navigation("FinalizedByUser");
-
-                    b.Navigation("OrganizationUnit");
-
-                    b.Navigation("PerformanceCycle");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxClinicalCareerLadderReview", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdClinicalCareerLadderReview", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ApprovedByProfile")
                         .WithMany()
                         .HasForeignKey("ApprovedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisal", "PerformanceAppraisal")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisal", "PerformanceAppraisal")
                         .WithMany()
                         .HasForeignKey("PerformanceAppraisalId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -135447,173 +134992,59 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeCaseLog", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeEngagement", "FppeEngagement")
                         .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ManagerUser")
-                        .WithMany()
-                        .HasForeignKey("ManagerUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
-                        .WithMany()
-                        .HasForeignKey("OrganizationAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
-                        .WithMany("EmployeeGoals")
-                        .HasForeignKey("PerformanceCycleId")
+                        .HasForeignKey("FppeEngagementId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
-                        .WithMany()
-                        .HasForeignKey("SubmittedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("ManagerUser");
-
-                    b.Navigation("OrganizationAssignment");
-
-                    b.Navigation("PerformanceCycle");
-
-                    b.Navigation("SubmittedByUser");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeKpiTarget", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", "EmployeeGoal")
-                        .WithMany("KpiTargets")
-                        .HasForeignKey("EmployeeGoalId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.Models.MstKpiCatalog", "KpiCatalog")
-                        .WithMany()
-                        .HasForeignKey("KpiCatalogId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
-                        .WithMany("KpiTargets")
-                        .HasForeignKey("PerformanceCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("EmployeeGoal");
-
-                    b.Navigation("KpiCatalog");
-
-                    b.Navigation("PerformanceCycle");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeCaseLog", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeEngagement", "FppeEngagement")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeEngagement", null)
                         .WithMany("CaseLogs")
+                        .HasForeignKey("HrdFppeEngagementId");
+
+                    b.Navigation("FppeEngagement");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeEvaluationConclusion", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeEngagement", "FppeEngagement")
+                        .WithMany()
                         .HasForeignKey("FppeEngagementId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("FppeEngagement");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeEvaluationConclusion", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeStaffEvaluation", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeEngagement", "FppeEngagement")
-                        .WithMany()
-                        .HasForeignKey("FppeEngagementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FppeEngagement");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxManagerAssessment", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ManagerUser")
-                        .WithMany()
-                        .HasForeignKey("ManagerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
-                        .WithMany("ManagerAssessments")
-                        .HasForeignKey("PerformanceCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.WfpPerformanceReview", "PerformanceReview")
-                        .WithMany()
-                        .HasForeignKey("PerformanceReviewId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ManagerUser");
-
-                    b.Navigation("PerformanceCycle");
-
-                    b.Navigation("PerformanceReview");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeStaffEvaluation", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeEvaluationPeriod", "Period")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeEvaluationPeriod", "Period")
                         .WithMany()
                         .HasForeignKey("PeriodId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Period");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeStaffEvaluationDetail", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeStaffEvaluationDetail", b =>
                 {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeStaffEvaluation", null)
+                        .WithMany("EvaluationDetails")
+                        .HasForeignKey("HrdOppeStaffEvaluationId");
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.MstOppeMetricCatalog", "MetricCatalog")
                         .WithMany()
                         .HasForeignKey("MetricCatalogId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeStaffEvaluation", "StaffEvaluation")
-                        .WithMany("EvaluationDetails")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeStaffEvaluation", "StaffEvaluation")
+                        .WithMany()
                         .HasForeignKey("StaffEvaluationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("MetricCatalog");
@@ -135621,40 +135052,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StaffEvaluation");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPeerFeedback", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
-                        .WithMany()
-                        .HasForeignKey("PerformanceCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ReviewerUser")
-                        .WithMany()
-                        .HasForeignKey("ReviewerUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ReviewerWorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("ReviewerWorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "SubjectWorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("SubjectWorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("PerformanceCycle");
-
-                    b.Navigation("ReviewerUser");
-
-                    b.Navigation("ReviewerWorkforceProfile");
-
-                    b.Navigation("SubjectWorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisal", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisal", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "FirstLineManager")
                         .WithMany()
@@ -135662,7 +135060,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
                         .WithMany("PerformanceAppraisals")
                         .HasForeignKey("PerformanceCycleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -135688,9 +135086,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisalDetail", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisalDetail", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisal", "PerformanceAppraisal")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisal", "PerformanceAppraisal")
                         .WithMany("Details")
                         .HasForeignKey("PerformanceAppraisalId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -135699,14 +135097,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PerformanceAppraisal");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisalDispute", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisalDispute", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "DecidedByProfile")
                         .WithMany()
                         .HasForeignKey("DecidedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisal", "PerformanceAppraisal")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisal", "PerformanceAppraisal")
                         .WithMany()
                         .HasForeignKey("PerformanceAppraisalId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -135725,14 +135123,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCalibrationSession", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCalibrationSession", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "CompletedByProfile")
                         .WithMany()
                         .HasForeignKey("CompletedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
                         .WithMany("PerformanceCalibrationSessions")
                         .HasForeignKey("PerformanceCycleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -135743,41 +135141,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PerformanceCycle");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCheckIn", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", "EmployeeGoal")
-                        .WithMany("CheckIns")
-                        .HasForeignKey("EmployeeGoalId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ManagerUser")
-                        .WithMany()
-                        .HasForeignKey("ManagerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
-                        .WithMany()
-                        .HasForeignKey("PerformanceCycleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("EmployeeGoal");
-
-                    b.Navigation("ManagerUser");
-
-                    b.Navigation("PerformanceCycle");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ClosedByUser")
                         .WithMany()
@@ -135840,7 +135204,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkflowDefinition");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceGoal", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceGoal", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ApproverProfile")
                         .WithMany()
@@ -135853,7 +135217,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
                         .WithMany("PerformanceGoals")
                         .HasForeignKey("PerformanceCycleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -135874,7 +135238,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceImprovementPlan", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceImprovementPlan", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "MentorWorkforceProfile")
                         .WithMany()
@@ -135882,13 +135246,13 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisal", "PerformanceAppraisal")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisal", "PerformanceAppraisal")
                         .WithMany()
                         .HasForeignKey("PerformanceAppraisalId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
                         .WithMany()
                         .HasForeignKey("PerformanceCycleId");
 
@@ -135907,7 +135271,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformancePipActionLog", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformancePipActionLog", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "LoggedByProfile")
                         .WithMany()
@@ -135915,7 +135279,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceImprovementPlan", "PerformanceImprovementPlan")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceImprovementPlan", "PerformanceImprovementPlan")
                         .WithMany("ActionLogs")
                         .HasForeignKey("PipId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -135926,9 +135290,248 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PerformanceImprovementPlan");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdSimrsPrivilegeSyncLog", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdRecredentialingVerdict", "Verdict")
+                        .WithMany("SyncLogs")
+                        .HasForeignKey("VerdictId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Verdict");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxCalibrationSession", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "FacilitatorUser")
+                        .WithMany()
+                        .HasForeignKey("FacilitatorUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "FinalizedByUser")
+                        .WithMany()
+                        .HasForeignKey("FinalizedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "OrganizationUnit")
+                        .WithMany()
+                        .HasForeignKey("OrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
+                        .WithMany("CalibrationSessions")
+                        .HasForeignKey("PerformanceCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("FacilitatorUser");
+
+                    b.Navigation("FinalizedByUser");
+
+                    b.Navigation("OrganizationUnit");
+
+                    b.Navigation("PerformanceCycle");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ManagerUser")
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
+                        .WithMany()
+                        .HasForeignKey("OrganizationAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
+                        .WithMany("EmployeeGoals")
+                        .HasForeignKey("PerformanceCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("ManagerUser");
+
+                    b.Navigation("OrganizationAssignment");
+
+                    b.Navigation("PerformanceCycle");
+
+                    b.Navigation("SubmittedByUser");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeKpiTarget", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", "EmployeeGoal")
+                        .WithMany("KpiTargets")
+                        .HasForeignKey("EmployeeGoalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.Models.MstKpiCatalog", "KpiCatalog")
+                        .WithMany()
+                        .HasForeignKey("KpiCatalogId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
+                        .WithMany("KpiTargets")
+                        .HasForeignKey("PerformanceCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmployeeGoal");
+
+                    b.Navigation("KpiCatalog");
+
+                    b.Navigation("PerformanceCycle");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxManagerAssessment", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ManagerUser")
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
+                        .WithMany("ManagerAssessments")
+                        .HasForeignKey("PerformanceCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.WfpPerformanceReview", "PerformanceReview")
+                        .WithMany()
+                        .HasForeignKey("PerformanceReviewId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ManagerUser");
+
+                    b.Navigation("PerformanceCycle");
+
+                    b.Navigation("PerformanceReview");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPeerFeedback", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
+                        .WithMany()
+                        .HasForeignKey("PerformanceCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ReviewerUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ReviewerWorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("ReviewerWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "SubjectWorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("SubjectWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PerformanceCycle");
+
+                    b.Navigation("ReviewerUser");
+
+                    b.Navigation("ReviewerWorkforceProfile");
+
+                    b.Navigation("SubjectWorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCheckIn", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", "EmployeeGoal")
+                        .WithMany("CheckIns")
+                        .HasForeignKey("EmployeeGoalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ManagerUser")
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
+                        .WithMany()
+                        .HasForeignKey("PerformanceCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmployeeGoal");
+
+                    b.Navigation("ManagerUser");
+
+                    b.Navigation("PerformanceCycle");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxSelfAssessment", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
                         .WithMany("SelfAssessments")
                         .HasForeignKey("PerformanceCycleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -135986,7 +135589,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("OrganizationAssignmentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", "PerformanceCycle")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", "PerformanceCycle")
                         .WithMany("PerformanceReviews")
                         .HasForeignKey("PerformanceCycleId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -140159,6 +139762,874 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Shift");
 
                     b.Navigation("WorkLocation");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CalculatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CalculatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
+                        .WithMany()
+                        .HasForeignKey("PayrollComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "PayrollPeriod")
+                        .WithMany()
+                        .HasForeignKey("PayrollPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("CalculatedByUser");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("PayrollComponent");
+
+                    b.Navigation("PayrollPeriod");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("PayrollRunEmployee");
+
+                    b.Navigation("VerifiedByUser");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeePayment", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", "MedicalServiceFeeCalculation")
+                        .WithMany("Payments")
+                        .HasForeignKey("MedicalServiceFeeCalculationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PaidByUser")
+                        .WithMany()
+                        .HasForeignKey("PaidByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Models.MstPaymentSettlementMethod", "PaymentSettlementMethod")
+                        .WithMany()
+                        .HasForeignKey("PaymentSettlementMethodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", "PayrollPayment")
+                        .WithMany("MedicalServiceFeePayments")
+                        .HasForeignKey("PayrollPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BankAccount");
+
+                    b.Navigation("MedicalServiceFeeCalculation");
+
+                    b.Navigation("PaidByUser");
+
+                    b.Navigation("PaymentSettlementMethod");
+
+                    b.Navigation("PayrollPayment");
+
+                    b.Navigation("PayrollRunEmployee");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstCostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "LastPayrollPeriod")
+                        .WithMany()
+                        .HasForeignKey("LastPayrollPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
+                        .WithMany()
+                        .HasForeignKey("OrganizationAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpSalaryAssignment", "SalaryAssignment")
+                        .WithMany()
+                        .HasForeignKey("SalaryAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryGrade", "SalaryGrade")
+                        .WithMany()
+                        .HasForeignKey("SalaryGradeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryStructure", "SalaryStructure")
+                        .WithMany()
+                        .HasForeignKey("SalaryStructureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BankAccount");
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("LastPayrollPeriod");
+
+                    b.Navigation("OrganizationAssignment");
+
+                    b.Navigation("SalaryAssignment");
+
+                    b.Navigation("SalaryGrade");
+
+                    b.Navigation("SalaryStructure");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAdjustment", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "AppliedByUser")
+                        .WithMany()
+                        .HasForeignKey("AppliedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
+                        .WithMany()
+                        .HasForeignKey("PayrollComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRejectionReason", "RejectionReason")
+                        .WithMany()
+                        .HasForeignKey("RejectionReasonId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRequestReason", "RequestReason")
+                        .WithMany()
+                        .HasForeignKey("RequestReasonId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowDefinition", "WorkflowDefinition")
+                        .WithMany()
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AppliedByUser");
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("PayrollComponent");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("PayrollRunEmployee");
+
+                    b.Navigation("RejectionReason");
+
+                    b.Navigation("RequestReason");
+
+                    b.Navigation("SubmittedByUser");
+
+                    b.Navigation("WorkflowDefinition");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollApproval", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ActualActionByUser")
+                        .WithMany()
+                        .HasForeignKey("ActualActionByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ActualActionByWorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("ActualActionByWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "AssignedApproverUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedApproverUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "AssignedApproverWorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("AssignedApproverWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "DelegatedFromUser")
+                        .WithMany()
+                        .HasForeignKey("DelegatedFromUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
+                        .WithMany("Approvals")
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRejectionReason", "RejectionReason")
+                        .WithMany()
+                        .HasForeignKey("RejectionReasonId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowStep", "WorkflowStep")
+                        .WithMany()
+                        .HasForeignKey("WorkflowStepId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ActualActionByUser");
+
+                    b.Navigation("ActualActionByWorkforceProfile");
+
+                    b.Navigation("AssignedApproverUser");
+
+                    b.Navigation("AssignedApproverWorkforceProfile");
+
+                    b.Navigation("DelegatedFromUser");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("RejectionReason");
+
+                    b.Navigation("WorkflowStep");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollAttendanceInput", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
+                        .WithMany()
+                        .HasForeignKey("AttendanceDailyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ImportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ImportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany("AttendanceInputs")
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AttendanceDaily");
+
+                    b.Navigation("ImportedByUser");
+
+                    b.Navigation("PayrollRunEmployee");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollEmployeeComponent", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
+                        .WithMany()
+                        .HasForeignKey("PayrollComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany("Components")
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PayrollComponent");
+
+                    b.Navigation("PayrollRunEmployee");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollOvertimeInput", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ImportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ImportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimeRealization", "OvertimeRealization")
+                        .WithMany()
+                        .HasForeignKey("OvertimeRealizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.WfpOvertimeRequest", "OvertimeRequest")
+                        .WithMany()
+                        .HasForeignKey("OvertimeRequestId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany("OvertimeInputs")
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ImportedByUser");
+
+                    b.Navigation("OvertimeRealization");
+
+                    b.Navigation("OvertimeRequest");
+
+                    b.Navigation("PayrollRunEmployee");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PaidByUser")
+                        .WithMany()
+                        .HasForeignKey("PaidByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Models.MstPaymentSettlementMethod", "PaymentSettlementMethod")
+                        .WithMany()
+                        .HasForeignKey("PaymentSettlementMethodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany("Payments")
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
+                        .WithMany("Payments")
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BankAccount");
+
+                    b.Navigation("PaidByUser");
+
+                    b.Navigation("PaymentSettlementMethod");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("PayrollRunEmployee");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "GeneratedByUser")
+                        .WithMany()
+                        .HasForeignKey("GeneratedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithOne("Payslip")
+                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayslip", "PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PublishedByUser")
+                        .WithMany()
+                        .HasForeignKey("PublishedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("GeneratedByUser");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("PayrollRunEmployee");
+
+                    b.Navigation("PublishedByUser");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollReversal", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", "PayrollPayment")
+                        .WithMany("Reversals")
+                        .HasForeignKey("PayrollPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
+                        .WithMany("Reversals")
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PostedByUser")
+                        .WithMany()
+                        .HasForeignKey("PostedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ReversedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReversedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PayrollPayment");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("PayrollRunEmployee");
+
+                    b.Navigation("PostedByUser");
+
+                    b.Navigation("ReversedByUser");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CalculatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CalculatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ClosedByUser")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstHospitalSite", "HospitalSite")
+                        .WithMany()
+                        .HasForeignKey("HospitalSiteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstLegalEntity", "LegalEntity")
+                        .WithMany()
+                        .HasForeignKey("LegalEntityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "LockedByUser")
+                        .WithMany()
+                        .HasForeignKey("LockedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "PayrollPeriod")
+                        .WithMany()
+                        .HasForeignKey("PayrollPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PostedByUser")
+                        .WithMany()
+                        .HasForeignKey("PostedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowDefinition", "WorkflowDefinition")
+                        .WithMany()
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("CalculatedByUser");
+
+                    b.Navigation("ClosedByUser");
+
+                    b.Navigation("HospitalSite");
+
+                    b.Navigation("LegalEntity");
+
+                    b.Navigation("LockedByUser");
+
+                    b.Navigation("PayrollPeriod");
+
+                    b.Navigation("PostedByUser");
+
+                    b.Navigation("SubmittedByUser");
+
+                    b.Navigation("WorkflowDefinition");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpBankAccount", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstCostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "FinalizedByUser")
+                        .WithMany()
+                        .HasForeignKey("FinalizedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlInsurance", "InsuranceProfile")
+                        .WithMany()
+                        .HasForeignKey("InsuranceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
+                        .WithMany()
+                        .HasForeignKey("OrganizationAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", "PayrollProfile")
+                        .WithMany("PayrollRunEmployees")
+                        .HasForeignKey("PayrollProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", "PayrollRun")
+                        .WithMany("Employees")
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpSalaryAssignment", "SalaryAssignment")
+                        .WithMany()
+                        .HasForeignKey("SalaryAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryGrade", "SalaryGrade")
+                        .WithMany()
+                        .HasForeignKey("SalaryGradeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryStructure", "SalaryStructure")
+                        .WithMany()
+                        .HasForeignKey("SalaryStructureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SnapshotFrozenByUser")
+                        .WithMany()
+                        .HasForeignKey("SnapshotFrozenByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", "TaxProfile")
+                        .WithMany()
+                        .HasForeignKey("TaxProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BankAccount");
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("FinalizedByUser");
+
+                    b.Navigation("InsuranceProfile");
+
+                    b.Navigation("OrganizationAssignment");
+
+                    b.Navigation("PayrollProfile");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("SalaryAssignment");
+
+                    b.Navigation("SalaryGrade");
+
+                    b.Navigation("SalaryStructure");
+
+                    b.Navigation("SnapshotFrozenByUser");
+
+                    b.Navigation("TaxProfile");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollVariableInput", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
+                        .WithMany()
+                        .HasForeignKey("PayrollComponentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany("VariableInputs")
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RejectedByUser")
+                        .WithMany()
+                        .HasForeignKey("RejectedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("PayrollComponent");
+
+                    b.Navigation("PayrollRunEmployee");
+
+                    b.Navigation("RejectedByUser");
+
+                    b.Navigation("SubmittedByUser");
+
+                    b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTax", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
+                        .WithMany()
+                        .HasForeignKey("OrganizationAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
+                        .WithMany()
+                        .HasForeignKey("PayrollComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", "TransportAllowancePolicy")
+                        .WithMany("TransportAllowances")
+                        .HasForeignKey("TransportAllowancePolicyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("OrganizationAssignment");
+
+                    b.Navigation("PayrollComponent");
+
+                    b.Navigation("TransportAllowancePolicy");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstEmployeeGrade", "EmployeeGrade")
+                        .WithMany()
+                        .HasForeignKey("EmployeeGradeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstHospitalSite", "HospitalSite")
+                        .WithMany()
+                        .HasForeignKey("HospitalSiteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstLegalEntity", "LegalEntity")
+                        .WithMany()
+                        .HasForeignKey("LegalEntityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollComponent", "PayrollComponent")
+                        .WithMany()
+                        .HasForeignKey("PayrollComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("EmployeeGrade");
+
+                    b.Navigation("HospitalSite");
+
+                    b.Navigation("LegalEntity");
+
+                    b.Navigation("PayrollComponent");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowanceTransaction", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
+                        .WithMany()
+                        .HasForeignKey("AttendanceDailyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", null)
+                        .WithMany("TransportAllowanceTransactions")
+                        .HasForeignKey("MstWorkforceProfileId");
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "PayrollPeriod")
+                        .WithMany()
+                        .HasForeignKey("PayrollPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", "PayrollRunEmployee")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PostedByUser")
+                        .WithMany()
+                        .HasForeignKey("PostedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", "TransportAllowance")
+                        .WithMany("Transactions")
+                        .HasForeignKey("TransportAllowanceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AttendanceDaily");
+
+                    b.Navigation("PayrollPeriod");
+
+                    b.Navigation("PayrollRunEmployee");
+
+                    b.Navigation("PostedByUser");
+
+                    b.Navigation("TransportAllowance");
 
                     b.Navigation("WorkforceProfile");
                 });
@@ -151230,6 +151701,23 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("RenewalRequests");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryIncidentReport", b =>
+                {
+                    b.Navigation("InvestigationRecords");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdDisciplinaryInvestigationRecord", b =>
+                {
+                    b.Navigation("Sanctions");
+
+                    b.Navigation("Suspensions");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.HrdExitClearanceProcess", b =>
+                {
+                    b.Navigation("Checklists");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryCase", b =>
                 {
                     b.Navigation("Decisions");
@@ -151240,18 +151728,6 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryDecision", b =>
                 {
                     b.Navigation("DisciplinaryActions");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryIncidentReport", b =>
-                {
-                    b.Navigation("InvestigationRecords");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxDisciplinaryInvestigationRecord", b =>
-                {
-                    b.Navigation("Sanctions");
-
-                    b.Navigation("Suspensions");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxEmployeeGrievance", b =>
@@ -151268,11 +151744,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("DisciplinaryCases");
 
                     b.Navigation("Investigations");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxExitClearanceProcess", b =>
-                {
-                    b.Navigation("Checklists");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models.TrxWorkplaceInvestigation", b =>
@@ -151911,96 +152382,27 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Realizations");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
-                {
-                    b.Navigation("Payments");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models.TrxPayrollDeductionSchedule", b =>
                 {
                     b.Navigation("DeductionItems");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
-                {
-                    b.Navigation("MedicalServiceFeePayments");
-
-                    b.Navigation("Reversals");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
-                {
-                    b.Navigation("Adjustments");
-
-                    b.Navigation("Approvals");
-
-                    b.Navigation("Employees");
-
-                    b.Navigation("Payments");
-
-                    b.Navigation("Reversals");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
-                {
-                    b.Navigation("Adjustments");
-
-                    b.Navigation("AttendanceInputs");
-
-                    b.Navigation("Components");
-
-                    b.Navigation("OvertimeInputs");
-
-                    b.Navigation("Payments");
-
-                    b.Navigation("Payslip");
-
-                    b.Navigation("VariableInputs");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
-                {
-                    b.Navigation("PayrollRunEmployees");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
-                {
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
-                {
-                    b.Navigation("TransportAllowances");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdRecredentialingVerdict", b =>
-                {
-                    b.Navigation("SyncLogs");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", b =>
-                {
-                    b.Navigation("CheckIns");
-
-                    b.Navigation("KpiTargets");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxFppeEngagement", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdFppeEngagement", b =>
                 {
                     b.Navigation("CaseLogs");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxOppeStaffEvaluation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdOppeStaffEvaluation", b =>
                 {
                     b.Navigation("EvaluationDetails");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceAppraisal", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceAppraisal", b =>
                 {
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceCycle", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceCycle", b =>
                 {
                     b.Navigation("CalibrationSessions");
 
@@ -152021,9 +152423,21 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("SelfAssessments");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxPerformanceImprovementPlan", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdPerformanceImprovementPlan", b =>
                 {
                     b.Navigation("ActionLogs");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.HrdRecredentialingVerdict", b =>
+                {
+                    b.Navigation("SyncLogs");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.TrxEmployeeGoal", b =>
+                {
+                    b.Navigation("CheckIns");
+
+                    b.Navigation("KpiTargets");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models.WfpPerformanceReview", b =>
@@ -152199,6 +152613,63 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Models.TrxDailyStaffingRequirement", b =>
                 {
                     b.Navigation("WorkforceAllocations");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlMedicalServiceFeeCalculation", b =>
+                {
+                    b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayroll", b =>
+                {
+                    b.Navigation("PayrollRunEmployees");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollPayment", b =>
+                {
+                    b.Navigation("MedicalServiceFeePayments");
+
+                    b.Navigation("Reversals");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRun", b =>
+                {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("Approvals");
+
+                    b.Navigation("Employees");
+
+                    b.Navigation("Payments");
+
+                    b.Navigation("Reversals");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlPayrollRunEmployee", b =>
+                {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("AttendanceInputs");
+
+                    b.Navigation("Components");
+
+                    b.Navigation("OvertimeInputs");
+
+                    b.Navigation("Payments");
+
+                    b.Navigation("Payslip");
+
+                    b.Navigation("VariableInputs");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowance", b =>
+                {
+                    b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models.PrlTransportAllowancePolicy", b =>
+                {
+                    b.Navigation("TransportAllowances");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilDepositAccount", b =>
