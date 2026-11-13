@@ -6326,7 +6326,7 @@ daftar riwayat).
 #### Grafik B86 — Status harian, tutup periode, mesin absen, hari libur (`MVP-67`, `EPIC HRD-111`/`112`)
 
 ```text
-BE-HRD-335 ✅ [B84] ─> BE-HRD-342 ✅ ─> BE-HRD-343 ⬜ ─> BE-HRD-344 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-342 ✅ ─> BE-HRD-343 ✅ ─> BE-HRD-344 ⬜
 BE-HRD-335 ✅ [B84] ─> BE-HRD-345 ⬜ ─> BE-HRD-346 ⬜
 BE-HRD-334 ✅ [B84] ─> BE-HRD-347 ⬜
 ```
@@ -6489,8 +6489,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-24`, `AT-HRD-PK-25`, `AT-HRD-PK-27`.
 * **Risiko**: Rendah; devYoga tidak berisi kebijakan per jadwal (`HRD-TF-068`).
 
-#### ⬜ `BE-HRD-343` — Status harian `NotYetPresent`/`NoScan`, hari libur hanya jadwal tetap, scan di luar jendela
+#### ✅ `BE-HRD-343` — Status harian `NotYetPresent`/`NoScan`, hari libur hanya jadwal tetap, scan di luar jendela
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Status**: ✅ Selesai (2026-11-13) — tanpa scan kini `NotYetPresent` selama shift berjalan (shift malam sampai jam selesai hari berikutnya) lalu `NoScan`, tidak lagi `Absent`/pengecualian `ABSENT`; `Holiday` hanya untuk sumber `FixedWorkSchedule`; scan pada hari kerja di luar jendela menjadi pengecualian `OutsideScanWindow` per scan tanpa mengubah log; penjadwal menyapu tiap siklus dan menjadwalkan hitung ulang paksa (`ATT-RECHECK-<rekap>-v<versi>`) untuk `NotYetPresent` yang sudah lewat jam selesai dan `NoScan`/`IncompletePunch` yang menerima scan baru (delta: `AttendanceSchedulerService` diubah untuk Risiko kartu; resolver tidak perlu diubah). Harness 78/78 termasuk kontrol negatif; diperiksa lewat API devYoga. Eksekusi job oleh pekerja latar menunggu konfigurasi `AttendanceScheduler:SystemActorUserId`. Laporan: [BE-HRD-343](../task/report/backend/BE-HRD-343.md)
 * **Outcome**: Urutan penentuan status 35.9.4 berlaku.
 * **Requirement/decision**: `FR-PK-008`, `FR-PK-009`, `FR-PK-011`; `HRD-DEC-207`, `210`, `211`
 * **Kontrak**: `v26` — `state-transition-matrix.md` 30.6
