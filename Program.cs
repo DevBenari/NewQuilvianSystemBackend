@@ -446,6 +446,14 @@ try
     builder.Services.AddScoped<PayrollPayslipService>();
     builder.Services.AddScoped<PayrollMedicalFeeIntakeService>();
     builder.Services.AddScoped<PayrollReportService>();
+    // PAY-BE-15: batas gaji struktur di dalam rentang grade (SR-01..SR-04), murni baca.
+    builder.Services.AddScoped<PayrollSalaryRangeRuleService>();
+    // PAY-BE-16: tunjangan tetap per struktur gaji (SA-01..SA-07).
+    builder.Services.AddScoped<PayrollSalaryStructureAllowanceService>();
+    // PAY-BE-19: penghasilan variabel manual per run (VI-01..VI-09, VI-12); nomor PVI dari NumberSeriesAllocator.
+    builder.Services.AddScoped<PayrollVariableInputService>();
+    // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.
+    builder.Services.AddScoped<PayrollSimulationService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).

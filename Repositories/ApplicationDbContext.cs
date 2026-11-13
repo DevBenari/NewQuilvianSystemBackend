@@ -195,6 +195,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstPayrollComponent> MstPayrollComponents { get; set; }
         public DbSet<MstPayrollComponentCategory> MstPayrollComponentCategories { get; set; }
         public DbSet<MstSalaryStructure> MstSalaryStructures { get; set; }
+        public DbSet<MstSalaryStructureAllowance> MstSalaryStructureAllowances { get; set; }
         public DbSet<MstSalaryGrade> MstSalaryGrades { get; set; }
         public DbSet<MstAllowanceType> MstAllowanceTypes { get; set; }
         public DbSet<MstDeductionType> MstDeductionTypes { get; set; }
