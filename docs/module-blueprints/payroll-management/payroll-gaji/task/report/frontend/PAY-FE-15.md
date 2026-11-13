@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `fc9e74d64` (branch `yasmina`), di atas perubahan `PAY-FE-14` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `6722d7ca` (branch `Yasmina`); controller tunjangan transport pegawai tidak diubah task backend mana pun |
 | Tanggal | 2026-11-12 |
-| Status | 🟡 — source selesai; ESLint 0 galat; uji unit tanpa kegagalan baru; skrip pemeriksa logika `PASS`; **`npm run build` dan `npm run dev` tidak dijalankan atas instruksi pemilik**; uji manual di browser menunggu pemilik |
+| Status | ✅ — source selesai; ESLint 0 galat; uji unit tanpa kegagalan baru; skrip pemeriksa logika `PASS`; agen tidak menjalankan `npm run build` dan `npm run dev` atas instruksi pemilik; pada 2026-11-13 pemilik melaporkan `npm run dev` berhasil dan seluruh uji lulus (laporan lisan, tanpa rincian per langkah, tanpa screenshot tersimpan; bukan bukti agen) lalu menginstruksikan status naik ke ✅; **`npm run build` tetap `NOT RUN`** |
 
 ---
 
@@ -147,6 +147,8 @@ terlihat):
 2. Halaman tambah/ubah tersendiri. Ini perlu dua route tambahan dan pemeriksaan irisan memuat ulang
    seluruh tunjangan; tidak ada manfaat bagi form sependek ini.
 
+Catatan 2026-11-13: pemilik menguji layar di peramban lewat `npm run dev` dan melaporkan lulus; tidak ada screenshot yang disimpan, sehingga `VISUAL CHECK: NOT FEASIBLE` di atas tetap berlaku bagi agen.
+
 ## 4. State yang ditangani di layar
 
 | State | Yang dilihat pengguna |
@@ -197,6 +199,7 @@ bila tidak berhak, judul tampil tanpa nama.
 | Normalizer nominal | `400.000` → `400000`, `1.250.000,75` → `1250000.75`; `parseAmount` dibetulkan agar membaca bentuk kanonik ini | `PASS` | Keluaran skrip |
 | Grep anti-regresi UI (`<button`, `btn-`, `<table`, `fw-`/`fs-`, inline style, warna literal, input mentah, CSS baru) | Bersih | `PASS` | Keluaran perintah |
 | `npm run build` | Tidak dijalankan atas instruksi pemilik | `NOT RUN` | — |
+| `npm run dev` dan uji manual oleh pemilik (2026-11-13) | Dilaporkan berhasil dan seluruh uji lulus. Tidak dirinci: layar dan akun yang dipakai, hasil per langkah uji; tidak ada screenshot tersimpan | `OWNER-REPORTED` — tidak diverifikasi agen; bukan pengganti `npm run build` | Pesan pemilik |
 
 `AUTOMATED TEST: SKIPPED (opsional) — tidak menambah test baru; suite yang ada dijalankan dan logika diperiksa dengan skrip di luar repo.`
 
@@ -220,16 +223,18 @@ dan `TransportAllowancePolicy : Read`):
    ulang.
 8. Akun yang hanya punya `Read`. Harapan: daftar tampil tanpa tombol Tambah, Ubah, dan Hapus.
 
-**Tidak dijalankan:** `npm run build`, `npm run dev`, uji e2e, uji manual di browser.
+Uji manual oleh pemilik (2026-11-13): `OWNER-REPORTED`, lulus. Pemilik menjalankan `npm run dev` dan melaporkan seluruh uji lulus; hasil per langkah tidak dirinci dan tidak diverifikasi agen. `npm run build` tetap `NOT RUN`.
+
+**Tidak dijalankan oleh agen:** `npm run build`, `npm run dev`, uji e2e, uji manual di browser.
 
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. Daftar dan form berjalan | Terpenuhi di source dan logika; jalannya di browser **belum** dibuktikan | Bagian 3.2, 6 |
+| 1. Daftar dan form berjalan | Terpenuhi di source dan logika; pengujian pemilik: lulus (2026-11-13, tanpa rincian) | Bagian 3.2, 6 |
 | 2. Peringatan tampil sebelum menyimpan bila pegawai sudah punya transport bulanan aktif yang beririsan | Terpenuhi (statis dan skrip); peringatan di dalam form, ditambah peringatan data lama di atas daftar | `findOverlappingMonthlyAllowances`, form modal |
 | 3. Tombol dijaga `WorkforceTransportAllowance : *` | Terpenuhi: masuk = `Read`, Tambah = `Create`, Ubah = `Update`, Hapus = `Delete` | Hook dan view |
-| DoD: kriteria terbukti | Sebagian; uji manual **belum** | Bagian 6 |
+| DoD: kriteria terbukti | Terpenuhi menurut pernyataan pemilik (2026-11-13); build produksi belum (`NOT RUN`) | `OWNER-REPORTED`; bagian 6 |
 | DoD: jalan masuk ada | Terpenuhi | Tombol di detail Profil Penggajian |
 | DoD: laporan ditulis | Terpenuhi | Berkas ini |
 | Verifikasi roadmap: build | **Belum** | `NOT RUN` atas instruksi pemilik |
@@ -245,4 +250,4 @@ dan `TransportAllowancePolicy : Read`):
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Task ini: ` M` `payroll-compensation-detail-view.jsx`, ` M` `use-payroll-compensation-detail.js`; `??` route `[id]/transport-allowance/`, folder view `transport-allowance/`, konstanta, hook, service, dan utils transport. Perubahan `PAY-FE-14` yang belum di-commit masih ada. Tidak ada yang di-stage atau di-commit |
-| Langkah berikutnya | Pemilik: `npm run build` dan langkah uji bagian 6. Task berikutnya: `PAY-FE-16` (Tunjangan tetap pada Struktur Gaji) |
+| Langkah berikutnya | Status ✅ atas instruksi pemilik (2026-11-13). Sisa: `npm run build` produksi (`NOT RUN`) bila pemilik menginginkannya sebagai bukti tambahan. |

@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `fc9e74d64` (branch `yasmina`) |
 | Commit backend yang dijadikan rujukan | `6722d7ca` (branch `Yasmina`), dengan perubahan `PAY-BE-14`–`23` yang belum di-commit (tidak menyentuh controller kebijakan transport) |
 | Tanggal | 2026-11-12 |
-| Status | 🟡 — source selesai; ESLint 0 galat; uji unit Payroll lolos; **`npm run build` dan `npm run dev` tidak dijalankan atas instruksi pemilik**; uji manual di browser menunggu pemilik |
+| Status | ✅ — source selesai; ESLint 0 galat; uji unit Payroll lolos; agen tidak menjalankan `npm run build` dan `npm run dev` atas instruksi pemilik; pada 2026-11-13 pemilik melaporkan `npm run dev` berhasil dan seluruh uji lulus (laporan lisan, tanpa rincian per langkah, tanpa screenshot tersimpan; bukan bukti agen) lalu menginstruksikan status naik ke ✅; **`npm run build` tetap `NOT RUN`** |
 
 ---
 
@@ -157,6 +157,8 @@ berlaku.
 
 `UI GATE: PASS — 0 NEW, 0 EXTEND, 1 COMPOSE (tanpa perubahan base component), sisanya REUSE`
 
+Catatan 2026-11-13: pemilik menguji layar di peramban lewat `npm run dev` dan melaporkan lulus; tidak ada screenshot yang disimpan, sehingga `VISUAL CHECK: NOT FEASIBLE` di atas tetap berlaku bagi agen.
+
 ## 4. State yang ditangani di layar
 
 | State | Yang dilihat pengguna |
@@ -201,6 +203,7 @@ Payroll Component yang sudah ada.
 | Skrip pemeriksa utils sekali pakai (di luar repo) | Nominal terkirim angka 400000; relasi kosong `null`; `currencyCode` tidak terkirim; Tetap Bulanan 0 dan Per Kehadiran 0 ditolak; tanggal terbalik ditolak; penanda metode manual benar untuk 5 nilai; ganti legal entity mengosongkan fasilitas; `isActive` hanya saat update | `PASS` | Keluaran skrip |
 | Grep anti-regresi UI (`<button`, `btn-`, `<table`, `fw-`/`fs-`, inline style, warna literal, CSS baru) | Bersih; satu `fs-4` pada ikon menu mengikuti semua butir saudaranya | `PASS` | Keluaran perintah |
 | `npm run build` | Tidak dijalankan atas instruksi pemilik | `NOT RUN` | — |
+| `npm run dev` dan uji manual oleh pemilik (2026-11-13) | Dilaporkan berhasil dan seluruh uji lulus. Tidak dirinci: layar dan akun yang dipakai, hasil per langkah uji; tidak ada screenshot tersimpan | `OWNER-REPORTED` — tidak diverifikasi agen; bukan pengganti `npm run build` | Pesan pemilik |
 
 `AUTOMATED TEST: SKIPPED (opsional) — tidak menambah test baru; suite yang ada dijalankan (lihat di atas).`
 
@@ -224,17 +227,19 @@ punya sesi login untuk memeriksa layar.
    tetapi tombol Tambah, Perbarui, dan Hapus tidak tampil.
 8. Akun tanpa `Read`. Harapan: butir menu tidak tampil.
 
-**Tidak dijalankan:** `npm run build`, `npm run dev`, uji e2e, uji manual di browser.
+Uji manual oleh pemilik (2026-11-13): `OWNER-REPORTED`, lulus. Pemilik menjalankan `npm run dev` dan melaporkan seluruh uji lulus; hasil per langkah tidak dirinci dan tidak diverifikasi agen. `npm run build` tetap `NOT RUN`.
+
+**Tidak dijalankan oleh agen:** `npm run build`, `npm run dev`, uji e2e, uji manual di browser.
 
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. Daftar, detail, tambah, ubah, status, hapus berjalan | Terpenuhi di source dan logika (status lewat saklar form Perbarui sesuai standar master data); jalannya di browser **belum** dibuktikan | Bagian 3.2, 6 |
+| 1. Daftar, detail, tambah, ubah, status, hapus berjalan | Terpenuhi di source dan logika (status lewat saklar form Perbarui sesuai standar master data); pengujian pemilik: lulus (2026-11-13, tanpa rincian) | Bagian 3.2, 6 |
 | 2. Cara hitung selain "Bulanan tetap" menampilkan keterangan "Metode ini belum dihitung otomatis di run. Gunakan Penghasilan Variabel." | Terpenuhi (form dan detail). Label backend untuk metode ini adalah "Tetap Bulanan" | Form view, detail view; skrip pemeriksa |
 | 3. Butir menu dijaga `TransportAllowancePolicy : Read`; tombol tulis dijaga `Create`, `Update`, `Delete` | Terpenuhi | `menu-items.jsx`; `canCreate`, `canUpdate`, `canDelete` |
-| 4. Empat keadaan (memuat, kosong, gagal, berisi) ada | Terpenuhi di source; tampilan di browser **belum** dilihat | Bagian 4 |
-| DoD: kriteria terbukti | Sebagian; uji manual **belum** | Bagian 6 |
+| 4. Empat keadaan (memuat, kosong, gagal, berisi) ada | Terpenuhi di source; pengujian pemilik: lulus (2026-11-13, tanpa rincian) | Bagian 4 |
+| DoD: kriteria terbukti | Terpenuhi menurut pernyataan pemilik (2026-11-13); build produksi belum (`NOT RUN`) | `OWNER-REPORTED`; bagian 6 |
 | DoD: butir menu terdaftar | Terpenuhi | `menu-items.jsx` baris 1591–1597 |
 | DoD: laporan ditulis | Terpenuhi | Berkas ini |
 | Verifikasi roadmap: build | **Belum** | `NOT RUN` atas instruksi pemilik |
@@ -249,4 +254,4 @@ punya sesi login untuk memeriksa layar.
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | ` M src/lib/state/store.jsx`, ` M src/utils/menu-sidebar/menu-items.jsx`, `??` enam folder/berkas fitur `transport-allowance-policy`. Tidak ada yang di-stage atau di-commit |
-| Langkah berikutnya | Pemilik: `npm run build` dan langkah uji bagian 6. Task berikutnya: `PAY-FE-15` (Tunjangan Transportasi pegawai, termasuk peringatan tunjangan bulanan yang beririsan) |
+| Langkah berikutnya | Status ✅ atas instruksi pemilik (2026-11-13). Sisa: `npm run build` produksi (`NOT RUN`) bila pemilik menginginkannya sebagai bukti tambahan. |
