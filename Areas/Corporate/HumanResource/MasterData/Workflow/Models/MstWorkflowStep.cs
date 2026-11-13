@@ -79,6 +79,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflo
         [MaxLength(1000)]
         public string? Instructions { get; set; }
 
+        /// <summary>
+        /// Kode kondisi yang mengaktifkan langkah ini (BE-PBJ-001, PBJ-DEC-030). Bila kosong,
+        /// langkah selalu dibuat — perilaku seluruh langkah yang sudah ada. Bila diisi, langkah
+        /// hanya dibuat ketika <c>RequestContext.conditionCodes</c> pada permohonan memuat kode
+        /// yang sama, misalnya langkah Direktur Keuangan dengan kode <c>PBJ_OVER_BUDGET</c>.
+        /// </summary>
+        [MaxLength(50)]
+        public string? ActivationConditionCode { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public MstWorkflowDefinition? WorkflowDefinition { get; set; }

@@ -165,3 +165,17 @@ tidak mengubahnya.
 | Instrumen berversi | Jalur renderer berisi instrumen menunggu instrumen rehab disahkan (sama dengan `FE-RHB-005`) |
 | Data uji | Program v2 `RHB-EPS-2026-000006` kini dihentikan. Uji berikutnya yang butuh program aktif memakai episode lain atau revisi program. |
 | Dependency backend | Tidak ada yang baru |
+
+## Revisi 2026-11-10 — daftar dan rincian sesi
+
+Diminta langsung oleh user, disamakan dengan daftar permintaan dan episode (lihat `FE-RHB-003.md` §8).
+
+| Berkas | Perubahan | Keputusan base component |
+| --- | --- | --- |
+| `sessions/rehab-sessions-view.jsx` | Tombol *Muat Ulang* di header filter dihapus (*Coba lagi* pada alert error tetap) | `REUSE` (`DataFilter`) |
+| `sessions/rehab-sessions-view.jsx` | Kolom *Pasien*: nama di atas, nomor RM (tanpa label) di bawah | `COMPOSE` (`fw-semibold` / `text-muted small`) |
+| `sessions/rehab-sessions-view.jsx` | Kolom aksi dihapus (*Buka Sesi*, *Buka Ruang Kerja Episode*); sesi dibuka dengan klik dua kali baris. Pintasan ke ruang kerja episode dari daftar tidak lagi ada. | `REUSE` (`DataTable.onRowDoubleClick`) |
+| `sessions/rehab-session-view.jsx` | Baris badge di bawah hero (`SessionStatusRow`: sesi, catatan, rekam medis, billing, telaah program, episode) dihapus dari tampilan baca dan editor. Alert galat tindakan tetap. | `REUSE` |
+| `sessions/rehab-session-view.jsx` | Hero tampilan baca: *Muat Ulang* dihapus, *Lihat Program* menjadi `primary` | `REUSE` (`BaseButton`) |
+
+`npx eslint src/components/view/health-services/rehabilitation-management/sessions` PASS (exit 0). AUTOMATED TEST: SKIPPED (opsional). MANUAL TEST: NOT FEASIBLE pada sesi ini — server tidak dijalankan. Catatan: kelas `statusRow` di CSS sesi kini mungkin tidak terpakai; tidak dihapus.

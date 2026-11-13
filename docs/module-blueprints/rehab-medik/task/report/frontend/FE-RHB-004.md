@@ -166,3 +166,26 @@ Kedua server dihentikan.
 | Ruang kerja tumbuh | `FE-RHB-005..011` mengganti isi bagian masing-masing di `REHAB_EPISODE_WORKSPACE_SECTIONS` / `WorkspaceDocumentSection`. Bunyi kosong tetap dipakai sampai dokumen pertama ada. |
 | Footer tetap aplikasi | Masih menutupi sebagian konten di bawah layar (temuan lama `FE-RHB-002`, di luar cakupan) |
 | Dependency backend | Tidak ada yang baru. Task lanjutan tetap tertahan `BE-RHB-004` (bukti `RHB-OQ-012`) → `BE-RHB-009`/`010`. |
+
+## Revisi 2026-11-10 — tombol hero ruang kerja episode
+
+Diminta langsung oleh user. Berkas: `src/components/view/health-services/rehabilitation-management/episodes/rehab-episode-workspace-view.jsx`.
+
+| Perubahan | Keputusan base component | Isi |
+| --- | --- | --- |
+| Tombol *Muat Ulang* di hero dihapus | `REUSE` (`BaseDetailView.renderDetailActions`) | `reload` tidak lagi diambil dari hook; hook tidak diubah. |
+| *Lihat Permintaan* menjadi tombol utama | `REUSE` (`BaseButton variant="primary"`, gradient) | Sebelumnya `secondary`. *Kembali* tetap `secondary`. |
+
+UI GATE: semua `REUSE`. `npx eslint <berkas>` PASS (exit 0). AUTOMATED TEST: SKIPPED (opsional) — perubahan presentasi. MANUAL TEST: NOT FEASIBLE pada sesi ini — server tidak dijalankan. Status roadmap tetap.
+
+## Revisi 2026-11-10 — tabel daftar episode
+
+Diminta langsung oleh user, disamakan dengan daftar permintaan (lihat `FE-RHB-003.md` §8). Berkas: `src/components/view/health-services/rehabilitation-management/episodes/rehab-episodes-view.jsx`.
+
+| Perubahan | Keputusan base component |
+| --- | --- |
+| Tombol *Muat Ulang* di header filter dihapus (*Coba lagi* pada alert error tetap) | `REUSE` (`DataFilter`) |
+| Kolom *Pasien* + *No. RM* digabung: nama di atas, nomor RM (tanpa label) di bawah | `COMPOSE` (utilitas `fw-semibold` / `text-muted small`) |
+| Kolom aksi (`RowActionMenu`) dihapus; ruang kerja dibuka dengan klik dua kali baris | `REUSE` (`DataTable.onRowDoubleClick`) |
+
+`npx eslint <berkas>` PASS (exit 0). AUTOMATED TEST: SKIPPED (opsional). MANUAL TEST: NOT FEASIBLE pada sesi ini — server tidak dijalankan.
