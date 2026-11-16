@@ -2810,3 +2810,108 @@ Kontrak API Versi `v25` mencakup 24 endpoint rencana berstandar Swagger untuk me
 | `POST` | `/api/v1/hrd/travel/rates` | Mengonfigurasi tarif uang harian dinas (per diem) rumah sakit | HR Admin, Direktur SDM | `ConfigureTravelRateDto` (ZoneId, JobGradeGroup, DailyPerDiemRate) | `201 Created`, `400 Bad Request` |
 | `GET` | `/api/v1/hrd/travel/zones` | Mengambil daftar zonasi tujuan perjalanan dinas (Zona 1, Zona 2, Zona 3) | Seluruh Pegawai, HR | None | `200 OK`, `401 Unauthorized` |
 | `GET` | `/api/v1/hrd/travel/overdue-reports` | Mengunduh radar laporan pegawai menunggak settlement > 7, 14, dan 30 hari | HR Admin, Finance Manager | `departmentId`, `cutoffDate` | `200 OK`, `401 Unauthorized` |
+
+---
+
+## 32. Slice `S-A8`: Data Penggajian Pegawai (HRD) — Karyawan, Perawat, dan Dokter (Kontrak `v26`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v26` |
+| `last_changed_in` | `v26` — bagian 32 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `36` bagian 52 (`HRD-DEC-194` s.d. `HRD-DEC-199`, `HRD-ASM-75` s.d. `HRD-ASM-78`, `HRD-Q-197` s.d. `HRD-Q-199`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-199`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Kontrak ini mengatur empat endpoint untuk melihat kelengkapan dan mengubah **penetapan gaji utama** (`WfpSalaryAssignment`) serta **rekening payroll** (`WfpBankAccount`) per orang. Data ini milik HRD; modul Payroll hanya membacanya (`INT-HR-101`). Seluruh endpoint **sudah ada di source** sejak 16 November 2026 tetapi **belum di-build dan belum diuji**; kontrak ini mengunci perilaku itu sebagai target setelah disetujui.
+
+### 32.1 Grup Tag Swagger `[Tags("Corporate / Human Resource / Workforce Core / Payroll Data")]`
+
+Base URL: `api/v1/corporate/human-resource/workforce-core/payroll-data`. Controller `WorkforcePayrollDataController`, `[AccessController]` modul `HUMAN_RESOURCE_WORKFORCE_CORE`, `ControllerName = "WorkforcePayrollData"`. Seluruh endpoint membutuhkan pengguna yang sudah masuk.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar karyawan, perawat, dan dokter aktif beserta kelengkapan penetapan gaji utama dan rekening payroll | `WorkforcePayrollData : Read` | Query `WorkforcePayrollDataQuery` | `ApiResponse<PagedResult<WorkforcePayrollDataItemResponse>>` |
+| `GET` | `/summary` | Ringkasan jumlah: total orang, gaji utama disetujui, rekening terverifikasi, data lengkap | `WorkforcePayrollData : Read` | — | `ApiResponse<WorkforcePayrollDataSummaryResponse>` |
+| `GET` | `/{workforceProfileId}` | Isian satu orang untuk diubah, termasuk gaji pokok dan nomor rekening lengkap (`HRD-DEC-195`) | `WorkforcePayrollData : Update` | Path `workforceProfileId` (GUID) | `ApiResponse<WorkforcePayrollDataDetailResponse>` |
+| `PUT` | `/{workforceProfileId}` | Simpan penetapan gaji utama dan/atau rekening payroll satu orang | `WorkforcePayrollData : Update`; opsi setuju butuh juga `WfpSalaryAssignment : Update`; opsi verifikasi butuh juga `WorkforceBankAccount : Update` (`HRD-DEC-194`, `HRD-ASM-77`) | Path `workforceProfileId` + body `UpdateWorkforcePayrollDataRequest` | `ApiResponse<WorkforcePayrollDataSaveResponse>` |
+
+**Kode status dan artinya bagi pengguna:**
+
+| Kode | Kapan | Arti bagi pengguna |
+| --- | --- | --- |
+| `200` | Berhasil | Data tampil atau tersimpan. Simpan tanpa perubahan nyata tetap `200` dengan hasil "Tidak diubah" |
+| `400` | Isian ditolak (`VR-WPD-*`) | Pesan menyebut sebabnya; **tidak ada** yang tersimpan |
+| `401` | Belum masuk | Sesi habis; masuk ulang |
+| `403` | Tanpa hak endpoint, atau memilih opsi setuju/verifikasi tanpa haknya | "Anda tidak berwenang menyetujui penetapan gaji." / "Anda tidak berwenang memverifikasi rekening bank." |
+| `404` | Orang bukan karyawan atau dokter aktif | "Pegawai, perawat, atau dokter tidak ditemukan atau sudah tidak aktif." |
+
+### 32.2 DTO request
+
+**`WorkforcePayrollDataQuery`** (query `GET /`)
+
+| Field | Tipe | Wajib | Bawaan | Keterangan |
+| --- | --- | --- | --- | --- |
+| `search` | string | Tidak | — | Mencocokkan nama atau nomor (tanpa membedakan huruf besar) |
+| `personType` | string | Tidak | semua | `Karyawan`, `Perawat`, atau `Dokter` (`HRD-DEC-198`) |
+| `completeness` | string | Tidak | semua | `Lengkap` atau `Belum lengkap` |
+| `pageNumber` | int | Tidak | `1` | Paling kecil 1 |
+| `pageSize` | int | Tidak | `25` | Dibatasi 1 s.d. 100 |
+
+**`UpdateWorkforcePayrollDataRequest`** (body `PUT`). Bagian bernilai `null` **tidak disentuh**.
+
+| Field | Tipe | Wajib | Keterangan |
+| --- | --- | --- | --- |
+| `salary` | `UpdateWorkforcePayrollSalaryRequest` | Tidak | Penetapan gaji utama |
+| `salary.salaryStructureId` | GUID | Ya bila `salary` dikirim | Struktur gaji aktif; grade diambil dari struktur |
+| `salary.baseSalary` | decimal | Ya bila `salary` dikirim | Lebih dari nol. **Sensitif** |
+| `salary.effectiveStartDate` | date | Ya bila `salary` dikirim | Tahun 2000 atau sesudahnya |
+| `bankAccount` | `UpdateWorkforcePayrollBankRequest` | Tidak | Rekening payroll |
+| `bankAccount.bankId` | GUID | Ya bila `bankAccount` dikirim | Bank aktif |
+| `bankAccount.accountNumber` | string | Ya bila `bankAccount` dikirim | Dinormalkan menjadi huruf dan angka saja, huruf besar; paling panjang 100. **Sensitif** |
+| `bankAccount.accountHolderName` | string | Ya bila `bankAccount` dikirim | Dipangkas; paling panjang 200. **Sensitif** |
+| `approveSalaryAssignment` | bool | Tidak (`false`) | Setujui penetapan gaji sesudah disimpan |
+| `markBankAccountVerified` | bool | Tidak (`false`) | Tandai rekening terverifikasi sesudah disimpan |
+
+### 32.3 DTO response
+
+**`WorkforcePayrollDataItemResponse`** (satu baris daftar — **tanpa** gaji pokok dan **tanpa** nomor rekening lengkap)
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `workforceProfileId` | GUID | Kunci orang; tidak ditampilkan di layar |
+| `personType` | string | `Karyawan`, `Perawat`, atau `Dokter` |
+| `number`, `name` | string | Nomor pegawai atau dokter, dan nama |
+| `departmentName`, `positionName` | string? | Unit dan jabatan utama |
+| `hasApprovedSalaryAssignment`, `hasPendingSalaryAssignment` | bool | Status penetapan gaji utama yang dipakai (`HRD-ASM-78`) |
+| `salaryStructureName`, `salaryEffectiveStartDate` | string?, date? | Struktur dan tanggal mulai penetapan yang dipakai |
+| `bankStatus` | string | `Belum ada`, `Belum terverifikasi`, atau `Terverifikasi` |
+| `bankName` | string? | Nama bank rekening yang dipakai |
+| `accountNumberMasked` | string? | Contoh `****7890`: hanya empat karakter terakhir |
+| `isComplete`, `issues` | bool, string[] | Lengkap bila penetapan disetujui **dan** rekening terverifikasi; `issues` menyebut kekurangannya |
+
+**`WorkforcePayrollDataSummaryResponse`**: `totalPeople`, `withApprovedSalaryAssignment`, `withVerifiedBankAccount`, `complete` (int).
+
+**`WorkforcePayrollDataDetailResponse`**: identitas orang (`workforceProfileId`, `personType`, `number`, `name`, `departmentName`, `positionName`), `salary` (`null` bila belum ada: `id`, `salaryStructureId`, `salaryStructureCode`, `salaryStructureName`, `salaryGradeCode`, `gradeMinimum`, `gradeMaximum`, `baseSalary` **Sensitif**, `effectiveStartDate`, `isApproved`, `approvedAt`), dan `bankAccount` (`null` bila belum ada: `id`, `bankId`, `bankName`, `accountNumber` **Sensitif**, `accountHolderName` **Sensitif**, `isVerified`).
+
+**`WorkforcePayrollDataSaveResponse`**
+
+| Field | Nilai yang mungkin | Contoh |
+| --- | --- | --- |
+| `salaryAssignment` | `Tidak diubah`, `Dibuat`, `Diperbarui`, `Disetujui`, `Dibuat dan disetujui`, `Diperbarui dan disetujui` | Penetapan baru yang langsung disetujui: `Dibuat dan disetujui` |
+| `bankAccount` | `Tidak diubah`, `Dibuat`, `Diperbarui`, `Terverifikasi`, `Dibuat dan terverifikasi`, `Diperbarui dan terverifikasi` | Nomor rekening diganti tanpa opsi verifikasi: `Diperbarui` |
+| `warnings` | daftar teks | "Penetapan gaji berubah, jadi persetujuannya dicabut dan perlu disetujui kembali." · "Data rekening berubah, jadi verifikasinya dicabut dan perlu diverifikasi kembali." · "Gaji pokok di luar rentang grade G-10 (Rp 10.000.000 – Rp 16.000.000)." |
+
+### 32.4 Endpoint pilihan master yang dikonsumsi layar (sudah ada, tidak berubah)
+
+| Method | Path | Kegunaan pada slice ini | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `api/v1/corporate/human-resource/master-data/salary-structures/options` | Pilihan struktur gaji pada formulir (`HRD-DEC-197`) | `SalaryStructure : Read` |
+| `GET` | `api/v1/administrator/master-data/banks/options` | Pilihan bank pada formulir (`HRD-DEC-197`) | `Bank : Read` |

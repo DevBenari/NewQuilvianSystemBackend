@@ -7,7 +7,7 @@ module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
 roadmap_revision: 17
-draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 25): FE-HRD-306 s.d. FE-HRD-308. Source sudah ditulis di luar siklus task dan belum di-build; menunggu BE-HRD-334 s.d. BE-HRD-337 dan gerbang G1 (kontrak v26); keputusan terdaftar HRD-DEC-194 s.d. HRD-DEC-199 (G2 tertutup 16 November 2026). Tidak ada tanda status yang berubah pada task lama."
+draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 25): FE-HRD-306 s.d. FE-HRD-308. Source sudah ditulis di luar siklus task dan belum di-build; menunggu BE-HRD-334 s.d. BE-HRD-337 (kontrak v26 approved 16 November 2026, gerbang G1 tertutup); keputusan terdaftar HRD-DEC-194 s.d. HRD-DEC-199 (G2 tertutup 16 November 2026). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
 status_synced_at: "11 November 2026 — FE-HRD-R01: 137 task diturunkan ke 🟡 sesuai audit frontend-unfinished-work.md; status register FE-HRD-058 s.d. 087 diisi; FE-HRD-216 s.d. 305 ditambahkan ke register; FE-HRD-027 disamakan dengan laporannya (🟡)"
 planning_updated_at: "2026-11-09 - Slice S-B3 Administrasi Lembur Pegawai Rumah Sakit (sub-modul 09) diselesaikan secara penuh (FE-HRD-116 s.d. FE-HRD-129 ✅ PASS) mencakup 6 rute antarmuka, 14 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-B2 (FE-HRD-102 s.d. FE-HRD-115), Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087), Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074)"
@@ -5983,7 +5983,7 @@ BE-HRD-333 ⏳ [BE]  ───────────────────�
 
 ## 25. S-A8: Data Penggajian Pegawai (HRD) — Karyawan, Perawat, dan Dokter (DRAFT, 16 November 2026)
 
-> **Status slice: DRAFT.** Source frontend sudah ditulis pada 16 November 2026 atas perintah langsung pemilik, di luar siklus task, dan belum di-build maupun diuji di browser. Aturan bisnis, keputusan yang dikonfirmasi, gerbang terbuka, dan kontrak API yang direncanakan ada pada bagian 24 `backend-roadmap.md` (slice `S-A8`); tidak diulang di sini. Task frontend menunggu task backend yang sesuai (ditandai `[BE]`) dan tidak boleh dikirim ke builder sebelum gerbang G1 dicabut.
+> **Status slice: kontrak `v26` APPROVED 16 November 2026.** Source frontend sudah ditulis pada 16 November 2026 atas perintah langsung pemilik, di luar siklus task, dan belum di-build maupun diuji di browser. Aturan bisnis, keputusan yang dikonfirmasi, gerbang terbuka, dan kontrak API ada pada bagian 24 `backend-roadmap.md` (slice `S-A8`); tidak diulang di sini. Task frontend menunggu task backend yang sesuai (ditandai `[BE]`) dan boleh dikirim ke builder sesudah task backend pasangannya; gerbang G1 tertutup 16 November 2026.
 
 ### Wewenang UI dan gerbang keputusan base component
 
@@ -6010,7 +6010,9 @@ BE-HRD-337 [BE] ─────────────────────�
 
 | Gelombang | Target Cakupan Layar & Komponen UI | Task Frontend | Prasyarat Backend Terkait |
 |---|---|---|---|
-| ⛔ menunggu {Kontrak v26} | Halaman daftar, formulir ubah per orang, dan verifikasi layar | `FE-HRD-306`, `FE-HRD-307`, `FE-HRD-308` | `BE-HRD-334`, `BE-HRD-336`, `BE-HRD-337` |
+| 1 · `MVP-66` | Halaman daftar | `FE-HRD-306` | `BE-HRD-334` |
+| 2 · `MVP-66` | Formulir ubah per orang | `FE-HRD-307` | `BE-HRD-336` |
+| 3 · Verifikasi | Navigasi, build, dan uji layar di browser | `FE-HRD-308` | `BE-HRD-337` |
 
 ---
 
@@ -6020,7 +6022,7 @@ BE-HRD-337 [BE] ─────────────────────�
 * **Slice / MVP**: `S-A8` / `MVP-66`
 * **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 4 acceptance criteria terbukti penuh (butuh tampilan di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
 * **Outcome**: Halaman daftar karyawan, perawat, dan dokter aktif dengan kartu ringkasan, filter Jenis (Karyawan, Perawat, Dokter), Kelengkapan, pencarian, dan jumlah baris, serta tabel: nama dan nomor beserta jabatan dan unit, penetapan gaji utama (status, struktur, tanggal mulai), rekening payroll (status, bank, nomor disamarkan), dan kelengkapan beserta alasannya. Butir menu **Data Penggajian Pegawai** di Administrasi Kepegawaian, dijaga `WorkforcePayrollData : Read`.
-* **Kontrak**: belum ada — rencana API Contract v26 (gerbang G1).
+* **Kontrak**: API Contract v26 bagian 32 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
 * **Dependencies**: `BE-HRD-334` [BE]
 * **Acceptance Criteria**:
   1. Seluruh state tampil: memuat, kosong, gagal, dan tanpa hak akses.
@@ -6034,7 +6036,7 @@ BE-HRD-337 [BE] ─────────────────────�
 * **Slice / MVP**: `S-A8` / `MVP-66`
 * **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 6 acceptance criteria terbukti penuh (butuh interaksi di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
 * **Outcome**: Tombol **Ubah** pada tiap baris (hanya bagi pemegang `WorkforcePayrollData : Update`) membuka formulir yang memuat isian orang itu dan memiliki dua bagian: **Penetapan Gaji Utama** (struktur gaji, gaji pokok, tanggal mulai berlaku) dan **Rekening Payroll** (bank, nomor rekening, nama pemilik), ditambah dua opsi: **Setujui penetapan gaji** dan **Tandai rekening terverifikasi**, yang hanya aktif bagi pemegang hak yang sesuai. Pilihan struktur dan bank diambil dari master; pengguna tidak pernah mengetik atau melihat id. Pesan penolakan Backend ditampilkan apa adanya; peringatan hasil simpan tampil sebagai toast.
-* **Kontrak**: belum ada — rencana API Contract v26 (gerbang G1).
+* **Kontrak**: API Contract v26 bagian 32 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
 * **Dependencies**: `FE-HRD-306`, `BE-HRD-336` [BE]
 * **Acceptance Criteria**:
   1. Formulir memuat isian saat ini; selama memuat dan saat gagal memuat, tombol Simpan tidak aktif.
@@ -6048,7 +6050,7 @@ BE-HRD-337 [BE] ─────────────────────�
 
 #### `FE-HRD-308` — Verifikasi slice S-A8: navigasi, build, dan uji layar di browser
 * **Slice / MVP**: `S-A8` / Verifikasi
-* **Status**: belum dikerjakan. Gerbang terbuka: G1, G4.
+* **Status**: belum dikerjakan. Gerbang terbuka: G4.
 * **Outcome**: Bukti bahwa butir menu tampil sesuai hak akses, halaman dan formulir berjalan di browser, dan source lulus build.
 * **Dependencies**: `FE-HRD-307`, `BE-HRD-337` [BE]
 * **Acceptance Criteria**:

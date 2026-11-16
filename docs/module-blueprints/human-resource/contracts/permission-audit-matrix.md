@@ -1602,3 +1602,47 @@ Seluruh perubahan siklus, penyesuaian skor kalibrasi, penerbitan kontrak pembina
 | `HRD_TRV_ROSTER_LOCK_APPLIED` | Pemasangan gembok hard-stop roster dinas bangsal | `EmployeeId`, `RestrictedDates`, `WardUnitId` | Keselamatan Pasien |
 | `HRD_EXP_CLAIM_SUBMITTED` | Staf mengajukan klaim operasional non-trip | `ExpenseClaimNumber`, `EmployeeId`, `TotalAmount`, `CategoryId`| Normal |
 | `HRD_EXP_CLAIM_PAID` | Kasir mencairkan klaim operasional non-trip | `ExpenseClaimNumber`, `PaidAmount`, `VoucherNumber`, `CashierId` | Finansial Kritis |
+
+---
+
+## 30. Matriks Hak Akses & Jejak Audit Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v26`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v26` |
+| `last_changed_in` | `v26` — bagian 30 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `36` bagian 52 (`HRD-DEC-194` s.d. `HRD-DEC-199`, `HRD-ASM-75` s.d. `HRD-ASM-78`, `HRD-Q-197` s.d. `HRD-Q-199`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-199`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Hak akses diberikan admin lewat Pengaturan → Manajemen Role → **Akses Role**. Tidak ada nama peran, departemen, atau posisi yang ditulis di kode.
+
+### 30.1 Matriks Hak Akses
+
+| `[AccessPermission]` | `[AccessAction]` | `AccessType` | Endpoint | Kegunaan |
+| --- | --- | --- | --- | --- |
+| `WorkforcePayrollData`, `Read` | `Read` — "Read Workforce Payroll Data" | `Read` | `GET /`, `GET /summary` | Melihat daftar dan ringkasan, tanpa gaji pokok; nomor rekening disamarkan (`HRD-DEC-195`) |
+| `WorkforcePayrollData`, `Update` | `Update` — "Update Workforce Payroll Data" | `Update` | `GET /{workforceProfileId}`, `PUT /{workforceProfileId}` | Memuat isian lengkap dan menyimpan perubahan |
+| `WfpSalaryAssignment`, `Update` (sudah ada) | — | `Update` | dicek di dalam `PUT` | Syarat tambahan opsi **Setujui penetapan gaji** (`HRD-ASM-77`) |
+| `WorkforceBankAccount`, `Update` (sudah ada) | — | `Update` | dicek di dalam `PUT` | Syarat tambahan opsi **Tandai rekening terverifikasi** (`HRD-ASM-77`) |
+| `SalaryStructure`, `Read` (sudah ada) | — | `Read` | `salary-structures/options` | Mengisi pilihan struktur gaji pada formulir (`HRD-DEC-197`) |
+| `Bank`, `Read` (sudah ada) | — | `Read` | `banks/options` | Mengisi pilihan bank pada formulir (`HRD-DEC-197`) |
+
+Argumen ke-1 `[AccessPermission]` sama persis dengan `ControllerName = "WorkforcePayrollData"`; argumen ke-2 sama persis dengan argumen ke-1 `[AccessAction]` pada method yang sama. Hak `Import` dari versi sebelumnya **tidak ada lagi** (`HRD-DEC-199`). SuperAdmin lolos otomatis kecuali kebijakan keamanan menyatakan lain.
+
+### 30.2 Matriks Jejak Audit
+
+| Peristiwa | Kategori / aksi log | Pemicu | Data yang direkam | **Tidak** direkam |
+| --- | --- | --- | --- | --- |
+| Data penggajian diperbarui | `Corporate.HumanResource.WorkforceCore.PayrollData` / `WorkforcePayrollData.Update` | `PUT` yang mengubah sesuatu | `WorkforceProfileId`, hasil `SalaryAssignment` dan `BankAccount` (misalnya "Diperbarui dan disetujui"), `Status = Updated`, `ActorUserId` | Gaji pokok, nomor rekening, nama pemilik rekening |
+
+Simpan yang tidak mengubah apa pun tidak menulis log. Jejak pelaku juga tersimpan pada kolom `UpdateBy`/`UpdateDateTime`, `ApprovedByUserId`/`ApprovedAt`, dan `VerifiedByUserId`/`VerifiedAt` tabel yang diubah.
+
+**Privasi:** gaji pokok dan nomor rekening lengkap hanya keluar dari `GET /{workforceProfileId}` (hak `Update`). Daftar memakai `accountNumberMasked`. Log aplikasi tidak memuat kolom bertanda **Sensitif**.

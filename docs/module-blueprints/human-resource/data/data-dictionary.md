@@ -5676,3 +5676,66 @@ Menyimpan pengajuan klaim penggantian biaya operasional langsung tanpa perjalana
 | `SubmittedAt` | `TIMESTAMPTZ` | Ya | `NULL` | Timestamp pengajuan berkas |
 | `PaidAt` | `TIMESTAMPTZ` | Ya | `NULL` | Timestamp pencairan dana oleh Kasir RS |
 | `IsDeleted` | `BOOLEAN` | Tidak | `FALSE` | Audit soft delete |
+
+---
+
+## 27. Kamus Data Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v26`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v26` |
+| `last_changed_in` | `v26` — bagian 27 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `36` bagian 52 (`HRD-DEC-194` s.d. `HRD-DEC-199`, `HRD-ASM-75` s.d. `HRD-ASM-78`, `HRD-Q-197` s.d. `HRD-Q-199`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-199`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Slice ini **tidak membuat dan tidak mengubah tabel**; tanpa migration. Sesuai aturan kedalaman bertingkat, tabel berstatus `Sudah ada` hanya didokumentasikan kolom kunci dan kolom yang dipakai aturan slice ini. Kolom warisan `IdentityModel` tidak diulang.
+
+### 27.1 Tabel `public."WfpSalaryAssignment"` — Sudah ada (pemilik: WorkforceCore / HRD)
+
+Model: `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpSalaryAssignment.cs`.
+
+| Kolom | Tipe | Wajib | Dipakai slice ini untuk | Sensitif |
+| --- | --- | --- | --- | --- |
+| `Id` | uuid | Ya | Kunci | Tidak |
+| `WorkforceProfileId` | uuid | Ya | Pemilik penetapan | Tidak |
+| `SalaryStructureId`, `SalaryGradeId` | uuid | Ya | Struktur dipilih; grade diambil dari struktur | Tidak |
+| `BaseSalary` | decimal | Ya | Gaji pokok | **Ya** |
+| `EffectiveStartDate` / `EffectiveEndDate` | date / date? | Ya / Tidak | Tanggal mulai diubah; tanggal berakhir hanya dibaca (`VR-WPD-05`, `VR-WPD-06`) | Tidak |
+| `IsPrimary`, `IsActive` | bool | Ya | Penetapan yang dipakai (`HRD-ASM-78`); baris baru `IsPrimary = true`, `IsActive = true` | Tidak |
+| `ApprovedAt`, `ApprovedByUserId` | timestamp?, uuid? | Tidak | Status persetujuan; dicabut atau diisi sesuai `HRD-DEC-194` | Tidak |
+| `CurrencyCode`, `PaymentFrequency`, `IsConfidential`, `Description` | — | — | Baris baru diisi `IDR`, `Monthly`, `true`, "Diisi lewat Data Penggajian Pegawai." | Tidak |
+
+### 27.2 Tabel `public."WfpBankAccount"` — Sudah ada (pemilik: WorkforceCore / HRD)
+
+Model: `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpBankAccount.cs`.
+
+| Kolom | Tipe | Wajib | Dipakai slice ini untuk | Sensitif |
+| --- | --- | --- | --- | --- |
+| `Id`, `WorkforceProfileId` | uuid | Ya | Kunci dan pemilik rekening | Tidak |
+| `BankId` / `BankName` | uuid? / varchar(200)? | Tidak | Bank dipilih; nama disalin dari master | Tidak |
+| `AccountNumber` | varchar(100) | Ya | Nomor rekening dinormalkan | **Ya** |
+| `AccountHolderName` | varchar(200) | Ya | Nama pemilik | **Ya** |
+| `IsPayrollAccount`, `IsPrimary`, `IsActive` | bool | Ya | Rekening yang dipakai (`HRD-ASM-78`); baris baru payroll = `true`, utama bila belum ada rekening utama aktif | Tidak |
+| `IsVerified`, `VerifiedAt`, `VerifiedByUserId` | bool, timestamp?, uuid? | — | Status verifikasi; dicabut atau diisi sesuai `HRD-DEC-194` | Tidak |
+| `AccountType`, `CurrencyCode`, `Description` | — | — | Baris baru diisi `Savings`, `IDR`, "Diisi lewat Data Penggajian Pegawai." | Tidak |
+
+### 27.3 Tabel yang Hanya Dibaca
+
+| Tabel | Pemilik | Kolom yang dibaca | Kegunaan |
+| --- | --- | --- | --- |
+| `MstEmployee` | Master Data HR | `WorkforceProfileId`, `EmployeeNumber`, `FullName`, `IsActive`, `ProfessionId`, `PrimaryDepartmentId`, `PrimaryPositionId` | Populasi karyawan dan perawat |
+| `MstDoctor` | Master Data HR | `WorkforceProfileId`, `DoctorNumber`, `FullName`, `IsActive`, `PrimaryDepartmentId`, `PrimaryPositionId` | Populasi dokter |
+| `MstProfession` | Master Data HR | `ProfessionCode`, `ProfessionName`, `ProfessionGroup` | Pengenal perawat (`HRD-DEC-198`, `HRD-ASM-75`) |
+| `MstDepartment`, `MstPosition` | Master Data HR | `DepartmentName`, `PositionName` | Unit dan jabatan pada daftar |
+| `MstSalaryStructure`, `MstSalaryGrade` | Master Payroll & Benefit | Kode, nama, `SalaryGradeId`, `MinimumSalary`, `MaximumSalary`, `IsActive` | Validasi dan peringatan rentang grade |
+| `MstBank` | Master Data Administrator | `BankName`, `IsActive` | Validasi bank |
+
+**Konkurensi:** tidak ada token versi; simpan terakhir menang (`HRD-ASM-76`, `HRD-Q-198`).

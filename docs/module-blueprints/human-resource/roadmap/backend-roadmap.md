@@ -7,7 +7,7 @@ module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
 roadmap_revision: 16
-draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 24): BE-HRD-334 s.d. BE-HRD-337. Source sudah ditulis di luar siklus task dan belum di-build; kontrak v26 belum ada (gerbang G1); keputusan terdaftar `HRD-DEC-194` s.d. `HRD-DEC-199` pada 16 November 2026 (gerbang G2 tertutup). Tidak ada tanda status yang berubah pada task lama."
+draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 24): BE-HRD-334 s.d. BE-HRD-337. Source sudah ditulis di luar siklus task dan belum di-build; kontrak v26 approved 16 November 2026 (gerbang G1 tertutup); keputusan terdaftar `HRD-DEC-194` s.d. `HRD-DEC-199` pada 16 November 2026 (gerbang G2 tertutup). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
 status_synced_at: "2026-11-03 — tanda status task lama disalin apa adanya dari revision 2; tidak ada task yang naik atau turun status pada revision ini"
 planning_updated_at: "2026-11-05 — Slice S-D4 HR Service Management & Request (sub-modul 13) dipecah menjadi 15 task (BE-HRD-191 s.d. BE-HRD-205) per gelombang MVP-39 s.d. MVP-41 & Verifikasi; grafik B48 s.d. B51 ditambahkan; sebelumnya Slice S-D3 (BE-HRD-176 s.d. BE-HRD-190), Slice S-B6 (BE-HRD-161 s.d. BE-HRD-175), Slice S-B5 (BE-HRD-146 s.d. BE-HRD-160)"
@@ -6286,7 +6286,7 @@ BE-HRD-318 ✅ s.d. BE-HRD-332 ✅ ───────> BE-HRD-333 🟡
 
 ## 24. S-A8: Data Penggajian Pegawai (HRD) — Karyawan, Perawat, dan Dokter (DRAFT, 16 November 2026)
 
-> **Status slice: DRAFT.** Source backend sudah ditulis pada 16 November 2026 atas perintah langsung pemilik, **di luar siklus task** (tanpa ID roadmap), dan **belum di-build maupun diuji**. Task di bawah ditambahkan agar pekerjaan itu terlacak. Kontrak API belum dikunci (gerbang G1), sehingga task slice ini **tidak boleh dikirim ke builder** sebelum gerbang dicabut. Tidak ada tanda ✅ pada slice ini.
+> **Status slice: kontrak `v26` APPROVED 16 November 2026.** Source backend sudah ditulis pada 16 November 2026 atas perintah langsung pemilik, **di luar siklus task**, dan **belum di-build maupun diuji**. Task di bawah ditambahkan agar pekerjaan itu terlacak. Gerbang G1 tertutup, sehingga task slice ini **boleh dikirim ke builder** untuk dibuktikan (build, uji, laporan tracked). Tidak ada tanda ✅ pada slice ini sampai bukti itu ada.
 
 ### Latar belakang dan batas kepemilikan
 
@@ -6327,7 +6327,7 @@ Pemilik teknis dan produk mengonfirmasi keenam hal berikut dalam sesi kerja 16 N
 
 | Gerbang | Isi | Pemilik | Akibat |
 |---|---|---|---|
-| G1 | Kontrak API v26 untuk empat endpoint di bawah belum ada di `contracts/api-contract.md`; matriks pendamping (state-transition, validation, permission-audit, integration), kamus data, dan acceptance-test-matrix belum memuat slice ini | Technical Owner HR | Task slice ini **tidak boleh dikirim ke builder**. Source yang sudah ada bukan pengganti kontrak target |
+| G1 | ~~Kontrak v26 belum disetujui~~ **TERTUTUP 16 November 2026:** kontrak `v26` (API bagian 32, State bagian 30, Validation bagian 31 `VR-WPD-01..16`, Permission bagian 30, Integration bagian 23 `INT-HR-101`, Data bagian 27, Acceptance bagian 34 `AT-HRD-WPD-01..14`) **approved** oleh Pengguna (`HRD-DEC-015`) | Technical Owner HR | Tidak lagi memblokir; task boleh dikirim ke builder |
 | G2 | ~~Keenam keputusan belum punya ID~~ **TERTUTUP 16 November 2026:** didaftarkan sebagai `HRD-DEC-194` s.d. `HRD-DEC-199` | Pemilik teknis dan produk | Tidak lagi memblokir |
 | G3 | Aturan pengenalan perawat dari teks profesi sudah punya ID (`HRD-DEC-198`, `HRD-ASM-75`) tetapi **belum dicocokkan** dengan data profesi sebenarnya | Pemilik teknis dan produk | Pegawai bisa terklasifikasi salah di daftar (hanya label, bukan hak akses) |
 | G4 | Source belum di-build dan belum diuji di runtime: `dotnet build` dan `npm run build` **NOT RUN**, uji di browser **NOT RUN** | Tim pelaksana | Seluruh task tetap 🟡; tidak ada yang boleh ✅ |
@@ -6337,7 +6337,7 @@ Pemilik teknis dan produk mengonfirmasi keenam hal berikut dalam sesi kerja 16 N
 
 #### Corporate / Human Resource / Workforce Core / Payroll Data
 
-Base URL: `api/v1/corporate/human-resource/workforce-core/payroll-data` — **Rencana kontrak v26 (belum tersedia di `api-contract.md`); source sudah ada sejak 16 November 2026.**
+Base URL: `api/v1/corporate/human-resource/workforce-core/payroll-data` — **Kontrak v26 bagian 32 (approved 16 November 2026); source sudah ada sejak 16 November 2026.**
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -6359,10 +6359,10 @@ BE-HRD-003 ✅ [B1] ─┬─> BE-HRD-334 🟡 ───────────
                     │                                   │
                     ├─> BE-HRD-335 🟡 ─> BE-HRD-336 🟡 ─┘
                     │
-{Kontrak v26 ⛔} ───┘
+{Kontrak v26 ✅} ───┘
 ```
 
-`[B1]` = Grafik B1 (fondasi Workforce Core). `{Kontrak v26 ⛔}` = gerbang G1 pada tabel Gerbang di atas.
+`[B1]` = Grafik B1 (fondasi Workforce Core). `{Kontrak v26 ✅}` = gerbang G1 pada tabel Gerbang di atas (tertutup 16 November 2026).
 
 ---
 
@@ -6370,9 +6370,11 @@ BE-HRD-003 ✅ [B1] ─┬─> BE-HRD-334 🟡 ───────────
 
 | Gelombang | Target Cakupan Bisnis & Teknis | Task Backend | Prasyarat Sebelumnya |
 |---|---|---|---|
-| ⛔ menunggu {Kontrak v26} | Daftar & ringkasan, detail isian, simpan data penggajian, dan verifikasi slice | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-337` | `BE-HRD-003`; gerbang G1 |
+| 1 · `MVP-66` | Daftar & ringkasan, detail isian | `BE-HRD-334`, `BE-HRD-335` — boleh paralel | `BE-HRD-003`; gerbang G1 ✅ |
+| 2 · `MVP-66` | Simpan data penggajian | `BE-HRD-336` | `BE-HRD-335` |
+| 3 · Verifikasi | Kontrak, hak akses, build, dan QBE | `BE-HRD-337` | `BE-HRD-334`, `BE-HRD-336` |
 
-Tidak ada nomor gelombang karena seluruh task tertahan gerbang. **Pekerjaan yang tetap bisa berjalan sendiri:** penulisan kontrak v26; build dan uji source yang sudah ada tetap boleh dijalankan sebagai bukti, tetapi tidak menaikkan status task sebelum kontrak terkunci.
+Gerbang G1 tertutup 16 November 2026 (kontrak `v26` approved), sehingga task mendapat nomor gelombang. Source seluruh task sudah ada; yang tersisa per task adalah build, uji, dan laporan tracked (gerbang G4).
 
 ---
 
@@ -6380,9 +6382,9 @@ Tidak ada nomor gelombang karena seluruh task tertahan gerbang. **Pekerjaan yang
 
 #### 🟡 `BE-HRD-334` — Layanan daftar dan ringkasan kelengkapan data penggajian (`WorkforcePayrollDataService.ListAsync`, `SummaryAsync`)
 * **Slice / MVP**: `S-A8` / `MVP-66`
-* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 4 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G1, G3, G4.
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 4 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G3, G4.
 * **Outcome**: Daftar karyawan, perawat, dan dokter aktif beserta kelengkapan penetapan gaji utama dan rekening payroll, dengan ringkasan jumlahnya. Sumber populasi Master Karyawan dan Master Dokter; perawat dikenali dari profesi karyawan (Aturan A dan keputusan 5).
-* **Kontrak**: belum ada — rencana API Contract v26 (gerbang G1).
+* **Kontrak**: API Contract v26 bagian 32 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
 * **Kemampuan existing yang dipakai**: `MstEmployee`, `MstDoctor`, `MstProfession`, `WfpSalaryAssignment`, `WfpBankAccount` (hanya baca, tanpa pelacakan perubahan).
 * **Dependencies**: `BE-HRD-003` [B1]; gerbang G1
 * **Acceptance Criteria**:
@@ -6395,9 +6397,9 @@ Tidak ada nomor gelombang karena seluruh task tertahan gerbang. **Pekerjaan yang
 
 #### 🟡 `BE-HRD-335` — Layanan detail isian penggajian satu orang untuk diubah (`WorkforcePayrollDataService.GetDetailAsync`)
 * **Slice / MVP**: `S-A8` / `MVP-66`
-* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 3 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G1, G4.
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 3 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G4.
 * **Outcome**: Isian satu orang yang akan diubah: penetapan gaji utama (struktur, grade beserta rentangnya, gaji pokok, tanggal mulai, status persetujuan) dan rekening payroll (bank, nomor lengkap, pemilik, status verifikasi). Dimuat hanya oleh pemegang `WorkforcePayrollData : Update` (keputusan 2).
-* **Kontrak**: belum ada — rencana API Contract v26 (gerbang G1).
+* **Kontrak**: API Contract v26 bagian 32 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
 * **Kemampuan existing yang dipakai**: `WfpSalaryAssignment`, `WfpBankAccount`, `MstSalaryStructure`, `MstSalaryGrade`.
 * **Dependencies**: `BE-HRD-003` [B1]; gerbang G1
 * **Acceptance Criteria**:
@@ -6409,9 +6411,9 @@ Tidak ada nomor gelombang karena seluruh task tertahan gerbang. **Pekerjaan yang
 
 #### 🟡 `BE-HRD-336` — Layanan simpan penetapan gaji utama dan rekening payroll satu orang (`WorkforcePayrollDataService.SaveAsync`)
 * **Slice / MVP**: `S-A8` / `MVP-66`
-* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 7 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G1, G4, G5.
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 7 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G4, G5.
 * **Outcome**: Simpan penetapan gaji utama dan/atau rekening payroll satu orang dalam satu transaksi, dengan pencabutan persetujuan atau verifikasi saat isian berubah (keputusan 1), opsi setuju dan verifikasi yang dijaga hak masing-masing, serta peringatan gaji di luar rentang grade.
-* **Kontrak**: belum ada — rencana API Contract v26 (gerbang G1).
+* **Kontrak**: API Contract v26 bagian 32 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
 * **Kemampuan existing yang dipakai**: `WfpSalaryAssignment`, `WfpBankAccount`, `MstSalaryStructure`, `MstSalaryGrade`, `MstBank`, `LoggerService`, `AccessPermissionService`.
 * **Dependencies**: `BE-HRD-335`
 * **Acceptance Criteria**:
@@ -6427,7 +6429,7 @@ Tidak ada nomor gelombang karena seluruh task tertahan gerbang. **Pekerjaan yang
 
 #### `BE-HRD-337` — Verifikasi slice S-A8: kontrak v26, hak akses di Akses Role, build, dan QBE
 * **Slice / MVP**: `S-A8` / Verifikasi
-* **Status**: belum dikerjakan. Gerbang terbuka: G1, G4.
+* **Status**: belum dikerjakan. Gerbang terbuka: G4.
 * **Outcome**: Bukti bahwa empat endpoint sesuai kontrak v26 yang sudah dikunci, hak akses `WorkforcePayrollData` (Read dan Update) muncul di layar Akses Role sehingga dapat diberikan, serta source lulus build dan kepatuhan QBE.
 * **Dependencies**: `BE-HRD-334`, `BE-HRD-336`
 * **Acceptance Criteria**:

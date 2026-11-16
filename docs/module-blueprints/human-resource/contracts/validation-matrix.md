@@ -1289,3 +1289,47 @@ Matriks aturan validasi ini memuat 25 aturan penegakan integritas bisnis (`VR-PR
 | `VR-TRV-23` | `TrxBusinessTravelParticipant.WorkforceProfileId` | Seluruh peserta dinas rombongan wajib pegawai aktif dan tidak memiliki bentrok jadwal | Ditolak `400 Bad Request` ("Salah satu peserta memiliki bentrok jadwal dinas lain") |
 | `VR-TRV-24` | `TrxBusinessTravelRequest.CurrencyCode` | Mata uang selain IDR wajib menyertakan nilai kurs tengah BI pada tanggal pengajuan | Ditolak `400 Bad Request` ("Kurs konversi valuta asing tidak ditemukan") |
 | `VR-TRV-25` | `TrxBusinessTravelRequest.WorkflowInstanceId` | SPPD wajib terhubung ke engine workflow terpadu Sub-21 untuk audit multi-jenjang | Ditolak `500 Internal Error` ("Gagal menginisiasi workflow terpadu persetujuan dinas") |
+
+---
+
+## 31. Matriks Aturan Validasi Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v26`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v26` |
+| `last_changed_in` | `v26` — bagian 31 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `36` bagian 52 (`HRD-DEC-194` s.d. `HRD-DEC-199`, `HRD-ASM-75` s.d. `HRD-ASM-78`, `HRD-Q-197` s.d. `HRD-Q-199`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-199`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Seluruh aturan diperiksa **sebelum** ada yang diubah. Bila satu aturan saja gagal, permintaan ditolak dengan kode `400`, pesan-pesan yang gagal digabung menjadi satu kalimat, dan **tidak ada** yang tersimpan (`HRD-ASM-76`).
+
+| Kode Validasi | Target Entitas / Kolom | Deskripsi Aturan Validasi Bisnis | Kondisi Gagal & Kode Respons |
+|---|---|---|---|
+| `VR-WPD-01` | `UpdateWorkforcePayrollSalaryRequest.SalaryStructureId` | Struktur gaji wajib dipilih | `400` ("Struktur gaji wajib dipilih.") |
+| `VR-WPD-02` | `MstSalaryStructure` | Struktur gaji ada, aktif, dan belum dihapus | `400` ("Struktur gaji tidak ditemukan atau tidak aktif.") |
+| `VR-WPD-03` | `MstSalaryGrade` dari struktur | Grade gaji dari struktur ada dan aktif | `400` ("Grade gaji dari struktur ini tidak ditemukan atau tidak aktif.") |
+| `VR-WPD-04` | `BaseSalary` | Gaji pokok lebih dari nol | `400` ("Gaji pokok harus lebih dari nol.") |
+| `VR-WPD-05` | `EffectiveStartDate` | Tanggal mulai berlaku wajib, tahun 2000 atau sesudahnya, dan tidak lewat dari tanggal berakhir penetapan yang sedang diubah | `400` ("Tanggal mulai berlaku wajib diisi." / "Tanggal mulai berlaku tidak boleh lewat dari tanggal berakhir penetapan ini (dd/MM/yyyy).") |
+| `VR-WPD-06` | `WfpSalaryAssignment` lain milik orang yang sama | Tidak ada penetapan lain (belum dihapus) dengan struktur dan grade yang sama pada periode yang beririsan | `400` ("Sudah ada penetapan gaji dengan struktur dan grade yang sama pada periode yang beririsan.") |
+| `VR-WPD-07` | `UpdateWorkforcePayrollBankRequest.BankId` | Bank wajib dipilih, ada, dan aktif | `400` ("Bank wajib dipilih." / "Bank tidak ditemukan atau tidak aktif.") |
+| `VR-WPD-08` | `AccountNumber` | Setelah hanya huruf dan angka dipertahankan, tidak kosong dan paling panjang 100 karakter | `400` ("Nomor rekening wajib diisi." / "Nomor rekening paling panjang 100 karakter.") |
+| `VR-WPD-09` | `WfpBankAccount` lain milik orang yang sama | Nomor rekening belum tercatat pada rekening lain (belum dihapus, aktif maupun nonaktif) milik orang yang sama | `400` ("Nomor rekening sudah tercatat untuk orang ini.") |
+| `VR-WPD-10` | `AccountHolderName` | Tidak kosong dan paling panjang 200 karakter | `400` ("Nama pemilik rekening wajib diisi." / "... paling panjang 200 karakter.") |
+| `VR-WPD-11` | `UpdateWorkforcePayrollDataRequest` | Paling sedikit satu bagian atau satu opsi dikirim | `400` ("Tidak ada perubahan untuk disimpan.") |
+| `VR-WPD-12` | `workforceProfileId` | Orang adalah karyawan atau dokter aktif | `404` ("Pegawai, perawat, atau dokter tidak ditemukan atau sudah tidak aktif.") |
+| `VR-WPD-13` | Opsi setuju / verifikasi tanpa data | Opsi setuju butuh penetapan gaji (yang ada atau dikirim); opsi verifikasi butuh rekening (yang ada atau dikirim) | `400` ("Belum ada penetapan gaji utama untuk disetujui. ..." / "Belum ada rekening payroll untuk diverifikasi. ...") |
+| `VR-WPD-14` | `ApproveSalaryAssignment` | Pemanggil memegang `WfpSalaryAssignment : Update` | `403` ("Anda tidak berwenang menyetujui penetapan gaji.") |
+| `VR-WPD-15` | `MarkBankAccountVerified` | Pemanggil memegang `WorkforceBankAccount : Update` | `403` ("Anda tidak berwenang memverifikasi rekening bank.") |
+| `VR-WPD-16` | `BaseSalary` terhadap `MstSalaryGrade` | Gaji pokok di luar rentang grade **tidak ditolak**; hasil simpan memuat peringatan (`HRD-Q-199`, `DEC-PRL-002`) | Peringatan, tetap `200` |
+
+**Contoh gabungan:** formulir dikirim dengan gaji pokok 0 dan nomor rekening "---". Respons `400` berbunyi "Gaji pokok harus lebih dari nol. Nomor rekening wajib diisi." dan rekening yang diisi bersamaan juga tidak tersimpan.
+
+**Aturan di layar (bukan pengganti Backend):** bagian gaji atau rekening yang diisi sebagian dianggap belum lengkap (ketiga isiannya wajib); bagian yang dikosongkan seluruhnya tidak dikirim. Gaji pokok menerima `12000000` maupun `12.000.000` dan awalan `Rp`.

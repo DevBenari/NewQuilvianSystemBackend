@@ -1811,8 +1811,8 @@ Verifikasi bersama seluruh baris: `npx eslint` atas berkas yang diubah **0 error
 
 ### Bagian 1w: Jejak Slice S-A8 Data Penggajian Pegawai (DRAFT, 16 November 2026)
 
-Slice ini ditambahkan sebagai **DRAFT** atas perintah pemilik. Source backend dan frontend sudah ditulis tetapi belum di-build, belum diuji di runtime, dan belum punya laporan tracked. Kontrak API belum ada (gerbang G1 pada bagian 24 `backend-roadmap.md`); keputusan sudah terdaftar sebagai `HRD-DEC-194` s.d. `HRD-DEC-199` (16 November 2026).
+Slice ini ditambahkan sebagai **DRAFT** atas perintah pemilik. Source backend dan frontend sudah ditulis tetapi belum di-build, belum diuji di runtime, dan belum punya laporan tracked. Kontrak v26 **approved** oleh pemilik pada 16 November 2026 (gerbang G1 pada bagian 24 `backend-roadmap.md` tertutup); keputusan sudah terdaftar sebagai `HRD-DEC-194` s.d. `HRD-DEC-199` (16 November 2026).
 
 | Ref Scope | Deskripsi Kemampuan Bisnis | Keputusan Asal | Kontrak Acuan | Task Backend | Task Frontend | Status Bukti Terkini |
 | --- | --- | --- | --- | --- | --- | :---: |
-| `S-A8` | Daftar kelengkapan dan ubah per orang penetapan gaji utama serta rekening payroll karyawan, perawat, dan dokter (HRD) | `HRD-DEC-194` s.d. `HRD-DEC-199` (pemilik, 16 November 2026); asumsi `HRD-ASM-75` s.d. `HRD-ASM-78` | Belum ada — rencana API v26 | `BE-HRD-334` 🟡, `BE-HRD-335` 🟡, `BE-HRD-336` 🟡, `BE-HRD-337` | `FE-HRD-306` 🟡, `FE-HRD-307` 🟡, `FE-HRD-308` | 🟡 Source ada, belum di-build dan belum diuji di runtime; belum ada laporan tracked |
+| `S-A8` | Daftar kelengkapan dan ubah per orang penetapan gaji utama serta rekening payroll karyawan, perawat, dan dokter (HRD) | `HRD-DEC-194` s.d. `HRD-DEC-199` (pemilik, 16 November 2026); asumsi `HRD-ASM-75` s.d. `HRD-ASM-78` | v26 approved 16 November 2026 — API §32, State §30, Validation §31, Permission §30, Integration §23, Data §27, Acceptance §34 | `BE-HRD-334` 🟡, `BE-HRD-335` 🟡, `BE-HRD-336` 🟡, `BE-HRD-337` | `FE-HRD-306` 🟡, `FE-HRD-307` 🟡, `FE-HRD-308` | 🟡 Source ada, belum di-build dan belum diuji di runtime; belum ada laporan tracked |

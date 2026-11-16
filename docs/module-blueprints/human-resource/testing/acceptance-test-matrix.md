@@ -1055,3 +1055,50 @@ Matriks pengujian penerimaan (*User Acceptance Testing* - UAT) ini memuat 22 ske
    Perawat ICU mendampingi evakuasi ambulans pasien rujukan ke pulau seberang. Terjadi kebutuhan sewa perahu penyeberangan darurat malam hari Rp 120.000 tanpa kuitansi. Staf mengisi formulir *Declaration of Missing Receipts* disertai kronologi medis darurat. Atasan langsung mengesahkan deklarasi karena nominal < Rp 150.000 dan < 10% total klaim. Biaya diganti penuh oleh rumah sakit.
 5. **UAT-TRV-05: Penggantian Biaya Operasional Non-Trip Lapangan (*Direct Expense Claim*):**  
    Analis laboratorium membeli reagen golongan darah langka secara cito di apotek rekanan Rp 350.000 menggunakan uang pribadi karena stok gudang kosong saat operasi darurat. Staf membuat klaim non-trip di portal ESS dengan foto struk resmi. Kepala Unit Lab menyetujui, Finance memverifikasi, dan Kasir mencairkan uang tunai reimbursement dalam waktu < 24 jam.
+
+---
+
+## 34. Matriks Pengujian Penerimaan Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v26`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v26` |
+| `last_changed_in` | `v26` — bagian 34 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `36` bagian 52 (`HRD-DEC-194` s.d. `HRD-DEC-199`, `HRD-ASM-75` s.d. `HRD-ASM-78`, `HRD-Q-197` s.d. `HRD-Q-199`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-199`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Untuk backend, kriteria di bawah dibuktikan dengan bukti verifikasi menurut `rules/backend/TEST_POLICY.md` (penelusuran source, `dotnet build`, uji manual/runtime), **bukan** automated test backend.
+
+### 34.1 Kriteria Uji Penerimaan (`AT-HRD-WPD-01` s.d. `AT-HRD-WPD-14`)
+
+| Kode Pengujian | Target Komponen yang Diuji | Kondisi Pengujian (Prasyarat & Masukan) | Hasil yang Diharapkan |
+|---|---|---|---|
+| `AT-HRD-WPD-01` | Daftar | 27 karyawan dan 11 dokter aktif, sebagian tanpa data penggajian | 38 baris tampil; orang tanpa data tetap tampil "Belum lengkap" |
+| `AT-HRD-WPD-02` | Pengenal perawat | Karyawan berprofesi "Perawat Pelaksana" dan karyawan berprofesi "Bidan" | Yang pertama `Perawat`, yang kedua `Karyawan`; filter Jenis = Perawat hanya memuat yang pertama |
+| `AT-HRD-WPD-03` | Privasi daftar | Pengguna hak `Read` saja | Tidak ada gaji pokok; rekening tampil seperti `****7890` |
+| `AT-HRD-WPD-04` | Hak detail | Pengguna hak `Read` saja membuka detail | `403` |
+| `AT-HRD-WPD-05` | Simpan baru | Orang tanpa data; isi gaji dan rekening lengkap tanpa opsi | `200`; penetapan "Dibuat" (Menunggu Persetujuan), rekening "Dibuat" (Belum Terverifikasi) |
+| `AT-HRD-WPD-06` | Pencabutan persetujuan | Penetapan Disetujui; gaji diubah tanpa opsi setuju | Status Menunggu Persetujuan dan peringatan pencabutan |
+| `AT-HRD-WPD-07` | Setuju sekaligus | Pemegang `WfpSalaryAssignment : Update` mengubah gaji dengan opsi setuju | Status Disetujui atas nama pengubah; tanpa peringatan pencabutan |
+| `AT-HRD-WPD-08` | Opsi tanpa hak | Pengguna tanpa `WorkforceBankAccount : Update` memilih opsi verifikasi | `403`; tidak ada yang tersimpan |
+| `AT-HRD-WPD-09` | Nomor ganda | Nomor rekening sama dengan rekening lain milik orang yang sama | `400` "Nomor rekening sudah tercatat untuk orang ini."; bagian gaji yang dikirim bersamaan juga tidak tersimpan |
+| `AT-HRD-WPD-10` | Periode beririsan | Penetapan lain dengan struktur dan grade sama tanpa tanggal berakhir | `400` periode beririsan |
+| `AT-HRD-WPD-11` | Rentang grade | Grade 10–16 juta, gaji pokok Rp 9.000.000 | `200` dengan peringatan rentang grade |
+| `AT-HRD-WPD-12` | Bagian null | Hanya bagian rekening dikirim | Penetapan gaji tidak berubah; hasil "Tidak diubah" untuk gaji |
+| `AT-HRD-WPD-13` | Log audit | Simpan yang mengubah data | Satu entri `WorkforcePayrollData.Update` dengan pelaku; tanpa gaji pokok dan nomor rekening |
+| `AT-HRD-WPD-14` | Konsistensi Payroll | Orang lengkap di HR | Kelengkapan Data Payroll tidak menolak orang itu karena data HRD (`INT-HR-101`) |
+
+### 34.2 Skenario Uji Penerimaan Pengguna (UAT)
+
+1. **UAT-WPD-01: Melengkapi data perawat baru dari nol.** Sari (perawat) belum punya data. Staf HR membuka Data Penggajian Pegawai, memfilter Jenis = Perawat, menekan **Ubah** pada Sari, memilih struktur gaji, mengisi gaji Rp 12.000.000 mulai 01/12/2026, memilih bank, mengisi nomor rekening dan nama pemilik, lalu menyimpan. Hasil: Menunggu Persetujuan dan Belum Terverifikasi. Manajer HR pemegang hak setuju dan verifikasi membuka formulir, mencentang kedua opsi, dan menyimpan. Hasil: Sari **Lengkap**, dan Payroll dapat membuat profil payroll Sari.
+2. **UAT-WPD-02 (jalur gagal): Nomor rekening ganda.** Staf HR mengisi nomor rekening Budi dengan nomor yang sudah tercatat untuk Budi pada rekening nonaktif. Simpan ditolak dengan pesan nomor sudah tercatat; formulir tetap terbuka dan tidak ada yang tersimpan.
+3. **UAT-WPD-03 (jalur pengecualian): Koreksi gaji yang sudah disetujui.** Staf HR tanpa hak setuju mengoreksi gaji Dodi yang sudah disetujui. Toast menampilkan peringatan bahwa persetujuan dicabut; daftar menampilkan Dodi kembali "Menunggu Persetujuan" sampai manajer HR menyetujuinya.
+4. **UAT-WPD-04 (jalur hak akses): Petugas tanpa hak ubah.** Petugas dengan hak `Read` saja melihat daftar dan ringkasan, tetapi tombol **Ubah** tidak tampil, dan pemanggilan detail langsung ditolak `403`.
