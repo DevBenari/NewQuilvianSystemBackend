@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement;
 
@@ -25,6 +26,12 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetEntityResolver>();
         services.AddScoped<AssetMasterDataService>();
         services.AddHostedService<AssetMasterDataSeeder>();
+
+        services.Configure<AssetAccountingDispatchOptions>(configuration.GetSection(AssetAccountingDispatchOptions.SectionName));
+        services.AddScoped<AssetValuationParameterQueryService>();
+        services.AddScoped<AssetValuationParameterService>();
+        services.AddScoped<AssetAccountingEventService>();
+        services.AddScoped<AssetBookService>();
 
         return services;
     }
