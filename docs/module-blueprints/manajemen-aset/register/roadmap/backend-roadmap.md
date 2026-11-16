@@ -32,7 +32,7 @@ Grafik dipotong menjadi dua blok karena lebar; `BE-AST-006` muncul lagi sebagai 
 ```text
 BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ─> BE-AST-005 ─> BE-AST-006
                                                  │
-                    BE-AST-014 [NLI] ────────────┘
+                    BE-AST-014 [NLI] ✅ ─────────┘
 ```
 
 ```text

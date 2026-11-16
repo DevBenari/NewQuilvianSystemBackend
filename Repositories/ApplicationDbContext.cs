@@ -45,6 +45,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -700,6 +701,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AstImportBatch> AstImportBatches { get; set; }
         public DbSet<AstImportBatchRow> AstImportBatchRows { get; set; }
         #endregion CORPORATE - ASSET MANAGEMENT - REGISTER
+
+        #region CORPORATE - ASSET MANAGEMENT - VALUATION
+        public DbSet<AstValuationParameter> AstValuationParameters { get; set; }
+        public DbSet<AstDepreciationPolicy> AstDepreciationPolicies { get; set; }
+        public DbSet<AstAssetBook> AstAssetBooks { get; set; }
+        public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
+        public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
 
         #endregion CORPORATE
 

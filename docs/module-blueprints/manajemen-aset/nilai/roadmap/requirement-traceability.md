@@ -10,7 +10,7 @@ Bukti backend = `V-BE`; tidak adanya automated test bukan gap (`rules/backend/TE
 
 | Requirement | Decision / aturan | Desain | Task BE | Task FE | Verifikasi | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `CAP-EXT-02` parameter nilai | `AST-DEC-027`; `AST-DES-032`, `033` | arsitektur §4.1 | `BE-AST-014`, `015` | `FE-AST-011` | `AT-NLI-07`, `33`, `34`; `UAT-NLI-01` | — | belum |
+| `CAP-EXT-02` parameter nilai | `AST-DEC-027`; `AST-DES-032`, `033` | arsitektur §4.1 | `BE-AST-014` ✅, `015` | `FE-AST-011` | `AT-NLI-07`, `33`, `34`; `UAT-NLI-01`; `BE-AST-014`: QBE Strict `Files evaluated: 12` `PASS`, kamus 389/0, mutasi 11/11, `dotnet build` Rizki berhasil | [`BE-AST-014.md`](../task/report/backend/BE-AST-014.md) | 🟡 2026-11-16 — `BE-AST-014` ✅ (tabel dasar); `BE-AST-015` belum |
 | Buku nilai saat aset disetujui / diimpor | `AST-DEC-006`, `023`; `AST-RCG-G19`, `G25` | `INT-REG-30`, `32` | `BE-AST-015` | — | `AT-NLI-08` | — | belum |
 | `CAP-EXT-04` hibah masuk | `AST-DEC-040` | integration §3 | `BE-AST-015` | — | `AT-NLI-13` | — | belum |
 | Pusat biaya pembebanan | `AST-DEC-036`, `047`; `AST-DES-011` | integration §3 | `BE-AST-026`, `027` | `FE-AST-019` | `AT-NLI-03`, `32`; `UAT-NLI-02` | — | belum |

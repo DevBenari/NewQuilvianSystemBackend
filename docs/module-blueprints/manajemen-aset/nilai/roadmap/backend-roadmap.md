@@ -26,9 +26,9 @@ kejadian menumpuk `Held` sampai dinyalakan.
 Dipotong menjadi dua blok karena lebar; `BE-AST-027` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-BE-AST-002 [REG] ─> BE-AST-014 ─┬─> BE-AST-015 ─> BE-AST-025 ─> BE-AST-026 ─> BE-AST-027
-                                │
-BE-AST-005 [REG] ───────────────┘
+BE-AST-002 [REG] ─> BE-AST-014 ✅ ─┬─> BE-AST-015 ─> BE-AST-025 ─> BE-AST-026 ─> BE-AST-027
+                                   │
+BE-AST-005 [REG] ──────────────────┘
 ```
 
 ```text
@@ -61,7 +61,7 @@ Pasangan prasyarat→task: **14** (sama dengan kolom `Dependency`).
 
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
-| `NLI-S1` Tabel dasar, parameter, buku nilai, kotak keluar | `MVP-0` | `BE-AST-014`, `BE-AST-015` | belum dikerjakan |
+| `NLI-S1` Tabel dasar, parameter, buku nilai, kotak keluar | `MVP-0` | `BE-AST-014`, `BE-AST-015` | 🟡 `BE-AST-014` ✅ 2026-11-16; `BE-AST-015` belum dikerjakan |
 | `NLI-S2` Penyusutan, perubahan nilai, kiriman, rekonsiliasi, laporan | `MVP-4` | `BE-AST-025` s.d. `BE-AST-031` | belum dikerjakan |
 | `NLI-S3` Penyalaan integrasi Akuntansi | `MVP-4` | `BE-AST-032` | ⛔ `GATE-AST-ACC` |
 
@@ -82,11 +82,11 @@ Pasangan prasyarat→task: **14** (sama dengan kolom `Dependency`).
 
 ## Kartu task
 
-### `BE-AST-014` — Tabel dasar nilai
+### ✅ `BE-AST-014` — Tabel dasar nilai
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 16 November 2026.** `dotnet build` dijalankan Rizki dan berhasil: DLL 09:07:33 WIB, sesudah suntingan terakhir 08:36:43 WIB, memuat 18 dari 18 penanda (5 model, 5 configuration, 3 enum, 2 namespace, 2 DbSet, check constraint); jumlah warning tidak dilaporkan. Keempat acceptance criteria terpetakan ke source (65 kolom); QBE Strict `Files evaluated: 12` `PASS` 0 temuan; pencocokan kamus ↔ source 389/0; uji mutasi 11/11; nol baris komentar; tanpa migration (masuk `BE-AST-004`). Belum di-commit. Laporan: [`BE-AST-014.md`](../task/report/backend/BE-AST-014.md) |
 | Cakupan | `AstValuationParameter`, `AstDepreciationPolicy`, `AstAssetBook`, `AstAssetValueEntry`, `AstAccountingOutbox`; enum `AssetBookStatus`, `ValueEntryType`, `AccountingOutboxStatus`; configuration `Repositories/Configurations/Corporate/AssetManagement/Valuation/` |
 | Acceptance criteria | 1. Kolom sesuai data dict. 2. Unik `(LegalEntityId, EffectiveFromPeriod)`, `(AssetGroupId, EffectiveFromPeriod)`, `AssetId` pada buku, `(SourceTransactionId, SourceVersion)`. 3. Check constraint nilai buku ≥ residu. 4. Tidak membuat migration sendiri — masuk `BE-AST-004` [REG] |
 
