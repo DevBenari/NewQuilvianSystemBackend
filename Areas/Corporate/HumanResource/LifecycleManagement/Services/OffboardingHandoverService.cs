@@ -205,7 +205,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 ?? throw new KeyNotFoundException("Berkas checklist serah terima tidak ditemukan.");
 
             var now = DateTime.UtcNow;
-            var taskCode = $"TSK-{checklist.Tasks.Count + 1:D2}";
+            var seq = checklist.Tasks.Count(t => !t.IsDelete);
+            var taskCode = $"TSK-{seq + 1:D2}";
+            while (checklist.Tasks.Any(t => t.TaskCode == taskCode && !t.IsDelete))
+            {
+                seq++;
+                taskCode = $"TSK-{seq + 1:D2}";
+            }
 
             var task = new WfpOffboardingTask
             {
@@ -261,6 +267,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 .Include(t => t.OffboardingChecklist)
                 .FirstOrDefaultAsync(t => t.Id == taskId && t.OffboardingChecklistId == checklistId && !t.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Item tugas serah terima tidak ditemukan.");
+
+            if (task.TaskStatus == "Completed")
+            {
+                throw new InvalidOperationException("Item tugas serah terima sudah berstatus 'Completed' dan tidak dapat diserahkan kembali.");
+            }
 
             var now = DateTime.UtcNow;
             task.TaskStatus = "Submitted";
@@ -322,6 +333,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             var task = checklist.Tasks.FirstOrDefault(t => t.Id == taskId && !t.IsDelete)
                 ?? throw new KeyNotFoundException("Item tugas serah terima tidak ditemukan.");
 
+            if (!string.Equals(task.TaskStatus, "Submitted", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Hanya item tugas serah terima berstatus 'Submitted' yang dapat diverifikasi (status saat ini: '{task.TaskStatus}').");
+            }
+
             var now = DateTime.UtcNow;
             if (request.IsApproved)
             {
@@ -380,6 +396,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 ?? throw new KeyNotFoundException("Berkas checklist serah terima tidak ditemukan.");
 
             var activeTasks = checklist.Tasks.Where(t => !t.IsDelete && t.IsActive).ToList();
+            if (activeTasks.Count == 0)
+            {
+                throw new InvalidOperationException("Checklist serah terima belum memiliki item tugas sehingga belum dapat diselesaikan.");
+            }
+
             var uncompletedRequired = activeTasks.Where(t => t.IsRequired && t.TaskStatus != "Completed").ToList();
 
             if (uncompletedRequired.Count > 0)

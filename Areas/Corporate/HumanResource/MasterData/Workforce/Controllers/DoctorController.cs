@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Attributes;
@@ -54,19 +55,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
+        private readonly IWorkforceIdentityResolverService _identityResolver;
 
         public DoctorController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
-            OrganizationAuthorizationProjectionService authorizationProjection)
+            OrganizationAuthorizationProjectionService authorizationProjection,
+            IWorkforceIdentityResolverService identityResolver)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _userManager = userManager;
             _configuration = configuration;
             _authorizationProjection = authorizationProjection;
+            _identityResolver = identityResolver;
         }
 
         private static List<DoctorDetailTabMetadataResponse> BuildDoctorDetailTabs()
@@ -1046,6 +1050,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan status pernikahan dokter
+            var oldDoctorIdentity = NormalizeDigitsOnly(entity.IdentityNumber) ?? string.Empty;
+            var newDoctorIdentity = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
+            if (!string.IsNullOrEmpty(oldDoctorIdentity) && !string.Equals(oldDoctorIdentity, newDoctorIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Identitas (NIK/Paspor) dokter adalah data sensitif dan tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
+                ));
+            }
+
+            if (entity.MaritalStatus != request.MaritalStatus && entity.MaritalStatus != MaritalStatus.Unknown)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Status Pernikahan dokter adalah data sensitif yang memengaruhi pajak dan benefit, tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_MARITAL_STATUS_LOCKED"
+                ));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.IdentityNumber) && !_identityResolver.IsValidIdentity(request.IdentityType, request.IdentityNumber, out var identityErr))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    identityErr ?? "Nomor identitas tidak valid."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -1059,26 +1092,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 var primaryDepartmentId = NormalizeNullableGuid(request.PrimaryDepartmentId);
                 var primaryPositionId = NormalizeNullableGuid(request.PrimaryPositionId);
 
-                var workforceProfile = new MstWorkforceProfile
+                ResolvedWorkforceProfileResult profileResult;
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    ProfileCode = await GenerateWorkforceProfileCodeAsync(),
-                    UserType = request.DoctorUserType,
-                    DisplayName = request.FullName.Trim(),
-                    Email = normalizedEmail,
-                    PhoneNumber = normalizedPhone,
-                    WhatsAppNumber = normalizedWhatsApp,
-                    PrimaryDepartmentId = primaryDepartmentId,
-                    PrimaryPositionId = primaryPositionId,
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                    profileResult = await _identityResolver.ResolveOrCreateProfileAsync(
+                        request.IdentityType,
+                        request.IdentityNumber,
+                        request.FullName,
+                        normalizedEmail,
+                        normalizedPhone,
+                        normalizedWhatsApp,
+                        primaryDepartmentId,
+                        primaryPositionId,
+                        UserType.Doctor,
+                        actorUserId
+                    );
+                }
+                catch (InvalidOperationException ex) when (ex.Message.StartsWith("DUPLICATE_ROLE"))
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Dokter dengan nomor identitas ini sudah terdaftar.",
+                        "DUPLICATE_IDENTITY_NUMBER"
+                    ));
+                }
 
-                _dbContext.Set<MstWorkforceProfile>().Add(workforceProfile);
-                await _dbContext.SaveChangesAsync();
+                var workforceProfile = profileResult.Profile;
 
                 var entity = new MstDoctor
                 {
@@ -1339,6 +1379,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data doctor tidak valid."
+                ));
+            }
+
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan status pernikahan dokter
+            var oldDoctorIdentity = NormalizeDigitsOnly(entity.IdentityNumber) ?? string.Empty;
+            var newDoctorIdentity = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
+            if (!string.IsNullOrEmpty(oldDoctorIdentity) && !string.Equals(oldDoctorIdentity, newDoctorIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Identitas (NIK/Paspor) dokter adalah data sensitif dan tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
+                ));
+            }
+
+            if (entity.MaritalStatus != request.MaritalStatus && entity.MaritalStatus != MaritalStatus.Unknown)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Status Pernikahan dokter adalah data sensitif yang memengaruhi pajak dan benefit, tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_MARITAL_STATUS_LOCKED"
                 ));
             }
 

@@ -1841,3 +1841,18 @@ Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 2 (`
 
 Verifikasi bersama: `npm run lint` **0 error** (1.252 warning existing), `npm run build` **berhasil** dengan 814 static pages, dan pemeriksaan raw element/Tailwind pada target R14–R24 tidak menemukan pelanggaran. Chromium headed dijalankan dan menghasilkan artefak pada `test-with-agy/screenshots/fe-hrd-r14-k3rs/`, tetapi seluruh rute setelah autentikasi tidak dapat diuji karena `/api/v1/auth/me` localhost konsisten mengembalikan `401`. Karena itu tidak ada task Gelombang 2 yang dinaikkan secara tidak sah ke ✅ hanya berdasarkan build/source. Tidak ada DML/DDL, commit, atau push.
 
+### Bagian 1x: Traceability Menu 12 Pemberhentian & Pensiun (`S-C5-SEP`, 16 November 2026)
+
+Dasar: `INSTRUKSI_AGENT_HRD_MENU_12_PEMBERHENTIAN_DAN_PENSIUN.md`. Pemetaan requirement, task backend `BE-HRD-334` s.d. `BE-HRD-343`, task frontend `FE-HRD-306` s.d. `FE-HRD-314`, dan 30 skenario UAT.
+
+| Submenu / Fitur | Task Backend | Task Frontend | Skenario UAT | Status Traceability |
+|---|---|---|---|:---:|
+| 1. Pengunduran Diri | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-337` | `FE-HRD-306`, `FE-HRD-307` | `UAT-M12-01` s.d. `UAT-M12-06`, `24`, `25` | Terdaftar |
+| 2. Pensiun | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-338` | `FE-HRD-306`, `FE-HRD-308` | `UAT-M12-07` s.d. `UAT-M12-10`, `24`, `25` | Terdaftar |
+| 3. Akhir Kontrak | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-339` | `FE-HRD-306`, `FE-HRD-309` | `UAT-M12-11` s.d. `UAT-M12-14`, `24`, `25` | Terdaftar |
+| 4. Pemberhentian | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-340` | `FE-HRD-306`, `FE-HRD-310` | `UAT-M12-15` s.d. `UAT-M12-18`, `24`, `25` | Terdaftar |
+| 5. Serah Terima | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-341` | `FE-HRD-306`, `FE-HRD-311` | `UAT-M12-19` s.d. `UAT-M12-21`, `24`, `25` | Terdaftar |
+| 6. Clearense | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-342` | `FE-HRD-306`, `FE-HRD-312` | `UAT-M12-22` s.d. `UAT-M12-28` | Terdaftar |
+| Integrasi & Verifikasi | `BE-HRD-343` | `FE-HRD-313`, `FE-HRD-314` | `UAT-M12-29`, `UAT-M12-30` | Terdaftar |
+
+

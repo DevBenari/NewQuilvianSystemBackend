@@ -37,12 +37,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             }
 
             var resolvedActorId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+            if (!resolvedActorId.HasValue || resolvedActorId.Value == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException($"Pengguna terotentikasi '{actorEmail}' tidak terdaftar sebagai pengguna sah di sistem. Tindakan signoff ditolak.");
+            }
 
             item.IsReturned = request.IsReturned;
-            item.OutstandingLiabilityAmount = request.OutstandingLiabilityAmount;
+            item.OutstandingLiabilityAmount = Math.Max(0, request.OutstandingLiabilityAmount);
             item.ApproverNotes = request.ApproverNotes?.Trim();
-            // Keamanan: identitas penyetuju berasal dari autentikasi server login, bukan dipercaya dari request payload browser
-            item.ApprovedByUserId = resolvedActorId ?? request.ApproverUserId;
+            // Keamanan P0: identitas penyetuju berasal dari autentikasi server login, fail-closed, tidak pernah mempercayai browser
+            item.ApprovedByUserId = resolvedActorId.Value;
             item.ApprovedAt = DateTime.UtcNow;
 
             if (request.IsReturned && request.OutstandingLiabilityAmount <= 0)

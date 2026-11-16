@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organizatio
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Attributes;
@@ -53,19 +54,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
+        private readonly IWorkforceIdentityResolverService _identityResolver;
 
         public ExternalUserController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
-            OrganizationAuthorizationProjectionService authorizationProjection)
+            OrganizationAuthorizationProjectionService authorizationProjection,
+            IWorkforceIdentityResolverService identityResolver)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _userManager = userManager;
             _configuration = configuration;
             _authorizationProjection = authorizationProjection;
+            _identityResolver = identityResolver;
         }
 
         private static List<ExternalUserDetailTabMetadataResponse> BuildExternalUserDetailTabs()
@@ -902,6 +906,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan NPWP pengguna eksternal
+            var oldExternalIdentity = NormalizeNullableText(entity.IdentityNumber) ?? string.Empty;
+            var newExternalIdentity = NormalizeNullableText(request.IdentityNumber) ?? string.Empty;
+            if (!string.IsNullOrEmpty(oldExternalIdentity) && !string.Equals(oldExternalIdentity, newExternalIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Identitas pengguna eksternal adalah data sensitif dan tidak dapat diubah langsung melalui Master Data (HRD-DEC-052). Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data.",
+                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
+                ));
+            }
+
+            var oldTax = NormalizeNullableText(entity.TaxNumber) ?? string.Empty;
+            var newTax = NormalizeNullableText(request.TaxNumber) ?? string.Empty;
+            if (!string.IsNullOrEmpty(oldTax) && !string.Equals(oldTax, newTax, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Pokok Wajib Pajak (NPWP) pengguna eksternal adalah data sensitif dan tidak dapat diubah langsung (HRD-DEC-052).",
+                    "SENSITIVE_TAX_NUMBER_LOCKED"
+                ));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.IdentityNumber) && !_identityResolver.IsValidIdentity(request.IdentityType, request.IdentityNumber, out var identityErr))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    identityErr ?? "Nomor identitas tidak valid."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -918,26 +953,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 var accessStartDate = NormalizeNullableDateTimeUtc(request.AccessStartDate);
                 var accessEndDate = NormalizeNullableDateTimeUtc(request.AccessEndDate);
 
-                var workforceProfile = new MstWorkforceProfile
+                ResolvedWorkforceProfileResult profileResult;
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    ProfileCode = await GenerateWorkforceProfileCodeAsync(),
-                    UserType = UserType.ExternalUser,
-                    DisplayName = request.FullName.Trim(),
-                    Email = normalizedEmail,
-                    PhoneNumber = normalizedPhone,
-                    WhatsAppNumber = normalizedWhatsApp,
-                    PrimaryDepartmentId = primaryDepartmentId,
-                    PrimaryPositionId = primaryPositionId,
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                    profileResult = await _identityResolver.ResolveOrCreateProfileAsync(
+                        request.IdentityType,
+                        request.IdentityNumber ?? Guid.NewGuid().ToString("N"),
+                        request.FullName,
+                        normalizedEmail,
+                        normalizedPhone,
+                        normalizedWhatsApp,
+                        primaryDepartmentId,
+                        primaryPositionId,
+                        UserType.ExternalUser,
+                        actorUserId
+                    );
+                }
+                catch (InvalidOperationException ex) when (ex.Message.StartsWith("DUPLICATE_ROLE"))
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Pengguna eksternal dengan nomor identitas ini sudah terdaftar.",
+                        "DUPLICATE_IDENTITY_NUMBER"
+                    ));
+                }
 
-                _dbContext.Set<MstWorkforceProfile>().Add(workforceProfile);
-                await _dbContext.SaveChangesAsync();
+                var workforceProfile = profileResult.Profile;
 
                 var entity = new MstExternalUser
                 {
@@ -1192,6 +1234,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data external user tidak valid."
+                ));
+            }
+
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan NPWP pengguna eksternal
+            var oldExternalIdentity = NormalizeNullableText(entity.IdentityNumber) ?? string.Empty;
+            var newExternalIdentity = NormalizeNullableText(request.IdentityNumber) ?? string.Empty;
+            if (!string.IsNullOrEmpty(oldExternalIdentity) && !string.Equals(oldExternalIdentity, newExternalIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Identitas pengguna eksternal adalah data sensitif dan tidak dapat diubah langsung melalui Master Data (HRD-DEC-052). Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data.",
+                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
+                ));
+            }
+
+            var oldTax = NormalizeNullableText(entity.TaxNumber) ?? string.Empty;
+            var newTax = NormalizeNullableText(request.TaxNumber) ?? string.Empty;
+            if (!string.IsNullOrEmpty(oldTax) && !string.Equals(oldTax, newTax, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Pokok Wajib Pajak (NPWP) pengguna eksternal adalah data sensitif dan tidak dapat diubah langsung (HRD-DEC-052).",
+                    "SENSITIVE_TAX_NUMBER_LOCKED"
                 ));
             }
 

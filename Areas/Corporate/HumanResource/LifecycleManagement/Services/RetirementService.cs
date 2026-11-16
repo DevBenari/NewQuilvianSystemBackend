@@ -250,7 +250,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 ?? throw new KeyNotFoundException("Workforce Profile pegawai tidak ditemukan.");
 
             var now = DateTime.UtcNow;
-            var number = $"RET-{now:yyyyMM}-{new Random().Next(1000, 9999)}";
+            var number = $"RET-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..35];
 
             var retirement = new TrxRetirement
             {
@@ -377,8 +377,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                 return (await GetByIdAsync(retirement.Id, cancellationToken))!;
             }
 
+            // Validasi P0: status wajib Approved sebelum handoff ke pemisahan/offboarding
+            if (!string.Equals(retirement.RetirementStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException($"Kasus pensiun belum disetujui (status saat ini: {retirement.RetirementStatus}). Hanya kasus pensiun yang berstatus 'Approved' yang dapat dilakukan serah terima (handoff).");
+            }
+
             var now = DateTime.UtcNow;
-            var separationNumber = $"SEP-RET-{now:yyyyMM}-{new Random().Next(1000, 9999)}";
+            var separationNumber = $"SEP-RET-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..35];
             var effectiveDate = retirement.ActualRetirementDate ?? retirement.NormalRetirementDate;
 
             var separation = new TrxEmployeeSeparation
@@ -410,7 +417,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
             var exitClearance = new TrxExitClearance
             {
                 Id = Guid.NewGuid(),
-                ClearanceNumber = $"EXC-RET-{now:yyyyMM}-{new Random().Next(1000, 9999)}",
+                ClearanceNumber = $"EXC-RET-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..35],
                 EmployeeSeparationId = separation.Id,
                 WorkforceProfileId = retirement.WorkforceProfileId,
                 EmployeeId = retirement.EmployeeId,

@@ -158,6 +158,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
                     )));
             }
 
+            if (query.ExpiringInDays.HasValue && query.ExpiringInDays.Value > 0)
+            {
+                var today = DateTime.UtcNow.Date;
+                var horizon = today.AddDays(query.ExpiringInDays.Value);
+                dbQuery = dbQuery.Where(c => c.EndDate.HasValue && c.EndDate.Value >= today && c.EndDate.Value <= horizon);
+            }
+
             var totalCount = await dbQuery.CountAsync(cancellationToken);
 
             var items = await dbQuery

@@ -1226,6 +1226,8 @@ try
     // BE-HRD-065: Sinkronisasi 5 Isian Kepegawaian & Penulisan Kontrak Satu Pintu
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IEmployeeEmploymentRecordService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.EmployeeEmploymentRecordService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.IWorkforceIdentityResolverService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Services.WorkforceIdentityResolverService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.IWfpContractHistoryWriteService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WfpContractHistoryWriteService>();
 
