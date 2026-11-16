@@ -429,15 +429,15 @@ Cara membaca:
 ### Grafik G1 — Service, layar, dan migrasi base component
 
 ```text
-FE-HRD-R02 ✅ ─> FE-HRD-R14 🟡 ─┬─> FE-HRD-R37
+FE-HRD-R02 ✅ ─> FE-HRD-R14 🟡 ─┬─> FE-HRD-R37 🟡
                              │
-                             ├─> FE-HRD-R38
+                             ├─> FE-HRD-R38 🟡
                              │
-                             ├─> FE-HRD-R39
+                             ├─> FE-HRD-R39 🟡
                              │
-                             ├─> FE-HRD-R40
+                             ├─> FE-HRD-R40 🟡
                              │
-                             └─> FE-HRD-R41
+                             └─> FE-HRD-R41 🟡
 
 FE-HRD-R03 ✅ ─> FE-HRD-R15 🟡
 
@@ -449,15 +449,15 @@ FE-HRD-R06 ✅ ─┬─> FE-HRD-R18 🟡 ─> FE-HRD-R30
                │
                └─> FE-HRD-R19 🟡 ─> FE-HRD-R31
 
-FE-HRD-R07 ✅ ─> FE-HRD-R20 🟡 ─> FE-HRD-R32
+FE-HRD-R07 ✅ ─> FE-HRD-R20 🟡 ─> FE-HRD-R32 🟡
 
-FE-HRD-R08 ✅ ─> FE-HRD-R21 🟡 ─> FE-HRD-R33
+FE-HRD-R08 ✅ ─> FE-HRD-R21 🟡 ─> FE-HRD-R33 🟡
 
-FE-HRD-R09 ✅ ─> FE-HRD-R22 🟡 ─> FE-HRD-R34
+FE-HRD-R09 ✅ ─> FE-HRD-R22 🟡 ─> FE-HRD-R34 🟡
 
 FE-HRD-R10 🟡 ─> FE-HRD-R25 🟡
 
-FE-HRD-R11 ✅ ─┬─> FE-HRD-R23 🟡 ─> FE-HRD-R35
+FE-HRD-R11 ✅ ─┬─> FE-HRD-R23 🟡 ─> FE-HRD-R35 🟡
                │
                └─> FE-HRD-R24
 ```
@@ -465,11 +465,11 @@ FE-HRD-R11 ✅ ─┬─> FE-HRD-R23 🟡 ─> FE-HRD-R35
 ### Grafik G2 — Layar yang belum dikerjakan (`S-D1`, `S-B1`)
 
 ```text
-FE-HRD-R12 🟡 ─┬─> FE-HRD-R26 🟡 ─> FE-HRD-R36 ─┬─> FE-HRD-R42
+FE-HRD-R12 🟡 ─┬─> FE-HRD-R26 🟡 ─> FE-HRD-R36 🟡 ─┬─> FE-HRD-R42
                │                             │
                └─> FE-HRD-R27 🟡 ────────────┘
 
-FE-HRD-R13 🟡 ─┬─> FE-HRD-R28 🟡 ─┬─> FE-HRD-R43
+FE-HRD-R13 🟡 ─┬─> FE-HRD-R28 🟡 ─┬─> FE-HRD-R43 🟡
                │               │
                └─> FE-HRD-R29 🟡 ─┘
 ```
@@ -483,15 +483,15 @@ FE-HRD-R15 🟡 [G1] ─┴─┐
                    │
 FE-HRD-R30 [G1] ───┴─┐
                      │
-FE-HRD-R32 [G1] ─────┴─> FE-HRD-R44
+FE-HRD-R32 🟡 [G1] ─────┴─> FE-HRD-R44
 
 FE-HRD-R31 [G1] ─┐
                  │
-FE-HRD-R33 [G1] ─┴─┐
+FE-HRD-R33 🟡 [G1] ─┴─┐
                    │
-FE-HRD-R34 [G1] ───┴─┐
+FE-HRD-R34 🟡 [G1] ───┴─┐
                      │
-FE-HRD-R35 [G1] ─────┴─> FE-HRD-R45
+FE-HRD-R35 🟡 [G1] ─────┴─> FE-HRD-R45
 
 FE-HRD-R16 🟡 [G1] ─┐
                  │
@@ -501,21 +501,21 @@ FE-HRD-R24 🟡 [G1] ─┴─┐
                      │
 FE-HRD-R25 🟡 [G1] ──┴─┐
                        │
-FE-HRD-R37 [G1] ───────┴─┐
+FE-HRD-R37 🟡 [G1] ───────┴─┐
                          │
-FE-HRD-R38 [G1] ─────────┴─┐
+FE-HRD-R38 🟡 [G1] ─────────┴─┐
                            │
-FE-HRD-R39 [G1] ───────────┴─┐
+FE-HRD-R39 🟡 [G1] ───────────┴─┐
                              │
-FE-HRD-R40 [G1] ─────────────┴─┐
+FE-HRD-R40 🟡 [G1] ─────────────┴─┐
                                │
-FE-HRD-R41 [G1] ───────────────┴─> FE-HRD-R46
+FE-HRD-R41 🟡 [G1] ───────────────┴─> FE-HRD-R46
 
 FE-HRD-R01 ✅ ───┐
                  │
 FE-HRD-R42 [G2] ─┴─┐
                    │
-FE-HRD-R43 [G2] ───┴─┐
+FE-HRD-R43 🟡 [G2] ───┴─┐
                      │
 FE-HRD-R44 [G3] ─────┴─┐
                        │
@@ -554,7 +554,7 @@ Task dalam satu gelombang boleh dikerjakan paralel. Bila hanya ada satu develope
 |---:|---|---|
 | **1** | — | `FE-HRD-R01`, `FE-HRD-R02`, `FE-HRD-R03`, `FE-HRD-R04`, `FE-HRD-R05`, `FE-HRD-R06`, `FE-HRD-R07`, `FE-HRD-R08`, `FE-HRD-R09`, `FE-HRD-R10`, `FE-HRD-R11`, `FE-HRD-R12`, `FE-HRD-R13` |
 | **2** | Service atau paket fondasi masing-masing pada gelombang 1 | `FE-HRD-R14`, `FE-HRD-R15`, `FE-HRD-R16`, `FE-HRD-R17`, `FE-HRD-R18`, `FE-HRD-R19`, `FE-HRD-R20`, `FE-HRD-R21`, `FE-HRD-R22`, `FE-HRD-R23`, `FE-HRD-R24`, `FE-HRD-R25`, `FE-HRD-R26`, `FE-HRD-R27`, `FE-HRD-R28`, `FE-HRD-R29` |
-| **3** | Task bagian 1, pola rujukan `FE-HRD-R14`, atau paket `S-B1` dan `S-D1` pada gelombang 2 | `FE-HRD-R30`, `FE-HRD-R31`, `FE-HRD-R32`, `FE-HRD-R33`, `FE-HRD-R34`, `FE-HRD-R35`, `FE-HRD-R36`, `FE-HRD-R37`, `FE-HRD-R38`, `FE-HRD-R39`, `FE-HRD-R40`, `FE-HRD-R41`, `FE-HRD-R43` |
+| **3** | Task bagian 1, pola rujukan `FE-HRD-R14`, atau paket `S-B1` dan `S-D1` pada gelombang 2 | `FE-HRD-R30`, `FE-HRD-R31`, `FE-HRD-R32` 🟡, `FE-HRD-R33` 🟡, `FE-HRD-R34` 🟡, `FE-HRD-R35` 🟡, `FE-HRD-R36` 🟡, `FE-HRD-R37` 🟡, `FE-HRD-R38` 🟡, `FE-HRD-R39` 🟡, `FE-HRD-R40` 🟡, `FE-HRD-R41` 🟡, `FE-HRD-R43` 🟡 |
 | **4** | Seluruh layar pada kelompok verifikasinya | `FE-HRD-R42`, `FE-HRD-R44`, `FE-HRD-R45`, `FE-HRD-R46` |
 | **5** | Seluruh verifikasi dan `FE-HRD-R01` | `FE-HRD-R47` |
 | **⛔** | menunggu `{DEC-FER-01}` | `FE-HRD-R48` |
@@ -621,18 +621,18 @@ yang boleh diberikan adalah `READY_WITH_CONDITIONS`, dengan pemilik dan mitigasi
 | `FE-HRD-R29` | 2 | S-B1 | Bangun `S-B1` MVP-23: Penutupan Periode | `FE-HRD-092`–`094` | `FE-HRD-R13` | 🟡 guard tutup/buka aktif; metrik rekap tidak tersedia di DTO. [Laporan](../task/report/frontend/FE-HRD-R29.md) |
 | `FE-HRD-R30` | 3 | S-C1 | Kredensial bagian 2: komite, direktur, registri | `FE-HRD-191`–`195`, `198`, `199` | `FE-HRD-R18` | 🟡 KMKP dan create fast-track memakai API nyata; enam alur terblokir endpoint/DTO. [Laporan](../task/report/frontend/FE-HRD-R30.md) |
 | `FE-HRD-R31` | 3 | S-D4 | Layanan SDM bagian 2: ESS, surat, verifikasi publik | `FE-HRD-178`–`184` | `FE-HRD-R19` | 🟡 alur utama memakai API nyata; preview draf dan diff pra-resolve terblokir kontrak. [Laporan](../task/report/frontend/FE-HRD-R31.md) |
-| `FE-HRD-R32` | 3 | S-C1-OPPE | OPPE bagian 2: FPPE dan rekredensial | `FE-HRD-207`–`214` | `FE-HRD-R20` | Belum |
-| `FE-HRD-R33` | 3 | S-A7-V2 | Persetujuan bagian 2: delegasi, matriks, ESS | `FE-HRD-284`–`289` | `FE-HRD-R21` | Belum |
-| `FE-HRD-R34` | 3 | S-D5 | Perjalanan Dinas bagian 2: uang muka, settlement, klaim | `FE-HRD-298`–`304` | `FE-HRD-R22` | Belum |
-| `FE-HRD-R35` | 3 | S-B3 | Lembur bagian 2: verifikasi, CTO, penutupan | `FE-HRD-121`–`128` | `FE-HRD-R23` | Belum |
-| `FE-HRD-R36` | 3 | S-D1 | Bangun `S-D1` MVP-9: Headcount dan Antrean Rekrutmen | `FE-HRD-036`–`040` | `FE-HRD-R26` | Belum |
-| `FE-HRD-R37` | 3 | S-B2 | Migrasi base component Cuti | `FE-HRD-103`–`114` | `FE-HRD-R14` | Belum |
-| `FE-HRD-R38` | 3 | S-B4 | Migrasi base component Roster | `FE-HRD-077`–`085` | `FE-HRD-R14` | Belum |
-| `FE-HRD-R39` | 3 | S-D2 | Migrasi Rekrutmen dan perbaikan isian UUID | `FE-HRD-044`–`056` | `FE-HRD-R14` | Belum |
-| `FE-HRD-R40` | 3 | S-B6 | Migrasi Restitusi dan pasang layar yang tertinggal | `FE-HRD-146`–`156` | `FE-HRD-R14` | Belum |
-| `FE-HRD-R41` | 3 | S-A1 s.d. S-A7, S-C4, FE-020 | Migrasi layar administrasi dan ESS lama | `FE-HRD-002`–`008`, `017`, `020` | `FE-HRD-R14` | Belum |
+| `FE-HRD-R32` | 3 | S-C1-OPPE | OPPE bagian 2: FPPE dan rekredensial | `FE-HRD-207`–`214` | `FE-HRD-R20` | 🟡 FPPE (pemicu, penugasan, kasus, pleno, sinkron kewenangan) dan rekredensial (skor, override, putusan, SIMRS) memakai API nyata; daftar penugasan/putusan belum ada di backend. [Laporan](../task/report/frontend/FE-HRD-R32.md) |
+| `FE-HRD-R33` | 3 | S-A7-V2 | Persetujuan bagian 2: delegasi, matriks, ESS | `FE-HRD-284`–`289` | `FE-HRD-R21` | 🟡 delegasi, matriks baca-saja, overdue, portal ESS, permohonan saya, dan revisi memakai API nyata; simpan matriks dan unggah lampiran terblokir backend. [Laporan](../task/report/frontend/FE-HRD-R33.md) |
+| `FE-HRD-R34` | 3 | S-D5 | Perjalanan Dinas bagian 2: uang muka, settlement, klaim | `FE-HRD-298`–`304` | `FE-HRD-R22` | 🟡 uang muka, settlement, tanpa nota, setor balik/kurang bayar, radar overdue, dan klaim non-trip nyata; unggah struk terblokir backend. [Laporan](../task/report/frontend/FE-HRD-R34.md) |
+| `FE-HRD-R35` | 3 | S-B3 | Lembur bagian 2: verifikasi, CTO, penutupan | `FE-HRD-121`–`128` | `FE-HRD-R23` | 🟡 verifikasi, inbox Direktur Medik, CTO, dan rekonsiliasi nyata (bug body tutup/buka diperbaiki); pengaturan baca-saja karena backend menyimpan di memori. [Laporan](../task/report/frontend/FE-HRD-R35.md) |
+| `FE-HRD-R36` | 3 | S-D1 | Bangun `S-D1` MVP-9: Headcount dan Antrean Rekrutmen | `FE-HRD-036`–`040` | `FE-HRD-R26` | 🟡 daftar, buat/ajukan, kursi, rencana dan tautan pemenuhan, antrean, dan potret gap nyata; flag lewat batas dan riwayat rencana tidak ada di DTO. [Laporan](../task/report/frontend/FE-HRD-R36.md) |
+| `FE-HRD-R37` | 3 | S-B2 | Migrasi base component Cuti | `FE-HRD-103`–`114` | `FE-HRD-R14` | 🟡 14 berkas bermigrasi; kontrak saldo, pengajuan, persetujuan, recall, rekonsiliasi, dan penyesuaian diperbaiki; metadata surat sakit dan retrospektif terblokir backend. [Laporan](../task/report/frontend/FE-HRD-R37.md) |
+| `FE-HRD-R38` | 3 | S-B4 | Migrasi base component Roster | `FE-HRD-077`–`085` | `FE-HRD-R14` | 🟡 10 berkas bermigrasi, kisi roster dipertahankan, ID contoh dihapus; jendela koreksi mundur server tetap 3 hari. [Laporan](../task/report/frontend/FE-HRD-R38.md) |
+| `FE-HRD-R39` | 3 | S-D2 | Migrasi Rekrutmen dan perbaikan isian UUID | `FE-HRD-044`–`056` | `FE-HRD-R14` | 🟡 13 layar bermigrasi, 13 isian UUID menjadi pilihan bernama, formulir kembali berfungsi; unggah dokumen kandidat/MCU terblokir backend. [Laporan](../task/report/frontend/FE-HRD-R39.md) |
+| `FE-HRD-R40` | 3 | S-B6 | Migrasi Restitusi dan pasang layar yang tertinggal | `FE-HRD-146`–`156` | `FE-HRD-R14` | 🟡 rute `deductions/approvals` dibuat, pratinjau nota dan voucher QR dapat dibuka dari menu, data contoh dihapus; unggah nota terblokir backend. [Laporan](../task/report/frontend/FE-HRD-R40.md) |
+| `FE-HRD-R41` | 3 | S-A1 s.d. S-A7, S-C4, FE-020 | Migrasi layar administrasi dan ESS lama | `FE-HRD-002`–`008`, `017`, `020` | `FE-HRD-R14` | 🟡 elemen mentah dan prop salah pada layar sisa dimigrasi (modal exit clearance dan label tombol ESS kembali benar); 3 elemen unik dipertahankan. [Laporan](../task/report/frontend/FE-HRD-R41.md) |
 | `FE-HRD-R42` | 4 | S-D1 | Verifikasi `S-D1` | `FE-HRD-043` | `FE-HRD-R27`, `FE-HRD-R36` | Belum |
-| `FE-HRD-R43` | 3 | S-B1 | Verifikasi `S-B1` | `FE-HRD-101` | `FE-HRD-R28`, `FE-HRD-R29` | Belum |
+| `FE-HRD-R43` | 3 | S-B1 | Verifikasi `S-B1` | `FE-HRD-101` | `FE-HRD-R28`, `FE-HRD-R29` | 🟡 8/8 rute S-B1 terjangkau dari menu (2 layar ESS ditambahkan), permission cocok dengan backend; `live-browser-testing` belum dijalankan. [Laporan](../task/report/frontend/FE-HRD-R43.md) |
 | `FE-HRD-R44` | 4 | S-C6, S-C5, S-C1, S-C1-OPPE | Verifikasi layar klinis dan keselamatan | `FE-HRD-200`, `215`, `275` | `FE-HRD-R14`, `FE-HRD-R15`, `FE-HRD-R30`, `FE-HRD-R32` | Belum |
 | `FE-HRD-R45` | 4 | S-A7-V2, S-D5, S-D4, S-B3 | Verifikasi layar operasional | `FE-HRD-290`, `305`, `185`, `129` | `FE-HRD-R31`, `FE-HRD-R33`, `FE-HRD-R34`, `FE-HRD-R35` | Belum |
 | `FE-HRD-R46` | 4 | S-C2, S-C3, S-D3, S-C4-ONB, S-B2, S-B4, S-D2, S-B6, lama | Verifikasi layar pengembangan dan administrasi | `FE-HRD-230`, `245`, `171`, `074`, `115`, `087`, `057`, `157` | `FE-HRD-R16`, `FE-HRD-R17`, `FE-HRD-R24`, `FE-HRD-R25`, `FE-HRD-R37`, `FE-HRD-R38`, `FE-HRD-R39`, `FE-HRD-R40`, `FE-HRD-R41` | Belum |
@@ -1134,7 +1134,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Definition of Done**: `DoD`
 * **Status**: 🟡 **SEBAGIAN 13 November 2026.** Katalog/pengajuan/lampiran ESS, antrean analis, persetujuan dan penerbitan surat, revokasi, serta verifikasi publik PIN telah memakai API nyata. Backend belum menyediakan pratinjau PDF draf dan DTO diff perubahan profil sebelum status `Resolved`; uji browser/peran belum tersedia. ESLint target 0 error/warning, CSS gate 0 temuan, build 814 halaman. [Laporan](../task/report/frontend/FE-HRD-R31.md).
 
-#### `FE-HRD-R32` — OPPE bagian 2: FPPE dan rekredensial
+#### 🟡 `FE-HRD-R32` — OPPE bagian 2: FPPE dan rekredensial
 * **Slice / Gelombang**: S-C1-OPPE / 3
 * **Task asal**: `FE-HRD-207`–`214`
 * **Outcome**: Pemantauan FPPE dan rekredensial memakai data nyata.
@@ -1147,8 +1147,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko sedang. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** FPPE dan rekredensial tersambung ke API nyata; data contoh dan kalkulasi tier klien dihapus. Backend belum menyediakan daftar penugasan FPPE (dibuka via `?engagementId=`), daftar putusan rekredensial, dan unggah nota override. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R32.md).
 
-#### `FE-HRD-R33` — Persetujuan bagian 2: delegasi, matriks, ESS
+#### 🟡 `FE-HRD-R33` — Persetujuan bagian 2: delegasi, matriks, ESS
 * **Slice / Gelombang**: S-A7-V2 / 3
 * **Task asal**: `FE-HRD-284`–`289`
 * **Outcome**: Delegasi Plh dan portal ESS berjalan nyata.
@@ -1161,8 +1162,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko sedang. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** Delegasi Plh, matriks (baca-saja), overdue dan eskalasi, portal ESS, permohonan saya, dan revisi memakai API nyata; slice mock dicabut. `POST workflow/matrix` tidak menyimpan, unggah lampiran workflow tidak menulis berkas, dan VR-WF-09 tidak ditegakkan server. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R33.md).
 
-#### `FE-HRD-R34` — Perjalanan Dinas bagian 2: uang muka, settlement, klaim
+#### 🟡 `FE-HRD-R34` — Perjalanan Dinas bagian 2: uang muka, settlement, klaim
 * **Slice / Gelombang**: S-D5 / 3
 * **Task asal**: `FE-HRD-298`–`304`
 * **Outcome**: Uang muka dan settlement tercatat nyata.
@@ -1175,8 +1177,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: dampak keuangan. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** Uang muka, settlement, tanpa nota, setor balik/kurang bayar, radar overdue (endpoint sudah ada), dan klaim non-perjalanan memakai API nyata; slice mock dicabut. Unggah struk (`FE-HRD-304`) dan total halaman daftar menunggu backend. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R34.md).
 
-#### `FE-HRD-R35` — Lembur bagian 2: verifikasi, CTO, penutupan
+#### 🟡 `FE-HRD-R35` — Lembur bagian 2: verifikasi, CTO, penutupan
 * **Slice / Gelombang**: S-B3 / 3
 * **Task asal**: `FE-HRD-121`–`128`
 * **Outcome**: Verifikasi, saldo CTO, dan penutupan periode berjalan nyata.
@@ -1189,8 +1192,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: dampak ke gaji. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** Verifikasi biometrik, anomali, inbox Direktur Medik, CTO, dan rekonsiliasi memakai API nyata; bug body tutup/buka/eksekusi diperbaiki. Pengaturan baca-saja karena `OvertimeSettingService` menyimpan di memori statis. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R35.md).
 
-#### `FE-HRD-R36` — Bangun `S-D1` MVP-9: Headcount dan Antrean Rekrutmen
+#### 🟡 `FE-HRD-R36` — Bangun `S-D1` MVP-9: Headcount dan Antrean Rekrutmen
 * **Slice / Gelombang**: S-D1 / 3
 * **Task asal**: `FE-HRD-036`–`040`
 * **Outcome**: Permintaan headcount tersambung ke antrean rekrutmen.
@@ -1203,8 +1207,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** Layar `FE-HRD-036`–`040` dibangun: daftar, buat/ubah/ajukan/tarik, kursi, rencana dan tautan pemenuhan, antrean rekrutmen, potret gap. Flag lewat batas, jumlah kursi terisi, dan riwayat rencana tidak ada di DTO. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R36.md).
 
-#### `FE-HRD-R37` — Migrasi base component Cuti
+#### 🟡 `FE-HRD-R37` — Migrasi base component Cuti
 * **Slice / Gelombang**: S-B2 / 3
 * **Task asal**: `FE-HRD-103`–`114`
 * **Outcome**: Tampilan Cuti seragam.
@@ -1217,8 +1222,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko: regresi saldo cuti. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** 14 berkas Cuti bermigrasi dan salah kontrak diperbaiki (saldo, pengajuan bertahap self-service, persetujuan, recall, rekonsiliasi, penyesuaian berdokumen dan menunya). Metadata surat sakit, verifikasi surat dokter, dan daftar retrospektif menunggu backend. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R37.md).
 
-#### `FE-HRD-R38` — Migrasi base component Roster
+#### 🟡 `FE-HRD-R38` — Migrasi base component Roster
 * **Slice / Gelombang**: S-B4 / 3
 * **Task asal**: `FE-HRD-077`–`085`
 * **Outcome**: Tampilan Roster seragam, kisi tetap khusus.
@@ -1231,8 +1237,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** 10 berkas Roster bermigrasi; kisi dipertahankan sebagai elemen unik dengan CSS Module token; ID shift/pola/sel contoh, UUID on-call, dan jam UTC call-in diperbaiki. Jendela koreksi mundur server tetap 3 hari. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R38.md).
 
-#### `FE-HRD-R39` — Migrasi Rekrutmen dan perbaikan isian UUID
+#### 🟡 `FE-HRD-R39` — Migrasi Rekrutmen dan perbaikan isian UUID
 * **Slice / Gelombang**: S-D2 / 3
 * **Task asal**: `FE-HRD-044`–`056`
 * **Outcome**: Petugas memilih nama, tidak mengetik UUID.
@@ -1245,8 +1252,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** 13 layar Rekrutmen bermigrasi; 13 isian UUID diganti pilihan bernama; formulir buat yang sebelumnya tidak merender isian kembali berfungsi; kode enum evaluasi/jawaban/MCU diperbaiki. Unggah dokumen kandidat dan sertifikat MCU menunggu endpoint unggah. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R39.md).
 
-#### `FE-HRD-R40` — Migrasi Restitusi dan pasang layar yang tertinggal
+#### 🟡 `FE-HRD-R40` — Migrasi Restitusi dan pasang layar yang tertinggal
 * **Slice / Gelombang**: S-B6 / 3
 * **Task asal**: `FE-HRD-146`–`156`
 * **Outcome**: Antrean persetujuan klaim bisa dibuka.
@@ -1259,8 +1267,9 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** Rute `/corporate/hrd/payroll/deductions/approvals` dibuat; empat menu Potongan & Restitusi ditambahkan; pratinjau nota dan voucher QR dibuka dari antrean; seluruh data contoh dihapus. Unggah nota dan perbaikan anti-self-approval menunggu backend. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R40.md).
 
-#### `FE-HRD-R41` — Migrasi layar administrasi dan ESS lama
+#### 🟡 `FE-HRD-R41` — Migrasi layar administrasi dan ESS lama
 * **Slice / Gelombang**: S-A1 s.d. S-A7, S-C4, FE-020 / 3
 * **Task asal**: `FE-HRD-002`–`008`, `017`, `020`
 * **Outcome**: Sisa layar lama seragam.
@@ -1273,6 +1282,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** Sisa layar administrasi dan ESS lama bermigrasi; modal exit clearance yang tidak pernah terbuka dan label tombol ESS "Hapus" diperbaiki. Lifecycle dan approvals V2 sudah bersih sejak Gelombang 2/R33; 3 elemen unik dipertahankan. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R41.md).
 
 #### `FE-HRD-R42` — Verifikasi `S-D1`
 * **Slice / Gelombang**: S-D1 / 4
@@ -1288,7 +1298,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
 
-#### `FE-HRD-R43` — Verifikasi `S-B1`
+#### 🟡 `FE-HRD-R43` — Verifikasi `S-B1`
 * **Slice / Gelombang**: S-B1 / 3
 * **Task asal**: `FE-HRD-101`
 * **Outcome**: Menu, hak akses, dan keterjangkauan `S-B1` terbukti.
@@ -1301,6 +1311,7 @@ diselesaikan lewat `build-module-backend`, dan QBE preflight dijalankan saat eks
 * **Bukti verifikasi**: `V`
 * **Risiko & pemilik**: Risiko kecil. Pemilik: Frontend HR UI Lead.
 * **Definition of Done**: `DoD`
+* **Status**: 🟡 **SEBAGIAN 16 November 2026.** Verifikasi statis: 8/8 rute S-B1 terjangkau dari menu setelah 2 layar ESS ditambahkan; seluruh permission cocok dengan backend. Uji `live-browser-testing` per peran belum dijalankan. ESLint target 0 error, CSS gate 0 temuan, build 832 halaman; `VISUAL CHECK: NOT FEASIBLE`. [Laporan](../task/report/frontend/FE-HRD-R43.md).
 
 #### `FE-HRD-R44` — Verifikasi layar klinis dan keselamatan
 * **Slice / Gelombang**: S-C6, S-C5, S-C1, S-C1-OPPE / 4
