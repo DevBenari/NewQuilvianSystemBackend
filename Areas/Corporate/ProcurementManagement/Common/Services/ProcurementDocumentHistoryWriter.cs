@@ -128,6 +128,58 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Ser
                 })
                 .ToListAsync(cancellationToken);
 
+        /// <summary>
+        /// Apakah aksi dengan kunci idempoten ini sudah tercatat pada dokumen tersebut. Pemanggil
+        /// menyimpan kunci di cuplikan sebagai properti <c>idempotencyKey</c>. Contoh: tombol Ajukan
+        /// rencana ditekan dua kali dengan header <c>Idempotency-Key</c> yang sama → panggilan kedua
+        /// mendapati SUBMIT dengan kunci itu dan mengembalikan hasil pertama.
+        /// </summary>
+        public async Task<bool> HasIdempotencyKeyAsync(
+            string documentType,
+            Guid documentId,
+            string actionCode,
+            string? idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(idempotencyKey))
+            {
+                return false;
+            }
+
+            var snapshots = await _dbContext.PrcDocumentHistories
+                .AsNoTracking()
+                .Where(x =>
+                    x.DocumentType == documentType &&
+                    x.DocumentId == documentId &&
+                    x.ActionCode == actionCode &&
+                    x.SnapshotJson != null &&
+                    !x.IsDelete)
+                .Select(x => x.SnapshotJson!)
+                .ToListAsync(cancellationToken);
+
+            var key = idempotencyKey.Trim();
+            foreach (var snapshot in snapshots)
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(snapshot);
+                    if (document.RootElement.ValueKind == JsonValueKind.Object &&
+                        document.RootElement.TryGetProperty("idempotencyKey", out var value) &&
+                        value.ValueKind == JsonValueKind.String &&
+                        string.Equals(value.GetString(), key, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Cuplikan lama yang bukan JSON objek tidak dianggap cocok.
+                }
+            }
+
+            return false;
+        }
+
         private static string? Normalize(string? value)
         {
             var trimmed = value?.Trim();

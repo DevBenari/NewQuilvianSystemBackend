@@ -121,6 +121,25 @@ public sealed class PurchaseRequestResponse
     /// <summary>Aksi yang boleh dilakukan pengguna login saat ini (untuk menyembunyikan tombol).</summary>
     public bool CanEdit { get; set; }
 
+    /// <summary>Pembuat PR dan status <c>DRAFT</c>/<c>RETURNED</c> (BE-PBJ-007).</summary>
+    public bool CanSubmit { get; set; }
+
+    /// <summary>Pembuat PR dan status <c>DRAFT</c>/<c>SUBMITTED</c>/<c>RETURNED</c>.</summary>
+    public bool CanCancel { get; set; }
+
+    /// <summary>Pembuat PR dan status <c>PENDING_APPROVAL</c>: tarik dari persetujuan.</summary>
+    public bool CanWithdraw { get; set; }
+
+    /// <summary>Status <c>SUBMITTED</c> dan pengguna bukan pengusul (verifikator ≠ pengusul, BE-PBJ-008).</summary>
+    public bool CanVerify { get; set; }
+
+    /// <summary>Status <c>APPROVED</c> dan belum masuk paket (BE-PBJ-008).</summary>
+    public bool CanCancelApproved { get; set; }
+
+    public DateTimeOffset? ClosedAt { get; set; }
+    public Guid? VerifiedByUserId { get; set; }
+    public string? VerifiedByName { get; set; }
+
     public List<PurchaseRequestLineResponse> Lines { get; set; } = new();
 }
 
@@ -176,4 +195,44 @@ public sealed class PurchaseRequestFilterMetadataResponse
     public List<int> PageSizeOptions { get; set; } = [10, 25, 50, 100];
     public string DateFormat { get; set; } = "yyyy-MM-dd";
     public string ResetButtonLabel { get; set; } = "Atur ulang";
+}
+
+// =====================================================================================
+// BE-PBJ-007 — aksi ajukan, batal, tarik, dan pilihan baris rencana.
+// =====================================================================================
+
+/// <summary>
+/// Isi aksi batal/tarik. Alasan wajib bila PR sudah bernomor atau sedang menunggu persetujuan
+/// (PBJ-VAL-030).
+/// </summary>
+public sealed class CancelPurchaseRequestRequest
+{
+    [MaxLength(1000)] public string? Reason { get; set; }
+}
+
+public sealed class PlanLineOptionsQuery
+{
+    [Required] public Guid DepartmentId { get; set; }
+    [Range(2000, 2100)] public int FiscalYear { get; set; }
+    public Guid? ItemId { get; set; }
+}
+
+/// <summary>Satu baris rencana berlaku beserta sisanya untuk PR. Sisa dihitung server.</summary>
+public sealed class PlanLineQuotaResponse
+{
+    public Guid LineKey { get; set; }
+    public Guid NeedPlanId { get; set; }
+    public string? PlanNumber { get; set; }
+    public int VersionNo { get; set; }
+    public Guid DepartmentId { get; set; }
+    public string DepartmentName { get; set; } = string.Empty;
+    public int FiscalYear { get; set; }
+    public Guid ItemId { get; set; }
+    public string ItemCode { get; set; } = string.Empty;
+    public string ItemName { get; set; } = string.Empty;
+    public string MeasurementName { get; set; } = string.Empty;
+    public decimal PlannedQuantity { get; set; }
+    public decimal UsedQuantity { get; set; }
+    public decimal RemainingQuantity { get; set; }
+    public decimal EstimatedUnitPrice { get; set; }
 }

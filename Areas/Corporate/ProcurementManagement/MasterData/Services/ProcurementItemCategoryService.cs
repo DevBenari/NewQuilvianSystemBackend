@@ -145,12 +145,15 @@ public sealed class ProcurementItemCategoryService
     public async Task<ProcurementMasterDeleteResponse> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
     {
         var entity = await FindAsync(id, cancellationToken);
-        // Dipakai katalog. Pagu (BE-PBJ-010) menambah pemeriksaannya di sini saat tabelnya ada.
+        // Dipakai katalog atau pagu (BE-PBJ-010).
         var usedByItem = await _dbContext.MstProcurementItems
             .AnyAsync(x => x.ItemCategoryId == id && !x.IsDelete, cancellationToken);
         if (usedByItem)
             throw new ProcurementMasterInUseException(
                 "Kategori ini tidak dapat dihapus karena masih dipakai katalog barang. Nonaktifkan saja bila tidak dipakai lagi.");
+        if (await _dbContext.PrcBudgets.AnyAsync(x => x.ItemCategoryId == id && !x.IsDelete, cancellationToken))
+            throw new ProcurementMasterInUseException(
+                "Kategori ini tidak dapat dihapus karena masih dipakai pagu. Nonaktifkan saja bila tidak dipakai lagi.");
 
         entity.IsDelete = true;
         entity.IsActive = false;

@@ -16,6 +16,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string Cancel = "CANCEL";
         public const string Withdraw = "WITHDRAW";
         public const string Revise = "REVISE";
+        public const string Supersede = "SUPERSEDE";
         public const string WorkflowApproved = "WF_APPROVED";
         public const string WorkflowRejected = "WF_REJECTED";
         public const string WorkflowReturned = "WF_RETURNED";

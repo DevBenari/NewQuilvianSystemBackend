@@ -2971,9 +2971,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             };
 
             instance.StatusHistories.Add(history);
+
+            // BE-PBJ-009: daftarkan baris baru secara eksplisit. Id sudah diisi, sehingga bila hanya ditemukan
+            // lewat navigasi instance yang sedang dilacak, EF Core (sejak 3.0) menganggapnya baris lama dan
+            // menjalankan UPDATE (0 baris → DbUpdateConcurrencyException). Contoh: Create lalu Submit dalam
+            // satu request — riwayat "Submit" gagal disimpan dan pengajuan dijawab 409.
+            _dbContext.Set<TrxWorkflowStatusHistory>().Add(history);
         }
 
-        private static void AddComment(
+        private void AddComment(
             TrxWorkflowInstance instance,
             TrxWorkflowStepInstance? step,
             HumanResourceUserContextDto actorContext,
@@ -2981,7 +2987,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             string commentText,
             DateTime now)
         {
-            instance.Comments.Add(new TrxWorkflowComment
+            var comment = new TrxWorkflowComment
             {
                 Id = Guid.NewGuid(),
                 WorkflowInstanceId = instance.Id,
@@ -2999,7 +3005,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 CreateBy = actorContext.UserId,
                 IsDelete = false,
                 IsCancel = false
-            });
+            };
+
+            instance.Comments.Add(comment);
+            // Sama seperti AddStatusHistory: komentar baru wajib terlacak sebagai Added.
+            _dbContext.Set<TrxWorkflowComment>().Add(comment);
         }
 
         private static List<string> BuildInstanceAvailableActions(

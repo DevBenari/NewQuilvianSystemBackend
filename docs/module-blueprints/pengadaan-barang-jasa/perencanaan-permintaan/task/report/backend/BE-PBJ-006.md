@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Branch / commit | `sukmagp` @ `100c011d` (belum di-commit) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 **SEBAGIAN.** Kode dan migration ada; build, QBE, skrip EF, dan konsistensi snapshot `PASS`. Belum: uji runtime `AT-PP-08`, `09` (migration belum diterapkan; aplikasi tidak dapat start di dev DB karena migration rekan) |
+| Status | ✅ **SELESAI — diperbarui 16 November 2026.** `AT-PP-08`, `09` terbukti runtime; hanya pembuat yang dapat mengubah (403 untuk rekan satu unit) |
 
 ## Backend Governance Preflight
 
@@ -141,3 +141,31 @@ status bukan draf (`PBJ-VAL-093`); 422 isian tidak sah.
 
 `BE-PBJ-007` (ajukan bernomor, batal, tarik) setelah `BE-PBJ-009`; uji `AT-PP-53`..`56` lampiran kini mungkin
 begitu migration diterapkan.
+
+## Verifikasi lanjutan — 16 November 2026
+
+Dijalankan bersama `BE-PBJ-007`..`011`: build Release `PASS` (0 error, 601 warning = baseline), QBE Strict `PASS` (53
+berkas), `has-pending-model-changes` bersih, seluruh migration Pengadaan diterapkan ke `QuilvianNewDevSukma` atas izin
+pemilik, dan uji runtime HTTP ke `https://localhost:7185` dengan aktor non-SuperAdmin `TEST-PBJ`.
+
+**Fixture uji (`TEST-PBJ-20261116110649`, dibuat lewat API sebagai SuperAdmin, belum dibersihkan).** Lima unit uji
+(`TEST-PBJ IGD/Radiologi/Pengadaan/Manajemen/Keuangan Uji`), tujuh jabatan, delapan akun `Employee` **tanpa role**
+(`reqA`, `reqA2`, `headA`, `reqB`, `proc`, `mgr`, `dirk`, `keu`), dan policy Akses Role per unit × jabatan sesuai peta
+peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemilik "nilai uji di dev"): definisi
+`PBJ-*` diaktifkan, satu baris `MstApprovalMatrix` fallback `SpecificUser` per langkah, dan empat
+`MstRejectionReason` — semuanya bertanda `DATA UJI PBJ (bukan nilai SOP)`. Komitmen pagu uji Rp10.000.000
+(`SourceDocumentType = UJI_PBJ`) disisipkan lewat DB sesuai catatan `AT-PP-45`. Sisa fixture percobaan pertama
+(`TEST-PBJ-20261116105253`) juga masih ada.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| `AT-PP-01a` | PR draft tanpa nomor | `PASS` | http=200 |
+| `AT-PP-02b` | Jumlah 0 → 422 PBJ-VAL-002 | `PASS` | http=422; code=PBJ-VAL-002; message=Jumlah pada baris 1 harus lebih dari 0. |
+| `AT-PP-08` | Pengguna Radiologi membuka PR IGD → 404; daftar Radiologi tanpa PR IGD | `PASS` |  |
+| `AT-PP-09` | Pengubah kedua memakai versi lama → 409 PBJ-VAL-090 | `PASS` | http=409; code=PBJ-VAL-090; message=Data sudah diubah orang lain. Muat ulang lalu ulangi perubahan Anda. |
+| `AT-PP-52` | PR memakai barang nonaktif → 422 PBJ-VAL-005 | `PASS` | http=422; code=PBJ-VAL-005; message=Barang pada baris 1 tidak aktif di katalog. Pilih barang lain atau minta Tim Pengadaan mengaktifkannya. |
+| `AT-PP-62` | Skema: 14 tabel Pengadaan, index unik parsial, CHECK kuantitas/nominal, kolom ActivationConditionCode varchar(50) NULL | `PASS` | tables=14; uniquePartial={'IX_PrcNeedPlan_CurrentVersion': True, 'IX_PrcBudget_CurrentVersion': True, 'IX_PrcBudgetCommitment_ActiveSource': True, 'IX_PrcPurchaseRequest_RequestNumber': True, 'IX_PrcPackagePlan_PackagePlanNumber': True, 'IX_PrcNeedPlan_PlanNum |
+| `D-04` | Rekan satu unit (bukan pembuat) mengubah draf → 403 | `PASS` | http=403; code=None; message=Hanya pembuat pengajuan yang dapat mengubahnya. |
+
+7 skenario, 7 `PASS`.
+

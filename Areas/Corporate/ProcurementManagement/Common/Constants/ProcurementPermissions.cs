@@ -36,11 +36,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
         public const string RequestModuleCode = "CORPORATE_PROCUREMENT_MANAGEMENT_REQUEST";
         public const string RequestModuleName = "Corporate Procurement Management Request";
 
+        /// <summary>Kode modul layar Akses Role untuk perencanaan: rencana kebutuhan, pagu, rencana paket (BE-PBJ-009 dst.).</summary>
+        public const string PlanningModuleCode = "CORPORATE_PROCUREMENT_MANAGEMENT_PLANNING";
+        public const string PlanningModuleName = "Corporate Procurement Management Planning";
+
         public const string ReadAction = "Read";
         public const string CreateAction = "Create";
         public const string UpdateAction = "Update";
         public const string DeleteAction = "Delete";
         public const string UploadAction = "Upload";
+
+        // Aksi perpindahan status dokumen (AccessType Update/Create), PBJ-PP-PERM bagian 2.
+        public const string SubmitAction = "Submit";
+        public const string CancelAction = "Cancel";
+        public const string ReviseAction = "Revise";
+        public const string VerifyAction = "Verify";
+        public const string CancelApprovedAction = "CancelApproved";
 
         public const string ReadAllUnitsAction = "ReadAllUnits";
 

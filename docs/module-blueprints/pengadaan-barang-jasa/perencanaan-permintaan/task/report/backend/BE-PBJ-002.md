@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Branch / commit | `sukmagp` @ `100c011d` (working tree belum di-commit; tanpa stage/commit/push) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 **SEBAGIAN.** Seluruh kode dan migration ada; build dan QBE `PASS`. Yang belum: skema di basis data sungguhan dan uji runtime, karena migration belum diterapkan (pemilik memilih basis data dev tidak disentuh) dan aplikasi belum bisa start di basis data dev (migration rekan tertunda, lihat `BE-PBJ-001`) |
+| Status | ✅ **SELESAI — diperbarui 16 November 2026.** Kriteria 1–4 terbukti; skema `PrcDocumentHistory` ada di basis data (`AT-PP-62`); cakupan unit dan riwayat terbukti di runtime |
 
 ## Backend Governance Preflight
 
@@ -143,3 +143,26 @@ membuat migration sendiri untuk master dan katalog.
 ## 8. Task berikutnya
 
 `BE-PBJ-003` (katalog dan master) dan `BE-PBJ-004` (lampiran) sekarang dapat dikerjakan, dan boleh paralel.
+
+## Verifikasi lanjutan — 16 November 2026
+
+Dijalankan bersama `BE-PBJ-007`..`011`: build Release `PASS` (0 error, 601 warning = baseline), QBE Strict `PASS` (53
+berkas), `has-pending-model-changes` bersih, seluruh migration Pengadaan diterapkan ke `QuilvianNewDevSukma` atas izin
+pemilik, dan uji runtime HTTP ke `https://localhost:7185` dengan aktor non-SuperAdmin `TEST-PBJ`.
+
+**Fixture uji (`TEST-PBJ-20261116110649`, dibuat lewat API sebagai SuperAdmin, belum dibersihkan).** Lima unit uji
+(`TEST-PBJ IGD/Radiologi/Pengadaan/Manajemen/Keuangan Uji`), tujuh jabatan, delapan akun `Employee` **tanpa role**
+(`reqA`, `reqA2`, `headA`, `reqB`, `proc`, `mgr`, `dirk`, `keu`), dan policy Akses Role per unit × jabatan sesuai peta
+peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemilik "nilai uji di dev"): definisi
+`PBJ-*` diaktifkan, satu baris `MstApprovalMatrix` fallback `SpecificUser` per langkah, dan empat
+`MstRejectionReason` — semuanya bertanda `DATA UJI PBJ (bukan nilai SOP)`. Komitmen pagu uji Rp10.000.000
+(`SourceDocumentType = UJI_PBJ`) disisipkan lewat DB sesuai catatan `AT-PP-45`. Sisa fixture percobaan pertama
+(`TEST-PBJ-20261116105253`) juga masih ada.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| `AT-PP-62` | Skema: 14 tabel Pengadaan, index unik parsial, CHECK kuantitas/nominal, kolom ActivationConditionCode varchar(50) NULL | `PASS` | tables=14; uniquePartial={'IX_PrcNeedPlan_CurrentVersion': True, 'IX_PrcBudget_CurrentVersion': True, 'IX_PrcBudgetCommitment_ActiveSource': True, 'IX_PrcPurchaseRequest_RequestNumber': True, 'IX_PrcPackagePlan_PackagePlanNumber': True, 'IX_PrcNeedPlan_PlanNum |
+| `F-DB-2` | Riwayat dokumen tercatat lintas jenis dokumen (append-only) | `PASS` | rows=127 |
+
+2 skenario, 2 `PASS`.
+

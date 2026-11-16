@@ -10,33 +10,34 @@
 
 Kolom **Bukti** merujuk `testing/acceptance-test-matrix.md` (`AT-PP-*`) dan `04-prd-to-mvp.md` (`UAT-*`).
 Bukti backend berupa QBE, build, API manual, dan query basis data; ketiadaan automated test backend bukan gap.
-Status: belum dikerjakan, kecuali baris yang bertanda (12 November 2026).
+Status: baris bertanda diperbarui 16 November 2026 (backend dan frontend). Bukti frontend berupa lint, build, dan uji
+layar Playwright dengan aktor non-SuperAdmin; tangkapan layar tercatat pada laporan task frontend.
 
 ## 1. Functional requirement → task
 
 | Requirement | Keputusan | Desain / kontrak | Task BE | Task FE | Bukti |
 | --- | --- | --- | --- | --- | --- |
-| FR-PBJ-001 penangan dokumen non-HR | `PBJ-DEC-019`, `026` | Arsitektur §8; INT §1 | `BE-PBJ-001` 🟡, `BE-PBJ-005` 🟡 | — | `AT-PP-31`, `34` — titik perluasan ada; penangan `PBJ_*` terdaftar ([laporan 005](../task/report/backend/BE-PBJ-005.md)) (statis, [laporan](../task/report/backend/BE-PBJ-001.md)); runtime menunggu `BE-PBJ-005` |
-| FR-PBJ-002 langkah bersyarat | `PBJ-DEC-030` | Arsitektur §8; kamus §6 | `BE-PBJ-001` 🟡 | — | `AT-PP-25`, `26` — saringan langkah ada (statis); skrip EF satu kolom `PASS` |
-| FR-PBJ-003 HR tidak berubah | `PBJ-DEC-019` | — | `BE-PBJ-001` 🟡 | — | `AT-PP-35`, `UAT-16` — `NOT RUN`, menunggu migration diterapkan |
-| FR-PBJ-010..012 katalog dan master | `PBJ-DEC-022`, `024`, `033` | API §Master Data; VAL-070..072 | `BE-PBJ-003` 🟡 | `FE-PBJ-001` | `AT-PP-50`, `51`, `64`, `UAT-15` — kode `PASS` build/QBE; runtime belum ([laporan](../task/report/backend/BE-PBJ-003.md)) |
-| FR-PBJ-020..021 lampiran | `PBJ-DEC-023` | API §Attachment; VAL-080..083 | `BE-PBJ-004` 🟡 | `FE-PBJ-002` | `AT-PP-53`..`56`, `UAT-14` — kode `PASS` build/QBE; penyedia akses `PBJ_PR` ada (`BE-PBJ-006` 🟡); runtime menunggu migration diterapkan ([laporan](../task/report/backend/BE-PBJ-004.md)) |
-| FR-PBJ-022 riwayat dokumen | — | PERM §5 | `BE-PBJ-002` 🟡 (+ setiap task aksi) | `FE-PBJ-003`, `004` | `AT-PP-01`, `10`, `31` — penulis riwayat append-only ada ([laporan](../task/report/backend/BE-PBJ-002.md)) |
-| FR-PBJ-030 nomor saat diajukan | `PBJ-DEC-025`, `031` | Arsitektur §9 | `BE-PBJ-006` 🟡, `007` | `FE-PBJ-004` | `AT-PP-01`, `10` — draf tanpa nomor ada ([laporan](../task/report/backend/BE-PBJ-006.md)); nomor menyusul `BE-PBJ-007` |
-| FR-PBJ-031..032 dalam/luar rencana, kunci bersamaan | `PBJ-DEC-014`, `029` | STATE §1; VAL-009, 012 | `BE-PBJ-007` (butuh `009`) | `FE-PBJ-004` | `AT-PP-04`..`07`, `UAT-07`, `08` |
-| FR-PBJ-033 cakupan unit | `PBJ-DEC-020`, `033` (`G-08`), `036` | PERM 1.1 §4 | `BE-PBJ-002` 🟡, `006` 🟡 | `FE-PBJ-003` | `AT-PP-08`, `56`, `UAT-03` — penyaring cakupan + `ReadAllUnits` ada (statis); runtime belum ([laporan](../task/report/backend/BE-PBJ-006.md)) |
-| FR-PBJ-034 mendesak | `PBJ-DEC-016` | VAL-008; arsitektur §8 | `BE-PBJ-007`, `008` | `FE-PBJ-004` | `AT-PP-03` |
-| FR-PBJ-035 batal/tarik | `PBJ-DEC-033` (`G-04`) | STATE §1 | `BE-PBJ-007` | `FE-PBJ-004` | `AT-PP-06`, `36` |
-| FR-PBJ-040..042 cek stok dan nilai beli | `PBJ-DEC-008`, `027` | STATE §1; VAL-020, 021 | `BE-PBJ-008` | `FE-PBJ-005` | `AT-PP-20`..`23`, `UAT-01`, `05` |
-| FR-PBJ-043 lewat pagu | `PBJ-DEC-030` | VAL §1 rumus | `BE-PBJ-008` (butuh `010`) | `FE-PBJ-005` | `AT-PP-25`, `UAT-06` |
-| FR-PBJ-044 verifikator ≠ pengusul; anti setujui sendiri | `PBJ-DEC-007` | PERM §4 | `BE-PBJ-005` 🟡, `008` | `FE-PBJ-005` | `AT-PP-27`, `30`, `UAT-04` — `AllowSelfApproval=false` + periksa ulang di penangan (statis) |
-| FR-PBJ-050..053 rencana dan revisi | `PBJ-DEC-033` (`G-05`) | STATE §2; VAL-040..044 | `BE-PBJ-009` | `FE-PBJ-006` | `AT-PP-40`..`42`, `UAT-09`, `10` |
-| FR-PBJ-060..062 pagu | `PBJ-DEC-009`, `033` | STATE §4; VAL-060..062 | `BE-PBJ-010` | `FE-PBJ-007` | `AT-PP-45`, `46`, `UAT-13` |
-| FR-PBJ-070..072 konsolidasi dan rencana paket | `PBJ-DEC-028` | STATE §3; VAL-050, 051 | `BE-PBJ-011` | `FE-PBJ-008` | `AT-PP-43`, `44`, `UAT-11`, `12` |
-| Persetujuan berjenjang terkonfigurasi | `PBJ-DEC-007`, `019` | Arsitektur §8, §10 | `BE-PBJ-005` 🟡 | `FE-PBJ-005` (`-17`) | `AT-PP-31`..`33` — gerbang + definisi tidak aktif di-seed; instance nyata menunggu `BE-PBJ-009` ([laporan](../task/report/backend/BE-PBJ-005.md)) |
-| Menu dan keterjangkauan layar | `PBJ-FE-001`, `PBJ-DEC-032` | FE §3 | — | semua task FE | `AT-PP-63` |
-| Registry dan konformitas | `PBJ-OQ-002` → `PBJ-DEC-035` | Arsitektur §5 | `BE-PBJ-002` 🟡 | — | `AT-PP-60` — QBE `PASS` 17 berkas, 0 temuan |
-| Build dan skema | — | Kamus data §8 | semua task BE | semua task FE | `AT-PP-61`, `62` |
+| FR-PBJ-001 penangan dokumen non-HR | `PBJ-DEC-019`, `026` | Arsitektur §8; INT §1 | `BE-PBJ-001` 🟡, `BE-PBJ-005` ✅ | — | `AT-PP-31`, `34` `PASS` runtime 16 Nov 2026 ([BE-PBJ-005](../task/report/backend/BE-PBJ-005.md), [BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)) |
+| FR-PBJ-002 langkah bersyarat | `PBJ-DEC-030` | Arsitektur §8; kamus §6 | `BE-PBJ-001` 🟡 | — | `AT-PP-25`, `26` `PASS` runtime ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)) |
+| FR-PBJ-003 HR tidak berubah | `PBJ-DEC-019` | — | `BE-PBJ-001` 🟡 | — | `AT-PP-35`, `UAT-16` — `NOT FEASIBLE`: definisi HR di dev tanpa langkah ([BE-PBJ-001](../task/report/backend/BE-PBJ-001.md)) |
+| FR-PBJ-010..012 katalog dan master | `PBJ-DEC-022`, `024`, `033` | API §Master Data; VAL-070..072 | `BE-PBJ-003` ✅ | `FE-PBJ-001` ✅ | `AT-PP-50`, `51`, `64` `PASS` runtime ([BE-PBJ-003](../task/report/backend/BE-PBJ-003.md)); layar: `KTL-000013` dari server, `PBJ-VAL-070`/`071` terbaca ([FE-PBJ-001](../task/report/frontend/FE-PBJ-001.md)) |
+| FR-PBJ-020..021 lampiran | `PBJ-DEC-023` | API §Attachment; VAL-080..083 | `BE-PBJ-004` ✅ | `FE-PBJ-002` ✅ | `AT-PP-53`..`56` `PASS` runtime ([BE-PBJ-004](../task/report/backend/BE-PBJ-004.md)); layar: unggah, ganti versi, `PBJ-VAL-081`, `readOnly` ([FE-PBJ-002](../task/report/frontend/FE-PBJ-002.md)) |
+| FR-PBJ-022 riwayat dokumen | — | PERM §5 | `BE-PBJ-002` ✅ (+ setiap task aksi) | `FE-PBJ-003` ✅, `004` ✅ | `AT-PP-01`, `10`, `31` `PASS` ([BE-PBJ-002](../task/report/backend/BE-PBJ-002.md)); layar: tab Riwayat ([FE-PBJ-003](../task/report/frontend/FE-PBJ-003.md)) |
+| FR-PBJ-030 nomor saat diajukan | `PBJ-DEC-025`, `031` | Arsitektur §9 | `BE-PBJ-006` ✅, `007` ✅ | `FE-PBJ-004` ✅ | `AT-PP-01`, `10` `PASS` ([BE-PBJ-007](../task/report/backend/BE-PBJ-007.md)); layar: PR-000014 tampil setelah Ajukan ([FE-PBJ-004](../task/report/frontend/FE-PBJ-004.md)) |
+| FR-PBJ-031..032 dalam/luar rencana, kunci bersamaan | `PBJ-DEC-014`, `029` | STATE §1; VAL-009, 012 | `BE-PBJ-007` ✅ | `FE-PBJ-004` ✅ | `AT-PP-04`..`07` `PASS` ([BE-PBJ-007](../task/report/backend/BE-PBJ-007.md)); layar: baris rencana + sisa, galat luar rencana di baris ([FE-PBJ-004](../task/report/frontend/FE-PBJ-004.md)) |
+| FR-PBJ-033 cakupan unit | `PBJ-DEC-020`, `033` (`G-08`), `036` | PERM 1.1 §4 | `BE-PBJ-002` ✅, `006` ✅ | `FE-PBJ-003` ✅ | `AT-PP-08`, `56` `PASS` ([BE-PBJ-006](../task/report/backend/BE-PBJ-006.md), [BE-PBJ-004](../task/report/backend/BE-PBJ-004.md)); layar: saringan unit dalam cakupan, 404 unit lain ([FE-PBJ-003](../task/report/frontend/FE-PBJ-003.md)) |
+| FR-PBJ-034 mendesak | `PBJ-DEC-016` | VAL-008; arsitektur §8 | `BE-PBJ-007` ✅, `008` ✅ | `FE-PBJ-004` ✅ | `AT-PP-03` `PASS` ([BE-PBJ-007](../task/report/backend/BE-PBJ-007.md)); layar: `-14` terkunci `URGENT` ([FE-PBJ-004](../task/report/frontend/FE-PBJ-004.md)) |
+| FR-PBJ-035 batal/tarik | `PBJ-DEC-033` (`G-04`) | STATE §1 | `BE-PBJ-007` ✅ | `FE-PBJ-004` ✅ | `AT-PP-06`, `36` `PASS` ([BE-PBJ-007](../task/report/backend/BE-PBJ-007.md)); layar: Batalkan dan Tarik beralasan wajib ([FE-PBJ-004](../task/report/frontend/FE-PBJ-004.md)) |
+| FR-PBJ-040..042 cek stok dan nilai beli | `PBJ-DEC-008`, `027` | STATE §1; VAL-020, 021 | `BE-PBJ-008` ✅ | `FE-PBJ-005` ✅ | `AT-PP-20`..`23` `PASS` ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)); layar: cek stok + selesaikan ([FE-PBJ-005](../task/report/frontend/FE-PBJ-005.md)) |
+| FR-PBJ-043 lewat pagu | `PBJ-DEC-030` | VAL §1 rumus | `BE-PBJ-008` ✅ | `FE-PBJ-005` ✅ | `AT-PP-25` `PASS` ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)); layar: tanda "Melebihi Pagu Rp 150.000" ([FE-PBJ-005](../task/report/frontend/FE-PBJ-005.md)) |
+| FR-PBJ-044 verifikator ≠ pengusul; anti setujui sendiri | `PBJ-DEC-007` | PERM §4 | `BE-PBJ-005` ✅, `008` ✅ | `FE-PBJ-005` ✅ | `AT-PP-27`, `30` `PASS` ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)); layar: tombol verifikasi tersembunyi bagi pembuat ([FE-PBJ-005](../task/report/frontend/FE-PBJ-005.md)) |
+| FR-PBJ-050..053 rencana dan revisi | `PBJ-DEC-033` (`G-05`) | STATE §2; VAL-040..044 | `BE-PBJ-009` ✅ | `FE-PBJ-006` ✅ | `AT-PP-40`..`42` `PASS` ([BE-PBJ-009](../task/report/backend/BE-PBJ-009.md)); layar: `PBJ-VAL-040` + tautan, `PBJ-VAL-042` di baris, banding versi ([FE-PBJ-006](../task/report/frontend/FE-PBJ-006.md)) |
+| FR-PBJ-060..062 pagu | `PBJ-DEC-009`, `033` | STATE §4; VAL-060..062 | `BE-PBJ-010` ✅ | `FE-PBJ-007` ✅ | `AT-PP-45`, `46` `PASS` ([BE-PBJ-010](../task/report/backend/BE-PBJ-010.md)); layar: `PBJ-VAL-060`/`062`, nominal tersembunyi tanpa izin ([FE-PBJ-007](../task/report/frontend/FE-PBJ-007.md)) |
+| FR-PBJ-070..072 konsolidasi dan rencana paket | `PBJ-DEC-028` | STATE §3; VAL-050, 051 | `BE-PBJ-011` ✅ | `FE-PBJ-008` ✅ | `AT-PP-43`, `44` `PASS` ([BE-PBJ-011](../task/report/backend/BE-PBJ-011.md)); layar: konsolidasi → paket berunit asal, `PBJ-VAL-050` ([FE-PBJ-008](../task/report/frontend/FE-PBJ-008.md)) |
+| Persetujuan berjenjang terkonfigurasi | `PBJ-DEC-007`, `019` | Arsitektur §8, §10 | `BE-PBJ-005` ✅ | `FE-PBJ-005` ✅ (`-17`) | `AT-PP-31`..`33` `PASS` dengan matriks **uji** dev ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)); matriks SOP menunggu `PBJ-OQ-019`; layar: 4 langkah disetujui dari Antrean Persetujuan, `PBJ-VAL-091` ([FE-PBJ-005](../task/report/frontend/FE-PBJ-005.md)) |
+| Menu dan keterjangkauan layar | `PBJ-FE-001`, `PBJ-DEC-032` | FE §3 | — | semua task FE ✅ | `AT-PP-63` sebagian: 24 rute dan butir menu §3 terdaftar; butir tersembunyi tanpa izin (uji aktor Keuangan) ([FE-PBJ-001](../task/report/frontend/FE-PBJ-001.md)) |
+| Registry dan konformitas | `PBJ-OQ-002` → `PBJ-DEC-035` | Arsitektur §5 | `BE-PBJ-002` ✅ | — | `AT-PP-60` — QBE Strict `PASS` 53 berkas, 0 temuan (16 Nov 2026) |
+| Build dan skema | — | Kamus data §8 | semua task BE | semua task FE ✅ | `AT-PP-61` BE `PASS`; `AT-PP-62` `PASS` ([BE-PBJ-011](../task/report/backend/BE-PBJ-011.md)); FE: `npm run lint:errors` dan `npm run build` `PASS` 16 Nov 2026 |
 
 ## 2. Keputusan → task
 
@@ -64,6 +65,10 @@ Status: belum dikerjakan, kecuali baris yang bertanda (12 November 2026).
 | --- | --- | --- |
 | ~~`PBJ-OQ-002`~~ | Ditutup 12 November 2026 (`PBJ-DEC-035`) | — |
 | `PBJ-OQ-019` | Nilai matriks dari SOP belum ada; approval memakai baris fallback | Tidak memblokir DoD; diisi lewat konfigurasi `Wfl` |
-| `AT-PP-36` (tarik) | Baru dapat dibuktikan penuh setelah `BE-PBJ-008` | `BE-PBJ-007` boleh 🟡 untuk kriteria itu saja sampai `BE-PBJ-008` selesai |
-| `AT-PP-45`, `46` | Komitmen belum punya pemanggil | Diisi data uji DB; pemanggil nyata di `pemilihan-penyedia` |
+| ~~`AT-PP-36` (tarik)~~ | Terbukti 16 November 2026 bersama `BE-PBJ-008` | — |
+| `AT-PP-45`, `46` | Komitmen belum punya pemanggil | Diisi data uji DB (`UJI_PBJ`) — `PASS`; pemanggil nyata di `pemilihan-penyedia` |
+| `AT-PP-35` (regresi HR) | Definisi workflow HR di `QuilvianNewDevSukma` tanpa langkah; regresi tidak dapat dijalankan | Butuh konfigurasi workflow HR oleh pemiliknya; `BE-PBJ-001` tetap 🟡 |
+| Bundel izin vs kebutuhan layar | "Unit Peminta" tanpa `ProcurementFundSource : Read` (sumber dana PR wajib); "Tim Pengadaan" tanpa `Measurement : Read` (satuan katalog); "Keuangan" tanpa `Organization : Read` (unit pagu); rincian langkah `Wfl` butuh `WorkflowInstance : Read` | Keputusan pemilik: tambah izin di Akses Role atau feed pilihan di bawah izin dokumen ([FE-PBJ-003](../task/report/frontend/FE-PBJ-003.md) §8) |
+| Delta kolom daftar PR | Item daftar tanpa `urgencyDeadline`, langkah saat ini, aksi terakhir; antrean verifikasi tanpa urutan mendesak-dulu | Usulan delta kontrak ([FE-PBJ-004](../task/report/frontend/FE-PBJ-004.md), [FE-PBJ-005](../task/report/frontend/FE-PBJ-005.md)) |
+| `PBJ-VAL-071` | Backend 400 tanpa `errors.code` dan teks berbeda dari `validation-matrix.md` (409) | Selaraskan backend atau matriks ([FE-PBJ-001](../task/report/frontend/FE-PBJ-001.md)) |
 | Requirement tanpa task | Tidak ada. K-13 (dashboard/laporan) dan integrasi stok sengaja `POST-MVP` (`04-prd-to-mvp.md` §8) | — |

@@ -53,6 +53,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Con
             public const string Superseded = "SUPERSEDED";
             public const string Rejected = "REJECTED";
             public const string Cancelled = "CANCELLED";
+
+            /// <summary>Label tampilan berbahasa Indonesia (matriks status bagian 2–4).</summary>
+            public static readonly IReadOnlyDictionary<string, string> Labels = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [Draft] = "Draf",
+                [PendingApproval] = "Menunggu Persetujuan",
+                [Returned] = "Dikembalikan",
+                [Approved] = "Disetujui",
+                [Superseded] = "Digantikan revisi",
+                [Rejected] = "Ditolak",
+                [Cancelled] = "Dibatalkan"
+            };
+
+            public static string LabelOf(string? status) =>
+                status != null && Labels.TryGetValue(status, out var label) ? label : status ?? string.Empty;
+
+            /// <summary>Isi dokumen hanya boleh diubah pada status ini.</summary>
+            public static bool IsEditable(string? status) =>
+                string.Equals(status, Draft, StringComparison.Ordinal) ||
+                string.Equals(status, Returned, StringComparison.Ordinal);
+
+            /// <summary>
+            /// Status yang masih "hidup" untuk aturan satu dokumen per kunci (PBJ-VAL-040, 060).
+            /// Contoh: rencana IGD 2027 yang <c>REJECTED</c> tidak menghalangi rencana baru, tetapi yang
+            /// <c>DRAFT</c> menghalanginya.
+            /// </summary>
+            public static bool IsAlive(string? status) =>
+                !string.Equals(status, Rejected, StringComparison.Ordinal) &&
+                !string.Equals(status, Cancelled, StringComparison.Ordinal) &&
+                !string.Equals(status, Superseded, StringComparison.Ordinal);
+
+            /// <summary>Revisi yang belum final (PBJ-VAL-041).</summary>
+            public static readonly IReadOnlySet<string> Unfinished = new HashSet<string>(StringComparer.Ordinal)
+            {
+                Draft,
+                PendingApproval,
+                Returned
+            };
         }
     }
 }

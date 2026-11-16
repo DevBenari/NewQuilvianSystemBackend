@@ -1,6 +1,7 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
@@ -36,6 +37,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
             // BE-PBJ-006 — permintaan pengadaan (draf) dan penyedia akses lampiran PBJ_PR.
             services.AddScoped<ProcurementPurchaseRequestService>();
             services.AddScoped<IProcurementDocumentAccessProvider, PurchaseRequestAttachmentAccessProvider>();
+
+            // BE-PBJ-009 — rencana kebutuhan berversi, pemakaian baris rencana, penyedia akses lampiran
+            // dan penerap status Wfl PBJ_NEED_PLAN.
+            services.AddScoped<ProcurementPlanQuotaService>();
+            services.AddScoped<ProcurementNeedPlanService>();
+            services.AddScoped<IProcurementDocumentAccessProvider, NeedPlanAttachmentAccessProvider>();
+            services.AddScoped<IProcurementWorkflowStatusApplier, NeedPlanWorkflowStatusApplier>();
+
+            // BE-PBJ-010 — pagu berversi, sisa pagu, komitmen pagu (dipakai sub-modul lain kelak),
+            // penyedia akses lampiran dan penerap status Wfl PBJ_BUDGET.
+            services.AddScoped<ProcurementBudgetService>();
+            services.AddScoped<ProcurementBudgetCommitmentService>();
+            services.AddScoped<IProcurementDocumentAccessProvider, BudgetAttachmentAccessProvider>();
+            services.AddScoped<IProcurementWorkflowStatusApplier, BudgetWorkflowStatusApplier>();
+
+            // BE-PBJ-011 — konsolidasi kebutuhan dan rencana paket, penyedia akses lampiran dan penerap
+            // status Wfl PBJ_PACKAGE_PLAN.
+            services.AddScoped<ProcurementPlanConsolidationService>();
+            services.AddScoped<ProcurementPackagePlanService>();
+            services.AddScoped<IProcurementDocumentAccessProvider, PackagePlanAttachmentAccessProvider>();
+            services.AddScoped<IProcurementWorkflowStatusApplier, PackagePlanWorkflowStatusApplier>();
+
+            // BE-PBJ-008 — verifikasi PR oleh Tim Pengadaan dan penerap status Wfl PBJ_PR.
+            services.AddScoped<ProcurementPurchaseRequestVerificationService>();
+            services.AddScoped<IProcurementWorkflowStatusApplier, PurchaseRequestWorkflowStatusApplier>();
 
             return services;
         }

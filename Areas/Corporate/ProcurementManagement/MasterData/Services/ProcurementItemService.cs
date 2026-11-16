@@ -218,11 +218,17 @@ public sealed class ProcurementItemService
     {
         var entity = await FindAsync(id, cancellationToken);
 
-        // PBJ-VAL-071: barang yang sudah dipakai baris PR tidak boleh dihapus — nonaktifkan saja.
-        // Baris rencana kebutuhan (BE-PBJ-009) menambah pemeriksaannya di sini.
+        // PBJ-VAL-071: barang yang sudah dipakai baris PR atau rencana kebutuhan (BE-PBJ-009) tidak boleh
+        // dihapus — nonaktifkan saja.
         if (await _dbContext.PrcPurchaseRequestLines.AnyAsync(x => x.ItemId == id && !x.IsDelete, cancellationToken))
             throw new ProcurementMasterInUseException(
                 "Barang/jasa sudah dipakai pada permintaan pengadaan. Nonaktifkan saja agar tidak dipakai lagi.");
+        if (await _dbContext.PrcNeedPlanLines.AnyAsync(x => x.ItemId == id && !x.IsDelete, cancellationToken))
+            throw new ProcurementMasterInUseException(
+                "Barang/jasa sudah dipakai pada rencana kebutuhan. Nonaktifkan saja agar tidak dipakai lagi.");
+        if (await _dbContext.PrcPackagePlanLines.AnyAsync(x => x.ItemId == id && !x.IsDelete, cancellationToken))
+            throw new ProcurementMasterInUseException(
+                "Barang/jasa sudah dipakai pada rencana paket. Nonaktifkan saja agar tidak dipakai lagi.");
 
         entity.IsDelete = true;
         entity.IsActive = false;

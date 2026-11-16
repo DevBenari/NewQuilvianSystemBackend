@@ -145,10 +145,16 @@ public sealed class ProcurementFundSourceService
     public async Task<ProcurementMasterDeleteResponse> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
     {
         var entity = await FindAsync(id, cancellationToken);
-        // Sumber dana yang sudah dipakai PR tidak boleh dihapus. Pagu (BE-PBJ-010) menambah pemeriksaannya di sini.
+        // Sumber dana yang sudah dipakai PR, rencana kebutuhan (BE-PBJ-009), atau pagu (BE-PBJ-010) tidak boleh dihapus.
         if (await _dbContext.PrcPurchaseRequests.AnyAsync(x => x.FundSourceId == id && !x.IsDelete, cancellationToken))
             throw new ProcurementMasterInUseException(
                 "Sumber dana sudah dipakai pada permintaan pengadaan. Nonaktifkan saja agar tidak dipakai lagi.");
+        if (await _dbContext.PrcNeedPlanLines.AnyAsync(x => x.FundSourceId == id && !x.IsDelete, cancellationToken))
+            throw new ProcurementMasterInUseException(
+                "Sumber dana sudah dipakai pada rencana kebutuhan. Nonaktifkan saja agar tidak dipakai lagi.");
+        if (await _dbContext.PrcBudgets.AnyAsync(x => x.FundSourceId == id && !x.IsDelete, cancellationToken))
+            throw new ProcurementMasterInUseException(
+                "Sumber dana sudah dipakai pada pagu. Nonaktifkan saja agar tidak dipakai lagi.");
 
         entity.IsDelete = true;
         entity.IsActive = false;

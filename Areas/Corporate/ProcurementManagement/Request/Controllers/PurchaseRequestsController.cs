@@ -11,12 +11,14 @@ using QuilvianSystemBackend.Responses;
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Controllers;
 
 /// <summary>
-/// Permintaan pengadaan (PR) — draf, daftar, ringkasan, detail, riwayat status (BE-PBJ-006).
+/// Permintaan pengadaan (PR) — draf, daftar, ringkasan, detail, riwayat status (BE-PBJ-006); ajukan,
+/// batal, tarik, dan pilihan baris rencana (BE-PBJ-007).
 /// </summary>
 /// <remarks>
 /// Transaksi ber-lifecycle, bukan master data: tidak ada <c>GET /options</c>,
 /// <c>PATCH /{id}/status</c>, atau <c>DELETE /{id}</c>. Perpindahan status memakai
-/// <c>POST /{id}/&lt;aksi&gt;</c> (ajukan, batal, tarik — BE-PBJ-007; verifikasi — BE-PBJ-008).
+/// <c>POST /{id}/&lt;aksi&gt;</c>: <c>submit</c> dan <c>cancel</c> (termasuk tarik dari persetujuan);
+/// verifikasi ada di <c>PurchaseRequestVerificationsController</c> (BE-PBJ-008).
 /// PR di luar cakupan unit pengguna dijawab 404.
 /// </remarks>
 [ApiController]
@@ -56,6 +58,14 @@ public sealed class PurchaseRequestsController : ControllerBase
     public Task<IActionResult> Get([FromQuery] PurchaseRequestQuery request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.GetPagedAsync(User, request, cancellationToken), "Daftar permintaan berhasil diambil.");
 
+    [HttpGet("plan-line-options")]
+    [AccessAction(ProcurementPermissions.CreateAction, "Create Procurement Request", AccessType = AccessTypes.Create, SortOrder = 2)]
+    [AccessPermission(Resource, ProcurementPermissions.CreateAction)]
+    [ProducesResponseType(typeof(ApiResponse<List<PlanLineQuotaResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public Task<IActionResult> GetPlanLineOptions([FromQuery] PlanLineOptionsQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.GetPlanLineOptionsAsync(User, request, cancellationToken), "Pilihan baris rencana berhasil diambil.");
+
     [HttpGet("{id:guid}")]
     [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Request", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission(Resource, ProcurementPermissions.ReadAction)]
@@ -91,12 +101,40 @@ public sealed class PurchaseRequestsController : ControllerBase
     public Task<IActionResult> Update(Guid id, [FromBody] UpdatePurchaseRequestRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.UpdateAsync(User, id, request, cancellationToken), "Draf permintaan berhasil diubah.");
 
+    [HttpPost("{id:guid}/submit")]
+    [AccessAction(ProcurementPermissions.SubmitAction, "Submit Procurement Request", Description = "Mengajukan permintaan untuk diverifikasi", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission(Resource, ProcurementPermissions.SubmitAction)]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseRequestResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public Task<IActionResult> Submit(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.SubmitAsync(User, id, idempotencyKey, cancellationToken), "Permintaan berhasil diajukan.");
+
+    [HttpPost("{id:guid}/cancel")]
+    [AccessAction(ProcurementPermissions.CancelAction, "Cancel Procurement Request", Description = "Membatalkan atau menarik permintaan oleh pengusul", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission(Resource, ProcurementPermissions.CancelAction)]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseRequestResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public Task<IActionResult> Cancel(Guid id, [FromBody] CancelPurchaseRequestRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.CancelAsync(User, id, request, cancellationToken), "Permintaan berhasil dibatalkan.");
+
     private async Task<IActionResult> ExecuteAsync<T>(Func<Task<T>> command, string message)
     {
         try { return Ok(ApiResponse<T>.Ok(await command(), message)); }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
         catch (ProcurementRequestForbiddenException exception) { return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(403, exception.Message)); }
-        catch (ProcurementRequestConflictException exception) { return Conflict(ApiResponse<object>.Fail(409, exception.Message)); }
-        catch (ProcurementRequestValidationException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)); }
+        catch (ProcurementRequestConflictException exception) { return Conflict(ApiResponse<object>.Fail(409, exception.Message, new { code = exception.Code })); }
+        catch (ProcurementRequestValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message, new { code = exception.Code, lineNo = exception.LineNo }));
+        }
     }
 }

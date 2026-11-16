@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Branch / commit saat dikerjakan | `sukmagp` @ `100c011d` (working tree belum di-commit; tanpa stage/commit/push) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 **SEBAGIAN.** 4 dari 5 acceptance criteria terbukti (statis/EF); migration **sudah diterapkan** ke `QuilvianNewDevSukma` (12 November 2026, atas izin pemilik). Uji regresi HR di runtime (`AT-PP-35`) `NOT FEASIBLE`: aplikasi tidak dapat start di basis data dev karena migration rekan `20261110044224_AddHrdDurableAuditAndPinLockouts` belum diterapkan di sana, dan basis data dev belum punya definisi workflow sama sekali |
+| Status | 🟡 **SEBAGIAN — diperbarui 16 November 2026.** Kriteria 1–5 terbukti (2–4 kini di runtime lewat definisi `PBJ-*`); `AT-PP-35` regresi cuti/lembur `NOT FEASIBLE`: definisi workflow HR di `QuilvianNewDevSukma` (T9–T18) tidak punya satu pun langkah dan belum pernah punya instance, dan tidak ada definisi cuti/lembur sama sekali |
 
 ## Backend Governance Preflight
 
@@ -140,3 +140,42 @@ pagu hanya dua.
 
 1. Untuk menaikkan task ini ke ✅: basis data dev perlu menerapkan migration rekan yang tertunda (minimal `20261110044224`) agar aplikasi bisa start, ditambah satu definisi workflow uji. Kedua tindakan itu butuh izin pemilik. Alternatifnya, `AT-PP-35` dibuktikan bersama `BE-PBJ-009`, yang men-seed definisi `PBJ-*` dan menjalankan instance pertama.
 2. `BE-PBJ-002` **dibuka**: registry `Prc` disetujui 12 November 2026 (`PBJ-DEC-035`).
+
+## Verifikasi lanjutan — 16 November 2026
+
+Dijalankan bersama `BE-PBJ-007`..`011`: build Release `PASS` (0 error, 601 warning = baseline), QBE Strict `PASS` (53
+berkas), `has-pending-model-changes` bersih, seluruh migration Pengadaan diterapkan ke `QuilvianNewDevSukma` atas izin
+pemilik, dan uji runtime HTTP ke `https://localhost:7185` dengan aktor non-SuperAdmin `TEST-PBJ`.
+
+**Fixture uji (`TEST-PBJ-20261116110649`, dibuat lewat API sebagai SuperAdmin, belum dibersihkan).** Lima unit uji
+(`TEST-PBJ IGD/Radiologi/Pengadaan/Manajemen/Keuangan Uji`), tujuh jabatan, delapan akun `Employee` **tanpa role**
+(`reqA`, `reqA2`, `headA`, `reqB`, `proc`, `mgr`, `dirk`, `keu`), dan policy Akses Role per unit × jabatan sesuai peta
+peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemilik "nilai uji di dev"): definisi
+`PBJ-*` diaktifkan, satu baris `MstApprovalMatrix` fallback `SpecificUser` per langkah, dan empat
+`MstRejectionReason` — semuanya bertanda `DATA UJI PBJ (bukan nilai SOP)`. Komitmen pagu uji Rp10.000.000
+(`SourceDocumentType = UJI_PBJ`) disisipkan lewat DB sesuai catatan `AT-PP-45`. Sisa fixture percobaan pertama
+(`TEST-PBJ-20261116105253`) juga masih ada.
+
+Uji runtime ulang terhadap build baru di `https://localhost:7185` (aplikasi kini dapat start; seluruh migration
+diterapkan). Kriteria 2 (penangan terdaftar dipanggil untuk tipe `PBJ_*`) dan 3–4 (langkah ber-kode hanya dibuat bila
+kodenya ada; langkah `null` selalu dibuat) kini terbukti di runtime:
+
+| ID | Bukti |
+| --- | --- |
+| `B-16`, `AT-PP-31`, `E-05`, `C-01` | Penangan Pengadaan menerapkan hasil approval `PBJ-RKB`, `PBJ-PR`, `PBJ-RPK`, `PBJ-PAGU` |
+| `AT-PP-25` | `conditionCodes = [PBJ_OUT_OF_PLAN, PBJ_OVER_BUDGET]` → langkah `PBJ-PR-01`..`04` dibuat |
+| `AT-PP-26` | Tanpa kode kondisi → hanya `PBJ-PR-01`, `PBJ-PR-02` |
+| `AT-PP-62` | Kolom `ActivationConditionCode` `varchar(50)` nullable |
+
+**`AT-PP-35` tetap `NOT FEASIBLE`.** Query 16 November 2026: sembilan definisi HR (`T9`..`T18`) aktif tetapi **0 langkah**
+dan **0 instance**; definisi cuti/lembur tidak ada. Menjalankan regresi HR membutuhkan konfigurasi workflow HR oleh
+pemiliknya. **Catatan:** perbaikan `Wfl` pada `BE-PBJ-009` (`AddStatusHistory`/`AddComment` mendaftarkan baris baru
+sebagai `Added`) ikut berlaku bagi HR yang memanggil Create lalu Submit dalam satu request; perubahan itu memperbaiki,
+bukan mengubah perilaku yang benar, tetapi tetap perlu dibuktikan di HR saat konfigurasinya ada.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| `AT-PP-62` | Skema: 14 tabel Pengadaan, index unik parsial, CHECK kuantitas/nominal, kolom ActivationConditionCode varchar(50) NULL | `PASS` | tables=14; uniquePartial={'IX_PrcNeedPlan_CurrentVersion': True, 'IX_PrcBudget_CurrentVersion': True, 'IX_PrcBudgetCommitment_ActiveSource': True, 'IX_PrcPurchaseRequest_RequestNumber': True, 'IX_PrcPackagePlan_PackagePlanNumber': True, 'IX_PrcNeedPlan_PlanNum |
+
+1 skenario, 1 `PASS`.
+

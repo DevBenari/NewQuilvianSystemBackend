@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Branch / commit | `sukmagp` @ `100c011d` (belum di-commit) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 **SEBAGIAN.** Kode lengkap; build dan QBE `PASS`. Belum: bukti DB definisi/langkah (seeder belum pernah dijalankan karena aplikasi tidak dapat start di dev DB) dan instance approval nyata pertama (menunggu `BE-PBJ-009`) |
+| Status | ✅ **SELESAI — diperbarui 16 November 2026.** Kriteria 1–4 terbukti runtime; instance nyata `PBJ-RKB`, `PBJ-PR`, `PBJ-RPK`, `PBJ-PAGU` dibuat atas nama pemohon dan disetujui end-to-end; seeder idempoten (`AT-PP-64`) |
 
 ## Backend Governance Preflight
 
@@ -120,3 +120,37 @@ Tidak ada migration. Basis data dev tidak disentuh.
 ## 7. Task berikutnya
 
 `BE-PBJ-009` (rencana kebutuhan) dan `BE-PBJ-010` (pagu) memakai gerbang ini dan membuktikan instance nyata pertama.
+
+## Verifikasi lanjutan — 16 November 2026
+
+Dijalankan bersama `BE-PBJ-007`..`011`: build Release `PASS` (0 error, 601 warning = baseline), QBE Strict `PASS` (53
+berkas), `has-pending-model-changes` bersih, seluruh migration Pengadaan diterapkan ke `QuilvianNewDevSukma` atas izin
+pemilik, dan uji runtime HTTP ke `https://localhost:7185` dengan aktor non-SuperAdmin `TEST-PBJ`.
+
+**Fixture uji (`TEST-PBJ-20261116110649`, dibuat lewat API sebagai SuperAdmin, belum dibersihkan).** Lima unit uji
+(`TEST-PBJ IGD/Radiologi/Pengadaan/Manajemen/Keuangan Uji`), tujuh jabatan, delapan akun `Employee` **tanpa role**
+(`reqA`, `reqA2`, `headA`, `reqB`, `proc`, `mgr`, `dirk`, `keu`), dan policy Akses Role per unit × jabatan sesuai peta
+peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemilik "nilai uji di dev"): definisi
+`PBJ-*` diaktifkan, satu baris `MstApprovalMatrix` fallback `SpecificUser` per langkah, dan empat
+`MstRejectionReason` — semuanya bertanda `DATA UJI PBJ (bukan nilai SOP)`. Komitmen pagu uji Rp10.000.000
+(`SourceDocumentType = UJI_PBJ`) disisipkan lewat DB sesuai catatan `AT-PP-45`. Sisa fixture percobaan pertama
+(`TEST-PBJ-20261116105253`) juga masih ada.
+
+**Cacat yang ditemukan dan diperbaiki di `BE-PBJ-009`.** Pada uji runtime pertama, `CreateAndSubmitOnBehalfAsync`
+menjawab 409 "Submit workflow gagal karena terjadi konflik data". Penyebabnya bukan task ini secara langsung:
+`WorkflowService.AddStatusHistory` menambahkan riwayat ber-`Id` terisi lewat navigasi instance yang sedang dilacak,
+sehingga EF Core menjalankan `UPDATE` (0 baris). Setelah diperbaiki, gateway ini terbukti di runtime.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| `AT-PP-62` | Skema: 14 tabel Pengadaan, index unik parsial, CHECK kuantitas/nominal, kolom ActivationConditionCode varchar(50) NULL | `PASS` | tables=14; uniquePartial={'IX_PrcNeedPlan_CurrentVersion': True, 'IX_PrcBudget_CurrentVersion': True, 'IX_PrcBudgetCommitment_ActiveSource': True, 'IX_PrcPurchaseRequest_RequestNumber': True, 'IX_PrcPackagePlan_PackagePlanNumber': True, 'IX_PrcNeedPlan_PlanNum |
+| `AT-PP-64` | Seeder master + definisi PBJ-* dijalankan ulang (server start ulang 3×) → jumlah baris sama | `PASS` | before={'types': 4, 'umum': 1, 'funds': 2, 'wfl_defs': 5, 'wfl_steps': 11}; after={'types': 4, 'umum': 1, 'funds': 2, 'wfl_defs': 5, 'wfl_steps': 11} |
+| `B-11` | Definisi PBJ-RKB tidak aktif → 409 PBJ-VAL-091, rencana tetap DRAFT, tanpa instance | `PASS` | http=409; code=PBJ-VAL-091; message=Alur persetujuan pengadaan belum dikonfigurasi. Hubungi administrator. |
+| `B-15` | Instance PBJ-RKB atas nama penyusun, kunci idempoten <type>:<id>:1 | `PASS` | requestedBy=reqA; key=PBJ_NEED_PLAN:fc151009fecb460ab0dc6f8d9036ebf6:1; steps=['PBJ-RKB-01', 'PBJ-RKB-02'] |
+| `B-16` | Disetujui kedua jenjang di kotak masuk → APPROVED, versi berlaku, WF_APPROVED sekali | `PASS` | approvals=[['PBJ-RKB-01', 'headA', 200], ['PBJ-RKB-02', 'mgr', 200]]; status=APPROVED; wfApproved=1 |
+| `F-05` | Instance atas nama pengusul (bukan verifikator), kunci idempoten :1 | `PASS` | key=PBJ_PR:4164a87d97994fd9b239c54a2b76f196:1 |
+| `F-09` | Dikembalikan Wfl → RETURNED; ajukan ulang menutup instance lama (Cancelled) dan mengosongkan cek stok; verifikasi ulang → instance baru :2 | `PASS` | oldInstance=Cancelled; newKey=PBJ_PR:9e5a8601510741209d4b80cfc756e2cc:2; message=Verifikasi berhasil diselesaikan. |
+| `F-DB-1` | 5 definisi PBJ-* kategori Procurement, 11 langkah, AllowSelfApproval=false, 4 langkah ber-kode kondisi (PR-03/04, PRM-02/03) | `PASS` | conditional=['PBJ-PR-03', 'PBJ-PR-04', 'PBJ-PRM-02', 'PBJ-PRM-03'] |
+
+8 skenario, 8 `PASS`.
+

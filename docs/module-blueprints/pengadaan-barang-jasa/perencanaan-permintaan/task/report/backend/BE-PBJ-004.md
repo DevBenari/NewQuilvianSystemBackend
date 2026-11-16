@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Branch / commit | `sukmagp` @ `100c011d` (belum di-commit) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 **SEBAGIAN.** Kode dan migration ada; build dan QBE `PASS`. Belum: uji runtime `AT-PP-53`..`56`. Selain migration yang belum diterapkan, lampiran baru dapat dipakai setelah task dokumen pertama (`BE-PBJ-006`) mendaftarkan penyedia akses `PBJ_PR`; sampai itu semua jenis dokumen dijawab 404 (*fail-closed*, sesuai catatan kartu) |
+| Status | ✅ **SELESAI — diperbarui 16 November 2026.** `AT-PP-53`..`56` terbukti runtime; penyedia akses `PBJ_PR`, `PBJ_NEED_PLAN`, `PBJ_BUDGET`, `PBJ_PACKAGE_PLAN` aktif |
 
 ## Backend Governance Preflight
 
@@ -135,3 +135,35 @@ berlaku; 422 berkas ditolak.
 
 `BE-PBJ-006` mendaftarkan `IProcurementDocumentAccessProvider` untuk `PBJ_PR`, dan saat itu `AT-PP-53`..`56`
 dapat diuji.
+
+## Verifikasi lanjutan — 16 November 2026
+
+Dijalankan bersama `BE-PBJ-007`..`011`: build Release `PASS` (0 error, 601 warning = baseline), QBE Strict `PASS` (53
+berkas), `has-pending-model-changes` bersih, seluruh migration Pengadaan diterapkan ke `QuilvianNewDevSukma` atas izin
+pemilik, dan uji runtime HTTP ke `https://localhost:7185` dengan aktor non-SuperAdmin `TEST-PBJ`.
+
+**Fixture uji (`TEST-PBJ-20261116110649`, dibuat lewat API sebagai SuperAdmin, belum dibersihkan).** Lima unit uji
+(`TEST-PBJ IGD/Radiologi/Pengadaan/Manajemen/Keuangan Uji`), tujuh jabatan, delapan akun `Employee` **tanpa role**
+(`reqA`, `reqA2`, `headA`, `reqB`, `proc`, `mgr`, `dirk`, `keu`), dan policy Akses Role per unit × jabatan sesuai peta
+peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemilik "nilai uji di dev"): definisi
+`PBJ-*` diaktifkan, satu baris `MstApprovalMatrix` fallback `SpecificUser` per langkah, dan empat
+`MstRejectionReason` — semuanya bertanda `DATA UJI PBJ (bukan nilai SOP)`. Komitmen pagu uji Rp10.000.000
+(`SourceDocumentType = UJI_PBJ`) disisipkan lewat DB sesuai catatan `AT-PP-45`. Sisa fixture percobaan pertama
+(`TEST-PBJ-20261116105253`) juga masih ada.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| `AT-PP-53` | Unggah .html, .pdf berisi HTML, .exe berganti nama → 422 semuanya, tidak ada berkas tersimpan | `PASS` | results=[[422, None, 'Jenis berkas tidak diizinkan. Gunakan PDF, JPG, JPEG, PNG, DOCX, XLSX.'], [422, None, 'Isi berkas tidak sesuai dengan jenisnya.'], [422, None, 'Isi berkas tidak sesuai dengan jenisnya.']] |
+| `AT-PP-54` | Berkas 11 MB → 422 PBJ-VAL-082 | `PASS` | http=422; code=None; message=Ukuran berkas maksimal 10 MB. |
+| `AT-PP-55` | Unggah pengganti → versi 2 IsCurrent, versi 1 tetap ada (tidak berlaku) | `PASS` | http=200; rows=[[1, False], [2, True]] |
+| `AT-PP-55a` | Unggah PDF sah → versi 1 berlaku | `PASS` | http=200; message=Lampiran berhasil diunggah. |
+| `AT-PP-56` | Pengguna unit lain mengunduh lampiran PR IGD → 404 | `PASS` | http=404 |
+| `AT-PP-62` | Skema: 14 tabel Pengadaan, index unik parsial, CHECK kuantitas/nominal, kolom ActivationConditionCode varchar(50) NULL | `PASS` | tables=14; uniquePartial={'IX_PrcNeedPlan_CurrentVersion': True, 'IX_PrcBudget_CurrentVersion': True, 'IX_PrcBudgetCommitment_ActiveSource': True, 'IX_PrcPurchaseRequest_RequestNumber': True, 'IX_PrcPackagePlan_PackagePlanNumber': True, 'IX_PrcNeedPlan_PlanNum |
+| `F-AT-1` | Unduh oleh pemilik → 200, Content-Disposition attachment, isi sama | `PASS` | http=200 |
+| `F-AT-2` | Pengguna unit lain membaca daftar lampiran PR IGD → 404 | `PASS` | http=404; code=None; message=Dokumen tidak ditemukan atau bukan milik unit Anda. |
+| `F-AT-3` | Unggah pada dokumen final → 409 PBJ-VAL-083 | `PASS` | http=409; code=None; message=Dokumen sudah final; lampiran tidak dapat diubah. |
+| `F-AT-4` | Penyedia akses rencana kebutuhan aktif: rencana APPROVED → 409 PBJ-VAL-083 (bukan 404 fail-closed) | `PASS` | http=409; code=None; message=Dokumen sudah final; lampiran tidak dapat diubah. |
+| `F-AT-5` | Penyedia akses rencana paket dan pagu terdaftar (daftar lampiran 200) | `PASS` |  |
+
+11 skenario, 11 `PASS`.
+

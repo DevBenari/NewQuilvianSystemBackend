@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Branch / commit | `sukmagp` @ `100c011d` (belum di-commit) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 **SEBAGIAN.** Kode, migration, dan seeder ada; build dan QBE `PASS`. Belum: uji runtime (`AT-PP-50`, `51`, `64`), karena migration tidak diterapkan dan aplikasi belum bisa start di basis data dev. `PBJ-VAL-071` baru dapat ditegakkan penuh setelah tabel pemakai ada (`BE-PBJ-006`/`009`) |
+| Status | ✅ **SELESAI — diperbarui 16 November 2026.** `AT-PP-50`, `51`, `64` terbukti runtime; `PBJ-VAL-071` kini mencakup PR, rencana kebutuhan, rencana paket, dan pagu |
 
 ## Backend Governance Preflight
 
@@ -150,3 +150,31 @@ sama seperti seeder modul lain, jadi urutannya tetap database dulu, lalu aplikas
 ## 8. Task berikutnya
 
 `BE-PBJ-005` (gateway approval) setelah `BE-PBJ-001` dan `003`, serta `BE-PBJ-006` (PR draft).
+
+## Verifikasi lanjutan — 16 November 2026
+
+Dijalankan bersama `BE-PBJ-007`..`011`: build Release `PASS` (0 error, 601 warning = baseline), QBE Strict `PASS` (53
+berkas), `has-pending-model-changes` bersih, seluruh migration Pengadaan diterapkan ke `QuilvianNewDevSukma` atas izin
+pemilik, dan uji runtime HTTP ke `https://localhost:7185` dengan aktor non-SuperAdmin `TEST-PBJ`.
+
+**Fixture uji (`TEST-PBJ-20261116110649`, dibuat lewat API sebagai SuperAdmin, belum dibersihkan).** Lima unit uji
+(`TEST-PBJ IGD/Radiologi/Pengadaan/Manajemen/Keuangan Uji`), tujuh jabatan, delapan akun `Employee` **tanpa role**
+(`reqA`, `reqA2`, `headA`, `reqB`, `proc`, `mgr`, `dirk`, `keu`), dan policy Akses Role per unit × jabatan sesuai peta
+peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemilik "nilai uji di dev"): definisi
+`PBJ-*` diaktifkan, satu baris `MstApprovalMatrix` fallback `SpecificUser` per langkah, dan empat
+`MstRejectionReason` — semuanya bertanda `DATA UJI PBJ (bukan nilai SOP)`. Komitmen pagu uji Rp10.000.000
+(`SourceDocumentType = UJI_PBJ`) disisipkan lewat DB sesuai catatan `AT-PP-45`. Sisa fixture percobaan pertama
+(`TEST-PBJ-20261116105253`) juga masih ada.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| `A-01` | Tim Pengadaan membuat kategori uji | `PASS` | http=200; message=Kategori berhasil dibuat. |
+| `A-02` | Nonaktifkan barang uji | `PASS` | http=200 |
+| `AT-PP-50` | Tambah barang → kode KTL dari NumberSeries | `PASS` |  |
+| `AT-PP-51a` | Barang serupa (beda huruf besar/kecil) → 409 PBJ-VAL-070 | `PASS` | http=409; code=None; message=Barang serupa sudah ada: KTL-000009 TEST-PBJ Kursi Roda Standar 1794802030. |
+| `AT-PP-51b` | Hapus barang terpakai (PR, rencana, paket) / kategori terpakai / sumber dana terpakai → ditolak; data tetap ada (PBJ-VAL-071) | `PASS` |  |
+| `AT-PP-62` | Skema: 14 tabel Pengadaan, index unik parsial, CHECK kuantitas/nominal, kolom ActivationConditionCode varchar(50) NULL | `PASS` | tables=14; uniquePartial={'IX_PrcNeedPlan_CurrentVersion': True, 'IX_PrcBudget_CurrentVersion': True, 'IX_PrcBudgetCommitment_ActiveSource': True, 'IX_PrcPurchaseRequest_RequestNumber': True, 'IX_PrcPackagePlan_PackagePlanNumber': True, 'IX_PrcNeedPlan_PlanNum |
+| `AT-PP-64` | Seeder master + definisi PBJ-* dijalankan ulang (server start ulang 3×) → jumlah baris sama | `PASS` | before={'types': 4, 'umum': 1, 'funds': 2, 'wfl_defs': 5, 'wfl_steps': 11}; after={'types': 4, 'umum': 1, 'funds': 2, 'wfl_defs': 5, 'wfl_steps': 11} |
+
+7 skenario, 7 `PASS`.
+

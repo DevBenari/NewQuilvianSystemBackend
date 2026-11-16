@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Models;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
@@ -1412,6 +1413,18 @@ namespace QuilvianSystemBackend.Repositories
         // BE-PBJ-006: permintaan pengadaan (PR) beserta barisnya.
         public DbSet<PrcPurchaseRequest> PrcPurchaseRequests { get; set; }
         public DbSet<PrcPurchaseRequestLine> PrcPurchaseRequestLines { get; set; }
+
+        // BE-PBJ-009: rencana kebutuhan tahunan berversi.
+        public DbSet<PrcNeedPlan> PrcNeedPlans { get; set; }
+        public DbSet<PrcNeedPlanLine> PrcNeedPlanLines { get; set; }
+
+        // BE-PBJ-010: pagu berversi dan komitmen pagu.
+        public DbSet<PrcBudget> PrcBudgets { get; set; }
+        public DbSet<PrcBudgetCommitment> PrcBudgetCommitments { get; set; }
+
+        // BE-PBJ-011: rencana paket hasil konsolidasi.
+        public DbSet<PrcPackagePlan> PrcPackagePlans { get; set; }
+        public DbSet<PrcPackagePlanLine> PrcPackagePlanLines { get; set; }
         #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT
