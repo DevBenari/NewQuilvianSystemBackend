@@ -36,15 +36,15 @@ BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅
 ```
 
 ```text
-BE-AST-015 [NLI] ─┬─> BE-AST-007 ─┬─> BE-AST-008
-                  │               │
-   BE-AST-006 ✅ ─┘               ├─> BE-AST-011
-                                  │
-                                  ├─> BE-AST-009 ─┬─> BE-AST-012
-                                  │               │
-                                  │               └──────┐
-                                  │                      │
-                                  └─> BE-AST-010 ────────┴─> BE-AST-013
+BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ─┬─> BE-AST-008
+                     │               │
+      BE-AST-006 ✅ ─┘               ├─> BE-AST-011
+                                     │
+                                     ├─> BE-AST-009 ─┬─> BE-AST-012
+                                     │               │
+                                     │               └──────┐
+                                     │                      │
+                                     └─> BE-AST-010 ────────┴─> BE-AST-013
 ```
 
 `[NLI]` = task backend sub-modul `nilai` pada `../../nilai/roadmap/backend-roadmap.md`, cermin baca-saja.

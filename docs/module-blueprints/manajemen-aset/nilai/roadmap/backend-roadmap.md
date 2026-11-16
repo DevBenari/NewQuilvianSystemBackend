@@ -26,7 +26,7 @@ kejadian menumpuk `Held` sampai dinyalakan.
 Dipotong menjadi dua blok karena lebar; `BE-AST-027` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-BE-AST-002 [REG] ─> BE-AST-014 ✅ ─┬─> BE-AST-015 ─> BE-AST-025 ─> BE-AST-026 ─> BE-AST-027
+BE-AST-002 [REG] ─> BE-AST-014 ✅ ─┬─> BE-AST-015 🟡 ─> BE-AST-025 ─> BE-AST-026 ─> BE-AST-027
                                    │
 BE-AST-005 [REG] ✅ ───────────────┘
 ```
@@ -61,7 +61,7 @@ Pasangan prasyarat→task: **14** (sama dengan kolom `Dependency`).
 
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
-| `NLI-S1` Tabel dasar, parameter, buku nilai, kotak keluar | `MVP-0` | `BE-AST-014`, `BE-AST-015` | 🟡 `BE-AST-014` ✅ 2026-11-16; `BE-AST-015` belum dikerjakan |
+| `NLI-S1` Tabel dasar, parameter, buku nilai, kotak keluar | `MVP-0` | `BE-AST-014`, `BE-AST-015` | 🟡 `BE-AST-014` ✅ 2026-11-16; `BE-AST-015` 🟡 2026-11-16 (runtime 2.1–2.2 35/35; `AT-NLI-07`, `08`, `13`, `33` menunggu `BE-AST-007`/`012`/`027`) |
 | `NLI-S2` Penyusutan, perubahan nilai, kiriman, rekonsiliasi, laporan | `MVP-4` | `BE-AST-025` s.d. `BE-AST-031` | belum dikerjakan |
 | `NLI-S3` Penyalaan integrasi Akuntansi | `MVP-4` | `BE-AST-032` | ⛔ `GATE-AST-ACC` |
 
@@ -90,11 +90,11 @@ Pasangan prasyarat→task: **14** (sama dengan kolom `Dependency`).
 | Cakupan | `AstValuationParameter`, `AstDepreciationPolicy`, `AstAssetBook`, `AstAssetValueEntry`, `AstAccountingOutbox`; enum `AssetBookStatus`, `ValueEntryType`, `AccountingOutboxStatus`; configuration `Repositories/Configurations/Corporate/AssetManagement/Valuation/` |
 | Acceptance criteria | 1. Kolom sesuai data dict. 2. Unik `(LegalEntityId, EffectiveFromPeriod)`, `(AssetGroupId, EffectiveFromPeriod)`, `AssetId` pada buku, `(SourceTransactionId, SourceVersion)`. 3. Check constraint nilai buku ≥ residu. 4. Tidak membuat migration sendiri — masuk `BE-AST-004` [REG] |
 
-### `BE-AST-015` — Parameter, kebijakan, buku nilai, penulis kotak keluar
+### 🟡 `BE-AST-015` — Parameter, kebijakan, buku nilai, penulis kotak keluar
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 16 November 2026.** Kode di commit `9f8c73df` (belum di-push). QBE Strict `Files evaluated: 9` `PASS` 0 temuan, nol baris komentar. `dotnet build` dijalankan Rizki dan berhasil (DLL 14:45:33 WIB); jumlah warning tidak dilaporkan. Swagger: 6 operasi. Runtime 2.1–2.2 **35/35 `PASS`**, termasuk `AT-NLI-34`; uji menulis 2 parameter dan 2 kebijakan `ALKMED` ke DB dev atas izin Rizki. Kelima acceptance criteria terpetakan ke source, tetapi hanya kriteria 1 yang teruji runtime. **Belum:** `AT-NLI-13`, `33` (kriteria 4, 5) menunggu `BE-AST-007`; `AT-NLI-08` (kriteria 3, saldo awal) menunggu `BE-AST-012`; `AT-NLI-07` (kriteria 2) menunggu `BE-AST-027`; uji 403 belum (akun superadmin). Delta kontrak: 2 controller, bentuk respons `current` dan daftar kebijakan. Laporan: [`BE-AST-015.md`](../task/report/backend/BE-AST-015.md) |
 | Cakupan | `AssetValuationParameterService`/`QueryService`, `AssetBookService` (`CreateForRegisteredAsset`, `CreateOpeningBalance`, `GetNetBookValue`), `AssetAccountingEventService` (penulisan baris + status `Held` per kode), `AssetValuationParametersController` bagian 2.1–2.2 |
 | Acceptance criteria | 1. Baris pertama parameter boleh bulan berjalan, berikutnya bulan depan. 2. Kebijakan kelompok berlaku ke depan bagi aset tanpa estimasi sendiri. 3. Buku: dikapitalisasi bila harga ≥ batas **dan** kepemilikan dapat dikapitalisasi; mulai penyusutan bulan sesudah siap pakai; saldo awal menghitung bulan yang sudah disusutkan. 4. Kejadian hibah ditulis `Held`/`Pending` sesuai konfigurasi kode. 5. Persetujuan aset tanpa parameter → `AST-VAL-NLI-008` |
 

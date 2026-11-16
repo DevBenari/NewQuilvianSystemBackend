@@ -19,7 +19,7 @@ hanya peran ber-hak nilai yang melihat butir menunya.
 Dipotong menjadi dua blok karena lebar; `FE-AST-019` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-                    BE-AST-015 [BE] ─┐               BE-AST-026 [BE] ─┐
+                 BE-AST-015 [BE] 🟡 ─┐               BE-AST-026 [BE] ─┐
                                      │                                │
 FE-AST-001 [FE-REG] ─────────────────┴─> FE-AST-011 ─┬────────────────┴─> FE-AST-019
                                                      │
