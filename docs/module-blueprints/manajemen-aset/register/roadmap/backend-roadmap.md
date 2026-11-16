@@ -30,7 +30,7 @@ diminta.
 Grafik dipotong menjadi dua blok karena lebar; `BE-AST-006` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ─> BE-AST-005 ─> BE-AST-006
+BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅ ─> BE-AST-005 ─> BE-AST-006
                                                  │
                     BE-AST-014 [NLI] ✅ ─────────┘
 ```
@@ -67,7 +67,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
-| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | 🟡 `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` s.d. `BE-AST-006` belum dikerjakan |
+| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | 🟡 `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005`, `BE-AST-006` belum dikerjakan |
 | `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | belum dikerjakan |
 
 ## Tabel task
@@ -115,11 +115,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | 12 model `Ast*`, 14 enum (`02-backend-architecture.md` §5.4), configuration, DbSet |
 | Acceptance criteria | 1. Kolom sesuai data dict §3. 2. Unique parsial: penempatan berjalan per aset, laporan kondisi terbuka per aset, nomor inventaris bila tidak null. 3. `RowVersion` token konkurensi pada aset, penyerahan, laporan kondisi, pemanfaatan, batch impor. 4. Enum `HasConversion<int>()` |
 
-### `BE-AST-004` — Migration `AddAssetManagementFoundation`
+### ✅ `BE-AST-004` — Migration `AddAssetManagementFoundation`
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 16 November 2026.** Migration `20261116030049_AddAssetManagementFoundation` dibuat dan diterapkan Rizki: `Up()` 25 `CreateTable` + 91 `CreateIndex` tanpa operasi lain, `Down()` 25 `DropTable`; snapshot +2815/−0 (25 blok Aset) = Designer (1033 blok); pencocokan isi ↔ source 113/0, uji mutasi 3/3; QBE Strict `PASS`; build Rizki (DLL 10:15:04 memuat migration); basis data memuat migration, 25 tabel, 535 kolom, 46 FK `Restrict`, 116 index, check constraint buku. Jumlah warning tidak dilaporkan. Laporan: [`BE-AST-004.md`](../task/report/backend/BE-AST-004.md) |
 | Cakupan | Satu migration berisi 20 tabel `register` + 5 tabel `nilai` (`BE-AST-014`); berkas migration, Designer, snapshot |
 | Acceptance criteria | 1. Migration hanya menambah 25 tabel; tidak mengubah tabel modul lain. 2. `Down()` menghapus 25 tabel. 3. Snapshot memuat seluruh entity baru tanpa duplikasi blok entity branch lain |
 | Catatan | Penerapan ke database (`dotnet ef database update`) oleh pemilik, bukan agent |
