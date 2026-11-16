@@ -6,12 +6,12 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 59
+revision: 60
 status: DRAFT
 design_readiness: COMPLETE
 current_phase: HRD-PH-SLICE-D5-PLANNED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-11-09T11:00:00Z
+updated_at: 2026-11-16T12:00:00Z
 last_verified_at: 2026-11-09T11:00:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
@@ -20,7 +20,7 @@ frontend_source_sha: 44990b3d3
 frontend_source_sha_previous: cfa82fbb3
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: 978a585c8c21944d9597c054da9900bf810ba954c6495661cb795d346549ffcc
-decision_revision: 35
+decision_revision: 36
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.3
 capability_map_hash: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
@@ -46,7 +46,7 @@ contract_status_s_c2: approved
 contract_status_s_c3: approved
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: eb16fdfaa50f274e32f147b54b9113d1adcb73e0d2db8cb22cf1f9dbbb7df269
+  00-interview-decisions.md: c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4
   01-existing-capability-map.md: 9a809b3b684b294878c43b1ae3f2de88735c9e7621aaa04a91a8909d7a6e91da
   02-backend-architecture.md: 0fb40a47acf7ebed751a19a38b38c89a8e4e1f094dc712371c9501952aa769c2
   03-frontend-architecture.md: c49ae52c0bebdbcc70bdd5349307fc48ece2d02f076413525806def15aa40bcc

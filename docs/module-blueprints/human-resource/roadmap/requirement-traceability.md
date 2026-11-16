@@ -1808,3 +1808,11 @@ Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 1 (`
 
 Verifikasi bersama seluruh baris: `npx eslint` atas berkas yang diubah **0 error**; `npm run build` **berhasil** (keluar 0, dijalankan sesudah perubahan source terakhir); `npm run test:unit` 4.671 test, 4.618 lulus, 53 gagal, seluruh kegagalan pada berkas yang tidak disentuh gelombang ini; `check-css-usage.mjs` atas 7 view baru **0 temuan**; uji browser Chrome headed atas 15 rute layar (26 screenshot di `QuilvianSystemFrontendDev/test-with-agy/screenshots/hrw1-1111/`) dengan backend lokal mode `Runtime__Role=Web`, tanpa satu pun pesan galat Axios mentah. Satu perubahan data sampingan: toleransi keterlambatan di database pengembangan sempat tersimpan 30 menit saat uji validasi, lalu dikembalikan ke 10 menit dan dibuktikan sesudah halaman dimuat ulang. Perubahan frontend belum di-commit.
 
+
+### Bagian 1w: Jejak Slice S-A8 Data Penggajian Pegawai (DRAFT, 16 November 2026)
+
+Slice ini ditambahkan sebagai **DRAFT** atas perintah pemilik. Source backend dan frontend sudah ditulis tetapi belum di-build, belum diuji di runtime, dan belum punya laporan tracked. Kontrak API belum ada (gerbang G1 pada bagian 24 `backend-roadmap.md`); keputusan sudah terdaftar sebagai `HRD-DEC-194` s.d. `HRD-DEC-199` (16 November 2026).
+
+| Ref Scope | Deskripsi Kemampuan Bisnis | Keputusan Asal | Kontrak Acuan | Task Backend | Task Frontend | Status Bukti Terkini |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `S-A8` | Daftar kelengkapan dan ubah per orang penetapan gaji utama serta rekening payroll karyawan, perawat, dan dokter (HRD) | `HRD-DEC-194` s.d. `HRD-DEC-199` (pemilik, 16 November 2026); asumsi `HRD-ASM-75` s.d. `HRD-ASM-78` | Belum ada — rencana API v26 | `BE-HRD-334` 🟡, `BE-HRD-335` 🟡, `BE-HRD-336` 🟡, `BE-HRD-337` | `FE-HRD-306` 🟡, `FE-HRD-307` 🟡, `FE-HRD-308` | 🟡 Source ada, belum di-build dan belum diuji di runtime; belum ada laporan tracked |

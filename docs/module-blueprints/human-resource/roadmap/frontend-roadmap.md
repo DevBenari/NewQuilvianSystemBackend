@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 16
+roadmap_revision: 17
+draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 25): FE-HRD-306 s.d. FE-HRD-308. Source sudah ditulis di luar siklus task dan belum di-build; menunggu BE-HRD-334 s.d. BE-HRD-337 dan gerbang G1 (kontrak v26); keputusan terdaftar HRD-DEC-194 s.d. HRD-DEC-199 (G2 tertutup 16 November 2026). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
 status_synced_at: "11 November 2026 — FE-HRD-R01: 137 task diturunkan ke 🟡 sesuai audit frontend-unfinished-work.md; status register FE-HRD-058 s.d. 087 diisi; FE-HRD-216 s.d. 305 ditambahkan ke register; FE-HRD-027 disamakan dengan laporannya (🟡)"
 planning_updated_at: "2026-11-09 - Slice S-B3 Administrasi Lembur Pegawai Rumah Sakit (sub-modul 09) diselesaikan secara penuh (FE-HRD-116 s.d. FE-HRD-129 ✅ PASS) mencakup 6 rute antarmuka, 14 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-B2 (FE-HRD-102 s.d. FE-HRD-115), Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087), Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074)"
@@ -5977,3 +5978,82 @@ BE-HRD-333 ⏳ [BE]  ───────────────────�
 * **Dependencies**: Seluruh task frontend `FE-HRD-291` s.d. `FE-HRD-304` serta task backend `BE-HRD-333` [BE]
 * **Acceptance Criteria**: Menu travel & expenses tampil rapi sesuai hak akses; indikator hard-stop aktif di roster Sub-06; `npm run lint:errors` dan `npm run build` lulus tanpa error.
 * **Verifikasi**: Uji integrasi navigasi, indikator gembok roster `AT-HRD-TRV-06`, dan laporan task tracked `FE-HRD-305.md`.
+
+---
+
+## 25. S-A8: Data Penggajian Pegawai (HRD) — Karyawan, Perawat, dan Dokter (DRAFT, 16 November 2026)
+
+> **Status slice: DRAFT.** Source frontend sudah ditulis pada 16 November 2026 atas perintah langsung pemilik, di luar siklus task, dan belum di-build maupun diuji di browser. Aturan bisnis, keputusan yang dikonfirmasi, gerbang terbuka, dan kontrak API yang direncanakan ada pada bagian 24 `backend-roadmap.md` (slice `S-A8`); tidak diulang di sini. Task frontend menunggu task backend yang sesuai (ditandai `[BE]`) dan tidak boleh dikirim ke builder sebelum gerbang G1 dicabut.
+
+### Wewenang UI dan gerbang keputusan base component
+
+Wewenang UI: `DEV_DISCRETION` kecuali yang dikunci blueprint. Gerbang keputusan base component pada source yang sudah ada: seluruh elemen **REUSE** (`Hero`, `SummaryCards`, `DataFilter`, `DataTable`, `StatusBadge`, `ConfirmModal`, `BaseInputField`, `BaseDateField`, `BaseCheckboxCard`, `ResourceFilterSelect`, `InformationAlert`, `ToastStack`, `AccessDeniedGate`); tidak ada base component baru dan tidak ada CSS Module baru. `UI GATE: 13 elemen — REUSE 13, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0`.
+
+Halaman HR **tidak boleh bergantung** pada komponen, gaya, hook, atau util milik modul Payroll; util generik tinggal di `src/utils/shared/` dan dijaga oleh test unit.
+
+### Grafik Urutan Dependency Frontend Slice S-A8
+
+#### Grafik F82 — Halaman Daftar, Formulir Ubah Per Orang, dan Verifikasi (`FE-HRD-306` s.d. `FE-HRD-308`)
+
+```text
+BE-HRD-334 🟡 [BE] ─> FE-HRD-306 🟡 ─┬─> FE-HRD-307 🟡 ─┬─> FE-HRD-308
+                                     │                  │
+BE-HRD-336 🟡 [BE] ──────────────────┘                  │
+BE-HRD-337 [BE] ────────────────────────────────────────┘
+```
+
+`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja.
+
+---
+
+### Tabel Gelombang Eksekusi Frontend Slice S-A8
+
+| Gelombang | Target Cakupan Layar & Komponen UI | Task Frontend | Prasyarat Backend Terkait |
+|---|---|---|---|
+| ⛔ menunggu {Kontrak v26} | Halaman daftar, formulir ubah per orang, dan verifikasi layar | `FE-HRD-306`, `FE-HRD-307`, `FE-HRD-308` | `BE-HRD-334`, `BE-HRD-336`, `BE-HRD-337` |
+
+---
+
+### Rincian 3 Task Frontend Slice S-A8 (`FE-HRD-306` s.d. `FE-HRD-308`)
+
+#### 🟡 `FE-HRD-306` — Halaman daftar Data Penggajian Pegawai (`/hr/workforce-core/payroll-data`)
+* **Slice / MVP**: `S-A8` / `MVP-66`
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 4 acceptance criteria terbukti penuh (butuh tampilan di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
+* **Outcome**: Halaman daftar karyawan, perawat, dan dokter aktif dengan kartu ringkasan, filter Jenis (Karyawan, Perawat, Dokter), Kelengkapan, pencarian, dan jumlah baris, serta tabel: nama dan nomor beserta jabatan dan unit, penetapan gaji utama (status, struktur, tanggal mulai), rekening payroll (status, bank, nomor disamarkan), dan kelengkapan beserta alasannya. Butir menu **Data Penggajian Pegawai** di Administrasi Kepegawaian, dijaga `WorkforcePayrollData : Read`.
+* **Kontrak**: belum ada — rencana API Contract v26 (gerbang G1).
+* **Dependencies**: `BE-HRD-334` [BE]
+* **Acceptance Criteria**:
+  1. Seluruh state tampil: memuat, kosong, gagal, dan tanpa hak akses.
+  2. Filter Jenis memuat Karyawan, Perawat, dan Dokter; filter, pencarian, reset, dan paginasi mengubah hasil yang tampil.
+  3. Gaji pokok tidak tampil di daftar; nomor rekening hanya empat karakter terakhir.
+  4. Badge status pada kolom tidak melebar memenuhi sel; teks panjang membungkus tanpa memotong tabel.
+* **Verifikasi**: lint dan test unit; `npm run build`; uji manual di browser beserta tangkapan layar desktop dan ponsel; pemeriksa `check-css-usage`.
+* **Risiko / pemilik**: gaya memakai utilitas Bootstrap tanpa CSS Module baru, sehingga tampilan perlu dicek di browser; HR UI Lead.
+
+#### 🟡 `FE-HRD-307` — Formulir ubah data penggajian per orang (modal pada halaman daftar)
+* **Slice / MVP**: `S-A8` / `MVP-66`
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 6 acceptance criteria terbukti penuh (butuh interaksi di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
+* **Outcome**: Tombol **Ubah** pada tiap baris (hanya bagi pemegang `WorkforcePayrollData : Update`) membuka formulir yang memuat isian orang itu dan memiliki dua bagian: **Penetapan Gaji Utama** (struktur gaji, gaji pokok, tanggal mulai berlaku) dan **Rekening Payroll** (bank, nomor rekening, nama pemilik), ditambah dua opsi: **Setujui penetapan gaji** dan **Tandai rekening terverifikasi**, yang hanya aktif bagi pemegang hak yang sesuai. Pilihan struktur dan bank diambil dari master; pengguna tidak pernah mengetik atau melihat id. Pesan penolakan Backend ditampilkan apa adanya; peringatan hasil simpan tampil sebagai toast.
+* **Kontrak**: belum ada — rencana API Contract v26 (gerbang G1).
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-336` [BE]
+* **Acceptance Criteria**:
+  1. Formulir memuat isian saat ini; selama memuat dan saat gagal memuat, tombol Simpan tidak aktif.
+  2. Bagian yang diisi harus utuh (ketiga isiannya); bagian yang dikosongkan seluruhnya tidak dikirim. Gaji menerima 12000000 maupun 12.000.000.
+  3. Opsi setuju dan verifikasi nonaktif beserta keterangannya bagi pengguna tanpa hak.
+  4. Simpan berhasil menutup formulir, memuat ulang daftar, dan menampilkan toast hasil beserta peringatannya.
+  5. Penolakan Backend (misalnya nomor rekening ganda) tampil di formulir dan tidak menutupnya; tombol tidak dapat ditekan dua kali.
+  6. Tombol Batal tidak bekerja saat simpan sedang berjalan.
+* **Verifikasi**: test unit atas aturan isian dan payload; uji manual di browser (jalur berhasil, ditolak, tanpa hak); tangkapan layar.
+* **Risiko / pemilik**: butuh `SalaryStructure : Read` dan `Bank : Read` agar daftar pilihan terisi (keputusan 4); HR UI Lead.
+
+#### `FE-HRD-308` — Verifikasi slice S-A8: navigasi, build, dan uji layar di browser
+* **Slice / MVP**: `S-A8` / Verifikasi
+* **Status**: belum dikerjakan. Gerbang terbuka: G1, G4.
+* **Outcome**: Bukti bahwa butir menu tampil sesuai hak akses, halaman dan formulir berjalan di browser, dan source lulus build.
+* **Dependencies**: `FE-HRD-307`, `BE-HRD-337` [BE]
+* **Acceptance Criteria**:
+  1. Butir menu **Data Penggajian Pegawai** hanya tampil bagi pemegang `WorkforcePayrollData : Read`.
+  2. `npm run lint:errors` dan `npm run build` lulus tanpa error baru.
+  3. Setiap layar dibuka di browser pada lebar desktop dan ponsel, dengan tangkapan layar; pemeriksa `check-css-usage` 0 temuan.
+  4. Alamat service dicocokkan dengan `[Route]` controller backend, bukan dengan service frontend sendiri.
+* **Verifikasi**: `npm run lint:errors`, `npm run build`, uji browser, dan laporan task tracked `FE-HRD-308.md`.

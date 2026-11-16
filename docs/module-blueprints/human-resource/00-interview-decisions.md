@@ -8111,3 +8111,145 @@ Dasar Referensi: Praktik Rumah Sakit Indonesia (Siloam RS-10), Standar Akreditas
 | `HRD-ASM-72` | Nilai tukar mata uang asing (*Currency Exchange Rate*) untuk perjalanan dinas internasional menggunakan kurs tengah Bank Indonesia pada tanggal transaksi | Menjamin kepastian konversi biaya dinas luar negeri nakes ke Rupiah secara objektif | Selisih kurs memicu sengketa nilai penggantian biaya antara rumah sakit dan pegawai |
 | `HRD-ASM-73` | Penyimpanan berkas foto kuitansi/boarding pass menggunakan format terkompresi PDF/JPG aman terisolasi di server penyimpanan internal RS | Memenuhi syarat audit pajak dan akreditasi rumah sakit tanpa menghabiskan kuota storage | Berkas kuitansi hilang atau tidak dapat diaudit oleh KAP independen |
 | `HRD-ASM-74` | Integrasi pemotongan payroll untuk settlement menunggak > 30 hari mematuhi aturan batas maksimal pemotongan upah 50% PP 36/2021 | Kepatuhan hukum ketenagakerjaan Republik Indonesia dan perlindungan hak dasar pegawai | Terjadi pelanggaran regulasi ketenagakerjaan jika gaji staf terpotong habis hingga minus |
+
+
+---
+
+## 52. Keputusan Bisnis Slice `S-A8`: Data Penggajian Pegawai (HRD) — Karyawan, Perawat, dan Dokter
+
+Tanggal Wawancara: 16 November 2026
+Mode pass: **Closure pass** — mendaftarkan keputusan yang sudah dikonfirmasi pemilik. Tidak ada pertanyaan baru yang diajukan karena seluruh hal yang menentukan sudah dijawab.
+Status Scope: **APPROVED** untuk keenam keputusan. **Kontrak API v26 belum ada** (gerbang G1 pada roadmap bagian 24).
+Dasar: pemilik teknis dan produk mengonfirmasi keenam keputusan pada sesi kerja 16 November 2026. Source sudah ditulis di luar siklus task dan belum di-build maupun diuji.
+
+### 52.1 Batas Ruang Lingkup (Scope Boundaries)
+
+* **Di dalam scope:**
+  1. Daftar kelengkapan data penggajian karyawan, perawat, dan dokter aktif (sumber Master Karyawan dan Master Dokter) beserta ringkasannya.
+  2. Ubah per orang atas penetapan gaji utama (`WfpSalaryAssignment`) dan rekening payroll (`WfpBankAccount`).
+  3. Persetujuan penetapan gaji dan verifikasi rekening lewat halaman yang sama, hanya bagi pemegang hak yang sesuai.
+  4. Pilihan struktur gaji dan bank pada formulir, diambil dari master.
+
+* **Di luar scope:**
+  1. Profil payroll (`PrlPayroll`: PPh, BPJS, Cost Center) — milik modul Payroll, diisi lewat halaman Payroll Kelengkapan Data.
+  2. Perhitungan gaji, payroll run, dan slip — milik modul Payroll.
+  3. Impor massal berkas CSV pada halaman HR — dihentikan (`HRD-DEC-199`); dapat dibangun ulang bila pemilik meminta.
+  4. Riwayat versi gaji (kenaikan gaji sebagai penetapan baru) — pertanyaan terbuka `HRD-Q-197`.
+  5. Master perawat tersendiri — tidak ada; lihat `HRD-DEC-198`.
+  6. Pembuatan dan pemeliharaan master struktur gaji, grade, dan bank — milik master data masing-masing.
+
+* **Titik sentuh dengan modul lain:** modul Payroll **membaca** penetapan gaji dan rekening ini untuk membuat profil payroll; Master Karyawan, Master Dokter, dan Master Profesi menjadi sumber daftar orang.
+
+---
+
+### 52.2 Keputusan Bisnis yang Dikunci (`HRD-DEC-194` s.d. `HRD-DEC-199`)
+
+#### `HRD-DEC-194` — Perubahan atas Penetapan Gaji yang Sudah Disetujui atau Rekening yang Sudah Terverifikasi Mencabut Persetujuan atau Verifikasinya
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | — (keputusan langsung pemilik; tidak ada `HRD-Q` sebelumnya) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 16 November 2026 (konfirmasi: "Iya saya konfirmasi") |
+| Evidence | Sesi kerja 16 November 2026; source `WorkforcePayrollDataService.cs`, `WorkforcePayrollDataController.cs` |
+| Ringkasan | Penetapan gaji utama yang sudah **Disetujui**, atau rekening payroll yang sudah **Terverifikasi**, tidak boleh berubah isinya tanpa pemeriksaan ulang. Bila isinya berubah, persetujuan atau verifikasinya **dicabut** dan statusnya kembali **Menunggu Persetujuan** atau **Belum Terverifikasi**, **kecuali** pengubah memegang hak yang berwenang dan memilih menyetujui atau memverifikasi sekaligus. Hak setuju adalah `WfpSalaryAssignment : Update` dan hak verifikasi adalah `WorkforceBankAccount : Update` (hak yang sudah ada pada endpoint HRD), karena hak ubah halaman ini (`WorkforcePayrollData : Update`) terpisah dari hak setuju dan verifikasi. **Contoh:** gaji pokok Budi Rp 12.000.000 sudah disetujui. Staf HR tanpa hak setuju mengubahnya menjadi Rp 12.500.000: statusnya kembali Menunggu Persetujuan. Bila yang mengubah adalah manajer HR pemegang hak setuju dan ia mencentang "Setujui penetapan gaji", statusnya tetap Disetujui atas nama manajer. Mengubah nomor rekening Sari yang sudah terverifikasi mencabut verifikasinya dengan cara yang sama. Mengirim isian yang sama persis tidak mencabut apa pun. |
+| Implikasi Arsitektur | 1. `WorkforcePayrollDataService.SaveAsync` membandingkan isian baru dengan yang tersimpan; hanya perubahan nyata yang mencabut `ApprovedAt` / `ApprovedByUserId` atau `IsVerified` / `VerifiedAt` / `VerifiedByUserId`.<br>2. Opsi `ApproveSalaryAssignment` dan `MarkBankAccountVerified` pada permintaan simpan dijaga controller dengan `AccessPermissionService`; tanpa hak, kode 403.<br>3. Tidak ada izin baru untuk setuju dan verifikasi; hak endpoint HRD yang sudah ada dipakai ulang.<br>4. Hasil simpan memberi peringatan bila persetujuan atau verifikasi dicabut. |
+
+#### `HRD-DEC-195` — Gaji Pokok dan Nomor Rekening Lengkap Hanya untuk Pemegang Hak Ubah; Daftar Tanpa Nominal dan Nomor Rekening Disamarkan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | — (keputusan langsung pemilik; tidak ada `HRD-Q` sebelumnya) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 16 November 2026 (konfirmasi: "Iya saya konfirmasi") |
+| Evidence | Sesi kerja 16 November 2026; source `WorkforcePayrollDataService.cs`, `WorkforcePayrollDataController.cs` |
+| Ringkasan | Daftar data penggajian (hak `WorkforcePayrollData : Read`) **tidak memuat gaji pokok** dan hanya menampilkan **empat karakter terakhir** nomor rekening. Detail yang memuat gaji pokok dan nomor rekening lengkap hanya dimuat oleh pemegang `WorkforcePayrollData : Update`, karena detail dimuat untuk diubah. **Contoh:** staf dengan hak Read melihat "Bank X ****7890" dan status "Disetujui", tetapi tidak melihat nominal gaji; manajer HR dengan hak Update membuka formulir ubah dan melihat nominal serta nomor rekening lengkap. |
+| Implikasi Arsitektur | 1. `GET /` dan `GET /summary` memakai `WorkforcePayrollData : Read`; `GET /{workforceProfileId}` dan `PUT /{workforceProfileId}` memakai `WorkforcePayrollData : Update`.<br>2. DTO daftar tidak memuat gaji pokok dan memuat `AccountNumberMasked`.<br>3. Log audit tidak memuat gaji pokok maupun nomor rekening. |
+
+#### `HRD-DEC-196` — Penetapan Gaji Diubah di Tempat, Tanpa Riwayat Versi Gaji
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | — (keputusan langsung pemilik; tidak ada `HRD-Q` sebelumnya) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 16 November 2026 (konfirmasi: "Iya saya konfirmasi") |
+| Evidence | Sesi kerja 16 November 2026; source `WorkforcePayrollDataService.cs`, `WorkforcePayrollDataController.cs` |
+| Ringkasan | Mengubah gaji pokok, struktur gaji, atau tanggal mulai berlaku **menimpa** penetapan gaji utama yang sedang dipakai; tidak dibuat penetapan baru dan tidak ada riwayat versi gaji pada layar ini. Perilaku ini sama dengan endpoint penetapan gaji HRD yang sudah ada. Riwayat kenaikan gaji sebagai penetapan baru adalah keputusan bisnis terpisah (`HRD-Q-197`). **Contoh:** gaji Budi dinaikkan dari Rp 12.000.000 menjadi Rp 12.500.000 mulai 01/01/2027: nilai lama tertimpa; yang tercatat hanya pelaku dan waktu ubah pada log audit. |
+| Implikasi Arsitektur | 1. `WfpSalaryAssignment` yang aktif, utama, dan bertanggal mulai terbaru diperbarui pada barisnya.<br>2. Penetapan baru hanya dibuat bila orang itu belum punya penetapan gaji utama aktif.<br>3. Periode dengan struktur dan grade yang sama yang beririsan tetap ditolak. |
+
+#### `HRD-DEC-197` — Pilihan Struktur Gaji dan Bank pada Formulir Memakai Endpoint Pilihan Master
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | — (keputusan langsung pemilik; tidak ada `HRD-Q` sebelumnya) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 16 November 2026 (konfirmasi: "Iya saya konfirmasi") |
+| Evidence | Sesi kerja 16 November 2026; source `WorkforcePayrollDataService.cs`, `WorkforcePayrollDataController.cs` |
+| Ringkasan | Formulir ubah memilih struktur gaji dan bank dari daftar master, bukan mengetik kode atau id. Daftar pilihan diambil dari endpoint `options` masing-masing master, sehingga pengguna formulir membutuhkan hak `SalaryStructure : Read` dan `Bank : Read`. Tanpa hak itu daftar pilihan kosong; Backend tetap menolak id yang tidak sah. **Contoh:** manajer HR tanpa `Bank : Read` membuka formulir dan daftar Bank kosong; ia meminta admin menambahkan hak itu pada role melalui Akses Role. |
+| Implikasi Arsitektur | 1. Frontend memakai `GET .../salary-structures/options` dan `GET /v1/administrator/master-data/banks/options`.<br>2. Pengguna tidak pernah mengetik atau melihat id; nilai pilihan adalah id yang dikirim ke Backend.<br>3. Master bank dapat memuat nama yang sama dengan kode berbeda, sehingga kode ikut tampil pada label. |
+
+#### `HRD-DEC-198` — Perawat Dikenali sebagai Karyawan yang Profesinya Perawat; Tanpa Master Perawat
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | — (keputusan langsung pemilik; tidak ada `HRD-Q` sebelumnya) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 16 November 2026 (konfirmasi: "Iya saya konfirmasi") |
+| Evidence | Sesi kerja 16 November 2026; source `WorkforcePayrollDataService.cs`, `WorkforcePayrollDataController.cs`; `InpatientClinicalContextService.MapCpptProfessionType` (aturan teks yang sama) |
+| Ringkasan | Tidak ada master perawat. Pada daftar, **Perawat** adalah karyawan (dari Master Karyawan) yang **profesinya** memuat teks "perawat" atau "nurs" pada kode, nama, atau kelompok profesi; **bidan bukan perawat**. Aturan teks ini sama dengan pemetaan profesi CPPT yang sudah dipakai sistem. Orang yang tercatat sebagai karyawan sekaligus dokter dihitung sekali, sebagai karyawan. Klasifikasi ini hanya **label dan filter** pada layar; tidak menentukan hak akses. **Contoh:** karyawan berprofesi "Perawat Pelaksana" tampil sebagai Perawat; karyawan berprofesi "Bidan" tampil sebagai Karyawan. |
+| Implikasi Arsitektur | 1. Jenis orang dihitung di `WorkforcePayrollDataService.LoadPeopleAsync` dari `MstEmployee.Profession`.<br>2. Filter Jenis: Karyawan, Perawat, Dokter.<br>3. Kebenaran klasifikasi bergantung pada data Master Profesi (`HRD-ASM-75`). |
+
+#### `HRD-DEC-199` — Impor CSV pada Halaman HR Dihentikan; Impor Profil Payroll pada Halaman Payroll Tidak Berubah
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | — (keputusan langsung pemilik; tidak ada `HRD-Q` sebelumnya) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Approved by/at | Pengguna — 16 November 2026 (konfirmasi: "Iya saya konfirmasi") |
+| Evidence | Sesi kerja 16 November 2026; source `WorkforcePayrollDataService.cs`, `WorkforcePayrollDataController.cs` |
+| Ringkasan | Halaman Data Penggajian Pegawai (HR) tidak lagi memuat impor berkas CSV; fitur dan layanannya dihapus. Data diisi dan diubah per orang lewat formulir. Impor CSV profil payroll pada halaman **Payroll Kelengkapan Data** (`PayrollDataReadinessController`) **tetap ada** dan tidak berubah. Impor massal HR dapat dibangun ulang bila pemilik meminta. |
+| Implikasi Arsitektur | 1. Endpoint `POST .../payroll-data/import` pada Workforce Core dihapus dari source.<br>2. Hak akses `WorkforcePayrollData : Import` tidak ada lagi; hak yang berlaku adalah Read dan Update.<br>3. Batas kepemilikan tetap: Payroll hanya membaca data HRD dan hanya menulis profil payrollnya sendiri. |
+
+---
+
+### 52.3 Asumsi Rekayasa yang Disepakati
+
+| ID Asumsi | Isi Asumsi | Dasar / Rasional | Konsekuensi bila Salah |
+| --- | --- | --- | --- |
+| `HRD-ASM-75` | Data Master Profesi karyawan perawat memuat teks "perawat" atau "nurs" pada kode, nama, atau kelompok profesinya | Aturan teks yang sama dipakai pemetaan profesi CPPT; belum dicocokkan dengan isi Master Profesi yang sebenarnya | Perawat tampil sebagai Karyawan (atau sebaliknya) pada daftar dan filter; hanya label yang salah, hak akses tidak terpengaruh. Dicek dengan query baca-saja atas `MstProfession` |
+| `HRD-ASM-76` | Simpan memakai satu transaksi database dan **simpan terakhir menang** (tanpa token versi), sama dengan endpoint penetapan gaji dan rekening HRD yang sudah ada | Konsistensi dengan endpoint HRD yang sudah ada; jumlah petugas HR yang mengubah orang yang sama pada waktu bersamaan kecil | Dua petugas yang mengubah orang yang sama hampir bersamaan dapat saling menimpa tanpa peringatan (`HRD-Q-198`) |
+| `HRD-ASM-77` | Hak setuju dan verifikasi memakai hak endpoint HRD yang sudah ada (`WfpSalaryAssignment : Update`, `WorkforceBankAccount : Update`), bukan izin baru | Tidak menambah izin yang harus diatur admin; kewenangan menyetujui tetap satu sumber | Pemegang hak ubah halaman ini yang tidak memegang hak setuju tidak dapat menyetujui; perlu role tambahan |
+| `HRD-ASM-78` | Penetapan gaji yang dinilai dan diubah adalah penetapan utama aktif dengan tanggal mulai terbaru; rekening yang dinilai dan diubah adalah rekening payroll aktif (terverifikasi didahulukan, lalu rekening utama, lalu yang terbaru) | Sama dengan yang dibaca modul Payroll saat membuat profil payroll, sehingga status "lengkap" di sini sama dengan yang dilihat Payroll | Status lengkap di halaman HR berbeda dari pembacaan Payroll bila aturan pemilihan salah satunya berubah |
+
+---
+
+### 52.4 Pertanyaan Terbuka
+
+| ID | Pertanyaan | Owner | Memblokir |
+| --- | --- | --- | --- |
+| `HRD-Q-197` | Apakah kenaikan gaji harus tercatat sebagai penetapan gaji **baru** (riwayat versi) alih-alih menimpa nilai lama? | Pemilik HR dan Finance | `LATER SLICE` — tidak memblokir S-A8 sebagaimana diputuskan (`HRD-DEC-196`) |
+| `HRD-Q-198` | Apakah perubahan oleh dua petugas pada orang yang sama perlu dijaga dengan token versi (konflik 409), atau cukup simpan terakhir menang? | Pemilik teknis | `LATER SLICE` — tidak memblokir S-A8 (`HRD-ASM-76`) |
+| `HRD-Q-199` | Apakah gaji pokok di luar rentang grade tetap hanya peringatan, atau ditolak? (`DEC-PRL-002` milik modul Payroll; dicatat di sini hanya sebagai titik sentuh) | Pemilik Payroll | `LATER SLICE` — layar HR menampilkan peringatan sampai diputuskan |
+
+---
+
+### 52.5 Ringkasan Pass
+
+* **Keputusan baru:** `HRD-DEC-194` s.d. `HRD-DEC-199`, seluruhnya `approved` oleh Pengguna (`HRD-DEC-015`) pada 16 November 2026.
+* **Asumsi yang ditetapkan tanpa ditanyakan:** `HRD-ASM-75` s.d. `HRD-ASM-78`; `HRD-ASM-75` perlu dicocokkan dengan data profesi sebenarnya.
+* **Pertanyaan terbuka:** `HRD-Q-197` s.d. `HRD-Q-199`; tidak ada yang memblokir desain slice ini.
+* **Blocker desain yang tersisa:** kontrak API v26 beserta matriks pendampingnya belum ada (gerbang G1 pada `roadmap/backend-roadmap.md` bagian 24).
+* **Bentuk blueprint:** tetap `SINGLE`; slice ini tidak menambah sub-modul.
+* **Di luar scope — untuk modul lain:** profil payroll (`PrlPayroll`) dan perhitungan gaji dicatat sebagai milik modul Payroll.
