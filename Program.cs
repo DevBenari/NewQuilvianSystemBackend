@@ -908,6 +908,7 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.PatientProfileQueryService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.NewbornPatientRegistrationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.HospitalSiteProfileQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.IJobDescriptionService, QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.JobDescriptionService>();
     builder.Services.AddScoped<PatientAllergyQueryService>();
 
     // BE-RWI-193 s.d. BE-RWI-202 — Workspace PPRI. InpAdmissionSourceReader satu-satunya pintu

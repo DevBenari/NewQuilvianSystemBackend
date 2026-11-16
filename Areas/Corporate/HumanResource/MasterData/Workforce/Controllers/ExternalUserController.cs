@@ -1237,29 +1237,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
-            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan NPWP pengguna eksternal
-            var oldExternalIdentity = NormalizeNullableText(entity.IdentityNumber) ?? string.Empty;
-            var newExternalIdentity = NormalizeNullableText(request.IdentityNumber) ?? string.Empty;
-            if (!string.IsNullOrEmpty(oldExternalIdentity) && !string.Equals(oldExternalIdentity, newExternalIdentity, StringComparison.OrdinalIgnoreCase))
-            {
-                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
-                    StatusCodes.Status409Conflict,
-                    "Perubahan Nomor Identitas pengguna eksternal adalah data sensitif dan tidak dapat diubah langsung melalui Master Data (HRD-DEC-052). Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data.",
-                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
-                ));
-            }
-
-            var oldTax = NormalizeNullableText(entity.TaxNumber) ?? string.Empty;
-            var newTax = NormalizeNullableText(request.TaxNumber) ?? string.Empty;
-            if (!string.IsNullOrEmpty(oldTax) && !string.Equals(oldTax, newTax, StringComparison.OrdinalIgnoreCase))
-            {
-                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
-                    StatusCodes.Status409Conflict,
-                    "Perubahan Nomor Pokok Wajib Pajak (NPWP) pengguna eksternal adalah data sensitif dan tidak dapat diubah langsung (HRD-DEC-052).",
-                    "SENSITIVE_TAX_NUMBER_LOCKED"
-                ));
-            }
-
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var normalizedEmail = NormalizeNullableText(request.Email)?.ToLowerInvariant();

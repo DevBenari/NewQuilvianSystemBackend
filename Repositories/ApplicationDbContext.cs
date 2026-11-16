@@ -134,6 +134,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstEmployeeGrade> MstEmployeeGrades { get; set; }
         public DbSet<MstCostCenter> MstCostCenters { get; set; }
         public DbSet<MstWorkLocation> MstWorkLocations { get; set; }
+        public DbSet<MstJobDescription> MstJobDescriptions { get; set; }
+        public DbSet<MstJobDescriptionItem> MstJobDescriptionItems { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - MASTER DATA - ORGANIZATION
 
         #region CORPORATE - HUMAN RESOURCE - MASTER DATA - WORKFORCE

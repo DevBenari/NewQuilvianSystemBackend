@@ -1382,27 +1382,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
-            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan status pernikahan dokter
-            var oldDoctorIdentity = NormalizeDigitsOnly(entity.IdentityNumber) ?? string.Empty;
-            var newDoctorIdentity = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
-            if (!string.IsNullOrEmpty(oldDoctorIdentity) && !string.Equals(oldDoctorIdentity, newDoctorIdentity, StringComparison.OrdinalIgnoreCase))
-            {
-                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
-                    StatusCodes.Status409Conflict,
-                    "Perubahan Nomor Identitas (NIK/Paspor) dokter adalah data sensitif dan tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
-                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
-                ));
-            }
-
-            if (entity.MaritalStatus != request.MaritalStatus && entity.MaritalStatus != MaritalStatus.Unknown)
-            {
-                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
-                    StatusCodes.Status409Conflict,
-                    "Perubahan Status Pernikahan dokter adalah data sensitif yang memengaruhi pajak dan benefit, tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
-                    "SENSITIVE_MARITAL_STATUS_LOCKED"
-                ));
-            }
-
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var normalizedEmail = NormalizeNullableText(request.Email)?.ToLowerInvariant();
