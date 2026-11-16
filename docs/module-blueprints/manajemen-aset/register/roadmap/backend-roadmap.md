@@ -30,7 +30,7 @@ diminta.
 Grafik dipotong menjadi dua blok karena lebar; `BE-AST-006` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅ ─> BE-AST-005 ─> BE-AST-006
+BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅ ─> BE-AST-005 ✅ ─> BE-AST-006
                                                  │
                     BE-AST-014 [NLI] ✅ ─────────┘
 ```
@@ -67,7 +67,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
-| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | 🟡 `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005`, `BE-AST-006` belum dikerjakan |
+| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | 🟡 `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` belum dikerjakan |
 | `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | belum dikerjakan |
 
 ## Tabel task
@@ -124,11 +124,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Acceptance criteria | 1. Migration hanya menambah 25 tabel; tidak mengubah tabel modul lain. 2. `Down()` menghapus 25 tabel. 3. Snapshot memuat seluruh entity baru tanpa duplikasi blok entity branch lain |
 | Catatan | Penerapan ke database (`dotnet ef database update`) oleh pemilik, bukan agent |
 
-### `BE-AST-005` — Service bersama
+### ✅ `BE-AST-005` — Service bersama
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 16 November 2026.** `dotnet build` dijalankan Rizki dan berhasil: DLL 10:47:47 WIB, sesudah suntingan terakhir 10:28:40 WIB, memuat 23 dari 23 penanda; jumlah warning tidak dilaporkan. Kelima service (`AssetActorResolver`, `AssetHistoryService`, `AssetProcessLockService`, `AssetAttachmentService`, `AssetNumberingService`), opsi `AssetManagement:Attachment`, dan `AddAssetManagement()` (+1 baris pemanggilan di `Program.cs`) dibuat; penjaga append-only `AstAssetHistory` di `ApplicationDbContext`. Keenam acceptance criteria terpetakan ke source; QBE Strict `Files evaluated: 10` `PASS` 0 temuan; nol baris komentar. Deklarasi penanda `AssetRegister : ReadAllUnits` menyusul `BE-AST-007`. Laporan: [`BE-AST-005.md`](../task/report/backend/BE-AST-005.md) |
 | Cakupan | `AssetActorResolver`, `AssetHistoryService`, `AssetProcessLockService`, `AssetAttachmentService`, `AssetNumberingService`; opsi `AssetManagement:Attachment`; registrasi `AddScoped` |
 | Acceptance criteria | 1. Pengguna tanpa penugasan aktif → daftar unit kosong (fail-closed). 2. Penugasan manajerial aktif → Kepala Unit unit itu. 3. Penanda `AssetRegister : ReadAllUnits` dibaca lewat `HasAccessAsync`. 4. Kunci proses menolak `409` bila sudah terpasang. 5. Lampiran menolak `503` bila pengaturan kosong, `413` bila terlalu besar. 6. Nomor aset `AST-<KODE>-######` lewat `NumberSeriesAllocator` (`NEVER`) |
 

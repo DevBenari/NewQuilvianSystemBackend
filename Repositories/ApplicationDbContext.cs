@@ -1532,6 +1532,8 @@ namespace QuilvianSystemBackend.Repositories
             // Catatan run impor denah tidak diubah setelah dibuat (BE-RWI-237, kamus data 22.2.3).
             if (ChangeTracker.Entries<MstFloorPlanImportRun>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
                 throw new InvalidOperationException("Catatan run impor denah bersifat append-only.");
+            if (ChangeTracker.Entries<AstAssetHistory>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Linimasa aset bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

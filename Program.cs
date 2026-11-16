@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
@@ -1109,6 +1110,8 @@ try
     builder.Services.AddScoped<NvwBedTabletContextService>();
     builder.Services.AddScoped<NvwPatientCallService>();
     builder.Services.AddScoped<NvwPatientCallReconciliationService>();
+
+    builder.Services.AddAssetManagement(builder.Configuration);
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,

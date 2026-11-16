@@ -17,7 +17,7 @@ test **bukan** gap (`rules/backend/TEST_POLICY.md`).
 | `CAP-02.1`–`02.6`, `CAP-EXT-05` master | `AST-DEC-006`, `026`, `034`; `AST-DES-014`, `015` | arsitektur §4.1 | `BE-AST-002` ✅, `004` ✅, `006` | `FE-AST-001`, `002` | `AT-REG-34`, `35`; `BE-AST-002`: QBE `Files evaluated: 17` `PASS`, kamus §2 243/0, `dotnet build` Rizki berhasil; `BE-AST-004`: migration 25 tabel, isi ↔ source 113/0, diterapkan 2026-11-16 | [`BE-AST-002.md`](../task/report/backend/BE-AST-002.md), [`BE-AST-004.md`](../task/report/backend/BE-AST-004.md) | 🟡 2026-11-16 — `BE-AST-002` ✅ (model master); `BE-AST-004` ✅ (migration fondasi); `006` belum |
 | `CAP-03.1` pencatatan | `AST-DEC-006..008`, `043` | state §1 | `BE-AST-003` ✅, `007` | `FE-AST-003` | `AT-REG-01`, `30`, `31`, `33`; `UAT-REG-01`, `02`; `BE-AST-003`: QBE `Files evaluated: 42` `PASS`, kamus §3 1030/0, `dotnet build` Rizki berhasil | [`BE-AST-003.md`](../task/report/backend/BE-AST-003.md) | 🟡 2026-11-12 — `BE-AST-003` ✅ (tabel register); `BE-AST-007` belum |
 | `CAP-03.2` data perolehan | `AST-DEC-008`, `AST-DES-002` | data dict §3.1 | `BE-AST-007` | `FE-AST-004` | `AT-REG-02` | — | belum |
-| `CAP-03.3` nomor inventaris | `AST-DEC-009`, `033`; `AST-DES-014` | integration `INT-REG-10` | `BE-AST-005`, `007` | `FE-AST-003` | `AT-REG-01`, `11`, `32` | — | belum |
+| `CAP-03.3` nomor inventaris | `AST-DEC-009`, `033`; `AST-DES-014` | integration `INT-REG-10` | `BE-AST-005` ✅, `007` | `FE-AST-003` | `AT-REG-01`, `11`, `32`; `BE-AST-005`: `AssetNumberingService` `AST_INV_<KODE>` `NEVER`, QBE `PASS`, build Rizki berhasil | [`BE-AST-005.md`](../task/report/backend/BE-AST-005.md) | 🟡 2026-11-16 — `BE-AST-005` ✅ (alokator nomor); `BE-AST-007` belum |
 | `CAP-03.4` label | `AST-DEC-010` | `INT-REG-11` | `BE-AST-008` | `FE-AST-005` | `AT-REG-13` | — | belum |
 | `CAP-03.5`, `08.2`, `08.3` dokumen dan pengamanan | `AST-RCG-G14`, `AST-ASM-002` | API 2.12 | `BE-AST-011` | `FE-AST-008` | `AT-REG-14`; `UAT-REG-07` | — | belum |
 | `CAP-03.6`, `11.1` daftar inventaris | `AST-DEC-025`; `AST-DES-016` | API 2.8, 2.17 | `BE-AST-007`, `013` | `FE-AST-004`, `010` | `AT-REG-12`, `46` | — | belum |
@@ -27,9 +27,9 @@ test **bukan** gap (`rules/backend/TEST_POLICY.md`).
 | `CAP-08.4` aset menganggur | `AST-RCG-G13`; `AST-DES-017` | API 2.8 `/idle` | `BE-AST-011` | `FE-AST-008` | `AT-REG-15` | — | belum |
 | `CAP-EXT-01` impor data awal | `AST-DEC-023`, `037`, `050` | state §6 | `BE-AST-012` | `FE-AST-009` | `AT-REG-10`, `43..45`; `UAT-REG-09`, `10` | — | belum |
 | `CAP-01.1`–`01.3`, `01.6` dashboard | `AST-DEC-025` | API 2.16 | `BE-AST-013` | `FE-AST-010` | `AT-REG-16`; `UAT-REG-11` | — | belum |
-| `CAP-11.7` History & Audit | `AST-DES-004` | data dict §3.5 | `BE-AST-005`, `013` | `FE-AST-010` | `AT-REG-12` | — | belum |
+| `CAP-11.7` History & Audit | `AST-DES-004` | data dict §3.5 | `BE-AST-005` ✅, `013` | `FE-AST-010` | `AT-REG-12`; `BE-AST-005`: `AssetHistoryService` + penjaga append-only, build Rizki berhasil | [`BE-AST-005.md`](../task/report/backend/BE-AST-005.md) | 🟡 2026-11-16 — `BE-AST-005` ✅ (penulis linimasa); `BE-AST-013` belum |
 | Hak lihat rupiah | `AST-DEC-025`, `AST-FE-004` | permission §2 | `BE-AST-007` | `FE-AST-004` | `AT-REG-47` | — | belum |
-| Lampiran fail-closed | `AST-DES-020` | integration §2 | `BE-AST-005` | `FE-AST-007` | `AT-REG-48`; `UAT-REG-13` | — | belum |
+| Lampiran fail-closed | `AST-DES-020` | integration §2 | `BE-AST-005` ✅ | `FE-AST-007` | `AT-REG-48`; `UAT-REG-13`; `BE-AST-005`: 503/413/400 di `AssetAttachmentService`, build Rizki berhasil; `AT-REG-48` butuh endpoint | [`BE-AST-005.md`](../task/report/backend/BE-AST-005.md) | 🟡 2026-11-16 — `BE-AST-005` ✅ (service lampiran; uji endpoint belum) |
 | Keterjangkauan layar | `frontend-menu-and-screen-template.md` | `02-module-map.md` §3.1 | — | `FE-AST-001..010` | `AT-REG-49` | — | belum |
 | `CAP-EXT-04` hibah (dipicu register) | `AST-DEC-040` | `INT-REG-31` | `BE-AST-007` (+ `BE-AST-015` [NLI]) | — | `AT-REG-03` | — | belum |
 

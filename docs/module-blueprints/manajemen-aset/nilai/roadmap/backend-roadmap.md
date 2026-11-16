@@ -28,7 +28,7 @@ Dipotong menjadi dua blok karena lebar; `BE-AST-027` muncul lagi sebagai sambung
 ```text
 BE-AST-002 [REG] ─> BE-AST-014 ✅ ─┬─> BE-AST-015 ─> BE-AST-025 ─> BE-AST-026 ─> BE-AST-027
                                    │
-BE-AST-005 [REG] ──────────────────┘
+BE-AST-005 [REG] ✅ ───────────────┘
 ```
 
 ```text
