@@ -186,7 +186,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 [BuildFieldKey("WfpEmergencyContact", "Address")] =
                     new("WfpEmergencyContact", "EmergencyContact", "Address", "Alamat kontak darurat", "String", false),
                 [BuildFieldKey("WfpEmergencyContact", "Description")] =
-                    new("WfpEmergencyContact", "EmergencyContact", "Description", "Keterangan kontak darurat", "String", false)
+                    new("WfpEmergencyContact", "EmergencyContact", "Description", "Keterangan kontak darurat", "String", false),
+
+                // WfpFamilyMember (Keluarga)
+                [BuildFieldKey("WfpFamilyMember", "Relationship")] =
+                    new("WfpFamilyMember", "FamilyMember", "Relationship", "Hubungan keluarga", "String", true),
+                [BuildFieldKey("WfpFamilyMember", "FullName")] =
+                    new("WfpFamilyMember", "FamilyMember", "FullName", "Nama anggota keluarga", "String", true),
+                [BuildFieldKey("WfpFamilyMember", "IdentityNumber")] =
+                    new("WfpFamilyMember", "FamilyMember", "IdentityNumber", "Nomor identitas keluarga", "String", true),
+                [BuildFieldKey("WfpFamilyMember", "MaritalStatusText")] =
+                    new("WfpFamilyMember", "FamilyMember", "MaritalStatusText", "Status pernikahan keluarga", "String", true),
+
+                // WfpDependent (Tanggungan)
+                [BuildFieldKey("WfpDependent", "IsTaxDependent")] =
+                    new("WfpDependent", "Dependent", "IsTaxDependent", "Tanggungan pajak", "Boolean", true),
+                [BuildFieldKey("WfpDependent", "IsBenefitEligible")] =
+                    new("WfpDependent", "Dependent", "IsBenefitEligible", "Kelayakan benefit", "Boolean", true),
+                [BuildFieldKey("WfpDependent", "IsInsuranceEligible")] =
+                    new("WfpDependent", "Dependent", "IsInsuranceEligible", "Kelayakan asuransi", "Boolean", true)
             };
 
         private readonly ApplicationDbContext _dbContext;
@@ -1357,6 +1375,16 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                     {
                         var exists = await _dbContext.Set<WfpEmergencyContact>().AnyAsync(x => x.Id == ec.Id, cancellationToken);
                         if (!exists) _dbContext.Set<WfpEmergencyContact>().Add(ec);
+                    }
+                    else if (item.Target is WfpFamilyMember fam && !_dbContext.Set<WfpFamilyMember>().Local.Any(x => x.Id == fam.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpFamilyMember>().AnyAsync(x => x.Id == fam.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpFamilyMember>().Add(fam);
+                    }
+                    else if (item.Target is WfpDependent dep && !_dbContext.Set<WfpDependent>().Local.Any(x => x.Id == dep.Id))
+                    {
+                        var exists = await _dbContext.Set<WfpDependent>().AnyAsync(x => x.Id == dep.Id, cancellationToken);
+                        if (!exists) _dbContext.Set<WfpDependent>().Add(dep);
                     }
                 }
 
@@ -2745,6 +2773,74 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 return TargetResolution.Ok(contact, "WfpEmergencyContact", contact.Id);
             }
 
+            if (normalizedName == "WfpFamilyMember")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpFamilyMember cachedFam)
+                {
+                    return TargetResolution.Ok(cachedFam, "WfpFamilyMember", targetId);
+                }
+
+                WfpFamilyMember? fam = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    fam = dbContext.Set<WfpFamilyMember>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (fam == null)
+                {
+                    fam = new WfpFamilyMember
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = fam;
+                }
+
+                return TargetResolution.Ok(fam, "WfpFamilyMember", fam.Id);
+            }
+
+            if (normalizedName == "WfpDependent")
+            {
+                var targetId = targetEntityId.HasValue && targetEntityId.Value != Guid.Empty
+                    ? targetEntityId.Value
+                    : Guid.NewGuid();
+
+                if (instanceCache != null && instanceCache.TryGetValue(targetId, out var cached) && cached is WfpDependent cachedDep)
+                {
+                    return TargetResolution.Ok(cachedDep, "WfpDependent", targetId);
+                }
+
+                WfpDependent? dep = null;
+                if (dbContext != null && targetEntityId.HasValue && targetEntityId.Value != Guid.Empty)
+                {
+                    dep = dbContext.Set<WfpDependent>().FirstOrDefault(x => x.Id == targetId && !x.IsDelete);
+                }
+
+                if (dep == null)
+                {
+                    dep = new WfpDependent
+                    {
+                        Id = targetId,
+                        WorkforceProfileId = workforceProfile.Id
+                    };
+                }
+
+                if (instanceCache != null)
+                {
+                    instanceCache[targetId] = dep;
+                }
+
+                return TargetResolution.Ok(dep, "WfpDependent", dep.Id);
+            }
+
             return TargetResolution.Fail(
                 StatusCodes.Status400BadRequest,
                 $"Target entity {targetEntityName} tidak didukung untuk pengajuan profil.");
@@ -3061,6 +3157,22 @@ public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeRespon
                 normalized.Equals("EmergencyContacts", StringComparison.OrdinalIgnoreCase))
             {
                 return "WfpEmergencyContact";
+            }
+
+            if (normalized.Equals("WfpFamilyMember", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpFamilyMembers", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("FamilyMember", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("FamilyMembers", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpFamilyMember";
+            }
+
+            if (normalized.Equals("WfpDependent", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("WfpDependents", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Dependent", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("Dependents", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WfpDependent";
             }
 
             return normalized;

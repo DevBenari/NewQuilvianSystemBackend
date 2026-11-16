@@ -149,7 +149,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 {
                     throw new InvalidOperationException("DUPLICATE_ROLE: Pegawai dengan nomor identitas ini sudah terdaftar.");
                 }
-                if (userType == UserType.Doctor && match.HasDoctorRole)
+                if ((userType == UserType.PermanentDoctor || userType == UserType.GuestDoctor) && match.HasDoctorRole)
                 {
                     throw new InvalidOperationException("DUPLICATE_ROLE: Dokter dengan nomor identitas ini sudah terdaftar.");
                 }

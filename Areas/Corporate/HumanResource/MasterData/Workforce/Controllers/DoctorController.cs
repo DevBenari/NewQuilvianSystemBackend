@@ -1050,27 +1050,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
-            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan status pernikahan dokter
-            var oldDoctorIdentity = NormalizeDigitsOnly(entity.IdentityNumber) ?? string.Empty;
-            var newDoctorIdentity = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
-            if (!string.IsNullOrEmpty(oldDoctorIdentity) && !string.Equals(oldDoctorIdentity, newDoctorIdentity, StringComparison.OrdinalIgnoreCase))
-            {
-                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
-                    StatusCodes.Status409Conflict,
-                    "Perubahan Nomor Identitas (NIK/Paspor) dokter adalah data sensitif dan tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
-                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
-                ));
-            }
-
-            if (entity.MaritalStatus != request.MaritalStatus && entity.MaritalStatus != MaritalStatus.Unknown)
-            {
-                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
-                    StatusCodes.Status409Conflict,
-                    "Perubahan Status Pernikahan dokter adalah data sensitif yang memengaruhi pajak dan benefit, tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
-                    "SENSITIVE_MARITAL_STATUS_LOCKED"
-                ));
-            }
-
             if (!string.IsNullOrWhiteSpace(request.IdentityNumber) && !_identityResolver.IsValidIdentity(request.IdentityType, request.IdentityNumber, out var identityErr))
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -1104,7 +1083,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                         normalizedWhatsApp,
                         primaryDepartmentId,
                         primaryPositionId,
-                        UserType.Doctor,
+                        UserType.PermanentDoctor,
                         actorUserId
                     );
                 }
@@ -1326,6 +1305,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Doctor tidak ditemukan."
+                ));
+            }
+
+            // Guard FIN-HRD-04-BE-003 / HRD-DEC-052: Guard data identitas resmi dan status pernikahan dokter
+            var oldDoctorIdentity = NormalizeDigitsOnly(entity.IdentityNumber) ?? string.Empty;
+            var newDoctorIdentity = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
+            if (!string.IsNullOrEmpty(oldDoctorIdentity) && !string.Equals(oldDoctorIdentity, newDoctorIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Nomor Identitas (NIK/Paspor) dokter adalah data sensitif dan tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_IDENTITY_FIELD_LOCKED"
+                ));
+            }
+
+            if (entity.MaritalStatus != request.MaritalStatus && entity.MaritalStatus != MaritalStatus.Unknown)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan Status Pernikahan dokter adalah data sensitif yang memengaruhi pajak dan benefit, tidak dapat diubah langsung melalui Master Data Dokter. Silakan ajukan melalui Menu 06 Pengajuan Perubahan Data (HRD-DEC-052).",
+                    "SENSITIVE_MARITAL_STATUS_LOCKED"
                 ));
             }
 

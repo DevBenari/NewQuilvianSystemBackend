@@ -1845,14 +1845,17 @@ Verifikasi bersama: `npm run lint` **0 error** (1.252 warning existing), `npm ru
 
 Dasar: `INSTRUKSI_AGENT_HRD_MENU_12_PEMBERHENTIAN_DAN_PENSIUN.md`. Pemetaan requirement, task backend `BE-HRD-334` s.d. `BE-HRD-343`, task frontend `FE-HRD-306` s.d. `FE-HRD-314`, dan 30 skenario UAT.
 
-| Submenu / Fitur | Task Backend | Task Frontend | Skenario UAT | Status Traceability |
-|---|---|---|---|:---:|
-| 1. Pengunduran Diri | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-337` | `FE-HRD-306`, `FE-HRD-307` | `UAT-M12-01` s.d. `UAT-M12-06`, `24`, `25` | Terdaftar |
-| 2. Pensiun | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-338` | `FE-HRD-306`, `FE-HRD-308` | `UAT-M12-07` s.d. `UAT-M12-10`, `24`, `25` | Terdaftar |
-| 3. Akhir Kontrak | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-339` | `FE-HRD-306`, `FE-HRD-309` | `UAT-M12-11` s.d. `UAT-M12-14`, `24`, `25` | Terdaftar |
-| 4. Pemberhentian | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-340` | `FE-HRD-306`, `FE-HRD-310` | `UAT-M12-15` s.d. `UAT-M12-18`, `24`, `25` | Terdaftar |
-| 5. Serah Terima | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-341` | `FE-HRD-306`, `FE-HRD-311` | `UAT-M12-19` s.d. `UAT-M12-21`, `24`, `25` | Terdaftar |
-| 6. Clearense | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-342` | `FE-HRD-306`, `FE-HRD-312` | `UAT-M12-22` s.d. `UAT-M12-28` | Terdaftar |
-| Integrasi & Verifikasi | `BE-HRD-343` | `FE-HRD-313`, `FE-HRD-314` | `UAT-M12-29`, `UAT-M12-30` | Terdaftar |
+| Submenu / Fitur | Task Backend | Task Frontend | Skenario UAT | Status Traceability | Laporan Bukti |
+|---|---|---|---|:---:|:---:|
+| 1. Pengunduran Diri | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-337` | `FE-HRD-306`, `FE-HRD-307` | `UAT-M12-01` s.d. `UAT-M12-06`, `24`, `25` | ✅ PASS | [BE-HRD-337](../task/report/backend/BE-HRD-337.md) / [FE-HRD-307](../task/report/frontend/FE-HRD-307.md) |
+| 2. Pensiun | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-338` | `FE-HRD-306`, `FE-HRD-308` | `UAT-M12-07` s.d. `UAT-M12-10`, `24`, `25` | ✅ PASS | [BE-HRD-338](../task/report/backend/BE-HRD-338.md) / [FE-HRD-308](../task/report/frontend/FE-HRD-308.md) |
+| 3. Akhir Kontrak | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-339` | `FE-HRD-306`, `FE-HRD-309` | `UAT-M12-11` s.d. `UAT-M12-14`, `24`, `25` | ✅ PASS | [BE-HRD-339](../task/report/backend/BE-HRD-339.md) / [FE-HRD-309](../task/report/frontend/FE-HRD-309.md) |
+| 4. Pemberhentian | `BE-HRD-334`, `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-340` | `FE-HRD-306`, `FE-HRD-310` | `UAT-M12-15` s.d. `UAT-M12-18`, `24`, `25` | ✅ PASS | [BE-HRD-340](../task/report/backend/BE-HRD-340.md) / [FE-HRD-310](../task/report/frontend/FE-HRD-310.md) |
+| 5. Serah Terima | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-341` | `FE-HRD-306`, `FE-HRD-311` | `UAT-M12-19` s.d. `UAT-M12-21`, `24`, `25` | ✅ PASS | [BE-HRD-341](../task/report/backend/BE-HRD-341.md) / [FE-HRD-311](../task/report/frontend/FE-HRD-311.md) |
+| 6. Clearense | `BE-HRD-335`, `BE-HRD-336`, `BE-HRD-342` | `FE-HRD-306`, `FE-HRD-312` | `UAT-M12-22` s.d. `UAT-M12-28` | ✅ PASS | [BE-HRD-342](../task/report/backend/BE-HRD-342.md) / [FE-HRD-312](../task/report/frontend/FE-HRD-312.md) |
+| Integrasi & Verifikasi | `BE-HRD-334`, `BE-HRD-343` | `FE-HRD-306`, `FE-HRD-313`, `FE-HRD-314` | `UAT-M12-29`, `UAT-M12-30` | ✅ PASS | [BE-HRD-343](../task/report/backend/BE-HRD-343.md) / [FE-HRD-314](../task/report/frontend/FE-HRD-314.md) |
+
+Verifikasi Slice `S-C5-SEP`: Kompilasi backend .NET **0 error**, linter ESLint frontend **0 error 0 warning**, CSS checker `check-css-usage.mjs` **0 temuan** (zero-tailwind, full tokens), 100% data mock/fallback/fake toast dihapus dari seluruh rute operasional Menu 12, dan 30 skenario UAT terverifikasi berstatus `VERIFIED WORKING`.
+
 
 
