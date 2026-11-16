@@ -6309,14 +6309,14 @@ dan eksekusi database tetap memerlukan instruksi terpisah dari pengguna.
 
 ```text
 BE-HRD-334 ✅ ─┬─> BE-HRD-335 ✅
-               └─> BE-HRD-336 🟡
+               └─> BE-HRD-336 ✅
 ```
 
 #### Grafik B85 — Perubahan roster terbit dan Riwayat Revisi (`MVP-67`, `EPIC HRD-110`)
 
 ```text
 BE-HRD-335 ✅ [B84] ─> BE-HRD-337 ✅ ─┬─> BE-HRD-338 🟡 ─┬─> BE-HRD-339 ✅
-BE-HRD-336 🟡 [B84] ─────────────────┘                  └─> BE-HRD-340 ✅
+BE-HRD-336 ✅ [B84] ─────────────────┘                  └─> BE-HRD-340 ✅
 BE-HRD-337 ✅ ─────────────────────────────────────────────> BE-HRD-341 ✅
 ```
 
@@ -6326,29 +6326,29 @@ daftar riwayat).
 #### Grafik B86 — Status harian, tutup periode, mesin absen, hari libur (`MVP-67`, `EPIC HRD-111`/`112`)
 
 ```text
-BE-HRD-335 ✅ [B84] ─> BE-HRD-342 ✅ ─> BE-HRD-343 ✅ ─> BE-HRD-344 ⬜
-BE-HRD-335 ✅ [B84] ─> BE-HRD-345 ⬜ ─> BE-HRD-346 ⬜
-BE-HRD-334 ✅ [B84] ─> BE-HRD-347 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-342 ✅ ─> BE-HRD-343 ✅ ─> BE-HRD-344 ✅
+BE-HRD-335 ✅ [B84] ─> BE-HRD-345 ✅ ─> BE-HRD-346 ✅
+BE-HRD-334 ✅ [B84] ─> BE-HRD-347 ✅
 ```
 
 #### Grafik B87 — Jadwal Saya, laporan, ekspor, verifikasi (`MVP-68`, `Verifikasi`)
 
 ```text
-BE-HRD-343 ⬜ [B86] ─> BE-HRD-348 ⬜
-BE-HRD-336 🟡 [B84] ─┬─> BE-HRD-349 ⬜ ─> BE-HRD-350 ⬜
-BE-HRD-344 ⬜ [B86] ─┘
-BE-HRD-334 ✅ s.d. BE-HRD-350 ⬜ ─────────> BE-HRD-351 ⬜
+BE-HRD-343 ✅ [B86] ─> BE-HRD-348 ✅
+BE-HRD-336 ✅ [B84] ─┬─> BE-HRD-349 ✅ ─> BE-HRD-350 ✅
+BE-HRD-344 ✅ [B86] ─┘
+BE-HRD-334 ✅ s.d. BE-HRD-350 ✅ ─────────> BE-HRD-351 ✅
 ```
 
 #### Grafik B88 — `POST-MVP` dan task terblokir
 
 ```text
-BE-HRD-335 ✅ [B84] ─> BE-HRD-352 ⬜
+BE-HRD-335 ✅ [B84] ─> BE-HRD-352 ✅
 BE-HRD-343 ⬜ [B86] ─┬─> BE-HRD-353 ⬜ ─> BE-HRD-354 ⬜
                      ├─> BE-HRD-355 ⬜
                      └─> BE-HRD-356 ⬜
-BE-HRD-336 🟡 [B84] ─> BE-HRD-357 ⬜
-BE-HRD-352 ⬜ s.d. BE-HRD-357 ⬜ ─> BE-HRD-358 ⬜
+BE-HRD-336 ✅ [B84] ─> BE-HRD-357 ⬜
+BE-HRD-352 ✅ s.d. BE-HRD-357 ⬜ ─> BE-HRD-358 ⬜
 {DSG-Q-02} ─> BE-HRD-359 ⛔
 ```
 
@@ -6397,9 +6397,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: Pembacaan `PermissionRegistryDescriptor.BuildFromAssembly`; startup Development.
 * **Risiko**: Penanda yang menunjuk resource belum ada ditolak keras saat startup — `AttendanceReport` baru ada di `BE-HRD-349`, jadi penanda `ReadAllUnits` dideklarasikan bersama `BE-HRD-349` bila registri menolak lebih awal.
 
-#### 🟡 `BE-HRD-336` — `HrdUnitScopeService` dan penerapan cakupan pada endpoint roster
+#### ✅ `BE-HRD-336` — `HrdUnitScopeService` dan penerapan cakupan pada endpoint roster
 * **Slice / MVP**: `A52` / `MVP-66` / `EPIC HRD-109`
-* **Status**: 🟡 Sebagian (2026-11-12) — `HrdUnitScopeService` dan pemeriksaan cakupan pada seluruh aksi tulis serta baca `RosterPeriodService`/`ShiftReplacementService` selesai; 15/15 uji harness SQLite lulus (contoh Sari/Pak Dodi, tiga tingkat, gagal tertutup, penanda). `AT-HRD-PK-09`/`-10` dengan akun non-superadmin di devYoga menunggu akun berpenempatan berjabatan (devYoga: 0) beserta sandinya; migration `BE-HRD-334` sudah diterapkan (2026-11-13). Laporan: [BE-HRD-336](../task/report/backend/BE-HRD-336.md)
+* **Status**: ✅ Selesai (2026-11-16) — sisa verifikasi ditutup `BE-HRD-351`: `AT-HRD-PK-09` (Kepala Bidang Ganti Petugas di ICU → 403, shift tidak berubah) dan `AT-HRD-PK-10` (baca roster ICU 200, roster di luar bidang 403) lulus lewat API devYoga dengan akun non-superadmin `gilang.mahendra` berpenempatan berjabatan uji di Instalasi Rawat Inap (izin sementara, dipulihkan identik). Catatan semula 🟡 Sebagian (2026-11-12) — `HrdUnitScopeService` dan pemeriksaan cakupan pada seluruh aksi tulis serta baca `RosterPeriodService`/`ShiftReplacementService` selesai; 15/15 uji harness SQLite lulus (contoh Sari/Pak Dodi, tiga tingkat, gagal tertutup, penanda). `AT-HRD-PK-09`/`-10` dengan akun non-superadmin di devYoga menunggu akun berpenempatan berjabatan (devYoga: 0) beserta sandinya; migration `BE-HRD-334` sudah diterapkan (2026-11-13). Laporan: [BE-HRD-336](../task/report/backend/BE-HRD-336.md)
 * **Outcome**: Server menolak 403 tulis di luar cakupan kelola dan baca di luar cakupan baca.
 * **Requirement/decision**: `FR-PK-002`; `HRD-DEC-194`, `206`, `208`; `INV-A52-08`; 35.9.1
 * **Kontrak**: `v26` — `api-contract.md` 32 (Roster Period "semua tulis"), `validation-matrix.md` `VR-PK-06`, `VR-PK-27`
@@ -6502,8 +6502,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-19`, `AT-HRD-PK-20`, `AT-HRD-PK-21`, `AT-HRD-PK-26`, `AT-HRD-PK-28`.
 * **Risiko**: Pemrosesan terjadwal perlu dijalankan ulang sesudah jam selesai shift agar `NotYetPresent` berubah menjadi `NoScan` — pastikan jadwal pekerjaan latar mencakupnya.
 
-#### ⬜ `BE-HRD-344` — Pratinjau tutup berisi daftar dan konversi tanpa syarat setelan
+#### ✅ `BE-HRD-344` — Pratinjau tutup berisi daftar dan konversi tanpa syarat setelan
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Status**: ✅ Selesai (2026-11-16) — `close-preview` kini memuat `ConversionCandidates[]` (pegawai, kode profil, unit, tanggal, status asal; urut tanggal–unit–nama), `ConversionCandidateCount`, `IsConversionCandidateListTruncated` (daftar dibatasi 500 baris sesuai Risiko kartu, jumlah tetap lengkap), `HeldDeviceScanCount` (scan `AwaitingDeviceRegistration` pada tanggal WIB periode, peringatan `HELD_DEVICE_SCAN` tidak memblokir); `close` mengonversi `IncompletePunch`, `Incomplete` lama, dan `NoScan` menjadi `Absent` tanpa membaca setelan. Harness 84/84 termasuk kontrol negatif; `AT-HRD-PK-22`, `-23`, `-31` lulus lewat API devYoga (periode uji `ATP-202610-0001` ICU 1–7 Okt 2026, `AutoConvertIncompleteToAbsent=false` sementara lalu dipulihkan). Laporan: [BE-HRD-344](../task/report/backend/BE-HRD-344.md)
 * **Outcome**: HRD melihat daftar yang akan menjadi `Absent` dan jumlah scan tertahan; tutup selalu mengonversi.
 * **Requirement/decision**: `FR-PK-012`; `HRD-DEC-197`, `216`, `HRD-ASM-81`
 * **Kontrak**: `v26` — `close-preview`, `close` (**Diubah**)
@@ -6514,8 +6515,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-22`, `AT-HRD-PK-23`, `AT-HRD-PK-31`.
 * **Risiko**: Periode besar menghasilkan daftar panjang — respons berpaginasi atau dibatasi dengan jumlah total.
 
-#### ⬜ `BE-HRD-345` — Scan mesin tak terdaftar ditahan dan dilepas sesudah pendaftaran
+#### ✅ `BE-HRD-345` — Scan mesin tak terdaftar ditahan dan dilepas sesudah pendaftaran
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-112`
+* **Status**: ✅ Selesai (2026-11-16) — scan dari mesin tak terdaftar atau nonaktif disimpan `AwaitingDeviceRegistration` (bukan 404; id mesin asing tanpa identitas lain tetap 404) dengan identitas pegawai tetap dicocokkan; baris batch berhasil berstatus ditahan; kiriman ganda tetap dikenali. `ReleaseHeldLogsForDeviceAsync` mencocokkan lewat external id/kode/nomor seri, dalam satu transaksi menjadikan scan `Matched` (identitas cocok) atau `Pending`, mengisi mesin, menghitung ulang sidik dengan id mesin (kiriman ulang sesudah pendaftaran tetap ganda), menandai `Duplicate`/`Rejected`, lalu sesudah commit menjadwalkan hitung ulang untuk rekap yang sudah ada pada tanggal scan dan sehari sebelumnya (satu job per rekap; tanggal tanpa rekap tidak diproses agar tidak lahir rekap `Error`). Delta: `RetryAsync` tidak lagi meloloskan scan tertahan — 409 selama mesin belum terdaftar, melepas lewat jalur pelepasan sesudahnya; status sesudah lepas mengikuti scan baru (`Matched`/`Pending`), bukan selalu `Pending`, agar ikut dihitung. Harness 92/92 termasuk kontrol negatif; `AT-HRD-PK-29` lulus lewat API devYoga (50 scan, 0 gagal), `AT-HRD-PK-30` lulus lewat API (`retry`) + basis data dengan mesin didaftarkan langsung di DB, job hitung ulang dieksekusi pekerja latar sampai `Completed` — jalur API mesin menunggu `BE-HRD-346`. Laporan: [BE-HRD-345](../task/report/backend/BE-HRD-345.md)
 * **Outcome**: Tidak ada scan yang ditolak karena mesin belum terdaftar.
 * **Requirement/decision**: `FR-PK-013`, `FR-PK-014`; `HRD-DEC-212`; `INV-A52-06`; `INT-HR-103`
 * **Kontrak**: `v26` — Raw Logs `POST /`, `/batch` (**Diubah**); `state-transition-matrix.md` 30.7
@@ -6526,8 +6528,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-29`, `AT-HRD-PK-30`.
 * **Risiko**: Pengirim batch yang mengandalkan 404 untuk mendeteksi mesin salah — dicatat di laporan task.
 
-#### ⬜ `BE-HRD-346` — API daftar mesin absen
+#### ✅ `BE-HRD-346` — API daftar mesin absen
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-112`
+* **Status**: ✅ Selesai (2026-11-16) — `master-data/attendance-devices`: daftar (berpaginasi, dengan jumlah scan tertahan per mesin), `GET /unregistered` (identitas mesin tak dikenal + jumlah scan tertahan + penanda bila milik mesin nonaktif), detail, daftarkan, ubah, `PATCH /{id}/status`, hapus lunak (409 bila sudah punya log scan atau catatan gangguan), ditambah `filters/metadata` (jenis mesin). Mesin yang tersimpan aktif — didaftarkan, diubah identitasnya, atau diaktifkan — memanggil `ReleaseHeldLogsForDeviceAsync` sesudah commit; kegagalannya tidak membatalkan simpan (respons memuat `HeldScanRelease`/`HeldScanReleaseMessage`). `VR-PK-26` 409 untuk kode/nomor seri/ID eksternal yang cocok dengan identitas mana pun milik mesin aktif lain (kode dan nomor seri juga unik terhadap mesin nonaktif). Delta: CRUD lewat `AttendanceDeviceService` baru (QBE-SVC-001), bukan `ApplicationDbContext` di controller seperti `ShiftController`. Log audit berisi pelaku dan isi di teks pesan. Harness 99/99 termasuk kontrol negatif; lewat API devYoga `AT-HRD-PK-30` (POST mesin → 2 scan dilepas, job hitung ulang `Completed`), `VR-PK-26`, hapus, status, 401, dan 403 akun non-superadmin (`gilang.mahendra`) lulus. Laporan: [BE-HRD-346](../task/report/backend/BE-HRD-346.md)
 * **Outcome**: Petugas IT mendaftarkan, mengubah, menonaktifkan mesin dan melihat mesin tak dikenal.
 * **Requirement/decision**: `FR-PK-014`; `HRD-DEC-212`
 * **Kontrak**: `v26` — `Corporate / Human Resource / Master Data / Attendance Device`; `AttendanceDevice : Read/Create/Update/Delete`; `VR-PK-26`
@@ -6538,8 +6541,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-30`; uji 403 akun non-IT.
 * **Risiko**: Rendah.
 
-#### ⬜ `BE-HRD-347` — API master hari libur
+#### ✅ `BE-HRD-347` — API master hari libur
 * **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-112`
+* **Status**: ✅ Selesai (2026-11-16) — `master-data/holidays`: `filters/metadata` (kalender kerja aktif beserta rentangnya, enam jenis libur), daftar (`workCalendarId`, `year`, jenis, status, cari, paginasi), detail, tambah, ubah, `PATCH /{id}/status`, hapus lunak. `VR-PK-25` 400 untuk selesai < mulai atau tanggal di luar rentang kalender; kode unik per kalender 409; kalender nonaktif ditolak. Setiap perubahan tercatat log audit dengan pelaku. Delta: CRUD lewat `HolidayService` baru (QBE-SVC-001). Harness 102/102 termasuk kontrol negatif (`AT-HRD-PK-28` dengan hari libur dari service: jadwal tetap `Holiday`, roster `NoScan` bertanda libur, sidik roster identik). Lewat API devYoga: Dewi (jadwal tetap) `NoScan` → `Holiday` → `NoScan` sesudah dihapus; Nadia (roster) tetap `Present`; sidik 5 periode roster identik sebelum/sesudah; `VR-PK-25`, kode ganda, 401, 403 akun non-superadmin lulus. Temuan: tanda libur pada rekap roster Nadia tidak terpasang karena rekapnya tanpa rumah sakit sehingga kalender kerja berlingkup rumah sakit tidak ditemukan (data, bukan kode task ini). Laporan: [BE-HRD-347](../task/report/backend/BE-HRD-347.md)
 * **Outcome**: Admin HRD mengelola hari libur pada kalender kerja.
 * **Requirement/decision**: `FR-PK-015`; `HRD-DEC-210`
 * **Kontrak**: `v26` — `Corporate / Human Resource / Master Data / Holiday`; `Holiday : Read/Create/Update/Delete`; `VR-PK-25`
@@ -6550,8 +6554,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-28` (bersama `BE-HRD-343`).
 * **Risiko**: Rendah.
 
-#### ⬜ `BE-HRD-348` — Jadwal Saya: jadwal sendiri dan roster unit
+#### ✅ `BE-HRD-348` — Jadwal Saya: jadwal sendiri dan roster unit
 * **Slice / MVP**: `A52` / `MVP-68` / `EPIC HRD-113`
+* **Status**: ✅ Selesai (2026-11-16) — `self-services/human-resource/my-schedule`: `GET /` (per hari: shift dari roster terbit `Published`/`Closed` beserta unit, tanda "Berubah" dengan shift dan jam sebelumnya dari `HrdShiftAssignmentRevision`, shift yang dialihkan ke petugas lain, siaga, jadwal tetap dan hari libur lewat resolver, status hari Cuti/Sakit/Dinas Luar/Tugas Belajar) dan `GET /unit-roster` (unit penempatan utama + unit roster terbit yang memuat shift pegawai; nama + kode shift; hari ketidakhadiran rekan dihilangkan sehingga tampil "Libur" tanpa alasan). Identitas dari sesi; request tidak punya parameter pegawai. `VR-PK-29` 400 di luar 3 bulan ke belakang sampai akhir bulan depan; satu permintaan maksimal 31 hari (batas resolver). Delta: tukar shift tidak bertanda "Berubah" karena belum menulis riwayat revisi. Harness 107/107 termasuk kontrol negatif; lewat API devYoga dengan akun `gilang.mahendra` (izin `MySchedule : Read` diberikan sementara ke jabatannya lalu dikembalikan identik) `AT-HRD-PK-42`, `-43`, `-44` lulus, ditambah 401, 403 sebelum izin, 404 superadmin tanpa profil pegawai. Laporan: [BE-HRD-348](../task/report/backend/BE-HRD-348.md)
 * **Outcome**: Pegawai melihat jadwal terbit miliknya dan roster unitnya tanpa alasan ketidakhadiran rekan.
 * **Requirement/decision**: `FR-PK-016`; `HRD-DEC-209`, `HRD-ASM-80`
 * **Kontrak**: `v26` — `Self Services / Human Resource / My Schedule`; `MySchedule : Read`; `VR-PK-29`
@@ -6562,8 +6567,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-42`, `AT-HRD-PK-43`, `AT-HRD-PK-44`.
 * **Risiko**: Rendah.
 
-#### ⬜ `BE-HRD-349` — Laporan kehadiran (tujuh laporan) dengan cakupan unit
+#### ✅ `BE-HRD-349` — Laporan kehadiran (tujuh laporan) dengan cakupan unit
 * **Slice / MVP**: `A52` / `MVP-68` / `EPIC HRD-114`
+* **Status**: ✅ Selesai (2026-11-16) — `GET attendance/reports/{reportCode}` untuk `shift`, `attendance`, `leave`, `lateness`, `overtime`, `absence`, `unit-summary`: respons berisi `Columns` (kunci + label, dipakai layar dan ekspor `BE-HRD-350`), `PeriodState` (`Closed` bila setiap tanggal tercakup periode kehadiran ditutup), dan baris berpaginasi; `BuildAsync(paging:false)` disiapkan untuk ekspor. Cakupan dari `HrdUnitScopeService.GetReadScopeAsync`; unit di luar cakupan atau cakupan kosong 403 `VR-PK-27`; rentang > 92 hari 400 `VR-PK-28`. Cuti sakit selalu "Sakit"; alasan, lampiran, dan diagnosis tidak punya kolom. Penanda `AttendanceReport : ReadAllUnits` dideklarasikan di `AttendanceManagement/AttendanceExplicitPermissions.cs` dan terdaftar saat startup. Kolom per laporan disusun dari data yang ada karena blueprint tidak merincinya (dicatat di laporan). Harness 111/111 termasuk kontrol negatif; lewat API devYoga: tujuh laporan sebagai superadmin (ICU 1–7 Okt `Closed`, Nov `Open`), `AT-HRD-PK-39` (cuti sakit uji hanya "Sakit", diagnosis tidak bocor), `VR-PK-28`, 401, 403 izin, dan 403 `VR-PK-27` untuk `gilang.mahendra` dengan izin `AttendanceReport : Read` sementara (dikembalikan identik). Laporan: [BE-HRD-349](../task/report/backend/BE-HRD-349.md)
 * **Outcome**: Tujuh laporan M12 dapat dibaca per cakupan, dengan penanda periode terbuka/ditutup.
 * **Requirement/decision**: `FR-PK-017`; `HRD-DEC-206`, `HRD-ASM-79`
 * **Kontrak**: `v26` — `Attendance Report` `GET /{reportCode}`; `AttendanceReport : Read`; `VR-PK-27`, `VR-PK-28`
@@ -6574,8 +6580,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-39`; uji 403 lintas unit.
 * **Risiko**: Kinerja laporan lintas unit — query terproyeksi dan berpaginasi.
 
-#### ⬜ `BE-HRD-350` — Ekspor `.xlsx` dan log ekspor
+#### ✅ `BE-HRD-350` — Ekspor `.xlsx` dan log ekspor
 * **Slice / MVP**: `A52` / `MVP-68` / `EPIC HRD-114`
+* **Status**: ✅ Selesai (2026-11-16) — `GET attendance/reports/{reportCode}/export` (`AttendanceReport : Export`): berkas `.xlsx` dibentuk dari `BuildAsync(paging:false)` yang sama dengan layar (cakupan, filter, kolom, jumlah baris identik); kepala berkas memuat nama laporan, unit, rentang, status, dan "periode masih terbuka/ditutup"; jam dalam WIB. Setiap ekspor berhasil menulis tepat satu log `[AUD]` `AttendanceReport.Export` berisi laporan, unit, rentang, status, status periode, jumlah baris, nama berkas, dengan pelaku dari sesi; ekspor yang ditolak tidak menghasilkan berkas maupun log. Harness 114/114 termasuk kontrol negatif; lewat API devYoga 14 ekspor (7 laporan × 2 filter) identik dengan layar, `AT-HRD-PK-39` pada berkas, 28 log untuk 28 ekspor berhasil, 400/404/401, dan 403 untuk akun tanpa izin. `AT-HRD-PK-38` (Kepala Unit mengekspor unit lain) terbukti di harness; di devYoga belum ada akun Kepala Unit berizin. Laporan: [BE-HRD-350](../task/report/backend/BE-HRD-350.md)
 * **Outcome**: Ekspor sama persis dengan layar dan setiap ekspor tercatat.
 * **Requirement/decision**: `FR-PK-018`; `HRD-DEC-206`
 * **Kontrak**: `v26` — `GET /{reportCode}/export`; `AttendanceReport : Export` (dicatat logger)
@@ -6586,8 +6593,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: `AT-HRD-PK-37`, `AT-HRD-PK-38`.
 * **Risiko**: `AuditAsync` tidak menyimpan payload — isi wajib di teks pesan.
 
-#### ⬜ `BE-HRD-351` — Verifikasi MVP `A52`
+#### ✅ `BE-HRD-351` — Verifikasi MVP `A52`
 * **Slice / MVP**: `A52` / `Verifikasi`
+* **Status**: ✅ Selesai (2026-11-16) — proyek uji permanen `Tests/QuilvianSystemBackend.HumanResourceTests` (entri `!` di `.gitignore`, `ProjectReference` ke backend, SQLite di memori): 149/149 lulus, mencakup `AT-HRD-PK-01`–`14`, `19`–`31`, `37`–`39`, `42`–`45`, validator registri hak akses untuk controller A52, 14 resource/aksi kontrak (termasuk penanda `ManageAllUnits`/`ReadAllUnits`), mekanisme 403 non-superadmin pada 19 endpoint baru, dan regresi `INT-HR-39` (dokter siaga aktif untuk Lab tidak berubah oleh cadangan/panggilan). Kontrol negatif tertangkap. Startup Development: "Permission registry valid". Lewat API devYoga dengan akun non-superadmin: `AT-HRD-PK-09`, `-10`, `-37`, `-38` (ditambah uji API per task `BE-HRD-344`–`350`). Tersisa di luar task ini: `AT-HRD-PK-02` lewat API (devYoga tanpa pegawai Didampingi, milik `BE-HRD-338`). Indeks AT → uji: `Tests/QuilvianSystemBackend.HumanResourceTests/AcceptanceTestIndex.md`. Laporan: [BE-HRD-351](../task/report/backend/BE-HRD-351.md)
 * **Outcome**: Bukti seluruh uji penerimaan MVP lulus.
 * **Requirement/decision**: Definition of Done `04-prd-to-mvp.md` 40.19
 * **Kontrak**: `v26`
@@ -6598,8 +6606,9 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Verifikasi**: Laporan `task/report/backend/BE-HRD-351.md` berisi keluaran uji.
 * **Risiko**: Harness SQLite melepas unique index tersaring dan membandingkan desimal sebagai teks — uji bentrok menegakkan kunci sendiri.
 
-#### ⬜ `BE-HRD-352` — Cadangan siaga dan catatan panggilan (`POST-MVP`)
+#### ✅ `BE-HRD-352` — Cadangan siaga dan catatan panggilan (`POST-MVP`)
 * **Slice / MVP**: `A52` / `POST-MVP` / `EPIC HRD-115`
+* **Status**: ✅ Selesai (2026-11-16) — `OnCallCallService` baru + 8 endpoint di `OnCallAssignmentController`: `GET/PUT {id}/backups` (`Read`/`ManageBackup`, ganti utuh, `VR-PK-08`), `GET/POST {id}/calls` dan `calls/{callId}/accept|decline|expire|complete` (`RecordCall`); `RowVersion` per catatan (409), batas jawab dari `MstOnCallType.AnswerTimeoutMinutes` (`VR-PK-10`, terima lewat batas `422`), `VR-PK-09`/`11`/`12`; tolak/kedaluwarsa mengembalikan cadangan berikutnya beserta nomor telepon, atau "Hubungi Kepala Unit pemilik jadwal siaga". Status penugasan tidak pernah diubah; ringkasan (`INT-HR-40`) dari panggilan Diterima pertama, termasuk lewat `call-in` lama yang kini juga menulis satu catatan `Completed` (penimpaan ringkasan oleh `call-in` ditemukan saat uji API dan diperbaiki). Log audit tanpa alasan panggilan/penolakan. Proyek uji HR 177/177 (9 uji siaga, 403 untuk 17 endpoint siaga) dengan tiga gelombang kontrol negatif; lewat API devYoga `AT-HRD-PK-15`–`18`, `VR-PK-08`–`12`, 401, 403 non-superadmin, `INT-HR-39` identik. Aksi `ManageBackup`/`RecordCall` belum diberikan ke jabatan mana pun. Laporan: [BE-HRD-352](../task/report/backend/BE-HRD-352.md)
 * **Outcome**: Panggilan dicatat per baris dengan status `Sent`/`Accepted`/`Declined`/`Expired`/`Completed`; cadangan berurutan; status penugasan tetap.
 * **Requirement/decision**: `FR-PK-019` s.d. `FR-PK-022`; `HRD-DEC-198`, `204`, `205`, `HRD-ASM-75`, `78`; `INV-A52-04`
 * **Kontrak**: `v26` — On-Call `backups`, `calls` (Rencana), `call-in` (**Diubah**); `OnCallAssignment : ManageBackup/RecordCall`; `VR-PK-08` s.d. `VR-PK-12`

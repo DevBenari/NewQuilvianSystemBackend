@@ -417,5 +417,11 @@ DataProtectionKeys/key-*.xml
 /Tests/QuilvianSystemBackend.PatientManagementTests/bin/
 /Tests/QuilvianSystemBackend.PatientManagementTests/obj/
 
+# Begitu pula Penjadwalan & Kehadiran HR amandemen A52 (`BE-HRD-351`): uji penerimaan MVP AT-HRD-PK-01–14, 19–31,
+# 37–39, 42–45, registri hak akses, dan regresi INT-HR-39 hanya tetap terjaga bila ujinya ikut masuk repositori.
+!/Tests/QuilvianSystemBackend.HumanResourceTests/
+/Tests/QuilvianSystemBackend.HumanResourceTests/bin/
+/Tests/QuilvianSystemBackend.HumanResourceTests/obj/
+
 # RJ-DOC-REV-BE-019: surat rujukan pasien (data kesehatan) di penyimpanan privat - jangan pernah di-commit.
 /Storage/private/

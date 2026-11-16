@@ -1315,6 +1315,7 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.ShiftRevisionRecorder>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.TemporaryPlacementRosterImpactService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallAssignmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCallService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services.OnCallCompensationHandoffService>();
 
     builder.Services.AddScoped<ResignationRequestService>();
@@ -1341,6 +1342,10 @@ try
     // Persetujuan penutupan benefit RS internal oleh HRD.
 
     builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Services.AttendanceDeviceService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Services.HolidayService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services.MyScheduleSelfService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services.AttendanceReportService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();

@@ -182,8 +182,48 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public int IncompletePunchDailyCount { get; set; }
         public int PendingEarlyLeavePermissionCount { get; set; }
         public int PendingOfficialDutyRequestCount { get; set; }
+
+        /// <summary>
+        /// Jumlah seluruh hari "Belum Lengkap" (IncompletePunch, termasuk nilai lama Incomplete) dan
+        /// "Tidak Ada Scan" (NoScan) yang akan menjadi Absent saat periode ditutup (HRD-DEC-197, HRD-DEC-216).
+        /// </summary>
+        public int ConversionCandidateCount { get; set; }
+
+        /// <summary>
+        /// Benar bila ConversionCandidates hanya memuat sebagian daftar; jumlah lengkapnya ada di ConversionCandidateCount.
+        /// </summary>
+        public bool IsConversionCandidateListTruncated { get; set; }
+
+        /// <summary>
+        /// Daftar hari yang akan menjadi Absent saat periode ditutup, urut tanggal, unit, lalu nama pegawai.
+        /// </summary>
+        public List<AttendancePeriodConversionCandidateResponse> ConversionCandidates { get; set; } = new();
+
+        /// <summary>
+        /// Jumlah scan berstatus AwaitingDeviceRegistration (mesin belum terdaftar) pada tanggal periode ini.
+        /// Hanya peringatan; tidak menghalangi penutupan (HRD-ASM-81).
+        /// </summary>
+        public int HeldDeviceScanCount { get; set; }
+
         public DateTime ValidatedAt { get; set; }
         public List<AttendancePeriodValidationIssueResponse> Issues { get; set; } = new();
+    }
+
+    public class AttendancePeriodConversionCandidateResponse
+    {
+        public Guid AttendanceDailyId { get; set; }
+        public Guid? WorkforceProfileId { get; set; }
+        public string? ProfileCode { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+        public Guid? OrganizationUnitId { get; set; }
+        public string? OrganizationUnitName { get; set; }
+        public DateOnly AttendanceDate { get; set; }
+
+        /// <summary>
+        /// Status asal sebelum dikonversi: IncompletePunch, Incomplete (nilai lama), atau NoScan.
+        /// Label tampilan dibaca dari attendance/dailies filters/metadata.
+        /// </summary>
+        public string AttendanceStatus { get; set; } = string.Empty;
     }
 
     public class AttendancePeriodActionResponse
