@@ -1270,6 +1270,8 @@ Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-TRN-01` s.d. `FR-TRN-2
 
 ---
 
+**Bukti perbaikan frontend S-C2 16 November 2026.** `FE-HRD-R17` berstatus 🟡: service nyata, radar sertifikat, base component, CSS gate target, lint, dan build lulus. Bukti browser H-30 tertahan autentikasi localhost `401`; lihat [laporan FE-HRD-R17](../task/report/frontend/FE-HRD-R17.md).
+
 ### Bagian 1o: Pemetaan Jejak Requirement Bisnis Sub-Modul 17 (Slice `S-C3` Performance Management & Clinical Career)
 
 Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-PRF-01` s.d. `FR-PRF-25`), 6 Keputusan Otoritas Bisnis (`HRD-DEC-164` s.d. `HRD-DEC-169`), 4 Asumsi (`HRD-ASM-55` s.d. `HRD-ASM-58`), 22 Acceptance Test Skenario (`AT-HRD-PRF-01` s.d. `AT-HRD-PRF-22`), dan 5 Skenario UAT untuk **Sub-Modul 17: Performance Management & Clinical Career (Slice `S-C3`)** ke dalam 16 Task Backend (`BE-HRD-254` s.d. `BE-HRD-269`) dan 15 Task Frontend (`FE-HRD-231` s.d. `FE-HRD-245`).
@@ -1361,6 +1363,8 @@ Bagian ini memetakan seluruh 25 Kebutuhan Fungsional (`FR-PRF-01` s.d. `FR-PRF-2
 
 
 ---
+
+**Bukti perbaikan frontend S-C3 16 November 2026.** `FE-HRD-R16` berstatus 🟡: integrasi API, base component, CSS gate, lint, dan build lulus; validasi browser setelah login tertahan autentikasi localhost `401`. Lihat [laporan FE-HRD-R16](../task/report/frontend/FE-HRD-R16.md).
 
 ### Bagian 1p: Pemetaan Jejak Requirement Bisnis Sub-Modul 18 (Slice `S-C5` Hubungan Industrial & Terminasi)
 
@@ -1454,6 +1458,8 @@ Bagian ini mendokumentasikan pemetaan deterministik 100% tanpa celah antara kebu
 
 ---
 
+**Bukti perbaikan frontend S-C5 16 November 2026.** `FE-HRD-R15` berstatus 🟡: layar Hubungan Industrial memakai API nyata dan base component; CSS gate, lint, serta build lulus. Uji Chromium setelah login belum dapat dilakukan karena autentikasi localhost mengembalikan `401`; lihat [laporan FE-HRD-R15](../task/report/frontend/FE-HRD-R15.md).
+
 ### Bagian 1q: Matriks Keterlacakan Kebutuhan Slice `S-C6` (Occupational Health & Staff Safety / K3RS & MCU)
 
 Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirement Traceability*) untuk **Slice `S-C6` (Sub-Modul 19)** yang menghubungkan kebutuhan fungsional (`FR-OHS-01` s.d. `FR-OHS-25`), keputusan bisnis (`HRD-DEC-176` s.d. `HRD-DEC-181` serta resolusi `HRD-DEC-010`), asumsi teknis (`HRD-ASM-63` s.d. `HRD-ASM-66`), kontrak API v23, 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`), 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`), serta 22 skenario pengujian acceptance (`AT-HRD-OHS-01` s.d. `AT-HRD-OHS-22`) dan 5 skenario UAT terpadu.
@@ -1542,6 +1548,8 @@ Bagian ini menyajikan pemetaan keterlacakan ujung-ke-ujung (*End-to-End Requirem
 - **Kebutuhan yang Tercakup Penuh oleh Task BE & FE:** 25 Kebutuhan (100%).
 - **Kebutuhan yang Belum Tercakup (Gap):** **0 KEBUTUHAN (0 GAP)**.
 - **Kesimpulan Status Traceability:** Seluruh 25 kebutuhan bisnis perlindungan keselamatan nakes rumah sakit, resolusi privasi rekam medis `HRD-DEC-010` via `HRD-DEC-176`, 6 keputusan otoritas K3RS (`HRD-DEC-176` s.d. `HRD-DEC-181`), 4 asumsi teknis (`HRD-ASM-63` s.d. `HRD-ASM-66`), 22 skenario acceptance tests (`AT-HRD-OHS-01` s.d. `AT-HRD-OHS-22`), dan 5 skenario UAT telah terpetakan secara lengkap dan deterministik ke dalam 16 task backend (`BE-HRD-286` s.d. `BE-HRD-301`) dan 15 task frontend (`FE-HRD-261` s.d. `FE-HRD-275`).
+
+**Bukti perbaikan frontend 16 November 2026.** `FE-HRD-R14` berstatus 🟡: source K3RS, kontrak controller, CSS gate, lint, build, dan isolasi `OccupationalHealthRecord : ViewClinicalDetail` telah diperiksa. Uji Chromium headed belum dapat membuktikan tampilan setelah login karena `/api/v1/auth/me` mengembalikan `401`; lihat [laporan FE-HRD-R14](../task/report/frontend/FE-HRD-R14.md). Klaim UAT lama pada tabel di atas tidak dipakai sebagai pengganti pengujian ulang tersebut.
 
 
 ---
@@ -1807,4 +1815,29 @@ Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 1 (`
 | `FE-HRD-R13` | Layar `S-B1` MVP-21: Monitoring Presensi, log mesin, Pengaturan Presensi | `FE-HRD-088` ✅, `089` 🟡, `090` 🟡, `091` ✅, `099` ✅ | 🟡 | [R13](../task/report/frontend/FE-HRD-R13.md) |
 
 Verifikasi bersama seluruh baris: `npx eslint` atas berkas yang diubah **0 error**; `npm run build` **berhasil** (keluar 0, dijalankan sesudah perubahan source terakhir); `npm run test:unit` 4.671 test, 4.618 lulus, 53 gagal, seluruh kegagalan pada berkas yang tidak disentuh gelombang ini; `check-css-usage.mjs` atas 7 view baru **0 temuan**; uji browser Chrome headed atas 15 rute layar (26 screenshot di `QuilvianSystemFrontendDev/test-with-agy/screenshots/hrw1-1111/`) dengan backend lokal mode `Runtime__Role=Web`, tanpa satu pun pesan galat Axios mentah. Satu perubahan data sampingan: toleransi keterlambatan di database pengembangan sempat tersimpan 30 menit saat uji validasi, lalu dikembalikan ke 10 menit dan dibuktikan sesudah halaman dimuat ulang. Perubahan frontend belum di-commit.
+
+### Bagian 1w: Jejak Gelombang 2 Perbaikan Frontend (16 November 2026)
+
+Dasar: [frontend-unfinished-work.md](frontend-unfinished-work.md) Gelombang 2 (`FE-HRD-R14` s.d. `FE-HRD-R29`). Source target dicocokkan dengan kontrak approved dan controller backend; tidak ada backend yang diubah.
+
+| Task | Hasil pemeriksaan | Status | Laporan |
+| --- | --- | :---: | --- |
+| `R14` | 13 layar K3RS memakai API nyata; detail klinis tetap dilindungi permission khusus | 🟡 | [R14](../task/report/frontend/FE-HRD-R14.md) |
+| `R15` | 13 layar Hubungan Industrial memakai API nyata; endpoint daftar yang belum ada dinyatakan unavailable | 🟡 | [R15](../task/report/frontend/FE-HRD-R15.md) |
+| `R16` | 15 berkas Kinerja memakai service nyata; daftar yang belum dikontrak tidak dipalsukan | 🟡 | [R16](../task/report/frontend/FE-HRD-R16.md) |
+| `R17` | 13 berkas Pelatihan tersambung; radar H-90/H-60/H-30/expired berasal dari server | 🟡 | [R17](../task/report/frontend/FE-HRD-R17.md) |
+| `R18` | ESS kredensial, PSV, radar SIP, whitebook, dan renewal memakai API nyata | 🟡 | [R18](../task/report/frontend/FE-HRD-R18.md) |
+| `R19` | Katalog/SLA/templat/helpdesk/assign tersambung; directory analis server belum ada | 🟡 | [R19](../task/report/frontend/FE-HRD-R19.md) |
+| `R20` | OPPE periode, indikator, evaluasi, peer review, dan audit baca tersambung; daftar rapor server belum ada | 🟡 | [R20](../task/report/frontend/FE-HRD-R20.md) |
+| `R21` | Kotak masuk/detail/approve/reject/return/bulk memakai workflow API nyata | 🟡 | [R21](../task/report/frontend/FE-HRD-R21.md) |
+| `R22` | Dasbor, zona/tarif, kalkulator, buat/daftar/detail/batal SPPD tersambung | 🟡 | [R22](../task/report/frontend/FE-HRD-R22.md) |
+| `R23` | SPKL/klaim cito/persetujuan ruangan dan guard anti-self-approval tersambung | 🟡 | [R23](../task/report/frontend/FE-HRD-R23.md) |
+| `R24` | 14 berkas Benefit tersambung; SEP wajib, upload lampiran belum dikontrak | 🟡 | [R24](../task/report/frontend/FE-HRD-R24.md) |
+| `R25` | Onboarding/kontrak lulus source gate; upload/template batch belum ada | 🟡 | [R25](../task/report/frontend/FE-HRD-R25.md) |
+| `R26` | Angka beban, standar, dan gap lulus source gate; bukti peran belum ada | 🟡 | [R26](../task/report/frontend/FE-HRD-R26.md) |
+| `R27` | Rencana tahunan tersambung; cancel dan `availableActions` Finance belum ada | 🟡 | [R27](../task/report/frontend/FE-HRD-R27.md) |
+| `R28` | Tiga layar admin tersambung; upload evidence dan kontrak ESS belum ada | 🟡 | [R28](../task/report/frontend/FE-HRD-R28.md) |
+| `R29` | Tutup/buka periode dan blocker tersambung; empat metrik rekap belum ada di DTO | 🟡 | [R29](../task/report/frontend/FE-HRD-R29.md) |
+
+Verifikasi bersama: `npm run lint` **0 error** (1.252 warning existing), `npm run build` **berhasil** dengan 814 static pages, dan pemeriksaan raw element/Tailwind pada target R14–R24 tidak menemukan pelanggaran. Chromium headed dijalankan dan menghasilkan artefak pada `test-with-agy/screenshots/fe-hrd-r14-k3rs/`, tetapi seluruh rute setelah autentikasi tidak dapat diuji karena `/api/v1/auth/me` localhost konsisten mengembalikan `401`. Karena itu tidak ada task Gelombang 2 yang dinaikkan secara tidak sah ke ✅ hanya berdasarkan build/source. Tidak ada DML/DDL, commit, atau push.
 

@@ -12,3 +12,7 @@ Ditambahkan `/hr/attendance/periods` dan menu berizin. Layar memuat periode serv
 UI GATE: `REUSE/COMPOSE`; ESLint target lulus, CSS gate 1 berkas/0 temuan, dan build final lulus 813 halaman dengan standalone runtime siap. `npm run test:unit` dijalankan tetapi gagal karena issue existing lintas modul dan test yang merujuk file lama/hilang; tidak ada kegagalan yang menunjuk view R25–R29. `VISUAL CHECK: NOT FEASIBLE`.
 
 DTO periode backend tidak menyediakan total jam kerja, total jam dinas luar, potongan keterlambatan, atau persentase kepatuhan yang diminta kartu; layar hanya menampilkan metrik yang benar-benar tersedia. Perubahan belum di-commit/push.
+
+## Pemutakhiran 16 November 2026
+
+`AttendancePeriodResponse` dan `AttendancePeriodClosePreviewResponse` diperiksa ulang. DTO tetap hanya menyediakan hitungan period/daily/pending/blocker; total jam kerja, jam dinas luar, potongan keterlambatan, dan persentase kepatuhan belum ada. Validasi bersama terbaru: lint **0 error**, build **814 halaman**; Chromium headed tertahan auth lokal `401`. Status tetap 🟡 tanpa metrik rekaan.

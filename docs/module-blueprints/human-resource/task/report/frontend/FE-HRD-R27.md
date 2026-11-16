@@ -14,3 +14,7 @@ UI GATE: seluruh elemen `REUSE/COMPOSE` dari Hero, DataFilter, DataTable, base f
 Verifikasi: ESLint target 0 error/warning, CSS gate 2 berkas/0 temuan, dan build final lulus 813 halaman dengan standalone runtime siap. `npm run test:unit` dijalankan tetapi gagal karena issue existing lintas modul dan test yang merujuk file lama/hilang; tidak ada kegagalan yang menunjuk view R25–R29. `VISUAL CHECK: NOT FEASIBLE` karena sesi tidak memiliki alat browser.
 
 Keterbatasan backend: kartu meminta cancel, tetapi `HrdManpowerPlanController` tidak mempunyai endpoint cancel. Respons juga tidak menyediakan `availableActions` langkah workflow Finance; frontend membatasi lewat status dan permission, lalu backend tetap menjadi guard akhir. Perubahan belum di-commit/push.
+
+## Pemutakhiran 16 November 2026
+
+`HrdManpowerPlanController` diperiksa ulang dan masih berhenti pada create, addendum, update draft, recalculate, submit, finance-adjustment, serta gap-snapshots: cancel dan `availableActions` tetap tidak tersedia. Validasi bersama terbaru: lint **0 error**, build **814 halaman**. Chromium headed tertahan auth lokal `401`. Status tetap 🟡 dan tidak dibuat fallback frontend yang melampaui kontrak.

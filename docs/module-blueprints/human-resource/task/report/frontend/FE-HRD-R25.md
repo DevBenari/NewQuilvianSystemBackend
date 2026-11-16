@@ -76,3 +76,7 @@ Kontrak diverifikasi langsung terhadap controller dan DTO lifecycle backend. Con
 ## 6. Risiko dan langkah berikutnya
 
 R25 belum dapat menjadi ✅ sampai endpoint unggah/template batch tersedia atau acceptance criteria disesuaikan, serta uji browser per peran dilakukan. Source backend tidak diubah. Working tree belum di-commit atau di-push.
+
+## 7. Pemutakhiran 16 November 2026
+
+Kontrak diperiksa ulang: `HrdInitialContractBatchController` tetap hanya menyediakan operasi daftar/detail/buat batch, tambah/hapus baris, submit, dan cancel; endpoint upload spreadsheet/template belum ada. Validasi bersama Gelombang 2 terbaru menghasilkan lint **0 error** dan build **814 halaman**. Chromium headed kini tersedia, tetapi `/api/v1/auth/me` lokal mengembalikan `401`, sehingga blocker visual berubah dari “alat tidak tersedia” menjadi “sesi test tidak terautentikasi”. Status tetap 🟡.
