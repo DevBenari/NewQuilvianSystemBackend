@@ -1310,6 +1310,8 @@ try
     builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
     builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.RetirementService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.OffboardingHandoverService>();
     // BE-FIN-112: Administrasi Exit Clearance HR & penegakan gerbang bebas tanggungan Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.ExitClearanceService>();
 

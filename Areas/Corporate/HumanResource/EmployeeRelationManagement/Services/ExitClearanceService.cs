@@ -36,10 +36,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 throw new KeyNotFoundException($"Item checklist dengan ID {checklistId} tidak ditemukan.");
             }
 
+            var resolvedActorId = await _uow.FindUserIdByEmailAsync(actorEmail, cancellationToken);
+
             item.IsReturned = request.IsReturned;
             item.OutstandingLiabilityAmount = request.OutstandingLiabilityAmount;
             item.ApproverNotes = request.ApproverNotes?.Trim();
-            item.ApprovedByUserId = request.ApproverUserId;
+            // Keamanan: identitas penyetuju berasal dari autentikasi server login, bukan dipercaya dari request payload browser
+            item.ApprovedByUserId = resolvedActorId ?? request.ApproverUserId;
             item.ApprovedAt = DateTime.UtcNow;
 
             if (request.IsReturned && request.OutstandingLiabilityAmount <= 0)
