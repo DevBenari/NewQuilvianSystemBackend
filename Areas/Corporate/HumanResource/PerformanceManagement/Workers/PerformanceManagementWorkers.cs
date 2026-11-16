@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                     var now = DateTime.UtcNow;
-                    var activeCycles = await context.TrxPerformanceCycles
+                    var activeCycles = await context.HrdPerformanceCycles
                         .Where(x => !x.IsDelete && x.IsActive && x.Status != "CLOSED")
                         .ToListAsync(stoppingToken);
 
@@ -99,12 +99,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                     var now = DateTime.UtcNow;
-                    var pastCycles = await context.TrxPerformanceCycles
+                    var pastCycles = await context.HrdPerformanceCycles
                         .Where(x => !x.IsDelete && now > x.GoalSettingDeadline)
                         .Select(x => x.Id)
                         .ToListAsync(stoppingToken);
 
-                    var unlockedGoals = await context.TrxPerformanceGoals
+                    var unlockedGoals = await context.HrdPerformanceGoals
                         .Where(x => !x.IsDelete && x.Status != "Approved_Locked" && pastCycles.Contains(x.PerformanceCycleId))
                         .ToListAsync(stoppingToken);
 
@@ -159,7 +159,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     var now = DateTime.UtcNow;
-                    var pendingCalibrations = await context.TrxPerformanceCycles
+                    var pendingCalibrations = await context.HrdPerformanceCycles
                         .AsNoTracking()
                         .Where(x => !x.IsDelete && x.Status == "CALIBRATION" && now > x.CalibrationDeadline)
                         .ToListAsync(stoppingToken);
@@ -177,7 +177,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                                 Priority: HrdNotificationPriorities.High,
                                 DeepLinkUrl: $"/hrd/performance/calibration?cycleId={c.Id}",
                                 SourceModule: "Hrd.Performance.PRF-W3",
-                                ReferenceType: "TrxPerformanceCycle",
+                                ReferenceType: "HrdPerformanceCycle",
                                 ReferenceId: c.Id,
                                 DedupKey: $"PRF-W3|{c.Id:N}|{now:yyyyMMdd}"),
                             stoppingToken);
@@ -227,7 +227,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     var today = DateTime.UtcNow.Date;
-                    var activePips = await context.TrxPerformanceImprovementPlans
+                    var activePips = await context.HrdPerformanceImprovementPlans
                         .AsNoTracking()
                         .Where(x => !x.IsDelete && (x.Status == "ACTIVE" || x.Status == "EXTENDED") && x.EndDate <= today)
                         .ToListAsync(stoppingToken);
@@ -241,7 +241,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                             Priority: HrdNotificationPriorities.High,
                             DeepLinkUrl: $"/hrd/performance/pip/{pip.Id}",
                             SourceModule: "Hrd.Performance.PRF-W4",
-                            ReferenceType: "TrxPerformanceImprovementPlan",
+                            ReferenceType: "HrdPerformanceImprovementPlan",
                             ReferenceId: pip.Id,
                             DedupKey: $"PRF-W4|{pip.Id:N}|{pip.EndDate:yyyyMMdd}");
 
@@ -301,7 +301,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     var now = DateTime.UtcNow;
-                    var approvedReviews = await context.TrxClinicalCareerLadderReviews
+                    var approvedReviews = await context.HrdClinicalCareerLadderReviews
                         .AsNoTracking()
                         .Where(x => !x.IsDelete && x.FinalStatus == "APPROVED" && x.ApprovedAt.HasValue)
                         .ToListAsync(stoppingToken);
@@ -330,7 +330,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                             Priority: isExpired ? HrdNotificationPriorities.High : HrdNotificationPriorities.Normal,
                             DeepLinkUrl: $"/hrd/performance/clinical-career/{review.Id}",
                             SourceModule: "Hrd.Performance.PRF-W5",
-                            ReferenceType: "TrxClinicalCareerLadderReview",
+                            ReferenceType: "HrdClinicalCareerLadderReview",
                             ReferenceId: review.Id,
                             DedupKey: $"PRF-W5|{review.Id:N}|{(isExpired ? "EXPIRED" : "H90")}");
 
@@ -382,7 +382,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     var notifier = scope.ServiceProvider.GetRequiredService<IHrdNotificationService>();
 
                     var now = DateTime.UtcNow;
-                    var pendingDisputes = await context.TrxPerformanceAppraisalDisputes
+                    var pendingDisputes = await context.HrdPerformanceAppraisalDisputes
                         .AsNoTracking()
                         .Where(x => !x.IsDelete && (x.Status == "SUBMITTED" || x.Status == "IN_MEDIATION"))
                         .ToListAsync(stoppingToken);
@@ -402,7 +402,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                                 Priority: HrdNotificationPriorities.High,
                                 DeepLinkUrl: $"/hrd/performance/disputes/{disp.Id}",
                                 SourceModule: "Hrd.Performance.PRF-W6",
-                                ReferenceType: "TrxPerformanceAppraisalDispute",
+                                ReferenceType: "HrdPerformanceAppraisalDispute",
                                 ReferenceId: disp.Id,
                                 DedupKey: $"PRF-W6|{disp.Id:N}|{now:yyyyMMdd}"),
                             stoppingToken);

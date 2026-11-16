@@ -2810,3 +2810,222 @@ Kontrak API Versi `v25` mencakup 24 endpoint rencana berstandar Swagger untuk me
 | `POST` | `/api/v1/hrd/travel/rates` | Mengonfigurasi tarif uang harian dinas (per diem) rumah sakit | HR Admin, Direktur SDM | `ConfigureTravelRateDto` (ZoneId, JobGradeGroup, DailyPerDiemRate) | `201 Created`, `400 Bad Request` |
 | `GET` | `/api/v1/hrd/travel/zones` | Mengambil daftar zonasi tujuan perjalanan dinas (Zona 1, Zona 2, Zona 3) | Seluruh Pegawai, HR | None | `200 OK`, `401 Unauthorized` |
 | `GET` | `/api/v1/hrd/travel/overdue-reports` | Mengunduh radar laporan pegawai menunggak settlement > 7, 14, dan 30 hari | HR Admin, Finance Manager | `departmentId`, `cutoffDate` | `200 OK`, `401 Unauthorized` |
+
+---
+
+## 32. Kontrak API Amandemen `S-B4`/`S-B1` — Penjadwalan & Kehadiran (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` |
+| Status | `approved` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) / 12 November 2026 |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+| `input_hash` — decision log | `df3cf67a10a418b7c953f6c64f72437dd4aca850b2673a276573a41d9f4a1adc` |
+| Kompatibilitas | Endpoint lama tidak berubah bentuk URL. Perubahan perilaku dan respons pada endpoint lama ditandai **Diubah**; endpoint baru ditandai **Rencana (belum tersedia)** |
+| Traceability | `HRD-DEC-194` s.d. `HRD-DEC-217`, `HRD-ASM-75` s.d. `HRD-ASM-83` |
+
+Seluruh respons dibungkus `ApiResponse<T>`. Kode status umum untuk seluruh grup di bawah:
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| 400 | Isian tidak lengkap atau formatnya salah, misalnya jam selesai lebih awal dari jam mulai |
+| 401 | Belum login |
+| 403 | Tidak punya hak akses, **atau** data berada di luar unit yang boleh dikelola/dibaca, **atau** periode sudah ditutup |
+| 404 | Data tidak ditemukan |
+| 409 | Data baru saja diubah orang lain, atau tindakan tidak sah untuk status saat ini (misalnya menyetujui dispensasi yang sudah ditolak) |
+| 422 | Aturan bisnis menolak, misalnya pemeriksaan blokir `B1`–`B8` atau batas mundur terlampaui |
+
+### HR Scheduling - Roster Period
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/roster-periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/assignments` | Menambah penugasan; pada roster `Published` status **tetap** `Published`, pemeriksaan penuh dijalankan, dan riwayat `AddShift` ditulis | `RosterPeriod : Create` | Penugasan + alasan (wajib bila roster terbit) | Detail penugasan | **Diubah** |
+| `POST` | `/{id}/shifts/{shiftAssignmentId}/remove` | Menghapus satu shift dari roster terbit dengan alasan | `RosterPeriod : RemoveShift` | `RemovePublishedShiftRequest` (`ReasonCategory`, `ReasonNote`) | `ShiftRevisionResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/revisions` | Riwayat Revisi periode, dapat difilter tanggal, pegawai, jenis perubahan | `RosterPeriod : Read` | Query `fromDate`, `toDate`, `workforceProfileId`, `changeType`, paginasi | `PagedResult<ShiftRevisionResponse>` | **Rencana (belum tersedia)** |
+| semua tulis | — | Menolak 403 bila unit periode di luar cakupan kelola (`HRD-DEC-194`) | — | — | — | **Diubah** |
+
+### HR Scheduling - Shift Assignment & Replacement
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/shift-replacements`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/replace` | Ganti Petugas: pemeriksaan `B1`–`B8` (blokir 422) dan `W1`–`W7` (alasan wajib), `B6` gagal tertutup, riwayat ditulis, 409 bila petugas saat ini bukan `expectedWorkforceProfileId` | `ShiftReplacement : Update` | Tambahan field `ExpectedWorkforceProfileId`, `WarningReasons[]` | `DirectShiftReplacementResponse` + `RevisionId`, `Warnings[]` | **Diubah** |
+| `POST` | `/{id}/retroactive-correct` | Koreksi mundur; kini menulis riwayat dengan nilai lama | `ShiftReplacement : Update` | Tetap | `RetroactiveShiftCorrectionResponse` + `RevisionId` | **Diubah** |
+
+### HR Scheduling - On-Call Management
+
+Base URL: `api/v1/corporate/human-resource/scheduling-management/on-call-assignments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/backups` | Daftar cadangan berurutan | `OnCallAssignment : Read` | — | `List<OnCallBackupResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/backups` | Menetapkan seluruh daftar cadangan (ganti utuh) | `OnCallAssignment : ManageBackup` | `SetOnCallBackupsRequest` (`Items[]`: `BackupSequence`, `WorkforceProfileId`) | `List<OnCallBackupResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/calls` | Daftar catatan panggilan | `OnCallAssignment : Read` | — | `List<OnCallCallResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/calls` | Mencatat panggilan (`Sent`) | `OnCallAssignment : RecordCall` | `CreateOnCallCallRequest` (`CalledWorkforceProfileId`, `CallingOrganizationUnitId`, `CallReason`, `CalledAt`) | `OnCallCallResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/calls/{callId}/accept` | Mencatat jawaban bersedia | `OnCallAssignment : RecordCall` | `AnswerOnCallCallRequest` (`AnsweredAt`, `RowVersion`) | `OnCallCallResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/calls/{callId}/decline` | Mencatat jawaban tidak bisa; respons memuat cadangan berikutnya | `OnCallAssignment : RecordCall` | `DeclineOnCallCallRequest` (`AnsweredAt`, `DeclineReason`, `RowVersion`) | `OnCallCallResponse` + `NextBackup` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/calls/{callId}/expire` | Menandai kedaluwarsa; ditolak 422 sebelum `AnswerTimeoutMinutes` lewat | `OnCallAssignment : RecordCall` | `RowVersion` | `OnCallCallResponse` + `NextBackup` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/calls/{callId}/complete` | Mencatat tiba dan selesai; menghitung `ResponseMinutes` | `OnCallAssignment : RecordCall` | `CompleteOnCallCallRequest` (`ArrivedAt`, `RowVersion`) | `OnCallCallResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/call-in` | Endpoint lama dipertahankan; kini juga menulis satu catatan panggilan `Completed` | `OnCallAssignment : Update` | Tetap | Tetap | **Diubah** |
+
+Status penugasan siaga tidak berubah pada seluruh endpoint panggilan (`HRD-DEC-198`).
+
+### HR Attendance - Settings
+
+Base URL: `api/v1/corporate/human-resource/attendance-management/settings`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Membaca setelan | `AttendanceSetting : Read` | — | Tambah `ScanWindowBeforeMinutes`, `ScanWindowAfterMinutes`; **hapus** `AutoConvertIncompleteToAbsent` | **Diubah** |
+| `PUT` | `/` | Mengubah setelan | `AttendanceSetting : Update` | Sama dengan respons | Setelan | **Diubah** |
+
+### HR Attendance - Period Management
+
+Base URL: `api/v1/corporate/human-resource/attendance/periods`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/close-preview` | Pratinjau tutup; kini memuat daftar `ConversionCandidates[]` (pegawai, unit, tanggal, status asal) dan `HeldDeviceScanCount` | `AttendancePeriod : Read` | — | `AttendancePeriodClosePreviewResponse` (diperluas) | **Diubah** |
+| `POST` | `/{id}/close` | Menutup; `IncompletePunch`, `Incomplete`, dan `NoScan` selalu menjadi `Absent` | `AttendancePeriod : Close` | Tetap | Tetap | **Diubah** |
+
+### HR Attendance - Raw Logs
+
+Base URL: `api/v1/corporate/human-resource/attendance/raw-logs`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Menerima satu scan; mesin tak terdaftar → disimpan `AwaitingDeviceRegistration` (bukan 404) | `AttendanceRawLog : Create` | Tetap | Detail log dengan status | **Diubah** |
+| `POST` | `/batch` | Menerima banyak scan; baris dari mesin tak terdaftar berhasil dengan status "ditahan" | `AttendanceRawLog : Create` | Tetap | Hasil per baris | **Diubah** |
+
+### Corporate / Human Resource / Attendance Management / Attendance Dispensation
+
+Base URL: `api/v1/corporate/human-resource/attendance/dispensations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan filter dan label status | `AttendanceDispensation : Read` | — | Metadata | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar dispensasi pada unit dalam cakupan baca, atau yang menunggu keputusan pengguna | `AttendanceDispensation : Read` | Query `organizationUnitId`, `fromDate`, `toDate`, `status`, `awaitingMyDecision`, paginasi | `PagedResult<DispensationResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail | `AttendanceDispensation : Read` | — | `DispensationResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Kepala Unit mencatat atas nama pegawai | `AttendanceDispensation : Create` | `CreateDispensationRequest` (`WorkforceProfileId`, `AttendanceDate`, `DispensationType`, `StartAt`, `EndAt`, `Reason`) | `DispensationResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/approve` | Menyetujui; hanya penyetuju yang ditetapkan server | `AttendanceDispensation : Approve` | `RowVersion` | `DispensationResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/reject` | Menolak dengan alasan | `AttendanceDispensation : Approve` | `RejectDispensationRequest` (`RejectionReason`, `RowVersion`) | `DispensationResponse` | **Rencana (belum tersedia)** |
+
+### Self Services / Human Resource / Attendance Dispensation
+
+Base URL: `api/v1/self-services/human-resource/attendance-dispensations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Dispensasi milik sendiri | `MyAttendanceDispensation : Read` | Query rentang tanggal, paginasi | `PagedResult<DispensationResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengajukan dispensasi untuk diri sendiri | `MyAttendanceDispensation : Create` | `CreateMyDispensationRequest` (tanpa `WorkforceProfileId`) | `DispensationResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan yang masih `Submitted` | `MyAttendanceDispensation : Cancel` | `RowVersion` | `DispensationResponse` | **Rencana (belum tersedia)** |
+
+### Corporate / Human Resource / Attendance Management / Study Assignment
+
+Base URL: `api/v1/corporate/human-resource/attendance/study-assignments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar tugas belajar | `StudyAssignment : Read` | Query `workforceProfileId`, `activeOn`, `status`, paginasi | `PagedResult<StudyAssignmentResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail | `StudyAssignment : Read` | — | `StudyAssignmentResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mencatat tugas belajar dari SK | `StudyAssignment : Create` | `CreateStudyAssignmentRequest` | `StudyAssignmentResponse` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah tanggal atau data SK dengan alasan | `StudyAssignment : Update` | `UpdateStudyAssignmentRequest` (+ `ChangeReason` wajib) | `StudyAssignmentResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan dengan alasan | `StudyAssignment : Cancel` | `CancelStudyAssignmentRequest` | `StudyAssignmentResponse` | **Rencana (belum tersedia)** |
+
+### Corporate / Human Resource / Attendance Management / Attendance Device Incident
+
+Base URL: `api/v1/corporate/human-resource/attendance/device-incidents`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar kejadian gangguan, filter mesin dan tanggal | `AttendanceDeviceIncident : Read` | Query, paginasi | `PagedResult<DeviceIncidentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mencatat kejadian | `AttendanceDeviceIncident : Create` | `CreateDeviceIncidentRequest` (`AttendanceDeviceId`, `StartAt`, `EndAt`, `Description`) | `DeviceIncidentResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan kejadian yang salah catat | `AttendanceDeviceIncident : Cancel` | `CancelReason` | `DeviceIncidentResponse` | **Rencana (belum tersedia)** |
+
+### Self Services / Human Resource / Attendance Correction
+
+Base URL: `api/v1/self-services/human-resource/attendance-corrections`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/device-incident-options` | Kejadian gangguan `Active` pada tanggal tertentu, untuk dipilih di formulir koreksi | `MyAttendanceCorrection : Read` | Query `attendanceDate` | `List<OptionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/`, `PUT` `/{id}` | Menerima `DeviceIncidentId` opsional | `MyAttendanceCorrection : Create` / `: Update` | Tambah `DeviceIncidentId` | Tetap | **Diubah** |
+
+Endpoint koreksi atas nama di `api/v1/corporate/human-resource/attendance/correction-requests`
+menerima `DeviceIncidentId` dengan cara yang sama (**Diubah**).
+
+### Corporate / Human Resource / Master Data / Holiday
+
+Base URL: `api/v1/corporate/human-resource/master-data/holidays`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan kalender kerja dan jenis libur | `Holiday : Read` | — | Metadata | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar hari libur | `Holiday : Read` | Query `workCalendarId`, `year`, paginasi | `PagedResult<HolidayResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail | `Holiday : Read` | — | `HolidayResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Menambah hari libur | `Holiday : Create` | `CreateHolidayRequest` (`WorkCalendarId`, `HolidayCode`, `HolidayName`, `StartDate`, `EndDate`, `HolidayType`, `IsNationalHoliday`) | `HolidayResponse` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah | `Holiday : Update` | `UpdateHolidayRequest` | `HolidayResponse` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Aktif/nonaktif | `Holiday : Update` | `IsActive` | `HolidayResponse` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id}` | Menandai terhapus | `Holiday : Delete` | — | — | **Rencana (belum tersedia)** |
+
+### Corporate / Human Resource / Master Data / Attendance Device
+
+Base URL: `api/v1/corporate/human-resource/master-data/attendance-devices`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar mesin beserta jumlah scan tertahan per mesin tak dikenal | `AttendanceDevice : Read` | Query, paginasi | `PagedResult<AttendanceDeviceResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/unregistered` | Identitas mesin yang mengirim scan tertahan, beserta jumlahnya | `AttendanceDevice : Read` | — | `List<UnregisteredDeviceResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail | `AttendanceDevice : Read` | — | `AttendanceDeviceResponse` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mendaftarkan mesin; sesudah tersimpan scan tertahan dilepas | `AttendanceDevice : Create` | `CreateAttendanceDeviceRequest` | `AttendanceDeviceResponse` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah | `AttendanceDevice : Update` | `UpdateAttendanceDeviceRequest` | `AttendanceDeviceResponse` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Aktif/nonaktif; mengaktifkan melepas scan tertahan | `AttendanceDevice : Update` | `IsActive` | `AttendanceDeviceResponse` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id}` | Menandai terhapus; ditolak bila sudah punya log | `AttendanceDevice : Delete` | — | — | **Rencana (belum tersedia)** |
+
+### Corporate / Human Resource / Attendance Management / Attendance Dashboard
+
+Base URL: `api/v1/corporate/human-resource/attendance/dashboard`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Lima kartu `HRD-DEC-208` untuk tanggal dan unit, beserta jam hitung | `AttendanceDashboard : Read` | Query `date`, `organizationUnitId` (opsional, wajib dalam cakupan baca) | `AttendanceDashboardResponse` | **Rencana (belum tersedia)** |
+| `GET` | `/cards/{cardCode}/details` | Daftar pegawai di balik satu angka | `AttendanceDashboard : Read` | Query sama + `metric`, paginasi | `PagedResult<DashboardDetailRow>` | **Rencana (belum tersedia)** |
+
+`cardCode`: `attendance-today`, `on-duty`, `lateness`, `absence`, `incomplete-schedule`.
+
+### Corporate / Human Resource / Attendance Management / Attendance Report
+
+Base URL: `api/v1/corporate/human-resource/attendance/reports`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{reportCode}` | Menampilkan laporan di layar | `AttendanceReport : Read` | Query `organizationUnitId`, `fromDate`, `toDate`, `status`, paginasi | `PagedResult<AttendanceReportRow>` + `PeriodState` (`Open`/`Closed`) | **Rencana (belum tersedia)** |
+| `GET` | `/{reportCode}/export` | Mengunduh `.xlsx` dengan filter yang sama; dicatat log | `AttendanceReport : Export` | Query sama | Berkas `.xlsx` | **Rencana (belum tersedia)** |
+
+`reportCode`: `shift`, `attendance`, `leave`, `lateness`, `overtime`, `absence`, `unit-summary`.
+Kolom lampiran, surat dokter, diagnosis, dan alasan sakit tidak pernah dikirim.
+
+### Self Services / Human Resource / My Schedule
+
+Base URL: `api/v1/self-services/human-resource/my-schedule`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Jadwal terbit milik sendiri, termasuk siaga dan tanda "Berubah" | `MySchedule : Read` | Query `fromDate`, `toDate` (dibatasi `HRD-ASM-80`) | `List<MyScheduleDayResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/unit-roster` | Roster terbit unit sendiri: nama + kode shift; ketidakhadiran rekan = "Libur" | `MySchedule : Read` | Query `month` | `MyUnitRosterResponse` | **Rencana (belum tersedia)** |
+
+Identitas pegawai diambil dari sesi; tidak ada parameter ID pegawai.
+
+### Corporate / Human Resource / Workforce Core — penempatan organisasi (perilaku tambahan)
+
+Base URL: `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/organization-assignments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Bila `AssignmentType = Temporary`, sesudah tersimpan sistem memberi tahu Kepala Unit asal tentang shift yang terdampak (`HRD-ASM-82`) | Tetap | Tetap | Tetap | **Diubah** (efek samping saja) |
+| `PUT` | `/{id}` | Sama, bila tanggal penempatan sementara berubah | Tetap | Tetap | Tetap | **Diubah** (efek samping saja) |

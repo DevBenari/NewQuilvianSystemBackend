@@ -156,7 +156,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             return status.PendingDepartments;
         }
 
-        private static ExitClearanceProcessDetailDto MapToDetailDto(TrxExitClearanceProcess entity)
+        private static ExitClearanceProcessDetailDto MapToDetailDto(HrdExitClearanceProcess entity)
         {
             return new ExitClearanceProcessDetailDto
             {
@@ -173,7 +173,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             };
         }
 
-        private static ExitClearanceChecklistDto MapChecklistDto(TrxExitClearanceChecklist entity)
+        private static ExitClearanceChecklistDto MapChecklistDto(HrdExitClearanceChecklist entity)
         {
             return new ExitClearanceChecklistDto
             {

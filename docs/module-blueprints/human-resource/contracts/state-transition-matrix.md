@@ -2505,3 +2505,84 @@ stateDiagram-v2
     Paid --> [*]
     Rejected --> [*]
 ```
+
+---
+
+## 30. Matriks Transisi Status Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` — `approved` (pengguna, 12 November 2026) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+
+### 30.1 Roster terbit — perubahan sesudah terbit (`HRD-DEC-194`, `195`, `199`, `217`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Published` | Ganti Petugas / tambah shift / hapus shift / koreksi mundur | `Published` (tetap) | Kepala Unit dalam cakupan kelola, atau `ManageAllUnits` | Lolos `B1`–`B8`; alasan untuk `W1`–`W7`; koreksi mundur ≤ `RetroactiveCorrectionWindowDays` | 422 (pemeriksaan) / 403 (cakupan) / 409 (diubah orang lain) |
+| `Published` | Tindakan yang sama | `Draft` | **Tidak sah** | — | Tidak boleh terjadi; perilaku lama `RosterPeriodService.cs:391` diperbaiki |
+| `Draft` | Terbitkan | `Published` | Kepala Unit | Lolos pemeriksaan ulang | 422 |
+| `Draft` | Ajukan persetujuan | `InReview` | **Tidak sah** — status tidak ada (`HRD-DEC-194`) | — | Tidak ada endpoint |
+| `Closed` | Ubah apa pun / buka kembali | — | **Tidak sah** (`HRD-DEC-199`) | — | 403 |
+
+### 30.2 Catatan panggilan siaga — `HrdOnCallCall.CallStatus` (`HRD-DEC-198`, `204`, `205`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Catat panggilan | `Sent` | Unit pemanggil, Kepala Unit, Admin HRD | Penugasan `Active`; yang dipanggil = siaga utama atau cadangan penugasan itu | 422 |
+| `Sent` | Catat bersedia | `Accepted` | Sama | `RowVersion` cocok | 409 |
+| `Sent` | Catat tidak bisa | `Declined` | Sama | Alasan wajib | 400 |
+| `Sent` | Tandai kedaluwarsa | `Expired` | Sama | `sekarang − CalledAt ≥ AnswerTimeoutMinutes` | 422 "Batas jawab belum lewat" |
+| `Accepted` | Catat tiba | `Completed` | Sama | `ArrivedAt ≥ CalledAt` | 400 |
+| `Declined`, `Expired`, `Completed` | Ubah status apa pun | — | **Tidak sah** | — | 409 |
+| `Sent` | Langsung `Completed` | — | **Tidak sah** — wajib `Accepted` lebih dulu | — | 409 |
+
+Status `TrxOnCallAssignment.AssignmentStatus` **tidak berubah** pada seluruh transisi di atas.
+
+### 30.3 Dispensasi — `HrdAttendanceDispensation.Status` (`HRD-DEC-200`, `HRD-ASM-76`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan / catat atas nama | `Submitted` | Pegawai (diri sendiri), Kepala Unit (pegawai unitnya) | Tanggal ≥ hari ini − `MaxBackdatedCorrectionDays`; periode kehadiran belum ditutup; atasan langsung ditemukan | 422 / 403 |
+| `Submitted` | Setujui | `Approved` | Hanya `ApproverWorkforceProfileId` | Penyetuju ≠ pegawai | 403 |
+| `Submitted` | Tolak | `Rejected` | Hanya penyetuju | Alasan wajib | 400 / 403 |
+| `Submitted` | Batalkan | `Cancelled` | Pengaju | — | 403 |
+| `Approved`, `Rejected`, `Cancelled` | Tindakan apa pun | — | **Tidak sah** | — | 409 |
+| Apa pun | Tindakan apa pun sesudah periode kehadiran ditutup | — | **Tidak sah** | — | 403 |
+
+### 30.4 Tugas belajar — `HrdStudyAssignment.Status` (`HRD-DEC-201`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Catat | `Active` | Admin HRD | Tidak tumpang tindih dengan tugas belajar `Active` lain | 422 |
+| `Active` | Ubah tanggal | `Active` | Admin HRD | Alasan wajib; tetap tidak tumpang tindih | 400 / 422 |
+| `Active` | Batalkan | `Cancelled` | Admin HRD | Alasan wajib | 400 |
+| `Cancelled` | Tindakan apa pun | — | **Tidak sah** | — | 409 |
+
+### 30.5 Kejadian gangguan mesin — `HrdAttendanceDeviceIncident.Status` (`HRD-DEC-202`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Catat | `Active` | Petugas IT, Admin HRD | Mesin terdaftar; `EndAt > StartAt` | 400 / 404 |
+| `Active` | Batalkan | `Cancelled` | Petugas IT, Admin HRD | Alasan wajib | 400 |
+| `Cancelled` | Dirujuk koreksi baru | — | **Tidak sah** | — | 422 |
+
+### 30.6 Status harian kehadiran (`HRD-DEC-197`, `207`, `210`, `216`)
+
+| Dari status | Pemicu | Ke status | Siapa | Syarat |
+| --- | --- | --- | --- | --- |
+| `NotYetPresent` | Jam selesai shift lewat tanpa scan | `NoScan` | Pemrosesan | — |
+| `NotYetPresent` / `NoScan` | Scan masuk dalam jendela (termasuk scan terlambat dari mesin) | `IncompletePunch` / `Present` / `Late` | Pemrosesan | — |
+| `IncompletePunch`, `Incomplete`, `NoScan` | HRD menutup periode | `Absent` | Penutupan periode | Selalu, tanpa syarat setelan |
+| `NoScan` / `IncompletePunch` | Koreksi disetujui sebelum tutup | Status hasil hitung ulang | Pemrosesan | — |
+| apa pun | Pegawai sumber jadwal roster pada hari libur | Tidak menjadi `Holiday` | — | **Tidak sah** sejak `HRD-DEC-210` |
+| `NoScan` | Sebelum tutup periode | `Absent` | **Tidak sah** | — |
+
+### 30.7 Log mesin — `HrdAttendanceRawLog.ProcessingStatus` (`HRD-DEC-212`)
+
+| Dari status | Pemicu | Ke status | Siapa | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Scan dari mesin tak terdaftar/nonaktif | `AwaitingDeviceRegistration` | Penerima log | — |
+| `AwaitingDeviceRegistration` | Mesin didaftarkan/diaktifkan | `Pending` | `AttendanceRawLogService` | Identitas mesin cocok |
+| `AwaitingDeviceRegistration` | Pemrosesan harian | — | **Tidak sah** — tidak diproses | — |

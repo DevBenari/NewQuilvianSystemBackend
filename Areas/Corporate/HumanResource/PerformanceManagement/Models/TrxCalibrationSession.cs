@@ -56,7 +56,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPerformanceCycle? PerformanceCycle { get; set; }
+        public HrdPerformanceCycle? PerformanceCycle { get; set; }
         public MstOrganizationUnit? OrganizationUnit { get; set; }
         public MstDepartment? Department { get; set; }
         public ApplicationUser? FacilitatorUser { get; set; }

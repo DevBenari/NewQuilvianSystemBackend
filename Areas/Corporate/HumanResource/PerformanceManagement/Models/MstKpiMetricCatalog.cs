@@ -8,7 +8,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// <summary>
     /// Master Katalog Indikator Kinerja & Rubrik Perilaku Core Values BerAKHLAK (HRD-DEC-164, VR-PRF-01..05)
     /// </summary>
-    [Table("mst_kpi_metric_catalogs", Schema = "public")]
+    [Table("MstKpiMetricCatalog", Schema = "public")]
     public class MstKpiMetricCatalog : IdentityModel
     {
         [Key]

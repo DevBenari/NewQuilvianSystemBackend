@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `83ef27bd` + perubahan yang belum di-commit |
 | Tanggal | 2026-10-13 |
-| Status | Selesai di backend. **Belum boleh dirilis tanpa `FE-CRM-001`** |
+| Status | Selesai. `AT-19` lulus lewat HTTP nyata 2026-11-11 dan `UAT-11` lulus 2026-10-14 (`FE-CRM-007`) — lihat §8. Syarat rilis bersama `FE-CRM-001` terpenuhi (`FE-CRM-001` ✅) |
 
 ## Backend Governance Preflight
 
@@ -90,7 +90,7 @@
 | `dotnet ef migrations has-pending-model-changes` | Tidak ada perubahan model | `PASS` | Keluaran EF |
 | `dotnet test` seluruh project | 170 lulus | `PASS` | Keluaran test |
 | QBE checker | 0 VIOLATION | `PASS` | Keluaran checker |
-| `AT-19` (403 untuk admisi tanpa izin) / `UAT-11` lewat UI | — | `NOT RUN` | Butuh pipeline otorisasi berjalan dan frontend (`FE-CRM-007`) |
+| `AT-19` (403 untuk admisi tanpa izin) / `UAT-11` lewat UI | 403 / formulir tanpa status member | `PASS` (susulan — §8) | Semula `NOT RUN` 2026-10-13: butuh pipeline otorisasi berjalan dan frontend (`FE-CRM-007`) |
 
 ## 6. Acceptance criteria dan Definition of Done
 
@@ -99,8 +99,8 @@
 | `AT-22` | Terpenuhi | Uji rute |
 | `AT-23` | Terpenuhi (di `BE-CRM-021`) | Uji kiosk |
 | `AT-25` | Terpenuhi | Uji 410 |
-| `AT-19` | **Belum terbukti** | Butuh pipeline otorisasi |
-| `UAT-11` | **Belum terbukti** | Butuh `FE-CRM-007` |
+| `AT-19` | Terpenuhi 2026-11-11 | §8 — akun asli tanpa izin mendapat 403 dari backend lokal terhadap devYoga |
+| `UAT-11` | Terpenuhi 2026-10-14 | Laporan `FE-CRM-007` §6: master pasien dan pasien baru IGD terhadap backend lokal, `IsMember=false` |
 
 ## 7. Catatan penutup
 
@@ -113,3 +113,44 @@
 | Interupsi | `NONE` |
 | Status Git | Belum di-commit. Berkas uji baru `MembershipRetireLegacyTests.cs` diabaikan git, perlu `git add -f` |
 | Langkah berikutnya | `FE-CRM-001` di repo frontend (lapisan data ke rute `/admin`), dirilis bersama task ini |
+
+## 8. Susulan 2026-11-11 — bukti `AT-19` lewat HTTP nyata
+
+`AT-19` dibuktikan terhadap backend lokal (`http://localhost:5107`, Development, build hari yang sama)
+yang terhubung ke devYoga, memakai pipeline otorisasi yang sebenarnya. Tidak ada data yang ditulis.
+
+| Field | Nilai |
+| --- | --- |
+| Task mode | `BACKEND`, khusus verifikasi. Source aplikasi tidak berubah |
+| Akun tanpa izin | `gilang.mahendra@rsmmc.local` — jabatan Analis Laboratorium, tanpa role Identity. Kueri baca-saja sebelum uji: nol kebijakan `SysAccessPolicy` pada controller `PatientMembership` untuk pasangan departemen–jabatan akun ini. Pemegang `Create` hanya Customer Service dan Dokter Umum. Sandi diberikan pemilik lewat chat, dipakai lewat variabel lingkungan, tidak disimpan |
+| Pengaman tulis | Body memakai `patientId` dan `membershipTierId` acak. Bila otorisasi bocor, service menjawab 404 sebelum menulis |
+| Konfigurasi start | `Seeders__ContinueOnFailure=true` (migration SDM tertunda di devYoga), `PatientMembership__Lifecycle__Enabled=false` agar proses harian tidak menulis |
+| Migration / database | Nol migration. Nol tulis ke devYoga — terverifikasi kueri baca-saja sesudah uji |
+
+### 8.1 Contoh
+
+Gilang, analis laboratorium, membuka alamat pendaftaran membership dan menekan Simpan. Sistem
+menolak dengan "Anda tidak memiliki akses ke menu atau fitur ini." Tidak ada membership yang
+terbentuk. Petugas Customer Service dengan izin `Create` tetap bisa mendaftarkan pasien.
+
+### 8.2 Hasil
+
+| Pemeriksaan | Harapan | Hasil | Status |
+| --- | --- | --- | --- |
+| `POST /admin` tanpa sesi | 401 | 401 | `PASS` |
+| `POST /admin` superadmin, pasien acak (kontrol: rute dan service hidup) | 404, tanpa tulis | 404 "Pasien tidak ditemukan atau tidak aktif. Daftarkan pasien lebih dulu." | `PASS` |
+| Login Gilang | 200 | 200 | `PASS` |
+| **`AT-19`**: `POST /admin` oleh Gilang | 403 | 403 "Anda tidak memiliki akses ke menu atau fitur ini." | `PASS` |
+| `GET /admin` oleh Gilang (tanpa `Read`) | 403 | 403 | `PASS` |
+| Kontrol sesi: Gilang `GET lab-orders/filters/metadata` (izin Lab yang ia pegang) | 200 | 200 | `PASS` |
+| Membership baru di devYoga dalam satu jam terakhir / berkatalog uji | 0 | 0 / 0 | `PASS` |
+| Baris `fail:` di log backend selama uji | 0 | 0 | `PASS` |
+
+Backend dimatikan sesudah uji; port 5107 bebas.
+
+### 8.3 Catatan
+
+`AT-19` di matriks menyebut "akun admisi". devYoga belum punya akun admisi yang tidak memegang
+`PatientMembership : Create`, karena jabatan Pendaftaran / Customer Service justru diberi izin itu
+untuk UAT 2026-10-14. Akun yang dipakai mewakili kondisi yang diuji: jabatan tanpa kebijakan
+`Create`. Penjaga izinnya sama untuk jabatan mana pun (`[AccessPermission("PatientMembership", "Create")]`).

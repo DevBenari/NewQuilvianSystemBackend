@@ -66,7 +66,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
             // 2. Ambil data historis OPPE (3 rapor terakhir, dari yang paling lama ke yang paling baru) atau pakai input simulasi.
             //    Tahun yang tidak punya rapor DAN tidak diberi nilai simulasi dicatat sebagai data belum cukup — tidak dikarang.
-            var historicEvaluations = await _context.TrxOppeStaffEvaluations
+            var historicEvaluations = await _context.HrdOppeStaffEvaluations
                 .Where(e => e.WorkforceProfileId == workforceProfileId)
                 .OrderByDescending(e => e.CreateDateTime)
                 .Take(3)
@@ -89,7 +89,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 : 0d;
 
             // 4. Deteksi Insiden Sentinel dan FPPE (INT-HR-74, VR-OPP-05..07)
-            var fppeEngagements = await _context.TrxFppeEngagements
+            var fppeEngagements = await _context.HrdFppeEngagements
                 .Where(e => e.WorkforceProfileId == workforceProfileId)
                 .ToListAsync(cancellationToken);
 

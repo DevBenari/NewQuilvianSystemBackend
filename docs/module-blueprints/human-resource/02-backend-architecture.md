@@ -9099,3 +9099,857 @@ classDiagram
 6. **`TRV-W6` — `TravelBudgetAvailabilityGuardWorker` (Pemantau Sisa Pagu Anggaran Unit):**
    * *Pemicu:* Berjalan bulanan pada tanggal 1 pukul 00:01 dini hari.
    * *Aksi:* Menghitung realisasi serapan anggaran perjalanan dinas per cost center unit kerja dan memperbarui indikator ketersediaan anggaran pada dasbor pengajuan.
+
+---
+
+## 35. Amandemen `S-B4` dan `S-B1` — Penjadwalan & Kehadiran sesuai 12 menu `PRD-HRD-PK-001` (revision `60`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Status | `approved` — disetujui pengguna 12 November 2026 ("Setujui apa adanya"), termasuk tiga pilihan teknis: penentuan cakupan unit (35.9.1), nilai awal 240/480/10 (35.7), dan batas MVP (`04-prd-to-mvp.md` bagian 40) |
+| Kode amandemen | `A52` (dipakai pada nama migration dan penanda traceability) |
+| Backend SHA | `a437ae42` (branch `yoga`) |
+| Frontend SHA | `6a5658269` (branch `YogaV2`) |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `37`, bagian 52 dan 53: `HRD-DEC-194` s.d. `HRD-DEC-217`, `HRD-ASM-75` s.d. `HRD-ASM-83`, fakta `HRD-TF-058` s.d. `HRD-TF-071` |
+| `input_hash` — decision log | `df3cf67a10a418b7c953f6c64f72437dd4aca850b2673a276573a41d9f4a1adc` |
+| `input_revision` — capability map | `01-existing-capability-map.md` revisi `1.4`, bagian 16 (`HRD-CAP-67` s.d. `HRD-CAP-91`) |
+| `input_hash` — capability map | `d260d20f1995e43286e095ff22fc393371d92a38dc9635cd2d1047f2966958c5` |
+| Kontrak | `v26` — `draft`. Kontrak `v10` (`S-B4`) dan `v11` (`S-B1`) tetap berlaku untuk bagian yang tidak disentuh |
+| Kesiapan requirement | Mengikuti preseden modul HR (bagian 16 dan 19): `requirement-completeness-gate` diwajibkan untuk slice klinis. Amandemen ini memakai penanda keselamatan yang sudah disepakati (`B7`, `HRD-DEC-087`/`100`) tanpa menambah aturan klinis baru |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada bounded context klinis atau billing pasien baru. Kontrak siaga ke Laboratorium (`INT-HR-39`) **tidak berubah** (`HRD-ASM-78`) |
+| Kompatibilitas | 6 tabel `Baru`, 3 tabel `Diperbarui` (hanya penambahan kolom), 0 tabel dihapus. Tidak ada endpoint lama yang berubah bentuk; 1 kolom setelan (`AutoConvertIncompleteToAbsent`) berhenti dibaca dan disembunyikan dari DTO |
+
+**Pembaca bagian ini.** Developer backend yang akan mengerjakan task hasil
+`/plan-module-delivery`, dan pemilik modul yang menyetujui desain. Setiap keputusan bisnis
+dirujuk ke ID-nya; bagian ini tidak membuat keputusan bisnis baru.
+
+**Yang dikerjakan amandemen ini, dalam satu kalimat per kelompok:**
+
+1. **Perbaikan** perilaku yang sudah ada tetapi melanggar keputusan: Ganti Petugas tanpa
+   pemeriksaan lengkap, nol scan langsung `Absent`, hari libur untuk pegawai roster, toleransi
+   yang tidak membaca setelan, scan mesin asing yang hilang, konversi yang mengabaikan
+   keputusan (`HRD-CAP-69`, `73`, `74`, `75`, `76`, `77`).
+2. **Perluasan** yang sudah ada: Riwayat Revisi, pemeriksaan roster `B3`/`B8`/`W6`/`W7`,
+   catatan panggilan dan cadangan siaga, pratinjau tutup periode, cakupan unit.
+3. **Kemampuan baru**: dispensasi, tugas belajar, kejadian gangguan mesin, API hari libur dan
+   mesin absen, dashboard, laporan dan ekspor Excel, Jadwal Saya.
+
+### 35.1 Bounded context, invariant, dan batas transaksi
+
+Amandemen ini memakai bounded context yang sudah ada pada bagian 19 dan 20, ditambah satu
+konteks bersama untuk cakupan unit.
+
+| ID | Bounded context | Aggregate root | Yang ditambahkan amandemen ini | Pemilik |
+| --- | --- | --- | --- | --- |
+| `BC-SCH-01` | Roster Period & Planning | `TrxRosterPeriod` | Pemeriksaan `B3`, `B8`, `W6`, `W7`; Riwayat Revisi per periode | Sub-modul 06 |
+| `BC-SCH-02` | Shift Assignment & Override | `TrxShiftAssignment` | `HrdShiftAssignmentRevision`; Ganti Petugas memakai pemeriksaan penuh | Sub-modul 06 |
+| `BC-SCH-03` | On-Call & Emergency Activation | `TrxOnCallAssignment` | `HrdOnCallBackup`, `HrdOnCallCall`; batas jawab per jenis siaga | Sub-modul 06 |
+| `BC-ATT-01` | Attendance Capture & Processing | `HrdAttendanceDaily` | Status "Belum Hadir"/"Tidak Ada Scan", jendela scan dari setelan, scan mesin asing ditahan, dispensasi dan tugas belajar dibaca saat hitung | Sub-modul 07 |
+| `BC-ATT-02` | Attendance Exceptions & Corrections | `HrdAttendanceCorrectionRequest` | `HrdAttendanceDispensation`, `HrdAttendanceDeviceIncident`, rujukan gangguan pada koreksi | Sub-modul 07 |
+| `BC-ATT-03` | Attendance Period, Dashboard & Reporting | `HrdAttendancePeriod` | Pratinjau berisi daftar, konversi tanpa syarat setelan, dashboard, laporan dan ekspor | Sub-modul 07 |
+| `BC-ATT-04` | Workforce Availability | `HrdStudyAssignment` | Tugas belajar penuh waktu | Sub-modul 07, dicatat Admin HRD |
+| `BC-HR-SCOPE` | Unit Scope (bersama) | — (layanan baca) | `HrdUnitScopeService`: unit mana yang boleh dikelola dan dibaca seorang pengguna | Sub-modul 02 Workforce Core |
+
+**Invariant yang dijaga kode (bukan hanya layar):**
+
+| ID | Invariant | Keputusan | Contoh pelanggaran yang wajib ditolak |
+| --- | --- | --- | --- |
+| `INV-A52-01` | Perubahan shift pada roster `Published` selalu menghasilkan tepat satu baris `HrdShiftAssignmentRevision` dalam transaksi yang sama | `HRD-DEC-195`, `217` | Ganti Petugas tersimpan tetapi baris riwayat gagal ditulis → seluruh perubahan dibatalkan |
+| `INV-A52-02` | Baris `HrdShiftAssignmentRevision` tidak pernah diubah atau dihapus | `HRD-DEC-195` butir 3 | Tidak ada endpoint `PUT`/`DELETE` untuk riwayat |
+| `INV-A52-03` | Pengganti dan shift tambahan lolos pemeriksaan yang sama dengan terbit (`B1`–`B8`, `W1`–`W7`), dan `B6` gagal tertutup | `HRD-DEC-099` butir 6, `HRD-DEC-195` | Status kesiapan tidak terbaca → Ganti Petugas ditolak, bukan dilewati |
+| `INV-A52-04` | Status penugasan siaga tidak berubah karena pemanggilan | `HRD-DEC-198`, `INT-HR-39` | Mencatat panggilan tidak boleh mengubah `TrxOnCallAssignment.AssignmentStatus` |
+| `INV-A52-05` | Toleransi terlambat dan jendela scan hanya dibaca dari `HrdAttendanceSetting` | `HRD-DEC-215` | Kode tidak boleh berisi angka cadangan 10, 240, atau 480 |
+| `INV-A52-06` | Scan mesin tidak pernah dibuang karena mesin belum terdaftar | `HRD-DEC-212` | Kiriman dari mesin tak dikenal disimpan berstatus `AwaitingDeviceRegistration` |
+| `INV-A52-07` | Log mesin tidak pernah diubah oleh dispensasi, gangguan, maupun koreksi | `HRD-DEC-200`, `202` | Dispensasi hanya mengubah hasil hitung harian |
+| `INV-A52-08` | Data di luar cakupan unit pengguna tidak pernah dikirim, termasuk lewat ekspor | `HRD-DEC-206`, `208`, `209` | Kepala Unit ICU meminta `organizationUnitId` HCU → kode 403 |
+
+**Batas transaksi:**
+
+| Operasi | Isi satu transaksi database | Bila sebagian gagal |
+| --- | --- | --- |
+| Ganti Petugas langsung | Ubah `TrxShiftAssignment` + tulis `TrxShiftReplacement` + tulis `HrdShiftAssignmentRevision` | Seluruhnya dibatalkan. Pemberitahuan dan hitung ulang kehadiran dikirim **sesudah** commit; kegagalan keduanya tidak membatalkan perubahan jadwal dan dicatat untuk dicoba ulang |
+| Koreksi mundur | Ubah `TrxShiftAssignment` + tulis `HrdShiftAssignmentRevision` | Sama seperti di atas |
+| Catat panggilan / jawaban siaga | Tulis atau ubah satu `HrdOnCallCall` + perbarui ruas ringkasan `TrxOnCallAssignment` bila panggilan pertama `Accepted` (`HRD-ASM-75`) | Seluruhnya dibatalkan |
+| Tutup periode kehadiran | Konversi "Belum Lengkap" dan "Tidak Ada Scan" → `Absent` + kunci rekap + ubah status periode | Seluruhnya dibatalkan (perilaku yang sudah ada dipertahankan) |
+| Daftarkan atau aktifkan mesin absen | Simpan `MstAttendanceDevice` | Pemrosesan ulang scan tertahan berjalan **sesudah** commit lewat pekerjaan latar; kegagalannya tidak membatalkan pendaftaran mesin |
+
+### 35.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang di sini |
+| --- | --- | :---: | --- |
+| Pegawai (`MstWorkforceProfile`) | 02 Workforce Core | Ya | Tidak |
+| Penempatan unit, termasuk sementara (`WfpOrganizationAssignment`, `AssignmentType = Temporary`) | 02 Workforce Core | Ya | **Tidak** — penugasan tambahan memakai penempatan sementara yang sudah ada (`HRD-DEC-213`) |
+| Atasan langsung (`WfpManagerAssignment`) | 02 Workforce Core | Ya | Tidak — dipakai menentukan penyetuju dispensasi |
+| Unit organisasi dan hierarkinya (`MstOrganizationUnit.ParentOrganizationUnitId`) | Master Data Organisasi | Ya | Tidak |
+| Master shift, kalender kerja, hari libur, mesin absen, jenis siaga | Master Data HR (`AttendanceAndSchedule`) | Ya | Tidak — `MstHoliday` dan `MstAttendanceDevice` hanya diberi API; `MstOnCallType` ditambah satu kolom |
+| Roster, shift harian, penggantian | 06 Penjadwalan | Ya | Tidak |
+| Riwayat Revisi shift | 06 Penjadwalan | Ya | **Ya, tabel baru** `HrdShiftAssignmentRevision` — belum ada penyimpan nilai sebelum/sesudah (`HRD-CAP-70`) |
+| Penugasan siaga | 06 Penjadwalan | Ya | Tidak |
+| Cadangan dan catatan panggilan siaga | 06 Penjadwalan | Ya | **Ya, dua tabel baru** — satu penugasan hanya menyimpan satu panggilan (`HRD-CAP-72`) |
+| Log mesin, rekap harian, pengecualian, koreksi, periode, setelan | 07 Kehadiran | Ya | Tidak |
+| Dispensasi, tugas belajar, kejadian gangguan mesin | 07 Kehadiran | Ya | **Ya, tiga tabel baru** — konsep belum ada (`HRD-CAP-78`, `79`, `80`) |
+| Cuti yang disetujui dan yang tertunda | 08 Cuti | Ya (baca) | Tidak |
+| Izin pulang cepat, dinas luar | 07 Kehadiran | Ya (baca) | Tidak |
+| Standar ketenagaan dan aturan skill-mix (`HrdStaffingStandard`, `HrdStaffingStandardLine`, `HrdStaffingSkillMixRule`) | 03 Perencanaan Tenaga Kerja (`S-D1`) | Ya (baca, sumber `W6`/`W7`) | Tidak |
+| Kesiapan kerja, kontrak, pendampingan klinis | 05 Onboarding | Ya (baca, `B4`–`B7`) | Tidak |
+| Kompetensi pegawai | 16 Pelatihan (`S-C2`) | Ya bila tersedia (baca, `W7`) | Tidak |
+| Pemberitahuan dalam aplikasi (`HrdNotification`) | 13 Layanan HR (`BE-HRD-314`) | Ya | Tidak |
+| Hak akses (`SysAccessPolicy`) | Platform | Ya | Tidak |
+| Jejak audit (`LoggerService`) | Platform | Ya | Tidak — log ekspor ditulis di sini, bukan di tabel baru |
+| Siaga dokter yang dibaca Laboratorium | 06 → Laboratorium (`INT-HR-39`) | Ya | Tidak berubah |
+
+**Temuan tambahan saat desain (12 November 2026, `BE@a437ae42`).** `POST
+roster-periods/{id}/assignments` pada roster `Published` mengubah status roster kembali ke
+`Draft` (`SchedulingManagement/Services/RosterPeriodService.cs:391`). Ini melanggar
+`HRD-DEC-101` butir 5 dan `HRD-DEC-195` butir 2. Endpoint untuk menghapus shift dari roster
+terbit tidak ditemukan. Keduanya dirancang pada 35.4 dan 35.9.
+
+### 35.3 Class diagram
+
+Diagram dipecah per kelompok proses. Hanya kunci, status, dan field yang dipakai aturan bisnis
+yang digambar; field lengkap ada di `data/data-dictionary.md` bagian 27.
+
+#### 35.3.1 Riwayat Revisi dan perubahan sesudah terbit (`BC-SCH-01`, `BC-SCH-02`)
+
+```mermaid
+classDiagram
+    class TrxRosterPeriod {
+        +Guid Id
+        +Guid OrganizationUnitId
+        +string RosterStatus
+    }
+    class TrxShiftAssignment {
+        +Guid Id
+        +Guid RosterAssignmentId
+        +Guid WorkforceProfileId
+        +Guid? ShiftId
+        +DateOnly ShiftDate
+        +DateTime ScheduledStartAt
+        +DateTime ScheduledEndAt
+        +Guid? OriginalEmployeeId
+    }
+    class TrxShiftReplacement {
+        +Guid Id
+        +Guid ShiftAssignmentId
+        +Guid OriginalWorkforceProfileId
+        +Guid ReplacementWorkforceProfileId
+        +string ReasonCategory
+    }
+    class HrdShiftAssignmentRevision {
+        <<Baru>>
+        +Guid Id
+        +Guid ShiftAssignmentId
+        +Guid RosterPeriodId
+        +string ChangeType
+        +Guid? PreviousWorkforceProfileId
+        +Guid? NewWorkforceProfileId
+        +DateTime? PreviousStartAt
+        +DateTime? NewStartAt
+        +Guid ChangedByUserId
+        +DateTime ChangedAt
+    }
+    class ShiftReplacementService {
+        <<Diperbarui>>
+        +ExecuteDirectReplacementAsync()
+        +RetroactiveCorrectionAsync()
+    }
+    class RosterValidationService {
+        <<Diperbarui>>
+        +ValidatePeriodAsync()
+        +ValidateSingleShiftAsync()
+    }
+    class ShiftRevisionRecorder {
+        <<Baru>>
+        +RecordAsync()
+    }
+    TrxRosterPeriod "1" --> "0..*" HrdShiftAssignmentRevision : riwayat periode
+    TrxShiftAssignment "1" --> "0..*" HrdShiftAssignmentRevision : riwayat shift
+    TrxShiftReplacement "0..1" --> "0..1" HrdShiftAssignmentRevision : sumber penggantian
+    ShiftReplacementService ..> RosterValidationService : memeriksa B1-B8 W1-W7
+    ShiftReplacementService ..> ShiftRevisionRecorder : menulis riwayat
+```
+
+#### 35.3.2 Siaga: cadangan dan catatan panggilan (`BC-SCH-03`)
+
+```mermaid
+classDiagram
+    class MstOnCallType {
+        <<Diperbarui>>
+        +Guid Id
+        +int ResponseTimeMinutes
+        +int AnswerTimeoutMinutes
+    }
+    class TrxOnCallAssignment {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +Guid OnCallTypeId
+        +string AssignmentStatus
+        +bool IsCalledIn
+        +int? ResponseMinutes
+        +bool? IsSlaMet
+    }
+    class HrdOnCallBackup {
+        <<Baru>>
+        +Guid Id
+        +Guid OnCallAssignmentId
+        +int BackupSequence
+        +Guid WorkforceProfileId
+    }
+    class HrdOnCallCall {
+        <<Baru>>
+        +Guid Id
+        +Guid OnCallAssignmentId
+        +Guid CalledWorkforceProfileId
+        +int BackupSequence
+        +string CallStatus
+        +DateTime CalledAt
+        +DateTime? AnsweredAt
+        +DateTime? ArrivedAt
+        +int? ResponseMinutes
+    }
+    class OnCallCallService {
+        <<Baru>>
+        +CreateCallAsync()
+        +AcceptAsync()
+        +DeclineAsync()
+        +ExpireAsync()
+        +CompleteAsync()
+        +GetNextBackupAsync()
+    }
+    MstOnCallType "1" --> "0..*" TrxOnCallAssignment : jenis siaga
+    TrxOnCallAssignment "1" --> "0..*" HrdOnCallBackup : cadangan berurutan
+    TrxOnCallAssignment "1" --> "0..*" HrdOnCallCall : catatan panggilan
+    OnCallCallService ..> HrdOnCallCall : menulis
+    OnCallCallService ..> TrxOnCallAssignment : isi ringkasan, status tetap
+```
+
+#### 35.3.3 Kehadiran: dispensasi, tugas belajar, gangguan mesin (`BC-ATT-02`, `BC-ATT-04`)
+
+```mermaid
+classDiagram
+    class HrdAttendanceDispensation {
+        <<Baru>>
+        +Guid Id
+        +Guid WorkforceProfileId
+        +DateOnly AttendanceDate
+        +string DispensationType
+        +DateTime StartAt
+        +DateTime EndAt
+        +string Status
+        +Guid? ApproverWorkforceProfileId
+    }
+    class HrdStudyAssignment {
+        <<Baru>>
+        +Guid Id
+        +Guid WorkforceProfileId
+        +string DecreeNumber
+        +DateOnly StartDate
+        +DateOnly EndDate
+        +string Status
+    }
+    class MstAttendanceDevice {
+        +Guid Id
+        +string AttendanceDeviceCode
+        +string? ExternalDeviceId
+        +bool IsActive
+    }
+    class HrdAttendanceDeviceIncident {
+        <<Baru>>
+        +Guid Id
+        +Guid AttendanceDeviceId
+        +DateTime StartAt
+        +DateTime EndAt
+        +string Status
+    }
+    class HrdAttendanceCorrectionRequest {
+        <<Diperbarui>>
+        +Guid Id
+        +Guid WorkforceProfileId
+        +DateOnly AttendanceDate
+        +string RequestStatus
+        +Guid? DeviceIncidentId
+    }
+    class HrdAttendanceSetting {
+        <<Diperbarui>>
+        +int GracePeriodMinutes
+        +int ScanWindowBeforeMinutes
+        +int ScanWindowAfterMinutes
+        +int MaxBackdatedCorrectionDays
+    }
+    MstAttendanceDevice "1" --> "0..*" HrdAttendanceDeviceIncident : gangguan
+    HrdAttendanceDeviceIncident "0..1" --> "0..*" HrdAttendanceCorrectionRequest : dirujuk koreksi
+```
+
+#### 35.3.4 Layanan baca: cakupan unit, dashboard, laporan, Jadwal Saya (`BC-HR-SCOPE`, `BC-ATT-03`)
+
+```mermaid
+classDiagram
+    class HrdUnitScopeService {
+        <<Baru>>
+        +GetManageScopeAsync()
+        +GetReadScopeAsync()
+        +EnsureCanManageAsync()
+        +EnsureCanReadAsync()
+    }
+    class AttendanceDashboardService {
+        <<Baru>>
+        +GetDashboardAsync()
+        +GetCardDetailAsync()
+    }
+    class AttendanceReportService {
+        <<Baru>>
+        +GetReportAsync()
+        +ExportAsync()
+    }
+    class MyScheduleSelfService {
+        <<Baru>>
+        +GetMyScheduleAsync()
+        +GetMyUnitRosterAsync()
+    }
+    class AccessPermissionService {
+        +HasAccessAsync()
+    }
+    HrdUnitScopeService ..> AccessPermissionService : penanda ReadAllUnits dan ManageAllUnits
+    AttendanceDashboardService ..> HrdUnitScopeService : cakupan baca
+    AttendanceReportService ..> HrdUnitScopeService : cakupan baca
+    MyScheduleSelfService ..> AttendanceScheduleResolverService : jadwal efektif
+```
+
+### 35.4 Penjelasan setiap class
+
+#### 35.4.1 Model
+
+| Aspek | `HrdShiftAssignmentRevision` |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/SchedulingManagement/Models/HrdShiftAssignmentRevision.cs`; configuration `Repositories/Configurations/Corporate/HumanResource/SchedulingManagement/HrdShiftAssignmentRevisionConfiguration.cs` |
+| Kategori | Transaksi (riwayat, hanya-tambah) |
+| Tanggung jawab utama | Menyimpan satu baris untuk setiap perubahan pada roster yang sudah terbit: Ganti Petugas, koreksi mundur, tambah shift, dan hapus shift. Baris ini menjadi isi menu **Riwayat Revisi** dan bukti bagi auditor |
+| Field penting | `ShiftAssignmentId`, `RosterPeriodId`, `ShiftDate`, `ChangeType`, `PreviousWorkforceProfileId`, `NewWorkforceProfileId`, `PreviousShiftId`, `NewShiftId`, `PreviousStartAt`, `PreviousEndAt`, `NewStartAt`, `NewEndAt`, `ReasonCategory`, `ReasonNote`, `ShiftReplacementId`, `ChangedByUserId`, `ChangedAt` |
+| Navigation property dan relasi | Milik `TrxShiftAssignment` dan `TrxRosterPeriod`; boleh menunjuk `TrxShiftReplacement` asal |
+| Pemakaian dalam alur bisnis | Ditulis otomatis saat Kepala Unit mengubah roster terbit. Dibaca Kepala Unit, Kepala Bidang, HRD, dan auditor |
+| Catatan desain | `PreviousWorkforceProfileId` adalah petugas **tepat sebelum** perubahan, bukan rencana awal — menutup kelemahan `TrxShiftReplacement.OriginalWorkforceProfileId`. Tidak ada endpoint ubah/hapus. `ReasonNote` bertanda sensitif karena bisa memuat kondisi kesehatan |
+| Ekuivalen model lama | — |
+
+| Aspek | `HrdOnCallBackup` |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/SchedulingManagement/Models/HrdOnCallBackup.cs`; `Repositories/Configurations/Corporate/HumanResource/SchedulingManagement/HrdOnCallBackupConfiguration.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Daftar cadangan berurutan untuk satu penugasan siaga utama (`HRD-DEC-205`) |
+| Field penting | `OnCallAssignmentId`, `BackupSequence` (1, 2, 3, ...), `WorkforceProfileId`, `IsActive` |
+| Navigation property dan relasi | Milik `TrxOnCallAssignment`; menunjuk `MstWorkforceProfile` |
+| Pemakaian dalam alur bisnis | Diisi penyusun jadwal siaga. Dibaca petugas unit pemanggil sesudah panggilan `Declined` atau `Expired` |
+| Catatan desain | Urutan unik per penugasan; satu pegawai tidak boleh dua kali pada penugasan yang sama, dan tidak boleh sama dengan siaga utama. Cadangan **tidak** dikirim ke Laboratorium (`HRD-ASM-78`) |
+| Ekuivalen model lama | — |
+
+| Aspek | `HrdOnCallCall` |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/SchedulingManagement/Models/HrdOnCallCall.cs`; `Repositories/Configurations/Corporate/HumanResource/SchedulingManagement/HrdOnCallCallConfiguration.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Satu baris per pemanggilan siaga, dengan status `Sent` → `Accepted`/`Declined`/`Expired` → `Completed` (`HRD-DEC-198`, `204`, `205`) |
+| Field penting | `OnCallAssignmentId`, `CalledWorkforceProfileId`, `BackupSequence` (0 = siaga utama), `CallingOrganizationUnitId`, `CallReason`, `CallStatus`, `CalledAt`, `RecordedByUserId`, `AnsweredAt`, `AnswerRecordedByUserId`, `DeclineReason`, `ExpiredAt`, `ArrivedAt`, `CompletedAt`, `ResponseMinutes`, `RowVersion` |
+| Navigation property dan relasi | Milik `TrxOnCallAssignment`; menunjuk pegawai yang dipanggil dan unit pemanggil |
+| Pemakaian dalam alur bisnis | Ditulis petugas unit pemanggil saat menelepon, saat mencatat jawaban, saat menandai kedaluwarsa, dan saat pasien selesai ditangani |
+| Catatan desain | Mengubah baris ini **tidak boleh** mengubah `TrxOnCallAssignment.AssignmentStatus`. `CallReason` sensitif — dilarang memuat nama atau nomor rekam medis pasien; layar menampilkan peringatan itu |
+| Ekuivalen model lama | Menggantikan peran `TrxOnCallAssignment.CalledInAt`/`ArrivedAt` sebagai catatan per panggilan; kolom lama tetap diisi sebagai ringkasan (`HRD-ASM-75`) |
+
+| Aspek | `HrdAttendanceDispensation` |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceDispensation.cs`; `Repositories/Configurations/Corporate/HumanResource/AttendanceManagement/HrdAttendanceDispensationConfiguration.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Pembebasan terlambat atau pulang cepat untuk satu pegawai pada satu tanggal dan rentang jam (`HRD-DEC-200`, `HRD-ASM-76`) |
+| Field penting | `WorkforceProfileId`, `AttendanceDate`, `DispensationType` (`LateArrival`/`EarlyDeparture`), `StartAt`, `EndAt`, `Reason`, `Status` (`Submitted`/`Approved`/`Rejected`/`Cancelled`), `RequestedByUserId`, `IsOnBehalf`, `ApproverWorkforceProfileId`, `DecidedByUserId`, `DecidedAt`, `RejectionReason`, `RowVersion` |
+| Navigation property dan relasi | Menunjuk `MstWorkforceProfile` (pegawai dan penyetuju) |
+| Pemakaian dalam alur bisnis | Diajukan pegawai lewat layanan mandiri atau dicatat Kepala Unit; disetujui atasan langsung; dibaca pemrosesan harian |
+| Catatan desain | Penyetuju **ditetapkan server** dari `WfpManagerAssignment` aktif (`CanApproveRequests = true`) pada tanggal itu, **tidak** diterima dari isi permintaan — berbeda dari pola izin pulang cepat yang menerima ID penyetuju dari klien. Penyetuju tidak boleh sama dengan pegawai |
+| Ekuivalen model lama | — |
+
+| Aspek | `HrdStudyAssignment` |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdStudyAssignment.cs`; `Repositories/Configurations/Corporate/HumanResource/AttendanceManagement/HrdStudyAssignmentConfiguration.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Masa tugas belajar penuh waktu berdasarkan SK (`HRD-DEC-201`) |
+| Field penting | `WorkforceProfileId`, `DecreeNumber`, `InstitutionName`, `ProgramName`, `StartDate`, `EndDate`, `Status` (`Active`/`Cancelled`), `LastChangeReason` |
+| Navigation property dan relasi | Menunjuk `MstWorkforceProfile` |
+| Pemakaian dalam alur bisnis | Dicatat Admin HRD; dibaca pemeriksaan roster (`B8`) dan pemrosesan harian (status `StudyAssignment`) |
+| Catatan desain | Tidak boleh ada dua tugas belajar `Active` yang tumpang tindih untuk pegawai yang sama. Mengubah `EndDate` wajib alasan |
+| Ekuivalen model lama | — |
+
+| Aspek | `HrdAttendanceDeviceIncident` |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceDeviceIncident.cs`; `Repositories/Configurations/Corporate/HumanResource/AttendanceManagement/HrdAttendanceDeviceIncidentConfiguration.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Satu kejadian gangguan mesin absen yang menjadi bukti bersama bagi koreksi presensi (`HRD-DEC-202`) |
+| Field penting | `AttendanceDeviceId`, `StartAt`, `EndAt`, `Description`, `ReportedByUserId`, `Status` (`Active`/`Cancelled`), `CancelReason` |
+| Navigation property dan relasi | Menunjuk `MstAttendanceDevice`; dirujuk banyak `HrdAttendanceCorrectionRequest` |
+| Pemakaian dalam alur bisnis | Dicatat petugas IT atau Admin HRD; dipilih pegawai saat mengajukan koreksi |
+| Catatan desain | Mencatat kejadian **tidak** membuat baris log mesin apa pun |
+| Ekuivalen model lama | — |
+
+| Aspek | `HrdAttendanceCorrectionRequest` |
+| --- | --- |
+| **Status** | `Diperbarui` — tambah kolom `DeviceIncidentId` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceCorrectionRequest.cs`; `Repositories/Configurations/Corporate/HumanResource/AttendanceManagement/HrdAttendanceCorrectionRequestConfiguration.cs` |
+| Kategori | Transaksi |
+| Tanggung jawab utama | Pengajuan koreksi presensi (sudah ada), kini boleh merujuk kejadian gangguan mesin |
+| Field penting | Kolom lama tetap; tambahan `DeviceIncidentId` (`Guid?`) |
+| Navigation property dan relasi | Tambahan: `HrdAttendanceDeviceIncident? DeviceIncident` |
+| Pemakaian dalam alur bisnis | Bila `DeviceIncidentId` terisi dan jam yang diajukan berada di dalam rentang kejadian, lampiran tidak wajib (`HRD-ASM-77`) |
+| Catatan desain | Rujukan ke kejadian yang `Cancelled` ditolak |
+| Ekuivalen model lama | — |
+
+| Aspek | `HrdAttendanceSetting` |
+| --- | --- |
+| **Status** | `Diperbarui` — tambah `ScanWindowBeforeMinutes`, `ScanWindowAfterMinutes`; `AutoConvertIncompleteToAbsent` berhenti dibaca |
+| **Lokasi file** | `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceSetting.cs`; `Repositories/Configurations/Corporate/HumanResource/AttendanceManagement/HrdAttendanceSettingConfiguration.cs` |
+| Kategori | Konfigurasi |
+| Tanggung jawab utama | Satu-satunya sumber toleransi terlambat, jendela scan, dan batas koreksi mundur (`HRD-DEC-196`, `211`, `215`) |
+| Field penting | `GracePeriodMinutes`, `ScanWindowBeforeMinutes`, `ScanWindowAfterMinutes`, `MaxBackdatedCorrectionDays`, `RequireAttachmentForCorrection` |
+| Navigation property dan relasi | — |
+| Pemakaian dalam alur bisnis | Diubah Admin HRD; dibaca pemrosesan harian, dispensasi, dan koreksi |
+| Catatan desain | `AutoConvertIncompleteToAbsent` **tidak dihapus** dari tabel pada amandemen ini (menghapus kolom berisiko bagi rollback); kolom itu dihapus dari DTO dan tidak dibaca (`HRD-DEC-216`). Penghapusan kolom menjadi task perapian terpisah |
+| Ekuivalen model lama | — |
+
+| Aspek | `MstOnCallType` |
+| --- | --- |
+| **Status** | `Diperbarui` — tambah `AnswerTimeoutMinutes` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/MasterData/AttendanceAndSchedule/Models/MstOnCallType.cs`; `Repositories/Configurations/Corporate/HumanResource/MasterData/AttendanceAndSchedule/MstOnCallTypeConfiguration.cs` |
+| Kategori | Master |
+| Tanggung jawab utama | Jenis siaga; kini juga menyimpan **batas jawab** dalam menit (`HRD-DEC-205`) |
+| Field penting | `ResponseTimeMinutes` (target tiba, sudah ada), `AnswerTimeoutMinutes` (batas menjawab telepon, baru) |
+| Navigation property dan relasi | Tetap |
+| Pemakaian dalam alur bisnis | Dibaca saat petugas menandai panggilan `Expired` |
+| Catatan desain | Dua angka berbeda arti: `AnswerTimeoutMinutes` = batas dokter menjawab; `ResponseTimeMinutes` = batas dokter tiba. Jangan digabung |
+| Ekuivalen model lama | — |
+
+Model `Sudah ada` yang hanya dibaca atau diberi API tanpa perubahan kolom: `MstHoliday`,
+`MstAttendanceDevice`, `WfpOrganizationAssignment`, `WfpManagerAssignment`,
+`MstOrganizationUnit`, `TrxShiftAssignment`, `TrxShiftReplacement`, `TrxOnCallAssignment`,
+`HrdAttendanceRawLog`, `HrdAttendanceDaily`, `HrdAttendanceException`, `HrdStaffingStandard*`.
+Kolom kuncinya didokumentasikan pada kamus data bagian 27.
+
+#### 35.4.2 Service
+
+Seluruh service mengikuti konvensi proyek: tanpa interface, didaftarkan `AddScoped<T>()` di
+`Program.cs`, di-inject langsung ke controller.
+
+| Service | Status | Lokasi file | Fungsi utama | Dipanggil oleh | Membuka transaksi |
+| --- | --- | --- | --- | --- | :---: |
+| `HrdUnitScopeService` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Services/HrdUnitScopeService.cs` | Menghitung **cakupan kelola** (unit tempat pengguna memegang penempatan berjabatan, `IsManagerialAssignment = true`) dan **cakupan baca** (cakupan kelola ditambah seluruh unit turunannya lewat `ParentOrganizationUnitId`). Pengguna dengan penanda `AttendanceReport : ReadAllUnits` membaca semua unit; dengan `RosterPeriod : ManageAllUnits` mengelola semua unit | Seluruh controller dan service pada 35.4.3 yang menerima `organizationUnitId` | Tidak |
+| `ShiftRevisionRecorder` | `Baru` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/ShiftRevisionRecorder.cs` | Menulis satu `HrdShiftAssignmentRevision` dari keadaan sebelum dan sesudah, di dalam transaksi pemanggil | `ShiftReplacementService`, `RosterPeriodService` | Tidak (ikut transaksi pemanggil) |
+| `ShiftReplacementService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/ShiftReplacementService.cs` | Ganti Petugas: memanggil `RosterValidationService.ValidateSingleShiftAsync` (blokir menolak, peringatan wajib alasan), `B6` gagal tertutup, menulis riwayat. Koreksi mundur: menulis riwayat dengan nilai lama. Kirim pemberitahuan sesudah commit | `ShiftReplacementController` | Ya |
+| `RosterValidationService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/RosterValidationService.cs` | Tambah `B3` (penempatan), `B8` (tugas belajar), `W6` (kuota), `W7` (skill-mix); beri kode aturan pada `W2`/`W3`; tambah `ValidateSingleShiftAsync` untuk satu shift | `RosterPeriodService`, `ShiftReplacementService` | Tidak |
+| `RosterPeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/RosterPeriodService.cs` | Tambah shift pada roster `Published` **tanpa** menurunkan status ke `Draft` dan dengan riwayat `AddShift`; hapus shift dari roster terbit (`RemoveShift`); baca Riwayat Revisi per periode; pemeriksaan cakupan kelola | `RosterPeriodController` | Ya (tulis) |
+| `OnCallCallService` | `Baru` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/OnCallCallService.cs` | Catat panggilan, jawaban terima/tolak, kedaluwarsa (hanya sesudah `AnswerTimeoutMinutes`), selesai; tampilkan cadangan berikutnya; isi ringkasan penugasan dari panggilan `Accepted` pertama | `OnCallAssignmentController` | Ya |
+| `OnCallAssignmentService` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/OnCallAssignmentService.cs` | Kelola daftar cadangan (`HrdOnCallBackup`); endpoint `call-in` lama dipertahankan untuk kompatibilitas dan menulis satu `HrdOnCallCall` berstatus `Completed` | `OnCallAssignmentController` | Ya |
+| `AttendanceProcessingService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceProcessingService.cs` | Jendela scan dan toleransi dari setelan; status `NotYetPresent`/`NoScan`; scan di luar jendela → pengecualian `OutsideScanWindow`; dispensasi mengurangi menit terlambat/pulang cepat; tugas belajar → status `StudyAssignment`; abaikan log `AwaitingDeviceRegistration`; setelan tidak terbaca → pemrosesan gagal (`HRD-ASM-83`) | Pekerjaan latar pemrosesan, `AttendanceProcessingController` | Ya |
+| `AttendanceScheduleResolverService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceScheduleResolverService.cs` | Hari libur hanya diterapkan bila sumber jadwal `FixedWorkSchedule`; toleransi tidak lagi dibaca dari `MstGracePeriodPolicy` | `AttendanceProcessingService`, `MyScheduleSelfService` | Tidak |
+| `AttendancePeriodService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendancePeriodService.cs` | Pratinjau tutup berisi **daftar** hari "Belum Lengkap" dan "Tidak Ada Scan" serta jumlah scan tertahan; tutup mengonversi keduanya tanpa membaca setelan | `AttendancePeriodController` | Ya (tutup) |
+| `AttendanceSettingService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceSettingService.cs` | Simpan jendela scan; hapus `AutoConvertIncompleteToAbsent` dari DTO; sediakan `GetRequiredSettingAsync` yang gagal bila setelan tidak ada | `AttendanceSettingController`, service kehadiran lain | Ya (simpan) |
+| `AttendanceRawLogService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceRawLogService.cs` | Scan mesin tak terdaftar/nonaktif disimpan berstatus `AwaitingDeviceRegistration` (bukan 404); `ReleaseHeldLogsForDeviceAsync` memproses ulang scan tertahan sesudah mesin didaftarkan | `AttendanceRawLogController`, `AttendanceDeviceController` | Ya |
+| `AttendanceDispensationService` | `Baru` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceDispensationService.cs` | Ajukan, catat atas nama, setujui, tolak, batalkan dispensasi; tetapkan penyetuju dari `WfpManagerAssignment`; picu hitung ulang harian sesudah disetujui | `AttendanceDispensationController`, `AttendanceDispensationSelfServiceController` | Ya |
+| `StudyAssignmentService` | `Baru` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/StudyAssignmentService.cs` | Catat, ubah tanggal (alasan wajib), batalkan tugas belajar; tolak tumpang tindih; picu hitung ulang harian untuk rentang yang berubah | `StudyAssignmentController` | Ya |
+| `AttendanceDeviceIncidentService` | `Baru` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceDeviceIncidentService.cs` | Catat dan batalkan kejadian gangguan; validasi rujukan pada koreksi | `AttendanceDeviceIncidentController`, `AttendanceCorrectionService` | Ya |
+| `AttendanceCorrectionService` | `Diperbarui` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceCorrectionService.cs` | Terima `DeviceIncidentId`; bebaskan lampiran bila jam di dalam rentang kejadian (`HRD-ASM-77`) | Controller koreksi yang sudah ada | Ya |
+| `AttendanceDashboardService` | `Baru` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceDashboardService.cs` | Lima kartu `HRD-DEC-208`, dihitung saat diminta, beserta daftar rincian | `AttendanceDashboardController` | Tidak |
+| `AttendanceReportService` | `Baru` | `Areas/Corporate/HumanResource/AttendanceManagement/Services/AttendanceReportService.cs` | Tujuh laporan M12 dan ekspor `.xlsx` dengan ClosedXML; tulis log ekspor lewat `LoggerService` dengan isi di teks pesan | `AttendanceReportController` | Tidak |
+| `MyScheduleSelfService` | `Baru` | `Areas/SelfServices/HumanResource/Services/MyScheduleSelfService.cs` | Jadwal terbit milik pegawai dari sesi login (rinci) dan roster terbit unitnya (nama + kode shift, ketidakhadiran rekan jadi "Libur"); rentang `HRD-ASM-80` | `MyScheduleSelfServiceController` | Tidak |
+| `TemporaryPlacementRosterImpactService` | `Baru` | `Areas/Corporate/HumanResource/SchedulingManagement/Services/TemporaryPlacementRosterImpactService.cs` | Sesudah penempatan sementara disimpan, cari shift pegawai di roster terbit unit asal pada rentang itu dan kirim pemberitahuan ke Kepala Unit asal (`HRD-ASM-82`). Tidak mengubah roster | `WfpOrganizationAssignmentController` | Tidak |
+
+#### 35.4.3 Controller
+
+| Controller | Status | Lokasi file | `[Tags]` | `ControllerName` / modul | Service yang dipakai |
+| --- | --- | --- | --- | --- | --- |
+| `RosterPeriodController` | `Diperbarui` | `Areas/Corporate/HumanResource/SchedulingManagement/Controllers/RosterPeriodController.cs` | `HR Scheduling - Roster Period` (tetap) | `RosterPeriod` / `HUMAN_RESOURCE_SCHEDULING_MANAGEMENT` | `RosterPeriodService`, `HrdUnitScopeService` |
+| `ShiftReplacementController` | `Diperbarui` | `.../SchedulingManagement/Controllers/ShiftReplacementController.cs` | `HR Scheduling - Shift Assignment & Replacement` (tetap) | `ShiftReplacement` | `ShiftReplacementService`, `HrdUnitScopeService` |
+| `OnCallAssignmentController` | `Diperbarui` | `.../SchedulingManagement/Controllers/OnCallAssignmentController.cs` | `HR Scheduling - On-Call Management` (tetap) | `OnCallAssignment` | `OnCallAssignmentService`, `OnCallCallService` |
+| `AttendanceSettingController` | `Diperbarui` (DTO) | `.../AttendanceManagement/Controllers/AttendanceSettingController.cs` | `HR Attendance - Settings` (tetap) | `AttendanceSetting` / `HUMAN_RESOURCE_ATTENDANCE` | `AttendanceSettingService` |
+| `AttendancePeriodController` | `Diperbarui` (respons pratinjau) | `.../AttendanceManagement/Controllers/AttendancePeriodController.cs` | `HR Attendance - Period Management` (tetap) | `AttendancePeriod` | `AttendancePeriodService` |
+| `AttendanceRawLogController` | `Diperbarui` (perilaku) | `.../AttendanceManagement/Controllers/AttendanceRawLogController.cs` | `HR Attendance - Raw Logs` (tetap) | `AttendanceRawLog` | `AttendanceRawLogService` |
+| `WfpOrganizationAssignmentController` | `Diperbarui` (pemanggilan sesudah simpan) | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WfpOrganizationAssignmentController.cs` | Tetap | Tetap | `TemporaryPlacementRosterImpactService` |
+| `HolidayController` | `Baru` | `Areas/Corporate/HumanResource/MasterData/AttendanceAndSchedule/Controllers/HolidayController.cs` | `Corporate / Human Resource / Master Data / Holiday` | `Holiday` / `HUMAN_RESOURCE_MASTER_DATA` | Tanpa service — CRUD sederhana memakai `ApplicationDbContext` langsung, mengikuti `ShiftController` |
+| `AttendanceDeviceController` | `Baru` | `.../MasterData/AttendanceAndSchedule/Controllers/AttendanceDeviceController.cs` | `Corporate / Human Resource / Master Data / Attendance Device` | `AttendanceDevice` / `HUMAN_RESOURCE_MASTER_DATA` | `ApplicationDbContext` untuk CRUD; `AttendanceRawLogService.ReleaseHeldLogsForDeviceAsync` sesudah aktif |
+| `AttendanceDispensationController` | `Baru` | `.../AttendanceManagement/Controllers/AttendanceDispensationController.cs` | `Corporate / Human Resource / Attendance Management / Attendance Dispensation` | `AttendanceDispensation` / `HUMAN_RESOURCE_ATTENDANCE` | `AttendanceDispensationService`, `HrdUnitScopeService` |
+| `StudyAssignmentController` | `Baru` | `.../AttendanceManagement/Controllers/StudyAssignmentController.cs` | `Corporate / Human Resource / Attendance Management / Study Assignment` | `StudyAssignment` / `HUMAN_RESOURCE_ATTENDANCE` | `StudyAssignmentService` |
+| `AttendanceDeviceIncidentController` | `Baru` | `.../AttendanceManagement/Controllers/AttendanceDeviceIncidentController.cs` | `Corporate / Human Resource / Attendance Management / Attendance Device Incident` | `AttendanceDeviceIncident` / `HUMAN_RESOURCE_ATTENDANCE` | `AttendanceDeviceIncidentService` |
+| `AttendanceDashboardController` | `Baru` | `.../AttendanceManagement/Controllers/AttendanceDashboardController.cs` | `Corporate / Human Resource / Attendance Management / Attendance Dashboard` | `AttendanceDashboard` / `HUMAN_RESOURCE_ATTENDANCE` | `AttendanceDashboardService`, `HrdUnitScopeService` |
+| `AttendanceReportController` | `Baru` | `.../AttendanceManagement/Controllers/AttendanceReportController.cs` | `Corporate / Human Resource / Attendance Management / Attendance Report` | `AttendanceReport` / `HUMAN_RESOURCE_ATTENDANCE` | `AttendanceReportService`, `HrdUnitScopeService` |
+| `AttendanceDispensationSelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/AttendanceDispensationSelfServiceController.cs` | `Self Services / Human Resource / Attendance Dispensation` | `MyAttendanceDispensation` / `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE` | `AttendanceDispensationService` |
+| `MyScheduleSelfServiceController` | `Baru` | `Areas/SelfServices/HumanResource/Controllers/MyScheduleSelfServiceController.cs` | `Self Services / Human Resource / My Schedule` | `MySchedule` / `HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE` | `MyScheduleSelfService` |
+
+Endpoint per controller, hak akses persis, dan kode status ada di `contracts/api-contract.md`
+bagian 32 dan `contracts/permission-audit-matrix.md` bagian 30.
+
+**Penanda hak akses tanpa endpoint** (`AccessExplicitPermission` tingkat assembly, pola
+`Areas/HealthServices/RadiologyManagement/RadiologyExplicitPermissions.cs`), dideklarasikan di
+`Areas/Corporate/HumanResource/SchedulingManagement/SchedulingExplicitPermissions.cs`
+(`Baru`):
+
+| Resource | Action | Arti | Dibaca oleh |
+| --- | --- | --- | --- |
+| `RosterPeriod` | `ManageAllUnits` | Boleh mengelola roster semua unit (petugas HR Scheduling) | `HrdUnitScopeService.GetManageScopeAsync` |
+| `AttendanceReport` | `ReadAllUnits` | Boleh membaca dashboard, laporan, dan roster semua unit (Admin HRD, dan peran yang diberi `HRD-ASM-79`) | `HrdUnitScopeService.GetReadScopeAsync` |
+
+#### 35.4.4 Konstanta nilai (bukan tabel)
+
+Status disimpan sebagai teks, mengikuti pola `AttendanceValueConstants` dan
+`SchedulingRequestValueConstants` yang sudah ada.
+
+| Kelas konstanta | Lokasi | Nilai baru |
+| --- | --- | --- |
+| `AttendanceValueConstants.AttendanceStatus` | `AttendanceManagement/Constants/AttendanceValueConstants.cs` | `NotYetPresent` ("Belum Hadir"), `NoScan` ("Tidak Ada Scan"), `StudyAssignment` ("Tugas Belajar") |
+| `AttendanceValueConstants.AttendanceExceptionType` | sama | `OutsideScanWindow` |
+| `AttendanceValueConstants.RawLogProcessingStatus` | sama | `AwaitingDeviceRegistration` (panjang 26, muat `MaxLength(30)`) |
+| `AttendanceValueConstants.DispensationType` | sama | `LateArrival`, `EarlyDeparture` |
+| `AttendanceValueConstants.DispensationStatus` | sama | `Submitted` (bawaan), `Approved`, `Rejected`, `Cancelled` |
+| `AttendanceValueConstants.StudyAssignmentStatus` | sama | `Active` (bawaan), `Cancelled` |
+| `AttendanceValueConstants.DeviceIncidentStatus` | sama | `Active` (bawaan), `Cancelled` |
+| `SchedulingRequestValueConstants.ShiftRevisionChangeType` | `SchedulingManagement/Constants/SchedulingRequestValueConstants.cs` | `Replacement`, `RetroactiveCorrection`, `AddShift`, `RemoveShift` |
+| `SchedulingRequestValueConstants.OnCallCallStatus` | sama | `Sent` (bawaan), `Accepted`, `Declined`, `Expired`, `Completed` |
+| `SchedulingRequestValueConstants.RosterRuleCode` | sama | `B3`, `B8`, `W2`, `W3`, `W6`, `W7` sebagai konstanta (yang lain sudah tertulis literal di service) |
+
+Label Bahasa Indonesia dikirim backend lewat `filters/metadata`, bukan ditulis di frontend.
+
+### 35.5 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/
+├── SchedulingManagement/
+│   ├── SchedulingExplicitPermissions.cs                 # Baru
+│   ├── Constants/SchedulingRequestValueConstants.cs     # Diperbarui
+│   ├── Controllers/
+│   │   ├── RosterPeriodController.cs                    # Diperbarui
+│   │   ├── ShiftReplacementController.cs                # Diperbarui
+│   │   └── OnCallAssignmentController.cs                # Diperbarui
+│   ├── DTOs/
+│   │   ├── RosterSchedulingDtos.cs                      # Diperbarui (revisi, tambah/hapus shift)
+│   │   └── OnCallCallDtos.cs                            # Baru
+│   ├── Models/
+│   │   ├── HrdShiftAssignmentRevision.cs                # Baru
+│   │   ├── HrdOnCallBackup.cs                           # Baru
+│   │   └── HrdOnCallCall.cs                             # Baru
+│   └── Services/
+│       ├── ShiftRevisionRecorder.cs                     # Baru
+│       ├── OnCallCallService.cs                         # Baru
+│       ├── TemporaryPlacementRosterImpactService.cs     # Baru
+│       ├── ShiftReplacementService.cs                   # Diperbarui
+│       ├── RosterValidationService.cs                   # Diperbarui
+│       ├── RosterPeriodService.cs                       # Diperbarui
+│       └── OnCallAssignmentService.cs                   # Diperbarui
+├── AttendanceManagement/
+│   ├── Constants/AttendanceValueConstants.cs            # Diperbarui
+│   ├── Controllers/
+│   │   ├── AttendanceDispensationController.cs          # Baru
+│   │   ├── StudyAssignmentController.cs                 # Baru
+│   │   ├── AttendanceDeviceIncidentController.cs        # Baru
+│   │   ├── AttendanceDashboardController.cs             # Baru
+│   │   ├── AttendanceReportController.cs                # Baru
+│   │   ├── AttendanceSettingController.cs               # Diperbarui (DTO)
+│   │   ├── AttendancePeriodController.cs                # Diperbarui (respons)
+│   │   └── AttendanceRawLogController.cs                # Diperbarui (perilaku)
+│   ├── DTOs/
+│   │   ├── AttendanceDispensationDtos.cs                # Baru
+│   │   ├── StudyAssignmentDtos.cs                       # Baru
+│   │   ├── AttendanceDeviceIncidentDtos.cs              # Baru
+│   │   ├── AttendanceDashboardDtos.cs                   # Baru
+│   │   ├── AttendanceReportDtos.cs                      # Baru
+│   │   ├── AttendanceSettingDtos.cs                     # Diperbarui
+│   │   ├── AttendancePeriodDtos.cs                      # Diperbarui
+│   │   └── AttendanceCorrectionDtos.cs                  # Diperbarui (DeviceIncidentId)
+│   ├── Models/
+│   │   ├── HrdAttendanceDispensation.cs                 # Baru
+│   │   ├── HrdStudyAssignment.cs                        # Baru
+│   │   ├── HrdAttendanceDeviceIncident.cs               # Baru
+│   │   ├── HrdAttendanceCorrectionRequest.cs            # Diperbarui
+│   │   └── HrdAttendanceSetting.cs                      # Diperbarui
+│   └── Services/                                        # lihat 35.4.2
+├── MasterData/AttendanceAndSchedule/
+│   ├── Controllers/
+│   │   ├── HolidayController.cs                         # Baru
+│   │   └── AttendanceDeviceController.cs                # Baru
+│   ├── DTOs/
+│   │   ├── HolidayDtos.cs                               # Baru
+│   │   └── AttendanceDeviceDtos.cs                      # Baru
+│   └── Models/MstOnCallType.cs                          # Diperbarui
+└── WorkforceCore/
+    ├── Controllers/WfpOrganizationAssignmentController.cs  # Diperbarui (pemanggilan dampak roster)
+    └── Services/HrdUnitScopeService.cs                  # Baru
+
+Areas/SelfServices/HumanResource/
+├── Controllers/
+│   ├── MyScheduleSelfServiceController.cs               # Baru
+│   └── AttendanceDispensationSelfServiceController.cs   # Baru
+├── DTOs/MyScheduleSelfServiceDtos.cs                    # Baru
+└── Services/MyScheduleSelfService.cs                    # Baru
+
+Repositories/Configurations/Corporate/HumanResource/
+├── SchedulingManagement/
+│   ├── HrdShiftAssignmentRevisionConfiguration.cs       # Baru
+│   ├── HrdOnCallBackupConfiguration.cs                  # Baru
+│   └── HrdOnCallCallConfiguration.cs                    # Baru
+├── AttendanceManagement/
+│   ├── HrdAttendanceDispensationConfiguration.cs        # Baru
+│   ├── HrdStudyAssignmentConfiguration.cs               # Baru
+│   ├── HrdAttendanceDeviceIncidentConfiguration.cs      # Baru
+│   ├── HrdAttendanceCorrectionRequestConfiguration.cs   # Diperbarui
+│   └── HrdAttendanceSettingConfiguration.cs             # Diperbarui
+└── MasterData/AttendanceAndSchedule/
+    └── MstOnCallTypeConfiguration.cs                    # Diperbarui
+
+Migrations/<timestamp>_AddSchedulingAttendanceAmendmentA52.cs   # Baru
+```
+
+**Penyimpangan pola yang sudah ada (utang teknis, jangan ditiru, jangan dirapikan diam-diam):**
+
+| Penyimpangan | Keadaan | Pola standar |
+| --- | --- | --- |
+| Master HR berada di `MasterData/AttendanceAndSchedule/Models/`, bukan `MasterData/Models/` | Pola seluruh master HR sejak awal | Dipertahankan untuk konsistensi modul HR; perubahan menjadi task arsitektur tersendiri |
+| Nilai `[Tags]` campuran (`HR Attendance - Raw Logs` dan `Corporate / Human Resource / ...`) | Controller lama | Controller baru memakai pola `Corporate / Human Resource / ...`; nama lama tidak diubah |
+| Kode modul ganda `HUMAN_RESOURCE_SCHEDULING` dan `HUMAN_RESOURCE_SCHEDULING_MANAGEMENT` | Satu controller lama memakai yang pertama | Controller baru dan yang diubah tetap memakai `HUMAN_RESOURCE_SCHEDULING_MANAGEMENT` |
+| `HrdEarlyLeavePermission` menerima ID penyetuju dari klien | `EarlyLeavePermissionService.cs:350` | Tidak ditiru oleh dispensasi; perbaikannya di luar amandemen ini |
+
+### 35.6 Status model dan dampak migration
+
+| Tabel | Status | Perubahan | Dampak migration |
+| --- | --- | --- | --- |
+| `HrdShiftAssignmentRevision` | `Baru` | Tabel baru | `CREATE TABLE` + 2 index + 6 FK `Restrict` |
+| `HrdOnCallBackup` | `Baru` | Tabel baru | `CREATE TABLE` + 2 unique index tersaring `IsDelete = false` |
+| `HrdOnCallCall` | `Baru` | Tabel baru | `CREATE TABLE` + 1 index + 3 FK |
+| `HrdAttendanceDispensation` | `Baru` | Tabel baru | `CREATE TABLE` + 2 index + 2 FK |
+| `HrdStudyAssignment` | `Baru` | Tabel baru | `CREATE TABLE` + 1 index + 1 FK |
+| `HrdAttendanceDeviceIncident` | `Baru` | Tabel baru | `CREATE TABLE` + 1 index + 1 FK |
+| `HrdAttendanceCorrectionRequest` | `Diperbarui` | Tambah `DeviceIncidentId uuid NULL` | `ADD COLUMN` nullable + index + FK `Restrict`; baris lama tetap `NULL` |
+| `HrdAttendanceSetting` | `Diperbarui` | Tambah `ScanWindowBeforeMinutes int NOT NULL DEFAULT 240`, `ScanWindowAfterMinutes int NOT NULL DEFAULT 480` | `ADD COLUMN` dengan nilai bawaan; baris RSMMC yang ada langsung terisi angka yang sama dengan perilaku kode sekarang |
+| `MstOnCallType` | `Diperbarui` | Tambah `AnswerTimeoutMinutes int NOT NULL DEFAULT 10` | `ADD COLUMN` dengan nilai bawaan |
+| Tabel lain | `Sudah ada` | Tidak ada perubahan kolom | — |
+
+Tidak ada kolom yang dihapus, diganti nama, atau diubah tipenya.
+
+### 35.7 Rencana migration
+
+| Urutan | Migration | Isi | Tanpa mematikan layanan | Langkah mundur |
+| ---: | --- | --- | :---: | --- |
+| 1 | `<timestamp>_AddSchedulingAttendanceAmendmentA52` | Enam `CREATE TABLE`, tiga `ADD COLUMN`, index, dan FK pada 35.6 | Ya — seluruhnya penambahan; kolom baru nullable atau berbawaan | `Down()` menghapus enam tabel baru dan tiga kolom baru. Aman selama tabel baru belum berisi data penting; bila sudah dipakai, ekspor isinya lebih dulu |
+
+**Pengisian data lama:** tidak ada. Nilai bawaan `240`/`480` sama dengan perilaku kode sekarang
+(`AttendanceProcessingService.cs:20-21`), sehingga hasil hitung tidak berubah sampai Admin HRD
+mengubah setelan. Nilai bawaan `10` menit untuk batas jawab mengikuti contoh `HRD-DEC-205`;
+Admin HRD wajib meninjaunya per jenis siaga sebelum dipakai (35.8).
+
+**Urutan rilis:** migration dan kode dirilis bersama. Kode lama tetap berjalan bila migration
+sudah diterapkan, karena tidak ada kolom lama yang berubah.
+
+**Catatan devYoga:** penerapan migration ke devYoga mengikuti prosedur memori proyek (skrip +
+uji kering `ROLLBACK`), hanya atas instruksi eksplisit pengguna.
+
+### 35.8 Rencana data master awal
+
+| Master | Isi minimum | Sumber nilai | Akibat bila kosong |
+| --- | --- | --- | --- |
+| `MstHoliday` | Hari libur nasional dan cuti bersama tahun berjalan dan tahun berikutnya, pada kalender kerja yang aktif | Keputusan bersama pemerintah tentang hari libur dan cuti bersama, dimasukkan Admin HRD lewat `HolidayController`. **Tidak** di-seed dari kode | Pegawai jadwal tetap tercatat "Tidak Ada Scan" pada tanggal merah |
+| `MstAttendanceDevice` | Setiap mesin absen fisik: kode, nama, lokasi, nomor seri atau ID eksternal | Petugas IT dari inventaris mesin | Seluruh scan mesin tertahan `AwaitingDeviceRegistration` dan tidak dihitung (tidak hilang) |
+| `MstOnCallType.AnswerTimeoutMinutes` | Batas jawab per jenis siaga | Ditinjau Admin HRD bersama Pelayanan Medis; nilai awal 10 menit | Batas 10 menit berlaku untuk semua jenis siaga |
+| `HrdAttendanceSetting.ScanWindowBeforeMinutes` / `ScanWindowAfterMinutes` | Satu baris RSMMC | Admin HRD; nilai awal 240/480 | Tidak mungkin kosong (kolom berbawaan) |
+| Hak akses baru di layar Akses Role | Setiap resource dan aksi pada `contracts/permission-audit-matrix.md` bagian 30 diberikan ke jabatan sesuai matriks peran | Admin sistem atas arahan Admin HRD | Endpoint baru menolak semua pengguna dengan kode 403. Penanda tidak otomatis memberi hak (`AccessExplicitPermissionAttribute`) |
+| Standar ketenagaan `S-D1` untuk unit bergiliran | Standar `Active` per unit, berisi baris per jabatan dan aturan skill-mix per shift | Kepala Unit dan HRD lewat layar `S-D1` | `W6` dan `W7` tidak dievaluasi; pemeriksaan menampilkan keterangan "Kuota unit belum ditetapkan" (bukan peringatan) |
+
+### 35.9 Aturan bisnis yang dirancang
+
+#### 35.9.1 Cakupan unit (`HRD-DEC-194`, `206`, `208`, `209`)
+
+1. **Cakupan kelola** = unit tempat pengguna memiliki `WfpOrganizationAssignment` aktif dengan
+   `IsManagerialAssignment = true` pada tanggal hari ini.
+2. **Cakupan baca** = cakupan kelola + seluruh unit turunan (`ParentOrganizationUnitId`
+   berulang sampai habis).
+3. Penanda `RosterPeriod : ManageAllUnits` membuat cakupan kelola = semua unit; penanda
+   `AttendanceReport : ReadAllUnits` membuat cakupan baca = semua unit.
+4. Setiap endpoint yang menerima atau mengembalikan data per unit memeriksa cakupan **di
+   server**. Permintaan di luar cakupan ditolak kode 403, termasuk ekspor.
+
+**Contoh.** Sari memegang penempatan berjabatan di ICU. Pak Dodi memegang penempatan berjabatan
+di "Bidang Keperawatan", induk dari ICU, HCU, dan Bangsal Anak. Sari dapat mengubah roster ICU
+(cakupan kelola) tetapi tidak HCU. Pak Dodi dapat **membaca** roster ICU, HCU, dan Bangsal Anak
+(cakupan baca), tetapi permintaan ubah darinya ditolak 403 karena cakupan kelolanya hanya "Bidang
+Keperawatan", yang tidak punya roster.
+
+#### 35.9.2 Pemeriksaan roster tambahan (`HRD-DEC-201`, `213`, `100`)
+
+| Kode | Jenis | Aturan | Contoh |
+| --- | --- | --- | --- |
+| `B3` | Blokir | Pada tanggal shift, pegawai wajib punya penempatan aktif di unit roster. Penempatan `Temporary` di unit lain pada tanggal itu **mengalahkan** penempatan utama | Tono `Primary` ICU, `Temporary` HCU 1–14 Maret. Shift ICU 5 Maret ditolak "Tono ditempatkan di HCU 1–14 Maret 2027" |
+| `B8` | Blokir | Pegawai tidak boleh punya `HrdStudyAssignment` `Active` yang mencakup tanggal shift. Tidak dapat diturunkan menjadi peringatan | Dewi tugas belajar 1 Agt 2027 – 31 Jul 2029; shift 3 Agt 2027 ditolak |
+| `W6` | Peringatan | Jumlah pegawai pada satu shift di unit < `StaffPerShift` (atau `MinimumHeadcount`) baris standar ketenagaan `Active` untuk unit itu. Bila tidak ada standar aktif, tidak dievaluasi dan diberi keterangan | Standar ICU 3 perawat per shift; Malam 10 Feb hanya 2 → peringatan |
+| `W7` | Peringatan | Pada satu shift, jumlah pegawai yang memenuhi `HrdStaffingSkillMixRule` (kompetensi wajib) < `MinimumQualifiedHeadcount`. Bila data kompetensi pegawai tidak tersedia, tidak dievaluasi dan diberi keterangan | Aturan "1 perawat ICU mahir per shift"; Siang 12 Feb tanpa satu pun → peringatan |
+
+Ganti Petugas, tambah shift, dan tukar shift menjalankan pemeriksaan yang sama lewat
+`ValidateSingleShiftAsync`, yang memeriksa shift itu beserta shift lain pegawai yang sama dan
+komposisi shift tersebut (untuk `B7`, `W6`, `W7`).
+
+#### 35.9.3 Perubahan roster terbit dan Riwayat Revisi (`HRD-DEC-195`, `217`)
+
+| Tindakan | `ChangeType` | Sebelum | Sesudah | Status roster |
+| --- | --- | --- | --- | --- |
+| Ganti Petugas | `Replacement` | Petugas lama | Petugas baru | Tetap `Published` |
+| Koreksi mundur | `RetroactiveCorrection` | Shift dan jam lama | Shift dan jam baru | Tetap `Published` |
+| Tambah shift | `AddShift` | Kosong | Pegawai, shift, jam | Tetap `Published` (memperbaiki `RosterPeriodService.cs:391`) |
+| Hapus shift | `RemoveShift` | Pegawai, shift, jam | Kosong; shift ditandai `IsCancel` | Tetap `Published` |
+
+**Contoh.** Riwayat 14 Februari 2027: "19.04 Ganti Petugas Malam Budi → Tono (Sakit Mendadak,
+oleh Sari)"; "20.10 Ganti Petugas Malam Tono → Andi (Lainnya — Tono dipanggil siaga IGD, oleh
+Sari)". Baris kedua menulis Tono sebagai petugas sebelumnya, bukan Budi.
+
+#### 35.9.4 Status harian kehadiran (`HRD-DEC-197`, `207`, `210`, `215`, `216`)
+
+Urutan penentuan status untuk satu pegawai pada satu tanggal kerja:
+
+1. Ada tugas belajar `Active` → `StudyAssignment`.
+2. Sumber jadwal `FixedWorkSchedule` dan tanggal adalah hari libur → `Holiday`. Untuk sumber
+   roster, hari libur **tidak** mengubah status.
+3. Hari libur pola/off → `RestDay` (perilaku lama).
+4. Cuti, dinas luar, izin → status masing-masing (perilaku lama).
+5. Tidak ada scan dalam jendela:
+   - jam sekarang < jam selesai shift → `NotYetPresent` ("Belum Hadir");
+   - jam sekarang ≥ jam selesai shift → `NoScan` ("Tidak Ada Scan").
+6. Satu scan → `IncompletePunch` ("Belum Lengkap").
+7. Dua scan → hitung terlambat/pulang cepat memakai `GracePeriodMinutes`, lalu kurangi menit
+   yang tercakup dispensasi `Approved`.
+
+`Absent` hanya diberikan oleh **penutupan periode**, untuk sisa `IncompletePunch` dan `NoScan`.
+Nilai status lama `Incomplete` (ditemukan di devYoga, `HRD-TF-071`) diperlakukan sama dengan
+`IncompletePunch` saat tutup periode.
+
+**Contoh jendela.** Setelan 240/480 menit. Shift Pagi 07.00–14.00: scan diterima 03.00–22.00.
+Scan 02.30 masuk pengecualian `OutsideScanWindow`, tidak dipasangkan.
+
+**Contoh dispensasi.** Shift 07.00, toleransi 10 menit, scan 07.40, dispensasi `Approved`
+07.00–07.40 → terlambat 0 menit. Tanpa dispensasi → terlambat 40 menit.
+
+#### 35.9.5 Pemanggilan siaga (`HRD-DEC-198`, `204`, `205`)
+
+| Dari | Tindakan | Ke | Syarat |
+| --- | --- | --- | --- |
+| — | Catat panggilan | `Sent` | Penugasan `Active`; pegawai yang dipanggil = siaga utama atau cadangan penugasan itu |
+| `Sent` | Catat bersedia | `Accepted` | — |
+| `Sent` | Catat tidak bisa | `Declined` | Alasan wajib |
+| `Sent` | Tandai kedaluwarsa | `Expired` | `sekarang − CalledAt ≥ AnswerTimeoutMinutes` |
+| `Accepted` | Catat tiba / selesai | `Completed` | `ArrivedAt ≥ CalledAt`; `ResponseMinutes = ArrivedAt − CalledAt` |
+
+Sesudah `Declined` atau `Expired`, respons menyertakan cadangan berikutnya yang belum dipanggil
+pada penugasan itu. Bila habis, respons berisi pesan "Hubungi Kepala Unit pemilik jadwal siaga".
+
+#### 35.9.6 Scan mesin tak terdaftar (`HRD-DEC-212`, `HRD-ASM-81`)
+
+1. Scan dengan identitas mesin yang tidak cocok ke mesin aktif disimpan dengan
+   `ProcessingStatus = AwaitingDeviceRegistration`, `AttendanceDeviceId = NULL`, dan
+   `ExternalDeviceId` apa adanya. Respons tiap baris batch berstatus "ditahan", bukan galat.
+2. Sesudah mesin didaftarkan atau diaktifkan, `ReleaseHeldLogsForDeviceAsync` mencocokkan scan
+   tertahan lewat `ExternalDeviceId`, kode mesin, atau nomor seri, mengisi `AttendanceDeviceId`,
+   mengubah status ke `Pending`, lalu memicu pemrosesan ulang tanggal terkait.
+3. Pratinjau tutup periode menampilkan jumlah scan `AwaitingDeviceRegistration` pada periode itu
+   sebagai peringatan, bukan pemblokir.
+
+### 35.10 Transaksi, konkurensi, idempotensi, dan kegagalan
+
+| Risiko | Penanganan |
+| --- | --- |
+| Dua Kepala Unit/petugas mengganti shift yang sama hampir bersamaan | `TrxShiftAssignment` dibaca ulang di dalam transaksi; bila petugas saat ini berbeda dari yang dikirim klien (`expectedWorkforceProfileId`), tolak 409 "Shift ini baru saja diubah orang lain" |
+| Dua petugas mencatat jawaban panggilan yang sama | `HrdOnCallCall.RowVersion` sebagai token konkurensi; yang kalah menerima 409 |
+| Dispensasi disetujui dua kali (klik ganda) | Transisi hanya sah dari `Submitted`; permintaan kedua menerima 409 tanpa efek |
+| Kiriman batch mesin diulang | Dedup memakai `EventHash` dan pasangan `(AttendanceDeviceId, ExternalLogId)` yang sudah ada; scan tertahan (`AttendanceDeviceId` kosong) memakai `EventHash` |
+| Pemberitahuan gagal terkirim | Perubahan utama tetap tersimpan; kegagalan dicatat log untuk dicoba ulang (PRD BR-20) |
+| Hitung ulang kehadiran sesudah koreksi mundur gagal | Perubahan jadwal tetap tersimpan; rekap tanggal itu ditandai `ReprocessRequired` (status pemrosesan yang sudah ada) |
+| Setelan kehadiran tidak terbaca | Pemrosesan tanggal itu gagal dengan status `Error` dan dapat diproses ulang; tidak ada angka cadangan (`HRD-ASM-83`) |
+
+### 35.11 Hak akses, privasi, dan pencatatan
+
+- Setiap endpoint baru memakai `[Authorize]`, `[AccessController]`, `[AccessAction]`, dan
+  `[AccessPermission(ControllerName, Aksi)]` dengan argumen pertama sama persis dengan
+  `ControllerName` (aturan remediasi otorisasi, `evidence/03-hr-authorization-remediation.md`
+  bagian 2.1).
+- Pemeriksaan cakupan unit (35.9.1) dijalankan di service, bukan di frontend.
+- Identitas pegawai pada layanan mandiri diambil dari sesi login; parameter ID pegawai dari klien
+  diabaikan.
+- **Kolom sensitif** — tidak masuk payload log, tidak dipakai sebagai contoh berdata asli:
+  `HrdShiftAssignmentRevision.ReasonNote`, `HrdOnCallCall.CallReason`,
+  `HrdOnCallCall.DeclineReason`, `HrdAttendanceDispensation.Reason`. Laporan dan ekspor tidak
+  pernah memuat lampiran, surat dokter, diagnosis, atau alasan sakit (`HRD-DEC-206`).
+- Log ekspor ditulis lewat `LoggerService.AuditAsync` dengan **isi di teks pesan** (pelaku,
+  waktu, kode laporan, filter, jumlah baris), karena `AuditAsync` tidak menyimpan objek payload.
+- Seluruh tindakan tulis dicatat logger; `GET` tidak.
+
+### 35.12 Strategi test
+
+| Lapisan | Yang diuji | Catatan |
+| --- | --- | --- |
+| Unit service | 35.9.1 s.d. 35.9.6, satu kasus berhasil dan satu gagal per aturan | Belum ada proyek uji HR (`HRD-CAP-91`). Proyek uji HR baru dibuat di `Tests/` dan perlu entri `!` di `.gitignore` agar ter-track |
+| Harness basis data | Unique index tersaring `HrdOnCallBackup`, FK `Restrict`, token konkurensi | Harness SQLite melepas unique index tersaring; uji bentrok wajib menegakkan kunci unik sendiri |
+| API | Kode 403 untuk akses di luar cakupan, termasuk ekspor | Wajib memakai akun non-superadmin |
+| Regresi | `INT-HR-39` (Lab membaca siaga aktif) tidak berubah sesudah panggilan dicatat | Uji kontrak Lab |
+
+### 35.13 Deployment dan langkah mundur
+
+1. Terapkan migration `AddSchedulingAttendanceAmendmentA52`.
+2. Rilis backend.
+3. Admin sistem memberi hak akses baru sesuai matriks (35.8).
+4. IT mendaftarkan mesin absen; Admin HRD mengisi hari libur dan meninjau batas jawab siaga.
+
+**Langkah mundur:** kembalikan rilis backend sebelumnya; kolom dan tabel baru dibiarkan (kode
+lama tidak membacanya). `Down()` migration dijalankan hanya bila tabel baru belum berisi data
+yang perlu disimpan.
+
+### 35.14 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel penugasan tambahan baru | `WfpOrganizationAssignment` dengan `AssignmentType = Temporary` sudah menyimpan unit tujuan, tanggal, dan surat perintah (`HRD-DEC-213`, `HRD-CAP-81`) |
+| Tabel log ekspor baru | `LoggerService` sudah menjadi jejak audit tahan lama; isi ditulis di teks pesan |
+| Master kebijakan toleransi/jendela per jadwal kerja | `HRD-DEC-196`, `211`, `215`: setelan tunggal. `MstGracePeriodPolicy`/`MstAttendancePolicy` dibiarkan, tidak diaktifkan |
+| Kolom tautan dispensasi pada `HrdAttendanceDaily` | Dispensasi dibaca saat hitung dan saat tampil lewat `(WorkforceProfileId, AttendanceDate)`; menghindari perubahan tabel rekap yang besar |
+| Status `InReview` / tabel `TrxRosterApproval` | `HRD-DEC-194` |
+| Buka kembali roster `Closed` | `HRD-DEC-199` |
+| Toleransi per unit, shift, atau kelompok | `HRD-DEC-196` |
+| Dispensasi massal | `HRD-DEC-200` butir 6 |
+| Izin belajar paruh waktu | `HRD-DEC-201` butir 6 |
+| Peminjaman pegawai per shift antar Kepala Unit | `HRD-DEC-213` butir 4, `HRD-DEC-097` butir 5 |
+| Jawaban panggilan langsung oleh petugas siaga di aplikasi | `HRD-DEC-204`; menunggu kanal pemberitahuan ke HP |
+| Ekspor PDF/CSV | `HRD-DEC-206` butir 1 |
+| Dashboard yang memperbarui diri terus-menerus | `HRD-DEC-208` butir 2 |
+| Menghapus kolom `AutoConvertIncompleteToAbsent` | Menghapus kolom membuat rollback berisiko; kolom berhenti dibaca dan dihapus pada task perapian terpisah |
+
+### 35.15 Traceability
+
+| Keputusan | Bagian |
+| --- | --- |
+| `HRD-DEC-194` | 35.9.1 (cakupan kelola), 35.14 |
+| `HRD-DEC-195` | 35.3.1, 35.4.1 `HrdShiftAssignmentRevision`, 35.9.2, 35.9.3 |
+| `HRD-DEC-196`, `HRD-DEC-215` | 35.4.1 `HrdAttendanceSetting`, 35.9.4 butir 7, 35.14 |
+| `HRD-DEC-197`, `HRD-DEC-207`, `HRD-DEC-216` | 35.4.2 `AttendanceProcessingService`/`AttendancePeriodService`, 35.9.4 |
+| `HRD-DEC-198`, `204`, `205`; `HRD-ASM-75`, `78` | 35.3.2, 35.4.1 `HrdOnCallBackup`/`HrdOnCallCall`, 35.9.5 |
+| `HRD-DEC-199` | 35.14 |
+| `HRD-DEC-200`; `HRD-ASM-76` | 35.4.1 `HrdAttendanceDispensation`, 35.9.4 |
+| `HRD-DEC-201` | 35.4.1 `HrdStudyAssignment`, 35.9.2 `B8`, 35.9.4 |
+| `HRD-DEC-202`; `HRD-ASM-77` | 35.4.1 `HrdAttendanceDeviceIncident`, `HrdAttendanceCorrectionRequest` |
+| `HRD-DEC-203` | Tidak ada perubahan backend; layar realisasi lembur `S-B3` |
+| `HRD-DEC-206`; `HRD-ASM-79` | 35.4.2 `AttendanceReportService`, 35.11 |
+| `HRD-DEC-208` | 35.4.2 `AttendanceDashboardService` |
+| `HRD-DEC-209`; `HRD-ASM-80` | 35.4.2 `MyScheduleSelfService` |
+| `HRD-DEC-210` | 35.4.3 `HolidayController`, 35.9.4 butir 2 |
+| `HRD-DEC-211` | 35.4.1 `HrdAttendanceSetting`, 35.9.4 |
+| `HRD-DEC-212`; `HRD-ASM-81` | 35.4.3 `AttendanceDeviceController`, 35.9.6 |
+| `HRD-DEC-213`; `HRD-ASM-82` | 35.2, 35.4.2 `TemporaryPlacementRosterImpactService`, 35.9.2 `B3` |
+| `HRD-DEC-214` | `03-frontend-architecture.md` bagian 31 |
+| `HRD-DEC-217` | 35.9.3 |
+| `HRD-ASM-83` | 35.10 |
+
+### 35.16 Catatan selisih yang ditemukan saat desain
+
+| Selisih | Keadaan | Penanganan |
+| --- | --- | --- |
+| String hak akses kontrak `v10` (`HrdScheduling`, `HrdOnCall`) berbeda dari kode (`RosterPeriod`, `ShiftReplacement`, `OnCallAssignment`) | Kode mengikuti aturan "resource = `ControllerName`" hasil remediasi 11 November 2026 | Kontrak `v26` memakai string kode. Selisih `v10` dicatat untuk owner; tidak memblokir |
+| `roadmap/frontend-unfinished-work.md` menulis layar kehadiran `S-B1` belum dikerjakan | `FE@6a5658269` sudah punya monitoring harian, drawer log mesin, tutup/buka periode, setelan | Dicatat; disegarkan saat `/plan-module-delivery` |
+| Layar persetujuan lembur memakai data contoh tertanam | `overtime-approvals-view.jsx:13-38` | Di luar amandemen ini; milik `S-B3` |

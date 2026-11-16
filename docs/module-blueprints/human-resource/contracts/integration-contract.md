@@ -1846,3 +1846,28 @@ Kontrak integrasi ini menetapkan protokol pertukaran data antara modul manajemen
 * **Domain Konsumen:** `WorkflowManagement` (Sub-21 - `S-A7-V2`)
 * **Pemicu:** Pengajuan baru SPPD, uang muka kerja, laporan settlement, atau klaim biaya non-trip dari portal ESS.
 * **Kontrak Alur:** Mendaftarkan instansiasi tiket workflow terpusat ke `TrxWorkflowInstance`, mengevaluasi matriks approver dinamis multi-level, menerapkan aturan anti self-approval (`HRD-DEC-183`), dan mendistribusikan tiket ke `Unified Approval Inbox` para atasan/pejabat Plh.
+
+---
+
+## 23. Integrasi Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` — `approved` (pengguna, 12 November 2026) |
+| Owner | Pengguna (`HRD-DEC-015`); pengguna juga pemilik modul Laboratorium |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+
+Seluruh integrasi di bawah berjalan di dalam satu aplikasi backend (panggilan service langsung),
+bukan panggilan ke sistem luar.
+
+| ID | Dari | Ke | Isi | Sinkron/asinkron | Bila gagal |
+| --- | --- | --- | --- | --- | --- |
+| `INT-HR-39` | 06 Siaga | Laboratorium | Daftar dokter siaga `Active` (`GET on-call-assignments/active-doctors`) | Sinkron | **Tidak berubah.** Catatan panggilan dan cadangan tidak memengaruhi isi (`HRD-DEC-198`, `HRD-ASM-78`) |
+| `INT-HR-40` | 06 Siaga | 10 Payroll | Ringkasan siaga (`IsCalledIn`, `ResponseMinutes`, `IsSlaMet`) | Sesuai kontrak lama | **Tidak berubah bentuk.** Isinya kini diambil dari panggilan `Accepted` pertama (`HRD-ASM-75`) |
+| `INT-HR-101` | 06 Penjadwalan | 07 Kehadiran | Perubahan roster terbit (Ganti Petugas, tambah, hapus, koreksi mundur) memicu hitung ulang rekap harian tanggal terkait | Asinkron sesudah commit | Rekap ditandai `ReprocessRequired`; jadwal tetap tersimpan |
+| `INT-HR-102` | 07 Dispensasi / Tugas belajar | 07 Pemrosesan | Dispensasi `Approved`, tugas belajar dicatat/diubah/dibatalkan → hitung ulang rentang tanggal terkait | Asinkron sesudah commit | Sama |
+| `INT-HR-103` | Master mesin absen | 07 Log mesin | Mesin didaftarkan/diaktifkan → scan `AwaitingDeviceRegistration` dilepas ke `Pending` dan diproses | Asinkron sesudah commit | Scan tetap tertahan; dapat dipicu ulang dengan mengaktifkan ulang mesin |
+| `INT-HR-104` | 02 Penempatan sementara | 06 Penjadwalan | Penempatan `Temporary` disimpan → pemberitahuan ke Kepala Unit asal bila pegawai sudah terjadwal di roster terbit unit asal | Sinkron sesudah simpan, gagal tidak membatalkan | Kegagalan dicatat log; roster tidak berubah otomatis (`HRD-ASM-82`) |
+| `INT-HR-105` | 06 dan 07 | 13 Pemberitahuan (`HrdNotification`, `BE-HRD-314`) | Pemberitahuan Ganti Petugas (pegawai diganti, pengganti, Kepala Bidang), keputusan dispensasi (pengaju), penugasan tambahan (Kepala Unit asal) | Asinkron | Transaksi utama tetap tersimpan; kanal hanya lonceng dalam aplikasi |
+| `INT-HR-106` | 03 Perencanaan (`S-D1`) | 06 Penjadwalan | Standar ketenagaan `Active` dan aturan skill-mix dibaca untuk `W6`/`W7` | Sinkron, baca | Tanpa standar: `W6`/`W7` tidak dievaluasi dan diberi keterangan |
+| `INT-HR-107` | 16 Pelatihan (`S-C2`) | 06 Penjadwalan | Kompetensi pegawai dibaca untuk `W7` bila tersedia | Sinkron, baca | Tanpa data: `W7` tidak dievaluasi dan diberi keterangan |

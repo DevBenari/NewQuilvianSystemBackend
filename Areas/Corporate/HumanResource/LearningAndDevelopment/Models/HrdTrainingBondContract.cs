@@ -9,7 +9,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelop
     /// <summary>
     /// Tabel Perjanjian Kontrak Ikatan Dinas Retensi Pelatihan Nakes (HRD-DEC-162, VR-TRN-16..18)
     /// </summary>
-    [Table("hrd_training_bond_contracts", Schema = "public")]
+    [Table("HrdTrainingBondContract", Schema = "public")]
     public class HrdTrainingBondContract : IdentityModel
     {
         [Key]

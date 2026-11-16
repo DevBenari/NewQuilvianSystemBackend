@@ -51,7 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
                 Instant: DateTimeOffset.UtcNow), cancellationToken);
 
-            var entity = new TrxDisciplinaryIncidentReport
+            var entity = new HrdDisciplinaryIncidentReport
             {
                 IncidentReportId = Guid.NewGuid(),
                 IncidentNumber = incidentNumber,

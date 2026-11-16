@@ -51,6 +51,10 @@ public static class PayrollEngineComponentCodes
     public const string Prefix = "PAY_";
     public const string BaseSalary = "PAY_BASE_SALARY";
     public const string FixedAllowance = "PAY_FIXED_ALLOWANCE";
+    /// <summary>Satu baris per jenis tunjangan dari Struktur Gaji (PGJ-C1, PRL-DEC-02). SourceId = MstSalaryStructureAllowance.Id.</summary>
+    public const string StructureAllowance = "PAY_STRUCTURE_ALLOWANCE";
+    /// <summary>Tunjangan transport bulanan tetap (PGJ-C1, PRL-DEC-46). SourceId = PrlTransportAllowance.Id.</summary>
+    public const string TransportAllowance = "PAY_TRANSPORT_ALLOWANCE";
     public const string Overtime = "PAY_OVERTIME";
     public const string AttendanceAllowance = "PAY_ATTENDANCE_ALLOWANCE";
     public const string VariableEarning = "PAY_VARIABLE_EARNING";
@@ -66,4 +70,13 @@ public static class PayrollVariableInputSources
 {
     public const string FinanceReceivableInstallment = "FinanceReceivableInstallment";
     public const string MedicalServiceFee = "MdfServiceFee";
+    /// <summary>Insentif, bonus, honor tugas tambahan yang diinput petugas; dihitung hanya bila Approved/Applied (PGJ-C1, PRL-DEC-07).</summary>
+    public const string ManualInput = "PayrollManualInput";
+}
+
+/// <summary>Nilai PrlPayrollEmployeeComponent.SourceType baru untuk baris tunjangan dari mesin hitung (PGJ-C1).</summary>
+public static class PayrollEngineComponentSources
+{
+    public const string SalaryStructureAllowance = "SalaryStructureAllowance";
+    public const string TransportAllowance = "TransportAllowance";
 }

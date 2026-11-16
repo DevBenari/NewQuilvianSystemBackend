@@ -696,6 +696,7 @@ public sealed class PayrollRunService
             PayrollVersionToken.EnsureMatches(expectedRowVersion, run.CreateDateTime, run.UpdateDateTime, "Payroll run");
             if (run.RunStatus != PayrollRunStatuses.Calculated)
                 throw new PayrollRunValidationException($"Hanya payroll run berstatus Calculated yang dapat diajukan (saat ini {run.RunStatus}).");
+            await EnsureManualInputsSettledAsync(run, cancellationToken);
             EnsureReadyToDecide(run);
 
             run.RunStatus = PayrollRunStatuses.Submitted;
@@ -779,6 +780,10 @@ public sealed class PayrollRunService
                 employee.SnapshotFrozenByUserId = actorUserId;
             }
 
+            // Input manual yang disetujui menjadi Applied di transaksi pengesahan yang sama (PAY-BE-20, state-transition-matrix bagian 3).
+            var appliedManualInputs = await MoveManualInputsAsync(run.Id,
+                new[] { PayrollManualInputStatuses.Approved }, PayrollManualInputStatuses.Applied, reason: null, actorUserId, now, cancellationToken);
+
             run.RunStatus = PayrollRunStatuses.Approved;
             run.ApprovedAt = now;
             run.ApprovedByUserId = actorUserId;
@@ -792,7 +797,7 @@ public sealed class PayrollRunService
             await _dbContext.SaveChangesAsync(cancellationToken);
             await _loggerService.AuditAsync(LogCategory, "PayrollRun.Approved",
                 $"Payroll run {run.RunNumber} disahkan; {confirmed.TotalInstallmentsProcessed} hasil potongan cicilan (Rp {confirmed.TotalDeductedAmount:N2}) dikonfirmasi ke Finance.",
-                new { run.Id, confirmed.TotalInstallmentsProcessed, confirmed.TotalDeductedAmount, ActorUserId = actorUserId });
+                new { run.Id, confirmed.TotalInstallmentsProcessed, confirmed.TotalDeductedAmount, AppliedManualInputs = appliedManualInputs, ActorUserId = actorUserId });
             return run.Id;
         }, cancellationToken);
 
@@ -812,6 +817,11 @@ public sealed class PayrollRunService
                 throw new PayrollRunValidationException("Payroll run yang sudah disahkan tidak dapat dibatalkan; gunakan pembalikan dengan approval.");
             if (run.RunStatus == PayrollRunStatuses.Cancelled) return run.Id;
 
+            // Input manual yang belum Applied ikut dibatalkan di transaksi yang sama (PAY-BE-20). Rejected tetap Rejected (final).
+            var cancelledManualInputs = await MoveManualInputsAsync(run.Id,
+                new[] { PayrollManualInputStatuses.Draft, PayrollManualInputStatuses.Submitted, PayrollManualInputStatuses.Approved },
+                PayrollManualInputStatuses.Cancelled, ManualInputRunCancelledReason, actorUserId, DateTime.UtcNow, cancellationToken);
+
             run.RunStatus = PayrollRunStatuses.Cancelled;
             run.Notes = string.IsNullOrWhiteSpace(run.Notes) ? $"Dibatalkan: {reason.Trim()}" : $"{run.Notes}\nDibatalkan: {reason.Trim()}";
             run.UpdateDateTime = DateTime.UtcNow;
@@ -820,7 +830,7 @@ public sealed class PayrollRunService
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await _loggerService.AuditAsync(LogCategory, "PayrollRun.Cancelled", $"Payroll run {run.RunNumber} dibatalkan: {reason.Trim()}",
-                new { run.Id, ActorUserId = actorUserId });
+                new { run.Id, CancelledManualInputs = cancelledManualInputs, ActorUserId = actorUserId });
             return run.Id;
         }, cancellationToken);
 
@@ -1027,6 +1037,67 @@ public sealed class PayrollRunService
         }).ToList();
     }
 
+    private const int MaxOvertimePageSize = 200;
+
+    /// <summary>
+    /// PAY-BE-23 (PGJ-C1, PRL-DEC-42): rekap lembur terverifikasi HR yang diimpor ke run, per pegawai per tanggal. Murni baca.
+    /// Saringan baris sama dengan yang dipakai mesin hitung (aktif dan tidak terhapus), sehingga yang tampil adalah yang dihitung.
+    /// Run tanpa lembur menghasilkan daftar kosong.
+    /// </summary>
+    public async Task<PagedResult<PayrollRunOvertimeInputResponse>> GetOvertimeInputsAsync(
+        Guid id, PayrollRunOvertimeInputQuery query, CancellationToken cancellationToken)
+    {
+        var exists = await _dbContext.PrlPayrollRuns.AsNoTracking().AnyAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+        if (!exists) throw new KeyNotFoundException("Payroll run tidak ditemukan.");
+
+        var source = _dbContext.PrlPayrollOvertimeInputs.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive
+                && x.PayrollRunEmployee != null
+                && !x.PayrollRunEmployee.IsDelete
+                && x.PayrollRunEmployee.PayrollRunId == id);
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var term = query.Search.Trim().ToLower();
+            source = source.Where(x =>
+                x.PayrollRunEmployee!.EmployeeNameSnapshot.ToLower().Contains(term)
+                || (x.PayrollRunEmployee.EmployeeNumberSnapshot != null && x.PayrollRunEmployee.EmployeeNumberSnapshot.ToLower().Contains(term)));
+        }
+
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, MaxOvertimePageSize);
+        var total = await source.CountAsync(cancellationToken);
+
+        var items = await source
+            .OrderBy(x => x.PayrollRunEmployee!.EmployeeNameSnapshot)
+            .ThenBy(x => x.OvertimeDate)
+            .ThenBy(x => x.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new PayrollRunOvertimeInputResponse
+            {
+                Id = x.Id,
+                PayrollRunEmployeeId = x.PayrollRunEmployeeId,
+                EmployeeNumber = x.PayrollRunEmployee!.EmployeeNumberSnapshot ?? string.Empty,
+                EmployeeName = x.PayrollRunEmployee.EmployeeNameSnapshot,
+                OvertimeDate = x.OvertimeDate,
+                VerifiedMinutes = x.VerifiedMinutes,
+                RateMultiplier = x.RateMultiplier,
+                HourlyRate = x.HourlyRate,
+                OvertimeAmount = x.OvertimeAmount
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<PayrollRunOvertimeInputResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
+
     /// <summary>Rincian satu penerima: komponen gross-to-net dan agregat kehadiran. Rekening disamarkan; NPWP tidak dikirim.</summary>
     public async Task<PayrollRunEmployeeDetailResponse> GetEmployeeDetailAsync(Guid runId, Guid runEmployeeId, CancellationToken cancellationToken)
     {
@@ -1148,6 +1219,63 @@ public sealed class PayrollRunService
             throw new PayrollRunValidationException($"Payroll run memiliki {blockers.Count} penahan: {string.Join("; ", blockers.Take(3))}.");
         if (run.ErrorEmployeeCount > 0 || run.ProcessedEmployeeCount <= 0)
             throw new PayrollRunValidationException("Payroll run belum siap: masih ada pegawai bermasalah atau belum ada pegawai yang terhitung.");
+    }
+
+    /// <summary>Alasan sistem pada input manual yang ikut dibatalkan karena run-nya dibatalkan (state-transition-matrix bagian 1).</summary>
+    private const string ManualInputRunCancelledReason = "Run dibatalkan";
+
+    private IQueryable<PrlPayrollVariableInput> ManualInputsOfRun(Guid runId) =>
+        _dbContext.PrlPayrollVariableInputs.Where(x =>
+            !x.IsDelete
+            && x.SourceType == PayrollVariableInputSources.ManualInput
+            && x.PayrollRunEmployee != null
+            && x.PayrollRunEmployee.PayrollRunId == runId);
+
+    /// <summary>
+    /// Penjaga pengajuan run (PAY-BE-20): VI-10 tidak boleh ada input manual Submitted; VI-11 tidak boleh ada input manual yang dibuat
+    /// atau diubah sesudah perhitungan terakhir. Keduanya 409.
+    /// </summary>
+    private async Task EnsureManualInputsSettledAsync(PrlPayrollRun run, CancellationToken cancellationToken)
+    {
+        var pending = await ManualInputsOfRun(run.Id)
+            .CountAsync(x => x.InputStatus == PayrollManualInputStatuses.Submitted, cancellationToken);
+        if (pending > 0)
+            throw new PayrollRunConflictException(
+                $"Masih ada {pending} penghasilan variabel yang menunggu keputusan. Setujui atau tolak dulu.");
+
+        if (run.CalculatedAt.HasValue)
+        {
+            var calculatedAt = run.CalculatedAt.Value;
+            var changedAfterCalculation = await ManualInputsOfRun(run.Id)
+                .AnyAsync(x => (x.UpdateDateTime ?? x.CreateDateTime) > calculatedAt, cancellationToken);
+            if (changedAfterCalculation)
+                throw new PayrollRunConflictException("Penghasilan variabel berubah setelah perhitungan terakhir. Hitung ulang run dulu.");
+        }
+    }
+
+    /// <summary>Memindahkan status input manual run oleh sistem, di dalam transaksi pemanggil. Mengembalikan jumlah input yang dipindah.</summary>
+    private async Task<int> MoveManualInputsAsync(
+        Guid runId, string[] fromStatuses, string toStatus, string? reason, Guid actorUserId, DateTime now, CancellationToken cancellationToken)
+    {
+        var inputs = await ManualInputsOfRun(runId)
+            .Where(x => fromStatuses.Contains(x.InputStatus))
+            .ToListAsync(cancellationToken);
+
+        foreach (var input in inputs)
+        {
+            input.InputStatus = toStatus;
+            if (toStatus == PayrollManualInputStatuses.Cancelled)
+            {
+                input.IsCancel = true;
+                input.CancelDateTime = now;
+                input.CancelBy = actorUserId;
+                input.DecisionReason = reason;
+            }
+            input.UpdateDateTime = now;
+            input.UpdateBy = actorUserId;
+        }
+
+        return inputs.Count;
     }
 
     private void AddApproval(PrlPayrollRun run, Guid actorUserId, string actionType, string status, string? comments) =>

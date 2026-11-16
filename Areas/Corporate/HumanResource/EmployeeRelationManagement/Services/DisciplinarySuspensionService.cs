@@ -38,7 +38,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 Instant: DateTimeOffset.UtcNow), cancellationToken);
             var suspensionNumber = $"SKORS/HRD/{DateTime.UtcNow:yyyyMM}/{EmployeeRelationNumberSeries.TrailingSequence(allocatedSuspension)}";
 
-            var entity = new TrxDisciplinarySuspension
+            var entity = new HrdDisciplinarySuspension
             {
                 SuspensionId = Guid.NewGuid(),
                 InvestigationId = request.InvestigationId,
@@ -91,7 +91,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             return suspension == null ? null : MapToDto(suspension);
         }
 
-        private static SuspensionResponseDto MapToDto(TrxDisciplinarySuspension entity)
+        private static SuspensionResponseDto MapToDto(HrdDisciplinarySuspension entity)
         {
             return new SuspensionResponseDto
             {

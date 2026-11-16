@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `23` — **revisi `23` (9 November 2026) menyerap keputusan `HRD-DEC-188` s.d. `HRD-DEC-193` dan asumsi `HRD-ASM-71` s.d. `HRD-ASM-74` untuk target state Slice `S-D5` (Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management: Pemisahan SPPD vs Non-Trip Expense, Uang Muka Maksimal 80% & Otorisasi 2-Pintu, Tarif Baku Lumpsum Per Diem Multi-Dimensi Zonasi/Grade, Disiplin Settlement 7 Hari & Sanksi Potong Payroll > 30 Hari, Deklarasi Darurat Tanpa Nota Maks 10%, serta Presensi Hadir Dinas Luar Sub-07 & Gembok Hard-Stop Roster Sub-06), merencanakan 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) lintas gelombang MVP-63 s.d. MVP-65 & Verifikasi — MENUNTASKAN STATUS DEFERRED MENJADI 0 DEFERRED**; revisi `22` menyerap target state Slice `S-A7-V2` |
+| Roadmap revision | `24` — **revisi `24` (12 November 2026) menambah amandemen `A52` atas `S-B4` dan `S-B1` untuk 12 menu `PRD-HRD-PK-001`: `BE-HRD-334` s.d. `BE-HRD-359`, `FE-HRD-306` s.d. `FE-HRD-324`, gelombang `MVP-66` s.d. `MVP-68`, kontrak `v26` approved; tidak ada slice baru.** Revisi `23` — **revisi `23` (9 November 2026) menyerap keputusan `HRD-DEC-188` s.d. `HRD-DEC-193` dan asumsi `HRD-ASM-71` s.d. `HRD-ASM-74` untuk target state Slice `S-D5` (Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management: Pemisahan SPPD vs Non-Trip Expense, Uang Muka Maksimal 80% & Otorisasi 2-Pintu, Tarif Baku Lumpsum Per Diem Multi-Dimensi Zonasi/Grade, Disiplin Settlement 7 Hari & Sanksi Potong Payroll > 30 Hari, Deklarasi Darurat Tanpa Nota Maks 10%, serta Presensi Hadir Dinas Luar Sub-07 & Gembok Hard-Stop Roster Sub-06), merencanakan 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) lintas gelombang MVP-63 s.d. MVP-65 & Verifikasi — MENUNTASKAN STATUS DEFERRED MENJADI 0 DEFERRED**; revisi `22` menyerap target state Slice `S-A7-V2` |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -341,6 +341,22 @@ Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan 
 | **Migration Risk** | Rendah — penambahan kolom on-call bersifat nullable, tabel konfigurasi diisi seeder nilai default aman. Tidak ada penghapusan skema atau migrasi destruktif. |
 | **Acceptance Criteria** | 1. Roster unit bergiliran terbit mandiri oleh Kepala Ruangan setelah lolos validasi otomatis `B1`–`B7` dan pengisian alasan `W1`–`W7`. 2. Kepala Bidang menerima notifikasi dan memiliki hak pantau *read-only*. 3. Penggantian petugas pasca-terbit langsung efektif tanpa mengubah status roster menjadi Draft. 4. Koreksi tanggal mundur dibatasi maksimal 3 hari ke belakang dan memicu hitung ulang absensi. 5. Periode `Closed` mengunci jadwal secara mutlak. 6. Status on-call tetap `Active` saat dipanggil untuk menjamin integritas kontrak Lab. |
 | **Release Status** | **`PLANNED`** — Desain disetujui pengguna 4 November 2026 (`HRD-DEC-097` s.d. `HRD-DEC-103`). Direncanakan 17 task backend (`BE-HRD-087` s.d. `BE-HRD-103`) dan 13 task frontend (`FE-HRD-075` s.d. `FE-HRD-087`) pada roadmap revision `8` lintas gelombang `MVP-18` s.d. `MVP-20` & Verifikasi. |
+
+### Amandemen `A52` atas `S-B4` dan `S-B1` — 12 menu "Penjadwalan & Kehadiran" (revisi `24`, 12 November 2026)
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | Sebagian besar kemampuan `S-B4`/`S-B1` sudah ada, tetapi enam perilaku melanggar keputusan yang disetujui (capability map revisi `1.4`, `HRD-CAP-69`, `73`, `74`, `75`, `76`, `77`) dan beberapa menu Notion belum punya kemampuan (`HRD-CAP-79`, `80`, `83`, `84`, `85`) |
+| **Target State** | `HRD-DEC-194` s.d. `HRD-DEC-217`; desain `02-backend-architecture.md` bagian 35 dan kontrak `v26` |
+| **Backend Impact** | `EXTEND` + `REPAIR` + `NEW`: 26 task `BE-HRD-334` s.d. `BE-HRD-359` (`backend-roadmap.md` bagian 24) |
+| **Frontend Impact** | 19 task `FE-HRD-306` s.d. `FE-HRD-324` (`frontend-roadmap.md` bagian 25) |
+| **Database Impact** | 6 tabel baru, 3 tabel bertambah kolom; satu migration aditif `AddSchedulingAttendanceAmendmentA52` |
+| **Dependency** | `BE-HRD-087` s.d. `BE-HRD-116` (fondasi `S-B4`/`S-B1`), `S-D1` (standar ketenagaan), `BE-HRD-314` (pemberitahuan) |
+| **Blocking Decision** | Tidak ada untuk `MUST HAVE`. `DSG-Q-01`/`DSG-Q-02` hanya memblokir `EPIC HRD-120` (grup menu) |
+| **QBE Impact** | `NEW CODE` untuk enam tabel `Hrd*`, sembilan controller, dan service baru; `TOUCHED LEGACY` untuk service penjadwalan dan kehadiran yang diperbaiki |
+| **Migration Risk** | Rendah — seluruhnya penambahan; nilai bawaan sama dengan perilaku sekarang |
+| **Acceptance Criteria** | `AT-HRD-PK-01` s.d. `AT-HRD-PK-46`; `UAT-PK-01` s.d. `UAT-PK-15` |
+| **Release Status** | **`PLANNED`** — desain dan kontrak `v26` disetujui pengguna 12 November 2026; gelombang `MVP-66` s.d. `MVP-68`, `Verifikasi`, `POST-MVP` |
 
 ### `S-B5` — Payroll sisi HR
 

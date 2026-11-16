@@ -106,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 ActorUserId: PerformanceNumberSeries.SystemFallbackUserId,
                 Instant: DateTimeOffset.UtcNow), cancellationToken);
 
-            var engagement = new TrxFppeEngagement
+            var engagement = new HrdFppeEngagement
             {
                 Id = Guid.NewGuid(),
                 EngagementNumber = engagementNumber,
@@ -123,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 CreateDateTime = DateTime.UtcNow
             };
 
-            _context.TrxFppeEngagements.Add(engagement);
+            _context.HrdFppeEngagements.Add(engagement);
             await _context.SaveChangesAsync(cancellationToken);
 
             return new FppeEngagementResponseDto
@@ -150,7 +150,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
         public async Task<FppeEngagementResponseDto?> GetEngagementByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var engagement = await _context.TrxFppeEngagements
+            var engagement = await _context.HrdFppeEngagements
                 .Include(e => e.CaseLogs)
                 .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
@@ -163,7 +163,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             var proctorProfile = await _context.Set<MstWorkforceProfile>()
                 .FirstOrDefaultAsync(p => p.Id == engagement.AssignedProctorWorkforceId, cancellationToken);
 
-            var conclusion = await _context.TrxFppeEvaluationConclusions
+            var conclusion = await _context.HrdFppeEvaluationConclusions
                 .FirstOrDefaultAsync(c => c.FppeEngagementId == id, cancellationToken);
 
             var caseLogsDto = engagement.CaseLogs
@@ -228,7 +228,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            var engagement = await _context.TrxFppeEngagements
+            var engagement = await _context.HrdFppeEngagements
                 .FirstOrDefaultAsync(e => e.Id == engagementId, cancellationToken);
 
             if (engagement == null)
@@ -244,7 +244,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             // Pseudonimisasi Rekam Medis Pasien (VR-OPP-11)
             var pseudonymizedEpisodeId = AnonymizePatientEpisodeId(request.SimrsPatientEpisodeId);
 
-            var caseLog = new TrxFppeCaseLog
+            var caseLog = new HrdFppeCaseLog
             {
                 Id = Guid.NewGuid(),
                 FppeEngagementId = engagementId,
@@ -262,7 +262,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 CreateDateTime = DateTime.UtcNow
             };
 
-            _context.TrxFppeCaseLogs.Add(caseLog);
+            _context.HrdFppeCaseLogs.Add(caseLog);
             await _context.SaveChangesAsync(cancellationToken);
 
             return new FppeCaseLogResponseDto
@@ -287,7 +287,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            var caseLog = await _context.TrxFppeCaseLogs
+            var caseLog = await _context.HrdFppeCaseLogs
                 .Include(c => c.FppeEngagement)
                 .FirstOrDefaultAsync(c => c.Id == logId, cancellationToken);
 
@@ -314,7 +314,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             caseLog.UpdateDateTime = DateTime.UtcNow;
 
             // Update counter CompletedCaseCount di entitas penugasan
-            var completedCount = await _context.TrxFppeCaseLogs
+            var completedCount = await _context.HrdFppeCaseLogs
                 .CountAsync(c => c.FppeEngagementId == engagement.Id && (c.Id == logId || c.IsVerifiedByProctor), cancellationToken);
 
             engagement.CompletedCaseCount = completedCount;
@@ -344,7 +344,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
 
-            var engagement = await _context.TrxFppeEngagements
+            var engagement = await _context.HrdFppeEngagements
                 .Include(e => e.CaseLogs)
                 .FirstOrDefaultAsync(e => e.Id == engagementId, cancellationToken);
 
@@ -403,12 +403,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             var signaturePayload = $"{engagementId}|{request.RecommendedAction}|{request.ApprovedByCommitteeChairmanId}|{finalizedAt:O}|QUILVIAN-FPPE-PLENARY";
             var signatureHash = ComputeSha256Hex(signaturePayload);
 
-            var existingConclusion = await _context.TrxFppeEvaluationConclusions
+            var existingConclusion = await _context.HrdFppeEvaluationConclusions
                 .FirstOrDefaultAsync(c => c.FppeEngagementId == engagementId, cancellationToken);
 
             if (existingConclusion == null)
             {
-                existingConclusion = new TrxFppeEvaluationConclusion
+                existingConclusion = new HrdFppeEvaluationConclusion
                 {
                     Id = Guid.NewGuid(),
                     FppeEngagementId = engagementId,
@@ -420,7 +420,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                     SignatureHash = signatureHash,
                     CreateDateTime = finalizedAt
                 };
-                _context.TrxFppeEvaluationConclusions.Add(existingConclusion);
+                _context.HrdFppeEvaluationConclusions.Add(existingConclusion);
             }
             else
             {
@@ -451,7 +451,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 
         public async Task<SyncFppePrivilegeResponseDto> SyncPrivilegeAsync(Guid engagementId, SyncFppePrivilegeRequestDto request, CancellationToken cancellationToken = default)
         {
-            var engagement = await _context.TrxFppeEngagements
+            var engagement = await _context.HrdFppeEngagements
                 .FirstOrDefaultAsync(e => e.Id == engagementId, cancellationToken);
 
             if (engagement == null)
@@ -459,7 +459,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 throw new KeyNotFoundException($"Penugasan FPPE dengan ID {engagementId} tidak ditemukan.");
             }
 
-            var conclusion = await _context.TrxFppeEvaluationConclusions
+            var conclusion = await _context.HrdFppeEvaluationConclusions
                 .FirstOrDefaultAsync(c => c.FppeEngagementId == engagementId, cancellationToken);
 
             if (conclusion == null)

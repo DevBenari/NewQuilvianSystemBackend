@@ -33,25 +33,25 @@ proses bisnis, dan uji manual atau runtime bila relevan.
 ## Grafik Urutan Dependency
 
 ```text
-PAY-BE-14 ─┬─> PAY-BE-16 ─> PAY-BE-17 ─> PAY-BE-18 ─┬─> PAY-BE-20 ─> PAY-BE-21
-           │                                        │
-           └─> PAY-BE-19 ───────────────────────────┘
+PAY-BE-14 🟡 ─┬─> PAY-BE-16 🟡 ─> PAY-BE-17 🟡 ─> PAY-BE-18 🟡 ─┬─> PAY-BE-20 🟡 ─> PAY-BE-21 🟡
+              │                                                 │
+              └─> PAY-BE-19 🟡 ─────────────────────────────────┘
 
-PAY-BE-15
+PAY-BE-15 🟡
 
-PAY-BE-22
+PAY-BE-22 🟡
 
-PAY-BE-23
+PAY-BE-23 🟡
 ```
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `PAY-BE-14`, `PAY-BE-15`, `PAY-BE-22`, `PAY-BE-23` — boleh paralel |
-| 2 | `PAY-BE-14` | `PAY-BE-16`, `PAY-BE-19` — boleh paralel |
-| 3 | `PAY-BE-16` | `PAY-BE-17` |
-| 4 | `PAY-BE-17` | `PAY-BE-18` |
-| 5 | `PAY-BE-18`, `PAY-BE-19` | `PAY-BE-20` |
-| 6 | `PAY-BE-20` | `PAY-BE-21` |
+| 1 | — | `PAY-BE-14` 🟡, `PAY-BE-15` 🟡, `PAY-BE-22` 🟡, `PAY-BE-23` 🟡 — boleh paralel |
+| 2 | `PAY-BE-14` | `PAY-BE-16` 🟡, `PAY-BE-19` 🟡 — boleh paralel |
+| 3 | `PAY-BE-16` | `PAY-BE-17` 🟡 |
+| 4 | `PAY-BE-17` | `PAY-BE-18` 🟡 |
+| 5 | `PAY-BE-18`, `PAY-BE-19` | `PAY-BE-20` 🟡 |
+| 6 | `PAY-BE-20` | `PAY-BE-21` 🟡 |
 
 Jumlah pasangan prasyarat→task: 7 (`14→16`, `16→17`, `17→18`, `14→19`, `18→20`, `19→20`,
 `20→21`), sama dengan isi kolom `Dependency`.
@@ -67,16 +67,16 @@ orang.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `PAY-BE-14` | Skema dan konstanta MVP siap | FR-PGJ-001, 030, 035; PRL-DEC-02, 04, 07 | `PGJ-C1` | `IdentityModel`, pola configuration Payroll | Entity baru, 5 kolom, konstanta, opsi, 2 migration | — | Kartu | Build, QBE, review migration | Migration tak sinkron snapshot / Yasmin | Kartu |
-| `PAY-BE-15` | Struktur di luar rentang grade ditolak | FR-PGJ-010, 011; PRL-DEC-12 | `PGJ-C1` | Controller struktur dan grade | Service aturan, validasi dua controller | — | Kartu | Build, QBE, uji API | Data lama melanggar / Yasmin | Kartu |
-| `PAY-BE-16` | Baris tunjangan struktur dapat dikelola | FR-PGJ-001–003; PRL-DEC-02, 13 | `PGJ-C1` | `PayrollVersionToken` | Service, controller, DTO baru | `PAY-BE-14` | Kartu | Build, QBE, uji API | Hak akses baru belum diberikan admin / Yasmin | Kartu |
-| `PAY-BE-17` | Run menghitung tunjangan per jenis dan masa peralihan | FR-PGJ-004–006; PRL-DEC-02, 04 | `PGJ-C1` | Segmen penetapan gaji yang ada | `PayrollCalculationService` | `PAY-BE-16` | Kartu | Build, QBE, uji proses | Hitung ganda dengan profil / Yasmin | Kartu |
-| `PAY-BE-18` | Run menghitung transport bulanan tetap | FR-PGJ-022–024; PRL-DEC-46 | `PGJ-C1` | `PrlTransportAllowance*` | `PayrollCalculationService` | `PAY-BE-17` | Kartu | Build, QBE, uji proses | Data transport lama ganda / Yasmin | Kartu |
-| `PAY-BE-19` | Input variabel manual dapat dibuat, diimpor, dan diputuskan | FR-PGJ-030–032, 034, 035; PRL-DEC-07, 31, 38, 43 | `PGJ-C1` | `NumberSeriesAllocator`, `PayrollVersionToken` | Service, controller, DTO baru | `PAY-BE-14` | Kartu | Build, QBE, uji API | Seri nomor belum siap / Yasmin | Kartu |
-| `PAY-BE-20` | Hanya input disetujui yang dihitung; run dijaga | FR-PGJ-033, 036, 037; PRL-DEC-07, 10 | `PGJ-C1` | Siklus run yang ada | `PayrollCalculationService`, `PayrollRunService` | `PAY-BE-18`, `PAY-BE-19` | Kartu | Build, QBE, uji proses | Regresi sumber input otomatis / Yasmin | Kartu |
-| `PAY-BE-21` | Simulasi tanpa jejak | FR-PGJ-040–042; PRL-DEC-32 | `PGJ-C1` | `PayrollHrdImportService`, mesin hitung | Service baru, satu endpoint | `PAY-BE-20` | Kartu | Build, QBE, uji runtime | Efek samping `DbContext` terpisah / Yasmin | Kartu |
-| `PAY-BE-22` | Laporan beban gaji dan PPh/BPJS | FR-PGJ-050–052; PRL-DEC-27, 33, 41 | `PGJ-C1` | `PayrollReportService` | Dua endpoint laporan | — | Kartu | Build, QBE, uji API | Angka tidak cocok rekap / Yasmin | Kartu |
-| `PAY-BE-23` | Rekap lembur per run | FR-PGJ-060; PRL-DEC-42 | `PGJ-C1` | `PrlPayrollOvertimeInput` | Satu endpoint | — | Kartu | Build, QBE, uji API | — / Yasmin | Kartu |
+| `PAY-BE-14` 🟡 | Skema dan konstanta MVP siap | FR-PGJ-001, 030, 035; PRL-DEC-02, 04, 07 | `PGJ-C1` | `IdentityModel`, pola configuration Payroll | Entity baru, 5 kolom, konstanta, opsi, 2 migration | — | Kartu | Build, QBE, review migration | Migration tak sinkron snapshot / Yasmin | Kartu |
+| `PAY-BE-15` 🟡 | Struktur di luar rentang grade ditolak | FR-PGJ-010, 011; PRL-DEC-12 | `PGJ-C1` | Controller struktur dan grade | Service aturan, validasi dua controller | — | Kartu | Build, QBE, uji API | Data lama melanggar / Yasmin | Kartu |
+| `PAY-BE-16` 🟡 | Baris tunjangan struktur dapat dikelola | FR-PGJ-001–003; PRL-DEC-02, 13 | `PGJ-C1` | `PayrollVersionToken` | Service, controller, DTO baru | `PAY-BE-14` | Kartu | Build, QBE, uji API | Hak akses baru belum diberikan admin / Yasmin | Kartu |
+| `PAY-BE-17` 🟡 | Run menghitung tunjangan per jenis dan masa peralihan | FR-PGJ-004–006; PRL-DEC-02, 04 | `PGJ-C1` | Segmen penetapan gaji yang ada | `PayrollCalculationService` | `PAY-BE-16` | Kartu | Build, QBE, uji proses | Hitung ganda dengan profil / Yasmin | Kartu |
+| `PAY-BE-18` 🟡 | Run menghitung transport bulanan tetap | FR-PGJ-022–024; PRL-DEC-46 | `PGJ-C1` | `PrlTransportAllowance*` | `PayrollCalculationService` | `PAY-BE-17` | Kartu | Build, QBE, uji proses | Data transport lama ganda / Yasmin | Kartu |
+| `PAY-BE-19` 🟡 | Input variabel manual dapat dibuat, diimpor, dan diputuskan | FR-PGJ-030–032, 034, 035; PRL-DEC-07, 31, 38, 43 | `PGJ-C1` | `NumberSeriesAllocator`, `PayrollVersionToken` | Service, controller, DTO baru | `PAY-BE-14` | Kartu | Build, QBE, uji API | Seri nomor belum siap / Yasmin | Kartu |
+| `PAY-BE-20` 🟡 | Hanya input disetujui yang dihitung; run dijaga | FR-PGJ-033, 036, 037; PRL-DEC-07, 10 | `PGJ-C1` | Siklus run yang ada | `PayrollCalculationService`, `PayrollRunService` | `PAY-BE-18`, `PAY-BE-19` | Kartu | Build, QBE, uji proses | Regresi sumber input otomatis / Yasmin | Kartu |
+| `PAY-BE-21` 🟡 | Simulasi tanpa jejak | FR-PGJ-040–042; PRL-DEC-32 | `PGJ-C1` | `PayrollHrdImportService`, mesin hitung | Service baru, satu endpoint | `PAY-BE-20` | Kartu | Build, QBE, uji runtime | Efek samping `DbContext` terpisah / Yasmin | Kartu |
+| `PAY-BE-22` 🟡 | Laporan beban gaji dan PPh/BPJS | FR-PGJ-050–052; PRL-DEC-27, 33, 41 | `PGJ-C1` | `PayrollReportService` | Dua endpoint laporan | — | Kartu | Build, QBE, uji API | Angka tidak cocok rekap / Yasmin | Kartu |
+| `PAY-BE-23` 🟡 | Rekap lembur per run | FR-PGJ-060; PRL-DEC-42 | `PGJ-C1` | `PrlPayrollOvertimeInput` | Satu endpoint | — | Kartu | Build, QBE, uji API | — / Yasmin | Kartu |
 
 Epic `OPEN DECISION` (`PGJ-08` s.d. `PGJ-17`) tidak diberi task dan tidak masuk grafik. Daftar
 beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `PAY-BE-13`
@@ -85,11 +85,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 
 ## Kartu task
 
-### `PAY-BE-14` — Fondasi skema dan konstanta
+### `PAY-BE-14` 🟡 — Fondasi skema dan konstanta
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — source, migration `20261112090000_AddSalaryStructureAllowanceAndVariableInputDecision`, Designer, dan snapshot selesai; pemeriksaan statis `PASS` (18/18 kolom entity baru cocok model–snapshot–migration, 5/5 kolom input variabel, snapshot +140/−0, resolver `QBE-MOD-002` → `Mst`). Database update diterapkan pemilik 2026-11-12 (`Done.`, `--no-build` Release — assembly memuat migration ini). Belum terpenuhi: keluaran `dotnet build` dan `has-pending-model-changes`, checker QBE resmi (`NOT RUN`, tanpa `pwsh`). Laporan: [`PAY-BE-14.md`](../task/report/backend/PAY-BE-14.md) |
 | Outcome | Tabel `MstSalaryStructureAllowance`, lima kolom keputusan di `PrlPayrollVariableInput`, konstanta dan opsi kebijakan tersedia untuk task lain |
 | Requirement/decision | FR-PGJ-001, 030, 035; PRL-DEC-02, 04, 07; `02-backend-architecture.md` bagian 4.1, 4.4, 7, 8 |
 | Reuse | `IdentityModel`; pola configuration di `Repositories/Configurations/Corporate/...`; registry `Mst` ACTIVE |
@@ -100,11 +100,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Migration bertabrakan dengan dua migration Payroll yang belum dijalankan; urutan timestamp diperiksa. Pemilik: Yasmin |
 | DoD | Build hijau, QBE tanpa pelanggaran memblokir, berkas migration ada, laporan `PAY-BE-14.md` ditulis; database update dijalankan pemilik |
 
-### `PAY-BE-15` — Batas struktur di dalam grade
+### `PAY-BE-15` 🟡 — Batas struktur di dalam grade
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `PayrollSalaryRangeRuleService` baru, dipanggil `SalaryStructureController` (`POST`, `PUT`) dan `SalaryGradeController` (`PUT`); pemeriksaan statis `PASS` (0 baris baru controller cocok pola `QBE-SVC-001`/`CODE-002/003`/`NAM-001`, 0 pembuatan controller manual, kurung seimbang 4 berkas). Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji API enam langkah, checker QBE resmi. Laporan: [`PAY-BE-15.md`](../task/report/backend/PAY-BE-15.md) |
 | Outcome | Struktur dengan batas di luar rentang grade, dan perubahan grade yang membuat struktur aktif keluar batas, ditolak |
 | Requirement/decision | FR-PGJ-010, 011; PRL-DEC-12; `validation-matrix.md` `SR-01`–`SR-04` |
 | Reuse | `SalaryStructureController`, `SalaryGradeController` (legacy, `TOUCHED LEGACY`) |
@@ -115,11 +115,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Struktur lama yang sudah melanggar baru ketahuan saat diubah. Pemilik: Yasmin |
 | DoD | Build hijau, QBE bersih, empat kriteria terbukti, laporan ditulis |
 
-### `PAY-BE-16` — Kelola baris tunjangan struktur
+### `PAY-BE-16` 🟡 — Kelola baris tunjangan struktur
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — service, controller (`SalaryStructureAllowance`, 4 endpoint), dan DTO baru; pemeriksaan statis `PASS` (4/4 endpoint atribut akses konsisten, 0 baris controller cocok pola QBE, 0 bentrok rute, kurung seimbang 4 berkas). Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji API sembilan langkah, checker QBE resmi; pesan `SA-07` berselisih bunyi dengan kontrak. Laporan: [`PAY-BE-16.md`](../task/report/backend/PAY-BE-16.md) |
 | Outcome | Petugas dapat melihat, menambah, mengubah, menghapus tunjangan tetap per struktur |
 | Requirement/decision | FR-PGJ-001–003; PRL-DEC-02, 13; `api-contract.md` grup Salary Structure Allowance |
 | Reuse | `PayrollVersionToken`; pola controller Payroll V2 (`[AccessController]`, `[AccessAction]`, `[AccessPermission]`) |
@@ -130,11 +130,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Admin perlu memberi hak `SalaryStructureAllowance` di Akses Role. Pemilik: Yasmin |
 | DoD | Build hijau, QBE bersih, kriteria terbukti, laporan ditulis |
 
-### `PAY-BE-17` — Hitung tunjangan dari struktur dan masa peralihan
+### `PAY-BE-17` 🟡 — Hitung tunjangan dari struktur dan masa peralihan
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `PayrollCalculationService` menghitung `PAY_STRUCTURE_ALLOWANCE` per baris struktur dengan cadangan profil (`CALC-03`) dan profil diabaikan (`CALC-04`); simulasi tiga contoh kontrak `PASS` (Rp 1.550.000 / Rp 1.025.000 / Rp 1.650.000), kurung seimbang, peringatan terbukti tidak menahan run. Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji proses di DB uji, checker QBE resmi. Laporan: [`PAY-BE-17.md`](../task/report/backend/PAY-BE-17.md) |
 | Outcome | Run menghasilkan satu baris per jenis tunjangan dari struktur, dengan cadangan angka profil selama peralihan |
 | Requirement/decision | FR-PGJ-004–006; PRL-DEC-02, 04; `02-backend-architecture.md` bagian 5.1–5.2 |
 | Reuse | Loop segmen penetapan gaji dan `UpsertComponent` di `PayrollCalculationService` |
@@ -145,11 +145,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Total gaji pegawai berubah saat struktur diisi; rekonsiliasi angka lama (DEC-PRL-015). Pemilik: Yasmin |
 | DoD | Build hijau, QBE bersih, empat kriteria terbukti di DB uji, laporan ditulis |
 
-### `PAY-BE-18` — Hitung transport bulanan tetap
+### `PAY-BE-18` 🟡 — Hitung transport bulanan tetap
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `PayrollCalculationService` menghitung `PAY_TRANSPORT_ALLOWANCE` dari tunjangan transport `FixedMonthly` (batas `MonthlyLimitAmount`, prorata hari berlaku, pajak `IsTaxable`), `CALC-01` untuk tunjangan bulanan beririsan, `CALC-02` untuk metode lain; simulasi 4/4 kriteria dan 4/4 kasus tepi `PASS` (kriteria 1 menghasilkan Rp 266.666,67 menurut pembulatan 2 desimal mesin yang ada), kurung seimbang. Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji proses di DB uji, checker QBE resmi. Laporan: [`PAY-BE-18.md`](../task/report/backend/PAY-BE-18.md) |
 | Outcome | Run menghasilkan baris transport untuk metode bulanan tetap |
 | Requirement/decision | FR-PGJ-022–024; PRL-DEC-46; `02-backend-architecture.md` bagian 5.3 |
 | Reuse | `PrlTransportAllowance`, `PrlTransportAllowancePolicy` |
@@ -160,11 +160,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Data transport lama yang beririsan menggagalkan pegawai. Pemilik: Yasmin |
 | DoD | Build hijau, QBE bersih, kriteria terbukti, laporan ditulis |
 
-### `PAY-BE-19` — Input variabel manual
+### `PAY-BE-19` 🟡 — Input variabel manual
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `PayrollVariableInputService`, `PayrollVariableInputsController` (`PayrollVariableInput`, 11 endpoint, 8 action), dan DTO baru; pemeriksaan statis `PASS` (11/11 endpoint atribut akses konsisten, matriks transisi 6 status × 4 aksi 0 selisih, contoh impor 120 baris → 400 `VI-08` tanpa baris tersimpan, kurung seimbang 4 berkas, 0 akses context di controller). Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji API sepuluh langkah, checker QBE resmi. Delta: `VI-01` memakai 400 (kontrak transisi menyebut 409). Risiko sela (input `Submitted` ikut dihitung) ditutup di source oleh `PAY-BE-20` 🟡 pada 2026-11-12. Laporan: [`PAY-BE-19.md`](../task/report/backend/PAY-BE-19.md) |
 | Outcome | Petugas dapat membuat, mengimpor, mengubah, mengajukan, menyetujui, menolak, dan membatalkan insentif, bonus, dan honor tugas tambahan |
 | Requirement/decision | FR-PGJ-030–032, 034, 035; PRL-DEC-07, 31, 38, 43; `api-contract.md` grup Payroll Variable Input; `state-transition-matrix.md` bagian 1 |
 | Reuse | `NumberSeriesAllocator.AllocateAsync` (pola `FinancePayrollDeductionBatchService`); `PayrollVersionToken`; `PayrollRunStatuses.AcceptsInputs` |
@@ -175,11 +175,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Apakah seri nomor perlu didaftarkan lebih dulu di NumberSeriesManagement diperiksa saat eksekusi. Pemilik: Yasmin |
 | DoD | Build hijau, QBE bersih, kriteria terbukti, laporan ditulis |
 
-### `PAY-BE-20` — Aturan hitung input manual dan penjaga run
+### `PAY-BE-20` 🟡 — Aturan hitung input manual dan penjaga run
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `PayrollCalculationService` menghitung input manual hanya bila `Approved`/`Applied` (sumber otomatis tidak berubah); `PayrollRunService` menolak pengajuan run dengan 409 `VI-10`/`VI-11`, memindah input `Approved` → `Applied` saat disahkan dan belum `Applied` → `Cancelled` ("Run dibatalkan") saat dibatalkan, di transaksi yang sama; simulasi 5/5 kriteria `PASS` (11 kombinasi sumber×status hitung, 2 penjaga, 2 perpindahan), kurung seimbang 2 berkas. Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji proses di DB uji termasuk regresi input otomatis, checker QBE resmi. Laporan: [`PAY-BE-20.md`](../task/report/backend/PAY-BE-20.md) |
 | Outcome | Hanya input manual yang disetujui yang dihitung; run tidak dapat diajukan dengan input menunggu atau basi; status input mengikuti run |
 | Requirement/decision | FR-PGJ-033, 036, 037; PRL-DEC-07, 10; `state-transition-matrix.md` bagian 3 |
 | Reuse | `CountableInputStatuses`, aksi submit/approve/cancel run yang ada |
@@ -190,11 +190,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Regresi pada sumber input otomatis. Pemilik: Yasmin |
 | DoD | Build hijau, QBE bersih, lima kriteria terbukti, laporan ditulis |
 
-### `PAY-BE-21` — Simulasi
+### `PAY-BE-21` 🟡 — Simulasi
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `PayrollSimulationService` dan `POST /simulations` (`PayrollRun : Simulate`) ditulis; run sementara `Simulation` di transaksi yang selalu di-rollback; `SIM-01`–`SIM-03` dan batas `SimulationMaxEmployees`. **Cakupan dipersempit atas keputusan pemilik 2026-11-12:** tanpa impor HR (ketiga service HR membuka transaksi sendiri dan mengunci absensi), tanpa input variabel dan cicilan; kriteria 1 hanya untuk komponen di luar sumber itu. Pemeriksaan statis `PASS` (0 rujukan number series/Finance/impor HR di jalur hitung, 21/21 atribut akses controller run konsisten, kurung seimbang 4 berkas). Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji runtime hitung baris sebelum/sesudah, checker QBE resmi, revisi bagian 5.5 dan kontrak respons (delta `notes`, `employeeNumber`). Laporan: [`PAY-BE-21.md`](../task/report/backend/PAY-BE-21.md) |
 | Outcome | Petugas melihat hasil hitung percobaan tanpa ada data tersisa |
 | Requirement/decision | FR-PGJ-040–042; PRL-DEC-32; `02-backend-architecture.md` bagian 5.5 |
 | Reuse | `PayrollHrdImportService`, `PayrollCalculationService` |
@@ -205,11 +205,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | Service dengan `DbContext` terpisah di jalur impor meninggalkan data; wajib ditelusuri saat eksekusi. Pemilik: Yasmin |
 | DoD | Build hijau, QBE bersih, empat kriteria terbukti, laporan ditulis |
 
-### `PAY-BE-22` — Laporan beban gaji dan PPh/BPJS
+### `PAY-BE-22` 🟡 — Laporan beban gaji dan PPh/BPJS
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `GET /reports/expense-summary` dan `GET /reports/tax-contribution` (`PayrollReport : ViewAmount`) ditulis di `PayrollReportService`; hanya run disahkan (`Approved` s.d. `Closed`, tanpa `Reversed`); `RPT-01` pada keduanya. Pemeriksaan `PASS`: simulasi 3 pegawai/2 Cost Center total penghasilan Rp 19.200.000 dan potongan Rp 1.500.000 sama dengan total pegawai run, 4/4 atribut akses controller laporan konsisten, kurung seimbang 3 berkas. Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji API dibandingkan rekap, checker QBE resmi. Delta: respons PPh/BPJS memakai `PagedResult` + `note`/total, baris menambah `runNumber`. Laporan: [`PAY-BE-22.md`](../task/report/backend/PAY-BE-22.md) |
 | Outcome | Finance mendapat beban gaji per Cost Center per komponen dan laporan PPh/BPJS tetapan profil |
 | Requirement/decision | FR-PGJ-050–052; PRL-DEC-27, 33, 41 |
 | Reuse | `PayrollReportService` (pengelompokan cost center yang ada) |
@@ -220,11 +220,11 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Risiko/pemilik | — / Yasmin |
 | DoD | Build hijau, QBE bersih, kriteria terbukti, laporan ditulis |
 
-### `PAY-BE-23` — Rekap lembur per run
+### `PAY-BE-23` 🟡 — Rekap lembur per run
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | 🟡 2026-11-12 — `GET /payroll-runs/{id}/overtime-inputs` (`PayrollRun : Read`) dan `GetOvertimeInputsAsync` ditulis; saringan sama dengan mesin hitung, pencarian nama/nomor, paginasi maks 200, run tanpa lembur → daftar kosong. Pemeriksaan statis `PASS` (22/22 atribut akses controller run konsisten, satu rute `overtime-inputs`, kurung seimbang 3 berkas). Belum terpenuhi: `dotnet build` (`NOT RUN` atas instruksi pemilik), uji API, checker QBE resmi. Temuan: `Read` lebih longgar daripada `ReadEmployeeDetail` pada detail pegawai; menunggu keputusan pemilik. Laporan: [`PAY-BE-23.md`](../task/report/backend/PAY-BE-23.md) |
 | Outcome | Petugas melihat lembur terverifikasi yang diimpor ke run |
 | Requirement/decision | FR-PGJ-060; PRL-DEC-42 |
 | Reuse | `PrlPayrollOvertimeInput` |
