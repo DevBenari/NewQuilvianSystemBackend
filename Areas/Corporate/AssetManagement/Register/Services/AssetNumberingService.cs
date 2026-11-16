@@ -50,7 +50,7 @@ public sealed partial class AssetNumberingService
         var code = inventoryCode?.Trim().ToUpperInvariant() ?? string.Empty;
         if (!InventoryCodePattern().IsMatch(code))
         {
-            throw new ArgumentException("Kode inventaris wajib 1–11 huruf besar atau angka.", nameof(inventoryCode));
+            throw new ArgumentException("Kode inventaris wajib 2–11 huruf besar atau angka.", nameof(inventoryCode));
         }
 
         return code;
@@ -86,7 +86,7 @@ public sealed partial class AssetNumberingService
         }
     }
 
-    [GeneratedRegex("^[A-Z0-9]{1,11}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[A-Z0-9]{2,11}$", RegexOptions.CultureInvariant)]
     private static partial Regex InventoryCodePattern();
 }
 

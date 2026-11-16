@@ -30,7 +30,7 @@ diminta.
 Grafik dipotong menjadi dua blok karena lebar; `BE-AST-006` muncul lagi sebagai sambungan blok kedua.
 
 ```text
-BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅ ─> BE-AST-005 ✅ ─> BE-AST-006
+BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅ ─> BE-AST-005 ✅ ─> BE-AST-006 ✅
                                                  │
                     BE-AST-014 [NLI] ✅ ─────────┘
 ```
@@ -38,7 +38,7 @@ BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅
 ```text
 BE-AST-015 [NLI] ─┬─> BE-AST-007 ─┬─> BE-AST-008
                   │               │
-      BE-AST-006 ─┘               ├─> BE-AST-011
+   BE-AST-006 ✅ ─┘               ├─> BE-AST-011
                                   │
                                   ├─> BE-AST-009 ─┬─> BE-AST-012
                                   │               │
@@ -67,7 +67,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
-| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | 🟡 `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` belum dikerjakan |
+| `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
 | `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | belum dikerjakan |
 
 ## Tabel task
@@ -132,11 +132,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetActorResolver`, `AssetHistoryService`, `AssetProcessLockService`, `AssetAttachmentService`, `AssetNumberingService`; opsi `AssetManagement:Attachment`; registrasi `AddScoped` |
 | Acceptance criteria | 1. Pengguna tanpa penugasan aktif → daftar unit kosong (fail-closed). 2. Penugasan manajerial aktif → Kepala Unit unit itu. 3. Penanda `AssetRegister : ReadAllUnits` dibaca lewat `HasAccessAsync`. 4. Kunci proses menolak `409` bila sudah terpasang. 5. Lampiran menolak `503` bila pengaturan kosong, `413` bila terlalu besar. 6. Nomor aset `AST-<KODE>-######` lewat `NumberSeriesAllocator` (`NEVER`) |
 
-### `BE-AST-006` — API master
+### ✅ `BE-AST-006` — API master
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 16 November 2026.** 7 controller (58 endpoint: 6 master koleksi × 9 baseline + `document-requirements` + `inventory-codes`, pengaturan `GET`/`PUT`), `AssetMasterDataService`, `AssetEntityResolver` (badan hukum/site dari konfigurasi), seeder `IHostedService`. QBE Strict `PASS`; atribut akses 339/0; build Rizki (DLL 11:14:03); Swagger 58 endpoint cocok; runtime API 56/56 termasuk `AT-REG-34`; seeder + pengaturan 14/14; nol baris komentar. `AT-REG-35` diuji sesudah `BE-AST-007` sesuai kartu. Delta kontrak (`filters/metadata`, `summary`, `DELETE`, paging) di laporan. Laporan: [`BE-AST-006.md`](../task/report/backend/BE-AST-006.md) |
 | Cakupan | 7 controller master + `AssetMasterDataService`; seeder data awal yang menolak produksi |
 | Acceptance criteria | 1. Seluruh endpoint 2.1–2.7 dengan Tags dan `[AccessPermission]` persis kontrak. 2. `AST-VAL-REG-050..056`. 3. Kode kelompok terkunci setelah dipakai (dapat diverifikasi sesudah `BE-AST-007`). 4. Seeder mengisi isi minimum `02-backend-architecture.md` §9 di non-produksi |
 
