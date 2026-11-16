@@ -180,3 +180,45 @@ tidak disentuh.
 | Catatan UX (diselesaikan 11 Nov atas perintah "jalankan semua") | (1) Dua tombol "Layar penuh" (navbar aplikasi dan kepala Monitor): teks tombol Monitor tetap sesuai rancangan, nama aksesibel dan tooltip menjadi "Layar penuh Monitor perawat". (2) Grid dua kolom di 1280 dicoba lalu dibatalkan karena petak bed terlalu sempit (§6.2 putaran 4). Satu kolom di 1280 dipertahankan, dengan filter kamar sebagai alat ringkas |
 | Status Git | Di-commit dan di-push 11 Nov 2026 atas perintah Rizki: frontend `RizkiV2` (`c3ecd1185` + commit penyempurnaan), laporan di backend `rizkiG` |
 | Langkah berikutnya | Merge ke branch integrasi oleh Rizki; rekaman bersuara `FE-NV-013` |
+
+## 9. Penyempurnaan tampilan 13 November 2026
+
+Dikerjakan atas perintah langsung Rizki di sesi agent 2026-11-13: "footer yang di ss ini tidak perlu hapus saja, lalu header nya seperti tidak ada css nya, card card aja". Tanpa perubahan kontrak, endpoint, hook, maupun backend.
+
+### 9.1 Berkas yang berubah (frontend `RizkiV2`, belum di-commit)
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/components/view/health-services/nurse-view-management/patient-call-console/nurse-view-patient-call-console-view.jsx` | Strip bawah Monitor dihapus: legenda status dan baris "Pembaruan terakhir … WIB" |
+| `src/components/view/health-services/nurse-view-management/patient-call-console/nurse-monitor/nurse-monitor-legend.jsx` | Dihapus (tidak dipakai lagi) |
+| `src/components/view/health-services/nurse-view-management/patient-call-console/nurse-monitor/nurse-monitor-floor-selector.jsx` | Judul "Pilih lantai" dan petunjuk ringkasan dipindah ke baris kepala panel; kartu lantai di bawahnya |
+| `src/style/health-services/nurse-view-management/nurse-monitor.module.css` | `.floorBar` menjadi panel (permukaan, garis tepi, radius, bayangan sama dengan `.header`); `.floorBarHead` baru; kartu lantai lebih ringkas; class `.legend`, `.legendTitle`, `.legendNote`, `.footer` dihapus |
+| `src/lib/constants/health-services/nurse-view-management/patient-call-console/patient-call-console-constants.jsx` | Teks `legend*` dan `lastUpdatedFormat` dihapus |
+| `src/utils/health-services/nurse-view-management/patient-call-console/nurse-monitor-utils.jsx` | `formatFooterDate` dihapus (pemakai tunggalnya ikut hilang) |
+| `src/components/features/footers/footer-wrapper.jsx` | Route `/health-services/nurse-view-management/patient-call-console` ditambahkan ke daftar route tanpa footer aplikasi, mengikuti preseden `/Display-Nurse-View/*` di daftar yang sama |
+
+### 9.2 Gerbang base component
+
+| Elemen | Base component | Status | Catatan |
+| --- | --- | --- | --- |
+| Panel pemilih lantai | Token desain + pola `.header` di CSS module yang sama | REUSE | Tanpa komponen baru |
+| Kartu lantai | `BaseButton` variant `secondary` | REUSE | Hanya ukuran dan latar di CSS module |
+| Lencana jumlah panggilan per lantai | `StatusBadge` | REUSE | Tidak berubah |
+| Footer aplikasi | `FooterWrapper` (daftar route tersembunyi yang sudah ada) | REUSE | Satu baris route |
+
+UI GATE: 4 elemen — REUSE 4, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0
+
+### 9.3 Verifikasi
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `npx eslint` lima berkas JSX yang berubah | `0 errors`, `0 warnings` |
+| Pemeriksaan komentar `git diff -U0 \| grep -E '^\+\s*(//\|/\*\|\*)'` | Kosong |
+| Uji layar Playwright `test-with-agy/nurse-view/rapih-monitor-20261113/shot-after.mjs` (SuperAdmin, pilih Lantai 9) di 1650×900, 1280×800, 400×860 | Footer aplikasi 0, teks "Status panggilan" 0, "Pembaruan terakhir" 0, 6 kartu lantai, Lantai 9 `aria-pressed=true`, tanpa scroll horizontal di ketiga lebar |
+| Tangkapan sebelum/sesudah | `before-top.png`, `after-floor.png`, `after-tablet-floor.png`, `after-narrow-floor.png` di folder yang sama |
+| `AUTOMATED TEST` | SKIPPED (opsional) — perubahan tampilan saja; unit test bukan wewenang agent |
+| `npm run build` | Tidak dijalankan; dev server Rizki sedang berjalan |
+
+### 9.4 Delta terhadap rancangan
+
+AC-1 menyebut "legenda" sebagai bagian tata letak `NV-DEC-058`. Legenda kini dihapus atas perintah pemilik modul. Status `FE-NV-016` tetap ✅, tetapi `NV-DEC-058` belum mencatat perubahan ini. Pencatatannya di `00-interview-decisions.md` di luar wewenang laporan ini.
