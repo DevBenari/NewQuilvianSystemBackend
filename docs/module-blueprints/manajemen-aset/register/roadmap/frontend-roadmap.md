@@ -31,13 +31,13 @@ REG-FE-S1 ─> REG-FE-S2
 ### Slice `REG-FE-S1` — Fondasi dan pencatatan
 
 ```text
-                              BE-AST-007 [BE] ─┐
-                                               │
-BE-AST-006 [BE] ─> FE-AST-001 ─> FE-AST-002 ─┬─┴─> FE-AST-003 ─> FE-AST-004
-                                             │
-                                             │  BE-AST-012 [BE] ─┐
-                                             │                   │
-                                             └───────────────────┴─> FE-AST-009
+                                       BE-AST-007 [BE] ─┐
+                                                        │
+BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ─> FE-AST-004
+                                                      │
+                                                      │  BE-AST-012 [BE] ─┐
+                                                      │                   │
+                                                      └───────────────────┴─> FE-AST-009
 ```
 
 ### Slice `REG-FE-S2` — Fitur register
@@ -94,19 +94,19 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 
 ## Kartu task
 
-### `FE-AST-001` — Fondasi frontend dan grup menu
+### 🟡 `FE-AST-001` — Fondasi frontend dan grup menu
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 16 November 2026.** Kriteria 1 (grup menu `subMenu` → `subItems` → 8 daun `pathname` ber-`requiredPermission`) dan 2 (`src/utils/corporate/asset-management/asset-status-labels.js`, 14 enum) terpetakan ke source dan teruji di layar (SuperAdmin dan LOKET). Kriteria 3 pilih-aset ⛔ **menunggu `BE-AST-007`** (`GET /register/assets` belum ada). `npx eslint --max-warnings=0` 39 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil 16 November 2026 (`BUILD_ID` 14.20.20). Letak menu sementara di bawah Akuntansi sampai `AST-OQ-015` diputuskan. Laporan: [`FE-AST-001.md`](../task/report/frontend/FE-AST-001.md) |
 | Cakupan | `src/services/corporate/asset-management/` (klien Axios per grup endpoint); `src/utils/asset-management/asset-status-labels.js`; `src/components/view/corporate/asset-management/asset-picker.jsx`; folder `src/app/corporate/asset-management/`; grup menu "Manajemen Aset" dan grup "Master Klasifikasi Aset" pada `menu-items.jsx` |
 | Acceptance criteria | 1. Grup tingkat 0 memakai `subMenu`, grup tingkat 1 memakai `subItems`, daun `pathname` (`getChildrenFromItem`). 2. Label seluruh enum `register` dalam Bahasa Indonesia di satu berkas. 3. Pilih-aset menyaring aset terkunci/hilang/rusak berat sesuai parameter |
 
-### `FE-AST-002` — Delapan layar master
+### ✅ `FE-AST-002` — Delapan layar master
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 16 November 2026.** Keempat acceptance criteria terpetakan ke source; uji layar Playwright 26 langkah lulus (7 daftar, cari, saringan flag/relasi, atur ulang, jumlah baris, rincian bertoken, galat `050`/`051`/`052` per isian, tambah→perbarui→nonaktifkan→hapus, dokumen wajib, pengaturan) dan akun tanpa hak → Akses Ditolak tanpa tombol. `npx eslint --max-warnings=0` `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 14.20.20; route `master-data/[feature]` dan `settings` ada di manifest). Tampilan kode terkunci belum teramati karena belum ada aset bernomor. Laporan: [`FE-AST-002.md`](../task/report/frontend/FE-AST-002.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-02..09` dengan bentuk daftar bersama dan formulir. 2. Pesan `AST-VAL-REG-050..056` tampil per isian. 3. Kode kelompok terkunci menampilkan alasan. 4. Tombol Tambah/Ubah tersembunyi tanpa hak `Create`/`Update` |
 
 ### `FE-AST-003` — Pencatatan draft dan persetujuan nomor
