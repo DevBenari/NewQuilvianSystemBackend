@@ -154,12 +154,18 @@ public sealed class PurchaseRequestListItem
     public int FiscalYear { get; set; }
     public DateOnly NeededByDate { get; set; }
     public string UrgencyLevel { get; set; } = string.Empty;
+    public DateOnly? UrgencyDeadline { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsOutOfPlan { get; set; }
     public bool IsOverBudget { get; set; }
     public decimal RequestedTotal { get; set; }
     public decimal PurchaseTotal { get; set; }
     public int LineCount { get; set; }
+
+    /// <summary>Aksi terakhir pada riwayat dokumen (layar Riwayat Pengajuan); hanya baca.</summary>
+    public string? LastActionCode { get; set; }
+    public DateTimeOffset? LastActionAt { get; set; }
+    public string? LastActorName { get; set; }
     public DateTimeOffset? SubmittedAt { get; set; }
     public DateTime CreateDateTime { get; set; }
 }

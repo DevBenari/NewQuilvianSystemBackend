@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Constants;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Services;
 using QuilvianSystemBackend.Attributes;
@@ -28,8 +29,13 @@ public sealed class PackagePlansController : ControllerBase
 {
     private const string Resource = ProcurementPermissions.PackagePlanResource;
     private readonly ProcurementPackagePlanService _service;
+    private readonly ProcurementApprovalTimelineService _approvalTimeline;
 
-    public PackagePlansController(ProcurementPackagePlanService service) => _service = service;
+    public PackagePlansController(ProcurementPackagePlanService service, ProcurementApprovalTimelineService approvalTimeline)
+    {
+        _service = service;
+        _approvalTimeline = approvalTimeline;
+    }
 
     [HttpGet("filters/metadata")]
     [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Package Plan", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -67,6 +73,16 @@ public sealed class PackagePlansController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public Task<IActionResult> GetStatusHistory(Guid id, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.GetStatusHistoryAsync(User, id, cancellationToken), "Riwayat rencana paket berhasil diambil.");
+
+    /// <summary>Langkah dan keputusan persetujuan <c>Wfl</c> dokumen ini; <c>data</c> kosong bila belum diajukan.</summary>
+    [HttpGet("{id:guid}/approval")]
+    [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Package Plan", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission(Resource, ProcurementPermissions.ReadAction)]
+    [ProducesResponseType(typeof(ApiResponse<ProcurementApprovalTimelineResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public Task<IActionResult> GetApproval(Guid id, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _approvalTimeline.GetAsync(User, ProcurementDocumentTypes.PackagePlan, id, cancellationToken),
+            "Persetujuan rencana paket berhasil diambil.");
 
     [HttpPost]
     [AccessAction(ProcurementPermissions.CreateAction, "Create Procurement Package Plan", AccessType = AccessTypes.Create, SortOrder = 2)]

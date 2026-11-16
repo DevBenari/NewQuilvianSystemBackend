@@ -144,7 +144,7 @@ Status ditampilkan sebagai teks label dari `state-transition-matrix.md`, tidak h
 | Baris rencana + sisa | Pilihan baris rencana dan sisanya | `GET /purchase-requests/plan-line-options` | `ProcurementRequest : Create` | Tidak ada rencana → "Tidak ada rencana untuk barang ini; baris akan ditandai di luar rencana." |
 | Sisa pagu | Per kategori | `GET /budgets/remaining` | `ProcurementRequest : Read` | Gagal dimuat → ringkasan disembunyikan; tidak menghalangi pengajuan |
 | Lampiran | Daftar, unggah, unduh | `GET/POST /attachments` | `ProcurementAttachment : Read/Upload` | Kosong → "Belum ada lampiran." |
-| Persetujuan | Langkah dan keputusan | Detail instance `Wfl` lewat `workflowInstanceId` (endpoint `Wfl` existing) | `ApprovalInbox : Read` atau baca PR | Belum diajukan → "Belum masuk persetujuan." |
+| Persetujuan | Langkah dan keputusan | `GET /purchase-requests/{id}/approval` (`PBJ-DEC-040`; dokumen lain memakai endpoint `/{id}/approval` masing-masing) | baca PR (`ProcurementRequest : Read`) | Belum diajukan → "Belum masuk persetujuan." |
 | Riwayat | Linimasa | `GET /purchase-requests/{id}/history` | `ProcurementRequest : Read` | — |
 
 Angka hasil hitungan (sisa rencana, kebutuhan beli, nilai beli, tanda) **hanya ditampilkan dari respons

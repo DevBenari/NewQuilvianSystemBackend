@@ -17,9 +17,9 @@ layar Playwright dengan aktor non-SuperAdmin; tangkapan layar tercatat pada lapo
 
 | Requirement | Keputusan | Desain / kontrak | Task BE | Task FE | Bukti |
 | --- | --- | --- | --- | --- | --- |
-| FR-PBJ-001 penangan dokumen non-HR | `PBJ-DEC-019`, `026` | Arsitektur §8; INT §1 | `BE-PBJ-001` 🟡, `BE-PBJ-005` ✅ | — | `AT-PP-31`, `34` `PASS` runtime 16 Nov 2026 ([BE-PBJ-005](../task/report/backend/BE-PBJ-005.md), [BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)) |
-| FR-PBJ-002 langkah bersyarat | `PBJ-DEC-030` | Arsitektur §8; kamus §6 | `BE-PBJ-001` 🟡 | — | `AT-PP-25`, `26` `PASS` runtime ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)) |
-| FR-PBJ-003 HR tidak berubah | `PBJ-DEC-019` | — | `BE-PBJ-001` 🟡 | — | `AT-PP-35`, `UAT-16` — `NOT FEASIBLE`: definisi HR di dev tanpa langkah ([BE-PBJ-001](../task/report/backend/BE-PBJ-001.md)) |
+| FR-PBJ-001 penangan dokumen non-HR | `PBJ-DEC-019`, `026` | Arsitektur §8; INT §1 | `BE-PBJ-001` ✅, `BE-PBJ-005` ✅ | — | `AT-PP-31`, `34` `PASS` runtime 16 Nov 2026 ([BE-PBJ-005](../task/report/backend/BE-PBJ-005.md), [BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)) |
+| FR-PBJ-002 langkah bersyarat | `PBJ-DEC-030` | Arsitektur §8; kamus §6 | `BE-PBJ-001` ✅ | — | `AT-PP-25`, `26` `PASS` runtime ([BE-PBJ-008](../task/report/backend/BE-PBJ-008.md)) |
+| FR-PBJ-003 HR tidak berubah | `PBJ-DEC-019` | — | `BE-PBJ-001` ✅ | — | `AT-PP-35` `PASS` dengan dokumen HR pengganti `WorkforceStaffingStandard` (cuti/lembur: master dev kosong); `UAT-16` menunggu master cuti ([BE-PBJ-001](../task/report/backend/BE-PBJ-001.md)) |
 | FR-PBJ-010..012 katalog dan master | `PBJ-DEC-022`, `024`, `033` | API §Master Data; VAL-070..072 | `BE-PBJ-003` ✅ | `FE-PBJ-001` ✅ | `AT-PP-50`, `51`, `64` `PASS` runtime ([BE-PBJ-003](../task/report/backend/BE-PBJ-003.md)); layar: `KTL-000013` dari server, `PBJ-VAL-070`/`071` terbaca ([FE-PBJ-001](../task/report/frontend/FE-PBJ-001.md)) |
 | FR-PBJ-020..021 lampiran | `PBJ-DEC-023` | API §Attachment; VAL-080..083 | `BE-PBJ-004` ✅ | `FE-PBJ-002` ✅ | `AT-PP-53`..`56` `PASS` runtime ([BE-PBJ-004](../task/report/backend/BE-PBJ-004.md)); layar: unggah, ganti versi, `PBJ-VAL-081`, `readOnly` ([FE-PBJ-002](../task/report/frontend/FE-PBJ-002.md)) |
 | FR-PBJ-022 riwayat dokumen | — | PERM §5 | `BE-PBJ-002` ✅ (+ setiap task aksi) | `FE-PBJ-003` ✅, `004` ✅ | `AT-PP-01`, `10`, `31` `PASS` ([BE-PBJ-002](../task/report/backend/BE-PBJ-002.md)); layar: tab Riwayat ([FE-PBJ-003](../task/report/frontend/FE-PBJ-003.md)) |
@@ -67,8 +67,8 @@ layar Playwright dengan aktor non-SuperAdmin; tangkapan layar tercatat pada lapo
 | `PBJ-OQ-019` | Nilai matriks dari SOP belum ada; approval memakai baris fallback | Tidak memblokir DoD; diisi lewat konfigurasi `Wfl` |
 | ~~`AT-PP-36` (tarik)~~ | Terbukti 16 November 2026 bersama `BE-PBJ-008` | — |
 | `AT-PP-45`, `46` | Komitmen belum punya pemanggil | Diisi data uji DB (`UJI_PBJ`) — `PASS`; pemanggil nyata di `pemilihan-penyedia` |
-| `AT-PP-35` (regresi HR) | Definisi workflow HR di `QuilvianNewDevSukma` tanpa langkah; regresi tidak dapat dijalankan | Butuh konfigurasi workflow HR oleh pemiliknya; `BE-PBJ-001` tetap 🟡 |
-| Bundel izin vs kebutuhan layar | "Unit Peminta" tanpa `ProcurementFundSource : Read` (sumber dana PR wajib); "Tim Pengadaan" tanpa `Measurement : Read` (satuan katalog); "Keuangan" tanpa `Organization : Read` (unit pagu); rincian langkah `Wfl` butuh `WorkflowInstance : Read` | Keputusan pemilik: tambah izin di Akses Role atau feed pilihan di bawah izin dokumen ([FE-PBJ-003](../task/report/frontend/FE-PBJ-003.md) §8) |
-| Delta kolom daftar PR | Item daftar tanpa `urgencyDeadline`, langkah saat ini, aksi terakhir; antrean verifikasi tanpa urutan mendesak-dulu | Usulan delta kontrak ([FE-PBJ-004](../task/report/frontend/FE-PBJ-004.md), [FE-PBJ-005](../task/report/frontend/FE-PBJ-005.md)) |
+| ~~`AT-PP-35` (regresi HR)~~ | Dijalankan 16 November 2026 dengan dokumen HR pengganti; cuti/lembur menunggu master HR (`UAT-16`). Empat bug HR lama tercatat di laporan `BE-PBJ-001` | Pemilik HR |
+| ~~Bundel izin vs kebutuhan layar~~ | Ditutup `PBJ-DEC-039` (izin baca master ditambahkan ke bundel) dan `PBJ-DEC-040` (tab Persetujuan lewat `GET /{id}/approval`, tanpa `WorkflowInstance : Read`) | — |
+| ~~Delta kolom daftar PR~~ | Ditutup `PBJ-DEC-040`: `urgencyDeadline`, aksi terakhir, urutan `urgency`. Kolom "Langkah saat ini" di `-16` tetap lewat tab Persetujuan | — |
 | `PBJ-VAL-071` | Backend 400 tanpa `errors.code` dan teks berbeda dari `validation-matrix.md` (409) | Selaraskan backend atau matriks ([FE-PBJ-001](../task/report/frontend/FE-PBJ-001.md)) |
 | Requirement tanpa task | Tidak ada. K-13 (dashboard/laporan) dan integrasi stok sengaja `POST-MVP` (`04-prd-to-mvp.md` §8) | — |

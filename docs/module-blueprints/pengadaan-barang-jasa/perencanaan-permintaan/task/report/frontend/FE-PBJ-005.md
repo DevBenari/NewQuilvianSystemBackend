@@ -200,3 +200,27 @@ Uji manual: `PASS`.
 | Data uji | Definisi `Wfl` PBJ-PR dimatikan sementara untuk uji VAL-091 lalu diaktifkan lagi (diverifikasi `IsActive=true`, `Active`) |
 | Langkah berikutnya | Usulan backend: urutan antrean `urgencyLevel desc`; izin `WorkflowInstance : Read` pada peran pemantau |
 | Status Git | `git status --short` (frontend): `M src/utils/menu-sidebar/menu-items.jsx`; `??` `src/app/corporate/procurement/`, `src/components/view/corporate/procurement/`, `src/lib/constants/corporate/procurement/`, `src/lib/hooks/corporate/procurement/`, `src/lib/services/corporate/`, `src/style/corporate/procurement/`, `src/utils/corporate/procurement/`. Tidak ada stage/commit/push. |
+
+## Pembaruan 16 November 2026 (malam) — tab Persetujuan dan antrean (`PBJ-DEC-040`)
+
+| Perubahan | Berkas | Bukti |
+| --- | --- | --- |
+| Tab Persetujuan memanggil `GET /{dokumen}/{id}/approval` (izin baca dokumen) menggantikan `GET workflow-instances/{id}`; pengusul kini melihat langkah dan keputusan | `shared/procurement-approval-panel.jsx`, `shared/procurement-document-tabs.jsx`, `procurement-approval-service.js` (`fetchDocumentApproval`), konstanta (endpoint/izin `WorkflowInstance` dihapus) | PR-000014 oleh pengusul: 4 langkah "Disetujui" beserta penyetuju; tidak ada panggilan `workflow-instances` |
+| Antrean verifikasi diurutkan server (mendesak lebih dulu); pengurutan sisi klien dihapus | `requests/purchase-request-list-view.jsx` | `PR-000017` (mendesak) di baris pertama |
+
+Endpoint baru yang dikonsumsi:
+
+#### Corporate / Procurement Management / Request / Purchase Request
+
+| Method | Path | Dipakai untuk | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/v1/corporate/procurement-management/purchase-requests/{id}/approval` | Tab Persetujuan PR | `ProcurementRequest : Read` |
+
+Endpoint `GET /{id}/approval` yang sama dipakai untuk rencana kebutuhan (`ProcurementNeedPlan : Read`), pagu
+(`ProcurementBudget : Read`), dan rencana paket (`ProcurementPackagePlan : Read`).
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npx eslint` berkas Pengadaan | 0 error, warning `set-state-in-effect` pola muat-data | `PASS` |
+| `npm run lint:errors` dan `npm run build` | exit 0; 24 rute `/corporate/procurement/**` | `PASS` |
+| Uji layar `ui-results-j.json` (tab Persetujuan pengusul, antrean mendesak) | Sesuai | `PASS` |

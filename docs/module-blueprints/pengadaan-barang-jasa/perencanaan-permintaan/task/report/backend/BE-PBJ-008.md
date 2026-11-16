@@ -176,3 +176,24 @@ terakhir disetujui, lalu dipulihkan dan disinkronkan ulang lewat endpoint baru.
 | Interupsi | `NONE` |
 | Status Git | Belum di-commit. 17 berkas berubah dan 11 jalur baru di backend (lihat `git status --short` pada laporan `BE-PBJ-011`). |
 | Langkah berikutnya | `FE-PBJ-005` |
+
+## Tambahan `PBJ-DEC-040` — 16 November 2026 (malam)
+
+Dikerjakan atas izin penuh pengguna untuk menutup temuan uji layar `FE-PBJ-003`/`004`/`005`.
+
+| Perubahan | Berkas | Alasan |
+| --- | --- | --- |
+| `GET /{id}/approval` pada `purchase-requests`, `need-plans`, `budgets`, `package-plans` (izin `Read` dokumen masing-masing) | `Common/DTOs/ProcurementApprovalTimelineDtos.cs`, `Common/Services/ProcurementApprovalTimelineService.cs`, empat controller dokumen, registrasi DI | `GET workflow-instances/{id}` tidak membatasi data per peserta, sehingga `WorkflowInstance : Read` tidak boleh diberikan ke pengusul. Cakupan memakai `IProcurementDocumentAccessProvider` yang sama dengan lampiran; instance dibaca lewat `WorkflowService.GetByIdAsync` |
+| `PurchaseRequestListItem` + `urgencyDeadline`, `lastActionCode`, `lastActionAt`, `lastActorName` | `Request/DTOs/PurchaseRequestDtos.cs`, `ProcurementPurchaseRequestService.cs` | Kolom "Batas Waktu" (`-14`) dan "Aksi Terakhir" (`-15`) di `03-frontend-architecture.md` §4.6 |
+| `sortBy=urgency` (mendesak lebih dulu, lalu terlama diajukan); bawaan antrean verifikasi | `ProcurementPurchaseRequestService.cs`, `ProcurementPurchaseRequestVerificationService.cs` | "Mendesak di atas" pada `-11` |
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build -c Release` | 0 error, 601 warning (baseline) | `PASS` |
+| `tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode Strict` (10 berkas) | VIOLATION 0, REVIEW 0, INFO 0 | `PASS` |
+| `dotnet ef migrations has-pending-model-changes` | "No changes have been made to the model since the last migration." | `PASS` |
+| Runtime `phase_i.py` (12 skenario): pengusul membaca 4 langkah PR-000014 tanpa izin `Wfl`; unit lain 404; PR tanpa instance → `data: null`; pengusul tetap 403 di `workflow-instances`; rencana, pagu, paket 200; pengusul tanpa izin pagu 403; daftar memuat aksi terakhir; metadata memuat `urgency` | 12/12 | `PASS` |
+| Antrean verifikasi dengan PR mendesak `PR-000017` | `PR-000017` (URGENT, batas 30 Nov 2026) di urutan pertama di depan dua PR biasa | `PASS` |
+
+Catatan: karena `PurchaseRequestQuery.SortBy` bernilai bawaan `createdAt`, antrean memperlakukan `createdAt` sebagai
+"tidak memilih" dan memakai `urgency`; urutan lain (`neededByDate`, `requestNumber`, `purchaseTotal`) tetap dihormati.

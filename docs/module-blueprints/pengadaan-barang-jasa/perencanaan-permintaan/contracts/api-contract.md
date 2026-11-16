@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-API` · `last_changed_in: 1.1` (`PBJ-DEC-037`, 2026-11-12) · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-API` · `last_changed_in: 1.2` (`PBJ-DEC-040`, 2026-11-16) · status `approved` (`PBJ-DEC-034`) |
 | Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-12` |
 | Masukan | `02-backend-architecture.md` revisi 2; `PBJ-PP-STATE` 1.0; `PBJ-PP-VAL` 1.0 |
 | Kompatibilitas | Seluruh endpoint baru. **Tidak ada endpoint existing yang diubah.** Perubahan `Wfl` bersifat internal (tanpa endpoint baru) |
@@ -34,6 +34,12 @@ Base URL: `api/v1/corporate/procurement-management/purchase-requests`
 | `POST` | `/{id}/cancel` | Batal oleh pengusul (`DRAFT`, `SUBMITTED`, `RETURNED`, `PENDING_APPROVAL`) | `ProcurementRequest : Cancel` | `CancelPurchaseRequestRequest` | `PurchaseRequestResponse` |
 | `GET` | `/{id}/history` | Riwayat aksi dan status (3.5) | `ProcurementRequest : Read` | — | `List<DocumentHistoryResponse>` |
 | `GET` | `/plan-line-options` | Baris rencana berlaku beserta sisa, untuk barang × unit × tahun | `ProcurementRequest : Create` | `departmentId`, `fiscalYear`, `itemId` | `List<PlanLineQuotaResponse>` |
+| `GET` | `/{id}/approval` | Langkah dan keputusan `Wfl` PR dalam cakupan; `data: null` bila belum diajukan (1.2, `PBJ-DEC-040`) | `ProcurementRequest : Read` | — | `ProcurementApprovalTimelineResponse` |
+
+> **1.2 (`PBJ-DEC-040`, 16 November 2026).** `PurchaseRequestListItem` bertambah `urgencyDeadline`, `lastActionCode`,
+> `lastActionAt`, `lastActorName` (dari riwayat dokumen). `sortBy` menerima `urgency` (mendesak lebih dulu, lalu
+> terlama diajukan); antrean verifikasi memakai `urgency` bila klien tidak memilih urutan lain. Endpoint
+> `GET /{id}/approval` yang sama tersedia pada need-plans, budgets, dan package-plans dengan izin `Read` masing-masing.
 
 > **Delta implementasi `BE-PBJ-006` (12 November 2026) — menunggu pengesahan ke versi kontrak berikutnya.**
 > Tidak ada endpoint yang dihapus; perilaku bisnis tidak berubah.

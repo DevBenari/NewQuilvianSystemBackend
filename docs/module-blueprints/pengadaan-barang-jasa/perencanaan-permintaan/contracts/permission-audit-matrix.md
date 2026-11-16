@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-PERM` · `last_changed_in: 1.2` (`PBJ-DEC-036`, `PBJ-DEC-037`, 2026-11-12) · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-PERM` · `last_changed_in: 1.3` (`PBJ-DEC-039`, `PBJ-DEC-040`, 2026-11-16) · status `approved` (`PBJ-DEC-034`) |
 | Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-12` |
 | Masukan | `PBJ-DEC-005`, `007`, `017`, `020`, `023`, `026`; `PBJ-PP-API` 1.0 |
 
@@ -41,13 +41,15 @@ konvensi (`GET` tidak dicatat, selain itu dicatat), tanpa pengecualian.
 
 | Peran | Izin |
 | --- | --- |
-| Unit Peminta | `ProcurementRequest : Read, Create, Update, Submit, Cancel`; `ProcurementNeedPlan : Read, Create, Update, Submit, Revise`; `ProcurementItem : Read`; `ProcurementAttachment : Read, Upload` |
+| Unit Peminta | `ProcurementRequest : Read, Create, Update, Submit, Cancel`; `ProcurementNeedPlan : Read, Create, Update, Submit, Revise`; `ProcurementItem : Read`; `ProcurementFundSource : Read` (`PBJ-DEC-039`); `ProcurementAttachment : Read, Upload` |
 | Kepala Unit | Seperti Unit Peminta, ditambah `ApprovalInbox : Read, Approve, Reject, Return` (`Wfl`) |
-| Tim Pengadaan | `ProcurementRequest : Read`; `ProcurementRequestVerification : Read, Verify, CancelApproved`; `ProcurementPackagePlan : *`; `ProcurementNeedPlan : Read, Revise`; `ProcurementItem`, `ProcurementItemCategory`, `ProcurementFundSource` : `Read, Create, Update, Delete`; `ProcurementType : Read`; `ProcurementAttachment : Read, Upload`; `<resource dokumen> : ReadAllUnits` |
+| Tim Pengadaan | `ProcurementRequest : Read`; `ProcurementRequestVerification : Read, Verify, CancelApproved`; `ProcurementPackagePlan : *`; `ProcurementNeedPlan : Read, Revise`; `ProcurementItem`, `ProcurementItemCategory`, `ProcurementFundSource` : `Read, Create, Update, Delete`; `ProcurementType : Read`; `Measurement : Read` (`PBJ-DEC-039`); `ProcurementAttachment : Read, Upload`; `<resource dokumen> : ReadAllUnits` |
 | Manajer Pengadaan / Direktur (penyetuju) | `ApprovalInbox : Read, Approve, Reject, Return`; `ProcurementRequest : Read`; `ProcurementNeedPlan : Read`; `ProcurementPackagePlan : Read`; `ProcurementBudget : Read`; `<resource dokumen> : ReadAllUnits` |
-| Keuangan / Anggaran | `ProcurementBudget : Read, Create, Update, Submit, Revise, ReadAllUnits`; `ProcurementItemCategory : Read`; `ProcurementFundSource : Read` |
+| Keuangan / Anggaran | `ProcurementBudget : Read, Create, Update, Submit, Revise, ReadAllUnits`; `ProcurementItemCategory : Read`; `ProcurementFundSource : Read`; `Organization : Read` (`PBJ-DEC-039`) |
 | Auditor | Semua `Read` di atas + `<resource dokumen> : ReadAllUnits` |
 | Administrator | Konfigurasi definisi dan matriks `Wfl` (izin `Wfl` existing) |
+
+Tab Persetujuan setiap dokumen memakai izin `Read` dokumen itu (`GET /{id}/approval`, `PBJ-DEC-040`). `WorkflowInstance : Read` **tidak** diberikan kepada peran Pengadaan karena tidak dibatasi per peserta.
 
 ## 4. Kewenangan yang tidak dapat dijaga mesin izin
 

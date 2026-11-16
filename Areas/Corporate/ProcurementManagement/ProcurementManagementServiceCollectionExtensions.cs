@@ -17,6 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement
         {
             // BE-PBJ-002 — fondasi bersama seluruh sub-modul Pengadaan.
             services.AddScoped<ProcurementDocumentHistoryWriter>();
+            services.AddScoped<ProcurementApprovalTimelineService>();
             services.AddScoped<ProcurementDataScopeService>();
 
             // BE-PBJ-003 — master Pengadaan (PBJ-DEC-037: satu service per master).

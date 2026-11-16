@@ -179,3 +179,21 @@ Uji manual: `PASS`.
 | Interupsi | `NONE` |
 | Langkah berikutnya | Keputusan delta kontrak kolom daftar |
 | Status Git | `git status --short` (frontend): `M src/utils/menu-sidebar/menu-items.jsx`; `??` `src/app/corporate/procurement/`, `src/components/view/corporate/procurement/`, `src/lib/constants/corporate/procurement/`, `src/lib/hooks/corporate/procurement/`, `src/lib/services/corporate/`, `src/style/corporate/procurement/`, `src/utils/corporate/procurement/`. Tidak ada stage/commit/push. |
+
+## Pembaruan 16 November 2026 (malam) — kolom daftar (`PBJ-DEC-040`)
+
+Backend kini mengirim `urgencyDeadline` dan aksi terakhir pada `PurchaseRequestListItem`.
+
+| Layar | Perubahan | Bukti |
+| --- | --- | --- |
+| `-14` Permintaan Mendesak | Kolom **Batas Waktu**; Sisa Hari dihitung dari batas waktu mendesak (cadangan: tanggal dibutuhkan) | PR-000017: "30 Nov 2026 · 14 hari" |
+| `-15` Riwayat Pengajuan | Kolom **Aksi Terakhir** (label aksi · pelaku · waktu) | PR-000014: "Dibatalkan · TEST-PBJ proc Uji · 16 Nov 2026, 17.18" |
+| `-16` Menunggu Persetujuan | Langkah saat ini tetap dibaca di tab Persetujuan detail (tanpa kolom tambahan) | — |
+
+Berkas: `src/components/view/corporate/procurement/requests/purchase-request-list-view.jsx`.
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npx eslint` berkas Pengadaan | 0 error, warning `set-state-in-effect` pola muat-data | `PASS` |
+| `npm run lint:errors` dan `npm run build` | exit 0; 24 rute `/corporate/procurement/**` | `PASS` |
+| Uji layar `ui-results-j.json` (Riwayat dan Mendesak) | Sesuai | `PASS` |

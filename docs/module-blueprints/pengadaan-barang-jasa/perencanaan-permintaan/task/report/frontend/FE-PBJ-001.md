@@ -201,3 +201,14 @@ Uji manual: `PASS`.
 | Temuan izin | `Measurement : Read` tidak ada di bundel Tim Pengadaan — tabel lengkap temuan izin ada di laporan `FE-PBJ-003` §8 |
 | Langkah berikutnya | Keputusan pemilik soal bundel izin (lihat `FE-PBJ-003` §8) |
 | Status Git | `git status --short` (frontend): `M src/utils/menu-sidebar/menu-items.jsx`; `??` `src/app/corporate/procurement/`, `src/components/view/corporate/procurement/`, `src/lib/constants/corporate/procurement/`, `src/lib/hooks/corporate/procurement/`, `src/lib/services/corporate/`, `src/style/corporate/procurement/`, `src/utils/corporate/procurement/`. Tidak ada stage/commit/push. |
+
+## Pembaruan 16 November 2026 (malam) — `PBJ-DEC-039`
+
+Temuan "Tim Pengadaan tanpa `Measurement : Read`" ditutup dengan keputusan `PBJ-DEC-039`: izin baca master Satuan
+masuk bundel Tim Pengadaan (`permission-audit-matrix.md` §3, `PBJ-PP-PERM 1.3`). Tidak ada perubahan kode layar.
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npx eslint` berkas Pengadaan | 0 error, warning `set-state-in-effect` pola muat-data | `PASS` |
+| `npm run lint:errors` dan `npm run build` | exit 0; 24 rute `/corporate/procurement/**` | `PASS` |
+| Uji layar `ui-results-j.json`: form tambah barang oleh Tim Pengadaan menampilkan 30 pilihan satuan | Sesuai | `PASS` |

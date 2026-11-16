@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Branch / commit saat dikerjakan | `sukmagp` @ `100c011d` (working tree belum di-commit; tanpa stage/commit/push) |
 | Tanggal | 12 November 2026 |
-| Status | 🟡 **SEBAGIAN — diperbarui 16 November 2026.** Kriteria 1–5 terbukti (2–4 kini di runtime lewat definisi `PBJ-*`); `AT-PP-35` regresi cuti/lembur `NOT FEASIBLE`: definisi workflow HR di `QuilvianNewDevSukma` (T9–T18) tidak punya satu pun langkah dan belum pernah punya instance, dan tidak ada definisi cuti/lembur sama sekali |
+| Status | ✅ **SELESAI — diperbarui 16 November 2026 (malam).** Kriteria 1–5 terbukti di runtime. `AT-PP-35` dijalankan dengan dokumen HR pengganti (standar ketenagaan, `ReferenceType` `WorkforceStaffingStandard`) karena master cuti/lembur di `QuilvianNewDevSukma` kosong; lihat bagian "Regresi HR `AT-PP-35`" |
 
 ## Backend Governance Preflight
 
@@ -179,3 +179,32 @@ bukan mengubah perilaku yang benar, tetapi tetap perlu dibuktikan di HR saat kon
 
 1 skenario, 1 `PASS`.
 
+## Regresi HR `AT-PP-35` — 16 November 2026 (malam)
+
+Dijalankan sesudah pengguna memberi izin penuh ("saya berikan izin sepenuhnya, dan lanjutkan"). Konfigurasi uji dipasang
+sementara dan dinonaktifkan lagi sesudah uji (bertanda `DATA UJI PBJ AT-PP-35 (bukan nilai SOP)`).
+
+**Mengapa bukan cuti/lembur.** Pengajuan cuti membutuhkan kebijakan cuti (`MstLeavePolicy` = 0 baris), saldo, dan
+jadwal kerja pegawai yang tidak ada di basis data dev; lembur membutuhkan kebijakan lembur dengan kode alur. Menyusun
+seluruh master HR itu di luar wewenang task ini. Kriteria (1) — "instance dengan `ReferenceType` HR tetap ditangani
+penangan HR yang sama" — diuji dengan dokumen HR lain yang memakai mesin dan penangan lifecycle HR yang sama.
+
+| Skenario | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| Draf standar ketenagaan dibuat lewat API HR (`POST workforce-planning/staffing-standards`) oleh aktor uji ber-workforce profile | 201 | `PASS` | `at_pp_35_t9.json` scratchpad |
+| Instance `Wfl` untuk `ReferenceType` `WorkforceStaffingStandard` dibuat dan diajukan (`POST workflow-instances`, `/{id}/submit`) | 201 → 200; status `InProgress`; satu langkah `UJI-T9-01` dibuat dengan `ActivationConditionCode = null` (kriteria 4) | `PASS` | idem |
+| Penyetuju menyetujui lewat kotak masuk (`approval-inbox/{assignmentId}/approve`) | 200; instance `Completed`; 4 baris `TrxWorkflowStatusHistory` tersimpan (perbaikan riwayat status juga berlaku untuk HR) | `PASS` | idem |
+| Penangan lifecycle HR tetap dipanggil lebih dulu | `WorkflowReferenceLifecycleService` memeriksa cabang `IsWorkforcePlanningReference` sebelum penangan modul lain; diff sesudah `2b679711` hanya menambah fallback di akhir | `PASS` (kode + runtime) | `git diff 2b679711 -- WorkflowReferenceLifecycleService.cs` |
+
+**Temuan HR lama yang terungkap (tidak disebabkan task ini, tidak diperbaiki — pemilik modul HR):**
+
+| Temuan | Bukti asal | Dampak |
+| --- | --- | --- |
+| `HrdHeadcountRequestService.SubmitAsync` membuka transaksi lalu memanggil `WorkflowService.CreateAsync` yang membuka transaksi lagi → 500 "The connection is already in a transaction" | Transaksi di `CreateAsync` sudah ada pada `2b679711` (sebelum pekerjaan Pengadaan) | Permintaan formasi (`T11`/`T12`) tidak dapat diajukan |
+| `HrdStaffingStandardService.UpdateDraftAsync` gagal `DbUpdateConcurrencyException` saat menambah baris | Pola EF sama dengan perbaikan riwayat status `Wfl` | Draf standar ketenagaan tidak dapat diisi baris |
+| Kode alur `HRD_T9_STAFFING_STANDARD` dipakai service, sedangkan definisi di DB berkode `T9` | Query definisi | Pengajuan standar ketenagaan gagal "definisi tidak ditemukan" |
+| Penerap keputusan HR (`HrdStaffingStandardDecisionApplier`) hanya bereaksi pada status `Approved`/`FinalApproved`, sedangkan mesin menutup instance dengan `Completed` | `Completed` diset `WorkflowService` sejak `645f5f80` (Juli 2026) | Dokumen HR perencanaan tenaga tidak berpindah status otomatis setelah disetujui |
+
+**Konfigurasi uji yang dipasang lalu dibersihkan:** definisi uji `HRD_T9_STAFFING_STANDARD` (klon `T9`), langkah dan
+baris matriks uji untuk `T9` dan `T12`, izin `WorkforceStaffingStandard`/`WorkforceHeadcountRequest`/`WorkflowInstance`
+sementara pada jabatan uji Keuangan. Seluruhnya dinonaktifkan/dihapus lunak; policy jabatan uji dikembalikan.

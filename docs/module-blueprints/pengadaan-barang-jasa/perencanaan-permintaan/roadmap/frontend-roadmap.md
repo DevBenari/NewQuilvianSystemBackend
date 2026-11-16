@@ -56,8 +56,8 @@ BE-PBJ-009 [BE] ✅ ────────┴───┴─> FE-PBJ-006 ✅ �
                                                  BE-PBJ-011 [BE] ✅ ─┘
 ```
 
-`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja. Status backend per 16 November 2026: `BE-PBJ-002`..`011`
-✅; `BE-PBJ-001` 🟡 (`AT-PP-35` `NOT FEASIBLE`). Gerbang registry `PBJ-OQ-002` sudah ditutup (`PBJ-DEC-035`).
+`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja. Status backend per 16 November 2026: `BE-PBJ-001`..`011`
+✅. Gerbang registry `PBJ-OQ-002` sudah ditutup (`PBJ-DEC-035`).
 
 Jumlah pasangan prasyarat → task: **16**, sama dengan isi kolom `Dependency`.
 

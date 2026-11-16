@@ -193,3 +193,18 @@ Uji manual: `PASS`.
 | Bundel "Tim Pengadaan" tidak memuat `Measurement : Read` | Form tambah barang tidak dapat memilih satuan (pesan izin tampil) | Tambah izin baca master Satuan ke peran Tim Pengadaan |
 | Bundel "Keuangan / Anggaran" tidak memuat `Organization : Read` | Pemilih unit pada pagu hanya berisi unit pengguna sendiri | Tambah izin baca Organisasi ke peran Keuangan, atau feed unit di bawah `ProcurementBudget : Create` |
 | Rincian langkah persetujuan butuh `WorkflowInstance : Read` yang tidak ada di bundel mana pun | Tab Persetujuan menampilkan "Anda belum berhak melihat rincian langkah persetujuan." | Tambah izin itu ke peran yang perlu memantau, atau endpoint ringkas langkah di modul Pengadaan |
+
+## Pembaruan 16 November 2026 (malam) — temuan izin ditutup
+
+| Temuan (lihat tabel di atas) | Penutupan |
+| --- | --- |
+| Unit Peminta tanpa `ProcurementFundSource : Read` | `PBJ-DEC-039` — izin masuk bundel; uji layar: pengusul memilih "Investasi" |
+| Tim Pengadaan tanpa `Measurement : Read` | `PBJ-DEC-039` |
+| Keuangan tanpa `Organization : Read` | `PBJ-DEC-039` — uji layar: pilihan unit pagu berisi 30 unit |
+| Rincian langkah butuh `WorkflowInstance : Read` | `PBJ-DEC-040` — tab Persetujuan memakai `GET /{dokumen}/{id}/approval` (izin baca dokumen + cakupan unit); `WorkflowInstance : Read` tidak diberikan karena tidak dibatasi per peserta |
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npx eslint` berkas Pengadaan | 0 error, warning `set-state-in-effect` pola muat-data | `PASS` |
+| `npm run lint:errors` dan `npm run build` | exit 0; 24 rute `/corporate/procurement/**` | `PASS` |
+| Uji layar `ui-results-j.json` (7 skenario) | 7/7 | `PASS` |

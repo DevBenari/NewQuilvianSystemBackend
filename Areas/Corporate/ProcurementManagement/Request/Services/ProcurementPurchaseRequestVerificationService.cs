@@ -75,6 +75,8 @@ public sealed class ProcurementPurchaseRequestVerificationService
     {
         request.Status = ProcurementStatuses.PurchaseRequest.Submitted;
         request.MineOnly = null;
+        // Bawaan antrean: mendesak lebih dulu (03-frontend-architecture.md §4.6), kecuali klien memilih urutan lain.
+        if (string.Equals(request.SortBy, "createdAt", StringComparison.OrdinalIgnoreCase)) request.SortBy = "urgency";
         return _purchaseRequestService.GetPagedAsync(user, request, cancellationToken);
     }
 

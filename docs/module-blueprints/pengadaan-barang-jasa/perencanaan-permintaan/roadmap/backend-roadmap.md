@@ -43,7 +43,7 @@ yang sama dengan blok 1 (sambungan), bukan task baru.
                                   │
                                   └─> BE-PBJ-003 ✅ ─┬─> BE-PBJ-006 ✅
                                                      │
-BE-PBJ-001 🟡 ───────────────────────────────────────┴─> BE-PBJ-005 ✅
+BE-PBJ-001 ✅ ───────────────────────────────────────┴─> BE-PBJ-005 ✅
 ```
 
 ```text
@@ -63,7 +63,7 @@ Jumlah pasangan prasyarat → task: **13**, sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `BE-PBJ-001` 🟡 — 16 November 2026: `AT-PP-35` `NOT FEASIBLE` (definisi HR dev tanpa langkah) |
+| 1 | — | `BE-PBJ-001` ✅ — 16 November 2026 |
 | 1 | `{PBJ-OQ-002}` ✅ diputuskan 2026-11-12 (`PBJ-DEC-035`) | `BE-PBJ-002` ✅ — 16 November 2026 |
 | 2 | `BE-PBJ-002` | `BE-PBJ-003` ✅, `BE-PBJ-004` ✅ — 16 November 2026 |
 | 3 | `BE-PBJ-003` (+ `BE-PBJ-001` untuk 005) | `BE-PBJ-005` ✅, `BE-PBJ-006` ✅ — 16 November 2026 |
@@ -88,7 +88,7 @@ MVP-2" pada PRD tidak terjadi.
 
 | Task ID | Outcome | Requirement / decision | Kontrak | Reuse | Cakupan | Dependency | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-PBJ-001` | Mesin `Wfl` menerima penangan dokumen non-HR dan langkah bersyarat | `PBJ-DEC-019`, `026`, `030`; FR-PBJ-001..003 | `PBJ-PP-INT` 1.0 §1; arsitektur §8 | `WorkflowService`, `WorkflowReferenceLifecycleService` | `Wfl` + 1 kolom + migration | — | 🟡 16 November 2026 — `AT-PP-35` `NOT FEASIBLE` ([laporan](../task/report/backend/BE-PBJ-001.md)) |
+| `BE-PBJ-001` | Mesin `Wfl` menerima penangan dokumen non-HR dan langkah bersyarat | `PBJ-DEC-019`, `026`, `030`; FR-PBJ-001..003 | `PBJ-PP-INT` 1.0 §1; arsitektur §8 | `WorkflowService`, `WorkflowReferenceLifecycleService` | `Wfl` + 1 kolom + migration | — | ✅ 16 November 2026 ([laporan](../task/report/backend/BE-PBJ-001.md)) |
 | `BE-PBJ-002` | Kerangka Area Pengadaan, riwayat dokumen, cakupan unit | `PBJ-DEC-020`, `PBJ-OQ-002` | `PBJ-PP-PERM` §1, §4–5; kamus data §5 | `AspNetUserOrganization` | Area baru, 1 tabel | `{PBJ-OQ-002}` | ✅ 16 November 2026 ([laporan](../task/report/backend/BE-PBJ-002.md)) |
 | `BE-PBJ-003` | Katalog, kategori, jenis, sumber dana + data awal | `PBJ-DEC-022`, `024`, `033` (`G-07`) | API §Master Data; VAL-070..072 | `NumberSeriesAllocator`, `MstMeasurement`, `MstDrug` | 4 tabel Mst, 2 controller | `BE-PBJ-002` | ✅ 16 November 2026 ([laporan](../task/report/backend/BE-PBJ-003.md)) |
 | `BE-PBJ-004` | Lampiran berversi dengan cek isi berkas | `PBJ-DEC-023`; FR-PBJ-020..021 | API §Attachment; VAL-080..083 | pola `WorkflowFileStorageService` (acuan, tidak dipanggil) | 1 tabel, 1 controller | `BE-PBJ-002` | ✅ 16 November 2026 ([laporan](../task/report/backend/BE-PBJ-004.md)) |
@@ -102,11 +102,11 @@ MVP-2" pada PRD tidak terjadi.
 
 ## Kartu task
 
-### 🟡 `BE-PBJ-001` — Perluasan mesin approval `Wfl`
+### ✅ `BE-PBJ-001` — Perluasan mesin approval `Wfl`
 
 | Aspek | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — diperbarui 16 November 2026.** Kriteria 1–5 terbukti (2–4 kini runtime lewat definisi `PBJ-*`: `AT-PP-25`, `26`, `31`); build `PASS`, QBE `PASS`. Belum: `AT-PP-35` regresi cuti/lembur `NOT FEASIBLE` — definisi workflow HR di `QuilvianNewDevSukma` tanpa langkah dan tanpa definisi cuti/lembur. Laporan: [laporan](../task/report/backend/BE-PBJ-001.md) |
+| **Status** | ✅ **SELESAI 16 November 2026.** Kriteria 1–5 terbukti di runtime; build `PASS`, QBE `PASS`. `AT-PP-35` dijalankan dengan dokumen HR pengganti (`WorkforceStaffingStandard`: buat, ajukan, setujui → `Completed`, langkah tanpa kode kondisi dibuat, penangan HR dipanggil lebih dulu) karena master cuti/lembur dev kosong; empat bug HR lama tercatat untuk pemilik HR. Laporan: [laporan](../task/report/backend/BE-PBJ-001.md) |
 | Outcome | Modul non-HR dapat mendaftarkan penangan dokumen, dan langkah approval dapat dibuat bersyarat |
 | Cakupan | Baru: `Areas/Corporate/HumanResource/WorkflowManagement/Services/IWorkflowReferenceLifecycleHandler.cs` (`bool CanHandle(string referenceType)`, `Task<WorkflowReferenceLifecycleSynchronizationResult> SynchronizeAsync(TrxWorkflowInstance, Guid actorUserId, bool allowAutoApply, CancellationToken)`). Diperbarui: `WorkflowReferenceLifecycleService.SynchronizeAsync` memanggil `IEnumerable<IWorkflowReferenceLifecycleHandler>` sebelum fallback `IsHandled = false`; `WorkflowService` melewati `MstWorkflowStep` yang `ActivationConditionCode`-nya tidak ada pada `RequestContext.conditionCodes`; `WorkflowRequestContext.Parse` membaca `conditionCodes`; `MstWorkflowStep` + konfigurasi EF + migration `AddWorkflowStepActivationCondition` (Designer + snapshot) |
 | Di luar cakupan | Perbaikan jalur V2 (`WorkflowInstanceCreationService` fallback, `WorkflowRoutingMatrixService` hardcode): temuan terpisah untuk pemilik `Wfl` |

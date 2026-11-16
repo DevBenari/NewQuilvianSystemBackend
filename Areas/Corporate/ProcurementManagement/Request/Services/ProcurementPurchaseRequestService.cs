@@ -102,7 +102,8 @@ public sealed class ProcurementPurchaseRequestService
             new() { Value = "createdAt", Label = "Tanggal dibuat" },
             new() { Value = "requestNumber", Label = "Nomor PR" },
             new() { Value = "neededByDate", Label = "Tanggal dibutuhkan" },
-            new() { Value = "purchaseTotal", Label = "Nilai beli" }
+            new() { Value = "purchaseTotal", Label = "Nilai beli" },
+            new() { Value = "urgency", Label = "Mendesak lebih dulu" }
         ]
     };
 
@@ -165,6 +166,9 @@ public sealed class ProcurementPurchaseRequestService
             "requestnumber" => descending ? query.OrderByDescending(x => x.RequestNumber) : query.OrderBy(x => x.RequestNumber),
             "neededbydate" => descending ? query.OrderByDescending(x => x.NeededByDate) : query.OrderBy(x => x.NeededByDate),
             "purchasetotal" => descending ? query.OrderByDescending(x => x.PurchaseTotal) : query.OrderBy(x => x.PurchaseTotal),
+            // Mendesak lebih dulu, lalu yang paling lama menunggu (antrean verifikasi).
+            "urgency" => query.OrderBy(x => x.UrgencyLevel == ProcurementUrgencyLevels.Urgent ? 0 : 1)
+                .ThenBy(x => x.SubmittedAt ?? x.CreateDateTime),
             _ => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
         };
 
@@ -182,6 +186,7 @@ public sealed class ProcurementPurchaseRequestService
                 FiscalYear = x.FiscalYear,
                 NeededByDate = x.NeededByDate,
                 UrgencyLevel = x.UrgencyLevel,
+                UrgencyDeadline = x.UrgencyDeadline,
                 Status = x.Status,
                 IsOutOfPlan = x.IsOutOfPlan,
                 IsOverBudget = x.IsOverBudget,
@@ -189,7 +194,18 @@ public sealed class ProcurementPurchaseRequestService
                 PurchaseTotal = x.PurchaseTotal,
                 LineCount = x.Lines.Count(l => !l.IsDelete),
                 SubmittedAt = x.SubmittedAt,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                LastActionCode = _dbContext.PrcDocumentHistories
+                    .Where(h => h.DocumentType == ProcurementDocumentTypes.PurchaseRequest && h.DocumentId == x.Id)
+                    .OrderByDescending(h => h.OccurredAt).Select(h => h.ActionCode).FirstOrDefault(),
+                LastActionAt = _dbContext.PrcDocumentHistories
+                    .Where(h => h.DocumentType == ProcurementDocumentTypes.PurchaseRequest && h.DocumentId == x.Id)
+                    .OrderByDescending(h => h.OccurredAt).Select(h => (DateTimeOffset?)h.OccurredAt).FirstOrDefault(),
+                LastActorName = _dbContext.PrcDocumentHistories
+                    .Where(h => h.DocumentType == ProcurementDocumentTypes.PurchaseRequest && h.DocumentId == x.Id)
+                    .OrderByDescending(h => h.OccurredAt)
+                    .Select(h => _dbContext.Users.Where(u => u.Id == h.ActorUserId).Select(u => u.DisplayName).FirstOrDefault())
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 
