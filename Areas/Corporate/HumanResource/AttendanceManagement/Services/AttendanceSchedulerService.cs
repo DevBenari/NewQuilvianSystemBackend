@@ -17,14 +17,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         private readonly AttendancePeriodService _periodService;
         private readonly AttendanceSchedulerOptions _options;
         private readonly ILogger<AttendanceSchedulerService> _logger;
+        private readonly AttendanceSettingService _attendanceSettingService;
+
+        // Batas job hitung ulang status sementara per siklus, agar satu siklus tidak membanjiri antrean.
+        private const int MaximumRecheckJobsPerCycle = 100;
 
         public AttendanceSchedulerService(
             ApplicationDbContext dbContext,
             AttendanceProcessingService processingService,
             AttendancePeriodService periodService,
             IOptions<AttendanceSchedulerOptions> options,
-            ILogger<AttendanceSchedulerService> logger)
+            ILogger<AttendanceSchedulerService> logger,
+            AttendanceSettingService attendanceSettingService)
         {
+            _attendanceSettingService = attendanceSettingService ?? throw new ArgumentNullException(nameof(attendanceSettingService));
             _dbContext = dbContext;
             _processingService = processingService;
             _periodService = periodService;
@@ -511,6 +517,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return 0;
             }
 
+            // Berjalan setiap siklus, tidak menunggu jam pemrosesan harian (HRD-DEC-207).
+            await EnsureProvisionalStatusRecheckJobsAsync(utcNow, cancellationToken);
+
             var timeZone = ResolveTimeZone(_options.TimeZoneId);
             var localNow = TimeZoneInfo.ConvertTimeFromUtc(utcNow, timeZone);
             var cutoff = new TimeOnly(
@@ -767,6 +776,107 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 .AsNoTracking()
                 .CountAsync(x => !x.IsDelete && x.JobNumber.StartsWith(prefix), cancellationToken);
             return prefix + (count + 1).ToString("D6") + "-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// Status sementara dihitung ulang tanpa campur tangan petugas (HRD-DEC-207 butir 1–4, state matrix 30.6):
+        /// "Belum Hadir" yang jam selesai shiftnya sudah lewat, dan "Tidak Ada Scan"/"Belum Lengkap" yang menerima scan
+        /// baru di dalam jendela scan (misalnya data mesin yang tertunda). Satu job per rekap per versi pemrosesan,
+        /// sehingga sapuan berikutnya tidak menggandakan job.
+        /// </summary>
+        public async Task<int> EnsureProvisionalStatusRecheckJobsAsync(
+            DateTime utcNow,
+            CancellationToken cancellationToken = default)
+        {
+            var setting = await _attendanceSettingService.GetRequiredSettingAsync(cancellationToken: cancellationToken);
+            if (!setting.Success || setting.Data == null)
+            {
+                // Pemrosesan sendiri akan mencatat Error; tidak ada gunanya menjadwalkan ulang.
+                return 0;
+            }
+
+            var before = setting.Data.ScanWindowBeforeMinutes;
+            var after = setting.Data.ScanWindowAfterMinutes;
+            var timeZone = ResolveTimeZone(_options.TimeZoneId);
+            var localToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcNow, timeZone));
+            var earliestDate = localToday.AddDays(-Math.Clamp(_options.MaximumCatchUpDays, 1, 31));
+            var notYetPresent = AttendanceValueConstants.AttendanceStatus.NotYetPresent;
+            var noScan = AttendanceValueConstants.AttendanceStatus.NoScan;
+            var incompletePunch = AttendanceValueConstants.AttendanceStatus.IncompletePunch;
+            var matched = AttendanceValueConstants.RawLogProcessingStatus.Matched;
+            var processed = AttendanceValueConstants.RawLogProcessingStatus.Processed;
+            var closed = AttendanceValueConstants.AttendancePeriodStatus.Closed;
+
+            var candidates = await _dbContext.Set<HrdAttendanceDaily>()
+                .AsNoTracking()
+                .Where(d =>
+                    !d.IsDelete &&
+                    !d.IsLocked &&
+                    !d.IsCorrected &&
+                    d.WorkforceProfileId != null &&
+                    d.AttendanceDate >= earliestDate &&
+                    d.ScheduledCheckInAt != null &&
+                    d.ScheduledCheckOutAt != null &&
+                    !_dbContext.Set<HrdAttendancePeriod>().Any(p =>
+                        !p.IsDelete && p.PeriodStatus == closed && p.StartDate <= d.AttendanceDate && p.EndDate >= d.AttendanceDate) &&
+                    ((d.AttendanceStatus == notYetPresent && d.ScheduledCheckOutAt <= utcNow) ||
+                     ((d.AttendanceStatus == noScan || d.AttendanceStatus == incompletePunch) &&
+                      _dbContext.Set<HrdAttendanceRawLog>().Any(l =>
+                          l.WorkforceProfileId == d.WorkforceProfileId &&
+                          l.ProcessedAttendanceDailyId == null &&
+                          l.IsActive && !l.IsDelete && !l.IsCancel &&
+                          (l.ProcessingStatus == matched || l.ProcessingStatus == processed) &&
+                          l.EventAt >= d.ScheduledCheckInAt.Value.AddMinutes(-before) &&
+                          l.EventAt <= d.ScheduledCheckOutAt.Value.AddMinutes(after)))))
+                .OrderBy(d => d.AttendanceDate)
+                .Select(d => new { d.Id, WorkforceProfileId = d.WorkforceProfileId!.Value, d.AttendanceDate, d.ProcessingVersion })
+                .Take(MaximumRecheckJobsPerCycle)
+                .ToListAsync(cancellationToken);
+
+            if (candidates.Count == 0)
+            {
+                return 0;
+            }
+
+            var actorUserId = ParseSystemActorUserId();
+            var created = 0;
+            foreach (var candidate in candidates)
+            {
+                var correlationId = $"ATT-RECHECK-{candidate.Id:N}-v{candidate.ProcessingVersion}";
+                var exists = await _dbContext.Set<HrdAttendanceSchedulerJob>()
+                    .AsNoTracking()
+                    .AnyAsync(x => !x.IsDelete && x.CorrelationId == correlationId, cancellationToken);
+                if (exists)
+                {
+                    continue;
+                }
+
+                var result = await EnqueueAsync(
+                    new EnqueueAttendanceProcessingJobRequest
+                    {
+                        StartDate = candidate.AttendanceDate,
+                        EndDate = candidate.AttendanceDate,
+                        WorkforceProfileId = candidate.WorkforceProfileId,
+                        ForceReprocess = true,
+                        Priority = 100,
+                        MaxRetryCount = _options.DefaultMaximumRetryCount,
+                        CorrelationId = correlationId,
+                        Notes = "Hitung ulang status sementara kehadiran (HRD-DEC-207)."
+                    },
+                    actorUserId,
+                    cancellationToken);
+                if (result.Success)
+                {
+                    created++;
+                }
+            }
+
+            if (created > 0)
+            {
+                _logger.LogInformation("Dijadwalkan {Count} hitung ulang status sementara kehadiran.", created);
+            }
+
+            return created;
         }
 
         private Guid ParseSystemActorUserId()

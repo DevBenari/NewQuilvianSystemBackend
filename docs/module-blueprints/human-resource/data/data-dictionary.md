@@ -5679,26 +5679,418 @@ Menyimpan pengajuan klaim penggantian biaya operasional langsung tanpa perjalana
 
 ---
 
-## 27. Kamus Data Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v26`, APPROVED)
+## 27. Kamus Data Amandemen `S-B4`/`S-B1` — Penjadwalan & Kehadiran (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Status | `approved` — pengguna, 12 November 2026 |
+| Sumber desain | `02-backend-architecture.md` bagian 35 |
+| `input_revision` | `00-interview-decisions.md` revision `37`; capability map revisi `1.4` |
+| Backend SHA | `a437ae42` |
+
+Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
+`CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`,
+`CancelBy`, `IsCancel`, dan `IsDelete`. Kolom-kolom itu tidak diulang pada tabel di bawah.
+Penghapusan bersifat penandaan melalui `IsDelete`, bukan penghapusan baris. Seluruh tabel
+berada pada schema `public`.
+
+Kolom bertanda **Sensitif = Ya** tidak boleh masuk payload logger dan tidak boleh dipakai
+sebagai contoh berisi data asli.
+
+### 27.1 Status tabel
+
+| Tabel | Status | Pemilik | Catatan |
+| --- | --- | --- | --- |
+| `HrdShiftAssignmentRevision` | Baru | 06 Penjadwalan | Riwayat Revisi, hanya-tambah |
+| `HrdOnCallBackup` | Baru | 06 Penjadwalan | Cadangan siaga berurutan |
+| `HrdOnCallCall` | Baru | 06 Penjadwalan | Catatan panggilan siaga |
+| `HrdAttendanceDispensation` | Baru | 07 Kehadiran | Dispensasi |
+| `HrdStudyAssignment` | Baru | 07 Kehadiran | Tugas belajar penuh waktu |
+| `HrdAttendanceDeviceIncident` | Baru | 07 Kehadiran | Kejadian gangguan mesin |
+| `HrdAttendanceCorrectionRequest` | Diperbarui | 07 Kehadiran | Tambah `DeviceIncidentId` |
+| `HrdAttendanceSetting` | Diperbarui | 07 Kehadiran | Tambah jendela scan |
+| `MstOnCallType` | Diperbarui | Master Data HR | Tambah `AnswerTimeoutMinutes` |
+| `TrxShiftAssignment`, `TrxShiftReplacement`, `TrxRosterPeriod`, `TrxOnCallAssignment`, `MstHoliday`, `MstAttendanceDevice`, `HrdAttendanceRawLog`, `HrdAttendanceDaily`, `WfpOrganizationAssignment`, `WfpManagerAssignment`, `MstOrganizationUnit` | Sudah ada | Lihat 27.4 | Hanya kolom kunci |
+
+### 27.2 Tabel baru
+
+#### `HrdShiftAssignmentRevision`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ShiftAssignmentId` | `Guid` | Ya | — | Index bersama `ChangedAt` | FK `TrxShiftAssignment` | `Restrict` | Tidak | Shift yang berubah |
+| `RosterPeriodId` | `Guid` | Ya | — | Index bersama `ShiftDate` | FK `TrxRosterPeriod` | `Restrict` | Tidak | Periode roster |
+| `ShiftDate` | `DateOnly` | Ya | — | Lihat atas | — | — | Tidak | Tanggal shift (shift malam: tanggal masuk, `HRD-DEC-104`) |
+| `ChangeType` | `string(30)` | Ya | — | — | — | — | Tidak | `Replacement`, `RetroactiveCorrection`, `AddShift`, `RemoveShift` |
+| `PreviousWorkforceProfileId` | `Guid?` | Tidak | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Petugas tepat sebelum perubahan; kosong untuk `AddShift` |
+| `NewWorkforceProfileId` | `Guid?` | Tidak | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Petugas sesudah perubahan; kosong untuk `RemoveShift` |
+| `PreviousShiftId` | `Guid?` | Tidak | — | — | FK `MstShift` | `Restrict` | Tidak | Shift sebelum |
+| `NewShiftId` | `Guid?` | Tidak | — | — | FK `MstShift` | `Restrict` | Tidak | Shift sesudah |
+| `PreviousStartAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam mulai sebelum (UTC) |
+| `PreviousEndAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam selesai sebelum (UTC) |
+| `NewStartAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam mulai sesudah (UTC) |
+| `NewEndAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam selesai sesudah (UTC) |
+| `ReasonCategory` | `string(50)` | Ya | — | — | — | — | Tidak | Kategori dari daftar standar (`Sakit Mendadak`, `Izin/Keluarga`, `Lonjakan Pasien`, `Salah catat`, `Lainnya`) |
+| `ReasonNote` | `string(1000)` | Ya | — | — | — | — | **Ya** | Catatan bebas; bisa memuat kondisi kesehatan |
+| `ShiftReplacementId` | `Guid?` | Tidak | — | — | FK `TrxShiftReplacement` | `Restrict` | Tidak | Diisi untuk `Replacement` |
+| `ChangedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | Pengguna yang mengubah |
+| `ChangedAt` | `DateTime` | Ya | waktu server | Lihat atas | — | — | Tidak | Waktu perubahan (UTC) |
+
+#### `HrdOnCallBackup`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `OnCallAssignmentId` | `Guid` | Ya | — | UK bersama `BackupSequence`; UK bersama `WorkforceProfileId` (keduanya tersaring `IsDelete = false`) | FK `TrxOnCallAssignment` | `Restrict` | Tidak | Penugasan siaga utama |
+| `BackupSequence` | `int` | Ya | — | Lihat atas | — | — | Tidak | 1, 2, 3, ...; minimal 1 |
+| `WorkforceProfileId` | `Guid` | Ya | — | Lihat atas | FK `MstWorkforceProfile` | `Restrict` | Tidak | Pegawai cadangan; tidak boleh sama dengan siaga utama |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Status aktif |
+
+#### `HrdOnCallCall`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `OnCallAssignmentId` | `Guid` | Ya | — | Index bersama `CalledAt` | FK `TrxOnCallAssignment` | `Restrict` | Tidak | Penugasan siaga |
+| `CalledWorkforceProfileId` | `Guid` | Ya | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Pegawai yang dipanggil |
+| `BackupSequence` | `int` | Ya | `0` | — | — | — | Tidak | 0 = siaga utama; ≥ 1 = urutan cadangan |
+| `CallingOrganizationUnitId` | `Guid` | Ya | — | — | FK `MstOrganizationUnit` | `Restrict` | Tidak | Unit yang memanggil |
+| `CallReason` | `string(500)` | Ya | — | — | — | — | **Ya** | Alasan panggilan; dilarang memuat nama atau nomor rekam medis pasien |
+| `CallStatus` | `string(20)` | Ya | `Sent` | — | — | — | Tidak | `Sent`, `Accepted`, `Declined`, `Expired`, `Completed` |
+| `CalledAt` | `DateTime` | Ya | — | Lihat atas | — | — | Tidak | Jam panggil (UTC) |
+| `RecordedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | Petugas yang mencatat panggilan |
+| `AnsweredAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam jawab (`Accepted`/`Declined`) |
+| `AnswerRecordedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Petugas yang mencatat jawaban (`HRD-DEC-204`) |
+| `DeclineReason` | `string(500)` | Tidak | — | — | — | — | **Ya** | Wajib bila `Declined` |
+| `ExpiredAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam ditandai kedaluwarsa |
+| `ExpiredByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Petugas yang menandai |
+| `ArrivedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam tiba; wajib untuk `Completed`; ≥ `CalledAt` |
+| `CompletedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Jam ditandai selesai |
+| `CompletedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Petugas yang menandai |
+| `ResponseMinutes` | `int?` | Tidak | — | — | — | — | Tidak | `ArrivedAt − CalledAt` dalam menit, dihitung server |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Token konkurensi (`IsConcurrencyToken`) |
+
+#### `HrdAttendanceDispensation`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index bersama `AttendanceDate` | FK `MstWorkforceProfile` | `Restrict` | Tidak | Pegawai |
+| `AttendanceDate` | `DateOnly` | Ya | — | Lihat atas | — | — | Tidak | Tanggal kerja |
+| `DispensationType` | `string(20)` | Ya | — | — | — | — | Tidak | `LateArrival` atau `EarlyDeparture` |
+| `StartAt` | `DateTime` | Ya | — | — | — | — | Tidak | Awal rentang dibebaskan (UTC) |
+| `EndAt` | `DateTime` | Ya | — | — | — | — | Tidak | Akhir rentang; > `StartAt` |
+| `Reason` | `string(1000)` | Ya | — | — | — | — | **Ya** | Alasan |
+| `Status` | `string(20)` | Ya | `Submitted` | Index | — | — | Tidak | `Submitted`, `Approved`, `Rejected`, `Cancelled` |
+| `RequestedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | Pengaju (pegawai atau Kepala Unit) |
+| `IsOnBehalf` | `bool` | Ya | `false` | — | — | — | Tidak | Dicatat atas nama pegawai |
+| `ApproverWorkforceProfileId` | `Guid?` | Tidak | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Ditetapkan server dari `WfpManagerAssignment` |
+| `DecidedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Pengguna yang memutuskan |
+| `DecidedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu keputusan |
+| `RejectionReason` | `string(500)` | Tidak | — | — | — | — | Tidak | Wajib bila `Rejected` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Token konkurensi |
+
+#### `HrdStudyAssignment`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `WorkforceProfileId` | `Guid` | Ya | — | Index bersama `StartDate`, `EndDate` | FK `MstWorkforceProfile` | `Restrict` | Tidak | Pegawai |
+| `DecreeNumber` | `string(100)` | Ya | — | — | — | — | Tidak | Nomor SK tugas belajar |
+| `InstitutionName` | `string(200)` | Ya | — | — | — | — | Tidak | Lembaga pendidikan |
+| `ProgramName` | `string(200)` | Tidak | — | — | — | — | Tidak | Program studi |
+| `StartDate` | `DateOnly` | Ya | — | Lihat atas | — | — | Tidak | Tanggal mulai |
+| `EndDate` | `DateOnly` | Ya | — | Lihat atas | — | — | Tidak | Tanggal selesai; ≥ `StartDate` |
+| `Status` | `string(20)` | Ya | `Active` | — | — | — | Tidak | `Active` atau `Cancelled` |
+| `LastChangeReason` | `string(500)` | Tidak | — | — | — | — | Tidak | Wajib saat tanggal diubah atau dibatalkan |
+
+#### `HrdAttendanceDeviceIncident`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `AttendanceDeviceId` | `Guid` | Ya | — | Index bersama `StartAt` | FK `MstAttendanceDevice` | `Restrict` | Tidak | Mesin yang terganggu |
+| `StartAt` | `DateTime` | Ya | — | Lihat atas | — | — | Tidak | Awal gangguan (UTC) |
+| `EndAt` | `DateTime` | Ya | — | — | — | — | Tidak | Akhir gangguan; > `StartAt` |
+| `Description` | `string(500)` | Ya | — | — | — | — | Tidak | Uraian gangguan |
+| `ReportedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | Pencatat |
+| `Status` | `string(20)` | Ya | `Active` | — | — | — | Tidak | `Active` atau `Cancelled` |
+| `CancelReason` | `string(500)` | Tidak | — | — | — | — | Tidak | Wajib saat dibatalkan |
+
+### 27.3 Tabel diperbarui
+
+#### `HrdAttendanceCorrectionRequest` — tambah `DeviceIncidentId`
+
+Model: `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceCorrectionRequest.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `RequestNumber` | `string(50)` | Ya | — | Sesuai konfigurasi lama | — | — | Tidak | Nomor pengajuan |
+| `WorkforceProfileId` | `Guid` | Ya | — | Sesuai konfigurasi lama | FK `MstWorkforceProfile` | Sesuai konfigurasi lama | Tidak | Pegawai |
+| `AttendanceDailyId` | `Guid?` | Tidak | — | — | FK `HrdAttendanceDaily` | Sesuai konfigurasi lama | Tidak | Rekap harian |
+| `AttendanceId` | `Guid?` | Tidak | — | — | FK `HrdAttendance` | Sesuai konfigurasi lama | Tidak | Data presensi lama |
+| `RequestReasonId` | `Guid?` | Tidak | — | — | FK `MstRequestReason` | Sesuai konfigurasi lama | Tidak | Alasan baku |
+| `RejectionReasonId` | `Guid?` | Tidak | — | — | FK `MstRejectionReason` | Sesuai konfigurasi lama | Tidak | Alasan tolak baku |
+| `WorkflowDefinitionId` | `Guid?` | Tidak | — | — | FK `MstWorkflowDefinition` | Sesuai konfigurasi lama | Tidak | Definisi alur |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | — | FK `TrxWorkflowInstance` | Sesuai konfigurasi lama | Tidak | Instans alur |
+| `RequestedByWorkforceProfileId` | `Guid?` | Tidak | — | — | FK `MstWorkforceProfile` | Sesuai konfigurasi lama | Tidak | Pengaju |
+| `RequestedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | Sesuai konfigurasi lama | Tidak | Pengaju (akun) |
+| `AttendanceDate` | `DateOnly` | Ya | — | Sesuai konfigurasi lama | — | — | Tidak | Tanggal yang dikoreksi |
+| `CorrectionType` | `string(50)` | Ya | — | — | — | — | Tidak | Jenis koreksi |
+| `RequestStatus` | `string(30)` | Ya | — | Sesuai konfigurasi lama | — | — | Tidak | Status pengajuan |
+| `Reason` | `string(1500)` | Ya | `""` | — | — | — | **Ya** | Alasan koreksi |
+| `EvidenceFilePath` | `string(500)` | Tidak | — | — | — | — | **Ya** | Lokasi berkas bukti |
+| `EvidenceFileName` | `string(255)` | Tidak | — | — | — | — | Tidak | Nama berkas |
+| `EvidenceContentType` | `string(100)` | Tidak | — | — | — | — | Tidak | Jenis berkas |
+| `OriginalSummaryJson` | `string` | Tidak | — | — | — | — | Tidak | Ringkasan sebelum |
+| `RequestedSummaryJson` | `string` | Tidak | — | — | — | — | Tidak | Ringkasan yang diminta |
+| `ApprovedSummaryJson` | `string` | Tidak | — | — | — | — | Tidak | Ringkasan disetujui |
+| `SubmittedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu diajukan |
+| `ApprovedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu disetujui |
+| `RejectedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu ditolak |
+| `AppliedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu diterapkan |
+| `AppliedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | Sesuai konfigurasi lama | Tidak | Penerap |
+| `FinalNote` | `string(1000)` | Tidak | — | — | — | — | Tidak | Catatan akhir |
+| `InitiatedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | Sesuai konfigurasi lama | Tidak | Pemrakarsa atas nama |
+| `IsOnBehalf` | `bool` | Ya | `false` | — | — | — | Tidak | Koreksi atas nama pegawai |
+| `OnBehalfReason` | `string(500)` | Tidak | — | — | — | — | Tidak | Alasan atas nama |
+| `OnBehalfNotifiedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu pegawai diberi tahu |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Status aktif |
+| **`DeviceIncidentId`** | **`Guid?`** | **Tidak** | — | **Index** | **FK `HrdAttendanceDeviceIncident`** | **`Restrict`** | **Tidak** | **Baru.** Kejadian gangguan yang dirujuk; tidak boleh berstatus `Cancelled` |
+
+#### `HrdAttendanceSetting` — tambah jendela scan
+
+Model: `Areas/Corporate/HumanResource/AttendanceManagement/Models/HrdAttendanceSetting.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `HospitalCode` | `string(50)` | Ya | `RSMMC` | Sesuai konfigurasi lama | — | — | Tidak | Kode rumah sakit |
+| `GracePeriodMinutes` | `int` | Ya | `10` | — | — | — | Tidak | Toleransi terlambat, 0–60 menit; **satu-satunya sumber** (`HRD-DEC-215`) |
+| `MaxBackdatedCorrectionDays` | `int` | Ya | `3` | — | — | — | Tidak | Batas koreksi dan dispensasi mundur |
+| `RequireAttachmentForCorrection` | `bool` | Ya | `true` | — | — | — | Tidak | Lampiran wajib untuk koreksi biasa |
+| `AutoConvertIncompleteToAbsent` | `bool` | Ya | `true` | — | — | — | Tidak | **Usang.** Tidak dibaca dan tidak ditampilkan sejak `HRD-DEC-216`; dihapus pada task perapian |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Status aktif |
+| **`ScanWindowBeforeMinutes`** | **`int`** | **Ya** | **`240`** | — | — | — | **Tidak** | **Baru.** Scan masuk diterima mulai X menit sebelum shift; 0–720 |
+| **`ScanWindowAfterMinutes`** | **`int`** | **Ya** | **`480`** | — | — | — | **Tidak** | **Baru.** Scan pulang diterima sampai Y menit sesudah shift; 0–960 |
+
+#### `MstOnCallType` — tambah batas jawab
+
+Model: `Areas/Corporate/HumanResource/MasterData/AttendanceAndSchedule/Models/MstOnCallType.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `OnCallTypeCode` | `string(50)` | Ya | — | Sesuai konfigurasi lama | — | — | Tidak | Kode jenis siaga |
+| `OnCallTypeName` | `string(150)` | Ya | — | — | — | — | Tidak | Nama |
+| `Description` | `string(500)` | Tidak | — | — | — | — | Tidak | Keterangan |
+| `ResponseTimeMinutes` | `int` | Ya | `0` | — | — | — | Tidak | Target **tiba** sesudah dipanggil |
+| `MinimumCallHours` | `int` | Ya | `0` | — | — | — | Tidak | Jam siaga minimum |
+| `MaximumCallHours` | `int` | Ya | `24` | — | — | — | Tidak | Jam siaga maksimum |
+| `IsRemoteAllowed` | `bool` | Ya | `false` | — | — | — | Tidak | Boleh dari jarak jauh |
+| `RequiresOnSitePresence` | `bool` | Ya | `true` | — | — | — | Tidak | Wajib hadir di tempat |
+| `CountsAsWorkingTime` | `bool` | Ya | `true` | — | — | — | Tidak | Dihitung jam kerja |
+| `IsAllowanceEligible` | `bool` | Ya | `true` | — | — | — | Tidak | Berhak tunjangan siaga |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Status aktif |
+| **`AnswerTimeoutMinutes`** | **`int`** | **Ya** | **`10`** | — | — | — | **Tidak** | **Baru.** Batas **menjawab** telepon sebelum boleh ditandai `Expired`; 1–120 |
+
+### 27.4 Tabel sudah ada — kolom kunci yang dipakai amandemen
+
+| Tabel | Kolom kunci | Dipakai untuk | Model |
+| --- | --- | --- | --- |
+| `TrxShiftAssignment` | `Id`, `RosterAssignmentId`, `WorkforceProfileId`, `ShiftId`, `ShiftDate`, `ScheduledStartAt`, `ScheduledEndAt`, `AssignmentStatus`, `OriginalEmployeeId`, `IsCancel` | Riwayat Revisi, `B3`/`B8`, hapus shift (`IsCancel`) | `SchedulingManagement/Models/TrxShiftAssignment.cs` |
+| `TrxShiftReplacement` | `Id`, `ShiftAssignmentId`, `OriginalWorkforceProfileId`, `ReplacementWorkforceProfileId` | Rujukan dari riwayat | `SchedulingManagement/Models/TrxShiftReplacement.cs` |
+| `TrxRosterPeriod` | `Id`, `OrganizationUnitId`, `RosterStatus`, `IsLocked` | Cakupan kelola, status tetap `Published` | `SchedulingManagement/Models/TrxRosterPeriod.cs` |
+| `TrxOnCallAssignment` | `Id`, `WorkforceProfileId`, `OnCallTypeId`, `AssignmentStatus`, `IsCalledIn`, `ResponseMinutes`, `IsSlaMet` | Panggilan, ringkasan `HRD-ASM-75` | `SchedulingManagement/Models/TrxOnCallAssignment.cs` |
+| `MstHoliday` | `Id`, `WorkCalendarId`, `StartDate`, `EndDate`, `IsActive` | API hari libur | `MasterData/AttendanceAndSchedule/Models/MstHoliday.cs` |
+| `MstAttendanceDevice` | `Id`, `AttendanceDeviceCode`, `SerialNumber`, `ExternalDeviceId`, `IsActive` | API mesin, pelepasan scan tertahan | `MasterData/AttendanceAndSchedule/Models/MstAttendanceDevice.cs` |
+| `HrdAttendanceRawLog` | `Id`, `AttendanceDeviceId`, `ExternalDeviceId`, `ExternalLogId`, `EventHash`, `ProcessingStatus` (`string(30)`), `EventAt` | Status `AwaitingDeviceRegistration` | `AttendanceManagement/Models/HrdAttendanceRawLog.cs` |
+| `HrdAttendanceDaily` | `Id`, `WorkforceProfileId`, `AttendanceDate`, `AttendanceStatus` (`string(50)`) | Status `NotYetPresent`, `NoScan`, `StudyAssignment` | `AttendanceManagement/Models/HrdAttendanceDaily.cs` |
+| `WfpOrganizationAssignment` | `WorkforceProfileId`, `OrganizationUnitId`, `AssignmentType`, `IsManagerialAssignment`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive` | `B3`, cakupan unit, penugasan tambahan | `WorkforceCore/Models/WfpOrganizationAssignment.cs` |
+| `WfpManagerAssignment` | `WorkforceProfileId`, `ManagerWorkforceProfileId`, `CanApproveRequests`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive` | Penyetuju dispensasi | `WorkforceCore/Models/WfpManagerAssignment.cs` |
+| `MstOrganizationUnit` | `Id`, `ParentOrganizationUnitId`, `IsActive` | Cakupan baca turunan | `MasterData/Organization/Models/MstOrganizationUnit.cs` |
+
+### 27.5 Bentuk DDL tabel baru dan diperbarui
+
+> **Peringatan.** Basis data proyek ini dibentuk EF Core Migrations. DDL di bawah adalah
+> **dokumentasi bentuk tabel**, bukan skrip untuk dijalankan. Menjalankannya akan bentrok dengan
+> migration. Kolom audit `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- Bentuk tabel sebagaimana akan dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."HrdShiftAssignmentRevision" (
+    "Id"                          uuid          NOT NULL,
+    "ShiftAssignmentId"           uuid          NOT NULL,
+    "RosterPeriodId"              uuid          NOT NULL,
+    "ShiftDate"                   date          NOT NULL,
+    "ChangeType"                  varchar(30)   NOT NULL,
+    "PreviousWorkforceProfileId"  uuid,
+    "NewWorkforceProfileId"       uuid,
+    "PreviousShiftId"             uuid,
+    "NewShiftId"                  uuid,
+    "PreviousStartAt"             timestamp with time zone,
+    "PreviousEndAt"               timestamp with time zone,
+    "NewStartAt"                  timestamp with time zone,
+    "NewEndAt"                    timestamp with time zone,
+    "ReasonCategory"              varchar(50)   NOT NULL,
+    "ReasonNote"                  varchar(1000) NOT NULL,  -- SENSITIF
+    "ShiftReplacementId"          uuid,
+    "ChangedByUserId"             uuid          NOT NULL,
+    "ChangedAt"                   timestamp with time zone NOT NULL,
+    CONSTRAINT "PK_HrdShiftAssignmentRevision" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdShiftAssignmentRevision_TrxShiftAssignment_ShiftAssignmentId"
+        FOREIGN KEY ("ShiftAssignmentId") REFERENCES public."TrxShiftAssignment" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_HrdShiftAssignmentRevision_TrxRosterPeriod_RosterPeriodId"
+        FOREIGN KEY ("RosterPeriodId") REFERENCES public."TrxRosterPeriod" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_HrdShiftAssignmentRevision_TrxShiftReplacement_ShiftReplacementId"
+        FOREIGN KEY ("ShiftReplacementId") REFERENCES public."TrxShiftReplacement" ("Id") ON DELETE RESTRICT
+    -- FK ke MstWorkforceProfile (2 kolom) dan MstShift (2 kolom) juga RESTRICT
+);
+CREATE INDEX "IX_HrdShiftAssignmentRevision_RosterPeriodId_ShiftDate"
+    ON public."HrdShiftAssignmentRevision" ("RosterPeriodId", "ShiftDate");
+CREATE INDEX "IX_HrdShiftAssignmentRevision_ShiftAssignmentId_ChangedAt"
+    ON public."HrdShiftAssignmentRevision" ("ShiftAssignmentId", "ChangedAt");
+
+CREATE TABLE public."HrdOnCallBackup" (
+    "Id"                  uuid    NOT NULL,
+    "OnCallAssignmentId"  uuid    NOT NULL,
+    "BackupSequence"      integer NOT NULL,
+    "WorkforceProfileId"  uuid    NOT NULL,
+    "IsActive"            boolean NOT NULL DEFAULT TRUE,
+    CONSTRAINT "PK_HrdOnCallBackup" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdOnCallBackup_TrxOnCallAssignment_OnCallAssignmentId"
+        FOREIGN KEY ("OnCallAssignmentId") REFERENCES public."TrxOnCallAssignment" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_HrdOnCallBackup_MstWorkforceProfile_WorkforceProfileId"
+        FOREIGN KEY ("WorkforceProfileId") REFERENCES public."MstWorkforceProfile" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdOnCallBackup_OnCallAssignmentId_BackupSequence"
+    ON public."HrdOnCallBackup" ("OnCallAssignmentId", "BackupSequence") WHERE "IsDelete" = FALSE;
+CREATE UNIQUE INDEX "IX_HrdOnCallBackup_OnCallAssignmentId_WorkforceProfileId"
+    ON public."HrdOnCallBackup" ("OnCallAssignmentId", "WorkforceProfileId") WHERE "IsDelete" = FALSE;
+
+CREATE TABLE public."HrdOnCallCall" (
+    "Id"                         uuid         NOT NULL,
+    "OnCallAssignmentId"         uuid         NOT NULL,
+    "CalledWorkforceProfileId"   uuid         NOT NULL,
+    "BackupSequence"             integer      NOT NULL DEFAULT 0,
+    "CallingOrganizationUnitId"  uuid         NOT NULL,
+    "CallReason"                 varchar(500) NOT NULL,  -- SENSITIF
+    "CallStatus"                 varchar(20)  NOT NULL,
+    "CalledAt"                   timestamp with time zone NOT NULL,
+    "RecordedByUserId"           uuid         NOT NULL,
+    "AnsweredAt"                 timestamp with time zone,
+    "AnswerRecordedByUserId"     uuid,
+    "DeclineReason"              varchar(500),           -- SENSITIF
+    "ExpiredAt"                  timestamp with time zone,
+    "ExpiredByUserId"            uuid,
+    "ArrivedAt"                  timestamp with time zone,
+    "CompletedAt"                timestamp with time zone,
+    "CompletedByUserId"          uuid,
+    "ResponseMinutes"            integer,
+    "RowVersion"                 uuid         NOT NULL,
+    CONSTRAINT "PK_HrdOnCallCall" PRIMARY KEY ("Id")
+    -- FK ke TrxOnCallAssignment, MstWorkforceProfile, MstOrganizationUnit: RESTRICT
+);
+CREATE INDEX "IX_HrdOnCallCall_OnCallAssignmentId_CalledAt"
+    ON public."HrdOnCallCall" ("OnCallAssignmentId", "CalledAt");
+
+CREATE TABLE public."HrdAttendanceDispensation" (
+    "Id"                          uuid          NOT NULL,
+    "WorkforceProfileId"          uuid          NOT NULL,
+    "AttendanceDate"              date          NOT NULL,
+    "DispensationType"            varchar(20)   NOT NULL,
+    "StartAt"                     timestamp with time zone NOT NULL,
+    "EndAt"                       timestamp with time zone NOT NULL,
+    "Reason"                      varchar(1000) NOT NULL,  -- SENSITIF
+    "Status"                      varchar(20)   NOT NULL,
+    "RequestedByUserId"           uuid          NOT NULL,
+    "IsOnBehalf"                  boolean       NOT NULL DEFAULT FALSE,
+    "ApproverWorkforceProfileId"  uuid,
+    "DecidedByUserId"             uuid,
+    "DecidedAt"                   timestamp with time zone,
+    "RejectionReason"             varchar(500),
+    "RowVersion"                  uuid          NOT NULL,
+    CONSTRAINT "PK_HrdAttendanceDispensation" PRIMARY KEY ("Id")
+    -- FK ke MstWorkforceProfile (2 kolom): RESTRICT
+);
+CREATE INDEX "IX_HrdAttendanceDispensation_WorkforceProfileId_AttendanceDate"
+    ON public."HrdAttendanceDispensation" ("WorkforceProfileId", "AttendanceDate");
+CREATE INDEX "IX_HrdAttendanceDispensation_Status"
+    ON public."HrdAttendanceDispensation" ("Status");
+
+CREATE TABLE public."HrdStudyAssignment" (
+    "Id"                  uuid         NOT NULL,
+    "WorkforceProfileId"  uuid         NOT NULL,
+    "DecreeNumber"        varchar(100) NOT NULL,
+    "InstitutionName"     varchar(200) NOT NULL,
+    "ProgramName"         varchar(200),
+    "StartDate"           date         NOT NULL,
+    "EndDate"             date         NOT NULL,
+    "Status"              varchar(20)  NOT NULL,
+    "LastChangeReason"    varchar(500),
+    CONSTRAINT "PK_HrdStudyAssignment" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdStudyAssignment_MstWorkforceProfile_WorkforceProfileId"
+        FOREIGN KEY ("WorkforceProfileId") REFERENCES public."MstWorkforceProfile" ("Id") ON DELETE RESTRICT
+);
+CREATE INDEX "IX_HrdStudyAssignment_WorkforceProfileId_StartDate_EndDate"
+    ON public."HrdStudyAssignment" ("WorkforceProfileId", "StartDate", "EndDate");
+
+CREATE TABLE public."HrdAttendanceDeviceIncident" (
+    "Id"                  uuid         NOT NULL,
+    "AttendanceDeviceId"  uuid         NOT NULL,
+    "StartAt"             timestamp with time zone NOT NULL,
+    "EndAt"               timestamp with time zone NOT NULL,
+    "Description"         varchar(500) NOT NULL,
+    "ReportedByUserId"    uuid         NOT NULL,
+    "Status"              varchar(20)  NOT NULL,
+    "CancelReason"        varchar(500),
+    CONSTRAINT "PK_HrdAttendanceDeviceIncident" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdAttendanceDeviceIncident_MstAttendanceDevice_AttendanceDeviceId"
+        FOREIGN KEY ("AttendanceDeviceId") REFERENCES public."MstAttendanceDevice" ("Id") ON DELETE RESTRICT
+);
+CREATE INDEX "IX_HrdAttendanceDeviceIncident_AttendanceDeviceId_StartAt"
+    ON public."HrdAttendanceDeviceIncident" ("AttendanceDeviceId", "StartAt");
+
+ALTER TABLE public."HrdAttendanceCorrectionRequest" ADD "DeviceIncidentId" uuid;
+CREATE INDEX "IX_HrdAttendanceCorrectionRequest_DeviceIncidentId"
+    ON public."HrdAttendanceCorrectionRequest" ("DeviceIncidentId");
+ALTER TABLE public."HrdAttendanceCorrectionRequest" ADD CONSTRAINT
+    "FK_HrdAttendanceCorrectionRequest_HrdAttendanceDeviceIncident_DeviceIncidentId"
+    FOREIGN KEY ("DeviceIncidentId") REFERENCES public."HrdAttendanceDeviceIncident" ("Id") ON DELETE RESTRICT;
+
+ALTER TABLE public."HrdAttendanceSetting" ADD "ScanWindowBeforeMinutes" integer NOT NULL DEFAULT 240;
+ALTER TABLE public."HrdAttendanceSetting" ADD "ScanWindowAfterMinutes"  integer NOT NULL DEFAULT 480;
+
+ALTER TABLE public."MstOnCallType" ADD "AnswerTimeoutMinutes" integer NOT NULL DEFAULT 10;
+```
+
+Tipe kolom waktu mengikuti konfigurasi `DateTime` UTC yang sudah dipakai tabel kehadiran;
+implementer menyamakannya dengan konfigurasi EF Core yang berlaku saat migration dibuat.
+
+---
+
+## 28. Kamus Data Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v27`, APPROVED)
 
 | Field | Nilai |
 | --- | --- |
 | Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
-| `contract_version` | `v26` |
-| `last_changed_in` | `v26` — bagian 27 ditambahkan 16 November 2026 |
+| `contract_version` | `v27` |
+| `last_changed_in` | `v27` — bagian 28 ditambahkan 16 November 2026 |
 | Status | `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
-| `input_revision` | `00-interview-decisions.md` revision `36` bagian 52 (`HRD-DEC-194` s.d. `HRD-DEC-199`, `HRD-ASM-75` s.d. `HRD-ASM-78`, `HRD-Q-197` s.d. `HRD-Q-199`) |
+| `input_revision` | `00-interview-decisions.md` revision `38` bagian 54 (`HRD-DEC-218` s.d. `HRD-DEC-223`, `HRD-ASM-84` s.d. `HRD-ASM-87`, `HRD-Q-218` s.d. `HRD-Q-220`) |
 | `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
 | Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
 | Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
-| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-199`) |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-223`) |
 | Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
 
 Slice ini **tidak membuat dan tidak mengubah tabel**; tanpa migration. Sesuai aturan kedalaman bertingkat, tabel berstatus `Sudah ada` hanya didokumentasikan kolom kunci dan kolom yang dipakai aturan slice ini. Kolom warisan `IdentityModel` tidak diulang.
 
-### 27.1 Tabel `public."WfpSalaryAssignment"` — Sudah ada (pemilik: WorkforceCore / HRD)
+### 28.1 Tabel `public."WfpSalaryAssignment"` — Sudah ada (pemilik: WorkforceCore / HRD)
 
 Model: `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpSalaryAssignment.cs`.
 
@@ -5709,11 +6101,11 @@ Model: `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpSalaryAssignment.c
 | `SalaryStructureId`, `SalaryGradeId` | uuid | Ya | Struktur dipilih; grade diambil dari struktur | Tidak |
 | `BaseSalary` | decimal | Ya | Gaji pokok | **Ya** |
 | `EffectiveStartDate` / `EffectiveEndDate` | date / date? | Ya / Tidak | Tanggal mulai diubah; tanggal berakhir hanya dibaca (`VR-WPD-05`, `VR-WPD-06`) | Tidak |
-| `IsPrimary`, `IsActive` | bool | Ya | Penetapan yang dipakai (`HRD-ASM-78`); baris baru `IsPrimary = true`, `IsActive = true` | Tidak |
-| `ApprovedAt`, `ApprovedByUserId` | timestamp?, uuid? | Tidak | Status persetujuan; dicabut atau diisi sesuai `HRD-DEC-194` | Tidak |
+| `IsPrimary`, `IsActive` | bool | Ya | Penetapan yang dipakai (`HRD-ASM-87`); baris baru `IsPrimary = true`, `IsActive = true` | Tidak |
+| `ApprovedAt`, `ApprovedByUserId` | timestamp?, uuid? | Tidak | Status persetujuan; dicabut atau diisi sesuai `HRD-DEC-218` | Tidak |
 | `CurrencyCode`, `PaymentFrequency`, `IsConfidential`, `Description` | — | — | Baris baru diisi `IDR`, `Monthly`, `true`, "Diisi lewat Data Penggajian Pegawai." | Tidak |
 
-### 27.2 Tabel `public."WfpBankAccount"` — Sudah ada (pemilik: WorkforceCore / HRD)
+### 28.2 Tabel `public."WfpBankAccount"` — Sudah ada (pemilik: WorkforceCore / HRD)
 
 Model: `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpBankAccount.cs`.
 
@@ -5723,19 +6115,19 @@ Model: `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpBankAccount.cs`.
 | `BankId` / `BankName` | uuid? / varchar(200)? | Tidak | Bank dipilih; nama disalin dari master | Tidak |
 | `AccountNumber` | varchar(100) | Ya | Nomor rekening dinormalkan | **Ya** |
 | `AccountHolderName` | varchar(200) | Ya | Nama pemilik | **Ya** |
-| `IsPayrollAccount`, `IsPrimary`, `IsActive` | bool | Ya | Rekening yang dipakai (`HRD-ASM-78`); baris baru payroll = `true`, utama bila belum ada rekening utama aktif | Tidak |
-| `IsVerified`, `VerifiedAt`, `VerifiedByUserId` | bool, timestamp?, uuid? | — | Status verifikasi; dicabut atau diisi sesuai `HRD-DEC-194` | Tidak |
+| `IsPayrollAccount`, `IsPrimary`, `IsActive` | bool | Ya | Rekening yang dipakai (`HRD-ASM-87`); baris baru payroll = `true`, utama bila belum ada rekening utama aktif | Tidak |
+| `IsVerified`, `VerifiedAt`, `VerifiedByUserId` | bool, timestamp?, uuid? | — | Status verifikasi; dicabut atau diisi sesuai `HRD-DEC-218` | Tidak |
 | `AccountType`, `CurrencyCode`, `Description` | — | — | Baris baru diisi `Savings`, `IDR`, "Diisi lewat Data Penggajian Pegawai." | Tidak |
 
-### 27.3 Tabel yang Hanya Dibaca
+### 28.3 Tabel yang Hanya Dibaca
 
 | Tabel | Pemilik | Kolom yang dibaca | Kegunaan |
 | --- | --- | --- | --- |
 | `MstEmployee` | Master Data HR | `WorkforceProfileId`, `EmployeeNumber`, `FullName`, `IsActive`, `ProfessionId`, `PrimaryDepartmentId`, `PrimaryPositionId` | Populasi karyawan dan perawat |
 | `MstDoctor` | Master Data HR | `WorkforceProfileId`, `DoctorNumber`, `FullName`, `IsActive`, `PrimaryDepartmentId`, `PrimaryPositionId` | Populasi dokter |
-| `MstProfession` | Master Data HR | `ProfessionCode`, `ProfessionName`, `ProfessionGroup` | Pengenal perawat (`HRD-DEC-198`, `HRD-ASM-75`) |
+| `MstProfession` | Master Data HR | `ProfessionCode`, `ProfessionName`, `ProfessionGroup` | Pengenal perawat (`HRD-DEC-222`, `HRD-ASM-84`) |
 | `MstDepartment`, `MstPosition` | Master Data HR | `DepartmentName`, `PositionName` | Unit dan jabatan pada daftar |
 | `MstSalaryStructure`, `MstSalaryGrade` | Master Payroll & Benefit | Kode, nama, `SalaryGradeId`, `MinimumSalary`, `MaximumSalary`, `IsActive` | Validasi dan peringatan rentang grade |
 | `MstBank` | Master Data Administrator | `BankName`, `IsActive` | Validasi bank |
 
-**Konkurensi:** tidak ada token versi; simpan terakhir menang (`HRD-ASM-76`, `HRD-Q-198`).
+**Konkurensi:** tidak ada token versi; simpan terakhir menang (`HRD-ASM-85`, `HRD-Q-219`).
