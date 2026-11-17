@@ -28,6 +28,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.OnApproveNextStepCode).HasMaxLength(50);
             entity.Property(x => x.OnRejectStepCode).HasMaxLength(50);
             entity.Property(x => x.Instructions).HasMaxLength(1000);
+            entity.Property(x => x.ActivationConditionCode).HasMaxLength(50).IsRequired(false);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
             entity.Property(x => x.CreateDateTime)

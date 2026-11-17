@@ -153,3 +153,31 @@ selector textarea) diperbaiki di skrip.
 | Status Git FE | `M` `menu-items.jsx`, `store.jsx`, `clinical-instrument-utils.js`, `health-service-select-resources.js`, `select-resource-registry.js`; `??` folder rehab |
 | Dependency backend | `BE-RHB-006` ✅, `BE-RHB-007` ✅ |
 | Langkah berikutnya | `FE-RHB-004` (daftar episode + kerangka ruang kerja; `BE-RHB-008` ✅) kini 🟡 |
+
+## 8. Revisi 2026-11-10 — rapikan tabel daftar permintaan
+
+Diminta langsung oleh user. Hanya berkas `src/components/view/health-services/rehabilitation-management/requests/rehab-requests-view.jsx` yang berubah.
+
+| Perubahan | Keputusan base component | Isi |
+| --- | --- | --- |
+| Tombol *Muat Ulang* di header filter dihapus | `REUSE` (`DataFilter.actions`) | Header hanya berisi *+ Buat Permintaan* bila berhak. *Coba lagi* pada alert error tetap ada. |
+| Kolom *Pasien* dan *No. RM* digabung | `COMPOSE` (`DataTable` render dengan utilitas `fw-semibold` / `text-muted small`, pola yang sama dengan `hr/workforce-core/*-assignments-view.jsx`) | Nama pasien di atas, nomor RM (tanpa label) di bawah sebagai subjudul. Tanpa CSS baru. |
+| Kolom aksi (`RowActionMenu` → *Lihat Rincian*) dihapus | `REUSE` (`DataTable.onRowDoubleClick`) | Rincian dibuka dengan klik dua kali pada baris; petunjuknya sudah ada di deskripsi filter dan `title` baris. |
+
+UI GATE: semua elemen `REUSE`/`COMPOSE`, tidak ada `NEW`/`EXTEND`.
+
+| Validasi | Hasil |
+| --- | --- |
+| `npx eslint <berkas>` | PASS (exit 0) |
+| AUTOMATED TEST | SKIPPED (opsional) — perubahan presentasi saja |
+| MANUAL TEST | NOT FEASIBLE pada sesi ini — backend dan `next dev` tidak dijalankan; perlu dicek di browser: header tanpa *Muat Ulang*, kolom Pasien dua baris, tidak ada kolom aksi, klik dua kali membuka rincian |
+
+Status roadmap `FE-RHB-003` tetap ✅; revisi ini tidak mengubah acceptance criteria.
+
+## 9. Revisi 2026-11-10 — jarak antarkartu di halaman rincian rehab
+
+Diminta langsung oleh user: kartu yang menempel diberi jarak. Penyebabnya, section tambahan dikirim lewat prop `afterDetail` milik `BaseDetailView`, yang dirender di luar `detailMainStack` (stack yang punya `gap`). Perbaikannya: section itu dipindah menjadi `children` `BaseDetailView` sehingga masuk ke stack utama dan memakai jarak bawaan. `BaseDetailView` dan CSS base tidak diubah, jadi modul lain tidak terdampak.
+
+Berkas (semua di `src/components/view/health-services/rehabilitation-management/`): `requests/rehab-request-detail-view.jsx`, `episodes/rehab-episode-workspace-view.jsx`, `assessments/rehab-assessment-view.jsx`, `education/rehab-education-view.jsx`, `programs/rehab-program-view.jsx`, `sessions/rehab-session-view.jsx`, `reviews/rehab-review-view.jsx`, `discharge/rehab-discharge-view.jsx`, `master-data/discipline/detail/rehab-discipline-detail-view.jsx`.
+
+UI GATE: `REUSE` (`BaseDetailView` children + `detailMainStack`). `npx eslint src/components/view/health-services/rehabilitation-management` PASS (exit 0). AUTOMATED TEST: SKIPPED (opsional) — perubahan tata letak. MANUAL TEST: NOT FEASIBLE pada sesi ini — server tidak dijalankan.

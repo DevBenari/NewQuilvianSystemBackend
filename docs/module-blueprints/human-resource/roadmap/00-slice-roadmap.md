@@ -738,3 +738,23 @@ dicatat pada [`01-prerequisite-readiness.md`](../01-prerequisite-readiness.md).
 - **Tanggal.** Urutan dinyatakan sebagai gelombang, bukan jadwal.
 - **Estimasi.** Tidak ada angka hari maupun poin.
 - **Desain.** Slice menyatakan dampak, bukan bentuk tabel, endpoint, atau layar.
+
+---
+
+### `S-A8` — Data Penggajian Pegawai (HRD): Karyawan, Perawat, dan Dokter (DRAFT, 16 November 2026)
+
+> **Catatan hitungan:** slice ini ditambahkan sebagai DRAFT pada 16 November 2026 dan **belum dihitung** pada ringkasan jumlah slice, fase, dan status di bagian atas dokumen ini. Hitungan itu dihitung ulang saat slice disetujui.
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | HRD punya endpoint penetapan gaji dan rekening bank per orang, tetapi tidak ada daftar lintas orang untuk melihat kelengkapan data. Modul Payroll membaca data ini untuk membuat profil payroll. Tidak ada layar HRD untuk mengisi keduanya |
+| **Target State** | Halaman `/hr/workforce-core/payroll-data` menampilkan karyawan, perawat, dan dokter aktif beserta kelengkapan penetapan gaji utama dan rekening payroll, dengan formulir ubah per orang. Perubahan atas data yang sudah disetujui atau terverifikasi mencabut persetujuan atau verifikasinya kecuali pengubah berwenang memilih sebaliknya |
+| **Backend Impact** | Satu controller, satu service, satu berkas DTO di Workforce Core (4 endpoint). Tanpa entity baru. Task `BE-HRD-360` s.d. `BE-HRD-363` |
+| **Frontend Impact** | Satu halaman, satu formulir ubah, satu butir menu. Task `FE-HRD-325` s.d. `FE-HRD-327` |
+| **Database Impact** | Tidak ada. Memakai `WfpSalaryAssignment` dan `WfpBankAccount` yang sudah ada; tanpa migration |
+| **Dependency** | `BE-HRD-003` (Workforce Core); master `SalaryStructure` dan `Bank` untuk pilihan formulir |
+| **Blocking Decision** | Gerbang G3 (pencocokan data profesi untuk `HRD-ASM-84`), G4 (belum di-build dan diuji), G5 (`DEC-PRL-002`, `HRD-Q-220`); G1 tertutup: kontrak `v27` approved 16 November 2026; G2 tertutup: `HRD-DEC-218` s.d. `HRD-DEC-223` — lihat bagian 25 `backend-roadmap.md` |
+| **QBE Impact** | `NEW CODE` pada `Areas/Corporate/HumanResource/WorkforceCore`, prefix `Wfp`; `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001`, `QBE-LOG-001`, `QBE-DTO-001`, `QBE-VAL-001`, `QBE-TXN-001`, `QBE-AUD-001` |
+| **Migration Risk** | Tidak ada |
+| **Acceptance Criteria** | Daftar memuat seluruh karyawan, perawat, dan dokter aktif; simpan menolak isian yang salah tanpa menyimpan apa pun; perubahan atas data yang disetujui atau terverifikasi mencabut statusnya; gaji pokok dan nomor rekening lengkap hanya untuk pemegang hak Update; log audit tanpa nominal dan nomor rekening |
+| **Release Status** | `READY` — kontrak `v27` approved dan keputusan terdaftar 16 November 2026; source sudah ada tetapi belum terbukti (task tetap 🟡 sampai build, uji, dan laporan tracked) |
