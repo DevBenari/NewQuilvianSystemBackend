@@ -454,6 +454,8 @@ try
     builder.Services.AddScoped<PayrollVariableInputService>();
     // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.
     builder.Services.AddScoped<PayrollSimulationService>();
+    // Kelengkapan data payroll per pegawai dan dokter beserta impor data awal (profil, penetapan gaji, rekening); semua atau tidak sama sekali.
+    builder.Services.AddScoped<PayrollDataReadinessService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).
@@ -1122,6 +1124,8 @@ try
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforceCoreCrossEmployeeQueryService>();
+    // Workforce Core - kelengkapan dan impor data penggajian (penetapan gaji utama dan rekening payroll) yang dikelola HRD.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforcePayrollDataService>();
     // Workforce Core - Unified SK Kepegawaian, Employee 360, & Initial Batch Placement (BE-HRD-024..027)
     builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
     builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();

@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 15
+roadmap_revision: 16
+draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 24): BE-HRD-360 s.d. BE-HRD-363. Source sudah ditulis di luar siklus task dan belum di-build; kontrak v27 approved 16 November 2026 (gerbang G1 tertutup); keputusan terdaftar `HRD-DEC-218` s.d. `HRD-DEC-223` pada 16 November 2026 (gerbang G2 tertutup). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
 status_synced_at: "2026-11-03 — tanda status task lama disalin apa adanya dari revision 2; tidak ada task yang naik atau turun status pada revision ini"
 planning_updated_at: "2026-11-05 — Slice S-D4 HR Service Management & Request (sub-modul 13) dipecah menjadi 15 task (BE-HRD-191 s.d. BE-HRD-205) per gelombang MVP-39 s.d. MVP-41 & Verifikasi; grafik B48 s.d. B51 ditambahkan; sebelumnya Slice S-D3 (BE-HRD-176 s.d. BE-HRD-190), Slice S-B6 (BE-HRD-161 s.d. BE-HRD-175), Slice S-B5 (BE-HRD-146 s.d. BE-HRD-160)"
@@ -6697,3 +6698,160 @@ keputusan: pengguna (`HRD-DEC-015`). DoD umum yang berlaku untuk **setiap** task
 * **Diblokir oleh**: `DSG-Q-02` (pengguna). Bila jawabannya "pakai layar surat perintah personel", task ini dibatalkan.
 * **Pekerjaan yang tetap berjalan**: Seluruh task MVP; penugasan tambahan tetap dicatat lewat endpoint penempatan per pegawai.
 * **Kontrak**: belum ada — akan ditambahkan ke kontrak bila `DSG-Q-02` memilih endpoint baru.
+
+---
+
+## 25. S-A8: Data Penggajian Pegawai (HRD) — Karyawan, Perawat, dan Dokter (DRAFT, 16 November 2026)
+
+> **Status slice: kontrak `v27` APPROVED 16 November 2026.** Source backend sudah ditulis pada 16 November 2026 atas perintah langsung pemilik, **di luar siklus task**, dan **belum di-build maupun diuji**. Task di bawah ditambahkan agar pekerjaan itu terlacak. Gerbang G1 tertutup, sehingga task slice ini **boleh dikirim ke builder** untuk dibuktikan (build, uji, laporan tracked). Tidak ada tanda ✅ pada slice ini sampai bukti itu ada.
+
+### Latar belakang dan batas kepemilikan
+
+HRD sudah punya endpoint penetapan gaji dan rekening bank **per orang**, tetapi tidak ada daftar lintas orang, sehingga petugas tidak dapat melihat siapa yang datanya belum lengkap. Slice ini menambah satu controller di Workforce Core (`WorkforcePayrollDataController`) untuk membaca dan mengubah data itu per orang. Data tetap **milik HRD**; modul Payroll hanya membacanya dan membuat profil payrollnya sendiri. Layanan ini tidak menyentuh profil payroll (`PrlPayroll`).
+
+Contoh alur: Sari (perawat) belum punya penetapan gaji dan rekening, jadi daftar menampilkan "Belum Ada" dan "Belum Lengkap". Petugas HR menekan **Ubah**, memilih struktur gaji, mengisi gaji pokok Rp 12.000.000 dan tanggal mulai 01/12/2026, memilih bank, mengisi nomor rekening dan nama pemilik, lalu menyimpan. Statusnya menjadi "Menunggu Persetujuan" dan "Belum Terverifikasi". Pemegang hak setuju dan verifikasi kemudian menyelesaikannya, dan Payroll dapat membuat profil payroll Sari.
+
+### Keputusan yang dikonfirmasi pemilik (16 November 2026)
+
+Pemilik teknis dan produk mengonfirmasi keenam hal berikut dalam sesi kerja 16 November 2026 (jawaban: "Iya saya konfirmasi"). Keputusan sudah didaftarkan pada `00-interview-decisions.md` bagian 54 sebagai `HRD-DEC-218` s.d. `HRD-DEC-223`, asumsi `HRD-ASM-84` s.d. `HRD-ASM-87`, dan pertanyaan terbuka `HRD-Q-218` s.d. `HRD-Q-220` (gerbang G2 tertutup 16 November 2026).
+
+| ID | Keputusan | Contoh |
+|---|---|---|
+| `HRD-DEC-218` | Perubahan atas penetapan gaji yang **sudah disetujui**, atau rekening yang **sudah terverifikasi**, mencabut persetujuan atau verifikasinya, kecuali pengubah yang berwenang memilih menyetujui atau memverifikasi sekaligus | Gaji Rp 12.000.000 yang sudah disetujui diubah staf HR menjadi Rp 12.500.000 tanpa hak setuju: status kembali **Menunggu Persetujuan**. Bila pengubah memegang hak setuju dan mencentang "Setujui penetapan gaji", status tetap **Disetujui** atas nama pengubah |
+| `HRD-DEC-219` | Detail yang memuat gaji pokok dan nomor rekening lengkap hanya untuk pemegang `WorkforcePayrollData : Update`. Daftar tanpa nominal dan nomor rekening disamarkan | Staf dengan hak Read melihat "BCA ****7890", tidak melihat nominal gaji |
+| `HRD-DEC-220` | Diubah di tempat, **tanpa riwayat versi gaji** (sama dengan endpoint penetapan gaji HRD yang sudah ada) | Kenaikan gaji menimpa nilai lama; riwayat penetapan baru adalah keputusan bisnis terpisah |
+| `HRD-DEC-221` | Pilihan struktur gaji dan bank pada formulir memakai endpoint pilihan master, sehingga butuh `SalaryStructure : Read` dan `Bank : Read` | Tanpa hak itu daftar pilihan kosong; Backend tetap menolak id yang tidak sah |
+| `HRD-DEC-222` | Perawat dikenali sebagai **karyawan yang profesinya** memuat teks "perawat" atau "nurs" pada kode, nama, atau kelompok profesi (bidan bukan perawat); tidak ada master perawat | Karyawan berprofesi "Perawat Pelaksana" tampil sebagai **Perawat**; "Bidan" tampil sebagai Karyawan |
+| `HRD-DEC-223` | Impor CSV pada halaman HR **dihentikan**. Impor profil payroll pada halaman Payroll (Kelengkapan Data) tidak berubah | — |
+
+### Aturan bisnis slice ini
+
+**Aturan A — Siapa yang tampil.** Daftar memuat karyawan dan dokter aktif dari Master Karyawan dan Master Dokter, termasuk yang belum punya data penggajian. Orang yang tercatat sebagai karyawan sekaligus dokter dihitung sekali, sebagai karyawan. Jenisnya: Karyawan, Perawat, atau Dokter.
+
+> **Contoh:** 38 orang aktif (27 karyawan dan 11 dokter) tampil semuanya. Dari 27 karyawan, yang profesinya "Perawat" ditampilkan sebagai Perawat dan dapat difilter terpisah.
+
+**Aturan B — Kelengkapan.** Seseorang **lengkap** bila penetapan gaji utamanya disetujui **dan** rekening payrollnya terverifikasi. Penetapan yang dipakai adalah penetapan utama aktif dengan tanggal mulai terbaru; rekening yang dipakai adalah rekening payroll aktif (terverifikasi didahulukan, lalu rekening utama, lalu yang terbaru). Keduanya sama dengan yang dibaca modul Payroll.
+
+**Aturan C — Isian yang ditolak.** Backend memeriksa seluruh isian lebih dulu; bila ada yang salah, **tidak ada yang tersimpan**. Yang ditolak: struktur gaji atau grade tidak aktif, bank tidak aktif, gaji pokok nol atau negatif, tanggal mulai kosong, nomor rekening kosong atau lebih dari 100 karakter, nama pemilik kosong atau lebih dari 200 karakter, nomor rekening yang sudah tercatat untuk orang yang sama, dan periode penetapan yang beririsan pada struktur dan grade yang sama.
+
+> **Contoh:** Memasukkan nomor rekening 1234567890 untuk orang yang sudah punya rekening bernomor sama (di baris lain) ditolak dengan pesan "Nomor rekening sudah tercatat untuk orang ini." dan gaji yang diisi bersamaan juga tidak tersimpan.
+
+**Aturan D — Gaji di luar rentang grade hanya peringatan.** Contoh: grade 10–16 juta, gaji pokok Rp 9.000.000 tersimpan dan menampilkan peringatan "Gaji pokok di luar rentang grade".
+
+**Aturan E — Jejak audit.** Setiap simpan dicatat dengan pelakunya dan apa yang berubah (dibuat, diperbarui, disetujui, terverifikasi). Gaji pokok dan nomor rekening **tidak** ditulis ke log.
+
+### Gerbang yang masih terbuka
+
+| Gerbang | Isi | Pemilik | Akibat |
+|---|---|---|---|
+| G1 | ~~Kontrak v27 belum disetujui~~ **TERTUTUP 16 November 2026:** kontrak `v27` (API bagian 33, State bagian 31, Validation bagian 32 `VR-WPD-01..16`, Permission bagian 31, Integration bagian 24 `INT-HR-108`, Data bagian 28, Acceptance bagian 35 `AT-HRD-WPD-01..14`) **approved** oleh Pengguna (`HRD-DEC-015`) | Technical Owner HR | Tidak lagi memblokir; task boleh dikirim ke builder |
+| G2 | ~~Keenam keputusan belum punya ID~~ **TERTUTUP 16 November 2026:** didaftarkan sebagai `HRD-DEC-218` s.d. `HRD-DEC-223` | Pemilik teknis dan produk | Tidak lagi memblokir |
+| G3 | Aturan pengenalan perawat dari teks profesi sudah punya ID (`HRD-DEC-222`, `HRD-ASM-84`) tetapi **belum dicocokkan** dengan data profesi sebenarnya | Pemilik teknis dan produk | Pegawai bisa terklasifikasi salah di daftar (hanya label, bukan hak akses) |
+| G4 | Source belum di-build dan belum diuji di runtime: `dotnet build` dan `npm run build` **NOT RUN**, uji di browser **NOT RUN** | Tim pelaksana | Seluruh task tetap 🟡; tidak ada yang boleh ✅ |
+| G5 | `DEC-PRL-002` (gaji pokok terhadap rentang grade) milik Payroll masih terbuka | Pemilik Payroll | Gaji di luar rentang hanya menghasilkan peringatan, tidak ditolak |
+
+### API yang direncanakan
+
+#### Corporate / Human Resource / Workforce Core / Payroll Data
+
+Base URL: `api/v1/corporate/human-resource/workforce-core/payroll-data` — **Kontrak v27 bagian 33 (approved 16 November 2026); source sudah ada sejak 16 November 2026.**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/` | Daftar kelengkapan data penggajian karyawan, perawat, dan dokter | `WorkforcePayrollData : Read` | Query: `search`, `personType`, `completeness`, `pageNumber`, `pageSize` | `PagedResult<WorkforcePayrollDataItemResponse>` |
+| `GET` | `/summary` | Ringkasan: total orang, gaji disetujui, rekening terverifikasi, lengkap | `WorkforcePayrollData : Read` | — | `WorkforcePayrollDataSummaryResponse` |
+| `GET` | `/{workforceProfileId}` | Isian satu orang untuk diubah, termasuk gaji pokok dan nomor rekening lengkap | `WorkforcePayrollData : Update` | Path: `workforceProfileId` (GUID) | `WorkforcePayrollDataDetailResponse` |
+| `PUT` | `/{workforceProfileId}` | Simpan penetapan gaji utama dan/atau rekening payroll satu orang | `WorkforcePayrollData : Update`; opsi setuju butuh `WfpSalaryAssignment : Update`; opsi verifikasi butuh `WorkforceBankAccount : Update` | Body: `UpdateWorkforcePayrollDataRequest` | `WorkforcePayrollDataSaveResponse` |
+
+Kode status: `200` berhasil; `400` isian ditolak (pesan menjelaskan sebabnya); `403` pengguna tidak berhak atas tindakan atau opsi yang diminta; `404` orang tidak ditemukan atau sudah tidak aktif.
+
+**Preflight QBE (diselesaikan saat eksekusi dari `AGENTS.md` backend):** Area `Corporate`, Module `HumanResource`, Submodule `WorkforceCore`, prefix registri `Wfp`, kelas `NEW CODE`; tanpa entity baru dan tanpa migration. QBE yang berlaku: `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001`, `QBE-LOG-001`, `QBE-DTO-001`, `QBE-VAL-001`, `QBE-TXN-001`, `QBE-AUD-001`.
+
+### Grafik Urutan Dependency Backend Slice S-A8
+
+#### Grafik B89 — Daftar, Detail, Simpan, dan Verifikasi Data Penggajian (`BE-HRD-360` s.d. `BE-HRD-363`)
+
+```text
+BE-HRD-003 ✅ [B1] ─┬─> BE-HRD-360 🟡 ──────────────────┬─> BE-HRD-363
+                    │                                   │
+                    ├─> BE-HRD-361 🟡 ─> BE-HRD-362 🟡 ─┘
+                    │
+{Kontrak v27 ✅} ───┘
+```
+
+`[B1]` = Grafik B1 (fondasi Workforce Core). `{Kontrak v27 ✅}` = gerbang G1 pada tabel Gerbang di atas (tertutup 16 November 2026).
+
+---
+
+### Tabel Gelombang Eksekusi Backend Slice S-A8
+
+| Gelombang | Target Cakupan Bisnis & Teknis | Task Backend | Prasyarat Sebelumnya |
+|---|---|---|---|
+| 1 · `MVP-69` | Daftar & ringkasan, detail isian | `BE-HRD-360`, `BE-HRD-361` — boleh paralel | `BE-HRD-003`; gerbang G1 ✅ |
+| 2 · `MVP-69` | Simpan data penggajian | `BE-HRD-362` | `BE-HRD-361` |
+| 3 · Verifikasi | Kontrak, hak akses, build, dan QBE | `BE-HRD-363` | `BE-HRD-360`, `BE-HRD-362` |
+
+Gerbang G1 tertutup 16 November 2026 (kontrak `v27` approved), sehingga task mendapat nomor gelombang. Source seluruh task sudah ada; yang tersisa per task adalah build, uji, dan laporan tracked (gerbang G4).
+
+---
+
+### Rincian 4 Task Backend Slice S-A8 (`BE-HRD-360` s.d. `BE-HRD-363`)
+
+#### 🟡 `BE-HRD-360` — Layanan daftar dan ringkasan kelengkapan data penggajian (`WorkforcePayrollDataService.ListAsync`, `SummaryAsync`)
+* **Slice / MVP**: `S-A8` / `MVP-69`
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 4 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G3, G4.
+* **Outcome**: Daftar karyawan, perawat, dan dokter aktif beserta kelengkapan penetapan gaji utama dan rekening payroll, dengan ringkasan jumlahnya. Sumber populasi Master Karyawan dan Master Dokter; perawat dikenali dari profesi karyawan (Aturan A dan keputusan 5).
+* **Kontrak**: API Contract v27 bagian 33 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
+* **Kemampuan existing yang dipakai**: `MstEmployee`, `MstDoctor`, `MstProfession`, `WfpSalaryAssignment`, `WfpBankAccount` (hanya baca, tanpa pelacakan perubahan).
+* **Dependencies**: `BE-HRD-003` [B1]; gerbang G1
+* **Acceptance Criteria**:
+  1. Daftar memuat seluruh karyawan dan dokter aktif, termasuk yang belum punya data; orang yang tercatat sebagai karyawan sekaligus dokter muncul sekali.
+  2. Perawat terpisah dari karyawan; filter jenis, kelengkapan, dan pencarian nama atau nomor bekerja; halaman paling banyak 100 baris.
+  3. Daftar tidak memuat gaji pokok; nomor rekening hanya menampilkan empat karakter terakhir.
+  4. Penetapan dan rekening yang dinilai sama dengan yang dibaca modul Payroll (Aturan B).
+* **Verifikasi**: verifikasi kontrak API dan penelusuran aturan pada source; `dotnet build` project aplikasi; uji manual/runtime. Tanpa automated test (`rules/backend/TEST_POLICY.md`).
+* **Risiko / pemilik**: klasifikasi perawat bergantung pada teks profesi (G3); Technical Owner HR.
+
+#### 🟡 `BE-HRD-361` — Layanan detail isian penggajian satu orang untuk diubah (`WorkforcePayrollDataService.GetDetailAsync`)
+* **Slice / MVP**: `S-A8` / `MVP-69`
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 3 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G4.
+* **Outcome**: Isian satu orang yang akan diubah: penetapan gaji utama (struktur, grade beserta rentangnya, gaji pokok, tanggal mulai, status persetujuan) dan rekening payroll (bank, nomor lengkap, pemilik, status verifikasi). Dimuat hanya oleh pemegang `WorkforcePayrollData : Update` (keputusan 2).
+* **Kontrak**: API Contract v27 bagian 33 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
+* **Kemampuan existing yang dipakai**: `WfpSalaryAssignment`, `WfpBankAccount`, `MstSalaryStructure`, `MstSalaryGrade`.
+* **Dependencies**: `BE-HRD-003` [B1]; gerbang G1
+* **Acceptance Criteria**:
+  1. Pemegang hak Update menerima gaji pokok dan nomor rekening lengkap; pemegang Read saja ditolak (kode 403).
+  2. Orang yang bukan karyawan atau dokter aktif menghasilkan kode 404 berpesan.
+  3. Bagian yang belum ada (penetapan atau rekening) dikembalikan null, bukan galat.
+* **Verifikasi**: verifikasi kontrak API; penelusuran hak akses `[AccessPermission]` pada controller; `dotnet build`; uji manual/runtime.
+* **Risiko / pemilik**: detail memuat data sensitif; Technical Owner HR.
+
+#### 🟡 `BE-HRD-362` — Layanan simpan penetapan gaji utama dan rekening payroll satu orang (`WorkforcePayrollDataService.SaveAsync`)
+* **Slice / MVP**: `S-A8` / `MVP-69`
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 7 acceptance criteria terbukti penuh; belum ada laporan tracked. Gerbang terbuka: G4, G5.
+* **Outcome**: Simpan penetapan gaji utama dan/atau rekening payroll satu orang dalam satu transaksi, dengan pencabutan persetujuan atau verifikasi saat isian berubah (keputusan 1), opsi setuju dan verifikasi yang dijaga hak masing-masing, serta peringatan gaji di luar rentang grade.
+* **Kontrak**: API Contract v27 bagian 33 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
+* **Kemampuan existing yang dipakai**: `WfpSalaryAssignment`, `WfpBankAccount`, `MstSalaryStructure`, `MstSalaryGrade`, `MstBank`, `LoggerService`, `AccessPermissionService`.
+* **Dependencies**: `BE-HRD-361`
+* **Acceptance Criteria**:
+  1. Bagian yang dikirim null tidak disentuh; permintaan tanpa perubahan apa pun ditolak.
+  2. Seluruh isian diperiksa lebih dulu (Aturan C); bila ada yang ditolak, tidak ada yang tersimpan, dan pesan menyebut sebabnya.
+  3. Perubahan atas penetapan yang sudah disetujui, atau rekening yang sudah terverifikasi, mencabut persetujuan atau verifikasinya kecuali opsi setuju atau verifikasi dipilih (Aturan keputusan 1).
+  4. Opsi setuju tanpa `WfpSalaryAssignment : Update`, dan opsi verifikasi tanpa `WorkforceBankAccount : Update`, ditolak dengan kode 403.
+  5. Gaji di luar rentang grade menghasilkan peringatan, tidak penolakan (Aturan D).
+  6. Penetapan baru dibuat bila belum ada; rekening baru dibuat sebagai rekening payroll bila belum ada.
+  7. Log audit memuat pelaku dan hasil, tanpa gaji pokok dan tanpa nomor rekening (Aturan E).
+* **Verifikasi**: verifikasi kontrak API; verifikasi proses bisnis dengan contoh berangka untuk jalur normal dan jalur ditolak; `dotnet build`; uji manual/runtime.
+* **Risiko / pemilik**: perubahan di tempat tanpa riwayat versi gaji (keputusan 3); tanpa kontrol konkurensi, sehingga simpan terakhir menang seperti endpoint HRD yang sudah ada; Technical Owner HR.
+
+#### `BE-HRD-363` — Verifikasi slice S-A8: kontrak v27, hak akses di Akses Role, build, dan QBE
+* **Slice / MVP**: `S-A8` / Verifikasi
+* **Status**: belum dikerjakan. Gerbang terbuka: G4.
+* **Outcome**: Bukti bahwa empat endpoint sesuai kontrak v27 yang sudah dikunci, hak akses `WorkforcePayrollData` (Read dan Update) muncul di layar Akses Role sehingga dapat diberikan, serta source lulus build dan kepatuhan QBE.
+* **Dependencies**: `BE-HRD-360`, `BE-HRD-362`
+* **Acceptance Criteria**:
+  1. Empat endpoint selaras dengan kontrak v27 (route, DTO, kode status, hak akses).
+  2. Argumen `[AccessPermission]` sama persis dengan `ControllerName` dan nama `[AccessAction]`; hak akses tampil di layar Akses Role.
+  3. `dotnet build` project aplikasi lulus 0 error; QBE preflight dan conformance tanpa pelanggaran.
+  4. Tidak ada migration, dan keadaan itu disebut eksplisit pada laporan.
+* **Verifikasi**: `dotnet build`, QBE conformance, verifikasi kontrak, dan laporan task tracked `BE-HRD-363.md`.

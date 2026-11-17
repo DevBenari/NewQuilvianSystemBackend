@@ -1871,3 +1871,37 @@ bukan panggilan ke sistem luar.
 | `INT-HR-105` | 06 dan 07 | 13 Pemberitahuan (`HrdNotification`, `BE-HRD-314`) | Pemberitahuan Ganti Petugas (pegawai diganti, pengganti, Kepala Bidang), keputusan dispensasi (pengaju), penugasan tambahan (Kepala Unit asal) | Asinkron | Transaksi utama tetap tersimpan; kanal hanya lonceng dalam aplikasi |
 | `INT-HR-106` | 03 Perencanaan (`S-D1`) | 06 Penjadwalan | Standar ketenagaan `Active` dan aturan skill-mix dibaca untuk `W6`/`W7` | Sinkron, baca | Tanpa standar: `W6`/`W7` tidak dievaluasi dan diberi keterangan |
 | `INT-HR-107` | 16 Pelatihan (`S-C2`) | 06 Penjadwalan | Kompetensi pegawai dibaca untuk `W7` bila tersedia | Sinkron, baca | Tanpa data: `W7` tidak dievaluasi dan diberi keterangan |
+
+---
+
+## 24. Integrasi Lintas Modul Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v27`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v27` |
+| `last_changed_in` | `v27` — bagian 24 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `38` bagian 54 (`HRD-DEC-218` s.d. `HRD-DEC-223`, `HRD-ASM-84` s.d. `HRD-ASM-87`, `HRD-Q-218` s.d. `HRD-Q-220`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-223`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+### 24.1 `INT-HR-108`: Payroll Membaca Penetapan Gaji Utama dan Rekening Payroll HRD
+
+* **Domain Pemilik:** `WorkforceCore` (HRD) — pemilik `WfpSalaryAssignment` dan `WfpBankAccount`.
+* **Domain Konsumen:** `PayrollManagement` — layanan Kelengkapan Data Payroll (`PayrollDataReadinessService`) yang membuat profil payroll (`PrlPayroll`).
+* **Bentuk:** pembacaan langsung sinkron di database yang sama, **tanpa event**. Payroll hanya membaca; HRD tidak pernah menulis profil payroll, dan Payroll tidak pernah menulis penetapan gaji atau rekening (`HRD-DEC-223`).
+* **Aturan pemilihan yang wajib sama di kedua sisi (`HRD-ASM-87`):**
+  1. Penetapan gaji: utama, aktif, belum dihapus, dengan tanggal mulai **terbaru**; dianggap disetujui bila `ApprovedAt` terisi.
+  2. Rekening: rekening payroll aktif dan belum dihapus; **terverifikasi** didahulukan, lalu **utama**, lalu yang **terbaru**.
+* **Akibat bagi pengguna:** status "Lengkap" di halaman HR sama dengan yang dibaca Payroll. Contoh: Sari lengkap di HR, sehingga baris Sari di Kelengkapan Data Payroll tidak lagi ditolak dengan alasan "Penetapan gaji utama belum ada di data HRD".
+* **Kegagalan:** tidak ada antrean atau retry karena tidak ada pengiriman. Bila salah satu sisi mengubah aturan pemilihan, kedua sisi wajib diubah bersama.
+
+### 24.2 Pilihan Master pada Formulir (Konsumsi, Bukan Integrasi Baru)
+
+Formulir memakai endpoint pilihan yang sudah ada: struktur gaji (`SalaryStructure : Read`) dan bank (`Bank : Read`) (`HRD-DEC-221`). Tidak ada kontrak baru dengan modul Master Data.

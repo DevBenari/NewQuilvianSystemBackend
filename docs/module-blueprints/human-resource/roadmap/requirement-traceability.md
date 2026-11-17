@@ -1859,3 +1859,13 @@ Verifikasi bersama seluruh baris: `npx eslint` atas berkas yang diubah **0 error
 | `FR-PK-026`–`027` hanya diuji lewat `AT-HRD-PK-12` (blokir roster); status harian "Tugas Belajar" tidak punya ID uji tersendiri | Matriks uji bagian 34 tidak memuat kasus status harian tugas belajar | `BE-HRD-355` menambah uji status harian di laporan task; matriks uji disegarkan pada revisi berikut |
 | Keputusan `HRD-DEC-203` ("Realisasi Jenis Tambahan" = realisasi jam lembur) tidak punya task | Tidak ada perubahan backend; hanya label menu | Tercakup `FE-HRD-324` |
 | Pertanyaan `DSG-Q-03` dan `DSG-Q-04` | Tidak memblokir | Dicatat di `04-prd-to-mvp.md` 40.20 |
+
+---
+
+### Bagian 1x: Jejak Slice S-A8 Data Penggajian Pegawai (DRAFT, 16 November 2026)
+
+Slice ini ditambahkan sebagai **DRAFT** atas perintah pemilik. Source backend dan frontend sudah ditulis tetapi belum di-build, belum diuji di runtime, dan belum punya laporan tracked. Kontrak v27 **approved** oleh pemilik pada 16 November 2026 (gerbang G1 pada bagian 25 `backend-roadmap.md` tertutup); keputusan sudah terdaftar sebagai `HRD-DEC-218` s.d. `HRD-DEC-223` (16 November 2026).
+
+| Ref Scope | Deskripsi Kemampuan Bisnis | Keputusan Asal | Kontrak Acuan | Task Backend | Task Frontend | Status Bukti Terkini |
+| --- | --- | --- | --- | --- | --- | :---: |
+| `S-A8` | Daftar kelengkapan dan ubah per orang penetapan gaji utama serta rekening payroll karyawan, perawat, dan dokter (HRD) | `HRD-DEC-218` s.d. `HRD-DEC-223` (pemilik, 16 November 2026); asumsi `HRD-ASM-84` s.d. `HRD-ASM-87` | v27 approved 16 November 2026 — API §33, State §31, Validation §32, Permission §31, Integration §24, Data §28, Acceptance §35 | `BE-HRD-360` 🟡, `BE-HRD-361` 🟡, `BE-HRD-362` 🟡, `BE-HRD-363` | `FE-HRD-325` 🟡, `FE-HRD-326` 🟡, `FE-HRD-327` | 🟡 Source ada, belum di-build dan belum diuji di runtime; belum ada laporan tracked |
