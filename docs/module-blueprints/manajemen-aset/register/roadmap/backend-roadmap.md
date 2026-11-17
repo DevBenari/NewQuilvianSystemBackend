@@ -40,7 +40,7 @@ BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008 ✅
                      │                  │
       BE-AST-006 ✅ ─┘                  ├─> BE-AST-011
                                         │
-                                        ├─> BE-AST-009 ─┬─> BE-AST-012
+                                        ├─> BE-AST-009 ✅┬─> BE-AST-012
                                         │               │
                                         │               └──────┐
                                         │                      │
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` s.d. `013` belum dikerjakan |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` s.d. `013` belum dikerjakan |
 
 ## Tabel task
 
@@ -156,11 +156,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetLabelDocumentService` (label), endpoint `/labels` dan `/by-number/{inventoryNumber}` |
 | Acceptance criteria | 1. PDF label untuk aset terpilih; QR berisi nomor inventaris saja; tahun perolehan tercetak di samping nomor. 2. `/by-number` mengembalikan aset beserta lokasi tercatat, menghormati batas unit |
 
-### `BE-AST-009` — Penyerahan dan penempatan
+### ✅ `BE-AST-009` — Penyerahan dan penempatan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 November 2026.** `AssetPlacementService` (serahkan/konfirmasi/tolak/batal, `ApplyPlacementAsync` untuk pergerakan), `AssetHandoversController` (9 endpoint 2.9 + `filters/metadata`, `summary`), `AssetPlacementsController` (2 endpoint 2.10), PDF Berita Acara Penyerahan (nama, jabatan, waktu WIB), titik panggil opname `AssetStockTakeGate` (`026`, diisi `BE-AST-021`). Penerima = kepala unit tujuan atau pegawai penanggung jawab, tanpa pengecualian peran. QBE Strict `PASS` (11 berkas); `dotnet build` Rizki berhasil (DLL 2026-11-17 14:38:32); runtime **33/33** (`AT-REG-04`, `05` lulus; `36` lulus untuk kunci penyerahan; `37` lulus dengan aktor bukan-penerima; `38` menunggu `BE-AST-021`). Putaran pertama menemukan nomor `AST-PNY` terbuang oleh percobaan `024`, diperbaiki dalam task. Belum di-commit. Laporan: [`BE-AST-009.md`](../task/report/backend/BE-AST-009.md) |
 | Cakupan | `AssetPlacementService` (termasuk `ApplyPlacement` untuk `pergerakan`), `AssetHandoversController`, `AssetPlacementsController`, PDF Berita Acara Penyerahan |
 | Acceptance criteria | 1. Matriks state §4 lengkap. 2. Penempatan berubah hanya saat konfirmasi penerima yang dituju. 3. `PindahDalamUnit` hanya di unit yang sama. 4. Kunci proses dipasang/dilepas. 5. Berita acara memuat nama, jabatan, waktu (`AST-DEC-046`). 6. Pemeriksaan unit sedang opname (`AST-VAL-REG-026`) disiapkan sebagai titik panggil yang diisi `BE-AST-021` |
 

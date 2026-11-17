@@ -153,6 +153,24 @@ public static class AssetRegisterLabels
         _ => value.ToString()
     };
 
+    public static string HandoverPurpose(HandoverPurpose value) => value switch
+    {
+        Enums.HandoverPurpose.PenempatanAwal => "Penempatan Awal",
+        Enums.HandoverPurpose.PindahDalamUnit => "Pindah Dalam Unit",
+        Enums.HandoverPurpose.KoreksiOpname => "Koreksi Opname",
+        Enums.HandoverPurpose.PascaPemulihan => "Pascapemulihan",
+        _ => value.ToString()
+    };
+
+    public static string HandoverStatus(HandoverStatus value) => value switch
+    {
+        Enums.HandoverStatus.Diserahkan => "Diserahkan",
+        Enums.HandoverStatus.Dikonfirmasi => "Dikonfirmasi",
+        Enums.HandoverStatus.Ditolak => "Ditolak",
+        Enums.HandoverStatus.Dibatalkan => "Dibatalkan",
+        _ => value.ToString()
+    };
+
     public static string AcquisitionType(AssetAcquisitionType value) => value switch
     {
         AssetAcquisitionType.Pembelian => "Pembelian",

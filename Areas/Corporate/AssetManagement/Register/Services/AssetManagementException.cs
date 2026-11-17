@@ -55,7 +55,15 @@ public static class AssetRegisterErrorCodes
     public const string NumberAllocationFailed = "AST-VAL-REG-013";
     public const string VersionMismatch = "AST-VAL-REG-015";
     public const string OutsideUnit = "AST-VAL-REG-016";
+    public const string HandoverNotRegistered = "AST-VAL-REG-020";
+    public const string HandoverAssetLost = "AST-VAL-REG-021";
+    public const string HandoverPurposeMismatch = "AST-VAL-REG-022";
+    public const string HandoverTargetInvalid = "AST-VAL-REG-023";
     public const string ProcessLocked = "AST-VAL-REG-024";
+    public const string HandoverRecipient = "AST-VAL-REG-025";
+    public const string UnitInStockTake = "AST-VAL-REG-026";
+    public const string HandoverNotFound = "AST-PLC-NOT-FOUND";
+    public const string HandoverStatus = "AST-PLC-STATUS";
     public const string AttachmentType = "AST-VAL-REG-070";
     public const string AttachmentTooLarge = "AST-VAL-REG-071";
     public const string AttachmentNotConfigured = "AST-VAL-REG-072";
@@ -96,4 +104,18 @@ public static class AssetRegisterMessages
     public const string AttachmentNotConfigured = "Unggahan belum dapat dipakai karena pengaturan lampiran belum diisi administrator.";
     public const string AttachmentEmpty = "Berkas wajib dilampirkan dan tidak boleh kosong.";
     public const string AttachmentNotFound = "Lampiran tidak ditemukan.";
+    public const string HandoverNotRegistered = "Hanya aset yang sudah terdaftar yang dapat diserahkan.";
+    public const string HandoverAssetLost = "Aset yang berstatus hilang tidak dapat diserahkan.";
+    public const string HandoverPurposeMismatch = "Aset ini sudah ditempatkan. Untuk memindahkan ke unit lain gunakan mutasi.";
+    public const string HandoverInitialOnly = "Aset ini belum ditempatkan. Gunakan penempatan awal.";
+    public const string HandoverTargetInvalid = "Ruangan atau penanggung jawab tidak sesuai dengan unit tujuan.";
+    public const string HandoverRecipient = "Hanya penerima yang dituju yang dapat mengonfirmasi penyerahan ini.";
+    public const string UnitInStockTake = "Unit ini sedang dalam inventarisasi. Penyerahan dapat dilakukan setelah inventarisasi selesai.";
+    public const string HandoverNotFound = "Penyerahan tidak ditemukan.";
+    public const string HandoverStatusFormat = "Penyerahan berstatus {0}, sehingga tidak dapat {1}.";
+    public const string HandoverBatchSize = "Pilih 1 sampai 200 aset untuk diserahkan sekaligus.";
+    public const string HandoverPurposeManual = "Pilih tujuan penempatan awal atau pindah dalam unit. Koreksi opname dan pascapemulihan dibuat otomatis oleh prosesnya.";
+    public const string HandoverTargetRequired = "Unit, ruangan, dan penanggung jawab tujuan wajib diisi.";
+    public const string HandoverNotes = "Catatan paling panjang 1000 karakter.";
+    public const string HandoverOutsideScope = "Penyerahan ini bukan untuk unit Anda.";
 }

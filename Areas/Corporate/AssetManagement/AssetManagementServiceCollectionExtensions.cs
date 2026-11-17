@@ -35,6 +35,8 @@ public static class AssetManagementServiceCollectionExtensions
 
         services.AddScoped<AssetRecordService>();
         services.AddScoped<AssetLabelDocumentService>();
+        services.AddScoped<AssetStockTakeGate>();
+        services.AddScoped<AssetPlacementService>();
 
         return services;
     }
