@@ -47,6 +47,7 @@ public sealed class PayrollRunService
     private readonly FinanceReceivablePayrollSyncService _syncService;
     private readonly PayrollInstallmentDeductionService _deductionService;
     private readonly PayrollCalculationService _calculationService;
+    private readonly PayrollProfileProvisioningService _provisioningService;
     private readonly PayrollPolicyOptions _policy;
 
     public PayrollRunService(
@@ -55,6 +56,7 @@ public sealed class PayrollRunService
         FinanceReceivablePayrollSyncService syncService,
         PayrollInstallmentDeductionService deductionService,
         PayrollCalculationService calculationService,
+        PayrollProfileProvisioningService provisioningService,
         IOptions<PayrollPolicyOptions> policyOptions)
     {
         _dbContext = dbContext;
@@ -62,6 +64,7 @@ public sealed class PayrollRunService
         _syncService = syncService;
         _deductionService = deductionService;
         _calculationService = calculationService;
+        _provisioningService = provisioningService;
         _policy = policyOptions.Value;
     }
 
@@ -475,6 +478,10 @@ public sealed class PayrollRunService
                 && x.RunStatus != PayrollRunStatuses.Cancelled && x.RunStatus != PayrollRunStatuses.Reversed, cancellationToken);
             if (exists) throw new PayrollRunConflictException("Sudah ada payroll run Regular yang aktif untuk periode ini.");
 
+            // Profil payroll pegawai dan dokter HRD yang layak disiapkan otomatis (tanpa impor CSV) sebelum populasi run dibentuk dari
+            // profil payroll aktif. Dilakukan sebelum run ditambahkan ke konteks supaya penyimpanan di dalamnya hanya memuat profil baru.
+            var provision = await _provisioningService.EnsureProfilesAsync(period.StartDate, period.EndDate, actorUserId, "PayrollRun.Create", cancellationToken);
+
             var run = new PrlPayrollRun
             {
                 PayrollPeriodId = period.Id,
@@ -505,6 +512,7 @@ public sealed class PayrollRunService
             var notes = sync.SkipReasons.Distinct().ToList();
             if (seed.SkippedNoIdentity > 0)
                 notes.Add($"{seed.SkippedNoIdentity} profil payroll aktif dilewati karena identitas pegawai/dokter tidak ditemukan.");
+            AddProvisioningNotes(notes, provision);
             run.ValidationSummaryJson = JsonSerializer.Serialize(new ValidationSummary(new List<string>(), notes));
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -518,6 +526,15 @@ public sealed class PayrollRunService
     }
 
     private sealed record PayrollSeedResult(int Added, int SkippedNoIdentity, int Repaired);
+
+    /// <summary>Catatan hasil penyiapan profil otomatis untuk ringkasan validasi run. Tanpa nama atau nominal.</summary>
+    private static void AddProvisioningNotes(List<string> target, PayrollProvisioningResult provision)
+    {
+        if (provision.Created > 0)
+            target.Add($"{provision.Created} profil payroll disiapkan otomatis dari data HRD. Tetapan PPh dan iuran pada profil itu masih nol (belum ditetapkan).");
+        if (provision.SkippedIncompleteHrd > 0)
+            target.Add($"{provision.SkippedIncompleteHrd} pegawai/dokter aktif belum masuk run karena penetapan gaji utama atau rekening payroll belum ada di HRD (lihat Kelengkapan Data Payroll).");
+    }
 
     /// <summary>
     /// Melengkapi baris pegawai dari profil payroll aktif dan eligible yang berlaku pada periode. Idempoten: pegawai yang sudah ada
@@ -623,6 +640,11 @@ public sealed class PayrollRunService
 
             run.CalculationStartedAt = DateTime.UtcNow;
 
+            // Pegawai/dokter HRD yang baru memenuhi syarat dibuatkan profil payroll otomatis (hanya membuat yang belum ada; profil yang
+            // sudah ada tidak disentuh). Hanya terjangkau oleh run yang masih menerima input (status diperiksa di atas), sehingga run
+            // yang sudah disahkan dan snapshot-nya tidak berubah.
+            var provision = await _provisioningService.EnsureProfilesAsync(run.PayrollPeriod.StartDate, run.PayrollPeriod.EndDate, actorUserId, "PayrollRun.Calculate", cancellationToken);
+
             // Populasi dilengkapi lebih dulu (pegawai baru yang eligible, baris penampung dari restitusi) supaya angsuran dan input
             // tertaut ke baris pegawai yang sah dan run tidak disahkan dengan populasi yang tidak lengkap.
             var seed = await SeedEmployeesAsync(run, run.PayrollPeriod, actorUserId, cancellationToken);
@@ -640,6 +662,7 @@ public sealed class PayrollRunService
             var warnings = new List<string>(calculation.Warnings);
             if (seed.SkippedNoIdentity > 0)
                 warnings.Add($"{seed.SkippedNoIdentity} profil payroll aktif dilewati karena identitas pegawai/dokter tidak ditemukan.");
+            AddProvisioningNotes(warnings, provision);
 
             // Potongan cicilan dihitung setelah gaji bruto dan potongan wajib ada. Belum menyentuh Finance.
             var deductions = await _deductionService.CalculateRunAsync(run, actorUserId, cancellationToken);

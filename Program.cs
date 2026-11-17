@@ -435,6 +435,9 @@ try
     // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run (kini milik modul Payroll).
     builder.Services.AddScoped<PayrollInstallmentDeductionService>();
     builder.Services.AddScoped<PayrollCalculationService>();
+    // Penyiapan profil payroll otomatis dari data HRD tanpa impor CSV (PAY-BE-24): dipanggil di dalam transaksi buka dan hitung payroll run.
+    builder.Services.AddScoped<PayrollHrdSourceReader>();
+    builder.Services.AddScoped<PayrollProfileProvisioningService>();
     builder.Services.AddScoped<PayrollRunService>();
     // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya.
     builder.Services.AddScoped<PayrollRestitutionService>();
@@ -454,7 +457,7 @@ try
     builder.Services.AddScoped<PayrollVariableInputService>();
     // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.
     builder.Services.AddScoped<PayrollSimulationService>();
-    // Kelengkapan data payroll per pegawai dan dokter beserta impor data awal (profil, penetapan gaji, rekening); semua atau tidak sama sekali.
+    // Kelengkapan data payroll per pegawai dan dokter (profil, penetapan gaji, rekening dari HRD); murni baca, tanpa impor.
     builder.Services.AddScoped<PayrollDataReadinessService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();

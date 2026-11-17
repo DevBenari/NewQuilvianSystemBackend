@@ -47,7 +47,7 @@ dan uji proses. Ketiadaan test otomatis backend **bukan** gap.
 
 | Task | Alasan | Bukti | Status |
 |---|---|---|---|
-| `PAY-BE-24` 🟡, `PAY-FE-21` 🟡 | Halaman Kelengkapan Data Payroll ditulis dan di-commit 2026-11-16 atas perintah pemilik sebelum didaftarkan; FR-PGJ dan PRL-DEC bernomor belum ada, kontrak `PGJ-C1` tidak memuatnya (gerbang `G1`) | Uji API; uji manual | 🟡 backend ditulis, build berhasil menurut pemilik, uji API belum ([`PAY-BE-24`](../task/report/backend/PAY-BE-24.md)); halaman, daftar, filter, dan impor dua tahap ditulis, ESLint 0 galat, 16 dari 16 uji unit lulus, build berhasil menurut pemilik, uji manual belum ([`PAY-FE-21`](../task/report/frontend/PAY-FE-21.md)) |
+| `PAY-BE-24` 🟡, `PAY-FE-21` 🟡 | Halaman Kelengkapan Data Payroll ditulis dan di-commit 2026-11-16 atas perintah pemilik sebelum didaftarkan; FR-PGJ dan PRL-DEC bernomor belum ada, kontrak `PGJ-C1` tidak memuatnya (gerbang `G1`) | Uji API; uji manual | 🟡 2026-11-17: **direvisi atas perintah pemilik, impor profil dipensiunkan.** Backend: `POST /import` = 410, profil payroll disiapkan otomatis dari data HRD saat run dibuka dan dihitung, kelengkapan tiga dimensi; `dotnet build` revisi NOT RUN, uji API belum, blocker khusus: tetapan PPh dan iuran tanpa sumber sah ([`PAY-BE-24`](../task/report/backend/PAY-BE-24.md)). Frontend: tombol, modal, dan hook impor dihapus, status profil dari Backend ditampilkan, 23 dari 23 uji unit lulus, `npm run build` NOT RUN, uji manual belum ([`PAY-FE-21`](../task/report/frontend/PAY-FE-21.md)). Criteria roadmap yang memuat impor tidak lagi berlaku dan menunggu amandemen kontrak (`G1`). Riwayat 2026-11-16: backend dan halaman (daftar, filter, impor dua tahap) ditulis, build berhasil menurut pemilik (laporan lisan) |
 
 ## Gap
 

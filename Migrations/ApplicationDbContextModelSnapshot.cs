@@ -74706,6 +74706,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("CashChangeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("CashTenderedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("CashierReferenceNote")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
@@ -74827,7 +74835,9 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             t.HasCheckConstraint("CK_BilTender_Amount", "\"Amount\" > 0");
 
-                            t.HasCheckConstraint("CK_BilTender_Status", "\"Status\" IN ('CREATED','PENDING','SUCCEEDED','FAILED','EXPIRED','REVERSED')");
+                            t.HasCheckConstraint("CK_BilTender_CashBreakdown", "(\"CashTenderedAmount\" IS NULL AND \"CashChangeAmount\" IS NULL) OR (\"CashTenderedAmount\" IS NOT NULL AND \"CashChangeAmount\" IS NOT NULL AND \"CashChangeAmount\" >= 0 AND \"CashTenderedAmount\" - \"Amount\" = \"CashChangeAmount\")");
+
+                            t.HasCheckConstraint("CK_BilTender_Status", "\"Status\" IN ('CREATED','PENDING','SUCCEEDED','FAILED','EXPIRED','REVERSED','CANCELLED')");
                         });
                 });
 

@@ -11,7 +11,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Controllers;
 
 /// <summary>
 /// Data Penghasilan Pegawai dan Dokter (CT-PAY-02). Arketipe: monitoring read-only (standar transaksi 2.4) — tidak membuat atau
-/// mengubah kompensasi; penetapan gaji, rekening, dan identitas tetap dikelola HRD lewat endpoint miliknya.
+/// mengubah kompensasi; penetapan gaji, rekening, dan identitas tetap dikelola HRD lewat endpoint miliknya. Populasi berangkat dari
+/// pegawai dan dokter aktif di HRD, jadi orang yang belum punya profil payroll tetap tampil (PayrollProfileId null); semua GET murni
+/// baca dan tidak pernah membuat profil payroll.
 /// Nominal gaji hanya terisi bagi pemanggil yang berwenang ViewAmount; rekening dan NPWP selalu disamarkan.
 /// </summary>
 [ApiController]
@@ -49,6 +51,19 @@ public sealed class PayrollCompensationsController : ControllerBase
         var includeAmounts = await CanViewAmountAsync();
         var result = await _service.GetPagedAsync(query, includeAmounts, cancellationToken);
         return Ok(ApiResponse<PagedResult<PayrollCompensationListItemResponse>>.Ok(result, "Data penghasilan berhasil dimuat."));
+    }
+
+    /// <summary>
+    /// Ringkasan seluruh populasi HRD (total SDM, profil payroll aktif, siap diproses) untuk kartu layar. Tidak berisi nominal sehingga
+    /// cukup izin Read; murni baca dan tidak pernah membuat profil payroll.
+    /// </summary>
+    [HttpGet("summary")]
+    [AccessAction("Read", "Read Payroll Compensation", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("PayrollCompensation", "Read")]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetSummaryAsync(cancellationToken);
+        return Ok(ApiResponse<PayrollCompensationSummaryResponse>.Ok(result, "Ringkasan penghasilan berhasil dimuat."));
     }
 
     [HttpGet("{workforceProfileId:guid}")]
