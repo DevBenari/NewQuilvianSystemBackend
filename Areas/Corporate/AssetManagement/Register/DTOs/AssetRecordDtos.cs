@@ -94,6 +94,10 @@ public sealed class AssetListItemResponse
     public AssetAcquisitionType AcquisitionType { get; set; }
     public string AcquisitionTypeName { get; set; } = string.Empty;
     public DateOnly AcquisitionDate { get; set; }
+    public DateOnly ReadyForUseDate { get; set; }
+    public string? SupplierName { get; set; }
+    public string? GoodsReceiptNumber { get; set; }
+    public string? DonationReference { get; set; }
     public AssetRecordStatus RecordStatus { get; set; }
     public string RecordStatusName { get; set; } = string.Empty;
     public AssetCondition Condition { get; set; }

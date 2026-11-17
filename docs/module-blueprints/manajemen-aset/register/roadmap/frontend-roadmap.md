@@ -33,7 +33,7 @@ REG-FE-S1 ─> REG-FE-S2
 ```text
                                     BE-AST-007 [BE] ✅ ─┐
                                                         │
-BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ✅ ─> FE-AST-004
+BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ✅ ─> FE-AST-004 ✅
                                                       │
                                                       │  BE-AST-012 [BE] ─┐
                                                       │                   │
@@ -120,7 +120,7 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 November 2026.** Layar Daftar Inventaris dan Data Perolehan (satu view, dua varian; tanpa rupiah), Detail Aset (Ringkasan, Nilai khusus `ViewAmount`, Linimasa berhalaman, 403 → "Aset ini bukan milik unit Anda."), route pindai `assets/nomor/[nomor]` (lewat pencarian sampai `BE-AST-008` menyediakan `/by-number`), "Lihat detail" di Pencatatan dan Nomor Inventaris, butir menu Data Perolehan + Daftar Inventaris. Keempat kriteria terpetakan ke source. `npx eslint --max-warnings=0` 22 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 09:32:22, 4 route baru). Uji layar Playwright **22/22 langkah** dengan superadmin, penyetuju berizin terbatas, dan LOKET; 0 galat halaman, 0 respons 5xx. Butuh tambalan daftar `BE-AST-007` (`ReadyForUseDate`, `SupplierName`, `GoodsReceiptNumber`, `DonationReference`), build Rizki berhasil. Laporan: [`FE-AST-004.md`](../task/report/frontend/FE-AST-004.md) |
 | Acceptance criteria | 1. Skema §3.1 dan §3.4. 2. Bagian Nilai dirender hanya bila `/amounts` dapat dibaca. 3. 403 menampilkan "Aset ini bukan milik unit Anda." 4. Detail dapat dibuka dari baris tabel dan dari URL pindai |
 
 ### `FE-AST-005` — Cetak label QR
