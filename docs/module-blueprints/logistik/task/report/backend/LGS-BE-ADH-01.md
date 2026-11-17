@@ -1,0 +1,35 @@
+# LGS-BE-ADH-01 — Endpoint stok di bawah reorder point
+
+- TASK ID: `LGS-BE-ADH-01` (task ad-hoc, belum ada roadmap; diizinkan instruksi tertulis pemrakarsa 2026-11-17)
+- TASK TYPE: NEW CODE pada modul existing — endpoint baca
+- COMPLEXITY: Rendah–menengah (satu query agregat, tanpa perubahan skema)
+- CLASSIFICATION SCORE: tidak dihitung; perubahan read-only pada satu service dan satu controller
+- MODEL: Claude Opus 5.5
+- TASK MODE: BACKEND (dinyatakan eksplisit oleh pemrakarsa)
+- WRITE TARGET: `NewQuilvianSystemBackend` branch `Ikbal`, HEAD `d946b20b`
+- FILES INSPECTED: `Areas/HealthServices/PharmacyManagement/Services/DrugStockService.cs`, `Controllers/DrugStockController.cs`, `DTOs/DrugStockDtos.cs`, `Enums/DrugStockEnums.cs`, `Areas/HealthServices/MasterData/Models/MstDrugStockPolicy.cs`, `MstDrug.cs`, `Models/IdentityModel.cs`, `Repositories/ApplicationDbContext.cs`, `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
+- FILES CHANGED:
+  - `Areas/HealthServices/PharmacyManagement/DTOs/DrugStockDtos.cs` — `DrugLowStockQuery`, `DrugLowStockResponse`; lanjutan 2026-11-17: `RackCode`, `ShelfCode`, `BinCode` (opsional) pada `DrugStockBalanceResponse`
+  - `Areas/HealthServices/PharmacyManagement/Services/DrugStockService.cs` — `GetLowStockAsync`; lanjutan: proyeksi kode rak/shelf/bin dari `MstDrugStorageLocation` di `GetBalancesAsync` untuk Penelusuran Lokasi Barang
+  - `Areas/HealthServices/PharmacyManagement/Controllers/DrugStockController.cs` — `GetLowStock`
+- IMPLEMENTATION: `GET api/v1/health-services/pharmacy-management/drug-stock/low-stock` membaca `MstDrugStockPolicy` yang aktif, sedang berlaku, menunjuk satu lokasi, dan punya reorder point lebih dari nol. Untuk setiap kebijakan, saldo fisik `PhmDrugStockBalance` berstatus `Available` pada obat dan lokasi itu dijumlahkan; baris dikembalikan bila saldo ≤ reorder point. Kebijakan yang satuannya berbeda dari `MstDrug.StockUnitMeasurementId` ikut dikembalikan dengan `isUnitMismatch = true` tanpa dibandingkan. Urutan: kekurangan terbesar lebih dahulu. Jumlah usulan pembelian sengaja tidak dihitung (`LGS-OQ-011` masih terbuka).
+- BACKEND GOVERNANCE PREFLIGHT: Area `HealthServices`; Module `PharmacyManagement`; registry `Phm` `ACTIVE / LEGACY`; keberlakuan NEW CODE di dalam modul existing; tidak ada entity baru sehingga QBE-MOD-002/003 tidak berlaku. QBE yang berlaku: QBE-MOD-001, QBE-SVC-001, QBE-API-001, QBE-PERM-001, QBE-DTO-001, QBE-PAGE-001, QBE-VAL-001 (batas `pageNumber`/`pageSize`).
+- BLUEPRINT STATUS/EVIDENCE: `LGS-BP-001` r2; dasar aturan `PHA-DEC-010`, `PHA-DEC-020`, `PHA-DEC-022`; dicatat di `00-interview-decisions.md` bagian 9.A
+- API CONTRACT IMPACT: endpoint baru, aditif. Query: `drugId?`, `storageLocationId?`, `search?`, `pageNumber`, `pageSize`. Response `ApiResponse<PagedResult<DrugLowStockResponse>>`. Izin `DrugStock:Read`. Tidak ada endpoint lama yang berubah.
+- DATABASE IMPACT: tidak ada. Tanpa entity, kolom, configuration, maupun migration. Query hanya membaca.
+- SECURITY IMPACT: memakai `[Authorize]` controller dan `[AccessPermission("DrugStock", "Read")]` yang sama dengan endpoint baca lain. Tidak ada data pasien.
+- VISUAL REFERENCE: NOT REQUIRED
+- VALIDATION:
+  - `dotnet build` | NOT RUN | dilarang oleh instruksi pemrakarsa | kompilasi belum terbukti
+  - Pemeriksaan statis simbol (`DbSet`, property, namespace enum) | PASS | static | seluruh simbol ada di source `d946b20b`
+  - Keseimbangan kurung kurawal tiga file | PASS | static | DrugStockService 101/101, Controller 31/31, DTO 181/181
+  - Kecocokan kontrak dengan konsumen FE (`getLowStock`, kolom `stockPolicyId`, `quantityOnHand`, `reorderPointQuantity`, `isUnitMismatch`) | PASS | static |
+- WARNINGS: `<Nullable>enable</Nullable>` aktif; pola `x.Drug!.…` lalu `x.Drug.…` mengikuti kode existing pada service yang sama dan paling banyak menghasilkan warning, bukan error.
+- KNOWN ISSUES: (1) Interpretasi yang perlu dikonfirmasi pemilik Farmasi (`LGS-OQ-019`): yang dibandingkan adalah saldo fisik siap pakai terhadap `ReorderPointQuantity`, bukan saldo tersedia setelah reservasi dan bukan `MinimumStockQuantity`. (2) Kebijakan yang tidak menunjuk lokasi (hanya unit layanan/klinik) tidak dievaluasi. (3) Kebijakan dengan reorder point nol tidak menghasilkan peringatan. (4) Validasi kebijakan mencegah duplikat untuk kombinasi obat + lokasi + unit layanan + klinik yang sama (`DrugStockPolicyController.cs` baris 910–921), tetapi dua kebijakan untuk obat dan lokasi yang sama dengan cakupan unit/klinik berbeda tetap mungkin dan akan tampil sebagai dua baris. (5) Safety stock tidak dikurangkan; rumus `PHA-DEC-019` berlaku untuk stok yang dapat diresepkan, bukan untuk peringatan pengadaan.
+- PEMERIKSAAN ULANG 2026-11-17: aturan Farmasi tidak diubah. `PHA-DEC-020` (reorder point = peringatan pengadaan) dan `PHA-DEC-022` (per obat per lokasi) dipatuhi; `PHA-DEC-041` (stok fisik berkurang saat penyerahan) konsisten dengan pemakaian saldo fisik. Stok karantina, kedaluwarsa, dan rusak tidak ikut dihitung.
+- STALE EVIDENCE / BLOCKED PHASES: NOT APPLICABLE
+- MANUAL TEST: NOT FEASIBLE — build, dev server, dan pemanggilan API runtime dilarang pada sesi ini
+- INCIDENTAL CHANGES: NONE
+- INTERRUPTIONS: NONE
+- GIT STATUS: tiga file di atas `M`; dokumen blueprint `logistik/` untracked; belum di-commit
+- NEXT RECOMMENDED STEP: jalankan `dotnet build -p:SkipMigrationMetadata=true` lalu panggil `GET /drug-stock/low-stock` di lingkungan dev untuk membuktikan kompilasi dan hasil query
