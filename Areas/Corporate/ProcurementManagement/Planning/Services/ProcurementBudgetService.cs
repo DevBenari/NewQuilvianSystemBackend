@@ -103,6 +103,7 @@ public sealed class ProcurementBudgetService
     public async Task<PagedResult<BudgetResponse>> GetPagedAsync(ClaimsPrincipal user, BudgetQuery request, CancellationToken cancellationToken)
     {
         var query = await ScopedAsync(user, cancellationToken);
+        query = query.WhereCreatedWithin(ProcurementPeriodFilter.Resolve(request.StartDate, request.EndDate, request.CustomPeriod));
         if (!request.IncludeHistory) query = query.Where(x => x.Status != ProcurementStatuses.Plan.Superseded);
         if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status.Trim());
         if (request.FiscalYear.HasValue) query = query.Where(x => x.FiscalYear == request.FiscalYear.Value);

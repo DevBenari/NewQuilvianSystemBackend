@@ -51,9 +51,9 @@ Tidak ada. Manifest modul dan sub-modul diselaraskan 17 November 2026 ke backend
 
 | Sub-modul | Status |
 | --- | --- |
-| `perencanaan-permintaan` | `approved` (`PBJ-DEC-034`); implementasi 19/19 task ✅; kesiapan `READY_WITH_CONDITIONS` (17 November 2026) |
+| `perencanaan-permintaan` | `approved` (`PBJ-DEC-034`); implementasi 21/21 task ✅; kesiapan `READY_WITH_CONDITIONS` (17 November 2026) |
 | `pemilihan-penyedia` | `NOT_STARTED` |
-| `manajemen-vendor` | `NOT_STARTED` |
+| `manajemen-vendor` | `DISCOVERY` — wawancara selesai 17 November 2026 (`PBJ-DEC-043`..`054`, `PBJ-ASM-001`..`004`); gerbang kelengkapan revisi 3: `PARTIALLY_READY` — `S-V3` dan `S-V6` menunggu `PBJ-OQ-036`, `PBJ-OQ-035` |
 | `kontrak-pelaksanaan` | `NOT_STARTED` |
 
 Status modul diturunkan: `partial`. Kesiapan modul diturunkan: `NOT_READY` (tiga sub-modul belum dimulai).
@@ -70,4 +70,4 @@ Status modul diturunkan: `partial`. Kesiapan modul diturunkan: `NOT_READY` (tiga
 
 ## Progres pengiriman
 
-`perencanaan-permintaan`: 19 / 19 task ✅ (`BE-PBJ-001`..`011`, `FE-PBJ-001`..`008`). Tidak ada task yang dikecualikan. Diperbarui 16 November 2026.
+`perencanaan-permintaan`: 21 / 21 task ✅ (`BE-PBJ-001`..`012`, `FE-PBJ-001`..`009`; roadmap revisi 2 menambah `BE-PBJ-012` dan `FE-PBJ-009` untuk standar layar daftar `PBJ-FE-004`). Tidak ada task yang dikecualikan. Diperbarui 17 November 2026.

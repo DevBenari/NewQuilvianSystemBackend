@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-VAL` · `last_changed_in: 1.1` (`PBJ-DEC-041`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-VAL` · `last_changed_in: 1.2` (`PBJ-DEC-055`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
 | Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-12` |
 | Masukan | `PBJ-DEC-007`..`030`; state matrix `PBJ-PP-STATE` 1.0 |
 
@@ -33,6 +33,7 @@ data di luar cakupan pengguna, 403 untuk izin yang tidak dimiliki.
 | `PBJ-VAL-091` | Konfigurasi approval ada | Selesaikan verifikasi | Definisi `Wfl` tidak aktif, atau tidak ada penyetuju sama sekali | "Alur persetujuan pengadaan belum dikonfigurasi. Hubungi administrator." | 409 |
 | `PBJ-VAL-092` | Belum masuk paket | Batal setelah disetujui | PR sudah `CONVERTED_TO_PACKAGE` | "Pengajuan sudah masuk paket dan tidak dapat dibatalkan dari sini." | 409 |
 | `PBJ-VAL-093` | Transisi sah | Semua aksi status | Lihat transisi tidak sah di `state-transition-matrix.md` | "Status pengajuan tidak memungkinkan tindakan ini." | 409 |
+| `PBJ-VAL-094` | Saringan tanggal sah (1.2, `PBJ-DEC-055`) | Baca daftar | Tanggal akhir sebelum tanggal awal, atau `customPeriod` tidak dikenal. **Contoh:** awal 30-11-2026, akhir 01-11-2026 | "Tanggal akhir tidak boleh sebelum tanggal awal." / "Periode tidak dikenal." | 422 |
 
 **Rumus server (bukan validasi, tetapi menentukan hasil):**
 - Kebutuhan beli per baris = diminta − dipenuhi stok.

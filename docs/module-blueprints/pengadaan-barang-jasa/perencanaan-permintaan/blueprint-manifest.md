@@ -23,40 +23,40 @@ last_verified_at: 2026-11-17
 readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-4 terbuka, K-5 dan K-6 selesai 2026-11-17
 contract_versions:
   set: "1.0"
-  api-contract: PBJ-PP-API 1.3 (approved, PBJ-DEC-037, PBJ-DEC-040, PBJ-DEC-041, PBJ-DEC-042)
+  api-contract: PBJ-PP-API 1.4 (approved, PBJ-DEC-037, PBJ-DEC-040..042, PBJ-DEC-055)
   state-transition-matrix: PBJ-PP-STATE 1.0 (approved)
-  validation-matrix: PBJ-PP-VAL 1.1 (approved, PBJ-DEC-041)
+  validation-matrix: PBJ-PP-VAL 1.2 (approved, PBJ-DEC-041, PBJ-DEC-055)
   integration-contract: PBJ-PP-INT 1.1 (approved, PBJ-DEC-038)
   permission-audit-matrix: PBJ-PP-PERM 1.3 (approved, PBJ-DEC-036/037/039/040)
-  acceptance-test-matrix: PBJ-PP-TEST 1.1 (approved, PBJ-DEC-041, PBJ-DEC-042)
+  acceptance-test-matrix: PBJ-PP-TEST 1.2 (approved, PBJ-DEC-041, PBJ-DEC-042, PBJ-DEC-055, PBJ-FE-004)
   prd-to-mvp: PBJ-PP-MVP 1.1 (approved; 1.1 = teks PBJ-OQ-019 diselaraskan PBJ-DEC-038)
 input_revisions:
-  00-interview-decisions.md: decision_revision 11 (PBJ-DEC-001..042)
+  00-interview-decisions.md: decision_revision 14 (PBJ-DEC-001..058, PBJ-FE-004)
   01-existing-capability-map.md: rev 1
-  02-requirement-completeness-assessment.md: rev 2
+  02-requirement-completeness-assessment.md: rev 3
   02-module-map.md: rev 2
 input_hashes:            # SHA256 dipotong 16 karakter, dihitung ulang 17 November 2026
-  00-interview-decisions.md: 1ab25f31640ca8f0
+  00-interview-decisions.md: 948d13b69fa883b6
   01-existing-capability-map.md: c6072a7c98459c3f
-  02-requirement-completeness-assessment.md: 8edccb99ec732d9f
+  02-requirement-completeness-assessment.md: bdd8dcead878aa46
   02-module-map.md: be513bb46c0fef07
 artifact_hashes:         # dihitung ulang 2026-11-17 (pemeliharaan sesudah audit kesiapan)
   02-backend-architecture.md: 48b84054d56b6f58
-  03-frontend-architecture.md: b62338003b42a000
+  03-frontend-architecture.md: b9737cf85984fad7
   04-prd-to-mvp.md: 9c3885e5be8b6ca2
   data/data-dictionary.md: 82447bc13e5fb9c9
-  contracts/api-contract.md: 226dc8dd66d2e264
+  contracts/api-contract.md: eeb444f23f05d0c3
   contracts/state-transition-matrix.md: eb2c48c11772c078
-  contracts/validation-matrix.md: 8a49ed6a6ece94e2
+  contracts/validation-matrix.md: bed447ccdd62d2f8
   contracts/integration-contract.md: 5c289c98fbb87bc2
   contracts/permission-audit-matrix.md: 2770cc6bc402a1ba
-  testing/acceptance-test-matrix.md: 8ab3ad7bc8cc7d41
+  testing/acceptance-test-matrix.md: fdc61d22dcd99cbb
   flowcharts/00-alur-utama.md: c5e713fdce1e0c6c
   flowcharts/pengajuan-dan-verifikasi-pr.md: 6bc5bf4023d1fe64
   flowcharts/rencana-kebutuhan-dan-revisi.md: 01473caf3a8d9b91
   flowcharts/pagu-anggaran.md: 14b9ae43b55ae67f
   flowcharts/konsolidasi-rencana-paket.md: 97420c9936a09fdc
-roadmap: roadmap/backend-roadmap.md, roadmap/frontend-roadmap.md, roadmap/requirement-traceability.md (rev 1, draft)
+roadmap: roadmap/backend-roadmap.md, roadmap/frontend-roadmap.md, roadmap/requirement-traceability.md (rev 2, draft; 21/21 task ✅ 2026-11-17)
 dependencies:
 approval_scope: >
   Approval desain saja (PBJ-DEC-034). Tidak memberi wewenang migration, kode, maupun pendaftaran registry.

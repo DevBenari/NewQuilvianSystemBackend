@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Ser
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
 
 namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Controllers;
 
@@ -48,9 +49,8 @@ public sealed class ProcurementItemsController : ControllerBase
     [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Item", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission(Resource, ProcurementPermissions.ReadAction)]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ProcurementItemResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Get([FromQuery] ProcurementItemQuery request, CancellationToken cancellationToken) =>
-        Ok(ApiResponse<PagedResult<ProcurementItemResponse>>.Ok(
-            await _service.GetPagedAsync(request, cancellationToken), "Daftar katalog berhasil diambil."));
+    public Task<IActionResult> Get([FromQuery] ProcurementItemQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.GetPagedAsync(request, cancellationToken), "Daftar katalog berhasil diambil.");
 
     [HttpGet("options")]
     [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Item", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -101,6 +101,7 @@ public sealed class ProcurementItemsController : ControllerBase
     {
         try { return Ok(ApiResponse<T>.Ok(await command(), message)); }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (ProcurementPeriodFilterException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message, new { code = exception.Code })); }
         catch (ProcurementMasterInUseException exception) { return BadRequest(ApiResponse<object>.Fail(400, exception.Message, new { code = exception.Code })); }
         catch (ProcurementMasterConflictException exception) { return Conflict(ApiResponse<object>.Fail(409, exception.Message)); }
         catch (ProcurementMasterValidationException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)); }
