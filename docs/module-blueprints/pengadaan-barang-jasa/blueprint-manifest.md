@@ -9,7 +9,7 @@ entity_prefix: Prc             # PBJ-DEC-035 — terdaftar ACTIVE di registry 20
 module_area: Areas/Corporate/ProcurementManagement   # PBJ-DEC-035
 revision: 2                   # rev 2 = desain sub-modul perencanaan-permintaan (12 Nov 2026); PBJ-DEC-035..042 dibawa versi kontrak sub-modul
 status: partial               # DITURUNKAN: perencanaan-permintaan approved, tiga lainnya NOT_STARTED
-current_phase: PBJ-PH-007     # audit kesiapan perencanaan-permintaan; sign-off menunggu K-1..K-5
+current_phase: PBJ-PH-007     # audit kesiapan perencanaan-permintaan; sign-off menunggu K-1..K-4
 blueprint_shape: COMPOSITE      # PBJ-DEC-004; sub-modul: perencanaan-permintaan, pemilihan-penyedia, manajemen-vendor, kontrak-pelaksanaan (folder dibuat oleh design-business-module)
 shape_decided_by: USER_CONFIRMED
 created_at: 2026-11-12

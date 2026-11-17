@@ -70,5 +70,6 @@ layar Playwright dengan aktor non-SuperAdmin; tangkapan layar tercatat pada lapo
 | ~~`AT-PP-35` (regresi HR)~~ | Dijalankan 16 November 2026 dengan dokumen HR pengganti; cuti/lembur menunggu master HR (`UAT-16`). Empat bug HR lama tercatat di laporan `BE-PBJ-001` | Pemilik HR |
 | ~~Bundel izin vs kebutuhan layar~~ | Ditutup `PBJ-DEC-039` (izin baca master ditambahkan ke bundel) dan `PBJ-DEC-040` (tab Persetujuan lewat `GET /{id}/approval`, tanpa `WorkflowInstance : Read`) | — |
 | ~~Delta kolom daftar PR~~ | Ditutup `PBJ-DEC-040`: `urgencyDeadline`, aksi terakhir, urutan `urgency`. Kolom "Langkah saat ini" di `-16` tetap lewat tab Persetujuan | — |
-| `PBJ-VAL-071` | Backend 400 tanpa `errors.code` dan teks berbeda dari `validation-matrix.md` (409) | Selaraskan backend atau matriks ([FE-PBJ-001](../task/report/frontend/FE-PBJ-001.md)) |
+| ~~`PBJ-VAL-071`~~ | Ditutup `PBJ-DEC-041` (17 November 2026): tetap 400 sesuai standar master data, ditambah `errors.code` `PBJ-VAL-071`; `validation-matrix.md` 1.1 dan `AT-PP-51` diselaraskan. Runtime 5/5 `PASS` ([BE-PBJ-003](../task/report/backend/BE-PBJ-003.md)) | — |
+| ~~Sisa pagu untuk pengusul~~ | Ditutup `PBJ-DEC-042` (17 November 2026): `GET purchase-requests/budget-remaining` ber-izin PR. `AT-PP-11` backend 9/9 dan layar 4/4 `PASS` ([BE-PBJ-010](../task/report/backend/BE-PBJ-010.md), [FE-PBJ-004](../task/report/frontend/FE-PBJ-004.md)) | — |
 | Requirement tanpa task | Tidak ada. K-13 (dashboard/laporan) dan integrasi stok sengaja `POST-MVP` (`04-prd-to-mvp.md` §8) | — |

@@ -197,3 +197,40 @@ Berkas: `src/components/view/corporate/procurement/requests/purchase-request-lis
 | `npx eslint` berkas Pengadaan | 0 error, warning `set-state-in-effect` pola muat-data | `PASS` |
 | `npm run lint:errors` dan `npm run build` | exit 0; 24 rute `/corporate/procurement/**` | `PASS` |
 | Uji layar `ui-results-j.json` (Riwayat dan Mendesak) | Sesuai | `PASS` |
+
+## Tambahan `PBJ-DEC-042` — 17 November 2026
+
+Ringkasan "Sisa pagu" pada form/detail PR kini membaca `GET purchase-requests/budget-remaining` (izin
+`ProcurementRequest : Read`, `PBJ-PP-API` 1.3) menggantikan `GET budgets/remaining` (izin `ProcurementBudget : Read`).
+Sebelumnya pengusul tanpa izin pagu tidak pernah melihat ringkasan ini (temuan G-06 audit kesiapan).
+
+| Butir | Nilai |
+| --- | --- |
+| Kontrak | `PBJ-PP-API` 1.3 (`PBJ-DEC-042`); `03-frontend-architecture.md` baris "Sisa pagu"; `AT-PP-11` |
+| Wewenang UI | Tidak ada perubahan tampilan; hanya sumber data dan syarat izin |
+| Dependency backend | `GET purchase-requests/budget-remaining` — laporan `BE-PBJ-010` bagian "Tambahan `PBJ-DEC-042`" (9/9 `PASS`) |
+
+| Elemen | Keputusan | Bukti |
+| --- | --- | --- |
+| Tabel ringkasan sisa pagu di kartu Ringkasan | `REUSE` | Markup dan gaya yang sama di `purchase-request-detail-view.jsx`; tidak ada JSX/CSS baru |
+
+`UI GATE: PASS` — semua elemen `REUSE`, tidak ada elemen `NEW`/`EXTEND`.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/services/corporate/procurement/purchase-request-service.js` | `fetchPurchaseRequestBudgetRemaining` → `GET {PR}/budget-remaining` |
+| `src/lib/services/corporate/procurement/budget-service.js` | `fetchBudgetRemaining` dihapus (tidak ada pemakai lagi) |
+| `src/lib/hooks/corporate/procurement/use-purchase-request-detail.jsx` | Syarat ambil sisa pagu: `ProcurementRequest : Read` (dimuat dulu, baru dicek); nilai keluaran `canReadBudget` → `canReadBudgetRemaining` |
+| `src/components/view/corporate/procurement/requests/purchase-request-detail-view.jsx` | Memakai `canReadBudgetRemaining` |
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npx eslint` 4 berkas | 0 error, 2 warning `react-hooks/set-state-in-effect` (pola muat-data yang sudah ada) | `PASS` |
+| `npm run lint:errors` | exit 0 | `PASS` |
+| `npm run build` | `Compiled successfully`, exit 0; 24 rute `/corporate/procurement/**` | `PASS` |
+| Uji layar Playwright (`ui_dec_042.cjs`) — aktor `TEST-PBJ reqA DEC042` (hanya `ProcurementRequest : Read, Create`) membuka Permintaan Baru | `UI-11a` `GET purchase-requests/budget-remaining?fiscalYear=2026&departmentId=…` → 200; `UI-11b` tidak ada panggilan `budgets/remaining`; `UI-11c` tanpa "Akses Ditolak" dan tanpa galat halaman; `UI-11d` tabel Sisa Pagu tersembunyi karena belum ada pagu disetujui di DB uji. 4/4 | `PASS` |
+| `AUTOMATED TEST` | `SKIPPED (opsional)` — perubahan hanya sumber data; tidak ada test unit baru (`test-policy.md`) | — |
+
+`MANUAL TEST`: tampilan tabel berisi angka sisa pagu tidak diuji ulang karena DB uji tidak punya pagu berstatus disetujui
+(definisi `PBJ-PAGU` tidak aktif, `PBJ-DEC-038`). Markup tabel tidak berubah dan sudah teruji pada uji layar 16 November
+2026 dengan aktor ber-izin pagu.

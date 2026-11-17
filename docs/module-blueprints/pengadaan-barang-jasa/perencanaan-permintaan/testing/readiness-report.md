@@ -169,8 +169,9 @@ satunya penting: penerap keputusan HR menunggu status `Approved`, padahal mesin 
 | --- | --- | --- | --- |
 | 17 November 2026 | K-6 (G-07, G-08) | Manifest modul dan sub-modul diselaraskan ke backend `9f396063` dan frontend `608e46ba4`, versi kontrak (API 1.2, PERM 1.3, MVP 1.1), `decision_revision` 10 (`PBJ-DEC-001`..`040`), hash masukan dan artefak, serta `last_verified_at`. Teks "approval memakai baris fallback" diganti di `02-backend-architecture.md` bagian 10, `04-prd-to-mvp.md` (naik ke versi 1.1), dan `requirement-traceability.md` | `manage-module-blueprint` |
 | 17 November 2026 | K-5 (G-05, G-06) | Keputusan `PBJ-DEC-041` (hapus master terpakai tetap 400 + `errors.code` `PBJ-VAL-071`) dan `PBJ-DEC-042` (sisa pagu layar PR lewat `GET purchase-requests/budget-remaining`). Kontrak naik: API 1.3, VAL 1.1, TEST 1.1 (`AT-PP-11` baru). Implementasi lewat `build-module-backend` dan `build-module-frontend` | Pengguna sesi; `manage-module-blueprint` |
+| 17 November 2026 | K-5 selesai | `PBJ-DEC-041`: hapus master terpakai 400 + `errors.code` `PBJ-VAL-071` (runtime 5/5 `PASS`). `PBJ-DEC-042`: `GET purchase-requests/budget-remaining` (runtime 9/9, layar 4/4 `PASS`). Build backend 0 error, QBE Strict `PASS`; lint dan build frontend exit 0 | `build-module-backend`, `build-module-frontend` |
 
 Catatan koreksi: versi pertama laporan ini menulis "kontrak menulis 409" untuk G-05. Yang benar: `api-contract.md` 1.1 menulis 400,
 hanya `validation-matrix.md` dan `AT-PP-51` yang menulis 409. Pengguna memutuskan ulang setelah koreksi itu.
 
-K-1 sampai K-4 masih terbuka; K-5 menunggu implementasi. Verdict tetap `READY_WITH_CONDITIONS` sampai audit ulang.
+K-1 sampai K-4 masih terbuka. Verdict tetap `READY_WITH_CONDITIONS` sampai audit ulang.

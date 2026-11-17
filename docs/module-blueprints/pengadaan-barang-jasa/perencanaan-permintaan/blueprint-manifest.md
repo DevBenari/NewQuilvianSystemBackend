@@ -20,7 +20,7 @@ frontend_commit_sha: 608e46ba4dcb69dd73d0e4ca0600311abfe8ceaa  # branch sukmagpV
 requirement_readiness: READY_FOR_DOMAIN_DESIGN    # 02-requirement-completeness-assessment.md rev 2
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN   # administratif; tanpa data klinis/billing
 last_verified_at: 2026-11-17
-readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-5 terbuka, K-6 selesai 2026-11-17
+readiness: READY_WITH_CONDITIONS   # testing/readiness-report.md; syarat K-1..K-4 terbuka, K-5 dan K-6 selesai 2026-11-17
 contract_versions:
   set: "1.0"
   api-contract: PBJ-PP-API 1.3 (approved, PBJ-DEC-037, PBJ-DEC-040, PBJ-DEC-041, PBJ-DEC-042)
