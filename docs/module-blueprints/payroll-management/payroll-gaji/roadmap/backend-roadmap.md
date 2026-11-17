@@ -10,6 +10,7 @@
 | Repository dan branch | `NewQuilvianSystemBackend`, branch `Yasmina` |
 | Laporan task | `payroll-gaji/task/report/backend/<TASK-ID>.md`, bersebelahan dengan roadmap ini |
 | Ditulis | 2026-11-12 oleh `plan-module-delivery` |
+| Pembaruan | 2026-11-16: `PAY-BE-24` (Kelengkapan Data Payroll) didaftarkan **setelah** source ditulis dan di-commit; kontrak `PGJ-C1` tidak memuatnya, lihat bagian Gerbang terbuka |
 
 **Handoff untuk setiap task:** QBE preflight dan kesesuaian engineering diselesaikan pada saat
 eksekusi dari `AGENTS.md` backend dan dokumen engineering canonical (`docs/engineering/`), bukan
@@ -42,11 +43,13 @@ PAY-BE-15 🟡
 PAY-BE-22 🟡
 
 PAY-BE-23 🟡
+
+PAY-BE-24 🟡
 ```
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `PAY-BE-14` 🟡, `PAY-BE-15` 🟡, `PAY-BE-22` 🟡, `PAY-BE-23` 🟡 — boleh paralel |
+| 1 | — | `PAY-BE-14` 🟡, `PAY-BE-15` 🟡, `PAY-BE-22` 🟡, `PAY-BE-23` 🟡, `PAY-BE-24` 🟡 — boleh paralel |
 | 2 | `PAY-BE-14` | `PAY-BE-16` 🟡, `PAY-BE-19` 🟡 — boleh paralel |
 | 3 | `PAY-BE-16` | `PAY-BE-17` 🟡 |
 | 4 | `PAY-BE-17` | `PAY-BE-18` 🟡 |
@@ -77,11 +80,18 @@ orang.
 | `PAY-BE-21` 🟡 | Simulasi tanpa jejak | FR-PGJ-040–042; PRL-DEC-32 | `PGJ-C1` | `PayrollHrdImportService`, mesin hitung | Service baru, satu endpoint | `PAY-BE-20` | Kartu | Build, QBE, uji runtime | Efek samping `DbContext` terpisah / Yasmin | Kartu |
 | `PAY-BE-22` 🟡 | Laporan beban gaji dan PPh/BPJS | FR-PGJ-050–052; PRL-DEC-27, 33, 41 | `PGJ-C1` | `PayrollReportService` | Dua endpoint laporan | — | Kartu | Build, QBE, uji API | Angka tidak cocok rekap / Yasmin | Kartu |
 | `PAY-BE-23` 🟡 | Rekap lembur per run | FR-PGJ-060; PRL-DEC-42 | `PGJ-C1` | `PrlPayrollOvertimeInput` | Satu endpoint | — | Kartu | Build, QBE, uji API | — / Yasmin | Kartu |
+| `PAY-BE-24` 🟡 | Kelengkapan data payroll terbaca dan profil payroll dapat dibuat dari data HRD lewat impor | Perintah pemilik 2026-11-16; FR dan keputusan bernomor belum ada | Tidak tercakup `PGJ-C1` (gerbang `G1`) | `PrlPayroll`; `WfpSalaryAssignment` dan `WfpBankAccount` (HRD, baca-saja) | Controller, service, DTO baru; `Program.cs` | — | Kartu | Build, QBE, uji API | Kontrak belum ada / Yasmin | Kartu |
 
 Epic `OPEN DECISION` (`PGJ-08` s.d. `PGJ-17`) tidak diberi task dan tidak masuk grafik. Daftar
 beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `PAY-BE-13`
 (penomoran transport ke NumberSeriesManagement, `PLANNED`) tetap tercatat di
 `../../PAYROLL_V2_04_KONTRAK_DAN_TASK_IMPLEMENTASI.md` dan tidak bergantung pada roadmap ini.
+
+## Gerbang terbuka
+
+| Gerbang | Isi | Pemilik |
+|---|---|---|
+| `G1` | Kontrak `PGJ-C1` (`approved`, 2026-11-12) **tidak memuat** halaman Kelengkapan Data Payroll (`PAY-BE-24`, `PAY-FE-21`): tiga endpoint, matriks validasi `failedRows`, matriks hak akses `PayrollDataReadiness : Read/Import`, dan skema layar belum ada. Source ditulis dan di-commit 2026-11-16 sebelum didaftarkan di roadmap. Diperlukan amandemen kontrak (`PGJ-C2` atau penamaan yang diputuskan pemilik) dan persetujuan sebelum kedua task boleh ✅. Requirement (FR-PGJ) dan keputusan (PRL-DEC) bernomor untuk halaman ini juga belum didaftarkan; tidak dikarang di sini | Yasmin |
 
 ## Kartu task
 
@@ -234,3 +244,18 @@ beserta keputusan penahannya ada di `../04-prd-to-mvp.md` bagian 10. Task lama `
 | Verifikasi | QBE; build; uji API |
 | Risiko/pemilik | — / Yasmin |
 | DoD | Build hijau, QBE bersih, kriteria terbukti, laporan ditulis |
+
+### `PAY-BE-24` 🟡 — Kelengkapan Data Payroll (daftar, ringkasan, impor profil)
+
+| Field | Isi |
+|---|---|
+| Status | 🟡 2026-11-16 — **didaftarkan setelah source ditulis dan di-commit pemilik** (`dc723f0f`, `feat(payroll): add Payroll Data Readiness functionality`). Tiga berkas baru (controller, service, DTO) dan satu baris `Program.cs`; tanpa entity baru dan tanpa migration. `dotnet build` **berhasil menurut pemilik** (2026-11-16, laporan lisan, tanpa keluaran tersimpan; bukan bukti agen). Pemeriksaan tinjauan source: controller hanya memanggil service, atribut akses `PayrollDataReadiness : Read`/`Import` konsisten, log audit tanpa nominal. Belum terpenuhi: uji API sepuluh langkah, checker QBE resmi (`NOT RUN`), dan **kontrak** — `PGJ-C1` tidak memuat grup ini (gerbang `G1`), sehingga kriteria di bawah disusun dari perilaku source. Laporan: [`PAY-BE-24.md`](../task/report/backend/PAY-BE-24.md) |
+| Outcome | Petugas Payroll melihat seluruh pegawai dan dokter aktif beserta kelengkapan profil payroll, penetapan gaji utama, dan rekening, serta membuat profil payroll banyak orang sekaligus dari data HRD |
+| Requirement/decision | Perintah pemilik 2026-11-16: Payroll hanya membaca data HRD, yang ditulis Payroll hanya profil payroll. **FR-PGJ dan PRL-DEC bernomor belum ada** (tidak dikarang); `00-interview-decisions.md` modul Payroll belum memuatnya |
+| Reuse | `PrlPayroll` (Payroll); `WfpSalaryAssignment` dan `WfpBankAccount` (HRD, baca-saja); `MstEmployee`, `MstDoctor`, `MstCostCenter`; `PagedResult`, `PayrollControllerSupport`, `LoggerService` |
+| Cakupan | `PayrollDataReadinessController.cs`, `PayrollDataReadinessService.cs`, `PayrollDataReadinessDtos.cs` (Baru); `Program.cs` (`AddScoped`) |
+| Dependency | — (membaca data HRD yang sudah ada; tidak menunggu `BE-HRD-360`–`362`, tetapi impor baru berhasil setelah HR mengisi penetapan gaji dan rekening) |
+| Acceptance criteria | 1. `GET /` memuat populasi pegawai dan dokter aktif dari master HRD, termasuk yang belum punya profil; saringan `search`, `personType`, `completeness`; `pageSize` maks 100; urut nama. 2. `isComplete` hanya bila profil payroll aktif, eligible, dan `Active`, penetapan gaji utama aktif sudah disetujui, dan rekening payroll aktif sudah terverifikasi; `issues` menyebut apa yang kurang dan bahwa HRD yang melengkapi. 3. `GET /summary` mengembalikan lima hitungan. 4. `POST /import`: semua atau tidak sama sekali (400 dengan `errors.failedRows`), `dryRun` tidak menyimpan, 1–200 baris, profil yang sudah ada dilewati, profil baru mengambil struktur, grade, penetapan gaji, dan rekening dari HRD, data HRD tidak diubah. 5. `GET` dijaga `PayrollDataReadiness : Read`, `POST` dijaga `Import`; tanpa `IsInRole`, nama peran, atau `UserType`. 6. Log audit `PayrollDataReadiness.Import` tanpa nominal pajak dan iuran. |
+| Verifikasi | QBE; `dotnet build`; uji API manual per kode status (200, 400, 403); tinjauan diff dan cakupan |
+| Risiko/pemilik | Kontrak belum ada; daftar dan ringkasan memuat seluruh populasi ke memori lalu menyaring (sengaja, dipantau bila SDM membesar); admin perlu mencentang hak baru di Akses Role. Pemilik: Yasmin |
+| DoD | Build hijau, QBE bersih, enam kriteria terbukti di DB uji, kontrak amandemen disetujui, laporan ditulis |

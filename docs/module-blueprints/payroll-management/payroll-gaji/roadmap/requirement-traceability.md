@@ -43,11 +43,18 @@ dan uji proses. Ketiadaan test otomatis backend **bukan** gap.
 | FR-PGJ-060 Rekap lembur per run | PRL-DEC-42 | Kontrak Payroll Run | `PAY-BE-23` 🟡 | `PAY-FE-19` ✅ | `UAT-21` | 🟡 `GET /{id}/overtime-inputs` ditulis ([`PAY-BE-23`](../task/report/backend/PAY-BE-23.md)); build dan uji API menunggu pemilik; hak `Read` vs `ReadEmployeeDetail` menunggu keputusan; layar Rekap Lembur baca-saja dengan kolom sesuai skema dan tombol masuk dari detail run ditulis, dijaga `PayrollRun : Read` ([`PAY-FE-19`](../task/report/frontend/PAY-FE-19.md)); uji manual lulus menurut pemilik (2026-11-13, tanpa rincian per langkah); build produksi `NOT RUN` |
 | FR-PGJ-061 Tarif lembur baca-saja | PRL-DEC-42 | Kontrak Overtime Rate (HR) | — (endpoint HR sudah ada) | `PAY-FE-19` ✅ | `UAT-22` | ✅ layar Tarif Lembur baca-saja (tanpa kontrol tulis, keterangan "diubah di modul HR"), grup menu "Lembur" dan butir "Tarif Lembur" dijaga `OvertimeRate : Read` ditulis ([`PAY-FE-19`](../task/report/frontend/PAY-FE-19.md)); uji manual lulus menurut pemilik (2026-11-13, tanpa rincian per langkah); build produksi `NOT RUN` |
 
+## Task tanpa requirement bernomor
+
+| Task | Alasan | Bukti | Status |
+|---|---|---|---|
+| `PAY-BE-24` 🟡, `PAY-FE-21` 🟡 | Halaman Kelengkapan Data Payroll ditulis dan di-commit 2026-11-16 atas perintah pemilik sebelum didaftarkan; FR-PGJ dan PRL-DEC bernomor belum ada, kontrak `PGJ-C1` tidak memuatnya (gerbang `G1`) | Uji API; uji manual | 🟡 backend ditulis, build berhasil menurut pemilik, uji API belum ([`PAY-BE-24`](../task/report/backend/PAY-BE-24.md)); halaman, daftar, filter, dan impor dua tahap ditulis, ESLint 0 galat, 16 dari 16 uji unit lulus, build berhasil menurut pemilik, uji manual belum ([`PAY-FE-21`](../task/report/frontend/PAY-FE-21.md)) |
+
 ## Gap
 
 | Gap | Keterangan |
 |---|---|
 | Tidak ada requirement tanpa task | Ke-29 FR punya task dan bukti verifikasi |
+| Dua task tanpa requirement | `PAY-BE-24` dan `PAY-FE-21` belum punya FR-PGJ dan PRL-DEC bernomor; perlu didaftarkan bersama amandemen kontrak (gerbang `G1`), bukan dikarang di roadmap |
 | FR-PGJ-004, 005, 006, 022, 033, 037 tanpa task frontend | Disengaja: hasilnya tampil di detail run dan slip yang sudah membaca baris komponen secara umum; diverifikasi lewat UAT |
 | Data master untuk UAT | Nominal tunjangan sah (DEC-PRL-004) belum ditetapkan; UAT boleh memakai data uji samaran, produksi menunggu keputusan |
 | Hak akses baru | Admin harus memberi hak `SalaryStructureAllowance`, `PayrollVariableInput`, `PayrollRun : Simulate` sebelum UAT; bukan task kode |
