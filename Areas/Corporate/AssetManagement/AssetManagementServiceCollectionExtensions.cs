@@ -33,6 +33,8 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetAccountingEventService>();
         services.AddScoped<AssetBookService>();
 
+        services.AddScoped<AssetRecordService>();
+
         return services;
     }
 }

@@ -36,15 +36,15 @@ BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅
 ```
 
 ```text
-BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ─┬─> BE-AST-008
-                     │               │
-      BE-AST-006 ✅ ─┘               ├─> BE-AST-011
-                                     │
-                                     ├─> BE-AST-009 ─┬─> BE-AST-012
-                                     │               │
-                                     │               └──────┐
-                                     │                      │
-                                     └─> BE-AST-010 ────────┴─> BE-AST-013
+BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008
+                     │                  │
+      BE-AST-006 ✅ ─┘                  ├─> BE-AST-011
+                                        │
+                                        ├─> BE-AST-009 ─┬─> BE-AST-012
+                                        │               │
+                                        │               └──────┐
+                                        │                      │
+                                        └─> BE-AST-010 ────────┴─> BE-AST-013
 ```
 
 `[NLI]` = task backend sub-modul `nilai` pada `../../nilai/roadmap/backend-roadmap.md`, cermin baca-saja.
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | belum dikerjakan |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` s.d. `013` belum dikerjakan |
 
 ## Tabel task
 
@@ -136,15 +136,15 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 
 | Field | Isi |
 |---|---|
-| **Status** | ✅ **SELESAI 16 November 2026.** 7 controller (58 endpoint: 6 master koleksi × 9 baseline + `document-requirements` + `inventory-codes`, pengaturan `GET`/`PUT`), `AssetMasterDataService`, `AssetEntityResolver` (badan hukum/site dari konfigurasi), seeder `IHostedService`. QBE Strict `PASS`; atribut akses 339/0; build Rizki (DLL 11:14:03); Swagger 58 endpoint cocok; runtime API 56/56 termasuk `AT-REG-34`; seeder + pengaturan 14/14; nol baris komentar. `AT-REG-35` diuji sesudah `BE-AST-007` sesuai kartu. Delta kontrak (`filters/metadata`, `summary`, `DELETE`, paging) di laporan. Laporan: [`BE-AST-006.md`](../task/report/backend/BE-AST-006.md) |
+| **Status** | ✅ **SELESAI 16 November 2026.** 7 controller (58 endpoint: 6 master koleksi × 9 baseline + `document-requirements` + `inventory-codes`, pengaturan `GET`/`PUT`), `AssetMasterDataService`, `AssetEntityResolver` (badan hukum/site dari konfigurasi), seeder `IHostedService`. QBE Strict `PASS`; atribut akses 339/0; build Rizki (DLL 11:14:03); Swagger 58 endpoint cocok; runtime API 56/56 termasuk `AT-REG-34`; seeder + pengaturan 14/14; nol baris komentar. `AT-REG-35` lulus 2026-11-16 pada uji `BE-AST-007` (409 `053`). Delta kontrak (`filters/metadata`, `summary`, `DELETE`, paging) di laporan. Laporan: [`BE-AST-006.md`](../task/report/backend/BE-AST-006.md) |
 | Cakupan | 7 controller master + `AssetMasterDataService`; seeder data awal yang menolak produksi |
 | Acceptance criteria | 1. Seluruh endpoint 2.1–2.7 dengan Tags dan `[AccessPermission]` persis kontrak. 2. `AST-VAL-REG-050..056`. 3. Kode kelompok terkunci setelah dipakai (dapat diverifikasi sesudah `BE-AST-007`). 4. Seeder mengisi isi minimum `02-backend-architecture.md` §9 di non-produksi |
 
-### `BE-AST-007` — Pencatatan, persetujuan, dan penomoran aset
+### ✅ `BE-AST-007` — Pencatatan, persetujuan, dan penomoran aset
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 16 November 2026.** `AssetsController` (13 endpoint), `AssetRecordService`, DTO, penanda `AssetRegister : ReadAllUnits`. QBE Strict `Files evaluated: 9` `PASS`, nol baris komentar. `dotnet build` dijalankan Rizki dan berhasil (DLL 15:45:37 WIB); jumlah warning tidak dilaporkan. Swagger 13 operasi; registry akses memuat 7 aksi termasuk `ReadAllUnits`. Runtime **52/52 + 14/14 `PASS`**: `AT-REG-01`, `02`, `03`, `30`, `31`, `33`, `35`, `47`, penolakan, dan 403 batas unit. DB baca-saja: 1 baris kotak keluar hibah `Held`, deret nomor tanpa nomor terbuang. Kedelapan acceptance criteria teruji di runtime. **Dikecualikan atas persetujuan Rizki:** `AT-REG-32` (alokator gagal; tidak dapat dipicu lewat API, dijaga source). Belum di-commit. **Riwayat:** 🟡 2026-11-16 sore, ketika baru jalur pengaju yang teruji (36/36). Laporan: [`BE-AST-007.md`](../task/report/backend/BE-AST-007.md) |
 | Cakupan | `AssetsController` (selain `/labels`, `/by-number`), `AssetRecordService`; panggilan `AssetBookService.CreateForRegisteredAsset` dan `AssetAccountingEventService.StageDonationAcquisition` (`BE-AST-015`) |
 | Acceptance criteria | 1. 1–200 draft per permintaan. 2. Atribut medis wajib saat diajukan. 3. Persetujuan: nomor terbit, `Terdaftar`, buku nilai terbentuk, hibah → satu baris kotak keluar. 4. Persetujuan massal per aset transaksi sendiri. 5. Pengaju ≠ penyetuju. 6. Tolak → `Draft` tanpa nomor. 7. Rupiah hanya `/amounts`. 8. Batas unit sesuai `AST-DES-016` |
 

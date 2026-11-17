@@ -31,7 +31,7 @@ REG-FE-S1 ─> REG-FE-S2
 ### Slice `REG-FE-S1` — Fondasi dan pencatatan
 
 ```text
-                                       BE-AST-007 [BE] ─┐
+                                    BE-AST-007 [BE] ✅ ─┐
                                                         │
 BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ─> FE-AST-004
                                                       │

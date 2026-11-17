@@ -19,7 +19,7 @@
 | Commit backend saat dikerjakan | `aa2f5060` (branch `rizkiG`, sama dengan `origin/rizkiG`) |
 | Mesin | PC kantor |
 | Tanggal | 2026-11-16 |
-| Status | ✅ Selesai — keempat acceptance criteria terpetakan ke source dan terbukti di runtime; QBE Strict `PASS`; atribut akses 339/0; build Rizki (DLL 11:14:03 WIB); Swagger 58 endpoint cocok; runtime 56/56 + seeder dan pengaturan 14/14. `AT-REG-35` (kode terkunci dengan aset bernomor) diuji sesudah `BE-AST-007`, sesuai kartu. Belum di-commit. **Riwayat:** 🟡 pada 16 November 2026 sebelum build dan uji runtime |
+| Status | ✅ Selesai — keempat acceptance criteria terpetakan ke source dan terbukti di runtime; QBE Strict `PASS`; atribut akses 339/0; build Rizki (DLL 11:14:03 WIB); Swagger 58 endpoint cocok; runtime 56/56 + seeder dan pengaturan 14/14. `AT-REG-35` (kode terkunci dengan aset bernomor) **lulus 2026-11-16** pada uji `BE-AST-007`: `PUT` kelompok `ALKMED` berkode `ALKMEX` sesudah `AST-ALKMED-000001` terbit → 409 `AST-VAL-REG-053`, kode tetap ([`BE-AST-007.md`](BE-AST-007.md) bagian 5.3). **Riwayat:** 🟡 pada 16 November 2026 sebelum build dan uji runtime |
 
 ### Backend Governance Preflight
 
@@ -201,10 +201,10 @@ pengaturan).
 | 2. `AST-VAL-REG-050..056` | Terpenuhi (statis) | `050` lima master + kelompok (`DuplicateCode`); `051`/`052` `NormalizeInventoryCode`; `053` `ValidateGroupAsync`; `055` `ApplyLocationAsync`; `056` `UpdateSettingAsync`; pesan persis matriks. (`054` tidak ada di matriks) |
 | 3. Kode kelompok terkunci setelah dipakai | Terpenuhi di source; uji data menyusul `BE-AST-007` | `AstAssets.Any(AssetGroupId, InventoryNumber != null)` → `409 AST-VAL-REG-053`; `IsInventoryCodeLocked` di respons |
 | 4. Seeder mengisi isi minimum arsitektur bagian 9 di non-produksi | Terpenuhi | Dijalankan di Development 2026-11-16; 7/2/7/4/7 master + dokumen wajib + pengaturan 90/30/12 terbukti lewat API; lokasi gudang bersyarat (dilewati); menolak `Production` (source) |
-| `DoD-BE`: `V-BE` dijalankan dan dicatat apa adanya | Terpenuhi | QBE, pencocokan, build, Swagger, runtime 56/56 (`AT-REG-34`), seeder + pengaturan 14/14. `AT-REG-35` dikecualikan: kartu menyatakan dapat diverifikasi sesudah `BE-AST-007` |
+| `DoD-BE`: `V-BE` dijalankan dan dicatat apa adanya | Terpenuhi | QBE, pencocokan, build, Swagger, runtime 56/56 (`AT-REG-34`), seeder + pengaturan 14/14. `AT-REG-35` lulus 2026-11-16 pada uji `BE-AST-007` (409 `053`) |
 | `DoD-BE`: laporan, roadmap, traceability; tanpa commit kecuali diminta | Terpenuhi | Laporan ini |
 
-Rekap: **4 dari 4 acceptance criteria terpenuhi** dan seluruh butir `DoD-BE` terpenuhi (pengecualian `AT-REG-35` sesuai kartu) → `✅`. Riwayat: `🟡` sebelum build dan uji runtime.
+Rekap: **4 dari 4 acceptance criteria terpenuhi** dan seluruh butir `DoD-BE` terpenuhi; `AT-REG-35`, yang semula dikecualikan sesuai kartu, lulus 2026-11-16 → `✅`. Riwayat: `🟡` sebelum build dan uji runtime.
 
 ---
 

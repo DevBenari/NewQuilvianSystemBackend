@@ -18,7 +18,7 @@
 | Commit backend | Kode: `9f8c73dfee78589a0586f43c4283dcee11b3df72` (branch `rizkiG`, commit Rizki, **belum di-push**; `rizkiG` 3 commit di depan `origin/rizkiG`). Laporan dan tanda status ini belum di-commit |
 | Mesin | PC kantor |
 | Tanggal | 2026-11-16 |
-| Status | 🟡 Sebagian — kelima acceptance criteria terpetakan ke source. Kriteria 1 terbukti di runtime (35/35). Kriteria 2–5 belum teruji runtime, karena pemanggil service buku (`BE-AST-007`, `BE-AST-012`) dan penyusutan (`BE-AST-027`) belum ada. Akibatnya `AT-NLI-07`, `08`, `13`, `33` belum dijalankan. Rincian di bagian 6 |
+| Status | 🟡 Sebagian — kelima acceptance criteria terpetakan ke source. Kriteria 1 terbukti di runtime (35/35). **Pembaruan 2026-11-16 sesudah `BE-AST-007` ✅:** kriteria 4 teruji (`AT-NLI-13`: 1 baris kotak keluar hibah `Held`). Kriteria 3 teruji untuk buku aset baru: kapitalisasi menurut batas dan kepemilikan, serta awal penyusutan. Yang belum: kriteria 3 bagian saldo awal (`AT-NLI-08`, menunggu `BE-AST-012`), kriteria 2 (`AT-NLI-07`, menunggu `BE-AST-027`), dan kriteria 5 (`AT-NLI-33`, tak dapat diuji di DB dev karena parameter sudah ada). Rincian di bagian 5.3 dan 6 |
 
 ### Backend Governance Preflight
 
@@ -216,7 +216,8 @@ Baris ini tidak bisa dihapus lewat API. Parameter November inilah yang berlaku s
 |---|---|---|
 | `AT-NLI-07` kebijakan 48 → 60 bulan berlaku ke depan | `NOT RUN` | Butuh buku aset dan perhitungan penyusutan (`BE-AST-027`) |
 | `AT-NLI-08` saldo awal Rp60 jt, akumulasi Rp24 jt, 24/60 bulan → Rp1.000.000/bulan | `NOT RUN` | Pemanggil `CreateOpeningBalanceAsync` adalah penerapan impor `BE-AST-012`. Matriks menandainya `UNIT`, sedangkan backend tidak memelihara project test (`rules/backend/TEST_POLICY.md`) |
-| `AT-NLI-13` hibah disetujui → satu kejadian `AST-PEROLEHAN-HIBAH` `Held` | `NOT RUN` | Butuh persetujuan aset `BE-AST-007` |
+| `AT-NLI-13` hibah disetujui → satu kejadian `AST-PEROLEHAN-HIBAH` `Held` | **`PASS` 2026-11-16** pada uji `BE-AST-007` | DB baca-saja: tepat 1 baris di `AstAccountingOutbox`, `GRANT:<AssetId>` versi `1`, status `Held`, Rp3.000.000, komponen `ALKMED` ([`BE-AST-007.md`](../../../../register/task/report/backend/BE-AST-007.md) bagian 5.5) |
+| Buku aset baru (kriteria 3, bagian `CreateForRegisteredAssetAsync`) | **`PASS` 2026-11-16** pada uji `BE-AST-007` | Monitor Rp45 jt milik RS → dikapitalisasi, disusutkan, umur 60 dari kebijakan `ALKMED`, mulai 2026-12-01 (siap pakai 2026-11-10); kursi Rp450.000 < batas Rp1 jt → tidak dikapitalisasi (`AT-REG-02`); monitor `KSO` → tidak dikapitalisasi; entri `Perolehan` bernomor aset |
 | `AT-NLI-33` setujui aset sebelum parameter ada → 409 `008` | `NOT RUN` | Butuh `BE-AST-007`. **Catatan:** sesudah uji 5.2, badan hukum dev sudah punya parameter mulai November 2026. Skenario ini tidak bisa lagi dijalankan dengan aset yang disetujui hari ini pada badan hukum itu. Pilihannya: badan hukum lain tanpa parameter, atau impor dengan tanggal cutover sebelum November 2026 (jalur `BuildBookAsync` yang sama) |
 | 403 untuk pengguna tanpa izin `AssetValuationParameter`/`AssetDepreciationPolicy` | `NOT RUN` | Akun uji superadmin melewati pemeriksaan izin. Atribut sudah dicocokkan statis (bagian 3.4) |
 
@@ -233,16 +234,17 @@ dijalankan Rizki.
 | --- | --- | --- |
 | 1. Baris pertama parameter boleh bulan berjalan, berikutnya bulan depan | Terpenuhi, teruji runtime | `AssetValuationParameterService.ResolveEffectivePeriod` (dipakai parameter dan kebijakan); runtime 5.2 termasuk `AT-NLI-34` |
 | 2. Kebijakan kelompok berlaku ke depan bagi aset tanpa estimasi sendiri | Terpetakan ke source; runtime menunggu `BE-AST-027` | `ResolveEstimateAsync` (lewati bila `HasEstimateOverride`) + `GetPolicyAtAsync` (kebijakan terakhir dengan `EffectiveFromPeriod ≤ periode`); periode kebijakan baru hanya bulan depan (kriteria 1). `AT-NLI-07` `NOT RUN` |
-| 3. Buku: dikapitalisasi bila harga ≥ batas **dan** kepemilikan dapat dikapitalisasi; mulai bulan sesudah siap pakai; saldo awal menghitung bulan yang sudah disusutkan | Terpetakan ke source; runtime menunggu `BE-AST-007`/`012` | `BuildBookAsync` (`isCapitalized = IsCapitalizable && cost >= CapitalizationThreshold`), `GetDepreciationStartPeriod` (`Next(ReadyForUseDate)`), `CreateOpeningBalanceAsync` (`DepreciatedMonths = MonthsBetween(start, cutover)`, dibatasi umur). `AT-NLI-08` `NOT RUN` |
-| 4. Kejadian hibah ditulis `Held`/`Pending` sesuai konfigurasi kode | Terpetakan ke source; runtime menunggu `BE-AST-007` | `CreateForRegisteredAssetAsync` → `QueueAsync(AST-PEROLEHAN-HIBAH)`; `ResolveInitialStatus` dari `EnabledEventCodes`. `AT-NLI-13` `NOT RUN` |
+| 3. Buku: dikapitalisasi bila harga ≥ batas **dan** kepemilikan dapat dikapitalisasi; mulai bulan sesudah siap pakai; saldo awal menghitung bulan yang sudah disusutkan | Sebagian teruji runtime | `BuildBookAsync` dan `GetDepreciationStartPeriod`: kapitalisasi dan awal penyusutan **teruji** 2026-11-16 lewat `BE-AST-007` (5.3). `CreateOpeningBalanceAsync` terpetakan; `AT-NLI-08` menunggu `BE-AST-012` |
+| 4. Kejadian hibah ditulis `Held`/`Pending` sesuai konfigurasi kode | Terpenuhi, teruji runtime (`Held`) | `AT-NLI-13` lulus 2026-11-16 (1 baris `Held`). Cabang `Pending` (kode dinyalakan) baru teruji pada `BE-AST-032` |
 | 5. Persetujuan aset tanpa parameter → `AST-VAL-NLI-008` | Terpetakan ke source; runtime menunggu `BE-AST-007` | `GetRequiredParameterAtAsync` → `AssetManagementException.Conflict(AST-VAL-NLI-008)` dipanggil `BuildBookAsync`. `AT-NLI-33` `NOT RUN` |
 | Cakupan kartu: 3 service + 1 controller | Terpenuhi dengan delta | 4 service (+ query service terpisah, seperti kartu `QueryService`) dan 2 controller (delta 3.3 no. 1) |
 | `DoD-BE`: `V-BE` dijalankan dan dicatat apa adanya | **Sebagian** | QBE, build, Swagger, runtime 2.1–2.2 35/35. `AT-NLI-07`, `08`, `13`, `33` belum (5.3) |
 | `DoD-BE`: laporan, roadmap, traceability, `git status --short` | Terpenuhi | Laporan ini; bagian 7 |
 
-Rekap: **5 dari 5 kriteria terpetakan ke source; 1 dari 5 teruji runtime** → `🟡`. Task menjadi `✅` sesudah
-`AT-NLI-13` dan `AT-NLI-33` lolos pada uji runtime `BE-AST-007`, `AT-NLI-08` lolos pada `BE-AST-012`, dan
-`AT-NLI-07` lolos pada `BE-AST-027`. Kode `BE-AST-015` tidak perlu diubah untuk itu, kecuali uji tersebut menemukan
+Rekap: **5 dari 5 kriteria terpetakan ke source; kriteria 1 dan 4 teruji penuh, kriteria 3 sebagian** → `🟡`.
+Sisa: `AT-NLI-08` pada `BE-AST-012`, `AT-NLI-07` pada `BE-AST-027`, dan `AT-NLI-33`. Untuk `AT-NLI-33`, badan hukum
+dev sudah punya parameter, jadi skenarionya hanya bisa dijalankan lewat impor dengan cutover sebelum November 2026
+(`BE-AST-012`) atau badan hukum lain. Kode `BE-AST-015` tidak perlu diubah untuk itu, kecuali uji tersebut menemukan
 cacat.
 
 ---

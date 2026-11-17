@@ -36,6 +36,22 @@ public sealed class AssetManagementException : Exception
 
 public static class AssetRegisterErrorCodes
 {
+    public const string AssetName = "AST-VAL-REG-001";
+    public const string GroupInactive = "AST-VAL-REG-002";
+    public const string OwnershipInactive = "AST-VAL-REG-003";
+    public const string DonationReference = "AST-VAL-REG-004";
+    public const string Dates = "AST-VAL-REG-005";
+    public const string AcquisitionCost = "AST-VAL-REG-006";
+    public const string MedicalAttributes = "AST-VAL-REG-007";
+    public const string DraftQuantity = "AST-VAL-REG-008";
+    public const string GoodsReceipt = "AST-VAL-REG-009";
+    public const string ReasonRequired = "AST-VAL-REG-010";
+    public const string GroupInactiveAtApproval = "AST-VAL-REG-011";
+    public const string SelfApproval = "AST-VAL-REG-012";
+    public const string DraftOnly = "AST-VAL-REG-014";
+    public const string Field = "AST-REG-FIELD";
+    public const string Status = "AST-REG-STATUS";
+    public const string NotFound = "AST-REG-NOT-FOUND";
     public const string NumberAllocationFailed = "AST-VAL-REG-013";
     public const string VersionMismatch = "AST-VAL-REG-015";
     public const string OutsideUnit = "AST-VAL-REG-016";
@@ -50,6 +66,23 @@ public static class AssetRegisterErrorCodes
 
 public static class AssetRegisterMessages
 {
+    public const string AssetName = "Nama aset wajib diisi, paling panjang 250 karakter.";
+    public const string GroupInactive = "Pilih kelompok aset yang masih aktif.";
+    public const string OwnershipInactive = "Pilih jenis kepemilikan yang masih aktif.";
+    public const string DonationReference = "Aset hibah wajib mencantumkan nomor berita acara hibah.";
+    public const string Dates = "Tanggal siap pakai tidak boleh sebelum tanggal perolehan dan tidak boleh di masa depan.";
+    public const string AcquisitionCost = "Harga perolehan wajib lebih dari Rp 0 dengan paling banyak 2 angka desimal.";
+    public const string MedicalAttributes = "Alat medis wajib diisi merek, tipe, nomor seri, produsen, dan nomor izin edar.";
+    public const string DraftQuantity = "Jumlah unit yang dibuat sekaligus 1 sampai 200.";
+    public const string GoodsReceipt = "Penerimaan barang yang dipilih tidak ditemukan atau sudah dibatalkan.";
+    public const string ReasonRequired = "Alasan wajib diisi, paling panjang 500 karakter.";
+    public const string GroupInactiveAtApproval = "Kelompok aset sudah tidak aktif. Kembalikan ke petugas untuk diganti.";
+    public const string SelfApproval = "Anda tidak dapat menyetujui pengajuan Anda sendiri.";
+    public const string DraftOnly = "Aset ini sudah diajukan atau terdaftar, sehingga tidak dapat diubah dari formulir draft.";
+    public const string AcquisitionTypeRequired = "Pilih jenis perolehan: pembelian atau hibah masuk. Saldo awal hanya lewat impor data awal.";
+    public const string StatusFormat = "Aset berstatus {0}, sehingga tidak dapat {1}.";
+    public const string NotFound = "Aset tidak ditemukan atau sudah dihapus.";
+    public const string BatchSize = "Pilih 1 sampai 200 aset untuk disetujui sekaligus.";
     public const string NumberAllocationFailed = "Nomor inventaris belum dapat diterbitkan. Coba lagi beberapa saat.";
     public const string DocumentNumberAllocationFailed = "Nomor dokumen belum dapat diterbitkan. Coba lagi beberapa saat.";
     public const string VersionMismatch = "Data ini baru saja diubah orang lain. Muat ulang lalu coba lagi.";
