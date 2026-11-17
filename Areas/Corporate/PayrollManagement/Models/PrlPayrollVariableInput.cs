@@ -49,6 +49,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
         public DateTime? VerifiedAt { get; set; }
         public Guid? VerifiedByUserId { get; set; }
 
+        // Keputusan input manual (PayrollManualInput) — blueprint payroll-gaji PGJ-C1, PRL-DEC-07/43.
+        public DateTime? ApprovedAt { get; set; }
+        public Guid? ApprovedByUserId { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public Guid? RejectedByUserId { get; set; }
+
+        /// <summary>Alasan penolakan atau pembatalan.</summary>
+        [MaxLength(500)]
+        public string? DecisionReason { get; set; }
+
         [MaxLength(1000)]
         public string? Notes { get; set; }
 
@@ -58,5 +68,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models
         public MstPayrollComponent? PayrollComponent { get; set; }
         public ApplicationUser? SubmittedByUser { get; set; }
         public ApplicationUser? VerifiedByUser { get; set; }
+        public ApplicationUser? ApprovedByUser { get; set; }
+        public ApplicationUser? RejectedByUser { get; set; }
     }
 }

@@ -25,6 +25,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.Property(x => x.MaxBackdatedCorrectionDays).HasDefaultValue(3);
             builder.Property(x => x.RequireAttachmentForCorrection).HasDefaultValue(true);
             builder.Property(x => x.AutoConvertIncompleteToAbsent).HasDefaultValue(true);
+            builder.Property(x => x.ScanWindowBeforeMinutes).HasDefaultValue(240).IsRequired();
+            builder.Property(x => x.ScanWindowAfterMinutes).HasDefaultValue(480).IsRequired();
             builder.Property(x => x.IsActive).HasDefaultValue(true);
 
             builder.HasIndex(x => x.HospitalCode);

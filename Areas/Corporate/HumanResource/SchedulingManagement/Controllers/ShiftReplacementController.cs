@@ -113,7 +113,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         {
             return result.Success
                 ? StatusCode(result.StatusCode, ApiResponse<T>.Ok(result.Data, result.Message))
-                : StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+                : StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message, result.Errors));
         }
 
         private bool TryGetUserId(out Guid userId)

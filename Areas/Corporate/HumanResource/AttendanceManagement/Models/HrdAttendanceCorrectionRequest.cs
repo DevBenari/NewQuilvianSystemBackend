@@ -80,6 +80,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public ApplicationUser? InitiatedByUser { get; set; }
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Kejadian gangguan mesin yang dirujuk koreksi ini (HRD-DEC-202, HRD-ASM-77).
+        /// </summary>
+        public Guid? DeviceIncidentId { get; set; }
+        public HrdAttendanceDeviceIncident? DeviceIncident { get; set; }
+
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public HrdAttendance? Attendance { get; set; }

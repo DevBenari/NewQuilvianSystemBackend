@@ -6,7 +6,8 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 16
+roadmap_revision: 17
+draft_slice_s_a8: "2026-11-16 — Slice DRAFT S-A8 Data Penggajian Pegawai (HRD) ditambahkan (bagian 25): FE-HRD-325 s.d. FE-HRD-327. Source sudah ditulis di luar siklus task dan belum di-build; menunggu BE-HRD-360 s.d. BE-HRD-363 (kontrak v27 approved 16 November 2026, gerbang G1 tertutup); keputusan terdaftar HRD-DEC-218 s.d. HRD-DEC-223 (G2 tertutup 16 November 2026). Tidak ada tanda status yang berubah pada task lama."
 status: ACTIVE
 status_synced_at: "11 November 2026 — FE-HRD-R01: 137 task diturunkan ke 🟡 sesuai audit frontend-unfinished-work.md; status register FE-HRD-058 s.d. 087 diisi; FE-HRD-216 s.d. 305 ditambahkan ke register; FE-HRD-027 disamakan dengan laporannya (🟡)"
 planning_updated_at: "2026-11-09 - Slice S-B3 Administrasi Lembur Pegawai Rumah Sakit (sub-modul 09) diselesaikan secara penuh (FE-HRD-116 s.d. FE-HRD-129 ✅ PASS) mencakup 6 rute antarmuka, 14 task frontend, verifikasi build, dan seluruh laporan perubahan tracked; sebelumnya Slice S-B2 (FE-HRD-102 s.d. FE-HRD-115), Slice S-B4 (FE-HRD-075 s.d. FE-HRD-087), Slice S-C4-ONB (FE-HRD-058 s.d. FE-HRD-074)"
@@ -5977,3 +5978,385 @@ BE-HRD-333 ⏳ [BE]  ───────────────────�
 * **Dependencies**: Seluruh task frontend `FE-HRD-291` s.d. `FE-HRD-304` serta task backend `BE-HRD-333` [BE]
 * **Acceptance Criteria**: Menu travel & expenses tampil rapi sesuai hak akses; indikator hard-stop aktif di roster Sub-06; `npm run lint:errors` dan `npm run build` lulus tanpa error.
 * **Verifikasi**: Uji integrasi navigasi, indikator gembok roster `AT-HRD-TRV-06`, dan laporan task tracked `FE-HRD-305.md`.
+
+---
+
+## 25. Amandemen `A52` — Penjadwalan & Kehadiran untuk 12 menu `PRD-HRD-PK-001` (roadmap revisi `24`, kontrak `v26`)
+
+| Field | Nilai |
+| --- | --- |
+| Roadmap revisi | `24` |
+| Status | `PLANNED` |
+| Dasar approval | Pengguna (`HRD-DEC-015`), 12 November 2026 — desain `A52` disetujui apa adanya |
+| Masukan | `03-frontend-architecture.md` bagian 31; kontrak `v26` (`api-contract.md` 32); `04-prd-to-mvp.md` 40 |
+| Source SHA | FE `6a5658269` (branch `YogaV2`); BE `a437ae42` (branch `yoga`) |
+| Rentang task | `FE-HRD-306` s.d. `FE-HRD-324` (19 task: 11 MVP + 7 POST-MVP + 1 BLOCKED) |
+
+**Legenda.** `⬜` belum dikerjakan; `⛔` terblokir keputusan. `[B…]` task backend.
+
+**Handoff implementasi.** Dikerjakan lewat `/build-module-frontend` hanya atas instruksi task
+eksplisit. Tata letak, bentuk tab/kalender, dan urutan kolom adalah `DEV_DISCRETION`
+(`00-interview-decisions.md` 52.6); base component wajib; tidak ada data contoh tertanam; label
+status diambil dari `filters/metadata`. Uji 403 wajib memakai akun non-superadmin.
+
+### Grafik urutan dependency frontend `A52`
+
+#### Grafik F82 — Klien API dan perubahan roster (`MVP-67`)
+
+```text
+BE-HRD-336 [B84] ─> FE-HRD-306 ⬜ ─┬─> FE-HRD-307 ⬜ (butuh BE-HRD-338, BE-HRD-340)
+                                   └─> FE-HRD-308 ⬜ (butuh BE-HRD-340)
+```
+
+#### Grafik F83 — Kehadiran, tutup periode, mesin, hari libur (`MVP-67`)
+
+```text
+FE-HRD-306 ⬜ ─┬─> FE-HRD-309 ⬜ (butuh BE-HRD-342)
+               ├─> FE-HRD-310 ⬜ (butuh BE-HRD-343)
+               ├─> FE-HRD-311 ⬜ (butuh BE-HRD-344)
+               ├─> FE-HRD-312 ⬜ (butuh BE-HRD-346)
+               └─> FE-HRD-313 ⬜ (butuh BE-HRD-347)
+```
+
+#### Grafik F84 — Jadwal Saya, laporan, verifikasi (`MVP-68`, `Verifikasi`)
+
+```text
+FE-HRD-306 ⬜ ─┬─> FE-HRD-314 ⬜ (butuh BE-HRD-348)
+               └─> FE-HRD-315 ⬜ (butuh BE-HRD-349, BE-HRD-350)
+FE-HRD-306 ⬜ s.d. FE-HRD-315 ⬜ ─> FE-HRD-316 ⬜
+```
+
+#### Grafik F85 — `POST-MVP` dan task terblokir
+
+```text
+FE-HRD-306 ⬜ ─┬─> FE-HRD-317 ⬜ (BE-HRD-352)
+               ├─> FE-HRD-318 ⬜ (BE-HRD-353, BE-HRD-354)
+               ├─> FE-HRD-319 ⬜ (BE-HRD-355)
+               ├─> FE-HRD-320 ⬜ (BE-HRD-356)
+               ├─> FE-HRD-321 ⬜ (BE-HRD-357)
+               └─> FE-HRD-322 ⬜ (BE-HRD-340)
+FE-HRD-317 ⬜ s.d. FE-HRD-322 ⬜ ─> FE-HRD-323 ⬜
+{DSG-Q-01, DSG-Q-02} ─> FE-HRD-324 ⛔
+```
+
+### Tabel gelombang eksekusi frontend `A52`
+
+| Gelombang | Target cakupan | Task frontend | Prasyarat |
+| --- | --- | --- | --- |
+| **MVP-67** | Klien API; roster terbit + Riwayat Revisi; setelan, rekap harian, tutup periode; mesin absen; hari libur | `FE-HRD-306` s.d. `FE-HRD-313` | Kontrak `v26` approved ✅; task backend terkait |
+| **MVP-68** | Jadwal Saya; laporan dan ekspor | `FE-HRD-314`, `FE-HRD-315` | Task backend `MVP-68` |
+| **Verifikasi** | Uji browser MVP | `FE-HRD-316` | `FE-HRD-306` s.d. `FE-HRD-315` |
+| **POST-MVP** | Siaga, dispensasi, tugas belajar, gangguan mesin, dashboard, realisasi jadwal | `FE-HRD-317` s.d. `FE-HRD-323` | Task backend `POST-MVP` |
+| — | Grup menu 12 menu | `FE-HRD-324` ⛔ | `DSG-Q-01`, `DSG-Q-02` |
+
+### Rincian task frontend `A52`
+
+DoD umum untuk **setiap** task: halaman memakai base component; loading/kosong/galat/coba lagi
+ada; tombol kirim nonaktif saat mengirim; 403 menampilkan pesan "tidak berwenang"; uji unit
+(`node --import ./tests/helpers/register.mjs --test tests/unit/`) dan uji browser pada kolom
+Verifikasi lulus; laporan di `task/report/frontend/<ID>.md`.
+
+#### ⬜ `FE-HRD-306` — Klien API dan state untuk endpoint `A52`
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-109`
+* **Outcome**: Satu lapisan service Axios + slice Redux untuk seluruh endpoint kontrak `v26` yang dipakai MVP.
+* **Requirement/decision**: `FR-PK-002`; `03-frontend-architecture.md` 31.2–31.3
+* **Kontrak**: `v26` — `api-contract.md` 32
+* **Reuse**: `roster-scheduling-service.js`, `attendance-management-service.js`, `employee-self-service.js`, `InstanceAxios`
+* **Cakupan**: Fungsi baru untuk revisi, hapus shift, mesin absen, hari libur, Jadwal Saya, laporan/ekspor; perluasan setelan dan pratinjau tutup
+* **Dependencies**: `BE-HRD-336` [B84] (kontrak terkunci; boleh paralel dengan backend)
+* **Acceptance Criteria**: Tidak ada URL yang tidak ada di kontrak `v26`; galat 403/409/422 diteruskan dengan pesan server.
+* **Verifikasi**: Uji unit service (URL dan metode per fungsi).
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-307` — Matriks roster: Ganti Petugas, tambah dan hapus shift pada roster terbit
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Outcome**: Modal Ganti Petugas mengirim `ExpectedWorkforceProfileId` dan alasan peringatan; aksi hapus shift; tambah shift tidak lagi memperingatkan "roster kembali ke draft".
+* **Requirement/decision**: `FR-PK-003` s.d. `FR-PK-006`; `HRD-DEC-195`
+* **Kontrak**: `v26` — `replace`, `assignments`, `shifts/{id}/remove`
+* **Reuse**: `src/app/hr/scheduling/roster/[id]/page.jsx`, modal Ganti Petugas `FE-HRD-081`, laci validasi `FE-HRD-079`
+* **Cakupan**: View roster detail dan modal terkait
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-338`, `BE-HRD-340`
+* **Acceptance Criteria**: 422 menampilkan kode `B*`/`W*` dan pesannya; 409 meminta muat ulang; hapus meminta konfirmasi dan alasan.
+* **Verifikasi**: `UAT-PK-03`, `UAT-PK-04`, `UAT-PK-05`, `UAT-PK-06` di browser.
+* **Risiko**: Pengguna Kepala Bidang melihat tombol ubah — sembunyikan bila tidak berhak, server tetap memeriksa.
+
+#### ⬜ `FE-HRD-308` — Layar Riwayat Revisi
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-110`
+* **Outcome**: Kepala Unit, Kepala Bidang, dan HRD menelusuri perubahan roster terbit.
+* **Requirement/decision**: `FR-PK-004`; `HRD-DEC-195`, `217`
+* **Kontrak**: `v26` — `GET roster-periods/{id}/revisions`
+* **Reuse**: Komponen tabel dan filter dasar
+* **Cakupan**: Usulan rute `/hr/scheduling/revisions` (`DEV_DISCRETION`)
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-340`
+* **Acceptance Criteria**: Tidak ada tombol ubah/hapus; filter tanggal, pegawai, jenis perubahan; catatan alasan hanya untuk pengguna berhak.
+* **Verifikasi**: `UAT-PK-03`, `UAT-PK-06` (bagian riwayat).
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-309` — Setelan kehadiran: jendela scan, tanpa pilihan konversi
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Outcome**: Admin HRD mengubah toleransi dan jendela scan; pilihan konversi hilang.
+* **Requirement/decision**: `FR-PK-010`; `HRD-DEC-211`, `215`, `216`
+* **Kontrak**: `v26` — Settings `GET`/`PUT`; `VR-PK-23`
+* **Reuse**: `src/components/view/hr/attendance/attendance-settings-view.jsx`
+* **Cakupan**: View setelan
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-342`
+* **Acceptance Criteria**: Validasi rentang angka di layar sama dengan server.
+* **Verifikasi**: `UAT-PK-08`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-310` — Monitoring harian: status baru dan pengecualian jendela scan
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Outcome**: Rekap harian menampilkan "Belum Hadir", "Tidak Ada Scan", "Belum Lengkap", dan pengecualian scan di luar jendela.
+* **Requirement/decision**: `FR-PK-008`, `FR-PK-009`, `FR-PK-011`
+* **Kontrak**: `v26` — `attendance/dailies` (status baru lewat `filters/metadata`)
+* **Reuse**: `attendance-monitoring-view.jsx`, `RawPunchAuditDrawer.jsx`
+* **Cakupan**: View monitoring
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-343`
+* **Acceptance Criteria**: Tidak ada label "Alpa" untuk hari yang belum ditutup.
+* **Verifikasi**: `UAT-PK-07`, `UAT-PK-11`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-311` — Tutup periode: pratinjau berisi daftar dan jumlah scan tertahan
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-111`
+* **Outcome**: HRD meninjau daftar yang akan menjadi `Absent` sebelum menutup.
+* **Requirement/decision**: `FR-PK-012`; `HRD-DEC-197`, `216`, `HRD-ASM-81`
+* **Kontrak**: `v26` — `close-preview`, `close`
+* **Reuse**: Fungsi `getPeriodClosePreview`/`closePeriod` yang ada; rencana layar `FE-HRD-092`/`093` `S-B1`
+* **Cakupan**: Usulan rute `/hr/attendance/periods` (`DEV_DISCRETION`), dialog konfirmasi
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-344`
+* **Acceptance Criteria**: Konfirmasi menyebut jumlah yang akan dikonversi; galat transaksi tidak mengubah tampilan status.
+* **Verifikasi**: `UAT-PK-09`.
+* **Risiko**: Tumpang tindih dengan `FE-HRD-092` yang belum dikerjakan — task ini menggantikan cakupan pratinjau `FE-HRD-092`/`093`; catat di laporan.
+
+#### ⬜ `FE-HRD-312` — Layar mesin absen
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-112`
+* **Outcome**: Petugas IT mendaftarkan mesin dan melihat mesin tak dikenal beserta jumlah scan tertahan.
+* **Requirement/decision**: `FR-PK-013`, `FR-PK-014`
+* **Kontrak**: `v26` — `master-data/attendance-devices`
+* **Reuse**: Pola layar master data HR
+* **Cakupan**: Usulan rute `/hr/attendance/devices` (`DEV_DISCRETION`)
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-346`
+* **Acceptance Criteria**: Mendaftarkan mesin dari baris "mesin tak dikenal" mengisi identitas otomatis.
+* **Verifikasi**: `UAT-PK-10`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-313` — Layar master hari libur
+* **Slice / MVP**: `A52` / `MVP-67` / `EPIC HRD-112`
+* **Outcome**: Admin HRD mengelola hari libur per kalender kerja.
+* **Requirement/decision**: `FR-PK-015`; `HRD-DEC-210`
+* **Kontrak**: `v26` — `master-data/holidays`
+* **Reuse**: Pola `/hr/master-data/*` (daftar, create, `[slug]`, update)
+* **Cakupan**: Usulan rute `/hr/master-data/holiday`
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-347`
+* **Acceptance Criteria**: Pilihan kalender kerja dari `filters/metadata`.
+* **Verifikasi**: `UAT-PK-11` (data libur).
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-314` — Jadwal Saya tersambung ke server
+* **Slice / MVP**: `A52` / `MVP-68` / `EPIC HRD-113`
+* **Outcome**: Fungsi `getMyScheduleAssignments` yang sekarang melempar galat diganti panggilan `my-schedule`; tab roster unit.
+* **Requirement/decision**: `FR-PK-016`; `HRD-DEC-209`, `HRD-ASM-80`
+* **Kontrak**: `v26` — `my-schedule`, `my-schedule/unit-roster`
+* **Reuse**: `src/app/self-services/human-resource/schedule/page.jsx`, `schedule-employee-view.jsx`
+* **Cakupan**: Service ESS dan view jadwal
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-348`
+* **Acceptance Criteria**: Tanda "Berubah"; ketidakhadiran rekan tampil "Libur"; rentang dibatasi.
+* **Verifikasi**: `UAT-PK-12`, `UAT-PK-13`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-315` — Tujuh layar laporan dengan ekspor Excel
+* **Slice / MVP**: `A52` / `MVP-68` / `EPIC HRD-114`
+* **Outcome**: Laporan per cakupan dengan label periode terbuka/ditutup dan tombol **Ekspor**.
+* **Requirement/decision**: `FR-PK-017`, `FR-PK-018`; `HRD-DEC-206`
+* **Kontrak**: `v26` — `attendance/reports/{reportCode}`, `/export`
+* **Reuse**: Komponen tabel dan filter dasar
+* **Cakupan**: Usulan rute `/hr/attendance/reports/{reportCode}` (`DEV_DISCRETION`)
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-349`, `BE-HRD-350`
+* **Acceptance Criteria**: Ekspor memakai filter layar yang sama; pilihan unit dibatasi cakupan.
+* **Verifikasi**: `UAT-PK-14`, `UAT-PK-15`.
+* **Risiko**: Berkas besar — tampilkan status mengunduh.
+
+#### ⬜ `FE-HRD-316` — Verifikasi browser MVP `A52`
+* **Slice / MVP**: `A52` / `Verifikasi`
+* **Outcome**: Bukti `UAT-PK-01` s.d. `UAT-PK-15` di browser dengan data asli devYoga.
+* **Requirement/decision**: `04-prd-to-mvp.md` 40.19
+* **Kontrak**: `v26`
+* **Reuse**: Pola E2E standalone (port 3710) dan uji visual lewat dev 3000
+* **Cakupan**: Spec E2E untuk layar MVP
+* **Dependencies**: `FE-HRD-306` s.d. `FE-HRD-315`
+* **Acceptance Criteria**: Semua UAT MVP lulus dengan akun non-superadmin untuk kasus 403.
+* **Verifikasi**: Laporan task berisi hasil uji.
+* **Risiko**: Data uji devYoga perlu disiapkan (penempatan berjabatan, mesin, hari libur).
+
+#### ⬜ `FE-HRD-317` — Siaga: cadangan dan catatan panggilan (`POST-MVP`)
+* **Slice / MVP**: `A52` / `POST-MVP` / `EPIC HRD-115`
+* **Outcome**: Atur cadangan; catat panggilan, jawaban, kedaluwarsa, tiba; tampilkan cadangan berikutnya.
+* **Requirement/decision**: `FR-PK-019` s.d. `FR-PK-022`
+* **Kontrak**: `v26` — `on-call-assignments/{id}/backups`, `/calls`
+* **Reuse**: `src/app/hr/scheduling/on-call/page.jsx`, `on-call-service.js`
+* **Cakupan**: View siaga; usulan rute `/hr/scheduling/on-call/calls`
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-352`
+* **Acceptance Criteria**: Peringatan "jangan tulis nama/No. RM pasien"; tombol kedaluwarsa nonaktif sebelum batas jawab.
+* **Verifikasi**: `AT-HRD-PK-15` s.d. `-17` di browser.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-318` — Dispensasi HR dan layanan mandiri (`POST-MVP`)
+* **Slice / MVP**: `A52` / `POST-MVP` / `EPIC HRD-116`
+* **Outcome**: Pengajuan, catat atas nama, keputusan, pembatalan.
+* **Requirement/decision**: `FR-PK-023` s.d. `FR-PK-025`
+* **Kontrak**: `v26` — `attendance/dispensations`, `self-services/.../attendance-dispensations`
+* **Reuse**: Pola layanan mandiri
+* **Cakupan**: Usulan rute `/hr/attendance/dispensations` dan layar ESS
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-353`, `BE-HRD-354`
+* **Acceptance Criteria**: Batas 3 hari ditampilkan sebelum kirim; tidak ada pilihan penyetuju di formulir.
+* **Verifikasi**: `AT-HRD-PK-32` s.d. `-34`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-319` — Tugas belajar (`POST-MVP`)
+* **Slice / MVP**: `A52` / `POST-MVP` / `EPIC HRD-117`
+* **Outcome**: Admin HRD mencatat, mengubah tanggal (alasan), membatalkan.
+* **Requirement/decision**: `FR-PK-026`, `FR-PK-027`
+* **Kontrak**: `v26` — `attendance/study-assignments`
+* **Reuse**: Pola layar HR
+* **Cakupan**: Usulan rute `/hr/attendance/study-assignments`
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-355`
+* **Acceptance Criteria**: Alasan wajib saat ubah/batal.
+* **Verifikasi**: Uji browser jalur berhasil dan tumpang tindih.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-320` — Gangguan mesin dan pilihan kejadian pada koreksi (`POST-MVP`)
+* **Slice / MVP**: `A52` / `POST-MVP` / `EPIC HRD-118`
+* **Outcome**: Layar kejadian gangguan; formulir koreksi ESS menawarkan kejadian pada tanggal itu.
+* **Requirement/decision**: `FR-PK-028`, `FR-PK-029`
+* **Kontrak**: `v26` — `attendance/device-incidents`, `device-incident-options`
+* **Reuse**: `src/app/self-services/human-resource/attendance-correction/page.jsx`
+* **Cakupan**: Usulan rute `/hr/attendance/device-incidents`; formulir koreksi ESS
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-356`
+* **Acceptance Criteria**: Lampiran tidak wajib bila kejadian dipilih dan jam di dalam rentang.
+* **Verifikasi**: `AT-HRD-PK-35`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-321` — Dashboard kehadiran lima kartu (`POST-MVP`)
+* **Slice / MVP**: `A52` / `POST-MVP` / `EPIC HRD-119`
+* **Outcome**: Lima kartu per cakupan dengan jam hitung dan rincian.
+* **Requirement/decision**: `FR-PK-030`, `FR-PK-031`
+* **Kontrak**: `v26` — `attendance/dashboard`
+* **Reuse**: Komponen kartu proyek
+* **Cakupan**: Usulan rute `/hr/attendance/dashboard/*`
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-357`
+* **Acceptance Criteria**: Tidak memperbarui diri terus-menerus; tombol Muat Ulang.
+* **Verifikasi**: `AT-HRD-PK-40`, `AT-HRD-PK-41`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-322` — Realisasi Jadwal (rencana saat terbit vs kondisi akhir) (`POST-MVP`)
+* **Slice / MVP**: `A52` / `POST-MVP` / `EPIC HRD-110` (tampilan tambahan)
+* **Outcome**: Tampilan per tanggal: petugas rencana awal dan petugas akhir, dari Riwayat Revisi.
+* **Requirement/decision**: `HRD-DEC-195` butir 5
+* **Kontrak**: `v26` — `GET roster-periods/{id}/revisions`
+* **Reuse**: Klien dari `FE-HRD-306`
+* **Cakupan**: Usulan rute `/hr/scheduling/realization`
+* **Dependencies**: `FE-HRD-306`, `BE-HRD-340`
+* **Acceptance Criteria**: Tanggal dengan pergantian menampilkan rencana awal dan realisasi.
+* **Verifikasi**: Uji browser dengan data `UAT-PK-03`.
+* **Risiko**: Rendah.
+
+#### ⬜ `FE-HRD-323` — Verifikasi browser `POST-MVP` `A52`
+* **Slice / MVP**: `A52` / `POST-MVP`
+* **Outcome**: Bukti uji layar `FE-HRD-317` s.d. `FE-HRD-322`.
+* **Requirement/decision**: `FR-PK-019` s.d. `FR-PK-031`
+* **Kontrak**: `v26`
+* **Reuse**: Spec dari `FE-HRD-316`
+* **Cakupan**: Spec E2E tambahan
+* **Dependencies**: `FE-HRD-317` s.d. `FE-HRD-322`
+* **Acceptance Criteria**: Semua lulus.
+* **Verifikasi**: Laporan task.
+* **Risiko**: —
+
+#### ⛔ `FE-HRD-324` — Grup menu "Penjadwalan & Kehadiran" (terblokir)
+* **Slice / MVP**: `A52` / tidak dijadwalkan / `EPIC HRD-120`
+* **Outcome**: Sidebar SDM memuat 12 menu dan 58 submenu sesuai `HRD-DEC-214`.
+* **Diblokir oleh**: `DSG-Q-01` (14 submenu jatuh ke layar yang sama atau berupa aksi) dan `DSG-Q-02` (daftar penempatan sementara). Pemilik keputusan: pengguna.
+* **Pekerjaan yang tetap berjalan**: Seluruh layar MVP dapat dijangkau dari sidebar lama; entri sementara untuk layar baru boleh ditambahkan di grup yang ada.
+* **Kontrak**: `v26` — `03-frontend-architecture.md` 31.1
+* **Reuse**: `src/utils/menu-sidebar/menu-items.jsx`
+
+---
+
+## 26. S-A8: Data Penggajian Pegawai (HRD) — Karyawan, Perawat, dan Dokter (DRAFT, 16 November 2026)
+
+> **Status slice: kontrak `v27` APPROVED 16 November 2026.** Source frontend sudah ditulis pada 16 November 2026 atas perintah langsung pemilik, di luar siklus task, dan belum di-build maupun diuji di browser. Aturan bisnis, keputusan yang dikonfirmasi, gerbang terbuka, dan kontrak API ada pada bagian 25 `backend-roadmap.md` (slice `S-A8`); tidak diulang di sini. Task frontend menunggu task backend yang sesuai (ditandai `[BE]`) dan boleh dikirim ke builder sesudah task backend pasangannya; gerbang G1 tertutup 16 November 2026.
+
+### Wewenang UI dan gerbang keputusan base component
+
+Wewenang UI: `DEV_DISCRETION` kecuali yang dikunci blueprint. Gerbang keputusan base component pada source yang sudah ada: seluruh elemen **REUSE** (`Hero`, `SummaryCards`, `DataFilter`, `DataTable`, `StatusBadge`, `ConfirmModal`, `BaseInputField`, `BaseDateField`, `BaseCheckboxCard`, `ResourceFilterSelect`, `InformationAlert`, `ToastStack`, `AccessDeniedGate`); tidak ada base component baru dan tidak ada CSS Module baru. `UI GATE: 13 elemen — REUSE 13, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0`.
+
+Halaman HR **tidak boleh bergantung** pada komponen, gaya, hook, atau util milik modul Payroll; util generik tinggal di `src/utils/shared/` dan dijaga oleh test unit.
+
+### Grafik Urutan Dependency Frontend Slice S-A8
+
+#### Grafik F86 — Halaman Daftar, Formulir Ubah Per Orang, dan Verifikasi (`FE-HRD-325` s.d. `FE-HRD-327`)
+
+```text
+BE-HRD-360 🟡 [BE] ─> FE-HRD-325 🟡 ─┬─> FE-HRD-326 🟡 ─┬─> FE-HRD-327
+                                     │                  │
+BE-HRD-362 🟡 [BE] ──────────────────┘                  │
+BE-HRD-363 [BE] ────────────────────────────────────────┘
+```
+
+`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja.
+
+---
+
+### Tabel Gelombang Eksekusi Frontend Slice S-A8
+
+| Gelombang | Target Cakupan Layar & Komponen UI | Task Frontend | Prasyarat Backend Terkait |
+|---|---|---|---|
+| 1 · `MVP-69` | Halaman daftar | `FE-HRD-325` | `BE-HRD-360` |
+| 2 · `MVP-69` | Formulir ubah per orang | `FE-HRD-326` | `BE-HRD-362` |
+| 3 · Verifikasi | Navigasi, build, dan uji layar di browser | `FE-HRD-327` | `BE-HRD-363` |
+
+---
+
+### Rincian 3 Task Frontend Slice S-A8 (`FE-HRD-325` s.d. `FE-HRD-327`)
+
+#### 🟡 `FE-HRD-325` — Halaman daftar Data Penggajian Pegawai (`/hr/workforce-core/payroll-data`)
+* **Slice / MVP**: `S-A8` / `MVP-69`
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 4 acceptance criteria terbukti penuh (butuh tampilan di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
+* **Outcome**: Halaman daftar karyawan, perawat, dan dokter aktif dengan kartu ringkasan, filter Jenis (Karyawan, Perawat, Dokter), Kelengkapan, pencarian, dan jumlah baris, serta tabel: nama dan nomor beserta jabatan dan unit, penetapan gaji utama (status, struktur, tanggal mulai), rekening payroll (status, bank, nomor disamarkan), dan kelengkapan beserta alasannya. Butir menu **Data Penggajian Pegawai** di Administrasi Kepegawaian, dijaga `WorkforcePayrollData : Read`.
+* **Kontrak**: API Contract v27 bagian 33 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
+* **Dependencies**: `BE-HRD-360` [BE]
+* **Acceptance Criteria**:
+  1. Seluruh state tampil: memuat, kosong, gagal, dan tanpa hak akses.
+  2. Filter Jenis memuat Karyawan, Perawat, dan Dokter; filter, pencarian, reset, dan paginasi mengubah hasil yang tampil.
+  3. Gaji pokok tidak tampil di daftar; nomor rekening hanya empat karakter terakhir.
+  4. Badge status pada kolom tidak melebar memenuhi sel; teks panjang membungkus tanpa memotong tabel.
+* **Verifikasi**: lint dan test unit; `npm run build`; uji manual di browser beserta tangkapan layar desktop dan ponsel; pemeriksa `check-css-usage`.
+* **Risiko / pemilik**: gaya memakai utilitas Bootstrap tanpa CSS Module baru, sehingga tampilan perlu dicek di browser; HR UI Lead.
+
+#### 🟡 `FE-HRD-326` — Formulir ubah data penggajian per orang (modal pada halaman daftar)
+* **Slice / MVP**: `S-A8` / `MVP-69`
+* **Status**: 🟡 **SEBAGIAN** — source ditulis 16 November 2026 tanpa ID roadmap dan belum di-build; 0 dari 6 acceptance criteria terbukti penuh (butuh interaksi di browser); belum ada laporan tracked. ESLint 0 error, test unit 21 dari 21 lulus, dan pemeriksa penggunaan CSS 0 temuan sudah dijalankan pada source; `npm run build`, uji di browser, dan tangkapan layar **NOT RUN**.
+* **Outcome**: Tombol **Ubah** pada tiap baris (hanya bagi pemegang `WorkforcePayrollData : Update`) membuka formulir yang memuat isian orang itu dan memiliki dua bagian: **Penetapan Gaji Utama** (struktur gaji, gaji pokok, tanggal mulai berlaku) dan **Rekening Payroll** (bank, nomor rekening, nama pemilik), ditambah dua opsi: **Setujui penetapan gaji** dan **Tandai rekening terverifikasi**, yang hanya aktif bagi pemegang hak yang sesuai. Pilihan struktur dan bank diambil dari master; pengguna tidak pernah mengetik atau melihat id. Pesan penolakan Backend ditampilkan apa adanya; peringatan hasil simpan tampil sebagai toast.
+* **Kontrak**: API Contract v27 bagian 33 — **approved** oleh Pengguna (`HRD-DEC-015`) 16 November 2026 (gerbang G1 tertutup).
+* **Dependencies**: `FE-HRD-325`, `BE-HRD-362` [BE]
+* **Acceptance Criteria**:
+  1. Formulir memuat isian saat ini; selama memuat dan saat gagal memuat, tombol Simpan tidak aktif.
+  2. Bagian yang diisi harus utuh (ketiga isiannya); bagian yang dikosongkan seluruhnya tidak dikirim. Gaji menerima 12000000 maupun 12.000.000.
+  3. Opsi setuju dan verifikasi nonaktif beserta keterangannya bagi pengguna tanpa hak.
+  4. Simpan berhasil menutup formulir, memuat ulang daftar, dan menampilkan toast hasil beserta peringatannya.
+  5. Penolakan Backend (misalnya nomor rekening ganda) tampil di formulir dan tidak menutupnya; tombol tidak dapat ditekan dua kali.
+  6. Tombol Batal tidak bekerja saat simpan sedang berjalan.
+* **Verifikasi**: test unit atas aturan isian dan payload; uji manual di browser (jalur berhasil, ditolak, tanpa hak); tangkapan layar.
+* **Risiko / pemilik**: butuh `SalaryStructure : Read` dan `Bank : Read` agar daftar pilihan terisi (keputusan 4); HR UI Lead.
+
+#### `FE-HRD-327` — Verifikasi slice S-A8: navigasi, build, dan uji layar di browser
+* **Slice / MVP**: `S-A8` / Verifikasi
+* **Status**: belum dikerjakan. Gerbang terbuka: G4.
+* **Outcome**: Bukti bahwa butir menu tampil sesuai hak akses, halaman dan formulir berjalan di browser, dan source lulus build.
+* **Dependencies**: `FE-HRD-326`, `BE-HRD-363` [BE]
+* **Acceptance Criteria**:
+  1. Butir menu **Data Penggajian Pegawai** hanya tampil bagi pemegang `WorkforcePayrollData : Read`.
+  2. `npm run lint:errors` dan `npm run build` lulus tanpa error baru.
+  3. Setiap layar dibuka di browser pada lebar desktop dan ponsel, dengan tangkapan layar; pemeriksa `check-css-usage` 0 temuan.
+  4. Alamat service dicocokkan dengan `[Route]` controller backend, bukan dengan service frontend sendiri.
+* **Verifikasi**: `npm run lint:errors`, `npm run build`, uji browser, dan laporan task tracked `FE-HRD-327.md`.

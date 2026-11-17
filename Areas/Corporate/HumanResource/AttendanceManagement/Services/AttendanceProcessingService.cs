@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.D
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Data;
@@ -17,8 +18,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         private const int MaximumRangeDays = 31;
         private const int MaximumWorkforcePerRequest = 500;
         private const int MaximumProcessingItems = 5000;
-        private const int DefaultCaptureBeforeMinutes = 240;
-        private const int DefaultCaptureAfterMinutes = 480;
         private const string DefaultTimeZoneId = "Asia/Jakarta";
 
         private static readonly string[] OpenRawLogStatuses =
@@ -29,13 +28,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private readonly ApplicationDbContext _dbContext;
         private readonly AttendanceScheduleResolverService _scheduleResolver;
+        private readonly AttendanceSettingService _attendanceSettingService;
 
         public AttendanceProcessingService(
             ApplicationDbContext dbContext,
-            AttendanceScheduleResolverService scheduleResolver)
+            AttendanceScheduleResolverService scheduleResolver,
+            AttendanceSettingService attendanceSettingService)
         {
             _dbContext = dbContext;
             _scheduleResolver = scheduleResolver;
+            _attendanceSettingService = attendanceSettingService ?? throw new ArgumentNullException(nameof(attendanceSettingService));
         }
 
         public AttendanceProcessingMetadataResponse GetMetadata()
@@ -661,6 +663,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return MapSkipped(existingDaily, workforce, "Attendance sudah diproses payroll dan tidak dapat dihitung ulang.");
             }
 
+            // HRD-DEC-215 / HRD-ASM-83: toleransi dan jendela hanya dari setelan kehadiran. Bila tidak terbaca,
+            // tanggal ini dicatat Error untuk diproses ulang dan tidak dihitung dengan angka cadangan (VR-PK-30).
+            var settingResult = await _attendanceSettingService.GetRequiredSettingAsync(cancellationToken: cancellationToken);
+            if (!settingResult.Success || settingResult.Data == null)
+            {
+                return RecordSettingUnreadable(existingDaily, workforce, workDate, actorUserId);
+            }
+
+            var ruleSetting = settingResult.Data;
+
             var scheduleResult = await _scheduleResolver.ResolveAsync(
                 workforce.WorkforceProfileId,
                 workDate,
@@ -673,7 +685,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             var schedule = scheduleResult.Data;
             var policy = await ResolvePolicyRuntimeAsync(schedule.AttendancePolicyId, cancellationToken);
-            var captureWindow = BuildCaptureWindow(schedule, policy, workDate);
+            var captureWindow = BuildCaptureWindow(schedule, ruleSetting, workDate);
 
             if (existingDaily != null && forceReprocess)
             {
@@ -752,7 +764,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             await SoftDeleteProcessorSegmentsAsync(daily.Id, actorUserId, cancellationToken);
 
             var punchResult = BuildPunchResult(rawLogs, schedule, policy);
-            ApplyPunchResult(daily, punchResult, schedule, policy);
+            var processedAtUtc = DateTime.UtcNow;
+            ApplyPunchResult(daily, punchResult, schedule, policy, ruleSetting, processedAtUtc);
 
             var desiredExceptions = BuildExceptions(
                 daily,
@@ -760,6 +773,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 schedule,
                 policy,
                 punchResult);
+
+            // HRD-DEC-211: scan pada hari kerja ini yang tidak masuk jendela tidak dipasangkan dan tidak dibuang;
+            // masing-masing menjadi pengecualian OutsideScanWindow. Log mesin tidak diubah.
+            desiredExceptions.AddRange(await BuildOutsideScanWindowExceptionsAsync(
+                workforce.WorkforceProfileId,
+                workDate,
+                existingDaily?.Id,
+                schedule,
+                captureWindow,
+                ruleSetting,
+                cancellationToken));
 
             SynchronizeExceptions(daily, desiredExceptions, actorUserId);
             CreateSegments(daily, schedule, punchResult, actorUserId);
@@ -815,6 +839,143 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 PayrollInputStatus = daily.PayrollInputStatus,
                 Message = daily.ProcessingMessage ?? "Attendance selesai diproses.",
                 ExceptionCodes = desiredExceptions.Select(x => x.ExceptionCode).ToList()
+            };
+        }
+
+        private static bool IsFixedScheduleHoliday(AttendanceScheduleResolutionResponse schedule) =>
+            schedule.IsHoliday &&
+            string.Equals(schedule.ScheduleSource, AttendanceValueConstants.ScheduleSource.FixedWorkSchedule, StringComparison.OrdinalIgnoreCase);
+
+        // Jadwal tanpa jam selesai dianggap masih berjalan sampai akhir hari kerjanya tidak dapat ditentukan; tanpa scan
+        // dan tanpa jam selesai, status tetap "Belum Hadir" supaya tidak pernah lebih keras dari NoScan.
+        private static bool IsShiftStillRunning(AttendanceScheduleResolutionResponse schedule, DateTime nowUtc) =>
+            !schedule.ScheduledEndAt.HasValue || NormalizeUtc(nowUtc) < NormalizeUtc(schedule.ScheduledEndAt.Value);
+
+        private async Task<List<ExceptionDraft>> BuildOutsideScanWindowExceptionsAsync(
+            Guid workforceProfileId,
+            DateOnly workDate,
+            Guid? currentDailyId,
+            AttendanceScheduleResolutionResponse schedule,
+            CaptureWindow captureWindow,
+            AttendanceRuleSetting ruleSetting,
+            CancellationToken cancellationToken)
+        {
+            var result = new List<ExceptionDraft>();
+            if (!schedule.ScheduledStartAt.HasValue || !schedule.ScheduledEndAt.HasValue)
+            {
+                return result;
+            }
+
+            // Hari kerja = tanggal kalender jadwal di zona waktu rumah sakit.
+            var timeZone = ResolveTimeZone(schedule.TimeZoneId);
+            var dayStart = TimeZoneInfo.ConvertTimeToUtc(workDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), timeZone);
+            var dayEnd = TimeZoneInfo.ConvertTimeToUtc(workDate.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), timeZone);
+
+            var candidates = await _dbContext.Set<HrdAttendanceRawLog>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.WorkforceProfileId == workforceProfileId &&
+                    x.EventAt >= dayStart &&
+                    x.EventAt < dayEnd &&
+                    (x.EventAt < captureWindow.StartAt || x.EventAt > captureWindow.EndAt) &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    OpenRawLogStatuses.Contains(x.ProcessingStatus) &&
+                    (x.ProcessedAttendanceDailyId == null || x.ProcessedAttendanceDailyId == currentDailyId))
+                .OrderBy(x => x.EventAt)
+                .ToListAsync(cancellationToken);
+
+            if (candidates.Count == 0)
+            {
+                return result;
+            }
+
+            // Scan yang masuk jendela shift hari sebelum atau sesudahnya milik shift itu, bukan pengecualian hari ini.
+            var neighbourShifts = await _dbContext.Set<TrxShiftAssignment>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.WorkforceProfileId == workforceProfileId &&
+                    (x.ShiftDate == workDate.AddDays(-1) || x.ShiftDate == workDate.AddDays(1)) &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    !x.IsDayOff &&
+                    (x.AssignmentStatus == AttendanceValueConstants.ShiftAssignmentStatus.Published ||
+                     x.AssignmentStatus == AttendanceValueConstants.ShiftAssignmentStatus.Confirmed ||
+                     x.AssignmentStatus == AttendanceValueConstants.ShiftAssignmentStatus.Completed))
+                .Select(x => new { x.ScheduledStartAt, x.ScheduledEndAt })
+                .ToListAsync(cancellationToken);
+
+            var windowText = $"{TimeZoneInfo.ConvertTimeFromUtc(captureWindow.StartAt, timeZone):dd-MM HH:mm}–{TimeZoneInfo.ConvertTimeFromUtc(captureWindow.EndAt, timeZone):dd-MM HH:mm}";
+            foreach (var log in candidates)
+            {
+                var eventAt = NormalizeUtc(log.EventAt);
+                var belongsToNeighbour = neighbourShifts.Any(s =>
+                    eventAt >= NormalizeUtc(s.ScheduledStartAt).AddMinutes(-ruleSetting.ScanWindowBeforeMinutes) &&
+                    eventAt <= NormalizeUtc(s.ScheduledEndAt).AddMinutes(ruleSetting.ScanWindowAfterMinutes));
+                if (belongsToNeighbour)
+                {
+                    continue;
+                }
+
+                var isBefore = eventAt < captureWindow.StartAt;
+                result.Add(new ExceptionDraft
+                {
+                    ExceptionCode = $"OUTSIDE_WINDOW_{log.Id:N}",
+                    ExceptionType = AttendanceValueConstants.AttendanceExceptionType.OutsideScanWindow,
+                    Severity = AttendanceValueConstants.AttendanceExceptionSeverity.Warning,
+                    IsPayrollBlocking = false,
+                    ExpectedAt = isBefore ? captureWindow.StartAt : captureWindow.EndAt,
+                    ActualAt = eventAt,
+                    DifferenceMinutes = (int)Math.Floor(Math.Abs(((isBefore ? captureWindow.StartAt : captureWindow.EndAt) - eventAt).TotalMinutes)),
+                    DetectionRule = "AttendanceSetting.ScanWindow",
+                    Message = $"Scan {TimeZoneInfo.ConvertTimeFromUtc(eventAt, timeZone):HH:mm} di luar jendela scan shift ({windowText}); tidak dipasangkan. Ajukan koreksi presensi bila scan ini sah."
+                });
+            }
+
+            return result;
+        }
+
+        private AttendanceProcessingItemResponse RecordSettingUnreadable(
+            HrdAttendanceDaily? existingDaily,
+            WorkforceRuntime workforce,
+            DateOnly workDate,
+            Guid actorUserId)
+        {
+            var daily = existingDaily ?? CreateDaily(workforce, workDate, actorUserId);
+            var isCreated = existingDaily == null;
+            if (isCreated)
+            {
+                _dbContext.Set<HrdAttendanceDaily>().Add(daily);
+            }
+
+            // Hasil hitungan lama tidak boleh dipakai payroll selama tanggal ini belum diproses ulang.
+            daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Unprocessed;
+            daily.ProcessingStatus = AttendanceValueConstants.AttendanceProcessingStatus.Error;
+            daily.ProcessingMessage = AttendanceSettingService.SettingUnreadableMessage;
+            daily.PayrollInputStatus = AttendanceValueConstants.PayrollInputStatus.Blocked;
+            daily.IsPayrollEligible = false;
+            daily.ProcessedAt = DateTime.UtcNow;
+            daily.UpdateDateTime = DateTime.UtcNow;
+            daily.UpdateBy = actorUserId;
+
+            return new AttendanceProcessingItemResponse
+            {
+                WorkforceProfileId = workforce.WorkforceProfileId,
+                WorkforceProfileCode = workforce.ProfileCode,
+                WorkforceDisplayName = workforce.DisplayName,
+                WorkDate = workDate,
+                Success = false,
+                IsSkipped = false,
+                IsCreated = isCreated,
+                AttendanceDailyId = daily.Id,
+                AttendanceStatus = daily.AttendanceStatus,
+                ProcessingStatus = daily.ProcessingStatus,
+                ScheduleSource = daily.ScheduleSource,
+                Message = AttendanceSettingService.SettingUnreadableMessage,
+                PayrollInputStatus = daily.PayrollInputStatus,
+                IsPayrollEligible = false
             };
         }
 
@@ -970,7 +1131,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             HrdAttendanceDaily daily,
             PunchResult punch,
             AttendanceScheduleResolutionResponse schedule,
-            PolicyRuntime policy)
+            PolicyRuntime policy,
+            AttendanceRuleSetting ruleSetting,
+            DateTime processedAtUtc)
         {
             daily.FirstCheckInAt = punch.FirstCheckIn?.EventAt;
             daily.LastCheckOutAt = punch.LastCheckOut?.EventAt;
@@ -983,8 +1146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             daily.LateMinutes = 0;
             if (punch.FirstCheckIn != null && schedule.ScheduledStartAt.HasValue)
             {
-                var graceMinutes = schedule.LateCheckInGraceMinutes > 0 ? schedule.LateCheckInGraceMinutes : 10;
-                var lateThreshold = schedule.ScheduledStartAt.Value.AddMinutes(graceMinutes);
+                var lateThreshold = schedule.ScheduledStartAt.Value.AddMinutes(ruleSetting.GracePeriodMinutes);
                 if (punch.FirstCheckIn.EventAt > lateThreshold)
                 {
                     daily.LateMinutes = Math.Max(0, (int)Math.Floor((punch.FirstCheckIn.EventAt - schedule.ScheduledStartAt.Value).TotalMinutes));
@@ -1022,11 +1184,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             daily.IsRemoteAttendance = schedule.AdditionalAssignments.Any(x =>
                 string.Equals(x.AssignmentType, "Remote", StringComparison.OrdinalIgnoreCase));
 
+            // HRD-DEC-210: hari libur hanya membebaskan pegawai berjadwal tetap. Pegawai roster pada hari libur
+            // tetap diharapkan hadir sesuai roster.
+            var isFixedScheduleHoliday = IsFixedScheduleHoliday(schedule);
+
             if (schedule.IsRestDay && !daily.IsPresent)
             {
                 daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.RestDay;
             }
-            else if (schedule.IsHoliday && !daily.IsPresent)
+            else if (isFixedScheduleHoliday && !daily.IsPresent)
             {
                 daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Holiday;
             }
@@ -1038,10 +1204,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             {
                 daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Remote;
             }
-            else if (!daily.IsPresent && schedule.IsResolved && !schedule.IsRestDay && !schedule.IsHoliday)
+            else if (!daily.IsPresent && schedule.IsResolved && !schedule.IsRestDay && !isFixedScheduleHoliday)
             {
-                daily.IsAbsent = true;
-                daily.AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Absent;
+                // HRD-DEC-207: tanpa scan bukan Alpa selama periode terbuka. "Belum Hadir" selama shift masih berjalan
+                // (shift lintas tengah malam sampai jam selesai hari berikutnya, HRD-DEC-104), lalu "Tidak Ada Scan".
+                // Absent hanya diberikan saat periode ditutup (HRD-DEC-216).
+                daily.IsAbsent = false;
+                daily.AttendanceStatus = IsShiftStillRunning(schedule, processedAtUtc)
+                    ? AttendanceValueConstants.AttendanceStatus.NotYetPresent
+                    : AttendanceValueConstants.AttendanceStatus.NoScan;
             }
             else if (daily.OfficialDutyRequestId.HasValue)
             {
@@ -1107,7 +1278,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 });
             }
 
-            if (policy.RequireCheckIn && punch.FirstCheckIn == null && !schedule.IsRestDay && !schedule.IsHoliday)
+            var expectsPunch = !schedule.IsRestDay &&
+                !IsFixedScheduleHoliday(schedule) &&
+                daily.AttendanceStatus != AttendanceValueConstants.AttendanceStatus.NotYetPresent;
+
+            if (policy.RequireCheckIn && punch.FirstCheckIn == null && expectsPunch)
             {
                 result.Add(new ExceptionDraft
                 {
@@ -1121,7 +1296,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 });
             }
 
-            if (policy.RequireCheckOut && punch.LastCheckOut == null && !schedule.IsRestDay && !schedule.IsHoliday)
+            if (policy.RequireCheckOut && punch.LastCheckOut == null && expectsPunch)
             {
                 result.Add(new ExceptionDraft
                 {
@@ -1160,7 +1335,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     ExpectedAt = schedule.ScheduledStartAt,
                     ActualAt = daily.FirstCheckInAt,
                     DifferenceMinutes = daily.LateMinutes,
-                    DetectionRule = "GracePeriod.LateCheckInGraceMinutes",
+                    DetectionRule = "AttendanceSetting.GracePeriodMinutes",
                     Message = $"Terlambat {daily.LateMinutes} menit dari jadwal check-in."
                 });
             }
@@ -1515,21 +1690,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private static CaptureWindow BuildCaptureWindow(
             AttendanceScheduleResolutionResponse schedule,
-            PolicyRuntime policy,
+            AttendanceRuleSetting ruleSetting,
             DateOnly workDate)
         {
             if (schedule.ScheduledStartAt.HasValue && schedule.ScheduledEndAt.HasValue)
             {
-                var startAt = schedule.ScheduledStartAt.Value.AddMinutes(-Math.Max(DefaultCaptureBeforeMinutes, schedule.EarlyCheckInMinutes));
-                var maximumPolicyEnd = policy.MaximumWorkMinutes > 0
-                    ? schedule.ScheduledStartAt.Value.AddMinutes(policy.MaximumWorkMinutes + 60)
-                    : schedule.ScheduledEndAt.Value.AddMinutes(DefaultCaptureAfterMinutes);
-                var graceEnd = schedule.ScheduledEndAt.Value.AddMinutes(Math.Max(DefaultCaptureAfterMinutes, schedule.LateCheckOutMinutes));
-
+                // HRD-DEC-211: scan masuk mulai X menit sebelum mulai shift, scan pulang sampai Y menit sesudah selesai.
+                // Kebijakan per jadwal (EarlyCheckIn/LateCheckOut, MaximumWorkMinutes) tidak lagi melebarkan jendela.
                 return new CaptureWindow
                 {
-                    StartAt = NormalizeUtc(startAt),
-                    EndAt = NormalizeUtc(maximumPolicyEnd > graceEnd ? maximumPolicyEnd : graceEnd)
+                    StartAt = NormalizeUtc(schedule.ScheduledStartAt.Value.AddMinutes(-ruleSetting.ScanWindowBeforeMinutes)),
+                    EndAt = NormalizeUtc(schedule.ScheduledEndAt.Value.AddMinutes(ruleSetting.ScanWindowAfterMinutes))
                 };
             }
 

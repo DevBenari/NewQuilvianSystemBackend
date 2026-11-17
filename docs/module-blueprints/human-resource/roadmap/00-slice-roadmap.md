@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `23` — **revisi `23` (9 November 2026) menyerap keputusan `HRD-DEC-188` s.d. `HRD-DEC-193` dan asumsi `HRD-ASM-71` s.d. `HRD-ASM-74` untuk target state Slice `S-D5` (Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management: Pemisahan SPPD vs Non-Trip Expense, Uang Muka Maksimal 80% & Otorisasi 2-Pintu, Tarif Baku Lumpsum Per Diem Multi-Dimensi Zonasi/Grade, Disiplin Settlement 7 Hari & Sanksi Potong Payroll > 30 Hari, Deklarasi Darurat Tanpa Nota Maks 10%, serta Presensi Hadir Dinas Luar Sub-07 & Gembok Hard-Stop Roster Sub-06), merencanakan 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) lintas gelombang MVP-63 s.d. MVP-65 & Verifikasi — MENUNTASKAN STATUS DEFERRED MENJADI 0 DEFERRED**; revisi `22` menyerap target state Slice `S-A7-V2` |
+| Roadmap revision | `24` — **revisi `24` (12 November 2026) menambah amandemen `A52` atas `S-B4` dan `S-B1` untuk 12 menu `PRD-HRD-PK-001`: `BE-HRD-334` s.d. `BE-HRD-359`, `FE-HRD-306` s.d. `FE-HRD-324`, gelombang `MVP-66` s.d. `MVP-68`, kontrak `v26` approved; tidak ada slice baru.** Revisi `23` — **revisi `23` (9 November 2026) menyerap keputusan `HRD-DEC-188` s.d. `HRD-DEC-193` dan asumsi `HRD-ASM-71` s.d. `HRD-ASM-74` untuk target state Slice `S-D5` (Perjalanan Dinas & Manajemen Biaya Operasional / Business Travel & Expense Management: Pemisahan SPPD vs Non-Trip Expense, Uang Muka Maksimal 80% & Otorisasi 2-Pintu, Tarif Baku Lumpsum Per Diem Multi-Dimensi Zonasi/Grade, Disiplin Settlement 7 Hari & Sanksi Potong Payroll > 30 Hari, Deklarasi Darurat Tanpa Nota Maks 10%, serta Presensi Hadir Dinas Luar Sub-07 & Gembok Hard-Stop Roster Sub-06), merencanakan 16 task backend (`BE-HRD-318` s.d. `BE-HRD-333`) dan 15 task frontend (`FE-HRD-291` s.d. `FE-HRD-305`) lintas gelombang MVP-63 s.d. MVP-65 & Verifikasi — MENUNTASKAN STATUS DEFERRED MENJADI 0 DEFERRED**; revisi `22` menyerap target state Slice `S-A7-V2` |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -341,6 +341,22 @@ Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan 
 | **Migration Risk** | Rendah — penambahan kolom on-call bersifat nullable, tabel konfigurasi diisi seeder nilai default aman. Tidak ada penghapusan skema atau migrasi destruktif. |
 | **Acceptance Criteria** | 1. Roster unit bergiliran terbit mandiri oleh Kepala Ruangan setelah lolos validasi otomatis `B1`–`B7` dan pengisian alasan `W1`–`W7`. 2. Kepala Bidang menerima notifikasi dan memiliki hak pantau *read-only*. 3. Penggantian petugas pasca-terbit langsung efektif tanpa mengubah status roster menjadi Draft. 4. Koreksi tanggal mundur dibatasi maksimal 3 hari ke belakang dan memicu hitung ulang absensi. 5. Periode `Closed` mengunci jadwal secara mutlak. 6. Status on-call tetap `Active` saat dipanggil untuk menjamin integritas kontrak Lab. |
 | **Release Status** | **`PLANNED`** — Desain disetujui pengguna 4 November 2026 (`HRD-DEC-097` s.d. `HRD-DEC-103`). Direncanakan 17 task backend (`BE-HRD-087` s.d. `BE-HRD-103`) dan 13 task frontend (`FE-HRD-075` s.d. `FE-HRD-087`) pada roadmap revision `8` lintas gelombang `MVP-18` s.d. `MVP-20` & Verifikasi. |
+
+### Amandemen `A52` atas `S-B4` dan `S-B1` — 12 menu "Penjadwalan & Kehadiran" (revisi `24`, 12 November 2026)
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | Sebagian besar kemampuan `S-B4`/`S-B1` sudah ada, tetapi enam perilaku melanggar keputusan yang disetujui (capability map revisi `1.4`, `HRD-CAP-69`, `73`, `74`, `75`, `76`, `77`) dan beberapa menu Notion belum punya kemampuan (`HRD-CAP-79`, `80`, `83`, `84`, `85`) |
+| **Target State** | `HRD-DEC-194` s.d. `HRD-DEC-217`; desain `02-backend-architecture.md` bagian 35 dan kontrak `v26` |
+| **Backend Impact** | `EXTEND` + `REPAIR` + `NEW`: 26 task `BE-HRD-334` s.d. `BE-HRD-359` (`backend-roadmap.md` bagian 24) |
+| **Frontend Impact** | 19 task `FE-HRD-306` s.d. `FE-HRD-324` (`frontend-roadmap.md` bagian 25) |
+| **Database Impact** | 6 tabel baru, 3 tabel bertambah kolom; satu migration aditif `AddSchedulingAttendanceAmendmentA52` |
+| **Dependency** | `BE-HRD-087` s.d. `BE-HRD-116` (fondasi `S-B4`/`S-B1`), `S-D1` (standar ketenagaan), `BE-HRD-314` (pemberitahuan) |
+| **Blocking Decision** | Tidak ada untuk `MUST HAVE`. `DSG-Q-01`/`DSG-Q-02` hanya memblokir `EPIC HRD-120` (grup menu) |
+| **QBE Impact** | `NEW CODE` untuk enam tabel `Hrd*`, sembilan controller, dan service baru; `TOUCHED LEGACY` untuk service penjadwalan dan kehadiran yang diperbaiki |
+| **Migration Risk** | Rendah — seluruhnya penambahan; nilai bawaan sama dengan perilaku sekarang |
+| **Acceptance Criteria** | `AT-HRD-PK-01` s.d. `AT-HRD-PK-46`; `UAT-PK-01` s.d. `UAT-PK-15` |
+| **Release Status** | **`PLANNED`** — desain dan kontrak `v26` disetujui pengguna 12 November 2026; gelombang `MVP-66` s.d. `MVP-68`, `Verifikasi`, `POST-MVP` |
 
 ### `S-B5` — Payroll sisi HR
 
@@ -722,3 +738,23 @@ dicatat pada [`01-prerequisite-readiness.md`](../01-prerequisite-readiness.md).
 - **Tanggal.** Urutan dinyatakan sebagai gelombang, bukan jadwal.
 - **Estimasi.** Tidak ada angka hari maupun poin.
 - **Desain.** Slice menyatakan dampak, bukan bentuk tabel, endpoint, atau layar.
+
+---
+
+### `S-A8` — Data Penggajian Pegawai (HRD): Karyawan, Perawat, dan Dokter (DRAFT, 16 November 2026)
+
+> **Catatan hitungan:** slice ini ditambahkan sebagai DRAFT pada 16 November 2026 dan **belum dihitung** pada ringkasan jumlah slice, fase, dan status di bagian atas dokumen ini. Hitungan itu dihitung ulang saat slice disetujui.
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | HRD punya endpoint penetapan gaji dan rekening bank per orang, tetapi tidak ada daftar lintas orang untuk melihat kelengkapan data. Modul Payroll membaca data ini untuk membuat profil payroll. Tidak ada layar HRD untuk mengisi keduanya |
+| **Target State** | Halaman `/hr/workforce-core/payroll-data` menampilkan karyawan, perawat, dan dokter aktif beserta kelengkapan penetapan gaji utama dan rekening payroll, dengan formulir ubah per orang. Perubahan atas data yang sudah disetujui atau terverifikasi mencabut persetujuan atau verifikasinya kecuali pengubah berwenang memilih sebaliknya |
+| **Backend Impact** | Satu controller, satu service, satu berkas DTO di Workforce Core (4 endpoint). Tanpa entity baru. Task `BE-HRD-360` s.d. `BE-HRD-363` |
+| **Frontend Impact** | Satu halaman, satu formulir ubah, satu butir menu. Task `FE-HRD-325` s.d. `FE-HRD-327` |
+| **Database Impact** | Tidak ada. Memakai `WfpSalaryAssignment` dan `WfpBankAccount` yang sudah ada; tanpa migration |
+| **Dependency** | `BE-HRD-003` (Workforce Core); master `SalaryStructure` dan `Bank` untuk pilihan formulir |
+| **Blocking Decision** | Gerbang G3 (pencocokan data profesi untuk `HRD-ASM-84`), G4 (belum di-build dan diuji), G5 (`DEC-PRL-002`, `HRD-Q-220`); G1 tertutup: kontrak `v27` approved 16 November 2026; G2 tertutup: `HRD-DEC-218` s.d. `HRD-DEC-223` — lihat bagian 25 `backend-roadmap.md` |
+| **QBE Impact** | `NEW CODE` pada `Areas/Corporate/HumanResource/WorkforceCore`, prefix `Wfp`; `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001`, `QBE-LOG-001`, `QBE-DTO-001`, `QBE-VAL-001`, `QBE-TXN-001`, `QBE-AUD-001` |
+| **Migration Risk** | Tidak ada |
+| **Acceptance Criteria** | Daftar memuat seluruh karyawan, perawat, dan dokter aktif; simpan menolak isian yang salah tanpa menyimpan apa pun; perubahan atas data yang disetujui atau terverifikasi mencabut statusnya; gaji pokok dan nomor rekening lengkap hanya untuk pemegang hak Update; log audit tanpa nominal dan nomor rekening |
+| **Release Status** | `READY` — kontrak `v27` approved dan keputusan terdaftar 16 November 2026; source sudah ada tetapi belum terbukti (task tetap 🟡 sampai build, uji, dan laporan tracked) |

@@ -1289,3 +1289,93 @@ Matriks aturan validasi ini memuat 25 aturan penegakan integritas bisnis (`VR-PR
 | `VR-TRV-23` | `TrxBusinessTravelParticipant.WorkforceProfileId` | Seluruh peserta dinas rombongan wajib pegawai aktif dan tidak memiliki bentrok jadwal | Ditolak `400 Bad Request` ("Salah satu peserta memiliki bentrok jadwal dinas lain") |
 | `VR-TRV-24` | `TrxBusinessTravelRequest.CurrencyCode` | Mata uang selain IDR wajib menyertakan nilai kurs tengah BI pada tanggal pengajuan | Ditolak `400 Bad Request` ("Kurs konversi valuta asing tidak ditemukan") |
 | `VR-TRV-25` | `TrxBusinessTravelRequest.WorkflowInstanceId` | SPPD wajib terhubung ke engine workflow terpadu Sub-21 untuk audit multi-jenjang | Ditolak `500 Internal Error` ("Gagal menginisiasi workflow terpadu persetujuan dinas") |
+
+---
+
+## 31. Matriks Validasi Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` — `approved` (pengguna, 12 November 2026) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-PK-01` | Ganti Petugas, tambah shift, terbit | Pegawai tidak punya penempatan aktif di unit roster pada tanggal shift, atau punya penempatan sementara di unit lain (`B3`) | "Tono ditempatkan di HCU 1–14 Maret 2027" | 422 |
+| `VR-PK-02` | Sama | Pegawai sedang tugas belajar (`B8`) | "Dewi sedang tugas belajar 1 Agustus 2027 – 31 Juli 2029" | 422 |
+| `VR-PK-03` | Sama | Status kesiapan kerja tidak terbaca (`B6`) | "Status kesiapan pegawai tidak dapat dibaca. Coba lagi atau hubungi HRD" | 422 |
+| `VR-PK-04` | Sama | Ada peringatan `W1`–`W7` tanpa alasan dipilih | "Pilih alasan untuk setiap peringatan sebelum menyimpan" | 422 |
+| `VR-PK-05` | Ganti Petugas | Petugas saat ini berbeda dari `ExpectedWorkforceProfileId` | "Shift ini baru saja diubah orang lain. Muat ulang lalu coba lagi" | 409 |
+| `VR-PK-06` | Tambah/hapus/ganti/koreksi | Unit roster di luar cakupan kelola | "Anda tidak berwenang mengubah roster unit ini" | 403 |
+| `VR-PK-07` | Hapus shift, Ganti Petugas | `ReasonCategory` atau `ReasonNote` kosong | "Alasan perubahan wajib diisi" | 400 |
+| `VR-PK-08` | Daftar cadangan siaga | Urutan ganda, pegawai ganda, atau cadangan = siaga utama | "Urutan cadangan dan nama cadangan tidak boleh ganda atau sama dengan siaga utama" | 422 |
+| `VR-PK-09` | Catat panggilan | Penugasan tidak `Active`, atau pegawai bukan siaga utama/cadangan penugasan itu | "Pegawai ini tidak sedang siaga pada penugasan tersebut" | 422 |
+| `VR-PK-10` | Kedaluwarsa | Batas jawab jenis siaga belum lewat | "Batas jawab 10 menit belum lewat sejak panggilan 02.10" | 422 |
+| `VR-PK-11` | Tolak panggilan | Alasan kosong | "Alasan penolakan wajib diisi" | 400 |
+| `VR-PK-12` | Selesai panggilan | `ArrivedAt` < `CalledAt` | "Jam tiba tidak boleh lebih awal dari jam panggil" | 400 |
+| `VR-PK-13` | Dispensasi | `EndAt` ≤ `StartAt` | "Jam selesai harus sesudah jam mulai" | 400 |
+| `VR-PK-14` | Dispensasi | Tanggal lebih lama dari batas mundur setelan | "Dispensasi hanya bisa diajukan sampai 3 hari ke belakang" | 422 |
+| `VR-PK-15` | Dispensasi | Periode kehadiran sudah ditutup | "Periode kehadiran Februari 2027 sudah ditutup" | 403 |
+| `VR-PK-16` | Dispensasi | Atasan langsung tidak ditemukan | "Atasan langsung Anda belum ditetapkan. Hubungi HRD" | 422 |
+| `VR-PK-17` | Setujui dispensasi | Pengguna bukan penyetuju yang ditetapkan, atau sama dengan pegawai | "Anda tidak berwenang memutuskan dispensasi ini" | 403 |
+| `VR-PK-18` | Tugas belajar | Tumpang tindih dengan tugas belajar aktif lain | "Pegawai sudah punya tugas belajar aktif pada rentang ini" | 422 |
+| `VR-PK-19` | Tugas belajar | `EndDate` < `StartDate`, atau ubah/batal tanpa alasan | "Tanggal selesai harus sesudah tanggal mulai" / "Alasan perubahan wajib diisi" | 400 |
+| `VR-PK-20` | Gangguan mesin | `EndAt` ≤ `StartAt` | "Jam selesai gangguan harus sesudah jam mulai" | 400 |
+| `VR-PK-21` | Koreksi dengan gangguan | Kejadian `Cancelled` | "Kejadian gangguan ini sudah dibatalkan" | 422 |
+| `VR-PK-22` | Koreksi dengan gangguan | Jam yang diajukan di luar rentang gangguan dan tanpa lampiran | "Jam di luar rentang gangguan wajib disertai lampiran" | 422 |
+| `VR-PK-23` | Setelan kehadiran | `GracePeriodMinutes` di luar 0–60, `ScanWindowBeforeMinutes` di luar 0–720, `ScanWindowAfterMinutes` di luar 0–960 | "Nilai toleransi atau jendela scan di luar batas" | 400 |
+| `VR-PK-24` | Jenis siaga | `AnswerTimeoutMinutes` di luar 1–120 | "Batas jawab harus 1 sampai 120 menit" | 400 |
+| `VR-PK-25` | Hari libur | `EndDate` < `StartDate`, atau tanggal di luar rentang kalender kerja | "Tanggal libur harus berada di dalam kalender kerja yang dipilih" | 400 |
+| `VR-PK-26` | Mesin absen | Kode, nomor seri, atau ID eksternal dipakai mesin aktif lain | "Identitas mesin sudah dipakai mesin lain" | 409 |
+| `VR-PK-27` | Dashboard, laporan, ekspor | Unit diminta di luar cakupan baca | "Anda tidak berwenang melihat data unit ini" | 403 |
+| `VR-PK-28` | Laporan dan ekspor | Rentang tanggal lebih dari 92 hari | "Rentang laporan paling lama 92 hari" | 400 |
+| `VR-PK-29` | Jadwal Saya | Rentang di luar `HRD-ASM-80` | "Jadwal yang dapat dilihat: 3 bulan ke belakang sampai bulan depan" | 400 |
+| `VR-PK-30` | Pemrosesan kehadiran | Setelan kehadiran tidak terbaca | Status pemrosesan `Error` "Setelan kehadiran tidak terbaca" | — |
+
+`VR-PK-28` adalah batas teknis untuk menjaga kinerja ekspor, bukan keputusan bisnis; angkanya
+dapat diubah owner saat approval desain.
+
+---
+
+## 32. Matriks Aturan Validasi Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v27`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v27` |
+| `last_changed_in` | `v27` — bagian 32 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `38` bagian 54 (`HRD-DEC-218` s.d. `HRD-DEC-223`, `HRD-ASM-84` s.d. `HRD-ASM-87`, `HRD-Q-218` s.d. `HRD-Q-220`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-223`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Seluruh aturan diperiksa **sebelum** ada yang diubah. Bila satu aturan saja gagal, permintaan ditolak dengan kode `400`, pesan-pesan yang gagal digabung menjadi satu kalimat, dan **tidak ada** yang tersimpan (`HRD-ASM-85`).
+
+| Kode Validasi | Target Entitas / Kolom | Deskripsi Aturan Validasi Bisnis | Kondisi Gagal & Kode Respons |
+|---|---|---|---|
+| `VR-WPD-01` | `UpdateWorkforcePayrollSalaryRequest.SalaryStructureId` | Struktur gaji wajib dipilih | `400` ("Struktur gaji wajib dipilih.") |
+| `VR-WPD-02` | `MstSalaryStructure` | Struktur gaji ada, aktif, dan belum dihapus | `400` ("Struktur gaji tidak ditemukan atau tidak aktif.") |
+| `VR-WPD-03` | `MstSalaryGrade` dari struktur | Grade gaji dari struktur ada dan aktif | `400` ("Grade gaji dari struktur ini tidak ditemukan atau tidak aktif.") |
+| `VR-WPD-04` | `BaseSalary` | Gaji pokok lebih dari nol | `400` ("Gaji pokok harus lebih dari nol.") |
+| `VR-WPD-05` | `EffectiveStartDate` | Tanggal mulai berlaku wajib, tahun 2000 atau sesudahnya, dan tidak lewat dari tanggal berakhir penetapan yang sedang diubah | `400` ("Tanggal mulai berlaku wajib diisi." / "Tanggal mulai berlaku tidak boleh lewat dari tanggal berakhir penetapan ini (dd/MM/yyyy).") |
+| `VR-WPD-06` | `WfpSalaryAssignment` lain milik orang yang sama | Tidak ada penetapan lain (belum dihapus) dengan struktur dan grade yang sama pada periode yang beririsan | `400` ("Sudah ada penetapan gaji dengan struktur dan grade yang sama pada periode yang beririsan.") |
+| `VR-WPD-07` | `UpdateWorkforcePayrollBankRequest.BankId` | Bank wajib dipilih, ada, dan aktif | `400` ("Bank wajib dipilih." / "Bank tidak ditemukan atau tidak aktif.") |
+| `VR-WPD-08` | `AccountNumber` | Setelah hanya huruf dan angka dipertahankan, tidak kosong dan paling panjang 100 karakter | `400` ("Nomor rekening wajib diisi." / "Nomor rekening paling panjang 100 karakter.") |
+| `VR-WPD-09` | `WfpBankAccount` lain milik orang yang sama | Nomor rekening belum tercatat pada rekening lain (belum dihapus, aktif maupun nonaktif) milik orang yang sama | `400` ("Nomor rekening sudah tercatat untuk orang ini.") |
+| `VR-WPD-10` | `AccountHolderName` | Tidak kosong dan paling panjang 200 karakter | `400` ("Nama pemilik rekening wajib diisi." / "... paling panjang 200 karakter.") |
+| `VR-WPD-11` | `UpdateWorkforcePayrollDataRequest` | Paling sedikit satu bagian atau satu opsi dikirim | `400` ("Tidak ada perubahan untuk disimpan.") |
+| `VR-WPD-12` | `workforceProfileId` | Orang adalah karyawan atau dokter aktif | `404` ("Pegawai, perawat, atau dokter tidak ditemukan atau sudah tidak aktif.") |
+| `VR-WPD-13` | Opsi setuju / verifikasi tanpa data | Opsi setuju butuh penetapan gaji (yang ada atau dikirim); opsi verifikasi butuh rekening (yang ada atau dikirim) | `400` ("Belum ada penetapan gaji utama untuk disetujui. ..." / "Belum ada rekening payroll untuk diverifikasi. ...") |
+| `VR-WPD-14` | `ApproveSalaryAssignment` | Pemanggil memegang `WfpSalaryAssignment : Update` | `403` ("Anda tidak berwenang menyetujui penetapan gaji.") |
+| `VR-WPD-15` | `MarkBankAccountVerified` | Pemanggil memegang `WorkforceBankAccount : Update` | `403` ("Anda tidak berwenang memverifikasi rekening bank.") |
+| `VR-WPD-16` | `BaseSalary` terhadap `MstSalaryGrade` | Gaji pokok di luar rentang grade **tidak ditolak**; hasil simpan memuat peringatan (`HRD-Q-220`, `DEC-PRL-002`) | Peringatan, tetap `200` |
+
+**Contoh gabungan:** formulir dikirim dengan gaji pokok 0 dan nomor rekening "---". Respons `400` berbunyi "Gaji pokok harus lebih dari nol. Nomor rekening wajib diisi." dan rekening yang diisi bersamaan juga tidak tersimpan.
+
+**Aturan di layar (bukan pengganti Backend):** bagian gaji atau rekening yang diisi sebagian dianggap belum lengkap (ketiga isiannya wajib); bagian yang dikosongkan seluruhnya tidak dikirim. Gaji pokok menerima `12000000` maupun `12.000.000` dan awalan `Rp`.
