@@ -12,7 +12,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public int GracePeriodMinutes { get; set; }
         public int MaxBackdatedCorrectionDays { get; set; }
         public bool RequireAttachmentForCorrection { get; set; }
-        public bool AutoConvertIncompleteToAbsent { get; set; }
+
+        /// <summary>
+        /// Scan masuk diterima mulai sekian menit sebelum jam mulai shift (HRD-DEC-211).
+        /// </summary>
+        public int ScanWindowBeforeMinutes { get; set; }
+
+        /// <summary>
+        /// Scan pulang diterima sampai sekian menit sesudah jam selesai shift (HRD-DEC-211).
+        /// </summary>
+        public int ScanWindowAfterMinutes { get; set; }
+
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public Guid CreatedBy { get; set; }
@@ -28,8 +38,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         /// <summary>
         /// Batas toleransi keterlambatan dalam menit (0 s.d. 60 menit per VR-ATT-17).
         /// </summary>
-        [Range(0, 60, ErrorMessage = "Toleransi keterlambatan (GracePeriodMinutes) harus bernilai antara 0 hingga 60 menit.")]
-        public int GracePeriodMinutes { get; set; } = 10;
+        [Range(0, 60, ErrorMessage = "Nilai toleransi atau jendela scan di luar batas.")]
+        public int GracePeriodMinutes { get; set; }
 
         /// <summary>
         /// Batas hari toleransi koreksi tanggal mundur (1 s.d. 30 hari kalender per VR-ATT-18).
@@ -39,6 +49,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         public bool RequireAttachmentForCorrection { get; set; } = true;
 
-        public bool AutoConvertIncompleteToAbsent { get; set; } = true;
+        /// <summary>
+        /// Jendela scan masuk: menit sebelum jam mulai shift, 0 s.d. 720 (VR-PK-23). Kosong = nilai tersimpan tidak diubah
+        /// (layar lama belum mengirim kolom ini).
+        /// </summary>
+        [Range(0, 720, ErrorMessage = "Nilai toleransi atau jendela scan di luar batas.")]
+        public int? ScanWindowBeforeMinutes { get; set; }
+
+        /// <summary>
+        /// Jendela scan pulang: menit sesudah jam selesai shift, 0 s.d. 960 (VR-PK-23). Kosong = nilai tersimpan tidak diubah.
+        /// </summary>
+        [Range(0, 960, ErrorMessage = "Nilai toleransi atau jendela scan di luar batas.")]
+        public int? ScanWindowAfterMinutes { get; set; }
     }
 }

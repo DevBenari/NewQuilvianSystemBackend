@@ -2505,3 +2505,148 @@ stateDiagram-v2
     Paid --> [*]
     Rejected --> [*]
 ```
+
+---
+
+## 30. Matriks Transisi Status Amandemen `S-B4`/`S-B1` (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `v26` — `approved` (pengguna, 12 November 2026) |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| `input_revision` | `00-interview-decisions.md` revision `37`; `02-backend-architecture.md` bagian 35 |
+
+### 30.1 Roster terbit — perubahan sesudah terbit (`HRD-DEC-194`, `195`, `199`, `217`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Published` | Ganti Petugas / tambah shift / hapus shift / koreksi mundur | `Published` (tetap) | Kepala Unit dalam cakupan kelola, atau `ManageAllUnits` | Lolos `B1`–`B8`; alasan untuk `W1`–`W7`; koreksi mundur ≤ `RetroactiveCorrectionWindowDays` | 422 (pemeriksaan) / 403 (cakupan) / 409 (diubah orang lain) |
+| `Published` | Tindakan yang sama | `Draft` | **Tidak sah** | — | Tidak boleh terjadi; perilaku lama `RosterPeriodService.cs:391` diperbaiki |
+| `Draft` | Terbitkan | `Published` | Kepala Unit | Lolos pemeriksaan ulang | 422 |
+| `Draft` | Ajukan persetujuan | `InReview` | **Tidak sah** — status tidak ada (`HRD-DEC-194`) | — | Tidak ada endpoint |
+| `Closed` | Ubah apa pun / buka kembali | — | **Tidak sah** (`HRD-DEC-199`) | — | 403 |
+
+### 30.2 Catatan panggilan siaga — `HrdOnCallCall.CallStatus` (`HRD-DEC-198`, `204`, `205`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Catat panggilan | `Sent` | Unit pemanggil, Kepala Unit, Admin HRD | Penugasan `Active`; yang dipanggil = siaga utama atau cadangan penugasan itu | 422 |
+| `Sent` | Catat bersedia | `Accepted` | Sama | `RowVersion` cocok | 409 |
+| `Sent` | Catat tidak bisa | `Declined` | Sama | Alasan wajib | 400 |
+| `Sent` | Tandai kedaluwarsa | `Expired` | Sama | `sekarang − CalledAt ≥ AnswerTimeoutMinutes` | 422 "Batas jawab belum lewat" |
+| `Accepted` | Catat tiba | `Completed` | Sama | `ArrivedAt ≥ CalledAt` | 400 |
+| `Declined`, `Expired`, `Completed` | Ubah status apa pun | — | **Tidak sah** | — | 409 |
+| `Sent` | Langsung `Completed` | — | **Tidak sah** — wajib `Accepted` lebih dulu | — | 409 |
+
+Status `TrxOnCallAssignment.AssignmentStatus` **tidak berubah** pada seluruh transisi di atas.
+
+### 30.3 Dispensasi — `HrdAttendanceDispensation.Status` (`HRD-DEC-200`, `HRD-ASM-76`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Ajukan / catat atas nama | `Submitted` | Pegawai (diri sendiri), Kepala Unit (pegawai unitnya) | Tanggal ≥ hari ini − `MaxBackdatedCorrectionDays`; periode kehadiran belum ditutup; atasan langsung ditemukan | 422 / 403 |
+| `Submitted` | Setujui | `Approved` | Hanya `ApproverWorkforceProfileId` | Penyetuju ≠ pegawai | 403 |
+| `Submitted` | Tolak | `Rejected` | Hanya penyetuju | Alasan wajib | 400 / 403 |
+| `Submitted` | Batalkan | `Cancelled` | Pengaju | — | 403 |
+| `Approved`, `Rejected`, `Cancelled` | Tindakan apa pun | — | **Tidak sah** | — | 409 |
+| Apa pun | Tindakan apa pun sesudah periode kehadiran ditutup | — | **Tidak sah** | — | 403 |
+
+### 30.4 Tugas belajar — `HrdStudyAssignment.Status` (`HRD-DEC-201`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Catat | `Active` | Admin HRD | Tidak tumpang tindih dengan tugas belajar `Active` lain | 422 |
+| `Active` | Ubah tanggal | `Active` | Admin HRD | Alasan wajib; tetap tidak tumpang tindih | 400 / 422 |
+| `Active` | Batalkan | `Cancelled` | Admin HRD | Alasan wajib | 400 |
+| `Cancelled` | Tindakan apa pun | — | **Tidak sah** | — | 409 |
+
+### 30.5 Kejadian gangguan mesin — `HrdAttendanceDeviceIncident.Status` (`HRD-DEC-202`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Catat | `Active` | Petugas IT, Admin HRD | Mesin terdaftar; `EndAt > StartAt` | 400 / 404 |
+| `Active` | Batalkan | `Cancelled` | Petugas IT, Admin HRD | Alasan wajib | 400 |
+| `Cancelled` | Dirujuk koreksi baru | — | **Tidak sah** | — | 422 |
+
+### 30.6 Status harian kehadiran (`HRD-DEC-197`, `207`, `210`, `216`)
+
+| Dari status | Pemicu | Ke status | Siapa | Syarat |
+| --- | --- | --- | --- | --- |
+| `NotYetPresent` | Jam selesai shift lewat tanpa scan | `NoScan` | Pemrosesan | — |
+| `NotYetPresent` / `NoScan` | Scan masuk dalam jendela (termasuk scan terlambat dari mesin) | `IncompletePunch` / `Present` / `Late` | Pemrosesan | — |
+| `IncompletePunch`, `Incomplete`, `NoScan` | HRD menutup periode | `Absent` | Penutupan periode | Selalu, tanpa syarat setelan |
+| `NoScan` / `IncompletePunch` | Koreksi disetujui sebelum tutup | Status hasil hitung ulang | Pemrosesan | — |
+| apa pun | Pegawai sumber jadwal roster pada hari libur | Tidak menjadi `Holiday` | — | **Tidak sah** sejak `HRD-DEC-210` |
+| `NoScan` | Sebelum tutup periode | `Absent` | **Tidak sah** | — |
+
+### 30.7 Log mesin — `HrdAttendanceRawLog.ProcessingStatus` (`HRD-DEC-212`)
+
+| Dari status | Pemicu | Ke status | Siapa | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Scan dari mesin tak terdaftar/nonaktif | `AwaitingDeviceRegistration` | Penerima log | — |
+| `AwaitingDeviceRegistration` | Mesin didaftarkan/diaktifkan | `Pending` | `AttendanceRawLogService` | Identitas mesin cocok |
+| `AwaitingDeviceRegistration` | Pemrosesan harian | — | **Tidak sah** — tidak diproses | — |
+
+---
+
+## 31. Matriks Transisi Status Slice `S-A8`: Data Penggajian Pegawai (HRD) (Kontrak `v27`, APPROVED)
+
+| Field | Nilai |
+| --- | --- |
+| Slice | `S-A8` — Data Penggajian Pegawai (HRD): karyawan, perawat, dan dokter |
+| `contract_version` | `v27` |
+| `last_changed_in` | `v27` — bagian 31 ditambahkan 16 November 2026 |
+| Status | `approved` |
+| Owner | Technical owner (`HRD-DEC-015`) |
+| `approved_by` / `approved_at` | Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — 16 November 2026 (jawaban: "setujui kontrak S-A8") |
+| `input_revision` | `00-interview-decisions.md` revision `38` bagian 54 (`HRD-DEC-218` s.d. `HRD-DEC-223`, `HRD-ASM-84` s.d. `HRD-ASM-87`, `HRD-Q-218` s.d. `HRD-Q-220`) |
+| `input_hash` — decision log | `c1c2483a61f8f2bc4fb533494898469423941195be025f8b90b95fb25c303bf4` |
+| Backend SHA | `25c35ded4b2a (branch `Yasmina`) — source slice ini belum di-commit` |
+| Frontend SHA | `b61ab2116bf8 (branch `yasmina`) — source slice ini belum di-commit` |
+| Dampak kompatibilitas | Penambahan saja (endpoint dan hak akses baru); tidak ada endpoint, DTO, atau tabel lama yang berubah. Endpoint impor `POST .../payroll-data/import` versi sebelumnya tidak pernah dirilis (belum pernah di-commit) dan dihapus (`HRD-DEC-223`) |
+| Bukti as-is | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforcePayrollDataController.cs`, `.../Services/WorkforcePayrollDataService.cs`, `.../DTOs/WorkforcePayrollDataDtos.cs` — **belum di-build** |
+
+Slice ini **tidak menambah enum status**. Status di bawah diturunkan dari kolom yang sudah ada: persetujuan penetapan gaji dari `ApprovedAt`, verifikasi rekening dari `IsVerified`, dan kelengkapan dari keduanya.
+
+### 31.1 Penetapan Gaji Utama (turunan `WfpSalaryAssignment.ApprovedAt`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> BelumAda
+    BelumAda --> MenungguPersetujuan : Simpan tanpa opsi setuju
+    BelumAda --> Disetujui : Simpan dengan opsi setuju
+    MenungguPersetujuan --> Disetujui : Opsi setuju dipilih
+    MenungguPersetujuan --> MenungguPersetujuan : Isian diubah
+    Disetujui --> MenungguPersetujuan : Isian berubah tanpa opsi setuju
+    Disetujui --> Disetujui : Isian berubah dengan opsi setuju, atau isian sama persis
+```
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| Belum Ada | Simpan bagian gaji | Menunggu Persetujuan | `WorkforcePayrollData : Update` | Isian lolos `VR-WPD-01` s.d. `VR-WPD-06` |
+| Belum Ada | Simpan bagian gaji + opsi setuju | Disetujui | + `WfpSalaryAssignment : Update` | Sama, dan hak setuju terpenuhi (`VR-WPD-14`) |
+| Menunggu Persetujuan | Opsi setuju (isian sama atau berubah) | Disetujui | + `WfpSalaryAssignment : Update` | — |
+| Disetujui | Ubah struktur, gaji pokok, atau tanggal mulai tanpa opsi setuju | Menunggu Persetujuan | `WorkforcePayrollData : Update` | Perubahan nyata; persetujuan dicabut (`HRD-DEC-218`) |
+| Disetujui | Ubah isian dengan opsi setuju | Disetujui (atas nama pengubah) | + `WfpSalaryAssignment : Update` | — |
+| Disetujui | Kirim isian yang sama persis | Disetujui (tidak berubah) | `WorkforcePayrollData : Update` | Tidak ada perubahan nyata |
+
+**Contoh:** gaji pokok Budi Rp 12.000.000 berstatus Disetujui. Staf HR tanpa hak setuju mengganti menjadi Rp 12.500.000: status menjadi Menunggu Persetujuan dan hasil simpan memuat peringatan pencabutan. Manajer HR pemegang hak setuju lalu membuka formulir, mencentang "Setujui penetapan gaji", dan menyimpan: status kembali Disetujui.
+
+### 31.2 Rekening Payroll (turunan `WfpBankAccount.IsVerified`)
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| Belum Ada | Simpan bagian rekening | Belum Terverifikasi | `WorkforcePayrollData : Update` | Isian lolos `VR-WPD-07` s.d. `VR-WPD-11` |
+| Belum Ada | Simpan bagian rekening + opsi verifikasi | Terverifikasi | + `WorkforceBankAccount : Update` | Sama, dan hak verifikasi terpenuhi (`VR-WPD-15`) |
+| Belum Terverifikasi | Opsi verifikasi | Terverifikasi | + `WorkforceBankAccount : Update` | — |
+| Terverifikasi | Ubah bank, nomor, atau nama pemilik tanpa opsi verifikasi | Belum Terverifikasi | `WorkforcePayrollData : Update` | Perubahan nyata; verifikasi dicabut (`HRD-DEC-218`) |
+| Terverifikasi | Ubah isian dengan opsi verifikasi | Terverifikasi (atas nama pengubah) | + `WorkforceBankAccount : Update` | — |
+
+### 31.3 Kelengkapan Orang (turunan, tidak disimpan)
+
+| Keadaan | Kelengkapan |
+| --- | --- |
+| Penetapan gaji Disetujui **dan** rekening Terverifikasi | `Lengkap` |
+| Selain itu | `Belum lengkap`, dengan alasan pada `issues` |
+
+Transisi yang **tidak ada** pada slice ini: hapus, batal, dan aktif/nonaktif penetapan gaji atau rekening. Ketiganya tetap lewat endpoint HRD yang sudah ada (`WfpSalaryAssignment`, `WorkforceBankAccount`).

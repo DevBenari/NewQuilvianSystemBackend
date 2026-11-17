@@ -8,7 +8,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<MstKpiMetricCatalog> entity)
         {
-            entity.ToTable("mst_kpi_metric_catalogs", "public");
+            entity.ToTable("MstKpiMetricCatalog", "public");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.MetricCode).HasMaxLength(50).IsRequired();

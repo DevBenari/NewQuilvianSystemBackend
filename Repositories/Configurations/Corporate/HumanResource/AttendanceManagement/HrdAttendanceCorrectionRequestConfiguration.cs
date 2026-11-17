@@ -138,6 +138,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(x => new { x.IsOnBehalf, x.RequestStatus });
+
+            builder.HasOne(x => x.DeviceIncident)
+                .WithMany()
+                .HasForeignKey(x => x.DeviceIncidentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => x.DeviceIncidentId);
         }
     }
 }

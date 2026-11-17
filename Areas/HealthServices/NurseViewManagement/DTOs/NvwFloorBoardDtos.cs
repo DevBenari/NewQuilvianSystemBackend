@@ -1,3 +1,5 @@
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Enums;
+
 namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
 {
     public class NvwFloorBoardResponse
@@ -42,6 +44,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
         public bool HasActiveAllergy { get; set; }
         public bool RequiresIsolation { get; set; }
         public bool IsolationMismatch { get; set; }
+        public NvwPatientCallPriority? ActiveCallPriority { get; set; }
     }
 
     public class NvwMaskedPatientResponse
@@ -74,5 +77,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
         public Guid BedId { get; set; }
         public string FloorCode { get; set; } = string.Empty;
         public DateTime OccurredAtUtc { get; set; }
+    }
+
+    public class NvwNurseMonitorResponse
+    {
+        public NvwFloorBoardResponse Board { get; set; } = new();
+        public List<NvwNurseMonitorFloorResponse> Floors { get; set; } = new();
+        public DateTime ServerTimeUtc { get; set; }
+    }
+
+    public class NvwNurseMonitorFloorResponse
+    {
+        public string FloorCode { get; set; } = string.Empty;
+        public string FloorName { get; set; } = string.Empty;
+        public List<string> WardNames { get; set; } = new();
+        public int RoomCount { get; set; }
+        public int BedCount { get; set; }
+        public int WaitingCallCount { get; set; }
+        public int ClaimedCallCount { get; set; }
     }
 }

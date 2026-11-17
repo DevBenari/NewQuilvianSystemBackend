@@ -5,6 +5,10 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -43,6 +47,9 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Jour
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -195,6 +202,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstPayrollComponent> MstPayrollComponents { get; set; }
         public DbSet<MstPayrollComponentCategory> MstPayrollComponentCategories { get; set; }
         public DbSet<MstSalaryStructure> MstSalaryStructures { get; set; }
+        public DbSet<MstSalaryStructureAllowance> MstSalaryStructureAllowances { get; set; }
         public DbSet<MstSalaryGrade> MstSalaryGrades { get; set; }
         public DbSet<MstAllowanceType> MstAllowanceTypes { get; set; }
         public DbSet<MstDeductionType> MstDeductionTypes { get; set; }
@@ -358,10 +366,16 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<HrdEarlyLeavePermission> HrdEarlyLeavePermissions { get; set; }
         public DbSet<HrdOfficialDutyRequest> HrdOfficialDutyRequests { get; set; }
         public DbSet<HrdAttendancePeriodReopenLog> HrdAttendancePeriodReopenLogs { get; set; }
+        public DbSet<HrdAttendanceDispensation> HrdAttendanceDispensations { get; set; }
+        public DbSet<HrdStudyAssignment> HrdStudyAssignments { get; set; }
+        public DbSet<HrdAttendanceDeviceIncident> HrdAttendanceDeviceIncidents { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - SCHEDULING MANAGEMENT
         public DbSet<HrdSchedulingSetting> HrdSchedulingSettings { get; set; }
+        public DbSet<HrdShiftAssignmentRevision> HrdShiftAssignmentRevisions { get; set; }
+        public DbSet<HrdOnCallBackup> HrdOnCallBackups { get; set; }
+        public DbSet<HrdOnCallCall> HrdOnCallCalls { get; set; }
         public DbSet<WfpWorkScheduleAssignment> WfpWorkScheduleAssignments { get; set; }
         public DbSet<WfpScheduleChangeRequest> WfpScheduleChangeRequests { get; set; }
         public DbSet<WfpShiftSwapRequest> WfpShiftSwapRequests { get; set; }
@@ -524,13 +538,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxTrainingBudget> TrxTrainingBudgets { get; set; }
         public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdTrainingBondContract> HrdTrainingBondContracts { get; set; }
         public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdShiftBuddySafeguard> HrdShiftBuddySafeguards { get; set; }
-        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.TrxPlataranSehatSkpRecord> TrxPlataranSehatSkpRecords { get; set; }
+        public DbSet<QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models.HrdPlataranSehatSkpRecord> HrdPlataranSehatSkpRecords { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - LEARNING AND DEVELOPMENT
 
         #region CORPORATE - HUMAN RESOURCE - PERFORMANCE MANAGEMENT
         public DbSet<WfpPerformanceReview> WfpPerformanceReviews { get; set; }
         public DbSet<WfpPerformanceReviewDetail> WfpPerformanceReviewDetails { get; set; }
-        public DbSet<TrxPerformanceCycle> TrxPerformanceCycles { get; set; }
+        public DbSet<HrdPerformanceCycle> HrdPerformanceCycles { get; set; }
         public DbSet<TrxEmployeeGoal> TrxEmployeeGoals { get; set; }
         public DbSet<TrxEmployeeKpiTarget> TrxEmployeeKpiTargets { get; set; }
         public DbSet<TrxSelfAssessment> TrxSelfAssessments { get; set; }
@@ -538,16 +552,16 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPeerFeedback> TrxPeerFeedbacks { get; set; }
         public DbSet<TrxPerformanceCheckIn> TrxPerformanceCheckIns { get; set; }
         public DbSet<TrxCalibrationSession> TrxCalibrationSessions { get; set; }
-        public DbSet<TrxPerformanceImprovementPlan> TrxPerformanceImprovementPlans { get; set; }
+        public DbSet<HrdPerformanceImprovementPlan> HrdPerformanceImprovementPlans { get; set; }
 
         // Sub-Modul 15: OPPE & FPPE (Clinical Performance Evaluation)
         public DbSet<MstOppeMetricCatalog> MstOppeMetricCatalogs { get; set; }
-        public DbSet<TrxOppeEvaluationPeriod> TrxOppeEvaluationPeriods { get; set; }
-        public DbSet<TrxOppeStaffEvaluation> TrxOppeStaffEvaluations { get; set; }
-        public DbSet<TrxOppeStaffEvaluationDetail> TrxOppeStaffEvaluationDetails { get; set; }
-        public DbSet<TrxFppeEngagement> TrxFppeEngagements { get; set; }
-        public DbSet<TrxFppeCaseLog> TrxFppeCaseLogs { get; set; }
-        public DbSet<TrxFppeEvaluationConclusion> TrxFppeEvaluationConclusions { get; set; }
+        public DbSet<HrdOppeEvaluationPeriod> HrdOppeEvaluationPeriods { get; set; }
+        public DbSet<HrdOppeStaffEvaluation> HrdOppeStaffEvaluations { get; set; }
+        public DbSet<HrdOppeStaffEvaluationDetail> HrdOppeStaffEvaluationDetails { get; set; }
+        public DbSet<HrdFppeEngagement> HrdFppeEngagements { get; set; }
+        public DbSet<HrdFppeCaseLog> HrdFppeCaseLogs { get; set; }
+        public DbSet<HrdFppeEvaluationConclusion> HrdFppeEvaluationConclusions { get; set; }
         public DbSet<HrdClinicalPeerReviewAuditLog> HrdClinicalPeerReviewAuditLogs { get; set; }
         public DbSet<HrdFppeTriggerEvent> HrdFppeTriggerEvents { get; set; }
         public DbSet<HrdRecredentialingTierOverride> HrdRecredentialingTierOverrides { get; set; }
@@ -556,13 +570,13 @@ namespace QuilvianSystemBackend.Repositories
 
         // Sub-Modul 17: Performance Management & Clinical Career (Slice S-C3, Kontrak v21)
         public DbSet<MstKpiMetricCatalog> MstKpiMetricCatalogs { get; set; }
-        public DbSet<TrxPerformanceGoal> TrxPerformanceGoals { get; set; }
-        public DbSet<TrxPerformanceAppraisal> TrxPerformanceAppraisals { get; set; }
-        public DbSet<TrxPerformanceAppraisalDetail> TrxPerformanceAppraisalDetails { get; set; }
-        public DbSet<TrxPerformanceCalibrationSession> TrxPerformanceCalibrationSessions { get; set; }
-        public DbSet<TrxPerformancePipActionLog> TrxPerformancePipActionLogs { get; set; }
-        public DbSet<TrxClinicalCareerLadderReview> TrxClinicalCareerLadderReviews { get; set; }
-        public DbSet<TrxPerformanceAppraisalDispute> TrxPerformanceAppraisalDisputes { get; set; }
+        public DbSet<HrdPerformanceGoal> HrdPerformanceGoals { get; set; }
+        public DbSet<HrdPerformanceAppraisal> HrdPerformanceAppraisals { get; set; }
+        public DbSet<HrdPerformanceAppraisalDetail> HrdPerformanceAppraisalDetails { get; set; }
+        public DbSet<HrdPerformanceCalibrationSession> HrdPerformanceCalibrationSessions { get; set; }
+        public DbSet<HrdPerformancePipActionLog> HrdPerformancePipActionLogs { get; set; }
+        public DbSet<HrdClinicalCareerLadderReview> HrdClinicalCareerLadderReviews { get; set; }
+        public DbSet<HrdPerformanceAppraisalDispute> HrdPerformanceAppraisalDisputes { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - PERFORMANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OCCUPATIONAL HEALTH MANAGEMENT
@@ -591,15 +605,15 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxDisciplinaryCase> TrxDisciplinaryCases { get; set; }
         public DbSet<TrxDisciplinaryDecision> TrxDisciplinaryDecisions { get; set; }
         public DbSet<HrdEmployeeRecognition> HrdEmployeeRecognitions { get; set; }
-        public DbSet<TrxDisciplinaryIncidentReport> TrxDisciplinaryIncidentReports { get; set; }
-        public DbSet<TrxDisciplinaryInvestigationRecord> TrxDisciplinaryInvestigationRecords { get; set; }
-        public DbSet<TrxDisciplinarySanction> TrxDisciplinarySanctions { get; set; }
-        public DbSet<TrxDisciplinarySuspension> TrxDisciplinarySuspensions { get; set; }
+        public DbSet<HrdDisciplinaryIncidentReport> HrdDisciplinaryIncidentReports { get; set; }
+        public DbSet<HrdDisciplinaryInvestigationRecord> HrdDisciplinaryInvestigationRecords { get; set; }
+        public DbSet<HrdDisciplinarySanction> HrdDisciplinarySanctions { get; set; }
+        public DbSet<HrdDisciplinarySuspension> HrdDisciplinarySuspensions { get; set; }
         public DbSet<HrdSuspensionAccessAction> HrdSuspensionAccessActions { get; set; }
-        public DbSet<TrxBipartiteNegotiationForum> TrxBipartiteNegotiationForums { get; set; }
-        public DbSet<TrxSeveranceCalculation> TrxSeveranceCalculations { get; set; }
-        public DbSet<TrxExitClearanceProcess> TrxExitClearanceProcesses { get; set; }
-        public DbSet<TrxExitClearanceChecklist> TrxExitClearanceChecklists { get; set; }
+        public DbSet<HrdBipartiteNegotiationForum> HrdBipartiteNegotiationForums { get; set; }
+        public DbSet<HrdSeveranceCalculation> HrdSeveranceCalculations { get; set; }
+        public DbSet<HrdExitClearanceProcess> HrdExitClearanceProcesses { get; set; }
+        public DbSet<HrdExitClearanceChecklist> HrdExitClearanceChecklists { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - EMPLOYEE RELATION MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
@@ -666,6 +680,46 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
         public DbSet<AccSubledgerBalance> AccSubledgerBalances { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
+
+        #region CORPORATE - ASSET MANAGEMENT - MASTER DATA
+        // AST-BP-001 register, BE-AST-002. Delapan master modul Manajemen Aset & Inventaris di
+        // AssetManagement/MasterData (baris registry Mst; transaksi modul memakai Ast). Unit organisasi,
+        // ruangan klinis, badan hukum, dan site tetap milik HR/HealthServices dan hanya dirujuk lewat FK.
+        public DbSet<MstAssetCategory> MstAssetCategories { get; set; }
+        public DbSet<MstAssetClassification> MstAssetClassifications { get; set; }
+        public DbSet<MstAssetGroup> MstAssetGroups { get; set; }
+        public DbSet<MstAssetOwnershipType> MstAssetOwnershipTypes { get; set; }
+        public DbSet<MstAssetDocumentType> MstAssetDocumentTypes { get; set; }
+        public DbSet<MstAssetCategoryDocumentRequirement> MstAssetCategoryDocumentRequirements { get; set; }
+        public DbSet<MstAssetLocation> MstAssetLocations { get; set; }
+        public DbSet<MstAssetSetting> MstAssetSettings { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - MASTER DATA
+
+        #region CORPORATE - ASSET MANAGEMENT - REGISTER
+        // AST-BP-001 register, BE-AST-003. Dua belas tabel transaksi register aset (registry Ast / ACTIVE):
+        // aset, penempatan, penyerahan, laporan kondisi, linimasa, dokumen, lampiran, pemanfaatan, impor.
+        // AstAssetHistory hanya ditulis AssetHistoryService dan tidak pernah diubah atau dihapus (AST-DES-004).
+        public DbSet<AstAsset> AstAssets { get; set; }
+        public DbSet<AstAssetPlacement> AstAssetPlacements { get; set; }
+        public DbSet<AstAssetHandover> AstAssetHandovers { get; set; }
+        public DbSet<AstAssetHandoverItem> AstAssetHandoverItems { get; set; }
+        public DbSet<AstConditionReport> AstConditionReports { get; set; }
+        public DbSet<AstAssetHistory> AstAssetHistories { get; set; }
+        public DbSet<AstAssetDocument> AstAssetDocuments { get; set; }
+        public DbSet<AstAttachment> AstAttachments { get; set; }
+        public DbSet<AstUtilization> AstUtilizations { get; set; }
+        public DbSet<AstUtilizationItem> AstUtilizationItems { get; set; }
+        public DbSet<AstImportBatch> AstImportBatches { get; set; }
+        public DbSet<AstImportBatchRow> AstImportBatchRows { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - REGISTER
+
+        #region CORPORATE - ASSET MANAGEMENT - VALUATION
+        public DbSet<AstValuationParameter> AstValuationParameters { get; set; }
+        public DbSet<AstDepreciationPolicy> AstDepreciationPolicies { get; set; }
+        public DbSet<AstAssetBook> AstAssetBooks { get; set; }
+        public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
+        public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
 
         #endregion CORPORATE
 
@@ -1393,6 +1447,34 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RhbDiscipline> RhbDisciplines { get; set; }
         public DbSet<RhbDisciplineProcedure> RhbDisciplineProcedures { get; set; }
         public DbSet<RhbDisciplineInstrument> RhbDisciplineInstruments { get; set; }
+
+        // Pengadaan Barang & Jasa (PBJ-BP-001, prefix Prc — PBJ-DEC-035). BE-PBJ-002: riwayat dokumen bersama.
+        public DbSet<PrcDocumentHistory> PrcDocumentHistories { get; set; }
+
+        // BE-PBJ-003: master Pengadaan.
+        public DbSet<MstProcurementType> MstProcurementTypes { get; set; }
+        public DbSet<MstProcurementItemCategory> MstProcurementItemCategories { get; set; }
+        public DbSet<MstProcurementFundSource> MstProcurementFundSources { get; set; }
+        public DbSet<MstProcurementItem> MstProcurementItems { get; set; }
+
+        // BE-PBJ-004: lampiran dokumen Pengadaan.
+        public DbSet<PrcAttachment> PrcAttachments { get; set; }
+
+        // BE-PBJ-006: permintaan pengadaan (PR) beserta barisnya.
+        public DbSet<PrcPurchaseRequest> PrcPurchaseRequests { get; set; }
+        public DbSet<PrcPurchaseRequestLine> PrcPurchaseRequestLines { get; set; }
+
+        // BE-PBJ-009: rencana kebutuhan tahunan berversi.
+        public DbSet<PrcNeedPlan> PrcNeedPlans { get; set; }
+        public DbSet<PrcNeedPlanLine> PrcNeedPlanLines { get; set; }
+
+        // BE-PBJ-010: pagu berversi dan komitmen pagu.
+        public DbSet<PrcBudget> PrcBudgets { get; set; }
+        public DbSet<PrcBudgetCommitment> PrcBudgetCommitments { get; set; }
+
+        // BE-PBJ-011: rencana paket hasil konsolidasi.
+        public DbSet<PrcPackagePlan> PrcPackagePlans { get; set; }
+        public DbSet<PrcPackagePlanLine> PrcPackagePlanLines { get; set; }
         #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT
@@ -1438,6 +1520,10 @@ namespace QuilvianSystemBackend.Repositories
         #region NURSE VIEW MANAGEMENT
         public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
         public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
+        public DbSet<NvwBedTablet> NvwBedTablets { get; set; }
+        public DbSet<NvwPatientCall> NvwPatientCalls { get; set; }
+        public DbSet<NvwPatientCallEvent> NvwPatientCallEvents { get; set; }
+        public DbSet<NvwPatientCallWaitThreshold> NvwPatientCallWaitThresholds { get; set; }
         #endregion NURSE VIEW MANAGEMENT
 
         #region OPTICAL MANAGEMENT
@@ -1478,6 +1564,8 @@ namespace QuilvianSystemBackend.Repositories
             // Catatan run impor denah tidak diubah setelah dibuat (BE-RWI-237, kamus data 22.2.3).
             if (ChangeTracker.Entries<MstFloorPlanImportRun>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
                 throw new InvalidOperationException("Catatan run impor denah bersifat append-only.");
+            if (ChangeTracker.Entries<AstAssetHistory>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Linimasa aset bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

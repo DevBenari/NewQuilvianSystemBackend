@@ -15,10 +15,20 @@ public sealed class BilTenderConfiguration : IEntityTypeConfiguration<BilTender>
             table.HasCheckConstraint("CK_BilTender_Amount", "\"Amount\" > 0");
             table.HasCheckConstraint(
                 "CK_BilTender_Status",
-                "\"Status\" IN ('CREATED','PENDING','SUCCEEDED','FAILED','EXPIRED','REVERSED')");
+                "\"Status\" IN ('CREATED','PENDING','SUCCEEDED','FAILED','EXPIRED','REVERSED','CANCELLED')");
+            // Rincian uang fisik tunai: kedua kolom null (data lama / non-tunai) atau kedua-duanya terisi
+            // dengan CashChangeAmount = CashTenderedAmount - Amount, tanpa kembalian negatif.
+            table.HasCheckConstraint(
+                "CK_BilTender_CashBreakdown",
+                "(\"CashTenderedAmount\" IS NULL AND \"CashChangeAmount\" IS NULL) "
+                + "OR (\"CashTenderedAmount\" IS NOT NULL AND \"CashChangeAmount\" IS NOT NULL "
+                + "AND \"CashChangeAmount\" >= 0 "
+                + "AND \"CashTenderedAmount\" - \"Amount\" = \"CashChangeAmount\")");
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Amount).HasPrecision(18, 2);
+        entity.Property(x => x.CashTenderedAmount).HasPrecision(18, 2);
+        entity.Property(x => x.CashChangeAmount).HasPrecision(18, 2);
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
         entity.Property(x => x.ProviderReference).HasMaxLength(150);
         entity.Property(x => x.ProviderStatusCode).HasMaxLength(50);

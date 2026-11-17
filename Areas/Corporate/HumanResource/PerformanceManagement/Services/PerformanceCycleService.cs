@@ -88,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
                 throw new InvalidOperationException("Konflik jadwal: Masih terdapat siklus kinerja aktif pada rentang tanggal tersebut yang belum ditutup resmi (VR-PRF-01, PRF-B1).");
             }
 
-            var cycle = new TrxPerformanceCycle
+            var cycle = new HrdPerformanceCycle
             {
                 Id = Guid.NewGuid(),
                 CycleCode = dto.CycleCode,

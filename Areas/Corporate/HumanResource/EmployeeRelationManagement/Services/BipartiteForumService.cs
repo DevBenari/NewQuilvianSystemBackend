@@ -37,7 +37,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
                 ActorUserId: await ResolveActorUserIdAsync(actorEmail, cancellationToken),
                 Instant: DateTimeOffset.UtcNow), cancellationToken);
 
-            var entity = new TrxBipartiteNegotiationForum
+            var entity = new HrdBipartiteNegotiationForum
             {
                 ForumId = Guid.NewGuid(),
                 RegisterNumber = registerNumber,
@@ -143,7 +143,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             return MapToDto(forum);
         }
 
-        private static BipartiteForumResponseDto MapToDto(TrxBipartiteNegotiationForum entity)
+        private static BipartiteForumResponseDto MapToDto(HrdBipartiteNegotiationForum entity)
         {
             return new BipartiteForumResponseDto
             {

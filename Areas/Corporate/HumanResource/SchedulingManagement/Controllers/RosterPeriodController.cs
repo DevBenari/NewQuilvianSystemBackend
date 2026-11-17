@@ -87,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
         [HttpPost("{id:guid}/assignments")]
         [AccessAction("Create", "Add Roster Assignment", AccessType = AccessTypes.Create, SortOrder = 3)]
-        [AccessPermission("RosterAssignment", "Create")]
+        [AccessPermission("RosterPeriod", "Create")]
         public async Task<IActionResult> AddAssignment(
             Guid id,
             [FromBody] CreateRosterAssignmentRequest request,
@@ -184,11 +184,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             return ToActionResult(await _service.CloseRosterPeriodAsync(id, userId, cancellationToken));
         }
 
+        [HttpPost("{id:guid}/shifts/{shiftAssignmentId:guid}/remove")]
+        [AccessAction("RemoveShift", "Remove Published Roster Shift", AccessType = AccessTypes.Delete, SortOrder = 10)]
+        [AccessPermission("RosterPeriod", "RemoveShift")]
+        public async Task<IActionResult> RemoveShift(
+            Guid id,
+            Guid shiftAssignmentId,
+            [FromBody] RemovePublishedShiftRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetUserId(out var userId)) return UnauthorizedResponse();
+            return ToActionResult(await _service.RemovePublishedShiftAsync(id, shiftAssignmentId, request, userId, cancellationToken));
+        }
+
+        [HttpGet("{id:guid}/revisions")]
+        [AccessAction("Read", "Read Roster Revision History", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RosterPeriod", "Read")]
+        public async Task<IActionResult> GetRevisions(
+            Guid id,
+            [FromQuery] DateOnly? fromDate = null,
+            [FromQuery] DateOnly? toDate = null,
+            [FromQuery] Guid? workforceProfileId = null,
+            [FromQuery] string? changeType = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            CancellationToken cancellationToken = default)
+        {
+            return ToActionResult(await _service.GetRevisionsAsync(id, fromDate, toDate, workforceProfileId, changeType, pageNumber, pageSize, cancellationToken));
+        }
+
         private IActionResult ToActionResult<T>(SchedulingRequestServiceResult<T> result)
         {
             return result.Success
                 ? StatusCode(result.StatusCode, ApiResponse<T>.Ok(result.Data, result.Message))
-                : StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+                : StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message, result.Errors));
         }
 
         private bool TryGetUserId(out Guid userId)

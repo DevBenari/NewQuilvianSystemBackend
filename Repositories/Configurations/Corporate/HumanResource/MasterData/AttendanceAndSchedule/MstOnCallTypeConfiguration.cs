@@ -15,6 +15,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.OnCallTypeName).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.ResponseTimeMinutes).HasDefaultValue(0);
+            entity.Property(x => x.AnswerTimeoutMinutes).HasDefaultValue(10).IsRequired();
             entity.Property(x => x.MinimumCallHours).HasDefaultValue(0);
             entity.Property(x => x.MaximumCallHours).HasDefaultValue(24);
             entity.Property(x => x.IsRemoteAllowed).HasDefaultValue(false);

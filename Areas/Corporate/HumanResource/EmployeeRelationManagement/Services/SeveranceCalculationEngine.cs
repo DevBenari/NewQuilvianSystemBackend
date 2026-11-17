@@ -137,7 +137,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             var existingCalc = await _uow.SeveranceCalculations.FirstOrDefaultAsync(x => x.SeparationId == request.SeparationId, cancellationToken);
             if (existingCalc == null)
             {
-                existingCalc = new TrxSeveranceCalculation
+                existingCalc = new HrdSeveranceCalculation
                 {
                     CalculationId = Guid.NewGuid(),
                     SeparationId = request.SeparationId,
@@ -230,7 +230,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
             return MapToDto(calc);
         }
 
-        private static SeveranceCalculationResponseDto MapToDto(TrxSeveranceCalculation entity)
+        private static SeveranceCalculationResponseDto MapToDto(HrdSeveranceCalculation entity)
         {
             return new SeveranceCalculationResponseDto
             {

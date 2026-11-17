@@ -3624,3 +3624,125 @@ Portal Intranet Rumah Sakit
   4. `TravelReceiptUploadModal.tsx`: Drawer pratinjau dan pengunggahan berkas invoice hotel, tiket penerbangan, dan surat tugas bermeterai.
   5. `TravelApprovalPinModal.tsx`: Dialog verifikasi 6-digit PIN keamanan pejabat approver saat mengesahkan SPPD dan settlement.
 * **Redux Store:** Terkapsulasi pada `businessTravelSlice.ts` (`@/lib/store/slices/businessTravelSlice.ts`) mengelola cache antrean SPPD, kalkulator per diem real-time, status uang muka, dan rekonsiliasi settlement.
+
+---
+
+## 31. Arsitektur Frontend Amandemen `S-B4`/`S-B1` — 12 menu "Penjadwalan & Kehadiran" (`A52`, kontrak `v26`, 12 November 2026)
+
+| Field | Nilai |
+| --- | --- |
+| Status | `approved` — pengguna, 12 November 2026. Pemetaan menu 31.1 tetap menunggu `DSG-Q-01`/`DSG-Q-02` untuk `EPIC HRD-120` |
+| Frontend SHA | `6a5658269` (branch `YogaV2`) |
+| `input_revision` | `00-interview-decisions.md` revision `37` (bagian 52.6 kewenangan UI, `HRD-DEC-206`, `208`, `209`, `214`); `contracts/api-contract.md` bagian 32 |
+| Hierarki kewenangan UI | Keamanan/privasi/invariant → keputusan `HRD-DEC-*` → konvensi proyek (base component, `AGENTS.md` frontend) → `DEV_DISCRETION` |
+
+Bagian ini menetapkan kontrak fungsional layar. Tata letak, bentuk tab/kalender, dan urutan
+kolom adalah `DEV_DISCRETION` (bagian 52.6), kecuali yang diikat keputusan.
+
+### 31.1 Pemetaan 12 menu dan 58 submenu ke layar (`HRD-DEC-214`)
+
+Kolom **Status layar**: `Ada` = halaman sudah ada di `FE@6a5658269`; `Perlu ubah` = ada tetapi
+butuh perubahan; `Rencana` = belum ada. Rute baru di kolom "Usulan rute" adalah `DEV_DISCRETION`
+di dalam konvensi `/hr/...`; rute yang sudah ada **tidak diubah**.
+
+| Menu | Submenu (label aplikasi) | Layar tujuan | Status layar | Endpoint utama |
+| --- | --- | --- | --- | --- |
+| M01 Dashboard Kehadiran | Kehadiran Hari Ini | Usulan `/hr/attendance/dashboard/attendance-today` | Rencana | `attendance/dashboard` |
+| | Pegawai Bertugas | Usulan `/hr/attendance/dashboard/on-duty` | Rencana | sama |
+| | Keterlambatan | Usulan `/hr/attendance/dashboard/lateness` | Rencana | sama |
+| | Ketidakhadiran | Usulan `/hr/attendance/dashboard/absence` | Rencana | sama |
+| | Jadwal Belum Lengkap | Usulan `/hr/attendance/dashboard/incomplete-schedule` | Rencana | sama |
+| M02 Master Pola & Jam Kerja | Jenis Shift | `/hr/master-data/shift` | Ada | `master-data/shifts` |
+| | Pola Kerja | `/hr/master-data/shift-pattern` | Ada | `master-data/shift-patterns` |
+| | Kalender Kerja | `/hr/master-data/work-calendar` | Ada | `master-data/work-calendars` |
+| | Hari Libur | Usulan `/hr/master-data/holiday` | Rencana | `master-data/holidays` |
+| | Toleransi Keterlambatan | `/hr/attendance/settings` | Perlu ubah | `attendance-management/settings` |
+| | Aturan Presensi | `/hr/attendance/settings` (bagian jendela scan) | Perlu ubah — **layar sama dengan Toleransi** (`DSG-Q-01`) | sama |
+| M03 Rencana Jadwal Dinas | Jadwal Bulanan | `/hr/scheduling/roster` | Ada | `roster-periods` |
+| | Jadwal Per-Unit | Usulan `/hr/scheduling/roster-monitor` (pantau roster unit dalam cakupan baca, layar `FE-HRD-140` `S-B4`) | Rencana | `roster-periods` + cakupan baca |
+| | Penugasan Per-Shift | `/hr/scheduling/roster/[id]` (matriks) — butuh periode terpilih | Ada — **bukan layar mandiri** (`DSG-Q-01`) | `roster-periods/{id}` |
+| | Publikasi Jadwal | Aksi **Terbitkan** di `/hr/scheduling/roster/[id]` | Ada — **aksi, bukan layar** (`DSG-Q-01`) | `roster-periods/{id}/publish` |
+| M04 Realisasi & Perubahan Jadwal | Perubahan Shift | Usulan `/hr/scheduling/schedule-changes` (daftar pengajuan ubah jadwal) | Rencana | `scheduling-management/schedule-change-requests` |
+| | Tukar Dinas | Usulan `/hr/scheduling/shift-swaps` | Rencana | `scheduling-management/shift-swap-requests` |
+| | Penggantian Pegawai | Modal Ganti Petugas di `/hr/scheduling/roster/[id]` | Ada — **aksi** (`DSG-Q-01`) | `shift-replacements/{id}/replace` |
+| | Realisasi Jadwal | Usulan `/hr/scheduling/realization` (rencana saat terbit vs kondisi akhir) | Rencana | `roster-periods/{id}/revisions` |
+| | Riwayat Revisi | Usulan `/hr/scheduling/revisions` | Rencana | `roster-periods/{id}/revisions` |
+| M05 Jadwal Piket & On Call | Piket Unit | `/hr/scheduling/on-call` (siaga staf penunjang) | Perlu ubah | `on-call-assignments` |
+| | Dokter Jaga | `/hr/scheduling/on-call` (siaga dokter) | Perlu ubah — **layar sama** (`DSG-Q-01`) | sama |
+| | Petugas Siaga | `/hr/scheduling/on-call` (cadangan) | Perlu ubah — **layar sama** (`DSG-Q-01`) | `on-call-assignments/{id}/backups` |
+| | Pemanggilan On Call | Usulan `/hr/scheduling/on-call/calls` | Rencana | `on-call-assignments/{id}/calls` |
+| M06 Presensi Pegawai | Check-In | `/self-services/human-resource/attendance` | Ada | `self-services/.../attendance/check-in` |
+| | Check-Out | `/self-services/human-resource/attendance` | Ada — **layar sama** (`DSG-Q-01`) | `.../check-out` |
+| | Integrasi Mesin Absensi | Usulan `/hr/attendance/devices` (daftar mesin, mesin tak dikenal, scan tertahan) | Rencana | `master-data/attendance-devices`, `attendance/raw-logs` |
+| | Rekap Kehadiran Harian | `/hr/attendance` | Perlu ubah (status baru) | `attendance/dailies` |
+| M07 Koreksi Presensi | Lupa Absen | `/self-services/human-resource/attendance-correction` | Perlu ubah | `self-services/.../attendance-corrections` |
+| | Kegagalan Perangkat | Usulan `/hr/attendance/device-incidents` | Rencana | `attendance/device-incidents` |
+| | Koreksi Jam | `/self-services/human-resource/attendance-correction` | **Layar sama** dengan Lupa Absen (`DSG-Q-01`) | sama |
+| | Bukti Pendukung | Bagian lampiran di formulir koreksi | **Bagian formulir** (`DSG-Q-01`) | `.../{id}/evidence` |
+| | Approval | `/hr/workflow/approval-inbox` | Ada | Kotak masuk persetujuan terpadu |
+| M08 Cuti, Izin & Ketidakhadiran | Cuti Tahunan | `/hr/leave/request` | Ada | `leave/requests` |
+| | Izin | Usulan `/hr/attendance/early-leave` (layar `FE-HRD-147` `S-B1`) | Rencana | `attendance-management/early-leave-permissions` |
+| | Sakit | `/hr/leave/request` (jenis sakit) | **Layar sama** dengan Cuti Tahunan (`DSG-Q-01`) | sama |
+| | Dispensasi | Usulan `/hr/attendance/dispensations` | Rencana | `attendance/dispensations` |
+| | Dinas luar | Usulan `/hr/attendance/official-duties` (layar `FE-HRD-148` `S-B1`) | Rencana | `attendance-management/official-duties` |
+| | Tugas Belajar | Usulan `/hr/attendance/study-assignments` | Rencana | `attendance/study-assignments` |
+| M09 Lembur & Penugasan Tambahan | Perintah Lembur | `/self-services/human-resource/overtime` | Ada (`S-B3`) | Lembur `S-B3` |
+| | Persetujuan Lembur | `/hr/overtime/approvals` | Ada — **data contoh tertanam** (`S-B3`) | Lembur `S-B3` |
+| | Realisasi Jam Lembur | `/hr/overtime/verifications` | Ada (`HRD-DEC-203`) | Lembur `S-B3` |
+| | Penugasan Tambahan | Penempatan sementara pada profil pegawai (`/hr/workforce-core/employee-360/[id]`) | Ada per pegawai — **tidak ada daftar lintas pegawai** (`DSG-Q-02`) | `workforce-profiles/{id}/organization-assignments` |
+| M10 Monitoring Kebutuhan Shift | Kebutuhan Tenaga Per-shift | Layar standar ketenagaan `S-D1` | Rencana (`S-D1`) | `workforce-planning/staffing-standards` |
+| | Tenaga Terjadwal | Layar beban/gap tenaga `S-D1` | Rencana (`S-D1`) | `workforce-planning/staffing-workloads` |
+| | Kekurangan Personel | Layar gap tenaga `S-D1` | Rencana (`S-D1`) | `workforce-planning/staffing-gaps` |
+| | Pemeriksaan kompetensi | Hasil `W7` di laci pemeriksaan roster | Ada sebagai laci — **bukan layar** (`DSG-Q-01`) | `roster-periods/{id}/validate` |
+| M11 Verifikasi & Tutup Periode | Verifikasi Jadwal Aktual | `/hr/scheduling/realization` | **Layar sama** dengan Realisasi Jadwal (`DSG-Q-01`) | `roster-periods/{id}/revisions` |
+| | Verifikasi Presensi | `/hr/attendance` | **Layar sama** dengan Rekap Kehadiran Harian (`DSG-Q-01`) | `attendance/dailies` |
+| | Rekap Akhir Bulan | Usulan `/hr/attendance/periods` (layar `FE-HRD-145` `S-B1`) | Rencana | `attendance/periods` |
+| | Penguncian Periode | `/hr/attendance/periods` | **Layar sama** dengan Rekap Akhir Bulan (`DSG-Q-01`) | `attendance/periods/{id}/close` |
+| M12 Laporan Kehadiran | Laporan Shift | Usulan `/hr/attendance/reports/shift` | Rencana | `attendance/reports/shift` |
+| | Kehadiran | Usulan `/hr/attendance/reports/attendance` | Rencana | `.../attendance` |
+| | Cuti | Usulan `/hr/attendance/reports/leave` | Rencana | `.../leave` |
+| | Keterlambatan | Usulan `/hr/attendance/reports/lateness` | Rencana | `.../lateness` |
+| | Lembur | Usulan `/hr/attendance/reports/overtime` | Rencana | `.../overtime` |
+| | Ketidakhadiran | Usulan `/hr/attendance/reports/absence` | Rencana | `.../absence` |
+| | Rekap Per-Unit | Usulan `/hr/attendance/reports/unit-summary` | Rencana | `.../unit-summary` |
+
+Jadwal Saya (`HRD-DEC-209`) tidak termasuk 12 menu Notion. Layar
+`/self-services/human-resource/schedule` sudah ada dan tetap berada di menu layanan mandiri.
+
+**Temuan pemetaan yang menunggu owner (`DSG-Q-01`).** Empat belas submenu Notion jatuh ke
+layar yang sama dengan submenu lain, atau berupa aksi/bagian di dalam layar, bukan layar
+mandiri. Ini bertentangan dengan uji `HRD-DEC-214` butir (b), "tidak ada layar dengan dua entri
+sidebar". Pilihannya dibawa ke approval desain; lihat `04-prd-to-mvp.md` bagian 40.20.
+
+### 31.2 Kontrak fungsional per layar baru atau diubah
+
+| Layar | Peran | Aksi | Data/status yang dikonsumsi | State wajib |
+| --- | --- | --- | --- | --- |
+| Dashboard (5 kartu) | Kepala Unit, Kepala Bidang, Admin HRD | Pilih tanggal dan unit (hanya dalam cakupan), **Muat Ulang**, klik angka → daftar | `AttendanceDashboardResponse` + jam hitung | Loading, kosong ("Tidak ada pegawai terjadwal"), galat + coba lagi, 403 → pesan "tidak berwenang" |
+| Riwayat Revisi | Kepala Unit, Kepala Bidang, Admin HRD | Filter tanggal/pegawai/jenis; tanpa ubah/hapus | `ShiftRevisionResponse` | Loading, kosong, galat |
+| Ganti Petugas (modal, ubah) | Kepala Unit | Pilih pengganti, pilih alasan, isi catatan, isi alasan tiap peringatan | Respons 422 berisi kode `B*`/`W*` dan pesan | Tombol simpan nonaktif saat mengirim (cegah klik ganda); 409 → "diubah orang lain, muat ulang" |
+| Hapus shift (aksi baru di matriks roster) | Kepala Unit | Pilih shift, isi alasan | `ShiftRevisionResponse` | Konfirmasi sebelum hapus |
+| Siaga: cadangan dan panggilan | Kepala Unit, unit pemanggil, Admin HRD | Atur cadangan; catat panggilan, bersedia, tolak, kedaluwarsa, tiba | `OnCallCallResponse`, `NextBackup` | Tombol kedaluwarsa nonaktif sampai batas jawab lewat (server tetap memeriksa); peringatan "jangan tulis nama/No. RM pasien" pada alasan |
+| Setelan kehadiran | Admin HRD | Ubah toleransi dan jendela scan | Setelan tanpa `AutoConvertIncompleteToAbsent` | Validasi rentang angka |
+| Tutup periode | Admin HRD / Payroll | Lihat daftar yang akan menjadi `Absent` dan jumlah scan tertahan, lalu **Tutup** | `ConversionCandidates[]`, `HeldDeviceScanCount` | Konfirmasi dengan jumlah; galat transaksi → tidak ada perubahan |
+| Dispensasi (HR) | Kepala Unit, penyetuju | Catat atas nama, setujui, tolak | `DispensationResponse` | 409 bila sudah diputuskan; alasan tolak wajib |
+| Dispensasi (ESS) | Pegawai | Ajukan, batalkan | Sama | Batas 3 hari ditampilkan sebelum kirim |
+| Tugas belajar | Admin HRD | Catat, ubah tanggal (alasan), batalkan | `StudyAssignmentResponse` | — |
+| Gangguan mesin | Petugas IT, Admin HRD | Catat, batalkan | `DeviceIncidentResponse` | — |
+| Mesin absen | Petugas IT | Daftar, ubah, nonaktifkan; lihat mesin tak dikenal dan jumlah scan tertahan | `AttendanceDeviceResponse`, `UnregisteredDeviceResponse` | — |
+| Hari libur | Admin HRD | Tambah, ubah, nonaktif | `HolidayResponse` | — |
+| Laporan (7) | Kepala Unit, Kepala Bidang, Admin HRD, peran `HRD-ASM-79` | Filter, lihat, **Ekspor** | `AttendanceReportRow`, `PeriodState` | Label "periode masih terbuka" bila `Open`; ekspor memakai filter layar yang sama |
+| Koreksi presensi (ESS, ubah) | Pegawai | Pilih kejadian gangguan (opsional) | `device-incident-options` | Lampiran wajib bila tidak memilih gangguan atau jam di luar rentang |
+| Jadwal Saya (ubah) | Pegawai | Lihat jadwal sendiri dan roster unit | `my-schedule`, `my-schedule/unit-roster` | Mengganti fungsi `getMyScheduleAssignments` yang sekarang melempar galat (`employee-self-service.js:88`) |
+
+### 31.3 Aturan yang mengikat semua layar
+
+1. Label status Bahasa Indonesia ("Belum Hadir", "Tidak Ada Scan", "Belum Lengkap", "Tugas
+   Belajar", "Dikirim", "Diterima", "Ditolak", "Kedaluwarsa", "Selesai") diambil dari
+   `filters/metadata` backend, bukan ditulis di kode frontend.
+2. Menyembunyikan menu atau tombol **bukan** pengganti pemeriksaan hak akses; server tetap
+   memeriksa (`HRD-DEC-214` butir 6).
+3. Data sakit hanya tampil sebagai kategori "Sakit" di dashboard, laporan, dan roster unit.
+4. Base component proyek wajib dipakai (utang `FE-HRD-R38` tidak boleh bertambah).
+5. Tidak ada data contoh tertanam pada layar baru; bila API gagal, tampilkan galat, bukan data
+   contoh.

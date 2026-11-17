@@ -13,15 +13,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
     /// </summary>
     public interface IPerformanceUnitOfWork : IDisposable
     {
-        IQueryable<TrxPerformanceCycle> PerformanceCycles { get; }
-        IQueryable<TrxPerformanceGoal> PerformanceGoals { get; }
-        IQueryable<TrxPerformanceAppraisal> PerformanceAppraisals { get; }
-        IQueryable<TrxPerformanceAppraisalDetail> PerformanceAppraisalDetails { get; }
-        IQueryable<TrxPerformanceCalibrationSession> PerformanceCalibrationSessions { get; }
-        IQueryable<TrxPerformanceImprovementPlan> PerformanceImprovementPlans { get; }
-        IQueryable<TrxPerformancePipActionLog> PerformancePipActionLogs { get; }
-        IQueryable<TrxClinicalCareerLadderReview> ClinicalCareerLadderReviews { get; }
-        IQueryable<TrxPerformanceAppraisalDispute> PerformanceAppraisalDisputes { get; }
+        IQueryable<HrdPerformanceCycle> PerformanceCycles { get; }
+        IQueryable<HrdPerformanceGoal> PerformanceGoals { get; }
+        IQueryable<HrdPerformanceAppraisal> PerformanceAppraisals { get; }
+        IQueryable<HrdPerformanceAppraisalDetail> PerformanceAppraisalDetails { get; }
+        IQueryable<HrdPerformanceCalibrationSession> PerformanceCalibrationSessions { get; }
+        IQueryable<HrdPerformanceImprovementPlan> PerformanceImprovementPlans { get; }
+        IQueryable<HrdPerformancePipActionLog> PerformancePipActionLogs { get; }
+        IQueryable<HrdClinicalCareerLadderReview> ClinicalCareerLadderReviews { get; }
+        IQueryable<HrdPerformanceAppraisalDispute> PerformanceAppraisalDisputes { get; }
         IQueryable<MstKpiMetricCatalog> KpiMetricCatalogs { get; }
 
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);

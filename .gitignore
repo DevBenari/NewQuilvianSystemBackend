@@ -419,3 +419,6 @@ DataProtectionKeys/key-*.xml
 
 # RJ-DOC-REV-BE-019: surat rujukan pasien (data kesehatan) di penyimpanan privat - jangan pernah di-commit.
 /Storage/private/
+
+# PBJ-DEC-023 / BE-PBJ-004: lampiran Pengadaan dan berkas runtime lain di App_Data - jangan pernah di-commit.
+/App_Data/

@@ -193,7 +193,7 @@ keputusan "tanpa draf" ditemukan:
 | No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
 | K-01 | Izin menambah pilihan penanda warna pada `soap-history-panel.jsx` (milik Rawat Inap) | Pilihan opt-in, hanya IGD yang menyalakan / berlaku juga di Rawat Inap / tidak diubah | **Opt-in**, tanpa mengubah Rawat Inap; cukup laporan lisan Rizki bahwa pemilik Rawat Inap setuju | `FIX-IGD-007-02` |
-| K-02 | Sertakan perbaikan `ISSUE-IGD-006-T4` (Koreksi/addendum dan Salin) sekarang? | Ya / nanti | **Ya.** Tombol Koreksi berada di tampilan yang diperbaiki `FIX-IGD-007-01`, dan catatan selesai saat ini tidak dapat dikoreksi | `FIX-IGD-007-03` |
+| K-02 | Sertakan perbaikan `ISSUE-IGD-006-T4` (Koreksi/addendum dan Salin) sekarang? | Ya / nanti | **Ya.** Tombol Koreksi berada di tampilan yang diperbaiki `FIX-IGD-007-01`, dan catatan selesai saat ini tidak dapat dikoreksi — **disetujui** Rizki Gunawan 5 Nov 2026 | `FIX-IGD-007-03` |
 
 ---
 
@@ -214,3 +214,4 @@ satu per satu.
 | --- | --- | --- |
 | 2026-11-04 | Issue dibuat dari laporan 2 butir + 1 lampiran; 3 temuan | `diagnose-module-issue` |
 | 2026-11-04 | Pelapor memutuskan: IGD tanpa draf (catatan langsung utuh atau tidak tersimpan sama sekali), dan pindah segmen menyegarkan tampilan. `ISS-IGD-007-03` diselesaikan lewat keputusan itu, bukan lewat warna. Ditambahkan `ISS-IGD-007-T1` dan `-T2`, keduanya diperbaiki. Status `DALAM_PERBAIKAN` | Claude Code |
+| 2026-11-05 | K-02 disetujui; `FIX-IGD-007-03` dikerjakan: catatan selesai milik dokter kini dapat dikoreksi (addendum beralasan) dan "Salin dari catatan sebelumnya" berfungsi. Uji browser 7/7 lulus (laporan uji §11). Status issue tetap `DALAM_PERBAIKAN` sampai laporan task tracked ada | Claude Code |
