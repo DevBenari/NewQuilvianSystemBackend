@@ -118,10 +118,13 @@ public sealed class PayrollSimulationService
     private async Task<List<Candidate>> LoadCandidatesAsync(
         MstPayrollPeriod period, List<Guid> requestedIds, List<string> notes, int maxEmployees, CancellationToken cancellationToken)
     {
+        // Pembanding kolom timestamptz wajib UTC; tanggal periode terbaca Unspecified dari kolom date (PayrollDateNormalizer).
+        var periodStart = PayrollDateNormalizer.ToUtcDate(period.StartDate);
+        var periodEnd = PayrollDateNormalizer.ToUtcDate(period.EndDate);
         var profilesQuery = _dbContext.PrlPayrolls.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.IsPayrollEligible && x.PayrollStatus == "Active"
-                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= period.EndDate)
-                && (x.EffectiveEndDate == null || x.EffectiveEndDate >= period.StartDate));
+                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= periodEnd)
+                && (x.EffectiveEndDate == null || x.EffectiveEndDate >= periodStart));
         if (requestedIds.Count > 0)
             profilesQuery = profilesQuery.Where(x => requestedIds.Contains(x.WorkforceProfileId));
 
@@ -181,11 +184,11 @@ public sealed class PayrollSimulationService
             RunType = SimulationRunType,
             RunStatus = PayrollRunStatuses.Draft,
             CurrencyCode = "IDR",
-            PeriodStartDateSnapshot = period.StartDate,
-            PeriodEndDateSnapshot = period.EndDate,
-            AttendanceCutoffDateSnapshot = period.AttendanceCutoffDate,
-            VariableInputCutoffDateSnapshot = period.VariableInputCutoffDate,
-            PaymentDateSnapshot = period.PaymentDate,
+            PeriodStartDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.StartDate),
+            PeriodEndDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.EndDate),
+            AttendanceCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.AttendanceCutoffDate),
+            VariableInputCutoffDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.VariableInputCutoffDate),
+            PaymentDateSnapshot = PayrollDateNormalizer.ToUtcDate(period.PaymentDate),
             Notes = "Simulasi — transaksi selalu dibatalkan.",
             CreateDateTime = now,
             CreateBy = actorUserId

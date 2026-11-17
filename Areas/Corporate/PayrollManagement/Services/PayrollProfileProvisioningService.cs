@@ -63,6 +63,11 @@ public sealed class PayrollProfileProvisioningService
         if (_dbContext.Database.IsRelational() && _dbContext.Database.CurrentTransaction is null)
             throw new InvalidOperationException("Penyiapan profil payroll harus berjalan di dalam transaksi pemanggil.");
 
+        // Tanggal periode datang dari kolom date (Kind=Unspecified). Dinormalkan ke tanggal kalender UTC supaya pembanding dan jejak audit
+        // seragam dengan nilai yang ditulis ke kolom timestamptz (PayrollDateNormalizer).
+        periodStart = PayrollDateNormalizer.ToUtcDate(periodStart);
+        periodEnd = PayrollDateNormalizer.ToUtcDate(periodEnd);
+
         var people = await _hrdSource.LoadPopulationAsync(cancellationToken);
 
         // Profil yang belum dihapus dalam keadaan apa pun menghalangi pembuatan baru: aktif, tidak aktif, Suspended, OnHold, Terminated.

@@ -455,6 +455,8 @@ try
     builder.Services.AddScoped<PayrollSalaryRangeRuleService>();
     // PAY-BE-16: tunjangan tetap per struktur gaji (SA-01..SA-07).
     builder.Services.AddScoped<PayrollSalaryStructureAllowanceService>();
+    // Tunjangan Pegawai pada Detail Profil Penggajian: penetapan tunjangan tetap khusus satu pegawai berbasis Master Tunjangan (PrlWorkforceAllowance).
+    builder.Services.AddScoped<PayrollWorkforceAllowanceService>();
     // PAY-BE-19: penghasilan variabel manual per run (VI-01..VI-09, VI-12); nomor PVI dari NumberSeriesAllocator.
     builder.Services.AddScoped<PayrollVariableInputService>();
     // PAY-BE-21: simulasi payroll di transaksi yang selalu dibatalkan (SIM-01..SIM-03); tanpa impor HR, Finance, number series.
