@@ -516,9 +516,9 @@ public sealed class BillingInvoiceService
 
         var (historyFrom, historyTo) = ResolveDateRangeUtc(request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo, null);
         if (historyFrom.HasValue)
-            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= historyFrom.Value);
+            joined = joined.Where(x => (x.encounter != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= historyFrom.Value);
         if (historyTo.HasValue)
-            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= historyTo.Value);
+            joined = joined.Where(x => (x.encounter != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= historyTo.Value);
 
         var total = await joined.CountAsync(cancellationToken);
         var page = await joined
@@ -594,7 +594,16 @@ public sealed class BillingInvoiceService
             ? []
             : await _dbContext.BilTenders.AsNoTracking()
                 .Where(t => settlementIds.Contains(t.SettlementId) && t.Status == BillingTenderStatuses.Succeeded)
-                .Select(t => new { t.Id, t.SettlementId, t.KwitansiNumber, t.Amount, t.AttemptedAt })
+                .Select(t => new
+                {
+                    t.Id,
+                    t.SettlementId,
+                    t.KwitansiNumber,
+                    t.Amount,
+                    t.CashTenderedAmount,
+                    t.CashChangeAmount,
+                    t.AttemptedAt
+                })
                 .ToListAsync(cancellationToken);
         var tendersByInvoice = tenderRows
             .GroupBy(t => settlementToInvoice[t.SettlementId])
@@ -679,6 +688,8 @@ public sealed class BillingInvoiceService
                     SettlementId = t.SettlementId,
                     KwitansiNumber = t.KwitansiNumber ?? string.Empty,
                     Amount = t.Amount,
+                    CashTenderedAmount = t.CashTenderedAmount,
+                    CashChangeAmount = t.CashChangeAmount,
                     AttemptedAt = t.AttemptedAt,
                     TransactionClassification = isSettled ? "PELUNASAN" : "CICILAN",
                     PostTransactionStatus = isSettled ? "LUNAS" : "SEBAGIAN",
@@ -798,9 +809,9 @@ public sealed class BillingInvoiceService
         }
 
         if (cashierFrom.HasValue)
-            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= cashierFrom.Value);
+            joined = joined.Where(x => (x.encounter != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= cashierFrom.Value);
         if (cashierTo.HasValue)
-            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= cashierTo.Value);
+            joined = joined.Where(x => (x.encounter != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= cashierTo.Value);
 
         var total = await joined.CountAsync(cancellationToken);
         var page = await joined

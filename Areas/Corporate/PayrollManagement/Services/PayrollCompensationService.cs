@@ -1,6 +1,5 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.PayrollManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -8,108 +7,163 @@ using QuilvianSystemBackend.Responses;
 namespace QuilvianSystemBackend.Areas.Corporate.PayrollManagement.Services;
 
 /// <summary>
-/// Model baca "Data Penghasilan Pegawai &amp; Dokter" (PAY-BE-03). Menggabungkan profil penggajian, penetapan gaji yang berlaku,
-/// rekening, pajak, dan iuran per penerima, beserta masalah kelengkapannya. HRD tetap pemilik identitas, penetapan gaji, dan rekening;
-/// layanan ini hanya MEMBACA (tidak membuat identitas ganda dan tidak mengubah kompensasi). Persetujuan penetapan gaji tetap lewat
-/// endpoint penetapan gaji yang sudah ada.
+/// Model baca "Data Penghasilan Pegawai &amp; Dokter" (PAY-BE-03). Populasi BERANGKAT DARI HRD (pegawai dan dokter aktif lewat
+/// <see cref="PayrollHrdSourceReader"/>), lalu profil operasional payroll (PrlPayroll), penetapan gaji, rekening, pajak, dan iuran
+/// digabungkan secara opsional. Orang yang sudah terdaftar di HRD tetap tampil walaupun profil payroll-nya belum ada; ia ditandai
+/// belum disiapkan, bukan disembunyikan dan bukan dipalsukan sebagai Active.
 ///
-/// Pengamanan: nominal gaji hanya dikirim bila pemanggil berwenang ViewAmount; rekening dan NPWP selalu disamarkan.
+/// Tiga hal dinilai terpisah dan tidak boleh dianggap sama: terdaftar di HRD, punya profil payroll operasional, dan siap diproses.
+/// Aturan kelengkapan HRD dan status profil dinilai oleh <see cref="PayrollReadinessEvaluator"/>, yang SAMA dengan Kelengkapan Data
+/// Payroll, sehingga kedua layar tidak dapat berselisih tentang hal yang sama.
+///
+/// Layanan ini HANYA MEMBACA. Tidak ada tulis ke database di sini (termasuk tidak membuat PrlPayroll); profil operasional disiapkan
+/// otomatis oleh <see cref="PayrollProfileProvisioningService"/> saat payroll run dipersiapkan. Persetujuan penetapan gaji dan
+/// verifikasi rekening tetap milik HRD.
+///
+/// Pengamanan: nominal gaji hanya dikirim bila pemanggil berwenang ViewAmount dan tidak pernah diganti nol bila tidak tersedia;
+/// nomor rekening dan NPWP selalu disamarkan.
+///
+/// Kesiapan memproses (<see cref="PayrollCompensationListItemResponse.IsReady"/>) lebih ketat daripada "Lengkap" pada Kelengkapan Data:
+/// profil payroll harus sudah ada dan operasional, profil pajak harus ada, dan tetapan PPh dan iuran tidak boleh sekadar nol bawaan.
 /// </summary>
 public sealed class PayrollCompensationService
 {
-    private const string PersonEmployee = "Karyawan";
-    private const string PersonDoctor = "Dokter";
+    private const string NotPreparedFilter = "NotPrepared";
+    private const string NotPreparedFilterDisplay = "Belum Disiapkan";
+    private const string ReadyFilter = "Siap";
+    private const string HrdCompleteLabel = "Lengkap";
+    private const string HrdIncompleteLabel = "Belum lengkap";
+    private const string HrdInactiveLabel = "Tidak aktif di HRD";
+    private const string SalaryNone = "Belum Ada Penetapan Gaji";
+    private const string SalaryPendingApproval = "Menunggu Persetujuan HRD";
+    private const string SalaryApprovedLabel = "Disetujui";
+    private const string SalaryNotYetEffective = "Belum Berlaku";
+    private const string SalaryEnded = "Sudah Berakhir";
+    private const string SalaryConflict = "Konflik Penetapan Gaji";
+    private const int MaxPageSize = 100;
 
     private readonly ApplicationDbContext _dbContext;
+    private readonly PayrollHrdSourceReader _hrdSource;
 
-    public PayrollCompensationService(ApplicationDbContext dbContext)
+    public PayrollCompensationService(ApplicationDbContext dbContext, PayrollHrdSourceReader hrdSource)
     {
         _dbContext = dbContext;
+        _hrdSource = hrdSource;
     }
 
-    private sealed record Person(Guid WorkforceProfileId, string Type, string Number, string Name);
+    private sealed record ProfileRow(
+        Guid Id,
+        string PayrollStatus,
+        bool IsActive,
+        bool IsPayrollEligible,
+        string? PayrollGroupCode,
+        string? PayrollNumber,
+        string PaymentFrequency,
+        DateTime? EffectiveStartDate,
+        DateTime? EffectiveEndDate,
+        decimal TaxAmount,
+        decimal InsuranceAmount,
+        decimal TotalAllowance,
+        string? Description,
+        bool ActiveConflict = false);
+
+    private static PayrollProfileFacts ToFacts(ProfileRow profile) => new(
+        profile.IsActive, profile.IsPayrollEligible, profile.PayrollStatus, profile.TaxAmount, profile.InsuranceAmount,
+        profile.EffectiveStartDate, profile.EffectiveEndDate);
+
+    private sealed record AssignmentRow(
+        Guid Id,
+        DateTime EffectiveStartDate,
+        DateTime? EffectiveEndDate,
+        bool IsPrimary,
+        bool IsActive,
+        DateTime? ApprovedAt,
+        decimal BaseSalary,
+        string? SalaryStructureName,
+        string? SalaryGradeName);
+
+    /// <summary>Hasil penilaian satu orang; <see cref="Issues"/> memuat setiap penghalang kesiapan yang benar-benar ditemukan.</summary>
+    private sealed record Evaluated(
+        PayrollHrdPerson Person,
+        bool IsActiveInHrd,
+        ProfileRow? Profile,
+        PayrollHrdSalary? Salary,
+        PayrollHrdAssessment Hrd,
+        PayrollProfileAssessment ProfileAssessment,
+        bool HasTaxProfile,
+        List<string> Issues,
+        List<string> Notes)
+    {
+        public bool IsReady => Issues.Count == 0;
+    }
 
     public async Task<PagedResult<PayrollCompensationListItemResponse>> GetPagedAsync(
         PayrollCompensationQuery query, bool includeAmounts, CancellationToken cancellationToken)
     {
         var pageNumber = Math.Max(1, query.PageNumber);
-        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
         var today = DateTime.UtcNow.Date;
 
-        var profileQuery = _dbContext.PrlPayrolls.AsNoTracking().Where(x => !x.IsDelete && x.IsActive);
-        if (!string.IsNullOrWhiteSpace(query.PayrollStatus))
-            profileQuery = profileQuery.Where(x => x.PayrollStatus == query.PayrollStatus);
-        var profiles = await profileQuery.ToListAsync(cancellationToken);
+        // Penyaringan identitas (jenis, pencarian) dilakukan di database lewat pembaca HRD. Status payroll dan kesiapan bergantung
+        // pada penggabungan beberapa tabel (profil, gaji, rekening, pajak), sehingga dinilai di memori atas proyeksi ramping yang
+        // jumlahnya dibatasi jumlah SDM rumah sakit; hanya baris satu halaman yang memuat detail tambahan.
+        IEnumerable<Evaluated> rows = await LoadEvaluatedAsync(query.PersonType, query.Search, today, cancellationToken);
 
-        // Satu penerima bisa punya beberapa profil berdasarkan masa berlaku; ambil yang berlaku hari ini, jika tidak ada yang terbaru.
-        var chosen = profiles.GroupBy(x => x.WorkforceProfileId)
-            .Select(g => g.OrderByDescending(p => IsEffective(p.EffectiveStartDate, p.EffectiveEndDate, today))
-                .ThenByDescending(p => p.EffectiveStartDate).First())
-            .ToList();
-        var workforceIds = chosen.Select(x => x.WorkforceProfileId).ToList();
+        rows = ApplyStatusFilter(rows, query.PayrollStatus);
 
-        var people = await LoadPeopleAsync(workforceIds, cancellationToken);
+        var readiness = query.Readiness?.Trim();
+        if (!string.IsNullOrWhiteSpace(readiness))
+        {
+            rows = string.Equals(readiness, ReadyFilter, StringComparison.OrdinalIgnoreCase)
+                ? rows.Where(r => r.IsReady)
+                : rows.Where(r => !r.IsReady);
+        }
 
-        var approvedEffective = (await _dbContext.WfpSalaryAssignments.AsNoTracking()
-                .Where(a => !a.IsDelete && a.IsActive && a.IsPrimary && a.ApprovedAt != null
-                    && workforceIds.Contains(a.WorkforceProfileId)
-                    && a.EffectiveStartDate <= today && (a.EffectiveEndDate == null || a.EffectiveEndDate >= today))
-                .Select(a => a.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
-        var verifiedBank = (await _dbContext.WfpBankAccounts.AsNoTracking()
-                .Where(b => !b.IsDelete && b.IsActive && b.IsPayrollAccount && b.IsVerified && workforceIds.Contains(b.WorkforceProfileId))
-                .Select(b => b.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
-
-        var rows = chosen
-            .Where(p => people.ContainsKey(p.WorkforceProfileId))
-            .Select(p => new { Profile = p, Person = people[p.WorkforceProfileId] })
-            .Where(r => string.IsNullOrWhiteSpace(query.PersonType)
-                || string.Equals(r.Person.Type, query.PersonType, StringComparison.OrdinalIgnoreCase))
-            .Where(r => string.IsNullOrWhiteSpace(query.Search)
-                || r.Person.Name.Contains(query.Search.Trim(), StringComparison.OrdinalIgnoreCase)
-                || r.Person.Number.Contains(query.Search.Trim(), StringComparison.OrdinalIgnoreCase))
-            .Where(r =>
-            {
-                if (string.IsNullOrWhiteSpace(query.Readiness)) return true;
-                var ready = r.Profile.IsPayrollEligible
-                    && string.Equals(r.Profile.PayrollStatus, "Active", StringComparison.OrdinalIgnoreCase)
-                    && approvedEffective.Contains(r.Profile.WorkforceProfileId)
-                    && verifiedBank.Contains(r.Profile.WorkforceProfileId);
-                return string.Equals(query.Readiness, "Siap", StringComparison.OrdinalIgnoreCase) ? ready : !ready;
-            })
+        var filtered = rows
             .OrderBy(r => r.Person.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Person.Number, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var pageRows = rows.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-        var pageWorkforceIds = pageRows.Select(r => r.Profile.WorkforceProfileId).ToList();
+        var pageRows = filtered.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        var pageIds = pageRows.Select(r => r.Person.WorkforceProfileId).ToList();
 
-        var assignments = (await _dbContext.WfpSalaryAssignments.AsNoTracking()
-                .Where(a => !a.IsDelete && pageWorkforceIds.Contains(a.WorkforceProfileId))
-                .ToListAsync(cancellationToken))
-            .GroupBy(a => a.WorkforceProfileId).ToDictionary(g => g.Key, g => g.ToList());
-        var banks = (await _dbContext.WfpBankAccounts.AsNoTracking()
-                .Where(b => !b.IsDelete && b.IsActive && pageWorkforceIds.Contains(b.WorkforceProfileId))
-                .ToListAsync(cancellationToken))
-            .GroupBy(b => b.WorkforceProfileId).ToDictionary(g => g.Key, g => g.ToList());
-        var taxIds = (await _dbContext.PrlTaxes.AsNoTracking()
-                .Where(t => !t.IsDelete && t.IsActive && pageWorkforceIds.Contains(t.WorkforceProfileId))
-                .Select(t => t.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
-        var insuranceIds = (await _dbContext.PrlInsurances.AsNoTracking()
-                .Where(t => !t.IsDelete && t.IsActive && pageWorkforceIds.Contains(t.WorkforceProfileId))
-                .Select(t => t.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+        var assignments = await LoadAssignmentsAsync(pageIds, primaryActiveOnly: true, cancellationToken);
+        var insuranceIds = await LoadInsuranceIdsAsync(pageIds, cancellationToken);
 
-        var items = pageRows.Select(r => BuildItem(new PayrollCompensationListItemResponse(), r.Person, r.Profile,
-            assignments.GetValueOrDefault(r.Profile.WorkforceProfileId) ?? new List<WfpSalaryAssignment>(),
-            banks.GetValueOrDefault(r.Profile.WorkforceProfileId) ?? new List<WfpBankAccount>(),
-            taxIds.Contains(r.Profile.WorkforceProfileId), insuranceIds.Contains(r.Profile.WorkforceProfileId),
-            includeAmounts, today)).ToList();
+        var items = pageRows.Select(r => BuildItem(
+                new PayrollCompensationListItemResponse(),
+                r,
+                assignments.GetValueOrDefault(r.Person.WorkforceProfileId) ?? new List<AssignmentRow>(),
+                insuranceIds.Contains(r.Person.WorkforceProfileId),
+                includeAmounts,
+                today))
+            .ToList();
 
         return new PagedResult<PayrollCompensationListItemResponse>
         {
             PageNumber = pageNumber,
             PageSize = pageSize,
-            TotalData = rows.Count,
-            TotalPage = (int)Math.Ceiling(rows.Count / (double)pageSize),
+            TotalData = filtered.Count,
+            TotalPage = (int)Math.Ceiling(filtered.Count / (double)pageSize),
             Items = items
+        };
+    }
+
+    /// <summary>
+    /// Ringkasan seluruh populasi HRD (tidak dipengaruhi filter daftar) dari penilaian yang sama dengan daftar, sehingga angka kartu dan
+    /// filter daftar tidak dapat berselisih.
+    /// </summary>
+    public async Task<PayrollCompensationSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var all = await LoadEvaluatedAsync(null, null, DateTime.UtcNow.Date, cancellationToken);
+        return new PayrollCompensationSummaryResponse
+        {
+            TotalPeople = all.Count,
+            WithPayrollProfile = all.Count(x => x.Profile is not null),
+            ActivePayrollProfiles = all.Count(x => x.ProfileAssessment.IsOperational),
+            NotPrepared = all.Count(x => x.Profile is null),
+            HrdComplete = all.Count(x => x.Hrd.HrdComplete),
+            Ready = all.Count(x => x.IsReady)
         };
     }
 
@@ -117,44 +171,77 @@ public sealed class PayrollCompensationService
         Guid workforceProfileId, bool includeAmounts, CancellationToken cancellationToken)
     {
         var today = DateTime.UtcNow.Date;
-        var profiles = await _dbContext.PrlPayrolls.AsNoTracking()
-            .Where(x => !x.IsDelete && x.IsActive && x.WorkforceProfileId == workforceProfileId)
-            .ToListAsync(cancellationToken);
-        var profile = profiles
-            .OrderByDescending(p => IsEffective(p.EffectiveStartDate, p.EffectiveEndDate, today))
-            .ThenByDescending(p => p.EffectiveStartDate)
-            .FirstOrDefault()
-            ?? throw new KeyNotFoundException("Profil penggajian penerima tidak ditemukan.");
 
-        var people = await LoadPeopleAsync(new List<Guid> { workforceProfileId }, cancellationToken);
-        if (!people.TryGetValue(workforceProfileId, out var person))
-            throw new KeyNotFoundException("Identitas karyawan/dokter pemilik profil penggajian tidak ditemukan di HRD.");
+        // Parameter rute adalah WorkforceProfileId (bukan Id profil payroll, Id pegawai/dokter, atau Id penetapan gaji). 404 hanya bila
+        // identitas HRD memang tidak ada. Profil payroll yang belum ada BUKAN alasan 404. Pesan tidak memuat data pribadi apa pun.
+        var found = await FindPersonAsync(workforceProfileId, cancellationToken)
+            ?? throw new KeyNotFoundException("Data pegawai atau dokter tidak ditemukan di HRD.");
+        var (person, isActiveInHrd) = found;
 
-        var assignments = await _dbContext.WfpSalaryAssignments.AsNoTracking()
-            .Include(a => a.SalaryStructure).Include(a => a.SalaryGrade)
-            .Where(a => !a.IsDelete && a.WorkforceProfileId == workforceProfileId)
-            .OrderByDescending(a => a.EffectiveStartDate)
-            .ToListAsync(cancellationToken);
-        var banks = await _dbContext.WfpBankAccounts.AsNoTracking()
+        var scope = new List<Guid> { workforceProfileId };
+        var salaries = await _hrdSource.LoadSalariesAsync(today, today, cancellationToken, scope);
+        var banks = await _hrdSource.LoadBanksAsync(today, cancellationToken, scope);
+        var profiles = await LoadProfilesAsync(scope, today, cancellationToken);
+        var assignments = (await LoadAssignmentsAsync(scope, primaryActiveOnly: false, cancellationToken))
+            .GetValueOrDefault(workforceProfileId) ?? new List<AssignmentRow>();
+
+        var bankRows = await _dbContext.WfpBankAccounts.AsNoTracking()
             .Where(b => !b.IsDelete && b.IsActive && b.WorkforceProfileId == workforceProfileId)
+            .Select(b => new
+            {
+                b.Id,
+                b.BankName,
+                b.AccountNumber,
+                b.AccountHolderName,
+                b.IsPayrollAccount,
+                b.IsPrimary,
+                b.IsVerified,
+                b.VerifiedAt
+            })
             .ToListAsync(cancellationToken);
         var tax = await _dbContext.PrlTaxes.AsNoTracking()
             .Where(t => !t.IsDelete && t.IsActive && t.WorkforceProfileId == workforceProfileId)
             .OrderByDescending(t => t.EffectiveStartDate)
+            .Select(t => new { t.TaxStatus, t.IsNpwpRegistered, t.NpwpNumber })
             .FirstOrDefaultAsync(cancellationToken);
-        var hasInsurance = await _dbContext.PrlInsurances.AsNoTracking()
-            .AnyAsync(t => !t.IsDelete && t.IsActive && t.WorkforceProfileId == workforceProfileId, cancellationToken);
+        var hasInsurance = (await LoadInsuranceIdsAsync(scope, cancellationToken)).Contains(workforceProfileId);
+        // Penempatan organisasi primer yang berlaku hari ini (hanya dibaca; kosong bila HRD belum mengisinya).
+        var organization = await _dbContext.WfpOrganizationAssignments.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive && x.IsPrimary && x.WorkforceProfileId == workforceProfileId
+                && x.EffectiveStartDate <= today && (x.EffectiveEndDate == null || x.EffectiveEndDate >= today))
+            .OrderByDescending(x => x.EffectiveStartDate)
+            .Select(x => new
+            {
+                UnitName = x.OrganizationUnit != null ? x.OrganizationUnit.UnitName : null,
+                DepartmentName = x.Department != null ? x.Department.DepartmentName : null,
+                PositionName = x.Position != null ? x.Position.PositionName : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        salaries.TryGetValue(workforceProfileId, out var salary);
+        banks.TryGetValue(workforceProfileId, out var bank);
+        profiles.TryGetValue(workforceProfileId, out var profile);
+
+        var evaluated = Evaluate(person, isActiveInHrd, profile, salary, bank, tax is not null, today);
 
         var detail = new PayrollCompensationDetailResponse();
-        BuildItem(detail, person, profile, assignments, banks, tax is not null, hasInsurance, includeAmounts, today);
+        BuildItem(detail, evaluated, assignments, hasInsurance, includeAmounts, today);
+        // Informasi operasional hanya dari profil yang benar-benar ada; null (bukan nilai bawaan) bila profil belum dibuat.
+        detail.PayrollNumber = profile?.PayrollNumber;
+        detail.PaymentFrequency = profile?.PaymentFrequency;
+        detail.PayrollProfileEffectiveStartDate = profile?.EffectiveStartDate;
+        detail.PayrollProfileEffectiveEndDate = profile?.EffectiveEndDate;
+        detail.OrganizationUnitName = organization?.UnitName;
+        detail.DepartmentName = organization?.DepartmentName;
+        detail.PositionName = organization?.PositionName;
         detail.TaxStatus = tax?.TaxStatus;
         detail.IsNpwpRegistered = tax?.IsNpwpRegistered ?? false;
         detail.NpwpMasked = MaskTail(tax?.NpwpNumber, 5);
         detail.SalaryHistory = assignments.Select(a => new PayrollCompensationSalaryHistoryResponse
         {
             Id = a.Id,
-            SalaryStructureName = a.SalaryStructure?.SalaryStructureName,
-            SalaryGradeName = a.SalaryGrade?.SalaryGradeName,
+            SalaryStructureName = a.SalaryStructureName,
+            SalaryGradeName = a.SalaryGradeName,
             EffectiveStartDate = a.EffectiveStartDate,
             EffectiveEndDate = a.EffectiveEndDate,
             IsPrimary = a.IsPrimary,
@@ -163,7 +250,7 @@ public sealed class PayrollCompensationService
             ApprovedAt = a.ApprovedAt,
             BaseSalary = includeAmounts ? (decimal?)a.BaseSalary : null
         }).ToList();
-        detail.BankAccounts = banks.Select(b => new PayrollCompensationBankResponse
+        detail.BankAccounts = bankRows.Select(b => new PayrollCompensationBankResponse
         {
             Id = b.Id,
             BankName = b.BankName,
@@ -177,78 +264,336 @@ public sealed class PayrollCompensationService
         return detail;
     }
 
-    private async Task<Dictionary<Guid, Person>> LoadPeopleAsync(List<Guid> workforceIds, CancellationToken cancellationToken)
+    // ------------------------------------------------------------------------------------------------------------------------
+    // Pemuatan dan penilaian
+    // ------------------------------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Populasi HRD aktif (disaring jenis/pencarian di database) dipertemukan dengan penetapan gaji yang berlaku HARI INI, rekening
+    /// payroll, profil payroll, dan profil pajak, semuanya proyeksi ramping. Tidak ada tulis.
+    /// </summary>
+    private async Task<List<Evaluated>> LoadEvaluatedAsync(
+        string? personType, string? search, DateTime today, CancellationToken cancellationToken)
     {
-        var people = new Dictionary<Guid, Person>();
-        var employees = await _dbContext.MstEmployees.AsNoTracking()
-            .Where(x => !x.IsDelete && workforceIds.Contains(x.WorkforceProfileId))
-            .Select(x => new { x.WorkforceProfileId, x.EmployeeNumber, x.FullName })
-            .ToListAsync(cancellationToken);
-        foreach (var e in employees) people.TryAdd(e.WorkforceProfileId, new Person(e.WorkforceProfileId, PersonEmployee, e.EmployeeNumber, e.FullName));
-        var doctors = await _dbContext.MstDoctors.AsNoTracking()
-            .Where(x => !x.IsDelete && workforceIds.Contains(x.WorkforceProfileId))
-            .Select(x => new { x.WorkforceProfileId, x.DoctorNumber, x.FullName })
-            .ToListAsync(cancellationToken);
-        foreach (var d in doctors) people.TryAdd(d.WorkforceProfileId, new Person(d.WorkforceProfileId, PersonDoctor, d.DoctorNumber, d.FullName));
-        return people;
+        var people = await _hrdSource.LoadPopulationAsync(personType, search, cancellationToken);
+        if (people.Count == 0) return new List<Evaluated>();
+
+        // Tanpa filter identitas seluruh tabel kecil dibaca sekali; dengan filter pembacaan dibatasi pada orang yang cocok.
+        var hasIdentityFilter = !string.IsNullOrWhiteSpace(personType) || !string.IsNullOrWhiteSpace(search);
+        List<Guid>? scope = hasIdentityFilter ? people.Select(p => p.WorkforceProfileId).ToList() : null;
+
+        var salaries = await _hrdSource.LoadSalariesAsync(today, today, cancellationToken, scope);
+        var banks = await _hrdSource.LoadBanksAsync(today, cancellationToken, scope);
+        var profiles = await LoadProfilesAsync(scope, today, cancellationToken);
+        var taxIds = await LoadTaxIdsAsync(scope, cancellationToken);
+
+        var result = new List<Evaluated>(people.Count);
+        foreach (var person in people)
+        {
+            salaries.TryGetValue(person.WorkforceProfileId, out var salary);
+            banks.TryGetValue(person.WorkforceProfileId, out var bank);
+            profiles.TryGetValue(person.WorkforceProfileId, out var profile);
+            result.Add(Evaluate(person, true, profile, salary, bank, taxIds.Contains(person.WorkforceProfileId), today));
+        }
+
+        return result;
+    }
+
+    private static Evaluated Evaluate(
+        PayrollHrdPerson person,
+        bool isActiveInHrd,
+        ProfileRow? profile,
+        PayrollHrdSalary? salary,
+        PayrollHrdBank? bank,
+        bool hasTaxProfile,
+        DateTime today)
+    {
+        var hrd = PayrollReadinessEvaluator.AssessHrd(salary, bank);
+        // Profil dinilai pada tanggal hari ini: profil masa depan atau yang sudah berakhir bukan profil yang sedang berlaku, dan
+        // beberapa profil aktif yang berlaku bersamaan dilaporkan sebagai masalah integritas data.
+        var assessment = PayrollReadinessEvaluator.AssessProfile(
+            profile is null ? null : ToFacts(profile),
+            PayrollProfileRules.CanAutoPrepare(salary is not null, bank is not null),
+            today,
+            profile?.ActiveConflict ?? false);
+
+        var issues = new List<string>();
+        if (!isActiveInHrd) issues.Add("Pegawai atau dokter ini tidak aktif di HRD.");
+        issues.AddRange(hrd.Issues);
+        if (profile is null) issues.Add("Profil Payroll belum disiapkan secara otomatis.");
+        else issues.AddRange(assessment.Issues);
+        if (!hasTaxProfile) issues.Add("Profil pajak belum diisi.");
+        // Nol bawaan bukan data sah: tidak boleh membuat orang tampil siap hanya karena tetapan PPh dan iuran bernilai nol.
+        if (assessment.TaxInsuranceUnset) issues.Add("Tetapan PPh dan iuran pada profil payroll belum ditetapkan (keduanya nol).");
+
+        return new Evaluated(person, isActiveInHrd, profile, salary, hrd, assessment, hasTaxProfile, issues, assessment.Notes);
+    }
+
+    private static IEnumerable<Evaluated> ApplyStatusFilter(IEnumerable<Evaluated> rows, string? status)
+    {
+        var value = status?.Trim();
+        if (string.IsNullOrWhiteSpace(value)) return rows;
+
+        // Nilai virtual: hanya representasi untuk orang yang belum punya profil; tidak pernah disimpan sebagai status payroll.
+        if (string.Equals(value, NotPreparedFilter, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, NotPreparedFilterDisplay, StringComparison.OrdinalIgnoreCase))
+            return rows.Where(r => r.Profile is null);
+
+        // Status nyata: hanya profil yang ada dan aktif dengan status yang sama persis, bukan orang yang sekadar aktif di HRD.
+        return rows.Where(r => r.Profile is not null
+            && r.Profile.IsActive
+            && string.Equals(r.Profile.PayrollStatus, value, StringComparison.OrdinalIgnoreCase));
     }
 
     private static T BuildItem<T>(
-        T target, Person person, PrlPayroll profile, List<WfpSalaryAssignment> assignments, List<WfpBankAccount> banks,
-        bool hasTax, bool hasInsurance, bool includeAmounts, DateTime today) where T : PayrollCompensationListItemResponse
+        T target,
+        Evaluated ev,
+        List<AssignmentRow> assignments,
+        bool hasInsurance,
+        bool includeAmounts,
+        DateTime today) where T : PayrollCompensationListItemResponse
     {
-        var primaries = assignments.Where(a => !a.IsDelete && a.IsActive && a.IsPrimary)
-            .OrderByDescending(a => a.EffectiveStartDate).ToList();
-        var effectiveApproved = primaries
-            .Where(a => a.ApprovedAt.HasValue && IsEffective(a.EffectiveStartDate, a.EffectiveEndDate, today)).ToList();
-        var current = effectiveApproved.FirstOrDefault() ?? primaries.FirstOrDefault();
+        // Penetapan yang BERLAKU hari ini (dipilih pembaca HRD yang sama dengan kelengkapan data). Bila tidak ada, penetapan aktif
+        // terbaru hanya ditampilkan tanggalnya sebagai informasi; nominalnya tidak dipakai sebagai gaji saat ini.
+        var effective = ev.Salary is null ? null : assignments.FirstOrDefault(a => a.Id == ev.Salary.AssignmentId);
+        var display = effective
+            ?? assignments.Where(a => a.IsActive && a.IsPrimary).OrderByDescending(a => a.EffectiveStartDate).FirstOrDefault();
 
-        var payrollBanks = banks.Where(b => b.IsPayrollAccount).ToList();
-        string bankStatus = payrollBanks.Any(b => b.IsVerified) ? "Terverifikasi"
-            : payrollBanks.Count > 0 ? "Belum terverifikasi"
-            : "Belum ada";
+        var profile = ev.Profile;
+        var hrdComplete = ev.IsActiveInHrd && ev.Hrd.HrdComplete;
 
-        target.WorkforceProfileId = profile.WorkforceProfileId;
-        target.PayrollProfileId = profile.Id;
-        target.PersonType = person.Type;
-        target.Number = person.Number;
-        target.Name = person.Name;
-        target.PayrollStatus = profile.PayrollStatus;
-        target.IsPayrollEligible = profile.IsPayrollEligible;
-        target.PayrollGroupCode = profile.PayrollGroupCode;
-        target.SalaryAssignmentId = current?.Id;
-        target.SalaryEffectiveStartDate = current?.EffectiveStartDate;
-        target.SalaryEffectiveEndDate = current?.EffectiveEndDate;
-        target.SalaryApproved = current?.ApprovedAt.HasValue ?? false;
-        target.SalaryApprovedAt = current?.ApprovedAt;
+        target.WorkforceProfileId = ev.Person.WorkforceProfileId;
+        target.PayrollProfileId = profile?.Id;
+        target.HasPayrollProfile = profile is not null;
+        target.PersonType = ev.Person.Type;
+        target.Number = ev.Person.Number;
+        target.Name = ev.Person.Name;
+        target.PayrollStatus = profile?.PayrollStatus;
+        target.IsPayrollEligible = profile?.IsPayrollEligible ?? false;
+        target.PayrollGroupCode = profile?.PayrollGroupCode;
+        target.PayrollProfileStatus = ev.ProfileAssessment.ProfileStatus;
+        target.HrdComplete = hrdComplete;
+        target.HrdDataStatus = !ev.IsActiveInHrd ? HrdInactiveLabel : hrdComplete ? HrdCompleteLabel : HrdIncompleteLabel;
+        target.TaxInsuranceStatus = ev.ProfileAssessment.TaxInsuranceStatus;
+
+        target.SalaryAssignmentId = display?.Id;
+        target.SalaryEffectiveStartDate = display?.EffectiveStartDate;
+        target.SalaryEffectiveEndDate = display?.EffectiveEndDate;
+        target.SalaryApproved = display?.ApprovedAt.HasValue ?? false;
+        target.SalaryApprovedAt = display?.ApprovedAt;
+
         target.AmountsVisible = includeAmounts;
-        target.BaseSalary = includeAmounts ? (decimal?)(current?.BaseSalary ?? profile.BaseSalary) : null;
-        target.TotalAllowance = includeAmounts ? (decimal?)profile.TotalAllowance : null;
-        target.BankStatus = bankStatus;
-        target.HasTaxProfile = hasTax;
+        // Nominal hanya dari penetapan gaji HRD yang berlaku; null (bukan nol) bila tidak berwenang atau tidak tersedia.
+        target.BaseSalary = includeAmounts && effective is not null ? (decimal?)effective.BaseSalary : null;
+        // Profil yang disiapkan otomatis membawa nol sebagai penanda kompatibilitas, bukan tunjangan sebenarnya.
+        var allowanceIsPlaceholder = profile is not null
+            && profile.TotalAllowance == 0m
+            && string.Equals(profile.Description, PayrollProfileRules.AutoProvisionedDescription, StringComparison.Ordinal);
+        target.TotalAllowance = includeAmounts && profile is not null && !allowanceIsPlaceholder
+            ? (decimal?)profile.TotalAllowance
+            : null;
+
+        target.BankStatus = ev.Hrd.BankStatus;
+        target.HasTaxProfile = ev.HasTaxProfile;
         target.HasInsuranceProfile = hasInsurance;
 
-        var issues = new List<string>();
-        if (!profile.IsPayrollEligible) issues.Add("Profil payroll tidak eligible.");
-        if (!string.Equals(profile.PayrollStatus, "Active", StringComparison.OrdinalIgnoreCase))
-            issues.Add($"Status payroll {profile.PayrollStatus}, bukan Active.");
-        if (current is null) issues.Add("Belum ada penetapan gaji utama.");
-        else if (!current.ApprovedAt.HasValue) issues.Add("Penetapan gaji utama belum disetujui.");
-        else if (effectiveApproved.Count == 0) issues.Add("Penetapan gaji utama yang disetujui tidak berlaku hari ini.");
-        if (effectiveApproved.Count > 1) issues.Add("Terdapat lebih dari satu penetapan gaji utama yang berlaku bersamaan.");
-        if (bankStatus == "Belum ada") issues.Add("Belum ada rekening payroll.");
-        else if (bankStatus == "Belum terverifikasi") issues.Add("Rekening payroll belum terverifikasi.");
-        if (!hasTax) issues.Add("Profil pajak belum diisi.");
+        target.OperationalProfileReady = ev.ProfileAssessment.IsOperational;
+
+        var issues = new List<string>(ev.Issues);
+        string salaryStatus;
+        if (ev.Salary is null)
+        {
+            // Penilaian tidak berubah; hanya status dan kalimatnya dibuat tepat (belum berlaku atau sudah berakhir) bila datanya diketahui.
+            var missing = ClassifyMissingSalary(assignments, today);
+            salaryStatus = missing.Status;
+            var index = issues.IndexOf(PayrollReadinessEvaluator.NoSalaryMessage);
+            if (missing.Message is not null && index >= 0) issues[index] = missing.Message;
+        }
+        else if (!ev.Hrd.SalaryApproved)
+        {
+            salaryStatus = SalaryPendingApproval;
+        }
+        else
+        {
+            salaryStatus = ev.Hrd.SalaryConflict ? SalaryConflict : SalaryApprovedLabel;
+        }
+
+        target.SalaryStatus = salaryStatus;
         target.Issues = issues;
-        target.IsReady = issues.Count == 0;
+        target.Notes = new List<string>(ev.Notes);
+        target.IsReady = ev.IsReady;
         return target;
     }
 
-    private static bool IsEffective(DateTime? start, DateTime? end, DateTime today) =>
-        (!start.HasValue || start.Value.Date <= today) && (!end.HasValue || end.Value.Date >= today);
+    /// <summary>
+    /// Alasan tidak ada penetapan gaji utama yang berlaku hari ini: tidak pernah ada, baru berlaku di masa depan, atau sudah berakhir.
+    /// Penetapan masa depan tidak pernah dipakai untuk menyatakan penerima siap hari ini.
+    /// </summary>
+    private static (string Status, string? Message) ClassifyMissingSalary(List<AssignmentRow> assignments, DateTime today)
+    {
+        var primaries = assignments.Where(a => a.IsActive && a.IsPrimary).ToList();
+        if (primaries.Count == 0) return (SalaryNone, null);
 
-    private static bool IsEffective(DateTime start, DateTime? end, DateTime today) =>
-        start.Date <= today && (!end.HasValue || end.Value.Date >= today);
+        var upcoming = primaries
+            .Where(a => a.EffectiveStartDate.Date > today)
+            .OrderBy(a => a.EffectiveStartDate)
+            .FirstOrDefault();
+        if (upcoming is not null)
+            return (
+                SalaryNotYetEffective,
+                "Penetapan gaji utama di HRD baru berlaku mulai "
+                + upcoming.EffectiveStartDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+                + "; belum berlaku saat ini.");
+
+        var expired = primaries
+            .Where(a => a.EffectiveEndDate.HasValue && a.EffectiveEndDate.Value.Date < today)
+            .OrderByDescending(a => a.EffectiveEndDate)
+            .FirstOrDefault();
+        if (expired is not null && expired.EffectiveEndDate.HasValue)
+            return (
+                SalaryEnded,
+                "Penetapan gaji utama di HRD sudah berakhir pada "
+                + expired.EffectiveEndDate.Value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+                + "; belum ada penggantinya.");
+
+        return (SalaryNone, null);
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------------
+    // Pembacaan proyeksi ramping
+    // ------------------------------------------------------------------------------------------------------------------------
+
+    private async Task<Dictionary<Guid, ProfileRow>> LoadProfilesAsync(
+        IReadOnlyCollection<Guid>? scope, DateTime today, CancellationToken cancellationToken)
+    {
+        // Semua profil yang belum dihapus dibaca, termasuk yang nonaktif: profil nonaktif berbeda dari profil yang belum pernah dibuat.
+        var query = _dbContext.PrlPayrolls.AsNoTracking().Where(x => !x.IsDelete);
+        if (scope is not null) query = query.Where(x => scope.Contains(x.WorkforceProfileId));
+
+        var rows = await query
+            .Select(x => new
+            {
+                x.Id,
+                x.WorkforceProfileId,
+                x.PayrollStatus,
+                x.IsActive,
+                x.IsPayrollEligible,
+                x.PayrollGroupCode,
+                x.PayrollNumber,
+                x.PaymentFrequency,
+                x.EffectiveStartDate,
+                x.EffectiveEndDate,
+                x.TaxAmount,
+                x.InsuranceAmount,
+                x.TotalAllowance,
+                x.Description
+            })
+            .ToListAsync(cancellationToken);
+
+        // Indeks unik WorkforceProfileId (IsDelete = false) menjamin paling banyak satu profil per orang. Bila tetap ada beberapa,
+        // pemilihannya memakai aturan yang sama dengan Kelengkapan Data (profil aktif yang sedang berlaku lebih dulu, profil masa depan
+        // tidak pernah mengalahkan yang sedang berlaku) dan konfliknya dilaporkan sebagai masalah integritas data.
+        return rows
+            .GroupBy(x => x.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var candidates = g
+                        .Select(p => new ProfileRow(
+                            p.Id, p.PayrollStatus, p.IsActive, p.IsPayrollEligible, p.PayrollGroupCode, p.PayrollNumber,
+                            p.PaymentFrequency, p.EffectiveStartDate, p.EffectiveEndDate, p.TaxAmount, p.InsuranceAmount,
+                            p.TotalAllowance, p.Description))
+                        .ToList();
+                    var chosen = PayrollReadinessEvaluator.SelectProfile(candidates, ToFacts, today, out var conflict)!;
+                    return chosen with { ActiveConflict = conflict };
+                });
+    }
+
+    private async Task<HashSet<Guid>> LoadTaxIdsAsync(IReadOnlyCollection<Guid>? scope, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.PrlTaxes.AsNoTracking().Where(t => !t.IsDelete && t.IsActive);
+        if (scope is not null) query = query.Where(t => scope.Contains(t.WorkforceProfileId));
+        return (await query.Select(t => t.WorkforceProfileId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+    }
+
+    private async Task<HashSet<Guid>> LoadInsuranceIdsAsync(IReadOnlyCollection<Guid> scope, CancellationToken cancellationToken)
+    {
+        if (scope.Count == 0) return new HashSet<Guid>();
+        return (await _dbContext.PrlInsurances.AsNoTracking()
+                .Where(t => !t.IsDelete && t.IsActive && scope.Contains(t.WorkforceProfileId))
+                .Select(t => t.WorkforceProfileId)
+                .Distinct()
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+    }
+
+    private async Task<Dictionary<Guid, List<AssignmentRow>>> LoadAssignmentsAsync(
+        IReadOnlyCollection<Guid> scope, bool primaryActiveOnly, CancellationToken cancellationToken)
+    {
+        if (scope.Count == 0) return new Dictionary<Guid, List<AssignmentRow>>();
+
+        var query = _dbContext.WfpSalaryAssignments.AsNoTracking()
+            .Where(a => !a.IsDelete && scope.Contains(a.WorkforceProfileId));
+        if (primaryActiveOnly) query = query.Where(a => a.IsActive && a.IsPrimary);
+
+        var rows = await query
+            .OrderByDescending(a => a.EffectiveStartDate)
+            .Select(a => new
+            {
+                a.Id,
+                a.WorkforceProfileId,
+                a.EffectiveStartDate,
+                a.EffectiveEndDate,
+                a.IsPrimary,
+                a.IsActive,
+                a.ApprovedAt,
+                a.BaseSalary,
+                SalaryStructureName = a.SalaryStructure != null ? a.SalaryStructure.SalaryStructureName : null,
+                SalaryGradeName = a.SalaryGrade != null ? a.SalaryGrade.SalaryGradeName : null
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(a => a.WorkforceProfileId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(a => new AssignmentRow(
+                        a.Id, a.EffectiveStartDate, a.EffectiveEndDate, a.IsPrimary, a.IsActive, a.ApprovedAt,
+                        a.BaseSalary, a.SalaryStructureName, a.SalaryGradeName))
+                    .ToList());
+    }
+
+    /// <summary>
+    /// Identitas satu orang di HRD (pegawai atau dokter yang belum dihapus). Orang yang aktif didahulukan; orang yang sudah tidak aktif
+    /// tetap ditemukan (detail dapat dibuka) tetapi dilaporkan tidak aktif.
+    /// </summary>
+    private async Task<(PayrollHrdPerson Person, bool IsActive)?> FindPersonAsync(
+        Guid workforceProfileId, CancellationToken cancellationToken)
+    {
+        // Identitas utama adalah WorkforceProfileId: profil workforce harus ada dan belum dihapus, lalu dicocokkan ke pegawai atau dokter.
+        // Id tabel lain (profil payroll, pegawai, dokter, penetapan gaji) sengaja tidak diterima sebagai pengganti.
+        var workforceProfileExists = await _dbContext.MstWorkforceProfiles.AsNoTracking()
+            .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete, cancellationToken);
+        if (!workforceProfileExists) return null;
+
+        var employee = await _dbContext.MstEmployees.AsNoTracking()
+            .Where(x => !x.IsDelete && x.WorkforceProfileId == workforceProfileId)
+            .OrderByDescending(x => x.IsActive)
+            .Select(x => new { x.Id, x.EmployeeNumber, x.FullName, x.IsActive })
+            .FirstOrDefaultAsync(cancellationToken);
+        var doctor = await _dbContext.MstDoctors.AsNoTracking()
+            .Where(x => !x.IsDelete && x.WorkforceProfileId == workforceProfileId)
+            .OrderByDescending(x => x.IsActive)
+            .Select(x => new { x.DoctorNumber, x.FullName, x.IsActive })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (employee is not null && (employee.IsActive || doctor is null || !doctor.IsActive))
+            return (new PayrollHrdPerson(workforceProfileId, employee.Id, "Karyawan", employee.EmployeeNumber, employee.FullName), employee.IsActive);
+        if (doctor is not null)
+            return (new PayrollHrdPerson(workforceProfileId, null, "Dokter", doctor.DoctorNumber, doctor.FullName), doctor.IsActive);
+        return null;
+    }
 
     private static string? MaskTail(string? value, int visible)
     {

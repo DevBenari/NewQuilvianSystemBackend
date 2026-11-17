@@ -266,6 +266,9 @@ public sealed class BillingSettlementService
             // sama nominalnya tidak boleh saling mengambil. Rekening dan nomor referensi yang sudah tercatat
             // pada kedua sisi harus sama, dan bila lebih dari satu tender cocok TIDAK ada yang ditebak: kasir
             // diminta menyelesaikan tender yang dimaksud lewat konfirmasi pada tender itu sendiri.
+            //
+            // Uang tunai yang diterima ikut menjadi identitas: dua percobaan dengan pembayaran neto sama tetapi
+            // uang fisik berbeda adalah dua kejadian kas yang berbeda dan TIDAK boleh saling mengambil.
             if (prior is null)
             {
                 var requestedReference = request.CashierReferenceNote?.Trim();
@@ -274,6 +277,7 @@ public sealed class BillingSettlementService
                         && x.Status == BillingTenderStatuses.Created
                         && x.PaymentMethodId == request.PaymentMethodId
                         && x.Amount == request.Amount
+                        && CashTenderMatches(x, request)
                         && (!request.PaymentMethodAccountId.HasValue
                             || !x.PaymentMethodAccountId.HasValue
                             || x.PaymentMethodAccountId == request.PaymentMethodAccountId)
@@ -298,6 +302,10 @@ public sealed class BillingSettlementService
 
             if (prior is not null)
             {
+                if (prior.Status == BillingTenderStatuses.Cancelled)
+                    throw new BillingSettlementConflictException(
+                        "Percobaan pembayaran ini sudah dibatalkan kasir. Buat pembayaran baru dengan permintaan baru.");
+
                 if (prior.Status != BillingTenderStatuses.Created)
                 {
                     if (prior.PayloadHash != payloadHash)
@@ -312,6 +320,17 @@ public sealed class BillingSettlementService
                 tender = prior;
                 paymentMethod = await LoadPaymentMethodAsync(prior.PaymentMethodId, cancellationToken);
                 ValidatePaymentMethod(paymentMethod);
+
+                // Percobaan lanjutan tetap harus membawa konfirmasi kembalian yang sah, dan untuk tunai rincian
+                // uang fisiknya harus sama dengan tender tersimpan. Tender yang cocok lewat Idempotency-Key tidak
+                // melewati pencocokan kandidat di atas, jadi pembandingan dilakukan di sini.
+                var recoveredCash = ResolveCashBreakdown(paymentMethod, request);
+                if (paymentMethod.IsCash
+                    && (prior.Amount != request.Amount
+                        || (prior.CashTenderedAmount ?? prior.Amount) != recoveredCash.Tendered))
+                    throw new BillingSettlementConflictException(
+                        "Nominal pembayaran atau uang tunai diterima berbeda dengan pembayaran tunai yang masih menunggu; "
+                        + "gunakan permintaan baru.");
 
                 var isManualCashierReplay = prior.ProviderStatusCode == "MANUAL_CASHIER"
                     || request.IsManualCashierConfirmed == true
@@ -424,9 +443,25 @@ public sealed class BillingSettlementService
                 var maxCollectible = paymentMethod.IsCash
                     ? Math.Max(collectibleAmount, Math.Round(collectibleAmount, 0, MidpointRounding.AwayFromZero))
                     : collectibleAmount;
+                // Amount tetap pembayaran NETO dan dibatasi sisa tagihan di atas. Uang fisik tunai yang boleh
+                // melebihi tagihan hanya dicatat sebagai CashTenderedAmount; kembalian dihitung di sini.
                 if (request.Amount > maxCollectible)
+                {
+                    // Tender tunai CREATED yang tertahan memesan saldo. Permintaan tunai baru yang tidak cocok dengan
+                    // tender itu (misalnya uang diterima diubah) TIDAK mengambil alihnya; kasir harus melanjutkan
+                    // pembayaran yang sama atau membatalkan percobaan lama lebih dulu agar saldonya dilepas.
+                    if (paymentMethod.IsCash
+                        && settlement.Tenders.Any(x => !x.IsDelete
+                            && x.Status == BillingTenderStatuses.Created
+                            && x.PaymentMethodId == request.PaymentMethodId))
+                        throw new BillingSettlementConflictException(
+                            "Masih ada pembayaran tunai yang belum selesai pada tagihan ini. Lanjutkan pembayaran tersebut "
+                            + "dengan uang tunai diterima yang sama, atau batalkan percobaan itu lebih dulu bila uang "
+                            + "yang diterima berbeda.");
                     throw new BillingSettlementValidationException(
                         "Total metode pembayaran melebihi saldo yang harus dibayar.");
+                }
+                var cashBreakdown = ResolveCashBreakdown(paymentMethod, request);
 
                 var now = DateTimeOffset.UtcNow;
                 // BKC-DEC-057: satu nomor Kwitansi dialokasikan setiap kali tender BARU dibuat
@@ -442,6 +477,8 @@ public sealed class BillingSettlementService
                     PaymentMethodId = request.PaymentMethodId,
                     PaymentMethodAccountId = request.PaymentMethodAccountId,
                     Amount = request.Amount,
+                    CashTenderedAmount = cashBreakdown.Tendered,
+                    CashChangeAmount = cashBreakdown.Change,
                     CashierReferenceNote = string.IsNullOrWhiteSpace(request.CashierReferenceNote)
                         ? null
                         : request.CashierReferenceNote.Trim(),
@@ -507,6 +544,8 @@ public sealed class BillingSettlementService
                 actorUserId,
                 cancellationToken);
             response.IsReplay = isReplay;
+            if (tender.CashChangeAmount > 0)
+                await AuditCashChangeHandedOverAsync(tender, response.Status, actorUserId, isReplay);
             await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
             await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
             return response;
@@ -742,6 +781,9 @@ public sealed class BillingSettlementService
                     activeShift,
                     "TENDER",
                     tender.Id,
+                    // SystemCash hanya menerima pembayaran NETO. Uang fisik bruto (CashTenderedAmount) dan kembalian
+                    // (CashChangeAmount) tersimpan di tender untuk audit; mengurangkan kembalian lagi di sini akan
+                    // menghitungnya dua kali, dan menambahkan uang bruto akan membuat kas sistem lebih besar dari laci.
                     tender.Amount,
                     actorUserId,
                     tender.CorrelationId,
@@ -1254,6 +1296,144 @@ public sealed class BillingSettlementService
         await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
         await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
         return response;
+    }
+
+    // Pembatalan percobaan pembayaran TUNAI yang tertahan CREATED (keputusan pemilik modul Billing, 17 November 2026).
+    //
+    // Bukan reversal dan bukan refund: hanya untuk tender yang BELUM direkonsiliasi, jadi belum ada penerimaan kas,
+    // alokasi pembayaran, maupun surat penerimaan ke Finance. Pembayaran SUCCEEDED dikoreksi lewat reversal atau refund
+    // resmi; tender PENDING non-tunai menunggu kepastian penyedia pembayaran dan tidak boleh dibatalkan di sini.
+    //
+    // Hasilnya: status CANCELLED (baris tidak dihapus, histori tetap), tender keluar dari saldo yang dipesan lewat
+    // RecalculateSettlement, RowVersion tender dan settlement berganti, SystemCash shift TIDAK disentuh, dan petugas,
+    // waktu, serta alasan dicatat pada audit. Urutan kunci sama dengan ManualConfirmTenderAsync (settlement lalu tender)
+    // sehingga serial dengan AddTenderAsync dan ReconcileTenderAsync: tender yang sudah SUCCEEDED lebih dulu ditolak,
+    // dan rekonsiliasi yang datang sesudah pembatalan hanya mendapat jawaban replay (CANCELLED bersifat terminal).
+    // Memanggil ulang pada tender yang sudah CANCELLED menjawab replay tanpa audit kedua.
+    public async Task<TenderResponse> CancelTenderAsync(
+        Guid settlementId,
+        Guid tenderId,
+        CancelTenderRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateCancelTenderRequest(settlementId, tenderId, request, idempotencyKey);
+        var reason = request.CancellationReason.Trim();
+        IDbContextTransaction? transaction = null;
+        BilTender tender;
+        var statusBefore = BillingTenderStatuses.Created;
+
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_SETTLEMENT_{settlementId:N}", cancellationToken);
+                await AcquireLockAsync($"BIL_TENDER_{tenderId:N}", cancellationToken);
+            }
+
+            var settlement = await _dbContext.BilSettlements
+                .Include(x => x.Tenders)
+                .SingleOrDefaultAsync(x => x.Id == settlementId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Settlement tidak ditemukan.");
+
+            tender = settlement.Tenders.SingleOrDefault(x => x.Id == tenderId && !x.IsDelete)
+                ?? throw new KeyNotFoundException("Tender tidak ditemukan dalam settlement ini.");
+
+            if (tender.Status == BillingTenderStatuses.Cancelled)
+            {
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                return MapTender(tender, true);
+            }
+
+            // Status yang sudah berpindah dari CREATED adalah konflik keadaan (409), bukan kesalahan isian: status tender
+            // tidak diubah sama sekali, dan klien memuat ulang settlement untuk melihat keadaan terbarunya.
+            if (tender.Status == BillingTenderStatuses.Succeeded)
+                throw new BillingSettlementConflictException(
+                    "Tender sudah berhasil diproses dan tidak dapat dibatalkan melalui pembatalan percobaan. "
+                    + "Koreksi pembayaran yang sudah berhasil harus lewat reversal atau refund resmi.");
+            if (tender.Status == BillingTenderStatuses.Pending)
+                throw new BillingSettlementConflictException(
+                    "Pembayaran ini masih menunggu konfirmasi dan belum dapat dibatalkan sebelum "
+                    + "status dari penyedia pembayaran dipastikan.");
+            if (tender.Status != BillingTenderStatuses.Created)
+                throw new BillingSettlementConflictException(
+                    $"Tender berstatus '{tender.Status}' tidak dapat dibatalkan.");
+
+            var paymentMethod = await LoadPaymentMethodAsync(tender.PaymentMethodId, cancellationToken);
+            if (!paymentMethod.IsCash)
+                throw new BillingSettlementValidationException(
+                    "Pembatalan percobaan hanya berlaku untuk pembayaran tunai. "
+                    + "Pembayaran non-tunai diselesaikan lewat konfirmasi kasir atau status dari penyedia pembayaran.");
+
+            if (tender.RowVersion != request.ExpectedRowVersion)
+                throw new BillingSettlementConflictException(
+                    "Data tender telah berubah. Muat ulang sebelum melanjutkan.");
+
+            // Pengaman terakhir: CREATED berarti belum direkonsiliasi, tetapi bila ada jejak penerimaan kas atau
+            // rekonsiliasi pada tender ini, status yang tersimpan tidak dapat dipercaya dan uangnya mungkin sudah
+            // tercatat. Jangan dibatalkan diam-diam; koreksinya lewat reversal.
+            var cashReceiptRecorded = await _dbContext.BilCashierShiftCommands.AsNoTracking().AnyAsync(
+                x => x.SourceType == "TENDER" && x.SourceId == tender.Id,
+                cancellationToken);
+            if (cashReceiptRecorded
+                || tender.SettledAt.HasValue
+                || !string.IsNullOrWhiteSpace(tender.LastProviderEventId))
+                throw new BillingSettlementConflictException(
+                    "Tender ini sudah pernah direkonsiliasi atau penerimaan kasnya sudah tercatat, sehingga tidak dapat "
+                    + "dibatalkan. Hubungi supervisor atau Finance untuk koreksi lewat reversal.");
+
+            var now = DateTimeOffset.UtcNow;
+            var settlementStatusBefore = settlement.Status;
+            statusBefore = tender.Status;
+            tender.Status = BillingTenderStatuses.Cancelled;
+            tender.IsCancel = true;
+            tender.CancelDateTime = DateTime.UtcNow;
+            tender.CancelBy = actorUserId;
+            tender.RowVersion = Guid.NewGuid();
+            tender.UpdateDateTime = DateTime.UtcNow;
+            tender.UpdateBy = actorUserId;
+            // Tender CANCELLED bukan Created/Pending, jadi keluar dari saldo yang dipesan; versi settlement ikut berganti
+            // supaya klien memuat ulang sebelum membuat pembayaran baru.
+            RecalculateSettlement(settlement, actorUserId, now);
+
+            // Pembatalan percobaan tidak pernah boleh membuka kembali settlement yang sudah lunas. SuccessfulAmount tidak
+            // berubah (hanya tender SUCCEEDED yang dihitung), jadi settlement lunas tetap lunas; pemeriksaan ini
+            // memastikannya dan menggagalkan transaksi bila perhitungan ulang kelak berubah arah.
+            if (settlementStatusBefore == BillingSettlementStatuses.Settled
+                && settlement.Status != BillingSettlementStatuses.Settled)
+                throw new BillingSettlementConflictException(
+                    "Settlement sudah lunas dan tidak dapat dibuka kembali lewat pembatalan percobaan pembayaran.");
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingSettlementConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingSettlementConflictException(
+                "Tender tidak dapat dibatalkan karena terjadi konflik data.", exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+
+        await AuditTenderCancelledAsync(tender, statusBefore, reason, request, idempotencyKey, actorUserId);
+        return MapTender(tender, false);
     }
 
     // Tagihan yang sudah lunas langsung difinalisasi tanpa menunggu tindakan kasir.
@@ -1894,6 +2074,33 @@ public sealed class BillingSettlementService
         if (request.ExpectedRowVersion == Guid.Empty)
             throw new BillingSettlementValidationException("ExpectedRowVersion wajib diisi.");
         ValidateMoney(request.Amount, "Nominal tender");
+        if (request.CashTenderedAmount.HasValue)
+            ValidateMoney(request.CashTenderedAmount.Value, "Uang tunai diterima");
+        if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
+            throw new BillingSettlementValidationException(
+                "CorrelationId dan CausationId wajib diisi.");
+    }
+
+    private static void ValidateCancelTenderRequest(
+        Guid settlementId,
+        Guid tenderId,
+        CancelTenderRequest request,
+        Guid idempotencyKey)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (settlementId == Guid.Empty || tenderId == Guid.Empty)
+            throw new BillingSettlementValidationException("SettlementId dan TenderId wajib diisi.");
+        if (idempotencyKey == Guid.Empty)
+            throw new BillingSettlementValidationException("Idempotency-Key wajib diisi.");
+        if (request.ExpectedRowVersion == Guid.Empty)
+            throw new BillingSettlementValidationException("ExpectedRowVersion wajib diisi.");
+        if (string.IsNullOrWhiteSpace(request.CancellationReason))
+            throw new BillingSettlementValidationException("Alasan pembatalan wajib diisi.");
+        if (request.CancellationReason.Trim().Length > 500)
+            throw new BillingSettlementValidationException("Alasan pembatalan maksimal 500 karakter.");
+        if (!request.CashCustodyConfirmed)
+            throw new BillingSettlementValidationException(
+                "Pernyataan bahwa uang pasien belum diterima atau sudah dikembalikan seluruhnya wajib disetujui.");
         if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
             throw new BillingSettlementValidationException(
                 "CorrelationId dan CausationId wajib diisi.");
@@ -1905,6 +2112,50 @@ public sealed class BillingSettlementService
             throw new BillingSettlementValidationException(
                 $"{fieldName} harus positif dan maksimal memiliki dua angka desimal.");
     }
+
+    // Rincian uang fisik tunai satu tender. Amount tetap pembayaran NETO; uang diterima boleh melebihi
+    // tagihan tetapi kembalian = uang diterima - Amount dihitung HANYA di sini (input klien tidak dipercaya).
+    // Jenis tunai ditentukan dari MstPaymentMethod.IsCash, bukan dari nama metode atau tipe pembayaran pasien.
+    // Pembulatan tunai kurang dari Rp1 tetap lewat BilAdjustment pada rekonsiliasi dan bukan kembalian.
+    private readonly record struct CashBreakdown(decimal? Tendered, decimal? Change);
+
+    private static CashBreakdown ResolveCashBreakdown(
+        MstPaymentMethod paymentMethod,
+        CreateTenderRequest request)
+    {
+        if (!paymentMethod.IsCash)
+        {
+            if (request.CashTenderedAmount.HasValue || request.CashChangeGivenConfirmed == true)
+                throw new BillingSettlementValidationException(
+                    "Uang tunai diterima dan kembalian hanya berlaku untuk metode pembayaran tunai.");
+            return new CashBreakdown(null, null);
+        }
+
+        // Keputusan pemilik modul Billing (17 November 2026): uang tunai diterima WAJIB diisi pada setiap tender tunai,
+        // termasuk pembayaran pas (kasir mengisinya sama dengan Amount; frontend menyediakan tombol "Uang Pas").
+        // Tidak ada lagi asumsi "tunai pas" untuk permintaan tanpa nilai ini. Data historis tidak terpengaruh: ia
+        // tidak lewat jalur ini dan tetap null tanpa kembalian fiktif.
+        if (!request.CashTenderedAmount.HasValue)
+            throw new BillingSettlementValidationException(
+                "Uang tunai diterima wajib diisi untuk pembayaran tunai. "
+                + "Isi sama dengan nominal pembayaran bila pasien membayar dengan uang pas.");
+        var tendered = request.CashTenderedAmount.Value;
+        ValidateMoney(tendered, "Uang tunai diterima");
+        if (tendered < request.Amount)
+            throw new BillingSettlementValidationException(
+                "Uang tunai diterima tidak boleh kurang dari nominal pembayaran tagihan.");
+        var change = tendered - request.Amount;
+        if (change > 0 && request.CashChangeGivenConfirmed != true)
+            throw new BillingSettlementValidationException(
+                "Konfirmasi bahwa kembalian sudah diserahkan kepada pasien wajib diisi "
+                + "sebelum pembayaran tunai dengan kembalian diproses.");
+        return new CashBreakdown(tendered, change);
+    }
+
+    // Tender tersimpan tanpa rincian tunai (non-tunai atau data lama) dibaca sebagai uang diterima = Amount,
+    // sama dengan perlakuan klien lama, sehingga pencocokan percobaan lama tetap berlaku tanpa kembalian fiktif.
+    private static bool CashTenderMatches(BilTender stored, CreateTenderRequest request) =>
+        (stored.CashTenderedAmount ?? stored.Amount) == (request.CashTenderedAmount ?? request.Amount);
 
     private static void ValidateProviderResult(
         Guid tenderId,
@@ -1939,11 +2190,14 @@ public sealed class BillingSettlementService
         _ => throw new BillingSettlementValidationException("Status provider tidak didukung.")
     };
 
+    // CANCELLED terminal: tender yang dibatalkan kasir tidak dapat dihidupkan kembali oleh rekonsiliasi, callback
+    // provider, atau percobaan ulang (ReconcileTenderAsync mengembalikannya sebagai replay tanpa perubahan).
     private static bool IsTerminal(string status) => status is
         BillingTenderStatuses.Succeeded
         or BillingTenderStatuses.Failed
         or BillingTenderStatuses.Expired
-        or BillingTenderStatuses.Reversed;
+        or BillingTenderStatuses.Reversed
+        or BillingTenderStatuses.Cancelled;
 
     private static void RecalculateSettlement(
         BilSettlement settlement,
@@ -1957,6 +2211,10 @@ public sealed class BillingSettlementService
         var reserved = activeTenders
             .Where(x => x.Status is BillingTenderStatuses.Created or BillingTenderStatuses.Pending)
             .Sum(x => x.Amount);
+        // Percobaan yang dibatalkan kasir bukan kegagalan pembayaran: tidak memesan saldo (bukan Created/Pending),
+        // tidak dihitung berhasil, dan tidak membuat settlement berstatus Failed. Bila tidak ada tender lain,
+        // settlement kembali Draft sehingga kasir dapat membuat pembayaran baru.
+        var attemptCount = activeTenders.Count(x => x.Status != BillingTenderStatuses.Cancelled);
         settlement.SuccessfulAmount = successful;
         settlement.Status = successful >= settlement.RequestedAmount
             ? BillingSettlementStatuses.Settled
@@ -1964,7 +2222,7 @@ public sealed class BillingSettlementService
                 ? BillingSettlementStatuses.PartiallySettled
                 : reserved > 0
                     ? BillingSettlementStatuses.InProgress
-                    : activeTenders.Count > 0
+                    : attemptCount > 0
                         ? BillingSettlementStatuses.Failed
                         : BillingSettlementStatuses.Draft;
         settlement.CompletedAt = settlement.Status is BillingSettlementStatuses.Settled
@@ -2030,6 +2288,9 @@ public sealed class BillingSettlementService
                 tender.SettlementId,
                 tender.PaymentMethodId,
                 tender.Amount,
+                tender.CashTenderedAmount,
+                tender.CashChangeAmount,
+                CashChangeGivenConfirmed = request?.CashChangeGivenConfirmed,
                 tender.Status,
                 tender.CorrelationId,
                 ActorUserId = actorUserId,
@@ -2038,6 +2299,72 @@ public sealed class BillingSettlementService
                 ConfirmationNote = request?.ConfirmationNote,
                 RequestCorrelationId = request?.CorrelationId,
                 RequestCausationId = request?.CausationId
+            });
+
+    // Jejak penyerahan kembalian tunai: siapa (ActorUserId), kapan (stempel waktu audit), berapa (neto, uang diterima,
+    // kembalian), dan sumbernya (tender + shift). Dipanggil setelah tender tunai direkonsiliasi sehingga StatusTender
+    // menunjukkan apakah pembayaran benar-benar diposting. Konfirmasi itu sendiri sudah dipaksa backend sebelum
+    // tender disimpan (ResolveCashBreakdown).
+    private Task AuditCashChangeHandedOverAsync(
+        BilTender tender,
+        string tenderStatus,
+        Guid actorUserId,
+        bool isReplay) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingSettlement.CashChangeHandedOver",
+            "Kasir menyatakan kembalian tunai sudah diserahkan kepada pasien; kas shift hanya mencatat pembayaran neto.",
+            new
+            {
+                TenderId = tender.Id,
+                tender.SettlementId,
+                tender.PaymentMethodId,
+                tender.CashierShiftId,
+                SourceType = "TENDER",
+                NetPaymentAmount = tender.Amount,
+                tender.CashTenderedAmount,
+                tender.CashChangeAmount,
+                TenderStatus = tenderStatus,
+                tender.CorrelationId,
+                ActorUserId = actorUserId,
+                IsReplay = isReplay
+            });
+
+    // Jejak pembatalan: siapa (ActorUserId), kapan (CancelledAt dan stempel audit), mengapa (Reason), dan apa yang
+    // dibatalkan (tender, nominal neto, uang diterima, kembalian). `ShiftCashChanged = false` menegaskan bahwa
+    // pembatalan tidak menyentuh SystemCash karena belum pernah ada penerimaan kas dari tender ini.
+    private Task AuditTenderCancelledAsync(
+        BilTender tender,
+        string statusBefore,
+        string reason,
+        CancelTenderRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingSettlement.TenderCancelled",
+            "Kasir membatalkan percobaan pembayaran tunai yang belum direkonsiliasi; tidak ada penerimaan kas dan kas shift tidak berubah.",
+            new
+            {
+                TenderId = tender.Id,
+                tender.SettlementId,
+                tender.PaymentMethodId,
+                tender.KwitansiNumber,
+                StatusBefore = statusBefore,
+                StatusAfter = tender.Status,
+                NetPaymentAmount = tender.Amount,
+                tender.CashTenderedAmount,
+                tender.CashChangeAmount,
+                tender.CashierShiftId,
+                Reason = reason,
+                request.CashCustodyConfirmed,
+                CancelledAt = tender.CancelDateTime,
+                ShiftCashChanged = false,
+                ActorUserId = actorUserId,
+                IdempotencyKey = idempotencyKey,
+                TenderCorrelationId = tender.CorrelationId,
+                RequestCorrelationId = request.CorrelationId,
+                RequestCausationId = request.CausationId
             });
 
     private Task AuditManualCashierConfirmationAsync(
@@ -2085,6 +2412,8 @@ public sealed class BillingSettlementService
                 SettlementStatusBefore = beforeSettlementStatus,
                 SettlementStatusAfter = tender.Settlement.Status,
                 tender.Amount,
+                tender.CashTenderedAmount,
+                tender.CashChangeAmount,
                 tender.ProviderStatusCode,
                 tender.Settlement.SuccessfulAmount,
                 tender.Settlement.AllocatedAmount,
@@ -2146,6 +2475,13 @@ public sealed class BillingSettlementService
             request.ExpectedRowVersion.ToString("N"),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
+        // Segmen uang tunai diterima hanya ditambahkan bila klien mengirimnya, sehingga hash permintaan lama
+        // (tanpa field ini) tidak berubah dan replay idempotent-nya tetap cocok. Dengan segmen ini, dua
+        // permintaan dengan pembayaran neto sama tetapi uang fisik berbeda tidak pernah dianggap replay.
+        // Konfirmasi kembalian sengaja tidak masuk hash: ia gerbang validasi, bukan bagian dari nominal.
+        if (request.CashTenderedAmount.HasValue)
+            canonical += "|CASH_TENDERED:"
+                + request.CashTenderedAmount.Value.ToString("F2", CultureInfo.InvariantCulture);
         return Hash(canonical);
     }
 
@@ -2265,6 +2601,9 @@ public sealed class BillingSettlementService
             PaymentMethodId = tender.PaymentMethodId,
             PaymentMethodAccountId = tender.PaymentMethodAccountId,
             Amount = tender.Amount,
+            // Dibaca apa adanya dari kolom tersimpan: data lama tetap null (tidak ada kembalian fiktif).
+            CashTenderedAmount = tender.CashTenderedAmount,
+            CashChangeAmount = tender.CashChangeAmount,
             Status = tender.Status,
             CashierReferenceNote = tender.CashierReferenceNote,
             KwitansiNumber = tender.KwitansiNumber,
@@ -2272,6 +2611,10 @@ public sealed class BillingSettlementService
             ProviderStatusCode = tender.ProviderStatusCode,
             AttemptedAt = tender.AttemptedAt,
             SettledAt = tender.SettledAt,
+            // Hanya waktu pembatalan yang diekspos; alasan dan petugas tersimpan pada audit.
+            CancelledAt = tender.Status == BillingTenderStatuses.Cancelled && tender.CancelDateTime.HasValue
+                ? new DateTimeOffset(DateTime.SpecifyKind(tender.CancelDateTime.Value, DateTimeKind.Utc))
+                : null,
             CashierShiftId = tender.CashierShiftId,
             RowVersion = tender.RowVersion,
             IsReplay = isReplay,

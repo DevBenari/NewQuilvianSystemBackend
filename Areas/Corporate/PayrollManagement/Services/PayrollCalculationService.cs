@@ -398,6 +398,10 @@ public sealed class PayrollCalculationService
         // ---- Pajak dan iuran karyawan: nilai tetapan profil (rumus belum disahkan -> tidak dihitung otomatis) ----
         var taxAmount = Round(profile.TaxAmount);
         var insuranceAmount = Round(profile.InsuranceAmount);
+        // Nol pada keduanya belum berdasar kebijakan (profil yang disiapkan otomatis dari HRD memulai dari nol). Hanya peringatan: nilai
+        // dan hasil hitung tidak berubah, dan peringatan tidak menahan pengajuan run.
+        if (PayrollProfileRules.IsTaxInsuranceUnset(taxAmount, insuranceAmount))
+            warnings.Add("Tetapan PPh dan iuran pada profil payroll masih nol (belum ditetapkan). Nilai nol belum berdasar kebijakan; tetapkan di profil payroll sebelum run disahkan.");
 
         // ---- Bangun/upsert komponen milik mesin ----
         var produced = new HashSet<(string Code, Guid? SourceId)>();
