@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
 using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Services;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
@@ -48,6 +49,7 @@ public sealed partial class AssetRecordService
                 new() { Value = "name", Label = "Nama Aset" },
                 new() { Value = "inventoryNumber", Label = "Nomor Inventaris" },
                 new() { Value = "acquisitionDate", Label = "Tanggal Perolehan" },
+                new() { Value = "approvedAt", Label = "Tanggal Disetujui" },
                 new() { Value = "recordStatus", Label = "Status" }
             ],
             FlagOptions =
@@ -69,6 +71,8 @@ public sealed partial class AssetRecordService
                 new() { Name = "placementState", Type = "integer", Description = "Lihat flagOptions placementState" },
                 new() { Name = "acquisitionType", Type = "integer", Description = "Lihat flagOptions acquisitionType" },
                 new() { Name = "createdByMe", Type = "boolean", Description = "true = hanya aset yang dibuat pengguna ini", Example = "true" },
+                new() { Name = "approvedFrom", Type = "date", Description = "Tanggal disetujui paling awal (WIB), inklusif", Example = "2026-11-17" },
+                new() { Name = "approvedTo", Type = "date", Description = "Tanggal disetujui paling akhir (WIB), inklusif", Example = "2026-11-17" },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom pengurutan, lihat sortOptions", Example = "createDateTime" },
                 new() { Name = "sortDirection", Type = "string", Description = "asc atau desc", Example = "desc" },
                 new() { Name = "pageNumber", Type = "integer", Description = "Halaman, mulai 1", Example = "1" },
@@ -157,6 +161,18 @@ public sealed partial class AssetRecordService
             query = query.Where(x => x.CreateBy == actor.UserId);
         }
 
+        if (request.ApprovedFrom is { } approvedFrom)
+        {
+            var fromUtc = AppDateTimeHelper.OperationalDateToUtc(approvedFrom.ToDateTime(TimeOnly.MinValue));
+            query = query.Where(x => x.ApprovedAt != null && x.ApprovedAt >= fromUtc);
+        }
+
+        if (request.ApprovedTo is { } approvedTo)
+        {
+            var toUtcExclusive = AppDateTimeHelper.OperationalDateToUtc(approvedTo.AddDays(1).ToDateTime(TimeOnly.MinValue));
+            query = query.Where(x => x.ApprovedAt != null && x.ApprovedAt < toUtcExclusive);
+        }
+
         var keyword = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim().ToUpper();
         if (keyword != null)
         {
@@ -173,6 +189,7 @@ public sealed partial class AssetRecordService
             "name" => descending ? query.OrderByDescending(x => x.AssetName) : query.OrderBy(x => x.AssetName),
             "inventorynumber" => descending ? query.OrderByDescending(x => x.InventoryNumber) : query.OrderBy(x => x.InventoryNumber),
             "acquisitiondate" => descending ? query.OrderByDescending(x => x.AcquisitionDate) : query.OrderBy(x => x.AcquisitionDate),
+            "approvedat" => descending ? query.OrderByDescending(x => x.ApprovedAt) : query.OrderBy(x => x.ApprovedAt),
             "recordstatus" => descending ? query.OrderByDescending(x => x.RecordStatus) : query.OrderBy(x => x.RecordStatus),
             _ => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
         };
@@ -446,6 +463,7 @@ public sealed partial class AssetRecordService
             ActiveProcessKind = x.ActiveProcessKind,
             CreateBy = x.CreateBy,
             SubmittedBy = x.SubmittedBy,
+            ApprovedAt = x.ApprovedAt,
             RejectedAt = x.RejectedAt,
             DecisionReason = x.DecisionReason,
             CreateDateTime = x.CreateDateTime

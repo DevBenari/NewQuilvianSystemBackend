@@ -47,7 +47,7 @@ BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE
 ```text
                BE-AST-008 [BE] ✅ ─┐
                                   │
-FE-AST-004 ✅┬─────────────────────┴─> FE-AST-005
+FE-AST-004 ✅┬─────────────────────┴─> FE-AST-005 ✅
             │
             │    BE-AST-009 [BE] ─┐
             │                     │
@@ -116,18 +116,18 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | ✅ **SELESAI 17 November 2026.** Layar Pencatatan Aset Baru (daftar "draft saya" + formulir buat/ubah, atribut medis bersyarat, Simpan Draft / Simpan & Ajukan) dan Nomor Inventaris (centang, Setujui Terpilih dengan hasil per aset, Setujui/Kembalikan per baris), grup menu "Registrasi & Inventaris". Kelima kriteria terpetakan ke source. `npx eslint --max-warnings=0` 16 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 08:58:57, 4 route `register`). Uji layar Playwright **24/24 langkah** dengan pengaju, penyetuju, dan LOKET; 0 galat halaman. Butuh tambalan daftar `BE-AST-007` (`createdByMe`, `SubmittedBy`, `RejectedAt`, `DecisionReason`), build Rizki berhasil. Belum di-commit. Catatan: kolom Aksi daftar draft perlu digeser pada lebar 1600 px. Laporan: [`FE-AST-003.md`](../task/report/frontend/FE-AST-003.md) |
 | Acceptance criteria | 1. Skema `03-frontend-architecture.md` §3.2 dan §3.3. 2. Atribut medis tampil bila kelompok medis. 3. Persetujuan massal menampilkan hasil per aset. 4. Baris milik pengaju tidak dapat dicentang. 5. Butir menu "Pencatatan Aset Baru" dan "Nomor Inventaris" terdaftar |
 
-### `FE-AST-004` — Daftar inventaris, data perolehan, detail aset
+### ✅ `FE-AST-004` — Daftar inventaris, data perolehan, detail aset
 
 | Field | Isi |
 |---|---|
 | **Status** | ✅ **SELESAI 17 November 2026.** Layar Daftar Inventaris dan Data Perolehan (satu view, dua varian; tanpa rupiah), Detail Aset (Ringkasan, Nilai khusus `ViewAmount`, Linimasa berhalaman, 403 → "Aset ini bukan milik unit Anda."), route pindai `assets/nomor/[nomor]` (lewat pencarian sampai `BE-AST-008` menyediakan `/by-number`), "Lihat detail" di Pencatatan dan Nomor Inventaris, butir menu Data Perolehan + Daftar Inventaris. Keempat kriteria terpetakan ke source. `npx eslint --max-warnings=0` 22 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 09:32:22, 4 route baru). Uji layar Playwright **22/22 langkah** dengan superadmin, penyetuju berizin terbatas, dan LOKET; 0 galat halaman, 0 respons 5xx. Butuh tambalan daftar `BE-AST-007` (`ReadyForUseDate`, `SupplierName`, `GoodsReceiptNumber`, `DonationReference`), build Rizki berhasil. Laporan: [`FE-AST-004.md`](../task/report/frontend/FE-AST-004.md) |
 | Acceptance criteria | 1. Skema §3.1 dan §3.4. 2. Bagian Nilai dirender hanya bila `/amounts` dapat dibaca. 3. 403 menampilkan "Aset ini bukan milik unit Anda." 4. Detail dapat dibuka dari baris tabel dan dari URL pindai |
 
-### `FE-AST-005` — Cetak label QR
+### ✅ `FE-AST-005` — Cetak label QR
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 November 2026.** Layar Label Aset (`register/labels`: saringan unit, kelompok, tanggal disetujui dari/sampai; centang per baris/halaman, pilihan lintas halaman maks 200; **Cetak Label (n)** → PDF backend di tab baru, cadangan unduh bila diblokir), tombol Cetak Label di Detail Aset, layar pindai nomor beralih ke `GET /by-number` (403 unit lain tampil sebagai Akses Ditolak), butir menu "Label Aset". Kedua kriteria terpetakan ke source. `npx eslint --max-warnings=0` 12 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 11:04:19, route `register/labels`). Uji layar Playwright **22/22 langkah** dengan superadmin, penyetuju tanpa `ReadAllUnits`, dan LOKET; 0 galat halaman, 0 respons 5xx; cetak 26 aset lintas halaman → PDF 114.850 byte di tab `blob:`. Butuh tambalan daftar `BE-AST-007` (`approvedFrom`/`approvedTo`, `ApprovedAt`), build Rizki berhasil. Belum di-commit. Laporan: [`FE-AST-005.md`](../task/report/frontend/FE-AST-005.md) |
 | Acceptance criteria | 1. Pilih aset → PDF backend terbuka di tab baru. 2. Butir menu "Label Aset" terdaftar |
 
 ### `FE-AST-006` — Penempatan dan berita acara penyerahan

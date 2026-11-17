@@ -14,6 +14,8 @@ public sealed class AssetPagedQuery
     public AssetPlacementState? PlacementState { get; set; }
     public AssetAcquisitionType? AcquisitionType { get; set; }
     public bool? CreatedByMe { get; set; }
+    public DateOnly? ApprovedFrom { get; set; }
+    public DateOnly? ApprovedTo { get; set; }
     public string SortBy { get; set; } = "createDateTime";
     public string SortDirection { get; set; } = "desc";
     public int PageNumber { get; set; } = 1;
@@ -118,6 +120,7 @@ public sealed class AssetListItemResponse
     public AssetActiveProcessKind ActiveProcessKind { get; set; }
     public Guid CreateBy { get; set; }
     public Guid? SubmittedBy { get; set; }
+    public DateTime? ApprovedAt { get; set; }
     public DateTime? RejectedAt { get; set; }
     public string? DecisionReason { get; set; }
     public DateTime CreateDateTime { get; set; }
