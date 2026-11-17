@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Constants;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Services;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Services;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Services;
 using QuilvianSystemBackend.Attributes;
@@ -13,7 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Co
 
 /// <summary>
 /// Permintaan pengadaan (PR) — draf, daftar, ringkasan, detail, riwayat status (BE-PBJ-006); ajukan,
-/// batal, tarik, dan pilihan baris rencana (BE-PBJ-007).
+/// batal, tarik, dan pilihan baris rencana (BE-PBJ-007); sisa pagu untuk ringkasan form (PBJ-DEC-042).
 /// </summary>
 /// <remarks>
 /// Transaksi ber-lifecycle, bukan master data: tidak ada <c>GET /options</c>,
@@ -34,11 +36,16 @@ public sealed class PurchaseRequestsController : ControllerBase
     private const string Resource = ProcurementPermissions.PurchaseRequestResource;
     private readonly ProcurementPurchaseRequestService _service;
     private readonly ProcurementApprovalTimelineService _approvalTimeline;
+    private readonly ProcurementBudgetService _budgetService;
 
-    public PurchaseRequestsController(ProcurementPurchaseRequestService service, ProcurementApprovalTimelineService approvalTimeline)
+    public PurchaseRequestsController(
+        ProcurementPurchaseRequestService service,
+        ProcurementApprovalTimelineService approvalTimeline,
+        ProcurementBudgetService budgetService)
     {
         _service = service;
         _approvalTimeline = approvalTimeline;
+        _budgetService = budgetService;
     }
 
     [HttpGet("filters/metadata")]
@@ -71,6 +78,14 @@ public sealed class PurchaseRequestsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public Task<IActionResult> GetPlanLineOptions([FromQuery] PlanLineOptionsQuery request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.GetPlanLineOptionsAsync(User, request, cancellationToken), "Pilihan baris rencana berhasil diambil.");
+
+    [HttpGet("budget-remaining")]
+    [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Request", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission(Resource, ProcurementPermissions.ReadAction)]
+    [ProducesResponseType(typeof(ApiResponse<List<BudgetRemainingResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public Task<IActionResult> GetBudgetRemaining([FromQuery] BudgetRemainingQuery request, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _budgetService.GetRemainingForPurchaseRequestAsync(User, request, cancellationToken), "Sisa pagu berhasil diambil.");
 
     [HttpGet("{id:guid}")]
     [AccessAction(ProcurementPermissions.ReadAction, "Read Procurement Request", AccessType = AccessTypes.Read, SortOrder = 1)]

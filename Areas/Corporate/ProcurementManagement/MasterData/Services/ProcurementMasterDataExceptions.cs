@@ -9,8 +9,14 @@ public sealed class ProcurementMasterValidationException(string message) : Excep
 /// <summary>Bentrok dengan data lain, misalnya kode sudah dipakai (HTTP 409).</summary>
 public sealed class ProcurementMasterConflictException(string message) : Exception(message);
 
-/// <summary>Data masih dipakai data lain sehingga tidak dapat dihapus (HTTP 400, standar master data).</summary>
-public sealed class ProcurementMasterInUseException(string message) : Exception(message);
+/// <summary>
+/// Data masih dipakai data lain sehingga tidak dapat dihapus (HTTP 400, standar master data). Respons membawa
+/// <c>errors.code</c> <c>PBJ-VAL-071</c> agar klien dapat mengenali sebabnya (PBJ-DEC-041).
+/// </summary>
+public sealed class ProcurementMasterInUseException(string message) : Exception(message)
+{
+    public string Code { get; } = "PBJ-VAL-071";
+}
 
 internal static class ProcurementMasterDataSupport
 {

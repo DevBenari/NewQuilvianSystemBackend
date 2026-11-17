@@ -64,7 +64,7 @@ layar Playwright dengan aktor non-SuperAdmin; tangkapan layar tercatat pada lapo
 | Gap | Keterangan | Tindakan |
 | --- | --- | --- |
 | ~~`PBJ-OQ-002`~~ | Ditutup 12 November 2026 (`PBJ-DEC-035`) | — |
-| `PBJ-OQ-019` | Nilai matriks dari SOP belum ada; approval memakai baris fallback | Tidak memblokir DoD; diisi lewat konfigurasi `Wfl` |
+| `PBJ-OQ-019` | Nilai matriks dari SOP belum ada; definisi `PBJ-*` tidak aktif tanpa matriks, sehingga pengajuan dijawab `PBJ-VAL-091` (fail-closed, `PBJ-DEC-038`) | Tidak memblokir DoD kode; syarat pemakaian nyata K-1 ([laporan kesiapan](../testing/readiness-report.md)) |
 | ~~`AT-PP-36` (tarik)~~ | Terbukti 16 November 2026 bersama `BE-PBJ-008` | — |
 | `AT-PP-45`, `46` | Komitmen belum punya pemanggil | Diisi data uji DB (`UJI_PBJ`) — `PASS`; pemanggil nyata di `pemilihan-penyedia` |
 | ~~`AT-PP-35` (regresi HR)~~ | Dijalankan 16 November 2026 dengan dokumen HR pengganti; cuti/lembur menunggu master HR (`UAT-16`). Empat bug HR lama tercatat di laporan `BE-PBJ-001` | Pemilik HR |

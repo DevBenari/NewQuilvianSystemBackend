@@ -157,3 +157,57 @@ peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemi
 | Interupsi | `NONE` |
 | Status Git | Belum di-commit. 17 berkas berubah dan 11 jalur baru di backend (lihat `git status --short` pada laporan `BE-PBJ-011`). |
 | Langkah berikutnya | `FE-PBJ-007` |
+
+## Tambahan `PBJ-DEC-042` — 17 November 2026
+
+Dikerjakan sesudah audit kesiapan (`testing/readiness-report.md`, temuan G-06) dan keputusan pengguna 17 November 2026:
+sisa pagu untuk ringkasan layar PR dibaca lewat endpoint PR ber-izin `ProcurementRequest : Read`, sehingga pengusul
+tidak perlu izin baca pagu. `GET budgets/remaining` tetap `ProcurementBudget : Read`. Kontrak API naik ke 1.3.
+
+| Butir | Nilai |
+| --- | --- |
+| Area / Module / Submodule | `Corporate` / `ProcurementManagement` / `Request` (controller) dan `Planning` (service); `Prc`, `ACTIVE` |
+| Keberlakuan | `NEW CODE` |
+| Arketipe endpoint | Transaksi ber-lifecycle; endpoint baca pendukung form (sejenis `plan-line-options`), bukan `GET /options` |
+| QBE yang berlaku | `QBE-API-001`, `QBE-SVC-001`, `QBE-PERM-001`, `QBE-DTO-001` |
+
+#### Corporate / Procurement Management / Request / Purchase Request
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/v1/corporate/procurement-management/purchase-requests/budget-remaining` | Sisa pagu per kategori × sumber dana untuk unit dan tahun PR | `ProcurementRequest : Read` | `BudgetRemainingQuery` (`fiscalYear`, `departmentId`, `itemCategoryId?`, `fundSourceId?`) | `List<BudgetRemainingResponse>`; unit di luar cakupan PR → 404 |
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Planning/Services/ProcurementBudgetService.cs` | `GetRemainingAsync` dipecah: versi publik lama tetap memakai cakupan `ProcurementBudget`; `GetRemainingForPurchaseRequestAsync` memakai cakupan `ProcurementRequest`; logika hitung satu (private) |
+| `Request/Controllers/PurchaseRequestsController.cs` | Endpoint `GET budget-remaining` dengan `[AccessAction]`/`[AccessPermission]` `Read` milik controller PR; injeksi `ProcurementBudgetService` |
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| Build | `dotnet build -c Release`: 0 error, 603 warning; 0 warning di `Areas/Corporate/ProcurementManagement` (build ulang `--no-incremental`) | `PASS` |
+| QBE | `Invoke-QbeConformanceCheck.ps1 -Mode Strict`, 6 berkas yang disentuh `PBJ-DEC-041`/`042`: VIOLATION 0, REVIEW 0, INFO 0 | `PASS` |
+| Migration / DB | Tidak ada perubahan entity atau migration. Uji memakai `QuilvianNewDevSukma` lewat backend uji `https://localhost:7185` | — |
+| `AT-PP-11a` pengusul IGD (hanya `ProcurementRequest : Read, Create`) membaca sisa pagu unitnya | 200; 1 baris kategori Umum × Operasional (`hasBudget = false`, sisa 0 — belum ada pagu disetujui di DB uji) | `PASS` |
+| `AT-PP-11a2` tanpa saringan kategori/sumber dana | 200; daftar kosong | `PASS` |
+| `AT-PP-11b` unit Radiologi (di luar cakupan) | 404 "Pagu tidak ditemukan atau bukan milik unit Anda." | `PASS` |
+| `AT-PP-11c` pengusul memanggil `budgets/remaining` | 403 | `PASS` |
+| `AT-PP-11d` pengusul membuka daftar pagu | 403 | `PASS` |
+| `AT-PP-11e` pengguna tanpa `ProcurementRequest : Read` | 403 | `PASS` |
+| `AT-PP-11f` tanpa `departmentId` | 404 — `Guid` kosong dianggap unit di luar cakupan, sama dengan `budgets/remaining` (bukan 400 seperti dugaan awal skrip uji) | `PASS` |
+| `AT-PP-11g` tanpa login | 401 | `PASS` |
+| `AT-PP-11h` isi dibandingkan `budgets/remaining` untuk kueri yang sama (SuperAdmin) | Identik | `PASS` |
+
+9 skenario, 9 `PASS` (`dec_042_checks.py`). Fixture `TEST-PBJ` DEC042: unit `TEST-PBJ IGD/Radiologi Uji DEC042`,
+dua jabatan, dua akun tanpa role (`reqA` dengan izin PR, `noReq` dengan izin baca barang saja), dan dua policy Akses
+Role — dibersihkan sesudah uji layar `FE-PBJ-004`.
+
+Catatan: pesan 404 menyebut "Pagu tidak ditemukan …" karena logika cakupan dipakai bersama. Bila diinginkan pesan khusus
+PR, cukup diubah di service tanpa perubahan kontrak.
+
+**Catatan DB uji (izin pengguna 17 November 2026).** Pembuatan unit baru di `QuilvianNewDevSukma` sempat gagal 500
+(`23505 IX_MstDepartment_DepartmentCode`). Penyebabnya bug HR lama: `OrganizationController.GenerateDepartmentCodeAsync`
+memilih nomor kosong terkecil hanya dari unit **aktif**, padahal index unik juga memuat unit yang sudah dihapus lunak.
+Nomor `DPT-RSMMC-00030`..`00039` dipegang 10 unit uji `TEST-PBJ` yang dihapus lunak 16 November 2026. Dengan izin
+pengguna, kode 10 unit uji itu diganti menjadi `DPT-RSMMC-000NN-DEL` (SQL `UPDATE`, 10 baris, hanya baris
+`IsDelete = true` bernama `TEST-PBJ%`). Bug generator dilaporkan ke pemilik HR: setiap unit yang dihapus lunak akan
+memblokir pembuatan unit berikutnya.

@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-VAL` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-VAL` · `last_changed_in: 1.1` (`PBJ-DEC-041`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
 | Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-12` |
 | Masukan | `PBJ-DEC-007`..`030`; state matrix `PBJ-PP-STATE` 1.0 |
 
@@ -69,7 +69,7 @@ tanda dan kode kondisi `PBJ_OVER_BUDGET`.
 | Kode | Aturan | Kondisi ditolak | Pesan bagi pengguna | HTTP |
 | --- | --- | --- | --- | --- |
 | `PBJ-VAL-070` | Nama barang unik per jenis-kategori-satuan | Kombinasi nama (tanpa beda huruf besar/kecil), jenis, kategori, dan satuan sudah ada | "Barang serupa sudah ada: {kode} {nama}." | 409 |
-| `PBJ-VAL-071` | Barang terpakai tidak dihapus | Hapus barang yang dirujuk dokumen | "Barang sudah dipakai dan hanya dapat dinonaktifkan." | 409 |
+| `PBJ-VAL-071` | Master terpakai tidak dihapus (barang/jasa, kategori, sumber dana) | Hapus master yang dirujuk dokumen | "Barang/jasa sudah dipakai pada permintaan pengadaan. Nonaktifkan saja agar tidak dipakai lagi." (nama dokumen pemakai disebut) | 400, `errors.code` `PBJ-VAL-071` (1.1, `PBJ-DEC-041`; standar endpoint master data) |
 | `PBJ-VAL-072` | Rujukan obat sesuai jenis | `DrugId` diisi untuk jenis `SERVICE` | "Rujukan obat hanya untuk barang, bukan jasa." | 422 |
 | `PBJ-VAL-080` | Ekstensi diizinkan | Ekstensi di luar daftar | "Jenis berkas tidak diizinkan. Gunakan PDF, JPG, PNG, DOCX, atau XLSX." | 422 |
 | `PBJ-VAL-081` | Isi sesuai ekstensi | Tanda tangan berkas tidak cocok. **Contoh:** `penawaran.pdf` yang isinya HTML | "Isi berkas tidak sesuai dengan jenisnya." | 422 |

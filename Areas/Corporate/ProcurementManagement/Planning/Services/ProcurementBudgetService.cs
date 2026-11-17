@@ -156,9 +156,20 @@ public sealed class ProcurementBudgetService
     /// Sisa pagu per kategori × sumber dana untuk satu unit-tahun, dari versi berlaku yang disetujui.
     /// Kombinasi tanpa pagu tetap muncul bila kategori dan sumber dananya disaring, dengan sisa 0.
     /// </summary>
-    public async Task<List<BudgetRemainingResponse>> GetRemainingAsync(ClaimsPrincipal user, BudgetRemainingQuery request, CancellationToken cancellationToken)
+    public Task<List<BudgetRemainingResponse>> GetRemainingAsync(ClaimsPrincipal user, BudgetRemainingQuery request, CancellationToken cancellationToken) =>
+        GetRemainingAsync(user, request, ProcurementPermissions.BudgetResource, cancellationToken);
+
+    /// <summary>
+    /// Sisa pagu yang sama untuk ringkasan layar PR (PBJ-DEC-042): cakupan unit mengikuti hak baca PR,
+    /// sehingga pengusul melihat sisa pagu unitnya tanpa diberi akses ke dokumen pagu.
+    /// </summary>
+    public Task<List<BudgetRemainingResponse>> GetRemainingForPurchaseRequestAsync(ClaimsPrincipal user, BudgetRemainingQuery request, CancellationToken cancellationToken) =>
+        GetRemainingAsync(user, request, ProcurementPermissions.PurchaseRequestResource, cancellationToken);
+
+    private async Task<List<BudgetRemainingResponse>> GetRemainingAsync(
+        ClaimsPrincipal user, BudgetRemainingQuery request, string scopeResource, CancellationToken cancellationToken)
     {
-        var scope = await _scopeService.ResolveAsync(user, ProcurementPermissions.BudgetResource, cancellationToken);
+        var scope = await _scopeService.ResolveAsync(user, scopeResource, cancellationToken);
         if (!scope.CanSee(request.DepartmentId))
             throw new KeyNotFoundException(NotFoundMessage);
 

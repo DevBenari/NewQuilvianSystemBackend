@@ -499,7 +499,7 @@ Nomor dialokasikan saat **diajukan**, bukan saat draft. Draft yang dibatalkan ti
 | `MstProcurementItemCategory` | Minimal satu: `UMUM` Umum. Daftar lengkap diisi Tim Pengadaan | **[DIKONFIRMASI `PBJ-DEC-033`, `G-07`]** |
 | `MstProcurementFundSource` | `OPERASIONAL` Operasional, `INVESTASI` Investasi | **[NILAI AWAL `G-10`]**, dapat diubah |
 | `MstWorkflowDefinition` + `MstWorkflowStep` | Lima definisi `PBJ-PR`, `PBJ-PR-MENDESAK`, `PBJ-RKB`, `PBJ-RPK`, `PBJ-PAGU` dengan `WorkflowCategory = "Procurement"`, `AllowSelfApproval = false` | Struktur dari `PBJ-DEC-007`; peran dan ambang **menunggu SOP** (`PBJ-OQ-019`, `G-13`) |
-| `MstApprovalMatrix` | Satu baris fallback per langkah (`IsFallback = true`) **[NILAI AWAL]** |
+| `MstApprovalMatrix` | **Tidak di-seed.** Admin mengisi baris penyetuju per langkah dari SOP (`PBJ-OQ-019`), lalu mengaktifkan definisinya. Sebelum itu setiap pengajuan dijawab `PBJ-VAL-091` (fail-closed, lihat bagian 8) | `PBJ-DEC-038` |
 | Izin peran | Butir `[AccessPermission]` Pengadaan untuk peran awal (lihat `contracts/permission-audit-matrix.md`) | Diturunkan seeder izin otomatis |
 
 Konfigurasi lampiran di `appsettings` (pola `HumanResource:WorkflowAttachment:*`):

@@ -5,7 +5,7 @@
 | Field | Nilai |
 | --- | --- |
 | Produk / modul | Quilvian V2 · Pengadaan Barang & Jasa · sub-modul `perencanaan-permintaan` |
-| Dokumen | `PBJ-PP-MVP` · versi `1.0` · status **`approved`** — pengguna sesi, 12 November 2026 (`PBJ-DEC-034`) |
+| Dokumen | `PBJ-PP-MVP` · versi `1.1` · status **`approved`** — pengguna sesi, 12 November 2026 (`PBJ-DEC-034`). Versi 1.1 (17 November 2026): teks `PBJ-OQ-019` diselaraskan dengan `PBJ-DEC-038`, tanpa perubahan scope |
 | Repository target | `NewQuilvianSystemBackend` @`100c011d` (branch `sukmagp`), `V2QuilvianSystemFrontendDev` @`763d665b` (branch `sukmagpV2`) |
 | Masukan | `02-backend-architecture.md`, `03-frontend-architecture.md`, `contracts/*` 1.0, `data/data-dictionary.md`, `flowcharts/*`; `PBJ-DEC-001`..`030` |
 | Cakupan | Dari katalog dan pagu tersedia, unit mengajukan PR, Tim Pengadaan memverifikasi dan mencatat cek stok, sampai PR disetujui berjenjang dan siap dipaketkan; ditambah rencana kebutuhan, revisi, konsolidasi, dan rencana paket |
@@ -271,5 +271,5 @@ pengusul wajib mengisi alasan. Bila tidak diinginkan, kerjakan `MVP-2` sebelum `
 | ~~`PBJ-OQ-031`~~ — ditutup `PBJ-DEC-031` (ikut Platform, `PR-000031`) | — | — | — |
 | ~~`PBJ-OQ-032`~~ — ditutup `PBJ-DEC-032` (grup "Pengaturan Pengadaan") | — | — | — |
 | ~~Konfirmasi `G-04`, `G-05`, `G-07`, `G-08`, `G-11`~~ — ditutup `PBJ-DEC-033` | — | — | — |
-| `PBJ-OQ-019` — nilai awal matriks dari SOP | Pengguna sesi | Approval memakai baris fallback | Tidak |
+| `PBJ-OQ-019` — nilai awal matriks dari SOP | Pengguna sesi | Definisi `PBJ-*` tetap tidak aktif dan tanpa matriks, sehingga setiap pengajuan dijawab `PBJ-VAL-091` (fail-closed, `PBJ-DEC-038`) | Tidak untuk DoD kode; **ya** untuk pemakaian nyata |
 | `PBJ-OQ-015` — SLA dan masa simpan | Pengguna sesi | Tidak ada penghapusan otomatis; SLA langkah memakai nilai bawaan `Wfl` | Tidak |

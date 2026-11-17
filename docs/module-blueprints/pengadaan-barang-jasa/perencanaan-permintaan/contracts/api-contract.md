@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-API` · `last_changed_in: 1.2` (`PBJ-DEC-040`, 2026-11-16) · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-API` · `last_changed_in: 1.3` (`PBJ-DEC-041`, `PBJ-DEC-042`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
 | Pemilik | Pengguna sesi · `approved_by: Pengguna sesi` · `approved_at: 2026-11-12` |
 | Masukan | `02-backend-architecture.md` revisi 2; `PBJ-PP-STATE` 1.0; `PBJ-PP-VAL` 1.0 |
 | Kompatibilitas | Seluruh endpoint baru. **Tidak ada endpoint existing yang diubah.** Perubahan `Wfl` bersifat internal (tanpa endpoint baru) |
@@ -34,6 +34,7 @@ Base URL: `api/v1/corporate/procurement-management/purchase-requests`
 | `POST` | `/{id}/cancel` | Batal oleh pengusul (`DRAFT`, `SUBMITTED`, `RETURNED`, `PENDING_APPROVAL`) | `ProcurementRequest : Cancel` | `CancelPurchaseRequestRequest` | `PurchaseRequestResponse` |
 | `GET` | `/{id}/history` | Riwayat aksi dan status (3.5) | `ProcurementRequest : Read` | — | `List<DocumentHistoryResponse>` |
 | `GET` | `/plan-line-options` | Baris rencana berlaku beserta sisa, untuk barang × unit × tahun | `ProcurementRequest : Create` | `departmentId`, `fiscalYear`, `itemId` | `List<PlanLineQuotaResponse>` |
+| `GET` | `/budget-remaining` | Sisa pagu per kategori × sumber dana untuk unit dan tahun PR; dipakai ringkasan "Sisa pagu" layar PR (1.3, `PBJ-DEC-042`). Unit di luar cakupan → 404 | `ProcurementRequest : Read` | `BudgetRemainingQuery` (`fiscalYear`, `departmentId`, `itemCategoryId?`, `fundSourceId?`) | `List<BudgetRemainingResponse>` |
 | `GET` | `/{id}/approval` | Langkah dan keputusan `Wfl` PR dalam cakupan; `data: null` bila belum diajukan (1.2, `PBJ-DEC-040`) | `ProcurementRequest : Read` | — | `ProcurementApprovalTimelineResponse` |
 
 > **1.2 (`PBJ-DEC-040`, 16 November 2026).** `PurchaseRequestListItem` bertambah `urgencyDeadline`, `lastActionCode`,
@@ -150,7 +151,7 @@ Base URL: `api/v1/corporate/procurement-management/budgets`
 | --- | --- | --- | --- | --- | --- |
 | `GET` | `/` | Daftar pagu berlaku dengan komitmen dan sisa | `ProcurementBudget : Read` | `BudgetQuery` | `PagedResult<BudgetResponse>` |
 | `GET` | `/{id}` | Detail satu versi | `ProcurementBudget : Read` | — | `BudgetResponse` |
-| `GET` | `/remaining` | Sisa pagu untuk tahun × unit × kategori × sumber dana (dipakai layar PR) | `ProcurementRequest : Read` | `BudgetRemainingQuery` | `List<BudgetRemainingResponse>` |
+| `GET` | `/remaining` | Sisa pagu untuk tahun × unit × kategori × sumber dana bagi pemegang izin pagu. Layar PR memakai `purchase-requests/budget-remaining` (1.3, `PBJ-DEC-042`) | `ProcurementBudget : Read` | `BudgetRemainingQuery` | `List<BudgetRemainingResponse>` |
 | `POST` | `/` | Buat pagu | `ProcurementBudget : Create` | `CreateBudgetRequest` | `BudgetResponse` (201) |
 | `PUT` | `/{id}` | Ubah `DRAFT`/`RETURNED` | `ProcurementBudget : Update` | `UpdateBudgetRequest` | `BudgetResponse` |
 | `POST` | `/{id}/submit` | Ajukan | `ProcurementBudget : Submit` | `Idempotency-Key` | `BudgetResponse` |
@@ -171,7 +172,7 @@ Base URL: `api/v1/corporate/procurement-management/master-data/items` — **1.1*
 | `POST` | `/` | Tambah; kode `KTL-…` dibuat server | `ProcurementItem : Create` | `UpsertProcurementItemRequest` | `ProcurementItemResponse` |
 | `PUT` | `/{id}` | Ubah penuh | `ProcurementItem : Update` | `UpsertProcurementItemRequest` | `ProcurementItemResponse` |
 | `PATCH` | `/{id}/status` | Aktif/nonaktif (menggantikan `activate`/`deactivate` versi 1.0) | `ProcurementItem : Update` | `UpdateProcurementMasterStatusRequest` | `ProcurementItemResponse` |
-| `DELETE` | `/{id}` | Hapus lunak; ditolak 400 bila dipakai dokumen (`PBJ-VAL-071`) | `ProcurementItem : Delete` | — | `ProcurementMasterDeleteResponse` |
+| `DELETE` | `/{id}` | Hapus lunak; ditolak 400 dengan `errors.code` `PBJ-VAL-071` bila dipakai dokumen (1.3, `PBJ-DEC-041`) | `ProcurementItem : Delete` | — | `ProcurementMasterDeleteResponse` |
 
 ### Corporate / Procurement Management / Master Data / Item Category
 
@@ -185,7 +186,7 @@ Base URL: `api/v1/corporate/procurement-management/master-data/fund-sources` —
 
 Base URL: `api/v1/corporate/procurement-management/master-data/procurement-types` — **1.1**, hanya baca: `GET /`, `GET /options`, `GET /{id}`; resource `ProcurementType : Read`. Jenis diisi lewat data awal (`PBJ-DEC-024`).
 
-Kode status master: 404 tidak ada/terhapus; 409 kode atau barang serupa sudah ada (`PBJ-VAL-070`); 422 isian tidak sah (`PBJ-VAL-072`); 400 masih dipakai data lain.
+Kode status master: 404 tidak ada/terhapus; 409 kode atau barang serupa sudah ada (`PBJ-VAL-070`); 422 isian tidak sah (`PBJ-VAL-072`); 400 masih dipakai data lain, dengan `errors.code` `PBJ-VAL-071` (1.3, `PBJ-DEC-041`; standar endpoint master data).
 
 ### Corporate / Procurement Management / Common / Attachment
 

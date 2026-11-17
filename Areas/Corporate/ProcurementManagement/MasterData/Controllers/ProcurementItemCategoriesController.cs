@@ -104,7 +104,7 @@ public sealed class ProcurementItemCategoriesController : ControllerBase
     {
         try { return Ok(ApiResponse<T>.Ok(await command(), message)); }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
-        catch (ProcurementMasterInUseException exception) { return BadRequest(ApiResponse<object>.Fail(400, exception.Message)); }
+        catch (ProcurementMasterInUseException exception) { return BadRequest(ApiResponse<object>.Fail(400, exception.Message, new { code = exception.Code })); }
         catch (ProcurementMasterConflictException exception) { return Conflict(ApiResponse<object>.Fail(409, exception.Message)); }
         catch (ProcurementMasterValidationException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)); }
     }

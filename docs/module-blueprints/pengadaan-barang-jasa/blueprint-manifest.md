@@ -7,19 +7,19 @@ module_slug: pengadaan-barang-jasa
 module_prefix: PBJ            # ID dokumen blueprint saja (PBJ-DEC-001, PBJ-OQ-001, PBJ-BE-001, ...)
 entity_prefix: Prc             # PBJ-DEC-035 — terdaftar ACTIVE di registry 2026-11-12
 module_area: Areas/Corporate/ProcurementManagement   # PBJ-DEC-035
-revision: 2                   # rev 2 = desain sub-modul perencanaan-permintaan (12 Nov 2026)
+revision: 2                   # rev 2 = desain sub-modul perencanaan-permintaan (12 Nov 2026); PBJ-DEC-035..042 dibawa versi kontrak sub-modul
 status: partial               # DITURUNKAN: perencanaan-permintaan approved, tiga lainnya NOT_STARTED
-current_phase: PBJ-PH-006     # implementasi perencanaan-permintaan; BE-PBJ-001 siap
+current_phase: PBJ-PH-007     # audit kesiapan perencanaan-permintaan; sign-off menunggu K-1..K-5
 blueprint_shape: COMPOSITE      # PBJ-DEC-004; sub-modul: perencanaan-permintaan, pemilihan-penyedia, manajemen-vendor, kontrak-pelaksanaan (folder dibuat oleh design-business-module)
 shape_decided_by: USER_CONFIRMED
 created_at: 2026-11-12
-updated_at: 2026-11-12
-last_verified_at: null
-backend_source_sha: 100c011d54147bb19ca4bd874fdfb200448ba46a   # branch sukmagp
-frontend_source_sha: 763d665b2db3f31cf370ddba68623dc8aa57cf18  # branch sukmagpV2
+updated_at: 2026-11-17
+last_verified_at: 2026-11-17   # verify-module-readiness: perencanaan-permintaan READY_WITH_CONDITIONS, modul NOT_READY
+backend_source_sha: 9f396063025f71d86f466553cfd8ccfda6e2a545   # branch sukmagp
+frontend_source_sha: 608e46ba4dcb69dd73d0e4ca0600311abfe8ceaa  # branch sukmagpV2
 skill_suite_version: quilvian-engineering-skills 1.19.1
 input_revision_hash: BRD-PRD-PBJ-1.0-DRAFT-2026-11-12   # dokumen BRD & PRD v1.0 dari pengguna (lihat 00-business-overview.md)
-decision_revision: 9          # PBJ-DEC-001..038
+decision_revision: 11         # PBJ-DEC-001..042
 contract_versions: per sub-modul (lihat manifest sub-modul)
 active_dependency_ids: [PBJ-DEP-001, PBJ-DEP-002, PBJ-DEP-003, PBJ-DEP-004, PBJ-DEP-005]
 active_roadmap_revision: perencanaan-permintaan/roadmap rev 1 (2026-11-12)
@@ -30,8 +30,10 @@ submodules:
     status: approved
     approved_by: Pengguna sesi
     approved_at: 2026-11-12
-    contract_versions: "1.0"
+    contract_versions: "1.0 (API 1.3, PERM 1.3, INT 1.1, VAL 1.1, TEST 1.1, MVP 1.1; lihat manifest sub-modul)"
     manifest: perencanaan-permintaan/blueprint-manifest.md
+    readiness: READY_WITH_CONDITIONS
+    readiness_report: perencanaan-permintaan/testing/readiness-report.md
   - slug: pemilihan-penyedia
     prefix: PBJ-PS
     status: NOT_STARTED
@@ -45,6 +47,7 @@ submodules:
     blocked_by: bergantung pemilihan-penyedia
 requirement_readiness: READY_FOR_DOMAIN_DESIGN   # perencanaan-permintaan saja; 02-requirement-completeness-assessment.md rev 2
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN   # alasan di 02-requirement-completeness-assessment.md bagian 6
+module_readiness: NOT_READY   # diturunkan dari sub-modul terlemah: tiga sub-modul NOT_STARTED (2026-11-17)
 ```
 
 ## Catatan identitas

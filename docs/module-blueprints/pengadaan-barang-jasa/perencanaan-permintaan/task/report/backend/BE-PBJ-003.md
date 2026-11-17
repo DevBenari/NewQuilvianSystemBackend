@@ -178,3 +178,48 @@ peran `permission-audit-matrix.md` bagian 3. Konfigurasi approval uji (izin pemi
 
 7 skenario, 7 `PASS`.
 
+## Tambahan `PBJ-DEC-041` — 17 November 2026
+
+Dikerjakan sesudah audit kesiapan (`testing/readiness-report.md`, temuan G-05) dan keputusan pengguna 17 November 2026:
+hapus master yang sudah dipakai **tetap 400** sesuai standar endpoint master data, ditambah `errors.code`
+`PBJ-VAL-071`. `validation-matrix.md` (1.1) dan `AT-PP-51` (`PBJ-PP-TEST` 1.1) diselaraskan ke 400.
+
+| Butir | Nilai |
+| --- | --- |
+| Area / Module / Submodule | `Corporate` / `ProcurementManagement` / `MasterData` (`Mst`, `ACTIVE`) |
+| Keberlakuan | `NEW CODE` (berkas milik task ini) |
+| QBE yang berlaku | `QBE-API-001` (bentuk respons galat), `QBE-SVC-001`, `QBE-PERM-001` (tidak berubah) |
+
+| Berkas | Perubahan |
+| --- | --- |
+| `MasterData/Services/ProcurementMasterDataExceptions.cs` | `ProcurementMasterInUseException` membawa `Code = "PBJ-VAL-071"` |
+| `MasterData/Controllers/ProcurementItemsController.cs`, `ProcurementItemCategoriesController.cs`, `ProcurementFundSourcesController.cs` | Tangkapan `ProcurementMasterInUseException` mengirim `ApiResponse.Fail(400, pesan, new { code })`, pola yang sama dengan `PurchaseRequestsController` |
+
+**Contoh respons:**
+
+```json
+{ "success": false, "statusCode": 400, "message": "Kategori ini tidak dapat dihapus karena masih dipakai katalog barang. Nonaktifkan saja bila tidak dipakai lagi.", "data": null, "errors": { "code": "PBJ-VAL-071" }, "timestamp": "…" }
+```
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| Build | `dotnet build -c Release`: 0 error, 603 warning; 0 warning di `Areas/Corporate/ProcurementManagement` (build ulang `--no-incremental`) | `PASS` |
+| QBE | `Invoke-QbeConformanceCheck.ps1 -Mode Strict`, 6 berkas yang disentuh `PBJ-DEC-041`/`042`: VIOLATION 0, REVIEW 0, INFO 0 | `PASS` |
+| Migration / DB | Tidak ada perubahan entity atau migration. Uji memakai `QuilvianNewDevSukma` lewat backend uji `https://localhost:7185` | — |
+| `AT-PP-51c` hapus kategori yang dipakai katalog | 400; `errors.code = PBJ-VAL-071`; pesan menyebut katalog barang | `PASS` |
+| `AT-PP-51d` kategori tetap ada sesudah ditolak | `GET /{id}` 200 | `PASS` |
+| `AT-PP-51e` regresi: kode kategori ganda | Tetap 409 (`PBJ-VAL-070`) | `PASS` |
+| `AT-PP-51f` hapus barang yang tidak dipakai dokumen | 200 | `PASS` |
+| `AT-PP-51g` hapus kategori yang sudah tidak dipakai | 200 (data uji terhapus lewat API) | `PASS` |
+
+5 skenario, 5 `PASS` (`dec_041_042.py`, sesi 17 November 2026). Jalur barang terpakai PR/rencana/paket dan sumber dana
+terpakai memakai kelas exception dan tangkapan controller yang sama; kasusnya sudah terbukti ditolak di `AT-PP-51b`
+(16 November 2026), sehingga tidak diulang.
+
+**Catatan DB uji (izin pengguna 17 November 2026).** Pembuatan unit baru di `QuilvianNewDevSukma` sempat gagal 500
+(`23505 IX_MstDepartment_DepartmentCode`). Penyebabnya bug HR lama: `OrganizationController.GenerateDepartmentCodeAsync`
+memilih nomor kosong terkecil hanya dari unit **aktif**, padahal index unik juga memuat unit yang sudah dihapus lunak.
+Nomor `DPT-RSMMC-00030`..`00039` dipegang 10 unit uji `TEST-PBJ` yang dihapus lunak 16 November 2026. Dengan izin
+pengguna, kode 10 unit uji itu diganti menjadi `DPT-RSMMC-000NN-DEL` (SQL `UPDATE`, 10 baris, hanya baris
+`IsDelete = true` bernama `TEST-PBJ%`). Bug generator dilaporkan ke pemilik HR: setiap unit yang dihapus lunak akan
+memblokir pembuatan unit berikutnya.

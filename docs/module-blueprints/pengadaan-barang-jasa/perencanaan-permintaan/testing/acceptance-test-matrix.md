@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Kontrak | `PBJ-PP-TEST` · `last_changed_in: 1.0` · status `approved` (`PBJ-DEC-034`) |
+| Kontrak | `PBJ-PP-TEST` · `last_changed_in: 1.1` (`PBJ-DEC-041`, `PBJ-DEC-042`, 2026-11-17) · status `approved` (`PBJ-DEC-034`) |
 | Masukan | `PBJ-PP-API`, `-STATE`, `-VAL`, `-PERM` 1.0 |
 | Kebijakan bukti | Sesuai kebijakan verifikasi repository: **tidak membuat proyek test** dan tidak mensyaratkan `dotnet test`. Bukti berupa build, konformitas QBE, skema EF/basis data, uji API manual (Swagger/HTTP), bukti query basis data, dan uji browser untuk FE |
 
@@ -24,6 +24,7 @@ konformitas.
 | `AT-PP-08` | `PBJ-DEC-020`, UAT-03 BRD | Pengguna IGD membuka PR Radiologi | API, FE | 404; daftar IGD tidak memuat PR Radiologi |
 | `AT-PP-09` | `PBJ-VAL-090` | Dua pengguna mengubah draft yang sama; yang kedua memakai versi lama | API | Yang kedua 409 `PBJ-VAL-090` |
 | `AT-PP-10` | Idempotensi | `submit` dikirim dua kali dengan `Idempotency-Key` sama | API, DB | Satu nomor, satu baris riwayat `SUBMIT` |
+| `AT-PP-11` | `PBJ-DEC-042` | Pengusul IGD yang hanya punya izin PR (tanpa `ProcurementBudget : Read`) mengisi form PR | API, FE | `GET purchase-requests/budget-remaining` 200 untuk unit IGD dan 404 untuk unit lain; `GET budgets/remaining` tetap 403; ringkasan "Sisa pagu" tampil di form |
 
 ## 2. Verifikasi dan cek stok
 
@@ -68,7 +69,7 @@ konformitas.
 | ID | Requirement | Skenario | Jenis | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
 | `AT-PP-50` | `PBJ-DEC-022` | Tambah barang | API, DB | Kode `KTL-…` dari NumberSeries |
-| `AT-PP-51` | `PBJ-VAL-070`, `071` | Barang serupa; hapus barang terpakai | API | 409; 409 |
+| `AT-PP-51` | `PBJ-VAL-070`, `071` | Barang serupa; hapus barang terpakai | API | 409; 400 dengan `errors.code` `PBJ-VAL-071` (1.1, `PBJ-DEC-041`) |
 | `AT-PP-52` | `PBJ-VAL-005` | PR memakai barang nonaktif | API | 422 |
 | `AT-PP-53` | `PBJ-VAL-080`, `081`, UAT-15 BRD | Unggah `.html`; `.pdf` berisi HTML; `.exe` berganti nama | API | 422 semuanya; tidak ada berkas tersimpan |
 | `AT-PP-54` | `PBJ-VAL-082` | Berkas 11 MB | API | 422 |

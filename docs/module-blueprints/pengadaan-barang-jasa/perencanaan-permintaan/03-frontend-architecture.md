@@ -142,7 +142,7 @@ Status ditampilkan sebagai teks label dari `state-transition-matrix.md`, tidak h
 | Tombol Batalkan / Tarik | Sesuai status | `POST /{id}/cancel` | `ProcurementRequest : Cancel` | Konfirmasi wajib + alasan |
 | Pilih barang | Pencarian katalog aktif | `GET /master-data/items/options` | `ProcurementItem : Read` | Kosong → "Barang tidak ada di katalog. Minta Tim Pengadaan menambahkannya." |
 | Baris rencana + sisa | Pilihan baris rencana dan sisanya | `GET /purchase-requests/plan-line-options` | `ProcurementRequest : Create` | Tidak ada rencana → "Tidak ada rencana untuk barang ini; baris akan ditandai di luar rencana." |
-| Sisa pagu | Per kategori | `GET /budgets/remaining` | `ProcurementRequest : Read` | Gagal dimuat → ringkasan disembunyikan; tidak menghalangi pengajuan |
+| Sisa pagu | Per kategori | `GET /purchase-requests/budget-remaining` (`PBJ-DEC-042`) | `ProcurementRequest : Read` | Gagal dimuat → ringkasan disembunyikan; tidak menghalangi pengajuan |
 | Lampiran | Daftar, unggah, unduh | `GET/POST /attachments` | `ProcurementAttachment : Read/Upload` | Kosong → "Belum ada lampiran." |
 | Persetujuan | Langkah dan keputusan | `GET /purchase-requests/{id}/approval` (`PBJ-DEC-040`; dokumen lain memakai endpoint `/{id}/approval` masing-masing) | baca PR (`ProcurementRequest : Read`) | Belum diajukan → "Belum masuk persetujuan." |
 | Riwayat | Linimasa | `GET /purchase-requests/{id}/history` | `ProcurementRequest : Read` | — |
