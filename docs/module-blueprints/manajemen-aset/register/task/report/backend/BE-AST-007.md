@@ -153,6 +153,7 @@ Keputusan teknis di dalam cakupan:
 | 7 | `POST /drafts` → `201` (kontrak §1 "Data baru tersimpan") | `200` | `AssetMasterControllerBase.ExecuteAsync` yang dipakai seluruh modul mengembalikan `200` |
 | 8 | Kartu: `StageDonationAcquisition` | Tidak ada; hibah diantrekan di dalam `CreateForRegisteredAssetAsync` | Delta `BE-AST-015` no. 8 |
 | 9 | Kontrak 2.8: `/labels`, `/by-number`, `/idle` | Tidak dibuat | `BE-AST-008` (label, cari nomor) dan `BE-AST-011` (menganggur) |
+| 10 | `03-frontend-architecture.md` §3.2: `GET /?recordStatus=Draft&createdByMe=true`; §3.3: baris milik pengaju tidak dapat dicentang | **Tambalan 2026-11-17** (atas pilihan Rizki saat `FE-AST-003`): `AssetPagedQuery.CreatedByMe` (saring `CreateBy` = pengguna), dan `AssetListItemResponse` + `CreateBy`, `SubmittedBy`, `RejectedAt`, `DecisionReason`. Metadata daftar ikut memuat `createdByMe`. +15 baris di `AssetRecordDtos.cs` dan `AssetRecordService.Query.cs`; QBE Strict `PASS`; nol komentar; build Rizki 2026-11-17 berhasil (DLL 08:54:22); kolom teramati di respons daftar dan dipakai uji layar `FE-AST-003` | Tanpa kolom ini, layar tidak dapat menyaring "draft saya", menandai draft yang dikembalikan, atau menonaktifkan centang pengaju tanpa membuka rincian per baris. Kolom bukan rupiah, jadi `AST-DES-016` tetap terjaga |
 
 ### 3.4 Dampak kontrak API, database, dan keamanan
 

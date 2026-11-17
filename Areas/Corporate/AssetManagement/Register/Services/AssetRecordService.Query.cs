@@ -68,6 +68,7 @@ public sealed partial class AssetRecordService
                 new() { Name = "condition", Type = "integer", Description = "Lihat flagOptions condition" },
                 new() { Name = "placementState", Type = "integer", Description = "Lihat flagOptions placementState" },
                 new() { Name = "acquisitionType", Type = "integer", Description = "Lihat flagOptions acquisitionType" },
+                new() { Name = "createdByMe", Type = "boolean", Description = "true = hanya aset yang dibuat pengguna ini", Example = "true" },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom pengurutan, lihat sortOptions", Example = "createDateTime" },
                 new() { Name = "sortDirection", Type = "string", Description = "asc atau desc", Example = "desc" },
                 new() { Name = "pageNumber", Type = "integer", Description = "Halaman, mulai 1", Example = "1" },
@@ -149,6 +150,11 @@ public sealed partial class AssetRecordService
         if (request.AcquisitionType is { } acquisitionType)
         {
             query = query.Where(x => x.AcquisitionType == acquisitionType);
+        }
+
+        if (request.CreatedByMe == true)
+        {
+            query = query.Where(x => x.CreateBy == actor.UserId);
         }
 
         var keyword = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim().ToUpper();
@@ -413,6 +419,10 @@ public sealed partial class AssetRecordService
             CurrentCustodianEmployeeId = x.CurrentCustodianEmployeeId,
             CurrentCustodianEmployeeName = x.CurrentCustodianEmployee != null ? x.CurrentCustodianEmployee.FullName : null,
             ActiveProcessKind = x.ActiveProcessKind,
+            CreateBy = x.CreateBy,
+            SubmittedBy = x.SubmittedBy,
+            RejectedAt = x.RejectedAt,
+            DecisionReason = x.DecisionReason,
             CreateDateTime = x.CreateDateTime
         });
 

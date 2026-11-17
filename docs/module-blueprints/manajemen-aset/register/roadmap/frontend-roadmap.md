@@ -33,7 +33,7 @@ REG-FE-S1 ─> REG-FE-S2
 ```text
                                     BE-AST-007 [BE] ✅ ─┐
                                                         │
-BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ─> FE-AST-004
+BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE-AST-003 ✅ ─> FE-AST-004
                                                       │
                                                       │  BE-AST-012 [BE] ─┐
                                                       │                   │
@@ -109,11 +109,11 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | ✅ **SELESAI 16 November 2026.** Keempat acceptance criteria terpetakan ke source; uji layar Playwright 26 langkah lulus (7 daftar, cari, saringan flag/relasi, atur ulang, jumlah baris, rincian bertoken, galat `050`/`051`/`052` per isian, tambah→perbarui→nonaktifkan→hapus, dokumen wajib, pengaturan) dan akun tanpa hak → Akses Ditolak tanpa tombol. `npx eslint --max-warnings=0` `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 14.20.20; route `master-data/[feature]` dan `settings` ada di manifest). Tampilan kode terkunci belum teramati karena belum ada aset bernomor. Laporan: [`FE-AST-002.md`](../task/report/frontend/FE-AST-002.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-02..09` dengan bentuk daftar bersama dan formulir. 2. Pesan `AST-VAL-REG-050..056` tampil per isian. 3. Kode kelompok terkunci menampilkan alasan. 4. Tombol Tambah/Ubah tersembunyi tanpa hak `Create`/`Update` |
 
-### `FE-AST-003` — Pencatatan draft dan persetujuan nomor
+### ✅ `FE-AST-003` — Pencatatan draft dan persetujuan nomor
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 November 2026.** Layar Pencatatan Aset Baru (daftar "draft saya" + formulir buat/ubah, atribut medis bersyarat, Simpan Draft / Simpan & Ajukan) dan Nomor Inventaris (centang, Setujui Terpilih dengan hasil per aset, Setujui/Kembalikan per baris), grup menu "Registrasi & Inventaris". Kelima kriteria terpetakan ke source. `npx eslint --max-warnings=0` 16 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-17 08:58:57, 4 route `register`). Uji layar Playwright **24/24 langkah** dengan pengaju, penyetuju, dan LOKET; 0 galat halaman. Butuh tambalan daftar `BE-AST-007` (`createdByMe`, `SubmittedBy`, `RejectedAt`, `DecisionReason`), build Rizki berhasil. Belum di-commit. Catatan: kolom Aksi daftar draft perlu digeser pada lebar 1600 px. Laporan: [`FE-AST-003.md`](../task/report/frontend/FE-AST-003.md) |
 | Acceptance criteria | 1. Skema `03-frontend-architecture.md` §3.2 dan §3.3. 2. Atribut medis tampil bila kelompok medis. 3. Persetujuan massal menampilkan hasil per aset. 4. Baris milik pengaju tidak dapat dicentang. 5. Butir menu "Pencatatan Aset Baru" dan "Nomor Inventaris" terdaftar |
 
 ### `FE-AST-004` — Daftar inventaris, data perolehan, detail aset
