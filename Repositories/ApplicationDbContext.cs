@@ -47,6 +47,9 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Jour
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -677,6 +680,46 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
         public DbSet<AccSubledgerBalance> AccSubledgerBalances { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
+
+        #region CORPORATE - ASSET MANAGEMENT - MASTER DATA
+        // AST-BP-001 register, BE-AST-002. Delapan master modul Manajemen Aset & Inventaris di
+        // AssetManagement/MasterData (baris registry Mst; transaksi modul memakai Ast). Unit organisasi,
+        // ruangan klinis, badan hukum, dan site tetap milik HR/HealthServices dan hanya dirujuk lewat FK.
+        public DbSet<MstAssetCategory> MstAssetCategories { get; set; }
+        public DbSet<MstAssetClassification> MstAssetClassifications { get; set; }
+        public DbSet<MstAssetGroup> MstAssetGroups { get; set; }
+        public DbSet<MstAssetOwnershipType> MstAssetOwnershipTypes { get; set; }
+        public DbSet<MstAssetDocumentType> MstAssetDocumentTypes { get; set; }
+        public DbSet<MstAssetCategoryDocumentRequirement> MstAssetCategoryDocumentRequirements { get; set; }
+        public DbSet<MstAssetLocation> MstAssetLocations { get; set; }
+        public DbSet<MstAssetSetting> MstAssetSettings { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - MASTER DATA
+
+        #region CORPORATE - ASSET MANAGEMENT - REGISTER
+        // AST-BP-001 register, BE-AST-003. Dua belas tabel transaksi register aset (registry Ast / ACTIVE):
+        // aset, penempatan, penyerahan, laporan kondisi, linimasa, dokumen, lampiran, pemanfaatan, impor.
+        // AstAssetHistory hanya ditulis AssetHistoryService dan tidak pernah diubah atau dihapus (AST-DES-004).
+        public DbSet<AstAsset> AstAssets { get; set; }
+        public DbSet<AstAssetPlacement> AstAssetPlacements { get; set; }
+        public DbSet<AstAssetHandover> AstAssetHandovers { get; set; }
+        public DbSet<AstAssetHandoverItem> AstAssetHandoverItems { get; set; }
+        public DbSet<AstConditionReport> AstConditionReports { get; set; }
+        public DbSet<AstAssetHistory> AstAssetHistories { get; set; }
+        public DbSet<AstAssetDocument> AstAssetDocuments { get; set; }
+        public DbSet<AstAttachment> AstAttachments { get; set; }
+        public DbSet<AstUtilization> AstUtilizations { get; set; }
+        public DbSet<AstUtilizationItem> AstUtilizationItems { get; set; }
+        public DbSet<AstImportBatch> AstImportBatches { get; set; }
+        public DbSet<AstImportBatchRow> AstImportBatchRows { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - REGISTER
+
+        #region CORPORATE - ASSET MANAGEMENT - VALUATION
+        public DbSet<AstValuationParameter> AstValuationParameters { get; set; }
+        public DbSet<AstDepreciationPolicy> AstDepreciationPolicies { get; set; }
+        public DbSet<AstAssetBook> AstAssetBooks { get; set; }
+        public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
+        public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
 
         #endregion CORPORATE
 
@@ -1477,6 +1520,10 @@ namespace QuilvianSystemBackend.Repositories
         #region NURSE VIEW MANAGEMENT
         public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
         public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
+        public DbSet<NvwBedTablet> NvwBedTablets { get; set; }
+        public DbSet<NvwPatientCall> NvwPatientCalls { get; set; }
+        public DbSet<NvwPatientCallEvent> NvwPatientCallEvents { get; set; }
+        public DbSet<NvwPatientCallWaitThreshold> NvwPatientCallWaitThresholds { get; set; }
         #endregion NURSE VIEW MANAGEMENT
 
         #region OPTICAL MANAGEMENT
@@ -1517,6 +1564,8 @@ namespace QuilvianSystemBackend.Repositories
             // Catatan run impor denah tidak diubah setelah dibuat (BE-RWI-237, kamus data 22.2.3).
             if (ChangeTracker.Entries<MstFloorPlanImportRun>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
                 throw new InvalidOperationException("Catatan run impor denah bersifat append-only.");
+            if (ChangeTracker.Entries<AstAssetHistory>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Linimasa aset bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

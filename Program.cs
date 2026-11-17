@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
@@ -1110,6 +1111,14 @@ try
     builder.Services.AddScoped<NvwDeviceContextService>();
     builder.Services.AddScoped<NvwFloorBoardQueryService>();
     builder.Services.AddScoped<NvwRealtimeService>();
+    builder.Services.AddScoped<NvwBedTabletService>();
+    builder.Services.AddScoped<NvwPatientCallWaitThresholdService>();
+    builder.Services.AddScoped<NvwPatientCallQueryService>();
+    builder.Services.AddScoped<NvwBedTabletContextService>();
+    builder.Services.AddScoped<NvwPatientCallService>();
+    builder.Services.AddScoped<NvwPatientCallReconciliationService>();
+
+    builder.Services.AddAssetManagement(builder.Configuration);
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1844,6 +1853,7 @@ try
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
         builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
         builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
+        builder.Services.AddHostedService<NvwPatientCallReconciliationHostedService>();
         builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
         builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
         builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();
@@ -1992,6 +2002,16 @@ try
             policy.RequireAssertion(context =>
                 context.User.HasClaim(claim =>
                     claim.Type == NvwDeviceContextService.DeviceIdClaim &&
+                    !string.IsNullOrWhiteSpace(claim.Value)));
+        });
+
+        options.AddPolicy(AuthorizationPolicies.NurseViewBedTabletAccess, policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+                context.User.HasClaim(claim =>
+                    claim.Type == NvwBedTabletContextService.TabletIdClaim &&
                     !string.IsNullOrWhiteSpace(claim.Value)));
         });
     });

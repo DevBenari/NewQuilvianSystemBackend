@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
@@ -40,17 +41,23 @@ namespace QuilvianSystemBackend.Hubs
         private readonly AccessPermissionService _accessPermissionService;
         private readonly InpBedAccessService _bedAccess;
         private readonly NvwDeviceContextService _nurseViewDeviceContext;
+        private readonly NvwBedTabletContextService _nurseViewBedTabletContext;
+        private readonly NvwPatientCallQueryService _nurseViewPatientCalls;
 
         public QueueHub(
             ApplicationDbContext dbContext,
             AccessPermissionService accessPermissionService,
             InpBedAccessService bedAccess,
-            NvwDeviceContextService nurseViewDeviceContext)
+            NvwDeviceContextService nurseViewDeviceContext,
+            NvwBedTabletContextService nurseViewBedTabletContext,
+            NvwPatientCallQueryService nurseViewPatientCalls)
         {
             _dbContext = dbContext;
             _accessPermissionService = accessPermissionService;
             _bedAccess = bedAccess;
             _nurseViewDeviceContext = nurseViewDeviceContext;
+            _nurseViewBedTabletContext = nurseViewBedTabletContext;
+            _nurseViewPatientCalls = nurseViewPatientCalls;
         }
 
         public async Task JoinInpatientBedSelection(Guid serviceUnitId)
@@ -422,6 +429,86 @@ namespace QuilvianSystemBackend.Hubs
                 NvwRealtimeService.BuildFloorGroupName(floorCode),
                 Context.ConnectionAborted
             );
+        }
+
+        public async Task JoinNurseViewCallConsole(string floorCode)
+        {
+            if (IsDeviceAccount() ||
+                Context.User == null ||
+                !await _accessPermissionService.HasAccessAsync(Context.User, NurseViewPermissions.PatientCall.Resource, NurseViewPermissions.Read))
+            {
+                throw new HubException(NvwMessages.CallConsoleAccessDenied);
+            }
+
+            if (!await _nurseViewPatientCalls.IsKnownFloorAsync(floorCode, Context.ConnectionAborted))
+            {
+                throw new HubException(NvwMessages.ConsoleFloorUnknown);
+            }
+
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildCallConsoleGroupName(floorCode),
+                Context.ConnectionAborted
+            );
+        }
+
+        public async Task LeaveNurseViewCallConsole(string floorCode)
+        {
+            if (string.IsNullOrWhiteSpace(floorCode))
+            {
+                return;
+            }
+
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildCallConsoleGroupName(floorCode),
+                Context.ConnectionAborted
+            );
+        }
+
+        public async Task JoinNurseViewBedTablet()
+        {
+            var resolved = await _nurseViewBedTabletContext.ResolveActiveTabletAsync(
+                GetCurrentUserId(),
+                Context.User?.FindFirstValue(NvwBedTabletContextService.SessionStampClaim),
+                Context.ConnectionAborted
+            );
+
+            if (!resolved.IsSuccess || resolved.Value == null)
+            {
+                throw new HubException(resolved.Message ?? NvwMessages.BedTabletUnavailable);
+            }
+
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildBedTabletGroupName(resolved.Value.Id),
+                Context.ConnectionAborted
+            );
+        }
+
+        public async Task LeaveNurseViewBedTablet()
+        {
+            if (!Guid.TryParse(Context.User?.FindFirstValue(NvwBedTabletContextService.TabletIdClaim), out var tabletId) ||
+                tabletId == Guid.Empty)
+            {
+                return;
+            }
+
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                NvwRealtimeService.BuildBedTabletGroupName(tabletId),
+                Context.ConnectionAborted
+            );
+        }
+
+        private bool IsDeviceAccount()
+        {
+            var user = Context.User;
+
+            return user?.HasClaim("is_queue_display_account", "true") == true ||
+                   user?.HasClaim("profile_type", "QueueDisplayDevice") == true ||
+                   user?.HasClaim("is_nurse_view_account", "true") == true ||
+                   user?.HasClaim(NvwBedTabletContextService.AccountClaim, "true") == true;
         }
 
         private const string NurseViewDeviceRejectedMessage =
