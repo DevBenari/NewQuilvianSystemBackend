@@ -3,13 +3,13 @@
 | Field | Nilai |
 |---|---|
 | Blueprint ID | `nurse-view` |
-| Revision | `1` |
+| Revision | `2` — impact scan 2026-11-05 untuk Amendment revision 5 (tablet bed dan panggilan pasien); lihat [Impact scan revision 2](#impact-scan-revision-2--tablet-bed-dan-panggilan-pasien). Sebelumnya `1` — audit 2026-10-28 |
 | Status | `draft` |
 | Owner | Rizki Gunawan |
-| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `1` — `NV-DEC-004` s.d. `020`, `NV-AC-001` s.d. `016` |
-| Backend SHA | `a6f977a3` (branch `rizkiG`) |
-| Frontend SHA | `76b0c6e4b` (branch `RizkiV2`) |
-| Tanggal audit | 2026-10-28 |
+| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `1` — `NV-DEC-004` s.d. `020`, `NV-AC-001` s.d. `016`; revision `5` (draft) — `NV-DEC-034` s.d. `049`, `NV-AC-028` s.d. `041` untuk impact scan |
+| Backend SHA | `a6f977a3` (revision 1); `0c6eab34` (impact scan revision 2) — branch `rizkiG` |
+| Frontend SHA | `76b0c6e4b` (revision 1); `91a11b08f` (impact scan revision 2) — branch `RizkiV2` |
+| Tanggal audit | 2026-10-28; impact scan 2026-11-05 |
 | Mode | `MODULE BLUEPRINT MODE` — source read-only; hanya `docs/module-blueprints/nurse-view/**` yang ditulis |
 
 Audit ini membaca source dan **tidak mengubah apa pun**. Pertanyaannya satu: untuk setiap isi
@@ -17,6 +17,12 @@ display Nurse View, **data dan kemampuan apa yang sudah ada, dan mana yang benar
 
 Bukti ditulis `repo/path#simbol`. Seluruh bukti backend diambil pada `a6f977a3`, frontend pada
 `76b0c6e4b`.
+
+> **Impact scan revision 2 (2026-11-05).** Bagian revision 1 di bawah tetap berlaku untuk papan
+> pemantauan dan tidak disunting. Kemampuan untuk tablet bed dan panggilan pasien, beserta
+> status baris lama yang berubah karena 14 task MVP, ada di
+> [Impact scan revision 2](#impact-scan-revision-2--tablet-bed-dan-panggilan-pasien). Bukti
+> impact scan diambil pada backend `0c6eab34` dan frontend `91a11b08f`.
 
 ## Batas audit
 
@@ -189,3 +195,188 @@ Peta ini dinyatakan basi dan perlu impact scan terbatas bila salah satu berubah:
 - `QueueHub`, `InpBedRealtimeService`, `AuthController`, policy di `Program.cs`, `proxy.js`;
 - keputusan baru Rawat Inap tentang shift perawat (pengganti `RWI-DEC-100`);
 - SHA backend berbeda dari `a6f977a3` atau SHA frontend berbeda dari `76b0c6e4b`.
+
+## Impact scan revision 2 — tablet bed dan panggilan pasien
+
+| Field | Nilai |
+|---|---|
+| Tanggal | 2026-11-05 |
+| Mode | Impact scan terbatas, source read-only; hanya `docs/module-blueprints/nurse-view/**` yang ditulis |
+| Pemicu | SHA berubah (backend 80 commit, frontend 62 commit sejak revision 1) dan Amendment revision 5 (`NV-DEC-034`–`049`) |
+| Backend SHA | `0c6eab34` (branch `rizkiG`) |
+| Frontend SHA | `91a11b08f` (branch `RizkiV2`) |
+| Kontrak yang berlaku | `0.1.2` — belum ada kontrak untuk panggilan pasien |
+
+Bukti di bagian ini ditulis `repo/path#simbol` pada kedua SHA di atas. `BE` = `NewQuilvianSystemBackend`,
+`FE` = `QuilvianSystemFrontendDev`.
+
+### Batas audit
+
+| Di dalam audit | Di luar audit |
+|---|---|
+| Akun perangkat per bed: pola login, klaim, policy, dan halaman tanpa sidebar | Hardware tablet, mode kiosk browser, dan jaringan Wi-Fi kamar |
+| Pembacaan penempatan Rawat Inap untuk mengunci tablet dan mendeteksi pindah atau pulang | Aturan internal transfer dan pemulangan milik Rawat Inap |
+| Grup realtime `QueueHub` untuk TV, konsol, dan tablet | Bel kabel dan integrasinya (`NV-DEC-037`) |
+| Izin baru untuk Konsol Panggilan lewat Akses Role | Isi data di database bersama |
+| Pola penyimpanan: satu panggilan aktif per bed, klaim bersamaan, kirim ulang | Laporan waktu tanggap (`NV-DEC-049`, slice berikutnya) |
+| Bunyi di browser untuk layar staf | Perilaku runtime di perangkat sungguhan |
+
+### Perubahan sejak revision 1 pada berkas pemicu
+
+| Berkas | Yang berubah | Dampak ke peta revision 1 |
+|---|---|---|
+| `BE/Controllers/AuthController.cs`, `BE/Program.cs`, `BE/Constants/AuthorizationPolicies.cs`, `BE/Hubs/QueueHub.cs` | Penambahan Nurse View sendiri (14 task MVP) dan penambahan modul lain dari integration (antrean admisi, optik, kelengkapan rekam medis) | Tidak mengubah pola yang dipakai Nurse View. Pola login display antrean tetap sama |
+| `FE/src/proxy.js`, `FE/src/lib/hooks/auth/use-base-login.jsx`, `FE/src/lib/realtime/queue-realtime-client.js` | Penambahan Nurse View dan antrean admisi | Sama |
+| `BE/…/InPatientManagement/Services/InpAdmissionTransferService.cs`, `InpDischargeService.Closure.cs` | Penolakan transfer IGD → rawat inap (`BE-IGD-077`) dan kait kelengkapan rekam medis | Tidak menyentuh pengakhiran penempatan bed |
+| `InpBedManagementQueryService`, `InpBedAccessService`, `InpFloorPlanQueryService`, `TrxPatientVitalSign`, `InpatientVitalSignService`, `InpBedRealtimeService` | Tidak berubah | — |
+
+**Status baris revision 1 sesudah 14 task MVP:**
+
+| ID | Status revision 1 | Keadaan sekarang | Bukti |
+|---|---|---|---|
+| `NV-CAP-05` | Conflict | Ditutup `NV-DEC-021`/`033`; header membaca roster dengan cadangan unit periode dan profesi pegawai | `BE/Areas/HealthServices/NurseViewManagement/Services/NvwFloorBoardQueryService.cs` baris 170 (`MapCpptProfessionType`) |
+| `NV-CAP-08` | Missing | Sudah ada | `BE/Areas/HealthServices/NurseViewManagement/Models/NvwVitalSignInterval.cs` |
+| `NV-CAP-12` | Missing | Sudah ada | `BE/Areas/HealthServices/NurseViewManagement/Models/NvwDisplayDevice.cs`; registry `Nvw` `ACTIVE` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 45) |
+| `NV-CAP-13` | Conflict | Ditutup `NV-DEC-030`; sudah diterapkan | `BE/Controllers/AuthController.cs#ResolveNurseViewLoginContextAsync` baris 1882; klaim baris 2062–2070 |
+| `NV-CAP-14` | Extend | Push TTV sudah ada (`NV-DEC-026`) | `BE/Areas/HealthServices/ClinicalManagement/Controllers/PatientVitalSignController.cs` baris 592, 732, 879 memanggil `NvwRealtimeService.NotifyVitalSignChangedAsync` |
+
+### Ringkasan
+
+| Status | Jumlah |
+|---|---:|
+| Ready to reuse | 5 |
+| Reuse with adapter | 4 |
+| Extend | 1 |
+| Missing | 2 |
+| Conflict | 1 |
+| Unknown | 0 sebagai status kemampuan; 2 butir runtime di bagian Unknown |
+
+### Temuan paling menentukan
+
+1. **Akhir penempatan bed tercatat jelas, tetapi tidak ada kabar ke modul lain.** Saat pasien
+   pindah atau pulang, Rawat Inap mengisi `EndDateTime` dan `EndReason` pada `InpBedPlacement`.
+   Tidak ada event di dalam proses yang bisa didengar Nurse View. Satu-satunya siaran,
+   `InpatientBedSelectionChanged`, ditujukan ke layar pengguna dan memuat nama pasien
+   (`NV-DEC-026`). Jadi Nurse View harus **membaca** akhir penempatan sendiri untuk menutup
+   panggilan (`NV-DEC-046`), tanpa mengubah kode Rawat Inap.
+2. **Akun perangkat TV belum membedakan jenis perangkat.** `ResolveActiveDeviceAsync`, policy
+   `NurseViewDisplayRead`, dan `JoinNurseViewFloor` hanya memeriksa "akun ini perangkat Nurse
+   View yang aktif". Bila tablet bed disimpan di tabel perangkat yang sama tanpa pembeda, tablet
+   pasien bisa membaca **seluruh papan lantai** dan bergabung ke grup lantai. Itu membocorkan
+   inisial pasien lain ke tablet di samping bed.
+3. **Endpoint untuk perangkat wajib memakai policy bernama.** Daftar endpoint tanpa penegakan
+   izin sengaja kosong (`PermissionRegistryDescriptor.KnownUnenforcedBusinessEndpoints`). Endpoint
+   tablet tidak bisa memakai `[AccessPermission]`, karena akun perangkat tidak punya peran, jadi
+   ia butuh policy bernama di `AuthorizationPolicies` dan `Program.cs`. Keduanya berkas bersama,
+   sehingga ini memerlukan restu lead (`NV-OQ-028`).
+4. **Izin konsol bisa memakai mekanisme yang ada, dengan satu syarat.** Baris izin di Akses Role
+   dibuat otomatis dari atribut `[AccessPermission]` dan `[AccessAction]` pada endpoint. Izin
+   yang hanya diperiksa di hub, tanpa endpoint REST, tidak akan pernah punya baris untuk
+   dicentang admin.
+5. **Ada sisa prototipe panggilan pasien di frontend.** `nurseCallContext.jsx` dibuat Oktober 2025,
+   menyimpan panggilan di `localStorage` browser, dan sudah tidak dipakai halaman mana pun.
+   Prototipe ini tidak boleh dipakai ulang, karena datanya hanya ada di satu browser.
+
+### Peta kemampuan amendment
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `NV-CAP-17` | Bed → kamar → lantai untuk tablet dan strip TV (`NV-DEC-035`) | Master Data HealthServices | `BE/Areas/HealthServices/MasterData/Models/MstBed.cs#RoomId`; `MstRoom.FloorCode`; pola join di `BE/Areas/HealthServices/NurseViewManagement/Services/NvwRealtimeService.cs#NotifyVitalSignChangedAsync` baris 43–56 | Ready to reuse | Lantai sebuah bed dibaca dari kamarnya, sama seperti papan | Rendah; kamar tanpa `FloorCode` tetap tidak tampil (`NV-UNK-001`) |
+| `NV-CAP-18` | Penghuni aktif satu bed, untuk mengunci tablet atau menampilkan pasiennya (`NV-DEC-046`) | Rawat Inap | `BE/Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs` (`BedId`, `EndDateTime` baris 40, `IsActive`); `BE/Repositories/Configurations/HealthServices/InPatientManagement/InpBedPlacementConfiguration.cs` baris 34–37 (`IX_InpBedPlacement_BedId_Active`, `INV-INP-02`: satu bed paling banyak satu penempatan aktif) | Ready to reuse | Baca penempatan dengan `BedId` tablet dan `EndDateTime IS NULL`. Tidak ada → tablet "Bed belum berpenghuni" | Rendah |
+| `NV-CAP-19` | Deteksi pasien pindah atau pulang untuk menutup panggilan (`NV-DEC-046`) | Rawat Inap | `BE/…/InPatientManagement/Enums/InpBedPlacementEndReason.cs` (`Transfer`, `EpisodeClosed`, `AdmissionCancelled`, `PatientDeparted`, `CorrectedEntry`); pengakhiran di `BE/…/InPatientManagement/Services/InpBedOccupancyService.cs#TransferCoreAsync` (baris 1020), `#ReleaseActivePlacementAsync` (baris 1850), `InpEpisodeService.cs#ReleaseBedHoldsAsync` (baris 1169); `InpBedRealtimeService.cs` hanya menyiarkan ke klien SignalR | Reuse with adapter | Panggilan menyimpan penempatan saat dibuat. Panggilan aktif ditutup bila penempatan itu sudah berakhir; alasannya dipetakan dari `EndReason`. Pemeriksaan dilakukan Nurse View sendiri (saat dibaca dan/atau berkala), tanpa titik terbit baru di kode Rawat Inap. Pola pekerja berkala sudah ada (`BackgroundService`, misalnya `AttendanceSchedulerHostedService`) | Sedang: (1) ada jeda sampai pemeriksaan berikutnya; (2) alasan untuk `AdmissionCancelled` dan `CorrectedEntry` belum diputuskan (`NV-CQ-006`); (3) transfer yang dicatat sebelum pasien benar-benar berpindah (`NV-UNK-006`) |
+| `NV-CAP-20` | Akun perangkat tablet bed: daftar, buat login, atur ulang, nonaktifkan (`NV-DEC-035`) | Nurse View + Platform/Auth | `BE/Areas/HealthServices/NurseViewManagement/Services/NvwDisplayDeviceService.cs#CreateLoginAsync` (baris 235), `#ResetLoginAsync` (307), `#DeactivateAsync` (368); `NvwDeviceContextService.cs#ResolveLoginContextAsync` (baris 33), `#ResolveActiveDeviceAsync` (56, tanpa cek jenis perangkat); `BE/Program.cs` baris 1473–1481 (policy `NurseViewDisplayRead` hanya mensyaratkan klaim `nurse_view_device_id` terisi); `BE/Hubs/QueueHub.cs#JoinNurseViewFloor` (baris 388) | Reuse with adapter | Alur login perangkat ditiru (kata sandi tampil sekali, sesi berstempel, nonaktif langsung ditolak). Perangkat tablet **wajib** terikat ke `BedId` dan dibedakan dari TV, supaya `ResolveActiveDeviceAsync`, `NurseViewDisplayRead`, dan `JoinNurseViewFloor` tidak menerimanya. Endpoint tablet butuh policy bernama sendiri | **Tinggi untuk privasi** bila tablet lolos sebagai TV (temuan no. 2). Menyentuh berkas bersama → `NV-OQ-028` |
+| `NV-CAP-21` | Halaman tablet tanpa sidebar dan pengalihan setelah login | Frontend platform | `FE/src/components/providers/root-layout-shell.jsx` baris 18–20, `FE/src/components/ui/auth-wrapper.jsx` baris 21–23, `FE/src/components/providers/session-activity-manager.jsx` baris 30–32 (daftar prefix `/kiosk`, `/queue-display`, `/nurse-view-display`); `FE/src/proxy.js` baris 3–5; `FE/src/lib/hooks/auth/use-base-login.jsx` | Reuse with adapter | Satu route tablet ditambahkan ke kelima berkas, satu entri per berkas, persis pola `NV-DEC-032` | Berkas bersama → `NV-OQ-028` |
+| `NV-CAP-22` | Izin Konsol Panggilan lewat Akses Role (`NV-DEC-043`) | Platform/Auth + Nurse View | `BE/Attributes/AccessPermissionAttribute.cs`; `BE/Seeders/AccessMenuSeeder.cs` baris 39 (`PermissionRegistryDescriptor.Build`); `BE/Services/Security/PermissionRegistryValidator.cs` (gerbang integritas saat startup, `Program.cs` baris 2355); `BE/Areas/HealthServices/NurseViewManagement/Constants/NurseViewPermissions.cs` | Ready to reuse | Resource baru ditambahkan di `NurseViewPermissions` dan dipasang pada endpoint konsol; baris Akses Role terbit sendiri. Pemeriksaan di hub memakai resource yang sama | Izin yang hanya dicek di hub tanpa endpoint REST tidak punya baris (temuan no. 4). Menyunting Akses Role menimpa seluruh policy peran; ini catatan operasional |
+| `NV-CAP-23` | Grup realtime untuk strip TV, Konsol Panggilan, dan tablet bed | Platform realtime + Nurse View | `BE/…/NurseViewManagement/Services/NvwRealtimeService.cs` (grup `nurse-view-floor:{lantai}`, event `NurseViewBoardChanged` berisi `EventType`, `BedId`, `FloorCode`, `OccurredAtUtc` tanpa identitas); `BE/Hubs/QueueHub.cs#JoinAdmissionQueueBoard` baris 116 (pola join berizin: `RejectQueueDisplayDeviceAccount` + `HasAccessAsync`); `FE/src/lib/realtime/queue-realtime-client.js#joinNurseViewFloor` baris 578; `FE/src/lib/hooks/nurse-view-display/use-nurse-view-floor-board.jsx#scheduleRealtimeLoad` | Extend | (1) Strip TV: grup lantai yang ada bisa dipakai dengan jenis event baru, tetapi TV saat ini memuat ulang **seluruh papan** untuk setiap event, paling sering sekali per 5 detik (`NV-FCT-002`); strip butuh penanganan sendiri. (2) Konsol: join baru berizin untuk pengguna manusia; `JoinNurseViewFloor` menolak akun non-perangkat. (3) Tablet: grup per bed belum ada | `QueueHub` berkas bersama → `NV-OQ-028`. Payload ke TV dan tablet tidak boleh memuat identitas (`NV-DEC-044`) |
+| `NV-CAP-24` | Data panggilan: satu panggilan aktif per bed, klaim bersamaan, kirim ulang tanpa dobel (`NV-DEC-038`–`041`, `NV-AC-039`) | Nurse View (data baru) | Tidak ada entity panggilan (`NV-FCT-003`). Pola yang tersedia: indeks unik berfilter `IX_InpBedPlacement_BedId_Active` (`HasFilter("\"EndDateTime\" IS NULL")`); token konkurensi `Version` di `BE/Repositories/Configurations/HealthServices/NurseViewManagement/NvwDisplayDeviceConfiguration.cs` baris 26; header `Idempotency-Key` di `BE/Areas/Corporate/FinanceManagement/PatientRefund/Controllers/FinancePatientRefundsController.cs` baris 106 dengan indeks unik `IdempotencyKey` | Missing | Entity baru di prefix `Nvw` yang sudah `ACTIVE` (registry baris 45), jadi `QBE-MOD-002` tidak menghalangi. Nama `NurseCall` tidak boleh dipakai (`NV-FCT-004`) | Rendah bila ketiga pola dipakai: tanpa indeks berfilter bisa muncul dua panggilan aktif per bed; tanpa token konkurensi dua klaim bisa sama-sama diterima |
+| `NV-CAP-25` | Jejak klaim, ambil alih, lepas, dan nama pengklaim (`NV-DEC-040`, `049`) | Nurse View (data baru) + Platform | `BE/Models/ApplicationUser.cs` (`DisplayName` baris 12, `EmployeeId` baris 18) | Missing | Tabel jejak baru. Nama pengklaim dibaca dari pengguna yang login, bukan diketik | Rendah |
+| `NV-CAP-26` | Inisial, jenis kelamin, dan umur di Konsol Panggilan (`NV-DEC-044`) | Nurse View | `BE/Areas/HealthServices/NurseViewManagement/Helpers/NvwPatientMasking.cs` (`Initials`, `GenderCode`, `AgeLabel`) | Ready to reuse | Helper yang sama dengan kartu bed, dijalankan di backend | Rendah |
+| `NV-CAP-27` | Bunyi Konsol Panggilan: per panggilan baru, nada Darurat, pengingat, tunda (`NV-DEC-045`) | Frontend | `FE/src/lib/hooks/health-services/registration-management/priority-reservations/use-priority-reservation-list.jsx#playArrivalSound` (bunyi saat event realtime di layar staf, `/audio/queue-dingdong.mp3`); `FE/src/lib/hooks/queue-display/use-queue-display-screen.jsx` baris 530–559, 771 (deteksi autoplay diblokir dan pesan "Klik tombol suara satu kali") | Reuse with adapter | Cara memutar bunyi dan menangani autoplay diblokir ditiru. Nada Darurat, pengulangan pengingat, dan tunda bunyi belum ada | Sedang: browser bisa menolak bunyi sebelum ada klik; konsol perlu tombol "Aktifkan suara" seperti layar antrean |
+| `NV-CAP-28` | Halaman Konsol Panggilan berlogin, dengan menu berizin | Frontend | `FE/src/utils/menu-sidebar/menu-items.jsx` (pola `requiredPermission` dipakai banyak menu); `FE/src/lib/hooks/health-services/registration-management/admission-queues/use-admission-queue-realtime.jsx` baris 39 (join grup berizin dari layar staf) | Ready to reuse | Menu baru dengan `requiredPermission` ke resource konsol | Rendah. Catatan: dua menu Nurse View yang ada (baris 90–98) belum memakai `requiredPermission`; di luar scope amendment |
+| `NV-CAP-29` | Sisa prototipe panggilan pasien di frontend | Frontend (Rizki Gunawan) | `FE/src/lib/helpers/nurseCallContext.jsx` (161 baris; `NurseCallProvider`, `localStorage` kunci `nurseCalls`, `AudioContext`); commit `2c5836d13`, `cedbb656f`, `a626a8569` (Oktober 2025). Halaman `src/app/Display-Nurse-View/**` dan hook `useNurseCall.jsx` dari commit yang sama sudah dihapus; tidak ada `import` yang tersisa | **Conflict** | Tidak boleh dipakai ulang: data panggilan hanya tersimpan di satu browser, tanpa backend dan tanpa izin. Namanya juga memakai `NurseCall` (`NV-FCT-004`) | Developer bisa keliru memakainya sebagai dasar; keputusan hapus atau biarkan → `NV-CQ-007` |
+
+### Kontrak as-is yang terkait
+
+Endpoint di bawah **sudah ada**. Endpoint panggilan pasien belum ada; bentuknya ditetapkan
+`design-business-module`.
+
+#### Health Services / Nurse View Management / Display Device
+
+Base URL: `api/v1/health-services/nurse-view-management/display-devices`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/` | Daftar perangkat display | `NurseViewDisplayDevice : Read` | query saringan dan halaman | `PagedResult<NvwDisplayDeviceResponse>` |
+| `GET` | `/floors` | Pilihan lantai | `NurseViewDisplayDevice : Read` | — | `List<NvwFloorOptionResponse>` |
+| `GET` | `/{id}` | Rincian perangkat | `NurseViewDisplayDevice : Read` | — | `NvwDisplayDeviceDetailResponse` |
+| `POST` | `/` | Daftarkan perangkat | `NurseViewDisplayDevice : Create` | kode, nama, lantai | `NvwDisplayDeviceDetailResponse` |
+| `PUT` | `/{id}` | Ubah perangkat | `NurseViewDisplayDevice : Update` | nama, lokasi, keterangan | `NvwDisplayDeviceDetailResponse` |
+| `POST` | `/{id}/login` | Buat login; kata sandi tampil sekali | `NurseViewDisplayDevice : Update` | — | `NvwDisplayDeviceLoginResponse` |
+| `POST` | `/{id}/login/reset` | Atur ulang login | `NurseViewDisplayDevice : Update` | — | `NvwDisplayDeviceLoginResponse` |
+| `PATCH` | `/{id}/deactivate` | Nonaktifkan perangkat | `NurseViewDisplayDevice : Update` | alasan | `NvwDisplayDeviceDetailResponse` |
+
+Ini pola untuk pengelolaan tablet bed. Bedanya, tablet terikat ke bed, bukan ke lantai.
+
+#### Health Services / Nurse View Management / Display Runtime
+
+Base URL: `api/v1/health-services/nurse-view-management/display-runtime`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/current` | Identitas TV yang sedang login | policy `NurseViewDisplayRead` | — | `NvwDisplayRuntimeCurrentResponse` |
+| `GET` | `/board` | Papan satu lantai | policy `NurseViewDisplayRead` | — | papan per bangsal |
+
+Kode `403` berarti akun bukan perangkat display aktif, atau sesinya sudah diganti login baru.
+**Tablet bed tidak boleh lolos dari kedua endpoint ini** (temuan no. 2).
+
+### Contoh alur panggilan dengan kemampuan yang ada
+
+Pukul 10.00 pasien bed 331-C, lantai 3, menekan Darurat:
+
+1. Tablet 331-C masuk dengan akun perangkatnya. Polanya meniru `NV-CAP-20`, tetapi perangkatnya
+   terikat ke bed 331-C, dan policy-nya terpisah dari TV.
+2. Backend memastikan bed 331-C punya penempatan aktif (`NV-CAP-18`). Hasilnya ada, jadi
+   panggilan dicatat bersama penempatan tersebut. Indeks berfilter menjamin bed itu tidak punya
+   dua panggilan aktif (`NV-CAP-24`).
+3. Lantai 3 dibaca dari kamar 331 (`NV-CAP-17`). Sinyal tanpa identitas dikirim ke grup lantai 3
+   dan grup konsol lantai 3 (`NV-CAP-23`).
+4. Konsol di nurse station berbunyi dengan nada Darurat (`NV-CAP-27`) dan menampilkan
+   "331-C · R.A. · P · 72 th · DARURAT" (`NV-CAP-26`).
+5. Sari dan Dewi menekan "Saya tangani" hampir bersamaan. Token konkurensi hanya menerima yang
+   pertama (`NV-CAP-24`), dan jejak mencatat nama Sari dari akun login-nya (`NV-CAP-25`).
+6. Pukul 10.05 pasien dipindah ke 402-B sebelum Sari tiba. Penempatan 331-C berakhir dengan
+   `EndReason = Transfer`. Pada pemeriksaan berikutnya, Nurse View menutup panggilan dengan alasan
+   "pasien pindah" (`NV-CAP-19`).
+
+### Conflict
+
+| ID | Conflict | Pihak | Yang perlu diputuskan |
+|---|---|---|---|
+| `NV-CON-003` | Prototipe `nurseCallContext.jsx` memakai nama `NurseCall` dan penyimpanan `localStorage`, bertentangan dengan `NV-DEC-039`–`049` (data panggilan di server, satu sumber untuk TV, konsol, dan tablet) | Rizki Gunawan (pembuat dan pemilik modul) | Dihapus dalam task frontend amendment, atau dibiarkan dengan catatan larangan pakai (`NV-CQ-007`). **Ditutup 2026-11-05 — `NV-DEC-051`: dihapus di task frontend amendment** |
+
+### Unknown — hanya terjawab lewat lingkungan berjalan
+
+| ID | Hal | Cara menjawab |
+|---|---|---|
+| `NV-UNK-006` | Apakah petugas mencatat pindah bed tepat saat pasien benar-benar berpindah. Bila dicatat lebih awal, tablet lama terkunci selagi pasien masih di sana | Tanya kepala ruang tentang praktik pencatatan transfer; selama ini bel kabel tetap tersedia (`NV-DEC-037`) |
+| `NV-UNK-007` | Kemampuan tablet: browser yang dipakai, layar selalu menyala, mode kiosk, dan izin bunyi | Uji pada satu tablet contoh sebelum pengadaan |
+
+### Pertanyaan penutup untuk `grill-me` closure pass
+
+| ID | Pertanyaan | Terkait |
+|---|---|---|
+| `NV-CQ-006` | Penempatan juga bisa berakhir karena `AdmissionCancelled` (penempatan dibatalkan) dan `CorrectedEntry` (koreksi salah catat). Alasan penutupan apa yang dicatat untuk keduanya, dan apakah koreksi salah catat juga menutup panggilan? | `NV-CAP-19`, `NV-DEC-046`. **Ditutup 2026-11-05 — `NV-DEC-050`: keduanya tidak menutup panggilan otomatis** |
+| `NV-CQ-007` | Prototipe `nurseCallContext.jsx` dihapus dalam task frontend amendment atau dibiarkan? | `NV-CAP-29`, `NV-CON-003`. **Ditutup 2026-11-05 — `NV-DEC-051`: dihapus** |
+| `NV-CQ-008` | Berapa jeda terlama yang diterima antara pasien pindah atau pulang dan panggilannya tertutup? Contoh: sama dengan muat ulang papan, paling lambat 60 detik | `NV-CAP-19`, `NV-DEC-046`. **Ditutup 2026-11-05 — `NV-DEC-052`: paling lambat 60 detik** |
+
+### Pemicu impact scan berikutnya
+
+Selain pemicu revision 1, bagian ini basi bila salah satu berubah:
+
+- `InpBedPlacement` (`EndDateTime`, `EndReason`), `InpBedPlacementEndReason`, atau indeks
+  `IX_InpBedPlacement_BedId_Active`;
+- `InpBedOccupancyService#TransferCoreAsync`, `#ReleaseActivePlacementAsync`, atau
+  `InpEpisodeService#ReleaseBedHoldsAsync`;
+- `NvwDeviceContextService`, policy `NurseViewDisplayRead`, atau `QueueHub#JoinNurseViewFloor`;
+- `AccessMenuSeeder`, `PermissionRegistryDescriptor`, atau `PermissionRegistryValidator`;
+- SHA backend berbeda dari `0c6eab34` atau SHA frontend berbeda dari `91a11b08f`.

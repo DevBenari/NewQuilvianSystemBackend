@@ -5,6 +5,10 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RehabilitationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Common.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Planning.Models;
+using QuilvianSystemBackend.Areas.Corporate.ProcurementManagement.Request.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
@@ -43,6 +47,9 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Jour
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Models;
+using QuilvianSystemBackend.Areas.Corporate.AssetManagement.Valuation.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -673,6 +680,46 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
         public DbSet<AccSubledgerBalance> AccSubledgerBalances { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
+
+        #region CORPORATE - ASSET MANAGEMENT - MASTER DATA
+        // AST-BP-001 register, BE-AST-002. Delapan master modul Manajemen Aset & Inventaris di
+        // AssetManagement/MasterData (baris registry Mst; transaksi modul memakai Ast). Unit organisasi,
+        // ruangan klinis, badan hukum, dan site tetap milik HR/HealthServices dan hanya dirujuk lewat FK.
+        public DbSet<MstAssetCategory> MstAssetCategories { get; set; }
+        public DbSet<MstAssetClassification> MstAssetClassifications { get; set; }
+        public DbSet<MstAssetGroup> MstAssetGroups { get; set; }
+        public DbSet<MstAssetOwnershipType> MstAssetOwnershipTypes { get; set; }
+        public DbSet<MstAssetDocumentType> MstAssetDocumentTypes { get; set; }
+        public DbSet<MstAssetCategoryDocumentRequirement> MstAssetCategoryDocumentRequirements { get; set; }
+        public DbSet<MstAssetLocation> MstAssetLocations { get; set; }
+        public DbSet<MstAssetSetting> MstAssetSettings { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - MASTER DATA
+
+        #region CORPORATE - ASSET MANAGEMENT - REGISTER
+        // AST-BP-001 register, BE-AST-003. Dua belas tabel transaksi register aset (registry Ast / ACTIVE):
+        // aset, penempatan, penyerahan, laporan kondisi, linimasa, dokumen, lampiran, pemanfaatan, impor.
+        // AstAssetHistory hanya ditulis AssetHistoryService dan tidak pernah diubah atau dihapus (AST-DES-004).
+        public DbSet<AstAsset> AstAssets { get; set; }
+        public DbSet<AstAssetPlacement> AstAssetPlacements { get; set; }
+        public DbSet<AstAssetHandover> AstAssetHandovers { get; set; }
+        public DbSet<AstAssetHandoverItem> AstAssetHandoverItems { get; set; }
+        public DbSet<AstConditionReport> AstConditionReports { get; set; }
+        public DbSet<AstAssetHistory> AstAssetHistories { get; set; }
+        public DbSet<AstAssetDocument> AstAssetDocuments { get; set; }
+        public DbSet<AstAttachment> AstAttachments { get; set; }
+        public DbSet<AstUtilization> AstUtilizations { get; set; }
+        public DbSet<AstUtilizationItem> AstUtilizationItems { get; set; }
+        public DbSet<AstImportBatch> AstImportBatches { get; set; }
+        public DbSet<AstImportBatchRow> AstImportBatchRows { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - REGISTER
+
+        #region CORPORATE - ASSET MANAGEMENT - VALUATION
+        public DbSet<AstValuationParameter> AstValuationParameters { get; set; }
+        public DbSet<AstDepreciationPolicy> AstDepreciationPolicies { get; set; }
+        public DbSet<AstAssetBook> AstAssetBooks { get; set; }
+        public DbSet<AstAssetValueEntry> AstAssetValueEntries { get; set; }
+        public DbSet<AstAccountingOutbox> AstAccountingOutboxes { get; set; }
+        #endregion CORPORATE - ASSET MANAGEMENT - VALUATION
 
         #endregion CORPORATE
 
@@ -1400,6 +1447,34 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RhbDiscipline> RhbDisciplines { get; set; }
         public DbSet<RhbDisciplineProcedure> RhbDisciplineProcedures { get; set; }
         public DbSet<RhbDisciplineInstrument> RhbDisciplineInstruments { get; set; }
+
+        // Pengadaan Barang & Jasa (PBJ-BP-001, prefix Prc — PBJ-DEC-035). BE-PBJ-002: riwayat dokumen bersama.
+        public DbSet<PrcDocumentHistory> PrcDocumentHistories { get; set; }
+
+        // BE-PBJ-003: master Pengadaan.
+        public DbSet<MstProcurementType> MstProcurementTypes { get; set; }
+        public DbSet<MstProcurementItemCategory> MstProcurementItemCategories { get; set; }
+        public DbSet<MstProcurementFundSource> MstProcurementFundSources { get; set; }
+        public DbSet<MstProcurementItem> MstProcurementItems { get; set; }
+
+        // BE-PBJ-004: lampiran dokumen Pengadaan.
+        public DbSet<PrcAttachment> PrcAttachments { get; set; }
+
+        // BE-PBJ-006: permintaan pengadaan (PR) beserta barisnya.
+        public DbSet<PrcPurchaseRequest> PrcPurchaseRequests { get; set; }
+        public DbSet<PrcPurchaseRequestLine> PrcPurchaseRequestLines { get; set; }
+
+        // BE-PBJ-009: rencana kebutuhan tahunan berversi.
+        public DbSet<PrcNeedPlan> PrcNeedPlans { get; set; }
+        public DbSet<PrcNeedPlanLine> PrcNeedPlanLines { get; set; }
+
+        // BE-PBJ-010: pagu berversi dan komitmen pagu.
+        public DbSet<PrcBudget> PrcBudgets { get; set; }
+        public DbSet<PrcBudgetCommitment> PrcBudgetCommitments { get; set; }
+
+        // BE-PBJ-011: rencana paket hasil konsolidasi.
+        public DbSet<PrcPackagePlan> PrcPackagePlans { get; set; }
+        public DbSet<PrcPackagePlanLine> PrcPackagePlanLines { get; set; }
         #endregion REHABILITATION MANAGEMENT
 
         #region MEDICAL CHECKUP MANAGEMENT
@@ -1445,6 +1520,10 @@ namespace QuilvianSystemBackend.Repositories
         #region NURSE VIEW MANAGEMENT
         public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
         public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
+        public DbSet<NvwBedTablet> NvwBedTablets { get; set; }
+        public DbSet<NvwPatientCall> NvwPatientCalls { get; set; }
+        public DbSet<NvwPatientCallEvent> NvwPatientCallEvents { get; set; }
+        public DbSet<NvwPatientCallWaitThreshold> NvwPatientCallWaitThresholds { get; set; }
         #endregion NURSE VIEW MANAGEMENT
 
         #region OPTICAL MANAGEMENT
@@ -1485,6 +1564,8 @@ namespace QuilvianSystemBackend.Repositories
             // Catatan run impor denah tidak diubah setelah dibuat (BE-RWI-237, kamus data 22.2.3).
             if (ChangeTracker.Entries<MstFloorPlanImportRun>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
                 throw new InvalidOperationException("Catatan run impor denah bersifat append-only.");
+            if (ChangeTracker.Entries<AstAssetHistory>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Linimasa aset bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

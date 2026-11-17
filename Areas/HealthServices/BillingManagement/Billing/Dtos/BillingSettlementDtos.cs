@@ -33,10 +33,54 @@ public sealed class CreateTenderRequest
         ParseLimitsInInvariantCulture = true,
         ConvertValueInInvariantCulture = true)]
     public decimal Amount { get; set; }
+
+    /// <summary>
+    /// Uang fisik yang diserahkan pasien. WAJIB untuk metode pembayaran tunai (MstPaymentMethod.IsCash), termasuk
+    /// bila pasien membayar pas (isi sama dengan <see cref="Amount"/>), dan harus &gt;= <see cref="Amount"/>.
+    /// <see cref="Amount"/> tetap nominal pembayaran NETO untuk tagihan. Kembalian dihitung backend
+    /// (tidak ada field kembalian pada request). Metode non-tunai yang mengirim nilai ini ditolak.
+    /// </summary>
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal? CashTenderedAmount { get; set; }
+
+    /// <summary>
+    /// Konfirmasi kasir bahwa kembalian sudah diserahkan kepada pasien. Wajib true bila kembalian
+    /// (CashTenderedAmount - Amount) lebih dari nol; divalidasi backend, bukan hanya frontend. Untuk metode
+    /// non-tunai field ini tidak boleh dikirim.
+    /// </summary>
+    public bool? CashChangeGivenConfirmed { get; set; }
+
     [MaxLength(150)] public string? CashierReferenceNote { get; set; }
     public Guid ExpectedRowVersion { get; set; }
     public bool? IsManualCashierConfirmed { get; set; }
     [MaxLength(500)] public string? ConfirmationNote { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
+/// <summary>
+/// Pembatalan percobaan pembayaran TUNAI yang masih berstatus CREATED. Bukan reversal: tender SUCCEEDED tidak dapat
+/// dibatalkan lewat request ini, dan tender PENDING non-tunai menunggu kepastian penyedia pembayaran.
+/// </summary>
+public sealed class CancelTenderRequest
+{
+    /// <summary>RowVersion tender (bukan settlement) yang dilihat kasir saat memutuskan membatalkan.</summary>
+    public Guid ExpectedRowVersion { get; set; }
+
+    /// <summary>Alasan pembatalan; wajib (bukan hanya spasi) dan tersimpan pada audit bersama petugas dan waktu.</summary>
+    [Required, MaxLength(500)] public string CancellationReason { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Pernyataan kasir bahwa uang pasien dari percobaan ini belum diterima atau sudah dikembalikan seluruhnya,
+    /// sehingga tidak ada uang yang dipegang tanpa pencatatan. Wajib true; divalidasi backend, bukan hanya frontend.
+    /// </summary>
+    public bool CashCustodyConfirmed { get; set; }
+
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
 }
@@ -98,7 +142,16 @@ public sealed class TenderResponse
     public Guid SettlementId { get; set; }
     public Guid PaymentMethodId { get; set; }
     public Guid? PaymentMethodAccountId { get; set; }
+
+    /// <summary>Pembayaran NETO yang diterapkan untuk melunasi tagihan (bukan uang fisik bruto).</summary>
     public decimal Amount { get; set; }
+
+    /// <summary>Uang fisik yang diserahkan pasien; null untuk non-tunai dan tender tunai lama (sebelum kolom ada).</summary>
+    public decimal? CashTenderedAmount { get; set; }
+
+    /// <summary>Kembalian yang diserahkan kasir; null untuk non-tunai dan data lama, 0 untuk tunai pas.</summary>
+    public decimal? CashChangeAmount { get; set; }
+
     public string Status { get; set; } = BillingTenderStatuses.Created;
     public string? CashierReferenceNote { get; set; }
     public string? KwitansiNumber { get; set; }
@@ -106,6 +159,12 @@ public sealed class TenderResponse
     public string? ProviderStatusCode { get; set; }
     public DateTimeOffset AttemptedAt { get; set; }
     public DateTimeOffset? SettledAt { get; set; }
+
+    /// <summary>
+    /// Waktu percobaan dibatalkan kasir; null bila tender tidak dibatalkan. Alasan dan petugas pembatalan tersimpan
+    /// pada audit, tidak diekspos di response pembayaran.
+    /// </summary>
+    public DateTimeOffset? CancelledAt { get; set; }
     public Guid? CashierShiftId { get; set; }
     public Guid RowVersion { get; set; }
     public bool IsReplay { get; set; }

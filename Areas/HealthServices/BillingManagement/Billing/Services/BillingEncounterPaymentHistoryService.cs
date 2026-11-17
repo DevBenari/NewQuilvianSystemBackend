@@ -195,6 +195,8 @@ public sealed class BillingEncounterPaymentHistoryService
                     PaymentChannel = Channel(tender.PaymentMethodId, tender.PaymentMethodAccountId),
                     ProviderReferenceMasked = MaskReference(tender.ProviderReference),
                     Amount = tender.Amount,
+                    CashTenderedAmount = tender.CashTenderedAmount,
+                    CashChangeAmount = tender.CashChangeAmount,
                     Status = tender.Status,
                     StatusName = TenderStatusName(tender.Status),
                     Note = tender.CashierReferenceNote,
@@ -291,6 +293,7 @@ public sealed class BillingEncounterPaymentHistoryService
         BillingTenderStatuses.Failed => "Gagal",
         BillingTenderStatuses.Expired => "Kedaluwarsa",
         BillingTenderStatuses.Reversed => "Dibalik",
+        BillingTenderStatuses.Cancelled => "Dibatalkan",
         BillingTenderStatuses.Created => "Dibuat",
         _ => status
     };

@@ -246,6 +246,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         private readonly IHrdWorkforcePlanningWorkflowIntegrationService
             _workforcePlanningWorkflowIntegrationService;
         private readonly ILogger<WorkflowReferenceLifecycleService> _logger;
+        // Penangan dokumen milik modul di luar HR (BE-PBJ-001). Dipanggil hanya sesudah seluruh
+        // penangan HR di atas tidak cocok, sehingga perilaku HR tidak berubah.
+        private readonly IReadOnlyList<IWorkflowReferenceLifecycleHandler> _registeredHandlers;
 
         public WorkflowReferenceLifecycleService(
             ApplicationDbContext dbContext,
@@ -270,8 +273,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 resignationWorkflowLifecycleService,
             IHrdWorkforcePlanningWorkflowIntegrationService
                 workforcePlanningWorkflowIntegrationService,
-            ILogger<WorkflowReferenceLifecycleService> logger)
+            ILogger<WorkflowReferenceLifecycleService> logger,
+            IEnumerable<IWorkflowReferenceLifecycleHandler> registeredHandlers)
         {
+            _registeredHandlers = registeredHandlers?.ToList()
+                ?? new List<IWorkflowReferenceLifecycleHandler>();
             _dbContext = dbContext;
             _employeeProfileChangeService = employeeProfileChangeService;
             _attendanceCorrectionWorkflowLifecycleService =
@@ -456,6 +462,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         actorUserId,
                         allowAutoApply,
                         cancellationToken);
+            }
+
+            // Penangan modul lain (mis. Pengadaan, ReferenceType berawalan PBJ_). Penangan
+            // pertama yang mengklaim jenis dokumen ini yang dipakai.
+            if (!string.IsNullOrWhiteSpace(workflow.ReferenceType))
+            {
+                var registeredHandler = _registeredHandlers.FirstOrDefault(
+                    x => x.CanHandle(workflow.ReferenceType));
+
+                if (registeredHandler != null)
+                {
+                    return await registeredHandler.SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+                }
             }
 
             return new WorkflowReferenceLifecycleSynchronizationResult
