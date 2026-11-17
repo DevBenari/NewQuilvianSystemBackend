@@ -83,6 +83,8 @@ public static class AssetRegisterMessages
     public const string StatusFormat = "Aset berstatus {0}, sehingga tidak dapat {1}.";
     public const string NotFound = "Aset tidak ditemukan atau sudah dihapus.";
     public const string BatchSize = "Pilih 1 sampai 200 aset untuk disetujui sekaligus.";
+    public const string LabelBatchSize = "Pilih 1 sampai 200 aset untuk dicetak labelnya.";
+    public const string InventoryNumberRequired = "Nomor inventaris wajib diisi, paling panjang 30 karakter.";
     public const string NumberAllocationFailed = "Nomor inventaris belum dapat diterbitkan. Coba lagi beberapa saat.";
     public const string DocumentNumberAllocationFailed = "Nomor dokumen belum dapat diterbitkan. Coba lagi beberapa saat.";
     public const string VersionMismatch = "Data ini baru saja diubah orang lain. Muat ulang lalu coba lagi.";

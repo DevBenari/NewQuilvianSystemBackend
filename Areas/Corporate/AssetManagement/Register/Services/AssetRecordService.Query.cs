@@ -268,6 +268,27 @@ public sealed partial class AssetRecordService
         return detail;
     }
 
+    public async Task<AssetDetailResponse> GetAssetByNumberAsync(string inventoryNumber, CancellationToken cancellationToken = default)
+    {
+        var number = (inventoryNumber ?? string.Empty).Trim().ToUpperInvariant();
+        if (number.Length is < 1 or > 30)
+        {
+            throw AssetManagementException.Invalid(AssetRegisterErrorCodes.Field, AssetRegisterMessages.InventoryNumberRequired);
+        }
+
+        await RequireActorAsync(cancellationToken);
+        var entity = await _entityResolver.ResolveAsync(cancellationToken);
+
+        var id = await _context.AstAssets
+            .AsNoTracking()
+            .Where(x => x.InventoryNumber == number && !x.IsDelete && x.LegalEntityId == entity.LegalEntityId)
+            .Select(x => (Guid?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw NotFound();
+
+        return await GetAssetAsync(id, cancellationToken);
+    }
+
     public async Task<AssetAmountResponse> GetAmountsAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var actor = await RequireActorAsync(cancellationToken);

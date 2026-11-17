@@ -68,6 +68,11 @@ public sealed class AssetBatchApproveRequest
     public List<Guid> AssetIds { get; set; } = [];
 }
 
+public sealed class AssetLabelRequest
+{
+    public List<Guid> AssetIds { get; set; } = [];
+}
+
 public sealed class AssetDecisionResultResponse
 {
     public Guid AssetId { get; set; }

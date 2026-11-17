@@ -36,7 +36,7 @@ BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅
 ```
 
 ```text
-BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008
+BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008 ✅
                      │                  │
       BE-AST-006 ✅ ─┘                  ├─> BE-AST-011
                                         │
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` s.d. `013` belum dikerjakan |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` s.d. `013` belum dikerjakan |
 
 ## Tabel task
 
@@ -148,11 +148,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetsController` (selain `/labels`, `/by-number`), `AssetRecordService`; panggilan `AssetBookService.CreateForRegisteredAsset` dan `AssetAccountingEventService.StageDonationAcquisition` (`BE-AST-015`) |
 | Acceptance criteria | 1. 1–200 draft per permintaan. 2. Atribut medis wajib saat diajukan. 3. Persetujuan: nomor terbit, `Terdaftar`, buku nilai terbentuk, hibah → satu baris kotak keluar. 4. Persetujuan massal per aset transaksi sendiri. 5. Pengaju ≠ penyetuju. 6. Tolak → `Draft` tanpa nomor. 7. Rupiah hanya `/amounts`. 8. Batas unit sesuai `AST-DES-016` |
 
-### `BE-AST-008` — Label QR dan pencarian nomor
+### ✅ `BE-AST-008` — Label QR dan pencarian nomor
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 November 2026.** `AssetLabelDocumentService` (PDF A4 3 × 7 stiker 63,5 × 38,1 mm, default `AST-OQ-016`; QR QRCoder berisi nomor inventaris saja; nomor dan tahun perolehan sebaris), `POST /labels` dan `GET /by-number/{inventoryNumber}` (`AssetRegister : Read`, batas unit `AST-VAL-REG-016`, `/labels` tanpa log audit). QBE Strict `PASS` (6 berkas, dua kali); `dotnet build` Rizki berhasil (DLL 2026-11-17 10:34:00); runtime **13/13** termasuk `AT-REG-13`: 40 label → PDF 2 halaman, 40/40 QR berisi nomor saja (39 terbaca zxing-js, 1 matriks identik referensi). Putaran pertama gagal 500 (`DocumentLayoutException`, lebar kolom 0,28 pt melebihi area cetak), diperbaiki dalam task. Data uji: 29 kursi `AST-MBL-000008..000036`. Belum di-commit. Laporan: [`BE-AST-008.md`](../task/report/backend/BE-AST-008.md) |
 | Cakupan | `AssetLabelDocumentService` (label), endpoint `/labels` dan `/by-number/{inventoryNumber}` |
 | Acceptance criteria | 1. PDF label untuk aset terpilih; QR berisi nomor inventaris saja; tahun perolehan tercetak di samping nomor. 2. `/by-number` mengembalikan aset beserta lokasi tercatat, menghormati batas unit |
 

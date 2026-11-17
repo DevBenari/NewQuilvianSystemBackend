@@ -19,8 +19,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Control
 public sealed class AssetsController : AssetMasterControllerBase
 {
     private readonly AssetRecordService _service;
+    private readonly AssetLabelDocumentService _labelService;
 
-    public AssetsController(AssetRecordService service) => _service = service;
+    public AssetsController(AssetRecordService service, AssetLabelDocumentService labelService)
+    {
+        _service = service;
+        _labelService = labelService;
+    }
 
     [HttpGet("filters/metadata")]
     [AccessAction("Read", "Read Asset Register", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -49,6 +54,30 @@ public sealed class AssetsController : AssetMasterControllerBase
     [ProducesResponseType(typeof(ApiResponse<AssetDetailResponse>), StatusCodes.Status200OK)]
     public Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.GetAssetAsync(id, cancellationToken), "Rincian aset berhasil diambil.");
+
+    [HttpGet("by-number/{inventoryNumber}")]
+    [AccessAction("Read", "Read Asset Register", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AssetRegister", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<AssetDetailResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetByNumber(string inventoryNumber, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.GetAssetByNumberAsync(inventoryNumber, cancellationToken), "Rincian aset berhasil diambil.");
+
+    [HttpPost("labels")]
+    [AccessAction("Read", "Read Asset Register", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AssetRegister", "Read")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, "application/pdf")]
+    public async Task<IActionResult> PrintLabels([FromBody] AssetLabelRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var document = await _labelService.BuildAsync(request, cancellationToken);
+            return File(document.Content, "application/pdf", document.FileName);
+        }
+        catch (AssetManagementException exception)
+        {
+            return StatusCode(exception.StatusCode, ApiResponse<object>.Fail(exception.StatusCode, exception.Message, new { code = exception.Code }));
+        }
+    }
 
     [HttpGet("{id:guid}/amounts")]
     [AccessAction("ViewAmount", "View Asset Amount", AccessType = AccessTypes.Read, SortOrder = 2)]

@@ -34,6 +34,7 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetBookService>();
 
         services.AddScoped<AssetRecordService>();
+        services.AddScoped<AssetLabelDocumentService>();
 
         return services;
     }

@@ -45,9 +45,9 @@ BE-AST-006 [BE] ✅ ─> FE-AST-001 🟡 ─> FE-AST-002 ✅ ─┬─┴─> FE
 `FE-AST-004` muncul lagi sebagai sambungan dari grafik slice `REG-FE-S1`.
 
 ```text
-                 BE-AST-008 [BE] ─┐
+               BE-AST-008 [BE] ✅ ─┐
                                   │
-FE-AST-004 ─┬─────────────────────┴─> FE-AST-005
+FE-AST-004 ✅┬─────────────────────┴─> FE-AST-005
             │
             │    BE-AST-009 [BE] ─┐
             │                     │
