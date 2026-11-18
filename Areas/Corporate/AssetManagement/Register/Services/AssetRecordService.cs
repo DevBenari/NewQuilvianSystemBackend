@@ -216,6 +216,18 @@ public static class AssetRegisterLabels
         _ => value.ToString()
     };
 
+    public static string ImportBatchStatus(ImportBatchStatus value) => value switch
+    {
+        Enums.ImportBatchStatus.Diunggah => "Diunggah",
+        Enums.ImportBatchStatus.GagalValidasi => "Gagal Validasi",
+        Enums.ImportBatchStatus.Tervalidasi => "Tervalidasi",
+        Enums.ImportBatchStatus.DisetujuiBagianAset => "Disetujui Bagian Aset",
+        Enums.ImportBatchStatus.Diterapkan => "Diterapkan",
+        Enums.ImportBatchStatus.Ditolak => "Ditolak",
+        Enums.ImportBatchStatus.Dibatalkan => "Dibatalkan",
+        _ => value.ToString()
+    };
+
     public static string DocumentExpiryState(AssetDocumentExpiryState value) => value switch
     {
         AssetDocumentExpiryState.TanpaMasaBerlaku => "Tanpa Masa Berlaku",

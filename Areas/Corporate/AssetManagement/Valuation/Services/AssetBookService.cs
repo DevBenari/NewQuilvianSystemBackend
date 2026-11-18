@@ -37,6 +37,42 @@ public sealed class AssetBookService
         return book.CapitalizedCost - book.AccumulatedDepreciation - book.AccumulatedImpairment;
     }
 
+    public static string? CheckOpeningBalance(
+        decimal acquisitionCost,
+        decimal accumulatedDepreciation,
+        bool isCapitalizable,
+        bool isDepreciableCategory,
+        decimal capitalizationThreshold,
+        int usefulLifeMonths,
+        decimal residualValuePercent,
+        DateOnly readyForUseDate,
+        DateOnly cutoverDate)
+    {
+        var cost = AssetValuationMoney.Round(acquisitionCost);
+        var isCapitalized = isCapitalizable && cost >= capitalizationThreshold;
+        if (!isCapitalized)
+        {
+            return null;
+        }
+
+        var accumulated = AssetValuationMoney.Round(accumulatedDepreciation);
+        var residual = ResidualFromPercent(cost, residualValuePercent);
+        if (accumulated < 0m || accumulated > cost - residual || (!isDepreciableCategory && accumulated > 0m))
+        {
+            return AssetValuationErrorCodes.OpeningAccumulation;
+        }
+
+        if (!isDepreciableCategory || usefulLifeMonths <= 0)
+        {
+            return null;
+        }
+
+        var elapsed = Math.Max(0, AssetValuationPeriod.MonthsBetween(GetDepreciationStartPeriod(readyForUseDate), AssetValuationPeriod.Of(cutoverDate)));
+        return elapsed >= usefulLifeMonths && cost - accumulated > residual
+            ? AssetValuationErrorCodes.OpeningBalanceExhausted
+            : null;
+    }
+
     public static DateOnly GetDepreciationStartPeriod(DateOnly readyForUseDate) =>
         AssetValuationPeriod.Next(readyForUseDate);
 

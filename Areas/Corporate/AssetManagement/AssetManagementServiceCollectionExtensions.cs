@@ -41,6 +41,8 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetDocumentService>();
         services.AddScoped<AssetUtilizationService>();
         services.AddScoped<AssetAttachmentAccessService>();
+        services.Configure<AssetImportOptions>(configuration.GetSection(AssetImportOptions.SectionName));
+        services.AddScoped<AssetImportService>();
         services.Configure<AssetDailyStatusWorkerOptions>(configuration.GetSection(AssetDailyStatusWorkerOptions.SectionName));
         services.AddHostedService<AssetDailyStatusWorker>();
 

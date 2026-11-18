@@ -5,7 +5,7 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AssetManagement.Register.Services;
 
-public sealed record AssetRegisterSettingValues(int IdleThresholdDays, int DocumentExpiryWarningDays, int UtilizationMaxMonthsForAssetHead);
+public sealed record AssetRegisterSettingValues(int IdleThresholdDays, int DocumentExpiryWarningDays, int UtilizationMaxMonthsForAssetHead, DateOnly? CutoverDate);
 
 public static class AssetRegisterSettingReader
 {
@@ -15,13 +15,14 @@ public static class AssetRegisterSettingReader
         var setting = await context.MstAssetSettings
             .AsNoTracking()
             .Where(x => x.LegalEntityId == legalEntityId && !x.IsDelete)
-            .Select(x => new { x.IdleThresholdDays, x.DocumentExpiryWarningDays, x.UtilizationMaxMonthsForAssetHead })
+            .Select(x => new { x.IdleThresholdDays, x.DocumentExpiryWarningDays, x.UtilizationMaxMonthsForAssetHead, x.CutoverDate })
             .FirstOrDefaultAsync(cancellationToken);
 
         return new AssetRegisterSettingValues(
             setting?.IdleThresholdDays ?? AssetMasterDataService.DefaultIdleThresholdDays,
             setting?.DocumentExpiryWarningDays ?? AssetMasterDataService.DefaultDocumentExpiryWarningDays,
-            setting?.UtilizationMaxMonthsForAssetHead ?? AssetMasterDataService.DefaultUtilizationMaxMonthsForAssetHead);
+            setting?.UtilizationMaxMonthsForAssetHead ?? AssetMasterDataService.DefaultUtilizationMaxMonthsForAssetHead,
+            setting?.CutoverDate);
     }
 
     public static DateOnly Today() => DateOnly.FromDateTime(AppDateTimeHelper.OperationalDate());

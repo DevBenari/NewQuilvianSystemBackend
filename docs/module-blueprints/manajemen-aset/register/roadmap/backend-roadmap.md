@@ -40,7 +40,7 @@ BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008 ✅
                      │                  │
       BE-AST-006 ✅ ─┘                  ├─> BE-AST-011 🟡
                                         │
-                                        ├─> BE-AST-009 ✅┬─> BE-AST-012
+                                        ├─> BE-AST-009 ✅┬─> BE-AST-012 🟡
                                         │               │
                                         │               └──────┐
                                         │                      │
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` 🟡 2026-11-18 (pekerja harian `Disetujui`→`Berjalan` 19 Nov dan `AT-REG-15` positif menyusul); `BE-AST-012`, `013` belum dikerjakan |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` 🟡 2026-11-18 (pekerja harian `Disetujui`→`Berjalan` 19 Nov dan `AT-REG-15` positif menyusul); `BE-AST-012` 🟡 2026-11-18 (menunggu build ulang perbaikan pesan); `BE-AST-013` belum dikerjakan |
 
 ## Tabel task
 
@@ -180,11 +180,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetDocumentService`, `AssetUtilizationService`, `AssetDailyStatusWorker` (bawaan mati), 3 controller (2.12–2.14) |
 | Acceptance criteria | 1. Kelengkapan dokumen per kategori dan dokumen hampir habis menurut pengaturan. 2. Aset menganggur sebagai keadaan turunan. 3. Penyetuju pemanfaatan dihitung dan dikunci saat diajukan (batas dari `nilai`). 4. Aset bukan milik RS ditolak. 5. Pekerja harian memindahkan `Disetujui`→`Berjalan`→`Berakhir` |
 
-### `BE-AST-012` — Impor data awal
+### 🟡 `BE-AST-012` — Impor data awal
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 18 November 2026.** `AssetImportService` (unggah + validasi seluruh baris, setujui data aset, setujui angka dengan validasi ulang lalu penerapan satu transaksi, tolak, batal), `AssetImportWorkbook` (templat 19 kolom + 3 lembar kode, parsing ClosedXML), `AssetImportsController` (11 endpoint), helper `AssetBookService.CheckOpeningBalance`. QBE Strict 12 berkas `PASS`; atribut akses 11/11; nol baris komentar; `dotnet build` Rizki berhasil (DLL 15:02:51). Runtime **33/33**: `AT-REG-43` (2.400 baris, 1 salah → Gagal Validasi, 0 aset), `AT-REG-44` (kedua tahap 403 `067`), `AT-REG-45` (master berubah → 409, 0 aset, batch tetap), `AT-REG-10` pada **30 baris** (30 aset + buku saldo awal, **0 kotak keluar**, cek DB baca-saja); keempat kriteria terbukti. **Belum:** perbaikan format pesan `061` sesudah uji menunggu build ulang. Risiko: penerapan ±189 ms/baris (2.400 baris ±7,5 menit dalam satu request). Kolom templat dan `/rows` = delta. Belum di-commit. Laporan: [`BE-AST-012.md`](../task/report/backend/BE-AST-012.md) |
 | Cakupan | `AssetImportService` (ClosedXML), controller 2.15, templat Excel |
 | Acceptance criteria | 1. Satu baris salah → seluruh berkas `GagalValidasi`. 2. Dua persetujuan, bukan pengunggah. 3. Penerapan satu transaksi: aset `Terdaftar` + `Ditempatkan` + buku saldo awal (`AssetBookService.CreateOpeningBalance`), **tanpa** kotak keluar. 4. Batas 5.000 baris dari konfigurasi |
 

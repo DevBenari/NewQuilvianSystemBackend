@@ -93,6 +93,20 @@ public static class AssetRegisterErrorCodes
     public const string DocumentFields = "AST-VAL-REG-080";
     public const string DocumentNotFound = "AST-DOC-NOT-FOUND";
     public const string DocumentTypeInactive = "AST-DOC-TYPE";
+    public const string ImportTemplate = "AST-VAL-REG-060";
+    public const string ImportMaxRows = "AST-VAL-REG-061";
+    public const string ImportGroup = "AST-VAL-REG-062";
+    public const string ImportPlacement = "AST-VAL-REG-063";
+    public const string ImportAccumulation = "AST-VAL-REG-064";
+    public const string ImportReadyDate = "AST-VAL-REG-065";
+    public const string ImportSerial = "AST-VAL-REG-066";
+    public const string ImportSelfApproval = "AST-VAL-REG-067";
+    public const string ImportCutoverMissing = "AST-VAL-REG-068";
+    public const string ImportNotFound = "AST-IMP-NOT-FOUND";
+    public const string ImportStatus = "AST-IMP-STATUS";
+    public const string ImportRoute = "AST-IMP-ROUTE";
+    public const string ImportOwner = "AST-IMP-OWNER";
+    public const string ImportRevalidate = "AST-IMP-REVALIDATE";
 }
 
 public static class AssetRegisterMessages
@@ -187,4 +201,26 @@ public static class AssetRegisterMessages
     public const string DocumentTypeInactive = "Pilih jenis dokumen yang masih aktif.";
     public const string DocumentAssetMismatch = "Aset pada dokumen tidak dapat diganti. Hapus dokumen ini lalu tambahkan pada aset yang benar.";
     public const string DocumentAssetStatusFormat = "Aset berstatus {0}, sehingga dokumen kepemilikannya tidak dapat diubah.";
+    public const string ImportTemplate = "Berkas harus memakai templat impor aset terbaru.";
+    public const string ImportEmpty = "Berkas tidak berisi baris data. Isi lembar Data Aset mulai baris ke-2.";
+    public const string ImportMaxRowsFormat = "Berkas berisi lebih dari {0:N0} baris. Pecah per unit atau per kelompok.";
+    public const string ImportGroupFormat = "Kode kelompok {0} tidak dikenal atau tidak aktif.";
+    public const string ImportOwnershipFormat = "Kode kepemilikan {0} tidak dikenal atau tidak aktif.";
+    public const string ImportUnitFormat = "Unit {0} tidak dikenal atau tidak aktif.";
+    public const string ImportLocationFormat = "Lokasi {0} bukan milik unit {1}.";
+    public const string ImportCustodianFormat = "Penanggung jawab {0} tidak dikenal atau tidak aktif.";
+    public const string ImportReadyDate = "Tanggal siap pakai sesudah tanggal awal.";
+    public const string ImportSerial = "Nomor seri sudah dipakai aset lain.";
+    public const string ImportSelfApproval = "Anda tidak dapat menyetujui berkas yang Anda unggah sendiri.";
+    public const string ImportCutoverMissing = "Tanggal awal belum diatur. Isi di Pengaturan Aset sebelum mengimpor.";
+    public const string ImportRequiredFormat = "{0} wajib diisi.";
+    public const string ImportDateFormat = "{0} bukan tanggal yang sah.";
+    public const string ImportAmountFormat = "{0} bukan angka rupiah yang sah.";
+    public const string ImportYear = "Tahun pembuatan harus empat angka dan tidak di masa depan.";
+    public const string ImportLengthFormat = "{0} paling panjang {1} karakter.";
+    public const string ImportNotFound = "Batch impor tidak ditemukan.";
+    public const string ImportStatusFormat = "Batch impor berstatus {0}, sehingga tidak dapat {1}.";
+    public const string ImportRejectAtAccounting = "Batch sudah disetujui Kepala Bagian Aset. Penolakan dilakukan lewat keputusan Akuntansi.";
+    public const string ImportOwner = "Hanya pengunggah yang dapat membatalkan batch ini.";
+    public const string ImportRevalidateFormat = "Batch tidak dapat diterapkan karena data master berubah. Baris {0}: {1}";
 }

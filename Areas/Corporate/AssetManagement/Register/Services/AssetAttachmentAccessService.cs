@@ -52,6 +52,7 @@ public sealed class AssetAttachmentAccessService
             AssetDocumentService.DocumentOwnerType => await CanOpenDocumentAsync(attachment.Id, attachment.OwnerId, actor, entity.LegalEntityId, cancellationToken),
             AssetUtilizationService.UtilizationOwnerType => await CanOpenUtilizationAsync(attachment.Id, attachment.OwnerId, actor, entity.LegalEntityId, cancellationToken),
             AssetConditionService.ConditionReportDocumentType => await CanOpenConditionReportAsync(attachment.Id, attachment.OwnerId, actor, entity.LegalEntityId, cancellationToken),
+            AssetImportService.ImportOwnerType => await CanOpenImportAsync(attachment.Id, attachment.OwnerId, cancellationToken),
             _ => (bool?)null
         };
 
@@ -121,6 +122,19 @@ public sealed class AssetAttachmentAccessService
             (actor.EmployeeId is { } employeeId && report.CurrentCustodianEmployeeId == employeeId) ||
             report.ReportedBy == actor.UserId;
         return await HasAccessAsync(AssetConditionService.PermissionResource) && visible;
+    }
+
+    private async Task<bool?> CanOpenImportAsync(Guid attachmentId, Guid batchId, CancellationToken cancellationToken)
+    {
+        var exists = await _context.AstImportBatches
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == batchId && x.FileAttachmentId == attachmentId && !x.IsDelete, cancellationToken);
+        if (!exists)
+        {
+            return null;
+        }
+
+        return await HasAccessAsync(AssetImportService.PermissionResource);
     }
 
     private async Task<bool> HasAccessAsync(string resource)
