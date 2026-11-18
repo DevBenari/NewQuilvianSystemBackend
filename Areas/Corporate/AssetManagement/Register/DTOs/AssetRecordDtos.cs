@@ -16,10 +16,30 @@ public sealed class AssetPagedQuery
     public bool? CreatedByMe { get; set; }
     public DateOnly? ApprovedFrom { get; set; }
     public DateOnly? ApprovedTo { get; set; }
+    public bool? IsIdle { get; set; }
     public string SortBy { get; set; } = "createDateTime";
     public string SortDirection { get; set; } = "desc";
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 25;
+}
+
+public sealed class AssetIdleItemResponse
+{
+    public Guid Id { get; set; }
+    public string? InventoryNumber { get; set; }
+    public string AssetName { get; set; } = string.Empty;
+    public string? GroupName { get; set; }
+    public string? CategoryName { get; set; }
+    public Guid? CurrentOrganizationUnitId { get; set; }
+    public string? CurrentOrganizationUnitName { get; set; }
+    public string? CurrentLocationName { get; set; }
+    public string? CurrentCustodianEmployeeName { get; set; }
+    public AssetCondition Condition { get; set; }
+    public string ConditionName { get; set; } = string.Empty;
+    public AssetActiveProcessKind ActiveProcessKind { get; set; }
+    public DateTime IdleSince { get; set; }
+    public int IdleDays { get; set; }
+    public int IdleThresholdDays { get; set; }
 }
 
 public sealed class AssetHistoryPagedQuery

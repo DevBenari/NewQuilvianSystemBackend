@@ -80,6 +80,19 @@ public static class AssetRegisterErrorCodes
     public const string AttachmentEmpty = "AST-ATT-EMPTY";
     public const string AttachmentNotFound = "AST-ATT-NOT-FOUND";
     public const string ProcessLockNotOwned = "AST-LOCK-NOT-OWNED";
+    public const string UtilizationAssetIneligible = "AST-VAL-REG-040";
+    public const string UtilizationDates = "AST-VAL-REG-041";
+    public const string UtilizationAgreement = "AST-VAL-REG-042";
+    public const string UtilizationType = "AST-VAL-REG-043";
+    public const string UtilizationNotHospitalOwned = "AST-VAL-REG-044";
+    public const string UtilizationApprover = "AST-VAL-REG-045";
+    public const string UtilizationNotFound = "AST-UTL-NOT-FOUND";
+    public const string UtilizationStatus = "AST-UTL-STATUS";
+    public const string UtilizationRoute = "AST-UTL-ROUTE";
+    public const string UtilizationOwner = "AST-UTL-OWNER";
+    public const string DocumentFields = "AST-VAL-REG-080";
+    public const string DocumentNotFound = "AST-DOC-NOT-FOUND";
+    public const string DocumentTypeInactive = "AST-DOC-TYPE";
 }
 
 public static class AssetRegisterMessages
@@ -148,4 +161,30 @@ public static class AssetRegisterMessages
     public const string ConditionLossReportOnlyLost = "Berita acara kehilangan hanya dilampirkan pada laporan hilang.";
     public const string ConditionDocumentStatus = "Berita acara kehilangan tersedia setelah status hilang disetujui.";
     public const string ConditionAssetStatusFormat = "Aset berstatus {0}, sehingga kondisinya tidak dapat dilaporkan.";
+    public const string UtilizationAssetIneligibleFormat = "Aset {0} tidak dapat dimanfaatkan karena {1}.";
+    public const string UtilizationDates = "Tanggal berakhir harus sesudah tanggal mulai.";
+    public const string UtilizationDatesRequired = "Tanggal mulai dan tanggal berakhir wajib diisi.";
+    public const string UtilizationAgreement = "Nama mitra, nomor perjanjian, dan nilai perjanjian wajib diisi.";
+    public const string UtilizationAgreementLength = "Nama mitra paling panjang 200 karakter, nomor perjanjian 100 karakter, dan tujuan 1000 karakter.";
+    public const string UtilizationAgreementValue = "Nilai perjanjian tidak boleh negatif dan paling banyak 2 angka desimal.";
+    public const string UtilizationType = "Pilih jenis pemanfaatan: sewa, kerja sama operasional, atau pinjam pakai.";
+    public const string UtilizationNotHospitalOwnedFormat = "Aset {0} bukan milik rumah sakit, sehingga tidak dapat dimanfaatkan ke pihak lain.";
+    public const string UtilizationApproverFormat = "Pemanfaatan ini harus disetujui {0}.";
+    public const string UtilizationSelfDecision = "Anda tidak dapat memutuskan pengajuan pemanfaatan Anda sendiri.";
+    public const string UtilizationForwardNotNeeded = "Pemanfaatan ini cukup disetujui Kepala Bagian Aset, sehingga tidak perlu diteruskan ke Direktur.";
+    public const string UtilizationRejectAtDirector = "Pemanfaatan ini menunggu Direktur. Penolakan dilakukan lewat keputusan Direktur.";
+    public const string UtilizationAssetCount = "Pilih 1 sampai 200 aset yang akan dimanfaatkan.";
+    public const string UtilizationNotFound = "Pemanfaatan tidak ditemukan.";
+    public const string UtilizationStatusFormat = "Pemanfaatan berstatus {0}, sehingga tidak dapat {1}.";
+    public const string UtilizationOwner = "Hanya pembuat pengajuan yang dapat mengubah atau membatalkannya.";
+    public const string UtilizationEndedBySchedule = "Masa pemanfaatan berakhir sesuai tanggal perjanjian.";
+    public const string UtilizationAssetNotFound ="Sebagian aset yang dipilih tidak ditemukan atau sudah dihapus.";
+    public const string DocumentFields = "Nomor dokumen wajib diisi; dokumen jenis ini wajib punya tanggal berakhir.";
+    public const string DocumentFieldLength = "Nomor dokumen paling panjang 100 karakter, atas nama 200 karakter, dan catatan 500 karakter.";
+    public const string DocumentDates = "Tanggal terbit tidak boleh sesudah tanggal berakhir.";
+    public const string DocumentRequired = "Pilih aset dan jenis dokumen.";
+    public const string DocumentNotFound = "Dokumen kepemilikan tidak ditemukan atau sudah dihapus.";
+    public const string DocumentTypeInactive = "Pilih jenis dokumen yang masih aktif.";
+    public const string DocumentAssetMismatch = "Aset pada dokumen tidak dapat diganti. Hapus dokumen ini lalu tambahkan pada aset yang benar.";
+    public const string DocumentAssetStatusFormat = "Aset berstatus {0}, sehingga dokumen kepemilikannya tidak dapat diubah.";
 }

@@ -57,9 +57,9 @@ FE-AST-004 ✅┬─────────────────────
             │                     │                         │
             ├─────────────────────┴─> FE-AST-007 ✅ ──────┐ │
             │                                             │ │
-            │    BE-AST-011 [BE] ─┐                       │ │
+            │  BE-AST-011 [BE] 🟡 ─┐                       │ │
             │                     │                       │ │
-            └─────────────────────┴─> FE-AST-008          │ │
+            └─────────────────────┴─> FE-AST-008 🟡       │ │
                                                           │ │
                                      BE-AST-013 [BE] ─────┴─┴─> FE-AST-010
 ```
@@ -144,11 +144,11 @@ Pasangan prasyarat→task: **18** (7 pada `REG-FE-S1`, 11 pada `REG-FE-S2`).
 | **Status** | ✅ **SELESAI 18 November 2026.** Pemeriksaan Kondisi (kartu, tab "Menunggu Penetapan"/"Menunggu Persetujuan Kehilangan", Tetapkan/Tolak/Setujui Hilang/Ditemukan Kembali, berita acara kehilangan), formulir Laporkan Kondisi (foto lewat `UploadPhotoField.jsx` dengan kamera, aset terisi dari daftar), Aset Aktif/Rusak Ringan-Berat/Tidak Digunakan/Hilang memakai satu view Daftar Inventaris bervarian, Riwayat Perubahan Status; grup menu "Kondisi & Status Aset" 6 butir. Ketiga kriteria terpetakan ke source; tanpa perubahan backend. `SCR-AST-REG-27` memakai laporan kondisi yang ditetapkan atas keputusan Rizki (delta dari `/reports/history` milik `BE-AST-013`). `npx eslint --max-warnings=0` 35 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 2026-11-18 09:29:34). Uji layar Playwright **27/27 langkah** dengan pelapor (Dimas), superadmin, penyetuju tanpa hak, dan LOKET; 0 galat halaman, 0 respons 5xx. Ikut dikerjakan atas permintaan Rizki: formulir tambah master Aset diseragamkan dengan master Akuntansi; label pilihan aset kini memuat nomor inventaris (diperiksa di layar, belum masuk `BUILD_ID`). Belum di-commit. Laporan: [`FE-AST-007.md`](../task/report/frontend/FE-AST-007.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-22..27`; empat daftar kondisi memakai satu komponen bersaringan tetap. 2. Foto memakai `UploadPhotoField.jsx`. 3. Setujui Hilang mewajibkan lampiran berita acara |
 
-### `FE-AST-008` — Dokumen, pengamanan, pemanfaatan, menganggur
+### 🟡 `FE-AST-008` — Dokumen, pengamanan, pemanfaatan, menganggur
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 18 November 2026.** Dokumen Kepemilikan (daftar bermasa berlaku, tambah/ubah dengan berkas, hapus), Kelengkapan Dokumen Kepemilikan, Pengamanan Administrasi, Pemantauan Aset Menganggur, Pengajuan Pemanfaatan (formulir + pemilih aset, rincian beraksi), Pemanfaatan Sesuai Kewenangan (kolom Penyetuju Wajib); 11 route, grup menu baru 5 butir. ESLint 41 berkas `0 errors, 0 warnings`; `npm run build` Rizki berhasil (`BUILD_ID` 10:35:51). Uji layar Playwright **29/32 + 3 cek ulang** lulus (3 kegagalan = skrip mencocokkan huruf kecil pada judul berhuruf besar) dengan superadmin, penyetuju, LOKET; 0 galat halaman, 0 respons 5xx. Kriteria 1 dan 2 terbukti. **Belum terbukti:** kriteria 3 untuk aset menganggur (baris belum ada; ikut `AT-REG-15` `BE-AST-011`). Belum di-commit. Laporan: [`FE-AST-008.md`](../task/report/frontend/FE-AST-008.md) |
 | Acceptance criteria | 1. `SCR-AST-REG-14`, `28..32`. 2. Antrean persetujuan pemanfaatan menampilkan penyetuju yang diwajibkan. 3. Dokumen hampir habis dan aset menganggur memakai angka backend |
 
 ### `FE-AST-009` — Impor data awal

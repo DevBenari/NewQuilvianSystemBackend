@@ -38,6 +38,11 @@ public static class AssetManagementServiceCollectionExtensions
         services.AddScoped<AssetStockTakeGate>();
         services.AddScoped<AssetPlacementService>();
         services.AddScoped<AssetConditionService>();
+        services.AddScoped<AssetDocumentService>();
+        services.AddScoped<AssetUtilizationService>();
+        services.AddScoped<AssetAttachmentAccessService>();
+        services.Configure<AssetDailyStatusWorkerOptions>(configuration.GetSection(AssetDailyStatusWorkerOptions.SectionName));
+        services.AddHostedService<AssetDailyStatusWorker>();
 
         return services;
     }

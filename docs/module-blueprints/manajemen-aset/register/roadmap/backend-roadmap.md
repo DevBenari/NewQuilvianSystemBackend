@@ -38,7 +38,7 @@ BE-AST-001 ✅ ─> BE-AST-002 ✅ ─> BE-AST-003 ✅ ─┬─> BE-AST-004 ✅
 ```text
 BE-AST-015 [NLI] 🟡 ─┬─> BE-AST-007 ✅ ─┬─> BE-AST-008 ✅
                      │                  │
-      BE-AST-006 ✅ ─┘                  ├─> BE-AST-011
+      BE-AST-006 ✅ ─┘                  ├─> BE-AST-011 🟡
                                         │
                                         ├─> BE-AST-009 ✅┬─> BE-AST-012
                                         │               │
@@ -68,7 +68,7 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Slice | Gelombang MVP | Task | Status |
 |---|---|---|---|
 | `REG-S1` Fondasi: registry, model, migration, service bersama, master | `MVP-0` | `BE-AST-001` s.d. `BE-AST-006` | ✅ `BE-AST-001` ✅ 2026-11-12; `BE-AST-002` ✅ 2026-11-12; `BE-AST-003` ✅ 2026-11-12; `BE-AST-004` ✅ 2026-11-16; `BE-AST-005` ✅ 2026-11-16; `BE-AST-006` ✅ 2026-11-16 |
-| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` s.d. `013` belum dikerjakan |
+| `REG-S2` Register aset: pencatatan, label, penempatan, kondisi, dokumen, pemanfaatan, impor, dashboard | `MVP-1` | `BE-AST-007` s.d. `BE-AST-013` | 🟡 `BE-AST-007` ✅ 2026-11-16; `BE-AST-008` ✅ 2026-11-17; `BE-AST-009` ✅ 2026-11-17; `BE-AST-010` ✅ 2026-11-18; `BE-AST-011` 🟡 2026-11-18 (pekerja harian `Disetujui`→`Berjalan` 19 Nov dan `AT-REG-15` positif menyusul); `BE-AST-012`, `013` belum dikerjakan |
 
 ## Tabel task
 
@@ -172,11 +172,11 @@ Pasangan prasyarat→task: **15** (sama dengan kolom `Dependency`).
 | Cakupan | `AssetConditionService` (termasuk `OpenReport` untuk sub-modul lain), controller, PDF Berita Acara Kehilangan |
 | Acceptance criteria | 1. Matriks state §2–3. 2. Foto wajib dari unit. 3. Hilang butuh berita acara dan Kepala Bagian Aset bukan pelapor. 4. Satu laporan terbuka per aset. 5. Linimasa `KondisiBerubah` |
 
-### `BE-AST-011` — Dokumen kepemilikan, pengamanan, pemanfaatan
+### 🟡 `BE-AST-011` — Dokumen kepemilikan, pengamanan, pemanfaatan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 18 November 2026.** `AssetDocumentService` (dokumen kepemilikan, kelengkapan per kategori, dokumen habis/hampir habis menurut pengaturan), `AssetUtilizationService` (draft → ajukan dengan penyetuju dan batas rupiah dikunci → setujui/teruskan → keputusan Direktur; akhiri, batal), `AssetAttachmentAccessService`, `AssetDailyStatusWorker` (bawaan mati), `GET /assets/idle` + `isIdle`; 3 controller (23 endpoint). QBE Strict 20 berkas `PASS` 0 temuan; atribut akses 39/39; nol baris komentar; `dotnet build` Rizki berhasil (DLL 10:39:38). Runtime **60/60** + **13/15** (2 kegagalan = harapan skrip keliru, data membuktikan backend benar): `AT-REG-08` (persetujuan), `09`, `14`, `41`, `42` lulus, kriteria 1, 3, 4 terbukti. Pekerja harian sesudah restart backend 11:01: `Berjalan`→`Berakhir` 4/4 (`AST-PMF-000007`, kunci lepas, linimasa). **Belum terbukti:** kriteria 5 bagian `Disetujui`→`Berjalan` (`AST-PMF-000008` mulai 19 Nov) dan `AT-REG-15` kasus positif (butuh aset Tidak Digunakan lebih dari N hari; mulai 20 Nov lewat batas = 1). Delta kontrak dicatat di laporan. Belum di-commit. Laporan: [`BE-AST-011.md`](../task/report/backend/BE-AST-011.md) |
 | Cakupan | `AssetDocumentService`, `AssetUtilizationService`, `AssetDailyStatusWorker` (bawaan mati), 3 controller (2.12–2.14) |
 | Acceptance criteria | 1. Kelengkapan dokumen per kategori dan dokumen hampir habis menurut pengaturan. 2. Aset menganggur sebagai keadaan turunan. 3. Penyetuju pemanfaatan dihitung dan dikunci saat diajukan (batas dari `nilai`). 4. Aset bukan milik RS ditolak. 5. Pekerja harian memindahkan `Disetujui`→`Berjalan`→`Berakhir` |
 

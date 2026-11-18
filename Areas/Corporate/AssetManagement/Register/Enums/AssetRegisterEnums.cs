@@ -142,3 +142,11 @@ public enum AssetHistoryEventType
     Dipulihkan = 13,
     DiimporSaldoAwal = 14
 }
+
+public enum AssetDocumentExpiryState
+{
+    TanpaMasaBerlaku = 0,
+    Berlaku = 1,
+    HampirHabis = 2,
+    Habis = 3
+}

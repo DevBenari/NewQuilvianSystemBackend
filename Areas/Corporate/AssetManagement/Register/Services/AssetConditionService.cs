@@ -326,6 +326,7 @@ public sealed partial class AssetConditionService
         }
 
         asset.Condition = decided;
+        asset.ConditionChangedAt = now;
         asset.UpdateBy = actorUserId;
         asset.UpdateDateTime = now;
         asset.RowVersion = Guid.NewGuid();
