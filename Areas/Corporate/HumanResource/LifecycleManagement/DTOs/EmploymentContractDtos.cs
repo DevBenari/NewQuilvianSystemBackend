@@ -62,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
         public string? ContractStatus { get; set; }
         public Guid? WorkforceProfileId { get; set; }
         public string? Search { get; set; }
+        public int? ExpiringInDays { get; set; }
     }
 
     // --- BE-HRD-080: Keputusan Kontrak T16 & Batas 5 Tahun PKWT ---

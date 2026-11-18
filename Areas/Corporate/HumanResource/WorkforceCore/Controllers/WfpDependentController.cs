@@ -357,6 +357,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                     validation.ErrorMessage ?? "Data tanggungan workforce tidak valid."));
             }
 
+            // Guard FIN-HRD-04-BE-007 / HRD-DEC-052: Guard tanggungan pajak, benefit, dan asuransi dari mutasi langsung
+            var isSensitiveChanged = (entity.IsTaxDependent != request.IsTaxDependent) ||
+                (entity.IsBenefitEligible != request.IsBenefitEligible) ||
+                (entity.IsInsuranceEligible != request.IsInsuranceEligible) ||
+                (request.FamilyMemberId.HasValue && entity.FamilyMemberId != request.FamilyMemberId.Value);
+
+            if (isSensitiveChanged)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan status tanggungan pajak, kelayakan benefit, kelayakan asuransi, atau relasi anggota keluarga merupakan data sensitif yang memengaruhi pajak dan benefit (HRD-DEC-052). Perubahan wajib melalui pengajuan perubahan data berbukti yang disetujui Menu 06.",
+                    "SENSITIVE_DEPENDENT_LOCKED"
+                ));
+            }
+
             var normalizedStatus = NormalizeDependentStatus(request.DependentStatus);
             entity.FamilyMemberId = NormalizeNullableGuid(request.FamilyMemberId);
             entity.BenefitPlanId = NormalizeNullableGuid(request.BenefitPlanId);
