@@ -1,15 +1,16 @@
 {
+  "releaseName": "Quilvian 0.33.0 - Human Resource Management and Self Service Management Enhancement",
+  "description": "Release 0.33.0 enhances Human Resource Management, Self Service Management capabilities.",
+  "backendVersion": "0.33.0",
   "releaseMetadata": {
     "features": [],
-    "migrationCount": 0,
+    "generatedAt": "2026-11-18T06:29:52",
     "modules": [
-      "Human Resource Management"
+      "Human Resource Management",
+      "Self Service Management"
     ],
-    "migrations": [],
     "generatedBy": "Quilvian Release Generator",
-    "generatedAt": "2026-11-18T03:36:10"
-  },
-  "backendVersion": "0.32.0",
-  "releaseName": "Quilvian 0.32.0 - Human Resource Management Enhancement",
-  "description": "Release 0.32.0 enhances Human Resource Management capabilities."
+    "migrationCount": 0,
+    "migrations": []
+  }
 }
